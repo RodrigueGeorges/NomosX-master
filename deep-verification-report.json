@@ -1,0 +1,1152 @@
+{
+  "timestamp": "2026-02-26T19:46:52.367Z",
+  "summary": {
+    "total": 91,
+    "perfect": 0,
+    "good": 91,
+    "issues": 0,
+    "broken": 0,
+    "workingRate": 100,
+    "fileExists": 91,
+    "registryIncluded": 91,
+    "rorCorrect": 91,
+    "apiWorking": 91,
+    "realData": 36
+  },
+  "results": [
+    {
+      "provider": "openalex",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "realData": true,
+      "errors": [],
+      "warnings": [
+        "Provider sans ROR ID (normal pour les académiques)"
+      ]
+    },
+    {
+      "provider": "crossref",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "realData": true,
+      "errors": [],
+      "warnings": [
+        "Provider sans ROR ID (normal pour les académiques)"
+      ]
+    },
+    {
+      "provider": "orcid",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "realData": true,
+      "errors": [],
+      "warnings": [
+        "Provider sans ROR ID (normal pour les académiques)"
+      ]
+    },
+    {
+      "provider": "semantic-scholar",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "realData": true,
+      "errors": [],
+      "warnings": [
+        "Provider sans ROR ID (normal pour les académiques)"
+      ]
+    },
+    {
+      "provider": "core",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "realData": true,
+      "errors": [],
+      "warnings": [
+        "Provider sans ROR ID (normal pour les académiques)"
+      ]
+    },
+    {
+      "provider": "base",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "realData": true,
+      "errors": [],
+      "warnings": [
+        "Provider sans ROR ID (normal pour les académiques)"
+      ]
+    },
+    {
+      "provider": "openaire",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "realData": true,
+      "errors": [],
+      "warnings": [
+        "Provider sans ROR ID (normal pour les académiques)"
+      ]
+    },
+    {
+      "provider": "arxiv",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "realData": true,
+      "errors": [],
+      "warnings": [
+        "Provider sans ROR ID (normal pour les académiques)"
+      ]
+    },
+    {
+      "provider": "pubmed",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "realData": true,
+      "errors": [],
+      "warnings": [
+        "Provider sans ROR ID (normal pour les académiques)"
+      ]
+    },
+    {
+      "provider": "nature",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "realData": true,
+      "errors": [],
+      "warnings": [
+        "Provider sans ROR ID (normal pour les académiques)"
+      ]
+    },
+    {
+      "provider": "science",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "realData": true,
+      "errors": [],
+      "warnings": [
+        "Provider sans ROR ID (normal pour les académiques)"
+      ]
+    },
+    {
+      "provider": "cell",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "realData": true,
+      "errors": [],
+      "warnings": [
+        "Provider sans ROR ID (normal pour les académiques)"
+      ]
+    },
+    {
+      "provider": "lancet",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "realData": true,
+      "errors": [],
+      "warnings": [
+        "Provider sans ROR ID (normal pour les académiques)"
+      ]
+    },
+    {
+      "provider": "pnas",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "realData": true,
+      "errors": [],
+      "warnings": [
+        "Provider sans ROR ID (normal pour les académiques)"
+      ]
+    },
+    {
+      "provider": "springer",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "realData": true,
+      "errors": [],
+      "warnings": [
+        "Provider sans ROR ID (normal pour les académiques)"
+      ]
+    },
+    {
+      "provider": "elsevier",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "realData": true,
+      "errors": [],
+      "warnings": [
+        "Provider sans ROR ID (normal pour les académiques)"
+      ]
+    },
+    {
+      "provider": "wiley",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "realData": true,
+      "errors": [],
+      "warnings": [
+        "Provider sans ROR ID (normal pour les académiques)"
+      ]
+    },
+    {
+      "provider": "taylor-francis",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "realData": true,
+      "errors": [],
+      "warnings": [
+        "Provider sans ROR ID (normal pour les académiques)"
+      ]
+    },
+    {
+      "provider": "sage",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "realData": true,
+      "errors": [],
+      "warnings": [
+        "Provider sans ROR ID (normal pour les académiques)"
+      ]
+    },
+    {
+      "provider": "oxford",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "realData": true,
+      "errors": [],
+      "warnings": [
+        "Provider sans ROR ID (normal pour les académiques)"
+      ]
+    },
+    {
+      "provider": "cambridge",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "realData": true,
+      "errors": [],
+      "warnings": [
+        "Provider sans ROR ID (normal pour les académiques)"
+      ]
+    },
+    {
+      "provider": "mckinsey",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "errors": [],
+      "warnings": [
+        "API fonctionne mais pas de données réelles"
+      ]
+    },
+    {
+      "provider": "bcg",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "errors": [],
+      "warnings": [
+        "API fonctionne mais pas de données réelles"
+      ]
+    },
+    {
+      "provider": "bain",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "errors": [],
+      "warnings": [
+        "API fonctionne mais pas de données réelles"
+      ]
+    },
+    {
+      "provider": "deloitte",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "errors": [],
+      "warnings": [
+        "API fonctionne mais pas de données réelles"
+      ]
+    },
+    {
+      "provider": "pwc",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "errors": [],
+      "warnings": [
+        "API fonctionne mais pas de données réelles"
+      ]
+    },
+    {
+      "provider": "ey",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "errors": [],
+      "warnings": [
+        "API fonctionne mais pas de données réelles"
+      ]
+    },
+    {
+      "provider": "kpmg",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "errors": [],
+      "warnings": [
+        "API fonctionne mais pas de données réelles"
+      ]
+    },
+    {
+      "provider": "accenture",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "errors": [],
+      "warnings": [
+        "API fonctionne mais pas de données réelles"
+      ]
+    },
+    {
+      "provider": "blackrock",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "realData": true,
+      "errors": [],
+      "warnings": [
+        "Provider sans ROR ID (normal pour les académiques)"
+      ]
+    },
+    {
+      "provider": "goldman-sachs",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "errors": [],
+      "warnings": [
+        "API fonctionne mais pas de données réelles"
+      ]
+    },
+    {
+      "provider": "jpmorgan",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "errors": [],
+      "warnings": [
+        "API fonctionne mais pas de données réelles"
+      ]
+    },
+    {
+      "provider": "morgan-stanley",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "errors": [],
+      "warnings": [
+        "API fonctionne mais pas de données réelles"
+      ]
+    },
+    {
+      "provider": "credit-suisse",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "errors": [],
+      "warnings": [
+        "API fonctionne mais pas de données réelles"
+      ]
+    },
+    {
+      "provider": "ubs",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "realData": false,
+      "errors": [],
+      "warnings": [
+        "API fonctionne mais pas de données réelles"
+      ]
+    },
+    {
+      "provider": "deutsche-bank",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "errors": [],
+      "warnings": [
+        "API fonctionne mais pas de données réelles"
+      ]
+    },
+    {
+      "provider": "brookings",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "errors": [],
+      "warnings": [
+        "API fonctionne mais pas de données réelles"
+      ]
+    },
+    {
+      "provider": "carnegie",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "errors": [],
+      "warnings": [
+        "API fonctionne mais pas de données réelles"
+      ]
+    },
+    {
+      "provider": "chatham-house",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "errors": [],
+      "warnings": [
+        "API fonctionne mais pas de données réelles"
+      ]
+    },
+    {
+      "provider": "rand",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "errors": [],
+      "warnings": [
+        "API fonctionne mais pas de données réelles"
+      ]
+    },
+    {
+      "provider": "cfr",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "errors": [],
+      "warnings": [
+        "API fonctionne mais pas de données réelles"
+      ]
+    },
+    {
+      "provider": "wilson-center",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "errors": [],
+      "warnings": [
+        "API fonctionne mais pas de données réelles"
+      ]
+    },
+    {
+      "provider": "heritage-foundation",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "errors": [],
+      "warnings": [
+        "API fonctionne mais pas de données réelles"
+      ]
+    },
+    {
+      "provider": "stimson-center",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "errors": [],
+      "warnings": [
+        "API fonctionne mais pas de données réelles"
+      ]
+    },
+    {
+      "provider": "adl",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "errors": [],
+      "warnings": [
+        "API fonctionne mais pas de données réelles"
+      ]
+    },
+    {
+      "provider": "cato-institute",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "errors": [],
+      "warnings": [
+        "API fonctionne mais pas de données réelles"
+      ]
+    },
+    {
+      "provider": "new-america",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "errors": [],
+      "warnings": [
+        "API fonctionne mais pas de données réelles"
+      ]
+    },
+    {
+      "provider": "iiss",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "errors": [],
+      "warnings": [
+        "API fonctionne mais pas de données réelles"
+      ]
+    },
+    {
+      "provider": "aspen-institute",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "errors": [],
+      "warnings": [
+        "API fonctionne mais pas de données réelles"
+      ]
+    },
+    {
+      "provider": "nasa",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "errors": [],
+      "warnings": [
+        "API fonctionne mais pas de données réelles"
+      ]
+    },
+    {
+      "provider": "noaa",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "errors": [],
+      "warnings": [
+        "API fonctionne mais pas de données réelles"
+      ]
+    },
+    {
+      "provider": "epa",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "realData": false,
+      "errors": [],
+      "warnings": [
+        "API fonctionne mais pas de données réelles"
+      ]
+    },
+    {
+      "provider": "fda",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "realData": false,
+      "errors": [],
+      "warnings": [
+        "API fonctionne mais pas de données réelles"
+      ]
+    },
+    {
+      "provider": "cdc",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "realData": false,
+      "errors": [],
+      "warnings": [
+        "API fonctionne mais pas de données réelles"
+      ]
+    },
+    {
+      "provider": "nih",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "errors": [],
+      "warnings": [
+        "API fonctionne mais pas de données réelles"
+      ]
+    },
+    {
+      "provider": "nsf",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "errors": [],
+      "warnings": [
+        "API fonctionne mais pas de données réelles"
+      ]
+    },
+    {
+      "provider": "worldbank",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "errors": [],
+      "warnings": [
+        "API fonctionne mais pas de données réelles"
+      ]
+    },
+    {
+      "provider": "imf",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "errors": [],
+      "warnings": [
+        "API fonctionne mais pas de données réelles"
+      ]
+    },
+    {
+      "provider": "oecd",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "errors": [],
+      "warnings": [
+        "API fonctionne mais pas de données réelles"
+      ]
+    },
+    {
+      "provider": "undp",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "errors": [],
+      "warnings": [
+        "API fonctionne mais pas de données réelles"
+      ]
+    },
+    {
+      "provider": "who",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "errors": [],
+      "warnings": [
+        "API fonctionne mais pas de données réelles"
+      ]
+    },
+    {
+      "provider": "ipcc",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "errors": [],
+      "warnings": [
+        "API fonctionne mais pas de données réelles"
+      ]
+    },
+    {
+      "provider": "unep",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "errors": [],
+      "warnings": [
+        "API fonctionne mais pas de données réelles"
+      ]
+    },
+    {
+      "provider": "iucn",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "errors": [],
+      "warnings": [
+        "API fonctionne mais pas de données réelles"
+      ]
+    },
+    {
+      "provider": "wwf",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "errors": [],
+      "warnings": [
+        "API fonctionne mais pas de données réelles"
+      ]
+    },
+    {
+      "provider": "greenpeace",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "realData": true,
+      "errors": [],
+      "warnings": [
+        "Provider sans ROR ID (normal pour les académiques)"
+      ]
+    },
+    {
+      "provider": "wri",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "errors": [],
+      "warnings": [
+        "API fonctionne mais pas de données réelles"
+      ]
+    },
+    {
+      "provider": "climate-analytics",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "errors": [],
+      "warnings": [
+        "API fonctionne mais pas de données réelles"
+      ]
+    },
+    {
+      "provider": "iea",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "errors": [],
+      "warnings": [
+        "API fonctionne mais pas de données réelles"
+      ]
+    },
+    {
+      "provider": "deepmind",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "errors": [],
+      "warnings": [
+        "API fonctionne mais pas de données réelles"
+      ]
+    },
+    {
+      "provider": "openai-research",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "errors": [],
+      "warnings": [
+        "API fonctionne mais pas de données réelles"
+      ]
+    },
+    {
+      "provider": "google-ai",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "errors": [],
+      "warnings": [
+        "API fonctionne mais pas de données réelles"
+      ]
+    },
+    {
+      "provider": "microsoft-research",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "errors": [],
+      "warnings": [
+        "API fonctionne mais pas de données réelles"
+      ]
+    },
+    {
+      "provider": "facebook-research",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "realData": false,
+      "errors": [],
+      "warnings": [
+        "API fonctionne mais pas de données réelles"
+      ]
+    },
+    {
+      "provider": "apple-research",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "errors": [],
+      "warnings": [
+        "API fonctionne mais pas de données réelles"
+      ]
+    },
+    {
+      "provider": "ibm-research",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "errors": [],
+      "warnings": [
+        "API fonctionne mais pas de données réelles"
+      ]
+    },
+    {
+      "provider": "nvidia-research",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "errors": [],
+      "warnings": [
+        "API fonctionne mais pas de données réelles"
+      ]
+    },
+    {
+      "provider": "anthropic",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "realData": false,
+      "errors": [],
+      "warnings": [
+        "API fonctionne mais pas de données réelles"
+      ]
+    },
+    {
+      "provider": "github",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "realData": true,
+      "errors": [],
+      "warnings": [
+        "Provider sans ROR ID (normal pour les académiques)"
+      ]
+    },
+    {
+      "provider": "uspto",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "realData": true,
+      "errors": [],
+      "warnings": [
+        "Provider sans ROR ID (normal pour les académiques)"
+      ]
+    },
+    {
+      "provider": "google-patents",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "realData": true,
+      "errors": [],
+      "warnings": [
+        "Provider sans ROR ID (normal pour les académiques)"
+      ]
+    },
+    {
+      "provider": "epo",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "realData": true,
+      "errors": [],
+      "warnings": [
+        "Provider sans ROR ID (normal pour les académiques)"
+      ]
+    },
+    {
+      "provider": "wipo",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "realData": true,
+      "errors": [],
+      "warnings": [
+        "Provider sans ROR ID (normal pour les académiques)"
+      ]
+    },
+    {
+      "provider": "figshare",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "realData": true,
+      "errors": [],
+      "warnings": [
+        "Provider sans ROR ID (normal pour les académiques)"
+      ]
+    },
+    {
+      "provider": "zenodo",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "realData": true,
+      "errors": [],
+      "warnings": [
+        "Provider sans ROR ID (normal pour les académiques)"
+      ]
+    },
+    {
+      "provider": "kaggle",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "realData": true,
+      "errors": [],
+      "warnings": [
+        "Provider sans ROR ID (normal pour les académiques)"
+      ]
+    },
+    {
+      "provider": "huggingface",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "realData": true,
+      "errors": [],
+      "warnings": [
+        "Provider sans ROR ID (normal pour les académiques)"
+      ]
+    },
+    {
+      "provider": "dataverse",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "realData": true,
+      "errors": [],
+      "warnings": [
+        "Provider sans ROR ID (normal pour les académiques)"
+      ]
+    },
+    {
+      "provider": "researchgate",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "realData": true,
+      "errors": [],
+      "warnings": [
+        "Provider sans ROR ID (normal pour les académiques)"
+      ]
+    },
+    {
+      "provider": "academia-edu",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "realData": true,
+      "errors": [],
+      "warnings": [
+        "Provider sans ROR ID (normal pour les académiques)"
+      ]
+    },
+    {
+      "provider": "mendeley",
+      "status": "GOOD",
+      "fileExists": true,
+      "registryIncluded": true,
+      "rorIdCorrect": true,
+      "apiWorking": true,
+      "realData": true,
+      "errors": [],
+      "warnings": [
+        "Provider sans ROR ID (normal pour les académiques)"
+      ]
+    }
+  ]
+}

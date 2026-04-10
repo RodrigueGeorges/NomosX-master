@@ -1,0 +1,380 @@
+{
+  "timestamp": "2026-02-26T16:50:32.568Z",
+  "summary": {
+    "summary": {
+      "totalProviders": 0,
+      "successful": 0,
+      "failed": 0,
+      "successRate": null,
+      "avgResponseTime": null,
+      "avgQuality": null,
+      "totalSources": 0
+    },
+    "recommendations": [],
+    "topProviders": [],
+    "problemProviders": []
+  },
+  "detailedMetrics": [],
+  "providerHealth": [
+    {
+      "provider": "semantic-scholar",
+      "status": "healthy",
+      "lastCheck": "2026-02-26T16:50:11.892Z",
+      "consecutiveFailures": 1,
+      "averageResponseTime": 510,
+      "successRate": 0,
+      "totalCalls": 1
+    },
+    {
+      "provider": "orcid",
+      "status": "healthy",
+      "lastCheck": "2026-02-26T16:50:12.759Z",
+      "consecutiveFailures": 0,
+      "averageResponseTime": 1377,
+      "successRate": 100,
+      "totalCalls": 1
+    },
+    {
+      "provider": "openalex",
+      "status": "healthy",
+      "lastCheck": "2026-02-26T16:50:13.209Z",
+      "consecutiveFailures": 0,
+      "averageResponseTime": 1827,
+      "successRate": 100,
+      "totalCalls": 1
+    },
+    {
+      "provider": "core",
+      "status": "healthy",
+      "lastCheck": "2026-02-26T16:50:13.258Z",
+      "consecutiveFailures": 0,
+      "averageResponseTime": 1876,
+      "successRate": 100,
+      "totalCalls": 1
+    },
+    {
+      "provider": "crossref",
+      "status": "healthy",
+      "lastCheck": "2026-02-26T16:50:13.455Z",
+      "consecutiveFailures": 0,
+      "averageResponseTime": 2073,
+      "successRate": 100,
+      "totalCalls": 1
+    },
+    {
+      "provider": "base",
+      "status": "healthy",
+      "lastCheck": "2026-02-26T16:50:14.961Z",
+      "consecutiveFailures": 0,
+      "averageResponseTime": 1002,
+      "successRate": 100,
+      "totalCalls": 1
+    },
+    {
+      "provider": "pubmed",
+      "status": "healthy",
+      "lastCheck": "2026-02-26T16:50:15.092Z",
+      "consecutiveFailures": 0,
+      "averageResponseTime": 1133,
+      "successRate": 100,
+      "totalCalls": 1
+    },
+    {
+      "provider": "nature",
+      "status": "healthy",
+      "lastCheck": "2026-02-26T16:50:15.727Z",
+      "consecutiveFailures": 1,
+      "averageResponseTime": 1768,
+      "successRate": 0,
+      "totalCalls": 1
+    },
+    {
+      "provider": "arxiv",
+      "status": "healthy",
+      "lastCheck": "2026-02-26T16:50:15.742Z",
+      "consecutiveFailures": 0,
+      "averageResponseTime": 1783,
+      "successRate": 100,
+      "totalCalls": 1
+    },
+    {
+      "provider": "openaire",
+      "status": "healthy",
+      "lastCheck": "2026-02-26T16:50:16.400Z",
+      "consecutiveFailures": 0,
+      "averageResponseTime": 2441,
+      "successRate": 100,
+      "totalCalls": 1
+    },
+    {
+      "provider": "springer",
+      "status": "healthy",
+      "lastCheck": "2026-02-26T16:50:17.626Z",
+      "consecutiveFailures": 1,
+      "averageResponseTime": 715,
+      "successRate": 0,
+      "totalCalls": 1
+    },
+    {
+      "provider": "cell",
+      "status": "healthy",
+      "lastCheck": "2026-02-26T16:50:17.859Z",
+      "consecutiveFailures": 0,
+      "averageResponseTime": 948,
+      "successRate": 100,
+      "totalCalls": 1
+    },
+    {
+      "provider": "lancet",
+      "status": "healthy",
+      "lastCheck": "2026-02-26T16:50:18.009Z",
+      "consecutiveFailures": 0,
+      "averageResponseTime": 1098,
+      "successRate": 100,
+      "totalCalls": 1
+    },
+    {
+      "provider": "science",
+      "status": "healthy",
+      "lastCheck": "2026-02-26T16:50:18.148Z",
+      "consecutiveFailures": 0,
+      "averageResponseTime": 1237,
+      "successRate": 100,
+      "totalCalls": 1
+    },
+    {
+      "provider": "pnas",
+      "status": "healthy",
+      "lastCheck": "2026-02-26T16:50:19.127Z",
+      "consecutiveFailures": 0,
+      "averageResponseTime": 2216,
+      "successRate": 100,
+      "totalCalls": 1
+    },
+    {
+      "provider": "elsevier",
+      "status": "healthy",
+      "lastCheck": "2026-02-26T16:50:20.625Z",
+      "consecutiveFailures": 0,
+      "averageResponseTime": 985,
+      "successRate": 100,
+      "totalCalls": 1
+    },
+    {
+      "provider": "oxford",
+      "status": "healthy",
+      "lastCheck": "2026-02-26T16:50:20.825Z",
+      "consecutiveFailures": 0,
+      "averageResponseTime": 1185,
+      "successRate": 100,
+      "totalCalls": 1
+    },
+    {
+      "provider": "wiley",
+      "status": "healthy",
+      "lastCheck": "2026-02-26T16:50:21.628Z",
+      "consecutiveFailures": 0,
+      "averageResponseTime": 1988,
+      "successRate": 100,
+      "totalCalls": 1
+    },
+    {
+      "provider": "taylor-francis",
+      "status": "healthy",
+      "lastCheck": "2026-02-26T16:50:21.800Z",
+      "consecutiveFailures": 0,
+      "averageResponseTime": 2160,
+      "successRate": 100,
+      "totalCalls": 1
+    },
+    {
+      "provider": "sage",
+      "status": "healthy",
+      "lastCheck": "2026-02-26T16:50:22.012Z",
+      "consecutiveFailures": 1,
+      "averageResponseTime": 2372,
+      "successRate": 0,
+      "totalCalls": 1
+    },
+    {
+      "provider": "figshare",
+      "status": "healthy",
+      "lastCheck": "2026-02-26T16:50:23.182Z",
+      "consecutiveFailures": 0,
+      "averageResponseTime": 664,
+      "successRate": 100,
+      "totalCalls": 1
+    },
+    {
+      "provider": "cambridge",
+      "status": "healthy",
+      "lastCheck": "2026-02-26T16:50:23.228Z",
+      "consecutiveFailures": 0,
+      "averageResponseTime": 711,
+      "successRate": 100,
+      "totalCalls": 1
+    },
+    {
+      "provider": "github",
+      "status": "healthy",
+      "lastCheck": "2026-02-26T16:50:23.396Z",
+      "consecutiveFailures": 0,
+      "averageResponseTime": 879,
+      "successRate": 100,
+      "totalCalls": 1
+    },
+    {
+      "provider": "zenodo",
+      "status": "healthy",
+      "lastCheck": "2026-02-26T16:50:23.924Z",
+      "consecutiveFailures": 0,
+      "averageResponseTime": 1406,
+      "successRate": 100,
+      "totalCalls": 1
+    },
+    {
+      "provider": "kaggle",
+      "status": "healthy",
+      "lastCheck": "2026-02-26T16:50:24.469Z",
+      "consecutiveFailures": 0,
+      "averageResponseTime": 1951,
+      "successRate": 100,
+      "totalCalls": 1
+    },
+    {
+      "provider": "worldbank",
+      "status": "healthy",
+      "lastCheck": "2026-02-26T16:50:25.662Z",
+      "consecutiveFailures": 0,
+      "averageResponseTime": 680,
+      "successRate": 100,
+      "totalCalls": 1
+    },
+    {
+      "provider": "carnegie",
+      "status": "healthy",
+      "lastCheck": "2026-02-26T16:50:26.139Z",
+      "consecutiveFailures": 0,
+      "averageResponseTime": 1157,
+      "successRate": 100,
+      "totalCalls": 1
+    },
+    {
+      "provider": "brookings",
+      "status": "healthy",
+      "lastCheck": "2026-02-26T16:50:26.763Z",
+      "consecutiveFailures": 0,
+      "averageResponseTime": 1781,
+      "successRate": 100,
+      "totalCalls": 1
+    },
+    {
+      "provider": "rand",
+      "status": "healthy",
+      "lastCheck": "2026-02-26T16:50:27.296Z",
+      "consecutiveFailures": 0,
+      "averageResponseTime": 2314,
+      "successRate": 100,
+      "totalCalls": 1
+    },
+    {
+      "provider": "mckinsey",
+      "status": "healthy",
+      "lastCheck": "2026-02-26T16:50:27.480Z",
+      "consecutiveFailures": 1,
+      "averageResponseTime": 2499,
+      "successRate": 0,
+      "totalCalls": 1
+    },
+    {
+      "provider": "cato",
+      "status": "healthy",
+      "lastCheck": "2026-02-26T16:50:28.528Z",
+      "consecutiveFailures": 1,
+      "averageResponseTime": 529,
+      "successRate": 0,
+      "totalCalls": 1
+    },
+    {
+      "provider": "iiss",
+      "status": "healthy",
+      "lastCheck": "2026-02-26T16:50:28.648Z",
+      "consecutiveFailures": 0,
+      "averageResponseTime": 649,
+      "successRate": 100,
+      "totalCalls": 1
+    },
+    {
+      "provider": "heritage",
+      "status": "healthy",
+      "lastCheck": "2026-02-26T16:50:29.381Z",
+      "consecutiveFailures": 0,
+      "averageResponseTime": 1382,
+      "successRate": 100,
+      "totalCalls": 1
+    },
+    {
+      "provider": "chatham-house",
+      "status": "healthy",
+      "lastCheck": "2026-02-26T16:50:29.397Z",
+      "consecutiveFailures": 0,
+      "averageResponseTime": 1398,
+      "successRate": 100,
+      "totalCalls": 1
+    },
+    {
+      "provider": "adl",
+      "status": "healthy",
+      "lastCheck": "2026-02-26T16:50:29.814Z",
+      "consecutiveFailures": 1,
+      "averageResponseTime": 1815,
+      "successRate": 0,
+      "totalCalls": 1
+    },
+    {
+      "provider": "epa",
+      "status": "healthy",
+      "lastCheck": "2026-02-26T16:50:31.208Z",
+      "consecutiveFailures": 0,
+      "averageResponseTime": 875,
+      "successRate": 100,
+      "totalCalls": 1
+    },
+    {
+      "provider": "fda",
+      "status": "healthy",
+      "lastCheck": "2026-02-26T16:50:31.682Z",
+      "consecutiveFailures": 0,
+      "averageResponseTime": 1349,
+      "successRate": 100,
+      "totalCalls": 1
+    },
+    {
+      "provider": "cdc",
+      "status": "healthy",
+      "lastCheck": "2026-02-26T16:50:32.225Z",
+      "consecutiveFailures": 0,
+      "averageResponseTime": 1892,
+      "successRate": 100,
+      "totalCalls": 1
+    },
+    {
+      "provider": "noaa",
+      "status": "healthy",
+      "lastCheck": "2026-02-26T16:50:32.255Z",
+      "consecutiveFailures": 0,
+      "averageResponseTime": 1922,
+      "successRate": 100,
+      "totalCalls": 1
+    },
+    {
+      "provider": "nasa",
+      "status": "healthy",
+      "lastCheck": "2026-02-26T16:50:32.554Z",
+      "consecutiveFailures": 0,
+      "averageResponseTime": 2221,
+      "successRate": 100,
+      "totalCalls": 1
+    }
+  ]
+}

@@ -1,0 +1,6854 @@
+[
+  {
+    "file": "app\\(dashboard)\\billing\\plans\\page.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 6,
+        "content": "const {Metadata} = require('next');"
+      },
+      {
+        "num": 7,
+        "content": "const {Suspense} = require('react');"
+      },
+      {
+        "num": 8,
+        "content": "const {BillingPlansClient} = require('@/components/features/billing/BillingPlans"
+      },
+      {
+        "num": 9,
+        "content": "const {Card,CardContent,CardDescription,CardHeader,CardTitle} = require('@/compo"
+      },
+      {
+        "num": 10,
+        "content": "const {cn} = require('@/lib/utils');"
+      }
+    ]
+  },
+  {
+    "file": "app\\(dashboard)\\billing\\subscription\\page.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 6,
+        "content": "const {Metadata} = require('next');"
+      },
+      {
+        "num": 7,
+        "content": "const {Suspense} = require('react');"
+      },
+      {
+        "num": 8,
+        "content": "const {SubscriptionClient} = require('@/components/features/billing/Subscription"
+      },
+      {
+        "num": 9,
+        "content": "const {Card,CardContent,CardDescription,CardHeader,CardTitle} = require('@/compo"
+      },
+      {
+        "num": 10,
+        "content": "const {cn} = require('@/lib/utils');"
+      }
+    ]
+  },
+  {
+    "file": "app\\(dashboard)\\profile\\page.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 6,
+        "content": "const {Metadata} = require('next');"
+      },
+      {
+        "num": 7,
+        "content": "const {Suspense} = require('react');"
+      },
+      {
+        "num": 8,
+        "content": "const {ProfileClient} = require('@/components/features/user/ProfileClient');"
+      },
+      {
+        "num": 9,
+        "content": "const {Card,CardContent,CardDescription,CardHeader,CardTitle} = require('@/compo"
+      },
+      {
+        "num": 10,
+        "content": "const {cn} = require('@/lib/utils');"
+      }
+    ]
+  },
+  {
+    "file": "app\\(dashboard)\\settings\\page.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 6,
+        "content": "const {Metadata} = require('next');"
+      },
+      {
+        "num": 7,
+        "content": "const {Suspense} = require('react');"
+      },
+      {
+        "num": 8,
+        "content": "const {SettingsClient} = require('@/components/features/user/SettingsClient');"
+      },
+      {
+        "num": 9,
+        "content": "const {Card,CardContent,CardDescription,CardHeader,CardTitle} = require('@/compo"
+      },
+      {
+        "num": 10,
+        "content": "const {cn} = require('@/lib/utils');"
+      }
+    ]
+  },
+  {
+    "file": "app\\about\\page.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 10,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 11,
+        "content": "const {useState,useEffect} = require('react');"
+      },
+      {
+        "num": 13,
+        "content": "const {useRouter} = require('next/navigation');"
+      },
+      {
+        "num": 14,
+        "content": "const {Button} = require('@/components/ui/Button');"
+      },
+      {
+        "num": 15,
+        "content": "const AuthModal = require('@/components/AuthModal');"
+      },
+      {
+        "num": 16,
+        "content": "const PublicNav = require('@/components/PublicNav');"
+      },
+      {
+        "num": 17,
+        "content": "const {cn} = require('@/lib/utils');"
+      },
+      {
+        "num": 18,
+        "content": "const {Sparkles,Brain,Shield,Target,ArrowRight,Globe,Users,Lightbulb,BookOpen} ="
+      }
+    ]
+  },
+  {
+    "file": "app\\admin\\page.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 2,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 3,
+        "content": "const {useState,useEffect} = require('react');"
+      },
+      {
+        "num": 19,
+        "content": "const {useRouter} = require('next/navigation');"
+      },
+      {
+        "num": 20,
+        "content": "const Link = require('next/link');"
+      },
+      {
+        "num": 21,
+        "content": "const Shell = require('@/components/Shell');"
+      },
+      {
+        "num": 22,
+        "content": "const {Button} = require('@/components/ui/Button');"
+      },
+      {
+        "num": 23,
+        "content": "const {Badge} = require('@/components/ui/Badge');"
+      },
+      {
+        "num": 24,
+        "content": "const {Card,CardContent} = require('@/components/ui/Card');"
+      },
+      {
+        "num": 25,
+        "content": "const TrustScoreBadge = require('@/components/TrustScoreBadge');"
+      },
+      {
+        "num": 26,
+        "content": "const {cn} = require('@/lib/utils');"
+      },
+      {
+        "num": 27,
+        "content": "const {Activity,Zap,FileText,Archive,Clock,CheckCircle,Pause,VolumeX,ArrowRight,"
+      }
+    ]
+  },
+  {
+    "file": "app\\api\\admin\\stats\\route.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 1,
+        "content": "const {NextRequest,NextResponse} = require('next/server');"
+      },
+      {
+        "num": 2,
+        "content": "const {prisma} = require('@/lib/db');"
+      },
+      {
+        "num": 3,
+        "content": "const {getSession} = require('@/lib/auth');"
+      }
+    ]
+  },
+  {
+    "file": "app\\api\\analysis\\create\\route.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 7,
+        "content": "const {NextRequest,NextResponse} = require('next/server');"
+      },
+      {
+        "num": 8,
+        "content": "const {z} = require('zod');"
+      }
+    ]
+  },
+  {
+    "file": "app\\api\\analysis\\[runId]\\status\\route.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 5,
+        "content": "const {NextRequest,NextResponse} = require('next/server');"
+      }
+    ]
+  },
+  {
+    "file": "app\\api\\auth\\login\\route.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 1,
+        "content": "const {NextRequest,NextResponse} = require('next/server');"
+      },
+      {
+        "num": 2,
+        "content": "const {prisma} = require('@/lib/db');"
+      },
+      {
+        "num": 3,
+        "content": "const {verifyPassword,hashPassword,createSession} = require('@/lib/auth');"
+      },
+      {
+        "num": 4,
+        "content": "const {z} = require('zod');"
+      }
+    ]
+  },
+  {
+    "file": "app\\api\\auth\\logout\\route.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 1,
+        "content": "const {NextRequest,NextResponse} = require('next/server');"
+      },
+      {
+        "num": 2,
+        "content": "const {deleteSession} = require('@/lib/auth');"
+      }
+    ]
+  },
+  {
+    "file": "app\\api\\auth\\me\\route.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 1,
+        "content": "const {NextRequest,NextResponse} = require('next/server');"
+      },
+      {
+        "num": 2,
+        "content": "const {getSession} = require('@/lib/auth');"
+      }
+    ]
+  },
+  {
+    "file": "app\\api\\auth\\register\\route.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 1,
+        "content": "const {NextRequest,NextResponse} = require('next/server');"
+      },
+      {
+        "num": 2,
+        "content": "const {prisma} = require('@/lib/db');"
+      },
+      {
+        "num": 3,
+        "content": "const {hashPassword,createSession} = require('@/lib/auth');"
+      },
+      {
+        "num": 4,
+        "content": "const {z} = require('zod');"
+      }
+    ]
+  },
+  {
+    "file": "app\\api\\brief\\auto\\route.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 1,
+        "content": "const {NextRequest,NextResponse} = require('next/server');"
+      },
+      {
+        "num": 2,
+        "content": "const {scout} = require('@/lib/agent/pipeline-v2');"
+      },
+      {
+        "num": 3,
+        "content": "const {indexAgent,deduplicateSources} = require('@/lib/agent/index-agent');"
+      },
+      {
+        "num": 4,
+        "content": "const {rank,read,analyst,citationGuard,renderBriefHTML} = require('@/lib/agent/p"
+      },
+      {
+        "num": 5,
+        "content": "const {prisma} = require('@/lib/db');"
+      },
+      {
+        "num": 6,
+        "content": "const {selectSmartProviders} = require('@/lib/agent/smart-provider-selector');"
+      }
+    ]
+  },
+  {
+    "file": "app\\api\\brief\\stream\\route.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 13,
+        "content": "const {NextRequest} = require('next/server');"
+      },
+      {
+        "num": 14,
+        "content": "const {selectSmartProviders} = require('@/lib/agent/smart-provider-selector');"
+      },
+      {
+        "num": 15,
+        "content": "const {scout} = require('@/lib/agent/pipeline-v2');"
+      },
+      {
+        "num": 16,
+        "content": "const {indexAgent} = require('@/lib/agent/index-agent');"
+      },
+      {
+        "num": 17,
+        "content": "const {rank} = require('@/lib/agent/pipeline-v2');"
+      },
+      {
+        "num": 18,
+        "content": "const {readerAgent} = require('@/lib/agent/reader-agent');"
+      },
+      {
+        "num": 19,
+        "content": "const {analystAgent} = require('@/lib/agent/analyst-agent');"
+      },
+      {
+        "num": 20,
+        "content": "const {renderBriefHTML} = require('@/lib/agent/pipeline-v2');"
+      },
+      {
+        "num": 21,
+        "content": "const {enhanceQuestion} = require('@/lib/ai/question-enhancer');"
+      },
+      {
+        "num": 22,
+        "content": "const {getSession} = require('@/lib/auth');"
+      },
+      {
+        "num": 23,
+        "content": "const {assertRateLimit,RateLimitError} = require('@/lib/security/rate-limit');"
+      },
+      {
+        "num": 24,
+        "content": "const {assertAndConsumeRun,QuotaError} = require('@/lib/security/quota');"
+      }
+    ]
+  },
+  {
+    "file": "app\\api\\briefs\\route.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 2,
+        "content": "const {NextResponse} = require('next/server');"
+      },
+      {
+        "num": 3,
+        "content": "const {prisma} = require('@/lib/db');"
+      },
+      {
+        "num": 4,
+        "content": "const {analyst,citationGuard,renderBriefHTML,rank} = require('@/lib/agent/pipeli"
+      }
+    ]
+  },
+  {
+    "file": "app\\api\\briefs\\[id]\\export\\route.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 2,
+        "content": "const {NextResponse} = require('next/server');"
+      },
+      {
+        "num": 3,
+        "content": "const {prisma} = require('@/lib/db');"
+      },
+      {
+        "num": 4,
+        "content": "const puppeteer = require('puppeteer-core');"
+      },
+      {
+        "num": 5,
+        "content": "const chromium = require('@sparticuz/chromium');"
+      }
+    ]
+  },
+  {
+    "file": "app\\api\\briefs\\[id]\\share\\route.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 2,
+        "content": "const {NextResponse} = require('next/server');"
+      },
+      {
+        "num": 3,
+        "content": "const {prisma} = require('@/lib/db');"
+      }
+    ]
+  },
+  {
+    "file": "app\\api\\chat\\stream\\route.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 6,
+        "content": "const {streamLLM} = require('@/lib/llm/unified-llm');"
+      },
+      {
+        "num": 7,
+        "content": "const {NextRequest} = require('next/server');"
+      },
+      {
+        "num": 8,
+        "content": "const Sentry = require('@sentry/nextjs');"
+      }
+    ]
+  },
+  {
+    "file": "app\\api\\council\\ask\\route.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 2,
+        "content": "const {NextResponse} = require('next/server');"
+      },
+      {
+        "num": 3,
+        "content": "const {prisma} = require('@/lib/db');"
+      },
+      {
+        "num": 4,
+        "content": "const OpenAI = require('openai');"
+      },
+      {
+        "num": 5,
+        "content": "const {selectSmartProviders} = require('@/lib/agent/smart-provider-selector');"
+      },
+      {
+        "num": 6,
+        "content": "const {scout} = require('@/lib/agent/pipeline-v2');"
+      },
+      {
+        "num": 7,
+        "content": "const {indexAgent} = require('@/lib/agent/index-agent');"
+      },
+      {
+        "num": 8,
+        "content": "const {rank} = require('@/lib/agent/pipeline-v2');"
+      }
+    ]
+  },
+  {
+    "file": "app\\api\\council\\stream\\route.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 8,
+        "content": "const {NextRequest} = require('next/server');"
+      },
+      {
+        "num": 9,
+        "content": "const {selectSmartProviders} = require('@/lib/agent/smart-provider-selector');"
+      },
+      {
+        "num": 10,
+        "content": "const {scout} = require('@/lib/agent/pipeline-v2');"
+      },
+      {
+        "num": 11,
+        "content": "const {indexAgent} = require('@/lib/agent/index-agent');"
+      },
+      {
+        "num": 12,
+        "content": "const {rank} = require('@/lib/agent/pipeline-v2');"
+      },
+      {
+        "num": 13,
+        "content": "const {OpenAI} = require('openai');"
+      }
+    ]
+  },
+  {
+    "file": "app\\api\\council-sessions\\route.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 6,
+        "content": "const {NextRequest,NextResponse} = require('next/server');"
+      },
+      {
+        "num": 7,
+        "content": "const {prisma} = require('@/lib/db');"
+      },
+      {
+        "num": 8,
+        "content": "const {getSession} = require('@/lib/auth');"
+      }
+    ]
+  },
+  {
+    "file": "app\\api\\council-sessions\\[id]\\route.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 5,
+        "content": "const {NextRequest,NextResponse} = require('next/server');"
+      },
+      {
+        "num": 6,
+        "content": "const {prisma} = require('@/lib/db');"
+      },
+      {
+        "num": 7,
+        "content": "const {getSession} = require('@/lib/auth');"
+      }
+    ]
+  },
+  {
+    "file": "app\\api\\cron\\generate-briefs\\route.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 1,
+        "content": "const {NextRequest,NextResponse} = require('next/server');"
+      },
+      {
+        "num": 2,
+        "content": "const {prisma} = require('@/lib/db');"
+      },
+      {
+        "num": 3,
+        "content": "const {runPipeline} = require('@/lib/agent/pipeline-v2');"
+      }
+    ]
+  },
+  {
+    "file": "app\\api\\cron\\macro-refresh\\route.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 1,
+        "content": "const {NextRequest,NextResponse} = require('next/server');"
+      },
+      {
+        "num": 2,
+        "content": "const {refreshMacroSeries} = require('@/lib/agent/macro-refresh');"
+      }
+    ]
+  },
+  {
+    "file": "app\\api\\cron\\newsletter\\route.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 16,
+        "content": "const {NextRequest,NextResponse} = require('next/server');"
+      },
+      {
+        "num": 17,
+        "content": "const {runWeeklyNewsletter} = require('@/lib/jobs/weekly-newsletter');"
+      },
+      {
+        "num": 18,
+        "content": "const {sendBulkNewsletter} = require('@/lib/email');"
+      },
+      {
+        "num": 19,
+        "content": "const {prisma} = require('@/lib/db');"
+      }
+    ]
+  },
+  {
+    "file": "app\\api\\cron\\weekly-briefs\\route.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 1,
+        "content": "const {NextRequest,NextResponse} = require('next/server');"
+      },
+      {
+        "num": 2,
+        "content": "const {prisma} = require('@/lib/db');"
+      },
+      {
+        "num": 3,
+        "content": "const {sendEmail} = require('@/lib/email');"
+      },
+      {
+        "num": 4,
+        "content": "const {renderWeeklyBriefEmail,renderWeeklyBriefPlainText} = require('@/lib/email"
+      }
+    ]
+  },
+  {
+    "file": "app\\api\\digests\\route.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 1,
+        "content": "const {NextResponse} = require('next/server');"
+      },
+      {
+        "num": 2,
+        "content": "const {prisma} = require('@/lib/db');"
+      }
+    ]
+  },
+  {
+    "file": "app\\api\\digests\\send\\route.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 2,
+        "content": "const {NextResponse} = require('next/server');"
+      },
+      {
+        "num": 3,
+        "content": "const {prisma} = require('@/lib/db');"
+      },
+      {
+        "num": 4,
+        "content": "const {sendDigestEmail} = require('@/lib/email');"
+      }
+    ]
+  },
+  {
+    "file": "app\\api\\domains\\route.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 1,
+        "content": "const {NextResponse} = require('next/server');"
+      },
+      {
+        "num": 2,
+        "content": "const {prisma} = require('@/lib/db');"
+      },
+      {
+        "num": 3,
+        "content": "const {PREDEFINED_DOMAINS} = require('@/lib/domains');"
+      }
+    ]
+  },
+  {
+    "file": "app\\api\\drafts\\route.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 6,
+        "content": "const {NextRequest,NextResponse} = require('next/server');"
+      },
+      {
+        "num": 7,
+        "content": "const {prisma} = require('@/lib/db');"
+      },
+      {
+        "num": 8,
+        "content": "const {getSession} = require('@/lib/auth');"
+      }
+    ]
+  },
+  {
+    "file": "app\\api\\drafts\\[id]\\route.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 5,
+        "content": "const {NextRequest,NextResponse} = require('next/server');"
+      },
+      {
+        "num": 6,
+        "content": "const {prisma} = require('@/lib/db');"
+      },
+      {
+        "num": 7,
+        "content": "const {getSession} = require('@/lib/auth');"
+      },
+      {
+        "num": 8,
+        "content": "const {submitDraftToGate} = require('@/lib/agent/editorial-gate');"
+      }
+    ]
+  },
+  {
+    "file": "app\\api\\drafts\\[id]\\submit\\route.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 5,
+        "content": "const {NextRequest,NextResponse} = require('next/server');"
+      },
+      {
+        "num": 6,
+        "content": "const {prisma} = require('@/lib/db');"
+      },
+      {
+        "num": 7,
+        "content": "const {getSession} = require('@/lib/auth');"
+      },
+      {
+        "num": 8,
+        "content": "const {submitDraftToGate} = require('@/lib/agent/editorial-gate');"
+      }
+    ]
+  },
+  {
+    "file": "app\\api\\editorial-gate\\batch\\route.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 5,
+        "content": "const {NextRequest,NextResponse} = require('next/server');"
+      },
+      {
+        "num": 6,
+        "content": "const {getSession} = require('@/lib/auth');"
+      },
+      {
+        "num": 7,
+        "content": "const {evaluatePendingSignals} = require('@/lib/agent/editorial-gate');"
+      }
+    ]
+  },
+  {
+    "file": "app\\api\\editorial-gate\\route.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 5,
+        "content": "const {NextRequest,NextResponse} = require('next/server');"
+      },
+      {
+        "num": 6,
+        "content": "const {prisma} = require('@/lib/db');"
+      },
+      {
+        "num": 7,
+        "content": "const {getSession} = require('@/lib/auth');"
+      },
+      {
+        "num": 8,
+        "content": "const {editorialGate,evaluatePendingSignals} = require('@/lib/agent/editorial-ga"
+      }
+    ]
+  },
+  {
+    "file": "app\\api\\health\\route.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 1,
+        "content": "const {NextRequest,NextResponse} = require('next/server');"
+      },
+      {
+        "num": 2,
+        "content": "const {prisma} = require('@/lib/db');"
+      }
+    ]
+  },
+  {
+    "file": "app\\api\\ingestion\\run\\route.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 1,
+        "content": "const {NextRequest,NextResponse} = require('next/server');"
+      },
+      {
+        "num": 2,
+        "content": "const {scout} = require('@/lib/agent/pipeline-v2');"
+      },
+      {
+        "num": 3,
+        "content": "const {indexAgent,deduplicateSources} = require('@/lib/agent/index-agent');"
+      },
+      {
+        "num": 4,
+        "content": "const {prisma} = require('@/lib/db');"
+      },
+      {
+        "num": 5,
+        "content": "const {getSession} = require('@/lib/auth');"
+      },
+      {
+        "num": 6,
+        "content": "const {assertRateLimit,RateLimitError} = require('@/lib/security/rate-limit');"
+      },
+      {
+        "num": 7,
+        "content": "const {assertAndConsumeRun,QuotaError} = require('@/lib/security/quota');"
+      }
+    ]
+  },
+  {
+    "file": "app\\api\\newsletter\\subscribe\\route.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 9,
+        "content": "const {NextRequest,NextResponse} = require('next/server');"
+      },
+      {
+        "num": 10,
+        "content": "const {prisma} = require('@/lib/db');"
+      },
+      {
+        "num": 11,
+        "content": "const {randomBytes} = require('crypto');"
+      }
+    ]
+  },
+  {
+    "file": "app\\api\\newsletter\\unsubscribe\\route.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 7,
+        "content": "const {NextRequest,NextResponse} = require('next/server');"
+      },
+      {
+        "num": 8,
+        "content": "const {prisma} = require('@/lib/db');"
+      }
+    ]
+  },
+  {
+    "file": "app\\api\\radar\\route.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 1,
+        "content": "const {NextRequest,NextResponse} = require('next/server');"
+      },
+      {
+        "num": 2,
+        "content": "const {generateRadarCards} = require('@/lib/agent/radar-agent');"
+      }
+    ]
+  },
+  {
+    "file": "app\\api\\radar\\subscribe\\route.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 1,
+        "content": "const {NextRequest,NextResponse} = require('next/server');"
+      },
+      {
+        "num": 2,
+        "content": "const {prisma} = require('@/lib/db');"
+      }
+    ]
+  },
+  {
+    "file": "app\\api\\runs\\route.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 2,
+        "content": "const {NextResponse} = require('next/server');"
+      },
+      {
+        "num": 3,
+        "content": "const {prisma} = require('@/lib/db');"
+      }
+    ]
+  },
+  {
+    "file": "app\\api\\search\\route.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 2,
+        "content": "const {NextResponse} = require('next/server');"
+      },
+      {
+        "num": 3,
+        "content": "const {hybridSearch} = require('@/lib/embeddings');"
+      },
+      {
+        "num": 4,
+        "content": "const {getSession} = require('@/lib/auth');"
+      },
+      {
+        "num": 5,
+        "content": "const {assertRateLimit,RateLimitError} = require('@/lib/security/rate-limit');"
+      }
+    ]
+  },
+  {
+    "file": "app\\api\\sources\\route.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 2,
+        "content": "const {NextResponse} = require('next/server');"
+      },
+      {
+        "num": 3,
+        "content": "const {prisma} = require('@/lib/db');"
+      }
+    ]
+  },
+  {
+    "file": "app\\api\\stats\\route.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 2,
+        "content": "const {NextResponse} = require('next/server');"
+      },
+      {
+        "num": 3,
+        "content": "const {prisma} = require('@/lib/db');"
+      }
+    ]
+  },
+  {
+    "file": "app\\api\\subscription\\status\\route.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 1,
+        "content": "const {NextRequest,NextResponse} = require('next/server');"
+      },
+      {
+        "num": 2,
+        "content": "const {getSession} = require('@/lib/auth');"
+      },
+      {
+        "num": 3,
+        "content": "const prisma = require('@/lib/db');"
+      }
+    ]
+  },
+  {
+    "file": "app\\api\\subscription\\upgrade\\route.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 1,
+        "content": "const {NextRequest,NextResponse} = require('next/server');"
+      },
+      {
+        "num": 2,
+        "content": "const {getSession} = require('@/lib/auth');"
+      },
+      {
+        "num": 3,
+        "content": "const prisma = require('@/lib/db');"
+      }
+    ]
+  },
+  {
+    "file": "app\\api\\system\\health\\route.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 6,
+        "content": "const {NextResponse} = require('next/server');"
+      },
+      {
+        "num": 7,
+        "content": "const {getCacheStats} = require('@/lib/cache/redis-cache');"
+      },
+      {
+        "num": 8,
+        "content": "const {checkLLMHealth} = require('@/lib/llm/unified-llm');"
+      },
+      {
+        "num": 9,
+        "content": "const {prisma} = require('@/lib/db');"
+      },
+      {
+        "num": 10,
+        "content": "const Sentry = require('@sentry/nextjs');"
+      }
+    ]
+  },
+  {
+    "file": "app\\api\\think-tank\\cadence\\route.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 7,
+        "content": "const {NextRequest,NextResponse} = require('next/server');"
+      },
+      {
+        "num": 8,
+        "content": "const {getSession} = require('@/lib/auth');"
+      },
+      {
+        "num": 9,
+        "content": "const {prisma} = require('@/lib/db');"
+      },
+      {
+        "num": 10,
+        "content": "const {GLOBAL_CADENCE} = require('@/lib/think-tank/types');"
+      }
+    ]
+  },
+  {
+    "file": "app\\api\\think-tank\\publications\\route.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 8,
+        "content": "const {NextRequest,NextResponse} = require('next/server');"
+      },
+      {
+        "num": 9,
+        "content": "const {getSession} = require('@/lib/auth');"
+      },
+      {
+        "num": 10,
+        "content": "const {prisma} = require('@/lib/db');"
+      },
+      {
+        "num": 11,
+        "content": "const {generatePublication} = require('@/lib/agent/publication-generator');"
+      }
+    ]
+  },
+  {
+    "file": "app\\api\\think-tank\\publications\\[id]\\route.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 7,
+        "content": "const {NextRequest,NextResponse} = require('next/server');"
+      },
+      {
+        "num": 8,
+        "content": "const {prisma} = require('@/lib/db');"
+      }
+    ]
+  },
+  {
+    "file": "app\\api\\think-tank\\signals\\route.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 8,
+        "content": "const {NextRequest,NextResponse} = require('next/server');"
+      },
+      {
+        "num": 9,
+        "content": "const {getSession} = require('@/lib/auth');"
+      },
+      {
+        "num": 10,
+        "content": "const {prisma} = require('@/lib/db');"
+      },
+      {
+        "num": 11,
+        "content": "const {signalDetector} = require('@/lib/agent/signal-detector');"
+      }
+    ]
+  },
+  {
+    "file": "app\\api\\think-tank\\signals\\[id]\\route.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 8,
+        "content": "const {NextRequest,NextResponse} = require('next/server');"
+      },
+      {
+        "num": 9,
+        "content": "const {prisma} = require('@/lib/db');"
+      },
+      {
+        "num": 10,
+        "content": "const {editorialGate} = require('@/lib/agent/editorial-gate');"
+      }
+    ]
+  },
+  {
+    "file": "app\\api\\think-tank\\verticals\\route.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 7,
+        "content": "const {NextRequest,NextResponse} = require('next/server');"
+      },
+      {
+        "num": 8,
+        "content": "const {getSession} = require('@/lib/auth');"
+      },
+      {
+        "num": 9,
+        "content": "const {prisma} = require('@/lib/db');"
+      }
+    ]
+  },
+  {
+    "file": "app\\api\\topics\\route.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 2,
+        "content": "const {NextResponse} = require('next/server');"
+      },
+      {
+        "num": 3,
+        "content": "const {prisma} = require('@/lib/db');"
+      }
+    ]
+  },
+  {
+    "file": "app\\api\\topics\\[id]\\route.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 2,
+        "content": "const {NextResponse} = require('next/server');"
+      },
+      {
+        "num": 3,
+        "content": "const {prisma} = require('@/lib/db');"
+      }
+    ]
+  },
+  {
+    "file": "app\\api\\unsubscribe\\route.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 1,
+        "content": "const {NextRequest,NextResponse} = require('next/server');"
+      },
+      {
+        "num": 2,
+        "content": "const {prisma} = require('@/lib/db');"
+      }
+    ]
+  },
+  {
+    "file": "app\\api\\user\\preferences\\route.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 1,
+        "content": "const {NextRequest,NextResponse} = require('next/server');"
+      },
+      {
+        "num": 2,
+        "content": "const {prisma} = require('@/lib/db');"
+      },
+      {
+        "num": 3,
+        "content": "const {getSession} = require('@/lib/auth');"
+      }
+    ]
+  },
+  {
+    "file": "app\\api\\user\\verticals\\route.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 1,
+        "content": "const {NextRequest,NextResponse} = require('next/server');"
+      },
+      {
+        "num": 2,
+        "content": "const {prisma} = require('@/lib/db');"
+      },
+      {
+        "num": 3,
+        "content": "const {getSession} = require('@/lib/auth');"
+      }
+    ]
+  },
+  {
+    "file": "app\\api\\v3\\analysis\\route.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 7,
+        "content": "const {NextRequest,NextResponse} = require('next/server');"
+      },
+      {
+        "num": 8,
+        "content": "const {runPipelineV3} = require('@/lib/agent/pipeline-v3');"
+      }
+    ]
+  },
+  {
+    "file": "app\\brief\\page.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 2,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 3,
+        "content": "const {Suspense,useEffect} = require('react');"
+      },
+      {
+        "num": 5,
+        "content": "const {useRouter,useSearchParams} = require('next/navigation');"
+      },
+      {
+        "num": 6,
+        "content": "const {cn} = require('@/lib/utils');"
+      }
+    ]
+  },
+  {
+    "file": "app\\briefs\\page.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 2,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 3,
+        "content": "const {useEffect} = require('react');"
+      },
+      {
+        "num": 10,
+        "content": "const {useRouter} = require('next/navigation');"
+      },
+      {
+        "num": 11,
+        "content": "const {cn} = require('@/lib/utils');"
+      }
+    ]
+  },
+  {
+    "file": "app\\council\\page.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 2,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 3,
+        "content": "const {Suspense,useEffect} = require('react');"
+      },
+      {
+        "num": 5,
+        "content": "const {useRouter,useSearchParams} = require('next/navigation');"
+      },
+      {
+        "num": 6,
+        "content": "const {cn} = require('@/lib/utils');"
+      }
+    ]
+  },
+  {
+    "file": "app\\dashboard\\layout.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 1,
+        "content": "const React = require('react');"
+      }
+    ]
+  },
+  {
+    "file": "app\\dashboard\\page-old.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 2,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 3,
+        "content": "const {useState,useEffect} = require('react');"
+      },
+      {
+        "num": 16,
+        "content": "const {useRouter} = require('next/navigation');"
+      },
+      {
+        "num": 17,
+        "content": "const Link = require('next/link');"
+      },
+      {
+        "num": 18,
+        "content": "const Shell = require('@/components/Shell');"
+      },
+      {
+        "num": 19,
+        "content": "const {Button} = require('@/components/ui/Button');"
+      },
+      {
+        "num": 20,
+        "content": "const {Badge} = require('@/components/ui/Badge');"
+      },
+      {
+        "num": 21,
+        "content": "const {Card,CardContent} = require('@/components/ui/Card');"
+      },
+      {
+        "num": 22,
+        "content": "const TrustScoreBadge = require('@/components/TrustScoreBadge');"
+      },
+      {
+        "num": 23,
+        "content": "const TrialBanner = require('@/components/TrialBanner');"
+      },
+      {
+        "num": 24,
+        "content": "const {LayoutDashboard,Zap,FileText,Archive,Layers,Clock,CheckCircle,Pause,Volum"
+      }
+    ]
+  },
+  {
+    "file": "app\\dashboard\\page.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 2,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 3,
+        "content": "const {useState,useEffect} = require('react');"
+      },
+      {
+        "num": 24,
+        "content": "const {useRouter} = require('next/navigation');"
+      },
+      {
+        "num": 25,
+        "content": "const Link = require('next/link');"
+      },
+      {
+        "num": 26,
+        "content": "const Shell = require('@/components/Shell');"
+      },
+      {
+        "num": 27,
+        "content": "const {Button} = require('@/components/ui/Button');"
+      },
+      {
+        "num": 28,
+        "content": "const {Badge} = require('@/components/ui/Badge');"
+      },
+      {
+        "num": 29,
+        "content": "const {Card,CardContent} = require('@/components/ui/Card');"
+      },
+      {
+        "num": 30,
+        "content": "const TrustScoreBadge = require('@/components/TrustScoreBadge');"
+      },
+      {
+        "num": 31,
+        "content": "const TrialBanner = require('@/components/TrialBanner');"
+      },
+      {
+        "num": 32,
+        "content": "const {cn} = require('@/lib/utils');"
+      },
+      {
+        "num": 33,
+        "content": "const {BookOpen,FileText,Lock,TrendingUp,Sparkles,ArrowRight,Clock,Shield,Layers"
+      }
+    ]
+  },
+  {
+    "file": "app\\dashboard\\preferences\\page.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 2,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 3,
+        "content": "const {useState,useEffect} = require('react');"
+      },
+      {
+        "num": 14,
+        "content": "const {Select} = require('@/components/ui/Select');"
+      },
+      {
+        "num": 15,
+        "content": "const {useRouter} = require('next/navigation');"
+      },
+      {
+        "num": 16,
+        "content": "const Shell = require('@/components/Shell');"
+      },
+      {
+        "num": 17,
+        "content": "const {Button} = require('@/components/ui/Button');"
+      },
+      {
+        "num": 18,
+        "content": "const {Card,CardContent} = require('@/components/ui/Card');"
+      },
+      {
+        "num": 19,
+        "content": "const {Check,Loader2,Mail,Bell,SettingsasSettingsIcon} = require('lucide-react')"
+      },
+      {
+        "num": 20,
+        "content": "const {cn} = require('@/lib/utils');"
+      }
+    ]
+  },
+  {
+    "file": "app\\layout.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 4,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 7,
+        "content": "const {Inter,Space_Grotesk,JetBrains_Mono} = require('next/font/google');"
+      },
+      {
+        "num": 30,
+        "content": "const {ToastContainer} = require('@/components/ui/Toast');"
+      },
+      {
+        "num": 31,
+        "content": "const {AuthProvider} = require('@/hooks/useAuth');"
+      },
+      {
+        "num": 32,
+        "content": "const {QueryProvider} = require('@/components/providers/QueryProvider');"
+      }
+    ]
+  },
+  {
+    "file": "app\\library\\page.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 2,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 3,
+        "content": "const {useEffect} = require('react');"
+      },
+      {
+        "num": 10,
+        "content": "const {useRouter} = require('next/navigation');"
+      },
+      {
+        "num": 11,
+        "content": "const {cn} = require('@/lib/utils');"
+      }
+    ]
+  },
+  {
+    "file": "app\\methodology\\page.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 2,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 3,
+        "content": "const {useState,useEffect} = require('react');"
+      },
+      {
+        "num": 12,
+        "content": "const {Select} = require('@/components/ui/Select');"
+      },
+      {
+        "num": 13,
+        "content": "const {Input} = require('@/components/ui/Input');"
+      },
+      {
+        "num": 14,
+        "content": "const {useRouter} = require('next/navigation');"
+      },
+      {
+        "num": 15,
+        "content": "const {Button} = require('@/components/ui/Button');"
+      },
+      {
+        "num": 16,
+        "content": "const AuthModal = require('@/components/AuthModal');"
+      },
+      {
+        "num": 17,
+        "content": "const PublicNav = require('@/components/PublicNav');"
+      },
+      {
+        "num": 18,
+        "content": "const {cn} = require('@/lib/utils');"
+      },
+      {
+        "num": 19,
+        "content": "const {Search,Database,BarChart3,FileText,Brain,Shield,ArrowRight,CheckCircle,Za"
+      }
+    ]
+  },
+  {
+    "file": "app\\not-found.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 2,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 4,
+        "content": "const {useRouter} = require('next/navigation');"
+      },
+      {
+        "num": 5,
+        "content": "const {Button} = require('@/components/ui/Button');"
+      },
+      {
+        "num": 6,
+        "content": "const {Home,ArrowLeft} = require('lucide-react');"
+      }
+    ]
+  },
+  {
+    "file": "app\\page.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 3,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 4,
+        "content": "const {useState,useEffect} = require('react');"
+      },
+      {
+        "num": 6,
+        "content": "const {NomosXLogo} = require('@/components/brand/NomosXLogo');"
+      },
+      {
+        "num": 7,
+        "content": "const {useRouter} = require('next/navigation');"
+      },
+      {
+        "num": 8,
+        "content": "const {Button} = require('@/components/ui/Button');"
+      },
+      {
+        "num": 9,
+        "content": "const {Card,CardContent} = require('@/components/ui/Card');"
+      },
+      {
+        "num": 10,
+        "content": "const AuthModal = require('@/components/AuthModal');"
+      },
+      {
+        "num": 11,
+        "content": "const OnboardingModal = require('@/components/OnboardingModal');"
+      },
+      {
+        "num": 12,
+        "content": "const PublicNav = require('@/components/PublicNav');"
+      },
+      {
+        "num": 13,
+        "content": "const ProviderShowcase = require('@/components/ProviderShowcase');"
+      },
+      {
+        "num": 14,
+        "content": "const {cn} = require('@/lib/utils');"
+      },
+      {
+        "num": 15,
+        "content": "const {ArrowRight,Zap,CheckCircle,Shield,TrendingUp,GitBranch,Mail,Loader2} = re"
+      }
+    ]
+  },
+  {
+    "file": "app\\pricing\\page.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 2,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 3,
+        "content": "const {useState} = require('react');"
+      },
+      {
+        "num": 13,
+        "content": "const {useRouter} = require('next/navigation');"
+      },
+      {
+        "num": 14,
+        "content": "const Shell = require('@/components/Shell');"
+      },
+      {
+        "num": 15,
+        "content": "const {Button} = require('@/components/ui/Button');"
+      },
+      {
+        "num": 16,
+        "content": "const {Card,CardContent} = require('@/components/ui/Card');"
+      },
+      {
+        "num": 17,
+        "content": "const {cn} = require('@/lib/utils');"
+      },
+      {
+        "num": 18,
+        "content": "const {Check,X,Shield,Zap,TrendingUp,Users,Briefcase,FileText} = require('lucide"
+      }
+    ]
+  },
+  {
+    "file": "app\\publications\\page.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 3,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 4,
+        "content": "const {useEffect,useState} = require('react');"
+      },
+      {
+        "num": 13,
+        "content": "const {useRouter} = require('next/navigation');"
+      },
+      {
+        "num": 14,
+        "content": "const {useAuth} = require('@/hooks/useAuth');"
+      },
+      {
+        "num": 15,
+        "content": "const Shell = require('@/components/Shell');"
+      },
+      {
+        "num": 16,
+        "content": "const {Card,CardContent} = require('@/components/ui/Card');"
+      },
+      {
+        "num": 17,
+        "content": "const {Button} = require('@/components/ui/Button');"
+      },
+      {
+        "num": 18,
+        "content": "const {Badge} = require('@/components/ui/Badge');"
+      },
+      {
+        "num": 19,
+        "content": "const {Input} = require('@/components/ui/Input');"
+      },
+      {
+        "num": 20,
+        "content": "const TrustScoreBadge = require('@/components/TrustScoreBadge');"
+      },
+      {
+        "num": 21,
+        "content": "const {cn} = require('@/lib/utils');"
+      },
+      {
+        "num": 22,
+        "content": "const {Archive,FileText,Search,Filter,ArrowUpDown,Eye,Download,Clock,Layers,Chec"
+      }
+    ]
+  },
+  {
+    "file": "app\\publications\\[id]\\page.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 3,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 4,
+        "content": "const {useEffect,useState} = require('react');"
+      },
+      {
+        "num": 12,
+        "content": "const {useParams,useRouter} = require('next/navigation');"
+      },
+      {
+        "num": 13,
+        "content": "const Shell = require('@/components/Shell');"
+      },
+      {
+        "num": 14,
+        "content": "const {Card,CardContent,CardHeader} = require('@/components/ui/Card');"
+      },
+      {
+        "num": 15,
+        "content": "const {Button} = require('@/components/ui/Button');"
+      },
+      {
+        "num": 16,
+        "content": "const {Badge} = require('@/components/ui/Badge');"
+      },
+      {
+        "num": 17,
+        "content": "const TrustScoreBadge = require('@/components/TrustScoreBadge');"
+      },
+      {
+        "num": 18,
+        "content": "const {cn} = require('@/lib/utils');"
+      },
+      {
+        "num": 19,
+        "content": "const {FileText,ArrowLeft,Clock,Eye,Download,CheckCircle,Pause,VolumeX,Layers,Ex"
+      }
+    ]
+  },
+  {
+    "file": "app\\radar\\page.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 2,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 3,
+        "content": "const {useEffect} = require('react');"
+      },
+      {
+        "num": 10,
+        "content": "const {useRouter} = require('next/navigation');"
+      },
+      {
+        "num": 11,
+        "content": "const {cn} = require('@/lib/utils');"
+      }
+    ]
+  },
+  {
+    "file": "app\\s\\[id]\\page.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 2,
+        "content": "const Shell = require('@/components/Shell');"
+      },
+      {
+        "num": 3,
+        "content": "const {prisma} = require('@/lib/db');"
+      },
+      {
+        "num": 4,
+        "content": "const {cn} = require('@/lib/utils');"
+      }
+    ]
+  },
+  {
+    "file": "app\\search\\page.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 3,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 4,
+        "content": "const {useState} = require('react');"
+      },
+      {
+        "num": 5,
+        "content": "const {Select} = require('@/components/ui/Select');"
+      },
+      {
+        "num": 6,
+        "content": "const {useRouter} = require('next/navigation');"
+      },
+      {
+        "num": 7,
+        "content": "const Shell = require('@/components/Shell');"
+      },
+      {
+        "num": 8,
+        "content": "const {Input} = require('@/components/ui/Input');"
+      },
+      {
+        "num": 9,
+        "content": "const {Button} = require('@/components/ui/Button');"
+      },
+      {
+        "num": 10,
+        "content": "const {Badge} = require('@/components/ui/Badge');"
+      },
+      {
+        "num": 11,
+        "content": "const {Card,CardContent,CardHeader} = require('@/components/ui/Card');"
+      },
+      {
+        "num": 12,
+        "content": "const {Skeleton} = require('@/components/ui/Skeleton');"
+      },
+      {
+        "num": 13,
+        "content": "const DomainSelector = require('@/components/DomainSelector');"
+      },
+      {
+        "num": 14,
+        "content": "const {getDomainsBySlugs} = require('@/lib/domains');"
+      },
+      {
+        "num": 15,
+        "content": "const {Search,Filter,ArrowUpDown,Clock,TrendingUp,Award,Layers,Sparkles} = requi"
+      },
+      {
+        "num": 16,
+        "content": "const {cn} = require('@/lib/utils');"
+      }
+    ]
+  },
+  {
+    "file": "app\\signals\\page.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 3,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 4,
+        "content": "const {useEffect,useState} = require('react');"
+      },
+      {
+        "num": 15,
+        "content": "const {useRouter} = require('next/navigation');"
+      },
+      {
+        "num": 16,
+        "content": "const {useAuth} = require('@/hooks/useAuth');"
+      },
+      {
+        "num": 17,
+        "content": "const Shell = require('@/components/Shell');"
+      },
+      {
+        "num": 18,
+        "content": "const {Card,CardContent} = require('@/components/ui/Card');"
+      },
+      {
+        "num": 19,
+        "content": "const {Button} = require('@/components/ui/Button');"
+      },
+      {
+        "num": 20,
+        "content": "const {Badge} = require('@/components/ui/Badge');"
+      },
+      {
+        "num": 21,
+        "content": "const {cn} = require('@/lib/utils');"
+      },
+      {
+        "num": 22,
+        "content": "const {Zap,RefreshCw,Filter,Clock,TrendingUp,AlertCircle,CheckCircle,XCircle,Pau"
+      }
+    ]
+  },
+  {
+    "file": "app\\sources\\[id]\\page.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 2,
+        "content": "const Shell = require('@/components/Shell');"
+      },
+      {
+        "num": 3,
+        "content": "const {prisma} = require('@/lib/db');"
+      },
+      {
+        "num": 4,
+        "content": "const {Badge} = require('@/components/ui/Badge');"
+      },
+      {
+        "num": 5,
+        "content": "const {Card,CardContent,CardHeader} = require('@/components/ui/Card');"
+      },
+      {
+        "num": 6,
+        "content": "const {Button} = require('@/components/ui/Button');"
+      },
+      {
+        "num": 7,
+        "content": "const {cn} = require('@/lib/utils');"
+      }
+    ]
+  },
+  {
+    "file": "app\\studio\\page.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 3,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 4,
+        "content": "const {useState,useEffect,Suspense} = require('react');"
+      },
+      {
+        "num": 14,
+        "content": "const {Select} = require('@/components/ui/Select');"
+      },
+      {
+        "num": 15,
+        "content": "const {Input} = require('@/components/ui/Input');"
+      },
+      {
+        "num": 16,
+        "content": "const {useSearchParams,useRouter} = require('next/navigation');"
+      },
+      {
+        "num": 17,
+        "content": "const Shell = require('@/components/Shell');"
+      },
+      {
+        "num": 18,
+        "content": "const {Textarea} = require('@/components/ui/Textarea');"
+      },
+      {
+        "num": 19,
+        "content": "const {Button} = require('@/components/ui/Button');"
+      },
+      {
+        "num": 20,
+        "content": "const {Badge} = require('@/components/ui/Badge');"
+      },
+      {
+        "num": 21,
+        "content": "const {Card,CardContent,CardHeader} = require('@/components/ui/Card');"
+      },
+      {
+        "num": 22,
+        "content": "const {PenTool,Sparkles,MessagesSquare,FileText,Download,Zap,DollarSign,Cpu,Hear"
+      },
+      {
+        "num": 23,
+        "content": "const {detectIntent,typeIntentResult} = require('@/lib/ai/intent-detection');"
+      },
+      {
+        "num": 24,
+        "content": "const SmartSuggestions = require('@/components/SmartSuggestions');"
+      },
+      {
+        "num": 25,
+        "content": "const {useKeyboardShortcuts,Kbd} = require('@/hooks/useKeyboardShortcuts');"
+      },
+      {
+        "num": 26,
+        "content": "const {useStreamingBrief} = require('@/hooks/useStreamingBrief');"
+      },
+      {
+        "num": 27,
+        "content": "const {useStreamingCouncil} = require('@/hooks/useStreamingCouncil');"
+      },
+      {
+        "num": 28,
+        "content": "const ProgressBar = require('@/components/ProgressBar');"
+      },
+      {
+        "num": 29,
+        "content": "const {toast} = require('@/components/ui/Toast');"
+      },
+      {
+        "num": 30,
+        "content": "const {cn} = require('@/lib/utils');"
+      }
+    ]
+  },
+  {
+    "file": "app\\think-tank\\page.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 2,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 3,
+        "content": "const {useEffect} = require('react');"
+      },
+      {
+        "num": 10,
+        "content": "const {useRouter} = require('next/navigation');"
+      },
+      {
+        "num": 11,
+        "content": "const {cn} = require('@/lib/utils');"
+      }
+    ]
+  },
+  {
+    "file": "backend\\src\\api\\contracts\\analysis.contract.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 7,
+        "content": "const {z} = require('zod');"
+      }
+    ]
+  },
+  {
+    "file": "backend\\src\\api\\middleware\\correlationId.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 5,
+        "content": "const {Request,Response,NextFunction} = require('express');"
+      },
+      {
+        "num": 6,
+        "content": "const {generateCorrelationId,extractCorrelationId} = require('../../shared/utils"
+      }
+    ]
+  },
+  {
+    "file": "backend\\src\\api\\middleware\\errorHandler.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 5,
+        "content": "const {Request,Response,NextFunction} = require('express');"
+      },
+      {
+        "num": 6,
+        "content": "const {DomainError} = require('../../shared/errors/DomainError');"
+      },
+      {
+        "num": 7,
+        "content": "const {createLogger} = require('../../shared/logging/Logger');"
+      }
+    ]
+  },
+  {
+    "file": "backend\\src\\api\\routes\\analysis.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 5,
+        "content": "const {Router} = require('express');"
+      },
+      {
+        "num": 6,
+        "content": "const {CreateAnalysisRun} = require('../../application/usecases/CreateAnalysisRu"
+      },
+      {
+        "num": 7,
+        "content": "const {QueueManager} = require('../../infrastructure/queue/QueueManager');"
+      },
+      {
+        "num": 8,
+        "content": "const {getQueueConfig} = require('../../config/queue');"
+      },
+      {
+        "num": 9,
+        "content": "const {createLogger} = require('../../shared/logging/Logger');"
+      },
+      {
+        "num": 10,
+        "content": "const {CreateAnalysisRunRequestSchema} = require('../contracts/analysis.contract"
+      }
+    ]
+  },
+  {
+    "file": "backend\\src\\application\\usecases\\CreateAnalysisRun.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 5,
+        "content": "const {generateCorrelationId} = require('../../shared/utils/correlation-id');"
+      },
+      {
+        "num": 6,
+        "content": "const {IClaimRepository} = require('../../domain/claim/repositories/IClaimReposi"
+      },
+      {
+        "num": 7,
+        "content": "const {Logger} = require('../../shared/logging/Logger');"
+      },
+      {
+        "num": 8,
+        "content": "const {QueueManager,QUEUE_NAMES} = require('../../infrastructure/queue/QueueMana"
+      }
+    ]
+  },
+  {
+    "file": "backend\\src\\config\\ai.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 5,
+        "content": "const {z} = require('zod');"
+      }
+    ]
+  },
+  {
+    "file": "backend\\src\\config\\database.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 5,
+        "content": "const {z} = require('zod');"
+      }
+    ]
+  },
+  {
+    "file": "backend\\src\\config\\features.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 5,
+        "content": "const {z} = require('zod');"
+      }
+    ]
+  },
+  {
+    "file": "backend\\src\\config\\queue.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 5,
+        "content": "const {z} = require('zod');"
+      }
+    ]
+  },
+  {
+    "file": "backend\\src\\config\\thresholds.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 5,
+        "content": "const {z} = require('zod');"
+      }
+    ]
+  },
+  {
+    "file": "backend\\src\\domain\\claim\\entities\\Claim.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 8,
+        "content": "const {z} = require('zod');"
+      }
+    ]
+  },
+  {
+    "file": "backend\\src\\domain\\claim\\repositories\\IClaimRepository.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 5,
+        "content": "const {Claim} = require('../entities/Claim');"
+      }
+    ]
+  },
+  {
+    "file": "backend\\src\\domain\\claim\\services\\ClaimExtractor.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 8,
+        "content": "const OpenAI = require('openai');"
+      },
+      {
+        "num": 9,
+        "content": "const {z} = require('zod');"
+      },
+      {
+        "num": 10,
+        "content": "const {Claim,ClaimType,Category} = require('../entities/Claim');"
+      },
+      {
+        "num": 11,
+        "content": "const {Logger} = require('../../../shared/logging/Logger');"
+      }
+    ]
+  },
+  {
+    "file": "backend\\src\\domain\\claim\\services\\TrustScorer.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 8,
+        "content": "const {Claim,TrustScore} = require('../entities/Claim');"
+      },
+      {
+        "num": 9,
+        "content": "const {EvidenceSpan} = require('../../evidence/services/EvidenceBinder');"
+      },
+      {
+        "num": 10,
+        "content": "const {Logger} = require('../../../shared/logging/Logger');"
+      }
+    ]
+  },
+  {
+    "file": "backend\\src\\domain\\evidence\\services\\EvidenceBinder.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 8,
+        "content": "const OpenAI = require('openai');"
+      },
+      {
+        "num": 9,
+        "content": "const {z} = require('zod');"
+      },
+      {
+        "num": 10,
+        "content": "const {Claim} = require('../../claim/entities/Claim');"
+      },
+      {
+        "num": 11,
+        "content": "const {Logger} = require('../../../shared/logging/Logger');"
+      }
+    ]
+  },
+  {
+    "file": "backend\\src\\infrastructure\\persistence\\prisma\\client.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 5,
+        "content": "const {PrismaClient} = require('../../../../generated/prisma-client');"
+      },
+      {
+        "num": 6,
+        "content": "const {createLogger} = require('../../../shared/logging/Logger');"
+      }
+    ]
+  },
+  {
+    "file": "backend\\src\\infrastructure\\persistence\\repositories\\ClaimRepository.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 5,
+        "content": "const {PrismaClient} = require('../../../../../generated/prisma-client');"
+      },
+      {
+        "num": 6,
+        "content": "const {Claim} = require('../../../domain/claim/entities/Claim');"
+      },
+      {
+        "num": 7,
+        "content": "const {IClaimRepository} = require('../../../domain/claim/repositories/IClaimRep"
+      },
+      {
+        "num": 8,
+        "content": "const {DatabaseError} = require('../../../shared/errors/DomainError');"
+      }
+    ]
+  },
+  {
+    "file": "backend\\src\\infrastructure\\queue\\QueueManager.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 13,
+        "content": "const {Queue,Worker,Job,QueueEvents} = require('bullmq');"
+      },
+      {
+        "num": 14,
+        "content": "const Redis = require('ioredis');"
+      },
+      {
+        "num": 15,
+        "content": "const {Logger} = require('../../shared/logging/Logger');"
+      }
+    ]
+  },
+  {
+    "file": "backend\\src\\infrastructure\\queue\\workers\\claim-extractor.worker.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 8,
+        "content": "const {Job} = require('bullmq');"
+      },
+      {
+        "num": 9,
+        "content": "const {PrismaClient} = require('@prisma/client');"
+      },
+      {
+        "num": 10,
+        "content": "const {ClaimExtractor} = require('../../../domain/claim/services/ClaimExtractor'"
+      },
+      {
+        "num": 11,
+        "content": "const {logger} = require('../../../shared/logging/Logger');"
+      },
+      {
+        "num": 12,
+        "content": "const {DomainError} = require('../../../shared/errors/DomainError');"
+      }
+    ]
+  },
+  {
+    "file": "backend\\src\\infrastructure\\queue\\workers\\digest.worker.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 8,
+        "content": "const {Job} = require('bullmq');"
+      },
+      {
+        "num": 9,
+        "content": "const {PrismaClient} = require('@prisma/client');"
+      },
+      {
+        "num": 10,
+        "content": "const OpenAI = require('openai');"
+      },
+      {
+        "num": 11,
+        "content": "const {logger} = require('../../../shared/logging/Logger');"
+      }
+    ]
+  },
+  {
+    "file": "backend\\src\\infrastructure\\queue\\workers\\evidence-binder.worker.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 8,
+        "content": "const {Job} = require('bullmq');"
+      },
+      {
+        "num": 9,
+        "content": "const {PrismaClient} = require('@prisma/client');"
+      },
+      {
+        "num": 10,
+        "content": "const {EvidenceBinder} = require('../../../domain/evidence/services/EvidenceBind"
+      },
+      {
+        "num": 11,
+        "content": "const {logger} = require('../../../shared/logging/Logger');"
+      },
+      {
+        "num": 12,
+        "content": "const {DomainError} = require('../../../shared/errors/DomainError');"
+      }
+    ]
+  },
+  {
+    "file": "backend\\src\\infrastructure\\queue\\workers\\radar.worker.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 8,
+        "content": "const {Job} = require('bullmq');"
+      },
+      {
+        "num": 9,
+        "content": "const {PrismaClient} = require('@prisma/client');"
+      },
+      {
+        "num": 10,
+        "content": "const OpenAI = require('openai');"
+      },
+      {
+        "num": 11,
+        "content": "const {logger} = require('../../../shared/logging/Logger');"
+      },
+      {
+        "num": 12,
+        "content": "const {z} = require('zod');"
+      }
+    ]
+  },
+  {
+    "file": "backend\\src\\infrastructure\\queue\\workers\\trust-scorer.worker.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 8,
+        "content": "const {Job} = require('bullmq');"
+      },
+      {
+        "num": 9,
+        "content": "const {PrismaClient} = require('@prisma/client');"
+      },
+      {
+        "num": 10,
+        "content": "const {TrustScorer} = require('../../../domain/claim/services/TrustScorer');"
+      },
+      {
+        "num": 11,
+        "content": "const {logger} = require('../../../shared/logging/Logger');"
+      },
+      {
+        "num": 12,
+        "content": "const {DomainError} = require('../../../shared/errors/DomainError');"
+      }
+    ]
+  },
+  {
+    "file": "backend\\src\\shared\\logging\\Logger.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 5,
+        "content": "const pino = require('pino');"
+      }
+    ]
+  },
+  {
+    "file": "backend\\src\\shared\\utils\\correlation-id.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 5,
+        "content": "const crypto = require('crypto');"
+      }
+    ]
+  },
+  {
+    "file": "backend\\src\\shared\\utils\\crypto.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 5,
+        "content": "const crypto = require('crypto');"
+      }
+    ]
+  },
+  {
+    "file": "backend\\tests\\integration\\api\\analysis.integration.test.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 6,
+        "content": "const {describe,it,expect,beforeAll,afterAll} = require('vitest');"
+      },
+      {
+        "num": 7,
+        "content": "const request = require('supertest');"
+      },
+      {
+        "num": 8,
+        "content": "const {PrismaClient} = require('@prisma/client');"
+      },
+      {
+        "num": 9,
+        "content": "const {app} = require('../../../src/api/server'); // Assuming we export app from"
+      }
+    ]
+  },
+  {
+    "file": "components\\AuthModal.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 3,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 4,
+        "content": "const {useState} = require('react');"
+      },
+      {
+        "num": 6,
+        "content": "const {useRouter} = require('next/navigation');"
+      },
+      {
+        "num": 7,
+        "content": "const {Modal} = require('@/components/ui/Modal');"
+      },
+      {
+        "num": 8,
+        "content": "const {Button} = require('@/components/ui/Button');"
+      },
+      {
+        "num": 9,
+        "content": "const {Input} = require('@/components/ui/Input');"
+      },
+      {
+        "num": 10,
+        "content": "const {Mail,ChromeasGoogle,Github} = require('lucide-react');"
+      }
+    ]
+  },
+  {
+    "file": "components\\brand\\NomosXLogo.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 9,
+        "content": "const {cn} = require('@/lib/utils');"
+      }
+    ]
+  },
+  {
+    "file": "components\\ClaimCard.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 7,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 8,
+        "content": "const {Badge} = require('./ui/Badge');"
+      },
+      {
+        "num": 9,
+        "content": "const {CheckCircle,AlertTriangle,XCircle} = require('lucide-react');"
+      }
+    ]
+  },
+  {
+    "file": "components\\ClaimFeedback.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 3,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 4,
+        "content": "const {useState} = require('react');"
+      }
+    ]
+  },
+  {
+    "file": "components\\ConversationHistory.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 3,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 4,
+        "content": "const {useState,useEffect} = require('react');"
+      },
+      {
+        "num": 13,
+        "content": "const TrustScoreBadge = require('./TrustScoreBadge');"
+      }
+    ]
+  },
+  {
+    "file": "components\\DomainSelector.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 2,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 4,
+        "content": "const {PREDEFINED_DOMAINS,typeDomain} = require('@/lib/domains');"
+      }
+    ]
+  },
+  {
+    "file": "components\\features\\billing\\BillingPlansClient.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 3,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 4,
+        "content": "const {useState} = require('react');"
+      },
+      {
+        "num": 11,
+        "content": "const {Card,CardContent,CardDescription,CardHeader,CardTitle} = require('@/compo"
+      },
+      {
+        "num": 12,
+        "content": "const {Button} = require('@/components/ui/Button');"
+      },
+      {
+        "num": 13,
+        "content": "const {Badge} = require('@/components/ui/Badge');"
+      },
+      {
+        "num": 14,
+        "content": "const {Check,X,Star,Zap,Shield,Users} = require('lucide-react');"
+      },
+      {
+        "num": 15,
+        "content": "const {cn} = require('@/lib/utils');"
+      }
+    ]
+  },
+  {
+    "file": "components\\features\\billing\\SubscriptionClient.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 3,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 4,
+        "content": "const {useState} = require('react');"
+      },
+      {
+        "num": 11,
+        "content": "const {Card,CardContent,CardDescription,CardHeader,CardTitle} = require('@/compo"
+      },
+      {
+        "num": 12,
+        "content": "const {Button} = require('@/components/ui/Button');"
+      },
+      {
+        "num": 13,
+        "content": "const {Badge} = require('@/components/ui/Badge');"
+      },
+      {
+        "num": 14,
+        "content": "const {Dialog,DialogContent,DialogDescription,DialogHeader,DialogTitle,DialogTri"
+      },
+      {
+        "num": 15,
+        "content": "const {CreditCard,Download,Trash2,Plus,AlertCircle,CheckCircle} = require('lucid"
+      },
+      {
+        "num": 16,
+        "content": "const {cn} = require('@/lib/utils');"
+      }
+    ]
+  },
+  {
+    "file": "components\\features\\user\\ProfileClient.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 3,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 4,
+        "content": "const {useState} = require('react');"
+      },
+      {
+        "num": 11,
+        "content": "const {Card,CardContent,CardDescription,CardHeader,CardTitle} = require('@/compo"
+      },
+      {
+        "num": 12,
+        "content": "const {Button} = require('@/components/ui/Button');"
+      },
+      {
+        "num": 13,
+        "content": "const {Input} = require('@/components/ui/Input');"
+      },
+      {
+        "num": 14,
+        "content": "const {Label} = require('@/components/ui/Label');"
+      },
+      {
+        "num": 15,
+        "content": "const {Textarea} = require('@/components/ui/Textarea');"
+      },
+      {
+        "num": 16,
+        "content": "const {Select,SelectContent,SelectItem,SelectTrigger,SelectValue} = require('@/c"
+      },
+      {
+        "num": 17,
+        "content": "const {Badge} = require('@/components/ui/Badge');"
+      },
+      {
+        "num": 18,
+        "content": "const {Dialog,DialogContent,DialogDescription,DialogHeader,DialogTitle,DialogTri"
+      },
+      {
+        "num": 19,
+        "content": "const {User,Mail,Phone,Building,Calendar,Shield,Bell,Globe,Palette} = require('l"
+      },
+      {
+        "num": 20,
+        "content": "const {cn} = require('@/lib/utils');"
+      }
+    ]
+  },
+  {
+    "file": "components\\features\\user\\SettingsClient.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 3,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 4,
+        "content": "const {useState} = require('react');"
+      },
+      {
+        "num": 11,
+        "content": "const {Card,CardContent,CardDescription,CardHeader,CardTitle} = require('@/compo"
+      },
+      {
+        "num": 12,
+        "content": "const {Button} = require('@/components/ui/Button');"
+      },
+      {
+        "num": 13,
+        "content": "const {Input} = require('@/components/ui/Input');"
+      },
+      {
+        "num": 14,
+        "content": "const {Label} = require('@/components/ui/Label');"
+      },
+      {
+        "num": 15,
+        "content": "const {Textarea} = require('@/components/ui/Textarea');"
+      },
+      {
+        "num": 16,
+        "content": "const {Select,SelectContent,SelectItem,SelectTrigger,SelectValue} = require('@/c"
+      },
+      {
+        "num": 17,
+        "content": "const {Switch} = require('@/components/ui/Switch');"
+      },
+      {
+        "num": 18,
+        "content": "const {Badge} = require('@/components/ui/Badge');"
+      },
+      {
+        "num": 19,
+        "content": "const {Dialog,DialogContent,DialogDescription,DialogHeader,DialogTitle,DialogTri"
+      },
+      {
+        "num": 20,
+        "content": "const {Settings,Database,Mail,Shield,Globe,Bell,Palette,Zap,AlertTriangle,CheckC"
+      },
+      {
+        "num": 21,
+        "content": "const {cn} = require('@/lib/utils');"
+      }
+    ]
+  },
+  {
+    "file": "components\\LibraryView.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 3,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 4,
+        "content": "const {useState,useEffect} = require('react');"
+      },
+      {
+        "num": 13,
+        "content": "const TrustScoreBadge = require('./TrustScoreBadge');"
+      }
+    ]
+  },
+  {
+    "file": "components\\NotificationBell.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 3,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 4,
+        "content": "const {useState,useEffect} = require('react');"
+      }
+    ]
+  },
+  {
+    "file": "components\\OnboardingModal.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 2,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 3,
+        "content": "const {useState,useEffect} = require('react');"
+      },
+      {
+        "num": 5,
+        "content": "const {useRouter} = require('next/navigation');"
+      },
+      {
+        "num": 6,
+        "content": "const {Modal} = require('@/components/ui/Modal');"
+      },
+      {
+        "num": 7,
+        "content": "const {Button} = require('@/components/ui/Button');"
+      },
+      {
+        "num": 8,
+        "content": "const {Card,CardContent} = require('@/components/ui/Card');"
+      },
+      {
+        "num": 9,
+        "content": "const {Check,Sparkles,Loader2} = require('lucide-react');"
+      }
+    ]
+  },
+  {
+    "file": "components\\PaywallTeaser.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 10,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 12,
+        "content": "const {useRouter} = require('next/navigation');"
+      },
+      {
+        "num": 13,
+        "content": "const {Button} = require('@/components/ui/Button');"
+      },
+      {
+        "num": 14,
+        "content": "const {Card,CardContent} = require('@/components/ui/Card');"
+      },
+      {
+        "num": 15,
+        "content": "const {Lock,FileText,ArrowRight,CheckCircle,Layers,TrendingUp,Shield} = require("
+      }
+    ]
+  },
+  {
+    "file": "components\\providers\\QueryProvider.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 3,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 4,
+        "content": "const {useState} = require('react');"
+      },
+      {
+        "num": 6,
+        "content": "const {QueryClient,QueryClientProvider} = require('@tanstack/react-query');"
+      },
+      {
+        "num": 7,
+        "content": "const {ReactQueryDevtools} = require('@tanstack/react-query-devtools');"
+      }
+    ]
+  },
+  {
+    "file": "components\\ProviderShowcase.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 2,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 3,
+        "content": "const {useEffect,useRef,useState} = require('react');"
+      }
+    ]
+  },
+  {
+    "file": "components\\PublicNav.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 2,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 11,
+        "content": "const {useRouter} = require('next/navigation');"
+      },
+      {
+        "num": 12,
+        "content": "const {Button} = require('@/components/ui/Button');"
+      }
+    ]
+  },
+  {
+    "file": "components\\Shell.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 3,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 4,
+        "content": "const {useState,useEffect} = require('react');"
+      },
+      {
+        "num": 6,
+        "content": "const Link = require('next/link');"
+      },
+      {
+        "num": 7,
+        "content": "const {useRouter,usePathname} = require('next/navigation');"
+      },
+      {
+        "num": 8,
+        "content": "const {LayoutDashboard,Zap,Search,Archive,Settings,LogOut,UserasUserIcon,Menu,X,"
+      },
+      {
+        "num": 9,
+        "content": "const {useAuth} = require('@/hooks/useAuth');"
+      }
+    ]
+  },
+  {
+    "file": "components\\SmartSuggestions.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 3,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 4,
+        "content": "const {useState,useEffect} = require('react');"
+      }
+    ]
+  },
+  {
+    "file": "components\\StreamingAnalysis.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 3,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 4,
+        "content": "const {useState,useEffect,useRef} = require('react');"
+      },
+      {
+        "num": 13,
+        "content": "const TrustScoreBadge = require('./TrustScoreBadge');"
+      },
+      {
+        "num": 14,
+        "content": "const ClaimCard = require('./ClaimCard');"
+      }
+    ]
+  },
+  {
+    "file": "components\\SubscribeRadarModal.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 2,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 3,
+        "content": "const {useState} = require('react');"
+      },
+      {
+        "num": 4,
+        "content": "const {Modal} = require('@/components/ui/Modal');"
+      },
+      {
+        "num": 5,
+        "content": "const {Button} = require('@/components/ui/Button');"
+      },
+      {
+        "num": 6,
+        "content": "const {Input} = require('@/components/ui/Input');"
+      },
+      {
+        "num": 7,
+        "content": "const {Badge} = require('@/components/ui/Badge');"
+      },
+      {
+        "num": 8,
+        "content": "const {Mail,Bell,Check} = require('lucide-react');"
+      }
+    ]
+  },
+  {
+    "file": "components\\think-tank\\CadenceIndicator.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 2,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 11,
+        "content": "const {Clock,AlertCircle,CheckCircle} = require('lucide-react');"
+      }
+    ]
+  },
+  {
+    "file": "components\\think-tank\\PublicationCard.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 2,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 11,
+        "content": "const Link = require('next/link');"
+      },
+      {
+        "num": 12,
+        "content": "const {Card} = require('@/components/ui/Card');"
+      },
+      {
+        "num": 13,
+        "content": "const {Badge} = require('@/components/ui/Badge');"
+      },
+      {
+        "num": 14,
+        "content": "const {FileText,Eye,Clock,CheckCircle,AlertCircle,ChevronRight} = require('lucid"
+      }
+    ]
+  },
+  {
+    "file": "components\\think-tank\\SignalCard.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 2,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 11,
+        "content": "const Link = require('next/link');"
+      },
+      {
+        "num": 12,
+        "content": "const {Card} = require('@/components/ui/Card');"
+      },
+      {
+        "num": 13,
+        "content": "const {Badge} = require('@/components/ui/Badge');"
+      },
+      {
+        "num": 14,
+        "content": "const {Zap,TrendingUp,AlertTriangle,Database,FileText,Clock,ChevronRight} = requ"
+      }
+    ]
+  },
+  {
+    "file": "components\\think-tank\\VerticalCard.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 2,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 11,
+        "content": "const Link = require('next/link');"
+      },
+      {
+        "num": 12,
+        "content": "const {Card} = require('@/components/ui/Card');"
+      },
+      {
+        "num": 13,
+        "content": "const {TrendingUp,AlertCircle,FileText} = require('lucide-react');"
+      }
+    ]
+  },
+  {
+    "file": "components\\TrialBanner.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 1,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 2,
+        "content": "const {useState} = require('react');"
+      },
+      {
+        "num": 3,
+        "content": "const {useRouter} = require('next/navigation');"
+      },
+      {
+        "num": 4,
+        "content": "const {AlertCircle,X} = require('lucide-react');"
+      },
+      {
+        "num": 5,
+        "content": "const {Button} = require('@/components/ui/Button');"
+      }
+    ]
+  },
+  {
+    "file": "components\\TrustScoreBadge.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 7,
+        "content": "const React = require('react');"
+      }
+    ]
+  },
+  {
+    "file": "components\\ui\\Accordion.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 1,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 2,
+        "content": "const {cn} = require('@/lib/utils');"
+      }
+    ]
+  },
+  {
+    "file": "components\\ui\\Avatar.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 1,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 2,
+        "content": "const {cn} = require('@/lib/utils');"
+      }
+    ]
+  },
+  {
+    "file": "components\\ui\\Badge.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 1,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 3,
+        "content": "const {cn} = require('@/lib/utils');"
+      }
+    ]
+  },
+  {
+    "file": "components\\ui\\Breadcrumb.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 1,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 2,
+        "content": "const {cn} = require('@/lib/utils');"
+      }
+    ]
+  },
+  {
+    "file": "components\\ui\\Button.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 1,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 3,
+        "content": "const {cn} = require('@/lib/utils');"
+      },
+      {
+        "num": 4,
+        "content": "const {LoadingSpinner} = require('./LoadingSpinner');"
+      }
+    ]
+  },
+  {
+    "file": "components\\ui\\Calendar.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 1,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 2,
+        "content": "const {cn} = require('@/lib/utils');"
+      }
+    ]
+  },
+  {
+    "file": "components\\ui\\Card.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 1,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 3,
+        "content": "const {cn} = require('@/lib/utils');"
+      }
+    ]
+  },
+  {
+    "file": "components\\ui\\Carousel.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 1,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 2,
+        "content": "const {cn} = require('@/lib/utils');"
+      }
+    ]
+  },
+  {
+    "file": "components\\ui\\Chart.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 1,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 2,
+        "content": "const {cn} = require('@/lib/utils');"
+      }
+    ]
+  },
+  {
+    "file": "components\\ui\\Checkbox.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 1,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 2,
+        "content": "const {cn} = require('@/lib/utils');"
+      }
+    ]
+  },
+  {
+    "file": "components\\ui\\cn.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 2,
+        "content": "const {clsx} = require('clsx');"
+      }
+    ]
+  },
+  {
+    "file": "components\\ui\\Command.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 1,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 2,
+        "content": "const {cn} = require('@/lib/utils');"
+      }
+    ]
+  },
+  {
+    "file": "components\\ui\\Context-menu.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 1,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 2,
+        "content": "const {cn} = require('@/lib/utils');"
+      }
+    ]
+  },
+  {
+    "file": "components\\ui\\DataViz.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 3,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 11,
+        "content": "const {cn} = require('@/lib/utils');"
+      },
+      {
+        "num": 12,
+        "content": "const {Card,CardContent,CardHeader,CardTitle} = require('@/components/ui/Card');"
+      }
+    ]
+  },
+  {
+    "file": "components\\ui\\Date-picker.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 1,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 2,
+        "content": "const {cn} = require('@/lib/utils');"
+      }
+    ]
+  },
+  {
+    "file": "components\\ui\\Dialog.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 1,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 6,
+        "content": "const DialogPrimitive = require('@radix-ui/react-dialog');"
+      },
+      {
+        "num": 7,
+        "content": "const {X} = require('lucide-react');"
+      },
+      {
+        "num": 9,
+        "content": "const {cn} = require('@/lib/utils');"
+      }
+    ]
+  },
+  {
+    "file": "components\\ui\\DropdownMenu.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 1,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 6,
+        "content": "const DropdownMenuPrimitive = require('@radix-ui/react-dropdown-menu');"
+      },
+      {
+        "num": 7,
+        "content": "const {Check,ChevronRight,Circle} = require('lucide-react');"
+      },
+      {
+        "num": 9,
+        "content": "const {cn} = require('@/lib/utils');"
+      }
+    ]
+  },
+  {
+    "file": "components\\ui\\EmptyState.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 1,
+        "content": "const {cn} = require('@/lib/utils');"
+      },
+      {
+        "num": 2,
+        "content": "const {LucideIcon} = require('lucide-react');"
+      }
+    ]
+  },
+  {
+    "file": "components\\ui\\Hover-card.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 1,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 2,
+        "content": "const {cn} = require('@/lib/utils');"
+      }
+    ]
+  },
+  {
+    "file": "components\\ui\\Input.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 1,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 3,
+        "content": "const {cn} = require('@/lib/utils');"
+      }
+    ]
+  },
+  {
+    "file": "components\\ui\\Kbd.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 1,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 2,
+        "content": "const {cn} = require('@/lib/utils');"
+      }
+    ]
+  },
+  {
+    "file": "components\\ui\\Label.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 1,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 6,
+        "content": "const LabelPrimitive = require('@radix-ui/react-label');"
+      },
+      {
+        "num": 7,
+        "content": "const {cva,typeVariantProps} = require('class-variance-authority');"
+      },
+      {
+        "num": 9,
+        "content": "const {cn} = require('@/lib/utils');"
+      }
+    ]
+  },
+  {
+    "file": "components\\ui\\LoadingSpinner.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 1,
+        "content": "const {cn} = require('@/lib/utils');"
+      }
+    ]
+  },
+  {
+    "file": "components\\ui\\Menubar.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 1,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 2,
+        "content": "const {cn} = require('@/lib/utils');"
+      }
+    ]
+  },
+  {
+    "file": "components\\ui\\Modal.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 3,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 4,
+        "content": "const {useEffect} = require('react');"
+      },
+      {
+        "num": 5,
+        "content": "const {X} = require('lucide-react');"
+      },
+      {
+        "num": 6,
+        "content": "const {cn} = require('@/lib/utils');"
+      },
+      {
+        "num": 7,
+        "content": "const {Button} = require('./Button');"
+      }
+    ]
+  },
+  {
+    "file": "components\\ui\\Navigation-menu.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 1,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 2,
+        "content": "const {cn} = require('@/lib/utils');"
+      }
+    ]
+  },
+  {
+    "file": "components\\ui\\Notifications.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 3,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 4,
+        "content": "const {useEffect} = require('react');"
+      },
+      {
+        "num": 6,
+        "content": "const {useAppStore} = require('@/lib/store');"
+      },
+      {
+        "num": 7,
+        "content": "const {cn} = require('@/lib/utils');"
+      }
+    ]
+  },
+  {
+    "file": "components\\ui\\Pagination.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 1,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 2,
+        "content": "const {cn} = require('@/lib/utils');"
+      }
+    ]
+  },
+  {
+    "file": "components\\ui\\Popover.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 1,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 2,
+        "content": "const {cn} = require('@/lib/utils');"
+      }
+    ]
+  },
+  {
+    "file": "components\\ui\\Progress.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 1,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 2,
+        "content": "const {cn} = require('@/lib/utils');"
+      }
+    ]
+  },
+  {
+    "file": "components\\ui\\Radio-group.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 1,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 2,
+        "content": "const {cn} = require('@/lib/utils');"
+      }
+    ]
+  },
+  {
+    "file": "components\\ui\\Resizable.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 1,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 2,
+        "content": "const {cn} = require('@/lib/utils');"
+      }
+    ]
+  },
+  {
+    "file": "components\\ui\\Scroll-area.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 1,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 2,
+        "content": "const {cn} = require('@/lib/utils');"
+      }
+    ]
+  },
+  {
+    "file": "components\\ui\\Select.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 1,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 6,
+        "content": "const SelectPrimitive = require('@radix-ui/react-select');"
+      },
+      {
+        "num": 7,
+        "content": "const {Check,ChevronDown,ChevronUp} = require('lucide-react');"
+      },
+      {
+        "num": 9,
+        "content": "const {cn} = require('@/lib/utils');"
+      }
+    ]
+  },
+  {
+    "file": "components\\ui\\Separator.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 1,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 2,
+        "content": "const {cn} = require('@/lib/utils');"
+      }
+    ]
+  },
+  {
+    "file": "components\\ui\\Sheet.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 1,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 2,
+        "content": "const {cn} = require('@/lib/utils');"
+      }
+    ]
+  },
+  {
+    "file": "components\\ui\\Skeleton.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 1,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 3,
+        "content": "const {cn} = require('@/lib/utils');"
+      }
+    ]
+  },
+  {
+    "file": "components\\ui\\Switch.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 1,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 6,
+        "content": "const SwitchPrimitives = require('@radix-ui/react-switch');"
+      },
+      {
+        "num": 8,
+        "content": "const {cn} = require('@/lib/utils');"
+      }
+    ]
+  },
+  {
+    "file": "components\\ui\\Table.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 1,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 2,
+        "content": "const {cn} = require('@/lib/utils');"
+      }
+    ]
+  },
+  {
+    "file": "components\\ui\\Tabs.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 1,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 2,
+        "content": "const {cn} = require('@/lib/utils');"
+      }
+    ]
+  },
+  {
+    "file": "components\\ui\\Textarea.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 1,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 3,
+        "content": "const {cn} = require('@/lib/utils');"
+      }
+    ]
+  },
+  {
+    "file": "components\\ui\\Toast.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 2,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 3,
+        "content": "const {useEffect,useState} = require('react');"
+      },
+      {
+        "num": 5,
+        "content": "const {cn} = require('@/lib/utils');"
+      },
+      {
+        "num": 6,
+        "content": "const {CheckCircle2,XCircle,Info,AlertCircle,AlertTriangle,X} = require('lucide-"
+      }
+    ]
+  },
+  {
+    "file": "components\\ui\\Toggle-group.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 1,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 2,
+        "content": "const {cn} = require('@/lib/utils');"
+      }
+    ]
+  },
+  {
+    "file": "components\\ui\\Toggle.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 1,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 2,
+        "content": "const {cn} = require('@/lib/utils');"
+      }
+    ]
+  },
+  {
+    "file": "components\\ui\\Tooltip.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 3,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 4,
+        "content": "const {useState} = require('react');"
+      },
+      {
+        "num": 6,
+        "content": "const {cn} = require('@/lib/utils');"
+      }
+    ]
+  },
+  {
+    "file": "components\\UpgradeModal.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 1,
+        "content": "const {useRouter} = require('next/navigation');"
+      },
+      {
+        "num": 2,
+        "content": "const {X,Shield,Check} = require('lucide-react');"
+      },
+      {
+        "num": 3,
+        "content": "const {Button} = require('@/components/ui/Button');"
+      },
+      {
+        "num": 4,
+        "content": "const {Card,CardContent} = require('@/components/ui/Card');"
+      }
+    ]
+  },
+  {
+    "file": "hooks\\useAnalysisRun.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 1,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 2,
+        "content": "const {useState,useCallback} = require('react');"
+      }
+    ]
+  },
+  {
+    "file": "hooks\\useAuth.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 11,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 12,
+        "content": "const {createContext,useContext,useState,useEffect,ReactNode} = require('react')"
+      }
+    ]
+  },
+  {
+    "file": "hooks\\useConversationHistory.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 1,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 2,
+        "content": "const {useState,useEffect} = require('react');"
+      }
+    ]
+  },
+  {
+    "file": "hooks\\useKeyboardShortcuts.tsx",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 1,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 2,
+        "content": "const {useEffect,useRef} = require('react');"
+      }
+    ]
+  },
+  {
+    "file": "hooks\\useStreamingBrief.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 1,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 2,
+        "content": "const {useState,useCallback} = require('react');"
+      }
+    ]
+  },
+  {
+    "file": "hooks\\useStreamingCouncil.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 1,
+        "content": "const React = require('react');"
+      },
+      {
+        "num": 2,
+        "content": "const {useState,useCallback} = require('react');"
+      }
+    ]
+  },
+  {
+    "file": "jest.config.cjs",
+    "hasRequire": true,
+    "hasModuleExports": true,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 1,
+        "content": "const nextJest = require('next/jest')"
+      },
+      {
+        "num": 33,
+        "content": "module.exports = createJestConfig(customJestConfig)"
+      }
+    ]
+  },
+  {
+    "file": "lib\\agent\\analyst-agent.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 10,
+        "content": "const {callLLM} = require('../llm/unified-llm');"
+      },
+      {
+        "num": 11,
+        "content": "const Sentry = require('@sentry/nextjs');"
+      },
+      {
+        "num": 12,
+        "content": "const {AgentRole,assertPermission} = require('../governance/index');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\agent\\cadence-enforcer.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 8,
+        "content": "const {prisma} = require('@/lib/db');"
+      },
+      {
+        "num": 9,
+        "content": "const {CadenceResult,GLOBAL_CADENCE,VerticalConfig} = require('@/lib/think-tank/"
+      }
+    ]
+  },
+  {
+    "file": "lib\\agent\\cohere-reranker.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 10,
+        "content": "const {env} = require('../env');"
+      },
+      {
+        "num": 12,
+        "content": "const {scoreRelevance,typeSourceForScoring} = require('./relevance-scorer');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\agent\\contradiction-detector.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 14,
+        "content": "const {prisma} = require('@/lib/db');"
+      },
+      {
+        "num": 15,
+        "content": "const {callLLM} = require('@/lib/llm/unified-llm');"
+      },
+      {
+        "num": 16,
+        "content": "const {AgentRole,assertPermission} = require('@/lib/governance/index');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\agent\\critical-loop.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 8,
+        "content": "const OpenAI = require('openai');"
+      },
+      {
+        "num": 9,
+        "content": "const {CriticalLoopResult,MethodologyJudgment,AdversarialReview,CalibrationAsses"
+      }
+    ]
+  },
+  {
+    "file": "lib\\agent\\digest-agent.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 6,
+        "content": "const OpenAI = require('openai');"
+      },
+      {
+        "num": 7,
+        "content": "const {env} = require('../env');"
+      },
+      {
+        "num": 8,
+        "content": "const {prisma} = require('../db');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\agent\\domain-classifier.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 8,
+        "content": "const {prisma} = require('@/lib/db');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\agent\\editorial-gate.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 9,
+        "content": "const {prisma} = require('@/lib/db');"
+      },
+      {
+        "num": 10,
+        "content": "const {EditorialChecks,EditorialDecisionType,SIGNAL_THRESHOLDS,FORBIDDEN_PHRASES"
+      },
+      {
+        "num": 11,
+        "content": "const {cadenceEnforcer} = require('./cadence-enforcer');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\agent\\index-agent.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 6,
+        "content": "const {prisma} = require('../db');"
+      },
+      {
+        "num": 7,
+        "content": "const {searchROR} = require('../providers/ror');"
+      },
+      {
+        "num": 8,
+        "content": "const {getORCIDById} = require('../providers/orcid');"
+      },
+      {
+        "num": 9,
+        "content": "const {classifyBatchSources} = require('./domain-classifier');"
+      },
+      {
+        "num": 10,
+        "content": "const {assertPermission,AgentRole} = require('../governance');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\agent\\macro-refresh.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 1,
+        "content": "const {prisma} = require('@/lib/db');"
+      },
+      {
+        "num": 3,
+        "content": "const {ingestEurostatIndicators} = require('@/lib/providers/eurostat');"
+      },
+      {
+        "num": 4,
+        "content": "const {ingestECBIndicators} = require('@/lib/providers/ecb');"
+      },
+      {
+        "num": 5,
+        "content": "const {ingestINSEEIndicators} = require('@/lib/providers/insee');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\agent\\mcp-agents-index.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 4,
+        "content": "const {scoutAgent} = require('./mcp-agents-aliases');"
+      },
+      {
+        "num": 5,
+        "content": "const {indexAgent} = require('./mcp-agents-aliases');"
+      },
+      {
+        "num": 6,
+        "content": "const {readerAgent} = require('./mcp-agents-aliases');"
+      },
+      {
+        "num": 7,
+        "content": "const {analystAgent} = require('./mcp-agents-aliases');"
+      },
+      {
+        "num": 8,
+        "content": "const {strategicAnalystAgent} = require('./mcp-agents-aliases');"
+      },
+      {
+        "num": 9,
+        "content": "const {rankAgent} = require('./mcp-agents-aliases');"
+      },
+      {
+        "num": 10,
+        "content": "const {pipeline} = require('./mcp-agents-aliases');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\agent\\monitoring-agent.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 6,
+        "content": "const {prisma} = require('../db');"
+      },
+      {
+        "num": 7,
+        "content": "const {setTimeout: sleep} = require('timers/promises');"
+      },
+      {
+        "num": 10,
+        "content": "const {searchWorldBankAPI} = require('../providers/institutional/stable/worldban"
+      },
+      {
+        "num": 11,
+        "content": "const {searchCISAAdvisories} = require('../providers/institutional/stable/cisa-a"
+      },
+      {
+        "num": 12,
+        "content": "const {searchNARA} = require('../providers/institutional/v2/nara-api');"
+      },
+      {
+        "num": 13,
+        "content": "const {searchUKArchives} = require('../providers/institutional/v2/uk-archives-ap"
+      },
+      {
+        "num": 14,
+        "content": "const {searchUNDigitalLibrary,searchUNDP,searchUNCTAD} = require('../providers/i"
+      },
+      {
+        "num": 15,
+        "content": "const {searchODNIViaGoogle,searchNATOViaGoogle,searchNSAViaGoogle,searchENISAVia"
+      },
+      {
+        "num": 18,
+        "content": "const {searchCIAFOIAViaArchive} = require('../providers/institutional/v2/archive"
+      },
+      {
+        "num": 19,
+        "content": "const {searchEEAS,searchEDA} = require('../providers/institutional/v2/eu-open-da"
+      },
+      {
+        "num": 20,
+        "content": "const {searchMinistereArmees,searchSGDSN,searchArchivesNationales} = require('.."
+      },
+      {
+        "num": 23,
+        "content": "const {searchIMFSDMX} = require('../providers/institutional/v2/imf-sdmx');"
+      },
+      {
+        "num": 24,
+        "content": "const {searchIMFeLibrary} = require('../providers/institutional/v2/imf-elibrary'"
+      },
+      {
+        "num": 27,
+        "content": "const {searchOECDSDMX} = require('../providers/institutional/v2/oecd-sdmx');"
+      },
+      {
+        "num": 28,
+        "content": "const {searchOECDiLibrary} = require('../providers/institutional/v2/oecd-ilibrar"
+      },
+      {
+        "num": 30,
+        "content": "const {searchBIS} = require('../providers/institutional/v2/bis-papers');"
+      },
+      {
+        "num": 31,
+        "content": "const {searchNIST} = require('../providers/institutional/v2/nist-publications');"
+      },
+      {
+        "num": 32,
+        "content": "const {scoreSource} = require('../score');"
+      },
+      {
+        "num": 35,
+        "content": "const {searchCrossref} = require('../providers/academic/crossref-api');"
+      },
+      {
+        "num": 36,
+        "content": "const {searchOpenAlex} = require('../providers/academic/openalex-api');"
+      },
+      {
+        "num": 37,
+        "content": "const {searchArXiv} = require('../providers/academic/arxiv-api');"
+      },
+      {
+        "num": 38,
+        "content": "const {searchPubMed} = require('../providers/academic/pubmed-api');"
+      },
+      {
+        "num": 39,
+        "content": "const {searchTechCrunch} = require('../providers/business/techcrunch-api.ts');"
+      },
+      {
+        "num": 40,
+        "content": "const {searchCrunchbase} = require('../providers/business/crunchbase-api.ts');"
+      },
+      {
+        "num": 41,
+        "content": "const {searchReuters} = require('../providers/business/reuters-api.ts');"
+      },
+      {
+        "num": 42,
+        "content": "const {searchGooglePatents} = require('../providers/patents/google-patents-api')"
+      },
+      {
+        "num": 43,
+        "content": "const {searchPatentsView} = require('../providers/patents/patentsview-api');"
+      },
+      {
+        "num": 44,
+        "content": "const {searchFigshare} = require('../providers/data/figshare-api');"
+      },
+      {
+        "num": 45,
+        "content": "const {searchZenodo} = require('../providers/data/zenodo-api');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\agent\\pipeline-v2.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 9,
+        "content": "const { prisma } = require(\"../db\");"
+      },
+      {
+        "num": 10,
+        "content": "const { scoreSource, scoreNovelty } = require(\"../score\");"
+      },
+      {
+        "num": 11,
+        "content": "const { clamp } = require(\"../text\");"
+      },
+      {
+        "num": 13,
+        "content": "const { AgentRole, assertPermission } = require(\"../governance\");"
+      },
+      {
+        "num": 22,
+        "content": "const RedisModule = require(\"ioredis\");"
+      }
+    ]
+  },
+  {
+    "file": "lib\\agent\\pipeline-v3.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 16,
+        "content": "const {prisma} = require('../db');"
+      },
+      {
+        "num": 17,
+        "content": "const {scoreNovelty} = require('../score');"
+      },
+      {
+        "num": 18,
+        "content": "const {scoutV2,typeProviders} = require('./scout-v2');"
+      },
+      {
+        "num": 19,
+        "content": "const {indexAgent,deduplicateSources} = require('./index-agent');"
+      },
+      {
+        "num": 20,
+        "content": "const {readerAgent} = require('./reader-agent');"
+      },
+      {
+        "num": 21,
+        "content": "const {analystAgent} = require('./analyst-agent');"
+      },
+      {
+        "num": 22,
+        "content": "const {citationGuard,renderBriefHTML} = require('./pipeline-v2');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\agent\\pipeline.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 2,
+        "content": "const {prisma} = require('../db');"
+      },
+      {
+        "num": 3,
+        "content": "const {scoreSource} = require('../score');"
+      },
+      {
+        "num": 4,
+        "content": "const {clamp} = require('../text');"
+      },
+      {
+        "num": 5,
+        "content": "const OpenAI = require('openai');"
+      },
+      {
+        "num": 6,
+        "content": "const {searchOpenAlex} = require('../providers/openalex');"
+      },
+      {
+        "num": 7,
+        "content": "const {searchThesesFr} = require('../providers/thesesfr');"
+      },
+      {
+        "num": 8,
+        "content": "const {searchCrossref} = require('../providers/crossref');"
+      },
+      {
+        "num": 9,
+        "content": "const {searchSemanticScholar} = require('../providers/semanticscholar');"
+      },
+      {
+        "num": 10,
+        "content": "const {unpaywallByDoi} = require('../providers/unpaywall');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\agent\\provider-registry.cjs",
+    "hasRequire": true,
+    "hasModuleExports": true,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 4,
+        "content": "lawzero: require('../providers/lawzero-provider.js'),"
+      },
+      {
+        "num": 5,
+        "content": "astéres: require('../providers/ast-res-provider.js'),"
+      },
+      {
+        "num": 6,
+        "content": "idea factory: require('../providers/idea-factory-provider.js'),"
+      },
+      {
+        "num": 7,
+        "content": "copenhagen institute: require('../providers/copenhagen-institute-provider.js'),"
+      },
+      {
+        "num": 8,
+        "content": "berlin policy hub: require('../providers/berlin-policy-hub-provider.js')"
+      },
+      {
+        "num": 11,
+        "content": "module.exports = providers;"
+      }
+    ]
+  },
+  {
+    "file": "lib\\agent\\publication-generator.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 8,
+        "content": "const OpenAI = require('openai');"
+      },
+      {
+        "num": 9,
+        "content": "const {prisma} = require('../db');"
+      },
+      {
+        "num": 10,
+        "content": "const {PublicationType,PublicationTemplate,CriticalLoopResult} = require('@/lib/"
+      },
+      {
+        "num": 11,
+        "content": "const {getTemplate,PUBLICATION_TEMPLATES} = require('@/lib/think-tank/templates'"
+      },
+      {
+        "num": 12,
+        "content": "const {runCriticalLoop} = require('./critical-loop');"
+      },
+      {
+        "num": 13,
+        "content": "const {recordPublication} = require('./cadence-enforcer');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\agent\\query-enhancer.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 28,
+        "content": "const OpenAI = require('openai');"
+      },
+      {
+        "num": 29,
+        "content": "const {env} = require('../env');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\agent\\radar-agent.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 11,
+        "content": "const OpenAI = require('openai');"
+      },
+      {
+        "num": 12,
+        "content": "const {env} = require('../env');"
+      },
+      {
+        "num": 13,
+        "content": "const {prisma} = require('../db');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\agent\\reader-agent.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 11,
+        "content": "const {callLLM} = require('../llm/unified-llm');"
+      },
+      {
+        "num": 12,
+        "content": "const Sentry = require('@sentry/nextjs');"
+      },
+      {
+        "num": 13,
+        "content": "const {AgentRole,assertPermission} = require('../governance/index');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\agent\\scout-v2.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 20,
+        "content": "const {prisma} = require('../db');"
+      },
+      {
+        "num": 21,
+        "content": "const {scoreSource,scoreNovelty} = require('../score');"
+      },
+      {
+        "num": 22,
+        "content": "const {clamp} = require('../text');"
+      },
+      {
+        "num": 23,
+        "content": "const {searchOpenAlex} = require('../providers/openalex');"
+      },
+      {
+        "num": 24,
+        "content": "const {searchThesesFr} = require('../providers/thesesfr');"
+      },
+      {
+        "num": 25,
+        "content": "const {searchCrossref} = require('../providers/crossref');"
+      },
+      {
+        "num": 26,
+        "content": "const {searchSemanticScholar} = require('../providers/semanticscholar');"
+      },
+      {
+        "num": 27,
+        "content": "const {unpaywallByDoi} = require('../providers/unpaywall');"
+      },
+      {
+        "num": 28,
+        "content": "const {enhanceQuery,generateSearchQueries,typeEnhancedQuery} = require('./query-"
+      },
+      {
+        "num": 29,
+        "content": "const {filterByRelevance,logRelevanceScores} = require('./relevance-scorer');"
+      },
+      {
+        "num": 30,
+        "content": "const {rerankSources} = require('./cohere-reranker');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\agent\\signal-detector.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 8,
+        "content": "const {prisma} = require('@/lib/db');"
+      },
+      {
+        "num": 9,
+        "content": "const {SignalType,SignalScores,SIGNAL_THRESHOLDS} = require('@/lib/think-tank/ty"
+      },
+      {
+        "num": 10,
+        "content": "const {VERTICALS} = require('@/lib/think-tank/verticals');"
+      },
+      {
+        "num": 11,
+        "content": "const {callLLM} = require('@/lib/llm/unified-llm');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\agent\\simple-typescript-fixer.mjs",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 226,
+        "content": "const { mkdirSync } = require('fs');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\agent\\strategic-analyst-agent.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 14,
+        "content": "const {callLLM} = require('../llm/unified-llm');"
+      },
+      {
+        "num": 15,
+        "content": "const Sentry = require('@sentry/nextjs');"
+      },
+      {
+        "num": 16,
+        "content": "const {AgentRole,assertPermission} = require('../governance/index');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\agent\\strategic-report-renderer.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 11,
+        "content": "const {StrategicAnalysisOutput} = require('./strategic-analyst-agent');"
+      },
+      {
+        "num": 12,
+        "content": "const {AgentRole,assertPermission} = require('../governance/index');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\agent\\trend-analyzer.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 14,
+        "content": "const {prisma} = require('@/lib/db');"
+      },
+      {
+        "num": 15,
+        "content": "const {callLLM} = require('@/lib/llm/unified-llm');"
+      },
+      {
+        "num": 16,
+        "content": "const {AgentRole,assertPermission} = require('@/lib/governance/index');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\agent\\typescript-error-fixer.mjs",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 482,
+        "content": "const { readdirSync, statSync, existsSync } = require('fs');"
+      },
+      {
+        "num": 483,
+        "content": "const { join } = require('path');"
+      },
+      {
+        "num": 506,
+        "content": "const { mkdirSync } = require('fs');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\agents\\validation-schemas.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 6,
+        "content": "const {z} = require('zod');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\analytics.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 6,
+        "content": "const {prisma} = require('@/lib/prisma');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\auth.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 6,
+        "content": "const {SignJWT,jwtVerify} = require('jose');"
+      },
+      {
+        "num": 7,
+        "content": "const {cookies} = require('next/headers');"
+      },
+      {
+        "num": 8,
+        "content": "const bcrypt = require('bcryptjs');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\billing\\stripe.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 6,
+        "content": "const Stripe = require('stripe');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\briefs\\brief-service.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 6,
+        "content": "const {Brief,BriefVersion,BriefReview,BriefAnalytics} = require('@/types/briefs'"
+      },
+      {
+        "num": 7,
+        "content": "const {prisma} = require('@/lib/prisma');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\cache\\redis-cache.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 6,
+        "content": "const Redis = require('ioredis');"
+      },
+      {
+        "num": 7,
+        "content": "const {env} = require('../env');"
+      },
+      {
+        "num": 8,
+        "content": "const {createHash} = require('crypto');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\database.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 1,
+        "content": "const {PrismaClient} = require('@prisma/client');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\domains.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 5,
+        "content": "const {Wallet,Microscope,Leaf,Stethoscope,Cpu,Users,Scale,Zap,typeLucideIcon,} ="
+      }
+    ]
+  },
+  {
+    "file": "lib\\email\\newsletter-service.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 6,
+        "content": "const {Resend} = require('resend');"
+      },
+      {
+        "num": 7,
+        "content": "const {Newsletter,NewsletterSubscription,NewsletterCampaign} = require('@/types/"
+      }
+    ]
+  },
+  {
+    "file": "lib\\embeddings.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 6,
+        "content": "const OpenAI = require('openai');"
+      },
+      {
+        "num": 7,
+        "content": "const {env} = require('./env');"
+      },
+      {
+        "num": 8,
+        "content": "const {prisma} = require('./db');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\env.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 6,
+        "content": "const {z} = require('zod');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\gateway\\portable-server.js",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 7,
+        "content": "const express = require('express');"
+      },
+      {
+        "num": 8,
+        "content": "const cors = require('cors');"
+      },
+      {
+        "num": 9,
+        "content": "const { createServer } = require('http');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\governance\\audit.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 10,
+        "content": "const {prisma} = require('../db');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\governance\\guard.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 12,
+        "content": "const {AgentRole} = require('./roles');"
+      },
+      {
+        "num": 13,
+        "content": "const {Permission,hasPermission} = require('./permissions');"
+      },
+      {
+        "num": 14,
+        "content": "const {logAuditEvent} = require('./audit');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\governance\\permissions.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 10,
+        "content": "const {AgentRole} = require('./roles');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\governance\\rules.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 12,
+        "content": "const {prisma} = require('../db');"
+      },
+      {
+        "num": 13,
+        "content": "const {logAuditEvent} = require('./audit');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\http-client.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 10,
+        "content": "const {env} = require('./env');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\jobs\\weekly-newsletter.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 11,
+        "content": "const {prisma} = require('@/lib/db');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\llm\\unified-llm.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 6,
+        "content": "const OpenAI = require('openai');"
+      },
+      {
+        "num": 7,
+        "content": "const Anthropic = require('@anthropic-ai/sdk');"
+      },
+      {
+        "num": 8,
+        "content": "const {env} = require('../env');"
+      },
+      {
+        "num": 9,
+        "content": "const {getCachedLLMResponse,cacheLLMResponse} = require('../cache/redis-cache');"
+      },
+      {
+        "num": 10,
+        "content": "const Sentry = require('@sentry/nextjs');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\providers\\all-providers-registry.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 5,
+        "content": "const {OpenAlexProvider} = require('./openalex');"
+      },
+      {
+        "num": 6,
+        "content": "const {CrossRefProvider} = require('./crossref');"
+      },
+      {
+        "num": 7,
+        "content": "const {PubMedProvider} = require('./pubmed');"
+      },
+      {
+        "num": 8,
+        "content": "const {ArxivProvider} = require('./arxiv');"
+      },
+      {
+        "num": 9,
+        "content": "const {SemanticScholarProvider} = require('./semanticscholar');"
+      },
+      {
+        "num": 10,
+        "content": "const {HALProvider} = require('./hal');"
+      },
+      {
+        "num": 11,
+        "content": "const {ThesesFrProvider} = require('./thesesfr');"
+      },
+      {
+        "num": 12,
+        "content": "const {UnpaywallProvider} = require('./unpaywall');"
+      },
+      {
+        "num": 13,
+        "content": "const {ORCIDProvider} = require('./orcid');"
+      },
+      {
+        "num": 14,
+        "content": "const {RORProvider} = require('./ror');"
+      },
+      {
+        "num": 19,
+        "content": "const {AstResProvider} = require('./ast-res-provider');"
+      },
+      {
+        "num": 20,
+        "content": "const {BerlinPolicyHubProvider} = require('./berlin-policy-hub-provider');"
+      },
+      {
+        "num": 21,
+        "content": "const {CopenhagenInstituteProvider} = require('./copenhagen-institute-provider')"
+      },
+      {
+        "num": 22,
+        "content": "const {IdeaFactoryProvider} = require('./idea-factory-provider');"
+      },
+      {
+        "num": 25,
+        "content": "const {EYResearchProvider} = require('./ey-research-provider');"
+      },
+      {
+        "num": 26,
+        "content": "const {BainInsightsProvider} = require('./bain-insights-provider');"
+      },
+      {
+        "num": 27,
+        "content": "const {AccentureResearchProvider} = require('./accenture-research-provider');"
+      },
+      {
+        "num": 32,
+        "content": "const {DeepMindResearchProvider} = require('./deepmind-research-provider');"
+      },
+      {
+        "num": 33,
+        "content": "const {AIIndexProvider} = require('./ai-index-provider');"
+      },
+      {
+        "num": 36,
+        "content": "const {IEAProvider} = require('./iea-provider');"
+      },
+      {
+        "num": 37,
+        "content": "const {IRENAProvider} = require('./irena-provider');"
+      },
+      {
+        "num": 38,
+        "content": "const {EnergyFuturesProvider} = require('./energy-futures-provider');"
+      },
+      {
+        "num": 43,
+        "content": "const {CGDProvider} = require('./cgd-provider');"
+      },
+      {
+        "num": 46,
+        "content": "const {ACETProvider} = require('./acet-provider');"
+      },
+      {
+        "num": 49,
+        "content": "const {AmazonScienceProvider} = require('./amazon-science-provider');"
+      },
+      {
+        "num": 50,
+        "content": "const {GoogleAIResearchProvider} = require('./google-ai-research-provider');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\providers\\arxiv.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 6,
+        "content": "const {fetchFromProvider} = require('../http-client');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\providers\\base.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 6,
+        "content": "const {fetchFromProvider} = require('../http-client');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\providers\\crossref.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 2,
+        "content": "const {fetchFromProvider} = require('../http-client');"
+      },
+      {
+        "num": 3,
+        "content": "const {env} = require('../env');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\providers\\ecb.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 8,
+        "content": "const {fetchFromProvider} = require('../http-client');"
+      },
+      {
+        "num": 9,
+        "content": "const {env} = require('../env');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\providers\\eurostat.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 11,
+        "content": "const {fetchFromProvider} = require('../http-client');"
+      },
+      {
+        "num": 12,
+        "content": "const {env} = require('../env');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\providers\\hal.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 6,
+        "content": "const {fetchFromProvider} = require('../http-client');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\providers\\insee.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 9,
+        "content": "const {fetchFromProvider} = require('../http-client');"
+      },
+      {
+        "num": 10,
+        "content": "const {env} = require('../env');"
+      },
+      {
+        "num": 11,
+        "content": "const {searchMelodi} = require('./melodi');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\providers\\institutional\\archives\\archives-nationales-fr.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 7,
+        "content": "const axios = require('axios');"
+      },
+      {
+        "num": 8,
+        "content": "const cheerio = require('cheerio');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\providers\\institutional\\archives\\nara.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 7,
+        "content": "const axios = require('axios');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\providers\\institutional\\archives\\uk-archives.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 7,
+        "content": "const axios = require('axios');"
+      },
+      {
+        "num": 8,
+        "content": "const cheerio = require('cheerio');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\providers\\institutional\\cyber\\cisa.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 7,
+        "content": "const axios = require('axios');"
+      },
+      {
+        "num": 8,
+        "content": "const cheerio = require('cheerio');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\providers\\institutional\\cyber\\enisa.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 7,
+        "content": "const axios = require('axios');"
+      },
+      {
+        "num": 8,
+        "content": "const cheerio = require('cheerio');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\providers\\institutional\\cyber\\nist.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 7,
+        "content": "const axios = require('axios');"
+      },
+      {
+        "num": 8,
+        "content": "const cheerio = require('cheerio');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\providers\\institutional\\defense\\eda.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 7,
+        "content": "const axios = require('axios');"
+      },
+      {
+        "num": 8,
+        "content": "const cheerio = require('cheerio');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\providers\\institutional\\defense\\eeas.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 7,
+        "content": "const axios = require('axios');"
+      },
+      {
+        "num": 8,
+        "content": "const cheerio = require('cheerio');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\providers\\institutional\\defense\\nato.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 7,
+        "content": "const axios = require('axios');"
+      },
+      {
+        "num": 8,
+        "content": "const cheerio = require('cheerio');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\providers\\institutional\\defense\\sgdsn.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 7,
+        "content": "const axios = require('axios');"
+      },
+      {
+        "num": 8,
+        "content": "const cheerio = require('cheerio');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\providers\\institutional\\economic\\bis.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 7,
+        "content": "const axios = require('axios');"
+      },
+      {
+        "num": 8,
+        "content": "const cheerio = require('cheerio');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\providers\\institutional\\economic\\imf-api.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 6,
+        "content": "const axios = require('axios');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\providers\\institutional\\economic\\imf.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 8,
+        "content": "const axios = require('axios');"
+      },
+      {
+        "num": 9,
+        "content": "const cheerio = require('cheerio');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\providers\\institutional\\economic\\oecd.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 7,
+        "content": "const axios = require('axios');"
+      },
+      {
+        "num": 8,
+        "content": "const cheerio = require('cheerio');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\providers\\institutional\\economic\\worldbank.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 8,
+        "content": "const axios = require('axios');"
+      },
+      {
+        "num": 9,
+        "content": "const cheerio = require('cheerio');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\providers\\institutional\\examples.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 6,
+        "content": "const {scout,runFullPipeline} = require('@/lib/agent/pipeline-v2');"
+      },
+      {
+        "num": 7,
+        "content": "const {recommendProviders} = require('./presets');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\providers\\institutional\\feeds\\rss-aggregator.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 6,
+        "content": "const Parser = require('rss-parser');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\providers\\institutional\\intelligence\\cia-foia.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 7,
+        "content": "const axios = require('axios');"
+      },
+      {
+        "num": 8,
+        "content": "const cheerio = require('cheerio');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\providers\\institutional\\intelligence\\nsa.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 7,
+        "content": "const axios = require('axios');"
+      },
+      {
+        "num": 8,
+        "content": "const cheerio = require('cheerio');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\providers\\institutional\\intelligence\\odni.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 7,
+        "content": "const axios = require('axios');"
+      },
+      {
+        "num": 8,
+        "content": "const cheerio = require('cheerio');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\providers\\institutional\\intelligence\\uk-jic.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 7,
+        "content": "const axios = require('axios');"
+      },
+      {
+        "num": 8,
+        "content": "const cheerio = require('cheerio');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\providers\\institutional\\multilateral\\un.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 7,
+        "content": "const axios = require('axios');"
+      },
+      {
+        "num": 8,
+        "content": "const cheerio = require('cheerio');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\providers\\institutional\\multilateral\\unctad.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 7,
+        "content": "const axios = require('axios');"
+      },
+      {
+        "num": 8,
+        "content": "const cheerio = require('cheerio');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\providers\\institutional\\multilateral\\undp.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 7,
+        "content": "const axios = require('axios');"
+      },
+      {
+        "num": 8,
+        "content": "const cheerio = require('cheerio');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\providers\\institutional\\rate-limiter.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 6,
+        "content": "const {INSTITUTIONAL_PROVIDERS} = require('./index');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\providers\\institutional\\stable\\cisa-advisories.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 7,
+        "content": "const Parser = require('rss-parser');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\providers\\institutional\\stable\\worldbank-api.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 6,
+        "content": "const axios = require('axios');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\providers\\institutional\\v2\\archive-org.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 7,
+        "content": "const axios = require('axios');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\providers\\institutional\\v2\\bis-papers.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 6,
+        "content": "const axios = require('axios');"
+      },
+      {
+        "num": 7,
+        "content": "const Parser = require('rss-parser');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\providers\\institutional\\v2\\eu-open-data.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 7,
+        "content": "const axios = require('axios');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\providers\\institutional\\v2\\france-gov.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 6,
+        "content": "const axios = require('axios');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\providers\\institutional\\v2\\google-cse.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 11,
+        "content": "const axios = require('axios');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\providers\\institutional\\v2\\imf-elibrary.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 6,
+        "content": "const axios = require('axios');"
+      },
+      {
+        "num": 7,
+        "content": "const cheerio = require('cheerio');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\providers\\institutional\\v2\\imf-sdmx.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 17,
+        "content": "const {fetchFromProvider} = require('../../../http-client');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\providers\\institutional\\v2\\nara-api.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 7,
+        "content": "const axios = require('axios');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\providers\\institutional\\v2\\nist-publications.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 6,
+        "content": "const axios = require('axios');"
+      },
+      {
+        "num": 7,
+        "content": "const Parser = require('rss-parser');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\providers\\institutional\\v2\\oecd-ilibrary.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 6,
+        "content": "const axios = require('axios');"
+      },
+      {
+        "num": 7,
+        "content": "const cheerio = require('cheerio');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\providers\\institutional\\v2\\oecd-sdmx.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 16,
+        "content": "const {fetchFromProvider} = require('../../../http-client');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\providers\\institutional\\v2\\uk-archives-api.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 7,
+        "content": "const axios = require('axios');"
+      },
+      {
+        "num": 8,
+        "content": "const cheerio = require('cheerio');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\providers\\institutional\\v2\\un-digital-library.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 7,
+        "content": "const axios = require('axios');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\providers\\macro\\ecb-api.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 6,
+        "content": "const {z} = require('zod');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\providers\\macro\\eurostat-api.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 6,
+        "content": "const {z} = require('zod');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\providers\\macro\\insee-api.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 6,
+        "content": "const {z} = require('zod');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\providers\\melodi.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 10,
+        "content": "const {fetchFromProvider} = require('../http-client');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\providers\\openalex.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 2,
+        "content": "const {fetchFromProvider} = require('../http-client');"
+      },
+      {
+        "num": 3,
+        "content": "const {invertedIndexToText} = require('../text');"
+      },
+      {
+        "num": 4,
+        "content": "const {env} = require('../env');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\providers\\orcid.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 5,
+        "content": "const {fetchFromProvider} = require('../http-client');"
+      },
+      {
+        "num": 6,
+        "content": "const {env} = require('../env');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\providers\\patents\\patentsview-api.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 16,
+        "content": "const {fetchFromProvider} = require('../../http-client');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\providers\\pdf-extractor.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 13,
+        "content": "const {fetchFromProvider} = require('../http-client');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\providers\\pubmed.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 6,
+        "content": "const {fetchFromProvider} = require('../http-client');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\providers\\ror.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 6,
+        "content": "const {fetchFromProvider} = require('../http-client');"
+      },
+      {
+        "num": 7,
+        "content": "const {env} = require('../env');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\providers\\semanticscholar.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 12,
+        "content": "const {fetchFromProvider} = require('../http-client');"
+      },
+      {
+        "num": 13,
+        "content": "const {env} = require('../env');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\providers\\thesesfr-hal-bridge.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 8,
+        "content": "const {fetchFromProvider} = require('../http-client');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\providers\\thesesfr.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 8,
+        "content": "const {fetchFromProvider} = require('../http-client');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\providers\\unpaywall.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 2,
+        "content": "const {fetchFromProvider} = require('../http-client');"
+      },
+      {
+        "num": 3,
+        "content": "const {env} = require('../env');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\security\\quota.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 9,
+        "content": "const {prisma} = require('../db');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\security.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 1,
+        "content": "const {NextRequest} = require('next/server');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\sentry.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 10,
+        "content": "// const Sentry = require('@sentry/nextjs');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\services\\googleCustomSearch.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 10,
+        "content": "const axios,{AxiosError} = require('axios');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\store.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 1,
+        "content": "const {create} = require('zustand');"
+      },
+      {
+        "num": 2,
+        "content": "const {devtools} = require('zustand/middleware');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\system\\optimized-coherent-system-enterprise.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 6,
+        "content": "const {prisma} = require('../db.ts');"
+      },
+      {
+        "num": 7,
+        "content": "const {setTimeoutassleep} = require('timers/promises');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\system\\optimized-coherent-system.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 6,
+        "content": "const {prisma} = require('../db.ts');"
+      },
+      {
+        "num": 7,
+        "content": "const {setTimeoutassleep} = require('timers/promises');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\think-tank\\templates.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 7,
+        "content": "const {PublicationTemplate,ClaimType,FORBIDDEN_PHRASES} = require('./types');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\think-tank\\verticals.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 7,
+        "content": "const {VerticalConfig,PublicationType} = require('./types');"
+      }
+    ]
+  },
+  {
+    "file": "lib\\utils.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 5,
+        "content": "const {typeClassValue,clsx} = require('clsx');"
+      },
+      {
+        "num": 6,
+        "content": "const {twMerge} = require('tailwind-merge');"
+      }
+    ]
+  },
+  {
+    "file": "netlify\\functions\\cadence-reset.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 7,
+        "content": "const {resetDailyCounters,resetWeeklyCounters} = require('../../lib/agent/cadenc"
+      }
+    ]
+  },
+  {
+    "file": "netlify\\functions\\editorial-precheck.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 7,
+        "content": "const {evaluatePendingSignals} = require('../../lib/agent/editorial-gate');"
+      }
+    ]
+  },
+  {
+    "file": "netlify\\functions\\signal-build.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 7,
+        "content": "const {prisma} = require('../../lib/db');"
+      },
+      {
+        "num": 8,
+        "content": "const {signalDetector} = require('../../lib/agent/signal-detector');"
+      }
+    ]
+  },
+  {
+    "file": "scripts\\comprehensive-build-check.mjs",
+    "hasRequire": false,
+    "hasModuleExports": true,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 40,
+        "content": "// Check for invalid module.exports syntax"
+      },
+      {
+        "num": 44,
+        "content": "issue: 'Invalid module.exports syntax',"
+      },
+      {
+        "num": 45,
+        "content": "pattern: 'module.exports. = ;'"
+      }
+    ]
+  },
+  {
+    "file": "scripts\\convert-registries-to-esm.mjs",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 23,
+        "content": "// Convertir require() en import"
+      }
+    ]
+  },
+  {
+    "file": "scripts\\deep-code-analysis.mjs",
+    "hasRequire": true,
+    "hasModuleExports": true,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 51,
+        "content": "if (line.includes('require(') && !line.startsWith('//')) {"
+      },
+      {
+        "num": 57,
+        "content": "if (line.startsWith('module.exports')) {"
+      },
+      {
+        "num": 70,
+        "content": "if (line.includes(\"require('react')\") && line.includes('const React')) {"
+      },
+      {
+        "num": 72,
+        "content": "if (nextLines.includes(\"require('react')\")) {"
+      },
+      {
+        "num": 82,
+        "content": "if (line.includes('module.exports.') && line.endsWith('= ;')) {"
+      },
+      {
+        "num": 86,
+        "content": "issue: 'Invalid module.exports syntax',"
+      },
+      {
+        "num": 203,
+        "content": "if (mix.hasModuleExports) styles.push('module.exports');"
+      }
+    ]
+  },
+  {
+    "file": "scripts\\enable-pgvector.js",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 1,
+        "content": "require('dotenv').config();"
+      },
+      {
+        "num": 2,
+        "content": "const { PrismaClient } = require('@prisma/client');"
+      }
+    ]
+  },
+  {
+    "file": "scripts\\find-all-commonjs.mjs",
+    "hasRequire": true,
+    "hasModuleExports": true,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 3,
+        "content": "* 🔍 Trouver TOUS les fichiers avec CommonJS (require/module.exports)"
+      },
+      {
+        "num": 84,
+        "content": "if (f.hasRequire) types.push('require()');"
+      },
+      {
+        "num": 85,
+        "content": "if (f.hasModuleExports) types.push('module.exports');"
+      }
+    ]
+  },
+  {
+    "file": "scripts\\fix-all-issues.mjs",
+    "hasRequire": true,
+    "hasModuleExports": true,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 19,
+        "content": "// Fix 1: Remove invalid module.exports. = ; lines"
+      },
+      {
+        "num": 25,
+        "content": "// Remove lines with module.exports. = ;"
+      },
+      {
+        "num": 46,
+        "content": "// Pattern: const type{Something} = require('...');"
+      },
+      {
+        "num": 78,
+        "content": "if ((line.includes(\"require('react')\") || line.includes('require(\"react\")')) &&"
+      },
+      {
+        "num": 143,
+        "content": "const newReactLine = `const React = require('react');\\nconst {${hooksStr}} = req"
+      },
+      {
+        "num": 172,
+        "content": "console.log(`✅ Fixed invalid module.exports: ${relativePath}`);"
+      }
+    ]
+  },
+  {
+    "file": "scripts\\fix-all-module-exports.mjs",
+    "hasRequire": false,
+    "hasModuleExports": true,
+    "hasExportsDot": true,
+    "lines": [
+      {
+        "num": 3,
+        "content": "* 🔧 Fix ALL module.exports - Conversion complète vers ES modules"
+      },
+      {
+        "num": 5,
+        "content": "* Trouve et corrige TOUS les fichiers avec module.exports ou exports."
+      },
+      {
+        "num": 28,
+        "content": "log('🔧 Fix ALL module.exports - Conversion ES Modules', 'cyan');"
+      },
+      {
+        "num": 49,
+        "content": "// Pattern 1: module.exports = something;"
+      },
+      {
+        "num": 55,
+        "content": "// Pattern 2: exports.name = value;"
+      },
+      {
+        "num": 61,
+        "content": "// Pattern 3: module.exports.name = value;"
+      },
+      {
+        "num": 95,
+        "content": "// Vérifier si le fichier contient module.exports ou exports."
+      }
+    ]
+  },
+  {
+    "file": "scripts\\fix-ui-components-exports.mjs",
+    "hasRequire": false,
+    "hasModuleExports": true,
+    "hasExportsDot": true,
+    "lines": [
+      {
+        "num": 3,
+        "content": "* 🔧 Fix UI Components - Convertir module.exports en export default"
+      },
+      {
+        "num": 5,
+        "content": "* Corrige tous les fichiers components/ui/*.tsx qui utilisent module.exports"
+      },
+      {
+        "num": 29,
+        "content": "log('🔧 Fix UI Components - Conversion module.exports → export', 'cyan');"
+      },
+      {
+        "num": 53,
+        "content": "// Pattern 1: module.exports = ComponentName;"
+      },
+      {
+        "num": 59,
+        "content": "// Pattern 2: exports.ComponentName = ComponentName;"
+      },
+      {
+        "num": 65,
+        "content": "// Pattern 3: module.exports = { ComponentName };"
+      },
+      {
+        "num": 74,
+        "content": "// Pattern 4: module.exports.ComponentName = function() { ... }"
+      },
+      {
+        "num": 80,
+        "content": "// Pattern 5: exports.default = ComponentName;"
+      }
+    ]
+  },
+  {
+    "file": "scripts\\openclaw-analyze-exports-error.mjs",
+    "hasRequire": false,
+    "hasModuleExports": true,
+    "hasExportsDot": true,
+    "lines": [
+      {
+        "num": 41,
+        "content": "* Analyse 1: Fichiers avec module.exports ou exports."
+      },
+      {
+        "num": 47,
+        "content": "{ regex: /\\bmodule\\.exports\\b/, name: 'module.exports' },"
+      },
+      {
+        "num": 48,
+        "content": "{ regex: /\\bexports\\.\\w+\\s*=/, name: 'exports.property =' },"
+      },
+      {
+        "num": 180,
+        "content": "if (hasModuleExports) syntax.push('module.exports');"
+      }
+    ]
+  },
+  {
+    "file": "scripts\\openclaw-fix-syntax-errors.mjs",
+    "hasRequire": false,
+    "hasModuleExports": true,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 4,
+        "content": "* Converts module.exports to export default (ES module)"
+      },
+      {
+        "num": 25,
+        "content": "// Fix pattern: module.exports = function FunctionName;() {"
+      }
+    ]
+  },
+  {
+    "file": "scripts\\openclaw-validate-nextjs16.mjs",
+    "hasRequire": false,
+    "hasModuleExports": true,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 33,
+        "content": "} else if (configContent.includes('module.exports')) {"
+      },
+      {
+        "num": 34,
+        "content": "results.critical.push('❌ Uses CommonJS (module.exports) - must use ES module');"
+      }
+    ]
+  },
+  {
+    "file": "vitest.config.ts",
+    "hasRequire": true,
+    "hasModuleExports": false,
+    "hasExportsDot": false,
+    "lines": [
+      {
+        "num": 1,
+        "content": "const {defineConfig} = require('vitest/config');"
+      },
+      {
+        "num": 2,
+        "content": "const path = require('path');"
+      }
+    ]
+  }
+]

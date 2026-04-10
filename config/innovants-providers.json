@@ -1,0 +1,37 @@
+{
+  "lawzero": {
+    "apiKey": "demo_key",
+    "baseUrl": "https://api.lawzero.fr/v1",
+    "rateLimit": "100/hour",
+    "timeout": 30000,
+    "retries": 3
+  },
+  "astéres": {
+    "apiKey": "demo_key",
+    "baseUrl": "https://api.asteres.fr/research",
+    "rateLimit": "100/hour",
+    "timeout": 30000,
+    "retries": 3
+  },
+  "idea factory": {
+    "apiKey": "demo_key",
+    "baseUrl": "https://api.idea-factory.eu/v2",
+    "rateLimit": "100/hour",
+    "timeout": 30000,
+    "retries": 3
+  },
+  "copenhagen institute": {
+    "apiKey": "demo_key",
+    "baseUrl": "https://api.copenhageninstitute.dk/data",
+    "rateLimit": "100/hour",
+    "timeout": 30000,
+    "retries": 3
+  },
+  "berlin policy hub": {
+    "apiKey": "demo_key",
+    "baseUrl": "https://api.berlinpolicy.eu/policies",
+    "rateLimit": "100/hour",
+    "timeout": 30000,
+    "retries": 3
+  }
+}

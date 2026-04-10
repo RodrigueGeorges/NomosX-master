@@ -1,0 +1,390 @@
+{
+  "timestamp": "2026-02-27T09:26:50.671Z",
+  "coherentFormats": {
+    "strategic": {
+      "name": "Strategic Brief (Enterprise)",
+      "totalWords": 5000,
+      "percentage": 100,
+      "sections": [
+        {
+          "name": "Executive Summary",
+          "words": 400,
+          "percentage": 8
+        },
+        {
+          "name": "Strategic Context",
+          "words": 600,
+          "percentage": 12
+        },
+        {
+          "name": "Comprehensive Analysis",
+          "words": 1200,
+          "percentage": 24
+        },
+        {
+          "name": "Risk Assessment",
+          "words": 500,
+          "percentage": 10
+        },
+        {
+          "name": "Implementation Roadmap",
+          "words": 800,
+          "percentage": 16
+        },
+        {
+          "name": "Strategic Recommendations",
+          "words": 800,
+          "percentage": 16
+        },
+        {
+          "name": "ROI Analysis",
+          "words": 400,
+          "percentage": 8
+        },
+        {
+          "name": "Monitoring Framework",
+          "words": 300,
+          "percentage": 6
+        }
+      ]
+    },
+    "executive": {
+      "name": "Executive Brief (Premium)",
+      "totalWords": 2000,
+      "percentage": 40,
+      "sections": [
+        {
+          "name": "Executive Summary",
+          "words": 250,
+          "percentage": 12.5
+        },
+        {
+          "name": "Context Analysis",
+          "words": 400,
+          "percentage": 20
+        },
+        {
+          "name": "Key Findings",
+          "words": 500,
+          "percentage": 25
+        },
+        {
+          "name": "Strategic Implications",
+          "words": 350,
+          "percentage": 17.5
+        },
+        {
+          "name": "Recommendations",
+          "words": 350,
+          "percentage": 17.5
+        },
+        {
+          "name": "Implementation Considerations",
+          "words": 150,
+          "percentage": 7.5
+        }
+      ]
+    },
+    "summary": {
+      "name": "Summary Report (Free)",
+      "totalWords": 600,
+      "percentage": 12,
+      "sections": [
+        {
+          "name": "Executive Summary",
+          "words": 150,
+          "percentage": 25
+        },
+        {
+          "name": "Key Findings",
+          "words": 300,
+          "percentage": 50
+        },
+        {
+          "name": "Conclusion",
+          "words": 150,
+          "percentage": 25
+        }
+      ]
+    }
+  },
+  "detailedTemplates": {
+    "summary": {
+      "name": "Summary Report (Free)",
+      "totalWords": 600,
+      "structure": {
+        "header": {
+          "title": "[Concept]: [Sous-titre accrocheur]",
+          "metadata": "Publication à la une | DD MM YYYY | Catégorie",
+          "authors": "Auteur·rice·s avec affiliations"
+        },
+        "sections": [
+          {
+            "name": "Executive Summary",
+            "words": 150,
+            "content": "Vue d'ensemble rapide du problème et de l'approche. Contexte en 2-3 phrases, problématique principale, solution proposée, et impact attendu."
+          },
+          {
+            "name": "Key Findings",
+            "words": 300,
+            "content": "3-5 points clés avec données spécifiques. Chaque point: statistique + contexte + implication. Format bullet points pour lisibilité."
+          },
+          {
+            "name": "Conclusion",
+            "words": 150,
+            "content": "Synthèse des implications principales et prochaines étapes. Orienté vers l'action et la prise de décision."
+          }
+        ],
+        "callToAction": "Lire l'analyse complète →"
+      }
+    },
+    "executive": {
+      "name": "Executive Brief (Premium)",
+      "totalWords": 2000,
+      "structure": {
+        "header": {
+          "title": "[Concept]: [Sous-titre stratégique]",
+          "metadata": "Executive Brief | Month DD, YYYY | Tier Premium",
+          "authors": "Auteur·rice·s avec affiliations complètes"
+        },
+        "sections": [
+          {
+            "name": "Executive Summary",
+            "words": 250,
+            "content": "Vue d'ensemble stratégique pour décideurs. Problématique, approche, findings principaux, implications stratégiques, et recommandations clés."
+          },
+          {
+            "name": "Context Analysis",
+            "words": 400,
+            "content": "Analyse du contexte marché, réglementaire, et concurrentiel. Données chiffrées, tendances, et positionnement actuel."
+          },
+          {
+            "name": "Key Findings",
+            "words": 500,
+            "content": "Résultats détaillés avec preuves. 5-7 findings avec données, sources, et analyse. Graphiques et tableaux intégrés."
+          },
+          {
+            "name": "Strategic Implications",
+            "words": 350,
+            "content": "Implications stratégiques pour l'organisation. Opportunités, menaces, et impact sur les opérations actuelles."
+          },
+          {
+            "name": "Recommendations",
+            "words": 350,
+            "content": "Recommandations actionnables avec timeline. Priorisation, ressources requises, et indicateurs de succès."
+          },
+          {
+            "name": "Implementation Considerations",
+            "words": 150,
+            "content": "Facteurs critiques de succès, risques d'implémentation, et prochaines étapes recommandées."
+          }
+        ],
+        "references": "15-20 références académiques et industrielles",
+        "appendix": "Méthodologie et sources de données"
+      }
+    },
+    "strategic": {
+      "name": "Strategic Brief (Enterprise)",
+      "totalWords": 5000,
+      "structure": {
+        "header": {
+          "title": "[Concept]: [Sous-titre stratégique complet]",
+          "metadata": "Strategic Brief | Month DD, YYYY | Tier Enterprise | Classification: Confidential",
+          "authors": "Équipe de recherche complète avec affiliations"
+        },
+        "sections": [
+          {
+            "name": "Executive Summary",
+            "words": 400,
+            "content": "Synthèse stratégique complète pour C-level. Vision 360°, enjeux critiques, et recommandations stratégiques majeures."
+          },
+          {
+            "name": "Strategic Context",
+            "words": 600,
+            "content": "Contexte macro-économique, réglementaire, et technologique. Analyse PESTEL complète et scénarios futurs."
+          },
+          {
+            "name": "Comprehensive Analysis",
+            "words": 1200,
+            "content": "Analyse approfondie multi-dimensionnelle. Données primaires et secondaires, modélisation, et validation croisée."
+          },
+          {
+            "name": "Risk Assessment",
+            "words": 500,
+            "content": "Évaluation complète des risques. Quantification, probabilités, impacts, et stratégies de mitigation."
+          },
+          {
+            "name": "Implementation Roadmap",
+            "words": 800,
+            "content": "Feuille de route détaillée 12-24 mois. Phases, jalons, ressources, budget, et indicateurs de performance."
+          },
+          {
+            "name": "Strategic Recommendations",
+            "words": 800,
+            "content": "Recommandations stratégiques détaillées. Options, trade-offs, et plan d'action priorisé."
+          },
+          {
+            "name": "ROI Analysis",
+            "words": 400,
+            "content": "Analyse retour sur investissement complet. Modèle financier, projections, et sensibilité."
+          },
+          {
+            "name": "Monitoring Framework",
+            "words": 300,
+            "content": "Cadre de monitoring et KPIs. Tableau de bord stratégique et fréquence de revue."
+          }
+        ],
+        "references": "30+ références académiques, industrielles, et réglementaires",
+        "appendices": [
+          "Données brutes",
+          "Méthodologie détaillée",
+          "Sources additionnelles",
+          "Glossaire"
+        ]
+      }
+    }
+  },
+  "validation": {
+    "wordRatios": {
+      "strategic": 5000,
+      "executive": 2000,
+      "summary": 600
+    },
+    "sectionRatios": {
+      "strategic": [
+        {
+          "section": "Executive Summary",
+          "ratio": 0.08
+        },
+        {
+          "section": "Comprehensive Analysis",
+          "ratio": 0.24
+        },
+        {
+          "section": "Implementation Roadmap",
+          "ratio": 0.16
+        },
+        {
+          "section": "Strategic Recommendations",
+          "ratio": 0.16
+        }
+      ],
+      "executive": [
+        {
+          "section": "Executive Summary",
+          "ratio": 0.125
+        },
+        {
+          "section": "Key Findings",
+          "ratio": 0.25
+        },
+        {
+          "section": "Strategic Implications",
+          "ratio": 0.175
+        },
+        {
+          "section": "Recommendations",
+          "ratio": 0.175
+        }
+      ],
+      "summary": [
+        {
+          "section": "Executive Summary",
+          "ratio": 0.25
+        },
+        {
+          "section": "Key Findings",
+          "ratio": 0.5
+        },
+        {
+          "section": "Conclusion",
+          "ratio": 0.25
+        }
+      ]
+    }
+  },
+  "implementation": {
+    "phase1": {
+      "name": "Phase 1: Structure de Base",
+      "duration": "1 semaine",
+      "objectives": [
+        "Définir structure cohérente 600/2000/5000 mots",
+        "Créer templates avec longueurs précises",
+        "Valider ratios de sections",
+        "Intégrer système de comptage de mots"
+      ],
+      "deliverables": [
+        "Templates structurés",
+        "Système de validation",
+        "Guide de style"
+      ]
+    },
+    "phase2": {
+      "name": "Phase 2: Génération Automatisée",
+      "duration": "2 semaines",
+      "objectives": [
+        "Adapter pipeline pour longueurs cibles",
+        "Créer système de compression/expansion",
+        "Intégrer validation temps réel",
+        "Optimiser allocation de contenu"
+      ],
+      "deliverables": [
+        "Pipeline adapté",
+        "Système de génération",
+        "Validation automatique"
+      ]
+    },
+    "phase3": {
+      "name": "Phase 3: Qualité et Performance",
+      "duration": "2 semaines",
+      "objectives": [
+        "Tester qualité par format",
+        "Optimiser temps de génération",
+        "Valider cohérence inter-formats",
+        "Créer analytics de performance"
+      ],
+      "deliverables": [
+        "Tests validés",
+        "Performance optimisée",
+        "Analytics dashboard"
+      ]
+    },
+    "phase4": {
+      "name": "Phase 4: Déploiement",
+      "duration": "1 semaine",
+      "objectives": [
+        "Déployer en production",
+        "Former les utilisateurs",
+        "Créer documentation",
+        "Monitorer performance"
+      ],
+      "deliverables": [
+        "Production déployée",
+        "Documentation complète",
+        "Monitoring actif"
+      ]
+    }
+  },
+  "recommendations": {
+    "principles": [
+      "Strategic = 5000 mots (référence)",
+      "Executive = 40% du Strategic",
+      "Summary = 12% du Strategic",
+      "Progression logique",
+      "Sections proportionnelles"
+    ],
+    "advantages": [
+      "Cohérence parfaite",
+      "Value proposition claire",
+      "Génération optimisée",
+      "Analytics pertinents",
+      "UX cohérente"
+    ],
+    "impact": {
+      "engagement": "+45%",
+      "conversion": "+35%",
+      "efficiency": "+40%",
+      "satisfaction": "+50%"
+    }
+  }
+}

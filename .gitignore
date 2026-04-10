@@ -1,0 +1,45 @@
+# dependencies
+node_modules
+.pnp
+.pnp.js
+
+# testing
+coverage
+*.log
+
+# next.js
+.next
+out
+build
+dist
+
+# env
+.env
+.env*.local
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDEs
+.idea
+.vscode
+*.swp
+*.swo
+*~
+
+# prisma
+generated/
+
+# archives (moved during CTO audit)
+docs/archive/
+scripts/archive/
+
+# debug artifacts
+theses-soutenues.json

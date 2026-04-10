@@ -1,0 +1,491 @@
+openapi: 3.0.3
+info:
+  title: NomosX API
+  description: Agentic think tank API — research intelligence platform
+  version: 2.0.0
+  contact:
+    name: NomosX Team
+
+servers:
+  - url: http://localhost:3000/api
+    description: Development
+  - url: https://nomosx.netlify.app/api
+    description: Production
+
+components:
+  securitySchemes:
+    SessionCookie:
+      type: apiKey
+      in: cookie
+      name: nomosx-session
+      description: JWT session cookie (set by /auth/login)
+    AdminKey:
+      type: apiKey
+      in: header
+      name: x-admin-key
+      description: Admin key for privileged endpoints
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+
+    Topic:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        query: { type: string }
+        tags: { type: array, items: { type: string } }
+        description: { type: string, nullable: true }
+        isActive: { type: boolean }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    Source:
+      type: object
+      properties:
+        id: { type: string }
+        title: { type: string }
+        year: { type: integer }
+        qualityScore: { type: integer }
+        provider: { type: string }
+        doi: { type: string, nullable: true }
+        url: { type: string, nullable: true }
+
+    Brief:
+      type: object
+      properties:
+        id: { type: string }
+        question: { type: string }
+        html: { type: string }
+        createdAt: { type: string, format: date-time }
+
+    HealthCheck:
+      type: object
+      properties:
+        status: { type: string, enum: [healthy, degraded, unhealthy] }
+        timestamp: { type: string, format: date-time }
+        version: { type: string }
+        checks:
+          type: object
+          properties:
+            database: { type: object, properties: { status: { type: string }, latency: { type: string } } }
+            redis: { type: object, properties: { status: { type: string }, latency: { type: string } } }
+            api: { type: object, properties: { status: { type: string }, latency: { type: string } } }
+
+  responses:
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    RateLimited:
+      description: Rate limit exceeded
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error: { type: string }
+              retryAfter: { type: integer }
+
+paths:
+  # ============ AUTH ============
+  /auth/login:
+    post:
+      summary: Login (rate limited 5/15min per IP)
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string }
+      responses:
+        '200': { description: Login successful, sets session cookie }
+        '401': { description: Invalid credentials }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /auth/register:
+    post:
+      summary: Register (rate limited 3/hour per IP)
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password, name]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string, minLength: 8 }
+                name: { type: string }
+      responses:
+        '201': { description: Account created }
+        '409': { description: Email already exists }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /auth/me:
+    get:
+      summary: Get current user session
+      tags: [Auth]
+      security: [{ SessionCookie: [] }]
+      responses:
+        '200': { description: Current user info }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /auth/logout:
+    post:
+      summary: Logout (clears session cookie)
+      tags: [Auth]
+      responses:
+        '200': { description: Logged out }
+
+  # ============ HEALTH ============
+  /health:
+    get:
+      summary: System health check (DB + Redis)
+      tags: [System]
+      responses:
+        '200':
+          description: System healthy
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/HealthCheck' }
+        '503': { description: System unhealthy }
+
+  # ============ TOPICS ============
+  /topics:
+    get:
+      summary: List all topics
+      tags: [Topics]
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  topics: { type: array, items: { $ref: '#/components/schemas/Topic' } }
+    post:
+      summary: Create a topic
+      tags: [Topics]
+      security: [{ AdminKey: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, query]
+              properties:
+                name: { type: string }
+                query: { type: string }
+                tags: { type: array, items: { type: string } }
+                description: { type: string }
+                isActive: { type: boolean }
+      responses:
+        '201': { description: Topic created }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '409': { description: Conflict }
+
+  /topics/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string }
+    get:
+      summary: Get a topic
+      tags: [Topics]
+      responses:
+        '200': { description: Success }
+        '404': { description: Not found }
+    patch:
+      summary: Update a topic
+      tags: [Topics]
+      security: [{ AdminKey: [] }]
+      responses:
+        '200': { description: Updated }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    delete:
+      summary: Delete a topic
+      tags: [Topics]
+      security: [{ AdminKey: [] }]
+      responses:
+        '200': { description: Deleted }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  # ============ BRIEFS ============
+  /briefs:
+    get:
+      summary: List briefs (auth required)
+      tags: [Briefs]
+      security: [{ SessionCookie: [] }]
+      responses:
+        '200': { description: List of briefs }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      summary: Generate a brief (auth + rate limited 5/min)
+      tags: [Briefs]
+      security: [{ SessionCookie: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [question]
+              properties:
+                question: { type: string }
+      responses:
+        '200':
+          description: Brief generated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Brief' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  # ============ ANALYSIS ============
+  /v3/analysis:
+    post:
+      summary: Run full analysis pipeline (auth + rate limited 10/min)
+      tags: [Analysis]
+      security: [{ SessionCookie: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [question]
+              properties:
+                question: { type: string }
+                providers: { type: array, items: { type: string } }
+                format: { type: string, enum: [brief, strategic, dossier] }
+      responses:
+        '200': { description: Analysis result }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  # ============ SEARCH ============
+  /search:
+    get:
+      summary: Hybrid search across sources
+      tags: [Search]
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema: { type: string }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 20 }
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results: { type: array, items: { $ref: '#/components/schemas/Source' } }
+
+  # ============ SOURCES ============
+  /sources:
+    get:
+      summary: List sources (auth required)
+      tags: [Sources]
+      security: [{ SessionCookie: [] }]
+      responses:
+        '200': { description: List of sources }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  # ============ STATS ============
+  /stats:
+    get:
+      summary: System statistics (auth required)
+      tags: [System]
+      security: [{ SessionCookie: [] }]
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  overview: { type: object }
+                  jobs: { type: object }
+                  sources: { type: object }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  # ============ RADAR ============
+  /radar:
+    get:
+      summary: Get radar cards (auth + rate limited 20/min)
+      tags: [Radar]
+      security: [{ SessionCookie: [] }]
+      responses:
+        '200': { description: Radar cards }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /radar/subscribe:
+    get:
+      summary: List radar subscriptions
+      tags: [Radar]
+      security: [{ SessionCookie: [] }]
+      responses:
+        '200': { description: Subscriptions list }
+    post:
+      summary: Subscribe to radar topic
+      tags: [Radar]
+      security: [{ SessionCookie: [] }]
+      responses:
+        '201': { description: Subscribed }
+    delete:
+      summary: Unsubscribe from radar topic
+      tags: [Radar]
+      security: [{ SessionCookie: [] }]
+      responses:
+        '200': { description: Unsubscribed }
+
+  # ============ SUBSCRIPTION ============
+  /subscription/upgrade:
+    post:
+      summary: Upgrade subscription (blocked until Stripe)
+      tags: [Subscription]
+      security: [{ SessionCookie: [] }]
+      responses:
+        '503': { description: Stripe integration pending }
+
+  # ============ STRIPE ============
+  /stripe/webhook:
+    post:
+      summary: Stripe webhook handler
+      tags: [Subscription]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { description: Webhook processed }
+        '400': { description: Invalid signature }
+        '503': { description: Stripe not configured }
+
+  # ============ INGESTION ============
+  /ingestion/run:
+    post:
+      summary: Run ingestion pipeline
+      tags: [Pipeline]
+      security: [{ AdminKey: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                query: { type: string }
+                providers: { type: array, items: { type: string } }
+                perProvider: { type: integer, default: 20 }
+      responses:
+        '200': { description: Ingestion started }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  # ============ THINK TANK ============
+  /think-tank/verticals:
+    get:
+      summary: List think tank verticals
+      tags: [Think Tank]
+      responses:
+        '200': { description: Verticals list }
+
+  /think-tank/publications:
+    get:
+      summary: List publications
+      tags: [Think Tank]
+      responses:
+        '200': { description: Publications list }
+    post:
+      summary: Create publication
+      tags: [Think Tank]
+      security: [{ AdminKey: [] }]
+      responses:
+        '201': { description: Publication created }
+
+  /think-tank/signals:
+    get:
+      summary: List detected signals
+      tags: [Think Tank]
+      responses:
+        '200': { description: Signals list }
+
+  /think-tank/cadence:
+    get:
+      summary: Get publication cadence
+      tags: [Think Tank]
+      responses:
+        '200': { description: Cadence data }
+
+  # ============ NEWSLETTER ============
+  /newsletter/subscribe:
+    post:
+      summary: Subscribe to newsletter
+      tags: [Newsletter]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: { type: string, format: email }
+                source: { type: string }
+      responses:
+        '200': { description: Subscribed }
+
+  # ============ DIGESTS ============
+  /digests:
+    get:
+      summary: List digests
+      tags: [Digests]
+      responses:
+        '200': { description: Digests list }
+
+  # ============ DOMAINS ============
+  /domains:
+    get:
+      summary: List domains
+      tags: [Domains]
+      responses:
+        '200': { description: Domains list }
+
+  # ============ CRON ============
+  /cron/generate-briefs:
+    post:
+      summary: Generate scheduled briefs
+      tags: [Cron]
+      security: [{ AdminKey: [] }]
+      responses:
+        '200': { description: Briefs generated }
+
+  /cron/weekly-briefs:
+    post:
+      summary: Send weekly brief digest
+      tags: [Cron]
+      security: [{ AdminKey: [] }]
+      responses:
+        '200': { description: Weekly briefs sent }

@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NomosX Logo Variations - Preview</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      background: #0B0B0D;
+      color: white;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      padding: 4rem 2rem;
+    }
+    
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    
+    h1 {
+      text-align: center;
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      background: linear-gradient(to right, #00D4FF, #4A7FE0);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    .subtitle {
+      text-align: center;
+      color: rgba(255,255,255,0.5);
+      margin-bottom: 4rem;
+      font-size: 1.2rem;
+    }
+    
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 3rem;
+      margin-bottom: 4rem;
+    }
+    
+    .logo-card {
+      background: rgba(255,255,255,0.02);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 24px;
+      padding: 2rem;
+      text-align: center;
+      transition: all 0.3s ease;
+    }
+    
+    .logo-card:hover {
+      background: rgba(255,255,255,0.04);
+      border-color: rgba(0,212,255,0.3);
+      transform: translateY(-5px);
+    }
+    
+    .logo-container {
+      width: 200px;
+      height: 200px;
+      margin: 0 auto 2rem;
+      background: rgba(255,255,255,0.05);
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    .logo-card:hover .logo-container {
+      background: rgba(0,212,255,0.05);
+      box-shadow: 0 0 40px rgba(0,212,255,0.2);
+    }
+    
+    .logo-container img {
+      width: 120px;
+      height: 120px;
+    }
+    
+    .logo-name {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: rgba(255,255,255,0.9);
+    }
+    
+    .logo-desc {
+      font-size: 0.9rem;
+      color: rgba(255,255,255,0.5);
+      line-height: 1.6;
+    }
+    
+    .comparison {
+      margin-top: 4rem;
+      padding: 3rem;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 24px;
+    }
+    
+    .comparison h2 {
+      font-size: 2rem;
+      margin-bottom: 2rem;
+      text-align: center;
+    }
+    
+    .comparison-grid {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4rem;
+      flex-wrap: wrap;
+    }
+    
+    .comparison-item {
+      text-align: center;
+    }
+    
+    .comparison-logo {
+      width: 150px;
+      height: 150px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 1rem;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    .comparison-logo img {
+      width: 100px;
+      height: 100px;
+    }
+    
+    .badge {
+      display: inline-block;
+      padding: 0.5rem 1rem;
+      background: linear-gradient(to right, #00D4FF, #4A7FE0);
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      margin-top: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>NomosX Monogramme NX</h1>
+    <p class="subtitle">5 Variations Elite - Cabinet de Conseil Premium</p>
+    
+    <div class="grid">
+      <!-- Version 1 -->
+      <div class="logo-card">
+        <div class="logo-container">
+          <img src="/logo-nx-monogram.svg" alt="NX Monogram">
+        </div>
+        <div class="logo-name">Monogram</div>
+        <div class="logo-desc">
+          Version classique avec nodes agentiques visibles. 
+          Structure claire N+X, glow effect, mémorable.
+        </div>
+      </div>
+      
+      <!-- Version 2 -->
+      <div class="logo-card">
+        <div class="logo-container">
+          <img src="/logo-nx-elite.svg" alt="NX Elite">
+        </div>
+        <div class="logo-name">Elite</div>
+        <div class="logo-desc">
+          Fusion sophistiquée, forme unique. 
+          Minimaliste premium, node central subtil.
+        </div>
+      </div>
+      
+      <!-- Version 3 -->
+      <div class="logo-card">
+        <div class="logo-container">
+          <img src="/logo-nx-abstract.svg" alt="NX Abstract">
+        </div>
+        <div class="logo-name">Abstract</div>
+        <div class="logo-desc">
+          Forme architecturale abstraite. 
+          Intersection sophistiquée, gradient triple, ultra-moderne.
+        </div>
+      </div>
+      
+      <!-- Version 4 -->
+      <div class="logo-card">
+        <div class="logo-container">
+          <img src="/logo-nx-ultimate.svg" alt="NX Ultimate">
+        </div>
+        <div class="logo-name">Ultimate</div>
+        <div class="logo-desc">
+          Path unique en une seule forme. 
+          Style McKinsey, signature distinctive, glow subtil.
+        </div>
+      </div>
+      
+      <!-- Version 5 -->
+      <div class="logo-card">
+        <div class="logo-container">
+          <img src="/logo-nx-clean.svg" alt="NX Clean">
+        </div>
+        <div class="logo-name">Clean</div>
+        <div class="logo-desc">
+          Géométrie parfaite en losange/diamant. 
+          Équilibre visuel optimal, node signature, ultra-sophistiqué.
+        </div>
+        <span class="badge">RECOMMANDÉ</span>
+      </div>
+    </div>
+    
+    <!-- Comparison Section -->
+    <div class="comparison">
+      <h2>Comparaison avec Logo Actuel</h2>
+      <div class="comparison-grid">
+        <div class="comparison-item">
+          <div class="comparison-logo">
+            <svg width="100" height="100" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="3" fill="white"/>
+              <circle cx="12" cy="4" r="2" fill="white" opacity="0.7"/>
+              <circle cx="20" cy="12" r="2" fill="white" opacity="0.7"/>
+              <circle cx="12" cy="20" r="2" fill="white" opacity="0.7"/>
+              <circle cx="4" cy="12" r="2" fill="white" opacity="0.7"/>
+              <line x1="12" y1="9" x2="12" y2="6" stroke="white" stroke-width="1.5" opacity="0.5"/>
+              <line x1="15" y1="12" x2="18" y2="12" stroke="white" stroke-width="1.5" opacity="0.5"/>
+              <line x1="12" y1="15" x2="12" y2="18" stroke="white" stroke-width="1.5" opacity="0.5"/>
+              <line x1="9" y1="12" x2="6" y2="12" stroke="white" stroke-width="1.5" opacity="0.5"/>
+            </svg>
+          </div>
+          <div style="color: rgba(255,255,255,0.6);">Logo Actuel</div>
+          <div style="font-size: 0.8rem; color: rgba(255,255,255,0.4); margin-top: 0.5rem;">
+            Réseau agentique<br>Fonctionnel
+          </div>
+        </div>
+        
+        <div style="font-size: 3rem; color: rgba(255,255,255,0.3);">→</div>
+        
+        <div class="comparison-item">
+          <div class="comparison-logo" style="box-shadow: 0 0 30px rgba(0,212,255,0.3);">
+            <img src="/logo-nx-clean.svg" alt="Nouveau Logo">
+          </div>
+          <div style="color: #00D4FF;">Monogramme NX</div>
+          <div style="font-size: 0.8rem; color: rgba(255,255,255,0.4); margin-top: 0.5rem;">
+            Cabinet Elite<br>Sophistiqué & Mémorable
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

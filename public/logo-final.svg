@@ -1,0 +1,20 @@
+<svg width="280" height="72" viewBox="0 0 280 72" xmlns="http://www.w3.org/2000/svg">
+  <!-- Symbole: constellation de signaux -->
+  <g opacity="0.9">
+    <!-- NSud central -->
+    <circle cx="20" cy="36" r="2.5" fill="#5EEAD4"/>
+    <!-- NSuds satellites -->
+    <circle cx="32" cy="28" r="1.5" fill="#5EEAD4" opacity="0.7"/>
+    <circle cx="32" cy="44" r="1.5" fill="#5EEAD4" opacity="0.7"/>
+    <circle cx="10" cy="36" r="1.2" fill="#5EEAD4" opacity="0.5"/>
+    <!-- Lignes de connexion -->
+    <line x1="20" y1="36" x2="32" y2="28" stroke="#5EEAD4" stroke-width="0.8" opacity="0.4"/>
+    <line x1="20" y1="36" x2="32" y2="44" stroke="#5EEAD4" stroke-width="0.8" opacity="0.4"/>
+    <line x1="20" y1="36" x2="10" y2="36" stroke="#5EEAD4" stroke-width="0.8" opacity="0.3"/>
+  </g>
+  
+  <!-- Wordmark: NomosX -->
+  <text x="50" y="46" fill="#EDE9E2" font-size="32" font-family="Space Grotesk, system-ui, sans-serif" font-weight="600" letter-spacing="-0.02em">
+    Nomos<tspan fill="#5EEAD4">X</tspan>
+  </text>
+</svg>

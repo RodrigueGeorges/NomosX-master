@@ -1,0 +1,63 @@
+﻿lib/observability/dashboard.ts(118,9): error TS1128: Declaration or statement expected.
+lib/observability/dashboard.ts(118,24): error TS1005: ';' expected.
+lib/observability/dashboard.ts(119,9): error TS1128: Declaration or statement expected.
+lib/observability/dashboard.ts(119,20): error TS1005: ';' expected.
+lib/observability/dashboard.ts(121,6): error TS1128: Declaration or statement expected.
+lib/observability/dashboard.ts(124,3): error TS1128: Declaration or statement expected.
+lib/observability/dashboard.ts(129,3): error TS1128: Declaration or statement expected.
+lib/observability/dashboard.ts(129,11): error TS1434: Unexpected keyword or identifier.
+lib/observability/dashboard.ts(129,40): error TS1005: ';' expected.
+lib/observability/dashboard.ts(130,11): error TS1005: ':' expected.
+lib/observability/dashboard.ts(130,33): error TS1005: ',' expected.
+lib/observability/dashboard.ts(132,9): error TS1005: ':' expected.
+lib/observability/dashboard.ts(134,13): error TS1005: ',' expected.
+lib/observability/dashboard.ts(134,19): error TS1005: ',' expected.
+lib/observability/dashboard.ts(134,39): error TS1005: ',' expected.
+lib/observability/dashboard.ts(135,13): error TS1005: ':' expected.
+lib/observability/dashboard.ts(135,45): error TS1005: ',' expected.
+lib/observability/dashboard.ts(138,13): error TS1005: ':' expected.
+lib/observability/dashboard.ts(140,8): error TS1005: ',' expected.
+lib/observability/dashboard.ts(142,14): error TS1005: ':' expected.
+lib/observability/dashboard.ts(146,8): error TS1005: ',' expected.
+lib/observability/dashboard.ts(147,7): error TS1005: ',' expected.
+lib/observability/dashboard.ts(159,3): error TS1128: Declaration or statement expected.
+lib/observability/dashboard.ts(159,11): error TS1434: Unexpected keyword or identifier.
+lib/observability/dashboard.ts(159,37): error TS1005: ';' expected.
+lib/observability/dashboard.ts(160,11): error TS1005: ':' expected.
+lib/observability/dashboard.ts(160,33): error TS1005: ',' expected.
+lib/observability/dashboard.ts(162,9): error TS1005: ':' expected.
+lib/observability/dashboard.ts(165,14): error TS1005: ':' expected.
+lib/observability/dashboard.ts(169,8): error TS1005: ',' expected.
+lib/observability/dashboard.ts(170,7): error TS1005: ',' expected.
+lib/observability/dashboard.ts(182,3): error TS1128: Declaration or statement expected.
+lib/observability/dashboard.ts(182,11): error TS1434: Unexpected keyword or identifier.
+lib/observability/dashboard.ts(182,42): error TS1005: ';' expected.
+lib/observability/dashboard.ts(186,12): error TS1005: ':' expected.
+lib/observability/dashboard.ts(192,6): error TS1005: ',' expected.
+lib/observability/dashboard.ts(198,3): error TS1128: Declaration or statement expected.
+lib/observability/dashboard.ts(198,11): error TS1434: Unexpected keyword or identifier.
+lib/observability/dashboard.ts(198,43): error TS1005: ';' expected.
+lib/observability/dashboard.ts(202,12): error TS1005: ':' expected.
+lib/observability/dashboard.ts(206,6): error TS1005: ',' expected.
+lib/observability/dashboard.ts(212,31): error TS1005: ';' expected.
+lib/observability/dashboard.ts(212,46): error TS1011: An element access expression should take an argument.
+lib/observability/dashboard.ts(212,48): error TS1005: ';' expected.
+lib/observability/dashboard.ts(220,31): error TS1005: ',' expected.
+lib/observability/dashboard.ts(220,52): error TS1005: ';' expected.
+lib/observability/dashboard.ts(221,20): error TS1005: ',' expected.
+lib/observability/dashboard.ts(222,19): error TS1005: ',' expected.
+lib/observability/dashboard.ts(223,20): error TS1005: ',' expected.
+lib/observability/dashboard.ts(225,11): error TS1005: ':' expected.
+lib/observability/dashboard.ts(225,49): error TS1005: ',' expected.
+lib/observability/dashboard.ts(227,12): error TS1005: ':' expected.
+lib/observability/dashboard.ts(231,8): error TS1005: ',' expected.
+lib/observability/dashboard.ts(237,25): error TS1005: ';' expected.
+lib/observability/dashboard.ts(239,22): error TS1011: An element access expression should take an argument.
+lib/observability/dashboard.ts(240,22): error TS1011: An element access expression should take an argument.
+lib/observability/dashboard.ts(241,29): error TS1011: An element access expression should take an argument.
+lib/observability/dashboard.ts(323,3): error TS1128: Declaration or statement expected.
+lib/observability/dashboard.ts(323,38): error TS1005: ',' expected.
+lib/observability/dashboard.ts(323,53): error TS1005: ';' expected.
+lib/observability/dashboard.ts(323,55): error TS1434: Unexpected keyword or identifier.
+lib/observability/dashboard.ts(350,21): error TS1005: ';' expected.
+lib/observability/dashboard.ts(366,1): error TS1128: Declaration or statement expected.

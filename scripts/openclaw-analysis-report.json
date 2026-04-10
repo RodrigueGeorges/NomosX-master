@@ -1,0 +1,621 @@
+{
+  "criticalIssues": [
+    {
+      "severity": "HIGH",
+      "file": "components\\ui\\Accordion.tsx",
+      "issue": "Utilise module.exports dans un fichier .tsx",
+      "pattern": "module.exports"
+    },
+    {
+      "severity": "HIGH",
+      "file": "components\\ui\\Accordion.tsx",
+      "issue": "Utilise exports.property = dans un fichier .tsx",
+      "pattern": "exports.property ="
+    },
+    {
+      "severity": "HIGH",
+      "file": "components\\ui\\Avatar.tsx",
+      "issue": "Utilise module.exports dans un fichier .tsx",
+      "pattern": "module.exports"
+    },
+    {
+      "severity": "HIGH",
+      "file": "components\\ui\\Avatar.tsx",
+      "issue": "Utilise exports.property = dans un fichier .tsx",
+      "pattern": "exports.property ="
+    },
+    {
+      "severity": "HIGH",
+      "file": "components\\ui\\Breadcrumb.tsx",
+      "issue": "Utilise module.exports dans un fichier .tsx",
+      "pattern": "module.exports"
+    },
+    {
+      "severity": "HIGH",
+      "file": "components\\ui\\Breadcrumb.tsx",
+      "issue": "Utilise exports.property = dans un fichier .tsx",
+      "pattern": "exports.property ="
+    },
+    {
+      "severity": "HIGH",
+      "file": "components\\ui\\Calendar.tsx",
+      "issue": "Utilise module.exports dans un fichier .tsx",
+      "pattern": "module.exports"
+    },
+    {
+      "severity": "HIGH",
+      "file": "components\\ui\\Calendar.tsx",
+      "issue": "Utilise exports.property = dans un fichier .tsx",
+      "pattern": "exports.property ="
+    },
+    {
+      "severity": "HIGH",
+      "file": "components\\ui\\Carousel.tsx",
+      "issue": "Utilise module.exports dans un fichier .tsx",
+      "pattern": "module.exports"
+    },
+    {
+      "severity": "HIGH",
+      "file": "components\\ui\\Carousel.tsx",
+      "issue": "Utilise exports.property = dans un fichier .tsx",
+      "pattern": "exports.property ="
+    },
+    {
+      "severity": "HIGH",
+      "file": "components\\ui\\Chart.tsx",
+      "issue": "Utilise module.exports dans un fichier .tsx",
+      "pattern": "module.exports"
+    },
+    {
+      "severity": "HIGH",
+      "file": "components\\ui\\Chart.tsx",
+      "issue": "Utilise exports.property = dans un fichier .tsx",
+      "pattern": "exports.property ="
+    },
+    {
+      "severity": "HIGH",
+      "file": "components\\ui\\Checkbox.tsx",
+      "issue": "Utilise module.exports dans un fichier .tsx",
+      "pattern": "module.exports"
+    },
+    {
+      "severity": "HIGH",
+      "file": "components\\ui\\Checkbox.tsx",
+      "issue": "Utilise exports.property = dans un fichier .tsx",
+      "pattern": "exports.property ="
+    },
+    {
+      "severity": "HIGH",
+      "file": "components\\ui\\Command.tsx",
+      "issue": "Utilise module.exports dans un fichier .tsx",
+      "pattern": "module.exports"
+    },
+    {
+      "severity": "HIGH",
+      "file": "components\\ui\\Command.tsx",
+      "issue": "Utilise exports.property = dans un fichier .tsx",
+      "pattern": "exports.property ="
+    },
+    {
+      "severity": "HIGH",
+      "file": "components\\ui\\Context-menu.tsx",
+      "issue": "Utilise module.exports dans un fichier .tsx",
+      "pattern": "module.exports"
+    },
+    {
+      "severity": "HIGH",
+      "file": "components\\ui\\Context-menu.tsx",
+      "issue": "Utilise exports.property = dans un fichier .tsx",
+      "pattern": "exports.property ="
+    },
+    {
+      "severity": "HIGH",
+      "file": "components\\ui\\Date-picker.tsx",
+      "issue": "Utilise module.exports dans un fichier .tsx",
+      "pattern": "module.exports"
+    },
+    {
+      "severity": "HIGH",
+      "file": "components\\ui\\Date-picker.tsx",
+      "issue": "Utilise exports.property = dans un fichier .tsx",
+      "pattern": "exports.property ="
+    },
+    {
+      "severity": "HIGH",
+      "file": "components\\ui\\Dialog.tsx",
+      "issue": "Utilise module.exports dans un fichier .tsx",
+      "pattern": "module.exports"
+    },
+    {
+      "severity": "HIGH",
+      "file": "components\\ui\\Dialog.tsx",
+      "issue": "Utilise exports.property = dans un fichier .tsx",
+      "pattern": "exports.property ="
+    },
+    {
+      "severity": "HIGH",
+      "file": "components\\ui\\DropdownMenu.tsx",
+      "issue": "Utilise module.exports dans un fichier .tsx",
+      "pattern": "module.exports"
+    },
+    {
+      "severity": "HIGH",
+      "file": "components\\ui\\DropdownMenu.tsx",
+      "issue": "Utilise exports.property = dans un fichier .tsx",
+      "pattern": "exports.property ="
+    },
+    {
+      "severity": "HIGH",
+      "file": "components\\ui\\Hover-card.tsx",
+      "issue": "Utilise module.exports dans un fichier .tsx",
+      "pattern": "module.exports"
+    },
+    {
+      "severity": "HIGH",
+      "file": "components\\ui\\Hover-card.tsx",
+      "issue": "Utilise exports.property = dans un fichier .tsx",
+      "pattern": "exports.property ="
+    },
+    {
+      "severity": "HIGH",
+      "file": "components\\ui\\Kbd.tsx",
+      "issue": "Utilise module.exports dans un fichier .tsx",
+      "pattern": "module.exports"
+    },
+    {
+      "severity": "HIGH",
+      "file": "components\\ui\\Kbd.tsx",
+      "issue": "Utilise exports.property = dans un fichier .tsx",
+      "pattern": "exports.property ="
+    },
+    {
+      "severity": "HIGH",
+      "file": "components\\ui\\Label.tsx",
+      "issue": "Utilise module.exports dans un fichier .tsx",
+      "pattern": "module.exports"
+    },
+    {
+      "severity": "HIGH",
+      "file": "components\\ui\\Label.tsx",
+      "issue": "Utilise exports.property = dans un fichier .tsx",
+      "pattern": "exports.property ="
+    },
+    {
+      "severity": "HIGH",
+      "file": "components\\ui\\Menubar.tsx",
+      "issue": "Utilise module.exports dans un fichier .tsx",
+      "pattern": "module.exports"
+    },
+    {
+      "severity": "HIGH",
+      "file": "components\\ui\\Menubar.tsx",
+      "issue": "Utilise exports.property = dans un fichier .tsx",
+      "pattern": "exports.property ="
+    },
+    {
+      "severity": "HIGH",
+      "file": "components\\ui\\Navigation-menu.tsx",
+      "issue": "Utilise module.exports dans un fichier .tsx",
+      "pattern": "module.exports"
+    },
+    {
+      "severity": "HIGH",
+      "file": "components\\ui\\Navigation-menu.tsx",
+      "issue": "Utilise exports.property = dans un fichier .tsx",
+      "pattern": "exports.property ="
+    },
+    {
+      "severity": "HIGH",
+      "file": "components\\ui\\Pagination.tsx",
+      "issue": "Utilise module.exports dans un fichier .tsx",
+      "pattern": "module.exports"
+    },
+    {
+      "severity": "HIGH",
+      "file": "components\\ui\\Pagination.tsx",
+      "issue": "Utilise exports.property = dans un fichier .tsx",
+      "pattern": "exports.property ="
+    },
+    {
+      "severity": "HIGH",
+      "file": "components\\ui\\Popover.tsx",
+      "issue": "Utilise module.exports dans un fichier .tsx",
+      "pattern": "module.exports"
+    },
+    {
+      "severity": "HIGH",
+      "file": "components\\ui\\Popover.tsx",
+      "issue": "Utilise exports.property = dans un fichier .tsx",
+      "pattern": "exports.property ="
+    },
+    {
+      "severity": "HIGH",
+      "file": "components\\ui\\Progress.tsx",
+      "issue": "Utilise module.exports dans un fichier .tsx",
+      "pattern": "module.exports"
+    },
+    {
+      "severity": "HIGH",
+      "file": "components\\ui\\Progress.tsx",
+      "issue": "Utilise exports.property = dans un fichier .tsx",
+      "pattern": "exports.property ="
+    },
+    {
+      "severity": "HIGH",
+      "file": "components\\ui\\Radio-group.tsx",
+      "issue": "Utilise module.exports dans un fichier .tsx",
+      "pattern": "module.exports"
+    },
+    {
+      "severity": "HIGH",
+      "file": "components\\ui\\Radio-group.tsx",
+      "issue": "Utilise exports.property = dans un fichier .tsx",
+      "pattern": "exports.property ="
+    },
+    {
+      "severity": "HIGH",
+      "file": "components\\ui\\Resizable.tsx",
+      "issue": "Utilise module.exports dans un fichier .tsx",
+      "pattern": "module.exports"
+    },
+    {
+      "severity": "HIGH",
+      "file": "components\\ui\\Resizable.tsx",
+      "issue": "Utilise exports.property = dans un fichier .tsx",
+      "pattern": "exports.property ="
+    },
+    {
+      "severity": "HIGH",
+      "file": "components\\ui\\Scroll-area.tsx",
+      "issue": "Utilise module.exports dans un fichier .tsx",
+      "pattern": "module.exports"
+    },
+    {
+      "severity": "HIGH",
+      "file": "components\\ui\\Scroll-area.tsx",
+      "issue": "Utilise exports.property = dans un fichier .tsx",
+      "pattern": "exports.property ="
+    },
+    {
+      "severity": "HIGH",
+      "file": "components\\ui\\Select.tsx",
+      "issue": "Utilise module.exports dans un fichier .tsx",
+      "pattern": "module.exports"
+    },
+    {
+      "severity": "HIGH",
+      "file": "components\\ui\\Select.tsx",
+      "issue": "Utilise exports.property = dans un fichier .tsx",
+      "pattern": "exports.property ="
+    },
+    {
+      "severity": "HIGH",
+      "file": "components\\ui\\Separator.tsx",
+      "issue": "Utilise module.exports dans un fichier .tsx",
+      "pattern": "module.exports"
+    },
+    {
+      "severity": "HIGH",
+      "file": "components\\ui\\Separator.tsx",
+      "issue": "Utilise exports.property = dans un fichier .tsx",
+      "pattern": "exports.property ="
+    },
+    {
+      "severity": "HIGH",
+      "file": "components\\ui\\Sheet.tsx",
+      "issue": "Utilise module.exports dans un fichier .tsx",
+      "pattern": "module.exports"
+    },
+    {
+      "severity": "HIGH",
+      "file": "components\\ui\\Sheet.tsx",
+      "issue": "Utilise exports.property = dans un fichier .tsx",
+      "pattern": "exports.property ="
+    },
+    {
+      "severity": "HIGH",
+      "file": "components\\ui\\Switch.tsx",
+      "issue": "Utilise module.exports dans un fichier .tsx",
+      "pattern": "module.exports"
+    },
+    {
+      "severity": "HIGH",
+      "file": "components\\ui\\Switch.tsx",
+      "issue": "Utilise exports.property = dans un fichier .tsx",
+      "pattern": "exports.property ="
+    },
+    {
+      "severity": "HIGH",
+      "file": "components\\ui\\Table.tsx",
+      "issue": "Utilise module.exports dans un fichier .tsx",
+      "pattern": "module.exports"
+    },
+    {
+      "severity": "HIGH",
+      "file": "components\\ui\\Table.tsx",
+      "issue": "Utilise exports.property = dans un fichier .tsx",
+      "pattern": "exports.property ="
+    },
+    {
+      "severity": "HIGH",
+      "file": "components\\ui\\Tabs.tsx",
+      "issue": "Utilise module.exports dans un fichier .tsx",
+      "pattern": "module.exports"
+    },
+    {
+      "severity": "HIGH",
+      "file": "components\\ui\\Tabs.tsx",
+      "issue": "Utilise exports.property = dans un fichier .tsx",
+      "pattern": "exports.property ="
+    },
+    {
+      "severity": "HIGH",
+      "file": "components\\ui\\Toggle-group.tsx",
+      "issue": "Utilise module.exports dans un fichier .tsx",
+      "pattern": "module.exports"
+    },
+    {
+      "severity": "HIGH",
+      "file": "components\\ui\\Toggle-group.tsx",
+      "issue": "Utilise exports.property = dans un fichier .tsx",
+      "pattern": "exports.property ="
+    },
+    {
+      "severity": "HIGH",
+      "file": "components\\ui\\Toggle.tsx",
+      "issue": "Utilise module.exports dans un fichier .tsx",
+      "pattern": "module.exports"
+    },
+    {
+      "severity": "HIGH",
+      "file": "components\\ui\\Toggle.tsx",
+      "issue": "Utilise exports.property = dans un fichier .tsx",
+      "pattern": "exports.property ="
+    },
+    {
+      "severity": "HIGH",
+      "file": "cypress.config.ts",
+      "issue": "Utilise module.exports dans un fichier .ts",
+      "pattern": "module.exports"
+    },
+    {
+      "severity": "HIGH",
+      "file": "generated\\prisma-client\\default.js",
+      "issue": "Utilise module.exports dans un fichier .js",
+      "pattern": "module.exports"
+    },
+    {
+      "severity": "HIGH",
+      "file": "generated\\prisma-client\\edge.js",
+      "issue": "Utilise exports.property = dans un fichier .js",
+      "pattern": "exports.property ="
+    },
+    {
+      "severity": "HIGH",
+      "file": "generated\\prisma-client\\index-browser.js",
+      "issue": "Utilise exports.property = dans un fichier .js",
+      "pattern": "exports.property ="
+    },
+    {
+      "severity": "HIGH",
+      "file": "generated\\prisma-client\\index.js",
+      "issue": "Utilise exports.property = dans un fichier .js",
+      "pattern": "exports.property ="
+    },
+    {
+      "severity": "HIGH",
+      "file": "generated\\prisma-client\\runtime\\edge.js",
+      "issue": "Utilise module.exports dans un fichier .js",
+      "pattern": "module.exports"
+    },
+    {
+      "severity": "HIGH",
+      "file": "generated\\prisma-client\\runtime\\index-browser.js",
+      "issue": "Utilise module.exports dans un fichier .js",
+      "pattern": "module.exports"
+    },
+    {
+      "severity": "HIGH",
+      "file": "generated\\prisma-client\\runtime\\library.js",
+      "issue": "Utilise module.exports dans un fichier .js",
+      "pattern": "module.exports"
+    },
+    {
+      "severity": "HIGH",
+      "file": "generated\\prisma-client\\runtime\\library.js",
+      "issue": "Utilise exports.property = dans un fichier .js",
+      "pattern": "exports.property ="
+    },
+    {
+      "severity": "HIGH",
+      "file": "generated\\prisma-client\\runtime\\react-native.js",
+      "issue": "Utilise module.exports dans un fichier .js",
+      "pattern": "module.exports"
+    },
+    {
+      "severity": "HIGH",
+      "file": "generated\\prisma-client\\runtime\\react-native.js",
+      "issue": "Utilise exports.property = dans un fichier .js",
+      "pattern": "exports.property ="
+    },
+    {
+      "severity": "HIGH",
+      "file": "generated\\prisma-client\\runtime\\wasm.js",
+      "issue": "Utilise module.exports dans un fichier .js",
+      "pattern": "module.exports"
+    },
+    {
+      "severity": "HIGH",
+      "file": "generated\\prisma-client\\wasm.js",
+      "issue": "Utilise exports.property = dans un fichier .js",
+      "pattern": "exports.property ="
+    },
+    {
+      "severity": "HIGH",
+      "file": "lib\\agent\\mcp-agents-index.ts",
+      "issue": "Utilise module.exports dans un fichier .ts",
+      "pattern": "module.exports"
+    },
+    {
+      "severity": "HIGH",
+      "file": "lib\\billing\\stripe.ts",
+      "issue": "Utilise module.exports dans un fichier .ts",
+      "pattern": "module.exports"
+    },
+    {
+      "severity": "HIGH",
+      "file": "lib\\db.ts",
+      "issue": "Utilise module.exports dans un fichier .ts",
+      "pattern": "module.exports"
+    },
+    {
+      "severity": "HIGH",
+      "file": "lib\\providers\\all-providers-registry.ts",
+      "issue": "Utilise module.exports dans un fichier .ts",
+      "pattern": "module.exports"
+    },
+    {
+      "severity": "CRITICAL",
+      "file": "scripts\\comprehensive-build-check.mjs",
+      "issue": "Utilise module.exports dans un fichier .mjs",
+      "pattern": "module.exports"
+    },
+    {
+      "severity": "CRITICAL",
+      "file": "scripts\\deep-code-analysis.mjs",
+      "issue": "Utilise module.exports dans un fichier .mjs",
+      "pattern": "module.exports"
+    },
+    {
+      "severity": "CRITICAL",
+      "file": "scripts\\fix-all-issues.mjs",
+      "issue": "Utilise module.exports dans un fichier .mjs",
+      "pattern": "module.exports"
+    },
+    {
+      "severity": "CRITICAL",
+      "file": "scripts\\openclaw-analyze-exports-error.mjs",
+      "issue": "Utilise module.exports dans un fichier .mjs",
+      "pattern": "module.exports"
+    },
+    {
+      "severity": "CRITICAL",
+      "file": "scripts\\openclaw-analyze-exports-error.mjs",
+      "issue": "Utilise exports.property = dans un fichier .mjs",
+      "pattern": "exports.property ="
+    },
+    {
+      "severity": "CRITICAL",
+      "file": "scripts\\openclaw-fix-syntax-errors.mjs",
+      "issue": "Utilise module.exports dans un fichier .mjs",
+      "pattern": "module.exports"
+    },
+    {
+      "severity": "CRITICAL",
+      "file": "scripts\\openclaw-validate-nextjs16.mjs",
+      "issue": "Utilise module.exports dans un fichier .mjs",
+      "pattern": "module.exports"
+    }
+  ],
+  "suspiciousFiles": [],
+  "moduleConflicts": [
+    {
+      "file": "app\\api\\v3\\analysis\\route.ts",
+      "hasImport": true,
+      "hasRequire": true,
+      "hasExport": true,
+      "hasModuleExports": false
+    },
+    {
+      "file": "app\\layout.tsx",
+      "hasImport": true,
+      "hasRequire": true,
+      "hasExport": true,
+      "hasModuleExports": false
+    },
+    {
+      "file": "lib\\agent\\cohere-reranker.ts",
+      "hasImport": true,
+      "hasRequire": true,
+      "hasExport": true,
+      "hasModuleExports": false
+    },
+    {
+      "file": "lib\\agent\\mcp-agents-index.ts",
+      "hasImport": false,
+      "hasRequire": true,
+      "hasExport": true,
+      "hasModuleExports": true
+    },
+    {
+      "file": "lib\\agent\\pipeline-v2.ts",
+      "hasImport": true,
+      "hasRequire": true,
+      "hasExport": true,
+      "hasModuleExports": false
+    },
+    {
+      "file": "lib\\agent\\simple-typescript-fixer.mjs",
+      "hasImport": true,
+      "hasRequire": true,
+      "hasExport": true,
+      "hasModuleExports": false
+    },
+    {
+      "file": "lib\\agent\\typescript-error-fixer.mjs",
+      "hasImport": true,
+      "hasRequire": true,
+      "hasExport": true,
+      "hasModuleExports": false
+    },
+    {
+      "file": "lib\\billing\\stripe.ts",
+      "hasImport": false,
+      "hasRequire": true,
+      "hasExport": true,
+      "hasModuleExports": true
+    },
+    {
+      "file": "lib\\db.ts",
+      "hasImport": false,
+      "hasRequire": true,
+      "hasExport": true,
+      "hasModuleExports": true
+    },
+    {
+      "file": "lib\\providers\\all-providers-registry.ts",
+      "hasImport": false,
+      "hasRequire": true,
+      "hasExport": true,
+      "hasModuleExports": true
+    },
+    {
+      "file": "scripts\\convert-registries-to-esm.mjs",
+      "hasImport": true,
+      "hasRequire": true,
+      "hasExport": false,
+      "hasModuleExports": false
+    },
+    {
+      "file": "scripts\\deep-code-analysis.mjs",
+      "hasImport": true,
+      "hasRequire": true,
+      "hasExport": false,
+      "hasModuleExports": true
+    },
+    {
+      "file": "scripts\\fix-all-issues.mjs",
+      "hasImport": true,
+      "hasRequire": true,
+      "hasExport": false,
+      "hasModuleExports": true
+    }
+  ],
+  "recommendations": [
+    {
+      "priority": "MEDIUM",
+      "action": "Ajouter \"type\": \"module\" dans package.json",
+      "reason": "Uniformiser tous les fichiers en ES modules"
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+﻿.next/dev/types/routes.d.ts(74,42): error TS1005: ';' expected.
+.next/dev/types/routes.d.ts(74,72): error TS1005: ';' expected.
+.next/dev/types/routes.d.ts(74,88): error TS1005: ';' expected.
+.next/dev/types/routes.d.ts(74,109): error TS1005: ';' expected.
+.next/dev/types/routes.d.ts(74,130): error TS1005: ';' expected.
+.next/dev/types/routes.d.ts(74,158): error TS1005: ';' expected.
+.next/dev/types/routes.d.ts(74,184): error TS1005: ';' expected.
+.next/dev/types/routes.d.ts(74,208): error TS1005: ';' expected.
+.next/dev/types/routes.d.ts(74,229): error TS1005: ';' expected.
+.next/dev/types/routes.d.ts(74,230): error TS1002: Unterminated string literal.

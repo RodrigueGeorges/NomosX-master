@@ -1,0 +1,197 @@
+{
+  "timestamp": "2026-02-26T20:14:13.776Z",
+  "globalScore": 14.793482379689276,
+  "summary": {
+    "perfect": 1,
+    "good": 0,
+    "warning": 0,
+    "critical": 6,
+    "totalFiles": 127,
+    "totalIntegrations": 91,
+    "totalPerformanceChecks": 15,
+    "totalDataQualityChecks": 3
+  },
+  "components": [
+    {
+      "component": "registry-bridge",
+      "status": "CRITICAL",
+      "score": 7.6923076923076925,
+      "issuesCount": 84,
+      "recommendationsCount": 2,
+      "details": {
+        "filesCount": 0,
+        "integrationsCount": 91,
+        "performanceCount": 0,
+        "dataQualityCount": 0
+      }
+    },
+    {
+      "component": "openalex",
+      "status": "CRITICAL",
+      "score": 0,
+      "issuesCount": 0,
+      "recommendationsCount": 2,
+      "details": {
+        "filesCount": 0,
+        "integrationsCount": 0,
+        "performanceCount": 0,
+        "dataQualityCount": 0
+      }
+    },
+    {
+      "component": "pipeline-v2",
+      "status": "CRITICAL",
+      "score": 0,
+      "issuesCount": 0,
+      "recommendationsCount": 2,
+      "details": {
+        "filesCount": 0,
+        "integrationsCount": 0,
+        "performanceCount": 0,
+        "dataQualityCount": 0
+      }
+    },
+    {
+      "component": "database",
+      "status": "CRITICAL",
+      "score": 0,
+      "issuesCount": 0,
+      "recommendationsCount": 2,
+      "details": {
+        "filesCount": 0,
+        "integrationsCount": 0,
+        "performanceCount": 0,
+        "dataQualityCount": 0
+      }
+    },
+    {
+      "component": "cache",
+      "status": "CRITICAL",
+      "score": 0,
+      "issuesCount": 0,
+      "recommendationsCount": 2,
+      "details": {
+        "filesCount": 0,
+        "integrationsCount": 0,
+        "performanceCount": 0,
+        "dataQualityCount": 0
+      }
+    },
+    {
+      "component": "agents",
+      "status": "CRITICAL",
+      "score": 0,
+      "issuesCount": 0,
+      "recommendationsCount": 2,
+      "details": {
+        "filesCount": 0,
+        "integrationsCount": 0,
+        "performanceCount": 0,
+        "dataQualityCount": 0
+      }
+    },
+    {
+      "component": "providers",
+      "status": "PERFECT",
+      "score": 95.86206896551724,
+      "issuesCount": 0,
+      "recommendationsCount": 2,
+      "details": {
+        "filesCount": 127,
+        "integrationsCount": 0,
+        "performanceCount": 15,
+        "dataQualityCount": 3
+      }
+    }
+  ],
+  "criticalIssues": [
+    "Integration failed: registry-bridge -> semantic-scholar",
+    "Integration failed: registry-bridge -> openaire",
+    "Integration failed: registry-bridge -> nature",
+    "Integration failed: registry-bridge -> science",
+    "Integration failed: registry-bridge -> cell",
+    "Integration failed: registry-bridge -> lancet",
+    "Integration failed: registry-bridge -> pnas",
+    "Integration failed: registry-bridge -> springer",
+    "Integration failed: registry-bridge -> elsevier",
+    "Integration failed: registry-bridge -> wiley",
+    "Integration failed: registry-bridge -> taylor-francis",
+    "Integration failed: registry-bridge -> sage",
+    "Integration failed: registry-bridge -> oxford",
+    "Integration failed: registry-bridge -> cambridge",
+    "Integration failed: registry-bridge -> business/mckinsey",
+    "Integration failed: registry-bridge -> business/bcg",
+    "Integration failed: registry-bridge -> business/bain",
+    "Integration failed: registry-bridge -> business/deloitte",
+    "Integration failed: registry-bridge -> business/pwc",
+    "Integration failed: registry-bridge -> business/ey",
+    "Integration failed: registry-bridge -> business/kpmg",
+    "Integration failed: registry-bridge -> business/accenture",
+    "Integration failed: registry-bridge -> business/blackrock",
+    "Integration failed: registry-bridge -> business/goldman-sachs",
+    "Integration failed: registry-bridge -> business/jpmorgan",
+    "Integration failed: registry-bridge -> business/morgan-stanley",
+    "Integration failed: registry-bridge -> business/credit-suisse",
+    "Integration failed: registry-bridge -> business/ubs",
+    "Integration failed: registry-bridge -> business/deutsche-bank",
+    "Integration failed: registry-bridge -> think_tanks/brookings",
+    "Integration failed: registry-bridge -> think_tanks/carnegie",
+    "Integration failed: registry-bridge -> think_tanks/chatham-house",
+    "Integration failed: registry-bridge -> think_tanks/rand",
+    "Integration failed: registry-bridge -> think_tanks/cfr",
+    "Integration failed: registry-bridge -> think_tanks/wilson-center",
+    "Integration failed: registry-bridge -> think_tanks/heritage-foundation",
+    "Integration failed: registry-bridge -> think_tanks/stimson-center",
+    "Integration failed: registry-bridge -> think_tanks/adl",
+    "Integration failed: registry-bridge -> think_tanks/cato-institute",
+    "Integration failed: registry-bridge -> think_tanks/new-america",
+    "Integration failed: registry-bridge -> think_tanks/iiss",
+    "Integration failed: registry-bridge -> think_tanks/aspen-institute",
+    "Integration failed: registry-bridge -> government/nasa",
+    "Integration failed: registry-bridge -> government/noaa",
+    "Integration failed: registry-bridge -> government/epa",
+    "Integration failed: registry-bridge -> government/fda",
+    "Integration failed: registry-bridge -> government/cdc",
+    "Integration failed: registry-bridge -> government/nih",
+    "Integration failed: registry-bridge -> government/nsf",
+    "Integration failed: registry-bridge -> government/worldbank",
+    "Integration failed: registry-bridge -> government/imf",
+    "Integration failed: registry-bridge -> government/oecd",
+    "Integration failed: registry-bridge -> government/undp",
+    "Integration failed: registry-bridge -> government/who",
+    "Integration failed: registry-bridge -> environmental/ipcc",
+    "Integration failed: registry-bridge -> environmental/unep",
+    "Integration failed: registry-bridge -> environmental/iucn",
+    "Integration failed: registry-bridge -> environmental/wwf",
+    "Integration failed: registry-bridge -> environmental/greenpeace",
+    "Integration failed: registry-bridge -> environmental/wri",
+    "Integration failed: registry-bridge -> environmental/climate-analytics",
+    "Integration failed: registry-bridge -> environmental/iea",
+    "Integration failed: registry-bridge -> technology/deepmind",
+    "Integration failed: registry-bridge -> technology/openai-research",
+    "Integration failed: registry-bridge -> technology/google-ai",
+    "Integration failed: registry-bridge -> technology/microsoft-research",
+    "Integration failed: registry-bridge -> technology/facebook-research",
+    "Integration failed: registry-bridge -> technology/apple-research",
+    "Integration failed: registry-bridge -> technology/ibm-research",
+    "Integration failed: registry-bridge -> technology/nvidia-research",
+    "Integration failed: registry-bridge -> technology/anthropic",
+    "Integration failed: registry-bridge -> technology/github",
+    "Integration failed: registry-bridge -> patents/uspto",
+    "Integration failed: registry-bridge -> patents/google-patents",
+    "Integration failed: registry-bridge -> patents/epo",
+    "Integration failed: registry-bridge -> patents/wipo",
+    "Integration failed: registry-bridge -> data_research/figshare",
+    "Integration failed: registry-bridge -> data_research/zenodo",
+    "Integration failed: registry-bridge -> data_research/kaggle",
+    "Integration failed: registry-bridge -> data_research/huggingface",
+    "Integration failed: registry-bridge -> data_research/dataverse",
+    "Integration failed: registry-bridge -> data_research/researchgate",
+    "Integration failed: registry-bridge -> data_research/academia-edu",
+    "Integration failed: registry-bridge -> data_research/mendeley"
+  ],
+  "recommendations": [
+    "Review and fix identified issues",
+    "Run additional tests on problematic components"
+  ]
+}

@@ -1,0 +1,64 @@
+[build]
+  command = "npm cache clean --force && npm install && npm run build"
+  publish = ".next"
+  functions = "netlify/functions"
+
+[build.environment]
+  # Node.js 20.x LTS - REQUIRED for Next.js 16 compatibility
+  # Node.js 24+ causes "exports is not defined in ES module scope"
+  # due to ESM/CJS detection changes in console-dim.external.js
+  NODE_VERSION = "20.19.0"
+  NPM_VERSION = "10"
+  # Fix Sharp installation issues
+  SHARP_IGNORE_GLOBALVIPS = "1"
+  # Skip Sharp binary download for faster builds
+  SHARP_GLOBAL_BASEDIR = "/opt/buildhome/.npm-global"
+  
+  # NOTE: All API keys and secrets should be set in Netlify UI
+  # Site settings → Build & deploy → Environment → Environment variables
+  # Required variables: DATABASE_URL, OPENAI_API_KEY, JWT_SECRET, ADMIN_KEY, CRON_SECRET
+
+# Note: @netlify/plugin-nextjs handles all routing automatically
+# No manual redirects needed for Next.js SSR
+# Security headers are set in middleware.ts (HSTS, CSP, Permissions-Policy, etc.)
+# — no duplicate headers here to avoid conflicts
+
+[dev]
+  command = "npm run dev"
+  port = 3000
+  publish = ".next"
+  functions = "netlify/functions"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+# ─── Scheduled Cron Jobs ────────────────────────────────────────────────────
+# These call the Next.js API routes via Netlify Scheduled Functions.
+# Authorization: Bearer $CRON_SECRET (set in Netlify UI env vars)
+
+[functions."cron-newsletter"]
+  schedule = "0 8 * * 1"   # Every Monday at 08:00 UTC
+
+[functions."cron-editorial-plan"]
+  schedule = "0 20 * * 0"  # Every Sunday at 20:00 UTC (before weekly pipeline)
+
+[functions."cron-self-improve"]
+  schedule = "0 3 * * *"   # Every day at 03:00 UTC (low-traffic window)
+
+[functions."cron-generate-briefs"]
+  schedule = "0 22 * * 0"  # Every Sunday at 22:00 UTC (after editorial plan)
+
+[functions."cron-generate-briefs-midweek"]
+  schedule = "0 12 * * 3"  # Every Wednesday at 12:00 UTC (mid-week catch-up)
+
+[functions."cron-auto-scan"]
+  schedule = "0 6,18 * * *"  # Twice daily at 06:00 and 18:00 UTC (intelligent vertical rotation + reactive publish)
+
+[functions."cadence-reset"]
+  schedule = "0 0 * * *"    # Daily at 00:00 UTC (reset expired counters)
+
+[functions."cron-trial-reminders"]
+  schedule = "0 9 * * *"     # Every day at 09:00 UTC (trial expiry reminders)
+
+[functions."cron-macro-refresh"]
+  schedule = "0 5 * * 1"     # Every Monday at 05:00 UTC (refresh Eurostat/ECB/INSEE data)

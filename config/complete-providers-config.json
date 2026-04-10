@@ -1,0 +1,494 @@
+{
+  "pwc-research-institute": {
+    "baseUrl": "https://www.pwc.com/gx/en/issues/research-and-insights.html",
+    "type": "Business Elite Complément",
+    "region": "Global",
+    "specialties": [
+      "audit",
+      "consulting",
+      "tax-advisory"
+    ],
+    "priority": "HIGH",
+    "wave": 1,
+    "rateLimit": "300/hour",
+    "timeout": 30000,
+    "retries": 3,
+    "enabled": true,
+    "lastUpdated": "2026-02-02T20:26:36.134Z"
+  },
+  "ey-research": {
+    "baseUrl": "https://www.ey.com/en_us/insights",
+    "type": "Business Elite Complément",
+    "region": "Global",
+    "specialties": [
+      "consulting",
+      "strategy",
+      "transformation"
+    ],
+    "priority": "HIGH",
+    "wave": 1,
+    "rateLimit": "300/hour",
+    "timeout": 30000,
+    "retries": 3,
+    "enabled": true,
+    "lastUpdated": "2026-02-02T20:26:36.153Z"
+  },
+  "kpmg-thought-leadership": {
+    "baseUrl": "https://home.kpmg/xx/en/home/insights.html",
+    "type": "Business Elite Complément",
+    "region": "Global",
+    "specialties": [
+      "advisory",
+      "tax",
+      "consulting"
+    ],
+    "priority": "HIGH",
+    "wave": 1,
+    "rateLimit": "300/hour",
+    "timeout": 30000,
+    "retries": 3,
+    "enabled": true,
+    "lastUpdated": "2026-02-02T20:26:36.153Z"
+  },
+  "bain---company-insights": {
+    "baseUrl": "https://www.bain.com/insights/",
+    "type": "Business Elite Complément",
+    "region": "Global",
+    "specialties": [
+      "consulting",
+      "private-equity",
+      "strategy"
+    ],
+    "priority": "HIGH",
+    "wave": 1,
+    "rateLimit": "300/hour",
+    "timeout": 30000,
+    "retries": 3,
+    "enabled": true,
+    "lastUpdated": "2026-02-02T20:26:36.153Z"
+  },
+  "accenture-research": {
+    "baseUrl": "https://www.accenture.com/research",
+    "type": "Business Elite Complément",
+    "region": "Global",
+    "specialties": [
+      "technology",
+      "consulting",
+      "digital-transformation"
+    ],
+    "priority": "HIGH",
+    "wave": 1,
+    "rateLimit": "300/hour",
+    "timeout": 30000,
+    "retries": 3,
+    "enabled": true,
+    "lastUpdated": "2026-02-02T20:26:36.153Z"
+  },
+  "the-lancet": {
+    "baseUrl": "https://www.thelancet.com",
+    "type": "Recherche Médicale Avancée",
+    "region": "International",
+    "specialties": [
+      "medicine",
+      "public-health",
+      "clinical-research"
+    ],
+    "priority": "HIGH",
+    "wave": 2,
+    "rateLimit": "300/hour",
+    "timeout": 30000,
+    "retries": 3,
+    "enabled": true,
+    "lastUpdated": "2026-02-02T20:26:36.153Z"
+  },
+  "new-england-journal-of-medicine": {
+    "baseUrl": "https://www.nejm.org",
+    "type": "Recherche Médicale Avancée",
+    "region": "International",
+    "specialties": [
+      "medicine",
+      "clinical-research",
+      "medical-education"
+    ],
+    "priority": "HIGH",
+    "wave": 2,
+    "rateLimit": "300/hour",
+    "timeout": 30000,
+    "retries": 3,
+    "enabled": true,
+    "lastUpdated": "2026-02-02T20:26:36.153Z"
+  },
+  "nature-medicine": {
+    "baseUrl": "https://www.nature.com/nm",
+    "type": "Recherche Médicale Avancée",
+    "region": "International",
+    "specialties": [
+      "biomedical-research",
+      "translational-medicine"
+    ],
+    "priority": "HIGH",
+    "wave": 2,
+    "rateLimit": "300/hour",
+    "timeout": 30000,
+    "retries": 3,
+    "enabled": true,
+    "lastUpdated": "2026-02-02T20:26:36.153Z"
+  },
+  "jama---journal-of-american-medical-association": {
+    "baseUrl": "https://jamanetwork.com/journals/jama",
+    "type": "Recherche Médicale Avancée",
+    "region": "US",
+    "specialties": [
+      "medical-science",
+      "clinical-practice",
+      "health-policy"
+    ],
+    "priority": "HIGH",
+    "wave": 2,
+    "rateLimit": "300/hour",
+    "timeout": 30000,
+    "retries": 3,
+    "enabled": true,
+    "lastUpdated": "2026-02-02T20:26:36.153Z"
+  },
+  "deepmind-research": {
+    "baseUrl": "https://deepmind.com/research",
+    "type": "Intelligence Artificielle Spécialisée",
+    "region": "UK/Global",
+    "specialties": [
+      "artificial-intelligence",
+      "machine-learning",
+      "deep-learning"
+    ],
+    "priority": "HIGH",
+    "wave": 3,
+    "rateLimit": "300/hour",
+    "timeout": 30000,
+    "retries": 3,
+    "enabled": true,
+    "lastUpdated": "2026-02-02T20:26:36.153Z"
+  },
+  "openai-research": {
+    "baseUrl": "https://openai.com/research",
+    "type": "Intelligence Artificielle Spécialisée",
+    "region": "US",
+    "specialties": [
+      "ai-research",
+      "gpt",
+      "machine-learning"
+    ],
+    "priority": "HIGH",
+    "wave": 3,
+    "rateLimit": "300/hour",
+    "timeout": 30000,
+    "retries": 3,
+    "enabled": true,
+    "lastUpdated": "2026-02-02T20:26:36.153Z"
+  },
+  "ai-index---stanford-hai": {
+    "baseUrl": "https://aiindex.stanford.edu",
+    "type": "Intelligence Artificielle Spécialisée",
+    "region": "US",
+    "specialties": [
+      "ai-landscape",
+      "industry-analysis",
+      "research-trends"
+    ],
+    "priority": "HIGH",
+    "wave": 3,
+    "rateLimit": "300/hour",
+    "timeout": 30000,
+    "retries": 3,
+    "enabled": true,
+    "lastUpdated": "2026-02-02T20:26:36.153Z"
+  },
+  "partnership-on-ai": {
+    "baseUrl": "https://www.partnershiponai.org",
+    "type": "Intelligence Artificielle Spécialisée",
+    "region": "International",
+    "specialties": [
+      "ai-ethics",
+      "policy",
+      "best-practices"
+    ],
+    "priority": "MEDIUM",
+    "wave": 3,
+    "rateLimit": "200/hour",
+    "timeout": 30000,
+    "retries": 3,
+    "enabled": true,
+    "lastUpdated": "2026-02-02T20:26:36.153Z"
+  },
+  "iea---international-energy-agency": {
+    "baseUrl": "https://www.iea.org/reports",
+    "type": "Énergie Transition",
+    "region": "International",
+    "specialties": [
+      "energy-policy",
+      "climate",
+      "energy-security"
+    ],
+    "priority": "HIGH",
+    "wave": 4,
+    "rateLimit": "300/hour",
+    "timeout": 30000,
+    "retries": 3,
+    "enabled": true,
+    "lastUpdated": "2026-02-02T20:26:36.153Z"
+  },
+  "irena---international-renewable-energy-agency": {
+    "baseUrl": "https://www.irena.org/Publications",
+    "type": "Énergie Transition",
+    "region": "International",
+    "specialties": [
+      "renewable-energy",
+      "energy-transition",
+      "policy"
+    ],
+    "priority": "HIGH",
+    "wave": 4,
+    "rateLimit": "300/hour",
+    "timeout": 30000,
+    "retries": 3,
+    "enabled": true,
+    "lastUpdated": "2026-02-02T20:26:36.153Z"
+  },
+  "rmi---rocky-mountain-institute": {
+    "baseUrl": "https://rmi.org/insights",
+    "type": "Énergie Transition",
+    "region": "US",
+    "specialties": [
+      "energy-efficiency",
+      "clean-energy",
+      "transportation"
+    ],
+    "priority": "HIGH",
+    "wave": 4,
+    "rateLimit": "300/hour",
+    "timeout": 30000,
+    "retries": 3,
+    "enabled": true,
+    "lastUpdated": "2026-02-02T20:26:36.153Z"
+  },
+  "energy-futures-initiative": {
+    "baseUrl": "https://energyfuturesinitiative.org",
+    "type": "Énergie Transition",
+    "region": "US",
+    "specialties": [
+      "energy-policy",
+      "climate-solutions",
+      "innovation"
+    ],
+    "priority": "MEDIUM",
+    "wave": 4,
+    "rateLimit": "200/hour",
+    "timeout": 30000,
+    "retries": 3,
+    "enabled": true,
+    "lastUpdated": "2026-02-02T20:26:36.153Z"
+  },
+  "nature": {
+    "baseUrl": "https://www.nature.com",
+    "type": "Science Fondamentale",
+    "region": "International",
+    "specialties": [
+      "science",
+      "research",
+      "interdisciplinary"
+    ],
+    "priority": "HIGH",
+    "wave": 5,
+    "rateLimit": "300/hour",
+    "timeout": 30000,
+    "retries": 3,
+    "enabled": true,
+    "lastUpdated": "2026-02-02T20:26:36.153Z"
+  },
+  "science": {
+    "baseUrl": "https://www.science.org",
+    "type": "Science Fondamentale",
+    "region": "International",
+    "specialties": [
+      "scientific-research",
+      "policy",
+      "innovation"
+    ],
+    "priority": "HIGH",
+    "wave": 5,
+    "rateLimit": "300/hour",
+    "timeout": 30000,
+    "retries": 3,
+    "enabled": true,
+    "lastUpdated": "2026-02-02T20:26:36.153Z"
+  },
+  "cell": {
+    "baseUrl": "https://www.cell.com",
+    "type": "Science Fondamentale",
+    "region": "International",
+    "specialties": [
+      "biology",
+      "molecular-science",
+      "biomedicine"
+    ],
+    "priority": "HIGH",
+    "wave": 5,
+    "rateLimit": "300/hour",
+    "timeout": 30000,
+    "retries": 3,
+    "enabled": true,
+    "lastUpdated": "2026-02-02T20:26:36.153Z"
+  },
+  "pnas---proceedings-of-national-academy-of-sciences": {
+    "baseUrl": "https://www.pnas.org",
+    "type": "Science Fondamentale",
+    "region": "US",
+    "specialties": [
+      "scientific-research",
+      "multidisciplinary",
+      "policy"
+    ],
+    "priority": "HIGH",
+    "wave": 5,
+    "rateLimit": "300/hour",
+    "timeout": 30000,
+    "retries": 3,
+    "enabled": true,
+    "lastUpdated": "2026-02-02T20:26:36.153Z"
+  },
+  "world-bank-research---development": {
+    "baseUrl": "https://www.worldbank.org/research",
+    "type": "Développement International",
+    "region": "International",
+    "specialties": [
+      "development-economics",
+      "poverty",
+      "global-development"
+    ],
+    "priority": "HIGH",
+    "wave": 6,
+    "rateLimit": "300/hour",
+    "timeout": 30000,
+    "retries": 3,
+    "enabled": true,
+    "lastUpdated": "2026-02-02T20:26:36.153Z"
+  },
+  "undp-research": {
+    "baseUrl": "https://www.undp.org/research",
+    "type": "Développement International",
+    "region": "International",
+    "specialties": [
+      "human-development",
+      "sustainable-development",
+      "policy"
+    ],
+    "priority": "HIGH",
+    "wave": 6,
+    "rateLimit": "300/hour",
+    "timeout": 30000,
+    "retries": 3,
+    "enabled": true,
+    "lastUpdated": "2026-02-02T20:26:36.153Z"
+  },
+  "center-for-global-development": {
+    "baseUrl": "https://www.cgdev.org",
+    "type": "Développement International",
+    "region": "US",
+    "specialties": [
+      "development-policy",
+      "global-poverty",
+      "aid-effectiveness"
+    ],
+    "priority": "MEDIUM",
+    "wave": 6,
+    "rateLimit": "200/hour",
+    "timeout": 30000,
+    "retries": 3,
+    "enabled": true,
+    "lastUpdated": "2026-02-02T20:26:36.153Z"
+  },
+  "acet---african-center-for-economic-transformation": {
+    "baseUrl": "https://acetforafrica.org",
+    "type": "Think Tanks Afrique",
+    "region": "Afrique",
+    "specialties": [
+      "african-economics",
+      "transformation",
+      "policy"
+    ],
+    "priority": "MEDIUM",
+    "wave": 7,
+    "rateLimit": "200/hour",
+    "timeout": 30000,
+    "retries": 3,
+    "enabled": true,
+    "lastUpdated": "2026-02-02T20:26:36.153Z"
+  },
+  "saiia---south-african-institute-of-international-affairs": {
+    "baseUrl": "https://saiia.org.za",
+    "type": "Think Tanks Afrique",
+    "region": "Afrique du Sud",
+    "specialties": [
+      "international-relations",
+      "african-policy",
+      "governance"
+    ],
+    "priority": "MEDIUM",
+    "wave": 7,
+    "rateLimit": "200/hour",
+    "timeout": 30000,
+    "retries": 3,
+    "enabled": true,
+    "lastUpdated": "2026-02-02T20:26:36.153Z"
+  },
+  "amazon-science": {
+    "baseUrl": "https://www.amazon.science",
+    "type": "E-commerce Digital",
+    "region": "Global",
+    "specialties": [
+      "machine-learning",
+      "robotics",
+      "operations-research"
+    ],
+    "priority": "MEDIUM",
+    "wave": 8,
+    "rateLimit": "200/hour",
+    "timeout": 30000,
+    "retries": 3,
+    "enabled": true,
+    "lastUpdated": "2026-02-02T20:26:36.153Z"
+  },
+  "microsoft-research": {
+    "baseUrl": "https://research.microsoft.com",
+    "type": "E-commerce Digital",
+    "region": "Global",
+    "specialties": [
+      "computer-science",
+      "ai",
+      "quantum-computing"
+    ],
+    "priority": "MEDIUM",
+    "wave": 8,
+    "rateLimit": "200/hour",
+    "timeout": 30000,
+    "retries": 3,
+    "enabled": true,
+    "lastUpdated": "2026-02-02T20:26:36.153Z"
+  },
+  "google-ai-research": {
+    "baseUrl": "https://ai.google/research",
+    "type": "E-commerce Digital",
+    "region": "Global",
+    "specialties": [
+      "artificial-intelligence",
+      "machine-learning",
+      "quantum"
+    ],
+    "priority": "MEDIUM",
+    "wave": 8,
+    "rateLimit": "200/hour",
+    "timeout": 30000,
+    "retries": 3,
+    "enabled": true,
+    "lastUpdated": "2026-02-02T20:26:36.153Z"
+  }
+}

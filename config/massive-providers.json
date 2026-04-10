@@ -1,0 +1,407 @@
+{
+  "mckinsey-global-institute": {
+    "baseUrl": "https://www.mckinsey.com/featured-insights/mckinsey-global-institute",
+    "type": "Business Elite",
+    "region": "Global",
+    "specialties": [
+      "economics",
+      "digital-transformation",
+      "global-trends"
+    ],
+    "priority": "HIGH",
+    "rateLimit": "200/hour",
+    "timeout": 30000,
+    "retries": 3,
+    "enabled": true
+  },
+  "bcg-henderson-institute": {
+    "baseUrl": "https://www.bcg.com/ideas-and-insights/bcg-henderson-institute",
+    "type": "Business Elite",
+    "region": "Global",
+    "specialties": [
+      "strategy",
+      "innovation",
+      "future-of-work"
+    ],
+    "priority": "HIGH",
+    "rateLimit": "200/hour",
+    "timeout": 30000,
+    "retries": 3,
+    "enabled": true
+  },
+  "deloitte-insights": {
+    "baseUrl": "https://www2.deloitte.com/global/en/insights.html",
+    "type": "Business Elite",
+    "region": "Global",
+    "specialties": [
+      "industry",
+      "technology",
+      "trends"
+    ],
+    "priority": "HIGH",
+    "rateLimit": "200/hour",
+    "timeout": 30000,
+    "retries": 3,
+    "enabled": true
+  },
+  "brookings-institution": {
+    "baseUrl": "https://www.brookings.edu",
+    "type": "Policy US",
+    "region": "US",
+    "specialties": [
+      "public-policy",
+      "economics",
+      "governance"
+    ],
+    "priority": "HIGH",
+    "rateLimit": "200/hour",
+    "timeout": 30000,
+    "retries": 3,
+    "enabled": true
+  },
+  "carnegie-endowment": {
+    "baseUrl": "https://carnegieendowment.org",
+    "type": "Policy US",
+    "region": "US",
+    "specialties": [
+      "international-relations",
+      "geopolitics",
+      "diplomacy"
+    ],
+    "priority": "HIGH",
+    "rateLimit": "200/hour",
+    "timeout": 30000,
+    "retries": 3,
+    "enabled": true
+  },
+  "council-on-foreign-relations": {
+    "baseUrl": "https://www.cfr.org",
+    "type": "Policy US",
+    "region": "US",
+    "specialties": [
+      "foreign-policy",
+      "security",
+      "global-governance"
+    ],
+    "priority": "HIGH",
+    "rateLimit": "200/hour",
+    "timeout": 30000,
+    "retries": 3,
+    "enabled": true
+  },
+  "iiss---international-institute-for-strategic-studies": {
+    "baseUrl": "https://www.iiss.org",
+    "type": "Think Tank Asie",
+    "region": "Asie-Pacifique",
+    "specialties": [
+      "security",
+      "defense",
+      "asia-pacific"
+    ],
+    "priority": "HIGH",
+    "rateLimit": "200/hour",
+    "timeout": 30000,
+    "retries": 3,
+    "enabled": true
+  },
+  "rsis---s--rajaratnam-school-of-international-studies": {
+    "baseUrl": "https://www.rsis.edu.sg",
+    "type": "Think Tank Asie",
+    "region": "Singapour",
+    "specialties": [
+      "strategic-studies",
+      "southeast-asia",
+      "security"
+    ],
+    "priority": "HIGH",
+    "rateLimit": "200/hour",
+    "timeout": 30000,
+    "retries": 3,
+    "enabled": true
+  },
+  "cis---center-for-strategic-and-international-studies": {
+    "baseUrl": "https://csis.org",
+    "type": "Think Tank Asie",
+    "region": "Asie-Pacifique",
+    "specialties": [
+      "asia-policy",
+      "security",
+      "economics"
+    ],
+    "priority": "HIGH",
+    "rateLimit": "200/hour",
+    "timeout": 30000,
+    "retries": 3,
+    "enabled": true
+  },
+  "ipcc---intergovernmental-panel-on-climate-change": {
+    "baseUrl": "https://www.ipcc.ch",
+    "type": "Climate Research",
+    "region": "International",
+    "specialties": [
+      "climate-science",
+      "environment",
+      "policy"
+    ],
+    "priority": "HIGH",
+    "rateLimit": "200/hour",
+    "timeout": 30000,
+    "retries": 3,
+    "enabled": true
+  },
+  "climate-analytics": {
+    "baseUrl": "https://climateanalytics.org",
+    "type": "Climate Research",
+    "region": "International",
+    "specialties": [
+      "climate-analysis",
+      "policy",
+      "mitigation"
+    ],
+    "priority": "HIGH",
+    "rateLimit": "200/hour",
+    "timeout": 30000,
+    "retries": 3,
+    "enabled": true
+  },
+  "wri---world-resources-institute": {
+    "baseUrl": "https://www.wri.org",
+    "type": "Climate Research",
+    "region": "International",
+    "specialties": [
+      "resources",
+      "sustainability",
+      "climate"
+    ],
+    "priority": "HIGH",
+    "rateLimit": "200/hour",
+    "timeout": 30000,
+    "retries": 3,
+    "enabled": true
+  },
+  "papers-with-code": {
+    "baseUrl": "https://paperswithcode.com",
+    "type": "Data Science",
+    "region": "Global",
+    "specialties": [
+      "machine-learning",
+      "ai",
+      "computer-vision"
+    ],
+    "priority": "HIGH",
+    "rateLimit": "200/hour",
+    "timeout": 30000,
+    "retries": 3,
+    "enabled": true
+  },
+  "kaggle-research": {
+    "baseUrl": "https://www.kaggle.com/research",
+    "type": "Data Science",
+    "region": "Global",
+    "specialties": [
+      "data-science",
+      "competitions",
+      "datasets"
+    ],
+    "priority": "HIGH",
+    "rateLimit": "200/hour",
+    "timeout": 30000,
+    "retries": 3,
+    "enabled": true
+  },
+  "arxiv-computer-science": {
+    "baseUrl": "https://arxiv.org/list/cs/recent",
+    "type": "Data Science",
+    "region": "Global",
+    "specialties": [
+      "computer-science",
+      "algorithms",
+      "theory"
+    ],
+    "priority": "HIGH",
+    "rateLimit": "200/hour",
+    "timeout": 30000,
+    "retries": 3,
+    "enabled": true
+  },
+  "who---world-health-organization": {
+    "baseUrl": "https://www.who.int",
+    "type": "Santé Publique",
+    "region": "International",
+    "specialties": [
+      "public-health",
+      "global-health",
+      "policy"
+    ],
+    "priority": "HIGH",
+    "rateLimit": "200/hour",
+    "timeout": 30000,
+    "retries": 3,
+    "enabled": true
+  },
+  "johns-hopkins-center": {
+    "baseUrl": "https://www.jhsph.edu",
+    "type": "Santé Publique",
+    "region": "US",
+    "specialties": [
+      "epidemiology",
+      "public-health",
+      "research"
+    ],
+    "priority": "HIGH",
+    "rateLimit": "200/hour",
+    "timeout": 30000,
+    "retries": 3,
+    "enabled": true
+  },
+  "harvard-t-h--chan-school": {
+    "baseUrl": "https://www.hsph.harvard.edu",
+    "type": "Santé Publique",
+    "region": "US",
+    "specialties": [
+      "global-health",
+      "nutrition",
+      "epidemiology"
+    ],
+    "priority": "HIGH",
+    "rateLimit": "200/hour",
+    "timeout": 30000,
+    "retries": 3,
+    "enabled": true
+  },
+  "blackrock-institute": {
+    "baseUrl": "https://www.blackrock.com/institute",
+    "type": "Finance",
+    "region": "Global",
+    "specialties": [
+      "investment",
+      "markets",
+      "economics"
+    ],
+    "priority": "HIGH",
+    "rateLimit": "200/hour",
+    "timeout": 30000,
+    "retries": 3,
+    "enabled": true
+  },
+  "bis---bank-for-international-settlements": {
+    "baseUrl": "https://www.bis.org",
+    "type": "Finance",
+    "region": "International",
+    "specialties": [
+      "central-banking",
+      "finance",
+      "monetary-policy"
+    ],
+    "priority": "HIGH",
+    "rateLimit": "200/hour",
+    "timeout": 30000,
+    "retries": 3,
+    "enabled": true
+  },
+  "vanguard-research": {
+    "baseUrl": "https://about.vanguard.com/research",
+    "type": "Finance",
+    "region": "Global",
+    "specialties": [
+      "investment",
+      "retirement",
+      "markets"
+    ],
+    "priority": "HIGH",
+    "rateLimit": "200/hour",
+    "timeout": 30000,
+    "retries": 3,
+    "enabled": true
+  },
+  "chatham-house": {
+    "baseUrl": "https://www.chathamhouse.org",
+    "type": "Géopolitique",
+    "region": "UK",
+    "specialties": [
+      "international-affairs",
+      "geopolitics",
+      "policy"
+    ],
+    "priority": "HIGH",
+    "rateLimit": "200/hour",
+    "timeout": 30000,
+    "retries": 3,
+    "enabled": true
+  },
+  "rand-corporation": {
+    "baseUrl": "https://www.rand.org",
+    "type": "Géopolitique",
+    "region": "US",
+    "specialties": [
+      "policy-research",
+      "defense",
+      "security"
+    ],
+    "priority": "HIGH",
+    "rateLimit": "200/hour",
+    "timeout": 30000,
+    "retries": 3,
+    "enabled": true
+  },
+  "csis---center-for-strategic---international-studies": {
+    "baseUrl": "https://www.csis.org",
+    "type": "Géopolitique",
+    "region": "US",
+    "specialties": [
+      "strategy",
+      "security",
+      "global-issues"
+    ],
+    "priority": "HIGH",
+    "rateLimit": "200/hour",
+    "timeout": 30000,
+    "retries": 3,
+    "enabled": true
+  },
+  "bruegel": {
+    "baseUrl": "https://www.bruegel.org",
+    "type": "Think Tank Europe",
+    "region": "Europe",
+    "specialties": [
+      "european-economics",
+      "policy",
+      "finance"
+    ],
+    "priority": "HIGH",
+    "rateLimit": "200/hour",
+    "timeout": 30000,
+    "retries": 3,
+    "enabled": true
+  },
+  "cepr---centre-for-economic-policy-research": {
+    "baseUrl": "https://cepr.org",
+    "type": "Think Tank Europe",
+    "region": "UK",
+    "specialties": [
+      "economic-research",
+      "policy",
+      "finance"
+    ],
+    "priority": "HIGH",
+    "rateLimit": "200/hour",
+    "timeout": 30000,
+    "retries": 3,
+    "enabled": true
+  },
+  "dgap---german-council-on-foreign-relations": {
+    "baseUrl": "https://dgap.org",
+    "type": "Think Tank Europe",
+    "region": "Allemagne",
+    "specialties": [
+      "foreign-policy",
+      "germany",
+      "europe"
+    ],
+    "priority": "HIGH",
+    "rateLimit": "200/hour",
+    "timeout": 30000,
+    "retries": 3,
+    "enabled": true
+  }
+}

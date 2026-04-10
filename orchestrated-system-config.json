@@ -1,0 +1,116 @@
+{
+  "name": "NomosX War Machine v2.0",
+  "description": "Système unifié et orchestré de recherche multi-providers",
+  "pipeline": {
+    "scout": {
+      "providers": [
+        "openalex",
+        "crossref",
+        "semanticscholar",
+        "pubmed",
+        "arxiv"
+      ],
+      "thinkTanks": [
+        "mckinsey",
+        "bcg",
+        "bain",
+        "deloitte",
+        "accenture"
+      ],
+      "business": [
+        "crunchbase",
+        "reuters",
+        "techcrunch"
+      ],
+      "government": [
+        "worldbank",
+        "imf",
+        "oecd",
+        "eurostat",
+        "ecb"
+      ],
+      "data": [
+        "figshare",
+        "zenodo"
+      ],
+      "maxPerProvider": 20,
+      "parallelExecution": true,
+      "timeoutMs": 45000
+    },
+    "index": {
+      "enrichAuthors": true,
+      "enrichInstitutions": true,
+      "deduplicate": true,
+      "qualityScoring": true
+    },
+    "rank": {
+      "mode": "balanced",
+      "minQuality": 60,
+      "maxPerProvider": 15,
+      "diversityThreshold": 0.7,
+      "relevanceWeight": 0.4,
+      "qualityWeight": 0.3,
+      "recencyWeight": 0.2,
+      "diversityWeight": 0.1
+    },
+    "analyst": {
+      "cascade": [
+        "ultimate",
+        "elite",
+        "standard"
+      ],
+      "maxTokens": 16000,
+      "temperature": 0.2,
+      "citationValidation": true
+    }
+  },
+  "optimization": {
+    "caching": {
+      "enabled": true,
+      "ttl": 3600,
+      "redis": true,
+      "fallback": "memory"
+    },
+    "rateLimiting": {
+      "enabled": true,
+      "defaultLimit": 10,
+      "burstLimit": 50,
+      "providerLimits": {
+        "openalex": 10,
+        "crossref": 5,
+        "semanticscholar": 5,
+        "mckinsey": 1,
+        "bcg": 1,
+        "bain": 1
+      }
+    },
+    "monitoring": {
+      "enabled": true,
+      "metrics": [
+        "responseTime",
+        "successRate",
+        "sourceCount",
+        "qualityScore"
+      ],
+      "alerts": true,
+      "logging": true
+    }
+  },
+  "targets": {
+    "sources": {
+      "minimum": 50,
+      "target": 100,
+      "maximum": 500
+    },
+    "quality": {
+      "minimum": 70,
+      "target": 85,
+      "maximum": 95
+    },
+    "performance": {
+      "maxResponseTime": 60000,
+      "targetResponseTime": 30000,
+      "sourcesPerSecond": 2
+    }
+  }
+}

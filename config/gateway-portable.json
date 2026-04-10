@@ -1,0 +1,15 @@
+{
+  "mode": "portable",
+  "service": false,
+  "permissions": "user",
+  "endpoints": {
+    "api": "http://localhost:3001/api",
+    "monitoring": "http://localhost:3001/health",
+    "admin": "http://localhost:3001/admin"
+  },
+  "security": {
+    "auth": "local",
+    "encryption": "AES256",
+    "timeout": 30000
+  }
+}

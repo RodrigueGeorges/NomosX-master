@@ -1,0 +1,268 @@
+{
+  "metadata": {
+    "version": "2.0.0",
+    "totalProviders": 48,
+    "lastUpdated": "2026-02-26T14:19:34.962Z",
+    "categories": [
+      "academic",
+      "business",
+      "thinkTanks",
+      "data",
+      "patents",
+      "government",
+      "other"
+    ]
+  },
+  "providers": {
+    "academic": {
+      "openalex": {
+        "file": "./academic/openalex-api.ts",
+        "class": "OpenAlexAPI",
+        "priority": "HIGH",
+        "type": "api",
+        "requiresAuth": false,
+        "rateLimit": "10/sec",
+        "coverage": "global",
+        "quality": "excellent"
+      },
+      "crossref": {
+        "file": "./academic/crossref-api.ts",
+        "class": "CrossRefAPI",
+        "priority": "HIGH",
+        "type": "api",
+        "requiresAuth": false,
+        "rateLimit": "5/sec",
+        "coverage": "global",
+        "quality": "excellent"
+      },
+      "pubmed": {
+        "file": "./academic/pubmed-api.ts",
+        "class": "PubMedAPI",
+        "priority": "HIGH",
+        "type": "api",
+        "requiresAuth": false,
+        "rateLimit": "3/sec",
+        "coverage": "medical",
+        "quality": "excellent"
+      },
+      "arxiv": {
+        "file": "./academic/arxiv-api.ts",
+        "class": "ArxivAPI",
+        "priority": "MEDIUM",
+        "type": "api",
+        "requiresAuth": false,
+        "rateLimit": "5/sec",
+        "coverage": "cs-physics",
+        "quality": "good"
+      }
+    },
+    "business": {
+      "crunchbase": {
+        "file": "./business/crunchbase-api.ts",
+        "class": "CrunchbaseAPI",
+        "priority": "MEDIUM",
+        "type": "api",
+        "requiresAuth": true,
+        "rateLimit": "2/sec",
+        "coverage": "startups",
+        "quality": "good"
+      },
+      "reuters": {
+        "file": "./business/reuters-api.ts",
+        "class": "ReutersAPI",
+        "priority": "HIGH",
+        "type": "api",
+        "requiresAuth": true,
+        "rateLimit": "5/sec",
+        "coverage": "business-news",
+        "quality": "excellent"
+      },
+      "techcrunch": {
+        "file": "./business/techcrunch-api.ts",
+        "class": "TechCrunchAPI",
+        "priority": "MEDIUM",
+        "type": "api",
+        "requiresAuth": false,
+        "rateLimit": "3/sec",
+        "coverage": "tech-news",
+        "quality": "good"
+      }
+    },
+    "data": {
+      "figshare": {
+        "file": "./data/figshare-api.ts",
+        "class": "FigshareAPI",
+        "priority": "MEDIUM",
+        "type": "api",
+        "requiresAuth": false,
+        "rateLimit": "2/sec",
+        "coverage": "research-data",
+        "quality": "good"
+      },
+      "zenodo": {
+        "file": "./data/zenodo-api.ts",
+        "class": "ZenodoAPI",
+        "priority": "MEDIUM",
+        "type": "api",
+        "requiresAuth": false,
+        "rateLimit": "2/sec",
+        "coverage": "research-data",
+        "quality": "good"
+      }
+    },
+    "thinkTanks": {
+      "mckinsey": {
+        "file": "./mckinsey-global-institute-provider.js",
+        "class": "McKinseyGlobalInstituteProvider",
+        "priority": "HIGH",
+        "type": "scraper",
+        "requiresAuth": false,
+        "rateLimit": "1/sec",
+        "coverage": "business-research",
+        "quality": "excellent"
+      },
+      "bcg": {
+        "file": "./bcg-henderson-institute-provider.js",
+        "class": "BCGHendersonInstituteProvider",
+        "priority": "HIGH",
+        "type": "scraper",
+        "requiresAuth": false,
+        "rateLimit": "1/sec",
+        "coverage": "business-research",
+        "quality": "excellent"
+      },
+      "bain": {
+        "file": "./bain-insights-provider.js",
+        "class": "BainInsightsProvider",
+        "priority": "HIGH",
+        "type": "scraper",
+        "requiresAuth": false,
+        "rateLimit": "1/sec",
+        "coverage": "business-research",
+        "quality": "excellent"
+      },
+      "deloitte": {
+        "file": "./deloitte-insights-provider.js",
+        "class": "DeloitteInsightsProvider",
+        "priority": "HIGH",
+        "type": "scraper",
+        "requiresAuth": false,
+        "rateLimit": "1/sec",
+        "coverage": "business-research",
+        "quality": "excellent"
+      },
+      "accenture": {
+        "file": "./accenture-research-provider.js",
+        "class": "AccentureResearchProvider",
+        "priority": "HIGH",
+        "type": "scraper",
+        "requiresAuth": false,
+        "rateLimit": "1/sec",
+        "coverage": "business-research",
+        "quality": "excellent"
+      },
+      "ey": {
+        "file": "./ey-research-provider.js",
+        "class": "EYResearchProvider",
+        "priority": "HIGH",
+        "type": "scraper",
+        "requiresAuth": false,
+        "rateLimit": "1/sec",
+        "coverage": "business-research",
+        "quality": "excellent"
+      },
+      "brookings": {
+        "file": "./brookings-institution-provider.js",
+        "class": "BrookingsInstitutionProvider",
+        "priority": "HIGH",
+        "type": "scraper",
+        "requiresAuth": false,
+        "rateLimit": "1/sec",
+        "coverage": "policy-research",
+        "quality": "excellent"
+      },
+      "carnegie": {
+        "file": "./carnegie-endowment-provider.js",
+        "class": "CarnegieEndowmentProvider",
+        "priority": "HIGH",
+        "type": "scraper",
+        "requiresAuth": false,
+        "rateLimit": "1/sec",
+        "coverage": "policy-research",
+        "quality": "excellent"
+      }
+    },
+    "government": {
+      "worldbank": {
+        "file": "./worldbank-research-provider.mjs",
+        "class": "WorldBankResearchProvider",
+        "priority": "HIGH",
+        "type": "api",
+        "requiresAuth": false,
+        "rateLimit": "2/sec",
+        "coverage": "global-development",
+        "quality": "excellent"
+      },
+      "imf": {
+        "file": "./imf-provider.mjs",
+        "class": "IMFProvider",
+        "priority": "HIGH",
+        "type": "api",
+        "requiresAuth": false,
+        "rateLimit": "2/sec",
+        "coverage": "economics",
+        "quality": "excellent"
+      },
+      "oecd": {
+        "file": "./oecd-provider.mjs",
+        "class": "OECDProvider",
+        "priority": "HIGH",
+        "type": "api",
+        "requiresAuth": false,
+        "rateLimit": "2/sec",
+        "coverage": "economics",
+        "quality": "excellent"
+      },
+      "eurostat": {
+        "file": "./eurostat.ts",
+        "class": "EurostatAPI",
+        "priority": "MEDIUM",
+        "type": "api",
+        "requiresAuth": false,
+        "rateLimit": "1/sec",
+        "coverage": "eu-statistics",
+        "quality": "good"
+      },
+      "ecb": {
+        "file": "./ecb.ts",
+        "class": "ECBAPI",
+        "priority": "MEDIUM",
+        "type": "api",
+        "requiresAuth": false,
+        "rateLimit": "1/sec",
+        "coverage": "banking",
+        "quality": "good"
+      }
+    }
+  },
+  "optimization": {
+    "parallelExecution": true,
+    "timeoutMs": 30000,
+    "retryAttempts": 2,
+    "cacheEnabled": true,
+    "deduplication": true,
+    "rateLimiting": true,
+    "fallbackProviders": [
+      "openalex",
+      "crossref",
+      "semanticscholar"
+    ]
+  },
+  "qualityFilters": {
+    "minQualityScore": 60,
+    "requireAbstract": false,
+    "minYear": 2015,
+    "maxPerProvider": 15,
+    "diversityThreshold": 0.7
+  }
+}

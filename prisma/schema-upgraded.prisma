@@ -1,0 +1,997 @@
+// ============================================================================
+// NomosX Production Schema - CTO-Grade Architecture
+// ============================================================================
+// Version: 2.0
+// Last Updated: 2026-01-21
+// 
+// Key Features:
+// - Claim-level audit & evidence binding
+// - Trust scores & quality metrics
+// - Cost tracking & quotas
+// - Robust orchestration with idempotency
+// - Human feedback loop
+// - Evidence relations (light graph)
+// - Contradiction detection
+// - Hybrid retrieval support
+// ============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma-client"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  extensions = [pgvector(map: "vector")]
+}
+
+// ============================================================================
+// CORE: SOURCES & ACADEMIC DATA
+// ============================================================================
+
+model Source {
+  id            String   @id
+  provider      String
+  type          String   @default("paper")
+  title         String
+  abstract      String?  @db.Text
+  year          Int?
+  doi           String?
+  url           String?
+  pdfUrl        String?
+  oaStatus      String?
+  topics        String[]
+  jelCodes      String[]
+  citationCount Int?
+  
+  // Quality & Novelty
+  qualityScore  Int?
+  noveltyScore  Int?     @default(0)
+  
+  // Embeddings (pgvector)
+  embedding     Unsupported("vector(1536)")?
+  embeddingModel String?  @default("text-embedding-3-small")
+  
+  // Full-text search
+  searchVector  Unsupported("tsvector")?
+  
+  // Metadata
+  raw           Json?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Versioning for updates
+  version       Int      @default(1)
+  lastSyncedAt  DateTime @default(now())
+
+  // Relations
+  authors       SourceAuthor[]
+  institutions  SourceInstitution[]
+  domains       SourceDomain[]
+  chunks        SourceChunk[]
+  claims        Claim[]
+  evidenceSpans EvidenceSpan[]
+  retrievalLogs RetrievalLog[]
+
+  @@index([provider, year])
+  @@index([doi])
+  @@index([qualityScore])
+  @@index([noveltyScore])
+  @@index([createdAt])
+  @@index([lastSyncedAt])
+  @@index([embedding(ops: raw("vector_cosine_ops"))], type: Gin)
+  @@index([searchVector], type: Gin)
+}
+
+// ============================================================================
+// CHUNKING & HYBRID RETRIEVAL
+// ============================================================================
+
+model SourceChunk {
+  id            String   @id @default(cuid())
+  sourceId      String
+  chunkIndex    Int
+  content       String   @db.Text
+  contentHash   String   // SHA-256 for deduplication
+  
+  // Hybrid retrieval
+  embedding     Unsupported("vector(1536)")?
+  embeddingModel String?  @default("text-embedding-3-small")
+  searchVector  Unsupported("tsvector")?
+  
+  // Metadata
+  startPos      Int?
+  endPos        Int?
+  tokenCount    Int?
+  
+  // Relations
+  source        Source   @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  evidenceSpans EvidenceSpan[]
+  retrievalLogs RetrievalLog[]
+  
+  createdAt     DateTime @default(now())
+
+  @@unique([sourceId, chunkIndex])
+  @@unique([contentHash])
+  @@index([sourceId])
+  @@index([embedding(ops: raw("vector_cosine_ops"))], type: Gin)
+  @@index([searchVector], type: Gin)
+}
+
+// ============================================================================
+// AUTHORS & INSTITUTIONS (ENHANCED)
+// ============================================================================
+
+model Author {
+  id            String   @id @default(cuid())
+  name          String
+  normalizedName String  // For deduplication
+  orcid         String?  @unique
+  orcidData     Json?
+  h_index       Int?
+  citationCount Int?
+  affiliations  String[]
+  
+  // Trust & Quality
+  trustScore    Float?   @default(0.5) // 0-1
+  publicationCount Int?  @default(0)
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  lastSyncedAt  DateTime @default(now())
+
+  sources       SourceAuthor[]
+
+  @@index([name])
+  @@index([normalizedName])
+  @@index([orcid])
+  @@index([trustScore])
+}
+
+model Institution {
+  id            String   @id @default(cuid())
+  name          String
+  normalizedName String  // For deduplication
+  rorId         String?  @unique
+  rorData       Json?
+  country       String?
+  type          String?
+  
+  // Trust & Quality
+  trustScore    Float?   @default(0.5) // 0-1
+  publicationCount Int?  @default(0)
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  lastSyncedAt  DateTime @default(now())
+
+  sources       SourceInstitution[]
+
+  @@index([name])
+  @@index([normalizedName])
+  @@index([rorId])
+  @@index([country])
+  @@index([trustScore])
+}
+
+model SourceAuthor {
+  sourceId  String
+  authorId  String
+  position  Int?
+  isCorresponding Boolean @default(false)
+  
+  source    Source   @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  author    Author   @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@id([sourceId, authorId])
+  @@index([sourceId])
+  @@index([authorId])
+}
+
+model SourceInstitution {
+  sourceId      String
+  institutionId String
+  
+  source        Source      @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  institution   Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+
+  @@id([sourceId, institutionId])
+  @@index([sourceId])
+  @@index([institutionId])
+}
+
+// ============================================================================
+// DOMAINS & CLASSIFICATION
+// ============================================================================
+
+model Domain {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        String
+  nameEn      String
+  icon        String
+  color       String
+  description String   @db.Text
+  keywords    String[]
+  jelCodes    String[]
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  sources     SourceDomain[]
+
+  @@index([slug])
+  @@index([isActive])
+}
+
+model SourceDomain {
+  sourceId  String
+  domainId  String
+  score     Float    // Confidence 0-1
+  
+  source    Source   @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  domain    Domain   @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@id([sourceId, domainId])
+  @@index([domainId, score])
+  @@index([sourceId])
+}
+
+// ============================================================================
+// MACRO ECONOMIC DATA
+// ============================================================================
+
+model MacroSeries {
+  id          String   @id @default(cuid())
+  provider    String
+  code        String
+  name        String
+  description String?  @db.Text
+  unit        String?
+  frequency   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  points      MacroPoint[]
+
+  @@unique([provider, code])
+  @@index([provider])
+}
+
+model MacroPoint {
+  id        String      @id @default(cuid())
+  seriesId  String
+  date      DateTime
+  value     Float
+  
+  series    MacroSeries @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  createdAt DateTime    @default(now())
+
+  @@unique([seriesId, date])
+  @@index([seriesId, date])
+}
+
+// ============================================================================
+// CLAIMS & EVIDENCE SYSTEM (NEW - CORE AUDIT)
+// ============================================================================
+
+model Claim {
+  id            String   @id @default(cuid())
+  
+  // Origin
+  runId         String   // Links to AnalysisRun
+  sourceId      String?  // Optional source if claim is extracted from source
+  
+  // Claim content
+  text          String   @db.Text
+  claimType     String   // factual, causal, evaluative, normative
+  
+  // Classification
+  category      String?  // economic, technical, ethical, political
+  confidence    Float    // 0-1 from LLM
+  
+  // Trust & Quality
+  trustScore    Float?   // Computed from evidence quality
+  evidenceCount Int      @default(0)
+  
+  // Verification
+  isVerified    Boolean  @default(false)
+  verifiedBy    String?  // user_id or "system"
+  verifiedAt    DateTime?
+  
+  // Contradiction detection
+  hasContradiction Boolean @default(false)
+  contradictedBy   String[] // Array of claim IDs
+  
+  // Metadata
+  extractedBy   String   // agent name
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Relations
+  source        Source?  @relation(fields: [sourceId], references: [id], onDelete: SetNull)
+  run           AnalysisRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  evidenceSpans EvidenceSpan[]
+  feedbacks     ClaimFeedback[]
+  contradictions ClaimContradiction[]
+
+  @@index([runId])
+  @@index([sourceId])
+  @@index([claimType])
+  @@index([trustScore])
+  @@index([hasContradiction])
+  @@index([createdAt])
+}
+
+model EvidenceSpan {
+  id            String   @id @default(cuid())
+  
+  // Links
+  claimId       String
+  sourceId      String
+  chunkId       String?  // Optional if we have chunks
+  
+  // Span location
+  startPos      Int
+  endPos        Int
+  text          String   @db.Text
+  
+  // Context
+  contextBefore String?  @db.Text
+  contextAfter  String?  @db.Text
+  
+  // Quality
+  relevanceScore Float   // 0-1 how relevant is this evidence to the claim
+  strengthScore Float    // 0-1 how strong is this evidence
+  
+  // Type
+  evidenceType  String   // direct_quote, paraphrase, statistical, methodological
+  
+  // Metadata
+  extractedBy   String   // agent name
+  createdAt     DateTime @default(now())
+  
+  // Relations
+  claim         Claim    @relation(fields: [claimId], references: [id], onDelete: Cascade)
+  source        Source   @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  chunk         SourceChunk? @relation(fields: [chunkId], references: [id], onDelete: SetNull)
+
+  @@index([claimId])
+  @@index([sourceId])
+  @@index([chunkId])
+  @@index([relevanceScore])
+  @@index([strengthScore])
+}
+
+model ClaimContradiction {
+  id            String   @id @default(cuid())
+  
+  // Claims involved
+  claim1Id      String
+  claim2Id      String
+  
+  // Contradiction details
+  contradictionType String // logical, factual, temporal, methodological
+  severity      Float    // 0-1
+  explanation   String   @db.Text
+  
+  // Detection
+  detectedBy    String   // agent name
+  detectedAt    DateTime @default(now())
+  
+  // Resolution
+  isResolved    Boolean  @default(false)
+  resolvedBy    String?
+  resolvedAt    DateTime?
+  resolution    String?  @db.Text
+  
+  // Relations
+  claim1        Claim    @relation(fields: [claim1Id], references: [id], onDelete: Cascade, name: "claim1")
+  claim2        Claim    @relation(fields: [claim2Id], references: [id], onDelete: Cascade, name: "claim2")
+
+  @@index([claim1Id])
+  @@index([claim2Id])
+  @@index([contradictionType])
+  @@index([severity])
+  @@index([isResolved])
+}
+
+// ============================================================================
+// HUMAN FEEDBACK & QUALITY LOOP
+// ============================================================================
+
+model ClaimFeedback {
+  id            String   @id @default(cuid())
+  
+  // Target
+  claimId       String
+  userId        String?  // Optional if anonymous
+  
+  // Feedback
+  rating        Int      // 1-5
+  feedbackType  String   // accurate, inaccurate, misleading, incomplete, well_supported, poorly_supported
+  comment       String?  @db.Text
+  
+  // Suggestions
+  suggestedEdit String?  @db.Text
+  
+  // Metadata
+  ipAddress     String?
+  userAgent     String?
+  createdAt     DateTime @default(now())
+  
+  // Relations
+  claim         Claim    @relation(fields: [claimId], references: [id], onDelete: Cascade)
+
+  @@index([claimId])
+  @@index([userId])
+  @@index([rating])
+  @@index([feedbackType])
+  @@index([createdAt])
+}
+
+model RunFeedback {
+  id            String   @id @default(cuid())
+  
+  // Target
+  runId         String
+  userId        String?
+  
+  // Overall feedback
+  overallRating Int      // 1-5
+  usefulness    Int      // 1-5
+  trustworthiness Int    // 1-5
+  completeness  Int      // 1-5
+  
+  // Qualitative
+  comment       String?  @db.Text
+  
+  // Usage tracking
+  wasUsedForDecision Boolean @default(false)
+  decisionContext String? @db.Text
+  
+  createdAt     DateTime @default(now())
+  
+  // Relations
+  run           AnalysisRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@index([runId])
+  @@index([userId])
+  @@index([overallRating])
+  @@index([createdAt])
+}
+
+// ============================================================================
+// ANALYSIS RUNS & TRUST SCORES (ENHANCED)
+// ============================================================================
+
+model AnalysisRun {
+  id            String   @id @default(cuid())
+  
+  // Request
+  question      String   @db.Text
+  mode          String   // brief, council
+  userId        String?
+  
+  // Orchestration
+  correlationId String   @unique // For distributed tracing
+  status        String   @default("PENDING") // PENDING, RUNNING, COMPLETED, FAILED, CANCELLED
+  priority      Int      @default(5)
+  
+  // Provenance
+  providers     String[]
+  sourcesUsed   String[] // Array of source IDs
+  claimCount    Int      @default(0)
+  evidenceCount Int      @default(0)
+  
+  // Trust & Quality Metrics
+  trustScore    Float?   // 0-1 computed from evidence quality
+  qualityScore  Float?   // 0-1 computed from various factors
+  completeness  Float?   // 0-1 how complete is the analysis
+  
+  // Quality breakdown
+  citationCoverage Float? // % of claims with citations
+  sourceQuality Float?    // Avg quality of sources used
+  evidenceStrength Float? // Avg strength of evidence spans
+  contradictionRate Float? // % of claims with contradictions
+  
+  // Cost tracking
+  tokensUsed    Int      @default(0)
+  costUsd       Float    @default(0)
+  
+  // Timing
+  startedAt     DateTime?
+  finishedAt    DateTime?
+  duration      Int?     // milliseconds
+  
+  // Output
+  output        Json?    // Final analysis output
+  outputHtml    String?  @db.Text
+  
+  // Error handling
+  lastError     String?  @db.Text
+  retryCount    Int      @default(0)
+  
+  // Metadata
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Relations
+  claims        Claim[]
+  steps         AnalysisStep[]
+  feedbacks     RunFeedback[]
+  retrievalLogs RetrievalLog[]
+
+  @@index([correlationId])
+  @@index([status])
+  @@index([userId])
+  @@index([trustScore])
+  @@index([createdAt])
+  @@index([startedAt])
+}
+
+model AnalysisStep {
+  id            String   @id @default(cuid())
+  
+  // Links
+  runId         String
+  
+  // Step details
+  stepName      String   // scout, index, rank, reader, analyst, etc.
+  stepOrder     Int
+  status        String   @default("PENDING")
+  
+  // I/O
+  input         Json?
+  output        Json?
+  
+  // Performance
+  startedAt     DateTime?
+  finishedAt    DateTime?
+  duration      Int?     // milliseconds
+  
+  // Cost
+  tokensUsed    Int      @default(0)
+  costUsd       Float    @default(0)
+  
+  // Error
+  error         String?  @db.Text
+  retryCount    Int      @default(0)
+  
+  createdAt     DateTime @default(now())
+  
+  // Relations
+  run           AnalysisRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@unique([runId, stepName])
+  @@index([runId, stepOrder])
+  @@index([stepName])
+  @@index([status])
+}
+
+// ============================================================================
+// RETRIEVAL LOGS & HYBRID SEARCH (NEW)
+// ============================================================================
+
+model RetrievalLog {
+  id            String   @id @default(cuid())
+  
+  // Context
+  runId         String
+  query         String   @db.Text
+  queryEmbedding Unsupported("vector(1536)")?
+  
+  // Retrieval strategy
+  strategy      String   // semantic, keyword, hybrid, reranked
+  k             Int      // Number of results requested
+  
+  // Results
+  sourceIds     String[] // Retrieved source IDs
+  chunkIds      String[] // Retrieved chunk IDs (if chunked)
+  scores        Float[]  // Relevance scores
+  
+  // Reranking (if applied)
+  reranked      Boolean  @default(false)
+  reranker      String?  // Model used for reranking
+  originalScores Float[] // Pre-rerank scores
+  
+  // Performance
+  duration      Int      // milliseconds
+  
+  createdAt     DateTime @default(now())
+  
+  // Relations
+  run           AnalysisRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  sources       Source[]
+  chunks        SourceChunk[]
+
+  @@index([runId])
+  @@index([strategy])
+  @@index([createdAt])
+}
+
+// ============================================================================
+// TOPICS & SUBSCRIPTIONS
+// ============================================================================
+
+model Topic {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  query       String   @db.Text
+  tags        String[]
+  description String?  @db.Text
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  briefs        Brief[]
+  subscriptions AlertSubscription[]
+  digests       Digest[]
+
+  @@index([isActive])
+  @@index([name])
+}
+
+model AlertSubscription {
+  id        String   @id @default(cuid())
+  topicId   String
+  email     String
+  frequency String   @default("weekly")
+  isActive  Boolean  @default(true)
+  
+  topic     Topic    @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([topicId, email])
+  @@index([topicId])
+  @@index([email])
+  @@index([isActive])
+}
+
+// ============================================================================
+// DELIVERABLES & OUTPUTS
+// ============================================================================
+
+model Brief {
+  id        String   @id @default(cuid())
+  
+  // Content
+  kind      String   @default("brief")
+  topicId   String?
+  question  String   @db.Text
+  html      String   @db.Text
+  
+  // Provenance
+  runId     String?  // Link to AnalysisRun
+  sources   String[]
+  
+  // Trust & Quality
+  trustScore Float?
+  qualityScore Float?
+  
+  // Publishing
+  publicId  String?  @unique
+  publishedAt DateTime?
+  viewCount Int      @default(0)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  topic     Topic?   @relation(fields: [topicId], references: [id], onDelete: SetNull)
+
+  @@index([topicId])
+  @@index([kind])
+  @@index([runId])
+  @@index([trustScore])
+  @@index([createdAt])
+  @@index([publishedAt])
+}
+
+model Digest {
+  id        String   @id @default(cuid())
+  topicId   String
+  subject   String
+  html      String   @db.Text
+  period    String
+  sources   String[]
+  sentAt    DateTime?
+  
+  topic     Topic    @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([topicId, period])
+  @@index([topicId])
+  @@index([sentAt])
+  @@index([period])
+}
+
+// ============================================================================
+// ORCHESTRATION & JOB SYSTEM (ROBUST)
+// ============================================================================
+
+model Job {
+  id            String   @id @default(cuid())
+  
+  // Job definition
+  type          String   // SCOUT, INDEX, RANK, READER, ANALYST, etc.
+  payload       Json
+  
+  // Orchestration
+  correlationId String   // Links to AnalysisRun.correlationId
+  parentJobId   String?  // For job dependencies
+  
+  // Priority & Status
+  status        String   @default("PENDING") // PENDING, RUNNING, COMPLETED, FAILED, CANCELLED
+  priority      Int      @default(5)
+  
+  // Retry logic
+  attempts      Int      @default(0)
+  maxRetries    Int      @default(3)
+  lastError     String?  @db.Text
+  errorStack    String?  @db.Text
+  
+  // Idempotency
+  idempotencyKey String? @unique
+  
+  // Timing
+  scheduledFor  DateTime @default(now())
+  startedAt     DateTime?
+  finishedAt    DateTime?
+  lockedUntil   DateTime? // For worker lock
+  lockedBy      String?   // Worker ID
+  
+  // Output
+  result        Json?
+  
+  // Dead letter
+  movedToDeadLetter Boolean @default(false)
+  deadLetterReason  String?
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([status, priority, scheduledFor])
+  @@index([correlationId])
+  @@index([type])
+  @@index([lockedUntil])
+  @@index([idempotencyKey])
+  @@index([movedToDeadLetter])
+}
+
+model JobDeadLetter {
+  id            String   @id @default(cuid())
+  
+  // Original job
+  originalJobId String
+  type          String
+  payload       Json
+  correlationId String
+  
+  // Failure details
+  failureReason String   @db.Text
+  errorStack    String?  @db.Text
+  attempts      Int
+  lastAttemptAt DateTime
+  
+  // Resolution
+  isResolved    Boolean  @default(false)
+  resolvedBy    String?
+  resolvedAt    DateTime?
+  resolution    String?  @db.Text
+  
+  createdAt     DateTime @default(now())
+
+  @@index([correlationId])
+  @@index([type])
+  @@index([isResolved])
+  @@index([createdAt])
+}
+
+// ============================================================================
+// INGESTION RUNS
+// ============================================================================
+
+model IngestionRun {
+  id        String   @id @default(cuid())
+  
+  // Request
+  query     String   @db.Text
+  providers String[]
+  
+  // Orchestration
+  correlationId String @unique
+  status    String   @default("PENDING")
+  
+  // Stats
+  stats     Json?
+  
+  // Timing
+  startedAt DateTime?
+  finishedAt DateTime?
+  duration  Int?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([correlationId])
+  @@index([createdAt])
+}
+
+// ============================================================================
+// COST & QUOTA TRACKING
+// ============================================================================
+
+model CostLog {
+  id            String   @id @default(cuid())
+  
+  // Context
+  userId        String?
+  correlationId String?  // Link to run
+  jobId         String?
+  
+  // Operation
+  operation     String   // scout, reader, analyst, embed, etc.
+  provider      String   // openai, anthropic, cohere, etc.
+  model         String   // gpt-4o, claude-3, etc.
+  
+  // Usage
+  tokensInput   Int      @default(0)
+  tokensOutput  Int      @default(0)
+  tokensTotal   Int      @default(0)
+  
+  // Cost
+  costUsd       Float
+  
+  // Metadata
+  metadata      Json?
+  createdAt     DateTime @default(now())
+
+  @@index([userId])
+  @@index([correlationId])
+  @@index([operation])
+  @@index([provider])
+  @@index([createdAt])
+}
+
+model UserQuota {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  
+  // Limits
+  maxRunsPerDay Int      @default(10)
+  maxRunsPerMonth Int    @default(100)
+  maxCostPerMonth Float  @default(50.0)
+  
+  // Current usage (reset periodically)
+  runsToday     Int      @default(0)
+  runsThisMonth Int      @default(0)
+  costThisMonth Float    @default(0)
+  
+  // Reset tracking
+  lastDailyReset DateTime @default(now())
+  lastMonthlyReset DateTime @default(now())
+  
+  // Status
+  isBlocked     Boolean  @default(false)
+  blockReason   String?
+  
+  updatedAt     DateTime @updatedAt
+
+  @@index([userId])
+  @@index([isBlocked])
+}
+
+// ============================================================================
+// AUTHENTICATION & USERS (ENHANCED)
+// ============================================================================
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  password      String   // Hashed with bcrypt
+  name          String?
+  role          String   @default("user") // user, admin, analyst, reviewer
+  
+  // Verification
+  emailVerified Boolean  @default(false)
+  verificationToken String?
+  
+  // Security
+  mfaEnabled    Boolean  @default(false)
+  mfaSecret     String?
+  
+  // Usage
+  lastLoginAt   DateTime?
+  loginCount    Int      @default(0)
+  
+  // Preferences
+  preferences   Json?    // UI preferences, notification settings
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([email])
+  @@index([role])
+  @@index([emailVerified])
+}
+
+model AuditLog {
+  id            String   @id @default(cuid())
+  
+  // Actor
+  userId        String?
+  ipAddress     String?
+  userAgent     String?
+  
+  // Action
+  action        String   // login, create_run, update_claim, etc.
+  resource      String   // user, run, claim, etc.
+  resourceId    String?
+  
+  // Details
+  details       Json?
+  
+  // Result
+  success       Boolean
+  errorMessage  String?
+  
+  createdAt     DateTime @default(now())
+
+  @@index([userId])
+  @@index([action])
+  @@index([resource])
+  @@index([createdAt])
+}
+
+// ============================================================================
+// SYSTEM HEALTH & OBSERVABILITY
+// ============================================================================
+
+model SystemMetric {
+  id            String   @id @default(cuid())
+  
+  // Metric
+  metricName    String   // jobs_processed, avg_trust_score, avg_cost_per_run, etc.
+  metricValue   Float
+  unit          String?  // count, seconds, usd, percentage
+  
+  // Dimensions
+  dimensions    Json?    // { "job_type": "ANALYST", "status": "COMPLETED" }
+  
+  // Time
+  timestamp     DateTime @default(now())
+  periodStart   DateTime
+  periodEnd     DateTime
+
+  @@index([metricName, timestamp])
+  @@index([periodStart, periodEnd])
+}
+
+model FeatureFlag {
+  id            String   @id @default(cuid())
+  
+  // Flag
+  key           String   @unique
+  name          String
+  description   String   @db.Text
+  
+  // State
+  isEnabled     Boolean  @default(false)
+  
+  // Rollout
+  rolloutPercentage Int  @default(0) // 0-100
+  allowedUserIds String[]
+  allowedRoles  String[]
+  
+  // Metadata
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([key])
+  @@index([isEnabled])
+}

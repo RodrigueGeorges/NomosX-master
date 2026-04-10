@@ -1,0 +1,33 @@
+{
+  "smartProviderFix": {
+    "before": 10,
+    "after": 10,
+    "problem": "None detected",
+    "solution": "No fix needed"
+  },
+  "providerTest": {
+    "real": 0,
+    "mock": 0,
+    "errors": [
+      "openalex: Cannot find module 'C:\\Users\\madeleine.stephann\\OneDrive\\Bureau\\NomosX\\lib\\registry\\openalex.ts' imported from C:\\Users\\madeleine.stephann\\OneDrive\\Bureau\\NomosX\\fix-incoherences.ts",
+      "semanticscholar: Cannot find module 'C:\\Users\\madeleine.stephann\\OneDrive\\Bureau\\NomosX\\lib\\registry\\semanticscholar.ts' imported from C:\\Users\\madeleine.stephann\\OneDrive\\Bureau\\NomosX\\fix-incoherences.ts",
+      "crossref: Cannot find module 'C:\\Users\\madeleine.stephann\\OneDrive\\Bureau\\NomosX\\lib\\registry\\crossref.ts' imported from C:\\Users\\madeleine.stephann\\OneDrive\\Bureau\\NomosX\\fix-incoherences.ts",
+      "arxiv: Cannot find module 'C:\\Users\\madeleine.stephann\\OneDrive\\Bureau\\NomosX\\lib\\registry\\arxiv.ts' imported from C:\\Users\\madeleine.stephann\\OneDrive\\Bureau\\NomosX\\fix-incoherences.ts",
+      "pubmed: Cannot find module 'C:\\Users\\madeleine.stephann\\OneDrive\\Bureau\\NomosX\\lib\\registry\\pubmed.ts' imported from C:\\Users\\madeleine.stephann\\OneDrive\\Bureau\\NomosX\\fix-incoherences.ts",
+      "mckinsey: Cannot find module 'C:\\Users\\madeleine.stephann\\OneDrive\\Bureau\\NomosX\\lib\\registry\\mckinsey.ts' imported from C:\\Users\\madeleine.stephann\\OneDrive\\Bureau\\NomosX\\fix-incoherences.ts",
+      "bcg: Cannot find module 'C:\\Users\\madeleine.stephann\\OneDrive\\Bureau\\NomosX\\lib\\registry\\bcg.ts' imported from C:\\Users\\madeleine.stephann\\OneDrive\\Bureau\\NomosX\\fix-incoherences.ts",
+      "bain: Cannot find module 'C:\\Users\\madeleine.stephann\\OneDrive\\Bureau\\NomosX\\lib\\registry\\bain.ts' imported from C:\\Users\\madeleine.stephann\\OneDrive\\Bureau\\NomosX\\fix-incoherences.ts",
+      "deloitte: Cannot find module 'C:\\Users\\madeleine.stephann\\OneDrive\\Bureau\\NomosX\\lib\\registry\\deloitte.ts' imported from C:\\Users\\madeleine.stephann\\OneDrive\\Bureau\\NomosX\\fix-incoherences.ts",
+      "pwc: Cannot find module 'C:\\Users\\madeleine.stephann\\OneDrive\\Bureau\\NomosX\\lib\\registry\\pwc.ts' imported from C:\\Users\\madeleine.stephann\\OneDrive\\Bureau\\NomosX\\fix-incoherences.ts"
+    ]
+  },
+  "redisFix": {
+    "status": "DISCONNECTED",
+    "impact": "Cache désactivé - coûts LLM augmentés, performance dégradée"
+  },
+  "sourceAccess": {
+    "found": 453,
+    "accessible": 10,
+    "problem": "Source access appears normal"
+  }
+}

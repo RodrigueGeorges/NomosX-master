@@ -1,0 +1,288 @@
+{
+  "mixedImports": [
+    {
+      "file": "app\\layout.tsx",
+      "imports": 1,
+      "requires": 5
+    },
+    {
+      "file": "lib\\agent\\pipeline-v2.ts",
+      "imports": 20,
+      "requires": 5
+    }
+  ],
+  "duplicateImports": [
+    {
+      "file": "app\\about\\page.tsx",
+      "line": 10,
+      "issue": "React imported multiple times"
+    },
+    {
+      "file": "app\\admin\\page.tsx",
+      "line": 2,
+      "issue": "React imported multiple times"
+    },
+    {
+      "file": "app\\brief\\page.tsx",
+      "line": 2,
+      "issue": "React imported multiple times"
+    },
+    {
+      "file": "app\\briefs\\page.tsx",
+      "line": 2,
+      "issue": "React imported multiple times"
+    },
+    {
+      "file": "app\\council\\page.tsx",
+      "line": 2,
+      "issue": "React imported multiple times"
+    },
+    {
+      "file": "app\\dashboard\\page-old.tsx",
+      "line": 2,
+      "issue": "React imported multiple times"
+    },
+    {
+      "file": "app\\dashboard\\page.tsx",
+      "line": 2,
+      "issue": "React imported multiple times"
+    },
+    {
+      "file": "app\\dashboard\\preferences\\page.tsx",
+      "line": 2,
+      "issue": "React imported multiple times"
+    },
+    {
+      "file": "app\\library\\page.tsx",
+      "line": 2,
+      "issue": "React imported multiple times"
+    },
+    {
+      "file": "app\\methodology\\page.tsx",
+      "line": 2,
+      "issue": "React imported multiple times"
+    },
+    {
+      "file": "app\\page.tsx",
+      "line": 3,
+      "issue": "React imported multiple times"
+    },
+    {
+      "file": "app\\pricing\\page.tsx",
+      "line": 2,
+      "issue": "React imported multiple times"
+    },
+    {
+      "file": "app\\publications\\page.tsx",
+      "line": 3,
+      "issue": "React imported multiple times"
+    },
+    {
+      "file": "app\\publications\\[id]\\page.tsx",
+      "line": 3,
+      "issue": "React imported multiple times"
+    },
+    {
+      "file": "app\\radar\\page.tsx",
+      "line": 2,
+      "issue": "React imported multiple times"
+    },
+    {
+      "file": "app\\search\\page.tsx",
+      "line": 3,
+      "issue": "React imported multiple times"
+    },
+    {
+      "file": "app\\signals\\page.tsx",
+      "line": 3,
+      "issue": "React imported multiple times"
+    },
+    {
+      "file": "app\\studio\\page.tsx",
+      "line": 3,
+      "issue": "React imported multiple times"
+    },
+    {
+      "file": "app\\think-tank\\page.tsx",
+      "line": 2,
+      "issue": "React imported multiple times"
+    },
+    {
+      "file": "components\\AuthModal.tsx",
+      "line": 3,
+      "issue": "React imported multiple times"
+    },
+    {
+      "file": "components\\ClaimFeedback.tsx",
+      "line": 3,
+      "issue": "React imported multiple times"
+    },
+    {
+      "file": "components\\ConversationHistory.tsx",
+      "line": 3,
+      "issue": "React imported multiple times"
+    },
+    {
+      "file": "components\\features\\billing\\BillingPlansClient.tsx",
+      "line": 3,
+      "issue": "React imported multiple times"
+    },
+    {
+      "file": "components\\features\\billing\\SubscriptionClient.tsx",
+      "line": 3,
+      "issue": "React imported multiple times"
+    },
+    {
+      "file": "components\\features\\user\\ProfileClient.tsx",
+      "line": 3,
+      "issue": "React imported multiple times"
+    },
+    {
+      "file": "components\\features\\user\\SettingsClient.tsx",
+      "line": 3,
+      "issue": "React imported multiple times"
+    },
+    {
+      "file": "components\\LibraryView.tsx",
+      "line": 3,
+      "issue": "React imported multiple times"
+    },
+    {
+      "file": "components\\NotificationBell.tsx",
+      "line": 3,
+      "issue": "React imported multiple times"
+    },
+    {
+      "file": "components\\OnboardingModal.tsx",
+      "line": 2,
+      "issue": "React imported multiple times"
+    },
+    {
+      "file": "components\\providers\\QueryProvider.tsx",
+      "line": 3,
+      "issue": "React imported multiple times"
+    },
+    {
+      "file": "components\\ProviderShowcase.tsx",
+      "line": 2,
+      "issue": "React imported multiple times"
+    },
+    {
+      "file": "components\\Shell.tsx",
+      "line": 3,
+      "issue": "React imported multiple times"
+    },
+    {
+      "file": "components\\SmartSuggestions.tsx",
+      "line": 3,
+      "issue": "React imported multiple times"
+    },
+    {
+      "file": "components\\StreamingAnalysis.tsx",
+      "line": 3,
+      "issue": "React imported multiple times"
+    },
+    {
+      "file": "components\\SubscribeRadarModal.tsx",
+      "line": 2,
+      "issue": "React imported multiple times"
+    },
+    {
+      "file": "components\\TrialBanner.tsx",
+      "line": 1,
+      "issue": "React imported multiple times"
+    },
+    {
+      "file": "components\\ui\\Modal.tsx",
+      "line": 3,
+      "issue": "React imported multiple times"
+    },
+    {
+      "file": "components\\ui\\Notifications.tsx",
+      "line": 3,
+      "issue": "React imported multiple times"
+    },
+    {
+      "file": "components\\ui\\Toast.tsx",
+      "line": 2,
+      "issue": "React imported multiple times"
+    },
+    {
+      "file": "components\\ui\\Tooltip.tsx",
+      "line": 3,
+      "issue": "React imported multiple times"
+    },
+    {
+      "file": "hooks\\useAnalysisRun.tsx",
+      "line": 1,
+      "issue": "React imported multiple times"
+    },
+    {
+      "file": "hooks\\useAuth.tsx",
+      "line": 11,
+      "issue": "React imported multiple times"
+    },
+    {
+      "file": "hooks\\useConversationHistory.ts",
+      "line": 1,
+      "issue": "React imported multiple times"
+    },
+    {
+      "file": "hooks\\useKeyboardShortcuts.tsx",
+      "line": 1,
+      "issue": "React imported multiple times"
+    },
+    {
+      "file": "hooks\\useStreamingBrief.ts",
+      "line": 1,
+      "issue": "React imported multiple times"
+    },
+    {
+      "file": "hooks\\useStreamingCouncil.ts",
+      "line": 1,
+      "issue": "React imported multiple times"
+    }
+  ],
+  "mixedExports": [
+    {
+      "file": "lib\\agent\\mcp-agents-index.ts",
+      "hasModuleExports": true,
+      "hasExportDefault": false,
+      "hasExportNamed": true
+    },
+    {
+      "file": "lib\\billing\\stripe.ts",
+      "hasModuleExports": true,
+      "hasExportDefault": false,
+      "hasExportNamed": true
+    },
+    {
+      "file": "lib\\db.ts",
+      "hasModuleExports": true,
+      "hasExportDefault": false,
+      "hasExportNamed": true
+    },
+    {
+      "file": "lib\\providers\\all-providers-registry.ts",
+      "hasModuleExports": true,
+      "hasExportDefault": false,
+      "hasExportNamed": true
+    },
+    {
+      "file": "lib\\providers\\extended-registry.js",
+      "hasModuleExports": true,
+      "hasExportDefault": false,
+      "hasExportNamed": true
+    },
+    {
+      "file": "lib\\providers\\final-complete-registry.js",
+      "hasModuleExports": true,
+      "hasExportDefault": false,
+      "hasExportNamed": true
+    }
+  ],
+  "syntaxErrors": [],
+  "inconsistentPaths": [],
+  "missingExports": [],
+  "unusedImports": []
+}

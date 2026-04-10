@@ -1,0 +1,50 @@
+<svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Monogramme NX Abstrait - Version Cabinet Elite -->
+  
+  <defs>
+    <linearGradient id="abstractGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#00D4FF;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#4A7FE0;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#8B5CF6;stop-opacity:0.8" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Forme abstraite qui �voque NX de mani�re sophistiqu�e -->
+  <g>
+    <!-- Structure architecturale : N vertical + X diagonal int�gr� -->
+    
+    <!-- Barre verticale gauche (N) -->
+    <rect x="25" y="25" width="8" height="70" fill="url(#abstractGradient)" rx="2"/>
+    
+    <!-- Diagonale ascendante (N vers X) avec �paisseur variable -->
+    <path d="
+      M 33 30
+      L 87 90
+      L 95 86
+      L 41 26
+      Z
+    " fill="url(#abstractGradient)" opacity="0.95"/>
+    
+    <!-- Barre verticale droite (N) -->
+    <rect x="87" y="25" width="8" height="70" fill="url(#abstractGradient)" rx="2"/>
+    
+    <!-- Diagonale descendante (X) avec intersection sophistiqu�e -->
+    <path d="
+      M 87 30
+      L 33 90
+      L 25 86
+      L 79 26
+      Z
+    " fill="url(#abstractGradient)" opacity="0.85"/>
+    
+    <!-- Node central - intersection des formes -->
+    <circle cx="60" cy="60" r="6" fill="white" opacity="0.95"/>
+    <circle cx="60" cy="60" r="3" fill="url(#abstractGradient)"/>
+    
+    <!-- Accents subtils aux 4 extr�mit�s -->
+    <circle cx="29" cy="25" r="2" fill="white" opacity="0.6"/>
+    <circle cx="91" cy="25" r="2" fill="white" opacity="0.6"/>
+    <circle cx="29" cy="95" r="2" fill="white" opacity="0.6"/>
+    <circle cx="91" cy="95" r="2" fill="white" opacity="0.6"/>
+  </g>
+</svg>

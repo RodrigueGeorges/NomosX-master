@@ -1,0 +1,1442 @@
+{
+  "timestamp": "2026-02-05T13:21:51.053Z",
+  "summary": {
+    "critical": 73,
+    "high": 154,
+    "medium": 0,
+    "low": 10,
+    "total": 237
+  },
+  "errors": {
+    "critical": [
+      {
+        "category": "CRITICAL_FILE",
+        "file": "next.config.js",
+        "message": "Fichier critique manquant: Config Next.js",
+        "suggestion": null
+      },
+      {
+        "category": "IMPORT",
+        "file": "lib\\agent\\simple-typescript-fixer.mjs",
+        "message": "Import manquant: \"./ui/Badge\"",
+        "suggestion": "Vérifier que le fichier existe ou corriger le chemin"
+      },
+      {
+        "category": "IMPORT",
+        "file": "lib\\agent\\simple-typescript-fixer.mjs",
+        "message": "Import manquant: \"./ui/$1\"",
+        "suggestion": "Vérifier que le fichier existe ou corriger le chemin"
+      },
+      {
+        "category": "IMPORT",
+        "file": "lib\\agent\\test-58-providers.mjs",
+        "message": "Import manquant: \"./monitoring-agent.js\"",
+        "suggestion": "Vérifier que le fichier existe ou corriger le chemin"
+      },
+      {
+        "category": "IMPORT",
+        "file": "lib\\agent\\test-imf-sdmx.mjs",
+        "message": "Import manquant: \"../providers/institutional/v2/imf-sdmx.js\"",
+        "suggestion": "Vérifier que le fichier existe ou corriger le chemin"
+      },
+      {
+        "category": "IMPORT",
+        "file": "lib\\agent\\typescript-error-fixer.mjs",
+        "message": "Import manquant: \"./ui/Badge\"",
+        "suggestion": "Vérifier que le fichier existe ou corriger le chemin"
+      },
+      {
+        "category": "IMPORT",
+        "file": "lib\\agent\\typescript-error-fixer.mjs",
+        "message": "Import manquant: \"./ui/$1\"",
+        "suggestion": "Vérifier que le fichier existe ou corriger le chemin"
+      },
+      {
+        "category": "IMPORT",
+        "file": "lib\\agent\\typescript-error-fixer.mjs",
+        "message": "Import manquant: \"./ui/Button\"",
+        "suggestion": "Vérifier que le fichier existe ou corriger le chemin"
+      },
+      {
+        "category": "IMPORT",
+        "file": "lib\\agent\\typescript-error-fixer.mjs",
+        "message": "Import manquant: \"./ui/Card\"",
+        "suggestion": "Vérifier que le fichier existe ou corriger le chemin"
+      },
+      {
+        "category": "IMPORT",
+        "file": "lib\\agent\\typescript-error-fixer.mjs",
+        "message": "Import manquant: \"./ui/Modal\"",
+        "suggestion": "Vérifier que le fichier existe ou corriger le chemin"
+      },
+      {
+        "category": "IMPORT",
+        "file": "lib\\agent\\typescript-error-fixer.mjs",
+        "message": "Import manquant: \"./ui/Input\"",
+        "suggestion": "Vérifier que le fichier existe ou corriger le chemin"
+      },
+      {
+        "category": "IMPORT",
+        "file": "lib\\agent\\typescript-error-fixer.mjs",
+        "message": "Import manquant: \"./ui/Textarea\"",
+        "suggestion": "Vérifier que le fichier existe ou corriger le chemin"
+      },
+      {
+        "category": "IMPORT",
+        "file": "lib\\agent\\typescript-error-fixer.mjs",
+        "message": "Import manquant: \"./ui/LoadingSpinner\"",
+        "suggestion": "Vérifier que le fichier existe ou corriger le chemin"
+      },
+      {
+        "category": "IMPORT",
+        "file": "netlify\\functions\\embed-sources.mjs",
+        "message": "Import manquant: \"../../lib/embeddings.js\"",
+        "suggestion": "Vérifier que le fichier existe ou corriger le chemin"
+      },
+      {
+        "category": "IMPORT",
+        "file": "scripts\\demo-institutional.mjs",
+        "message": "Import manquant: \"../lib/agent/pipeline-v2.js\"",
+        "suggestion": "Vérifier que le fichier existe ou corriger le chemin"
+      },
+      {
+        "category": "IMPORT",
+        "file": "scripts\\demo-institutional.mjs",
+        "message": "Import manquant: \"../lib/providers/institutional/presets.js\"",
+        "suggestion": "Vérifier que le fichier existe ou corriger le chemin"
+      },
+      {
+        "category": "IMPORT",
+        "file": "scripts\\fix-all-issues.mjs",
+        "message": "Import manquant: \"...\"",
+        "suggestion": "Vérifier que le fichier existe ou corriger le chemin"
+      },
+      {
+        "category": "IMPORT",
+        "file": "scripts\\fix-institutional-exports.mjs",
+        "message": "Import manquant: \"./intelligence/odni\"",
+        "suggestion": "Vérifier que le fichier existe ou corriger le chemin"
+      },
+      {
+        "category": "IMPORT",
+        "file": "scripts\\fix-institutional-exports.mjs",
+        "message": "Import manquant: \"./intelligence/cia-foia\"",
+        "suggestion": "Vérifier que le fichier existe ou corriger le chemin"
+      },
+      {
+        "category": "IMPORT",
+        "file": "scripts\\fix-institutional-exports.mjs",
+        "message": "Import manquant: \"./intelligence/nsa\"",
+        "suggestion": "Vérifier que le fichier existe ou corriger le chemin"
+      },
+      {
+        "category": "IMPORT",
+        "file": "scripts\\fix-institutional-exports.mjs",
+        "message": "Import manquant: \"./intelligence/uk-jic\"",
+        "suggestion": "Vérifier que le fichier existe ou corriger le chemin"
+      },
+      {
+        "category": "IMPORT",
+        "file": "scripts\\fix-institutional-exports.mjs",
+        "message": "Import manquant: \"./defense/nato\"",
+        "suggestion": "Vérifier que le fichier existe ou corriger le chemin"
+      },
+      {
+        "category": "IMPORT",
+        "file": "scripts\\fix-institutional-exports.mjs",
+        "message": "Import manquant: \"./defense/eeas\"",
+        "suggestion": "Vérifier que le fichier existe ou corriger le chemin"
+      },
+      {
+        "category": "IMPORT",
+        "file": "scripts\\fix-institutional-exports.mjs",
+        "message": "Import manquant: \"./defense/sgdsn\"",
+        "suggestion": "Vérifier que le fichier existe ou corriger le chemin"
+      },
+      {
+        "category": "IMPORT",
+        "file": "scripts\\fix-institutional-exports.mjs",
+        "message": "Import manquant: \"./defense/eda\"",
+        "suggestion": "Vérifier que le fichier existe ou corriger le chemin"
+      },
+      {
+        "category": "IMPORT",
+        "file": "scripts\\fix-institutional-exports.mjs",
+        "message": "Import manquant: \"./economic/imf\"",
+        "suggestion": "Vérifier que le fichier existe ou corriger le chemin"
+      },
+      {
+        "category": "IMPORT",
+        "file": "scripts\\fix-institutional-exports.mjs",
+        "message": "Import manquant: \"./economic/worldbank\"",
+        "suggestion": "Vérifier que le fichier existe ou corriger le chemin"
+      },
+      {
+        "category": "IMPORT",
+        "file": "scripts\\fix-institutional-exports.mjs",
+        "message": "Import manquant: \"./economic/oecd\"",
+        "suggestion": "Vérifier que le fichier existe ou corriger le chemin"
+      },
+      {
+        "category": "IMPORT",
+        "file": "scripts\\fix-institutional-exports.mjs",
+        "message": "Import manquant: \"./economic/bis\"",
+        "suggestion": "Vérifier que le fichier existe ou corriger le chemin"
+      },
+      {
+        "category": "IMPORT",
+        "file": "scripts\\fix-institutional-exports.mjs",
+        "message": "Import manquant: \"./cyber/nist\"",
+        "suggestion": "Vérifier que le fichier existe ou corriger le chemin"
+      },
+      {
+        "category": "IMPORT",
+        "file": "scripts\\fix-institutional-exports.mjs",
+        "message": "Import manquant: \"./cyber/cisa\"",
+        "suggestion": "Vérifier que le fichier existe ou corriger le chemin"
+      },
+      {
+        "category": "IMPORT",
+        "file": "scripts\\fix-institutional-exports.mjs",
+        "message": "Import manquant: \"./cyber/enisa\"",
+        "suggestion": "Vérifier que le fichier existe ou corriger le chemin"
+      },
+      {
+        "category": "IMPORT",
+        "file": "scripts\\fix-institutional-exports.mjs",
+        "message": "Import manquant: \"./multilateral/un\"",
+        "suggestion": "Vérifier que le fichier existe ou corriger le chemin"
+      },
+      {
+        "category": "IMPORT",
+        "file": "scripts\\fix-institutional-exports.mjs",
+        "message": "Import manquant: \"./multilateral/undp\"",
+        "suggestion": "Vérifier que le fichier existe ou corriger le chemin"
+      },
+      {
+        "category": "IMPORT",
+        "file": "scripts\\fix-institutional-exports.mjs",
+        "message": "Import manquant: \"./multilateral/unctad\"",
+        "suggestion": "Vérifier que le fichier existe ou corriger le chemin"
+      },
+      {
+        "category": "IMPORT",
+        "file": "scripts\\fix-institutional-exports.mjs",
+        "message": "Import manquant: \"./archives/nara\"",
+        "suggestion": "Vérifier que le fichier existe ou corriger le chemin"
+      },
+      {
+        "category": "IMPORT",
+        "file": "scripts\\fix-institutional-exports.mjs",
+        "message": "Import manquant: \"./archives/uk-archives\"",
+        "suggestion": "Vérifier que le fichier existe ou corriger le chemin"
+      },
+      {
+        "category": "IMPORT",
+        "file": "scripts\\fix-institutional-exports.mjs",
+        "message": "Import manquant: \"./archives/archives-nationales-fr\"",
+        "suggestion": "Vérifier que le fichier existe ou corriger le chemin"
+      },
+      {
+        "category": "IMPORT",
+        "file": "scripts\\fix-institutional-exports.mjs",
+        "message": "Import manquant: \"./v2/google-cse\"",
+        "suggestion": "Vérifier que le fichier existe ou corriger le chemin"
+      },
+      {
+        "category": "IMPORT",
+        "file": "scripts\\fix-institutional-exports.mjs",
+        "message": "Import manquant: \"./v2/worldbank-api\"",
+        "suggestion": "Vérifier que le fichier existe ou corriger le chemin"
+      },
+      {
+        "category": "IMPORT",
+        "file": "scripts\\fix-institutional-exports.mjs",
+        "message": "Import manquant: \"./v2/cisa-advisories\"",
+        "suggestion": "Vérifier que le fichier existe ou corriger le chemin"
+      },
+      {
+        "category": "IMPORT",
+        "file": "scripts\\fix-institutional-exports.mjs",
+        "message": "Import manquant: \"./v2/nara-api\"",
+        "suggestion": "Vérifier que le fichier existe ou corriger le chemin"
+      },
+      {
+        "category": "IMPORT",
+        "file": "scripts\\fix-institutional-exports.mjs",
+        "message": "Import manquant: \"./v2/uk-archives-api\"",
+        "suggestion": "Vérifier que le fichier existe ou corriger le chemin"
+      },
+      {
+        "category": "IMPORT",
+        "file": "scripts\\fix-institutional-exports.mjs",
+        "message": "Import manquant: \"./v2/un-digital-library\"",
+        "suggestion": "Vérifier que le fichier existe ou corriger le chemin"
+      },
+      {
+        "category": "IMPORT",
+        "file": "scripts\\fix-institutional-exports.mjs",
+        "message": "Import manquant: \"./v2/imf-sdmx\"",
+        "suggestion": "Vérifier que le fichier existe ou corriger le chemin"
+      },
+      {
+        "category": "IMPORT",
+        "file": "scripts\\fix-institutional-exports.mjs",
+        "message": "Import manquant: \"./v2/imf-elibrary\"",
+        "suggestion": "Vérifier que le fichier existe ou corriger le chemin"
+      },
+      {
+        "category": "IMPORT",
+        "file": "scripts\\fix-institutional-exports.mjs",
+        "message": "Import manquant: \"./v2/oecd-sdmx\"",
+        "suggestion": "Vérifier que le fichier existe ou corriger le chemin"
+      },
+      {
+        "category": "IMPORT",
+        "file": "scripts\\fix-institutional-exports.mjs",
+        "message": "Import manquant: \"./v2/oecd-ilibrary\"",
+        "suggestion": "Vérifier que le fichier existe ou corriger le chemin"
+      },
+      {
+        "category": "IMPORT",
+        "file": "scripts\\fix-institutional-exports.mjs",
+        "message": "Import manquant: \"./v2/bis-papers\"",
+        "suggestion": "Vérifier que le fichier existe ou corriger le chemin"
+      },
+      {
+        "category": "IMPORT",
+        "file": "scripts\\fix-institutional-exports.mjs",
+        "message": "Import manquant: \"./v2/nist-publications\"",
+        "suggestion": "Vérifier que le fichier existe ou corriger le chemin"
+      },
+      {
+        "category": "IMPORT",
+        "file": "scripts\\fix-institutional-exports.mjs",
+        "message": "Import manquant: \"./v2/eu-open-data\"",
+        "suggestion": "Vérifier que le fichier existe ou corriger le chemin"
+      },
+      {
+        "category": "IMPORT",
+        "file": "scripts\\fix-institutional-exports.mjs",
+        "message": "Import manquant: \"./v2/france-gov\"",
+        "suggestion": "Vérifier que le fichier existe ou corriger le chemin"
+      },
+      {
+        "category": "IMPORT",
+        "file": "scripts\\fix-institutional-exports.mjs",
+        "message": "Import manquant: \"./v2/nato-library\"",
+        "suggestion": "Vérifier que le fichier existe ou corriger le chemin"
+      },
+      {
+        "category": "IMPORT",
+        "file": "scripts\\fix-institutional-exports.mjs",
+        "message": "Import manquant: \"./v2/archive-org\"",
+        "suggestion": "Vérifier que le fichier existe ou corriger le chemin"
+      },
+      {
+        "category": "IMPORT",
+        "file": "scripts\\test-content-first.mjs",
+        "message": "Import manquant: \"../lib/providers/thesesfr.js\"",
+        "suggestion": "Vérifier que le fichier existe ou corriger le chemin"
+      },
+      {
+        "category": "IMPORT",
+        "file": "scripts\\test-content-first.mjs",
+        "message": "Import manquant: \"../lib/providers/thesesfr-hal-bridge.js\"",
+        "suggestion": "Vérifier que le fichier existe ou corriger le chemin"
+      },
+      {
+        "category": "IMPORT",
+        "file": "scripts\\test-detection-signaux.mjs",
+        "message": "Import manquant: \"../lib/agents/signal-detector.js\"",
+        "suggestion": "Vérifier que le fichier existe ou corriger le chemin"
+      },
+      {
+        "category": "IMPORT",
+        "file": "scripts\\test-imf-direct.mjs",
+        "message": "Import manquant: \"../providers/institutional/v2/imf-sdmx.js\"",
+        "suggestion": "Vérifier que le fichier existe ou corriger le chemin"
+      },
+      {
+        "category": "IMPORT",
+        "file": "scripts\\test-institutional.mjs",
+        "message": "Import manquant: \"../lib/providers/institutional/intelligence/odni.js\"",
+        "suggestion": "Vérifier que le fichier existe ou corriger le chemin"
+      },
+      {
+        "category": "IMPORT",
+        "file": "scripts\\test-institutional.mjs",
+        "message": "Import manquant: \"../lib/providers/institutional/economic/imf.js\"",
+        "suggestion": "Vérifier que le fichier existe ou corriger le chemin"
+      },
+      {
+        "category": "IMPORT",
+        "file": "scripts\\test-institutional.mjs",
+        "message": "Import manquant: \"../lib/providers/institutional/defense/nato.js\"",
+        "suggestion": "Vérifier que le fichier existe ou corriger le chemin"
+      },
+      {
+        "category": "IMPORT",
+        "file": "scripts\\test-institutional.mjs",
+        "message": "Import manquant: \"../lib/providers/institutional/cyber/cisa.js\"",
+        "suggestion": "Vérifier que le fichier existe ou corriger le chemin"
+      },
+      {
+        "category": "IMPORT",
+        "file": "scripts\\test-pipeline-simple.mjs",
+        "message": "Import manquant: \"./lib/agent/pipeline-v2.ts\"",
+        "suggestion": "Vérifier que le fichier existe ou corriger le chemin"
+      },
+      {
+        "category": "IMPORT",
+        "file": "scripts\\test-providers-macro.mjs",
+        "message": "Import manquant: \"../lib/providers/macro/eurostat-api.js\"",
+        "suggestion": "Vérifier que le fichier existe ou corriger le chemin"
+      },
+      {
+        "category": "IMPORT",
+        "file": "scripts\\test-providers-macro.mjs",
+        "message": "Import manquant: \"../lib/providers/macro/ecb-api.js\"",
+        "suggestion": "Vérifier que le fichier existe ou corriger le chemin"
+      },
+      {
+        "category": "IMPORT",
+        "file": "scripts\\test-providers-macro.mjs",
+        "message": "Import manquant: \"../lib/providers/macro/insee-api.js\"",
+        "suggestion": "Vérifier que le fichier existe ou corriger le chemin"
+      },
+      {
+        "category": "IMPORT",
+        "file": "scripts\\test-publication-hebdo.mjs",
+        "message": "Import manquant: \"../lib/agents/weekly-brief-agent.js\"",
+        "suggestion": "Vérifier que le fichier existe ou corriger le chemin"
+      },
+      {
+        "category": "IMPORT",
+        "file": "scripts\\test-publication-hebdo.mjs",
+        "message": "Import manquant: \"../lib/newsletter/publisher.js\"",
+        "suggestion": "Vérifier que le fichier existe ou corriger le chemin"
+      },
+      {
+        "category": "IMPORT",
+        "file": "scripts\\test-veille-continue.mjs",
+        "message": "Import manquant: \"../lib/agent/monitoring-agent.js\"",
+        "suggestion": "Vérifier que le fichier existe ou corriger le chemin"
+      },
+      {
+        "category": "IMPORT",
+        "file": "scripts\\test-veille-linkup.mjs",
+        "message": "Import manquant: \"../lib/agent/monitoring-agent.js\"",
+        "suggestion": "Vérifier que le fichier existe ou corriger le chemin"
+      },
+      {
+        "category": "IMPORT",
+        "file": "scripts\\validate-exports.mjs",
+        "message": "Import manquant: \"./module\"",
+        "suggestion": "Vérifier que le fichier existe ou corriger le chemin"
+      },
+      {
+        "category": "IMPORT",
+        "file": "scripts\\validate-exports.mjs",
+        "message": "Import manquant: \"./module\"",
+        "suggestion": "Vérifier que le fichier existe ou corriger le chemin"
+      },
+      {
+        "category": "IMPORT",
+        "file": "scripts\\worker.mjs",
+        "message": "Import manquant: \"../lib/agent/pipeline.js\"",
+        "suggestion": "Vérifier que le fichier existe ou corriger le chemin"
+      }
+    ],
+    "high": [
+      {
+        "category": "EXPORT",
+        "file": "components\\think-tank\\index.ts",
+        "message": "Export non défini: \"default\"",
+        "suggestion": "Définir \"default\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "components\\think-tank\\index.ts",
+        "message": "Export non défini: \"as\"",
+        "suggestion": "Définir \"as\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "components\\think-tank\\index.ts",
+        "message": "Export non défini: \"VerticalCard\"",
+        "suggestion": "Définir \"VerticalCard\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "components\\think-tank\\index.ts",
+        "message": "Export non défini: \"default\"",
+        "suggestion": "Définir \"default\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "components\\think-tank\\index.ts",
+        "message": "Export non défini: \"as\"",
+        "suggestion": "Définir \"as\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "components\\think-tank\\index.ts",
+        "message": "Export non défini: \"SignalCard\"",
+        "suggestion": "Définir \"SignalCard\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "components\\think-tank\\index.ts",
+        "message": "Export non défini: \"default\"",
+        "suggestion": "Définir \"default\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "components\\think-tank\\index.ts",
+        "message": "Export non défini: \"as\"",
+        "suggestion": "Définir \"as\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "components\\think-tank\\index.ts",
+        "message": "Export non défini: \"CadenceIndicator\"",
+        "suggestion": "Définir \"CadenceIndicator\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "components\\think-tank\\index.ts",
+        "message": "Export non défini: \"default\"",
+        "suggestion": "Définir \"default\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "components\\think-tank\\index.ts",
+        "message": "Export non défini: \"as\"",
+        "suggestion": "Définir \"as\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "components\\think-tank\\index.ts",
+        "message": "Export non défini: \"PublicationCard\"",
+        "suggestion": "Définir \"PublicationCard\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "generated\\prisma-client\\runtime\\edge-esm.js",
+        "message": "Export non défini: \"Debug\"",
+        "suggestion": "Définir \"Debug\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "generated\\prisma-client\\runtime\\edge-esm.js",
+        "message": "Export non défini: \"Decimal\"",
+        "suggestion": "Définir \"Decimal\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "generated\\prisma-client\\runtime\\edge-esm.js",
+        "message": "Export non défini: \"Extensions\"",
+        "suggestion": "Définir \"Extensions\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "generated\\prisma-client\\runtime\\edge-esm.js",
+        "message": "Export non défini: \"MetricsClient\"",
+        "suggestion": "Définir \"MetricsClient\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "generated\\prisma-client\\runtime\\edge-esm.js",
+        "message": "Export non défini: \"NotFoundError\"",
+        "suggestion": "Définir \"NotFoundError\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "generated\\prisma-client\\runtime\\edge-esm.js",
+        "message": "Export non défini: \"PrismaClientInitializationError\"",
+        "suggestion": "Définir \"PrismaClientInitializationError\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "generated\\prisma-client\\runtime\\edge-esm.js",
+        "message": "Export non défini: \"PrismaClientKnownRequestError\"",
+        "suggestion": "Définir \"PrismaClientKnownRequestError\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "generated\\prisma-client\\runtime\\edge-esm.js",
+        "message": "Export non défini: \"PrismaClientRustPanicError\"",
+        "suggestion": "Définir \"PrismaClientRustPanicError\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "generated\\prisma-client\\runtime\\edge-esm.js",
+        "message": "Export non défini: \"PrismaClientUnknownRequestError\"",
+        "suggestion": "Définir \"PrismaClientUnknownRequestError\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "generated\\prisma-client\\runtime\\edge-esm.js",
+        "message": "Export non défini: \"PrismaClientValidationError\"",
+        "suggestion": "Définir \"PrismaClientValidationError\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "generated\\prisma-client\\runtime\\edge-esm.js",
+        "message": "Export non défini: \"Public\"",
+        "suggestion": "Définir \"Public\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "generated\\prisma-client\\runtime\\edge-esm.js",
+        "message": "Export non défini: \"Sql\"",
+        "suggestion": "Définir \"Sql\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "generated\\prisma-client\\runtime\\edge-esm.js",
+        "message": "Export non défini: \"defineDmmfProperty\"",
+        "suggestion": "Définir \"defineDmmfProperty\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "generated\\prisma-client\\runtime\\edge-esm.js",
+        "message": "Export non défini: \"deserializeJsonResponse\"",
+        "suggestion": "Définir \"deserializeJsonResponse\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "generated\\prisma-client\\runtime\\edge-esm.js",
+        "message": "Export non défini: \"dmmfToRuntimeDataModel\"",
+        "suggestion": "Définir \"dmmfToRuntimeDataModel\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "generated\\prisma-client\\runtime\\edge-esm.js",
+        "message": "Export non défini: \"empty\"",
+        "suggestion": "Définir \"empty\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "generated\\prisma-client\\runtime\\edge-esm.js",
+        "message": "Export non défini: \"getPrismaClient\"",
+        "suggestion": "Définir \"getPrismaClient\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "generated\\prisma-client\\runtime\\edge-esm.js",
+        "message": "Export non défini: \"getRuntime\"",
+        "suggestion": "Définir \"getRuntime\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "generated\\prisma-client\\runtime\\edge-esm.js",
+        "message": "Export non défini: \"join\"",
+        "suggestion": "Définir \"join\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "generated\\prisma-client\\runtime\\edge-esm.js",
+        "message": "Export non défini: \"makeStrictEnum\"",
+        "suggestion": "Définir \"makeStrictEnum\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "generated\\prisma-client\\runtime\\edge-esm.js",
+        "message": "Export non défini: \"makeTypedQueryFactory\"",
+        "suggestion": "Définir \"makeTypedQueryFactory\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "generated\\prisma-client\\runtime\\edge-esm.js",
+        "message": "Export non défini: \"objectEnumValues\"",
+        "suggestion": "Définir \"objectEnumValues\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "generated\\prisma-client\\runtime\\edge-esm.js",
+        "message": "Export non défini: \"raw\"",
+        "suggestion": "Définir \"raw\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "generated\\prisma-client\\runtime\\edge-esm.js",
+        "message": "Export non défini: \"serializeJsonQuery\"",
+        "suggestion": "Définir \"serializeJsonQuery\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "generated\\prisma-client\\runtime\\edge-esm.js",
+        "message": "Export non défini: \"vn\"",
+        "suggestion": "Définir \"vn\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "generated\\prisma-client\\runtime\\edge-esm.js",
+        "message": "Export non défini: \"skip\"",
+        "suggestion": "Définir \"skip\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "generated\\prisma-client\\runtime\\edge-esm.js",
+        "message": "Export non défini: \"sqltag\"",
+        "suggestion": "Définir \"sqltag\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "generated\\prisma-client\\runtime\\edge-esm.js",
+        "message": "Export non défini: \"warnEnvConflicts\"",
+        "suggestion": "Définir \"warnEnvConflicts\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "generated\\prisma-client\\runtime\\edge-esm.js",
+        "message": "Export non défini: \"gr\"",
+        "suggestion": "Définir \"gr\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "generated\\prisma-client\\runtime\\edge-esm.js",
+        "message": "Export non défini: \"warnOnce\"",
+        "suggestion": "Définir \"warnOnce\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "generated\\prisma-client\\runtime\\index-browser.d.ts",
+        "message": "Export non défini: \"Public\"",
+        "suggestion": "Définir \"Public\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "generated\\prisma-client\\runtime\\library.d.ts",
+        "message": "Export non défini: \"as\"",
+        "suggestion": "Définir \"as\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "generated\\prisma-client\\runtime\\library.d.ts",
+        "message": "Export non défini: \"UserArgs\"",
+        "suggestion": "Définir \"UserArgs\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "generated\\prisma-client\\runtime\\library.d.ts",
+        "message": "Export non défini: \"Result_3\"",
+        "suggestion": "Définir \"Result_3\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "generated\\prisma-client\\runtime\\library.d.ts",
+        "message": "Export non défini: \"as\"",
+        "suggestion": "Définir \"as\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "generated\\prisma-client\\runtime\\library.d.ts",
+        "message": "Export non défini: \"Extensions_2\"",
+        "suggestion": "Définir \"Extensions_2\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "generated\\prisma-client\\runtime\\library.d.ts",
+        "message": "Export non défini: \"as\"",
+        "suggestion": "Définir \"as\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "generated\\prisma-client\\runtime\\library.d.ts",
+        "message": "Export non défini: \"Extensions\"",
+        "suggestion": "Définir \"Extensions\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "generated\\prisma-client\\runtime\\library.d.ts",
+        "message": "Export non défini: \"Utils\"",
+        "suggestion": "Définir \"Utils\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "generated\\prisma-client\\runtime\\library.d.ts",
+        "message": "Export non défini: \"Public_2\"",
+        "suggestion": "Définir \"Public_2\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "generated\\prisma-client\\runtime\\library.d.ts",
+        "message": "Export non défini: \"as\"",
+        "suggestion": "Définir \"as\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "generated\\prisma-client\\runtime\\library.d.ts",
+        "message": "Export non défini: \"Public\"",
+        "suggestion": "Définir \"Public\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "generated\\prisma-client\\runtime\\library.d.ts",
+        "message": "Export non défini: \"as\"",
+        "suggestion": "Définir \"as\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "generated\\prisma-client\\runtime\\library.d.ts",
+        "message": "Export non défini: \"as\"",
+        "suggestion": "Définir \"as\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "generated\\prisma-client\\runtime\\library.d.ts",
+        "message": "Export non défini: \"Omit\"",
+        "suggestion": "Définir \"Omit\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "generated\\prisma-client\\runtime\\library.d.ts",
+        "message": "Export non défini: \"as\"",
+        "suggestion": "Définir \"as\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "generated\\prisma-client\\runtime\\library.d.ts",
+        "message": "Export non défini: \"Pick\"",
+        "suggestion": "Définir \"Pick\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "generated\\prisma-client\\runtime\\library.d.ts",
+        "message": "Export non défini: \"as\"",
+        "suggestion": "Définir \"as\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "generated\\prisma-client\\runtime\\library.d.ts",
+        "message": "Export non défini: \"Record\"",
+        "suggestion": "Définir \"Record\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "generated\\prisma-client\\runtime\\library.d.ts",
+        "message": "Export non défini: \"Extensions\"",
+        "suggestion": "Définir \"Extensions\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "generated\\prisma-client\\runtime\\library.d.ts",
+        "message": "Export non défini: \"as\"",
+        "suggestion": "Définir \"as\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "generated\\prisma-client\\runtime\\library.d.ts",
+        "message": "Export non défini: \"Omit\"",
+        "suggestion": "Définir \"Omit\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "generated\\prisma-client\\runtime\\library.d.ts",
+        "message": "Export non défini: \"as\"",
+        "suggestion": "Définir \"as\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "generated\\prisma-client\\runtime\\library.d.ts",
+        "message": "Export non défini: \"Pick\"",
+        "suggestion": "Définir \"Pick\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "generated\\prisma-client\\runtime\\library.d.ts",
+        "message": "Export non défini: \"Public\"",
+        "suggestion": "Définir \"Public\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "generated\\prisma-client\\runtime\\library.d.ts",
+        "message": "Export non défini: \"as\"",
+        "suggestion": "Définir \"as\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "generated\\prisma-client\\runtime\\library.d.ts",
+        "message": "Export non défini: \"Record\"",
+        "suggestion": "Définir \"Record\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "generated\\prisma-client\\runtime\\library.d.ts",
+        "message": "Export non défini: \"as\"",
+        "suggestion": "Définir \"as\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "generated\\prisma-client\\runtime\\library.d.ts",
+        "message": "Export non défini: \"UserArgs\"",
+        "suggestion": "Définir \"UserArgs\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "generated\\prisma-client\\runtime\\library.d.ts",
+        "message": "Export non défini: \"as\"",
+        "suggestion": "Définir \"as\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "generated\\prisma-client\\runtime\\library.d.ts",
+        "message": "Export non défini: \"Selection\"",
+        "suggestion": "Définir \"Selection\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "generated\\prisma-client\\runtime\\library.d.ts",
+        "message": "Export non défini: \"Types\"",
+        "suggestion": "Définir \"Types\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "lib\\agent\\fix-ui-components.mjs",
+        "message": "Export non défini: \"type\"",
+        "suggestion": "Définir \"type\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "lib\\agent\\fix-ui-components.mjs",
+        "message": "Export non défini: \"type\"",
+        "suggestion": "Définir \"type\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "lib\\providers\\institutional\\index.ts",
+        "message": "Export non défini: \"searchLawZeroViaGoogle\"",
+        "suggestion": "Définir \"searchLawZeroViaGoogle\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "lib\\providers\\institutional\\index.ts",
+        "message": "Export non défini: \"searchGovAIViaGoogle\"",
+        "suggestion": "Définir \"searchGovAIViaGoogle\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "lib\\providers\\institutional\\index.ts",
+        "message": "Export non défini: \"searchIAPSViaGoogle\"",
+        "suggestion": "Définir \"searchIAPSViaGoogle\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "lib\\providers\\institutional\\index.ts",
+        "message": "Export non défini: \"searchCAIPViaGoogle\"",
+        "suggestion": "Définir \"searchCAIPViaGoogle\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "lib\\providers\\institutional\\index.ts",
+        "message": "Export non défini: \"searchAIPIViaGoogle\"",
+        "suggestion": "Définir \"searchAIPIViaGoogle\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "lib\\providers\\institutional\\index.ts",
+        "message": "Export non défini: \"searchCSETViaGoogle\"",
+        "suggestion": "Définir \"searchCSETViaGoogle\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "lib\\providers\\institutional\\index.ts",
+        "message": "Export non défini: \"searchAINowViaGoogle\"",
+        "suggestion": "Définir \"searchAINowViaGoogle\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "lib\\providers\\institutional\\index.ts",
+        "message": "Export non défini: \"searchDataSocietyViaGoogle\"",
+        "suggestion": "Définir \"searchDataSocietyViaGoogle\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "lib\\providers\\institutional\\index.ts",
+        "message": "Export non défini: \"searchAbundanceViaGoogle\"",
+        "suggestion": "Définir \"searchAbundanceViaGoogle\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "lib\\providers\\institutional\\index.ts",
+        "message": "Export non défini: \"searchCAIDPViaGoogle\"",
+        "suggestion": "Définir \"searchCAIDPViaGoogle\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "lib\\providers\\institutional\\index.ts",
+        "message": "Export non défini: \"searchSCSPViaGoogle\"",
+        "suggestion": "Définir \"searchSCSPViaGoogle\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "lib\\providers\\institutional\\index.ts",
+        "message": "Export non défini: \"searchIFPViaGoogle\"",
+        "suggestion": "Définir \"searchIFPViaGoogle\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "lib\\providers\\institutional\\index.ts",
+        "message": "Export non défini: \"searchCDTViaGoogle\"",
+        "suggestion": "Définir \"searchCDTViaGoogle\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "lib\\providers\\institutional\\index.ts",
+        "message": "Export non défini: \"searchBrookingsViaGoogle\"",
+        "suggestion": "Définir \"searchBrookingsViaGoogle\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "lib\\providers\\institutional\\index.ts",
+        "message": "Export non défini: \"searchFAIViaGoogle\"",
+        "suggestion": "Définir \"searchFAIViaGoogle\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "lib\\providers\\institutional\\index.ts",
+        "message": "Export non défini: \"searchCNASViaGoogle\"",
+        "suggestion": "Définir \"searchCNASViaGoogle\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "lib\\providers\\institutional\\index.ts",
+        "message": "Export non défini: \"searchRANDViaGoogle\"",
+        "suggestion": "Définir \"searchRANDViaGoogle\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "lib\\providers\\institutional\\index.ts",
+        "message": "Export non défini: \"searchNewAmericaViaGoogle\"",
+        "suggestion": "Définir \"searchNewAmericaViaGoogle\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "lib\\providers\\institutional\\index.ts",
+        "message": "Export non défini: \"searchAspenDigitalViaGoogle\"",
+        "suggestion": "Définir \"searchAspenDigitalViaGoogle\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "lib\\providers\\institutional\\index.ts",
+        "message": "Export non défini: \"searchRStreetViaGoogle\"",
+        "suggestion": "Définir \"searchRStreetViaGoogle\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "lib\\providers\\institutional\\v2\\index.ts",
+        "message": "Export non défini: \"searchENISAViaGoogle\"",
+        "suggestion": "Définir \"searchENISAViaGoogle\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "lib\\providers\\institutional\\v2\\index.ts",
+        "message": "Export non défini: \"searchFBIViaArchive\"",
+        "suggestion": "Définir \"searchFBIViaArchive\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "lib\\providers\\institutional\\v2\\index.ts",
+        "message": "Export non défini: \"searchENISAViaEUData\"",
+        "suggestion": "Définir \"searchENISAViaEUData\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "lib\\providers\\institutional\\v2\\index.ts",
+        "message": "Export non défini: \"searchArchivesNationales\"",
+        "suggestion": "Définir \"searchArchivesNationales\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "lib\\providers\\institutional\\v2\\index.ts",
+        "message": "Export non défini: \"searchNIST\"",
+        "suggestion": "Définir \"searchNIST\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "scripts\\comprehensive-fix.mjs",
+        "message": "Export non défini: \"name\"",
+        "suggestion": "Définir \"name\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "scripts\\comprehensive-fix.mjs",
+        "message": "Export non défini: \"replace\"",
+        "suggestion": "Définir \"replace\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "scripts\\comprehensive-fix.mjs",
+        "message": "Export non défini: \"s\"",
+        "suggestion": "Définir \"s\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "scripts\\fix-all-build-errors.mjs",
+        "message": "Export non défini: \"name\"",
+        "suggestion": "Définir \"name\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "scripts\\fix-institutional-exports.mjs",
+        "message": "Export non défini: \"searchLawZeroViaGoogle\"",
+        "suggestion": "Définir \"searchLawZeroViaGoogle\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "scripts\\fix-institutional-exports.mjs",
+        "message": "Export non défini: \"searchGovAIViaGoogle\"",
+        "suggestion": "Définir \"searchGovAIViaGoogle\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "scripts\\fix-institutional-exports.mjs",
+        "message": "Export non défini: \"searchIAPSViaGoogle\"",
+        "suggestion": "Définir \"searchIAPSViaGoogle\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "scripts\\fix-institutional-exports.mjs",
+        "message": "Export non défini: \"searchCAIPViaGoogle\"",
+        "suggestion": "Définir \"searchCAIPViaGoogle\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "scripts\\fix-institutional-exports.mjs",
+        "message": "Export non défini: \"searchAIPIViaGoogle\"",
+        "suggestion": "Définir \"searchAIPIViaGoogle\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "scripts\\fix-institutional-exports.mjs",
+        "message": "Export non défini: \"searchCSETViaGoogle\"",
+        "suggestion": "Définir \"searchCSETViaGoogle\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "scripts\\fix-institutional-exports.mjs",
+        "message": "Export non défini: \"searchAINowViaGoogle\"",
+        "suggestion": "Définir \"searchAINowViaGoogle\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "scripts\\fix-institutional-exports.mjs",
+        "message": "Export non défini: \"searchDataSocietyViaGoogle\"",
+        "suggestion": "Définir \"searchDataSocietyViaGoogle\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "scripts\\fix-institutional-exports.mjs",
+        "message": "Export non défini: \"searchAbundanceViaGoogle\"",
+        "suggestion": "Définir \"searchAbundanceViaGoogle\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "scripts\\fix-institutional-exports.mjs",
+        "message": "Export non défini: \"searchCAIDPViaGoogle\"",
+        "suggestion": "Définir \"searchCAIDPViaGoogle\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "scripts\\fix-institutional-exports.mjs",
+        "message": "Export non défini: \"searchSCSPViaGoogle\"",
+        "suggestion": "Définir \"searchSCSPViaGoogle\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "scripts\\fix-institutional-exports.mjs",
+        "message": "Export non défini: \"searchIFPViaGoogle\"",
+        "suggestion": "Définir \"searchIFPViaGoogle\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "scripts\\fix-institutional-exports.mjs",
+        "message": "Export non défini: \"searchCDTViaGoogle\"",
+        "suggestion": "Définir \"searchCDTViaGoogle\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "scripts\\fix-institutional-exports.mjs",
+        "message": "Export non défini: \"searchBrookingsViaGoogle\"",
+        "suggestion": "Définir \"searchBrookingsViaGoogle\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "scripts\\fix-institutional-exports.mjs",
+        "message": "Export non défini: \"searchFAIViaGoogle\"",
+        "suggestion": "Définir \"searchFAIViaGoogle\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "scripts\\fix-institutional-exports.mjs",
+        "message": "Export non défini: \"searchCNASViaGoogle\"",
+        "suggestion": "Définir \"searchCNASViaGoogle\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "scripts\\fix-institutional-exports.mjs",
+        "message": "Export non défini: \"searchRANDViaGoogle\"",
+        "suggestion": "Définir \"searchRANDViaGoogle\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "scripts\\fix-institutional-exports.mjs",
+        "message": "Export non défini: \"searchNewAmericaViaGoogle\"",
+        "suggestion": "Définir \"searchNewAmericaViaGoogle\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "scripts\\fix-institutional-exports.mjs",
+        "message": "Export non défini: \"searchAspenDigitalViaGoogle\"",
+        "suggestion": "Définir \"searchAspenDigitalViaGoogle\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "scripts\\fix-institutional-exports.mjs",
+        "message": "Export non défini: \"searchRStreetViaGoogle\"",
+        "suggestion": "Définir \"searchRStreetViaGoogle\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "scripts\\validate-exports.mjs",
+        "message": "Export non défini: \"name1\"",
+        "suggestion": "Définir \"name1\" ou le supprimer de l'export"
+      },
+      {
+        "category": "EXPORT",
+        "file": "scripts\\validate-exports.mjs",
+        "message": "Export non défini: \"name2\"",
+        "suggestion": "Définir \"name2\" ou le supprimer de l'export"
+      },
+      {
+        "category": "DEPENDENCY",
+        "file": "package.json",
+        "message": "Dépendance manquante: \"@\"",
+        "suggestion": "Installer avec: npm install @"
+      },
+      {
+        "category": "DEPENDENCY",
+        "file": "package.json",
+        "message": "Dépendance manquante: \"@sparticuz\"",
+        "suggestion": "Installer avec: npm install @sparticuz"
+      },
+      {
+        "category": "DEPENDENCY",
+        "file": "package.json",
+        "message": "Dépendance manquante: \"@sentry\"",
+        "suggestion": "Installer avec: npm install @sentry"
+      },
+      {
+        "category": "DEPENDENCY",
+        "file": "package.json",
+        "message": "Dépendance manquante: \"crypto\"",
+        "suggestion": "Installer avec: npm install crypto"
+      },
+      {
+        "category": "DEPENDENCY",
+        "file": "package.json",
+        "message": "Dépendance manquante: \"bullmq\"",
+        "suggestion": "Installer avec: npm install bullmq"
+      },
+      {
+        "category": "DEPENDENCY",
+        "file": "package.json",
+        "message": "Dépendance manquante: \"@prisma\"",
+        "suggestion": "Installer avec: npm install @prisma"
+      },
+      {
+        "category": "DEPENDENCY",
+        "file": "package.json",
+        "message": "Dépendance manquante: \"pino\"",
+        "suggestion": "Installer avec: npm install pino"
+      },
+      {
+        "category": "DEPENDENCY",
+        "file": "package.json",
+        "message": "Dépendance manquante: \"vitest\"",
+        "suggestion": "Installer avec: npm install vitest"
+      },
+      {
+        "category": "DEPENDENCY",
+        "file": "package.json",
+        "message": "Dépendance manquante: \"supertest\"",
+        "suggestion": "Installer avec: npm install supertest"
+      },
+      {
+        "category": "DEPENDENCY",
+        "file": "package.json",
+        "message": "Dépendance manquante: \"@tanstack\"",
+        "suggestion": "Installer avec: npm install @tanstack"
+      },
+      {
+        "category": "DEPENDENCY",
+        "file": "package.json",
+        "message": "Dépendance manquante: \"@radix-ui\"",
+        "suggestion": "Installer avec: npm install @radix-ui"
+      },
+      {
+        "category": "DEPENDENCY",
+        "file": "package.json",
+        "message": "Dépendance manquante: \"path\"",
+        "suggestion": "Installer avec: npm install path"
+      },
+      {
+        "category": "DEPENDENCY",
+        "file": "package.json",
+        "message": "Dépendance manquante: \"fs\"",
+        "suggestion": "Installer avec: npm install fs"
+      },
+      {
+        "category": "DEPENDENCY",
+        "file": "package.json",
+        "message": "Dépendance manquante: \"os\"",
+        "suggestion": "Installer avec: npm install os"
+      },
+      {
+        "category": "DEPENDENCY",
+        "file": "package.json",
+        "message": "Dépendance manquante: \"tty\"",
+        "suggestion": "Installer avec: npm install tty"
+      },
+      {
+        "category": "DEPENDENCY",
+        "file": "package.json",
+        "message": "Dépendance manquante: \"child_process\"",
+        "suggestion": "Installer avec: npm install child_process"
+      },
+      {
+        "category": "DEPENDENCY",
+        "file": "package.json",
+        "message": "Dépendance manquante: \"util\"",
+        "suggestion": "Installer avec: npm install util"
+      },
+      {
+        "category": "DEPENDENCY",
+        "file": "package.json",
+        "message": "Dépendance manquante: \"async_hooks\"",
+        "suggestion": "Installer avec: npm install async_hooks"
+      },
+      {
+        "category": "DEPENDENCY",
+        "file": "package.json",
+        "message": "Dépendance manquante: \"events\"",
+        "suggestion": "Installer avec: npm install events"
+      },
+      {
+        "category": "DEPENDENCY",
+        "file": "package.json",
+        "message": "Dépendance manquante: \"@testing-library\"",
+        "suggestion": "Installer avec: npm install @testing-library"
+      },
+      {
+        "category": "DEPENDENCY",
+        "file": "package.json",
+        "message": "Dépendance manquante: \"timers\"",
+        "suggestion": "Installer avec: npm install timers"
+      },
+      {
+        "category": "DEPENDENCY",
+        "file": "package.json",
+        "message": "Dépendance manquante: \"http\"",
+        "suggestion": "Installer avec: npm install http"
+      },
+      {
+        "category": "DEPENDENCY",
+        "file": "package.json",
+        "message": "Dépendance manquante: \"@anthropic-ai\"",
+        "suggestion": "Installer avec: npm install @anthropic-ai"
+      },
+      {
+        "category": "DEPENDENCY",
+        "file": "package.json",
+        "message": "Dépendance manquante: \",\n      pattern: \"",
+        "suggestion": "Installer avec: npm install ,\n      pattern: "
+      },
+      {
+        "category": "DEPENDENCY",
+        "file": "package.json",
+        "message": "Dépendance manquante: \") && !line.includes(\"",
+        "suggestion": "Installer avec: npm install ) && !line.includes("
+      },
+      {
+        "category": "DEPENDENCY",
+        "file": "package.json",
+        "message": "Dépendance manquante: \") && !line.startsWith(\"",
+        "suggestion": "Installer avec: npm install ) && !line.startsWith("
+      },
+      {
+        "category": "DEPENDENCY",
+        "file": "package.json",
+        "message": "Dépendance manquante: \"readline\"",
+        "suggestion": "Installer avec: npm install readline"
+      }
+    ],
+    "medium": [],
+    "low": [
+      {
+        "category": "DEPENDENCY",
+        "file": "package.json",
+        "message": "Dépendance non utilisée: \"@anthropic-ai/sdk\"",
+        "suggestion": "Vérifier si elle est nécessaire"
+      },
+      {
+        "category": "DEPENDENCY",
+        "file": "package.json",
+        "message": "Dépendance non utilisée: \"@prisma/client\"",
+        "suggestion": "Vérifier si elle est nécessaire"
+      },
+      {
+        "category": "DEPENDENCY",
+        "file": "package.json",
+        "message": "Dépendance non utilisée: \"@radix-ui/react-dialog\"",
+        "suggestion": "Vérifier si elle est nécessaire"
+      },
+      {
+        "category": "DEPENDENCY",
+        "file": "package.json",
+        "message": "Dépendance non utilisée: \"@radix-ui/react-dropdown-menu\"",
+        "suggestion": "Vérifier si elle est nécessaire"
+      },
+      {
+        "category": "DEPENDENCY",
+        "file": "package.json",
+        "message": "Dépendance non utilisée: \"@radix-ui/react-label\"",
+        "suggestion": "Vérifier si elle est nécessaire"
+      },
+      {
+        "category": "DEPENDENCY",
+        "file": "package.json",
+        "message": "Dépendance non utilisée: \"@radix-ui/react-select\"",
+        "suggestion": "Vérifier si elle est nécessaire"
+      },
+      {
+        "category": "DEPENDENCY",
+        "file": "package.json",
+        "message": "Dépendance non utilisée: \"@radix-ui/react-switch\"",
+        "suggestion": "Vérifier si elle est nécessaire"
+      },
+      {
+        "category": "DEPENDENCY",
+        "file": "package.json",
+        "message": "Dépendance non utilisée: \"@radix-ui/react-toast\"",
+        "suggestion": "Vérifier si elle est nécessaire"
+      },
+      {
+        "category": "DEPENDENCY",
+        "file": "package.json",
+        "message": "Dépendance non utilisée: \"@radix-ui/react-tooltip\"",
+        "suggestion": "Vérifier si elle est nécessaire"
+      },
+      {
+        "category": "DEPENDENCY",
+        "file": "package.json",
+        "message": "Dépendance non utilisée: \"@sentry/nextjs\"",
+        "suggestion": "Vérifier si elle est nécessaire"
+      }
+    ],
+    "info": []
+  }
+}

@@ -1,0 +1,65 @@
+<svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Monogramme NX Clean - Ultra Sophistiqu� -->
+  
+  <defs>
+    <linearGradient id="cleanGradient" x1="30%" y1="0%" x2="70%" y2="100%">
+      <stop offset="0%" style="stop-color:#00D4FF;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#4A7FE0;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Monogramme g�om�trique parfait -->
+  <g>
+    <!-- Structure en forme de losange/diamant qui int�gre N+X -->
+    
+    <!-- C�t� gauche du N -->
+    <path d="
+      M 25 30
+      L 25 90
+      L 33 90
+      L 33 30
+      Z
+    " fill="url(#cleanGradient)"/>
+    
+    <!-- Diagonale centrale fusionn�e (N montant + X) -->
+    <path d="
+      M 33 35
+      L 60 60
+      L 87 85
+      L 93 80
+      L 60 53
+      L 33 28
+      Z
+    " fill="url(#cleanGradient)"/>
+    
+    <!-- Diagonale X descendante -->
+    <path d="
+      M 87 35
+      L 60 60
+      L 33 85
+      L 27 80
+      L 60 53
+      L 87 28
+      Z
+    " fill="url(#cleanGradient)" opacity="0.9"/>
+    
+    <!-- C�t� droit du N -->
+    <path d="
+      M 87 30
+      L 87 90
+      L 95 90
+      L 95 30
+      Z
+    " fill="url(#cleanGradient)"/>
+    
+    <!-- Node central signature -->
+    <circle cx="60" cy="60" r="6" fill="white"/>
+    <circle cx="60" cy="60" r="3" fill="#00D4FF"/>
+    
+    <!-- Micro-accents aux 4 coins pour �quilibre visuel -->
+    <circle cx="29" cy="30" r="1.5" fill="white" opacity="0.7"/>
+    <circle cx="91" cy="30" r="1.5" fill="white" opacity="0.7"/>
+    <circle cx="29" cy="90" r="1.5" fill="white" opacity="0.7"/>
+    <circle cx="91" cy="90" r="1.5" fill="white" opacity="0.7"/>
+  </g>
+</svg>

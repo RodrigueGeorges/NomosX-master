@@ -1,0 +1,46 @@
+{
+  "syntaxErrors": [],
+  "importErrors": [],
+  "exportErrors": [
+    {
+      "file": "components\\think-tank\\index.ts",
+      "issue": "Export 'default' is not defined",
+      "name": "default"
+    },
+    {
+      "file": "components\\think-tank\\index.ts",
+      "issue": "Export 'default' is not defined",
+      "name": "default"
+    },
+    {
+      "file": "components\\think-tank\\index.ts",
+      "issue": "Export 'default' is not defined",
+      "name": "default"
+    },
+    {
+      "file": "components\\think-tank\\index.ts",
+      "issue": "Export 'default' is not defined",
+      "name": "default"
+    }
+  ],
+  "typeErrors": [],
+  "moduleResolution": [],
+  "mixedModules": [
+    {
+      "file": "app\\api\\v3\\analysis\\route.ts",
+      "issue": "Mixed CommonJS (require) and ES modules (import)"
+    },
+    {
+      "file": "app\\layout.tsx",
+      "issue": "Mixed CommonJS (require) and ES modules (import)"
+    },
+    {
+      "file": "lib\\agent\\cohere-reranker.ts",
+      "issue": "Mixed CommonJS (require) and ES modules (import)"
+    },
+    {
+      "file": "lib\\agent\\pipeline-v2.ts",
+      "issue": "Mixed CommonJS (require) and ES modules (import)"
+    }
+  ]
+}

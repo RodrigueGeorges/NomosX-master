@@ -1,0 +1,94 @@
+{
+  "timestamp": "2026-02-26T20:35:16.399Z",
+  "config": {
+    "query": "artificial intelligence",
+    "providers": [
+      "openalex",
+      "nature",
+      "science",
+      "arxiv",
+      "pubmed",
+      "mckinsey",
+      "bcg",
+      "deloitte",
+      "brookings",
+      "carnegie",
+      "rand",
+      "nasa",
+      "worldbank",
+      "imf",
+      "ipcc",
+      "wri",
+      "climate-analytics",
+      "deepmind",
+      "openai-research",
+      "google-ai",
+      "github",
+      "figshare",
+      "kaggle"
+    ]
+  },
+  "globalScore": 100,
+  "results": {
+    "files": {
+      "existingCount": 23,
+      "missingFiles": [],
+      "successRate": 100
+    },
+    "registry": {
+      "importCount": 23,
+      "caseCount": 23,
+      "missingItems": [],
+      "integrationRate": 100
+    },
+    "apis": {
+      "workingCount": 5,
+      "totalResults": 25,
+      "apiSuccessRate": 100,
+      "apiTests": [
+        {
+          "provider": "openalex",
+          "success": true,
+          "results": 5,
+          "time": 1085
+        },
+        {
+          "provider": "mckinsey",
+          "success": true,
+          "results": 5,
+          "time": 501
+        },
+        {
+          "provider": "brookings",
+          "success": true,
+          "results": 5,
+          "time": 280
+        },
+        {
+          "provider": "nasa",
+          "success": true,
+          "results": 5,
+          "time": 305
+        },
+        {
+          "provider": "nature",
+          "success": true,
+          "results": 5,
+          "time": 672
+        }
+      ]
+    },
+    "structure": {
+      "validStructure": 4,
+      "structureIssues": [],
+      "structureRate": 100
+    },
+    "simulation": {
+      "providers": 3,
+      "totalResults": 20,
+      "totalTime": 1621,
+      "avgTime": 540.3333333333334
+    }
+  },
+  "issues": []
+}
