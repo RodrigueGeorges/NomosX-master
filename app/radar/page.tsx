@@ -20,11 +20,37 @@ interface RadarSignal {
   isPremium: boolean;
 }
 
+interface RadarCardRaw {
+  id?: string;
+  signalId?: string;
+  title?: string;
+  headline?: string;
+  description?: string;
+  summary?: string;
+  type?: string;
+  signalType?: string;
+  severity?: string;
+  source?: string;
+  provider?: string;
+  detectedAt?: string;
+  createdAt?: string;
+  confidence?: number;
+  qualityScore?: number;
+  impact?: string;
+  category?: string;
+  vertical?: string;
+  keywords?: string[];
+  tags?: string[];
+  isPremium?: boolean;
+  tier?: string;
+}
+
 export default function RadarPage() {
   const router = useRouter();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [signals, setSignals] = useState<RadarSignal[]>([]);
   const [loading, setLoading] = useState(true);
+  const [unauthenticated, setUnauthenticated] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'emerging' | 'trending' | 'critical'>('all');
   const [filterSeverity, setFilterSeverity] = useState<'all' | 'low' | 'medium' | 'high' | 'critical'>('all');
@@ -42,83 +68,34 @@ export default function RadarPage() {
   const fetchRadarSignals = async () => {
     setLoading(true);
     try {
-      // Simuler des données de radar
-      const mockData: RadarSignal[] = [
-        {
-          id: '1',
-          title: 'AI Regulation Breakthrough',
-          description: 'Major regulatory framework announcement for AI governance expected within 48 hours.',
-          type: 'emerging',
-          severity: 'high',
-          source: 'Policy Watch',
-          detectedAt: '2024-02-28T10:30:00Z',
-          confidence: 87,
-          impact: 'global',
-          category: 'Technology Policy',
-          keywords: ['AI', 'Regulation', 'Policy', 'Governance'],
-          isPremium: true
-        },
-        {
-          id: '2',
-          title: 'Climate Tech Investment Surge',
-          description: 'Unprecedented investment flow into climate technology startups across Europe and Asia.',
-          type: 'trending',
-          severity: 'medium',
-          source: 'Market Intelligence',
-          detectedAt: '2024-02-28T09:15:00Z',
-          confidence: 92,
-          impact: 'global',
-          category: 'Investment',
-          keywords: ['Climate', 'Investment', 'Technology', 'Startups'],
-          isPremium: false
-        },
-        {
-          id: '3',
-          title: 'Supply Chain Disruption Alert',
-          description: 'Critical supply chain vulnerability detected in semiconductor manufacturing.',
-          type: 'critical',
-          severity: 'critical',
-          source: 'Industry Monitor',
-          detectedAt: '2024-02-28T08:45:00Z',
-          confidence: 78,
-          impact: 'global',
-          category: 'Supply Chain',
-          keywords: ['Supply Chain', 'Semiconductor', 'Disruption', 'Manufacturing'],
-          isPremium: true
-        },
-        {
-          id: '4',
-          title: 'Geopolitical Tension Rising',
-          description: 'Increased diplomatic activity suggests potential trade policy shifts affecting global markets.',
-          type: 'emerging',
-          severity: 'medium',
-          source: 'Geopolitical Watch',
-          detectedAt: '2024-02-28T07:20:00Z',
-          confidence: 71,
-          impact: 'regional',
-          category: 'Geopolitics',
-          keywords: ['Geopolitics', 'Trade', 'Policy', 'Markets'],
-          isPremium: false
-        },
-        {
-          id: '5',
-          title: 'Healthcare Innovation Breakthrough',
-          description: 'Revolutionary medical device approval process accelerated by regulatory changes.',
-          type: 'trending',
-          severity: 'low',
-          source: 'Healthcare Monitor',
-          detectedAt: '2024-02-28T06:30:00Z',
-          confidence: 85,
-          impact: 'global',
-          category: 'Healthcare',
-          keywords: ['Healthcare', 'Innovation', 'Medical', 'Regulation'],
-          isPremium: false
+      const res = await fetch('/api/radar?limit=20');
+      if (!res.ok) {
+        if (res.status === 401) {
+          setSignals([]);
+          setUnauthenticated(true);
+          return;
         }
-      ];
-      
-      setSignals(mockData);
+        throw new Error(`Radar API returned ${res.status}`);
+      }
+      const data = await res.json();
+      const cards: RadarSignal[] = (data.cards || []).map((c: RadarCardRaw) => ({
+        id: c.id || c.signalId || Math.random().toString(36).slice(2),
+        title: c.title || c.headline || '',
+        description: c.description || c.summary || '',
+        type: c.type || c.signalType || 'emerging',
+        severity: c.severity || 'medium',
+        source: c.source || c.provider || 'NomosX',
+        detectedAt: c.detectedAt || c.createdAt || new Date().toISOString(),
+        confidence: c.confidence || c.qualityScore || 0,
+        impact: c.impact || 'global',
+        category: c.category || c.vertical || 'General',
+        keywords: c.keywords || c.tags || [],
+        isPremium: c.isPremium ?? (c.tier !== 'ANALYST'),
+      }));
+      setSignals(cards);
     } catch (error) {
       console.error('Failed to fetch radar signals:', error);
+      setSignals([]);
     } finally {
       setLoading(false);
     }
@@ -288,6 +265,18 @@ export default function RadarPage() {
                 <div className="w-5 h-5 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin" />
                 <span>Scanning radar...</span>
               </div>
+            </div>
+          ) : unauthenticated && signals.length === 0 ? (
+            <div className="text-center py-16">
+              <Radar className="w-12 h-12 text-white/20 mx-auto mb-4" />
+              <h3 className="text-xl font-light text-white mb-2">Sign in to access the radar</h3>
+              <p className="text-white/40 mb-6">The signal radar is available to registered users. Sign in to monitor emerging weak signals.</p>
+              <button
+                onClick={() => setShowAuthModal(true)}
+                className="px-6 py-3 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-400 hover:to-violet-400 text-white font-semibold text-sm transition-all shadow-lg shadow-indigo-500/25"
+              >
+                Sign in
+              </button>
             </div>
           ) : filteredSignals.length === 0 ? (
             <div className="text-center py-16">

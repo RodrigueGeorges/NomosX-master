@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, ArrowRight, Calendar, Clock, Users, Share2, Download, FileText, BookOpen, Tag } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { sanitizeHtml } from '@/lib/sanitize';
 import AuthModal from '@/components/AuthModal';
 
 type ArticleType = 'RESEARCH_BRIEF' | 'UPDATE_NOTE' | 'DATA_NOTE' | 'POLICY_NOTE' | 'DOSSIER'
@@ -304,7 +305,7 @@ export default function ArticlePage() {
                 {isSubscribed ? (
                   <div 
                     className="article-content text-white/80 leading-relaxed"
-                    dangerouslySetInnerHTML={{ __html: article.content }}
+                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(article.content) }}
                   />
                 ) : (
                   <>

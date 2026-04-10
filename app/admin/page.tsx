@@ -356,7 +356,7 @@ export default function AdminCommandCenter() {
             Publications
           </Button>
           <div className="flex-1" />
-          <Button variant="ghost" size="sm" onClick={loadAdminData} disabled={loading}>
+          <Button variant="ghost" size="sm" onClick={loadAdminData} disabled={loading} aria-label="Refresh admin data">
             <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
           </Button>
         </div>

@@ -340,9 +340,9 @@ Be PRECISE. Extract EXACT numbers. If a value is not stated, omit it. Do not inv
       messages: [{ role: "user", content: prompt }],
       temperature: 0.1,
       jsonMode: true,
-      maxTokens: 3000,
+      maxTokens: 4000,
       enableCache: true,
-      model: 'gpt-4o-mini', // P1-PERF: extraction is structured — mini is 10x cheaper, equally accurate
+      model: 'gpt-4o', // Quality over cost: quantitative extraction needs top-tier reasoning
     });
 
     const extracted = JSON.parse(response.content);

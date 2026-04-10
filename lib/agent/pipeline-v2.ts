@@ -4,6 +4,7 @@
  */
 
 import {  prisma  } from '../db';
+import {  callLLM  } from '../llm/unified-llm';
 import {  scoreSource, scoreNovelty  } from '../score';
 import {  clamp  } from '../text';
 import crypto from "crypto";
@@ -1377,13 +1378,14 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     }
   }
 
-  // Tier flags — default all true, can be disabled for standard/premium tiers
-  const runHarvardCouncilStep = opts.enableHarvardCouncil !== false;
+  // Tier flags — ALL mandatory for think-tank quality (McKinsey/France Stratégie level)
+  // No publication without peer review, debate, and epistemic challenge.
+  const runHarvardCouncilStep = true; // Always on — peer review is non-negotiable
   // Enable Enhanced Council for strategic reports (22 PhDs) - Phase 3 default
   const runEnhancedCouncilStep = isStrategic ? (opts.enableEnhancedCouncil !== false) : (opts.enableEnhancedCouncil === true);
-  const runDebateStep = opts.enableDebate !== false;
-  const runMetaAnalysisStep = opts.enableMetaAnalysis !== false;
-  const runDevilsAdvocateStep = opts.enableDevilsAdvocate !== false;
+  const runDebateStep = true; // Always on — adversarial debate is non-negotiable
+  const runMetaAnalysisStep = true; // Always on — statistical rigor is non-negotiable
+  const runDevilsAdvocateStep = true; // Always on — epistemic challenge is non-negotiable
   const runDeliberationStep = isStrategic ? (opts.enableDeliberation !== false) : (opts.enableDeliberation === true);
 
   // â”€â”€ Resolve providers: smart selection (async, history-aware) or explicit â”€â”€
@@ -1547,7 +1549,16 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     maxPerProvider: 6,
     minProviderDiversity: 4,
     ...opts.rankOptions,
-  } : { limit: 12, mode: "quality", sourceIds: allSourceIds };
+  } : {
+    limit: 12,
+    mode: "quality",
+    sourceIds: allSourceIds,
+    minQuality: 55,
+    requireAbstract: true,
+    minAbstractLength: 150,
+    maxPerProvider: 4,
+    minProviderDiversity: 3,
+  };
 
   emitProgress(pipelineRun.id, "RANK", "started", `Ranking top ${rankOpts.limit ?? 12} from ${allSourceIds.length} SCOUT sources...`);
   console.log(`${label} RANK: top ${rankOpts.limit ?? 12} from ${allSourceIds.length} SCOUT sources`);
@@ -1659,6 +1670,37 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   const analystDecision = assessAfterAnalyst(orchState);
   recordDecision(orchState, analystDecision);
   stats.orchestrator.decisions.push(analystDecision);
+
+  // ── STEP 6a: STRUCTURAL EDITOR — Storyline Review (McKinsey pyramid principle) ──
+  try {
+    const { structuralEditorReview } = await import('./structural-editor');
+    const structuralResult = await structuralEditorReview(analysis, query);
+    stats.structuralEditor = {
+      overallStructure: structuralResult.overallStructure,
+      narrativeArcValid: structuralResult.narrativeArcValid,
+      sectionsWithIssues: structuralResult.sectionReviews.filter(s => s.issues?.length > 0).length,
+      logicalGaps: structuralResult.logicalGaps.length,
+      costUsd: structuralResult.costUsd,
+    };
+    console.log(`${label} STRUCTURAL EDITOR: structure=${structuralResult.overallStructure}/100, arc=${structuralResult.narrativeArcValid}, gaps=${structuralResult.logicalGaps.length}`);
+    addCost(structuralResult.costUsd, "STRUCTURAL EDITOR");
+
+    // If structural editor suggests restructuring, apply it
+    if (structuralResult.revisedAnalysis && structuralResult.overallStructure < 70) {
+      console.log(`${label} STRUCTURAL EDITOR: applying restructured analysis (original structure was ${structuralResult.overallStructure}/100)`);
+      // Merge restructured fields while preserving fields not revised
+      const revised = structuralResult.revisedAnalysis;
+      for (const key of Object.keys(revised)) {
+        if (revised[key] && revised[key].trim?.() !== '') {
+          (analysis as any)[key] = revised[key];
+        }
+      }
+      stats.structuralEditor.restructured = true;
+    }
+  } catch (err) {
+    console.warn(`${label} STRUCTURAL EDITOR: failed (non-blocking):`, err);
+    stats.structuralEditor = { error: String(err) };
+  }
 
   // ── STEP 6b: HARVARD COUNCIL — PhD Expert Analysis ──
   if (!runHarvardCouncilStep) {
@@ -1831,6 +1873,29 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     console.warn(`${label} CITATION VERIFIER: failed (non-blocking):`, err);
   }
 
+  // ── STEP 9b: FACT-CHECKER — Verify numerical claims against sources ──
+  try {
+    const { factChecker } = await import('./fact-checker');
+    const factResult = await factChecker(html, topSources);
+    stats.factChecker = {
+      totalClaims: factResult.totalClaims,
+      verified: factResult.verified,
+      majorIssues: factResult.majorIssues,
+      fatalIssues: factResult.fatalIssues,
+      integrityScore: factResult.integrityScore,
+    };
+    console.log(`${label} FACT-CHECKER: ${factResult.totalClaims} claims, ${factResult.verified} verified, ${factResult.majorIssues} major, ${factResult.fatalIssues} fatal → integrity ${factResult.integrityScore}%`);
+
+    // If fatal fact-check issues, flag for human review
+    if (factResult.fatalIssues > 0) {
+      console.error(`${label} FACT-CHECKER: ${factResult.fatalIssues} FATAL numerical discrepancies detected`);
+      stats.factCheckerFatalFlagged = true;
+    }
+  } catch (err) {
+    console.warn(`${label} FACT-CHECKER: failed (non-blocking):`, err);
+    stats.factChecker = { error: String(err) };
+  }
+
   // â”€â”€ STEP 10: CRITICAL LOOP V2 â”€â”€
   console.log(`${label} CRITICAL LOOP V2: iterative review`);
   try {
@@ -1984,6 +2049,59 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
       });
       for (const lesson of lessons) {
         await storeLesson(agentId, lesson, pipelineRun.id);
+      }
+
+      // P2-7: AUTO-REVISION — Rewrite the brief to address fatal challenges
+      // Think tanks don't publish documents with known fatal flaws.
+      console.log(`${label} DEVIL'S ADVOCATE: ${advocateReport.fatalChallenges.length} fatal challenges — triggering auto-revision`);
+      try {
+        const fatalList = advocateReport.fatalChallenges.map((fc: any, i: number) =>
+          `${i + 1}. ${fc.description || fc.challenge || fc}: ${fc.fixSuggestion || fc.recommendation || "Address this challenge"}`
+        ).join('\n');
+        const majorList = advocateReport.majorChallenges.map((mc: any, i: number) =>
+          `${i + 1}. ${mc.description || mc.challenge || mc}: ${mc.fixSuggestion || mc.recommendation || "Address this challenge"}`
+        ).join('\n');
+
+        const revisionResponse = await callLLM({
+          messages: [{
+            role: "system",
+            content: `You are a senior editor at an elite think tank. The Devil's Advocate has found FATAL challenges in this draft. You must REWRITE the draft to address ALL fatal and major challenges while preserving the core analysis and all [SRC-N] citations. Output the full rewritten HTML.`
+          }, {
+            role: "user",
+            content: `ORIGINAL DRAFT:
+${html.length > 20000 ? html.slice(0, 8000) + '\n\n[...MIDDLE SECTION...]\n\n' + html.slice(-8000) : html}
+
+═══ FATAL CHALLENGES (MUST ADDRESS ALL) ═══
+${fatalList}
+
+═══ MAJOR CHALLENGES (SHOULD ADDRESS) ═══
+${majorList}
+
+═══ REWRITE INSTRUCTIONS ═══
+1. Address EVERY fatal challenge explicitly
+2. Address major challenges where possible
+3. Add hedging/caveats for claims that cannot be fully resolved
+4. Preserve ALL [SRC-N] citations
+5. Maintain the same HTML structure and sections
+6. Do NOT add new claims without source support
+7. If a fatal challenge cannot be resolved, acknowledge it as a key limitation
+
+Return the FULL rewritten HTML. No JSON wrapping — just the HTML.`
+          }],
+          temperature: 0.2,
+          jsonMode: false,
+          maxTokens: 12000,
+          enableCache: false,
+        });
+
+        if (revisionResponse.content && revisionResponse.content.length > html.length * 0.5) {
+          html = revisionResponse.content;
+          console.log(`${label} DEVIL'S ADVOCATE: auto-revision applied (${(html.length / 1024).toFixed(0)}KB)`);
+          stats.devilsAdvocate.autoRevised = true;
+        }
+        addCost(revisionResponse.costUsd, "DEVIL'S ADVOCATE REVISION");
+      } catch (revisionErr) {
+        console.warn(`${label} DEVIL'S ADVOCATE: auto-revision failed:`, revisionErr);
       }
     }
   } catch (err) {

@@ -83,6 +83,17 @@ export interface PipelineStats {
     issues: string[];
   };
 
+  // Step 6a: Structural Editor (storyline review)
+  structuralEditor?: {
+    overallStructure?: number;
+    narrativeArcValid?: boolean;
+    sectionsWithIssues?: number;
+    logicalGaps?: number;
+    costUsd?: number;
+    restructured?: boolean;
+    error?: string;
+  };
+
   // Step 6b: Harvard Council
   harvardCouncil?: {
     enhanced?: boolean;
@@ -144,6 +155,17 @@ export interface PipelineStats {
     costUsd?: number;
   };
 
+  // Step 9b: Fact-Checker
+  factChecker?: {
+    totalClaims?: number;
+    verified?: number;
+    majorIssues?: number;
+    fatalIssues?: number;
+    integrityScore?: number;
+    error?: string;
+  };
+  factCheckerFatalFlagged?: boolean;
+
   // Step 10: Critical Loop
   criticalLoop?: {
     iterations: number;
@@ -189,6 +211,7 @@ export interface PipelineStats {
     };
     gaps?: string[];
     costUsd?: number;
+    autoRevised?: boolean;
     skipped?: boolean;
     error?: string;
   };

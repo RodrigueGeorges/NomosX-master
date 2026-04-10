@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter, useSearchParams } from 'next/navigation';
 import AuthModal from '@/components/AuthModal';
@@ -78,7 +78,7 @@ type PublicBrief = {
   tier: string;
 };
 
-export default function HomePage() {
+function HomePageContent() {
   const router = useRouter();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showOnboardingModal, setShowOnboardingModal] = useState(false);
@@ -719,5 +719,17 @@ export default function HomePage() {
       {showAuthModal && <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} onSignupSuccess={handleAuthSuccess} />}
       {showOnboardingModal && <OnboardingModal isOpen={showOnboardingModal} onClose={() => setShowOnboardingModal(false)} />}
     </>
+  );
+}
+
+export default function HomePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#09090b] flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin" />
+      </div>
+    }>
+      <HomePageContent />
+    </Suspense>
   );
 }

@@ -142,8 +142,9 @@ export async function POST(req: NextRequest) {
     for (const decision of triageResult.decisions) {
       try {
         const topic = decision.topic.title;
-        // Auto-scan always produces briefs (3-5min). Strategic reports (10+min) are manual-only.
-        const mode: ReportFormat = 'brief';
+        // Auto-scan produces strategic reports for think-tank quality depth.
+        // Briefs are too shallow for McKinsey/France Stratégie level output.
+        const mode: ReportFormat = 'strategic';
         // Merge classified providers + news providers for breaking topics
         const classifiedProviders = decision.classification.providers.slice(0, 4);
         const newsProviders = ['gdelt-news', 'newsapi', 'gnews'];

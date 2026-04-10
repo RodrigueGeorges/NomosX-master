@@ -164,7 +164,7 @@ export default function SignalsPage() {
             );
           })}
           <div className="flex-1" />
-          <Button variant="ghost" size="sm" onClick={loadSignals} disabled={loading}>
+          <Button variant="ghost" size="sm" onClick={loadSignals} disabled={loading} aria-label="Refresh signals">
             <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
           </Button>
         </div>

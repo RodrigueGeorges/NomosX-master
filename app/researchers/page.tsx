@@ -1,8 +1,24 @@
 import ResearchersShowcase from '@/components/ResearchersShowcase';
 
+const researchersJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: 'NomosX Research Council',
+  description: '22 PhD-calibrated AI researchers spanning economics, geopolitics, technology, and complexity science.',
+  url: 'https://nomosx.com/researchers',
+  member: {
+    '@type': 'Organization',
+    name: 'NomosX',
+  },
+};
+
 export default function ResearchersPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(researchersJsonLd) }}
+      />
       {/* Hero Section */}
       <div className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-indigo-600/10 via-purple-600/5 to-transparent" />

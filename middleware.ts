@@ -44,7 +44,7 @@ export function middleware(request: NextRequest) {
   }
 
   // Auth guard: redirect to homepage if no session cookie on protected routes
-  const protectedPrefixes = ['/dashboard', '/studio', '/council'];
+  const protectedPrefixes = ['/dashboard', '/studio', '/council', '/admin', '/library'];
   const isProtected = protectedPrefixes.some(p => pathname.startsWith(p));
   if (isProtected) {
     const session = request.cookies.get('nomosx-session')?.value;
@@ -67,10 +67,23 @@ export function middleware(request: NextRequest) {
 
   // CSP only for pages (not API — would break JSON responses)
   if (!isApi) {
-    response.headers.set(
-      'Content-Security-Policy',
-      "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https:;"
-    );
+    const csp = [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-inline'",  // unsafe-inline needed for Next.js runtime chunks + JSON-LD
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+      "font-src 'self' data: https://fonts.gstatic.com",
+      "img-src 'self' data: https: blob:",
+      "connect-src 'self' https: wss:",
+      "frame-ancestors 'none'",
+      "base-uri 'self'",
+      "form-action 'self'",
+    ].join('; ');
+    response.headers.set('Content-Security-Policy', csp);
+  }
+
+  // Prevent search engines from indexing API responses
+  if (isApi) {
+    response.headers.set('X-Robots-Tag', 'noindex, nofollow');
   }
 
   return response;

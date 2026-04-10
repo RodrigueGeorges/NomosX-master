@@ -30,10 +30,20 @@ import { useStreamingCouncil } from '@/hooks/useStreamingCouncil';
 import ProgressBar from '@/components/ProgressBar';
 import { toast } from '@/components/ui/Toast';
 import { cn } from '@/lib/utils';
+import { sanitizeHtml } from '@/lib/sanitize';
 
 // STRATEGY tier check hook
+interface SubscriptionStatus {
+  plan: string;
+  status: string;
+  isTrialActive: boolean;
+  studioLimitReached: boolean;
+  studioQuestionsRemaining: number;
+  canAccessStudio: boolean;
+}
+
 function useStrategyTier() {
-  const [subscription, setSubscription] = useState<any>(null);
+  const [subscription, setSubscription] = useState<SubscriptionStatus | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -154,16 +164,16 @@ function StudioPageContent() {
               <Layers size={32} className="text-indigo-400" />
             </div>
             <h2 className="font-display text-2xl font-light text-white mb-4">
-              Studio requires <span className="nx-gradient-text">Strategy</span> tier
+              Studio requires <span className="nx-gradient-text">Studio</span> tier
             </h2>
             <p className="text-white/40 mb-6">
-              Upgrade to Strategy for unlimited custom research with Harvard Council insights.
+              Upgrade to Studio for unlimited custom research with Harvard Council insights.
             </p>
             <button
               onClick={() => router.push('/pricing')}
               className="px-6 py-3 rounded-xl bg-gradient-to-r from-indigo-500/20 to-violet-500/20 border border-indigo-500/20 text-white font-medium hover:border-indigo-500/40 transition-all"
             >
-              Upgrade to Strategy
+              Upgrade to Studio
             </button>
             <div className="mt-4 text-xs text-white/30">
               {subscription?.studioQuestionsRemaining !== undefined && (
@@ -563,7 +573,7 @@ function StudioPageContent() {
               <CardContent className="pt-8">
                 <div 
                   className="nomosx-prose"
-                  dangerouslySetInnerHTML={{ __html: briefResult.html }}
+                  dangerouslySetInnerHTML={{ __html: sanitizeHtml(briefResult.html) }}
                 />
               </CardContent>
             </Card>
@@ -592,7 +602,7 @@ function StudioPageContent() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="nomosx-prose text-sm" dangerouslySetInnerHTML={{ __html: councilResult.economic }} />
+                  <div className="nomosx-prose text-sm" dangerouslySetInnerHTML={{ __html: sanitizeHtml(councilResult.economic) }} />
                 </CardContent>
               </Card>
 
@@ -604,7 +614,7 @@ function StudioPageContent() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="nomosx-prose text-sm" dangerouslySetInnerHTML={{ __html: councilResult.technical }} />
+                  <div className="nomosx-prose text-sm" dangerouslySetInnerHTML={{ __html: sanitizeHtml(councilResult.technical) }} />
                 </CardContent>
               </Card>
 
@@ -616,7 +626,7 @@ function StudioPageContent() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="nomosx-prose text-sm" dangerouslySetInnerHTML={{ __html: councilResult.ethical }} />
+                  <div className="nomosx-prose text-sm" dangerouslySetInnerHTML={{ __html: sanitizeHtml(councilResult.ethical) }} />
                 </CardContent>
               </Card>
 
@@ -628,7 +638,7 @@ function StudioPageContent() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="nomosx-prose text-sm" dangerouslySetInnerHTML={{ __html: councilResult.political }} />
+                  <div className="nomosx-prose text-sm" dangerouslySetInnerHTML={{ __html: sanitizeHtml(councilResult.political) }} />
                 </CardContent>
               </Card>
             </div>
@@ -641,7 +651,7 @@ function StudioPageContent() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="nomosx-prose" dangerouslySetInnerHTML={{ __html: councilResult.synthesis }} />
+                <div className="nomosx-prose" dangerouslySetInnerHTML={{ __html: sanitizeHtml(councilResult.synthesis) }} />
               </CardContent>
             </Card>
           </div>

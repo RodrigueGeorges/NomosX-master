@@ -19,6 +19,16 @@ const nextConfig = {
         permanent: true,
       },
       {
+        source: '/executive-briefs',
+        destination: '/articles',
+        permanent: true,
+      },
+      {
+        source: '/strategic-briefs',
+        destination: '/articles',
+        permanent: true,
+      },
+      {
         source: '/brief/:path*',
         destination: '/articles/:path*',
         permanent: true,
@@ -26,6 +36,16 @@ const nextConfig = {
       {
         source: '/publications/:path*',
         destination: '/articles/:path*',
+        permanent: true,
+      },
+      {
+        source: '/council',
+        destination: '/studio',
+        permanent: true,
+      },
+      {
+        source: '/council/:path*',
+        destination: '/studio',
         permanent: true,
       },
     ];

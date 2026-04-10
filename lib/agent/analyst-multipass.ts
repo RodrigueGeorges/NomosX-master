@@ -253,6 +253,7 @@ Be EXHAUSTIVE. Extract EVERY data point. Miss nothing.`;
     jsonMode: true,
     maxTokens: 4000,
     enableCache: true,
+    model: 'gpt-4o', // Thematic mapping requires top-tier reasoning
   });
 
   const map = JSON.parse(response.content) as ThematicMap;
@@ -347,6 +348,7 @@ Be ADVERSARIAL. Actively look for conflicts. A good analyst finds what others mi
     jsonMode: true,
     maxTokens: 4000,
     enableCache: true,
+    model: 'gpt-4o', // Contradiction detection requires deep reasoning
   });
 
   const map = JSON.parse(response.content) as ContradictionMap;
@@ -467,6 +469,7 @@ QUALITY: This is the final output for senior decision-makers. Intellectual rigor
     jsonMode: true,
     maxTokens: 12000,
     enableCache: true,
+    model: 'gpt-4o', // Final synthesis requires top-tier reasoning
   });
 
   const analysis = JSON.parse(response.content) as AnalysisOutput;

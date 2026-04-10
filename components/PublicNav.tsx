@@ -14,7 +14,7 @@ import { Menu, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 
 interface PublicNavProps {
-  currentPage?: "home" | "articles" | "about" | "methodology" | "pricing";
+  currentPage?: "home" | "articles" | "about" | "methodology" | "pricing" | "platform";
   onSignInClick: () => void;
   isAuthenticated?: boolean;
 }
@@ -25,6 +25,7 @@ export default function PublicNav({ currentPage, onSignInClick, isAuthenticated 
 
   const navLinks: { label: string; page: PublicNavProps["currentPage"]; href: string }[] = [
     { label: "Home", page: "home", href: "/" },
+    { label: "Platform", page: "platform", href: "/platform" },
     { label: "Articles", page: "articles", href: "/articles" },
     { label: "About", page: "about", href: "/about" },
     { label: "Methodology", page: "methodology", href: "/methodology" },

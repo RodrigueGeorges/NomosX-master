@@ -51,12 +51,26 @@ function renderParagraphs(text: string): string {
 // SECTION RENDERERS
 // ============================================================================
 
-function section(heading: string, content: any, icon?: string): string {
+/**
+ * Extract the governing thought (first key sentence) from section content.
+ * McKinsey principle: every section opens with its key message.
+ */
+function extractGoverningThought(content: string): string {
+  if (!content || typeof content !== 'string') return '';
+  // Take the first sentence that contains a citation or is substantive (>40 chars)
+  const sentences = content.split(/(?<=[.!?])\s+/).filter(s => s.trim().length > 40);
+  return sentences[0]?.slice(0, 200) || '';
+}
+
+function section(heading: string, content: any, icon?: string, governingThought?: string): string {
   if (!content) return "";
   const iconHtml = icon ? `<span class="section-icon">${icon}</span> ` : "";
+  const gtHtml = governingThought ? `
+      <div class="governing-thought">${replaceCitations(esc(governingThought))}</div>` : "";
   return `
     <section class="brief-section">
       <h2>${iconHtml}${esc(heading)}</h2>
+      ${gtHtml}
       ${renderParagraphs(String(content))}
     </section>`;
 }
@@ -402,6 +416,30 @@ const BRIEF_CSS = `
     margin: 16px 0;
   }
 
+  .governing-thought {
+    background: linear-gradient(135deg, rgba(59,130,246,0.08), rgba(16,185,129,0.08));
+    border-left: 4px solid var(--accent);
+    border-radius: 0 8px 8px 0;
+    padding: 14px 18px;
+    margin: 0 0 20px;
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.5;
+    color: var(--text);
+  }
+
+  .so-what-callout {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--accent-green);
+    border-radius: 0 8px 8px 0;
+    padding: 14px 18px;
+    margin: 20px 0 0;
+    font-size: 14px;
+    color: var(--text-muted);
+  }
+  .so-what-callout strong { color: var(--accent-green); font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
+
   .brief-footer {
     margin-top: 48px;
     padding-top: 16px;
@@ -460,13 +498,13 @@ export function renderProfessionalBriefHTML(analysis: any, sources: any[]): stri
 
     ${keyFindingsCard(analysis)}
 
-    ${section("Executive Summary", analysis.summary)}
-    ${section("Consensus", analysis.consensus)}
-    ${section("Disagreements", analysis.disagreements)}
+    ${section("Executive Summary", analysis.summary, undefined, extractGoverningThought(analysis.summary))}
+    ${section("Consensus", analysis.consensus, undefined, extractGoverningThought(analysis.consensus))}
+    ${section("Disagreements", analysis.disagreements, undefined, extractGoverningThought(analysis.disagreements))}
     ${debateSection(analysis.debate)}
-    ${section("Evidence Quality", analysis.evidence)}
-    ${section("Strategic Implications", analysis.implications)}
-    ${section("Risks & Limitations", analysis.risks)}
+    ${section("Evidence Quality", analysis.evidence, undefined, extractGoverningThought(analysis.evidence))}
+    ${section("Strategic Implications", analysis.implications, undefined, extractGoverningThought(analysis.implications))}
+    ${section("Risks & Limitations", analysis.risks, undefined, extractGoverningThought(analysis.risks))}
     ${section("Open Questions", analysis.open_questions)}
     ${section("What Would Change Our Mind", analysis.what_changes_mind)}
 
@@ -655,14 +693,14 @@ export function renderProfessionalStrategicHTML(analysis: any, sources: any[]): 
 
     ${keyFindingsHtml}
 
-    ${strategicSections.map(s => section(s.heading, analysis[s.key])).join("")}
+    ${strategicSections.map(s => section(s.heading, analysis[s.key], undefined, extractGoverningThought(analysis[s.key]))).join("")}
     ${themesHtml}
     ${keyStudiesHtml}
     ${debateSection(analysis.debate)}
 
     ${section("Evidence Quality", typeof analysis.evidenceQuality === 'object' 
       ? `Overall score: ${analysis.evidenceQuality.overallScore || 'N/A'}/10\n\n${analysis.evidenceQuality.methodology || ''}\n\n${analysis.evidenceQuality.gaps || ''}`
-      : analysis.evidenceQuality)}
+      : analysis.evidenceQuality, undefined, typeof analysis.evidenceQuality === 'string' ? extractGoverningThought(analysis.evidenceQuality) : undefined)}
 
     ${stakeholderHtml}
     ${scenarioHtml}
@@ -676,7 +714,7 @@ export function renderProfessionalStrategicHTML(analysis: any, sources: any[]): 
         ].filter(Boolean).join('\n\n')
       : analysis.implementation)}
 
-    ${section("Conclusion", analysis.conclusion)}
+    ${section("Conclusion", analysis.conclusion, undefined, extractGoverningThought(analysis.conclusion))}
     ${section("Open Questions", Array.isArray(analysis.openQuestions) ? analysis.openQuestions.join('\n\n') : analysis.openQuestions || analysis.open_questions)}
     ${section("What Would Change Our Mind", analysis.whatChangesMind || analysis.what_changes_mind)}
 

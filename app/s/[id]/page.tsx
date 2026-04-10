@@ -2,6 +2,7 @@ import { prisma } from '@/lib/db';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { NomosXLogo } from '@/components/brand/NomosXLogo';
+import { sanitizeHtml } from '@/lib/sanitize';
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -70,7 +71,7 @@ export default async function SharedBrief({ params }: { params: Promise<{ id: st
           prose-a:text-indigo-400 prose-a:no-underline hover:prose-a:underline
           prose-strong:text-white/80 prose-blockquote:border-indigo-500/30
           prose-code:text-indigo-300 prose-code:bg-indigo-500/10 prose-code:px-1 prose-code:rounded"
-          dangerouslySetInnerHTML={{ __html: brief.html }}
+          dangerouslySetInnerHTML={{ __html: sanitizeHtml(brief.html) }}
         />
 
         {/* CTA */}

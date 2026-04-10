@@ -29,8 +29,17 @@ function NomosSymbol({ px, className }: { px: number; className?: string }) {
           <stop offset="50%"  stopColor="#6366F1" />
           <stop offset="100%" stopColor="#7C3AED" />
         </linearGradient>
+        <linearGradient id="nx-gold-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%"   stopColor="#D4AF37" />
+          <stop offset="50%"  stopColor="#F5D778" />
+          <stop offset="100%" stopColor="#D4AF37" />
+        </linearGradient>
         <filter id="nx-logo-glow" x="-40%" y="-40%" width="180%" height="180%">
           <feGaussianBlur stdDeviation="4.5" result="blur" />
+          <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+        </filter>
+        <filter id="nx-gold-glow" x="-60%" y="-60%" width="220%" height="220%">
+          <feGaussianBlur stdDeviation="6" result="blur" />
           <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
         </filter>
         <filter id="nx-body-glow" x="-20%" y="-20%" width="140%" height="140%">
@@ -51,9 +60,9 @@ function NomosSymbol({ px, className }: { px: number; className?: string }) {
       {/* Top-right to centre diagonal */}
       <path d="M 86 33 L 58 60 L 34 84 L 26 77 L 58 51 L 86 26 Z" fill="url(#nx-logo-grad)" opacity="0.80" filter="url(#nx-body-glow)" />
 
-      {/* Centre node — glowing */}
-      <circle cx="60" cy="60" r="8"   fill="white"    filter="url(#nx-logo-glow)" opacity="0.9" />
-      <circle cx="60" cy="60" r="3.5" fill="#6366F1" />
+      {/* Centre node — the resolved X, glowing gold */}
+      <circle cx="60" cy="60" r="9"   fill="#D4AF37"  filter="url(#nx-gold-glow)" opacity="0.85" />
+      <circle cx="60" cy="60" r="4"   fill="#F5D778"  opacity="0.9" />
     </svg>
   );
 }
@@ -77,7 +86,7 @@ export function NomosXLogo({ size = 'md', variant = 'full', className }: LogoPro
           'bg-gradient-to-r from-indigo-300 via-white to-violet-300 bg-clip-text text-transparent',
           textSizes[size]
         )}>
-          Nomos<span className="bg-gradient-to-r from-indigo-400 to-violet-500 bg-clip-text text-transparent">X</span>
+          Nomos<span className="bg-gradient-to-r from-amber-500 to-yellow-400 bg-clip-text text-transparent">X</span>
         </span>
       </div>
     );
@@ -91,7 +100,7 @@ export function NomosXLogo({ size = 'md', variant = 'full', className }: LogoPro
         'bg-gradient-to-r from-white via-indigo-100 to-violet-200 bg-clip-text text-transparent',
         textSizes[size]
       )}>
-        Nomos<span className="bg-gradient-to-r from-indigo-400 to-violet-500 bg-clip-text text-transparent">X</span>
+        Nomos<span className="bg-gradient-to-r from-amber-500 to-yellow-400 bg-clip-text text-transparent">X</span>
       </span>
     </div>
   );

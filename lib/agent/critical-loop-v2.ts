@@ -125,8 +125,8 @@ async function adversarialReviewer(
       role: "user",
       content: `You are an adversarial reviewer. Find the STRONGEST counter-arguments to this analysis. Be rigorous, not charitable.
 
-DRAFT (first 5000 chars):
-${draftHtml.slice(0, 5000)}
+DRAFT (full text):
+${draftHtml.length > 15000 ? draftHtml.slice(0, 6000) + '\n\n[...MIDDLE SECTION OMITTED FOR BREVITY...]\n\n' + draftHtml.slice(-6000) : draftHtml}
 
 NUMBER OF SOURCES: ${sources.length}
 
@@ -180,8 +180,8 @@ async function decisionCalibrator(
       role: "user",
       content: `You are a calibration expert. Assess whether confidence levels in this analysis are well-calibrated.
 
-DRAFT (first 5000 chars):
-${draftHtml.slice(0, 5000)}
+DRAFT (full text):
+${draftHtml.length > 15000 ? draftHtml.slice(0, 6000) + '\n\n[...MIDDLE SECTION OMITTED FOR BREVITY...]\n\n' + draftHtml.slice(-6000) : draftHtml}
 
 CALIBRATION RULES:
 - Single source claim: max 60% confidence
@@ -268,7 +268,7 @@ async function rewriteDraft(
     }, {
       role: "user",
       content: `ORIGINAL DRAFT:
-${draftHtml.slice(0, 8000)}
+${draftHtml.length > 20000 ? draftHtml.slice(0, 8000) + '\n\n[...MIDDLE SECTION...]\n\n' + draftHtml.slice(-8000) : draftHtml}
 
 ═══ REVIEWER FEEDBACK ═══
 

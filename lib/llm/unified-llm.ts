@@ -11,7 +11,7 @@ import { getCachedLLMResponse,cacheLLMResponse } from '../cache/redis-cache';
 import Sentry from '@sentry/nextjs';
 
 // Provider types
-export type LLMProvider = "openai" | "anthropic";
+export type LLMProvider = "openai" | "anthropic" | "qwen";
 
 // Model configurations
 const MODEL_CONFIG = {
@@ -23,6 +23,13 @@ const MODEL_CONFIG = {
   anthropic: {
     "claude-3-5-sonnet-20241022": { contextWindow: 200000, costPer1kInput: 0.003, costPer1kOutput: 0.015 },
     "claude-3-5-haiku-20241022": { contextWindow: 200000, costPer1kInput: 0.001, costPer1kOutput: 0.005 },
+  },
+  qwen: {
+    "qwen-max": { contextWindow: 32000, costPer1kInput: 0.004, costPer1kOutput: 0.012 },
+    "qwen-plus": { contextWindow: 131072, costPer1kInput: 0.0008, costPer1kOutput: 0.002 },
+    "qwen-turbo": { contextWindow: 131072, costPer1kInput: 0.0003, costPer1kOutput: 0.0006 },
+    "qwen2.5-72b-instruct": { contextWindow: 131072, costPer1kInput: 0.0004, costPer1kOutput: 0.001 },
+    "Qwen/Qwen2.5-72B-Instruct": { contextWindow: 131072, costPer1kInput: 0.0008, costPer1kOutput: 0.002 }, // Together.ai format
   },
 };
 
@@ -106,6 +113,7 @@ function recordProviderSuccess(provider: string): void {
 // Clients
 let openaiClient: OpenAI | null = null;
 let anthropicClient: Anthropic | null = null;
+let qwenClient: OpenAI | null = null; // Qwen uses OpenAI-compatible API
 
 function getOpenAIClient(): OpenAI {
   if (!openaiClient) {
@@ -120,6 +128,17 @@ function getAnthropicClient(): Anthropic | null {
     anthropicClient = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
   }
   return anthropicClient;
+}
+
+function getQwenClient(): OpenAI | null {
+  if (!env.QWEN_API_KEY) return null;
+  if (!qwenClient) {
+    qwenClient = new OpenAI({
+      apiKey: env.QWEN_API_KEY,
+      baseURL: env.QWEN_BASE_URL || 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+    });
+  }
+  return qwenClient;
 }
 
 export interface LLMRequest {
@@ -189,6 +208,43 @@ async function callOpenAI(request: LLMRequest): Promise<LLMResponse> {
     tokensInput,
     tokensOutput,
     costUsd: calculateCost("openai", model, tokensInput, tokensOutput),
+    cached: false,
+  };
+}
+
+/**
+ * Call Qwen (OpenAI-compatible API via DashScope/Together/vLLM)
+ */
+async function callQwen(request: LLMRequest): Promise<LLMResponse> {
+  const client = getQwenClient();
+  if (!client) {
+    throw new Error("Qwen API key not configured (QWEN_API_KEY)");
+  }
+  
+  const model = request.model || env.QWEN_MODEL || "qwen-max";
+  
+  const completion = await withRetry<Awaited<ReturnType<typeof client.chat.completions.create>>>(
+    () => client.chat.completions.create({
+      model,
+      messages: request.messages as any,
+      temperature: request.temperature ?? 0.2,
+      max_tokens: request.maxTokens ?? 4000,
+      response_format: request.jsonMode ? { type: "json_object" } as any : undefined,
+    }),
+    `Qwen/${model}`
+  );
+  
+  const content = (completion as any).choices?.[0]?.message?.content || "";
+  const tokensInput = (completion as any).usage?.prompt_tokens || 0;
+  const tokensOutput = (completion as any).usage?.completion_tokens || 0;
+  
+  return {
+    content,
+    provider: "qwen",
+    model,
+    tokensInput,
+    tokensOutput,
+    costUsd: calculateCost("qwen", model, tokensInput, tokensOutput),
     cached: false,
   };
 }
@@ -298,6 +354,8 @@ export async function callLLM(request: LLMRequest): Promise<LLMResponse> {
   const providers: LLMProvider[] = [];
   if (!isCircuitOpen(primaryProvider)) providers.push(primaryProvider);
   if (getAnthropicClient() && !isCircuitOpen(fallbackProvider)) providers.push(fallbackProvider);
+  // Qwen as additional fallback (cheap, fast, good for non-English)
+  if (getQwenClient() && !isCircuitOpen("qwen") && !providers.includes("qwen")) providers.push("qwen");
   // If all circuits open, still try primary (half-open)
   if (providers.length === 0) providers.push(primaryProvider);
   
@@ -311,6 +369,8 @@ export async function callLLM(request: LLMRequest): Promise<LLMResponse> {
       let response: LLMResponse;
       if (provider === "openai") {
         response = await withTimeout(callOpenAI(request), timeoutMs, `OpenAI/${model}`);
+      } else if (provider === "qwen") {
+        response = await withTimeout(callQwen(request), timeoutMs, `Qwen/${request.model || env.QWEN_MODEL || 'qwen-max'}`);
       } else {
         response = await withTimeout(callAnthropic(request), timeoutMs, `Anthropic/${request.model || 'claude'}`);
       }
@@ -400,6 +460,9 @@ export function getAvailableProviders(): LLMProvider[] {
   if (getAnthropicClient()) {
     providers.push("anthropic");
   }
+  if (getQwenClient()) {
+    providers.push("qwen");
+  }
   return providers;
 }
 
@@ -409,8 +472,9 @@ export function getAvailableProviders(): LLMProvider[] {
 export async function checkLLMHealth(): Promise<{
   openai: boolean;
   anthropic: boolean;
+  qwen: boolean;
 }> {
-  const health = { openai: false, anthropic: false };
+  const health = { openai: false, anthropic: false, qwen: false };
   
   // Test OpenAI
   try {
@@ -434,6 +498,21 @@ export async function checkLLMHealth(): Promise<{
     }
   } catch (err) {
     console.error("Anthropic health check failed:", err);
+  }
+  
+  // Test Qwen
+  try {
+    const client = getQwenClient();
+    if (client) {
+      await client.chat.completions.create({
+        model: env.QWEN_MODEL || "qwen-turbo",
+        max_tokens: 1,
+        messages: [{ role: "user", content: "ping" }],
+      });
+      health.qwen = true;
+    }
+  } catch (err) {
+    console.error("Qwen health check failed:", err);
   }
   
   return health;

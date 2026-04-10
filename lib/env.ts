@@ -43,6 +43,11 @@ const envSchema = z.object({
   // Anthropic (for Claude fallback)
   ANTHROPIC_API_KEY: z.string().optional(),
   
+  // Qwen (Alibaba Cloud / DashScope / Together.ai — OpenAI-compatible)
+  QWEN_API_KEY: z.string().optional(),
+  QWEN_BASE_URL: z.string().url().optional().default("https://dashscope.aliyuncs.com/compatible-mode/v1"),
+  QWEN_MODEL: z.string().optional().default("qwen-max"),
+  
   // Admin
   ADMIN_KEY: z.string().optional(),
   

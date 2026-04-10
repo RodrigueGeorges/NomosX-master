@@ -298,7 +298,7 @@ export default function LibraryPage() {
                       >
                         {item.isPremium ? 'Unlock' : 'Read'}
                       </button>
-                      <button className="p-2.5 rounded-lg border border-white/[0.08] bg-white/[0.02] text-white/60 hover:border-white/[0.12] transition-all">
+                      <button className="p-2.5 rounded-lg border border-white/[0.08] bg-white/[0.02] text-white/60 hover:border-white/[0.12] transition-all" aria-label="Share">
                         <Share2 size={14} />
                       </button>
                     </div>

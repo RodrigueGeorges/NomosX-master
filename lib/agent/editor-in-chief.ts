@@ -183,7 +183,8 @@ Return JSON: { "selections": [{ "topicId": "...", "action": "publish_brief|publi
       temperature: 0.15,
       maxTokens: 800,
       jsonMode: true,
-      model: 'gpt-4o-mini',
+      model: 'qwen-plus', // Triage is classification — Qwen is sufficient & 6x cheaper
+      provider: 'qwen',
     });
 
     const parsed = JSON.parse(result.content);
