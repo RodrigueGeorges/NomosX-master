@@ -8,6 +8,9 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Textarea } from '@/components/ui/Textarea';
 import { cn } from '@/lib/utils';
+import PublicNav from '@/components/PublicNav';
+import SiteFooter from '@/components/SiteFooter';
+import AuthModal from '@/components/AuthModal';
 
 /**
  * StudioX — NomosX Research Studio
@@ -21,6 +24,7 @@ function StudioPageContent() {
   const [question, setQuestion] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<string | null>(null);
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
   async function handleGenerate() {
     if (!question.trim()) return;
@@ -49,20 +53,34 @@ function StudioPageContent() {
   }
 
   return (
-    <div className="min-h-screen bg-[#09090b]">
-      <div className="max-w-4xl mx-auto px-6 py-16">
-        {/* Header */}
-        <div className="mb-12 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center mx-auto mb-6 shadow-lg shadow-amber-500/20">
-            <PenTool size={32} className="text-[#09090b]" />
-          </div>
-          <h1 className="text-5xl font-display font-bold text-white mb-4 tracking-tight">
-            Studio<span className="text-amber-500">X</span>
-          </h1>
-          <p className="text-lg text-white/50 max-w-2xl mx-auto">
-            Commission custom research with Harvard Council insights. Ask any question, get evidence-based answers.
-          </p>
+    <>
+      <div className="min-h-screen bg-[#09090b] text-white overflow-hidden">
+        <div className="nx-noise" aria-hidden="true" />
+        {/* Background — aurora */}
+        <div className="fixed inset-0 pointer-events-none overflow-hidden">
+          <div className="absolute w-[900px] h-[700px] rounded-full -top-48 left-1/2 -translate-x-1/2 animate-aurora-1" style={{ background: 'radial-gradient(circle, rgba(99,102,241,0.12) 0%, transparent 70%)' }} />
+          <div className="absolute w-[600px] h-[600px] rounded-full top-1/3 -right-32 animate-aurora-2" style={{ background: 'radial-gradient(circle, rgba(139,92,246,0.09) 0%, transparent 70%)' }} />
+          <div className="absolute w-[500px] h-[500px] rounded-full bottom-1/4 -left-24 animate-aurora-3" style={{ background: 'radial-gradient(circle, rgba(212,175,55,0.06) 0%, transparent 70%)' }} />
+          <div className="nx-grid-bg absolute inset-0 opacity-30" />
         </div>
+
+        {/* Nav */}
+        <PublicNav currentPage="studio" onSignInClick={() => setShowAuthModal(true)} />
+
+        <div className="relative z-10 max-w-4xl mx-auto px-6 py-20">
+          {/* Header */}
+          <div className="mb-12 text-center">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-amber-500/20 bg-amber-500/5 mb-6">
+              <div className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse-glow" />
+              <span className="text-xs text-amber-300 font-medium tracking-wide">STUDIOX</span>
+            </div>
+            <h1 className="text-5xl font-display font-bold text-white mb-4 tracking-tight">
+              Studio<span className="text-amber-500">X</span>
+            </h1>
+            <p className="text-lg text-white/50 max-w-2xl mx-auto">
+              Commission custom research with Harvard Council insights. Ask any question, get evidence-based answers.
+            </p>
+          </div>
 
         {/* Input Card */}
         <Card className="border-white/10 bg-white/[0.02] backdrop-blur-xl mb-8">
@@ -134,7 +152,18 @@ function StudioPageContent() {
           </div>
         )}
       </div>
+
+      <SiteFooter onSignInClick={() => setShowAuthModal(true)} />
+
+      {showAuthModal && (
+        <AuthModal
+          isOpen={showAuthModal}
+          onClose={() => setShowAuthModal(false)}
+          onSignupSuccess={() => setShowAuthModal(false)}
+        />
+      )}
     </div>
+    </>
   );
 }
 

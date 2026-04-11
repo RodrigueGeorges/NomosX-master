@@ -2,6 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import AuthModal from '@/components/AuthModal';
+import PublicNav from '@/components/PublicNav';
+import SiteFooter from '@/components/SiteFooter';
 import { Calendar, Filter, Search, FileText, TrendingUp, ArrowRight, Clock, Users, BookOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -74,21 +76,29 @@ export default function ArticlesPage() {
 
   return (
     <>
-      <div className="min-h-screen bg-[#09090b] text-white">
-        {/* Background */}
-        <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1400px] h-[900px]">
-            <div className="absolute inset-0 bg-gradient-to-b from-indigo-500/[0.06] via-violet-500/[0.03] to-transparent blur-3xl" />
-          </div>
-          <div className="absolute inset-0 bg-[linear-gradient(rgba(99,102,241,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(99,102,241,0.02)_1px,transparent_1px)] bg-[size:80px_80px]" />
+      <div className="min-h-screen bg-[#09090b] text-white overflow-hidden">
+        <div className="nx-noise" aria-hidden="true" />
+        {/* Background — aurora */}
+        <div className="fixed inset-0 pointer-events-none overflow-hidden">
+          <div className="absolute w-[900px] h-[700px] rounded-full -top-48 left-1/2 -translate-x-1/2 animate-aurora-1" style={{ background: 'radial-gradient(circle, rgba(99,102,241,0.12) 0%, transparent 70%)' }} />
+          <div className="absolute w-[600px] h-[600px] rounded-full top-1/3 -right-32 animate-aurora-2" style={{ background: 'radial-gradient(circle, rgba(139,92,246,0.09) 0%, transparent 70%)' }} />
+          <div className="absolute w-[500px] h-[500px] rounded-full bottom-1/4 -left-24 animate-aurora-3" style={{ background: 'radial-gradient(circle, rgba(16,185,129,0.05) 0%, transparent 70%)' }} />
+          <div className="nx-grid-bg absolute inset-0 opacity-30" />
         </div>
+
+        {/* Nav */}
+        <PublicNav currentPage="articles" onSignInClick={() => setShowAuthModal(true)} />
 
         {/* Header */}
         <div className="relative z-10 border-b border-white/[0.06]">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="font-display text-3xl font-light text-white mb-2">
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-indigo-500/20 bg-indigo-500/5 mb-4">
+                  <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse-glow" />
+                  <span className="text-xs text-indigo-300 font-medium tracking-wide">PUBLICATIONS</span>
+                </div>
+                <h1 className="font-display text-4xl sm:text-5xl font-semibold text-white mb-2">
                   Strategic <span className="nx-gradient-text">Articles</span>
                 </h1>
                 <p className="text-white/40">
@@ -97,9 +107,10 @@ export default function ArticlesPage() {
               </div>
               <button
                 onClick={() => setShowAuthModal(true)}
-                className="px-6 py-3 rounded-xl bg-gradient-to-r from-indigo-500/20 to-violet-500/20 border border-indigo-500/20 text-white font-medium hover:border-indigo-500/40 transition-all"
+                className="group px-6 py-3 rounded-lg bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-[#09090b] font-medium transition-all duration-300 shadow-lg shadow-amber-500/20 hover:shadow-amber-500/30 hover:scale-[1.03] inline-flex items-center gap-2"
               >
                 Subscribe for full access
+                <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
               </button>
             </div>
 
@@ -266,11 +277,14 @@ export default function ArticlesPage() {
         </div>
       </div>
 
+      <SiteFooter onSignInClick={() => setShowAuthModal(true)} />
+
       {/* Auth Modal */}
       {showAuthModal && (
-        <AuthModal 
-          isOpen={showAuthModal} 
+        <AuthModal
+          isOpen={showAuthModal}
           onClose={() => setShowAuthModal(false)}
+          onSignupSuccess={() => setShowAuthModal(false)}
         />
       )}
     </>
