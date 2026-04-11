@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import AuthModal from '@/components/AuthModal';
 import PublicNav from '@/components/PublicNav';
 import { Brain, Shield, BarChart3, TrendingUp, ArrowRight, Search, FileText, Microscope, Scale, Leaf, Calculator, Globe2, Rss, Clock, BookOpen, ExternalLink, Database, Zap, CheckCircle, Eye, AlertTriangle, Flame, Network, Activity, DollarSign, Target, Building2, Package } from 'lucide-react';
-const NomosXLogo3D = dynamic(() => import('@/components/brand/NomosXLogo3D').catch(() => ({ default: () => null })), {
+const NomosXLogo3D = dynamic(() => import('@/components/brand/NomosXLogo3D'), {
   ssr: false,
   loading: () => null,
 });
@@ -15,11 +15,11 @@ import { ThreeComponentWrapper } from '@/components/ThreeComponentWrapper';
 import SiteFooter from '@/components/SiteFooter';
 import { AnimatePresence, motion } from 'framer-motion';
 
-const HoloOrb = dynamic(() => import('@/components/ui/HoloOrb').catch(() => ({ default: () => null })), {
+const HoloOrb = dynamic(() => import('@/components/ui/HoloOrb'), {
   ssr: false,
   loading: () => null,
 });
-const HoloPortrait = dynamic(() => import('@/components/ui/HoloPortrait').catch(() => ({ default: () => null })), {
+const HoloPortrait = dynamic(() => import('@/components/ui/HoloPortrait'), {
   ssr: false,
   loading: () => null,
 });
