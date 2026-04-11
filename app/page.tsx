@@ -13,7 +13,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 const HoloOrb = dynamic(() => import('@/components/ui/HoloOrb'), { ssr: false });
 const HoloPortrait = dynamic(() => import('@/components/ui/HoloPortrait'), { ssr: false });
 
-const DOMAIN_ICONS: Record<string, React.ComponentType<{ size?: number | string; strokeWidth?: number; style?: React.CSSProperties }>> = {
+const DOMAIN_ICONS: Record<string, React.ComponentType<{ size?: number | string; strokeWidth?: number | string; style?: React.CSSProperties }>> = {
   'Economics':      TrendingUp,
   'AI & Tech':      Brain,
   'Governance':     Network,
