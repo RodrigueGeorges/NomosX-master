@@ -46,7 +46,7 @@ import { simpleRedisManager, SimpleCacheUtils } from './redis-simple';
 import type { PipelineStats } from './pipeline-types';
 import { createLineageTracker as createLineageTrackerTyped, recordTransformation as recordTransformationTyped } from './pipeline-types';
 import { renderProfessionalBriefHTML, renderProfessionalStrategicHTML } from './editor-agent';
-import { generatePDF } from './pdf-export';
+import { generatePrintHTML } from './pdf-export';
 
 function hashQuery(query: string, providers: string[]): string {
   const str = `${query}|${providers.join(",")}`;
@@ -1853,11 +1853,8 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   }
   stats.htmlLength = html.length;
 
-  // Generate PDF (non-blocking, parallel with citation verifier)
-  const pdfPromise = generatePDF(html, {
-    format: isStrategic ? 'strategic' : 'brief',
-    title: analysis.title,
-  }).catch(err => { console.warn(`${label} PDF: failed (non-blocking):`, err); return null; });
+  // Generate print-optimized HTML (synchronous, no blocking)
+  const printHtml = generatePrintHTML(html);
 
   // â”€â”€ STEP 9: CITATION VERIFIER â”€â”€
   console.log(`${label} CITATION VERIFIER: semantic check`);
