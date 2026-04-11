@@ -113,7 +113,7 @@ function MorphParticles({
       positions[i3 + 2] = chaosZ + (orderZ - chaosZ) * orderFactor;
     }
 
-    posAttr.set(positions);
+    posAttr.array = positions;
     posAttr.needsUpdate = true;
   });
 
@@ -188,7 +188,7 @@ function AccentParticles({ count, color, orderFactor }: { count: number; color: 
       positions[i3 + 2] = chaosZ + (orderZ - chaosZ) * orderFactor;
     }
 
-    posAttr.set(positions);
+    posAttr.array = positions;
     posAttr.needsUpdate = true;
   });
 
