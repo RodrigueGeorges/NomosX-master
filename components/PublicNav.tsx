@@ -14,7 +14,7 @@ import { Menu, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 
 interface PublicNavProps {
-  currentPage?: "home" | "articles" | "about" | "methodology" | "pricing" | "platform";
+  currentPage?: "home" | "articles" | "about" | "methodology" | "pricing" | "platform" | "studio";
   onSignInClick: () => void;
   isAuthenticated?: boolean;
 }
