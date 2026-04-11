@@ -10,8 +10,14 @@ import { NomosXLogo3D } from '@/components/brand/NomosXLogo3D';
 import SiteFooter from '@/components/SiteFooter';
 import { AnimatePresence, motion } from 'framer-motion';
 
-const HoloOrb = dynamic(() => import('@/components/ui/HoloOrb'), { ssr: false });
-const HoloPortrait = dynamic(() => import('@/components/ui/HoloPortrait'), { ssr: false });
+const HoloOrb = dynamic(() => import('@/components/ui/HoloOrb'), { 
+  ssr: false,
+  loading: () => <div className="w-full h-full animate-pulse bg-white/5" />,
+});
+const HoloPortrait = dynamic(() => import('@/components/ui/HoloPortrait'), { 
+  ssr: false,
+  loading: () => <div className="w-full h-full animate-pulse bg-white/5" />,
+});
 
 const DOMAIN_ICONS: Record<string, React.ComponentType<{ size?: number | string; strokeWidth?: number | string; style?: React.CSSProperties }>> = {
   'Economics':      TrendingUp,

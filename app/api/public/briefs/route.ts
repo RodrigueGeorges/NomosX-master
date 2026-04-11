@@ -87,25 +87,34 @@ export async function GET(req: NextRequest) {
         }
 
         // Get total count for pagination
-        const totalCount = await prisma.thinkTankPublication.count({ where });
+        let totalCount = 0;
+        let briefs: any[] = [];
+        try {
+          totalCount = await prisma.thinkTankPublication.count({ where });
 
-        // Fetch briefs with summaries
-        const briefs = await prisma.thinkTankPublication.findMany({
-          where,
-          orderBy: { publishedAt: 'desc' },
-          skip: offset,
-          take: limit,
-          select: {
-            id: true,
-            title: true,
-            type: true,
-            publishedAt: true,
-            wordCount: true,
-            sourceIds: true,
-            trustScore: true,
-            html: true,
-          },
-        });
+          // Fetch briefs with summaries
+          briefs = await prisma.thinkTankPublication.findMany({
+            where,
+            orderBy: { publishedAt: 'desc' },
+            skip: offset,
+            take: limit,
+            select: {
+              id: true,
+              title: true,
+              type: true,
+              publishedAt: true,
+              wordCount: true,
+              sourceIds: true,
+              trustScore: true,
+              html: true,
+            },
+          });
+        } catch (dbError: any) {
+          console.error('[API/Public/Briefs] Database error:', dbError);
+          // Return empty results instead of 500 error
+          totalCount = 0;
+          briefs = [];
+        }
 
         // Transform data for public consumption
         const transformedBriefs = briefs.map(brief => {
