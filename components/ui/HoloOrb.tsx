@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useMemo } from 'react';
+import { useRef, useMemo, useEffect } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Float } from '@react-three/drei';
 import * as THREE from 'three';
@@ -28,6 +28,18 @@ function ShellParticles({ hexColor, count, innerR, outerR, opacity, speed }: {
     }
     return pos;
   }, [count, innerR, outerR]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (ref.current) {
+        ref.current.geometry.dispose();
+        if (ref.current.material instanceof THREE.Material) {
+          ref.current.material.dispose();
+        }
+      }
+    };
+  }, []);
 
   useFrame(({ clock }) => {
     if (ref.current) {
@@ -58,6 +70,20 @@ function OrbScene({ hexColor }: OrbSceneProps) {
   const ring1Ref = useRef<THREE.Mesh>(null);
   const ring2Ref = useRef<THREE.Mesh>(null);
   const cageRef  = useRef<THREE.Mesh>(null);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      [ring1Ref, ring2Ref, cageRef].forEach(meshRef => {
+        if (meshRef.current) {
+          meshRef.current.geometry.dispose();
+          if (meshRef.current.material instanceof THREE.Material) {
+            meshRef.current.material.dispose();
+          }
+        }
+      });
+    };
+  }, []);
 
   useFrame(({ clock }) => {
     const t = clock.elapsedTime;

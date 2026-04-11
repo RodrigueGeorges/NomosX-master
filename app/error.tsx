@@ -30,7 +30,7 @@ export default function Error({
             </svg>
           </div>
           <span className="text-3xl font-bold text-white">
-            Nomos<span className="text-indigo-400">X</span>
+            Nomos<span className="text-amber-500">X</span>
           </span>
         </div>
 

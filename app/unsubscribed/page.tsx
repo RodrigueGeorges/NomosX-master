@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { NomosXLogo } from '@/components/brand/NomosXLogo';
+import { NomosXLogo3D } from '@/components/brand/NomosXLogo3D';
 
 export const metadata: Metadata = {
   title: 'Unsubscribed | NomosX',
@@ -11,7 +11,7 @@ export default function UnsubscribedPage() {
     <div className="min-h-screen bg-[#09090b] text-white flex items-center justify-center px-6">
       <div className="max-w-md w-full text-center">
         <div className="mb-8 flex justify-center">
-          <NomosXLogo size="md" variant="full" />
+          <NomosXLogo3D size={60} />
         </div>
 
         <div className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mx-auto mb-6">

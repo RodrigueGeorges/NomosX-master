@@ -176,36 +176,16 @@ export default function PlatformPage() {
                   </div>
                 </div>
 
-                {/* Right: Live deliberation mockup */}
-                <div className="rounded-2xl border border-white/[0.07] bg-white/[0.02] p-6 relative overflow-hidden">
+                {/* Right: Visual representation */}
+                <div className="rounded-2xl border border-white/[0.07] bg-white/[0.02] p-8 relative overflow-hidden flex items-center justify-center">
                   <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg,#6366F1,#8B5CF6,transparent)' }} />
-                  <p className="text-[10px] text-white/25 font-semibold tracking-[0.2em] uppercase mb-4">Council Deliberation — Live</p>
-                  <div className="space-y-3">
-                    {[
-                      { researcher: 'Dr. Elena Vasquez', domain: 'Economics', color: '#6366F1', position: 'Carbon tax evidence shows consistent 10-15% emission reductions across 23 studies [SRC-1][SRC-4].', stance: 'pro' },
-                      { researcher: 'Dr. Kenji Tanaka', domain: 'Climate', color: '#7C3AED', position: 'The 10-15% figure masks heterogeneity — Nordic 25%, developing <5% [SRC-7].', stance: 'challenge' },
-                      { researcher: 'Dr. Priya Sharma', domain: 'Statistics', color: '#A855F7', position: 'Pooled effect = 12.3% (95% CI: 8.1-16.5%), I²=72%. Directionally consistent.', stance: 'synthesis' },
-                    ].map((ex, i) => (
-                      <div key={i} className={`rounded-xl p-4 border ${
-                        ex.stance === 'pro' ? 'border-emerald-500/15 bg-emerald-500/[0.03]' :
-                        ex.stance === 'challenge' ? 'border-rose-500/15 bg-rose-500/[0.03]' :
-                        'border-indigo-500/15 bg-indigo-500/[0.03]'
-                      }`}>
-                        <div className="flex items-center gap-2 mb-2">
-                          <div className="w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold" style={{ background: ex.color + '20', border: `1px solid ${ex.color}40`, color: ex.color }}>
-                            {ex.researcher.split(' ').map(n => n[0]).slice(1).join('')}
-                          </div>
-                          <span className="text-xs font-medium text-white/70">{ex.researcher}</span>
-                          <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ background: ex.color + '15', color: ex.color + 'AA' }}>{ex.domain}</span>
-                          <span className={`ml-auto text-[10px] px-1.5 py-0.5 rounded-full ${
-                            ex.stance === 'pro' ? 'bg-emerald-500/10 text-emerald-400' :
-                            ex.stance === 'challenge' ? 'bg-rose-500/10 text-rose-400' :
-                            'bg-indigo-500/10 text-indigo-400'
-                          }`}>{ex.stance}</span>
-                        </div>
-                        <p className="text-xs text-white/45 leading-relaxed">{ex.position}</p>
-                      </div>
-                    ))}
+                  <div className="text-center">
+                    <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
+                      style={{ background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.30)' }}>
+                      <span className="text-2xl font-bold text-indigo-300">22</span>
+                    </div>
+                    <p className="text-xs text-white/40 mb-2">Domain experts</p>
+                    <p className="text-[10px] text-white/25">Across 22 disciplines</p>
                   </div>
                 </div>
               </div>

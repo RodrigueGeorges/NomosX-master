@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/db';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { NomosXLogo } from '@/components/brand/NomosXLogo';
+import { NomosXLogo3D } from '@/components/brand/NomosXLogo3D';
 import { sanitizeHtml } from '@/lib/sanitize';
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
@@ -35,12 +35,12 @@ export default async function SharedBrief({ params }: { params: Promise<{ id: st
       <header className="relative z-10 border-b border-white/[0.06] bg-[#09090b]/80 backdrop-blur-sm">
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5">
-            <NomosXLogo size="sm" />
+            <NomosXLogo3D size={40} />
             <span className="text-sm text-white/40 font-light">Shared Brief</span>
           </Link>
           <Link
             href="/api/auth/register"
-            className="px-4 py-2 rounded-lg bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-400 hover:to-violet-400 text-white text-sm font-medium transition-all duration-200 shadow-lg shadow-indigo-500/25"
+            className="px-4 py-2 rounded-lg bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-[#09090b] text-sm font-medium transition-all duration-200 shadow-lg shadow-amber-500/20"
           >
             Get full access
           </Link>
@@ -75,7 +75,7 @@ export default async function SharedBrief({ params }: { params: Promise<{ id: st
         />
 
         {/* CTA */}
-        <div className="mt-16 p-8 rounded-2xl border border-indigo-500/20 bg-gradient-to-br from-indigo-500/[0.06] to-violet-500/[0.03] text-center">
+        <div className="mt-16 p-8 rounded-2xl border border-amber-500/20 bg-gradient-to-br from-indigo-500/[0.06] to-amber-500/[0.03] text-center">
           <p className="text-xs text-indigo-400/80 font-semibold tracking-[0.2em] uppercase mb-3">The Autonomous Think Tank</p>
           <h2 className="text-xl font-light text-white mb-3">
             Get weekly intelligence briefs like this one.

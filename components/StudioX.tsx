@@ -11,19 +11,19 @@ interface Message {
 }
 
 /**
- * OmniChat — Floating Chief of Staff
+ * StudioX — NomosX Research Studio
  *
- * Context-aware chat that knows about the user's briefs, topics, and research.
+ * Context-aware research assistant that knows about published briefs and topics.
  * Appears as a floating button in the bottom-right corner.
- * Streams responses from /api/omnichat.
+ * Streams responses from /api/studiox.
  */
-export default function OmniChat() {
+export default function StudioX() {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
-      content: "I'm OmniChat — your chief of staff at NomosX. Ask me about your briefs, request deeper analysis, or commission new research.",
+      content: "I'm StudioX — your research assistant at NomosX. Ask me about published briefs, request deeper analysis, or commission new research.",
       timestamp: new Date(),
     },
   ]);
@@ -67,7 +67,7 @@ export default function OmniChat() {
       .map(m => ({ role: m.role, content: m.content }));
 
     try {
-      const res = await fetch('/api/omnichat', {
+      const res = await fetch('/api/studiox', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ messages: apiMessages, stream: true }),
@@ -157,7 +157,7 @@ export default function OmniChat() {
       {!open && (
         <button
           onClick={() => setOpen(true)}
-          className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/50 hover:scale-105 transition-all duration-300 flex items-center justify-center group"
+          className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-gradient-to-br from-amber-600 to-amber-500 shadow-lg shadow-amber-500/20 hover:shadow-amber-500/30 hover:scale-105 transition-all duration-300 flex items-center justify-center group"
         >
           <MessageSquare size={22} className="text-white group-hover:scale-110 transition-transform" />
           <span className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-400 rounded-full border-2 border-[#09090b] animate-pulse" />
@@ -168,14 +168,14 @@ export default function OmniChat() {
       {open && (
         <div className="fixed bottom-6 right-6 z-50 w-[400px] max-w-[calc(100vw-48px)] h-[560px] max-h-[calc(100vh-120px)] rounded-2xl border border-white/[0.08] bg-[#0c0c10] shadow-2xl shadow-black/50 flex flex-col overflow-hidden">
           {/* Header */}
-          <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.06] bg-gradient-to-r from-indigo-500/[0.06] to-violet-500/[0.04]">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.06] bg-gradient-to-r from-amber-500/[0.06] to-indigo-500/[0.04]">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-600 to-amber-500 flex items-center justify-center">
                 <Sparkles size={14} className="text-white" />
               </div>
               <div>
-                <h3 className="text-sm font-semibold text-white">OmniChat</h3>
-                <p className="text-[10px] text-white/30">Your chief of staff</p>
+                <h3 className="text-sm font-semibold text-white">StudioX</h3>
+                <p className="text-[10px] text-white/30">Research Studio</p>
               </div>
             </div>
             <button

@@ -63,6 +63,9 @@ function NomosSymbol({ px, className }: { px: number; className?: string }) {
       {/* Centre node — the resolved X, glowing gold */}
       <circle cx="60" cy="60" r="9"   fill="#D4AF37"  filter="url(#nx-gold-glow)" opacity="0.85" />
       <circle cx="60" cy="60" r="4"   fill="#F5D778"  opacity="0.9" />
+
+      {/* Greek letters: Ξ (Xi) for X, Ν (Nu) for Nomos */}
+      <text x="60" y="64" text-anchor="middle" font-family="serif" font-size="7" font-weight="bold" fill="#09090b" opacity="0.9">Ξ</text>
     </svg>
   );
 }

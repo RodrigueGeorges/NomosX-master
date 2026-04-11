@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useMemo } from 'react';
+import { useRef, useMemo, useEffect } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
@@ -13,6 +13,20 @@ function PortraitScene({ hexColor }: PortraitSceneProps) {
   const ring2Ref = useRef<THREE.Mesh>(null);
   const ring3Ref = useRef<THREE.Mesh>(null);
   const pointsRef = useRef<THREE.Points>(null);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      [ring1Ref, ring2Ref, ring3Ref, pointsRef].forEach(meshRef => {
+        if (meshRef.current) {
+          meshRef.current.geometry.dispose();
+          if (meshRef.current.material instanceof THREE.Material) {
+            meshRef.current.material.dispose();
+          }
+        }
+      });
+    };
+  }, []);
 
   const particles = useMemo(() => {
     const count = 180;

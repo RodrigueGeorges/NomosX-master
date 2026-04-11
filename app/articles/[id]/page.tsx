@@ -162,7 +162,7 @@ export default function ArticlePage() {
           <p className="text-white/40 mb-4">The article you're looking for doesn't exist or you don't have access to it.</p>
           <button
             onClick={() => router.push('/articles')}
-            className="px-6 py-2.5 rounded-lg border border-indigo-500/20 bg-indigo-500/5 text-indigo-300 font-medium hover:bg-indigo-500/10 transition-all"
+            className="px-6 py-2.5 rounded-lg border border-amber-500/20 bg-amber-500/5 text-amber-300 font-medium hover:bg-amber-500/10 transition-all"
           >
             Back to Articles
           </button>
@@ -241,7 +241,7 @@ export default function ArticlePage() {
               {/* Article Header */}
               <div className="mb-8">
                 <div className="flex items-center gap-3 mb-4">
-                  <span className="px-3 py-1 rounded-full border border-indigo-500/20 bg-indigo-500/5 text-indigo-300 text-xs font-medium">
+                  <span className="px-3 py-1 rounded-full border border-amber-500/20 bg-amber-500/5 text-amber-300 text-xs font-medium">
                     {articleTypeLabel(article.type)}
                   </span>
                   {article.trustScore != null && (
@@ -327,7 +327,7 @@ export default function ArticlePage() {
                         </p>
                         <button
                           onClick={() => setShowAuthModal(true)}
-                          className="px-8 py-3 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 text-white font-medium hover:from-indigo-600 hover:to-violet-600 transition-all shadow-lg shadow-indigo-500/25"
+                          className="px-8 py-3 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 text-[#09090b] font-medium hover:from-amber-500 hover:to-amber-400 transition-all shadow-lg shadow-amber-500/20"
                         >
                           Subscribe Now
                         </button>
@@ -374,7 +374,7 @@ export default function ArticlePage() {
                             {related.readTime} min
                           </span>
                         </div>
-                        <h4 className="text-sm font-medium text-white/90 mb-1 line-clamp-2 group-hover:text-indigo-300 transition-colors">
+                        <h4 className="text-sm font-medium text-white/90 mb-1 line-clamp-2 group-hover:text-amber-300 transition-colors">
                           {related.title}
                         </h4>
                         <p className="text-xs text-white/40">

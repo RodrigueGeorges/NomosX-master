@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { NomosXLogo } from "@/components/brand/NomosXLogo";
+import { NomosXLogo3D } from "@/components/brand/NomosXLogo3D";
 import { ArrowRight, Github, Twitter } from "lucide-react";
 
 const LINKS = {
@@ -13,7 +13,6 @@ const LINKS = {
   ],
   Research: [
     { label: "About the Think Tank", href: "/about" },
-    { label: "The 22 Researchers", href: "/researchers" },
     { label: "Council Protocol", href: "/methodology" },
     { label: "Citation Standards", href: "/methodology" },
   ],
@@ -59,7 +58,7 @@ export default function SiteFooter({ onSignInClick }: SiteFooterProps) {
           </div>
           <button
             onClick={onSignInClick}
-            className="group flex-shrink-0 flex items-center gap-2 px-6 py-3.5 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-400 hover:to-violet-400 text-white font-semibold text-sm transition-all duration-300 shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/50 hover:scale-[1.03]"
+            className="group flex-shrink-0 flex items-center gap-2 px-6 py-3.5 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-[#09090b] font-semibold text-sm transition-all duration-300 shadow-lg shadow-amber-500/20 hover:shadow-amber-500/40 hover:scale-[1.03]"
           >
             Access institutional intelligence — Free tier
             <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
@@ -90,7 +89,7 @@ export default function SiteFooter({ onSignInClick }: SiteFooterProps) {
               className="cursor-pointer mb-5 inline-block"
               onClick={() => router.push("/")}
             >
-              <NomosXLogo size="sm" variant="full" />
+              <NomosXLogo3D size={40} />
             </div>
             <p className="text-sm text-white/30 leading-relaxed mb-6 max-w-[220px]">
               Autonomous research infrastructure. 22 researchers. 16 agents. 250M+ sources. Multi-pass validation.

@@ -13,7 +13,7 @@ import { useRouter } from 'next/navigation';
 import AuthModal from '@/components/AuthModal';
 import PublicNav from '@/components/PublicNav';
 import { Search, Database, BarChart3, FileText, Brain, Shield, ArrowRight, Globe, Zap, CheckCircle, Eye, Scale, Users, Microscope, Flame, Layers, TrendingUp } from 'lucide-react';
-import { NomosXLogo } from '@/components/brand/NomosXLogo';
+import { NomosXLogo3D } from '@/components/brand/NomosXLogo3D';
 import SiteFooter from '@/components/SiteFooter';
 import { motion } from 'framer-motion';
 
@@ -259,9 +259,9 @@ export default function MethodologyPage() {
               Sequential verification pipeline. 16 specialized agents. 22 domain researchers. 250M+ sources. Complete traceability from query to publication.
             </p>
 
-            <button 
+            <button
               onClick={() => setShowAuthModal(true)}
-              className="group px-6 py-3 rounded-lg bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-400 hover:to-violet-400 text-white font-medium text-sm transition-all duration-300 shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 hover:scale-[1.03] inline-flex items-center gap-2"
+              className="group px-6 py-3 rounded-lg bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-[#09090b] font-medium text-sm transition-all duration-300 shadow-lg shadow-amber-500/20 hover:shadow-amber-500/30 hover:scale-[1.03] inline-flex items-center gap-2"
             >
               Commission a research brief
               <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
@@ -412,7 +412,7 @@ export default function MethodologyPage() {
               </p>
               <button
                 onClick={() => setShowAuthModal(true)}
-                className="group px-6 py-3 rounded-lg bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-400 hover:to-violet-400 text-white font-medium text-sm transition-all duration-300 shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 hover:scale-[1.03] inline-flex items-center gap-2"
+                className="group px-6 py-3 rounded-lg bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-[#09090b] font-medium text-sm transition-all duration-300 shadow-lg shadow-amber-500/20 hover:shadow-amber-500/30 hover:scale-[1.03] inline-flex items-center gap-2"
               >
                 Access institutional intelligence — Free tier
                 <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />

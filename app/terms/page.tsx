@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { NomosXLogo } from '@/components/brand/NomosXLogo';
+import { NomosXLogo3D } from '@/components/brand/NomosXLogo3D';
 
 export const metadata: Metadata = {
   title: 'Terms of Service | NomosX',
@@ -14,7 +14,7 @@ export default function TermsPage() {
         {/* Header */}
         <div className="mb-12">
           <Link href="/" className="inline-block mb-8">
-            <NomosXLogo size="sm" variant="full" />
+            <NomosXLogo3D size={40} />
           </Link>
           <p className="text-xs text-indigo-400/80 font-semibold tracking-[0.2em] uppercase mb-3">Legal</p>
           <h1 className="text-4xl font-light text-white mb-3">Terms of Service</h1>

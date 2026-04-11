@@ -4,17 +4,14 @@ import React, { useState, useEffect, Suspense } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter, useSearchParams } from 'next/navigation';
 import AuthModal from '@/components/AuthModal';
-import OnboardingModal from '@/components/OnboardingModal';
 import PublicNav from '@/components/PublicNav';
 import { Brain, Shield, BarChart3, TrendingUp, ArrowRight, Search, FileText, Microscope, Scale, Leaf, Calculator, Globe2, Rss, Clock, BookOpen, ExternalLink, Database, Zap, CheckCircle, Eye, AlertTriangle, Flame, Network, Activity, DollarSign, Target, Building2, Package } from 'lucide-react';
-import InteractiveDemo from '@/components/InteractiveDemo';
-import { NomosXLogo } from '@/components/brand/NomosXLogo';
-import TrustedByMarquee from '@/components/TrustedByMarquee';
-import TestimonialsSection from '@/components/TestimonialsSection';
+import { NomosXLogo3D } from '@/components/brand/NomosXLogo3D';
 import SiteFooter from '@/components/SiteFooter';
 import { AnimatePresence, motion } from 'framer-motion';
 
 const HoloOrb = dynamic(() => import('@/components/ui/HoloOrb'), { ssr: false });
+const HoloPortrait = dynamic(() => import('@/components/ui/HoloPortrait'), { ssr: false });
 
 const DOMAIN_ICONS: Record<string, React.ComponentType<{ size?: number; strokeWidth?: number; style?: React.CSSProperties }>> = {
   'Economics':      TrendingUp,
@@ -42,28 +39,28 @@ const DOMAIN_ICONS: Record<string, React.ComponentType<{ size?: number; strokeWi
 };
 
 const COUNCIL_RESEARCHERS = [
-  { name: "Dr. Elena Vasquez",    title: "Econometrics & Policy",    institution: "Harvard Kennedy", initials: "EV", hex: "#6366F1", domain: "Economics",        specialty: "Macro policy · Carbon pricing · Labor markets"       },
-  { name: "Dr. James Chen",       title: "AI & Digital Systems",    institution: "Stanford",        initials: "JC", hex: "#8B5CF6", domain: "AI & Tech",        specialty: "LLM governance · Tech regulation · Digital infra"    },
-  { name: "Dr. Amara Okafor",     title: "Public Policy",           institution: "Oxford",          initials: "AO", hex: "#818CF8", domain: "Governance",       specialty: "Institutional design · Democracy · Africa policy"    },
-  { name: "Dr. Sarah Lindström",  title: "Epidemiology & Health",   institution: "Johns Hopkins",   initials: "SL", hex: "#A78BFA", domain: "Health",           specialty: "Pandemic prep · Health equity · Biostatistics"       },
-  { name: "Dr. Marcus Webb",      title: "Strategic Security",      institution: "Georgetown",      initials: "MW", hex: "#94A3B8", domain: "Security",         specialty: "Geopolitics · Defense strategy · Intelligence"        },
-  { name: "Dr. Isabelle Moreau",  title: "International Law",       institution: "Yale Law",        initials: "IM", hex: "#4F46E5", domain: "Law & Regulation", specialty: "Regulatory frameworks · Trade law · Human rights"    },
-  { name: "Dr. Kenji Tanaka",     title: "Climate & Environment",   institution: "ETH Zürich",      initials: "KT", hex: "#7C3AED", domain: "Climate",          specialty: "Climate systems · Carbon markets · Net-zero policy"  },
-  { name: "Dr. Priya Sharma",     title: "Quantitative Methods",    institution: "MIT",             initials: "PS", hex: "#A855F7", domain: "Statistics",       specialty: "Causal inference · Meta-analysis · Bayesian methods" },
-  { name: "Dr. Alexandre Dubois", title: "Financial Economics",     institution: "LSE",             initials: "AD", hex: "#6366F1", domain: "Finance",          specialty: "Asset pricing · Market microstructure · Risk"        },
-  { name: "Dr. Sergei Petrov",    title: "International Relations", institution: "Geneva / UN",     initials: "SP", hex: "#8B5CF6", domain: "Geopolitics",      specialty: "Great power dynamics · Multilateralism · Diplomacy"  },
-  { name: "Dr. Ravi Gupta",       title: "Development Economics",   institution: "World Bank",      initials: "RG", hex: "#0EA5E9", domain: "Development",      specialty: "Poverty reduction · Aid effectiveness · Trade"        },
-  { name: "Dr. Nadia Khoury",     title: "Political Economy",       institution: "Sciences Po",     initials: "NK", hex: "#F59E0B", domain: "Political Econ",   specialty: "MENA politics · State capture · Rent economies"       },
-  { name: "Dr. Carlos Herrera",   title: "Trade & Innovation",      institution: "UN ECLAC",        initials: "CH", hex: "#EC4899", domain: "Trade",            specialty: "Latin America · Tech transfer · Supply chains"        },
-  { name: "Dr. Beatrice Martin",  title: "Defense & Strategy",      institution: "RAND Corp",       initials: "BM", hex: "#F97316", domain: "Defense",          specialty: "Force posture · Deterrence · Nuclear stability"       },
-  { name: "Dr. Yuki Tanaka",      title: "Environmental Law",       institution: "Kyoto University",initials: "YT", hex: "#14B8A6", domain: "Env. Law",         specialty: "International treaties · Carbon law · Biodiversity"  },
-  { name: "Dr. Fatima Diallo",    title: "Governance & Peace",      institution: "AU Commission",   initials: "FD", hex: "#06B6D4", domain: "Peacebuilding",    specialty: "Africa stability · Post-conflict · Institutions"      },
-  { name: "Dr. Anton Berg",       title: "Economic History",        institution: "Uppsala U.",      initials: "AB", hex: "#6366F1", domain: "History",          specialty: "Long-run growth · Institutions · Crises"              },
-  { name: "Dr. Maria Paz",        title: "Social Policy",           institution: "UNAM",            initials: "MP", hex: "#10B981", domain: "Social Policy",    specialty: "Inequality · Social protection · Gender"              },
-  { name: "Dr. Viktor Kovalev",   title: "Geopolitical Risk",       institution: "HSE Moscow",      initials: "VK", hex: "#8B5CF6", domain: "Risk Analysis",    specialty: "Eurasia · Hybrid warfare · Sanctions"                 },
-  { name: "Dr. Hina Lim",         title: "Fintech & Regulation",    institution: "NUS Singapore",   initials: "HL", hex: "#EC4899", domain: "Fintech",          specialty: "CBDC · Crypto regulation · Digital payments"          },
-  { name: "Dr. Olivier Blanc",    title: "Behavioral Economics",    institution: "INSEAD",          initials: "OB", hex: "#F59E0B", domain: "Behavioral",       specialty: "Nudge theory · Decision bias · Policy design"          },
-  { name: "Dr. Zara Ahmed",       title: "Urban & Housing Policy",  institution: "UCL",             initials: "ZA", hex: "#14B8A6", domain: "Urban Policy",     specialty: "Smart cities · Housing affordability · Mobility"      },
+  { name: "Dr. Oikonomia (Οἰκονομία)", title: "Econometrics & Policy", institution: "Harvard Kennedy", initials: "ΟΟ", hex: "#6366F1", domain: "Economics", specialty: "Macro policy · Carbon pricing · Labor markets" },
+  { name: "Dr. Techne (Τέχνη)", title: "AI & Digital Systems", institution: "Stanford", initials: "ΤΤ", hex: "#0EA5E9", domain: "AI & Tech", specialty: "LLM governance · Tech regulation · Digital infra" },
+  { name: "Dr. Politeia (Πολιτεία)", title: "Public Policy", institution: "Oxford", initials: "ΠΠ", hex: "#8B5CF6", domain: "Governance", specialty: "Institutional design · Democracy · Africa policy" },
+  { name: "Dr. Hygeia (Ὑγίεια)", title: "Epidemiology & Health", institution: "Johns Hopkins", initials: "ΗΗ", hex: "#10B981", domain: "Health", specialty: "Pandemic prep · Health equity · Biostatistics" },
+  { name: "Dr. Aegis (Αἰγίς)", title: "Strategic Security", institution: "Georgetown", initials: "ΑΑ", hex: "#F59E0B", domain: "Security", specialty: "Geopolitics · Defense strategy · Intelligence" },
+  { name: "Dr. Nomos (Νόμος)", title: "International Law", institution: "Yale Law", initials: "ΝΝ", hex: "#F43F5E", domain: "Law & Regulation", specialty: "Regulatory frameworks · Trade law · Human rights" },
+  { name: "Dr. Gaia (Γαία)", title: "Climate & Environment", institution: "ETH Zürich", initials: "ΓΓ", hex: "#14B8A6", domain: "Climate", specialty: "Climate systems · Carbon markets · Net-zero policy" },
+  { name: "Dr. Metron (Μέτρον)", title: "Quantitative Methods", institution: "MIT", initials: "ΜΜ", hex: "#6366F1", domain: "Statistics", specialty: "Causal inference · Meta-analysis · Bayesian methods" },
+  { name: "Dr. Chrematistikos (Χρηματιστικός)", title: "Financial Economics", institution: "LSE", initials: "ΧΧ", hex: "#F97316", domain: "Finance", specialty: "Asset pricing · Market microstructure · Risk" },
+  { name: "Dr. Polis (Πόλις)", title: "International Relations", institution: "Geneva / UN", initials: "ΠΠ", hex: "#EF4444", domain: "Geopolitics", specialty: "Great power dynamics · Multilateralism · Diplomacy" },
+  { name: "Dr. Auxesis (Αὔξησις)", title: "Development Economics", institution: "World Bank", initials: "ΑΑ", hex: "#84CC16", domain: "Development", specialty: "Poverty reduction · Aid effectiveness · Trade" },
+  { name: "Dr. Koinonia (Κοινωνία)", title: "Political Economy", institution: "Sciences Po", initials: "ΚΚ", hex: "#A855F7", domain: "Political Econ", specialty: "MENA politics · State capture · Rent economies" },
+  { name: "Dr. Energeia (Ἐνέργεια)", title: "Trade & Innovation", institution: "UN ECLAC", initials: "ΕΕ", hex: "#22C55E", domain: "Trade", specialty: "Latin America · Tech transfer · Supply chains" },
+  { name: "Dr. Thymos (Θυμός)", title: "Defense & Strategy", institution: "RAND Corp", initials: "ΘΘ", hex: "#FB923C", domain: "Defense", specialty: "Force posture · Deterrence · Nuclear stability" },
+  { name: "Dr. Asty (Ἄστυ)", title: "Environmental Law", institution: "Kyoto University", initials: "ΑΑ", hex: "#FDE047", domain: "Env. Law", specialty: "International treaties · Carbon law · Biodiversity" },
+  { name: "Dr. Bios (Βίος)", title: "Governance & Peace", institution: "AU Commission", initials: "ΒΒ", hex: "#F472B6", domain: "Peacebuilding", specialty: "Africa stability · Post-conflict · Institutions" },
+  { name: "Dr. Logos (Λόγος)", title: "Economic History", institution: "Uppsala U.", initials: "ΛΛ", hex: "#64748B", domain: "History", specialty: "Long-run growth · Institutions · Crises" },
+  { name: "Dr. Noesis (Νόησις)", title: "Social Policy", institution: "UNAM", initials: "ΝΝ", hex: "#EC4899", domain: "Social Policy", specialty: "Inequality · Social protection · Gender" },
+  { name: "Dr. Digi (Δίγι)", title: "Geopolitical Risk", institution: "HSE Moscow", initials: "ΔΔ", hex: "#06B6D4", domain: "Risk Analysis", specialty: "Eurasia · Hybrid warfare · Sanctions" },
+  { name: "Dr. Syntaxis (Σύνταξις)", title: "Fintech & Regulation", institution: "NUS Singapore", initials: "ΣΣ", hex: "#3B82F6", domain: "Fintech", specialty: "CBDC · Crypto regulation · Digital payments" },
+  { name: "Dr. Chaos (Χάος)", title: "Behavioral Economics", institution: "INSEAD", initials: "ΧΧ", hex: "#6366F1", domain: "Behavioral", specialty: "Nudge theory · Decision bias · Policy design" },
+  { name: "Dr. Kyvernon (Κύβερνον)", title: "Urban & Housing Policy", institution: "UCL", initials: "ΚΚ", hex: "#DC2626", domain: "Urban Policy", specialty: "Smart cities · Housing affordability · Mobility" },
 ];
 
 type PublicBrief = {
@@ -81,7 +78,6 @@ type PublicBrief = {
 function HomePageContent() {
   const router = useRouter();
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const [showOnboardingModal, setShowOnboardingModal] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
@@ -96,7 +92,7 @@ function HomePageContent() {
 
   useEffect(() => {
     const observer = new IntersectionObserver(
-      (entries) => entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('is-visible'); }),
+      (entries: IntersectionObserverEntry[]) => entries.forEach((e: IntersectionObserverEntry) => { if (e.isIntersecting) e.target.classList.add('is-visible'); }),
       { threshold: 0.12 }
     );
     document.querySelectorAll('.reveal-up').forEach(el => observer.observe(el));
@@ -105,7 +101,7 @@ function HomePageContent() {
 
   useEffect(() => {
     if (activeR !== null) return;
-    const t = setInterval(() => setAutoR(n => (n + 1) % COUNCIL_RESEARCHERS.length), 5000);
+    const t = setInterval(() => setAutoR((n: number) => (n + 1) % COUNCIL_RESEARCHERS.length), 5000);
     return () => clearInterval(t);
   }, [activeR]);
 
@@ -150,7 +146,7 @@ function HomePageContent() {
     }
   }, [searchParams]);
 
-  const handleAuthSuccess = () => { setIsAuthenticated(true); setShowAuthModal(false); setShowOnboardingModal(true); };
+  const handleAuthSuccess = () => { setIsAuthenticated(true); setShowAuthModal(false); };
 
   if (isLoading) return (
     <div className="min-h-screen bg-[#09090b] flex items-center justify-center">
@@ -178,7 +174,7 @@ function HomePageContent() {
           <section className="relative px-6 sm:px-8 pt-24 sm:pt-32 pb-16">
             <div className="max-w-5xl mx-auto text-center">
               <div className={`flex justify-center mb-8 transition-opacity duration-700 ${mounted ? 'opacity-100' : 'opacity-0'}`}>
-                <NomosXLogo size="2xl" variant="full" />
+                <NomosXLogo3D size={140} />
               </div>
 
               <div className={`inline-flex items-center gap-2.5 px-4 py-2 rounded-full border border-indigo-500/25 bg-indigo-500/8 mb-10 transition-opacity duration-700 ${mounted ? 'opacity-100' : 'opacity-0'}`}>
@@ -202,7 +198,7 @@ function HomePageContent() {
               </p>
 
               <div className={`flex flex-col sm:flex-row gap-3 justify-center mb-12 transition-all duration-700 delay-300 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'}`}>
-                <button onClick={() => setShowAuthModal(true)} className="group px-7 py-3.5 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-400 hover:to-violet-400 text-white font-semibold text-sm transition-all duration-300 shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/50 hover:scale-[1.03] flex items-center justify-center gap-2">
+                <button onClick={() => setShowAuthModal(true)} className="group px-7 py-3.5 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-[#09090b] font-semibold text-sm transition-all duration-300 shadow-lg shadow-amber-500/20 hover:shadow-amber-500/30 hover:scale-[1.03] flex items-center justify-center gap-2">
                   Access institutional intelligence — Free tier
                   <ArrowRight size={15} className="group-hover:translate-x-0.5 transition-transform" />
                 </button>
@@ -238,10 +234,12 @@ function HomePageContent() {
                   <p className="text-[10px] text-indigo-300 font-semibold tracking-[0.2em] uppercase mb-1.5">The Council</p>
                   <h3 className="text-lg sm:text-xl font-display font-semibold text-white mb-1">22 PhD AI Researchers</h3>
                   <p className="text-xs text-white/35 mb-5">Domain-specialized · Adversarial peer review at every stage</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {COUNCIL_RESEARCHERS.map((r, i) => (
-                      <div key={i} className="w-5 h-5 rounded-full flex-shrink-0 transition-all duration-200 group-hover:scale-110" style={{ background: r.hex + '30', border: `1px solid ${r.hex}55` }} />
-                    ))}
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold text-indigo-300"
+                      style={{ background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.30)' }}>
+                      22
+                    </div>
+                    <span className="text-xs text-white/40">Domain experts</span>
                   </div>
                 </div>
 
@@ -299,9 +297,6 @@ function HomePageContent() {
             </div>
           </section>
 
-          {/* TRUSTED BY MARQUEE */}
-          <TrustedByMarquee />
-
           {/* THINK TANK */}
           <section className="relative px-6 sm:px-8 py-28 overflow-hidden">
             {/* Deep ambient glow */}
@@ -334,7 +329,7 @@ function HomePageContent() {
                 return (
                   <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 items-start">
 
-                    {/* LEFT: 22-avatar holographic grid */}
+                    {/* LEFT: 22-avatar holographic grid with HoloPortrait */}
                     <div className="flex-shrink-0 w-full lg:w-[320px]">
                       <div className="grid grid-cols-6 gap-2.5">
                         {COUNCIL_RESEARCHERS.map((r, i) => {
@@ -362,17 +357,28 @@ function HomePageContent() {
                                 onClick={() => setAutoR(i)}
                                 onMouseEnter={() => setActiveR(i)}
                                 onMouseLeave={() => setActiveR(null)}
-                                className={`absolute inset-0 rounded-full flex items-center justify-center font-bold text-white transition-all duration-300${isActive ? ' animate-holo-avatar' : ''}`}
+                                className={`absolute inset-0 rounded-full transition-all duration-300${isActive ? ' animate-holo-avatar' : ''}`}
                                 style={{
-                                  fontSize: '8px',
-                                  backgroundColor: r.hex + (isActive ? '28' : '14'),
-                                  border: `1px solid ${r.hex}${isActive ? '60' : '28'}`,
-                                  boxShadow: isActive ? `0 0 14px ${r.hex}50, 0 0 28px ${r.hex}18` : 'none',
-                                  backgroundImage: isActive ? 'repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,255,200,0.05) 2px,rgba(0,255,200,0.05) 3px)' : undefined,
                                   zIndex: 3,
+                                  background: 'transparent',
+                                  border: 'none',
                                 }}
                               >
-                                {r.initials}
+                                <Suspense fallback={
+                                  <div
+                                    className="w-full h-full rounded-full flex items-center justify-center font-bold text-white"
+                                    style={{
+                                      fontSize: '8px',
+                                      backgroundColor: r.hex + (isActive ? '28' : '14'),
+                                      border: `1px solid ${r.hex}${isActive ? '60' : '28'}`,
+                                      boxShadow: isActive ? `0 0 14px ${r.hex}50, 0 0 28px ${r.hex}18` : 'none',
+                                    }}
+                                  >
+                                    {r.initials}
+                                  </div>
+                                }>
+                                  <HoloPortrait color={r.hex} size={40} />
+                                </Suspense>
                               </button>
                             </div>
                           );
@@ -532,7 +538,6 @@ function HomePageContent() {
                 <h2 className="font-display text-3xl sm:text-4xl font-bold text-white mb-4">Autonomous research, end to end.</h2>
                 <p className="text-base text-white/40 max-w-xl mx-auto">16 agents in sequence. 22 researchers validate at key stages. From query to published brief — fully autonomous.</p>
               </div>
-              <InteractiveDemo />
             </div>
           </section>
 
@@ -597,9 +602,6 @@ function HomePageContent() {
             </div>
           </section>
 
-          {/* TESTIMONIALS */}
-          <TestimonialsSection />
-
           {/* NEWSLETTER — primary CTA */}
           <section className="relative px-6 sm:px-8 py-24">
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_60%_at_50%_50%,rgba(99,102,241,0.07),transparent_70%)] pointer-events-none" />
@@ -625,7 +627,7 @@ function HomePageContent() {
                   ) : (
                     <form onSubmit={handleNewsletterSubmit} className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
                       <input type="email" value={newsletterEmail} onChange={e => setNewsletterEmail(e.target.value)} placeholder="your@institution.edu" required className="flex-1 px-4 py-3.5 rounded-xl bg-white/[0.05] border border-white/[0.12] text-white placeholder-white/20 text-sm focus:outline-none focus:border-indigo-500/50 transition-colors" />
-                      <button type="submit" disabled={newsletterStatus === "loading"} className="px-6 py-3.5 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-400 hover:to-violet-400 text-white font-semibold text-sm transition-all duration-200 disabled:opacity-60 whitespace-nowrap shadow-lg shadow-indigo-500/25">
+                      <button type="submit" disabled={newsletterStatus === "loading"} className="px-6 py-3.5 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-[#09090b] font-semibold text-sm transition-all duration-200 disabled:opacity-60 whitespace-nowrap shadow-lg shadow-amber-500/20">
                         {newsletterStatus === "loading" ? "..." : "Subscribe — free"}
                       </button>
                     </form>
@@ -717,7 +719,6 @@ function HomePageContent() {
       </div>
 
       {showAuthModal && <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} onSignupSuccess={handleAuthSuccess} />}
-      {showOnboardingModal && <OnboardingModal isOpen={showOnboardingModal} onClose={() => setShowOnboardingModal(false)} />}
     </>
   );
 }

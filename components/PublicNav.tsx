@@ -9,7 +9,7 @@ import React, { useState } from 'react';
  */
 
 import { useRouter } from 'next/navigation';
-import { NomosXLogo } from '@/components/brand/NomosXLogo';
+import { NomosXLogo3D } from '@/components/brand/NomosXLogo3D';
 import { Menu, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 
@@ -41,7 +41,7 @@ export default function PublicNav({ currentPage, onSignInClick, isAuthenticated 
           className="cursor-pointer hover:opacity-80 transition-opacity"
           onClick={() => router.push("/")}
         >
-          <NomosXLogo size="sm" variant="full" />
+          <NomosXLogo3D size={40} />
         </div>
         
         {/* Nav Links — Desktop */}
@@ -64,16 +64,16 @@ export default function PublicNav({ currentPage, onSignInClick, isAuthenticated 
         <div className="flex items-center gap-3">
           {/* CTA */}
           {isAuthenticated ? (
-            <button 
-              onClick={() => router.push("/dashboard")}
-              className="px-4 py-2 rounded-lg bg-white/[0.08] border border-white/[0.08] text-[13px] font-medium text-white hover:bg-white/[0.12] transition-all duration-200"
+            <button
+              onClick={() => router.push("/articles")}
+              className="px-4 py-2 rounded-lg bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-[13px] font-medium text-[#09090b] transition-all duration-200 shadow-lg shadow-amber-500/20 hover:shadow-amber-500/40"
             >
-              Open Dashboard
+              Browse Publications
             </button>
           ) : (
-            <button 
+            <button
               onClick={onSignInClick}
-              className="px-4 py-2 rounded-lg bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-400 hover:to-violet-400 text-[13px] font-medium text-white transition-all duration-200 shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40"
+              className="px-4 py-2 rounded-lg bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-[13px] font-medium text-[#09090b] transition-all duration-200 shadow-lg shadow-amber-500/20 hover:shadow-amber-500/40"
             >
               Start Free
             </button>

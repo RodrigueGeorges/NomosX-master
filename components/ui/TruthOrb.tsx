@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useMemo, useState } from 'react';
+import { useRef, useMemo, useState, useEffect } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Float } from '@react-three/drei';
 import * as THREE from 'three';
@@ -73,6 +73,18 @@ function MorphParticles({
   // Current positions buffer
   const positions = useMemo(() => new Float32Array(count * 3), [count]);
 
+  // Cleanup on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (ref.current) {
+        ref.current.geometry.dispose();
+        if (ref.current.material instanceof THREE.Material) {
+          ref.current.material.dispose();
+        }
+      }
+    };
+  }, []);
+
   useFrame(({ clock }) => {
     if (!ref.current) return;
     const posAttr = ref.current.geometry.attributes.position;
@@ -127,6 +139,18 @@ function MorphParticles({
 function AccentParticles({ count, color, orderFactor }: { count: number; color: string; orderFactor: number }) {
   const ref = useRef<THREE.Points>(null);
   const positions = useMemo(() => new Float32Array(count * 3), [count]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (ref.current) {
+        ref.current.geometry.dispose();
+        if (ref.current.material instanceof THREE.Material) {
+          ref.current.material.dispose();
+        }
+      }
+    };
+  }, []);
 
   const chaosPositions = useMemo(() => {
     const pos = new Float32Array(count * 3);
@@ -190,6 +214,18 @@ function AccentParticles({ count, color, orderFactor }: { count: number; color: 
 function LawCage({ color, orderFactor }: { color: string; orderFactor: number }) {
   const ref = useRef<THREE.Mesh>(null);
 
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (ref.current) {
+        ref.current.geometry.dispose();
+        if (ref.current.material instanceof THREE.Material) {
+          ref.current.material.dispose();
+        }
+      }
+    };
+  }, []);
+
   useFrame(({ clock }) => {
     if (!ref.current) return;
     const t = clock.elapsedTime;
@@ -214,6 +250,22 @@ function LawCage({ color, orderFactor }: { color: string; orderFactor: number })
 /* The X glyph at center — the variable being solved */
 function XGlyph({ orderFactor }: { orderFactor: number }) {
   const groupRef = useRef<THREE.Group>(null);
+  const mesh1Ref = useRef<THREE.Mesh>(null);
+  const mesh2Ref = useRef<THREE.Mesh>(null);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      [mesh1Ref, mesh2Ref].forEach(meshRef => {
+        if (meshRef.current) {
+          meshRef.current.geometry.dispose();
+          if (meshRef.current.material instanceof THREE.Material) {
+            meshRef.current.material.dispose();
+          }
+        }
+      });
+    };
+  }, []);
 
   useFrame(({ clock }) => {
     if (!groupRef.current) return;
@@ -229,12 +281,12 @@ function XGlyph({ orderFactor }: { orderFactor: number }) {
   return (
     <group ref={groupRef}>
       {/* Diagonal 1 */}
-      <mesh position={[0, 0, 0]} rotation={[0, 0, Math.PI / 4]}>
+      <mesh ref={mesh1Ref} position={[0, 0, 0]} rotation={[0, 0, Math.PI / 4]}>
         <boxGeometry args={[0.04, 0.6, 0.01]} />
         <meshBasicMaterial color={barColor} transparent opacity={opacity} />
       </mesh>
       {/* Diagonal 2 */}
-      <mesh position={[0, 0, 0]} rotation={[0, 0, -Math.PI / 4]}>
+      <mesh ref={mesh2Ref} position={[0, 0, 0]} rotation={[0, 0, -Math.PI / 4]}>
         <boxGeometry args={[0.04, 0.6, 0.01]} />
         <meshBasicMaterial color={barColor} transparent opacity={opacity} />
       </mesh>

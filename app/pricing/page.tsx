@@ -15,7 +15,7 @@ import AuthModal from '@/components/AuthModal';
 import PublicNav from '@/components/PublicNav';
 import { Shield, Zap, Users, ArrowRight, ChevronDown } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { NomosXLogo } from '@/components/brand/NomosXLogo';
+import { NomosXLogo3D } from '@/components/brand/NomosXLogo3D';
 import SiteFooter from '@/components/SiteFooter';
 
 export default function PricingPage() {
@@ -198,7 +198,7 @@ export default function PricingPage() {
                     onClick={() => setShowAuthModal(true)}
                     className={`w-full px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-300 ${
                       plan.highlighted
-                        ? 'bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-400 hover:to-violet-400 text-white shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40'
+                        ? 'bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-[#09090b] shadow-lg shadow-amber-500/20 hover:shadow-amber-500/30'
                         : plan.name === 'Studio'
                           ? 'border border-violet-500/25 bg-violet-500/[0.06] text-violet-300 hover:bg-violet-500/[0.12]'
                           : 'bg-white/[0.04] border border-white/[0.08] text-white/50 hover:text-white/70 hover:bg-white/[0.07]'
@@ -317,7 +317,7 @@ export default function PricingPage() {
               </p>
               <button
                 onClick={() => setShowAuthModal(true)}
-                className="group px-6 py-3 rounded-lg bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-400 hover:to-violet-400 text-white font-medium text-sm transition-all duration-300 shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 hover:scale-[1.03] inline-flex items-center gap-2"
+                className="group px-6 py-3 rounded-lg bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-[#09090b] font-medium text-sm transition-all duration-300 shadow-lg shadow-amber-500/20 hover:shadow-amber-500/30 hover:scale-[1.03] inline-flex items-center gap-2"
               >
                 Access institutional intelligence — Free tier
                 <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />

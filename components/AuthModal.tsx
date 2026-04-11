@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
 import { Mail } from 'lucide-react';
-import { NomosXLogo } from '@/components/brand/NomosXLogo';
+import { NomosXLogo3D } from '@/components/brand/NomosXLogo3D';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -99,7 +99,7 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
         <div className="relative mb-10 text-center">
           {/* Logo */}
           <div className="flex justify-center mb-6">
-            <NomosXLogo size="md" variant="full" />
+            <NomosXLogo3D size={60} />
           </div>
 
           {/* Title */}

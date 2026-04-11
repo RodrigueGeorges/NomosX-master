@@ -1,9 +1,9 @@
 /**
- * OmniChat API — Context-Aware Chief of Staff
+ * StudioX API — NomosX Research Studio
  *
- * Unlike the generic /api/chat/stream, OmniChat:
- * 1. Loads the user's recent briefs as context
- * 2. Loads the user's topic subscriptions
+ * Unlike the generic /api/chat/stream, StudioX:
+ * 1. Loads recent published briefs as context
+ * 2. Loads active topics
  * 3. Constructs a system prompt with institutional knowledge
  * 4. Can trigger pipeline runs (commission research)
  * 5. Streams responses via SSE
@@ -16,18 +16,18 @@ import { assertRateLimit, RateLimitError } from '@/lib/security/rate-limit';
 import { prisma } from '@/lib/db';
 import Sentry from '@sentry/nextjs';
 
-const OMNICHAT_SYSTEM_PROMPT = `You are OmniChat — the chief of staff at NomosX, an autonomous AI think tank.
+const STUDIOX_SYSTEM_PROMPT = `You are StudioX — the research assistant at NomosX, an autonomous AI think tank.
 
 YOUR CAPABILITIES:
 - Answer questions about any research topic using academic evidence
-- Reference specific briefs and sources the user has access to
-- Summarize findings from the user's intelligence feed
+- Reference specific briefs and sources
+- Summarize findings from recent publications
 - Suggest new research topics based on weak signals
 - Commission new research briefs (ask the user to confirm)
 
 YOUR KNOWLEDGE:
-- You have access to the user's recent briefs and their key findings
-- You know the user's subscribed topics and domains of interest
+- You have access to recent published briefs and their key findings
+- You know active topics and domains
 - You understand the 17-step pipeline that produces every brief
 
 YOUR STYLE:
@@ -40,16 +40,16 @@ YOUR STYLE:
 IMPORTANT:
 - Never fabricate source references
 - If you don't have enough context, say "I don't have enough data on this — would you like me to commission a research brief?"
-- Distinguish between what you know from the user's briefs vs. general knowledge`;
+- Distinguish between what you know from published briefs vs. general knowledge`;
 
 export async function POST(req: NextRequest) {
   try {
     const session = await getSession();
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    // Rate limit: 30 omnichat requests per minute
+    // Rate limit: 30 studiox requests per minute
     try {
-      assertRateLimit(`omnichat:user:${session.id}`, 30, 60_000);
+      assertRateLimit(`studiox:user:${session.id}`, 30, 60_000);
     } catch (err) {
       if (err instanceof RateLimitError) {
         return new Response('Rate limit exceeded', {
@@ -69,19 +69,19 @@ export async function POST(req: NextRequest) {
     const userId = session.id;
     const [recentBriefs, userTopics] = await Promise.all([
       prisma.brief.findMany({
-        where: { userId, status: 'published' },
+        where: { publishedAt: { not: null } }, // Brief model doesn't have userId, filter by published
         orderBy: { createdAt: 'desc' },
         take: 5,
         select: {
           id: true,
-          title: true,
-          type: true,
+          question: true,
+          kind: true,
           createdAt: true,
           topic: { select: { name: true, domain: true } },
         },
       }),
       prisma.topic.findMany({
-        where: { userId, status: { in: ['active', 'monitoring'] } },
+        where: { status: { in: ['active', 'monitoring'] } }, // Topic model doesn't have userId either
         orderBy: { updatedAt: 'desc' },
         take: 10,
         select: { name: true, domain: true, status: true },
@@ -90,10 +90,10 @@ export async function POST(req: NextRequest) {
 
     // Build context block
     const briefsContext = (recentBriefs as any[]).length > 0
-      ? `\n\nUSER'S RECENT BRIEFS:\n${(recentBriefs as any[]).map((b: any, i: number) =>
-          `${i + 1}. "${b.title}" (${b.type}) — ${b.topic?.name || 'General'} / ${b.topic?.domain || 'N/A'} — ${new Date(b.createdAt).toLocaleDateString()}`
+      ? `\n\nRECENT PUBLISHED BRIEFS:\n${(recentBriefs as any[]).map((b: any, i: number) =>
+          `${i + 1}. "${b.question.slice(0, 80)}..." (${b.kind}) — ${b.topic?.name || 'General'} / ${b.topic?.domain || 'N/A'} — ${new Date(b.createdAt).toLocaleDateString()}`
         ).join('\n')}`
-      : '\n\nUSER HAS NO PUBLISHED BRIEFS YET.';
+      : '\n\nNO PUBLISHED BRIEFS AVAILABLE.';
 
     const topicsContext = (userTopics as any[]).length > 0
       ? `\n\nUSER'S MONITORED TOPICS:\n${(userTopics as any[]).map((t: any) =>
@@ -101,7 +101,7 @@ export async function POST(req: NextRequest) {
         ).join('\n')}`
       : '\n\nUSER HAS NO ACTIVE TOPIC SUBSCRIPTIONS.';
 
-    const systemPrompt = OMNICHAT_SYSTEM_PROMPT + briefsContext + topicsContext;
+    const systemPrompt = STUDIOX_SYSTEM_PROMPT + briefsContext + topicsContext;
 
     const allMessages = [
       { role: 'system' as const, content: systemPrompt },

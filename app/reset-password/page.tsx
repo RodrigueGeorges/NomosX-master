@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { NomosXLogo } from '@/components/brand/NomosXLogo';
+import { NomosXLogo3D } from '@/components/brand/NomosXLogo3D';
 import { ArrowLeft, CheckCircle } from 'lucide-react';
 
 export default function ResetPasswordPage() {
@@ -54,7 +54,7 @@ export default function ResetPasswordPage() {
     return (
       <div className="min-h-screen bg-[#09090b] text-white flex items-center justify-center px-6">
         <div className="text-center max-w-sm">
-          <NomosXLogo size="md" variant="full" className="justify-center mb-8" />
+          <NomosXLogo3D size={60} className="justify-center mb-8" />
           <h1 className="font-display text-2xl font-light text-white mb-3">Invalid link</h1>
           <p className="text-sm text-white/40 mb-6">This password reset link is missing or invalid. Please request a new one.</p>
           <button onClick={() => router.push('/')} className="text-sm text-indigo-400 hover:text-indigo-300 transition-colors">
@@ -69,7 +69,7 @@ export default function ResetPasswordPage() {
     return (
       <div className="min-h-screen bg-[#09090b] text-white flex items-center justify-center px-6">
         <div className="text-center max-w-sm">
-          <NomosXLogo size="md" variant="full" className="justify-center mb-8" />
+          <NomosXLogo3D size={60} className="justify-center mb-8" />
           <div className="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center mx-auto mb-6">
             <CheckCircle size={24} className="text-emerald-400" />
           </div>
@@ -77,7 +77,7 @@ export default function ResetPasswordPage() {
           <p className="text-sm text-white/40 mb-6">Your password has been updated successfully. You can now sign in.</p>
           <button
             onClick={() => router.push('/?auth=required')}
-            className="px-6 py-3 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-400 hover:to-violet-400 text-white font-medium text-sm transition-all duration-300 shadow-lg shadow-indigo-500/25"
+            className="px-6 py-3 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-[#09090b] font-medium text-sm transition-all duration-300 shadow-lg shadow-amber-500/20"
           >
             Sign in
           </button>
@@ -94,7 +94,7 @@ export default function ResetPasswordPage() {
 
       <div className="relative w-full max-w-sm">
         <div className="flex justify-center mb-8">
-          <NomosXLogo size="md" variant="full" />
+          <NomosXLogo3D size={60} />
         </div>
 
         <h1 className="font-display text-2xl font-light text-white text-center mb-2">Choose a new password</h1>
@@ -138,7 +138,7 @@ export default function ResetPasswordPage() {
           <button
             type="submit"
             disabled={loading || !password || !confirm}
-            className="w-full py-3.5 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-400 hover:to-violet-400 text-white font-semibold text-sm transition-all duration-300 shadow-lg shadow-indigo-500/25 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-3.5 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-[#09090b] font-semibold text-sm transition-all duration-300 shadow-lg shadow-amber-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? 'Resetting...' : 'Reset password'}
           </button>
