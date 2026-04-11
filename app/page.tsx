@@ -377,7 +377,7 @@ function HomePageContent() {
                                     {r.initials}
                                   </div>
                                 }>
-                                  <HoloPortrait color={r.hex} size={40} />
+                                  <HoloPortrait hexColor={r.hex} initials={r.initials} size={40} />
                                 </Suspense>
                               </button>
                             </div>
