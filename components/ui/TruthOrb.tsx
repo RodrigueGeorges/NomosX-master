@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useMemo, useState, useEffect } from 'react';
+import { useRef, useMemo, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Float } from '@react-three/drei';
 import * as THREE from 'three';
@@ -243,18 +243,18 @@ function XGlyph({ orderFactor }: { orderFactor: number }) {
 }
 
 function TruthOrbScene({ color, accentColor }: { color: string; accentColor: string }) {
-  // Oscillate between doxa and nomos over time
-  const [orderFactor, setOrderFactor] = useState(0);
+  // Oscillate between doxa and nomos over time — use ref to avoid re-renders
+  const orderFactorRef = useRef(0);
 
   useFrame(({ clock }) => {
     // Smooth oscillation: 0→1→0 over ~8 seconds, biased toward nomos (stays ordered longer)
     const t = clock.elapsedTime;
     const cycle = (Math.sin(t * 0.4 - Math.PI / 2) + 1) / 2; // 0→1→0
     // Ease: spend more time in nomos state
-    const eased = cycle < 0.5 
-      ? 2 * cycle * cycle 
+    const eased = cycle < 0.5
+      ? 2 * cycle * cycle
       : 1 - Math.pow(-2 * cycle + 2, 2) / 2;
-    setOrderFactor(eased);
+    orderFactorRef.current = eased;
   });
 
   return (
@@ -262,13 +262,13 @@ function TruthOrbScene({ color, accentColor }: { color: string; accentColor: str
       <ambientLight intensity={0.2} />
       <pointLight position={[2.5, 3, 3]} intensity={1.8} color={color} />
       <pointLight position={[-2, -2, -1.5]} intensity={0.6} color={accentColor} />
-      <pointLight position={[0, 0, 0]} intensity={0.5 + orderFactor * 1.5} color="#D4AF37" />
+      <pointLight position={[0, 0, 0]} intensity={0.5 + orderFactorRef.current * 1.5} color="#D4AF37" />
 
       <Float speed={1.2} rotationIntensity={0.08} floatIntensity={0.2}>
-        <LawCage color={color} orderFactor={orderFactor} />
-        <XGlyph orderFactor={orderFactor} />
-        <MorphParticles count={80} color={color} accentColor={accentColor} orderFactor={orderFactor} />
-        <AccentParticles count={25} color={accentColor} orderFactor={orderFactor} />
+        <LawCage color={color} orderFactor={orderFactorRef.current} />
+        <XGlyph orderFactor={orderFactorRef.current} />
+        <MorphParticles count={80} color={color} accentColor={accentColor} orderFactor={orderFactorRef.current} />
+        <AccentParticles count={25} color={accentColor} orderFactor={orderFactorRef.current} />
       </Float>
     </>
   );
