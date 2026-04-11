@@ -77,27 +77,27 @@ export async function POST(req: NextRequest) {
           question: true,
           kind: true,
           createdAt: true,
-          topic: { select: { name: true, domain: true } },
+          topic: { select: { name: true } },
         },
       }),
       prisma.topic.findMany({
-        where: { status: { in: ['active', 'monitoring'] } }, // Topic model doesn't have userId either
+        where: { isActive: true },
         orderBy: { updatedAt: 'desc' },
         take: 10,
-        select: { name: true, domain: true, status: true },
+        select: { name: true, isActive: true },
       }),
     ]).catch(() => [[], []]);
 
     // Build context block
     const briefsContext = (recentBriefs as any[]).length > 0
       ? `\n\nRECENT PUBLISHED BRIEFS:\n${(recentBriefs as any[]).map((b: any, i: number) =>
-          `${i + 1}. "${b.question.slice(0, 80)}..." (${b.kind}) — ${b.topic?.name || 'General'} / ${b.topic?.domain || 'N/A'} — ${new Date(b.createdAt).toLocaleDateString()}`
+          `${i + 1}. "${b.question.slice(0, 80)}..." (${b.kind}) — ${b.topic?.name || 'General'} — ${new Date(b.createdAt).toLocaleDateString()}`
         ).join('\n')}`
       : '\n\nNO PUBLISHED BRIEFS AVAILABLE.';
 
     const topicsContext = (userTopics as any[]).length > 0
       ? `\n\nUSER'S MONITORED TOPICS:\n${(userTopics as any[]).map((t: any) =>
-          `- ${t.name} (${t.domain}) — ${t.status}`
+          `- ${t.name} (${t.isActive ? 'Active' : 'Inactive'})`
         ).join('\n')}`
       : '\n\nUSER HAS NO ACTIVE TOPIC SUBSCRIPTIONS.';
 
