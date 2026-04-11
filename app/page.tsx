@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect, Suspense } from 'react';
-import dynamic from 'next/dynamic';
 import { useRouter, useSearchParams } from 'next/navigation';
 import AuthModal from '@/components/AuthModal';
 import PublicNav from '@/components/PublicNav';
