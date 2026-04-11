@@ -6,23 +6,13 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import AuthModal from '@/components/AuthModal';
 import PublicNav from '@/components/PublicNav';
 import { Brain, Shield, BarChart3, TrendingUp, ArrowRight, Search, FileText, Microscope, Scale, Leaf, Calculator, Globe2, Rss, Clock, BookOpen, ExternalLink, Database, Zap, CheckCircle, Eye, AlertTriangle, Flame, Network, Activity, DollarSign, Target, Building2, Package } from 'lucide-react';
-const NomosXLogo3D = dynamic(() => import('@/components/brand/NomosXLogo3D'), {
-  ssr: false,
-  loading: () => null,
-});
+import { NomosXLogo3D } from '@/components/brand/NomosXLogo3D';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { ThreeComponentWrapper } from '@/components/ThreeComponentWrapper';
 import SiteFooter from '@/components/SiteFooter';
 import { AnimatePresence, motion } from 'framer-motion';
-
-const HoloOrb = dynamic(() => import('@/components/ui/HoloOrb'), {
-  ssr: false,
-  loading: () => null,
-});
-const HoloPortrait = dynamic(() => import('@/components/ui/HoloPortrait'), {
-  ssr: false,
-  loading: () => null,
-});
+import HoloOrb from '@/components/ui/HoloOrb';
+import HoloPortrait from '@/components/ui/HoloPortrait';
 
 const DOMAIN_ICONS: Record<string, React.ComponentType<{ size?: number | string; strokeWidth?: number | string; style?: React.CSSProperties }>> = {
   'Economics':      TrendingUp,
