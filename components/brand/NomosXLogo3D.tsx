@@ -45,7 +45,7 @@ function ThinkTankSphere() {
         emissiveIntensity: 0.2,
       });
     } catch {
-      return null;
+      return new THREE.MeshBasicMaterial({ color: '#6366F1' });
     }
   }, []);
 
@@ -60,7 +60,7 @@ function ThinkTankSphere() {
         emissiveIntensity: 0.35,
       });
     } catch {
-      return null;
+      return new THREE.MeshBasicMaterial({ color: '#D4AF37' });
     }
   }, []);
 
@@ -77,7 +77,7 @@ function ThinkTankSphere() {
         opacity: 0.25,
       });
     } catch {
-      return null;
+      return new THREE.MeshBasicMaterial({ color: '#F5D778', transparent: true, opacity: 0.25 });
     }
   }, []);
 
