@@ -737,7 +737,6 @@ function HomePageContent() {
 
       {showAuthModal && <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} onSignupSuccess={handleAuthSuccess} />}
     </ErrorBoundary>
-    </>
   );
 }
 
