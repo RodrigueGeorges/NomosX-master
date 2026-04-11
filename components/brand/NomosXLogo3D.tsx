@@ -4,6 +4,9 @@ import React, { useRef, useMemo, useEffect, Suspense } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
+// Module-level check to prevent constructor errors
+const THREE_AVAILABLE = typeof THREE !== 'undefined' && typeof THREE.MeshStandardMaterial !== 'undefined';
+
 interface Logo3DProps {
   size?: number;
   className?: string;
@@ -33,37 +36,49 @@ function ThinkTankSphere() {
 
   // Indigo/violet material for sphere (structure/knowledge)
   const sphereMaterial = useMemo(() => {
-    return new THREE.MeshStandardMaterial({
-      color: '#6366F1',
-      metalness: 0.88,
-      roughness: 0.14,
-      emissive: '#818CF8',
-      emissiveIntensity: 0.2,
-    });
+    try {
+      return new THREE.MeshStandardMaterial({
+        color: '#6366F1',
+        metalness: 0.88,
+        roughness: 0.14,
+        emissive: '#818CF8',
+        emissiveIntensity: 0.2,
+      });
+    } catch {
+      return null;
+    }
   }, []);
 
   // Gold material for X (truth/authority)
   const goldMaterial = useMemo(() => {
-    return new THREE.MeshStandardMaterial({
-      color: '#D4AF37',
-      metalness: 0.94,
-      roughness: 0.1,
-      emissive: '#D4AF37',
-      emissiveIntensity: 0.35,
-    });
+    try {
+      return new THREE.MeshStandardMaterial({
+        color: '#D4AF37',
+        metalness: 0.94,
+        roughness: 0.1,
+        emissive: '#D4AF37',
+        emissiveIntensity: 0.35,
+      });
+    } catch {
+      return null;
+    }
   }, []);
 
   // Gold halo material
   const haloMaterial = useMemo(() => {
-    return new THREE.MeshStandardMaterial({
-      color: '#F5D778',
-      metalness: 0.5,
-      roughness: 0.5,
-      emissive: '#F5D778',
-      emissiveIntensity: 0.4,
-      transparent: true,
-      opacity: 0.25,
-    });
+    try {
+      return new THREE.MeshStandardMaterial({
+        color: '#F5D778',
+        metalness: 0.5,
+        roughness: 0.5,
+        emissive: '#F5D778',
+        emissiveIntensity: 0.4,
+        transparent: true,
+        opacity: 0.25,
+      });
+    } catch {
+      return null;
+    }
   }, []);
 
   return (
@@ -108,6 +123,11 @@ function OrbScene() {
 }
 
 export function NomosXLogo3D({ size = 120, className }: Logo3DProps) {
+  // Check if THREE is available (prevents constructor errors during loading)
+  if (typeof THREE === 'undefined' || typeof THREE.MeshStandardMaterial === 'undefined') {
+    return <div className={className} style={{ width: size, height: size }} />;
+  }
+
   return (
     <div className={className} style={{ width: size, height: size }}>
       <Canvas

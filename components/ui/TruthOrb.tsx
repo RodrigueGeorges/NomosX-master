@@ -40,38 +40,48 @@ function MorphParticles({
 
   // Generate two sets of positions: chaotic and ordered
   const { chaosPositions, orderedPositions } = useMemo(() => {
-    const chaos = new Float32Array(count * 3);
-    const ordered = new Float32Array(count * 3);
+    try {
+      const chaos = new Float32Array(count * 3);
+      const ordered = new Float32Array(count * 3);
 
-    for (let i = 0; i < count; i++) {
-      // Chaos: random sphere distribution
-      const r = 0.8 + Math.random() * 1.8;
-      const theta = Math.random() * Math.PI * 2;
-      const phi = Math.acos(2 * Math.random() - 1);
-      chaos[i * 3]     = r * Math.sin(phi) * Math.cos(theta);
-      chaos[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
-      chaos[i * 3 + 2] = r * Math.cos(phi);
+      for (let i = 0; i < count; i++) {
+        // Chaos: random sphere distribution
+        const r = 0.8 + Math.random() * 1.8;
+        const theta = Math.random() * Math.PI * 2;
+        const phi = Math.acos(2 * Math.random() - 1);
+        chaos[i * 3]     = r * Math.sin(phi) * Math.cos(theta);
+        chaos[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+        chaos[i * 3 + 2] = r * Math.cos(phi);
 
-      // Order: distributed on orbital rings
-      const ringIndex = i % 3;
-      const ringRadius = ringIndex === 0 ? 1.1 : ringIndex === 1 ? 1.3 : 1.5;
-      const angle = (i / count) * Math.PI * 2 * (ringIndex + 2) + ringIndex * 0.5;
-      const tilt = ringIndex === 0 ? 0 : ringIndex === 1 ? Math.PI / 3 : Math.PI / 6;
+        // Order: distributed on orbital rings
+        const ringIndex = i % 3;
+        const ringRadius = ringIndex === 0 ? 1.1 : ringIndex === 1 ? 1.3 : 1.5;
+        const angle = (i / count) * Math.PI * 2 * (ringIndex + 2) + ringIndex * 0.5;
+        const tilt = ringIndex === 0 ? 0 : ringIndex === 1 ? Math.PI / 3 : Math.PI / 6;
 
-      const x = ringRadius * Math.cos(angle);
-      const y = ringRadius * Math.sin(angle) * Math.cos(tilt);
-      const z = ringRadius * Math.sin(angle) * Math.sin(tilt);
+        const x = ringRadius * Math.cos(angle);
+        const y = ringRadius * Math.sin(angle) * Math.cos(tilt);
+        const z = ringRadius * Math.sin(angle) * Math.sin(tilt);
 
-      ordered[i * 3]     = x;
-      ordered[i * 3 + 1] = y;
-      ordered[i * 3 + 2] = z;
+        ordered[i * 3]     = x;
+        ordered[i * 3 + 1] = y;
+        ordered[i * 3 + 2] = z;
+      }
+
+      return { chaosPositions: chaos, orderedPositions: ordered };
+    } catch {
+      return { chaosPositions: new Float32Array(0), orderedPositions: new Float32Array(0) };
     }
-
-    return { chaosPositions: chaos, orderedPositions: ordered };
   }, [count]);
 
   // Current positions buffer
-  const positions = useMemo(() => new Float32Array(count * 3), [count]);
+  const positions = useMemo(() => {
+    try {
+      return new Float32Array(count * 3);
+    } catch {
+      return new Float32Array(0);
+    }
+  }, [count]);
 
   // Cleanup on unmount to prevent memory leaks
   useEffect(() => {
@@ -141,7 +151,13 @@ function MorphParticles({
 /* Accent particles — smaller, different color */
 function AccentParticles({ count, color, orderFactor }: { count: number; color: string; orderFactor: number }) {
   const ref = useRef<THREE.Points>(null);
-  const positions = useMemo(() => new Float32Array(count * 3), [count]);
+  const positions = useMemo(() => {
+    try {
+      return new Float32Array(count * 3);
+    } catch {
+      return new Float32Array(0);
+    }
+  }, [count]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -156,16 +172,20 @@ function AccentParticles({ count, color, orderFactor }: { count: number; color: 
   }, []);
 
   const chaosPositions = useMemo(() => {
-    const pos = new Float32Array(count * 3);
-    for (let i = 0; i < count; i++) {
-      const r = 1.0 + Math.random() * 1.5;
-      const theta = Math.random() * Math.PI * 2;
-      const phi = Math.acos(2 * Math.random() - 1);
-      pos[i * 3]     = r * Math.sin(phi) * Math.cos(theta);
-      pos[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
-      pos[i * 3 + 2] = r * Math.cos(phi);
+    try {
+      const pos = new Float32Array(count * 3);
+      for (let i = 0; i < count; i++) {
+        const r = 1.0 + Math.random() * 1.5;
+        const theta = Math.random() * Math.PI * 2;
+        const phi = Math.acos(2 * Math.random() - 1);
+        pos[i * 3]     = r * Math.sin(phi) * Math.cos(theta);
+        pos[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+        pos[i * 3 + 2] = r * Math.cos(phi);
+      }
+      return pos;
+    } catch {
+      return new Float32Array(0);
     }
-    return pos;
   }, [count]);
 
   useFrame(({ clock }) => {
@@ -333,6 +353,11 @@ function TruthOrbScene({ color, accentColor }: { color: string; accentColor: str
 }
 
 export default function TruthOrb({ size = 280, color = '#6366F1', accentColor = '#00ffc8' }: TruthOrbProps) {
+  // Check if THREE is available (prevents constructor errors during loading)
+  if (typeof THREE === 'undefined' || typeof Float32Array === 'undefined') {
+    return <div style={{ width: size, height: size }} />;
+  }
+
   return (
     <div style={{ width: size, height: size }}>
       <Canvas

@@ -6,17 +6,22 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import AuthModal from '@/components/AuthModal';
 import PublicNav from '@/components/PublicNav';
 import { Brain, Shield, BarChart3, TrendingUp, ArrowRight, Search, FileText, Microscope, Scale, Leaf, Calculator, Globe2, Rss, Clock, BookOpen, ExternalLink, Database, Zap, CheckCircle, Eye, AlertTriangle, Flame, Network, Activity, DollarSign, Target, Building2, Package } from 'lucide-react';
-import { NomosXLogo3D } from '@/components/brand/NomosXLogo3D';
+const NomosXLogo3D = dynamic(() => import('@/components/brand/NomosXLogo3D').catch(() => ({ default: () => null })), {
+  ssr: false,
+  loading: () => null,
+});
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { ThreeComponentWrapper } from '@/components/ThreeComponentWrapper';
 import SiteFooter from '@/components/SiteFooter';
 import { AnimatePresence, motion } from 'framer-motion';
 
-const HoloOrb = dynamic(() => import('@/components/ui/HoloOrb'), { 
+const HoloOrb = dynamic(() => import('@/components/ui/HoloOrb').catch(() => ({ default: () => null })), {
   ssr: false,
-  loading: () => <div className="w-full h-full animate-pulse bg-white/5" />,
+  loading: () => null,
 });
-const HoloPortrait = dynamic(() => import('@/components/ui/HoloPortrait'), { 
+const HoloPortrait = dynamic(() => import('@/components/ui/HoloPortrait').catch(() => ({ default: () => null })), {
   ssr: false,
-  loading: () => <div className="w-full h-full animate-pulse bg-white/5" />,
+  loading: () => null,
 });
 
 const DOMAIN_ICONS: Record<string, React.ComponentType<{ size?: number | string; strokeWidth?: number | string; style?: React.CSSProperties }>> = {
@@ -161,7 +166,7 @@ function HomePageContent() {
   );
 
   return (
-    <>
+    <ErrorBoundary>
       <div className="min-h-screen bg-[#09090b] text-white overflow-x-hidden">
 
         <div className="nx-noise" aria-hidden="true" />
@@ -180,7 +185,9 @@ function HomePageContent() {
           <section className="relative px-6 sm:px-8 pt-24 sm:pt-32 pb-16">
             <div className="max-w-5xl mx-auto text-center">
               <div className={`flex justify-center mb-8 transition-opacity duration-700 ${mounted ? 'opacity-100' : 'opacity-0'}`}>
-                <NomosXLogo3D size={140} />
+                <ThreeComponentWrapper>
+                  <NomosXLogo3D size={140} />
+                </ThreeComponentWrapper>
               </div>
 
               <div className={`inline-flex items-center gap-2.5 px-4 py-2 rounded-full border border-indigo-500/25 bg-indigo-500/8 mb-10 transition-opacity duration-700 ${mounted ? 'opacity-100' : 'opacity-0'}`}>
@@ -383,7 +390,9 @@ function HomePageContent() {
                                     {r.initials}
                                   </div>
                                 }>
-                                  <HoloPortrait hexColor={r.hex} initials={r.initials} size={40} />
+                                  <ThreeComponentWrapper>
+                                    <HoloPortrait hexColor={r.hex} initials={r.initials} size={40} />
+                                  </ThreeComponentWrapper>
                                 </Suspense>
                               </button>
                             </div>
@@ -470,7 +479,9 @@ function HomePageContent() {
                             {/* Holographic Domain Sigil */}
                             <div className="relative">
                               <div className="absolute inset-0 pointer-events-none" style={{ background: `radial-gradient(circle, ${cur.hex}18 0%, transparent 60%)`, transform: 'scale(1.5)' }} />
-                              <HoloOrb hexColor={cur.hex} size={190} />
+                              <ThreeComponentWrapper>
+                                <HoloOrb hexColor={cur.hex} size={190} />
+                              </ThreeComponentWrapper>
                               {/* Domain icon — floating at center of orbital rings */}
                               <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ zIndex: 20 }}>
                                 {(() => {
@@ -725,6 +736,7 @@ function HomePageContent() {
       </div>
 
       {showAuthModal && <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} onSignupSuccess={handleAuthSuccess} />}
+    </ErrorBoundary>
     </>
   );
 }

@@ -29,17 +29,21 @@ function PortraitScene({ hexColor }: PortraitSceneProps) {
   }, []);
 
   const particles = useMemo(() => {
-    const count = 180;
-    const pos = new Float32Array(count * 3);
-    for (let i = 0; i < count; i++) {
-      const theta = Math.random() * Math.PI * 2;
-      const phi   = Math.acos(2 * Math.random() - 1);
-      const r     = 1.25 + Math.random() * 0.45;
-      pos[i * 3]     = r * Math.sin(phi) * Math.cos(theta);
-      pos[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
-      pos[i * 3 + 2] = r * Math.cos(phi);
+    try {
+      const count = 180;
+      const pos = new Float32Array(count * 3);
+      for (let i = 0; i < count; i++) {
+        const theta = Math.random() * Math.PI * 2;
+        const phi   = Math.acos(2 * Math.random() - 1);
+        const r     = 1.25 + Math.random() * 0.45;
+        pos[i * 3]     = r * Math.sin(phi) * Math.cos(theta);
+        pos[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+        pos[i * 3 + 2] = r * Math.cos(phi);
+      }
+      return pos;
+    } catch {
+      return new Float32Array(0);
     }
-    return pos;
   }, []);
 
   useFrame(({ clock }) => {
@@ -100,6 +104,11 @@ interface HoloPortraitProps {
 }
 
 export default function HoloPortrait({ hexColor, initials, imageUrl, size = 180 }: HoloPortraitProps) {
+  // Check if THREE is available (prevents constructor errors during loading)
+  if (typeof THREE === 'undefined' || typeof Float32Array === 'undefined') {
+    return <div style={{ width: size, height: size, position: 'relative', flexShrink: 0 }} />;
+  }
+
   const portraitSize = Math.round(size * 0.54);
 
   return (
