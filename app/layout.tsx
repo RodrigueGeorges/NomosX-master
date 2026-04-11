@@ -4,9 +4,6 @@ import { Inter,Space_Grotesk,JetBrains_Mono } from 'next/font/google';
 import { ToastContainer } from '@/components/ui/Toast';
 import { AuthProvider } from '@/hooks/useAuth';
 import { QueryProvider } from '@/components/providers/QueryProvider';
-import dynamic from 'next/dynamic';
-
-const OmniChat = dynamic(() => import('@/components/OmniChat'), { ssr: false });
 
 // Font configuration
 const inter = Inter({
@@ -97,7 +94,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <QueryProvider>
           <AuthProvider>
             <div id="main-content">{children}</div>
-            <OmniChat />
             <ToastContainer />
           </AuthProvider>
         </QueryProvider>
