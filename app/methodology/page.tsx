@@ -16,10 +16,12 @@ import { Search, Database, BarChart3, FileText, Brain, Shield, ArrowRight, Globe
 import { NomosXLogo3D } from '@/components/brand/NomosXLogo3D';
 import SiteFooter from '@/components/SiteFooter';
 import { motion } from 'framer-motion';
+import PipelineDemo from '@/components/ui/PipelineDemo';
 
 export default function MethodologyPage() {
   const router = useRouter();
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authRedirect, setAuthRedirect] = useState<'dashboard' | 'studio'>('dashboard');
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -46,163 +48,163 @@ export default function MethodologyPage() {
 
   const agents = [
     {
-      name: "SCOUT",
+      name: "Collection",
       icon: Search,
       purpose: "Source discovery",
-      description: "Queries 250M+ academic publications in parallel across 60+ providers.",
-      inputs: ["Research query", "Provider list"],
-      outputs: ["Source IDs", "Quality scores", "Raw metadata"],
-      providers: ["OpenAlex", "Crossref", "Semantic Scholar", "arXiv", "PubMed", "CORE", "HAL", "Linkup", "GDELT"],
+      description: "Queries 250M+ academic publications in parallel across 60+ institutional providers.",
+      inputs: ["Research question", "Domain scope"],
+      outputs: ["Source corpus", "Quality scores", "Provenance metadata"],
+      providers: ["60+ academic & institutional databases"],
       color: "bg-indigo-500"
     },
     {
-      name: "INDEX",
+      name: "Enrichment",
       icon: Database,
       purpose: "Identity enrichment",
-      description: "Normalizes sources, resolves author identities via ORCID, and maps institutional affiliations via ROR.",
-      inputs: ["SCOUT source IDs"],
+      description: "Normalizes sources, resolves author identities, and maps institutional affiliations globally.",
+      inputs: ["Raw source corpus"],
       outputs: ["Enriched sources", "Author profiles", "Institution profiles"],
-      providers: ["ORCID API", "ROR API", "Internal deduplication"],
+      providers: ["Global academic identity registries"],
       color: "bg-violet-500"
     },
     {
-      name: "EMBED",
+      name: "Semantic mapping",
       icon: Zap,
       purpose: "Semantic vectors",
-      description: "Generates text-embedding vectors for all sources. Powers semantic deduplication and similarity-based selection.",
-      inputs: ["Enriched sources", "Title + abstract"],
-      outputs: ["Vector embeddings", "Deduplicated source list"],
-      providers: ["OpenAI text-embedding-3-small", "pgvector"],
+      description: "Generates semantic representations for all sources, enabling deduplication and similarity-based selection.",
+      inputs: ["Enriched sources"],
+      outputs: ["Semantic index", "Deduplicated source list"],
+      providers: ["Proprietary semantic engine"],
       color: "bg-blue-500"
     },
     {
-      name: "RANK",
+      name: "Evidence ranking",
       icon: BarChart3,
       purpose: "Strategic selection",
-      description: "Selects the best sources using composite scoring: quality, novelty, recency, and provider diversity controls.",
-      inputs: ["Enriched sources", "Query context"],
-      outputs: ["Ranked sources", "Composite scores", "Relevance scores"],
-      providers: ["Internal scoring algorithm"],
+      description: "Selects the strongest sources using composite scoring: quality, novelty, recency, and diversity controls.",
+      inputs: ["Source corpus", "Research context"],
+      outputs: ["Ranked evidence set", "Quality scores"],
+      providers: ["Proprietary scoring model"],
       color: "bg-purple-500"
     },
     {
-      name: "READER V3",
+      name: "Content analysis",
       icon: FileText,
-      purpose: "Content analysis",
+      purpose: "Deep reading",
       description: "Extracts key claims, methods, quantitative results, and limitations from full-text content including PDFs.",
-      inputs: ["Ranked sources", "Analysis depth"],
-      outputs: ["Structured readings", "Quantitative data", "Confidence scores"],
-      providers: ["pdf-parse", "LLM extraction"],
+      inputs: ["Ranked sources"],
+      outputs: ["Structured findings", "Quantitative data", "Confidence scores"],
+      providers: ["Proprietary extraction pipeline"],
       color: "bg-fuchsia-500"
     },
     {
-      name: "ANALYST V3",
+      name: "Synthesis",
       icon: Brain,
-      purpose: "3-pass synthesis",
-      description: "Three-pass analysis: thematic mapping, contradiction detection, then unified synthesis with strategic implications.",
-      inputs: ["Readings", "Research question", "Context"],
+      purpose: "Multi-pass synthesis",
+      description: "Multi-pass analysis: thematic mapping, contradiction detection, then unified synthesis with strategic implications.",
+      inputs: ["Structured findings", "Research question"],
       outputs: ["Structured analysis", "Key findings", "Strategic implications"],
-      providers: ["GPT-4o multi-pass"],
+      providers: ["Council AI deliberation"],
       color: "bg-pink-500"
     },
     {
-      name: "COUNCIL",
+      name: "Council review",
       icon: Users,
-      purpose: "22-researcher review",
-      description: "22 domain-specialized PhD-calibrated AI researchers review the analysis in parallel — each within their domain: economics, geopolitics, climate, health, AI regulation, law, and 16 others.",
-      inputs: ["Analysis draft", "Domain tags", "Source context"],
+      purpose: "22-researcher validation",
+      description: "22 domain-specialized researchers review the analysis in parallel — each within their domain: economics, geopolitics, climate, health, AI regulation, law, and 16 others.",
+      inputs: ["Analysis draft", "Domain context"],
       outputs: ["Domain validations", "Expert annotations", "Consensus score"],
-      providers: ["22 PhD-calibrated AI researchers"],
+      providers: ["22 PhD-calibrated researchers"],
       color: "bg-indigo-600"
     },
     {
-      name: "CITATION GUARD",
+      name: "Citation integrity",
       icon: CheckCircle,
-      purpose: "Citation integrity",
-      description: "Validates that every [SRC-N] citation maps to a real, accessible source. Rejects any analysis with orphaned citations.",
-      inputs: ["Full analysis", "Source list"],
-      outputs: ["Validity score", "Invalid citations detected"],
-      providers: ["Semantic validation", "LLM matching"],
+      purpose: "Citation validation",
+      description: "Validates that every [SRC-N] citation maps to a real, accessible source. Rejects any analysis with unverified citations.",
+      inputs: ["Full analysis", "Source corpus"],
+      outputs: ["Validity score", "Citation map"],
+      providers: ["Proprietary validation engine"],
       color: "bg-emerald-500"
     },
     {
-      name: "VERIFIER",
+      name: "Claim verification",
       icon: Microscope,
       purpose: "Semantic cross-check",
       description: "Cross-validates every key claim against its cited sources. Flags unsupported assertions and downgrades confidence where evidence is insufficient.",
-      inputs: ["Analysis claims", "All source content"],
-      outputs: ["Verified claim list", "Confidence deltas", "Flagged assertions"],
-      providers: ["Semantic engine", "LLM verification"],
+      inputs: ["Analysis claims", "Source corpus"],
+      outputs: ["Verified claim list", "Confidence scores", "Flagged assertions"],
+      providers: ["Proprietary verification engine"],
       color: "bg-cyan-600"
     },
     {
-      name: "CRITICAL LOOP V2",
+      name: "Critical review",
       icon: Eye,
       purpose: "Iterative critique",
-      description: "Three parallel critics review the analysis for 14 epistemic flaw types. If issues are found, the Analyst rewrites until quality thresholds are met.",
-      inputs: ["Analysis", "Readings", "Quality thresholds"],
-      outputs: ["Critique report", "Revised analysis", "Flaw categories"],
-      providers: ["3 parallel LLM critics"],
+      description: "Parallel critics review the analysis for epistemic flaws. If issues are found, the analysis is revised until quality thresholds are met.",
+      inputs: ["Analysis draft", "Quality thresholds"],
+      outputs: ["Critique report", "Revised analysis"],
+      providers: ["Adversarial review panel"],
       color: "bg-amber-500"
     },
     {
-      name: "DEBATE",
+      name: "Adversarial debate",
       icon: Scale,
-      purpose: "Adversarial review",
-      description: "Steel-man adversarial debate: two LLM passes construct the strongest possible counter-arguments, then synthesize a balanced position.",
+      purpose: "Steel-man challenge",
+      description: "Two-pass adversarial debate: the strongest possible counter-arguments are constructed, then a balanced synthesis is produced.",
       inputs: ["Analysis", "Key claims"],
-      outputs: ["Pro/con arguments", "Synthesis", "Confidence shift"],
-      providers: ["GPT-4o adversarial"],
+      outputs: ["Pro/con arguments", "Synthesis", "Confidence assessment"],
+      providers: ["Adversarial deliberation engine"],
       color: "bg-red-500"
     },
     {
-      name: "META-ANALYSIS",
+      name: "Statistical analysis",
       icon: BarChart3,
-      purpose: "Statistical rigor",
-      description: "Computes effect sizes (Cohen’s d), fixed/random effects models, I² heterogeneity, Egger’s bias test, and generates forest plots.",
-      inputs: ["Quantitative readings", "Effect size data"],
-      outputs: ["Forest plots", "Pooled estimates", "Heterogeneity stats"],
-      providers: ["Statistical engine"],
+      purpose: "Quantitative rigor",
+      description: "Computes effect sizes, heterogeneity measures, and publication bias tests across quantitative findings. Generates summary statistics.",
+      inputs: ["Quantitative findings"],
+      outputs: ["Effect summaries", "Pooled estimates", "Bias assessments"],
+      providers: ["Proprietary statistical engine"],
       color: "bg-teal-500"
     },
     {
-      name: "DEVIL'S ADVOCATE",
+      name: "Final stress-test",
       icon: Flame,
-      purpose: "Final stress-test",
-      description: "Final adversarial challenge using the full debate context. Attempts to invalidate the core thesis with the strongest possible evidence-backed counter-argument before publication is allowed.",
-      inputs: ["Analysis", "Debate context", "Core claims"],
-      outputs: ["Adversarial brief", "Publish gate score"],
-      providers: ["GPT-4o adversarial"],
+      purpose: "Publication gate",
+      description: "Final adversarial challenge using the full deliberation context. Attempts to invalidate the core thesis before publication is cleared.",
+      inputs: ["Full analysis", "Deliberation context"],
+      outputs: ["Adversarial assessment", "Publication gate score"],
+      providers: ["Independent challenge panel"],
       color: "bg-orange-500"
     },
     {
-      name: "KNOWLEDGE GRAPH",
+      name: "Knowledge tracking",
       icon: Globe,
-      purpose: "Longitudinal tracking",
-      description: "Builds and updates a concept graph across publications. Tracks how ideas evolve, which claims strengthen or weaken over time.",
-      inputs: ["Analysis", "Existing graph"],
-      outputs: ["ConceptNode updates", "Relation edges", "Trend signals"],
-      providers: ["Prisma ORM", "Graph engine"],
+      purpose: "Longitudinal intelligence",
+      description: "Builds and maintains a concept graph across publications. Tracks how claims evolve and which evidence strengthens or weakens over time.",
+      inputs: ["Verified analysis"],
+      outputs: ["Concept graph updates", "Trend signals"],
+      providers: ["Proprietary knowledge engine"],
       color: "bg-indigo-700"
     },
     {
-      name: "EDITOR",
+      name: "Publication render",
       icon: Layers,
       purpose: "Source-grounded render",
-      description: "Renders the verified analysis into a premium HTML brief. All citations are hyperlinked, evidence quality is visualized, and source provenance is fully traced.",
-      inputs: ["Final analysis", "Debate + meta results", "Source list"],
-      outputs: ["HTML brief", "Citation map", "Evidence charts"],
-      providers: ["Internal renderer", "Chart generator"],
+      description: "Renders the verified analysis into a structured brief. All citations are traceable, evidence quality is visualized, and source provenance is fully documented.",
+      inputs: ["Verified analysis", "Source corpus"],
+      outputs: ["Structured brief", "Citation map", "Evidence quality report"],
+      providers: ["Proprietary render engine"],
       color: "bg-slate-500"
     },
     {
-      name: "PUBLISH",
+      name: "Publication",
       icon: TrendingUp,
-      purpose: "Autonomous publication",
-      description: "Triggers autonomous publication if confidence thresholds are met. No human sign-off required. Notifies subscribers and updates the knowledge graph.",
-      inputs: ["Rendered brief", "Publish gate score"],
-      outputs: ["Published brief", "Subscriber notifications", "Graph update"],
-      providers: ["Internal publisher", "Newsletter service"],
+      purpose: "Autonomous release",
+      description: "Triggers autonomous publication when all confidence thresholds are met. Notifies subscribers and updates the longitudinal knowledge base.",
+      inputs: ["Cleared brief", "Gate score"],
+      outputs: ["Published brief", "Subscriber notifications", "Knowledge base update"],
+      providers: ["Council publication system"],
       color: "bg-green-600"
     }
   ];
@@ -232,10 +234,10 @@ export default function MethodologyPage() {
         <div className="nx-noise" aria-hidden="true" />
         {/* Background — aurora */}
         <div className="fixed inset-0 pointer-events-none overflow-hidden">
-          <div className="absolute w-[800px] h-[600px] rounded-full -top-32 left-1/2 -translate-x-1/2 animate-aurora-1" style={{ background: 'radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 70%)' }} />
-          <div className="absolute w-[500px] h-[500px] rounded-full top-1/3 -right-24 animate-aurora-2" style={{ background: 'radial-gradient(circle, rgba(139,92,246,0.09) 0%, transparent 70%)' }} />
-          <div className="absolute w-[400px] h-[400px] rounded-full bottom-1/3 -left-16 animate-aurora-3" style={{ background: 'radial-gradient(circle, rgba(16,185,129,0.05) 0%, transparent 70%)' }} />
-          <div className="nx-grid-bg absolute inset-0 opacity-25" />
+          <div className="absolute w-[900px] h-[700px] rounded-full -top-48 left-1/2 -translate-x-1/2 animate-aurora-1" style={{ background: 'radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 70%)' }} />
+          <div className="absolute w-[600px] h-[600px] rounded-full top-1/3 -right-32 animate-aurora-2" style={{ background: 'radial-gradient(circle, rgba(139,92,246,0.09) 0%, transparent 70%)' }} />
+          <div className="absolute w-[500px] h-[500px] rounded-full bottom-1/4 -left-24 animate-aurora-3" style={{ background: 'radial-gradient(circle, rgba(212,175,55,0.06) 0%, transparent 70%)' }} />
+          <div className="nx-grid-bg absolute inset-0 opacity-30" />
         </div>
 
         {/* Nav */}
@@ -244,28 +246,39 @@ export default function MethodologyPage() {
         <div className="relative z-10 max-w-5xl mx-auto px-6 sm:px-8 py-20 sm:py-28">
           {/* Hero */}
           <div className={`text-center mb-24 ${mounted ? 'animate-fade-in' : 'opacity-0'}`}>
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-indigo-500/20 bg-indigo-500/5 mb-8">
-              <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse-glow" />
-              <span className="text-xs text-indigo-300 font-medium tracking-wide">METHODOLOGY</span>
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-amber-500/20 bg-amber-500/5 mb-8">
+              <div className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse-glow" />
+              <span className="text-xs text-amber-300 font-medium tracking-wide">METHODOLOGY</span>
             </div>
 
-            <h1 className="font-display text-4xl sm:text-5xl md:text-6xl font-semibold leading-[1.08] tracking-tight mb-6">
-              <span className="text-white">16 autonomous agents.</span>
+            <h1 className="font-display text-4xl sm:text-5xl md:text-6xl font-bold leading-[1.08] tracking-tight mb-6">
+              <span className="text-white">16-stage verification.</span>
               <br />
-              <span className="nx-gradient-text">Zero human intervention.</span>
+              <span className="nx-gradient-text">Every claim traced.</span>
             </h1>
 
-            <p className="text-lg text-white/50 leading-relaxed max-w-2xl mx-auto mb-8 font-light">
-              Sequential verification pipeline. 16 specialized agents. 22 domain researchers. 250M+ sources. Complete traceability from query to publication.
+            <p className="text-xl text-white/40 leading-relaxed max-w-2xl mx-auto mb-5 font-light tracking-wide">
+              The autonomous verification pipeline.
+            </p>
+            <p className="text-sm text-white/25 max-w-md mx-auto mb-10 leading-loose tracking-wide">
+              22 researchers · 16 verification stages · 250M+ sources · full source traceability
             </p>
 
-            <button
-              onClick={() => setShowAuthModal(true)}
-              className="group px-6 py-3 rounded-lg bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-[#09090b] font-medium text-sm transition-all duration-300 shadow-lg shadow-amber-500/20 hover:shadow-amber-500/30 hover:scale-[1.03] inline-flex items-center gap-2"
-            >
-              Commission a research brief
-              <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
-            </button>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <button
+                onClick={() => { setAuthRedirect('dashboard'); setShowAuthModal(true); }}
+                className="group px-8 py-4 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-[#09090b] font-semibold text-sm tracking-wide transition-all duration-300 shadow-lg shadow-amber-500/20 hover:shadow-amber-500/40 hover:scale-[1.02] inline-flex items-center gap-2"
+              >
+                Access the Council — free
+                <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
+              </button>
+              <button
+                onClick={() => { setAuthRedirect('studio'); setShowAuthModal(true); }}
+                className="px-8 py-4 rounded-xl border border-white/[0.07] bg-white/[0.03] text-white/50 font-medium text-sm tracking-wide hover:bg-white/[0.06] hover:text-white/80 hover:border-white/[0.12] transition-all duration-200"
+              >
+                Commission research
+              </button>
+            </div>
           </div>
 
           {/* Pillars */}
@@ -277,11 +290,11 @@ export default function MethodologyPage() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.5, delay: i * 0.1, ease: [0.23, 1, 0.32, 1] }}
-                className="group relative p-7 rounded-xl border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.04] hover:border-indigo-500/20 hover:-translate-y-1 transition-all duration-300 overflow-hidden"
+                className="group relative p-7 rounded-xl border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.04] hover:border-amber-500/15 hover:-translate-y-1 transition-all duration-300 overflow-hidden"
               >
-                <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg,rgba(99,102,241,0.7),rgba(139,92,246,0.4),transparent)' }} />
-                <div className="w-10 h-10 rounded-lg bg-indigo-500/10 border border-indigo-500/15 flex items-center justify-center mb-5 group-hover:border-indigo-500/30 transition-colors">
-                  <item.icon size={18} className="text-indigo-400" />
+                <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg,rgba(212,175,55,0.4),rgba(99,102,241,0.3),transparent)' }} />
+                <div className="w-10 h-10 rounded-lg bg-amber-500/8 border border-amber-500/15 flex items-center justify-center mb-5 group-hover:border-amber-500/30 transition-colors">
+                  <item.icon size={18} className="text-amber-400/70" />
                 </div>
                 <h3 className="font-display text-base font-semibold text-white mb-2">{item.title}</h3>
                 <p className="text-sm text-white/40 leading-relaxed">{item.description}</p>
@@ -289,12 +302,37 @@ export default function MethodologyPage() {
             ))}
           </div>
 
+          {/* Pipeline Demo */}
+          {(() => {
+            const DEMO_STEPS = [
+              { label: "Collecting sources",   detail: "847 documents retrieved across 60+ providers",       duration: 1400 },
+              { label: "Indexing & enriching", detail: "Authors, institutions, DOIs resolved",                duration: 1200 },
+              { label: "Ranking evidence",     detail: "Top 22 sources selected by quality & recency",       duration: 1000 },
+              { label: "Reading abstracts",    detail: "Claims, methods, results extracted per source",      duration: 1300 },
+              { label: "Synthesizing",         detail: "Consensus · Disagreements · Strategic implications",  duration: 1500 },
+              { label: "Verifying citations",  detail: "All [SRC-N] references validated against sources",   duration: 900  },
+              { label: "Publishing",           detail: "Report signed and released to the Council",          duration: 800  },
+            ];
+            const DEMO_QUERY = "What is the macroeconomic impact of carbon pricing on industrial competitiveness?";
+            const DEMO_EXCERPT = `Carbon pricing mechanisms demonstrate a statistically significant negative correlation with short-term industrial output in energy-intensive sectors [SRC-3][SRC-7], though longitudinal evidence suggests competitive adaptation within 5–8 years [SRC-1][SRC-12]. Border carbon adjustments substantially mitigate leakage risks [SRC-5], while revenue recycling into R&D amplifies net productivity gains [SRC-9][SRC-14].`;
+            return (
+              <div className="-mx-6 sm:-mx-8 mb-24">
+                <PipelineDemo
+                  steps={DEMO_STEPS}
+                  query={DEMO_QUERY}
+                  excerpt={DEMO_EXCERPT}
+                  onCTA={() => setShowAuthModal(true)}
+                />
+              </div>
+            );
+          })()}
+
           {/* Agent Pipeline */}
           <div className="mb-24">
             <div className="mb-12">
-              <p className="text-xs text-indigo-400/80 font-medium tracking-[0.2em] uppercase mb-4">Architecture</p>
-              <h2 className="font-display text-3xl sm:text-4xl font-semibold text-white mb-3">
-                16-agent autonomous pipeline
+              <p className="text-xs text-amber-400/70 font-medium tracking-[0.2em] uppercase mb-4">Architecture</p>
+              <h2 className="font-display text-3xl sm:text-4xl font-bold text-white mb-3">
+                16-stage autonomous pipeline
               </h2>
               <p className="text-base text-white/40 max-w-2xl">
                 Single responsibility principle. Sequential execution. Each agent validates the previous step's output. 
@@ -369,8 +407,8 @@ export default function MethodologyPage() {
           {/* Guarantees */}
           <div className="mb-24">
             <div className="mb-12">
-              <p className="text-xs text-indigo-400/80 font-medium tracking-[0.2em] uppercase mb-4">Guarantees</p>
-              <h2 className="font-display text-3xl sm:text-4xl font-semibold text-white mb-3">
+              <p className="text-xs text-amber-400/70 font-medium tracking-[0.2em] uppercase mb-4">Guarantees</p>
+              <h2 className="font-display text-3xl sm:text-4xl font-bold text-white mb-3">
                 Foundational principles
               </h2>
             </div>
@@ -385,7 +423,7 @@ export default function MethodologyPage() {
                   transition={{ duration: 0.45, delay: i * 0.08, ease: [0.23, 1, 0.32, 1] }}
                   className="group relative p-7 rounded-xl border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/[0.12] hover:-translate-y-0.5 transition-all duration-300 overflow-hidden"
                 >
-                  <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg,rgba(99,102,241,0.5),rgba(139,92,246,0.3),transparent)' }} />
+                  <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg,rgba(212,175,55,0.4),rgba(99,102,241,0.2),transparent)' }} />
                   <div className="flex items-center gap-3 mb-3">
                     <div className="w-6 h-6 rounded-md bg-white/[0.06] flex items-center justify-center text-xs font-mono text-white/30 font-medium">
                       {String(i + 1).padStart(2, '0')}
@@ -401,28 +439,34 @@ export default function MethodologyPage() {
           {/* CTA */}
           <div className="relative text-center py-16">
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="w-[400px] h-[250px] bg-indigo-500/[0.08] rounded-full blur-[100px]" />
+              <div className="w-[400px] h-[250px] bg-amber-500/[0.07] rounded-full blur-[100px]" />
             </div>
             <div className="relative">
-              <h2 className="font-display text-3xl sm:text-4xl font-semibold text-white mb-4">
-                Pipeline demonstration.<br /><span className="nx-gradient-text">Free tier available.</span>
+              <h2 className="font-display text-3xl sm:text-4xl font-bold text-white mb-4">
+                Read the Council's latest brief.<br /><span className="nx-gradient-text">Free — no account required.</span>
               </h2>
-              <p className="text-base text-white/40 mb-8 max-w-xl mx-auto">
-                Commission a research brief. Observe the 16-agent pipeline in operation. Average cycle: 3-5 minutes.
+              <p className="text-base text-white/35 mb-8 max-w-xl mx-auto tracking-wide">
+                Every publication is open. Commission your own research through StudioX.
               </p>
-              <button
-                onClick={() => setShowAuthModal(true)}
-                className="group px-6 py-3 rounded-lg bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-[#09090b] font-medium text-sm transition-all duration-300 shadow-lg shadow-amber-500/20 hover:shadow-amber-500/30 hover:scale-[1.03] inline-flex items-center gap-2"
-              >
-                Access institutional intelligence — Free tier
-                <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
-              </button>
-              <div className="flex items-center justify-center gap-5 mt-6 text-xs text-white/30">
-                <span>Free</span>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-6">
+                <button
+                  onClick={() => { setAuthRedirect('dashboard'); setShowAuthModal(true); }}
+                  className="group px-8 py-4 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-[#09090b] font-semibold text-sm tracking-wide transition-all duration-300 shadow-lg shadow-amber-500/20 hover:shadow-amber-500/40 hover:scale-[1.02] inline-flex items-center gap-2"
+                >
+                  Access the Council — free
+                  <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
+                </button>
+                <button
+                  onClick={() => { setAuthRedirect('studio'); setShowAuthModal(true); }}
+                  className="px-8 py-4 rounded-xl border border-white/[0.07] bg-white/[0.03] text-white/50 font-medium text-sm tracking-wide hover:bg-white/[0.06] hover:text-white/80 hover:border-white/[0.12] transition-all duration-200"
+                >
+                  Commission research
+                </button>
+              </div>
+              <div className="flex items-center justify-center gap-5 text-xs text-white/30">
+                <span>Free — no account required</span>
                 <span className="w-1 h-1 rounded-full bg-white/10" />
-                <span>No credit card</span>
-                <span className="w-1 h-1 rounded-full bg-white/10" />
-                <span>Cancel anytime</span>
+                <span>StudioX on demand</span>
               </div>
             </div>
           </div>
@@ -435,7 +479,10 @@ export default function MethodologyPage() {
         <AuthModal 
           isOpen={showAuthModal}
           onClose={() => setShowAuthModal(false)}
-          onSignupSuccess={() => setShowAuthModal(false)}
+          onSignupSuccess={() => {
+            setShowAuthModal(false);
+            router.push(authRedirect === 'studio' ? '/studio' : '/dashboard');
+          }}
         />
       )}
     </>

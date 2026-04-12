@@ -20,6 +20,7 @@ import { motion } from 'framer-motion';
 export default function AboutPage() {
   const router = useRouter();
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authRedirect, setAuthRedirect] = useState<'dashboard' | 'studio'>('dashboard');
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -35,7 +36,7 @@ export default function AboutPage() {
     {
       icon: Brain,
       title: "Multi-agent research architecture",
-      description: "16-agent sequential pipeline: SCOUT → INDEX → EMBED → RANK → READER → ANALYST → COUNCIL (22 researchers) → GUARD → VERIFIER → CRITICAL → DEBATE → META → DEVIL → GRAPH → EDITOR → PUBLISH. Each agent validates the previous output."
+      description: "A 16-stage sequential verification pipeline processes every research question — from source collection to adversarial challenge — before any publication is cleared. Each stage validates the output of the previous."
     },
     {
       icon: Shield,
@@ -92,10 +93,10 @@ export default function AboutPage() {
         <div className="nx-noise" aria-hidden="true" />
         {/* Background — aurora */}
         <div className="fixed inset-0 pointer-events-none overflow-hidden">
-          <div className="absolute w-[800px] h-[600px] rounded-full -top-32 left-1/2 -translate-x-1/2 animate-aurora-1" style={{ background: 'radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 70%)' }} />
-          <div className="absolute w-[500px] h-[500px] rounded-full top-1/3 -right-24 animate-aurora-2" style={{ background: 'radial-gradient(circle, rgba(139,92,246,0.09) 0%, transparent 70%)' }} />
-          <div className="absolute w-[400px] h-[400px] rounded-full bottom-1/3 -left-16 animate-aurora-3" style={{ background: 'radial-gradient(circle, rgba(16,185,129,0.05) 0%, transparent 70%)' }} />
-          <div className="nx-grid-bg absolute inset-0 opacity-25" />
+          <div className="absolute w-[900px] h-[700px] rounded-full -top-48 left-1/2 -translate-x-1/2 animate-aurora-1" style={{ background: 'radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 70%)' }} />
+          <div className="absolute w-[600px] h-[600px] rounded-full top-1/3 -right-32 animate-aurora-2" style={{ background: 'radial-gradient(circle, rgba(139,92,246,0.09) 0%, transparent 70%)' }} />
+          <div className="absolute w-[500px] h-[500px] rounded-full bottom-1/4 -left-24 animate-aurora-3" style={{ background: 'radial-gradient(circle, rgba(212,175,55,0.06) 0%, transparent 70%)' }} />
+          <div className="nx-grid-bg absolute inset-0 opacity-30" />
         </div>
 
         {/* Nav */}
@@ -104,33 +105,44 @@ export default function AboutPage() {
         <div className="relative z-10 max-w-5xl mx-auto px-6 sm:px-8 py-20 sm:py-28">
           {/* Hero */}
           <div className={`text-center mb-24 ${mounted ? 'animate-fade-in' : 'opacity-0'}`}>
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-indigo-500/20 bg-indigo-500/5 mb-8">
-              <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse-glow" />
-              <span className="text-xs text-indigo-300 font-medium tracking-wide">ABOUT</span>
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-amber-500/20 bg-amber-500/5 mb-8">
+              <div className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse-glow" />
+              <span className="text-xs text-amber-300 font-medium tracking-wide">ABOUT</span>
             </div>
 
-            <h1 className="font-display text-4xl sm:text-5xl md:text-6xl font-semibold leading-[1.08] tracking-tight mb-6">
+            <h1 className="font-display text-4xl sm:text-5xl md:text-6xl font-bold leading-[1.08] tracking-tight mb-6">
               <span className="text-white">The first autonomous</span>
               <br />
               <span className="nx-gradient-text">think tank.</span>
             </h1>
 
-            <p className="text-lg text-white/50 leading-relaxed max-w-2xl mx-auto mb-8 font-light">
-              Autonomous research infrastructure. {RESEARCHERS.length} domain-specialized researchers. 16-agent verification pipeline. 250M+ academic sources. Every claim sourced, every source verified.
+            <p className="text-xl text-white/40 leading-relaxed max-w-2xl mx-auto mb-5 font-light tracking-wide">
+              The first fully autonomous think tank.
+            </p>
+            <p className="text-sm text-white/25 max-w-md mx-auto mb-10 leading-loose tracking-wide">
+              {RESEARCHERS.length} researchers · 16-stage verification · 250M+ sources · every claim traced
             </p>
 
-            <button 
-              onClick={() => setShowAuthModal(true)}
-              className="group px-6 py-3 rounded-lg bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-[#09090b] font-medium text-sm transition-all duration-300 shadow-lg shadow-amber-500/20 hover:shadow-amber-500/30 hover:scale-[1.03] inline-flex items-center gap-2"
-            >
-              Access institutional intelligence — Free tier
-              <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
-            </button>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <button
+                onClick={() => { setAuthRedirect('dashboard'); setShowAuthModal(true); }}
+                className="group px-8 py-4 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-[#09090b] font-semibold text-sm tracking-wide transition-all duration-300 shadow-lg shadow-amber-500/20 hover:shadow-amber-500/40 hover:scale-[1.02] inline-flex items-center gap-2"
+              >
+                Access the Council — free
+                <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
+              </button>
+              <button
+                onClick={() => { setAuthRedirect('studio'); setShowAuthModal(true); }}
+                className="px-8 py-4 rounded-xl border border-white/[0.07] bg-white/[0.03] text-white/50 font-medium text-sm tracking-wide hover:bg-white/[0.06] hover:text-white/80 hover:border-white/[0.12] transition-all duration-200"
+              >
+                Commission research
+              </button>
+            </div>
           </div>
 
           {/* Stats row */}
           <motion.div
-            className="flex flex-wrap items-center justify-center gap-8 sm:gap-16 border-t border-b border-white/[0.05] py-10 mb-24"
+            className="flex flex-wrap items-center justify-center border-t border-b border-white/[0.05] py-12 mb-24"
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
@@ -152,7 +164,7 @@ export default function AboutPage() {
           {/* Vision */}
           <div className="mb-24">
             <div className="mb-12">
-              <p className="text-xs text-indigo-400/80 font-medium tracking-[0.2em] uppercase mb-4">Our vision</p>
+              <p className="text-xs text-amber-400/70 font-medium tracking-[0.2em] uppercase mb-4">Our vision</p>
               <h2 className="font-display text-3xl sm:text-4xl font-semibold text-white mb-3">
                 Why NomosX exists
               </h2>
@@ -170,11 +182,11 @@ export default function AboutPage() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.5, delay: i * 0.1, ease: [0.23, 1, 0.32, 1] }}
-                  className="group relative p-7 rounded-xl border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.04] hover:border-indigo-500/20 hover:-translate-y-1 transition-all duration-300 overflow-hidden"
+                  className="group relative p-7 rounded-xl border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.04] hover:border-amber-500/15 hover:-translate-y-1 transition-all duration-300 overflow-hidden"
                 >
-                  <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg,rgba(99,102,241,0.7),rgba(139,92,246,0.4),transparent)' }} />
-                  <div className="w-10 h-10 rounded-lg bg-indigo-500/10 border border-indigo-500/15 flex items-center justify-center mb-5 group-hover:border-indigo-500/30 transition-colors">
-                    <item.icon size={18} className="text-indigo-400" />
+                  <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg,rgba(212,175,55,0.4),rgba(99,102,241,0.3),transparent)' }} />
+                  <div className="w-10 h-10 rounded-lg bg-amber-500/8 border border-amber-500/15 flex items-center justify-center mb-5 group-hover:border-amber-500/30 transition-colors">
+                    <item.icon size={18} className="text-amber-400/70" />
                   </div>
                   <h3 className="font-display text-base font-semibold text-white mb-2">{item.title}</h3>
                   <p className="text-sm text-white/40 leading-relaxed">{item.description}</p>
@@ -186,7 +198,7 @@ export default function AboutPage() {
           {/* Timeline */}
           <div className="mb-24">
             <div className="mb-12">
-              <p className="text-xs text-indigo-400/80 font-medium tracking-[0.2em] uppercase mb-4">Our timeline</p>
+              <p className="text-xs text-amber-400/70 font-medium tracking-[0.2em] uppercase mb-4">Our timeline</p>
               <h2 className="font-display text-3xl sm:text-4xl font-semibold text-white mb-3">
                 From idea to institution
               </h2>
@@ -203,10 +215,10 @@ export default function AboutPage() {
                   whileInView={{ opacity: 1, x: 0 }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.5, delay: i * 0.12, ease: [0.23, 1, 0.32, 1] }}
-                  className="group flex items-start gap-6 p-7 rounded-xl border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/[0.12] hover:-translate-y-0.5 transition-all duration-300"
+                  className="group flex items-start gap-6 p-7 rounded-xl border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.04] hover:border-amber-500/15 hover:-translate-y-0.5 transition-all duration-300"
                 >
-                  <div className="flex-shrink-0 w-16 h-16 rounded-xl bg-gradient-to-br from-indigo-500/10 to-violet-500/5 border border-indigo-500/15 flex items-center justify-center group-hover:border-indigo-500/30 transition-colors">
-                    <span className="font-display text-lg font-semibold text-indigo-400">{item.year}</span>
+                  <div className="flex-shrink-0 w-16 h-16 rounded-xl bg-amber-500/[0.06] border border-amber-500/15 flex items-center justify-center group-hover:border-amber-500/30 transition-colors">
+                    <span className="font-display text-lg font-semibold text-amber-400/80">{item.year}</span>
                   </div>
                   <div>
                     <h3 className="font-display text-base font-semibold text-white mb-1.5">{item.title}</h3>
@@ -220,7 +232,7 @@ export default function AboutPage() {
           {/* Values */}
           <div className="mb-24">
             <div className="mb-12">
-              <p className="text-xs text-indigo-400/80 font-medium tracking-[0.2em] uppercase mb-4">Our principles</p>
+              <p className="text-xs text-amber-400/70 font-medium tracking-[0.2em] uppercase mb-4">Our principles</p>
               <h2 className="font-display text-3xl sm:text-4xl font-semibold text-white mb-3">
                 What guides us
               </h2>
@@ -239,9 +251,9 @@ export default function AboutPage() {
                   transition={{ duration: 0.45, delay: i * 0.08, ease: [0.23, 1, 0.32, 1] }}
                   className="group relative p-7 rounded-xl border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/[0.12] hover:-translate-y-0.5 transition-all duration-300 overflow-hidden"
                 >
-                  <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg,rgba(99,102,241,0.5),rgba(139,92,246,0.3),transparent)' }} />
+                  <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg,rgba(212,175,55,0.4),rgba(99,102,241,0.2),transparent)' }} />
                   <div className="flex items-center gap-3 mb-3">
-                    <div className="w-6 h-6 rounded-md bg-white/[0.06] flex items-center justify-center text-xs font-mono text-white/30 font-medium">
+                    <div className="w-6 h-6 rounded-md bg-amber-500/[0.08] border border-amber-500/15 flex items-center justify-center text-xs font-mono text-amber-400/50 font-medium">
                       {String(i + 1).padStart(2, '0')}
                     </div>
                     <h3 className="font-display text-base font-semibold text-white">{item.title}</h3>
@@ -255,28 +267,34 @@ export default function AboutPage() {
           {/* CTA */}
           <div className="relative text-center py-16">
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="w-[400px] h-[250px] bg-indigo-500/[0.08] rounded-full blur-[100px]" />
+              <div className="w-[400px] h-[250px] bg-amber-500/[0.07] rounded-full blur-[100px]" />
             </div>
             <div className="relative">
-              <h2 className="font-display text-3xl sm:text-4xl font-semibold text-white mb-4">
-                Autonomous research infrastructure.<br /><span className="nx-gradient-text">Open access.</span>
+              <h2 className="font-display text-3xl sm:text-4xl font-bold text-white mb-4">
+                The Council is open.<br /><span className="nx-gradient-text">Every brief is free.</span>
               </h2>
-              <p className="text-base text-white/40 mb-8 max-w-xl mx-auto">
-                22 researchers. 16 agents. 250M+ sources. Free tier available.
+              <p className="text-base text-white/35 mb-8 max-w-xl mx-auto tracking-wide">
+                22 researchers. 250M+ sources. Fully autonomous. No account required to read.
               </p>
-              <button
-                onClick={() => setShowAuthModal(true)}
-                className="group px-6 py-3 rounded-lg bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-[#09090b] font-medium text-sm transition-all duration-300 shadow-lg shadow-amber-500/20 hover:shadow-amber-500/30 hover:scale-[1.03] inline-flex items-center gap-2"
-              >
-                Access institutional intelligence — Free tier
-                <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
-              </button>
-              <div className="flex items-center justify-center gap-5 mt-6 text-xs text-white/30">
-                <span>Free 30-day trial</span>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-6">
+                <button
+                  onClick={() => { setAuthRedirect('dashboard'); setShowAuthModal(true); }}
+                  className="group px-8 py-4 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-[#09090b] font-semibold text-sm tracking-wide transition-all duration-300 shadow-lg shadow-amber-500/20 hover:shadow-amber-500/40 hover:scale-[1.02] inline-flex items-center gap-2"
+                >
+                  Access the Council — free
+                  <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
+                </button>
+                <button
+                  onClick={() => { setAuthRedirect('studio'); setShowAuthModal(true); }}
+                  className="px-8 py-4 rounded-xl border border-white/[0.07] bg-white/[0.03] text-white/50 font-medium text-sm tracking-wide hover:bg-white/[0.06] hover:text-white/80 hover:border-white/[0.12] transition-all duration-200"
+                >
+                  Commission research
+                </button>
+              </div>
+              <div className="flex items-center justify-center gap-5 text-xs text-white/30">
+                <span>Free — no account required</span>
                 <span className="w-1 h-1 rounded-full bg-white/10" />
-                <span>No credit card</span>
-                <span className="w-1 h-1 rounded-full bg-white/10" />
-                <span>Cancel anytime</span>
+                <span>StudioX on demand</span>
               </div>
             </div>
           </div>
@@ -289,7 +307,10 @@ export default function AboutPage() {
         <AuthModal 
           isOpen={showAuthModal}
           onClose={() => setShowAuthModal(false)}
-          onSignupSuccess={() => setShowAuthModal(false)}
+          onSignupSuccess={() => {
+            setShowAuthModal(false);
+            router.push(authRedirect === 'studio' ? '/studio' : '/dashboard');
+          }}
         />
       )}
     </>

@@ -1,17 +1,20 @@
 "use client";
 
 import React, { useState, useEffect, Suspense } from 'react';
+import dynamic from 'next/dynamic';
 import { useRouter, useSearchParams } from 'next/navigation';
 import AuthModal from '@/components/AuthModal';
 import PublicNav from '@/components/PublicNav';
-import { Brain, Shield, BarChart3, TrendingUp, ArrowRight, Search, FileText, Microscope, Scale, Leaf, Calculator, Globe2, Rss, Clock, BookOpen, ExternalLink, Database, Zap, CheckCircle, Eye, AlertTriangle, Flame, Network, Activity, DollarSign, Target, Building2, Package } from 'lucide-react';
-import { NomosXLogo3D } from '@/components/brand/NomosXLogo3D';
+import { Brain, Shield, BarChart3, TrendingUp, ArrowRight, Search, FileText, Scale, Leaf, Globe2, Rss, Clock, BookOpen, ExternalLink, Database, Zap, Eye, AlertTriangle, Network, Activity, DollarSign, Target, Building2, Package, Calculator } from 'lucide-react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { ThreeComponentWrapper } from '@/components/ThreeComponentWrapper';
 import SiteFooter from '@/components/SiteFooter';
 import { AnimatePresence, motion } from 'framer-motion';
 import HoloOrb from '@/components/ui/HoloOrb';
 import HoloPortrait from '@/components/ui/HoloPortrait';
+import PipelineDemo from '@/components/ui/PipelineDemo';
+
+const TruthOrb = dynamic(() => import('@/components/ui/TruthOrb'), { ssr: false, loading: () => null });
 
 const DOMAIN_ICONS: Record<string, React.ComponentType<{ size?: number | string; strokeWidth?: number | string; style?: React.CSSProperties }>> = {
   'Economics':      TrendingUp,
@@ -78,6 +81,7 @@ type PublicBrief = {
 function HomePageContent() {
   const router = useRouter();
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authRedirect, setAuthRedirect] = useState<'dashboard' | 'studio'>('dashboard');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
@@ -146,11 +150,18 @@ function HomePageContent() {
     }
   }, [searchParams]);
 
-  const handleAuthSuccess = () => { setIsAuthenticated(true); setShowAuthModal(false); };
+  function openStudioAuth() { setAuthRedirect('studio'); setShowAuthModal(true); }
+  function openFreeAuth()   { setAuthRedirect('dashboard'); setShowAuthModal(true); }
+  const handleAuthSuccess = () => {
+    setIsAuthenticated(true);
+    setShowAuthModal(false);
+    if (authRedirect === 'studio') router.push('/studio');
+    else router.push('/dashboard');
+  };
 
   if (isLoading) return (
     <div className="min-h-screen bg-[#09090b] flex items-center justify-center">
-      <div className="w-8 h-8 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin" />
+      <div className="w-8 h-8 border-2 border-amber-500/30 border-t-amber-500 rounded-full animate-spin" />
     </div>
   );
 
@@ -170,52 +181,45 @@ function HomePageContent() {
         <div className="relative z-10">
           <PublicNav currentPage="home" onSignInClick={() => setShowAuthModal(true)} isAuthenticated={isAuthenticated} />
 
-          {/* HERO */}
-          <section className="relative px-6 sm:px-8 pt-24 sm:pt-32 pb-16">
+          {/* HERO — Doxa → Nomos */}
+          <section className="relative px-6 sm:px-8 pt-28 sm:pt-40 pb-24">
             <div className="max-w-5xl mx-auto text-center">
-              <div className={`flex justify-center mb-8 transition-opacity duration-700 ${mounted ? 'opacity-100' : 'opacity-0'}`}>
-                <ThreeComponentWrapper>
-                  <NomosXLogo3D size={140} />
-                </ThreeComponentWrapper>
+
+              {/* TruthOrb — chaos resolving into order */}
+              <div className={`flex justify-center mb-12 transition-opacity duration-700 ${mounted ? 'opacity-100' : 'opacity-0'}`}>
+                <TruthOrb size={280} color="#6366F1" accentColor="#D4AF37" />
               </div>
 
-              <div className={`inline-flex items-center gap-2.5 px-4 py-2 rounded-full border border-indigo-500/25 bg-indigo-500/8 mb-10 transition-opacity duration-700 ${mounted ? 'opacity-100' : 'opacity-0'}`}>
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75" />
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-400" />
-                </span>
-                <span className="text-xs text-indigo-300 font-semibold tracking-[0.18em] uppercase">The First Autonomous Think Tank</span>
-              </div>
-
-              <h1 className={`font-display text-5xl sm:text-6xl md:text-[5.5rem] font-bold leading-[1.03] tracking-tight mb-7 transition-all duration-700 delay-100 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'}`}>
-                <span className="text-white">22 PhD AI researchers.</span>
-                <br />
-                <span className="nx-gradient-text">16 autonomous agents.</span>
-                <br />
-                <span className="text-white/35">Institutional quality at AI speed.</span>
+              <h1 className={`font-display text-6xl sm:text-7xl md:text-[6rem] lg:text-[7rem] font-bold leading-[1.0] tracking-tight mb-8 transition-all duration-700 delay-100 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'}`}>
+                <span className="text-white/30">Doxa</span>
+                <span className="text-white/15 mx-5 sm:mx-8">→</span>
+                <span className="nx-gradient-text">Nomos</span>
               </h1>
-              
-              <p className={`text-lg sm:text-xl text-white/50 max-w-2xl mx-auto mb-10 leading-relaxed font-light transition-all duration-700 delay-200 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'}`}>
-                The complete picture, from 250M+ academic sources. Every claim sourced, every source verified. Zero opinion — just evidence.
+
+              <p className={`text-xl sm:text-2xl text-white/40 max-w-2xl mx-auto mb-5 leading-relaxed font-light tracking-wide transition-all duration-700 delay-200 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'}`}>
+                The autonomous think tank.
+              </p>
+              <p className={`text-sm text-white/25 max-w-md mx-auto mb-14 leading-loose tracking-wide transition-all duration-700 delay-250 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'}`}>
+                22 researchers · 16-stage verification · 250M+ sources · zero editorial opinion
               </p>
 
-              <div className={`flex flex-col sm:flex-row gap-3 justify-center mb-12 transition-all duration-700 delay-300 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'}`}>
-                <button onClick={() => setShowAuthModal(true)} className="group px-7 py-3.5 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-[#09090b] font-semibold text-sm transition-all duration-300 shadow-lg shadow-amber-500/20 hover:shadow-amber-500/30 hover:scale-[1.03] flex items-center justify-center gap-2">
-                  Access institutional intelligence — Free tier
+              <div className={`flex flex-col sm:flex-row gap-4 justify-center mb-20 transition-all duration-700 delay-300 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'}`}>
+                <button onClick={() => setShowAuthModal(true)} className="group px-8 py-4 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-[#09090b] font-semibold text-sm tracking-wide transition-all duration-300 shadow-lg shadow-amber-500/20 hover:shadow-amber-500/40 hover:scale-[1.02] flex items-center justify-center gap-2">
+                  Access the Council — free
                   <ArrowRight size={15} className="group-hover:translate-x-0.5 transition-transform" />
                 </button>
-                <button onClick={() => router.push('/methodology')} className="px-7 py-3.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white/60 hover:text-white hover:bg-white/[0.07] hover:border-white/[0.15] font-medium text-sm transition-all duration-200">
-                  How it works
+                <button onClick={() => router.push('/articles')} className="px-8 py-4 rounded-xl bg-white/[0.03] border border-white/[0.07] text-white/50 hover:text-white/80 hover:bg-white/[0.06] hover:border-white/[0.12] font-medium text-sm tracking-wide transition-all duration-200">
+                  View publications
                 </button>
               </div>
 
-              <div className={`flex flex-wrap items-center justify-center transition-all duration-700 delay-400 ${mounted ? 'opacity-100' : 'opacity-0'}`}>
-                {[{ value: "22", label: "PhD AI researchers" }, { value: "16", label: "Autonomous agents" }, { value: "250M+", label: "Academic sources" }, { value: "60+", label: "Data providers" }].map((s, i) => (
+              <div className={`flex flex-wrap items-center justify-center gap-0 transition-all duration-700 delay-400 ${mounted ? 'opacity-100' : 'opacity-0'}`}>
+                {[{ value: "22", label: "PhD researchers" }, { value: "16", label: "Verification stages" }, { value: "250M+", label: "Academic sources" }, { value: "60+", label: "Data providers" }].map((s, i) => (
                   <React.Fragment key={i}>
-                    {i > 0 && <div className="h-8 w-px bg-white/[0.08] mx-8 sm:mx-10" />}
+                    {i > 0 && <div className="h-10 w-px bg-white/[0.06] mx-10 sm:mx-14" />}
                     <div className="text-center">
-                      <div className="text-2xl sm:text-3xl font-display font-bold text-white">{s.value}</div>
-                      <div className="text-[11px] text-white/30 mt-0.5 tracking-[0.08em]">{s.label}</div>
+                      <div className="text-3xl sm:text-4xl font-display font-bold text-white/90">{s.value}</div>
+                      <div className="text-[11px] text-white/25 mt-1 tracking-[0.12em] uppercase">{s.label}</div>
                     </div>
                   </React.Fragment>
                 ))}
@@ -223,22 +227,73 @@ function HomePageContent() {
             </div>
           </section>
 
+          {/* DOXA → NOMOS — The transformation */}
+          <section className="relative px-6 sm:px-8 py-28">
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_50%,rgba(99,102,241,0.06),transparent_70%)] pointer-events-none" />
+            <div className="max-w-5xl mx-auto relative">
+              <div className="text-center mb-12">
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-amber-500/20 bg-amber-500/5 mb-5">
+                  <Shield size={12} className="text-amber-400" />
+                  <span className="text-[11px] text-amber-300/80 font-semibold tracking-[0.2em] uppercase">Doxa → Nomos</span>
+                </div>
+                <h2 className="font-display text-3xl sm:text-4xl font-bold text-white mb-4">Every claim is challenged before it becomes truth.</h2>
+                <p className="text-base text-white/40 max-w-xl mx-auto">Doxa is opinion. Nomos is what survives challenge. 16 validation steps ensure only what is verified becomes publication.</p>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {[
+                  { icon: Search, title: 'From noise to signal', desc: '250M+ sources scanned, enriched, and quality-filtered. Only what matters enters the pipeline.', color: 'indigo' },
+                  { icon: Brain, title: 'From claim to tested claim', desc: '3-pass analysis with adversarial debate. Every argument tested against its strongest counter.', color: 'violet' },
+                  { icon: Shield, title: 'From assertion to evidence', desc: 'Every [SRC-N] citation validated. Every numerical claim checked against source data.', color: 'emerald' },
+                  { icon: AlertTriangle, title: 'From draft to revised truth', desc: 'A dedicated agent challenges every assumption. Fatal flaws trigger automatic revision before publication.', color: 'rose' },
+                ].map((s, i) => {
+                  const SIcon = s.icon;
+                  return (
+                    <div key={i} className={`rounded-2xl p-6 border ${
+                      s.color === 'indigo' ? 'border-indigo-500/15 bg-indigo-500/[0.03]' :
+                      s.color === 'violet' ? 'border-violet-500/15 bg-violet-500/[0.03]' :
+                      s.color === 'emerald' ? 'border-emerald-500/15 bg-emerald-500/[0.03]' :
+                      'border-rose-500/15 bg-rose-500/[0.03]'
+                    } hover:border-white/[0.12] transition-all duration-300`}>
+                      <div className={`w-9 h-9 rounded-lg flex items-center justify-center mb-4 ${
+                        s.color === 'indigo' ? 'bg-indigo-500/10 border border-indigo-500/15' :
+                        s.color === 'violet' ? 'bg-violet-500/10 border border-violet-500/15' :
+                        s.color === 'emerald' ? 'bg-emerald-500/10 border border-emerald-500/15' :
+                        'bg-rose-500/10 border border-rose-500/15'
+                      }`}>
+                        <SIcon size={16} className={s.color === 'indigo' ? 'text-indigo-400' : s.color === 'violet' ? 'text-violet-400' : s.color === 'emerald' ? 'text-emerald-400' : 'text-rose-400'} />
+                      </div>
+                      <h3 className="text-sm font-semibold text-white mb-2">{s.title}</h3>
+                      <p className="text-xs text-white/35 leading-relaxed">{s.desc}</p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </section>
+
           {/* BENTO GRID — Features */}
-          <section className="relative px-6 sm:px-8 pb-8">
+          <section className="relative px-6 sm:px-8 py-28">
             <div className="max-w-5xl mx-auto">
+              <div className="text-center mb-14">
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-amber-500/20 bg-amber-500/5 mb-5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                  <span className="text-[11px] text-amber-300/80 font-semibold tracking-[0.2em] uppercase">At a glance</span>
+                </div>
+                <h2 className="font-display text-3xl sm:text-4xl font-bold text-white">The infrastructure behind every truth.</h2>
+              </div>
               <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
 
                 {/* Council — hero card */}
                 <div className="col-span-2 md:col-span-4 rounded-2xl relative overflow-hidden p-6 transition-all duration-300 hover:border-white/[0.11] group"
                   style={{ border: '1px solid rgba(255,255,255,0.07)', background: 'rgba(255,255,255,0.02)', minHeight: '190px' }}>
-                  <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg,#6366f1,#8B5CF6,transparent)' }} />
-                  <div className="absolute -right-16 -top-16 w-52 h-52 rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle,rgba(99,102,241,0.08) 0%,transparent 70%)' }} />
-                  <p className="text-[10px] text-indigo-300 font-semibold tracking-[0.2em] uppercase mb-1.5">The Council</p>
+                  <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg,rgba(212,175,55,0.7),rgba(212,175,55,0.2),transparent)' }} />
+                  <div className="absolute -right-16 -top-16 w-52 h-52 rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle,rgba(212,175,55,0.06) 0%,transparent 70%)' }} />
+                  <p className="text-[10px] text-amber-300/70 font-semibold tracking-[0.2em] uppercase mb-1.5">The Council</p>
                   <h3 className="text-lg sm:text-xl font-display font-semibold text-white mb-1">22 PhD AI Researchers</h3>
                   <p className="text-xs text-white/35 mb-5">Domain-specialized · Adversarial peer review at every stage</p>
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold text-indigo-300"
-                      style={{ background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.30)' }}>
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold text-amber-300/80"
+                      style={{ background: 'rgba(212,175,55,0.12)', border: '1px solid rgba(212,175,55,0.25)' }}>
                       22
                     </div>
                     <span className="text-xs text-white/40">Domain experts</span>
@@ -248,8 +303,8 @@ function HomePageContent() {
                 {/* Sources */}
                 <div className="col-span-2 md:col-span-2 rounded-2xl relative overflow-hidden p-5 flex flex-col justify-between hover:border-white/[0.10] transition-all duration-300"
                   style={{ border: '1px solid rgba(255,255,255,0.07)', background: 'rgba(255,255,255,0.02)', minHeight: '190px' }}>
-                  <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg,#10B981,transparent)' }} />
-                  <p className="text-[10px] text-emerald-400 font-semibold tracking-[0.2em] uppercase">Sources</p>
+                  <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg,rgba(212,175,55,0.5),transparent)' }} />
+                  <p className="text-[10px] text-amber-300/60 font-semibold tracking-[0.2em] uppercase">Sources</p>
                   <div>
                     <div className="text-4xl sm:text-5xl font-display font-bold text-white mb-1">250M+</div>
                     <p className="text-xs text-white/30">Academic & institutional documents</p>
@@ -259,15 +314,15 @@ function HomePageContent() {
                 {/* Agents */}
                 <div className="col-span-1 md:col-span-2 rounded-2xl relative overflow-hidden p-5 flex flex-col justify-between hover:border-white/[0.10] transition-all duration-300"
                   style={{ border: '1px solid rgba(255,255,255,0.07)', background: 'rgba(255,255,255,0.02)' }}>
-                  <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg,#8B5CF6,transparent)' }} />
-                  <p className="text-[10px] text-violet-300 font-semibold tracking-[0.2em] uppercase">Pipeline</p>
+                  <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg,rgba(212,175,55,0.4),transparent)' }} />
+                  <p className="text-[10px] text-amber-300/60 font-semibold tracking-[0.2em] uppercase">Pipeline</p>
                   <div>
                     <div className="text-4xl sm:text-5xl font-display font-bold text-white mb-1">16</div>
                     <p className="text-xs text-white/30 mb-4">Autonomous agents</p>
                     <div className="flex gap-1 flex-wrap">
                       {['S','I','R','Rd','An','Cr','Gd','Ed'].map((s, i) => (
-                        <div key={i} className="w-6 h-6 rounded-full flex items-center justify-center text-[8px] font-bold text-violet-300/70"
-                          style={{ background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.22)' }}>{s}</div>
+                        <div key={i} className="w-6 h-6 rounded-full flex items-center justify-center text-[8px] font-bold text-amber-300/60"
+                          style={{ background: 'rgba(212,175,55,0.08)', border: '1px solid rgba(212,175,55,0.18)' }}>{s}</div>
                       ))}
                     </div>
                   </div>
@@ -276,8 +331,8 @@ function HomePageContent() {
                 {/* Zero opinion */}
                 <div className="col-span-1 md:col-span-2 rounded-2xl relative overflow-hidden p-5 flex flex-col justify-between hover:border-white/[0.10] transition-all duration-300"
                   style={{ border: '1px solid rgba(255,255,255,0.07)', background: 'rgba(255,255,255,0.02)' }}>
-                  <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg,#6366F1,transparent)' }} />
-                  <p className="text-[10px] text-indigo-300 font-semibold tracking-[0.2em] uppercase">Objectivity</p>
+                  <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg,rgba(212,175,55,0.35),transparent)' }} />
+                  <p className="text-[10px] text-amber-300/60 font-semibold tracking-[0.2em] uppercase">Objectivity</p>
                   <div>
                     <div className="text-4xl sm:text-5xl font-display font-bold text-white mb-1">0</div>
                     <p className="text-xs text-white/30">Editorial opinion · evidence only</p>
@@ -287,8 +342,8 @@ function HomePageContent() {
                 {/* Providers */}
                 <div className="col-span-2 md:col-span-2 rounded-2xl relative overflow-hidden p-5 flex flex-col justify-between hover:border-white/[0.10] transition-all duration-300"
                   style={{ border: '1px solid rgba(255,255,255,0.07)', background: 'rgba(255,255,255,0.02)' }}>
-                  <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg,#0EA5E9,transparent)' }} />
-                  <p className="text-[10px] text-sky-400 font-semibold tracking-[0.2em] uppercase">Coverage</p>
+                  <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg,rgba(212,175,55,0.35),transparent)' }} />
+                  <p className="text-[10px] text-amber-300/60 font-semibold tracking-[0.2em] uppercase">Coverage</p>
                   <div>
                     <div className="text-4xl sm:text-5xl font-display font-bold text-white mb-1">60+</div>
                     <p className="text-xs text-white/30">Live data providers</p>
@@ -298,6 +353,30 @@ function HomePageContent() {
               </div>
             </div>
           </section>
+
+          {/* PIPELINE DEMO — cinematic */}
+          {(() => {
+            const DEMO_STEPS = [
+              { label: "Collecting sources",   detail: "847 documents retrieved across 60+ providers",      duration: 1400 },
+              { label: "Indexing & enriching", detail: "Authors, institutions, DOIs resolved",               duration: 1200 },
+              { label: "Ranking evidence",     detail: "Top 22 sources selected by quality & recency",      duration: 1000 },
+              { label: "Reading abstracts",    detail: "Claims, methods, results extracted per source",     duration: 1300 },
+              { label: "Synthesizing",         detail: "Consensus · Disagreements · Strategic implications", duration: 1500 },
+              { label: "Verifying citations",  detail: "All [SRC-N] references validated against sources",  duration: 900  },
+              { label: "Publishing",           detail: "Report signed and released to the Council",         duration: 800  },
+            ];
+            const DEMO_QUERY = "What is the macroeconomic impact of carbon pricing on industrial competitiveness?";
+            const DEMO_EXCERPT = `Carbon pricing mechanisms demonstrate a statistically significant negative correlation with short-term industrial output in energy-intensive sectors [SRC-3][SRC-7], though longitudinal evidence suggests competitive adaptation within 5–8 years [SRC-1][SRC-12]. Border carbon adjustments substantially mitigate leakage risks [SRC-5], while revenue recycling into R&D amplifies net productivity gains [SRC-9][SRC-14].`;
+
+            return (
+              <PipelineDemo
+                steps={DEMO_STEPS}
+                query={DEMO_QUERY}
+                excerpt={DEMO_EXCERPT}
+                onCTA={() => setShowAuthModal(true)}
+              />
+            );
+          })()}
 
           {/* THINK TANK */}
           <section className="relative px-6 sm:px-8 py-28 overflow-hidden">
@@ -309,9 +388,9 @@ function HomePageContent() {
 
             <div className="max-w-7xl mx-auto relative">
               <div className="text-center mb-20">
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-indigo-500/20 bg-indigo-500/5 mb-6">
-                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
-                  <span className="text-[11px] text-indigo-300 font-semibold tracking-[0.2em] uppercase">The Think Tank</span>
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-amber-500/20 bg-amber-500/5 mb-6">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                  <span className="text-[11px] text-amber-300/80 font-semibold tracking-[0.2em] uppercase">The Think Tank</span>
                 </div>
                 <h2 className="font-display text-4xl sm:text-5xl md:text-6xl font-bold text-white mb-6 leading-tight">
                   22 domain-specialized researchers.<br />
@@ -532,30 +611,73 @@ function HomePageContent() {
             </div>
           </section>
 
-          {/* LIVE DEMO */}
-          <section className="relative px-6 sm:px-8 py-24">
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_50%,rgba(99,102,241,0.08),transparent_70%)] pointer-events-none" />
-            <div className="max-w-5xl mx-auto relative">
-              <div className="text-center mb-14">
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-indigo-500/20 bg-indigo-500/5 mb-5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
-                  <span className="text-[11px] text-indigo-300 font-semibold tracking-[0.2em] uppercase">16-Agent Pipeline · Live</span>
+          {/* OUTPUT FORMATS */}
+          <section className="relative px-6 sm:px-8 py-28">
+            <div className="max-w-5xl mx-auto">
+              <div className="text-center mb-12">
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-amber-500/20 bg-amber-500/5 mb-5">
+                  <BookOpen size={12} className="text-amber-400" />
+                  <span className="text-[11px] text-amber-300/80 font-semibold tracking-[0.2em] uppercase">What truth looks like</span>
                 </div>
-                <h2 className="font-display text-3xl sm:text-4xl font-bold text-white mb-4">Autonomous research, end to end.</h2>
-                <p className="text-base text-white/40 max-w-xl mx-auto">16 agents in sequence. 22 researchers validate at key stages. From query to published brief — fully autonomous.</p>
+                <h2 className="font-display text-3xl sm:text-4xl font-bold text-white mb-4">Two formats. One standard: truth.</h2>
+                <p className="text-base text-white/40 max-w-xl mx-auto">Every publication — brief or strategic — survives the same 16 challenges. Same rigour. Different depth.</p>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="rounded-2xl border border-white/[0.07] bg-white/[0.02] p-8 relative overflow-hidden hover:border-amber-500/15 transition-all duration-300">
+                  <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg,rgba(212,175,55,0.6),transparent)' }} />
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/15 flex items-center justify-center">
+                      <FileText size={18} className="text-amber-400" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-white">Executive Brief</h3>
+                      <p className="text-xs text-white/30">3-5 pages</p>
+                    </div>
+                  </div>
+                  <p className="text-sm text-white/40 leading-relaxed mb-6">Concise, decision-ready truth. Key findings, consensus, disagreements, and strategic implications — every claim traced to its source.</p>
+                  <div className="space-y-2">
+                    {['Consensus & disagreements', 'Pro/con debate synthesis', 'Evidence quality score', 'Full [SRC-N] citations'].map((f, i) => (
+                      <div key={i} className="flex items-center gap-2.5">
+                        <div className="w-3.5 h-3.5 rounded-full border border-amber-400/40 flex items-center justify-center flex-shrink-0"><div className="w-1 h-1 rounded-full bg-amber-400" /></div>
+                        <span className="text-xs text-white/45">{f}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="rounded-2xl border border-white/[0.07] bg-white/[0.02] p-8 relative overflow-hidden hover:border-amber-500/15 transition-all duration-300">
+                  <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg,rgba(212,175,55,0.4),transparent)' }} />
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-10 h-10 rounded-xl bg-amber-500/[0.07] border border-amber-500/15 flex items-center justify-center">
+                      <Target size={18} className="text-amber-400/70" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-white">Strategic Report</h3>
+                      <p className="text-xs text-white/30">10-15 pages</p>
+                    </div>
+                  </div>
+                  <p className="text-sm text-white/40 leading-relaxed mb-6">Comprehensive truth with scenario planning, stakeholder impact, implementation roadmap, and full Council deliberations.</p>
+                  <div className="space-y-2">
+                    {['Literature review & thematic analysis', 'Scenario planning (3-5 scenarios)', 'Stakeholder impact matrix', 'Implementation roadmap & metrics'].map((f, i) => (
+                      <div key={i} className="flex items-center gap-2.5">
+                        <div className="w-3.5 h-3.5 rounded-full border border-amber-400/30 flex items-center justify-center flex-shrink-0"><div className="w-1 h-1 rounded-full bg-amber-400/70" /></div>
+                        <span className="text-xs text-white/45">{f}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
           </section>
 
           {/* LATEST PUBLICATIONS */}
-          <section className="relative px-6 sm:px-8 py-24">
+          <section className="relative px-6 sm:px-8 py-28">
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_55%_45%_at_50%_50%,rgba(99,102,241,0.06),transparent_70%)] pointer-events-none" />
             <div className="max-w-5xl mx-auto">
               <div className="flex items-end justify-between mb-10">
                 <div>
-                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-indigo-500/20 bg-indigo-500/5 mb-4">
-                    <span className="relative flex h-1.5 w-1.5"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75" /><span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-indigo-400" /></span>
-                    <span className="text-[11px] text-indigo-300 font-semibold tracking-[0.2em] uppercase">Auto-published · Live</span>
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-amber-500/20 bg-amber-500/5 mb-4">
+                    <span className="relative flex h-1.5 w-1.5"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" /><span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-amber-400" /></span>
+                    <span className="text-[11px] text-amber-300/80 font-semibold tracking-[0.2em] uppercase">Auto-published · Live</span>
                   </div>
                   <h2 className="font-display text-3xl sm:text-4xl font-bold text-white">Live intelligence feed</h2>
                   <p className="text-base text-white/40 mt-2">Multi-pass validation. Full source traceability. Zero editorial opinion.</p>
@@ -567,10 +689,10 @@ function HomePageContent() {
               {latestBriefs.length > 0 ? (
                 <div className="space-y-3">
                   {latestBriefs.map((brief) => (
-                    <div key={brief.id} onClick={() => router.push(`/articles/${brief.id}`)} className="group relative rounded-xl border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.04] hover:border-indigo-500/20 transition-all duration-300 p-5 cursor-pointer">
+                    <div key={brief.id} onClick={() => router.push(`/articles/${brief.id}`)} className="group relative rounded-xl border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.04] hover:border-amber-500/15 transition-all duration-300 p-5 cursor-pointer">
                       <div className="flex items-start gap-4">
-                        <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/15 flex items-center justify-center mt-0.5">
-                          <BookOpen size={14} className="text-indigo-400" />
+                        <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-amber-500/[0.07] border border-amber-500/15 flex items-center justify-center mt-0.5">
+                          <BookOpen size={14} className="text-amber-400/70" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between gap-4 mb-1.5">
@@ -608,23 +730,22 @@ function HomePageContent() {
             </div>
           </section>
 
-          {/* NEWSLETTER — primary CTA */}
-          <section className="relative px-6 sm:px-8 py-24">
+          {/* NEWSLETTER — Weekly Truth Dispatch */}
+          <section className="relative px-6 sm:px-8 py-28">
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_60%_at_50%_50%,rgba(99,102,241,0.07),transparent_70%)] pointer-events-none" />
             <div className="max-w-3xl mx-auto">
-              <div className="relative rounded-2xl border border-indigo-500/20 bg-indigo-500/[0.03] p-10 sm:p-14 overflow-hidden text-center">
-                <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_80%_at_50%_110%,rgba(99,102,241,0.10),transparent_70%)] pointer-events-none" />
+              <div className="relative rounded-2xl border border-amber-500/15 bg-amber-500/[0.02] p-10 sm:p-14 overflow-hidden text-center">
+                <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_80%_at_50%_110%,rgba(212,175,55,0.08),transparent_70%)] pointer-events-none" />
                 <div className="relative">
-                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-indigo-500/25 bg-indigo-500/8 mb-6">
-                    <Rss size={11} className="text-indigo-400" />
-                    <span className="text-[11px] text-indigo-300 font-semibold tracking-[0.2em] uppercase">Weekly Intelligence Dispatch</span>
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-amber-500/20 bg-amber-500/5 mb-6">
+                    <Rss size={11} className="text-amber-400" />
+                    <span className="text-[11px] text-amber-300/80 font-semibold tracking-[0.2em] uppercase">Weekly Truth Dispatch</span>
                   </div>
                   <h2 className="font-display text-3xl sm:text-4xl font-bold text-white mb-4 leading-tight">
-                    Weekly intelligence dispatch.<br />
-                    <span className="nx-gradient-text">Verified research. Free.</span>
+                    Truth, delivered weekly.<br />
+                    <span className="bg-gradient-to-r from-amber-400 to-yellow-300 bg-clip-text text-transparent">Free.</span>
                   </h2>
-                  <p className="text-base text-white/40 max-w-xl mx-auto">Significant findings from 250M+ academic sources. Multi-researcher validation. Full source traceability.</p>
-                  <p className="text-sm text-white/25 mb-10 max-w-md mx-auto">Every claim sourced. Every source verified.</p>
+                  <p className="text-base text-white/40 max-w-xl mx-auto mb-10">The most significant findings from 250M+ academic sources. What survived the Council. Every claim sourced. Every source verified. No opinion — just what the evidence says.</p>
                   {newsletterStatus === "success" ? (
                     <div className="flex items-center justify-center gap-2.5 text-emerald-400 font-medium text-sm">
                       <div className="w-5 h-5 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center"><span className="text-[10px]">✓</span></div>
@@ -645,80 +766,114 @@ function HomePageContent() {
                         : 'Something went wrong — try again.'}
                     </p>
                   )}
-                  <p className="mt-5 text-xs text-white/20">No spam. Unsubscribe anytime. Weekly cadence.</p>
+                  <p className="mt-5 text-xs text-white/20">No spam. Unsubscribe anytime.</p>
                 </div>
               </div>
             </div>
           </section>
 
-          {/* PRICING — 3 tiers */}
-          <section className="relative px-6 sm:px-8 py-24">
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_60%_at_50%_100%,rgba(99,102,241,0.07),transparent_70%)] pointer-events-none" />
-            <div className="max-w-5xl mx-auto">
-              <div className="text-center mb-14">
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-indigo-500/20 bg-indigo-500/5 mb-5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
-                  <span className="text-[11px] text-indigo-300 font-semibold tracking-[0.2em] uppercase">Access Tiers</span>
+          {/* ACCESS — Free + StudioX */}
+          <section className="relative px-6 sm:px-8 py-28">
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_60%_at_50%_50%,rgba(99,102,241,0.07),transparent_70%)] pointer-events-none" />
+            <div className="max-w-4xl mx-auto">
+              <div className="text-center mb-12">
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-amber-500/20 bg-amber-500/5 mb-5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                  <span className="text-[11px] text-amber-300/80 font-semibold tracking-[0.2em] uppercase">Access</span>
                 </div>
-                <h2 className="font-display text-3xl sm:text-4xl font-bold text-white mb-4">Research infrastructure access</h2>
-                <p className="text-base text-white/40 max-w-xl mx-auto">Free tier: read-only access. Paid tiers: commission custom research.</p>
+                <h2 className="font-display text-3xl sm:text-4xl font-bold text-white mb-4">The Think Tank is open.</h2>
+                <p className="text-base text-white/40 max-w-xl mx-auto">All publications are free. The Council publishes — you read. StudioX is for those who want to commission their own research.</p>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* Analyst */}
-                <div className="relative rounded-2xl border border-white/[0.07] bg-white/[0.02] p-7 hover:border-white/[0.12] transition-all duration-300">
-                  <p className="text-[10px] text-white/35 font-semibold tracking-[0.25em] uppercase mb-3">Analyst</p>
-                  <div className="flex items-baseline gap-1 mb-2"><span className="text-3xl font-display font-bold text-white">€0</span><span className="text-sm text-white/30">/month</span></div>
-                  <p className="text-xs text-white/35 leading-relaxed mb-6">Read the auto-published briefs. Subscribe to the weekly dispatch.</p>
-                  <div className="space-y-2 mb-7">
-                    {["Weekly intelligence dispatch","Access to published briefs","Signal radar (read-only)","Weak-signal alerts"].map((f, i) => (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+
+                {/* Free */}
+                <div className="rounded-2xl border border-white/[0.07] bg-white/[0.02] p-8 hover:border-white/[0.12] transition-all duration-300 relative overflow-hidden">
+                  <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg,rgba(255,255,255,0.12),transparent)' }} />
+                  <p className="text-[10px] text-white/35 font-semibold tracking-[0.25em] uppercase mb-4">Think Tank — Open access</p>
+                  <div className="flex items-baseline gap-2 mb-3">
+                    <span className="text-4xl font-display font-bold text-white">Free</span>
+                    <span className="text-sm text-white/30">forever</span>
+                  </div>
+                  <p className="text-xs text-white/40 leading-relaxed mb-7">Read everything the Council publishes. Subscribe to the weekly dispatch. No credit card. No expiry.</p>
+                  <div className="space-y-2.5 mb-8">
+                    {[
+                      "All published briefs & strategic reports",
+                      "Weekly truth dispatch",
+                      "Full source traceability on every claim",
+                      "22-researcher Council publications",
+                      "Signal feed (read-only)",
+                    ].map((f, i) => (
                       <div key={i} className="flex items-center gap-2.5">
-                        <div className="w-3.5 h-3.5 rounded-full border border-white/15 flex items-center justify-center flex-shrink-0"><div className="w-1 h-1 rounded-full bg-white/35" /></div>
-                        <span className="text-xs text-white/40">{f}</span>
+                        <div className="w-3.5 h-3.5 rounded-full border border-white/15 flex items-center justify-center flex-shrink-0"><div className="w-1 h-1 rounded-full bg-white/40" /></div>
+                        <span className="text-xs text-white/50">{f}</span>
                       </div>
                     ))}
                   </div>
-                  <button onClick={() => setShowAuthModal(true)} className="w-full py-2.5 rounded-xl border border-white/[0.09] bg-white/[0.03] text-white/45 font-medium text-sm hover:bg-white/[0.06] hover:text-white/65 transition-all duration-200">Start free</button>
+                  <button onClick={() => setShowAuthModal(true)} className="w-full py-3 rounded-xl border border-white/[0.10] bg-white/[0.03] text-white/60 font-medium text-sm hover:bg-white/[0.07] hover:text-white/80 transition-all duration-200">
+                    Start reading — free
+                  </button>
                 </div>
-                {/* Researcher */}
+
+                {/* StudioX */}
                 <div className="relative p-[1px] rounded-2xl overflow-hidden">
-                  <div className="absolute inset-0 rounded-2xl animate-beam-spin" style={{ background: 'conic-gradient(from 0deg, transparent 0deg, rgba(99,102,241,0.9) 45deg, rgba(139,92,246,0.7) 90deg, transparent 135deg)' }} />
-                <div className="relative rounded-2xl bg-[#09090b] bg-indigo-500/[0.04] p-7 shadow-xl shadow-indigo-500/10">
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2"><span className="px-3 py-1 rounded-full bg-indigo-500 text-white text-[10px] font-bold tracking-widest uppercase">Most popular</span></div>
-                  <p className="text-[10px] text-indigo-300 font-semibold tracking-[0.25em] uppercase mb-3">Researcher</p>
-                  <div className="flex items-baseline gap-1 mb-2"><span className="text-3xl font-display font-bold text-white">€19</span><span className="text-sm text-white/30">/month</span></div>
-                  <p className="text-xs text-white/45 leading-relaxed mb-6">Commission briefs and strategic reports. Full pipeline access.</p>
-                  <div className="space-y-2 mb-7">
-                    {["Everything in Analyst +","Commission research briefs on any topic","Strategic reports (10-15 page)","22-researcher Council deliberations","Adversarial debate & meta-analysis","Verified citation export"].map((f, i) => (
-                      <div key={i} className="flex items-center gap-2.5">
-                        <div className="w-3.5 h-3.5 rounded-full border border-indigo-400/50 flex items-center justify-center flex-shrink-0"><div className="w-1 h-1 rounded-full bg-indigo-400" /></div>
-                        <span className="text-xs text-white/65">{f}</span>
-                      </div>
-                    ))}
+                  <div className="absolute inset-0 rounded-2xl animate-beam-spin" style={{ background: 'conic-gradient(from 0deg, transparent 0deg, rgba(212,175,55,0.9) 45deg, rgba(99,102,241,0.7) 90deg, transparent 135deg)' }} />
+                  <div className="relative rounded-2xl bg-[#09090b] p-8 h-full" style={{ background: 'linear-gradient(140deg,rgba(212,175,55,0.06) 0%,rgba(9,9,11,1) 50%)' }}>
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                      <span className="px-3 py-1 rounded-full bg-gradient-to-r from-amber-600 to-amber-500 text-[#09090b] text-[10px] font-bold tracking-widest uppercase">StudioX</span>
+                    </div>
+                    <p className="text-[10px] text-amber-400/70 font-semibold tracking-[0.25em] uppercase mb-4 mt-1">Custom research on demand</p>
+                    <div className="flex items-baseline gap-2 mb-3">
+                      <span className="text-4xl font-display font-bold text-white">On demand</span>
+                    </div>
+                    <p className="text-xs text-white/45 leading-relaxed mb-7">Commission the full 16-agent pipeline on any question. The Council researches, debates, validates, and delivers truth — on your timeline.</p>
+                    <div className="space-y-2.5 mb-8">
+                      {[
+                        "Commission research on any topic",
+                        "Executive Brief or Strategic Report",
+                        "Full 22-researcher Council deliberations",
+                        "Adversarial debate + meta-analysis",
+                        "Verified [SRC-N] citation export",
+                        "White-label & API access",
+                        "Priority pipeline queue",
+                      ].map((f, i) => (
+                        <div key={i} className="flex items-center gap-2.5">
+                          <div className="w-3.5 h-3.5 rounded-full border border-amber-400/35 flex items-center justify-center flex-shrink-0"><div className="w-1 h-1 rounded-full bg-amber-400" /></div>
+                          <span className="text-xs text-white/60">{f}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <button onClick={openStudioAuth} className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-[#09090b] font-semibold text-sm transition-all duration-200 shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2 group">
+                      Get StudioX access
+                      <ArrowRight size={13} className="group-hover:translate-x-0.5 transition-transform" />
+                    </button>
                   </div>
-                  <button onClick={() => setShowAuthModal(true)} className="w-full py-2.5 rounded-xl bg-indigo-500 hover:bg-indigo-400 text-white font-semibold text-sm transition-all duration-200 shadow-lg shadow-indigo-500/25">Start free trial</button>
                 </div>
-                </div>
-                {/* Studio */}
-                <div className="relative rounded-2xl border border-violet-500/20 bg-violet-500/[0.02] p-7 hover:border-violet-500/30 transition-all duration-300">
-                  <p className="text-[10px] text-violet-300 font-semibold tracking-[0.25em] uppercase mb-3">Studio</p>
-                  <div className="flex items-baseline gap-1 mb-2"><span className="text-3xl font-display font-bold text-white">€49</span><span className="text-sm text-white/30">/month</span></div>
-                  <p className="text-xs text-white/35 leading-relaxed mb-6">Full editorial control. Publish under your own brand.</p>
-                  <div className="space-y-2 mb-7">
-                    {["Everything in Researcher +","Publications Studio (custom questions)","Council Q&A sessions","Custom research verticals","White-label export & API access","Priority pipeline queue"].map((f, i) => (
-                      <div key={i} className="flex items-center gap-2.5">
-                        <div className="w-3.5 h-3.5 rounded-full border border-violet-400/35 flex items-center justify-center flex-shrink-0"><div className="w-1 h-1 rounded-full bg-violet-400" /></div>
-                        <span className="text-xs text-white/40">{f}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <button onClick={() => setShowAuthModal(true)} className="w-full py-2.5 rounded-xl border border-violet-500/25 bg-violet-500/[0.06] text-violet-300 font-medium text-sm hover:bg-violet-500/[0.12] transition-all duration-200">Start free trial</button>
-                </div>
+
               </div>
-              <p className="text-center text-xs text-white/20 mt-8">All plans include the weekly dispatch. <button onClick={() => router.push('/pricing')} className="text-indigo-400/60 hover:text-indigo-400 transition-colors underline underline-offset-2">Full pricing details →</button></p>
             </div>
           </section>
 
-          {/* FOOTER */}
+          {/* FINAL CTA */}
+          <section className="relative px-6 sm:px-8 py-32">
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_60%_at_50%_100%,rgba(99,102,241,0.07),transparent_70%)] pointer-events-none" />
+            <div className="max-w-3xl mx-auto text-center">
+              <h2 className="font-display text-3xl sm:text-4xl font-bold text-white mb-4">
+                The Council publishes continuously.<br />
+                <span className="nx-gradient-text">All of it is open.</span>
+              </h2>
+              <p className="text-base text-white/40 max-w-xl mx-auto mb-8">Every brief, every strategic report, every source trace — freely accessible. No paywall. No account required to read.</p>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <button onClick={openFreeAuth} className="group px-7 py-3.5 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-[#09090b] font-semibold text-sm transition-all duration-300 shadow-lg shadow-amber-500/20 hover:shadow-amber-500/40 flex items-center justify-center gap-2">
+                  Enter the Think Tank
+                  <ArrowRight size={15} className="group-hover:translate-x-0.5 transition-transform" />
+                </button>
+                <button onClick={openStudioAuth} className="px-7 py-3.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white/60 hover:text-white hover:bg-white/[0.07] font-medium text-sm transition-all duration-200">
+                  Commission research
+                </button>
+              </div>
+            </div>
+          </section>
+
           <SiteFooter onSignInClick={() => setShowAuthModal(true)} />
 
         </div>
@@ -733,8 +888,8 @@ export default function HomePage() {
   return (
     <Suspense fallback={
       <div className="min-h-screen bg-[#09090b] flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin" />
-      </div>
+        <div className="w-8 h-8 border-2 border-amber-500/30 border-t-amber-500 rounded-full animate-spin" />
+    </div>
     }>
       <HomePageContent />
     </Suspense>

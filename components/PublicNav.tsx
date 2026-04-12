@@ -25,23 +25,26 @@ export default function PublicNav({ currentPage, onSignInClick, isAuthenticated 
 
   const navLinks: { label: string; page: PublicNavProps["currentPage"]; href: string }[] = [
     { label: "Home", page: "home", href: "/" },
-    { label: "Platform", page: "platform", href: "/platform" },
     { label: "Articles", page: "articles", href: "/articles" },
     { label: "About", page: "about", href: "/about" },
     { label: "Methodology", page: "methodology", href: "/methodology" },
-    { label: "Pricing", page: "pricing", href: "/pricing" },
+    { label: "StudioX", page: "pricing", href: "/pricing" },
   ];
 
   return (
     <nav className="sticky top-0 z-50 w-full">
       <div className="absolute inset-0 bg-[#09090b]/80 backdrop-blur-xl border-b border-white/[0.06]" />
       <div className="relative max-w-7xl mx-auto px-6 sm:px-8 h-16 flex items-center justify-between">
-        {/* Logo */}
-        <div 
-          className="cursor-pointer hover:opacity-80 transition-opacity"
+        {/* Logo + Wordmark */}
+        <div
+          className="flex items-center gap-2.5 cursor-pointer hover:opacity-80 transition-opacity"
           onClick={() => router.push("/")}
         >
-          <NomosXLogo3D size={40} />
+          <NomosXLogo3D size={36} />
+          <span className="font-display font-bold text-[17px] tracking-tight">
+            <span className="text-white">Nomos</span>
+            <span className="bg-gradient-to-r from-amber-400 to-yellow-300 bg-clip-text text-transparent">X</span>
+          </span>
         </div>
         
         {/* Nav Links — Desktop */}

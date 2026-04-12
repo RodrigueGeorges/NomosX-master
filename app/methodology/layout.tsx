@@ -7,12 +7,12 @@ export const metadata: Metadata = {
   description: 'How NomosX works: 16 specialized agents verify every claim through adversarial debate, meta-analysis, and citation verification. From 250M+ raw sources to verified intelligence.',
   alternates: { canonical: `${BASE_URL}/methodology` },
   openGraph: {
-    title: 'NomosX Methodology — 16-Agent Verification Pipeline',
-    description: 'SCOUT → INDEX → RANK → READER → ANALYST → COUNCIL → DEBATE → META-ANALYSIS → PUBLISH. Every claim verified.',
+    title: 'NomosX Methodology — 16-Stage Verification Pipeline',
+    description: '16 verification stages. 22 domain researchers. 250M+ sources. Every claim sourced, every source traced.',
   },
   twitter: {
-    title: 'NomosX Methodology — 16-Agent Verification Pipeline',
-    description: 'SCOUT → INDEX → RANK → READER → ANALYST → COUNCIL → DEBATE → META-ANALYSIS → PUBLISH.',
+    title: 'NomosX Methodology — 16-Stage Verification Pipeline',
+    description: '16 verification stages. 22 domain researchers. 250M+ sources. Every claim traced.',
   },
 };
 
