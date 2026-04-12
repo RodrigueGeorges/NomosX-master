@@ -5,8 +5,14 @@ import { Canvas, useFrame, extend } from '@react-three/fiber';
 import { Float } from '@react-three/drei';
 import * as THREE from 'three';
 
-// Register all Three.js classes in R3F v9 catalog (required for JSX elements)
-extend(THREE as any);
+// Register Three.js classes used as JSX elements (required by R3F v9)
+extend({
+  PointsMaterial: THREE.PointsMaterial,
+  MeshBasicMaterial: THREE.MeshBasicMaterial,
+  IcosahedronGeometry: THREE.IcosahedronGeometry,
+  TorusGeometry: THREE.TorusGeometry,
+  BufferGeometry: THREE.BufferGeometry,
+});
 
 interface OrbSceneProps {
   hexColor: string;

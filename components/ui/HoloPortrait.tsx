@@ -4,8 +4,13 @@ import { useRef, useMemo, useEffect } from 'react';
 import { Canvas, useFrame, extend } from '@react-three/fiber';
 import * as THREE from 'three';
 
-// Register all Three.js classes in R3F v9 catalog (required for JSX elements)
-extend(THREE as any);
+// Register Three.js classes used as JSX elements (required by R3F v9)
+extend({
+  PointsMaterial: THREE.PointsMaterial,
+  MeshBasicMaterial: THREE.MeshBasicMaterial,
+  TorusGeometry: THREE.TorusGeometry,
+  BufferGeometry: THREE.BufferGeometry,
+});
 
 interface PortraitSceneProps {
   hexColor: string;
