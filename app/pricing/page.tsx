@@ -95,9 +95,9 @@ export default function PricingPage() {
 
           {/* HERO */}
           <div className={`text-center mb-20 ${mounted ? 'animate-fade-in' : 'opacity-0'}`}>
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-amber-500/20 bg-amber-500/5 mb-7">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-              <span className="text-xs text-amber-300 font-medium tracking-[0.2em] uppercase">Access</span>
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-indigo-500/20 bg-indigo-500/5 mb-7">
+              <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
+              <span className="text-xs text-indigo-300 font-medium tracking-[0.2em] uppercase">Access</span>
             </div>
             <h1 className="font-display text-4xl sm:text-5xl md:text-6xl font-bold leading-[1.08] tracking-tight mb-6">
               The Think Tank is open.<br />
@@ -139,12 +139,12 @@ export default function PricingPage() {
 
             {/* StudioX */}
             <div className="relative p-[1px] rounded-2xl overflow-hidden">
-              <div className="absolute inset-0 rounded-2xl animate-beam-spin" style={{ background: 'conic-gradient(from 0deg, transparent 0deg, rgba(212,175,55,0.9) 45deg, rgba(99,102,241,0.6) 90deg, transparent 135deg)' }} />
-              <div className="relative rounded-2xl p-9 h-full" style={{ background: 'linear-gradient(145deg, rgba(212,175,55,0.07) 0%, rgba(9,9,11,1) 55%)' }}>
+              <div className="absolute inset-0 rounded-2xl animate-beam-spin" style={{ background: 'conic-gradient(from 0deg, transparent 0deg, rgba(99,102,241,0.9) 45deg, rgba(139,92,246,0.6) 90deg, transparent 135deg)' }} />
+              <div className="relative rounded-2xl p-9 h-full" style={{ background: 'linear-gradient(145deg, rgba(99,102,241,0.07) 0%, rgba(9,9,11,1) 55%)' }}>
                 <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
-                  <span className="px-4 py-1 rounded-full bg-gradient-to-r from-amber-600 to-amber-500 text-[#09090b] text-[10px] font-bold tracking-widest uppercase shadow-lg shadow-amber-500/30">StudioX</span>
+                  <span className="px-4 py-1 rounded-full bg-indigo-600 text-white text-[10px] font-bold tracking-widest uppercase shadow-lg shadow-indigo-500/30">StudioX</span>
                 </div>
-                <p className="text-[10px] text-amber-400/70 font-semibold tracking-[0.25em] uppercase mb-5 mt-1">Custom research on demand</p>
+                <p className="text-[10px] text-indigo-400/70 font-semibold tracking-[0.25em] uppercase mb-5 mt-1">Custom research on demand</p>
                 <div className="flex items-baseline gap-2 mb-2">
                   <span className="text-5xl font-display font-bold text-white">On demand</span>
                 </div>
@@ -152,8 +152,8 @@ export default function PricingPage() {
                 <div className="space-y-2.5 mb-9">
                   {studioFeatures.map((f, i) => (
                     <div key={i} className="flex items-center gap-2.5">
-                      <div className="w-3.5 h-3.5 rounded-full border border-amber-400/40 flex items-center justify-center flex-shrink-0">
-                        <div className="w-1 h-1 rounded-full bg-amber-400" />
+                      <div className="w-3.5 h-3.5 rounded-full border border-indigo-400/40 flex items-center justify-center flex-shrink-0">
+                        <div className="w-1 h-1 rounded-full bg-indigo-400" />
                       </div>
                       <span className="text-sm text-white/60">{f}</span>
                     </div>
@@ -161,7 +161,7 @@ export default function PricingPage() {
                 </div>
                 <button
                   onClick={openStudioAuth}
-                  className="w-full py-3.5 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-[#09090b] font-semibold text-sm transition-all duration-200 shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2 group"
+                  className="w-full py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm transition-all duration-200 shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2 group"
                 >
                   Commission research
                   <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
@@ -174,21 +174,17 @@ export default function PricingPage() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-24">
             {[
               { value: "250M+", label: "Academic sources" },
-              { value: "16", label: "Autonomous agents" },
+              { value: "16", label: "Verification stages" },
               { value: "22", label: "Domain researchers" },
               { value: "3–5 min", label: "Pipeline cycle" },
             ].map((s, i) => (
-              <motion.div
+              <div
                 key={i}
-                initial={{ opacity: 0, y: 16 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.4, delay: i * 0.08, ease: [0.23, 1, 0.32, 1] }}
                 className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5 text-center"
               >
                 <div className="text-2xl font-display font-bold text-white mb-1">{s.value}</div>
                 <div className="text-xs text-white/30">{s.label}</div>
-              </motion.div>
+              </div>
             ))}
           </div>
 
@@ -203,7 +199,7 @@ export default function PricingPage() {
                 <div
                   key={i}
                   className={`rounded-xl border transition-all duration-300 overflow-hidden ${
-                    openFaq === i ? 'border-amber-500/20 bg-amber-500/[0.03]' : 'border-white/[0.06] bg-white/[0.02] hover:border-white/[0.10]'
+                    openFaq === i ? 'border-indigo-500/20 bg-indigo-500/[0.03]' : 'border-white/[0.06] bg-white/[0.02] hover:border-white/[0.10]'
                   }`}
                 >
                   <button
@@ -211,7 +207,7 @@ export default function PricingPage() {
                     className="w-full flex items-center justify-between px-6 py-5 text-left gap-4"
                   >
                     <span className="font-display text-sm font-semibold text-white">{item.q}</span>
-                    <ChevronDown size={15} className={`text-white/30 flex-shrink-0 transition-transform duration-300 ${openFaq === i ? 'rotate-180 text-amber-400' : ''}`} />
+                    <ChevronDown size={15} className={`text-white/30 flex-shrink-0 transition-transform duration-300 ${openFaq === i ? 'rotate-180 text-indigo-400' : ''}`} />
                   </button>
                   <AnimatePresence initial={false}>
                     {openFaq === i && (
@@ -239,7 +235,7 @@ export default function PricingPage() {
             <div className="relative">
               <h2 className="font-display text-3xl sm:text-4xl font-bold text-white mb-4">
                 The Council publishes.<br />
-                <span className="bg-gradient-to-r from-amber-400 to-yellow-300 bg-clip-text text-transparent">You read. Free.</span>
+                <span className="nx-gradient-text">You read. Free.</span>
               </h2>
               <p className="text-base text-white/40 mb-8 max-w-xl mx-auto">22 researchers. 16 agents. 250M+ sources. Every claim sourced. No opinion.</p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
@@ -251,7 +247,7 @@ export default function PricingPage() {
                 </button>
                 <button
                   onClick={openStudioAuth}
-                  className="group px-7 py-3.5 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-[#09090b] font-semibold text-sm transition-all duration-200 shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2"
+                  className="group px-7 py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm transition-all duration-200 shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2"
                 >
                   Commission research
                   <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />

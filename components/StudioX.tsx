@@ -157,7 +157,7 @@ export default function StudioX() {
       {!open && (
         <button
           onClick={() => setOpen(true)}
-          className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-gradient-to-br from-amber-600 to-amber-500 shadow-lg shadow-amber-500/20 hover:shadow-amber-500/30 hover:scale-105 transition-all duration-300 flex items-center justify-center group"
+          className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-indigo-600 shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/30 hover:bg-indigo-500 hover:scale-105 transition-all duration-300 flex items-center justify-center group"
         >
           <MessageSquare size={22} className="text-white group-hover:scale-110 transition-transform" />
           <span className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-400 rounded-full border-2 border-[#09090b] animate-pulse" />
@@ -168,9 +168,9 @@ export default function StudioX() {
       {open && (
         <div className="fixed bottom-6 right-6 z-50 w-[400px] max-w-[calc(100vw-48px)] h-[560px] max-h-[calc(100vh-120px)] rounded-2xl border border-white/[0.08] bg-[#0c0c10] shadow-2xl shadow-black/50 flex flex-col overflow-hidden">
           {/* Header */}
-          <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.06] bg-gradient-to-r from-amber-500/[0.06] to-indigo-500/[0.04]">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.06] bg-gradient-to-r from-indigo-500/[0.06] to-violet-500/[0.04]">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-600 to-amber-500 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center">
                 <Sparkles size={14} className="text-white" />
               </div>
               <div>

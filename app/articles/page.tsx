@@ -95,9 +95,9 @@ export default function ArticlesPage() {
           <div className="max-w-5xl mx-auto px-6 sm:px-8 py-8">
             <div className="flex items-center justify-between">
               <div>
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-amber-500/20 bg-amber-500/5 mb-4">
-                  <div className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse-glow" />
-                  <span className="text-xs text-amber-300 font-medium tracking-wide">PUBLICATIONS</span>
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-indigo-500/20 bg-indigo-500/5 mb-4">
+                  <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse-glow" />
+                  <span className="text-xs text-indigo-300 font-medium tracking-wide">PUBLICATIONS</span>
                 </div>
                 <h1 className="font-display text-4xl sm:text-5xl font-bold text-white mb-2">
                   Council <span className="nx-gradient-text">Publications</span>
@@ -108,7 +108,7 @@ export default function ArticlesPage() {
               </div>
               <button
                 onClick={() => setShowAuthModal(true)}
-                className="group px-6 py-3 rounded-lg bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-[#09090b] font-medium text-sm transition-all duration-300 shadow-lg shadow-amber-500/20 hover:shadow-amber-500/30 hover:scale-[1.03] inline-flex items-center gap-2"
+                className="group px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-sm transition-all duration-300 shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/30 hover:scale-[1.03] inline-flex items-center gap-2"
               >
                 Sign in — it&apos;s free
                 <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
@@ -157,7 +157,7 @@ export default function ArticlesPage() {
           {loading ? (
             <div className="flex items-center justify-center min-h-[400px]">
               <div className="flex items-center gap-3 text-white/40">
-                <div className="w-5 h-5 border-2 border-amber-500/30 border-t-amber-500 rounded-full animate-spin" />
+                <div className="w-5 h-5 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin" />
                 <span>Loading articles...</span>
               </div>
             </div>
@@ -173,11 +173,11 @@ export default function ArticlesPage() {
             <>
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                 {filteredArticles.map((article) => (
-                  <div key={article.id} className="group rounded-2xl border border-white/[0.08] bg-gradient-to-br from-white/[0.03] to-white/[0.01] p-6 hover:border-amber-500/15 transition-all duration-300">
+                  <div key={article.id} className="group rounded-2xl border border-white/[0.08] bg-gradient-to-br from-white/[0.03] to-white/[0.01] p-6 hover:border-indigo-500/15 transition-all duration-300">
                     {/* Type Badge */}
                     <div className="flex items-center gap-2 mb-3">
-                      <div className="w-2 h-2 rounded-full bg-amber-400/60"></div>
-                      <span className="text-xs text-amber-400/50 uppercase tracking-wider">
+                      <div className="w-2 h-2 rounded-full bg-indigo-400/60"></div>
+                      <span className="text-xs text-indigo-400/50 uppercase tracking-wider">
                         {article.displayType || (article.type === 'STRATEGIC_REPORT' ? 'Strategic Report' : 'Executive Brief')}
                       </span>
                       <div className="ml-auto flex items-center gap-2 text-xs text-white/30">
@@ -187,7 +187,7 @@ export default function ArticlesPage() {
                     </div>
 
                     {/* Title */}
-                    <h3 className="font-display text-lg font-light text-white/90 mb-3 line-clamp-2 group-hover:text-amber-200/80 transition-colors">
+                    <h3 className="font-display text-lg font-light text-white/90 mb-3 line-clamp-2 group-hover:text-indigo-200/80 transition-colors">
                       {article.title}
                     </h3>
 

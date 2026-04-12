@@ -1,5 +1,6 @@
 "use client";
 import React, { useState } from 'react';
+import dynamic from 'next/dynamic';
 
 /**
  * PublicNav Component
@@ -9,9 +10,21 @@ import React, { useState } from 'react';
  */
 
 import { useRouter } from 'next/navigation';
-import { NomosXLogo3D } from '@/components/brand/NomosXLogo3D';
 import { Menu, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
+
+const LogoFallback = () => (
+  <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+    <circle cx="14" cy="14" r="12.5" fill="white" fillOpacity="0.08" stroke="white" strokeWidth="1" strokeOpacity="0.25" />
+    <line x1="9.5" y1="9.5" x2="18.5" y2="18.5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeOpacity="0.85" />
+    <line x1="18.5" y1="9.5" x2="9.5" y2="18.5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeOpacity="0.85" />
+  </svg>
+);
+
+const NomosXLogo3D = dynamic(
+  () => import('@/components/brand/NomosXLogo3D').then(m => m.NomosXLogo3D),
+  { ssr: false, loading: () => <LogoFallback /> }
+);
 
 interface PublicNavProps {
   currentPage?: "home" | "articles" | "about" | "methodology" | "pricing" | "platform" | "studio";
@@ -40,10 +53,10 @@ export default function PublicNav({ currentPage, onSignInClick, isAuthenticated 
           className="flex items-center gap-2.5 cursor-pointer hover:opacity-80 transition-opacity"
           onClick={() => router.push("/")}
         >
-          <NomosXLogo3D size={36} />
+          <NomosXLogo3D size={32} />
           <span className="font-display font-bold text-[17px] tracking-tight">
             <span className="text-white">Nomos</span>
-            <span className="bg-gradient-to-r from-amber-400 to-yellow-300 bg-clip-text text-transparent">X</span>
+            <span className="text-white">X</span>
           </span>
         </div>
         
@@ -69,14 +82,14 @@ export default function PublicNav({ currentPage, onSignInClick, isAuthenticated 
           {isAuthenticated ? (
             <button
               onClick={() => router.push("/articles")}
-              className="px-4 py-2 rounded-lg bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-[13px] font-medium text-[#09090b] transition-all duration-200 shadow-lg shadow-amber-500/20 hover:shadow-amber-500/40"
+              className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-[13px] font-medium transition-all duration-200 shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40"
             >
               Browse Publications
             </button>
           ) : (
             <button
               onClick={onSignInClick}
-              className="px-4 py-2 rounded-lg bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-[13px] font-medium text-[#09090b] transition-all duration-200 shadow-lg shadow-amber-500/20 hover:shadow-amber-500/40"
+              className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-[13px] font-medium transition-all duration-200 shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40"
             >
               Start Free
             </button>

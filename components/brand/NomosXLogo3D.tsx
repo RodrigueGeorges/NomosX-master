@@ -1,142 +1,104 @@
 "use client";
 
-import React, { useRef, useMemo, useEffect, Suspense } from 'react';
+import React, { useRef, useMemo, Suspense } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
-
-// Module-level check to prevent constructor errors
-const THREE_AVAILABLE = typeof THREE !== 'undefined' && typeof THREE.MeshStandardMaterial !== 'undefined';
 
 interface Logo3DProps {
   size?: number;
   className?: string;
 }
 
-function ThinkTankSphere() {
-  const sphereRef = useRef<THREE.Mesh>(null);
-  const xGroupRef = useRef<THREE.Group>(null);
-  const haloRef = useRef<THREE.Mesh>(null);
+function InstitutionalMark() {
+  const groupRef = useRef<THREE.Group>(null);
+  const ringRef = useRef<THREE.Mesh>(null);
 
   useFrame((state) => {
-    // Subtle sphere rotation
-    if (sphereRef.current) {
-      sphereRef.current.rotation.y = state.clock.elapsedTime * 0.08;
+    const t = state.clock.elapsedTime;
+    if (groupRef.current) {
+      // Very slow, authoritative rotation — like a satellite, not a toy
+      groupRef.current.rotation.y = t * 0.06;
+      groupRef.current.rotation.x = Math.sin(t * 0.04) * 0.08;
     }
-    // X pulses gently
-    if (xGroupRef.current) {
-      const scale = 1 + Math.sin(state.clock.elapsedTime * 1.2) * 0.06;
-      xGroupRef.current.scale.set(scale, scale, scale);
-    }
-    // Halo pulses
-    if (haloRef.current) {
-      const scale = 1 + Math.sin(state.clock.elapsedTime * 0.8) * 0.03;
-      haloRef.current.scale.set(scale, scale, scale);
+    if (ringRef.current) {
+      ringRef.current.rotation.z = t * 0.12;
     }
   });
 
-  // Indigo/violet material for sphere (structure/knowledge)
-  const sphereMaterial = useMemo(() => {
-    try {
-      return new THREE.MeshStandardMaterial({
-        color: '#6366F1',
-        metalness: 0.88,
-        roughness: 0.14,
-        emissive: '#818CF8',
-        emissiveIntensity: 0.2,
-      });
-    } catch {
-      return new THREE.MeshBasicMaterial({ color: '#6366F1' });
-    }
-  }, []);
+  // Sphere: near-white, cold, high metalness — like brushed platinum
+  const sphereMat = useMemo(() => new THREE.MeshStandardMaterial({
+    color: '#e8eaf0',
+    metalness: 0.72,
+    roughness: 0.18,
+    emissive: '#c7cce8',
+    emissiveIntensity: 0.06,
+  }), []);
 
-  // Gold material for X (truth/authority)
-  const goldMaterial = useMemo(() => {
-    try {
-      return new THREE.MeshStandardMaterial({
-        color: '#D4AF37',
-        metalness: 0.94,
-        roughness: 0.1,
-        emissive: '#D4AF37',
-        emissiveIntensity: 0.35,
-      });
-    } catch {
-      return new THREE.MeshBasicMaterial({ color: '#D4AF37' });
-    }
-  }, []);
+  // X bars: pure white, slightly matte — clean authority
+  const xMat = useMemo(() => new THREE.MeshStandardMaterial({
+    color: '#ffffff',
+    metalness: 0.4,
+    roughness: 0.3,
+    emissive: '#ffffff',
+    emissiveIntensity: 0.12,
+  }), []);
 
-  // Gold halo material
-  const haloMaterial = useMemo(() => {
-    try {
-      return new THREE.MeshStandardMaterial({
-        color: '#F5D778',
-        metalness: 0.5,
-        roughness: 0.5,
-        emissive: '#F5D778',
-        emissiveIntensity: 0.4,
-        transparent: true,
-        opacity: 0.25,
-      });
-    } catch {
-      return new THREE.MeshBasicMaterial({ color: '#F5D778', transparent: true, opacity: 0.25 });
-    }
-  }, []);
+  // Orbital ring: very thin, white semi-transparent
+  const ringMat = useMemo(() => new THREE.MeshStandardMaterial({
+    color: '#ffffff',
+    metalness: 0.0,
+    roughness: 1.0,
+    transparent: true,
+    opacity: 0.18,
+  }), []);
 
   return (
-    <group>
-      {/* Main indigo sphere - structure/knowledge */}
-      <mesh ref={sphereRef} material={sphereMaterial}>
-        <sphereGeometry args={[0.6, 64, 64]} />
+    <group ref={groupRef}>
+      {/* Core sphere — brushed platinum */}
+      <mesh material={sphereMat}>
+        <sphereGeometry args={[0.58, 64, 64]} />
       </mesh>
 
-      {/* Gold X incised - truth/authority */}
-      <group ref={xGroupRef}>
-        {/* First diagonal of X */}
-        <mesh material={goldMaterial} position={[0, 0, 0.52]} rotation={[0, 0, Math.PI / 4]}>
-          <boxGeometry args={[0.09, 0.85, 0.06]} />
-        </mesh>
-        {/* Second diagonal of X */}
-        <mesh material={goldMaterial} position={[0, 0, 0.52]} rotation={[0, 0, -Math.PI / 4]}>
-          <boxGeometry args={[0.09, 0.85, 0.06]} />
-        </mesh>
-      </group>
+      {/* X mark — white, crisp, inscribed on sphere surface */}
+      <mesh material={xMat} position={[0, 0, 0.5]} rotation={[0, 0, Math.PI / 4]}>
+        <boxGeometry args={[0.075, 0.76, 0.045]} />
+      </mesh>
+      <mesh material={xMat} position={[0, 0, 0.5]} rotation={[0, 0, -Math.PI / 4]}>
+        <boxGeometry args={[0.075, 0.76, 0.045]} />
+      </mesh>
 
-      {/* Gold halo - truth emanating */}
-      <mesh ref={haloRef} material={haloMaterial}>
-        <sphereGeometry args={[0.75, 32, 32]} />
+      {/* Orbital ring — subtle, scientific instrument feel */}
+      <mesh ref={ringRef} material={ringMat} rotation={[Math.PI / 2.4, 0, 0]}>
+        <torusGeometry args={[0.82, 0.018, 16, 80]} />
       </mesh>
     </group>
   );
 }
 
-function OrbScene() {
+function Scene() {
   return (
     <>
-      <ambientLight intensity={0.4} />
-      <directionalLight position={[5, 5, 5]} intensity={1.2} />
-      <directionalLight position={[-5, -5, 3]} intensity={0.8} color="#F5D778" />
-      <pointLight position={[0, 0, 5]} intensity={0.5} color="#D4AF37" />
-
-      {/* Think tank sphere with indigo base + gold X */}
-      <ThinkTankSphere />
+      {/* Cool, neutral lighting — no color cast */}
+      <ambientLight intensity={0.55} color="#e8eaf6" />
+      <directionalLight position={[4, 6, 4]} intensity={1.4} color="#ffffff" />
+      <directionalLight position={[-3, -2, 2]} intensity={0.5} color="#c5cae9" />
+      <pointLight position={[0, 0, 3]} intensity={0.3} color="#ffffff" />
+      <InstitutionalMark />
     </>
   );
 }
 
 export function NomosXLogo3D({ size = 120, className }: Logo3DProps) {
-  // Check if THREE is available (prevents constructor errors during loading)
-  if (typeof THREE === 'undefined' || typeof THREE.MeshStandardMaterial === 'undefined') {
-    return <div className={className} style={{ width: size, height: size }} />;
-  }
-
   return (
     <div className={className} style={{ width: size, height: size }}>
       <Canvas
-        camera={{ position: [0, 0, 2.2], fov: 45 }}
-        gl={{ alpha: true, antialias: true }}
+        camera={{ position: [0, 0, 2.1], fov: 42 }}
+        gl={{ alpha: true, antialias: true, powerPreference: 'high-performance' }}
         style={{ background: 'transparent' }}
+        dpr={[1, 2]}
       >
         <Suspense fallback={null}>
-          <OrbScene />
+          <Scene />
         </Suspense>
       </Canvas>
     </div>

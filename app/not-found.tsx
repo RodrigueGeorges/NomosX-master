@@ -23,12 +23,12 @@ export default function NotFound() {
             </svg>
           </div>
           <span className="text-3xl font-bold text-white">
-            Nomos<span className="text-amber-500">X</span>
+            Nomos<span className="text-indigo-500">X</span>
           </span>
         </div>
 
         {/* 404 */}
-        <div className="text-8xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-amber-400 mb-4">
+        <div className="text-8xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-violet-400 mb-4">
           404
         </div>
 

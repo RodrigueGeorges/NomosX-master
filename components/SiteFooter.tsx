@@ -58,7 +58,7 @@ export default function SiteFooter({ onSignInClick }: SiteFooterProps) {
           </div>
           <button
             onClick={onSignInClick}
-            className="group flex-shrink-0 flex items-center gap-2 px-6 py-3.5 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-[#09090b] font-semibold text-sm transition-all duration-300 shadow-lg shadow-amber-500/20 hover:shadow-amber-500/40 hover:scale-[1.03]"
+            className="group flex-shrink-0 flex items-center gap-2 px-6 py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm transition-all duration-300 shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40 hover:scale-[1.03]"
           >
             Access institutional intelligence — Free tier
             <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />

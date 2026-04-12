@@ -66,7 +66,7 @@ function StudioPageContent() {
 
   if (!sessionChecked) return (
     <div className="min-h-screen bg-[#09090b] flex items-center justify-center">
-      <div className="w-8 h-8 border-2 border-amber-500/30 border-t-amber-500 rounded-full animate-spin" />
+      <div className="w-8 h-8 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin" />
     </div>
   );
 
@@ -76,19 +76,19 @@ function StudioPageContent() {
       <PublicNav currentPage="studio" onSignInClick={() => setShowAuthModal(true)} />
       <div className="flex-1 flex items-center justify-center px-6">
         <div className="text-center max-w-md">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-amber-500/20 bg-amber-500/5 mb-6">
-            <div className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-            <span className="text-xs text-amber-300 font-medium tracking-wide">STUDIOX</span>
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-indigo-500/20 bg-indigo-500/5 mb-6">
+            <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
+            <span className="text-xs text-indigo-300 font-medium tracking-wide">STUDIOX</span>
           </div>
           <h1 className="text-4xl font-display font-bold text-white mb-4 tracking-tight">
-            Studio<span className="text-amber-500">X</span>
+            Studio<span className="text-indigo-500">X</span>
           </h1>
           <p className="text-white/40 mb-8 text-sm leading-relaxed">
             Commission custom research through the full 16-agent pipeline. Create an account to get started — it&apos;s free.
           </p>
           <button
             onClick={() => setShowAuthModal(true)}
-            className="px-7 py-3.5 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-[#09090b] font-semibold text-sm transition-all duration-200 shadow-lg shadow-amber-500/20 flex items-center gap-2 mx-auto"
+            className="px-7 py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm transition-all duration-200 shadow-lg shadow-indigo-500/20 flex items-center gap-2 mx-auto"
           >
             Get StudioX access
             <ArrowRight size={14} />
@@ -125,12 +125,12 @@ function StudioPageContent() {
         <div className="relative z-10 max-w-5xl mx-auto px-6 sm:px-8 py-20 sm:py-28">
           {/* Header */}
           <div className="mb-12 text-center">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-amber-500/20 bg-amber-500/5 mb-6">
-              <div className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse-glow" />
-              <span className="text-xs text-amber-300 font-medium tracking-wide">STUDIOX</span>
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-indigo-500/20 bg-indigo-500/5 mb-6">
+              <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse-glow" />
+              <span className="text-xs text-indigo-300 font-medium tracking-wide">STUDIOX</span>
             </div>
             <h1 className="text-5xl font-display font-bold text-white mb-4 tracking-tight">
-              Studio<span className="text-amber-500">X</span>
+              Studio<span className="text-indigo-500">X</span>
             </h1>
             <p className="text-lg text-white/50 max-w-2xl mx-auto">
               Commission custom research with Harvard Council insights. Ask any question, get evidence-based answers.
@@ -145,7 +145,7 @@ function StudioPageContent() {
               onChange={(e) => setQuestion(e.target.value)}
               placeholder="What do you want to research?"
               rows={4}
-              className="mb-4 bg-[#0c0c10] border-white/10 text-white placeholder:text-white/30 resize-none focus:border-amber-500/50 focus:ring-amber-500/20"
+              className="mb-4 bg-[#0c0c10] border-white/10 text-white placeholder:text-white/30 resize-none focus:border-indigo-500/50 focus:ring-indigo-500/20"
               disabled={loading}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
@@ -159,7 +159,7 @@ function StudioPageContent() {
               <Button
                 onClick={handleGenerate}
                 disabled={!question.trim() || loading}
-                className="bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-[#09090b] font-medium shadow-lg shadow-amber-500/20"
+                className="bg-indigo-600 hover:bg-indigo-500 text-white font-medium shadow-lg shadow-indigo-500/20"
               >
                 {loading ? (
                   <>
@@ -227,7 +227,7 @@ export default function StudioPage() {
     <Suspense fallback={
       <div className="min-h-screen bg-[#09090b] flex items-center justify-center">
         <div className="text-center">
-          <Loader2 size={48} className="text-amber-500 animate-spin mx-auto mb-4" />
+          <Loader2 size={48} className="text-indigo-500 animate-spin mx-auto mb-4" />
           <p className="text-white/50">Loading StudioX...</p>
         </div>
       </div>

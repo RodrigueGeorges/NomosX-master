@@ -301,8 +301,8 @@ function XGlyph({ orderFactor }: { orderFactor: number }) {
     groupRef.current.scale.setScalar(s);
   });
 
-  const barColor = '#D4AF37'; // Gold — truth, authority
-  const opacity = 0.3 + orderFactor * 0.6;
+  const barColor = '#ffffff'; // White — clean authority
+  const opacity = 0.25 + orderFactor * 0.55;
 
   return (
     <group ref={groupRef}>
@@ -340,7 +340,7 @@ function TruthOrbScene({ color, accentColor }: { color: string; accentColor: str
       <ambientLight intensity={0.2} />
       <pointLight position={[2.5, 3, 3]} intensity={1.8} color={color} />
       <pointLight position={[-2, -2, -1.5]} intensity={0.6} color={accentColor} />
-      <pointLight position={[0, 0, 0]} intensity={0.5 + orderFactorRef.current * 1.5} color="#D4AF37" />
+      <pointLight position={[0, 0, 0]} intensity={0.5 + orderFactorRef.current * 1.2} color="#c5cae9" />
 
       <Float speed={1.2} rotationIntensity={0.08} floatIntensity={0.2}>
         <LawCage color={color} orderFactor={orderFactorRef.current} />

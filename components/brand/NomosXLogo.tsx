@@ -89,7 +89,7 @@ export function NomosXLogo({ size = 'md', variant = 'full', className }: LogoPro
           'bg-gradient-to-r from-indigo-300 via-white to-violet-300 bg-clip-text text-transparent',
           textSizes[size]
         )}>
-          Nomos<span className="bg-gradient-to-r from-amber-500 to-yellow-400 bg-clip-text text-transparent">X</span>
+          Nomos<span className="bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent">X</span>
         </span>
       </div>
     );
@@ -103,7 +103,7 @@ export function NomosXLogo({ size = 'md', variant = 'full', className }: LogoPro
         'bg-gradient-to-r from-white via-indigo-100 to-violet-200 bg-clip-text text-transparent',
         textSizes[size]
       )}>
-        Nomos<span className="bg-gradient-to-r from-amber-500 to-yellow-400 bg-clip-text text-transparent">X</span>
+        Nomos<span className="bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent">X</span>
       </span>
     </div>
   );

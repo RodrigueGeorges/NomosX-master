@@ -145,7 +145,7 @@ export default function MethodologyPage() {
       inputs: ["Analysis draft", "Quality thresholds"],
       outputs: ["Critique report", "Revised analysis"],
       providers: ["Adversarial review panel"],
-      color: "bg-amber-500"
+      color: "bg-indigo-500"
     },
     {
       name: "Adversarial debate",
@@ -246,9 +246,9 @@ export default function MethodologyPage() {
         <div className="relative z-10 max-w-5xl mx-auto px-6 sm:px-8 py-20 sm:py-28">
           {/* Hero */}
           <div className={`text-center mb-24 ${mounted ? 'animate-fade-in' : 'opacity-0'}`}>
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-amber-500/20 bg-amber-500/5 mb-8">
-              <div className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse-glow" />
-              <span className="text-xs text-amber-300 font-medium tracking-wide">METHODOLOGY</span>
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-indigo-500/20 bg-indigo-500/5 mb-8">
+              <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse-glow" />
+              <span className="text-xs text-indigo-300 font-medium tracking-wide">METHODOLOGY</span>
             </div>
 
             <h1 className="font-display text-4xl sm:text-5xl md:text-6xl font-bold leading-[1.08] tracking-tight mb-6">
@@ -267,7 +267,7 @@ export default function MethodologyPage() {
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <button
                 onClick={() => { setAuthRedirect('dashboard'); setShowAuthModal(true); }}
-                className="group px-8 py-4 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-[#09090b] font-semibold text-sm tracking-wide transition-all duration-300 shadow-lg shadow-amber-500/20 hover:shadow-amber-500/40 hover:scale-[1.02] inline-flex items-center gap-2"
+                className="group px-8 py-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm tracking-wide transition-all duration-300 shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40 hover:scale-[1.02] inline-flex items-center gap-2"
               >
                 Access the Council — free
                 <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
@@ -290,11 +290,11 @@ export default function MethodologyPage() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.5, delay: i * 0.1, ease: [0.23, 1, 0.32, 1] }}
-                className="group relative p-7 rounded-xl border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.04] hover:border-amber-500/15 hover:-translate-y-1 transition-all duration-300 overflow-hidden"
+                className="group relative p-7 rounded-xl border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.04] hover:border-indigo-500/15 hover:-translate-y-1 transition-all duration-300 overflow-hidden"
               >
-                <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg,rgba(212,175,55,0.4),rgba(99,102,241,0.3),transparent)' }} />
-                <div className="w-10 h-10 rounded-lg bg-amber-500/8 border border-amber-500/15 flex items-center justify-center mb-5 group-hover:border-amber-500/30 transition-colors">
-                  <item.icon size={18} className="text-amber-400/70" />
+                <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg,rgba(99,102,241,0.4),rgba(139,92,246,0.3),transparent)' }} />
+                <div className="w-10 h-10 rounded-lg bg-indigo-500/[0.08] border border-indigo-500/15 flex items-center justify-center mb-5 group-hover:border-indigo-500/30 transition-colors">
+                  <item.icon size={18} className="text-indigo-400/70" />
                 </div>
                 <h3 className="font-display text-base font-semibold text-white mb-2">{item.title}</h3>
                 <p className="text-sm text-white/40 leading-relaxed">{item.description}</p>
@@ -330,7 +330,7 @@ export default function MethodologyPage() {
           {/* Agent Pipeline */}
           <div className="mb-24">
             <div className="mb-12">
-              <p className="text-xs text-amber-400/70 font-medium tracking-[0.2em] uppercase mb-4">Architecture</p>
+              <p className="text-xs text-indigo-400/70 font-medium tracking-[0.2em] uppercase mb-4">Architecture</p>
               <h2 className="font-display text-3xl sm:text-4xl font-bold text-white mb-3">
                 16-stage autonomous pipeline
               </h2>
@@ -407,7 +407,7 @@ export default function MethodologyPage() {
           {/* Guarantees */}
           <div className="mb-24">
             <div className="mb-12">
-              <p className="text-xs text-amber-400/70 font-medium tracking-[0.2em] uppercase mb-4">Guarantees</p>
+              <p className="text-xs text-indigo-400/70 font-medium tracking-[0.2em] uppercase mb-4">Guarantees</p>
               <h2 className="font-display text-3xl sm:text-4xl font-bold text-white mb-3">
                 Foundational principles
               </h2>
@@ -439,7 +439,7 @@ export default function MethodologyPage() {
           {/* CTA */}
           <div className="relative text-center py-16">
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="w-[400px] h-[250px] bg-amber-500/[0.07] rounded-full blur-[100px]" />
+              <div className="w-[400px] h-[250px] bg-indigo-500/[0.07] rounded-full blur-[100px]" />
             </div>
             <div className="relative">
               <h2 className="font-display text-3xl sm:text-4xl font-bold text-white mb-4">
@@ -451,7 +451,7 @@ export default function MethodologyPage() {
               <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-6">
                 <button
                   onClick={() => { setAuthRedirect('dashboard'); setShowAuthModal(true); }}
-                  className="group px-8 py-4 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-[#09090b] font-semibold text-sm tracking-wide transition-all duration-300 shadow-lg shadow-amber-500/20 hover:shadow-amber-500/40 hover:scale-[1.02] inline-flex items-center gap-2"
+                  className="group px-8 py-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm tracking-wide transition-all duration-300 shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40 hover:scale-[1.02] inline-flex items-center gap-2"
                 >
                   Access the Council — free
                   <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />

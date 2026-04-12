@@ -3,6 +3,7 @@
 const nextConfig = {
   reactStrictMode: true,
   serverExternalPackages: ['@prisma/client'],
+  transpilePackages: ['three', '@react-three/fiber', '@react-three/drei'],
   images: {
     formats: ['image/avif', 'image/webp'],
   },
