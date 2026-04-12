@@ -83,9 +83,8 @@ export default function PricingPage() {
       <div className="min-h-screen bg-[#09090b] text-white overflow-hidden">
         <div className="nx-noise" aria-hidden="true" />
         <div className="fixed inset-0 pointer-events-none overflow-hidden">
-          <div className="absolute w-[800px] h-[600px] rounded-full -top-32 left-1/2 -translate-x-1/2 animate-aurora-1" style={{ background: 'radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 70%)' }} />
-          <div className="absolute w-[500px] h-[500px] rounded-full top-1/3 -right-24 animate-aurora-2" style={{ background: 'radial-gradient(circle, rgba(212,175,55,0.07) 0%, transparent 70%)' }} />
-          <div className="absolute w-[400px] h-[400px] rounded-full bottom-1/3 -left-16 animate-aurora-3" style={{ background: 'radial-gradient(circle, rgba(139,92,246,0.06) 0%, transparent 70%)' }} />
+          <div className="absolute w-[800px] h-[600px] rounded-full -top-32 left-1/2 -translate-x-1/2" style={{ background: 'radial-gradient(circle, rgba(99,102,241,0.10) 0%, transparent 70%)' }} />
+          <div className="absolute w-[500px] h-[500px] rounded-full top-1/3 -right-24" style={{ background: 'radial-gradient(circle, rgba(139,92,246,0.05) 0%, transparent 70%)' }} />
           <div className="nx-grid-bg absolute inset-0 opacity-25" />
         </div>
 
@@ -94,9 +93,9 @@ export default function PricingPage() {
         <div className="relative z-10 max-w-5xl mx-auto px-6 sm:px-8 py-20 sm:py-28">
 
           {/* HERO */}
-          <div className={`text-center mb-20 ${mounted ? 'animate-fade-in' : 'opacity-0'}`}>
+          <div className="text-center mb-20">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-indigo-500/20 bg-indigo-500/5 mb-7">
-              <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
+              <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
               <span className="text-xs text-indigo-300 font-medium tracking-[0.2em] uppercase">Access</span>
             </div>
             <h1 className="font-display text-4xl sm:text-5xl md:text-6xl font-bold leading-[1.08] tracking-tight mb-6">
@@ -109,7 +108,7 @@ export default function PricingPage() {
           </div>
 
           {/* TWO COLUMNS */}
-          <div className={`grid grid-cols-1 md:grid-cols-2 gap-6 mb-24 ${mounted ? 'animate-fade-in' : 'opacity-0'}`}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-24">
 
             {/* Free */}
             <div className="rounded-2xl border border-white/[0.07] bg-white/[0.02] p-9 relative overflow-hidden hover:border-white/[0.12] transition-all duration-300">
@@ -139,7 +138,7 @@ export default function PricingPage() {
 
             {/* StudioX */}
             <div className="relative p-[1px] rounded-2xl overflow-hidden">
-              <div className="absolute inset-0 rounded-2xl animate-beam-spin" style={{ background: 'conic-gradient(from 0deg, transparent 0deg, rgba(99,102,241,0.9) 45deg, rgba(139,92,246,0.6) 90deg, transparent 135deg)' }} />
+              <div className="absolute inset-0 rounded-2xl" style={{ background: 'conic-gradient(from 0deg, transparent 0deg, rgba(99,102,241,0.5) 45deg, rgba(139,92,246,0.3) 90deg, transparent 135deg)' }} />
               <div className="relative rounded-2xl p-9 h-full" style={{ background: 'linear-gradient(145deg, rgba(99,102,241,0.07) 0%, rgba(9,9,11,1) 55%)' }}>
                 <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
                   <span className="px-4 py-1 rounded-full bg-indigo-600 text-white text-[10px] font-bold tracking-widest uppercase shadow-lg shadow-indigo-500/30">StudioX</span>
