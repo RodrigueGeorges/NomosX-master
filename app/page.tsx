@@ -10,11 +10,11 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { ThreeComponentWrapper } from '@/components/ThreeComponentWrapper';
 import SiteFooter from '@/components/SiteFooter';
 import { AnimatePresence, motion } from 'framer-motion';
-import HoloOrb from '@/components/ui/HoloOrb';
-import HoloPortrait from '@/components/ui/HoloPortrait';
 import PipelineDemo from '@/components/ui/PipelineDemo';
 
 const TruthOrb = dynamic(() => import('@/components/ui/TruthOrb'), { ssr: false, loading: () => null });
+const HoloOrb = dynamic(() => import('@/components/ui/HoloOrb'), { ssr: false, loading: () => null });
+const HoloPortrait = dynamic(() => import('@/components/ui/HoloPortrait'), { ssr: false, loading: () => null });
 
 const DOMAIN_ICONS: Record<string, React.ComponentType<{ size?: number | string; strokeWidth?: number | string; style?: React.CSSProperties }>> = {
   'Economics':      TrendingUp,
