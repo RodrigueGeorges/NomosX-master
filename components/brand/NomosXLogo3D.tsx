@@ -5,7 +5,7 @@ import { Canvas, useFrame, extend } from '@react-three/fiber';
 import * as THREE from 'three';
 
 // Register all Three.js classes in R3F v9 catalog (required for JSX elements)
-extend(THREE);
+extend(THREE as any);
 
 interface Logo3DProps {
   size?: number;

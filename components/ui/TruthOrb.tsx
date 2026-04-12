@@ -6,7 +6,7 @@ import { Float } from '@react-three/drei';
 import * as THREE from 'three';
 
 // Register all Three.js classes in R3F v9 catalog (required for JSX elements)
-extend(THREE);
+extend(THREE as any);
 
 /**
  * TruthOrb — The visual metaphor for NomosX
