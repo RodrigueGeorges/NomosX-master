@@ -15,6 +15,7 @@ function ShellParticles({ hexColor, count, innerR, outerR, opacity, speed }: {
   hexColor: string; count: number; innerR: number; outerR: number; opacity: number; speed: number;
 }) {
   const ref = useRef<THREE.Points>(null);
+  const geomRef = useRef<THREE.BufferGeometry>(null);
 
   const positions = useMemo(() => {
     try {
@@ -33,8 +34,10 @@ function ShellParticles({ hexColor, count, innerR, outerR, opacity, speed }: {
     }
   }, [count, innerR, outerR]);
 
-  // Cleanup on unmount
   useEffect(() => {
+    if (geomRef.current) {
+      geomRef.current.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    }
     return () => {
       if (ref.current) {
         ref.current.geometry.dispose();
@@ -43,7 +46,7 @@ function ShellParticles({ hexColor, count, innerR, outerR, opacity, speed }: {
         }
       }
     };
-  }, []);
+  }, [positions]);
 
   useFrame(({ clock }) => {
     if (ref.current) {
@@ -54,9 +57,7 @@ function ShellParticles({ hexColor, count, innerR, outerR, opacity, speed }: {
 
   return (
     <points ref={ref}>
-      <bufferGeometry>
-        <bufferAttribute attach="attributes-position" args={[positions, 3]} />
-      </bufferGeometry>
+      <bufferGeometry ref={geomRef} />
       <pointsMaterial
         size={0.042}
         color={hexColor}

@@ -37,6 +37,7 @@ function MorphParticles({
   orderFactor: number; // 0 = chaos (doxa), 1 = order (nomos)
 }) {
   const ref = useRef<THREE.Points>(null);
+  const geomRef = useRef<THREE.BufferGeometry>(null);
 
   // Generate two sets of positions: chaotic and ordered
   const { chaosPositions, orderedPositions } = useMemo(() => {
@@ -83,8 +84,11 @@ function MorphParticles({
     }
   }, [count]);
 
-  // Cleanup on unmount to prevent memory leaks
+  // Set buffer attribute imperatively (R3F v9 compatible)
   useEffect(() => {
+    if (geomRef.current) {
+      geomRef.current.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    }
     return () => {
       if (ref.current) {
         ref.current.geometry.dispose();
@@ -93,7 +97,7 @@ function MorphParticles({
         }
       }
     };
-  }, []);
+  }, [positions]);
 
   useFrame(({ clock }) => {
     if (!ref.current) return;
@@ -132,9 +136,7 @@ function MorphParticles({
 
   return (
     <points ref={ref}>
-      <bufferGeometry>
-        <bufferAttribute attach="attributes-position" args={[positions, 3]} />
-      </bufferGeometry>
+      <bufferGeometry ref={geomRef} />
       <pointsMaterial
         size={0.035}
         color={color}
@@ -151,6 +153,7 @@ function MorphParticles({
 /* Accent particles — smaller, different color */
 function AccentParticles({ count, color, orderFactor }: { count: number; color: string; orderFactor: number }) {
   const ref = useRef<THREE.Points>(null);
+  const geomRef = useRef<THREE.BufferGeometry>(null);
   const positions = useMemo(() => {
     try {
       return new Float32Array(count * 3);
@@ -158,18 +161,6 @@ function AccentParticles({ count, color, orderFactor }: { count: number; color: 
       return new Float32Array(0);
     }
   }, [count]);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (ref.current) {
-        ref.current.geometry.dispose();
-        if (ref.current.material instanceof THREE.Material) {
-          ref.current.material.dispose();
-        }
-      }
-    };
-  }, []);
 
   const chaosPositions = useMemo(() => {
     try {
@@ -187,6 +178,20 @@ function AccentParticles({ count, color, orderFactor }: { count: number; color: 
       return new Float32Array(0);
     }
   }, [count]);
+
+  useEffect(() => {
+    if (geomRef.current) {
+      geomRef.current.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    }
+    return () => {
+      if (ref.current) {
+        ref.current.geometry.dispose();
+        if (ref.current.material instanceof THREE.Material) {
+          ref.current.material.dispose();
+        }
+      }
+    };
+  }, [positions]);
 
   useFrame(({ clock }) => {
     if (!ref.current) return;
@@ -220,9 +225,7 @@ function AccentParticles({ count, color, orderFactor }: { count: number; color: 
 
   return (
     <points ref={ref}>
-      <bufferGeometry>
-        <bufferAttribute attach="attributes-position" args={[positions, 3]} />
-      </bufferGeometry>
+      <bufferGeometry ref={geomRef} />
       <pointsMaterial
         size={0.025}
         color={color}

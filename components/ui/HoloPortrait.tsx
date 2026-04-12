@@ -13,6 +13,7 @@ function PortraitScene({ hexColor }: PortraitSceneProps) {
   const ring2Ref = useRef<THREE.Mesh>(null);
   const ring3Ref = useRef<THREE.Mesh>(null);
   const pointsRef = useRef<THREE.Points>(null);
+  const geomRef = useRef<THREE.BufferGeometry>(null);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -45,6 +46,12 @@ function PortraitScene({ hexColor }: PortraitSceneProps) {
       return new Float32Array(0);
     }
   }, []);
+
+  useEffect(() => {
+    if (geomRef.current && particles.length > 0) {
+      geomRef.current.setAttribute('position', new THREE.BufferAttribute(particles, 3));
+    }
+  }, [particles]);
 
   useFrame(({ clock }) => {
     const t = clock.elapsedTime;
@@ -86,9 +93,7 @@ function PortraitScene({ hexColor }: PortraitSceneProps) {
 
       {/* Particle cloud */}
       <points ref={pointsRef}>
-        <bufferGeometry>
-          <bufferAttribute attach="attributes-position" args={[particles, 3]} />
-        </bufferGeometry>
+        <bufferGeometry ref={geomRef} />
         <pointsMaterial size={0.020} color={hexColor} transparent opacity={0.65} sizeAttenuation />
       </points>
     </>
