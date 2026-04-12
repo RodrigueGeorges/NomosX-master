@@ -1,9 +1,12 @@
 'use client';
 
 import { useRef, useMemo, useEffect } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
+import { Canvas, useFrame, extend } from '@react-three/fiber';
 import { Float } from '@react-three/drei';
 import * as THREE from 'three';
+
+// Register all Three.js classes in R3F v9 catalog (required for JSX elements)
+extend(THREE);
 
 interface OrbSceneProps {
   hexColor: string;
