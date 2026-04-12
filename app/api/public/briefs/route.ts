@@ -64,13 +64,11 @@ export async function GET(req: NextRequest) {
         const { page, limit, type, search } = validation.data;
         const offset = (page - 1) * limit;
 
-        // Build where clause — quality gate: only publish articles with trustScore ≥ 60 (or unscored)
+        // Build where clause
         const where: any = {
           status: "PUBLISHED",
           publishedAt: { not: null },
-          AND: [
-            { OR: [{ trustScore: null }, { trustScore: { gte: 60 } }] },
-          ],
+          AND: [],
         };
 
         if (type !== 'all') {
@@ -85,6 +83,9 @@ export async function GET(req: NextRequest) {
         if (search) {
           where.AND.push({ OR: [{ title: { contains: search, mode: 'insensitive' } }] });
         }
+
+        // Clean up empty AND array to avoid Prisma validation errors
+        if (where.AND.length === 0) delete where.AND;
 
         // Get total count for pagination
         let totalCount = 0;
@@ -105,7 +106,6 @@ export async function GET(req: NextRequest) {
               publishedAt: true,
               wordCount: true,
               sourceIds: true,
-              trustScore: true,
               html: true,
             },
           });
