@@ -6,16 +6,20 @@ import { Float } from '@react-three/drei';
 import * as THREE from 'three';
 
 // Register Three.js classes used as JSX elements (required by R3F v9)
-// Use defensive check to prevent "undefined is not a constructor" errors
-if (typeof THREE !== 'undefined' && THREE.PointsMaterial) {
-  extend({
-    PointsMaterial: THREE.PointsMaterial,
-    MeshBasicMaterial: THREE.MeshBasicMaterial,
-    IcosahedronGeometry: THREE.IcosahedronGeometry,
-    BoxGeometry: THREE.BoxGeometry,
-    BufferGeometry: THREE.BufferGeometry,
-    BufferAttribute: THREE.BufferAttribute,
-  });
+// Use try-catch to prevent "undefined is not a constructor" errors during module load
+try {
+  if (typeof THREE !== 'undefined' && THREE.PointsMaterial) {
+    extend({
+      PointsMaterial: THREE.PointsMaterial,
+      MeshBasicMaterial: THREE.MeshBasicMaterial,
+      IcosahedronGeometry: THREE.IcosahedronGeometry,
+      BoxGeometry: THREE.BoxGeometry,
+      BufferGeometry: THREE.BufferGeometry,
+      BufferAttribute: THREE.BufferAttribute,
+    });
+  }
+} catch (e) {
+  // Silently fail - THREE may not be fully loaded yet
 }
 
 /**
