@@ -14,14 +14,23 @@ import { Menu, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 
 const LogoFallback = () => (
-  <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true">
-    <circle cx="14" cy="14" r="12.5" fill="#09090b" stroke="white" strokeWidth="1" strokeOpacity="0.16" />
-    <circle cx="14" cy="14" r="9.5" stroke="#818CF8" strokeWidth="0.8" strokeOpacity="0.52" />
-    <ellipse cx="14" cy="14" rx="12" ry="4.2" stroke="#A5B4FC" strokeWidth="0.7" strokeOpacity="0.28" transform="rotate(-24 14 14)" />
-    <ellipse cx="14" cy="14" rx="12" ry="4.2" stroke="#7C3AED" strokeWidth="0.7" strokeOpacity="0.28" transform="rotate(28 14 14)" />
-    <line x1="8.5" y1="8.5" x2="19.5" y2="19.5" stroke="#A5B4FC" strokeWidth="2" strokeLinecap="round" strokeOpacity="0.9" />
-    <line x1="19.5" y1="8.5" x2="8.5" y2="19.5" stroke="#8B5CF6" strokeWidth="2" strokeLinecap="round" strokeOpacity="0.75" />
-    <circle cx="14" cy="14" r="2.7" fill="#F5D778" />
+  <svg width="44" height="44" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+    <defs>
+      <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+        <feGaussianBlur stdDeviation="1.5" result="blur" />
+        <feMerge>
+          <feMergeNode in="blur" />
+          <feMergeNode in="SourceGraphic" />
+        </feMerge>
+      </filter>
+    </defs>
+    <circle cx="14" cy="14" r="12.5" fill="#09090b" stroke="white" strokeWidth="1.2" strokeOpacity="0.9" />
+    <circle cx="14" cy="14" r="9.5" stroke="#818CF8" strokeWidth="1.1" strokeOpacity="0.95" filter="url(#glow)" />
+    <ellipse cx="14" cy="14" rx="12" ry="4.2" stroke="#A5B4FC" strokeWidth="0.9" strokeOpacity="0.85" transform="rotate(-24 14 14)" />
+    <ellipse cx="14" cy="14" rx="12" ry="4.2" stroke="#7C3AED" strokeWidth="0.9" strokeOpacity="0.85" transform="rotate(28 14 14)" />
+    <line x1="8.5" y1="8.5" x2="19.5" y2="19.5" stroke="#A5B4FC" strokeWidth="2.5" strokeLinecap="round" />
+    <line x1="19.5" y1="8.5" x2="8.5" y2="19.5" stroke="#8B5CF6" strokeWidth="2.5" strokeLinecap="round" />
+    <circle cx="14" cy="14" r="2.7" fill="#F5D778" filter="url(#glow)" />
     <circle cx="14" cy="14" r="1" fill="#09090b" />
   </svg>
 );
@@ -59,7 +68,7 @@ export default function PublicNav({ currentPage, onSignInClick, isAuthenticated 
           className="flex items-center gap-2.5 cursor-pointer hover:opacity-80 transition-opacity"
           onClick={() => router.push("/")}
         >
-          <NomosXLogo3D size={32} />
+          <NomosXLogo3D size={44} />
           <span className="font-display font-bold text-[17px] tracking-tight">
             <span className="text-white">Nomos</span>
             <span className="text-white">X</span>

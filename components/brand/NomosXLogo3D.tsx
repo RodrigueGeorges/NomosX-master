@@ -148,7 +148,21 @@ export function NomosXLogo3D({ size = 120, className }: Logo3DProps) {
     typeof BoxGeometry === 'undefined' ||
     typeof TorusGeometry === 'undefined'
   ) {
-    return <div className={className} style={{ width: size, height: size }} />;
+    // Branded fallback — visible even when Three.js fails
+    return (
+      <div className={className} style={{ width: size, height: size, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <svg width={size} height={size} viewBox="0 0 28 28" fill="none" aria-hidden="true">
+          <circle cx="14" cy="14" r="12.5" fill="#09090b" stroke="white" strokeWidth="1.2" strokeOpacity="0.9" />
+          <circle cx="14" cy="14" r="9.5" stroke="#818CF8" strokeWidth="1.2" strokeOpacity="0.9" />
+          <ellipse cx="14" cy="14" rx="12" ry="4.2" stroke="#A5B4FC" strokeWidth="0.9" strokeOpacity="0.7" transform="rotate(-24 14 14)" />
+          <ellipse cx="14" cy="14" rx="12" ry="4.2" stroke="#7C3AED" strokeWidth="0.9" strokeOpacity="0.7" transform="rotate(28 14 14)" />
+          <line x1="8.5" y1="8.5" x2="19.5" y2="19.5" stroke="#A5B4FC" strokeWidth="2.5" strokeLinecap="round" />
+          <line x1="19.5" y1="8.5" x2="8.5" y2="19.5" stroke="#8B5CF6" strokeWidth="2.5" strokeLinecap="round" />
+          <circle cx="14" cy="14" r="2.7" fill="#F5D778" />
+          <circle cx="14" cy="14" r="1" fill="#09090b" />
+        </svg>
+      </div>
+    );
   }
 
   return (

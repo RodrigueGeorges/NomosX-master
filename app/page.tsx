@@ -538,7 +538,19 @@ function HomePageContent() {
                                     {r.initials}
                                   </div>
                                 }>
-                                  <ThreeComponentWrapper>
+                                  <ThreeComponentWrapper fallback={
+                                    <div
+                                      className="w-full h-full rounded-full flex items-center justify-center font-bold text-white"
+                                      style={{
+                                        fontSize: '8px',
+                                        backgroundColor: r.hex + (isActive ? '28' : '14'),
+                                        border: `1px solid ${r.hex}${isActive ? '60' : '28'}`,
+                                        boxShadow: isActive ? `0 0 14px ${r.hex}50, 0 0 28px ${r.hex}18` : 'none',
+                                      }}
+                                    >
+                                      {r.initials}
+                                    </div>
+                                  }>
                                     <HoloPortrait hexColor={r.hex} initials={r.initials} size={40} />
                                   </ThreeComponentWrapper>
                                 </Suspense>
@@ -627,7 +639,11 @@ function HomePageContent() {
                             {/* Holographic Domain Sigil */}
                             <div className="relative">
                               <div className="absolute inset-0 pointer-events-none" style={{ background: `radial-gradient(circle, ${cur.hex}18 0%, transparent 60%)`, transform: 'scale(1.5)' }} />
-                              <ThreeComponentWrapper>
+                              <ThreeComponentWrapper fallback={
+                                <div className="w-full h-full rounded-full flex items-center justify-center" style={{ background: `radial-gradient(circle, ${cur.hex}22 0%, transparent 70%)` }}>
+                                  <div className="w-24 h-24 rounded-full border-2 opacity-40" style={{ borderColor: cur.hex }} />
+                                </div>
+                              }>
                                 <HoloOrb hexColor={cur.hex} size={190} />
                               </ThreeComponentWrapper>
                               {/* Domain icon — floating at center of orbital rings */}
@@ -766,44 +782,13 @@ function HomePageContent() {
                   View all <ExternalLink size={13} />
                 </button>
               </div>
-              {latestBriefs.length > 0 ? (
-                <div className="space-y-3">
-                  {latestBriefs.map((brief) => (
-                    <div key={brief.id} onClick={() => router.push(`/articles/${brief.id}`)} className="group relative rounded-xl border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.04] hover:border-indigo-500/15 transition-all duration-300 p-5 cursor-pointer">
-                      <div className="flex items-start gap-4">
-                        <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-indigo-500/[0.07] border border-indigo-500/15 flex items-center justify-center mt-0.5">
-                          <BookOpen size={14} className="text-indigo-400/70" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between gap-4 mb-1.5">
-                            <h3 className="text-sm font-semibold text-white/90 group-hover:text-white transition-colors leading-snug line-clamp-1">{brief.title}</h3>
-                            <div className="flex items-center gap-3 flex-shrink-0 text-xs text-white/30">
-                              <span className="flex items-center gap-1"><Clock size={11} />{brief.readTime} min</span>
-                              <span>{brief.sources} sources</span>
-                            </div>
-                          </div>
-                          <p className="text-xs text-white/40 leading-relaxed line-clamp-2 mb-2">{brief.summary}</p>
-                          <div className="flex items-center gap-2">
-                            {brief.topics.slice(0, 3).map((t, ti) => (
-                              <span key={ti} className="text-[10px] px-2 py-0.5 rounded-full border border-white/[0.07] text-white/25">{t}</span>
-                            ))}
-                            <span className="text-[10px] text-white/20 ml-auto">{new Date(brief.publishedAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {[...Array(3)].map((_, i) => (
-                    <div key={i} className="rounded-xl border border-white/[0.04] bg-white/[0.01] p-5">
-                      <div className="flex items-center gap-4"><div className="w-8 h-8 rounded-lg bg-white/[0.03] flex-shrink-0" /><div className="flex-1 space-y-2"><div className="h-3 bg-white/[0.04] rounded w-3/4" /><div className="h-2.5 bg-white/[0.03] rounded w-full" /></div></div>
-                    </div>
-                  ))}
-                  <p className="text-center text-xs text-white/20 pt-2">First publications appear here once the pipeline runs.</p>
-                </div>
-              )}
+              <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-8 text-center">
+                <p className="text-sm text-white/40 mb-2">Publications are being regenerated with improved formatting.</p>
+                <p className="text-xs text-white/25">Check back soon — or browse the full archive.</p>
+                <button onClick={() => router.push('/articles')} className="mt-4 px-4 py-2 rounded-lg border border-white/[0.08] bg-white/[0.03] text-white/50 hover:text-white/80 text-sm transition-colors">
+                  Browse archive
+                </button>
+              </div>
               <div className="mt-5 flex justify-center sm:hidden">
                 <button onClick={() => router.push('/articles')} className="text-sm text-white/35 hover:text-white/60 transition-colors flex items-center gap-2">View all publications <ExternalLink size={13} /></button>
               </div>
