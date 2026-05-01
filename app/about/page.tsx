@@ -12,8 +12,7 @@ import { useRouter } from 'next/navigation';
 import AuthModal from '@/components/AuthModal';
 import PublicNav from '@/components/PublicNav';
 import { RESEARCHERS } from '@/lib/researchers';
-import { Brain, Shield, ArrowRight, Globe, Lightbulb } from 'lucide-react';
-import { NomosXLogo3D } from '@/components/brand/NomosXLogo3D';
+import { Brain, Shield, ArrowRight, Globe, Lightbulb, Database, Activity, Scale } from 'lucide-react';
 import SiteFooter from '@/components/SiteFooter';
 import { motion } from 'framer-motion';
 
@@ -160,6 +159,35 @@ export default function AboutPage() {
               </div>
             ))}
           </motion.div>
+
+          {/* Institution OS */}
+          <div className="mb-24 rounded-[28px] border border-white/[0.07] bg-white/[0.025] overflow-hidden relative">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_22%,rgba(99,102,241,0.14),transparent_32%),radial-gradient(circle_at_84%_50%,rgba(212,175,55,0.08),transparent_34%)]" />
+            <div className="absolute inset-0 nx-grid-bg opacity-20" />
+            <div className="relative p-7 sm:p-10">
+              <p className="text-xs text-indigo-300/75 font-medium tracking-[0.22em] uppercase mb-4">Institution OS</p>
+              <h2 className="font-display text-3xl sm:text-4xl font-bold text-white mb-4">Not a chatbot. An operating institution.</h2>
+              <p className="text-sm text-white/40 max-w-2xl leading-relaxed mb-8">
+                NomosX is designed as a research organism: memory, source reputation, adversarial dissent, cadence, and publication thresholds are part of the operating system.
+              </p>
+              <div className="grid md:grid-cols-3 gap-3">
+                {[
+                  { icon: Database, title: "Institutional memory", text: "Concepts, claims, sources, and prior positions persist across reports." },
+                  { icon: Scale, title: "Mandatory dissent", text: "Every thesis is challenged before it becomes a publication." },
+                  { icon: Activity, title: "Continuous radar", text: "Signals are scanned continuously, but publication remains scarce." },
+                ].map((item) => {
+                  const OIcon = item.icon;
+                  return (
+                    <div key={item.title} className="rounded-xl border border-white/[0.06] bg-black/20 p-5">
+                      <OIcon size={17} className="text-indigo-300/75 mb-5" />
+                      <h3 className="text-sm font-semibold text-white mb-2">{item.title}</h3>
+                      <p className="text-xs text-white/35 leading-relaxed">{item.text}</p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
 
           {/* Vision */}
           <div className="mb-24">

@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import AuthModal from '@/components/AuthModal';
 import PublicNav from '@/components/PublicNav';
 import SiteFooter from '@/components/SiteFooter';
-import { Calendar, Filter, Search, FileText, TrendingUp, ArrowRight, Clock, Users, BookOpen } from 'lucide-react';
+import { Search, ArrowRight, Clock, BookOpen, Shield, Activity, Database, Scale } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface ArticleSummary {
@@ -23,7 +23,6 @@ interface ArticleSummary {
 export default function ArticlesPage() {
   const router = useRouter();
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [articles, setArticles] = useState<ArticleSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -152,6 +151,51 @@ export default function ArticlesPage() {
           </div>
         </div>
 
+        {/* Protocol strip */}
+        <div className="relative z-10 max-w-5xl mx-auto px-6 sm:px-8 pt-8">
+          <div className="mb-4 rounded-2xl border border-white/[0.07] bg-white/[0.02] p-5 overflow-hidden relative">
+            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-indigo-400/45 via-amber-200/25 to-transparent" />
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <div className="text-[10px] text-indigo-300/70 uppercase tracking-[0.2em] mb-2">Editorial Standard</div>
+                <p className="text-sm text-white/55 leading-relaxed max-w-2xl">
+                  Publications are treated as institutional records: source depth, adversarial review, citation integrity, and lineage are part of the product surface.
+                </p>
+              </div>
+              <div className="grid grid-cols-3 gap-2 min-w-[260px]">
+                {[
+                  { label: "Min", value: "5 src" },
+                  { label: "Gate", value: "75+" },
+                  { label: "Cadence", value: "scarce" },
+                ].map((item) => (
+                  <div key={item.label} className="rounded-lg border border-white/[0.06] bg-black/20 px-3 py-2 text-center">
+                    <div className="text-[10px] text-white/25 uppercase tracking-[0.14em]">{item.label}</div>
+                    <div className="text-sm text-white/75 font-semibold mt-1">{item.value}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {[
+              { icon: Activity, label: "Signal intake", value: "continuous" },
+              { icon: Shield, label: "Citation guard", value: "mandatory" },
+              { icon: Scale, label: "Dissent layer", value: "adversarial" },
+              { icon: Database, label: "Lineage", value: "stored" },
+            ].map((item) => {
+              const PIcon = item.icon;
+              return (
+                <div key={item.label} className="rounded-xl border border-white/[0.06] bg-white/[0.025] p-4 overflow-hidden relative">
+                  <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-indigo-400/40 via-violet-300/20 to-transparent" />
+                  <PIcon size={15} className="text-indigo-300/75 mb-4" />
+                  <div className="text-[10px] text-white/25 uppercase tracking-[0.16em]">{item.label}</div>
+                  <div className="text-sm text-white/75 font-medium mt-1">{item.value}</div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
         {/* Content */}
         <div className="relative z-10 max-w-5xl mx-auto px-6 sm:px-8 py-8">
           {loading ? (
@@ -174,6 +218,10 @@ export default function ArticlesPage() {
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                 {filteredArticles.map((article) => (
                   <div key={article.id} className="group rounded-2xl border border-white/[0.08] bg-gradient-to-br from-white/[0.03] to-white/[0.01] p-6 hover:border-indigo-500/15 transition-all duration-300">
+                    <div className="flex items-center gap-1.5 mb-4 text-[10px] text-white/25 font-mono tracking-[0.16em] uppercase">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 shadow-[0_0_12px_rgba(110,231,183,0.7)]" />
+                      verified publication
+                    </div>
                     {/* Type Badge */}
                     <div className="flex items-center gap-2 mb-3">
                       <div className="w-2 h-2 rounded-full bg-indigo-400/60"></div>
@@ -195,6 +243,27 @@ export default function ArticlesPage() {
                     <p className="text-sm text-white/40 leading-relaxed mb-4 line-clamp-4">
                       {article.summary}
                     </p>
+
+                    <div className="mb-4 rounded-lg border border-white/[0.06] bg-black/20 p-3">
+                      <div className="flex items-center justify-between text-[10px] text-white/25 uppercase tracking-[0.14em] mb-2">
+                        <span>Evidence stack</span>
+                        <span>{article.tier}</span>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2 text-center">
+                        <div>
+                          <div className="text-sm text-white/80 font-semibold">{article.sources}</div>
+                          <div className="text-[10px] text-white/25">sources</div>
+                        </div>
+                        <div>
+                          <div className="text-sm text-indigo-200 font-semibold">16</div>
+                          <div className="text-[10px] text-white/25">checks</div>
+                        </div>
+                        <div>
+                          <div className="text-sm text-amber-200 font-semibold">SRC</div>
+                          <div className="text-[10px] text-white/25">linked</div>
+                        </div>
+                      </div>
+                    </div>
 
                     {/* Meta */}
                     <div className="flex items-center justify-between text-xs text-white/30 mb-4">
@@ -287,7 +356,6 @@ export default function ArticlesPage() {
           onClose={() => setShowAuthModal(false)}
           onSignupSuccess={() => {
             setShowAuthModal(false);
-            setIsAuthenticated(true);
             router.push('/dashboard');
           }}
         />

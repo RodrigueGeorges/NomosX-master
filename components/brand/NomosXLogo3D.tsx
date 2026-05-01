@@ -10,6 +10,7 @@ extend({
   SphereGeometry: THREE.SphereGeometry,
   BoxGeometry: THREE.BoxGeometry,
   TorusGeometry: THREE.TorusGeometry,
+  IcosahedronGeometry: THREE.IcosahedronGeometry,
 });
 
 interface Logo3DProps {
@@ -20,6 +21,7 @@ interface Logo3DProps {
 function InstitutionalMark() {
   const groupRef = useRef<THREE.Group>(null);
   const ringRef = useRef<THREE.Mesh>(null);
+  const counterRingRef = useRef<THREE.Mesh>(null);
 
   useFrame((state) => {
     const t = state.clock.elapsedTime;
@@ -30,6 +32,9 @@ function InstitutionalMark() {
     }
     if (ringRef.current) {
       ringRef.current.rotation.z = t * 0.12;
+    }
+    if (counterRingRef.current) {
+      counterRingRef.current.rotation.z = -t * 0.09;
     }
   });
 
@@ -53,11 +58,27 @@ function InstitutionalMark() {
 
   // Orbital ring: very thin, white semi-transparent
   const ringMat = useMemo(() => new THREE.MeshStandardMaterial({
-    color: '#ffffff',
+    color: '#a5b4fc',
+    metalness: 0.0,
+    roughness: 1.0,
+    transparent: true,
+    opacity: 0.24,
+  }), []);
+
+  const violetRingMat = useMemo(() => new THREE.MeshStandardMaterial({
+    color: '#8b5cf6',
     metalness: 0.0,
     roughness: 1.0,
     transparent: true,
     opacity: 0.18,
+  }), []);
+
+  const coreMat = useMemo(() => new THREE.MeshStandardMaterial({
+    color: '#f5d778',
+    metalness: 0.62,
+    roughness: 0.16,
+    emissive: '#d4af37',
+    emissiveIntensity: 0.26,
   }), []);
 
   return (
@@ -65,6 +86,10 @@ function InstitutionalMark() {
       {/* Core sphere — brushed platinum */}
       <mesh material={sphereMat}>
         <sphereGeometry args={[0.58, 64, 64]} />
+      </mesh>
+
+      <mesh material={coreMat} position={[0, 0, 0.68]}>
+        <icosahedronGeometry args={[0.12, 1]} />
       </mesh>
 
       {/* X mark — white, crisp, inscribed on sphere surface */}
@@ -79,6 +104,9 @@ function InstitutionalMark() {
       <mesh ref={ringRef} material={ringMat} rotation={[Math.PI / 2.4, 0, 0]}>
         <torusGeometry args={[0.82, 0.018, 16, 80]} />
       </mesh>
+      <mesh ref={counterRingRef} material={violetRingMat} rotation={[Math.PI / 2.9, 0.35, Math.PI / 2]}>
+        <torusGeometry args={[0.88, 0.012, 16, 96]} />
+      </mesh>
     </group>
   );
 }
@@ -91,6 +119,7 @@ function Scene() {
       <directionalLight position={[4, 6, 4]} intensity={1.4} color="#ffffff" />
       <directionalLight position={[-3, -2, 2]} intensity={0.5} color="#c5cae9" />
       <pointLight position={[0, 0, 3]} intensity={0.3} color="#ffffff" />
+      <pointLight position={[0, 0, 1.2]} intensity={0.65} color="#f5d778" />
       <InstitutionalMark />
     </>
   );

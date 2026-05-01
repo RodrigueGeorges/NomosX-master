@@ -30,6 +30,7 @@ import { generatePublication } from './publication-generator';
 import { selectSmartProviders } from './smart-provider-selector';
 import { extractAndStoreConcepts } from './knowledge-graph';
 import { AgentRole, assertPermission } from '../governance/index';
+import { evaluatePublicationGate } from './publication-gate';
 import {
   getPrimaryOwner as getPrimaryDomainOwner,
   selectPipelineTier,
@@ -37,6 +38,14 @@ import {
   type PipelineTier,
   type DomainScore,
 } from './researcher-ownership';
+
+const DEFAULT_WEEKLY_PUBLICATION_MAX = 3;
+
+function getWeeklyPublicationMax(): number {
+  const parsed = Number.parseInt(process.env.NOMOSX_WEEKLY_PUBLICATION_MAX || '', 10);
+  if (!Number.isFinite(parsed) || parsed < 1) return DEFAULT_WEEKLY_PUBLICATION_MAX;
+  return Math.min(parsed, 25);
+}
 
 // ============================================================================
 // TYPES
@@ -299,18 +308,14 @@ export async function autoPublisher(
   }
 
   // ════════════════════════════════════════════════════════════════════════
-  // PHASE 5: UPDATE CADENCE
+  // PHASE 5: CADENCE LEDGER
   // ════════════════════════════════════════════════════════════════════════
-  if (published > 0 && !cfg.dryRun) {
-    try {
-      await prisma.subscription.updateMany({
-        where: { status: "active" },
-        data: { weeklyPublicationCount: { increment: published } },
-      });
-    } catch (err: any) {
-      console.warn("[AUTO-PUBLISHER] Cadence update failed:", err.message);
-    }
-  }
+  phases.push({
+    name: "cadence",
+    status: "ok",
+    durationMs: 0,
+    details: `Published ${published}; cadence is derived from ThinkTankPublication, not subscription counters`,
+  });
 
   const output = buildOutput(results, agenda, scanStats, totalCostUsd, startedAt, runId, cfg, phases);
 
@@ -509,6 +514,19 @@ async function executePublication(
     const daScore = lineage?.devilsAdvocate?.publishabilityScore;
     const daVerdict = lineage?.devilsAdvocate?.verdict;
     const effectiveScore = daScore !== undefined ? daScore : trustScore;
+    const sourceIds = result.stats?.sourceIds || [];
+    const publicationGate = evaluatePublicationGate({
+      format: isStrategic ? "strategic" : "brief",
+      html: brief?.html || "",
+      sourceIds,
+      trustScore: effectiveScore,
+      qualityScore: effectiveScore,
+      citationCoverage: result.stats?.citationVerifier?.overallIntegrity
+        ? result.stats.citationVerifier.overallIntegrity / 100
+        : undefined,
+      devilsAdvocateScore: daScore,
+      fatalChallenges: lineage?.devilsAdvocate?.fatalChallenges || 0,
+    });
 
     if (daVerdict === "reject") {
       console.log(`[AUTO-PUBLISHER] Devil's Advocate REJECTED: "${proposal.topic}" — fatal epistemic flaws detected`);
@@ -526,10 +544,12 @@ async function executePublication(
       };
     }
 
-    if (effectiveScore < cfg.minTrustScore || daVerdict === "major_revision") {
+    if (effectiveScore < cfg.minTrustScore || daVerdict === "major_revision" || publicationGate.decision !== "publish") {
       const reason = daVerdict === "major_revision"
         ? `Devil's Advocate: major_revision required`
-        : `score ${effectiveScore} < threshold ${cfg.minTrustScore}`;
+        : publicationGate.decision !== "publish"
+          ? `publication gate: ${publicationGate.reasons.join("; ")}`
+          : `score ${effectiveScore} < threshold ${cfg.minTrustScore}`;
       console.log(`[AUTO-PUBLISHER] Quality gate failed: ${reason} — sending to review`);
 
       // Create publication in DRAFT status
@@ -544,11 +564,11 @@ async function executePublication(
             wordCount,
             trustScore: effectiveScore,
             qualityScore: effectiveScore,
-            citationCoverage: 0.8,
-            claimCount: 0,
-            factClaimCount: 0,
-            citedClaimCount: 0,
-            sourceIds: result.stats?.sourceIds || [],
+            citationCoverage: publicationGate.metrics.citationCoverage,
+            claimCount: publicationGate.metrics.claimCount,
+            factClaimCount: publicationGate.metrics.claimCount,
+            citedClaimCount: publicationGate.metrics.citedClaimCount,
+            sourceIds,
             status: "DRAFT",
             criticalLoopResult: {
               briefId: result.briefId,
@@ -557,6 +577,7 @@ async function executePublication(
               autoPublisherRun: true,
               qualityGateFailed: true,
               devilsAdvocateVerdict: daVerdict,
+              publicationGate,
             },
           },
         });
@@ -582,7 +603,6 @@ async function executePublication(
     
     try {
       // Default to individual researcher sign-off
-      const owner = getPrimaryDomainOwner(proposal.topic);
       if (owner) {
         const signOff = await requestResearcherSignOff(proposal.topic, brief?.html || "", trustScore);
         signOffDecision = signOff.decision;
@@ -639,11 +659,11 @@ async function executePublication(
           wordCount,
           trustScore: effectiveScore,
           qualityScore: effectiveScore,
-          citationCoverage: 0.85,
-          claimCount: 0,
-          factClaimCount: 0,
-          citedClaimCount: 0,
-          sourceIds: result.stats?.sourceIds || [],
+          citationCoverage: publicationGate.metrics.citationCoverage,
+          claimCount: publicationGate.metrics.claimCount,
+          factClaimCount: publicationGate.metrics.claimCount,
+          citedClaimCount: publicationGate.metrics.citedClaimCount,
+          sourceIds,
           status: "PUBLISHED",
           publishedAt: new Date(),
           criticalLoopResult: {
@@ -657,6 +677,7 @@ async function executePublication(
             researcherSignOff: signOffDecision,
             devilsAdvocateVerdict: daVerdict,
             devilsAdvocateScore: daScore,
+            publicationGate,
             stats: result.stats,
           },
         },
@@ -831,16 +852,16 @@ async function executeSignalPublications(
 
 async function getRemainingWeeklySlots(): Promise<number> {
   try {
-    const subscriptions = await prisma.subscription.findMany({
-      where: { status: "active" },
-      select: { weeklyPublicationCount: true, weeklyPublicationMax: true },
+    const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const current = await prisma.thinkTankPublication.count({
+      where: {
+        status: "PUBLISHED",
+        publishedAt: { gte: oneWeekAgo },
+      },
     });
-
-    const current = subscriptions[0]?.weeklyPublicationCount || 0;
-    const max = subscriptions[0]?.weeklyPublicationMax || 3;
-    return Math.max(0, max - current);
+    return Math.max(0, getWeeklyPublicationMax() - current);
   } catch {
-    return 3; // Default if no subscription exists
+    return DEFAULT_WEEKLY_PUBLICATION_MAX;
   }
 }
 

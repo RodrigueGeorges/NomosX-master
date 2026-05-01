@@ -77,6 +77,9 @@ const envSchema = z.object({
   // Cron security
   CRON_SECRET: z.string().optional(),
 
+  // Editorial cadence
+  NOMOSX_WEEKLY_PUBLICATION_MAX: z.string().optional(),
+
   // Google Knowledge Graph (entity enrichment)
   GOOGLE_KNOWLEDGE_GRAPH_API_KEY: z.string().optional(),
 
@@ -118,6 +121,21 @@ function validateEnv(): Env {
       if (!parsed.ADMIN_KEY || parsed.ADMIN_KEY.trim().length < 16) {
         throw new Error(
           "❌ Missing/weak ADMIN_KEY. In production you must set ADMIN_KEY (>= 16 chars)."
+        );
+      }
+      if (!parsed.CRON_SECRET || parsed.CRON_SECRET.trim().length < 24) {
+        throw new Error(
+          "Missing/weak CRON_SECRET. In production you must set CRON_SECRET (>= 24 chars)."
+        );
+      }
+      if (!parsed.REDIS_URL && !(parsed.UPSTASH_REDIS_REST_URL && parsed.UPSTASH_REDIS_REST_TOKEN)) {
+        throw new Error(
+          "Missing Redis configuration. In production set REDIS_URL or UPSTASH_REDIS_REST_URL + UPSTASH_REDIS_REST_TOKEN for distributed rate limiting."
+        );
+      }
+      if (!parsed.NEXT_PUBLIC_APP_URL || parsed.NEXT_PUBLIC_APP_URL.includes("localhost")) {
+        throw new Error(
+          "Invalid NEXT_PUBLIC_APP_URL. In production it must be the public HTTPS application URL."
         );
       }
     }

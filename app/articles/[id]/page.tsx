@@ -1,8 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, ArrowRight, Calendar, Clock, Users, Share2, Download, FileText, BookOpen, Tag } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { ArrowLeft, ArrowRight, Calendar, Clock, Users, Share2, Download, FileText, BookOpen, Tag, Shield, Activity, Database, Scale, AlertTriangle } from 'lucide-react';
 import { sanitizeHtml } from '@/lib/sanitize';
 import AuthModal from '@/components/AuthModal';
 
@@ -183,6 +182,20 @@ export default function ArticlePage() {
     keywords: article.topics?.join(', '),
     articleSection: articleTypeLabel(article.type),
   } : null;
+  const trustScore = article.trustScore ?? 0;
+  const gateTone = article.trustScore == null
+    ? "logged"
+    : trustScore >= 75
+      ? "approved"
+      : trustScore >= 50
+        ? "review"
+        : "held";
+  const protocolItems = [
+    { icon: Database, label: "Corpus", value: `${article.sources} sources`, detail: "ranked evidence base" },
+    { icon: Shield, label: "Gate", value: gateTone, detail: "quality threshold" },
+    { icon: Scale, label: "Dissent", value: "forced", detail: "counter-position required" },
+    { icon: Activity, label: "Lineage", value: "logged", detail: "agent audit trail" },
+  ];
 
   return (
     <>
@@ -234,12 +247,13 @@ export default function ArticlePage() {
         </div>
 
         {/* Content */}
-        <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 py-8">
-          <div className="grid lg:grid-cols-4 gap-8">
+        <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 py-8">
+          <div className="grid lg:grid-cols-[minmax(0,1fr)_280px] gap-8">
             {/* Main Content */}
-            <div className="lg:col-span-3">
+            <div>
               {/* Article Header */}
-              <div className="mb-8">
+              <div className="mb-8 rounded-2xl border border-white/[0.07] bg-white/[0.025] p-6 sm:p-8 overflow-hidden relative">
+                <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-indigo-400/50 via-amber-200/25 to-transparent" />
                 <div className="flex items-center gap-3 mb-4">
                   <span className="px-3 py-1 rounded-full border border-indigo-500/20 bg-indigo-500/5 text-indigo-300 text-xs font-medium">
                     {articleTypeLabel(article.type)}
@@ -264,7 +278,7 @@ export default function ArticlePage() {
                   {article.title}
                 </h1>
 
-                <div className="flex flex-wrap items-center gap-4 text-sm text-white/40">
+                <div className="flex flex-wrap items-center gap-4 text-sm text-white/40 mb-6">
                   <div className="flex items-center gap-2">
                     <Calendar size={14} />
                     {new Date(article.publishedAt).toLocaleDateString()}
@@ -284,6 +298,20 @@ export default function ArticlePage() {
                     </div>
                   )}
                 </div>
+
+                <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                  {protocolItems.map((item) => {
+                    const PIcon = item.icon;
+                    return (
+                      <div key={item.label} className="rounded-xl border border-white/[0.06] bg-black/20 p-4">
+                        <PIcon size={15} className="text-indigo-300/75 mb-4" />
+                        <div className="text-[10px] text-white/25 uppercase tracking-[0.16em]">{item.label}</div>
+                        <div className="text-sm text-white/80 font-semibold mt-1">{item.value}</div>
+                        <div className="text-[11px] text-white/30 mt-1">{item.detail}</div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
 
               {/* Topics */}
@@ -301,7 +329,21 @@ export default function ArticlePage() {
               )}
 
               {/* Article Content */}
-              <div className="prose prose-invert prose-lg max-w-none">
+              <div className="mb-8 grid md:grid-cols-3 gap-3">
+                {[
+                  { label: "Method", value: "source-ranked synthesis" },
+                  { label: "Correction", value: "auditable revisions" },
+                  { label: "Limit", value: "confidence over certainty" },
+                ].map((item) => (
+                  <div key={item.label} className="rounded-xl border border-white/[0.06] bg-white/[0.018] px-4 py-3">
+                    <div className="text-[10px] text-white/25 uppercase tracking-[0.16em]">{item.label}</div>
+                    <div className="mt-1 text-sm text-white/65">{item.value}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Article Content */}
+              <div className="prose prose-invert prose-lg max-w-none prose-headings:font-display prose-headings:font-light prose-p:text-white/75 prose-li:text-white/70 prose-a:text-indigo-300">
                 {isSubscribed ? (
                   <div 
                     className="article-content text-white/80 leading-relaxed"
@@ -355,9 +397,57 @@ export default function ArticlePage() {
 
             {/* Sidebar */}
             <div className="lg:col-span-1">
+              <div className="sticky top-6 space-y-5">
+                <div className="rounded-xl border border-indigo-400/15 bg-indigo-500/[0.035] overflow-hidden">
+                  <div className="p-4 border-b border-white/[0.06]">
+                    <div className="text-[10px] text-indigo-300/80 uppercase tracking-[0.18em] font-semibold mb-2">Verification Stack</div>
+                    <div className="text-sm text-white/85 font-medium">Publication protocol</div>
+                  </div>
+                  <div className="p-4 space-y-4">
+                    {[
+                      { label: 'Source corpus', value: `${article.sources} sources`, tone: 'bg-indigo-300' },
+                      { label: 'Reading mode', value: isSubscribed ? 'full evidence' : 'teaser', tone: 'bg-cyan-300' },
+                      { label: 'Citation layer', value: isSubscribed ? 'visible' : 'locked', tone: 'bg-amber-200' },
+                      { label: 'Council gate', value: article.trustScore != null ? `${article.trustScore}%` : 'logged', tone: 'bg-emerald-300' },
+                    ].map((item) => (
+                      <div key={item.label} className="flex items-start gap-3">
+                        <span className={`mt-1.5 h-2 w-2 rounded-full ${item.tone} shadow-[0_0_14px_currentColor]`} />
+                        <div className="min-w-0">
+                          <div className="text-[11px] text-white/30">{item.label}</div>
+                          <div className="text-xs text-white/70 font-medium">{item.value}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-amber-300/15 bg-amber-300/[0.035] p-4">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle size={16} className="text-amber-200/80 mt-0.5 shrink-0" />
+                    <div>
+                      <div className="text-[10px] text-amber-100/60 uppercase tracking-[0.18em] font-semibold mb-2">Reader note</div>
+                      <p className="text-xs text-white/45 leading-relaxed">
+                        NomosX treats confidence as provisional. Strong claims should remain tied to source quality, dissent, and revision history.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-white/[0.07] bg-white/[0.025] p-4">
+                  <div className="text-[10px] text-white/25 uppercase tracking-[0.18em] font-semibold mb-3">Doxa to Nomos</div>
+                  <div className="space-y-2.5">
+                    {['Claim extracted', 'Evidence challenged', 'Dissent recorded', 'Limitations surfaced'].map((step, i) => (
+                      <div key={step} className="flex items-center gap-2.5 text-xs text-white/45">
+                        <span className="w-5 h-5 rounded-full border border-white/[0.08] bg-black/20 flex items-center justify-center text-[10px] font-mono text-indigo-300/70">{i + 1}</span>
+                        {step}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
               {/* Related Articles */}
               {relatedArticles.length > 0 && (
-                <div className="sticky top-6">
+                <div>
                   <h3 className="font-display text-lg font-light text-white mb-4">Related Articles</h3>
                   <div className="space-y-4">
                     {relatedArticles.map((related) => (
@@ -385,6 +475,7 @@ export default function ArticlePage() {
                   </div>
                 </div>
               )}
+              </div>
             </div>
           </div>
         </div>

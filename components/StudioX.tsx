@@ -23,7 +23,7 @@ export default function StudioX() {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
-      content: "I'm StudioX — your research assistant at NomosX. Ask me about published briefs, request deeper analysis, or commission new research.",
+      content: "I'm StudioX - your research assistant at NomosX. Ask me about published briefs, request deeper analysis, or commission new research.",
       timestamp: new Date(),
     },
   ]);
@@ -102,7 +102,7 @@ export default function StudioX() {
                 setStreamContent(fullContent);
               }
               if (parsed.error) {
-                fullContent += `\n\n⚠️ Error: ${parsed.error}`;
+                fullContent += `\n\nWarning: ${parsed.error}`;
                 setStreamContent(fullContent);
               }
             } catch {
@@ -115,7 +115,7 @@ export default function StudioX() {
       // Add completed assistant message
       const assistantMessage: Message = {
         role: 'assistant',
-        content: fullContent || 'I apologize — I was unable to generate a response. Please try again.',
+        content: fullContent || 'I apologize - I was unable to generate a response. Please try again.',
         timestamp: new Date(),
       };
 
@@ -175,7 +175,7 @@ export default function StudioX() {
               </div>
               <div>
                 <h3 className="text-sm font-semibold text-white">StudioX</h3>
-                <p className="text-[10px] text-white/30">Research Studio</p>
+                <p className="text-[10px] text-white/30">Research protocol online</p>
               </div>
             </div>
             <button
@@ -203,7 +203,7 @@ export default function StudioX() {
                       {line.startsWith('**') && line.endsWith('**') ? (
                         <strong className="text-white/90 font-semibold">{line.slice(2, -2)}</strong>
                       ) : line.startsWith('- ') ? (
-                        <span className="block pl-3">• {line.slice(2)}</span>
+                        <span className="block pl-3">- {line.slice(2)}</span>
                       ) : (
                         <span>{line}</span>
                       )}
@@ -226,7 +226,7 @@ export default function StudioX() {
                       {line.startsWith('**') && line.endsWith('**') ? (
                         <strong className="text-white/90 font-semibold">{line.slice(2, -2)}</strong>
                       ) : line.startsWith('- ') ? (
-                        <span className="block pl-3">• {line.slice(2)}</span>
+                        <span className="block pl-3">- {line.slice(2)}</span>
                       ) : (
                         <span>{line}</span>
                       )}
@@ -256,6 +256,9 @@ export default function StudioX() {
           {/* Quick actions (show when few messages) */}
           {messages.length <= 2 && !streaming && (
             <div className="px-4 pb-2 flex flex-wrap gap-1.5">
+              <span className="text-[10px] px-2.5 py-1.5 rounded-lg border border-indigo-400/15 bg-indigo-500/[0.05] text-indigo-200/60">
+                citations guarded
+              </span>
               {quickActions.map((action, i) => (
                 <button
                   key={i}

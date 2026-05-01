@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
 
     // Rate limit (P0)
     try {
-      assertRateLimit(`ingestion-run:user:${user.id}`, 20, 60_000);
+      await assertRateLimit(`ingestion-run:user:${user.id}`, 20, 60_000);
     } catch (err) {
       if (err instanceof RateLimitError) {
         return NextResponse.json(

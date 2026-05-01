@@ -11,7 +11,7 @@ export async function GET(req: Request) {
 
   // Rate limit (P0)
   try {
-    assertRateLimit(`search:user:${user.id}`, 60, 60_000);
+    await assertRateLimit(`search:user:${user.id}`, 60, 60_000);
   } catch (err) {
     if (err instanceof RateLimitError) {
       return NextResponse.json(

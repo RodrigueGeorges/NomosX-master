@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { NomosXLogo3D } from "@/components/brand/NomosXLogo3D";
-import { ArrowRight, Github, Twitter } from "lucide-react";
+import { ArrowRight, Github, Twitter, Shield, Activity, Database } from "lucide-react";
 
 const LINKS = {
   Product: [
@@ -76,6 +76,28 @@ export default function SiteFooter({ onSignInClick }: SiteFooterProps) {
                 <div className="text-xs text-white/25 tracking-wide">{s.label}</div>
               </div>
             ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Protocol bar */}
+      <div className="relative border-b border-white/[0.04]">
+        <div className="max-w-7xl mx-auto px-6 sm:px-8 py-6">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {[
+              { icon: Shield, label: "Citation guard", value: "source-bound claims" },
+              { icon: Activity, label: "Live radar", value: "continuous signal scan" },
+              { icon: Database, label: "Institutional memory", value: "persistent evidence graph" },
+            ].map((item) => {
+              const FIcon = item.icon;
+              return (
+                <div key={item.label} className="rounded-xl border border-white/[0.05] bg-white/[0.02] p-4">
+                  <FIcon size={15} className="text-indigo-300/70 mb-3" />
+                  <div className="text-[10px] text-white/25 uppercase tracking-[0.16em]">{item.label}</div>
+                  <div className="text-xs text-white/45 mt-1">{item.value}</div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>

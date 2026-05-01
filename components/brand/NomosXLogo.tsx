@@ -1,6 +1,6 @@
-
 "use client";
 
+import { useId } from 'react';
 import { cn } from '@/lib/utils';
 
 interface LogoProps {
@@ -10,10 +10,16 @@ interface LogoProps {
 }
 
 const symbolSizes = { sm: 28, md: 36, lg: 44, xl: 60, '2xl': 80 };
-const textSizes   = { sm: 'text-[15px]', md: 'text-[18px]', lg: 'text-[22px]', xl: 'text-[30px]', '2xl': 'text-[42px]' };
-const gapSizes    = { sm: 'gap-2', md: 'gap-2.5', lg: 'gap-3', xl: 'gap-4', '2xl': 'gap-5' };
+const textSizes = { sm: 'text-[15px]', md: 'text-[18px]', lg: 'text-[22px]', xl: 'text-[30px]', '2xl': 'text-[42px]' };
+const gapSizes = { sm: 'gap-2', md: 'gap-2.5', lg: 'gap-3', xl: 'gap-4', '2xl': 'gap-5' };
 
 function NomosSymbol({ px, className }: { px: number; className?: string }) {
+  const id = useId().replace(/:/g, '');
+  const gradId = `${id}-grad`;
+  const coreId = `${id}-core`;
+  const logoGlowId = `${id}-logo-glow`;
+  const goldGlowId = `${id}-gold-glow`;
+
   return (
     <svg
       width={px}
@@ -22,50 +28,53 @@ function NomosSymbol({ px, className }: { px: number; className?: string }) {
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
+      aria-hidden="true"
     >
       <defs>
-        <linearGradient id="nx-logo-grad" x1="20%" y1="0%" x2="80%" y2="100%">
-          <stop offset="0%"   stopColor="#818CF8" />
-          <stop offset="50%"  stopColor="#6366F1" />
+        <linearGradient id={gradId} x1="20%" y1="0%" x2="80%" y2="100%">
+          <stop offset="0%" stopColor="#A5B4FC" />
+          <stop offset="45%" stopColor="#6366F1" />
           <stop offset="100%" stopColor="#7C3AED" />
         </linearGradient>
-        <linearGradient id="nx-gold-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%"   stopColor="#D4AF37" />
-          <stop offset="50%"  stopColor="#F5D778" />
+        <radialGradient id={coreId} cx="50%" cy="45%" r="55%">
+          <stop offset="0%" stopColor="#FFFFFF" />
+          <stop offset="38%" stopColor="#F5D778" />
           <stop offset="100%" stopColor="#D4AF37" />
-        </linearGradient>
-        <filter id="nx-logo-glow" x="-40%" y="-40%" width="180%" height="180%">
-          <feGaussianBlur stdDeviation="4.5" result="blur" />
-          <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+        </radialGradient>
+        <filter id={logoGlowId} x="-40%" y="-40%" width="180%" height="180%">
+          <feGaussianBlur stdDeviation="3.8" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
         </filter>
-        <filter id="nx-gold-glow" x="-60%" y="-60%" width="220%" height="220%">
-          <feGaussianBlur stdDeviation="6" result="blur" />
-          <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
-        </filter>
-        <filter id="nx-body-glow" x="-20%" y="-20%" width="140%" height="140%">
-          <feGaussianBlur stdDeviation="1.5" result="blur" />
-          <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+        <filter id={goldGlowId} x="-60%" y="-60%" width="220%" height="220%">
+          <feGaussianBlur stdDeviation="5.5" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
         </filter>
       </defs>
 
-      {/* Left vertical bar */}
-      <path d="M 25 28 L 25 92 L 34 92 L 34 28 Z" fill="url(#nx-logo-grad)" filter="url(#nx-body-glow)" />
+      <circle cx="60" cy="60" r="52" fill="#09090B" stroke="white" strokeOpacity="0.10" strokeWidth="1.2" />
+      <circle cx="60" cy="60" r="42" stroke={`url(#${gradId})`} strokeWidth="1.3" strokeOpacity="0.50" />
+      <ellipse cx="60" cy="60" rx="50" ry="18" stroke="#A5B4FC" strokeWidth="1.1" strokeOpacity="0.24" transform="rotate(-24 60 60)" />
+      <ellipse cx="60" cy="60" rx="49" ry="17" stroke="#7C3AED" strokeWidth="1.1" strokeOpacity="0.26" transform="rotate(28 60 60)" />
 
-      {/* Right vertical bar */}
-      <path d="M 86 28 L 86 92 L 95 92 L 95 28 Z" fill="url(#nx-logo-grad)" filter="url(#nx-body-glow)" />
+      <path d="M31 35 V86" stroke={`url(#${gradId})`} strokeWidth="8" strokeLinecap="round" filter={`url(#${logoGlowId})`} />
+      <path d="M89 35 V86" stroke={`url(#${gradId})`} strokeWidth="8" strokeLinecap="round" filter={`url(#${logoGlowId})`} />
+      <path d="M34 36 L86 84" stroke={`url(#${gradId})`} strokeWidth="8" strokeLinecap="round" opacity="0.92" filter={`url(#${logoGlowId})`} />
+      <path d="M86 36 L34 84" stroke={`url(#${gradId})`} strokeWidth="8" strokeLinecap="round" opacity="0.72" filter={`url(#${logoGlowId})`} />
 
-      {/* Top-left to centre diagonal */}
-      <path d="M 34 33 L 62 60 L 86 84 L 94 77 L 62 51 L 34 26 Z" fill="url(#nx-logo-grad)" filter="url(#nx-body-glow)" />
+      <circle cx="60" cy="60" r="11" fill={`url(#${coreId})`} filter={`url(#${goldGlowId})`} />
+      <circle cx="60" cy="60" r="4.2" fill="#09090B" opacity="0.92" />
+      <circle cx="60" cy="60" r="1.6" fill="#F5D778" />
 
-      {/* Top-right to centre diagonal */}
-      <path d="M 86 33 L 58 60 L 34 84 L 26 77 L 58 51 L 86 26 Z" fill="url(#nx-logo-grad)" opacity="0.80" filter="url(#nx-body-glow)" />
-
-      {/* Centre node — the resolved X, glowing gold */}
-      <circle cx="60" cy="60" r="9"   fill="#D4AF37"  filter="url(#nx-gold-glow)" opacity="0.85" />
-      <circle cx="60" cy="60" r="4"   fill="#F5D778"  opacity="0.9" />
-
-      {/* Greek letters: Ξ (Xi) for X, Ν (Nu) for Nomos */}
-      <text x="60" y="64" text-anchor="middle" font-family="serif" font-size="7" font-weight="bold" fill="#09090b" opacity="0.9">Ξ</text>
+      <circle cx="31" cy="35" r="3" fill="#E0E7FF" />
+      <circle cx="89" cy="86" r="3" fill="#C4B5FD" />
+      <circle cx="89" cy="35" r="2.5" fill="#A5B4FC" opacity="0.85" />
+      <circle cx="31" cy="86" r="2.5" fill="#8B5CF6" opacity="0.85" />
     </svg>
   );
 }
@@ -85,11 +94,11 @@ export function NomosXLogo({ size = 'md', variant = 'full', className }: LogoPro
     return (
       <div className={cn('inline-flex items-center', className)}>
         <span className={cn(
-          'font-display font-semibold tracking-[-0.02em]',
-          'bg-gradient-to-r from-indigo-300 via-white to-violet-300 bg-clip-text text-transparent',
+          'font-display font-semibold tracking-tight',
+          'bg-gradient-to-r from-indigo-200 via-white to-violet-200 bg-clip-text text-transparent',
           textSizes[size]
         )}>
-          Nomos<span className="bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent">X</span>
+          Nomos<span className="bg-gradient-to-r from-indigo-300 via-violet-300 to-[#F5D778] bg-clip-text text-transparent">X</span>
         </span>
       </div>
     );
@@ -99,11 +108,11 @@ export function NomosXLogo({ size = 'md', variant = 'full', className }: LogoPro
     <div className={cn('inline-flex items-center', gapSizes[size], className)}>
       <NomosSymbol px={px} />
       <span className={cn(
-        'font-display font-semibold tracking-[-0.02em]',
+        'font-display font-semibold tracking-tight',
         'bg-gradient-to-r from-white via-indigo-100 to-violet-200 bg-clip-text text-transparent',
         textSizes[size]
       )}>
-        Nomos<span className="bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent">X</span>
+        Nomos<span className="bg-gradient-to-r from-indigo-300 via-violet-300 to-[#F5D778] bg-clip-text text-transparent">X</span>
       </span>
     </div>
   );

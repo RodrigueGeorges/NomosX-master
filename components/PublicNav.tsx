@@ -15,9 +15,14 @@ import { AnimatePresence, motion } from 'framer-motion';
 
 const LogoFallback = () => (
   <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true">
-    <circle cx="14" cy="14" r="12.5" fill="white" fillOpacity="0.08" stroke="white" strokeWidth="1" strokeOpacity="0.25" />
-    <line x1="9.5" y1="9.5" x2="18.5" y2="18.5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeOpacity="0.85" />
-    <line x1="18.5" y1="9.5" x2="9.5" y2="18.5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeOpacity="0.85" />
+    <circle cx="14" cy="14" r="12.5" fill="#09090b" stroke="white" strokeWidth="1" strokeOpacity="0.16" />
+    <circle cx="14" cy="14" r="9.5" stroke="#818CF8" strokeWidth="0.8" strokeOpacity="0.52" />
+    <ellipse cx="14" cy="14" rx="12" ry="4.2" stroke="#A5B4FC" strokeWidth="0.7" strokeOpacity="0.28" transform="rotate(-24 14 14)" />
+    <ellipse cx="14" cy="14" rx="12" ry="4.2" stroke="#7C3AED" strokeWidth="0.7" strokeOpacity="0.28" transform="rotate(28 14 14)" />
+    <line x1="8.5" y1="8.5" x2="19.5" y2="19.5" stroke="#A5B4FC" strokeWidth="2" strokeLinecap="round" strokeOpacity="0.9" />
+    <line x1="19.5" y1="8.5" x2="8.5" y2="19.5" stroke="#8B5CF6" strokeWidth="2" strokeLinecap="round" strokeOpacity="0.75" />
+    <circle cx="14" cy="14" r="2.7" fill="#F5D778" />
+    <circle cx="14" cy="14" r="1" fill="#09090b" />
   </svg>
 );
 
@@ -38,10 +43,11 @@ export default function PublicNav({ currentPage, onSignInClick, isAuthenticated 
 
   const navLinks: { label: string; page: PublicNavProps["currentPage"]; href: string }[] = [
     { label: "Home", page: "home", href: "/" },
-    { label: "Articles", page: "articles", href: "/articles" },
+    { label: "Publications", page: "articles", href: "/articles" },
     { label: "About", page: "about", href: "/about" },
     { label: "Methodology", page: "methodology", href: "/methodology" },
-    { label: "StudioX", page: "pricing", href: "/pricing" },
+    { label: "Access", page: "pricing", href: "/pricing" },
+    { label: "StudioX", page: "studio", href: "/studio" },
   ];
 
   return (

@@ -6,6 +6,15 @@ import { generatePublication } from '@/lib/agent/publication-generator';
 import { selectSmartProviders } from '@/lib/agent/smart-provider-selector';
 import { getVerticalForTopic, getProvidersForVertical, requestResearcherSignOff } from '@/lib/agent/researcher-ownership';
 import { classifyTopic } from '@/lib/agent/topic-classifier';
+import { evaluatePublicationGate } from '@/lib/agent/publication-gate';
+
+const DEFAULT_WEEKLY_PUBLICATION_MAX = 3;
+
+function getWeeklyPublicationMax(): number {
+  const parsed = Number.parseInt(process.env.NOMOSX_WEEKLY_PUBLICATION_MAX || '', 10);
+  if (!Number.isFinite(parsed) || parsed < 1) return DEFAULT_WEEKLY_PUBLICATION_MAX;
+  return Math.min(parsed, 25);
+}
 
 /**
  * POST /api/cron/generate-briefs
@@ -37,17 +46,16 @@ export async function POST(req: NextRequest) {
 
     console.log("[Generate Briefs Cron] Starting autonomous brief generation...");
 
-    // Check global weekly quota
-    const subscriptions = await prisma.subscription.findMany({
-      where: { status: "active" },
-      select: {
-        weeklyPublicationCount: true,
-        weeklyPublicationMax: true,
+    // Check global editorial cadence. Publication frequency is a think-tank
+    // quality control, not a side effect of the first active subscription row.
+    const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const currentWeeklyCount = await prisma.thinkTankPublication.count({
+      where: {
+        status: "PUBLISHED",
+        publishedAt: { gte: oneWeekAgo },
       },
     });
-
-    const currentWeeklyCount = subscriptions[0]?.weeklyPublicationCount || 0;
-    const weeklyMax = subscriptions[0]?.weeklyPublicationMax || 3;
+    const weeklyMax = getWeeklyPublicationMax();
     const remainingSlots = weeklyMax - currentWeeklyCount;
 
     if (remainingSlots <= 0) {
@@ -68,7 +76,6 @@ export async function POST(req: NextRequest) {
 
     // Per-vertical cadence tracking: count recent publications per vertical
     const verticalPubCounts = new Map<string, number>();
-    const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     const recentPubs = await prisma.thinkTankPublication.groupBy({
       by: ['verticalId'],
       where: { publishedAt: { gte: oneWeekAgo } },
@@ -153,8 +160,24 @@ export async function POST(req: NextRequest) {
                   signOff = { approved: true, decision: 'approve', researcherName: 'auto', confidence: 0.5, comments: ['Sign-off unavailable'] };
                 }
 
-                // Only publish if approved (or revise with high trust)
-                const shouldPublish = signOff.approved || (signOff.decision === 'revise' && trustScore >= 65);
+                const stats = result.stats as any;
+                const sourceIds = generatedBrief?.sources || stats?.sourceIds || [];
+                const publicationGate = evaluatePublicationGate({
+                  format: pipelineMode === "strategic" ? "strategic" : "brief",
+                  html: briefHtml,
+                  sourceIds,
+                  trustScore,
+                  qualityScore: stats?.rank?.avgQuality || trustScore,
+                  citationCoverage: stats?.citationVerifier?.overallIntegrity
+                    ? stats.citationVerifier.overallIntegrity / 100
+                    : undefined,
+                  devilsAdvocateScore: stats?.devilsAdvocate?.publishabilityScore,
+                  fatalChallenges: stats?.devilsAdvocate?.fatalChallenges || 0,
+                  researcherDecision: signOff.decision,
+                });
+
+                // Only publish when researcher sign-off and deterministic publication gate agree.
+                const shouldPublish = signOff.approved && publicationGate.decision === "publish";
                 const pubStatus = shouldPublish ? "PUBLISHED" : "DRAFT";
 
                 await prisma.thinkTankPublication.create({
@@ -165,12 +188,12 @@ export async function POST(req: NextRequest) {
                     html: briefHtml,
                     wordCount: Math.round(briefHtml.length / 6),
                     trustScore,
-                    qualityScore: result.stats?.rank?.avgQuality || 75,
-                    citationCoverage: 0.85,
-                    claimCount: 0,
-                    factClaimCount: 0,
-                    citedClaimCount: 0,
-                    sourceIds: generatedBrief?.sources || [],
+                    qualityScore: stats?.rank?.avgQuality || 75,
+                    citationCoverage: publicationGate.metrics.citationCoverage,
+                    claimCount: publicationGate.metrics.claimCount,
+                    factClaimCount: publicationGate.metrics.claimCount,
+                    citedClaimCount: publicationGate.metrics.citedClaimCount,
+                    sourceIds,
                     status: pubStatus,
                     publishedAt: shouldPublish ? new Date() : null,
                     criticalLoopResult: {
@@ -180,6 +203,7 @@ export async function POST(req: NextRequest) {
                       confidence: proposal.confidence,
                       stats: result.stats as any,
                       signOff: { researcher: signOff.researcherName, decision: signOff.decision, confidence: signOff.confidence, comments: signOff.comments },
+                      publicationGate,
                     },
                   },
                 });
@@ -264,14 +288,6 @@ export async function POST(req: NextRequest) {
         console.log("[Generate Briefs Cron] No qualifying signals found");
         skipped++;
       }
-    }
-
-    // Update weekly publication count
-    if (generated > 0) {
-      await prisma.subscription.updateMany({
-        where: { status: "active" },
-        data: { weeklyPublicationCount: { increment: generated } },
-      });
     }
 
     console.log(`[Generate Briefs Cron] ✅ Completed: ${generated} generated, ${skipped} skipped, ${failed} failed`);

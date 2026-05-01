@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
           }
 
           try {
-            assertRateLimit(`email:verify:${session.email}`, 3, 60 * 60_000);
+            await assertRateLimit(`email:verify:${session.email}`, 3, 60 * 60_000);
           } catch (err) {
             if (err instanceof RateLimitError) {
               return NextResponse.json(

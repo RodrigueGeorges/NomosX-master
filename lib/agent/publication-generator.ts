@@ -16,6 +16,7 @@ import { runDevilsAdvocate } from './devils-advocate';
 import { recordAgentPerformance, autoDetectFailureModes } from './agent-memory';
 import { recordPublication } from './cadence-enforcer';
 import { AgentRole, assertPermission } from '../governance/index';
+import { evaluatePublicationGate } from './publication-gate';
 
 // ============================================================================
 // TYPES
@@ -426,7 +427,9 @@ export async function generatePublication(
     }
 
     // ── STEP 6: Calculate trust score (DA publishabilityScore takes priority) ──
-    const avgSourceQuality = sources.reduce((sum, s) => sum + (s.qualityScore || 0), 0) / sources.length;
+    const avgSourceQuality = sources.length > 0
+      ? sources.reduce((sum, s) => sum + (s.qualityScore || 0), 0) / sources.length
+      : 0;
     const rawTrustScore = Math.round(
       criticalLoopResult.compositeScore * 0.5 +
       avgSourceQuality * 0.3 +
@@ -435,10 +438,22 @@ export async function generatePublication(
     // Devil's Advocate publishabilityScore is more rigorous — use it when available
     const trustScore = daReport?.publishabilityScore ?? rawTrustScore;
 
+    const sourceIds = signal.sourceIds || sources.map((source: any) => source.id).filter(Boolean);
+    const publicationGate = evaluatePublicationGate({
+      format: pubType === "RESEARCH_BRIEF" ? "strategic" : "signal",
+      html,
+      sourceIds,
+      trustScore,
+      qualityScore: avgSourceQuality,
+      citationCoverage,
+      devilsAdvocateScore: daReport?.publishabilityScore,
+      fatalChallenges: daReport?.fatalChallenges?.length || 0,
+    });
+
     // DA verdict gate: reject = don't publish, major_revision = human review
     const daBlocked = daReport?.verdict === "reject";
     const daNeedsReview = daReport?.verdict === "major_revision" || daReport?.verdict === "revise";
-    const needsHumanReview = criticalLoopResult.needsHumanReview || daNeedsReview || daBlocked;
+    const needsHumanReview = criticalLoopResult.needsHumanReview || daNeedsReview || daBlocked || publicationGate.decision !== "publish";
 
     if (daBlocked) {
       console.warn(`[PUBLICATION_GENERATOR] ⛔ Devil's Advocate REJECTED: ${daReport.fatalChallenges.length} fatal flaw(s). Sending to human review.`);
@@ -466,9 +481,14 @@ export async function generatePublication(
         trustScore,
         qualityScore: Math.round(avgSourceQuality),
         citationCoverage,
-        sourceIds: signal.sourceIds,
+        claimCount: publicationGate.metrics.claimCount,
+        factClaimCount: publicationGate.metrics.claimCount,
+        citedClaimCount: publicationGate.metrics.citedClaimCount,
+        sourceIds,
+        status: needsHumanReview ? "DRAFT" : "PUBLISHED",
         criticalLoopResult: {
           ...criticalLoopResult as any,
+          publicationGate,
           debate: debateResult ? {
             dominantThesis: debateResult.dominantThesis,
             confidenceInDominant: debateResult.confidenceInDominant,

@@ -1,10 +1,10 @@
 "use client";
 import React from 'react';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import AuthModal from '@/components/AuthModal';
 import PublicNav from '@/components/PublicNav';
-import { ArrowRight, ChevronDown, BookOpen, Brain, Database, FileText, Target } from 'lucide-react';
+import { ArrowRight, ChevronDown, BookOpen, Brain, Database, FileText, Target, Shield, Zap } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import SiteFooter from '@/components/SiteFooter';
 
@@ -12,7 +12,6 @@ export default function PricingPage() {
   const router = useRouter();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authRedirect, setAuthRedirect] = useState<'studio' | 'free'>('free');
-  const [mounted, setMounted] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   function openStudioAuth() {
@@ -33,8 +32,6 @@ export default function PricingPage() {
       router.push('/dashboard');
     }
   }
-
-  useEffect(() => { setMounted(true); }, []);
 
   const freeFeatures = [
     { icon: BookOpen, text: "All published briefs & strategic reports" },
@@ -105,6 +102,40 @@ export default function PricingPage() {
             <p className="text-lg text-white/45 leading-relaxed max-w-2xl mx-auto">
               Everything the Council publishes is freely accessible — no account required. StudioX is for those who want to commission their own research through the full 16-agent pipeline.
             </p>
+          </div>
+
+          {/* Access protocol */}
+          <div className="mb-20 rounded-[28px] border border-indigo-400/15 bg-[#0b0b12]/80 overflow-hidden relative">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(99,102,241,0.14),transparent_30%),radial-gradient(circle_at_80%_38%,rgba(212,175,55,0.08),transparent_34%)]" />
+            <div className="absolute inset-0 nx-grid-bg opacity-20" />
+            <div className="relative p-7 sm:p-10">
+              <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 mb-8">
+                <div>
+                  <p className="text-xs text-indigo-300/75 font-medium tracking-[0.22em] uppercase mb-4">Access Protocol</p>
+                  <h2 className="font-display text-3xl sm:text-4xl font-bold text-white mb-3">Open reading. Commissioned intelligence.</h2>
+                  <p className="text-sm text-white/40 max-w-2xl leading-relaxed">
+                    The public institution publishes openly. StudioX opens the engine: custom questions, priority pipeline, deeper formats, and exportable evidence.
+                  </p>
+                </div>
+                <div className="text-[10px] text-white/25 font-mono tracking-[0.18em]">PUBLIC_LAYER / STUDIO_LAYER</div>
+              </div>
+              <div className="grid md:grid-cols-3 gap-3">
+                {[
+                  { icon: BookOpen, label: "Read", value: "free forever" },
+                  { icon: Zap, label: "Commission", value: "on demand" },
+                  { icon: Shield, label: "Verify", value: "source-bound" },
+                ].map((item) => {
+                  const AIcon = item.icon;
+                  return (
+                    <div key={item.label} className="rounded-xl border border-white/[0.06] bg-black/20 p-4">
+                      <AIcon size={16} className="text-indigo-300/75 mb-5" />
+                      <div className="text-[10px] text-white/25 uppercase tracking-[0.16em]">{item.label}</div>
+                      <div className="text-sm text-white/75 font-medium mt-1">{item.value}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
 
           {/* TWO COLUMNS */}

@@ -113,8 +113,9 @@ export async function assertRateLimit(key: string, limit: number, windowMs: numb
   if (redisAvailable && redis) {
     try {
       await assertRateLimitRedis(key, limit, windowMs);
-    } catch {
-      // Redis failed — in-memory guard already applied, continue
+    } catch (err) {
+      if (err instanceof RateLimitError) throw err;
+      // Redis failed - in-memory guard already applied, continue
     }
   }
 }

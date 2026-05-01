@@ -22,7 +22,7 @@ const ALLOWED_TAGS = new Set([
 // Attributes allowed globally
 const ALLOWED_ATTRS = new Set([
   'href','target','rel','title','aria-label','role',
-  'class','id','style',
+  'class','id',
   'src','alt','width','height','loading',
   'colspan','rowspan','scope',
   'datetime',
@@ -46,12 +46,88 @@ function escapeHtml(str: string): string {
     .replace(/'/g, '&#x27;');
 }
 
+function isSafeUrl(value: string, attr: string): boolean {
+  const trimmed = value.trim().replace(/[\u0000-\u001F\u007F\s]+/g, '');
+  const lower = trimmed.toLowerCase();
+
+  if (lower.startsWith('javascript:') || lower.startsWith('vbscript:') || lower.startsWith('data:text/html')) {
+    return false;
+  }
+
+  if (attr === 'src' && lower.startsWith('data:')) {
+    return lower.startsWith('data:image/');
+  }
+
+  return (
+    lower.startsWith('http://') ||
+    lower.startsWith('https://') ||
+    lower.startsWith('mailto:') ||
+    lower.startsWith('/') ||
+    lower.startsWith('#') ||
+    !/^[a-z][a-z0-9+.-]*:/i.test(lower)
+  );
+}
+
+/**
+ * Server-side sanitizer used during SSR.
+ *
+ * It is deliberately conservative: remove dangerous elements, strip unknown
+ * tags while preserving text, and rebuild allowed tag attributes from an
+ * allowlist. This keeps public report rendering safe before client hydration.
+ */
+function sanitizeHtmlServer(html: string): string {
+  let output = String(html || '')
+    .replace(/^```html?\s*/i, '')
+    .replace(/\s*```\s*$/i, '')
+    .replace(/<!--[\s\S]*?-->/g, '');
+
+  output = output.replace(
+    /<\s*(script|iframe|object|embed|applet|form|style|link|meta|base|input|textarea|select|button)\b[\s\S]*?<\s*\/\s*\1\s*>/gi,
+    ''
+  );
+  output = output.replace(
+    /<\s*(script|iframe|object|embed|applet|form|style|link|meta|base|input|textarea|select|button)\b[^>]*\/?\s*>/gi,
+    ''
+  );
+
+  return output.replace(/<\/?([a-zA-Z][a-zA-Z0-9-]*)([^>]*)>/g, (match, rawTag: string, rawAttrs: string) => {
+    const closing = /^<\s*\//.test(match);
+    const tag = rawTag.toLowerCase();
+
+    if (!ALLOWED_TAGS.has(tag)) return '';
+    if (closing) return `</${tag}>`;
+
+    const allowedForTag = TAG_ATTR_ALLOWLIST[tag] || ALLOWED_ATTRS;
+    const rebuiltAttrs: string[] = [];
+    const attrRegex = /([:@a-zA-Z_][:\w.-]*)\s*=\s*("([^"]*)"|'([^']*)'|([^\s"'=<>`]+))/g;
+    let attrMatch: RegExpExecArray | null;
+
+    while ((attrMatch = attrRegex.exec(rawAttrs || ''))) {
+      const attrName = attrMatch[1].toLowerCase();
+      const attrValue = attrMatch[3] ?? attrMatch[4] ?? attrMatch[5] ?? '';
+
+      if (attrName.startsWith('on') || attrName === 'style' || !allowedForTag.has(attrName)) continue;
+      if ((attrName === 'href' || attrName === 'src') && !isSafeUrl(attrValue, attrName)) continue;
+
+      rebuiltAttrs.push(`${attrName}="${escapeHtml(attrValue)}"`);
+    }
+
+    if (tag === 'a') {
+      const hasTargetBlank = rebuiltAttrs.some(a => /^target="_blank"$/i.test(a));
+      const hasRel = rebuiltAttrs.some(a => /^rel=/i.test(a));
+      if (hasTargetBlank && !hasRel) rebuiltAttrs.push('rel="noopener noreferrer"');
+    }
+
+    return `<${tag}${rebuiltAttrs.length ? ` ${rebuiltAttrs.join(' ')}` : ''}>`;
+  });
+}
+
 /**
  * Sanitize HTML string by parsing and re-serializing with allowlist.
  * Removes <script>, <iframe>, <object>, <embed>, <form>, event handlers, javascript: URLs.
  */
 export function sanitizeHtml(html: string): string {
-  if (typeof window === 'undefined') return html; // SSR: skip (no DOM)
+  if (typeof window === 'undefined') return sanitizeHtmlServer(html);
 
   // Try native Sanitizer API first (Chrome 105+, Firefox 128+)
   if ('Sanitizer' in window) {

@@ -226,6 +226,77 @@ function HomePageContent() {
             </div>
           </section>
 
+          {/* TRUTH ENGINE - live institutional instrument */}
+          <section className="relative px-6 sm:px-8 py-20">
+            <div className="max-w-6xl mx-auto">
+              <div className="relative overflow-hidden rounded-[28px] border border-indigo-400/15 bg-[#0b0b12]/80 shadow-2xl shadow-indigo-950/30">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(99,102,241,0.16),transparent_34%),radial-gradient(circle_at_78%_38%,rgba(20,184,166,0.10),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.045),transparent)]" />
+                <div className="absolute inset-0 nx-grid-bg opacity-25" />
+                <div className="relative grid lg:grid-cols-[1.05fr_0.95fr] gap-0">
+                  <div className="p-7 sm:p-10 lg:p-12 border-b lg:border-b-0 lg:border-r border-white/[0.06]">
+                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-indigo-500/25 bg-indigo-500/10 mb-7">
+                      <Activity size={12} className="text-indigo-300" />
+                      <span className="text-[11px] text-indigo-200/90 font-semibold tracking-[0.22em] uppercase">Truth Engine Online</span>
+                    </div>
+                    <h2 className="font-display text-3xl sm:text-5xl font-bold text-white leading-tight mb-5">
+                      Watch the institution think.
+                    </h2>
+                    <p className="text-sm sm:text-base text-white/45 leading-relaxed max-w-xl mb-9">
+                      NomosX turns the invisible work of a think tank into an instrument panel: sourcing, adversarial review, citation support, dissent, and publication gating are visible before a claim becomes Nomos.
+                    </p>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      {[
+                        { label: "Signals", value: "live", tone: "text-emerald-300", icon: Activity },
+                        { label: "Dissent", value: "forced", tone: "text-rose-300", icon: AlertTriangle },
+                        { label: "Citations", value: "verified", tone: "text-indigo-300", icon: Shield },
+                        { label: "Memory", value: "persistent", tone: "text-amber-200", icon: Database },
+                      ].map((m, i) => {
+                        const MIcon = m.icon;
+                        return (
+                          <div key={i} className="rounded-xl border border-white/[0.07] bg-white/[0.035] p-4">
+                            <MIcon size={15} className={m.tone} />
+                            <div className="mt-4 text-[10px] text-white/25 uppercase tracking-[0.18em]">{m.label}</div>
+                            <div className={`mt-1 text-sm font-semibold ${m.tone}`}>{m.value}</div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="relative p-7 sm:p-10 lg:p-12">
+                    <div className="absolute top-8 right-8 text-[10px] text-white/20 font-mono tracking-[0.18em]">DOXA_TO_NOMOS</div>
+                    <div className="space-y-3">
+                      {[
+                        { step: "01", name: "Scout", detail: "provider swarm + source reputation", pct: 92, color: "from-indigo-400 to-cyan-300" },
+                        { step: "02", name: "Rank", detail: "semantic relevance + diversity controls", pct: 84, color: "from-cyan-300 to-emerald-300" },
+                        { step: "03", name: "Debate", detail: "steel-man dissent and contradiction map", pct: 78, color: "from-rose-300 to-amber-200" },
+                        { step: "04", name: "Verify", detail: "claim support, citation integrity, limits", pct: 88, color: "from-amber-200 to-indigo-300" },
+                        { step: "05", name: "Publish", detail: "editorial gate, lineage, audit trail", pct: 71, color: "from-violet-300 to-indigo-300" },
+                      ].map((stage) => (
+                        <div key={stage.step} className="group rounded-xl border border-white/[0.07] bg-black/20 p-4 hover:border-indigo-400/25 transition-colors">
+                          <div className="flex items-center justify-between gap-4 mb-3">
+                            <div className="flex items-center gap-3 min-w-0">
+                              <span className="text-[10px] font-mono text-indigo-300/70">{stage.step}</span>
+                              <div className="min-w-0">
+                                <div className="text-sm font-semibold text-white/90">{stage.name}</div>
+                                <div className="text-[11px] text-white/30 truncate">{stage.detail}</div>
+                              </div>
+                            </div>
+                            <span className="text-xs font-mono text-white/35">{stage.pct}%</span>
+                          </div>
+                          <div className="h-1.5 rounded-full bg-white/[0.05] overflow-hidden">
+                            <div className={`h-full rounded-full bg-gradient-to-r ${stage.color}`} style={{ width: `${stage.pct}%` }} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
           {/* DOXA → NOMOS — The transformation */}
           <section className="relative px-6 sm:px-8 py-28">
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_50%,rgba(99,102,241,0.06),transparent_70%)] pointer-events-none" />

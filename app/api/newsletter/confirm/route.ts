@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
   // Rate limit: 10 confirm attempts per hour per IP
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
   try {
-    assertRateLimit(`newsletter:confirm:${ip}`, 10, 60 * 60_000);
+    await assertRateLimit(`newsletter:confirm:${ip}`, 10, 60 * 60_000);
   } catch (err) {
     if (err instanceof RateLimitError) {
       return NextResponse.redirect(new URL('/?newsletter=invalid', req.url));

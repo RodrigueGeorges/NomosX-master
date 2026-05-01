@@ -41,6 +41,9 @@
     "format:check": "prettier --check .",
     "health": "node scripts/health-check.mjs",
     "health:json": "node scripts/health-check.mjs --json",
+    "preflight:live": "node scripts/preflight-live.mjs --prod",
+    "preflight:live:json": "node scripts/preflight-live.mjs --prod --json",
+    "verify:live": "npm run preflight:live && npm run lint && npm run test && npm run build",
     "pre-commit": "npm run lint && npm run test && npm run build",
     "ci": "npm run lint && npm run test:coverage && npm run build"
   },

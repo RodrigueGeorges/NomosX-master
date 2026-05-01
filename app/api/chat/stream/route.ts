@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
 
     // Rate limit: max 20 chat streams per minute per user
     try {
-      assertRateLimit(`chat-stream:user:${session.id}`, 20, 60_000);
+      await assertRateLimit(`chat-stream:user:${session.id}`, 20, 60_000);
     } catch (err) {
       if (err instanceof RateLimitError) {
         return new Response('Rate limit exceeded', {

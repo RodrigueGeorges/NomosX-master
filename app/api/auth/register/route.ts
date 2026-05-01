@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
     // Rate limit: 3 registrations per hour per IP
     const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || 'unknown';
     try {
-      assertRateLimit(`auth:register:${ip}`, 3, 60 * 60_000);
+      await assertRateLimit(`auth:register:${ip}`, 3, 60 * 60_000);
     } catch (err) {
       if (err instanceof RateLimitError) {
         return NextResponse.json(

@@ -13,7 +13,6 @@ import { useRouter } from 'next/navigation';
 import AuthModal from '@/components/AuthModal';
 import PublicNav from '@/components/PublicNav';
 import { Search, Database, BarChart3, FileText, Brain, Shield, ArrowRight, Globe, Zap, CheckCircle, Eye, Scale, Users, Microscope, Flame, Layers, TrendingUp } from 'lucide-react';
-import { NomosXLogo3D } from '@/components/brand/NomosXLogo3D';
 import SiteFooter from '@/components/SiteFooter';
 import { motion } from 'framer-motion';
 import PipelineDemo from '@/components/ui/PipelineDemo';
@@ -278,6 +277,45 @@ export default function MethodologyPage() {
               >
                 Commission research
               </button>
+            </div>
+          </div>
+
+          {/* Protocol core */}
+          <div className="relative mb-24 rounded-[28px] border border-indigo-400/15 bg-[#0b0b12]/80 overflow-hidden">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_12%_20%,rgba(99,102,241,0.16),transparent_32%),radial-gradient(circle_at_86%_46%,rgba(212,175,55,0.08),transparent_34%)]" />
+            <div className="absolute inset-0 nx-grid-bg opacity-20" />
+            <div className="relative p-7 sm:p-10">
+              <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 mb-8">
+                <div>
+                  <p className="text-xs text-indigo-300/75 font-medium tracking-[0.22em] uppercase mb-4">Protocol Core</p>
+                  <h2 className="font-display text-3xl sm:text-4xl font-bold text-white mb-3">The publication gate is a machine.</h2>
+                  <p className="text-sm text-white/40 max-w-2xl leading-relaxed">
+                    Every report moves through a controlled sequence: collect, enrich, rank, read, synthesize, challenge, verify, render, publish. Failure at any gate downgrades, revises, or blocks publication.
+                  </p>
+                </div>
+                <div className="rounded-xl border border-white/[0.07] bg-white/[0.035] px-5 py-4">
+                  <div className="text-[10px] text-white/25 uppercase tracking-[0.18em]">Gate status</div>
+                  <div className="mt-1 text-lg text-emerald-300 font-semibold">fail-closed</div>
+                </div>
+              </div>
+
+              <div className="grid md:grid-cols-4 gap-3">
+                {[
+                  { label: "Corpus", value: "source diversity", icon: Database },
+                  { label: "Claims", value: "span-bound", icon: FileText },
+                  { label: "Dissent", value: "steel-man", icon: Scale },
+                  { label: "Release", value: "thresholded", icon: Shield },
+                ].map((item) => {
+                  const CIcon = item.icon;
+                  return (
+                    <div key={item.label} className="rounded-xl border border-white/[0.06] bg-black/20 p-4">
+                      <CIcon size={16} className="text-indigo-300/75 mb-5" />
+                      <div className="text-[10px] text-white/25 uppercase tracking-[0.16em]">{item.label}</div>
+                      <div className="text-sm text-white/75 font-medium mt-1">{item.value}</div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
 
