@@ -1,24 +1,9 @@
 "use client";
 
 import React, { useRef, useMemo, Suspense } from 'react';
-import { Canvas, useFrame, extend } from '@react-three/fiber';
+import { Canvas, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
-// Register Three.js classes used as JSX elements (required by R3F v9)
-// Use try-catch to prevent "undefined is not a constructor" errors during module load
-try {
-  if (typeof THREE !== 'undefined' && THREE.MeshStandardMaterial) {
-    extend({
-      MeshStandardMaterial: THREE.MeshStandardMaterial,
-      SphereGeometry: THREE.SphereGeometry,
-      BoxGeometry: THREE.BoxGeometry,
-      TorusGeometry: THREE.TorusGeometry,
-      IcosahedronGeometry: THREE.IcosahedronGeometry,
-    });
-  }
-} catch (e) {
-  // Silently fail - THREE may not be fully loaded yet
-}
 
 interface Logo3DProps {
   size?: number;
