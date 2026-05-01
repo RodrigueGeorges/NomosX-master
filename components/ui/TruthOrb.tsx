@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useMemo, useState, useEffect } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
+import { Canvas, useFrame, type RootState } from '@react-three/fiber';
 import { Float } from '@react-three/drei';
 import {
   Points,
@@ -108,7 +108,7 @@ function MorphParticles({
     };
   }, [positions]);
 
-  useFrame(({ clock }) => {
+  useFrame(({ clock }: RootState) => {
     if (!ref.current) return;
     const posAttr = ref.current.geometry.attributes.position;
     if (!posAttr) return;
@@ -202,7 +202,7 @@ function AccentParticles({ count, color, orderFactor }: { count: number; color: 
     };
   }, [positions]);
 
-  useFrame(({ clock }) => {
+  useFrame(({ clock }: RootState) => {
     if (!ref.current) return;
     const posAttr = ref.current.geometry.attributes.position;
     if (!posAttr) return;
@@ -264,7 +264,7 @@ function LawCage({ color, orderFactor }: { color: string; orderFactor: number })
     };
   }, []);
 
-  useFrame(({ clock }) => {
+  useFrame(({ clock }: RootState) => {
     if (!ref.current) return;
     const t = clock.elapsedTime;
     ref.current.rotation.x = t * 0.11;
@@ -305,7 +305,7 @@ function XGlyph({ orderFactor }: { orderFactor: number }) {
     };
   }, []);
 
-  useFrame(({ clock }) => {
+  useFrame(({ clock }: RootState) => {
     if (!groupRef.current) return;
     groupRef.current.rotation.z = clock.elapsedTime * 0.05;
     // Scale pulses subtly
@@ -336,7 +336,7 @@ function TruthOrbScene({ color, accentColor }: { color: string; accentColor: str
   // Oscillate between doxa and nomos over time — use ref to avoid re-renders
   const orderFactorRef = useRef(0);
 
-  useFrame(({ clock }) => {
+  useFrame(({ clock }: RootState) => {
     // Smooth oscillation: 0→1→0 over ~8 seconds, biased toward nomos (stays ordered longer)
     const t = clock.elapsedTime;
     const cycle = (Math.sin(t * 0.4 - Math.PI / 2) + 1) / 2; // 0→1→0

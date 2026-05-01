@@ -69,16 +69,13 @@ export default function PublicNav({ currentPage, onSignInClick, isAuthenticated 
           onClick={() => router.push("/")}
         >
           <div className="relative">
-            <NomosXLogo3D size={48} />
+            <NomosXLogo3D size={52} />
             <div className="absolute inset-0 rounded-full blur-md bg-indigo-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
           </div>
-          <div className="flex flex-col items-start leading-none">
-            <span className="font-display font-black text-[22px] tracking-tight">
-              <span className="text-white/95 group-hover:text-white transition-colors">Nomos</span>
-              <span className="bg-gradient-to-r from-indigo-400 via-violet-400 to-fuchsia-400 bg-clip-text text-transparent">X</span>
-            </span>
-            <span className="text-[9px] tracking-[0.25em] uppercase text-white/30 font-medium mt-0.5">Autonomous Think Tank</span>
-          </div>
+          <span className="font-display font-black text-[24px] tracking-tight drop-shadow-[0_0_12px_rgba(139,92,246,0.35)]">
+            <span className="text-white group-hover:text-white transition-colors">Nomos</span>
+            <span className="bg-gradient-to-r from-indigo-400 via-violet-400 to-fuchsia-400 bg-clip-text text-transparent">X</span>
+          </span>
         </div>
         
         {/* Nav Links — Desktop */}

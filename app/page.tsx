@@ -16,6 +16,7 @@ import { GreekProtocolStrip, OracleSeal } from '@/components/brand/GreekProtocol
 const TruthOrb = dynamic(() => import('@/components/ui/TruthOrb'), { ssr: false, loading: () => null });
 const HoloOrb = dynamic(() => import('@/components/ui/HoloOrb'), { ssr: false, loading: () => null });
 const HoloPortrait = dynamic(() => import('@/components/ui/HoloPortrait'), { ssr: false, loading: () => null });
+const NomosXLogo3D = dynamic(() => import('@/components/brand/NomosXLogo3D').then(m => m.NomosXLogo3D), { ssr: false, loading: () => null });
 
 const DOMAIN_ICONS: Record<string, React.ComponentType<{ size?: number | string; strokeWidth?: number | string; style?: React.CSSProperties }>> = {
   'Economics':      TrendingUp,
@@ -186,34 +187,9 @@ function HomePageContent() {
           <section className="relative px-6 sm:px-8 pt-28 sm:pt-40 pb-24">
             <div className="max-w-5xl mx-auto text-center">
 
-              {/* Brand mark — prominent logo + wordmark */}
-              <div className={`flex flex-col items-center mb-8 transition-all duration-700 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
-                <div className="relative mb-3">
-                  <svg width="72" height="72" viewBox="0 0 28 28" fill="none" aria-hidden="true">
-                    <defs>
-                      <filter id="heroGlow" x="-50%" y="-50%" width="200%" height="200%">
-                        <feGaussianBlur stdDeviation="2" result="blur" />
-                        <feMerge>
-                          <feMergeNode in="blur" />
-                          <feMergeNode in="SourceGraphic" />
-                        </feMerge>
-                      </filter>
-                    </defs>
-                    <circle cx="14" cy="14" r="12.5" fill="#09090b" stroke="white" strokeWidth="1.2" strokeOpacity="0.9" />
-                    <circle cx="14" cy="14" r="9.5" stroke="#818CF8" strokeWidth="1.1" strokeOpacity="0.95" filter="url(#heroGlow)" />
-                    <ellipse cx="14" cy="14" rx="12" ry="4.2" stroke="#A5B4FC" strokeWidth="0.9" strokeOpacity="0.85" transform="rotate(-24 14 14)" />
-                    <ellipse cx="14" cy="14" rx="12" ry="4.2" stroke="#7C3AED" strokeWidth="0.9" strokeOpacity="0.85" transform="rotate(28 14 14)" />
-                    <line x1="8.5" y1="8.5" x2="19.5" y2="19.5" stroke="#A5B4FC" strokeWidth="2.5" strokeLinecap="round" />
-                    <line x1="19.5" y1="8.5" x2="8.5" y2="19.5" stroke="#8B5CF6" strokeWidth="2.5" strokeLinecap="round" />
-                    <circle cx="14" cy="14" r="2.7" fill="#F5D778" filter="url(#heroGlow)" />
-                    <circle cx="14" cy="14" r="1" fill="#09090b" />
-                  </svg>
-                </div>
-                <div className="font-display text-3xl sm:text-4xl font-bold tracking-tight">
-                  <span className="text-white/90">Nomos</span>
-                  <span className="bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent">X</span>
-                </div>
-                <div className="text-[11px] tracking-[0.25em] uppercase text-white/30 mt-1.5">Autonomous Think Tank</div>
+              {/* NomosX Logo */}
+              <div className={`flex justify-center mb-8 transition-all duration-700 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+                <NomosXLogo3D size={140} />
               </div>
 
               {/* TruthOrb — chaos resolving into order */}
