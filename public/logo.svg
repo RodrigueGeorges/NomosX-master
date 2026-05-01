@@ -18,7 +18,13 @@
 
   <g>
     <circle cx="28" cy="28" r="24" fill="#09090B" stroke="white" stroke-opacity="0.12"/>
+    <path d="M28 5L32 12H24L28 5Z" fill="#F5D778" opacity="0.55"/>
+    <path d="M28 51L24 44H32L28 51Z" fill="#F5D778" opacity="0.42"/>
+    <path d="M5 28L12 24V32L5 28Z" fill="#A5B4FC" opacity="0.28"/>
+    <path d="M51 28L44 32V24L51 28Z" fill="#A5B4FC" opacity="0.28"/>
     <circle cx="28" cy="28" r="19" stroke="url(#nx-grad)" stroke-opacity="0.55"/>
+    <path d="M28 9A19 19 0 0 1 47 28" stroke="#F5D778" stroke-opacity="0.38" stroke-linecap="round"/>
+    <path d="M28 47A19 19 0 0 1 9 28" stroke="#F5D778" stroke-opacity="0.28" stroke-linecap="round"/>
     <ellipse cx="28" cy="28" rx="23" ry="8" stroke="#A5B4FC" stroke-opacity="0.24" transform="rotate(-24 28 28)"/>
     <ellipse cx="28" cy="28" rx="23" ry="8" stroke="#7C3AED" stroke-opacity="0.26" transform="rotate(28 28 28)"/>
     <g filter="url(#nx-glow)">

@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/Textarea';
 import PublicNav from '@/components/PublicNav';
 import SiteFooter from '@/components/SiteFooter';
 import AuthModal from '@/components/AuthModal';
+import { GreekProtocolStrip } from '@/components/brand/GreekProtocol';
 
 /**
  * StudioX — NomosX Research Studio
@@ -190,6 +191,8 @@ function StudioPageContent() {
               </div>
             </div>
           </div>
+
+          <GreekProtocolStrip compact className="mb-8" />
 
         {/* Mandate Builder */}
         <div className="grid lg:grid-cols-[220px_minmax(0,1fr)_220px] gap-4 mb-8">

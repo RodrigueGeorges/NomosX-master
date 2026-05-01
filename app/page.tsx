@@ -11,6 +11,7 @@ import { ThreeComponentWrapper } from '@/components/ThreeComponentWrapper';
 import SiteFooter from '@/components/SiteFooter';
 import { AnimatePresence, motion } from 'framer-motion';
 import PipelineDemo from '@/components/ui/PipelineDemo';
+import { GreekProtocolStrip, OracleSeal } from '@/components/brand/GreekProtocol';
 
 const TruthOrb = dynamic(() => import('@/components/ui/TruthOrb'), { ssr: false, loading: () => null });
 const HoloOrb = dynamic(() => import('@/components/ui/HoloOrb'), { ssr: false, loading: () => null });
@@ -186,8 +187,13 @@ function HomePageContent() {
             <div className="max-w-5xl mx-auto text-center">
 
               {/* TruthOrb — chaos resolving into order */}
-              <div className={`flex justify-center mb-12 transition-opacity duration-700 ${mounted ? 'opacity-100' : 'opacity-0'}`}>
-                <TruthOrb size={280} color="#6366F1" accentColor="#a5b4fc" />
+              <div className={`relative flex justify-center mb-12 transition-opacity duration-700 ${mounted ? 'opacity-100' : 'opacity-0'}`}>
+                <div className="absolute top-1/2 -translate-y-1/2">
+                  <OracleSeal className="opacity-80" />
+                </div>
+                <div className="relative">
+                  <TruthOrb size={280} color="#6366F1" accentColor="#a5b4fc" />
+                </div>
               </div>
 
               <h1 className={`font-display text-5xl sm:text-6xl md:text-[5.5rem] lg:text-[6.5rem] font-bold leading-[1.05] tracking-tight mb-8 transition-all duration-700 delay-100 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'}`}>
@@ -201,6 +207,10 @@ function HomePageContent() {
               <p className={`text-sm text-white/25 max-w-md mx-auto mb-14 leading-loose tracking-wide transition-all duration-700 delay-250 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'}`}>
                 250M+ sources · 16-stage verification · zero editorial opinion · free to read
               </p>
+
+              <div className={`mb-12 transition-all duration-700 delay-300 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'}`}>
+                <GreekProtocolStrip compact className="text-left" />
+              </div>
 
               <div className={`flex flex-col sm:flex-row gap-4 justify-center mb-20 transition-all duration-700 delay-300 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'}`}>
                 <button onClick={() => setShowAuthModal(true)} className="group px-8 py-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm tracking-wide transition-all duration-300 shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40 hover:scale-[1.02] flex items-center justify-center gap-2">

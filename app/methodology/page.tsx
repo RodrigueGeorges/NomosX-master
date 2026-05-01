@@ -16,6 +16,7 @@ import { Search, Database, BarChart3, FileText, Brain, Shield, ArrowRight, Globe
 import SiteFooter from '@/components/SiteFooter';
 import { motion } from 'framer-motion';
 import PipelineDemo from '@/components/ui/PipelineDemo';
+import { GreekProtocolStrip } from '@/components/brand/GreekProtocol';
 
 export default function MethodologyPage() {
   const router = useRouter();
@@ -279,6 +280,9 @@ export default function MethodologyPage() {
               </button>
             </div>
           </div>
+
+          {/* Protocol core */}
+          <GreekProtocolStrip className="mb-8" />
 
           {/* Protocol core */}
           <div className="relative mb-24 rounded-[28px] border border-indigo-400/15 bg-[#0b0b12]/80 overflow-hidden">

@@ -17,7 +17,13 @@
   </defs>
 
   <rect width="120" height="120" rx="24" fill="#09090B"/>
+  <path d="M60 8L69 25H51L60 8Z" fill="#F5D778" opacity="0.58"/>
+  <path d="M60 112L51 95H69L60 112Z" fill="#F5D778" opacity="0.42"/>
+  <path d="M8 60L25 51V69L8 60Z" fill="#A5B4FC" opacity="0.28"/>
+  <path d="M112 60L95 69V51L112 60Z" fill="#A5B4FC" opacity="0.28"/>
   <circle cx="60" cy="60" r="45" stroke="url(#nx-favicon-grad)" stroke-opacity="0.42" stroke-width="2"/>
+  <path d="M60 15A45 45 0 0 1 105 60" stroke="#F5D778" stroke-opacity="0.36" stroke-width="1.6" stroke-linecap="round"/>
+  <path d="M60 105A45 45 0 0 1 15 60" stroke="#F5D778" stroke-opacity="0.26" stroke-width="1.6" stroke-linecap="round"/>
   <ellipse cx="60" cy="60" rx="52" ry="18" stroke="#A5B4FC" stroke-opacity="0.20" stroke-width="2" transform="rotate(-24 60 60)"/>
   <ellipse cx="60" cy="60" rx="52" ry="18" stroke="#7C3AED" stroke-opacity="0.22" stroke-width="2" transform="rotate(28 60 60)"/>
 

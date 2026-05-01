@@ -6,6 +6,7 @@ import PublicNav from '@/components/PublicNav';
 import SiteFooter from '@/components/SiteFooter';
 import { Search, ArrowRight, Clock, BookOpen, Shield, Activity, Database, Scale } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { GreekProtocolStrip } from '@/components/brand/GreekProtocol';
 
 interface ArticleSummary {
   id: string;
@@ -153,6 +154,7 @@ export default function ArticlesPage() {
 
         {/* Protocol strip */}
         <div className="relative z-10 max-w-5xl mx-auto px-6 sm:px-8 pt-8">
+          <GreekProtocolStrip compact className="mb-4" />
           <div className="mb-4 rounded-2xl border border-white/[0.07] bg-white/[0.02] p-5 overflow-hidden relative">
             <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-indigo-400/45 via-amber-200/25 to-transparent" />
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">

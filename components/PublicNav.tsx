@@ -43,11 +43,11 @@ export default function PublicNav({ currentPage, onSignInClick, isAuthenticated 
 
   const navLinks: { label: string; page: PublicNavProps["currentPage"]; href: string }[] = [
     { label: "Home", page: "home", href: "/" },
-    { label: "Publications", page: "articles", href: "/articles" },
+    { label: "Codex", page: "articles", href: "/articles" },
     { label: "About", page: "about", href: "/about" },
-    { label: "Methodology", page: "methodology", href: "/methodology" },
+    { label: "Protocol", page: "methodology", href: "/methodology" },
     { label: "Access", page: "pricing", href: "/pricing" },
-    { label: "StudioX", page: "studio", href: "/studio" },
+    { label: "Oracle", page: "studio", href: "/studio" },
   ];
 
   return (
@@ -90,14 +90,14 @@ export default function PublicNav({ currentPage, onSignInClick, isAuthenticated 
               onClick={() => router.push("/articles")}
               className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-[13px] font-medium transition-all duration-200 shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40"
             >
-              Browse Publications
+            Browse Codex
             </button>
           ) : (
             <button
               onClick={onSignInClick}
               className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-[13px] font-medium transition-all duration-200 shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40"
             >
-              Start Free
+              Enter
             </button>
           )}
 

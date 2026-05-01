@@ -301,6 +301,63 @@ body {
   transform: translateY(-2px);
 }
 
+/* === Oracle / Codex Layer === */
+.nx-oracle-panel {
+  position: relative;
+  border-radius: 28px;
+  border: 1px solid rgba(212, 175, 55, 0.14);
+  background:
+    radial-gradient(circle at 14% 18%, rgba(212, 175, 55, 0.10), transparent 34%),
+    radial-gradient(circle at 84% 48%, rgba(99, 102, 241, 0.15), transparent 36%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.018));
+  box-shadow: 0 24px 90px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.nx-oracle-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.20), transparent) top/100% 1px no-repeat,
+    linear-gradient(180deg, rgba(255,255,255,0.035), transparent 38%);
+}
+
+.nx-codex-cell {
+  position: relative;
+  min-height: 138px;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.065);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.035), rgba(0,0,0,0.18)),
+    repeating-linear-gradient(135deg, rgba(212,175,55,0.035) 0 1px, transparent 1px 16px);
+  padding: 16px;
+  overflow: hidden;
+}
+
+.nx-codex-cell::after {
+  content: "";
+  position: absolute;
+  inset: auto 14px 10px 14px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(212,175,55,0.22), transparent);
+}
+
+.nx-glyph-label {
+  color: rgba(245, 215, 120, 0.68);
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.nx-marble {
+  background:
+    radial-gradient(circle at 18% 20%, rgba(255,255,255,0.035), transparent 25%),
+    radial-gradient(circle at 72% 56%, rgba(212,175,55,0.045), transparent 28%),
+    linear-gradient(135deg, rgba(255,255,255,0.035), rgba(255,255,255,0.012));
+}
+
 /* === Glow Effects === */
 .nx-glow {
   box-shadow: 0 0 40px var(--color-glow), 0 0 80px rgba(99, 102, 241, 0.05);

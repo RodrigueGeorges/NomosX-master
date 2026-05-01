@@ -4,6 +4,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, ArrowRight, Calendar, Clock, Users, Share2, Download, FileText, BookOpen, Tag, Shield, Activity, Database, Scale, AlertTriangle } from 'lucide-react';
 import { sanitizeHtml } from '@/lib/sanitize';
 import AuthModal from '@/components/AuthModal';
+import { GreekProtocolStrip } from '@/components/brand/GreekProtocol';
 
 type ArticleType = 'RESEARCH_BRIEF' | 'UPDATE_NOTE' | 'DATA_NOTE' | 'POLICY_NOTE' | 'DOSSIER'
   | 'EXECUTIVE_BRIEF' | 'STRATEGIC_REPORT' | 'SUMMARY_BRIEF';
@@ -313,6 +314,8 @@ export default function ArticlePage() {
                   })}
                 </div>
               </div>
+
+              <GreekProtocolStrip compact className="mb-8" />
 
               {/* Topics */}
               {article.topics.length > 0 && (

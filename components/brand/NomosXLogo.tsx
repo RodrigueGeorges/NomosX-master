@@ -58,7 +58,13 @@ function NomosSymbol({ px, className }: { px: number; className?: string }) {
       </defs>
 
       <circle cx="60" cy="60" r="52" fill="#09090B" stroke="white" strokeOpacity="0.10" strokeWidth="1.2" />
+      <path d="M60 9 L68 24 H52 L60 9Z" fill="#F5D778" opacity="0.55" />
+      <path d="M60 111 L52 96 H68 L60 111Z" fill="#F5D778" opacity="0.42" />
+      <path d="M9 60 L24 52 V68 L9 60Z" fill="#A5B4FC" opacity="0.28" />
+      <path d="M111 60 L96 68 V52 L111 60Z" fill="#A5B4FC" opacity="0.28" />
       <circle cx="60" cy="60" r="42" stroke={`url(#${gradId})`} strokeWidth="1.3" strokeOpacity="0.50" />
+      <path d="M60 18 A42 42 0 0 1 102 60" stroke="#F5D778" strokeWidth="1" strokeOpacity="0.38" strokeLinecap="round" />
+      <path d="M60 102 A42 42 0 0 1 18 60" stroke="#F5D778" strokeWidth="1" strokeOpacity="0.28" strokeLinecap="round" />
       <ellipse cx="60" cy="60" rx="50" ry="18" stroke="#A5B4FC" strokeWidth="1.1" strokeOpacity="0.24" transform="rotate(-24 60 60)" />
       <ellipse cx="60" cy="60" rx="49" ry="17" stroke="#7C3AED" strokeWidth="1.1" strokeOpacity="0.26" transform="rotate(28 60 60)" />
 
