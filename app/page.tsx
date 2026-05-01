@@ -12,8 +12,8 @@ import SiteFooter from '@/components/SiteFooter';
 import { AnimatePresence, motion } from 'framer-motion';
 import PipelineDemo from '@/components/ui/PipelineDemo';
 import { GreekProtocolStrip, OracleSeal } from '@/components/brand/GreekProtocol';
+import { NomosXLogo } from '@/components/brand/NomosXLogo';
 
-const TruthOrb = dynamic(() => import('@/components/ui/TruthOrb'), { ssr: false, loading: () => null });
 const HoloOrb = dynamic(() => import('@/components/ui/HoloOrb'), { ssr: false, loading: () => null });
 const HoloPortrait = dynamic(() => import('@/components/ui/HoloPortrait'), { ssr: false, loading: () => null });
 const NomosXLogo3D = dynamic(() => import('@/components/brand/NomosXLogo3D').then(m => m.NomosXLogo3D), { ssr: false, loading: () => null });
@@ -187,19 +187,25 @@ function HomePageContent() {
           <section className="relative px-6 sm:px-8 pt-28 sm:pt-40 pb-24">
             <div className="max-w-5xl mx-auto text-center">
 
-              {/* NomosX Logo */}
-              <div className={`flex justify-center mb-8 transition-all duration-700 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
-                <NomosXLogo3D size={140} />
-              </div>
-
-              {/* TruthOrb — chaos resolving into order */}
-              <div className={`relative flex justify-center mb-12 transition-opacity duration-700 ${mounted ? 'opacity-100' : 'opacity-0'}`}>
-                <div className="absolute top-1/2 -translate-y-1/2">
-                  <OracleSeal className="opacity-80" />
-                </div>
-                <div className="relative">
-                  <TruthOrb size={280} color="#6366F1" accentColor="#a5b4fc" />
-                </div>
+              {/* Official NomosX Logo — large & dynamic */}
+              <div className={`flex justify-center mb-10 transition-all duration-700 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+                <motion.div
+                  animate={{
+                    scale: [1, 1.04, 1],
+                    opacity: [0.9, 1, 0.9],
+                  }}
+                  transition={{
+                    duration: 4,
+                    repeat: Infinity,
+                    ease: 'easeInOut',
+                  }}
+                  className="relative"
+                >
+                  {/* Animated glow ring behind */}
+                  <div className="absolute inset-[-20%] rounded-full blur-3xl bg-indigo-500/15 animate-pulse" />
+                  <div className="absolute inset-[-10%] rounded-full blur-xl bg-violet-400/10 animate-pulse" style={{ animationDelay: '1s' }} />
+                  <NomosXLogo size="4xl" variant="symbol" />
+                </motion.div>
               </div>
 
               <h1 className={`font-display text-5xl sm:text-6xl md:text-[5.5rem] lg:text-[6.5rem] font-bold leading-[1.05] tracking-tight mb-8 transition-all duration-700 delay-100 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'}`}>

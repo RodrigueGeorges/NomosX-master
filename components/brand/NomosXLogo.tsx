@@ -4,14 +4,14 @@ import { useId } from 'react';
 import { cn } from '@/lib/utils';
 
 interface LogoProps {
-  size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl';
+  size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' | '5xl';
   variant?: 'full' | 'symbol' | 'wordmark';
   className?: string;
 }
 
-const symbolSizes = { sm: 28, md: 36, lg: 44, xl: 60, '2xl': 80 };
-const textSizes = { sm: 'text-[15px]', md: 'text-[18px]', lg: 'text-[22px]', xl: 'text-[30px]', '2xl': 'text-[42px]' };
-const gapSizes = { sm: 'gap-2', md: 'gap-2.5', lg: 'gap-3', xl: 'gap-4', '2xl': 'gap-5' };
+const symbolSizes = { sm: 28, md: 36, lg: 44, xl: 60, '2xl': 80, '3xl': 120, '4xl': 160, '5xl': 220 };
+const textSizes = { sm: 'text-[15px]', md: 'text-[18px]', lg: 'text-[22px]', xl: 'text-[30px]', '2xl': 'text-[42px]', '3xl': 'text-[56px]', '4xl': 'text-[72px]', '5xl': 'text-[96px]' };
+const gapSizes = { sm: 'gap-2', md: 'gap-2.5', lg: 'gap-3', xl: 'gap-4', '2xl': 'gap-5', '3xl': 'gap-6', '4xl': 'gap-8', '5xl': 'gap-10' };
 
 function NomosSymbol({ px, className }: { px: number; className?: string }) {
   const id = useId().replace(/:/g, '');
