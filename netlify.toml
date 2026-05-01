@@ -4,10 +4,10 @@
   functions = "netlify/functions"
 
 [build.environment]
-  # Node.js 20.x LTS - REQUIRED for Next.js 16 compatibility
+  # Node.js 22.x LTS - aligns with React Three Fiber camera-controls dependency
   # Node.js 24+ causes "exports is not defined in ES module scope"
   # due to ESM/CJS detection changes in console-dim.external.js
-  NODE_VERSION = "20.19.0"
+  NODE_VERSION = "22.12.0"
   NPM_VERSION = "10"
   # Fix Sharp installation issues
   SHARP_IGNORE_GLOBALVIPS = "1"

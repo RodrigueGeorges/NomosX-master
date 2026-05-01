@@ -203,8 +203,8 @@ export async function POST(req: NextRequest) {
                       confidence: proposal.confidence,
                       stats: result.stats as any,
                       signOff: { researcher: signOff.researcherName, decision: signOff.decision, confidence: signOff.confidence, comments: signOff.comments },
-                      publicationGate,
-                    },
+                      publicationGate: publicationGate as any,
+                    } as any,
                   },
                 });
 

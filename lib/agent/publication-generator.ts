@@ -488,7 +488,7 @@ export async function generatePublication(
         status: needsHumanReview ? "DRAFT" : "PUBLISHED",
         criticalLoopResult: {
           ...criticalLoopResult as any,
-          publicationGate,
+          publicationGate: publicationGate as any,
           debate: debateResult ? {
             dominantThesis: debateResult.dominantThesis,
             confidenceInDominant: debateResult.confidenceInDominant,
@@ -504,7 +504,7 @@ export async function generatePublication(
             vsInstitutions: daReport.vsInstitutionBenchmark?.overall,
           } : null,
           lineage,
-        },
+        } as any,
         publishedAt: needsHumanReview ? null : new Date()
       }
     });
