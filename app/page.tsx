@@ -187,30 +187,25 @@ function HomePageContent() {
           <section className="relative px-6 sm:px-8 pt-28 sm:pt-40 pb-24">
             <div className="max-w-5xl mx-auto text-center">
 
-              {/* Official NomosX Logo 3D — large, dynamic, rotating */}
-              <div className={`flex justify-center mb-6 transition-all duration-700 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+              {/* Official NomosX Logo — large, dynamic, gold core */}
+              <div className={`flex justify-center mb-8 transition-all duration-700 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
                 <motion.div
                   animate={{
-                    scale: [1, 1.03, 1],
-                    opacity: [0.92, 1, 0.92],
+                    scale: [1, 1.04, 1],
+                    opacity: [0.9, 1, 0.9],
                   }}
                   transition={{
-                    duration: 5,
+                    duration: 4,
                     repeat: Infinity,
                     ease: 'easeInOut',
                   }}
                   className="relative"
                 >
-                  {/* Animated glow ring behind */}
-                  <div className="absolute inset-[-15%] rounded-full blur-3xl bg-indigo-500/20 animate-pulse" />
-                  <div className="absolute inset-[-8%] rounded-full blur-2xl bg-violet-400/15 animate-pulse" style={{ animationDelay: '1.2s' }} />
-                  <NomosXLogo3D size={260} />
+                  {/* Gold glow behind the logo */}
+                  <div className="absolute inset-[-25%] rounded-full blur-3xl bg-amber-400/20 animate-pulse" />
+                  <div className="absolute inset-[-15%] rounded-full blur-2xl bg-indigo-500/15 animate-pulse" style={{ animationDelay: '1.5s' }} />
+                  <NomosXLogo size="5xl" variant="symbol" />
                 </motion.div>
-              </div>
-
-              {/* Wordmark below */}
-              <div className={`flex justify-center mb-10 transition-all duration-700 delay-75 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
-                <NomosXLogo size="xl" variant="wordmark" />
               </div>
 
               <h1 className={`font-display text-5xl sm:text-6xl md:text-[5.5rem] lg:text-[6.5rem] font-bold leading-[1.05] tracking-tight mb-8 transition-all duration-700 delay-100 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'}`}>
