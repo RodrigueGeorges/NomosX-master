@@ -129,8 +129,8 @@ function validateEnv(): Env {
         );
       }
       if (!parsed.REDIS_URL && !(parsed.UPSTASH_REDIS_REST_URL && parsed.UPSTASH_REDIS_REST_TOKEN)) {
-        throw new Error(
-          "Missing Redis configuration. In production set REDIS_URL or UPSTASH_REDIS_REST_URL + UPSTASH_REDIS_REST_TOKEN for distributed rate limiting."
+        console.warn(
+          "⚠️ No Redis configured. Using in-memory caching (rate limiting will be per-instance only). In production set REDIS_URL or UPSTASH_REDIS_REST_URL + UPSTASH_REDIS_REST_TOKEN for distributed rate limiting."
         );
       }
       if (!parsed.NEXT_PUBLIC_APP_URL || parsed.NEXT_PUBLIC_APP_URL.includes("localhost")) {
