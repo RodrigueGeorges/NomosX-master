@@ -6,13 +6,16 @@ import { Float } from '@react-three/drei';
 import * as THREE from 'three';
 
 // Register Three.js classes used as JSX elements (required by R3F v9)
-extend({
-  PointsMaterial: THREE.PointsMaterial,
-  MeshBasicMaterial: THREE.MeshBasicMaterial,
-  IcosahedronGeometry: THREE.IcosahedronGeometry,
-  TorusGeometry: THREE.TorusGeometry,
-  BufferGeometry: THREE.BufferGeometry,
-});
+// Use defensive check to prevent "undefined is not a constructor" errors
+if (typeof THREE !== 'undefined' && THREE.PointsMaterial) {
+  extend({
+    PointsMaterial: THREE.PointsMaterial,
+    MeshBasicMaterial: THREE.MeshBasicMaterial,
+    IcosahedronGeometry: THREE.IcosahedronGeometry,
+    TorusGeometry: THREE.TorusGeometry,
+    BufferGeometry: THREE.BufferGeometry,
+  });
+}
 
 interface OrbSceneProps {
   hexColor: string;

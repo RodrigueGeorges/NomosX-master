@@ -5,13 +5,16 @@ import { Canvas, useFrame, extend } from '@react-three/fiber';
 import * as THREE from 'three';
 
 // Register Three.js classes used as JSX elements (required by R3F v9)
-extend({
-  MeshStandardMaterial: THREE.MeshStandardMaterial,
-  SphereGeometry: THREE.SphereGeometry,
-  BoxGeometry: THREE.BoxGeometry,
-  TorusGeometry: THREE.TorusGeometry,
-  IcosahedronGeometry: THREE.IcosahedronGeometry,
-});
+// Use defensive check to prevent "undefined is not a constructor" errors
+if (typeof THREE !== 'undefined' && THREE.MeshStandardMaterial) {
+  extend({
+    MeshStandardMaterial: THREE.MeshStandardMaterial,
+    SphereGeometry: THREE.SphereGeometry,
+    BoxGeometry: THREE.BoxGeometry,
+    TorusGeometry: THREE.TorusGeometry,
+    IcosahedronGeometry: THREE.IcosahedronGeometry,
+  });
+}
 
 interface Logo3DProps {
   size?: number;
