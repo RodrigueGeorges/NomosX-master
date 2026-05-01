@@ -40,7 +40,7 @@ function InstitutionalMark() {
 
   // Sphere: near-white, cold, high metalness — like brushed platinum
   const sphereMat = useMemo(() => {
-    if (typeof MeshStandardMaterial === 'undefined') return null;
+    if (typeof MeshStandardMaterial === 'undefined') return undefined;
     return new MeshStandardMaterial({
       color: '#e8eaf0',
       metalness: 0.72,
@@ -52,7 +52,7 @@ function InstitutionalMark() {
 
   // X bars: pure white, slightly matte — clean authority
   const xMat = useMemo(() => {
-    if (typeof MeshStandardMaterial === 'undefined') return null;
+    if (typeof MeshStandardMaterial === 'undefined') return undefined;
     return new MeshStandardMaterial({
       color: '#ffffff',
       metalness: 0.4,
@@ -64,7 +64,7 @@ function InstitutionalMark() {
 
   // Orbital ring: very thin, white semi-transparent
   const ringMat = useMemo(() => {
-    if (typeof MeshStandardMaterial === 'undefined') return null;
+    if (typeof MeshStandardMaterial === 'undefined') return undefined;
     return new MeshStandardMaterial({
       color: '#a5b4fc',
       metalness: 0.0,
@@ -75,7 +75,7 @@ function InstitutionalMark() {
   }, []);
 
   const violetRingMat = useMemo(() => {
-    if (typeof MeshStandardMaterial === 'undefined') return null;
+    if (typeof MeshStandardMaterial === 'undefined') return undefined;
     return new MeshStandardMaterial({
       color: '#8b5cf6',
       metalness: 0.0,
@@ -86,7 +86,7 @@ function InstitutionalMark() {
   }, []);
 
   const coreMat = useMemo(() => {
-    if (typeof MeshStandardMaterial === 'undefined') return null;
+    if (typeof MeshStandardMaterial === 'undefined') return undefined;
     return new MeshStandardMaterial({
       color: '#f5d778',
       metalness: 0.62,
