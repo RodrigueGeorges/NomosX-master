@@ -2,7 +2,12 @@
 
 import { useRef, useMemo, useEffect } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import * as THREE from 'three';
+import {
+  Mesh,
+  Points,
+  BufferGeometry,
+  BufferAttribute,
+} from 'three';
 
 
 interface PortraitSceneProps {
@@ -10,11 +15,11 @@ interface PortraitSceneProps {
 }
 
 function PortraitScene({ hexColor }: PortraitSceneProps) {
-  const ring1Ref = useRef<THREE.Mesh>(null);
-  const ring2Ref = useRef<THREE.Mesh>(null);
-  const ring3Ref = useRef<THREE.Mesh>(null);
-  const pointsRef = useRef<THREE.Points>(null);
-  const geomRef = useRef<THREE.BufferGeometry>(null);
+  const ring1Ref = useRef<Mesh>(null);
+  const ring2Ref = useRef<Mesh>(null);
+  const ring3Ref = useRef<Mesh>(null);
+  const pointsRef = useRef<Points>(null);
+  const geomRef = useRef<BufferGeometry>(null);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -22,8 +27,8 @@ function PortraitScene({ hexColor }: PortraitSceneProps) {
       [ring1Ref, ring2Ref, ring3Ref, pointsRef].forEach(meshRef => {
         if (meshRef.current) {
           meshRef.current.geometry.dispose();
-          if (meshRef.current.material instanceof THREE.Material) {
-            meshRef.current.material.dispose();
+          if (meshRef.current.material && 'dispose' in meshRef.current.material) {
+            (meshRef.current.material as any).dispose();
           }
         }
       });
@@ -50,7 +55,7 @@ function PortraitScene({ hexColor }: PortraitSceneProps) {
 
   useEffect(() => {
     if (geomRef.current && particles.length > 0) {
-      geomRef.current.setAttribute('position', new THREE.BufferAttribute(particles, 3));
+      geomRef.current.setAttribute('position', new BufferAttribute(particles, 3));
     }
   }, [particles]);
 
@@ -111,7 +116,10 @@ interface HoloPortraitProps {
 
 export default function HoloPortrait({ hexColor, initials, imageUrl, size = 180 }: HoloPortraitProps) {
   // Check if THREE is available (prevents constructor errors during loading)
-  if (typeof THREE === 'undefined' || typeof Float32Array === 'undefined') {
+  if (
+    typeof Float32Array === 'undefined' ||
+    typeof BufferAttribute === 'undefined'
+  ) {
     return <div style={{ width: size, height: size, position: 'relative', flexShrink: 0 }} />;
   }
 

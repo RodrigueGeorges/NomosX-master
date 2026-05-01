@@ -2,7 +2,15 @@
 
 import React, { useRef, useMemo, Suspense } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import * as THREE from 'three';
+import {
+  Group,
+  Mesh,
+  MeshStandardMaterial,
+  SphereGeometry,
+  IcosahedronGeometry,
+  BoxGeometry,
+  TorusGeometry,
+} from 'three';
 
 
 interface Logo3DProps {
@@ -11,9 +19,9 @@ interface Logo3DProps {
 }
 
 function InstitutionalMark() {
-  const groupRef = useRef<THREE.Group>(null);
-  const ringRef = useRef<THREE.Mesh>(null);
-  const counterRingRef = useRef<THREE.Mesh>(null);
+  const groupRef = useRef<Group>(null);
+  const ringRef = useRef<Mesh>(null);
+  const counterRingRef = useRef<Mesh>(null);
 
   useFrame((state) => {
     const t = state.clock.elapsedTime;
@@ -31,47 +39,62 @@ function InstitutionalMark() {
   });
 
   // Sphere: near-white, cold, high metalness — like brushed platinum
-  const sphereMat = useMemo(() => new THREE.MeshStandardMaterial({
-    color: '#e8eaf0',
-    metalness: 0.72,
-    roughness: 0.18,
-    emissive: '#c7cce8',
-    emissiveIntensity: 0.06,
-  }), []);
+  const sphereMat = useMemo(() => {
+    if (typeof MeshStandardMaterial === 'undefined') return null;
+    return new MeshStandardMaterial({
+      color: '#e8eaf0',
+      metalness: 0.72,
+      roughness: 0.18,
+      emissive: '#c7cce8',
+      emissiveIntensity: 0.06,
+    });
+  }, []);
 
   // X bars: pure white, slightly matte — clean authority
-  const xMat = useMemo(() => new THREE.MeshStandardMaterial({
-    color: '#ffffff',
-    metalness: 0.4,
-    roughness: 0.3,
-    emissive: '#ffffff',
-    emissiveIntensity: 0.12,
-  }), []);
+  const xMat = useMemo(() => {
+    if (typeof MeshStandardMaterial === 'undefined') return null;
+    return new MeshStandardMaterial({
+      color: '#ffffff',
+      metalness: 0.4,
+      roughness: 0.3,
+      emissive: '#ffffff',
+      emissiveIntensity: 0.12,
+    });
+  }, []);
 
   // Orbital ring: very thin, white semi-transparent
-  const ringMat = useMemo(() => new THREE.MeshStandardMaterial({
-    color: '#a5b4fc',
-    metalness: 0.0,
-    roughness: 1.0,
-    transparent: true,
-    opacity: 0.24,
-  }), []);
+  const ringMat = useMemo(() => {
+    if (typeof MeshStandardMaterial === 'undefined') return null;
+    return new MeshStandardMaterial({
+      color: '#a5b4fc',
+      metalness: 0.0,
+      roughness: 1.0,
+      transparent: true,
+      opacity: 0.24,
+    });
+  }, []);
 
-  const violetRingMat = useMemo(() => new THREE.MeshStandardMaterial({
-    color: '#8b5cf6',
-    metalness: 0.0,
-    roughness: 1.0,
-    transparent: true,
-    opacity: 0.18,
-  }), []);
+  const violetRingMat = useMemo(() => {
+    if (typeof MeshStandardMaterial === 'undefined') return null;
+    return new MeshStandardMaterial({
+      color: '#8b5cf6',
+      metalness: 0.0,
+      roughness: 1.0,
+      transparent: true,
+      opacity: 0.18,
+    });
+  }, []);
 
-  const coreMat = useMemo(() => new THREE.MeshStandardMaterial({
-    color: '#f5d778',
-    metalness: 0.62,
-    roughness: 0.16,
-    emissive: '#d4af37',
-    emissiveIntensity: 0.26,
-  }), []);
+  const coreMat = useMemo(() => {
+    if (typeof MeshStandardMaterial === 'undefined') return null;
+    return new MeshStandardMaterial({
+      color: '#f5d778',
+      metalness: 0.62,
+      roughness: 0.16,
+      emissive: '#d4af37',
+      emissiveIntensity: 0.26,
+    });
+  }, []);
 
   return (
     <group ref={groupRef}>
@@ -118,6 +141,16 @@ function Scene() {
 }
 
 export function NomosXLogo3D({ size = 120, className }: Logo3DProps) {
+  if (
+    typeof MeshStandardMaterial === 'undefined' ||
+    typeof SphereGeometry === 'undefined' ||
+    typeof IcosahedronGeometry === 'undefined' ||
+    typeof BoxGeometry === 'undefined' ||
+    typeof TorusGeometry === 'undefined'
+  ) {
+    return <div className={className} style={{ width: size, height: size }} />;
+  }
+
   return (
     <div className={className} style={{ width: size, height: size }}>
       <Canvas

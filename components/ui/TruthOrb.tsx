@@ -3,7 +3,15 @@
 import { useRef, useMemo, useState, useEffect } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Float } from '@react-three/drei';
-import * as THREE from 'three';
+import {
+  Points,
+  BufferGeometry,
+  BufferAttribute,
+  Mesh,
+  Group,
+  Material,
+  AdditiveBlending,
+} from 'three';
 
 
 /**
@@ -37,8 +45,8 @@ function MorphParticles({
   accentColor: string; 
   orderFactor: number; // 0 = chaos (doxa), 1 = order (nomos)
 }) {
-  const ref = useRef<THREE.Points>(null);
-  const geomRef = useRef<THREE.BufferGeometry>(null);
+  const ref = useRef<Points>(null);
+  const geomRef = useRef<BufferGeometry>(null);
 
   // Generate two sets of positions: chaotic and ordered
   const { chaosPositions, orderedPositions } = useMemo(() => {
@@ -88,13 +96,13 @@ function MorphParticles({
   // Set buffer attribute imperatively (R3F v9 compatible)
   useEffect(() => {
     if (geomRef.current) {
-      geomRef.current.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      geomRef.current.setAttribute('position', new BufferAttribute(positions, 3));
     }
     return () => {
       if (ref.current) {
         ref.current.geometry.dispose();
-        if (ref.current.material instanceof THREE.Material) {
-          ref.current.material.dispose();
+        if (ref.current.material && 'dispose' in ref.current.material) {
+          (ref.current.material as any).dispose();
         }
       }
     };
@@ -145,7 +153,7 @@ function MorphParticles({
         opacity={0.75}
         sizeAttenuation
         depthWrite={false}
-        blending={THREE.AdditiveBlending}
+        blending={AdditiveBlending}
       />
     </points>
   );
@@ -153,8 +161,8 @@ function MorphParticles({
 
 /* Accent particles — smaller, different color */
 function AccentParticles({ count, color, orderFactor }: { count: number; color: string; orderFactor: number }) {
-  const ref = useRef<THREE.Points>(null);
-  const geomRef = useRef<THREE.BufferGeometry>(null);
+  const ref = useRef<Points>(null);
+  const geomRef = useRef<BufferGeometry>(null);
   const positions = useMemo(() => {
     try {
       return new Float32Array(count * 3);
@@ -182,13 +190,13 @@ function AccentParticles({ count, color, orderFactor }: { count: number; color: 
 
   useEffect(() => {
     if (geomRef.current) {
-      geomRef.current.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      geomRef.current.setAttribute('position', new BufferAttribute(positions, 3));
     }
     return () => {
       if (ref.current) {
         ref.current.geometry.dispose();
-        if (ref.current.material instanceof THREE.Material) {
-          ref.current.material.dispose();
+        if (ref.current.material && 'dispose' in ref.current.material) {
+          (ref.current.material as any).dispose();
         }
       }
     };
@@ -234,7 +242,7 @@ function AccentParticles({ count, color, orderFactor }: { count: number; color: 
         opacity={0.4}
         sizeAttenuation
         depthWrite={false}
-        blending={THREE.AdditiveBlending}
+        blending={AdditiveBlending}
       />
     </points>
   );
@@ -242,15 +250,15 @@ function AccentParticles({ count, color, orderFactor }: { count: number; color: 
 
 /* Central icosahedron cage — the "law" structure */
 function LawCage({ color, orderFactor }: { color: string; orderFactor: number }) {
-  const ref = useRef<THREE.Mesh>(null);
+  const ref = useRef<Mesh>(null);
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (ref.current) {
         ref.current.geometry.dispose();
-        if (ref.current.material instanceof THREE.Material) {
-          ref.current.material.dispose();
+        if (ref.current.material && 'dispose' in ref.current.material) {
+          (ref.current.material as any).dispose();
         }
       }
     };
@@ -279,9 +287,9 @@ function LawCage({ color, orderFactor }: { color: string; orderFactor: number })
 
 /* The X glyph at center — the variable being solved */
 function XGlyph({ orderFactor }: { orderFactor: number }) {
-  const groupRef = useRef<THREE.Group>(null);
-  const mesh1Ref = useRef<THREE.Mesh>(null);
-  const mesh2Ref = useRef<THREE.Mesh>(null);
+  const groupRef = useRef<Group>(null);
+  const mesh1Ref = useRef<Mesh>(null);
+  const mesh2Ref = useRef<Mesh>(null);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -289,8 +297,8 @@ function XGlyph({ orderFactor }: { orderFactor: number }) {
       [mesh1Ref, mesh2Ref].forEach(meshRef => {
         if (meshRef.current) {
           meshRef.current.geometry.dispose();
-          if (meshRef.current.material instanceof THREE.Material) {
-            meshRef.current.material.dispose();
+          if (meshRef.current.material && 'dispose' in meshRef.current.material) {
+            (meshRef.current.material as any).dispose();
           }
         }
       });
@@ -358,7 +366,11 @@ function TruthOrbScene({ color, accentColor }: { color: string; accentColor: str
 
 export default function TruthOrb({ size = 280, color = '#6366F1', accentColor = '#00ffc8' }: TruthOrbProps) {
   // Check if THREE is available (prevents constructor errors during loading)
-  if (typeof THREE === 'undefined' || typeof Float32Array === 'undefined') {
+  if (
+    typeof Float32Array === 'undefined' ||
+    typeof BufferAttribute === 'undefined' ||
+    typeof AdditiveBlending === 'undefined'
+  ) {
     return <div style={{ width: size, height: size }} />;
   }
 

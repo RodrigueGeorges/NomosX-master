@@ -4,7 +4,7 @@ const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   serverExternalPackages: ['@prisma/client'],
-  transpilePackages: ['three', '@react-three/fiber', '@react-three/drei'],
+  transpilePackages: [],
   images: {
     formats: ['image/avif', 'image/webp'],
   },

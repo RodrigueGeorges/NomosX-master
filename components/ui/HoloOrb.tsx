@@ -3,7 +3,14 @@
 import { useRef, useMemo, useEffect } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Float } from '@react-three/drei';
-import * as THREE from 'three';
+import {
+  Points,
+  BufferGeometry,
+  BufferAttribute,
+  Mesh,
+  Material,
+  AdditiveBlending,
+} from 'three';
 
 
 interface OrbSceneProps {
@@ -15,8 +22,8 @@ interface OrbSceneProps {
 function ShellParticles({ hexColor, count, innerR, outerR, opacity, speed }: {
   hexColor: string; count: number; innerR: number; outerR: number; opacity: number; speed: number;
 }) {
-  const ref = useRef<THREE.Points>(null);
-  const geomRef = useRef<THREE.BufferGeometry>(null);
+  const ref = useRef<Points>(null);
+  const geomRef = useRef<BufferGeometry>(null);
 
   const positions = useMemo(() => {
     try {
@@ -36,14 +43,14 @@ function ShellParticles({ hexColor, count, innerR, outerR, opacity, speed }: {
   }, [count, innerR, outerR]);
 
   useEffect(() => {
-    if (geomRef.current) {
-      geomRef.current.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    if (geomRef.current && typeof BufferAttribute !== 'undefined') {
+      geomRef.current.setAttribute('position', new BufferAttribute(positions, 3));
     }
     return () => {
       if (ref.current) {
         ref.current.geometry.dispose();
-        if (ref.current.material instanceof THREE.Material) {
-          ref.current.material.dispose();
+        if (ref.current.material && 'dispose' in ref.current.material) {
+          (ref.current.material as any).dispose();
         }
       }
     };
@@ -66,16 +73,16 @@ function ShellParticles({ hexColor, count, innerR, outerR, opacity, speed }: {
         opacity={opacity}
         sizeAttenuation
         depthWrite={false}
-        blending={THREE.AdditiveBlending}
+        blending={AdditiveBlending}
       />
     </points>
   );
 }
 
 function OrbScene({ hexColor }: OrbSceneProps) {
-  const ring1Ref = useRef<THREE.Mesh>(null);
-  const ring2Ref = useRef<THREE.Mesh>(null);
-  const cageRef  = useRef<THREE.Mesh>(null);
+  const ring1Ref = useRef<Mesh>(null);
+  const ring2Ref = useRef<Mesh>(null);
+  const cageRef  = useRef<Mesh>(null);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -83,8 +90,8 @@ function OrbScene({ hexColor }: OrbSceneProps) {
       [ring1Ref, ring2Ref, cageRef].forEach(meshRef => {
         if (meshRef.current) {
           meshRef.current.geometry.dispose();
-          if (meshRef.current.material instanceof THREE.Material) {
-            meshRef.current.material.dispose();
+          if (meshRef.current.material && 'dispose' in meshRef.current.material) {
+            (meshRef.current.material as any).dispose();
           }
         }
       });
@@ -148,7 +155,11 @@ function OrbScene({ hexColor }: OrbSceneProps) {
 
 export default function HoloOrb({ hexColor, size = 160 }: { hexColor: string; size?: number }) {
   // Check if THREE is available (prevents constructor errors during loading)
-  if (typeof THREE === 'undefined' || typeof Float32Array === 'undefined') {
+  if (
+    typeof Float32Array === 'undefined' ||
+    typeof BufferAttribute === 'undefined' ||
+    typeof AdditiveBlending === 'undefined'
+  ) {
     return <div style={{ width: size, height: size }} />;
   }
 
