@@ -79,7 +79,7 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
           window.location.href = redirectUrl;
         }, 100);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Auth error:", err);
       setError("Connection error. Please try again.");
       setLoading(false);
