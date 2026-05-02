@@ -249,10 +249,17 @@ export default function PricingPage() {
               <div
                 key={i}
                 className="nx-codex-cell"
-            <div className="text-center mb-10">
-              <p className="text-[11px] text-white/30 font-semibold tracking-[0.2em] uppercase mb-4">FAQ</p>
-              <h2 className="font-display text-2xl sm:text-3xl font-bold text-white">Questions</h2>
-            </div>
+              >
+                <div className="text-2xl font-display font-bold text-white mb-1">{s.value}</div>
+                <div className="text-xs text-white/30">{s.label}</div>
+              </div>
+            ))}
+          </div>
+
+          <div className="text-center mb-10">
+            <p className="text-[11px] text-white/30 font-semibold tracking-[0.2em] uppercase mb-4">FAQ</p>
+            <h2 className="font-display text-2xl sm:text-3xl font-bold text-white">Questions</h2>
+          </div>
             <div className="space-y-2">
               {faq.map((item, i) => (
                 <div
