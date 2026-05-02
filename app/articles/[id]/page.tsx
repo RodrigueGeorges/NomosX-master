@@ -321,41 +321,10 @@ export default function ArticlePage() {
 
               {/* Article Content */}
               <div className="prose prose-invert prose-lg max-w-none prose-headings:font-display prose-headings:font-light prose-p:text-white/75 prose-li:text-white/70 prose-a:text-indigo-300">
-                {
-                  <div 
-                    className="article-content text-white/80 leading-relaxed"
-                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(article.content) }}
-                  />
-                }
-                {false && (
-                  <>
-                    {/* Legacy branch kept disabled while all public publications remain open. */}
-                    <div className="text-white/70 leading-relaxed text-base mb-8 whitespace-pre-line">
-                      {article.content}
-                    </div>
-
-                    {/* Paywall fade + CTA */}
-                    <div className="relative">
-                      <div className="absolute inset-x-0 -top-20 h-20 bg-gradient-to-b from-transparent to-[#09090b] pointer-events-none" />
-                      <div className="text-center py-12 border-t border-white/[0.06]">
-                        <FileText className="w-12 h-12 text-indigo-400 mx-auto mb-4" />
-                        <h3 className="text-xl font-semibold text-white mb-2">
-                          Read the full {articleTypeLabel(article.type).toLowerCase()}
-                        </h3>
-                        <p className="text-white/50 mb-6 max-w-md mx-auto text-sm">
-                          StudioX can turn this publication into a commissioned follow-up with scoped evidence and citations.
-                        </p>
-                        <button
-                          onClick={() => setShowAuthModal(true)}
-                          className="px-8 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium transition-all shadow-lg shadow-amber-300/10"
-                        >
-                          Commission follow-up
-                        </button>
-                        <p className="text-xs text-white/25 mt-4">Same verification protocol, custom mandate.</p>
-                      </div>
-                    </div>
-                  </>
-                )}
+                <div
+                  className="article-content text-white/80 leading-relaxed"
+                  dangerouslySetInnerHTML={{ __html: sanitizeHtml(article.content) }}
+                />
               </div>
 
               {/* Navigation */}

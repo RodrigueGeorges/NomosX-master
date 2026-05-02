@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db';
 import { z } from 'zod';
 import { withAuth, withRateLimit, rateLimitConfigs } from '@/lib/validation';
 import { FORMAT_TYPES_BY_FAMILY, getPublicationFormat } from '@/lib/publication-formats';
+import { publicPublicationWhere } from '@/lib/publication-visibility';
 
 /**
  * GET /api/user/briefs/recent
@@ -69,20 +70,17 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ error: "User not found" }, { status: 404 });
           }
 
-          // Build where clause based on type filter
-          const whereClause: any = {
-            status: "PUBLISHED",
-            publishedAt: { not: null },
-          };
-
+          // Build where clause based on type filter — always apply quality gate
+          const typeFilter: any = {};
           if (type !== 'ALL') {
             const mapped = RECENT_TYPE_MAP[type];
             if (mapped) {
-              whereClause.type = { in: mapped };
+              typeFilter.type = { in: mapped };
             } else {
-              whereClause.type = type; // pass raw Prisma value as-is
+              typeFilter.type = type;
             }
           }
+          const whereClause = publicPublicationWhere(typeFilter);
 
           // Get recent publications
           const briefs = await prisma.thinkTankPublication.findMany({
@@ -128,7 +126,7 @@ export async function GET(req: NextRequest) {
               readTime,
               trending: isTrending,
               critical: isCritical,
-              preview: brief.html.substring(0, 200) + '...',
+              preview: brief.html.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim().slice(0, 200) + '…',
             };
           });
 

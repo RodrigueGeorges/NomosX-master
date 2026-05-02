@@ -722,6 +722,679 @@ a, button, input, textarea, select {
   will-change: filter, transform;
 }
 
+/* =============================================================================
+   NomosX — AC Intelligence Layer
+   Techniques: hex grid, eagle vision, animus distortion, angular brackets,
+   vignette depth, data ticker, grainy gradient, intel HUD corners
+   Inspired by: AC Shadows UI, Anduril aesthetic, Palantir Blueprint,
+   Helsing.ai design language, CRT/GLSL shader web ports
+   ============================================================================= */
+
+/* ----------------------------------------------------------------------------
+   1. HEX GRID BACKGROUND
+   SVG hex pattern used as a subtle background texture on hero/panel zones.
+   Strongly evokes AC Animus, Palantir Foundry, and sci-fi data overlays.
+   Usage: add class "nx-hex-bg" to any section.
+   ---------------------------------------------------------------------------- */
+.nx-hex-bg {
+  background-color: transparent;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='100'%3E%3Cpolygon points='28,2 54,16 54,44 28,58 2,44 2,16' fill='none' stroke='rgba(255,255,255,0.045)' stroke-width='0.75'/%3E%3Cpolygon points='28,52 54,66 54,94 28,108 2,94 2,66' fill='none' stroke='rgba(255,255,255,0.045)' stroke-width='0.75'/%3E%3Cpolygon points='56,2 82,16 82,44 56,58 30,44 30,16' fill='none' stroke='rgba(255,255,255,0.045)' stroke-width='0.75'/%3E%3C/svg%3E");
+  background-size: 56px 100px;
+}
+
+/* Hex grid with gold accent — use on oracle/premium panels */
+.nx-hex-bg-gold {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='100'%3E%3Cpolygon points='28,2 54,16 54,44 28,58 2,44 2,16' fill='none' stroke='rgba(212,175,55,0.08)' stroke-width='0.75'/%3E%3Cpolygon points='28,52 54,66 54,94 28,108 2,94 2,66' fill='none' stroke='rgba(212,175,55,0.08)' stroke-width='0.75'/%3E%3Cpolygon points='56,2 82,16 82,44 56,58 30,44 30,16' fill='none' stroke='rgba(212,175,55,0.08)' stroke-width='0.75'/%3E%3C/svg%3E");
+  background-size: 56px 100px;
+}
+
+/* Activated hex cell — single hex glows on hover/active state (JS adds class) */
+@keyframes hex-activate {
+  0%   { opacity: 0; transform: scale(0.7); }
+  40%  { opacity: 1; transform: scale(1.15); }
+  100% { opacity: 0.6; transform: scale(1); }
+}
+.nx-hex-active {
+  animation: hex-activate 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  filter: drop-shadow(0 0 8px rgba(245, 215, 120, 0.6));
+}
+
+
+/* ----------------------------------------------------------------------------
+   2. EAGLE VISION OVERLAY
+   AC's signature ability — perimeter glow + color-shift + scanline pass.
+   Used as a `.nx-eagle-vision` wrapper to transform any section into a
+   tactical awareness state. Apply on hover or via JS toggle.
+   ---------------------------------------------------------------------------- */
+@keyframes eagle-vision-pulse {
+  0%, 100% {
+    box-shadow:
+      inset 0 0 80px rgba(99, 149, 255, 0.06),
+      inset 0 0 20px rgba(99, 149, 255, 0.03);
+  }
+  50% {
+    box-shadow:
+      inset 0 0 120px rgba(99, 149, 255, 0.12),
+      inset 0 0 40px rgba(99, 149, 255, 0.06);
+  }
+}
+
+@keyframes eagle-scan-pass {
+  0%   { top: -4px;   opacity: 0; }
+  5%   { opacity: 0.6; }
+  95%  { opacity: 0.3; }
+  100% { top: 110%;   opacity: 0; }
+}
+
+.nx-eagle-vision {
+  position: relative;
+  animation: eagle-vision-pulse 3s ease-in-out infinite;
+  filter: saturate(0.7) brightness(0.92);
+  transition: filter 0.6s ease;
+}
+
+.nx-eagle-vision::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg,
+    rgba(99, 149, 255, 0.06) 0%,
+    transparent 40%,
+    transparent 60%,
+    rgba(99, 149, 255, 0.04) 100%
+  );
+  z-index: 10;
+}
+
+/* Scanning beam line — add this child element via JS or static markup */
+.nx-eagle-vision .nx-scan-beam {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(99, 149, 255, 0.4) 20%,
+    rgba(200, 220, 255, 0.8) 50%,
+    rgba(99, 149, 255, 0.4) 80%,
+    transparent 100%
+  );
+  filter: blur(1px);
+  animation: eagle-scan-pass 4s ease-in-out infinite;
+  z-index: 11;
+  pointer-events: none;
+}
+
+/* Eagle vision activated state — add `.is-active` to toggle */
+.nx-eagle-vision.is-active {
+  filter: saturate(0.2) brightness(0.85) hue-rotate(200deg);
+}
+.nx-eagle-vision.is-active::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 1px solid rgba(99, 149, 255, 0.25);
+  pointer-events: none;
+  z-index: 12;
+}
+
+
+/* ----------------------------------------------------------------------------
+   3. ANGULAR BRACKET CORNERS — AC / military HUD framing
+   Evokes the targeting reticle, data-frame, and mission briefing overlays
+   present throughout AC Shadows, Mirage, and defense-tech UIs (Anduril, Helsing).
+   Usage: add class "nx-hud-frame" to any card or panel.
+   ---------------------------------------------------------------------------- */
+.nx-hud-frame {
+  position: relative;
+}
+
+.nx-hud-frame::before,
+.nx-hud-frame::after {
+  content: "";
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* Top-left corner */
+.nx-hud-frame::before {
+  top: 0;
+  left: 0;
+  border-top: 1px solid rgba(245, 215, 120, 0.55);
+  border-left: 1px solid rgba(245, 215, 120, 0.55);
+}
+
+/* Bottom-right corner */
+.nx-hud-frame::after {
+  bottom: 0;
+  right: 0;
+  border-bottom: 1px solid rgba(245, 215, 120, 0.55);
+  border-right: 1px solid rgba(245, 215, 120, 0.55);
+}
+
+/* Full four-corner variant using a pseudo child span — add <span class="nx-hud-corners"> inside */
+.nx-hud-corners {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.nx-hud-corners::before,
+.nx-hud-corners::after {
+  content: "";
+  position: absolute;
+  width: 14px;
+  height: 14px;
+}
+
+.nx-hud-corners::before {
+  top: 0;
+  right: 0;
+  border-top: 1px solid rgba(245, 215, 120, 0.45);
+  border-right: 1px solid rgba(245, 215, 120, 0.45);
+}
+
+.nx-hud-corners::after {
+  bottom: 0;
+  left: 0;
+  border-bottom: 1px solid rgba(245, 215, 120, 0.45);
+  border-left: 1px solid rgba(245, 215, 120, 0.45);
+}
+
+/* Larger variant for hero panels */
+.nx-hud-frame-lg::before,
+.nx-hud-frame-lg::after { width: 28px; height: 28px; }
+
+/* Animated on-mount reveal */
+@keyframes corner-reveal {
+  from { opacity: 0; transform: scale(1.3); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.nx-hud-frame-animate::before,
+.nx-hud-frame-animate::after {
+  animation: corner-reveal 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+
+/* ----------------------------------------------------------------------------
+   4. ANIMUS DISTORTION / DATA CORRUPTION GLITCH
+   Inspired by AC memory sync breaks and the Animus "desync" visual language.
+   Also mirrors the displacement-map glitch shader technique from Codrops/Awwwards
+   award-winning sites (2024). Apply to text or image elements.
+   ---------------------------------------------------------------------------- */
+@keyframes animus-glitch {
+  0%, 88%, 100% {
+    clip-path: none;
+    transform: translate(0, 0);
+    opacity: 1;
+  }
+  89% {
+    clip-path: polygon(0 15%, 100% 15%, 100% 35%, 0 35%);
+    transform: translate(-3px, 0);
+    opacity: 0.85;
+  }
+  90% {
+    clip-path: polygon(0 55%, 100% 55%, 100% 75%, 0 75%);
+    transform: translate(3px, 0);
+    opacity: 0.9;
+  }
+  91% {
+    clip-path: polygon(0 5%, 100% 5%, 100% 25%, 0 25%);
+    transform: translate(-2px, 1px);
+    opacity: 0.7;
+  }
+  92% {
+    clip-path: none;
+    transform: translate(0, 0);
+    opacity: 1;
+  }
+  94% {
+    clip-path: polygon(0 40%, 100% 40%, 100% 60%, 0 60%);
+    transform: translate(2px, 0);
+  }
+  95% {
+    clip-path: none;
+    transform: translate(0);
+    opacity: 1;
+  }
+}
+
+/* Separate ghost layer for chromatic separation during glitch */
+@keyframes animus-glitch-ghost {
+  0%, 88%, 100% { opacity: 0; transform: translate(0); }
+  89%  { opacity: 0.4; transform: translate(4px, 0); filter: hue-rotate(90deg) saturate(3); }
+  90%  { opacity: 0.3; transform: translate(-4px, 0); filter: hue-rotate(-90deg) saturate(3); }
+  91%  { opacity: 0; }
+  94%  { opacity: 0.25; transform: translate(3px, 1px); filter: hue-rotate(120deg); }
+  95%  { opacity: 0; }
+}
+
+.nx-animus-glitch {
+  position: relative;
+  animation: animus-glitch 9s ease-in-out infinite;
+  will-change: transform, clip-path;
+}
+
+.nx-animus-glitch::before {
+  content: attr(data-text);
+  position: absolute;
+  inset: 0;
+  color: inherit;
+  background: inherit;
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: animus-glitch-ghost 9s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* Intensity variant for more frequent distortion */
+.nx-animus-glitch-intense {
+  animation: animus-glitch 4s ease-in-out infinite;
+}
+.nx-animus-glitch-intense::before {
+  animation: animus-glitch-ghost 4s ease-in-out infinite;
+}
+
+
+/* ----------------------------------------------------------------------------
+   5. CINEMATIC VIGNETTE DEPTH SYSTEM
+   Multi-layer depth system: global page vignette + local card depth.
+   Referenced by: Anduril's "aerial perspective" design, cinematic dark sites,
+   and Palantir's "show don't tell" atmospheric approach.
+   ---------------------------------------------------------------------------- */
+
+/* Full-page vignette — apply to body wrapper or layout root */
+.nx-vignette {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: radial-gradient(
+    ellipse 120% 80% at 50% 50%,
+    transparent 40%,
+    rgba(0, 0, 0, 0.35) 75%,
+    rgba(0, 0, 0, 0.65) 100%
+  );
+}
+
+/* Edge-burn vignette — stronger cinematic frame */
+.nx-vignette-strong {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse 100% 60% at 50% 0%, rgba(0,0,0,0.5) 0%, transparent 60%),
+    radial-gradient(ellipse 100% 60% at 50% 100%, rgba(0,0,0,0.5) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 100% at 0% 50%, rgba(0,0,0,0.35) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 100% at 100% 50%, rgba(0,0,0,0.35) 0%, transparent 60%);
+}
+
+/* Atmospheric spotlight — hero section focal pull toward center */
+.nx-spotlight {
+  background:
+    radial-gradient(ellipse 70% 50% at 50% 30%, rgba(99, 102, 241, 0.08) 0%, transparent 65%),
+    radial-gradient(ellipse 50% 40% at 50% 25%, rgba(245, 215, 120, 0.05) 0%, transparent 55%);
+}
+
+/* Mouse-tracked spotlight — update --mx and --my via JS */
+.nx-spotlight-tracked {
+  background: radial-gradient(
+    circle 600px at var(--mx, 50%) var(--my, 30%),
+    rgba(245, 215, 120, 0.055) 0%,
+    rgba(99, 102, 241, 0.04) 30%,
+    transparent 65%
+  );
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  transition: background 0.15s ease;
+}
+
+/* Card-level depth shadow — replaces flat shadow with cinematic 3-layer shadow */
+.nx-depth-shadow {
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.04) inset,
+    0 2px 8px rgba(0, 0, 0, 0.25),
+    0 8px 32px rgba(0, 0, 0, 0.35),
+    0 24px 64px rgba(0, 0, 0, 0.2);
+}
+
+.nx-depth-shadow:hover {
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.06) inset,
+    0 4px 16px rgba(0, 0, 0, 0.3),
+    0 16px 48px rgba(0, 0, 0, 0.4),
+    0 0 60px rgba(245, 215, 120, 0.06);
+}
+
+
+/* ----------------------------------------------------------------------------
+   6. GRAINY GRADIENT TEXTURE — Film grain on gradient backgrounds
+   Technique from Adam Argyle / CSS-Tricks: SVG feTurbulence + CSS
+   contrast/brightness boost. Eliminates flat-gradient banding and adds
+   analogue tactility — used by Vercel, Linear, and premium dark UIs.
+   ---------------------------------------------------------------------------- */
+
+/* Grainy gradient hero background */
+.nx-grain-hero {
+  position: relative;
+  isolation: isolate;
+}
+
+.nx-grain-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='grain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.90' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23grain)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 200px 200px;
+  opacity: 0.028;
+  pointer-events: none;
+  z-index: 1;
+  mix-blend-mode: overlay;
+}
+
+/* High-contrast grain for card/panel surfaces */
+.nx-grain-surface {
+  position: relative;
+  isolation: isolate;
+}
+
+.nx-grain-surface::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 128 128' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='g2'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g2)'/%3E%3C/svg%3E");
+  background-size: 128px 128px;
+  opacity: 0.04;
+  pointer-events: none;
+  mix-blend-mode: soft-light;
+  border-radius: inherit;
+}
+
+/* Grainy gold gradient — for premium accent banners */
+.nx-grain-gold {
+  background:
+    linear-gradient(135deg, rgba(212,175,55,0.15) 0%, rgba(99,102,241,0.1) 60%, transparent 100%),
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='grain3'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23grain3)' opacity='0.06'/%3E%3C/svg%3E");
+  background-size: auto, 200px 200px;
+}
+
+
+/* ----------------------------------------------------------------------------
+   7. DATA TICKER / INTEL STREAM
+   Horizontal scrolling data feed — ubiquitous in AC menus, Anduril ops dashboards,
+   Palantir AIP interfaces. Creates "live intelligence" sensation.
+   Usage: <div class="nx-data-ticker"><span>...</span></div>
+   ---------------------------------------------------------------------------- */
+@keyframes ticker-scroll {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.nx-data-ticker {
+  overflow: hidden;
+  white-space: nowrap;
+  font-family: var(--font-code, 'IBM Plex Mono', monospace);
+  font-size: 0.6875rem;
+  letter-spacing: 0.1em;
+  color: rgba(245, 215, 120, 0.4);
+  text-transform: uppercase;
+  position: relative;
+}
+
+.nx-data-ticker::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 60px;
+  background: linear-gradient(90deg, var(--color-bg, #09090b), transparent);
+  z-index: 1;
+  pointer-events: none;
+}
+
+.nx-data-ticker::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 60px;
+  background: linear-gradient(270deg, var(--color-bg, #09090b), transparent);
+  z-index: 1;
+  pointer-events: none;
+}
+
+.nx-data-ticker-inner {
+  display: inline-block;
+  animation: ticker-scroll 28s linear infinite;
+}
+
+.nx-data-ticker-inner:hover {
+  animation-play-state: paused;
+}
+
+/* Separator glyph between ticker items */
+.nx-ticker-sep {
+  display: inline-block;
+  margin: 0 1.5em;
+  color: rgba(99, 102, 241, 0.5);
+}
+
+
+/* ----------------------------------------------------------------------------
+   8. GLOBAL CRT SCANLINE OVERLAY
+   Full-page scanline texture applied as a fixed overlay — not animated,
+   purely structural. Gives every screen a subtle analogue depth.
+   Technique from aleclownes.com CRT article + Michelin Hack-it series.
+   Apply class "nx-crt" to the root layout wrapper.
+   ---------------------------------------------------------------------------- */
+.nx-crt {
+  position: relative;
+}
+
+.nx-crt::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  background:
+    linear-gradient(
+      rgba(18, 16, 16, 0) 50%,
+      rgba(0, 0, 0, 0.08) 50%
+    ),
+    linear-gradient(
+      90deg,
+      rgba(255, 0, 0, 0.018),
+      rgba(0, 255, 0, 0.008),
+      rgba(0, 0, 255, 0.018)
+    );
+  background-size: 100% 3px, 4px 100%;
+  opacity: 1;
+}
+
+/* Standalone scanline utility — apply as a child overlay div */
+.nx-scanlines {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 10;
+  border-radius: inherit;
+  background:
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0, 0, 0, 0.06) 2px,
+      rgba(0, 0, 0, 0.06) 4px
+    );
+}
+
+/* Denser scanlines for card/panel surfaces (not global) */
+.nx-scanlines-dense {
+  background:
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 1px,
+      rgba(0, 0, 0, 0.09) 1px,
+      rgba(0, 0, 0, 0.09) 2px
+    );
+}
+
+
+/* ----------------------------------------------------------------------------
+   TYPOGRAPHY — Intelligence Platform Scale
+   Monospace accent layer on top of existing type system.
+   IBM Plex Mono is the "man + machine" typeface (IBM design system);
+   used by Palantir Blueprint, Helsing, and defense-grade data UIs.
+   ---------------------------------------------------------------------------- */
+
+/* Mono accent — data labels, coordinates, status codes */
+.nx-mono {
+  font-family: var(--font-code, 'IBM Plex Mono', monospace);
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Classified / intel label style */
+.nx-classified {
+  font-family: var(--font-code, monospace);
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(245, 215, 120, 0.55);
+  padding: 2px 8px;
+  border: 1px solid rgba(245, 215, 120, 0.2);
+  border-radius: 2px;
+  background: rgba(245, 215, 120, 0.04);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.nx-classified::before {
+  content: "//";
+  color: rgba(245, 215, 120, 0.3);
+  font-weight: 400;
+}
+
+/* Status dot — green = active, amber = standby, red = critical */
+.nx-status-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 6px #22c55e, 0 0 12px rgba(34, 197, 94, 0.4);
+  animation: pulse-glow 2.5s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+.nx-status-dot.amber {
+  background: #f5d778;
+  box-shadow: 0 0 6px #f5d778, 0 0 12px rgba(245, 215, 120, 0.4);
+}
+
+.nx-status-dot.critical {
+  background: #ef4444;
+  box-shadow: 0 0 6px #ef4444, 0 0 12px rgba(239, 68, 68, 0.4);
+}
+
+/* Inline redacted/classified block text — styled like AC memory corruptions */
+.nx-redacted {
+  background: rgba(245, 215, 120, 0.12);
+  border-radius: 2px;
+  color: transparent;
+  user-select: none;
+  display: inline-block;
+  position: relative;
+  letter-spacing: -0.1em;
+}
+
+.nx-redacted::after {
+  content: "██████";
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(245, 215, 120, 0.35);
+  font-family: monospace;
+  font-size: 0.85em;
+  letter-spacing: 0.1em;
+}
+
+
+/* ----------------------------------------------------------------------------
+   COMPOSITE UTILITIES — combinations used in common patterns
+   ---------------------------------------------------------------------------- */
+
+/* Intel card = glass + hud frame + depth shadow + grain surface */
+.nx-intel-card {
+  background: rgba(255, 255, 255, 0.025);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 12px;
+  position: relative;
+  isolation: isolate;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.nx-intel-card::before,
+.nx-intel-card::after {
+  content: "";
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  pointer-events: none;
+  z-index: 2;
+  transition: border-color 0.3s ease;
+}
+
+.nx-intel-card::before {
+  top: 0; left: 0;
+  border-top: 1px solid rgba(245, 215, 120, 0.3);
+  border-left: 1px solid rgba(245, 215, 120, 0.3);
+}
+
+.nx-intel-card::after {
+  bottom: 0; right: 0;
+  border-bottom: 1px solid rgba(245, 215, 120, 0.3);
+  border-right: 1px solid rgba(245, 215, 120, 0.3);
+}
+
+.nx-intel-card:hover {
+  border-color: rgba(245, 215, 120, 0.16);
+  background: rgba(255, 255, 255, 0.04);
+  transform: translateY(-2px);
+  box-shadow:
+    0 0 0 1px rgba(245, 215, 120, 0.08),
+    0 8px 32px rgba(0, 0, 0, 0.4),
+    0 0 60px rgba(245, 215, 120, 0.05);
+}
+
+.nx-intel-card:hover::before {
+  border-color: rgba(245, 215, 120, 0.6);
+}
+
+.nx-intel-card:hover::after {
+  border-color: rgba(245, 215, 120, 0.6);
+}
+
 /* ================================
    ARTICLE CONTENT — dark mode overrides
    Force readable colors for pipeline-generated HTML
