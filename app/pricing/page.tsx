@@ -79,7 +79,7 @@ export default function PricingPage() {
 
   return (
     <>
-      <div className="min-h-screen bg-[#09090b] text-white overflow-hidden">
+      <div className="min-h-screen nx-immersive-root text-white overflow-hidden">
         <div className="nx-noise" aria-hidden="true" />
         <div className="fixed inset-0 pointer-events-none overflow-hidden">
           <div className="absolute w-[800px] h-[600px] rounded-full -top-32 left-1/2 -translate-x-1/2" style={{ background: 'radial-gradient(circle, rgba(99,102,241,0.10) 0%, transparent 70%)' }} />
@@ -92,10 +92,10 @@ export default function PricingPage() {
         <div className="relative z-10 max-w-5xl mx-auto px-6 sm:px-8 py-20 sm:py-28">
 
           {/* HERO */}
-          <div className="text-center mb-20">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-indigo-500/20 bg-indigo-500/5 mb-7">
-              <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
-              <span className="text-xs text-indigo-300 font-medium tracking-[0.2em] uppercase">Access</span>
+          <div className="nx-ancient-frame text-center mb-20 p-8 sm:p-12">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-amber-300/20 bg-amber-300/8 mb-7 nx-ancient-banner">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-200 shadow-[0_0_16px_rgba(245,215,120,0.45)]" />
+              <span className="text-xs text-amber-100 font-medium tracking-[0.22em] uppercase">Access</span>
             </div>
             <h1 className="font-display text-4xl sm:text-5xl md:text-6xl font-bold leading-[1.08] tracking-tight mb-6">
               The Think Tank is open.<br />
@@ -107,7 +107,7 @@ export default function PricingPage() {
           </div>
 
           {/* Access protocol */}
-          <div className="mb-20 rounded-[28px] border border-indigo-400/15 bg-[#0b0b12]/80 overflow-hidden relative">
+          <div className="mb-20 nx-oracle-panel overflow-hidden relative">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(99,102,241,0.14),transparent_30%),radial-gradient(circle_at_80%_38%,rgba(212,175,55,0.08),transparent_34%)]" />
             <div className="absolute inset-0 nx-grid-bg opacity-20" />
             <div className="relative p-7 sm:p-10">
@@ -248,16 +248,7 @@ export default function PricingPage() {
             ].map((s, i) => (
               <div
                 key={i}
-                className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5 text-center"
-              >
-                <div className="text-2xl font-display font-bold text-white mb-1">{s.value}</div>
-                <div className="text-xs text-white/30">{s.label}</div>
-              </div>
-            ))}
-          </div>
-
-          {/* FAQ */}
-          <div className="max-w-2xl mx-auto mb-24">
+                className="nx-codex-cell"
             <div className="text-center mb-10">
               <p className="text-[11px] text-white/30 font-semibold tracking-[0.2em] uppercase mb-4">FAQ</p>
               <h2 className="font-display text-2xl sm:text-3xl font-bold text-white">Questions</h2>

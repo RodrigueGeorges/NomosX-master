@@ -103,8 +103,8 @@ export default function AboutPage() {
 
         <div className="relative z-10 max-w-5xl mx-auto px-6 sm:px-8 py-20 sm:py-28">
           {/* Hero */}
-          <div className={`text-center mb-24 ${mounted ? 'animate-fade-in' : 'opacity-0'}`}>
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-indigo-500/20 bg-indigo-500/5 mb-8">
+          <div className={`nx-ancient-frame text-center mb-24 p-10 sm:p-12 ${mounted ? 'animate-fade-in' : 'opacity-0'}`}>
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-amber-300/20 bg-amber-300/8 mb-8 nx-ancient-banner">
               <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse-glow" />
               <span className="text-xs text-indigo-300 font-medium tracking-wide">ABOUT</span>
             </div>
@@ -161,7 +161,7 @@ export default function AboutPage() {
           </motion.div>
 
           {/* Institution OS */}
-          <div className="mb-24 rounded-[28px] border border-white/[0.07] bg-white/[0.025] overflow-hidden relative">
+          <div className="mb-24 nx-oracle-panel overflow-hidden relative">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_22%,rgba(99,102,241,0.14),transparent_32%),radial-gradient(circle_at_84%_50%,rgba(212,175,55,0.08),transparent_34%)]" />
             <div className="absolute inset-0 nx-grid-bg opacity-20" />
             <div className="relative p-7 sm:p-10">
@@ -210,7 +210,7 @@ export default function AboutPage() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.5, delay: i * 0.1, ease: [0.23, 1, 0.32, 1] }}
-                  className="group relative p-7 rounded-xl border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.04] hover:border-indigo-500/15 hover:-translate-y-1 transition-all duration-300 overflow-hidden"
+                  className="group nx-codex-cell"
                 >
                   <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg,rgba(99,102,241,0.4),rgba(139,92,246,0.3),transparent)' }} />
                   <div className="w-10 h-10 rounded-lg bg-indigo-500/[0.08] border border-indigo-500/15 flex items-center justify-center mb-5 group-hover:border-indigo-500/30 transition-colors">
@@ -243,7 +243,7 @@ export default function AboutPage() {
                   whileInView={{ opacity: 1, x: 0 }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.5, delay: i * 0.12, ease: [0.23, 1, 0.32, 1] }}
-                  className="group flex items-start gap-6 p-7 rounded-xl border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.04] hover:border-indigo-500/15 hover:-translate-y-0.5 transition-all duration-300"
+                  className="group nx-codex-cell"
                 >
                   <div className="flex-shrink-0 w-16 h-16 rounded-xl bg-indigo-500/[0.06] border border-indigo-500/15 flex items-center justify-center group-hover:border-indigo-500/30 transition-colors">
                     <span className="font-display text-lg font-semibold text-indigo-400/80">{item.year}</span>
@@ -277,7 +277,7 @@ export default function AboutPage() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.45, delay: i * 0.08, ease: [0.23, 1, 0.32, 1] }}
-                  className="group relative p-7 rounded-xl border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/[0.12] hover:-translate-y-0.5 transition-all duration-300 overflow-hidden"
+                  className="group nx-codex-cell"
                 >
                   <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg,rgba(99,102,241,0.4),rgba(139,92,246,0.2),transparent)' }} />
                   <div className="flex items-center gap-3 mb-3">

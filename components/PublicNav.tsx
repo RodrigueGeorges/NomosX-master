@@ -80,8 +80,8 @@ export default function PublicNav({ currentPage, onSignInClick, isAuthenticated 
   ];
 
   return (
-    <nav className="sticky top-0 z-50 w-full">
-      <div className="absolute inset-0 bg-[#09090b]/80 backdrop-blur-xl border-b border-white/[0.06]" />
+    <nav className="sticky top-0 z-50 w-full nx-ancient-topbar">
+      <div className="absolute inset-0 bg-[#09090b]/80 backdrop-blur-xl" />
       <div className="relative max-w-7xl mx-auto px-6 sm:px-8 h-16 flex items-center justify-between">
         {/* Logo + Wordmark */}
         <div

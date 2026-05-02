@@ -65,10 +65,8 @@ export async function GET(req: NextRequest) {
 
         // Add quality threshold to ensure only high-quality publications are shown
         where.AND.push({
-          OR: [
-            { trustScore: { gte: PUBLIC_PUBLICATION_MINIMUMS.trustScore } },
-            { qualityScore: { gte: PUBLIC_PUBLICATION_MINIMUMS.qualityScore } }
-          ]
+          trustScore: { gte: PUBLIC_PUBLICATION_MINIMUMS.trustScore },
+          qualityScore: { gte: PUBLIC_PUBLICATION_MINIMUMS.qualityScore }
         });
 
         if (type !== 'all' && VALID_TYPES.has(type)) {
@@ -104,6 +102,7 @@ export async function GET(req: NextRequest) {
               sourceIds: true,
               html: true,
               trustScore: true,
+              qualityScore: true,
             },
           });
         } catch (dbError: any) {
@@ -131,10 +130,10 @@ export async function GET(req: NextRequest) {
             
             // If no executive summary, try to extract meaningful paragraphs
             if (!summary) {
-              const paragraphMatches = [...rawHtml.matchAll(/<p[^>]*>([\s\S]*?)<\/p>/gi)];
+              const paragraphMatches: RegExpMatchArray[] = [...rawHtml.matchAll(/<p[^>]*>([\s\S]*?)<\/p>/gi)];
               const paragraphTexts = paragraphMatches
-                .map(m => m[1].replace(/<[^>]*>/g, '').replace(/\[SRC-\d+\]/g, '').replace(/\s+/g, ' ').trim())
-                .filter(t => t.length > 40 && t.length < 500) // Filter for substantial paragraphs
+                .map((m: RegExpMatchArray) => m[1].replace(/<[^>]*>/g, '').replace(/\[SRC-\d+\]/g, '').replace(/\s+/g, ' ').trim())
+                .filter((t: string) => t.length > 40 && t.length < 500) // Filter for substantial paragraphs
                 .slice(0, 3); // Take up to 3 good paragraphs
                 
               if (paragraphTexts.length > 0) {
@@ -147,7 +146,7 @@ export async function GET(req: NextRequest) {
             if (!summary) {
               const plainText = rawHtml.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
               // Try to find the most substantive part
-              const sentences = plainText.split(/[.!?]+/).filter(s => s.trim().length > 20);
+              const sentences = plainText.split(/[.!?]+/).filter((s: string) => s.trim().length > 20);
               if (sentences.length > 0) {
                 const bestSentences = sentences.slice(0, 3).join('. ').trim();
                 summary = bestSentences.length > 320 ? bestSentences.substring(0, 320) + '…' : bestSentences + '.';
@@ -228,6 +227,7 @@ export async function GET(req: NextRequest) {
             tier: format.access,
             displayType: format.label,
             trustScore: brief.trustScore ?? null,
+            qualityScore: brief.qualityScore ?? null,
           };
         });
 

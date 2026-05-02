@@ -171,7 +171,7 @@ function HomePageContent() {
 
   return (
     <ErrorBoundary>
-      <div className="min-h-screen bg-[#09090b] text-white overflow-x-hidden">
+      <div className="min-h-screen nx-immersive-root text-white overflow-x-hidden">
 
         <div className="nx-noise" aria-hidden="true" />
 
@@ -180,6 +180,8 @@ function HomePageContent() {
           <div className="absolute w-[600px] h-[600px] rounded-full top-1/3 -right-32 animate-aurora-2" style={{ background: 'radial-gradient(circle, rgba(139,92,246,0.12) 0%, transparent 70%)' }} />
           <div className="absolute w-[500px] h-[500px] rounded-full bottom-1/4 -left-24 animate-aurora-3" style={{ background: 'radial-gradient(circle, rgba(16,185,129,0.07) 0%, transparent 70%)' }} />
           <div className="nx-grid-bg absolute inset-0 opacity-30" />
+          <div className="nx-hex-grid" />
+          <div className="nx-scanline-overlay" />
         </div>
 
         <div className="relative z-10">
@@ -187,7 +189,10 @@ function HomePageContent() {
 
           {/* HERO — Doxa → Nomos */}
           <section className="relative px-6 sm:px-8 pt-28 sm:pt-40 pb-24">
-            <div className="max-w-5xl mx-auto text-center">
+            <div className="max-w-5xl mx-auto relative text-center nx-ancient-frame overflow-hidden px-4 py-4">
+              <div className="absolute -top-10 right-8 hidden md:block">
+                <div className="nx-sigil" />
+              </div>
 
               {/* Official NomosX Logo — large, dynamic, gold core */}
               <div className={`flex justify-center mb-8 transition-all duration-700 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
@@ -210,7 +215,7 @@ function HomePageContent() {
                 </motion.div>
               </div>
 
-              <h1 className={`font-display text-5xl sm:text-6xl md:text-[5.5rem] lg:text-[6.5rem] font-bold leading-[1.05] tracking-tight mb-8 transition-all duration-700 delay-100 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'}`}>
+              <h1 className={`font-display text-5xl sm:text-6xl md:text-[5.5rem] lg:text-[6.5rem] font-bold leading-[1.05] tracking-tight mb-8 transition-all duration-700 delay-100 nx-engraved-title ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'}`}>
                 Research that cannot be<br />
                 <span className="nx-gradient-text">bought, biased, or briefed.</span>
               </h1>
@@ -218,6 +223,10 @@ function HomePageContent() {
               <p className={`text-lg sm:text-xl text-white/50 max-w-2xl mx-auto mb-5 leading-relaxed font-light tracking-wide transition-all duration-700 delay-200 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'}`}>
                 NomosX is an autonomous think tank. 22 domain researchers and a 16-stage verification pipeline produce every brief — no editorial agenda, no sponsor, no opinion.
               </p>
+              <div className={`mx-auto mb-8 max-w-[32rem] rounded-full border border-white/[0.08] bg-white/5 px-4 py-3 text-xs text-white/55 tracking-[0.22em] uppercase flex flex-wrap items-center justify-center gap-2 backdrop-blur-xl shadow-[0_0_50px_rgba(99,102,241,0.08)] transition-all duration-700 delay-225 nx-ancient-banner ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'}`}>
+                <span className="inline-flex h-2 w-2 rounded-full bg-cyan-400 shadow-[0_0_24px_rgba(56,189,248,0.45)]" />
+                Autonomous ingestion · 250M+ docs · 16-stage verification · signal-first intelligence
+              </div>
               <p className={`text-sm text-white/25 max-w-md mx-auto mb-14 leading-loose tracking-wide transition-all duration-700 delay-250 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'}`}>
                 250M+ sources · 16-stage verification · zero editorial opinion · free to read
               </p>
@@ -253,7 +262,7 @@ function HomePageContent() {
           {/* TRUTH ENGINE - live institutional instrument */}
           <section className="relative px-6 sm:px-8 py-20">
             <div className="max-w-6xl mx-auto">
-              <div className="relative overflow-hidden rounded-[28px] border border-indigo-400/15 bg-[#0b0b12]/80 shadow-2xl shadow-indigo-950/30">
+              <div className="relative overflow-hidden rounded-[28px] nx-oracle-panel shadow-2xl shadow-indigo-950/30">
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(99,102,241,0.16),transparent_34%),radial-gradient(circle_at_78%_38%,rgba(20,184,166,0.10),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.045),transparent)]" />
                 <div className="absolute inset-0 nx-grid-bg opacity-25" />
                 <div className="relative grid lg:grid-cols-[1.05fr_0.95fr] gap-0">
@@ -831,7 +840,7 @@ function HomePageContent() {
                   ))}
                 </div>
               ) : (
-                <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-10 text-center">
+                <div className="nx-codex-cell text-center p-10">
                   <p className="text-sm text-white/40 mb-1">No publications yet.</p>
                   <p className="text-xs text-white/25">The pipeline is running — check back soon.</p>
                 </div>

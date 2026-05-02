@@ -176,7 +176,7 @@ export default function ArticlePage() {
           dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }}
         />
       )}
-      <div className="min-h-screen bg-[#09090b] text-white">
+      <div className="min-h-screen nx-immersive-root bg-[#09090b] text-white">
         {/* Background */}
         <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1400px] h-[900px]">
@@ -227,7 +227,7 @@ export default function ArticlePage() {
             {/* Main Content */}
             <div>
               {/* Article Header */}
-              <div className="mb-8 rounded-2xl border border-white/[0.07] bg-white/[0.025] p-6 sm:p-8 overflow-hidden relative">
+              <div className="mb-8 nx-oracle-panel p-6 sm:p-8 overflow-hidden relative">
                 <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-indigo-400/50 via-amber-200/25 to-transparent" />
                 <div className="flex items-center gap-3 mb-4">
                   <span className="px-3 py-1 rounded-full border border-indigo-500/20 bg-indigo-500/5 text-indigo-300 text-xs font-medium">
@@ -377,7 +377,7 @@ export default function ArticlePage() {
                   </div>
                 </div>
 
-                <div className="rounded-xl border border-white/[0.07] bg-white/[0.025] p-4">
+                <div className="nx-codex-cell p-4">
                   <div className="text-[10px] text-white/25 uppercase tracking-[0.18em] font-semibold mb-3">Doxa to Nomos</div>
                   <div className="space-y-2.5">
                     {['Claim extracted', 'Evidence challenged', 'Dissent recorded', 'Limitations surfaced'].map((step, i) => (
@@ -398,7 +398,7 @@ export default function ArticlePage() {
                       <button
                         key={related.id}
                         onClick={() => router.push(`/articles/${related.id}`)}
-                        className="w-full text-left p-4 rounded-lg border border-white/[0.08] bg-white/[0.02] hover:border-indigo-500/20 transition-all group"
+                        className="w-full text-left nx-codex-cell group"
                       >
                         <div className="flex items-center gap-2 mb-2">
                           <span className="text-xs text-indigo-400/60 uppercase tracking-wider">

@@ -82,7 +82,7 @@ export default function ArticlesPage() {
 
   return (
     <>
-      <div className="min-h-screen bg-[#09090b] text-white overflow-hidden">
+      <div className="min-h-screen nx-immersive-root text-white overflow-hidden">
         <div className="nx-noise" aria-hidden="true" />
         {/* Background — aurora */}
         <div className="fixed inset-0 pointer-events-none overflow-hidden">
@@ -98,11 +98,12 @@ export default function ArticlesPage() {
         {/* Header */}
         <div className="relative z-10 border-b border-white/[0.06]">
           <div className="max-w-5xl mx-auto px-6 sm:px-8 py-8">
-            <div className="flex items-center justify-between">
+            <div className="nx-ancient-frame p-6 sm:p-8">
+              <div className="flex items-center justify-between">
               <div>
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-indigo-500/20 bg-indigo-500/5 mb-4">
-                  <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse-glow" />
-                  <span className="text-xs text-indigo-300 font-medium tracking-wide">PUBLICATIONS</span>
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-amber-300/20 bg-amber-300/8 mb-4 nx-ancient-banner">
+                  <div className="w-1.5 h-1.5 rounded-full bg-amber-200 shadow-[0_0_16px_rgba(245,215,120,0.45)]" />
+                  <span className="text-xs text-amber-100 font-medium tracking-[0.22em] uppercase">PUBLICATIONS</span>
                 </div>
                 <h1 className="font-display text-4xl sm:text-5xl font-bold text-white mb-2">
                   Council <span className="nx-gradient-text">Publications</span>
@@ -177,13 +178,14 @@ export default function ArticlesPage() {
                 ))}
               </div>
             </div>
+            </div>
           </div>
         </div>
 
         {/* Protocol strip */}
         <div className="relative z-10 max-w-5xl mx-auto px-6 sm:px-8 pt-8">
           <GreekProtocolStrip compact className="mb-4" />
-          <div className="mb-4 rounded-2xl border border-white/[0.07] bg-white/[0.02] p-5 overflow-hidden relative">
+          <div className="mb-4 nx-oracle-panel p-5 overflow-hidden relative">
             <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-indigo-400/45 via-amber-200/25 to-transparent" />
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
@@ -215,7 +217,7 @@ export default function ArticlesPage() {
             ].map((item) => {
               const PIcon = item.icon;
               return (
-                <div key={item.label} className="rounded-xl border border-white/[0.06] bg-white/[0.025] p-4 overflow-hidden relative">
+                <div key={item.label} className="nx-codex-cell">
                   <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-indigo-400/40 via-violet-300/20 to-transparent" />
                   <PIcon size={15} className="text-indigo-300/75 mb-4" />
                   <div className="text-[10px] text-white/25 uppercase tracking-[0.16em]">{item.label}</div>
@@ -247,7 +249,7 @@ export default function ArticlesPage() {
             <>
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                 {filteredArticles.map((article) => (
-                  <div key={article.id} className="group rounded-2xl border border-white/[0.08] bg-gradient-to-br from-white/[0.03] to-white/[0.01] p-6 hover:border-amber-300/15 transition-all duration-300">
+                  <div key={article.id} className="group rounded-2xl nx-oracle-panel p-6 hover:border-amber-300/15 transition-all duration-300">
                     {(() => {
                       const format = article.format || getPublicationFormat(article.type);
                       return (
@@ -313,11 +315,23 @@ export default function ArticlesPage() {
                     </div>
 
                     {/* Meta */}
-                    <div className="flex items-center justify-between text-xs text-white/30 mb-4">
+                    <div className="flex flex-col gap-2 text-xs text-white/30 mb-4">
                       <div className="flex items-center gap-3">
                         <span>{article.sources} sources</span>
                         <span>•</span>
                         <span>{new Date(article.publishedAt).toLocaleDateString()}</span>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {article.trustScore !== null && (
+                          <span className="rounded-full border border-emerald-400/20 bg-emerald-500/10 px-2 py-1 text-emerald-200">
+                            Trust {article.trustScore}%
+                          </span>
+                        )}
+                        {article.qualityScore !== null && (
+                          <span className="rounded-full border border-sky-400/20 bg-sky-500/10 px-2 py-1 text-sky-200">
+                            Quality {article.qualityScore}%
+                          </span>
+                        )}
                       </div>
                     </div>
 
