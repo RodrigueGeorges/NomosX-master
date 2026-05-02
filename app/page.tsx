@@ -12,9 +12,8 @@ import SiteFooter from '@/components/SiteFooter';
 import { AnimatePresence, motion } from 'framer-motion';
 import PipelineDemo from '@/components/ui/PipelineDemo';
 import { GreekProtocolStrip, OracleSeal } from '@/components/brand/GreekProtocol';
-import { NomosXLogo } from '@/components/brand/NomosXLogo';
-
 const HoloOrb = dynamic(() => import('@/components/ui/HoloOrb'), { ssr: false, loading: () => null });
+const NomosXLogo3D = dynamic(() => import('@/components/brand/NomosXLogo3D').then(m => m.NomosXLogo3D), { ssr: false, loading: () => null });
 const HoloPortrait = dynamic(() => import('@/components/ui/HoloPortrait'), { ssr: false, loading: () => null });
 
 const DOMAIN_ICONS: Record<string, React.ComponentType<{ size?: number | string; strokeWidth?: number | string; style?: React.CSSProperties }>> = {
@@ -211,7 +210,7 @@ function HomePageContent() {
                   {/* Gold glow behind the logo */}
                   <div className="absolute inset-[-25%] rounded-full blur-3xl bg-amber-400/20 animate-pulse" />
                   <div className="absolute inset-[-15%] rounded-full blur-2xl bg-indigo-500/15 animate-pulse" style={{ animationDelay: '1.5s' }} />
-                  <NomosXLogo size="5xl" variant="symbol" />
+                  <NomosXLogo3D size={260} />
                 </motion.div>
               </div>
 
