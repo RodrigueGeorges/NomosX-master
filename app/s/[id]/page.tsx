@@ -3,26 +3,49 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { NomosXLogo3D } from '@/components/brand/NomosXLogo3D';
 import { sanitizeHtml } from '@/lib/sanitize';
+import { publicPublicationWhere } from '@/lib/publication-visibility';
+import { getPublicationFormat } from '@/lib/publication-formats';
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const brief = await prisma.thinkTankPublication.findFirst({
-    where: { OR: [{ publicId: id }, { id }] },
-    select: { title: true },
+    where: publicPublicationWhere({ OR: [{ publicId: id }, { id }] }),
+    select: { title: true, html: true },
   });
+
+  let description = 'Intelligence brief published by the NomosX autonomous think tank.';
+  if (brief?.html) {
+    const firstP = brief.html.match(/<p[^>]*>([\s\S]*?)<\/p>/i);
+    if (firstP) {
+      description = firstP[1].replace(/<[^>]*>/g, '').replace(/\[SRC-\d+\]/g, '').replace(/\s+/g, ' ').trim().slice(0, 200) || description;
+    }
+  }
+
   return {
     title: brief?.title ? `${brief.title} — NomosX` : 'Shared Brief — NomosX',
-    description: 'Intelligence brief published by the NomosX autonomous think tank.',
+    description,
   };
 }
 
 export default async function SharedBrief({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const brief = await prisma.thinkTankPublication.findFirst({
-    where: { OR: [{ publicId: id }, { id }] },
-    select: { id: true, title: true, html: true, createdAt: true },
+    where: publicPublicationWhere({ OR: [{ publicId: id }, { id }] }),
+    select: {
+      id: true,
+      title: true,
+      html: true,
+      type: true,
+      publishedAt: true,
+      sourceIds: true,
+      trustScore: true,
+      wordCount: true,
+    },
   });
   if (!brief) notFound();
+
+  const format = getPublicationFormat(brief.type);
+  const readTime = Math.max(1, Math.ceil((brief.wordCount ?? 0) / 200));
 
   return (
     <div className="min-h-screen bg-[#09090b] text-white">
@@ -39,8 +62,8 @@ export default async function SharedBrief({ params }: { params: Promise<{ id: st
             <span className="text-sm text-white/40 font-light">Shared Brief</span>
           </Link>
           <Link
-            href="/api/auth/register"
-            className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium transition-all duration-200 shadow-lg shadow-amber-300/10"
+            href="/?auth=required"
+            className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium transition-all duration-200 shadow-lg shadow-indigo-500/20"
           >
             Get full access
           </Link>
@@ -51,27 +74,43 @@ export default async function SharedBrief({ params }: { params: Promise<{ id: st
       <main className="relative z-10 max-w-4xl mx-auto px-4 py-12">
         {/* Meta */}
         <div className="mb-8">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-indigo-500/20 bg-indigo-500/5 mb-4">
-            <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
-            <span className="text-[11px] text-indigo-400 font-semibold tracking-[0.15em] uppercase">NomosX Intelligence Brief</span>
+          <div className="flex flex-wrap items-center gap-2 mb-4">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-indigo-500/20 bg-indigo-500/5">
+              <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
+              <span className="text-[11px] text-indigo-400 font-semibold tracking-[0.15em] uppercase">{format.label}</span>
+            </div>
+            {brief.trustScore != null && (
+              <span className={`inline-flex items-center px-2.5 py-1 rounded-full border text-[11px] font-semibold ${
+                brief.trustScore >= 85
+                  ? 'text-emerald-300 border-emerald-500/20 bg-emerald-500/5'
+                  : 'text-indigo-300 border-indigo-500/20 bg-indigo-500/5'
+              }`}>
+                Quality {brief.trustScore}
+              </span>
+            )}
           </div>
           {brief.title && (
             <h1 className="text-2xl sm:text-3xl font-light text-white mb-3 leading-snug">{brief.title}</h1>
           )}
-          <p className="text-sm text-white/30">
-            Published {new Date(brief.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
-            {' · '}Autonomous Think Tank
+          <p className="text-sm text-white/30 flex flex-wrap gap-3">
+            {brief.publishedAt && (
+              <span>{new Date(brief.publishedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+            )}
+            <span>· Autonomous Think Tank</span>
+            {brief.sourceIds?.length ? <span>· {brief.sourceIds.length} sources</span> : null}
+            {readTime > 0 ? <span>· {readTime} min read</span> : null}
           </p>
         </div>
 
         {/* Brief HTML */}
-        <div className="prose prose-invert prose-sm sm:prose max-w-none
-          prose-headings:font-light prose-headings:text-white/90
-          prose-p:text-white/60 prose-p:leading-relaxed
-          prose-a:text-indigo-400 prose-a:no-underline hover:prose-a:underline
-          prose-strong:text-white/80 prose-blockquote:border-indigo-500/30
-          prose-code:text-indigo-300 prose-code:bg-indigo-500/10 prose-code:px-1 prose-code:rounded"
-          dangerouslySetInnerHTML={{ __html: sanitizeHtml(brief.html) }}
+        <div
+          className="prose prose-invert prose-sm sm:prose max-w-none
+            prose-headings:font-light prose-headings:text-white/90
+            prose-p:text-white/60 prose-p:leading-relaxed
+            prose-a:text-indigo-400 prose-a:no-underline hover:prose-a:underline
+            prose-strong:text-white/80 prose-blockquote:border-indigo-500/30
+            prose-code:text-indigo-300 prose-code:bg-indigo-500/10 prose-code:px-1 prose-code:rounded"
+          dangerouslySetInnerHTML={{ __html: sanitizeHtml(brief.html ?? '') }}
         />
 
         {/* CTA */}
@@ -92,9 +131,9 @@ export default async function SharedBrief({ params }: { params: Promise<{ id: st
             </Link>
             <Link
               href="/pricing"
-              className="px-6 py-3 rounded-xl bg-indigo-500 hover:bg-indigo-400 text-white text-sm font-semibold transition-all shadow-lg shadow-amber-300/10"
+              className="px-6 py-3 rounded-xl bg-indigo-500 hover:bg-indigo-400 text-white text-sm font-semibold transition-all shadow-lg shadow-indigo-500/20"
             >
-              Full access from €19/mo
+              See pricing plans
             </Link>
           </div>
         </div>

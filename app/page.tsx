@@ -127,9 +127,10 @@ function HomePageContent() {
         setNewsletterMessage(data.message || "Check your inbox to confirm.");
         setNewsletterStatus("success");
       } else {
+        setNewsletterMessage(data.error || "Unable to subscribe. Please try again.");
         setNewsletterStatus("error");
       }
-    } catch { setNewsletterStatus("error"); }
+    } catch { setNewsletterMessage("Unable to subscribe. Please try again."); setNewsletterStatus("error"); }
   };
 
   useEffect(() => {

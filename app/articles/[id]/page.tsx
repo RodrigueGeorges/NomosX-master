@@ -43,6 +43,7 @@ export default function ArticlePage() {
   const [relatedArticles, setRelatedArticles] = useState<RelatedArticle[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     if (params.id) {
@@ -88,29 +89,25 @@ export default function ArticlePage() {
   };
 
   const handleExport = async () => {
-    if (!article) return;
-
+    if (!article || exporting) return;
+    setExporting(true);
     try {
-      const response = await fetch(`/api/articles/${article.id}/export`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
+      const response = await fetch(`/api/articles/${article.id}/export`);
       if (response.ok) {
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `${article.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.pdf`;
+        a.download = `nomosx-${article.title.replace(/[^a-z0-9]+/gi, '-').toLowerCase().slice(0, 60)}.html`;
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
       }
     } catch (error) {
-      console.error('Failed to export article:', error);
+      console.error('Export failed:', error);
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -210,10 +207,14 @@ export default function ArticlePage() {
                 </button>
                 <button
                   onClick={handleExport}
-                  className="p-2 rounded-lg border border-white/[0.08] bg-white/[0.02] text-white/60 hover:border-white/[0.12] transition-all"
-                  title="Export as PDF"
+                  disabled={exporting}
+                  className="p-2 rounded-lg border border-white/[0.08] bg-white/[0.02] text-white/60 hover:border-white/[0.12] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                  title="Export as HTML (print to PDF)"
                 >
-                  <Download size={16} />
+                  {exporting
+                    ? <div className="w-4 h-4 border-2 border-white/20 border-t-white/60 rounded-full animate-spin" />
+                    : <Download size={16} />
+                  }
                 </button>
               </div>
             </div>
@@ -241,7 +242,7 @@ export default function ArticlePage() {
                           ? 'border-indigo-500/20 bg-indigo-500/5 text-indigo-300'
                           : 'border-orange-500/20 bg-orange-500/5 text-orange-300'
                       }`}
-                      title="Score composite calculé par le pipeline : qualité des sources, nombre de citations, statut peer-reviewed, et validation multi-agents (Critical Loop + Debate)."
+                      title="Composite score computed by the pipeline: source quality, citation count, peer-review status, and multi-agent validation (Critical Loop + Debate)."
                     >
                       Source Quality: {article.trustScore}%{article.trustScore >= 75 ? ' ✓' : ''}
                     </span>
