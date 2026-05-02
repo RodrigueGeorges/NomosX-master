@@ -260,37 +260,37 @@ export default function PricingPage() {
             <p className="text-[11px] text-white/30 font-semibold tracking-[0.2em] uppercase mb-4">FAQ</p>
             <h2 className="font-display text-2xl sm:text-3xl font-bold text-white">Questions</h2>
           </div>
-            <div className="space-y-2">
-              {faq.map((item, i) => (
-                <div
-                  key={i}
-                  className={`rounded-xl border transition-all duration-300 overflow-hidden ${
-                    openFaq === i ? 'border-indigo-500/20 bg-indigo-500/[0.03]' : 'border-white/[0.06] bg-white/[0.02] hover:border-white/[0.10]'
-                  }`}
+          <div className="space-y-2">
+            {faq.map((item, i) => (
+              <div
+                key={i}
+                className={`rounded-xl border transition-all duration-300 overflow-hidden ${
+                  openFaq === i ? 'border-indigo-500/20 bg-indigo-500/[0.03]' : 'border-white/[0.06] bg-white/[0.02] hover:border-white/[0.10]'
+                }`}
+              >
+                <button
+                  onClick={() => setOpenFaq(openFaq === i ? null : i)}
+                  className="w-full flex items-center justify-between px-6 py-5 text-left gap-4"
                 >
-                  <button
-                    onClick={() => setOpenFaq(openFaq === i ? null : i)}
-                    className="w-full flex items-center justify-between px-6 py-5 text-left gap-4"
-                  >
-                    <span className="font-display text-sm font-semibold text-white">{item.q}</span>
-                    <ChevronDown size={15} className={`text-white/30 flex-shrink-0 transition-transform duration-300 ${openFaq === i ? 'rotate-180 text-indigo-400' : ''}`} />
-                  </button>
-                  <AnimatePresence initial={false}>
-                    {openFaq === i && (
-                      <motion.div
-                        key="answer"
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-                      >
-                        <p className="text-sm text-white/45 leading-relaxed px-6 pb-5">{item.a}</p>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              ))}
-            </div>
+                  <span className="font-display text-sm font-semibold text-white">{item.q}</span>
+                  <ChevronDown size={15} className={`text-white/30 flex-shrink-0 transition-transform duration-300 ${openFaq === i ? 'rotate-180 text-indigo-400' : ''}`} />
+                </button>
+                <AnimatePresence initial={false}>
+                  {openFaq === i && (
+                    <motion.div
+                      key="answer"
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                    >
+                      <p className="text-sm text-white/45 leading-relaxed px-6 pb-5">{item.a}</p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            ))}
+          </div>
           </div>
 
           {/* CTA */}
@@ -326,14 +326,6 @@ export default function PricingPage() {
 
         <SiteFooter onSignInClick={() => setShowAuthModal(true)} />
       </div>
-
-      {showAuthModal && (
-        <AuthModal
-          isOpen={showAuthModal}
-          onClose={() => setShowAuthModal(false)}
-          onSignupSuccess={handleAuthSuccess}
-        />
-      )}
     </>
   );
 }
