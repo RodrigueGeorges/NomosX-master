@@ -77,7 +77,7 @@ export default function ResetPasswordPage() {
           <p className="text-sm text-white/40 mb-6">Your password has been updated successfully. You can now sign in.</p>
           <button
             onClick={() => router.push('/?auth=required')}
-            className="px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-sm transition-all duration-300 shadow-lg shadow-indigo-500/20"
+            className="px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-sm transition-all duration-300 shadow-lg shadow-amber-300/10"
           >
             Sign in
           </button>
@@ -138,7 +138,7 @@ export default function ResetPasswordPage() {
           <button
             type="submit"
             disabled={loading || !password || !confirm}
-            className="w-full py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm transition-all duration-300 shadow-lg shadow-indigo-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm transition-all duration-300 shadow-lg shadow-amber-300/10 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? 'Resetting...' : 'Reset password'}
           </button>

@@ -313,7 +313,7 @@ You are also conducting a "pre-mortem": imagine it is 2 years from now and this 
         role: "user",
         content: `RESEARCH QUESTION: "${question}"
 TARGET AUDIENCE: ${targetAudience}
-FORMAT: ${mode === "strategic" ? "Strategic Report (10-15 pages)" : "Executive Brief (3-5 pages)"}
+FORMAT: ${mode === "strategic" ? "Strategic Report (10-15 pages)" : "Research Brief (4-6 pages)"}
 
 ANALYSIS:
 ${analysisContent.slice(0, 3000)}

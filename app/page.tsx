@@ -16,7 +16,6 @@ import { NomosXLogo } from '@/components/brand/NomosXLogo';
 
 const HoloOrb = dynamic(() => import('@/components/ui/HoloOrb'), { ssr: false, loading: () => null });
 const HoloPortrait = dynamic(() => import('@/components/ui/HoloPortrait'), { ssr: false, loading: () => null });
-const NomosXLogo3D = dynamic(() => import('@/components/brand/NomosXLogo3D').then(m => m.NomosXLogo3D), { ssr: false, loading: () => null });
 
 const DOMAIN_ICONS: Record<string, React.ComponentType<{ size?: number | string; strokeWidth?: number | string; style?: React.CSSProperties }>> = {
   'Economics':      TrendingUp,
@@ -78,6 +77,8 @@ type PublicBrief = {
   sources: number;
   topics: string[];
   tier: string;
+  trustScore?: number | null;
+  displayType?: string;
 };
 
 function HomePageContent() {
@@ -225,7 +226,7 @@ function HomePageContent() {
               </div>
 
               <div className={`flex flex-col sm:flex-row gap-4 justify-center mb-20 transition-all duration-700 delay-300 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'}`}>
-                <button onClick={() => setShowAuthModal(true)} className="group px-8 py-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm tracking-wide transition-all duration-300 shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40 hover:scale-[1.02] flex items-center justify-center gap-2">
+                <button onClick={() => setShowAuthModal(true)} className="group px-8 py-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm tracking-wide transition-all duration-300 shadow-lg shadow-amber-300/10 hover:shadow-amber-300/20 hover:scale-[1.02] flex items-center justify-center gap-2">
                   Access the Council — free
                   <ArrowRight size={15} className="group-hover:translate-x-0.5 transition-transform" />
                 </button>
@@ -290,8 +291,8 @@ function HomePageContent() {
                     <div className="absolute top-8 right-8 text-[10px] text-white/20 font-mono tracking-[0.18em]">DOXA_TO_NOMOS</div>
                     <div className="space-y-3">
                       {[
-                        { step: "01", name: "Scout", detail: "provider swarm + source reputation", pct: 92, color: "from-indigo-400 to-cyan-300" },
-                        { step: "02", name: "Rank", detail: "semantic relevance + diversity controls", pct: 84, color: "from-cyan-300 to-emerald-300" },
+                        { step: "01", name: "Scout", detail: "provider swarm + source reputation", pct: 92, color: "from-indigo-300 to-amber-100" },
+                        { step: "02", name: "Rank", detail: "semantic relevance + diversity controls", pct: 84, color: "from-amber-100 to-emerald-300" },
                         { step: "03", name: "Debate", detail: "steel-man dissent and contradiction map", pct: 78, color: "from-rose-300 to-amber-200" },
                         { step: "04", name: "Verify", detail: "claim support, citation integrity, limits", pct: 88, color: "from-amber-200 to-indigo-300" },
                         { step: "05", name: "Publish", detail: "editorial gate, lineage, audit trail", pct: 71, color: "from-violet-300 to-indigo-300" },
@@ -727,8 +728,8 @@ function HomePageContent() {
                   <BookOpen size={12} className="text-indigo-400" />
                   <span className="text-[11px] text-indigo-300/80 font-semibold tracking-[0.2em] uppercase">What truth looks like</span>
                 </div>
-                <h2 className="font-display text-3xl sm:text-4xl font-bold text-white mb-4">Two formats. One standard: truth.</h2>
-                <p className="text-base text-white/40 max-w-xl mx-auto">Every publication — brief or strategic — survives the same 16 challenges. Same rigour. Different depth.</p>
+                <h2 className="font-display text-3xl sm:text-4xl font-bold text-white mb-4">Multiple formats. One standard: truth.</h2>
+                <p className="text-base text-white/40 max-w-xl mx-auto">Every publication survives the same 16 challenges. Signals, memos, briefs, reports, dossiers: same rigour, different depth.</p>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="rounded-2xl border border-white/[0.07] bg-white/[0.02] p-8 relative overflow-hidden hover:border-indigo-500/15 transition-all duration-300">
@@ -738,11 +739,11 @@ function HomePageContent() {
                       <FileText size={18} className="text-indigo-400" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-semibold text-white">Executive Brief</h3>
-                      <p className="text-xs text-white/30">3-5 pages</p>
+                      <h3 className="text-lg font-semibold text-white">Research Brief</h3>
+                      <p className="text-xs text-white/30">4-6 pages</p>
                     </div>
                   </div>
-                  <p className="text-sm text-white/40 leading-relaxed mb-6">Concise, decision-ready truth. Key findings, consensus, disagreements, and strategic implications — every claim traced to its source.</p>
+                  <p className="text-sm text-white/40 leading-relaxed mb-6">Decision-ready synthesis. Key findings, consensus, disagreements, and implications: every claim traced to its source.</p>
                   <div className="space-y-2">
                     {['Consensus & disagreements', 'Pro/con debate synthesis', 'Evidence quality score', 'Full [SRC-N] citations'].map((f, i) => (
                       <div key={i} className="flex items-center gap-2.5">
@@ -759,11 +760,11 @@ function HomePageContent() {
                       <Target size={18} className="text-indigo-400/70" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-semibold text-white">Strategic Report</h3>
-                      <p className="text-xs text-white/30">10-15 pages</p>
+                      <h3 className="text-lg font-semibold text-white">Format Ladder</h3>
+                      <p className="text-xs text-white/30">1-50 pages</p>
                     </div>
                   </div>
-                  <p className="text-sm text-white/40 leading-relaxed mb-6">Comprehensive truth with scenario planning, stakeholder impact, implementation roadmap, and full Council deliberations.</p>
+                  <p className="text-sm text-white/40 leading-relaxed mb-6">Signal Briefs, Data Notes, Policy Memos, Strategic Reports, and Research Dossiers use the same verification stack at different depths.</p>
                   <div className="space-y-2">
                     {['Literature review & thematic analysis', 'Scenario planning (3-5 scenarios)', 'Stakeholder impact matrix', 'Implementation roadmap & metrics'].map((f, i) => (
                       <div key={i} className="flex items-center gap-2.5">
@@ -794,13 +795,46 @@ function HomePageContent() {
                   View all <ExternalLink size={13} />
                 </button>
               </div>
-              <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-8 text-center">
-                <p className="text-sm text-white/40 mb-2">Publications are being regenerated with improved formatting.</p>
-                <p className="text-xs text-white/25">Check back soon — or browse the full archive.</p>
-                <button onClick={() => router.push('/articles')} className="mt-4 px-4 py-2 rounded-lg border border-white/[0.08] bg-white/[0.03] text-white/50 hover:text-white/80 text-sm transition-colors">
-                  Browse archive
-                </button>
-              </div>
+              {latestBriefs.length > 0 ? (
+                <div className="grid md:grid-cols-3 gap-4">
+                  {latestBriefs.map((brief) => (
+                    <div
+                      key={brief.id}
+                      onClick={() => router.push(`/articles/${brief.id}`)}
+                      className="group cursor-pointer rounded-xl border border-white/[0.07] bg-white/[0.02] hover:border-indigo-500/20 hover:bg-white/[0.035] p-5 transition-all duration-300 overflow-hidden relative"
+                    >
+                      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-indigo-400/40 via-violet-300/15 to-transparent" />
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-[10px] text-amber-100/50 uppercase tracking-wider font-medium">
+                          {brief.displayType || brief.type.replace(/_/g, ' ')}
+                        </span>
+                        {brief.trustScore != null && (
+                          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${
+                            brief.trustScore >= 85 ? 'text-emerald-300 border-emerald-500/20 bg-emerald-500/5'
+                            : brief.trustScore >= 75 ? 'text-indigo-300 border-indigo-500/20 bg-indigo-500/5'
+                            : 'text-amber-300 border-amber-500/20 bg-amber-500/5'
+                          }`}>{brief.trustScore}</span>
+                        )}
+                      </div>
+                      <h3 className="font-display text-sm font-light text-white/90 mb-2 line-clamp-2 group-hover:text-indigo-200/80 transition-colors leading-snug">
+                        {brief.title}
+                      </h3>
+                      <p className="text-xs text-white/35 line-clamp-3 leading-relaxed mb-3">
+                        {brief.summary}
+                      </p>
+                      <div className="flex items-center justify-between text-[10px] text-white/25">
+                        <span>{brief.sources} sources · {brief.readTime} min</span>
+                        <span>{new Date(brief.publishedAt).toLocaleDateString()}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-10 text-center">
+                  <p className="text-sm text-white/40 mb-1">No publications yet.</p>
+                  <p className="text-xs text-white/25">The pipeline is running — check back soon.</p>
+                </div>
+              )}
               <div className="mt-5 flex justify-center sm:hidden">
                 <button onClick={() => router.push('/articles')} className="text-sm text-white/35 hover:text-white/60 transition-colors flex items-center gap-2">View all publications <ExternalLink size={13} /></button>
               </div>
@@ -831,7 +865,7 @@ function HomePageContent() {
                   ) : (
                     <form onSubmit={handleNewsletterSubmit} className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
                       <input type="email" value={newsletterEmail} onChange={e => setNewsletterEmail(e.target.value)} placeholder="your@institution.edu" required className="flex-1 px-4 py-3.5 rounded-xl bg-white/[0.05] border border-white/[0.12] text-white placeholder-white/20 text-sm focus:outline-none focus:border-indigo-500/50 transition-colors" />
-                      <button type="submit" disabled={newsletterStatus === "loading"} className="px-6 py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm transition-all duration-200 disabled:opacity-60 whitespace-nowrap shadow-lg shadow-indigo-500/20">
+                      <button type="submit" disabled={newsletterStatus === "loading"} className="px-6 py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm transition-all duration-200 disabled:opacity-60 whitespace-nowrap shadow-lg shadow-amber-300/10">
                         {newsletterStatus === "loading" ? "..." : "Subscribe — free"}
                       </button>
                     </form>
@@ -874,7 +908,7 @@ function HomePageContent() {
                   <p className="text-xs text-white/40 leading-relaxed mb-7">Read everything the Council publishes. Subscribe to the weekly dispatch. No credit card. No expiry.</p>
                   <div className="space-y-2.5 mb-8">
                     {[
-                      "All published briefs & strategic reports",
+                      "All published formats: signals, memos, reports, dossiers",
                       "Weekly truth dispatch",
                       "Full source traceability on every claim",
                       "22-researcher Council publications",
@@ -896,7 +930,7 @@ function HomePageContent() {
                   <div className="absolute inset-0 rounded-2xl animate-beam-spin" style={{ background: 'conic-gradient(from 0deg, transparent 0deg, rgba(99,102,241,0.9) 45deg, rgba(139,92,246,0.7) 90deg, transparent 135deg)' }} />
                   <div className="relative rounded-2xl bg-[#09090b] p-8 h-full" style={{ background: 'linear-gradient(140deg,rgba(99,102,241,0.06) 0%,rgba(9,9,11,1) 50%)' }}>
                     <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                      <span className="px-3 py-1 rounded-full bg-indigo-600 text-white text-[10px] font-bold tracking-widest uppercase">StudioX</span>
+                      <span className="px-3 py-1 rounded-full bg-indigo-600 text-white text-[10px] font-bold tracking-widest uppercase shadow shadow-amber-300/10">StudioX</span>
                     </div>
                     <p className="text-[10px] text-indigo-400/70 font-semibold tracking-[0.25em] uppercase mb-4 mt-1">Custom research on demand</p>
                     <div className="flex items-baseline gap-2 mb-3">
@@ -906,7 +940,7 @@ function HomePageContent() {
                     <div className="space-y-2.5 mb-8">
                       {[
                         "Commission research on any topic",
-                        "Executive Brief or Strategic Report",
+                        "Choose format: memo, brief, report, or dossier",
                         "Full 22-researcher Council deliberations",
                         "Adversarial debate + meta-analysis",
                         "Verified [SRC-N] citation export",
@@ -919,7 +953,7 @@ function HomePageContent() {
                         </div>
                       ))}
                     </div>
-                    <button onClick={openStudioAuth} className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm transition-all duration-200 shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2 group">
+                    <button onClick={openStudioAuth} className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm transition-all duration-200 shadow-lg shadow-amber-300/10 flex items-center justify-center gap-2 group">
                       Get StudioX access
                       <ArrowRight size={13} className="group-hover:translate-x-0.5 transition-transform" />
                     </button>
@@ -940,7 +974,7 @@ function HomePageContent() {
               </h2>
               <p className="text-base text-white/40 max-w-xl mx-auto mb-8">Every brief, every strategic report, every source trace — freely accessible. No paywall. No account required to read.</p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                <button onClick={openFreeAuth} className="group px-7 py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm transition-all duration-300 shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40 flex items-center justify-center gap-2">
+                <button onClick={openFreeAuth} className="group px-7 py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm transition-all duration-300 shadow-lg shadow-amber-300/10 hover:shadow-amber-300/20 flex items-center justify-center gap-2">
                   Enter the Think Tank
                   <ArrowRight size={15} className="group-hover:translate-x-0.5 transition-transform" />
                 </button>

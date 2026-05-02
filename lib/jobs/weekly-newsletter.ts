@@ -274,7 +274,7 @@ async function getWeeklyBriefs() {
   const publications = await prisma.thinkTankPublication.findMany({
     where: {
       status: "PUBLISHED",
-      type: { in: ["RESEARCH_BRIEF", "EXECUTIVE_BRIEF"] },
+      type: { in: ["SUMMARY_BRIEF", "EXECUTIVE_BRIEF", "STRATEGIC_REPORT", "RESEARCH_BRIEF"] },
       publishedAt: { gte: oneWeekAgo },
     },
     orderBy: { publishedAt: "desc" },
@@ -299,12 +299,15 @@ async function getWeeklyBriefs() {
   }));
 }
 
-// Extract summary from HTML content
+// Extract summary from HTML content — tries executive-summary section, then key-findings, then first paragraph
 function extractSummary(html: string): string {
-  const summaryMatch = html.match(/<section[^>]*id="?executive-summary"?[^>]*>([\s\S]*?)<\/section>/i);
-  if (summaryMatch) {
-    const text = summaryMatch[1].replace(/<[^>]+>/g, '').trim();
-    return text.slice(0, 800) + (text.length > 800 ? '…' : '');
+  const sectionIds = ['executive-summary', 'key-findings', 'findings'];
+  for (const id of sectionIds) {
+    const match = html.match(new RegExp(`<section[^>]*id="?${id}"?[^>]*>([\\s\\S]*?)<\\/section>`, 'i'));
+    if (match) {
+      const text = match[1].replace(/<[^>]+>/g, '').trim();
+      if (text.length > 50) return text.slice(0, 800) + (text.length > 800 ? '…' : '');
+    }
   }
 
   const pMatch = html.match(/<p[^>]*>([\s\S]*?)<\/p>/i);
@@ -394,7 +397,7 @@ export async function runWeeklyNewsletter() {
     const edition = await prisma.newsletterEdition.create({
       data: {
         editionNumber,
-        subject: `NomosX Weekly #${editionNumber}: ${briefs.length} Executive Brief${briefs.length > 1 ? 's' : ''}`,
+        subject: `NomosX Weekly #${editionNumber}: ${briefs.length} Open Publication${briefs.length > 1 ? 's' : ''}`,
         preheader: briefs[0]?.title || "This week's decision-ready insights",
         html,
         briefIds: briefs.map(b => b.id),

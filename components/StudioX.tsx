@@ -70,7 +70,16 @@ export default function StudioX() {
       const res = await fetch('/api/studiox', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: apiMessages, stream: true }),
+        body: JSON.stringify({
+          messages: apiMessages,
+          stream: true,
+          studioContext: {
+            mode: 'ASK',
+            formatType: 'RESEARCH_BRIEF',
+            audience: 'Decision-makers',
+            urgency: 'Standard',
+          },
+        }),
       });
 
       if (!res.ok) {
@@ -144,8 +153,8 @@ export default function StudioX() {
   // Quick action suggestions
   const quickActions = [
     "What's the latest on my monitored topics?",
-    "Summarize my most recent brief",
-    "Commission research on a new topic",
+    "Summarize my most recent publication",
+    "Scope this as a Policy Memo",
   ];
 
   // Only show for authenticated users
@@ -157,7 +166,7 @@ export default function StudioX() {
       {!open && (
         <button
           onClick={() => setOpen(true)}
-          className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-indigo-600 shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/30 hover:bg-indigo-500 hover:scale-105 transition-all duration-300 flex items-center justify-center group"
+          className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-indigo-600 shadow-lg shadow-amber-300/10 hover:shadow-amber-300/20 hover:bg-indigo-500 hover:scale-105 transition-all duration-300 flex items-center justify-center group"
         >
           <MessageSquare size={22} className="text-white group-hover:scale-110 transition-transform" />
           <span className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-400 rounded-full border-2 border-[#09090b] animate-pulse" />

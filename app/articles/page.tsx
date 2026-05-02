@@ -7,6 +7,7 @@ import SiteFooter from '@/components/SiteFooter';
 import { Search, ArrowRight, Clock, BookOpen, Shield, Activity, Database, Scale } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { GreekProtocolStrip } from '@/components/brand/GreekProtocol';
+import { FORMAT_FILTERS, getPublicationFormat, type PublicationFormatFamily } from '@/lib/publication-formats';
 
 interface ArticleSummary {
   id: string;
@@ -17,8 +18,10 @@ interface ArticleSummary {
   readTime: number;
   sources: number;
   topics: string[];
-  tier: 'EXECUTIVE' | 'STRATEGIC';
+  tier: string;
   displayType: string;
+  format?: ReturnType<typeof getPublicationFormat>;
+  trustScore?: number | null;
 }
 
 export default function ArticlesPage() {
@@ -27,7 +30,7 @@ export default function ArticlesPage() {
   const [articles, setArticles] = useState<ArticleSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterType, setFilterType] = useState<'all' | 'executive' | 'strategic'>('all');
+  const [filterType, setFilterType] = useState<'all' | PublicationFormatFamily>('all');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
@@ -65,14 +68,8 @@ export default function ArticlesPage() {
     const matchesSearch = !searchTerm || 
       article.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       article.summary.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const executiveTypes = new Set(['EXECUTIVE_BRIEF', 'RESEARCH_BRIEF', 'UPDATE_NOTE', 'DATA_NOTE', 'POLICY_NOTE', 'SUMMARY_BRIEF']);
-    const strategicTypes = new Set(['STRATEGIC_REPORT', 'DOSSIER']);
-    const matchesType = filterType === 'all' ||
-      (filterType === 'executive' && executiveTypes.has(article.type)) ||
-      (filterType === 'strategic' && strategicTypes.has(article.type));
-    
-    return matchesSearch && matchesType;
+
+    return matchesSearch;
   });
 
   return (
@@ -108,7 +105,7 @@ export default function ArticlesPage() {
               </div>
               <button
                 onClick={() => setShowAuthModal(true)}
-                className="group px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-sm transition-all duration-300 shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/30 hover:scale-[1.03] inline-flex items-center gap-2"
+                className="group px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-sm transition-all duration-300 shadow-lg shadow-amber-300/10 hover:shadow-amber-300/20 hover:scale-[1.03] inline-flex items-center gap-2"
               >
                 Sign in — it&apos;s free
                 <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
@@ -130,9 +127,7 @@ export default function ArticlesPage() {
               
               <div className="flex gap-2">
                 {[
-                  { value: 'all', label: 'All Articles' },
-                  { value: 'executive', label: 'Executive Briefs' },
-                  { value: 'strategic', label: 'Strategic Reports' },
+                  ...FORMAT_FILTERS,
                 ].map((filter) => (
                   <button
                     key={filter.value}
@@ -219,20 +214,37 @@ export default function ArticlesPage() {
             <>
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                 {filteredArticles.map((article) => (
-                  <div key={article.id} className="group rounded-2xl border border-white/[0.08] bg-gradient-to-br from-white/[0.03] to-white/[0.01] p-6 hover:border-indigo-500/15 transition-all duration-300">
+                  <div key={article.id} className="group rounded-2xl border border-white/[0.08] bg-gradient-to-br from-white/[0.03] to-white/[0.01] p-6 hover:border-amber-300/15 transition-all duration-300">
+                    {(() => {
+                      const format = article.format || getPublicationFormat(article.type);
+                      return (
+                        <>
                     <div className="flex items-center gap-1.5 mb-4 text-[10px] text-white/25 font-mono tracking-[0.16em] uppercase">
                       <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 shadow-[0_0_12px_rgba(110,231,183,0.7)]" />
                       verified publication
                     </div>
                     {/* Type Badge */}
                     <div className="flex items-center gap-2 mb-3">
-                      <div className="w-2 h-2 rounded-full bg-indigo-400/60"></div>
-                      <span className="text-xs text-indigo-400/50 uppercase tracking-wider">
-                        {article.displayType || (article.type === 'STRATEGIC_REPORT' ? 'Strategic Report' : 'Executive Brief')}
+                      <div className="w-2 h-2 rounded-full bg-amber-300/60"></div>
+                      <span className="text-xs text-amber-100/55 uppercase tracking-wider">
+                        {format.label}
                       </span>
-                      <div className="ml-auto flex items-center gap-2 text-xs text-white/30">
-                        <Clock size={12} />
-                        {article.readTime} min
+                      <div className="ml-auto flex items-center gap-2">
+                        {article.trustScore != null && (
+                          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${
+                            article.trustScore >= 85
+                              ? 'text-emerald-300 border-emerald-500/20 bg-emerald-500/5'
+                              : article.trustScore >= 75
+                              ? 'text-indigo-300 border-indigo-500/20 bg-indigo-500/5'
+                              : 'text-amber-300 border-amber-500/20 bg-amber-500/5'
+                          }`}>
+                            {article.trustScore}
+                          </span>
+                        )}
+                        <span className="flex items-center gap-1 text-xs text-white/30">
+                          <Clock size={12} />
+                          {article.readTime} min
+                        </span>
                       </div>
                     </div>
 
@@ -249,7 +261,7 @@ export default function ArticlesPage() {
                     <div className="mb-4 rounded-lg border border-white/[0.06] bg-black/20 p-3">
                       <div className="flex items-center justify-between text-[10px] text-white/25 uppercase tracking-[0.14em] mb-2">
                         <span>Evidence stack</span>
-                        <span>{article.tier}</span>
+                          <span>{format.pages}</span>
                       </div>
                       <div className="grid grid-cols-3 gap-2 text-center">
                         <div>
@@ -295,13 +307,16 @@ export default function ArticlesPage() {
                     {/* CTA */}
                     <button
                       onClick={() => handleReadFull(article.id)}
-                      className="w-full py-2.5 rounded-lg border border-indigo-500/20 bg-indigo-500/5 text-indigo-300 font-medium hover:bg-indigo-500/10 transition-all group-hover:border-indigo-500/40"
+                      className="w-full py-2.5 rounded-lg border border-amber-300/20 bg-amber-300/[0.04] text-amber-100/80 font-medium hover:bg-amber-300/[0.08] transition-all group-hover:border-amber-300/40"
                     >
                       <span className="flex items-center justify-center gap-2">
-                        Read full article
+                        Read full publication
                         <ArrowRight size={14} className="transition-transform group-hover:translate-x-1" />
                       </span>
                     </button>
+                        </>
+                      );
+                    })()}
                   </div>
                 ))}
               </div>

@@ -121,10 +121,6 @@ export interface SignalScores {
   urgencyScore: number;    // 0-100
 }
 
-export interface SignalWithPriority extends SignalScores {
-  priorityScore: number;   // Composite 0-100
-}
-
 // ============================================================================
 // EDITORIAL CHECKS
 // ============================================================================

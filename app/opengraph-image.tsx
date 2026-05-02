@@ -39,7 +39,7 @@ export default async function Image() {
             right: '10%',
             width: '50%',
             height: '50%',
-            background: 'radial-gradient(ellipse at center, rgba(139,92,246,0.08), transparent 70%)',
+            background: 'radial-gradient(ellipse at center, rgba(245,215,120,0.10), transparent 70%)',
           }}
         />
 
@@ -56,17 +56,28 @@ export default async function Image() {
           <svg width="72" height="72" viewBox="0 0 120 120" fill="none">
             <defs>
               <linearGradient id="g" x1="20%" y1="0%" x2="80%" y2="100%">
-                <stop offset="0%" stopColor="#818CF8" />
-                <stop offset="50%" stopColor="#6366F1" />
+                <stop offset="0%" stopColor="#A5B4FC" />
+                <stop offset="45%" stopColor="#6366F1" />
                 <stop offset="100%" stopColor="#7C3AED" />
               </linearGradient>
+              <radialGradient id="core" cx="50%" cy="45%" r="55%">
+                <stop offset="0%" stopColor="#FFFFFF" />
+                <stop offset="42%" stopColor="#F5D778" />
+                <stop offset="100%" stopColor="#D4AF37" />
+              </radialGradient>
             </defs>
-            <path d="M 25 28 L 25 92 L 34 92 L 34 28 Z" fill="url(#g)" />
-            <path d="M 86 28 L 86 92 L 95 92 L 95 28 Z" fill="url(#g)" />
-            <path d="M 34 33 L 62 60 L 86 84 L 94 77 L 62 51 L 34 26 Z" fill="url(#g)" />
-            <path d="M 86 33 L 58 60 L 34 84 L 26 77 L 58 51 L 86 26 Z" fill="url(#g)" opacity="0.8" />
-            <circle cx="60" cy="60" r="8" fill="white" opacity="0.9" />
-            <circle cx="60" cy="60" r="3.5" fill="#6366F1" />
+            <circle cx="60" cy="60" r="52" fill="#09090B" stroke="white" strokeOpacity="0.10" strokeWidth="1.2" />
+            <path d="M60 9 L68 24 H52 L60 9Z" fill="#F5D778" opacity="0.55" />
+            <path d="M60 111 L52 96 H68 L60 111Z" fill="#F5D778" opacity="0.42" />
+            <path d="M9 60 L24 52 V68 L9 60Z" fill="#A5B4FC" opacity="0.28" />
+            <path d="M111 60 L96 68 V52 L111 60Z" fill="#A5B4FC" opacity="0.28" />
+            <circle cx="60" cy="60" r="42" stroke="url(#g)" strokeWidth="1.3" strokeOpacity="0.50" />
+            <path d="M31 35 V86" stroke="url(#g)" strokeWidth="8" strokeLinecap="round" />
+            <path d="M89 35 V86" stroke="url(#g)" strokeWidth="8" strokeLinecap="round" />
+            <path d="M34 36 L86 84" stroke="url(#g)" strokeWidth="8" strokeLinecap="round" opacity="0.92" />
+            <path d="M86 36 L34 84" stroke="url(#g)" strokeWidth="8" strokeLinecap="round" opacity="0.72" />
+            <circle cx="60" cy="60" r="11" fill="url(#core)" />
+            <circle cx="60" cy="60" r="4.2" fill="#09090B" opacity="0.92" />
           </svg>
 
           <span
@@ -74,7 +85,7 @@ export default async function Image() {
               fontSize: '48px',
               fontWeight: 600,
               letterSpacing: '-0.02em',
-              background: 'linear-gradient(to right, #e0e7ff, #c7d2fe, #ddd6fe)',
+              background: 'linear-gradient(to right, #ffffff, #c7d2fe, #f5d778)',
               backgroundClip: 'text',
               color: 'transparent',
             }}
@@ -164,7 +175,7 @@ export default async function Image() {
             left: '0',
             right: '0',
             height: '4px',
-            background: 'linear-gradient(to right, #818CF8, #6366F1, #7C3AED, #6366F1, #818CF8)',
+            background: 'linear-gradient(to right, #A5B4FC, #6366F1, #7C3AED, #F5D778)',
           }}
         />
       </div>

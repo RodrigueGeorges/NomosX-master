@@ -149,6 +149,27 @@ export async function handleWebhookEvent(
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
+        const eventType = session.metadata?.type;
+
+        // StudioX pay-per-use order
+        if (eventType === 'studiox_order') {
+          const orderId = session.metadata?.orderId;
+          if (orderId) {
+            await prisma.studioXOrder.update({
+              where: { id: orderId },
+              data: {
+                status: 'PAID',
+                paidAt: new Date(),
+                stripeSessionId: session.id,
+                stripePaymentIntent: session.payment_intent as string ?? null,
+              },
+            });
+            console.log(`[STRIPE] StudioX order ${orderId} paid`);
+          }
+          break;
+        }
+
+        // Subscription upgrade
         const userId = session.metadata?.userId;
         const plan = session.metadata?.plan as StripePlan | undefined;
         if (userId && plan) {
@@ -245,6 +266,72 @@ export async function handleWebhookEvent(
   } catch (err: any) {
     console.error('[STRIPE] Webhook error:', err.message);
     return { received: false, error: 'Webhook signature verification failed' };
+  }
+}
+
+/**
+ * Create a Stripe Checkout Session for a StudioX pay-per-use order.
+ */
+export async function createStudioXCheckoutSession(params: {
+  userId: string;
+  orderId: string;
+  formatLabel: string;
+  amountCents: number;
+  currency?: string;
+}): Promise<{ url: string | null; sessionId?: string; error?: string }> {
+  if (!stripe) {
+    return { url: null, error: 'Stripe not configured (STRIPE_SECRET_KEY missing)' };
+  }
+
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: params.userId },
+      include: { subscription: true },
+    });
+    if (!user) return { url: null, error: 'User not found' };
+
+    let customerId = user.subscription?.stripeCustomerId;
+    if (!customerId) {
+      const customer = await stripe.customers.create({
+        email: user.email,
+        metadata: { userId: params.userId },
+      });
+      customerId = customer.id;
+      await prisma.subscription.upsert({
+        where: { userId: params.userId },
+        update: { stripeCustomerId: customerId },
+        create: { userId: params.userId, plan: 'ANALYST', stripeCustomerId: customerId },
+      });
+    }
+
+    const session = await stripe.checkout.sessions.create({
+      mode: 'payment',
+      customer: customerId,
+      payment_method_types: ['card'],
+      line_items: [{
+        price_data: {
+          currency: params.currency ?? 'eur',
+          product_data: {
+            name: `StudioX — ${params.formatLabel}`,
+            description: 'NomosX commissioned research — 16-agent pipeline, adversarial review, [SRC-N] citations',
+          },
+          unit_amount: params.amountCents,
+        },
+        quantity: 1,
+      }],
+      metadata: {
+        type: 'studiox_order',
+        orderId: params.orderId,
+        userId: params.userId,
+      },
+      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/studio?orderId=${params.orderId}`,
+      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/studio?cancelled=true`,
+    });
+
+    return { url: session.url, sessionId: session.id };
+  } catch (err: any) {
+    console.error('[STRIPE] StudioX checkout error:', err.message);
+    return { url: null, error: 'Failed to create checkout session' };
   }
 }
 

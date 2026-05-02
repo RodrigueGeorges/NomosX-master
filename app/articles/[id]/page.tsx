@@ -1,26 +1,17 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, ArrowRight, Calendar, Clock, Users, Share2, Download, FileText, BookOpen, Tag, Shield, Activity, Database, Scale, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Calendar, Clock, Users, Share2, Download, FileText, Tag, Shield, Activity, Database, Scale, AlertTriangle } from 'lucide-react';
 import { sanitizeHtml } from '@/lib/sanitize';
 import AuthModal from '@/components/AuthModal';
 import { GreekProtocolStrip } from '@/components/brand/GreekProtocol';
+import { getPublicationFormat } from '@/lib/publication-formats';
 
 type ArticleType = 'RESEARCH_BRIEF' | 'UPDATE_NOTE' | 'DATA_NOTE' | 'POLICY_NOTE' | 'DOSSIER'
   | 'EXECUTIVE_BRIEF' | 'STRATEGIC_REPORT' | 'SUMMARY_BRIEF';
 
 function articleTypeLabel(type: ArticleType): string {
-  switch (type) {
-    case 'RESEARCH_BRIEF':   return 'Executive Brief';
-    case 'UPDATE_NOTE':      return 'Update Note';
-    case 'DATA_NOTE':        return 'Data Note';
-    case 'POLICY_NOTE':      return 'Policy Brief';
-    case 'DOSSIER':          return 'Strategic Dossier';
-    case 'STRATEGIC_REPORT': return 'Strategic Report';
-    case 'EXECUTIVE_BRIEF':  return 'Executive Brief';
-    case 'SUMMARY_BRIEF':    return 'Summary Brief';
-    default:                 return 'Executive Brief';
-  }
+  return getPublicationFormat(type).label;
 }
 
 interface Article {
@@ -34,6 +25,7 @@ interface Article {
   topics: string[];
   author?: string;
   trustScore?: number;
+  format?: ReturnType<typeof getPublicationFormat>;
 }
 
 interface RelatedArticle {
@@ -51,12 +43,10 @@ export default function ArticlePage() {
   const [relatedArticles, setRelatedArticles] = useState<RelatedArticle[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const [isSubscribed, setIsSubscribed] = useState(false);
 
   useEffect(() => {
     if (params.id) {
       fetchArticle(params.id as string);
-      checkSubscription();
     }
   }, [params.id]);
 
@@ -79,19 +69,6 @@ export default function ArticlePage() {
     }
   };
 
-  const checkSubscription = async () => {
-    try {
-      const response = await fetch('/api/subscription/status');
-      if (response.ok) {
-        const data = await response.json();
-        // Mirrors API isPaidUser: TRIAL and ANALYST get truncated, all paid plans get full HTML
-        setIsSubscribed(data.plan !== 'TRIAL' && data.plan !== 'ANALYST' && !!data.plan);
-      }
-    } catch (error) {
-      console.error('Failed to check subscription:', error);
-    }
-  };
-
   const handleShare = async () => {
     if (navigator.share && article) {
       try {
@@ -111,11 +88,6 @@ export default function ArticlePage() {
   };
 
   const handleExport = async () => {
-    if (!isSubscribed) {
-      setShowAuthModal(true);
-      return;
-    }
-
     if (!article) return;
 
     try {
@@ -191,6 +163,7 @@ export default function ArticlePage() {
       : trustScore >= 50
         ? "review"
         : "held";
+  const format = article.format || getPublicationFormat(article.type);
   const protocolItems = [
     { icon: Database, label: "Corpus", value: `${article.sources} sources`, detail: "ranked evidence base" },
     { icon: Shield, label: "Gate", value: gateTone, detail: "quality threshold" },
@@ -257,7 +230,7 @@ export default function ArticlePage() {
                 <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-indigo-400/50 via-amber-200/25 to-transparent" />
                 <div className="flex items-center gap-3 mb-4">
                   <span className="px-3 py-1 rounded-full border border-indigo-500/20 bg-indigo-500/5 text-indigo-300 text-xs font-medium">
-                    {articleTypeLabel(article.type)}
+                    {format.label}
                   </span>
                   {article.trustScore != null && (
                     <span
@@ -347,14 +320,15 @@ export default function ArticlePage() {
 
               {/* Article Content */}
               <div className="prose prose-invert prose-lg max-w-none prose-headings:font-display prose-headings:font-light prose-p:text-white/75 prose-li:text-white/70 prose-a:text-indigo-300">
-                {isSubscribed ? (
+                {
                   <div 
                     className="article-content text-white/80 leading-relaxed"
                     dangerouslySetInnerHTML={{ __html: sanitizeHtml(article.content) }}
                   />
-                ) : (
+                }
+                {false && (
                   <>
-                    {/* Teaser — server returns first 3 paragraphs, plain text */}
+                    {/* Legacy branch kept disabled while all public publications remain open. */}
                     <div className="text-white/70 leading-relaxed text-base mb-8 whitespace-pre-line">
                       {article.content}
                     </div>
@@ -363,20 +337,20 @@ export default function ArticlePage() {
                     <div className="relative">
                       <div className="absolute inset-x-0 -top-20 h-20 bg-gradient-to-b from-transparent to-[#09090b] pointer-events-none" />
                       <div className="text-center py-12 border-t border-white/[0.06]">
-                        <BookOpen className="w-12 h-12 text-indigo-400 mx-auto mb-4" />
+                        <FileText className="w-12 h-12 text-indigo-400 mx-auto mb-4" />
                         <h3 className="text-xl font-semibold text-white mb-2">
                           Read the full {articleTypeLabel(article.type).toLowerCase()}
                         </h3>
                         <p className="text-white/50 mb-6 max-w-md mx-auto text-sm">
-                          Subscribe to access the complete analysis, sourced citations, and actionable recommendations.
+                          StudioX can turn this publication into a commissioned follow-up with scoped evidence and citations.
                         </p>
                         <button
                           onClick={() => setShowAuthModal(true)}
-                          className="px-8 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium transition-all shadow-lg shadow-indigo-500/20"
+                          className="px-8 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium transition-all shadow-lg shadow-amber-300/10"
                         >
-                          Subscribe Now
+                          Commission follow-up
                         </button>
-                        <p className="text-xs text-white/25 mt-4">From €19/month · 30-day free trial · Cancel anytime</p>
+                        <p className="text-xs text-white/25 mt-4">Same verification protocol, custom mandate.</p>
                       </div>
                     </div>
                   </>
@@ -384,18 +358,15 @@ export default function ArticlePage() {
               </div>
 
               {/* Navigation */}
-              {isSubscribed && (
-                <div className="flex items-center justify-between mt-12 pt-8 border-t border-white/[0.06]">
-                  <button className="flex items-center gap-2 text-white/60 hover:text-white transition-colors">
-                    <ArrowLeft size={16} />
-                    Previous Article
-                  </button>
-                  <button className="flex items-center gap-2 text-white/60 hover:text-white transition-colors">
-                    Next Article
-                    <ArrowRight size={16} />
-                  </button>
-                </div>
-              )}
+              <div className="mt-12 pt-8 border-t border-white/[0.06] text-center">
+                <button
+                  onClick={() => setShowAuthModal(true)}
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl border border-amber-300/20 bg-amber-300/[0.04] text-amber-100/80 text-sm font-medium hover:bg-amber-300/[0.08] transition-all"
+                >
+                  Commission a StudioX follow-up
+                  <ArrowRight size={15} />
+                </button>
+              </div>
             </div>
 
             {/* Sidebar */}
@@ -409,8 +380,8 @@ export default function ArticlePage() {
                   <div className="p-4 space-y-4">
                     {[
                       { label: 'Source corpus', value: `${article.sources} sources`, tone: 'bg-indigo-300' },
-                      { label: 'Reading mode', value: isSubscribed ? 'full evidence' : 'teaser', tone: 'bg-cyan-300' },
-                      { label: 'Citation layer', value: isSubscribed ? 'visible' : 'locked', tone: 'bg-amber-200' },
+                      { label: 'Format', value: format.shortLabel, tone: 'bg-amber-100' },
+                      { label: 'Citation layer', value: 'visible', tone: 'bg-amber-200' },
                       { label: 'Council gate', value: article.trustScore != null ? `${article.trustScore}%` : 'logged', tone: 'bg-emerald-300' },
                     ].map((item) => (
                       <div key={item.label} className="flex items-start gap-3">

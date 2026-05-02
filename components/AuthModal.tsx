@@ -91,8 +91,8 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
       <div className="p-8 sm:p-10 max-w-lg w-full relative overflow-hidden">
         {/* Background Effects */}
         <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-indigo-500/10 via-violet-500/5 to-transparent blur-3xl" />
-          <div className="absolute bottom-0 left-0 w-64 h-64 bg-gradient-to-tr from-purple-500/8 to-transparent blur-3xl" />
+          <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-amber-300/10 via-indigo-500/6 to-transparent blur-3xl" />
+          <div className="absolute bottom-0 left-0 w-64 h-64 bg-gradient-to-tr from-indigo-500/8 to-transparent blur-3xl" />
         </div>
 
         {/* Header */}
@@ -105,13 +105,13 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
           {/* Title */}
 
           {/* Small caps */}
-          <div className="text-xs text-indigo-300/70 tracking-[0.25em] uppercase mb-4">
+          <div className="text-xs text-amber-100/60 tracking-[0.25em] uppercase mb-4">
             Institutional Intelligence
           </div>
 
           {/* Headline */}
           <h2 className="text-3xl sm:text-4xl font-light leading-tight mb-3">
-            <span className="bg-gradient-to-r from-white via-violet-200 to-white bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-white via-indigo-100 to-amber-100 bg-clip-text text-transparent">
               Start your analysis
             </span>
           </h2>
@@ -125,9 +125,9 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
           {/* Trust Bar */}
           <div className="flex items-center justify-center gap-3 text-xs text-white/30 tracking-[0.15em] uppercase">
             <span>250M+ Sources</span>
-            <div className="w-1 h-1 rounded-full bg-indigo-400/40" />
+            <div className="w-1 h-1 rounded-full bg-amber-300/45" />
             <span>Auto-published</span>
-            <div className="w-1 h-1 rounded-full bg-indigo-400/40" />
+            <div className="w-1 h-1 rounded-full bg-amber-300/45" />
             <span>Free to start</span>
           </div>
         </div>
@@ -136,9 +136,9 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
           <div className="relative space-y-4">
             <button
               onClick={() => { setIsSignup(false); setMode("email"); }}
-              className="group relative w-full p-4 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-600 text-white font-medium shadow-[0_0_30px_rgba(99,102,241,0.3)] hover:shadow-[0_0_50px_rgba(99,102,241,0.5)] transition-all duration-300 overflow-hidden"
+              className="group relative w-full p-4 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-violet-600 text-white font-medium shadow-[0_0_30px_rgba(245,215,120,0.14)] hover:shadow-[0_0_50px_rgba(245,215,120,0.22)] transition-all duration-300 overflow-hidden"
             >
-              <div className="absolute inset-0 bg-gradient-to-r from-indigo-400 to-violet-500 opacity-0 group-hover:opacity-100 blur-sm transition-opacity" />
+              <div className="absolute inset-0 bg-gradient-to-r from-indigo-400 via-violet-500 to-amber-300 opacity-0 group-hover:opacity-100 blur-sm transition-opacity" />
               <div className="relative flex items-center justify-center gap-3">
                 <Mail size={18} strokeWidth={2} />
                 <span>Sign in with Email</span>
@@ -146,7 +146,7 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
             </button>
             <button
               onClick={() => { setIsSignup(true); setMode("email"); }}
-              className="group relative w-full p-4 rounded-xl bg-white/[0.04] border border-white/[0.10] text-white/80 hover:text-white hover:border-indigo-500/30 hover:bg-white/[0.07] transition-all duration-300"
+              className="group relative w-full p-4 rounded-xl bg-white/[0.04] border border-white/[0.10] text-white/80 hover:text-white hover:border-amber-300/25 hover:bg-white/[0.07] transition-all duration-300"
             >
               <div className="relative flex items-center justify-center gap-3">
                 <span>Create an account — free</span>
@@ -172,7 +172,7 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Your name"
-                  className="bg-white/[0.03] border-white/10 focus:border-indigo-500/50 text-base h-12"
+                  className="bg-white/[0.03] border-white/10 focus:border-amber-300/45 text-base h-12"
                 />
               </div>
             )}
@@ -190,9 +190,9 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
                   placeholder="you@company.com"
                   required
                   autoFocus={!isSignup}
-                  className="bg-white/[0.03] border-white/10 focus:border-indigo-500/50 text-base h-12 pl-11"
+                  className="bg-white/[0.03] border-white/10 focus:border-amber-300/45 text-base h-12 pl-11"
                 />
-                <Mail size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-indigo-400/60" />
+                <Mail size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-amber-100/50" />
               </div>
             </div>
 
@@ -208,16 +208,16 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
                 placeholder={isSignup ? "At least 8 characters" : "Your password"}
                 required
                 minLength={isSignup ? 8 : undefined}
-                className="bg-white/[0.03] border-white/10 focus:border-indigo-500/50 text-base h-12"
+                className="bg-white/[0.03] border-white/10 focus:border-amber-300/45 text-base h-12"
               />
             </div>
 
             <button
               type="submit"
               disabled={loading || !email || !password}
-              className="group relative w-full p-4 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-600 text-white font-medium shadow-[0_0_30px_rgba(99,102,241,0.3)] hover:shadow-[0_0_50px_rgba(99,102,241,0.5)] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden"
+              className="group relative w-full p-4 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-violet-600 text-white font-medium shadow-[0_0_30px_rgba(245,215,120,0.14)] hover:shadow-[0_0_50px_rgba(245,215,120,0.22)] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden"
             >
-              <div className="absolute inset-0 bg-gradient-to-r from-indigo-400 to-violet-500 opacity-0 group-hover:opacity-100 blur-sm transition-opacity" />
+              <div className="absolute inset-0 bg-gradient-to-r from-indigo-400 via-violet-500 to-amber-300 opacity-0 group-hover:opacity-100 blur-sm transition-opacity" />
               <span className="relative">
                 {loading ? "Connecting..." : (isSignup ? "Create Account" : "Sign In")}
               </span>
@@ -248,7 +248,7 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
                     setIsSignup(!isSignup);
                     setError("");
                   }}
-                  className="text-indigo-300/70 hover:text-indigo-300 transition-colors"
+                  className="text-amber-100/60 hover:text-amber-100 transition-colors"
                 >
                   {isSignup ? "Already have an account?" : "Create an account"}
                 </button>
@@ -287,9 +287,9 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
                       placeholder="you@company.com"
                       required
                       autoFocus
-                      className="w-full px-4 py-3 pl-11 rounded-xl bg-white/[0.03] border border-white/10 text-white placeholder-white/20 text-base focus:outline-none focus:border-indigo-500/50 transition-colors"
+                      className="w-full px-4 py-3 pl-11 rounded-xl bg-white/[0.03] border border-white/10 text-white placeholder-white/20 text-base focus:outline-none focus:border-amber-300/45 transition-colors"
                     />
-                    <Mail size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-indigo-400/60" />
+                    <Mail size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-amber-100/50" />
                   </div>
                 </div>
                 <button
@@ -316,7 +316,7 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
                       setLoading(false);
                     }
                   }}
-                  className="group relative w-full p-4 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-600 text-white font-medium shadow-[0_0_30px_rgba(99,102,241,0.3)] hover:shadow-[0_0_50px_rgba(99,102,241,0.5)] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="group relative w-full p-4 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-violet-600 text-white font-medium shadow-[0_0_30px_rgba(245,215,120,0.14)] hover:shadow-[0_0_50px_rgba(245,215,120,0.22)] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading ? 'Sending...' : 'Send reset link'}
                 </button>
@@ -347,8 +347,8 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
             </div>
             <div className="flex items-center gap-1.5 text-xs text-white/40">
               <div className="relative flex-shrink-0">
-                <div className="w-1.5 h-1.5 rounded-full bg-indigo-400"></div>
-                <div className="absolute top-0.5 left-0.5 w-0.5 h-0.5 rounded-full bg-indigo-400/60 animate-pulse"></div>
+                <div className="w-1.5 h-1.5 rounded-full bg-amber-300"></div>
+                <div className="absolute top-0.5 left-0.5 w-0.5 h-0.5 rounded-full bg-amber-300/60 animate-pulse"></div>
               </div>
               <span>No credit card required</span>
             </div>
@@ -357,11 +357,11 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
           {/* Legal */}
           <p className="text-xs text-white/30 text-center leading-relaxed">
             By continuing, you agree to our{" "}
-            <a href="/terms" className="text-indigo-300/60 hover:text-indigo-300 transition-colors">
+            <a href="/terms" className="text-amber-100/50 hover:text-amber-100 transition-colors">
               Terms of Service
             </a>{" "}
             and{" "}
-            <a href="/privacy" className="text-indigo-300/60 hover:text-indigo-300 transition-colors">
+            <a href="/privacy" className="text-amber-100/50 hover:text-amber-100 transition-colors">
               Privacy Policy
             </a>
           </p>
@@ -369,10 +369,10 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
 
         {loading && (
           <div className="relative mt-6 text-center">
-            <div className="inline-flex items-center gap-3 text-sm text-indigo-300">
+            <div className="inline-flex items-center gap-3 text-sm text-amber-100/75">
               <div className="relative">
-                <div className="w-4 h-4 border-2 border-indigo-400/20 rounded-full"></div>
-                <div className="absolute inset-0 w-4 h-4 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin"></div>
+                <div className="w-4 h-4 border-2 border-amber-300/20 rounded-full"></div>
+                <div className="absolute inset-0 w-4 h-4 border-2 border-amber-300 border-t-transparent rounded-full animate-spin"></div>
               </div>
               <span>Securing your connection...</span>
             </div>

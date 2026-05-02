@@ -207,7 +207,7 @@ export default function PipelineDemo({ steps, query, excerpt, onCTA }: PipelineD
                   <div className="px-5 py-3 border-b border-indigo-500/10 flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
-                      <p className="text-[10px] text-indigo-300/60 font-mono tracking-[0.2em] uppercase">Executive Brief — excerpt</p>
+                      <p className="text-[10px] text-indigo-300/60 font-mono tracking-[0.2em] uppercase">Research Brief — excerpt</p>
                     </div>
                     <span className="text-[10px] text-white/20 font-mono">22 sources · verified</span>
                   </div>
@@ -248,7 +248,7 @@ export default function PipelineDemo({ steps, query, excerpt, onCTA }: PipelineD
                     {/* CTA */}
                     <button
                       onClick={onCTA}
-                      className="group w-full mt-2 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs tracking-wide transition-all duration-300 shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2"
+                      className="group w-full mt-2 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs tracking-wide transition-all duration-300 shadow-lg shadow-amber-300/10 flex items-center justify-center gap-2"
                     >
                       Access the full report — free
                       <ArrowRight size={13} className="group-hover:translate-x-0.5 transition-transform" />

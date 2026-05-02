@@ -3,12 +3,12 @@ import { getSession } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { z } from 'zod';
 import { withAuth, withRateLimit, rateLimitConfigs } from '@/lib/validation';
+import { FORMAT_TYPES_BY_FAMILY, getPublicationFormat } from '@/lib/publication-formats';
 
 /**
  * GET /api/user/briefs/recent
  * 
- * Returns recent briefs for dashboard
- * Respects subscription tier for content access
+ * Returns recent open publications for dashboard
  */
 
 // Query parameters schema
@@ -20,10 +20,15 @@ const RecentBriefsSchema = z.object({
 // Map frontend aliases to actual Prisma ThinkTankPublication.type values
 const RECENT_TYPE_MAP: Record<string, string[]> = {
   BRIEF: ['EXECUTIVE_BRIEF', 'RESEARCH_BRIEF', 'SUMMARY_BRIEF'],
-  executive: ['EXECUTIVE_BRIEF', 'RESEARCH_BRIEF', 'SUMMARY_BRIEF', 'UPDATE_NOTE', 'DATA_NOTE', 'POLICY_NOTE'],
-  EXECUTIVE_BRIEF: ['EXECUTIVE_BRIEF', 'RESEARCH_BRIEF', 'SUMMARY_BRIEF'],
-  STRATEGIC_REPORT: ['STRATEGIC_REPORT', 'DOSSIER'],
-  strategic: ['STRATEGIC_REPORT', 'DOSSIER'],
+  brief: ['EXECUTIVE_BRIEF', 'RESEARCH_BRIEF', 'SUMMARY_BRIEF'],
+  briefs: FORMAT_TYPES_BY_FAMILY.briefs || [],
+  signals: FORMAT_TYPES_BY_FAMILY.signals || [],
+  data: FORMAT_TYPES_BY_FAMILY.data || [],
+  memos: FORMAT_TYPES_BY_FAMILY.memos || [],
+  reports: FORMAT_TYPES_BY_FAMILY.reports || [],
+  dossiers: FORMAT_TYPES_BY_FAMILY.dossiers || [],
+  EXECUTIVE_BRIEF: ['EXECUTIVE_BRIEF', 'RESEARCH_BRIEF'],
+  STRATEGIC_REPORT: ['STRATEGIC_REPORT'],
 };
 
 export async function GET(req: NextRequest) {
@@ -58,15 +63,11 @@ export async function GET(req: NextRequest) {
 
           const user = await prisma.user.findUnique({
             where: { email: session.email },
-            include: { subscription: true },
           });
 
           if (!user) {
             return NextResponse.json({ error: "User not found" }, { status: 404 });
           }
-
-          const subscription = user.subscription;
-          const tier = subscription?.plan || 'ANALYST';
 
           // Build where clause based on type filter
           const whereClause: any = {
@@ -83,7 +84,7 @@ export async function GET(req: NextRequest) {
             }
           }
 
-          // Get recent briefs
+          // Get recent publications
           const briefs = await prisma.thinkTankPublication.findMany({
             where: whereClause,
             orderBy: { publishedAt: 'desc' },
@@ -116,22 +117,25 @@ export async function GET(req: NextRequest) {
             // Estimate read time
             const readTime = Math.max(1, Math.ceil(brief.wordCount / 200));
 
+            const format = getPublicationFormat(brief.type);
+
             return {
               id: brief.id,
               title: brief.title,
               type: brief.type, // Keep original type for frontend mapping
+              format,
               publishedAt: brief.publishedAt!.toISOString(),
               readTime,
               trending: isTrending,
               critical: isCritical,
-              preview: (tier === 'TRIAL' || tier === 'ANALYST') ? brief.html.substring(0, 200) + '...' : null,
+              preview: brief.html.substring(0, 200) + '...',
             };
           });
 
           return NextResponse.json({
             briefs: transformedBriefs,
-            tier,
-            canAccessFull: tier !== 'TRIAL' && tier !== 'ANALYST',
+            tier: 'OPEN',
+            canAccessFull: true,
             filters: {
               limit,
               type,

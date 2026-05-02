@@ -4,6 +4,7 @@ import React from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { Home,ArrowLeft } from 'lucide-react';
+import { NomosXLogo } from '@/components/brand/NomosXLogo';
 
 export default function NotFound() {
   const router = useRouter();
@@ -13,22 +14,11 @@ export default function NotFound() {
       <div className="text-center max-w-md">
         {/* Logo */}
         <div className="flex items-center justify-center gap-3 mb-8">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
-              <circle cx="12" cy="12" r="3" fill="white"/>
-              <circle cx="12" cy="4" r="2" fill="white" opacity="0.7"/>
-              <circle cx="20" cy="12" r="2" fill="white" opacity="0.7"/>
-              <circle cx="12" cy="20" r="2" fill="white" opacity="0.7"/>
-              <circle cx="4" cy="12" r="2" fill="white" opacity="0.7"/>
-            </svg>
-          </div>
-          <span className="text-3xl font-bold text-white">
-            Nomos<span className="text-indigo-500">X</span>
-          </span>
+          <NomosXLogo size="lg" />
         </div>
 
         {/* 404 */}
-        <div className="text-8xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-violet-400 mb-4">
+        <div className="text-8xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 via-white to-amber-100 mb-4">
           404
         </div>
 

@@ -995,8 +995,9 @@ model User {
   updatedAt DateTime @updatedAt
 
   // Relations
-  subscription Subscription?
+  subscription        Subscription?
   verticalPreferences UserVerticalPreference[]
+  studioXOrders       StudioXOrder[]
 
   @@index([email])
   @@index([role])
@@ -1819,4 +1820,40 @@ model ConceptRelation {
   @@index([fromConceptId])
   @@index([toConceptId])
   @@index([type])
+}
+
+// ============================================================================
+// STUDIOX PAY-PER-USE ORDERS
+// ============================================================================
+
+model StudioXOrder {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Mandate
+  question   String @db.Text
+  formatType String
+  mode       String @default("COMMISSION")
+  audience   String?
+  urgency    String?
+
+  // Payment
+  amountCents         Int
+  currency            String  @default("eur")
+  stripeSessionId     String? @unique
+  stripePaymentIntent String? @unique
+  status              String  @default("PENDING") // PENDING | PAID | FAILED | EXPIRED
+
+  // Result
+  result      String?  @db.Text
+  paidAt      DateTime?
+  completedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([stripeSessionId])
+  @@index([status])
 }

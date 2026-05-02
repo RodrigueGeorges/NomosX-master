@@ -26,7 +26,7 @@ export const VERTICALS: VerticalDefinition[] = [
     color: "#3B82F6", // blue-500
     config: {
       maxPublicationsPerWeek: 5,
-      allowedTypes: ["RESEARCH_BRIEF", "UPDATE_NOTE", "POLICY_NOTE", "DOSSIER"] as PublicationType[],
+      allowedTypes: ["SUMMARY_BRIEF", "EXECUTIVE_BRIEF", "STRATEGIC_REPORT", "RESEARCH_BRIEF", "UPDATE_NOTE", "POLICY_NOTE", "DOSSIER"] as PublicationType[],
       thresholds: {
         minTrustScore: 75,
         minNoveltyScore: 60,
@@ -50,7 +50,7 @@ export const VERTICALS: VerticalDefinition[] = [
     color: "#10B981", // emerald-500
     config: {
       maxPublicationsPerWeek: 4,
-      allowedTypes: ["RESEARCH_BRIEF", "UPDATE_NOTE", "DATA_NOTE", "DOSSIER"] as PublicationType[],
+      allowedTypes: ["SUMMARY_BRIEF", "EXECUTIVE_BRIEF", "STRATEGIC_REPORT", "RESEARCH_BRIEF", "UPDATE_NOTE", "DATA_NOTE", "DOSSIER"] as PublicationType[],
       thresholds: {
         minTrustScore: 75,
         minNoveltyScore: 65,
@@ -74,7 +74,7 @@ export const VERTICALS: VerticalDefinition[] = [
     color: "#8B5CF6", // violet-500
     config: {
       maxPublicationsPerWeek: 4,
-      allowedTypes: ["RESEARCH_BRIEF", "UPDATE_NOTE", "DATA_NOTE"] as PublicationType[],
+      allowedTypes: ["SUMMARY_BRIEF", "EXECUTIVE_BRIEF", "STRATEGIC_REPORT", "RESEARCH_BRIEF", "UPDATE_NOTE", "DATA_NOTE"] as PublicationType[],
       thresholds: {
         minTrustScore: 75,
         minNoveltyScore: 70,
@@ -93,7 +93,7 @@ export const VERTICALS: VerticalDefinition[] = [
     color: "#EF4444", // red-500
     config: {
       maxPublicationsPerWeek: 3,
-      allowedTypes: ["RESEARCH_BRIEF", "UPDATE_NOTE", "POLICY_NOTE"] as PublicationType[],
+      allowedTypes: ["SUMMARY_BRIEF", "EXECUTIVE_BRIEF", "STRATEGIC_REPORT", "RESEARCH_BRIEF", "UPDATE_NOTE", "POLICY_NOTE"] as PublicationType[],
       thresholds: {
         minTrustScore: 80,
         minNoveltyScore: 60,
@@ -117,7 +117,7 @@ export const VERTICALS: VerticalDefinition[] = [
     color: "#F59E0B", // amber-500
     config: {
       maxPublicationsPerWeek: 3,
-      allowedTypes: ["RESEARCH_BRIEF", "UPDATE_NOTE", "DATA_NOTE", "POLICY_NOTE"] as PublicationType[],
+      allowedTypes: ["SUMMARY_BRIEF", "EXECUTIVE_BRIEF", "STRATEGIC_REPORT", "RESEARCH_BRIEF", "UPDATE_NOTE", "DATA_NOTE", "POLICY_NOTE"] as PublicationType[],
       thresholds: {
         minTrustScore: 80,
         minNoveltyScore: 60,

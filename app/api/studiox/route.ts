@@ -15,22 +15,23 @@ import { getSession } from '@/lib/auth';
 import { assertRateLimit, RateLimitError } from '@/lib/security/rate-limit';
 import { prisma } from '@/lib/db';
 import Sentry from '@sentry/nextjs';
+import { PUBLICATION_FORMATS, getPublicationFormat } from '@/lib/publication-formats';
 
 const STUDIOX_SYSTEM_PROMPT = `You are StudioX — the research assistant at NomosX, an autonomous AI think tank.
 
 YOUR CAPABILITIES:
 - Triage the user's intent into one of five modes: ASK, COMMISSION, MONITOR, COMPARE, BOARD_MEMO
 - Answer questions using published NomosX evidence when available
-- Reference specific briefs and sources only when they are present in context
+- Reference specific publications and sources only when they are present in context
 - Summarize findings from recent publications
 - Suggest new research topics based on weak signals and monitored topics
-- Commission new research briefs after asking for confirmation
+- Commission new research mandates after asking for confirmation
 - Convert messy executive questions into scoped research mandates
 
 YOUR KNOWLEDGE:
-- You have access to recent published briefs and their key findings
+- You have access to recent published publications and their key findings
 - You know active topics and domains
-- You understand the multi-stage verification pipeline that produces every brief
+- You understand the multi-stage verification pipeline that produces every publication
 - You understand the publication gate: source depth, citation coverage, dissent, researcher sign-off, and adversarial review
 
 YOUR STYLE:
@@ -45,8 +46,14 @@ IMPORTANT:
 - Never fabricate source references
 - Never invent a publication, source, score, or citation tag that is not in context
 - If a user asks for a strategic answer without enough evidence, give a scoped hypothesis and label it as such
-- If you don't have enough context, say "I don't have enough data on this — would you like me to commission a research brief?"
-- Distinguish between what you know from published briefs vs. general knowledge`;
+- If you don't have enough context, say "I don't have enough data on this — would you like me to commission a StudioX mandate?"
+- Distinguish between what you know from published NomosX work vs. general knowledge`;
+
+function buildFormatCatalog() {
+  return PUBLICATION_FORMATS.map((format) =>
+    `- ${format.label} (${format.type}): ${format.pages}, ${format.sourceDepth}. ${format.description}`
+  ).join('\n');
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -66,13 +73,30 @@ export async function POST(req: NextRequest) {
       throw err;
     }
 
-    const { messages, stream = true } = await req.json();
+    const { messages, stream = true, studioContext = {}, orderId } = await req.json();
+
+    // Verify paid order
+    if (orderId) {
+      const order = await prisma.studioXOrder.findFirst({
+        where: { id: orderId, userId: session.id },
+      });
+      if (!order) {
+        return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+      }
+      if (order.status !== 'PAID') {
+        return NextResponse.json({ error: 'Payment required', requiredAction: 'pay' }, { status: 402 });
+      }
+      if (order.result) {
+        // Already completed — return cached result
+        return NextResponse.json({ content: order.result, cached: true });
+      }
+    }
     if (!messages || !Array.isArray(messages)) {
       return NextResponse.json({ error: 'Invalid messages' }, { status: 400 });
     }
+    const selectedFormat = getPublicationFormat(studioContext?.formatType);
 
-    // Load user context
-    const userId = session.id;
+    // Load publication and topic context
     const [recentBriefs, userTopics] = await Promise.all([
       prisma.brief.findMany({
         where: { publishedAt: { not: null } }, // Brief model doesn't have userId, filter by published
@@ -96,10 +120,10 @@ export async function POST(req: NextRequest) {
 
     // Build context block
     const briefsContext = (recentBriefs as any[]).length > 0
-      ? `\n\nRECENT PUBLISHED BRIEFS:\n${(recentBriefs as any[]).map((b: any, i: number) =>
+      ? `\n\nRECENT PUBLISHED PUBLICATIONS:\n${(recentBriefs as any[]).map((b: any, i: number) =>
           `${i + 1}. "${b.question.slice(0, 80)}..." (${b.kind}) — ${b.topic?.name || 'General'} — ${new Date(b.createdAt).toLocaleDateString()}`
         ).join('\n')}`
-      : '\n\nNO PUBLISHED BRIEFS AVAILABLE.';
+      : '\n\nNO PUBLISHED PUBLICATIONS AVAILABLE.';
 
     const topicsContext = (userTopics as any[]).length > 0
       ? `\n\nUSER'S MONITORED TOPICS:\n${(userTopics as any[]).map((t: any) =>
@@ -107,7 +131,17 @@ export async function POST(req: NextRequest) {
         ).join('\n')}`
       : '\n\nUSER HAS NO ACTIVE TOPIC SUBSCRIPTIONS.';
 
-    const systemPrompt = STUDIOX_SYSTEM_PROMPT + briefsContext + topicsContext;
+    const studioContextBlock = `\n\nCURRENT STUDIOX MANDATE:
+- Mode: ${studioContext?.mode || 'COMMISSION'}
+- Selected format: ${selectedFormat.label} (${selectedFormat.type})
+- Expected depth: ${selectedFormat.pages}; ${selectedFormat.sourceDepth}
+- Audience: ${studioContext?.audience || 'Decision-makers'}
+- Urgency: ${studioContext?.urgency || 'Standard'}
+
+AVAILABLE PUBLICATION FORMATS:
+${buildFormatCatalog()}`;
+
+    const systemPrompt = STUDIOX_SYSTEM_PROMPT + studioContextBlock + briefsContext + topicsContext;
 
     const allMessages = [
       { role: 'system' as const, content: systemPrompt },
@@ -159,6 +193,14 @@ export async function POST(req: NextRequest) {
       maxTokens: 4000,
       model: 'gpt-4o',
     });
+
+    // Persist result on the order
+    if (orderId && response.content) {
+      await prisma.studioXOrder.update({
+        where: { id: orderId },
+        data: { result: response.content, completedAt: new Date() },
+      }).catch(() => {});
+    }
 
     return NextResponse.json({
       content: response.content,

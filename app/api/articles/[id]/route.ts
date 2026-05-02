@@ -3,6 +3,8 @@ import { prisma } from '@/lib/db';
 import { getSession } from '@/lib/auth';
 import { z } from 'zod';
 import { withAuth, withRateLimit, rateLimitConfigs, commonSchemas } from '@/lib/validation';
+import { getPublicationFormat } from '@/lib/publication-formats';
+import { publicPublicationWhere } from '@/lib/publication-visibility';
 
 const TOPIC_KEYWORDS = [
   'ai', 'artificial intelligence', 'machine learning', 'climate', 'regulation',
@@ -10,6 +12,54 @@ const TOPIC_KEYWORDS = [
   'sustainability', 'digital', 'geopolitics', 'cybersecurity', 'biotechnology',
   'renewable energy', 'supply chain', 'fintech', 'trade', 'security', 'law',
 ];
+
+function looksLikeMarkdown(content: string): boolean {
+  return /^#{1,3}\s|\*\*[^*]+\*\*|^[-*] /m.test(content) && !/<[a-z][\s\S]*>/i.test(content);
+}
+
+function markdownToHtml(md: string): string {
+  const lines = md.split('\n');
+  const out: string[] = [];
+  let inList = false;
+
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (/^### (.+)/.test(line)) {
+      if (inList) { out.push('</ul>'); inList = false; }
+      out.push(`<h3>${line.slice(4)}</h3>`);
+    } else if (/^## (.+)/.test(line)) {
+      if (inList) { out.push('</ul>'); inList = false; }
+      out.push(`<h2>${line.slice(3)}</h2>`);
+    } else if (/^# (.+)/.test(line)) {
+      if (inList) { out.push('</ul>'); inList = false; }
+      out.push(`<h1>${line.slice(2)}</h1>`);
+    } else if (/^[-*] (.+)/.test(line)) {
+      if (!inList) { out.push('<ul>'); inList = true; }
+      out.push(`<li>${inlineMarkdown(line.slice(2))}</li>`);
+    } else if (line === '') {
+      if (inList) { out.push('</ul>'); inList = false; }
+    } else {
+      if (inList) { out.push('</ul>'); inList = false; }
+      out.push(`<p>${inlineMarkdown(line)}</p>`);
+    }
+  }
+  if (inList) out.push('</ul>');
+  return out.join('\n');
+}
+
+function linkifyCitations(html: string): string {
+  // Add id anchors to bibliography <li> items: <li>[SRC-3] → <li id="src-3">[SRC-3]
+  let out = html.replace(/<li>(\[SRC-(\d+)\])/g, '<li id="src-$2">$1');
+  // Convert all inline [SRC-N] references to anchor links
+  out = out.replace(/\[SRC-(\d+)\]/g, '<a href="#src-$1" class="citation-ref">[SRC-$1]</a>');
+  return out;
+}
+
+function inlineMarkdown(s: string): string {
+  return s
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*([^*]+)\*/g, '<em>$1</em>');
+}
 
 function extractTopics(title: string): string[] {
   const t = title.toLowerCase();
@@ -44,23 +94,15 @@ export async function GET(
           );
         }
         
-        // Determine subscription access
+        // Public publications are open-read. Auth is only used by adjacent
+        // actions such as export or commissioning follow-up research.
         const { searchParams } = new URL(req.url);
         const devPreview = process.env.NODE_ENV === 'development' && searchParams.get('devPreview') === '1';
-        const session = await getSession();
-        let isPaidUser = devPreview;
-        if (!devPreview && session?.id) {
-          const user = await prisma.user.findUnique({
-            where: { id: session.id },
-            include: { subscription: true },
-          });
-          const plan = user?.subscription?.plan || 'ANALYST';
-          isPaidUser = plan !== 'TRIAL' && plan !== 'ANALYST';
-        }
+        if (devPreview) await getSession();
 
         // Fetch the article
-        const article = await prisma.thinkTankPublication.findUnique({
-          where: { id: idValidation.data.id },
+        const article = await prisma.thinkTankPublication.findFirst({
+          where: publicPublicationWhere({ id: idValidation.data.id }),
           select: {
             id: true,
             title: true,
@@ -80,30 +122,15 @@ export async function GET(
           );
         }
 
-        // Server-side paywall: free users get a clean teaser from first paragraphs
         const rawHtml = (article.html || '').replace(/^```html?\s*/i, '').replace(/\s*```\s*$/, '').trim();
-        let content: string = rawHtml;
-        if (!isPaidUser && rawHtml) {
-          const paragraphMatches = [...rawHtml.matchAll(/<p[^>]*>([\s\S]*?)<\/p>/gi)];
-          const paragraphTexts = paragraphMatches
-            .map(m => m[1].replace(/<[^>]*>/g, '').replace(/\[SRC-\d+\]/g, '').replace(/\s+/g, ' ').trim())
-            .filter(t => t.length > 40);
-          if (paragraphTexts.length > 0) {
-            const teaser = paragraphTexts.slice(0, 3).join('\n\n');
-            content = teaser.length > 800 ? teaser.substring(0, 800) + '\u2026' : teaser;
-          } else {
-            const plain = rawHtml.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
-            content = plain.length > 600 ? plain.substring(0, 600) + '\u2026' : plain;
-          }
-        }
+        const content: string = linkifyCitations(looksLikeMarkdown(rawHtml) ? markdownToHtml(rawHtml) : rawHtml);
 
         // Fetch related articles (same type, published recently)
         const relatedArticles = await prisma.thinkTankPublication.findMany({
           where: {
             id: { not: idValidation.data.id },
             type: article.type,
-            status: 'PUBLISHED',
-            publishedAt: { not: null },
+            ...publicPublicationWhere(),
           },
           select: {
             id: true,
@@ -122,6 +149,7 @@ export async function GET(
           title: article.title,
           content,
           type: article.type,
+          format: getPublicationFormat(article.type),
           publishedAt: article.publishedAt?.toISOString() || new Date().toISOString(),
           readTime: Math.max(1, Math.ceil(article.wordCount / 200)),
           sources: article.sourceIds?.length || 0,

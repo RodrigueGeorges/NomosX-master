@@ -2,17 +2,19 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { z } from 'zod';
 import { withRateLimit, rateLimitConfigs } from '@/lib/validation';
+import { FORMAT_TYPES_BY_FAMILY, getPublicationFormat } from '@/lib/publication-formats';
+import { publicPublicationWhere } from '@/lib/publication-visibility';
 
 /**
  * GET /api/public/briefs
  * 
  * Public endpoint for brief summaries
- * Returns paginated briefs with limited content for free tier
+ * Returns paginated open publications.
  * 
  * Query params:
  * - page: number (default: 1)
  * - limit: number (default: 12)
- * - type: 'EXECUTIVE_BRIEF' | 'STRATEGIC_REPORT' | 'RESEARCH_BRIEF' | 'SUMMARY_BRIEF' | 'DOSSIER' | 'executive' | 'strategic' | 'all'
+ * - type: publication type, format family, or 'all'
  * - search: string (search in title)
  */
 
@@ -20,21 +22,15 @@ import { withRateLimit, rateLimitConfigs } from '@/lib/validation';
 const PublicBriefsSchema = z.object({
   page: z.coerce.number().min(1).max(100).default(1),
   limit: z.coerce.number().min(1).max(50).default(12),
-  // Accept both Prisma enum values and frontend aliases (executive/strategic)
   type: z.string().default('all'),
   search: z.string().max(200).default(''),
 });
 
-// Map frontend filter aliases to actual Prisma ThinkTankPublication.type values
-const TYPE_ALIAS_MAP: Record<string, string[]> = {
-  executive: ['EXECUTIVE_BRIEF', 'RESEARCH_BRIEF', 'SUMMARY_BRIEF', 'UPDATE_NOTE', 'DATA_NOTE', 'POLICY_NOTE'],
-  strategic: ['STRATEGIC_REPORT', 'DOSSIER'],
-};
-
 const VALID_TYPES = new Set([
   'EXECUTIVE_BRIEF', 'RESEARCH_BRIEF', 'SUMMARY_BRIEF',
   'UPDATE_NOTE', 'DATA_NOTE', 'POLICY_NOTE', 'DOSSIER', 'STRATEGIC_REPORT',
-  'all', 'executive', 'strategic',
+  'all',
+  ...Object.keys(FORMAT_TYPES_BY_FAMILY),
 ]);
 
 export async function GET(req: NextRequest) {
@@ -65,27 +61,27 @@ export async function GET(req: NextRequest) {
         const offset = (page - 1) * limit;
 
         // Build where clause
-        const where: any = {
-          status: "PUBLISHED",
-          publishedAt: { not: null },
-          AND: [],
-        };
+        const where: any = publicPublicationWhere({ AND: [] });
 
-        if (type !== 'all') {
-          if (TYPE_ALIAS_MAP[type]) {
-            where.type = { in: TYPE_ALIAS_MAP[type] };
-          } else if (VALID_TYPES.has(type)) {
+        // Add quality threshold to ensure only high-quality publications are shown
+        where.AND.push({
+          OR: [
+            { trustScore: { gte: 70 } },
+            { qualityScore: { gte: 70 } }
+          ]
+        });
+
+        if (type !== 'all' && VALID_TYPES.has(type)) {
+          if (FORMAT_TYPES_BY_FAMILY[type]) {
+            where.type = { in: FORMAT_TYPES_BY_FAMILY[type] };
+          } else {
             where.type = type;
           }
-          // Unknown type values are silently ignored (returns all)
         }
 
         if (search) {
           where.AND.push({ OR: [{ title: { contains: search, mode: 'insensitive' } }] });
         }
-
-        // Clean up empty AND array to avoid Prisma validation errors
-        if (where.AND.length === 0) delete where.AND;
 
         // Get total count for pagination
         let totalCount = 0;
@@ -107,6 +103,7 @@ export async function GET(req: NextRequest) {
               wordCount: true,
               sourceIds: true,
               html: true,
+              trustScore: true,
             },
           });
         } catch (dbError: any) {
@@ -118,64 +115,122 @@ export async function GET(req: NextRequest) {
 
         // Transform data for public consumption
         const transformedBriefs = briefs.map(brief => {
-          // Extract summary from first meaningful <p> paragraphs, not raw text dump
+          // Extract summary from HTML content with improved logic
           let summary = '';
           try {
             const rawHtml = (brief.html || '').replace(/^```html?\s*/i, '').replace(/\s*```\s*$/, '').trim();
-            const paragraphMatches = [...rawHtml.matchAll(/<p[^>]*>([\s\S]*?)<\/p>/gi)];
-            const paragraphTexts = paragraphMatches
-              .map(m => m[1].replace(/<[^>]*>/g, '').replace(/\[SRC-\d+\]/g, '').replace(/\s+/g, ' ').trim())
-              .filter(t => t.length > 40);
-            if (paragraphTexts.length > 0) {
-              const teaser = paragraphTexts.slice(0, 2).join(' ');
-              summary = teaser.length > 320 ? teaser.substring(0, 320) + '…' : teaser;
-            } else {
+            
+            // First try to extract from structured sections (Executive Summary, etc.)
+            const executiveSummaryMatch = rawHtml.match(/<h[1-6][^>]*>\s*(?:Executive Summary|Résumé exécutif|Summary|Synthèse)\s*<\/h[1-6]>\s*<p[^>]*>([\s\S]*?)<\/p>/i);
+            if (executiveSummaryMatch) {
+              const execSummary = executiveSummaryMatch[1].replace(/<[^>]*>/g, '').replace(/\[SRC-\d+\]/g, '').replace(/\s+/g, ' ').trim();
+              if (execSummary.length > 50) {
+                summary = execSummary.length > 320 ? execSummary.substring(0, 320) + '…' : execSummary;
+              }
+            }
+            
+            // If no executive summary, try to extract meaningful paragraphs
+            if (!summary) {
+              const paragraphMatches = [...rawHtml.matchAll(/<p[^>]*>([\s\S]*?)<\/p>/gi)];
+              const paragraphTexts = paragraphMatches
+                .map(m => m[1].replace(/<[^>]*>/g, '').replace(/\[SRC-\d+\]/g, '').replace(/\s+/g, ' ').trim())
+                .filter(t => t.length > 40 && t.length < 500) // Filter for substantial paragraphs
+                .slice(0, 3); // Take up to 3 good paragraphs
+                
+              if (paragraphTexts.length > 0) {
+                const teaser = paragraphTexts.join(' ').replace(/\s+/g, ' ');
+                summary = teaser.length > 320 ? teaser.substring(0, 320) + '…' : teaser;
+              }
+            }
+            
+            // Fallback to plain text extraction
+            if (!summary) {
               const plainText = rawHtml.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
-              summary = plainText.length > 300 ? plainText.substring(0, 300) + '…' : plainText;
+              // Try to find the most substantive part
+              const sentences = plainText.split(/[.!?]+/).filter(s => s.trim().length > 20);
+              if (sentences.length > 0) {
+                const bestSentences = sentences.slice(0, 3).join('. ').trim();
+                summary = bestSentences.length > 320 ? bestSentences.substring(0, 320) + '…' : bestSentences + '.';
+              } else {
+                summary = plainText.length > 300 ? plainText.substring(0, 300) + '…' : plainText;
+              }
+            }
+            
+            // Ensure we have a fallback
+            if (!summary || summary.length < 20) {
+              summary = 'Analyse stratégique générée par notre think tank autonome avec des insights d\'experts du Harvard Council et une méthodologie de recherche avancée en IA.';
             }
           } catch {
-            summary = 'Strategic analysis generated by our autonomous think tank with insights from Harvard Council experts and advanced AI research methodology.';
+            summary = 'Analyse stratégique générée par notre think tank autonome avec des insights d\'experts du Harvard Council et une méthodologie de recherche avancée en IA.';
           }
 
           // Estimate read time (200 words per minute)
           const readTime = Math.max(1, Math.ceil(brief.wordCount / 200));
 
-          // Extract topics from title/question (enhanced keyword extraction)
+          // Extract topics from title and content with improved keyword extraction
           const topics: string[] = [];
           try {
-            const text = (brief.title || '').toLowerCase();
-            const keywords = [
-              'ai', 'artificial intelligence', 'machine learning', 'climate', 'regulation', 
-              'economy', 'technology', 'policy', 'health', 'energy', 'finance', 'innovation',
-              'sustainability', 'digital transformation', 'geopolitics', 'cybersecurity',
-              'biotechnology', 'renewable energy', 'supply chain', 'fintech'
-            ];
-            keywords.forEach(keyword => {
-              if (text.includes(keyword)) {
-                // Format keywords properly
-                const formattedKeyword = keyword.split(' ').map(word => 
-                  word.charAt(0).toUpperCase() + word.slice(1)
-                ).join(' ');
-                topics.push(formattedKeyword);
+            const titleText = (brief.title || '').toLowerCase();
+            const contentText = summary.toLowerCase();
+            const combinedText = `${titleText} ${contentText}`;
+            
+            const keywordMap = {
+              'ai': ['ai', 'artificial intelligence', 'machine learning', 'deep learning', 'neural network', 'intelligence artificielle'],
+              'climate': ['climate', 'climat', 'carbon', 'co2', 'emission', 'warming', 'réchauffement'],
+              'economy': ['economy', 'economic', 'finance', 'market', 'growth', 'économie', 'financier'],
+              'technology': ['technology', 'tech', 'innovation', 'digital', 'technologie', 'numérique'],
+              'policy': ['policy', 'regulation', 'government', 'politique', 'réglementation'],
+              'health': ['health', 'medical', 'healthcare', 'santé', 'médical'],
+              'energy': ['energy', 'renewable', 'solar', 'wind', 'nuclear', 'énergie', 'renouvelable'],
+              'geopolitics': ['geopolitics', 'international', 'global', 'géopolitique', 'international'],
+              'cybersecurity': ['cybersecurity', 'cyber', 'security', 'cybersécurité', 'sécurité'],
+              'biotechnology': ['biotechnology', 'biotech', 'genetic', 'biotechnologie', 'génétique']
+            };
+            
+            const scoredTopics: Array<{ topic: string; score: number }> = [];
+            
+            for (const [topic, keywords] of Object.entries(keywordMap)) {
+              let score = 0;
+              for (const keyword of keywords) {
+                const titleMatches = (titleText.match(new RegExp(`\\b${keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi')) || []).length;
+                const contentMatches = (contentText.match(new RegExp(`\\b${keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi')) || []).length;
+                score += titleMatches * 3 + contentMatches * 1; // Title matches worth more
               }
-            });
+              if (score > 0) {
+                scoredTopics.push({ topic: topic.charAt(0).toUpperCase() + topic.slice(1), score });
+              }
+            }
+            
+            // Sort by score and take top topics
+            scoredTopics.sort((a, b) => b.score - a.score);
+            topics.push(...scoredTopics.slice(0, 5).map(t => t.topic));
+            
+            // Fallback to basic keywords if no matches
+            if (topics.length === 0) {
+              const basicKeywords = ['AI', 'Climate', 'Economy', 'Technology', 'Policy', 'Health', 'Energy'];
+              topics.push(...basicKeywords.slice(0, 3));
+            }
           } catch {
+            topics.push('Research', 'Analysis', 'Strategy');
+          }
             // Ignore errors
           }
+
+          const format = getPublicationFormat(brief.type);
 
           return {
             id: brief.id,
             title: brief.title,
             summary,
             type: brief.type,
+            format,
             publishedAt: brief.publishedAt?.toISOString() || new Date().toISOString(),
             readTime,
             sources: brief.sourceIds?.length || 0,
             topics: topics.slice(0, 5), // Max 5 topics
-            // Map actual DB types to tier names
-            tier: (['STRATEGIC_REPORT', 'DOSSIER'] as string[]).includes(brief.type) ? 'STRATEGIC' : 'EXECUTIVE',
-            // Add more descriptive type for UI
-            displayType: (['STRATEGIC_REPORT', 'DOSSIER'] as string[]).includes(brief.type) ? 'Strategic Report' : 'Executive Brief',
+            tier: format.access,
+            displayType: format.label,
+            trustScore: brief.trustScore ?? null,
           };
         });
 

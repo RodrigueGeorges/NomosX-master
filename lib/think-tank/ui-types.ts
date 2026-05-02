@@ -34,7 +34,7 @@ export interface VerticalRef {
 // SIGNAL
 // ============================================================================
 
-export interface SignalScores {
+export interface UISignalScores {
   novelty: number;
   impact: number;
   confidence: number;
@@ -49,7 +49,7 @@ export interface SignalSummary {
   signalType: string;
   title: string;
   summary: string;
-  scores: SignalScores;
+  scores: UISignalScores;
   status: string;
   sourceCount: number;
   detectedAt: string;
@@ -145,25 +145,29 @@ export const SIGNAL_TYPE_LABELS: Record<string, string> = {
 };
 
 export const PUBLICATION_TYPE_LABELS: Record<string, string> = {
-  // Primary formats
-  EXECUTIVE_BRIEF: "Executive Brief",
+  // Primary formats (3-tier model)
+  SUMMARY_BRIEF: "Summary Brief",
+  EXECUTIVE_BRIEF: "Decision Brief",
   STRATEGIC_REPORT: "Strategic Report",
   // Legacy formats (for backward compatibility)
-  RESEARCH_BRIEF: "Executive Brief",
+  RESEARCH_BRIEF: "Research Brief",
   UPDATE_NOTE: "Update Note",
   DATA_NOTE: "Data Note",
-  POLICY_NOTE: "Policy Note",
-  DOSSIER: "Strategic Report"
+  POLICY_NOTE: "Policy Memo",
+  DOSSIER: "Research Dossier"
 };
 
 export const PUBLICATION_TYPE_META: Record<string, { pages: string; audience: string }> = {
-  EXECUTIVE_BRIEF: { pages: "2-3 pages", audience: "Free newsletter" },
-  STRATEGIC_REPORT: { pages: "10-15 pages", audience: "Paid subscribers" },
-  RESEARCH_BRIEF: { pages: "2-3 pages", audience: "Free newsletter" },
-  UPDATE_NOTE: { pages: "1-2 pages", audience: "Free newsletter" },
-  DATA_NOTE: { pages: "1-2 pages", audience: "Free newsletter" },
-  POLICY_NOTE: { pages: "2-3 pages", audience: "Free newsletter" },
-  DOSSIER: { pages: "10-15 pages", audience: "Paid subscribers" }
+  // Primary formats (3-tier model)
+  SUMMARY_BRIEF: { pages: "1 page", audience: "Free — all readers" },
+  EXECUTIVE_BRIEF: { pages: "2-3 pages", audience: "Executive tier" },
+  STRATEGIC_REPORT: { pages: "10-15 pages", audience: "Strategy tier / StudioX" },
+  // Legacy formats (for backward compatibility)
+  RESEARCH_BRIEF: { pages: "4-6 pages", audience: "Open publication / StudioX" },
+  UPDATE_NOTE: { pages: "1-2 pages", audience: "Open publication" },
+  DATA_NOTE: { pages: "2-3 pages", audience: "Open publication" },
+  POLICY_NOTE: { pages: "3-5 pages", audience: "Open publication / StudioX" },
+  DOSSIER: { pages: "30-50 pages", audience: "StudioX / research teams" }
 };
 
 export const SIGNAL_STATUS_LABELS: Record<string, string> = {

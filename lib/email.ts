@@ -323,7 +323,7 @@ export async function sendTrialExpiryReminder(to: string, name: string | null, d
     
     <p style="font-size: 14px; color: #a1a1aa; margin: 0 0 24px; line-height: 1.6;">
       Hi ${displayName}, your 30-day free trial of NomosX will expire in ${daysRemaining} ${daysRemaining === 1 ? 'day' : 'days'}.
-      Continue commissioning research briefs and accessing strategic reports by upgrading to a paid plan.
+      Continue commissioning StudioX research mandates by upgrading to a paid plan. Public publications remain open.
     </p>
     
     <div style="background: #111113; border: 1px solid #27272a; border-radius: 8px; padding: 20px; margin-bottom: 24px;">
@@ -331,8 +331,8 @@ export async function sendTrialExpiryReminder(to: string, name: string | null, d
         What happens if you don't upgrade?
       </h3>
       <ul style="font-size: 14px; color: #a1a1aa; margin: 0; padding-left: 20px; line-height: 1.6;">
-        <li style="margin-bottom: 8px;">You'll lose access to commission new briefs</li>
-        <li style="margin-bottom: 8px;">Strategic reports will become read-only</li>
+        <li style="margin-bottom: 8px;">You'll lose access to commission new StudioX mandates</li>
+        <li style="margin-bottom: 8px;">Public publications remain readable</li>
         <li style="margin-bottom: 8px;">Weekly publication limit drops to 0</li>
         <li>You'll still receive the weekly intelligence dispatch</li>
       </ul>
@@ -422,7 +422,7 @@ export async function sendTrialExpired(to: string, name: string | null): Promise
     
     <p style="font-size: 14px; color: #a1a1aa; margin: 0 0 24px; line-height: 1.6;">
       Hi ${displayName}, your 30-day free trial of NomosX has expired. 
-      Your access to commission briefs and strategic reports has been paused.
+      Your access to commission StudioX research mandates has been paused.
     </p>
     
     <div style="background: #111113; border: 1px solid #27272a; border-radius: 8px; padding: 20px; margin-bottom: 24px;">
@@ -430,9 +430,9 @@ export async function sendTrialExpired(to: string, name: string | null): Promise
         What you can still do:
       </h3>
       <ul style="font-size: 14px; color: #a1a1aa; margin: 0; padding-left: 20px; line-height: 1.6;">
-        <li style="margin-bottom: 8px;">Browse all published briefs</li>
+        <li style="margin-bottom: 8px;">Browse all open publications</li>
         <li style="margin-bottom: 8px;">Receive the weekly intelligence dispatch</li>
-        <li>Read strategic reports (but not commission new ones)</li>
+        <li>Read signals, memos, briefs, reports, and dossiers</li>
       </ul>
     </div>
     
@@ -453,7 +453,7 @@ export async function sendTrialExpired(to: string, name: string | null): Promise
     <p style="font-size: 12px; color: #52525b; margin: 0;">
       Want to reactivate your trial? Reply to this email and we'll help you out.
     </p>
-  `, `Your NomosX trial has expired — upgrade to continue commissioning briefs`);
+  `, `Your NomosX trial has expired — upgrade to continue commissioning research`);
 
   await sendEmail({ 
     to, 
@@ -463,8 +463,7 @@ export async function sendTrialExpired(to: string, name: string | null): Promise
 }
 
 /**
- * Commissioned brief ready notification — sent to Researcher tier users
- * when their custom-commissioned brief or strategic report is complete.
+ * Commissioned publication ready notification — sent when a StudioX output is complete.
  */
 export async function sendBriefReadyNotification(
   to: string,
@@ -481,7 +480,7 @@ export async function sendBriefReadyNotification(
   const briefUrl = addUtmParams(`${APP_URL}/publications/${brief.id}`, UTM_CAMPAIGN.brief_ready);
   const displayName = name || 'Researcher';
   const isStrategic = brief.type === 'strategic_report';
-  const typeLabel = isStrategic ? '15-Page Strategic Report' : 'Executive Brief';
+  const typeLabel = isStrategic ? 'Strategic Report' : 'Research Brief';
   const trustColor = (brief.trustScore || 0) >= 85 ? '#10b981' : (brief.trustScore || 0) >= 70 ? '#f59e0b' : '#6366f1';
   const preheader = `Your ${isStrategic ? 'strategic report' : 'brief'} is ready: ${brief.title}`;
 

@@ -3,12 +3,13 @@ import { prisma } from '@/lib/db';
 import { getSession } from '@/lib/auth';
 import { withAuth, withRateLimit, rateLimitConfigs, commonSchemas } from '@/lib/validation';
 import { generatePrintHTML } from '@/lib/agent/pdf-export';
+import { publicPublicationWhere } from '@/lib/publication-visibility';
 
 /**
  * POST /api/articles/[id]/export
  *
  * Export an article as print-optimized HTML (download as .html, print-to-PDF in browser).
- * Requires RESEARCHER or STUDIO subscription.
+ * Public publications are open; authentication is used for rate-limit accountability.
  */
 export async function POST(
   req: NextRequest,
@@ -30,23 +31,9 @@ export async function POST(
             return NextResponse.json({ error: 'Invalid article ID format' }, { status: 400 });
           }
 
-          // Check subscription tier
-          const user = await prisma.user.findUnique({
-            where: { id: session.id },
-            include: { subscription: true },
-          });
-
-          const plan = user?.subscription?.plan || 'ANALYST';
-          if (plan === 'TRIAL' || plan === 'ANALYST') {
-            return NextResponse.json(
-              { error: 'RESEARCHER or STUDIO subscription required for PDF export' },
-              { status: 403 }
-            );
-          }
-
           // Fetch article
-          const article = await prisma.thinkTankPublication.findUnique({
-            where: { id: idValidation.data.id },
+          const article = await prisma.thinkTankPublication.findFirst({
+            where: publicPublicationWhere({ id: idValidation.data.id }),
             select: { id: true, title: true, html: true, publishedAt: true, wordCount: true },
           });
 

@@ -14,24 +14,44 @@ import { Menu, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 
 const LogoFallback = () => (
-  <svg width="44" height="44" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+  <svg width="44" height="44" viewBox="0 0 120 120" fill="none" aria-hidden="true">
     <defs>
-      <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-        <feGaussianBlur stdDeviation="1.5" result="blur" />
+      <linearGradient id="nav-oracle-gradient" x1="20%" y1="0%" x2="80%" y2="100%">
+        <stop offset="0%" stopColor="#A5B4FC" />
+        <stop offset="45%" stopColor="#6366F1" />
+        <stop offset="100%" stopColor="#7C3AED" />
+      </linearGradient>
+      <radialGradient id="nav-oracle-core" cx="50%" cy="45%" r="55%">
+        <stop offset="0%" stopColor="#FFFFFF" />
+        <stop offset="42%" stopColor="#F5D778" />
+        <stop offset="100%" stopColor="#D4AF37" />
+      </radialGradient>
+      <filter id="nav-oracle-glow" x="-40%" y="-40%" width="180%" height="180%">
+        <feGaussianBlur stdDeviation="3.8" result="blur" />
         <feMerge>
           <feMergeNode in="blur" />
           <feMergeNode in="SourceGraphic" />
         </feMerge>
       </filter>
     </defs>
-    <circle cx="14" cy="14" r="12.5" fill="#09090b" stroke="white" strokeWidth="1.2" strokeOpacity="0.9" />
-    <circle cx="14" cy="14" r="9.5" stroke="#818CF8" strokeWidth="1.1" strokeOpacity="0.95" filter="url(#glow)" />
-    <ellipse cx="14" cy="14" rx="12" ry="4.2" stroke="#A5B4FC" strokeWidth="0.9" strokeOpacity="0.85" transform="rotate(-24 14 14)" />
-    <ellipse cx="14" cy="14" rx="12" ry="4.2" stroke="#7C3AED" strokeWidth="0.9" strokeOpacity="0.85" transform="rotate(28 14 14)" />
-    <line x1="8.5" y1="8.5" x2="19.5" y2="19.5" stroke="#A5B4FC" strokeWidth="2.5" strokeLinecap="round" />
-    <line x1="19.5" y1="8.5" x2="8.5" y2="19.5" stroke="#8B5CF6" strokeWidth="2.5" strokeLinecap="round" />
-    <circle cx="14" cy="14" r="2.7" fill="#F5D778" filter="url(#glow)" />
-    <circle cx="14" cy="14" r="1" fill="#09090b" />
+    <circle cx="60" cy="60" r="52" fill="#09090B" stroke="white" strokeOpacity="0.10" strokeWidth="1.2" />
+    <path d="M60 9 L68 24 H52 L60 9Z" fill="#F5D778" opacity="0.55" />
+    <path d="M60 111 L52 96 H68 L60 111Z" fill="#F5D778" opacity="0.42" />
+    <path d="M9 60 L24 52 V68 L9 60Z" fill="#A5B4FC" opacity="0.28" />
+    <path d="M111 60 L96 68 V52 L111 60Z" fill="#A5B4FC" opacity="0.28" />
+    <circle cx="60" cy="60" r="42" stroke="url(#nav-oracle-gradient)" strokeWidth="1.3" strokeOpacity="0.50" />
+    <path d="M60 18 A42 42 0 0 1 102 60" stroke="#F5D778" strokeWidth="1" strokeOpacity="0.38" strokeLinecap="round" />
+    <path d="M60 102 A42 42 0 0 1 18 60" stroke="#F5D778" strokeWidth="1" strokeOpacity="0.28" strokeLinecap="round" />
+    <ellipse cx="60" cy="60" rx="50" ry="18" stroke="#A5B4FC" strokeWidth="1.1" strokeOpacity="0.24" transform="rotate(-24 60 60)" />
+    <ellipse cx="60" cy="60" rx="49" ry="17" stroke="#7C3AED" strokeWidth="1.1" strokeOpacity="0.26" transform="rotate(28 60 60)" />
+    <g filter="url(#nav-oracle-glow)">
+      <path d="M31 35 V86" stroke="url(#nav-oracle-gradient)" strokeWidth="8" strokeLinecap="round" />
+      <path d="M89 35 V86" stroke="url(#nav-oracle-gradient)" strokeWidth="8" strokeLinecap="round" />
+      <path d="M34 36 L86 84" stroke="url(#nav-oracle-gradient)" strokeWidth="8" strokeLinecap="round" opacity="0.92" />
+      <path d="M86 36 L34 84" stroke="url(#nav-oracle-gradient)" strokeWidth="8" strokeLinecap="round" opacity="0.72" />
+    </g>
+    <circle cx="60" cy="60" r="11" fill="url(#nav-oracle-core)" />
+    <circle cx="60" cy="60" r="4.2" fill="#09090B" opacity="0.92" />
   </svg>
 );
 
@@ -70,11 +90,11 @@ export default function PublicNav({ currentPage, onSignInClick, isAuthenticated 
         >
           <div className="relative">
             <NomosXLogo3D size={52} />
-            <div className="absolute inset-0 rounded-full blur-md bg-indigo-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            <div className="absolute inset-0 rounded-full blur-md bg-amber-300/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
           </div>
           <span className="font-display font-black text-[24px] tracking-tight drop-shadow-[0_0_12px_rgba(139,92,246,0.35)]">
             <span className="text-white group-hover:text-white transition-colors">Nomos</span>
-            <span className="bg-gradient-to-r from-indigo-400 via-violet-400 to-fuchsia-400 bg-clip-text text-transparent">X</span>
+            <span className="bg-gradient-to-r from-indigo-300 via-violet-300 to-[#F5D778] bg-clip-text text-transparent">X</span>
           </span>
         </div>
         
@@ -100,14 +120,14 @@ export default function PublicNav({ currentPage, onSignInClick, isAuthenticated 
           {isAuthenticated ? (
             <button
               onClick={() => router.push("/articles")}
-              className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-[13px] font-medium transition-all duration-200 shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40"
+              className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-[13px] font-medium transition-all duration-200 shadow-lg shadow-amber-300/10 hover:shadow-amber-300/20"
             >
             Browse Codex
             </button>
           ) : (
             <button
               onClick={onSignInClick}
-              className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-[13px] font-medium transition-all duration-200 shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40"
+              className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-[13px] font-medium transition-all duration-200 shadow-lg shadow-amber-300/10 hover:shadow-amber-300/20"
             >
               Enter
             </button>

@@ -52,19 +52,25 @@ interface PipelineLineage {
 // TEMPLATE SELECTION
 // ============================================================================
 
-function selectPublicationType(signalType: string): PublicationType {
+function selectPublicationType(signalType: string, sourceCount = 0): PublicationType {
+  // SUMMARY_BRIEF: quick factual updates, few sources
+  // EXECUTIVE_BRIEF: decision-grade analysis, standard depth
+  // STRATEGIC_REPORT: major structural shifts, deep research base
   switch (signalType) {
     case "DATA_RELEASE":
-      return "DATA_NOTE";
+      return sourceCount >= 8 ? "EXECUTIVE_BRIEF" : "SUMMARY_BRIEF";
     case "POLICY_CHANGE":
-      return "POLICY_NOTE";
+      return "EXECUTIVE_BRIEF";
     case "CONTRADICTION":
+      return "EXECUTIVE_BRIEF";
     case "TREND_BREAK":
+      return sourceCount >= 12 ? "STRATEGIC_REPORT" : "EXECUTIVE_BRIEF";
     case "METHODOLOGY_SHIFT":
-      return "RESEARCH_BRIEF";
+      return "STRATEGIC_REPORT";
     case "NEW_EVIDENCE":
+      return sourceCount >= 10 ? "EXECUTIVE_BRIEF" : "SUMMARY_BRIEF";
     default:
-      return "RESEARCH_BRIEF";
+      return "EXECUTIVE_BRIEF";
   }
 }
 
@@ -221,11 +227,14 @@ ${sources.map((s, i) => {
 
 function formatPublicationType(type: string): string {
   const formats: Record<string, string> = {
+    SUMMARY_BRIEF: "Summary Brief",
+    EXECUTIVE_BRIEF: "Executive Brief",
+    STRATEGIC_REPORT: "Strategic Report",
     RESEARCH_BRIEF: "Research Brief",
     UPDATE_NOTE: "Update Note",
     DATA_NOTE: "Data Note",
     POLICY_NOTE: "Policy Note",
-    DOSSIER: "Dossier"
+    DOSSIER: "Dossier",
   };
   return formats[type] || type;
 }
@@ -296,7 +305,7 @@ export async function generatePublication(
   }
   
   // Select publication type and template
-  const pubType = input.publicationType || selectPublicationType(signal.signalType);
+  const pubType = input.publicationType || selectPublicationType(signal.signalType, sources.length);
   const template = getTemplate(pubType);
   
   if (!template) {

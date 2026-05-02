@@ -2,7 +2,7 @@
  * Weekly Brief Email Template
  * 
  * Personalized intelligence delivery based on user's vertical preferences
- * Sent weekly with latest Executive Briefs from selected verticals
+ * Sent weekly with latest open publications from selected verticals
  */
 
 interface Brief {

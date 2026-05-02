@@ -7,7 +7,7 @@ import { prisma } from '@/lib/db';
  *
  * Tiers (canonical):
  *   ANALYST   — free, read-only access to published briefs + weekly dispatch
- *   RESEARCHER — paid (€19/mo), commission briefs + strategic reports
+ *   RESEARCHER — paid, commission StudioX publications
  *   STUDIO    — paid (€49/mo), full editorial control + API + white-label
  *
  * Legacy aliases still accepted from DB: TRIAL→ANALYST, EXECUTIVE→RESEARCHER, STRATEGY→STUDIO

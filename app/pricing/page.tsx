@@ -7,6 +7,8 @@ import PublicNav from '@/components/PublicNav';
 import { ArrowRight, ChevronDown, BookOpen, Brain, Database, FileText, Target, Shield, Zap } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import SiteFooter from '@/components/SiteFooter';
+import { PUBLICATION_FORMATS } from '@/lib/publication-formats';
+import { getStudioXPrice } from '@/lib/studiox-pricing';
 
 export default function PricingPage() {
   const router = useRouter();
@@ -34,7 +36,7 @@ export default function PricingPage() {
   }
 
   const freeFeatures = [
-    { icon: BookOpen, text: "All published briefs & strategic reports" },
+    { icon: BookOpen, text: "All published formats: signals, memos, reports, dossiers" },
     { icon: Brain,    text: "22-researcher Council publications" },
     { icon: Database, text: "Full source traceability on every claim" },
     { icon: FileText, text: "Weekly truth dispatch" },
@@ -43,7 +45,7 @@ export default function PricingPage() {
 
   const studioFeatures = [
     "Commission research on any question",
-    "Choose format: Executive Brief or Strategic Report",
+    "Choose format: Signal Brief, Policy Memo, Research Brief, Strategic Report, or Research Dossier",
     "Full 22-researcher Council deliberations",
     "Adversarial debate + statistical meta-analysis",
     "Verified [SRC-N] citation export",
@@ -55,23 +57,23 @@ export default function PricingPage() {
   const faq = [
     {
       q: "Is the Think Tank really free?",
-      a: "Yes. Everything the autonomous pipeline publishes — briefs, strategic reports, the weekly dispatch — is freely accessible. No credit card, no subscription, no expiry. The Council publishes; you read."
+      a: "Yes. Everything the autonomous pipeline publishes — signals, memos, briefs, reports, dossiers, and the weekly dispatch — is freely accessible. No credit card, no subscription, no expiry. The Council publishes; you read."
     },
     {
       q: "What is StudioX?",
-      a: "StudioX lets you commission the full 16-agent pipeline on any research question of your choice. You set the question, choose the format (Executive Brief or Strategic Report), and receive a fully validated, source-traced publication. It is the research arm on demand, for organizations and professionals who need custom intelligence."
+      a: "StudioX lets you commission the full 16-agent pipeline on any research question of your choice. You set the question, choose the format, and receive a fully validated, source-traced publication. It is the research arm on demand, for organizations and professionals who need custom intelligence."
     },
     {
       q: "How does the pipeline work?",
       a: "Input: your research question. The pipeline runs 16 sequential verification stages — source collection across 250M+ documents, enrichment, relevance ranking, extraction, synthesis, then Council validation (22 domain researchers debate and meta-analyze). Output: verified brief with full [SRC-N] citation traceability. Average cycle: 3–5 minutes.",
     },
     {
-      q: "What is the difference between a Brief and a Strategic Report?",
-      a: "An Executive Brief is a focused 3–5 page synthesis: consensus, disagreements, pro/con debate, evidence quality score, strategic implications. A Strategic Report is 10–15 pages: full literature review, thematic analysis, scenario planning (3–5 scenarios with probabilities), stakeholder impact matrix, and implementation roadmap."
+      q: "Which publication formats exist?",
+      a: "NomosX now publishes a full ladder of formats: Signal Brief, Update Note, Data Note, Policy Memo, Research Brief, Strategic Report, and Research Dossier. The format changes the depth, evidence volume, and decision surface; access stays open for public publications."
     },
     {
-      q: "Is StudioX priced per report or per subscription?",
-      a: "Pricing details for StudioX are available on request — it depends on volume, format, and vertical. Get in touch to discuss your use case."
+      q: "How is StudioX priced?",
+      a: "StudioX is pay-per-use. You pay once per commission — no subscription, no monthly fee. Prices depend on the format: from 9 € for a Signal Brief to 299 € for a Research Dossier. The price is shown before you pay."
     },
   ];
 
@@ -138,6 +140,42 @@ export default function PricingPage() {
             </div>
           </div>
 
+          {/* Format catalogue */}
+          <div className="mb-20">
+            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-6">
+              <div>
+                <p className="text-xs text-amber-100/60 font-medium tracking-[0.22em] uppercase mb-3">Publication Formats</p>
+                <h2 className="font-display text-2xl sm:text-3xl font-bold text-white">One protocol, multiple depths.</h2>
+              </div>
+              <p className="text-sm text-white/40 max-w-md">
+                Public reading stays open. StudioX lets you choose the same format ladder for commissioned work.
+              </p>
+            </div>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {PUBLICATION_FORMATS.filter((f) => f.type !== 'EXECUTIVE_BRIEF').map((format) => {
+                const price = getStudioXPrice(format.type);
+                return (
+                  <div key={format.type} className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-4">
+                    <div className="flex items-start justify-between gap-3 mb-4">
+                      <div>
+                        <div className="text-sm text-white/85 font-semibold">{format.label}</div>
+                        <div className="text-[11px] text-white/30 mt-1">{format.pages}</div>
+                      </div>
+                      <div className="text-right">
+                        <span className="rounded-full border border-amber-300/20 bg-amber-300/[0.05] px-2 py-1 text-[10px] text-amber-100/70 block mb-1">
+                          {format.access}
+                        </span>
+                        <span className="text-xs font-semibold text-indigo-300">{price.display}</span>
+                      </div>
+                    </div>
+                    <p className="text-xs text-white/40 leading-relaxed min-h-[48px]">{format.description}</p>
+                    <div className="mt-4 text-[10px] text-white/25 uppercase tracking-[0.14em]">{format.sourceDepth}</div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
           {/* TWO COLUMNS */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-24">
 
@@ -172,13 +210,13 @@ export default function PricingPage() {
               <div className="absolute inset-0 rounded-2xl" style={{ background: 'conic-gradient(from 0deg, transparent 0deg, rgba(99,102,241,0.5) 45deg, rgba(139,92,246,0.3) 90deg, transparent 135deg)' }} />
               <div className="relative rounded-2xl p-9 h-full" style={{ background: 'linear-gradient(145deg, rgba(99,102,241,0.07) 0%, rgba(9,9,11,1) 55%)' }}>
                 <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
-                  <span className="px-4 py-1 rounded-full bg-indigo-600 text-white text-[10px] font-bold tracking-widest uppercase shadow-lg shadow-indigo-500/30">StudioX</span>
+                  <span className="px-4 py-1 rounded-full bg-indigo-600 text-white text-[10px] font-bold tracking-widest uppercase shadow-lg shadow-amber-300/10">StudioX</span>
                 </div>
                 <p className="text-[10px] text-indigo-400/70 font-semibold tracking-[0.25em] uppercase mb-5 mt-1">Custom research on demand</p>
                 <div className="flex items-baseline gap-2 mb-2">
-                  <span className="text-5xl font-display font-bold text-white">On demand</span>
+                  <span className="text-5xl font-display font-bold text-white">Pay per use</span>
                 </div>
-                <p className="text-sm text-white/30 mb-7">Commission the pipeline. Pricing on request.</p>
+                <p className="text-sm text-white/30 mb-7">From 9 € per commission. No subscription.</p>
                 <div className="space-y-2.5 mb-9">
                   {studioFeatures.map((f, i) => (
                     <div key={i} className="flex items-center gap-2.5">
@@ -191,7 +229,7 @@ export default function PricingPage() {
                 </div>
                 <button
                   onClick={openStudioAuth}
-                  className="w-full py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm transition-all duration-200 shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2 group"
+                  className="w-full py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm transition-all duration-200 shadow-lg shadow-amber-300/10 flex items-center justify-center gap-2 group"
                 >
                   Commission research
                   <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
@@ -277,7 +315,7 @@ export default function PricingPage() {
                 </button>
                 <button
                   onClick={openStudioAuth}
-                  className="group px-7 py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm transition-all duration-200 shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2"
+                  className="group px-7 py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm transition-all duration-200 shadow-lg shadow-amber-300/10 flex items-center justify-center gap-2"
                 >
                   Commission research
                   <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />

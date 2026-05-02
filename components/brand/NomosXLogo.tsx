@@ -1,20 +1,21 @@
 "use client";
 
-import { useId } from 'react';
-import { cn } from '@/lib/utils';
+import { useId } from "react";
+import { cn } from "@/lib/utils";
 
 interface LogoProps {
-  size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' | '5xl';
-  variant?: 'full' | 'symbol' | 'wordmark';
+  size?: "sm" | "md" | "lg" | "xl" | "2xl" | "3xl" | "4xl" | "5xl";
+  variant?: "full" | "symbol" | "wordmark";
   className?: string;
+  styleSize?: number;
 }
 
-const symbolSizes = { sm: 28, md: 36, lg: 44, xl: 60, '2xl': 80, '3xl': 120, '4xl': 160, '5xl': 220 };
-const textSizes = { sm: 'text-[15px]', md: 'text-[18px]', lg: 'text-[22px]', xl: 'text-[30px]', '2xl': 'text-[42px]', '3xl': 'text-[56px]', '4xl': 'text-[72px]', '5xl': 'text-[96px]' };
-const gapSizes = { sm: 'gap-2', md: 'gap-2.5', lg: 'gap-3', xl: 'gap-4', '2xl': 'gap-5', '3xl': 'gap-6', '4xl': 'gap-8', '5xl': 'gap-10' };
+const symbolSizes = { sm: 28, md: 36, lg: 44, xl: 60, "2xl": 80, "3xl": 120, "4xl": 160, "5xl": 220 };
+const textSizes = { sm: "text-[15px]", md: "text-[18px]", lg: "text-[22px]", xl: "text-[30px]", "2xl": "text-[42px]", "3xl": "text-[56px]", "4xl": "text-[72px]", "5xl": "text-[96px]" };
+const gapSizes = { sm: "gap-2", md: "gap-2.5", lg: "gap-3", xl: "gap-4", "2xl": "gap-5", "3xl": "gap-6", "4xl": "gap-8", "5xl": "gap-10" };
 
 function NomosSymbol({ px, className }: { px: number; className?: string }) {
-  const id = useId().replace(/:/g, '');
+  const id = useId().replace(/:/g, "");
   const gradId = `${id}-grad`;
   const coreId = `${id}-core`;
   const logoGlowId = `${id}-logo-glow`;
@@ -85,25 +86,21 @@ function NomosSymbol({ px, className }: { px: number; className?: string }) {
   );
 }
 
-export function NomosXLogo({ size = 'md', variant = 'full', className }: LogoProps) {
-  const px = symbolSizes[size];
+export function NomosXLogo({ size = "md", variant = "full", className, styleSize }: LogoProps) {
+  const px = styleSize ?? symbolSizes[size];
 
-  if (variant === 'symbol') {
+  if (variant === "symbol") {
     return (
-      <div className={cn('inline-flex items-center justify-center', className)}>
+      <div className={cn("inline-flex items-center justify-center", className)}>
         <NomosSymbol px={px} />
       </div>
     );
   }
 
-  if (variant === 'wordmark') {
+  if (variant === "wordmark") {
     return (
-      <div className={cn('inline-flex items-center', className)}>
-        <span className={cn(
-          'font-display font-semibold tracking-tight',
-          'bg-gradient-to-r from-indigo-200 via-white to-violet-200 bg-clip-text text-transparent',
-          textSizes[size]
-        )}>
+      <div className={cn("inline-flex items-center", className)}>
+        <span className={cn("font-display font-semibold tracking-tight bg-gradient-to-r from-indigo-200 via-white to-violet-200 bg-clip-text text-transparent", textSizes[size])}>
           Nomos<span className="bg-gradient-to-r from-indigo-300 via-violet-300 to-[#F5D778] bg-clip-text text-transparent">X</span>
         </span>
       </div>
@@ -111,13 +108,9 @@ export function NomosXLogo({ size = 'md', variant = 'full', className }: LogoPro
   }
 
   return (
-    <div className={cn('inline-flex items-center', gapSizes[size], className)}>
+    <div className={cn("inline-flex items-center", gapSizes[size], className)}>
       <NomosSymbol px={px} />
-      <span className={cn(
-        'font-display font-semibold tracking-tight',
-        'bg-gradient-to-r from-white via-indigo-100 to-violet-200 bg-clip-text text-transparent',
-        textSizes[size]
-      )}>
+      <span className={cn("font-display font-semibold tracking-tight bg-gradient-to-r from-white via-indigo-100 to-violet-200 bg-clip-text text-transparent", textSizes[size])}>
         Nomos<span className="bg-gradient-to-r from-indigo-300 via-violet-300 to-[#F5D778] bg-clip-text text-transparent">X</span>
       </span>
     </div>

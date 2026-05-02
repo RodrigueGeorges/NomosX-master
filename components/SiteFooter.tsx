@@ -41,7 +41,7 @@ export default function SiteFooter({ onSignInClick }: SiteFooterProps) {
   return (
     <footer className="relative border-t border-white/[0.06] overflow-hidden">
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_40%_at_50%_100%,rgba(99,102,241,0.05),transparent_70%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_40%_at_50%_100%,rgba(245,215,120,0.055),transparent_70%)]" />
       </div>
 
       {/* CTA strip */}
@@ -58,7 +58,7 @@ export default function SiteFooter({ onSignInClick }: SiteFooterProps) {
           </div>
           <button
             onClick={onSignInClick}
-            className="group flex-shrink-0 flex items-center gap-2 px-6 py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm transition-all duration-300 shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40 hover:scale-[1.03]"
+            className="group flex-shrink-0 flex items-center gap-2 px-6 py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm transition-all duration-300 shadow-lg shadow-amber-300/10 hover:shadow-amber-300/20 hover:scale-[1.03]"
           >
             Access institutional intelligence — Free tier
             <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
@@ -92,7 +92,7 @@ export default function SiteFooter({ onSignInClick }: SiteFooterProps) {
               const FIcon = item.icon;
               return (
                 <div key={item.label} className="rounded-xl border border-white/[0.05] bg-white/[0.02] p-4">
-                  <FIcon size={15} className="text-indigo-300/70 mb-3" />
+                  <FIcon size={15} className="text-amber-100/60 mb-3" />
                   <div className="text-[10px] text-white/25 uppercase tracking-[0.16em]">{item.label}</div>
                   <div className="text-xs text-white/45 mt-1">{item.value}</div>
                 </div>
@@ -173,7 +173,7 @@ export default function SiteFooter({ onSignInClick }: SiteFooterProps) {
             © 2026 NomosX · Autonomous Think Tank · All rights reserved
           </p>
           <div className="flex items-center gap-1.5">
-            <div className="w-1.5 h-1.5 rounded-full bg-indigo-500/60" />
+            <div className="w-1.5 h-1.5 rounded-full bg-amber-300/60" />
             <p className="text-xs text-white/30">
               Powered by GPT-4o · OpenAlex · 60+ providers · 250M+ sources
             </p>

@@ -135,7 +135,7 @@ export default function MethodologyPage() {
       inputs: ["Analysis claims", "Source corpus"],
       outputs: ["Verified claim list", "Confidence scores", "Flagged assertions"],
       providers: ["Proprietary verification engine"],
-      color: "bg-cyan-600"
+      color: "bg-amber-500"
     },
     {
       name: "Critical review",
@@ -267,7 +267,7 @@ export default function MethodologyPage() {
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <button
                 onClick={() => { setAuthRedirect('dashboard'); setShowAuthModal(true); }}
-                className="group px-8 py-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm tracking-wide transition-all duration-300 shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40 hover:scale-[1.02] inline-flex items-center gap-2"
+                className="group px-8 py-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm tracking-wide transition-all duration-300 shadow-lg shadow-amber-300/10 hover:shadow-amber-300/20 hover:scale-[1.02] inline-flex items-center gap-2"
               >
                 Access the Council — free
                 <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
@@ -493,7 +493,7 @@ export default function MethodologyPage() {
               <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-6">
                 <button
                   onClick={() => { setAuthRedirect('dashboard'); setShowAuthModal(true); }}
-                  className="group px-8 py-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm tracking-wide transition-all duration-300 shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40 hover:scale-[1.02] inline-flex items-center gap-2"
+                  className="group px-8 py-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm tracking-wide transition-all duration-300 shadow-lg shadow-amber-300/10 hover:shadow-amber-300/20 hover:scale-[1.02] inline-flex items-center gap-2"
                 >
                   Access the Council — free
                   <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />

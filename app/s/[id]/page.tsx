@@ -40,7 +40,7 @@ export default async function SharedBrief({ params }: { params: Promise<{ id: st
           </Link>
           <Link
             href="/api/auth/register"
-            className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium transition-all duration-200 shadow-lg shadow-indigo-500/20"
+            className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium transition-all duration-200 shadow-lg shadow-amber-300/10"
           >
             Get full access
           </Link>
@@ -92,7 +92,7 @@ export default async function SharedBrief({ params }: { params: Promise<{ id: st
             </Link>
             <Link
               href="/pricing"
-              className="px-6 py-3 rounded-xl bg-indigo-500 hover:bg-indigo-400 text-white text-sm font-semibold transition-all shadow-lg shadow-indigo-500/20"
+              className="px-6 py-3 rounded-xl bg-indigo-500 hover:bg-indigo-400 text-white text-sm font-semibold transition-all shadow-lg shadow-amber-300/10"
             >
               Full access from €19/mo
             </Link>

@@ -1,7 +1,7 @@
 /**
  * STRATEGIC ANALYST Agent
  * Produces comprehensive 10-15 page Strategic Reports with:
- * - Executive Brief
+ * - Executive Summary
  * - Deep Literature Review
  * - Methodology Assessment
  * - Thematic Analysis
@@ -16,7 +16,7 @@ import Sentry from '@sentry/nextjs';
 import { AgentRole,assertPermission } from '../governance/index';
 
 export interface StrategicAnalysisOutput {
-  // SECTION 1: Executive Brief (1 page)
+  // SECTION 1: Executive Summary (1 page)
   title: string;
   executiveSummary: string;
   keyFindings: string[];
