@@ -82,12 +82,12 @@ export async function POST(req: NextRequest) {
       stats: result.stats,
       format: format || "brief",
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[API /v3/analysis] Error:", error);
     return NextResponse.json(
       {
         error: "Analysis failed",
-        message: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error',
+        message: process.env.NODE_ENV === 'development' ? (error as Error).message : 'Internal server error',
       },
       { status: 500 }
     );

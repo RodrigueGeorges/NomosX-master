@@ -170,7 +170,7 @@ export async function GET(
           relatedArticles: transformedRelated,
         });
 
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('[API/Articles/[id]] Error:', error);
         return NextResponse.json(
           { error: 'Failed to fetch article' },

@@ -86,7 +86,7 @@ export async function GET(
             'Cache-Control': 'private, no-store',
           },
         });
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('[API/Articles/Export] Error:', error);
         return NextResponse.json({ error: 'Export failed' }, { status: 500 });
       }

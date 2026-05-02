@@ -119,14 +119,14 @@ export async function POST(req: NextRequest) {
     ]).catch(() => [[], []]);
 
     // Build context block
-    const briefsContext = (recentBriefs as any[]).length > 0
-      ? `\n\nRECENT PUBLISHED PUBLICATIONS:\n${(recentBriefs as any[]).map((b: any, i: number) =>
+    const briefsContext = recentBriefs.length > 0
+      ? `\n\nRECENT PUBLISHED PUBLICATIONS:\n${recentBriefs.map((b, i: number) =>
           `${i + 1}. "${b.question.slice(0, 80)}..." (${b.kind}) — ${b.topic?.name || 'General'} — ${new Date(b.createdAt).toLocaleDateString()}`
         ).join('\n')}`
       : '\n\nNO PUBLISHED PUBLICATIONS AVAILABLE.';
 
-    const topicsContext = (userTopics as any[]).length > 0
-      ? `\n\nUSER'S MONITORED TOPICS:\n${(userTopics as any[]).map((t: any) =>
+    const topicsContext = userTopics.length > 0
+      ? `\n\nUSER'S MONITORED TOPICS:\n${userTopics.map((t) =>
           `- ${t.name} (${t.isActive ? 'Active' : 'Inactive'})`
         ).join('\n')}`
       : '\n\nUSER HAS NO ACTIVE TOPIC SUBSCRIPTIONS.';

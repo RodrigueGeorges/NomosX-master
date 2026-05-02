@@ -79,7 +79,7 @@ export async function GET(req: NextRequest) {
           }
 
           // Fetch data based on requested metrics
-          let data: any = {};
+          let data: Record<string, unknown> = {};
 
           switch (metrics) {
             case 'overview':
@@ -103,7 +103,7 @@ export async function GET(req: NextRequest) {
             timestamp: now.toISOString(),
           });
 
-        } catch (error: any) {
+        } catch (error: unknown) {
           console.error('[API/Admin/Dashboard] Error:', error);
           return NextResponse.json(
             { error: "Failed to fetch admin dashboard data" },

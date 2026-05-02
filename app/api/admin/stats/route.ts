@@ -161,7 +161,7 @@ export async function GET(req: NextRequest) {
         active: activeVerticals,
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[Admin Stats API] Error:", error);
     return NextResponse.json(
       { error: "Failed to fetch stats" },

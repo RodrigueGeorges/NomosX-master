@@ -2,7 +2,7 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 
 interface ChartProps extends React.HTMLAttributes<HTMLDivElement> {
-  data?: any[]
+  data?: Record<string, unknown>[]
   type?: 'line' | 'bar' | 'pie'
 }
 

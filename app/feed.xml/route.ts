@@ -40,7 +40,7 @@ export async function GET(_req: NextRequest) {
 
   const now = new Date().toUTCString();
 
-  const items = (publications as any[]).map((pub) => {
+  const items = publications.map((pub) => {
     const format = getPublicationFormat(pub.type);
     const summary = extractSummary(pub.html || '');
     const pubDate = pub.publishedAt ? new Date(pub.publishedAt).toUTCString() : now;
