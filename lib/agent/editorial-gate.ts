@@ -9,6 +9,7 @@
 import { prisma } from '@/lib/db';
 import { EditorialChecks,EditorialDecisionType,SIGNAL_THRESHOLDS,FORBIDDEN_PHRASES,VerticalConfig } from '@/lib/think-tank/types';
 import { cadenceEnforcer } from './cadence-enforcer';
+import { PUBLIC_PUBLICATION_MINIMUMS } from '@/lib/publication-visibility';
 
 // ============================================================================
 // TYPES
@@ -64,7 +65,7 @@ function checkThreshold(context: any): { passed: boolean; details: string } {
 
 function checkQuality(context: any, config: VerticalConfig): { passed: boolean; score: number } {
   const avgQuality = context.confidenceScore || context.trustScore || 0;
-  const minRequired = config.thresholds?.minTrustScore || 60;
+  const minRequired = config.thresholds?.minTrustScore ?? PUBLIC_PUBLICATION_MINIMUMS.trustScore;
   
   return {
     passed: avgQuality >= minRequired,

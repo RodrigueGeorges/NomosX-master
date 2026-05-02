@@ -1,66 +1,95 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { getSession } from '@/lib/auth';
-import { withAuth, withRateLimit, rateLimitConfigs, commonSchemas } from '@/lib/validation';
+import { withRateLimit, rateLimitConfigs, commonSchemas } from '@/lib/validation';
 import { generatePrintHTML } from '@/lib/agent/pdf-export';
 import { publicPublicationWhere } from '@/lib/publication-visibility';
+import { getPublicationFormat } from '@/lib/publication-formats';
 
 /**
- * POST /api/articles/[id]/export
+ * GET /api/articles/[id]/export
  *
- * Export an article as print-optimized HTML (download as .html, print-to-PDF in browser).
- * Public publications are open; authentication is used for rate-limit accountability.
+ * Export a public article as print-optimized HTML.
+ * Browser downloads as .html — user can File → Print → Save as PDF.
  */
-export async function POST(
+export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  return withAuth(
-    withRateLimit(
-      rateLimitConfigs.upload,
-      async (req) => {
-        try {
-          const session = await getSession();
-          if (!session) {
-            return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
-          }
-
-          const { id } = await params;
-          const idValidation = commonSchemas.id.safeParse({ id });
-          if (!idValidation.success) {
-            return NextResponse.json({ error: 'Invalid article ID format' }, { status: 400 });
-          }
-
-          // Fetch article
-          const article = await prisma.thinkTankPublication.findFirst({
-            where: publicPublicationWhere({ id: idValidation.data.id }),
-            select: { id: true, title: true, html: true, publishedAt: true, wordCount: true },
-          });
-
-          if (!article) {
-            return NextResponse.json({ error: 'Article not found' }, { status: 404 });
-          }
-
-          // Generate print-optimized HTML using the pdf-export agent
-          const printHtml = generatePrintHTML(article.html);
-
-          const safeFilename = article.title
-            .replace(/[^a-z0-9\s-]/gi, '')
-            .replace(/\s+/g, '_')
-            .toLowerCase()
-            .slice(0, 80);
-
-          return new NextResponse(printHtml, {
-            headers: {
-              'Content-Type': 'text/html; charset=utf-8',
-              'Content-Disposition': `attachment; filename="${safeFilename}.html"`,
-            },
-          });
-        } catch (error: any) {
-          console.error('[API/Articles/[id]/Export] Error:', error);
-          return NextResponse.json({ error: 'Failed to export article' }, { status: 500 });
+  return withRateLimit(
+    rateLimitConfigs.api,
+    async (req) => {
+      try {
+        const { id } = await params;
+        const idValidation = commonSchemas.id.safeParse({ id });
+        if (!idValidation.success) {
+          return NextResponse.json({ error: 'Invalid article ID format' }, { status: 400 });
         }
+
+        const article = await prisma.thinkTankPublication.findFirst({
+          where: publicPublicationWhere({ id: idValidation.data.id }),
+          select: { id: true, title: true, html: true, type: true, publishedAt: true, sourceIds: true, trustScore: true },
+        });
+
+        if (!article) {
+          return NextResponse.json({ error: 'Article not found' }, { status: 404 });
+        }
+
+        const rawHtml = (article.html || '').replace(/^```html?\s*/i, '').replace(/\s*```\s*$/, '').trim();
+        const format = getPublicationFormat(article.type);
+        const publishedDate = article.publishedAt
+          ? new Date(article.publishedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+          : '';
+
+        // Wrap content in a full HTML document so generatePrintHTML can inject its <style> block
+        const fullDocument = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${article.title.replace(/</g, '&lt;').replace(/>/g, '&gt;')} — NomosX</title>
+  <style>
+    body { font-family: Georgia, serif; font-size: 11pt; line-height: 1.7; color: #1a1a2e; max-width: 720px; margin: 0 auto; padding: 40px; }
+    .export-header { border-bottom: 2px solid #1a1a2e; padding-bottom: 16px; margin-bottom: 32px; }
+    .export-header .brand { font-family: Arial, sans-serif; font-size: 9pt; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; color: #6366f1; margin-bottom: 8px; }
+    .export-header h1 { font-size: 20pt; margin: 0 0 8px; line-height: 1.2; }
+    .export-meta { font-family: Arial, sans-serif; font-size: 9pt; color: #555; }
+    .export-meta span + span::before { content: ' · '; }
+    h2 { font-family: Arial, sans-serif; font-size: 14pt; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; margin-top: 28px; }
+    h3 { font-family: Arial, sans-serif; font-size: 12pt; margin-top: 20px; }
+    a.citation-ref { color: #4f46e5; font-size: 0.78em; vertical-align: super; text-decoration: none; }
+    .key-findings-card, .debate-pro, .debate-con, .debate-synthesis, .scenario-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 12px 16px; margin-bottom: 12px; }
+    .export-footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid #e2e8f0; font-family: Arial, sans-serif; font-size: 8pt; color: #999; text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="export-header">
+    <div class="brand">NomosX — Autonomous Think Tank</div>
+    <h1>${article.title.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</h1>
+    <div class="export-meta">
+      <span>${format.label}</span>${publishedDate ? `<span>${publishedDate}</span>` : ''}${article.sourceIds?.length ? `<span>${article.sourceIds.length} sources</span>` : ''}${article.trustScore != null ? `<span>Trust score: ${article.trustScore}</span>` : ''}
+    </div>
+  </div>
+  <article class="nomosx-brief">${rawHtml}</article>
+  <div class="export-footer">Generated by NomosX · nomosx.com · File → Print → Save as PDF to export</div>
+</body>
+</html>`;
+
+        const printHtml = generatePrintHTML(fullDocument);
+
+        const safeFilename = `nomosx-${article.title.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').toLowerCase().slice(0, 60)}.html`;
+
+        return new NextResponse(printHtml, {
+          status: 200,
+          headers: {
+            'Content-Type': 'text/html; charset=utf-8',
+            'Content-Disposition': `attachment; filename="${safeFilename}"`,
+            'Cache-Control': 'private, no-store',
+          },
+        });
+      } catch (error: any) {
+        console.error('[API/Articles/Export] Error:', error);
+        return NextResponse.json({ error: 'Export failed' }, { status: 500 });
       }
-    )
+    }
   )(req);
 }

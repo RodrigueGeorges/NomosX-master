@@ -4,10 +4,18 @@ import { useRouter } from 'next/navigation';
 import AuthModal from '@/components/AuthModal';
 import PublicNav from '@/components/PublicNav';
 import SiteFooter from '@/components/SiteFooter';
-import { Search, ArrowRight, Clock, BookOpen, Shield, Activity, Database, Scale } from 'lucide-react';
+import { Search, ArrowRight, Clock, BookOpen, Shield, Activity, Database, Scale, Rss } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { GreekProtocolStrip } from '@/components/brand/GreekProtocol';
 import { FORMAT_FILTERS, getPublicationFormat, type PublicationFormatFamily } from '@/lib/publication-formats';
+
+const DOMAIN_NAV = [
+  { slug: 'eu-policy',          label: 'EU Policy',             icon: '🇪🇺', color: '#3B82F6' },
+  { slug: 'climate-industry',   label: 'Climate & Industry',    icon: '🌍', color: '#10B981' },
+  { slug: 'ai-labor',           label: 'AI & Labor',            icon: '🤖', color: '#8B5CF6' },
+  { slug: 'geopolitics',        label: 'Geopolitics',           icon: '🌐', color: '#EF4444' },
+  { slug: 'finance-regulation', label: 'Finance & Regulation',  icon: '💹', color: '#F59E0B' },
+];
 
 interface ArticleSummary {
   id: string;
@@ -103,17 +111,42 @@ export default function ArticlesPage() {
                   Every brief verified. Every source traced. Zero editorial opinion.
                 </p>
               </div>
-              <button
-                onClick={() => setShowAuthModal(true)}
-                className="group px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-sm transition-all duration-300 shadow-lg shadow-amber-300/10 hover:shadow-amber-300/20 hover:scale-[1.03] inline-flex items-center gap-2"
-              >
-                Sign in — it&apos;s free
-                <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
-              </button>
+              <div className="flex items-center gap-3">
+                <a
+                  href="/feed.xml"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-2.5 rounded-lg border border-white/[0.08] bg-white/[0.02] text-white/40 hover:text-orange-400 hover:border-orange-500/20 transition-all"
+                  title="RSS Feed"
+                >
+                  <Rss size={16} />
+                </a>
+                <button
+                  onClick={() => setShowAuthModal(true)}
+                  className="group px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-sm transition-all duration-300 shadow-lg shadow-amber-300/10 hover:shadow-amber-300/20 hover:scale-[1.03] inline-flex items-center gap-2"
+                >
+                  Sign in — it&apos;s free
+                  <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
+                </button>
+              </div>
+            </div>
+
+            {/* Domain nav */}
+            <div className="flex flex-wrap gap-2 mt-6">
+              {DOMAIN_NAV.map((d) => (
+                <button
+                  key={d.slug}
+                  onClick={() => router.push(`/articles/topic/${d.slug}`)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-white/[0.08] bg-white/[0.02] text-xs text-white/50 hover:text-white/80 hover:border-white/[0.16] transition-all"
+                >
+                  <span>{d.icon}</span>
+                  <span>{d.label}</span>
+                </button>
+              ))}
             </div>
 
             {/* Filters */}
-            <div className="flex flex-col sm:flex-row gap-4 mt-6">
+            <div className="flex flex-col sm:flex-row gap-4 mt-4">
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
                 <input

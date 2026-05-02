@@ -53,7 +53,7 @@ export interface PublicationGateResult {
 
 export const DEFAULT_PUBLICATION_GATE_THRESHOLDS: PublicationGateThresholds = {
   minTrustScore: 75,
-  minQualityScore: 70,
+  minQualityScore: 75,
   minCitationCoverage: 0.72,
   minSourceCount: 5,
   strategicMinSourceCount: 12,

@@ -446,6 +446,130 @@ export default function MethodologyPage() {
             </div>
           </div>
 
+          {/* Editorial Gate */}
+          <div className="mb-24">
+            <div className="mb-10">
+              <p className="text-xs text-indigo-400/70 font-medium tracking-[0.2em] uppercase mb-4">Editorial Gate</p>
+              <h2 className="font-display text-3xl sm:text-4xl font-bold text-white mb-3">
+                Every threshold is public.
+              </h2>
+              <p className="text-base text-white/40 max-w-2xl">
+                Publication is blocked until all four gates pass simultaneously. No partial credit — all thresholds must be met.
+              </p>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-4 mb-8">
+              {[
+                { label: "Trust Score", value: "≥ 75 / 100", detail: "Composite: source quality, citation coverage, adversarial challenge result, methodology score.", color: "text-emerald-300 border-emerald-500/20 bg-emerald-500/[0.05]" },
+                { label: "Quality Score", value: "≥ 75 / 100", detail: "Synthesis coherence, claim-to-evidence ratio, internal consistency, hedging compliance.", color: "text-indigo-300 border-indigo-500/20 bg-indigo-500/[0.05]" },
+                { label: "Citation Coverage", value: "≥ 60%", detail: "Fraction of key claims that have at least one verified [SRC-N] citation. Uncited claims are flagged or removed.", color: "text-violet-300 border-violet-500/20 bg-violet-500/[0.05]" },
+                { label: "Word Count", value: "≥ 300 words", detail: "Minimum depth threshold. Ensures publications are substantive, not summary fragments.", color: "text-amber-300 border-amber-500/20 bg-amber-500/[0.05]" },
+              ].map((item) => (
+                <div key={item.label} className={`relative p-6 rounded-xl border ${item.color} overflow-hidden`}>
+                  <div className="flex items-start justify-between mb-3">
+                    <span className="text-[10px] text-white/30 uppercase tracking-[0.18em]">{item.label}</span>
+                    <span className="font-mono text-lg font-semibold text-white">{item.value}</span>
+                  </div>
+                  <p className="text-sm text-white/40 leading-relaxed">{item.detail}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-6">
+              <p className="text-xs text-white/25 uppercase tracking-[0.18em] mb-4">Trust Score color legend</p>
+              <div className="flex flex-wrap gap-4">
+                {[
+                  { range: "85 – 100", label: "High confidence", color: "text-emerald-300 bg-emerald-500/5 border-emerald-500/20" },
+                  { range: "75 – 84",  label: "Published — meets gate", color: "text-indigo-300 bg-indigo-500/5 border-indigo-500/20" },
+                  { range: "< 75",     label: "Below gate — not published", color: "text-white/30 bg-white/[0.03] border-white/[0.08]" },
+                ].map((item) => (
+                  <div key={item.range} className={`flex items-center gap-3 px-4 py-2.5 rounded-lg border ${item.color}`}>
+                    <span className="font-mono text-sm font-semibold">{item.range}</span>
+                    <span className="text-xs text-white/40">{item.label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Publication Formats */}
+          <div className="mb-24">
+            <div className="mb-10">
+              <p className="text-xs text-indigo-400/70 font-medium tracking-[0.2em] uppercase mb-4">Publication Formats</p>
+              <h2 className="font-display text-3xl sm:text-4xl font-bold text-white mb-3">
+                Three tiers of depth.
+              </h2>
+              <p className="text-base text-white/40 max-w-2xl">
+                Format is selected automatically by the pipeline based on signal type and source depth. All formats are open-access.
+              </p>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-4">
+              {[
+                {
+                  type: "Summary Brief",
+                  badge: "Free",
+                  depth: "1 page · ~200–400 words",
+                  sources: "≥ 2 sources",
+                  trigger: "Data releases, quick factual updates",
+                  sections: ["Key finding", "Evidence", "Implication"],
+                  color: "border-white/[0.08]",
+                  accent: "text-white/50",
+                },
+                {
+                  type: "Executive Brief",
+                  badge: "Free",
+                  depth: "2–3 pages · ~500–1,000 words",
+                  sources: "≥ 4 sources",
+                  trigger: "Policy changes, contradictions, trend breaks",
+                  sections: ["Executive summary", "Evidence base", "Strategic implications", "Decision points", "Limitations"],
+                  color: "border-indigo-500/20",
+                  accent: "text-indigo-300",
+                },
+                {
+                  type: "Strategic Report",
+                  badge: "Free",
+                  depth: "10–15 pages · ~3,000–6,000 words",
+                  sources: "≥ 15 sources",
+                  trigger: "Methodology shifts, major trend breaks (≥12 sources)",
+                  sections: ["Executive summary", "Background", "Evidence synthesis", "Critical review", "Strategic scenarios", "Recommendations", "Limitations", "Bibliography"],
+                  color: "border-amber-500/15",
+                  accent: "text-amber-300",
+                },
+              ].map((fmt) => (
+                <div key={fmt.type} className={`relative rounded-xl border ${fmt.color} bg-white/[0.02] p-6 overflow-hidden`}>
+                  <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-indigo-400/20 via-violet-300/10 to-transparent" />
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className={`font-display text-base font-semibold ${fmt.accent}`}>{fmt.type}</h3>
+                    <span className="text-[10px] text-emerald-300/70 border border-emerald-500/20 bg-emerald-500/5 px-2 py-0.5 rounded-full">{fmt.badge}</span>
+                  </div>
+                  <div className="space-y-2 mb-4">
+                    <div className="flex items-center gap-2 text-xs text-white/40">
+                      <span className="text-white/20">Depth</span>
+                      <span>{fmt.depth}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-white/40">
+                      <span className="text-white/20">Sources</span>
+                      <span>{fmt.sources}</span>
+                    </div>
+                    <div className="flex items-start gap-2 text-xs text-white/40">
+                      <span className="text-white/20 shrink-0">Trigger</span>
+                      <span>{fmt.trigger}</span>
+                    </div>
+                  </div>
+                  <div className="border-t border-white/[0.06] pt-4">
+                    <p className="text-[10px] text-white/20 uppercase tracking-[0.16em] mb-2">Sections</p>
+                    <div className="flex flex-wrap gap-1">
+                      {fmt.sections.map((s) => (
+                        <span key={s} className="text-[10px] px-2 py-0.5 rounded bg-white/[0.04] border border-white/[0.06] text-white/40">{s}</span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
           {/* Guarantees */}
           <div className="mb-24">
             <div className="mb-12">

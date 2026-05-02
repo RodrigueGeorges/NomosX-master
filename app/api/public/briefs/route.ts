@@ -3,7 +3,7 @@ import { prisma } from '@/lib/db';
 import { z } from 'zod';
 import { withRateLimit, rateLimitConfigs } from '@/lib/validation';
 import { FORMAT_TYPES_BY_FAMILY, getPublicationFormat } from '@/lib/publication-formats';
-import { publicPublicationWhere } from '@/lib/publication-visibility';
+import { publicPublicationWhere, PUBLIC_PUBLICATION_MINIMUMS } from '@/lib/publication-visibility';
 
 /**
  * GET /api/public/briefs
@@ -66,8 +66,8 @@ export async function GET(req: NextRequest) {
         // Add quality threshold to ensure only high-quality publications are shown
         where.AND.push({
           OR: [
-            { trustScore: { gte: 70 } },
-            { qualityScore: { gte: 70 } }
+            { trustScore: { gte: PUBLIC_PUBLICATION_MINIMUMS.trustScore } },
+            { qualityScore: { gte: PUBLIC_PUBLICATION_MINIMUMS.qualityScore } }
           ]
         });
 
@@ -172,7 +172,6 @@ export async function GET(req: NextRequest) {
           try {
             const titleText = (brief.title || '').toLowerCase();
             const contentText = summary.toLowerCase();
-            const combinedText = `${titleText} ${contentText}`;
             
             const keywordMap = {
               'ai': ['ai', 'artificial intelligence', 'machine learning', 'deep learning', 'neural network', 'intelligence artificielle'],
@@ -212,8 +211,6 @@ export async function GET(req: NextRequest) {
             }
           } catch {
             topics.push('Research', 'Analysis', 'Strategy');
-          }
-            // Ignore errors
           }
 
           const format = getPublicationFormat(brief.type);
