@@ -183,8 +183,8 @@ Return JSON: { "selections": [{ "topicId": "...", "action": "publish_brief|publi
       temperature: 0.15,
       maxTokens: 800,
       jsonMode: true,
-      model: 'qwen-plus', // Triage is classification — Qwen is sufficient & 6x cheaper
-      provider: 'qwen',
+      model: 'deepseek-v4-flash', // Triage is classification — fast model sufficient & cost-efficient
+      provider: 'deepseek',
     });
 
     const parsed = JSON.parse(result.content);

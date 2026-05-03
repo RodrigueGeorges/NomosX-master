@@ -179,8 +179,8 @@ Be STRICT. Think tanks are destroyed by a single fabricated number.`;
       temperature: 0.1,
       jsonMode: true,
       maxTokens: 4000,
-      model: 'qwen-max', // Fact-checking is matching — Qwen is sufficient & cheaper
-      provider: 'qwen',
+      model: 'deepseek-v4-flash', // Fact-checking is matching — fast model sufficient & cost-efficient
+      provider: 'deepseek',
     });
 
     const parsed = JSON.parse(response.content);

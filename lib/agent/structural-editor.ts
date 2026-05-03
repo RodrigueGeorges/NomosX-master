@@ -142,8 +142,8 @@ If restructuring is needed, provide the FULL revised analysis preserving all [SR
       temperature: 0.15,
       jsonMode: true,
       maxTokens: 8000,
-      model: 'qwen-max', // Structural review is mechanical — Qwen is sufficient & cheaper
-      provider: 'qwen',
+      model: 'deepseek-v4-flash', // Structural review is mechanical — fast model sufficient & cost-efficient
+      provider: 'deepseek',
     });
 
     const result = JSON.parse(response.content) as StructuralReviewResult;
