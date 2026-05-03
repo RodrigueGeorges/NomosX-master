@@ -291,7 +291,6 @@ export default function PricingPage() {
               </div>
             ))}
           </div>
-          </div>
 
           {/* CTA */}
           <div className="relative text-center py-16">
@@ -326,6 +325,14 @@ export default function PricingPage() {
 
         <SiteFooter onSignInClick={() => setShowAuthModal(true)} />
       </div>
+
+      {showAuthModal && (
+        <AuthModal
+          isOpen={showAuthModal}
+          onClose={() => setShowAuthModal(false)}
+          onSignupSuccess={handleAuthSuccess}
+        />
+      )}
     </>
   );
 }
