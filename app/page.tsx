@@ -164,7 +164,7 @@ function HomePageContent() {
 
   if (isLoading) return (
     <div className="min-h-screen bg-[#09090b] flex items-center justify-center">
-      <div className="w-8 h-8 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin" />
+      <div className="w-8 h-8 border border-white/20 border-t-white/60 rounded-full animate-spin" />
     </div>
   );
 
@@ -175,12 +175,9 @@ function HomePageContent() {
         <div className="nx-noise" aria-hidden="true" />
 
         <div className="fixed inset-0 pointer-events-none overflow-hidden">
-          <div className="absolute w-[900px] h-[700px] rounded-full -top-48 left-1/2 -translate-x-1/2 animate-aurora-1" style={{ background: 'radial-gradient(circle, rgba(99,102,241,0.18) 0%, transparent 70%)' }} />
-          <div className="absolute w-[600px] h-[600px] rounded-full top-1/3 -right-32 animate-aurora-2" style={{ background: 'radial-gradient(circle, rgba(139,92,246,0.12) 0%, transparent 70%)' }} />
-          <div className="absolute w-[500px] h-[500px] rounded-full bottom-1/4 -left-24 animate-aurora-3" style={{ background: 'radial-gradient(circle, rgba(16,185,129,0.07) 0%, transparent 70%)' }} />
-          <div className="nx-hex-bg absolute inset-0 opacity-30" />
-          <div className="nx-hex-grid" />
-          <div className="nx-scanline-overlay" />
+          {/* Single atmospheric radial — minimal, not competing */}
+          <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse 80% 60% at 50% -10%, rgba(74,123,247,0.06) 0%, transparent 70%)' }} />
+          <div className="nx-hex-bg absolute inset-0 opacity-[0.14]" />
         </div>
 
         <div className="relative z-10">
@@ -188,7 +185,7 @@ function HomePageContent() {
 
           {/* HERO — Doxa → Nomos */}
           <section className="relative px-6 sm:px-8 pt-28 sm:pt-40 pb-24">
-            <div className="max-w-5xl mx-auto relative text-center nx-ancient-frame overflow-hidden px-4 py-4">
+            <div className="max-w-5xl mx-auto relative text-center">
               <div className="absolute -top-10 right-8 hidden md:block">
                 <div className="nx-sigil" />
               </div>
@@ -207,23 +204,21 @@ function HomePageContent() {
                   }}
                   className="relative"
                 >
-                  {/* Gold glow behind the logo */}
-                  <div className="absolute inset-[-25%] rounded-full blur-3xl bg-amber-400/20 animate-pulse" />
-                  <div className="absolute inset-[-15%] rounded-full blur-2xl bg-indigo-500/15 animate-pulse" style={{ animationDelay: '1.5s' }} />
+                  <div className="absolute inset-[-20%] rounded-full blur-3xl bg-white/8 animate-pulse" />
                   <NomosXLogo3D size={260} />
                 </motion.div>
               </div>
 
-              <h1 className={`font-display text-5xl sm:text-6xl md:text-[5.5rem] lg:text-[6.5rem] font-bold leading-[1.05] tracking-tight mb-8 transition-all duration-700 delay-100 nx-engraved-title ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'}`}>
+              <h1 className={`font-serif text-5xl sm:text-6xl md:text-[5.5rem] lg:text-[6.5rem] font-light leading-[1.05] tracking-tight mb-8 text-white transition-all duration-700 delay-100 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'}`}>
                 Research that cannot be<br />
-                <span className="nx-gradient-text">bought, biased, or briefed.</span>
+                <span className="text-white/60 italic">bought, biased, or briefed.</span>
               </h1>
 
               <p className={`text-lg sm:text-xl text-white/50 max-w-2xl mx-auto mb-5 leading-relaxed font-light tracking-wide transition-all duration-700 delay-200 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'}`}>
                 NomosX is an autonomous think tank. 22 domain researchers and a 16-stage verification pipeline produce every brief — no editorial agenda, no sponsor, no opinion.
               </p>
-              <div className={`mx-auto mb-8 max-w-[32rem] rounded-full border border-white/[0.08] bg-white/5 px-4 py-3 text-xs text-white/55 tracking-[0.22em] uppercase flex flex-wrap items-center justify-center gap-2 backdrop-blur-xl shadow-[0_0_50px_rgba(99,102,241,0.08)] transition-all duration-700 delay-225 nx-ancient-banner ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'}`}>
-                <span className="inline-flex h-2 w-2 rounded-full bg-cyan-400 shadow-[0_0_24px_rgba(56,189,248,0.45)]" />
+              <div className={`mx-auto mb-8 max-w-[32rem] rounded-full border border-white/[0.08] bg-white/5 px-4 py-3 text-xs text-white/55 tracking-[0.22em] uppercase flex flex-wrap items-center justify-center gap-2 backdrop-blur-xl shadow-none transition-all duration-700 delay-225 nx-ancient-banner ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'}`}>
+                <span className="nx-status-dot" />
                 Autonomous ingestion · 250M+ docs · 16-stage verification · signal-first intelligence
               </div>
               <p className={`text-sm text-white/25 max-w-md mx-auto mb-14 leading-loose tracking-wide transition-all duration-700 delay-250 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'}`}>
@@ -234,12 +229,12 @@ function HomePageContent() {
                 <GreekProtocolStrip compact className="text-left" />
               </div>
 
-              <div className={`flex flex-col sm:flex-row gap-4 justify-center mb-20 transition-all duration-700 delay-300 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'}`}>
-                <button onClick={() => setShowAuthModal(true)} className="group px-8 py-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm tracking-wide transition-all duration-300 shadow-lg shadow-amber-300/10 hover:shadow-amber-300/20 hover:scale-[1.02] flex items-center justify-center gap-2">
+              <div className={`flex flex-col sm:flex-row gap-3 justify-center mb-20 transition-all duration-700 delay-300 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'}`}>
+                <button onClick={() => setShowAuthModal(true)} className="group px-8 py-3.5 bg-white text-black font-semibold text-sm tracking-wide transition-all duration-150 hover:bg-white/90 flex items-center justify-center gap-2">
                   Access the Council — free
-                  <ArrowRight size={15} className="group-hover:translate-x-0.5 transition-transform" />
+                  <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
                 </button>
-                <button onClick={() => router.push('/articles')} className="px-8 py-4 rounded-xl bg-white/[0.03] border border-white/[0.07] text-white/50 hover:text-white/80 hover:bg-white/[0.06] hover:border-white/[0.12] font-medium text-sm tracking-wide transition-all duration-200">
+                <button onClick={() => router.push('/articles')} className="px-8 py-3.5 border border-white/20 text-white/60 hover:text-white hover:border-white/40 font-medium text-sm tracking-wide transition-all duration-150">
                   View publications
                 </button>
               </div>
@@ -261,14 +256,13 @@ function HomePageContent() {
           {/* TRUTH ENGINE - live institutional instrument */}
           <section className="relative px-6 sm:px-8 py-20">
             <div className="max-w-6xl mx-auto">
-              <div className="relative overflow-hidden rounded-[28px] nx-oracle-panel shadow-2xl shadow-indigo-950/30">
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(99,102,241,0.16),transparent_34%),radial-gradient(circle_at_78%_38%,rgba(20,184,166,0.10),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.045),transparent)]" />
-                <div className="absolute inset-0 nx-grid-bg opacity-25" />
+              <div className="relative overflow-hidden nx-oracle-panel shadow-2xl shadow-black/60">
+                <div className="absolute inset-0 nx-grid-bg opacity-[0.12]" />
                 <div className="relative grid lg:grid-cols-[1.05fr_0.95fr] gap-0">
                   <div className="p-7 sm:p-10 lg:p-12 border-b lg:border-b-0 lg:border-r border-white/[0.06]">
-                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-indigo-500/25 bg-indigo-500/10 mb-7">
-                      <Activity size={12} className="text-indigo-300" />
-                      <span className="text-[11px] text-indigo-200/90 font-semibold tracking-[0.22em] uppercase">Truth Engine Online</span>
+                    <div className="inline-flex items-center gap-2 px-3 py-1.5 border border-white/12 mb-7">
+                      <Activity size={11} className="text-white/50" />
+                      <span className="text-[10px] text-white/50 font-mono tracking-[0.22em] uppercase">Truth Engine Online</span>
                     </div>
                     <h2 className="font-display text-3xl sm:text-5xl font-bold text-white leading-tight mb-5">
                       Watch the institution think.
@@ -281,7 +275,7 @@ function HomePageContent() {
                       {[
                         { label: "Signals", value: "live", tone: "text-emerald-300", icon: Activity },
                         { label: "Dissent", value: "forced", tone: "text-rose-300", icon: AlertTriangle },
-                        { label: "Citations", value: "verified", tone: "text-indigo-300", icon: Shield },
+                        { label: "Citations", value: "verified", tone: "text-white/70", icon: Shield },
                         { label: "Memory", value: "persistent", tone: "text-amber-200", icon: Database },
                       ].map((m, i) => {
                         const MIcon = m.icon;
@@ -300,16 +294,16 @@ function HomePageContent() {
                     <div className="absolute top-8 right-8 text-[10px] text-white/20 font-mono tracking-[0.18em]">DOXA_TO_NOMOS</div>
                     <div className="space-y-3">
                       {[
-                        { step: "01", name: "Scout", detail: "provider swarm + source reputation", pct: 92, color: "from-indigo-300 to-amber-100" },
-                        { step: "02", name: "Rank", detail: "semantic relevance + diversity controls", pct: 84, color: "from-amber-100 to-emerald-300" },
-                        { step: "03", name: "Debate", detail: "steel-man dissent and contradiction map", pct: 78, color: "from-rose-300 to-amber-200" },
-                        { step: "04", name: "Verify", detail: "claim support, citation integrity, limits", pct: 88, color: "from-amber-200 to-indigo-300" },
-                        { step: "05", name: "Publish", detail: "editorial gate, lineage, audit trail", pct: 71, color: "from-violet-300 to-indigo-300" },
+                        { step: "01", name: "Scout", detail: "provider swarm + source reputation", pct: 92 },
+                        { step: "02", name: "Rank", detail: "semantic relevance + diversity controls", pct: 84 },
+                        { step: "03", name: "Debate", detail: "steel-man dissent and contradiction map", pct: 78 },
+                        { step: "04", name: "Verify", detail: "claim support, citation integrity, limits", pct: 88 },
+                        { step: "05", name: "Publish", detail: "editorial gate, lineage, audit trail", pct: 71 },
                       ].map((stage) => (
-                        <div key={stage.step} className="group rounded-xl border border-white/[0.07] bg-black/20 p-4 hover:border-indigo-400/25 transition-colors">
+                        <div key={stage.step} className="group border border-white/[0.07] p-4 hover:border-white/[0.14] transition-colors">
                           <div className="flex items-center justify-between gap-4 mb-3">
                             <div className="flex items-center gap-3 min-w-0">
-                              <span className="text-[10px] font-mono text-indigo-300/70">{stage.step}</span>
+                              <span className="text-[10px] font-mono text-white/30">{stage.step}</span>
                               <div className="min-w-0">
                                 <div className="text-sm font-semibold text-white/90">{stage.name}</div>
                                 <div className="text-[11px] text-white/30 truncate">{stage.detail}</div>
@@ -317,8 +311,8 @@ function HomePageContent() {
                             </div>
                             <span className="text-xs font-mono text-white/35">{stage.pct}%</span>
                           </div>
-                          <div className="h-1.5 rounded-full bg-white/[0.05] overflow-hidden">
-                            <div className={`h-full rounded-full bg-gradient-to-r ${stage.color}`} style={{ width: `${stage.pct}%` }} />
+                          <div className="h-px bg-white/[0.06] overflow-hidden">
+                            <div className="h-full bg-white/40" style={{ width: `${stage.pct}%` }} />
                           </div>
                         </div>
                       ))}
@@ -331,38 +325,28 @@ function HomePageContent() {
 
           {/* DOXA → NOMOS — The transformation */}
           <section className="relative px-6 sm:px-8 py-28">
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_50%,rgba(99,102,241,0.06),transparent_70%)] pointer-events-none" />
+            <div className="absolute inset-0 bg-transparent pointer-events-none" />
             <div className="max-w-5xl mx-auto relative">
               <div className="text-center mb-12">
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-indigo-500/20 bg-indigo-500/5 mb-5">
-                  <Shield size={12} className="text-indigo-400" />
-                  <span className="text-[11px] text-indigo-300/80 font-semibold tracking-[0.2em] uppercase">Doxa → Nomos</span>
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/[0.10] mb-5">
+                  <Shield size={11} className="text-white/40" />
+                  <span className="text-[10px] text-white/40 font-mono tracking-[0.2em] uppercase">Doxa → Nomos</span>
                 </div>
                 <h2 className="font-display text-3xl sm:text-4xl font-bold text-white mb-4">Every claim is challenged before it becomes truth.</h2>
                 <p className="text-base text-white/40 max-w-xl mx-auto">Doxa is opinion. Nomos is what survives challenge. 16 validation steps ensure only what is verified becomes publication.</p>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-white/[0.06]">
                 {[
-                  { icon: Search, title: 'From noise to signal', desc: '250M+ sources scanned, enriched, and quality-filtered. Only what matters enters the pipeline.', color: 'indigo' },
-                  { icon: Brain, title: 'From claim to tested claim', desc: '3-pass analysis with adversarial debate. Every argument tested against its strongest counter.', color: 'violet' },
-                  { icon: Shield, title: 'From assertion to evidence', desc: 'Every [SRC-N] citation validated. Every numerical claim checked against source data.', color: 'emerald' },
-                  { icon: AlertTriangle, title: 'From draft to revised truth', desc: 'A dedicated agent challenges every assumption. Fatal flaws trigger automatic revision before publication.', color: 'rose' },
+                  { icon: Search, title: 'From noise to signal', desc: '250M+ sources scanned, enriched, and quality-filtered. Only what matters enters the pipeline.' },
+                  { icon: Brain, title: 'From claim to tested claim', desc: '3-pass analysis with adversarial debate. Every argument tested against its strongest counter.' },
+                  { icon: Shield, title: 'From assertion to evidence', desc: 'Every [SRC-N] citation validated. Every numerical claim checked against source data.' },
+                  { icon: AlertTriangle, title: 'From draft to revised truth', desc: 'A dedicated agent challenges every assumption. Fatal flaws trigger automatic revision before publication.' },
                 ].map((s, i) => {
                   const SIcon = s.icon;
                   return (
-                    <div key={i} className={`rounded-2xl p-6 border ${
-                      s.color === 'indigo' ? 'border-indigo-500/15 bg-indigo-500/[0.03]' :
-                      s.color === 'violet' ? 'border-violet-500/15 bg-violet-500/[0.03]' :
-                      s.color === 'emerald' ? 'border-emerald-500/15 bg-emerald-500/[0.03]' :
-                      'border-rose-500/15 bg-rose-500/[0.03]'
-                    } hover:border-white/[0.12] transition-all duration-300`}>
-                      <div className={`w-9 h-9 rounded-lg flex items-center justify-center mb-4 ${
-                        s.color === 'indigo' ? 'bg-indigo-500/10 border border-indigo-500/15' :
-                        s.color === 'violet' ? 'bg-violet-500/10 border border-violet-500/15' :
-                        s.color === 'emerald' ? 'bg-emerald-500/10 border border-emerald-500/15' :
-                        'bg-rose-500/10 border border-rose-500/15'
-                      }`}>
-                        <SIcon size={16} className={s.color === 'indigo' ? 'text-indigo-400' : s.color === 'violet' ? 'text-violet-400' : s.color === 'emerald' ? 'text-emerald-400' : 'text-rose-400'} />
+                    <div key={i} className="p-6 bg-black hover:bg-white/[0.02] transition-colors duration-150">
+                      <div className="w-8 h-8 flex items-center justify-center mb-5 border border-white/[0.12]">
+                        <SIcon size={15} className="text-white/50" />
                       </div>
                       <h3 className="text-sm font-semibold text-white mb-2">{s.title}</h3>
                       <p className="text-xs text-white/35 leading-relaxed">{s.desc}</p>
@@ -377,9 +361,9 @@ function HomePageContent() {
           <section className="relative px-6 sm:px-8 py-28">
             <div className="max-w-5xl mx-auto">
               <div className="text-center mb-14">
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-indigo-500/20 bg-indigo-500/5 mb-5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
-                  <span className="text-[11px] text-indigo-300/80 font-semibold tracking-[0.2em] uppercase">At a glance</span>
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/[0.10] mb-5">
+                  <span className="nx-status-dot" />
+                  <span className="text-[10px] text-white/40 font-mono tracking-[0.2em] uppercase">At a glance</span>
                 </div>
                 <h2 className="font-display text-3xl sm:text-4xl font-bold text-white">The infrastructure behind every truth.</h2>
               </div>
@@ -388,14 +372,14 @@ function HomePageContent() {
                 {/* Council — hero card */}
                 <div className="col-span-2 md:col-span-4 rounded-2xl relative overflow-hidden p-6 transition-all duration-300 hover:border-white/[0.11] group"
                   style={{ border: '1px solid rgba(255,255,255,0.07)', background: 'rgba(255,255,255,0.02)', minHeight: '190px' }}>
-                  <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg,rgba(99,102,241,0.7),rgba(99,102,241,0.2),transparent)' }} />
-                  <div className="absolute -right-16 -top-16 w-52 h-52 rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle,rgba(99,102,241,0.06) 0%,transparent 70%)' }} />
-                  <p className="text-[10px] text-indigo-300/70 font-semibold tracking-[0.2em] uppercase mb-1.5">The Council</p>
+                  <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg,rgba(255,255,255,0.20),rgba(255,255,255,0.06),transparent)' }} />
+                  <div className="absolute -right-16 -top-16 w-52 h-52 rounded-full pointer-events-none" style={{ background: 'transparent' }} />
+                  <p className="text-[10px] text-white/30 font-mono tracking-[0.2em] uppercase mb-1.5">The Council</p>
                   <h3 className="text-lg sm:text-xl font-display font-semibold text-white mb-1">22 PhD AI Researchers</h3>
                   <p className="text-xs text-white/35 mb-5">Domain-specialized · Adversarial peer review at every stage</p>
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold text-indigo-300/80"
-                      style={{ background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.25)' }}>
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold text-white/50"
+                      style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)' }}>
                       22
                     </div>
                     <span className="text-xs text-white/40">Domain experts</span>
@@ -405,8 +389,8 @@ function HomePageContent() {
                 {/* Sources */}
                 <div className="col-span-2 md:col-span-2 rounded-2xl relative overflow-hidden p-5 flex flex-col justify-between hover:border-white/[0.10] transition-all duration-300"
                   style={{ border: '1px solid rgba(255,255,255,0.07)', background: 'rgba(255,255,255,0.02)', minHeight: '190px' }}>
-                  <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg,rgba(99,102,241,0.5),transparent)' }} />
-                  <p className="text-[10px] text-indigo-300/60 font-semibold tracking-[0.2em] uppercase">Sources</p>
+                  <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg,rgba(255,255,255,0.12),transparent)' }} />
+                  <p className="text-[10px] text-white/30 font-mono tracking-[0.2em] uppercase">Sources</p>
                   <div>
                     <div className="text-4xl sm:text-5xl font-display font-bold text-white mb-1">250M+</div>
                     <p className="text-xs text-white/30">Academic & institutional documents</p>
@@ -416,15 +400,15 @@ function HomePageContent() {
                 {/* Agents */}
                 <div className="col-span-1 md:col-span-2 rounded-2xl relative overflow-hidden p-5 flex flex-col justify-between hover:border-white/[0.10] transition-all duration-300"
                   style={{ border: '1px solid rgba(255,255,255,0.07)', background: 'rgba(255,255,255,0.02)' }}>
-                  <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg,rgba(99,102,241,0.4),transparent)' }} />
-                  <p className="text-[10px] text-indigo-300/60 font-semibold tracking-[0.2em] uppercase">Pipeline</p>
+                  <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg,rgba(255,255,255,0.10),transparent)' }} />
+                  <p className="text-[10px] text-white/30 font-mono tracking-[0.2em] uppercase">Pipeline</p>
                   <div>
                     <div className="text-4xl sm:text-5xl font-display font-bold text-white mb-1">16</div>
                     <p className="text-xs text-white/30 mb-4">Autonomous agents</p>
                     <div className="flex gap-1 flex-wrap">
                       {['S','I','R','Rd','An','Cr','Gd','Ed'].map((s, i) => (
-                        <div key={i} className="w-6 h-6 rounded-full flex items-center justify-center text-[8px] font-bold text-indigo-300/60"
-                          style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.18)' }}>{s}</div>
+                        <div key={i} className="w-6 h-6 flex items-center justify-center text-[8px] font-mono text-white/35"
+                          style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.10)' }}>{s}</div>
                       ))}
                     </div>
                   </div>
@@ -433,8 +417,8 @@ function HomePageContent() {
                 {/* Zero opinion */}
                 <div className="col-span-1 md:col-span-2 rounded-2xl relative overflow-hidden p-5 flex flex-col justify-between hover:border-white/[0.10] transition-all duration-300"
                   style={{ border: '1px solid rgba(255,255,255,0.07)', background: 'rgba(255,255,255,0.02)' }}>
-                  <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg,rgba(99,102,241,0.35),transparent)' }} />
-                  <p className="text-[10px] text-indigo-300/60 font-semibold tracking-[0.2em] uppercase">Objectivity</p>
+                  <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg,rgba(255,255,255,0.08),transparent)' }} />
+                  <p className="text-[10px] text-white/30 font-mono tracking-[0.2em] uppercase">Objectivity</p>
                   <div>
                     <div className="text-4xl sm:text-5xl font-display font-bold text-white mb-1">0</div>
                     <p className="text-xs text-white/30">Editorial opinion · evidence only</p>
@@ -444,8 +428,8 @@ function HomePageContent() {
                 {/* Providers */}
                 <div className="col-span-2 md:col-span-2 rounded-2xl relative overflow-hidden p-5 flex flex-col justify-between hover:border-white/[0.10] transition-all duration-300"
                   style={{ border: '1px solid rgba(255,255,255,0.07)', background: 'rgba(255,255,255,0.02)' }}>
-                  <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg,rgba(99,102,241,0.35),transparent)' }} />
-                  <p className="text-[10px] text-indigo-300/60 font-semibold tracking-[0.2em] uppercase">Coverage</p>
+                  <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg,rgba(255,255,255,0.08),transparent)' }} />
+                  <p className="text-[10px] text-white/30 font-mono tracking-[0.2em] uppercase">Coverage</p>
                   <div>
                     <div className="text-4xl sm:text-5xl font-display font-bold text-white mb-1">60+</div>
                     <p className="text-xs text-white/30">Live data providers</p>
@@ -484,19 +468,19 @@ function HomePageContent() {
           <section className="relative px-6 sm:px-8 py-28 overflow-hidden">
             {/* Deep ambient glow */}
             <div className="absolute inset-0 pointer-events-none">
-              <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_60%_at_50%_50%,rgba(99,102,241,0.10),transparent_70%)]" />
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-indigo-500/5 blur-[100px]" />
+              <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_60%_at_50%_50%,rgba(74,123,247,0.05),transparent_70%)]" />
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-transparent" />
             </div>
 
             <div className="max-w-7xl mx-auto relative">
               <div className="text-center mb-20">
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-indigo-500/20 bg-indigo-500/5 mb-6">
-                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
-                  <span className="text-[11px] text-indigo-300/80 font-semibold tracking-[0.2em] uppercase">The Think Tank</span>
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/[0.10] mb-6">
+                  <span className="nx-status-dot" />
+                  <span className="text-[10px] text-white/40 font-mono tracking-[0.2em] uppercase">The Think Tank</span>
                 </div>
                 <h2 className="font-display text-4xl sm:text-5xl md:text-6xl font-bold text-white mb-6 leading-tight">
                   22 domain-specialized researchers.<br />
-                  <span className="nx-gradient-text">Adversarial peer review.</span>
+                  <span className="text-white/55 italic font-serif font-light">Adversarial peer review.</span>
                 </h2>
                 <p className="text-base sm:text-lg text-white/40 max-w-2xl mx-auto leading-relaxed">
                   Each researcher operates within a specific domain (economics, geopolitics, AI regulation, etc.). Cross-domain validation through adversarial review, steel-man debate, and statistical meta-analysis. Continuous operation.
@@ -733,19 +717,19 @@ function HomePageContent() {
           <section className="relative px-6 sm:px-8 py-28">
             <div className="max-w-5xl mx-auto">
               <div className="text-center mb-12">
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-indigo-500/20 bg-indigo-500/5 mb-5">
-                  <BookOpen size={12} className="text-indigo-400" />
-                  <span className="text-[11px] text-indigo-300/80 font-semibold tracking-[0.2em] uppercase">What truth looks like</span>
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/[0.10] mb-5">
+                  <BookOpen size={11} className="text-white/40" />
+                  <span className="text-[10px] text-white/40 font-mono tracking-[0.2em] uppercase">What truth looks like</span>
                 </div>
                 <h2 className="font-display text-3xl sm:text-4xl font-bold text-white mb-4">Multiple formats. One standard: truth.</h2>
                 <p className="text-base text-white/40 max-w-xl mx-auto">Every publication survives the same 16 challenges. Signals, memos, briefs, reports, dossiers: same rigour, different depth.</p>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="rounded-2xl border border-white/[0.07] bg-white/[0.02] p-8 relative overflow-hidden hover:border-indigo-500/15 transition-all duration-300">
-                  <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg,rgba(99,102,241,0.6),transparent)' }} />
+                <div className="border border-white/[0.08] p-8 relative overflow-hidden hover:border-white/[0.15] transition-colors duration-150">
+                  <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg,rgba(255,255,255,0.18),transparent)' }} />
                   <div className="flex items-center gap-3 mb-4">
-                    <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/15 flex items-center justify-center">
-                      <FileText size={18} className="text-indigo-400" />
+                    <div className="w-10 h-10 border border-white/[0.10] flex items-center justify-center">
+                      <FileText size={17} className="text-white/50" />
                     </div>
                     <div>
                       <h3 className="text-lg font-semibold text-white">Research Brief</h3>
@@ -756,17 +740,17 @@ function HomePageContent() {
                   <div className="space-y-2">
                     {['Consensus & disagreements', 'Pro/con debate synthesis', 'Evidence quality score', 'Full [SRC-N] citations'].map((f, i) => (
                       <div key={i} className="flex items-center gap-2.5">
-                        <div className="w-3.5 h-3.5 rounded-full border border-indigo-400/40 flex items-center justify-center flex-shrink-0"><div className="w-1 h-1 rounded-full bg-indigo-400" /></div>
+                        <div className="w-1 h-1 rounded-full bg-white/30 flex-shrink-0" />
                         <span className="text-xs text-white/45">{f}</span>
                       </div>
                     ))}
                   </div>
                 </div>
-                <div className="rounded-2xl border border-white/[0.07] bg-white/[0.02] p-8 relative overflow-hidden hover:border-indigo-500/15 transition-all duration-300">
-                  <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg,rgba(99,102,241,0.4),transparent)' }} />
+                <div className="border border-white/[0.08] p-8 relative overflow-hidden hover:border-white/[0.15] transition-colors duration-150">
+                  <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg,rgba(255,255,255,0.10),transparent)' }} />
                   <div className="flex items-center gap-3 mb-4">
-                    <div className="w-10 h-10 rounded-xl bg-indigo-500/[0.07] border border-indigo-500/15 flex items-center justify-center">
-                      <Target size={18} className="text-indigo-400/70" />
+                    <div className="w-10 h-10 border border-white/[0.10] flex items-center justify-center">
+                      <Target size={17} className="text-white/40" />
                     </div>
                     <div>
                       <h3 className="text-lg font-semibold text-white">Format Ladder</h3>
@@ -777,7 +761,7 @@ function HomePageContent() {
                   <div className="space-y-2">
                     {['Literature review & thematic analysis', 'Scenario planning (3-5 scenarios)', 'Stakeholder impact matrix', 'Implementation roadmap & metrics'].map((f, i) => (
                       <div key={i} className="flex items-center gap-2.5">
-                        <div className="w-3.5 h-3.5 rounded-full border border-indigo-400/30 flex items-center justify-center flex-shrink-0"><div className="w-1 h-1 rounded-full bg-indigo-400/70" /></div>
+                        <div className="w-1 h-1 rounded-full bg-white/25 flex-shrink-0" />
                         <span className="text-xs text-white/45">{f}</span>
                       </div>
                     ))}
@@ -789,13 +773,13 @@ function HomePageContent() {
 
           {/* LATEST PUBLICATIONS */}
           <section className="relative px-6 sm:px-8 py-28">
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_55%_45%_at_50%_50%,rgba(99,102,241,0.06),transparent_70%)] pointer-events-none" />
+            <div className="absolute inset-0 bg-transparent pointer-events-none" />
             <div className="max-w-5xl mx-auto">
               <div className="flex items-end justify-between mb-10">
                 <div>
-                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-indigo-500/20 bg-indigo-500/5 mb-4">
-                    <span className="relative flex h-1.5 w-1.5"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75" /><span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-indigo-400" /></span>
-                    <span className="text-[11px] text-indigo-300/80 font-semibold tracking-[0.2em] uppercase">Council Publications</span>
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 border border-white/[0.10] mb-4">
+                    <span className="nx-status-dot" />
+                    <span className="text-[10px] text-white/40 font-mono tracking-[0.2em] uppercase">Council Publications</span>
                   </div>
                   <h2 className="font-display text-3xl sm:text-4xl font-bold text-white">Latest from the Council</h2>
                   <p className="text-base text-white/40 mt-2">Every brief: multi-pass validation, full source traceability, zero editorial opinion.</p>
@@ -810,22 +794,18 @@ function HomePageContent() {
                     <div
                       key={brief.id}
                       onClick={() => router.push(`/articles/${brief.id}`)}
-                      className="group cursor-pointer rounded-xl border border-white/[0.07] bg-white/[0.02] hover:border-indigo-500/20 hover:bg-white/[0.035] p-5 transition-all duration-300 overflow-hidden relative"
+                      className="group cursor-pointer border border-white/[0.07] hover:border-white/[0.16] hover:bg-white/[0.02] p-5 transition-colors duration-150 overflow-hidden relative"
                     >
-                      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-indigo-400/40 via-violet-300/15 to-transparent" />
+                      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-white/15 to-transparent" />
                       <div className="flex items-center justify-between mb-3">
                         <span className="text-[10px] text-amber-100/50 uppercase tracking-wider font-medium">
                           {brief.displayType || brief.type.replace(/_/g, ' ')}
                         </span>
                         {brief.trustScore != null && (
-                          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${
-                            brief.trustScore >= 85 ? 'text-emerald-300 border-emerald-500/20 bg-emerald-500/5'
-                            : brief.trustScore >= 75 ? 'text-indigo-300 border-indigo-500/20 bg-indigo-500/5'
-                            : 'text-amber-300 border-amber-500/20 bg-amber-500/5'
-                          }`}>{brief.trustScore}</span>
+                          <span className="text-[10px] font-mono text-white/40 px-1.5 py-0.5 border border-white/[0.10]">{brief.trustScore}</span>
                         )}
                       </div>
-                      <h3 className="font-display text-sm font-light text-white/90 mb-2 line-clamp-2 group-hover:text-indigo-200/80 transition-colors leading-snug">
+                      <h3 className="font-display text-sm font-light text-white/90 mb-2 line-clamp-2 group-hover:text-white transition-colors leading-snug">
                         {brief.title}
                       </h3>
                       <p className="text-xs text-white/35 line-clamp-3 leading-relaxed mb-3">
@@ -852,29 +832,27 @@ function HomePageContent() {
 
           {/* NEWSLETTER — Weekly Truth Dispatch */}
           <section className="relative px-6 sm:px-8 py-28">
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_60%_at_50%_50%,rgba(99,102,241,0.07),transparent_70%)] pointer-events-none" />
+            <div className="absolute inset-0 bg-transparent pointer-events-none" />
             <div className="max-w-3xl mx-auto">
-              <div className="relative rounded-2xl border border-indigo-500/15 bg-indigo-500/[0.02] p-10 sm:p-14 overflow-hidden text-center">
-                <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_80%_at_50%_110%,rgba(99,102,241,0.08),transparent_70%)] pointer-events-none" />
+              <div className="relative border border-white/[0.08] p-10 sm:p-14 overflow-hidden text-center">
                 <div className="relative">
-                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-indigo-500/20 bg-indigo-500/5 mb-6">
-                    <Rss size={11} className="text-indigo-400" />
-                    <span className="text-[11px] text-indigo-300/80 font-semibold tracking-[0.2em] uppercase">Weekly Truth Dispatch</span>
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 border border-white/[0.10] mb-6">
+                    <Rss size={11} className="text-white/40" />
+                    <span className="text-[10px] text-white/40 font-mono tracking-[0.2em] uppercase">Weekly Truth Dispatch</span>
                   </div>
-                  <h2 className="font-display text-3xl sm:text-4xl font-bold text-white mb-4 leading-tight">
-                    Truth, delivered weekly.<br />
-                    <span className="nx-gradient-text">Free.</span>
+                  <h2 className="font-serif font-light text-3xl sm:text-4xl text-white mb-4 leading-tight">
+                    Truth, delivered weekly.
                   </h2>
                   <p className="text-base text-white/40 max-w-xl mx-auto mb-10">The most significant findings from 250M+ academic sources. What survived the Council. Every claim sourced. Every source verified. No opinion — just what the evidence says.</p>
                   {newsletterStatus === "success" ? (
-                    <div className="flex items-center justify-center gap-2.5 text-emerald-400 font-medium text-sm">
-                      <div className="w-5 h-5 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center"><span className="text-[10px]">✓</span></div>
+                    <div className="flex items-center justify-center gap-2.5 text-white/70 font-medium text-sm">
+                      <div className="w-5 h-5 border border-white/20 flex items-center justify-center"><span className="text-[10px]">✓</span></div>
                       {newsletterMessage || "Check your inbox to confirm."}
                     </div>
                   ) : (
                     <form onSubmit={handleNewsletterSubmit} className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
-                      <input type="email" value={newsletterEmail} onChange={e => setNewsletterEmail(e.target.value)} placeholder="your@institution.edu" required className="flex-1 px-4 py-3.5 rounded-xl bg-white/[0.05] border border-white/[0.12] text-white placeholder-white/20 text-sm focus:outline-none focus:border-indigo-500/50 transition-colors" />
-                      <button type="submit" disabled={newsletterStatus === "loading"} className="px-6 py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm transition-all duration-200 disabled:opacity-60 whitespace-nowrap shadow-lg shadow-amber-300/10">
+                      <input type="email" value={newsletterEmail} onChange={e => setNewsletterEmail(e.target.value)} placeholder="your@institution.edu" required className="flex-1 px-4 py-3.5 bg-transparent border border-white/[0.12] text-white placeholder-white/20 text-sm focus:outline-none focus:border-white/30 transition-colors" />
+                      <button type="submit" disabled={newsletterStatus === "loading"} className="px-6 py-3.5 bg-white hover:bg-white/90 text-black font-semibold text-sm transition-all duration-150 disabled:opacity-60 whitespace-nowrap">
                         {newsletterStatus === "loading" ? "..." : "Subscribe — free"}
                       </button>
                     </form>
@@ -894,12 +872,12 @@ function HomePageContent() {
 
           {/* ACCESS — Free + StudioX */}
           <section className="relative px-6 sm:px-8 py-28">
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_60%_at_50%_50%,rgba(99,102,241,0.07),transparent_70%)] pointer-events-none" />
+            <div className="absolute inset-0 bg-transparent pointer-events-none" />
             <div className="max-w-4xl mx-auto">
               <div className="text-center mb-12">
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-indigo-500/20 bg-indigo-500/5 mb-5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
-                  <span className="text-[11px] text-indigo-300/80 font-semibold tracking-[0.2em] uppercase">Access</span>
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 border border-white/[0.10] mb-5">
+                  <span className="nx-status-dot" />
+                  <span className="text-[10px] text-white/40 font-mono tracking-[0.2em] uppercase">Access</span>
                 </div>
                 <h2 className="font-display text-3xl sm:text-4xl font-bold text-white mb-4">The Think Tank is open.</h2>
                 <p className="text-base text-white/40 max-w-xl mx-auto">All publications are free. The Council publishes — you read. StudioX is for those who want to commission their own research.</p>
@@ -907,7 +885,7 @@ function HomePageContent() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
 
                 {/* Free */}
-                <div className="rounded-2xl border border-white/[0.07] bg-white/[0.02] p-8 hover:border-white/[0.12] transition-all duration-300 relative overflow-hidden">
+                <div className="border border-white/[0.08] p-8 hover:border-white/[0.15] transition-colors duration-150 relative overflow-hidden">
                   <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg,rgba(255,255,255,0.12),transparent)' }} />
                   <p className="text-[10px] text-white/35 font-semibold tracking-[0.25em] uppercase mb-4">Think Tank — Open access</p>
                   <div className="flex items-baseline gap-2 mb-3">
@@ -929,44 +907,42 @@ function HomePageContent() {
                       </div>
                     ))}
                   </div>
-                  <button onClick={() => setShowAuthModal(true)} className="w-full py-3 rounded-xl border border-white/[0.10] bg-white/[0.03] text-white/60 font-medium text-sm hover:bg-white/[0.07] hover:text-white/80 transition-all duration-200">
+                  <button onClick={() => setShowAuthModal(true)} className="w-full py-3 border border-white/[0.12] text-white/60 font-medium text-sm hover:border-white/25 hover:text-white/80 transition-all duration-150">
                     Start reading — free
                   </button>
                 </div>
 
                 {/* StudioX */}
-                <div className="relative p-[1px] rounded-2xl overflow-hidden">
-                  <div className="absolute inset-0 rounded-2xl animate-beam-spin" style={{ background: 'conic-gradient(from 0deg, transparent 0deg, rgba(99,102,241,0.9) 45deg, rgba(139,92,246,0.7) 90deg, transparent 135deg)' }} />
-                  <div className="relative rounded-2xl bg-[#09090b] p-8 h-full" style={{ background: 'linear-gradient(140deg,rgba(99,102,241,0.06) 0%,rgba(9,9,11,1) 50%)' }}>
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                      <span className="px-3 py-1 rounded-full bg-indigo-600 text-white text-[10px] font-bold tracking-widest uppercase shadow shadow-amber-300/10">StudioX</span>
-                    </div>
-                    <p className="text-[10px] text-indigo-400/70 font-semibold tracking-[0.25em] uppercase mb-4 mt-1">Custom research on demand</p>
-                    <div className="flex items-baseline gap-2 mb-3">
-                      <span className="text-4xl font-display font-bold text-white">On demand</span>
-                    </div>
-                    <p className="text-xs text-white/45 leading-relaxed mb-7">Commission the full 16-agent pipeline on any question. The Council researches, debates, validates, and delivers truth — on your timeline.</p>
-                    <div className="space-y-2.5 mb-8">
-                      {[
-                        "Commission research on any topic",
-                        "Choose format: memo, brief, report, or dossier",
-                        "Full 22-researcher Council deliberations",
-                        "Adversarial debate + meta-analysis",
-                        "Verified [SRC-N] citation export",
-                        "White-label & API access",
-                        "Priority pipeline queue",
-                      ].map((f, i) => (
-                        <div key={i} className="flex items-center gap-2.5">
-                          <div className="w-3.5 h-3.5 rounded-full border border-indigo-400/35 flex items-center justify-center flex-shrink-0"><div className="w-1 h-1 rounded-full bg-indigo-400" /></div>
-                          <span className="text-xs text-white/60">{f}</span>
-                        </div>
-                      ))}
-                    </div>
-                    <button onClick={openStudioAuth} className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm transition-all duration-200 shadow-lg shadow-amber-300/10 flex items-center justify-center gap-2 group">
-                      Get StudioX access
-                      <ArrowRight size={13} className="group-hover:translate-x-0.5 transition-transform" />
-                    </button>
+                <div className="relative border border-white/[0.15] bg-white/[0.025] p-8 h-full overflow-hidden">
+                  <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-white/25 to-transparent" />
+                  <div className="absolute -top-3 left-8">
+                    <span className="px-3 py-1 bg-white text-black text-[10px] font-bold tracking-widest uppercase">StudioX</span>
                   </div>
+                  <p className="text-[10px] text-white/35 font-mono tracking-[0.25em] uppercase mb-4 mt-1">Custom research on demand</p>
+                  <div className="flex items-baseline gap-2 mb-3">
+                    <span className="text-4xl font-display font-bold text-white">On demand</span>
+                  </div>
+                  <p className="text-xs text-white/45 leading-relaxed mb-7">Commission the full 16-agent pipeline on any question. The Council researches, debates, validates, and delivers truth — on your timeline.</p>
+                  <div className="space-y-2.5 mb-8">
+                    {[
+                      "Commission research on any topic",
+                      "Choose format: memo, brief, report, or dossier",
+                      "Full 22-researcher Council deliberations",
+                      "Adversarial debate + meta-analysis",
+                      "Verified [SRC-N] citation export",
+                      "White-label & API access",
+                      "Priority pipeline queue",
+                    ].map((f, i) => (
+                      <div key={i} className="flex items-center gap-2.5">
+                        <div className="w-1 h-1 rounded-full bg-white/35 flex-shrink-0" />
+                        <span className="text-xs text-white/60">{f}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <button onClick={openStudioAuth} className="w-full py-3 bg-white hover:bg-white/90 text-black font-semibold text-sm transition-all duration-150 flex items-center justify-center gap-2 group">
+                    Get StudioX access
+                    <ArrowRight size={13} className="group-hover:translate-x-0.5 transition-transform" />
+                  </button>
                 </div>
 
               </div>
@@ -974,20 +950,19 @@ function HomePageContent() {
           </section>
 
           {/* FINAL CTA */}
-          <section className="relative px-6 sm:px-8 py-32">
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_60%_at_50%_100%,rgba(99,102,241,0.07),transparent_70%)] pointer-events-none" />
+          <section className="relative px-6 sm:px-8 py-32 border-t border-white/[0.06]">
             <div className="max-w-3xl mx-auto text-center">
-              <h2 className="font-display text-3xl sm:text-4xl font-bold text-white mb-4">
+              <h2 className="font-serif font-light text-3xl sm:text-4xl text-white mb-4">
                 The Council publishes continuously.<br />
-                <span className="nx-gradient-text">All of it is open.</span>
+                <span className="text-white/50 italic">All of it is open.</span>
               </h2>
               <p className="text-base text-white/40 max-w-xl mx-auto mb-8">Every brief, every strategic report, every source trace — freely accessible. No paywall. No account required to read.</p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                <button onClick={openFreeAuth} className="group px-7 py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm transition-all duration-300 shadow-lg shadow-amber-300/10 hover:shadow-amber-300/20 flex items-center justify-center gap-2">
+                <button onClick={openFreeAuth} className="group px-7 py-3.5 bg-white hover:bg-white/90 text-black font-semibold text-sm transition-all duration-150 flex items-center justify-center gap-2">
                   Enter the Think Tank
-                  <ArrowRight size={15} className="group-hover:translate-x-0.5 transition-transform" />
+                  <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
                 </button>
-                <button onClick={openStudioAuth} className="px-7 py-3.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white/60 hover:text-white hover:bg-white/[0.07] font-medium text-sm transition-all duration-200">
+                <button onClick={openStudioAuth} className="px-7 py-3.5 border border-white/20 text-white/60 hover:text-white hover:border-white/40 font-medium text-sm transition-all duration-150">
                   Commission research
                 </button>
               </div>
@@ -1008,7 +983,7 @@ export default function HomePage() {
   return (
     <Suspense fallback={
       <div className="min-h-screen bg-[#09090b] flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin" />
+        <div className="w-8 h-8 border border-white/20 border-t-white/60 rounded-full animate-spin" />
     </div>
     }>
       <HomePageContent />

@@ -1,46 +1,10 @@
-<svg width="220" height="56" viewBox="0 0 220 56" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="NomosX">
-  <defs>
-    <linearGradient id="nx-grad" x1="7" y1="4" x2="50" y2="52" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#A5B4FC"/>
-      <stop offset="0.46" stop-color="#6366F1"/>
-      <stop offset="1" stop-color="#7C3AED"/>
-    </linearGradient>
-    <radialGradient id="nx-core" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(28 28) rotate(90) scale(9)">
-      <stop stop-color="#FFFFFF"/>
-      <stop offset="0.42" stop-color="#F5D778"/>
-      <stop offset="1" stop-color="#D4AF37"/>
-    </radialGradient>
-    <filter id="nx-glow" x="-14" y="-14" width="84" height="84" color-interpolation-filters="sRGB">
-      <feGaussianBlur stdDeviation="3.2"/>
-      <feComposite in2="SourceGraphic" operator="over"/>
-    </filter>
-  </defs>
-
-  <g>
-    <circle cx="28" cy="28" r="24" fill="#09090B" stroke="white" stroke-opacity="0.12"/>
-    <path d="M28 5L32 12H24L28 5Z" fill="#F5D778" opacity="0.55"/>
-    <path d="M28 51L24 44H32L28 51Z" fill="#F5D778" opacity="0.42"/>
-    <path d="M5 28L12 24V32L5 28Z" fill="#A5B4FC" opacity="0.28"/>
-    <path d="M51 28L44 32V24L51 28Z" fill="#A5B4FC" opacity="0.28"/>
-    <circle cx="28" cy="28" r="19" stroke="url(#nx-grad)" stroke-opacity="0.55"/>
-    <path d="M28 9A19 19 0 0 1 47 28" stroke="#F5D778" stroke-opacity="0.38" stroke-linecap="round"/>
-    <path d="M28 47A19 19 0 0 1 9 28" stroke="#F5D778" stroke-opacity="0.28" stroke-linecap="round"/>
-    <ellipse cx="28" cy="28" rx="23" ry="8" stroke="#A5B4FC" stroke-opacity="0.24" transform="rotate(-24 28 28)"/>
-    <ellipse cx="28" cy="28" rx="23" ry="8" stroke="#7C3AED" stroke-opacity="0.26" transform="rotate(28 28 28)"/>
-    <g filter="url(#nx-glow)">
-      <path d="M15 16V40" stroke="url(#nx-grad)" stroke-width="4" stroke-linecap="round"/>
-      <path d="M41 16V40" stroke="url(#nx-grad)" stroke-width="4" stroke-linecap="round"/>
-      <path d="M16 17L40 39" stroke="url(#nx-grad)" stroke-width="4" stroke-linecap="round"/>
-      <path d="M40 17L16 39" stroke="url(#nx-grad)" stroke-width="4" stroke-linecap="round" opacity="0.76"/>
-    </g>
-    <circle cx="28" cy="28" r="5.5" fill="url(#nx-core)"/>
-    <circle cx="28" cy="28" r="2" fill="#09090B"/>
-  </g>
-
-  <text x="68" y="36" fill="white" font-size="25" font-family="Space Grotesk, Inter, system-ui, sans-serif" font-weight="650" letter-spacing="-0.03em">
-    Nomos<tspan fill="#F5D778">X</tspan>
-  </text>
-  <text x="70" y="49" fill="#A5B4FC" fill-opacity="0.55" font-size="8" font-family="JetBrains Mono, monospace" letter-spacing="0.22em">
-    AUTONOMOUS THINK TANK
-  </text>
+<svg width="200" height="52" viewBox="0 0 200 52" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="NomosX">
+  <rect width="200" height="52" fill="#000000"/>
+  <!-- Nu mark (Ν) — three strokes -->
+  <line x1="8"  y1="10" x2="8"  y2="42" stroke="white" stroke-width="2.6" stroke-linecap="square"/>
+  <line x1="8"  y1="10" x2="34" y2="42" stroke="white" stroke-width="2.6" stroke-linecap="square"/>
+  <line x1="34" y1="10" x2="34" y2="42" stroke="white" stroke-width="2.6" stroke-linecap="square"/>
+  <!-- Wordmark -->
+  <text x="50" y="30" fill="white" font-size="20" font-family="Space Grotesk, Inter, system-ui, sans-serif" font-weight="600" letter-spacing="-0.03em">Nomos<tspan fill="rgba(255,255,255,0.45)">X</tspan></text>
+  <text x="51" y="44" fill="rgba(255,255,255,0.25)" font-size="7" font-family="JetBrains Mono, monospace" letter-spacing="0.22em">AUTONOMOUS THINK TANK</text>
 </svg>

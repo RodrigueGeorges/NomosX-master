@@ -55,8 +55,8 @@
 }
 
 @keyframes border-glow {
-  0%, 100% { border-color: rgba(99, 102, 241, 0.15); }
-  50% { border-color: rgba(99, 102, 241, 0.4); }
+  0%, 100% { border-color: rgba(255, 255, 255, 0.08); }
+  50% { border-color: rgba(255, 255, 255, 0.20); }
 }
 
 .animate-fade-in {
@@ -165,29 +165,46 @@
 .delay-600 { animation-delay: 600ms; }
 .delay-700 { animation-delay: 700ms; }
 
-/* === Root Variables === */
+/* === Root Variables — Palantir × Greek === */
 :root {
   color-scheme: dark;
-  
-  --color-bg: #09090b;
-  --color-bg-elevated: #111113;
-  --color-bg-panel: #18181b;
-  --color-border: rgba(255, 255, 255, 0.06);
-  --color-border-hover: rgba(255, 255, 255, 0.12);
-  --color-text: #fafafa;
-  --color-text-muted: rgba(255, 255, 255, 0.6);
-  --color-text-dim: rgba(255, 255, 255, 0.4);
-  
-  --color-primary: #6366f1;
-  --color-primary-hover: #818cf8;
-  --color-accent: #f5d778;
-  --color-accent-secondary: #d4af37;
-  --color-danger: #ef4444;
-  --color-glow: rgba(99, 102, 241, 0.15);
-  --color-glow-strong: rgba(245, 215, 120, 0.22);
-  
+
+  /* Surfaces */
+  --color-bg: #000000;
+  --color-bg-elevated: #0a0a0a;
+  --color-bg-panel: #111111;
+  --color-border: rgba(255, 255, 255, 0.07);
+  --color-border-hover: rgba(255, 255, 255, 0.14);
+
+  /* Text — 3 levels */
+  --nx-text-1: #ffffff;
+  --nx-text-2: rgba(255,255,255,0.55);
+  --nx-text-3: rgba(255,255,255,0.28);
+  --color-text: #ffffff;
+  --color-text-muted: rgba(255,255,255,0.55);
+  --color-text-dim: rgba(255,255,255,0.28);
+
+  /* Accent — Palantir steel blue (Blueprint: #137CBD) */
+  --nx-accent: #137CBD;
+  --nx-accent-hover: #1f8fce;
+  --nx-accent-dim: rgba(19,124,189,0.15);
+  --color-primary: #137CBD;
+  --color-primary-hover: #1f8fce;
+  --color-accent: #137CBD;
+  --color-accent-secondary: #0e6497;
+  --color-danger: #C23030;
+  --color-glow: rgba(19,124,189,0.10);
+  --color-glow-strong: rgba(19,124,189,0.20);
+
+  /* Palantir Blueprint shadow system */
+  --nx-shadow-card: 0 0 0 1px rgba(255,255,255,0.06), 0 2px 4px rgba(0,0,0,0.5), 0 8px 24px rgba(0,0,0,0.35);
+  --nx-shadow-card-hover: 0 0 0 1px rgba(255,255,255,0.10), 0 4px 8px rgba(0,0,0,0.55), 0 16px 40px rgba(0,0,0,0.45);
+  --nx-shadow-panel: 0 0 0 1px rgba(255,255,255,0.06), 0 8px 32px rgba(0,0,0,0.6);
+
+  /* Fonts */
   --font-sans: var(--font-primary), system-ui, sans-serif;
   --font-display: var(--font-secondary), system-ui, sans-serif;
+  --font-serif-var: var(--font-serif), 'Cormorant Garamond', Georgia, serif;
   --font-code: var(--font-mono), monospace;
 }
 
@@ -199,13 +216,7 @@
 }
 
 body {
-  background-color: var(--color-bg);
-  background-image:
-    radial-gradient(circle at 18% 14%, rgba(99, 102, 241, 0.16), transparent 24%),
-    radial-gradient(circle at 82% 18%, rgba(139, 92, 246, 0.10), transparent 20%),
-    radial-gradient(circle at 20% 78%, rgba(16, 185, 129, 0.08), transparent 18%);
-  background-attachment: fixed;
-  background-size: cover;
+  background-color: #000000;
   color: var(--color-text);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
@@ -219,8 +230,8 @@ body {
 }
 
 ::selection {
-  background: rgba(245, 215, 120, 0.24);
-  color: var(--color-text);
+  background: rgba(74, 123, 247, 0.28);
+  color: #ffffff;
 }
 
 /* === Typography === */
@@ -266,53 +277,105 @@ body {
   color: var(--color-text-dim);
 }
 
-/* === Gradient Text === */
+/* === Typography — Palantir × Greek === */
+.nx-serif {
+  font-family: var(--font-serif-var);
+}
+
+/* Hero display headings — large Cormorant, thin weight */
+.nx-display-serif {
+  font-family: var(--font-serif-var);
+  font-weight: 300;
+  letter-spacing: -0.02em;
+  line-height: 1.06;
+}
+
+/* Greek section marker — Α Β Γ Δ Σ Ω */
+.nx-greek-marker {
+  font-family: var(--font-serif-var);
+  font-size: 0.6875rem;
+  font-weight: 400;
+  letter-spacing: 0.18em;
+  color: var(--nx-text-3);
+  text-transform: uppercase;
+}
+
+/* Gradient text — minimal: white to slightly blue */
 .nx-gradient-text {
-  background: linear-gradient(135deg, #ffffff 0%, #a5b4fc 44%, #f5d778 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: #ffffff;
 }
 
 .nx-gradient-text-light {
-  background: linear-gradient(135deg, #fafafa 0%, #a5b4fc 45%, #f5d778 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  background-size: 200% 200%;
-  animation: gradient-shift 6s ease infinite;
+  color: rgba(255,255,255,0.9);
 }
 
 .text-gradient {
-  background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
+  background: linear-gradient(135deg, #ffffff 0%, #4A7BF7 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+}
+
+/* Palantir-style thin ruled divider */
+.nx-rule {
+  height: 1px;
+  background: rgba(255,255,255,0.08);
+}
+
+/* Palantir card — 3-layer shadow system (Blueprint exact) */
+.nx-card-palantir {
+  background: #0a0a0a;
+  border: none;
+  box-shadow: var(--nx-shadow-card);
+  transition: box-shadow 150ms ease, background 150ms ease;
+}
+.nx-card-palantir:hover {
+  box-shadow: var(--nx-shadow-card-hover);
+  background: #0f0f0f;
+}
+
+/* Greek section marker */
+.nx-greek-marker {
+  font-family: var(--font-serif-var);
+  font-size: 0.625rem;
+  font-weight: 400;
+  letter-spacing: 0.24em;
+  color: var(--nx-text-3);
+  text-transform: uppercase;
+}
+
+/* Greek Ν Δ Σ Ω section label — large, ghosted, decorative */
+.nx-greek-ghost {
+  font-family: var(--font-serif-var);
+  font-size: clamp(6rem, 15vw, 12rem);
+  font-weight: 300;
+  line-height: 1;
+  color: rgba(255,255,255,0.03);
+  pointer-events: none;
+  user-select: none;
+  letter-spacing: -0.02em;
 }
 
 /* === Glass & Cards === */
 .nx-glass {
-  background: rgba(255, 255, 255, 0.03);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .nx-card {
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 16px;
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 2px;
+  transition: border-color 150ms ease, background 150ms ease;
 }
 
 .nx-hud-panel {
   position: relative;
-  border-radius: 28px;
+  border-radius: 2px;
   padding: 1.5rem;
-  background: rgba(10, 10, 14, 0.72);
-  border: 1px solid rgba(99, 102, 241, 0.18);
-  box-shadow: 0 24px 90px rgba(0, 0, 0, 0.32), inset 0 0 0 1px rgba(255, 255, 255, 0.03);
-  backdrop-filter: blur(24px) saturate(180%);
+  background: #080808;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 24px 90px rgba(0, 0, 0, 0.5);
   overflow: hidden;
 }
 
@@ -328,12 +391,9 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 0.9rem 1.2rem;
-  border-radius: 9999px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: inset 0 0 1px rgba(255, 255, 255, 0.05), 0 0 24px rgba(99, 102, 241, 0.08);
-  backdrop-filter: blur(18px);
+  padding: 0.65rem 1rem;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.10);
 }
 
 .nx-hud-chip span {
@@ -344,74 +404,33 @@ body {
 }
 
 .nx-card:hover {
-  border-color: rgba(245, 215, 120, 0.18);
-  background: rgba(255, 255, 255, 0.04);
-  box-shadow: 0 0 40px rgba(245, 215, 120, 0.055);
-  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.025);
 }
 
-/* === Oracle / Codex Layer === */
+/* === Panels === */
 .nx-oracle-panel {
   position: relative;
-  border-radius: 28px;
-  border: 1px solid rgba(212, 175, 55, 0.14);
-  background:
-    radial-gradient(circle at 14% 18%, rgba(212, 175, 55, 0.10), transparent 34%),
-    radial-gradient(circle at 84% 48%, rgba(99, 102, 241, 0.15), transparent 36%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.018));
-  box-shadow: 0 24px 90px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.05);
-}
-
-.nx-oracle-panel::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background:
-    linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.20), transparent) top/100% 1px no-repeat,
-    linear-gradient(180deg, rgba(255,255,255,0.035), transparent 38%);
+  border-radius: 2px;
+  background: #0a0a0a;
+  box-shadow: var(--nx-shadow-panel);
 }
 
 .nx-ancient-frame {
   position: relative;
-  border-radius: 32px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.02);
-  box-shadow: inset 0 0 0 1px rgba(212, 175, 55, 0.10), 0 24px 80px rgba(0, 0, 0, 0.22);
-}
-
-.nx-ancient-frame::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background-image:
-    radial-gradient(circle at 15% 15%, rgba(245, 215, 120, 0.06), transparent 24%),
-    radial-gradient(circle at 85% 30%, rgba(99, 102, 241, 0.08), transparent 22%),
-    repeating-linear-gradient(90deg, transparent, transparent 8px, rgba(255,255,255,0.06) 8px, rgba(255,255,255,0.06) 9px);
-  opacity: 0.45;
+  border-radius: 2px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: transparent;
 }
 
 .nx-ancient-topbar {
   position: relative;
-  background: rgba(9, 9, 11, 0.92);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: inset 0 -1px 0 rgba(245, 215, 120, 0.05);
-}
-
-.nx-ancient-topbar::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background-image:
-    radial-gradient(circle at 8% 15%, rgba(245, 215, 120, 0.06), transparent 26%),
-    radial-gradient(circle at 92% 22%, rgba(99, 102, 241, 0.05), transparent 24%);
+  background: rgba(0, 0, 0, 0.96);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
 }
 
 .nx-engraved-title {
   letter-spacing: -0.04em;
-  text-shadow: 0 0 20px rgba(99, 102, 241, 0.16), 0 0 24px rgba(245, 215, 120, 0.1), 0 0 0 rgba(255, 255, 255, 0.08);
 }
 
 .nx-sigil {
@@ -419,9 +438,8 @@ body {
   width: 104px;
   height: 104px;
   border-radius: 9999px;
-  border: 1px solid rgba(245, 215, 120, 0.18);
-  background: radial-gradient(circle, rgba(245, 215, 120, 0.08), transparent 48%);
-  box-shadow: 0 0 34px rgba(245, 215, 120, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  background: transparent;
 }
 
 .nx-sigil::before {
@@ -448,24 +466,21 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0.7rem 1rem;
-  border-radius: 9999px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(245, 215, 120, 0.12);
-  color: rgba(255, 255, 255, 0.72);
+  padding: 0.5rem 1rem;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  color: rgba(255, 255, 255, 0.45);
   letter-spacing: 0.22em;
   text-transform: uppercase;
-  font-size: 0.72rem;
+  font-size: 0.65rem;
 }
 
 .nx-codex-cell {
   position: relative;
   min-height: 138px;
-  border-radius: 16px;
-  border: 1px solid rgba(255,255,255,0.065);
-  background:
-    linear-gradient(180deg, rgba(255,255,255,0.035), rgba(0,0,0,0.18)),
-    repeating-linear-gradient(135deg, rgba(212,175,55,0.035) 0 1px, transparent 1px 16px);
+  border-radius: 2px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: transparent;
   padding: 16px;
   overflow: hidden;
 }
@@ -475,22 +490,21 @@ body {
   position: absolute;
   inset: auto 14px 10px 14px;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(212,175,55,0.22), transparent);
+  background: rgba(255,255,255,0.06);
 }
 
 .nx-glyph-label {
-  color: rgba(245, 215, 120, 0.68);
+  color: rgba(255, 255, 255, 0.35);
   font-size: 0.66rem;
-  font-weight: 600;
+  font-weight: 500;
   letter-spacing: 0.22em;
   text-transform: uppercase;
 }
 
 .nx-marble {
   background:
-    radial-gradient(circle at 18% 20%, rgba(255,255,255,0.035), transparent 25%),
-    radial-gradient(circle at 72% 56%, rgba(212,175,55,0.045), transparent 28%),
-    linear-gradient(135deg, rgba(255,255,255,0.035), rgba(255,255,255,0.012));
+    radial-gradient(circle at 18% 20%, rgba(255,255,255,0.025), transparent 25%),
+    linear-gradient(135deg, rgba(255,255,255,0.025), rgba(255,255,255,0.010));
 }
 
 /* === Glow Effects === */
@@ -509,12 +523,12 @@ body {
 /* === Dividers & Lines === */
 .nx-divider {
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.18), rgba(245, 215, 120, 0.18), transparent);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .ai-line {
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.25), rgba(245, 215, 120, 0.18), transparent);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 /* === Background Patterns === */
@@ -549,7 +563,7 @@ body {
 }
 
 .nx-radial-bg {
-  background: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(99, 102, 241, 0.12), rgba(139, 92, 246, 0.06), transparent 70%);
+  background: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(19, 124, 189, 0.08), transparent 70%);
 }
 
 .nx-noise {
@@ -567,7 +581,7 @@ a, button, input, textarea, select {
 }
 
 *:focus-visible {
-  outline: 2px solid var(--color-primary);
+  outline: 1px solid rgba(255, 255, 255, 0.5);
   outline-offset: 2px;
 }
 
@@ -617,14 +631,14 @@ a, button, input, textarea, select {
 .animate-slide-in-top { animation: slideInTop 300ms cubic-bezier(0.16, 1, 0.3, 1); }
 
 @keyframes glowPulse {
-  0%, 100% { box-shadow: 0 0 20px rgba(99, 102, 241, 0.2); }
-  50% { box-shadow: 0 0 40px rgba(99, 102, 241, 0.4); }
+  0%, 100% { box-shadow: 0 0 20px rgba(255, 255, 255, 0.06); }
+  50% { box-shadow: 0 0 40px rgba(255, 255, 255, 0.12); }
 }
 
 .animate-glow-pulse { animation: glowPulse 2s ease-in-out infinite; }
 
-.shadow-glow { box-shadow: 0 0 20px rgba(99, 102, 241, 0.2); }
-.shadow-glow:hover { box-shadow: 0 0 30px rgba(99, 102, 241, 0.3); }
+.shadow-glow { box-shadow: 0 0 20px rgba(255, 255, 255, 0.06); }
+.shadow-glow:hover { box-shadow: 0 0 30px rgba(255, 255, 255, 0.10); }
 
 @keyframes fadeInBackdrop {
   from { opacity: 0; }
@@ -1022,16 +1036,16 @@ a, button, input, textarea, select {
 .nx-hud-frame::before {
   top: 0;
   left: 0;
-  border-top: 1px solid rgba(245, 215, 120, 0.55);
-  border-left: 1px solid rgba(245, 215, 120, 0.55);
+  border-top: 1px solid rgba(255, 255, 255, 0.35);
+  border-left: 1px solid rgba(255, 255, 255, 0.35);
 }
 
 /* Bottom-right corner */
 .nx-hud-frame::after {
   bottom: 0;
   right: 0;
-  border-bottom: 1px solid rgba(245, 215, 120, 0.55);
-  border-right: 1px solid rgba(245, 215, 120, 0.55);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.35);
+  border-right: 1px solid rgba(255, 255, 255, 0.35);
 }
 
 /* Full four-corner variant using a pseudo child span — add <span class="nx-hud-corners"> inside */
@@ -1053,15 +1067,15 @@ a, button, input, textarea, select {
 .nx-hud-corners::before {
   top: 0;
   right: 0;
-  border-top: 1px solid rgba(245, 215, 120, 0.45);
-  border-right: 1px solid rgba(245, 215, 120, 0.45);
+  border-top: 1px solid rgba(255, 255, 255, 0.25);
+  border-right: 1px solid rgba(255, 255, 255, 0.25);
 }
 
 .nx-hud-corners::after {
   bottom: 0;
   left: 0;
-  border-bottom: 1px solid rgba(245, 215, 120, 0.45);
-  border-left: 1px solid rgba(245, 215, 120, 0.45);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.25);
+  border-left: 1px solid rgba(255, 255, 255, 0.25);
 }
 
 /* Larger variant for hero panels */
@@ -1193,19 +1207,17 @@ a, button, input, textarea, select {
     radial-gradient(ellipse 40% 100% at 100% 50%, rgba(0,0,0,0.35) 0%, transparent 60%);
 }
 
-/* Atmospheric spotlight — hero section focal pull toward center */
+/* Atmospheric spotlight — hero focal pull, ice blue */
 .nx-spotlight {
   background:
-    radial-gradient(ellipse 70% 50% at 50% 30%, rgba(99, 102, 241, 0.08) 0%, transparent 65%),
-    radial-gradient(ellipse 50% 40% at 50% 25%, rgba(245, 215, 120, 0.05) 0%, transparent 55%);
+    radial-gradient(ellipse 70% 50% at 50% 30%, rgba(19, 124, 189, 0.07) 0%, transparent 65%);
 }
 
 /* Mouse-tracked spotlight — update --mx and --my via JS */
 .nx-spotlight-tracked {
   background: radial-gradient(
     circle 600px at var(--mx, 50%) var(--my, 30%),
-    rgba(245, 215, 120, 0.055) 0%,
-    rgba(99, 102, 241, 0.04) 30%,
+    rgba(19, 124, 189, 0.06) 0%,
     transparent 65%
   );
   pointer-events: none;
@@ -1228,8 +1240,7 @@ a, button, input, textarea, select {
   box-shadow:
     0 1px 0 rgba(255, 255, 255, 0.06) inset,
     0 4px 16px rgba(0, 0, 0, 0.3),
-    0 16px 48px rgba(0, 0, 0, 0.4),
-    0 0 60px rgba(245, 215, 120, 0.06);
+    0 16px 48px rgba(0, 0, 0, 0.4);
 }
 
 
@@ -1277,12 +1288,9 @@ a, button, input, textarea, select {
   border-radius: inherit;
 }
 
-/* Grainy gold gradient — for premium accent banners */
+/* Grainy accent banner */
 .nx-grain-gold {
-  background:
-    linear-gradient(135deg, rgba(212,175,55,0.15) 0%, rgba(99,102,241,0.1) 60%, transparent 100%),
-    url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='grain3'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23grain3)' opacity='0.06'/%3E%3C/svg%3E");
-  background-size: auto, 200px 200px;
+  background: rgba(255,255,255,0.03);
 }
 
 
@@ -1303,7 +1311,7 @@ a, button, input, textarea, select {
   font-family: var(--font-code, 'IBM Plex Mono', monospace);
   font-size: 0.6875rem;
   letter-spacing: 0.1em;
-  color: rgba(245, 215, 120, 0.4);
+  color: rgba(255, 255, 255, 0.30);
   text-transform: uppercase;
   position: relative;
 }
@@ -1345,7 +1353,7 @@ a, button, input, textarea, select {
 .nx-ticker-sep {
   display: inline-block;
   margin: 0 1.5em;
-  color: rgba(99, 102, 241, 0.5);
+  color: rgba(255, 255, 255, 0.20);
 }
 
 
@@ -1433,11 +1441,11 @@ a, button, input, textarea, select {
   font-weight: 600;
   letter-spacing: 0.22em;
   text-transform: uppercase;
-  color: rgba(245, 215, 120, 0.55);
+  color: rgba(255, 255, 255, 0.45);
   padding: 2px 8px;
-  border: 1px solid rgba(245, 215, 120, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 2px;
-  background: rgba(245, 215, 120, 0.04);
+  background: transparent;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -1445,7 +1453,7 @@ a, button, input, textarea, select {
 
 .nx-classified::before {
   content: "//";
-  color: rgba(245, 215, 120, 0.3);
+  color: rgba(255, 255, 255, 0.20);
   font-weight: 400;
 }
 
@@ -1473,7 +1481,7 @@ a, button, input, textarea, select {
 
 /* Inline redacted/classified block text — styled like AC memory corruptions */
 .nx-redacted {
-  background: rgba(245, 215, 120, 0.12);
+  background: rgba(255, 255, 255, 0.08);
   border-radius: 2px;
   color: transparent;
   user-select: none;
@@ -1489,7 +1497,7 @@ a, button, input, textarea, select {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: rgba(245, 215, 120, 0.35);
+  color: rgba(255, 255, 255, 0.25);
   font-family: monospace;
   font-size: 0.85em;
   letter-spacing: 0.1em;
@@ -1500,58 +1508,21 @@ a, button, input, textarea, select {
    COMPOSITE UTILITIES — combinations used in common patterns
    ---------------------------------------------------------------------------- */
 
-/* Intel card = glass + hud frame + depth shadow + grain surface */
+/* Intel card — Palantir 3-layer shadow + sharp 2px radius */
 .nx-intel-card {
-  background: rgba(255, 255, 255, 0.025);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  border-radius: 12px;
+  background: #0a0a0a;
+  border-radius: 2px;
   position: relative;
   isolation: isolate;
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.nx-intel-card::before,
-.nx-intel-card::after {
-  content: "";
-  position: absolute;
-  width: 12px;
-  height: 12px;
-  pointer-events: none;
-  z-index: 2;
-  transition: border-color 0.3s ease;
-}
-
-.nx-intel-card::before {
-  top: 0; left: 0;
-  border-top: 1px solid rgba(245, 215, 120, 0.3);
-  border-left: 1px solid rgba(245, 215, 120, 0.3);
-}
-
-.nx-intel-card::after {
-  bottom: 0; right: 0;
-  border-bottom: 1px solid rgba(245, 215, 120, 0.3);
-  border-right: 1px solid rgba(245, 215, 120, 0.3);
+  box-shadow: var(--nx-shadow-card);
+  transition: box-shadow 150ms ease, background 150ms ease;
 }
 
 .nx-intel-card:hover {
-  border-color: rgba(245, 215, 120, 0.16);
-  background: rgba(255, 255, 255, 0.04);
-  transform: translateY(-2px);
-  box-shadow:
-    0 0 0 1px rgba(245, 215, 120, 0.08),
-    0 8px 32px rgba(0, 0, 0, 0.4),
-    0 0 60px rgba(245, 215, 120, 0.05);
+  box-shadow: var(--nx-shadow-card-hover);
+  background: #0f0f0f;
 }
 
-.nx-intel-card:hover::before {
-  border-color: rgba(245, 215, 120, 0.6);
-}
-
-.nx-intel-card:hover::after {
-  border-color: rgba(245, 215, 120, 0.6);
-}
 
 /* ================================
    ARTICLE CONTENT — dark mode overrides

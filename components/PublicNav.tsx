@@ -1,6 +1,5 @@
 "use client";
 import React, { useState } from 'react';
-import dynamic from 'next/dynamic';
 
 /**
  * PublicNav Component
@@ -14,51 +13,13 @@ import { Menu, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 
 const LogoFallback = () => (
-  <svg width="44" height="44" viewBox="0 0 120 120" fill="none" aria-hidden="true">
-    <defs>
-      <linearGradient id="nav-oracle-gradient" x1="20%" y1="0%" x2="80%" y2="100%">
-        <stop offset="0%" stopColor="#A5B4FC" />
-        <stop offset="45%" stopColor="#6366F1" />
-        <stop offset="100%" stopColor="#7C3AED" />
-      </linearGradient>
-      <radialGradient id="nav-oracle-core" cx="50%" cy="45%" r="55%">
-        <stop offset="0%" stopColor="#FFFFFF" />
-        <stop offset="42%" stopColor="#F5D778" />
-        <stop offset="100%" stopColor="#D4AF37" />
-      </radialGradient>
-      <filter id="nav-oracle-glow" x="-40%" y="-40%" width="180%" height="180%">
-        <feGaussianBlur stdDeviation="3.8" result="blur" />
-        <feMerge>
-          <feMergeNode in="blur" />
-          <feMergeNode in="SourceGraphic" />
-        </feMerge>
-      </filter>
-    </defs>
-    <circle cx="60" cy="60" r="52" fill="#09090B" stroke="white" strokeOpacity="0.10" strokeWidth="1.2" />
-    <path d="M60 9 L68 24 H52 L60 9Z" fill="#F5D778" opacity="0.55" />
-    <path d="M60 111 L52 96 H68 L60 111Z" fill="#F5D778" opacity="0.42" />
-    <path d="M9 60 L24 52 V68 L9 60Z" fill="#A5B4FC" opacity="0.28" />
-    <path d="M111 60 L96 68 V52 L111 60Z" fill="#A5B4FC" opacity="0.28" />
-    <circle cx="60" cy="60" r="42" stroke="url(#nav-oracle-gradient)" strokeWidth="1.3" strokeOpacity="0.50" />
-    <path d="M60 18 A42 42 0 0 1 102 60" stroke="#F5D778" strokeWidth="1" strokeOpacity="0.38" strokeLinecap="round" />
-    <path d="M60 102 A42 42 0 0 1 18 60" stroke="#F5D778" strokeWidth="1" strokeOpacity="0.28" strokeLinecap="round" />
-    <ellipse cx="60" cy="60" rx="50" ry="18" stroke="#A5B4FC" strokeWidth="1.1" strokeOpacity="0.24" transform="rotate(-24 60 60)" />
-    <ellipse cx="60" cy="60" rx="49" ry="17" stroke="#7C3AED" strokeWidth="1.1" strokeOpacity="0.26" transform="rotate(28 60 60)" />
-    <g filter="url(#nav-oracle-glow)">
-      <path d="M31 35 V86" stroke="url(#nav-oracle-gradient)" strokeWidth="8" strokeLinecap="round" />
-      <path d="M89 35 V86" stroke="url(#nav-oracle-gradient)" strokeWidth="8" strokeLinecap="round" />
-      <path d="M34 36 L86 84" stroke="url(#nav-oracle-gradient)" strokeWidth="8" strokeLinecap="round" opacity="0.92" />
-      <path d="M86 36 L34 84" stroke="url(#nav-oracle-gradient)" strokeWidth="8" strokeLinecap="round" opacity="0.72" />
-    </g>
-    <circle cx="60" cy="60" r="11" fill="url(#nav-oracle-core)" />
-    <circle cx="60" cy="60" r="4.2" fill="#09090B" opacity="0.92" />
+  <svg width="36" height="36" viewBox="0 0 100 100" fill="none" aria-hidden="true">
+    <line x1="22" y1="16" x2="22" y2="84" stroke="white" strokeWidth="4" strokeLinecap="square" />
+    <line x1="22" y1="16" x2="78" y2="84" stroke="white" strokeWidth="4" strokeLinecap="square" />
+    <line x1="78" y1="16" x2="78" y2="84" stroke="white" strokeWidth="4" strokeLinecap="square" />
   </svg>
 );
 
-const NomosXLogo3D = dynamic(
-  () => import('@/components/brand/NomosXLogo3D').then(m => m.NomosXLogo3D),
-  { ssr: false, loading: () => <LogoFallback /> }
-);
 
 interface PublicNavProps {
   currentPage?: "home" | "articles" | "about" | "methodology" | "pricing" | "platform" | "studio";
@@ -80,23 +41,20 @@ export default function PublicNav({ currentPage, onSignInClick, isAuthenticated 
   ];
 
   return (
-    <nav className="sticky top-0 z-50 w-full nx-ancient-topbar">
-      <div className="absolute inset-0 bg-[#09090b]/80 backdrop-blur-xl" />
+    <nav className="sticky top-0 z-50 w-full" style={{ background: 'rgba(0,0,0,0.92)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+      <div className="absolute inset-0 backdrop-blur-xl pointer-events-none" />
       <div className="relative max-w-7xl mx-auto px-6 sm:px-8 h-16 flex items-center justify-between">
         {/* Logo + Wordmark */}
         <div
           className="flex items-center gap-3 cursor-pointer group"
           onClick={() => router.push("/")}
         >
-          <div className="relative">
-            <NomosXLogo3D size={52} />
-            <div className="absolute inset-0 rounded-full blur-md bg-amber-300/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-          </div>
-          <span className="font-display font-black text-[24px] tracking-tight drop-shadow-[0_0_12px_rgba(139,92,246,0.35)]">
-            <span className="text-white group-hover:text-white transition-colors">Nomos</span>
-            <span className="bg-gradient-to-r from-indigo-300 via-violet-300 to-[#F5D778] bg-clip-text text-transparent">X</span>
+          <LogoFallback />
+          <span className="font-display font-semibold text-[20px] tracking-[-0.03em]">
+            <span className="text-white">Nomos</span>
+            <span className="text-white/45">X</span>
           </span>
-          <span className="flex items-center gap-1 ml-1" title="System active">
+          <span className="flex items-center gap-1.5 ml-1" title="System active">
             <span className="nx-status-dot" aria-hidden="true" />
             <span className="font-mono text-[9px] text-white/25 tracking-[0.18em] uppercase hidden sm:inline">live</span>
           </span>
@@ -124,14 +82,14 @@ export default function PublicNav({ currentPage, onSignInClick, isAuthenticated 
           {isAuthenticated ? (
             <button
               onClick={() => router.push("/articles")}
-              className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-[13px] font-medium transition-all duration-200 shadow-lg shadow-amber-300/10 hover:shadow-amber-300/20"
+              className="px-4 py-2 border border-white/20 hover:border-white/40 text-white text-[13px] font-medium transition-all duration-150 hover:bg-white/[0.05]"
             >
-            Browse Codex
+              Browse Codex
             </button>
           ) : (
             <button
               onClick={onSignInClick}
-              className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-[13px] font-medium transition-all duration-200 shadow-lg shadow-amber-300/10 hover:shadow-amber-300/20"
+              className="px-4 py-2 bg-white text-black text-[13px] font-semibold transition-all duration-150 hover:bg-white/90"
             >
               Enter
             </button>

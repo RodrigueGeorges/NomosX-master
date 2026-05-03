@@ -1,6 +1,6 @@
 import React from 'react';
 import "./globals.css";
-import { Inter,Space_Grotesk,JetBrains_Mono } from 'next/font/google';
+import { Inter, Space_Grotesk, JetBrains_Mono, Cormorant_Garamond } from 'next/font/google';
 import { ToastContainer } from '@/components/ui/Toast';
 import { AuthProvider } from '@/hooks/useAuth';
 import { QueryProvider } from '@/components/providers/QueryProvider';
@@ -24,6 +24,14 @@ const jetbrainsMono = JetBrains_Mono({
   subsets: ['latin'],
   variable: '--font-mono',
   weight: ['400', '500', '600'],
+  display: 'swap',
+})
+
+const cormorant = Cormorant_Garamond({
+  subsets: ['latin'],
+  variable: '--font-serif',
+  weight: ['300', '400', '500', '600'],
+  style: ['normal', 'italic'],
   display: 'swap',
 })
 
@@ -85,7 +93,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   };
 
   return (
-    <html lang="en" className={`${inter.variable} ${spaceGrotesk.variable} ${jetbrainsMono.variable}`} suppressHydrationWarning>
+    <html lang="en" className={`${inter.variable} ${spaceGrotesk.variable} ${jetbrainsMono.variable} ${cormorant.variable}`} suppressHydrationWarning>
       <head>
         <script
           type="application/ld+json"

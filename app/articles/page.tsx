@@ -87,10 +87,8 @@ export default function ArticlesPage() {
         <div className="nx-noise" aria-hidden="true" />
         {/* Background — aurora */}
         <div className="fixed inset-0 pointer-events-none overflow-hidden">
-          <div className="absolute w-[900px] h-[700px] rounded-full -top-48 left-1/2 -translate-x-1/2 animate-aurora-1" style={{ background: 'radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 70%)' }} />
-          <div className="absolute w-[600px] h-[600px] rounded-full top-1/3 -right-32 animate-aurora-2" style={{ background: 'radial-gradient(circle, rgba(139,92,246,0.09) 0%, transparent 70%)' }} />
-          <div className="absolute w-[500px] h-[500px] rounded-full bottom-1/4 -left-24 animate-aurora-3" style={{ background: 'radial-gradient(circle, rgba(212,175,55,0.06) 0%, transparent 70%)' }} />
-          <div className="nx-hex-bg absolute inset-0 opacity-30" />
+          <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse 80% 60% at 50% -10%, rgba(99,102,241,0.10) 0%, transparent 70%)' }} />
+          <div className="nx-hex-bg absolute inset-0 opacity-[0.14]" />
         </div>
 
         {/* Nav */}
