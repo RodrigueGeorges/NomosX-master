@@ -189,7 +189,7 @@ export async function sendNewsletterConfirmation(to: string, confirmToken: strin
  * Welcome email for confirmed newsletter subscribers.
  */
 export async function sendNewsletterWelcome(to: string): Promise<void> {
-  const publicationsUrl = addUtmParams(`${APP_URL}/publications`, UTM_CAMPAIGN.newsletter);
+  const publicationsUrl = addUtmParams(`${APP_URL}/articles`, UTM_CAMPAIGN.newsletter);
   const unsubUrl = `${APP_URL}/api/newsletter/unsubscribe?email=${encodeURIComponent(to)}`;
   const html = layout(`
     <h1 style="font-size:24px;font-weight:300;color:#fff;margin:0 0 8px;">
@@ -263,7 +263,7 @@ export async function sendBriefPublishedNotification(
   to: string,
   brief: { title: string; summary: string; id: string; trustScore?: number }
 ): Promise<void> {
-  const briefUrl = addUtmParams(`${APP_URL}/publications/${brief.id}`, UTM_CAMPAIGN.publication);
+  const briefUrl = addUtmParams(`${APP_URL}/articles/${brief.id}`, UTM_CAMPAIGN.publication);
   const trust = brief.trustScore ? `${brief.trustScore}/100` : '';
   const html = layout(`
     <p style="font-size:10px;font-weight:700;letter-spacing:0.2em;color:#6366f1;text-transform:uppercase;margin:0 0 16px;">
@@ -413,7 +413,7 @@ export async function sendEmailVerificationEmail(to: string, name: string | null
 export async function sendTrialExpired(to: string, name: string | null): Promise<void> {
   const displayName = name || 'Researcher';
   const upgradeUrl = addUtmParams(`${APP_URL}/pricing`, UTM_CAMPAIGN.trial_expired);
-  const publicationsUrl = addUtmParams(`${APP_URL}/publications`, UTM_CAMPAIGN.trial_expired);
+  const publicationsUrl = addUtmParams(`${APP_URL}/articles`, UTM_CAMPAIGN.trial_expired);
   
   const html = layout(`
     <h1 style="font-size: 24px; font-weight: 300; color: #fff; margin: 0 0 8px;">
@@ -477,7 +477,7 @@ export async function sendBriefReadyNotification(
   },
   name?: string | null
 ): Promise<void> {
-  const briefUrl = addUtmParams(`${APP_URL}/publications/${brief.id}`, UTM_CAMPAIGN.brief_ready);
+  const briefUrl = addUtmParams(`${APP_URL}/articles/${brief.id}`, UTM_CAMPAIGN.brief_ready);
   const displayName = name || 'Researcher';
   const isStrategic = brief.type === 'strategic_report';
   const typeLabel = isStrategic ? 'Strategic Report' : 'Research Brief';

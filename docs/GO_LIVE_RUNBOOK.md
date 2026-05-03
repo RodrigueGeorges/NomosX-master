@@ -6,7 +6,7 @@ This is the operational checklist for launching NomosX live.
 
 - PostgreSQL database, preferably managed and backed up.
 - Redis or Upstash Redis for distributed rate limiting.
-- OpenAI API key for the main agent pipeline.
+- DeepSeek API key for the main agent pipeline. Qwen, Anthropic, or OpenAI can be configured as fallbacks.
 - Resend or another configured email provider.
 - Sentry for error tracking.
 - Stripe only if paid subscriptions are enabled at launch.
@@ -21,8 +21,11 @@ DATABASE_URL=postgresql://...
 JWT_SECRET=<64-char-random-secret>
 ADMIN_KEY=<32-char-random-secret>
 CRON_SECRET=<32-char-random-secret>
-OPENAI_API_KEY=sk-...
-OPENAI_MODEL=gpt-4o
+PRIMARY_LLM_PROVIDER=deepseek
+DEEPSEEK_API_KEY=...
+DEEPSEEK_BASE_URL=https://api.deepseek.com
+DEEPSEEK_MODEL_FAST=deepseek-v4-flash
+DEEPSEEK_MODEL_REASONING=deepseek-v4-pro
 NEXT_PUBLIC_APP_URL=https://your-domain.com
 NOMOSX_WEEKLY_PUBLICATION_MAX=3
 REDIS_URL=redis://...
@@ -38,6 +41,8 @@ STRIPE_SECRET_KEY=sk_live_...
 STRIPE_WEBHOOK_SECRET=whsec_...
 LINKUP_API_KEY=...
 UNPAYWALL_EMAIL=research@your-domain.com
+QWEN_API_KEY=...
+OPENAI_API_KEY=... # optional, mostly useful for embeddings/fallback
 ```
 
 ## 3. Preflight

@@ -213,7 +213,7 @@ Format as JSON with connections, conflicts, synergies arrays.`;
       ],
       temperature: 0.3,
       maxTokens: 1000,
-      model: "gpt-4-turbo-preview",
+      model: "gpt-4o",
       enableCache: true,
     });
     
@@ -309,7 +309,7 @@ Format as JSON matching EnhancedSynthesisReport interface.`;
       ],
       temperature: 0.2,
       maxTokens: 3000,
-      model: "gpt-4-turbo-preview",
+      model: "gpt-4o",
       enableCache: true,
     });
     

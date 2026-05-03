@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { publicPublicationWhere } from '@/lib/publication-visibility';
 
 /**
  * GET /api/public/stats
@@ -12,15 +13,14 @@ export async function GET(req: NextRequest) {
     // Get publication counts
     const [totalPublications, recentPublications] = await Promise.all([
       prisma.thinkTankPublication.count({
-        where: { status: 'PUBLISHED' }
+        where: publicPublicationWhere()
       }),
       prisma.thinkTankPublication.count({
-        where: { 
-          status: 'PUBLISHED',
+        where: publicPublicationWhere({
           publishedAt: {
             gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) // Last 30 days
-          }
-        }
+          },
+        })
       })
     ]);
 

@@ -96,6 +96,10 @@ export default function PublicNav({ currentPage, onSignInClick, isAuthenticated 
             <span className="text-white group-hover:text-white transition-colors">Nomos</span>
             <span className="bg-gradient-to-r from-indigo-300 via-violet-300 to-[#F5D778] bg-clip-text text-transparent">X</span>
           </span>
+          <span className="flex items-center gap-1 ml-1" title="System active">
+            <span className="nx-status-dot" aria-hidden="true" />
+            <span className="font-mono text-[9px] text-white/25 tracking-[0.18em] uppercase hidden sm:inline">live</span>
+          </span>
         </div>
         
         {/* Nav Links — Desktop */}

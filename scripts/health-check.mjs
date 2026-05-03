@@ -83,8 +83,10 @@ async function checkAppEndpoint() {
 }
 
 function checkEnv() {
-  const required = ["DATABASE_URL", "JWT_SECRET", "OPENAI_API_KEY", "ADMIN_KEY", "NEXT_PUBLIC_APP_URL"];
+  const required = ["DATABASE_URL", "JWT_SECRET", "ADMIN_KEY", "NEXT_PUBLIC_APP_URL"];
   const missing = required.filter((key) => !process.env[key]);
+  const hasLlm = Boolean(process.env.DEEPSEEK_API_KEY || process.env.QWEN_API_KEY || process.env.OPENAI_API_KEY || process.env.ANTHROPIC_API_KEY);
+  if (!hasLlm) missing.push("LLM_PROVIDER");
   result.checks.environment = missing.length
     ? { status: "unhealthy", missing }
     : { status: "healthy" };

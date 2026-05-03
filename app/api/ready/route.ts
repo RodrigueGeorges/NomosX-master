@@ -11,7 +11,12 @@ export async function GET() {
     checks.database = { status: "fail", detail: error?.message || "database unavailable" };
   }
 
-  const hasLlm = Boolean(process.env.OPENAI_API_KEY || process.env.ANTHROPIC_API_KEY);
+  const hasLlm = Boolean(
+    process.env.DEEPSEEK_API_KEY ||
+    process.env.QWEN_API_KEY ||
+    process.env.OPENAI_API_KEY ||
+    process.env.ANTHROPIC_API_KEY
+  );
   checks.llm = hasLlm ? { status: "ok" } : { status: "fail", detail: "no LLM provider configured" };
 
   const hasAuth = Boolean(process.env.JWT_SECRET && process.env.JWT_SECRET.length >= 32);

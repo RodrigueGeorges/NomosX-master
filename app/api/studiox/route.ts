@@ -97,39 +97,38 @@ export async function POST(req: NextRequest) {
     const selectedFormat = getPublicationFormat(studioContext?.formatType);
 
     // Load publication and topic context
-    const [recentBriefs, userTopics] = await Promise.all([
-      prisma.brief.findMany({
-        where: { publishedAt: { not: null } }, // Brief model doesn't have userId, filter by published
-        orderBy: { createdAt: 'desc' },
+    const [recentPublications, activeTopics] = await Promise.all([
+      prisma.thinkTankPublication.findMany({
+        where: { status: 'PUBLISHED', publishedAt: { not: null } },
+        orderBy: { publishedAt: 'desc' },
         take: 5,
         select: {
           id: true,
-          question: true,
-          kind: true,
-          createdAt: true,
-          topic: { select: { name: true } },
+          title: true,
+          type: true,
+          publishedAt: true,
         },
       }),
       prisma.topic.findMany({
         where: { isActive: true },
         orderBy: { updatedAt: 'desc' },
         take: 10,
-        select: { name: true, isActive: true },
+        select: { name: true },
       }),
     ]).catch(() => [[], []]);
 
     // Build context block
-    const briefsContext = recentBriefs.length > 0
-      ? `\n\nRECENT PUBLISHED PUBLICATIONS:\n${recentBriefs.map((b, i: number) =>
-          `${i + 1}. "${b.question.slice(0, 80)}..." (${b.kind}) — ${b.topic?.name || 'General'} — ${new Date(b.createdAt).toLocaleDateString()}`
+    const briefsContext = recentPublications.length > 0
+      ? `\n\nRECENT PUBLISHED PUBLICATIONS:\n${(recentPublications as Array<{ id: string; title: string; type: string; publishedAt: Date | null }>).map((p, i: number) =>
+          `${i + 1}. "${p.title.slice(0, 80)}" (${p.type}) — ${p.publishedAt ? new Date(p.publishedAt).toLocaleDateString() : 'n/a'}`
         ).join('\n')}`
       : '\n\nNO PUBLISHED PUBLICATIONS AVAILABLE.';
 
-    const topicsContext = userTopics.length > 0
-      ? `\n\nUSER'S MONITORED TOPICS:\n${userTopics.map((t) =>
-          `- ${t.name} (${t.isActive ? 'Active' : 'Inactive'})`
+    const topicsContext = activeTopics.length > 0
+      ? `\n\nACTIVE PLATFORM TOPICS:\n${(activeTopics as Array<{ name: string }>).map((t) =>
+          `- ${t.name}`
         ).join('\n')}`
-      : '\n\nUSER HAS NO ACTIVE TOPIC SUBSCRIPTIONS.';
+      : '\n\nNO ACTIVE PLATFORM TOPICS.';
 
     const studioContextBlock = `\n\nCURRENT STUDIOX MANDATE:
 - Mode: ${studioContext?.mode || 'COMMISSION'}

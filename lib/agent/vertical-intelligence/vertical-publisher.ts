@@ -6,6 +6,7 @@
  */
 
 import { prisma } from '../../db';
+import { evaluatePublicationReadiness } from '@/lib/publication-visibility';
 
 // ============================================================================
 // TYPES
@@ -72,6 +73,17 @@ export class VerticalPublisher {
   async storePublications(publications: VerticalPublication[]): Promise<void> {
     for (const publication of publications) {
       try {
+        const publicationType = 'RESEARCH_BRIEF';
+        const citationCoverage = 0.8;
+        const readiness = evaluatePublicationReadiness({
+          type: publicationType,
+          trustScore: publication.trustScore,
+          qualityScore: publication.trustScore,
+          citationCoverage,
+          wordCount: publication.wordCount,
+          sourceIds: [],
+        });
+
         await prisma.thinkTankPublication.create({
           data: {
             title: publication.title,
@@ -79,10 +91,11 @@ export class VerticalPublisher {
             verticalId: publication.verticalSlug,
             trustScore: publication.trustScore,
             wordCount: publication.wordCount,
-            publishedAt: publication.publishedAt,
-            type: 'vertical-intelligence',
+            publishedAt: readiness.ok ? publication.publishedAt : null,
+            status: readiness.ok ? 'PUBLISHED' : 'HELD',
+            type: publicationType,
             qualityScore: publication.trustScore,
-            citationCoverage: 0.8
+            citationCoverage
           }
         });
         

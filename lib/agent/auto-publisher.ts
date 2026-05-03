@@ -502,7 +502,7 @@ async function executePublication(
     // Get the brief to check trust score
     const brief = await prisma.brief.findUnique({
       where: { id: result.briefId },
-      select: { trustScore: true, html: true, question: true, lineage: true },
+      select: { trustScore: true, html: true, question: true, lineage: true, sources: true },
     });
 
     const trustScore = brief?.trustScore || result.stats?.trustScore || 0;
@@ -514,15 +514,16 @@ async function executePublication(
     const daScore = lineage?.devilsAdvocate?.publishabilityScore;
     const daVerdict = lineage?.devilsAdvocate?.verdict;
     const effectiveScore = daScore !== undefined ? daScore : trustScore;
-    const sourceIds = result.stats?.sourceIds || [];
+    const sourceIds = brief?.sources || result.stats?.sourceIds || [];
+    const citationIntegrity = result.stats?.citationVerifier?.integrity ?? result.stats?.citationVerifier?.overallIntegrity;
     const publicationGate = evaluatePublicationGate({
       format: isStrategic ? "strategic" : "brief",
       html: brief?.html || "",
       sourceIds,
       trustScore: effectiveScore,
       qualityScore: effectiveScore,
-      citationCoverage: result.stats?.citationVerifier?.overallIntegrity
-        ? result.stats.citationVerifier.overallIntegrity / 100
+      citationCoverage: citationIntegrity
+        ? citationIntegrity / 100
         : undefined,
       devilsAdvocateScore: daScore,
       fatalChallenges: lineage?.devilsAdvocate?.fatalChallenges || 0,
@@ -558,7 +559,7 @@ async function executePublication(
         const pub = await prisma.thinkTankPublication.create({
           data: {
             verticalId: vertical.id,
-            type: isStrategic ? "RESEARCH_BRIEF" : "EXECUTIVE_BRIEF",
+            type: isStrategic ? "STRATEGIC_REPORT" : "RESEARCH_BRIEF",
             title: proposal.topic,
             html: brief?.html || "",
             wordCount,
@@ -653,7 +654,7 @@ async function executePublication(
       const pub = await prisma.thinkTankPublication.create({
         data: {
           verticalId: vertical.id,
-          type: isStrategic ? "RESEARCH_BRIEF" : "EXECUTIVE_BRIEF",
+          type: isStrategic ? "STRATEGIC_REPORT" : "RESEARCH_BRIEF",
           title: proposal.topic,
           html: brief?.html || "",
           wordCount,
@@ -781,7 +782,7 @@ async function executeSignalPublications(
 
       const pubResult = await generatePublication({ signalId: signal.id });
 
-      if (pubResult.success && pubResult.trustScore >= cfg.minTrustScore) {
+      if (pubResult.success && pubResult.status === "PUBLISHED" && pubResult.trustScore >= cfg.minTrustScore) {
         await prisma.signal.update({
           where: { id: signal.id },
           data: { status: "PUBLISHED" },

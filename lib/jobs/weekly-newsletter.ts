@@ -11,6 +11,7 @@
  */
 
 import { prisma } from '@/lib/db';
+import { publicPublicationWhere } from '@/lib/publication-visibility';
 import { sendBulkNewsletter } from '@/lib/email';
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://nomosx.com';
@@ -272,11 +273,10 @@ async function getWeeklyBriefs() {
   oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
 
   const publications = await prisma.thinkTankPublication.findMany({
-    where: {
-      status: "PUBLISHED",
+    where: publicPublicationWhere({
       type: { in: ["SUMMARY_BRIEF", "EXECUTIVE_BRIEF", "STRATEGIC_REPORT", "RESEARCH_BRIEF"] },
       publishedAt: { gte: oneWeekAgo },
-    },
+    }),
     orderBy: { publishedAt: "desc" },
     take: 5,
     select: {

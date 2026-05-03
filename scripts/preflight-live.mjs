@@ -64,6 +64,14 @@ function optionalEnv(name, opts = {}) {
   pass(`env:${name}`);
 }
 
+function requireAnyEnv(names, label) {
+  const configured = names.filter((name) => env(name));
+  if (configured.length === 0) {
+    return fail(`env:${label}`, `set at least one of: ${names.join(", ")}`);
+  }
+  pass(`env:${label}`, configured.join(", "));
+}
+
 const isJson = process.argv.includes("--json");
 const requireProd = process.argv.includes("--prod") || process.env.NODE_ENV === "production";
 
@@ -88,7 +96,7 @@ for (const file of [
 
 requireEnv("DATABASE_URL", { url: true, noPlaceholder: true });
 requireEnv("JWT_SECRET", { min: 32, noPlaceholder: true });
-requireEnv("OPENAI_API_KEY", { min: 12, noPlaceholder: true });
+requireAnyEnv(["DEEPSEEK_API_KEY", "QWEN_API_KEY", "OPENAI_API_KEY", "ANTHROPIC_API_KEY"], "llm_provider");
 requireEnv("ADMIN_KEY", { min: requireProd ? 16 : 8, noPlaceholder: true });
 requireEnv("NEXT_PUBLIC_APP_URL", { url: true, https: requireProd, noPlaceholder: requireProd });
 
@@ -100,6 +108,10 @@ if (requireProd) {
     pass("env:redis");
   }
   optionalEnv("SENTRY_DSN", { url: true });
+  optionalEnv("DEEPSEEK_API_KEY");
+  optionalEnv("QWEN_API_KEY");
+  optionalEnv("OPENAI_API_KEY");
+  optionalEnv("ANTHROPIC_API_KEY");
   optionalEnv("RESEND_API_KEY");
   optionalEnv("STRIPE_SECRET_KEY");
   optionalEnv("STRIPE_WEBHOOK_SECRET");

@@ -3,6 +3,7 @@ import { getSession } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { runPipeline } from '@/lib/agent/pipeline-v2';
 import { requireStudioTier, hasExceededStudioLimit, createAccessDeniedResponse, createLimitExceededResponse } from '@/lib/middleware/subscription';
+import { evaluatePublicationReadiness } from '@/lib/publication-visibility';
 
 /**
  * POST /api/studio/analyze
@@ -61,23 +62,39 @@ export async function POST(req: NextRequest) {
         : await prisma.vertical.findFirst({ where: { isActive: true }, select: { id: true } }).catch(() => null);
 
       if (vertical && brief) {
+        const publicationFormat = publicationType === 'STRATEGIC_REPORT' ? 'STRATEGIC_REPORT' : 'RESEARCH_BRIEF';
+        const trustScore = result.stats?.criticalLoop?.finalScore || 0;
+        const qualityScore = result.stats?.rank?.avgQuality || 0;
+        const citationIntegrity = (result.stats as any)?.citationVerifier?.integrity ?? (result.stats as any)?.citationVerifier?.overallIntegrity;
+        const citationCoverage = citationIntegrity ? citationIntegrity / 100 : 0;
+        const wordCount = Math.round(brief.html.length / 6);
+        const sourceIds = brief.sources || [];
+        const readiness = evaluatePublicationReadiness({
+          type: publicationFormat,
+          trustScore,
+          qualityScore,
+          citationCoverage,
+          wordCount,
+          sourceIds,
+        });
+
         const pub = await prisma.thinkTankPublication.create({
           data: {
             verticalId: vertical.id,
-            type: publicationType === 'STRATEGIC_REPORT' ? 'STRATEGIC_REPORT' : 'EXECUTIVE_BRIEF',
+            type: publicationFormat,
             title: brief.question || question.trim(),
             html: brief.html,
-            wordCount: Math.round(brief.html.length / 6),
-            trustScore: result.stats?.criticalLoop?.finalScore || 80,
-            qualityScore: result.stats?.rank?.avgQuality || 75,
-            citationCoverage: 0.85,
+            wordCount,
+            trustScore,
+            qualityScore,
+            citationCoverage,
             claimCount: 0,
             factClaimCount: 0,
             citedClaimCount: 0,
-            sourceIds: brief.sources || [],
-            status: 'PUBLISHED',
-            publishedAt: new Date(),
-            criticalLoopResult: { briefId: result.briefId, question, stats: result.stats as any },
+            sourceIds,
+            status: readiness.ok ? 'PUBLISHED' : 'HELD',
+            publishedAt: readiness.ok ? new Date() : null,
+            criticalLoopResult: { briefId: result.briefId, question, stats: result.stats as any, publicationReadiness: readiness },
           },
         }).catch(() => null);
         publicationId = pub?.id ?? null;

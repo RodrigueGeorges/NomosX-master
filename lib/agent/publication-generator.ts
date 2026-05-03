@@ -33,6 +33,7 @@ export interface PublicationGeneratorOutput {
   html: string;
   wordCount: number;
   trustScore: number;
+  status?: "DRAFT" | "PUBLISHED" | "HELD" | "REJECTED";
   criticalLoopResult: CriticalLoopResult;
   success: boolean;
   error?: string;
@@ -449,7 +450,7 @@ export async function generatePublication(
 
     const sourceIds = signal.sourceIds || sources.map((source: any) => source.id).filter(Boolean);
     const publicationGate = evaluatePublicationGate({
-      format: pubType === "RESEARCH_BRIEF" ? "strategic" : "signal",
+      format: pubType,
       html,
       sourceIds,
       trustScore,
@@ -540,6 +541,7 @@ export async function generatePublication(
       html,
       wordCount,
       trustScore,
+      status: publication.status as "DRAFT" | "PUBLISHED" | "HELD" | "REJECTED",
       criticalLoopResult,
       success: true,
       lineage,

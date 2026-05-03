@@ -7,6 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { publicPublicationWhere } from '@/lib/publication-visibility';
 
 export async function GET(
   _req: NextRequest,
@@ -16,7 +17,7 @@ export async function GET(
 
   try {
     const pub = await prisma.thinkTankPublication.findFirst({
-      where: { id, status: 'PUBLISHED' },
+      where: publicPublicationWhere({ id }),
       select: {
         id: true,
         title: true,

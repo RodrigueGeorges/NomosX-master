@@ -1,5 +1,6 @@
 import { MetadataRoute } from 'next';
 import { prisma } from '@/lib/db';
+import { publicPublicationWhere } from '@/lib/publication-visibility';
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://nomosx.com';
 
@@ -21,7 +22,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   let articlePages: MetadataRoute.Sitemap = [];
   try {
     const articles = await prisma.thinkTankPublication.findMany({
-      where: { status: 'PUBLISHED', publishedAt: { not: null } },
+      where: publicPublicationWhere(),
       select: { id: true, publishedAt: true },
       orderBy: { publishedAt: 'desc' },
       take: 500,

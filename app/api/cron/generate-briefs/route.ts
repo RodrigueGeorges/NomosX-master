@@ -162,14 +162,15 @@ export async function POST(req: NextRequest) {
 
                 const stats = result.stats as any;
                 const sourceIds = generatedBrief?.sources || stats?.sourceIds || [];
+                const citationIntegrity = stats?.citationVerifier?.integrity ?? stats?.citationVerifier?.overallIntegrity;
                 const publicationGate = evaluatePublicationGate({
                   format: pipelineMode === "strategic" ? "strategic" : "brief",
                   html: briefHtml,
                   sourceIds,
                   trustScore,
                   qualityScore: stats?.rank?.avgQuality || trustScore,
-                  citationCoverage: stats?.citationVerifier?.overallIntegrity
-                    ? stats.citationVerifier.overallIntegrity / 100
+                  citationCoverage: citationIntegrity
+                    ? citationIntegrity / 100
                     : undefined,
                   devilsAdvocateScore: stats?.devilsAdvocate?.publishabilityScore,
                   fatalChallenges: stats?.devilsAdvocate?.fatalChallenges || 0,
@@ -263,7 +264,7 @@ export async function POST(req: NextRequest) {
             signalId: signal.id,
           });
 
-          if (pubResult.success) {
+          if (pubResult.success && pubResult.status === "PUBLISHED") {
             await prisma.signal.update({
               where: { id: signal.id },
               data: { status: "PUBLISHED" },
@@ -272,6 +273,9 @@ export async function POST(req: NextRequest) {
             generated++;
             generatedTopics.push(signal.title);
             console.log(`[Generate Briefs Cron] ✅ Published signal brief: "${signal.title}" (trust: ${pubResult.trustScore})`);
+          } else if (pubResult.success) {
+            skipped++;
+            console.log(`[Generate Briefs Cron] Signal brief held for review: "${signal.title}" (status: ${pubResult.status || "DRAFT"}, trust: ${pubResult.trustScore})`);
           } else {
             failed++;
             console.error(`[Generate Briefs Cron] Signal brief failed: ${pubResult.error}`);

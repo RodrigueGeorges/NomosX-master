@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { evaluatePublicationReadiness } from '@/lib/publication-visibility';
 import { runPipeline, type ReportFormat } from '@/lib/agent/pipeline-v2';
 import { runTopicRadar } from '@/lib/agent/topic-radar';
 import { editorialTriage } from '@/lib/agent/editor-in-chief';
@@ -172,26 +173,42 @@ export async function POST(req: NextRequest) {
             const briefHtml = generatedBrief?.html || '';
             const trustScore = result.stats?.criticalLoop?.finalScore || 75;
 
+            const publicationType = mode === 'strategic' ? 'STRATEGIC_REPORT' : 'RESEARCH_BRIEF';
+            const sourceIds = generatedBrief?.sources || [];
+            const wordCount = Math.round(briefHtml.length / 6);
+            const qualityScore = result.stats?.rank?.avgQuality || 70;
+            const citationIntegrity = (result.stats as any)?.citationVerifier?.integrity ?? (result.stats as any)?.citationVerifier?.overallIntegrity;
+            const citationCoverage = citationIntegrity ? citationIntegrity / 100 : 0;
+            const readiness = evaluatePublicationReadiness({
+              type: publicationType,
+              trustScore,
+              qualityScore,
+              citationCoverage,
+              wordCount,
+              sourceIds,
+            });
+
             await prisma.thinkTankPublication.create({
               data: {
                 verticalId: vertical.id,
-                type: 'EXECUTIVE_BRIEF',
+                type: publicationType,
                 title: topic,
                 html: briefHtml,
-                wordCount: Math.round(briefHtml.length / 6),
+                wordCount,
                 trustScore,
-                qualityScore: result.stats?.rank?.avgQuality || 70,
-                citationCoverage: 0.80,
+                qualityScore,
+                citationCoverage,
                 claimCount: 0,
                 factClaimCount: 0,
                 citedClaimCount: 0,
-                sourceIds: generatedBrief?.sources || [],
-                status: 'PUBLISHED',
-                publishedAt: new Date(),
+                sourceIds,
+                status: readiness.ok ? 'PUBLISHED' : 'HELD',
+                publishedAt: readiness.ok ? new Date() : null,
                 criticalLoopResult: {
                   architecture: 'detect-decide-delegate',
                   decision: decision.action,
                   reasoning: decision.reasoning,
+                  publicationReadiness: readiness,
                   priority: decision.priority,
                   urgency: decision.classification.urgency,
                   leadResearcher: leadResearcher?.profile.name,

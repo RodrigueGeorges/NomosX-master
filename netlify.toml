@@ -7,7 +7,7 @@
   # Node.js 22.x LTS - aligns with React Three Fiber camera-controls dependency
   # Node.js 24+ causes "exports is not defined in ES module scope"
   # due to ESM/CJS detection changes in console-dim.external.js
-  NODE_VERSION = "22.12.0"
+  NODE_VERSION = "22.13.0"
   NPM_VERSION = "10"
   # Fix Sharp installation issues
   SHARP_IGNORE_GLOBALVIPS = "1"
@@ -16,7 +16,8 @@
   
   # NOTE: All API keys and secrets should be set in Netlify UI
   # Site settings → Build & deploy → Environment → Environment variables
-  # Required variables: DATABASE_URL, OPENAI_API_KEY, JWT_SECRET, ADMIN_KEY, CRON_SECRET
+  # Required variables: DATABASE_URL, JWT_SECRET, ADMIN_KEY, CRON_SECRET, NEXT_PUBLIC_APP_URL
+  # LLM: set DEEPSEEK_API_KEY (recommended) or QWEN_API_KEY / OPENAI_API_KEY / ANTHROPIC_API_KEY
 
 # Note: @netlify/plugin-nextjs handles all routing automatically
 # No manual redirects needed for Next.js SSR

@@ -3,7 +3,7 @@ import { prisma } from '@/lib/db';
 import { z } from 'zod';
 import { withRateLimit, rateLimitConfigs } from '@/lib/validation';
 import { FORMAT_TYPES_BY_FAMILY, getPublicationFormat } from '@/lib/publication-formats';
-import { publicPublicationWhere, PUBLIC_PUBLICATION_MINIMUMS } from '@/lib/publication-visibility';
+import { publicPublicationWhere } from '@/lib/publication-visibility';
 
 /**
  * GET /api/public/briefs
@@ -62,12 +62,6 @@ export async function GET(req: NextRequest) {
 
         // Build where clause
         const where: any = publicPublicationWhere({ AND: [] });
-
-        // Add quality threshold to ensure only high-quality publications are shown
-        where.AND.push({
-          trustScore: { gte: PUBLIC_PUBLICATION_MINIMUMS.trustScore },
-          qualityScore: { gte: PUBLIC_PUBLICATION_MINIMUMS.qualityScore }
-        });
 
         if (type !== 'all' && VALID_TYPES.has(type)) {
           if (FORMAT_TYPES_BY_FAMILY[type]) {
@@ -157,10 +151,10 @@ export async function GET(req: NextRequest) {
             
             // Ensure we have a fallback
             if (!summary || summary.length < 20) {
-              summary = 'Analyse stratégique générée par notre think tank autonome avec des insights d\'experts du Harvard Council et une méthodologie de recherche avancée en IA.';
+              summary = 'Strategic analysis produced by NomosX autonomous researchers through a 16-stage verification pipeline.';
             }
           } catch {
-            summary = 'Analyse stratégique générée par notre think tank autonome avec des insights d\'experts du Harvard Council et une méthodologie de recherche avancée en IA.';
+            summary = 'Strategic analysis produced by NomosX autonomous researchers through a 16-stage verification pipeline.';
           }
 
           // Estimate read time (200 words per minute)

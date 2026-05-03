@@ -30,6 +30,7 @@ interface ArticleSummary {
   displayType: string;
   format?: ReturnType<typeof getPublicationFormat>;
   trustScore?: number | null;
+  qualityScore?: number | null;
 }
 
 export default function ArticlesPage() {
@@ -89,7 +90,7 @@ export default function ArticlesPage() {
           <div className="absolute w-[900px] h-[700px] rounded-full -top-48 left-1/2 -translate-x-1/2 animate-aurora-1" style={{ background: 'radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 70%)' }} />
           <div className="absolute w-[600px] h-[600px] rounded-full top-1/3 -right-32 animate-aurora-2" style={{ background: 'radial-gradient(circle, rgba(139,92,246,0.09) 0%, transparent 70%)' }} />
           <div className="absolute w-[500px] h-[500px] rounded-full bottom-1/4 -left-24 animate-aurora-3" style={{ background: 'radial-gradient(circle, rgba(212,175,55,0.06) 0%, transparent 70%)' }} />
-          <div className="nx-grid-bg absolute inset-0 opacity-30" />
+          <div className="nx-hex-bg absolute inset-0 opacity-30" />
         </div>
 
         {/* Nav */}
@@ -249,7 +250,7 @@ export default function ArticlesPage() {
             <>
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                 {filteredArticles.map((article) => (
-                  <div key={article.id} className="group rounded-2xl nx-oracle-panel p-6 hover:border-amber-300/15 transition-all duration-300">
+                  <div key={article.id} className="group nx-intel-card p-6 transition-all duration-300">
                     {(() => {
                       const format = article.format || getPublicationFormat(article.type);
                       return (

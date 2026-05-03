@@ -1,4 +1,5 @@
 import { buildEvidenceLedger, extractCitationNumbers } from "./evidence-ledger";
+import { getPublicationQualityRule } from "@/lib/publication-visibility";
 
 export type PublicationGateDecision = "publish" | "revise" | "hold";
 
@@ -74,7 +75,23 @@ function normalizeCoverage(value: number | undefined, fallback: number): number 
 }
 
 export function evaluatePublicationGate(input: PublicationGateInput): PublicationGateResult {
-  const thresholds = { ...DEFAULT_PUBLICATION_GATE_THRESHOLDS, ...input.thresholds };
+  const formatType = input.format === "strategic"
+    ? "STRATEGIC_REPORT"
+    : input.format === "signal"
+      ? "SUMMARY_BRIEF"
+      : input.format === "brief"
+        ? "RESEARCH_BRIEF"
+        : input.format;
+  const businessRule = getPublicationQualityRule(formatType);
+  const thresholds = {
+    ...DEFAULT_PUBLICATION_GATE_THRESHOLDS,
+    minTrustScore: businessRule.minTrustScore,
+    minQualityScore: businessRule.minQualityScore,
+    minCitationCoverage: businessRule.minCitationCoverage,
+    minSourceCount: businessRule.minSourceCount,
+    strategicMinSourceCount: businessRule.minSourceCount,
+    ...input.thresholds,
+  };
   const evidenceLedger = buildEvidenceLedger(input.html || "");
   const allCitationNumbers = extractCitationNumbers(input.html || "");
   const sourceCount = input.sourceIds?.length || 0;
@@ -92,6 +109,7 @@ export function evaluatePublicationGate(input: PublicationGateInput): Publicatio
   const minSources = input.format === "strategic"
     ? thresholds.strategicMinSourceCount
     : thresholds.minSourceCount;
+  const wordCount = countWords(input.html || "");
   const uncitedClaimRatio = evidenceLedger.claimCount > 0
     ? evidenceLedger.uncitedClaimCount / evidenceLedger.claimCount
     : 0;
@@ -120,6 +138,12 @@ export function evaluatePublicationGate(input: PublicationGateInput): Publicatio
       passed: citationCoverage >= thresholds.minCitationCoverage,
       score: Math.round(citationCoverage * 100),
       details: `${Math.round(citationCoverage * 100)}% citation coverage`,
+    },
+    {
+      checkType: "word_count",
+      passed: wordCount >= businessRule.minWordCount,
+      score: wordCount,
+      details: `${wordCount}/${businessRule.minWordCount} words minimum`,
     },
     {
       checkType: "claim_citation_density",
@@ -154,7 +178,7 @@ export function evaluatePublicationGate(input: PublicationGateInput): Publicatio
 
   const failedChecks = checks.filter((check) => !check.passed);
   const hardFailures = failedChecks.filter((check) =>
-    ["source_depth", "fatal_challenges", "devils_advocate", "researcher_signoff"].includes(check.checkType)
+    ["source_depth", "word_count", "fatal_challenges", "devils_advocate", "researcher_signoff"].includes(check.checkType)
   );
   const decision: PublicationGateDecision = failedChecks.length === 0
     ? "publish"
@@ -181,4 +205,9 @@ export function evaluatePublicationGate(input: PublicationGateInput): Publicatio
       uncitedClaimRatio,
     },
   };
+}
+
+function countWords(html: string): number {
+  const text = html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+  return text ? text.split(" ").filter(Boolean).length : 0;
 }

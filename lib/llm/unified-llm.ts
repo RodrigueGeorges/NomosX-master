@@ -1,6 +1,6 @@
 /**
  * Unified LLM Service
- * Supports multiple providers (OpenAI, Anthropic) with automatic fallback
+ * Supports multiple providers (DeepSeek, OpenAI, Anthropic) with automatic fallback
  */
 
 import OpenAI from 'openai';
@@ -11,25 +11,34 @@ import { getCachedLLMResponse,cacheLLMResponse } from '../cache/redis-cache';
 import Sentry from '@sentry/nextjs';
 
 // Provider types
-export type LLMProvider = "openai" | "anthropic" | "qwen";
+export type LLMProvider = "deepseek" | "openai" | "anthropic";
+export type LLMTask =
+  | "classification"
+  | "extraction"
+  | "citation"
+  | "fact_check"
+  | "analysis"
+  | "strategic_analysis"
+  | "critique"
+  | "rewrite";
 
 // Model configurations
 const MODEL_CONFIG = {
+  deepseek: {
+    "deepseek-v4-pro": { contextWindow: 1000000, costPer1kInput: 0.00174, costPer1kOutput: 0.00348 },
+    "deepseek-v4-flash": { contextWindow: 1000000, costPer1kInput: 0.00014, costPer1kOutput: 0.00028 },
+    "deepseek-chat": { contextWindow: 128000, costPer1kInput: 0.00028, costPer1kOutput: 0.00042 },
+    "deepseek-reasoner": { contextWindow: 128000, costPer1kInput: 0.00028, costPer1kOutput: 0.00042 },
+  },
   openai: {
     "gpt-4o": { contextWindow: 128000, costPer1kInput: 0.005, costPer1kOutput: 0.015 },
     "gpt-4o-mini": { contextWindow: 128000, costPer1kInput: 0.00015, costPer1kOutput: 0.0006 },
     "gpt-4-turbo": { contextWindow: 128000, costPer1kInput: 0.01, costPer1kOutput: 0.03 },
   },
   anthropic: {
-    "claude-3-5-sonnet-20241022": { contextWindow: 200000, costPer1kInput: 0.003, costPer1kOutput: 0.015 },
-    "claude-3-5-haiku-20241022": { contextWindow: 200000, costPer1kInput: 0.001, costPer1kOutput: 0.005 },
-  },
-  qwen: {
-    "qwen-max": { contextWindow: 32000, costPer1kInput: 0.004, costPer1kOutput: 0.012 },
-    "qwen-plus": { contextWindow: 131072, costPer1kInput: 0.0008, costPer1kOutput: 0.002 },
-    "qwen-turbo": { contextWindow: 131072, costPer1kInput: 0.0003, costPer1kOutput: 0.0006 },
-    "qwen2.5-72b-instruct": { contextWindow: 131072, costPer1kInput: 0.0004, costPer1kOutput: 0.001 },
-    "Qwen/Qwen2.5-72B-Instruct": { contextWindow: 131072, costPer1kInput: 0.0008, costPer1kOutput: 0.002 }, // Together.ai format
+    "claude-sonnet-4-6": { contextWindow: 200000, costPer1kInput: 0.003, costPer1kOutput: 0.015 },
+    "claude-haiku-4-5-20251001": { contextWindow: 200000, costPer1kInput: 0.0008, costPer1kOutput: 0.004 },
+    "claude-opus-4-7": { contextWindow: 200000, costPer1kInput: 0.015, costPer1kOutput: 0.075 },
   },
 };
 
@@ -112,14 +121,26 @@ function recordProviderSuccess(provider: string): void {
 
 // Clients
 let openaiClient: OpenAI | null = null;
+let deepseekClient: OpenAI | null = null;
 let anthropicClient: Anthropic | null = null;
-let qwenClient: OpenAI | null = null; // Qwen uses OpenAI-compatible API
 
-function getOpenAIClient(): OpenAI {
+function getOpenAIClient(): OpenAI | null {
+  if (!env.OPENAI_API_KEY) return null;
   if (!openaiClient) {
     openaiClient = new OpenAI({ apiKey: env.OPENAI_API_KEY });
   }
   return openaiClient;
+}
+
+function getDeepSeekClient(): OpenAI | null {
+  if (!env.DEEPSEEK_API_KEY) return null;
+  if (!deepseekClient) {
+    deepseekClient = new OpenAI({
+      apiKey: env.DEEPSEEK_API_KEY,
+      baseURL: env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com',
+    });
+  }
+  return deepseekClient;
 }
 
 function getAnthropicClient(): Anthropic | null {
@@ -130,15 +151,44 @@ function getAnthropicClient(): Anthropic | null {
   return anthropicClient;
 }
 
-function getQwenClient(): OpenAI | null {
-  if (!env.QWEN_API_KEY) return null;
-  if (!qwenClient) {
-    qwenClient = new OpenAI({
-      apiKey: env.QWEN_API_KEY,
-      baseURL: env.QWEN_BASE_URL || 'https://dashscope.aliyuncs.com/compatible-mode/v1',
-    });
+function getConfiguredPrimaryProvider(request: LLMRequest): LLMProvider {
+  if (request.provider) return request.provider;
+  const model = request.model || "";
+  if (model.startsWith("claude")) return "anthropic";
+  if (model.startsWith("deepseek")) return "deepseek";
+  return env.PRIMARY_LLM_PROVIDER || "deepseek";
+}
+
+function resolveModelForProvider(provider: LLMProvider, request: LLMRequest): string {
+  const requested = request.model || "";
+  const isOpenAIName = requested.startsWith("gpt-");
+  const fastTasks: Array<LLMTask | undefined> = ["classification", "extraction", "citation", "fact_check"];
+  const reasoningTasks: Array<LLMTask | undefined> = ["analysis", "strategic_analysis", "critique", "rewrite"];
+  const wantsFast = fastTasks.includes(request.task) || requested.includes("mini") || (request.maxTokens ?? 4000) <= 1000;
+  const wantsReasoning = reasoningTasks.includes(request.task);
+
+  if (provider === "deepseek") {
+    if (!requested || isOpenAIName || requested.startsWith("claude") || requested.startsWith("qwen") || requested.startsWith("Qwen/")) {
+      return wantsFast && !wantsReasoning ? env.DEEPSEEK_MODEL_FAST : env.DEEPSEEK_MODEL_REASONING;
+    }
+    return requested;
   }
-  return qwenClient;
+
+  if (provider === "anthropic") {
+    if (!requested || isOpenAIName || requested.startsWith("qwen") || requested.startsWith("deepseek")) {
+      return wantsFast && !wantsReasoning ? "claude-haiku-4-5-20251001" : "claude-sonnet-4-6";
+    }
+    return requested;
+  }
+
+  if (!requested || requested.startsWith("qwen") || requested.startsWith("Qwen/") || requested.startsWith("claude") || requested.startsWith("deepseek")) {
+    return wantsFast && !wantsReasoning ? "gpt-4o-mini" : (env.OPENAI_MODEL || "gpt-4o");
+  }
+  return requested;
+}
+
+export function getModelForTask(task: LLMTask, provider: LLMProvider = env.PRIMARY_LLM_PROVIDER || "deepseek"): string {
+  return resolveModelForProvider(provider, { messages: [], task });
 }
 
 export interface LLMRequest {
@@ -148,6 +198,7 @@ export interface LLMRequest {
   jsonMode?: boolean;
   model?: string;
   provider?: LLMProvider;
+  task?: LLMTask;
   enableCache?: boolean;
 }
 
@@ -184,7 +235,10 @@ function calculateCost(
  */
 async function callOpenAI(request: LLMRequest): Promise<LLMResponse> {
   const client = getOpenAIClient();
-  const model = request.model || env.OPENAI_MODEL || "gpt-4o";
+  if (!client) {
+    throw new Error("OpenAI API key not configured (OPENAI_API_KEY)");
+  }
+  const model = resolveModelForProvider("openai", request);
   
   const completion = await withRetry<Awaited<ReturnType<typeof client.chat.completions.create>>>(
     () => client.chat.completions.create({
@@ -213,16 +267,16 @@ async function callOpenAI(request: LLMRequest): Promise<LLMResponse> {
 }
 
 /**
- * Call Qwen (OpenAI-compatible API via DashScope/Together/vLLM)
+ * Call DeepSeek (OpenAI-compatible API)
  */
-async function callQwen(request: LLMRequest): Promise<LLMResponse> {
-  const client = getQwenClient();
+async function callDeepSeek(request: LLMRequest): Promise<LLMResponse> {
+  const client = getDeepSeekClient();
   if (!client) {
-    throw new Error("Qwen API key not configured (QWEN_API_KEY)");
+    throw new Error("DeepSeek API key not configured (DEEPSEEK_API_KEY)");
   }
-  
-  const model = request.model || env.QWEN_MODEL || "qwen-max";
-  
+
+  const model = resolveModelForProvider("deepseek", request);
+
   const completion = await withRetry<Awaited<ReturnType<typeof client.chat.completions.create>>>(
     () => client.chat.completions.create({
       model,
@@ -231,20 +285,20 @@ async function callQwen(request: LLMRequest): Promise<LLMResponse> {
       max_tokens: request.maxTokens ?? 4000,
       response_format: request.jsonMode ? { type: "json_object" } as any : undefined,
     }),
-    `Qwen/${model}`
+    `DeepSeek/${model}`
   );
-  
+
   const content = (completion as any).choices?.[0]?.message?.content || "";
   const tokensInput = (completion as any).usage?.prompt_tokens || 0;
   const tokensOutput = (completion as any).usage?.completion_tokens || 0;
-  
+
   return {
     content,
-    provider: "qwen",
+    provider: "deepseek",
     model,
     tokensInput,
     tokensOutput,
-    costUsd: calculateCost("qwen", model, tokensInput, tokensOutput),
+    costUsd: calculateCost("deepseek", model, tokensInput, tokensOutput),
     cached: false,
   };
 }
@@ -258,7 +312,7 @@ async function callAnthropic(request: LLMRequest): Promise<LLMResponse> {
     throw new Error("Anthropic API key not configured");
   }
   
-  const model = request.model || "claude-3-5-sonnet-20241022";
+  const model = resolveModelForProvider("anthropic", request);
   
   // Extract system message
   const systemMessage = request.messages.find((m) => m.role === "system")?.content || "";
@@ -332,7 +386,8 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
  */
 export async function callLLM(request: LLMRequest): Promise<LLMResponse> {
   const startTime = Date.now();
-  const model = request.model || env.OPENAI_MODEL || "gpt-4o";
+  const primaryProvider = getConfiguredPrimaryProvider(request);
+  const model = resolveModelForProvider(primaryProvider, request);
   
   // Check cache first if enabled
   const cacheKey = request.enableCache !== false ? buildCacheKey(request) : null;
@@ -348,14 +403,11 @@ export async function callLLM(request: LLMRequest): Promise<LLMResponse> {
   }
   
   // Determine provider order (with fallback), skip circuit-broken providers
-  const primaryProvider = request.provider || "openai";
-  const fallbackProvider: LLMProvider = primaryProvider === "openai" ? "anthropic" : "openai";
-  
   const providers: LLMProvider[] = [];
   if (!isCircuitOpen(primaryProvider)) providers.push(primaryProvider);
-  if (getAnthropicClient() && !isCircuitOpen(fallbackProvider)) providers.push(fallbackProvider);
-  // Qwen as additional fallback (cheap, fast, good for non-English)
-  if (getQwenClient() && !isCircuitOpen("qwen") && !providers.includes("qwen")) providers.push("qwen");
+  if (getDeepSeekClient() && !isCircuitOpen("deepseek") && !providers.includes("deepseek")) providers.push("deepseek");
+  if (getAnthropicClient() && !isCircuitOpen("anthropic") && !providers.includes("anthropic")) providers.push("anthropic");
+  if (getOpenAIClient() && !isCircuitOpen("openai") && !providers.includes("openai")) providers.push("openai");
   // If all circuits open, still try primary (half-open)
   if (providers.length === 0) providers.push(primaryProvider);
   
@@ -367,12 +419,12 @@ export async function callLLM(request: LLMRequest): Promise<LLMResponse> {
   for (const provider of providers) {
     try {
       let response: LLMResponse;
-      if (provider === "openai") {
-        response = await withTimeout(callOpenAI(request), timeoutMs, `OpenAI/${model}`);
-      } else if (provider === "qwen") {
-        response = await withTimeout(callQwen(request), timeoutMs, `Qwen/${request.model || env.QWEN_MODEL || 'qwen-max'}`);
+      if (provider === "deepseek") {
+        response = await withTimeout(callDeepSeek(request), timeoutMs, `DeepSeek/${resolveModelForProvider("deepseek", request)}`);
+      } else if (provider === "openai") {
+        response = await withTimeout(callOpenAI(request), timeoutMs, `OpenAI/${resolveModelForProvider("openai", request)}`);
       } else {
-        response = await withTimeout(callAnthropic(request), timeoutMs, `Anthropic/${request.model || 'claude'}`);
+        response = await withTimeout(callAnthropic(request), timeoutMs, `Anthropic/${resolveModelForProvider("anthropic", request)}`);
       }
       
       recordProviderSuccess(provider);
@@ -415,7 +467,10 @@ export async function streamLLM(
   onChunk: (chunk: string) => void
 ): Promise<LLMResponse> {
   const client = getOpenAIClient();
-  const model = request.model || env.OPENAI_MODEL || "gpt-4o";
+  if (!client) {
+    throw new Error("Streaming is currently available only when OPENAI_API_KEY is configured");
+  }
+  const model = resolveModelForProvider("openai", request);
   
   const stream = await client.chat.completions.create({
     model,
@@ -456,12 +511,15 @@ export async function streamLLM(
  * Get available providers
  */
 export function getAvailableProviders(): LLMProvider[] {
-  const providers: LLMProvider[] = ["openai"];
+  const providers: LLMProvider[] = [];
+  if (getDeepSeekClient()) {
+    providers.push("deepseek");
+  }
+  if (getOpenAIClient()) {
+    providers.push("openai");
+  }
   if (getAnthropicClient()) {
     providers.push("anthropic");
-  }
-  if (getQwenClient()) {
-    providers.push("qwen");
   }
   return providers;
 }
@@ -470,17 +528,34 @@ export function getAvailableProviders(): LLMProvider[] {
  * Health check for providers
  */
 export async function checkLLMHealth(): Promise<{
+  deepseek: boolean;
   openai: boolean;
   anthropic: boolean;
-  qwen: boolean;
 }> {
-  const health = { openai: false, anthropic: false, qwen: false };
+  const health = { deepseek: false, openai: false, anthropic: false };
+
+  // Test DeepSeek
+  try {
+    const client = getDeepSeekClient();
+    if (client) {
+      await client.chat.completions.create({
+        model: env.DEEPSEEK_MODEL_FAST,
+        max_tokens: 1,
+        messages: [{ role: "user", content: "ping" }],
+      });
+      health.deepseek = true;
+    }
+  } catch (err) {
+    console.error("DeepSeek health check failed:", err);
+  }
   
   // Test OpenAI
   try {
     const client = getOpenAIClient();
-    await client.models.list();
-    health.openai = true;
+    if (client) {
+      await client.models.list();
+      health.openai = true;
+    }
   } catch (err) {
     console.error("OpenAI health check failed:", err);
   }
@@ -498,21 +573,6 @@ export async function checkLLMHealth(): Promise<{
     }
   } catch (err) {
     console.error("Anthropic health check failed:", err);
-  }
-  
-  // Test Qwen
-  try {
-    const client = getQwenClient();
-    if (client) {
-      await client.chat.completions.create({
-        model: env.QWEN_MODEL || "qwen-turbo",
-        max_tokens: 1,
-        messages: [{ role: "user", content: "ping" }],
-      });
-      health.qwen = true;
-    }
-  } catch (err) {
-    console.error("Qwen health check failed:", err);
   }
   
   return health;

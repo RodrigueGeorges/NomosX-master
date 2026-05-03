@@ -182,7 +182,7 @@ export default function ArticlePage() {
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1400px] h-[900px]">
             <div className="absolute inset-0 bg-gradient-to-b from-indigo-500/[0.06] via-violet-500/[0.03] to-transparent blur-3xl" />
           </div>
-          <div className="absolute inset-0 bg-[linear-gradient(rgba(99,102,241,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(99,102,241,0.02)_1px,transparent_1px)] bg-[size:80px_80px]" />
+          <div className="nx-hex-bg absolute inset-0 opacity-20" />
         </div>
 
         {/* Header */}
@@ -227,7 +227,7 @@ export default function ArticlePage() {
             {/* Main Content */}
             <div>
               {/* Article Header */}
-              <div className="mb-8 nx-oracle-panel p-6 sm:p-8 overflow-hidden relative">
+              <div className="mb-8 nx-oracle-panel nx-hud-frame p-6 sm:p-8 overflow-hidden relative">
                 <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-indigo-400/50 via-amber-200/25 to-transparent" />
                 <div className="flex items-center gap-3 mb-4">
                   <span className="px-3 py-1 rounded-full border border-indigo-500/20 bg-indigo-500/5 text-indigo-300 text-xs font-medium">

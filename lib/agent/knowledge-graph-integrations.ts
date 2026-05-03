@@ -86,7 +86,7 @@ Return JSON with entities array containing: name, type (Person/Organization/Loca
       ],
       temperature: 0.1,
       maxTokens: 1000,
-      model: 'gpt-4-turbo-preview'
+      model: 'gpt-4o'
     });
 
     const parsed = JSON.parse(response.content);

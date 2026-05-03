@@ -178,7 +178,7 @@ function HomePageContent() {
           <div className="absolute w-[900px] h-[700px] rounded-full -top-48 left-1/2 -translate-x-1/2 animate-aurora-1" style={{ background: 'radial-gradient(circle, rgba(99,102,241,0.18) 0%, transparent 70%)' }} />
           <div className="absolute w-[600px] h-[600px] rounded-full top-1/3 -right-32 animate-aurora-2" style={{ background: 'radial-gradient(circle, rgba(139,92,246,0.12) 0%, transparent 70%)' }} />
           <div className="absolute w-[500px] h-[500px] rounded-full bottom-1/4 -left-24 animate-aurora-3" style={{ background: 'radial-gradient(circle, rgba(16,185,129,0.07) 0%, transparent 70%)' }} />
-          <div className="nx-grid-bg absolute inset-0 opacity-30" />
+          <div className="nx-hex-bg absolute inset-0 opacity-30" />
           <div className="nx-hex-grid" />
           <div className="nx-scanline-overlay" />
         </div>

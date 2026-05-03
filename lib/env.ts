@@ -14,9 +14,14 @@ const envSchema = z.object({
   // Required (no default). Use >= 32 chars.
   JWT_SECRET: z.string().min(32),
 
-  // OpenAI
-  OPENAI_API_KEY: z.string().min(1),
+  // LLM providers
+  PRIMARY_LLM_PROVIDER: z.enum(["deepseek", "openai", "anthropic"]).optional().default("deepseek"),
+  OPENAI_API_KEY: z.string().optional(),
   OPENAI_MODEL: z.string().default("gpt-4o"),
+  DEEPSEEK_API_KEY: z.string().optional(),
+  DEEPSEEK_BASE_URL: z.string().url().optional().default("https://api.deepseek.com"),
+  DEEPSEEK_MODEL_FAST: z.string().optional().default("deepseek-v4-flash"),
+  DEEPSEEK_MODEL_REASONING: z.string().optional().default("deepseek-v4-pro"),
   
   // Academic APIs (optional keys, have fallback URLs)
   OPENALEX_API: z.string().url().optional().default("https://api.openalex.org/works"),
@@ -44,9 +49,6 @@ const envSchema = z.object({
   ANTHROPIC_API_KEY: z.string().optional(),
   
   // Qwen (Alibaba Cloud / DashScope / Together.ai — OpenAI-compatible)
-  QWEN_API_KEY: z.string().optional(),
-  QWEN_BASE_URL: z.string().url().optional().default("https://dashscope.aliyuncs.com/compatible-mode/v1"),
-  QWEN_MODEL: z.string().optional().default("qwen-max"),
   
   // Admin
   ADMIN_KEY: z.string().optional(),
@@ -118,6 +120,11 @@ function validateEnv(): Env {
 
     // Production hard requirements
     if (parsed.NODE_ENV === "production") {
+      if (!parsed.DEEPSEEK_API_KEY && !parsed.OPENAI_API_KEY && !parsed.ANTHROPIC_API_KEY) {
+        throw new Error(
+          "Missing LLM provider. In production set DEEPSEEK_API_KEY, OPENAI_API_KEY, or ANTHROPIC_API_KEY."
+        );
+      }
       if (!parsed.ADMIN_KEY || parsed.ADMIN_KEY.trim().length < 16) {
         throw new Error(
           "❌ Missing/weak ADMIN_KEY. In production you must set ADMIN_KEY (>= 16 chars)."
