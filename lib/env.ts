@@ -82,6 +82,12 @@ const envSchema = z.object({
   // Editorial cadence
   NOMOSX_WEEKLY_PUBLICATION_MAX: z.string().optional(),
 
+  // Foresight Engine
+  NOMOSX_FORESIGHT_ENABLED: z.string().optional(),
+  NOMOSX_FORESIGHT_MAX_COST_USD: z.string().optional(),
+  NOMOSX_FORESIGHT_CHAT_RATE_LIMIT: z.string().optional(),
+  NOMOSX_FORESIGHT_MIN_SEED_SOURCES: z.string().optional(),
+
   // Google Knowledge Graph (entity enrichment)
   GOOGLE_KNOWLEDGE_GRAPH_API_KEY: z.string().optional(),
 

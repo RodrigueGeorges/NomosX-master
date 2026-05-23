@@ -1357,6 +1357,9 @@ export interface PipelineCoreOptions {
   enableInterdisciplinary?: boolean; // default: true
   // P1-FIX: Cost budget guard — abort pipeline if cost exceeds limit
   maxBudgetUsd?: number; // default: 3.0 for brief, 8.0 for strategic
+  /** Pre-validated sources — skip SCOUT when len ≥ minSeedSourcesToSkipScout */
+  seedSourceIds?: string[];
+  minSeedSourcesToSkipScout?: number;
 }
 
 async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
@@ -1469,8 +1472,24 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
 
   // â”€â”€ STEP 1: SCOUT (with Orchestrator RE_SCOUT loop) â”€â”€
   emitProgress(pipelineRun.id, "SCOUT", "started", `Searching ${providers.length} providers...`);
-  console.log(`${label} SCOUT: query="${query}" (${providers.length} providers, ${perProvider}/provider)`);
   let allSourceIds: string[] = [];
+  const seedIds = [...new Set((opts.seedSourceIds ?? []).filter(Boolean))];
+  const minSeedSkip = opts.minSeedSourcesToSkipScout ?? 8;
+  const skipScout = seedIds.length >= minSeedSkip;
+
+  if (skipScout) {
+    console.log(`${label} SCOUT: skipped — using ${seedIds.length} seedSourceIds`);
+    allSourceIds = seedIds;
+    recordTransformation(lineage, "scout", seedIds.length, seedIds.length, 0, {
+      sourceIds: seedIds,
+      filters: { skipped: true, reason: "seedSourceIds" },
+    });
+    stats.scout = { found: seedIds.length, upserted: 0, sourceIds: seedIds, skipped: true };
+    orchState.sourcesFound = seedIds.length;
+    orchState.providerDiversity = new Set(seedIds.map((id) => id.split(":")[0])).size;
+    emitProgress(pipelineRun.id, "SCOUT", "completed", `Seed sources: ${seedIds.length} (scout skipped)`);
+  } else {
+  console.log(`${label} SCOUT: query="${query}" (${providers.length} providers, ${perProvider}/provider)`);
   const scoutStart = Date.now();
   const scoutResult = await scout(query, providers, isStrategic ? Math.max(perProvider, 75) : perProvider);
   // Handle both cached array and fresh result object
@@ -1478,6 +1497,10 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   const found = Array.isArray(scoutResult) ? scoutResult.length : (scoutResult.found || 0);
   
   allSourceIds = [...sourceIds];
+  if (seedIds.length) {
+    allSourceIds = [...new Set([...allSourceIds, ...seedIds])];
+    console.log(`${label} SCOUT: merged ${seedIds.length} seed sources → ${allSourceIds.length} total`);
+  }
   recordTransformation(lineage, "scout", 1, sourceIds.length, Date.now() - scoutStart, {
     sourceIds,
     filters: { providers },
@@ -1510,6 +1533,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
           console.log(`${label} RE_SCOUT: "${expanded.terms[i]}" → +${extraFound} sources`);
         }
       }
+      allSourceIds = [...new Set(allSourceIds)];
       orchState.sourcesFound = allSourceIds.length;
     } catch (err) {
       console.warn(`${label} RE_SCOUT: failed (non-blocking):`, err);
@@ -1517,6 +1541,9 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   }
 
   // â”€â”€ STEP 2: INDEX â”€â”€
+  emitProgress(pipelineRun.id, "SCOUT", "completed", `Found ${allSourceIds.length} sources`);
+  } // end scout else branch
+
   console.log(`${label} INDEX: ${allSourceIds.length} sources`);
   const indexResult = await index(allSourceIds);
   stats.index = indexResult;
@@ -2252,6 +2279,9 @@ export interface StrategicPipelineOptions {
   enableDebate?: boolean;
   enableMetaAnalysis?: boolean;
   enableDevilsAdvocate?: boolean;
+  /** Pre-validated source IDs — skip SCOUT when count ≥ minSeedSourcesToSkipScout (default 8) */
+  seedSourceIds?: string[];
+  minSeedSourcesToSkipScout?: number;
 }
 
 /**
@@ -2270,6 +2300,8 @@ export async function runStrategicPipeline(
     focusAreas: options.focusAreas,
     targetAudience: options.targetAudience,
     urgencyContext: options.urgencyContext,
+    seedSourceIds: options.seedSourceIds,
+    minSeedSourcesToSkipScout: options.minSeedSourcesToSkipScout,
   });
 }
 
@@ -2319,6 +2351,8 @@ export async function runPipeline(
         enableDebate: options.enableDebate,
         enableMetaAnalysis: options.enableMetaAnalysis,
         enableDevilsAdvocate: options.enableDevilsAdvocate,
+        seedSourceIds: options.seedSourceIds,
+        minSeedSourcesToSkipScout: options.minSeedSourcesToSkipScout,
       }),
       timeoutMs,
       `runPipeline(${format})`

@@ -1,17 +1,17 @@
 import { Metadata } from 'next';
-
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://nomosx.com';
+import { archivesUrl } from '@/lib/public-urls';
 
 export const metadata: Metadata = {
-  title: 'Publications — Auto-Published Research',
-  description: 'Browse open NomosX publications across signals, memos, briefs, reports, and dossiers. Every claim sourced from 250M+ academic publications. Updated daily.',
-  alternates: { canonical: `${BASE_URL}/articles` },
+  title: 'Inquiries — Auto-Published Research',
+  description:
+    'Browse open NomosX inquiries across signals, memos, briefs, reports, and dossiers. Every claim sourced from 250M+ academic publications. Updated daily.',
+  alternates: { canonical: archivesUrl(true) },
   openGraph: {
-    title: 'NomosX Publications — Autonomous Strategic Research',
+    title: 'NomosX Inquiries — Autonomous Strategic Research',
     description: 'Open research formats published autonomously by 22 AI researchers. Updated daily.',
   },
   twitter: {
-    title: 'NomosX Publications — Autonomous Strategic Research',
+    title: 'NomosX Inquiries — Autonomous Strategic Research',
     description: 'Open research formats published autonomously by 22 AI researchers.',
   },
 };

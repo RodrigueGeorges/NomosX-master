@@ -166,7 +166,7 @@ export default function StudioX() {
       {!open && (
         <button
           onClick={() => setOpen(true)}
-          className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-indigo-600 shadow-lg shadow-amber-300/10 hover:shadow-amber-300/20 hover:bg-indigo-500 hover:scale-105 transition-all duration-300 flex items-center justify-center group"
+          className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-accent shadow-lg shadow-accent/10 hover:shadow-accent/20 hover:brightness-110 hover:scale-105 transition-all duration-300 flex items-center justify-center group"
         >
           <MessageSquare size={22} className="text-white group-hover:scale-110 transition-transform" />
           <span className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-400 rounded-full border-2 border-[#09090b] animate-pulse" />
@@ -177,9 +177,9 @@ export default function StudioX() {
       {open && (
         <div className="fixed bottom-6 right-6 z-50 w-[400px] max-w-[calc(100vw-48px)] h-[560px] max-h-[calc(100vh-120px)] rounded-2xl border border-white/[0.08] bg-[#0c0c10] shadow-2xl shadow-black/50 flex flex-col overflow-hidden">
           {/* Header */}
-          <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.06] bg-gradient-to-r from-indigo-500/[0.06] to-violet-500/[0.04]">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.06] bg-gradient-to-r from-accent/[0.06] to-accent/[0.04]">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center">
                 <Sparkles size={14} className="text-white" />
               </div>
               <div>
@@ -202,7 +202,7 @@ export default function StudioX() {
                 <div
                   className={`max-w-[85%] rounded-xl px-4 py-3 text-sm leading-relaxed ${
                     msg.role === 'user'
-                      ? 'bg-indigo-500/15 border border-indigo-500/20 text-white/85'
+                      ? 'bg-accent/15 border border-accent/20 text-white/85'
                       : 'bg-white/[0.03] border border-white/[0.06] text-white/70'
                   }`}
                 >
@@ -242,7 +242,7 @@ export default function StudioX() {
                       {li < streamContent.split('\n').length - 1 && <br />}
                     </React.Fragment>
                   ))}
-                  <span className="inline-block w-1.5 h-4 bg-indigo-400 animate-pulse ml-0.5 align-middle" />
+                  <span className="inline-block w-1.5 h-4 bg-accent animate-pulse ml-0.5 align-middle" />
                 </div>
               </div>
             )}
@@ -265,7 +265,7 @@ export default function StudioX() {
           {/* Quick actions (show when few messages) */}
           {messages.length <= 2 && !streaming && (
             <div className="px-4 pb-2 flex flex-wrap gap-1.5">
-              <span className="text-[10px] px-2.5 py-1.5 rounded-lg border border-indigo-400/15 bg-indigo-500/[0.05] text-indigo-200/60">
+              <span className="text-[10px] px-2.5 py-1.5 rounded-lg border border-accent/15 bg-accent/[0.05] text-accent/60">
                 citations guarded
               </span>
               {quickActions.map((action, i) => (
@@ -291,14 +291,14 @@ export default function StudioX() {
                 onKeyDown={handleKeyDown}
                 placeholder="Ask about your research..."
                 disabled={streaming}
-                className="flex-1 bg-white/[0.03] border border-white/[0.08] rounded-xl px-4 py-2.5 text-sm text-white/80 placeholder-white/20 outline-none focus:border-indigo-500/30 transition-colors disabled:opacity-50"
+                className="flex-1 bg-white/[0.03] border border-white/[0.08] rounded-xl px-4 py-2.5 text-sm text-white/80 placeholder-white/20 outline-none focus:border-accent/30 transition-colors disabled:opacity-50"
               />
               <button
                 onClick={handleSend}
                 disabled={streaming || !input.trim()}
-                className="w-10 h-10 rounded-xl bg-indigo-500/20 border border-indigo-500/25 flex items-center justify-center hover:bg-indigo-500/30 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                className="w-10 h-10 rounded-xl bg-accent/20 border border-accent/25 flex items-center justify-center hover:bg-accent/30 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
               >
-                {streaming ? <Loader2 size={14} className="animate-spin text-indigo-400" /> : <Send size={14} className="text-indigo-400" />}
+                {streaming ? <Loader2 size={14} className="animate-spin text-accent" /> : <Send size={14} className="text-accent" />}
               </button>
             </div>
           </div>

@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { withRateLimit, rateLimitConfigs } from '@/lib/validation';
 import { FORMAT_TYPES_BY_FAMILY, getPublicationFormat } from '@/lib/publication-formats';
 import { publicPublicationWhere } from '@/lib/publication-visibility';
+import { htmlHasForesightSection } from '@/lib/foresight';
 
 /**
  * GET /api/public/briefs
@@ -97,6 +98,7 @@ export async function GET(req: NextRequest) {
               html: true,
               trustScore: true,
               qualityScore: true,
+              criticalLoopResult: true,
             },
           });
         } catch (dbError: any) {
@@ -207,6 +209,13 @@ export async function GET(req: NextRequest) {
           }
 
           const format = getPublicationFormat(brief.type);
+          const meta = (brief.criticalLoopResult ?? {}) as Record<string, unknown>;
+          const foresight = meta.foresight as { available?: boolean } | undefined;
+          const sim = meta.simulation as { scenarios?: unknown[] } | undefined;
+          const hasForesight =
+            Boolean(foresight?.available) ||
+            Boolean(sim?.scenarios?.length) ||
+            htmlHasForesightSection(brief.html ?? "");
 
           return {
             id: brief.id,
@@ -222,6 +231,7 @@ export async function GET(req: NextRequest) {
             displayType: format.label,
             trustScore: brief.trustScore ?? null,
             qualityScore: brief.qualityScore ?? null,
+            hasForesight,
           };
         });
 

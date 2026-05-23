@@ -12,32 +12,42 @@ const nextConfig = {
     return [
       {
         source: '/briefs',
-        destination: '/articles',
+        destination: '/archives',
         permanent: true,
       },
       {
-        source: '/publications', 
-        destination: '/articles',
+        source: '/publications',
+        destination: '/archives',
+        permanent: true,
+      },
+      {
+        source: '/articles',
+        destination: '/archives',
         permanent: true,
       },
       {
         source: '/executive-briefs',
-        destination: '/articles',
+        destination: '/archives',
         permanent: true,
       },
       {
         source: '/strategic-briefs',
-        destination: '/articles',
+        destination: '/archives',
         permanent: true,
       },
       {
         source: '/brief/:path*',
-        destination: '/articles/:path*',
+        destination: '/inquiry/:path*',
         permanent: true,
       },
       {
         source: '/publications/:path*',
-        destination: '/articles/:path*',
+        destination: '/inquiry/:path*',
+        permanent: true,
+      },
+      {
+        source: '/articles/:path*',
+        destination: '/inquiry/:path*',
         permanent: true,
       },
       {

@@ -15,8 +15,8 @@ export function Radio({ label, description, className, id, ...props }: RadioProp
         type="radio"
         id={radioId}
         className={cn(
-          "mt-1 h-4 w-4 rounded border border-white/[0.2] bg-white/[0.02] text-amber-300 focus:ring-2 focus:ring-amber-300/40 focus:ring-offset-0",
-          "checked:border-amber-300 checked:bg-amber-300"
+          "mt-1 h-4 w-4 rounded border border-white/[0.2] bg-white/[0.02] text-accent focus:ring-2 focus:ring-accent/40 focus:ring-offset-0",
+          "checked:border-accent checked:bg-accent"
         )}
         {...props}
       />

@@ -10,7 +10,6 @@ describe('Public Pages', () => {
     cy.visit('/');
     cy.contains('NomosX').should('be.visible');
     cy.get('body').should('contain.text', 'Think Tank');
-    // Navigation exists
     cy.get('nav').should('exist');
   });
 
@@ -27,12 +26,12 @@ describe('Public Pages', () => {
 
   it('Pricing page shows plans', () => {
     cy.visit('/pricing');
-    cy.contains('Researcher').should('be.visible');
+    cy.contains('Reader').should('be.visible');
     cy.contains('Studio').should('be.visible');
   });
 
-  it('Articles page loads', () => {
-    cy.visit('/articles');
+  it('Archives page loads', () => {
+    cy.visit('/archives');
     cy.get('body').should('not.contain.text', 'Application error');
   });
 
@@ -56,17 +55,17 @@ describe('Public Pages', () => {
     cy.get('body').should('exist');
   });
 
-  it('Redirects /briefs to /articles', () => {
-    cy.request({ url: '/briefs', followRedirect: false }).then((resp) => {
-      expect(resp.status).to.be.oneOf([301, 308]);
-      expect(resp.headers.location).to.contain('/articles');
+  it('Redirects /articles to /archives', () => {
+    cy.request({ url: '/articles', followRedirect: false }).then((resp) => {
+      expect(resp.status).to.be.oneOf([301, 307, 308]);
+      expect(resp.headers.location).to.contain('/archives');
     });
   });
 
-  it('Redirects /publications to /articles', () => {
+  it('Redirects /publications to /archives', () => {
     cy.request({ url: '/publications', followRedirect: false }).then((resp) => {
-      expect(resp.status).to.be.oneOf([301, 308]);
-      expect(resp.headers.location).to.contain('/articles');
+      expect(resp.status).to.be.oneOf([301, 307, 308]);
+      expect(resp.headers.location).to.contain('/archives');
     });
   });
 });

@@ -164,6 +164,35 @@ import {
 } from './auto-publisher';
 
 import {
+  runAndPublishInquiry,
+  runInquiryOnly,
+} from './inquiry-orchestrator';
+
+import {
+  runInquiryPipeline,
+} from './inquiry-pipeline';
+
+import {
+  runThinkTankCycle,
+  getThinkTankStatus,
+  getCadenceState,
+} from './think-tank-dispatcher';
+
+import {
+  runSimulationAgent,
+  runMonteCarloSimulation,
+  computeSensitivityMatrix,
+  simulationAgent,
+  chatWithSimulatedPersona,
+} from './simulation-agent';
+
+import {
+  normalizeTopicKey,
+  publicationTypeToDepth,
+  depthToPublicationType,
+} from './inquiry-funnel-utils';
+
+import {
   generateRadarCards,
   getMacroContext,
 } from './radar-agent';
@@ -445,6 +474,20 @@ export {
   runAutoPublisher,
   runStrategicAutoPublisher,
   dryRunAutoPublisher,
+  runAndPublishInquiry,
+  runInquiryOnly,
+  runInquiryPipeline,
+  runThinkTankCycle,
+  getThinkTankStatus,
+  getCadenceState,
+  runSimulationAgent,
+  runMonteCarloSimulation,
+  computeSensitivityMatrix,
+  simulationAgent,
+  chatWithSimulatedPersona,
+  normalizeTopicKey,
+  publicationTypeToDepth,
+  depthToPublicationType,
   generateRadarCards,
   getMacroContext,
   refreshMacroSeries,

@@ -10,6 +10,8 @@
  * - Responsive layout
  */
 
+import { inquiryUrl, archivesUrl } from '@/lib/public-urls';
+
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const EMAIL_FROM = process.env.EMAIL_FROM || 'NomosX <noreply@nomosx.com>';
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://nomosx.com';
@@ -189,7 +191,7 @@ export async function sendNewsletterConfirmation(to: string, confirmToken: strin
  * Welcome email for confirmed newsletter subscribers.
  */
 export async function sendNewsletterWelcome(to: string): Promise<void> {
-  const publicationsUrl = addUtmParams(`${APP_URL}/articles`, UTM_CAMPAIGN.newsletter);
+  const publicationsUrl = addUtmParams(archivesUrl(true), UTM_CAMPAIGN.newsletter);
   const unsubUrl = `${APP_URL}/api/newsletter/unsubscribe?email=${encodeURIComponent(to)}`;
   const html = layout(`
     <h1 style="font-size:24px;font-weight:300;color:#fff;margin:0 0 8px;">
@@ -263,7 +265,7 @@ export async function sendBriefPublishedNotification(
   to: string,
   brief: { title: string; summary: string; id: string; trustScore?: number }
 ): Promise<void> {
-  const briefUrl = addUtmParams(`${APP_URL}/articles/${brief.id}`, UTM_CAMPAIGN.publication);
+  const briefUrl = addUtmParams(inquiryUrl(brief.id, true), UTM_CAMPAIGN.publication);
   const trust = brief.trustScore ? `${brief.trustScore}/100` : '';
   const html = layout(`
     <p style="font-size:10px;font-weight:700;letter-spacing:0.2em;color:#6366f1;text-transform:uppercase;margin:0 0 16px;">
@@ -304,8 +306,8 @@ export async function sendTrialExpiryReminder(to: string, name: string | null, d
   
   const urgencyColors = {
     critical: { bg: 'bg-rose-500/10', border: 'border-rose-500/30', text: 'text-rose-400' },
-    high: { bg: 'bg-amber-500/10', border: 'border-amber-500/30', text: 'text-amber-400' },
-    medium: { bg: 'bg-indigo-500/10', border: 'border-indigo-500/30', text: 'text-indigo-400' },
+    high: { bg: 'bg-warning/10', border: 'border-warning/30', text: 'text-warning' },
+    medium: { bg: 'bg-accent/10', border: 'border-accent/30', text: 'text-accent' },
   };
   
   const colors = urgencyColors[urgency];
@@ -413,7 +415,7 @@ export async function sendEmailVerificationEmail(to: string, name: string | null
 export async function sendTrialExpired(to: string, name: string | null): Promise<void> {
   const displayName = name || 'Researcher';
   const upgradeUrl = addUtmParams(`${APP_URL}/pricing`, UTM_CAMPAIGN.trial_expired);
-  const publicationsUrl = addUtmParams(`${APP_URL}/articles`, UTM_CAMPAIGN.trial_expired);
+  const publicationsUrl = addUtmParams(archivesUrl(true), UTM_CAMPAIGN.trial_expired);
   
   const html = layout(`
     <h1 style="font-size: 24px; font-weight: 300; color: #fff; margin: 0 0 8px;">
@@ -477,7 +479,7 @@ export async function sendBriefReadyNotification(
   },
   name?: string | null
 ): Promise<void> {
-  const briefUrl = addUtmParams(`${APP_URL}/articles/${brief.id}`, UTM_CAMPAIGN.brief_ready);
+  const briefUrl = addUtmParams(inquiryUrl(brief.id, true), UTM_CAMPAIGN.brief_ready);
   const displayName = name || 'Researcher';
   const isStrategic = brief.type === 'strategic_report';
   const typeLabel = isStrategic ? 'Strategic Report' : 'Research Brief';

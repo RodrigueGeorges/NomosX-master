@@ -20,7 +20,7 @@ export default function Error({
   }, [error]);
 
   return (
-    <div className="min-h-screen bg-[#0A0A0B] flex items-center justify-center px-4">
+    <div className="min-h-screen bg-bg flex items-center justify-center px-4">
       <div className="text-center max-w-md">
         <div className="flex items-center justify-center gap-3 mb-8">
           <NomosXLogo size="lg" />

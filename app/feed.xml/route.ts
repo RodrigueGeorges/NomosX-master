@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/db';
 import { publicPublicationWhere } from '@/lib/publication-visibility';
 import { getPublicationFormat } from '@/lib/publication-formats';
+import { inquiryUrl } from '@/lib/public-urls';
 
 export const dynamic = 'force-dynamic';
 
@@ -44,7 +45,7 @@ export async function GET(_req: NextRequest) {
     const format = getPublicationFormat(pub.type);
     const summary = extractSummary(pub.html || '');
     const pubDate = pub.publishedAt ? new Date(pub.publishedAt).toUTCString() : now;
-    const link = `${APP_URL}/articles/${pub.id}`;
+    const link = inquiryUrl(pub.id, true);
     const trustLabel = pub.trustScore ? ` · Trust ${pub.trustScore}/100` : '';
     return `  <item>
     <title>${escapeXml(pub.title || 'Untitled')}</title>

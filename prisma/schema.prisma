@@ -1453,6 +1453,7 @@ model ThinkTankPublication {
   claims   ThinkTankClaim[]
   runs     ThinkTankPublicationRun[]
   checks   ThinkTankQualityCheck[]
+  foresightRun ForesightRun?
   
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1565,6 +1566,40 @@ model ThinkTankPublicationRun {
   @@index([publicationId])
   @@index([correlationId])
   @@index([status])
+}
+
+// ============================================================================
+// FORESIGHT ENGINE — simulation telemetry per publication
+// ============================================================================
+
+model ForesightRun {
+  id              String   @id @default(cuid())
+  publicationId   String   @unique
+  briefId         String?
+
+  swarmSize       Int      @default(0)
+  voicePersonas   Int      @default(0)
+  seedRuns        Int      @default(1)
+  monteCarloRuns  Int      @default(0)
+  converged       Boolean  @default(false)
+  tickCount       Int      @default(0)
+  llmTickCount    Int      @default(0)
+  socialPostCount Int      @default(0)
+  graphNodes      Int      @default(0)
+  graphEdges      Int      @default(0)
+
+  costUsd         Float    @default(0)
+  durationMs      Int      @default(0)
+
+  telemetry       Json?
+
+  publication ThinkTankPublication @relation(fields: [publicationId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([briefId])
+  @@index([createdAt])
 }
 
 // ============================================================================

@@ -1,8 +1,8 @@
 /**
  * NomosX Publication Generator Agent
- * 
- * Generates publication content from signals and sources
- * Uses templates to enforce structure and constraints
+ *
+ * @deprecated New production paths MUST use runAndPublishInquiry() from inquiry-orchestrator.
+ * This module remains for legacy signal-template generation only.
  */
 
 import { prisma } from '../db';

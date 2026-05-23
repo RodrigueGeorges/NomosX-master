@@ -169,32 +169,32 @@
 :root {
   color-scheme: dark;
 
-  /* Surfaces */
-  --color-bg: #000000;
-  --color-bg-elevated: #0a0a0a;
-  --color-bg-panel: #111111;
+  /* Surfaces — Ethereal void */
+  --color-bg: #0A0A0B;
+  --color-bg-elevated: #111114;
+  --color-bg-panel: #18181C;
   --color-border: rgba(255, 255, 255, 0.07);
   --color-border-hover: rgba(255, 255, 255, 0.14);
 
-  /* Text — 3 levels */
-  --nx-text-1: #ffffff;
-  --nx-text-2: rgba(255,255,255,0.55);
-  --nx-text-3: rgba(255,255,255,0.28);
-  --color-text: #ffffff;
-  --color-text-muted: rgba(255,255,255,0.55);
-  --color-text-dim: rgba(255,255,255,0.28);
+  /* Text — 4 levels of authority */
+  --nx-text-1: #F5F5F7;
+  --nx-text-2: rgba(245, 245, 247, 0.62);
+  --nx-text-3: rgba(245, 245, 247, 0.34);
+  --color-text: #F5F5F7;
+  --color-text-muted: rgba(245, 245, 247, 0.62);
+  --color-text-dim: rgba(245, 245, 247, 0.34);
 
-  /* Accent — Palantir steel blue (Blueprint: #137CBD) */
-  --nx-accent: #137CBD;
-  --nx-accent-hover: #1f8fce;
-  --nx-accent-dim: rgba(19,124,189,0.15);
-  --color-primary: #137CBD;
-  --color-primary-hover: #1f8fce;
-  --color-accent: #137CBD;
-  --color-accent-secondary: #0e6497;
+  /* Accent — Ethereal blue (single canonical: #4A9EFF) */
+  --nx-accent: #4A9EFF;
+  --nx-accent-hover: #6AB3FF;
+  --nx-accent-dim: rgba(74, 158, 255, 0.15);
+  --color-primary: #4A9EFF;
+  --color-primary-hover: #6AB3FF;
+  --color-accent: #4A9EFF;
+  --color-accent-secondary: #307ACC;
   --color-danger: #C23030;
-  --color-glow: rgba(19,124,189,0.10);
-  --color-glow-strong: rgba(19,124,189,0.20);
+  --color-glow: rgba(74, 158, 255, 0.10);
+  --color-glow-strong: rgba(74, 158, 255, 0.18);
 
   /* Palantir Blueprint shadow system */
   --nx-shadow-card: 0 0 0 1px rgba(255,255,255,0.06), 0 2px 4px rgba(0,0,0,0.5), 0 8px 24px rgba(0,0,0,0.35);
@@ -216,7 +216,7 @@
 }
 
 body {
-  background-color: #000000;
+  background-color: #0A0A0B;
   color: var(--color-text);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
@@ -230,8 +230,8 @@ body {
 }
 
 ::selection {
-  background: rgba(74, 123, 247, 0.28);
-  color: #ffffff;
+  background: rgba(74, 158, 255, 0.25);
+  color: #F5F5F7;
 }
 
 /* === Typography === */
@@ -310,7 +310,7 @@ body {
 }
 
 .text-gradient {
-  background: linear-gradient(135deg, #ffffff 0%, #4A7BF7 100%);
+  background: linear-gradient(135deg, #F5F5F7 0%, #4A9EFF 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -563,7 +563,7 @@ body {
 }
 
 .nx-radial-bg {
-  background: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(19, 124, 189, 0.08), transparent 70%);
+  background: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(74, 158, 255, 0.07), transparent 70%);
 }
 
 .nx-noise {
@@ -682,7 +682,7 @@ a, button, input, textarea, select {
 .nomosx-prose h2:first-child { margin-top: 0; }
 
 .nomosx-prose h3 {
-  color: #a78bfa;
+  color: #8CBFFF;
   font-size: 1.0625rem;
   font-weight: 600;
   line-height: 1.5;
@@ -702,16 +702,16 @@ a, button, input, textarea, select {
 }
 
 .nomosx-prose a {
-  color: #818cf8;
+  color: #4A9EFF;
   text-decoration: none;
   font-weight: 500;
   transition: color 0.2s;
-  border-bottom: 1px solid rgba(129, 140, 248, 0.3);
+  border-bottom: 1px solid rgba(74, 158, 255, 0.30);
 }
 
 .nomosx-prose a:hover {
-  color: #a78bfa;
-  border-bottom-color: #a78bfa;
+  color: #6AB3FF;
+  border-bottom-color: #6AB3FF;
 }
 
 .nomosx-prose ol,
@@ -729,17 +729,17 @@ a, button, input, textarea, select {
 }
 
 .nomosx-prose li::marker {
-  color: rgba(129, 140, 248, 0.5);
+  color: rgba(74, 158, 255, 0.45);
   font-weight: 600;
 }
 
 .nomosx-prose blockquote {
-  border-left: 3px solid #6366f1;
+  border-left: 3px solid #4A9EFF;
   padding: 1rem 1.25rem;
   margin: 1.5rem 0;
   font-style: italic;
-  color: rgba(255, 255, 255, 0.7);
-  background: rgba(99, 102, 241, 0.04);
+  color: rgba(245, 245, 247, 0.70);
+  background: rgba(74, 158, 255, 0.04);
   border-radius: 0.5rem;
 }
 
@@ -750,7 +750,7 @@ a, button, input, textarea, select {
   border-radius: 0.25rem;
   font-size: 0.875em;
   font-family: var(--font-code);
-  color: #818cf8;
+  color: #4A9EFF;
 }
 
 .nomosx-prose pre {
@@ -771,7 +771,7 @@ a, button, input, textarea, select {
 
 .nomosx-prose span[data-citation],
 .nomosx-prose strong[data-citation] {
-  color: #818cf8;
+  color: #4A9EFF;
   font-weight: 600;
   font-size: 0.8125em;
   vertical-align: super;

@@ -24,7 +24,7 @@ export function Notifications() {
             notification.type === 'success' && "border-green-500/30 bg-green-500/10 text-green-300",
             notification.type === 'error' && "border-red-500/30 bg-red-500/10 text-red-300",
             notification.type === 'warning' && "border-yellow-500/30 bg-yellow-500/10 text-yellow-300",
-            notification.type === 'info' && "border-indigo-500/30 bg-indigo-500/10 text-indigo-300"
+            notification.type === 'info' && "border-accent/30 bg-accent/10 text-accent"
           )}
         >
           <div className="flex items-center justify-between">

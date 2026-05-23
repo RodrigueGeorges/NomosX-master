@@ -19,7 +19,7 @@ export default function StudioError({
   }, [error]);
 
   return (
-    <div className="min-h-[60vh] bg-[#0A0A0B] flex items-center justify-center px-4">
+    <div className="min-h-[60vh] bg-bg flex items-center justify-center px-4">
       <div className="text-center max-w-md">
         <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-500 to-orange-600 flex items-center justify-center mx-auto mb-4">
           <span className="text-white text-lg font-bold">!</span>

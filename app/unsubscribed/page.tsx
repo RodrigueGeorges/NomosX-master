@@ -1,46 +1,34 @@
-import { Metadata } from 'next';
-import Link from 'next/link';
-import { NomosXLogo3D } from '@/components/brand/NomosXLogo3D';
-
-export const metadata: Metadata = {
-  title: 'Unsubscribed | NomosX',
-};
-
-export default function UnsubscribedPage() {
-  return (
-    <div className="min-h-screen bg-[#09090b] text-white flex items-center justify-center px-6">
-      <div className="max-w-md w-full text-center">
-        <div className="mb-8 flex justify-center">
-          <NomosXLogo3D size={60} />
-        </div>
-
-        <div className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mx-auto mb-6">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-white/60">
-            <path d="M18 6L6 18M6 6l12 12" />
-          </svg>
-        </div>
-
-        <h1 className="text-2xl font-light text-white mb-3">You've been unsubscribed.</h1>
-        <p className="text-sm text-white/50 mb-8 leading-relaxed">
-          You won't receive any more emails from NomosX.<br />
-          Changed your mind? You can re-subscribe at any time.
-        </p>
-
-        <div className="flex flex-col sm:flex-row gap-3 justify-center">
-          <Link
-            href="/"
-            className="px-6 py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium transition-colors"
-          >
-            Back to NomosX
-          </Link>
-          <Link
-            href="/#newsletter"
-            className="px-6 py-2.5 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 text-white/70 text-sm font-medium transition-colors"
-          >
-            Re-subscribe
-          </Link>
-        </div>
-      </div>
-    </div>
-  );
-}
+"use client";
+
+import Link from "next/link";
+
+export default function UnsubscribedPage() {
+  return (
+    <div className="min-h-[60vh] flex items-center justify-center px-6 py-24">
+      <div className="max-w-md w-full text-center">
+        <div className="w-12 h-12 rounded-full bg-bg-elevated border border-white/[0.08] flex items-center justify-center mx-auto mb-6">
+          <span className="text-white/50 text-lg">✓</span>
+        </div>
+        <h1 className="font-display text-2xl font-semibold text-text mb-3">You&apos;ve been unsubscribed</h1>
+        <p className="text-sm text-white/45 mb-8 leading-relaxed">
+          You won&apos;t receive further emails from NomosX. You can re-subscribe anytime from the homepage.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <Link
+            href="/"
+            className="px-6 py-2.5 rounded-xl bg-accent text-bg text-sm font-semibold hover:brightness-110"
+          >
+            Back to NomosX
+          </Link>
+          <Link
+            href="/"
+            className="px-6 py-2.5 rounded-xl border border-white/[0.10] text-white/60 text-sm hover:text-white"
+          >
+            Re-subscribe
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
+

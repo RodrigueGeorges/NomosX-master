@@ -16,10 +16,8 @@
  * 3. DISPATCH — Route to the right researcher(s) with full context
  * 4. MONITOR — Track quality, cost, and adapt thresholds
  * 
- * This replaces:
- * - auto-scan's brute-force vertical rotation
- * - editorial-planner's weekly batch planning
- * - signal-detector's independent keyword classification
+ * Production dispatch is handled by think-tank-dispatcher.ts.
+ * This module provides event classification/clustering utilities for future use.
  */
 
 import { prisma } from '../db';

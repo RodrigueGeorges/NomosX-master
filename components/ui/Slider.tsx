@@ -65,8 +65,8 @@ export function Slider({
           onChange={handleChange}
           className={cn(
             "w-full h-2 bg-white/[0.1] rounded-lg appearance-none cursor-pointer",
-            "slider-thumb:appearance-none slider-thumb:w-4 slider-thumb:h-4 slider-thumb:rounded-full slider-thumb:bg-indigo-500 slider-thumb:cursor-pointer",
-            "slider-thumb:hover:bg-indigo-400 slider-thumb:focus:outline-none slider-thumb:focus:ring-2 slider-thumb:focus:ring-indigo-500/50"
+            "slider-thumb:appearance-none slider-thumb:w-4 slider-thumb:h-4 slider-thumb:rounded-full slider-thumb:bg-accent slider-thumb:cursor-pointer",
+            "slider-thumb:hover:brightness-110 slider-thumb:focus:outline-none slider-thumb:focus:ring-2 slider-thumb:focus:ring-accent/50"
           )}
           style={{
             background: `linear-gradient(to right, rgb(99 102 241 / 0.5) 0%, rgb(99 102 241 / 0.5) ${percentage}%, rgb(255 255 255 / 0.1) ${percentage}%, rgb(255 255 255 / 0.1) 100%)`

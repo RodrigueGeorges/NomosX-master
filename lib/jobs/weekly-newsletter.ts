@@ -13,6 +13,7 @@
 import { prisma } from '@/lib/db';
 import { publicPublicationWhere } from '@/lib/publication-visibility';
 import { sendBulkNewsletter } from '@/lib/email';
+import { inquiryUrl } from '@/lib/public-urls';
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://nomosx.com';
 const UTM = 'utm_source=email&utm_medium=newsletter&utm_campaign=weekly';
@@ -23,7 +24,7 @@ type UserTier = 'FREE' | 'ANALYST' | 'RESEARCHER';
 
 function renderBriefFree(brief: { id: string; title: string; summary: string; publicId?: string }, index: number, total: number): string {
   const hook = brief.summary.slice(0, 120).replace(/\s\S+$/, '') + '…';
-  const briefUrl = `${APP_URL}/articles/${brief.publicId || brief.id}?${UTM}`;
+  const briefUrl = `${inquiryUrl(brief.publicId || brief.id, true)}?${UTM}`;
 
   return `
     <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:${index < total - 1 ? '24px' : '0'};padding-bottom:${index < total - 1 ? '24px' : '0'};border-bottom:${index < total - 1 ? '1px solid #27272a' : 'none'};">
@@ -55,7 +56,7 @@ function renderBriefFree(brief: { id: string; title: string; summary: string; pu
 
 function renderBriefAnalyst(brief: { id: string; title: string; summary: string; sourceCount: number; publicId?: string }, index: number, total: number): string {
   const summary = brief.summary.length > 600 ? brief.summary.slice(0, 600).replace(/\s\S+$/, '') + '…' : brief.summary;
-  const briefUrl = `${APP_URL}/articles/${brief.publicId || brief.id}?${UTM}`;
+  const briefUrl = `${inquiryUrl(brief.publicId || brief.id, true)}?${UTM}`;
 
   return `
     <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:${index < total - 1 ? '24px' : '0'};padding-bottom:${index < total - 1 ? '24px' : '0'};border-bottom:${index < total - 1 ? '1px solid #27272a' : 'none'};">
@@ -89,7 +90,7 @@ function renderBriefAnalyst(brief: { id: string; title: string; summary: string;
 }
 
 function renderBriefResearcher(brief: { id: string; title: string; summary: string; sourceCount: number; trustScore?: number; publicId?: string }, index: number, total: number): string {
-  const briefUrl = `${APP_URL}/articles/${brief.publicId || brief.id}?${UTM}`;
+  const briefUrl = `${inquiryUrl(brief.publicId || brief.id, true)}?${UTM}`;
   const trustColor = (brief.trustScore || 0) >= 85 ? '#10b981' : (brief.trustScore || 0) >= 70 ? '#f59e0b' : '#6366f1';
 
   return `

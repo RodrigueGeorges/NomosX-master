@@ -1,14 +1,6 @@
-import { redirect } from 'next/navigation';
-import { headers } from 'next/headers';
+import { redirect } from "next/navigation";
 
-export default async function PublicationRedirect() {
-  const headersList = await headers();
-  const pathname = headersList.get('x-pathname') || '';
-  const id = pathname.split('/').pop();
-  
-  if (id) {
-    redirect(`/articles/${id}`);
-  } else {
-    redirect('/articles');
-  }
+export default async function PublicationRedirect({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  redirect(`/inquiry/${id}`);
 }

@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
 import { Mail } from 'lucide-react';
-import { NomosXLogo3D } from '@/components/brand/NomosXLogo3D';
+import { NomosXLogo } from '@/components/brand/NomosXLogo';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -30,8 +30,6 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
   const handleOAuth = async (provider: "google" | "github") => {
     setLoading(true);
     setError("");
-    // TODO: Wire real OAuth via NextAuth or similar
-    // For now, redirect to email signup
     setMode("email");
     setLoading(false);
   };
@@ -61,16 +59,11 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
         return;
       }
 
-      // Success - session cookie is set by the API
-      // Auth successful — cookie set by API
-      
       onClose();
       
-      // If signup, trigger onboarding
       if (isSignup && onSignupSuccess) {
         onSignupSuccess();
       } else {
-        // Login - redirect to dashboard
         const redirectUrl = initialQuestion 
           ? `/dashboard?q=${encodeURIComponent(initialQuestion)}`
           : "/dashboard";
@@ -86,48 +79,41 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
     }
   };
 
+  const primaryBtn =
+    "w-full p-4 rounded-xl bg-accent hover:brightness-110 text-bg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed";
+  const inputFocus = "bg-white/[0.03] border-white/10 focus:border-accent/45 text-base h-12";
+
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
       <div className="p-8 sm:p-10 max-w-lg w-full relative overflow-hidden">
-        {/* Background Effects */}
         <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-amber-300/10 via-indigo-500/6 to-transparent blur-3xl" />
-          <div className="absolute bottom-0 left-0 w-64 h-64 bg-gradient-to-tr from-indigo-500/8 to-transparent blur-3xl" />
+          <div className="absolute top-0 right-0 w-64 h-64 bg-accent/[0.06] blur-3xl rounded-full" />
+          <div className="absolute bottom-0 left-0 w-64 h-64 bg-accent/[0.04] blur-3xl rounded-full" />
         </div>
 
-        {/* Header */}
         <div className="relative mb-10 text-center">
-          {/* Logo */}
           <div className="flex justify-center mb-6">
-            <NomosXLogo3D size={60} />
+            <NomosXLogo variant="symbol" styleSize={60} />
           </div>
 
-          {/* Title */}
-
-          {/* Small caps */}
-          <div className="text-xs text-amber-100/60 tracking-[0.25em] uppercase mb-4">
+          <div className="font-mono text-[10px] text-accent/70 tracking-[0.25em] uppercase mb-4">
             Institutional Intelligence
           </div>
 
-          {/* Headline */}
-          <h2 className="text-3xl sm:text-4xl font-light leading-tight mb-3">
-            <span className="bg-gradient-to-r from-white via-indigo-100 to-amber-100 bg-clip-text text-transparent">
-              Start your analysis
-            </span>
+          <h2 className="font-display text-3xl sm:text-4xl font-semibold leading-tight mb-3 text-text">
+            Start your analysis
           </h2>
 
-          {/* Subtitle */}
           <p className="text-base text-white/50 leading-relaxed max-w-md mx-auto mb-6">
             Join decision teams and research institutions 
             using institutional-grade autonomous intelligence.
           </p>
 
-          {/* Trust Bar */}
-          <div className="flex items-center justify-center gap-3 text-xs text-white/30 tracking-[0.15em] uppercase">
+          <div className="flex items-center justify-center gap-3 text-xs text-white/30 tracking-[0.15em] uppercase font-mono">
             <span>250M+ Sources</span>
-            <div className="w-1 h-1 rounded-full bg-amber-300/45" />
+            <div className="w-1 h-1 rounded-full bg-accent/50" />
             <span>Auto-published</span>
-            <div className="w-1 h-1 rounded-full bg-amber-300/45" />
+            <div className="w-1 h-1 rounded-full bg-accent/50" />
             <span>Free to start</span>
           </div>
         </div>
@@ -136,21 +122,16 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
           <div className="relative space-y-4">
             <button
               onClick={() => { setIsSignup(false); setMode("email"); }}
-              className="group relative w-full p-4 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-violet-600 text-white font-medium shadow-[0_0_30px_rgba(245,215,120,0.14)] hover:shadow-[0_0_50px_rgba(245,215,120,0.22)] transition-all duration-300 overflow-hidden"
+              className={`${primaryBtn} flex items-center justify-center gap-3`}
             >
-              <div className="absolute inset-0 bg-gradient-to-r from-indigo-400 via-violet-500 to-amber-300 opacity-0 group-hover:opacity-100 blur-sm transition-opacity" />
-              <div className="relative flex items-center justify-center gap-3">
-                <Mail size={18} strokeWidth={2} />
-                <span>Sign in with Email</span>
-              </div>
+              <Mail size={18} strokeWidth={2} />
+              <span>Sign in with Email</span>
             </button>
             <button
               onClick={() => { setIsSignup(true); setMode("email"); }}
-              className="group relative w-full p-4 rounded-xl bg-white/[0.04] border border-white/[0.10] text-white/80 hover:text-white hover:border-amber-300/25 hover:bg-white/[0.07] transition-all duration-300"
+              className="w-full p-4 rounded-xl bg-white/[0.04] border border-white/[0.10] text-white/80 hover:text-white hover:border-accent/25 hover:bg-white/[0.07] transition-all duration-300"
             >
-              <div className="relative flex items-center justify-center gap-3">
-                <span>Create an account — free</span>
-              </div>
+              Create an account — free
             </button>
           </div>
         ) : (
@@ -172,7 +153,7 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Your name"
-                  className="bg-white/[0.03] border-white/10 focus:border-amber-300/45 text-base h-12"
+                  className={inputFocus}
                 />
               </div>
             )}
@@ -190,9 +171,9 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
                   placeholder="you@company.com"
                   required
                   autoFocus={!isSignup}
-                  className="bg-white/[0.03] border-white/10 focus:border-amber-300/45 text-base h-12 pl-11"
+                  className={`${inputFocus} pl-11`}
                 />
-                <Mail size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-amber-100/50" />
+                <Mail size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-accent/50" />
               </div>
             </div>
 
@@ -208,19 +189,12 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
                 placeholder={isSignup ? "At least 8 characters" : "Your password"}
                 required
                 minLength={isSignup ? 8 : undefined}
-                className="bg-white/[0.03] border-white/10 focus:border-amber-300/45 text-base h-12"
+                className={inputFocus}
               />
             </div>
 
-            <button
-              type="submit"
-              disabled={loading || !email || !password}
-              className="group relative w-full p-4 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-violet-600 text-white font-medium shadow-[0_0_30px_rgba(245,215,120,0.14)] hover:shadow-[0_0_50px_rgba(245,215,120,0.22)] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden"
-            >
-              <div className="absolute inset-0 bg-gradient-to-r from-indigo-400 via-violet-500 to-amber-300 opacity-0 group-hover:opacity-100 blur-sm transition-opacity" />
-              <span className="relative">
-                {loading ? "Connecting..." : (isSignup ? "Create Account" : "Sign In")}
-              </span>
+            <button type="submit" disabled={loading || !email || !password} className={primaryBtn}>
+              {loading ? "Connecting..." : (isSignup ? "Create Account" : "Sign In")}
             </button>
 
             <div className="flex items-center justify-between text-sm">
@@ -248,7 +222,7 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
                     setIsSignup(!isSignup);
                     setError("");
                   }}
-                  className="text-amber-100/60 hover:text-amber-100 transition-colors"
+                  className="text-accent/70 hover:text-accent transition-colors"
                 >
                   {isSignup ? "Already have an account?" : "Create an account"}
                 </button>
@@ -287,9 +261,9 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
                       placeholder="you@company.com"
                       required
                       autoFocus
-                      className="w-full px-4 py-3 pl-11 rounded-xl bg-white/[0.03] border border-white/10 text-white placeholder-white/20 text-base focus:outline-none focus:border-amber-300/45 transition-colors"
+                      className="w-full px-4 py-3 pl-11 rounded-xl bg-white/[0.03] border border-white/10 text-white placeholder-white/20 text-base focus:outline-none focus:border-accent/45 transition-colors"
                     />
-                    <Mail size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-amber-100/50" />
+                    <Mail size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-accent/50" />
                   </div>
                 </div>
                 <button
@@ -316,7 +290,7 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
                       setLoading(false);
                     }
                   }}
-                  className="group relative w-full p-4 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-violet-600 text-white font-medium shadow-[0_0_30px_rgba(245,215,120,0.14)] hover:shadow-[0_0_50px_rgba(245,215,120,0.22)] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className={primaryBtn}
                 >
                   {loading ? 'Sending...' : 'Send reset link'}
                 </button>
@@ -334,34 +308,31 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
           </div>
         )}
 
-        {/* Footer Premium */}
         <div className="relative mt-8 pt-6 border-t border-white/[0.08]">
-          {/* Trust Indicators */}
           <div className="flex items-center justify-center gap-4 mb-4">
             <div className="flex items-center gap-1.5 text-xs text-white/40">
               <div className="relative flex-shrink-0">
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-400"></div>
-                <div className="absolute top-0.5 left-0.5 w-0.5 h-0.5 rounded-full bg-emerald-400/60 animate-pulse"></div>
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                <div className="absolute top-0.5 left-0.5 w-0.5 h-0.5 rounded-full bg-emerald-400/60 animate-pulse" />
               </div>
               <span>Enterprise-grade security</span>
             </div>
             <div className="flex items-center gap-1.5 text-xs text-white/40">
               <div className="relative flex-shrink-0">
-                <div className="w-1.5 h-1.5 rounded-full bg-amber-300"></div>
-                <div className="absolute top-0.5 left-0.5 w-0.5 h-0.5 rounded-full bg-amber-300/60 animate-pulse"></div>
+                <div className="w-1.5 h-1.5 rounded-full bg-accent" />
+                <div className="absolute top-0.5 left-0.5 w-0.5 h-0.5 rounded-full bg-accent/60 animate-pulse" />
               </div>
               <span>No credit card required</span>
             </div>
           </div>
 
-          {/* Legal */}
           <p className="text-xs text-white/30 text-center leading-relaxed">
             By continuing, you agree to our{" "}
-            <a href="/terms" className="text-amber-100/50 hover:text-amber-100 transition-colors">
+            <a href="/terms" className="text-accent/60 hover:text-accent transition-colors">
               Terms of Service
             </a>{" "}
             and{" "}
-            <a href="/privacy" className="text-amber-100/50 hover:text-amber-100 transition-colors">
+            <a href="/privacy" className="text-accent/60 hover:text-accent transition-colors">
               Privacy Policy
             </a>
           </p>
@@ -369,11 +340,8 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
 
         {loading && (
           <div className="relative mt-6 text-center">
-            <div className="inline-flex items-center gap-3 text-sm text-amber-100/75">
-              <div className="relative">
-                <div className="w-4 h-4 border-2 border-amber-300/20 rounded-full"></div>
-                <div className="absolute inset-0 w-4 h-4 border-2 border-amber-300 border-t-transparent rounded-full animate-spin"></div>
-              </div>
+            <div className="inline-flex items-center gap-3 text-sm text-accent/75">
+              <div className="w-4 h-4 border-2 border-accent/20 border-t-accent rounded-full animate-spin" />
               <span>Securing your connection...</span>
             </div>
           </div>
