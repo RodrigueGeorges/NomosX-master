@@ -22,6 +22,7 @@ import { selectSmartProviders } from "./smart-provider-selector";
 import { getVerticalForTopic } from "./researcher-ownership";
 import { classifyTopic } from "./topic-classifier";
 import type { InquiryDepth } from "@/lib/types/inquiry";
+import type { Providers } from "./pipeline-v2";
 
 // ─── Config ────────────────────────────────────────────────────
 
@@ -40,7 +41,7 @@ export interface ThinkTankDispatchItem {
   verticalId?: string;
   verticalSlug?: string;
   signalId?: string;
-  providers?: string[];
+  providers?: Providers;
   perProvider?: number;
   requireResearcherSignOff?: boolean;
   strategy: ThinkTankStrategy;
@@ -163,7 +164,7 @@ function emptyResult(mode: ThinkTankCycleMode, cadence: CadenceState, started: n
 function breakingDecisionToItem(decision: EditorialDecision): ThinkTankDispatchItem {
   const classifiedProviders = decision.classification.providers.slice(0, 4);
   const newsProviders = ["gdelt-news", "newsapi", "gnews"];
-  const providers = Array.from(new Set([...classifiedProviders, ...newsProviders])).slice(0, 8);
+  const providers = Array.from(new Set([...classifiedProviders, ...newsProviders])).slice(0, 8) as Providers;
   const leadResearcher = decision.classification.researchers[0];
 
   return {
@@ -250,9 +251,9 @@ async function collectWeeklyItems(
         proposal.suggestedProviders.length > 0
           ? null
           : await selectSmartProviders(proposal.topic).catch(() => null);
-      const providers =
+      const providers: Providers =
         proposal.suggestedProviders.length > 0
-          ? proposal.suggestedProviders
+          ? (proposal.suggestedProviders as Providers)
           : (smartSel?.providers ?? []);
 
       const depth: InquiryDepth = proposal.suggestedFormat === "strategic" ? "strategic" : "standard";

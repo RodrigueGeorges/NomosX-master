@@ -21,7 +21,7 @@
  *   --live-test nécessite OPENAI_API_KEY
  */
 
-import { config } from "dotenv";
+import "./load-env.mjs";
 import { writeFileSync } from "fs";
 import { PrismaClient } from "@prisma/client";
 import {
@@ -32,10 +32,6 @@ import {
   type PipelineHealthSnapshot,
   type PublicationAuditResult,
 } from "../lib/audit/institutional-quality";
-
-config({ path: ".env.local" });
-config({ path: ".env.production" });
-config();
 
 const prisma = new PrismaClient();
 

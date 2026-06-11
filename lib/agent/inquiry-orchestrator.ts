@@ -10,6 +10,7 @@
  * All paths MUST use runAndPublishInquiry().
  */
 
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import {
   runInquiryPipeline,
@@ -28,7 +29,7 @@ import { evaluatePublicationReadiness } from "@/lib/publication-visibility";
 import { requestResearcherSignOff, type SignOffResult } from "./researcher-ownership";
 import { buildForesightPersistPayload, persistForesightRun, type ForesightBundle } from "@/lib/foresight";
 import type { Inquiry, InquiryDepth } from "@/lib/types/inquiry";
-import type { StrategicPipelineOptions } from "./pipeline-v2";
+import type { Providers, StrategicPipelineOptions } from "./pipeline-v2";
 
 // ─── Request / Response ──────────────────────────────────────
 
@@ -56,7 +57,7 @@ export interface InquiryPublishRequest {
   verticalSlug?: string;
   /** Link publication to originating signal */
   signalId?: string;
-  providers?: string[];
+  providers?: Providers;
   perProvider?: number;
   pipelineOptions?: StrategicPipelineOptions;
   source: InquiryPublishSource;
@@ -402,7 +403,7 @@ export async function runAndPublishInquiry(
           ...buildForesightPersistPayload(pipeline.lineage, pipeline.inquiry),
           foresightRun: (pipeline.lineage as Record<string, unknown>).foresightRun,
           ...req.metadata,
-        },
+        } as unknown as Prisma.InputJsonValue,
       },
     });
 

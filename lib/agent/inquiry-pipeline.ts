@@ -6,6 +6,7 @@
  * Funnel position: RUN step (called by inquiry-orchestrator for GATE → PERSIST).
  */
 
+import type { Prisma } from "@prisma/client";
 import { runPipeline, type StrategicPipelineOptions } from "./pipeline-v2";
 import { prisma } from "@/lib/db";
 import { simulationAgent, type SimulationReport } from "./simulation-agent";
@@ -577,7 +578,7 @@ export async function runInquiryPipeline(
     where: { id: brief.id },
     data: {
       html,
-      lineage: persistedLineage,
+      lineage: persistedLineage as unknown as Prisma.InputJsonValue,
       trustScore,
       qualityScore,
     },

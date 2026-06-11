@@ -1,10 +1,6 @@
-import { config } from "dotenv";
+import "./load-env.mjs";
 import { PrismaClient } from "@prisma/client";
 import { evaluatePublicationReadiness, getPublicationQualityRule } from "../lib/publication-visibility";
-
-config({ path: ".env.local" });
-config({ path: ".env.production" });
-config();
 
 const prisma = new PrismaClient();
 

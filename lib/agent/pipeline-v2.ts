@@ -1487,6 +1487,9 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     stats.scout = { found: seedIds.length, upserted: 0, sourceIds: seedIds, skipped: true };
     orchState.sourcesFound = seedIds.length;
     orchState.providerDiversity = new Set(seedIds.map((id) => id.split(":")[0])).size;
+    const seedScoutDecision = assessAfterScout(orchState);
+    recordDecision(orchState, seedScoutDecision);
+    stats.orchestrator = { decisions: [seedScoutDecision] };
     emitProgress(pipelineRun.id, "SCOUT", "completed", `Seed sources: ${seedIds.length} (scout skipped)`);
   } else {
   console.log(`${label} SCOUT: query="${query}" (${providers.length} providers, ${perProvider}/provider)`);

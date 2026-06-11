@@ -2,7 +2,9 @@
 
 import { cn } from "@/lib/utils";
 
-const NODES = [
+type NetworkNode = { x: number; y: number; label: string; center?: boolean };
+
+const NODES: NetworkNode[] = [
   { x: 50, y: 48, label: "Policy & Governance", center: true },
   { x: 26, y: 26, label: "AI Infrastructure" },
   { x: 74, y: 28, label: "Sovereignty" },
@@ -10,7 +12,7 @@ const NODES = [
   { x: 70, y: 65, label: "Security" },
   { x: 18, y: 52, label: "Regulation" },
   { x: 82, y: 50, label: "Markets" },
-] as const;
+];
 
 interface PolicyNetworkProps {
   className?: string;

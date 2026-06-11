@@ -3,6 +3,7 @@
  * Validates: vertical-signal alignment, researcher coverage, provider mapping, cadence config
  * Runs offline (no server needed) — reads code and DB directly
  */
+import "./load-env.mjs";
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();

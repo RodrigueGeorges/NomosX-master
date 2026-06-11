@@ -53,7 +53,7 @@ export function runSocialTick(
   llmPosts: Array<{ authorId: string; content: string; scenarioLean: string; channel: SocialChannel }>,
   rand: () => number
 ): SocialTickResult {
-  const events: SimulationTickEvent[] = [];
+  const events: SimulationTickEventLite[] = [];
   let postCount = 0;
 
   for (const post of llmPosts) {

@@ -8,7 +8,7 @@
  * from brief.lineage or criticalLoopResult.simulation and injects HTML section if missing.
  */
 
-import { config } from "dotenv";
+import "./load-env.mjs";
 import { PrismaClient } from "@prisma/client";
 import {
   buildForesightPersistPayload,
@@ -20,10 +20,6 @@ import {
 } from "../lib/foresight";
 import type { SimulationReport } from "../lib/agent/simulation-agent";
 import type { Inquiry, InquiryDepth } from "../lib/types/inquiry";
-
-config({ path: ".env.local" });
-config({ path: ".env.production" });
-config();
 
 const prisma = new PrismaClient();
 

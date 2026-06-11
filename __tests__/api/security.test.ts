@@ -10,7 +10,7 @@
  * @jest-environment node
  */
 
-import { assertRateLimit, RateLimitError } from '@/lib/security/rate-limit';
+import { assertRateLimitSync, RateLimitError } from '@/lib/security/rate-limit';
 
 // ================================
 // RATE LIMITING TESTS
@@ -23,28 +23,28 @@ describe('Rate Limiting', () => {
 
   it('should allow requests within the limit', () => {
     const key = `test:allow:${Date.now()}`;
-    expect(() => assertRateLimit(key, 5, 60_000)).not.toThrow();
-    expect(() => assertRateLimit(key, 5, 60_000)).not.toThrow();
-    expect(() => assertRateLimit(key, 5, 60_000)).not.toThrow();
+    expect(() => assertRateLimitSync(key, 5, 60_000)).not.toThrow();
+    expect(() => assertRateLimitSync(key, 5, 60_000)).not.toThrow();
+    expect(() => assertRateLimitSync(key, 5, 60_000)).not.toThrow();
   });
 
   it('should throw RateLimitError when limit is exceeded', () => {
     const key = `test:exceed:${Date.now()}`;
     // Use up the limit
     for (let i = 0; i < 3; i++) {
-      assertRateLimit(key, 3, 60_000);
+      assertRateLimitSync(key, 3, 60_000);
     }
     // Next call should throw
-    expect(() => assertRateLimit(key, 3, 60_000)).toThrow(RateLimitError);
+    expect(() => assertRateLimitSync(key, 3, 60_000)).toThrow(RateLimitError);
   });
 
   it('should include retryAfterMs in the error', () => {
     const key = `test:retry:${Date.now()}`;
     for (let i = 0; i < 2; i++) {
-      assertRateLimit(key, 2, 60_000);
+      assertRateLimitSync(key, 2, 60_000);
     }
     try {
-      assertRateLimit(key, 2, 60_000);
+      assertRateLimitSync(key, 2, 60_000);
       fail('Should have thrown');
     } catch (err) {
       expect(err).toBeInstanceOf(RateLimitError);
@@ -56,23 +56,23 @@ describe('Rate Limiting', () => {
   it('should reset after window expires', async () => {
     const key = `test:reset:${Date.now()}`;
     // Use a very short window
-    assertRateLimit(key, 1, 100); // 100ms window
-    expect(() => assertRateLimit(key, 1, 100)).toThrow(RateLimitError);
+    assertRateLimitSync(key, 1, 100); // 100ms window
+    expect(() => assertRateLimitSync(key, 1, 100)).toThrow(RateLimitError);
 
     // Wait for window to expire
     await new Promise(resolve => setTimeout(resolve, 150));
-    expect(() => assertRateLimit(key, 1, 100)).not.toThrow();
+    expect(() => assertRateLimitSync(key, 1, 100)).not.toThrow();
   });
 
   it('should track different keys independently', () => {
     const key1 = `test:indep1:${Date.now()}`;
     const key2 = `test:indep2:${Date.now()}`;
 
-    assertRateLimit(key1, 1, 60_000);
-    expect(() => assertRateLimit(key1, 1, 60_000)).toThrow(RateLimitError);
+    assertRateLimitSync(key1, 1, 60_000);
+    expect(() => assertRateLimitSync(key1, 1, 60_000)).toThrow(RateLimitError);
 
     // key2 should still work
-    expect(() => assertRateLimit(key2, 1, 60_000)).not.toThrow();
+    expect(() => assertRateLimitSync(key2, 1, 60_000)).not.toThrow();
   });
 });
 
@@ -223,7 +223,7 @@ describe('Auth Protection Coverage', () => {
 // ================================
 
 describe('Node Version Consistency', () => {
-  it('Dockerfile, CI, and package.json should use Node 20', async () => {
+  it('Dockerfile, CI, and package.json should use a supported Node version', async () => {
     const fs = await import('fs');
     const path = await import('path');
 
@@ -232,8 +232,8 @@ describe('Node Version Consistency', () => {
     // Check Dockerfile
     try {
       const dockerfile = fs.readFileSync(path.join(process.cwd(), 'Dockerfile'), 'utf-8');
-      if (!dockerfile.includes('node:20')) {
-        issues.push('Dockerfile does not use node:20');
+      if (!/node:(20|22)/.test(dockerfile)) {
+        issues.push('Dockerfile does not use node:20 or node:22');
       }
     } catch {}
 
@@ -241,15 +241,15 @@ describe('Node Version Consistency', () => {
     try {
       const ci = fs.readFileSync(path.join(process.cwd(), '.github/workflows/deploy.yml'), 'utf-8');
       if (ci.includes("node-version: '18'") || ci.includes('node-version: "18"')) {
-        issues.push('CI uses Node 18 instead of 20');
+        issues.push('CI uses deprecated Node 18');
       }
     } catch {}
 
     // Check package.json engines
     try {
       const pkg = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'package.json'), 'utf-8'));
-      if (pkg.engines?.node && !pkg.engines.node.includes('20')) {
-        issues.push(`package.json engines.node does not include 20: ${pkg.engines.node}`);
+      if (pkg.engines?.node && !/22|20/.test(pkg.engines.node)) {
+        issues.push(`package.json engines.node missing supported version: ${pkg.engines.node}`);
       }
     } catch {}
 

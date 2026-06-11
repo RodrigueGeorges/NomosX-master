@@ -124,8 +124,9 @@ function validateEnv(): Env {
       // ok
     }
 
-    // Production hard requirements
-    if (parsed.NODE_ENV === "production") {
+    // Production runtime hard requirements (skip during next build — NODE_ENV=production but no server yet)
+    const isNextBuild = process.env.NEXT_PHASE === "phase-production-build";
+    if (parsed.NODE_ENV === "production" && !isNextBuild) {
       if (!parsed.DEEPSEEK_API_KEY && !parsed.OPENAI_API_KEY && !parsed.ANTHROPIC_API_KEY) {
         throw new Error(
           "Missing LLM provider. In production set DEEPSEEK_API_KEY, OPENAI_API_KEY, or ANTHROPIC_API_KEY."

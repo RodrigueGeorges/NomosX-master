@@ -124,7 +124,7 @@ export default function ArchivesPage() {
           const mapped = mapBriefToInquiryWithMeta(b, i);
           return {
             ...mapped,
-            trustScore: b.trustScore ?? parseInt(mapped.verdict?.value ?? "0", 10) || 0,
+            trustScore: b.trustScore ?? (parseInt(mapped.verdict?.value ?? "0", 10) || 0),
           };
         })
       : FALLBACK;
