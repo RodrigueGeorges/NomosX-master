@@ -38,11 +38,11 @@ const cormorant = Cormorant_Garamond({
 export const metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
   title: {
-    default: "NomosX — The Autonomous Think Tank",
+    default: "NomosX — The Agentic Think Tank",
     template: "%s | NomosX"
   },
-  description: "22 PhD-calibrated AI researchers continuously scan 250M+ academic publications and publish source-grounded briefs autonomously — no human trigger required.",
-  keywords: ["think tank", "AI", "artificial intelligence", "academic research", "strategic analysis", "decision intelligence", "autonomous research"],
+  description: "Autonomous pipeline for probabilistic foresight: cross-domain mapping, scenario distributions, and institute positions — every claim source-verified.",
+  keywords: ["think tank", "agentic AI", "probabilistic foresight", "decision intelligence", "strategic analysis", "scenario planning", "autonomous research"],
   authors: [{ name: "NomosX" }],
   creator: "NomosX",
   icons: {
@@ -63,13 +63,13 @@ export const metadata = {
     type: 'website',
     locale: 'en_US',
     siteName: 'NomosX',
-    title: 'NomosX — The Autonomous Think Tank',
-    description: '22 PhD-calibrated AI researchers scan 250M+ academic publications and publish source-grounded briefs autonomously.',
+    title: 'NomosX — The Agentic Think Tank',
+    description: 'Probable futures. Decisions owned. Evidence verified. Cross-domain foresight with probabilistic verdicts.',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'NomosX — The Autonomous Think Tank',
-    description: '22 PhD-calibrated AI researchers scan 250M+ academic publications and publish source-grounded briefs autonomously.',
+    title: 'NomosX — The Agentic Think Tank',
+    description: 'Probable futures. Decisions owned. Evidence verified. Cross-domain foresight with probabilistic verdicts.',
   },
 };
 
@@ -80,15 +80,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     name: 'NomosX',
     url: process.env.NEXT_PUBLIC_APP_URL || 'https://nomosx.com',
     logo: `${process.env.NEXT_PUBLIC_APP_URL || 'https://nomosx.com'}/favicon.svg`,
-    description: '22 PhD-calibrated AI researchers continuously scan 250M+ academic publications and publish source-grounded briefs autonomously.',
+    description: 'The agentic think tank for probable futures — autonomous cross-domain mapping, probabilistic foresight, and source-verified institute positions.',
     sameAs: [
       'https://x.com/nomosx_ai',
       'https://github.com/nomosx',
     ],
     foundingDate: '2024',
     knowsAbout: [
-      'Strategic Analysis', 'Academic Research', 'Decision Intelligence',
-      'Autonomous Research', 'AI Think Tank', 'Evidence-Based Policy',
+      'Strategic Analysis', 'Probabilistic Foresight', 'Decision Intelligence',
+      'Agentic Research', 'AI Think Tank', 'Evidence-Based Policy',
     ],
   };
 
@@ -101,8 +101,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className="font-primary">
-        <div className="nx-vignette" aria-hidden="true" />
-        <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[9999] focus:px-4 focus:py-2 focus:bg-accent focus:text-bg focus:rounded-lg focus:text-sm">
+        <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[9999] focus:px-4 focus:py-2 focus:bg-white focus:text-black focus:text-sm focus:font-mono focus:uppercase focus:tracking-wider">
           Skip to main content
         </a>
         <QueryProvider>

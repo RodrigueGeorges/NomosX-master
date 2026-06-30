@@ -9,7 +9,8 @@
 import type { Prisma } from "@prisma/client";
 import { runPipeline, type StrategicPipelineOptions } from "./pipeline-v2";
 import { prisma } from "@/lib/db";
-import { simulationAgent, type SimulationReport } from "./simulation-agent";
+import { type SimulationReport } from "./simulation-agent";
+import { runPipelineForesight } from "./pipeline-foresight";
 import { extractPipelineScores } from "./inquiry-funnel-utils";
 import {
   appendSimulationToHtml,
@@ -99,43 +100,6 @@ function depthToPipelineFormat(
 
 // ─── Analysis helpers ──────────────────────────────────────────
 
-function parsePriorProbability(value: unknown): number | undefined {
-  if (typeof value === "number") {
-    return value > 1 ? value / 100 : value;
-  }
-  if (typeof value === "string") {
-    const match = value.match(/([\d.]+)/);
-    if (match) {
-      const n = parseFloat(match[1]);
-      return value.includes("%") || n > 1 ? n / 100 : n;
-    }
-  }
-  return undefined;
-}
-
-function applySimulationToAnalysis(
-  analysis: Record<string, unknown>,
-  report: SimulationReport
-): Record<string, unknown> {
-  const scenarios = analysis.scenarios as Array<Record<string, unknown>> | undefined;
-  if (!scenarios?.length || !report.output.scenarios.length) {
-    return { ...analysis, _simulationReport: report };
-  }
-
-  const enrichedScenarios = scenarios.map((s, i) => {
-    const sim =
-      report.output.scenarios.find((o) => o.name === s.name) ?? report.output.scenarios[i];
-    if (!sim) return s;
-    return {
-      ...s,
-      probability: `${(sim.empiricalProbability * 100).toFixed(0)}%`,
-      _simulation: sim,
-    };
-  });
-
-  return { ...analysis, scenarios: enrichedScenarios, _simulationReport: report };
-}
-
 async function maybeRunSimulation(
   question: string,
   depth: InquiryDepth,
@@ -149,61 +113,46 @@ async function maybeRunSimulation(
   lineage: Record<string, unknown>;
   report?: SimulationReport;
 }> {
-  if (skipSimulation || !isForesightEnabled() || (depth !== "strategic" && depth !== "deep")) {
+  if (skipSimulation) {
     return { analysis, lineage };
   }
 
-  const scenarios = analysis.scenarios as Array<Record<string, unknown>> | undefined;
-  if (!scenarios || scenarios.length < 2) {
-    return { analysis, lineage };
+  const isStrategic = depth === "strategic" || depth === "deep";
+  const foresight = await runPipelineForesight({
+    question,
+    analysis,
+    domain,
+    sourceIds,
+    isStrategic,
+    depth,
+    seedSourceIds: lineage.seedSourceIds as string[] | undefined,
+  });
+
+  if (foresight.skipped || !foresight.report) {
+    return { analysis: foresight.analysis, lineage };
   }
 
-  const simSourceIds = [
-    ...new Set([...(lineage.seedSourceIds as string[] | undefined ?? []), ...sourceIds]),
-  ];
+  const report = foresight.report;
+  const enrichedLineage = {
+    ...lineage,
+    simulation: report.output,
+    simulationSummary: report.summary,
+    simulationContextBlock: report.contextBlock,
+    simulationSensitivity: report.output.sensitivity,
+    simulationTraceability: report.output.traceability,
+    simulationRedTeam: report.output.redTeamChallenge,
+    simulationLlmTicks: report.output.llmTickCount,
+    foresightRun: {
+      costUsd: report.output.totalCostUsd,
+      durationMs: report.output.totalDurationMs,
+      swarmSize: report.output.swarmSize,
+      converged: report.output.monteCarloConverged,
+      seedRuns: report.output.seedRuns,
+      at: new Date().toISOString(),
+    },
+  };
 
-  try {
-    console.log(`[Inquiry] Foresight: ${scenarios.length} scenarios depth=${depth}`);
-    const simInput = scenarios.map((s) => ({
-      name: String(s.name ?? "Scenario"),
-      description: String(s.description ?? ""),
-      assumptions: (s.assumptions as Record<string, number>) ?? {},
-      priorProbability: parsePriorProbability(s.probability),
-      implications: s.implications ? String(s.implications) : undefined,
-      signals: Array.isArray(s.signals) ? (s.signals as string[]) : undefined,
-    }));
-
-    const report = await simulationAgent(question, simInput, {
-      domain,
-      sourceIds: simSourceIds,
-      depth,
-    });
-    const enrichedAnalysis = applySimulationToAnalysis(analysis, report);
-    const enrichedLineage = {
-      ...lineage,
-      simulation: report.output,
-      simulationSummary: report.summary,
-      simulationContextBlock: report.contextBlock,
-      simulationSensitivity: report.output.sensitivity,
-      simulationTraceability: report.output.traceability,
-      simulationRedTeam: report.output.redTeamChallenge,
-      simulationLlmTicks: report.output.llmTickCount,
-      foresightRun: {
-        costUsd: report.output.totalCostUsd,
-        durationMs: report.output.totalDurationMs,
-        swarmSize: report.output.swarmSize,
-        converged: report.output.monteCarloConverged,
-        seedRuns: report.output.seedRuns,
-        at: new Date().toISOString(),
-      },
-    };
-
-    return { analysis: enrichedAnalysis, lineage: enrichedLineage, report };
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
-    console.warn(`[Inquiry] Simulation failed (non-blocking): ${message}`);
-    return { analysis, lineage };
-  }
+  return { analysis: foresight.analysis, lineage: enrichedLineage, report };
 }
 
 function extractVerdict(analysis: Record<string, unknown>, depth: InquiryDepth): ProbabilisticVerdict {

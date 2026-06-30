@@ -168,10 +168,11 @@ export function countWordsBySections(
 function extractSectionContent(content: string, sectionName: string): string {
   // Try different section patterns
   const patterns = [
-    new RegExp(`<h[1-6][^>]*id="?${sectionName.toLowerCase().replace(/\s+/g, '-')}"?[^>]*>([\s\S]*?)(?=<h[1-6]|$)`, 'i'),
-    new RegExp(`<section[^>]*id="?${sectionName.toLowerCase().replace(/\s+/g, '-')}"?[^>]*>([\s\S]*?)<\/section>`, 'i'),
-    new RegExp(`#{1,3}\\s*${sectionName}[\\s\\S]*?(?=#{1,3}|$)`, 'i'),
-    new RegExp(`\\*\\*${sectionName}\\*\\*[\\s\\S]*?(?=\\*\\*|\\n\\n|$)`, 'i')
+    new RegExp(`<h[1-6][^>]*id="?${sectionName.toLowerCase().replace(/\s+/g, '-')}"?[^>]*>([\\s\\S]*?)(?=<h[1-6]|$)`, 'i'),
+    new RegExp(`<section[^>]*id="?${sectionName.toLowerCase().replace(/\s+/g, '-')}"?[^>]*>([\\s\\S]*?)<\\/section>`, 'i'),
+    new RegExp(`<h[1-6][^>]*>\\s*${sectionName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*</h[1-6]>([\\s\\S]*?)(?=<h[1-6]|$)`, 'i'),
+    new RegExp(`#{1,3}\\s*${sectionName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[\\s\\S]*?(?=#{1,3}|$)`, 'i'),
+    new RegExp(`\\*\\*${sectionName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\*\\*[\\s\\S]*?(?=\\*\\*|\\n\\n|$)`, 'i')
   ];
   
   for (const pattern of patterns) {

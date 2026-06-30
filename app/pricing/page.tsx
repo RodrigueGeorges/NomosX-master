@@ -13,6 +13,7 @@ import { PublicPageShell } from "@/components/layout/PublicPageShell";
 import { PUBLIC_ROUTES } from "@/lib/public-urls";
 
 import { cn } from "@/lib/utils";
+import { nx } from "@/lib/brand/public-ui";
 
 import {
 
@@ -37,35 +38,20 @@ import { AnimatePresence, motion } from "framer-motion";
 
 
 const READER_FEATURES = [
-
   "All published inquiries & briefs",
-
   "Weekly truth dispatch",
-
   "Full source traceability on every claim",
-
-  "22-researcher Council publications",
-
+  "Institute positions with confidence bounds",
   "Archives & domain filters",
-
 ];
 
-
-
 const STUDIO_FEATURES = [
-
   "Commission a custom inquiry on any question",
-
-  "Multi-agent Foresight (1024+ swarm, GraphRAG)",
-
+  "Probabilistic foresight & scenario distributions",
   "Choose depth: standard → strategic",
-
   "Adversarial debate + citation export",
-
-  "Priority pipeline queue",
-
+  "Priority agentic pipeline queue",
   "White-label & API access (beta)",
-
 ];
 
 
@@ -76,7 +62,7 @@ const STUDIO_STEPS = [
 
   { label: "Select focus areas", detail: "Technology · Economics · Policy · …" },
 
-  { label: "Delivery & access", detail: "AI inquiry · Simulation · Verified sources" },
+  { label: "Delivery & access", detail: "Institute position · Distribution · Verified sources" },
 
 ];
 
@@ -88,7 +74,7 @@ const FAQ = [
 
     q: "What is the Reader plan?",
 
-    a: "Reader is free, forever. Everything the autonomous pipeline publishes — inquiries, briefs, signals, and the weekly dispatch — is open. No credit card.",
+    a: "Reader is free, forever. Everything the agentic think tank publishes — inquiries, briefs, signals, and the weekly dispatch — is open. No credit card.",
 
   },
 
@@ -96,7 +82,7 @@ const FAQ = [
 
     q: "What is NomosX Studio?",
 
-    a: "Studio lets you commission the full agent pipeline on your research question: scout, rank, read, simulate, challenge, and publish — with a probabilistic verdict and full [SRC-N] traceability.",
+    a: "Studio lets you commission the full agentic pipeline on your research question: map, confront, quantify, and decide — with a probabilistic verdict and full [SRC-N] traceability.",
 
   },
 
@@ -148,7 +134,7 @@ export default function PricingPage() {
 
     setShowAuthModal(false);
 
-    router.push(authRedirect === "studio" ? PUBLIC_ROUTES.studio : "/dashboard");
+    router.push(authRedirect === "studio" ? PUBLIC_ROUTES.studio : "/archives");
 
   }
 
@@ -158,13 +144,13 @@ export default function PricingPage() {
 
     <>
 
-      <PublicPageShell currentPage="pricing" onSignInClick={() => setShowAuthModal(true)} particles={20}>
+      <PublicPageShell currentPage="pricing" onSignInClick={() => setShowAuthModal(true)} particles={0}>
 
           <div className="max-w-5xl mx-auto px-6 sm:px-8 py-20 sm:py-28">
 
             <header className="text-center mb-20 animate-rise">
 
-              <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-accent/70 mb-5">
+              <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-white/35 mb-5">
 
                 Access
 
@@ -174,14 +160,14 @@ export default function PricingPage() {
 
                 Read free.{" "}
 
-                <span className="text-accent">Commission when it matters.</span>
+                <span className="text-white">Commission when it matters.</span>
 
               </h1>
 
               <p className="text-base text-white/50 max-w-2xl mx-auto leading-relaxed">
-                The autonomous think tank publishes inquiries 24/7 — free to read.
-                Studio is the add-on for custom commissions, foresight simulation, and
-                evidence-bound deliverables on demand.
+                The agentic think tank publishes inquiries 24/7 — free to read.
+                Studio is the add-on for custom commissions, probabilistic foresight,
+                and evidence-bound deliverables on demand.
               </p>
 
             </header>
@@ -192,19 +178,11 @@ export default function PricingPage() {
 
               <div
 
-                className={cn(
-
-                  "relative rounded-2xl p-8 sm:p-9",
-
-                  "border border-white/[0.07] bg-bg-elevated",
-
-                  "shadow-card"
-
-                )}
+                className="relative p-8 sm:p-9 nx-public-surface"
 
               >
 
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-20 h-px bg-accent/30" />
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-20 h-px bg-white/20" />
 
                 <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/40 mb-4">
 
@@ -232,7 +210,7 @@ export default function PricingPage() {
 
                     <li key={text} className="flex items-start gap-3 text-sm text-white/55">
 
-                      <Check className="w-4 h-4 text-accent/80 flex-shrink-0 mt-0.5" strokeWidth={1.5} />
+                      <Check className="w-4 h-4 text-white/50 flex-shrink-0 mt-0.5" strokeWidth={1.5} />
 
                       {text}
 
@@ -248,7 +226,7 @@ export default function PricingPage() {
 
                   onClick={openFreeAuth}
 
-                  className="w-full py-3.5 rounded-xl border border-white/[0.10] text-white/70 text-sm font-medium hover:border-accent/30 hover:text-white transition-colors"
+                  className="w-full py-3.5 rounded-xl border border-white/[0.10] text-white/70 text-sm font-medium hover:border-white/30 hover:text-white transition-colors"
 
                 >
 
@@ -262,21 +240,13 @@ export default function PricingPage() {
 
               <div
 
-                className={cn(
-
-                  "relative rounded-2xl p-8 sm:p-9",
-
-                  "border border-accent/20 bg-bg-elevated",
-
-                  "shadow-glow"
-
-                )}
+                className="relative p-8 sm:p-9 nx-public-surface border-white/20"
 
               >
 
                 <div className="absolute -top-3 left-8">
 
-                  <span className="px-3 py-1 rounded-full bg-accent text-bg text-[10px] font-mono font-semibold tracking-[0.14em] uppercase">
+                  <span className="px-3 py-1 rounded-full bg-white text-black text-[10px] font-mono font-semibold tracking-[0.14em] uppercase">
 
                     Private beta
 
@@ -284,7 +254,7 @@ export default function PricingPage() {
 
                 </div>
 
-                <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-accent/70 mb-4 mt-2">
+                <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/35 mb-4 mt-2">
 
                   NomosX Studio
 
@@ -312,7 +282,7 @@ export default function PricingPage() {
 
                     <li key={text} className="flex items-start gap-3 text-sm text-white/60">
 
-                      <Check className="w-4 h-4 text-accent flex-shrink-0 mt-0.5" strokeWidth={1.5} />
+                      <Check className="w-4 h-4 text-white flex-shrink-0 mt-0.5" strokeWidth={1.5} />
 
                       {text}
 
@@ -328,7 +298,7 @@ export default function PricingPage() {
 
                   onClick={openStudioAuth}
 
-                  className="w-full py-3.5 rounded-xl bg-accent hover:brightness-110 text-bg text-sm font-semibold transition-colors flex items-center justify-center gap-2 group"
+                  className={cn(nx.btnPrimary, "w-full group")}
 
                 >
 
@@ -344,13 +314,13 @@ export default function PricingPage() {
 
 
 
-            <section className="mb-24 rounded-2xl border border-white/[0.06] bg-bg-elevated/80 overflow-hidden">
+            <section className="mb-24 nx-public-surface overflow-hidden">
 
               <div className="p-8 sm:p-10 border-b border-white/[0.06]">
 
                 <div className="flex flex-wrap items-center gap-3 mb-4">
 
-                  <Sparkles className="w-4 h-4 text-accent/70" />
+                  <Sparkles className="w-4 h-4 text-white/35" />
 
                   <h2 className="font-display text-xl font-semibold text-text">
 
@@ -358,7 +328,7 @@ export default function PricingPage() {
 
                   </h2>
 
-                  <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-accent/50 px-2 py-0.5 border border-accent/20 rounded-full">
+                  <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-white/40 px-2 py-0.5 border border-white/20 rounded-full">
 
                     Interface preview
 
@@ -367,11 +337,8 @@ export default function PricingPage() {
                 </div>
 
                 <p className="text-sm text-white/45 max-w-xl">
-
                   Define a question, select domains, and receive a verdict-backed inquiry with
-
-                  multi-agent convergence metrics.
-
+                  prospective distribution metrics.
                 </p>
 
               </div>
@@ -382,7 +349,7 @@ export default function PricingPage() {
 
                   <div key={step.label} className="p-6 sm:p-8">
 
-                    <span className="font-mono text-[10px] text-accent/50">
+                    <span className="font-mono text-[10px] text-white/40">
 
                       {String(i + 1).padStart(2, "0")}
 
@@ -408,7 +375,7 @@ export default function PricingPage() {
 
                   </h3>
 
-                  <p className="text-sm text-white/40">Full pipeline · simulation · publication-ready</p>
+                  <p className="text-sm text-white/40">Full pipeline · distribution · publication-ready</p>
 
                 </div>
 
@@ -418,7 +385,7 @@ export default function PricingPage() {
 
                   onClick={openStudioAuth}
 
-                  className="px-8 py-3.5 rounded-xl bg-accent hover:brightness-110 text-bg text-sm font-semibold shrink-0"
+                  className={cn(nx.btnPrimary, "shrink-0")}
 
                 >
 
@@ -438,9 +405,9 @@ export default function PricingPage() {
 
                 { value: "250M+", label: "Sources indexed", icon: BookOpen },
 
-                { value: "22", label: "Domain researchers", icon: Brain },
+                { value: "12+", label: "Domain lenses", icon: Brain },
 
-                { value: "7", label: "Pipeline stages", icon: FileText },
+                { value: "4", label: "Method stages", icon: FileText },
 
                 { value: "3–5 min", label: "Standard cycle", icon: Sparkles },
 
@@ -450,11 +417,11 @@ export default function PricingPage() {
 
                   key={label}
 
-                  className="rounded-xl border border-white/[0.06] bg-bg-elevated p-5 text-center"
+                  className="nx-public-surface p-5 text-center"
 
                 >
 
-                  <Icon className="w-4 h-4 text-accent/50 mx-auto mb-3" strokeWidth={1.25} />
+                  <Icon className="w-4 h-4 text-white/40 mx-auto mb-3" strokeWidth={1.25} />
 
                   <div className="font-mono text-2xl font-light text-text tabular-nums">{value}</div>
 
@@ -474,7 +441,7 @@ export default function PricingPage() {
 
             <div className="mb-16">
 
-              <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-accent/50 text-center mb-8">
+              <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/40 text-center mb-8">
 
                 Questions
 
@@ -489,15 +456,8 @@ export default function PricingPage() {
                     key={item.q}
 
                     className={cn(
-
-                      "rounded-xl border overflow-hidden transition-colors",
-
-                      openFaq === i
-
-                        ? "border-accent/20 bg-bg-elevated"
-
-                        : "border-white/[0.06] bg-bg-elevated/60"
-
+                      "nx-public-surface overflow-hidden transition-colors",
+                      openFaq === i && "border-white/20"
                     )}
 
                   >
@@ -522,7 +482,7 @@ export default function PricingPage() {
 
                           "text-white/30 flex-shrink-0 transition-transform",
 
-                          openFaq === i && "rotate-180 text-accent"
+                          openFaq === i && "rotate-180 text-white"
 
                         )}
 
@@ -567,11 +527,8 @@ export default function PricingPage() {
             <div className="text-center py-12">
 
               <h2 className="font-display text-2xl sm:text-3xl font-semibold mb-4">
-
-                Evidence-first intelligence.{" "}
-
-                <span className="text-accent">Open by default.</span>
-
+                Probable futures.{" "}
+                <span className="text-white/70">Open by default.</span>
               </h2>
 
               <div className="flex flex-col sm:flex-row gap-3 justify-center mt-8">
@@ -596,7 +553,7 @@ export default function PricingPage() {
 
                   onClick={openStudioAuth}
 
-                  className="px-7 py-3.5 rounded-xl bg-accent text-bg text-sm font-semibold hover:brightness-110 flex items-center justify-center gap-2 group"
+                  className={cn(nx.btnPrimary, "group")}
 
                 >
 

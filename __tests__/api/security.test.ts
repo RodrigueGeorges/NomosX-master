@@ -151,13 +151,9 @@ describe('Auth Protection Coverage', () => {
     const path = await import('path');
 
     const criticalRoutes = [
-      'app/api/v3/analysis/route.ts',
-      'app/api/briefs/route.ts',
-      'app/api/sources/route.ts',
-      'app/api/stats/route.ts',
-      'app/api/radar/route.ts',
-      'app/api/brief/stream/route.ts',
-      'app/api/search/route.ts',
+      'app/api/studiox/route.ts',
+      'app/api/studiox/checkout/route.ts',
+      'app/api/articles/[id]/export/route.ts',
     ];
 
     const unprotected: string[] = [];
@@ -304,18 +300,27 @@ describe('Comprehensive Auth Coverage', () => {
     const fs = await import('fs');
     const path = await import('path');
 
-    // Routes that are legitimately public (no auth needed)
+    // Whole namespaces that are public by design:
+    // - auth/*     : pre-session flows (login, register, password reset, email verify)
+    // - public/*   : explicitly public read-only content
+    // - webhooks/* : authenticated by signature, and bypassed by middleware CSRF
+    const publicPrefixes = [
+      'app/api/auth/',
+      'app/api/public/',
+      'app/api/webhooks/',
+    ];
+
+    // Individual routes that are legitimately public (no session auth needed).
+    // Several are protected by rate-limiting and/or only expose public content
+    // (publicPublicationWhere), which is the appropriate control for these endpoints.
     const publicRoutes = new Set([
-      'app/api/auth/login/route.ts',
-      'app/api/auth/register/route.ts',
-      'app/api/auth/logout/route.ts',
-      'app/api/health/route.ts',
-      'app/api/system/health/route.ts',
       'app/api/newsletter/subscribe/route.ts',
       'app/api/newsletter/unsubscribe/route.ts',
-      'app/api/unsubscribe/route.ts',
+      'app/api/newsletter/confirm/route.ts',
       'app/api/stripe/webhook/route.ts',
-      'app/api/radar/subscribe/route.ts',
+      'app/api/articles/[id]/export/route.ts',
+      'app/api/foresight/chat/route.ts',
+      'app/api/inquiry/[id]/foresight/route.ts',
     ]);
 
     const apiDir = path.join(process.cwd(), 'app', 'api');
@@ -342,8 +347,9 @@ describe('Comprehensive Auth Coverage', () => {
     for (const file of routeFiles) {
       const relativePath = path.relative(process.cwd(), file).replace(/\\/g, '/');
 
-      // Skip public routes
+      // Skip public routes (exact match or public-by-design namespace)
       if (publicRoutes.has(relativePath)) continue;
+      if (publicPrefixes.some(prefix => relativePath.startsWith(prefix))) continue;
 
       const content = fs.readFileSync(file, 'utf-8');
       const hasAuth =

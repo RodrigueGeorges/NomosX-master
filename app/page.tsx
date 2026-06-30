@@ -18,8 +18,6 @@ import {
 
   PipelineStrip,
 
-  PolicyNetwork,
-
   StudioPreview,
 
   type FeaturedVerdictData,
@@ -34,7 +32,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 import { PUBLIC_ROUTES } from "@/lib/public-urls";
 
-import { ArrowRight, Rss } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 
 
 
@@ -48,7 +46,7 @@ const FEATURED_VERDICT: FeaturedVerdictData = {
 
   confidence: "74%",
 
-  simulation: "1024+ swarm · 30 voix LLM",
+  simulation: "3 trajectories · 1024 runs",
 
   sources: 42,
 
@@ -334,9 +332,9 @@ function HomePageContent() {
 
     return (
 
-      <div className="min-h-screen bg-bg flex items-center justify-center">
+      <div className="min-h-screen bg-black flex items-center justify-center">
 
-        <div className="w-8 h-8 border border-white/20 border-t-accent rounded-full animate-spin" />
+        <div className="w-8 h-8 border border-white/20 border-t-white rounded-full animate-spin" />
 
       </div>
 
@@ -362,85 +360,109 @@ function HomePageContent() {
 
         isAuthenticated={isAuthenticated}
 
-        particles={22}
+        particles={0}
 
       >
 
-          {/* Hero */}
+          {/* Hero — SpaceX-style mission block */}
 
-          <section className="relative px-6 sm:px-8 pt-16 sm:pt-24 pb-16 sm:pb-24">
+          <section className="relative px-6 sm:px-8 min-h-[calc(100svh-3.5rem)] flex flex-col items-center justify-center py-16 sm:py-20">
 
-            <div className="max-w-6xl mx-auto relative">
+            <div className="max-w-4xl mx-auto text-center w-full">
 
-              <PolicyNetwork className="top-0 h-[420px] sm:h-[480px]" />
+              <p className="font-mono text-[10px] uppercase tracking-[0.32em] text-white/30 mb-10 animate-rise">
 
-              <div className="relative grid lg:grid-cols-[1fr_minmax(300px,400px)] gap-10 lg:gap-14 items-center">
+                Agentic · Independent · Prospective
 
-                <div className="animate-rise pt-4 lg:pt-8">
+              </p>
 
-                  <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-accent mb-6">
+              <h1 className="font-display text-[2.75rem] sm:text-5xl lg:text-[5rem] font-semibold leading-[1.02] tracking-[-0.03em] text-white mb-8 animate-rise">
 
-                    Autonomous · Independent · Evidence-first
+                Pushing strategic analysis forward.
 
-                  </p>
+              </h1>
 
-                  <h1 className="font-display text-4xl sm:text-5xl lg:text-[3.15rem] font-semibold leading-[1.08] tracking-tight mb-6">
+              <p className="text-lg sm:text-xl text-white/50 max-w-2xl mx-auto leading-relaxed mb-6 animate-rise">
 
-                    The autonomous think tank for{" "}
+                The agentic think tank for probable futures.
 
-                    <span className="text-accent">probable futures.</span>
+              </p>
 
-                  </h1>
+              <p className="text-sm text-white/30 max-w-lg mx-auto leading-relaxed mb-14 animate-rise">
 
-                  <p className="text-base text-white/50 max-w-lg leading-relaxed mb-10">
+                Cross-domain mapping · probabilistic distributions · institute positions · full traceability
 
-                    NomosX publishes AI-generated inquiries with probabilistic verdicts,
+              </p>
 
-                    multi-agent simulation, and full source traceability — no editorial agenda.
+              <div className="flex flex-col sm:flex-row gap-4 justify-center animate-rise">
 
-                  </p>
+                <button
 
-                  <div className="flex flex-col sm:flex-row gap-3">
+                  type="button"
 
-                    <button
+                  onClick={() => router.push(PUBLIC_ROUTES.archives)}
 
-                      type="button"
+                  className="group inline-flex items-center justify-center gap-2 px-10 py-4 bg-white hover:bg-white/90 text-black text-[11px] font-semibold uppercase tracking-[0.18em] transition-colors"
 
-                      onClick={() => router.push(PUBLIC_ROUTES.archives)}
+                >
 
-                      className="group inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl bg-accent hover:brightness-110 text-bg text-sm font-semibold transition-colors"
+                  Explore
 
-                    >
+                  <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
 
-                      Read latest inquiries
+                </button>
 
-                      <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
+                <button
 
-                    </button>
+                  type="button"
 
-                    <button
+                  onClick={openStudio}
 
-                      type="button"
+                  className="group inline-flex items-center justify-center gap-2 px-10 py-4 border border-white/30 bg-transparent text-white/80 text-[11px] font-medium uppercase tracking-[0.18em] hover:border-white/60 hover:text-white transition-colors"
 
-                      onClick={openStudio}
+                >
 
-                      className="group inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl border border-white/[0.12] bg-bg-elevated/50 text-white/65 text-sm font-medium hover:border-accent/30 hover:text-white transition-colors"
+                  Launch study
 
-                    >
+                  <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
 
-                      Enter Studio
-
-                      <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
-
-                    </button>
-
-                  </div>
-
-                </div>
-
-                <FeaturedVerdictCard data={FEATURED_VERDICT} className="relative z-[2]" />
+                </button>
 
               </div>
+
+            </div>
+
+          </section>
+
+
+
+          {/* Mission statement */}
+
+          <section className="px-6 sm:px-8 py-24 sm:py-32 border-t border-white/[0.08]">
+
+            <div className="max-w-3xl mx-auto text-center">
+
+              <p className="font-display text-2xl sm:text-3xl lg:text-[2.25rem] font-light text-white/75 leading-[1.35] tracking-[-0.02em]">
+
+                NomosX believes strategic decisions grounded in a distribution of probable futures —
+
+                not a frozen state of the art — change how institutions anticipate the world.
+
+              </p>
+
+            </div>
+
+          </section>
+
+
+
+          {/* Live verdict proof */}
+
+          <section className="px-6 sm:px-8 py-20 sm:py-28 border-t border-white/[0.08]">
+
+            <div className="max-w-lg mx-auto">
+
+              <FeaturedVerdictCard data={FEATURED_VERDICT} />
 
             </div>
 
@@ -454,15 +476,13 @@ function HomePageContent() {
 
           {/* Latest inquiries */}
 
-          <section className="px-6 sm:px-8 py-20 sm:py-24">
+          <section className="px-6 sm:px-8 py-24 sm:py-32 border-t border-white/[0.08]">
 
             <div className="max-w-6xl mx-auto">
 
-              <div className="flex items-end justify-between gap-4 mb-10">
+              <div className="flex items-end justify-between gap-4 mb-12">
 
-                <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-accent/80 flex items-center gap-2">
-
-                  <span className="w-1.5 h-1.5 rounded-full bg-accent" />
+                <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-white/35">
 
                   Latest inquiries
 
@@ -474,7 +494,7 @@ function HomePageContent() {
 
                   onClick={() => router.push(PUBLIC_ROUTES.archives)}
 
-                  className="inline-flex items-center gap-2 text-sm font-mono text-accent/80 hover:text-accent"
+                  className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.16em] text-white/40 hover:text-white transition-colors"
 
                 >
 
@@ -526,15 +546,13 @@ function HomePageContent() {
 
           {/* Newsletter */}
 
-          <section className="px-6 sm:px-8 py-16 border-t border-white/[0.05]">
+          <section id="newsletter" className="px-6 sm:px-8 py-24 border-t border-white/[0.08]">
 
             <div className="max-w-md mx-auto text-center">
 
-              <Rss className="w-4 h-4 text-accent/60 mx-auto mb-3" strokeWidth={1.25} />
+              <h2 className="font-display text-xl sm:text-2xl font-semibold text-white mb-3 tracking-tight">Weekly dispatch</h2>
 
-              <h2 className="font-display text-lg font-semibold mb-2">Weekly dispatch</h2>
-
-              <p className="text-xs text-white/40 mb-6">What survived verification — delivered weekly.</p>
+              <p className="text-xs text-white/35 mb-8 font-mono uppercase tracking-[0.14em]">What survived arbitration</p>
 
               {newsletterStatus === "success" ? (
 
@@ -556,7 +574,7 @@ function HomePageContent() {
 
                     required
 
-                    className="flex-1 px-4 py-2.5 rounded-xl bg-bg-elevated border border-white/[0.08] text-sm focus:outline-none focus:border-accent/30"
+                    className="flex-1 px-4 py-3 bg-white/[0.04] border border-white/[0.12] text-sm text-white focus:outline-none focus:border-white/30"
 
                   />
 
@@ -566,7 +584,7 @@ function HomePageContent() {
 
                     disabled={newsletterStatus === "loading"}
 
-                    className="px-5 py-2.5 rounded-xl bg-accent text-bg text-sm font-semibold disabled:opacity-50"
+                    className="px-6 py-3 bg-white text-black text-[11px] font-semibold uppercase tracking-[0.14em] disabled:opacity-50 hover:bg-white/90 transition-colors"
 
                   >
 
@@ -600,7 +618,7 @@ function HomePageContent() {
 
             setShowAuthModal(false);
 
-            router.push(authRedirect === "studio" ? PUBLIC_ROUTES.studio : "/dashboard");
+            router.push(authRedirect === "studio" ? PUBLIC_ROUTES.studio : "/archives");
 
           }}
 
@@ -624,9 +642,9 @@ export default function HomePage() {
 
       fallback={
 
-        <div className="min-h-screen bg-bg flex items-center justify-center">
+        <div className="min-h-screen bg-black flex items-center justify-center">
 
-          <div className="w-8 h-8 border border-white/20 border-t-accent rounded-full animate-spin" />
+          <div className="w-8 h-8 border border-white/20 border-t-white rounded-full animate-spin" />
 
         </div>
 

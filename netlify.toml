@@ -58,8 +58,12 @@
 [functions."cadence-reset"]
   schedule = "0 0 * * *"    # Daily at 00:00 UTC (reset expired counters)
 
-[functions."cron-trial-reminders"]
-  schedule = "0 9 * * *"     # Every day at 09:00 UTC (trial expiry reminders)
-
 [functions."cron-macro-refresh"]
   schedule = "0 5 * * 1"     # Every Monday at 05:00 UTC (refresh Eurostat/ECB/INSEE data)
+
+# StudioX async pipeline — up to 15 min background execution
+[functions."studiox-run-pipeline-background"]
+  background = true
+
+[functions."cron-studiox-drain"]
+  schedule = "*/5 * * * *"   # Every 5 min — re-enqueue stuck PAID/QUEUED StudioX orders

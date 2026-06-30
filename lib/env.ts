@@ -94,11 +94,9 @@ const envSchema = z.object({
   // Patents (optional)
   PATENTSVIEW_API_KEY: z.string().optional(),
   
-  // Stripe (subscription payments — optional)
+  // Stripe (StudioX pay-per-commission — optional)
   STRIPE_SECRET_KEY: z.string().optional(),
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
-  STRIPE_PRICE_ACCESS: z.string().optional(),
-  STRIPE_PRICE_ENTERPRISE: z.string().optional(),
 
   // Real-time economic data
   FRED_API_KEY: z.string().optional(), // Free at https://fred.stlouisfed.org/docs/api/api_key.html

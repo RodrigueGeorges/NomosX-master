@@ -19,60 +19,73 @@ export function formatTitle(title: string, options: TitleFormatOptions = { forma
   // Clean and normalize title
   const cleanTitle = title.trim();
   
+  let result = cleanTitle;
+  
   if (format === 'lawzero') {
     // Check if title already follows LawZero format
     if (validateTitleFormat(cleanTitle, 'lawzero')) {
-      return cleanTitle;
-    }
-    
-    // Try to convert to LawZero format
-    const parts = cleanTitle.split(':');
-    
-    if (parts.length >= 2) {
-      // Multiple parts found - format as [Concept]: [Subtitle]
-      const concept = parts[0].trim();
-      const subtitle = parts.slice(1).join(':').trim();
-      
-      // Enforce concept format if required
-      if (enforceConcept && !concept.match(/^\[.+\]$/)) {
-        return `[${concept}]: ${subtitle}`;
-      }
-      
-      return `${concept}: ${subtitle}`;
-    } else {
-      // Single part - convert to [Concept]: [Subtitle]
-      const words = cleanTitle.split(' ');
-      
-      if (words.length >= 3) {
-        // Try to identify concept (first 1-2 words)
-        const conceptWords = words.slice(0, Math.min(2, Math.ceil(words.length * 0.3)));
-        const subtitleWords = words.slice(conceptWords.length);
-        
-        const concept = conceptWords.join(' ');
-        const subtitle = subtitleWords.join(' ');
-        
-        if (enforceConcept) {
-          return `[${concept}]: ${subtitle}`;
+      if (enforceConcept) {
+        // Add brackets if concept doesn't have them
+        const parsed = parseTitle(cleanTitle);
+        if (!parsed.concept.match(/^\[.+\]$/)) {
+          result = `[${parsed.concept}]: ${parsed.subtitle}`;
+        } else {
+          result = cleanTitle;
         }
-        
-        return `${concept}: ${subtitle}`;
       } else {
-        // Too short for meaningful split - use as concept
-        if (enforceConcept) {
-          return `[${cleanTitle}]: Analysis`;
-        }
+        result = cleanTitle;
+      }
+    } else {
+      // Try to convert to LawZero format
+      const parts = cleanTitle.split(':');
+      
+      if (parts.length >= 2) {
+        // Multiple parts found - format as [Concept]: [Subtitle]
+        const concept = parts[0].trim();
+        const subtitle = parts.slice(1).join(':').trim();
         
-        return `${cleanTitle}: Analysis`;
+        if (enforceConcept && !concept.match(/^\[.+\]$/)) {
+          result = `[${concept}]: ${subtitle}`;
+        } else {
+          result = `${concept}: ${subtitle}`;
+        }
+      } else {
+        // Single part - convert to [Concept]: [Subtitle]
+        const words = cleanTitle.split(' ');
+        
+        // Only split if enough words (enforceConcept requires >= 3, otherwise > 3)
+        const shouldSplit = enforceConcept ? words.length >= 3 : words.length > 3;
+        
+        if (shouldSplit) {
+          // Try to identify concept (first 1-2 words)
+          const conceptWords = words.slice(0, Math.min(2, Math.ceil(words.length * 0.4)));
+          const subtitleWords = words.slice(conceptWords.length);
+          
+          const concept = conceptWords.join(' ');
+          const subtitle = subtitleWords.join(' ');
+          
+          if (enforceConcept) {
+            result = `[${concept}]: ${subtitle}`;
+          } else {
+            result = `${concept}: ${subtitle}`;
+          }
+        } else if (enforceConcept) {
+          // Too short for meaningful split - use as concept
+          result = `[${cleanTitle}]: Analysis`;
+        } else {
+          // Too short, leave as-is
+          result = cleanTitle;
+        }
       }
     }
   }
   
-  // Apply length limit if specified
-  if (maxLength && cleanTitle.length > maxLength) {
-    return cleanTitle.substring(0, maxLength - 3) + '...';
+  // Apply length limit if specified (applies to all formats)
+  if (maxLength && result.length > maxLength) {
+    return result.substring(0, maxLength) + '...';
   }
   
-  return cleanTitle;
+  return result;
 }
 
 /**
@@ -248,7 +261,7 @@ export function scoreTitleQuality(title: string): {
   }
   
   // Check concept quality
-  if (parsed.concept.length < 3) {
+  if (parsed.concept.length < 2) {
     issues.push('Concept too short');
     suggestions.push('Use more descriptive concept');
     score -= 15;

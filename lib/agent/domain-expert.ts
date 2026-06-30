@@ -90,11 +90,11 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
   },
   
   technology: {
-    id: 'tech-analyst',
+    id: 'technology-analyst',
     name: 'Dr. James Chen',
     title: 'AI & Digital Systems Analyst',
     domain: 'technology',
-    subDomains: ['machine-learning', 'cybersecurity', 'distributed-systems', 'computational-complexity', 'digital-transformation'],
+    subDomains: ['artificial-intelligence', 'machine-learning', 'cybersecurity', 'distributed-systems', 'computational-complexity', 'digital-transformation'],
     methodologies: ['Algorithm analysis', 'Benchmark evaluation', 'Reproducibility testing', 'Scalability assessment'],
     calibrationRules: [
       'Distinguish incremental from transformative advances',
@@ -170,7 +170,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
     name: 'Dr. Isabelle Moreau',
     title: 'Legal & Regulatory Analyst',
     domain: 'law',
-    subDomains: ['international-law', 'regulatory-frameworks', 'compliance', 'legal-theory', 'human-rights'],
+    subDomains: ['international-law', 'regulatory-frameworks', 'governance', 'compliance', 'legal-theory', 'human-rights'],
     methodologies: ['Legal analysis', 'Comparative law', 'Regulatory impact assessment', 'Compliance auditing'],
     calibrationRules: [
       'Distinguish law vs policy',
@@ -189,7 +189,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
     name: 'Dr. Kenji Tanaka',
     title: 'Environmental & Climate Analyst',
     domain: 'environment',
-    subDomains: ['climate-science', 'environmental-policy', 'sustainability', 'renewable-energy', 'ecosystems'],
+    subDomains: ['climate-science', 'climate-change', 'environmental-policy', 'sustainability', 'renewable-energy', 'ecosystems'],
     methodologies: ['Climate modeling', 'Environmental impact assessment', 'Life cycle analysis', 'Policy evaluation'],
     calibrationRules: [
       'Distinguish correlation from causation in climate systems',
@@ -280,11 +280,11 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
   },
   
   'energy-advanced': {
-    id: 'energy-analyst',
+    id: 'energy-advanced-analyst',
     name: 'Dr. Lisa Wang',
     title: 'Energy Systems Analyst',
     domain: 'energy-advanced',
-    subDomains: ['renewable-energy', 'energy-systems', 'energy-policy', 'grid-management', 'energy-economics'],
+    subDomains: ['renewable-energy', 'energy-systems', 'energy-policy', 'energy-security', 'grid-management', 'energy-economics'],
     methodologies: ['Energy modeling', 'Policy analysis', 'Technical assessment', 'Economic evaluation'],
     calibrationRules: [
       'Assess technical feasibility vs economic viability',
@@ -320,7 +320,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
   'cognitive-science': {
     id: 'cognitive-science-analyst',
     name: 'Dr. Emma Thompson',
-    title: 'Cognitive Science & Decision Analysis',
+    title: 'Cognitive Science & Decision Analyst',
     domain: 'cognitive-science',
     subDomains: ['cognitive-psychology', 'decision-theory', 'behavioral-economics', 'neuroscience', 'human-factors'],
     methodologies: ['Experimental psychology', 'Decision analysis', 'Cognitive modeling', 'Neuroimaging analysis'],

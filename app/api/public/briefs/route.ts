@@ -5,6 +5,7 @@ import { withRateLimit, rateLimitConfigs } from '@/lib/validation';
 import { FORMAT_TYPES_BY_FAMILY, getPublicationFormat } from '@/lib/publication-formats';
 import { publicPublicationWhere } from '@/lib/publication-visibility';
 import { htmlHasForesightSection } from '@/lib/foresight';
+import { extractBriefSummary } from '@/lib/agent/brief-html-extract';
 
 /**
  * GET /api/public/briefs
@@ -114,49 +115,12 @@ export async function GET(req: NextRequest) {
           let summary = '';
           try {
             const rawHtml = (brief.html || '').replace(/^```html?\s*/i, '').replace(/\s*```\s*$/, '').trim();
-            
-            // First try to extract from structured sections (Executive Summary, etc.)
-            const executiveSummaryMatch = rawHtml.match(/<h[1-6][^>]*>\s*(?:Executive Summary|Résumé exécutif|Summary|Synthèse)\s*<\/h[1-6]>\s*<p[^>]*>([\s\S]*?)<\/p>/i);
-            if (executiveSummaryMatch) {
-              const execSummary = executiveSummaryMatch[1].replace(/<[^>]*>/g, '').replace(/\[SRC-\d+\]/g, '').replace(/\s+/g, ' ').trim();
-              if (execSummary.length > 50) {
-                summary = execSummary.length > 320 ? execSummary.substring(0, 320) + '…' : execSummary;
-              }
-            }
-            
-            // If no executive summary, try to extract meaningful paragraphs
-            if (!summary) {
-              const paragraphMatches: RegExpMatchArray[] = [...rawHtml.matchAll(/<p[^>]*>([\s\S]*?)<\/p>/gi)];
-              const paragraphTexts = paragraphMatches
-                .map((m: RegExpMatchArray) => m[1].replace(/<[^>]*>/g, '').replace(/\[SRC-\d+\]/g, '').replace(/\s+/g, ' ').trim())
-                .filter((t: string) => t.length > 40 && t.length < 500) // Filter for substantial paragraphs
-                .slice(0, 3); // Take up to 3 good paragraphs
-                
-              if (paragraphTexts.length > 0) {
-                const teaser = paragraphTexts.join(' ').replace(/\s+/g, ' ');
-                summary = teaser.length > 320 ? teaser.substring(0, 320) + '…' : teaser;
-              }
-            }
-            
-            // Fallback to plain text extraction
-            if (!summary) {
-              const plainText = rawHtml.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
-              // Try to find the most substantive part
-              const sentences = plainText.split(/[.!?]+/).filter((s: string) => s.trim().length > 20);
-              if (sentences.length > 0) {
-                const bestSentences = sentences.slice(0, 3).join('. ').trim();
-                summary = bestSentences.length > 320 ? bestSentences.substring(0, 320) + '…' : bestSentences + '.';
-              } else {
-                summary = plainText.length > 300 ? plainText.substring(0, 300) + '…' : plainText;
-              }
-            }
-            
-            // Ensure we have a fallback
+            summary = extractBriefSummary(rawHtml);
             if (!summary || summary.length < 20) {
-              summary = 'Strategic analysis produced by NomosX autonomous researchers through a 16-stage verification pipeline.';
+              summary = 'Strategic analysis from the NomosX agentic pipeline — map, confront, quantify, decide.';
             }
           } catch {
-            summary = 'Strategic analysis produced by NomosX autonomous researchers through a 16-stage verification pipeline.';
+            summary = 'Strategic analysis from the NomosX agentic pipeline — map, confront, quantify, decide.';
           }
 
           // Estimate read time (200 words per minute)

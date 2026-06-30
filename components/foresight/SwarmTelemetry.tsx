@@ -9,11 +9,11 @@ interface SwarmTelemetryProps {
 
 export function SwarmTelemetry({ telemetry }: SwarmTelemetryProps) {
   const items = [
-    { icon: Users, label: "Swarm agents", value: telemetry.swarmSize.toLocaleString() },
-    { icon: Brain, label: "Voice personas", value: String(telemetry.voicePersonas) },
+    { icon: Users, label: "Trajectory runs", value: telemetry.swarmSize.toLocaleString() },
+    { icon: Brain, label: "Stakeholder voices", value: String(telemetry.voicePersonas) },
     { icon: Activity, label: "Simulation ticks", value: String(telemetry.tickCount) },
-    { icon: MessageSquare, label: "Social posts", value: String(telemetry.socialPostCount) },
-    { icon: Zap, label: "LLM ticks", value: String(telemetry.llmTickCount) },
+    { icon: MessageSquare, label: "Signal posts", value: String(telemetry.socialPostCount) },
+    { icon: Zap, label: "Model ticks", value: String(telemetry.llmTickCount) },
     { icon: Layers, label: "Seed runs", value: String(telemetry.seedRuns) },
     { icon: GitBranch, label: "Monte Carlo", value: telemetry.monteCarloRuns.toLocaleString() },
     {
@@ -32,7 +32,7 @@ export function SwarmTelemetry({ telemetry }: SwarmTelemetryProps) {
             key={item.label}
             className="rounded-xl border border-white/[0.06] bg-black/20 p-3"
           >
-            <Icon size={14} className="text-accent/60 mb-2" />
+            <Icon size={14} className="text-white/40 mb-2" />
             <div className="text-[9px] text-white/25 uppercase tracking-[0.14em] font-mono">
               {item.label}
             </div>
@@ -42,12 +42,15 @@ export function SwarmTelemetry({ telemetry }: SwarmTelemetryProps) {
       })}
 
       <div className="col-span-2 lg:col-span-4 rounded-xl border border-white/[0.06] bg-black/20 p-3 flex flex-wrap gap-4 text-[11px] font-mono text-white/40">
-        <span>GraphRAG : {telemetry.graphNodes} nœuds · {telemetry.graphEdges} arêtes ({telemetry.graphMethod})</span>
-        <span>Sources : {telemetry.sourceCount} · qualité {telemetry.sourceQualityAvg.toFixed(0)}/100</span>
-        <span>MC convergé : {telemetry.monteCarloConverged ? "oui" : "non"}</span>
-        {telemetry.totalCostUsd != null && (
-          <span>Coût sim : ${telemetry.totalCostUsd.toFixed(2)}</span>
-        )}
+        <span>
+          Evidence graph: {telemetry.graphNodes} nodes · {telemetry.graphEdges} edges (
+          {telemetry.graphMethod})
+        </span>
+        <span>
+          Sources: {telemetry.sourceCount} · quality {telemetry.sourceQualityAvg.toFixed(0)}/100
+        </span>
+        <span>MC converged: {telemetry.monteCarloConverged ? "yes" : "no"}</span>
+        {telemetry.totalCostUsd != null && <span>Run cost: ${telemetry.totalCostUsd.toFixed(2)}</span>}
       </div>
     </div>
   );

@@ -3,10 +3,10 @@ import { handleWebhookEvent } from '@/lib/stripe';
 
 /**
  * POST /api/stripe/webhook
- * 
- * Stripe webhook handler for subscription lifecycle events.
- * Verifies signature, processes checkout/subscription/invoice events.
- * 
+ *
+ * Stripe webhook handler for StudioX pay-per-commission orders.
+ * Verifies signature and marks StudioXOrder as PAID on checkout.session.completed.
+ *
  * Required env vars: STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET
  */
 export async function POST(req: NextRequest) {

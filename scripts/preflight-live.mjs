@@ -85,9 +85,8 @@ for (const file of [
   "package.json",
   "next.config.mjs",
   "prisma/schema.prisma",
-  "app/api/health/route.ts",
-  "app/api/ready/route.ts",
-  "app/api/system/health/route.ts",
+  "app/api/public/briefs/route.ts",
+  "app/api/stripe/webhook/route.ts",
   "middleware.ts",
 ]) {
   if (hasFile(file)) pass(`file:${file}`);

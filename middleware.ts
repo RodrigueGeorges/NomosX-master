@@ -15,7 +15,11 @@ function checkCsrf(request: NextRequest): boolean {
   const { pathname } = request.nextUrl;
 
   // Only cron/webhook routes bypass CSRF — they use CRON_SECRET or webhook signatures
-  const isInternalRoute = pathname.startsWith('/api/cron/') || pathname.startsWith('/api/webhooks/');
+  const isInternalRoute =
+    pathname.startsWith('/api/cron/') ||
+    pathname.startsWith('/api/webhooks/') ||
+    pathname === '/api/studiox/process' ||
+    pathname === '/api/stripe/webhook';
   if (isInternalRoute) {
     const adminKey = request.headers.get('x-admin-key');
     const authHeader = request.headers.get('authorization');
@@ -43,8 +47,9 @@ export function middleware(request: NextRequest) {
     return NextResponse.json({ error: 'CSRF validation failed' }, { status: 403 });
   }
 
-  // Auth guard: redirect to homepage if no session cookie on protected routes
-  const protectedPrefixes = ['/dashboard', '/studio', '/council', '/admin', '/library'];
+  // Auth guard: redirect to homepage if no session cookie on protected routes.
+  // Only guard routes that actually exist as pages (avoid protecting 404s).
+  const protectedPrefixes = ['/studio'];
   const isProtected = protectedPrefixes.some(p => pathname.startsWith(p));
   if (isProtected) {
     const session = request.cookies.get('nomosx-session')?.value;

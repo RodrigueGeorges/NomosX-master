@@ -2,47 +2,32 @@
  * Unit tests for Query Enhancer
  */
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
 import { enhanceQuery, quickEnhance, generateSearchQueries } from "../query-enhancer";
-import OpenAI from "openai";
+import { callLLM } from "../../llm/unified-llm";
 
-// Mock OpenAI
-vi.mock("openai");
+// Mock the LLM service used by the query enhancer
+jest.mock("../../llm/unified-llm");
+const mockCallLLM = callLLM as jest.MockedFunction<typeof callLLM>;
 
 describe("QueryEnhancer", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    jest.clearAllMocks();
   });
 
   describe("enhanceQuery", () => {
     it("should enhance French query with LLM", async () => {
-      const mockResponse = {
-        choices: [
-          {
-            message: {
-              content: JSON.stringify({
-                translated: "what are the impacts of AI on work in the next 30 years?",
-                enhanced: "artificial intelligence employment impact future labor market automation",
-                variations: [
-                  "AI job displacement automation workforce",
-                  "machine learning labor market transformation",
-                ],
-                keywords: ["artificial intelligence", "employment", "automation", "labor market"],
-                topics: ["economics", "computer science", "sociology"],
-              }),
-            },
-          },
-        ],
-      };
-
-      const mockCreate = vi.fn().mockResolvedValue(mockResponse);
-      (OpenAI as any).mockImplementation(() => ({
-        chat: {
-          completions: {
-            create: mockCreate,
-          },
-        },
-      }));
+      mockCallLLM.mockResolvedValue({
+        content: JSON.stringify({
+          translated: "what are the impacts of AI on work in the next 30 years?",
+          enhanced: "artificial intelligence employment impact future labor market automation",
+          variations: [
+            "AI job displacement automation workforce",
+            "machine learning labor market transformation",
+          ],
+          keywords: ["artificial intelligence", "employment", "automation", "labor market"],
+          topics: ["economics", "computer science", "sociology"],
+        }),
+      } as any);
 
       const result = await enhanceQuery("quels sont les impacts de l'IA sur le travail dans les 30 prochaines années ?");
 
@@ -51,34 +36,19 @@ describe("QueryEnhancer", () => {
       expect(result.enhanced).toContain("artificial intelligence");
       expect(result.keywords).toContain("employment");
       expect(result.topics).toContain("economics");
-      expect(mockCreate).toHaveBeenCalled();
+      expect(mockCallLLM).toHaveBeenCalled();
     });
 
     it("should handle English query", async () => {
-      const mockResponse = {
-        choices: [
-          {
-            message: {
-              content: JSON.stringify({
-                translated: "carbon tax effectiveness climate change",
-                enhanced: "carbon pricing policy climate mitigation emissions reduction",
-                variations: ["carbon tax environmental policy", "emission trading carbon levy"],
-                keywords: ["carbon tax", "carbon pricing", "climate policy"],
-                topics: ["environmental economics", "climate science"],
-              }),
-            },
-          },
-        ],
-      };
-
-      const mockCreate = vi.fn().mockResolvedValue(mockResponse);
-      (OpenAI as any).mockImplementation(() => ({
-        chat: {
-          completions: {
-            create: mockCreate,
-          },
-        },
-      }));
+      mockCallLLM.mockResolvedValue({
+        content: JSON.stringify({
+          translated: "carbon tax effectiveness climate change",
+          enhanced: "carbon pricing policy climate mitigation emissions reduction",
+          variations: ["carbon tax environmental policy", "emission trading carbon levy"],
+          keywords: ["carbon tax", "carbon pricing", "climate policy"],
+          topics: ["environmental economics", "climate science"],
+        }),
+      } as any);
 
       const result = await enhanceQuery("carbon tax effectiveness climate change");
 
@@ -87,14 +57,7 @@ describe("QueryEnhancer", () => {
     });
 
     it("should fallback on LLM error", async () => {
-      const mockCreate = vi.fn().mockRejectedValue(new Error("OpenAI API error"));
-      (OpenAI as any).mockImplementation(() => ({
-        chat: {
-          completions: {
-            create: mockCreate,
-          },
-        },
-      }));
+      mockCallLLM.mockRejectedValue(new Error("OpenAI API error"));
 
       const result = await enhanceQuery("test query");
 

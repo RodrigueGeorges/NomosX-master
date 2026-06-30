@@ -65,6 +65,12 @@ export function extractPipelineScores(
   const trustScore =
     (typeof da?.publishabilityScore === "number" ? Math.round(da.publishabilityScore) : undefined) ??
     (typeof critical?.finalScore === "number" ? Math.round(critical.finalScore) : undefined) ??
+    (typeof (lineage.editorialArbiter as Record<string, unknown> | undefined)?.confidence === "number"
+      ? Math.round((lineage.editorialArbiter as { confidence: number }).confidence)
+      : undefined) ??
+    (typeof (stats.editorialArbiter as Record<string, unknown> | undefined)?.confidence === "number"
+      ? Math.round((stats.editorialArbiter as { confidence: number }).confidence)
+      : undefined) ??
     scaleScore(brief?.trustScore ?? null) ??
     70;
 

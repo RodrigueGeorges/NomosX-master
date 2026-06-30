@@ -67,7 +67,7 @@ async function checkRedisConfig() {
 async function checkAppEndpoint() {
   const checkStart = performance.now();
   try {
-    const response = await fetch(`${appUrl.replace(/\/$/, "")}/api/health`, { method: "GET" });
+    const response = await fetch(`${appUrl.replace(/\/$/, "")}/api/public/briefs?limit=1`, { method: "GET" });
     result.checks.http = {
       status: response.ok ? "healthy" : "warning",
       statusCode: response.status,

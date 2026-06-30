@@ -201,30 +201,31 @@ function metadataBar(sources: any[], wordCount: number): string {
 const BRIEF_CSS = `
 <style>
   :root {
-    --bg: #0F172A;
-    --bg-card: #1E293B;
-    --bg-elevated: #334155;
-    --text: #E2E8F0;
-    --text-muted: #94A3B8;
-    --text-dim: #64748B;
-    --accent: #3B82F6;
+    --bg: #000000;
+    --bg-card: #0a0a0a;
+    --bg-elevated: #141414;
+    --text: #e4e4e7;
+    --text-muted: #a1a1aa;
+    --text-dim: #52525b;
+    --accent: #ffffff;
     --accent-green: #10B981;
     --accent-red: #F87171;
     --accent-amber: #F59E0B;
-    --border: #334155;
+    --border: rgba(255,255,255,0.08);
     --font: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
     --font-serif: 'Merriweather', 'Georgia', serif;
   }
 
   @media (prefers-color-scheme: light) {
     :root {
-      --bg: #FFFFFF;
-      --bg-card: #F8FAFC;
-      --bg-elevated: #F1F5F9;
-      --text: #1E293B;
-      --text-muted: #64748B;
-      --text-dim: #94A3B8;
-      --border: #E2E8F0;
+      --bg: #ffffff;
+      --bg-card: #fafafa;
+      --bg-elevated: #f4f4f5;
+      --text: #18181b;
+      --text-muted: #52525b;
+      --text-dim: #71717a;
+      --accent: #000000;
+      --border: rgba(0,0,0,0.08);
     }
   }
 

@@ -36,11 +36,11 @@ export function renderSimulationHtmlSection(report: SimulationReport): string {
     : "";
 
   return `
-<section id="simulated-outcomes" class="foresight-outcomes" data-nomosx-foresight="v3">
-  <h2>Simulated Outcomes</h2>
+<section id="prospective-distribution" class="foresight-outcomes" data-nomosx-foresight="v3">
+  <h2>Prospective distribution</h2>
   <p class="foresight-methodology">
-    NomosX Foresight Engine — ${out.swarmSize} agents, ${out.seedRuns} seeds,
-    ${out.monteCarloRuns} Monte Carlo runs. Scenarios are weighted projections, not predictions.
+    NomosX Prospective Engine — ${out.monteCarloRuns} Monte Carlo runs, ${out.seedRuns} seeds.
+    Scenarios are weighted projections, not predictions.
   </p>
   ${exec}
   <table class="foresight-scenarios">
@@ -49,8 +49,8 @@ export function renderSimulationHtmlSection(report: SimulationReport): string {
   </table>
   ${redTeam}
   <p class="foresight-disclaimer"><em>
-    Methodological note: empirical probabilities emerge from multi-agent simulation calibrated on ranked academic sources.
-    They express scenario weight, not certainty. See interactive Foresight panel for full telemetry.
+    Methodological note: empirical probabilities emerge from calibrated prospective runs on ranked academic sources.
+    They express scenario weight, not certainty.
   </em></p>
 </section>`;
 }
@@ -64,5 +64,5 @@ export function appendSimulationToHtml(html: string, section: string): string {
 }
 
 export function htmlHasForesightSection(html: string): boolean {
-  return html.includes("data-nomosx-foresight=") || html.includes('id="simulated-outcomes"');
+  return html.includes("data-nomosx-foresight=") || html.includes('id="prospective-distribution"') || html.includes('id="simulated-outcomes"');
 }

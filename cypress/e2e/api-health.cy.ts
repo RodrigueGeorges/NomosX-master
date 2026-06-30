@@ -6,10 +6,10 @@
  */
 
 describe('API Health & Security', () => {
-  it('Health endpoint responds 200', () => {
-    cy.request('/api/health').then((resp) => {
+  it('Public briefs endpoint responds 200', () => {
+    cy.request('/api/public/briefs?limit=1').then((resp) => {
       expect(resp.status).to.eq(200);
-      expect(resp.body).to.have.property('status', 'ok');
+      expect(resp.body).to.have.property('briefs');
     });
   });
 
@@ -21,9 +21,9 @@ describe('API Health & Security', () => {
 
   it('Protected routes reject unauthenticated requests', () => {
     const protectedRoutes = [
-      '/api/subscription/status',
-      '/api/user/preferences',
-      '/api/think-tank/signals',
+      '/api/studiox',
+      '/api/studiox/checkout',
+      '/api/auth/me',
     ];
 
     protectedRoutes.forEach((route) => {

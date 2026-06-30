@@ -1005,7 +1005,9 @@ model User {
 }
 
 // ============================================================================
-// SUBSCRIPTION & PRICING
+// SUBSCRIPTION (legacy — billing tiers deprecated, StudioX is pay-per-use)
+// Kept for: stripeCustomerId storage, trial row at signup, newsletter plan hint.
+// Do not add new tier/plan logic here; migrate to User.stripeCustomerId later.
 // ============================================================================
 
 model Subscription {
@@ -1878,12 +1880,24 @@ model StudioXOrder {
   currency            String  @default("eur")
   stripeSessionId     String? @unique
   stripePaymentIntent String? @unique
-  status              String  @default("PENDING") // PENDING | PAID | FAILED | EXPIRED
+  status              String  @default("PENDING") // PENDING | PAID | QUEUED | RUNNING | DONE | FAILED | REFUNDED | EXPIRED
+
+  // Async pipeline execution
+  jobId           String?
+  pipelineRunId   String?
+  progressStep    String?
+  progressPct     Int?
+  progressMessage String?  @db.Text
+  failureReason   String?  @db.Text
+  startedAt       DateTime?
+  failedAt        DateTime?
 
   // Result
-  result      String?  @db.Text
-  paidAt      DateTime?
-  completedAt DateTime?
+  result          String?  @db.Text
+  paidAt          DateTime?
+  completedAt     DateTime?
+  refundedAt      DateTime?
+  stripeRefundId  String?  @unique
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1891,4 +1905,5 @@ model StudioXOrder {
   @@index([userId])
   @@index([stripeSessionId])
   @@index([status])
+  @@index([jobId])
 }

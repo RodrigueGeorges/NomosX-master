@@ -1,4 +1,34 @@
 import '@testing-library/jest-dom'
+import { TextEncoder, TextDecoder } from 'util'
+
+// --- Polyfills for the jsdom test environment ---------------------------------
+// jsdom does not expose Node's Web Fetch API or text codecs, which the OpenAI SDK
+// and other libraries require at import time.
+if (typeof global.TextEncoder === 'undefined') global.TextEncoder = TextEncoder
+if (typeof global.TextDecoder === 'undefined') global.TextDecoder = TextDecoder
+if (typeof global.fetch === 'undefined') {
+  // require() (not import) so it runs AFTER TextDecoder is defined: undici needs it at load.
+  const { fetch, Headers, Request, Response } = require('undici')
+  global.fetch = fetch
+  global.Headers = Headers
+  global.Request = Request
+  global.Response = Response
+}
+
+// Provide dummy required env vars so modules that validate env at import time
+// (lib/env.ts via unified-llm / pipeline) can load in unit tests.
+process.env.NODE_ENV = process.env.NODE_ENV || 'test'
+process.env.DATABASE_URL =
+  process.env.DATABASE_URL || 'postgresql://test:test@localhost:5432/nomosx_test'
+process.env.JWT_SECRET =
+  process.env.JWT_SECRET || 'test-jwt-secret-key-with-at-least-32-characters'
+
+// Jest 30 removed the global `fail()` helper. Restore it for legacy tests.
+if (typeof global.fail === 'undefined') {
+  global.fail = (reason = 'fail() called') => {
+    throw new Error(typeof reason === 'string' ? reason : JSON.stringify(reason))
+  }
+}
 
 // Mock Next.js router
 jest.mock('next/router', () => ({

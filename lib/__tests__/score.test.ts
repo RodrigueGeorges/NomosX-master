@@ -1,4 +1,4 @@
-import { computeQualityScore, computeNoveltyScore } from '../score';
+import { scoreSource as computeQualityScore, scoreNovelty as computeNoveltyScore } from '../score';
 
 describe('computeQualityScore', () => {
   it('should give max recency score for current year papers', () => {
@@ -9,7 +9,7 @@ describe('computeQualityScore', () => {
       oaStatus: null,
       provider: 'openalex',
       type: 'paper',
-      hasInstitution: false,
+      institutions: [],
     };
     
     const score = computeQualityScore(source);
@@ -100,7 +100,7 @@ describe('computeQualityScore', () => {
       oaStatus: null,
       provider: 'openalex',
       type: 'paper',
-      hasInstitution: true,
+      institutions: ['MIT'],
     };
     
     const noInstScore = computeQualityScore(noInstSource);
@@ -125,7 +125,7 @@ describe('computeQualityScore', () => {
       year,
       citationCount: 10,
       oaStatus: null,
-      provider: 'thesesfr',
+      provider: 'openalex', // neutral provider to isolate the thesis type bonus
       type: 'thesis',
       hasInstitution: false,
     };
@@ -143,7 +143,7 @@ describe('computeQualityScore', () => {
       oaStatus: 'gold',
       provider: 'semanticscholar',
       type: 'thesis',
-      hasInstitution: true,
+      institutions: ['MIT'],
     };
     
     const score = computeQualityScore(perfectSource);

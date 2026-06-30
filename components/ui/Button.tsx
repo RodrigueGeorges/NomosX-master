@@ -1,7 +1,6 @@
 import React from 'react';
 
 import { cn } from '@/lib/utils';
-import { LoadingSpinner } from './LoadingSpinner';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "primary" | "outline" | "destructive" | "secondary" | "ghost" | "ai" | "danger" | "success";
@@ -18,23 +17,23 @@ export function Button({
   disabled,
   ...props 
 }: ButtonProps) {
-  const base = "inline-flex items-center justify-center gap-2 rounded-2xl font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-accent/50 disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden group";
+  const base = "inline-flex items-center justify-center gap-2 font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-white/25 disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden group";
   
   const sizes = { 
-    sm: "h-8 px-2.5 text-xs sm:h-9 sm:px-3 sm:text-sm", 
-    md: "h-10 px-3 text-sm sm:h-11 sm:px-4", 
-    lg: "h-11 px-4 text-sm sm:h-12 sm:px-5 sm:text-base" 
+    sm: "h-8 px-2.5 text-[10px] sm:h-9 sm:px-3 uppercase tracking-[0.12em]", 
+    md: "h-10 px-3 text-[11px] sm:h-11 sm:px-4 uppercase tracking-[0.12em]", 
+    lg: "h-11 px-4 text-[11px] sm:h-12 sm:px-5 sm:text-xs uppercase tracking-[0.14em]" 
   }[size];
   
   const variants = {
-    primary: "bg-accent text-white hover:brightness-110 hover:scale-[1.02] active:scale-[0.98] shadow-card",
-    secondary: "bg-transparent text-text border border-border hover:bg-panel2 hover:border-accent/40",
-    ai: "bg-ai text-black hover:brightness-105 hover:scale-[1.02] active:scale-[0.98] shadow-glow hover:shadow-[0_0_30px_rgba(94,234,212,0.25)]",
-    ghost: "bg-transparent text-text border border-border hover:bg-panel hover:border-border-hover",
-    danger: "bg-danger text-white hover:brightness-110 hover:scale-[1.02] active:scale-[0.98]",
-    success: "bg-success text-white hover:brightness-110 hover:scale-[1.02] active:scale-[0.98]",
-    outline: "bg-transparent text-text border border-border hover:bg-panel hover:border-accent/40",
-    destructive: "bg-danger text-white hover:brightness-110 hover:scale-[1.02] active:scale-[0.98]"
+    primary: "bg-white text-black hover:bg-white/90",
+    secondary: "bg-transparent text-white/80 border border-white/30 hover:border-white/60 hover:text-white",
+    ai: "bg-white text-black hover:bg-white/90",
+    ghost: "bg-transparent text-white/60 border border-white/15 hover:border-white/35 hover:text-white",
+    danger: "bg-red-600 text-white hover:bg-red-500",
+    success: "bg-emerald-600 text-white hover:bg-emerald-500",
+    outline: "bg-transparent text-white/80 border border-white/30 hover:border-white/60 hover:text-white",
+    destructive: "bg-red-600 text-white hover:bg-red-500"
   }[variant];
   
   return (
@@ -43,11 +42,10 @@ export function Button({
       disabled={disabled || loading}
       {...props}
     >
-      {/* Shimmer effect on hover */}
-      <span className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-      
-      {loading && <LoadingSpinner size={16} />}
-      <span className={cn("transition-opacity", loading && "opacity-0")}>{children}</span>
+      {loading ? (
+        <span className="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin" />
+      ) : null}
+      <span className={cn(loading && "opacity-0 absolute")}>{children}</span>
     </button>
   );
 }

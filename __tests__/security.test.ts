@@ -89,7 +89,9 @@ describe('Security Middleware', () => {
       expect(mockNextResponse.headers.get('X-Frame-Options')).toBe('DENY');
       expect(mockNextResponse.headers.get('X-Content-Type-Options')).toBe('nosniff');
       expect(mockNextResponse.headers.get('Referrer-Policy')).toBe('strict-origin-when-cross-origin');
-      expect(mockNextResponse.headers.get('X-XSS-Protection')).toBe('1; mode=block');
+      // X-XSS-Protection is deprecated and intentionally NOT set; modern headers used instead.
+      expect(mockNextResponse.headers.get('Strict-Transport-Security')).toContain('max-age=');
+      expect(mockNextResponse.headers.get('Permissions-Policy')).toContain('camera=()');
     });
 
     it('should set CSP header for pages only', () => {
@@ -104,7 +106,8 @@ describe('Security Middleware', () => {
       
       const csp = mockNextResponse.headers.get('Content-Security-Policy');
       expect(csp).toContain("default-src 'self'");
-      expect(csp).toContain("script-src 'self' 'unsafe-eval'");
+      // CSP intentionally omits 'unsafe-eval' (tighter policy); only 'unsafe-inline' is allowed.
+      expect(csp).toContain("script-src 'self' 'unsafe-inline'");
     });
 
     it('should not set CSP header for API routes', () => {
@@ -117,7 +120,8 @@ describe('Security Middleware', () => {
       
       middleware(mockRequest as NextRequest);
       
-      expect(mockNextResponse.headers.get('Content-Security-Policy')).toBeNull();
+      // Header was never set, so Map.get returns undefined (not null).
+      expect(mockNextResponse.headers.get('Content-Security-Policy')).toBeUndefined();
     });
   });
 

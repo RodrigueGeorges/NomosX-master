@@ -9,7 +9,7 @@ jest.mock('openai', () => ({
   default: jest.fn(),
 }));
 
-import { citationGuard } from '../pipeline';
+import { citationGuard } from '../pipeline-v2';
 
 describe('CITATION GUARD Agent', () => {
   describe('Valid citations', () => {

@@ -217,10 +217,10 @@ DATABASE_URL_UNPOOLED=postgresql://user:password@localhost:5432/nomosx
 OPENAI_API_KEY=sk-proj-...
 OPENAI_MODEL=gpt-4o
 
-# === SECURITY ===
+# === SECURITY === (generate strong random values, e.g. `openssl rand -hex 32`)
 JWT_SECRET=your-super-secret-jwt-key-32-chars-minimum
-ADMIN_KEY=admin-nomosx-secure-key-2026
-CRON_SECRET=cron-nomosx-webhook-secret-2026
+ADMIN_KEY=your-admin-key
+CRON_SECRET=your-cron-secret
 
 # === REDIS (Upstash) ===
 UPSTASH_REDIS_REST_URL=https://xxx.upstash.io
@@ -229,12 +229,12 @@ UPSTASH_REDIS_REST_TOKEN=AYyVAAIncDFl...
 # === EMAIL ===
 EMAIL_PROVIDER=resend
 FROM_EMAIL=noreply@nomosx.com
-RESEND_API_KEY=re_gr7fKc9T_N44HbXahfGwtbj8xuAornxAY
+RESEND_API_KEY=re_your_resend_api_key
 
 # === PROVIDERS ===
-GOOGLE_CSE_API_KEY=AIzaSyBqGDe5CwvmhtVcebCVz0nrXu28qPPhZS8
-GOOGLE_CSE_CX=052848175e3404dc6
-LINKUP_API_KEY=800bf484-ccbd-4b51-acdb-8a86d36f7a1e
+GOOGLE_CSE_API_KEY=your-google-cse-api-key
+GOOGLE_CSE_CX=your-google-cse-cx
+LINKUP_API_KEY=your-linkup-api-key
 UNPAYWALL_EMAIL=your-email@example.com
 
 # === MONITORING ===

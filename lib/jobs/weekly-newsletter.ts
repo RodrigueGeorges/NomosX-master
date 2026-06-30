@@ -14,6 +14,7 @@ import { prisma } from '@/lib/db';
 import { publicPublicationWhere } from '@/lib/publication-visibility';
 import { sendBulkNewsletter } from '@/lib/email';
 import { inquiryUrl } from '@/lib/public-urls';
+import { EMAIL_BRAND as E, emailTrustColor } from '@/lib/brand/email-brand';
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://nomosx.com';
 const UTM = 'utm_source=email&utm_medium=newsletter&utm_campaign=weekly';
@@ -27,10 +28,10 @@ function renderBriefFree(brief: { id: string; title: string; summary: string; pu
   const briefUrl = `${inquiryUrl(brief.publicId || brief.id, true)}?${UTM}`;
 
   return `
-    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:${index < total - 1 ? '24px' : '0'};padding-bottom:${index < total - 1 ? '24px' : '0'};border-bottom:${index < total - 1 ? '1px solid #27272a' : 'none'};">
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:${index < total - 1 ? '24px' : '0'};padding-bottom:${index < total - 1 ? '24px' : '0'};border-bottom:${index < total - 1 ? `1px solid ${E.borderSolid}` : 'none'};">
       <tr>
         <td>
-          <p style="font-size:10px;font-weight:700;letter-spacing:0.18em;color:#6366f1;text-transform:uppercase;margin:0 0 8px;">
+          <p style="${E.eyebrow}margin:0 0 8px;">
             Brief ${index + 1} of ${total}
           </p>
           <h2 style="font-size:17px;font-weight:400;color:#f4f4f5;margin:0 0 10px;line-height:1.4;">
@@ -39,14 +40,12 @@ function renderBriefFree(brief: { id: string; title: string; summary: string; pu
           <p style="font-size:14px;color:#71717a;line-height:1.6;margin:0 0 12px;">
             ${hook}
           </p>
-          <!-- Blurred teaser block -->
-          <div style="position:relative;overflow:hidden;border-radius:6px;margin-bottom:16px;">
-            <p style="font-size:13px;color:#52525b;line-height:1.6;margin:0;filter:blur(3px);user-select:none;pointer-events:none;padding:12px;background:#111113;border:1px solid #27272a;border-radius:6px;">
+          <div style="position:relative;overflow:hidden;margin-bottom:16px;">
+            <p style="font-size:13px;color:${E.dim};line-height:1.6;margin:0;filter:blur(3px);user-select:none;pointer-events:none;padding:12px;background:${E.surface};border:1px solid ${E.borderSolid};">
               ${brief.summary.slice(120, 280)}…
             </p>
           </div>
-          <a href="${briefUrl}"
-             style="display:inline-block;background:linear-gradient(135deg,#6366f1,#7c3aed);color:#fff;text-decoration:none;padding:10px 22px;border-radius:7px;font-size:13px;font-weight:500;letter-spacing:0.01em;">
+          <a href="${briefUrl}" style="${E.ctaSm}">
             Unlock full brief →
           </a>
         </td>
@@ -59,10 +58,10 @@ function renderBriefAnalyst(brief: { id: string; title: string; summary: string;
   const briefUrl = `${inquiryUrl(brief.publicId || brief.id, true)}?${UTM}`;
 
   return `
-    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:${index < total - 1 ? '24px' : '0'};padding-bottom:${index < total - 1 ? '24px' : '0'};border-bottom:${index < total - 1 ? '1px solid #27272a' : 'none'};">
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:${index < total - 1 ? '24px' : '0'};padding-bottom:${index < total - 1 ? '24px' : '0'};border-bottom:${index < total - 1 ? `1px solid ${E.borderSolid}` : 'none'};">
       <tr>
         <td>
-          <p style="font-size:10px;font-weight:700;letter-spacing:0.18em;color:#6366f1;text-transform:uppercase;margin:0 0 8px;">
+          <p style="${E.eyebrow}margin:0 0 8px;">
             Brief ${index + 1} of ${total}
           </p>
           <h2 style="font-size:17px;font-weight:400;color:#f4f4f5;margin:0 0 10px;line-height:1.4;">
@@ -77,8 +76,7 @@ function renderBriefAnalyst(brief: { id: string; title: string; summary: string;
                 <span style="font-size:12px;color:#52525b;">${brief.sourceCount} sources</span>
               </td>
               <td>
-                <a href="${briefUrl}"
-                   style="font-size:13px;color:#818cf8;text-decoration:none;font-weight:500;">
+                <a href="${briefUrl}" style="${E.linkPlain}">
                   Read full brief →
                 </a>
               </td>
@@ -91,16 +89,16 @@ function renderBriefAnalyst(brief: { id: string; title: string; summary: string;
 
 function renderBriefResearcher(brief: { id: string; title: string; summary: string; sourceCount: number; trustScore?: number; publicId?: string }, index: number, total: number): string {
   const briefUrl = `${inquiryUrl(brief.publicId || brief.id, true)}?${UTM}`;
-  const trustColor = (brief.trustScore || 0) >= 85 ? '#10b981' : (brief.trustScore || 0) >= 70 ? '#f59e0b' : '#6366f1';
+  const trustColor = emailTrustColor(brief.trustScore || 0);
 
   return `
-    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:${index < total - 1 ? '24px' : '0'};padding-bottom:${index < total - 1 ? '24px' : '0'};border-bottom:${index < total - 1 ? '1px solid #27272a' : 'none'};">
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:${index < total - 1 ? '24px' : '0'};padding-bottom:${index < total - 1 ? '24px' : '0'};border-bottom:${index < total - 1 ? `1px solid ${E.borderSolid}` : 'none'};">
       <tr>
         <td>
           <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:10px;">
             <tr>
               <td>
-                <p style="font-size:10px;font-weight:700;letter-spacing:0.18em;color:#6366f1;text-transform:uppercase;margin:0;">
+                <p style="${E.eyebrow}margin:0;">
                   Brief ${index + 1} of ${total}
                 </p>
               </td>
@@ -123,8 +121,7 @@ function renderBriefResearcher(brief: { id: string; title: string; summary: stri
                 <span style="font-size:12px;color:#52525b;">${brief.sourceCount} peer-reviewed sources</span>
               </td>
               <td>
-                <a href="${briefUrl}"
-                   style="font-size:13px;color:#818cf8;text-decoration:none;font-weight:500;">
+                <a href="${briefUrl}" style="${E.linkPlain}">
                   Read full brief →
                 </a>
               </td>
@@ -162,10 +159,9 @@ function generateNewsletterHTML(
     : `NomosX Weekly #${edition.number} — your intelligence dispatch`;
 
   const upgradeCTA = tier === 'FREE' ? `
-        <!-- Upgrade CTA (FREE only) -->
         <tr><td style="padding-top:8px;"></td></tr>
-        <tr><td style="background:linear-gradient(135deg,rgba(99,102,241,0.12),rgba(124,58,237,0.08));border:1px solid rgba(99,102,241,0.22);border-radius:12px;padding:28px 32px;text-align:center;">
-          <p style="font-size:10px;font-weight:700;letter-spacing:0.18em;color:#6366f1;text-transform:uppercase;margin:0 0 10px;">
+        <tr><td style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.10);padding:28px 32px;text-align:center;">
+          <p style="${E.eyebrow}margin:0 0 10px;">
             Unlock full access
           </p>
           <h3 style="font-size:18px;font-weight:300;color:#fff;margin:0 0 8px;line-height:1.3;">
@@ -175,23 +171,20 @@ function generateNewsletterHTML(
             Analyst members receive the full summary + direct link to every brief.<br/>
             Researcher members get trust scores, source counts, and commission rights.
           </p>
-          <a href="${APP_URL}/pricing?${UTM}&tier=analyst"
-             style="display:inline-block;background:linear-gradient(135deg,#6366f1,#7c3aed);color:#fff;text-decoration:none;padding:12px 28px;border-radius:8px;font-size:14px;font-weight:500;margin-bottom:12px;">
+          <a href="${APP_URL}/pricing?${UTM}&tier=analyst" style="${E.cta}margin-bottom:12px;">
             Upgrade to Analyst →
           </a>
-          <p style="font-size:12px;color:#52525b;margin:0;">
+          <p style="font-size:12px;color:${E.dim};margin:0;">
             From $29/month · Cancel anytime
           </p>
         </td></tr>` : tier === 'ANALYST' ? `
-        <!-- Commission CTA (ANALYST) -->
         <tr><td style="padding-top:8px;"></td></tr>
-        <tr><td style="background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.15);border-radius:12px;padding:24px 32px;text-align:center;">
-          <p style="font-size:13px;color:#a1a1aa;margin:0 0 14px;line-height:1.6;">
+        <tr><td style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.08);padding:24px 32px;text-align:center;">
+          <p style="font-size:13px;color:${E.muted};margin:0 0 14px;line-height:1.6;">
             Want a 15-page strategic report on any of these topics?<br/>
-            <strong style="color:#e4e4e7;">Researcher</strong> members commission briefs on demand.
+            <strong style="color:${E.text};">Researcher</strong> members commission briefs on demand.
           </p>
-          <a href="${APP_URL}/pricing?${UTM}&tier=researcher"
-             style="font-size:13px;color:#818cf8;text-decoration:none;font-weight:500;">
+          <a href="${APP_URL}/pricing?${UTM}&tier=researcher" style="${E.linkPlain}">
             See Researcher plan →
           </a>
         </td></tr>` : '';
@@ -204,44 +197,40 @@ function generateNewsletterHTML(
   <meta name="color-scheme" content="dark"/>
   <title>NomosX Weekly #${edition.number}</title>
 </head>
-<body style="margin:0;padding:0;background:#09090b;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;color:#e4e4e7;-webkit-font-smoothing:antialiased;">
+<body style="margin:0;padding:0;background:${E.bg};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;color:${E.text};-webkit-font-smoothing:antialiased;">
   <!-- Preheader -->
   <div style="display:none;max-height:0;overflow:hidden;mso-hide:all;font-size:1px;line-height:1px;opacity:0;">${preheader}</div>
 
-  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#09090b;padding:40px 20px;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${E.bg};padding:40px 20px;">
     <tr><td align="center">
       <table width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;">
 
-        <!-- Logo + Header -->
         <tr><td style="padding-bottom:28px;text-align:center;">
           <p style="font-size:24px;font-weight:300;letter-spacing:-0.02em;color:#fff;margin:0 0 4px;">
-            Nomos<span style="color:#818cf8;font-weight:600;">X</span>
+            Nomos<span style="${E.logoX}">X</span>
           </p>
-          <p style="font-size:10px;font-weight:700;letter-spacing:0.22em;color:#6366f1;text-transform:uppercase;margin:0;">
+          <p style="${E.eyebrow}margin:0;">
             Intelligence Dispatch
           </p>
         </td></tr>
 
-        <!-- Edition meta -->
         <tr><td style="padding-bottom:20px;text-align:center;">
-          <p style="font-size:12px;color:#3f3f46;margin:0;">
-            Edition #${edition.number} &nbsp;·&nbsp; ${edition.date} &nbsp;·&nbsp; <span style="color:#52525b;">${tierLabel}</span>
+          <p style="font-size:12px;color:${E.dim};margin:0;">
+            Edition #${edition.number} &nbsp;·&nbsp; ${edition.date} &nbsp;·&nbsp; <span style="color:${E.muted};">${tierLabel}</span>
           </p>
         </td></tr>
 
-        <!-- Intro -->
-        <tr><td style="background:#111113;border:1px solid #27272a;border-radius:10px;padding:20px 24px;margin-bottom:20px;">
-          <p style="font-size:14px;color:#a1a1aa;line-height:1.65;margin:0;">
+        <tr><td style="background:${E.surface};border:1px solid ${E.borderSolid};padding:20px 24px;margin-bottom:20px;">
+          <p style="font-size:14px;color:${E.muted};line-height:1.65;margin:0;">
             This week, the NomosX Think Tank published
-            <strong style="color:#e4e4e7;">${briefs.length} peer-reviewed brief${briefs.length > 1 ? 's' : ''}</strong>
-            — sourced from 250M+ academic publications, validated by 9 PhD-calibrated research agents.
+            <strong style="color:${E.text};">${briefs.length} peer-reviewed brief${briefs.length > 1 ? 's' : ''}</strong>
+            — sourced from 250M+ academic publications, validated through the agentic arbitration pipeline.
           </p>
         </td></tr>
 
         <tr><td style="padding:16px 0;"></td></tr>
 
-        <!-- Briefs card -->
-        <tr><td style="background:#111113;border:1px solid #27272a;border-radius:12px;padding:28px 32px;">
+        <tr><td style="background:${E.surface};border:1px solid ${E.borderSolid};padding:28px 32px;">
           ${briefsHTML}
         </td></tr>
 
@@ -250,7 +239,7 @@ function generateNewsletterHTML(
         <!-- Footer -->
         <tr><td style="padding-top:28px;text-align:center;">
           <p style="font-size:12px;color:#3f3f46;margin:0 0 6px;">
-            NomosX · The Autonomous Think Tank
+            NomosX · The Agentic Think Tank
           </p>
           <p style="font-size:12px;color:#3f3f46;margin:0;">
             <a href="${APP_URL}/api/newsletter/unsubscribe?email=${subscriberEmail}&${UTM}" style="color:#52525b;text-decoration:none;">Unsubscribe</a>

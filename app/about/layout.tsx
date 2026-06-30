@@ -3,16 +3,16 @@ import { Metadata } from 'next';
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://nomosx.com';
 
 export const metadata: Metadata = {
-  title: 'About — The Autonomous Think Tank',
-  description: 'NomosX is a 22-researcher autonomous think tank. 250M+ academic sources, 16 verification agents, adversarial peer review. Verified research accessible to everyone.',
+  title: 'About — The Agentic Think Tank',
+  description: 'NomosX is an agentic think tank for probabilistic foresight. Cross-domain mapping, scenario distributions, and institute positions — verified from 250M+ sources.',
   alternates: { canonical: `${BASE_URL}/about` },
   openGraph: {
-    title: 'About NomosX — The Autonomous Think Tank',
-    description: '22 PhD-calibrated AI researchers scan 250M+ academic publications and publish source-grounded briefs autonomously. Learn about our mission.',
+    title: 'About NomosX — The Agentic Think Tank',
+    description: 'Probable futures. Decisions owned. Evidence verified. Learn about our mission.',
   },
   twitter: {
-    title: 'About NomosX — The Autonomous Think Tank',
-    description: '22 PhD-calibrated AI researchers scan 250M+ academic publications and publish source-grounded briefs autonomously.',
+    title: 'About NomosX — The Agentic Think Tank',
+    description: 'Probable futures. Decisions owned. Evidence verified.',
   },
 };
 

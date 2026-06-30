@@ -68,8 +68,8 @@ export class LinkUpClient {
   private cache: Map<string, { data: any; timestamp: number; ttl: number }>;
   private rateLimiter: { tokens: number; lastRefill: number };
   
-  constructor(apiKey: string) {
-    this.apiKey = apiKey;
+  constructor(apiKey?: string) {
+    this.apiKey = apiKey ?? process.env.LINKUP_API_KEY ?? '';
     this.baseUrl = 'https://app.linkup.so/api/v1';
     this.cache = new Map();
     this.rateLimiter = { tokens: 100, lastRefill: Date.now() };
@@ -402,5 +402,5 @@ export class LinkUpClient {
 }
 
 // ===== EXPORTS =====
-export const linkUpClient = new LinkUpClient('800bf484-ccbd-4b51-acdb-8a86d36f7a1e');
+export const linkUpClient = new LinkUpClient();
 export { LinkUpSearchSchema, LinkUpResultSchema };

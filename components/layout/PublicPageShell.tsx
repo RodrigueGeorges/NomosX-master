@@ -11,9 +11,7 @@ interface PublicPageShellProps {
   currentPage?: PublicNavPage;
   onSignInClick?: () => void;
   isAuthenticated?: boolean;
-  /** Hide footer on minimal pages */
   showFooter?: boolean;
-  /** Particle count for background */
   particles?: number;
   className?: string;
   contentClassName?: string;
@@ -25,13 +23,13 @@ export function PublicPageShell({
   onSignInClick = () => {},
   isAuthenticated,
   showFooter = true,
-  particles = 18,
+  particles = 0,
   className,
   contentClassName,
 }: PublicPageShellProps) {
   return (
-    <div className={cn("min-h-screen bg-bg text-text overflow-x-hidden relative", className)}>
-      <EtherealBackground particleCount={particles} />
+    <div className={cn("min-h-screen bg-black text-text overflow-x-hidden relative", className)}>
+      {particles > 0 && <EtherealBackground particleCount={particles} radialGlow={false} />}
       <div className="relative z-10 flex flex-col min-h-screen">
         <PublicNav
           currentPage={currentPage}

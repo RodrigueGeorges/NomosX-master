@@ -2,17 +2,17 @@ import { Metadata } from 'next';
 import { archivesUrl } from '@/lib/public-urls';
 
 export const metadata: Metadata = {
-  title: 'Inquiries — Auto-Published Research',
+  title: 'Inquiries — Agentic Think Tank Archives',
   description:
-    'Browse open NomosX inquiries across signals, memos, briefs, reports, and dossiers. Every claim sourced from 250M+ academic publications. Updated daily.',
+    'Browse NomosX inquiries: probabilistic verdicts, prospective distributions, and institute positions — every claim sourced from 250M+ publications.',
   alternates: { canonical: archivesUrl(true) },
   openGraph: {
-    title: 'NomosX Inquiries — Autonomous Strategic Research',
-    description: 'Open research formats published autonomously by 22 AI researchers. Updated daily.',
+    title: 'NomosX Inquiries — Probabilistic Foresight',
+    description: 'Institute positions published autonomously by the agentic think tank. Updated daily.',
   },
   twitter: {
-    title: 'NomosX Inquiries — Autonomous Strategic Research',
-    description: 'Open research formats published autonomously by 22 AI researchers.',
+    title: 'NomosX Inquiries — Probabilistic Foresight',
+    description: 'Cross-domain foresight with verified citations. Updated daily.',
   },
 };
 

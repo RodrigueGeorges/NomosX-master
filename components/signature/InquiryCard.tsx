@@ -36,7 +36,7 @@ function Watermark({ type }: { type: InquiryWatermark }) {
 
   if (type === "map") {
     return (
-      <svg className={cn(base, "text-accent")} viewBox="0 0 100 100" aria-hidden>
+      <svg className={cn(base, "text-white")} viewBox="0 0 100 100" aria-hidden>
         {Array.from({ length: 8 }).map((_, row) =>
           Array.from({ length: 12 }).map((_, col) => (
             <circle
@@ -55,7 +55,7 @@ function Watermark({ type }: { type: InquiryWatermark }) {
 
   if (type === "chart") {
     return (
-      <svg className={cn(base, "text-accent")} viewBox="0 0 100 60" aria-hidden>
+      <svg className={cn(base, "text-white")} viewBox="0 0 100 60" aria-hidden>
         <polyline
           points="0,45 15,38 30,42 45,28 60,32 75,18 90,22 100,12"
           fill="none"
@@ -67,7 +67,7 @@ function Watermark({ type }: { type: InquiryWatermark }) {
   }
 
   return (
-    <svg className={cn(base, "text-accent")} viewBox="0 0 100 100" aria-hidden>
+    <svg className={cn(base, "text-white")} viewBox="0 0 100 100" aria-hidden>
       <circle cx="50" cy="50" r="38" fill="none" stroke="currentColor" strokeWidth="0.8" />
       <ellipse cx="50" cy="50" rx="38" ry="14" fill="none" stroke="currentColor" strokeWidth="0.6" />
       <ellipse cx="50" cy="50" rx="14" ry="38" fill="none" stroke="currentColor" strokeWidth="0.6" />
@@ -94,24 +94,22 @@ export function InquiryCard({ inquiry, href, className }: InquiryCardProps) {
       href={target}
       className={cn(
         "group relative flex flex-col overflow-hidden",
-        "p-6 sm:p-8 rounded-2xl min-h-[220px]",
-        "border border-white/[0.06] bg-bg-elevated/80",
-        "backdrop-blur-sm",
+        "p-6 sm:p-8 min-h-[220px]",
+        "border border-white/[0.08] bg-white/[0.02]",
         "transition-all duration-300 ease-out",
-        "hover:border-accent/15 hover:bg-panel",
-        "hover:shadow-[0_0_40px_rgba(74,158,255,0.06)]",
+        "hover:border-white/20 hover:bg-white/[0.04]",
         className
       )}
     >
       <Watermark type={watermark} />
 
       <div className="relative z-[1] flex items-center justify-between mb-4">
-        <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-accent/70">
+        <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/40">
           {domain}
         </span>
         <div className="flex items-center gap-2">
           {inquiry.hasForesight && (
-            <span className="font-mono text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded border border-accent/20 text-accent/70">
+            <span className="font-mono text-[9px] uppercase tracking-wider px-1.5 py-0.5 border border-white/15 text-white/45">
               Foresight
             </span>
           )}
@@ -138,10 +136,10 @@ export function InquiryCard({ inquiry, href, className }: InquiryCardProps) {
       <div className="relative z-[1] mt-auto flex items-end justify-between gap-4 pt-2">
         {verdict ? (
           <div className="flex flex-col gap-0.5">
-            <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-accent/50">
+            <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-white/30">
               {verdict.label}
             </span>
-            <span className="font-mono text-xl font-light text-accent tabular-nums">
+            <span className="font-mono text-xl font-light text-white tabular-nums">
               {verdict.value}
             </span>
           </div>
@@ -151,12 +149,10 @@ export function InquiryCard({ inquiry, href, className }: InquiryCardProps) {
           </span>
         )}
 
-        <div className="w-8 h-8 rounded-full border border-white/[0.06] flex items-center justify-center group-hover:border-accent/25 transition-colors">
-          <ArrowUpRight className="w-3.5 h-3.5 text-white/30 group-hover:text-accent/80 transition-colors" />
+        <div className="w-8 h-8 border border-white/[0.1] flex items-center justify-center group-hover:border-white/30 transition-colors">
+          <ArrowUpRight className="w-3.5 h-3.5 text-white/30 group-hover:text-white transition-colors" />
         </div>
       </div>
-
-      <div className="absolute inset-0 rounded-2xl ring-1 ring-inset ring-white/[0.02] group-hover:ring-accent/[0.08] transition-all pointer-events-none" />
     </Link>
   );
 }

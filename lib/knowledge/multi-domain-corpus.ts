@@ -813,7 +813,7 @@ export class MultiDomainKnowledgeBase {
       documents = documents.slice(0, query.limit);
     }
     
-    const queryTime = Date.now() - startTime;
+    const queryTime = Math.max(1, Date.now() - startTime);
     const avgRelevance = documents.length > 0 
       ? documents.reduce((sum, doc) => sum + doc.relevanceScore, 0) / documents.length 
       : 0;

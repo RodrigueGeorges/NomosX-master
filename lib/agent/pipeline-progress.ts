@@ -30,6 +30,10 @@ export type PipelineStep =
   | "CRITICAL_LOOP"
   | "DEBATE"
   | "META_ANALYSIS"
+  | "FORESIGHT"
+  | "CASTING"
+  | "ARBITER"
+  | "QUALITY"
   | "DEVILS_ADVOCATE"
   | "PUBLISHER"
   | "KNOWLEDGE_GRAPH"
@@ -56,6 +60,7 @@ const STEP_PROGRESS: Record<PipelineStep, number> = {
   DEDUP: 17,
   INDEX: 22,
   RANK: 25,
+  CASTING: 27,
   READER: 35,
   TOPIC_VALIDATION: 37,
   ORCHESTRATOR: 39,
@@ -69,6 +74,9 @@ const STEP_PROGRESS: Record<PipelineStep, number> = {
   CRITICAL_LOOP: 86,
   DEBATE: 90,
   META_ANALYSIS: 92,
+  FORESIGHT: 52,
+  ARBITER: 58,
+  QUALITY: 84,
   DEVILS_ADVOCATE: 96,
   PUBLISHER: 98,
   KNOWLEDGE_GRAPH: 99,
@@ -82,6 +90,14 @@ const STEP_PROGRESS: Record<PipelineStep, number> = {
 
 const globalEmitter = new EventEmitter();
 globalEmitter.setMaxListeners(50);
+
+type ProgressPersistenceHook = (event: PipelineProgressEvent) => void | Promise<void>;
+let persistenceHook: ProgressPersistenceHook | null = null;
+
+/** Optional hook to persist progress (e.g. StudioXOrder updates during async runs). */
+export function setProgressPersistenceHook(hook: ProgressPersistenceHook | null): void {
+  persistenceHook = hook;
+}
 
 /**
  * Emit a pipeline progress event.
@@ -105,6 +121,11 @@ export function emitProgress(
   };
 
   globalEmitter.emit(`progress:${runId}`, event);
+  if (persistenceHook) {
+    void Promise.resolve(persistenceHook(event)).catch((err) => {
+      console.warn('[PipelineProgress] persistence hook error:', err);
+    });
+  }
 }
 
 /**

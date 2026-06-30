@@ -1,7 +1,7 @@
 import { ImageResponse } from 'next/og';
 
 export const runtime = 'edge';
-export const alt = 'NomosX — The Autonomous Think Tank';
+export const alt = 'NomosX — The Agentic Think Tank';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 
@@ -16,7 +16,7 @@ export default async function Image() {
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          background: '#0A0A0B',
+          background: '#000000',
           position: 'relative',
           fontFamily: 'system-ui, sans-serif',
         }}
@@ -28,7 +28,7 @@ export default async function Image() {
             left: '20%',
             width: '60%',
             height: '55%',
-            background: 'radial-gradient(ellipse at center, rgba(74,158,255,0.12), transparent 70%)',
+            background: 'radial-gradient(ellipse at center, rgba(255,255,255,0.06), transparent 70%)',
           }}
         />
 
@@ -45,11 +45,11 @@ export default async function Image() {
               fontSize: '52px',
               fontWeight: 600,
               letterSpacing: '-0.03em',
-              color: '#F5F5F7',
+              color: '#FFFFFF',
             }}
           >
             Nomos
-            <span style={{ color: '#4A9EFF' }}>X</span>
+            <span style={{ fontWeight: 700 }}>X</span>
           </span>
         </div>
 
@@ -57,45 +57,45 @@ export default async function Image() {
           style={{
             fontSize: '26px',
             fontWeight: 600,
-            color: '#F5F5F7',
+            color: '#FFFFFF',
             textAlign: 'center',
             marginBottom: '10px',
             letterSpacing: '-0.01em',
           }}
         >
-          The Autonomous Think Tank
+          The Agentic Think Tank
         </div>
 
         <div
           style={{
             fontSize: '16px',
-            color: 'rgba(245,245,247,0.45)',
+            color: 'rgba(255,255,255,0.45)',
             textAlign: 'center',
             maxWidth: '640px',
             lineHeight: 1.5,
             marginBottom: '36px',
           }}
         >
-          Probabilistic inquiries · Multi-agent simulation · Full source traceability
+          Probable futures · Prospective distributions · Full source traceability
         </div>
 
         <div style={{ display: 'flex', gap: '40px', alignItems: 'center' }}>
           {[
             { value: '250M+', label: 'Sources' },
-            { value: '22', label: 'Researchers' },
-            { value: '6', label: 'Pipeline stages' },
+            { value: '4', label: 'Method stages' },
+            { value: '24/7', label: 'Autonomous' },
           ].map((stat) => (
             <div
               key={stat.label}
               style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}
             >
-              <span style={{ fontSize: '22px', fontWeight: 500, color: '#F5F5F7', fontFamily: 'monospace' }}>
+              <span style={{ fontSize: '22px', fontWeight: 500, color: '#FFFFFF', fontFamily: 'monospace' }}>
                 {stat.value}
               </span>
               <span
                 style={{
                   fontSize: '10px',
-                  color: 'rgba(245,245,247,0.34)',
+                  color: 'rgba(255,255,255,0.34)',
                   letterSpacing: '0.14em',
                   textTransform: 'uppercase',
                   fontFamily: 'monospace',
@@ -113,9 +113,9 @@ export default async function Image() {
             bottom: '0',
             left: '0',
             right: '0',
-            height: '3px',
-            background: '#4A9EFF',
-            opacity: 0.6,
+            height: '2px',
+            background: '#FFFFFF',
+            opacity: 0.25,
           }}
         />
       </div>

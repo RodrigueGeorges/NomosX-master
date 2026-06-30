@@ -1,10 +1,12 @@
 "use client";
+
 import React from 'react';
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/Button';
 import { Home, RefreshCw } from 'lucide-react';
 import { NomosXLogo } from '@/components/brand/NomosXLogo';
+import { nx } from '@/lib/brand/public-ui';
+import { cn } from '@/lib/utils';
 
 export default function Error({
   error,
@@ -20,29 +22,29 @@ export default function Error({
   }, [error]);
 
   return (
-    <div className="min-h-screen bg-bg flex items-center justify-center px-4">
+    <div className="min-h-screen bg-black flex items-center justify-center px-4">
       <div className="text-center max-w-md">
         <div className="flex items-center justify-center gap-3 mb-8">
           <NomosXLogo size="lg" />
         </div>
 
-        <h1 className="text-2xl font-bold text-white mb-3">
+        <h1 className="font-display text-2xl font-semibold text-white mb-3">
           Something went wrong
         </h1>
 
-        <p className="text-white/60 mb-8 leading-relaxed">
+        <p className={cn(nx.body, "mb-8")}>
           An unexpected error occurred. Please try again or return to the home page.
         </p>
 
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
-          <Button variant="ai" onClick={() => reset()}>
-            <RefreshCw size={18} className="mr-2" />
+          <button type="button" onClick={() => reset()} className={cn(nx.btnPrimary, "group")}>
+            <RefreshCw size={16} />
             Try again
-          </Button>
-          <Button variant="ghost" onClick={() => router.push("/")}>
-            <Home size={18} className="mr-2" />
+          </button>
+          <button type="button" onClick={() => router.push("/")} className={nx.btnSecondary}>
+            <Home size={16} />
             Back to home
-          </Button>
+          </button>
         </div>
       </div>
     </div>

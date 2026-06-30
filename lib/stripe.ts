@@ -1,134 +1,51 @@
 /**
- * Stripe Integration — NomosX Subscription Management
- * 
- * Handles checkout sessions, webhook events, and subscription lifecycle.
- * Requires STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, and price IDs in env.
- * 
+ * Stripe Integration — NomosX StudioX Payments
+ *
+ * Pay-per-commission checkout and webhook handling for StudioX orders.
+ * Requires STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET.
+ *
  * If STRIPE_SECRET_KEY is not set, all functions gracefully return errors
- * without crashing — the app works in free-tier-only mode.
+ * without crashing.
  */
 
 import Stripe from 'stripe';
 import { prisma } from './db';
+import { enqueueStudioXPipeline } from './studiox/enqueue';
 
 const stripe = process.env.STRIPE_SECRET_KEY
   ? new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2024-12-18.acacia' as any })
   : null;
 
-export const STRIPE_PLANS = {
-  TRIAL: {
-    name: 'Free',
-    priceId: null,
-    features: ['Weekly summaries', 'Radar signals', 'Public brief previews'],
-  },
-  ANALYST: {
-    name: 'Analyst',
-    priceId: null,
-    features: ['All published briefs', 'Signal radar', 'Weekly dispatch', 'Weak-signal alerts'],
-  },
-  RESEARCHER: {
-    name: 'Researcher',
-    priceId: process.env.STRIPE_PRICE_RESEARCHER || null,
-    features: ['Everything in Analyst', 'Commission briefs', 'Strategic reports', 'Harvard Council', 'Custom verticals', 'Export citations'],
-  },
-  STUDIO: {
-    name: 'Studio',
-    priceId: process.env.STRIPE_PRICE_STUDIO || null,
-    features: ['Everything in Researcher', 'Full editorial control', 'Publish under your brand', 'Priority pipeline', 'Dedicated support'],
-  },
-} as const;
+/** Resolve or create a Stripe customer; persists ID on Subscription.stripeCustomerId. */
+async function ensureStripeCustomer(userId: string, email: string): Promise<string | null> {
+  if (!stripe) return null;
 
-export type StripePlan = keyof typeof STRIPE_PLANS;
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: { subscription: true },
+  });
+  if (!user) return null;
 
-/**
- * Create a Stripe Checkout Session for subscription upgrade.
- * Redirects user to Stripe-hosted payment page.
- */
-export async function createCheckoutSession(
-  userId: string,
-  plan: StripePlan
-): Promise<{ url: string | null; error?: string }> {
-  if (!stripe) {
-    return { url: null, error: 'Stripe not configured (STRIPE_SECRET_KEY missing)' };
+  if (user.subscription?.stripeCustomerId) {
+    return user.subscription.stripeCustomerId;
   }
 
-  const planConfig = STRIPE_PLANS[plan];
-  if (!planConfig.priceId) {
-    return { url: null, error: `No Stripe price ID configured for plan: ${plan}` };
-  }
+  const customer = await stripe.customers.create({
+    email,
+    metadata: { userId },
+  });
 
-  try {
-    // Find user + subscription
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      include: { subscription: true },
-    });
-    if (!user) return { url: null, error: 'User not found' };
+  await prisma.subscription.upsert({
+    where: { userId },
+    update: { stripeCustomerId: customer.id },
+    create: { userId, plan: 'ANALYST', stripeCustomerId: customer.id },
+  });
 
-    let customerId = user.subscription?.stripeCustomerId;
-    if (!customerId) {
-      const customer = await stripe.customers.create({
-        email: user.email,
-        metadata: { userId },
-      });
-      customerId = customer.id;
-      // Upsert subscription with Stripe customer ID
-      await prisma.subscription.upsert({
-        where: { userId },
-        update: { stripeCustomerId: customerId },
-        create: { userId, plan: 'ANALYST', stripeCustomerId: customerId },
-      });
-    }
-
-    const session = await stripe.checkout.sessions.create({
-      mode: 'subscription',
-      customer: customerId,
-      payment_method_types: ['card'],
-      line_items: [{ price: planConfig.priceId, quantity: 1 }],
-      metadata: { userId, plan },
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?upgraded=true`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/pricing?cancelled=true`,
-      allow_promotion_codes: true,
-    });
-
-    return { url: session.url };
-  } catch (err: any) {
-    console.error('[STRIPE] Checkout session error:', err.message);
-    return { url: null, error: 'Failed to create checkout session' };
-  }
+  return customer.id;
 }
 
 /**
- * Create a Stripe Customer Portal session for managing subscription.
- */
-export async function createPortalSession(
-  userId: string
-): Promise<{ url: string | null; error?: string }> {
-  if (!stripe) {
-    return { url: null, error: 'Stripe not configured' };
-  }
-
-  try {
-    const subscription = await prisma.subscription.findUnique({ where: { userId } });
-    const customerId = subscription?.stripeCustomerId;
-    if (!customerId) {
-      return { url: null, error: 'No Stripe customer found for this user' };
-    }
-
-    const session = await stripe.billingPortal.sessions.create({
-      customer: customerId,
-      return_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/billing`,
-    });
-
-    return { url: session.url };
-  } catch (err: any) {
-    console.error('[STRIPE] Portal session error:', err.message);
-    return { url: null, error: 'Failed to create portal session' };
-  }
-}
-
-/**
- * Handle Stripe webhook events for subscription lifecycle.
+ * Handle Stripe webhook events for StudioX payment completion.
  */
 export async function handleWebhookEvent(
   body: string,
@@ -146,119 +63,26 @@ export async function handleWebhookEvent(
   try {
     const event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
 
-    switch (event.type) {
-      case 'checkout.session.completed': {
-        const session = event.data.object as Stripe.Checkout.Session;
-        const eventType = session.metadata?.type;
+    if (event.type === 'checkout.session.completed') {
+      const session = event.data.object as Stripe.Checkout.Session;
 
-        // StudioX pay-per-use order
-        if (eventType === 'studiox_order') {
-          const orderId = session.metadata?.orderId;
-          if (orderId) {
-            await prisma.studioXOrder.update({
-              where: { id: orderId },
-              data: {
-                status: 'PAID',
-                paidAt: new Date(),
-                stripeSessionId: session.id,
-                stripePaymentIntent: session.payment_intent as string ?? null,
-              },
-            });
-            console.log(`[STRIPE] StudioX order ${orderId} paid`);
-          }
-          break;
-        }
-
-        // Subscription upgrade
-        const userId = session.metadata?.userId;
-        const plan = session.metadata?.plan as StripePlan | undefined;
-        if (userId && plan) {
-          await prisma.subscription.upsert({
-            where: { userId },
-            update: {
-              plan: plan,
-              status: 'active',
-              isTrialActive: false,
-              stripeCustomerId: session.customer as string,
-              stripeSubscriptionId: session.subscription as string,
-              weeklyPublicationMax: -1,
-              canExportPdf: true,
-              canAccessStudio: plan === 'STUDIO',
-              canCreateVerticals: plan === 'STUDIO',
-              studioQuestionsPerMonth: plan === 'STUDIO' ? -1 : 0,
-            },
-            create: {
-              userId,
-              plan: plan,
-              status: 'active',
-              isTrialActive: false,
-              stripeCustomerId: session.customer as string,
-              stripeSubscriptionId: session.subscription as string,
-              weeklyPublicationMax: -1,
-              canExportPdf: true,
-              canAccessStudio: plan === 'STUDIO',
-              canCreateVerticals: plan === 'STUDIO',
-              studioQuestionsPerMonth: plan === 'STUDIO' ? -1 : 0,
-            },
-          });
-          console.log(`[STRIPE] User ${userId} upgraded to ${plan}`);
-        }
-        break;
-      }
-
-      case 'customer.subscription.updated': {
-        const sub = event.data.object as Stripe.Subscription;
-        const subscription = await prisma.subscription.findFirst({
-          where: { stripeSubscriptionId: sub.id },
-        });
-        if (subscription) {
-          const isActive = ['active', 'trialing'].includes(sub.status);
-          if (!isActive) {
-            await prisma.subscription.update({
-              where: { id: subscription.id },
-              data: { plan: 'ANALYST', status: sub.status },
-            });
-            console.log(`[STRIPE] Subscription ${sub.id} status ${sub.status} → downgraded to ANALYST`);
-          }
-        }
-        break;
-      }
-
-      case 'customer.subscription.deleted': {
-        const sub = event.data.object as Stripe.Subscription;
-        const subscription = await prisma.subscription.findFirst({
-          where: { stripeSubscriptionId: sub.id },
-        });
-        if (subscription) {
-          await prisma.subscription.update({
-            where: { id: subscription.id },
+      if (session.metadata?.type === 'studiox_order') {
+        const orderId = session.metadata?.orderId;
+        if (orderId) {
+          await prisma.studioXOrder.update({
+            where: { id: orderId },
             data: {
-              plan: 'ANALYST',
-              status: 'canceled',
-              stripeSubscriptionId: null,
-              canceledAt: new Date(),
+              status: 'PAID',
+              paidAt: new Date(),
+              stripeSessionId: session.id,
+              stripePaymentIntent: (session.payment_intent as string) ?? null,
             },
           });
-          console.log(`[STRIPE] Subscription ${sub.id} cancelled → ANALYST`);
-        }
-        break;
-      }
-
-      case 'invoice.payment_failed': {
-        const invoice = event.data.object as Stripe.Invoice;
-        const customerId = invoice.customer as string;
-        const subscription = await prisma.subscription.findFirst({
-          where: { stripeCustomerId: customerId },
-          include: { user: true },
-        });
-        if (subscription) {
-          await prisma.subscription.update({
-            where: { id: subscription.id },
-            data: { status: 'past_due' },
+          console.log(`[STRIPE] StudioX order ${orderId} paid — enqueueing pipeline`);
+          void enqueueStudioXPipeline(orderId).catch((err) => {
+            console.error(`[STRIPE] Failed to enqueue StudioX order ${orderId}:`, err);
           });
-          console.warn(`[STRIPE] Payment failed for user ${subscription.userId} (${subscription.user.email})`);
         }
-        break;
       }
     }
 
@@ -284,24 +108,12 @@ export async function createStudioXCheckoutSession(params: {
   }
 
   try {
-    const user = await prisma.user.findUnique({
-      where: { id: params.userId },
-      include: { subscription: true },
-    });
+    const user = await prisma.user.findUnique({ where: { id: params.userId } });
     if (!user) return { url: null, error: 'User not found' };
 
-    let customerId = user.subscription?.stripeCustomerId;
+    const customerId = await ensureStripeCustomer(params.userId, user.email);
     if (!customerId) {
-      const customer = await stripe.customers.create({
-        email: user.email,
-        metadata: { userId: params.userId },
-      });
-      customerId = customer.id;
-      await prisma.subscription.upsert({
-        where: { userId: params.userId },
-        update: { stripeCustomerId: customerId },
-        create: { userId: params.userId, plan: 'ANALYST', stripeCustomerId: customerId },
-      });
+      return { url: null, error: 'Failed to resolve Stripe customer' };
     }
 
     const session = await stripe.checkout.sessions.create({
@@ -335,9 +147,7 @@ export async function createStudioXCheckoutSession(params: {
   }
 }
 
-/**
- * Check if Stripe is configured and operational.
- */
+/** Check if Stripe is configured and operational. */
 export function isStripeConfigured(): boolean {
   return stripe !== null;
 }

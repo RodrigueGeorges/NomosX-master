@@ -3,16 +3,16 @@ import { Metadata } from 'next';
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://nomosx.com';
 
 export const metadata: Metadata = {
-  title: 'Pricing — Verified Intelligence for Every Budget',
-  description: 'Start free. Access verified research from 250M+ academic sources, reviewed by 22 AI researchers. Analyst (€0), Researcher (€19/mo), Studio (€49/mo).',
+  title: 'Pricing — Read Free, Commission on Demand',
+  description: 'Free access to agentic think tank inquiries. Studio: commission custom studies with probabilistic foresight and full source traceability — pay per study.',
   alternates: { canonical: `${BASE_URL}/pricing` },
   openGraph: {
-    title: 'NomosX Pricing — From Free to Full Strategic Intelligence',
-    description: 'Analyst: Free weekly dispatch. Researcher: Commission briefs. Studio: Full editorial control. All plans include 22-researcher verification.',
+    title: 'NomosX Pricing — Agentic Think Tank Access',
+    description: 'Reader: free forever. Studio: custom commissions with prospective distributions and verified citations.',
   },
   twitter: {
-    title: 'NomosX Pricing — From Free to Full Strategic Intelligence',
-    description: 'Analyst: Free. Researcher: €19/mo. Studio: €49/mo. All include 22-researcher verification pipeline.',
+    title: 'NomosX Pricing — Agentic Think Tank Access',
+    description: 'Read free. Commission probabilistic foresight on demand.',
   },
 };
 

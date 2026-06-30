@@ -37,15 +37,14 @@ export function PageHeader({
           {eyebrow && (
             <p
               className={cn(
-                "font-mono text-[10px] uppercase tracking-[0.22em] text-accent/80 mb-4",
-                centered && "flex items-center justify-center gap-2"
+                "font-mono text-[10px] uppercase tracking-[0.24em] text-white/35 mb-4",
+                centered && "flex items-center justify-center"
               )}
             >
-              {!centered && <span className="w-1.5 h-1.5 rounded-full bg-accent inline-block mr-2" />}
               {eyebrow}
             </p>
           )}
-          <h1 className="font-display text-3xl sm:text-4xl lg:text-[2.75rem] font-semibold tracking-tight text-text leading-[1.1]">
+          <h1 className="font-display text-3xl sm:text-4xl lg:text-[3rem] font-semibold tracking-tight text-white leading-[1.08]">
             {title}
           </h1>
           {description && (
@@ -82,7 +81,7 @@ export function EtherealCard({
   return (
     <div
       className={cn(
-        "rounded-2xl border border-white/[0.07] bg-bg-elevated p-6 sm:p-8 shadow-card",
+        "border border-white/[0.08] bg-white/[0.02] p-6 sm:p-8 transition-colors hover:border-white/15",
         className
       )}
     >

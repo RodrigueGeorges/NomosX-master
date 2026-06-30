@@ -214,28 +214,41 @@ export class CouncilManager {
     const q = question.toLowerCase();
     let score = 0;
     
-    // Direct domain matches
-    if (q.includes(expert.domain.toLowerCase())) {
+    // Normalize query: replace hyphens with spaces and expand common abbreviations
+    const ABBREVIATIONS: Record<string, string> = {
+      'ai': 'artificial intelligence',
+      'ml': 'machine learning',
+      'nlp': 'natural language processing',
+      'gdpr': 'general data protection regulation',
+      'esg': 'environmental social governance',
+    };
+    const normalizedQ = q.replace(/-/g, ' ').replace(/\b(ai|ml|nlp|gdpr|esg)\b/g, (m) => ABBREVIATIONS[m] || m);
+
+    // Direct domain matches (with stem matching for plurals)
+    const domainNorm = expert.domain.toLowerCase().replace(/-/g, ' ');
+    const domainStem = domainNorm.replace(/s$/, '');
+    if (normalizedQ.includes(domainNorm) || normalizedQ.includes(domainStem)) {
       score += 50;
     }
-    
-    // Sub-domain matches
+
+    // Sub-domain matches (normalize hyphens to spaces)
     expert.subDomains.forEach(subDomain => {
-      if (q.includes(subDomain.toLowerCase())) {
+      const normalizedSub = subDomain.toLowerCase().replace(/-/g, ' ');
+      if (normalizedQ.includes(normalizedSub)) {
         score += 20;
       }
     });
-    
+
     // Key concepts matches
     expert.methodologies.forEach(method => {
-      if (q.includes(method.toLowerCase())) {
+      if (normalizedQ.includes(method.toLowerCase())) {
         score += 10;
       }
     });
-    
+
     // Known biases (negative scoring)
     expert.knownBiases.forEach(bias => {
-      if (q.includes(bias.toLowerCase())) {
+      if (normalizedQ.includes(bias.toLowerCase())) {
         score -= 5;
       }
     });
@@ -379,8 +392,11 @@ export class CouncilManager {
     const diversityScore = (domains.size / experts.length) * 30;
     score += diversityScore;
     
-    // Expert quality (40% weight)
-    const avgQuality = experts.reduce((sum, expert) => sum + 85, 0) / experts.length; // Assume 85 avg
+    // Expert quality (40% weight) — based on actual success rates
+    const avgQuality = experts.reduce((sum, expert) => {
+      const load = this.expertLoadBalance.get(expert.id);
+      return sum + (load ? load.successRate * 100 : 85);
+    }, 0) / experts.length;
     const qualityScore = (avgQuality / 100) * 40;
     score += qualityScore;
     

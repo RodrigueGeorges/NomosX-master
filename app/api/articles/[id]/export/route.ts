@@ -50,7 +50,7 @@ export async function GET(
   <style>
     body { font-family: Georgia, serif; font-size: 11pt; line-height: 1.7; color: #1a1a2e; max-width: 720px; margin: 0 auto; padding: 40px; }
     .export-header { border-bottom: 2px solid #1a1a2e; padding-bottom: 16px; margin-bottom: 32px; }
-    .export-header .brand { font-family: Arial, sans-serif; font-size: 9pt; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; color: #6366f1; margin-bottom: 8px; }
+    .export-header .brand { font-family: Arial, sans-serif; font-size: 9pt; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; color: #000000; margin-bottom: 8px; }
     .export-header h1 { font-size: 20pt; margin: 0 0 8px; line-height: 1.2; }
     .export-meta { font-family: Arial, sans-serif; font-size: 9pt; color: #555; }
     .export-meta span + span::before { content: ' · '; }
@@ -63,7 +63,7 @@ export async function GET(
 </head>
 <body>
   <div class="export-header">
-    <div class="brand">NomosX — Autonomous Think Tank</div>
+    <div class="brand">NomosX — Agentic Think Tank</div>
     <h1>${article.title.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</h1>
     <div class="export-meta">
       <span>${format.label}</span>${publishedDate ? `<span>${publishedDate}</span>` : ''}${article.sourceIds?.length ? `<span>${article.sourceIds.length} sources</span>` : ''}${article.trustScore != null ? `<span>Trust score: ${article.trustScore}</span>` : ''}

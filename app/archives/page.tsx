@@ -10,6 +10,7 @@ import { mapBriefToInquiryWithMeta, type BriefLike } from "@/lib/inquiry-mapper"
 import { PUBLIC_ROUTES } from "@/lib/public-urls";
 import type { InquiryDepth } from "@/lib/types/inquiry";
 import type { InquiryCardData } from "@/components/signature";
+import { nx } from "@/lib/brand/public-ui";
 import { cn } from "@/lib/utils";
 import { ArrowRight, ChevronLeft, ChevronRight, Search } from "lucide-react";
 
@@ -158,10 +159,10 @@ export default function ArchivesPage() {
 
   return (
     <>
-      <PublicPageShell currentPage="inquiries" onSignInClick={() => setShowAuthModal(true)}>
+      <PublicPageShell currentPage="inquiries" onSignInClick={() => setShowAuthModal(true)} particles={0}>
         <PageSection className="pt-20 sm:pt-28">
           <PageHeader
-            eyebrow="Autonomous output"
+            eyebrow="Agentic output"
             title="Inquiry archives"
             description="Probabilistic verdicts published by the think tank. Filter by depth, domain, and confidence."
           />
@@ -174,13 +175,13 @@ export default function ArchivesPage() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search inquiries…"
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-bg-elevated border border-white/[0.08] text-sm focus:outline-none focus:border-accent/30"
+                className={cn("w-full pl-10 pr-4 py-2.5", nx.input)}
               />
             </div>
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as SortKey)}
-              className="px-3 py-2.5 rounded-xl bg-bg-elevated border border-white/[0.08] text-sm font-mono text-[11px] text-white/70 focus:outline-none focus:border-accent/30"
+              className={nx.select}
             >
               <option value="date">Sort: newest</option>
               <option value="trust">Sort: trust score</option>
@@ -196,9 +197,7 @@ export default function ArchivesPage() {
                 onClick={() => setDepthFilter(d.id)}
                 className={cn(
                   "px-3 py-1.5 rounded-lg font-mono text-[10px] uppercase tracking-[0.12em]",
-                  depthFilter === d.id
-                    ? "bg-accent/15 text-accent border border-accent/25"
-                    : "text-white/40 border border-white/[0.06]"
+                  depthFilter === d.id ? nx.chipActive : nx.chip
                 )}
               >
                 {d.label}
@@ -230,7 +229,7 @@ export default function ArchivesPage() {
               {[1, 2, 3].map((n) => (
                 <div
                   key={n}
-                  className="h-52 rounded-2xl bg-bg-elevated animate-pulse border border-white/[0.06]"
+                  className="h-52 nx-public-surface animate-pulse"
                 />
               ))}
             </div>
@@ -275,7 +274,7 @@ export default function ArchivesPage() {
               )}
             </>
           ) : (
-            <div className="rounded-2xl border border-white/[0.06] bg-bg-elevated p-12 text-center text-sm text-white/45">
+            <div className="nx-public-surface p-12 text-center text-sm text-white/45">
               No inquiries match your filters.
             </div>
           )}
@@ -288,7 +287,7 @@ export default function ArchivesPage() {
           onClose={() => setShowAuthModal(false)}
           onSignupSuccess={() => {
             setShowAuthModal(false);
-            router.push("/dashboard");
+            router.push("/archives");
           }}
         />
       )}

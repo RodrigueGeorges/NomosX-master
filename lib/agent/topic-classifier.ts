@@ -26,11 +26,18 @@ import { RESEARCHER_REGISTRY, ResearcherProfile, VERTICAL_RESEARCHER_MAP } from 
 // TYPES
 // ============================================================================
 
+import type { EditorialDimension } from './editorial-types';
+import { formatDomainLabel } from './editorial-types';
+
 export interface TopicClassification {
   /** Primary domain (highest confidence) */
   primaryDomain: DomainExpertise;
   /** All relevant domains with confidence scores */
   domains: DomainDomainScore[];
+  /** Cross-domain collision dimensions (editorial V2) */
+  dimensions: EditorialDimension[];
+  /** One-line detected subject / collision thesis */
+  detectedSubject: string;
   /** Matched vertical slug for DB operations */
   verticalSlug: string;
   /** Secondary verticals that may be relevant */
@@ -325,6 +332,33 @@ export function classifyTopicSync(topic: string): TopicClassification {
 // LLM-BASED CLASSIFICATION (primary)
 // ============================================================================
 
+function buildDimensionsFromParsed(
+  raw: unknown,
+  scoredDomains: DomainDomainScore[],
+  topic: string
+): EditorialDimension[] {
+  const fromLlm = Array.isArray(raw)
+    ? raw
+        .slice(0, 4)
+        .map((d: Record<string, unknown>) => ({
+          domain: String(d.domain ?? ''),
+          label: String(d.label ?? formatDomainLabel(String(d.domain ?? ''))),
+          angle: String(d.angle ?? ''),
+          confidence: Math.max(0, Math.min(1, Number(d.confidence) || 0.5)),
+        }))
+        .filter((d) => d.domain && RESEARCHER_REGISTRY[d.domain as DomainExpertise])
+    : [];
+
+  if (fromLlm.length > 0) return fromLlm;
+
+  return scoredDomains.slice(0, 3).map((d) => ({
+    domain: d.domain,
+    label: formatDomainLabel(d.domain),
+    angle: d.researcher.focusAreas[0] ?? `Lens on ${formatDomainLabel(d.domain)}`,
+    confidence: d.confidence,
+  }));
+}
+
 async function classifyWithLLM(topic: string, context?: string): Promise<TopicClassification> {
   const domainList = ALL_DOMAINS.map(d => `- "${d}": ${DOMAIN_DESCRIPTIONS[d]}`).join('\n');
   
@@ -354,10 +388,16 @@ Return JSON:
     {"domain": "domain_id", "confidence": 0.0-1.0},
     ...max 3
   ],
+  "dimensions": [
+    {"domain": "domain_id", "label": "Short lens label", "angle": "What this dimension contributes to the collision", "confidence": 0.0-1.0}
+  ],
+  "detectedSubject": "One sentence: the cross-domain collision or signal detected (A × B × C)",
   "urgency": "critical|high|medium|low",
   "tier": "standard|premium|strategic",
   "reasoning": "one sentence explaining classification"
-}`
+}
+
+IMPORTANT: dimensions are COLLISION AXES, not silos. Example: "EU AI Act" → dimensions for regulation, grid infrastructure, labor markets — not three versions of "AI".`
       },
       { role: "user", content: userContent }
     ],
@@ -423,9 +463,14 @@ Return JSON:
   const tier = (['standard', 'premium', 'strategic'].includes(parsed.tier) ? parsed.tier : 'standard') as 'standard' | 'premium' | 'strategic';
   const urgency = (['critical', 'high', 'medium', 'low'].includes(parsed.urgency) ? parsed.urgency : 'medium') as 'critical' | 'high' | 'medium' | 'low';
 
+  const dimensions = buildDimensionsFromParsed(parsed.dimensions, scoredDomains, topic);
+  const detectedSubject = String(parsed.detectedSubject ?? parsed.reasoning ?? topic).trim();
+
   return {
     primaryDomain,
     domains: scoredDomains,
+    dimensions,
+    detectedSubject,
     verticalSlug,
     secondaryVerticals: [...new Set(secondaryVerticals)],
     researchers,
@@ -508,6 +553,15 @@ function classifyWithRules(topic: string): TopicClassification {
   return {
     primaryDomain,
     domains: scoredDomains,
+    dimensions: scoredDomains.slice(0, 3).map((d) => ({
+      domain: d.domain,
+      label: formatDomainLabel(d.domain),
+      angle: d.researcher.focusAreas[0] ?? `Lens on ${formatDomainLabel(d.domain)}`,
+      confidence: d.confidence,
+    })),
+    detectedSubject: isCrossDomain
+      ? `Cross-domain collision across ${scoredDomains.slice(0, 2).map((d) => formatDomainLabel(d.domain)).join(' and ')}: ${topic}`
+      : topic,
     verticalSlug,
     secondaryVerticals: [...new Set(secondaryVerticals)],
     researchers,

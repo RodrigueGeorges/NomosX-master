@@ -50,6 +50,44 @@ export interface PipelineStats {
     removed: number;
   };
 
+  // Step 4b: Topic classification
+  topicClassification?: {
+    primaryDomain: string;
+    domains: Array<{ domain: string; confidence: number }>;
+    dimensions?: Array<{ domain: string; label: string; angle: string; confidence: number }>;
+    detectedSubject?: string;
+    isCrossDomain: boolean;
+    confidence: number;
+    reasoning?: string;
+  };
+
+  // Editorial V2 — casting + arbiter
+  casting?: {
+    teamSize: number;
+    collisionSummary: string;
+    costUsd?: number;
+  };
+  editorialArbiter?: {
+    confidence: number;
+    confidenceLabel: string;
+    scenariosCount: number;
+    costUsd?: number;
+  };
+
+  // Editorial V2
+  editorialV2?: boolean;
+  analysis?: Record<string, unknown>;
+
+  // Step 7b: Foresight (Monte Carlo)
+  foresight?: {
+    scenarios?: number;
+    monteCarloRuns?: number;
+    converged?: boolean;
+    costUsd?: number;
+    skipped?: boolean;
+    reason?: string;
+  };
+
   // Step 4: Rank
   rank?: {
     count: number;

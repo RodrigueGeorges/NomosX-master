@@ -39,8 +39,9 @@ describe('22 Domain Experts System', () => {
     
     test('Expert names follow ethical guidelines', () => {
       Object.values(DOMAIN_EXPERTS).forEach(expert => {
-        // Should not contain institutional affiliations
-        expect(expert.name).not.toMatch(/MIT|Stanford|Oxford|Harvard|Yale|Johns Hopkins|Georgetown|ETH/i);
+        // Should not contain institutional affiliations.
+        // Word boundaries avoid false positives (e.g. "Mitchell" containing "MIT").
+        expect(expert.name).not.toMatch(/\b(MIT|Stanford|Oxford|Harvard|Yale|Johns Hopkins|Georgetown|ETH)\b/i);
         
         // Should contain "Analyst" instead of "PhD"
         expect(expert.title).toContain('Analyst');

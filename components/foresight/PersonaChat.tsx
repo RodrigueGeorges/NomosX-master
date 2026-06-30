@@ -33,9 +33,9 @@ export function PersonaChat({ personas, question, publicationId }: PersonaChatPr
         }),
       });
       const data = await res.json();
-      setReply(data.reply ?? data.error ?? "Pas de réponse.");
+      setReply(data.reply ?? data.error ?? "No response.");
     } catch {
-      setReply("Erreur de connexion au moteur foresight.");
+      setReply("Connection error.");
     } finally {
       setLoading(false);
     }
@@ -44,7 +44,7 @@ export function PersonaChat({ personas, question, publicationId }: PersonaChatPr
   if (!personas.length) {
     return (
       <p className="text-sm text-white/40 font-mono">
-        Aucun persona simulé disponible pour cette inquiry.
+        No stakeholder perspective available for this inquiry.
       </p>
     );
   }
@@ -62,7 +62,7 @@ export function PersonaChat({ personas, question, publicationId }: PersonaChatPr
             }}
             className={`px-2.5 py-1 rounded-lg border text-[11px] font-mono transition-colors ${
               selectedId === p.id
-                ? "border-accent/30 bg-accent/10 text-accent"
+                ? "border-white/25 bg-white/10 text-white"
                 : "border-white/[0.08] text-white/45 hover:border-white/15"
             }`}
           >
@@ -73,7 +73,7 @@ export function PersonaChat({ personas, question, publicationId }: PersonaChatPr
 
       {persona && (
         <div className="rounded-xl border border-white/[0.06] bg-black/20 p-3 text-[11px] text-white/45 font-mono">
-          <div className="flex items-center gap-2 text-accent/70 mb-2">
+          <div className="flex items-center gap-2 text-white/50 mb-2">
             <User size={12} />
             {persona.id}
           </div>
@@ -87,17 +87,17 @@ export function PersonaChat({ personas, question, publicationId }: PersonaChatPr
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleSend()}
-          placeholder="Interroger ce stakeholder simulé…"
-          className="flex-1 rounded-lg border border-white/[0.08] bg-black/30 px-3 py-2 text-sm text-white/80 placeholder:text-white/25 focus:outline-none focus:border-accent/30"
+          placeholder="Ask this stakeholder perspective…"
+          className="flex-1 border border-white/[0.08] bg-black/30 px-3 py-2 text-sm text-white/80 placeholder:text-white/25 focus:outline-none focus:border-white/25"
         />
         <button
           type="button"
           onClick={handleSend}
           disabled={loading || !message.trim()}
-          className="px-3 py-2 rounded-lg border border-accent/25 bg-accent/10 text-accent disabled:opacity-40 hover:bg-accent/15 transition-colors"
+          className="px-3 py-2 border border-white/25 bg-white/10 text-white disabled:opacity-40 hover:bg-white/15 transition-colors"
         >
           {loading ? (
-            <div className="w-4 h-4 border-2 border-accent/30 border-t-accent rounded-full animate-spin" />
+            <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
           ) : (
             <Send size={16} />
           )}
@@ -105,7 +105,7 @@ export function PersonaChat({ personas, question, publicationId }: PersonaChatPr
       </div>
 
       {reply && (
-        <div className="rounded-xl border border-accent/15 bg-accent/[0.04] p-4 text-sm text-white/75 leading-relaxed">
+        <div className="nx-public-surface p-4 text-sm text-white/75 leading-relaxed">
           {reply}
         </div>
       )}

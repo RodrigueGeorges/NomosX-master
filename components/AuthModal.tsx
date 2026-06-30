@@ -80,15 +80,15 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
   };
 
   const primaryBtn =
-    "w-full p-4 rounded-xl bg-accent hover:brightness-110 text-bg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed";
-  const inputFocus = "bg-white/[0.03] border-white/10 focus:border-accent/45 text-base h-12";
+    "w-full p-4 bg-white text-black font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white/90";
+  const inputFocus = "bg-white/[0.03] border-white/10 focus:border-white/35 text-base h-12";
 
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
       <div className="p-8 sm:p-10 max-w-lg w-full relative overflow-hidden">
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-accent/[0.06] blur-3xl rounded-full" />
-          <div className="absolute bottom-0 left-0 w-64 h-64 bg-accent/[0.04] blur-3xl rounded-full" />
+        <div className="absolute inset-0 pointer-events-none opacity-40">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white/[0.03] blur-3xl" />
+          <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/[0.02] blur-3xl" />
         </div>
 
         <div className="relative mb-10 text-center">
@@ -96,8 +96,8 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
             <NomosXLogo variant="symbol" styleSize={60} />
           </div>
 
-          <div className="font-mono text-[10px] text-accent/70 tracking-[0.25em] uppercase mb-4">
-            Institutional Intelligence
+          <div className="font-mono text-[10px] text-white/40 tracking-[0.25em] uppercase mb-4">
+            Agentic think tank
           </div>
 
           <h2 className="font-display text-3xl sm:text-4xl font-semibold leading-tight mb-3 text-text">
@@ -105,15 +105,15 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
           </h2>
 
           <p className="text-base text-white/50 leading-relaxed max-w-md mx-auto mb-6">
-            Join decision teams and research institutions 
-            using institutional-grade autonomous intelligence.
+            Join decision teams using probabilistic foresight — probable futures,
+            decisions owned, evidence verified.
           </p>
 
           <div className="flex items-center justify-center gap-3 text-xs text-white/30 tracking-[0.15em] uppercase font-mono">
             <span>250M+ Sources</span>
-            <div className="w-1 h-1 rounded-full bg-accent/50" />
+            <div className="w-1 h-1 rounded-full bg-white/30" />
             <span>Auto-published</span>
-            <div className="w-1 h-1 rounded-full bg-accent/50" />
+            <div className="w-1 h-1 rounded-full bg-white/30" />
             <span>Free to start</span>
           </div>
         </div>
@@ -129,7 +129,7 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
             </button>
             <button
               onClick={() => { setIsSignup(true); setMode("email"); }}
-              className="w-full p-4 rounded-xl bg-white/[0.04] border border-white/[0.10] text-white/80 hover:text-white hover:border-accent/25 hover:bg-white/[0.07] transition-all duration-300"
+              className="w-full p-4 bg-white/[0.04] border border-white/[0.10] text-white/80 hover:text-white hover:border-white/25 hover:bg-white/[0.07] transition-all duration-300"
             >
               Create an account — free
             </button>
@@ -173,7 +173,7 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
                   autoFocus={!isSignup}
                   className={`${inputFocus} pl-11`}
                 />
-                <Mail size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-accent/50" />
+                <Mail size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/35" />
               </div>
             </div>
 
@@ -222,7 +222,7 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
                     setIsSignup(!isSignup);
                     setError("");
                   }}
-                  className="text-accent/70 hover:text-accent transition-colors"
+                  className="text-white/50 hover:text-white transition-colors"
                 >
                   {isSignup ? "Already have an account?" : "Create an account"}
                 </button>
@@ -239,7 +239,7 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
                   <span className="text-emerald-400 text-sm">✓</span>
                 </div>
                 <p className="text-sm text-white/60 mb-1">Check your inbox</p>
-                <p className="text-xs text-white/35">If an account exists with that email, you'll receive a reset link.</p>
+                <p className="text-xs text-white/35">If an account exists with that email, you&apos;ll receive a reset link.</p>
               </div>
             ) : (
               <>
@@ -261,9 +261,9 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
                       placeholder="you@company.com"
                       required
                       autoFocus
-                      className="w-full px-4 py-3 pl-11 rounded-xl bg-white/[0.03] border border-white/10 text-white placeholder-white/20 text-base focus:outline-none focus:border-accent/45 transition-colors"
+                      className="w-full px-4 py-3 pl-11 bg-white/[0.03] border border-white/10 text-white placeholder-white/20 text-base focus:outline-none focus:border-white/35 transition-colors"
                     />
-                    <Mail size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-accent/50" />
+                    <Mail size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/35" />
                   </div>
                 </div>
                 <button
@@ -319,8 +319,8 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
             </div>
             <div className="flex items-center gap-1.5 text-xs text-white/40">
               <div className="relative flex-shrink-0">
-                <div className="w-1.5 h-1.5 rounded-full bg-accent" />
-                <div className="absolute top-0.5 left-0.5 w-0.5 h-0.5 rounded-full bg-accent/60 animate-pulse" />
+                <div className="w-1.5 h-1.5 rounded-full bg-white/60" />
+                <div className="absolute top-0.5 left-0.5 w-0.5 h-0.5 rounded-full bg-white/40 animate-pulse" />
               </div>
               <span>No credit card required</span>
             </div>
@@ -328,11 +328,11 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
 
           <p className="text-xs text-white/30 text-center leading-relaxed">
             By continuing, you agree to our{" "}
-            <a href="/terms" className="text-accent/60 hover:text-accent transition-colors">
+            <a href="/terms" className="text-white/45 hover:text-white transition-colors">
               Terms of Service
             </a>{" "}
             and{" "}
-            <a href="/privacy" className="text-accent/60 hover:text-accent transition-colors">
+            <a href="/privacy" className="text-white/45 hover:text-white transition-colors">
               Privacy Policy
             </a>
           </p>
@@ -340,8 +340,8 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
 
         {loading && (
           <div className="relative mt-6 text-center">
-            <div className="inline-flex items-center gap-3 text-sm text-accent/75">
-              <div className="w-4 h-4 border-2 border-accent/20 border-t-accent rounded-full animate-spin" />
+            <div className="inline-flex items-center gap-3 text-sm text-white/50">
+              <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
               <span>Securing your connection...</span>
             </div>
           </div>

@@ -15,7 +15,7 @@ export function LegalPageShell({ children }: LegalPageShellProps) {
 
   return (
     <>
-      <PublicPageShell onSignInClick={() => setShowAuthModal(true)} particles={12}>
+      <PublicPageShell onSignInClick={() => setShowAuthModal(true)} particles={0}>
         <div className="max-w-3xl mx-auto px-6 sm:px-8 py-16 sm:py-24">{children}</div>
       </PublicPageShell>
       {showAuthModal && (

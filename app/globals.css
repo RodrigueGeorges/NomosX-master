@@ -3,8 +3,8 @@
 @tailwind utilities;
 
 /* ============================================================================
-   NomosX Design System — Premium Intelligence Aesthetic
-   Inspired by Linear, Vercel, Raycast
+   NomosX Design System — SpaceX-inspired agentic think tank aesthetic
+   Pure black, bold typography, minimal chrome
    ============================================================================ */
 
 /* === Animations === */
@@ -169,10 +169,10 @@
 :root {
   color-scheme: dark;
 
-  /* Surfaces — Ethereal void */
-  --color-bg: #0A0A0B;
-  --color-bg-elevated: #111114;
-  --color-bg-panel: #18181C;
+  /* Surfaces — pure void (SpaceX-like) */
+  --color-bg: #000000;
+  --color-bg-elevated: #0a0a0a;
+  --color-bg-panel: #111111;
   --color-border: rgba(255, 255, 255, 0.07);
   --color-border-hover: rgba(255, 255, 255, 0.14);
 
@@ -216,7 +216,7 @@
 }
 
 body {
-  background-color: #0A0A0B;
+  background-color: #000000;
   color: var(--color-text);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
@@ -230,8 +230,68 @@ body {
 }
 
 ::selection {
-  background: rgba(74, 158, 255, 0.25);
+  background: rgba(255, 255, 255, 0.18);
   color: #F5F5F7;
+}
+
+/* === NomosX Public Surface — SpaceX-like utilities === */
+.nx-public-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  font-weight: 500;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.nx-public-section {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.nx-public-surface {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.nx-public-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.875rem 2rem;
+  background: #ffffff;
+  color: #000000;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  transition: background-color 0.2s ease;
+}
+
+.nx-public-btn-primary:hover {
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.nx-public-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.875rem 2rem;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.8);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+
+.nx-public-btn-secondary:hover {
+  border-color: rgba(255, 255, 255, 0.55);
+  color: #ffffff;
 }
 
 /* === Typography === */
@@ -1584,18 +1644,16 @@ a, button, input, textarea, select {
   max-width: none !important;
 }
 .article-content a.citation-ref {
-  color: #818cf8;
+  color: rgba(255,255,255,0.65);
   font-size: 0.78em;
   font-weight: 600;
   vertical-align: super;
   text-decoration: none;
   padding: 0 2px;
-  border-radius: 3px;
-  transition: background 0.15s;
+  transition: color 0.15s;
 }
 .article-content a.citation-ref:hover {
-  background: rgba(99,102,241,0.15);
-  color: #a5b4fc;
+  color: #ffffff;
 }
 .article-content li[id^="src-"] {
   scroll-margin-top: 80px;

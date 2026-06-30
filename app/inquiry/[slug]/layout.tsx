@@ -56,7 +56,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 
   if (!description) {
-    description = `${format.label} by NomosX Autonomous Think Tank — source-grounded research with verified citations.`;
+    description = `${format.label} by NomosX — source-grounded institute position with verified citations.`;
   }
 
   return {
@@ -69,7 +69,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       url: canonical,
       siteName: "NomosX",
       publishedTime: article.publishedAt?.toISOString(),
-      authors: ["NomosX Think Tank"],
+      authors: ["NomosX"],
     },
     twitter: {
       card: "summary_large_image",

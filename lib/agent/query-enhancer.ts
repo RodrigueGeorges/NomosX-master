@@ -264,7 +264,7 @@ export function quickEnhance(query: string): { enhanced: string; keywords: strin
   // Remove question words and punctuation
   const cleaned = query
     .toLowerCase()
-    .replace(/\b(what|how|why|when|where|qui|quoi|comment|pourquoi|quand|où|quels|sont|les|de|la|le|des|dans|sur|pour|avec|est|ce|que)\b/gi, "")
+    .replace(/\b(what|how|why|when|where|is|are|was|were|the|of|on|in|to|and|or|a|an|qui|quoi|comment|pourquoi|quand|où|quels|sont|les|de|la|le|des|dans|sur|pour|avec|est|ce|que)\b/gi, "")
     .replace(/[?!.,;:]/g, "")
     .trim();
   

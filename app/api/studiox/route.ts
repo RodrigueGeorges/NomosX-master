@@ -16,6 +16,9 @@ import { assertRateLimit, RateLimitError } from '@/lib/security/rate-limit';
 import { prisma } from '@/lib/db';
 import Sentry from '@sentry/nextjs';
 import { PUBLICATION_FORMATS, getPublicationFormat } from '@/lib/publication-formats';
+import { enqueueStudioXPipeline } from '@/lib/studiox/enqueue';
+
+export const dynamic = 'force-dynamic';
 
 const STUDIOX_SYSTEM_PROMPT = `You are StudioX — the research assistant at NomosX, an autonomous AI think tank.
 
@@ -75,7 +78,7 @@ export async function POST(req: NextRequest) {
 
     const { messages, stream = true, studioContext = {}, orderId } = await req.json();
 
-    // Verify paid order
+    // ── PAID COMMISSION → enqueue async pipeline (never run sync in HTTP) ──
     if (orderId) {
       const order = await prisma.studioXOrder.findFirst({
         where: { id: orderId, userId: session.id },
@@ -83,14 +86,43 @@ export async function POST(req: NextRequest) {
       if (!order) {
         return NextResponse.json({ error: 'Order not found' }, { status: 404 });
       }
-      if (order.status !== 'PAID') {
+      if (order.status === 'PENDING') {
         return NextResponse.json({ error: 'Payment required', requiredAction: 'pay' }, { status: 402 });
       }
-      if (order.result) {
-        // Already completed — return cached result
-        return NextResponse.json({ content: order.result, cached: true });
+      if (order.result || order.status === 'DONE') {
+        return NextResponse.json({ content: order.result, cached: true, status: 'DONE' });
       }
+      if (order.status === 'FAILED') {
+        return NextResponse.json(
+          { error: order.failureReason ?? 'Pipeline failed', status: 'FAILED' },
+          { status: 422 }
+        );
+      }
+      if (order.status === 'RUNNING' || order.status === 'QUEUED') {
+        return NextResponse.json({
+          status: order.status,
+          progressStep: order.progressStep,
+          progressPct: order.progressPct,
+          progressMessage: order.progressMessage,
+          poll: `/api/studiox/order/${orderId}`,
+        }, { status: 202 });
+      }
+
+      // PAID but not yet queued (webhook delay) — enqueue now
+      if (order.status === 'PAID') {
+        await enqueueStudioXPipeline(orderId);
+        const refreshed = await prisma.studioXOrder.findUnique({ where: { id: orderId } });
+        return NextResponse.json({
+          status: refreshed?.status ?? 'QUEUED',
+          progressMessage: 'Research pipeline queued…',
+          poll: `/api/studiox/order/${orderId}`,
+        }, { status: 202 });
+      }
+
+      return NextResponse.json({ error: `Unexpected order status: ${order.status}` }, { status: 409 });
     }
+
+    // ── No order → conversational assistant (ASK mode) ──
     if (!messages || !Array.isArray(messages)) {
       return NextResponse.json({ error: 'Invalid messages' }, { status: 400 });
     }
@@ -158,7 +190,7 @@ ${buildFormatCatalog()}`;
                 messages: allMessages,
                 temperature: 0.2,
                 maxTokens: 4000,
-                model: 'gpt-4o',
+                task: 'analysis',
               },
               (chunk) => {
                 const data = `data: ${JSON.stringify({ content: chunk })}\n\n`;
@@ -190,16 +222,8 @@ ${buildFormatCatalog()}`;
       messages: allMessages,
       temperature: 0.2,
       maxTokens: 4000,
-      model: 'gpt-4o',
+      task: 'analysis',
     });
-
-    // Persist result on the order
-    if (orderId && response.content) {
-      await prisma.studioXOrder.update({
-        where: { id: orderId },
-        data: { result: response.content, completedAt: new Date() },
-      }).catch(() => {});
-    }
 
     return NextResponse.json({
       content: response.content,

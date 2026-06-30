@@ -90,7 +90,7 @@ export default function TopicPage() {
           <p className="text-white/40 mb-4">Domain not found.</p>
           <button
             onClick={() => router.push(PUBLIC_ROUTES.archives)}
-            className="text-accent hover:brightness-110 text-sm"
+            className="text-white/60 hover:text-white text-sm transition-colors"
           >
             ← Back to inquiries
           </button>
@@ -101,7 +101,7 @@ export default function TopicPage() {
             onClose={() => setShowAuthModal(false)}
             onSignupSuccess={() => {
               setShowAuthModal(false);
-              router.push("/dashboard");
+              router.push("/archives");
             }}
           />
         )}
@@ -116,7 +116,7 @@ export default function TopicPage() {
           <button
             type="button"
             onClick={() => router.push(PUBLIC_ROUTES.archives)}
-            className="flex items-center gap-2 text-white/40 hover:text-accent transition-colors text-sm mb-8"
+            className="flex items-center gap-2 text-white/40 hover:text-white transition-colors text-sm mb-8"
           >
             <ArrowLeft size={14} />
             All inquiries
@@ -130,7 +130,7 @@ export default function TopicPage() {
 
           {loading ? (
             <div className="flex items-center justify-center min-h-[400px]">
-              <div className="w-8 h-8 border border-white/20 border-t-accent rounded-full animate-spin" />
+              <div className="w-8 h-8 border border-white/20 border-t-white rounded-full animate-spin" />
             </div>
           ) : articles.length === 0 ? (
             <div className="text-center py-20">
@@ -154,7 +154,7 @@ export default function TopicPage() {
                     type="button"
                     onClick={() => setPage((p) => Math.max(1, p - 1))}
                     disabled={page === 1}
-                    className="px-4 py-2 rounded-lg border border-white/[0.08] text-sm text-white/50 hover:text-white/80 hover:border-accent/25 disabled:opacity-30 transition-all"
+                    className="nx-public-btn-secondary px-4 py-2 text-[11px] disabled:opacity-30"
                   >
                     Previous
                   </button>
@@ -165,7 +165,7 @@ export default function TopicPage() {
                     type="button"
                     onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                     disabled={page === totalPages}
-                    className="px-4 py-2 rounded-lg border border-white/[0.08] text-sm text-white/50 hover:text-white/80 hover:border-accent/25 disabled:opacity-30 transition-all"
+                    className="nx-public-btn-secondary px-4 py-2 text-[11px] disabled:opacity-30"
                   >
                     Next
                   </button>
@@ -182,7 +182,7 @@ export default function TopicPage() {
           onClose={() => setShowAuthModal(false)}
           onSignupSuccess={() => {
             setShowAuthModal(false);
-            router.push("/dashboard");
+            router.push("/archives");
           }}
         />
       )}

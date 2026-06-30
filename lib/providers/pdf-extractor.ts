@@ -18,8 +18,8 @@ let PDFParseClass: any = null;
 async function getPDFParseClass() {
   if (!PDFParseClass) {
     try {
-      const module = await import('pdf-parse');
-      PDFParseClass = module.PDFParse;
+      const mod = await import('pdf-parse');
+      PDFParseClass = mod.PDFParse;
     } catch (err: any) {
       console.warn('[PDF Extractor] Failed to load pdf-parse:', err.message);
       PDFParseClass = null;

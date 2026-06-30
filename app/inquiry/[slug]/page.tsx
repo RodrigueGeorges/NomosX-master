@@ -26,6 +26,8 @@ import { ForesightPanel, ForesightPanelSkeleton, ForesightEmptyState } from "@/c
 import type { ForesightBundle } from "@/lib/foresight";
 import { emptyForesight } from "@/lib/foresight";
 import { getPublicationFormat } from "@/lib/publication-formats";
+import { cn } from "@/lib/utils";
+import { nx } from "@/lib/brand/public-ui";
 import { inquiryUrl, PUBLIC_ROUTES } from "@/lib/public-urls";
 type InquiryType =
   | "RESEARCH_BRIEF"
@@ -146,9 +148,9 @@ export default function InquiryPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-bg text-text flex items-center justify-center">
+      <div className="min-h-screen bg-black text-white flex items-center justify-center">
         <div className="flex items-center gap-3 text-white/40">
-          <div className="w-5 h-5 border-2 border-accent/30 border-t-accent rounded-full animate-spin" />
+          <div className={cn("w-5 h-5", nx.spinner, "w-5 h-5")} />
           <span>Loading inquiry...</span>
         </div>
       </div>
@@ -167,7 +169,7 @@ export default function InquiryPage() {
           <button
             type="button"
             onClick={() => router.push(PUBLIC_ROUTES.archives)}
-            className="px-6 py-2.5 rounded-lg border border-accent/20 bg-accent/5 text-accent font-medium hover:bg-accent/10 transition-all"
+            className={cn(nx.btnGhost, "normal-case tracking-normal font-medium")}
           >
             Back to inquiries
           </button>
@@ -190,7 +192,7 @@ export default function InquiryPage() {
     { icon: Database, label: "Corpus", value: `${inquiry.sources} sources`, detail: "ranked evidence base" },
     { icon: Shield, label: "Gate", value: gateTone, detail: "quality threshold" },
     { icon: Scale, label: "Dissent", value: "forced", detail: "counter-position required" },
-    { icon: Activity, label: "Lineage", value: "logged", detail: "agent audit trail" },
+    { icon: Activity, label: "Lineage", value: "logged", detail: "pipeline audit trail" },
   ];
 
   const inquiryJsonLd = {
@@ -218,7 +220,7 @@ export default function InquiryPage() {
           <button
             type="button"
             onClick={() => router.push(PUBLIC_ROUTES.archives)}
-            className="flex items-center gap-2 text-sm text-white/50 hover:text-accent transition-colors"
+            className="flex items-center gap-2 text-sm text-white/50 hover:text-white transition-colors"
           >
             <ArrowLeft size={16} />
             Back to inquiries
@@ -227,7 +229,7 @@ export default function InquiryPage() {
             <button
               type="button"
               onClick={handleShare}
-              className="p-2 rounded-lg border border-white/[0.08] text-white/50 hover:border-accent/25"
+              className="p-2 border border-white/[0.08] text-white/50 hover:border-white/25"
               title="Share"
             >
               <Share2 size={16} />
@@ -240,7 +242,7 @@ export default function InquiryPage() {
               title="Export"
             >
               {exporting ? (
-                <div className="w-4 h-4 border-2 border-white/20 border-t-accent rounded-full animate-spin" />
+                <div className={cn("w-4 h-4", nx.spinner, "w-4 h-4")} />
               ) : (
                 <Download size={16} />
               )}
@@ -251,10 +253,10 @@ export default function InquiryPage() {
         <PageSection className="py-8">
           <div className="grid lg:grid-cols-[minmax(0,1fr)_280px] gap-8">
             <div>
-              <div className="mb-8 rounded-2xl border border-white/[0.07] bg-bg-elevated p-6 sm:p-8 overflow-hidden relative">
-                <div className="absolute inset-x-0 top-0 h-px bg-accent/30" />
+              <div className="mb-8 nx-public-surface p-6 sm:p-8 overflow-hidden relative">
+                <div className="absolute inset-x-0 top-0 h-px bg-white/20" />
                 <div className="flex items-center gap-3 mb-4">
-                  <span className="px-3 py-1 rounded-full border border-accent/20 bg-accent/5 text-accent text-xs font-medium font-mono">
+                  <span className="px-3 py-1 border border-white/20 bg-white/[0.04] text-white/80 text-xs font-medium font-mono uppercase tracking-wider">
                     {format.label}
                   </span>
                   {inquiry.trustScore != null && (
@@ -263,10 +265,10 @@ export default function InquiryPage() {
                         inquiry.trustScore >= 75
                           ? "border-success/20 bg-success/5 text-success"
                           : inquiry.trustScore >= 50
-                            ? "border-accent/20 bg-accent/5 text-accent"
+                            ? "border-white/20 bg-white/[0.04] text-white"
                             : "border-warning/20 bg-warning/5 text-warning"
                       }`}
-                      title="Composite score: source quality, citations, peer-review, multi-agent validation."
+                      title="Composite score: source quality, citations, adversarial review, and arbitration gate."
                     >
                       Confidence {inquiry.trustScore}%
                     </span>
@@ -301,7 +303,7 @@ export default function InquiryPage() {
                     const PIcon = item.icon;
                     return (
                       <div key={item.label} className="rounded-xl border border-white/[0.06] bg-black/20 p-4">
-                        <PIcon size={15} className="text-accent/75 mb-4" />
+                        <PIcon size={15} className="text-white/45 mb-4" />
                         <div className="text-[10px] text-white/25 uppercase tracking-[0.16em] font-mono">{item.label}</div>
                         <div className="text-sm text-white/80 font-semibold mt-1">{item.value}</div>
                         <div className="text-[11px] text-white/30 mt-1">{item.detail}</div>
@@ -338,7 +340,7 @@ export default function InquiryPage() {
                 ))}
               </div>
 
-              <div className="prose prose-invert prose-lg max-w-none prose-headings:font-display prose-headings:font-light prose-p:text-white/75 prose-li:text-white/70 prose-a:text-accent">
+              <div className={nx.prose}>
                 <div
                   className="article-content text-white/80 leading-relaxed"
                   dangerouslySetInnerHTML={{ __html: sanitizeHtml(inquiry.content) }}
@@ -362,7 +364,7 @@ export default function InquiryPage() {
               <div className="mt-12 pt-8 border-t border-white/[0.06] text-center">                <button
                   type="button"
                   onClick={() => setShowAuthModal(true)}
-                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl border border-accent/20 bg-accent/[0.04] text-accent/80 text-sm font-medium hover:bg-accent/[0.08] transition-all"
+                  className={cn(nx.btnGhost, "normal-case tracking-normal")}
                 >
                   Commission a NomosX Studio follow-up
                   <ArrowRight size={15} />
@@ -372,27 +374,29 @@ export default function InquiryPage() {
 
             <aside className="lg:col-span-1">
               <div className="sticky top-24 space-y-5">
-                <div className="rounded-xl border border-accent/15 bg-accent/[0.035] overflow-hidden">
-                  <div className="p-4 border-b border-white/[0.06]">
-                    <div className="text-[10px] text-accent/80 uppercase tracking-[0.18em] font-semibold font-mono mb-2">
+                <div className="nx-public-surface overflow-hidden">
+                  <div className="p-4 border-b border-white/[0.08]">
+                    <div className="text-[10px] text-white/40 uppercase tracking-[0.18em] font-semibold font-mono mb-2">
                       Verification stack
                     </div>
                     <div className="text-sm text-white/85 font-medium">Publication protocol</div>
                   </div>
                   <div className="p-4 space-y-4">
                     {[
-                      { label: "Source corpus", value: `${inquiry.sources} sources`, tone: "bg-accent" },
-                      { label: "Format", value: format.shortLabel, tone: "bg-accent" },
-                      { label: "Citation layer", value: "visible", tone: "bg-accent" },
+                      { label: "Source corpus", value: `${inquiry.sources} sources`, tone: "bg-white" },
+                      { label: "Format", value: format.shortLabel, tone: "bg-white" },
+                      { label: "Citation layer", value: "visible", tone: "bg-white" },
                       {
-                        label: "Council gate",
+                        label: "Arbitration gate",
                         value: inquiry.trustScore != null ? `${inquiry.trustScore}%` : "logged",
                         tone: "bg-success",
                       },
                       {
                         label: "Foresight",
-                        value: foresight.available ? `${foresight.telemetry.swarmSize}+ agents` : "—",
-                        tone: foresight.available ? "bg-accent" : "bg-white/20",
+                        value: foresight.available
+                          ? `${foresight.telemetry.monteCarloRuns.toLocaleString()} runs`
+                          : "—",
+                        tone: foresight.available ? "bg-white" : "bg-white/20",
                       },
                     ].map((item) => (
                       <div key={item.label} className="flex items-start gap-3">
@@ -406,11 +410,11 @@ export default function InquiryPage() {
                   </div>
                 </div>
 
-                <div className="rounded-xl border border-accent/15 bg-accent/[0.035] p-4">
+                <div className="nx-public-surface p-4">
                   <div className="flex items-start gap-3">
-                    <AlertTriangle size={16} className="text-accent/80 mt-0.5 shrink-0" />
+                    <AlertTriangle size={16} className="text-white/50 mt-0.5 shrink-0" />
                     <div>
-                      <div className="text-[10px] text-accent/60 uppercase tracking-[0.18em] font-semibold font-mono mb-2">
+                      <div className="text-[10px] text-white/35 uppercase tracking-[0.18em] font-semibold font-mono mb-2">
                         Reader note
                       </div>
                       <p className="text-xs text-white/45 leading-relaxed">
@@ -421,15 +425,15 @@ export default function InquiryPage() {
                   </div>
                 </div>
 
-                <div className="rounded-xl border border-white/[0.07] bg-bg-elevated p-4">
+                <div className="nx-public-surface p-4">
                   <div className="text-[10px] text-white/25 uppercase tracking-[0.18em] font-semibold font-mono mb-3">
-                    Doxa to Nomos
+                    Map to decide
                   </div>
                   <div className="space-y-2.5">
-                    {["Claim extracted", "Evidence challenged", "Dissent recorded", "Limitations surfaced"].map(
+                    {["Evidence mapped", "Collisions surfaced", "Distribution quantified", "Position taken"].map(
                       (step, i) => (
                         <div key={step} className="flex items-center gap-2.5 text-xs text-white/45">
-                          <span className="w-5 h-5 rounded-full border border-white/[0.08] bg-black/20 flex items-center justify-center text-[10px] font-mono text-accent/70">
+                          <span className="w-5 h-5 border border-white/[0.08] bg-black/20 flex items-center justify-center text-[10px] font-mono text-white/60">
                             {i + 1}
                           </span>
                           {step}
@@ -448,15 +452,15 @@ export default function InquiryPage() {
                           key={item.id}
                           type="button"
                           onClick={() => router.push(PUBLIC_ROUTES.inquiry(item.id))}
-                          className="w-full text-left rounded-xl border border-white/[0.07] bg-bg-elevated p-4 hover:border-accent/20 transition-colors group"
+                          className="w-full text-left nx-public-surface p-4 hover:border-white/20 transition-colors group"
                         >
                           <div className="flex items-center gap-2 mb-2">
-                            <span className="text-xs text-accent/60 uppercase tracking-wider font-mono">
+                            <span className="text-xs text-white/40 uppercase tracking-wider font-mono">
                               {inquiryTypeLabel(item.type)}
                             </span>
                             <span className="text-xs text-white/30 font-mono">{item.readTime} min</span>
                           </div>
-                          <h4 className="text-sm font-medium text-white/90 mb-1 line-clamp-2 group-hover:text-accent transition-colors">
+                          <h4 className="text-sm font-medium text-white/90 mb-1 line-clamp-2 group-hover:text-white transition-colors">
                             {item.title}
                           </h4>
                           <p className="text-xs text-white/40 font-mono">

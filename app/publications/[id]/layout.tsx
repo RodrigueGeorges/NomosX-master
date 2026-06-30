@@ -15,7 +15,7 @@ export async function generateMetadata(
     if (!res.ok) {
       return {
         title: 'Research Brief | NomosX',
-        description: 'Peer-reviewed intelligence brief by the NomosX Autonomous Think Tank.',
+        description: 'Institute position by the NomosX agentic think tank.',
       };
     }
 
@@ -25,7 +25,7 @@ export async function generateMetadata(
       : 'Research Brief';
 
     const title = `${pub.title} | NomosX`;
-    const description = pub.description || `A ${typeLabel.toLowerCase()} by the NomosX Think Tank.`;
+    const description = pub.description || `An institute position by NomosX — ${typeLabel.toLowerCase()}.`;
     const url = `${APP_URL}/publications/${id}`;
 
     return {
@@ -61,7 +61,7 @@ export async function generateMetadata(
   } catch {
     return {
       title: 'Research Brief | NomosX',
-      description: 'Peer-reviewed intelligence brief by the NomosX Autonomous Think Tank.',
+      description: 'Institute position by the NomosX agentic think tank.',
     };
   }
 }

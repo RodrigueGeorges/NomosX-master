@@ -88,8 +88,8 @@ export async function GET(req: NextRequest) {
           role: user.role,
         });
 
-        // Redirect to dashboard with success message
-        const redirectUrl = `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?verified=true`;
+        // Redirect to archives with success message
+        const redirectUrl = `${process.env.NEXT_PUBLIC_APP_URL}/archives?verified=true`;
         
         return NextResponse.redirect(redirectUrl);
 

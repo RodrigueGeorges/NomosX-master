@@ -14,9 +14,8 @@ const textSizes  = { sm: "text-[15px]", md: "text-[18px]", lg: "text-[22px]", xl
 const gapSizes   = { sm: "gap-2", md: "gap-2.5", lg: "gap-3", xl: "gap-4", "2xl": "gap-5", "3xl": "gap-6", "4xl": "gap-8", "5xl": "gap-10" };
 
 /**
- * NomosX — Greek Nu (Ν) mark
- * Three precision strokes: left vertical · diagonal · right vertical
- * Pure white on black, no gradient, no fill — carved inscription aesthetic.
+ * NomosX mark — precision Ν symbol + wordmark
+ * Pure white on black; X reads as the innovation multiplier (SpaceX-style).
  */
 function NomosSymbol({ px, className }: { px: number; className?: string }) {
   const sw = Math.max(1.8, px * 0.038); // stroke width scales with size
@@ -56,7 +55,7 @@ export function NomosXLogo({ size = "md", variant = "full", className, styleSize
     return (
       <div className={cn("inline-flex items-center", className)}>
         <span className={cn("font-display font-semibold tracking-tight text-white", textSizes[size])}>
-          Nomos<span className="text-white/60">X</span>
+          Nomos<span className="font-bold text-white">X</span>
         </span>
       </div>
     );
@@ -66,7 +65,7 @@ export function NomosXLogo({ size = "md", variant = "full", className, styleSize
     <div className={cn("inline-flex items-center", gapSizes[size], className)}>
       <NomosSymbol px={px} />
       <span className={cn("font-display font-semibold tracking-tight text-white", textSizes[size])}>
-        Nomos<span className="text-white/50">X</span>
+        Nomos<span className="font-bold text-white">X</span>
       </span>
     </div>
   );

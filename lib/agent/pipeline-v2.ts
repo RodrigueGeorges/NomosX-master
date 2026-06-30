@@ -30,7 +30,10 @@ import { emitProgress } from './pipeline-progress';
 import { selectSmartProviders } from './smart-provider-selector';
 import { getHealthyProviders } from './provider-health-tracker';
 import { searchExtendedProviders, getExtendedProvidersForDomain } from '../providers/registry-bridge';
-import { classifyTopicSync } from './topic-classifier';
+import { classifyTopic } from './topic-classifier';
+import { isEditorialV2Enabled, getPipelineMaxBudgetUsd } from './editorial-config';
+import { buildAnalysisReviewText } from './analysis-review-text';
+import { runPipelineForesight } from './pipeline-foresight';
 import { RESEARCHER_KBS, type KeyConcept, type AnalyticalFramework, type DomainExpertise } from './researcher-kb/index';
 import { MULTI_DOMAIN_CORPUS } from '../knowledge/multi-domain-corpus';
 import {
@@ -46,6 +49,12 @@ import { simpleRedisManager, SimpleCacheUtils } from './redis-simple';
 import type { PipelineStats } from './pipeline-types';
 import { createLineageTracker as createLineageTrackerTyped, recordTransformation as recordTransformationTyped } from './pipeline-types';
 import { renderProfessionalBriefHTML, renderProfessionalStrategicHTML } from './editor-agent';
+import { renderPositionFirstBriefHTML } from './position-first-renderer';
+import { ensureEditorialScenarios } from './editorial-scenarios';
+import { castingAgent } from './casting-agent';
+import { editorialArbiter } from './editorial-arbiter';
+import type { CastingResult, InstitutePosition } from './editorial-types';
+import type { DebateResult } from './debate-agent';
 import { generatePrintHTML } from './pdf-export';
 
 function hashQuery(query: string, providers: string[]): string {
@@ -1176,7 +1185,10 @@ export async function analyst(question: string, sources: any[], readings?: any[]
 
 export function citationGuard(json: any, sourceCount: number) {
   const allText = JSON.stringify(json || {});
-  const used = Array.from(allText.matchAll(/SRC-(\d+)/g)).map((m) => Number(m[1]));
+  // Count distinct cited sources (a source cited multiple times counts once).
+  const used = Array.from(
+    new Set(Array.from(allText.matchAll(/SRC-(\d+)/g)).map((m) => Number(m[1])))
+  );
   const invalid = used.filter((n) => n < 1 || n > sourceCount);
   return { ok: used.length > 0 && invalid.length === 0, usedCount: used.length, invalid };
 }
@@ -1364,12 +1376,13 @@ export interface PipelineCoreOptions {
 
 async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   const { isStrategic } = opts;
+  const editorialV2 = isEditorialV2Enabled();
   const label = isStrategic ? "[Strategic]" : "[Pipeline]";
   const stats: PipelineStats = {};
   const pipelineStart = Date.now();
 
   // P1-FIX: Running cost accumulator with budget guard
-  const maxBudget = opts.maxBudgetUsd ?? (isStrategic ? 8.0 : 3.0);
+  const maxBudget = opts.maxBudgetUsd ?? getPipelineMaxBudgetUsd(isStrategic, editorialV2);
   let runningCostUsd = 0;
   function addCost(amount: number | undefined, stepName: string) {
     if (typeof amount === "number" && amount > 0) {
@@ -1604,10 +1617,36 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     : 0;
   stats.rank = { count: topSources.length, avgQuality: orchState.avgQualityScore };
 
-  // ── STEP 4b: DOMAIN CLASSIFICATION (for domain-aware prompting) ──
-  const topicClassification = classifyTopicSync(query);
+  // ── STEP 4b: DOMAIN CLASSIFICATION (LLM primary, rules fallback) ──
+  const topicClassification = await classifyTopic(query);
   const detectedDomain = topicClassification.primaryDomain;
-  console.log(`${label} DOMAIN: ${detectedDomain} (confidence: ${topicClassification.confidence})`);
+  stats.topicClassification = {
+    primaryDomain: topicClassification.primaryDomain,
+    domains: topicClassification.domains,
+    dimensions: topicClassification.dimensions,
+    detectedSubject: topicClassification.detectedSubject,
+    isCrossDomain: topicClassification.isCrossDomain,
+    confidence: topicClassification.confidence,
+    reasoning: topicClassification.reasoning,
+  };
+  console.log(`${label} DOMAIN: ${detectedDomain} (confidence: ${topicClassification.confidence}, cross=${topicClassification.isCrossDomain})`);
+  if (topicClassification.dimensions.length >= 2) {
+    console.log(`${label} COLLISION: ${topicClassification.dimensions.map((d) => d.label).join(' × ')}`);
+  }
+
+  let castingResult: CastingResult | undefined;
+  if (editorialV2) {
+    emitProgress(pipelineRun.id, 'CASTING', 'started', 'Assembling cross-domain reasoning team...');
+    castingResult = await castingAgent(query, topicClassification);
+    stats.casting = {
+      teamSize: castingResult.team.length,
+      collisionSummary: castingResult.collisionSummary,
+      costUsd: castingResult.costUsd,
+    };
+    addCost(castingResult.costUsd, 'CASTING');
+    emitProgress(pipelineRun.id, 'CASTING', 'completed', `${castingResult.team.length} lenses assigned`);
+    console.log(`${label} CASTING: ${castingResult.team.map((t) => t.domain).join(', ')}`);
+  }
 
   // ── STEP 5: READER V3 ──
   emitProgress(pipelineRun.id, "READER", "started", `Deep extraction from ${topSources.length} sources...`);
@@ -1867,235 +1906,251 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     stats.citationGuardDegraded = true;
   }
 
-  // â”€â”€ STEP 8: EDITOR (Professional Publication-Grade) â”€â”€
-  console.log(`${label} EDITOR: render professional HTML`);
-  let html: string;
-  try {
-    html = isStrategic
-      ? renderProfessionalStrategicHTML(analysis, topSources)
-      : renderProfessionalBriefHTML(analysis, topSources);
-    console.log(`${label} EDITOR: professional template rendered (${(html.length / 1024).toFixed(0)}KB)`);
-  } catch (editorErr) {
-    console.warn(`${label} EDITOR: professional template failed, using legacy:`, editorErr);
-    html = isStrategic
-      ? renderStrategicReportHTML(analysis, topSources)
-      : renderBriefHTML(analysis, topSources);
-  }
-  stats.htmlLength = html.length;
-
-  // Generate print-optimized HTML (synchronous, no blocking)
-  const printHtml = generatePrintHTML(html);
-
-  // â”€â”€ STEP 9: CITATION VERIFIER â”€â”€
-  console.log(`${label} CITATION VERIFIER: semantic check`);
-  try {
-    const verification = await verifyCitations(html, topSources, { maxConcurrency: isStrategic ? 5 : 3 });
-    stats.citationVerifier = {
-      integrity: verification.overallIntegrity,
-      supported: verification.supported,
-      flagged: verification.flaggedClaims.length,
-    };
-    console.log(`${label} CITATION VERIFIER: integrity ${verification.overallIntegrity}%`);
-  } catch (err) {
-    console.warn(`${label} CITATION VERIFIER: failed (non-blocking):`, err);
-  }
-
-  // ── STEP 9b: FACT-CHECKER — Verify numerical claims against sources ──
-  try {
-    const { factChecker } = await import('./fact-checker');
-    const factResult = await factChecker(html, topSources);
-    stats.factChecker = {
-      totalClaims: factResult.totalClaims,
-      verified: factResult.verified,
-      majorIssues: factResult.majorIssues,
-      fatalIssues: factResult.fatalIssues,
-      integrityScore: factResult.integrityScore,
-    };
-    console.log(`${label} FACT-CHECKER: ${factResult.totalClaims} claims, ${factResult.verified} verified, ${factResult.majorIssues} major, ${factResult.fatalIssues} fatal → integrity ${factResult.integrityScore}%`);
-
-    // If fatal fact-check issues, flag for human review
-    if (factResult.fatalIssues > 0) {
-      console.error(`${label} FACT-CHECKER: ${factResult.fatalIssues} FATAL numerical discrepancies detected`);
-      stats.factCheckerFatalFlagged = true;
-    }
-  } catch (err) {
-    console.warn(`${label} FACT-CHECKER: failed (non-blocking):`, err);
-    stats.factChecker = { error: String(err) };
-  }
-
-  // â”€â”€ STEP 10: CRITICAL LOOP V2 â”€â”€
-  console.log(`${label} CRITICAL LOOP V2: iterative review`);
-  try {
-    const criticalResult = await runCriticalLoopV2({
-      draftHtml: html,
-      sources: topSources,
-      readings,
-      maxIterations: 2,
-      publishThreshold: isStrategic ? 70 : 65,
-    });
-    stats.criticalLoop = {
-      iterations: criticalResult.iterations,
-      finalScore: criticalResult.compositeScore,
-      improvement: criticalResult.improvementDelta,
-      needsHumanReview: criticalResult.needsHumanReview,
-    };
-    if (criticalResult.improvementDelta > 0) {
-      html = criticalResult.finalHtml;
-      console.log(`${label} CRITICAL LOOP V2: improved by +${criticalResult.improvementDelta} points`);
-    }
-  } catch (err) {
-    console.warn(`${label} CRITICAL LOOP V2: failed (non-blocking):`, err);
-  }
-
-  orchState.trustScore = stats.criticalLoop?.finalScore ?? null;
-  const criticalDecision = assessAfterCriticalLoop(orchState);
-  recordDecision(orchState, criticalDecision);
-  stats.orchestrator.decisions.push(criticalDecision);
-
-  // ── STEP 11+12: DEBATE + META-ANALYSIS (parallel) ──
+  let html = '';
   let debateContext: string | undefined;
-  if (!runDebateStep && !runMetaAnalysisStep) {
-    console.log(`${label} DEBATE + META-ANALYSIS: skipped (tier=standard)`);
-    stats.debate = { skipped: true };
-    stats.metaAnalysis = { skipped: true };
-  } else {
-  emitProgress(pipelineRun.id, "DEBATE", "started", "Running debate + meta-analysis in parallel...");
-  console.log(`${label} DEBATE + META-ANALYSIS: running in parallel`);
-  const [debateResult, metaResult] = await Promise.allSettled([
-    runDebateStep ? import('./debate-agent').then(m => m.debateAgent(query, topSources, readings, isStrategic ? html : undefined)) : Promise.reject("skipped"),
-    runMetaAnalysisStep ? import('./meta-analysis-engine').then(m => m.metaAnalysisEngine(query, readings, topSources)) : Promise.reject("skipped"),
-  ]);
+  let debateResult: DebateResult | undefined;
+  let institutePosition: InstitutePosition | undefined;
 
-  if (debateResult.status === "fulfilled") {
-    const debate = debateResult.value;
-    debateContext = [
-      `Debate dominant thesis: ${debate.dominantThesis}`,
-      `Counter-position: ${debate.position2?.label || "N/A"}`,
-      `Confidence in dominant: ${debate.confidenceInDominant}/100`,
-      `Steel-man already addressed: ${debate.synthesis?.slice(0, 200) || "N/A"}`,
-    ].join("\n");
-    stats.debate = {
-      confidenceInDominant: debate.confidenceInDominant,
-      steelManStrength: String(debate.debateQuality.steelManStrength),
-      nuances: debate.nuances?.length ?? 0,
-      costUsd: debate.costUsd,
-    };
-    console.log(`${label} DEBATE: confidence=${debate.confidenceInDominant}%, steel-man=${debate.debateQuality.steelManStrength}`);
-    addCost(debate.costUsd, "DEBATE");
-  } else if (debateResult.reason !== "skipped") {
-    console.warn(`${label} DEBATE: failed (non-blocking):`, debateResult.reason);
-  }
-
-  if (metaResult.status === "fulfilled") {
-    const meta = metaResult.value;
-    stats.metaAnalysis = {
-      k: meta.k,
-      pooledEffect: meta.recommended === "random" ? meta.randomEffects.value : meta.fixedEffect.value,
-      I2: meta.heterogeneity.I2,
-      biasDetected: meta.publicationBias.biasDetected,
-      forestPlotEntries: meta.forestPlot.length,
-    };
-    console.log(`${label} META-ANALYSIS: k=${meta.k}, pooled d=${stats.metaAnalysis.pooledEffect}, IÂ²=${meta.heterogeneity.I2}%`);
-  } else if (metaResult.reason !== "skipped") {
-    console.warn(`${label} META-ANALYSIS: failed (non-blocking):`, metaResult.reason);
-  }
-  } // end debate+meta block
-
-  // ── STEP 13: DEVIL'S ADVOCATE — Final epistemic gate ──
-  if (!runDevilsAdvocateStep) {
-    console.log(`${label} DEVIL'S ADVOCATE: skipped (tier=standard)`);
-    stats.devilsAdvocate = { skipped: true };
-  } else {
-  emitProgress(pipelineRun.id, "DEVILS_ADVOCATE", "started", "Final epistemic challenge...");
-  console.log(`${label} DEVIL'S ADVOCATE: challenging analysis`);
-  try {
-    const { runDevilsAdvocate } = await import('./devils-advocate');
-    const advocateReport = await runDevilsAdvocate(
-      query,
-      html,
-      topSources.map((s: any) => ({ title: s.title, provider: s.provider, year: s.year ?? undefined })),
-      {
-        mode: isStrategic ? "strategic" : "brief",
-        targetAudience: opts.targetAudience || (isStrategic ? "senior policymakers" : undefined),
-        debateContext, // P0-C: pass debate steel-man to avoid redundant challenges
+  const renderEditorHtml = (): string => {
+    console.log(`${label} EDITOR: render professional HTML`);
+    try {
+      if (editorialV2 && castingResult && institutePosition) {
+        const rendered = renderPositionFirstBriefHTML({
+          question: query,
+          classification: topicClassification,
+          casting: castingResult,
+          position: institutePosition,
+          analysis: analysis as Record<string, unknown>,
+          sources: topSources,
+          debate: debateResult,
+          isStrategic,
+        });
+        console.log(`${label} EDITOR: position-first template (${(rendered.length / 1024).toFixed(0)}KB)`);
+        return rendered;
       }
-    );
-    stats.devilsAdvocate = {
-      verdict: advocateReport.verdict,
-      overallStrength: advocateReport.overallStrength,
-      publishabilityScore: advocateReport.publishabilityScore,
-      fatalChallenges: advocateReport.fatalChallenges.length,
-      majorChallenges: advocateReport.majorChallenges.length,
-      vsInstitutions: advocateReport.vsInstitutionBenchmark.overall,
-      ...(isStrategic && {
-        institutionScores: {
-          mckinsey: advocateReport.vsInstitutionBenchmark.mckinsey.score,
-          brookings: advocateReport.vsInstitutionBenchmark.brookings.score,
-          rand: advocateReport.vsInstitutionBenchmark.rand.score,
-          franceStrategie: advocateReport.vsInstitutionBenchmark.franceStrategie.score,
-        },
-        gaps: advocateReport.vsInstitutionBenchmark.gaps,
-      }),
-      costUsd: advocateReport.costUsd,
-    };
-    console.log(`${label} DEVIL'S ADVOCATE: verdict=${advocateReport.verdict}, strength=${advocateReport.overallStrength}/100`);
-    addCost(advocateReport.costUsd, "DEVIL'S ADVOCATE");
-    if (isStrategic) {
-      console.log(`${label} DEVIL'S ADVOCATE: vs McKinsey=${advocateReport.vsInstitutionBenchmark.mckinsey.score}, Brookings=${advocateReport.vsInstitutionBenchmark.brookings.score}, RAND=${advocateReport.vsInstitutionBenchmark.rand.score}`);
+      const rendered = isStrategic
+        ? renderProfessionalStrategicHTML(analysis, topSources)
+        : renderProfessionalBriefHTML(analysis, topSources);
+      console.log(`${label} EDITOR: professional template rendered (${(rendered.length / 1024).toFixed(0)}KB)`);
+      return rendered;
+    } catch (editorErr) {
+      console.warn(`${label} EDITOR: professional template failed, using legacy:`, editorErr);
+      return isStrategic
+        ? renderStrategicReportHTML(analysis, topSources)
+        : renderBriefHTML(analysis, topSources);
+    }
+  };
+
+  const runPostRenderQualityGates = async () => {
+    emitProgress(pipelineRun.id, "QUALITY", "started", "Citation verification and critical review...");
+    console.log(`${label} CITATION VERIFIER: semantic check`);
+    try {
+      const verification = await verifyCitations(html, topSources, { maxConcurrency: isStrategic ? 5 : 3 });
+      stats.citationVerifier = {
+        integrity: verification.overallIntegrity,
+        supported: verification.supported,
+        flagged: verification.flaggedClaims.length,
+      };
+      console.log(`${label} CITATION VERIFIER: integrity ${verification.overallIntegrity}%`);
+    } catch (err) {
+      console.warn(`${label} CITATION VERIFIER: failed (non-blocking):`, err);
     }
 
-    // Record performance for AgentMemory learning
-    const failureModes = autoDetectFailureModes({
-      confidenceGiven: isStrategic ? 75 : 70,
-      trustScore: stats.criticalLoop?.finalScore ?? 70,
-      citationCoverage: stats.citationVerifier?.integrity ? stats.citationVerifier.integrity / 100 : 0.7,
-      contradictionsFound: advocateReport.fatalChallenges.length,
-      sourceDiversity: orchState.providerDiversity,
-      findingsCount: topSources.length,
-    });
-    await recordAgentPerformance({
-      agentId,
-      runId: pipelineRun.id,
-      question: query,
-      trustScore: advocateReport.publishabilityScore,
-      qualityScore: advocateReport.overallStrength,
-      confidenceGiven: isStrategic ? 75 : 70,
-      confidenceActual: advocateReport.overallStrength,
-      citationCoverage: stats.citationVerifier?.integrity ? stats.citationVerifier.integrity / 100 : 0.7,
-      findingsCount: topSources.length,
-      failureModes,
-      lessonsLearned: [],
-    });
+    try {
+      const { factChecker } = await import('./fact-checker');
+      const factResult = await factChecker(html, topSources);
+      stats.factChecker = {
+        totalClaims: factResult.totalClaims,
+        verified: factResult.verified,
+        majorIssues: factResult.majorIssues,
+        fatalIssues: factResult.fatalIssues,
+        integrityScore: factResult.integrityScore,
+      };
+      console.log(`${label} FACT-CHECKER: ${factResult.totalClaims} claims, ${factResult.verified} verified, ${factResult.majorIssues} major, ${factResult.fatalIssues} fatal → integrity ${factResult.integrityScore}%`);
+      if (factResult.fatalIssues > 0) {
+        console.error(`${label} FACT-CHECKER: ${factResult.fatalIssues} FATAL numerical discrepancies detected`);
+        stats.factCheckerFatalFlagged = true;
+      }
+    } catch (err) {
+      console.warn(`${label} FACT-CHECKER: failed (non-blocking):`, err);
+      stats.factChecker = { error: String(err) };
+    }
 
-    const qualityThreshold = isStrategic ? 80 : 75;
-    if (advocateReport.overallStrength < qualityThreshold && advocateReport.fatalChallenges.length > 0) {
-      const { lessons } = await extractLessons(agentId, query, html.slice(0, 500), {
+    console.log(`${label} CRITICAL LOOP V2: iterative review`);
+    try {
+      const criticalResult = await runCriticalLoopV2({
+        draftHtml: html,
+        sources: topSources,
+        readings,
+        maxIterations: 2,
+        publishThreshold: isStrategic ? 70 : 65,
+      });
+      stats.criticalLoop = {
+        iterations: criticalResult.iterations,
+        finalScore: criticalResult.compositeScore,
+        improvement: criticalResult.improvementDelta,
+        needsHumanReview: criticalResult.needsHumanReview,
+      };
+      if (criticalResult.improvementDelta > 0) {
+        html = criticalResult.finalHtml;
+        console.log(`${label} CRITICAL LOOP V2: improved by +${criticalResult.improvementDelta} points`);
+      }
+    } catch (err) {
+      console.warn(`${label} CRITICAL LOOP V2: failed (non-blocking):`, err);
+    }
+
+    orchState.trustScore = stats.criticalLoop?.finalScore ?? null;
+    const criticalDecision = assessAfterCriticalLoop(orchState);
+    recordDecision(orchState, criticalDecision);
+    stats.orchestrator = stats.orchestrator ?? { decisions: [] };
+    stats.orchestrator.decisions.push(criticalDecision);
+  };
+
+  const runDebateMetaBlock = async (debateHtmlContext?: string) => {
+    if (!runDebateStep && !runMetaAnalysisStep) {
+      console.log(`${label} DEBATE + META-ANALYSIS: skipped (tier=standard)`);
+      stats.debate = { skipped: true };
+      stats.metaAnalysis = { skipped: true };
+      return;
+    }
+    emitProgress(pipelineRun.id, "DEBATE", "started", "Running debate + meta-analysis in parallel...");
+    console.log(`${label} DEBATE + META-ANALYSIS: running in parallel`);
+    const [debateSettled, metaResult] = await Promise.allSettled([
+      runDebateStep ? import('./debate-agent').then(m => m.debateAgent(query, topSources, readings, debateHtmlContext)) : Promise.reject("skipped"),
+      runMetaAnalysisStep ? import('./meta-analysis-engine').then(m => m.metaAnalysisEngine(query, readings, topSources)) : Promise.reject("skipped"),
+    ]);
+
+    if (debateSettled.status === "fulfilled") {
+      const debate = debateSettled.value;
+      debateResult = debate;
+      debateContext = [
+        `Debate dominant thesis: ${debate.dominantThesis}`,
+        `Counter-position: ${debate.position2?.label || "N/A"}`,
+        `Confidence in dominant: ${debate.confidenceInDominant}/100`,
+        `Steel-man already addressed: ${debate.synthesis?.slice(0, 200) || "N/A"}`,
+      ].join("\n");
+      stats.debate = {
+        confidenceInDominant: debate.confidenceInDominant,
+        steelManStrength: String(debate.debateQuality.steelManStrength),
+        nuances: debate.nuances?.length ?? 0,
+        costUsd: debate.costUsd,
+      };
+      console.log(`${label} DEBATE: confidence=${debate.confidenceInDominant}%, steel-man=${debate.debateQuality.steelManStrength}`);
+      addCost(debate.costUsd, "DEBATE");
+    } else if (debateSettled.reason !== "skipped") {
+      console.warn(`${label} DEBATE: failed (non-blocking):`, debateSettled.reason);
+    }
+
+    if (metaResult.status === "fulfilled") {
+      const meta = metaResult.value;
+      stats.metaAnalysis = {
+        k: meta.k,
+        pooledEffect: meta.recommended === "random" ? meta.randomEffects.value : meta.fixedEffect.value,
+        I2: meta.heterogeneity.I2,
+        biasDetected: meta.publicationBias.biasDetected,
+        forestPlotEntries: meta.forestPlot.length,
+      };
+      console.log(`${label} META-ANALYSIS: k=${meta.k}, pooled d=${stats.metaAnalysis.pooledEffect}, I²=${meta.heterogeneity.I2}%`);
+    } else if (metaResult.reason !== "skipped") {
+      console.warn(`${label} META-ANALYSIS: failed (non-blocking):`, metaResult.reason);
+    }
+  };
+
+  const runDevilsAdvocateBlock = async (contentForReview: string, allowHtmlRevision: boolean) => {
+    if (!runDevilsAdvocateStep) {
+      console.log(`${label} DEVIL'S ADVOCATE: skipped (tier=standard)`);
+      stats.devilsAdvocate = { skipped: true };
+      return;
+    }
+    emitProgress(pipelineRun.id, "DEVILS_ADVOCATE", "started", "Final epistemic challenge...");
+    console.log(`${label} DEVIL'S ADVOCATE: challenging analysis`);
+    try {
+      const { runDevilsAdvocate } = await import('./devils-advocate');
+      const advocateReport = await runDevilsAdvocate(
+        query,
+        contentForReview,
+        topSources.map((s: any) => ({ title: s.title, provider: s.provider, year: s.year ?? undefined })),
+        {
+          mode: isStrategic ? "strategic" : "brief",
+          targetAudience: opts.targetAudience || (isStrategic ? "senior policymakers" : undefined),
+          debateContext,
+        }
+      );
+      stats.devilsAdvocate = {
+        verdict: advocateReport.verdict,
+        overallStrength: advocateReport.overallStrength,
+        publishabilityScore: advocateReport.publishabilityScore,
+        fatalChallenges: advocateReport.fatalChallenges.length,
+        majorChallenges: advocateReport.majorChallenges.length,
+        vsInstitutions: advocateReport.vsInstitutionBenchmark.overall,
+        ...(isStrategic && {
+          institutionScores: {
+            mckinsey: advocateReport.vsInstitutionBenchmark.mckinsey.score,
+            brookings: advocateReport.vsInstitutionBenchmark.brookings.score,
+            rand: advocateReport.vsInstitutionBenchmark.rand.score,
+            franceStrategie: advocateReport.vsInstitutionBenchmark.franceStrategie.score,
+          },
+          gaps: advocateReport.vsInstitutionBenchmark.gaps,
+        }),
+        costUsd: advocateReport.costUsd,
+      };
+      console.log(`${label} DEVIL'S ADVOCATE: verdict=${advocateReport.verdict}, strength=${advocateReport.overallStrength}/100`);
+      addCost(advocateReport.costUsd, "DEVIL'S ADVOCATE");
+
+      const failureModes = autoDetectFailureModes({
+        confidenceGiven: isStrategic ? 75 : 70,
+        trustScore: stats.criticalLoop?.finalScore ?? 70,
+        citationCoverage: stats.citationVerifier?.integrity ? stats.citationVerifier.integrity / 100 : 0.7,
+        contradictionsFound: advocateReport.fatalChallenges.length,
+        sourceDiversity: orchState.providerDiversity,
+        findingsCount: topSources.length,
+      });
+      await recordAgentPerformance({
+        agentId,
+        runId: pipelineRun.id,
+        question: query,
         trustScore: advocateReport.publishabilityScore,
         qualityScore: advocateReport.overallStrength,
+        confidenceGiven: isStrategic ? 75 : 70,
+        confidenceActual: advocateReport.overallStrength,
+        citationCoverage: stats.citationVerifier?.integrity ? stats.citationVerifier.integrity / 100 : 0.7,
+        findingsCount: topSources.length,
         failureModes,
+        lessonsLearned: [],
       });
-      for (const lesson of lessons) {
-        await storeLesson(agentId, lesson, pipelineRun.id);
-      }
 
-      // P2-7: AUTO-REVISION — Rewrite the brief to address fatal challenges
-      // Think tanks don't publish documents with known fatal flaws.
-      console.log(`${label} DEVIL'S ADVOCATE: ${advocateReport.fatalChallenges.length} fatal challenges — triggering auto-revision`);
-      try {
-        const fatalList = advocateReport.fatalChallenges.map((fc: any, i: number) =>
-          `${i + 1}. ${fc.description || fc.challenge || fc}: ${fc.fixSuggestion || fc.recommendation || "Address this challenge"}`
-        ).join('\n');
-        const majorList = advocateReport.majorChallenges.map((mc: any, i: number) =>
-          `${i + 1}. ${mc.description || mc.challenge || mc}: ${mc.fixSuggestion || mc.recommendation || "Address this challenge"}`
-        ).join('\n');
+      const qualityThreshold = isStrategic ? 80 : 75;
+      if (
+        allowHtmlRevision &&
+        html.length > 0 &&
+        advocateReport.overallStrength < qualityThreshold &&
+        advocateReport.fatalChallenges.length > 0
+      ) {
+        const { lessons } = await extractLessons(agentId, query, html.slice(0, 500), {
+          trustScore: advocateReport.publishabilityScore,
+          qualityScore: advocateReport.overallStrength,
+          failureModes,
+        });
+        for (const lesson of lessons) {
+          await storeLesson(agentId, lesson, pipelineRun.id);
+        }
 
-        const revisionResponse = await callLLM({
-          messages: [{
-            role: "system",
-            content: `You are a senior editor at an elite think tank. The Devil's Advocate has found FATAL challenges in this draft. You must REWRITE the draft to address ALL fatal and major challenges while preserving the core analysis and all [SRC-N] citations. Output the full rewritten HTML.`
-          }, {
-            role: "user",
-            content: `ORIGINAL DRAFT:
+        console.log(`${label} DEVIL'S ADVOCATE: ${advocateReport.fatalChallenges.length} fatal challenges — triggering auto-revision`);
+        try {
+          const fatalList = advocateReport.fatalChallenges.map((fc: any, i: number) =>
+            `${i + 1}. ${fc.description || fc.challenge || fc}: ${fc.fixSuggestion || fc.recommendation || "Address this challenge"}`
+          ).join('\n');
+          const majorList = advocateReport.majorChallenges.map((mc: any, i: number) =>
+            `${i + 1}. ${mc.description || mc.challenge || mc}: ${mc.fixSuggestion || mc.recommendation || "Address this challenge"}`
+          ).join('\n');
+
+          const revisionResponse = await callLLM({
+            messages: [{
+              role: "system",
+              content: `You are a senior editor at an elite think tank. The Devil's Advocate has found FATAL challenges in this draft. You must REWRITE the draft to address ALL fatal and major challenges while preserving the core analysis and all [SRC-N] citations. Output the full rewritten HTML.`
+            }, {
+              role: "user",
+              content: `ORIGINAL DRAFT:
 ${html.length > 20000 ? html.slice(0, 8000) + '\n\n[...MIDDLE SECTION...]\n\n' + html.slice(-8000) : html}
 
 ═══ FATAL CHALLENGES (MUST ADDRESS ALL) ═══
@@ -2104,38 +2159,101 @@ ${fatalList}
 ═══ MAJOR CHALLENGES (SHOULD ADDRESS) ═══
 ${majorList}
 
-═══ REWRITE INSTRUCTIONS ═══
-1. Address EVERY fatal challenge explicitly
-2. Address major challenges where possible
-3. Add hedging/caveats for claims that cannot be fully resolved
-4. Preserve ALL [SRC-N] citations
-5. Maintain the same HTML structure and sections
-6. Do NOT add new claims without source support
-7. If a fatal challenge cannot be resolved, acknowledge it as a key limitation
-
 Return the FULL rewritten HTML. No JSON wrapping — just the HTML.`
-          }],
-          temperature: 0.2,
-          jsonMode: false,
-          maxTokens: 12000,
-          enableCache: false,
-        });
+            }],
+            temperature: 0.2,
+            jsonMode: false,
+            maxTokens: 12000,
+            enableCache: false,
+          });
 
-        if (revisionResponse.content && revisionResponse.content.length > html.length * 0.5) {
-          html = revisionResponse.content;
-          console.log(`${label} DEVIL'S ADVOCATE: auto-revision applied (${(html.length / 1024).toFixed(0)}KB)`);
-          stats.devilsAdvocate.autoRevised = true;
+          if (revisionResponse.content && revisionResponse.content.length > html.length * 0.5) {
+            html = revisionResponse.content;
+            console.log(`${label} DEVIL'S ADVOCATE: auto-revision applied (${(html.length / 1024).toFixed(0)}KB)`);
+            stats.devilsAdvocate = { ...stats.devilsAdvocate as object, autoRevised: true };
+          }
+          addCost(revisionResponse.costUsd, "DEVIL'S ADVOCATE REVISION");
+        } catch (revisionErr) {
+          console.warn(`${label} DEVIL'S ADVOCATE: auto-revision failed:`, revisionErr);
         }
-        addCost(revisionResponse.costUsd, "DEVIL'S ADVOCATE REVISION");
-      } catch (revisionErr) {
-        console.warn(`${label} DEVIL'S ADVOCATE: auto-revision failed:`, revisionErr);
       }
+    } catch (err) {
+      console.warn(`${label} DEVIL'S ADVOCATE: failed (non-blocking):`, err);
+      stats.devilsAdvocate = { error: String(err) };
     }
-  } catch (err) {
-    console.warn(`${label} DEVIL'S ADVOCATE: failed (non-blocking):`, err);
-    stats.devilsAdvocate = { error: String(err) };
+  };
+
+  if (editorialV2) {
+    console.log(`${label} EDITORIAL V2: foresight → debate → devil's advocate → editor → quality gates`);
+
+    analysis = ensureEditorialScenarios(analysis as Record<string, unknown>, {
+      question: query,
+    }) as typeof analysis;
+
+    emitProgress(pipelineRun.id, "FORESIGHT", "started", "Monte Carlo scenario distribution...");
+    const foresight = await runPipelineForesight({
+      question: query,
+      analysis: analysis as Record<string, unknown>,
+      domain: detectedDomain,
+      sourceIds: topSources.map((s: any) => s.id),
+      isStrategic: true,
+      depth: 'deep',
+      seedSourceIds: opts.seedSourceIds,
+    });
+    if (!foresight.skipped && foresight.report) {
+      analysis = foresight.analysis as typeof analysis;
+      stats.foresight = {
+        scenarios: foresight.report.output.scenarios.length,
+        monteCarloRuns: foresight.report.output.monteCarloRuns,
+        converged: foresight.report.output.monteCarloConverged,
+        costUsd: foresight.costUsd,
+      };
+      addCost(foresight.costUsd, "FORESIGHT");
+      emitProgress(pipelineRun.id, "FORESIGHT", "completed", `MC: ${foresight.report.output.scenarios.length} scenarios`);
+    } else {
+      stats.foresight = { skipped: true, reason: foresight.reason };
+      console.log(`${label} FORESIGHT: skipped (${foresight.reason})`);
+    }
+
+    await runDebateMetaBlock(undefined);
+
+    if (castingResult) {
+      emitProgress(pipelineRun.id, 'ARBITER', 'started', 'Formulating institute position...');
+      institutePosition = await editorialArbiter({
+        question: query,
+        classification: topicClassification,
+        casting: castingResult,
+        analysis: analysis as Record<string, unknown>,
+        sources: topSources,
+        debate: debateResult,
+      });
+      stats.editorialArbiter = {
+        confidence: institutePosition.confidence,
+        confidenceLabel: institutePosition.confidenceLabel,
+        scenariosCount: institutePosition.scenarios.length,
+        costUsd: institutePosition.costUsd,
+      };
+      addCost(institutePosition.costUsd, 'EDITORIAL ARBITER');
+      emitProgress(pipelineRun.id, 'ARBITER', 'completed', `Position: ${institutePosition.confidence}/100 confidence`);
+      console.log(`${label} ARBITER: confidence=${institutePosition.confidence}, scenarios=${institutePosition.scenarios.length}`);
+    }
+
+    await runDevilsAdvocateBlock(buildAnalysisReviewText(analysis as Record<string, unknown>, query), false);
+    html = renderEditorHtml();
+    stats.htmlLength = html.length;
+    void generatePrintHTML(html);
+    await runPostRenderQualityGates();
+  } else {
+    html = renderEditorHtml();
+    stats.htmlLength = html.length;
+    void generatePrintHTML(html);
+    await runPostRenderQualityGates();
+    await runDebateMetaBlock(isStrategic ? html : undefined);
+    await runDevilsAdvocateBlock(html, true);
   }
-  } // end runDevilsAdvocateStep block
+
+  stats.analysis = analysis;
+  stats.editorialV2 = editorialV2;
 
   // â”€â”€ STEP 14: PUBLISHER â”€â”€
   console.log(`${label} PUBLISHER: save ${isStrategic ? "strategic report" : "brief"}`);
@@ -2179,9 +2297,14 @@ Return the FULL rewritten HTML. No JSON wrapping — just the HTML.`
   const totalCost = [
     stats.contextPrimer?.costUsd,
     stats.harvardCouncil?.costUsd,
+    stats.casting?.costUsd,
+    stats.foresight?.costUsd,
+    stats.editorialArbiter?.costUsd,
+    stats.deliberation?.costUsd,
     stats.citationVerifier?.costUsd,
     stats.debate?.costUsd,
     (stats.metaAnalysis as any)?.costUsd,
+    stats.devilsAdvocate?.costUsd,
     stats.knowledgeGraph?.costUsd,
   ].filter((v): v is number => typeof v === "number").reduce((a, b) => a + b, 0);
 
@@ -2197,7 +2320,10 @@ Return the FULL rewritten HTML. No JSON wrapping — just the HTML.`
       sourcesFound: stats.scout?.found || 0,
       sourcesRanked: stats.rank?.count || 0,
       sourcesUsed: topSources.length,
-      trustScore: stats.criticalLoop?.finalScore,
+      trustScore:
+        editorialV2 && institutePosition?.confidence != null
+          ? institutePosition.confidence
+          : stats.criticalLoop?.finalScore,
       steps: JSON.parse(JSON.stringify({ ...stats, orchestrator: { ...stats.orchestrator, decisions: orchState.decisions } })),
     },
   });
@@ -2230,7 +2356,7 @@ Return the FULL rewritten HTML. No JSON wrapping — just the HTML.`
         status: "FAILED",
         finishedAt: new Date(),
         durationMs: Date.now() - pipelineStart,
-        steps: { ...stats, error: error.message },
+        steps: JSON.parse(JSON.stringify({ ...stats, error: error.message })),
       },
     }).catch(() => {});
     throw error;
@@ -2333,20 +2459,25 @@ export async function runPipeline(
   format: ReportFormat = "brief",
   options: StrategicPipelineOptions = {}
 ) {
-  const isStrategic = format === "strategic" || format === "dossier";
-  const timeoutMs = isStrategic ? 900_000 : 600_000; // 10min brief, 15min strategic
+  const isDossier = format === "dossier";
+  const isStrategic = format === "strategic" || isDossier;
+  const timeoutMs = isStrategic ? 900_000 : 600_000; // 10min brief, 15min strategic/dossier
 
-  if (format === "dossier") {
-    console.warn("[Pipeline] Dossier format not yet implemented, falling back to strategic");
-  }
+  // DOSSIER = extended strategic report — wider corpus and more ranked sources
+  // so a €299 dossier produces a materially deeper deliverable than a strategic report.
+  const dossierRankOptions: RankOptions = isDossier
+    ? { limit: 40, maxPerProvider: 8, minProviderDiversity: 6 }
+    : {};
+  const perProvider = options.perProvider ?? (isDossier ? 120 : undefined);
+  const rankOptions = { ...dossierRankOptions, ...options.rankOptions };
 
   try {
     return await withTimeout(
       runPipelineCore(query, {
         isStrategic,
         providers: options.providers,
-        perProvider: options.perProvider,
-        rankOptions: options.rankOptions,
+        perProvider,
+        rankOptions,
         focusAreas: options.focusAreas,
         targetAudience: options.targetAudience,
         urgencyContext: options.urgencyContext,

@@ -9,19 +9,19 @@ interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
 
 export function Card({ className, hoverable = false, variant = "default", ...props }: CardProps) {
   const variants = {
-    default: "bg-panel border-border",
-    premium: "bg-gradient-to-br from-panel to-panel2 border-accent2/20",
-    ai: "bg-panel border-ai/20"
+    default: "bg-white/[0.02] border-white/[0.08]",
+    premium: "bg-white/[0.02] border-white/[0.08]",
+    ai: "bg-white/[0.02] border-white/[0.08]"
   };
   
   const hoverClass = hoverable 
-    ? "transition-all duration-300 hover:shadow-glow hover:-translate-y-1 hover:border-accent/40 cursor-pointer group" 
+    ? "transition-colors duration-200 hover:border-white/20 hover:bg-white/[0.04] cursor-pointer group" 
     : "";
   
   return (
     <div 
       className={cn(
-        "rounded-2xl border shadow-card relative overflow-hidden",
+        "border relative overflow-hidden",
         variants[variant],
         hoverClass,
         className
@@ -36,11 +36,11 @@ export function CardHeader({ className, ...props }: React.HTMLAttributes<HTMLDiv
 }
 
 export function CardTitle({ className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) {
-  return <h3 className={cn("text-lg font-semibold leading-none tracking-tight", className)} {...props} />;
+  return <h3 className={cn("text-lg font-semibold leading-none tracking-tight text-white", className)} {...props} />;
 }
 
 export function CardDescription({ className, ...props }: React.HTMLAttributes<HTMLParagraphElement>) {
-  return <p className={cn("text-sm text-muted-foreground", className)} {...props} />;
+  return <p className={cn("text-sm text-white/45", className)} {...props} />;
 }
 
 export function CardContent({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
