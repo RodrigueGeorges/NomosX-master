@@ -151,6 +151,7 @@ Return JSON:
     jsonMode: true,
     maxTokens: 4000,
     enableCache: true,
+    task: 'elenchus',
   });
 
   totalCost += pass1Response.costUsd;
@@ -199,6 +200,7 @@ Return JSON:
     jsonMode: true,
     maxTokens: 2000,
     enableCache: true,
+    task: 'meta_analysis',
   });
 
   totalCost += pass2Response.costUsd;

@@ -8,6 +8,8 @@ import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
 import { Mail } from 'lucide-react';
 import { NomosXLogo } from '@/components/brand/NomosXLogo';
+import { LOGO_AUTH_SYMBOL } from '@/lib/brand/logo-config';
+import { BRAND_SHORT, BRAND_SOURCES_LABEL } from '@/lib/brand/public-copy';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -93,11 +95,11 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
 
         <div className="relative mb-10 text-center">
           <div className="flex justify-center mb-6">
-            <NomosXLogo variant="symbol" styleSize={60} />
+            <NomosXLogo variant="symbol" size={LOGO_AUTH_SYMBOL} />
           </div>
 
           <div className="font-mono text-[10px] text-white/40 tracking-[0.25em] uppercase mb-4">
-            Agentic think tank
+            {BRAND_SHORT}
           </div>
 
           <h2 className="font-display text-3xl sm:text-4xl font-semibold leading-tight mb-3 text-text">
@@ -110,7 +112,7 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
           </p>
 
           <div className="flex items-center justify-center gap-3 text-xs text-white/30 tracking-[0.15em] uppercase font-mono">
-            <span>250M+ Sources</span>
+            <span>{BRAND_SOURCES_LABEL} Sources</span>
             <div className="w-1 h-1 rounded-full bg-white/30" />
             <span>Auto-published</span>
             <div className="w-1 h-1 rounded-full bg-white/30" />

@@ -95,6 +95,8 @@ export interface MultiPassAnalysis {
     contradictionMap: ContradictionMap;
     totalTokensUsed: number;
     totalCostUsd: number;
+    /** LLM family that produced the final synthesis (Pass 3) — used for opposite-family verification rule */
+    producerFamily?: import('../llm/unified-llm').LLMFamily;
   };
 }
 
@@ -253,7 +255,7 @@ Be EXHAUSTIVE. Extract EVERY data point. Miss nothing.`;
     jsonMode: true,
     maxTokens: 4000,
     enableCache: true,
-    model: 'gpt-4o', // Thematic mapping requires top-tier reasoning
+    task: 'analyst_brief',
   });
 
   const map = JSON.parse(response.content) as ThematicMap;
@@ -348,7 +350,7 @@ Be ADVERSARIAL. Actively look for conflicts. A good analyst finds what others mi
     jsonMode: true,
     maxTokens: 4000,
     enableCache: true,
-    model: 'gpt-4o', // Contradiction detection requires deep reasoning
+    task: 'analyst_brief',
   });
 
   const map = JSON.parse(response.content) as ContradictionMap;
@@ -374,7 +376,7 @@ async function pass3Synthesis(
   avgQuality: number,
   lang: string,
   domainContext?: string
-): Promise<{ analysis: AnalysisOutput; tokens: number; cost: number }> {
+): Promise<{ analysis: AnalysisOutput; tokens: number; cost: number; family: import('../llm/unified-llm').LLMFamily }> {
   console.log(`[Analyst V3] PASS 3/3: Deep Synthesis...`);
 
   // Build structured intelligence brief from passes 1-2
@@ -469,7 +471,7 @@ QUALITY: This is the final output for senior decision-makers. Intellectual rigor
     jsonMode: true,
     maxTokens: 12000,
     enableCache: true,
-    model: 'gpt-4o', // Final synthesis requires top-tier reasoning
+    task: 'analyst_brief',
   });
 
   const analysis = JSON.parse(response.content) as AnalysisOutput;
@@ -479,6 +481,7 @@ QUALITY: This is the final output for senior decision-makers. Intellectual rigor
     analysis,
     tokens: response.tokensInput + response.tokensOutput,
     cost: response.costUsd,
+    family: response.family,
   };
 }
 
@@ -617,6 +620,7 @@ export async function analystAgentV3(
         contradictionMap: p2.map,
         totalTokensUsed: totalTokens,
         totalCostUsd: totalCost,
+        producerFamily: p3.family,
       },
     };
   } catch (error: any) {

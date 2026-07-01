@@ -7,6 +7,13 @@ import { PublicPageShell } from "@/components/layout/PublicPageShell";
 import { EtherealCard, PageHeader, PageSection } from "@/components/layout/PageHeader";
 import { PUBLIC_ROUTES } from "@/lib/public-urls";
 import { PipelineStrip } from "@/components/signature";
+import {
+  BRAND_HERO_SUBTITLE_SHORT,
+  BRAND_SOURCES_LABEL,
+  BRAND_TAGLINE,
+  ABOUT_CTA_HEADLINE,
+  ABOUT_CTA_HEADLINE_ACCENT,
+} from "@/lib/brand/public-copy";
 import { ArrowRight, Brain, Globe, Lightbulb, Shield } from "lucide-react";
 
 const VISION = [
@@ -19,8 +26,7 @@ const VISION = [
   {
     icon: Brain,
     title: "Agentic by design",
-    description:
-      "Map, confront, quantify, decide — an autonomous pipeline runs continuously, publishing institute positions without human trigger.",
+    description: `Map, confront, quantify, decide — an autonomous pipeline runs continuously, publishing institute positions without human trigger.`,
   },
   {
     icon: Shield,
@@ -31,8 +37,7 @@ const VISION = [
   {
     icon: Lightbulb,
     title: "Futures, not summaries",
-    description:
-      "250M+ sources filtered for quality, modeled as probabilistic distributions, delivered as decisions you can defend.",
+    description: `${BRAND_SOURCES_LABEL} sources filtered for quality, modeled as probabilistic distributions, delivered as decisions you can defend.`,
   },
 ];
 
@@ -55,8 +60,8 @@ export default function AboutPage() {
             eyebrow="About"
             title={
               <>
-                The agentic{" "}
-                <span className="text-white/70">think tank.</span>
+                {BRAND_HERO_SUBTITLE_SHORT.replace(/\.$/, "")}{" "}
+                <span className="text-white/70">for everyone.</span>
               </>
             }
             description="NomosX operates continuously — mapping cross-domain evidence, quantifying probable futures, and publishing institute positions."
@@ -86,10 +91,7 @@ export default function AboutPage() {
           />
           <div className="grid sm:grid-cols-2 gap-4">
             {VALUES.map((v) => (
-              <div
-                key={v.title}
-                className="nx-public-surface p-6"
-              >
+              <div key={v.title} className="nx-public-surface p-6">
                 <h3 className="text-sm font-medium text-white mb-2">{v.title}</h3>
                 <p className="text-xs text-white/40 leading-relaxed">{v.description}</p>
               </div>
@@ -99,17 +101,11 @@ export default function AboutPage() {
 
         <PageSection className="border-t border-white/[0.05] text-center pb-24">
           <h2 className="font-display text-2xl font-semibold mb-4">
-            Probable futures.{" "}
-            <span className="text-white/70">Open by default.</span>
+            {ABOUT_CTA_HEADLINE}{" "}
+            <span className="text-white/70">{ABOUT_CTA_HEADLINE_ACCENT}</span>
           </h2>
-          <p className="text-sm text-white/40 mb-8 max-w-md mx-auto">
-            Probable futures. Decisions owned. Evidence verified.
-          </p>
-          <button
-            type="button"
-            onClick={() => router.push(PUBLIC_ROUTES.archives)}
-            className="nx-public-btn-primary"
-          >
+          <p className="text-sm text-white/40 mb-8 max-w-md mx-auto">{BRAND_TAGLINE}</p>
+          <button type="button" onClick={() => router.push(PUBLIC_ROUTES.archives)} className="nx-public-btn-primary">
             Browse inquiries
             <ArrowRight size={14} />
           </button>

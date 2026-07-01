@@ -6,6 +6,7 @@ import { FORMAT_TYPES_BY_FAMILY, getPublicationFormat } from '@/lib/publication-
 import { publicPublicationWhere } from '@/lib/publication-visibility';
 import { htmlHasForesightSection } from '@/lib/foresight';
 import { extractBriefSummary } from '@/lib/agent/brief-html-extract';
+import { buildFeaturedVerdict } from '@/lib/brand/featured-verdict';
 
 /**
  * GET /api/public/briefs
@@ -26,6 +27,7 @@ const PublicBriefsSchema = z.object({
   limit: z.coerce.number().min(1).max(50).default(12),
   type: z.string().default('all'),
   search: z.string().max(200).default(''),
+  featured: z.enum(['0', '1']).default('0'),
 });
 
 const VALID_TYPES = new Set([
@@ -43,7 +45,7 @@ export async function GET(req: NextRequest) {
         // Parse and validate query parameters
         const { searchParams } = new URL(req.url);
         const raw: Record<string, string> = {};
-        for (const key of ['page', 'limit', 'type', 'search']) {
+        for (const key of ['page', 'limit', 'type', 'search', 'featured']) {
           const val = searchParams.get(key);
           if (val !== null) raw[key] = val;
         }
@@ -59,7 +61,7 @@ export async function GET(req: NextRequest) {
           );
         }
 
-        const { page, limit, type, search } = validation.data;
+        const { page, limit, type, search, featured } = validation.data;
         const offset = (page - 1) * limit;
 
         // Build where clause
@@ -200,9 +202,12 @@ export async function GET(req: NextRequest) {
         });
 
         const totalPages = Math.ceil(totalCount / limit);
+        const featuredVerdict =
+          featured === '1' && briefs.length > 0 ? buildFeaturedVerdict(briefs[0]) : null;
 
         return NextResponse.json({
           briefs: transformedBriefs,
+          featuredVerdict,
           pagination: {
             page,
             limit,

@@ -89,7 +89,7 @@ Return JSON: {"signalType": "TYPE", "confidence": 0-100, "reason": "brief explan
       jsonMode: true,
       maxTokens: 200,
       enableCache: true,
-      model: 'gpt-4o-mini', // P1-PERF: classification is simple — mini is 10x cheaper
+      task: 'topic_classification',
     });
     
     const result = JSON.parse(response.content);

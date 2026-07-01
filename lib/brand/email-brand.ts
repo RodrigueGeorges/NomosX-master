@@ -18,7 +18,6 @@ export const EMAIL_BRAND = {
   link: "color:#a1a1aa;text-decoration:underline;text-underline-offset:2px;",
   linkPlain: "color:#a1a1aa;text-decoration:none;font-weight:500;",
   hr: "border:none;border-top:1px solid rgba(255,255,255,0.08);margin:32px 0;",
-  logoX: "color:#ffffff;font-weight:700;",
 } as const;
 
 export function emailTrustColor(score: number): string {

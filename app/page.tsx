@@ -28,37 +28,19 @@ import {
 
 } from "@/components/signature";
 
+import { FALLBACK_FEATURED_VERDICT } from "@/lib/brand/featured-verdict";
+import {
+  BRAND_HERO_DETAIL,
+  BRAND_HERO_SUBTITLE,
+  BRAND_HERO_TITLE,
+  BRAND_MISSION,
+} from "@/lib/brand/public-copy";
+
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 import { PUBLIC_ROUTES } from "@/lib/public-urls";
 
 import { ArrowRight } from "lucide-react";
-
-
-
-const FEATURED_VERDICT: FeaturedVerdictData = {
-
-  question: "Will sovereign AI infrastructure reshape European policy?",
-
-  verdictPrefix: "Yes",
-
-  verdictBody: "consolidation is likely around sovereign infrastructure models.",
-
-  confidence: "74%",
-
-  simulation: "3 trajectories · 1024 runs",
-
-  sources: 42,
-
-  objections: 3,
-
-  updatedAt: "MAY 18, 2026",
-
-  serialId: "NX-2026-0518-01",
-
-  sparkline: [52, 58, 61, 68, 72, 74, 73, 74],
-
-};
 
 
 
@@ -214,6 +196,8 @@ function HomePageContent() {
 
   const [latestInquiries, setLatestInquiries] = useState<InquiryCardData[]>([]);
 
+  const [featuredVerdict, setFeaturedVerdict] = useState<FeaturedVerdictData>(FALLBACK_FEATURED_VERDICT);
+
   const [newsletterEmail, setNewsletterEmail] = useState("");
 
   const [newsletterStatus, setNewsletterStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
@@ -238,11 +222,13 @@ function HomePageContent() {
 
 
 
-    fetch("/api/public/briefs?limit=3")
+    fetch("/api/public/briefs?limit=3&featured=1")
 
       .then((r) => (r.ok ? r.json() : null))
 
       .then((d) => {
+
+        if (d?.featuredVerdict) setFeaturedVerdict(d.featuredVerdict);
 
         if (d?.briefs?.length) {
 
@@ -370,27 +356,27 @@ function HomePageContent() {
 
             <div className="max-w-4xl mx-auto text-center w-full">
 
-              <p className="font-mono text-[10px] uppercase tracking-[0.32em] text-white/30 mb-10 animate-rise">
+              <p className="nx-public-eyebrow mb-10 animate-rise">
 
                 Agentic · Independent · Prospective
 
               </p>
 
-              <h1 className="font-display text-[2.75rem] sm:text-5xl lg:text-[5rem] font-semibold leading-[1.02] tracking-[-0.03em] text-white mb-8 animate-rise">
+              <h1 className="nx-spx-hero mb-8 animate-rise max-w-4xl mx-auto">
 
-                Pushing strategic analysis forward.
+                {BRAND_HERO_TITLE}
 
               </h1>
 
-              <p className="text-lg sm:text-xl text-white/50 max-w-2xl mx-auto leading-relaxed mb-6 animate-rise">
+              <p className="text-base sm:text-lg text-[var(--nx-text-secondary)] max-w-2xl mx-auto leading-[1.5] mb-6 animate-rise">
 
-                The agentic think tank for probable futures.
+                {BRAND_HERO_SUBTITLE}
 
               </p>
 
-              <p className="text-sm text-white/30 max-w-lg mx-auto leading-relaxed mb-14 animate-rise">
+              <p className="text-sm text-[var(--nx-text-tertiary)] max-w-lg mx-auto leading-[1.5] mb-14 animate-rise">
 
-                Cross-domain mapping · probabilistic distributions · institute positions · full traceability
+                {BRAND_HERO_DETAIL}
 
               </p>
 
@@ -402,7 +388,7 @@ function HomePageContent() {
 
                   onClick={() => router.push(PUBLIC_ROUTES.archives)}
 
-                  className="group inline-flex items-center justify-center gap-2 px-10 py-4 bg-white hover:bg-white/90 text-black text-[11px] font-semibold uppercase tracking-[0.18em] transition-colors"
+                  className="group nx-spx-cta"
 
                 >
 
@@ -418,7 +404,7 @@ function HomePageContent() {
 
                   onClick={openStudio}
 
-                  className="group inline-flex items-center justify-center gap-2 px-10 py-4 border border-white/30 bg-transparent text-white/80 text-[11px] font-medium uppercase tracking-[0.18em] hover:border-white/60 hover:text-white transition-colors"
+                  className="group nx-public-btn-secondary"
 
                 >
 
@@ -438,15 +424,13 @@ function HomePageContent() {
 
           {/* Mission statement */}
 
-          <section className="px-6 sm:px-8 py-24 sm:py-32 border-t border-white/[0.08]">
+          <section className="nx-public-section px-6 sm:px-8">
 
             <div className="max-w-3xl mx-auto text-center">
 
-              <p className="font-display text-2xl sm:text-3xl lg:text-[2.25rem] font-light text-white/75 leading-[1.35] tracking-[-0.02em]">
+              <p className="text-xl sm:text-2xl lg:text-3xl font-normal text-[var(--nx-text-secondary)] leading-[1.45] max-w-3xl mx-auto">
 
-                NomosX believes strategic decisions grounded in a distribution of probable futures —
-
-                not a frozen state of the art — change how institutions anticipate the world.
+                {BRAND_MISSION}
 
               </p>
 
@@ -462,7 +446,7 @@ function HomePageContent() {
 
             <div className="max-w-lg mx-auto">
 
-              <FeaturedVerdictCard data={FEATURED_VERDICT} />
+              <FeaturedVerdictCard data={featuredVerdict} />
 
             </div>
 

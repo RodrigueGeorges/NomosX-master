@@ -489,6 +489,7 @@ Return JSON:
       jsonMode: true,
       maxTokens: 1500,
       enableCache: true,
+      task: 'meta_analysis',
     });
 
     costUsd = llmResponse.costUsd;

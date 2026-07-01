@@ -1,22 +1,30 @@
 import React from 'react';
 import "./globals.css";
-import { Inter, Space_Grotesk, JetBrains_Mono, Cormorant_Garamond } from 'next/font/google';
+import { Barlow, Barlow_Semi_Condensed, JetBrains_Mono } from 'next/font/google';
 import { ToastContainer } from '@/components/ui/Toast';
 import { AuthProvider } from '@/hooks/useAuth';
 import { QueryProvider } from '@/components/providers/QueryProvider';
+import {
+  BRAND_DESCRIPTION,
+  BRAND_NAME,
+  BRAND_OG_DESCRIPTION,
+  BRAND_TITLE,
+} from '@/lib/brand/public-copy';
 
 // Font configuration
-const inter = Inter({
+/** Barlow ≈ D-DIN (géométrique/grotesque libre — grammaire SpaceX) */
+const barlow = Barlow({
   subsets: ['latin'],
   variable: '--font-primary',
-  weight: ['300', '400', '500', '600', '700'],
+  weight: ['400', '500', '600', '700'],
   display: 'swap',
 })
 
-const spaceGrotesk = Space_Grotesk({
+/** Barlow Semi Condensed — titres hero uppercase (D-DIN-Bold) */
+const barlowCondensed = Barlow_Semi_Condensed({
   subsets: ['latin'],
-  variable: '--font-secondary',
-  weight: ['300', '400', '500', '600', '700'],
+  variable: '--font-display',
+  weight: ['600', '700'],
   display: 'swap',
 })
 
@@ -27,28 +35,23 @@ const jetbrainsMono = JetBrains_Mono({
   display: 'swap',
 })
 
-const cormorant = Cormorant_Garamond({
-  subsets: ['latin'],
-  variable: '--font-serif',
-  weight: ['300', '400', '500', '600'],
-  style: ['normal', 'italic'],
-  display: 'swap',
-})
-
 export const metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
   title: {
-    default: "NomosX — The Agentic Think Tank",
-    template: "%s | NomosX"
+    default: BRAND_TITLE,
+    template: `%s | ${BRAND_NAME}`,
   },
-  description: "Autonomous pipeline for probabilistic foresight: cross-domain mapping, scenario distributions, and institute positions — every claim source-verified.",
+  description: BRAND_DESCRIPTION,
   keywords: ["think tank", "agentic AI", "probabilistic foresight", "decision intelligence", "strategic analysis", "scenario planning", "autonomous research"],
-  authors: [{ name: "NomosX" }],
-  creator: "NomosX",
+  authors: [{ name: BRAND_NAME }],
+  creator: BRAND_NAME,
   icons: {
     icon: [
       { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/favicon.ico", sizes: "32x32", type: "image/x-icon" },
     ],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+    shortcut: "/favicon.ico",
   },
   robots: {
     index: true,
@@ -62,14 +65,14 @@ export const metadata = {
   openGraph: {
     type: 'website',
     locale: 'en_US',
-    siteName: 'NomosX',
-    title: 'NomosX — The Agentic Think Tank',
-    description: 'Probable futures. Decisions owned. Evidence verified. Cross-domain foresight with probabilistic verdicts.',
+    siteName: BRAND_NAME,
+    title: BRAND_TITLE,
+    description: BRAND_OG_DESCRIPTION,
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'NomosX — The Agentic Think Tank',
-    description: 'Probable futures. Decisions owned. Evidence verified. Cross-domain foresight with probabilistic verdicts.',
+    title: BRAND_TITLE,
+    description: BRAND_OG_DESCRIPTION,
   },
 };
 
@@ -93,7 +96,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   };
 
   return (
-    <html lang="en" className={`${inter.variable} ${spaceGrotesk.variable} ${jetbrainsMono.variable} ${cormorant.variable}`} suppressHydrationWarning>
+    <html lang="en" className={`${barlow.variable} ${barlowCondensed.variable} ${jetbrainsMono.variable}`} suppressHydrationWarning>
       <head>
         <script
           type="application/ld+json"

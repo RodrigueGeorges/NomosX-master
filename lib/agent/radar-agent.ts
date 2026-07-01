@@ -128,6 +128,7 @@ Be rigorous. Strategic foresight depends on this analysis.`;
       temperature: 0.4,
       jsonMode: true,
       maxTokens: 2000,
+      task: 'analyst_brief',
     });
     
     const parsed = JSON.parse(response.content || "{}");

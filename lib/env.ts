@@ -22,6 +22,10 @@ const envSchema = z.object({
   DEEPSEEK_BASE_URL: z.string().url().optional().default("https://api.deepseek.com"),
   DEEPSEEK_MODEL_FAST: z.string().optional().default("deepseek-v4-flash"),
   DEEPSEEK_MODEL_REASONING: z.string().optional().default("deepseek-v4-pro"),
+
+  // GLM-5.2 (z.ai) — OpenAI-compatible, 1M context, prefix caching ($0.26/M cached input)
+  GLM_API_KEY: z.string().optional(),
+  GLM_BASE_URL: z.string().url().optional().default("https://api.z.ai/v1"),
   
   // Academic APIs (optional keys, have fallback URLs)
   OPENALEX_API: z.string().url().optional().default("https://api.openalex.org/works"),
@@ -106,6 +110,9 @@ const envSchema = z.object({
 
   // LinkUp (complementary web search — grey literature, think tanks, real-time web)
   LINKUP_API_KEY: z.string().optional(),
+
+  // Editorial V2 — position-first pipeline
+  EDITORIAL_V2: z.string().optional(),
 
   // Next.js
   NEXT_PUBLIC_APP_URL: z.string().url().optional().default("http://localhost:3000"),

@@ -198,6 +198,7 @@ Return JSON: { "lessons": ["lesson 1", "lesson 2", ...] }`,
     temperature: 0.2,
     maxTokens: 400,
     jsonMode: true,
+    task: 'topic_classification',
   });
 
   try {

@@ -5,6 +5,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Home, RefreshCw } from 'lucide-react';
 import { NomosXLogo } from '@/components/brand/NomosXLogo';
+import { LOGO_ERROR_CAP } from '@/lib/brand/logo-config';
 import { nx } from '@/lib/brand/public-ui';
 import { cn } from '@/lib/utils';
 
@@ -25,7 +26,7 @@ export default function Error({
     <div className="min-h-screen bg-black flex items-center justify-center px-4">
       <div className="text-center max-w-md">
         <div className="flex items-center justify-center gap-3 mb-8">
-          <NomosXLogo size="lg" />
+          <NomosXLogo variant="lockup" size={LOGO_ERROR_CAP} />
         </div>
 
         <h1 className="font-display text-2xl font-semibold text-white mb-3">

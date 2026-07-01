@@ -102,6 +102,7 @@ Return JSON:
     temperature: 0.2,
     jsonMode: true,
     maxTokens: 2000,
+    task: 'fact_check',
     enableCache: true,
   });
 
@@ -158,6 +159,7 @@ Return JSON:
     jsonMode: true,
     maxTokens: 3000,
     enableCache: true,
+    task: 'elenchus',
   });
 
   const result = JSON.parse(response.content);
@@ -222,6 +224,7 @@ Return JSON:
     jsonMode: true,
     maxTokens: 2500,
     enableCache: true,
+    task: 'fact_check',
   });
 
   const result = JSON.parse(response.content);
@@ -294,6 +297,7 @@ Return the FULL rewritten HTML. No JSON wrapping — just the HTML.`
     jsonMode: false,
     maxTokens: 8000,
     enableCache: false, // Never cache rewrites
+    task: 'auto_revision',
   });
 
   return {

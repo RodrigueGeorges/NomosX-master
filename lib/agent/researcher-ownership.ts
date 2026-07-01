@@ -960,6 +960,7 @@ Review this brief and provide your sign-off decision.`
       maxTokens: 800,
       jsonMode: true,
       enableCache: true,
+      task: 'fact_check',
     });
 
     const parsed = JSON.parse(result.content);

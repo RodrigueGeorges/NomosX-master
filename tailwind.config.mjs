@@ -1,60 +1,43 @@
 import typography from '@tailwindcss/typography';
 
 /**
- * NomosX Design System — Ethereal × Palantir
- * ─────────────────────────────────────────────
- * Principles:
- *   • One canonical blue (#4A9EFF — ethereal, calm, less saturated than Palantir Blueprint)
- *   • Near-black backgrounds (#0A0A0B, not pure black — easier on eyes)
- *   • Near-white text (#F5F5F7, not pure white — softer authority)
- *   • Generous space, monospace for data points (verdict, sources, IDs)
- *   • No gradients beyond 2 stops, no glows > 0.15 opacity
+ * NomosX Design System — SpaceX grammar (public) + internal palette via CSS vars
  */
 export default {
   content: ["./app/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}"],
   theme: {
     extend: {
       colors: {
-        // ─── Surfaces ─────────────────────────────────
-        bg: "#0A0A0B",           // void — near-black with warmth
-        "bg-elevated": "#111114", // mist — first elevation
-        panel: "#18181C",         // haze — second elevation
-        panel2: "#1F1F24",        // deep — third elevation (rarely used)
-        background: "#0A0A0B",
-        border: "rgba(255, 255, 255, 0.07)",
-
-        // ─── Text — 4 levels of authority ─────────────
-        text: "#F5F5F7",          // primary — near-white, softer authority
+        bg: "var(--color-bg)",
+        "bg-elevated": "var(--color-bg-elevated)",
+        panel: "var(--color-bg-panel)",
+        background: "var(--color-bg)",
+        border: "var(--color-border)",
+        text: "var(--color-text)",
         muted: {
-          DEFAULT: "rgba(245, 245, 247, 0.62)",  // secondary
-          foreground: "rgba(245, 245, 247, 0.34)" // tertiary
+          DEFAULT: "var(--color-text-muted)",
+          foreground: "var(--color-text-dim)",
         },
-        secondary: "rgba(245, 245, 247, 0.50)",
-
-        // ─── Accent — single canonical blue ───────────
-        accent: "#4A9EFF",        // ethereal blue — the only chromatic accent
-        primary: "#4A9EFF",
-        ai: "#4A9EFF",
-
-        // ─── Semantic ─────────────────────────────────
+        secondary: "var(--nx-text-secondary)",
+        accent: "var(--color-accent)",
+        primary: "var(--color-primary)",
+        ai: "var(--color-accent)",
         success: "#10B981",
         warning: "#F59E0B",
         danger: "#EF4444",
       },
       fontFamily: {
-        primary: ['var(--font-primary)', 'system-ui', 'sans-serif'],
-        sans: ['var(--font-primary)', 'system-ui', 'sans-serif'],
-        display: ['var(--font-secondary)', 'system-ui', 'sans-serif'],
-        serif: ['var(--font-serif)', 'Cormorant Garamond', 'Georgia', 'serif'],
-        mono: ['var(--font-mono)', 'JetBrains Mono', 'monospace'],
+        primary: ["var(--font-primary)", "Barlow", "system-ui", "sans-serif"],
+        sans: ["var(--font-primary)", "Barlow", "system-ui", "sans-serif"],
+        display: ["var(--font-display)", "Barlow Semi Condensed", "system-ui", "sans-serif"],
+        mono: ["var(--font-mono)", "JetBrains Mono", "monospace"],
       },
-      borderRadius: { xl: "14px", "2xl": "18px" },
+      borderRadius: { xl: "4px", "2xl": "4px" },
       boxShadow: {
-        // All glows align to the single canonical accent (#4A9EFF)
-        glow: "0 0 40px rgba(74, 158, 255, 0.10), 0 0 80px rgba(74, 158, 255, 0.04)",
-        "glow-strong": "0 0 30px rgba(74, 158, 255, 0.18), 0 0 60px rgba(74, 158, 255, 0.08)",
-        card: "0 0 0 1px rgba(255, 255, 255, 0.06), 0 8px 40px rgba(0, 0, 0, 0.55)",
-        glass: "0 8px 32px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.04)",
+        glow: "none",
+        "glow-strong": "none",
+        card: "var(--nx-shadow-card)",
+        glass: "none",
       },
       keyframes: {
         // ─── Signature animations — ethereal × Palantir ──────
@@ -75,8 +58,8 @@ export default {
         },
         // halo: a source citation breathes a faint glow on hover
         halo: {
-          '0%, 100%': { boxShadow: '0 0 0 0 rgba(74, 158, 255, 0)' },
-          '50%':      { boxShadow: '0 0 24px 0 rgba(74, 158, 255, 0.10)' },
+          '0%, 100%': { boxShadow: '0 0 0 0 transparent' },
+          '50%':      { boxShadow: '0 0 0 0 transparent' },
         },
         // drift: very slow particle motion — atmospheric, never distracting
         drift: {

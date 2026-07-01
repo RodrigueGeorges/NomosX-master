@@ -377,6 +377,7 @@ Return JSON: {
     temperature: 0.1,
     maxTokens: 300,
     jsonMode: true,
+    task: 'topic_classification',
   });
 
   try {

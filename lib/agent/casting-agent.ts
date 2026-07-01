@@ -141,7 +141,7 @@ Rules: 2-3 lenses max. Roles must include exactly one lead. Use domain labels on
       temperature: 0.15,
       maxTokens: 500,
       jsonMode: true,
-      model: 'gpt-4o-mini',
+      task: 'casting',
       enableCache: true,
     });
 

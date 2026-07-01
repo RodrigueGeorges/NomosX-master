@@ -110,6 +110,9 @@ export interface StrategicAnalysisOutput {
   conclusion: string;
   openQuestions: string[];
   whatChangesMind: string;
+
+  /** LLM family that produced this analysis — used for opposite-family verification rule */
+  _producerFamily?: import('../llm/unified-llm').LLMFamily;
 }
 
 export async function strategicAnalystAgent(
@@ -356,6 +359,7 @@ QUALITY STANDARD: This report will be read by senior decision-makers. Every clai
       jsonMode: true,
       maxTokens: 16000, // Increased for longer output
       enableCache: true,
+      task: 'strategic_analyst',
     });
 
     console.log(
@@ -363,6 +367,7 @@ QUALITY STANDARD: This report will be read by senior decision-makers. Every clai
     );
 
     const analysis = JSON.parse(response.content) as StrategicAnalysisOutput;
+    analysis._producerFamily = response.family;
     
     // Validate required fields
     const required = ['title', 'executiveSummary', 'keyFindings', 'literatureOverview', 'debate', 'recommendations'];

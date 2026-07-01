@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { PublicPageShell } from "@/components/layout/PublicPageShell";
 import { nx } from "@/lib/brand/public-ui";
+import { BRAND_EMAIL_TAGLINE, BRAND_SOURCES_LINE } from "@/lib/brand/public-copy";
 import { sanitizeHtml } from "@/lib/sanitize";
 import { getPublicationFormat } from "@/lib/publication-formats";
 import { cn } from "@/lib/utils";
@@ -72,10 +73,10 @@ export function SharedBriefClient({ brief }: SharedBriefClientProps) {
         />
 
         <div className="mt-16 nx-public-surface p-8 text-center">
-          <p className={cn(nx.eyebrow, "mb-3")}>The Agentic Think Tank</p>
+          <p className={cn(nx.eyebrow, "mb-3")}>{BRAND_EMAIL_TAGLINE}</p>
           <h2 className={cn(nx.h2, "mb-3")}>Get weekly intelligence briefs like this one.</h2>
           <p className={cn(nx.body, "mb-8 max-w-md mx-auto")}>
-            Cross-domain foresight from 250M+ sources — probabilistic verdicts and full traceability.
+            Cross-domain foresight from {BRAND_SOURCES_LINE} — probabilistic verdicts and full traceability.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link href="/#newsletter" className={nx.btnSecondary}>

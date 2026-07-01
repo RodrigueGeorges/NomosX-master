@@ -3,6 +3,7 @@
 import React, { Suspense, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { NomosXLogo } from '@/components/brand/NomosXLogo';
+import { LOGO_AUTH_SYMBOL } from '@/lib/brand/logo-config';
 import { ArrowLeft, CheckCircle } from 'lucide-react';
 import { PublicPageShell } from '@/components/layout/PublicPageShell';
 
@@ -57,7 +58,7 @@ function ResetPasswordContent() {
     return (
       <PublicPageShell showFooter={false} particles={0} contentClassName="flex items-center justify-center px-6">
         <div className={`${cardClass} text-center`}>
-          <NomosXLogo variant="symbol" styleSize={60} className="justify-center mb-8" />
+          <NomosXLogo variant="symbol" size={LOGO_AUTH_SYMBOL} className="justify-center mb-8" />
           <h1 className="font-display text-2xl font-semibold text-text mb-3">Invalid link</h1>
           <p className="text-sm text-white/40 mb-6">This password reset link is missing or invalid. Please request a new one.</p>
           <button onClick={() => router.push('/')} className="text-sm text-white/60 hover:text-white transition-colors">
@@ -72,7 +73,7 @@ function ResetPasswordContent() {
     return (
       <PublicPageShell showFooter={false} particles={0} contentClassName="flex items-center justify-center px-6">
         <div className={`${cardClass} text-center`}>
-          <NomosXLogo variant="symbol" styleSize={60} className="justify-center mb-8" />
+          <NomosXLogo variant="symbol" size={LOGO_AUTH_SYMBOL} className="justify-center mb-8" />
           <div className="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center mx-auto mb-6">
             <CheckCircle size={24} className="text-emerald-400" />
           </div>
@@ -93,7 +94,7 @@ function ResetPasswordContent() {
     <PublicPageShell showFooter={false} particles={10} contentClassName="flex items-center justify-center px-6 py-16">
       <div className={cardClass}>
         <div className="flex justify-center mb-8">
-          <NomosXLogo variant="symbol" styleSize={60} />
+          <NomosXLogo variant="symbol" size={LOGO_AUTH_SYMBOL} />
         </div>
 
         <h1 className="font-display text-2xl font-semibold text-text text-center mb-2">Choose a new password</h1>

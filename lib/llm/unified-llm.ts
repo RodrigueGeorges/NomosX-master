@@ -1,6 +1,12 @@
 /**
- * Unified LLM Service
- * Supports multiple providers (DeepSeek, OpenAI, Anthropic) with automatic fallback
+ * Unified LLM Service — Phase 0 re-cabled (01/07/2026)
+ *
+ * Four providers (DeepSeek, GLM-5.2/z.ai, OpenAI, Anthropic) organized by FAMILY:
+ * - Task→model assignment table (single source of truth, see TASK_ASSIGNMENT)
+ * - Cross-family fallback: DeepSeek ↔ GLM primary pair, OpenAI/Anthropic last resort
+ * - Per-provider configurable timeouts (GLM needs ≥120s for 30-90s first-token latency)
+ * - Opposite-family rule for fact_check / citation_verification (anti blind-spot)
+ * - Circuit breaker per provider (unchanged behavior)
  */
 
 import OpenAI from 'openai';
@@ -10,25 +16,200 @@ import { env } from '../env';
 import { getCachedLLMResponse,cacheLLMResponse } from '../cache/redis-cache';
 import Sentry from '@sentry/nextjs';
 
-// Provider types
-export type LLMProvider = "deepseek" | "openai" | "anthropic";
+// ============================================================================
+// FAMILY & PROVIDER TYPES
+// ============================================================================
+
+/**
+ * LLMFamily groups providers into two "camps" for cross-family fallback and the
+ * opposite-family verification rule. Today family === provider 1:1, but this
+ * indirection is intentional: it lets us later group e.g. multiple GLM-compatible
+ * providers under one family without touching call sites.
+ */
+export type LLMFamily = "deepseek" | "glm" | "openai" | "anthropic";
+export type LLMProvider = "deepseek" | "glm" | "openai" | "anthropic";
+
 export type LLMTask =
+  // Fast / cheap / frequent — DeepSeek-flash
+  | "query_enhancement"
+  | "topic_classification"
+  | "casting"
+  | "editor_in_chief"
+  | "swarm_persona"
+  // Extraction / verification — opposite-family rule applies at runtime
+  | "fact_check"
+  | "citation_verification"
+  // Heavy context, cache-friendly — GLM-5.2
+  | "reader_v3"
+  | "strategic_analyst"
+  | "harvard_council"
+  | "elenchus"
+  // Heavy output, cheap tokens — DeepSeek-v4-pro
+  | "analyst_brief"
+  | "meta_analysis"
+  | "editorial_arbiter"
+  | "auto_revision"
+  // Conversational, routed by depth at call site
+  | "studiox"
+  // Legacy task names — kept for backward compat during migration, mapped in LEGACY_TASK_ALIAS
   | "classification"
   | "extraction"
   | "citation"
-  | "fact_check"
   | "analysis"
   | "strategic_analysis"
   | "critique"
   | "rewrite";
 
-// Model configurations
-const MODEL_CONFIG = {
+/** Maps deprecated task names (pre-Phase-0) onto the new task vocabulary. */
+const LEGACY_TASK_ALIAS: Partial<Record<LLMTask, LLMTask>> = {
+  classification: "topic_classification",
+  extraction: "reader_v3",
+  citation: "citation_verification",
+  analysis: "analyst_brief",
+  strategic_analysis: "strategic_analyst",
+  critique: "elenchus",
+  rewrite: "auto_revision",
+};
+
+function normalizeTask(task: LLMTask | undefined): LLMTask {
+  if (!task) return "studiox";
+  return LEGACY_TASK_ALIAS[task] ?? task;
+}
+
+const PROVIDER_FAMILY: Record<LLMProvider, LLMFamily> = {
+  deepseek: "deepseek",
+  glm: "glm",
+  openai: "openai",
+  anthropic: "anthropic",
+};
+
+const FAMILY_PROVIDER: Record<LLMFamily, LLMProvider> = {
+  deepseek: "deepseek",
+  glm: "glm",
+  openai: "openai",
+  anthropic: "anthropic",
+};
+
+/**
+ * Cross-family fallback order. Primary pair is DeepSeek ↔ GLM (the two workhorse
+ * families); OpenAI/Anthropic are last-resort so a single vendor outage never
+ * stops publication.
+ */
+const CROSS_FAMILY_FALLBACK: Record<LLMFamily, LLMFamily[]> = {
+  deepseek: ["glm", "openai", "anthropic"],
+  glm: ["deepseek", "openai", "anthropic"],
+  openai: ["deepseek", "glm", "anthropic"],
+  anthropic: ["deepseek", "glm", "openai"],
+};
+
+/** Opposite family for the fact_check / citation_verification independence rule. */
+const OPPOSITE_FAMILY: Record<LLMFamily, LLMFamily> = {
+  deepseek: "glm",
+  glm: "deepseek",
+  openai: "deepseek",
+  anthropic: "deepseek",
+};
+
+// ============================================================================
+// TASK → MODEL ASSIGNMENT — SINGLE SOURCE OF TRUTH
+// ============================================================================
+
+interface TaskAssignment {
+  provider: LLMProvider;
+  model: string;
+  /** Per-task, per-provider timeout override. Falls back to PROVIDER_DEFAULT_TIMEOUT_MS. */
+  timeoutMs: number;
+}
+
+/**
+ * Configurable per-provider default timeout (ms). GLM-5.2 has 30-90s first-token
+ * latency on large contexts — its floor is enforced in getCallTimeout() below.
+ * These are NOT hardcoded inline at call sites; adjust here as real latency data
+ * comes in from the golden-set validation (Étape 5).
+ */
+const PROVIDER_DEFAULT_TIMEOUT_MS: Record<LLMProvider, number> = {
+  deepseek: 60_000,
+  glm: 120_000,
+  openai: 60_000,
+  anthropic: 60_000,
+};
+
+/** Hard floor per provider — never go below this even if a task requests less. */
+const PROVIDER_MIN_TIMEOUT_MS: Record<LLMProvider, number> = {
+  deepseek: 30_000,
+  glm: 120_000,
+  openai: 30_000,
+  anthropic: 30_000,
+};
+
+const TASK_ASSIGNMENT: Record<LLMTask, TaskAssignment> = {
+  // Fast / cheap / frequent
+  query_enhancement:      { provider: "deepseek", model: "deepseek-v4-flash", timeoutMs: 30_000 },
+  topic_classification:   { provider: "deepseek", model: "deepseek-v4-flash", timeoutMs: 30_000 },
+  casting:                { provider: "deepseek", model: "deepseek-v4-flash", timeoutMs: 30_000 },
+  editor_in_chief:        { provider: "deepseek", model: "deepseek-v4-flash", timeoutMs: 30_000 },
+  swarm_persona:          { provider: "deepseek", model: "deepseek-v4-flash", timeoutMs: 30_000 },
+
+  // Extraction / verification — default provider below is overridden at runtime
+  // by resolveTaskProvider() when producerFamily is passed (opposite-family rule).
+  fact_check:             { provider: "deepseek", model: "deepseek-v4-flash", timeoutMs: 60_000 },
+  citation_verification:  { provider: "deepseek", model: "deepseek-v4-flash", timeoutMs: 60_000 },
+
+  // Heavy context, cache-friendly (GLM-5.2: 1M window, $0.26/M cached input)
+  reader_v3:              { provider: "glm", model: "glm-5.2", timeoutMs: 120_000 },
+  strategic_analyst:      { provider: "glm", model: "glm-5.2", timeoutMs: 180_000 },
+  harvard_council:        { provider: "glm", model: "glm-5.2", timeoutMs: 120_000 },
+  elenchus:               { provider: "glm", model: "glm-5.2", timeoutMs: 120_000 },
+
+  // Heavy output, cheap tokens (DeepSeek-v4-pro: ~$0.87/M blended output)
+  analyst_brief:          { provider: "deepseek", model: "deepseek-v4-pro", timeoutMs: 120_000 },
+  meta_analysis:          { provider: "deepseek", model: "deepseek-v4-pro", timeoutMs: 60_000 },
+  editorial_arbiter:      { provider: "deepseek", model: "deepseek-v4-pro", timeoutMs: 120_000 },
+  auto_revision:          { provider: "deepseek", model: "deepseek-v4-pro", timeoutMs: 120_000 },
+
+  // Conversational
+  studiox:                { provider: "deepseek", model: "deepseek-v4-pro", timeoutMs: 60_000 },
+
+  // Legacy aliases — never read directly (normalizeTask() redirects before lookup),
+  // kept so LLMTask stays a superset and TS doesn't complain about missing keys.
+  classification:         { provider: "deepseek", model: "deepseek-v4-flash", timeoutMs: 30_000 },
+  extraction:             { provider: "glm", model: "glm-5.2", timeoutMs: 120_000 },
+  citation:               { provider: "deepseek", model: "deepseek-v4-flash", timeoutMs: 60_000 },
+  analysis:               { provider: "deepseek", model: "deepseek-v4-pro", timeoutMs: 120_000 },
+  strategic_analysis:     { provider: "glm", model: "glm-5.2", timeoutMs: 180_000 },
+  critique:               { provider: "glm", model: "glm-5.2", timeoutMs: 120_000 },
+  rewrite:                { provider: "deepseek", model: "deepseek-v4-pro", timeoutMs: 120_000 },
+};
+
+/** Fast tasks — used to pick fast vs. reasoning model on FALLBACK providers. */
+const FAST_TASKS: Set<LLMTask> = new Set([
+  "query_enhancement", "topic_classification", "casting", "editor_in_chief",
+  "swarm_persona", "fact_check", "citation_verification", "classification", "citation",
+]);
+
+// ============================================================================
+// MODEL CONFIGURATIONS (cost per 1K tokens)
+// ============================================================================
+const MODEL_CONFIG: Record<string, Record<string, {
+  contextWindow: number;
+  costPer1kInput: number;
+  costPer1kOutput: number;
+  /** GLM/z.ai prefix-cache hit rate — much cheaper than regular input */
+  costPer1kCachedInput?: number;
+}>> = {
   deepseek: {
     "deepseek-v4-pro": { contextWindow: 1000000, costPer1kInput: 0.00174, costPer1kOutput: 0.00348 },
     "deepseek-v4-flash": { contextWindow: 1000000, costPer1kInput: 0.00014, costPer1kOutput: 0.00028 },
     "deepseek-chat": { contextWindow: 128000, costPer1kInput: 0.00028, costPer1kOutput: 0.00042 },
     "deepseek-reasoner": { contextWindow: 128000, costPer1kInput: 0.00028, costPer1kOutput: 0.00042 },
+  },
+  glm: {
+    "glm-5.2": {
+      contextWindow: 1000000,
+      costPer1kInput: 0.00140,
+      costPer1kOutput: 0.00140,
+      costPer1kCachedInput: 0.00026,
+    },
   },
   openai: {
     "gpt-4o": { contextWindow: 128000, costPer1kInput: 0.005, costPer1kOutput: 0.015 },
@@ -119,9 +300,12 @@ function recordProviderSuccess(provider: string): void {
   circuitBreaker[provider] = { failures: 0, lastFailure: 0, open: false };
 }
 
-// Clients
+// ============================================================================
+// CLIENTS
+// ============================================================================
 let openaiClient: OpenAI | null = null;
 let deepseekClient: OpenAI | null = null;
+let glmClient: OpenAI | null = null;
 let anthropicClient: Anthropic | null = null;
 
 function getOpenAIClient(): OpenAI | null {
@@ -143,6 +327,18 @@ function getDeepSeekClient(): OpenAI | null {
   return deepseekClient;
 }
 
+/** GLM-5.2 (z.ai) — OpenAI-compatible API, 1M context, prefix caching. */
+function getGLMClient(): OpenAI | null {
+  if (!env.GLM_API_KEY) return null;
+  if (!glmClient) {
+    glmClient = new OpenAI({
+      apiKey: env.GLM_API_KEY,
+      baseURL: env.GLM_BASE_URL || 'https://api.z.ai/v1',
+    });
+  }
+  return glmClient;
+}
+
 function getAnthropicClient(): Anthropic | null {
   if (!env.ANTHROPIC_API_KEY) return null;
   if (!anthropicClient) {
@@ -151,44 +347,96 @@ function getAnthropicClient(): Anthropic | null {
   return anthropicClient;
 }
 
-function getConfiguredPrimaryProvider(request: LLMRequest): LLMProvider {
+function getClientForProvider(provider: LLMProvider): OpenAI | Anthropic | null {
+  switch (provider) {
+    case "deepseek": return getDeepSeekClient();
+    case "glm": return getGLMClient();
+    case "openai": return getOpenAIClient();
+    case "anthropic": return getAnthropicClient();
+  }
+}
+
+// ============================================================================
+// TASK-BASED RESOLUTION (single source of truth: TASK_ASSIGNMENT)
+// ============================================================================
+
+/**
+ * Resolve the primary provider for a request.
+ * Priority: explicit request.provider > opposite-family rule (fact_check /
+ * citation_verification with producerFamily) > TASK_ASSIGNMENT table.
+ * Legacy request.model (e.g. "gpt-4o") is honored only if explicitly set AND
+ * no task is given — this keeps old call sites working during migration but
+ * task-based routing always wins once a task is specified.
+ */
+function resolvePrimaryProvider(request: LLMRequest): LLMProvider {
   if (request.provider) return request.provider;
-  const model = request.model || "";
-  if (model.startsWith("claude")) return "anthropic";
-  if (model.startsWith("deepseek")) return "deepseek";
-  return env.PRIMARY_LLM_PROVIDER || "deepseek";
+
+  const task = normalizeTask(request.task);
+
+  // Opposite-family rule: fact_check / citation_verification must run on a
+  // DIFFERENT family than the one that produced the text being checked.
+  if (request.producerFamily && (task === "fact_check" || task === "citation_verification")) {
+    const opposite = OPPOSITE_FAMILY[request.producerFamily];
+    const oppositeProvider = FAMILY_PROVIDER[opposite];
+    if (getClientForProvider(oppositeProvider) && !isCircuitOpen(oppositeProvider)) {
+      return oppositeProvider;
+    }
+    // Opposite family unavailable — fall through to task default
+  }
+
+  // Explicit legacy model string without a task — infer provider from prefix
+  if (!request.task && request.model) {
+    const m = request.model;
+    if (m.startsWith("claude")) return "anthropic";
+    if (m.startsWith("deepseek")) return "deepseek";
+    if (m.startsWith("glm")) return "glm";
+    if (m.startsWith("gpt-")) return "openai";
+  }
+
+  return TASK_ASSIGNMENT[task].provider;
 }
 
-function resolveModelForProvider(provider: LLMProvider, request: LLMRequest): string {
-  const requested = request.model || "";
-  const isOpenAIName = requested.startsWith("gpt-");
-  const fastTasks: Array<LLMTask | undefined> = ["classification", "extraction", "citation", "fact_check"];
-  const reasoningTasks: Array<LLMTask | undefined> = ["analysis", "strategic_analysis", "critique", "rewrite"];
-  const wantsFast = fastTasks.includes(request.task) || requested.includes("mini") || (request.maxTokens ?? 4000) <= 1000;
-  const wantsReasoning = reasoningTasks.includes(request.task);
+/**
+ * Resolve the model name for a given provider handling a given task.
+ * On the task's assigned provider, use the assigned model. On a FALLBACK
+ * provider (cross-family failover), pick the provider's fast/reasoning model
+ * based on whether the task is categorized as fast.
+ */
+function resolveModelForTask(provider: LLMProvider, task: LLMTask): string {
+  const assignment = TASK_ASSIGNMENT[task];
+  if (provider === assignment.provider) return assignment.model;
 
-  if (provider === "deepseek") {
-    if (!requested || isOpenAIName || requested.startsWith("claude") || requested.startsWith("qwen") || requested.startsWith("Qwen/")) {
-      return wantsFast && !wantsReasoning ? env.DEEPSEEK_MODEL_FAST : env.DEEPSEEK_MODEL_REASONING;
-    }
-    return requested;
+  const isFast = FAST_TASKS.has(task);
+  switch (provider) {
+    case "deepseek":
+      return isFast ? env.DEEPSEEK_MODEL_FAST : env.DEEPSEEK_MODEL_REASONING;
+    case "glm":
+      return "glm-5.2";
+    case "openai":
+      return isFast ? "gpt-4o-mini" : (env.OPENAI_MODEL || "gpt-4o");
+    case "anthropic":
+      return isFast ? "claude-haiku-4-5-20251001" : "claude-sonnet-4-6";
   }
-
-  if (provider === "anthropic") {
-    if (!requested || isOpenAIName || requested.startsWith("qwen") || requested.startsWith("deepseek")) {
-      return wantsFast && !wantsReasoning ? "claude-haiku-4-5-20251001" : "claude-sonnet-4-6";
-    }
-    return requested;
-  }
-
-  if (!requested || requested.startsWith("qwen") || requested.startsWith("Qwen/") || requested.startsWith("claude") || requested.startsWith("deepseek")) {
-    return wantsFast && !wantsReasoning ? "gpt-4o-mini" : (env.OPENAI_MODEL || "gpt-4o");
-  }
-  return requested;
 }
 
-export function getModelForTask(task: LLMTask, provider: LLMProvider = env.PRIMARY_LLM_PROVIDER || "deepseek"): string {
-  return resolveModelForProvider(provider, { messages: [], task });
+/**
+ * Effective timeout for a provider handling a task. Configurable via
+ * PROVIDER_DEFAULT_TIMEOUT_MS / TASK_ASSIGNMENT, never below PROVIDER_MIN_TIMEOUT_MS
+ * (GLM's floor is 120s to accommodate 30-90s first-token latency on large contexts).
+ */
+function getCallTimeout(provider: LLMProvider, task: LLMTask): number {
+  const assignment = TASK_ASSIGNMENT[task];
+  const taskTimeout = provider === assignment.provider
+    ? assignment.timeoutMs
+    : PROVIDER_DEFAULT_TIMEOUT_MS[provider];
+  return Math.max(taskTimeout, PROVIDER_MIN_TIMEOUT_MS[provider]);
+}
+
+/** Public helper: what model would this task+provider resolve to? (used by callers that want to know). */
+export function getModelForTask(task: LLMTask, provider?: LLMProvider): string {
+  const normalized = normalizeTask(task);
+  const resolvedProvider = provider ?? TASK_ASSIGNMENT[normalized].provider;
+  return resolveModelForTask(resolvedProvider, normalized);
 }
 
 export interface LLMRequest {
@@ -196,88 +444,63 @@ export interface LLMRequest {
   temperature?: number;
   maxTokens?: number;
   jsonMode?: boolean;
+  /** Legacy explicit override — prefer `task` for new call sites. */
   model?: string;
+  /** Explicit provider override — bypasses TASK_ASSIGNMENT. Use sparingly. */
   provider?: LLMProvider;
   task?: LLMTask;
   enableCache?: boolean;
+  /** Family that produced the text being verified — required for opposite-family rule to activate. */
+  producerFamily?: LLMFamily;
 }
 
 export interface LLMResponse {
   content: string;
   provider: LLMProvider;
   model: string;
+  family: LLMFamily;
   tokensInput: number;
   tokensOutput: number;
+  /** Tokens served from provider-side prompt cache (GLM prefix caching), if any. */
+  cachedInputTokens?: number;
   costUsd: number;
   cached: boolean;
 }
 
 /**
- * Calculate cost based on provider and model
+ * Calculate cost based on provider and model, accounting for cached input
+ * tokens (GLM/z.ai prefix caching bills cached tokens at costPer1kCachedInput).
  */
 function calculateCost(
   provider: LLMProvider,
   model: string,
   tokensInput: number,
-  tokensOutput: number
+  tokensOutput: number,
+  cachedInputTokens?: number,
 ): number {
   const providerConfig = MODEL_CONFIG[provider as keyof typeof MODEL_CONFIG];
   const config = (providerConfig as any)?.[model];
   if (!config || !config.costPer1kInput || !config.costPer1kOutput) return 0;
-  
-  const inputCost = (tokensInput / 1000) * config.costPer1kInput;
+
+  const cached = cachedInputTokens ?? 0;
+  const regularInput = Math.max(0, tokensInput - cached);
+  const cachedCost = (cached / 1000) * (config.costPer1kCachedInput ?? config.costPer1kInput);
+  const inputCost = (regularInput / 1000) * config.costPer1kInput;
   const outputCost = (tokensOutput / 1000) * config.costPer1kOutput;
-  return inputCost + outputCost;
+  return cachedCost + inputCost + outputCost;
 }
 
 /**
- * Call OpenAI
+ * Call any OpenAI-compatible provider (DeepSeek, GLM, OpenAI share the same
+ * chat.completions.create() shape). Anthropic has its own implementation below.
  */
-async function callOpenAI(request: LLMRequest): Promise<LLMResponse> {
-  const client = getOpenAIClient();
-  if (!client) {
-    throw new Error("OpenAI API key not configured (OPENAI_API_KEY)");
-  }
-  const model = resolveModelForProvider("openai", request);
-  
-  const completion = await withRetry<Awaited<ReturnType<typeof client.chat.completions.create>>>(
-    () => client.chat.completions.create({
-      model,
-      messages: request.messages as any,
-      temperature: request.temperature ?? 0.2,
-      max_tokens: request.maxTokens ?? 4000,
-      response_format: request.jsonMode ? { type: "json_object" } : undefined,
-    }),
-    `OpenAI/${model}`
-  );
-  
-  const content = (completion as any).choices?.[0]?.message?.content || "";
-  const tokensInput = (completion as any).usage?.prompt_tokens || 0;
-  const tokensOutput = (completion as any).usage?.completion_tokens || 0;
-  
-  return {
-    content,
-    provider: "openai",
-    model,
-    tokensInput,
-    tokensOutput,
-    costUsd: calculateCost("openai", model, tokensInput, tokensOutput),
-    cached: false,
-  };
-}
-
-/**
- * Call DeepSeek (OpenAI-compatible API)
- */
-async function callDeepSeek(request: LLMRequest): Promise<LLMResponse> {
-  const client = getDeepSeekClient();
-  if (!client) {
-    throw new Error("DeepSeek API key not configured (DEEPSEEK_API_KEY)");
-  }
-
-  const model = resolveModelForProvider("deepseek", request);
-
-  const completion = await withRetry<Awaited<ReturnType<typeof client.chat.completions.create>>>(
+async function callOpenAICompatible(
+  provider: LLMProvider,
+  client: OpenAI,
+  model: string,
+  request: LLMRequest,
+): Promise<LLMResponse> {
+  const completion = await withRetry(
     () => client.chat.completions.create({
       model,
       messages: request.messages as any,
@@ -285,20 +508,24 @@ async function callDeepSeek(request: LLMRequest): Promise<LLMResponse> {
       max_tokens: request.maxTokens ?? 4000,
       response_format: request.jsonMode ? { type: "json_object" } as any : undefined,
     }),
-    `DeepSeek/${model}`
+    `${provider}/${model}`,
   );
 
   const content = (completion as any).choices?.[0]?.message?.content || "";
   const tokensInput = (completion as any).usage?.prompt_tokens || 0;
   const tokensOutput = (completion as any).usage?.completion_tokens || 0;
+  // GLM/z.ai reports prefix-cache hits here when the request prefix matched a prior call
+  const cachedInputTokens = (completion as any).usage?.prompt_tokens_details?.cached_tokens || 0;
 
   return {
     content,
-    provider: "deepseek",
+    provider,
     model,
+    family: PROVIDER_FAMILY[provider],
     tokensInput,
     tokensOutput,
-    costUsd: calculateCost("deepseek", model, tokensInput, tokensOutput),
+    cachedInputTokens: cachedInputTokens > 0 ? cachedInputTokens : undefined,
+    costUsd: calculateCost(provider, model, tokensInput, tokensOutput, cachedInputTokens || undefined),
     cached: false,
   };
 }
@@ -306,14 +533,12 @@ async function callDeepSeek(request: LLMRequest): Promise<LLMResponse> {
 /**
  * Call Anthropic Claude
  */
-async function callAnthropic(request: LLMRequest): Promise<LLMResponse> {
+async function callAnthropic(request: LLMRequest, model: string): Promise<LLMResponse> {
   const client = getAnthropicClient();
   if (!client) {
     throw new Error("Anthropic API key not configured");
   }
-  
-  const model = resolveModelForProvider("anthropic", request);
-  
+
   // Extract system message
   const systemMessage = request.messages.find((m) => m.role === "system")?.content || "";
   const userMessages = request.messages.filter((m) => m.role !== "system");
@@ -340,6 +565,7 @@ async function callAnthropic(request: LLMRequest): Promise<LLMResponse> {
     content,
     provider: "anthropic",
     model,
+    family: "anthropic",
     tokensInput,
     tokensOutput,
     costUsd: calculateCost("anthropic", model, tokensInput, tokensOutput),
@@ -356,7 +582,7 @@ function buildCacheKey(request: LLMRequest): string {
   // CRITICAL FIX: Validate request.messages exists and is iterable
   if (!request.messages || !Array.isArray(request.messages)) {
     console.warn('[CACHE] Invalid messages format, using fallback key');
-    return `fallback_${request.model || 'gpt-4'}_${request.temperature || 0.2}`;
+    return `fallback_${request.task || request.model || 'unknown'}_${request.temperature || 0.2}`;
   }
   
   for (const msg of request.messages) {
@@ -366,6 +592,7 @@ function buildCacheKey(request: LLMRequest): string {
   hash.update(String(request.temperature ?? 0.2));
   hash.update(String(request.jsonMode ?? false));
   hash.update(String(request.maxTokens ?? 4000));
+  hash.update(String(request.task ?? ''));
   return hash.digest('hex').slice(0, 32);
 }
 
@@ -382,96 +609,122 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
 }
 
 /**
- * Unified LLM call with automatic fallback, circuit breaker, and timeout
+ * Unified LLM call — task-based routing, cross-family fallback, per-provider
+ * configurable timeouts, circuit breaker.
+ *
+ * Fallback order: primary provider (from task or explicit override) → the
+ * two families in CROSS_FAMILY_FALLBACK order. DeepSeek and GLM fall back to
+ * each other FIRST; OpenAI/Anthropic are last resort so a single vendor
+ * outage never halts publication.
  */
 export async function callLLM(request: LLMRequest): Promise<LLMResponse> {
   const startTime = Date.now();
-  const primaryProvider = getConfiguredPrimaryProvider(request);
-  const model = resolveModelForProvider(primaryProvider, request);
-  
+  const task = normalizeTask(request.task);
+  const primaryProvider = resolvePrimaryProvider(request);
+  const primaryFamily = PROVIDER_FAMILY[primaryProvider];
+  const model = resolveModelForTask(primaryProvider, task);
+
   // Check cache first if enabled
   const cacheKey = request.enableCache !== false ? buildCacheKey(request) : null;
   if (cacheKey) {
     try {
       const cached = await getCachedLLMResponse(cacheKey, model);
       if (cached) {
-        return { ...cached, cached: true };
+        return { ...cached, cached: true, family: cached.family ?? PROVIDER_FAMILY[cached.provider as LLMProvider] };
       }
     } catch {
       // Cache miss or error — proceed to LLM call
     }
   }
-  
-  // Determine provider order (with fallback), skip circuit-broken providers
-  const providers: LLMProvider[] = [];
-  if (!isCircuitOpen(primaryProvider)) providers.push(primaryProvider);
-  if (getDeepSeekClient() && !isCircuitOpen("deepseek") && !providers.includes("deepseek")) providers.push("deepseek");
-  if (getAnthropicClient() && !isCircuitOpen("anthropic") && !providers.includes("anthropic")) providers.push("anthropic");
-  if (getOpenAIClient() && !isCircuitOpen("openai") && !providers.includes("openai")) providers.push("openai");
-  // If all circuits open, still try primary (half-open)
-  if (providers.length === 0) providers.push(primaryProvider);
-  
-  // Timeout: 60s for normal calls, 120s for large token requests
-  const timeoutMs = (request.maxTokens && request.maxTokens > 8000) ? 120_000 : 60_000;
-  
+
+  // Build fallback chain: primary provider, then cross-family order, deduped,
+  // skipping providers with no client configured or an open circuit.
+  const orderedProviders: LLMProvider[] = [];
+  if (!isCircuitOpen(primaryProvider)) orderedProviders.push(primaryProvider);
+  for (const family of CROSS_FAMILY_FALLBACK[primaryFamily]) {
+    const p = FAMILY_PROVIDER[family];
+    if (!orderedProviders.includes(p) && getClientForProvider(p) && !isCircuitOpen(p)) {
+      orderedProviders.push(p);
+    }
+  }
+  // If all circuits open, still try primary (half-open retry)
+  if (orderedProviders.length === 0) orderedProviders.push(primaryProvider);
+
   let lastError: Error | null = null;
-  
-  for (const provider of providers) {
+
+  for (const provider of orderedProviders) {
+    const fallbackModel = resolveModelForTask(provider, task);
+    const timeoutMs = getCallTimeout(provider, task);
+
     try {
       let response: LLMResponse;
-      if (provider === "deepseek") {
-        response = await withTimeout(callDeepSeek(request), timeoutMs, `DeepSeek/${resolveModelForProvider("deepseek", request)}`);
-      } else if (provider === "openai") {
-        response = await withTimeout(callOpenAI(request), timeoutMs, `OpenAI/${resolveModelForProvider("openai", request)}`);
+      if (provider === "anthropic") {
+        response = await withTimeout(callAnthropic(request, fallbackModel), timeoutMs, `Anthropic/${fallbackModel}`);
       } else {
-        response = await withTimeout(callAnthropic(request), timeoutMs, `Anthropic/${resolveModelForProvider("anthropic", request)}`);
+        const client = getClientForProvider(provider) as OpenAI | null;
+        if (!client) throw new Error(`${provider} client not configured`);
+        response = await withTimeout(
+          callOpenAICompatible(provider, client, fallbackModel, request),
+          timeoutMs,
+          `${provider}/${fallbackModel}`,
+        );
       }
-      
+
       recordProviderSuccess(provider);
-      
+
       const duration = Date.now() - startTime;
+      const cacheNote = response.cachedInputTokens ? ` (${response.cachedInputTokens} cache-hit)` : "";
       console.log(
-        `✅ ${provider} | ${duration}ms | ${response.tokensInput}+${response.tokensOutput} tok | $${response.costUsd.toFixed(4)}`
+        `✅ ${provider}/${response.model} [${task}] | ${duration}ms | ${response.tokensInput}+${response.tokensOutput} tok${cacheNote} | $${response.costUsd.toFixed(4)}`
       );
-      
+
       // Cache successful response (fire-and-forget)
       if (cacheKey) {
         cacheLLMResponse(cacheKey, response.model, response).catch(() => {});
       }
-      
+
       return response;
     } catch (error) {
       lastError = error as Error;
       recordProviderFailure(provider);
-      console.error(`❌ ${provider} failed: ${(error as Error).message}`);
-      
+      console.error(`❌ ${provider} failed for task "${task}": ${(error as Error).message}`);
+
       Sentry.captureException(error, {
-        tags: { provider, model: request.model },
-        contexts: { llm: { provider, temperature: request.temperature, jsonMode: request.jsonMode } },
+        tags: { provider, model: fallbackModel, task },
+        contexts: { llm: { provider, task, temperature: request.temperature, jsonMode: request.jsonMode } },
       });
-      
+
       continue;
     }
   }
-  
-  const errorMsg = `All LLM providers failed. Last error: ${lastError?.message}`;
+
+  const errorMsg = `All LLM providers failed for task "${task}". Last error: ${lastError?.message}`;
   Sentry.captureMessage(errorMsg, "error");
   throw new Error(errorMsg);
 }
 
 /**
- * Streaming LLM call (OpenAI only for now)
+ * Streaming LLM call — task-based routing across any OpenAI-compatible provider
+ * (DeepSeek, GLM, OpenAI). Anthropic streaming is not implemented; if the
+ * resolved provider is Anthropic, falls back to OpenAI for the stream.
  */
 export async function streamLLM(
   request: LLMRequest,
   onChunk: (chunk: string) => void
 ): Promise<LLMResponse> {
-  const client = getOpenAIClient();
-  if (!client) {
-    throw new Error("Streaming is currently available only when OPENAI_API_KEY is configured");
+  const task = normalizeTask(request.task);
+  let provider = resolvePrimaryProvider(request);
+
+  if (provider === "anthropic") {
+    provider = getOpenAIClient() ? "openai" : (getDeepSeekClient() ? "deepseek" : provider);
   }
-  const model = resolveModelForProvider("openai", request);
-  
+
+  const client = getClientForProvider(provider) as OpenAI | null;
+  if (!client) {
+    throw new Error(`Streaming provider "${provider}" not configured`);
+  }
+  const model = resolveModelForTask(provider, task);
+
   const stream = await client.chat.completions.create({
     model,
     messages: request.messages as any,
@@ -498,41 +751,33 @@ export async function streamLLM(
   
   return {
     content: fullContent,
-    provider: "openai",
+    provider,
     model,
+    family: PROVIDER_FAMILY[provider],
     tokensInput,
     tokensOutput,
-    costUsd: calculateCost("openai", model, tokensInput, tokensOutput),
+    costUsd: calculateCost(provider, model, tokensInput, tokensOutput),
     cached: false,
   };
 }
 
 /**
- * Get available providers
+ * Get available providers (client configured, regardless of circuit state)
  */
 export function getAvailableProviders(): LLMProvider[] {
   const providers: LLMProvider[] = [];
-  if (getDeepSeekClient()) {
-    providers.push("deepseek");
-  }
-  if (getOpenAIClient()) {
-    providers.push("openai");
-  }
-  if (getAnthropicClient()) {
-    providers.push("anthropic");
-  }
+  if (getDeepSeekClient()) providers.push("deepseek");
+  if (getGLMClient()) providers.push("glm");
+  if (getOpenAIClient()) providers.push("openai");
+  if (getAnthropicClient()) providers.push("anthropic");
   return providers;
 }
 
 /**
- * Health check for providers
+ * Health check for all four providers.
  */
-export async function checkLLMHealth(): Promise<{
-  deepseek: boolean;
-  openai: boolean;
-  anthropic: boolean;
-}> {
-  const health = { deepseek: false, openai: false, anthropic: false };
+export async function checkLLMHealth(): Promise<Record<LLMProvider, boolean>> {
+  const health: Record<LLMProvider, boolean> = { deepseek: false, glm: false, openai: false, anthropic: false };
 
   // Test DeepSeek
   try {
@@ -548,7 +793,22 @@ export async function checkLLMHealth(): Promise<{
   } catch (err) {
     console.error("DeepSeek health check failed:", err);
   }
-  
+
+  // Test GLM (z.ai)
+  try {
+    const client = getGLMClient();
+    if (client) {
+      await client.chat.completions.create({
+        model: "glm-5.2",
+        max_tokens: 1,
+        messages: [{ role: "user", content: "ping" }],
+      });
+      health.glm = true;
+    }
+  } catch (err) {
+    console.error("GLM health check failed:", err);
+  }
+
   // Test OpenAI
   try {
     const client = getOpenAIClient();
@@ -576,4 +836,9 @@ export async function checkLLMHealth(): Promise<{
   }
   
   return health;
+}
+
+/** Get the LLMFamily for a completed response — pass this to producerFamily on subsequent verification calls. */
+export function getResponseFamily(response: LLMResponse): LLMFamily {
+  return response.family;
 }

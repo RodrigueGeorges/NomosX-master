@@ -7,6 +7,7 @@ import { PublicPageShell } from "@/components/layout/PublicPageShell";
 import { EtherealCard, PageHeader, PageSection } from "@/components/layout/PageHeader";
 import { PUBLIC_ROUTES } from "@/lib/public-urls";
 import { PipelineStrip } from "@/components/signature";
+import { BRAND_NAME, BRAND_TAGLINE, METHOD_BLOCKS, METHODOLOGY_INTRO } from "@/lib/brand/public-copy";
 import {
   BarChart3,
   GitCompare,
@@ -17,28 +18,12 @@ import {
   Shield,
 } from "lucide-react";
 
-const METHOD_BLOCKS = [
-  {
-    icon: Map,
-    name: "Map",
-    desc: "Cross-domain evidence from 250M+ sources — collisions between fields, not siloed summaries.",
-  },
-  {
-    icon: GitCompare,
-    name: "Confront",
-    desc: "Contradictions surfaced, steel-man debate, adversarial review before any position is taken.",
-  },
-  {
-    icon: BarChart3,
-    name: "Quantify",
-    desc: "Probabilistic trajectories and scenario distributions — futures as ranges, not single forecasts.",
-  },
-  {
-    icon: Scale,
-    name: "Decide",
-    desc: "An institute position with confidence bounds and full [SRC-N] traceability on every claim.",
-  },
-];
+const METHOD_ICONS: Record<(typeof METHOD_BLOCKS)[number]["name"], typeof Map> = {
+  Map,
+  Confront: GitCompare,
+  Quantify: BarChart3,
+  Decide: Scale,
+};
 
 const STANDARDS = [
   { icon: Shield, title: "Citation guard", text: "Every [SRC-N] validated against available sources." },
@@ -59,11 +44,11 @@ export default function MethodologyPage() {
             eyebrow="Method"
             title={
               <>
-                How NomosX produces{" "}
+                How {BRAND_NAME} produces{" "}
                 <span className="text-white/70">probable futures.</span>
               </>
             }
-            description="Four stages. One agentic pipeline. Every inquiry evidence-bound before publication."
+            description={METHODOLOGY_INTRO}
             align="center"
           />
         </PageSection>
@@ -73,13 +58,16 @@ export default function MethodologyPage() {
         <PageSection>
           <PageHeader eyebrow="Process" title="From collision to decision" />
           <div className="grid sm:grid-cols-2 gap-4">
-            {METHOD_BLOCKS.map(({ icon: Icon, name, desc }) => (
-              <EtherealCard key={name}>
-                <Icon className="w-5 h-5 text-white/45 mb-3" strokeWidth={1.25} />
-                <h3 className="font-mono text-sm uppercase tracking-[0.12em] text-white mb-2">{name}</h3>
-                <p className="text-sm text-white/45 leading-relaxed">{desc}</p>
-              </EtherealCard>
-            ))}
+            {METHOD_BLOCKS.map(({ name, desc }) => {
+              const Icon = METHOD_ICONS[name];
+              return (
+                <EtherealCard key={name}>
+                  <Icon className="w-5 h-5 text-white/45 mb-3" strokeWidth={1.25} />
+                  <h3 className="font-mono text-sm uppercase tracking-[0.12em] text-white mb-2">{name}</h3>
+                  <p className="text-sm text-white/45 leading-relaxed">{desc}</p>
+                </EtherealCard>
+              );
+            })}
           </div>
         </PageSection>
 
@@ -91,10 +79,7 @@ export default function MethodologyPage() {
           />
           <div className="grid sm:grid-cols-2 gap-4">
             {STANDARDS.map(({ icon: Icon, title, text }) => (
-              <div
-                key={title}
-                className="flex gap-4 nx-public-surface p-5"
-              >
+              <div key={title} className="flex gap-4 nx-public-surface p-5">
                 <Icon className="w-5 h-5 text-white/40 shrink-0 mt-0.5" strokeWidth={1.25} />
                 <div>
                   <h3 className="text-sm font-medium text-white mb-1">{title}</h3>
@@ -106,14 +91,8 @@ export default function MethodologyPage() {
         </PageSection>
 
         <PageSection className="border-t border-white/[0.05] text-center pb-24">
-          <p className="text-sm text-white/45 mb-6 max-w-lg mx-auto">
-            Probable futures. Decisions owned. Evidence verified.
-          </p>
-          <button
-            type="button"
-            onClick={() => router.push(PUBLIC_ROUTES.archives)}
-            className="nx-public-btn-primary"
-          >
+          <p className="text-sm text-white/45 mb-6 max-w-lg mx-auto">{BRAND_TAGLINE}</p>
+          <button type="button" onClick={() => router.push(PUBLIC_ROUTES.archives)} className="nx-public-btn-primary">
             Explore inquiries
           </button>
         </PageSection>

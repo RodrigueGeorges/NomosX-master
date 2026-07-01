@@ -160,6 +160,7 @@ Return JSON:
       maxTokens: 2000,
       jsonMode: true,
       enableCache: false,
+      task: 'editorial_arbiter',
     });
 
     const parsed = JSON.parse(response.content);

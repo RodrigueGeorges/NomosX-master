@@ -316,6 +316,7 @@ export async function generateExpandedTerms(
     temperature: 0.3,
     maxTokens: 200,
     jsonMode: true,
+    task: 'query_enhancement',
   });
 
   try {

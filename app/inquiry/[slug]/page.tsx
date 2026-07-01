@@ -29,6 +29,9 @@ import { getPublicationFormat } from "@/lib/publication-formats";
 import { cn } from "@/lib/utils";
 import { nx } from "@/lib/brand/public-ui";
 import { inquiryUrl, PUBLIC_ROUTES } from "@/lib/public-urls";
+import { EditorialInquiryBody } from "@/components/inquiry/EditorialInquiryBody";
+import { extractLegacyArticleBody, parseEditorialInquiry } from "@/lib/brand/inquiry-html-parse";
+import { METHOD_STEPS } from "@/lib/brand/public-copy";
 type InquiryType =
   | "RESEARCH_BRIEF"
   | "UPDATE_NOTE"
@@ -188,6 +191,7 @@ export default function InquiryPage() {
           ? "review"
           : "held";
   const format = inquiry.format || getPublicationFormat(inquiry.type);
+  const editorial = parseEditorialInquiry(inquiry.content);
   const protocolItems = [
     { icon: Database, label: "Corpus", value: `${inquiry.sources} sources`, detail: "ranked evidence base" },
     { icon: Shield, label: "Gate", value: gateTone, detail: "quality threshold" },
@@ -277,6 +281,12 @@ export default function InquiryPage() {
 
                 <h1 className="font-display text-3xl md:text-4xl font-semibold text-text mb-4">{inquiry.title}</h1>
 
+                {editorial?.urgency && (
+                  <span className="inline-block font-mono text-[10px] uppercase tracking-[0.14em] text-white/40 border border-white/[0.1] px-2 py-1 mb-3">
+                    {editorial.urgency}
+                  </span>
+                )}
+
                 <div className="flex flex-wrap items-center gap-4 text-sm text-white/40 mb-6 font-mono">
                   <span className="flex items-center gap-2">
                     <Calendar size={14} />
@@ -327,6 +337,7 @@ export default function InquiryPage() {
                 </div>
               )}
 
+              {!editorial && (
               <div className="mb-8 grid md:grid-cols-3 gap-3">
                 {[
                   { label: "Method", value: "source-ranked synthesis" },
@@ -339,13 +350,20 @@ export default function InquiryPage() {
                   </div>
                 ))}
               </div>
+              )}
 
+              {editorial ? (
+                <EditorialInquiryBody data={editorial} />
+              ) : (
               <div className={nx.prose}>
                 <div
                   className="article-content text-white/80 leading-relaxed"
-                  dangerouslySetInnerHTML={{ __html: sanitizeHtml(inquiry.content) }}
+                  dangerouslySetInnerHTML={{
+                    __html: sanitizeHtml(extractLegacyArticleBody(inquiry.content)),
+                  }}
                 />
               </div>
+              )}
 
               {foresightLoading && <ForesightPanelSkeleton />}
 
@@ -430,16 +448,14 @@ export default function InquiryPage() {
                     Map to decide
                   </div>
                   <div className="space-y-2.5">
-                    {["Evidence mapped", "Collisions surfaced", "Distribution quantified", "Position taken"].map(
-                      (step, i) => (
-                        <div key={step} className="flex items-center gap-2.5 text-xs text-white/45">
-                          <span className="w-5 h-5 border border-white/[0.08] bg-black/20 flex items-center justify-center text-[10px] font-mono text-white/60">
-                            {i + 1}
-                          </span>
-                          {step}
-                        </div>
-                      )
-                    )}
+                    {METHOD_STEPS.map((step, i) => (
+                      <div key={step} className="flex items-center gap-2.5 text-xs text-white/45">
+                        <span className="w-5 h-5 border border-white/[0.08] bg-black/20 flex items-center justify-center text-[10px] font-mono text-white/60">
+                          {i + 1}
+                        </span>
+                        {step}
+                      </div>
+                    ))}
                   </div>
                 </div>
 

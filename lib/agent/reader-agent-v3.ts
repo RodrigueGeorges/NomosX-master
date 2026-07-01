@@ -342,7 +342,7 @@ Be PRECISE. Extract EXACT numbers. If a value is not stated, omit it. Do not inv
       jsonMode: true,
       maxTokens: 4000,
       enableCache: true,
-      model: 'gpt-4o', // Quality over cost: quantitative extraction needs top-tier reasoning
+      task: 'reader_v3',
     });
 
     const extracted = JSON.parse(response.content);

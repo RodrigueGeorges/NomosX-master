@@ -274,7 +274,8 @@ Only report REAL contradictions with confidence ≥ 70. Do NOT flag:
       temperature: 0.1,
       jsonMode: true,
       maxTokens: 1000,
-      enableCache: true
+      enableCache: true,
+      task: 'reader_v3',
     });
     
     const result = JSON.parse(response.content);

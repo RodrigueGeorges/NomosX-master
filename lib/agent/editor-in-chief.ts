@@ -183,8 +183,7 @@ Return JSON: { "selections": [{ "topicId": "...", "action": "publish_brief|publi
       temperature: 0.15,
       maxTokens: 800,
       jsonMode: true,
-      model: 'deepseek-v4-flash', // Triage is classification — fast model sufficient & cost-efficient
-      provider: 'deepseek',
+      task: 'editor_in_chief',
     });
 
     const parsed = JSON.parse(result.content);

@@ -300,7 +300,8 @@ Only report REAL shifts with confidence ≥ 60.`
       temperature: 0.2,
       jsonMode: true,
       maxTokens: 500,
-      enableCache: true
+      enableCache: true,
+      task: 'meta_analysis',
     });
     
     const result = JSON.parse(response.content);

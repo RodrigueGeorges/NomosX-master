@@ -14,6 +14,7 @@
  */
 
 import { formatAPA, renderAPAHtml } from './pipeline-types';
+import { inlineLockupSvg } from '@/lib/brand/logo-inline';
 
 // ============================================================================
 // HTML ESCAPING
@@ -248,15 +249,21 @@ const BRIEF_CSS = `
   }
 
   .brief-brand {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 0.75rem;
+    margin-bottom: 16px;
+    color: var(--text);
+  }
+
+  .brief-brand-tag {
     font-size: 11px;
     color: var(--text-dim);
     text-transform: uppercase;
     letter-spacing: 0.1em;
-    font-weight: 600;
-    margin-bottom: 16px;
+    font-weight: 400;
   }
-
-  .brief-brand span { color: var(--accent); }
 
   h1 {
     font-family: var(--font-serif);
@@ -492,7 +499,7 @@ export function renderProfessionalBriefHTML(analysis: any, sources: any[]): stri
 <body>
   <article class="nomosx-brief">
     <header class="brief-header">
-      <div class="brief-brand">Nomos<span>X</span> — Agentic Think Tank</div>
+      <div class="brief-brand">${inlineLockupSvg(16, { mono: true })}<span class="brief-brand-tag">Agentic Think Tank</span></div>
       <h1>${esc(analysis.title || "Research Brief")}</h1>
       ${metadataBar(sources, wordCount)}
     </header>
@@ -686,7 +693,7 @@ export function renderProfessionalStrategicHTML(analysis: any, sources: any[]): 
 <body>
   <article class="nomosx-brief">
     <header class="brief-header">
-      <div class="brief-brand">Nomos<span>X</span> — Strategic Report</div>
+      <div class="brief-brand">${inlineLockupSvg(16, { mono: true })}<span class="brief-brand-tag">Strategic Report</span></div>
       <h1>${esc(analysis.title || "Strategic Report")}</h1>
       ${metadataBar(sources, wordCount)}
       ${badgeHtml}

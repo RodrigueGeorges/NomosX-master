@@ -150,6 +150,7 @@ Generate premium, institutional-grade content.`;
       jsonMode: true,
       maxTokens: 6000,
       enableCache: true,
+      task: 'analyst_brief',
     });
 
     const result = JSON.parse(response.content);

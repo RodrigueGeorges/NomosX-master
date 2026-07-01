@@ -4,6 +4,8 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
+import { NomosXLogo } from "@/components/brand/NomosXLogo";
+import { LOGO_NAV_CAP } from "@/lib/brand/logo-config";
 import { cn } from "@/lib/utils";
 
 export type PublicNavPage =
@@ -39,9 +41,10 @@ export default function PublicNav({ currentPage, onSignInClick, isAuthenticated 
         <button
           type="button"
           onClick={() => router.push("/")}
-          className="font-display font-semibold text-[17px] tracking-[-0.03em] text-white hover:opacity-80 transition-opacity"
+          className="text-white hover:opacity-80 transition-opacity focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40 rounded-sm"
+          aria-label="NomosX home"
         >
-          Nomos<span className="font-bold">X</span>
+          <NomosXLogo variant="lockup" size={LOGO_NAV_CAP} />
         </button>
 
         <div className="hidden md:flex items-center gap-8">

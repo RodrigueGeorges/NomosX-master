@@ -35,20 +35,15 @@ export function PageHeader({
       >
         <div className={cn(centered && "max-w-2xl")}>
           {eyebrow && (
-            <p
-              className={cn(
-                "font-mono text-[10px] uppercase tracking-[0.24em] text-white/35 mb-4",
-                centered && "flex items-center justify-center"
-              )}
-            >
+            <p className={cn("nx-public-eyebrow mb-4", centered && "flex items-center justify-center")}>
               {eyebrow}
             </p>
           )}
-          <h1 className="font-display text-3xl sm:text-4xl lg:text-[3rem] font-semibold tracking-tight text-white leading-[1.08]">
+          <h1 className="nx-spx-section-title text-[clamp(2rem,4vw,3rem)]">
             {title}
           </h1>
           {description && (
-            <p className="mt-4 text-base text-white/50 leading-relaxed max-w-2xl">{description}</p>
+            <p className="mt-4 nx-read mx-auto text-[var(--nx-text-secondary)]">{description}</p>
           )}
         </div>
         {action && <div className="shrink-0">{action}</div>}

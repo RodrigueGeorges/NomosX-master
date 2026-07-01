@@ -260,6 +260,7 @@ Return JSON:
     temperature: 0.3,
     maxTokens: 3000,
     jsonMode: true,
+    task: 'elenchus',
   });
 
   try {
@@ -418,6 +419,7 @@ Return JSON:
     temperature: 0.2,
     maxTokens: 1500,
     jsonMode: true,
+    task: 'elenchus',
   });
 
   try {

@@ -496,7 +496,7 @@ Return JSON: { "selected": [index1, index2, index3], "reasoning": "one sentence"
       temperature: 0.2,
       maxTokens: 200,
       jsonMode: true,
-      model: 'gpt-4o-mini',
+      task: 'editor_in_chief',
     });
 
     state.totalCostUsd += result.costUsd;

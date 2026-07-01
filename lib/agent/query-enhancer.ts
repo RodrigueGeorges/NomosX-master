@@ -128,6 +128,7 @@ Now process the user query.`;
       jsonMode: true,
       maxTokens: 500,
       enableCache: true,
+      task: 'query_enhancement',
     });
 
     const parsed = JSON.parse(response.content || "{}");

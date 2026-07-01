@@ -1,9 +1,36 @@
 import { ImageResponse } from 'next/og';
+import { LOGO_GLYPHS, LOGO_LAYOUT, logoHeightFromCap } from '@/lib/brand/logo-paths';
+import {
+  BRAND_EMAIL_TAGLINE,
+  BRAND_SOURCES_LABEL,
+  BRAND_TITLE,
+} from '@/lib/brand/public-copy';
 
 export const runtime = 'edge';
-export const alt = 'NomosX — The Agentic Think Tank';
+export const alt = BRAND_TITLE;
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
+
+const V = LOGO_LAYOUT;
+
+function OgLockup({ cap }: { cap: number }) {
+  const h = logoHeightFromCap(cap);
+  const w = (h / V.H) * V.Wlock;
+  return (
+    <svg width={w} height={h} viewBox={`0 0 ${V.Wlock} ${V.H}`}>
+      <g transform={`translate(${V.pad},${V.symY}) scale(${V.symScale})`}>
+        <line x1="7" y1="7" x2="25" y2="25" stroke="#FFFFFF" strokeWidth="2.6" strokeLinecap="round" />
+        <line x1="25" y1="7" x2="7" y2="25" stroke="#FFFFFF" strokeWidth="2.6" strokeLinecap="round" />
+        <circle cx="16" cy="16" r="2.6" fill="#FFFFFF" />
+      </g>
+      <g transform={`translate(${V.wordX},${V.baselineY}) scale(${V.S},${-V.S})`} fill="#FFFFFF">
+        {LOGO_GLYPHS.map((g, i) => (
+          <path key={i} transform={`translate(${g.x},0)`} d={g.d} />
+        ))}
+      </g>
+    </svg>
+  );
+}
 
 export default async function Image() {
   return new ImageResponse(
@@ -32,25 +59,8 @@ export default async function Image() {
           }}
         />
 
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '14px',
-            marginBottom: '28px',
-          }}
-        >
-          <span
-            style={{
-              fontSize: '52px',
-              fontWeight: 600,
-              letterSpacing: '-0.03em',
-              color: '#FFFFFF',
-            }}
-          >
-            Nomos
-            <span style={{ fontWeight: 700 }}>X</span>
-          </span>
+        <div style={{ display: 'flex', marginBottom: 28 }}>
+          <OgLockup cap={52} />
         </div>
 
         <div
@@ -63,7 +73,7 @@ export default async function Image() {
             letterSpacing: '-0.01em',
           }}
         >
-          The Agentic Think Tank
+          {BRAND_EMAIL_TAGLINE}
         </div>
 
         <div
@@ -81,7 +91,7 @@ export default async function Image() {
 
         <div style={{ display: 'flex', gap: '40px', alignItems: 'center' }}>
           {[
-            { value: '250M+', label: 'Sources' },
+            { value: BRAND_SOURCES_LABEL, label: 'Sources' },
             { value: '4', label: 'Method stages' },
             { value: '24/7', label: 'Autonomous' },
           ].map((stat) => (

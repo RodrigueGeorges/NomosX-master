@@ -5,6 +5,9 @@
  * Sent weekly with latest open publications from selected verticals
  */
 
+import { emailLogoHeaderHtml } from '@/lib/brand/logo-inline';
+import { BRAND_EMAIL_FOOTER, BRAND_EMAIL_TAGLINE } from '@/lib/brand/public-copy';
+
 interface Brief {
   id: string;
   title: string;
@@ -61,15 +64,7 @@ export function renderWeeklyBriefEmail({
       margin-bottom: 40px;
       padding-bottom: 30px;
       border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    }
-    .logo-text {
-      font-size: 24px;
-      font-weight: 300;
-      letter-spacing: -0.02em;
       color: #ffffff;
-    }
-    .logo-text-accent {
-      font-weight: 700;
     }
     .tagline {
       font-size: 10px;
@@ -200,8 +195,8 @@ export function renderWeeklyBriefEmail({
 <body>
   <div class="container">
     <div class="header">
-      <div class="logo-text">Nomos<span class="logo-text-accent">X</span></div>
-      <div class="tagline">The Agentic Think Tank</div>
+      ${emailLogoHeaderHtml(20)}
+      <div class="tagline">${BRAND_EMAIL_TAGLINE}</div>
       <div class="date-range">Week of ${weekStart} – ${weekEnd}</div>
     </div>
 
@@ -239,7 +234,7 @@ export function renderWeeklyBriefEmail({
       </div>
       <p class="footer-text">
         You're receiving this because you subscribed to NomosX weekly briefs.<br>
-        NomosX · The Agentic Think Tank<br>
+        ${BRAND_EMAIL_FOOTER}<br>
         © 2026 NomosX. All rights reserved.
       </p>
     </div>
@@ -286,7 +281,7 @@ export function renderWeeklyBriefPlainText({
   text += `Dashboard: https://nomosx.com/dashboard\n`;
   text += `Unsubscribe: ${unsubscribeUrl}\n\n`;
   text += `You're receiving this because you subscribed to NomosX weekly briefs.\n`;
-  text += `NomosX · The Agentic Think Tank\n`;
+  text += `${BRAND_EMAIL_FOOTER}\n`;
   text += `© 2026 NomosX. All rights reserved.\n`;
 
   return text;

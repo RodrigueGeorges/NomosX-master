@@ -1,18 +1,25 @@
 import { Metadata } from 'next';
+import {
+  BRAND_DESCRIPTION,
+  BRAND_EMAIL_TAGLINE,
+  BRAND_NAME,
+  BRAND_TAGLINE,
+  BRAND_TITLE,
+} from '@/lib/brand/public-copy';
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://nomosx.com';
 
 export const metadata: Metadata = {
-  title: 'About — The Agentic Think Tank',
-  description: 'NomosX is an agentic think tank for probabilistic foresight. Cross-domain mapping, scenario distributions, and institute positions — verified from 250M+ sources.',
+  title: `About — ${BRAND_EMAIL_TAGLINE}`,
+  description: BRAND_DESCRIPTION,
   alternates: { canonical: `${BASE_URL}/about` },
   openGraph: {
-    title: 'About NomosX — The Agentic Think Tank',
-    description: 'Probable futures. Decisions owned. Evidence verified. Learn about our mission.',
+    title: `About ${BRAND_TITLE}`,
+    description: `${BRAND_TAGLINE} Learn about our mission.`,
   },
   twitter: {
-    title: 'About NomosX — The Agentic Think Tank',
-    description: 'Probable futures. Decisions owned. Evidence verified.',
+    title: `About ${BRAND_TITLE}`,
+    description: BRAND_TAGLINE,
   },
 };
 

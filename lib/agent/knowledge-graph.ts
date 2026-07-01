@@ -142,6 +142,7 @@ Return JSON:
     jsonMode: true,
     maxTokens: 3000,
     enableCache: true,
+    task: 'reader_v3',
   });
 
   costUsd += extractResponse.costUsd;

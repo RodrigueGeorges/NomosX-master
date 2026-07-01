@@ -117,7 +117,8 @@ function extractNumericalClaims(html: string): NumericalClaim[] {
 
 async function factCheckBatch(
   claims: NumericalClaim[],
-  sources: any[]
+  sources: any[],
+  producerFamily?: import('../llm/unified-llm').LLMFamily,
 ): Promise<FactCheckResult[]> {
   if (claims.length === 0) return [];
 
@@ -179,8 +180,8 @@ Be STRICT. Think tanks are destroyed by a single fabricated number.`;
       temperature: 0.1,
       jsonMode: true,
       maxTokens: 4000,
-      model: 'deepseek-v4-flash', // Fact-checking is matching — fast model sufficient & cost-efficient
-      provider: 'deepseek',
+      task: 'fact_check',
+      producerFamily,
     });
 
     const parsed = JSON.parse(response.content);
@@ -207,7 +208,8 @@ Be STRICT. Think tanks are destroyed by a single fabricated number.`;
 
 export async function factChecker(
   html: string,
-  sources: any[]
+  sources: any[],
+  producerFamily?: import('../llm/unified-llm').LLMFamily,
 ): Promise<FactCheckerOutput> {
   const start = Date.now();
   console.log(`[FACT-CHECKER] Verifying numerical claims in HTML (${(html.length / 1024).toFixed(0)}KB, ${sources.length} sources)`);
@@ -236,7 +238,7 @@ export async function factChecker(
 
   for (let i = 0; i < claims.length; i += 20) {
     const batch = claims.slice(i, i + 20);
-    const batchResults = await factCheckBatch(batch, sources);
+    const batchResults = await factCheckBatch(batch, sources, producerFamily);
     allResults.push(...batchResults);
   }
 

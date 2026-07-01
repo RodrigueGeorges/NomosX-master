@@ -257,6 +257,7 @@ Accuracy scoring:
       jsonMode: true,
       maxTokens: 800,
       enableCache: true,
+      task: 'fact_check',
     });
 
     const parsed = JSON.parse(response.content);

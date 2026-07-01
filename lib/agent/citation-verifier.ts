@@ -14,7 +14,7 @@
  * This is what separates a real think tank from a content generator.
  */
 
-import { callLLM } from '../llm/unified-llm';
+import { callLLM, type LLMFamily } from '../llm/unified-llm';
 import { cosineSimilarity, embedText } from './semantic-engine';
 import Sentry from '@sentry/nextjs';
 
@@ -120,7 +120,8 @@ export function extractCitations(text: string): CitationInstance[] {
  */
 async function verifySingleCitation(
   citation: CitationInstance,
-  source: any
+  source: any,
+  producerFamily?: LLMFamily,
 ): Promise<CitationVerification> {
   const sourceContent = `${source.title}\n${source.abstract || ""}`.trim();
 
@@ -176,7 +177,8 @@ Return JSON:
       jsonMode: true,
       maxTokens: 800,
       enableCache: true,
-      model: 'gpt-4o-mini', // P1-PERF: citation matching is structured — mini is 10x cheaper
+      task: 'citation_verification',
+      producerFamily,
     });
 
     const result = JSON.parse(response.content);
@@ -224,9 +226,11 @@ export async function verifyCitations(
   options: {
     maxConcurrency?: number;
     skipSemanticCheck?: boolean;  // Skip embedding comparison (faster but less accurate)
+    /** Family that produced analysisText — activates opposite-family verification rule */
+    producerFamily?: LLMFamily;
   } = {}
 ): Promise<VerificationReport> {
-  const { maxConcurrency = 5 } = options;
+  const { maxConcurrency = 5, producerFamily } = options;
   let totalCost = 0;
 
   console.log(`[CitationVerifier] Starting verification for ${sources.length} sources...`);
@@ -286,7 +290,7 @@ export async function verifyCitations(
             suggestedFix: `Remove or replace [SRC-${citation.srcIndex}] with a valid source reference`,
           });
         }
-        return verifySingleCitation(citation, sources[sourceIndex]);
+        return verifySingleCitation(citation, sources[sourceIndex], producerFamily);
       })
     );
 

@@ -220,7 +220,7 @@ Respond with JSON containing:
 - issues (array of specific problems)
 - confidence (0-100)`;
 
-    const result = await callLLM({ messages: [{ role: 'user', content: prompt }] });
+    const result = await callLLM({ messages: [{ role: 'user', content: prompt }], task: 'fact_check' });
     
     const analysis = JSON.parse(result.content);
     
@@ -315,7 +315,7 @@ Respond with JSON containing:
 - issues (array of specific problems)
 - confidence (0-100)`;
 
-    const result = await callLLM({ messages: [{ role: 'user', content: prompt }] });
+    const result = await callLLM({ messages: [{ role: 'user', content: prompt }], task: 'fact_check' });
     
     const analysis = JSON.parse(result.content);
     
@@ -364,7 +364,7 @@ Respond with JSON containing:
 - issues (array of concerns)
 - confidence (0-100)`;
 
-    const result = await callLLM({ messages: [{ role: 'user', content: prompt }] });
+    const result = await callLLM({ messages: [{ role: 'user', content: prompt }], task: 'fact_check' });
     
     const analysis = JSON.parse(result.content);
     

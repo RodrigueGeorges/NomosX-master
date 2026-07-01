@@ -86,7 +86,7 @@ Return JSON with entities array containing: name, type (Person/Organization/Loca
       ],
       temperature: 0.1,
       maxTokens: 1000,
-      model: 'gpt-4o'
+      task: 'topic_classification',
     });
 
     const parsed = JSON.parse(response.content);
@@ -186,7 +186,8 @@ export async function validateInstitution(
         { role: 'user', content: validationPrompt }
       ],
       temperature: 0.1,
-      maxTokens: 500
+      maxTokens: 500,
+      task: 'topic_classification',
     });
 
     const parsed = JSON.parse(response.content);
@@ -243,7 +244,8 @@ export async function validatePerson(
         { role: 'user', content: validationPrompt }
       ],
       temperature: 0.1,
-      maxTokens: 500
+      maxTokens: 500,
+      task: 'topic_classification',
     });
 
     const parsed = JSON.parse(response.content);

@@ -258,6 +258,7 @@ export async function planEditorialAgenda(
         temperature: 0.4,
         maxTokens: 500,
         jsonMode: true,
+        task: 'editor_in_chief',
       });
 
       totalCost += result.costUsd;

@@ -180,6 +180,7 @@ Grade this evidence body. Return JSON:
     maxTokens: 800,
     jsonMode: true,
     enableCache: true,
+    task: 'fact_check',
   });
 
   try {
@@ -266,6 +267,7 @@ Be RIGOROUS. A Harvard peer review would catch these issues.`,
     temperature: 0.15,
     maxTokens: 3500,
     jsonMode: true,
+    task: 'elenchus',
   });
 
   try {
@@ -438,6 +440,7 @@ This is the FINAL output. Make it worthy of a Harvard Kennedy School policy brie
     temperature: 0.2,
     maxTokens: 6000,
     jsonMode: true,
+    task: 'meta_analysis',
   });
 
   const durationMs = Date.now() - start;

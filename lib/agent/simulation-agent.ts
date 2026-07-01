@@ -678,7 +678,7 @@ async function runLLMTickBatch(
 
   try {
     const res = await callLLM({
-      task: "analysis",
+      task: "harvard_council",
       temperature: 0.35,
       maxTokens: 1100,
       jsonMode: true,
@@ -755,7 +755,7 @@ async function runAdversarialRedTeam(
 
   try {
     const res = await callLLM({
-      task: "analysis",
+      task: "elenchus",
       temperature: 0.25,
       maxTokens: 400,
       messages: [
@@ -945,7 +945,7 @@ async function synthesizeForesightBrief(
   const top = outcomes.slice(0, 3).map((o) => `${o.name}: ${(o.empiricalProbability * 100).toFixed(0)}% (${o.trajectory})`).join("; ");
   try {
     const res = await callLLM({
-      task: "analysis",
+      task: "analyst_brief",
       temperature: 0.2,
       maxTokens: 500,
       messages: [
@@ -1001,7 +1001,7 @@ export async function chatWithSimulatedPersona(input: {
     .join(", ");
 
   const res = await callLLM({
-    task: "analysis",
+    task: "harvard_council",
     temperature: 0.4,
     maxTokens: 350,
     messages: [

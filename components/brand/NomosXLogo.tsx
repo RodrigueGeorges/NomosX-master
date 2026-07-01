@@ -1,72 +1,86 @@
 "use client";
 
-import { cn } from "@/lib/utils";
+import * as React from "react";
+import { LOGO_ACCENT, LOGO_MONO_DEFAULT } from "@/lib/brand/logo-config";
+import { LOGO_GLYPHS, LOGO_LAYOUT, logoHeightFromCap, symbolSvgSize } from "@/lib/brand/logo-paths";
 
-interface LogoProps {
-  size?: "sm" | "md" | "lg" | "xl" | "2xl" | "3xl" | "4xl" | "5xl";
-  variant?: "full" | "symbol" | "wordmark";
+type LogoVariant = "lockup" | "symbol" | "wordmark";
+
+export interface NomosXLogoProps {
+  variant?: LogoVariant;
+  /** Cap height in px. Default: 28. */
+  size?: number;
+  /** Node uses currentColor instead of accent. */
+  mono?: boolean;
+  accent?: string;
   className?: string;
-  styleSize?: number;
+  style?: React.CSSProperties;
+  title?: string;
 }
 
-const symbolSizes = { sm: 28, md: 36, lg: 44, xl: 60, "2xl": 80, "3xl": 120, "4xl": 160, "5xl": 220 };
-const textSizes  = { sm: "text-[15px]", md: "text-[18px]", lg: "text-[22px]", xl: "text-[30px]", "2xl": "text-[42px]", "3xl": "text-[56px]", "4xl": "text-[72px]", "5xl": "text-[96px]" };
-const gapSizes   = { sm: "gap-2", md: "gap-2.5", lg: "gap-3", xl: "gap-4", "2xl": "gap-5", "3xl": "gap-6", "4xl": "gap-8", "5xl": "gap-10" };
+const V = LOGO_LAYOUT;
 
-/**
- * NomosX mark — precision Ν symbol + wordmark
- * Pure white on black; X reads as the innovation multiplier (SpaceX-style).
- */
-function NomosSymbol({ px, className }: { px: number; className?: string }) {
-  const sw = Math.max(1.8, px * 0.038); // stroke width scales with size
-
+function Wordmark({ x }: { x: number }) {
   return (
-    <svg
-      width={px}
-      height={px}
-      viewBox="0 0 100 100"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      className={className}
-      aria-hidden="true"
-    >
-      {/* Left vertical stroke */}
-      <line x1="22" y1="16" x2="22" y2="84" stroke="white" strokeWidth={sw} strokeLinecap="square" />
-      {/* Diagonal — top-left to bottom-right */}
-      <line x1="22" y1="16" x2="78" y2="84" stroke="white" strokeWidth={sw} strokeLinecap="square" />
-      {/* Right vertical stroke */}
-      <line x1="78" y1="16" x2="78" y2="84" stroke="white" strokeWidth={sw} strokeLinecap="square" />
-    </svg>
+    <g transform={`translate(${x},${V.baselineY}) scale(${V.S},${-V.S})`} fill="currentColor">
+      {LOGO_GLYPHS.map((g, i) => (
+        <path key={i} transform={`translate(${g.x},0)`} d={g.d} />
+      ))}
+    </g>
   );
 }
 
-export function NomosXLogo({ size = "md", variant = "full", className, styleSize }: LogoProps) {
-  const px = styleSize ?? symbolSizes[size];
+function Mark({ node }: { node: string }) {
+  return (
+    <g transform={`translate(${V.pad},${V.symY}) scale(${V.symScale})`}>
+      <line x1="7" y1="7" x2="25" y2="25" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" />
+      <line x1="25" y1="7" x2="7" y2="25" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" />
+      <circle cx="16" cy="16" r="2.6" fill={node} />
+    </g>
+  );
+}
+
+export function NomosXLogo({
+  variant = "lockup",
+  size = 28,
+  mono = LOGO_MONO_DEFAULT,
+  accent = LOGO_ACCENT,
+  className,
+  style,
+  title = "NomosX",
+}: NomosXLogoProps) {
+  const node = mono ? "currentColor" : accent;
+  const h = logoHeightFromCap(size);
+  const common = {
+    className,
+    style: { display: "inline-block", color: "currentColor", ...style } as React.CSSProperties,
+    role: "img" as const,
+    "aria-label": title,
+  };
 
   if (variant === "symbol") {
+    const s = symbolSvgSize(size);
     return (
-      <div className={cn("inline-flex items-center justify-center", className)}>
-        <NomosSymbol px={px} />
-      </div>
+      <svg {...common} width={s} height={s} viewBox="0 0 32 32">
+        <line x1="7" y1="7" x2="25" y2="25" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" />
+        <line x1="25" y1="7" x2="7" y2="25" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" />
+        <circle cx="16" cy="16" r="2.6" fill={node} />
+      </svg>
     );
   }
 
   if (variant === "wordmark") {
     return (
-      <div className={cn("inline-flex items-center", className)}>
-        <span className={cn("font-display font-semibold tracking-tight text-white", textSizes[size])}>
-          Nomos<span className="font-bold text-white">X</span>
-        </span>
-      </div>
+      <svg {...common} height={h} viewBox={`0 0 ${V.Wwm} ${V.H}`}>
+        <Wordmark x={V.pad} />
+      </svg>
     );
   }
 
   return (
-    <div className={cn("inline-flex items-center", gapSizes[size], className)}>
-      <NomosSymbol px={px} />
-      <span className={cn("font-display font-semibold tracking-tight text-white", textSizes[size])}>
-        Nomos<span className="font-bold text-white">X</span>
-      </span>
-    </div>
+    <svg {...common} height={h} viewBox={`0 0 ${V.Wlock} ${V.H}`}>
+      <Mark node={node} />
+      <Wordmark x={V.wordX} />
+    </svg>
   );
 }

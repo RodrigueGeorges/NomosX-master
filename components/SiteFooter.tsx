@@ -1,6 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { NomosXLogo } from "@/components/brand/NomosXLogo";
+import { BRAND_NAME, BRAND_SHORT, BRAND_TAGLINE } from "@/lib/brand/public-copy";
 
 const FOOTER_LINKS = [
   { label: "Inquiries", href: "/archives" },
@@ -22,14 +24,17 @@ export default function SiteFooter(_props: SiteFooterProps) {
 
   return (
     <footer className="border-t border-white/[0.08] bg-black">
-      <div className="max-w-6xl mx-auto px-6 sm:px-8 py-10 flex flex-col items-center gap-3 text-center sm:flex-row sm:justify-between sm:text-left">
-        <div>
+      <div className="max-w-6xl mx-auto px-6 sm:px-8 py-10 flex flex-col items-center gap-6 text-center sm:flex-row sm:justify-between sm:text-left">
+        <div className="flex flex-col items-center sm:items-start gap-3">
+          <NomosXLogo variant="lockup" size={16} className="opacity-70" />
+          <div>
           <p className="font-mono text-[11px] text-white/30 tracking-wide">
-            © {year} NomosX · Agentic think tank
+            © {year} {BRAND_NAME} · {BRAND_SHORT}
           </p>
           <p className="font-mono text-[10px] text-white/20 tracking-wide mt-1">
-            Probable futures. Decisions owned. Evidence verified.
+            {BRAND_TAGLINE}
           </p>
+          </div>
         </div>
         <nav className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
           {FOOTER_LINKS.map((link) => (

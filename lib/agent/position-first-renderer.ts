@@ -6,6 +6,9 @@
 import { formatAPA, renderAPAHtml } from './pipeline-types';
 import type { PositionFirstBriefInput } from './editorial-types';
 import { collisionLabel, dimensionsFromClassification } from './editorial-types';
+import { POSITION_FIRST_BRIEF_CSS } from './position-first-brief.css';
+import { inlineLockupSvg } from '@/lib/brand/logo-inline';
+import { BRAND_BRIEF_FOOTER } from '@/lib/brand/public-copy';
 
 function esc(s: string): string {
   return String(s || '').replace(/[&<>"']/g, (m) =>
@@ -28,158 +31,7 @@ function renderParagraphs(text: string): string {
     .join('\n');
 }
 
-const CSS = `
-<style>
-  :root {
-    --bg: #000000;
-    --surface: #0a0a0a;
-    --border: rgba(255,255,255,0.08);
-    --text: #e4e4e7;
-    --muted: #a1a1aa;
-    --dim: #52525b;
-    --white: #ffffff;
-    --font: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  article.nomosx-brief {
-    max-width: 780px;
-    margin: 0 auto;
-    padding: 48px 32px;
-    font-family: var(--font);
-    color: var(--text);
-    line-height: 1.7;
-    background: var(--bg);
-  }
-  .brief-brand {
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-    color: var(--dim);
-    margin-bottom: 20px;
-  }
-  .brief-brand span { color: var(--white); font-weight: 700; }
-  .nx-eyebrow {
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 0.22em;
-    text-transform: uppercase;
-    color: rgba(255,255,255,0.35);
-    margin-bottom: 12px;
-  }
-  .nx-block {
-    border: 1px solid var(--border);
-    background: rgba(255,255,255,0.02);
-    padding: 24px;
-    margin: 24px 0;
-  }
-  h1 {
-    font-size: 1.85em;
-    font-weight: 600;
-    line-height: 1.2;
-    color: var(--white);
-    margin-bottom: 12px;
-  }
-  .collision-line {
-    font-size: 14px;
-    color: var(--muted);
-    margin-bottom: 8px;
-  }
-  .urgency {
-    display: inline-block;
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    border: 1px solid var(--border);
-    padding: 4px 10px;
-    color: rgba(255,255,255,0.5);
-    margin-top: 8px;
-  }
-  .team-grid { display: grid; gap: 12px; margin-top: 12px; }
-  .team-card {
-    border: 1px solid var(--border);
-    padding: 14px 16px;
-    background: rgba(255,255,255,0.02);
-  }
-  .team-role {
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-    color: rgba(255,255,255,0.35);
-    margin-bottom: 4px;
-  }
-  .team-domain { font-size: 15px; font-weight: 600; color: var(--white); margin-bottom: 6px; }
-  .team-mandate { font-size: 13px; color: var(--muted); line-height: 1.55; }
-  .scenario-row {
-    border-top: 1px solid var(--border);
-    padding: 16px 0;
-  }
-  .scenario-row:first-child { border-top: none; padding-top: 0; }
-  .scenario-head {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    gap: 12px;
-    margin-bottom: 8px;
-  }
-  .scenario-name { font-weight: 600; color: var(--white); }
-  .scenario-prob {
-    font-family: ui-monospace, monospace;
-    font-size: 13px;
-    color: rgba(255,255,255,0.75);
-  }
-  .scenario-desc { font-size: 14px; color: var(--muted); line-height: 1.6; }
-  .verdict-block {
-    border-left: 3px solid var(--white);
-    padding-left: 20px;
-    margin: 16px 0;
-  }
-  .confidence {
-    font-family: ui-monospace, monospace;
-    font-size: 12px;
-    color: rgba(255,255,255,0.55);
-    margin-top: 12px;
-  }
-  .objections li, .trace li { font-size: 14px; color: var(--muted); margin: 8px 0; }
-  .objections ul, .trace ul { padding-left: 18px; }
-  .metadata-bar {
-    font-size: 12px;
-    color: var(--dim);
-    margin-top: 16px;
-    padding-top: 16px;
-    border-top: 1px solid var(--border);
-  }
-  .references-section { margin-top: 40px; padding-top: 24px; border-top: 1px solid var(--border); }
-  .references-section h2 {
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: rgba(255,255,255,0.35);
-    margin-bottom: 16px;
-  }
-  .apa-ref {
-    display: block;
-    padding: 8px 0 8px 36px;
-    text-indent: -36px;
-    font-size: 12px;
-    color: var(--muted);
-    border-bottom: 1px solid var(--border);
-  }
-  sup.cite a { color: rgba(255,255,255,0.65); text-decoration: none; font-size: 10px; font-weight: 700; }
-  .brief-footer {
-    margin-top: 40px;
-    font-size: 11px;
-    color: var(--dim);
-    text-align: center;
-  }
-  @media (max-width: 640px) {
-    article.nomosx-brief { padding: 28px 16px; }
-    h1 { font-size: 1.45em; }
-  }
-</style>`;
+const CSS = `<style>${POSITION_FIRST_BRIEF_CSS}</style>`;
 
 export function renderPositionFirstBriefHTML(input: PositionFirstBriefInput): string {
   const { question, classification, casting, position, analysis, sources } = input;
@@ -247,8 +99,8 @@ export function renderPositionFirstBriefHTML(input: PositionFirstBriefInput): st
 </head>
 <body>
   <article class="nomosx-brief">
-    <header>
-      <div class="brief-brand">Nomos<span>X</span> — Agentic Think Tank</div>
+    <header class="brief-hero">
+      <div class="brief-brand">${inlineLockupSvg(16, { mono: true })}<span class="brief-brand-tag">Agentic Think Tank</span></div>
       <p class="nx-eyebrow">Detected subject</p>
       <h1>${esc(title)}</h1>
       <p class="collision-line">${esc(collision)}</p>
@@ -290,7 +142,7 @@ export function renderPositionFirstBriefHTML(input: PositionFirstBriefInput): st
     </section>
 
     <footer class="brief-footer">
-      NomosX — Probable futures. Decisions owned. Evidence verified.
+      ${BRAND_BRIEF_FOOTER}
     </footer>
   </article>
 </body>

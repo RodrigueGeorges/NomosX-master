@@ -1943,9 +1943,18 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
 
   const runPostRenderQualityGates = async () => {
     emitProgress(pipelineRun.id, "QUALITY", "started", "Citation verification and critical review...");
+
+    // Opposite-family rule: verifiers must run on a DIFFERENT LLM family than the
+    // one that produced the analysis text (anti blind-spot). Extract producer
+    // family from either analyst format (multipass._meta or strategic._producerFamily).
+    const producerFamily =
+      (analysis as any)?._meta?.producerFamily ??
+      (analysis as any)?._producerFamily ??
+      undefined;
+
     console.log(`${label} CITATION VERIFIER: semantic check`);
     try {
-      const verification = await verifyCitations(html, topSources, { maxConcurrency: isStrategic ? 5 : 3 });
+      const verification = await verifyCitations(html, topSources, { maxConcurrency: isStrategic ? 5 : 3, producerFamily });
       stats.citationVerifier = {
         integrity: verification.overallIntegrity,
         supported: verification.supported,
@@ -1958,7 +1967,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
 
     try {
       const { factChecker } = await import('./fact-checker');
-      const factResult = await factChecker(html, topSources);
+      const factResult = await factChecker(html, topSources, producerFamily);
       stats.factChecker = {
         totalClaims: factResult.totalClaims,
         verified: factResult.verified,
@@ -2165,6 +2174,7 @@ Return the FULL rewritten HTML. No JSON wrapping — just the HTML.`
             jsonMode: false,
             maxTokens: 12000,
             enableCache: false,
+            task: 'auto_revision',
           });
 
           if (revisionResponse.content && revisionResponse.content.length > html.length * 0.5) {

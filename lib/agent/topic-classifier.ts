@@ -405,7 +405,7 @@ IMPORTANT: dimensions are COLLISION AXES, not silos. Example: "EU AI Act" → di
     maxTokens: 300,
     jsonMode: true,
     enableCache: true,
-    model: 'gpt-4o-mini', // Classification is simple — mini is 10x cheaper
+    task: 'topic_classification',
   });
 
   const parsed = JSON.parse(result.content);

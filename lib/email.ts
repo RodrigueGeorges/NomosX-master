@@ -12,6 +12,12 @@
 
 import { inquiryUrl, archivesUrl } from '@/lib/public-urls';
 import { EMAIL_BRAND as EMAIL } from '@/lib/brand/email-brand';
+import { emailLogoHeaderHtml } from '@/lib/brand/logo-inline';
+import {
+  BRAND_EMAIL_FOOTER,
+  BRAND_EMAIL_TAGLINE,
+  BRAND_SOURCES_LABEL,
+} from '@/lib/brand/public-copy';
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const EMAIL_FROM = process.env.EMAIL_FROM || 'NomosX <noreply@nomosx.com>';
@@ -87,12 +93,10 @@ function layout(content: string, preheader?: string): string {
         <table width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;">
           <!-- Header -->
           <tr>
-            <td style="padding-bottom:32px;text-align:center;">
-              <p style="font-size:24px;font-weight:300;letter-spacing:-0.02em;color:#fff;margin:0 0 2px;">
-                Nomos<span style="color:#ffffff;font-weight:700;">X</span>
-              </p>
-              <p style="font-size:10px;font-weight:600;letter-spacing:0.2em;color:${EMAIL.muted};text-transform:uppercase;margin:0;">
-                The Agentic Think Tank
+            <td style="padding-bottom:32px;text-align:center;color:#ffffff;">
+              ${emailLogoHeaderHtml(20)}
+              <p style="font-size:10px;font-weight:600;letter-spacing:0.2em;color:${EMAIL.muted};text-transform:uppercase;margin:8px 0 0;">
+                ${BRAND_EMAIL_TAGLINE}
               </p>
             </td>
           </tr>
@@ -106,7 +110,7 @@ function layout(content: string, preheader?: string): string {
           <tr>
             <td style="padding-top:24px;text-align:center;">
               <p style="font-size:12px;color:${EMAIL.dim};margin:0;">
-                NomosX · The Agentic Think Tank<br/>
+                ${BRAND_EMAIL_FOOTER}<br/>
                 <a href="${APP_URL}/api/newsletter/unsubscribe" style="${EMAIL.link}">Unsubscribe</a>
                 &nbsp;·&nbsp;
                 <a href="${APP_URL}/privacy" style="${EMAIL.link}">Privacy</a>

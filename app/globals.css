@@ -165,47 +165,100 @@
 .delay-600 { animation-delay: 600ms; }
 .delay-700 { animation-delay: 700ms; }
 
-/* === Root Variables — Palantir × Greek === */
+/* === Root Variables — SpaceX grammar (public) + internal palette === */
 :root {
   color-scheme: dark;
 
-  /* Surfaces — pure void (SpaceX-like) */
-  --color-bg: #000000;
-  --color-bg-elevated: #0a0a0a;
-  --color-bg-panel: #111111;
-  --color-border: rgba(255, 255, 255, 0.07);
-  --color-border-hover: rgba(255, 255, 255, 0.14);
+  /* ── SpaceX observed → NomosX tokens ── */
+  --nx-bg: #000000;
+  --nx-bg-elevated: #0a0a0a;
+  --nx-bg-panel: #111111;
+  --nx-text-hero: #f0f0fa;
+  --nx-text-primary: #f0f0fa;
+  --nx-text-secondary: rgba(240, 240, 250, 0.62);
+  --nx-text-tertiary: rgba(240, 240, 250, 0.35);
+  --nx-text-quaternary: rgba(240, 240, 250, 0.25);
+  --nx-border-subtle: rgba(240, 240, 250, 0.08);
+  --nx-border-medium: rgba(240, 240, 250, 0.14);
+  --nx-border-cta: rgba(240, 240, 250, 0.35);
+  --nx-cta-bg: rgba(0, 0, 0, 0.5);
+  --nx-radius-cta: 4px;
 
-  /* Text — 4 levels of authority */
-  --nx-text-1: #F5F5F7;
-  --nx-text-2: rgba(245, 245, 247, 0.62);
-  --nx-text-3: rgba(245, 245, 247, 0.34);
-  --color-text: #F5F5F7;
-  --color-text-muted: rgba(245, 245, 247, 0.62);
-  --color-text-dim: rgba(245, 245, 247, 0.34);
+  /* Typography scale (spacex.com computed) */
+  --nx-hero-size: clamp(3.75rem, 7vw, 6.25rem);
+  --nx-hero-size-xl: clamp(4.5rem, 10vw, 6.25rem);
+  --nx-hero-weight: 600;
+  --nx-hero-lh: 0.92;
+  --nx-hero-ls: -0.01em;
+  --nx-section-title-size: clamp(2rem, 4.5vw, 3.75rem);
+  --nx-section-title-lh: 0.9;
+  --nx-eyebrow-size: 0.625rem;
+  --nx-eyebrow-ls: 0.1em;
+  --nx-body-size: 1rem;
+  --nx-body-lh: 1.5;
 
-  /* Accent — Ethereal blue (single canonical: #4A9EFF) */
-  --nx-accent: #4A9EFF;
-  --nx-accent-hover: #6AB3FF;
-  --nx-accent-dim: rgba(74, 158, 255, 0.15);
-  --color-primary: #4A9EFF;
-  --color-primary-hover: #6AB3FF;
-  --color-accent: #4A9EFF;
-  --color-accent-secondary: #307ACC;
-  --color-danger: #C23030;
-  --color-glow: rgba(74, 158, 255, 0.10);
-  --color-glow-strong: rgba(74, 158, 255, 0.18);
+  /* Long-form reading (NomosX — not on spacex.com) */
+  --nx-read-max-width: 42rem;
+  --nx-read-size: 1.0625rem;
+  --nx-read-lh: 1.75;
+  --nx-read-color: rgba(240, 240, 250, 0.78);
 
-  /* Palantir Blueprint shadow system */
-  --nx-shadow-card: 0 0 0 1px rgba(255,255,255,0.06), 0 2px 4px rgba(0,0,0,0.5), 0 8px 24px rgba(0,0,0,0.35);
-  --nx-shadow-card-hover: 0 0 0 1px rgba(255,255,255,0.10), 0 4px 8px rgba(0,0,0,0.55), 0 16px 40px rgba(0,0,0,0.45);
-  --nx-shadow-panel: 0 0 0 1px rgba(255,255,255,0.06), 0 8px 32px rgba(0,0,0,0.6);
+  /* Layout density */
+  --nx-content-max: 72rem;
+  --nx-section-py: clamp(5rem, 10vw, 8rem);
+  --nx-section-px: clamp(1.5rem, 4vw, 2rem);
 
-  /* Fonts */
-  --font-sans: var(--font-primary), system-ui, sans-serif;
-  --font-display: var(--font-secondary), system-ui, sans-serif;
-  --font-serif-var: var(--font-serif), 'Cormorant Garamond', Georgia, serif;
-  --font-code: var(--font-mono), monospace;
+  /* Legacy aliases → SpaceX public */
+  --color-bg: var(--nx-bg);
+  --color-bg-elevated: var(--nx-bg-elevated);
+  --color-bg-panel: var(--nx-bg-panel);
+  --color-border: var(--nx-border-subtle);
+  --color-border-hover: var(--nx-border-medium);
+  --nx-text-1: var(--nx-text-primary);
+  --nx-text-2: var(--nx-text-secondary);
+  --nx-text-3: var(--nx-text-tertiary);
+  --color-text: var(--nx-text-primary);
+  --color-text-muted: var(--nx-text-secondary);
+  --color-text-dim: var(--nx-text-tertiary);
+
+  /* Public: monochrome authority (no chromatic accent) */
+  --nx-accent: var(--nx-text-primary);
+  --nx-accent-hover: rgba(240, 240, 250, 0.85);
+  --nx-accent-dim: rgba(240, 240, 250, 0.08);
+  --color-primary: var(--nx-text-primary);
+  --color-primary-hover: var(--nx-accent-hover);
+  --color-accent: var(--nx-text-primary);
+  --color-accent-secondary: var(--nx-text-secondary);
+  --color-danger: #c23030;
+  --color-glow: transparent;
+  --color-glow-strong: transparent;
+
+  /* Internal / legacy dashboard palette (scoped via .nx-internal) */
+  --dash-color-primary: #4a9eff;
+  --dash-color-primary-hover: #6ab3ff;
+  --dash-color-glow: rgba(74, 158, 255, 0.1);
+
+  /* Shadows — flat borders only on public */
+  --nx-shadow-card: 0 0 0 1px var(--nx-border-subtle);
+  --nx-shadow-card-hover: 0 0 0 1px var(--nx-border-medium);
+  --nx-shadow-panel: none;
+
+  /* Fonts — --font-primary / --font-display set by next/font on <html> */
+  --font-sans: var(--font-primary), 'Barlow', 'DIN Alternate', 'Segoe UI', sans-serif;
+  --nx-font-heading: var(--font-display), 'Barlow Semi Condensed', 'Arial Narrow', sans-serif;
+  --font-code: var(--font-mono), ui-monospace, monospace;
+}
+
+/* Restore Palantir-blue for internal tools only */
+.nx-internal {
+  --color-primary: var(--dash-color-primary);
+  --color-primary-hover: var(--dash-color-primary-hover);
+  --color-accent: var(--dash-color-primary);
+  --nx-accent: var(--dash-color-primary);
+  --nx-accent-hover: var(--dash-color-primary-hover);
+  --color-glow: var(--dash-color-glow);
+  --color-bg: #0a0a0b;
+  --color-bg-elevated: #111114;
 }
 
 /* === Base === */
@@ -216,12 +269,13 @@
 }
 
 body {
-  background-color: #000000;
-  color: var(--color-text);
+  background-color: var(--nx-bg);
+  color: var(--nx-text-primary);
   font-family: var(--font-sans);
+  font-size: var(--nx-body-size);
+  line-height: var(--nx-body-lh);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  letter-spacing: -0.01em;
 }
 
 .nx-immersive-root {
@@ -230,47 +284,57 @@ body {
 }
 
 ::selection {
-  background: rgba(255, 255, 255, 0.18);
-  color: #F5F5F7;
+  background: rgba(240, 240, 250, 0.18);
+  color: var(--nx-text-primary);
 }
 
-/* === NomosX Public Surface — SpaceX-like utilities === */
+/* === NomosX Public Surface — SpaceX grammar === */
 .nx-public-eyebrow {
-  font-family: var(--font-mono);
-  font-size: 0.625rem;
-  font-weight: 500;
-  letter-spacing: 0.24em;
+  font-family: var(--font-sans);
+  font-size: var(--nx-eyebrow-size);
+  font-weight: 400;
+  letter-spacing: var(--nx-eyebrow-ls);
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.35);
+  color: var(--nx-text-tertiary);
 }
 
 .nx-public-section {
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid var(--nx-border-subtle);
+  padding-top: var(--nx-section-py);
+  padding-bottom: var(--nx-section-py);
 }
 
 .nx-public-surface {
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--nx-border-subtle);
+  background: rgba(240, 240, 250, 0.02);
+  border-radius: var(--nx-radius-cta);
 }
 
-.nx-public-btn-primary {
+/* SpaceX CTA — outline, semi-transparent (spx-button primary) */
+.nx-public-btn-primary,
+.nx-spx-cta {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  padding: 0.875rem 2rem;
-  background: #ffffff;
-  color: #000000;
-  font-family: var(--font-mono);
-  font-size: 0.6875rem;
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  transition: background-color 0.2s ease;
+  min-height: 48px;
+  padding: 0 1.25rem;
+  background: var(--nx-cta-bg);
+  color: var(--nx-text-primary);
+  border: 1px solid var(--nx-border-cta);
+  border-radius: var(--nx-radius-cta);
+  font-family: var(--font-sans);
+  font-size: var(--nx-body-size);
+  font-weight: 400;
+  letter-spacing: normal;
+  text-transform: none;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
 }
 
-.nx-public-btn-primary:hover {
-  background: rgba(255, 255, 255, 0.9);
+.nx-public-btn-primary:hover,
+.nx-spx-cta:hover {
+  border-color: rgba(240, 240, 250, 0.55);
+  background: rgba(0, 0, 0, 0.65);
 }
 
 .nx-public-btn-secondary {
@@ -278,86 +342,121 @@ body {
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  padding: 0.875rem 2rem;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  color: rgba(255, 255, 255, 0.8);
-  font-family: var(--font-mono);
-  font-size: 0.6875rem;
-  font-weight: 500;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  min-height: 48px;
+  padding: 0 1.25rem;
+  border: 1px solid var(--nx-border-medium);
+  color: var(--nx-text-secondary);
+  background: transparent;
+  border-radius: var(--nx-radius-cta);
+  font-family: var(--font-sans);
+  font-size: var(--nx-body-size);
+  font-weight: 400;
   transition: border-color 0.2s ease, color 0.2s ease;
 }
 
 .nx-public-btn-secondary:hover {
-  border-color: rgba(255, 255, 255, 0.55);
-  color: #ffffff;
+  border-color: var(--nx-border-cta);
+  color: var(--nx-text-primary);
+}
+
+/* Hero / section titles — D-DIN-Bold equivalent */
+.nx-spx-hero {
+  font-family: var(--nx-font-heading);
+  font-size: var(--nx-hero-size);
+  font-weight: var(--nx-hero-weight);
+  line-height: var(--nx-hero-lh);
+  letter-spacing: var(--nx-hero-ls);
+  text-transform: uppercase;
+  color: var(--nx-text-hero);
+}
+
+.nx-spx-section-title {
+  font-family: var(--nx-font-heading);
+  font-size: var(--nx-section-title-size);
+  font-weight: var(--nx-hero-weight);
+  line-height: var(--nx-section-title-lh);
+  letter-spacing: var(--nx-hero-ls);
+  text-transform: uppercase;
+  color: var(--nx-text-hero);
+}
+
+/* Long-form reading zone */
+.nx-read {
+  max-width: var(--nx-read-max-width);
+  font-size: var(--nx-read-size);
+  line-height: var(--nx-read-lh);
+  color: var(--nx-read-color);
+}
+
+.nx-read p + p {
+  margin-top: 1.25em;
 }
 
 /* === Typography === */
 .nx-display {
-  font-family: var(--font-display);
+  font-family: var(--nx-font-heading);
   font-weight: 600;
-  letter-spacing: -0.04em;
-  line-height: 1.05;
+  letter-spacing: var(--nx-hero-ls);
+  line-height: var(--nx-hero-lh);
+  text-transform: uppercase;
 }
 
 .nx-heading-1 {
-  font-family: var(--font-display);
-  font-size: clamp(2.5rem, 5vw, 4rem);
+  font-family: var(--nx-font-heading);
+  font-size: var(--nx-hero-size);
   font-weight: 600;
-  letter-spacing: -0.03em;
-  line-height: 1.08;
+  letter-spacing: var(--nx-hero-ls);
+  line-height: var(--nx-hero-lh);
+  text-transform: uppercase;
 }
 
 .nx-heading-2 {
-  font-family: var(--font-display);
-  font-size: clamp(1.5rem, 3vw, 2.25rem);
+  font-family: var(--nx-font-heading);
+  font-size: var(--nx-section-title-size);
   font-weight: 600;
-  letter-spacing: -0.02em;
-  line-height: 1.2;
+  letter-spacing: var(--nx-hero-ls);
+  line-height: var(--nx-section-title-lh);
+  text-transform: uppercase;
 }
 
 .nx-heading-3 {
-  font-family: var(--font-display);
+  font-family: var(--font-sans);
   font-size: clamp(1.125rem, 2vw, 1.5rem);
-  font-weight: 500;
-  letter-spacing: -0.015em;
-  line-height: 1.3;
+  font-weight: 600;
+  letter-spacing: normal;
+  line-height: 1.35;
+  text-transform: uppercase;
 }
 
-.nx-body { font-size: 1rem; line-height: 1.7; color: var(--color-text-muted); }
-.nx-body-sm { font-size: 0.875rem; line-height: 1.6; color: var(--color-text-dim); }
+.nx-body { font-size: var(--nx-body-size); line-height: var(--nx-body-lh); color: var(--nx-text-secondary); }
+.nx-body-sm { font-size: 0.875rem; line-height: 1.6; color: var(--nx-text-tertiary); }
 
 .nx-label {
-  font-size: 0.6875rem;
-  font-weight: 500;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--color-text-dim);
-}
-
-/* === Typography — Palantir × Greek === */
-.nx-serif {
-  font-family: var(--font-serif-var);
-}
-
-/* Hero display headings — large Cormorant, thin weight */
-.nx-display-serif {
-  font-family: var(--font-serif-var);
-  font-weight: 300;
-  letter-spacing: -0.02em;
-  line-height: 1.06;
-}
-
-/* Greek section marker — Α Β Γ Δ Σ Ω */
-.nx-greek-marker {
-  font-family: var(--font-serif-var);
-  font-size: 0.6875rem;
+  font-size: var(--nx-eyebrow-size);
   font-weight: 400;
-  letter-spacing: 0.18em;
-  color: var(--nx-text-3);
+  letter-spacing: var(--nx-eyebrow-ls);
   text-transform: uppercase;
+  color: var(--nx-text-tertiary);
+}
+
+/* Deprecated public — mapped to SpaceX grammar (no serif/greek) */
+.nx-serif,
+.nx-display-serif,
+.nx-greek-marker,
+.nx-greek-ghost {
+  font-family: var(--font-sans);
+  font-weight: 400;
+  letter-spacing: var(--nx-eyebrow-ls);
+  text-transform: uppercase;
+  color: var(--nx-text-tertiary);
+}
+
+.nx-greek-ghost {
+  font-size: clamp(4rem, 12vw, 8rem);
+  line-height: 1;
+  color: rgba(240, 240, 250, 0.03);
+  pointer-events: none;
+  user-select: none;
 }
 
 /* Gradient text — minimal: white to slightly blue */
@@ -370,50 +469,25 @@ body {
 }
 
 .text-gradient {
-  background: linear-gradient(135deg, #F5F5F7 0%, #4A9EFF 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--nx-text-primary);
 }
 
-/* Palantir-style thin ruled divider */
+/* Thin ruled divider */
 .nx-rule {
   height: 1px;
-  background: rgba(255,255,255,0.08);
+  background: var(--nx-border-subtle);
 }
 
-/* Palantir card — 3-layer shadow system (Blueprint exact) */
+/* Flat surface card */
 .nx-card-palantir {
-  background: #0a0a0a;
-  border: none;
-  box-shadow: var(--nx-shadow-card);
-  transition: box-shadow 150ms ease, background 150ms ease;
+  background: var(--nx-bg-elevated);
+  border: 1px solid var(--nx-border-subtle);
+  box-shadow: none;
+  transition: border-color 150ms ease;
 }
 .nx-card-palantir:hover {
-  box-shadow: var(--nx-shadow-card-hover);
-  background: #0f0f0f;
-}
-
-/* Greek section marker */
-.nx-greek-marker {
-  font-family: var(--font-serif-var);
-  font-size: 0.625rem;
-  font-weight: 400;
-  letter-spacing: 0.24em;
-  color: var(--nx-text-3);
-  text-transform: uppercase;
-}
-
-/* Greek Ν Δ Σ Ω section label — large, ghosted, decorative */
-.nx-greek-ghost {
-  font-family: var(--font-serif-var);
-  font-size: clamp(6rem, 15vw, 12rem);
-  font-weight: 300;
-  line-height: 1;
-  color: rgba(255,255,255,0.03);
-  pointer-events: none;
-  user-select: none;
-  letter-spacing: -0.02em;
+  border-color: var(--nx-border-medium);
+  background: var(--nx-bg-elevated);
 }
 
 /* === Glass & Cards === */
@@ -711,67 +785,71 @@ a, button, input, textarea, select {
    NomosX Prose — Premium Styling for HTML Content (Briefs & Councils)
    ============================================================================= */
 .nomosx-prose {
-  color: rgba(255, 255, 255, 0.85);
-  font-size: 0.9375rem;
-  line-height: 1.75;
-  max-width: none;
+  color: var(--nx-read-color);
+  font-size: var(--nx-read-size);
+  line-height: var(--nx-read-lh);
+  max-width: var(--nx-read-max-width);
 }
 
 .nomosx-prose h1 {
-  color: rgba(255, 255, 255, 0.95);
-  font-size: 1.875rem;
-  font-weight: 700;
-  line-height: 1.3;
+  font-family: var(--nx-font-heading);
+  color: var(--nx-text-primary);
+  font-size: var(--nx-section-title-size);
+  font-weight: 600;
+  line-height: var(--nx-section-title-lh);
   margin-top: 0;
   margin-bottom: 1.5rem;
-  letter-spacing: -0.025em;
+  letter-spacing: var(--nx-hero-ls);
+  text-transform: uppercase;
 }
 
 .nomosx-prose h2 {
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 1.25rem;
+  font-family: var(--font-sans);
+  color: var(--nx-text-primary);
+  font-size: 1.125rem;
   font-weight: 600;
   line-height: 1.4;
   margin-top: 2.5rem;
   margin-bottom: 1rem;
-  letter-spacing: -0.015em;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--nx-border-subtle);
   padding-bottom: 0.5rem;
 }
 
 .nomosx-prose h2:first-child { margin-top: 0; }
 
 .nomosx-prose h3 {
-  color: #8CBFFF;
-  font-size: 1.0625rem;
+  color: var(--nx-text-secondary);
+  font-size: 1rem;
   font-weight: 600;
   line-height: 1.5;
   margin-top: 2rem;
   margin-bottom: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
 .nomosx-prose p {
   margin-top: 0;
   margin-bottom: 1.25rem;
-  color: rgba(255, 255, 255, 0.75);
+  color: var(--nx-read-color);
 }
 
 .nomosx-prose strong {
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--nx-text-primary);
   font-weight: 600;
 }
 
 .nomosx-prose a {
-  color: #4A9EFF;
+  color: var(--nx-text-primary);
   text-decoration: none;
   font-weight: 500;
-  transition: color 0.2s;
-  border-bottom: 1px solid rgba(74, 158, 255, 0.30);
+  border-bottom: 1px solid var(--nx-border-medium);
 }
 
 .nomosx-prose a:hover {
-  color: #6AB3FF;
-  border-bottom-color: #6AB3FF;
+  border-bottom-color: var(--nx-border-cta);
 }
 
 .nomosx-prose ol,
@@ -779,38 +857,38 @@ a, button, input, textarea, select {
   margin-top: 1rem;
   margin-bottom: 1.25rem;
   padding-left: 1.5rem;
-  color: rgba(255, 255, 255, 0.75);
+  color: var(--nx-read-color);
 }
 
 .nomosx-prose li {
   margin-top: 0.5rem;
   margin-bottom: 0.5rem;
-  line-height: 1.65;
+  line-height: var(--nx-read-lh);
 }
 
 .nomosx-prose li::marker {
-  color: rgba(74, 158, 255, 0.45);
+  color: var(--nx-text-tertiary);
   font-weight: 600;
 }
 
 .nomosx-prose blockquote {
-  border-left: 3px solid #4A9EFF;
+  border-left: 3px solid var(--nx-text-primary);
   padding: 1rem 1.25rem;
   margin: 1.5rem 0;
   font-style: italic;
-  color: rgba(245, 245, 247, 0.70);
-  background: rgba(74, 158, 255, 0.04);
-  border-radius: 0.5rem;
+  color: var(--nx-text-secondary);
+  background: rgba(240, 240, 250, 0.03);
+  border-radius: var(--nx-radius-cta);
 }
 
 .nomosx-prose code {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(240, 240, 250, 0.05);
+  border: 1px solid var(--nx-border-subtle);
   padding: 0.125rem 0.375rem;
-  border-radius: 0.25rem;
+  border-radius: var(--nx-radius-cta);
   font-size: 0.875em;
   font-family: var(--font-code);
-  color: #4A9EFF;
+  color: var(--nx-text-primary);
 }
 
 .nomosx-prose pre {
@@ -831,7 +909,7 @@ a, button, input, textarea, select {
 
 .nomosx-prose span[data-citation],
 .nomosx-prose strong[data-citation] {
-  color: #4A9EFF;
+  color: var(--nx-text-secondary);
   font-weight: 600;
   font-size: 0.8125em;
   vertical-align: super;

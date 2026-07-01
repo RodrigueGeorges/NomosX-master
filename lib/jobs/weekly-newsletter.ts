@@ -15,6 +15,8 @@ import { publicPublicationWhere } from '@/lib/publication-visibility';
 import { sendBulkNewsletter } from '@/lib/email';
 import { inquiryUrl } from '@/lib/public-urls';
 import { EMAIL_BRAND as E, emailTrustColor } from '@/lib/brand/email-brand';
+import { emailLogoHeaderHtml } from '@/lib/brand/logo-inline';
+import { BRAND_EMAIL_FOOTER, BRAND_EMAIL_TAGLINE } from '@/lib/brand/public-copy';
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://nomosx.com';
 const UTM = 'utm_source=email&utm_medium=newsletter&utm_campaign=weekly';
@@ -205,11 +207,9 @@ function generateNewsletterHTML(
     <tr><td align="center">
       <table width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;">
 
-        <tr><td style="padding-bottom:28px;text-align:center;">
-          <p style="font-size:24px;font-weight:300;letter-spacing:-0.02em;color:#fff;margin:0 0 4px;">
-            Nomos<span style="${E.logoX}">X</span>
-          </p>
-          <p style="${E.eyebrow}margin:0;">
+        <tr><td style="padding-bottom:28px;text-align:center;color:#ffffff;">
+          ${emailLogoHeaderHtml(20)}
+          <p style="${E.eyebrow}margin:8px 0 0;">
             Intelligence Dispatch
           </p>
         </td></tr>
@@ -239,7 +239,7 @@ function generateNewsletterHTML(
         <!-- Footer -->
         <tr><td style="padding-top:28px;text-align:center;">
           <p style="font-size:12px;color:#3f3f46;margin:0 0 6px;">
-            NomosX · The Agentic Think Tank
+            ${BRAND_EMAIL_FOOTER}
           </p>
           <p style="font-size:12px;color:#3f3f46;margin:0;">
             <a href="${APP_URL}/api/newsletter/unsubscribe?email=${subscriberEmail}&${UTM}" style="color:#52525b;text-decoration:none;">Unsubscribe</a>

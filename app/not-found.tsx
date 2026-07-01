@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Home } from "lucide-react";
 import { PublicPageShell } from "@/components/layout/PublicPageShell";
+import { NomosXLogo } from "@/components/brand/NomosXLogo";
 
 export default function NotFound() {
   const router = useRouter();
@@ -10,6 +11,9 @@ export default function NotFound() {
   return (
     <PublicPageShell particles={0} contentClassName="flex items-center justify-center px-4">
       <div className="text-center max-w-md py-24">
+        <div className="flex justify-center mb-8">
+          <NomosXLogo variant="symbol" size={40} />
+        </div>
         <p className="font-mono text-8xl font-light text-white/20 tabular-nums mb-4">404</p>
         <h1 className="font-display text-2xl font-semibold mb-3">Page not found</h1>
         <p className="text-sm text-white/45 mb-8 leading-relaxed">

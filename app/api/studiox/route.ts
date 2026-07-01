@@ -190,7 +190,7 @@ ${buildFormatCatalog()}`;
                 messages: allMessages,
                 temperature: 0.2,
                 maxTokens: 4000,
-                task: 'analysis',
+                task: 'studiox',
               },
               (chunk) => {
                 const data = `data: ${JSON.stringify({ content: chunk })}\n\n`;
@@ -222,7 +222,7 @@ ${buildFormatCatalog()}`;
       messages: allMessages,
       temperature: 0.2,
       maxTokens: 4000,
-      task: 'analysis',
+      task: 'studiox',
     });
 
     return NextResponse.json({

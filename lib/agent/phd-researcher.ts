@@ -42,54 +42,51 @@ interface Prediction {
 }
 
 // ============================================================================
-// PER-RESEARCHER LLM MODEL ROUTING
-// Each domain gets an optimal model based on its analytical requirements.
-// - Complex quantitative reasoning → gpt-4o (strongest reasoning)
-// - Technical/code domains → gpt-4o (reliable structured output)
-// - Qualitative/interpretive → gpt-4o-mini (10x cheaper, sufficient quality)
-// - Medical/health → gpt-4o (precision matters for health claims)
+// PER-RESEARCHER TEMPERATURE/TOKEN TUNING
+// Model routing is now centralized in unified-llm.ts (task: 'harvard_council').
+// Only temperature/maxTokens remain per-domain — legitimate analytical tuning,
+// not model selection. See TASK_ASSIGNMENT in lib/llm/unified-llm.ts for the
+// single source of truth on which provider/model handles 'harvard_council'.
 // ============================================================================
 
 interface ResearcherLLMConfig {
-  model: string;
   temperature: number;
   maxTokens: number;
-  provider?: 'openai' | 'anthropic';
 }
 
 const RESEARCHER_LLM_CONFIG: Record<string, ResearcherLLMConfig> = {
-  // TIER 1: Complex quantitative reasoning — needs strongest model
-  economics:              { model: 'gpt-4o', temperature: 0.15, maxTokens: 4500 },
-  finance:                { model: 'gpt-4o', temperature: 0.15, maxTokens: 4500 },
-  quantitative:           { model: 'gpt-4o', temperature: 0.10, maxTokens: 5000 },
-  'behavioral-economics': { model: 'gpt-4o', temperature: 0.15, maxTokens: 4000 },
-  'risk-analysis':        { model: 'gpt-4o', temperature: 0.15, maxTokens: 4500 },
-  'development-economics':{ model: 'gpt-4o', temperature: 0.15, maxTokens: 4500 },
+  // TIER 1: Complex quantitative reasoning — lower temperature for precision
+  economics:              { temperature: 0.15, maxTokens: 4500 },
+  finance:                { temperature: 0.15, maxTokens: 4500 },
+  quantitative:           { temperature: 0.10, maxTokens: 5000 },
+  'behavioral-economics': { temperature: 0.15, maxTokens: 4000 },
+  'risk-analysis':        { temperature: 0.15, maxTokens: 4500 },
+  'development-economics':{ temperature: 0.15, maxTokens: 4500 },
 
-  // TIER 1b: Precision-critical domains — needs strong model
-  health:                 { model: 'gpt-4o', temperature: 0.10, maxTokens: 4500 },
-  bioethics:              { model: 'gpt-4o', temperature: 0.15, maxTokens: 4000 },
-  'cognitive-science':    { model: 'gpt-4o', temperature: 0.15, maxTokens: 4000 },
+  // TIER 1b: Precision-critical domains
+  health:                 { temperature: 0.10, maxTokens: 4500 },
+  bioethics:              { temperature: 0.15, maxTokens: 4000 },
+  'cognitive-science':    { temperature: 0.15, maxTokens: 4000 },
 
-  // TIER 2: Technical domains — gpt-4o for structured output reliability
-  technology:             { model: 'gpt-4o', temperature: 0.15, maxTokens: 4500 },
-  security:               { model: 'gpt-4o', temperature: 0.20, maxTokens: 4500 },
-  'energy-advanced':      { model: 'gpt-4o', temperature: 0.15, maxTokens: 4000 },
-  'complexity-science':   { model: 'gpt-4o', temperature: 0.15, maxTokens: 4500 },
-  'computational-social-science': { model: 'gpt-4o', temperature: 0.15, maxTokens: 4000 },
+  // TIER 2: Technical domains
+  technology:             { temperature: 0.15, maxTokens: 4500 },
+  security:               { temperature: 0.20, maxTokens: 4500 },
+  'energy-advanced':      { temperature: 0.15, maxTokens: 4000 },
+  'complexity-science':   { temperature: 0.15, maxTokens: 4500 },
+  'computational-social-science': { temperature: 0.15, maxTokens: 4000 },
 
-  // TIER 3: Qualitative/interpretive — gpt-4o-mini (10x cheaper, excellent for qualitative)
-  policy:                 { model: 'gpt-4o-mini', temperature: 0.20, maxTokens: 4000 },
-  law:                    { model: 'gpt-4o-mini', temperature: 0.15, maxTokens: 4000 },
-  geopolitics:            { model: 'gpt-4o-mini', temperature: 0.20, maxTokens: 4500 },
-  'social-sciences':      { model: 'gpt-4o-mini', temperature: 0.20, maxTokens: 4000 },
-  humanities:             { model: 'gpt-4o-mini', temperature: 0.25, maxTokens: 3500 },
-  'digital-society':      { model: 'gpt-4o-mini', temperature: 0.20, maxTokens: 4000 },
-  'urban-studies':        { model: 'gpt-4o-mini', temperature: 0.20, maxTokens: 3500 },
-  environment:            { model: 'gpt-4o-mini', temperature: 0.20, maxTokens: 4000 },
+  // TIER 3: Qualitative/interpretive — higher temperature for nuance
+  policy:                 { temperature: 0.20, maxTokens: 4000 },
+  law:                    { temperature: 0.15, maxTokens: 4000 },
+  geopolitics:            { temperature: 0.20, maxTokens: 4500 },
+  'social-sciences':      { temperature: 0.20, maxTokens: 4000 },
+  humanities:             { temperature: 0.25, maxTokens: 3500 },
+  'digital-society':      { temperature: 0.20, maxTokens: 4000 },
+  'urban-studies':        { temperature: 0.20, maxTokens: 3500 },
+  environment:            { temperature: 0.20, maxTokens: 4000 },
 };
 
-const DEFAULT_LLM_CONFIG: ResearcherLLMConfig = { model: 'gpt-4o', temperature: 0.20, maxTokens: 4500 };
+const DEFAULT_LLM_CONFIG: ResearcherLLMConfig = { temperature: 0.20, maxTokens: 4500 };
 
 function getResearcherLLMConfig(domain: DomainExpertise): ResearcherLLMConfig {
   return RESEARCHER_LLM_CONFIG[domain] || DEFAULT_LLM_CONFIG;
@@ -688,9 +685,9 @@ export async function runExpertAnalysis(
     console.warn(`[PhD COUNCIL] Memory/KB injection failed for ${domain} (non-blocking):`, err);
   }
 
-  // Per-researcher LLM model routing
+  // Per-researcher temperature/token tuning (model routing is centralized — task: 'harvard_council')
   const llmConfig = getResearcherLLMConfig(domain);
-  console.log(`[PhD COUNCIL] ${domain} → ${llmConfig.model} (temp=${llmConfig.temperature}, maxTokens=${llmConfig.maxTokens})`);
+  console.log(`[PhD COUNCIL] ${domain} → harvard_council task (temp=${llmConfig.temperature}, maxTokens=${llmConfig.maxTokens})`);
 
   const result = await callLLM({
     messages: [
@@ -737,10 +734,9 @@ Return JSON:
 CRITICAL: Every factual claim MUST cite [SRC-N]. Be calibrated — if evidence is weak, say so.`,
       },
     ],
-    model: llmConfig.model,
+    task: 'harvard_council',
     temperature: llmConfig.temperature,
     maxTokens: llmConfig.maxTokens,
-    provider: llmConfig.provider,
     jsonMode: true,
     enableCache: true, // P1-I: Cache PhD analyses — same expert + similar topic = reuse
   });
