@@ -13,6 +13,7 @@
 
 import { prisma } from '@/lib/db';
 import { callLLM } from '@/lib/llm/unified-llm';
+import { parseJson } from './json-utils';
 import { AgentRole,assertPermission } from '@/lib/governance/index';
 import { embedText } from './semantic-engine';
 
@@ -278,7 +279,8 @@ Only report REAL contradictions with confidence ≥ 70. Do NOT flag:
       task: 'reader_v3',
     });
     
-    const result = JSON.parse(response.content);
+    const result = parseJson<any>(response.content);
+    if (!result) return null;
     
     if (!result.hasContradiction || result.confidence < 70) {
       return null;

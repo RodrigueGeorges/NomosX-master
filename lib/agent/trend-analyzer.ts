@@ -13,6 +13,7 @@
 
 import { prisma } from '@/lib/db';
 import { callLLM } from '@/lib/llm/unified-llm';
+import { parseJson } from './json-utils';
 import { AgentRole,assertPermission } from '@/lib/governance/index';
 
 // ============================================================================
@@ -304,7 +305,8 @@ Only report REAL shifts with confidence ≥ 60.`
       task: 'meta_analysis',
     });
     
-    const result = JSON.parse(response.content);
+    const result = parseJson<any>(response.content);
+    if (!result) return [];
     
     if (result.hasShift && result.confidence >= 60) {
       trends.push({

@@ -77,11 +77,11 @@ export async function enhancedRank(
   });
 
   // Build enhanced WHERE clause
+  // NOTE: requireAbstract is applied post-query to exempt news sources
   const whereConditions: any[] = [
     { deletedAt: null },
     // CRITICAL: Scope to SCOUT sourceIds if provided (prevents querying entire DB)
     finalOptions.sourceIds?.length ? { id: { in: finalOptions.sourceIds } } : null,
-    finalOptions.requireAbstract ? { abstract: { not: null } } : null,
     finalOptions.excludeLowQuality ? { 
       qualityScore: { gte: finalOptions.minQuality } 
     } : null
@@ -109,14 +109,23 @@ export async function enhancedRank(
     take: finalOptions.limit! * 3 // Get 3x more for filtering
   });
 
-  // Post-query filtering for abstract length (Prisma doesn't support length in where)
-  if (finalOptions.minAbstractLength && finalOptions.minAbstractLength > 0) {
+  // Post-query filtering for abstract (Prisma doesn't support length in where)
+  // News sources are EXEMPT — they have shorter abstracts but are valuable real-time intelligence
+  const newsProviders = ['gdelt-news', 'newsapi', 'mediastack', 'thenewsapi', 'gnews', 'eventregistry', 'linkup'];
+  if (finalOptions.requireAbstract || (finalOptions.minAbstractLength && finalOptions.minAbstractLength > 0)) {
     const beforeAbstractFilter = sources.length;
-    sources = sources.filter(source => 
-      source.abstract && source.abstract.length >= finalOptions.minAbstractLength!
-    );
+    sources = sources.filter(source => {
+      const isNews = newsProviders.includes(source.provider || '');
+      if (isNews) return true; // News sources bypass abstract filter
+      if (finalOptions.requireAbstract && !source.abstract) return false;
+      if (finalOptions.minAbstractLength && finalOptions.minAbstractLength > 0) {
+        if (!source.abstract || source.abstract.length < finalOptions.minAbstractLength) return false;
+      }
+      return true;
+    });
+    const newsCount = sources.filter(s => newsProviders.includes(s.provider || '')).length;
     if (sources.length < beforeAbstractFilter) {
-      console.log(`[ENHANCED RANK] Abstract length filter: ${beforeAbstractFilter} → ${sources.length} (min ${finalOptions.minAbstractLength} chars)`);
+      console.log(`[ENHANCED RANK] Abstract filter: ${beforeAbstractFilter} → ${sources.length} (${newsCount} news exempted, min ${finalOptions.minAbstractLength || 'has abstract'} chars)`);
     }
   }
 
@@ -140,7 +149,7 @@ export async function enhancedRank(
     }
     
     // A+ LEVEL: Academic weight calculation
-    const academicWeight = calculateAcademicWeight(source);
+    const academicWeight = calculateSourceAuthorityWeight(source);
     
     // A+ LEVEL: Quantitative data detection
     const hasQuantitativeData = detectQuantitativeData(source);
@@ -208,31 +217,39 @@ export async function enhancedRank(
 }
 
 /**
- * Calculate academic weight based on source characteristics
+ * Calculate source authority weight — replaces academic-only weight.
+ * News sources from authority domains get high weight (0.8+),
+ * academic sources get weight from DOI/citations/abstract quality.
+ * No source type is structurally penalized.
  */
-function calculateAcademicWeight(source: any): number {
-  let weight = 0.5; // Base weight
-  
-  // DOI presence indicates academic publishing
-  if (source.doi) {
-    weight += 0.1;
+function calculateSourceAuthorityWeight(source: any): number {
+  const newsProviders = ['gdelt-news', 'newsapi', 'mediastack', 'thenewsapi', 'gnews', 'eventregistry', 'linkup'];
+  const isNews = newsProviders.includes(source.provider || '');
+
+  if (isNews) {
+    // News authority domains get high weight
+    const newsAuthorityDomains = [
+      'reuters.com', 'apnews.com', 'bbc.com', 'bbc.co.uk', 'nytimes.com', 'ft.com',
+      'wsj.com', 'washingtonpost.com', 'theguardian.com', 'bloomberg.com', 'economist.com',
+      'politico.eu', 'euronews.com', 'lemonde.fr', 'figaro.fr', 'liberation.fr',
+      'bruegel.org', 'csis.org', 'brookings.edu', 'chathamhouse.org', 'cfr.org',
+      'rand.org', 'carnegieendowment.org', 'ecfr.eu', 'sipri.org',
+    ];
+    const sourceUrl = source.url || '';
+    const sourceDomain = sourceUrl ? sourceUrl.replace(/^https?:\/\//, '').split('/')[0].replace(/^www\./, '') : '';
+    const isAuthorityDomain = newsAuthorityDomains.some(d => sourceDomain === d || sourceDomain.endsWith('.' + d));
+
+    if (isAuthorityDomain) return 0.9;   // Tier-1 news = same as top academic
+    if (source.abstract && source.abstract.length > 200) return 0.75; // Substantial content
+    return 0.65; // Base news weight — still better than old 0.5
   }
-  
-  // Citation count indicates impact
-  if (source.citationCount && source.citationCount > 100) {
-    weight += 0.1;
-  }
-  
-  // Abstract quality indicates academic rigor
-  if (source.abstract && source.abstract.length > 500) {
-    weight += 0.05;
-  }
-  
-  // Year indicates recency (academic preference for recent work)
-  if (source.year && source.year >= 2020) {
-    weight += 0.05;
-  }
-  
+
+  // Academic weight calculation (original logic)
+  let weight = 0.5;
+  if (source.doi) weight += 0.1;
+  if (source.citationCount && source.citationCount > 100) weight += 0.1;
+  if (source.abstract && source.abstract.length > 500) weight += 0.05;
+  if (source.year && source.year >= 2020) weight += 0.05;
   return Math.min(weight, 1.0);
 }
 

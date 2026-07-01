@@ -19,6 +19,7 @@
 
 import { prisma } from '../db';
 import { callLLM } from '../llm/unified-llm';
+import { parseJson } from './json-utils';
 import type { DomainExpertise } from './types';
 
 // ============================================================================
@@ -202,8 +203,8 @@ Return JSON: { "lessons": ["lesson 1", "lesson 2", ...] }`,
   });
 
   try {
-    const parsed = JSON.parse(result.content);
-    return { lessons: parsed.lessons || [], costUsd: result.costUsd };
+    const parsed = parseJson<any>(result.content);
+    return { lessons: parsed?.lessons || [], costUsd: result.costUsd };
   } catch {
     return { lessons: [], costUsd: result.costUsd };
   }

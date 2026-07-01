@@ -25,11 +25,11 @@ const envSchema = z.object({
 
   // GLM-5.2 (z.ai) — OpenAI-compatible, 1M context, prefix caching ($0.26/M cached input)
   GLM_API_KEY: z.string().optional(),
-  GLM_BASE_URL: z.string().url().optional().default("https://api.z.ai/v1"),
+  GLM_BASE_URL: z.string().url().optional().default("https://api.z.ai/api/paas/v4"),
   
   // Academic APIs (optional keys, have fallback URLs)
   OPENALEX_API: z.string().url().optional().default("https://api.openalex.org/works"),
-  THESESFR_API: z.string().url().optional().default("https://www.theses.fr/api/v1/theses"),
+  THESESFR_API: z.string().url().optional().default("https://theses.fr/api/v1"),
   CROSSREF_API: z.string().url().optional().default("https://api.crossref.org/works"),
   SEMANTICSCHOLAR_API: z.string().url().optional().default("https://api.semanticscholar.org/graph/v1/paper/search"),
   CORE_API_KEY: z.string().optional(),

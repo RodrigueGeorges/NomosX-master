@@ -20,6 +20,7 @@
  */
 
 import { callLLM } from '../llm/unified-llm';
+import { parseJson } from './json-utils';
 
 // ============================================================================
 // TYPES
@@ -154,10 +155,10 @@ export async function runDevilsAdvocate(
   const majorChallenges = allChallenges.filter(c => c.severity === "major");
   const minorChallenges = allChallenges.filter(c => c.severity === "moderate" || c.severity === "minor");
 
-  // Compute verdict - A+ LEVEL: More flexible thresholds
+  // Compute verdict — fatal challenges are absolute vetos: 1+ fatal = no publish
   const verdict: AdvocateReport["verdict"] =
     fatalChallenges.length >= 3 ? "reject" :
-    fatalChallenges.length >= 2 ? "major_revision" :
+    fatalChallenges.length >= 1 ? "major_revision" :
     majorChallenges.length >= 5 ? "revise" : "publish";
 
   const overallStrength = Math.max(0, 100 - (fatalChallenges.length * 20) - (majorChallenges.length * 8) - (minorChallenges.length * 2));
@@ -264,7 +265,8 @@ Return JSON:
   });
 
   try {
-    const parsed = JSON.parse(result.content);
+    const parsed = parseJson<any>(result.content);
+    if (!parsed) throw new SyntaxError('Devils advocate v1: failed to parse LLM JSON');
     return {
       challenges: (parsed.challenges || []).map((c: any) => ({
         claim: c.claim || "",
@@ -350,7 +352,8 @@ Return JSON:
   });
 
   try {
-    const parsed = JSON.parse(result.content);
+    const parsed = parseJson<any>(result.content);
+    if (!parsed) throw new SyntaxError('Devils advocate v1: failed to parse LLM JSON');
     return {
       challenges: (parsed.challenges || []).map((c: any) => ({
         claim: c.claim || "",
@@ -423,7 +426,8 @@ Return JSON:
   });
 
   try {
-    const parsed = JSON.parse(result.content);
+    const parsed = parseJson<any>(result.content);
+    if (!parsed) throw new SyntaxError('Devils advocate v1: failed to parse LLM JSON');
     return {
       comparison: {
         mckinsey: parsed.mckinsey || { score: 50, strengths: [], gaps: [] },

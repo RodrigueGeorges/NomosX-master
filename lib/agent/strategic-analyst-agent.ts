@@ -12,6 +12,7 @@
  */
 
 import { callLLM } from '../llm/unified-llm';
+import { parseJson } from './json-utils';
 import Sentry from '@sentry/nextjs';
 import { AgentRole,assertPermission } from '../governance/index';
 
@@ -366,7 +367,8 @@ QUALITY STANDARD: This report will be read by senior decision-makers. Every clai
       `✅ [Strategic Analyst] Success | ${response.provider} | $${response.costUsd.toFixed(4)} | Cached: ${response.cached}`
     );
 
-    const analysis = JSON.parse(response.content) as StrategicAnalysisOutput;
+    const analysis = parseJson<StrategicAnalysisOutput>(response.content);
+    if (!analysis) throw new SyntaxError('Strategic analyst: failed to parse LLM JSON');
     analysis._producerFamily = response.family;
     
     // Validate required fields

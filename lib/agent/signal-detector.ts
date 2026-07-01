@@ -9,6 +9,7 @@ import { prisma } from '@/lib/db';
 import { SignalType,SignalScores,SIGNAL_THRESHOLDS } from '@/lib/think-tank/types';
 import { VERTICALS } from '@/lib/think-tank/verticals';
 import { callLLM } from '@/lib/llm/unified-llm';
+import { parseJson } from './json-utils';
 import { classifyVerticalUnified } from './topic-classifier';
 
 // ============================================================================
@@ -92,7 +93,8 @@ Return JSON: {"signalType": "TYPE", "confidence": 0-100, "reason": "brief explan
       task: 'topic_classification',
     });
     
-    const result = JSON.parse(response.content);
+    const result = parseJson<any>(response.content);
+    if (!result) return detectSignalTypeFallback(source);
     const validTypes: SignalType[] = ["NEW_EVIDENCE", "DATA_RELEASE", "POLICY_CHANGE", "METHODOLOGY_SHIFT", "CONTRADICTION", "TREND_BREAK"];
     
     if (validTypes.includes(result.signalType) && result.confidence >= 60) {

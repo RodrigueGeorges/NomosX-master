@@ -13,6 +13,7 @@
 
 import { prisma } from '../db';
 import { callLLM } from '../llm/unified-llm';
+import { parseJson } from './json-utils';
 import { getLongitudinalInsights } from './knowledge-graph';
 import { embedBatch, cosineSimilarity } from './semantic-engine';
 import { getProvidersForTopic as getProvidersUnified, detectDomainUnified } from './topic-classifier';
@@ -264,7 +265,8 @@ export async function planEditorialAgenda(
       totalCost += result.costUsd;
 
       try {
-        const parsed = JSON.parse(result.content);
+        const parsed = parseJson<any>(result.content);
+        if (!parsed) throw new SyntaxError('Editorial planner: failed to parse LLM JSON');
         for (const gap of (parsed.gaps || [])) {
           proposals.push({
             topic: gap.topic,

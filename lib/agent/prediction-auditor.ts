@@ -17,6 +17,7 @@
 
 import { prisma } from '../db';
 import { callLLM } from '../llm/unified-llm';
+import { parseJson } from './json-utils';
 
 // ============================================================================
 // TYPES
@@ -260,7 +261,8 @@ Accuracy scoring:
       task: 'fact_check',
     });
 
-    const parsed = JSON.parse(response.content);
+    const parsed = parseJson<any>(response.content);
+    if (!parsed) throw new SyntaxError('Prediction auditor: failed to parse LLM JSON');
     return {
       predictionId: pred.logId,
       researcherId: pred.researcherId,

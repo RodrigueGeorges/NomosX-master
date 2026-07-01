@@ -26,6 +26,7 @@
  */
 
 import { callLLM } from '../llm/unified-llm';
+import { parseJson } from './json-utils';
 
 export interface EnhancedQuery {
   original: string;
@@ -131,7 +132,7 @@ Now process the user query.`;
       task: 'query_enhancement',
     });
 
-    const parsed = JSON.parse(response.content || "{}");
+    const parsed = parseJson<any>(response.content || "{}") ?? {};
 
     // CRITICAL: Validate semantic consistency
     const validationResult = validateSemanticConsistency(query, parsed);

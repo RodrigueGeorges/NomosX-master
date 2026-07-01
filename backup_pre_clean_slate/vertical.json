@@ -1,0 +1,447 @@
+[
+  {
+    "id": "cmkwkw5940002odznlha17h6a",
+    "slug": "geopolitics",
+    "name": "Géopolitique & Sécurité",
+    "nameEn": "Geopolitics & Security",
+    "description": "Relations internationales, sécurité, défense, conflits",
+    "icon": "🌐",
+    "color": "#8B5CF6",
+    "config": {
+      "thresholds": {
+        "minImpact": 70,
+        "minNovelty": 70,
+        "minConfidence": 65
+      },
+      "researchers": [
+        "geopolitics",
+        "security"
+      ],
+      "allowedTypes": [
+        "INQUIRY",
+        "RESEARCH_BRIEF",
+        "POLICY_NOTE",
+        "DOSSIER"
+      ],
+      "cooldownHours": 48,
+      "searchQueries": [
+        "international relations geopolitical conflict diplomacy",
+        "defense security military strategy cyber warfare",
+        "sanctions trade war NATO alliance deterrence"
+      ],
+      "updateBurstAllowed": true,
+      "maxPublicationsPerWeek": 3
+    },
+    "isActive": true,
+    "createdAt": "2026-01-27T12:34:26.584Z",
+    "updatedAt": "2026-05-24T13:55:22.051Z"
+  },
+  {
+    "id": "cmmht5ee6000073wigb9nhssl",
+    "slug": "health-bioethics",
+    "name": "Santé & Bioéthique",
+    "nameEn": "Health & Bioethics",
+    "description": "Santé publique, épidémiologie, éthique médicale, biotechnologies",
+    "icon": "🏥",
+    "color": "#EF4444",
+    "config": {
+      "thresholds": {
+        "minImpact": 70,
+        "minNovelty": 65,
+        "minConfidence": 75
+      },
+      "researchers": [
+        "health",
+        "bioethics"
+      ],
+      "allowedTypes": [
+        "INQUIRY",
+        "RESEARCH_BRIEF",
+        "UPDATE_NOTE",
+        "POLICY_NOTE"
+      ],
+      "cooldownHours": 48,
+      "searchQueries": [
+        "public health epidemiology pandemic disease prevention",
+        "healthcare systems clinical research medical innovation",
+        "bioethics genetic engineering biotechnology medical ethics"
+      ],
+      "updateBurstAllowed": true,
+      "maxPublicationsPerWeek": 2
+    },
+    "isActive": true,
+    "createdAt": "2026-03-08T13:48:27.251Z",
+    "updatedAt": "2026-05-24T13:55:22.644Z"
+  },
+  {
+    "id": "cmmht5eod000173wixfg9me4k",
+    "slug": "law-regulation",
+    "name": "Droit & Régulation",
+    "nameEn": "Law & Regulation",
+    "description": "Cadres juridiques, conformité, droit international, régulation numérique",
+    "icon": "⚖️",
+    "color": "#6366F1",
+    "config": {
+      "thresholds": {
+        "minImpact": 65,
+        "minNovelty": 60,
+        "minConfidence": 75
+      },
+      "researchers": [
+        "law"
+      ],
+      "allowedTypes": [
+        "INQUIRY",
+        "RESEARCH_BRIEF",
+        "POLICY_NOTE",
+        "DOSSIER"
+      ],
+      "cooldownHours": 72,
+      "searchQueries": [
+        "legal regulation compliance international law",
+        "data protection GDPR AI Act digital regulation",
+        "antitrust competition law trade law regulatory reform"
+      ],
+      "updateBurstAllowed": false,
+      "maxPublicationsPerWeek": 2
+    },
+    "isActive": true,
+    "createdAt": "2026-03-08T13:48:27.661Z",
+    "updatedAt": "2026-05-24T13:55:22.837Z"
+  },
+  {
+    "id": "tech",
+    "slug": "tech",
+    "name": "Technology",
+    "nameEn": null,
+    "description": null,
+    "icon": null,
+    "color": null,
+    "config": {},
+    "isActive": false,
+    "createdAt": "2026-02-14T14:33:28.229Z",
+    "updatedAt": "2026-05-24T13:55:23.697Z"
+  },
+  {
+    "id": "cmkwkw5er0003odzn2jm8t3rw",
+    "slug": "tech-innovation",
+    "name": "Tech & Innovation",
+    "nameEn": "Tech & Innovation",
+    "description": "IA, numérique, cybersécurité, plateformes",
+    "icon": "🚀",
+    "color": "#F59E0B",
+    "config": {
+      "thresholds": {
+        "minImpact": 60,
+        "minNovelty": 75,
+        "minConfidence": 70
+      },
+      "researchers": [
+        "technology",
+        "digital-society",
+        "computational-social-science"
+      ],
+      "allowedTypes": [
+        "INQUIRY",
+        "RESEARCH_BRIEF",
+        "UPDATE_NOTE",
+        "DATA_NOTE"
+      ],
+      "cooldownHours": 48,
+      "searchQueries": [
+        "artificial intelligence machine learning deep learning LLM",
+        "cybersecurity digital transformation platform economy",
+        "AI regulation governance ethics safety alignment"
+      ],
+      "updateBurstAllowed": true,
+      "maxPublicationsPerWeek": 3
+    },
+    "isActive": true,
+    "createdAt": "2026-01-27T12:34:26.787Z",
+    "updatedAt": "2026-05-24T13:55:22.241Z"
+  },
+  {
+    "id": "cmkwkw4sp0000odznlu306vte",
+    "slug": "climate-energy",
+    "name": "Climat & Énergie",
+    "nameEn": "Climate & Energy",
+    "description": "Transition énergétique, politique climatique, marchés carbone",
+    "icon": "🌍",
+    "color": "#10B981",
+    "config": {
+      "thresholds": {
+        "minImpact": 60,
+        "minNovelty": 65,
+        "minConfidence": 70
+      },
+      "researchers": [
+        "environment",
+        "energy-advanced"
+      ],
+      "allowedTypes": [
+        "INQUIRY",
+        "RESEARCH_BRIEF",
+        "UPDATE_NOTE",
+        "DATA_NOTE"
+      ],
+      "cooldownHours": 48,
+      "searchQueries": [
+        "climate change policy carbon pricing emissions reduction",
+        "renewable energy transition solar wind nuclear hydrogen",
+        "biodiversity conservation ecosystem environmental impact"
+      ],
+      "updateBurstAllowed": true,
+      "maxPublicationsPerWeek": 3
+    },
+    "isActive": true,
+    "createdAt": "2026-01-27T12:34:25.991Z",
+    "updatedAt": "2026-05-24T13:55:21.562Z"
+  },
+  {
+    "id": "cmkwkw53i0001odzndd24qoq2",
+    "slug": "macro-finance",
+    "name": "Macro & Finance",
+    "nameEn": "Macro & Finance",
+    "description": "Politique monétaire, marchés financiers, conjoncture",
+    "icon": "📊",
+    "color": "#3B82F6",
+    "config": {
+      "thresholds": {
+        "minImpact": 65,
+        "minNovelty": 60,
+        "minConfidence": 75
+      },
+      "researchers": [
+        "economics",
+        "finance",
+        "risk-analysis"
+      ],
+      "allowedTypes": [
+        "INQUIRY",
+        "RESEARCH_BRIEF",
+        "UPDATE_NOTE",
+        "DATA_NOTE",
+        "POLICY_NOTE"
+      ],
+      "cooldownHours": 24,
+      "searchQueries": [
+        "monetary policy inflation interest rates central bank",
+        "financial markets systemic risk banking regulation fintech",
+        "macroeconomic policy fiscal stimulus economic growth recession"
+      ],
+      "updateBurstAllowed": true,
+      "maxPublicationsPerWeek": 4
+    },
+    "isActive": true,
+    "createdAt": "2026-01-27T12:34:26.382Z",
+    "updatedAt": "2026-05-24T13:55:21.858Z"
+  },
+  {
+    "id": "cmkwkw5kk0004odznu3e1i9hl",
+    "slug": "social-policy",
+    "name": "Politique Sociale",
+    "nameEn": "Social Policy",
+    "description": "Emploi, éducation, inégalités, migration",
+    "icon": "🏛️",
+    "color": "#EC4899",
+    "config": {
+      "thresholds": {
+        "minImpact": 70,
+        "minNovelty": 60,
+        "minConfidence": 75
+      },
+      "researchers": [
+        "policy",
+        "social-sciences",
+        "behavioral-economics"
+      ],
+      "allowedTypes": [
+        "INQUIRY",
+        "RESEARCH_BRIEF",
+        "POLICY_NOTE"
+      ],
+      "cooldownHours": 72,
+      "searchQueries": [
+        "social policy inequality poverty welfare public services",
+        "labor market employment education workforce",
+        "migration immigration social mobility demographic change"
+      ],
+      "updateBurstAllowed": false,
+      "maxPublicationsPerWeek": 2
+    },
+    "isActive": true,
+    "createdAt": "2026-01-27T12:34:26.997Z",
+    "updatedAt": "2026-05-24T13:55:22.445Z"
+  },
+  {
+    "id": "climate",
+    "slug": "climate",
+    "name": "Climate & Environment",
+    "nameEn": null,
+    "description": null,
+    "icon": null,
+    "color": null,
+    "config": {},
+    "isActive": false,
+    "createdAt": "2026-02-14T14:33:29.679Z",
+    "updatedAt": "2026-05-24T13:55:23.697Z"
+  },
+  {
+    "id": "healthcare",
+    "slug": "healthcare",
+    "name": "Healthcare",
+    "nameEn": null,
+    "description": null,
+    "icon": null,
+    "color": null,
+    "config": {},
+    "isActive": false,
+    "createdAt": "2026-02-14T14:33:30.877Z",
+    "updatedAt": "2026-05-24T13:55:23.697Z"
+  },
+  {
+    "id": "cmmht5f6g000473wisdgjpy0v",
+    "slug": "complexity-quantitative",
+    "name": "Systèmes Complexes & Quantitatif",
+    "nameEn": "Complex Systems & Quantitative",
+    "description": "Systèmes complexes, méthodes quantitatives, analyse de risque, modélisation",
+    "icon": "📐",
+    "color": "#8B5CF6",
+    "config": {
+      "thresholds": {
+        "minImpact": 60,
+        "minNovelty": 75,
+        "minConfidence": 80
+      },
+      "researchers": [
+        "complexity-science",
+        "quantitative",
+        "risk-analysis"
+      ],
+      "allowedTypes": [
+        "INQUIRY",
+        "RESEARCH_BRIEF",
+        "STRATEGIC_REPORT"
+      ],
+      "cooldownHours": 168,
+      "searchQueries": [
+        "complex systems emergence network theory agent-based modeling",
+        "quantitative methods causal inference statistical analysis",
+        "systemic risk tail risk scenario planning stress testing"
+      ],
+      "updateBurstAllowed": false,
+      "maxPublicationsPerWeek": 1
+    },
+    "isActive": true,
+    "createdAt": "2026-03-08T13:48:28.312Z",
+    "updatedAt": "2026-05-24T13:55:23.409Z"
+  },
+  {
+    "id": "cmmht5fcq000573wiym95ifwx",
+    "slug": "humanities-ethics",
+    "name": "Humanités & Éthique",
+    "nameEn": "Humanities & Ethics",
+    "description": "Philosophie, éthique appliquée, histoire, théorie politique, médias",
+    "icon": "📚",
+    "color": "#A855F7",
+    "config": {
+      "thresholds": {
+        "minImpact": 55,
+        "minNovelty": 65,
+        "minConfidence": 70
+      },
+      "researchers": [
+        "humanities"
+      ],
+      "allowedTypes": [
+        "INQUIRY",
+        "RESEARCH_BRIEF",
+        "STRATEGIC_REPORT"
+      ],
+      "cooldownHours": 168,
+      "searchQueries": [
+        "philosophy ethics political theory democracy",
+        "history intellectual cultural studies critical theory",
+        "media studies disinformation public discourse free speech"
+      ],
+      "updateBurstAllowed": false,
+      "maxPublicationsPerWeek": 1
+    },
+    "isActive": true,
+    "createdAt": "2026-03-08T13:48:28.538Z",
+    "updatedAt": "2026-05-24T13:55:23.602Z"
+  },
+  {
+    "id": "cmmht5ew5000273wipujtxqri",
+    "slug": "cognitive-behavioral",
+    "name": "Sciences Cognitives & Comportementales",
+    "nameEn": "Cognitive & Behavioral Sciences",
+    "description": "Psychologie cognitive, économie comportementale, neurosciences",
+    "icon": "🧠",
+    "color": "#14B8A6",
+    "config": {
+      "thresholds": {
+        "minImpact": 60,
+        "minNovelty": 70,
+        "minConfidence": 75
+      },
+      "researchers": [
+        "cognitive-science",
+        "behavioral-economics"
+      ],
+      "allowedTypes": [
+        "INQUIRY",
+        "RESEARCH_BRIEF",
+        "STRATEGIC_REPORT"
+      ],
+      "cooldownHours": 168,
+      "searchQueries": [
+        "cognitive science decision making behavioral economics",
+        "neuroscience psychology cognitive bias heuristics",
+        "nudge choice architecture consumer behavior"
+      ],
+      "updateBurstAllowed": false,
+      "maxPublicationsPerWeek": 1
+    },
+    "isActive": true,
+    "createdAt": "2026-03-08T13:48:27.942Z",
+    "updatedAt": "2026-05-24T13:55:23.028Z"
+  },
+  {
+    "id": "cmmht5f1e000373wimzr2fkb1",
+    "slug": "development-global",
+    "name": "Développement & Sud Global",
+    "nameEn": "Development & Global South",
+    "description": "Économie du développement, aide internationale, urbanisation, ODD",
+    "icon": "🌏",
+    "color": "#F97316",
+    "config": {
+      "thresholds": {
+        "minImpact": 65,
+        "minNovelty": 65,
+        "minConfidence": 70
+      },
+      "researchers": [
+        "development-economics",
+        "urban-studies"
+      ],
+      "allowedTypes": [
+        "INQUIRY",
+        "RESEARCH_BRIEF",
+        "POLICY_NOTE",
+        "DOSSIER"
+      ],
+      "cooldownHours": 72,
+      "searchQueries": [
+        "development economics poverty alleviation emerging markets",
+        "foreign aid microfinance institutional economics",
+        "urbanization smart cities infrastructure sustainable development goals"
+      ],
+      "updateBurstAllowed": false,
+      "maxPublicationsPerWeek": 2
+    },
+    "isActive": true,
+    "createdAt": "2026-03-08T13:48:28.130Z",
+    "updatedAt": "2026-05-24T13:55:23.220Z"
+  }
+]

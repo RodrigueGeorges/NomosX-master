@@ -4,6 +4,7 @@
  */
 
 import { callLLM } from "@/lib/llm/unified-llm";
+import { parseJson } from "./json-utils";
 
 export interface SourceEvidence {
   id: string;
@@ -165,8 +166,8 @@ export async function buildForesightGraph(
     });
     budget.remaining -= res.costUsd;
 
-    const parsed = JSON.parse(res.content) as LLMGraphPayload;
-    if (!parsed.nodes?.length) return heuristicGraph(question, scenarios, evidence);
+    const parsed = parseJson<LLMGraphPayload>(res.content);
+    if (!parsed || !parsed.nodes?.length) return heuristicGraph(question, scenarios, evidence);
 
     const nodes: ForesightNode[] = parsed.nodes.map((n) => ({
       id: n.id,

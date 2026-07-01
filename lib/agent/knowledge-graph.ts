@@ -15,6 +15,7 @@
 
 import { prisma } from '../db';
 import { callLLM } from '../llm/unified-llm';
+import { parseJson } from './json-utils';
 import { AgentRole, assertPermission } from '../governance/index';
 import { embedText, embedBatch, cosineSimilarity } from './semantic-engine';
 
@@ -146,7 +147,7 @@ Return JSON:
   });
 
   costUsd += extractResponse.costUsd;
-  const extracted = JSON.parse(extractResponse.content);
+  const extracted = parseJson<any>(extractResponse.content) ?? { concepts: [], relations: [] };
 
   // ── STEP 2: Embed concept descriptions ──
   const descriptions = (extracted.concepts || []).map((c: any) => `${c.name}: ${c.description}`);

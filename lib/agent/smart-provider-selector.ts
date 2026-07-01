@@ -157,35 +157,35 @@ const DOMAIN_PROVIDER_MAP: Record<string, Provider[]> = {
 
   // Politics & Law
   politics: ["openalex", "crossref", "ssrn", "hal", "un", "brookings", "rand", "cnas", "newamerica", "aspen-digital", "rstreet", "cdt", "france-strategie"],
-  law: ["openalex", "crossref", "ssrn", "hal", "lawzero", "eur-lex", "legifrance", "un", "brookings", "rand", "cdt", "rstreet", "newamerica", "caidp", "aspen-digital"],
+  law: ["openalex", "crossref", "ssrn", "hal", "lawzero", "eur-lex", "legifrance", "un", "brookings", "rand", "cdt", "rstreet", "newamerica", "caidp", "aspen-digital", "gdelt-news", "newsapi", "linkup"],
 
   // Technology & Innovation
-  technology: ["semanticscholar", "openalex", "arxiv", "crossref", "hal", "core", "allen-ai", "inria", "eth-zurich", "max-planck", "cset", "ainow", "datasociety", "ifp", "abundance"],
-  ai: ["semanticscholar", "openalex", "arxiv", "crossref", "core", "allen-ai", "inria", "govai", "iaps", "caip", "aipi", "cset", "ainow", "datasociety", "caidp"],
+  technology: ["semanticscholar", "openalex", "arxiv", "crossref", "hal", "core", "allen-ai", "inria", "eth-zurich", "max-planck", "cset", "ainow", "datasociety", "ifp", "abundance", "gdelt-news", "newsapi", "linkup"],
+  ai: ["semanticscholar", "openalex", "arxiv", "crossref", "core", "allen-ai", "inria", "govai", "iaps", "caip", "aipi", "cset", "ainow", "datasociety", "caidp", "gdelt-news", "newsapi", "linkup"],
 
   // Defense & Security
-  defense: ["openalex", "crossref", "nato", "sgdsn", "eeas", "eda", "sipri", "swp", "ecfr", "iai", "rand", "cnas", "scsp", "brookings", "newamerica", "ssrn"],
-  security: ["openalex", "crossref", "semanticscholar", "nato", "nsa", "uk-jic", "sgdsn", "sipri", "swp", "ecfr", "rand", "cnas", "scsp", "brookings", "cset"],
+  defense: ["openalex", "crossref", "nato", "sgdsn", "eeas", "eda", "sipri", "swp", "ecfr", "iai", "rand", "cnas", "scsp", "brookings", "newamerica", "ssrn", "gdelt-news", "newsapi", "linkup"],
+  security: ["openalex", "crossref", "semanticscholar", "nato", "nsa", "uk-jic", "sgdsn", "sipri", "swp", "ecfr", "rand", "cnas", "scsp", "brookings", "cset", "gdelt-news", "newsapi", "linkup"],
 
   // Cybersecurity
-  cyber: ["openalex", "semanticscholar", "arxiv", "nist", "cisa", "enisa", "crossref", "core", "allen-ai", "cset", "rand", "cnas", "cdt"],
+  cyber: ["openalex", "semanticscholar", "arxiv", "nist", "cisa", "enisa", "crossref", "core", "allen-ai", "cset", "rand", "cnas", "cdt", "gdelt-news", "newsapi", "linkup"],
 
   // Intelligence & Geopolitics
   intelligence: ["openalex", "crossref", "nato", "rand", "cnas", "scsp", "brookings", "nara", "gdelt-news", "ssrn"],
   geopolitics: ["openalex", "crossref", "semanticscholar", "nato", "eeas", "un", "unctad", "sipri", "swp", "ecfr", "iai", "rand", "cnas", "brookings", "newamerica", "gdelt-news", "ssrn"],
 
   // France (enriched)
-  france: ["openalex", "thesesfr", "hal", "crossref", "cnrs", "inria", "ens", "insee", "sgdsn", "cea", "inrae", "ademe", "france-strategie", "shift-project", "iddri", "terra-nova", "legifrance", "vie-publique", "archives-fr"],
+  france: ["openalex", "thesesfr", "hal", "crossref", "cnrs", "inria", "ens", "insee", "sgdsn", "cea", "inrae", "ademe", "france-strategie", "shift-project", "iddri", "terra-nova", "legifrance", "vie-publique", "archives-fr", "gdelt-news", "newsapi", "linkup"],
 
   // Statistics & Data (new domain)
-  statistics: ["openalex", "crossref", "eurostat", "insee", "worldbank", "imf", "data-gouv", "fred", "oecd", "oecd-direct", "un", "repec", "nber"],
+  statistics: ["openalex", "crossref", "eurostat", "insee", "worldbank", "imf", "data-gouv", "fred", "oecd", "oecd-direct", "un", "repec", "nber", "gdelt-news", "newsapi", "linkup"],
 
   // Default (multi-disciplinary)
   // European think tanks / foreign policy
-  european_policy: ["openalex", "crossref", "ecfr", "swp", "sipri", "iai", "eeas", "nato", "un", "brookings", "rand", "ssrn"],
+  european_policy: ["openalex", "crossref", "ecfr", "swp", "sipri", "iai", "eeas", "nato", "un", "brookings", "rand", "ssrn", "gdelt-news", "newsapi", "linkup"],
   foreign_policy: ["openalex", "crossref", "ecfr", "swp", "sipri", "iai", "nato", "eeas", "un", "rand", "cnas", "brookings", "ssrn", "gdelt-news"],
 
-  default: ["openalex", "semanticscholar", "crossref", "hal", "thesesfr", "nber", "ssrn", "worldbank", "un", "brookings", "rand", "cset"],
+  default: ["openalex", "semanticscholar", "crossref", "hal", "thesesfr", "nber", "ssrn", "worldbank", "un", "brookings", "rand", "cset", "gdelt-news", "newsapi", "linkup"],
 };
 
 /**

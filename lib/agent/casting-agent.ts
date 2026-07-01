@@ -4,6 +4,7 @@
  */
 
 import { callLLM } from '../llm/unified-llm';
+import { parseJson } from './json-utils';
 import type { TopicClassification } from './topic-classifier';
 import {
   dimensionsFromClassification,
@@ -145,8 +146,9 @@ Rules: 2-3 lenses max. Roles must include exactly one lead. Use domain labels on
       enableCache: true,
     });
 
-    const parsed = JSON.parse(response.content);
-    const team: CastTeamMember[] = (parsed.team ?? [])
+    const parsed = parseJson<Record<string, unknown>>(response.content);
+    if (!parsed) throw new SyntaxError('Casting agent: failed to parse LLM JSON');
+    const team: CastTeamMember[] = ((parsed.team as CastTeamMember[]) ?? [])
       .slice(0, 3)
       .map((m: CastTeamMember) => ({
         lensId: String(m.lensId ?? m.domain ?? 'lens'),

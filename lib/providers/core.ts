@@ -24,7 +24,7 @@ export async function searchCORE(query: string, limit = 30): Promise<any[]> {
     const results = data?.results || [];
     
     return results.map((item: any) => ({
-      id: item.id,
+      id: `core:${item.id}`,
       provider: "core",
       type: "academic",
       title: item.title,

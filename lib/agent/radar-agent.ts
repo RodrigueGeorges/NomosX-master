@@ -9,6 +9,7 @@
  */
 
 import { callLLM } from '../llm/unified-llm';
+import { parseJson } from './json-utils';
 import { prisma } from '../db';
 
 export interface RadarCard {
@@ -131,7 +132,7 @@ Be rigorous. Strategic foresight depends on this analysis.`;
       task: 'analyst_brief',
     });
     
-    const parsed = JSON.parse(response.content || "{}");
+    const parsed = parseJson<any>(response.content || "{}") ?? {};
     const cards = parsed.cards || parsed.signals || [];
     
     console.log(`[RADAR V2] ✅ Generated ${cards.length} radar cards`);

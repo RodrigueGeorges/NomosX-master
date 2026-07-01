@@ -6,6 +6,7 @@
  */
 
 import { callLLM } from '../llm/unified-llm';
+import { parseJson } from './json-utils';
 
 // ============================================================================
 // GOOGLE KNOWLEDGE GRAPH INTEGRATION
@@ -89,9 +90,10 @@ Return JSON with entities array containing: name, type (Person/Organization/Loca
       task: 'topic_classification',
     });
 
-    const parsed = JSON.parse(response.content);
-    const entities = parsed.entities || [];
+    const parsed = parseJson<any>(response.content);
+    if (!parsed) return { entities: [], enrichedText: text, confidence: 0 };
 
+    const entities = parsed.entities || [];
     // TODO: Validate each entity against Google Knowledge Graph
     // For now, return extracted entities
     return {
@@ -190,7 +192,8 @@ export async function validateInstitution(
       task: 'topic_classification',
     });
 
-    const parsed = JSON.parse(response.content);
+    const parsed = parseJson<any>(response.content);
+    if (!parsed) return { isValid: false, confidence: 0, suggestions: [] };
     return {
       isValid: parsed.isValid || false,
       confidence: parsed.confidence || 0,
@@ -248,7 +251,8 @@ export async function validatePerson(
       task: 'topic_classification',
     });
 
-    const parsed = JSON.parse(response.content);
+    const parsed = parseJson<any>(response.content);
+    if (!parsed) return { isValid: false, confidence: 0, suggestions: [] };
     return {
       isValid: parsed.isValid || false,
       confidence: parsed.confidence || 0,

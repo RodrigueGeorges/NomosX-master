@@ -14,6 +14,7 @@
  */
 
 import { callLLM } from '../llm/unified-llm';
+import { parseJson } from './json-utils';
 // import Sentry from '@sentry/nextjs'; // Commenté pour éviter l'erreur TypeScript
 import { AgentRole, assertPermission } from '../governance/index';
 import { RESEARCHER_KBS, type DomainExpertise } from './researcher-kb/index';
@@ -258,7 +259,8 @@ Be EXHAUSTIVE. Extract EVERY data point. Miss nothing.`;
     task: 'analyst_brief',
   });
 
-  const map = JSON.parse(response.content) as ThematicMap;
+  const map = parseJson<ThematicMap>(response.content);
+  if (!map) throw new SyntaxError('Analyst pass 1: failed to parse LLM JSON');
   console.log(`[Analyst V3] PASS 1 complete: ${map.themes?.length || 0} themes, ${map.dataLandscape?.totalDataPoints || 0} data points`);
 
   return {
@@ -353,7 +355,8 @@ Be ADVERSARIAL. Actively look for conflicts. A good analyst finds what others mi
     task: 'analyst_brief',
   });
 
-  const map = JSON.parse(response.content) as ContradictionMap;
+  const map = parseJson<ContradictionMap>(response.content);
+  if (!map) throw new SyntaxError('Analyst pass 2: failed to parse LLM JSON');
   console.log(`[Analyst V3] PASS 2 complete: ${map.contradictions?.length || 0} contradictions, ${map.consensusPoints?.length || 0} consensus points`);
 
   return {
@@ -474,7 +477,8 @@ QUALITY: This is the final output for senior decision-makers. Intellectual rigor
     task: 'analyst_brief',
   });
 
-  const analysis = JSON.parse(response.content) as AnalysisOutput;
+  const analysis = parseJson<AnalysisOutput>(response.content);
+  if (!analysis) throw new SyntaxError('Analyst pass 3: failed to parse LLM JSON');
   console.log(`[Analyst V3] PASS 3 complete: synthesis generated`);
 
   return {

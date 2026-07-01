@@ -22,6 +22,7 @@
  */
 
 import { callLLM } from '../llm/unified-llm';
+import { parseJson } from './json-utils';
 import type { DomainExpertise, ExpertAnalysis } from './types';
 
 // ============================================================================
@@ -156,7 +157,8 @@ Return JSON:
       totalCost += response.costUsd;
 
       try {
-        const parsed = JSON.parse(response.content);
+        const parsed = parseJson<any>(response.content);
+        if (!parsed) throw new SyntaxError('Deliberation elenchus: failed to parse LLM JSON');
         return (parsed.challenges || []).map((c: any) => ({
           challengerId: challenger.expertId,
           challengerName: challenger.expertName,
@@ -268,7 +270,8 @@ Return JSON:
       totalCost += response.costUsd;
 
       try {
-        const parsed = JSON.parse(response.content);
+        const parsed = parseJson<any>(response.content);
+        if (!parsed) throw new SyntaxError('Deliberation revision: failed to parse LLM JSON');
         return {
           expertId: expert.expertId,
           expertName: expert.expertName,
@@ -357,7 +360,8 @@ Return JSON:
   });
 
   try {
-    const parsed = JSON.parse(response.content);
+    const parsed = parseJson<any>(response.content);
+    if (!parsed) throw new SyntaxError('Deliberation meta: failed to parse LLM JSON');
     return {
       consensusPoints: parsed.consensusPoints || [],
       activeDisagreements: parsed.activeDisagreements || [],

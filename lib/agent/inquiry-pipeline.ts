@@ -118,15 +118,20 @@ async function maybeRunSimulation(
   }
 
   const isStrategic = depth === "strategic" || depth === "deep";
-  const foresight = await runPipelineForesight({
-    question,
-    analysis,
-    domain,
-    sourceIds,
-    isStrategic,
-    depth,
-    seedSourceIds: lineage.seedSourceIds as string[] | undefined,
-  });
+  const foresight = await Promise.race([
+    runPipelineForesight({
+      question,
+      analysis,
+      domain,
+      sourceIds,
+      isStrategic,
+      depth,
+      seedSourceIds: lineage.seedSourceIds as string[] | undefined,
+    }),
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("Foresight simulation timed out (600s)")), 600_000)
+    ),
+  ]);
 
   if (foresight.skipped || !foresight.report) {
     return { analysis: foresight.analysis, lineage };

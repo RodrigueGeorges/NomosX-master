@@ -12,6 +12,7 @@
  */
 
 import { callLLM } from '../llm/unified-llm';
+import { parseJson } from './json-utils';
 import type { ExpertAnalysis, DomainExpertise } from './types';
 
 // ============================================================================
@@ -184,7 +185,8 @@ Grade this evidence body. Return JSON:
   });
 
   try {
-    const parsed = JSON.parse(result.content);
+    const parsed = parseJson<any>(result.content);
+    if (!parsed) throw new SyntaxError('Review board grade: failed to parse LLM JSON');
     return { grade: parsed, costUsd: result.costUsd };
   } catch {
     return {
@@ -271,7 +273,8 @@ Be RIGOROUS. A Harvard peer review would catch these issues.`,
   });
 
   try {
-    const parsed = JSON.parse(result.content);
+    const parsed = parseJson<any>(result.content);
+    if (!parsed) throw new SyntaxError('Review board review: failed to parse LLM JSON');
     return {
       reviewerId: reviewer.id,
       reviewerRole: reviewer.role,
@@ -446,7 +449,8 @@ This is the FINAL output. Make it worthy of a Harvard Kennedy School policy brie
   const durationMs = Date.now() - start;
 
   try {
-    const parsed = JSON.parse(result.content);
+    const parsed = parseJson<any>(result.content);
+    if (!parsed) throw new SyntaxError('Review board synthesis: failed to parse LLM JSON');
     return {
       synthesis: {
         ...parsed,

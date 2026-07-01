@@ -15,6 +15,7 @@
  */
 
 import { callLLM, type LLMFamily } from '../llm/unified-llm';
+import { parseJson } from './json-utils';
 import { cosineSimilarity, embedText } from './semantic-engine';
 import Sentry from '@sentry/nextjs';
 
@@ -65,16 +66,19 @@ export interface VerificationReport {
  */
 export function extractCitations(text: string): CitationInstance[] {
   const citations: CitationInstance[] = [];
+  const normalized = text
+    .replace(/<sup class="cite"><a href="#ref-(\d+)"[^>]*>\s*(\d+)\s*<\/a><\/sup>/gi, "[SRC-$1]")
+    .replace(/<sup class="cite"><a href="#ref-(\d+)"[^>]*>([\s\S]*?)<\/a><\/sup>/gi, "[SRC-$1]");
   const pattern = /\[SRC-(\d+)\]/g;
   let match;
 
-  while ((match = pattern.exec(text)) !== null) {
+  while ((match = pattern.exec(normalized)) !== null) {
     const srcIndex = parseInt(match[1]);
     const position = match.index;
 
     // Extract the sentence containing the citation
-    const beforeText = text.slice(Math.max(0, position - 500), position);
-    const afterText = text.slice(position + match[0].length, Math.min(text.length, position + match[0].length + 200));
+    const beforeText = normalized.slice(Math.max(0, position - 500), position);
+    const afterText = normalized.slice(position + match[0].length, Math.min(normalized.length, position + match[0].length + 200));
 
     // Find sentence boundaries
     const sentenceStart = Math.max(
@@ -181,7 +185,8 @@ Return JSON:
       producerFamily,
     });
 
-    const result = JSON.parse(response.content);
+    const result = parseJson<any>(response.content);
+    if (!result) throw new SyntaxError('Citation verifier: failed to parse LLM JSON');
 
     return {
       srcIndex: citation.srcIndex,

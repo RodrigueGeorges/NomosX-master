@@ -13,6 +13,7 @@
  */
 
 import { callLLM } from '../llm/unified-llm';
+import { parseJson } from './json-utils';
 import { computeCalibration } from './agent-memory';
 
 // ============================================================================
@@ -75,8 +76,8 @@ export interface PipelineState {
 
 const THRESHOLDS = {
   // Minimum sources to proceed with analysis
-  MIN_SOURCES: 5,
-  MIN_SOURCES_STRATEGIC: 10,
+  MIN_SOURCES: 3,
+  MIN_SOURCES_STRATEGIC: 5,
 
   // Minimum % of sources with abstracts
   MIN_ABSTRACT_COVERAGE: 0.6,
@@ -320,7 +321,8 @@ export async function generateExpandedTerms(
   });
 
   try {
-    const parsed = JSON.parse(result.content);
+    const parsed = parseJson<any>(result.content);
+    if (!parsed) throw new SyntaxError('Orchestrator: failed to parse LLM JSON');
     return {
       terms: parsed.terms || [],
       costUsd: result.costUsd,

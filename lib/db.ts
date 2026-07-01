@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 
 declare global { 
   var __prisma: PrismaClient | undefined; 
@@ -36,6 +36,42 @@ const prismaClientSingleton = () => {
 };
 
 export const prisma = globalThis.__prisma ?? prismaClientSingleton();
+
+/**
+ * A7: Retry wrapper for Prisma operations that may fail due to connection drops
+ * during long LLM pauses (especially with GLM's 30-90s latency).
+ * Catches "Connection closed" / "kind: Closed" errors and retries after reconnect.
+ */
+export async function withDbRetry<T>(
+  fn: () => Promise<T>,
+  maxRetries = 3,
+  baseDelayMs = 1000
+): Promise<T> {
+  let lastErr: unknown;
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (err: unknown) {
+      lastErr = err;
+      const msg = err instanceof Error ? err.message : String(err);
+      const isConnectionError =
+        msg.includes('Connection closed') ||
+        msg.includes('kind: Closed') ||
+        msg.includes('Connection terminated') ||
+        msg.includes("Can't reach database server") ||
+        msg.includes('Timed out fetching a new connection');
+      if (!isConnectionError || attempt === maxRetries - 1) throw err;
+      console.warn(`[DB] Connection error (attempt ${attempt + 1}/${maxRetries}), retrying in ${baseDelayMs * (attempt + 1)}ms: ${msg}`);
+      try {
+        await prisma.$connect();
+      } catch {
+        // $connect may fail silently — the next query will trigger a fresh connection
+      }
+      await new Promise(resolve => setTimeout(resolve, baseDelayMs * (attempt + 1)));
+    }
+  }
+  throw lastErr;
+}
 
 // Default export for compatibility
 export default prisma;

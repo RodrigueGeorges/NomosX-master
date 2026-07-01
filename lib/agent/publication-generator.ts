@@ -9,6 +9,7 @@ import { prisma } from '../db';
 import { PublicationType,PublicationTemplate,CriticalLoopResult } from '@/lib/think-tank/types';
 import { getTemplate,PUBLICATION_TEMPLATES } from '@/lib/think-tank/templates';
 import { callLLM } from '../llm/unified-llm';
+import { parseJson } from './json-utils';
 import { runCriticalLoopV2 } from './critical-loop-v2';
 import { verifyCitations } from './citation-verifier';
 import { debateAgent } from './debate-agent';
@@ -153,7 +154,8 @@ Generate premium, institutional-grade content.`;
       task: 'analyst_brief',
     });
 
-    const result = JSON.parse(response.content);
+    const result = parseJson<any>(response.content);
+    if (!result) throw new SyntaxError('Publication generator: failed to parse LLM JSON');
     
     // Build HTML from sections
     const html = buildHtml(result, template, sources, vertical, signal);

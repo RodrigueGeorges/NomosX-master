@@ -31,9 +31,10 @@ export function depthToPublicationType(
   depth: InquiryDepth,
   format: "brief" | "strategic"
 ): string {
-  if (format === "strategic" || depth === "strategic") return "STRATEGIC_REPORT";
+  if (depth === "strategic") return "STRATEGIC_REPORT";
   if (depth === "deep") return "RESEARCH_BRIEF";
   if (depth === "surface") return "SUMMARY_BRIEF";
+  if (format === "strategic") return "STRATEGIC_REPORT";
   return "EXECUTIVE_BRIEF";
 }
 

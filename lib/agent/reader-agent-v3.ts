@@ -13,6 +13,7 @@
  */
 
 import { callLLM } from '../llm/unified-llm';
+import { parseJson } from './json-utils';
 import Sentry from '@sentry/nextjs';
 import { AgentRole, assertPermission } from '../governance/index';
 import { prisma } from '../db';
@@ -105,8 +106,73 @@ async function extractPdfText(url: string, timeout = 15000): Promise<string | nu
 }
 
 /**
+ * Fetch a news article URL and extract readable text from HTML.
+ * Strips scripts, styles, nav, and extracts main content.
+ */
+async function fetchNewsArticleText(url: string, timeout = 12000): Promise<string | null> {
+  try {
+    const res = await fetch(url, {
+      signal: AbortSignal.timeout(timeout),
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; NomosXBot/1.0; +https://nomosx.com)',
+        'Accept': 'text/html,application/xhtml+xml',
+      },
+      redirect: 'follow',
+    });
+
+    if (!res.ok) {
+      console.warn(`[Reader V3] News fetch HTTP ${res.status} for ${url.slice(0, 80)}`);
+      return null;
+    }
+
+    const html = await res.text();
+    if (html.length < 500) return null;
+
+    // Extract text from common article content patterns
+    let text = html;
+
+    // Remove script and style blocks
+    text = text.replace(/<script[\s\S]*?<\/script>/gi, '');
+    text = text.replace(/<style[\s\S]*?<\/style>/gi, '');
+    text = text.replace(/<nav[\s\S]*?<\/nav>/gi, '');
+    text = text.replace(/<footer[\s\S]*?<\/footer>/gi, '');
+    text = text.replace(/<header[\s\S]*?<\/header>/gi, '');
+    text = text.replace(/<aside[\s\S]*?<\/aside>/gi, '');
+
+    // Try to extract <article> or <main> content first
+    const articleMatch = text.match(/<(?:article|main)[\s\S]*?>([\s\S]*?)<\/(?:article|main)>/i);
+    if (articleMatch && articleMatch[1].length > 500) {
+      text = articleMatch[1];
+    }
+
+    // Remove remaining HTML tags
+    text = text.replace(/<[^>]+>/g, ' ');
+    // Decode common HTML entities
+    text = text.replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+    // Collapse whitespace
+    text = text.replace(/\s+/g, ' ').trim();
+
+    if (text.length < 200) {
+      console.warn(`[Reader V3] News article too short (${text.length} chars) for ${url.slice(0, 80)}`);
+      return null;
+    }
+
+    // Cap at 8000 chars to stay within LLM context limits
+    if (text.length > 8000) text = text.slice(0, 8000);
+
+    console.log(`[Reader V3] News article extracted: ${text.length} chars from ${url.slice(0, 80)}`);
+    return text;
+  } catch (error: any) {
+    console.warn(`[Reader V3] News fetch failed: ${error.message} for ${url.slice(0, 80)}`);
+    return null;
+  }
+}
+
+const NEWS_PROVIDERS = ['gdelt-news', 'newsapi', 'mediastack', 'thenewsapi', 'gnews', 'eventregistry', 'linkup'];
+
+/**
  * Try to get full text from a source.
- * Priority: pdfUrl → url (if PDF) → abstract
+ * Priority: pdfUrl → url (if PDF) → news article (if news provider) → abstract
  */
 async function getFullText(source: any): Promise<{ text: string; depth: "full_text" | "abstract" }> {
   // Try PDF URL first
@@ -122,6 +188,14 @@ async function getFullText(source: any): Promise<{ text: string; depth: "full_te
     const pdfText = await extractPdfText(source.url);
     if (pdfText && pdfText.length > 500) {
       return { text: pdfText, depth: "full_text" };
+    }
+  }
+
+  // For news sources, try fetching the article URL
+  if (source.url && NEWS_PROVIDERS.includes(source.provider || '')) {
+    const articleText = await fetchNewsArticleText(source.url);
+    if (articleText && articleText.length > 300) {
+      return { text: articleText, depth: "full_text" };
     }
   }
 
@@ -345,7 +419,8 @@ Be PRECISE. Extract EXACT numbers. If a value is not stated, omit it. Do not inv
       task: 'reader_v3',
     });
 
-    const extracted = JSON.parse(response.content);
+    const extracted = parseJson<any>(response.content);
+    if (!extracted) return ruleBasedExtractionV3(source, text);
 
     return {
       sourceId: source.id,
@@ -559,6 +634,11 @@ async function processSource(source: any, enablePdf: boolean): Promise<ReadingRe
   let depth: "full_text" | "abstract";
 
   if (enablePdf && (source.pdfUrl || (source.url && source.contentFormat === 'pdf'))) {
+    const result = await getFullText(source);
+    text = result.text;
+    depth = result.depth;
+  } else if (source.url && NEWS_PROVIDERS.includes(source.provider || '')) {
+    // News sources: always try web fetch even if PDF is disabled
     const result = await getFullText(source);
     text = result.text;
     depth = result.depth;

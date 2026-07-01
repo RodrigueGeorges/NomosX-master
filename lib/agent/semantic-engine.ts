@@ -32,11 +32,19 @@ const MAX_INPUT_TOKENS = 8191; // Model limit per input
 
 let openaiClient: OpenAI | null = null;
 
-function getClient(): OpenAI {
+function getClient(): OpenAI | null {
+  const key = process.env.OPENAI_API_KEY;
+  if (!key || key.startsWith('sk-place') || key.length < 20) {
+    return null;
+  }
   if (!openaiClient) {
-    openaiClient = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    openaiClient = new OpenAI({ apiKey: key });
   }
   return openaiClient;
+}
+
+function zeroVector(): number[] {
+  return new Array(EMBEDDING_DIMS).fill(0);
 }
 
 // ============================================================================
@@ -55,6 +63,10 @@ export async function embedText(text: string): Promise<number[]> {
   const truncated = text.slice(0, 30000);
 
   const client = getClient();
+  if (!client) {
+    console.warn('[SemanticEngine] OpenAI API key not configured — returning zero vector. Semantic search will be degraded.');
+    return zeroVector();
+  }
   const response = await client.embeddings.create({
     model: EMBEDDING_MODEL,
     input: truncated,
@@ -72,6 +84,10 @@ export async function embedBatch(texts: string[]): Promise<number[][]> {
   if (texts.length === 0) return [];
 
   const client = getClient();
+  if (!client) {
+    console.warn('[SemanticEngine] OpenAI API key not configured — returning zero vectors. Semantic search will be degraded.');
+    return texts.map(() => zeroVector());
+  }
   const results: number[][] = [];
 
   // Process in batches of BATCH_SIZE

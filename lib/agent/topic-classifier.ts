@@ -19,6 +19,7 @@
  */
 
 import { callLLM } from '../llm/unified-llm';
+import { parseJson } from './json-utils';
 import { DomainExpertise } from './types';
 import { RESEARCHER_REGISTRY, ResearcherProfile, VERTICAL_RESEARCHER_MAP } from './researcher-ownership';
 
@@ -366,11 +367,7 @@ async function classifyWithLLM(topic: string, context?: string): Promise<TopicCl
     ? `TOPIC: "${topic}"\nCONTEXT: ${context.slice(0, 500)}`
     : `TOPIC: "${topic}"`;
 
-  const result = await callLLM({
-    messages: [
-      {
-        role: "system",
-        content: `You are the editorial director of NomosX, a strategic intelligence think tank.
+  const systemPrompt = `You are the editorial director of NomosX, a strategic intelligence think tank.
 Your task: classify an incoming topic to the correct research domain(s) and assess urgency.
 
 AVAILABLE DOMAINS AND RESEARCHERS:
@@ -397,18 +394,41 @@ Return JSON:
   "reasoning": "one sentence explaining classification"
 }
 
-IMPORTANT: dimensions are COLLISION AXES, not silos. Example: "EU AI Act" → dimensions for regulation, grid infrastructure, labor markets — not three versions of "AI".`
-      },
+IMPORTANT: dimensions are COLLISION AXES, not silos. Example: "EU AI Act" → dimensions for regulation, grid infrastructure, labor markets — not three versions of "AI".`;
+
+  let result = await callLLM({
+    messages: [
+      { role: "system", content: systemPrompt },
       { role: "user", content: userContent }
     ],
     temperature: 0.1,
-    maxTokens: 300,
+    maxTokens: 600,
     jsonMode: true,
     enableCache: true,
     task: 'topic_classification',
   });
 
-  const parsed = JSON.parse(result.content);
+  let parsed: any;
+  parsed = parseJson<any>(result.content);
+  if (!parsed) {
+    // Retry with higher maxTokens and no cache
+    console.warn('[TOPIC CLASSIFIER] First LLM response was not valid JSON, retrying with more tokens...');
+    result = await callLLM({
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userContent }
+      ],
+      temperature: 0.1,
+      maxTokens: 1000,
+      jsonMode: true,
+      task: 'topic_classification',
+    });
+    parsed = parseJson<any>(result.content);
+    if (!parsed) {
+      console.warn('[TOPIC CLASSIFIER] LLM classification failed, using rule-based fallback');
+      return classifyWithRules(topic);
+    }
+  }
   
   // Validate and enrich domains
   const scoredDomains: DomainDomainScore[] = [];

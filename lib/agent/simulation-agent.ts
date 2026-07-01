@@ -7,6 +7,7 @@
 
 import type { InquiryDepth } from "@/lib/types/inquiry";
 import { callLLM } from "@/lib/llm/unified-llm";
+import { parseJson } from "./json-utils";
 import { getForesightConfig } from "@/lib/foresight/config";
 import { buildForesightGraph, graphScenarioBoost, type ForesightGraph } from "./foresight-graph";
 import {
@@ -696,9 +697,10 @@ async function runLLMTickBatch(
     });
 
     budget.remaining -= res.costUsd;
-    const parsed = JSON.parse(res.content) as LLMTickResponse & {
+    const parsed = parseJson<any>(res.content) as (LLMTickResponse & {
       events: Array<LLMTickResponse["events"][0] & { channel?: "signal" | "forum" }>;
-    };
+    }) | null;
+    if (!parsed) return { events: [], llmPosts: [] };
     if (!parsed.events?.length) return { events: [], llmPosts: [] };
 
     const llmPosts: Array<{ authorId: string; content: string; scenarioLean: string; channel: "signal" | "forum" }> = [];

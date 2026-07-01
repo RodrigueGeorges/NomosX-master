@@ -1530,15 +1530,39 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   recordDecision(orchState, scoutDecision);
   stats.orchestrator = { decisions: [scoutDecision] };
 
-  // RE_SCOUT loop — strategic only (briefs skip to save ~60s)
-  if (isStrategic && scoutDecision.action === "RE_SCOUT" && orchState.iteration < orchState.maxIterations) {
-    console.log(`${label} ORCHESTRATOR: RE_SCOUT â€” ${scoutDecision.reason}`);
+  // RE_SCOUT loop — all formats (autonomous source collection)
+  if (scoutDecision.action === "RE_SCOUT" && orchState.iteration < orchState.maxIterations) {
+    console.log(`${label} ORCHESTRATOR: RE_SCOUT — ${scoutDecision.reason}`);
     try {
-      const expanded = await generateExpandedTerms(query, found, providers);
+      // Adaptive provider adjustment: analyze what was found and add missing providers
+      const foundProviderPrefixes = new Set(allSourceIds.map(id => id.split(":")[0]));
+      const newsProvidersList = ["gdelt-news", "newsapi", "linkup", "gnews", "mediastack", "thenewsapi", "eventregistry"];
+      const academicProvidersList = ["openalex", "crossref", "semanticscholar", "arxiv", "hal", "pubmed", "ssrn", "nber", "repec"];
+      const hasNews = newsProvidersList.some(p => foundProviderPrefixes.has(p));
+      const hasAcademic = academicProvidersList.some(p => foundProviderPrefixes.has(p));
+
+      const adaptiveProviders = [...providers];
+      // If no news sources found, add news providers for real-time coverage
+      if (!hasNews) {
+        adaptiveProviders.push(...["gdelt-news", "newsapi", "linkup"] as any);
+        console.log(`${label} RE_SCOUT: no news sources found — adding gdelt-news, newsapi, linkup`);
+      }
+      // If no academic sources found, add core academic providers
+      if (!hasAcademic) {
+        adaptiveProviders.push(...["openalex", "crossref", "semanticscholar"] as any);
+        console.log(`${label} RE_SCOUT: no academic sources found — adding openalex, crossref, semanticscholar`);
+      }
+      // Always add linkup for web search coverage if not already present
+      if (!adaptiveProviders.includes("linkup" as any)) {
+        adaptiveProviders.push("linkup" as any);
+      }
+      const uniqueAdaptiveProviders = Array.from(new Set(adaptiveProviders)) as Providers;
+
+      const expanded = await generateExpandedTerms(query, found, uniqueAdaptiveProviders);
       stats.orchestrator.expandedTerms = expanded.terms;
       const maxTerms = isStrategic ? 7 : 5;
       const extraResults = await Promise.allSettled(
-        expanded.terms.slice(0, maxTerms).map(term => scout(term, providers, isStrategic ? 30 : 25))
+        expanded.terms.slice(0, maxTerms).map(term => scout(term, uniqueAdaptiveProviders, isStrategic ? 30 : 25))
       );
       for (let i = 0; i < extraResults.length; i++) {
         const r = extraResults[i];
@@ -2471,7 +2495,7 @@ export async function runPipeline(
 ) {
   const isDossier = format === "dossier";
   const isStrategic = format === "strategic" || isDossier;
-  const timeoutMs = isStrategic ? 900_000 : 600_000; // 10min brief, 15min strategic/dossier
+  const timeoutMs = isStrategic ? 1_800_000 : 1_500_000; // 25min brief, 30min strategic/dossier
 
   // DOSSIER = extended strategic report — wider corpus and more ranked sources
   // so a €299 dossier produces a materially deeper deliverable than a strategic report.

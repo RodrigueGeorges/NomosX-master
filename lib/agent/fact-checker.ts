@@ -17,6 +17,7 @@
  */
 
 import { callLLM } from '../llm/unified-llm';
+import { parseJson } from './json-utils';
 
 // ============================================================================
 // TYPES
@@ -184,8 +185,8 @@ Be STRICT. Think tanks are destroyed by a single fabricated number.`;
       producerFamily,
     });
 
-    const parsed = JSON.parse(response.content);
-    return parsed.results || [];
+    const parsed = parseJson<any>(response.content);
+    return parsed?.results || [];
   } catch (error: any) {
     console.warn(`[FACT-CHECKER] LLM fact-check failed: ${error.message}`);
     // Return unverified results

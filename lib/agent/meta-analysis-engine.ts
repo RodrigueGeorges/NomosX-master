@@ -16,6 +16,7 @@
  */
 
 import { callLLM } from '../llm/unified-llm';
+import { parseJson } from './json-utils';
 import { AgentRole, assertPermission } from '../governance/index';
 
 // ============================================================================
@@ -493,9 +494,9 @@ Return JSON:
     });
 
     costUsd = llmResponse.costUsd;
-    const parsed = JSON.parse(llmResponse.content);
-    interpretation = parsed.interpretation || "";
-    caveats = parsed.caveats || [];
+    const parsed = parseJson<any>(llmResponse.content);
+    interpretation = parsed?.interpretation || "";
+    caveats = parsed?.caveats || [];
   } catch (err) {
     console.warn(`[META-ANALYSIS] LLM interpretation failed:`, err);
     interpretation = `Pooled ${recommended}-effects estimate: d = ${recommendedEstimate.value} [${recommendedEstimate.ci95Lower}, ${recommendedEstimate.ci95Upper}], p = ${recommendedEstimate.pValue}. Heterogeneity is ${heterogeneity.interpretation} (I² = ${heterogeneity.I2}%).`;

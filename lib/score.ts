@@ -28,8 +28,36 @@ export function scoreSource(input: {
   const providerBonus = input.provider === "thesesfr" ? 3 : 0;
   
   // News sources: intrinsic value as real-time intelligence even without citations/full text
-  const newsProviders = ['gdelt-news', 'newsapi', 'mediastack', 'thenewsapi', 'gnews', 'eventregistry'];
-  const newsBonus = newsProviders.includes(input.provider || '') ? 10 : 0;
+  const newsProviders = ['gdelt-news', 'newsapi', 'mediastack', 'thenewsapi', 'gnews', 'eventregistry', 'linkup'];
+  const isNews = newsProviders.includes(input.provider || '');
+
+  // News authority tiers — recognized news outlets get higher scores
+  const newsAuthorityDomains = [
+    'reuters.com', 'apnews.com', 'bbc.com', 'bbc.co.uk', 'nytimes.com', 'ft.com',
+    'wsj.com', 'washingtonpost.com', 'theguardian.com', 'bloomberg.com', 'economist.com',
+    'politico.eu', 'euronews.com', 'lemonde.fr', 'figaro.fr', 'liberation.fr',
+    'bruegel.org', 'csis.org', 'brookings.edu', 'chathamhouse.org', 'cfr.org',
+    'rand.org', 'carnegieendowment.org', 'ecfr.eu', 'sipri.org',
+  ];
+  const sourceUrl = (input as any).url || '';
+  const sourceDomain = sourceUrl ? sourceUrl.replace(/^https?:\/\//, '').split('/')[0].replace(/^www\./, '') : '';
+  const isAuthorityDomain = newsAuthorityDomains.some(d => sourceDomain === d || sourceDomain.endsWith('.' + d));
+  const newsAuthorityBonus = isNews && isAuthorityDomain ? 15 : 0;
+
+  // Freshness bonus — articles from today or this week are hot intelligence
+  let freshnessBonus = 0;
+  if (isNews) {
+    const publishedDate = (input as any).publishedDate;
+    if (publishedDate) {
+      const ageDays = (Date.now() - new Date(publishedDate).getTime()) / (1000 * 60 * 60 * 24);
+      if (ageDays <= 1) freshnessBonus = 20;       // Today
+      else if (ageDays <= 3) freshnessBonus = 15;  // This week
+      else if (ageDays <= 7) freshnessBonus = 10;  // Last week
+      else if (ageDays <= 14) freshnessBonus = 5;  // Last 2 weeks
+    }
+  }
+
+  const newsBonus = isNews ? 20 : 0;
   
   // 🆕 CONTENT QUALITY BONUS - La vraie valeur de l'app !
   // Sources avec contenu exploitable pour READER/ANALYST
@@ -80,7 +108,7 @@ export function scoreSource(input: {
     if (input.documentType === 'directive') institutionalBonus += 6;   // Directives officielles
   }
   
-  return Math.round(Math.min(100, recency + citeScore + oaScore + instScore + typeBonus + providerBonus + newsBonus + contentBonus + institutionalBonus));
+  return Math.round(Math.min(100, recency + citeScore + oaScore + instScore + typeBonus + providerBonus + newsBonus + newsAuthorityBonus + freshnessBonus + contentBonus + institutionalBonus));
 }
 
 /**

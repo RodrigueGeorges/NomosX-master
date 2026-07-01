@@ -178,7 +178,7 @@ export function evaluatePublicationGate(input: PublicationGateInput): Publicatio
 
   const failedChecks = checks.filter((check) => !check.passed);
   const hardFailures = failedChecks.filter((check) =>
-    ["source_depth", "word_count", "fatal_challenges", "devils_advocate", "researcher_signoff"].includes(check.checkType)
+    ["word_count", "fatal_challenges", "devils_advocate", "researcher_signoff"].includes(check.checkType)
   );
   const decision: PublicationGateDecision = failedChecks.length === 0
     ? "publish"

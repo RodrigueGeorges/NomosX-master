@@ -4,6 +4,7 @@
  */
 
 import { callLLM } from '../llm/unified-llm';
+import { parseJson } from './json-utils';
 import type { DebateResult } from './debate-agent';
 import type {
   CastingResult,
@@ -163,7 +164,8 @@ Return JSON:
       task: 'editorial_arbiter',
     });
 
-    const parsed = JSON.parse(response.content);
+    const parsed = parseJson<any>(response.content);
+    if (!parsed) throw new SyntaxError('Editorial arbiter: failed to parse LLM JSON');
     const conf = Math.max(0, Math.min(100, Number(parsed.confidence) || fallback.confidence));
 
     const outScenarios: ScenarioOutlook[] = (parsed.scenarios ?? []).slice(0, 5).map((s: ScenarioOutlook) => ({

@@ -11,7 +11,7 @@
  */
 
 import type { Prisma } from "@prisma/client";
-import { prisma } from "@/lib/db";
+import { prisma, withDbRetry } from "@/lib/db";
 import {
   runInquiryPipeline,
   type InquiryPipelineResult,
@@ -94,17 +94,29 @@ export interface InquiryPublishResult {
 async function findPublicationByBriefId(
   briefId: string
 ): Promise<{ id: string; publicId: string | null } | null> {
-  const match = await prisma.thinkTankPublication.findFirst({
-    where: {
-      criticalLoopResult: {
-        path: ["briefId"],
-        equals: briefId,
+  try {
+    const match = await prisma.thinkTankPublication.findFirst({
+      where: {
+        criticalLoopResult: {
+          path: ["briefId"],
+          equals: briefId,
+        },
       },
-    },
-    select: { id: true, publicId: true },
-    orderBy: { createdAt: "desc" },
-  });
-  return match;
+      select: { id: true, publicId: true },
+      orderBy: { createdAt: "desc" },
+    });
+    return match;
+  } catch {
+    // Fallback: JSON path filter may fail if criticalLoopResult is null for old pubs
+    const fallback = await prisma.thinkTankPublication.findFirst({
+      where: {
+        criticalLoopResult: { string_contains: briefId },
+      },
+      select: { id: true, publicId: true },
+      orderBy: { createdAt: "desc" },
+    });
+    return fallback;
+  }
 }
 
 async function findRecentDuplicateTitle(question: string, withinHours = 168): Promise<string | null> {
@@ -319,7 +331,7 @@ export async function runAndPublishInquiry(
   }
 
   const gate = evaluatePublicationGate({
-    format: formatKey,
+    format: pubType,
     html: pipeline.html,
     sourceIds,
     trustScore,
@@ -357,8 +369,9 @@ export async function runAndPublishInquiry(
   const publicId = pipeline.inquiry.slug;
   const dbStatus = resolveDbStatus(status);
 
-  // 6. Persist (atomic: publication + brief link)
-  const publication = await prisma.$transaction(async (tx) => {
+  // 6. Persist (atomic: publication + brief link) — with DB retry for connection drops
+  const publication = await withDbRetry(() =>
+    prisma.$transaction(async (tx) => {
     const pub = await tx.thinkTankPublication.create({
       data: {
         verticalId: vertical.id,
@@ -415,7 +428,8 @@ export async function runAndPublishInquiry(
     }
 
     return pub;
-  });
+  })
+);
 
   console.log(
     `[InquiryOrchestrator] ${status.toUpperCase()} pub=${publication.id} brief=${pipeline.briefId} trust=${trustScore}`

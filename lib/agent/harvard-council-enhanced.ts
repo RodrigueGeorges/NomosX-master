@@ -14,6 +14,7 @@
  */
 
 import { callLLM } from '../llm/unified-llm';
+import { parseJson } from './json-utils';
 import type { DomainExpertise, ExpertAnalysis } from './types/index';
 import { runExpertCouncil, detectRelevantExperts, runExpertAnalysis } from './phd-researcher';
 import { gradeEvidence, runReviewBoard } from './review-board';
@@ -217,7 +218,8 @@ Format as JSON with connections, conflicts, synergies arrays.`;
       enableCache: true,
     });
     
-    const result = JSON.parse(response.content);
+    const result = parseJson<any>(response.content);
+    if (!result) throw new SyntaxError('Interdisciplinary analysis: failed to parse LLM JSON');
     return {
       connections: result.connections || [],
       conflicts: result.conflicts || [],
@@ -313,7 +315,8 @@ Format as JSON matching EnhancedSynthesisReport interface.`;
       enableCache: true,
     });
     
-    const synthesisData = JSON.parse(response.content);
+    const synthesisData = parseJson<any>(response.content);
+    if (!synthesisData) throw new SyntaxError('Enhanced synthesis: failed to parse LLM JSON');
     const duration = Date.now() - start;
     
     // Ensure required structure

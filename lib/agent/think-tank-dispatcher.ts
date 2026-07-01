@@ -163,13 +163,13 @@ function emptyResult(mode: ThinkTankCycleMode, cadence: CadenceState, started: n
 
 function breakingDecisionToItem(decision: EditorialDecision): ThinkTankDispatchItem {
   const classifiedProviders = decision.classification.providers.slice(0, 4);
-  const newsProviders = ["gdelt-news", "newsapi", "gnews"];
+  const newsProviders = ["gdelt-news", "newsapi", "linkup"];
   const providers = Array.from(new Set([...classifiedProviders, ...newsProviders])).slice(0, 8) as Providers;
   const leadResearcher = decision.classification.researchers[0];
 
   return {
     question: decision.topic.title,
-    depth: "strategic",
+    depth: decision.priority >= 80 ? "strategic" : "standard",
     domain: decision.classification.primaryDomain,
     verticalSlug: decision.classification.verticalSlug,
     providers,
@@ -251,10 +251,12 @@ async function collectWeeklyItems(
         proposal.suggestedProviders.length > 0
           ? null
           : await selectSmartProviders(proposal.topic).catch(() => null);
-      const providers: Providers =
+      const baseProviders: Providers =
         proposal.suggestedProviders.length > 0
           ? (proposal.suggestedProviders as Providers)
           : (smartSel?.providers ?? []);
+      const newsProviders: Providers = ["gdelt-news", "newsapi", "linkup"];
+      const providers: Providers = Array.from(new Set([...baseProviders, ...newsProviders])) as Providers;
 
       const depth: InquiryDepth = proposal.suggestedFormat === "strategic" ? "strategic" : "standard";
       const topicClassification = await classifyTopic(proposal.topic).catch(() => null);
@@ -400,20 +402,37 @@ async function executeDispatchQueue(
 
     const source = item.strategy === "breaking" ? "auto-scan" : "generate-briefs";
 
-    const result = await runAndPublishInquiry({
-      question: item.question,
-      depth: item.depth,
-      domain: item.domain,
-      verticalId: item.verticalId,
-      verticalSlug: item.verticalSlug,
-      signalId: item.signalId,
-      providers: item.providers,
-      perProvider: item.perProvider,
-      source,
-      dryRun,
-      requireResearcherSignOff: item.requireResearcherSignOff,
-      minTrustScore: 65,
-      metadata: { strategy: item.strategy, ...item.metadata },
+    const result = await Promise.race([
+      runAndPublishInquiry({
+        question: item.question,
+        depth: item.depth,
+        domain: item.domain,
+        verticalId: item.verticalId,
+        verticalSlug: item.verticalSlug,
+        signalId: item.signalId,
+        providers: item.providers,
+        perProvider: item.perProvider,
+        source,
+        dryRun,
+        requireResearcherSignOff: item.requireResearcherSignOff,
+        minTrustScore: 65,
+        metadata: { strategy: item.strategy, ...item.metadata },
+      }),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("runAndPublishInquiry timed out (1800s)")), 1_800_000)
+      ),
+    ]).catch((err: unknown) => {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error(`[ThinkTank] Dispatch item timed out or failed: ${message}`);
+      return {
+        status: "failed" as const,
+        trustScore: 0,
+        qualityScore: 0,
+        wordCount: 0,
+        costUsd: 0,
+        durationMs: 1_800_000,
+        error: message,
+      };
     });
 
     outcomes.push({ item, result });

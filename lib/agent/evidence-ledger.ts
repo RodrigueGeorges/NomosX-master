@@ -49,6 +49,8 @@ const CLAIM_HINTS = [
 
 export function stripHtmlForEvidence(html: string): string {
   return html
+    .replace(/<sup class="cite"><a href="#ref-(\d+)"[^>]*>\s*(\d+)\s*<\/a><\/sup>/gi, "[SRC-$1]")
+    .replace(/<sup class="cite"><a href="#ref-(\d+)"[^>]*>([\s\S]*?)<\/a><\/sup>/gi, "[SRC-$1]")
     .replace(/<script[\s\S]*?<\/script>/gi, " ")
     .replace(/<style[\s\S]*?<\/style>/gi, " ")
     .replace(/<\/(p|li|h[1-6]|blockquote|section|article|div)>/gi, ". ")
@@ -62,7 +64,10 @@ export function stripHtmlForEvidence(html: string): string {
 }
 
 export function extractCitationNumbers(text: string): number[] {
-  const matches = text.matchAll(/\[SRC-(\d+)\]/g);
+  const normalized = text
+    .replace(/<sup class="cite"><a href="#ref-(\d+)"[^>]*>\s*(\d+)\s*<\/a><\/sup>/gi, "[SRC-$1]")
+    .replace(/<sup class="cite"><a href="#ref-(\d+)"[^>]*>([\s\S]*?)<\/a><\/sup>/gi, "[SRC-$1]");
+  const matches = normalized.matchAll(/\[SRC-(\d+)\]/g);
   return Array.from(new Set(Array.from(matches, (match) => Number(match[1]))))
     .filter((value) => Number.isFinite(value) && value > 0)
     .sort((a, b) => a - b);

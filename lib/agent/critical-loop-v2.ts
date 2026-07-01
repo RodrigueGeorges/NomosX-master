@@ -17,6 +17,7 @@
  */
 
 import { callLLM } from '../llm/unified-llm';
+import { parseJson } from './json-utils';
 import Sentry from '@sentry/nextjs';
 import { loadCalibratedThresholds } from './orchestrator';
 import {
@@ -106,7 +107,12 @@ Return JSON:
     enableCache: true,
   });
 
-  const result = JSON.parse(response.content);
+  let result: any;
+  result = parseJson<any>(response.content);
+  if (!result) {
+    console.warn('[CriticalLoop V2] methodologyJudge JSON parse failed, using defaults');
+    result = { overallScore: 50, breakdown: { studyDesign: 50, sampleSize: 50, statisticalRigor: 50, replicability: 50, biasRisk: 50 }, concerns: [], recommendations: [] };
+  }
   return {
     overallScore: result.overallScore || 50,
     breakdown: result.breakdown || { studyDesign: 50, sampleSize: 50, statisticalRigor: 50, replicability: 50, biasRisk: 50 },
@@ -162,7 +168,12 @@ Return JSON:
     task: 'elenchus',
   });
 
-  const result = JSON.parse(response.content);
+  let result: any;
+  result = parseJson<any>(response.content);
+  if (!result) {
+    console.warn('[CriticalLoop V2] adversarialReviewer JSON parse failed, using defaults');
+    result = { overallScore: 60, counterArguments: [], blindSpots: [], steelManVersion: '', recommendations: [] };
+  }
   return {
     overallScore: result.overallScore || 60,
     counterArguments: result.counterArguments || [],
@@ -227,7 +238,12 @@ Return JSON:
     task: 'fact_check',
   });
 
-  const result = JSON.parse(response.content);
+  let result: any;
+  result = parseJson<any>(response.content);
+  if (!result) {
+    console.warn('[CriticalLoop V2] decisionCalibrator JSON parse failed, using defaults');
+    result = { overallScore: 60, claimAssessments: [], uncertaintyQuantification: { adequate: true, missing: [], recommendations: [] }, hedgingQuality: { score: 60, overHedged: [], underHedged: [] } };
+  }
   return {
     overallScore: result.overallScore || 60,
     claimAssessments: result.claimAssessments || [],
@@ -267,7 +283,7 @@ async function rewriteDraft(
   const response = await callLLM({
     messages: [{
       role: "system",
-      content: `You are a senior editor at an elite think tank. You must REWRITE the draft to address ALL reviewer feedback while preserving the core analysis and all [SRC-N] citations. Do NOT remove content — improve it. Output the full rewritten HTML.`
+      content: `You are a senior editor at an elite think tank. You must REWRITE the draft to address ALL reviewer feedback while preserving the core analysis and all [SRC-N] citations. Do NOT remove content — improve it. Output the full rewritten HTML. Do NOT wrap the HTML in markdown code fences — output raw HTML only.`
     }, {
       role: "user",
       content: `ORIGINAL DRAFT:
@@ -291,17 +307,27 @@ ${calibrationFeedback}
 7. Do NOT add new claims without source support
 8. If a blind spot was identified, acknowledge it as a limitation
 
-Return the FULL rewritten HTML. No JSON wrapping — just the HTML.`
+Return the FULL rewritten HTML. No JSON wrapping, no markdown fences — just raw HTML.`
     }],
     temperature: 0.25,
     jsonMode: false,
-    maxTokens: 8000,
+    maxTokens: 12000,
     enableCache: false, // Never cache rewrites
     task: 'auto_revision',
   });
 
+  let rewritten = response.content;
+  // Strip markdown code fences if present
+  rewritten = rewritten.replace(/^```(?:html)?\s*\n?/i, '').replace(/\n?```\s*$/,'');
+
+  // Safety: if rewrite is too short (truncated), keep original
+  if (rewritten.length < draftHtml.length * 0.5) {
+    console.warn(`[CriticalLoop V2] Rewrite truncated (${rewritten.length} < 50% of ${draftHtml.length}), keeping original`);
+    return { html: draftHtml, costUsd: response.costUsd };
+  }
+
   return {
-    html: response.content,
+    html: rewritten,
     costUsd: response.costUsd,
   };
 }

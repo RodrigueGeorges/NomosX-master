@@ -15,6 +15,7 @@
  */
 
 import { callLLM } from '../llm/unified-llm';
+import { parseJson } from './json-utils';
 import { DomainExpertise, ExpertAnalysis } from './types';
 import { buildKBInjection, getResearcherKB } from './researcher-kb';
 import { buildMemoryInjection } from './agent-memory';
@@ -744,7 +745,8 @@ CRITICAL: Every factual claim MUST cite [SRC-N]. Be calibrated — if evidence i
   const durationMs = Date.now() - start;
 
   try {
-    const parsed = JSON.parse(result.content);
+    const parsed = parseJson<any>(result.content);
+    if (!parsed) throw new SyntaxError('PhD researcher: failed to parse LLM JSON');
     const analysis: ExpertAnalysis = {
       expertId: domain,
       expertName: persona.name,

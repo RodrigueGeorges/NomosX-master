@@ -16,6 +16,7 @@
  */
 
 import { callLLM } from '../llm/unified-llm';
+import { parseJson } from './json-utils';
 import { AgentRole, assertPermission } from '../governance/index';
 
 // ============================================================================
@@ -155,7 +156,8 @@ Return JSON:
   });
 
   totalCost += pass1Response.costUsd;
-  const pass1 = JSON.parse(pass1Response.content);
+  const pass1 = parseJson<any>(pass1Response.content);
+  if (!pass1) throw new SyntaxError('Debate pass 1: failed to parse LLM JSON');
 
   // ── PASS 2: Synthesis + nuances + what would change our mind ──
   console.log(`[DEBATE] Pass 2: Synthesis and nuance extraction`);
@@ -204,7 +206,8 @@ Return JSON:
   });
 
   totalCost += pass2Response.costUsd;
-  const pass2 = JSON.parse(pass2Response.content);
+  const pass2 = parseJson<any>(pass2Response.content);
+  if (!pass2) throw new SyntaxError('Debate pass 2: failed to parse LLM JSON');
 
   const result: DebateResult = {
     question,

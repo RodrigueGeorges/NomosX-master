@@ -13,8 +13,8 @@ export async function searchThesesFr(query: string, limit = 15): Promise<any[]> 
   try {
     console.log(`[ThesesFr] Searching for: "${query}"`);
     
-    // API theses.fr - recherche par mots-clés
-    const url = `${THESESFR_API}/theses/recherche?q=${encodeURIComponent(query)}&nombre=${limit}&tri=pertinence`;
+    // API theses.fr - recherche par mots-clés (trailing slash required)
+    const url = `${THESESFR_API}/theses/recherche/?q=${encodeURIComponent(query)}&nombre=${limit}&tri=pertinence`;
     
     const data: any = await fetchFromProvider("thesesfr", url, { timeout: 20000 });
     

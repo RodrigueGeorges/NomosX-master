@@ -19,6 +19,7 @@
 
 import { DomainExpertise, AutoPublisherLineage } from './types';
 import { callLLM } from '../llm/unified-llm';
+import { parseJson } from './json-utils';
 
 // ============================================================================
 // RESEARCHER REGISTRY - Domain Ownership Mapping
@@ -963,8 +964,18 @@ Review this brief and provide your sign-off decision.`
       task: 'fact_check',
     });
 
-    const parsed = JSON.parse(result.content);
-    const decision = parsed.decision || (trustScore >= owner.minQualityThreshold ? 'approve' : 'revise');
+    let parsed: { decision?: string; confidence?: number; comments?: string[] };
+    try {
+      parsed = parseJson<any>(result.content) ?? {};
+    } catch {
+      console.warn(`[SIGN-OFF] JSON.parse failed for ${owner.name}, using fallback`);
+      parsed = {};
+    }
+    const rawDecision = parsed.decision || (trustScore >= owner.minQualityThreshold ? 'approve' : 'revise');
+    const decision: 'approve' | 'reject' | 'revise' =
+      rawDecision === 'approve' || rawDecision === 'reject' || rawDecision === 'revise'
+        ? rawDecision
+        : 'revise';
 
     return {
       approved: decision === 'approve',

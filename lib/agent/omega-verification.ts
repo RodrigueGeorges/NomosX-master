@@ -6,6 +6,7 @@
  */
 
 import { callLLM } from '../llm/unified-llm';
+import { parseJson } from './json-utils';
 import { verifyCitations } from './citation-verifier';
 
 // ============================================================================
@@ -222,7 +223,8 @@ Respond with JSON containing:
 
     const result = await callLLM({ messages: [{ role: 'user', content: prompt }], task: 'fact_check' });
     
-    const analysis = JSON.parse(result.content);
+    const analysis = parseJson<any>(result.content);
+    if (!analysis) throw new SyntaxError('Omega verification: failed to parse LLM JSON');
     
     return {
       name: 'Factual Accuracy',
@@ -317,7 +319,8 @@ Respond with JSON containing:
 
     const result = await callLLM({ messages: [{ role: 'user', content: prompt }], task: 'fact_check' });
     
-    const analysis = JSON.parse(result.content);
+    const analysis = parseJson<any>(result.content);
+    if (!analysis) throw new SyntaxError('Omega verification: failed to parse LLM JSON');
     
     return {
       name: 'Context Coherence',
@@ -366,7 +369,8 @@ Respond with JSON containing:
 
     const result = await callLLM({ messages: [{ role: 'user', content: prompt }], task: 'fact_check' });
     
-    const analysis = JSON.parse(result.content);
+    const analysis = parseJson<any>(result.content);
+    if (!analysis) throw new SyntaxError('Omega verification: failed to parse LLM JSON');
     
     return {
       name: 'Expert Validation',

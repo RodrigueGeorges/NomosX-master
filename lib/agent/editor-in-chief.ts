@@ -14,6 +14,7 @@
  */
 
 import { callLLM } from '../llm/unified-llm';
+import { parseJson } from './json-utils';
 import { prisma } from '../db';
 import { classifyTopic, TopicClassification } from './topic-classifier';
 import type { RadarTopic } from './topic-radar';
@@ -186,7 +187,8 @@ Return JSON: { "selections": [{ "topicId": "...", "action": "publish_brief|publi
       task: 'editor_in_chief',
     });
 
-    const parsed = JSON.parse(result.content);
+    const parsed = parseJson<any>(result.content);
+    if (!parsed) return { selected: [], costUsd: result.costUsd };
     const selections: TriageSelection[] = (parsed.selections || [])
       .filter((s: any) => s.action === 'publish_brief' || s.action === 'publish_strategic')
       .slice(0, maxPubs);

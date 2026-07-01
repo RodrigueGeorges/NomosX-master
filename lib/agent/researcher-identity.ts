@@ -20,6 +20,7 @@
 
 import { prisma } from '../db';
 import { callLLM } from '../llm/unified-llm';
+import { parseJson } from './json-utils';
 import { embedText, cosineSimilarity } from './semantic-engine';
 import type { DomainExpertise } from './types';
 import { RESEARCHER_REGISTRY } from './researcher-ownership';
@@ -381,8 +382,8 @@ Return JSON: {
   });
 
   try {
-    const parsed = JSON.parse(result.content);
-    if (!parsed.changed) return null;
+    const parsed = parseJson<any>(result.content);
+    if (!parsed || !parsed.changed) return null;
 
     return {
       expertId,

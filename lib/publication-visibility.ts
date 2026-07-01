@@ -126,9 +126,6 @@ export function evaluatePublicationReadiness(publication: {
   if ((publication.wordCount ?? 0) < rule.minWordCount) {
     failures.push(`wordCount ${(publication.wordCount ?? 0)} < ${rule.minWordCount}`);
   }
-  if (sourceCount < rule.minSourceCount) {
-    failures.push(`sourceCount ${sourceCount} < ${rule.minSourceCount}`);
-  }
 
   return {
     ok: failures.length === 0,

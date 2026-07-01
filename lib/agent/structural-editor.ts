@@ -20,6 +20,7 @@
  */
 
 import { callLLM } from '../llm/unified-llm';
+import { parseJson } from './json-utils';
 
 // ============================================================================
 // TYPES
@@ -145,7 +146,8 @@ If restructuring is needed, provide the FULL revised analysis preserving all [SR
       task: 'auto_revision',
     });
 
-    const result = JSON.parse(response.content) as StructuralReviewResult;
+    const result = parseJson<StructuralReviewResult>(response.content);
+    if (!result) throw new SyntaxError('Structural editor: failed to parse LLM JSON');
     result.costUsd = response.costUsd;
     result.durationMs = Date.now() - start;
 
