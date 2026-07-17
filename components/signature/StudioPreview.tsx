@@ -6,10 +6,10 @@ import { ArrowRight, Check } from "lucide-react";
 const FOCUS_TAGS = ["Technology", "Economics", "Policy", "Climate", "Security", "Health"];
 
 const DELIVERABLES = [
-  "Institute position with probabilistic verdict",
-  "Prospective distribution & scenario trajectories",
-  "Adversarial challenge pass",
-  "Verified [SRC-N] source export",
+  "A clear position you can brief to a room",
+  "Multiple futures, each with a probability",
+  "Every assumption challenged, every doubt logged",
+  "Sources visible. Nothing taken on faith.",
 ];
 
 interface StudioPreviewProps {
@@ -28,14 +28,14 @@ export function StudioPreview({ onGetStarted, onLearnMore, className }: StudioPr
               NomosX Studio
             </span>
             <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-white/45 px-2 py-0.5 border border-white/15">
-              Private beta
+              Restricted access
             </span>
           </div>
           <h2 className="font-display text-2xl font-semibold text-white mb-4 tracking-tight">
-            Commission on demand.
+            Your question.<br />A position worth signing.
           </h2>
           <p className="text-sm text-white/40 leading-relaxed mb-6 max-w-sm">
-            Probabilistic foresight, adversarial review, publication-ready deliverables on your timeline.
+            Ask anything. Get back a verified, multi-scenario analysis — ready to brief, publish, or decide on.
           </p>
           <button
             type="button"
@@ -54,7 +54,7 @@ export function StudioPreview({ onGetStarted, onLearnMore, className }: StudioPr
             </p>
             <div className="border border-white/[0.08] bg-black px-4 py-3 min-h-[72px]">
               <p className="text-sm text-white/25 italic">
-                What policy trajectory is most probable for…
+                What is the most probable trajectory for…
               </p>
               <p className="font-mono text-[10px] text-white/20 mt-2 text-right">0 / 240</p>
             </div>
@@ -98,17 +98,17 @@ export function StudioPreview({ onGetStarted, onLearnMore, className }: StudioPr
 
         <div className="border border-white/[0.12] bg-white/[0.03] p-6 sm:p-8 flex flex-col justify-center">
           <h3 className="font-display text-lg font-semibold text-white mb-2 leading-snug">
-            Launch a study
+            Open an inquiry
           </h3>
           <p className="text-xs text-white/35 mb-8 leading-relaxed uppercase tracking-[0.12em] font-mono">
-            Full pipeline · verified sources
+            Verified · challenged · ready to defend
           </p>
           <button
             type="button"
             onClick={onGetStarted}
             className="w-full py-3.5 bg-white text-black text-[11px] font-semibold uppercase tracking-[0.14em] hover:bg-white/90 transition-colors flex items-center justify-center gap-2 group"
           >
-            Get started
+            Commission now
             <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
           </button>
         </div>

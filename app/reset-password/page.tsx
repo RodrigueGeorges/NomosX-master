@@ -74,7 +74,7 @@ function ResetPasswordContent() {
       <PublicPageShell showFooter={false} particles={0} contentClassName="flex items-center justify-center px-6">
         <div className={`${cardClass} text-center`}>
           <NomosXLogo variant="symbol" size={LOGO_AUTH_SYMBOL} className="justify-center mb-8" />
-          <div className="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center mx-auto mb-6">
+          <div className="w-12 h-12 bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center mx-auto mb-6">
             <CheckCircle size={24} className="text-emerald-400" />
           </div>
           <h1 className="font-display text-2xl font-semibold text-text mb-3">Password reset</h1>
@@ -102,7 +102,7 @@ function ResetPasswordContent() {
 
         <form onSubmit={handleSubmit} className="space-y-5">
           {error && (
-            <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+            <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
               {error}
             </div>
           )}

@@ -282,8 +282,8 @@ async function pass2ContradictionDetection(
 ): Promise<{ map: ContradictionMap; tokens: number; cost: number }> {
   console.log(`[Analyst V3] PASS 2/3: Contradiction Detection...`);
 
-  const themeSummary = thematicMap.themes
-    .map(t => `• ${t.name}: ${t.sources.join(", ")} — ${t.dataPoints.slice(0, 2).join("; ")}`)
+  const themeSummary = (thematicMap.themes ?? [])
+    .map(t => `• ${t.name}: ${(t.sources ?? []).join(", ")} — ${(t.dataPoints ?? []).slice(0, 2).join("; ")}`)
     .join("\n");
 
   const prompt = `You are a senior research analyst performing CONTRADICTION DETECTION.
@@ -295,10 +295,10 @@ THEMATIC MAP FROM PASS 1:
 ${themeSummary}
 
 METHODOLOGY BREAKDOWN:
-${JSON.stringify(thematicMap.methodologyBreakdown, null, 2)}
+${JSON.stringify(thematicMap.methodologyBreakdown ?? {}, null, 2)}
 
 DATA POINTS:
-${thematicMap.dataLandscape.quantitativeFindings?.slice(0, 15).join("\n") || "None extracted"}
+${thematicMap.dataLandscape?.quantitativeFindings?.slice(0, 15).join("\n") || "None extracted"}
 
 SOURCES:
 ${ctx}
@@ -344,7 +344,12 @@ Return JSON:
   ]
 }
 
-Be ADVERSARIAL. Actively look for conflicts. A good analyst finds what others miss.`;
+Be ADVERSARIAL. Actively look for conflicts. A good analyst finds what others miss.
+
+OUTPUT LIMITS (to guarantee complete, parseable JSON):
+- Max 4 contradictions, max 6 consensusPoints, one evidenceHierarchy entry per source.
+- Keep every "reasoning"/"explanation"/"resolution" under 25 words.
+- Output ONLY the JSON object — no markdown, no prose before or after.`;
 
   const response = await callLLM({
     messages: [{ role: "user", content: prompt }],
@@ -383,23 +388,23 @@ async function pass3Synthesis(
   console.log(`[Analyst V3] PASS 3/3: Deep Synthesis...`);
 
   // Build structured intelligence brief from passes 1-2
-  const themeBrief = thematicMap.themes
-    .map(t => `THEME: ${t.name} (${t.confidence} confidence)
-  Sources: ${t.sources.join(", ")}
-  Key data: ${t.dataPoints.slice(0, 3).join("; ")}
-  Methods: ${t.methodologies.join(", ")}`)
+  const themeBrief = (thematicMap.themes ?? [])
+    .map(t => `THEME: ${t.name} (${t.confidence ?? 'low'} confidence)
+  Sources: ${(t.sources ?? []).join(", ")}
+  Key data: ${(t.dataPoints ?? []).slice(0, 3).join("; ")}
+  Methods: ${(t.methodologies ?? []).join(", ")}`)
     .join("\n\n");
 
-  const contradictionBrief = contradictionMap.contradictions
+  const contradictionBrief = (contradictionMap.contradictions ?? [])
     .map(c => `CONTRADICTION:
-  Claim A (${c.claim1.strength}): ${c.claim1.text} — ${c.claim1.sources.join(", ")}
-  Claim B (${c.claim2.strength}): ${c.claim2.text} — ${c.claim2.sources.join(", ")}
-  Why: ${c.explanation}
-  Winner: ${c.winner} — ${c.winnerReasoning}`)
+  Claim A (${c.claim1?.strength ?? 'unknown'}): ${c.claim1?.text ?? ''} — ${(c.claim1?.sources ?? []).join(", ")}
+  Claim B (${c.claim2?.strength ?? 'unknown'}): ${c.claim2?.text ?? ''} — ${(c.claim2?.sources ?? []).join(", ")}
+  Why: ${c.explanation ?? ''}
+  Winner: ${c.winner ?? 'inconclusive'} — ${c.winnerReasoning ?? ''}`)
     .join("\n\n");
 
-  const consensusBrief = contradictionMap.consensusPoints
-    .map(c => `CONSENSUS (${c.strength}, ${c.evidenceQuality} evidence): ${c.claim} — ${c.sources.join(", ")}`)
+  const consensusBrief = (contradictionMap.consensusPoints ?? [])
+    .map(c => `CONSENSUS (${c.strength ?? 'unknown'}, ${c.evidenceQuality ?? 'unknown'} evidence): ${c.claim ?? ''} — ${(c.sources ?? []).join(", ")}`)
     .join("\n");
 
   const evidenceRanking = contradictionMap.evidenceHierarchy
@@ -472,7 +477,7 @@ QUALITY: This is the final output for senior decision-makers. Intellectual rigor
     messages: [{ role: "user", content: prompt }],
     temperature: 0.2,
     jsonMode: true,
-    maxTokens: 12000,
+    maxTokens: 4000,
     enableCache: true,
     task: 'analyst_brief',
   });
@@ -592,7 +597,17 @@ export async function analystAgentV3(
     }
 
     // PASS 2: Contradiction Detection (uses validated Pass 1 output)
-    const p2 = await pass2ContradictionDetection(question, ctx, validatedMap.map, domainContext);
+    let p2: { map: ContradictionMap; tokens: number; cost: number };
+    try {
+      p2 = await pass2ContradictionDetection(question, ctx, validatedMap.map, domainContext);
+    } catch (pass2Err) {
+      console.warn(`[Analyst V3] PASS 2 failed, continuing with empty contradiction map:`, pass2Err);
+      p2 = {
+        map: { contradictions: [], consensusPoints: [], evidenceHierarchy: [] },
+        tokens: 0,
+        cost: 0,
+      };
+    }
 
     // PASS 3: Deep Synthesis (uses Pass 1 + Pass 2 outputs)
     const p3 = await pass3Synthesis(question, ctx, p1.map, p2.map, sources.length, avgQuality, lang, domainContext);

@@ -162,9 +162,9 @@ export default function ArchivesPage() {
       <PublicPageShell currentPage="inquiries" onSignInClick={() => setShowAuthModal(true)} particles={0}>
         <PageSection className="pt-20 sm:pt-28">
           <PageHeader
-            eyebrow="Agentic output"
+            eyebrow="Published positions"
             title="Inquiry archives"
-            description="Probabilistic verdicts published by the think tank. Filter by depth, domain, and confidence."
+            description="Every position we've published. Filter by depth, domain, and confidence."
           />
 
           <div className="flex flex-col lg:flex-row gap-4 mb-6">
@@ -196,7 +196,7 @@ export default function ArchivesPage() {
                 type="button"
                 onClick={() => setDepthFilter(d.id)}
                 className={cn(
-                  "px-3 py-1.5 rounded-lg font-mono text-[10px] uppercase tracking-[0.12em]",
+                  "px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.12em]",
                   depthFilter === d.id ? nx.chipActive : nx.chip
                 )}
               >
@@ -212,7 +212,7 @@ export default function ArchivesPage() {
                 type="button"
                 onClick={() => setDomainFilter(d)}
                 className={cn(
-                  "px-3 py-1 rounded-full font-mono text-[10px] uppercase tracking-[0.1em]",
+                  "px-3 py-1 font-mono text-[10px] uppercase tracking-[0.1em]",
                   domainFilter.toLowerCase() === d.toLowerCase() ||
                     (d === "all" && domainFilter === "all")
                     ? "bg-white/[0.08] text-text border border-white/[0.12]"
@@ -255,7 +255,7 @@ export default function ArchivesPage() {
                     type="button"
                     disabled={page === 0}
                     onClick={() => setPage((p) => p - 1)}
-                    className="p-2 rounded-lg border border-white/[0.08] disabled:opacity-30"
+                    className="p-2 border border-white/[0.08] disabled:opacity-30"
                   >
                     <ChevronLeft size={16} />
                   </button>
@@ -266,7 +266,7 @@ export default function ArchivesPage() {
                     type="button"
                     disabled={page >= totalPages - 1}
                     onClick={() => setPage((p) => p + 1)}
-                    className="p-2 rounded-lg border border-white/[0.08] disabled:opacity-30"
+                    className="p-2 border border-white/[0.08] disabled:opacity-30"
                   >
                     <ChevronRight size={16} />
                   </button>

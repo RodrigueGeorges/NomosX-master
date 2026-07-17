@@ -267,37 +267,68 @@ async function withRetry<T>(fn: () => Promise<T>, label: string): Promise<T> {
   throw lastError;
 }
 
-// Circuit breaker: track provider failures to avoid hammering dead APIs
-const circuitBreaker: Record<string, { failures: number; lastFailure: number; open: boolean }> = {};
+// Circuit breaker: Redis-backed with in-memory fallback for serverless resilience
 const CIRCUIT_BREAKER_THRESHOLD = 3;   // failures before opening circuit
 const CIRCUIT_BREAKER_RESET_MS = 60000; // 1 min cooldown
+const CB_REDIS_TTL = 120;              // Redis TTL in seconds (2x reset window)
+const CB_KEY = (p: string) => `nomosx:cb:llm:${p}`;
 
-function isCircuitOpen(provider: string): boolean {
-  const cb = circuitBreaker[provider];
+interface CBState { failures: number; lastFailure: number; open: boolean }
+const cbMemory: Record<string, CBState> = {}; // in-process fallback
+
+async function getCBState(provider: string): Promise<CBState> {
+  try {
+    const { simpleRedisManager } = await import('../agent/redis-simple');
+    if (simpleRedisManager.isRedisConnected()) {
+      const remote = await simpleRedisManager.get<CBState>(CB_KEY(provider));
+      if (remote) return remote;
+    }
+  } catch { /* Redis unavailable — use in-memory */ }
+  return cbMemory[provider] ?? { failures: 0, lastFailure: 0, open: false };
+}
+
+async function setCBState(provider: string, state: CBState): Promise<void> {
+  cbMemory[provider] = state;
+  try {
+    const { simpleRedisManager } = await import('../agent/redis-simple');
+    if (simpleRedisManager.isRedisConnected()) {
+      await simpleRedisManager.setWithTTL(CB_KEY(provider), state, CB_REDIS_TTL);
+    }
+  } catch { /* Redis unavailable — in-memory only */ }
+}
+
+function isCircuitOpenSync(provider: string): boolean {
+  const cb = cbMemory[provider];
   if (!cb || !cb.open) return false;
   if (Date.now() - cb.lastFailure > CIRCUIT_BREAKER_RESET_MS) {
-    cb.open = false;
-    cb.failures = 0;
+    cbMemory[provider] = { failures: 0, lastFailure: 0, open: false };
     return false;
   }
   return true;
 }
 
-function recordProviderFailure(provider: string): void {
-  if (!circuitBreaker[provider]) {
-    circuitBreaker[provider] = { failures: 0, lastFailure: 0, open: false };
+async function isCircuitOpen(provider: string): Promise<boolean> {
+  const cb = await getCBState(provider);
+  if (!cb.open) return false;
+  if (Date.now() - cb.lastFailure > CIRCUIT_BREAKER_RESET_MS) {
+    await setCBState(provider, { failures: 0, lastFailure: 0, open: false });
+    return false;
   }
-  const cb = circuitBreaker[provider];
-  cb.failures++;
-  cb.lastFailure = Date.now();
-  if (cb.failures >= CIRCUIT_BREAKER_THRESHOLD) {
-    cb.open = true;
-    console.warn(`⚡ Circuit breaker OPEN for ${provider} (${cb.failures} consecutive failures)`);
-  }
+  return true;
 }
 
-function recordProviderSuccess(provider: string): void {
-  circuitBreaker[provider] = { failures: 0, lastFailure: 0, open: false };
+async function recordProviderFailure(provider: string): Promise<void> {
+  const cb = await getCBState(provider);
+  const next: CBState = { failures: cb.failures + 1, lastFailure: Date.now(), open: cb.open };
+  if (next.failures >= CIRCUIT_BREAKER_THRESHOLD) {
+    next.open = true;
+    console.warn(`⚡ Circuit breaker OPEN for ${provider} (${next.failures} consecutive failures)`);
+  }
+  await setCBState(provider, next);
+}
+
+async function recordProviderSuccess(provider: string): Promise<void> {
+  await setCBState(provider, { failures: 0, lastFailure: 0, open: false });
 }
 
 // ============================================================================
@@ -378,7 +409,7 @@ function resolvePrimaryProvider(request: LLMRequest): LLMProvider {
   if (request.producerFamily && (task === "fact_check" || task === "citation_verification")) {
     const opposite = OPPOSITE_FAMILY[request.producerFamily];
     const oppositeProvider = FAMILY_PROVIDER[opposite];
-    if (getClientForProvider(oppositeProvider) && !isCircuitOpen(oppositeProvider)) {
+    if (getClientForProvider(oppositeProvider) && !isCircuitOpenSync(oppositeProvider)) {
       return oppositeProvider;
     }
     // Opposite family unavailable — fall through to task default
@@ -500,32 +531,73 @@ async function callOpenAICompatible(
   model: string,
   request: LLMRequest,
 ): Promise<LLMResponse> {
+  // Reasoning models (deepseek-v4-pro, deepseek-reasoner) ignore
+  // response_format: { type: "json_object" } and output prose/reasoning
+  // traces, causing systematic JSON parse failures. When jsonMode is
+  // requested, auto-substitute with the non-reasoning variant which
+  // honours the parameter and returns clean JSON.
+  let effectiveModel = model;
+  if (request.jsonMode && provider === "deepseek") {
+    const REASONING_MODELS = new Set(["deepseek-v4-pro", "deepseek-reasoner", "deepseek-r1"]);
+    if (REASONING_MODELS.has(model)) {
+      effectiveModel = env.DEEPSEEK_MODEL_FAST || "deepseek-v4-flash";
+    }
+  }
+
+  // GLM is a reasoning model: it consumes tokens in reasoning_content before
+  // producing visible content. Double the maxTokens budget so it has enough
+  // room for both reasoning and output, preventing finish_reason=length with
+  // empty content.
+  let effectiveMaxTokens = request.maxTokens ?? 4000;
+  if (provider === "glm") {
+    effectiveMaxTokens = Math.max(effectiveMaxTokens * 2, 8000);
+  }
+
   const completion = await withRetry(
     () => client.chat.completions.create({
-      model,
+      model: effectiveModel,
       messages: request.messages as any,
       temperature: request.temperature ?? 0.2,
-      max_tokens: request.maxTokens ?? 4000,
+      max_tokens: effectiveMaxTokens,
       response_format: request.jsonMode ? { type: "json_object" } as any : undefined,
     }),
-    `${provider}/${model}`,
+    `${provider}/${effectiveModel}`,
   );
 
-  const content = (completion as any).choices?.[0]?.message?.content || "";
+  const choice = (completion as any).choices?.[0];
+  const message = choice?.message;
+  let content = message?.content || "";
+  // Reasoning models (GLM-5.2, DeepSeek-R1) can leave `content` empty and stream
+  // the answer — or exhaust the token budget — inside `reasoning_content`.
+  // Fall back to it so we don't discard a whole (paid) call — BUT NOT in jsonMode,
+  // where reasoning_content is prose and will never be valid JSON.
+  if (!content.trim() && message?.reasoning_content && !request.jsonMode) {
+    content = message.reasoning_content;
+  }
+  const finishReason = choice?.finish_reason;
   const tokensInput = (completion as any).usage?.prompt_tokens || 0;
   const tokensOutput = (completion as any).usage?.completion_tokens || 0;
   // GLM/z.ai reports prefix-cache hits here when the request prefix matched a prior call
   const cachedInputTokens = (completion as any).usage?.prompt_tokens_details?.cached_tokens || 0;
 
+  // If the model burned tokens but produced no usable text (typically a reasoning
+  // model that hit `length` mid-thought), throw so callLLM fails over to the next
+  // provider instead of returning an empty string that breaks downstream parsing.
+  if (!content.trim()) {
+    throw new Error(
+      `${provider}/${effectiveModel} returned empty content (finish_reason=${finishReason}, out_tokens=${tokensOutput})`
+    );
+  }
+
   return {
     content,
     provider,
-    model,
+    model: effectiveModel,
     family: PROVIDER_FAMILY[provider],
     tokensInput,
     tokensOutput,
     cachedInputTokens: cachedInputTokens > 0 ? cachedInputTokens : undefined,
-    costUsd: calculateCost(provider, model, tokensInput, tokensOutput, cachedInputTokens || undefined),
+    costUsd: calculateCost(provider, effectiveModel, tokensInput, tokensOutput, cachedInputTokens || undefined),
     cached: false,
   };
 }
@@ -560,7 +632,14 @@ async function callAnthropic(request: LLMRequest, model: string): Promise<LLMRes
   const content = completion.content[0]?.type === "text" ? completion.content[0].text : "";
   const tokensInput = completion.usage.input_tokens;
   const tokensOutput = completion.usage.output_tokens;
-  
+
+  if (!content.trim()) {
+    throw new Error(`anthropic/${model} returned empty content (stop_reason=${completion.stop_reason}, out_tokens=${tokensOutput})`);
+  }
+  if (request.jsonMode && !isParseableJson(content)) {
+    throw new Error(`anthropic/${model} returned non-parseable JSON (jsonMode=true) — triggering failover`);
+  }
+
   return {
     content,
     provider: "anthropic",
@@ -609,6 +688,52 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
 }
 
 /**
+ * Tolerant JSON parseability check — mirrors the strategies in agent/json-utils
+ * (direct parse → markdown-fence strip → first-brace extraction → truncation
+ * repair) so that repairable (e.g. length-truncated) payloads still count as
+ * valid and DON'T trigger an unnecessary cross-provider failover. Kept inline
+ * here to avoid a lib/llm → lib/agent dependency.
+ */
+function isParseableJson(raw: string): boolean {
+  if (!raw || typeof raw !== "string") return false;
+  const tryParse = (s: string): boolean => {
+    try { JSON.parse(s); return true; } catch { return false; }
+  };
+  if (tryParse(raw)) return true;
+
+  // Strip markdown fences + extract the outermost {...} or [...] envelope.
+  let s = raw.trim();
+  if (s.charCodeAt(0) === 0xfeff) s = s.slice(1);
+  s = s.replace(/^```(?:json|JSON)?\s*\n?/, "").replace(/\n?```\s*$/, "");
+  const firstObj = s.indexOf("{");
+  const firstArr = s.indexOf("[");
+  const start = firstArr !== -1 && (firstObj === -1 || firstArr < firstObj) ? firstArr : firstObj;
+  const lastObj = s.lastIndexOf("}");
+  const lastArr = s.lastIndexOf("]");
+  const end = Math.max(lastObj, lastArr);
+  if (start === -1) return false;
+  if (end > start && tryParse(s.slice(start, end + 1))) return true;
+
+  // Best-effort truncation repair: close any unterminated string / brackets.
+  let body = s.slice(start);
+  body = body.replace(/,\s*([}\]])/g, "$1");
+  let inString = false, escape = false, braces = 0, brackets = 0;
+  for (let i = 0; i < body.length; i++) {
+    const ch = body[i];
+    if (escape) { escape = false; continue; }
+    if (ch === "\\") { escape = true; continue; }
+    if (ch === '"') { inString = !inString; continue; }
+    if (inString) continue;
+    if (ch === "{") braces++; else if (ch === "}") braces--;
+    else if (ch === "[") brackets++; else if (ch === "]") brackets--;
+  }
+  if (inString) body += '"';
+  while (brackets-- > 0) body += "]";
+  while (braces-- > 0) body += "}";
+  return tryParse(body);
+}
+
+/**
  * Unified LLM call — task-based routing, cross-family fallback, per-provider
  * configurable timeouts, circuit breaker.
  *
@@ -640,10 +765,10 @@ export async function callLLM(request: LLMRequest): Promise<LLMResponse> {
   // Build fallback chain: primary provider, then cross-family order, deduped,
   // skipping providers with no client configured or an open circuit.
   const orderedProviders: LLMProvider[] = [];
-  if (!isCircuitOpen(primaryProvider)) orderedProviders.push(primaryProvider);
+  if (!await isCircuitOpen(primaryProvider)) orderedProviders.push(primaryProvider);
   for (const family of CROSS_FAMILY_FALLBACK[primaryFamily]) {
     const p = FAMILY_PROVIDER[family];
-    if (!orderedProviders.includes(p) && getClientForProvider(p) && !isCircuitOpen(p)) {
+    if (!orderedProviders.includes(p) && getClientForProvider(p) && !await isCircuitOpen(p)) {
       orderedProviders.push(p);
     }
   }
@@ -670,7 +795,18 @@ export async function callLLM(request: LLMRequest): Promise<LLMResponse> {
         );
       }
 
-      recordProviderSuccess(provider);
+      // Robustness: when the caller asked for JSON, verify the payload is
+      // actually parseable (tolerant of fences/truncation). Reasoning models
+      // occasionally emit prose or hidden-thought text; failing over to the
+      // next provider is far better than returning unparseable content that
+      // forces every downstream agent into its degraded fallback.
+      if (request.jsonMode && !isParseableJson(response.content)) {
+        throw new Error(
+          `${provider}/${response.model} returned unparseable JSON (len=${response.content.length})`
+        );
+      }
+
+      await recordProviderSuccess(provider);
 
       const duration = Date.now() - startTime;
       const cacheNote = response.cachedInputTokens ? ` (${response.cachedInputTokens} cache-hit)` : "";
@@ -686,7 +822,7 @@ export async function callLLM(request: LLMRequest): Promise<LLMResponse> {
       return response;
     } catch (error) {
       lastError = error as Error;
-      recordProviderFailure(provider);
+      await recordProviderFailure(provider);
       console.error(`❌ ${provider} failed for task "${task}": ${(error as Error).message}`);
 
       Sentry.captureException(error, {

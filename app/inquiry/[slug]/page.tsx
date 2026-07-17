@@ -242,7 +242,7 @@ export default function InquiryPage() {
               type="button"
               onClick={handleExport}
               disabled={exporting}
-              className="p-2 rounded-lg border border-white/[0.08] text-white/50 disabled:opacity-40"
+              className="p-2 border border-white/[0.08] text-white/50 disabled:opacity-40"
               title="Export"
             >
               {exporting ? (
@@ -265,7 +265,7 @@ export default function InquiryPage() {
                   </span>
                   {inquiry.trustScore != null && (
                     <span
-                      className={`px-3 py-1 rounded-full border text-xs font-medium font-mono ${
+                      className={`px-3 py-1 border text-xs font-medium font-mono ${
                         inquiry.trustScore >= 75
                           ? "border-success/20 bg-success/5 text-success"
                           : inquiry.trustScore >= 50
@@ -312,7 +312,7 @@ export default function InquiryPage() {
                   {protocolItems.map((item) => {
                     const PIcon = item.icon;
                     return (
-                      <div key={item.label} className="rounded-xl border border-white/[0.06] bg-black/20 p-4">
+                      <div key={item.label} className="border border-white/[0.06] bg-black/20 p-4">
                         <PIcon size={15} className="text-white/45 mb-4" />
                         <div className="text-[10px] text-white/25 uppercase tracking-[0.16em] font-mono">{item.label}</div>
                         <div className="text-sm text-white/80 font-semibold mt-1">{item.value}</div>
@@ -328,7 +328,7 @@ export default function InquiryPage() {
                   {inquiry.topics.map((topic) => (
                     <span
                       key={topic}
-                      className="flex items-center gap-1 px-3 py-1 rounded-full border border-white/[0.1] text-white/50 text-xs"
+                      className="flex items-center gap-1 px-3 py-1 border border-white/[0.1] text-white/50 text-xs"
                     >
                       <Tag size={10} />
                       {topic}
@@ -344,7 +344,7 @@ export default function InquiryPage() {
                   { label: "Correction", value: "auditable revisions" },
                   { label: "Limit", value: "confidence over certainty" },
                 ].map((item) => (
-                  <div key={item.label} className="rounded-xl border border-white/[0.06] bg-white/[0.018] px-4 py-3">
+                  <div key={item.label} className="border border-white/[0.06] bg-white/[0.018] px-4 py-3">
                     <div className="text-[10px] text-white/25 uppercase tracking-[0.16em] font-mono">{item.label}</div>
                     <div className="mt-1 text-sm text-white/65">{item.value}</div>
                   </div>

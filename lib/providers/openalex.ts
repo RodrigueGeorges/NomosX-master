@@ -11,6 +11,30 @@ function normalizeDOI(doi: string | null): string | null {
   return doi.replace(/^https?:\/\/(dx\.)?doi\.org\//i, "").toLowerCase();
 }
 
+// ── Concurrency limiter for OpenAlex ──────────────────────────────────────
+// 30+ institutional providers (UN, IMF, World Bank, OECD, NBER, etc.)
+// piggyback on searchOpenAlex(). A simple rate limiter is not enough
+// because requests queue up and burst when released. This semaphore
+// caps concurrent in-flight requests to 3, preventing 429 cascades.
+const MAX_CONCURRENT_OPENALEX = 3;
+let openAlexInFlight = 0;
+const openAlexWaitQueue: Array<() => void> = [];
+
+async function acquireOpenAlexSlot(): Promise<void> {
+  if (openAlexInFlight < MAX_CONCURRENT_OPENALEX) {
+    openAlexInFlight++;
+    return;
+  }
+  await new Promise<void>((resolve) => openAlexWaitQueue.push(resolve));
+  openAlexInFlight++;
+}
+
+function releaseOpenAlexSlot(): void {
+  openAlexInFlight--;
+  const next = openAlexWaitQueue.shift();
+  if (next) next();
+}
+
 export async function searchOpenAlex(query: string, perPage = 25, options?: { filter?: string }): Promise<any[]> {
   const base = env.OPENALEX_API;
   let url = `${base}?search=${encodeURIComponent(query)}&per-page=${perPage}`;
@@ -18,11 +42,23 @@ export async function searchOpenAlex(query: string, perPage = 25, options?: { fi
   if (options?.filter) {
     url += `&filter=${encodeURIComponent(options.filter)}`;
   }
+
+  // OpenAlex rate limits: a free api_key grants the highest throughput; otherwise
+  // the "polite pool" (mailto) grants higher limits than anonymous. This matters
+  // because many providers (OECD, WorldBank, IMF, NBER, WHO-GHO, RePEc) piggyback
+  // on OpenAlex and cause concurrent bursts.
+  if (env.OPENALEX_API_KEY) {
+    url += `&api_key=${encodeURIComponent(env.OPENALEX_API_KEY)}`;
+  } else {
+    const mailto = env.UNPAYWALL_EMAIL || "contact@nomosx.com";
+    url += `&mailto=${encodeURIComponent(mailto)}`;
+  }
   
+  await acquireOpenAlexSlot();
   try {
-    const data = await fetchFromProvider<Resp>("openalex", url, { timeout: 15000 });
+    const data = await fetchFromProvider<Resp>("openalex", url, { timeout: 20000, retries: 1 });
     
-    return (data.results ?? []).map((w: any) => ({
+    const results = (data.results ?? []).map((w: any) => ({
       id: w.id,
       provider: "openalex",
       type: "paper",
@@ -48,8 +84,12 @@ export async function searchOpenAlex(query: string, perPage = 25, options?: { fi
       citationCount: w.cited_by_count ?? null,
       raw: w
     }));
+    console.log(`[OpenAlex] Found ${results.length} works for "${query.slice(0, 50)}"`);
+    return results;
   } catch (error: any) {
     console.error(`[OpenAlex] Search failed: ${error.message}`);
     return [];
+  } finally {
+    releaseOpenAlexSlot();
   }
 }

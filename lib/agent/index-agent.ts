@@ -4,16 +4,42 @@
  */
 
 import { prisma } from '../db';
+import { env } from '../env';
 import { searchROR } from '../providers/ror';
 import { getORCIDById } from '../providers/orcid';
 import { classifyBatchSources } from './domain-classifier';
 import { assertPermission,AgentRole } from '../governance';
-import { validateInstitution, validatePerson, enrichWithKnowledgeGraph, type KGEntity } from '../providers/google-knowledge-graph';
+import { validateInstitution, validatePerson, enrichWithKnowledgeGraph, type KGEntity } from '../providers/wikidata';
+import { enrichAuthorS2 } from '../providers/semantic-scholar-api';
 
 interface NormalizedSource {
   id: string;
   authors: Array<{ name: string; orcid?: string }>;
   institutions: Array<{ name: string; rorId?: string }>;
+}
+
+/**
+ * Run an async mapper over items with a bounded number of concurrent workers.
+ * Used for best-effort network enrichment (ROR / S2) without overwhelming APIs.
+ */
+async function mapWithConcurrency<T>(
+  items: T[],
+  concurrency: number,
+  worker: (item: T, index: number) => Promise<void>
+): Promise<void> {
+  if (items.length === 0) return;
+  let cursor = 0;
+  const runners = Array.from({ length: Math.min(concurrency, items.length) }, async () => {
+    while (cursor < items.length) {
+      const idx = cursor++;
+      try {
+        await worker(items[idx], idx);
+      } catch {
+        /* best-effort — swallow individual failures */
+      }
+    }
+  });
+  await Promise.all(runners);
 }
 
 /**
@@ -76,152 +102,206 @@ export async function indexAgent(sourceIds: string[]): Promise<{ enriched: numbe
   const errors: string[] = [];
   let enriched = 0;
 
-  // P0 FIX #1: Prepare ORCID cache for batch processing
-  const orcidCache = new Map<string, any>();
-  
-  for (const sourceId of sourceIds) {
-    try {
-      const source = await prisma.source.findUnique({ where: { id: sourceId } });
-      if (!source) continue;
-
-      // Parse authors and institutions from raw data
-      const rawAuthors = (source.raw as any)?.authors || [];
-      const rawInstitutions = (source.raw as any)?.institutions || [];
-
-      // P0 FIX #1: Batch enrich ORCID instead of sequential
-      // First, collect all authors that need ORCID
-      const authorsNeedingOrcid = rawAuthors.filter((a: any) => a.orcid && !orcidCache.has(a.orcid));
-      if (authorsNeedingOrcid.length > 0) {
-        const newOrcidData = await enrichAuthorsBatch(authorsNeedingOrcid);
-        newOrcidData.forEach((v, k) => orcidCache.set(k, v));
-      }
-
-      // Enrich authors with ORCID (now using cache)
-      for (const author of rawAuthors) {
-        if (!author.name) continue;
-
-        // Find or create author
-        let authorRecord = await prisma.author.findFirst({
-          where: { name: author.name },
-        });
-
-        if (!authorRecord) {
-          // Use cached ORCID data
-          const orcidData = author.orcid ? orcidCache.get(author.orcid) : null;
-
-          authorRecord = await prisma.author.create({
-            data: {
-              name: author.name,
-              normalizedName: author.name.toLowerCase().trim(),
-              orcid: author.orcid || null,
-              orcidData: orcidData?.raw || null,
-            },
-          });
-        } else if (author.orcid && !authorRecord.orcid) {
-          // Update existing author with cached ORCID
-          const orcidData = orcidCache.get(author.orcid);
-          authorRecord = await prisma.author.update({
-            where: { id: authorRecord.id },
-            data: {
-              orcid: author.orcid,
-              orcidData: orcidData?.raw || null,
-            },
-          });
-        }
-
-        // Create join if doesn't exist
-        await prisma.sourceAuthor.upsert({
-          where: {
-            sourceId_authorId: {
-              sourceId: source.id,
-              authorId: authorRecord.id,
-            },
-          },
-          create: {
-            sourceId: source.id,
-            authorId: authorRecord.id,
-            position: rawAuthors.indexOf(author),
-          },
-          update: {},
-        });
-      }
-
-      // Enrich institutions with ROR
-      for (const institution of rawInstitutions) {
-        if (!institution.name) continue;
-
-        // Find or create institution
-        let institutionRecord = await prisma.institution.findFirst({
-          where: { name: institution.name },
-        });
-
-        if (!institutionRecord) {
-          // Try ROR enrichment
-          let rorData = null;
-          if (institution.rorId) {
-            // Already have ROR ID
-            rorData = { id: institution.rorId, name: institution.name };
-          } else {
-            // Search ROR by name
-            const rorResults = await searchROR(institution.name);
-            if (rorResults.length > 0) {
-              rorData = rorResults[0];
-            }
-          }
-
-          // Google Knowledge Graph validation as fallback/enrichment
-          let kgData: { canonical?: string; entity?: KGEntity } | null = null;
-          if (!rorData) {
-            try {
-              const kgResult = await validateInstitution(institution.name);
-              if (kgResult.valid) {
-                kgData = { canonical: kgResult.canonical, entity: kgResult.entity };
-                console.log(`[Index] KG validated institution: "${institution.name}" → "${kgResult.canonical}"`);
-              }
-            } catch (kgErr) {
-              // KG enrichment is non-critical
-            }
-          }
-
-          institutionRecord = await prisma.institution.create({
-            data: {
-              name: kgData?.canonical || institution.name,
-              normalizedName: (kgData?.canonical || institution.name).toLowerCase().trim(),
-              rorId: rorData?.id || null,
-              rorData: rorData?.raw || null,
-              country: rorData?.country || null,
-              type: rorData?.type || kgData?.entity?.types?.[0] || null,
-            },
-          });
-        } else if (institution.rorId && !institutionRecord.rorId) {
-          // Update existing institution with ROR
-          institutionRecord = await prisma.institution.update({
-            where: { id: institutionRecord.id },
-            data: { rorId: institution.rorId },
-          });
-        }
-
-        // Create join if doesn't exist
-        await prisma.sourceInstitution.upsert({
-          where: {
-            sourceId_institutionId: {
-              sourceId: source.id,
-              institutionId: institutionRecord.id,
-            },
-          },
-          create: {
-            sourceId: source.id,
-            institutionId: institutionRecord.id,
-          },
-          update: {},
-        });
-      }
-
-      enriched++;
-    } catch (error: any) {
-      errors.push(`${sourceId}: ${error.message}`);
-    }
+  if (sourceIds.length === 0) {
+    return { enriched, errors };
   }
+
+  // ── PHASE 1: Batch-load all sources (1 query instead of N) ──
+  const sources = await prisma.source.findMany({ where: { id: { in: sourceIds } } });
+
+  // ── PHASE 2: Collect unique authors + institutions across all sources ──
+  // Keyed by normalizedName (lowercased/trimmed) for dedup. `name` is NOT unique
+  // in the schema, so in-memory dedup before batch-insert keeps writes safe.
+  const authorMap = new Map<string, { name: string; orcid?: string }>();
+  const instMap = new Map<string, { name: string; rorId?: string }>();
+  const perSource: Array<{
+    sourceId: string;
+    authors: Array<{ key: string; position: number }>;
+    institutions: string[];
+  }> = [];
+
+  for (const source of sources) {
+    const rawAuthors = ((source.raw as any)?.authors || []) as Array<{ name?: string; orcid?: string }>;
+    const rawInstitutions = ((source.raw as any)?.institutions || []) as Array<{ name?: string; rorId?: string }>;
+    const sAuthors: Array<{ key: string; position: number }> = [];
+    const sInsts: string[] = [];
+
+    rawAuthors.forEach((a, position) => {
+      const name = a?.name?.trim();
+      if (!name) return;
+      const key = name.toLowerCase();
+      const existing = authorMap.get(key);
+      if (!existing) authorMap.set(key, { name, orcid: a.orcid || undefined });
+      else if (!existing.orcid && a.orcid) existing.orcid = a.orcid;
+      sAuthors.push({ key, position });
+    });
+
+    rawInstitutions.forEach((inst) => {
+      const name = inst?.name?.trim();
+      if (!name) return;
+      const key = name.toLowerCase();
+      const existing = instMap.get(key);
+      if (!existing) instMap.set(key, { name, rorId: inst.rorId || undefined });
+      else if (!existing.rorId && inst.rorId) existing.rorId = inst.rorId;
+      sInsts.push(key);
+    });
+
+    perSource.push({ sourceId: source.id, authors: sAuthors, institutions: sInsts });
+  }
+
+  // ── PHASE 3: Batch-load existing authors/institutions by normalizedName ──
+  const allAuthorKeys = [...authorMap.keys()];
+  const allInstKeys = [...instMap.keys()];
+
+  const [existingAuthors, existingInsts] = await Promise.all([
+    allAuthorKeys.length > 0
+      ? prisma.author.findMany({ where: { normalizedName: { in: allAuthorKeys } } })
+      : Promise.resolve([]),
+    allInstKeys.length > 0
+      ? prisma.institution.findMany({ where: { normalizedName: { in: allInstKeys } } })
+      : Promise.resolve([]),
+  ]);
+
+  const authorIdByKey = new Map<string, string>();
+  for (const a of existingAuthors) authorIdByKey.set(a.normalizedName, a.id);
+  const instIdByKey = new Map<string, string>();
+  for (const inst of existingInsts) instIdByKey.set(inst.normalizedName, inst.id);
+
+  const newAuthorKeys = allAuthorKeys.filter((k) => !authorIdByKey.has(k));
+  const newInstKeys = allInstKeys.filter((k) => !instIdByKey.has(k));
+
+  // ── PHASE 4: Enrich NEW entities (bounded parallel, best-effort) ──
+  // 4a. ORCID (batched, only authors carrying an ORCID id)
+  const orcidCache = await enrichAuthorsBatch(
+    newAuthorKeys.map((k) => authorMap.get(k)!).filter((a) => a.orcid)
+  );
+
+  // 4b. S2 author metrics — gated OFF by default (rate-limited, ~95% failure).
+  const s2ByKey = new Map<string, Awaited<ReturnType<typeof enrichAuthorS2>>>();
+  if (env.INDEX_S2_AUTHOR_ENRICH === "1" && newAuthorKeys.length > 0) {
+    await mapWithConcurrency(newAuthorKeys, 3, async (key) => {
+      const a = authorMap.get(key)!;
+      const data = await enrichAuthorS2(a.name);
+      if (data) s2ByKey.set(key, data);
+    });
+  }
+
+  // 4c. ROR / Wikidata for NEW institutions (bounded parallel)
+  const rorByKey = new Map<string, any>();
+  const kgByKey = new Map<string, { canonical?: string; type?: string }>();
+  await mapWithConcurrency(newInstKeys, 4, async (key) => {
+    const inst = instMap.get(key)!;
+    if (inst.rorId) {
+      rorByKey.set(key, { id: inst.rorId, name: inst.name });
+      return;
+    }
+    try {
+      const rorResults = await searchROR(inst.name);
+      if (rorResults.length > 0) {
+        rorByKey.set(key, rorResults[0]);
+        return;
+      }
+    } catch { /* fall through to Wikidata */ }
+    try {
+      const kgResult = await validateInstitution(inst.name);
+      if (kgResult.valid) {
+        kgByKey.set(key, { canonical: kgResult.canonical, type: kgResult.entity?.types?.[0] });
+      }
+    } catch { /* non-critical */ }
+  });
+
+  // ── PHASE 5: Batch-create NEW authors/institutions ──
+  // normalizedName stays the ORIGINAL key so later lookups are consistent even
+  // when a canonical display name is applied.
+  if (newAuthorKeys.length > 0) {
+    await prisma.author.createMany({
+      data: newAuthorKeys.map((key) => {
+        const a = authorMap.get(key)!;
+        const orcidData = a.orcid ? orcidCache.get(a.orcid) : null;
+        const s2 = s2ByKey.get(key);
+        return {
+          name: a.name,
+          normalizedName: key,
+          orcid: a.orcid || null,
+          orcidData: orcidData?.raw || null,
+          h_index: s2?.hIndex ?? null,
+          citationCount: s2?.citationCount ?? null,
+          publicationCount: s2?.paperCount ?? null,
+          affiliations: s2?.affiliations || [],
+        };
+      }),
+      skipDuplicates: true,
+    });
+  }
+  if (newInstKeys.length > 0) {
+    await prisma.institution.createMany({
+      data: newInstKeys.map((key) => {
+        const inst = instMap.get(key)!;
+        const ror = rorByKey.get(key);
+        const kg = kgByKey.get(key);
+        return {
+          name: kg?.canonical || inst.name,
+          normalizedName: key,
+          rorId: ror?.id || null,
+          rorData: ror?.raw || null,
+          country: ror?.country || null,
+          type: ror?.type || kg?.type || null,
+        };
+      }),
+      skipDuplicates: true,
+    });
+  }
+
+  // Reload newly-created ids and merge into the key→id maps
+  const [freshAuthors, freshInsts] = await Promise.all([
+    newAuthorKeys.length > 0
+      ? prisma.author.findMany({
+          where: { normalizedName: { in: newAuthorKeys } },
+          select: { id: true, normalizedName: true },
+        })
+      : Promise.resolve([]),
+    newInstKeys.length > 0
+      ? prisma.institution.findMany({
+          where: { normalizedName: { in: newInstKeys } },
+          select: { id: true, normalizedName: true },
+        })
+      : Promise.resolve([]),
+  ]);
+  for (const a of freshAuthors) authorIdByKey.set(a.normalizedName, a.id);
+  for (const inst of freshInsts) instIdByKey.set(inst.normalizedName, inst.id);
+
+  // ── PHASE 6: Batch-create join rows (skipDuplicates handles re-index) ──
+  const sourceAuthorRows: Array<{ sourceId: string; authorId: string; position: number }> = [];
+  const sourceInstRows: Array<{ sourceId: string; institutionId: string }> = [];
+
+  for (const ps of perSource) {
+    const seenAuthors = new Set<string>();
+    for (const { key, position } of ps.authors) {
+      const authorId = authorIdByKey.get(key);
+      if (!authorId || seenAuthors.has(authorId)) continue;
+      seenAuthors.add(authorId);
+      sourceAuthorRows.push({ sourceId: ps.sourceId, authorId, position });
+    }
+    const seenInsts = new Set<string>();
+    for (const key of ps.institutions) {
+      const institutionId = instIdByKey.get(key);
+      if (!institutionId || seenInsts.has(institutionId)) continue;
+      seenInsts.add(institutionId);
+      sourceInstRows.push({ sourceId: ps.sourceId, institutionId });
+    }
+    enriched++;
+  }
+
+  if (sourceAuthorRows.length > 0) {
+    await prisma.sourceAuthor.createMany({ data: sourceAuthorRows, skipDuplicates: true });
+  }
+  if (sourceInstRows.length > 0) {
+    await prisma.sourceInstitution.createMany({ data: sourceInstRows, skipDuplicates: true });
+  }
+
+  console.log(
+    `[Index] Batched: ${sources.length} sources, ${newAuthorKeys.length} new authors, ${newInstKeys.length} new institutions, ${sourceAuthorRows.length} author-links, ${sourceInstRows.length} inst-links`
+  );
 
   // Classify sources into domains (automatic)
   try {
@@ -231,9 +311,8 @@ export async function indexAgent(sourceIds: string[]): Promise<{ enriched: numbe
     console.warn("Domain classification failed:", error.message);
   }
 
-  // Google Knowledge Graph entity enrichment (batch, non-blocking)
-  if (process.env.GOOGLE_KNOWLEDGE_GRAPH_API_KEY) {
-    try {
+  // Wikidata entity enrichment (batch, non-blocking, free)
+  try {
       const sourcesToEnrich = await prisma.source.findMany({
         where: { id: { in: sourceIds } },
         select: { id: true, title: true, abstract: true },
@@ -282,13 +361,12 @@ export async function indexAgent(sourceIds: string[]): Promise<{ enriched: numbe
         }
 
         if (kgEnriched > 0) {
-          console.log(`[Index] Google KG enriched ${kgEnriched}/${titlesWithAbstract.length} sources with entity data`);
+          console.log(`[Index] Wikidata enriched ${kgEnriched}/${titlesWithAbstract.length} sources with entity data`);
         }
       }
     } catch (kgError: any) {
-      console.warn("[Index] Google KG enrichment failed (non-critical):", kgError.message);
+      console.warn("[Index] Wikidata enrichment failed (non-critical):", kgError.message);
     }
-  }
 
   return { enriched, errors };
 }

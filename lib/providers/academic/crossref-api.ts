@@ -3,21 +3,21 @@
  * Recherche de publications académiques via Crossref
  */
 
+import { fetchFromProvider } from '../../http-client';
+
 export async function searchCrossref(query: string, limit: number = 10): Promise<any[]> {
   try {
-    const response = await fetch(`https://api.crossref.org/works?query=${encodeURIComponent(query)}&rows=${limit}`, {
-      headers: {
-        'User-Agent': 'NomosX/1.0 (mailto:contact@nomosx.com)'
-      }
+    const url = `https://api.crossref.org/works?query=${encodeURIComponent(query)}&rows=${limit}`;
+    const data: any = await fetchFromProvider("crossref", url, {
+      timeout: 15000,
+      retries: 4,
+      headers: { 'User-Agent': 'NomosX/1.0 (mailto:contact@nomosx.com)' },
     });
     
-    if (!response.ok) {
-      throw new Error(`Crossref API error: ${response.status}`);
-    }
+    const items = data.message.items || [];
+    console.log(`[Crossref] Found ${items.length} works for "${query.slice(0, 50)}"`);
     
-    const data = await response.json();
-    
-    return data.message.items.map((item: any) => ({
+    return items.map((item: any) => ({
       id: `crossref:${item.DOI}`,
       provider: 'crossref',
       type: 'academic',
@@ -26,7 +26,9 @@ export async function searchCrossref(query: string, limit: number = 10): Promise
       url: item.URL,
       pdfUrl: item.link?.find((link: any) => link['content-type'] === 'application/pdf')?.URL || '',
       year: item.published?.['date-parts']?.[0]?.[0] || new Date().getFullYear(),
-      authors: item.author?.map((a: any) => `${a.given} ${a.family}`) || [],
+      authors: (item.author || []).map((a: any) => ({
+        name: `${a.given} ${a.family}`.trim(),
+      })).filter((a: any) => a.name),
       citationCount: item['is-referenced-by-count'] || 0,
       oaStatus: item.license ? 'open' : 'unknown',
       documentType: 'journal-article',
@@ -39,7 +41,7 @@ export async function searchCrossref(query: string, limit: number = 10): Promise
       raw: item
     }));
   } catch (error: any) {
-    console.error('Crossref API error:', error.message);
+    console.error(`[Crossref] Search failed: ${error.message}`);
     return [];
   }
 }

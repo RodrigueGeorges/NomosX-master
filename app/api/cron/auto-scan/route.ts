@@ -4,7 +4,7 @@ import { runThinkTankCycle, getThinkTankStatus } from "@/lib/agent/think-tank-di
 /**
  * POST /api/cron/auto-scan
  *
- * Autonomous think tank — breaking cycle (2×/day).
+ * Think tank — breaking cycle (2×/day).
  * Thin wrapper → ThinkTankDispatcher (mode: breaking).
  */
 export async function POST(req: NextRequest) {
@@ -68,7 +68,7 @@ export async function GET(req: NextRequest) {
   const status = await getThinkTankStatus();
 
   return NextResponse.json({
-    message: "NomosX Think Tank — autonomous dispatcher",
+    message: "NomosX Think Tank — dispatcher",
     ...status,
   });
 }

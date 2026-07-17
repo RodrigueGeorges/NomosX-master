@@ -288,6 +288,68 @@ body {
   color: var(--nx-text-primary);
 }
 
+/* === Signature hero atmosphere — technical grid + horizon (no photography) === */
+.nx-grid-bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(240, 240, 250, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(240, 240, 250, 0.035) 1px, transparent 1px);
+  background-size: 72px 72px;
+  -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 45%, black 0%, transparent 70%);
+  mask-image: radial-gradient(ellipse 80% 60% at 50% 45%, black 0%, transparent 70%);
+}
+
+.nx-horizon-glow {
+  position: absolute;
+  left: 50%;
+  bottom: -18rem;
+  transform: translateX(-50%);
+  width: 140%;
+  height: 24rem;
+  pointer-events: none;
+  background: radial-gradient(ellipse 50% 100% at 50% 100%, rgba(240, 240, 250, 0.07) 0%, transparent 65%);
+  border-radius: 50% 50% 0 0;
+}
+
+@keyframes grid-pan {
+  from { background-position: 0 0, 0 0; }
+  to   { background-position: 0 72px, 72px 0; }
+}
+.nx-grid-bg-animated { animation: grid-pan 24s linear infinite; }
+
+/* Instrument scan sweep — full-height card pass, then rest */
+@keyframes scan-sweep {
+  0%   { top: -20%; opacity: 0; }
+  6%   { opacity: 1; }
+  38%  { opacity: 1; }
+  44%  { top: 110%; opacity: 0; }
+  100% { top: 110%; opacity: 0; }
+}
+.nx-scan-sweep {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 4rem;
+  animation: scan-sweep 9s ease-in-out infinite;
+}
+
+/* Accessibility — kill decorative motion for users who opt out */
+@media (prefers-reduced-motion: reduce) {
+  .nx-grid-bg-animated,
+  .animate-marquee,
+  .animate-marquee-slow,
+  .animate-scanline,
+  .nx-scan-sweep,
+  .animate-float,
+  .animate-breathe,
+  .animate-spin-slow,
+  .animate-spin-reverse {
+    animation: none !important;
+  }
+}
+
 /* === NomosX Public Surface — SpaceX grammar === */
 .nx-public-eyebrow {
   font-family: var(--font-sans);

@@ -1,3 +1,5 @@
+import { getRateLimiter } from '../http-client';
+
 /**
  * NomosX News SCOUT Providers
  * 
@@ -59,12 +61,32 @@ function makeId(provider: string, raw: string): string {
  */
 export async function searchGDELTNews(query: string, limit = 30): Promise<ScoutNewsResult[]> {
   try {
-    const encoded = encodeURIComponent(query);
+    // GDELT rejects keywords shorter than 3 chars — filter them out
+    const cleanQuery = query.split(/\s+/).filter(w => w.length >= 3).join(' ').trim();
+    if (!cleanQuery || cleanQuery.length < 5) {
+      console.warn(`[SCOUT/GDELT] Query too short after filtering, skipping`);
+      return [];
+    }
+    const encoded = encodeURIComponent(cleanQuery);
     const url = `https://api.gdeltproject.org/api/v2/doc/doc?query=${encoded}&mode=ArtList&maxrecords=${Math.min(limit, 250)}&format=json&sort=DateDesc&timespan=14d`;
 
-    const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
-    if (!res.ok) {
-      console.warn(`[SCOUT/GDELT] HTTP ${res.status}`);
+    // GDELT soft-rate-limits (~1 req / 5s) → use rate limiter to serialize
+    const limiter = getRateLimiter('gdelt-news');
+    if (limiter) await limiter.acquire();
+
+    let res: Response | null = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      res = await fetch(url, {
+        signal: AbortSignal.timeout(15000),
+        headers: { 'User-Agent': 'NomosX Research Bot (+https://nomosx.com)' },
+      });
+      if (res.status !== 429) break;
+      const wait = 3000 * (attempt + 1);
+      console.warn(`[SCOUT/GDELT] HTTP 429, retrying in ${wait}ms (${attempt + 1}/3)`);
+      await new Promise(r => setTimeout(r, wait));
+    }
+    if (!res || !res.ok) {
+      console.warn(`[SCOUT/GDELT] HTTP ${res?.status ?? 'no-response'}`);
       return [];
     }
 

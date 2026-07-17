@@ -1,7 +1,7 @@
 /**
  * ENS - Écoles Normales Supérieures (Paris, Lyon, PSL)
  * Uses OpenAlex with multi-ROR filter covering ENS Paris + ENS Lyon
- * ENS Paris ROR: 05a0dhs15 | ENS Lyon ROR: 04zmz0h21
+ * ENS Paris ROR: 05a0dhs15 | ENS Lyon ROR: 04zmssz18
  */
 
 import { searchOpenAlex } from '../../openalex';
@@ -14,7 +14,7 @@ export async function searchENS(query: string, limit = 15): Promise<any[]> {
         filter: 'authorships.institutions.ror:https://ror.org/05a0dhs15',
       }),
       searchOpenAlex(query, Math.ceil(limit / 2), {
-        filter: 'authorships.institutions.ror:https://ror.org/04zmz0h21',
+        filter: 'authorships.institutions.ror:https://ror.org/04zmssz18',
       }),
     ]);
 

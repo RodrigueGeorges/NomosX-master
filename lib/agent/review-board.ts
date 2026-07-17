@@ -441,7 +441,7 @@ This is the FINAL output. Make it worthy of a Harvard Kennedy School policy brie
       },
     ],
     temperature: 0.2,
-    maxTokens: 6000,
+    maxTokens: 3000,
     jsonMode: true,
     task: 'meta_analysis',
   });

@@ -45,7 +45,7 @@ export default function MethodologyPage() {
             title={
               <>
                 How {BRAND_NAME} produces{" "}
-                <span className="text-white/70">probable futures.</span>
+                <span className="text-white/70">a position worth defending.</span>
               </>
             }
             description={METHODOLOGY_INTRO}
@@ -56,7 +56,7 @@ export default function MethodologyPage() {
         <PipelineStrip />
 
         <PageSection>
-          <PageHeader eyebrow="Process" title="From collision to decision" />
+          <PageHeader eyebrow="Process" title="From question to position" />
           <div className="grid sm:grid-cols-2 gap-4">
             {METHOD_BLOCKS.map(({ name, desc }) => {
               const Icon = METHOD_ICONS[name];
@@ -74,8 +74,7 @@ export default function MethodologyPage() {
         <PageSection className="nx-public-section">
           <PageHeader
             eyebrow="Standards"
-            title="Institutional rigor"
-            description="What separates an inquiry from a summary."
+            title="What separates us from a summary"
           />
           <div className="grid sm:grid-cols-2 gap-4">
             {STANDARDS.map(({ icon: Icon, title, text }) => (

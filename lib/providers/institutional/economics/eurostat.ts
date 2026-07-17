@@ -57,7 +57,7 @@ export async function searchEurostat(query: string, limit = 15): Promise<any[]> 
   // Fallback: OpenAlex with European Commission affiliation
   try {
     const results = await searchOpenAlex(`${query} European statistics EU Eurostat`, limit, {
-      filter: 'authorships.institutions.ror:https://ror.org/02az9a613',
+      filter: 'authorships.institutions.ror:https://ror.org/00k4n6c32',
     });
     const mapped = results.map(r => ({
       ...r,

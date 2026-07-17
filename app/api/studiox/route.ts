@@ -20,7 +20,7 @@ import { enqueueStudioXPipeline } from '@/lib/studiox/enqueue';
 
 export const dynamic = 'force-dynamic';
 
-const STUDIOX_SYSTEM_PROMPT = `You are StudioX — the research assistant at NomosX, an autonomous AI think tank.
+const STUDIOX_SYSTEM_PROMPT = `You are StudioX — the research assistant at NomosX, a strategic intelligence think tank.
 
 YOUR CAPABILITIES:
 - Triage the user's intent into one of five modes: ASK, COMMISSION, MONITOR, COMPARE, BOARD_MEMO

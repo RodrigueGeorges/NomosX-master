@@ -88,17 +88,22 @@ async function extractPdfText(url: string, timeout = 15000): Promise<string | nu
       },
     });
 
-    // Use require for pdf-parse (CommonJS module)
-    const pdfParse = require('pdf-parse');
-    const data = await pdfParse(Buffer.from(response.data));
+    // Use dynamic import for pdf-parse (new API: PDFParse class)
+    const { PDFParse } = await import('pdf-parse');
+    const parser = new PDFParse({ data: Buffer.from(response.data) });
+    const data = await parser.getText();
+    let numPages = 0;
+    try { const info = await parser.getInfo(); numPages = info.total; } catch {}
+    try { await parser.destroy(); } catch {}
 
-    if (!data.text || data.text.trim().length < 100) {
-      console.log(`[Reader V3] PDF parsed but too short (${data.text?.length || 0} chars)`);
+    const text = data?.text || '';
+    if (text.trim().length < 100) {
+      console.log(`[Reader V3] PDF parsed but too short (${text.length} chars)`);
       return null;
     }
 
-    console.log(`[Reader V3] PDF extracted: ${data.text.length} chars, ${data.numpages} pages`);
-    return data.text;
+    console.log(`[Reader V3] PDF extracted: ${text.length} chars, ${numPages} pages`);
+    return text;
   } catch (error: any) {
     console.warn(`[Reader V3] PDF extraction failed: ${error.message}`);
     return null;
@@ -566,7 +571,7 @@ export async function readerAgentV3(
 ): Promise<ReadingResultV3[]> {
   assertPermission(AgentRole.READER, "write:claims");
 
-  const { enablePdf = true, maxConcurrency = 5, timeout = 20000, domain } = options;
+  const { enablePdf = true, maxConcurrency = 5, timeout = 90000, domain } = options;
   _currentDomain = domain;
   if (domain) console.log(`[Reader V3] Domain-aware mode: ${domain}`);
 

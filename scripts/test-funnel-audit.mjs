@@ -78,7 +78,7 @@ console.log("  Pages:", pageOk + "/" + pages.length);
 
 // ── 5. Key providers ──
 console.log("\n== 5. Providers ==");
-const provs = ["lib/providers/news-intelligence.ts","lib/providers/registry-bridge.ts","lib/providers/openalex-provider-factory.js","lib/providers/google-knowledge-graph.ts"];
+const provs = ["lib/providers/wikidata.ts","lib/providers/registry-bridge.ts","lib/providers/linkup-sdk.ts","lib/providers/openalex.ts"];
 let provOk = 0;
 for (const p of provs) {
   if (fs.existsSync(path.join(ROOT, p))) provOk++;

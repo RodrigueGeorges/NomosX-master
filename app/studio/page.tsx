@@ -190,7 +190,7 @@ function StudioPageContent() {
             <PageHeader
               eyebrow="NomosX Studio"
               title="NomosX Studio"
-              description="Commission custom inquiries through the full pipeline. Pay per commission — no subscription."
+              description="Commission custom inquiries through the full verification protocol. Pay per commission — no subscription."
               align="center"
             />
             <button
@@ -221,12 +221,12 @@ function StudioPageContent() {
           <PageHeader
             eyebrow="NomosX Studio"
             title="NomosX Studio"
-            description="Commission the engine directly. Pay per research mandate — no subscription."
+            description="Commission a custom inquiry. Pay per mandate — no subscription."
             align="center"
           />
 
           {cancelled && (
-            <div className="mb-6 flex items-center gap-3 rounded-xl border border-red-500/20 bg-red-500/5 px-5 py-4 text-sm text-red-300">
+            <div className="mb-6 flex items-center gap-3 border border-red-500/20 bg-red-500/5 px-5 py-4 text-sm text-red-300">
               <AlertCircle size={16} className="flex-shrink-0" />
               Payment cancelled — your mandate is saved. Commission again when ready.
             </div>
@@ -252,19 +252,19 @@ function StudioPageContent() {
             </div>
           )}
           {orderStatus === 'done' && (
-            <div className="mb-6 flex items-center gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-5 py-4 text-sm text-emerald-300">
+            <div className="mb-6 flex items-center gap-3 border border-emerald-500/20 bg-emerald-500/5 px-5 py-4 text-sm text-emerald-300">
               <CheckCircle size={16} className="flex-shrink-0" />
               Research complete — your deliverable is ready below.
             </div>
           )}
           {orderStatus === 'failed' && failureReason && (
-            <div className="mb-6 flex items-center gap-3 rounded-xl border border-red-500/20 bg-red-500/5 px-5 py-4 text-sm text-red-300">
+            <div className="mb-6 flex items-center gap-3 border border-red-500/20 bg-red-500/5 px-5 py-4 text-sm text-red-300">
               <AlertCircle size={16} className="flex-shrink-0" />
               {failureReason}
             </div>
           )}
           {orderStatus === 'refunded' && failureReason && (
-            <div className="mb-6 flex items-center gap-3 rounded-xl border border-amber-500/20 bg-amber-500/5 px-5 py-4 text-sm text-amber-200">
+            <div className="mb-6 flex items-center gap-3 border border-amber-500/20 bg-amber-500/5 px-5 py-4 text-sm text-amber-200">
               <AlertCircle size={16} className="flex-shrink-0" />
               {failureReason}
             </div>
@@ -481,7 +481,7 @@ function StudioPageContent() {
                   <iframe
                     title="Research Result"
                     srcDoc={result}
-                    className="w-full rounded-xl border border-white/10 bg-white"
+                    className="w-full border border-white/10 bg-white"
                     style={{ height: '80vh' }}
                     sandbox="allow-same-origin"
                   />
@@ -496,12 +496,12 @@ function StudioPageContent() {
 
           {!result && !loading && orderStatus === 'idle' && !cancelled && (
             <div className="text-center py-12">
-              <div className="w-20 h-20 rounded-full bg-white/[0.02] flex items-center justify-center mx-auto mb-6">
+              <div className="w-20 h-20 bg-white/[0.02] flex items-center justify-center mx-auto mb-6">
                 <Layers size={40} className="text-white/20" />
               </div>
               <h3 className="text-2xl font-semibold text-white mb-2">Ready to commission</h3>
               <p className="text-white/40 max-w-md mx-auto">
-                Define your research question, choose a format, and pay to launch the agentic pipeline.
+                Define your research question, choose a format, and launch a custom inquiry.
               </p>
             </div>
           )}

@@ -10,7 +10,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     select: { title: true, html: true },
   });
 
-  let description = 'Intelligence brief published by the NomosX autonomous think tank.';
+  let description = 'Intelligence brief published by NomosX.';
   if (brief?.html) {
     const firstP = brief.html.match(/<p[^>]*>([\s\S]*?)<\/p>/i);
     if (firstP) {

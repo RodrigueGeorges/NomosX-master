@@ -11,7 +11,7 @@ import { searchOrcid } from './orcid';
 import { searchSemanticscholar } from './semantic-scholar';
 import { searchCore } from './core';
 import { searchBase } from './base';
-import { searchOpenaire } from './openaire';
+import { searchOpenAIRE as searchOpenaire } from './openaire';
 import { searchArxiv } from './arxiv';
 import { searchPubMed } from './pubmed';
 import { searchNature } from './nature';
@@ -103,7 +103,7 @@ import { searchWipo } from './patents/wipo';
 
 // Data research providers
 import { searchFigshare } from './data_research/figshare';
-import { searchZenodo } from './data_research/zenodo';
+import { searchZenodo } from './zenodo';
 import { searchKaggle } from './data_research/kaggle';
 import { searchHuggingface } from './data_research/huggingface';
 import { searchDataverse } from './data_research/dataverse';
@@ -773,10 +773,10 @@ export async function searchExtendedProviders(query: string, options: any = {}) 
 
 // Domain-aware provider selection for extended registry
 const DOMAIN_EXTENDED_PROVIDERS: Record<string, string[]> = {
-  health: ['who', 'nih', 'cdc', 'fda', 'lancet', 'nature'],
+  health: ['who', 'nih', 'cdc', 'fda', 'lancet', 'nature', 'pubmed'],
   ai: ['deepmind', 'openai-research', 'google-ai', 'microsoft-research', 'anthropic', 'nvidia-research', 'huggingface'],
   climate: ['ipcc', 'unep', 'iea', 'wri', 'climate-analytics', 'nasa', 'noaa', 'epa'],
-  economics: ['mckinsey', 'goldman-sachs', 'jpmorgan', 'blackrock', 'brookings', 'carnegie'],
+  economics: ['mckinsey', 'goldman-sachs', 'jpmorgan', 'blackrock', 'brookings', 'carnegie', 'repec', 'nber'],
   geopolitics: ['chatham-house', 'cfr', 'rand', 'iiss', 'carnegie', 'brookings', 'wilson-center', 'stimson-center'],
   security: ['rand', 'iiss', 'cato-institute', 'heritage-foundation', 'new-america', 'stimson-center'],
   science: ['nature', 'science', 'cell', 'pnas', 'springer', 'elsevier', 'nasa', 'nih'],
@@ -787,6 +787,21 @@ const DOMAIN_EXTENDED_PROVIDERS: Record<string, string[]> = {
   environment: ['ipcc', 'unep', 'iucn', 'wri', 'climate-analytics', 'iea', 'greenpeace', 'wwf', 'nasa', 'noaa', 'epa'],
   policy: ['brookings', 'carnegie', 'rand', 'heritage-foundation', 'new-america', 'aspen-institute', 'wilson-center'],
   data: ['figshare', 'zenodo', 'kaggle', 'huggingface', 'dataverse'],
+  // New domain-specific academic providers
+  psychology: ['psychology', 'pubmed', 'semanticscholar'],
+  sociology: ['sociology', 'isidore', 'persee'],
+  history: ['history', 'isidore', 'persee'],
+  geography: ['geography', 'nasa', 'noaa'],
+  chemistry: ['chemistry', 'pubmed', 'openalex'],
+  biology: ['biology', 'pubmed', 'openalex'],
+  'political-science': ['political-science', 'brookings', 'carnegie', 'rand'],
+  education: ['eric', 'isidore'],
+  philosophy: ['philpapers', 'isidore'],
+  agriculture: ['fao', 'openalex'],
+  criminology: ['unodc', 'openalex'],
+  'open-science': ['openaire', 'zenodo', 'base', 'core'],
+  'computer-science': ['dblp', 'arxiv', 'github', 'huggingface'],
+  mathematics: ['zbmath', 'arxiv', 'openalex'],
 };
 
 export function getExtendedProvidersForDomain(domain: string): string[] {
@@ -794,7 +809,7 @@ export function getExtendedProvidersForDomain(domain: string): string[] {
 }
 
 export function getProviderType(provider: string): RegistrySearchResult['type'] {
-  const academicProviders = ['openalex', 'crossref', 'orcid', 'semantic-scholar', 'core', 'base', 'openaire', 'arxiv', 'pubmed', 'nature', 'science', 'cell', 'lancet', 'pnas', 'springer', 'elsevier', 'wiley', 'taylor-francis', 'sage', 'oxford', 'cambridge'];
+  const academicProviders = ['openalex', 'crossref', 'orcid', 'semantic-scholar', 'core', 'base', 'openaire', 'arxiv', 'pubmed', 'nature', 'science', 'cell', 'lancet', 'pnas', 'springer', 'elsevier', 'wiley', 'taylor-francis', 'sage', 'oxford', 'cambridge', 'isidore', 'persee', 'philpapers', 'eric', 'fao', 'unodc', 'zenodo', 'psychology', 'sociology', 'history', 'geography', 'chemistry', 'biology', 'political-science', 'business', 'dblp', 'zbmath'];
   const businessProviders = ['mckinsey', 'bcg', 'bain', 'deloitte', 'pwc', 'ey', 'kpmg', 'accenture', 'blackrock', 'goldman-sachs', 'jpmorgan', 'morgan-stanley', 'credit-suisse', 'ubs', 'deutsche-bank'];
   const thinkTankProviders = ['brookings', 'carnegie', 'chatham-house', 'rand', 'cfr', 'wilson-center', 'heritage-foundation', 'stimson-center', 'adl', 'cato-institute', 'new-america', 'iiss', 'aspen-institute'];
   const governmentProviders = ['worldbank', 'imf', 'who', 'unep', 'oecd', 'undp', 'nasa', 'nih', 'nsf', 'cdc', 'epa', 'fda', 'noaa'];

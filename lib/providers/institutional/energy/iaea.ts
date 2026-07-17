@@ -1,7 +1,7 @@
 /**
  * IAEA - International Atomic Energy Agency
  * Uses OpenAlex with IAEA ROR filter (reliable, no API key required)
- * ROR: https://ror.org/00h1hpe16
+ * ROR: https://ror.org/02zt1gg83
  */
 
 import { searchOpenAlex } from '../../openalex';
@@ -10,7 +10,7 @@ export async function searchIAEA(query: string, limit = 15): Promise<any[]> {
   console.log(`[IAEA] Searching via OpenAlex ROR for: "${query}"`);
   try {
     const results = await searchOpenAlex(query, limit, {
-      filter: 'authorships.institutions.ror:https://ror.org/00h1hpe16',
+      filter: 'authorships.institutions.ror:https://ror.org/02zt1gg83',
     });
     const mapped = results.map(r => ({
       ...r,

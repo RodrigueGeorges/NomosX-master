@@ -1,8 +1,9 @@
 import Link from 'next/link';
+import { LegalPageShell } from '@/components/layout/LegalPageShell';
 
 export default function TermsPage() {
   return (
-    <>
+    <LegalPageShell>
       <div className="mb-12">
         <p className="font-mono text-[10px] text-white/35 tracking-[0.2em] uppercase mb-3">Legal</p>
         <h1 className="font-display text-4xl font-semibold text-white mb-3">Terms of Service</h1>
@@ -21,7 +22,7 @@ export default function TermsPage() {
         <section>
           <h2 className="text-lg font-medium text-text mb-3">2. Description of Service</h2>
           <p>
-            NomosX is an agentic research intelligence platform. Our AI pipeline collects, analyzes,
+            NomosX is a research intelligence platform. Our system collects, analyzes,
             and publishes research inquiries sourced from publicly available academic publications.
           </p>
         </section>
@@ -72,7 +73,7 @@ export default function TermsPage() {
         <Link href="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
         <Link href="/" className="hover:text-white transition-colors">← Back to NomosX</Link>
       </div>
-    </>
+    </LegalPageShell>
   );
 }
 

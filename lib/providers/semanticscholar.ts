@@ -13,11 +13,14 @@ import { fetchFromProvider } from '../http-client';
 import { env } from '../env';
 
 export async function searchSemanticScholar(query: string, limit = 50): Promise<any[]> {
+  // env.SEMANTICSCHOLAR_API already points to the /paper/search endpoint
   const base = env.SEMANTICSCHOLAR_API;
-  const url = `${base}/paper/search?query=${encodeURIComponent(query)}&limit=${limit}&fields=paperId,title,abstract,year,citationCount,authors,openAccessPdf,url,externalIds,venue,publicationTypes`;
+  const url = `${base}?query=${encodeURIComponent(query)}&limit=${limit}&fields=paperId,title,abstract,year,citationCount,authors,openAccessPdf,url,externalIds,venue,publicationTypes`;
   
   try {
-    const data: any = await fetchFromProvider("semanticscholar", url, { timeout: 15000 });
+    const headers: Record<string, string> = {};
+    if (env.SEMANTICSCHOLAR_API_KEY) headers["x-api-key"] = env.SEMANTICSCHOLAR_API_KEY;
+    const data: any = await fetchFromProvider("semanticscholar", url, { timeout: 20000, retries: 4, headers });
     const items = data?.data || [];
     
     console.log(`[SemanticScholar] Found ${items.length} papers`);

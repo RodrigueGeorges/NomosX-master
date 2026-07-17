@@ -1,7 +1,7 @@
 /**
  * CEA - Commissariat à l'Énergie Atomique et aux Énergies Alternatives (France)
  * Uses OpenAlex with CEA ROR filter
- * ROR: https://ror.org/02s377d40
+ * ROR: https://ror.org/00jjx8s55
  */
 
 import { searchOpenAlex } from '../../openalex';
@@ -10,7 +10,7 @@ export async function searchCEA(query: string, limit = 15): Promise<any[]> {
   console.log(`[CEA] Searching via OpenAlex ROR for: "${query}"`);
   try {
     const results = await searchOpenAlex(query, limit, {
-      filter: 'authorships.institutions.ror:https://ror.org/02s377d40',
+      filter: 'authorships.institutions.ror:https://ror.org/00jjx8s55',
     });
     const mapped = results.map(r => ({
       ...r,

@@ -12,7 +12,7 @@ export async function searchFranceStrategie(query: string, limit = 15): Promise<
     const results = await searchOpenAlex(
       `${query} politique publique France stratégie prospective`,
       limit,
-      { filter: 'authorships.institutions.ror:https://ror.org/03xez6b38' } // Sciences Po proxy
+      { filter: 'authorships.institutions.ror:https://ror.org/00mpxgs49' } // Sciences Po proxy
     );
     const mapped = results.map(r => ({
       ...r,

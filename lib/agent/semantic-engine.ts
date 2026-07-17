@@ -2,7 +2,7 @@
  * NomosX Semantic Engine
  * 
  * Replaces keyword/n-gram matching with real vector embeddings.
- * Uses OpenAI text-embedding-3-large (3072 dims) for:
+ * Uses OpenAI text-embedding-3-small (1536 dims) for:
  * 
  * 1. Source embedding — embed title+abstract at ingestion time
  * 2. Query embedding — embed search queries for semantic retrieval
@@ -25,8 +25,8 @@ import type { SourceForScoring, RelevanceScore } from './relevance-scorer';
 // CONFIG
 // ============================================================================
 
-const EMBEDDING_MODEL = "text-embedding-3-large";
-const EMBEDDING_DIMS = 3072;
+const EMBEDDING_MODEL = "text-embedding-3-small";
+const EMBEDDING_DIMS = 1536;
 const BATCH_SIZE = 100; // OpenAI supports up to 2048 inputs per call
 const MAX_INPUT_TOKENS = 8191; // Model limit per input
 
@@ -52,7 +52,7 @@ function zeroVector(): number[] {
 // ============================================================================
 
 /**
- * Embed a single text string. Returns 3072-dim float array.
+ * Embed a single text string. Returns 1536-dim float array.
  */
 export async function embedText(text: string): Promise<number[]> {
   if (!text || text.trim().length === 0) {
@@ -219,6 +219,15 @@ export async function embedSourcesBatch(sourceIds: string[]): Promise<{ embedded
 
   if (updates.length > 0) {
     await prisma.$transaction(updates as any);
+    // Also write to native vector column (pgvector) — best-effort, non-blocking
+    for (let i = 0; i < needsEmbedding.length; i++) {
+      const embedding = embeddings[i];
+      if (!embedding || embedding.every(v => v === 0)) continue;
+      const vectorLiteral = `[${embedding.join(",")}]`;
+      prisma.$executeRawUnsafe(
+        `UPDATE "Source" SET embedding = '${vectorLiteral}'::vector WHERE id = '${needsEmbedding[i].id.replace(/'/g, "''")}'`
+      ).catch(() => { /* pgvector not yet enabled — skip silently */ });
+    }
   }
 
   console.log(`[SemanticEngine] Embedded ${updates.length} sources, ${failed} failed`);
@@ -236,46 +245,76 @@ export async function embedSourcesBatch(sourceIds: string[]): Promise<{ embedded
 
 /**
  * Find the most semantically similar sources to a query.
- * Uses in-memory cosine similarity (for pgvector, use raw SQL).
+ * Uses pgvector HNSW index (native SQL) when the vector column is populated,
+ * falling back to in-memory cosine similarity if not yet migrated.
  */
 export async function semanticSearch(
   query: string,
   options: {
     limit?: number;
     minSimilarity?: number;
-    sourceIds?: string[];    // Restrict to specific sources
-    minQuality?: number;     // Minimum quality score
-    providers?: string[];    // Restrict to providers
+    sourceIds?: string[];
+    minQuality?: number;
+    providers?: string[];
   } = {}
 ): Promise<Array<{ sourceId: string; similarity: number; title: string }>> {
   const { limit = 20, minSimilarity = 0.3, sourceIds, minQuality, providers } = options;
 
-  // Embed the query
   const queryEmbedding = await embedText(query);
+  const vectorLiteral = `[${queryEmbedding.join(",")}]`;
 
-  // Build where clause
-  const where: any = {
-    embeddings: { isEmpty: false },
-  };
+  // Try pgvector native SQL first (uses HNSW index — O(log n))
+  try {
+    type VecRow = { id: string; title: string; similarity: number };
+    const extraFilters: string[] = [`s.embedding IS NOT NULL`];
+    if (minQuality) extraFilters.push(`s."qualityScore" >= ${minQuality}`);
+    if (providers && providers.length > 0) {
+      const list = providers.map(p => `'${p.replace(/'/g, "''")}'`).join(",");
+      extraFilters.push(`s.provider IN (${list})`);
+    }
+    if (sourceIds && sourceIds.length > 0) {
+      const list = sourceIds.map(id => `'${id.replace(/'/g, "''")}'`).join(",");
+      extraFilters.push(`s.id IN (${list})`);
+    }
+    const filterClause = extraFilters.length > 0 ? `WHERE ${extraFilters.join(" AND ")}` : "";
+
+    const rows = await prisma.$queryRawUnsafe<VecRow[]>(`
+      SELECT s.id, s.title,
+             1 - (s.embedding <=> '${vectorLiteral}'::vector) AS similarity
+      FROM "Source" s
+      ${filterClause}
+      ORDER BY s.embedding <=> '${vectorLiteral}'::vector
+      LIMIT ${limit * 2}
+    `);
+
+    const results = rows
+      .map(r => ({ sourceId: r.id, title: r.title, similarity: Number(r.similarity) }))
+      .filter(r => r.similarity >= minSimilarity)
+      .slice(0, limit);
+
+    if (results.length > 0) {
+      console.log(`[SemanticEngine] pgvector search: ${results.length} results`);
+      return results;
+    }
+    // 0 results with native vector → fall through to in-memory (migration pending)
+  } catch {
+    // pgvector extension not yet enabled or column missing → in-memory fallback
+  }
+
+  // In-memory fallback (Float[] JSON column)
+  const where: any = { embeddings: { isEmpty: false } };
   if (sourceIds) where.id = { in: sourceIds };
   if (minQuality) where.qualityScore = { gte: minQuality };
   if (providers) where.provider = { in: providers };
 
-  // Fetch sources with embeddings
   const sources = await prisma.source.findMany({
     where,
-    select: {
-      id: true,
-      title: true,
-      embeddings: true,
-      qualityScore: true,
-    },
-    take: 500, // Cap for performance
-    orderBy: { qualityScore: 'desc' },
+    select: { id: true, title: true, embeddings: true },
+    take: 500,
+    orderBy: { qualityScore: "desc" },
   });
 
-  // Compute similarities
-  const scored = sources
+  return sources
     .map(s => ({
       sourceId: s.id,
       title: s.title,
@@ -284,8 +323,6 @@ export async function semanticSearch(
     .filter(s => s.similarity >= minSimilarity)
     .sort((a, b) => b.similarity - a.similarity)
     .slice(0, limit);
-
-  return scored;
 }
 
 // ============================================================================

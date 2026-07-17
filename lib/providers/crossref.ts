@@ -12,8 +12,9 @@ export async function searchCrossref(query: string, rows = 10): Promise<any[]> {
   const url = `${base}?query=${encodeURIComponent(query)}&rows=${rows}`;
   
   try {
-    const data: any = await fetchFromProvider("crossref", url, { timeout: 15000 });
+    const data: any = await fetchFromProvider("crossref", url, { timeout: 15000, retries: 4, headers: { 'User-Agent': 'NomosX/1.0 (mailto:contact@nomosx.com)' } });
     const items = data?.message?.items || [];
+    console.log(`[Crossref] Found ${items.length} works for "${query.slice(0, 50)}"`);
     
     return items.map((it: any) => ({
       id: `crossref:${it.DOI}`,

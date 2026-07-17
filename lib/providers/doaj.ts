@@ -12,10 +12,11 @@ import { fetchFromProvider } from '../http-client';
 
 export async function searchDOAJ(query: string, limit = 30): Promise<any[]> {
   const pageSize = Math.min(limit, 50);
-  const url = `https://doaj.org/api/search/articles/${encodeURIComponent(query)}?pageSize=${pageSize}&sort=relevance`;
+  // No sort param → DOAJ defaults to relevance. sort=relevance is invalid and returns HTTP 400.
+  const url = `https://doaj.org/api/search/articles/${encodeURIComponent(query)}?pageSize=${pageSize}`;
 
   try {
-    const data: any = await fetchFromProvider("doaj", url, { timeout: 15000 });
+    const data: any = await fetchFromProvider("doaj", url, { timeout: 15000, retries: 3 });
     const results = data?.results || [];
 
     console.log(`[DOAJ] Found ${results.length} articles`);

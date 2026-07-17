@@ -149,7 +149,7 @@ Generate premium, institutional-grade content.`;
       messages: [{ role: "user", content: prompt }],
       temperature: 0.3,
       jsonMode: true,
-      maxTokens: 6000,
+      maxTokens: 3000,
       enableCache: true,
       task: 'analyst_brief',
     });

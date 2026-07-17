@@ -54,7 +54,7 @@ export async function searchINSEE(query: string, limit = 15): Promise<any[]> {
   // Fallback: OpenAlex ROR filter
   try {
     const results = await searchOpenAlex(query, limit, {
-      filter: 'authorships.institutions.ror:https://ror.org/02cjnvs63',
+      filter: 'authorships.institutions.ror:https://ror.org/03v6yxf25',
     });
     const mapped = results.map(r => ({
       ...r,

@@ -11,10 +11,11 @@ import { fetchFromProvider } from '../http-client';
 
 export async function searchEuropePMC(query: string, limit = 30): Promise<any[]> {
   const pageSize = Math.min(limit, 25);
-  const url = `https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=${encodeURIComponent(query)}&format=json&pageSize=${pageSize}&resultType=core&sort=RELEVANCE`;
+  // No sort param → EuropePMC defaults to relevance. "sort=RELEVANCE" is not a valid value.
+  const url = `https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=${encodeURIComponent(query)}&format=json&pageSize=${pageSize}&resultType=core`;
 
   try {
-    const data: any = await fetchFromProvider("europepmc", url, { timeout: 15000 });
+    const data: any = await fetchFromProvider("europepmc", url, { timeout: 15000, retries: 3 });
     const results = data?.resultList?.result || [];
 
     console.log(`[EuropePMC] Found ${results.length} papers`);

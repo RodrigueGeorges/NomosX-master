@@ -1,7 +1,7 @@
 /**
  * IAI - Istituto Affari Internazionali (Italian Institute for International Affairs)
  * Uses OpenAlex with IAI ROR filter
- * ROR: https://ror.org/03fcxyy92
+ * ROR: https://ror.org/028a36g75
  */
 
 import { searchOpenAlex } from '../../openalex';
@@ -10,7 +10,7 @@ export async function searchIAI(query: string, limit = 15): Promise<any[]> {
   console.log(`[IAI] Searching via OpenAlex ROR for: "${query}"`);
   try {
     const results = await searchOpenAlex(query, limit, {
-      filter: 'authorships.institutions.ror:https://ror.org/03fcxyy92',
+      filter: 'authorships.institutions.ror:https://ror.org/028a36g75',
     });
     const mapped = results.map(r => ({
       ...r,

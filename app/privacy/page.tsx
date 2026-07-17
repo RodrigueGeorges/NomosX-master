@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { LegalPageShell } from '@/components/layout/LegalPageShell';
 
 
 
@@ -6,7 +7,7 @@ export default function PrivacyPage() {
 
   return (
 
-    <>
+    <LegalPageShell>
 
         <div className="mb-12">
 
@@ -270,7 +271,7 @@ export default function PrivacyPage() {
 
         </div>
 
-    </>
+    </LegalPageShell>
 
   );
 

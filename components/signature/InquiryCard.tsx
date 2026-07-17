@@ -101,6 +101,7 @@ export function InquiryCard({ inquiry, href, className }: InquiryCardProps) {
         className
       )}
     >
+      <span className="absolute inset-x-0 top-0 h-px bg-white/20 scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left" />
       <Watermark type={watermark} />
 
       <div className="relative z-[1] flex items-center justify-between mb-4">

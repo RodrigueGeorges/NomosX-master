@@ -5,7 +5,24 @@
  * basé sur title, abstract, topics et JEL codes
  */
 
-import { prisma } from '@/lib/db';
+import { prisma, withDbRetry } from '@/lib/db';
+
+// Cache active domains — same query for every source, no need to hit DB 300+ times
+let _domainsCache: Array<{ id: string; slug: string; keywords: string[]; jelCodes: string[] }> | null = null;
+let _domainsCacheTime = 0;
+const DOMAINS_CACHE_TTL = 5 * 60 * 1000; // 5 min
+
+async function getActiveDomains() {
+  if (_domainsCache && Date.now() - _domainsCacheTime < DOMAINS_CACHE_TTL) {
+    return _domainsCache;
+  }
+  _domainsCache = await withDbRetry(() => prisma.domain.findMany({
+    where: { isActive: true },
+    select: { id: true, slug: true, keywords: true, jelCodes: true },
+  }));
+  _domainsCacheTime = Date.now();
+  return _domainsCache;
+}
 
 /**
  * Classifie une source unique dans des domaines
@@ -15,7 +32,7 @@ export async function classifySourceDomains(sourceId: string): Promise<{
   domains: Array<{ slug: string; score: number }>;
 }> {
   // Fetch source
-  const source = await prisma.source.findUnique({
+  const source = await withDbRetry(() => prisma.source.findUnique({
     where: { id: sourceId },
     select: {
       title: true,
@@ -23,22 +40,14 @@ export async function classifySourceDomains(sourceId: string): Promise<{
       topics: true,
       jelCodes: true,
     },
-  });
+  }));
 
   if (!source) {
     throw new Error(`Source ${sourceId} not found`);
   }
 
-  // Fetch all active domains
-  const domains = await prisma.domain.findMany({
-    where: { isActive: true },
-    select: {
-      id: true,
-      slug: true,
-      keywords: true,
-      jelCodes: true,
-    },
-  });
+  // Use cached domain list
+  const domains = await getActiveDomains();
 
   // Combine all text for analysis
   const text = [
@@ -92,7 +101,7 @@ export async function classifySourceDomains(sourceId: string): Promise<{
 
   // Create SourceDomain links
   for (const match of matches) {
-    await prisma.sourceDomain.upsert({
+    await withDbRetry(() => prisma.sourceDomain.upsert({
       where: {
         sourceId_domainId: {
           sourceId,
@@ -107,7 +116,7 @@ export async function classifySourceDomains(sourceId: string): Promise<{
       update: {
         score: match.score,
       },
-    });
+    }));
   }
 
   return {
@@ -126,9 +135,16 @@ export async function classifyBatchSources(
   failed: number;
   errors: Array<{ sourceId: string; error: string }>;
 }> {
-  const results = await Promise.allSettled(
-    sourceIds.map((id) => classifySourceDomains(id))
-  );
+  // Process in chunks of 20 to avoid exhausting the Prisma connection pool
+  const CHUNK = 20;
+  const results: PromiseSettledResult<Awaited<ReturnType<typeof classifySourceDomains>>>[] = [];
+  for (let i = 0; i < sourceIds.length; i += CHUNK) {
+    const chunk = sourceIds.slice(i, i + CHUNK);
+    const chunkResults = await Promise.allSettled(
+      chunk.map((id) => classifySourceDomains(id))
+    );
+    results.push(...chunkResults);
+  }
 
   const errors: Array<{ sourceId: string; error: string }> = [];
 

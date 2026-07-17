@@ -1,7 +1,7 @@
 /**
  * ECDC - European Centre for Disease Prevention and Control
  * Uses OpenAlex with ECDC ROR filter
- * ROR: https://ror.org/04mfmq790
+ * ROR: https://ror.org/00s9v1h75
  */
 
 import { searchOpenAlex } from '../../openalex';
@@ -10,7 +10,7 @@ export async function searchECDC(query: string, limit = 15): Promise<any[]> {
   console.log(`[ECDC] Searching via OpenAlex ROR for: "${query}"`);
   try {
     const results = await searchOpenAlex(query, limit, {
-      filter: 'authorships.institutions.ror:https://ror.org/04mfmq790',
+      filter: 'authorships.institutions.ror:https://ror.org/00s9v1h75',
     });
     const mapped = results.map(r => ({
       ...r,

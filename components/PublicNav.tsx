@@ -80,7 +80,7 @@ export default function PublicNav({ currentPage, onSignInClick, isAuthenticated 
               onClick={onSignInClick}
               className="hidden sm:block px-4 py-2 border border-white/25 text-white/80 font-mono text-[11px] uppercase tracking-[0.14em] hover:border-white/50 hover:text-white transition-colors"
             >
-              Sign in
+              Access
             </button>
           )}
 
@@ -128,7 +128,7 @@ export default function PublicNav({ currentPage, onSignInClick, isAuthenticated 
                 }}
                 className="mt-2 w-full py-3 border border-white/25 text-white font-mono text-[11px] uppercase tracking-[0.14em]"
               >
-                Sign in
+                Access
               </button>
             </div>
           </motion.div>

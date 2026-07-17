@@ -146,6 +146,24 @@ import { contradictionDetector } from "./contradiction-detector";
 import { trendAnalyzer } from "./trend-analyzer";
 import { signalDetector } from "./signal-detector";
 import { searchGDELTNews, searchNewsAPI, searchMediaStack, searchTheNewsAPI, searchGNews, searchEventRegistry } from "../providers/news-scout-providers";
+import { searchISIDORE } from "../providers/isidore";
+import { searchERIC } from "../providers/eric";
+import { searchFAO } from "../providers/fao";
+import { searchUNODC } from "../providers/unodc";
+import { searchPhilPapers } from "../providers/philpapers";
+import { searchPersee } from "../providers/persee";
+import { searchOpenAIRE } from "../providers/openaire";
+import { searchZenodo } from "../providers/zenodo";
+import { searchPsychology } from "../providers/psychology";
+import { searchSociology } from "../providers/sociology";
+import { searchHistory } from "../providers/history";
+import { searchGeography } from "../providers/geography";
+import { searchChemistry } from "../providers/chemistry";
+import { searchBiology } from "../providers/biology";
+import { searchPoliticalScience } from "../providers/political-science";
+import { searchBusiness } from "../providers/business";
+import { searchDBLP } from "../providers/dblp";
+import { searchZbMath } from "../providers/zbmath";
 
 // Institutional providers imports
 import {
@@ -259,6 +277,22 @@ export type Providers = Array<
   | "cdc" | "nih" | "who-direct"
   // Économie Extended V2
   | "oecd-direct"
+  // Sciences Humaines & Sociales
+  | "isidore" | "persee" | "philpapers"
+  // Éducation
+  | "eric"
+  // Agriculture & Alimentation
+  | "fao"
+  // Criminologie & Justice
+  | "unodc"
+  // Science ouverte européenne
+  | "openaire"
+  // Open science repository (CERN/Zenodo)
+  | "zenodo"
+  // Domain-specific academic providers
+  | "psychology" | "sociology" | "history" | "geography"
+  | "chemistry" | "biology" | "political-science" | "business"
+  | "dblp" | "zbmath"
   // Institutionnels - Archives
   | "nara" | "uk-archives" | "archives-fr"
   // Complémentaire - Web Search
@@ -272,46 +306,64 @@ export type Providers = Array<
   | "cnas" | "rand" | "newamerica" | "aspen-digital" | "rstreet"
 >;
 
+export const SHS_PROVIDERS = [
+  'isidore', 'persee', 'philpapers', 'eric'
+];
+
+export const AGRICULTURE_PROVIDERS = [
+  'fao'
+];
+
+export const CRIMINOLOGY_PROVIDERS = [
+  'unodc'
+];
+
+export const EU_SCIENCE_PROVIDERS = [
+  'openaire'
+];
+
 // ALL PROVIDERS - 100% COVERAGE
 export const ALL_PROVIDERS = [
-  // Academic APIs
+  // Academic core
   'openalex', 'crossref', 'semanticscholar', 'pubmed', 'arxiv',
-  'nature', 'science', 'cell', 'lancet', 'pnas', 'doaj', 'europepmc',
-  
-  // Business APIs
-  'crunchbase', 'reuters', 'techcrunch', 'blackrock',
-  
-  // Think Tanks
-  'mckinsey', 'bcg', 'bain', 'deloitte', 'accenture', 'ey', 'pwc',
-  'brookings', 'carnegie', 'chatham-house', 'csis', 'bruegel',
-  'council-foreign-relations', 'rand', 'cepr', 'cgd',
-  'berlin-policy-hub', 'dgap', 'cis', 'ast-res', 'saiia',
-  
-  // Government & International
-  'worldbank', 'imf', 'oecd', 'un', 'undp', 'eurostat', 'ecb', 'bis',
-  'insee', 'thesesfr',
-  
-  // Environmental
-  'wri', 'climate-analytics', 'copenhagen-institute', 'energy-futures',
-  
-  // Data & Research
-  'figshare', 'zenodo',
-  
-  // Technology & AI
-  'deepmind', 'openai-research', 'amazon-science', 'ai-index',
-  'arxiv-cs', 'acet',
-  
-  // Patents
-  'google-patents', 'uspto',
-  
-  // Search & Discovery
-  'linkup', 'google-cse',
-  
+  'doaj', 'europepmc', 'hal', 'base', 'core', 'ssrn', 'repec', 'nber',
+  'who-gho', 'semantic-scholar-graph', 'thesesfr',
   // Real-time News
   'gdelt-news', 'newsapi', 'mediastack', 'thenewsapi', 'gnews', 'eventregistry',
-  
-  // Academic Research
-  'nber', 'ssrn', 'repec', 'lawzero'
+  // Web search
+  'linkup',
+  // Sciences Humaines & Sociales
+  'isidore', 'persee', 'philpapers',
+  // Education, Agriculture, Criminology, Open Science
+  'eric', 'fao', 'unodc', 'openaire', 'zenodo',
+  // Domain-specific academic providers
+  'psychology', 'sociology', 'history', 'geography',
+  'chemistry', 'biology', 'political-science', 'business',
+  'dblp', 'zbmath',
+  // Think Tanks & Policy (via extended registry)
+  'brookings', 'rand', 'cnas', 'newamerica', 'lawzero',
+  'ecfr', 'swp', 'sipri', 'iai', 'iddri', 'terra-nova',
+  // Government & International
+  'worldbank', 'imf', 'oecd', 'un', 'undp', 'eurostat', 'ecb', 'bis',
+  'insee', 'fred', 'eib', 'unctad',
+  // Institutional — Security & Defense
+  'odni', 'cia-foia', 'nsa', 'uk-jic', 'nato', 'eeas', 'sgdsn', 'eda',
+  'nist', 'cisa', 'enisa',
+  // Energy & Nuclear
+  'iaea', 'irena', 'cea',
+  // Health
+  'ema', 'inserm', 'ecdc', 'cochrane', 'cdc', 'nih', 'who-direct',
+  // Environment
+  'inrae', 'ademe',
+  // French institutions
+  'ens', 'shift-project', 'data-gouv', 'france-strategie', 'cnrs',
+  'legifrance', 'vie-publique',
+  // Tech Research
+  'allen-ai', 'max-planck', 'eth-zurich', 'inria',
+  // Law & Governance
+  'eur-lex',
+  // Archives
+  'nara', 'uk-archives', 'archives-fr',
 ];
 
 export const NEWS_PROVIDERS = [
@@ -405,11 +457,12 @@ async function scoutImpl(query: string, providers: Providers, perProvider = 100)
   }
 
   const pool: any[] = [];
+  const providerSet = new Set(providers as string[]);
 
   // â”€â”€ STEP 1: MULTI-QUERY PARALLEL SEARCH (58+ providers) â”€â”€
   // Theses handled separately due to HAL bridge enrichment
   let thesesResults: any[] = [];
-  if (providers.includes("thesesfr")) {
+  if (providerSet.has("thesesfr")) {
     console.log("[SCOUT] Fetching theses from theses.fr...");
     const rawTheses = await searchThesesFr(query, Math.min(15, perProvider));
     console.log(`[SCOUT] Found ${rawTheses.length} theses`);
@@ -432,125 +485,159 @@ async function scoutImpl(query: string, providers: Providers, perProvider = 100)
   const allPromises: Promise<any[]>[] = [];
   for (const sq of searchQueries) {
     // ACADÉMIQUES
-    if (providers.includes("openalex")) allPromises.push(searchOpenAlex(sq, perProvider));
-    if (providers.includes("crossref")) allPromises.push(searchCrossref(sq, Math.min(50, perProvider)));
-    if (providers.includes("semanticscholar")) allPromises.push(searchSemanticScholar(sq, Math.min(50, perProvider)));
-    if (providers.includes("arxiv")) allPromises.push(searchArxiv(sq, Math.min(50, perProvider)));
-    if (providers.includes("hal")) allPromises.push(searchHAL(sq, Math.min(50, perProvider)));
-    if (providers.includes("pubmed")) allPromises.push(searchPubMed(sq, Math.min(50, perProvider)));
-    if (providers.includes("base")) allPromises.push(searchBASE(sq, Math.min(50, perProvider)));
+    if (providerSet.has("openalex")) allPromises.push(searchOpenAlex(sq, perProvider));
+    if (providerSet.has("crossref")) allPromises.push(searchCrossref(sq, Math.min(50, perProvider)));
+    if (providerSet.has("semanticscholar")) allPromises.push(searchSemanticScholar(sq, Math.min(50, perProvider)));
+    if (providerSet.has("arxiv")) allPromises.push(searchArxiv(sq, Math.min(50, perProvider)));
+    if (providerSet.has("hal")) allPromises.push(searchHAL(sq, Math.min(50, perProvider)));
+    if (providerSet.has("pubmed")) allPromises.push(searchPubMed(sq, Math.min(50, perProvider)));
+    if (providerSet.has("base")) allPromises.push(searchBASE(sq, Math.min(50, perProvider)));
 
     // ACADÉMIQUES — EXTENDED COVERAGE
-    if (providers.includes("core")) allPromises.push(searchCORE(sq, Math.min(30, perProvider)));
-    if (providers.includes("europepmc")) allPromises.push(searchEuropePMC(sq, Math.min(30, perProvider)));
-    if (providers.includes("doaj")) allPromises.push(searchDOAJ(sq, Math.min(30, perProvider)));
-    if (providers.includes("ssrn")) allPromises.push(searchSSRN(sq, Math.min(20, perProvider)));
-    if (providers.includes("repec")) allPromises.push(searchRePEc(sq, Math.min(20, perProvider)));
-    if (providers.includes("nber")) allPromises.push(searchNBER(sq, Math.min(20, perProvider)));
-    if (providers.includes("who-gho")) allPromises.push(searchWHOGHO(sq, Math.min(20, perProvider)));
-    if (providers.includes("semantic-scholar-graph")) allPromises.push(searchSemanticScholarGraph(sq, Math.min(25, perProvider)));
+    if (providerSet.has("core")) allPromises.push(searchCORE(sq, Math.min(30, perProvider)));
+    if (providerSet.has("europepmc")) allPromises.push(searchEuropePMC(sq, Math.min(30, perProvider)));
+    if (providerSet.has("doaj")) allPromises.push(searchDOAJ(sq, Math.min(30, perProvider)));
+    if (providerSet.has("ssrn")) allPromises.push(searchSSRN(sq, Math.min(20, perProvider)));
+    if (providerSet.has("repec")) allPromises.push(searchRePEc(sq, Math.min(20, perProvider)));
+    if (providerSet.has("nber")) allPromises.push(searchNBER(sq, Math.min(20, perProvider)));
+    if (providerSet.has("who-gho")) allPromises.push(searchWHOGHO(sq, Math.min(20, perProvider)));
+    if (providerSet.has("semantic-scholar-graph")) allPromises.push(searchSemanticScholarGraph(sq, Math.min(25, perProvider)));
 
     // INSTITUTIONNELS - INTELLIGENCE
-    if (providers.includes("odni")) allPromises.push(searchODNI(sq, Math.min(10, perProvider)));
-    if (providers.includes("cia-foia")) allPromises.push(searchCIAFOIA(sq, Math.min(10, perProvider)));
-    if (providers.includes("nsa")) allPromises.push(searchNSA(sq, Math.min(10, perProvider)));
-    if (providers.includes("uk-jic")) allPromises.push(searchUKJIC(sq, Math.min(10, perProvider)));
+    if (providerSet.has("odni")) allPromises.push(searchODNI(sq, Math.min(10, perProvider)));
+    if (providerSet.has("cia-foia")) allPromises.push(searchCIAFOIA(sq, Math.min(10, perProvider)));
+    if (providerSet.has("nsa")) allPromises.push(searchNSA(sq, Math.min(10, perProvider)));
+    if (providerSet.has("uk-jic")) allPromises.push(searchUKJIC(sq, Math.min(10, perProvider)));
 
     // INSTITUTIONNELS - DÉFENSE
-    if (providers.includes("nato")) allPromises.push(searchNATO(sq, Math.min(15, perProvider)));
-    if (providers.includes("eeas")) allPromises.push(searchEEAS(sq, Math.min(15, perProvider)));
-    if (providers.includes("sgdsn")) allPromises.push(searchSGDSN(sq, Math.min(10, perProvider)));
-    if (providers.includes("eda")) allPromises.push(searchEDA(sq, Math.min(10, perProvider)));
+    if (providerSet.has("nato")) allPromises.push(searchNATO(sq, Math.min(15, perProvider)));
+    if (providerSet.has("eeas")) allPromises.push(searchEEAS(sq, Math.min(15, perProvider)));
+    if (providerSet.has("sgdsn")) allPromises.push(searchSGDSN(sq, Math.min(10, perProvider)));
+    if (providerSet.has("eda")) allPromises.push(searchEDA(sq, Math.min(10, perProvider)));
 
     // INSTITUTIONNELS - ÉCONOMIE
-    if (providers.includes("imf")) allPromises.push(searchIMF(sq, Math.min(15, perProvider)));
-    if (providers.includes("worldbank")) allPromises.push(searchWorldBank(sq, Math.min(15, perProvider)));
-    if (providers.includes("oecd")) allPromises.push(searchOECD(sq, Math.min(15, perProvider)));
-    if (providers.includes("bis")) allPromises.push(searchBIS(sq, Math.min(15, perProvider)));
+    if (providerSet.has("imf")) allPromises.push(searchIMF(sq, Math.min(15, perProvider)));
+    if (providerSet.has("worldbank")) allPromises.push(searchWorldBank(sq, Math.min(15, perProvider)));
+    if (providerSet.has("oecd")) allPromises.push(searchOECD(sq, Math.min(15, perProvider)));
+    if (providerSet.has("bis")) allPromises.push(searchBIS(sq, Math.min(15, perProvider)));
 
     // INSTITUTIONNELS - CYBER
-    if (providers.includes("nist")) allPromises.push(searchNIST(sq, Math.min(10, perProvider)));
-    if (providers.includes("cisa")) allPromises.push(searchCISA(sq, Math.min(15, perProvider)));
-    if (providers.includes("enisa")) allPromises.push(searchENISA(sq, Math.min(10, perProvider)));
+    if (providerSet.has("nist")) allPromises.push(searchNIST(sq, Math.min(10, perProvider)));
+    if (providerSet.has("cisa")) allPromises.push(searchCISA(sq, Math.min(15, perProvider)));
+    if (providerSet.has("enisa")) allPromises.push(searchENISA(sq, Math.min(10, perProvider)));
 
     // INSTITUTIONNELS - MULTILATÉRAL
-    if (providers.includes("un")) allPromises.push(searchUN(sq, Math.min(15, perProvider)));
-    if (providers.includes("undp")) allPromises.push(searchUNDP(sq, Math.min(15, perProvider)));
-    if (providers.includes("unctad")) allPromises.push(searchUNCTAD(sq, Math.min(15, perProvider)));
+    if (providerSet.has("un")) allPromises.push(searchUN(sq, Math.min(15, perProvider)));
+    if (providerSet.has("undp")) allPromises.push(searchUNDP(sq, Math.min(15, perProvider)));
+    if (providerSet.has("unctad")) allPromises.push(searchUNCTAD(sq, Math.min(15, perProvider)));
 
     // INSTITUTIONNELS - ARCHIVES
-    if (providers.includes("nara")) allPromises.push(searchNARA(sq, Math.min(10, perProvider)));
-    if (providers.includes("uk-archives")) allPromises.push(searchUKArchives(sq, Math.min(10, perProvider)));
-    if (providers.includes("archives-fr")) allPromises.push(searchArchivesNationalesFR(sq, Math.min(10, perProvider)));
+    if (providerSet.has("nara")) allPromises.push(searchNARA(sq, Math.min(10, perProvider)));
+    if (providerSet.has("uk-archives")) allPromises.push(searchUKArchives(sq, Math.min(10, perProvider)));
+    if (providerSet.has("archives-fr")) allPromises.push(searchArchivesNationalesFR(sq, Math.min(10, perProvider)));
 
     // INSTITUTIONNELS - ÉNERGIE & NUCLÉAIRE
-    if (providers.includes("iaea")) allPromises.push(searchIAEA(sq, Math.min(15, perProvider)));
-    if (providers.includes("irena")) allPromises.push(searchIRENA(sq, Math.min(15, perProvider)));
-    if (providers.includes("cea")) allPromises.push(searchCEA(sq, Math.min(15, perProvider)));
+    if (providerSet.has("iaea")) allPromises.push(searchIAEA(sq, Math.min(15, perProvider)));
+    if (providerSet.has("irena")) allPromises.push(searchIRENA(sq, Math.min(15, perProvider)));
+    if (providerSet.has("cea")) allPromises.push(searchCEA(sq, Math.min(15, perProvider)));
 
     // INSTITUTIONNELS - ÉCONOMIE EXTENDED
-    if (providers.includes("ecb")) allPromises.push(searchECB(sq, Math.min(15, perProvider)));
-    if (providers.includes("eurostat")) allPromises.push(searchEurostat(sq, Math.min(15, perProvider)));
-    if (providers.includes("fred")) allPromises.push(searchFRED(sq, Math.min(15, perProvider)));
-    if (providers.includes("eib")) allPromises.push(searchEIB(sq, Math.min(15, perProvider)));
+    if (providerSet.has("ecb")) allPromises.push(searchECB(sq, Math.min(15, perProvider)));
+    if (providerSet.has("eurostat")) allPromises.push(searchEurostat(sq, Math.min(15, perProvider)));
+    if (providerSet.has("fred")) allPromises.push(searchFRED(sq, Math.min(15, perProvider)));
+    if (providerSet.has("eib")) allPromises.push(searchEIB(sq, Math.min(15, perProvider)));
 
     // INSTITUTIONNELS - SANTÉ EXTENDED
-    if (providers.includes("ema")) allPromises.push(searchEMA(sq, Math.min(15, perProvider)));
-    if (providers.includes("inserm")) allPromises.push(searchINSERM(sq, Math.min(15, perProvider)));
-    if (providers.includes("ecdc")) allPromises.push(searchECDC(sq, Math.min(15, perProvider)));
-    if (providers.includes("cochrane")) allPromises.push(searchCochrane(sq, Math.min(15, perProvider)));
+    if (providerSet.has("ema")) allPromises.push(searchEMA(sq, Math.min(15, perProvider)));
+    if (providerSet.has("inserm")) allPromises.push(searchINSERM(sq, Math.min(15, perProvider)));
+    if (providerSet.has("ecdc")) allPromises.push(searchECDC(sq, Math.min(15, perProvider)));
+    if (providerSet.has("cochrane")) allPromises.push(searchCochrane(sq, Math.min(15, perProvider)));
 
     // INSTITUTIONNELS - ENVIRONNEMENT
-    if (providers.includes("inrae")) allPromises.push(searchINRAE(sq, Math.min(15, perProvider)));
-    if (providers.includes("ademe")) allPromises.push(searchADEME(sq, Math.min(15, perProvider)));
+    if (providerSet.has("inrae")) allPromises.push(searchINRAE(sq, Math.min(15, perProvider)));
+    if (providerSet.has("ademe")) allPromises.push(searchADEME(sq, Math.min(15, perProvider)));
 
     // INSTITUTIONNELS - FRANÇAIS
-    if (providers.includes("ens")) allPromises.push(searchENS(sq, Math.min(15, perProvider)));
-    if (providers.includes("insee")) allPromises.push(searchINSEE(sq, Math.min(15, perProvider)));
-    if (providers.includes("shift-project")) allPromises.push(searchShiftProject(sq, Math.min(15, perProvider)));
-    if (providers.includes("data-gouv")) allPromises.push(searchDataGouv(sq, Math.min(15, perProvider)));
-    if (providers.includes("france-strategie")) allPromises.push(searchFranceStrategie(sq, Math.min(15, perProvider)));
-    if (providers.includes("cnrs")) allPromises.push(searchCNRS(sq, Math.min(15, perProvider)));
+    if (providerSet.has("ens")) allPromises.push(searchENS(sq, Math.min(15, perProvider)));
+    if (providerSet.has("insee")) allPromises.push(searchINSEE(sq, Math.min(15, perProvider)));
+    if (providerSet.has("shift-project")) allPromises.push(searchShiftProject(sq, Math.min(15, perProvider)));
+    if (providerSet.has("data-gouv")) allPromises.push(searchDataGouv(sq, Math.min(15, perProvider)));
+    if (providerSet.has("france-strategie")) allPromises.push(searchFranceStrategie(sq, Math.min(15, perProvider)));
+    if (providerSet.has("cnrs")) allPromises.push(searchCNRS(sq, Math.min(15, perProvider)));
 
     // INSTITUTIONNELS - TECH RESEARCH
-    if (providers.includes("allen-ai")) allPromises.push(searchAllenAI(sq, Math.min(15, perProvider)));
-    if (providers.includes("max-planck")) allPromises.push(searchMaxPlanck(sq, Math.min(15, perProvider)));
-    if (providers.includes("eth-zurich")) allPromises.push(searchETHZurich(sq, Math.min(15, perProvider)));
-    if (providers.includes("inria")) allPromises.push(searchINRIA(sq, Math.min(15, perProvider)));
+    if (providerSet.has("allen-ai")) allPromises.push(searchAllenAI(sq, Math.min(15, perProvider)));
+    if (providerSet.has("max-planck")) allPromises.push(searchMaxPlanck(sq, Math.min(15, perProvider)));
+    if (providerSet.has("eth-zurich")) allPromises.push(searchETHZurich(sq, Math.min(15, perProvider)));
+    if (providerSet.has("inria")) allPromises.push(searchINRIA(sq, Math.min(15, perProvider)));
 
     // INSTITUTIONNELS - DROIT & GOUVERNANCE
-    if (providers.includes("eur-lex")) allPromises.push(searchEURLex(sq, Math.min(15, perProvider)));
+    if (providerSet.has("eur-lex")) allPromises.push(searchEURLex(sq, Math.min(15, perProvider)));
 
     // THINK TANKS EUROPÉENS
-    if (providers.includes("ecfr")) allPromises.push(searchECFR(sq, Math.min(15, perProvider)));
-    if (providers.includes("swp")) allPromises.push(searchSWP(sq, Math.min(15, perProvider)));
-    if (providers.includes("sipri")) allPromises.push(searchSIPRI(sq, Math.min(15, perProvider)));
-    if (providers.includes("iai")) allPromises.push(searchIAI(sq, Math.min(15, perProvider)));
+    if (providerSet.has("ecfr")) allPromises.push(searchECFR(sq, Math.min(15, perProvider)));
+    if (providerSet.has("swp")) allPromises.push(searchSWP(sq, Math.min(15, perProvider)));
+    if (providerSet.has("sipri")) allPromises.push(searchSIPRI(sq, Math.min(15, perProvider)));
+    if (providerSet.has("iai")) allPromises.push(searchIAI(sq, Math.min(15, perProvider)));
 
     // POLITIQUE FRANÇAISE & DROIT
-    if (providers.includes("iddri")) allPromises.push(searchIDDRI(sq, Math.min(15, perProvider)));
-    if (providers.includes("terra-nova")) allPromises.push(searchTerraNova(sq, Math.min(15, perProvider)));
-    if (providers.includes("legifrance")) allPromises.push(searchLegifrance(sq, Math.min(15, perProvider)));
-    if (providers.includes("vie-publique")) allPromises.push(searchViePublique(sq, Math.min(15, perProvider)));
+    if (providerSet.has("iddri")) allPromises.push(searchIDDRI(sq, Math.min(15, perProvider)));
+    if (providerSet.has("terra-nova")) allPromises.push(searchTerraNova(sq, Math.min(15, perProvider)));
+    if (providerSet.has("legifrance")) allPromises.push(searchLegifrance(sq, Math.min(15, perProvider)));
+    if (providerSet.has("vie-publique")) allPromises.push(searchViePublique(sq, Math.min(15, perProvider)));
 
     // SANTÉ EXTENDED V2
-    if (providers.includes("cdc")) allPromises.push(searchCDC(sq, Math.min(15, perProvider)));
-    if (providers.includes("nih")) allPromises.push(searchNIH(sq, Math.min(15, perProvider)));
-    if (providers.includes("who-direct")) allPromises.push(searchWHODirect(sq, Math.min(15, perProvider)));
+    if (providerSet.has("cdc")) allPromises.push(searchCDC(sq, Math.min(15, perProvider)));
+    if (providerSet.has("nih")) allPromises.push(searchNIH(sq, Math.min(15, perProvider)));
+    if (providerSet.has("who-direct")) allPromises.push(searchWHODirect(sq, Math.min(15, perProvider)));
 
     // ÉCONOMIE EXTENDED V2
-    if (providers.includes("oecd-direct")) allPromises.push(searchOECDDirect(sq, Math.min(15, perProvider)));
+    if (providerSet.has("oecd-direct")) allPromises.push(searchOECDDirect(sq, Math.min(15, perProvider)));
+
+    // SCIENCES HUMAINES & SOCIALES
+    if (providerSet.has("isidore")) allPromises.push(searchISIDORE(sq, Math.min(20, perProvider)));
+    if (providerSet.has("persee")) allPromises.push(searchPersee(sq, Math.min(20, perProvider)));
+    if (providerSet.has("philpapers")) allPromises.push(searchPhilPapers(sq, Math.min(20, perProvider)));
+
+    // ÉDUCATION
+    if (providerSet.has("eric")) allPromises.push(searchERIC(sq, Math.min(20, perProvider)));
+
+    // AGRICULTURE & ALIMENTATION
+    if (providerSet.has("fao")) allPromises.push(searchFAO(sq, Math.min(15, perProvider)));
+
+    // CRIMINOLOGIE & JUSTICE
+    if (providerSet.has("unodc")) allPromises.push(searchUNODC(sq, Math.min(15, perProvider)));
+
+    // SCIENCE OUVERTE EUROPÉENNE
+    if (providerSet.has("openaire")) allPromises.push(searchOpenAIRE(sq, Math.min(20, perProvider)));
+
+    // OPEN SCIENCE REPOSITORY (CERN/Zenodo)
+    if (providerSet.has("zenodo")) allPromises.push(searchZenodo(sq, Math.min(20, perProvider)));
+
+    // DOMAIN-SPECIFIC ACADEMIC PROVIDERS (S2 field-of-study + OpenAlex concept fallback)
+    if (providerSet.has("psychology")) allPromises.push(searchPsychology(sq, Math.min(15, perProvider)));
+    if (providerSet.has("sociology")) allPromises.push(searchSociology(sq, Math.min(15, perProvider)));
+    if (providerSet.has("history")) allPromises.push(searchHistory(sq, Math.min(15, perProvider)));
+    if (providerSet.has("geography")) allPromises.push(searchGeography(sq, Math.min(15, perProvider)));
+    if (providerSet.has("chemistry")) allPromises.push(searchChemistry(sq, Math.min(15, perProvider)));
+    if (providerSet.has("biology")) allPromises.push(searchBiology(sq, Math.min(15, perProvider)));
+    if (providerSet.has("political-science")) allPromises.push(searchPoliticalScience(sq, Math.min(15, perProvider)));
+    if (providerSet.has("business")) allPromises.push(searchBusiness(sq, Math.min(15, perProvider)));
+
+    // CS CONFERENCES & MATH (DBLP + zbMATH — dedicated APIs with S2/OpenAlex fallback)
+    if (providerSet.has("dblp")) allPromises.push(searchDBLP(sq, Math.min(20, perProvider)));
+    if (providerSet.has("zbmath")) allPromises.push(searchZbMath(sq, Math.min(20, perProvider)));
 
     // COMPLÉMENTAIRE - WEB SEARCH
-    if (providers.includes("linkup")) allPromises.push(searchLinkUp(sq, Math.min(15, perProvider)));
+    if (providerSet.has("linkup")) allPromises.push(searchLinkUp(sq, Math.min(15, perProvider)));
 
     // REAL-TIME NEWS PROVIDERS
-    if (providers.includes("gdelt-news")) allPromises.push(searchGDELTNews(sq, Math.min(30, perProvider)));
-    if (providers.includes("newsapi")) allPromises.push(searchNewsAPI(sq, Math.min(30, perProvider)));
-    if (providers.includes("mediastack")) allPromises.push(searchMediaStack(sq, Math.min(25, perProvider)));
-    if (providers.includes("thenewsapi")) allPromises.push(searchTheNewsAPI(sq, Math.min(30, perProvider)));
-    if (providers.includes("gnews")) allPromises.push(searchGNews(sq, Math.min(10, perProvider)));
-    if (providers.includes("eventregistry")) allPromises.push(searchEventRegistry(sq, Math.min(25, perProvider)));
+    if (providerSet.has("gdelt-news")) allPromises.push(searchGDELTNews(sq, Math.min(30, perProvider)));
+    if (providerSet.has("newsapi")) allPromises.push(searchNewsAPI(sq, Math.min(30, perProvider)));
+    if (providerSet.has("mediastack")) allPromises.push(searchMediaStack(sq, Math.min(25, perProvider)));
+    if (providerSet.has("thenewsapi")) allPromises.push(searchTheNewsAPI(sq, Math.min(30, perProvider)));
+    if (providerSet.has("gnews")) allPromises.push(searchGNews(sq, Math.min(10, perProvider)));
+    if (providerSet.has("eventregistry")) allPromises.push(searchEventRegistry(sq, Math.min(25, perProvider)));
 
     // THINK TANKS & POLICY LABS — catch-all for providers not explicitly routed above
     // (brookings, rand, cfr, iiss, chatham-house, cset, carnegie, cnas, newamerica, etc.)
@@ -573,6 +660,15 @@ async function scoutImpl(query: string, providers: Providers, perProvider = 100)
       "iddri", "terra-nova", "legifrance", "vie-publique",
       "cdc", "nih", "who-direct",
       "oecd-direct",
+      "isidore", "persee", "philpapers",
+      "eric",
+      "fao",
+      "unodc",
+      "openaire",
+      "zenodo",
+      "psychology", "sociology", "history", "geography",
+      "chemistry", "biology", "political-science", "business",
+      "dblp", "zbmath",
       "nara", "uk-archives", "archives-fr",
       "linkup",
       "gdelt-news", "newsapi", "mediastack", "thenewsapi", "gnews", "eventregistry",
@@ -588,9 +684,22 @@ async function scoutImpl(query: string, providers: Providers, perProvider = 100)
 
   console.log(`[SCOUT] Launching ${allPromises.length} parallel requests across ${searchQueries.length} query variations`);
   const allResults = await Promise.allSettled(allPromises);
+  
+  // Per-provider logging for diagnostic visibility
+  const providerCounts = new Map<string, number>();
   for (const r of allResults) {
-    if (r.status === "fulfilled") pool.push(...r.value);
+    if (r.status === "fulfilled") {
+      pool.push(...r.value);
+      const provider = r.value[0]?.provider || (r.value.length === 0 ? '_unknown' : '_unknown');
+      providerCounts.set(provider, (providerCounts.get(provider) || 0) + r.value.length);
+    }
   }
+  // Log per-provider results (including zeros for diagnosis)
+  const providerLogEntries: string[] = [];
+  for (const [prov, count] of providerCounts.entries()) {
+    providerLogEntries.push(`${prov}=${count}`);
+  }
+  console.log(`[SCOUT] Per-provider results: ${providerLogEntries.join(', ') || 'none'}`);
 
   pool.push(...thesesResults);
 
@@ -638,7 +747,16 @@ async function scoutImpl(query: string, providers: Providers, perProvider = 100)
   }
 
   const rawCount = pool.length;
-  console.log(`[SCOUT] Raw results: ${rawCount} sources from ${searchQueries.length} query variations`);
+  const distinctProviders = new Set(pool.map(s => s.provider));
+  console.log(`[SCOUT] Raw results: ${rawCount} sources from ${searchQueries.length} query variations (${distinctProviders.size} providers: ${Array.from(distinctProviders).join(', ')})`);
+
+  // DIVERSITY GUARD: warn if corpus is degraded
+  if (distinctProviders.size < 3) {
+    console.warn(`[SCOUT] ⚠️ LOW DIVERSITY: only ${distinctProviders.size} provider(s) — ${Array.from(distinctProviders).join(', ')}. Corpus may be biased.`);
+  }
+  if (rawCount < 10) {
+    console.warn(`[SCOUT] ⚠️ LOW SOURCE COUNT: only ${rawCount} sources. Consider expanding providers or retrying.`);
+  }
 
   // â”€â”€ STEP 2: DEDUPLICATION (by DOI then normalized title) â”€â”€
   const seen = new Map<string, any>();
@@ -649,7 +767,7 @@ async function scoutImpl(query: string, providers: Providers, perProvider = 100)
       if (!seen.has(`doi:${doi}`)) { seen.set(`doi:${doi}`, s); }
       continue;
     }
-    const normTitle = (s.title || "").toLowerCase().replace(/[^\w\s]/g, "").replace(/\s+/g, " ").trim();
+    const normTitle = (s.title || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^\w\s]/g, "").replace(/\s+/g, " ").trim();
     if (normTitle && !titleIndex.has(normTitle)) {
       titleIndex.set(normTitle, true);
       seen.set(s.id, s);
@@ -743,7 +861,11 @@ async function scoutImpl(query: string, providers: Providers, perProvider = 100)
           jelCodes: (s.jelCodes ?? []).map(String).filter(Boolean),
           citationCount: s.citationCount ?? null,
           qualityScore,
-          raw: s.raw ?? s,
+          raw: {
+            ...(s.raw ?? {}),
+            authors: s.authors || (s.raw as any)?.authors || [],
+            institutions: s.institutions || (s.raw as any)?.institutions || [],
+          },
         },
       };
     });
@@ -858,256 +980,6 @@ export async function rank(
   return await enhancedRank(query, options, mode);
 }
 
-/**
- * Calculate relevance score based on query matching
- * Simple keyword matching for now - can be enhanced with embeddings later
- */
-function calculateRelevanceScore(source: any, query: string): number {
-  if (!query) return 50;
-  
-  const queryTerms = query.toLowerCase().split(/\s+/).filter(t => t.length > 2);
-  const title = (source.title || '').toLowerCase();
-  const abstract = (source.abstract || '').toLowerCase();
-  const topics = (source.topics || []).join(' ').toLowerCase();
-  
-  let score = 0;
-  let matchedTerms = 0;
-  
-  for (const term of queryTerms) {
-    // Title matches worth more
-    if (title.includes(term)) {
-      score += 15;
-      matchedTerms++;
-    }
-    // Abstract matches
-    if (abstract.includes(term)) {
-      score += 8;
-      matchedTerms++;
-    }
-    // Topic matches
-    if (topics.includes(term)) {
-      score += 10;
-      matchedTerms++;
-    }
-  }
-  
-  // Coverage bonus (what % of query terms matched)
-  const coverage = queryTerms.length > 0 ? matchedTerms / queryTerms.length : 0;
-  score += coverage * 20;
-  
-  return Math.min(100, score);
-}
-
-/**
- * P1 FIX #2: Intent-based Ranking
- * P2 ENHANCEMENT: Validate and normalize intent signals
- * Rerank sources based on user's research intent/goals
- * Not just quality score, but relevance to specific research objectives
- */
-function validateIntentSignals(signals?: any): any {
-  if (!signals) return {};
-  
-  // P2: Check for conflicting signals
-  if (signals.seekingRecent && signals.seekingFoundational) {
-    console.warn("[Rank P2] âš ï¸  Conflicting signals: seekingRecent + seekingFoundational detected");
-    console.warn("[Rank P2] Prioritizing recent research (2023+)");
-    return { ...signals, seekingFoundational: false };
-  }
-  
-  if (signals.seekingDebate && signals.seekingConsensus) {
-    console.warn("[Rank P2] âš ï¸  Conflicting signals: seekingDebate + seekingConsensus detected");
-    console.warn("[Rank P2] Prioritizing consensus (highly-cited sources)");
-    return { ...signals, seekingDebate: false };
-  }
-  
-  return signals;
-}
-
-function rerankerByIntent(sources: any[], intentSignals?: any): any[] {
-  // P2: Validate signals before using them
-  const validSignals = validateIntentSignals(intentSignals);
-  if (!Object.keys(validSignals).length) return sources;
-
-  const reranked = sources.map((s: any) => {
-    let intentBoost = 0;
-    
-    // Debate-seeking: Prefer controversial/novel sources
-    if (validSignals.seekingDebate && s.noveltyScore > 70) {
-      intentBoost += 15;
-    }
-    
-    // Consensus-seeking: Prefer highly-cited established sources
-    if (validSignals.seekingConsensus && (s.citationCount || 0) > 100) {
-      intentBoost += 15;
-    }
-    
-    // Recent-seeking: Prefer recent publications
-    if (validSignals.seekingRecent && s.year && s.year >= 2023) {
-      intentBoost += 12;
-    }
-    
-    // Foundational-seeking: Prefer older influential papers
-    if (validSignals.seekingFoundational && s.year && s.year <= 2015 && (s.citationCount || 0) > 500) {
-      intentBoost += 18;
-    }
-    
-    // Institutional-seeking: Prefer official/credible sources
-    if (validSignals.seekingInstitutional) {
-      const institutionalProviders = ['cia-foia', 'nato', 'nist', 'nsa', 'imf', 'worldbank', 'oecd', 'un'];
-      if (institutionalProviders.includes(s.provider)) {
-        intentBoost += 20;
-      }
-    }
-    
-    // Diversity-seeking: Prefer non-dominant sources
-    if (validSignals.seekingDiversity && ['thesesfr', 'hal', 'sgdsn'].includes(s.provider)) {
-      intentBoost += 10;
-    }
-
-    return {
-      ...s,
-      intentScore: (s.qualityScore || 0) + intentBoost,
-      intentBoost  // For debugging
-    };
-  });
-
-  // Rerank by intent score
-  return reranked.sort((a, b) => (b.intentScore || 0) - (a.intentScore || 0));
-}
-
-/**
- * Calcule un score composite basÃ© sur qualitÃ©, nouveautÃ©, rÃ©cence
- */
-function calculateCompositeScore(source: any, mode: string): number {
-  const weights = {
-    quality: mode === "quality" ? 0.6 : mode === "novelty" ? 0.2 : 0.4,
-    novelty: mode === "quality" ? 0.2 : mode === "novelty" ? 0.6 : 0.4,
-    recency: 0.1,
-    diversity: 0.1
-  };
-  
-  const qualityScore = source.qualityScore || 0;
-  const noveltyScore = source.noveltyScore || 0;
-  const recencyScore = calculateRecencyScore(source.year);
-  
-  return (
-    qualityScore * weights.quality +
-    noveltyScore * weights.novelty +
-    recencyScore * weights.recency +
-    50 * weights.diversity  // Bonus diversitÃ© ajustÃ© dynamiquement
-  );
-}
-
-/**
- * Score de rÃ©cence (0-100)
- */
-function calculateRecencyScore(year: number | null): number {
-  if (!year) return 0;
-  const currentYear = new Date().getFullYear();
-  const age = currentYear - year;
-  
-  if (age <= 1) return 100;
-  if (age <= 3) return 80;
-  if (age <= 5) return 60;
-  if (age <= 10) return 40;
-  return 20;
-}
-
-/**
- * SÃ©lectionne des sources diversifiÃ©es
- */
-function selectDiverseSources(sources: any[], options: any): any[] {
-  const selected: any[] = [];
-  const providerCounts = new Map<string, number>();
-  const yearCounts = new Map<number, number>();
-  
-  // P0-FIX: Copy before sorting to avoid mutating the input array
-  const sorted = [...sources].sort((a, b) => b.compositeScore - a.compositeScore);
-  
-  // PremiÃ¨re passe : remplir avec contraintes strictes
-  for (const source of sorted) {
-    if (selected.length >= options.limit) break;
-    
-    const providerCount = providerCounts.get(source.provider) || 0;
-    const yearCount = yearCounts.get(source.year) || 0;
-    
-    // VÃ©rifier contraintes diversitÃ©
-    if (providerCount >= options.maxPerProvider) continue;
-    if (yearCount >= options.maxPerYear) continue;
-    
-    selected.push(source);
-    providerCounts.set(source.provider, providerCount + 1);
-    yearCounts.set(source.year, yearCount + 1);
-  }
-  
-  // Ensure minimum provider diversity
-  const uniqueProviders = new Set(selected.map(s => s.provider));
-  if (uniqueProviders.size < options.minProviderDiversity) {
-    // Essayer d'ajouter des sources de providers manquants
-    const missingProviders = ['openalex', 'semanticscholar', 'hal', 'crossref', 'thesesfr']
-      .filter(p => !uniqueProviders.has(p));
-    
-    for (const provider of missingProviders) {
-      if (uniqueProviders.size >= options.minProviderDiversity) break;
-      
-      const providerSource = sorted.find(s => 
-        s.provider === provider && !selected.includes(s)
-      );
-      
-      if (providerSource && selected.length < options.limit) {
-        selected.push(providerSource);
-        uniqueProviders.add(provider);
-      }
-    }
-  }
-  
-  // Ensure minimum French sources
-  const frenchCount = selected.filter((s: any) => 
-    s.provider === 'thesesfr' || s.provider === 'hal'
-  ).length;
-  
-  if (frenchCount < options.ensureFrench) {
-    const frenchSources = sorted.filter((s: any) => 
-      (s.provider === 'thesesfr' || s.provider === 'hal') &&
-      !selected.includes(s)
-    );
-    
-    const neededFrench = Math.min(
-      options.ensureFrench - frenchCount,
-      frenchSources.length,
-      options.limit - selected.length
-    );
-    
-    selected.push(...frenchSources.slice(0, neededFrench));
-  }
-  
-  return selected.slice(0, options.limit);
-}
-
-/**
- * Log statistiques de diversitÃ©
- */
-function logDiversityStats(sources: any[]): void {
-  if (sources.length === 0) return;
-  
-  const providers = [...new Set(sources.map(s => s.provider))];
-  const years = sources.map(s => s.year).filter(Boolean);
-  const avgQuality = Math.round(sources.reduce((sum, s) => sum + (s.qualityScore || 0), 0) / sources.length);
-  
-  console.log(`[RANK V2] Diversity:`);
-  console.log(`  â€¢ Providers: ${providers.length} (${providers.join(', ')})`);
-  
-  if (years.length > 0) {
-    const minYear = Math.min(...years);
-    const maxYear = Math.max(...years);
-    console.log(`  â€¢ Year span: ${minYear}-${maxYear}`);
-  }
-  
-  console.log(`  â€¢ Avg quality: ${avgQuality}/100`);
-  
-  const frenchCount = sources.filter(s => s.provider === 'hal' || s.provider === 'thesesfr').length;
-  console.log(`  â€¢ French sources: ${frenchCount}/${sources.length}`);
-}
 
 // ================================
 // READER AGENT (wrapper)
@@ -1208,8 +1080,13 @@ export function renderBriefHTML(out: any, sources: any[]) {
   
   const section = (h: string, v: any) => {
     if (!v) return "";
-    // Split on double newlines for paragraph breaks, preserve single newlines as <br>
-    const paragraphs = String(v).split(/\n\n+/).filter(Boolean).map(p => `<p>${esc(p).replace(/\n/g, '<br>')}</p>`).join("\n");
+    const normalized = String(v)
+      .replace(/\(SRC-(\d+)(?:\s*,\s*SRC-(\d+))*\)/g, (match: string) => {
+        const refs = match.match(/SRC-(\d+)/g) || [];
+        return refs.map(r => `[${r}]`).join('');
+      })
+      .replace(/(?<!\[)SRC-(\d+)(?!\])/g, '[SRC-$1]');
+    const paragraphs = normalized.split(/\n\n+/).filter(Boolean).map(p => `<p>${esc(p).replace(/\n/g, '<br>')}</p>`).join("\n");
     return `<h2>${esc(h)}</h2>${paragraphs}`;
   };
   
@@ -1537,7 +1414,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
       // Adaptive provider adjustment: analyze what was found and add missing providers
       const foundProviderPrefixes = new Set(allSourceIds.map(id => id.split(":")[0]));
       const newsProvidersList = ["gdelt-news", "newsapi", "linkup", "gnews", "mediastack", "thenewsapi", "eventregistry"];
-      const academicProvidersList = ["openalex", "crossref", "semanticscholar", "arxiv", "hal", "pubmed", "ssrn", "nber", "repec"];
+      const academicProvidersList = ["openalex", "crossref", "semanticscholar", "arxiv", "hal", "pubmed", "ssrn", "nber", "repec", "europepmc", "base", "doaj"];
       const hasNews = newsProvidersList.some(p => foundProviderPrefixes.has(p));
       const hasAcademic = academicProvidersList.some(p => foundProviderPrefixes.has(p));
 
@@ -1549,8 +1426,8 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
       }
       // If no academic sources found, add core academic providers
       if (!hasAcademic) {
-        adaptiveProviders.push(...["openalex", "crossref", "semanticscholar"] as any);
-        console.log(`${label} RE_SCOUT: no academic sources found — adding openalex, crossref, semanticscholar`);
+        adaptiveProviders.push(...["openalex", "crossref", "semanticscholar", "arxiv", "europepmc", "base", "doaj"] as any);
+        console.log(`${label} RE_SCOUT: no academic sources found — adding openalex, crossref, semanticscholar, arxiv, europepmc, base, doaj`);
       }
       // Always add linkup for web search coverage if not already present
       if (!adaptiveProviders.includes("linkup" as any)) {
@@ -1678,7 +1555,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   const readings = await readerAgentV3(topSources, {
     enablePdf: true,
     maxConcurrency: 5,
-    timeout: isStrategic ? 25000 : undefined,
+    timeout: isStrategic ? 120000 : undefined,
     domain: detectedDomain,
   });
   const fullTextCount = readings.filter(r => r.readingDepth === "full_text").length;
@@ -2196,7 +2073,7 @@ Return the FULL rewritten HTML. No JSON wrapping — just the HTML.`
             }],
             temperature: 0.2,
             jsonMode: false,
-            maxTokens: 12000,
+            maxTokens: 4000,
             enableCache: false,
             task: 'auto_revision',
           });

@@ -1,7 +1,7 @@
 /**
  * Allen Institute for AI (AI2)
  * Uses OpenAlex with Allen AI ROR filter
- * ROR: https://ror.org/01mna5h14
+ * ROR: https://ror.org/05w520734
  */
 
 import { searchOpenAlex } from '../../openalex';
@@ -10,7 +10,7 @@ export async function searchAllenAI(query: string, limit = 15): Promise<any[]> {
   console.log(`[AllenAI] Searching via OpenAlex ROR for: "${query}"`);
   try {
     const results = await searchOpenAlex(query, limit, {
-      filter: 'authorships.institutions.ror:https://ror.org/01mna5h14',
+      filter: 'authorships.institutions.ror:https://ror.org/05w520734',
     });
     const mapped = results.map(r => ({
       ...r,

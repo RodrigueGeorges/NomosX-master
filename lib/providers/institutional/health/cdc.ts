@@ -1,7 +1,7 @@
 /**
  * CDC - Centers for Disease Control and Prevention
  * Uses OpenAlex with CDC ROR filter + CDC Public Health Reports API
- * ROR: https://ror.org/03bp5hc32
+ * ROR: https://ror.org/042twtr12
  */
 
 import { searchOpenAlex } from '../../openalex';
@@ -10,7 +10,7 @@ export async function searchCDC(query: string, limit = 15): Promise<any[]> {
   console.log(`[CDC] Searching via OpenAlex ROR for: "${query}"`);
   try {
     const results = await searchOpenAlex(query, limit, {
-      filter: 'authorships.institutions.ror:https://ror.org/03bp5hc32',
+      filter: 'authorships.institutions.ror:https://ror.org/042twtr12',
     });
     const mapped = results.map(r => ({
       ...r,

@@ -42,7 +42,7 @@ export const metadata = {
     template: `%s | ${BRAND_NAME}`,
   },
   description: BRAND_DESCRIPTION,
-  keywords: ["think tank", "agentic AI", "probabilistic foresight", "decision intelligence", "strategic analysis", "scenario planning", "autonomous research"],
+  keywords: ["think tank", "strategic intelligence", "foresight", "decision intelligence", "strategic analysis", "scenario planning", "evidence-based research"],
   authors: [{ name: BRAND_NAME }],
   creator: BRAND_NAME,
   icons: {
@@ -83,15 +83,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     name: 'NomosX',
     url: process.env.NEXT_PUBLIC_APP_URL || 'https://nomosx.com',
     logo: `${process.env.NEXT_PUBLIC_APP_URL || 'https://nomosx.com'}/favicon.svg`,
-    description: 'The agentic think tank for probable futures — autonomous cross-domain mapping, probabilistic foresight, and source-verified institute positions.',
+    description: 'A think tank for strategic foresight — cross-domain mapping, adversarial review, and source-verified positions published without agenda.',
     sameAs: [
       'https://x.com/nomosx_ai',
       'https://github.com/nomosx',
     ],
     foundingDate: '2024',
     knowsAbout: [
-      'Strategic Analysis', 'Probabilistic Foresight', 'Decision Intelligence',
-      'Agentic Research', 'AI Think Tank', 'Evidence-Based Policy',
+      'Strategic Analysis', 'Strategic Foresight', 'Decision Intelligence',
+      'Evidence-Based Policy', 'Cross-Domain Research', 'Scenario Planning',
     ],
   };
 

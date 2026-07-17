@@ -4,7 +4,7 @@ import { runThinkTankCycle } from "@/lib/agent/think-tank-dispatcher";
 /**
  * POST /api/cron/generate-briefs
  *
- * Autonomous think tank — weekly cycle (Sunday + midweek).
+ * Think tank — weekly cycle (Sunday + midweek).
  * Thin wrapper → ThinkTankDispatcher (mode: weekly).
  */
 export async function POST(req: NextRequest) {

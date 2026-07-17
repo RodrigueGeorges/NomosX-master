@@ -70,7 +70,13 @@ export function FeaturedVerdictCard({ data, className, animate = true }: Feature
         className
       )}
     >
-      <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-white/30 mb-4">Live verdict</p>
+      <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
+        <div className="nx-scan-sweep bg-gradient-to-b from-transparent via-white/[0.04] to-transparent" />
+      </div>
+      <div className="flex items-center gap-2 mb-4">
+        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400/60 animate-pulse" />
+        <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-white/30">Institute position</p>
+      </div>
 
       <h2 className="font-display text-xl sm:text-2xl font-medium text-white leading-snug mb-4">
         {data.question}
@@ -103,7 +109,7 @@ export function FeaturedVerdictCard({ data, className, animate = true }: Feature
         </span>
         <span className="inline-flex items-center gap-1.5">
           <AlertTriangle className="w-3.5 h-3.5" strokeWidth={1.25} />
-          {data.objections} objections
+          {data.objections} dissents
         </span>
       </div>
 

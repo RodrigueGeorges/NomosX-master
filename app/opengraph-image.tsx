@@ -86,14 +86,14 @@ export default async function Image() {
             marginBottom: '36px',
           }}
         >
-          Probable futures · Prospective distributions · Full source traceability
+          Verified positions · Scenario distributions · Full source traceability
         </div>
 
         <div style={{ display: 'flex', gap: '40px', alignItems: 'center' }}>
           {[
             { value: BRAND_SOURCES_LABEL, label: 'Sources' },
             { value: '4', label: 'Method stages' },
-            { value: '24/7', label: 'Autonomous' },
+            { value: '24/7', label: 'Always on' },
           ].map((stat) => (
             <div
               key={stat.label}

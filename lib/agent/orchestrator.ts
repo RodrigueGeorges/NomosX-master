@@ -76,8 +76,8 @@ export interface PipelineState {
 
 const THRESHOLDS = {
   // Minimum sources to proceed with analysis
-  MIN_SOURCES: 3,
-  MIN_SOURCES_STRATEGIC: 5,
+  MIN_SOURCES: 10,
+  MIN_SOURCES_STRATEGIC: 15,
 
   // Minimum % of sources with abstracts
   MIN_ABSTRACT_COVERAGE: 0.6,
@@ -86,8 +86,8 @@ const THRESHOLDS = {
   MIN_AVG_QUALITY: 55,
 
   // Minimum provider diversity (distinct providers)
-  MIN_PROVIDER_DIVERSITY: 2,
-  MIN_PROVIDER_DIVERSITY_STRATEGIC: 3,
+  MIN_PROVIDER_DIVERSITY: 3,
+  MIN_PROVIDER_DIVERSITY_STRATEGIC: 4,
 
   // Trust score threshold for publication
   MIN_TRUST_SCORE: 65,

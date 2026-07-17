@@ -66,9 +66,16 @@ export interface VerificationReport {
  */
 export function extractCitations(text: string): CitationInstance[] {
   const citations: CitationInstance[] = [];
+  // First normalize citation variants to [SRC-N] format:
+  // "(SRC-2, SRC-8)" → "[SRC-2][SRC-8]", "SRC-3" → "[SRC-3]"
   const normalized = text
     .replace(/<sup class="cite"><a href="#ref-(\d+)"[^>]*>\s*(\d+)\s*<\/a><\/sup>/gi, "[SRC-$1]")
-    .replace(/<sup class="cite"><a href="#ref-(\d+)"[^>]*>([\s\S]*?)<\/a><\/sup>/gi, "[SRC-$1]");
+    .replace(/<sup class="cite"><a href="#ref-(\d+)"[^>]*>([\s\S]*?)<\/a><\/sup>/gi, "[SRC-$1]")
+    .replace(/\(SRC-(\d+)(?:\s*,\s*SRC-(\d+))*\)/g, (match, ...nums) => {
+      const refs = match.match(/SRC-(\d+)/g) || [];
+      return refs.map(r => `[${r}]`).join('');
+    })
+    .replace(/(?<!\[)SRC-(\d+)(?!\])/g, '[SRC-$1]');
   const pattern = /\[SRC-(\d+)\]/g;
   let match;
 

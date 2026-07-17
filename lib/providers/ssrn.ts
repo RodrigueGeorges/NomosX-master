@@ -16,10 +16,14 @@ export async function searchSSRN(query: string, limit = 20): Promise<any[]> {
 
   try {
     const data: any = await fetchFromProvider("ssrn", url, {
-      timeout: 15000,
+      timeout: 10000,
+      retries: 0,
       headers: {
-        Accept: "application/json",
-        "User-Agent": "NomosX Research Agent/1.0",
+        Accept: "application/json, text/plain, */*",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+        "Referer": "https://www.ssrn.com/",
+        "Origin": "https://www.ssrn.com",
+        "Accept-Language": "en-US,en;q=0.9",
       },
     });
     const results = data?.papers || data?.results || [];

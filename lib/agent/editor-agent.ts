@@ -30,7 +30,15 @@ function esc(s: string): string {
 // ============================================================================
 
 function replaceCitations(text: string): string {
-  return text.replace(/\[SRC-(\d+)\]/g, (_, n) =>
+  // Normalize LLM citation variants to [SRC-N] format:
+  // "(SRC-2, SRC-8)" → "[SRC-2][SRC-8]", "SRC-3" → "[SRC-3]"
+  let normalized = text
+    .replace(/\(SRC-(\d+)(?:\s*,\s*SRC-(\d+))*\)/g, (match, ...nums) => {
+      const refs = match.match(/SRC-(\d+)/g) || [];
+      return refs.map(r => `[${r}]`).join('');
+    })
+    .replace(/(?<!\[)SRC-(\d+)(?!\])/g, '[SRC-$1]');
+  return normalized.replace(/\[SRC-(\d+)\]/g, (_, n) =>
     `<sup class="cite"><a href="#ref-${n}" title="Source ${n}">${n}</a></sup>`
   );
 }

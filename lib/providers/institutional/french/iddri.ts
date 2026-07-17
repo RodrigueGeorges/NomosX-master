@@ -1,7 +1,7 @@
 /**
  * IDDRI - Institut du développement durable et des relations internationales
  * Uses OpenAlex with IDDRI ROR filter
- * ROR: https://ror.org/02wqz4q95
+ * ROR: https://ror.org/02j05s068
  */
 
 import { searchOpenAlex } from '../../openalex';
@@ -10,7 +10,7 @@ export async function searchIDDRI(query: string, limit = 15): Promise<any[]> {
   console.log(`[IDDRI] Searching via OpenAlex ROR for: "${query}"`);
   try {
     const results = await searchOpenAlex(query, limit, {
-      filter: 'authorships.institutions.ror:https://ror.org/02wqz4q95',
+      filter: 'authorships.institutions.ror:https://ror.org/02j05s068',
     });
     const mapped = results.map(r => ({
       ...r,

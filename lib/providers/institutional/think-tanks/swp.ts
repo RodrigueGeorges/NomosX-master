@@ -1,7 +1,7 @@
 /**
  * SWP - Stiftung Wissenschaft und Politik (German Institute for International and Security Affairs)
  * Uses OpenAlex with SWP ROR filter
- * ROR: https://ror.org/03b6thg82
+ * ROR: https://ror.org/05frkc804
  */
 
 import { searchOpenAlex } from '../../openalex';
@@ -10,7 +10,7 @@ export async function searchSWP(query: string, limit = 15): Promise<any[]> {
   console.log(`[SWP] Searching via OpenAlex ROR for: "${query}"`);
   try {
     const results = await searchOpenAlex(query, limit, {
-      filter: 'authorships.institutions.ror:https://ror.org/03b6thg82',
+      filter: 'authorships.institutions.ror:https://ror.org/05frkc804',
     });
     const mapped = results.map(r => ({
       ...r,

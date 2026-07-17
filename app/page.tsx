@@ -30,10 +30,8 @@ import {
 
 import { FALLBACK_FEATURED_VERDICT } from "@/lib/brand/featured-verdict";
 import {
-  BRAND_HERO_DETAIL,
   BRAND_HERO_SUBTITLE,
   BRAND_HERO_TITLE,
-  BRAND_MISSION,
 } from "@/lib/brand/public-copy";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -352,15 +350,25 @@ function HomePageContent() {
 
           {/* Hero — SpaceX-style mission block */}
 
-          <section className="relative px-6 sm:px-8 min-h-[calc(100svh-3.5rem)] flex flex-col items-center justify-center py-16 sm:py-20">
+          <section className="relative px-6 sm:px-8 min-h-[calc(100svh-3.5rem)] flex flex-col items-center justify-center py-16 sm:py-20 overflow-hidden">
 
-            <div className="max-w-4xl mx-auto text-center w-full">
+            <div className="nx-grid-bg nx-grid-bg-animated" aria-hidden="true" />
 
-              <p className="nx-public-eyebrow mb-10 animate-rise">
+            <div className="nx-horizon-glow" aria-hidden="true" />
 
-                Agentic · Independent · Prospective
+            <div className="relative max-w-4xl mx-auto text-center w-full">
 
-              </p>
+              <div className="flex items-center justify-center mb-10 animate-rise">
+
+                <span className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.2em] text-white/35">
+
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400/70 animate-pulse" />
+
+                  The think tank, always on
+
+                </span>
+
+              </div>
 
               <h1 className="nx-spx-hero mb-8 animate-rise max-w-4xl mx-auto">
 
@@ -374,11 +382,37 @@ function HomePageContent() {
 
               </p>
 
-              <p className="text-sm text-[var(--nx-text-tertiary)] max-w-lg mx-auto leading-[1.5] mb-14 animate-rise">
+              <div className="flex flex-wrap items-start justify-center gap-x-12 gap-y-6 mb-14 animate-rise">
 
-                {BRAND_HERO_DETAIL}
+                {[
 
-              </p>
+                  { value: "250M+", label: "Sources indexed" },
+
+                  { value: "24/7", label: "Continuous operation" },
+
+                  { value: "100%", label: "Claims traceable" },
+
+                ].map((stat, i) => (
+
+                  <div key={stat.label} className={`text-center animate-rise delay-${(i + 1) * 100}`} style={{ opacity: 0 }}>
+
+                    <p className="font-mono text-2xl sm:text-3xl font-light text-white tabular-nums leading-none mb-2">
+
+                      {stat.value}
+
+                    </p>
+
+                    <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-white/30">
+
+                      {stat.label}
+
+                    </p>
+
+                  </div>
+
+                ))}
+
+              </div>
 
               <div className="flex flex-col sm:flex-row gap-4 justify-center animate-rise">
 
@@ -392,7 +426,7 @@ function HomePageContent() {
 
                 >
 
-                  Explore
+                  Browse intelligence
 
                   <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
 
@@ -408,7 +442,7 @@ function HomePageContent() {
 
                 >
 
-                  Launch study
+                  Commission an inquiry
 
                   <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
 
@@ -422,17 +456,81 @@ function HomePageContent() {
 
 
 
+          {/* Live positions ticker */}
+
+          <div className="border-y border-white/[0.06] bg-white/[0.01] overflow-hidden" aria-hidden="true">
+
+            <div className="flex items-center">
+
+              <span className="shrink-0 flex items-center gap-2 px-5 py-3 border-r border-white/[0.06] font-mono text-[9px] uppercase tracking-[0.2em] text-white/35 bg-black">
+
+                <span className="w-1 h-1 rounded-full bg-emerald-400/70 animate-pulse" />
+
+                Latest positions
+
+              </span>
+
+              <div className="flex whitespace-nowrap animate-marquee-slow">
+
+                {[...displayInquiries, ...displayInquiries].map((inq, i) => (
+
+                  <span key={`${inq.id}-${i}`} className="flex items-center font-mono text-[10px] uppercase tracking-[0.14em] text-white/30 py-3">
+
+                    <span className="px-6 text-white/15">///</span>
+
+                    <span className="text-white/45">{inq.domain}</span>
+
+                    <span className="px-2 text-white/20">—</span>
+
+                    {inq.title}
+
+                    {inq.verdict && (
+
+                      <span className="ml-2 text-emerald-400/50">{inq.verdict.value}</span>
+
+                    )}
+
+                  </span>
+
+                ))}
+
+              </div>
+
+            </div>
+
+          </div>
+
+
+
           {/* Mission statement */}
 
           <section className="nx-public-section px-6 sm:px-8">
 
-            <div className="max-w-3xl mx-auto text-center">
+            <div className="max-w-4xl mx-auto grid sm:grid-cols-2 gap-10 sm:gap-16">
 
-              <p className="text-xl sm:text-2xl lg:text-3xl font-normal text-[var(--nx-text-secondary)] leading-[1.45] max-w-3xl mx-auto">
+              <div>
 
-                {BRAND_MISSION}
+                <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-white/30 mb-5">The challenge</p>
 
-              </p>
+                <p className="text-lg sm:text-xl text-[var(--nx-text-secondary)] leading-[1.55]">
+
+                  Strategic decisions are still made on single forecasts, opaque sources, and borrowed convictions.
+
+                </p>
+
+              </div>
+
+              <div>
+
+                <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-white/30 mb-5">Our answer</p>
+
+                <p className="text-lg sm:text-xl text-[var(--nx-text-secondary)] leading-[1.55]">
+
+                  An institute that maps the evidence, confronts every assumption, and publishes positions anyone can verify — as a public good.
+
+                </p>
+
+              </div>
 
             </div>
 
@@ -445,6 +543,8 @@ function HomePageContent() {
           <section className="px-6 sm:px-8 py-20 sm:py-28 border-t border-white/[0.08]">
 
             <div className="max-w-lg mx-auto">
+
+              <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-white/30 mb-8 text-center">Latest position</p>
 
               <FeaturedVerdictCard data={featuredVerdict} />
 
@@ -468,7 +568,7 @@ function HomePageContent() {
 
                 <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-white/35">
 
-                  Latest inquiries
+                  Active intelligence
 
                 </p>
 
@@ -482,7 +582,7 @@ function HomePageContent() {
 
                 >
 
-                  View all inquiries
+                  Full archive
 
                   <ArrowRight size={14} />
 
@@ -534,9 +634,9 @@ function HomePageContent() {
 
             <div className="max-w-md mx-auto text-center">
 
-              <h2 className="font-display text-xl sm:text-2xl font-semibold text-white mb-3 tracking-tight">Weekly dispatch</h2>
+              <h2 className="font-display text-xl sm:text-2xl font-semibold text-white mb-3 tracking-tight">Intelligence dispatch</h2>
 
-              <p className="text-xs text-white/35 mb-8 font-mono uppercase tracking-[0.14em]">What survived arbitration</p>
+              <p className="text-xs text-white/35 mb-8 font-mono uppercase tracking-[0.14em]">One email. Only what matters.</p>
 
               {newsletterStatus === "success" ? (
 
@@ -554,7 +654,7 @@ function HomePageContent() {
 
                     onChange={(e) => setNewsletterEmail(e.target.value)}
 
-                    placeholder="your@institution.edu"
+                    placeholder="analyst@institution.org"
 
                     required
 

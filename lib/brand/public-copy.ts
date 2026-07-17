@@ -2,36 +2,36 @@
 
 export const BRAND_NAME = "NomosX";
 
-export const BRAND_TITLE = "NomosX — The Agentic Think Tank";
+export const BRAND_TITLE = "NomosX — Strategic Intelligence, Always On";
 
-export const BRAND_TAGLINE = "Probable futures. Decisions owned. Evidence verified.";
+export const BRAND_TAGLINE = "Verified positions. No editorial agenda.";
 
-export const BRAND_SHORT = "Agentic think tank";
+export const BRAND_SHORT = "Strategic foresight, on demand";
 
-export const BRAND_HERO_SUBTITLE_SHORT = "The agentic think tank.";
+export const BRAND_HERO_SUBTITLE_SHORT = "Strategic foresight, on demand.";
 
 export const BRAND_DESCRIPTION =
-  "Autonomous pipeline for probabilistic foresight: cross-domain mapping, scenario distributions, and institute positions — every claim source-verified.";
+  "NomosX produces strategic intelligence that institutions trust: verified sources, challenged assumptions, and a clear position — published without agenda.";
 
-export const BRAND_OG_DESCRIPTION = `${BRAND_TAGLINE} Cross-domain foresight with probabilistic verdicts.`;
+export const BRAND_OG_DESCRIPTION = `${BRAND_TAGLINE} Cross-domain foresight with defensible positions.`;
 
-export const BRAND_MANIFEST_DESCRIPTION = `${BRAND_TAGLINE} Agentic cross-domain foresight with probabilistic institute positions.`;
+export const BRAND_MANIFEST_DESCRIPTION = `${BRAND_TAGLINE} Cross-domain foresight with verified positions.`;
 
-export const BRAND_HERO_TITLE = "Pushing strategic analysis forward.";
+export const BRAND_HERO_TITLE = "Making the future legible.";
 
-export const BRAND_HERO_SUBTITLE = "The agentic think tank for probable futures.";
+export const BRAND_HERO_SUBTITLE = "NomosX is a think tank publishing verified positions on the questions that will define the next decade.";
 
 export const BRAND_HERO_DETAIL =
-  "Cross-domain mapping · probabilistic distributions · institute positions · full traceability";
+  "250M+ sources · multi-scenario foresight · verified positions";
 
 export const BRAND_MISSION =
-  "NomosX believes strategic decisions grounded in a distribution of probable futures — not a frozen state of the art — change how institutions anticipate the world.";
+  "The challenge: strategic decisions are still made on single forecasts, opaque sources, and borrowed convictions. Our answer: an institute that maps the evidence, confronts every assumption, and publishes positions anyone can verify — as a public good.";
 
 export const BRAND_SOURCES_LABEL = "250M+";
 
 export const BRAND_SOURCES_LINE = `${BRAND_SOURCES_LABEL} sources`;
 
-export const BRAND_EMAIL_TAGLINE = "The Agentic Think Tank";
+export const BRAND_EMAIL_TAGLINE = "Strategic Intelligence, Always On";
 
 export const BRAND_EMAIL_FOOTER = `${BRAND_NAME} · ${BRAND_EMAIL_TAGLINE}`;
 
@@ -44,24 +44,24 @@ export const METHOD_STEPS_INLINE = METHOD_STEPS.join(" · ");
 export const METHOD_BLOCKS = [
   {
     name: METHOD_STEPS[0],
-    desc: `Cross-domain evidence from ${BRAND_SOURCES_LINE} — collisions between fields, not siloed summaries.`,
+    desc: `We pull from ${BRAND_SOURCES_LABEL} sources across every relevant domain — academic research, institutional positions, primary data. The picture is never one-sided.`,
   },
   {
     name: METHOD_STEPS[1],
-    desc: "Contradictions surfaced, steel-man debate, adversarial review before any position is taken.",
+    desc: "Every claim is challenged. Every assumption attacked. We force the strongest counter-argument before we let any position stand.",
   },
   {
     name: METHOD_STEPS[2],
-    desc: "Probabilistic trajectories and scenario distributions — futures as ranges, not single forecasts.",
+    desc: "Not one forecast. Multiple futures, each with a probability. Because the world doesn't move in straight lines — and decisions shouldn't either.",
   },
   {
     name: METHOD_STEPS[3],
-    desc: "An institute position with confidence bounds and full [SRC-N] traceability on every claim.",
+    desc: "A clear position, with the confidence to back it. Sources visible. Doubts logged. Everything you need to brief a room or sign a decision.",
   },
 ] as const;
 
-export const ABOUT_CTA_HEADLINE = "Probable futures.";
-export const ABOUT_CTA_HEADLINE_ACCENT = "Open by default.";
+export const ABOUT_CTA_HEADLINE = "The briefing room,";
+export const ABOUT_CTA_HEADLINE_ACCENT = "open to everyone.";
 
 export const METHODOLOGY_INTRO =
-  "Four stages. One agentic pipeline. Every inquiry evidence-bound before publication.";
+  "Four stages. No shortcuts. A position worth defending at the end.";

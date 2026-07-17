@@ -39,18 +39,18 @@ import { AnimatePresence, motion } from "framer-motion";
 
 const READER_FEATURES = [
   "All published inquiries & briefs",
-  "Weekly truth dispatch",
+  "Weekly intelligence dispatch",
   "Full source traceability on every claim",
-  "Institute positions with confidence bounds",
+  "Positions with confidence bounds",
   "Archives & domain filters",
 ];
 
 const STUDIO_FEATURES = [
   "Commission a custom inquiry on any question",
-  "Probabilistic foresight & scenario distributions",
+  "Scenario distributions & foresight",
   "Choose depth: standard → strategic",
   "Adversarial debate + citation export",
-  "Priority agentic pipeline queue",
+  "Priority processing queue",
   "White-label & API access (beta)",
 ];
 
@@ -74,7 +74,7 @@ const FAQ = [
 
     q: "What is the Reader plan?",
 
-    a: "Reader is free, forever. Everything the agentic think tank publishes — inquiries, briefs, signals, and the weekly dispatch — is open. No credit card.",
+    a: "Reader is free, forever. Everything NomosX publishes — inquiries, briefs, signals, and the weekly dispatch — is open. No credit card.",
 
   },
 
@@ -82,7 +82,7 @@ const FAQ = [
 
     q: "What is NomosX Studio?",
 
-    a: "Studio lets you commission the full agentic pipeline on your research question: map, confront, quantify, and decide — with a probabilistic verdict and full [SRC-N] traceability.",
+    a: "Studio lets you commission a custom inquiry on your research question. Same verification protocol, same traceability — with a verdict you can defend.",
 
   },
 
@@ -165,8 +165,8 @@ export default function PricingPage() {
               </h1>
 
               <p className="text-base text-white/50 max-w-2xl mx-auto leading-relaxed">
-                The agentic think tank publishes inquiries 24/7 — free to read.
-                Studio is the add-on for custom commissions, probabilistic foresight,
+                NomosX publishes inquiries 24/7 — free to read.
+                Studio is the add-on for custom commissions, foresight,
                 and evidence-bound deliverables on demand.
               </p>
 
@@ -226,7 +226,7 @@ export default function PricingPage() {
 
                   onClick={openFreeAuth}
 
-                  className="w-full py-3.5 rounded-xl border border-white/[0.10] text-white/70 text-sm font-medium hover:border-white/30 hover:text-white transition-colors"
+                  className="w-full py-3.5 border border-white/[0.10] text-white/70 text-sm font-medium hover:border-white/30 hover:text-white transition-colors"
 
                 >
 
@@ -246,7 +246,7 @@ export default function PricingPage() {
 
                 <div className="absolute -top-3 left-8">
 
-                  <span className="px-3 py-1 rounded-full bg-white text-black text-[10px] font-mono font-semibold tracking-[0.14em] uppercase">
+                  <span className="px-3 py-1 bg-white text-black text-[10px] font-mono font-semibold tracking-[0.14em] uppercase">
 
                     Private beta
 
@@ -328,7 +328,7 @@ export default function PricingPage() {
 
                   </h2>
 
-                  <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-white/40 px-2 py-0.5 border border-white/20 rounded-full">
+                  <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-white/40 px-2 py-0.5 border border-white/20">
 
                     Interface preview
 
@@ -409,7 +409,7 @@ export default function PricingPage() {
 
                 { value: "4", label: "Method stages", icon: FileText },
 
-                { value: "3–5 min", label: "Standard cycle", icon: Sparkles },
+                { value: "24/7", label: "Always publishing", icon: Sparkles },
 
               ].map(({ value, label, icon: Icon }) => (
 
@@ -527,7 +527,7 @@ export default function PricingPage() {
             <div className="text-center py-12">
 
               <h2 className="font-display text-2xl sm:text-3xl font-semibold mb-4">
-                Probable futures.{" "}
+                Positions worth defending.{" "}
                 <span className="text-white/70">Open by default.</span>
               </h2>
 
@@ -539,7 +539,7 @@ export default function PricingPage() {
 
                   onClick={openFreeAuth}
 
-                  className="px-7 py-3.5 rounded-xl border border-white/[0.10] text-sm text-white/70 hover:text-white"
+                  className="px-7 py-3.5 border border-white/[0.10] text-sm text-white/70 hover:text-white"
 
                 >
 

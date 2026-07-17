@@ -2,7 +2,7 @@
  * WHO Direct API - World Health Organization
  * Uses WHO IRIS repository API (institutional repository, no key required)
  * Also queries OpenAlex with WHO ROR for peer-reviewed outputs
- * ROR: https://ror.org/01k4yrm29
+ * ROR: https://ror.org/01f80g185
  */
 
 import { searchOpenAlex } from '../../openalex';
@@ -13,7 +13,7 @@ export async function searchWHODirect(query: string, limit = 15): Promise<any[]>
   const [irisResults, openAlexResults] = await Promise.allSettled([
     searchWHOIRIS(query, Math.ceil(limit * 0.5)),
     searchOpenAlex(query, Math.ceil(limit * 0.5), {
-      filter: 'authorships.institutions.ror:https://ror.org/01k4yrm29',
+      filter: 'authorships.institutions.ror:https://ror.org/01f80g185',
     }),
   ]);
 

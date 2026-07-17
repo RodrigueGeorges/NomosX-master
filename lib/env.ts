@@ -29,9 +29,11 @@ const envSchema = z.object({
   
   // Academic APIs (optional keys, have fallback URLs)
   OPENALEX_API: z.string().url().optional().default("https://api.openalex.org/works"),
+  OPENALEX_API_KEY: z.string().optional(),
   THESESFR_API: z.string().url().optional().default("https://theses.fr/api/v1"),
   CROSSREF_API: z.string().url().optional().default("https://api.crossref.org/works"),
   SEMANTICSCHOLAR_API: z.string().url().optional().default("https://api.semanticscholar.org/graph/v1/paper/search"),
+  SEMANTICSCHOLAR_API_KEY: z.string().optional(),
   CORE_API_KEY: z.string().optional(),
   UNPAYWALL_EMAIL: z.string().email().optional(),
   
@@ -92,9 +94,6 @@ const envSchema = z.object({
   NOMOSX_FORESIGHT_CHAT_RATE_LIMIT: z.string().optional(),
   NOMOSX_FORESIGHT_MIN_SEED_SOURCES: z.string().optional(),
 
-  // Google Knowledge Graph (entity enrichment)
-  GOOGLE_KNOWLEDGE_GRAPH_API_KEY: z.string().optional(),
-
   // Patents (optional)
   PATENTSVIEW_API_KEY: z.string().optional(),
   
@@ -113,6 +112,11 @@ const envSchema = z.object({
 
   // Editorial V2 — position-first pipeline
   EDITORIAL_V2: z.string().optional(),
+
+  // INDEX agent — S2 author enrichment (h-index/citations). Off by default:
+  // S2 /author/search is rate-limited (1 req/s) and fails ~95% (429/400),
+  // adding minutes to the pipeline for marginal metadata value.
+  INDEX_S2_AUTHOR_ENRICH: z.string().optional(),
 
   // Next.js
   NEXT_PUBLIC_APP_URL: z.string().url().optional().default("http://localhost:3000"),

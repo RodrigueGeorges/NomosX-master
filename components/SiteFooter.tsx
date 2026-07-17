@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { NomosXLogo } from "@/components/brand/NomosXLogo";
-import { BRAND_NAME, BRAND_SHORT, BRAND_TAGLINE } from "@/lib/brand/public-copy";
+import { BRAND_NAME, BRAND_TAGLINE } from "@/lib/brand/public-copy";
 
 const FOOTER_LINKS = [
   { label: "Inquiries", href: "/archives" },
@@ -29,7 +29,7 @@ export default function SiteFooter(_props: SiteFooterProps) {
           <NomosXLogo variant="lockup" size={16} className="opacity-70" />
           <div>
           <p className="font-mono text-[11px] text-white/30 tracking-wide">
-            © {year} {BRAND_NAME} · {BRAND_SHORT}
+            © {year} {BRAND_NAME}
           </p>
           <p className="font-mono text-[10px] text-white/20 tracking-wide mt-1">
             {BRAND_TAGLINE}

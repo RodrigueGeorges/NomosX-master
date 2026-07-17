@@ -1,7 +1,7 @@
 /**
  * UNDP - United Nations Development Programme
  * Uses OpenAlex with UNDP ROR filter (reliable, no API key required)
- * ROR: https://ror.org/01bhm6w13
+ * ROR: https://ror.org/051777d98
  */
 
 import { searchOpenAlex } from '../../openalex';
@@ -10,7 +10,7 @@ export async function searchUNDP(query: string, limit = 15): Promise<any[]> {
   console.log(`[UNDP] Searching via OpenAlex ROR for: "${query}"`);
   try {
     const results = await searchOpenAlex(query, limit, {
-      filter: 'authorships.institutions.ror:https://ror.org/01bhm6w13',
+      filter: 'authorships.institutions.ror:https://ror.org/051777d98',
     });
     const mapped = results.map(r => ({
       ...r,

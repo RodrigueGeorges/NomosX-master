@@ -1,8 +1,8 @@
 /**
  * NATO / Defense Research
  * Uses OpenAlex with dual ROR filter:
- *   - NATO ROR: https://ror.org/03hvn0x85
- *   - RAND Corporation ROR: https://ror.org/01jbf4w46 (leading defense research institution)
+ *   - NATO ROR: https://ror.org/05xagc088
+ *   - RAND Corporation ROR: https://ror.org/00f2z7n96 (leading defense research institution)
  */
 
 import { searchOpenAlex } from '../../openalex';
@@ -12,10 +12,10 @@ export async function searchNATO(query: string, limit = 15): Promise<any[]> {
   try {
     const [natoResults, randResults] = await Promise.allSettled([
       searchOpenAlex(query, Math.ceil(limit / 2), {
-        filter: 'authorships.institutions.ror:https://ror.org/03hvn0x85',
+        filter: 'authorships.institutions.ror:https://ror.org/05xagc088',
       }),
       searchOpenAlex(query, Math.ceil(limit / 2), {
-        filter: 'authorships.institutions.ror:https://ror.org/01jbf4w46',
+        filter: 'authorships.institutions.ror:https://ror.org/00f2z7n96',
       }),
     ]);
 

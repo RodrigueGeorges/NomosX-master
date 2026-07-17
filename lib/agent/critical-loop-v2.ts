@@ -311,7 +311,7 @@ Return the FULL rewritten HTML. No JSON wrapping, no markdown fences — just ra
     }],
     temperature: 0.25,
     jsonMode: false,
-    maxTokens: 12000,
+    maxTokens: 4000,
     enableCache: false, // Never cache rewrites
     task: 'auto_revision',
   });

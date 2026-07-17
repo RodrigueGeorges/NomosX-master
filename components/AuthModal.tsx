@@ -139,7 +139,7 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
         ) : (
           <form onSubmit={handleEmailAuth} className="relative space-y-6">
             {error && (
-              <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+              <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
                 {error}
               </div>
             )}
@@ -246,7 +246,7 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
             ) : (
               <>
                 {error && (
-                  <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+                  <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
                     {error}
                   </div>
                 )}

@@ -1,7 +1,7 @@
 /**
  * ADEME - Agence de la transition écologique (France)
  * Uses OpenAlex with ADEME ROR filter
- * ROR: https://ror.org/04f7e0t38
+ * ROR: https://ror.org/05rth8x13
  */
 
 import { searchOpenAlex } from '../../openalex';
@@ -10,7 +10,7 @@ export async function searchADEME(query: string, limit = 15): Promise<any[]> {
   console.log(`[ADEME] Searching via OpenAlex ROR for: "${query}"`);
   try {
     const results = await searchOpenAlex(query, limit, {
-      filter: 'authorships.institutions.ror:https://ror.org/04f7e0t38',
+      filter: 'authorships.institutions.ror:https://ror.org/05rth8x13',
     });
     const mapped = results.map(r => ({
       ...r,

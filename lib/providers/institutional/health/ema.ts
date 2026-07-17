@@ -1,7 +1,7 @@
 /**
  * EMA - European Medicines Agency
  * Uses OpenAlex with EMA ROR filter
- * ROR: https://ror.org/031bh4s32
+ * ROR: https://ror.org/01z0wsw92
  */
 
 import { searchOpenAlex } from '../../openalex';
@@ -10,7 +10,7 @@ export async function searchEMA(query: string, limit = 15): Promise<any[]> {
   console.log(`[EMA] Searching via OpenAlex ROR for: "${query}"`);
   try {
     const results = await searchOpenAlex(query, limit, {
-      filter: 'authorships.institutions.ror:https://ror.org/031bh4s32',
+      filter: 'authorships.institutions.ror:https://ror.org/01z0wsw92',
     });
     const mapped = results.map(r => ({
       ...r,

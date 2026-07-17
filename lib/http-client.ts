@@ -83,7 +83,7 @@ export function setRateLimiter(provider: string, config: RateLimitConfig) {
 }
 
 // Default rate limits for known providers
-setRateLimiter("openalex", { requestsPerSecond: 10, burstSize: 20 });
+setRateLimiter("openalex", { requestsPerSecond: 2, burstSize: 2 });
 setRateLimiter("crossref", { requestsPerSecond: 50, burstSize: 100 });
 setRateLimiter("semanticscholar", { requestsPerSecond: 1, burstSize: 2 });
 setRateLimiter("unpaywall", { requestsPerSecond: 10, burstSize: 20 });
@@ -97,6 +97,25 @@ setRateLimiter("arxiv", { requestsPerSecond: 3, burstSize: 5 }); // NCBI guideli
 setRateLimiter("hal", { requestsPerSecond: 10, burstSize: 20 });
 setRateLimiter("pubmed", { requestsPerSecond: 3, burstSize: 5 }); // NCBI guidelines
 setRateLimiter("base", { requestsPerSecond: 5, burstSize: 10 });
+setRateLimiter("isidore", { requestsPerSecond: 5, burstSize: 10 });
+setRateLimiter("eric", { requestsPerSecond: 5, burstSize: 10 });
+setRateLimiter("fao", { requestsPerSecond: 3, burstSize: 5 });
+setRateLimiter("unodc", { requestsPerSecond: 3, burstSize: 5 });
+setRateLimiter("philpapers", { requestsPerSecond: 5, burstSize: 10 });
+setRateLimiter("persee", { requestsPerSecond: 5, burstSize: 10 });
+setRateLimiter("openaire", { requestsPerSecond: 5, burstSize: 10 });
+setRateLimiter("zenodo", { requestsPerSecond: 5, burstSize: 10 });
+setRateLimiter("psychology", { requestsPerSecond: 3, burstSize: 5 });
+setRateLimiter("sociology", { requestsPerSecond: 3, burstSize: 5 });
+setRateLimiter("history", { requestsPerSecond: 3, burstSize: 5 });
+setRateLimiter("geography", { requestsPerSecond: 3, burstSize: 5 });
+setRateLimiter("chemistry", { requestsPerSecond: 3, burstSize: 5 });
+setRateLimiter("biology", { requestsPerSecond: 3, burstSize: 5 });
+setRateLimiter("political-science", { requestsPerSecond: 3, burstSize: 5 });
+setRateLimiter("business", { requestsPerSecond: 3, burstSize: 5 });
+setRateLimiter("dblp", { requestsPerSecond: 3, burstSize: 5 });
+setRateLimiter("zbmath", { requestsPerSecond: 3, burstSize: 5 });
+setRateLimiter("gdelt-news", { requestsPerSecond: 0.2, burstSize: 1 });
 
 // ================================
 // HTTP CLIENT
@@ -191,7 +210,36 @@ export async function httpGet<T = any>(
 
         // Retry on server errors (5xx) and rate limits (429)
         if (attempt < retries) {
-          const backoff = retryDelay * Math.pow(2, attempt);
+          let backoff = retryDelay * Math.pow(2, attempt);
+          if (response.status === 429) {
+            // Honour Retry-After header if present.
+            // Some APIs (OpenAlex) send a Unix timestamp instead of duration — detect and convert.
+            const retryAfterRaw = response.headers.get('Retry-After');
+            let retryAfterMs = 0;
+            if (retryAfterRaw) {
+              const parsed = parseFloat(retryAfterRaw);
+              if (parsed > 1_000_000_000) {
+                // Unix timestamp: convert to relative duration, cap at 30s for OpenAlex, 120s others
+                const cap = url.includes('openalex.org') ? 30000 : 120000;
+                retryAfterMs = Math.min((parsed - Date.now() / 1000) * 1000, cap);
+              } else {
+                const cap = url.includes('openalex.org') ? 30000 : 120000;
+                retryAfterMs = Math.min(parsed * 1000, cap);
+              }
+            }
+            // SemanticScholar & OpenAlex: no Retry-After = rate-limited → fail-fast, don't waste retries
+            if (url.includes('semanticscholar.org') && !retryAfterRaw) {
+              throw new HttpError(`HTTP 429 ${response.statusText}`, 429, text.slice(0, 500));
+            }
+            // OpenAlex: fail-fast on 429 — 30+ institutional providers piggyback on it,
+            // retrying just cascades 429s and blocks the pipeline for minutes.
+            if (url.includes('openalex.org')) {
+              throw new HttpError(`HTTP 429 ${response.statusText}`, 429, text.slice(0, 500));
+            }
+            // OpenAlex: at least 15s; generic: at least 10s
+            const minCooldown = url.includes('openalex.org') ? 15000 : 10000;
+            backoff = Math.max(backoff, retryAfterMs, minCooldown);
+          }
           if (env.NODE_ENV === "development") {
             console.warn(`[HTTP] Retry ${attempt + 1}/${retries} after ${backoff}ms: ${url}`);
           }

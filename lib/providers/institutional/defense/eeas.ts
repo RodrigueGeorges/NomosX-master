@@ -2,7 +2,7 @@
  * EEAS - European External Action Service / EU Security Research
  * Uses OpenAlex with EUISS ROR filter (EU Institute for Security Studies)
  * EUISS ROR: https://ror.org/01bmvkm47
- * EU Commission ROR: https://ror.org/02az9a613
+ * EU Commission ROR: https://ror.org/00k4n6c32
  */
 
 import { searchOpenAlex } from '../../openalex';
@@ -15,7 +15,7 @@ export async function searchEEAS(query: string, limit = 15): Promise<any[]> {
         filter: 'authorships.institutions.ror:https://ror.org/01bmvkm47',
       }),
       searchOpenAlex(query, Math.ceil(limit / 2), {
-        filter: 'authorships.institutions.ror:https://ror.org/02az9a613',
+        filter: 'authorships.institutions.ror:https://ror.org/00k4n6c32',
       }),
     ]);
 

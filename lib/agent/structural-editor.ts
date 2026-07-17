@@ -115,34 +115,21 @@ Return JSON:
     }
   ],
   "logicalGaps": ["gap between section X and Y: ..."],
-  "restructuringSuggestions": ["specific suggestion to improve narrative flow"],
-  "revisedAnalysis": null OR {
-    // If major restructuring is needed, provide the restructured analysis
-    // with sections reordered/merged/split for better narrative flow
-    // Keep all original content but restructure for impact
-    "title": "improved title if needed",
-    "summary": "rewritten summary following pyramid principle if needed",
-    "consensus": "restructured consensus if needed",
-    "disagreements": "restructured disagreements if needed",
-    "debate": { "pro": "...", "con": "...", "synthesis": "..." },
-    "evidence": "restructured evidence if needed",
-    "implications": "restructured implications if needed",
-    "risks": "restructured risks if needed",
-    "open_questions": "...",
-    "what_changes_mind": "..."
-  }
+  "restructuringSuggestions": ["specific, actionable suggestion to improve narrative flow"]
 }
 
 Be RIGOROUS. A McKinsey partner would reject a document without clear governing thoughts.
-If the structure is already strong, revisedAnalysis should be null.
-If restructuring is needed, provide the FULL revised analysis preserving all [SRC-N] citations.`;
+This is an ASSESSMENT ONLY — do NOT rewrite the analysis. Provide diagnostics and
+actionable suggestions; the revision stage will act on them.
+Keep every string concise (governingThought and issues under 20 words).
+Output ONLY the JSON object — no markdown, no prose.`;
 
   try {
     const response = await callLLM({
       messages: [{ role: "user", content: prompt }],
       temperature: 0.15,
       jsonMode: true,
-      maxTokens: 8000,
+      maxTokens: 2000,
       task: 'auto_revision',
     });
 

@@ -8,7 +8,6 @@ import { EtherealCard, PageHeader, PageSection } from "@/components/layout/PageH
 import { PUBLIC_ROUTES } from "@/lib/public-urls";
 import { PipelineStrip } from "@/components/signature";
 import {
-  BRAND_HERO_SUBTITLE_SHORT,
   BRAND_SOURCES_LABEL,
   BRAND_TAGLINE,
   ABOUT_CTA_HEADLINE,
@@ -25,14 +24,14 @@ const VISION = [
   },
   {
     icon: Brain,
-    title: "Agentic by design",
-    description: `Map, confront, quantify, decide — an autonomous pipeline runs continuously, publishing institute positions without human trigger.`,
+    title: "Always on",
+    description: `Map, confront, quantify, decide — NomosX runs continuously, publishing positions without waiting for someone to ask.`,
   },
   {
     icon: Shield,
     title: "Trust through traceability",
     description:
-      "Every claim links to its source. Every source to its DOI. Traceability is the only path to trust.",
+      "Every claim links to its source. Every source to its DOI. Nothing is taken on faith.",
   },
   {
     icon: Lightbulb,
@@ -60,11 +59,11 @@ export default function AboutPage() {
             eyebrow="About"
             title={
               <>
-                {BRAND_HERO_SUBTITLE_SHORT.replace(/\.$/, "")}{" "}
-                <span className="text-white/70">for everyone.</span>
+                Strategic foresight,{" "}
+                <span className="text-white/70">open to everyone.</span>
               </>
             }
-            description="NomosX operates continuously — mapping cross-domain evidence, quantifying probable futures, and publishing institute positions."
+            description="NomosX operates continuously — mapping cross-domain evidence, quantifying probable futures, and publishing positions anyone can verify."
             align="center"
           />
         </PageSection>

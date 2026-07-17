@@ -14,7 +14,6 @@
  * - studio_analysis: User runs studio analysis
  */
 
-import { prisma } from '@/lib/db';
 
 export interface AnalyticsEvent {
   event: string;
@@ -37,40 +36,6 @@ export interface PageView {
   referrer?: string;
 }
 
-export interface UserMetrics {
-  userId: string;
-  totalSessions: number;
-  totalPageViews: number;
-  avgSessionDuration: number;
-  bounceRate: number;
-  lastActiveAt: Date;
-  acquisitionSource: string;
-}
-
-export interface ConversionMetrics {
-  event: string;
-  count: number;
-  conversionRate: number;
-  revenue?: number;
-  period: {
-    start: Date;
-    end: Date;
-  };
-}
-
-export interface TrafficMetrics {
-  pageViews: number;
-  uniqueVisitors: number;
-  sessions: number;
-  avgSessionDuration: number;
-  bounceRate: number;
-  trafficSources: Record<string, number>;
-  topPages: Array<{
-    path: string;
-    views: number;
-    uniqueViews: number;
-  }>;
-}
 
 // Posthog integration (if enabled)
 const POSTHOG_API_KEY = process.env.POSTHOG_API_KEY;
@@ -86,14 +51,6 @@ export async function trackEvent(event: string, properties?: Record<string, any>
     properties,
     timestamp: new Date(),
   };
-
-  // Store in local database (for backup and custom queries)
-  try {
-    // TODO: Create AnalyticsEvent model in Prisma schema
-    // await prisma.analyticsEvent.create({ data: eventData });
-  } catch (error) {
-    console.error('[Analytics] Failed to store event:', error);
-  }
 
   // Send to Posthog if configured
   if (POSTHOG_API_KEY) {
@@ -208,48 +165,3 @@ export async function trackStudioAnalysis(userId: string, properties?: {
   }, userId);
 }
 
-/**
- * Get conversion metrics for a period
- */
-export async function getConversionMetrics(
-  event: string,
-  startDate: Date,
-  endDate: Date
-): Promise<ConversionMetrics | null> {
-  try {
-    // TODO: Implement using Prisma AnalyticsEvent model
-    return null;
-  } catch (error) {
-    console.error('[Analytics] Failed to get conversion metrics:', error);
-    return null;
-  }
-}
-
-/**
- * Get traffic metrics for a period
- */
-export async function getTrafficMetrics(
-  startDate: Date,
-  endDate: Date
-): Promise<TrafficMetrics | null> {
-  try {
-    // TODO: Implement using Prisma AnalyticsEvent model
-    return null;
-  } catch (error) {
-    console.error('[Analytics] Failed to get traffic metrics:', error);
-    return null;
-  }
-}
-
-/**
- * Get user metrics
- */
-export async function getUserMetrics(userId: string): Promise<UserMetrics | null> {
-  try {
-    // TODO: Implement using Prisma AnalyticsEvent model
-    return null;
-  } catch (error) {
-    console.error('[Analytics] Failed to get user metrics:', error);
-    return null;
-  }
-}

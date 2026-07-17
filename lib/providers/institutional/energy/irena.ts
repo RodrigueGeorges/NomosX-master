@@ -1,7 +1,7 @@
 /**
  * IRENA - International Renewable Energy Agency
  * Uses OpenAlex with IRENA ROR filter
- * ROR: https://ror.org/030q6uf81
+ * ROR: https://ror.org/01dej0523
  */
 
 import { searchOpenAlex } from '../../openalex';
@@ -10,7 +10,7 @@ export async function searchIRENA(query: string, limit = 15): Promise<any[]> {
   console.log(`[IRENA] Searching via OpenAlex ROR for: "${query}"`);
   try {
     const results = await searchOpenAlex(query, limit, {
-      filter: 'authorships.institutions.ror:https://ror.org/030q6uf81',
+      filter: 'authorships.institutions.ror:https://ror.org/01dej0523',
     });
     const mapped = results.map(r => ({
       ...r,

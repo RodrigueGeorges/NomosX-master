@@ -17,7 +17,13 @@ function esc(s: string): string {
 }
 
 function replaceCitations(text: string): string {
-  return text.replace(/\[SRC-(\d+)\]/g, (_, n) =>
+  let normalized = text
+    .replace(/\(SRC-(\d+)(?:\s*,\s*SRC-(\d+))*\)/g, (match, ...nums) => {
+      const refs = match.match(/SRC-(\d+)/g) || [];
+      return refs.map(r => `[${r}]`).join('');
+    })
+    .replace(/(?<!\[)SRC-(\d+)(?!\])/g, '[SRC-$1]');
+  return normalized.replace(/\[SRC-(\d+)\]/g, (_, n) =>
     `<sup class="cite"><a href="#ref-${n}" title="Source ${n}">${n}</a></sup>`
   );
 }
@@ -81,12 +87,38 @@ export function renderPositionFirstBriefHTML(input: PositionFirstBriefInput): st
     </section>`
       : '';
 
-  const evidenceTrace = analysis.evidence
+  const analysisSection = (label: string, content: any) => {
+    if (!content) return '';
+    const text = String(content);
+    if (text.trim().length < 20) return '';
+    return `<section class="nx-block">
+      <p class="nx-eyebrow">${esc(label)}</p>
+      <div class="verdict-block">${renderParagraphs(text)}</div>
+    </section>`;
+  };
+
+  const debate = analysis.debate as any;
+  const debateHtml = debate
     ? `<section class="nx-block">
-      <p class="nx-eyebrow">Evidence trace</p>
-      ${renderParagraphs(String(analysis.evidence).slice(0, 1200))}
+      <p class="nx-eyebrow">Debate</p>
+      <div class="verdict-block">
+        ${debate.pro ? `<p><strong>Pro:</strong> ${renderParagraphs(String(debate.pro))}</p>` : ''}
+        ${debate.con ? `<p><strong>Con:</strong> ${renderParagraphs(String(debate.con))}</p>` : ''}
+        ${debate.synthesis ? `<p><strong>Synthesis:</strong> ${renderParagraphs(String(debate.synthesis))}</p>` : ''}
+      </div>
     </section>`
     : '';
+
+  const analysisBodyHtml = [
+    analysisSection('Executive summary', analysis.summary),
+    analysisSection('Consensus', analysis.consensus),
+    analysisSection('Disagreements', analysis.disagreements),
+    debateHtml,
+    analysisSection('Evidence quality', analysis.evidence),
+    analysisSection('Strategic implications', analysis.implications),
+    analysisSection('Risks & limitations', analysis.risks),
+    analysisSection('Open questions', analysis.open_questions),
+  ].filter(Boolean).join('\n');
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -132,9 +164,10 @@ export function renderPositionFirstBriefHTML(input: PositionFirstBriefInput): st
       <p class="confidence">Confidence ${position.confidence}/100 · ${position.confidenceLabel}</p>
     </section>
 
+    ${analysisBodyHtml}
+
     ${objectionsHtml}
     ${changeMindHtml}
-    ${evidenceTrace}
 
     <section class="references-section">
       <h2>Sources</h2>

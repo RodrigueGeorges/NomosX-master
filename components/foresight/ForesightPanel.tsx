@@ -148,7 +148,7 @@ export function ForesightPanel({ foresight, publicationId, className }: Foresigh
         {tab === "dissent" && (
           <div className="space-y-4">
             {foresight.redTeamChallenge ? (
-              <div className="rounded-xl border border-warning/20 bg-warning/[0.04] p-4">
+              <div className="border border-warning/20 bg-warning/[0.04] p-4">
                 <div className="text-[10px] font-mono uppercase tracking-wider text-warning/80 mb-2">
                   Red team — steel-man counter-scenario
                 </div>

@@ -60,7 +60,7 @@ export function PersonaChat({ personas, question, publicationId }: PersonaChatPr
               setSelectedId(p.id);
               setReply(null);
             }}
-            className={`px-2.5 py-1 rounded-lg border text-[11px] font-mono transition-colors ${
+            className={`px-2.5 py-1 border text-[11px] font-mono transition-colors ${
               selectedId === p.id
                 ? "border-white/25 bg-white/10 text-white"
                 : "border-white/[0.08] text-white/45 hover:border-white/15"
@@ -72,7 +72,7 @@ export function PersonaChat({ personas, question, publicationId }: PersonaChatPr
       </div>
 
       {persona && (
-        <div className="rounded-xl border border-white/[0.06] bg-black/20 p-3 text-[11px] text-white/45 font-mono">
+        <div className="border border-white/[0.06] bg-black/20 p-3 text-[11px] text-white/45 font-mono">
           <div className="flex items-center gap-2 text-white/50 mb-2">
             <User size={12} />
             {persona.id}

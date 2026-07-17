@@ -22,7 +22,7 @@ export function ForesightGraphMini({ nodes }: ForesightGraphMiniProps) {
   const center = display[0];
 
   return (
-    <div className="relative rounded-xl border border-white/[0.06] bg-black/25 p-4 min-h-[200px]">
+    <div className="relative border border-white/[0.06] bg-black/25 p-4 min-h-[200px]">
       <div className="text-[10px] font-mono uppercase tracking-wider text-white/30 mb-3">
         GraphRAG — {nodes.length} entités
       </div>

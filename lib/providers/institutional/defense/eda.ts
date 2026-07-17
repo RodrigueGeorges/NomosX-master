@@ -2,7 +2,7 @@
  * EDA - European Defence Agency / EU Defence Research
  * Uses OpenAlex with EU defence research ROR filters:
  *   - EUISS (EU Institute for Security Studies): 01bmvkm47
- *   - FOI (Swedish Defence Research Agency): 01qej4t75
+ *   - FOI (Swedish Defence Research Agency): 02mkv8r24
  */
 
 import { searchOpenAlex } from '../../openalex';
@@ -15,7 +15,7 @@ export async function searchEDA(query: string, limit = 15): Promise<any[]> {
         filter: 'authorships.institutions.ror:https://ror.org/01bmvkm47',
       }),
       searchOpenAlex(query, Math.ceil(limit / 2), {
-        filter: 'authorships.institutions.ror:https://ror.org/01qej4t75',
+        filter: 'authorships.institutions.ror:https://ror.org/02mkv8r24',
       }),
     ]);
 

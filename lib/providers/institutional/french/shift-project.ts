@@ -1,7 +1,7 @@
 /**
  * The Shift Project - French climate & energy think tank
  * Uses OpenAlex enriched keyword search (limited academic indexing)
- * + Sciences Po Paris ROR as proxy: 03xez6b38
+ * + Sciences Po Paris ROR as proxy: 00mpxgs49
  */
 
 import { searchOpenAlex } from '../../openalex';

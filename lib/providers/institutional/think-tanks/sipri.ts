@@ -1,7 +1,7 @@
 /**
  * SIPRI - Stockholm International Peace Research Institute
  * Uses OpenAlex with SIPRI ROR filter
- * ROR: https://ror.org/02bjzsh13
+ * ROR: https://ror.org/05e8ym512
  */
 
 import { searchOpenAlex } from '../../openalex';
@@ -10,7 +10,7 @@ export async function searchSIPRI(query: string, limit = 15): Promise<any[]> {
   console.log(`[SIPRI] Searching via OpenAlex ROR for: "${query}"`);
   try {
     const results = await searchOpenAlex(query, limit, {
-      filter: 'authorships.institutions.ror:https://ror.org/02bjzsh13',
+      filter: 'authorships.institutions.ror:https://ror.org/05e8ym512',
     });
     const mapped = results.map(r => ({
       ...r,

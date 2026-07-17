@@ -119,10 +119,10 @@ export async function GET(req: NextRequest) {
             const rawHtml = (brief.html || '').replace(/^```html?\s*/i, '').replace(/\s*```\s*$/, '').trim();
             summary = extractBriefSummary(rawHtml);
             if (!summary || summary.length < 20) {
-              summary = 'Strategic analysis from the NomosX agentic pipeline — map, confront, quantify, decide.';
+              summary = 'Strategic analysis from NomosX — map, confront, quantify, decide.';
             }
           } catch {
-            summary = 'Strategic analysis from the NomosX agentic pipeline — map, confront, quantify, decide.';
+            summary = 'Strategic analysis from NomosX — map, confront, quantify, decide.';
           }
 
           // Estimate read time (200 words per minute)

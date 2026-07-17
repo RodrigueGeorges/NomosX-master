@@ -42,23 +42,12 @@ async function upsertSeriesAndPoints(input: {
     select: { id: true },
   });
 
-  let upserted = 0;
-  for (const p of input.points) {
-    await prisma.macroPoint.upsert({
-      where: { seriesId_date: { seriesId: series.id, date: p.date } },
-      create: {
-        seriesId: series.id,
-        date: p.date,
-        value: p.value,
-      },
-      update: {
-        value: p.value,
-      },
-    });
-    upserted += 1;
-  }
+  await prisma.macroPoint.createMany({
+    data: input.points.map(p => ({ seriesId: series.id, date: p.date, value: p.value })),
+    skipDuplicates: true,
+  });
 
-  return { pointsUpserted: upserted };
+  return { pointsUpserted: input.points.length };
 }
 
 export async function refreshMacroSeries(): Promise<MacroRefreshResult> {

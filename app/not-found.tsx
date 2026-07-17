@@ -23,7 +23,7 @@ export default function NotFound() {
           <button
             type="button"
             onClick={() => router.push("/")}
-            className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-white text-bg text-sm font-semibold hover:bg-white/90"
+            className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-white text-bg text-sm font-semibold hover:bg-white/90"
           >
             <Home size={16} />
             Back to home
@@ -31,7 +31,7 @@ export default function NotFound() {
           <button
             type="button"
             onClick={() => router.back()}
-            className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl border border-white/[0.10] text-sm text-white/60 hover:text-white"
+            className="inline-flex items-center justify-center gap-2 px-6 py-3 border border-white/[0.10] text-sm text-white/60 hover:text-white"
           >
             <ArrowLeft size={16} />
             Previous page

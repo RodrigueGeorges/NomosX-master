@@ -82,7 +82,7 @@ function ToastItem({ toast: t, onDismiss }: { toast: ToastConfig & { id: string 
   
   return (
     <div 
-      className={`flex items-start gap-3 p-4 rounded-xl border backdrop-blur-sm ${bgColors[t.type]} animate-slide-in-right shadow-xl`}
+      className={`flex items-start gap-3 p-4 border backdrop-blur-sm ${bgColors[t.type]} animate-slide-in-right shadow-xl`}
     >
       <div className="mt-0.5">{icons[t.type]}</div>
       <div className="flex-1 min-w-0">

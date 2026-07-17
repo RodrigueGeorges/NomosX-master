@@ -16,8 +16,8 @@ function getDatabaseUrl(): string {
   const params: string[] = [];
   
   if (!url.includes('pgbouncer=')) params.push('pgbouncer=true');
-  if (!url.includes('connection_limit=')) params.push('connection_limit=5');
-  if (!url.includes('pool_timeout=')) params.push('pool_timeout=10');
+  if (!url.includes('connection_limit=')) params.push('connection_limit=10');
+  if (!url.includes('pool_timeout=')) params.push('pool_timeout=30');
   
   return params.length > 0 ? `${url}${separator}${params.join('&')}` : url;
 }

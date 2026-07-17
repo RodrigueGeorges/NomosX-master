@@ -136,18 +136,22 @@ Return JSON:
   ]
 }
 
-Rules: 2-3 lenses max. Roles must include exactly one lead. Use domain labels only.`,
+Rules: 2-3 lenses max. Roles must include exactly one lead. Use domain labels only.
+OUTPUT ONLY THE JSON OBJECT. No markdown, no prose, no explanation — just the raw JSON.`,
         },
       ],
       temperature: 0.15,
-      maxTokens: 500,
+      maxTokens: 1500,
       jsonMode: true,
       task: 'casting',
       enableCache: true,
     });
 
     const parsed = parseJson<Record<string, unknown>>(response.content);
-    if (!parsed) throw new SyntaxError('Casting agent: failed to parse LLM JSON');
+    if (!parsed) {
+      console.warn('[CASTING] Raw LLM response (first 300 chars):', response.content?.slice(0, 300));
+      throw new SyntaxError('Casting agent: failed to parse LLM JSON');
+    }
     const team: CastTeamMember[] = ((parsed.team as CastTeamMember[]) ?? [])
       .slice(0, 3)
       .map((m: CastTeamMember) => ({
