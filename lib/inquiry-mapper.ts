@@ -19,9 +19,9 @@ export type BriefLike = {
 
 export function inferInquiryDepth(type: string): InquiryDepth {
   if (type === "STRATEGIC_REPORT" || type === "DOSSIER") return "strategic";
-  if (type === "POLICY_NOTE" || type === "RESEARCH_BRIEF") return "deep";
+  if (type === "ARTICLE" || type === "POLICY_NOTE" || type === "RESEARCH_BRIEF" || type === "EXECUTIVE_BRIEF") return "deep";
   if (type === "SUMMARY_BRIEF" || type === "UPDATE_NOTE") return "surface";
-  return "standard";
+  return "deep";
 }
 
 export function mapBriefToInquiryCard(b: BriefLike, index = 0): InquiryCardData {

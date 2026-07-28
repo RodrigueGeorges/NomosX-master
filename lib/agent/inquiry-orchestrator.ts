@@ -330,6 +330,9 @@ export async function runAndPublishInquiry(
     }
   }
 
+  const triangularOverride = (pipeline.stats.triangularJudge as Record<string, unknown> | undefined)?.verdict === 'override_da'
+    || (pipeline.stats.triangularJudge as Record<string, unknown> | undefined)?.verdict === 'downgrade';
+
   const gate = evaluatePublicationGate({
     format: pubType,
     html: pipeline.html,
@@ -340,6 +343,7 @@ export async function runAndPublishInquiry(
     devilsAdvocateScore: da?.publishabilityScore as number | undefined,
     fatalChallenges,
     researcherDecision: signOff?.decision,
+    triangularOverride,
   });
 
   const readiness = evaluatePublicationReadiness({
@@ -354,15 +358,33 @@ export async function runAndPublishInquiry(
   const minTrust = req.minTrustScore ?? 65;
   let status: InquiryPublishStatus = "held";
 
-  if (daVerdict === "reject") {
-    status = "review";
-  } else if (signOff && !signOff.approved) {
-    status = "draft";
-  } else if (gate.decision === "publish" && readiness.ok && trustScore >= minTrust) {
+  // Use revised DA verdict if triangular judge overrode
+  const effectiveDaVerdict = triangularOverride
+    ? (pipeline.stats.triangularJudge as Record<string, unknown> | undefined)?.revisedVerdict as string | undefined
+    : daVerdict;
+
+  // Priority 1: Gate says publish + readiness OK + trust sufficient → publish
+  if (gate.decision === "publish" && readiness.ok && trustScore >= minTrust) {
     status = "published";
-  } else if (gate.decision === "revise" || !readiness.ok) {
+  }
+  // Priority 2: Gate says revise but metrics are strong → publish with DA advisory
+  else if (gate.decision === "revise" && readiness.ok && trustScore >= minTrust + 5) {
+    status = "published";
+  }
+  // Priority 3: DA reject with low trust → review (DA concern validated by weak metrics)
+  else if (effectiveDaVerdict === "reject" && trustScore < minTrust + 5) {
+    status = "review";
+  }
+  // Priority 4: Sign-off not approved → draft
+  else if (signOff && !signOff.approved) {
+    status = "draft";
+  }
+  // Priority 5: Gate revise or readiness not OK → held
+  else if (gate.decision === "revise" || !readiness.ok) {
     status = "held";
-  } else if (trustScore < minTrust) {
+  }
+  // Priority 6: Trust too low → draft
+  else if (trustScore < minTrust) {
     status = "draft";
   }
 

@@ -28,14 +28,14 @@ export interface StrategicAnalysisOutput {
   literatureOverview: string;
   theoreticalFrameworks: string;
   methodologicalApproaches: string;
-  keyStudies: Array<{
+  keyStudies?: Array<{
     citation: string;
     contribution: string;
     limitations: string;
   }>;
   
-  // SECTION 3: Thematic Analysis (2-3 pages)
-  themes: Array<{
+  // SECTION 3: Thematic Analysis (2-3 pages) — nullable if no themes emerge
+  themes?: Array<{
     name: string;
     description: string;
     evidence: string;
@@ -63,8 +63,8 @@ export interface StrategicAnalysisOutput {
     nuances: string;
   };
   
-  // SECTION 5: Evidence Assessment (1-2 pages)
-  evidenceQuality: {
+  // SECTION 5: Evidence Assessment (1-2 pages) — nullable if insufficient evidence
+  evidenceQuality?: {
     overallScore: number;
     methodology: string;
     sampleSizes: string;
@@ -73,16 +73,16 @@ export interface StrategicAnalysisOutput {
     gaps: string;
   };
   
-  // SECTION 6: Stakeholder Impact (1 page)
-  stakeholderAnalysis: Array<{
+  // SECTION 6: Stakeholder Impact — nullable if no stakeholder evidence
+  stakeholderAnalysis?: Array<{
     stakeholder: string;
     impact: "positive" | "negative" | "mixed";
     magnitude: "high" | "medium" | "low";
     details: string;
   }>;
   
-  // SECTION 7: Scenarios (1-2 pages)
-  scenarios: Array<{
+  // SECTION 7: Scenarios — nullable if insufficient evidence for projection
+  scenarios?: Array<{
     name: string;
     probability: "high" | "medium" | "low";
     description: string;
@@ -90,16 +90,17 @@ export interface StrategicAnalysisOutput {
     signals: string;
   }>;
   
-  // SECTION 8: Recommendations (1-2 pages)
-  recommendations: {
+  // SECTION 8: Recommendations — nullable if insufficient evidence
+  recommendations?: {
     immediate: string[];
     shortTerm: string[];
     longTerm: string[];
     riskMitigation: string[];
+    costOfInaction?: string;
   };
   
-  // SECTION 9: Implementation (1 page)
-  implementation: {
+  // SECTION 9: Implementation — nullable if insufficient evidence
+  implementation?: {
     prerequisites: string[];
     timeline: string;
     resources: string;
@@ -220,16 +221,25 @@ ${ctx}
 Produce a COMPREHENSIVE STRATEGIC REPORT (10-15 pages equivalent) with the following structure:
 
 CRITICAL REQUIREMENTS:
-1. EVERY factual claim MUST cite [SRC-N] where N = source number
+1. EVERY factual claim, statistic, or data point MUST cite [SRC-N] where N = source number. Claims WITHOUT citations will be REJECTED by the editorial gate.
 2. Be EXHAUSTIVE - use ALL available evidence from ALL sources
 3. SYNTHESIZE intelligently - don't just list, connect ideas across sources
-4. QUANTIFY whenever possible (percentages, sample sizes, effect sizes)
+4. QUANTIFY whenever possible (percentages, sample sizes, effect sizes) — but ONLY with data from sources, never invented numbers
 5. ACKNOWLEDGE uncertainty explicitly (confidence levels, limitations)
 6. Provide ACTIONABLE intelligence, not generic observations
 7. COMPARE and CONTRAST methodologies when relevant
 8. IDENTIFY patterns and emergent themes across sources
 9. Write SUBSTANTIVELY - each section should be thorough and detailed
-10. MINIMUM 500 words per major section
+10. TOTAL OUTPUT: 6000-8000 words minimum across all sections. This is a 10-15 page report, not a summary.
+11. CITATION DENSITY: Each paragraph should have at least 2 [SRC-N] citations. Aim for 80%+ citation coverage.
+12. NO UNSOURCED STATISTICS: Never write "hundreds of billions" or "significant portion" without a [SRC-N] backing the number. If no source provides a number, say "exact figures unavailable" rather than inventing one.
+13. HEDGE CALIBRATION: Match confidence language to evidence strength. Use "evidence suggests" for 1-2 sources, "studies indicate" for 3+, "research consensus" for 5+ agreeing sources.
+14. SECTION LENGTH ENFORCEMENT: executiveSummary (500+ words), literatureOverview (800+ words), thematic analysis (600+ words), debate position1 (400+ words), debate position2 (400+ words), evidenceQuality (400+ words), recommendations (500+ words), implementation (300+ words), conclusion (300+ words). If you write less than these minimums, the report will be REJECTED.
+
+EPISTEMIC RULES (NON-NEGOTIABLE):
+A. NULLABLE FIELDS: If insufficient evidence exists for stakeholderAnalysis, scenarios, evidenceQuality, recommendations, implementation, keyStudies, or themes — return EMPTY ARRAY [] or OMIT the field. Do NOT fabricate content to fill a section.
+B. RESEARCH GAPS: A gap in research is a fact about the RESEARCH FIELD, never about the SUBJECT. Write "no studies examined X" NOT "X does not happen". Never explain an absence of data by a behavioral trait of the actor studied.
+C. ACTIVITY vs RESULT: Never confuse activity variables (nb of designations, nb of texts, nb of pilots) with result variables (volumes, prices, discounts, market shares). A policy being announced is not a policy working.
 
 OUTPUT FORMAT - Return this EXACT JSON structure:
 
@@ -327,7 +337,8 @@ OUTPUT FORMAT - Return this EXACT JSON structure:
     "immediate": ["Actionable recommendation with rationale and [SRC-*] citation"],
     "shortTerm": ["3-12 month recommendations with rationale"],
     "longTerm": ["1-5 year strategic recommendations"],
-    "riskMitigation": ["Specific risk mitigation measures"]
+    "riskMitigation": ["Specific risk mitigation measures"],
+    "costOfInaction": "200+ word QUANTIFIED estimate of what happens if these recommendations are NOT acted upon. Include: (1) measurable risks (financial, strategic, regulatory, reputational) with order-of-magnitude estimates, (2) a timeline for when consequences materialize, (3) which stakeholders bear the cost. Use evidence from sources to anchor estimates — do NOT invent precise figures, but DO provide ranges (e.g., 'estimated 5-15% efficiency loss' or 'potential regulatory exposure of €100M-€500M'). All with [SRC-*] citations where possible."
   },
   
   "implementation": {
@@ -358,7 +369,7 @@ QUALITY STANDARD: This report will be read by senior decision-makers. Every clai
       messages: [{ role: "user", content: prompt }],
       temperature: 0.2,
       jsonMode: true,
-      maxTokens: 16000, // Increased for longer output
+      maxTokens: 16000, // 16K tokens ≈ 6000-8000 words (matches prompt minimums)
       enableCache: true,
       task: 'strategic_analyst',
     });
@@ -370,6 +381,7 @@ QUALITY STANDARD: This report will be read by senior decision-makers. Every clai
     const analysis = parseJson<StrategicAnalysisOutput>(response.content);
     if (!analysis) throw new SyntaxError('Strategic analyst: failed to parse LLM JSON');
     analysis._producerFamily = response.family;
+    (analysis as StrategicAnalysisOutput & { _costUsd?: number })._costUsd = response.costUsd;
     
     // Validate required fields
     const required = ['title', 'executiveSummary', 'keyFindings', 'literatureOverview', 'debate', 'recommendations'];
@@ -382,6 +394,13 @@ QUALITY STANDARD: This report will be read by senior decision-makers. Every clai
     
     if (missing.length > 0) {
       console.warn(`[Strategic Analyst] Missing fields: ${missing.join(', ')}. Analysis may be incomplete.`);
+    }
+
+    // Quality gate: reject thin analysis to trigger cross-provider failover
+    const execSummaryLen = (analysis.executiveSummary || '').trim().length;
+    const litReviewLen = (analysis.literatureOverview || '').trim().length;
+    if (execSummaryLen < 200 || litReviewLen < 200) {
+      throw new Error(`Strategic analysis too thin (execSummary=${execSummaryLen}chars, litReview=${litReviewLen}chars) — triggering failover`);
     }
     
     return analysis;
@@ -424,7 +443,7 @@ QUALITY STANDARD: This report will be read by senior decision-makers. Every clai
       },
       stakeholderAnalysis: [],
       scenarios: [],
-      recommendations: { immediate: [], shortTerm: [], longTerm: [], riskMitigation: [] },
+      recommendations: { immediate: [], shortTerm: [], longTerm: [], riskMitigation: [], costOfInaction: '' },
       implementation: { prerequisites: [], timeline: "", resources: "", metrics: [], obstacles: [] },
       conclusion: "",
       openQuestions: [],

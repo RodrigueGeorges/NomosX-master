@@ -91,10 +91,10 @@ function debateSection(debate: any): string {
   const proLabel = debate.position1?.label || "Arguments For";
   const conLabel = debate.position2?.label || "Arguments Against";
   const proContent = debate.position1?.arguments
-    ? debate.position1.arguments.join('\n\n')
+    ? (Array.isArray(debate.position1.arguments) ? debate.position1.arguments.join('\n\n') : String(debate.position1.arguments))
     : (debate.pro || "");
   const conContent = debate.position2?.arguments
-    ? debate.position2.arguments.join('\n\n')
+    ? (Array.isArray(debate.position2.arguments) ? debate.position2.arguments.join('\n\n') : String(debate.position2.arguments))
     : (debate.con || "");
   const synthesis = debate.synthesis || "";
   const nuances = debate.nuances || "";
@@ -483,7 +483,102 @@ const BRIEF_CSS = `
 // ============================================================================
 
 export function renderProfessionalBriefHTML(analysis: any, sources: any[]): string {
-  // Count words for metadata
+  // Format APA citations
+  const apaCitations = sources.map((s, i) => formatAPA(s, i + 1));
+
+  // Check if this is the new ProspectiveNote schema
+  const isProspective = Array.isArray(analysis.causalChain) && analysis.causalChain.length > 0;
+
+  if (isProspective) {
+    // ── New schema: prose-continuous, verdict-first ──
+    const verdictText = String(analysis.verdict || '');
+    const throughLine = String(analysis.throughLine || '');
+    const anchoringBasis = String(analysis.anchoringBasis || '');
+    const chain = (analysis.causalChain || []) as any[];
+    const chainProse = chain.map((link: any) => {
+      const claim = String(link.claim || '');
+      const evidence = String(link.evidence || '');
+      const warrant = String(link.warrant || '');
+      const parts = [claim];
+      if (evidence && evidence !== claim) parts.push(evidence);
+      if (warrant) parts.push(`The mechanism: ${warrant}`);
+      return parts.join(' ');
+    }).join(' ');
+
+    const trajectory = analysis.trajectory as any;
+    const trajectoryProse = trajectory
+      ? [trajectory.state, trajectory.assumptions].filter(Boolean).map(String).join(' ')
+      : '';
+
+    const rejectedAlts = (analysis.rejectedAlternatives as any[]) || [];
+    const rejectedProse = rejectedAlts.length > 0
+      ? rejectedAlts.map((ra: any) => [ra.scenario, ra.whyRejected, ra.residualRisk].filter(Boolean).join(' — ')).join(' ')
+      : '';
+
+    const whatToWatch = analysis.whatToWatch as any;
+    const watchProse = whatToWatch
+      ? [Array.isArray(whatToWatch.signals) ? whatToWatch.signals.join(' ') : '', String(whatToWatch.whatWouldChangeMind || ''), String(whatToWatch.horizonCheck || '')].filter(Boolean).join(' ')
+      : '';
+
+    const evidenceAssessment = analysis.evidenceAssessment as any;
+    const evidenceProse = evidenceAssessment
+      ? [Array.isArray(evidenceAssessment.strongestLinks) ? evidenceAssessment.strongestLinks.join(' ') : '', String(evidenceAssessment.weakestLink || ''), Array.isArray(evidenceAssessment.gaps) ? evidenceAssessment.gaps.join(' ') : '', String(evidenceAssessment.sourceDiversity || '')].filter(Boolean).join(' ')
+      : '';
+
+    const keyFindings = (analysis.keyFindings as string[]) || [];
+    const keyFindingsProse = keyFindings.length > 0 ? keyFindings.join(' ') : '';
+
+    const allText = [verdictText, throughLine, anchoringBasis, chainProse, trajectoryProse, rejectedProse, watchProse, evidenceProse, keyFindingsProse].filter(Boolean).join(' ');
+    const wordCount = allText.split(/\s+/).length;
+
+    const proseHtml = [
+      verdictText ? `<div class="prose-block">${renderParagraphs(replaceCitations(verdictText))}</div>` : '',
+      throughLine ? `<p class="through-line" style="font-size:1.1em;font-weight:500;opacity:0.8;margin:1.5em 0">${replaceCitations(esc(throughLine))}</p>` : '',
+      anchoringBasis ? `<div class="prose-block">${renderParagraphs(replaceCitations(anchoringBasis))}</div>` : '',
+      chainProse ? `<div class="prose-block">${renderParagraphs(replaceCitations(chainProse))}</div>` : '',
+      trajectoryProse ? `<div class="prose-block">${renderParagraphs(replaceCitations(trajectoryProse))}</div>` : '',
+      rejectedProse ? `<div class="prose-block">${renderParagraphs(replaceCitations(rejectedProse))}</div>` : '',
+      watchProse ? `<div class="prose-block">${renderParagraphs(replaceCitations(watchProse))}</div>` : '',
+      evidenceProse ? `<div class="prose-block">${renderParagraphs(replaceCitations(evidenceProse))}</div>` : '',
+      keyFindingsProse ? `<div class="prose-block">${renderParagraphs(replaceCitations(keyFindingsProse))}</div>` : '',
+    ].filter(Boolean).join('\n');
+
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="generator" content="NomosX Agentic Think Tank">
+  <title>${esc(analysis.title || "NomosX Prospective Note")}</title>
+  ${BRIEF_CSS}
+</head>
+<body>
+  <article class="nomosx-brief">
+    <header class="brief-header">
+      <div class="brief-brand">${inlineLockupSvg(16, { mono: true })}<span class="brief-brand-tag">Agentic Think Tank</span></div>
+      <h1>${esc(analysis.title || "Prospective Note")}</h1>
+      ${metadataBar(sources, wordCount)}
+    </header>
+
+    ${proseHtml}
+
+    <section class="references-section">
+      <h2>References</h2>
+      <div class="source-distribution">
+        ${sourceDistributionSVG(sources)}
+      </div>
+      ${apaCitations.map(c => renderAPAHtml(c)).join("\n")}
+    </section>
+
+    <footer class="brief-footer">
+      NomosX — Every claim sourced. Every source verified. ${sources.length} sources from ${[...new Set(sources.map(s => s.provider))].length} providers.
+    </footer>
+  </article>
+</body>
+</html>`;
+  }
+
+  // ── Legacy schema fallback ──
   const allText = [
     analysis.summary, analysis.consensus, analysis.disagreements,
     analysis.debate?.pro, analysis.debate?.con, analysis.debate?.synthesis,
@@ -491,9 +586,6 @@ export function renderProfessionalBriefHTML(analysis: any, sources: any[]): stri
     analysis.open_questions, analysis.what_changes_mind,
   ].filter(Boolean).join(" ");
   const wordCount = allText.split(/\s+/).length;
-
-  // Format APA citations
-  const apaCitations = sources.map((s, i) => formatAPA(s, i + 1));
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -560,7 +652,7 @@ export function renderProfessionalStrategicHTML(analysis: any, sources: any[]): 
   ];
 
   // Key findings list
-  const keyFindings = analysis.keyFindings || [];
+  const keyFindings = Array.isArray(analysis.keyFindings) ? analysis.keyFindings : [];
   const keyFindingsHtml = keyFindings.length > 0 ? `
     <div class="key-findings-card">
       <h3>Key Findings</h3>
@@ -575,8 +667,11 @@ export function renderProfessionalStrategicHTML(analysis: any, sources: any[]): 
   if (analysis.confidenceLevel) badges.push(`<span class="badge badge-conf">${esc(analysis.confidenceLevel)} confidence</span>`);
   const badgeHtml = badges.length > 0 ? `<div class="badges">${badges.join(" ")}</div>` : "";
 
+  // Normalize LLM fields that may arrive as objects instead of arrays
+  const asArray = (v: any): any[] => Array.isArray(v) ? v : (v && typeof v === 'object' ? Object.values(v) : []);
+
   // Themes / Thematic analysis
-  const themes = analysis.themes || [];
+  const themes = asArray(analysis.themes);
   const themesHtml = themes.length > 0 ? `
     <section class="brief-section">
       <h2>Thematic Analysis</h2>
@@ -589,7 +684,7 @@ export function renderProfessionalStrategicHTML(analysis: any, sources: any[]): 
     </section>` : "";
 
   // Key studies
-  const keyStudies = analysis.keyStudies || [];
+  const keyStudies = asArray(analysis.keyStudies);
   const keyStudiesHtml = keyStudies.length > 0 ? `
     <section class="brief-section">
       <h2>Key Studies</h2>
@@ -602,7 +697,7 @@ export function renderProfessionalStrategicHTML(analysis: any, sources: any[]): 
     </section>` : "";
 
   // Stakeholder analysis
-  const stakeholders = analysis.stakeholderAnalysis || [];
+  const stakeholders = asArray(analysis.stakeholderAnalysis);
   const stakeholderHtml = stakeholders.length > 0 ? `
     <section class="brief-section">
       <h2>Stakeholder Impact</h2>
@@ -620,7 +715,7 @@ export function renderProfessionalStrategicHTML(analysis: any, sources: any[]): 
     </section>` : "";
 
   // Scenarios
-  const scenarios = analysis.scenarios || [];
+  const scenarios = asArray(analysis.scenarios);
   const scenarioHtml = scenarios.length > 0 ? `
     <section class="brief-section">
       <h2>Scenario Planning</h2>
@@ -636,14 +731,22 @@ export function renderProfessionalStrategicHTML(analysis: any, sources: any[]): 
     </section>` : "";
 
   // Recommendations
-  const recs = analysis.recommendations || {};
-  const recsHtml = (recs.immediate?.length || recs.shortTerm?.length || recs.longTerm?.length) ? `
+  const recsRaw = analysis.recommendations || {};
+  const recs = {
+    immediate: asArray(recsRaw.immediate),
+    shortTerm: asArray(recsRaw.shortTerm),
+    longTerm: asArray(recsRaw.longTerm),
+    riskMitigation: asArray(recsRaw.riskMitigation),
+    costOfInaction: typeof recsRaw.costOfInaction === 'string' ? recsRaw.costOfInaction : '',
+  };
+  const recsHtml = (recs.immediate.length || recs.shortTerm.length || recs.longTerm.length) ? `
     <section class="brief-section">
       <h2>Recommendations</h2>
-      ${recs.immediate?.length ? `<h3 style="color:var(--accent-green);">Immediate (0-6 months)</h3><ul>${recs.immediate.map((r: string) => `<li>${replaceCitations(esc(r))}</li>`).join("")}</ul>` : ""}
-      ${recs.shortTerm?.length ? `<h3 style="color:var(--accent-amber);">Short-Term (6-24 months)</h3><ul>${recs.shortTerm.map((r: string) => `<li>${replaceCitations(esc(r))}</li>`).join("")}</ul>` : ""}
-      ${recs.longTerm?.length ? `<h3 style="color:var(--accent);">Long-Term (2-5 years)</h3><ul>${recs.longTerm.map((r: string) => `<li>${replaceCitations(esc(r))}</li>`).join("")}</ul>` : ""}
-      ${recs.riskMitigation?.length ? `<h3 style="color:var(--accent-red);">Risk Mitigation</h3><ul>${recs.riskMitigation.map((r: string) => `<li>${replaceCitations(esc(r))}</li>`).join("")}</ul>` : ""}
+      ${recs.immediate.length ? `<h3 style="color:var(--accent-green);">Immediate (0-6 months)</h3><ul>${recs.immediate.map((r: string) => `<li>${replaceCitations(esc(r))}</li>`).join("")}</ul>` : ""}
+      ${recs.shortTerm.length ? `<h3 style="color:var(--accent-amber);">Short-Term (6-24 months)</h3><ul>${recs.shortTerm.map((r: string) => `<li>${replaceCitations(esc(r))}</li>`).join("")}</ul>` : ""}
+      ${recs.longTerm.length ? `<h3 style="color:var(--accent);">Long-Term (2-5 years)</h3><ul>${recs.longTerm.map((r: string) => `<li>${replaceCitations(esc(r))}</li>`).join("")}</ul>` : ""}
+      ${recs.riskMitigation.length ? `<h3 style="color:var(--accent-red);">Risk Mitigation</h3><ul>${recs.riskMitigation.map((r: string) => `<li>${replaceCitations(esc(r))}</li>`).join("")}</ul>` : ""}
+      ${recs.costOfInaction ? `<div style="border-left:4px solid var(--accent-red);background:#fef2f2;padding:16px 20px;margin:16px 0;border-radius:0 8px 8px 0;"><h3 style="color:var(--accent-red);margin:0 0 8px;">Cost of Inaction</h3><p style="margin:0;line-height:1.6;">${replaceCitations(esc(recs.costOfInaction))}</p></div>` : ""}
     </section>` : "";
 
   const STRATEGIC_EXTRA_CSS = `

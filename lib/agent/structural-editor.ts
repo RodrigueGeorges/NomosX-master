@@ -129,7 +129,7 @@ Output ONLY the JSON object — no markdown, no prose.`;
       messages: [{ role: "user", content: prompt }],
       temperature: 0.15,
       jsonMode: true,
-      maxTokens: 2000,
+      maxTokens: 3000,
       task: 'auto_revision',
     });
 

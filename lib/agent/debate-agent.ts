@@ -200,7 +200,7 @@ Return JSON:
     }],
     temperature: 0.2,
     jsonMode: true,
-    maxTokens: 2000,
+    maxTokens: 3000,
     enableCache: true,
     task: 'meta_analysis',
   });

@@ -107,12 +107,35 @@ export interface PipelineStats {
     agentId: string;
   };
 
+  // Step 5c: Framing (hypothesis-driven analysis)
+  framing?: {
+    hypotheses: number;
+    keyUnknowns: number;
+    costUsd: number;
+  };
+
+  // Step 5d: QUANT (primary data exploitation)
+  quant?: {
+    series: number;
+    facts: number;
+    providers: string[];
+    durationMs: number;
+  };
+  quantCharts?: number;
+
+  // Step 5e: Hypothesis Judge
+  hypothesisJudge?: {
+    verdicts: Array<{ id: string; verdict: string; confidence: number }>;
+    costUsd: number;
+  };
+
   // Step 6: Analyst
   analyst?: {
     hasDebate: boolean;
     passes?: number;
     keyFindingsCount?: number;
     scenariosCount?: number;
+    costUsd?: number;
   };
 
   // Topic consistency
@@ -254,6 +277,43 @@ export interface PipelineStats {
     error?: string;
   };
 
+  // Step 5c: Gap-Aware Evidence Append
+  gapAnalysis?: {
+    gapsFound: number;
+    queriesGenerated: number;
+    newSources: number;
+  };
+
+  // Step 8b: Citation Filter (post-generation)
+  citationFilter?: {
+    backtracked: number;
+    removed: number;
+    coverageBefore: number;
+    coverageAfter: number;
+  };
+
+  // Step 13b: Triangular Judge (DA dispute arbitration)
+  triangularJudge?: {
+    verdict: string;
+    revisedVerdict: string;
+    confidence: number;
+  };
+
+  // Structured refusal (P3.9)
+  structuredRefusal?: {
+    reason: string;
+    sourceCount: number;
+    required: number;
+    missing: string[];
+  };
+
+  // Stable evidence IDs (P3.8)
+  evidenceRegistry?: {
+    total: number;
+    cited: number;
+    uncited: number;
+  };
+
   // Step 14: Publisher
   brief?: {
     id: string;
@@ -273,6 +333,9 @@ export interface PipelineStats {
     decisions: any[];
     expandedTerms?: string[];
   };
+
+  // Aggregate accounting
+  totalCostUsd?: number;
 
   // Error
   error?: string;

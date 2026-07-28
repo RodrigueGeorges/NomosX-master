@@ -186,7 +186,7 @@ Return JSON:
       }],
       temperature: 0.1,
       jsonMode: true,
-      maxTokens: 800,
+      maxTokens: 1500,
       enableCache: true,
       task: 'citation_verification',
       producerFamily,
@@ -240,9 +240,11 @@ export async function verifyCitations(
     skipSemanticCheck?: boolean;  // Skip embedding comparison (faster but less accurate)
     /** Family that produced analysisText — activates opposite-family verification rule */
     producerFamily?: LLMFamily;
+    /** Hard cap on claim-citation pairs to verify (bounds critical-path time). */
+    maxClaims?: number;
   } = {}
 ): Promise<VerificationReport> {
-  const { maxConcurrency = 5, producerFamily } = options;
+  const { maxConcurrency = 8, producerFamily, maxClaims = 50 } = options;
   let totalCost = 0;
 
   console.log(`[CitationVerifier] Starting verification for ${sources.length} sources...`);
@@ -277,7 +279,30 @@ export async function verifyCitations(
     }
   }
 
-  const toVerify = Array.from(uniqueCitations.values());
+  let toVerify = Array.from(uniqueCitations.values());
+
+  // Cap to bound critical-path time. Sample round-robin across source indices so
+  // every cited source keeps representative coverage instead of truncating to the
+  // first N in document order.
+  if (toVerify.length > maxClaims) {
+    const bySource = new Map<number, CitationInstance[]>();
+    for (const c of toVerify) {
+      const arr = bySource.get(c.srcIndex) ?? [];
+      arr.push(c);
+      bySource.set(c.srcIndex, arr);
+    }
+    const sampled: CitationInstance[] = [];
+    const buckets = Array.from(bySource.values());
+    let idx = 0;
+    while (sampled.length < maxClaims && buckets.some(b => b.length > 0)) {
+      const bucket = buckets[idx % buckets.length];
+      if (bucket.length > 0) sampled.push(bucket.shift()!);
+      idx++;
+    }
+    console.log(`[CitationVerifier] Capped ${toVerify.length} → ${sampled.length} pairs (round-robin across ${buckets.length} sources)`);
+    toVerify = sampled;
+  }
+
   console.log(`[CitationVerifier] ${toVerify.length} unique claim-citation pairs to verify`);
 
   // Verify in batches

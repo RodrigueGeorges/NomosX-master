@@ -221,13 +221,13 @@ async function testAnalystPrompt() {
     );
     const hasNeutralTitle = multipass.includes('NO partisan framing');
     const hasWordCount = multipass.includes('MINIMUM 2500 WORDS');
-    const hasMaxTokens12k = multipass.includes('maxTokens: 12000');
+    const hasMaxTokens8k = multipass.includes('maxTokens: 8000');
     const hasSectionTargets = multipass.includes('250-400 words');
 
     console.log(`  analyst-multipass.ts:`);
     console.log(`    ${hasNeutralTitle ? '✅' : '❌'} Neutral title instruction`);
     console.log(`    ${hasWordCount ? '✅' : '❌'} Minimum 2500 words rule`);
-    console.log(`    ${hasMaxTokens12k ? '✅' : '❌'} maxTokens = 12000`);
+    console.log(`    ${hasMaxTokens8k ? '✅' : '❌'} maxTokens = 8000`);
     console.log(`    ${hasSectionTargets ? '✅' : '❌'} Per-section word targets`);
 
     // Check strategic-analyst-agent.ts
@@ -238,7 +238,7 @@ async function testAnalystPrompt() {
     console.log(`  strategic-analyst-agent.ts:`);
     console.log(`    ${strategicNeutral ? '✅' : '❌'} Neutral title instruction`);
 
-    const pass = hasNeutralTitle && hasWordCount && hasMaxTokens12k && hasSectionTargets && strategicNeutral;
+    const pass = hasNeutralTitle && hasWordCount && hasMaxTokens8k && hasSectionTargets && strategicNeutral;
     return pass;
   } catch (err: any) {
     console.error(`  ❌ ERROR: ${err.message}`);
@@ -258,9 +258,8 @@ async function testRouteSourceIds() {
   const path = await import('path');
 
   const routes = [
-    'app/api/brief/stream/route.ts',
-    'app/api/council/stream/route.ts',
-    'app/api/council/ask/route.ts',
+    'lib/agent/pipeline-v2.ts',
+    'lib/agent/inquiry-pipeline.ts',
   ];
 
   let allPass = true;
@@ -269,8 +268,10 @@ async function testRouteSourceIds() {
     const hasSourceIds = content.includes('sourceIds') && content.includes('rank(');
     const hasOldPattern = content.includes('rank(q, 12,') || content.includes('rank(question, 12,') || content.includes('rank(validQuestion, 12,');
 
-    const pass = hasSourceIds && !hasOldPattern;
-    console.log(`  ${pass ? '✅' : '❌'} ${route.split('/').pop()} — ${pass ? 'passes sourceIds' : 'STILL USES OLD PATTERN'}`);
+    const pass = route.endsWith('pipeline-v2.ts')
+      ? hasSourceIds && !hasOldPattern
+      : content.includes('runPipeline(');
+    console.log(`  ${pass ? '✅' : '❌'} ${route} — ${pass ? 'current pipeline wiring' : 'STALE PIPELINE WIRING'}`);
     if (!pass) allPass = false;
   }
 

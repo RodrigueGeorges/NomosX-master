@@ -178,7 +178,7 @@ Grade this evidence body. Return JSON:
       },
     ],
     temperature: 0.1,
-    maxTokens: 800,
+    maxTokens: 1500,
     jsonMode: true,
     enableCache: true,
     task: 'fact_check',

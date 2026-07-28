@@ -36,6 +36,8 @@ export interface EditorialDecision {
   classification: TopicClassification;
   /** Estimated pipeline cost */
   estimatedCostUsd: number;
+  /** Analytical research question reformulated from the raw headline (think-tank framing) */
+  researchQuestion?: string;
 }
 
 export interface EditorialTriageResult {
@@ -105,6 +107,7 @@ export async function editorialTriage(
       priority: selected.priority,
       classification,
       estimatedCostUsd: estimatedCost,
+      researchQuestion: selected.researchQuestion,
     });
 
     remainingBudget -= estimatedCost;
@@ -130,6 +133,7 @@ interface TriageSelection {
   action: 'publish_brief' | 'publish_strategic' | 'monitor' | 'skip';
   reasoning: string;
   priority: number;
+  researchQuestion?: string;
 }
 
 async function llmTriage(
@@ -174,7 +178,15 @@ ACTIONS:
 
 Select at most ${maxPubs} topics for publication. Be SELECTIVE — quality over quantity.
 
-Return JSON: { "selections": [{ "topicId": "...", "action": "publish_brief|publish_strategic|monitor|skip", "reasoning": "one sentence", "priority": 0-100 }] }`
+CRITICAL — RESEARCH QUESTION REFORMULATION:
+For each selected topic, reformulate the raw headline into an ANALYTICAL RESEARCH QUESTION, the way Brookings, RAND or Chatham House would frame it. The pipeline searches academic databases with this question — a news headline yields poor academic matches.
+Rules:
+- Generalize the anecdote to the underlying policy/strategic issue (e.g. "Gaza: Dialysis patients face grueling hospital journey by donkey cart" → "How does armed conflict degrade access to chronic care, and what policy mechanisms protect patients with life-critical needs in besieged territories?")
+- Keep the geographic/temporal anchor when relevant
+- Make it answerable with academic literature + primary data
+- One sentence, interrogative form
+
+Return JSON: { "selections": [{ "topicId": "...", "action": "publish_brief|publish_strategic|monitor|skip", "reasoning": "one sentence", "priority": 0-100, "researchQuestion": "analytical question reformulated from the headline" }] }`
         },
         {
           role: 'user',
@@ -182,7 +194,7 @@ Return JSON: { "selections": [{ "topicId": "...", "action": "publish_brief|publi
         }
       ],
       temperature: 0.15,
-      maxTokens: 800,
+      maxTokens: 1500,
       jsonMode: true,
       task: 'editor_in_chief',
     });
@@ -226,7 +238,8 @@ async function getRecentPublicationTitles(): Promise<string[]> {
   }
 }
 
-function getAgeLabel(date: Date): string {
+function getAgeLabel(date: Date | null): string {
+  if (!date) return 'non établie';
   const hours = (Date.now() - date.getTime()) / (1000 * 60 * 60);
   if (hours < 1) return 'just now';
   if (hours < 6) return `${Math.round(hours)}h ago`;

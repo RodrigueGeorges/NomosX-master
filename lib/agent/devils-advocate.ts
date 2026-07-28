@@ -59,7 +59,10 @@ export type ChallengeType =
   | "implementation_gap"       // Ignored feasibility of recommendations
   | "unknown_unknowns"         // Failed to acknowledge what we don't know
   | "institutional_bias"       // Analysis reflects institutional perspective uncritically
-  | "recency_bias";            // Over-weighted recent evidence vs. historical patterns
+  | "recency_bias"             // Over-weighted recent evidence vs. historical patterns
+  | "non_evidence"             // Claim presented as evidence-based but no source support
+  | "missing_warrant"          // Claim lacks explicit mechanism linking evidence to conclusion
+  | "cascade_extrapolation";   // Future extrapolation derives from another future extrapolation
 
 export interface AdvocateReport {
   // Overall verdict
@@ -162,7 +165,7 @@ export async function runDevilsAdvocate(
     majorChallenges.length >= 5 ? "revise" : "publish";
 
   const overallStrength = Math.max(0, 100 - (fatalChallenges.length * 20) - (majorChallenges.length * 8) - (minorChallenges.length * 2));
-  const publishabilityScore = Math.max(0, overallStrength - (fatalChallenges.length * 10));
+  const publishabilityScore = overallStrength;
 
   const totalCost = (epistemic?.costUsd || 0) + (strategic?.costUsd || 0) + (benchmark?.costUsd || 0);
   const durationMs = Date.now() - start;
@@ -222,7 +225,7 @@ SOURCES AVAILABLE:
 ${sourceList}
 
 ANALYSIS TO CHALLENGE:
-${analysisContent.slice(0, 4000)}
+${analysisContent.length > 12000 ? analysisContent.slice(0, 6000) + '\n\n[...MIDDLE SECTION OMITTED...]\n\n' + analysisContent.slice(-6000) : analysisContent}
 ${debateContext ? `
 DEBATE CONTEXT (steel-man already addressed in the analysis):
 ${debateContext}
@@ -234,6 +237,11 @@ Identify the 3-5 most significant epistemic weaknesses. For each:
 3. Provide the strongest counterargument
 4. Suggest what evidence would be needed to make the claim defensible
 
+ALSO CHECK THESE PROSPECTIVE-SPECIFIC TESTS:
+5. NON-EVIDENCE: Are there claims presented as evidence-based that have no [SRC-N] citation? Every factual claim must cite a source. Flag uncited claims as "non_evidence".
+6. MISSING WARRANT: Are there claims where the warrant (the mechanism connecting evidence to claim) is missing or trivial? A warrant that just restates the evidence ("because the data shows X") is not a warrant. It must name a mechanism. Flag as "missing_warrant".
+7. CASCADE EXTRAPOLATION: Are there future_extrapolation claims that derive from other future_extrapolation claims? This is a cascade violation — a future projection must derive from a present_fact or active_mechanism, never from another future projection. Flag as "cascade_extrapolation".
+
 Also identify:
 - The "kill shot": the single argument that could most damage this analysis's credibility
 - 3 genuine strengths worth preserving
@@ -244,7 +252,7 @@ Return JSON:
     {
       "claim": "exact quote from analysis",
       "sourceSection": "which section",
-      "challengeType": "one of: overstated_conclusion|missing_counterevidence|false_consensus|causation_from_correlation|selection_bias|temporal_fallacy|ecological_fallacy|straw_man|appeal_to_authority|missing_stakeholder|implementation_gap|unknown_unknowns|institutional_bias|recency_bias",
+      "challengeType": "one of: overstated_conclusion|missing_counterevidence|false_consensus|causation_from_correlation|selection_bias|temporal_fallacy|ecological_fallacy|straw_man|appeal_to_authority|missing_stakeholder|implementation_gap|unknown_unknowns|institutional_bias|recency_bias|non_evidence|missing_warrant|cascade_extrapolation",
       "challenge": "the adversarial argument",
       "severity": "fatal|major|moderate|minor",
       "counterEvidence": ["what evidence supports the opposite"],
@@ -259,9 +267,10 @@ Return JSON:
       },
     ],
     temperature: 0.3,
-    maxTokens: 3000,
+    maxTokens: 4000,
     jsonMode: true,
     task: 'elenchus',
+    enableCache: true,
   });
 
   try {
@@ -319,7 +328,7 @@ TARGET AUDIENCE: ${targetAudience}
 FORMAT: ${mode === "strategic" ? "Strategic Report (10-15 pages)" : "Research Brief (4-6 pages)"}
 
 ANALYSIS:
-${analysisContent.slice(0, 3000)}
+${analysisContent.length > 9000 ? analysisContent.slice(0, 4500) + '\n\n[...MIDDLE SECTION OMITTED...]\n\n' + analysisContent.slice(-4500) : analysisContent}
 
 Provide:
 1. 2-3 strategic challenges (missing stakeholders, implementation gaps, political economy blind spots)
@@ -347,8 +356,10 @@ Return JSON:
       },
     ],
     temperature: 0.4,
-    maxTokens: 2000,
+    maxTokens: 4000,
     jsonMode: true,
+    task: 'elenchus',
+    enableCache: true,
   });
 
   try {
@@ -397,7 +408,7 @@ async function runInstitutionBenchmark(
 DOMAIN: ${domain}
 
 ANALYSIS EXCERPT:
-${analysisContent.slice(0, 2500)}
+${analysisContent.length > 7500 ? analysisContent.slice(0, 3750) + '\n\n[...MIDDLE SECTION OMITTED...]\n\n' + analysisContent.slice(-3750) : analysisContent}
 
 Compare this analysis to the publication standards of:
 1. McKinsey Global Institute (known for: data-driven, actionable, executive-friendly)

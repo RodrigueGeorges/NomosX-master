@@ -1,0 +1,1777 @@
+[dotenv@17.2.4] injecting env (24) from .env.local -- tip: 🔄 add secrets lifecycle management: https://dotenvx.com/ops
+
+╔════════════════════════════════════════════════════════════╗
+║  NomosX — FULL FUNNEL TEST (Swarm)                         ║
+╚════════════════════════════════════════════════════════════╝
+  Mode: breaking
+  Started: 2026-07-23T10:14:25.373Z
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  PHASE 1: THINK TANK DISPATCHER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  [Dispatcher] Launching breaking cycle...
+(node:12468) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+[ThinkTank] Cycle mode=breaking cadence=3/3 dryRun=false
+[TOPIC RADAR V3] Starting maximum coverage sweep...
+[TOPIC RADAR V3] ✅ 50 raw → 50 deduped → 15 topics in 9045ms | gdelt:0 rss:30 academic:20 db:0
+[EDITOR-IN-CHIEF] Triaging 15 topics (max 1 publications, budget $25)...
+✅ deepseek/deepseek-v4-flash [editor_in_chief] | 8572ms | 1576+768 tok | $0.0004
+✅ deepseek/deepseek-v4-flash [topic_classification] | 4423ms | 1708+376 tok (1536 cache-hit) | $0.0003
+[EDITOR-IN-CHIEF] ✅ 1 publications selected, 0 budget-cut, 14 skipped in 13012ms ($0.0008)
+[ThinkTank] Dispatching 1 item(s), max execute=1
+[InquiryOrchestrator] RUN depth=strategic source=auto-scan vertical=eu-policy q="Country-based AI controls are failing. The spyware industry demonstrates..."
+[Inquiry] RUN depth=strategic format=strategic q="Country-based AI controls are failing. The spyware industry ..."
+
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  STRATEGIC REPORT PIPELINE
+  Query: "Country-based AI controls are failing. The spyware industry demonstrates why."
+  PipelineRun: cmrxcuj1k0000k5g2mvurv8rd
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+
+[Strategic] CONTEXT PRIMER: loading institutional memory
+[CONTEXT PRIMER] Priming context for: "Country-based AI controls are failing. The spyware industry demonstrates why...."
+[KNOWLEDGE] Querying: "Country-based AI controls are failing. The spyware industry ..."
+[TREND_ANALYZER] Analyzing trends over 6 months...
+[REALTIME] Fetching multi-domain live intelligence (12 providers)...
+[KNOWLEDGE] Longitudinal insights: 0 tracked concepts
+[TREND_ANALYZER] Insufficient sources (0 < 5)
+[REALTIME] FRED: 22/24 indicators fetched
+[REALTIME] ECB/Stock: 2 indicators
+[REALTIME] Papers With Code failed: Unexpected token '<', "<!doctype "... is not valid JSON
+[KNOWLEDGE] Found 0 relevant concepts across 0 briefs
+[REALTIME] GDELT conflict failed: The operation was aborted due to timeout
+[REALTIME] World Bank: 15/17 indicators fetched
+[REALTIME] WHO: 0 indicators
+[REALTIME] USGS: 2 indicators
+[REALTIME] Climate: 1 indicators
+[REALTIME] Federal Register: 2 indicators
+[REALTIME] Papers With Code: 0 indicators
+[REALTIME] EUR-Lex: 1 indicators
+[REALTIME] NVD/CISA: 2 indicators
+[REALTIME] GDELT: 0 indicators
+[REALTIME] NASA GISS: 0 indicators
+[REALTIME] ECB: 2 indicators
+[REALTIME] ✅ Pulse complete: 47 indicators, 8 alerts (10693ms)
+[CONTEXT PRIMER] Real-time data: 47 indicators, 8 alerts
+[CONTEXT PRIMER] KG: 0 concepts, 0 trends, 0 controversies, 0 trend breaks
+[CONTEXT PRIMER] Prior briefs: 0 related (from 0 scanned)
+[REALTIME] Fetching multi-domain live intelligence (12 providers)...
+[REALTIME] FRED: 20/24 indicators fetched
+[REALTIME] ECB/Stock: 2 indicators
+[REALTIME] Papers With Code failed: Unexpected token '<', "<!doctype "... is not valid JSON
+[REALTIME] GDELT conflict failed: The operation was aborted due to timeout
+[REALTIME] World Bank: 15/17 indicators fetched
+[REALTIME] WHO: 0 indicators
+[REALTIME] USGS: 2 indicators
+[REALTIME] Climate: 1 indicators
+[REALTIME] Federal Register: 2 indicators
+[REALTIME] Papers With Code: 0 indicators
+[REALTIME] EUR-Lex: 1 indicators
+[REALTIME] NVD/CISA: 2 indicators
+[REALTIME] GDELT: 0 indicators
+[REALTIME] NASA GISS: 0 indicators
+[REALTIME] ECB: 2 indicators
+[REALTIME] ✅ Pulse complete: 45 indicators, 7 alerts (11443ms)
+[CONTEXT PRIMER] ✅ Context primed in 22456ms (0 concepts, 0 prior briefs, 0 trend breaks)
+[Strategic] CONTEXT PRIMER: 0 concepts, 0 prior briefs, 0 trend breaks
+[Strategic] SCOUT: query="Country-based AI controls are failing. The spyware industry demonstrates why." (7 providers, 15/provider)
+[SCOUT] Cache MISS for "Country-based AI controls are failing. The spyware industry demonstrates why.", running providers...
+✅ deepseek/deepseek-v4-flash [query_enhancement] | 5029ms | 671+435 tok | $0.0002
+[SCOUT] Query enhanced: "AI export controls failure spyware industry case study" (+3 variations)
+[SCOUT] Launching 28 parallel requests across 4 query variations
+[SCOUT] LinkUp search failed: Validation failed Invalid input: expected string, received undefined
+[SCOUT] LinkUp search failed: Validation failed Invalid input: expected string, received undefined
+[SCOUT] LinkUp search failed: Validation failed Invalid input: expected string, received undefined
+[SCOUT] LinkUp search failed: Validation failed Invalid input: expected string, received undefined
+[SemanticScholar] Search failed: HTTP 429 
+[SemanticScholar] Found 50 papers
+[SemanticScholar] 38/50 with rich abstracts (76%)
+[Crossref] Found 50 works for "AI export control evasion commercial surveillance "
+[Crossref] Found 50 works for "Effectiveness of country-level AI governance spywa"
+[SemanticScholar] Search failed: HTTP 429 
+[Crossref] Found 50 works for "AI export controls failure spyware industry case s"
+[Crossref] Found 50 works for "National AI regulations failure spyware industry e"
+[SemanticScholar] Search failed: HTTP 429 
+[OpenAlex] Found 75 works for "AI export controls failure spyware industry case s"
+[OpenAlex] Found 75 works for "AI export control evasion commercial surveillance "
+[OpenAlex] Found 75 works for "National AI regulations failure spyware industry e"
+[OpenAlex] Found 75 works for "Effectiveness of country-level AI governance spywa"
+[SCOUT/GDELT] Error: fetch failed
+[SCOUT/GDELT] Error: fetch failed
+[SCOUT/GDELT] Error: fetch failed
+[SCOUT/GDELT] Error: fetch failed
+[SCOUT] Per-provider results: openalex=300, crossref=200, _unknown=0, arxiv=200, semanticscholar=38, newsapi=1
+[OpenAlex] Found 0 works for "AI export controls failure spyware industry case s"
+[OpenAlex] Found 0 works for "AI export controls failure spyware industry case s"
+[OpenAlex] Found 0 works for "AI export controls failure spyware industry case s"
+[OpenAlex] Found 0 works for "AI export controls failure spyware industry case s"
+[OpenAlex] Found 0 works for "AI export controls failure spyware industry case s"
+[SCOUT] Extended registry: +0 sources from 5 providers (geopolitics)
+[SCOUT] Raw results: 739 sources from 4 query variations (5 providers: openalex, crossref, arxiv, semanticscholar, newsapi)
+[SCOUT] After dedup: 622/739
+[SCOUT] After relevance filter: 253/622
+
+[RelevanceScorer] Top 5 sources by relevance:
+1. [37%] Export Controls and Spyware: Enhancing Oversight, Transparency and Restraint
+   Topic: 30% | Field: 50% | Semantic: 1% | Temporal: 90% | TitleBonus: 30%
+2. [35%] &lt;p&gt;U.S.–Korea Working Paper on Export Controls for AI Infrastructure: Rede
+   Topic: 25% | Field: 50% | Semantic: 1% | Temporal: 90% | TitleBonus: 30%
+3. [35%] Spyware and National Security: Who Is Afraid of EU Law?—A Fresh Overview of the 
+   Topic: 25% | Field: 50% | Semantic: 0% | Temporal: 90% | TitleBonus: 30%
+4. [31%] Global spyware industry will expand despite scrutiny
+   Topic: 18% | Field: 50% | Semantic: 1% | Temporal: 90% | TitleBonus: 30%
+5. [31%] Mapping the causal structure of AI governance factors influencing quality assura
+   Topic: 18% | Field: 50% | Semantic: 0% | Temporal: 90% | TitleBonus: 30%
+
+⚠️  253 sources below 40% relevance (filtered out)
+[Reranker] Cohere reranked 253 sources → 4 results (min score: 0.2)
+[SCOUT] After Cohere rerank: 4 sources
+[SCOUT] Enriched 2 sources with Unpaywall (batched)
+[SCOUT] Done in 22794ms: 739 raw â†’ 622 dedup â†’ 4 ranked â†’ 4 saved
+[Lineage] scout: 1 â†’ 4 (22799ms)
+[ORCHESTRATOR] Decision: RE_SCOUT — Low provider diversity: 3 providers (min: 4). Adding more sources.
+[Strategic] ORCHESTRATOR: RE_SCOUT — Low provider diversity: 3 providers (min: 4). Adding more sources.
+[Strategic] RE_SCOUT: no news sources found — adding gdelt-news, newsapi, linkup
+✅ deepseek/deepseek-v4-flash [query_enhancement] | 2248ms | 137+113 tok | $0.0001
+[SCOUT] Cache MISS for "AI regulation failure", running providers...
+[SCOUT] Cache MISS for "spyware industry", running providers...
+[SCOUT] Cache MISS for "cyberespionage and AI controls", running providers...
+[SCOUT] Cache MISS for "export controls on surveillance technology", running providers...
+[SCOUT] Cache MISS for "national security AI governance", running providers...
+✅ deepseek/deepseek-v4-flash [query_enhancement] | 3133ms | 662+224 tok | $0.0002
+[SCOUT] Query enhanced: "spyware industry surveillance software commercial espionage cyber espionage market" (+3 variations)
+[SCOUT] Launching 28 parallel requests across 4 query variations
+✅ deepseek/deepseek-v4-flash [query_enhancement] | 3153ms | 662+207 tok | $0.0002
+[SCOUT] Query enhanced: "artificial intelligence governance national security policy regulation" (+3 variations)
+[SCOUT] Launching 28 parallel requests across 4 query variations
+✅ deepseek/deepseek-v4-flash [query_enhancement] | 3170ms | 663+210 tok | $0.0002
+[SCOUT] Query enhanced: "export controls surveillance technology trade restrictions dual-use technology national security" (+3 variations)
+[SCOUT] Launching 28 parallel requests across 4 query variations
+✅ deepseek/deepseek-v4-flash [query_enhancement] | 3234ms | 661+266 tok | $0.0002
+[SCOUT] Query enhanced: "artificial intelligence regulation failure policy oversight governance gaps" (+3 variations)
+[SCOUT] Launching 28 parallel requests across 4 query variations
+[SCOUT] LinkUp search failed: Validation failed Invalid input: expected string, received undefined
+[SCOUT] LinkUp search failed: Validation failed Invalid input: expected string, received undefined
+[SCOUT] LinkUp search failed: Validation failed Invalid input: expected string, received undefined
+[SCOUT] LinkUp search failed: Validation failed Invalid input: expected string, received undefined
+[SemanticScholar] Search failed: HTTP 429 
+[SemanticScholar] Search failed: HTTP 429 
+[SCOUT] LinkUp search failed: Validation failed Invalid input: expected string, received undefined
+[SCOUT] LinkUp search failed: Validation failed Invalid input: expected string, received undefined
+[SCOUT] LinkUp search failed: Validation failed Invalid input: expected string, received undefined
+[SCOUT] LinkUp search failed: Validation failed Invalid input: expected string, received undefined
+[SCOUT] LinkUp search failed: Validation failed Invalid input: expected string, received undefined
+[SCOUT] LinkUp search failed: Validation failed Invalid input: expected string, received undefined
+[SCOUT] LinkUp search failed: Too many requests
+[SCOUT] LinkUp search failed: Too many requests
+[SCOUT] LinkUp search failed: Too many requests
+[SCOUT] LinkUp search failed: Too many requests
+[SCOUT] LinkUp search failed: Too many requests
+[SCOUT] LinkUp search failed: Too many requests
+✅ deepseek/deepseek-v4-flash [query_enhancement] | 3532ms | 665+370 tok | $0.0002
+[SCOUT] Query enhanced: "cyber espionage artificial intelligence control security state-sponsored attacks" (+3 variations)
+[SCOUT] Launching 28 parallel requests across 4 query variations
+[SCOUT] LinkUp search failed: Too many requests
+[SCOUT] LinkUp search failed: Too many requests
+[SCOUT] LinkUp search failed: Too many requests
+[SCOUT] LinkUp search failed: Too many requests
+[Crossref] Found 30 works for "spyware industry surveillance software commercial "
+[Crossref] Found 30 works for "spyware vendors surveillance capitalism offensive "
+[Crossref] Found 30 works for "cyber espionage software industry threat intellige"
+[Crossref] Found 30 works for "commercial spyware market surveillance technology "
+[HTTP] Retry 1/4 after 10000ms: https://api.crossref.org/works?query=artificial%20intelligence%20governance%20national%20security%20policy%20regulation&rows=30
+[HTTP] Retry 1/4 after 10000ms: https://api.crossref.org/works?query=AI%20governance%20national%20security%20strategic%20implications&rows=30
+[HTTP] Retry 1/4 after 10000ms: https://api.crossref.org/works?query=regulatory%20failure%20in%20AI%20ethics%20and%20compliance&rows=30
+[HTTP] Retry 1/4 after 10000ms: https://api.crossref.org/works?query=trade%20barriers%20spyware%20internet%20surveillance%20export%20regulation&rows=30
+[HTTP] Retry 1/4 after 10000ms: https://api.crossref.org/works?query=export%20controls%20surveillance%20technology%20trade%20restrictions%20dual-use%20technology%20national%20security&rows=30
+[HTTP] Retry 1/4 after 10000ms: https://api.crossref.org/works?query=dual-use%20export%20controls%20telecommunications%20monitoring%20international%20security&rows=30
+[HTTP] Retry 1/4 after 10000ms: https://api.crossref.org/works?query=artificial%20intelligence%20policy%20failure%20oversight%20shortcomings&rows=30
+[HTTP] Retry 1/4 after 10000ms: https://api.crossref.org/works?query=artificial%20intelligence%20cyber%20warfare%20espionage%20threat%20detection%20and%20control&rows=30
+[HTTP] Retry 1/4 after 10000ms: https://api.crossref.org/works?query=cyberespionage%20AI%20governance%20offensive%20cyber%20operations&rows=30
+[HTTP] Retry 1/4 after 10000ms: https://api.crossref.org/works?query=cyber%20espionage%20artificial%20intelligence%20control%20security%20state-sponsored%20attacks&rows=30
+[HTTP] Retry 1/4 after 10000ms: https://api.crossref.org/works?query=state-sponsored%20cyberattacks%20AI-powered%20espionage%20countermeasures&rows=30
+[OpenAlex] Found 30 works for "spyware industry surveillance software commercial "
+[Crossref] Found 30 works for "artificial intelligence security governance framew"
+[Crossref] Found 30 works for "AI governance failure regulatory gaps"
+[Crossref] Found 30 works for "export licensing surveillance equipment cybersecur"
+[SemanticScholar] Search failed: HTTP 429 
+[SemanticScholar] Search failed: HTTP 429 
+[SemanticScholar] Search failed: HTTP 429 
+[OpenAlex] Found 30 works for "commercial spyware market surveillance technology "
+[Crossref] Found 30 works for "national security AI regulation risk management"
+[SemanticScholar] Search failed: HTTP 429 
+[SemanticScholar] Search failed: HTTP 429 
+[SemanticScholar] Search failed: HTTP 429 
+[SemanticScholar] Search failed: HTTP 429 
+[SemanticScholar] Search failed: HTTP 429 
+[SemanticScholar] Search failed: HTTP 429 
+[SemanticScholar] Search failed: HTTP 429 
+[SemanticScholar] Search failed: HTTP 429 
+[SemanticScholar] Search failed: HTTP 429 
+[SemanticScholar] Search failed: HTTP 429 
+[Crossref] Found 30 works for "artificial intelligence regulation failure policy "
+[SemanticScholar] Search failed: HTTP 429 
+[SemanticScholar] Search failed: HTTP 429 
+[SemanticScholar] Search failed: HTTP 429 
+[SemanticScholar] Search failed: HTTP 429 
+[SemanticScholar] Search failed: HTTP 429 
+[OpenAlex] Found 14 works for "spyware vendors surveillance capitalism offensive "
+[OpenAlex] Found 30 works for "cyber espionage software industry threat intellige"
+[OpenAlex] Found 30 works for "artificial intelligence governance national securi"
+[OpenAlex] Found 30 works for "AI governance national security strategic implicat"
+[OpenAlex] Found 30 works for "national security AI regulation risk management"
+[OpenAlex] Found 30 works for "artificial intelligence security governance framew"
+[OpenAlex] Found 30 works for "export controls surveillance technology trade rest"
+[OpenAlex] Found 30 works for "export licensing surveillance equipment cybersecur"
+[OpenAlex] Found 30 works for "trade barriers spyware internet surveillance expor"
+[OpenAlex] Found 30 works for "artificial intelligence regulation failure policy "
+[OpenAlex] Found 30 works for "dual-use export controls telecommunications monito"
+[OpenAlex] Found 30 works for "AI governance failure regulatory gaps"
+[OpenAlex] Found 30 works for "artificial intelligence policy failure oversight s"
+[OpenAlex] Found 30 works for "regulatory failure in AI ethics and compliance"
+[OpenAlex] Found 30 works for "cyber espionage artificial intelligence control se"
+[OpenAlex] Found 30 works for "cyberespionage AI governance offensive cyber opera"
+[OpenAlex] Found 30 works for "artificial intelligence cyber warfare espionage th"
+[OpenAlex] Found 30 works for "state-sponsored cyberattacks AI-powered espionage "
+[SCOUT/GDELT] Error: fetch failed
+[HTTP] Retry 2/4 after 10000ms: https://api.crossref.org/works?query=cyberespionage%20AI%20governance%20offensive%20cyber%20operations&rows=30
+[HTTP] Retry 2/4 after 10000ms: https://api.crossref.org/works?query=cyber%20espionage%20artificial%20intelligence%20control%20security%20state-sponsored%20attacks&rows=30
+[HTTP] Retry 2/4 after 10000ms: https://api.crossref.org/works?query=state-sponsored%20cyberattacks%20AI-powered%20espionage%20countermeasures&rows=30
+[Crossref] Found 30 works for "trade barriers spyware internet surveillance expor"
+[Crossref] Found 30 works for "artificial intelligence policy failure oversight s"
+[Crossref] Found 30 works for "artificial intelligence cyber warfare espionage th"
+[Crossref] Found 30 works for "regulatory failure in AI ethics and compliance"
+[Crossref] Found 30 works for "AI governance national security strategic implicat"
+[Crossref] Found 30 works for "export controls surveillance technology trade rest"
+[Crossref] Found 30 works for "dual-use export controls telecommunications monito"
+[Crossref] Found 30 works for "artificial intelligence governance national securi"
+[SCOUT/GDELT] Error: fetch failed
+[SCOUT/GDELT] Error: fetch failed
+[SCOUT/GDELT] Error: fetch failed
+[SCOUT/GDELT] Error: fetch failed
+[SCOUT/GDELT] Error: fetch failed
+[SCOUT/GDELT] Error: fetch failed
+[SCOUT/GDELT] Error: fetch failed
+[SCOUT/GDELT] Error: fetch failed
+[SCOUT] Per-provider results: openalex=120, crossref=120, _unknown=0, arxiv=120, newsapi=30
+[SCOUT/GDELT] Error: fetch failed
+[SCOUT/GDELT] Error: fetch failed
+[SCOUT/GDELT] Error: fetch failed
+[SCOUT/GDELT] Error: fetch failed
+[SCOUT/GDELT] Error: fetch failed
+[SCOUT/GDELT] Error: fetch failed
+[SCOUT] Per-provider results: openalex=120, crossref=120, _unknown=0, arxiv=120, newsapi=118
+[SCOUT/GDELT] Error: fetch failed
+[SCOUT/GDELT] Error: fetch failed
+[SCOUT/GDELT] Error: fetch failed
+[SCOUT] Per-provider results: openalex=104, crossref=120, _unknown=0, arxiv=120, newsapi=13
+[SCOUT/GDELT] Error: fetch failed
+[SCOUT/GDELT] Error: fetch failed
+[SCOUT] Per-provider results: openalex=120, crossref=120, _unknown=0, arxiv=120, newsapi=1
+[OpenAlex] Found 3 works for "artificial intelligence regulation failure policy "
+[OpenAlex] Found 3 works for "artificial intelligence regulation failure policy "
+[OpenAlex] Found 3 works for "artificial intelligence regulation failure policy "
+[OpenAlex] Found 1 works for "artificial intelligence regulation failure policy "
+[OpenAlex] Found 0 works for "artificial intelligence regulation failure policy "
+[OpenAlex] Found 0 works for "artificial intelligence regulation failure policy "
+[OpenAlex] Found 10 works for "artificial intelligence regulation failure policy "
+[OpenAlex] Found 0 works for "artificial intelligence regulation failure policy "
+[OpenAlex] Found 0 works for "artificial intelligence regulation failure policy "
+[OpenAlex] Found 1 works for "artificial intelligence regulation failure policy "
+[SCOUT] Extended registry: +21 sources from 10 providers (ai, security)
+[SCOUT] Raw results: 411 sources from 4 query variations (4 providers: openalex, crossref, arxiv, newsapi)
+[SCOUT] After dedup: 341/411
+[SCOUT] After relevance filter: 176/341
+
+[RelevanceScorer] Top 5 sources by relevance:
+1. [37%] Artificial intelligence governance: mapping Slovakia's policy approach to AI reg
+   Topic: 29% | Field: 50% | Semantic: 6% | Temporal: 90% | TitleBonus: 30%
+2. [36%] Mapping Generative AI Regulation in Finance and Bridging Regulatory Gaps
+   Topic: 29% | Field: 50% | Semantic: 0% | Temporal: 90% | TitleBonus: 30%
+3. [31%] Artificial intelligence governance and social policy divergence: a comparative p
+   Topic: 17% | Field: 50% | Semantic: 0% | Temporal: 90% | TitleBonus: 30%
+4. [30%] The generative artificial intelligence governance paradox: Driving innovation wh
+   Topic: 14% | Field: 50% | Semantic: 1% | Temporal: 90% | TitleBonus: 30%
+5. [30%] Organizing AI Oversight in Digital Government: Enforcement Architectures for Imp
+   Topic: 14% | Field: 50% | Semantic: 1% | Temporal: 90% | TitleBonus: 30%
+
+⚠️  176 sources below 40% relevance (filtered out)
+[OpenAlex] Found 3 works for "artificial intelligence governance national securi"
+[OpenAlex] Found 10 works for "artificial intelligence governance national securi"
+[Reranker] Cohere reranked 176 sources → 50 results (min score: 0.2)
+[SCOUT] After Cohere rerank: 50 sources
+[OpenAlex] Found 0 works for "artificial intelligence governance national securi"
+[OpenAlex] Found 10 works for "artificial intelligence governance national securi"
+[OpenAlex] Found 1 works for "artificial intelligence governance national securi"
+[OpenAlex] Found 10 works for "artificial intelligence governance national securi"
+[OpenAlex] Found 1 works for "artificial intelligence governance national securi"
+[OpenAlex] Found 2 works for "artificial intelligence governance national securi"
+[SCOUT] Enriched 42 sources with Unpaywall (batched)
+[OpenAlex] Found 1 works for "artificial intelligence governance national securi"
+[OpenAlex] Found 0 works for "spyware industry surveillance software commercial "
+[SCOUT] Done in 22814ms: 411 raw â†’ 341 dedup â†’ 50 ranked â†’ 50 saved
+[OpenAlex] Found 0 works for "spyware industry surveillance software commercial "
+[OpenAlex] Found 2 works for "artificial intelligence governance national securi"
+[SCOUT] Extended registry: +40 sources from 10 providers (ai, security)
+[SCOUT] Raw results: 518 sources from 4 query variations (4 providers: openalex, crossref, arxiv, newsapi)
+[SCOUT] After dedup: 397/518
+[SCOUT] After relevance filter: 346/397
+
+[RelevanceScorer] Top 5 sources by relevance:
+1. [50%] Smart Machines and Smarter Policy: Foreign Investment Regulation, National Secur
+   Topic: 63% | Field: 50% | Semantic: 5% | Temporal: 70% | TitleBonus: 30%
+2. [48%] US Governance of Artificial Intelligence for National Security
+   Topic: 50% | Field: 50% | Semantic: 20% | Temporal: 90% | TitleBonus: 30%
+3. [47%] Artificial Intelligence and Digital Telecommunications Policy: Governance, Regul
+   Topic: 50% | Field: 50% | Semantic: 5% | Temporal: 90% | TitleBonus: 30%
+4. [46%] Framework for Government Policy on Agentic and Generative AI: Governance, Regula
+   Topic: 50% | Field: 50% | Semantic: 0% | Temporal: 90% | TitleBonus: 30%
+5. [46%] Framework for Government Policy on Agentic and Generative AI: Governance, Regula
+   Topic: 50% | Field: 50% | Semantic: 0% | Temporal: 90% | TitleBonus: 30%
+
+⚠️  324 sources below 40% relevance (filtered out)
+[OpenAlex] Found 0 works for "spyware industry surveillance software commercial "
+[OpenAlex] Found 0 works for "spyware industry surveillance software commercial "
+[OpenAlex] Found 0 works for "spyware industry surveillance software commercial "
+[OpenAlex] Found 0 works for "spyware industry surveillance software commercial "
+[OpenAlex] Found 0 works for "spyware industry surveillance software commercial "
+[Reranker] Cohere reranked 346 sources → 88 results (min score: 0.2)
+[SCOUT] After Cohere rerank: 88 sources
+[OpenAlex] Found 0 works for "spyware industry surveillance software commercial "
+[OpenAlex] Found 0 works for "spyware industry surveillance software commercial "
+[OpenAlex] Found 0 works for "spyware industry surveillance software commercial "
+[SCOUT] Extended registry: +0 sources from 10 providers (economics, geopolitics)
+[SCOUT] Raw results: 357 sources from 4 query variations (4 providers: openalex, crossref, arxiv, newsapi)
+[SCOUT] After dedup: 316/357
+[SCOUT] After relevance filter: 153/316
+
+[RelevanceScorer] Top 5 sources by relevance:
+1. [35%] The Invisible Battle: How Cyber Threat Intelligence Combats Cyber Espionage
+   Topic: 25% | Field: 50% | Semantic: 6% | Temporal: 90% | TitleBonus: 30%
+2. [35%] Building Spyware Detection Laboratories Combining Malware Reverse Engineering, T
+   Topic: 25% | Field: 50% | Semantic: 0% | Temporal: 90% | TitleBonus: 30%
+3. [33%] Global spyware industry will expand despite scrutiny
+   Topic: 20% | Field: 50% | Semantic: 1% | Temporal: 90% | TitleBonus: 30%
+4. [31%] The commodification of mobile phone surveillance: An analysis of the consumer sp
+   Topic: 20% | Field: 50% | Semantic: 1% | Temporal: 70% | TitleBonus: 30%
+5. [30%] Cyber espionage
+   Topic: 13% | Field: 50% | Semantic: 13% | Temporal: 90% | TitleBonus: 30%
+
+⚠️  153 sources below 40% relevance (filtered out)
+[Reranker] Cohere reranked 153 sources → 13 results (min score: 0.2)
+[SCOUT] After Cohere rerank: 13 sources
+[OpenAlex] Found 0 works for "export controls surveillance technology trade rest"
+[OpenAlex] Found 0 works for "export controls surveillance technology trade rest"
+[OpenAlex] Found 0 works for "export controls surveillance technology trade rest"
+[Crossref] Found 30 works for "cyberespionage AI governance offensive cyber opera"
+[Crossref] Found 30 works for "state-sponsored cyberattacks AI-powered espionage "
+[Crossref] Found 30 works for "cyber espionage artificial intelligence control se"
+[SCOUT] Per-provider results: openalex=120, crossref=120, _unknown=0, arxiv=120, newsapi=1
+[OpenAlex] Found 0 works for "export controls surveillance technology trade rest"
+[SCOUT] Enriched 46 sources with Unpaywall (batched)
+[SCOUT] Enriched 12 sources with Unpaywall (batched)
+[OpenAlex] Found 2 works for "export controls surveillance technology trade rest"
+[SCOUT] Extended registry: +2 sources from 5 providers (economics)
+[SCOUT] Raw results: 363 sources from 4 query variations (4 providers: openalex, crossref, arxiv, newsapi)
+[SCOUT] After dedup: 328/363
+[SCOUT] After relevance filter: 129/328
+
+[RelevanceScorer] Top 5 sources by relevance:
+1. [41%] Regulating Surveillance Technology through the Wassenaar Arrangement ‒ Some Impl
+   Topic: 38% | Field: 50% | Semantic: 8% | Temporal: 90% | TitleBonus: 30%
+2. [35%] EU Export Controls on Dual-Use Defense Technologies to Competing Global Powers
+   Topic: 25% | Field: 50% | Semantic: 7% | Temporal: 90% | TitleBonus: 30%
+3. [35%] Whose Politics? Whose Rights? Transparency, Capture and Dual-Use Export Controls
+   Topic: 25% | Field: 50% | Semantic: 1% | Temporal: 90% | TitleBonus: 30%
+4. [33%] Export Controls and International Business: A Study with Special Emphasis on Dua
+   Topic: 25% | Field: 50% | Semantic: 4% | Temporal: 70% | TitleBonus: 30%
+5. [31%] Export Controls and Spyware: Enhancing Oversight, Transparency and Restraint
+   Topic: 18% | Field: 50% | Semantic: 1% | Temporal: 90% | TitleBonus: 30%
+
+⚠️  128 sources below 40% relevance (filtered out)
+[SCOUT] Done in 25010ms: 357 raw â†’ 316 dedup â†’ 13 ranked â†’ 13 saved
+[OpenAlex] Found 0 works for "cyber espionage artificial intelligence control se"
+[OpenAlex] Found 0 works for "cyber espionage artificial intelligence control se"
+[OpenAlex] Found 0 works for "cyber espionage artificial intelligence control se"
+[Reranker] Cohere reranked 129 sources → 19 results (min score: 0.2)
+[SCOUT] After Cohere rerank: 19 sources
+[SCOUT] Done in 25453ms: 518 raw â†’ 397 dedup â†’ 88 ranked â†’ 88 saved
+[SCOUT] Enriched 12 sources with Unpaywall (batched)
+[OpenAlex] Found 0 works for "cyber espionage artificial intelligence control se"
+[OpenAlex] Found 0 works for "cyber espionage artificial intelligence control se"
+[OpenAlex] Found 2 works for "cyber espionage artificial intelligence control se"
+[SCOUT] Done in 25899ms: 363 raw â†’ 328 dedup â†’ 19 ranked â†’ 19 saved
+[OpenAlex] Found 0 works for "cyber espionage artificial intelligence control se"
+[OpenAlex] Found 0 works for "cyber espionage artificial intelligence control se"
+[OpenAlex] Found 0 works for "cyber espionage artificial intelligence control se"
+[OpenAlex] Found 0 works for "cyber espionage artificial intelligence control se"
+[SCOUT] Extended registry: +2 sources from 10 providers (ai, security)
+[SCOUT] Raw results: 363 sources from 4 query variations (4 providers: openalex, crossref, arxiv, newsapi)
+[SCOUT] After dedup: 309/363
+[SCOUT] After relevance filter: 192/309
+
+[RelevanceScorer] Top 5 sources by relevance:
+1. [37%] Artificial Intelligence and Cyber Espionage
+   Topic: 25% | Field: 50% | Semantic: 20% | Temporal: 90% | TitleBonus: 30%
+2. [36%] Artificial Intelligence: Information Theft and Cyber Espionage
+   Topic: 25% | Field: 50% | Semantic: 8% | Temporal: 90% | TitleBonus: 30%
+3. [36%] Artificial Intelligence: Information Theft and Cyber Espionage
+   Topic: 25% | Field: 50% | Semantic: 8% | Temporal: 90% | TitleBonus: 30%
+4. [35%] Applying Artificial Intelligence in Cybersecurity Analytics and Cyber Threat Det
+   Topic: 25% | Field: 50% | Semantic: 7% | Temporal: 90% | TitleBonus: 30%
+5. [35%] Cyber Espionage in the Age of Artificial Intelligence: A Comparative Study of St
+   Topic: 25% | Field: 50% | Semantic: 6% | Temporal: 90% | TitleBonus: 30%
+
+⚠️  192 sources below 40% relevance (filtered out)
+[Reranker] Cohere reranked 192 sources → 35 results (min score: 0.2)
+[SCOUT] After Cohere rerank: 35 sources
+[SCOUT] Enriched 21 sources with Unpaywall (batched)
+[SCOUT] Done in 27839ms: 363 raw â†’ 309 dedup â†’ 35 ranked â†’ 35 saved
+[Strategic] RE_SCOUT: "AI regulation failure" → +411 sources
+[Strategic] RE_SCOUT: "spyware industry" → +357 sources
+[Strategic] RE_SCOUT: "cyberespionage and AI controls" → +363 sources
+[Strategic] RE_SCOUT: "export controls on surveillance technology" → +363 sources
+[Strategic] RE_SCOUT: "national security AI governance" → +518 sources
+[Strategic] INDEX: 197 sources
+[Index] Enriching 114 authors in 6 batches
+[Index] Batch complete: 20/114
+[Index] Batch complete: 40/114
+[Index] Batch complete: 60/114
+[Index] Batch complete: 80/114
+[Index] Batch complete: 100/114
+[Index] Batch complete: 114/114
+[WIKIDATA] "Techtarget.com" → 0 entities (307ms)
+[WIKIDATA] "Techtarget.com" → 0 entities (223ms)
+[WIKIDATA] "pymnts.com" → 0 entities (195ms)
+[WIKIDATA] "Opiniojuris.org" → 0 entities (286ms)
+[WIKIDATA] "pymnts.com" → 0 entities (219ms)
+[WIKIDATA] "Opiniojuris.org" → 0 entities (240ms)
+[WIKIDATA] "Databricks.com" → 1 entities (497ms)
+[WIKIDATA] "PRNewswire" → 0 entities (483ms)
+[WIKIDATA] "BusinessLine" → 0 entities (510ms)
+[WIKIDATA] "Nextgov" → 0 entities (466ms)
+[WIKIDATA] "Nextgov" → 1 entities (367ms)
+[WIKIDATA] "BusinessLine" → 2 entities (403ms)
+[WIKIDATA] "PRNewswire" → 1 entities (566ms)
+[Index] Batched: 197 sources, 327 new authors, 128 new institutions, 351 author-links, 132 inst-links
+[WIKIDATA] "Artificial Intelligence Targeting Systems" → 0 entities (236ms)
+[WIKIDATA] "Pegasus Spyware" → 0 entities (259ms)
+[WIKIDATA] "Digital Occupation" → 0 entities (261ms)
+[WIKIDATA] "Algorithmic Surveillance" → 0 entities (290ms)
+[WIKIDATA] "Race Export" → 0 entities (344ms)
+[WIKIDATA] "Artificial Intelligence Deployment Abstract The" → 0 entities (316ms)
+[WIKIDATA] "Palestine Surveillance" → 0 entities (357ms)
+[WIKIDATA] "Developing Legal Policies" → 0 entities (318ms)
+[WIKIDATA] "Korea Working Paper" → 0 entities (350ms)
+[WIKIDATA] "Redefining National Security Governance Around" → 0 entities (348ms)
+[WIKIDATA] "Strategic Stalemates" → 0 entities (363ms)
+[WIKIDATA] "Artificial Intelligence Oversight" → 0 entities (385ms)
+[WIKIDATA] "Responsible Al Implementation Artificial Intelligence" → 0 entities (417ms)
+[WIKIDATA] "The Runtime Governance Gap" → 0 entities (450ms)
+[WIKIDATA] "Responsible Al Implementation" → 0 entities (462ms)
+[WIKIDATA] "Governance Proposals This" → 0 entities (490ms)
+[WIKIDATA] "Export Controls" → 2 entities (516ms)
+[WIKIDATA] "Through Adaptive Oversight Artificial" → 0 entities (496ms)
+[WIKIDATA] "Artificial Intelligence Oversight" → 0 entities (564ms)
+[WIKIDATA] "Commercial Aviation" → 2 entities (643ms)
+[WIKIDATA] "The Paradox" → 2 entities (661ms)
+[WIKIDATA] "Export Controls" → 2 entities (691ms)
+[WIKIDATA] "POLICY" → 2 entities (669ms)
+[WIKIDATA] "Global Ethical" → 2 entities (697ms)
+[WIKIDATA] "Designing Policies" → 2 entities (706ms)
+[WIKIDATA] "Artificial Intelligence Governance" → 2 entities (713ms)
+[WIKIDATA] "Regulatory Frameworks" → 2 entities (746ms)
+[WIKIDATA] "Abstract This" → 0 entities (787ms)
+[WIKIDATA] "Governing Self Modifying Artificial Intelligence" → 0 entities (823ms)
+[WIKIDATA] "Designing Policies" → 2 entities (942ms)
+[WIKIDATA] "GAPS" → 2 entities (1036ms)
+[WIKIDATA] "Artificial Intelligence" → 2 entities (1071ms)
+[WIKIDATA] "RISKS" → 2 entities (1078ms)
+[WIKIDATA] "AI" → 2 entities (1155ms)
+[WIKIDATA] "AI" → 2 entities (1558ms)
+[WIKIDATA] "Artificial Intelligence" → 2 entities (1551ms)
+[WIKIDATA] "AI" → 2 entities (1568ms)
+[WIKIDATA] "AI" → 2 entities (1686ms)
+[WIKIDATA] "Artificial Intelligence" → 2 entities (1776ms)
+[WIKIDATA] "AI" → 2 entities (2067ms)
+[WIKIDATA] "AI" → 2 entities (2124ms)
+[WIKIDATA] "AI" → 2 entities (2858ms)
+[WIKIDATA] "IN" → 2 entities (4440ms)
+[Index] Wikidata enriched 8/10 sources with entity data
+[INDEX] Updated novelty scores for 197 sources (batched)
+[Strategic] EMBED: generating semantic vectors...
+[SemanticEngine] Embedding 197 sources (0 already done)...
+[SemanticEngine] Embedded 197 sources, 0 failed
+[Strategic] EMBED: 197 new, 0 cached
+[Strategic] DEDUPLICATE
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42704`. Message: `ERREUR: le type « vector » n'existe pas`
+[Dedup P1] Soft-deleted 1 duplicate(s), kept https://openalex.org/W4392162455
+[Dedup P1] Reason: Quality score comparison - best=95, removed=89
+[Strategic] RANK: top 25 from 197 SCOUT sources
+[RANK] Using A+ level enhanced ranking with query: "Country-based AI controls are failing. The spyware industry demonstrates why."
+[ENHANCED RANK] Starting WAR MACHINE ranking with optimized thresholds: { minQuality: 65, requireAbstract: true, maxPerProvider: 6, limit: 25 }
+[ENHANCED RANK] Abstract filter: 75 → 74 (9 news exempted, min 200 chars)
+[ENHANCED RANK] Found 74 sources before scoring (scoped: true)
+[ENHANCED RANK] Final selection: 16 sources
+[ENHANCED RANK] Quality stats: {
+  avgQuality: 83,
+  academicSources: 14,
+  quantitativeSources: 0,
+  peerReviewedSources: 16,
+  providers: 'openalex, newsapi, crossref'
+}
+[Strategic] DOMAIN: technology (confidence: 0.9, cross=true)
+[Strategic] COLLISION: AI governance × Cybersecurity × Digital rights
+✅ deepseek/deepseek-v4-flash [casting] | 7513ms | 370+693 tok | $0.0002
+[Strategic] CASTING: AI Governance, Cybersecurity, Digital Rights
+[Strategic] READER V3: deep extraction from 16 sources (domain: technology)
+[Reader V3] Domain-aware mode: technology
+[Reader V3] Processing 16 sources (PDF: true, concurrency: 5)
+[Reader V3] Batch 1/4 (5 sources)
+[Reader V3] News article extracted: 8000 chars from https://www.thehindubusinessline.com/info-tech/legally-or-not-us-government-is-c
+[Reader V3] News article extracted: 8000 chars from https://www.prnewswire.com/news-releases/on-artificial-intelligence-in-competiti
+[Reader V3] News article extracted: 8000 chars from https://www.databricks.com/blog/ai-transparency
+[Reader V3] PDF extracted: 128081 chars, 24 pages
+[Reader V3] PDF extracted: 133948 chars, 28 pages
+✅ glm/glm-5.2 [reader_v3] | 27614ms | 2356+1764 tok | $0.0111
+✅ glm/glm-5.2 [reader_v3] | 31290ms | 2046+1503 tok | $0.0095
+✅ glm/glm-5.2 [reader_v3] | 27456ms | 2290+1634 tok | $0.0104
+✅ glm/glm-5.2 [reader_v3] | 34704ms | 2364+2372 tok | $0.0137
+✅ glm/glm-5.2 [reader_v3] | 40905ms | 3330+1985 tok | $0.0134
+[Reader V3] Batch 2/4 (5 sources)
+[Reader V3] PDF extraction failed: Request failed with status code 403
+[Reader V3] News article extracted: 8000 chars from http://opiniojuris.org/2026/07/20/symposium-on-international-law-and-artificial-
+[Reader V3] PDF extraction failed: Request failed with status code 403
+[Reader V3] News article extracted: 8000 chars from https://economictimes.indiatimes.com/news/international/global-trends/from-opena
+✅ glm/glm-5.2 [reader_v3] | 14793ms | 1132+1165 tok | $0.0067
+✅ glm/glm-5.2 [reader_v3] | 16410ms | 861+1038 tok | $0.0058
+✅ glm/glm-5.2 [reader_v3] | 24438ms | 2069+1326 tok | $0.0087
+✅ glm/glm-5.2 [reader_v3] | 31085ms | 2103+1457 tok | $0.0094
+✅ glm/glm-5.2 [reader_v3] | 36595ms | 1031+1446 tok | $0.0078
+[Reader V3] Batch 3/4 (5 sources)
+[Reader V3] News article extracted: 6656 chars from https://www.nextgov.com/ideas/2026/07/what-telecommunications-act-1996-teaches-f
+[Reader V3] PDF extracted: 274204 chars, 87 pages
+[Reader V3] PDF extraction failed: Invalid PDF structure.
+[Reader V3] PDF extracted: 88816 chars, 15 pages
+[Reader V3] PDF extracted: 795884 chars, 377 pages
+✅ glm/glm-5.2 [reader_v3] | 16815ms | 783+957 tok | $0.0053
+✅ glm/glm-5.2 [reader_v3] | 21823ms | 2674+1747 tok | $0.0114
+✅ glm/glm-5.2 [reader_v3] | 26512ms | 2759+1709 tok | $0.0114
+✅ glm/glm-5.2 [reader_v3] | 39996ms | 1765+1586 tok | $0.0094
+✅ glm/glm-5.2 [reader_v3] | 43761ms | 2937+1864 tok | $0.0123
+[Reader V3] Batch 4/4 (1 sources)
+[Reader V3] PDF extracted: 22697 chars, 10 pages
+✅ glm/glm-5.2 [reader_v3] | 54590ms | 2865+2487 tok (2816 cache-hit) | $0.0117
+[Reader V3] ✅ Complete: 12 full-text, 4 abstract, 0 rule-based | 12 with quantitative data
+[ORCHESTRATOR] Decision: DEEPEN — Only 8% of sources have abstracts (min: 60%). Attempting full-text extraction.
+[Strategic] ANALYST: strategic synthesis
+❌ glm failed for task "strategic_analyst": glm/glm-5.2 timed out after 180000ms
+❌ deepseek failed for task "strategic_analyst": deepseek/deepseek-v4-pro timed out after 60000ms
+✅ openai/gpt-4o [strategic_analyst] | 295964ms | 13063+4830 tok | $0.1378
+✅ [Strategic Analyst] Success | openai | $0.1378 | Cached: false
+[Strategic] TOPIC CONSISTENCY ISSUES DETECTED:
+  - Low source relevance: 0.0% relevant sources
+[ORCHESTRATOR] Decision: PROCEED — Analysis quality acceptable: confidence=N/A, citations=N/A.
+[STRUCTURAL EDITOR] Reviewing narrative structure for: "Country-based AI controls are failing. The spyware industry "
+✅ deepseek/deepseek-v4-flash [auto_revision] | 25114ms | 2032+2995 tok | $0.0011
+[STRUCTURAL EDITOR] Review complete: structure=55/100, 14 sections with issues, 5 logical gaps
+[Strategic] STRUCTURAL EDITOR: structure=55/100, arc=false, gaps=5
+[Strategic] ENHANCED HARVARD COUNCIL: 6 PhD expert analysis
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  🎓 ENHANCED HARVARD COUNCIL — 6 PhD Expert Analysis
+  Question: "Country-based AI controls are failing. The spyware industry demonstrates why...."
+  Mode: Strategic | Hierarchical: true
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+[PhD Council] Topic complexity: 1.00/5.0 | Selected 6 experts
+[PhD Council] Final selection: technology, economics, policy
+[HIERARCHICAL] Domain leads (2): technology, economics
+[HIERARCHICAL] Supporting experts (1): policy
+[PhD COUNCIL] policy → harvard_council task (temp=0.2, maxTokens=4000)
+[PhD COUNCIL] economics → harvard_council task (temp=0.15, maxTokens=4500)
+[PhD COUNCIL] technology → harvard_council task (temp=0.15, maxTokens=4500)
+✅ deepseek/deepseek-v4-flash [harvard_council] | 23066ms | 2727+2234 tok (896 cache-hit) | $0.0010
+[RESEARCHER IDENTITY] Stored position for technology on "Country-based AI controls are failing. The spyware industry "
+✅ deepseek/deepseek-v4-flash [harvard_council] | 25086ms | 2744+2529 tok | $0.0011
+[RESEARCHER IDENTITY] Stored position for economics on "Country-based AI controls are failing. The spyware industry "
+✅ deepseek/deepseek-v4-flash [harvard_council] | 29058ms | 2783+3115 tok (896 cache-hit) | $0.0013
+[RESEARCHER IDENTITY] Stored position for policy on "Country-based AI controls are failing. The spyware industry "
+✅ deepseek/deepseek-v4-flash [fact_check] | 6011ms | 1159+536 tok | $0.0003
+✅ deepseek/deepseek-v4-flash [harvard_council] | 10309ms | 729+1000 tok | $0.0004
+✅ deepseek/deepseek-v4-flash [harvard_council] | 16820ms | 776+1714 tok | $0.0006
+[ENHANCED COUNCIL] Completed in 56456ms | Cost: $0.0034
+[ENHANCED COUNCIL] Domain leads: 2 | Supporting: 1
+[Strategic] ENHANCED COUNCIL: 3 experts, 2 domain leads, 56456ms
+[Strategic] PhD DELIBERATION: 2 experts debating
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  🎓 PhD COLLABORATIVE DELIBERATION — 2 experts debating
+  Question: "Country-based AI controls are failing. The spyware industry demonstrates why...."
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+[DELIBERATION] Round 2: 1 cross-examination pairs
+✅ glm/glm-5.2 [elenchus] | 47558ms | 918+2089 tok | $0.0105
+[DELIBERATION] Round 2 complete: 4 challenges generated
+[DELIBERATION] Round 3: 1 experts revising positions
+✅ deepseek/deepseek-v4-flash [auto_revision] | 11832ms | 1614+1041 tok | $0.0005
+[DELIBERATION] Round 3 complete: 1 positions revised
+❌ deepseek failed for task "meta_analysis": deepseek/deepseek-v4-flash returned empty content (finish_reason=length, out_tokens=1500)
+✅ glm/glm-5.2 [meta_analysis] | 33393ms | 539+937 tok | $0.0049
+[DELIBERATION] ✅ Complete:
+  Challenges: 4 (2 critical)
+  Positions revised: 1
+  Avg confidence shift: 10.0 points
+  Consensus points: 4
+  Active disagreements: 2
+  Emergent insights: 3
+  Depth: 100/100 | Consensus: 90/100
+  Cost: $0.0159 | Duration: 92788ms
+[Strategic] PhD DELIBERATION: depth=100/100, consensus=90/100
+[Strategic] GUARD: validate citations
+[Strategic] EDITORIAL V2: foresight → debate → devil's advocate → editor → quality gates
+✅ glm/glm-5.2 [reader_v3] | 42060ms | 745+2570 tok | $0.0124
+❌ deepseek failed for task "harvard_council": deepseek/deepseek-v4-flash returned unparseable JSON (len=660)
+✅ glm/glm-5.2 [harvard_council] | 50523ms | 509+2390 tok | $0.0112
+❌ deepseek failed for task "harvard_council": deepseek/deepseek-v4-flash returned unparseable JSON (len=616)
+✅ glm/glm-5.2 [harvard_council] | 42082ms | 509+1686 tok (64 cache-hit) | $0.0081
+❌ deepseek failed for task "harvard_council": deepseek/deepseek-v4-flash returned unparseable JSON (len=1572)
+✅ glm/glm-5.2 [harvard_council] | 60407ms | 509+2522 tok | $0.0118
+❌ deepseek failed for task "harvard_council": deepseek/deepseek-v4-flash returned unparseable JSON (len=1692)
+✅ glm/glm-5.2 [harvard_council] | 37260ms | 509+1482 tok | $0.0072
+❌ deepseek failed for task "harvard_council": deepseek/deepseek-v4-flash returned unparseable JSON (len=1740)
+✅ glm/glm-5.2 [harvard_council] | 60792ms | 509+2691 tok | $0.0126
+✅ glm/glm-5.2 [elenchus] | 14349ms | 244+710 tok | $0.0035
+✅ deepseek/deepseek-v4-flash [analyst_brief] | 5869ms | 164+410 tok | $0.0001
+[Strategic] DEBATE + META-ANALYSIS: running in parallel
+[DEBATE] Starting adversarial deliberation for: "Country-based AI controls are failing. The spyware industry demonstrates why...."
+[DEBATE] Pass 1: Thesis identification + steel-man construction
+[META-ANALYSIS] Starting for: "Country-based AI controls are failing. The spyware industry demonstrates why...."
+[META-ANALYSIS] Collected 32 effect sizes from 16 readings
+[META-ANALYSIS] Generating interpretation...
+✅ deepseek/deepseek-v4-flash [meta_analysis] | 3441ms | 297+285 tok | $0.0001
+[META-ANALYSIS] ✅ Complete: k=32, pooled d=0.7907, I²=96.7%, bias=true, cost=$0.0001
+❌ glm failed for task "elenchus": 400 System detected potentially unsafe or sensitive content in input or generation. Please avoid using prompts that may generate sensitive content. Thank you for your cooperation.
+✅ deepseek/deepseek-v4-flash [elenchus] | 76597ms | 6846+1173 tok | $0.0013
+[DEBATE] Pass 2: Synthesis and nuance extraction
+✅ deepseek/deepseek-v4-flash [meta_analysis] | 9455ms | 475+693 tok | $0.0003
+[DEBATE] ✅ Complete: P1 strength=75, P2 strength=60, confidence=70%, cost=$0.0015
+[Strategic] DEBATE: confidence=70%, steel-man=70
+[Strategic] META-ANALYSIS: k=32, pooled d=0.7907, I²=96.7%
+✅ deepseek/deepseek-v4-flash [editorial_arbiter] | 11026ms | 1250+1050 tok | $0.0005
+[Strategic] ARBITER: confidence=70, scenarios=2
+[Strategic] DEVIL'S ADVOCATE: challenging analysis
+[DEVIL'S ADVOCATE] Challenging analysis on: "Country-based AI controls are failing. The spyware industry demonstrates why...."
+✅ glm/glm-5.2 [elenchus] | 35610ms | 881+2031 tok | $0.0102
+✅ glm/glm-5.2 [elenchus] | 43605ms | 1014+2838 tok | $0.0139
+✅ glm/glm-5.2 [elenchus] | 112336ms | 1906+6152 tok | $0.0297
+[DEVIL'S ADVOCATE] Verdict: REJECT | Strength: 0/100 | Fatal: 5 | Major: 5
+[Strategic] DEVIL'S ADVOCATE: verdict=reject, strength=0/100
+[AGENT MEMORY] Recorded performance for strategic-analyst (trust=0, quality=0)
+[Strategic] EDITOR: render professional HTML
+[Strategic] EDITOR: position-first template (25KB)
+[Strategic] CITATION VERIFIER: semantic check
+[CitationVerifier] Starting verification for 16 sources...
+[CitationVerifier] Found 7 citation instances
+[CitationVerifier] 7 unique claim-citation pairs to verify
+✅ deepseek/deepseek-v4-flash [citation_verification] | 3488ms | 631+290 tok | $0.0002
+✅ deepseek/deepseek-v4-flash [citation_verification] | 3540ms | 554+281 tok | $0.0002
+✅ deepseek/deepseek-v4-flash [citation_verification] | 3591ms | 580+365 tok | $0.0002
+✅ deepseek/deepseek-v4-flash [citation_verification] | 3817ms | 648+341 tok | $0.0002
+✅ deepseek/deepseek-v4-flash [citation_verification] | 4191ms | 481+400 tok | $0.0002
+✅ deepseek/deepseek-v4-flash [citation_verification] | 4497ms | 669+392 tok | $0.0002
+✅ deepseek/deepseek-v4-flash [citation_verification] | 4822ms | 556+444 tok | $0.0002
+[CitationVerifier] ✅ Complete: 0 supported, 6 partial, 1 unsupported, 0 misattributed | Integrity: 51%
+[Strategic] CITATION VERIFIER: integrity 51%
+[FACT-CHECKER] Verifying numerical claims in HTML (25KB, 16 sources)
+[FACT-CHECKER] Found 0 numerical claims to verify
+[Strategic] FACT-CHECKER: 0 claims, 0 verified, 0 major, 0 fatal → integrity 100%
+[Strategic] CRITICAL LOOP V2: iterative review
+[CriticalLoop V2] Starting iterative review (max 2 iterations, threshold 70)...
+[CriticalLoop V2] ─── Iteration 1/2 ───
+✅ deepseek/deepseek-v4-flash [fact_check] | 7488ms | 4148+690 tok | $0.0008
+✅ deepseek/deepseek-v4-flash [fact_check] | 11817ms | 3535+1073 tok | $0.0008
+✅ glm/glm-5.2 [elenchus] | 67119ms | 4083+3795 tok | $0.0224
+[CriticalLoop V2] Iteration 1 scores: M=58 A=68 C=25 → Composite=52
+[CriticalLoop V2] Score 52 < 70, rewriting...
+[CriticalLoop V2] Rewriting draft based on critic feedback...
+✅ deepseek/deepseek-v4-flash [auto_revision] | 23033ms | 6693+4000 tok | $0.0021
+[CriticalLoop V2] Rewrite truncated (9468 < 50% of 25200), keeping original
+[CriticalLoop V2] ─── Iteration 2/2 ───
+✅ deepseek/deepseek-v4-flash [fact_check] | 8515ms | 3535+801 tok (3456 cache-hit) | $0.0007
+❌ deepseek failed for task "fact_check": deepseek/deepseek-v4-flash returned empty content (finish_reason=length, out_tokens=2500)
+✅ glm/glm-5.2 [fact_check] | 43805ms | 4152+1413 tok | $0.0120
+✅ glm/glm-5.2 [elenchus] | 56710ms | 4083+2709 tok (4032 cache-hit) | $0.0130
+[CriticalLoop V2] Iteration 2 scores: M=73 A=58 C=60 → Composite=64
+[CriticalLoop V2] Complete: 2 iterations, score 52 → 64 (Δ+12), cost $0.0518
+[Strategic] CRITICAL LOOP V2: improved by +12 points
+[ORCHESTRATOR] Decision: DEBATE — Trust score 64 below 65. Triggering adversarial debate to strengthen weak points.
+[Strategic] PUBLISHER: save strategic report
+[Strategic] KNOWLEDGE GRAPH: extracting concepts
+[KNOWLEDGE] Extracting concepts from brief cmrxdph2200knk5g2le74u9t0
+✅ glm/glm-5.2 [reader_v3] | 16154ms | 1663+1044 tok | $0.0069
+[KNOWLEDGE] Created new concept: "Country-based AI controls" (policy)
+[KNOWLEDGE] Created new concept: "Failure of country-based AI controls" (claim)
+[KNOWLEDGE] Created new concept: "Spyware industry" (entity)
+[KNOWLEDGE] Created new concept: "AI governance" (policy)
+[KNOWLEDGE] Created new concept: "Dual-use technology challenge" (theory)
+[KNOWLEDGE] Created new concept: "Cross-border technology proliferation" (trend)
+[KNOWLEDGE] Created new concept: "Spyware as AI control analogy" (method)
+[KNOWLEDGE] Created new concept: "Regulatory arbitrage in technology" (trend)
+[KNOWLEDGE] ✅ Extracted 8 concepts, 8 relations, cost=$0.0069
+[Strategic] KNOWLEDGE GRAPH: 8 concepts, 8 relations
+
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  âœ… STRATEGIC REPORT COMPLETE
+  Brief: cmrxdph2200knk5g2le74u9t0 | Run: cmrxcuj1k0000k5g2mvurv8rd
+  Sources: 16 | Pages: ~8
+  Cost: $0.2810 | Duration: 1460661ms
+  Orchestrator: 0 decisions
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+
+[Inquiry] Complete brief=cmrxdph2200knk5g2le74u9t0 sections=9 sources=16 foresight=false
+[InquiryOrchestrator] REVIEW pub=cmrxdpucf00luk5g23411uk30 brief=cmrxdph2200knk5g2le74u9t0 trust=64
+[ThinkTank] Done mode=breaking published=0 held=1 skipped=0 failed=0 $0.2818 1483414ms
+
+  ── DISPATCHER RESULT ──
+  Success: true
+  Duration: 1483.4s
+  Collected: 1 topics
+  Published: 0
+  Held: 1
+  Skipped: 0
+  Failed: 0
+  Total cost: $0.2818
+  Topics: Country-based AI controls are failing. The spyware industry demonstrates why.
+  Phases: {
+  "detect": {
+    "durationMs": 9045,
+    "topicsFound": 15,
+    "stats": {
+      "gdeltFetched": 0,
+      "rssFetched": 30,
+      "academicFetched": 20,
+      "policyFetched": 0,
+      "institutionalFetched": 0,
+      "dbSignals": 0,
+      "totalRaw": 50,
+      "afterDedup": 50,
+      "durationMs": 9045
+    }
+  },
+  "decide": {
+    "durationMs": 13013,
+    "selected": 1,
+    "skipped": 14,
+    "costUsd": 0.0007800799999999999
+  },
+  "delegate": {
+    "durationMs": 1461103,
+    "published": 0
+
+
+  ── OUTCOME: "Country-based AI controls are failing. The spyware industry ..." ──
+  Status: review
+  Trust: 64
+  Quality: 83
+  Words: 1630
+  Cost: $0.2810
+  Duration: 1461.1s
+  Publication ID: cmrxdpucf00luk5g23411uk30
+  Gate decision: hold
+  Gate metrics: {"sourceCount":16,"trustScore":64,"qualityScore":83,"citationCoverage":0.51,"citationCount":7,"uniqueCitationCount":4,"claimCount":13,"citedClaimCount":6,"uncitedClaimRatio":0.5384615384615384}
+  Readiness OK: false
+
+  Total funnel duration: 24.9 min
+  Finished: 2026-07-23T10:39:17.814Z
+
+  ⚠️  Funnel ran but nothing published (held/failed)
+
+  HTML saved to: scripts/output-funnel.html (25200 chars)

@@ -75,15 +75,13 @@ export async function searchGDELTNews(query: string, limit = 30): Promise<ScoutN
     if (limiter) await limiter.acquire();
 
     let res: Response | null = null;
-    for (let attempt = 0; attempt < 3; attempt++) {
+    for (let attempt = 0; attempt < 1; attempt++) {
       res = await fetch(url, {
         signal: AbortSignal.timeout(15000),
         headers: { 'User-Agent': 'NomosX Research Bot (+https://nomosx.com)' },
       });
       if (res.status !== 429) break;
-      const wait = 3000 * (attempt + 1);
-      console.warn(`[SCOUT/GDELT] HTTP 429, retrying in ${wait}ms (${attempt + 1}/3)`);
-      await new Promise(r => setTimeout(r, wait));
+      console.warn(`[SCOUT/GDELT] HTTP 429, skipping (rate-limited)`);
     }
     if (!res || !res.ok) {
       console.warn(`[SCOUT/GDELT] HTTP ${res?.status ?? 'no-response'}`);

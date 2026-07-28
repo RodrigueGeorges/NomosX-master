@@ -20,6 +20,7 @@
 import { prisma } from '../db';
 import { callLLM } from '../llm/unified-llm';
 import { parseJson } from './json-utils';
+import { embedText, cosineSimilarity } from './semantic-engine';
 import type { DomainExpertise } from './types';
 
 // ============================================================================
@@ -450,6 +451,9 @@ const FAILURE_MODE_GUIDANCE: Record<FailureMode, string> = {
 
 /**
  * Persist a lesson to the agent's memory.
+ * Implements A-Mem pattern: if a similar lesson already exists (cosine similarity > 0.75),
+ * update it instead of creating a duplicate. This enables memory evolution — lessons
+ * get refined over time rather than accumulating redundantly.
  */
 export async function storeLesson(
   agentId: string,
@@ -459,6 +463,58 @@ export async function storeLesson(
   weight: number = 0.7
 ): Promise<void> {
   try {
+    // ── Memory Evolution: check for similar existing lessons ──
+    const existingLessons = await prisma.agentAuditLog.findMany({
+      where: {
+        agent: agentId,
+        action: "LESSON_LEARNED",
+      },
+      orderBy: { timestamp: "desc" },
+      take: 30,
+    });
+
+    if (existingLessons.length > 0) {
+      const newEmbedding = await embedText(lesson).catch(() => null);
+      if (newEmbedding) {
+        let bestMatch: { id: string; similarity: number; metadata: any } | null = null;
+
+        for (const record of existingLessons) {
+          try {
+            const m = JSON.parse(record.metadata || "{}");
+            if (!m.lesson) continue;
+            const existingEmbedding = await embedText(m.lesson).catch(() => null);
+            if (!existingEmbedding) continue;
+            const sim = cosineSimilarity(newEmbedding, existingEmbedding);
+            if (sim > 0.75 && (!bestMatch || sim > bestMatch.similarity)) {
+              bestMatch = { id: record.id, similarity: sim, metadata: m };
+            }
+          } catch { continue; }
+        }
+
+        if (bestMatch) {
+          // Evolve existing lesson: increase weight, update successRate
+          const updatedWeight = Math.min(1.0, (bestMatch.metadata.weight || 0.5) + 0.1);
+          const updatedSuccessRate = Math.min(1.0, (bestMatch.metadata.successRate || 0.5) + 0.05);
+          await prisma.agentAuditLog.update({
+            where: { id: bestMatch.id },
+            data: {
+              metadata: JSON.stringify({
+                ...bestMatch.metadata,
+                lesson: bestMatch.metadata.lesson,
+                weight: updatedWeight,
+                successRate: updatedSuccessRate,
+                lastRefinedAt: new Date().toISOString(),
+                refinementCount: (bestMatch.metadata.refinementCount || 0) + 1,
+              }),
+            },
+          });
+          console.log(`[AGENT MEMORY] Lesson evolved (similarity=${bestMatch.similarity.toFixed(2)}): "${lesson.slice(0, 60)}..."`);
+          return;
+        }
+      }
+    }
+
+    // No similar lesson found — create new one
     await prisma.agentAuditLog.create({
       data: {
         agent: agentId,
@@ -474,9 +530,79 @@ export async function storeLesson(
         }),
       },
     });
+
+    // Auto-prune low-utility lessons (fire-and-forget, ReMe pattern 2026)
+    pruneStaleLessons(agentId).catch(() => {});
   } catch (err) {
     console.warn("[AGENT MEMORY] Failed to store lesson:", err);
   }
+}
+
+// ============================================================================
+// MEMORY PRUNING — Utility-based cleanup (ReMe pattern, ACL 2026)
+// ============================================================================
+
+/**
+ * Prune low-utility lessons to prevent memory degradation.
+ * Lessons are scored by: weight × successRate × recencyDecay.
+ * Those below the pruning threshold are deleted.
+ *
+ * Called automatically when an agent's lesson count exceeds maxCapacity.
+ */
+export async function pruneStaleLessons(
+  agentId: string,
+  options: { maxCapacity?: number; keepTopN?: number; minAgeDays?: number } = {}
+): Promise<{ pruned: number; remaining: number }> {
+  const { maxCapacity = 50, keepTopN = 30, minAgeDays = 7 } = options;
+
+  const allLessons = await prisma.agentAuditLog.findMany({
+    where: {
+      agent: agentId,
+      action: "LESSON_LEARNED",
+    },
+    orderBy: { timestamp: "desc" },
+  });
+
+  if (allLessons.length <= maxCapacity) {
+    return { pruned: 0, remaining: allLessons.length };
+  }
+
+  const now = Date.now();
+  const scored = allLessons.map(record => {
+    try {
+      const m = JSON.parse(record.metadata || "{}");
+      const weight = m.weight || 0.5;
+      const successRate = m.successRate || 0.5;
+      const ageDays = (now - record.timestamp.getTime()) / (1000 * 60 * 60 * 24);
+      const recencyDecay = Math.max(0.1, 1 - ageDays / 180); // Decay over 6 months
+      const utilityScore = weight * successRate * recencyDecay;
+      return { record, utilityScore, ageDays };
+    } catch {
+      return { record, utilityScore: 0, ageDays: 999 };
+    }
+  });
+
+  // Sort by utility score descending
+  scored.sort((a, b) => b.utilityScore - a.utilityScore);
+
+  // Keep top N, prune the rest (but never prune lessons younger than minAgeDays)
+  const toKeep = scored.slice(0, keepTopN);
+  const toPrune = scored.slice(keepTopN).filter(s => s.ageDays >= minAgeDays);
+
+  if (toPrune.length === 0) {
+    return { pruned: 0, remaining: allLessons.length };
+  }
+
+  // Delete low-utility lessons
+  await prisma.agentAuditLog.deleteMany({
+    where: {
+      id: { in: toPrune.map(s => s.record.id) },
+    },
+  });
+
+  console.log(`[AGENT MEMORY] Pruned ${toPrune.length} low-utility lessons for ${agentId} (kept ${toKeep.length}, avg utility ${(toKeep.reduce((sum, s) => sum + s.utilityScore, 0) / toKeep.length).toFixed(3)})`);
+
+  return { pruned: toPrune.length, remaining: toKeep.length };
 }
 
 // ============================================================================

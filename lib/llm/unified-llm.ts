@@ -129,7 +129,7 @@ interface TaskAssignment {
  */
 const PROVIDER_DEFAULT_TIMEOUT_MS: Record<LLMProvider, number> = {
   deepseek: 60_000,
-  glm: 120_000,
+  glm: 180_000,
   openai: 60_000,
   anthropic: 60_000,
 };
@@ -137,7 +137,7 @@ const PROVIDER_DEFAULT_TIMEOUT_MS: Record<LLMProvider, number> = {
 /** Hard floor per provider — never go below this even if a task requests less. */
 const PROVIDER_MIN_TIMEOUT_MS: Record<LLMProvider, number> = {
   deepseek: 30_000,
-  glm: 120_000,
+  glm: 180_000,
   openai: 30_000,
   anthropic: 30_000,
 };
@@ -155,17 +155,30 @@ const TASK_ASSIGNMENT: Record<LLMTask, TaskAssignment> = {
   fact_check:             { provider: "deepseek", model: "deepseek-v4-flash", timeoutMs: 60_000 },
   citation_verification:  { provider: "deepseek", model: "deepseek-v4-flash", timeoutMs: 60_000 },
 
-  // Heavy context, cache-friendly (GLM-5.2: 1M window, $0.26/M cached input)
+  // Heavy INPUT context, cache-friendly, MODERATE output (GLM-5.2: 1M window,
+  // $0.26/M cached input). reader_v3 proven fast on GLM (16-68s).
+  // strategic_analyst: DeepSeek primary — GLM reasoning model times out at 300s
+  // on 32K-token JSON outputs (spends budget in reasoning_content). DeepSeek flash
+  // produces large JSON in 60-120s. GLM stays fallback for its 1M context window.
   reader_v3:              { provider: "glm", model: "glm-5.2", timeoutMs: 120_000 },
-  strategic_analyst:      { provider: "glm", model: "glm-5.2", timeoutMs: 180_000 },
-  harvard_council:        { provider: "glm", model: "glm-5.2", timeoutMs: 120_000 },
+  strategic_analyst:      { provider: "deepseek", model: "deepseek-v4-flash", timeoutMs: 180_000 },
+  // harvard_council: LARGE output (6-8 detailed findings/expert). Same-session data
+  // showed GLM timing out at 120s on every expert, flash finishing each in ~22s.
+  // Flash's 1M window handles the large input; ~5x faster. → DeepSeek primary.
+  harvard_council:        { provider: "deepseek", model: "deepseek-v4-flash", timeoutMs: 90_000 },
   elenchus:               { provider: "glm", model: "glm-5.2", timeoutMs: 120_000 },
 
-  // Heavy output, cheap tokens (DeepSeek-v4-pro: ~$0.87/M blended output)
-  analyst_brief:          { provider: "deepseek", model: "deepseek-v4-pro", timeoutMs: 120_000 },
-  meta_analysis:          { provider: "deepseek", model: "deepseek-v4-pro", timeoutMs: 60_000 },
-  editorial_arbiter:      { provider: "deepseek", model: "deepseek-v4-pro", timeoutMs: 120_000 },
-  auto_revision:          { provider: "deepseek", model: "deepseek-v4-pro", timeoutMs: 120_000 },
+  // Heavy structured-JSON OUTPUT. Full-run data (2026-07) proved GLM is the WRONG
+  // primary here: it timed out repeatedly (analyst PASS 1 & 3 at 180s, auto_revision
+  // at 120s) because it generates large output slowly. DeepSeek flash did the SAME
+  // work in ~33-60s. Flash's only failure mode was TRUNCATION at maxTokens=4000 —
+  // fixed by raising the callers' maxTokens to 8000. Timeouts here give flash room
+  // for 8K-token outputs. GLM stays the cross-family FALLBACK (its strength is large
+  // INPUT context + prefix caching: reader_v3 / elenchus / strategic_analyst, above).
+  analyst_brief:          { provider: "deepseek", model: "deepseek-v4-flash", timeoutMs: 120_000 },
+  meta_analysis:          { provider: "deepseek", model: "deepseek-v4-flash", timeoutMs: 90_000 },
+  editorial_arbiter:      { provider: "deepseek", model: "deepseek-v4-flash", timeoutMs: 90_000 },
+  auto_revision:          { provider: "deepseek", model: "deepseek-v4-flash", timeoutMs: 180_000 },
 
   // Conversational
   studiox:                { provider: "deepseek", model: "deepseek-v4-pro", timeoutMs: 60_000 },
@@ -198,7 +211,7 @@ const MODEL_CONFIG: Record<string, Record<string, {
   costPer1kCachedInput?: number;
 }>> = {
   deepseek: {
-    "deepseek-v4-pro": { contextWindow: 1000000, costPer1kInput: 0.00174, costPer1kOutput: 0.00348 },
+    "deepseek-v4-pro": { contextWindow: 1000000, costPer1kInput: 0.000435, costPer1kOutput: 0.00087 },
     "deepseek-v4-flash": { contextWindow: 1000000, costPer1kInput: 0.00014, costPer1kOutput: 0.00028 },
     "deepseek-chat": { contextWindow: 128000, costPer1kInput: 0.00028, costPer1kOutput: 0.00042 },
     "deepseek-reasoner": { contextWindow: 128000, costPer1kInput: 0.00028, costPer1kOutput: 0.00042 },
@@ -207,7 +220,7 @@ const MODEL_CONFIG: Record<string, Record<string, {
     "glm-5.2": {
       contextWindow: 1000000,
       costPer1kInput: 0.00140,
-      costPer1kOutput: 0.00140,
+      costPer1kOutput: 0.00440,
       costPer1kCachedInput: 0.00026,
     },
   },
@@ -317,7 +330,14 @@ async function isCircuitOpen(provider: string): Promise<boolean> {
   return true;
 }
 
-async function recordProviderFailure(provider: string): Promise<void> {
+async function recordProviderFailure(provider: string, error?: Error): Promise<void> {
+  // Failure-Class Routing (2026): only systemic errors (500/503/timeout/overloaded)
+  // advance the circuit breaker. Terminal errors (unparseable JSON, empty content,
+  // finish_reason=length) are deterministic — retrying is pure waste and tripping
+  // the breaker on them causes unnecessary provider swaps.
+  if (error && isTerminalError(error)) {
+    return;
+  }
   const cb = await getCBState(provider);
   const next: CBState = { failures: cb.failures + 1, lastFailure: Date.now(), open: cb.open };
   if (next.failures >= CIRCUIT_BREAKER_THRESHOLD) {
@@ -325,6 +345,15 @@ async function recordProviderFailure(provider: string): Promise<void> {
     console.warn(`⚡ Circuit breaker OPEN for ${provider} (${next.failures} consecutive failures)`);
   }
   await setCBState(provider, next);
+}
+
+/** Terminal errors are deterministic — retrying or tripping the breaker is waste. */
+function isTerminalError(error: Error): boolean {
+  const msg = (error.message || "").toLowerCase();
+  return msg.includes("unparseable json") ||
+    msg.includes("empty content") ||
+    msg.includes("finish_reason=length") ||
+    msg.includes("non-parseable json");
 }
 
 async function recordProviderSuccess(provider: string): Promise<void> {
@@ -404,9 +433,10 @@ function resolvePrimaryProvider(request: LLMRequest): LLMProvider {
 
   const task = normalizeTask(request.task);
 
-  // Opposite-family rule: fact_check / citation_verification must run on a
-  // DIFFERENT family than the one that produced the text being checked.
-  if (request.producerFamily && (task === "fact_check" || task === "citation_verification")) {
+  // Opposite-family rule: fact_check / citation_verification / auto_revision
+  // must run on a DIFFERENT family than the one that produced the text being
+  // checked/rewritten (anti blind-spot confirmation bias).
+  if (request.producerFamily && (task === "fact_check" || task === "citation_verification" || task === "auto_revision")) {
     const opposite = OPPOSITE_FAMILY[request.producerFamily];
     const oppositeProvider = FAMILY_PROVIDER[opposite];
     if (getClientForProvider(oppositeProvider) && !isCircuitOpenSync(oppositeProvider)) {
@@ -553,6 +583,18 @@ async function callOpenAICompatible(
     effectiveMaxTokens = Math.max(effectiveMaxTokens * 2, 8000);
   }
 
+  // GLM-5.2 thinking control: disable reasoning for fast/extraction tasks and
+  // JSON mode to save tokens + latency (z.ai docs: "use thinking off for
+  // extraction, rewriting, classification"). Keep thinking enabled for
+  // reasoning-heavy tasks (elenchus, reader_v3, strategic_analyst).
+  const glmExtraBody: Record<string, unknown> = {};
+  if (provider === "glm") {
+    const normalizedTask = normalizeTask(request.task);
+    const reasoningTasks = new Set(["elenchus", "reader_v3", "strategic_analyst", "critique", "extraction", "strategic_analysis"]);
+    const shouldThink = reasoningTasks.has(normalizedTask) && !request.jsonMode;
+    glmExtraBody.thinking = { type: shouldThink ? "enabled" : "disabled" };
+  }
+
   const completion = await withRetry(
     () => client.chat.completions.create({
       model: effectiveModel,
@@ -560,7 +602,8 @@ async function callOpenAICompatible(
       temperature: request.temperature ?? 0.2,
       max_tokens: effectiveMaxTokens,
       response_format: request.jsonMode ? { type: "json_object" } as any : undefined,
-    }),
+      ...(provider === "glm" ? { extra_body: glmExtraBody } : {}),
+    } as any),
     `${provider}/${effectiveModel}`,
   );
 
@@ -822,7 +865,7 @@ export async function callLLM(request: LLMRequest): Promise<LLMResponse> {
       return response;
     } catch (error) {
       lastError = error as Error;
-      await recordProviderFailure(provider);
+      await recordProviderFailure(provider, error as Error);
       console.error(`❌ ${provider} failed for task "${task}": ${(error as Error).message}`);
 
       Sentry.captureException(error, {

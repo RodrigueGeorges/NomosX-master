@@ -1,4 +1,27 @@
 export const PUBLICATION_FORMATS = [
+  // ── Primary format 1: ARTICLE (Le Shift Project / LawZero style) ──
+  {
+    type: "ARTICLE",
+    label: "Article",
+    shortLabel: "Article",
+    family: "articles",
+    access: "Open",
+    pages: "8-15 pages",
+    sourceDepth: "15+ sources",
+    description: "Long-form analytical article — data-driven, narrative, rigorous. 3,000-5,000 words.",
+  },
+  // ── Primary format 2: STRATEGIC REPORT (McKinsey / France Stratégie style) ──
+  {
+    type: "STRATEGIC_REPORT",
+    label: "Strategic Report",
+    shortLabel: "Report",
+    family: "reports",
+    access: "Open",
+    pages: "15-30 pages",
+    sourceDepth: "20+ sources",
+    description: "Comprehensive strategic analysis with scenarios, stakeholder impact, recommendations, and implementation roadmap. 5,000-10,000 words.",
+  },
+  // ── Signal formats (for breaking news / auto-scan) ──
   {
     type: "SUMMARY_BRIEF",
     label: "Signal Brief",
@@ -9,66 +32,38 @@ export const PUBLICATION_FORMATS = [
     sourceDepth: "5+ sources",
     description: "Fast synthesis of a verified weak signal, policy move, or emerging evidence shift.",
   },
-  {
-    type: "UPDATE_NOTE",
-    label: "Update Note",
-    shortLabel: "Update",
-    family: "signals",
-    access: "Open",
-    pages: "1-2 pages",
-    sourceDepth: "3+ sources",
-    description: "A concise change log when new evidence modifies an existing position.",
-  },
-  {
-    type: "DATA_NOTE",
-    label: "Data Note",
-    shortLabel: "Data",
-    family: "data",
-    access: "Open",
-    pages: "2-3 pages",
-    sourceDepth: "dataset-led",
-    description: "A quantitative readout centered on datasets, indicators, and measurement caveats.",
-  },
-  {
-    type: "POLICY_NOTE",
-    label: "Policy Memo",
-    shortLabel: "Memo",
-    family: "memos",
-    access: "Open",
-    pages: "3-5 pages",
-    sourceDepth: "8+ sources",
-    description: "Options, trade-offs, recommendation, risks, and implementation constraints.",
-  },
+  // ── Legacy aliases (kept for backward compat, map to ARTICLE) ──
   {
     type: "RESEARCH_BRIEF",
     label: "Research Brief",
     shortLabel: "Brief",
-    family: "briefs",
+    family: "articles",
     access: "Open",
-    pages: "4-6 pages",
-    sourceDepth: "10+ sources",
-    description: "Decision-ready synthesis with consensus, disagreements, and evidence quality.",
+    pages: "8-15 pages",
+    sourceDepth: "15+ sources",
+    description: "Legacy label — now maps to Article format.",
   },
   {
     type: "EXECUTIVE_BRIEF",
     label: "Decision Brief",
     shortLabel: "Decision",
-    family: "briefs",
+    family: "articles",
     access: "Open",
-    pages: "4-6 pages",
-    sourceDepth: "10+ sources",
-    description: "Legacy executive brief records surfaced under the new decision brief label.",
+    pages: "8-15 pages",
+    sourceDepth: "15+ sources",
+    description: "Legacy label — now maps to Article format.",
   },
   {
-    type: "STRATEGIC_REPORT",
-    label: "Strategic Report",
-    shortLabel: "Report",
-    family: "reports",
+    type: "POLICY_NOTE",
+    label: "Policy Memo",
+    shortLabel: "Memo",
+    family: "articles",
     access: "Open",
-    pages: "10-15 pages",
-    sourceDepth: "20+ sources",
-    description: "Deep analysis with scenarios, stakeholder impact, risks, and roadmap.",
+    pages: "8-15 pages",
+    sourceDepth: "15+ sources",
+    description: "Legacy label — now maps to Article format.",
   },
+  // ── Future format ──
   {
     type: "DOSSIER",
     label: "Research Dossier",
@@ -86,11 +81,9 @@ export type PublicationFormatFamily = typeof PUBLICATION_FORMATS[number]["family
 
 export const FORMAT_FILTERS = [
   { value: "all", label: "All Formats" },
+  { value: "articles", label: "Articles" },
+  { value: "reports", label: "Strategic Reports" },
   { value: "signals", label: "Signals" },
-  { value: "data", label: "Data Notes" },
-  { value: "briefs", label: "Briefs" },
-  { value: "memos", label: "Policy Memos" },
-  { value: "reports", label: "Reports" },
   { value: "dossiers", label: "Dossiers" },
 ] as const;
 
@@ -103,8 +96,22 @@ export const FORMAT_TYPES_BY_FAMILY = PUBLICATION_FORMATS.reduce((acc, format) =
   return acc;
 }, {} as Record<string, string[]>);
 
+const FORMAT_ALIASES: Record<string, string> = {
+  RESEARCH_BRIEF: "ARTICLE",
+  EXECUTIVE_BRIEF: "ARTICLE",
+  POLICY_NOTE: "ARTICLE",
+  UPDATE_NOTE: "SUMMARY_BRIEF",
+  DATA_NOTE: "SUMMARY_BRIEF",
+};
+
+export function resolveFormatType(type?: string | null): string {
+  if (!type) return "ARTICLE";
+  return FORMAT_ALIASES[type] || type;
+}
+
 export function getPublicationFormat(type?: string | null) {
-  return PUBLICATION_FORMAT_BY_TYPE[type || ""] || PUBLICATION_FORMAT_BY_TYPE.RESEARCH_BRIEF;
+  const resolved = resolveFormatType(type);
+  return PUBLICATION_FORMAT_BY_TYPE[resolved] || PUBLICATION_FORMAT_BY_TYPE.ARTICLE;
 }
 
 export function getPublicationFormatLabel(type?: string | null) {

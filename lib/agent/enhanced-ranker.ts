@@ -37,6 +37,7 @@ export interface EnhancedRankedSource extends Source {
   academicWeight: number;
   hasQuantitativeData: boolean;
   peerReviewed: boolean;
+  trustTier?: SourceTrustTier;
 }
 
 /**
@@ -82,9 +83,10 @@ export async function enhancedRank(
     { deletedAt: null },
     // CRITICAL: Scope to SCOUT sourceIds if provided (prevents querying entire DB)
     finalOptions.sourceIds?.length ? { id: { in: finalOptions.sourceIds } } : null,
-    finalOptions.excludeLowQuality ? { 
-      qualityScore: { gte: finalOptions.minQuality } 
-    } : null
+    // Apply quality filter whenever minQuality > 0 (not just when excludeLowQuality is set)
+    finalOptions.minQuality && finalOptions.minQuality > 0 ? {
+      qualityScore: { gte: finalOptions.minQuality }
+    } : null,
   ].filter(Boolean);
 
   if (whereConditions.length === 0) {
@@ -106,17 +108,21 @@ export async function enhancedRank(
       { noveltyScore: 'desc' },
       { createdAt: 'desc' }
     ],
-    take: finalOptions.limit! * 3 // Get 3x more for filtering
+    take: finalOptions.limit! * 5 // Get 5x more candidates for filtering (was 3x — too few for niche topics)
   });
 
   // Post-query filtering for abstract (Prisma doesn't support length in where)
   // News sources are EXEMPT — they have shorter abstracts but are valuable real-time intelligence
-  const newsProviders = ['gdelt-news', 'newsapi', 'mediastack', 'thenewsapi', 'gnews', 'eventregistry', 'linkup'];
+  const newsProviders = ['gdelt-news', 'newsapi', 'mediastack', 'thenewsapi', 'gnews', 'eventregistry'];
+  // T1 primary-data providers are EXEMPT — datasets carry quantitative value, not prose
+  const primaryDataProviders = ['energy-charts', 'smard', 'rte-france', 'energi-data', 'fingrid', 'entsog', 'eurostat', 'treasury-fiscal', 'fred', 'imf', 'worldbank', 'istat', 'open-primitive'];
   if (finalOptions.requireAbstract || (finalOptions.minAbstractLength && finalOptions.minAbstractLength > 0)) {
     const beforeAbstractFilter = sources.length;
     sources = sources.filter(source => {
       const isNews = newsProviders.includes(source.provider || '');
       if (isNews) return true; // News sources bypass abstract filter
+      const isPrimaryData = primaryDataProviders.includes(source.provider || '');
+      if (isPrimaryData) return true; // Dataset sources bypass abstract filter
       if (finalOptions.requireAbstract && !source.abstract) return false;
       if (finalOptions.minAbstractLength && finalOptions.minAbstractLength > 0) {
         if (!source.abstract || source.abstract.length < finalOptions.minAbstractLength) return false;
@@ -134,22 +140,26 @@ export async function enhancedRank(
 
   // Enhanced scoring algorithm with relevance filtering
   let rejectedCount = 0;
+  // When scoped to SCOUT sourceIds, use minimal threshold (sources already query-matched)
+  // But still filter out completely irrelevant sources (score < 1.5 means almost no keyword overlap)
+  // When querying whole DB, use stricter threshold
+  const relevanceThreshold = isScoped ? 1.5 : 1.0;
   const enhancedSources = sources.map(source => {
     const qualityScore = source.qualityScore || 0;
     const noveltyScore = source.noveltyScore || 0;
     
     const relevanceScore = calculateRelevanceScore(query, source);
     
-    // When scoped to SCOUT sourceIds, use very low threshold (sources already query-matched)
-    // When querying whole DB, use stricter threshold
-    const relevanceThreshold = isScoped ? 0.0 : 1.0;
     if (relevanceScore < relevanceThreshold) {
       rejectedCount++;
       return null;
     }
     
-    // A+ LEVEL: Academic weight calculation
-    const academicWeight = calculateSourceAuthorityWeight(source);
+    // P2.4: Trust tier classification — used as scoring multiplier
+    const { tier, weight: tierWeight } = classifyTrustTier(source);
+
+    // A+ LEVEL: Academic weight calculation (now informed by trust tier)
+    const academicWeight = Math.max(calculateSourceAuthorityWeight(source), tierWeight);
     
     // A+ LEVEL: Quantitative data detection
     const hasQuantitativeData = detectQuantitativeData(source);
@@ -174,14 +184,15 @@ export async function enhancedRank(
       relevanceScore,
       academicWeight,
       hasQuantitativeData,
-      peerReviewed
-    };
+      peerReviewed,
+      trustTier: tier,
+    } as EnhancedRankedSource & { trustTier: SourceTrustTier };
   }).filter((source): source is typeof source & { compositeScore: number; relevanceScore: number; academicWeight: number; hasQuantitativeData: boolean; peerReviewed: boolean } => 
     source !== null && 'compositeScore' in source
   ); // Type guard to keep only valid enhanced sources
 
   if (rejectedCount > 0) {
-    console.log(`[ENHANCED RANK] Rejected ${rejectedCount}/${sources.length} sources (relevance < ${isScoped ? '0.0' : '1.0'})`);
+    console.log(`[ENHANCED RANK] Rejected ${rejectedCount}/${sources.length} sources (relevance < ${relevanceThreshold})`);
   }
 
   // Apply enhanced diversity and quality filters
@@ -193,7 +204,7 @@ export async function enhancedRank(
     .slice(0, finalOptions.limit!);
 
   // SAFETY NET: If we ended up with too few sources after filtering, relax and take what we have
-  if (finalSources.length < 3 && enhancedSources.length > finalSources.length) {
+  if (finalSources.length < 8 && enhancedSources.length > finalSources.length) {
     console.warn(`[ENHANCED RANK] Only ${finalSources.length} sources after diversity filter — relaxing to top ${Math.min(finalOptions.limit!, enhancedSources.length)} by composite score`);
     const relaxed = enhancedSources
       .sort((a, b) => b.compositeScore - a.compositeScore)
@@ -217,14 +228,87 @@ export async function enhancedRank(
 }
 
 /**
+ * Source Trust Tier Classification (P2.4)
+ *
+ * Inspired by geodocs.dev — classify sources into 4 tiers based on
+ * origin, review status, and content quality. Used as a hard filter
+ * and as a scoring multiplier in the ranker.
+ *
+ * canonical: DOI + peer-reviewed + 100+ citations (weight: 1.0)
+ * verified:  DOI + substantive abstract (weight: 0.85)
+ * community: preprint, working paper, no DOI but has abstract (weight: 0.65)
+ * untrusted: no DOI, short/no abstract, unknown provider (weight: 0.40)
+ */
+export type SourceTrustTier = 'canonical' | 'verified' | 'community' | 'untrusted';
+
+export function classifyTrustTier(source: any): { tier: SourceTrustTier; weight: number } {
+  const newsProviders = ['gdelt-news', 'newsapi', 'mediastack', 'thenewsapi', 'gnews', 'eventregistry'];
+  const isNews = newsProviders.includes(source.provider || '');
+
+  // News sources: tier based on domain authority
+  if (isNews) {
+    const newsAuthorityDomains = [
+      'reuters.com', 'apnews.com', 'bbc.com', 'bbc.co.uk', 'nytimes.com', 'ft.com',
+      'wsj.com', 'washingtonpost.com', 'theguardian.com', 'bloomberg.com', 'economist.com',
+      'politico.eu', 'euronews.com', 'lemonde.fr', 'figaro.fr', 'liberation.fr',
+      'bruegel.org', 'csis.org', 'brookings.edu', 'chathamhouse.org', 'cfr.org',
+      'rand.org', 'carnegieendowment.org', 'ecfr.eu', 'sipri.org',
+    ];
+    const sourceUrl = source.url || '';
+    const sourceDomain = sourceUrl ? sourceUrl.replace(/^https:\/\//, '').split('/')[0].replace(/^www\./, '') : '';
+    const isAuthorityDomain = newsAuthorityDomains.some(d => sourceDomain === d || sourceDomain.endsWith('.' + d));
+
+    if (isAuthorityDomain) return { tier: 'canonical', weight: 0.9 };
+    if (source.abstract && source.abstract.length > 200) return { tier: 'verified', weight: 0.75 };
+    return { tier: 'community', weight: 0.65 };
+  }
+
+  // Academic sources: tier based on DOI, citations, abstract quality
+  const hasDoi = !!source.doi;
+  const hasCitations = source.citationCount && source.citationCount > 100;
+  const hasAbstract = source.abstract && source.abstract.length > 500;
+  const isPeerReviewed = !((source.title || '').toLowerCase().includes('preprint') ||
+    (source.title || '').toLowerCase().includes('working paper'));
+
+  if (hasDoi && hasCitations && isPeerReviewed) return { tier: 'canonical', weight: 1.0 };
+  if (hasDoi && hasAbstract) return { tier: 'verified', weight: 0.85 };
+  if (hasAbstract || hasDoi) return { tier: 'community', weight: 0.65 };
+  return { tier: 'untrusted', weight: 0.40 };
+}
+
+/**
  * Calculate source authority weight — replaces academic-only weight.
  * News sources from authority domains get high weight (0.8+),
  * academic sources get weight from DOI/citations/abstract quality.
  * No source type is structurally penalized.
  */
 function calculateSourceAuthorityWeight(source: any): number {
-  const newsProviders = ['gdelt-news', 'newsapi', 'mediastack', 'thenewsapi', 'gnews', 'eventregistry', 'linkup'];
+  const newsProviders = ['gdelt-news', 'newsapi', 'mediastack', 'thenewsapi', 'gnews', 'eventregistry'];
   const isNews = newsProviders.includes(source.provider || '');
+
+  // Recognized institutional providers — reports from these are authoritative
+  const institutionalProviders = [
+    'iaea', 'irena', 'cea', 'entsoe', 'jrc', 'iea', 'acer', 'entsog', 'bruegel', 'eea',
+    'openreview', 'biorxiv', 'papers-with-code', 'mit-dspace', 'harvard-dash', 'max-planck-pure',
+    'energy-charts', 'smard', 'rte-france', 'energi-data', 'fingrid',
+    'istat', 'open-primitive', 'treasury-fiscal', 'clinical-trials',
+    'oecd', 'oecd-direct', 'worldbank', 'imf', 'bis',
+    'eurostat', 'ecb', 'eib', 'fred', 'insee', 'data-gouv', 'ademe', 'inrae',
+    'france-strategie', 'shift-project', 'iddri', 'eeas', 'eur-lex', 'ecfr',
+    'swp', 'sipri', 'iai', 'nato', 'un', 'undp', 'unctad', 'nist', 'cisa',
+    'enisa', 'sgdsn', 'eda', 'who-gho', 'who-direct', 'ema', 'ecdc', 'inserm',
+    'cochrane', 'cdc', 'nih', 'cnrs', 'inria', 'ens', 'max-planck', 'eth-zurich',
+    'allen-ai', 'legifrance', 'vie-publique', 'archives-fr',
+  ];
+  const isInstitutional = institutionalProviders.includes(source.provider || '');
+
+  if (isInstitutional) {
+    // Institutional reports are authoritative — give them high base weight
+    let weight = 0.85;
+    if (source.abstract && source.abstract.length > 500) weight += 0.05;
+    if (source.year && source.year >= 2020) weight += 0.05;
+    return Math.min(weight, 1.0);
+  }
 
   if (isNews) {
     // News authority domains get high weight
@@ -372,6 +456,20 @@ function calculateRelevanceScore(query: string, source: any): number {
   const coverage = uniqueTermsMatched / queryTerms.length;
   score += coverage * 3.0;
   
+  // Geographic bonus: if query mentions a specific geography and source matches it
+  const geoTerms = ['europe', 'european', 'eu', 'france', 'germany', 'nordic', 'norway', 'iberia', 'spain', 'italy', 'poland', 'uk', 'britain', 'china', 'india', 'asia', 'africa', 'middle east'];
+  const queryGeo = geoTerms.filter(g => query.toLowerCase().includes(g));
+  if (queryGeo.length > 0) {
+    const sourceText = (title + ' ' + abstract + ' ' + topics).toLowerCase();
+    const matchedGeo = queryGeo.filter(g => sourceText.includes(g));
+    if (matchedGeo.length > 0) {
+      score += matchedGeo.length * 2.0; // Strong bonus per matched geographic term
+    } else {
+      // Penalty: query mentions geography but source doesn't match any
+      score *= 0.5;
+    }
+  }
+  
   return Math.max(0, score);
 }
 
@@ -382,10 +480,10 @@ function applyEnhancedFilters(
   sources: EnhancedRankedSource[], 
   options: EnhancedRankOptions
 ): EnhancedRankedSource[] {
-  let filtered = [...sources];
+  let filtered = [...sources].sort((a, b) => b.compositeScore - a.compositeScore);
   
-  // Provider diversity filter
-  if (options.maxPerProvider && options.minProviderDiversity) {
+  // Provider diversity filter — ENFORCED (not just warned)
+  if (options.maxPerProvider) {
     const providerCounts: Record<string, number> = {};
     filtered = filtered.filter(source => {
       const provider = source.provider || 'unknown';
@@ -393,10 +491,31 @@ function applyEnhancedFilters(
       return providerCounts[provider] <= options.maxPerProvider!;
     });
     
-    // Ensure minimum provider diversity
-    const uniqueProviders = new Set(filtered.map(s => s.provider || 'unknown'));
-    if (uniqueProviders.size < options.minProviderDiversity) {
-      console.warn(`[ENHANCED RANK] Provider diversity warning: ${uniqueProviders.size} < ${options.minProviderDiversity}`);
+    // Check provider diversity and ENFORCE if below threshold
+    const uniqueProviders = [...new Set(filtered.map(s => s.provider || 'unknown'))];
+    if (options.minProviderDiversity && uniqueProviders.length < options.minProviderDiversity) {
+      console.warn(`[ENHANCED RANK] Provider diversity warning: ${uniqueProviders.length} < ${options.minProviderDiversity} — enforcing redistribution`);
+      // Redistribute: take top sources from each provider round-robin to maximize diversity
+      const byProvider: Record<string, EnhancedRankedSource[]> = {};
+      for (const s of filtered) {
+        const p = s.provider || 'unknown';
+        if (!byProvider[p]) byProvider[p] = [];
+        byProvider[p].push(s);
+      }
+      const providers = Object.keys(byProvider).sort((a, b) => byProvider[b].length - byProvider[a].length);
+      const redistributed: EnhancedRankedSource[] = [];
+      const limit = options.limit || 25;
+      let idx = 0;
+      while (redistributed.length < limit && providers.some(p => byProvider[p].length > 0)) {
+        const provider = providers[idx % providers.length];
+        if (byProvider[provider].length > 0) {
+          redistributed.push(byProvider[provider].shift()!);
+        }
+        idx++;
+      }
+      filtered = redistributed;
+      const finalProviders = new Set(filtered.map(s => s.provider || 'unknown'));
+      console.log(`[ENHANCED RANK] After redistribution: ${filtered.length} sources from ${finalProviders.size} providers`);
     }
   }
   

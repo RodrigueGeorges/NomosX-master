@@ -130,7 +130,13 @@ ${teamBlock}
 FRICTION: ${input.casting.productiveFriction}
 
 ANALYSIS SUMMARY:
-${String(input.analysis.summary ?? input.analysis.executiveSummary ?? '').slice(0, 2500)}
+${String(input.analysis.verdict ?? input.analysis.summary ?? input.analysis.executiveSummary ?? '').slice(0, 2500)}
+
+THROUGH LINE:
+${String(input.analysis.throughLine ?? '').slice(0, 200)}
+
+CAUSAL CHAIN SUMMARY:
+${Array.isArray(input.analysis.causalChain) ? input.analysis.causalChain.slice(0, 5).map((link: any, i: number) => `${i + 1}. ${link.claim} [${link.temporalStatus}]`).join('\n') : 'N/A'}
 
 DEBATE (if any):
 Dominant: ${input.debate?.dominantThesis ?? 'n/a'}
@@ -158,7 +164,7 @@ Return JSON:
         },
       ],
       temperature: 0.2,
-      maxTokens: 2000,
+      maxTokens: 3000,
       jsonMode: true,
       enableCache: false,
       task: 'editorial_arbiter',

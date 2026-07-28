@@ -128,7 +128,7 @@ async function testIndex(sourceIds) {
 /**
  * PHASE 3 : RANK (Select top sources)
  */
-async function testRank() {
+async function testRank(sourceIds) {
   console.log('\n\n🏆 PHASE 3 : RANK\n');
   console.log('─'.repeat(70));
   
@@ -138,7 +138,11 @@ async function testRank() {
     console.log('Ranking by quality (top 12)...');
     
     const startTime = Date.now();
-    const topSources = await rank(QUERY, 12, 'quality');
+    const topSources = await rank(QUERY, {
+      limit: 12,
+      mode: 'quality',
+      sourceIds,
+    });
     const duration = ((Date.now() - startTime) / 1000).toFixed(2);
     
     console.log('\n✅ RANK Results:');
@@ -321,7 +325,7 @@ async function runCompleteTest() {
     await testIndex(sourceIds);
     
     // Phase 3: Rank
-    const topSources = await testRank();
+    const topSources = await testRank(sourceIds);
     
     if (topSources.length === 0) {
       console.log('\n⚠️  No ranked sources, stopping test');

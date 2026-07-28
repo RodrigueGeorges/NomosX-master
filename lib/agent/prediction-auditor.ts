@@ -256,7 +256,7 @@ Accuracy scoring:
       }],
       temperature: 0.1,
       jsonMode: true,
-      maxTokens: 800,
+      maxTokens: 1500,
       enableCache: true,
       task: 'fact_check',
     });

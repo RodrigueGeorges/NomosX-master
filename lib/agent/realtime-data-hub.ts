@@ -253,7 +253,7 @@ async function fetchWorldBankIndicator(indicatorCode: string): Promise<RealTimeI
 interface WHOOutbreak {
   name: string;
   country: string;
-  date: string;
+  date: string | null;
   url: string;
 }
 
@@ -278,7 +278,7 @@ async function fetchWHOOutbreaks(): Promise<RealTimeIndicator[]> {
         items.push({
           name: title,
           country: title.split(' – ').pop()?.trim() || 'Global',
-          date: pubDate || new Date().toISOString(),
+          date: pubDate || null,
           url: link || '',
         });
       }

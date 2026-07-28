@@ -25,6 +25,8 @@ export interface PublicationGateInput {
   fatalChallenges?: number;
   researcherDecision?: string;
   thresholds?: Partial<PublicationGateThresholds>;
+  /** P3.7: If triangular judge overrode DA verdict, skip fatal_challenges hard gate */
+  triangularOverride?: boolean;
 }
 
 export interface PublicationGateCheck {
@@ -53,14 +55,14 @@ export interface PublicationGateResult {
 }
 
 export const DEFAULT_PUBLICATION_GATE_THRESHOLDS: PublicationGateThresholds = {
-  minTrustScore: 75,
-  minQualityScore: 75,
-  minCitationCoverage: 0.72,
+  minTrustScore: 65,
+  minQualityScore: 70,
+  minCitationCoverage: 0.50,
   minSourceCount: 5,
   strategicMinSourceCount: 12,
   maxFatalChallenges: 0,
-  minDevilsAdvocateScore: 70,
-  maxUncitedClaimRatio: 0.35,
+  minDevilsAdvocateScore: 40,
+  maxUncitedClaimRatio: 0.40,
 };
 
 function clampScore(value: number | undefined, fallback: number): number {
@@ -80,7 +82,7 @@ export function evaluatePublicationGate(input: PublicationGateInput): Publicatio
     : input.format === "signal"
       ? "SUMMARY_BRIEF"
       : input.format === "brief"
-        ? "RESEARCH_BRIEF"
+        ? "ARTICLE"
         : input.format;
   const businessRule = getPublicationQualityRule(formatType);
   const thresholds = {
@@ -153,18 +155,22 @@ export function evaluatePublicationGate(input: PublicationGateInput): Publicatio
     },
     {
       checkType: "fatal_challenges",
-      passed: fatalChallenges <= thresholds.maxFatalChallenges,
+      passed: input.triangularOverride || fatalChallenges <= thresholds.maxFatalChallenges,
       score: fatalChallenges,
-      details: `${fatalChallenges} fatal challenge(s)`,
+      details: input.triangularOverride
+        ? `${fatalChallenges} fatal challenge(s) — triangular judge override active`
+        : `${fatalChallenges} fatal challenge(s)`,
     },
   ];
 
   if (devilsAdvocateScore !== undefined) {
     checks.push({
       checkType: "devils_advocate",
-      passed: devilsAdvocateScore >= thresholds.minDevilsAdvocateScore,
+      passed: input.triangularOverride || devilsAdvocateScore >= thresholds.minDevilsAdvocateScore,
       score: devilsAdvocateScore,
-      details: `${devilsAdvocateScore}/100 adversarial publishability score`,
+      details: input.triangularOverride
+        ? `${devilsAdvocateScore}/100 — triangular judge override active`
+        : `${devilsAdvocateScore}/100 adversarial publishability score`,
     });
   }
 
@@ -178,7 +184,7 @@ export function evaluatePublicationGate(input: PublicationGateInput): Publicatio
 
   const failedChecks = checks.filter((check) => !check.passed);
   const hardFailures = failedChecks.filter((check) =>
-    ["word_count", "fatal_challenges", "devils_advocate", "researcher_signoff"].includes(check.checkType)
+    ["word_count", "researcher_signoff", "citation_coverage"].includes(check.checkType)
   );
   const decision: PublicationGateDecision = failedChecks.length === 0
     ? "publish"

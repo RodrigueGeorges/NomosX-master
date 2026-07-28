@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
     data: {
       userId: session.id,
       question: question.trim(),
-      formatType: formatType ?? 'RESEARCH_BRIEF',
+      formatType: formatType ?? 'ARTICLE',
       mode: mode ?? 'COMMISSION',
       audience: audience ?? null,
       urgency: urgency ?? null,

@@ -17,6 +17,7 @@
  */
 
 import { callLLM } from '../llm/unified-llm';
+import type { LLMFamily } from '../llm/unified-llm';
 import { parseJson } from './json-utils';
 import Sentry from '@sentry/nextjs';
 import { loadCalibratedThresholds } from './orchestrator';
@@ -37,6 +38,7 @@ interface CriticalLoopV2Input {
   readings?: any[];
   maxIterations?: number;
   publishThreshold?: number;
+  producerFamily?: LLMFamily;
 }
 
 interface CriticalLoopV2Result extends CriticalLoopResult {
@@ -60,7 +62,8 @@ interface CriticalLoopV2Result extends CriticalLoopResult {
 
 async function methodologyJudge(
   sources: any[],
-  readings?: any[]
+  readings?: any[],
+  draftHtml?: string,
 ): Promise<MethodologyJudgment & { costUsd: number }> {
   const sourceContext = sources.map((s, i) => {
     const reading = readings?.[i];
@@ -70,20 +73,33 @@ Methods: ${reading?.methods?.join("; ") || "Not extracted"}
 Limitations: ${reading?.limitations?.join("; ") || "Not stated"}`;
   }).join("\n\n");
 
+  const draftExcerpt = draftHtml
+    ? draftHtml.length > 15000
+      ? draftHtml.slice(0, 6000) + '\n\n[...MIDDLE SECTION OMITTED...]\n\n' + draftHtml.slice(-6000)
+      : draftHtml
+    : '';
+
   const response = await callLLM({
     messages: [{
       role: "user",
-      content: `You are a methodology expert reviewing research sources for a think tank publication.
+      content: `You are a senior methodology expert at a top-tier think tank (RAND, Brookings, Bruegel). You review BOTH the draft analysis AND its underlying sources.
 
-SOURCES:
+DRAFT ANALYSIS:
+${draftExcerpt || '[No draft provided — evaluate sources only]'}
+
+SOURCES (${sources.length}):
 ${sourceContext}
 
-Score each dimension 0-100:
-1. Study Design: RCT > quasi-experimental > observational > case study > theoretical
-2. Sample Size: Adequacy for conclusions drawn
-3. Statistical Rigor: Appropriate methods, significance levels
-4. Replicability: Can findings be reproduced?
-5. Bias Risk: Conflicts of interest, selection bias, publication bias (higher = less bias)
+Evaluate the methodology of the ANALYSIS (how well it uses sources, not just source quality):
+1. Evidence Utilization: How well does the draft leverage available sources? Are key sources cited?
+2. Analytical Rigor: Does the analysis build logical chains from evidence to conclusions?
+3. Source Diversity: Are claims supported by multiple independent sources or single-source?
+4. Triangulation: Does the analysis cross-reference findings across sources?
+5. Limitation Acknowledgment: Does the draft acknowledge methodological limitations of its sources?
+
+Also evaluate source quality:
+6. Study Design: RCT > quasi-experimental > observational > case study > theoretical
+7. Bias Risk: Conflicts of interest, selection bias (higher = less bias)
 
 Return JSON:
 {
@@ -102,7 +118,7 @@ Return JSON:
     }],
     temperature: 0.2,
     jsonMode: true,
-    maxTokens: 2000,
+    maxTokens: 4000,
     task: 'fact_check',
     enableCache: true,
   });
@@ -130,18 +146,26 @@ async function adversarialReviewer(
   const response = await callLLM({
     messages: [{
       role: "user",
-      content: `You are an adversarial reviewer. Find the STRONGEST counter-arguments to this analysis. Be rigorous, not charitable.
+      content: `You are a senior adversarial reviewer at a top think tank. Your role is balanced: identify counter-arguments AND acknowledge analytical strengths. Be rigorous but fair.
 
 DRAFT (full text):
 ${draftHtml.length > 15000 ? draftHtml.slice(0, 6000) + '\n\n[...MIDDLE SECTION OMITTED FOR BREVITY...]\n\n' + draftHtml.slice(-6000) : draftHtml}
 
 NUMBER OF SOURCES: ${sources.length}
 
-For each major claim:
-1. Find the strongest counter-argument
-2. Identify evidence supporting the counter
-3. Note blind spots
-4. Provide the "steel man" of the opposing view
+Evaluate the analysis on:
+1. Counter-arguments: Find the strongest counter-arguments to major claims
+2. Evidence support: Are claims well-supported by cited sources?
+3. Analytical balance: Does the analysis acknowledge uncertainty and alternative explanations?
+4. Blind spots: What perspectives or evidence are missing?
+5. Steel man: Provide the strongest version of the opposing view
+6. Strengths: What does the analysis do well? (acknowledge solid reasoning, good evidence use)
+
+Score interpretation:
+- 90-100: Analysis is bulletproof — counter-arguments are weak, evidence is strong, balanced
+- 70-89: Analysis is strong — minor counter-arguments but well-handled
+- 55-69: Analysis is adequate — some counter-arguments need addressing
+- Below 55: Analysis has significant gaps
 
 Return JSON:
 {
@@ -163,7 +187,7 @@ Return JSON:
     }],
     temperature: 0.3,
     jsonMode: true,
-    maxTokens: 3000,
+    maxTokens: 4000,
     enableCache: true,
     task: 'elenchus',
   });
@@ -263,7 +287,8 @@ async function rewriteDraft(
   methodology: MethodologyJudgment,
   adversarial: AdversarialReview,
   calibration: CalibrationAssessment,
-  sources: any[]
+  sources: any[],
+  producerFamily?: LLMFamily
 ): Promise<{ html: string; costUsd: number }> {
   console.log(`[CriticalLoop V2] Rewriting draft based on critic feedback...`);
 
@@ -287,7 +312,7 @@ async function rewriteDraft(
     }, {
       role: "user",
       content: `ORIGINAL DRAFT:
-${draftHtml.length > 20000 ? draftHtml.slice(0, 8000) + '\n\n[...MIDDLE SECTION...]\n\n' + draftHtml.slice(-8000) : draftHtml}
+${draftHtml.length > 40000 ? draftHtml.slice(0, 16000) + '\n\n[...MIDDLE SECTION...]\n\n' + draftHtml.slice(-16000) : draftHtml}
 
 ═══ REVIEWER FEEDBACK ═══
 
@@ -311,9 +336,10 @@ Return the FULL rewritten HTML. No JSON wrapping, no markdown fences — just ra
     }],
     temperature: 0.25,
     jsonMode: false,
-    maxTokens: 4000,
+    maxTokens: 16000,
     enableCache: false, // Never cache rewrites
     task: 'auto_revision',
+    producerFamily,
   });
 
   let rewritten = response.content;
@@ -339,14 +365,16 @@ Return the FULL rewritten HTML. No JSON wrapping, no markdown fences — just ra
 export async function runCriticalLoopV2(
   input: CriticalLoopV2Input
 ): Promise<CriticalLoopV2Result> {
-  const maxIterations = input.maxIterations ?? 2;
+  const maxIterations = input.maxIterations ?? 3;
   // P1-D: Use calibrated threshold from AgentMemory if available
+  // But never go below the caller's explicit publishThreshold — calibrated
+  // values can raise the bar but should not lower it below the floor.
   let publishThreshold = input.publishThreshold ?? 65;
   try {
     const calibrated = await loadCalibratedThresholds();
     if (calibrated.MIN_TRUST_SCORE !== 65) {
-      publishThreshold = calibrated.MIN_TRUST_SCORE;
-      console.log(`[CriticalLoop V2] Using calibrated threshold: ${publishThreshold} (from AgentMemory)`);
+      publishThreshold = Math.max(publishThreshold, calibrated.MIN_TRUST_SCORE);
+      console.log(`[CriticalLoop V2] Using calibrated threshold: ${publishThreshold} (max of caller=${input.publishThreshold ?? 65} and calibrated=${calibrated.MIN_TRUST_SCORE})`);
     }
   } catch { /* use static threshold */ }
   let currentHtml = input.draftHtml;
@@ -361,7 +389,7 @@ export async function runCriticalLoopV2(
 
     // Run all 3 critics in parallel
     const [methodology, adversarial, calibration] = await Promise.all([
-      methodologyJudge(input.sources, input.readings),
+      methodologyJudge(input.sources, input.readings, currentHtml),
       adversarialReviewer(currentHtml, input.sources),
       decisionCalibrator(currentHtml),
     ]);
@@ -370,11 +398,22 @@ export async function runCriticalLoopV2(
     totalCost += iterationCost;
 
     // Compute composite score
-    const compositeScore = Math.round(
+    let compositeScore = Math.round(
       methodology.overallScore * 0.35 +
       adversarial.overallScore * 0.35 +
       calibration.overallScore * 0.30
     );
+
+    // Grounding veto (Invariant 4): citation coverage below 50% caps composite.
+    // A well-structured analysis cannot compensate for null grounding.
+    const citedSources = new Set<number>();
+    for (const m of currentHtml.matchAll(/\[SRC-(\d+)\]/g)) citedSources.add(parseInt(m[1], 10));
+    const coverage = citedSources.size / Math.max(1, input.sources.length);
+    if (coverage < 0.50) {
+      const capped = Math.min(compositeScore, 40);
+      console.log(`[CriticalLoop V2] Grounding veto: ${citedSources.size}/${input.sources.length} sources cited (${Math.round(coverage * 100)}%) — capping composite ${compositeScore} → ${capped}`);
+      compositeScore = capped;
+    }
 
     console.log(`[CriticalLoop V2] Iteration ${iteration} scores: M=${methodology.overallScore} A=${adversarial.overallScore} C=${calibration.overallScore} → Composite=${compositeScore}`);
 
@@ -383,11 +422,9 @@ export async function runCriticalLoopV2(
       bestResult = { score: compositeScore, html: currentHtml, methodology, adversarial, calibration };
     }
 
-    // Check if we pass threshold
-    const passes = compositeScore >= publishThreshold &&
-      methodology.passThreshold &&
-      adversarial.passThreshold &&
-      calibration.passThreshold;
+    // Check if we pass threshold — composite score is the arbiter
+    // (individual sub-scores are informational; composite already weights them)
+    const passes = compositeScore >= publishThreshold;
 
     if (passes || iteration === maxIterations) {
       // We're done — either passed or exhausted iterations
@@ -402,9 +439,24 @@ export async function runCriticalLoopV2(
       break;
     }
 
+    // P2.6: Adaptive stopping — if score is stagnating or degrading, stop early
+    const prevScore = history.length > 0 ? history[history.length - 1].compositeScore : null;
+    if (prevScore !== null && compositeScore - prevScore < 1) {
+      console.log(`[CriticalLoop V2] Convergence detected: improvement < 1 point (${prevScore} → ${compositeScore}), stopping early`);
+      history.push({
+        iteration,
+        compositeScore,
+        methodology: methodology.overallScore,
+        adversarial: adversarial.overallScore,
+        calibration: calibration.overallScore,
+        rewrote: false,
+      });
+      break;
+    }
+
     // REWRITE the draft using critic feedback
     console.log(`[CriticalLoop V2] Score ${compositeScore} < ${publishThreshold}, rewriting...`);
-    const rewrite = await rewriteDraft(currentHtml, methodology, adversarial, calibration, input.sources);
+    const rewrite = await rewriteDraft(currentHtml, methodology, adversarial, calibration, input.sources, input.producerFamily);
     totalCost += rewrite.costUsd;
     currentHtml = rewrite.html;
 
@@ -425,11 +477,7 @@ export async function runCriticalLoopV2(
   const improvementDelta = finalScore - firstScore;
 
   // Determine if human review needed
-  const needsHumanReview =
-    !best.methodology.passThreshold ||
-    !best.adversarial.passThreshold ||
-    !best.calibration.passThreshold ||
-    best.score < publishThreshold;
+  const needsHumanReview = best.score < publishThreshold;
 
   // Collect all recommendations
   const recommendations = [

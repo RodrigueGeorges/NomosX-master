@@ -94,12 +94,12 @@ export const PUBLICATION_TEMPLATES: Record<string, PublicationTemplate> = {
     forbiddenPhrases: [...FORBIDDEN_PHRASES]
   },
 
-  STRATEGIC_REPORT: {
-    type: "STRATEGIC_REPORT",
+  ARTICLE: {
+    type: "ARTICLE",
     sections: [
       {
-        id: "executive_summary",
-        title: "Résumé Exécutif",
+        id: "introduction",
+        title: "Introduction",
         required: true,
         minWords: 300,
         maxWords: 600,
@@ -107,64 +107,130 @@ export const PUBLICATION_TEMPLATES: Record<string, PublicationTemplate> = {
       },
       {
         id: "context_background",
-        title: "Contexte & Historique",
+        title: "Contexte & Enjeux",
         required: true,
         minWords: 400,
         maxWords: 800,
         claimTypes: ["FACT"] as ClaimType[]
       },
       {
-        id: "evidence_synthesis",
-        title: "Synthèse des Preuves",
+        id: "evidence_analysis",
+        title: "Analyse des Preuves",
         required: true,
         minWords: 600,
         maxWords: 1200,
         claimTypes: ["FACT", "INTERPRETATION"] as ClaimType[]
       },
       {
+        id: "debate_perspectives",
+        title: "Débat & Perspectives",
+        required: true,
+        minWords: 400,
+        maxWords: 800,
+        claimTypes: ["INTERPRETATION", "SCENARIO"] as ClaimType[]
+      },
+      {
+        id: "implications",
+        title: "Implications & Recommandations",
+        required: true,
+        minWords: 400,
+        maxWords: 800,
+        claimTypes: ["INTERPRETATION", "OPINION"] as ClaimType[]
+      },
+      {
+        id: "conclusion",
+        title: "Conclusion",
+        required: true,
+        minWords: 200,
+        maxWords: 400,
+        claimTypes: ["INTERPRETATION"] as ClaimType[]
+      }
+    ],
+    totalMinWords: 3000,
+    totalMaxWords: 5000,
+    minSources: 15,
+    forbiddenPhrases: [...FORBIDDEN_PHRASES]
+  },
+
+  STRATEGIC_REPORT: {
+    type: "STRATEGIC_REPORT",
+    sections: [
+      {
+        id: "executive_summary",
+        title: "Résumé Exécutif",
+        required: true,
+        minWords: 500,
+        maxWords: 1000,
+        claimTypes: ["FACT", "INTERPRETATION"] as ClaimType[]
+      },
+      {
+        id: "context_background",
+        title: "Contexte & Historique",
+        required: true,
+        minWords: 600,
+        maxWords: 1200,
+        claimTypes: ["FACT"] as ClaimType[]
+      },
+      {
+        id: "evidence_synthesis",
+        title: "Synthèse des Preuves",
+        required: true,
+        minWords: 800,
+        maxWords: 1600,
+        claimTypes: ["FACT", "INTERPRETATION"] as ClaimType[]
+      },
+      {
         id: "methodology_assessment",
         title: "Évaluation Méthodologique",
         required: true,
-        minWords: 300,
-        maxWords: 600,
+        minWords: 400,
+        maxWords: 800,
         claimTypes: ["FACT", "INTERPRETATION"] as ClaimType[]
       },
       {
         id: "stakeholder_positions",
         title: "Positions des Parties Prenantes",
         required: true,
-        minWords: 300,
-        maxWords: 600,
+        minWords: 400,
+        maxWords: 800,
         claimTypes: ["FACT"] as ClaimType[]
       },
       {
         id: "scenarios",
         title: "Scénarios Stratégiques",
         required: true,
-        minWords: 400,
-        maxWords: 800,
+        minWords: 500,
+        maxWords: 1000,
         claimTypes: ["SCENARIO"] as ClaimType[]
       },
       {
         id: "strategic_recommendations",
         title: "Recommandations Stratégiques",
         required: true,
+        minWords: 400,
+        maxWords: 800,
+        claimTypes: ["INTERPRETATION", "OPINION"] as ClaimType[]
+      },
+      {
+        id: "implementation_roadmap",
+        title: "Feuille de Route",
+        required: true,
         minWords: 300,
         maxWords: 600,
-        claimTypes: ["INTERPRETATION", "OPINION"] as ClaimType[]
+        claimTypes: ["INTERPRETATION"] as ClaimType[]
       },
       {
         id: "limitations",
         title: "Limites de l'Analyse",
         required: true,
-        minWords: 150,
-        maxWords: 300,
+        minWords: 200,
+        maxWords: 400,
         claimTypes: ["FACT", "INTERPRETATION"] as ClaimType[]
       }
     ],
-    totalMinWords: 3000,
-    totalMaxWords: 6000,
-    minSources: 15,
+    totalMinWords: 5000,
+    totalMaxWords: 10000,
+    minSources: 20,
     forbiddenPhrases: [...FORBIDDEN_PHRASES]
   },
 

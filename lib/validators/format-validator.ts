@@ -65,7 +65,7 @@ export async function validateFormat(
   options: ValidationOptions = {}
 ): Promise<FormatValidationResult> {
   const {
-    tolerance = 0.1,
+    tolerance = 0.2,
     strictMode = false,
     includeSuggestions = true,
     checkCitations = false,

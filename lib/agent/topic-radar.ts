@@ -34,7 +34,7 @@ export interface RadarTopic {
   url?: string;
   source: string;
   sourceType: 'news' | 'think-tank' | 'academic' | 'signal' | 'data' | 'policy' | 'institutional';
-  publishedAt: Date;
+  publishedAt: Date | null;
   score: number;
   vertical?: string;
 }
@@ -223,7 +223,7 @@ async function sweepRSS(): Promise<RadarTopic[]> {
       if (!res.ok) return [];
       const items = parseRSSItems(await res.text()).slice(0, 3);
       return items.map((item, i) => {
-        const pub = item.pubDate ? new Date(item.pubDate) : new Date();
+        const pub = item.pubDate ? new Date(item.pubDate) : null;
         return {
           id: `rss:${hashStr(item.link || item.title)}`,
           title: cleanText(item.title),
@@ -277,7 +277,7 @@ async function sweepOpenAlex(): Promise<RadarTopic[]> {
       url: w.primary_location?.landing_page_url || w.id,
       source: w.primary_location?.source?.display_name || 'OpenAlex',
       sourceType: 'academic' as const,
-      publishedAt: new Date(w.publication_date || Date.now()),
+      publishedAt: w.publication_date ? new Date(w.publication_date) : null,
       score: clampScore(52 + Math.min(22, (w.cited_by_count || 0) * 3) + urgencyKeywordBonus(w.title)),
     }));
   } catch { return []; }
@@ -298,7 +298,7 @@ async function sweepArXiv(): Promise<RadarTopic[]> {
         url: item.link,
         source: `arXiv:${cat}`,
         sourceType: 'academic' as const,
-        publishedAt: item.pubDate ? new Date(item.pubDate) : new Date(),
+        publishedAt: item.pubDate ? new Date(item.pubDate) : null,
         score: clampScore(55 + urgencyKeywordBonus(item.title)),
       }));
     } catch { return []; }
@@ -334,7 +334,7 @@ async function sweepSemanticScholar(): Promise<RadarTopic[]> {
           url: `https://www.semanticscholar.org/paper/${p.paperId}`,
           source: p.publicationVenue?.name || 'Semantic Scholar',
           sourceType: 'academic' as const,
-          publishedAt: p.publicationDate ? new Date(p.publicationDate) : new Date(),
+          publishedAt: p.publicationDate ? new Date(p.publicationDate) : null,
           score: clampScore(48 + Math.min(18, p.citationCount || 0) + urgencyKeywordBonus(p.title)),
         }));
       });
@@ -416,7 +416,8 @@ function deduplicateTopicsJaccard(topics: RadarTopic[]): RadarTopic[] {
 }
 
 /** Recency decay: fresh content scored higher */
-function recencyDecay(pub: Date): number {
+function recencyDecay(pub: Date | null): number {
+  if (!pub) return 0;
   const hoursAgo = (Date.now() - pub.getTime()) / 3600000;
   if (hoursAgo < 2)  return 25;
   if (hoursAgo < 6)  return 18;
@@ -449,8 +450,8 @@ function reconstructAbstract(invertedIndex: Record<string, number[]> | null): st
   return words.map(w => w[1]).join(' ').slice(0, 500);
 }
 
-function parseGDELTDate(dateStr: string): Date {
-  if (!dateStr) return new Date();
+function parseGDELTDate(dateStr: string): Date | null {
+  if (!dateStr) return null;
   try {
     if (dateStr.includes('T') && !dateStr.includes('-')) {
       const y = dateStr.slice(0, 4);
@@ -462,7 +463,7 @@ function parseGDELTDate(dateStr: string): Date {
     }
     return new Date(dateStr);
   } catch {
-    return new Date();
+    return null;
   }
 }
 

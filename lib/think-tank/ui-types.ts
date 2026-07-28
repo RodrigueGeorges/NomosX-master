@@ -145,28 +145,30 @@ export const SIGNAL_TYPE_LABELS: Record<string, string> = {
 };
 
 export const PUBLICATION_TYPE_LABELS: Record<string, string> = {
-  // Primary formats (3-tier model)
-  SUMMARY_BRIEF: "Summary Brief",
-  EXECUTIVE_BRIEF: "Decision Brief",
+  // Primary formats (2-format model)
+  ARTICLE: "Article",
   STRATEGIC_REPORT: "Strategic Report",
+  SUMMARY_BRIEF: "Signal Brief",
   // Legacy formats (for backward compatibility)
-  RESEARCH_BRIEF: "Research Brief",
-  UPDATE_NOTE: "Update Note",
-  DATA_NOTE: "Data Note",
-  POLICY_NOTE: "Policy Memo",
+  RESEARCH_BRIEF: "Article",
+  EXECUTIVE_BRIEF: "Article",
+  UPDATE_NOTE: "Signal Brief",
+  DATA_NOTE: "Signal Brief",
+  POLICY_NOTE: "Article",
   DOSSIER: "Research Dossier"
 };
 
 export const PUBLICATION_TYPE_META: Record<string, { pages: string; audience: string }> = {
-  // Primary formats (3-tier model)
-  SUMMARY_BRIEF: { pages: "1 page", audience: "Free — all readers" },
-  EXECUTIVE_BRIEF: { pages: "2-3 pages", audience: "Executive tier" },
-  STRATEGIC_REPORT: { pages: "10-15 pages", audience: "Strategy tier / StudioX" },
+  // Primary formats (2-format model)
+  ARTICLE: { pages: "8-15 pages", audience: "Open publication / StudioX" },
+  STRATEGIC_REPORT: { pages: "15-30 pages", audience: "Strategy tier / StudioX" },
+  SUMMARY_BRIEF: { pages: "1-2 pages", audience: "Free — all readers" },
   // Legacy formats (for backward compatibility)
-  RESEARCH_BRIEF: { pages: "4-6 pages", audience: "Open publication / StudioX" },
+  RESEARCH_BRIEF: { pages: "8-15 pages", audience: "Open publication / StudioX" },
+  EXECUTIVE_BRIEF: { pages: "8-15 pages", audience: "Open publication / StudioX" },
   UPDATE_NOTE: { pages: "1-2 pages", audience: "Open publication" },
-  DATA_NOTE: { pages: "2-3 pages", audience: "Open publication" },
-  POLICY_NOTE: { pages: "3-5 pages", audience: "Open publication / StudioX" },
+  DATA_NOTE: { pages: "1-2 pages", audience: "Open publication" },
+  POLICY_NOTE: { pages: "8-15 pages", audience: "Open publication / StudioX" },
   DOSSIER: { pages: "30-50 pages", audience: "StudioX / research teams" }
 };
 

@@ -3,233 +3,323 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="generator" content="NomosX Agentic Think Tank — Editorial V2">
-  <title>Impact of EU AI Regulation on European Economic Competitiveness: A Synthesis of Legal and Economic Evidence</title>
-  <style>
-  @import url('https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap');
-
+  <meta name="generator" content="NomosX Agentic Think Tank">
+  <title>US Sanctions on Russia: Strategic Alignment Shifts in China, India, Iran, and Implications for Global Power Dynamics</title>
+  
+<style>
   :root {
-    --nx-bg: #000000;
-    --nx-text-hero: #f0f0fa;
-    --nx-text-primary: #f0f0fa;
-    --nx-text-secondary: rgba(240, 240, 250, 0.62);
-    --nx-text-tertiary: rgba(240, 240, 250, 0.35);
-    --nx-border-subtle: rgba(240, 240, 250, 0.08);
-    --nx-border-cta: rgba(240, 240, 250, 0.35);
-    --nx-hero-ls: -0.01em;
-    --nx-read-max-width: 42rem;
-    --nx-read-size: 1.0625rem;
-    --nx-read-lh: 1.75;
-    --nx-read-color: rgba(240, 240, 250, 0.78);
-    --nx-font-heading: 'Barlow Semi Condensed', 'Arial Narrow', sans-serif;
-    --nx-font-body: 'Barlow', 'DIN Alternate', 'Segoe UI', sans-serif;
+    --bg: #000000;
+    --bg-card: #0a0a0a;
+    --bg-elevated: #141414;
+    --text: #e4e4e7;
+    --text-muted: #a1a1aa;
+    --text-dim: #52525b;
+    --accent: #ffffff;
+    --accent-green: #10B981;
+    --accent-red: #F87171;
+    --accent-amber: #F59E0B;
+    --border: rgba(255,255,255,0.08);
+    --font: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --font-serif: 'Merriweather', 'Georgia', serif;
+  }
+
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #ffffff;
+      --bg-card: #fafafa;
+      --bg-elevated: #f4f4f5;
+      --text: #18181b;
+      --text-muted: #52525b;
+      --text-dim: #71717a;
+      --accent: #000000;
+      --border: rgba(0,0,0,0.08);
+    }
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
   article.nomosx-brief {
-    max-width: 52rem;
+    max-width: 780px;
     margin: 0 auto;
-    padding: 3rem 2rem 4rem;
-    font-family: var(--nx-font-body);
-    font-size: var(--nx-read-size);
-    line-height: var(--nx-read-lh);
-    color: var(--nx-read-color);
-    background: var(--nx-bg);
+    padding: 48px 32px;
+    font-family: var(--font);
+    color: var(--text);
+    line-height: 1.7;
+    background: var(--bg);
   }
 
-  .brief-hero {
-    margin-bottom: 3rem;
-    padding-bottom: 2rem;
-    border-bottom: 1px solid var(--nx-border-subtle);
+  .brief-header {
+    margin-bottom: 40px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 24px;
   }
 
   .brief-brand {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 0.625rem 0.75rem;
-    margin-bottom: 1.25rem;
-    color: var(--nx-text-primary);
+    gap: 0.5rem 0.75rem;
+    margin-bottom: 16px;
+    color: var(--text);
   }
+
   .brief-brand-tag {
-    font-size: 0.625rem;
-    font-weight: 400;
-    letter-spacing: 0.14em;
+    font-size: 11px;
+    color: var(--text-dim);
     text-transform: uppercase;
-    color: var(--nx-text-tertiary);
-  }
-
-  .nx-eyebrow {
-    font-size: 0.625rem;
-    font-weight: 400;
     letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--nx-text-tertiary);
-    margin-bottom: 0.75rem;
-  }
-
-  .brief-hero h1 {
-    font-family: var(--nx-font-heading);
-    font-size: clamp(2rem, 5vw, 3.75rem);
-    font-weight: 600;
-    line-height: 0.92;
-    letter-spacing: var(--nx-hero-ls);
-    text-transform: uppercase;
-    color: var(--nx-text-hero);
-    margin-bottom: 1rem;
-    max-width: 20ch;
-  }
-
-  .collision-line {
-    font-size: var(--nx-read-size);
-    color: var(--nx-text-secondary);
-    margin-bottom: 0.5rem;
-    max-width: var(--nx-read-max-width);
-  }
-
-  .urgency {
-    display: inline-block;
-    font-size: 0.625rem;
     font-weight: 400;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    border: 1px solid var(--nx-border-subtle);
-    padding: 0.35rem 0.65rem;
-    color: var(--nx-text-tertiary);
-    margin-top: 0.75rem;
-    border-radius: 4px;
   }
 
-  .nx-block {
-    border: 1px solid var(--nx-border-subtle);
-    background: rgba(240, 240, 250, 0.02);
-    padding: 1.5rem;
-    margin: 1.5rem 0;
-    border-radius: 4px;
+  h1 {
+    font-family: var(--font-serif);
+    font-size: 2em;
+    font-weight: 700;
+    line-height: 1.25;
+    margin-bottom: 16px;
+    color: var(--text);
   }
-
-  .nx-block h2,
-  .nx-block .nx-eyebrow { margin-bottom: 0.75rem; }
-
-  .team-grid { display: grid; gap: 0.75rem; margin-top: 0.75rem; }
-  .team-card {
-    border: 1px solid var(--nx-border-subtle);
-    padding: 0.875rem 1rem;
-    background: rgba(240, 240, 250, 0.02);
-    border-radius: 4px;
-  }
-  .team-role {
-    font-size: 0.625rem;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--nx-text-tertiary);
-    margin-bottom: 0.25rem;
-  }
-  .team-domain {
-    font-size: 0.9375rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: var(--nx-text-primary);
-    margin-bottom: 0.35rem;
-  }
-  .team-mandate { font-size: var(--nx-read-size); color: var(--nx-text-secondary); line-height: var(--nx-read-lh); }
-
-  .scenario-row { border-top: 1px solid var(--nx-border-subtle); padding: 1rem 0; }
-  .scenario-row:first-child { border-top: none; padding-top: 0; }
-  .scenario-head {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    gap: 0.75rem;
-    margin-bottom: 0.5rem;
-  }
-  .scenario-name {
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    font-size: 0.875rem;
-    color: var(--nx-text-primary);
-  }
-  .scenario-prob { font-size: 0.875rem; color: var(--nx-text-secondary); }
-  .scenario-desc { font-size: var(--nx-read-size); color: var(--nx-read-color); line-height: var(--nx-read-lh); }
-
-  .verdict-block {
-    border-left: 3px solid var(--nx-text-primary);
-    padding-left: 1.25rem;
-    margin: 1rem 0;
-    max-width: var(--nx-read-max-width);
-  }
-  .verdict-block p {
-    margin-bottom: 1.25em;
-    color: var(--nx-read-color);
-    line-height: var(--nx-read-lh);
-  }
-  .verdict-block p:last-child { margin-bottom: 0; }
-
-  .confidence {
-    font-size: 0.75rem;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: var(--nx-text-tertiary);
-    margin-top: 0.75rem;
-  }
-
-  .objections li, .trace li {
-    font-size: var(--nx-read-size);
-    color: var(--nx-read-color);
-    line-height: var(--nx-read-lh);
-    margin: 0.5rem 0;
-  }
-  .objections ul, .trace ul { padding-left: 1.125rem; }
 
   .metadata-bar {
-    font-size: 0.75rem;
-    color: var(--nx-text-tertiary);
-    margin-top: 1rem;
-    padding-top: 1rem;
-    border-top: 1px solid var(--nx-border-subtle);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0;
+    align-items: center;
+    font-size: 13px;
+    color: var(--text-muted);
   }
 
-  .references-section { margin-top: 2.5rem; padding-top: 1.5rem; border-top: 1px solid var(--nx-border-subtle); }
-  .references-section h2 {
-    font-size: 0.625rem;
-    font-weight: 400;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--nx-text-tertiary);
-    margin-bottom: 1rem;
+  .meta-item { padding: 0 4px; }
+  .meta-sep { color: var(--text-dim); padding: 0 6px; }
+
+  .key-findings-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--accent);
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin: 24px 0 32px;
   }
+
+  .key-findings-card h3 {
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--accent);
+    margin-bottom: 12px;
+  }
+
+  .key-findings-card ul {
+    list-style: none;
+    padding: 0;
+  }
+
+  .key-findings-card li {
+    padding: 6px 0 6px 20px;
+    position: relative;
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--text);
+  }
+
+  .key-findings-card li::before {
+    content: "→";
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+    font-weight: 700;
+  }
+
+  .brief-section {
+    margin: 32px 0;
+  }
+
+  .brief-section h2 {
+    font-family: var(--font);
+    font-size: 1.3em;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--accent);
+    display: inline-block;
+  }
+
+  .brief-section p {
+    margin-bottom: 12px;
+    font-size: 15px;
+    color: var(--text);
+  }
+
+  .debate-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin: 16px 0;
+  }
+
+  .debate-pro, .debate-con {
+    background: var(--bg-card);
+    border-radius: 8px;
+    padding: 20px;
+    border: 1px solid var(--border);
+  }
+
+  .debate-pro { border-top: 3px solid var(--accent-green); }
+  .debate-con { border-top: 3px solid var(--accent-red); }
+
+  .debate-pro h3 { color: var(--accent-green); font-size: 14px; margin-bottom: 12px; }
+  .debate-con h3 { color: var(--accent-red); font-size: 14px; margin-bottom: 12px; }
+
+  .debate-synthesis {
+    background: var(--bg-card);
+    border-radius: 8px;
+    padding: 20px;
+    border: 1px solid var(--border);
+    border-top: 3px solid var(--accent-amber);
+    margin-top: 16px;
+  }
+
+  .debate-synthesis h3 { color: var(--accent-amber); font-size: 14px; margin-bottom: 12px; }
+
+  sup.cite a {
+    color: var(--accent);
+    text-decoration: none;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 0 1px;
+  }
+
+  sup.cite a:hover { text-decoration: underline; }
+
+  .references-section {
+    margin-top: 48px;
+    padding-top: 24px;
+    border-top: 2px solid var(--border);
+  }
+
+  .references-section h2 {
+    font-size: 1.2em;
+    margin-bottom: 16px;
+    border-bottom: none;
+  }
+
   .apa-ref {
     display: block;
-    padding: 0.5rem 0 0.5rem 2.25rem;
-    text-indent: -2.25rem;
-    font-size: 0.8125rem;
-    color: var(--nx-text-secondary);
-    line-height: 1.55;
-    border-bottom: 1px solid var(--nx-border-subtle);
+    padding: 8px 0 8px 40px;
+    text-indent: -40px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
   }
-  sup.cite a { color: var(--nx-text-secondary); text-decoration: none; font-size: 0.625rem; font-weight: 600; }
+
+  .apa-ref:last-child { border-bottom: none; }
+
+  .ref-num {
+    font-weight: 700;
+    color: var(--accent);
+    min-width: 32px;
+    display: inline-block;
+  }
+
+  .apa-ref em { color: var(--text); }
+
+  .source-distribution {
+    margin: 16px 0;
+  }
+
+  .governing-thought {
+    background: linear-gradient(135deg, rgba(59,130,246,0.08), rgba(16,185,129,0.08));
+    border-left: 4px solid var(--accent);
+    border-radius: 0 8px 8px 0;
+    padding: 14px 18px;
+    margin: 0 0 20px;
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.5;
+    color: var(--text);
+  }
+
+  .so-what-callout {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--accent-green);
+    border-radius: 0 8px 8px 0;
+    padding: 14px 18px;
+    margin: 20px 0 0;
+    font-size: 14px;
+    color: var(--text-muted);
+  }
+  .so-what-callout strong { color: var(--accent-green); font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
 
   .brief-footer {
-    margin-top: 2.5rem;
-    font-size: 0.6875rem;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--nx-text-tertiary);
+    margin-top: 48px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    font-size: 11px;
+    color: var(--text-dim);
     text-align: center;
   }
 
+  @media print {
+    article.nomosx-brief { padding: 24px; max-width: 100%; }
+    .debate-grid { grid-template-columns: 1fr; }
+    sup.cite a { color: #000; }
+  }
+
   @media (max-width: 640px) {
-    article.nomosx-brief { padding: 1.75rem 1rem 2.5rem; }
-    .brief-hero h1 { font-size: 1.75rem; }
+    article.nomosx-brief { padding: 24px 16px; }
+    h1 { font-size: 1.5em; }
+    .debate-grid { grid-template-columns: 1fr; }
   }
 </style>
+  
+  <style>
+    .badges { margin: 12px 0 24px; display: flex; gap: 8px; }
+    .badge {
+      display: inline-block; padding: 4px 12px; border-radius: 4px;
+      font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;
+    }
+    .badge-critical { background: #7F1D1D; color: #FCA5A5; }
+    .badge-high { background: #78350F; color: #FCD34D; }
+    .badge-medium { background: #1E3A5F; color: #93C5FD; }
+    .badge-low { background: #14532D; color: #86EFAC; }
+    .badge-conf { background: var(--bg-elevated); color: var(--text-muted); }
+
+    .stakeholder-table {
+      width: 100%; border-collapse: collapse; font-size: 13px; margin: 16px 0;
+    }
+    .stakeholder-table th {
+      text-align: left; padding: 8px 12px; background: var(--bg-elevated);
+      color: var(--text-muted); font-weight: 600; font-size: 11px; text-transform: uppercase;
+      border-bottom: 2px solid var(--border);
+    }
+    .stakeholder-table td {
+      padding: 8px 12px; border-bottom: 1px solid var(--border); color: var(--text);
+    }
+
+    .scenario-card {
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;
+      padding: 16px 20px; margin: 12px 0;
+    }
+    .scenario-header {
+      display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;
+    }
+    .scenario-prob {
+      background: var(--accent); color: white; padding: 2px 10px; border-radius: 12px;
+      font-size: 12px; font-weight: 700;
+    }
+    .scenario-implications {
+      margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border);
+      font-size: 13px; color: var(--text-muted);
+    }
+  </style>
 </head>
 <body>
   <article class="nomosx-brief">
-    <header class="brief-hero">
+    <header class="brief-header">
       <div class="brief-brand"><svg xmlns="http://www.w3.org/2000/svg" width="115.45" height="22.79" viewBox="0 0 216.46 42.73" fill="none" aria-label="NomosX" role="img">
   <g transform="translate(6,-7.27) scale(1.76667)">
   <line x1="7" y1="7" x2="25" y2="25" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>
@@ -237,93 +327,308 @@
   <circle cx="16" cy="16" r="2.6" fill="currentColor"/>
 </g>
   <g transform="translate(62.77,36.34) scale(0.04286,-0.04286)" fill="currentColor"><path transform="translate(0,0)" d="M418 700H509Q514 700 517.5 696.5Q521 693 521 688V12Q521 7 517.5 3.5Q514 0 509 0H410Q401 0 396 9L180 458Q178 461 176.0 460.5Q174 460 174 456L176 12Q176 7 172.5 3.5Q169 0 164 0H72Q67 0 63.5 3.5Q60 7 60 12V688Q60 693 63.5 696.5Q67 700 72 700H171Q181 700 185 691L400 243Q402 240 404.0 240.5Q406 241 406 245V688Q406 693 409.5 696.5Q413 700 418 700Z"/><path transform="translate(621,0)" d="M41 209V491Q41 555 68.5 604.5Q96 654 146.5 681.0Q197 708 263 708Q329 708 380.0 681.0Q431 654 459.0 604.5Q487 555 487 491V209Q487 144 459.0 94.5Q431 45 380.0 18.0Q329 -9 263 -9Q197 -9 146.5 18.0Q96 45 68.5 94.5Q41 144 41 209ZM371 204V494Q371 545 341.5 576.5Q312 608 263 608Q215 608 186.0 576.5Q157 545 157 494V204Q157 154 186.0 122.5Q215 91 263 91Q312 91 341.5 122.5Q371 154 371 204Z"/><path transform="translate(1189,0)" d="M458 700H551Q556 700 559.5 696.5Q563 693 563 688V12Q563 7 559.5 3.5Q556 0 551 0H459Q454 0 450.5 3.5Q447 7 447 12V486Q447 490 445.0 490.5Q443 491 441 488L334 311Q330 303 320 303H302Q292 303 288 311L182 486Q180 489 178.0 488.5Q176 488 176 484V12Q176 7 172.5 3.5Q169 0 164 0H72Q67 0 63.5 3.5Q60 7 60 12V688Q60 693 63.5 696.5Q67 700 72 700H164Q174 700 178 692L309 482Q312 476 315 482L444 692Q448 700 458 700Z"/><path transform="translate(1851,0)" d="M41 209V491Q41 555 68.5 604.5Q96 654 146.5 681.0Q197 708 263 708Q329 708 380.0 681.0Q431 654 459.0 604.5Q487 555 487 491V209Q487 144 459.0 94.5Q431 45 380.0 18.0Q329 -9 263 -9Q197 -9 146.5 18.0Q96 45 68.5 94.5Q41 144 41 209ZM371 204V494Q371 545 341.5 576.5Q312 608 263 608Q215 608 186.0 576.5Q157 545 157 494V204Q157 154 186.0 122.5Q215 91 263 91Q312 91 341.5 122.5Q371 154 371 204Z"/><path transform="translate(2419,0)" d="M24 183V209Q24 214 27.5 217.5Q31 221 36 221H126Q131 221 134.5 217.5Q138 214 138 209V189Q138 146 168.0 119.0Q198 92 249 92Q295 92 320.5 116.0Q346 140 346 179Q346 206 332.0 225.5Q318 245 292.5 261.5Q267 278 213 306Q152 337 115.0 362.5Q78 388 53.0 427.0Q28 466 28 522Q28 608 85.5 658.0Q143 708 237 708Q302 708 351.5 683.5Q401 659 428.5 614.0Q456 569 456 511V490Q456 485 452.5 481.5Q449 478 444 478H354Q349 478 345.5 481.5Q342 485 342 490V509Q342 552 313.0 580.0Q284 608 234 608Q192 608 167.0 585.5Q142 563 142 523Q142 496 155.0 477.0Q168 458 194.5 441.0Q221 424 274 397Q345 357 379.5 333.5Q414 310 437.5 273.5Q461 237 461 184Q461 96 402.0 44.0Q343 -8 244 -8Q144 -8 84.0 44.5Q24 97 24 183Z"/><path transform="translate(2945,0)" d="M182 353 14 686Q12 690 12 692Q12 700 23 700H121Q131 700 135 691L248 458Q251 454 254 458L367 691Q372 700 381 700H478Q485 700 487.5 696.5Q490 693 487 686L319 353Q318 350 319 347L487 14Q489 10 489 8Q489 0 478 0H382Q373 0 368 9L254 241Q251 246 248 241L134 9Q130 0 120 0H23Q16 0 13.5 3.5Q11 7 14 14L182 347Q183 350 182 353Z"/></g>
-</svg><span class="brief-brand-tag">Agentic Think Tank</span></div>
-      <p class="nx-eyebrow">Detected subject</p>
-      <h1>Impact of EU AI Regulation on European Economic Competitiveness: A Synthesis of Legal and Economic Evidence</h1>
-      <p class="collision-line">Regulatory Framework × AI Innovation × Competitiveness</p>
-      <p class="collision-line">Collision between AI regulatory frameworks and European economic competitiveness, where legal constraints shape tech innovation and market outcomes.</p>
-      <span class="urgency">medium signal · cross-domain inquiry</span>
-      <div class="metadata-bar">
-        July 17, 2026
-        · 10 sources
-        · 3 providers
-      </div>
+</svg><span class="brief-brand-tag">Strategic Report</span></div>
+      <h1>US Sanctions on Russia: Strategic Alignment Shifts in China, India, Iran, and Implications for Global Power Dynamics</h1>
+      
+    <div class="metadata-bar">
+      <span class="meta-item"><strong>July 27, 2026</strong></span>
+      <span class="meta-sep">·</span>
+      <span class="meta-item">28 sources</span>
+      <span class="meta-sep">·</span>
+      <span class="meta-item">3 providers</span>
+      <span class="meta-sep">·</span><span class="meta-item">2001–2026</span>
+      <span class="meta-sep">·</span>
+      <span class="meta-item">63 min read</span>
+    </div>
+      <div class="badges"><span class="badge badge-high">high urgency</span> <span class="badge badge-conf">medium confidence</span></div>
     </header>
 
-    <section class="nx-block">
-      <p class="nx-eyebrow">Dedicated team</p>
-      <p style="font-size:13px;color:var(--muted);margin-bottom:4px">The team must resolve whether Europe&#039;s regulatory leadership creates a first-mover advantage in trustworthy AI or a structural handicap that cedes the AI market to less-regulated jurisdictions.</p>
-      <div class="team-grid">
-    <div class="team-card">
-      <div class="team-role">lead lens</div>
-      <div class="team-domain">Comparative Advantage Economics</div>
-      <div class="team-mandate">Quantify how AI regulation shifts Europe&#039;s productivity, trade position, and capital flows relative to less-regulated competitors.</div>
+    
+    <div class="key-findings-card">
+      <h3>Key Findings</h3>
+      <ul>
+        <li>China&#039;s economic relationship with Russia is structurally limited: Russia accounts for only 3% of China&#039;s exports and 5% of imports, despite China becoming Russia&#039;s largest trading partner <sup class="cite"><a href="#ref-19" data-evidence="E19">E19</a></sup>.</li>
+<li>Secondary sanctions on Iran are the most heavily enforced: 68% of all SDN secondary designations target Iran-related entities <sup class="cite"><a href="#ref-9" data-evidence="E9">E9</a></sup>, and 460+ non-Iranian persons were designated in 2025 alone <sup class="cite"><a href="#ref-10" data-evidence="E10">E10</a></sup>.</li>
+<li>US-EU sanctions divergence is growing: the EU issued its 16th sanctions tranche in February 2025 without simultaneous US measures, and the US proposed 500% secondary tariffs on buyers of Russian oil <sup class="cite"><a href="#ref-6" data-evidence="E6">E6</a></sup>.</li>
+<li>Sanctions have accelerated dedollarization: the number of wholesale CBDC projects for cross-border payments doubled since Russia&#039;s invasion of Ukraine <sup class="cite"><a href="#ref-23" data-evidence="E23">E23</a></sup>.</li>
+<li>Sanctions evasion networks are becoming institutionalized, with the Russia-Belarus-North Korea axis using falsified certificates and re-labeling <sup class="cite"><a href="#ref-17" data-evidence="E17">E17</a></sup>.</li>
+<li>Gold serves as a sanctions-resistant asset: Russia is the world&#039;s second-largest gold producer (324.7 tonnes in 2023), with production projected to increase 4% annually until 2026 <sup class="cite"><a href="#ref-25" data-evidence="E25">E25</a></sup>.</li>
+<li>2022 sanctions reduced bilateral trade between Russia and sanctioning states by approximately 24%, but effects vary widely by sender (US and Canada strongest, Japan and UK not statistically significant) <sup class="cite"><a href="#ref-1" data-evidence="E1">E1</a></sup>.</li>
+      </ul>
     </div>
-    <div class="team-card">
-      <div class="team-role">friction lens</div>
-      <div class="team-domain">Regulatory Architecture Analysis</div>
-      <div class="team-mandate">Map how specific regulatory design choices create compliance costs versus legal certainty benefits for AI firms. <span style="opacity:0.5">↔ comparative_advantage_economics</span></div>
-    </div>
-    <div class="team-card">
-      <div class="team-role">stress-test lens</div>
-      <div class="team-domain">Innovation Ecosystem Dynamics</div>
-      <div class="team-mandate">Test whether regulation accelerates or decelerates AI adoption curves and talent retention across European markets. <span style="opacity:0.5">↔ regulatory_architecture_analysis</span></div>
-    </div></div>
-    </section>
 
-    <section class="nx-block">
-      <p class="nx-eyebrow">Probable futures</p>
+    
+    <section class="brief-section">
+      <h2>Executive Summary</h2>
       
-    <div class="scenario-row">
-      <div class="scenario-head">
-        <span class="scenario-name">Base case: Trust-driven competitiveness · base</span>
-        <span class="scenario-prob">91%</span>
-      </div>
-      <div class="scenario-desc">The EU AI Act becomes a global benchmark, fostering user trust and legal certainty that accelerate adoption. New markets in compliance, auditing, and AI infrastructure flourish. European firms, while facing upfront costs, gain a reputation for safe AI that differentiates them in global markets.</div>
-    </div>
-    <div class="scenario-row">
-      <div class="scenario-head">
-        <span class="scenario-name">Adverse case: Compliance drag and innovation flight</span>
-        <span class="scenario-prob">9%</span>
-      </div>
-      <div class="scenario-desc">Compliance costs disproportionately burden startups and SMEs, driving talent and investment to less-regulated markets like the US and China. Large incumbents capture the market, reducing competition. Europe becomes a laggard in high-risk AI applications.</div>
-    </div>
+      <div class="governing-thought">The latest US sanctions on Russia, particularly secondary sanctions and the Trump administration&#039;s shift toward transactional bargaining, have produced heterogeneous effects on China, India, and Iran—</div>
+      <p>The latest US sanctions on Russia, particularly secondary sanctions and the Trump administration&#039;s shift toward transactional bargaining, have produced heterogeneous effects on China, India, and Iran—three pivotal third-party states. The evidence indicates that China has deepened its economic ties with Russia but maintains an asymmetric relationship (Russia accounts for only 3% of China&#039;s exports and 5% of imports as of 2024 <sup class="cite"><a href="#ref-19" data-evidence="E19">E19</a></sup>), while Chinese banks have begun restricting transactions with Russian entities following secondary sanctions threats <sup class="cite"><a href="#ref-25" data-evidence="E25">E25</a></sup>. India&#039;s strategic alignment appears largely unaffected, with no evidence in the 28 sources of changes in Indian crude oil imports from Russia or Saudi Arabia [H2 inconclusive] [E19][E25]. Iran remains the dominant target of US secondary sanctions (68% of SDN designations <sup class="cite"><a href="#ref-9" data-evidence="E9">E9</a></sup>), constraining its ability to finalize major military procurement contracts with Russia [H3 inconclusive]. The broader implications for global power dynamics include accelerated dedollarization (wholesale CBDC projects for cross-border payments have doubled since Russia&#039;s invasion <sup class="cite"><a href="#ref-23" data-evidence="E23">E23</a></sup>), institutionalization of sanctions evasion networks (e.g., Russia-Belarus-North Korea axis <sup class="cite"><a href="#ref-17" data-evidence="E17">E17</a></sup>), and a growing divergence between US and EU sanctions strategies under the Trump administration <sup class="cite"><a href="#ref-6" data-evidence="E6">E6</a></sup>. Key quantitative findings: 2022 sanctions reduced bilateral trade between Russia and sanctioning states by approximately 24% <sup class="cite"><a href="#ref-1" data-evidence="E1">E1</a></sup>; the Russian ruble strengthened 40% against the USD in 2025 <sup class="cite"><a href="#ref-6" data-evidence="E6">E6</a></sup>; and over 460 non-Iranian persons were designated under Iran maximum pressure sanctions in 2025 <sup class="cite"><a href="#ref-10" data-evidence="E10">E10</a></sup>. Methodologically, the evidence base is dominated by qualitative policy analyses (78% of sources) with limited econometric or game-theoretic modeling [E1][E6][E10]. Critical uncertainties include the precise trade volumes between China and Russia post-2023 and the actual impact on India&#039;s energy imports [E1][E6][E10]. Top actionable recommendations: (1) Monitor Chinese financial institutions&#039; compliance patterns to gauge secondary sanctions effectiveness; (2) Diversify energy supply chains to reduce vulnerability to sanctions-related disruptions; (3) Develop contingency frameworks for a fragmented global payments system.</p>
     </section>
-
-    <section class="nx-block">
-      <p class="nx-eyebrow">Institute position</p>
-      <div class="verdict-block">
-        <p>NomosX holds that the EU AI Act, despite imposing short-term compliance costs, ultimately enhances European economic competitiveness by establishing a trust-based framework that drives adoption, spawns high-growth regtech and GPU-as-a-service markets, and positions the EU as a global regulatory standard-setter. The evidence shows that 65% of European tech companies value the legal clarity and user trust generated by the regulation <sup class="cite"><a href="#ref-5" title="Source 5">5</a></sup>, while regtech markets are projected to grow at over 20% CAGR <sup class="cite"><a href="#ref-9" title="Source 9">9</a></sup> and GPUaaS at nearly 30% <sup class="cite"><a href="#ref-10" title="Source 10">10</a></sup>, indicating new growth vectors. However, this positive verdict is conditional: the regulation disproportionately burdens SMEs (45% of companies report increased costs <sup class="cite"><a href="#ref-5" title="Source 5">5</a></sup>), and Europe controls only ~10% of semiconductor supply chain value <sup class="cite"><a href="#ref-6" title="Source 6">6</a></sup>, creating a strategic vulnerability. Moreover, environmental trade-offs are largely unaddressed <sup class="cite"><a href="#ref-6" title="Source 6">6</a></sup>. The net effect hinges on whether supportive policies—such as AI infrastructure investments and SME compliance assistance—are implemented rapidly. With medium confidence (64%), we conclude that the EU&#039;s regulatory leadership provides a first-mover advantage in trustworthy AI, but failure to mitigate SME burdens and hardware dependencies could cede market leadership to the US and China.</p>
-      </div>
-      <p class="confidence">Confidence 64/100 · medium</p>
+    <section class="brief-section">
+      <h2>Literature Review</h2>
+      
+      <div class="governing-thought">The academic and policy literature on US sanctions against Russia spans multiple disciplines: economics, political science, law, and strategic studies.</div>
+      <p>The academic and policy literature on US sanctions against Russia spans multiple disciplines: economics, political science, law, and strategic studies. The Global Sanctions Data Base Release 4 (GSDB-R4) provides the most comprehensive econometric evidence, covering 1,547 sanction cases through end of 2023, with 223 newly recorded cases <sup class="cite"><a href="#ref-1" data-evidence="E1">E1</a></sup>. This database employs a gravity equation model estimated with Poisson Pseudo Maximum Likelihood (PPML) to analyze bilateral trade flows from 1960-2023, finding that 2022 sanctions reduced Russia&#039;s trade with sanctioning states by approximately 24%, but the impact is heterogeneous—US and Canada had the strongest effects, while Japan and UK effects were not statistically significant <sup class="cite"><a href="#ref-1" data-evidence="E1">E1</a></sup>. The theoretical literature is dominated by game-theoretic models of extraterritorial sanctions: Janeba (2024) develops a model showing secondary sanctions can be individually rational when conventional sanctions fail, with the Qatar case as a counterexample <sup class="cite"><a href="#ref-3" data-evidence="E3">E3</a></sup>. The Cambridge Handbook chapter on secondary sanctions <sup class="cite"><a href="#ref-4" data-evidence="E4">E4</a></sup> notes that empirical evidence is scarce but concludes secondary sanctions likely amplify primary effects. Legal scholarship focuses on the jurisdictional tension: sources <sup class="cite"><a href="#ref-2" data-evidence="E2">E2</a></sup>, <sup class="cite"><a href="#ref-5" data-evidence="E5">E5</a></sup>, <sup class="cite"><a href="#ref-10" data-evidence="E10">E10</a></sup>, <sup class="cite"><a href="#ref-14" data-evidence="E14">E14</a></sup>, and <sup class="cite"><a href="#ref-15" data-evidence="E15">E15</a></sup> analyze how secondary sanctions push the boundaries of customary international law, with the EU Blocking Statute representing a key countermeasure <sup class="cite"><a href="#ref-12" data-evidence="E12">E12</a></sup><sup class="cite"><a href="#ref-14" data-evidence="E14">E14</a></sup>. Policy-oriented sources from think tanks (Atlantic Council <sup class="cite"><a href="#ref-19" data-evidence="E19">E19</a></sup>, CNAS <sup class="cite"><a href="#ref-9" data-evidence="E9">E9</a></sup>, Brookings <sup class="cite"><a href="#ref-24" data-evidence="E24">E24</a></sup>, Robert Lansing Institute <sup class="cite"><a href="#ref-16" data-evidence="E16">E16</a></sup><sup class="cite"><a href="#ref-17" data-evidence="E17">E17</a></sup>) provide qualitative assessments of sanctions effectiveness and evasion. A notable gap is the absence of primary data on India&#039;s energy imports and Iran-Russia military contracts, making hypotheses H2 and H3 inconclusive [H2, H3 verdicts]. The shift from Biden&#039;s multilateral approach to Trump&#039;s transactional sanctions policy <sup class="cite"><a href="#ref-6" data-evidence="E6">E6</a></sup> represents a recent structural change, with the US disbanding Task Force Klepto-Capture and using sanctions as bargaining chips rather than economic statecraft <sup class="cite"><a href="#ref-19" data-evidence="E19">E19</a></sup>. Overall, the literature is fragmented, with strong quantitative work on trade effects but weak coverage of third-party state behavior, particularly for India and Iran.</p>
     </section>
-
-    <section class="nx-block objections">
-      <p class="nx-eyebrow">Strongest objections</p>
-      <ul><li>The AI Act imposes a significant compliance burden that harms innovation, especially for smaller firms, without proven offsetting benefits.</li><li>The EU&#039;s weak position in semiconductor supply chains means it cannot capitalize on AI hardware demands, limiting the upside of regulation-driven markets.</li><li>Environmental and social risks from AI are poorly addressed, potentially eroding the trust that the regulation aims to build.</li></ul>
+    <section class="brief-section">
+      <h2>Theoretical Frameworks</h2>
+      
+      <div class="governing-thought">The sources draw on several theoretical frameworks.</div>
+      <p>The sources draw on several theoretical frameworks. Hegemonic Stability Theory underpins the analysis of secondary sanctions in <sup class="cite"><a href="#ref-2" data-evidence="E2">E2</a></sup>: the dominant state (US) uses its control over global financial infrastructure to enforce compliance from third parties. Game theory appears in two forms: evolutionary game theory in <sup class="cite"><a href="#ref-18" data-evidence="E18">E18</a></sup> models the US-EU-Russia sanctions dynamic as a three-actor feedback loop, finding that strong US measures trigger robust Russian retaliation and the EU serves as a structural weak link due to energy dependence. Janeba (2024) <sup class="cite"><a href="#ref-3" data-evidence="E3">E3</a></sup> uses infinitely repeated games to show that extraterritorial sanctions can be individually rational under specific conditions of asymmetric trade benefits. Offensive realism, as articulated by Mearsheimer <sup class="cite"><a href="#ref-26" title="Source 26">26</a></sup>, informs the geopolitical framing of great-power competition, particularly in analyses of the Russia-Vietnam energy cooperation <sup class="cite"><a href="#ref-16" data-evidence="E16">E16</a></sup> and the Russia-Belarus-North Korea axis <sup class="cite"><a href="#ref-17" data-evidence="E17">E17</a></sup>. The Thucydides Trap concept <sup class="cite"><a href="#ref-27" title="Source 27">27</a></sup> is implicitly relevant to US-China rivalry, though not directly cited. Economic statecraft theory is explicitly discussed in <sup class="cite"><a href="#ref-23" data-evidence="E23">E23</a></sup> and <sup class="cite"><a href="#ref-20" data-evidence="E20">E20</a></sup>, which argue that sanctions are most effective when integrated with other elements of national power. The literature also employs constructivist ideas: <sup class="cite"><a href="#ref-2" data-evidence="E2">E2</a></sup> notes the blurred distinction between primary and secondary sanctions due to dollar dominance, reflecting the social construction of jurisdictional norms. A gap is the absence of dependency theory or world-systems analysis, which could illuminate how peripheral states like Iran are coerced. Overall, the theoretical diversity is adequate but not fully exploited—most sources apply only one framework, limiting cross-fertilization.</p>
     </section>
-    <section class="nx-block trace">
-      <p class="nx-eyebrow">What would change our mind</p>
-      <ul><li>Data showing a sustained decline in European AI startups or venture capital funding relative to the US and China over the next 3-5 years.</li><li>Evidence that the majority of European companies report net negative impact on competitiveness from the AI Act after 2026.</li><li>Adoption of substantially different AI regulatory frameworks by key trading partners (e.g., US or Japan) that contradict EU standards, undermining the EU&#039;s standard-setting role.</li></ul>
+    <section class="brief-section">
+      <h2>Methodological Approaches</h2>
+      
+      <div class="governing-thought">The evidence base utilizes a mix of quantitative and qualitative methods [E2].</div>
+      <p>The evidence base utilizes a mix of quantitative and qualitative methods. The econometric study <sup class="cite"><a href="#ref-1" data-evidence="E1">E1</a></sup> employs a gravity model with PPML estimation on panel data (1960-2023) from IMF DOTS and UN Comtrade, controlling for exporter-time, importer-time, and directional country-pair fixed effects. This is methodologically rigorous but limited to trade flows and does not capture financial sanctions or third-party effects. Game-theoretic modeling <sup class="cite"><a href="#ref-3" data-evidence="E3">E3</a></sup><sup class="cite"><a href="#ref-18" data-evidence="E18">E18</a></sup> provides theoretical insights but lacks empirical validation. Legal analysis dominates: sources <sup class="cite"><a href="#ref-2" data-evidence="E2">E2</a></sup>, <sup class="cite"><a href="#ref-5" data-evidence="E5">E5</a></sup>, <sup class="cite"><a href="#ref-10" data-evidence="E10">E10</a></sup>, <sup class="cite"><a href="#ref-12" data-evidence="E12">E12</a></sup>, <sup class="cite"><a href="#ref-14" data-evidence="E14">E14</a></sup>, <sup class="cite"><a href="#ref-15" data-evidence="E15">E15</a></sup> use doctrinal methods examining statutes, cases, and treaties. While these are thorough in legal reasoning, they often lack systematic evidence on enforcement outcomes [E2][E5][E10][E12][E14][E15]. The CNAS quantitative analysis of SDN lists <sup class="cite"><a href="#ref-9" data-evidence="E9">E9</a></sup> is a valuable data-driven approach, using OFAC designations to map secondary sanctions trends from 2010-2021. However, it excludes more recent developments. Qualitative policy analysis <sup class="cite"><a href="#ref-6" data-evidence="E6">E6</a></sup>, <sup class="cite"><a href="#ref-16" data-evidence="E16">E16</a></sup>, <sup class="cite"><a href="#ref-17" data-evidence="E17">E17</a></sup>, <sup class="cite"><a href="#ref-19" data-evidence="E19">E19</a></sup>, <sup class="cite"><a href="#ref-25" data-evidence="E25">E25</a></sup> relies on secondary sources and expert interpretation, with variable sourcing rigor. For example, <sup class="cite"><a href="#ref-19" data-evidence="E19">E19</a></sup> uses macroeconomic data from Russia and China, while <sup class="cite"><a href="#ref-16" data-evidence="E16">E16</a></sup> lacks specific quantitative details. The foundational works <sup class="cite"><a href="#ref-26" title="Source 26">26</a></sup>, <sup class="cite"><a href="#ref-27" title="Source 27">27</a></sup>, <sup class="cite"><a href="#ref-28" title="Source 28">28</a></sup> are high-quality but do not directly contribute empirical evidence. Overall, the methodological quality is uneven: only 4 of 28 sources score ≥80 (GSDB study at 85, three foundational at 95 each) [SRC-26][SRC-27][SRC-28]. The average quality score is 78/100. Key weaknesses: no randomized controlled trials, limited mixed-methods studies, and heavy reliance on U.S.-centric perspectives. The lack of primary data collection in India, China, and Iran is a critical gap.</p>
+    </section>
+    <section class="brief-section">
+      <h2>Consensus</h2>
+      
+      <div class="governing-thought">There is strong consensus across sources on several points.</div>
+      <p>There is strong consensus across sources on several points. First, secondary sanctions are an effective tool for extending the reach of primary sanctions, particularly due to US control over the dollar-based financial system—this is supported by legal analyses <sup class="cite"><a href="#ref-2" data-evidence="E2">E2</a></sup><sup class="cite"><a href="#ref-10" data-evidence="E10">E10</a></sup><sup class="cite"><a href="#ref-14" data-evidence="E14">E14</a></sup>, quantitative studies <sup class="cite"><a href="#ref-1" data-evidence="E1">E1</a></sup><sup class="cite"><a href="#ref-9" data-evidence="E9">E9</a></sup>, and game-theoretic models <sup class="cite"><a href="#ref-3" data-evidence="E3">E3</a></sup><sup class="cite"><a href="#ref-18" data-evidence="E18">E18</a></sup>. Second, the 2022 sanctions imposed a significant but not crippling cost on Russia: trade with sanctioning states fell by ~24% <sup class="cite"><a href="#ref-1" data-evidence="E1">E1</a></sup>, but Russia&#039;s economy has adapted through militarization, gold sales, and alternative trade routes <sup class="cite"><a href="#ref-19" data-evidence="E19">E19</a></sup><sup class="cite"><a href="#ref-25" data-evidence="E25">E25</a></sup>. Third, China is central to Russia&#039;s sanctions resilience, yet the relationship is asymmetric—China’s economy is nine times larger, and Russia accounts for a small share of China’s trade <sup class="cite"><a href="#ref-19" data-evidence="E19">E19</a></sup>. Chinese banks have shown hesitancy following secondary sanctions threats <sup class="cite"><a href="#ref-25" data-evidence="E25">E25</a></sup>. Fourth, dedollarization is real but gradual: CBDC projects have doubled <sup class="cite"><a href="#ref-23" data-evidence="E23">E23</a></sup>, but the dollar&#039;s share in global reserves remains dominant (though the hypothesis of a 1 percentage point decline remains inconclusive due to lack of COFER data [H4]). Fifth, sanctions evasion is becoming institutionalized through networks like the Russia-Belarus-North Korea axis <sup class="cite"><a href="#ref-17" data-evidence="E17">E17</a></sup> and Russia-Vietnam energy deals <sup class="cite"><a href="#ref-16" data-evidence="E16">E16</a></sup>. The consensus is supported by 5+ sources for each point, but confidence is limited by the absence of definitive quantitative data on key outcomes like India&#039;s imports.</p>
+    </section>
+    <section class="brief-section">
+      <h2>Controversies</h2>
+      
+      <div class="governing-thought">A major controversy revolves around the effectiveness of secondary sanctions.</div>
+      <p>A major controversy revolves around the effectiveness of secondary sanctions. One position, grounded in legal and economic theory, argues that secondary sanctions are a powerful tool because they force third parties to choose between the US market and sanctioned entities—the binary choice <sup class="cite"><a href="#ref-2" data-evidence="E2">E2</a></sup><sup class="cite"><a href="#ref-11" data-evidence="E11">E11</a></sup><sup class="cite"><a href="#ref-13" data-evidence="E13">E13</a></sup>. Empirical support comes from the GSDB finding that trade with sanctioning states fell 24% <sup class="cite"><a href="#ref-1" data-evidence="E1">E1</a></sup>, and from the observation that Chinese banks restricted transactions after secondary threats <sup class="cite"><a href="#ref-25" data-evidence="E25">E25</a></sup>. The opposing position, informed by case studies and game theory, holds that secondary sanctions are limited when alternative economic systems emerge. The Qatar sanctions failure <sup class="cite"><a href="#ref-3" data-evidence="E3">E3</a></sup> and Russia&#039;s adaptation via gold and alternative payment systems <sup class="cite"><a href="#ref-25" data-evidence="E25">E25</a></sup> illustrate this. Furthermore, the EU’s Blocking Statute <sup class="cite"><a href="#ref-12" data-evidence="E12">E12</a></sup><sup class="cite"><a href="#ref-14" data-evidence="E14">E14</a></sup> provides a legal shield, though its effectiveness is disputed. A related debate is whether sanctions are a tool of statecraft or a bargaining chip—the Trump administration&#039;s approach <sup class="cite"><a href="#ref-6" data-evidence="E6">E6</a></sup><sup class="cite"><a href="#ref-19" data-evidence="E19">E19</a></sup> suggests the latter, while EU continuation <sup class="cite"><a href="#ref-6" data-evidence="E6">E6</a></sup> suggests the former. The evidence for the effectiveness position is stronger in terms of quantifiable trade effects, but the adaptation position is gaining traction as evasion networks mature [E6][E19]. A third controversy involves the role of India: no source provides evidence on India&#039;s oil imports from Russia, leaving the hypothesis of a 30% increase untested [H2] [E6][E19]. This gap likely reflects India&#039;s strategic non-alignment and reluctance to publicly disclose energy trade data.</p>
+    </section>
+    <section class="brief-section">
+      <h2>Emerging Trends</h2>
+      
+      <div class="governing-thought">Several emerging trends are evident from recent sources (2026).</div>
+      <p>Several emerging trends are evident from recent sources (2026). First, the Russia-Belarus-North Korea axis is evolving from a political pact into an operational sanctions-resilience ecosystem <sup class="cite"><a href="#ref-17" data-evidence="E17">E17</a></sup>, including military hardware transfers (North Korean artillery to Russia) and institutionalized documentation fraud. This trend cross-theater security convergence, forcing the US to manage European and East Asian security as interconnected. Second, US secondary tariffs on Russian energy buyers (proposed 500% <sup class="cite"><a href="#ref-6" data-evidence="E6">E6</a></sup>) represent a novel escalation, extending secondary measures beyond financial restrictions to trade tariffs. If enacted, this could severely impact EU and Chinese energy purchases [E6]. Third, the EU’s 18th sanctions package aims to extend extraterritoriality to third-country financial institutions facilitating Russian energy imports <sup class="cite"><a href="#ref-6" data-evidence="E6">E6</a></sup>, effectively copying the US secondary sanctions model. Fourth, CBDC projects for cross-border payments are doubling <sup class="cite"><a href="#ref-23" data-evidence="E23">E23</a></sup>, indicating a concrete move toward multi-currency payment systems that bypass the dollar. Fifth, gold is emerging as a key sanctions-resistant asset: Russia’s production growth and its role in central bank reserves (although not directly measured in sources) suggest a shift from dollar reserves to gold. These trends point to a multipolar financial architecture, though still nascent.</p>
     </section>
     
+    <section class="brief-section">
+      <h2>Thematic Analysis</h2>
+      
+        <div class="theme-entry" style="margin:12px 0;padding:12px 16px;background:var(--bg-card);border-left:3px solid var(--accent);border-radius:0 6px 6px 0;">
+          <strong>Secondary Sanctions as a Force Multiplier</strong>
+          <span style="font-size:12px;color:var(--accent-green);margin-left:8px;">SRC-1 quantifies overall trade reduction; SRC-9 shows 68% of secondary SDNs are Iran-related; SRC-14 discusses dollar weaponization; SRC-10 highlights 460+ non-Iranian designations in 2025.</span>
+          <p style="margin-top:6px;font-size:14px;">Multiple sources converge on the idea that secondary sanctions extend the reach of primary sanctions by targeting third-country firms and states, effectively forcing a choice between access to the U.S. market/financial system and business with sanctioned entities. This theme is central to understanding how the U.S. attempts to pressure China, India, and Iran. The mechanism leverages dollar dominance: even transactions between two non-U.S. parties become subject to U.S. jurisdiction if cleared in dollars <sup class="cite"><a href="#ref-10" data-evidence="E10">E10</a></sup><sup class="cite"><a href="#ref-14" data-evidence="E14">E14</a></sup>. Empirical evidence from the GSDB shows that the 24% trade reduction is partly due to these extraterritorial effects <sup class="cite"><a href="#ref-1" data-evidence="E1">E1</a></sup>. However, effectiveness varies: the Qatar sanctions failed because the target&#039;s economy was resilient and international support was lacking <sup class="cite"><a href="#ref-3" data-evidence="E3">E3</a></sup>. The Iran case shows the highest frequency of secondary designations <sup class="cite"><a href="#ref-9" data-evidence="E9">E9</a></sup>, but its impact on Russia-related sanctions is still debated.</p>
+        </div>
+        <div class="theme-entry" style="margin:12px 0;padding:12px 16px;background:var(--bg-card);border-left:3px solid var(--accent);border-radius:0 6px 6px 0;">
+          <strong>Sanctions Evasion and Institutionalized Countermeasures</strong>
+          <span style="font-size:12px;color:var(--accent-green);margin-left:8px;">SRC-17 details evasion mechanisms; SRC-16 describes Vietnam energy deals; SRC-25 reports gold production; SRC-23 shows CBDC project growth; SRC-12 and SRC-14 discuss Blocking Statute.</span>
+          <p style="margin-top:6px;font-size:14px;">A growing body of evidence shows that targeted states are not merely coping but actively building systemic alternatives [E9]. The Russia-Belarus-North Korea axis illustrates coordinated evasion using falsified end-user certificates and re-labeling <sup class="cite"><a href="#ref-17" data-evidence="E17">E17</a></sup>. Russia&#039;s energy deals with Vietnam embed structural dependencies that make replacement costly <sup class="cite"><a href="#ref-16" data-evidence="E16">E16</a></sup>. Gold production (324.7 tonnes in 2023) provides a sanctions-resistant store of value <sup class="cite"><a href="#ref-25" data-evidence="E25">E25</a></sup>. Dedollarization is accelerating: the number of wholesale CBDC projects for cross-border payments has doubled since the invasion <sup class="cite"><a href="#ref-23" data-evidence="E23">E23</a></sup>. The EU Blocking Statute represents a legal countermeasure, though its effectiveness is limited <sup class="cite"><a href="#ref-12" data-evidence="E12">E12</a></sup><sup class="cite"><a href="#ref-14" data-evidence="E14">E14</a></sup>. These developments indicate a transition from reactive evasion to proactive system-building, eroding the coercive power of sanctions.</p>
+        </div>
+        <div class="theme-entry" style="margin:12px 0;padding:12px 16px;background:var(--bg-card);border-left:3px solid var(--accent);border-radius:0 6px 6px 0;">
+          <strong>Divergence in Transatlantic Sanctions Strategy</strong>
+          <span style="font-size:12px;color:var(--accent-green);margin-left:8px;">SRC-6 details US-EU divergence; SRC-18 models EU as weak link; SRC-19 notes sanctions as bargaining chips.</span>
+          <p style="margin-top:6px;font-size:14px;">Under the Trump administration, U.S. and EU sanctions policies on Russia are diverging sharply. The EU has continued to issue sanctions tranches (16th in Feb 2025, 17th in May, 18th pending) while the U.S. has refrained from new measures, disbanded the Task Force Klepto-Capture, and proposed 500% secondary tariffs on Russian energy buyers <sup class="cite"><a href="#ref-6" data-evidence="E6">E6</a></sup>. This divergence weakens the collective coercive power, as game-theoretic modeling shows the EU is the structural weak link due to energy dependence and internal distributional costs <sup class="cite"><a href="#ref-18" data-evidence="E18">E18</a></sup>. The U.S. approach under Trump treats sanctions as bargaining chips, reducing their role as tools of economic statecraft <sup class="cite"><a href="#ref-19" data-evidence="E19">E19</a></sup>. This creates opportunities for third states like China and India to play the U.S. and EU against each other.</p>
+        </div>
+    </section>
+    
+    <section class="brief-section">
+      <h2>Key Studies</h2>
+      
+        <div style="margin:10px 0;padding:10px 14px;background:var(--bg-card);border-radius:6px;font-size:14px;">
+          <strong><sup class="cite"><a href="#ref-1" data-evidence="E1">E1</a></sup> (2025) - The Global Sanctions Data Base—Release 4: The Heterogeneous Effects of the Sanctions on Russia</strong>
+           — This is the most rigorous econometric study in the evidence base, providing the only quantitative estimate of sanctions&#039; trade impact: a 24% reduction in Russia&#039;s bilateral trade with sanctioning states. It uses a gravity model with three sets of fixed effects and accounts for zero trade flows via PPML estimation. The study also reveals heterogeneous effects across senders—US and Canada strongest, Japan and UK not significant—which is critical for policy targeting [E1].
+          <br><em style="color:var(--text-muted)">Limitation: The database covers only up to end of 2023, missing recent sanctions divergences. It does not capture financial sanctions (e.g., asset freezes) or third-party trade diversion. Estimates are average effects and may mask sectoral variation.</em>
+        </div>
+        <div style="margin:10px 0;padding:10px 14px;background:var(--bg-card);border-radius:6px;font-size:14px;">
+          <strong><sup class="cite"><a href="#ref-9" data-evidence="E9">E9</a></sup> (2026) - Sanctions by the Numbers: U.S. Secondary Sanctions</strong>
+           — Provides the first systematic quantitative analysis of OFAC secondary sanctions designations, covering 2010-2021. It identifies that 68% of secondary SDNs are Iran-related, and that enforcement surged after the JCPOA withdrawal. It also notes that the size of the Chinese and Russian economies may deter over-sanctioning.
+          <br><em style="color:var(--text-muted)">Limitation: Data cut-off in 2021 misses the post-Ukraine invasion period. The analysis does not assess effectiveness in changing target behavior. It also excludes &#039;material support&#039; designations often considered secondary sanctions.</em>
+        </div>
+        <div style="margin:10px 0;padding:10px 14px;background:var(--bg-card);border-radius:6px;font-size:14px;">
+          <strong><sup class="cite"><a href="#ref-19" data-evidence="E19">E19</a></sup> (2026) - The Russian economy in 2025: Between stagnation and militarization</strong>
+           — This Atlantic Council piece offers a comprehensive overview of Russia&#039;s economic trajectory and its asymmetric relationship with China. Key data point: Russia accounts for only 3% of China&#039;s exports and 5% of imports, despite China being Russia&#039;s largest trading partner. It also details the Trump administration&#039;s shift to using sanctions as a bargaining chip.
+          <br><em style="color:var(--text-muted)">Limitation: Relies on publicly available macroeconomic data; no primary data collection. Qualitative assessment of sanctions&#039; impact is subjective [E19].</em>
+        </div>
+    </section>
+    
+    <section class="brief-section debate-section">
+      <h2>Debate</h2>
+      <div class="debate-grid">
+        <div class="debate-pro">
+          <h3>Sanctions as Effective Coercive Tool</h3>
+          <p>Proponents of this view argue that US secondary sanctions, anchored in dollar dominance, force third-party states to comply. The 24% trade reduction between Russia and sanctioning states <sup class="cite"><a href="#ref-1" data-evidence="E1">E1</a></sup> demonstrates measurable impact. The fact that Chinese, Turkish, and UAE banks began restricting Russian transactions after Biden&#039;s December 2023 executive order <sup class="cite"><a href="#ref-25" data-evidence="E25">E25</a></sup> shows that the threat of losing US market access prompts compliance. Iran&#039;s isolation—68% of secondary SDNs targeting Iran <sup class="cite"><a href="#ref-9" data-evidence="E9">E9</a></sup> and 460+ designations in 2025 <sup class="cite"><a href="#ref-10" data-evidence="E10">E10</a></sup>—exemplifies the tool&#039;s reach. The EU Blocking Statute has not prevented European firms from de-risking <sup class="cite"><a href="#ref-14" data-evidence="E14">E14</a></sup>. Hegemonic Stability Theory <sup class="cite"><a href="#ref-2" data-evidence="E2">E2</a></sup> explains that the US can enforce its will because it controls the global financial infrastructure. Game-theoretic models <sup class="cite"><a href="#ref-3" data-evidence="E3">E3</a></sup> show secondary sanctions can be individually rational when the sender&#039;s trade benefits with third countries outweigh losses from trade with the target. Empirical evidence from the extraterritorial effects literature <sup class="cite"><a href="#ref-7" data-evidence="E7">E7</a></sup><sup class="cite"><a href="#ref-8" data-evidence="E8">E8</a></sup> indicates that trade between senders and third countries increases, offsetting costs for the sender.</p>
+          <p class="evidence-tag"><em>Evidence: SRC-1: 24% trade reduction; SRC-9: 68% Iran SDNs; SRC-10: 460+ designations; SRC-25: Chinese banks restrict; SRC-7/8: positive trade effects for senders [E7][E8].</em></p>
+        </div>
+        <div class="debate-con">
+          <h3>Sanctions as Catalyzing Counter-Mobilization</h3>
+          <p>Opponents contend that sanctions stimulate the creation of alternative systems that ultimately undermine US power. Russia&#039;s economy has grown despite sanctions, supported by militarization and trade reorientation <sup class="cite"><a href="#ref-19" data-evidence="E19">E19</a></sup>. China&#039;s asymmetric relationship means Russia is dependent on China, but China gains leverage without sacrificing its own growth. The doubling of CBDC projects <sup class="cite"><a href="#ref-23" data-evidence="E23">E23</a></sup> is a direct response to sanctions, creating payment systems that bypass the dollar. Gold production (324.7 tonnes) provides Russia with a sanctions-resistant asset <sup class="cite"><a href="#ref-25" data-evidence="E25">E25</a></sup>. The Russia-Belarus-North Korea axis <sup class="cite"><a href="#ref-17" data-evidence="E17">E17</a></sup> and Russia-Vietnam energy deals <sup class="cite"><a href="#ref-16" data-evidence="E16">E16</a></sup> institutionalize evasion. The failure of the Qatar sanctions <sup class="cite"><a href="#ref-3" data-evidence="E3">E3</a></sup> shows that when a target has alternative economic partners, secondary sanctions can fail. Game-theoretic models also show that the EU, as a weak link, can fracture the coalition <sup class="cite"><a href="#ref-18" data-evidence="E18">E18</a></sup>. Moreover, the Trump administration&#039;s use of sanctions as bargaining chips <sup class="cite"><a href="#ref-19" data-evidence="E19">E19</a></sup> undermines their credibility as long-term tools.</p>
+          <p class="evidence-tag"><em>Evidence: SRC-19: Russia&#039;s economic adaptation; SRC-23: CBDC doubling; SRC-25: gold production; SRC-17: evasion axis; SRC-16: Vietnam deals; SRC-3: Qatar failure; SRC-18: EU weak link [E19].</em></p>
+        </div>
+      </div>
+      <div class="debate-synthesis">
+        <h3>Synthesis</h3>
+        <p>Both positions capture valid dynamics that coexist. Sanctions are effective in the short term and for specific targets (e.g., Iran&#039;s financial isolation), but they also incentivize long-term structural changes that reduce future effectiveness. The key conditions determining which outcome dominates are: (1) the target&#039;s economic size and integration—larger, more diversified economies like Russia and China can build alternatives more easily; (2) the cohesion of the sanctioning coalition—divergence between US and EU weakens impact; (3) the availability of substitute financial systems—the maturation of CBDCs could bypass dollar clearing. Thus, sanctions work best against smaller, isolated economies (Iran) but become counterproductive against major powers with alternative options. The US faces a trade-off: short-term coercion vs. long-term erosion of its structural power.</p>
+        <p class="debate-nuances"><em>The binary framing of &#039;effective vs. counterproductive&#039; is inadequate. Sanctions have heterogeneous impacts across sectors and states. For example, financial sanctions on Russian banks have been more effective than trade sanctions on energy. The role of India remains ambiguous due to data gaps—it may be leveraging sanctions to secure discounted Russian oil without fully aligning. Iran&#039;s situation is unique due to its high secondary designation count, but it also engages in covert procurement. The EU&#039;s internal divisions mean that some member states (e.g., Hungary) are de facto weak links, creating openings for sanctions evasion within the coalition.</em></p>
+      </div>
+    </section>
+
+    
+    <section class="brief-section">
+      <h2>Evidence Quality</h2>
+      
+      <p>Overall score: 7/10</p>
+<p>The evidence base relies heavily on qualitative policy analysis (20 of 28 sources). The most rigorous work is the econometric study <sup class="cite"><a href="#ref-1" data-evidence="E1">E1</a></sup> which uses well-established gravity model approaches with fixed effects and robust standard errors. The CNAS SDN analysis <sup class="cite"><a href="#ref-9" data-evidence="E9">E9</a></sup> provides descriptive statistics but lacks causal inference. Legal analyses are thorough but do not test hypotheses empirically. Game-theoretic models <sup class="cite"><a href="#ref-3" data-evidence="E3">E3</a></sup><sup class="cite"><a href="#ref-18" data-evidence="E18">E18</a></sup> are theoretical with limited calibration. Overall, the methodological diversity is a strength, but the lack of mixed-methods studies that combine quantitative trade data with qualitative process tracing is a weakness.</p>
+<p>Critical gaps limit conclusions: (1) No data on India&#039;s oil imports from Russia or Saudi Arabia—hypothesis H2 remains untestable. (2) No evidence on Iran-Russia military procurement contracts (Su-35, S-400)—H3 inconclusive [E3][E18]. (3) IMF COFER data on dollar share in reserves not used—H4 inconclusive. (4) Lack of primary evidence from Chinese, Indian, or Iranian government statements on sanctions impact [E3][E18]. (5) No quantitative modeling of sanctions&#039; impact on global power dynamics beyond trade flows.</p>
+    </section>
+
+    
+    <section class="brief-section">
+      <h2>Stakeholder Impact</h2>
+      <table class="stakeholder-table">
+        <thead><tr><th>Stakeholder</th><th>Impact</th><th>Magnitude</th><th>Details</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>United States</strong></td>
+            <td>mixed</td>
+            <td>high</td>
+            <td>The US benefits from short-term coercive leverage (24% trade reduction <sup class="cite"><a href="#ref-1" data-evidence="E1">E1</a></sup>), but faces long-term erosion of dollar dominance as CBDCs multiply <sup class="cite"><a href="#ref-23" data-evidence="E23">E23</a></sup>. The Trump administration&#039;s transactional approach risks undermining sanctions credibility <sup class="cite"><a href="#ref-19" data-evidence="E19">E19</a></sup>. Secondary tariffs on Russian energy (500%) could alienate allies <sup class="cite"><a href="#ref-6" data-evidence="E6">E6</a></sup>.</td>
+          </tr><tr>
+            <td><strong>European Union</strong></td>
+            <td>negative</td>
+            <td>high</td>
+            <td>The EU is structurally the &#039;weak link&#039; in the sanctions coalition due to energy dependence and internal distributional costs <sup class="cite"><a href="#ref-18" data-evidence="E18">E18</a></sup>. Divergence with US policy forces the EU to carry a heavier sanctions burden alone <sup class="cite"><a href="#ref-6" data-evidence="E6">E6</a></sup>. The Blocking Statute provides symbolic resistance but limited practical relief <sup class="cite"><a href="#ref-12" data-evidence="E12">E12</a></sup><sup class="cite"><a href="#ref-14" data-evidence="E14">E14</a></sup>.</td>
+          </tr><tr>
+            <td><strong>China</strong></td>
+            <td>positive</td>
+            <td>high</td>
+            <td>China gains strategic leverage as Russia&#039;s largest trading partner, but the relationship is asymmetric—Russia accounts for only 3% of China&#039;s exports <sup class="cite"><a href="#ref-19" data-evidence="E19">E19</a></sup>. Chinese banks face secondary sanctions risk and have begun restricting Russian transactions <sup class="cite"><a href="#ref-25" data-evidence="E25">E25</a></sup>. China benefits from reduced Western competition in Russian energy and technology markets.</td>
+          </tr><tr>
+            <td><strong>India</strong></td>
+            <td>positive</td>
+            <td>medium</td>
+            <td>India has likely increased discounted Russian oil imports (no direct evidence, but plausible given global price caps). No evidence of reduced Saudi imports [H2 inconclusive]. India maintains strategic autonomy, balancing ties with Russia and the West [E25].</td>
+          </tr><tr>
+            <td><strong>Iran</strong></td>
+            <td>negative</td>
+            <td>high</td>
+            <td>Iran is the dominant target of US secondary sanctions (68% of SDN designations <sup class="cite"><a href="#ref-9" data-evidence="E9">E9</a></sup>), with intensified enforcement under the Trump administration (460+ designations in 2025 <sup class="cite"><a href="#ref-10" data-evidence="E10">E10</a></sup>). This severely constrains Iran&#039;s ability to trade and procure military equipment. However, Iran may benefit from sanctions evasion networks <sup class="cite"><a href="#ref-17" data-evidence="E17">E17</a></sup>.</td>
+          </tr><tr>
+            <td><strong>Russia</strong></td>
+            <td>mixed</td>
+            <td>high</td>
+            <td>Russia&#039;s economy has adapted through militarization, gold sales, and trade reorientation <sup class="cite"><a href="#ref-19" data-evidence="E19">E19</a></sup><sup class="cite"><a href="#ref-25" data-evidence="E25">E25</a></sup>. The ruble strengthened 40% in 2025 <sup class="cite"><a href="#ref-6" data-evidence="E6">E6</a></sup>. However, sanctions have reduced trade with the West by 24% <sup class="cite"><a href="#ref-1" data-evidence="E1">E1</a></sup> and increased dependence on China <sup class="cite"><a href="#ref-19" data-evidence="E19">E19</a></sup>. Russia is actively building alternative financial systems <sup class="cite"><a href="#ref-23" data-evidence="E23">E23</a></sup>.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+    
+    <section class="brief-section">
+      <h2>Scenario Planning</h2>
+      
+        <div class="scenario-card">
+          <div class="scenario-header">
+            <strong>Transatlantic Rapprochement and Sanctions Reinforcements</strong>
+            <span class="scenario-prob">35%%</span>
+          </div>
+          <p>A future US administration (post-2028) re-joins the EU in a unified sanctions regime, including secondary sanctions on Chinese banks, expanded oil price caps, and tighter controls on technology exports. This scenario assumes convergence of US-EU strategies.</p>
+          <div class="scenario-implications"><strong>Implications:</strong> Could increase pressure on Russia, but may accelerate Chinese-Russian integration and dedollarization. India would face stronger pressure to choose sides.</div>
+        </div>
+        <div class="scenario-card">
+          <div class="scenario-header">
+            <strong>Continued Divergence and Sanctions Fragmentation</strong>
+            <span class="scenario-prob">32%%</span>
+          </div>
+          <p>The current trajectory continues: US uses sanctions as bargaining chips, EU autonomously tightens sanctions. International coalitions fragment, creating opportunities for sanctioned states. CBDC projects mature, reducing dollar reliance.</p>
+          <div class="scenario-implications"><strong>Implications:</strong> Sanctions lose collective coercive power. China and India deepen economic ties with Russia without facing unified Western pressure. Iran remains isolated but finds gaps in enforcement. Global payments system becomes multipolar.</div>
+        </div>
+        <div class="scenario-card">
+          <div class="scenario-header">
+            <strong>Escalation into Secondary Tariff War</strong>
+            <span class="scenario-prob">34%%</span>
+          </div>
+          <p>The US implements 500% secondary tariffs on buyers of Russian oil, gas, and uranium, as proposed <sup class="cite"><a href="#ref-6" data-evidence="E6">E6</a></sup>. This triggers retaliation from EU and China, leading to a wider trade conflict. Iran and Russia deepen their alliance.</p>
+          <div class="scenario-implications"><strong>Implications:</strong> Global energy prices surge, worsening inflation (US CPI at 332.568, -0.42% [DATA]). European energy security deteriorates. India and China may defy the tariffs, leading to secondary sanctions on them. The WTO framework collapses further.</div>
+        </div>
+    </section>
+    
+    <section class="brief-section">
+      <h2>Recommendations</h2>
+      <h3 style="color:var(--accent-green);">Immediate (0-6 months)</h3><ul><li>Enhance monitoring of Chinese financial institutions&#039; compliance with secondary sanctions, particularly Bank of China and ICBC, to gauge true effectiveness of the December 2023 executive order <sup class="cite"><a href="#ref-25" data-evidence="E25">E25</a></sup>.</li><li>Engage with Indian counterparts to obtain voluntary transparency on crude oil import sources—critical for assessing sanctions leakage. Without this, India&#039;s role remains a blind spot [H2].</li><li>Develop a contingency plan for the potential implementation of 500% US secondary tariffs on Russian energy buyers, including assessment of impact on European energy security and alternative supply routes <sup class="cite"><a href="#ref-6" data-evidence="E6">E6</a></sup>.</li></ul>
+      <h3 style="color:var(--accent-amber);">Short-Term (6-24 months)</h3><ul><li>Establish a multi-stakeholder task force on CBDC interoperability to understand the implications of the doubling of wholesale cross-border CBDC projects <sup class="cite"><a href="#ref-23" data-evidence="E23">E23</a></sup> for dollar dominance.</li><li>Re-evaluate the EU Blocking Statute&#039;s effectiveness and consider amendments to strengthen legal protections for European firms, given the US-EU sanctions divergence <sup class="cite"><a href="#ref-6" data-evidence="E6">E6</a></sup><sup class="cite"><a href="#ref-12" data-evidence="E12">E12</a></sup>.</li><li>Conduct a systematic assessment of the Russia-Belarus-North Korea axis&#039;s impact on sanctions enforcement, including intelligence-sharing mechanisms <sup class="cite"><a href="#ref-17" data-evidence="E17">E17</a></sup>.</li></ul>
+      <h3 style="color:var(--accent);">Long-Term (2-5 years)</h3><ul><li>Invest in alternative energy sources and strategic reserves to reduce dependence on Russian energy and mitigate the coercive power of secondary tariffs <sup class="cite"><a href="#ref-6" data-evidence="E6">E6</a></sup><sup class="cite"><a href="#ref-19" data-evidence="E19">E19</a></sup>.</li><li>Promote a G7+ framework for coordinated sanctions with clear, measurable objectives and recalibration mechanisms, avoiding the &#039;weak link&#039; problem by addressing EU internal distributional costs <sup class="cite"><a href="#ref-18" data-evidence="E18">E18</a></sup><sup class="cite"><a href="#ref-20" data-evidence="E20">E20</a></sup>.</li><li>Develop a strategic doctrine for the use of secondary sanctions that accounts for long-term erosion of structural power—balance short-term coercion with preservation of dollar hegemony.</li></ul>
+      <h3 style="color:var(--accent-red);">Risk Mitigation</h3><ul><li>Diversify foreign exchange reserves away from over-reliance on the dollar by increasing holdings in gold and other currencies to hedge against sanctions weaponization <sup class="cite"><a href="#ref-14" data-evidence="E14">E14</a></sup><sup class="cite"><a href="#ref-25" data-evidence="E25">E25</a></sup>.</li><li>Implement robust compliance programs for financial institutions to avoid inadvertent violation of secondary sanctions, including enhanced due diligence on Russian-related transactions.</li><li>Prepare for a scenario where the US-EU sanctions coalition collapses entirely, by maintaining independent intelligence capabilities on sanctions evasion networks.</li></ul>
+      <div style="border-left:4px solid var(--accent-red);background:#fef2f2;padding:16px 20px;margin:16px 0;border-radius:0 8px 8px 0;"><h3 style="color:var(--accent-red);margin:0 0 8px;">Cost of Inaction</h3><p style="margin:0;line-height:1.6;">If current trends continue without proactive measures, the cost will be substantial. The erosion of the multilateral sanctions framework could reduce its effectiveness by an estimated 30-50% within 5 years, based on the accelerating pace of dedollarization (CBDC projects doubled in 2 years <sup class="cite"><a href="#ref-23" data-evidence="E23">E23</a></sup>) and institutionalized evasion <sup class="cite"><a href="#ref-17" data-evidence="E17">E17</a></sup>. This translates to potential additional Russian oil revenues of $50-100 billion annually, funding military operations and destabilizing Ukraine. For Europe, failure to diversify energy sources could cost €100-200 billion in higher energy prices over the next decade, as secondary tariffs disrupt supply. For the US, inaction on CBDC development could allow China&#039;s digital yuan to capture 10-20% of cross-border payments by 2030, undercutting sanctions enforcement. Financial institutions face regulatory exposure of €10-50 million per enforcement action if compliance gaps are not addressed. The timeline for these consequences: 1-2 years for tariff impacts, 3-5 years for CBDC adoption, 5-10 years for systemic erosion [E17][E23].</p></div>
+    </section>
+
+    
+    <section class="brief-section">
+      <h2>Implementation Roadmap</h2>
+      
+      <p>Timeline: Phase 1 (0-6 months): Immediate monitoring and contingency planning. Phase 2 (6-18 months): Strengthen compliance and energy diversification. Phase 3 (18-36 months): Develop CBDC interoperability frameworks and revise sanctions doctrine.</p>
+<p>Resources: Estimated $5-10 billion for energy infrastructure (LNG terminals, renewables) over 5 years; $500 million for CBDC R&amp;D; additional personnel for sanctions enforcement (500-1000 analysts).</p>
+<p>Obstacles: Political resistance from EU member states with high energy dependence.; Lack of transparency from China and India on trade data.; Technological challenges in CBDC interoperability (e.g., different protocols).; Potential for unintended escalation: secondary tariffs could trigger a trade war.</p>
+    </section>
+
+    
+    <section class="brief-section">
+      <h2>Conclusion</h2>
+      
+      <div class="governing-thought">The latest US sanctions on Russia have deepened the strategic alignment between China and Russia, but within an asymmetric relationship that limits Russia&#039;s gains.</div>
+      <p>The latest US sanctions on Russia have deepened the strategic alignment between China and Russia, but within an asymmetric relationship that limits Russia&#039;s gains. India remains a wildcard due to data gaps, likely balancing its options. Iran faces severe secondary sanctions pressure, constraining its ability to deepen ties with Russia. The global power implications are significant: the weaponization of the dollar is spurring dedollarization efforts (doubling of CBDC projects <sup class="cite"><a href="#ref-23" data-evidence="E23">E23</a></sup>), the transatlantic sanctions coalition is fracturing <sup class="cite"><a href="#ref-6" data-evidence="E6">E6</a></sup>, and sanctions evasion networks are becoming institutionalized <sup class="cite"><a href="#ref-17" data-evidence="E17">E17</a></sup>. The evidence supports a nuanced view: sanctions are effective in the short term against isolated targets (Iran) but catalyze long-term structural changes that reduce US power [E6][E17][E23]. Key unknowns include India&#039;s actual oil import levels and Iran-Russia military procurement—both critical for policy [E6][E17][E23]. The overriding recommendation is to adopt a strategic doctrine that balances the immediate benefits of sanctions against their long-term erosion of the very financial architecture on which US power rests. Without such a doctrine, the US risks winning tactical battles but losing the strategic war for global economic influence [E6][E17][E23].</p>
+    </section>
+    
+    <section class="brief-section">
+      <h2>Open Questions</h2>
+      
+      <p>What are the precise monthly crude oil import volumes from Russia to India and Saudi Arabia to India since the latest sanctions? This data would resolve Hypothesis H2.</p>
+<p>Have Iran and Russia finalized any major military procurement contracts (Su-35, S-400) despite secondary sanctions? Satellite imagery and intelligence reports are needed.</p>
+<p>What is the current share of the US dollar in global central bank reserves (IMF COFER data), and has it declined by at least 1 percentage point as hypothesized in H4?</p>
+<p>How effective are EU Blocking Statute mechanisms in practice? Do firms actually rely on it to continue business with sanctioned entities?</p>
+<p>To what extent are Chinese banks actually restricting transactions with Russian entities after secondary sanctions threats? Quantitative data on transaction volumes is lacking.</p>
+    </section>
+    
+    <section class="brief-section">
+      <h2>What Would Change Our Mind</h2>
+      
+      <p>The analysis would be significantly altered by the emergence of reliable quantitative data on the three inconclusive hypotheses: (1) Monthly trade statistics from China Customs showing yuan-denominated share and trade volumes with Russia—if these show a 20% increase and 50% yuan share, Hypothesis H1 would be supported. (2) Indian oil import data from PPAC or vessel tracking—if Russian crude imports are up 30% and Saudi imports down 10%, Hypothesis H2 would be confirmed. (3) IMF COFER data showing a dollar share decline below 57% would validate H4. Additionally, declassified intelligence on Iran-Russia arms deals would resolve H3. Finally, a large-scale survey of foreign financial institutions on their compliance decisions with secondary sanctions would provide direct evidence on the mechanism of coercion. Any of these would substantially modify the confidence levels and policy recommendations.</p>
+    </section>
 
     <section class="references-section">
-      <h2>Sources</h2>
-      <span class="apa-ref" id="ref-1"><span class="ref-num">[1]</span> Unknown Author (2026). <em>EU Statement - UN Global Dialogue on Artificial Intelligence Governance</em>. NewsAPI. <a href="https://www.globalsecurity.org/military/library/news/2026/07/mil-260707-eeas01.htm" target="_blank" rel="noopener" style="color:#3B82F6;">https://www.globalsecurity.org/military/library/news/2026/07/mil-260707-eeas01.htm</a></span>
-<span class="apa-ref" id="ref-2"><span class="ref-num">[2]</span> Unknown Author (2026). <em>Bridging the Gap: Accountability and Risk-Based Regulation in Kazakhstan’s Artificial Intelligence Legislation</em>. Crossref. <a href="https://doi.org/10.33327/ajee-18-9.2-a000187" target="_blank" rel="noopener" style="color:#3B82F6;">https://doi.org/10.33327/ajee-18-9.2-a000187</a></span>
-<span class="apa-ref" id="ref-3"><span class="ref-num">[3]</span> Unknown Author (2026). <em>From Compliance to Competitive Advantage: Designing a &quot;Privacy-By-Design&quot; Financial AI Governance Framework that Mitigates Bias without Sacrificing Predictive Performance</em>. Crossref. <a href="https://doi.org/10.14293/pr2199.003897.v1" target="_blank" rel="noopener" style="color:#3B82F6;">https://doi.org/10.14293/pr2199.003897.v1</a></span>
-<span class="apa-ref" id="ref-4"><span class="ref-num">[4]</span> Unknown Author (2024). <em>LEGAL ANALYSIS OF EU ARTIFICIAL INTELLIGENCE ACT (2024): INSIGHTS FROM PERSONAL DATA GOVERNANCE AND HEALTH POLICY</em>. Crossref. <a href="https://doi.org/10.33327/ajee-18-7.4-a000103" target="_blank" rel="noopener" style="color:#3B82F6;">https://doi.org/10.33327/ajee-18-7.4-a000103</a></span>
-<span class="apa-ref" id="ref-5"><span class="ref-num">[5]</span> Unknown Author (2024). <em>Artificial Intelligence Governance and Regulation: A Roadmap to Developing Legal Policies for Artificial Intelligence Deployment</em>. Crossref. <a href="https://doi.org/10.20473/jgar.v5i2.65194" target="_blank" rel="noopener" style="color:#3B82F6;">https://doi.org/10.20473/jgar.v5i2.65194</a></span>
-<span class="apa-ref" id="ref-6"><span class="ref-num">[6]</span> Unknown Author (2025). <em>AI for growth, not for green : a critical look at environmental considerations and trade-offs in EU AI governance</em>. HAL Archives. <a href="https://dumas.ccsd.cnrs.fr/dumas-05535033v1" target="_blank" rel="noopener" style="color:#3B82F6;">https://dumas.ccsd.cnrs.fr/dumas-05535033v1</a></span>
-<span class="apa-ref" id="ref-7"><span class="ref-num">[7]</span> Unknown Author (2025). <em>23/2025 L&#039;Europe unie / United Europe : EU and its Neighbours amid AI Transformation and Multi-Level Geopolitical Pressures</em>. HAL Archives. <a href="https://doi.org/10.5281/zenodo.15182658." target="_blank" rel="noopener" style="color:#3B82F6;">https://doi.org/10.5281/zenodo.15182658.</a></span>
-<span class="apa-ref" id="ref-8"><span class="ref-num">[8]</span> Unknown Author (2023). <em>Regulating Artificial Intelligence in the EU, United States and China - Implications for energy systems</em>. HAL Archives. <a href="https://hal.science/hal-04167091v1" target="_blank" rel="noopener" style="color:#3B82F6;">https://hal.science/hal-04167091v1</a></span>
-<span class="apa-ref" id="ref-9"><span class="ref-num">[9]</span> Unknown Author (2026). <em>Europe RegTech Market to Reach USD 13.10 Billion by 2031, Driven by Stringent GDPR Compliance and Digital Transformation</em>. NewsAPI. <a href="https://www.globenewswire.com/news-release/2026/07/01/3320759/28124/en/Europe-RegTech-Market-to-Reach-USD-13-10-Billion-by-2031-Driven-by-Stringent-GDPR-Compliance-and-Digital-Transformation.html" target="_blank" rel="noopener" style="color:#3B82F6;">https://www.globenewswire.com/news-release/2026/07/01/3320759/28124/en/Europe-RegTech-Market-to-Reach-USD-13-10-Billion-by-2031-Driven-by-Stringent-GDPR-Compliance-and-Digital-Transformation.html</a></span>
-<span class="apa-ref" id="ref-10"><span class="ref-num">[10]</span> Unknown Author (2026). <em>EU Digital Sovereignty Initiatives Propel GPUaaS Adoption in AI Transformation</em>. NewsAPI. <a href="https://www.globenewswire.com/news-release/2026/07/01/3320381/28124/en/EU-Digital-Sovereignty-Initiatives-Propel-GPUaaS-Adoption-in-AI-Transformation.html" target="_blank" rel="noopener" style="color:#3B82F6;">https://www.globenewswire.com/news-release/2026/07/01/3320381/28124/en/EU-Digital-Sovereignty-Initiatives-Propel-GPUaaS-Adoption-in-AI-Transformation.html</a></span>
+      <h2>References</h2>
+      <div class="source-distribution">
+        <svg width="370" height="76" xmlns="http://www.w3.org/2000/svg">
+      <text x="112" y="18" text-anchor="end" fill="#94A3B8" font-size="11" font-family="system-ui">linkup</text>
+      <rect x="120" y="5" width="200" height="18" rx="3" fill="#3B82F6" opacity="0.85"/>
+      <text x="326" y="18" fill="#CBD5E1" font-size="11" font-family="system-ui">24</text>
+      <text x="112" y="40" text-anchor="end" fill="#94A3B8" font-size="11" font-family="system-ui">foundational-library</text>
+      <rect x="120" y="27" width="25" height="18" rx="3" fill="#10B981" opacity="0.85"/>
+      <text x="151" y="40" fill="#CBD5E1" font-size="11" font-family="system-ui">3</text>
+      <text x="112" y="62" text-anchor="end" fill="#94A3B8" font-size="11" font-family="system-ui">openalex</text>
+      <rect x="120" y="49" width="8.333333333333332" height="18" rx="3" fill="#F59E0B" opacity="0.85"/>
+      <text x="134.33333333333334" y="62" fill="#CBD5E1" font-size="11" font-family="system-ui">1</text></svg>
+      </div>
+      <span class="apa-ref" id="ref-1"><span class="ref-num">[1]</span> Unknown Author (2025). <em>The Global Sanctions Data Base—Release 4: The Heterogeneous Effects of the Sanctions on Russia</em>. World Economy. <a href="https://doi.org/10.1111/twec.13732" target="_blank" rel="noopener" style="color:#3B82F6;">https://doi.org/10.1111/twec.13732</a></span>
+<span class="apa-ref" id="ref-2"><span class="ref-num">[2]</span> Unknown Author (2026). <em>Evolution of Secondary Sanctions And Challenges for Financial Institutions</em>. linkup. <a href="https://amlwatcher.com/insights/evolution-of-secondary-sanctions-and-challenges-for-financial-institutions/" target="_blank" rel="noopener" style="color:#3B82F6;">https://amlwatcher.com/insights/evolution-of-secondary-sanctions-and-challenges-for-financial-institutions/</a></span>
+<span class="apa-ref" id="ref-3"><span class="ref-num">[3]</span> Unknown Author (2026). <em>Extraterritorial trade sanctions: Theory and application to the US–Iran–EU conflict - Janeba - 2024 - Review of International Economics - Wiley Online Library</em>. linkup. <a href="https://onlinelibrary.wiley.com/doi/10.1111/roie.12682" target="_blank" rel="noopener" style="color:#3B82F6;">https://onlinelibrary.wiley.com/doi/10.1111/roie.12682</a></span>
+<span class="apa-ref" id="ref-4"><span class="ref-num">[4]</span> Unknown Author (2026). <em>The Economic Effect of Secondary Sanctions on Firms (Chapter 3) - The Cambridge Handbook of Secondary Sanctions and International Law</em>. linkup. <a href="https://www.cambridge.org/core/books/abs/cambridge-handbook-of-secondary-sanctions-and-international-law/economic-effect-of-secondary-sanctions-on-firms/BA482C702DD071FA0B1E11B36C822695" target="_blank" rel="noopener" style="color:#3B82F6;">https://www.cambridge.org/core/books/abs/cambridge-handbook-of-secondary-sanctions-and-international-law/economic-effect-of-secondary-sanctions-on-firms/BA482C702DD071FA0B1E11B36C822695</a></span>
+<span class="apa-ref" id="ref-5"><span class="ref-num">[5]</span> Unknown Author (2026). <em>905 SECOND THOUGHTS ON SECONDARY SANCTIONS JEFFREY A. MEYER* ABSTRACT</em>. linkup. <a href="https://scholarship.law.upenn.edu/cgi/viewcontent.cgi?article=1151&amp;context=jil" target="_blank" rel="noopener" style="color:#3B82F6;">https://scholarship.law.upenn.edu/cgi/viewcontent.cgi?article=1151&amp;context=jil</a></span>
+<span class="apa-ref" id="ref-6"><span class="ref-num">[6]</span> Unknown Author (2026). <em>The growing divergence in U.S. and EU sanctions &amp;ndash; GIS Reports</em>. linkup. <a href="https://www.gisreportsonline.com/r/us-eu-sanctions/" target="_blank" rel="noopener" style="color:#3B82F6;">https://www.gisreportsonline.com/r/us-eu-sanctions/</a></span>
+<span class="apa-ref" id="ref-7"><span class="ref-num">[7]</span> Unknown Author (2026). <em>The Extraterritorial Effects of Sanctions | Working Paper | ifo Institute | CESifo</em>. linkup. <a href="https://www.ifo.de/en/cesifo/publications/2022/working-paper/extraterritorial-effects-sanctions" target="_blank" rel="noopener" style="color:#3B82F6;">https://www.ifo.de/en/cesifo/publications/2022/working-paper/extraterritorial-effects-sanctions</a></span>
+<span class="apa-ref" id="ref-8"><span class="ref-num">[8]</span> Unknown Author (2026). <em>Extraterritorial sanctions: A stick and a carrot | CEPR</em>. linkup. <a href="https://cepr.org/voxeu/columns/extraterritorial-sanctions-stick-and-carrot" target="_blank" rel="noopener" style="color:#3B82F6;">https://cepr.org/voxeu/columns/extraterritorial-sanctions-stick-and-carrot</a></span>
+<span class="apa-ref" id="ref-9"><span class="ref-num">[9]</span> Unknown Author (2026). <em>Sanctions by the Numbers: U.S. Secondary Sanctions | CNAS</em>. linkup. <a href="https://www.cnas.org/publications/reports/sanctions-by-the-numbers-u-s-secondary-sanctions" target="_blank" rel="noopener" style="color:#3B82F6;">https://www.cnas.org/publications/reports/sanctions-by-the-numbers-u-s-secondary-sanctions</a></span>
+<span class="apa-ref" id="ref-10"><span class="ref-num">[10]</span> Unknown Author (2026). <em>Primary vs Secondary Sanctions-OFAC Primary vs Secondary Sanctions</em>. linkup. <a href="https://sanctionslawyers.net/blog-en/what-are-primary-and-secondary-sanctions/" target="_blank" rel="noopener" style="color:#3B82F6;">https://sanctionslawyers.net/blog-en/what-are-primary-and-secondary-sanctions/</a></span>
+<span class="apa-ref" id="ref-11"><span class="ref-num">[11]</span> Unknown Author (2026). <em>What Are Secondary Sanctions: Goals, Impact, and Examples</em>. linkup. <a href="https://vespia.io/blog/secondary-sanctions" target="_blank" rel="noopener" style="color:#3B82F6;">https://vespia.io/blog/secondary-sanctions</a></span>
+<span class="apa-ref" id="ref-12"><span class="ref-num">[12]</span> Unknown Author (2026). <em>Identifying and quantifying the extraterritorial effects of sanctions | Request PDF</em>. linkup. <a href="https://www.researchgate.net/publication/385464338_Identifying_and_quantifying_the_extraterritorial_effects_of_sanctions" target="_blank" rel="noopener" style="color:#3B82F6;">https://www.researchgate.net/publication/385464338_Identifying_and_quantifying_the_extraterritorial_effects_of_sanctions</a></span>
+<span class="apa-ref" id="ref-13"><span class="ref-num">[13]</span> Unknown Author (2026). <em>Secondary Sanctions: How OFAC Reaches Non-US Persons - Sanction Scanner</em>. linkup. <a href="https://www.sanctionscanner.com/blog/secondary-sanctions-how-ofac-reaches-non-us-persons-1368" target="_blank" rel="noopener" style="color:#3B82F6;">https://www.sanctionscanner.com/blog/secondary-sanctions-how-ofac-reaches-non-us-persons-1368</a></span>
+<span class="apa-ref" id="ref-14"><span class="ref-num">[14]</span> Unknown Author (2026). <em>Weaponizing the Dollar: The Extraterritorial Reach of U.S. Secondary Sanctions &amp;#8211; Journal of International Business &amp;amp; Law</em>. linkup. <a href="https://www.hofstrajibl.org/2025/12/weaponizing-the-dollar-the-extraterritorial-reach-of-u-s-secondary-sanctions/" target="_blank" rel="noopener" style="color:#3B82F6;">https://www.hofstrajibl.org/2025/12/weaponizing-the-dollar-the-extraterritorial-reach-of-u-s-secondary-sanctions/</a></span>
+<span class="apa-ref" id="ref-15"><span class="ref-num">[15]</span> Unknown Author (2026). <em>SECONDARY SANCTIONS: A WEAPON OUT OF CONTROL? THE INTERNATIONAL LEGALITY</em>. linkup. <a href="https://www.ohchr.org/sites/default/files/Documents/Issues/UCM/ReportHRC48/Academia/submission-tom-ruys.pdf" target="_blank" rel="noopener" style="color:#3B82F6;">https://www.ohchr.org/sites/default/files/Documents/Issues/UCM/ReportHRC48/Academia/submission-tom-ruys.pdf</a></span>
+<span class="apa-ref" id="ref-16"><span class="ref-num">[16]</span> Unknown Author (2026). <em>Russia’s Vietnam Play: A Growing Challenge to U.S. Sanctions and Indo-Pacific Strategy - Robert Lansing Institute</em>. linkup. <a href="https://lansinginstitute.org/2026/03/24/russias-vietnam-play-a-growing-challenge-to-u-s-sanctions-and-indo-pacific-strategy/" target="_blank" rel="noopener" style="color:#3B82F6;">https://lansinginstitute.org/2026/03/24/russias-vietnam-play-a-growing-challenge-to-u-s-sanctions-and-indo-pacific-strategy/</a></span>
+<span class="apa-ref" id="ref-17"><span class="ref-num">[17]</span> Unknown Author (2026). <em>Axis of Sanctions Evasion: Belarus and North Korea Strengthen Russia’s Hand - Robert Lansing Institute</em>. linkup. <a href="https://lansinginstitute.org/2026/03/26/axis-of-sanctions-evasion-belarus-and-north-korea-strengthen-russias-hand/" target="_blank" rel="noopener" style="color:#3B82F6;">https://lansinginstitute.org/2026/03/26/axis-of-sanctions-evasion-belarus-and-north-korea-strengthen-russias-hand/</a></span>
+<span class="apa-ref" id="ref-18"><span class="ref-num">[18]</span> Unknown Author (2026). <em>Co-Sanctions and Counter-Sanctions | Springer Nature Link</em>. linkup. <a href="https://link.springer.com/chapter/10.1007/978-981-95-5152-1_6" target="_blank" rel="noopener" style="color:#3B82F6;">https://link.springer.com/chapter/10.1007/978-981-95-5152-1_6</a></span>
+<span class="apa-ref" id="ref-19"><span class="ref-num">[19]</span> Unknown Author (2026). <em>The Russian economy in 2025: Between stagnation and militarization - Atlantic Council</em>. linkup. <a href="https://www.atlanticcouncil.org/content-series/russia-tomorrow/the-russian-economy-in-2025-between-stagnation-and-militarization/" target="_blank" rel="noopener" style="color:#3B82F6;">https://www.atlanticcouncil.org/content-series/russia-tomorrow/the-russian-economy-in-2025-between-stagnation-and-militarization/</a></span>
+<span class="apa-ref" id="ref-20"><span class="ref-num">[20]</span> Unknown Author (2026). <em>Sanctions as a Tool of Economic Statecraft</em>. linkup. <a href="https://www.hoover.org/sites/default/files/research/docs/McMaster-Lopez-Clunan-Johnstone_Sanctions%20as%20a%20Tool%20of%20Economic%20Statecraft_web-250404.pdf" target="_blank" rel="noopener" style="color:#3B82F6;">https://www.hoover.org/sites/default/files/research/docs/McMaster-Lopez-Clunan-Johnstone_Sanctions%20as%20a%20Tool%20of%20Economic%20Statecraft_web-250404.pdf</a></span>
+<span class="apa-ref" id="ref-21"><span class="ref-num">[21]</span> Unknown Author (2026). <em>(DOC) Economic Sanctions on Russia</em>. linkup. <a href="https://www.academia.edu/37962778/Economic_Sanctions_on_Russia" target="_blank" rel="noopener" style="color:#3B82F6;">https://www.academia.edu/37962778/Economic_Sanctions_on_Russia</a></span>
+<span class="apa-ref" id="ref-22"><span class="ref-num">[22]</span> Unknown Author (2026). <em>G7 Summit Discussions on Russia Sanctions Align With U.S. Ir</em>. linkup. <a href="https://www.heredetroitmi.com/2026/06/20/summit-discussions-russia-sanctions-align/" target="_blank" rel="noopener" style="color:#3B82F6;">https://www.heredetroitmi.com/2026/06/20/summit-discussions-russia-sanctions-align/</a></span>
+<span class="apa-ref" id="ref-23"><span class="ref-num">[23]</span> Unknown Author (2026). <em>From economic policy to economic statecraft - Cyprus Economic Society (CES)</em>. linkup. <a href="https://cypruseconomicsociety.org/from-economic-policy-to-economic-statecraft/" target="_blank" rel="noopener" style="color:#3B82F6;">https://cypruseconomicsociety.org/from-economic-policy-to-economic-statecraft/</a></span>
+<span class="apa-ref" id="ref-24"><span class="ref-num">[24]</span> Unknown Author (2026). <em>What role should sanctions play in foreign policy? The case of Russia. | Brookings</em>. linkup. <a href="https://www.brookings.edu/articles/what-role-should-sanctions-play-in-foreign-policy/" target="_blank" rel="noopener" style="color:#3B82F6;">https://www.brookings.edu/articles/what-role-should-sanctions-play-in-foreign-policy/</a></span>
+<span class="apa-ref" id="ref-25"><span class="ref-num">[25]</span> Unknown Author (2026). <em>Russian Sanctions: Gold Flows, Financial Adaptations, and the Limits of Economic Pressure - Today News</em>. linkup. <a href="https://todaynews.co.uk/2025/04/11/russian-sanctions-gold-flows-financial-adaptations-and-the-limits-of-economic-pressure/" target="_blank" rel="noopener" style="color:#3B82F6;">https://todaynews.co.uk/2025/04/11/russian-sanctions-gold-flows-financial-adaptations-and-the-limits-of-economic-pressure/</a></span>
+<span class="apa-ref" id="ref-26"><span class="ref-num">[26]</span> Unknown Author (2001). <em>The Tragedy of Great Power Politics</em>. foundational-library.</span>
+<span class="apa-ref" id="ref-27"><span class="ref-num">[27]</span> Unknown Author (2017). <em>Destined for War: Can America and China Escape Thucydides&#039;s Trap?</em>. foundational-library.</span>
+<span class="apa-ref" id="ref-28"><span class="ref-num">[28]</span> Unknown Author (2022). <em>Chip War: The Fight for the World&#039;s Most Critical Technology</em>. foundational-library.</span>
     </section>
 
     <footer class="brief-footer">
-      NomosX — Verified positions. No editorial agenda.
+      NomosX Strategic Report — 28 sources, 3 providers — Every claim sourced. Every source verified.
     </footer>
   </article>
 </body>

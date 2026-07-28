@@ -95,6 +95,25 @@ async function main() {
   const { searchPersee } = await import('../lib/providers/persee');
   const { searchOpenAIRE } = await import('../lib/providers/openaire');
 
+  // NEW 2026 providers
+  const { searchOpenReview } = await import('../lib/providers/institutional/academic/openreview');
+  const { searchBioRxiv } = await import('../lib/providers/institutional/academic/biorxiv');
+  const { searchPapersWithCode } = await import('../lib/providers/institutional/academic/papers-with-code');
+  const { searchMITDSpace } = await import('../lib/providers/institutional/academic/mit-dspace');
+  const { searchHarvardDASH } = await import('../lib/providers/institutional/academic/harvard-dash');
+  const { searchMaxPlanckPuRe } = await import('../lib/providers/institutional/academic/max-planck-pure');
+  const { searchENTSOG } = await import('../lib/providers/institutional/energy/entsog');
+  const { searchEEA } = await import('../lib/providers/institutional/environmental/eea');
+  const { searchEnergyCharts } = await import('../lib/providers/institutional/energy/energy-charts');
+  const { searchSMARD } = await import('../lib/providers/institutional/energy/smard');
+  const { searchRTEFrance } = await import('../lib/providers/institutional/energy/rte-france');
+  const { searchEnergiDataService } = await import('../lib/providers/institutional/energy/energi-data');
+  const { searchFingrid } = await import('../lib/providers/institutional/energy/fingrid');
+  const { searchClinicalTrials } = await import('../lib/providers/institutional/health/clinical-trials');
+  const { searchISTAT } = await import('../lib/providers/institutional/government/istat');
+  const { searchOpenPrimitive } = await import('../lib/providers/institutional/government/open-primitive');
+  const { searchTreasuryFiscal } = await import('../lib/providers/institutional/government/treasury-fiscal');
+
   const tests: ProviderTest[] = [
     { name: 'openalex', category: 'academic', fn: () => searchOpenAlex(query, 5) },
     { name: 'crossref', category: 'academic', fn: () => searchCrossref(query, 5) },
@@ -134,6 +153,25 @@ async function main() {
     { name: 'fao', category: 'agriculture', fn: () => searchFAO(query, 5) },
     { name: 'unodc', category: 'criminology', fn: () => searchUNODC(query, 5) },
     { name: 'openaire', category: 'eu-science', fn: () => searchOpenAIRE(query, 5) },
+
+    // NEW 2026 providers
+    { name: 'openreview', category: 'new2026', fn: () => searchOpenReview(query, 5) },
+    { name: 'biorxiv', category: 'new2026', fn: () => searchBioRxiv(query, 5) },
+    { name: 'papers-with-code', category: 'new2026', fn: () => searchPapersWithCode(query, 5) },
+    { name: 'mit-dspace', category: 'new2026', fn: () => searchMITDSpace(query, 5) },
+    { name: 'harvard-dash', category: 'new2026', fn: () => searchHarvardDASH(query, 5) },
+    { name: 'max-planck-pure', category: 'new2026', fn: () => searchMaxPlanckPuRe(query, 5) },
+    { name: 'entsog', category: 'new2026', fn: () => searchENTSOG(query, 5) },
+    { name: 'eea', category: 'new2026', fn: () => searchEEA(query, 5) },
+    { name: 'energy-charts', category: 'new2026', fn: () => searchEnergyCharts(query, 5) },
+    { name: 'smard', category: 'new2026', fn: () => searchSMARD(query, 5) },
+    { name: 'rte-france', category: 'new2026', fn: () => searchRTEFrance(query, 5) },
+    { name: 'energi-data', category: 'new2026', fn: () => searchEnergiDataService(query, 5) },
+    { name: 'fingrid', category: 'new2026', fn: () => searchFingrid(query, 5) },
+    { name: 'clinical-trials', category: 'new2026', fn: () => searchClinicalTrials(query, 5) },
+    { name: 'istat', category: 'new2026', fn: () => searchISTAT(query, 5) },
+    { name: 'open-primitive', category: 'new2026', fn: () => searchOpenPrimitive(query, 5) },
+    { name: 'treasury-fiscal', category: 'new2026', fn: () => searchTreasuryFiscal(query, 5) },
   ];
 
   // Run non-OpenAlex tests in parallel, then OpenAlex-dependent ones sequentially
@@ -149,7 +187,7 @@ async function main() {
   }
 
   // Print results by category
-  const categories = ['academic', 'news', 'web', 'institutional', 'shs', 'education', 'agriculture', 'criminology', 'eu-science'];
+  const categories = ['academic', 'news', 'web', 'institutional', 'shs', 'education', 'agriculture', 'criminology', 'eu-science', 'new2026'];
   for (const cat of categories) {
     const catResults = results.filter(r => r.category === cat);
     if (catResults.length === 0) continue;

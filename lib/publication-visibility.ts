@@ -38,65 +38,63 @@ export type PublicationQualityRule = {
 };
 
 export const PUBLICATION_QUALITY_RULES: Record<string, PublicationQualityRule> = {
-  SUMMARY_BRIEF: {
-    minTrustScore: 75,
+  // ── Primary format 1: ARTICLE (Le Shift Project / LawZero style) ──
+  ARTICLE: {
+    minTrustScore: 65,
+    minQualityScore: 70,
+    minCitationCoverage: 0.60,
+    minWordCount: 3000,
+    minSourceCount: 15,
+  },
+  // ── Primary format 2: STRATEGIC REPORT (McKinsey / France Stratégie style) ──
+  STRATEGIC_REPORT: {
+    minTrustScore: 65,
     minQualityScore: 75,
-    minCitationCoverage: 0.72,
+    minCitationCoverage: 0.50,
+    minWordCount: 5000,
+    minSourceCount: 15,
+  },
+  // ── Signal format (breaking news) ──
+  SUMMARY_BRIEF: {
+    minTrustScore: 60,
+    minQualityScore: 65,
+    minCitationCoverage: 0.30,
     minWordCount: 700,
     minSourceCount: 5,
   },
-  UPDATE_NOTE: {
-    minTrustScore: 75,
-    minQualityScore: 75,
-    minCitationCoverage: 0.72,
-    minWordCount: 600,
-    minSourceCount: 3,
-  },
-  DATA_NOTE: {
-    minTrustScore: 75,
-    minQualityScore: 75,
-    minCitationCoverage: 0.75,
-    minWordCount: 900,
-    minSourceCount: 4,
-  },
-  POLICY_NOTE: {
-    minTrustScore: 78,
-    minQualityScore: 78,
-    minCitationCoverage: 0.75,
-    minWordCount: 1200,
-    minSourceCount: 8,
-  },
+  // ── Legacy aliases → map to ARTICLE rules ──
   RESEARCH_BRIEF: {
-    minTrustScore: 78,
-    minQualityScore: 78,
-    minCitationCoverage: 0.75,
-    minWordCount: 1500,
-    minSourceCount: 10,
+    minTrustScore: 65,
+    minQualityScore: 70,
+    minCitationCoverage: 0.60,
+    minWordCount: 3000,
+    minSourceCount: 15,
   },
   EXECUTIVE_BRIEF: {
-    minTrustScore: 78,
-    minQualityScore: 78,
-    minCitationCoverage: 0.75,
-    minWordCount: 1500,
-    minSourceCount: 10,
+    minTrustScore: 65,
+    minQualityScore: 70,
+    minCitationCoverage: 0.60,
+    minWordCount: 3000,
+    minSourceCount: 15,
   },
-  STRATEGIC_REPORT: {
-    minTrustScore: 80,
-    minQualityScore: 80,
-    minCitationCoverage: 0.78,
-    minWordCount: 3500,
-    minSourceCount: 20,
+  POLICY_NOTE: {
+    minTrustScore: 65,
+    minQualityScore: 70,
+    minCitationCoverage: 0.60,
+    minWordCount: 3000,
+    minSourceCount: 15,
   },
+  // ── Future format ──
   DOSSIER: {
-    minTrustScore: 82,
-    minQualityScore: 82,
-    minCitationCoverage: 0.8,
+    minTrustScore: 72,
+    minQualityScore: 78,
+    minCitationCoverage: 0.45,
     minWordCount: 8000,
     minSourceCount: 35,
   },
 };
 
-export const DEFAULT_PUBLICATION_QUALITY_RULE = PUBLICATION_QUALITY_RULES.RESEARCH_BRIEF;
+export const DEFAULT_PUBLICATION_QUALITY_RULE = PUBLICATION_QUALITY_RULES.ARTICLE;
 
 export function getPublicationQualityRule(type?: string | null) {
   return PUBLICATION_QUALITY_RULES[type || ""] || DEFAULT_PUBLICATION_QUALITY_RULE;

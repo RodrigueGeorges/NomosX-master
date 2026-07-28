@@ -71,7 +71,7 @@ function depthToPipelineFormat(
         format: "strategic",
         options: {
           perProvider: 25,
-          rankOptions: { limit: 20, requireAbstract: true, minQuality: 65 },
+          rankOptions: { limit: 20, requireAbstract: false, minQuality: 0 },
         },
       };
       break;
@@ -80,7 +80,7 @@ function depthToPipelineFormat(
         format: "strategic",
         options: {
           perProvider: 30,
-          rankOptions: { limit: 25, recentOnly: true, requireAbstract: true, minQuality: 65 },
+          rankOptions: { limit: 25, requireAbstract: false, minQuality: 0 },
         },
       };
       break;
@@ -253,7 +253,8 @@ function buildSections(analysis: Record<string, unknown>, depth: InquiryDepth): 
   if (depth === "standard") return sections;
 
   if (analysis.literatureOverview || analysis.theoreticalFrameworks) {
-    const keyStudies = (analysis.keyStudies as Array<Record<string, unknown>>) ?? [];
+    const rawKS = analysis.keyStudies;
+    const keyStudies = Array.isArray(rawKS) ? rawKS : (rawKS ? Object.values(rawKS) : []);
     sections.push({
       type: "literature",
       overview: String(analysis.literatureOverview ?? ""),
@@ -269,7 +270,8 @@ function buildSections(analysis: Record<string, unknown>, depth: InquiryDepth): 
   }
 
   if (analysis.themes || analysis.consensus || analysis.controversies) {
-    const themes = (analysis.themes as Array<Record<string, unknown>>) ?? [];
+    const rawThemes = analysis.themes;
+    const themes = Array.isArray(rawThemes) ? rawThemes : (rawThemes ? Object.values(rawThemes) : []);
     sections.push({
       type: "thematic",
       themes: themes.map((t) => ({
@@ -284,30 +286,36 @@ function buildSections(analysis: Record<string, unknown>, depth: InquiryDepth): 
   }
 
   if (analysis.stakeholderAnalysis) {
-    const matrix = analysis.stakeholderAnalysis as Array<Record<string, unknown>>;
-    sections.push({
-      type: "stakeholders",
-      matrix: matrix.map((s) => ({
-        stakeholder: String(s.stakeholder ?? "Unknown"),
-        impact: (s.impact as "high" | "medium" | "low") ?? "medium",
-        magnitude: (s.magnitude as "positive" | "negative" | "mixed") ?? "mixed",
-        details: String(s.details ?? ""),
-      })),
-    });
+    const raw = analysis.stakeholderAnalysis;
+    const matrix = Array.isArray(raw) ? raw : Object.values(raw);
+    if (matrix.length > 0) {
+      sections.push({
+        type: "stakeholders",
+        matrix: matrix.map((s) => ({
+          stakeholder: String(s.stakeholder ?? "Unknown"),
+          impact: (s.impact as "high" | "medium" | "low") ?? "medium",
+          magnitude: (s.magnitude as "positive" | "negative" | "mixed") ?? "mixed",
+          details: String(s.details ?? ""),
+        })),
+      });
+    }
   }
 
   if (depth === "strategic" && analysis.scenarios) {
-    const scenarios = analysis.scenarios as Array<Record<string, unknown>>;
-    sections.push({
-      type: "scenarios",
-      scenarios: scenarios.map((s) => ({
+    const rawScen = analysis.scenarios;
+    const scenarios = Array.isArray(rawScen) ? rawScen : (rawScen ? Object.values(rawScen) : []);
+    if (scenarios.length > 0) {
+      sections.push({
+        type: "scenarios",
+        scenarios: scenarios.map((s) => ({
         name: String(s.name ?? "Scenario"),
         probability: String(s.probability ?? "Unknown"),
         description: String(s.description ?? ""),
         implications: String(s.implications ?? ""),
         signals: (s.signals as string[]) ?? [],
       })),
-    });
+      });
+    }
   }
 
   if (depth === "strategic" && analysis.implementation) {

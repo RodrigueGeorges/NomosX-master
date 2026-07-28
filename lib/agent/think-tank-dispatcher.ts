@@ -168,7 +168,7 @@ function breakingDecisionToItem(decision: EditorialDecision): ThinkTankDispatchI
   const leadResearcher = decision.classification.researchers[0];
 
   return {
-    question: decision.topic.title,
+    question: decision.researchQuestion?.trim() || decision.topic.title,
     depth: decision.priority >= 80 ? "strategic" : "standard",
     domain: decision.classification.primaryDomain,
     verticalSlug: decision.classification.verticalSlug,
@@ -185,6 +185,7 @@ function breakingDecisionToItem(decision: EditorialDecision): ThinkTankDispatchI
       collaborators: decision.classification.researchers.slice(1).map((r) => r.profile.name),
       radarSource: decision.topic.sourceType,
       radarScore: decision.topic.score,
+      originalHeadline: decision.topic.title,
     },
   };
 }
@@ -329,7 +330,7 @@ async function collectWeeklyItems(
       items.push({
         question: signal.title,
         depth: publicationTypeToDepth(
-          signal.priorityScore >= 85 ? "STRATEGIC_REPORT" : "EXECUTIVE_BRIEF"
+          signal.priorityScore >= 85 ? "STRATEGIC_REPORT" : "ARTICLE"
         ),
         verticalId: signal.verticalId,
         signalId: signal.id,
@@ -351,7 +352,8 @@ async function executeDispatchQueue(
   items: ThinkTankDispatchItem[],
   cadence: CadenceState,
   maxExecutions: number,
-  dryRun: boolean
+  dryRun: boolean,
+  budgetUsd?: number
 ): Promise<{
   outcomes: ThinkTankDispatchOutcome[];
   published: number;
@@ -373,6 +375,9 @@ async function executeDispatchQueue(
   let failed = 0;
   let totalCostUsd = 0;
   let executed = 0;
+
+  // Dispatch timeout must exceed pipeline timeout (2400s) to avoid race conditions
+  const DISPATCH_TIMEOUT_MS = 2_700_000; // 45min — pipeline is 40min + 5min buffer
 
   for (const item of items) {
     if (executed >= maxExecutions) break;
@@ -402,6 +407,13 @@ async function executeDispatchQueue(
 
     const source = item.strategy === "breaking" ? "auto-scan" : "generate-briefs";
 
+    // Cumulative budget guard — stop dispatching if we've exceeded the budget
+    if (budgetUsd && totalCostUsd >= budgetUsd) {
+      console.log(`[ThinkTank] Budget exhausted ($${totalCostUsd.toFixed(4)} >= $${budgetUsd}) — skipping remaining ${items.length - executed} item(s)`);
+      skipped += items.length - executed;
+      break;
+    }
+
     const result = await Promise.race([
       runAndPublishInquiry({
         question: item.question,
@@ -419,7 +431,7 @@ async function executeDispatchQueue(
         metadata: { strategy: item.strategy, ...item.metadata },
       }),
       new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error("runAndPublishInquiry timed out (1800s)")), 1_800_000)
+        setTimeout(() => reject(new Error(`runAndPublishInquiry timed out (${DISPATCH_TIMEOUT_MS / 1000}s)`)), DISPATCH_TIMEOUT_MS)
       ),
     ]).catch((err: unknown) => {
       const message = err instanceof Error ? err.message : String(err);
@@ -430,7 +442,7 @@ async function executeDispatchQueue(
         qualityScore: 0,
         wordCount: 0,
         costUsd: 0,
-        durationMs: 1_800_000,
+        durationMs: DISPATCH_TIMEOUT_MS,
         error: message,
       };
     });
@@ -450,14 +462,35 @@ async function executeDispatchQueue(
           .update({ where: { id: item.signalId }, data: { status: "PUBLISHED" } })
           .catch(() => undefined);
       }
-    } else if (result.status === "skipped_duplicate" || result.status === "skipped_dry_run") {
+    } else if (result.status === "skipped_duplicate") {
       skipped++;
+      // Duplicate means topic already published — mark signal as handled
+      if (item.signalId) {
+        await prisma.signal
+          .update({ where: { id: item.signalId }, data: { status: "HELD" } })
+          .catch(() => undefined);
+      }
+    } else if (result.status === "skipped_dry_run") {
+      skipped++;
+      // Dry run — don't change signal status
     } else if (result.status === "failed") {
       failed++;
       errors.push(`"${item.question.slice(0, 40)}": ${result.error ?? "unknown"}`);
+      // Mark signal as HELD so it doesn't get infinitely retried
+      if (item.signalId) {
+        await prisma.signal
+          .update({ where: { id: item.signalId }, data: { status: "HELD" } })
+          .catch(() => undefined);
+      }
     } else {
       held++;
       topics.push(item.question);
+      // Mark signal as HELD — pipeline ran but publication gate held it
+      if (item.signalId) {
+        await prisma.signal
+          .update({ where: { id: item.signalId }, data: { status: "HELD" } })
+          .catch(() => undefined);
+      }
     }
 
     // Throttle between heavy pipeline runs
@@ -532,7 +565,8 @@ export async function runThinkTankCycle(
   console.log(`[ThinkTank] Dispatching ${items.length} item(s), max execute=${maxExecutions}`);
 
   const delegateStart = Date.now();
-  const dispatch = await executeDispatchQueue(items, cadence, maxExecutions, !!options.dryRun);
+  const dispatchBudgetUsd = options.budgetUsd ?? (options.mode === "breaking" ? DEFAULT_BREAKING_BUDGET_USD : undefined);
+  const dispatch = await executeDispatchQueue(items, cadence, maxExecutions, !!options.dryRun, dispatchBudgetUsd);
   const delegateMs = Date.now() - delegateStart;
 
   if (phases) {
@@ -604,7 +638,7 @@ export async function getThinkTankStatus() {
     last7d: {
       totalPublications: recentPubs.length,
       byType: {
-        executive: recentPubs.filter((p) => p.type === "EXECUTIVE_BRIEF").length,
+        article: recentPubs.filter((p) => p.type === "ARTICLE" || p.type === "EXECUTIVE_BRIEF" || p.type === "RESEARCH_BRIEF").length,
         strategic: recentPubs.filter((p) => p.type === "STRATEGIC_REPORT").length,
         summary: recentPubs.filter((p) => p.type === "SUMMARY_BRIEF").length,
       },

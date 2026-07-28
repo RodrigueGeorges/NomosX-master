@@ -440,6 +440,10 @@ function convertToHTML(markdown: string): string {
   // In a real implementation, use a proper markdown library
   
   let html = markdown;
+
+  // Remove Markdown heading anchors before converting headings so section names
+  // remain machine-detectable and are not exposed as visible text.
+  html = html.replace(/\s+\{#[^}]+\}/g, '');
   
   // Convert headers
   html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');

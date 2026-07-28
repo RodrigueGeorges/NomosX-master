@@ -8,6 +8,7 @@ export function formatTypeToReportFormat(formatType?: string | null): ReportForm
     case 'DOSSIER':
       return 'dossier';
     default:
+      // ARTICLE, RESEARCH_BRIEF, EXECUTIVE_BRIEF, POLICY_NOTE all map to 'brief'
       return 'brief';
   }
 }

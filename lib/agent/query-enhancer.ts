@@ -89,6 +89,8 @@ RULES:
 7. CRITICAL: Maintain topic consistency - all variations must relate to the same core theme
 8. AVOID drifting to unrelated topics (e.g., from AI employment to carbon taxation)
 9. Ensure all keywords and variations are semantically related to the original query intent
+10. CRITICAL: Preserve ALL geographic qualifiers (Europe, European, EU, France, Germany, Nordic, etc.) in the enhanced query AND at least 2 variations. If the query mentions "European", the enhanced query MUST include "European" or "Europe".
+11. CRITICAL: Preserve domain-specific entities (AI, datacenter, grid, hyperscaler, etc.) — do not replace them with generic terms like "infrastructure".
 
 EXAMPLES:
 
@@ -181,8 +183,24 @@ function validateSemanticConsistency(originalQuery: string, enhanced: any): { is
     'climate economics': ['carbon', 'climate', 'tax', 'pricing', 'emission', 'environmental', 'greenhouse'],
     'cybersecurity': ['security', 'cyber', 'vulnerability', 'cve', 'threat', 'attack', 'breach'],
     'biotechnology': ['crispr', 'genetic', 'biotech', 'diagnostic', 'medical', 'health'],
-    'quantum': ['quantum', 'computing', 'algorithm', 'physics', 'entanglement']
+    'quantum': ['quantum', 'computing', 'algorithm', 'physics', 'entanglement'],
+    'energy grid': ['energy', 'electricity', 'grid', 'power', 'transmission', 'renewable', 'datacenter', 'data center', 'hyperscaler', 'ai', 'artificial intelligence', 'load', 'capacity', 'infrastructure'],
   };
+
+  // Geographic entities that MUST be preserved in enhanced queries
+  const geoEntities = ['europe', 'european', 'eu', 'france', 'germany', 'uk', 'britain', 'asia', 'china', 'india', 'africa', 'middle east', 'norway', 'nordic', 'iberia', 'spain', 'italy', 'poland'];
+  const originalGeo = geoEntities.filter(g => originalLower.includes(g));
+  if (originalGeo.length > 0) {
+    const enhancedText = (enhancedLower + ' ' + variations.join(' ')).toLowerCase();
+    const preservedGeo = originalGeo.filter(g => enhancedText.includes(g));
+    if (preservedGeo.length < originalGeo.length) {
+      const missing = originalGeo.filter(g => !preservedGeo.includes(g));
+      return {
+        isValid: false,
+        issue: `Enhanced query dropped geographic qualifier(s): ${missing.join(', ')}`
+      };
+    }
+  }
   
   // Detect original topic domain
   let originalDomain = '';

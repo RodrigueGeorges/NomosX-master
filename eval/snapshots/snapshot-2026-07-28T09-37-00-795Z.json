@@ -1,0 +1,357 @@
+{
+  "timestamp": "2026-07-28T09:37:00.795Z",
+  "gitSha": "unknown",
+  "gitBranch": "unknown",
+  "pipelineConfig": {
+    "minTrustScore": 60,
+    "depth": "varies per topic",
+    "skipDuplicateCheck": true,
+    "groundingVetoThreshold": 0.5,
+    "citationCoverageHardFailure": true,
+    "factCheckerDeterministicPreCheck": true,
+    "note": "Config captured at eval time. WO-8 will raise thresholds."
+  },
+  "fast": true,
+  "repeats": 1,
+  "topicAggregates": [
+    {
+      "topicId": "topic-1-carbon-pricing",
+      "statuses": [
+        "review"
+      ],
+      "metricStats": {
+        "groundingRate": {
+          "mean": 0.391304347826087,
+          "stddev": 0,
+          "min": 0.391304347826087,
+          "max": 0.391304347826087,
+          "n": 1
+        },
+        "primarySourceRatio": {
+          "mean": 1,
+          "stddev": 0,
+          "min": 1,
+          "max": 1,
+          "n": 1
+        },
+        "tier4Ratio": {
+          "mean": 0,
+          "stddev": 0,
+          "min": 0,
+          "max": 0,
+          "n": 1
+        },
+        "unclassifiedRatio": {
+          "mean": 0.6333333333333333,
+          "stddev": 0,
+          "min": 0.6333333333333333,
+          "max": 0.6333333333333333,
+          "n": 1
+        },
+        "channelCoverage": {
+          "mean": 0,
+          "stddev": 0,
+          "min": 0,
+          "max": 0,
+          "n": 1
+        },
+        "gapResolutionRate": {
+          "mean": 0,
+          "stddev": 0,
+          "min": 0,
+          "max": 0,
+          "n": 1
+        },
+        "hypothesisResolved": {
+          "mean": 0.5,
+          "stddev": 0,
+          "min": 0.5,
+          "max": 0.5,
+          "n": 1
+        },
+        "inconclusiveRate": {
+          "mean": 0.25,
+          "stddev": 0,
+          "min": 0.25,
+          "max": 0.25,
+          "n": 1
+        },
+        "internalConsistency": {
+          "mean": 0,
+          "stddev": 0,
+          "min": 0,
+          "max": 0,
+          "n": 1
+        },
+        "costUsd": {
+          "mean": 0.36838589999999966,
+          "stddev": 0,
+          "min": 0.36838589999999966,
+          "max": 0.36838589999999966,
+          "n": 1
+        },
+        "durationMs": {
+          "mean": 2207681,
+          "stddev": 0,
+          "min": 2207681,
+          "max": 2207681,
+          "n": 1
+        }
+      },
+      "refusalCorrectnessRate": 0,
+      "runs": [
+        {
+          "topicId": "topic-1-carbon-pricing",
+          "status": "review",
+          "metrics": {
+            "groundingRate": 0.391304347826087,
+            "primarySourceRatio": 1,
+            "tier4Ratio": 0,
+            "unclassifiedRatio": 0.6333333333333333,
+            "channelCoverage": 0,
+            "gapResolutionRate": 0,
+            "hypothesisResolved": 0.5,
+            "inconclusiveRate": 0.25,
+            "refusalCorrectness": false,
+            "internalConsistency": 0,
+            "costUsd": 0.36838589999999966,
+            "durationMs": 2207681
+          },
+          "rawHtml": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n  <meta name=\"generator\" content=\"NomosX Agentic Think Tank\">\n  <title>Carbon Pricing and EU Industry Competitiveness: Ex-Post Evidence and Strategic Implications</title>\n  \n<style>\n  :root {\n    --bg: #000000;\n    --bg-card: #0a0a0a;\n    --bg-elevated: #141414;\n    --text: #e4e4e7;\n    --text-muted: #a1a1aa;\n    --text-dim: #52525b;\n    --accent: #ffffff;\n   ",
+          "sourceCount": 30,
+          "wordCount": 7463
+        }
+      ]
+    },
+    {
+      "topicId": "topic-2-lithium-reserves",
+      "statuses": [
+        "held"
+      ],
+      "metricStats": {
+        "groundingRate": {
+          "mean": 0,
+          "stddev": 0,
+          "min": 0,
+          "max": 0,
+          "n": 1
+        },
+        "primarySourceRatio": {
+          "mean": 1,
+          "stddev": 0,
+          "min": 1,
+          "max": 1,
+          "n": 1
+        },
+        "tier4Ratio": {
+          "mean": 0,
+          "stddev": 0,
+          "min": 0,
+          "max": 0,
+          "n": 1
+        },
+        "unclassifiedRatio": {
+          "mean": 0.38095238095238093,
+          "stddev": 0,
+          "min": 0.38095238095238093,
+          "max": 0.38095238095238093,
+          "n": 1
+        },
+        "channelCoverage": {
+          "mean": 0,
+          "stddev": 0,
+          "min": 0,
+          "max": 0,
+          "n": 1
+        },
+        "gapResolutionRate": {
+          "mean": 0,
+          "stddev": 0,
+          "min": 0,
+          "max": 0,
+          "n": 1
+        },
+        "hypothesisResolved": {
+          "mean": 0,
+          "stddev": 0,
+          "min": 0,
+          "max": 0,
+          "n": 1
+        },
+        "inconclusiveRate": {
+          "mean": 1,
+          "stddev": 0,
+          "min": 1,
+          "max": 1,
+          "n": 1
+        },
+        "internalConsistency": {
+          "mean": 0,
+          "stddev": 0,
+          "min": 0,
+          "max": 0,
+          "n": 1
+        },
+        "costUsd": {
+          "mean": 0.2993875199999993,
+          "stddev": 0,
+          "min": 0.2993875199999993,
+          "max": 0.2993875199999993,
+          "n": 1
+        },
+        "durationMs": {
+          "mean": 1776871,
+          "stddev": 0,
+          "min": 1776871,
+          "max": 1776871,
+          "n": 1
+        }
+      },
+      "refusalCorrectnessRate": 1,
+      "runs": [
+        {
+          "topicId": "topic-2-lithium-reserves",
+          "status": "held",
+          "metrics": {
+            "groundingRate": 0,
+            "primarySourceRatio": 1,
+            "tier4Ratio": 0,
+            "unclassifiedRatio": 0.38095238095238093,
+            "channelCoverage": 0,
+            "gapResolutionRate": 0,
+            "hypothesisResolved": 0,
+            "inconclusiveRate": 1,
+            "refusalCorrectness": true,
+            "internalConsistency": 0,
+            "costUsd": 0.2993875199999993,
+            "durationMs": 1776871
+          },
+          "rawHtml": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n  <meta name=\"generator\" content=\"NomosX Agentic Think Tank\">\n  <title>Lithium Reserves in the Democratic Republic of Congo: Current Status and Strategic Implications</title>\n  \n<style>\n  :root {\n    --bg: #000000;\n    --bg-card: #0a0a0a;\n    --bg-elevated: #141414;\n    --text: #e4e4e7;\n    --text-muted: #a1a1aa;\n    --text-dim: #52525b;\n    --accent: #ffffff;",
+          "sourceCount": 21,
+          "wordCount": 3315
+        }
+      ]
+    },
+    {
+      "topicId": "topic-5-regression",
+      "statuses": [
+        "held"
+      ],
+      "metricStats": {
+        "groundingRate": {
+          "mean": 0.5675675675675675,
+          "stddev": 0,
+          "min": 0.5675675675675675,
+          "max": 0.5675675675675675,
+          "n": 1
+        },
+        "primarySourceRatio": {
+          "mean": 1,
+          "stddev": 0,
+          "min": 1,
+          "max": 1,
+          "n": 1
+        },
+        "tier4Ratio": {
+          "mean": 0,
+          "stddev": 0,
+          "min": 0,
+          "max": 0,
+          "n": 1
+        },
+        "unclassifiedRatio": {
+          "mean": 0.17857142857142858,
+          "stddev": 0,
+          "min": 0.17857142857142858,
+          "max": 0.17857142857142858,
+          "n": 1
+        },
+        "channelCoverage": {
+          "mean": 0,
+          "stddev": 0,
+          "min": 0,
+          "max": 0,
+          "n": 1
+        },
+        "gapResolutionRate": {
+          "mean": 0,
+          "stddev": 0,
+          "min": 0,
+          "max": 0,
+          "n": 1
+        },
+        "hypothesisResolved": {
+          "mean": 0,
+          "stddev": 0,
+          "min": 0,
+          "max": 0,
+          "n": 1
+        },
+        "inconclusiveRate": {
+          "mean": 0.75,
+          "stddev": 0,
+          "min": 0.75,
+          "max": 0.75,
+          "n": 1
+        },
+        "internalConsistency": {
+          "mean": 1,
+          "stddev": 0,
+          "min": 1,
+          "max": 1,
+          "n": 1
+        },
+        "costUsd": {
+          "mean": 0.25444945999999985,
+          "stddev": 0,
+          "min": 0.25444945999999985,
+          "max": 0.25444945999999985,
+          "n": 1
+        },
+        "durationMs": {
+          "mean": 2148970,
+          "stddev": 0,
+          "min": 2148970,
+          "max": 2148970,
+          "n": 1
+        }
+      },
+      "refusalCorrectnessRate": 0,
+      "runs": [
+        {
+          "topicId": "topic-5-regression",
+          "status": "held",
+          "metrics": {
+            "groundingRate": 0.5675675675675675,
+            "primarySourceRatio": 1,
+            "tier4Ratio": 0,
+            "unclassifiedRatio": 0.17857142857142858,
+            "channelCoverage": 0,
+            "gapResolutionRate": 0,
+            "hypothesisResolved": 0,
+            "inconclusiveRate": 0.75,
+            "refusalCorrectness": false,
+            "internalConsistency": 1,
+            "costUsd": 0.25444945999999985,
+            "durationMs": 2148970
+          },
+          "rawHtml": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n  <meta name=\"generator\" content=\"NomosX Agentic Think Tank\">\n  <title>US Sanctions on Russia and Strategic Alignment of Global South Countries: A Comprehensive Analysis</title>\n  \n<style>\n  :root {\n    --bg: #000000;\n    --bg-card: #0a0a0a;\n    --bg-elevated: #141414;\n    --text: #e4e4e7;\n    --text-muted: #a1a1aa;\n    --text-dim: #52525b;\n    --accent: #ffff",
+          "sourceCount": 28,
+          "wordCount": 6714
+        }
+      ]
+    }
+  ],
+  "aggregate": {
+    "avgGroundingRate": 0.3196239717978848,
+    "avgPrimarySourceRatio": 1,
+    "avgTier4Ratio": 0,
+    "avgUnclassifiedRatio": 0.3976190476190476,
+    "avgHypothesisResolved": 0.16666666666666666,
+    "avgInconclusiveRate": 0.6666666666666666,
+    "refusalAccuracy": 0.3333333333333333,
+    "totalCostUsd": 0.9222228799999987,
+    "totalDurationMs": 6133522,
+    "internalConsistencyViolations": 1
+  }
+}

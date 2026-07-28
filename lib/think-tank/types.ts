@@ -31,29 +31,32 @@ export const SIGNAL_STATUSES = [
 export type SignalStatus = typeof SIGNAL_STATUSES[number];
 
 export const PUBLICATION_TYPES = [
-  // 3-Tier Model
-  "SUMMARY_BRIEF",     // FREE tier - 1 page summaries
-  "EXECUTIVE_BRIEF",   // EXECUTIVE tier - 2-3 pages
-  "STRATEGIC_REPORT",  // STRATEGY tier - 10-15 pages
-  // Legacy formats (backward compatibility)
-  "RESEARCH_BRIEF",     // Maps to EXECUTIVE_BRIEF
-  "UPDATE_NOTE",       // Maps to EXECUTIVE_BRIEF
-  "DATA_NOTE",         // Maps to EXECUTIVE_BRIEF
-  "POLICY_NOTE",       // Maps to EXECUTIVE_BRIEF
-  "DOSSIER"            // Maps to STRATEGIC_REPORT
+  // 2 Primary formats
+  "ARTICLE",           // Le Shift Project / LawZero style — 3,000-5,000 words
+  "STRATEGIC_REPORT",  // McKinsey / France Stratégie style — 5,000-10,000 words
+  // Signal format (breaking news)
+  "SUMMARY_BRIEF",     // 700-1,500 words
+  // Legacy formats (backward compatibility, map to ARTICLE)
+  "RESEARCH_BRIEF",
+  "EXECUTIVE_BRIEF",
+  "UPDATE_NOTE",
+  "DATA_NOTE",
+  "POLICY_NOTE",
+  "DOSSIER"
 ] as const;
 
 export type PublicationType = typeof PUBLICATION_TYPES[number];
 
 // Primary format mapping
-export const FORMAT_MAPPING: Record<string, "SUMMARY_BRIEF" | "EXECUTIVE_BRIEF" | "STRATEGIC_REPORT"> = {
-  SUMMARY_BRIEF: "SUMMARY_BRIEF",
-  EXECUTIVE_BRIEF: "EXECUTIVE_BRIEF",
+export const FORMAT_MAPPING: Record<string, "ARTICLE" | "STRATEGIC_REPORT" | "SUMMARY_BRIEF"> = {
+  ARTICLE: "ARTICLE",
   STRATEGIC_REPORT: "STRATEGIC_REPORT",
-  RESEARCH_BRIEF: "EXECUTIVE_BRIEF",
-  UPDATE_NOTE: "EXECUTIVE_BRIEF",
-  DATA_NOTE: "EXECUTIVE_BRIEF",
-  POLICY_NOTE: "EXECUTIVE_BRIEF",
+  SUMMARY_BRIEF: "SUMMARY_BRIEF",
+  RESEARCH_BRIEF: "ARTICLE",
+  EXECUTIVE_BRIEF: "ARTICLE",
+  UPDATE_NOTE: "SUMMARY_BRIEF",
+  DATA_NOTE: "SUMMARY_BRIEF",
+  POLICY_NOTE: "ARTICLE",
   DOSSIER: "STRATEGIC_REPORT",
 };
 

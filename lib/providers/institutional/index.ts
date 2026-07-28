@@ -40,6 +40,30 @@ export { searchArchivesNationalesFR } from './archives/archives-nationales-fr';
 export { searchIAEA } from './energy/iaea';
 export { searchIRENA } from './energy/irena';
 export { searchCEA } from './french/cea';
+export { searchENTSOE } from './energy/entsoe';
+export { searchJRC } from './energy/jrc';
+export { searchIEA } from './energy/iea';
+export { searchACER } from './energy/acer';
+export { searchENTSOG } from './energy/entsog';
+export { searchEnergyCharts } from './energy/energy-charts';
+export { searchSMARD } from './energy/smard';
+export { searchRTEFrance } from './energy/rte-france';
+export { searchEnergiDataService } from './energy/energi-data';
+export { searchFingrid } from './energy/fingrid';
+
+// ENVIRONMENTAL
+export { searchEEA } from './environmental/eea';
+
+// THINK TANKS
+export { searchBruegel } from './think_tanks/bruegel';
+
+// ACADEMIC — INDEPENDENT APIs
+export { searchOpenReview } from './academic/openreview';
+export { searchBioRxiv } from './academic/biorxiv';
+export { searchPapersWithCode } from './academic/papers-with-code';
+export { searchMITDSpace } from './academic/mit-dspace';
+export { searchHarvardDASH } from './academic/harvard-dash';
+export { searchMaxPlanckPuRe } from './academic/max-planck-pure';
 
 // ECONOMICS — EXTENDED
 export { searchECB } from './economics/ecb';
@@ -53,6 +77,12 @@ export { searchEMA } from './health/ema';
 export { searchINSERM } from './health/inserm';
 export { searchECDC } from './health/ecdc';
 export { searchCochrane } from './health/cochrane';
+export { searchClinicalTrials } from './health/clinical-trials';
+
+// GOVERNMENT — OPEN DATA
+export { searchISTAT } from './government/istat';
+export { searchOpenPrimitive } from './government/open-primitive';
+export { searchTreasuryFiscal } from './government/treasury-fiscal';
 
 // ENVIRONMENT
 export { searchINRAE } from './french/inrae';

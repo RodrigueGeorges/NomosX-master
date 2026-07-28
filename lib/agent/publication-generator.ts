@@ -56,23 +56,23 @@ interface PipelineLineage {
 
 function selectPublicationType(signalType: string, sourceCount = 0): PublicationType {
   // SUMMARY_BRIEF: quick factual updates, few sources
-  // EXECUTIVE_BRIEF: decision-grade analysis, standard depth
+  // ARTICLE: decision-grade analysis, standard depth
   // STRATEGIC_REPORT: major structural shifts, deep research base
   switch (signalType) {
     case "DATA_RELEASE":
-      return sourceCount >= 8 ? "EXECUTIVE_BRIEF" : "SUMMARY_BRIEF";
+      return sourceCount >= 8 ? "ARTICLE" : "SUMMARY_BRIEF";
     case "POLICY_CHANGE":
-      return "EXECUTIVE_BRIEF";
+      return "ARTICLE";
     case "CONTRADICTION":
-      return "EXECUTIVE_BRIEF";
+      return "ARTICLE";
     case "TREND_BREAK":
-      return sourceCount >= 12 ? "STRATEGIC_REPORT" : "EXECUTIVE_BRIEF";
+      return sourceCount >= 12 ? "STRATEGIC_REPORT" : "ARTICLE";
     case "METHODOLOGY_SHIFT":
       return "STRATEGIC_REPORT";
     case "NEW_EVIDENCE":
-      return sourceCount >= 10 ? "EXECUTIVE_BRIEF" : "SUMMARY_BRIEF";
+      return sourceCount >= 10 ? "ARTICLE" : "SUMMARY_BRIEF";
     default:
-      return "EXECUTIVE_BRIEF";
+      return "ARTICLE";
   }
 }
 
@@ -231,13 +231,14 @@ ${sources.map((s, i) => {
 
 function formatPublicationType(type: string): string {
   const formats: Record<string, string> = {
-    SUMMARY_BRIEF: "Summary Brief",
-    EXECUTIVE_BRIEF: "Executive Brief",
+    ARTICLE: "Article",
+    SUMMARY_BRIEF: "Signal Brief",
     STRATEGIC_REPORT: "Strategic Report",
-    RESEARCH_BRIEF: "Research Brief",
-    UPDATE_NOTE: "Update Note",
-    DATA_NOTE: "Data Note",
-    POLICY_NOTE: "Policy Note",
+    RESEARCH_BRIEF: "Article",
+    EXECUTIVE_BRIEF: "Article",
+    UPDATE_NOTE: "Signal Brief",
+    DATA_NOTE: "Signal Brief",
+    POLICY_NOTE: "Article",
     DOSSIER: "Dossier",
   };
   return formats[type] || type;
@@ -439,7 +440,7 @@ export async function generatePublication(
       agentStats.push({ name: "devils-advocate", durationMs: 0, costUsd: 0, status: "error" });
     }
 
-    // ── STEP 6: Calculate trust score (DA publishabilityScore takes priority) ──
+    // ── STEP 6: Calculate trust score (composite: critical loop + source quality + citations) ──
     const avgSourceQuality = sources.length > 0
       ? sources.reduce((sum, s) => sum + (s.qualityScore || 0), 0) / sources.length
       : 0;
@@ -448,8 +449,10 @@ export async function generatePublication(
       avgSourceQuality * 0.3 +
       (citationCoverage * 100) * 0.2
     );
-    // Devil's Advocate publishabilityScore is more rigorous — use it when available
-    const trustScore = daReport?.publishabilityScore ?? rawTrustScore;
+    // Critical loop composite already incorporates adversarial review (35% weight).
+    // DA publishabilityScore is a publishability gate metric, not a trust score —
+    // it's passed separately to the publication gate via devilsAdvocateScore.
+    const trustScore = rawTrustScore || daReport?.publishabilityScore || 70;
 
     const sourceIds = signal.sourceIds || sources.map((source: any) => source.id).filter(Boolean);
     const publicationGate = evaluatePublicationGate({

@@ -30,7 +30,7 @@ function StudioPageContent() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [sessionChecked, setSessionChecked] = useState(false);
   const [hasSession, setHasSession] = useState(false);
-  const [selectedFormat, setSelectedFormat] = useState<PublicationFormatType>('POLICY_NOTE');
+  const [selectedFormat, setSelectedFormat] = useState<PublicationFormatType>('ARTICLE');
   const [selectedMode, setSelectedMode] = useState('COMMISSION');
   const [audience, setAudience] = useState('Decision-makers');
   const [urgency, setUrgency] = useState('Standard');
@@ -69,7 +69,7 @@ function StudioPageContent() {
       if (cancelled) return;
 
       setQuestion(order.question ?? '');
-      setSelectedFormat((order.formatType as PublicationFormatType) ?? 'RESEARCH_BRIEF');
+      setSelectedFormat((order.formatType as PublicationFormatType) ?? 'ARTICLE');
       setSelectedMode(order.mode ?? 'COMMISSION');
       if (order.audience) setAudience(order.audience);
       if (order.urgency) setUrgency(order.urgency);

@@ -1,16 +1,15 @@
 /**
- * ANALYST Agent V3 — Multi-Pass Deep Analysis
- * 
- * Instead of a single LLM call, this agent performs 3 sequential passes:
- * 
- * PASS 1 — THEMATIC MAPPING: Identify themes, group sources, extract data points
- * PASS 2 — CONTRADICTION DETECTION: Find conflicts, assess evidence strength, rank claims
- * PASS 3 — SYNTHESIS: Produce final analysis using structured insights from passes 1-2
- * 
- * This mimics how a PhD researcher actually works:
- * 1. First read and categorize all sources
- * 2. Then compare and find contradictions
- * 3. Finally synthesize into a coherent argument
+ * ANALYST Agent V3 — Prospective Multi-Pass Analysis
+ *
+ * NomosX does not produce analyses of topics. It isolates the strongest,
+ * most non-obvious cross-domain causal chain, refutes it until it breaks
+ * or holds, extrapolates its trajectory toward a dated future, and takes
+ * ONE position — rendered in institute prose where the machinery stays
+ * invisible.
+ *
+ * PASS 1 — FRICTION MAPPING: Extract mechanisms with trajectory, identify cross-domain collisions
+ * PASS 2 — STRESS TEST: Try to break every mechanism and collision, trace temporal chaining
+ * PASS 3 — PROSPECTIVE SYNTHESIS: Build the causal chain argument with warrants, take position
  */
 
 import { callLLM } from '../llm/unified-llm';
@@ -24,85 +23,118 @@ import { MULTI_DOMAIN_CORPUS } from '../knowledge/multi-domain-corpus';
 // TYPES
 // ============================================================================
 
-export interface ThematicMap {
-  themes: Array<{
-    name: string;
+export type TemporalStatus = "present_fact" | "active_mechanism" | "future_extrapolation";
+
+export interface FrictionMap {
+  mechanisms: Array<{
+    id: number;
     description: string;
-    sources: string[];           // [SRC-N] references
-    dataPoints: string[];        // Specific numbers, percentages, effect sizes
-    methodologies: string[];     // Methods used by sources in this theme
-    confidence: "high" | "medium" | "low";
+    domain: string;
+    crossDomainEffects: string;
+    sources: string[];
+    dataPoints: string[];
+    temporalStatus: "present_fact" | "active_mechanism";
+    trajectoryHint: string;
   }>;
-  methodologyBreakdown: {
-    rct: string[];               // Sources using RCTs
-    quasiExperimental: string[];
-    observational: string[];
-    qualitative: string[];
-    theoretical: string[];
-    metaAnalysis: string[];
-  };
+  collisions: Array<{
+    domainA: string;
+    domainB: string;
+    friction: string;
+    sources: string[];
+    surpriseFactor: string;
+  }>;
   dataLandscape: {
     totalDataPoints: number;
     quantitativeFindings: string[];
-    qualitativeFindings: string[];
-    sampleSizes: Array<{ source: string; n: string; population: string }>;
+    activeDynamics: string[];
+    projectionsInLiterature: string[];
   };
 }
 
-export interface ContradictionMap {
-  contradictions: Array<{
-    claim1: { text: string; sources: string[]; strength: "strong" | "moderate" | "weak" };
-    claim2: { text: string; sources: string[]; strength: "strong" | "moderate" | "weak" };
-    explanation: string;         // WHY they disagree
-    resolution: string;          // How to reconcile
-    winner: "claim1" | "claim2" | "inconclusive";
-    winnerReasoning: string;
-  }>;
-  consensusPoints: Array<{
-    claim: string;
-    sources: string[];
-    strength: "unanimous" | "strong_majority" | "majority" | "slight_majority";
-    evidenceQuality: "high" | "medium" | "low";
-  }>;
-  evidenceHierarchy: Array<{
-    source: string;
-    methodRigor: number;         // 1-10
-    sampleAdequacy: number;      // 1-10
-    replicability: number;       // 1-10
-    overallWeight: number;       // 1-10
+export interface StressTestMap {
+  mechanismAssessments: Array<{
+    mechanismId: number;
+    verdict: "holds" | "cracks" | "breaks";
     reasoning: string;
+    canSupportExtrapolation: boolean;
+    hostileExpertObjection: string;
+    temporalChain: {
+      anchoredIn: string;
+      mechanism: string;
+      projectsTo: string;
+    };
   }>;
+  collisionAssessments: Array<{
+    domainA: string;
+    domainB: string;
+    causationOrCorrelation: "causation" | "probable_causation" | "correlation_only";
+    reasoning: string;
+    surpriseVerified: boolean;
+    surpriseReasoning: string;
+  }>;
+  survivingMechanisms: number[];
+  strongestChain: {
+    presentFactIds: number[];
+    mechanismIds: number[];
+    projectedFuture: string;
+  };
 }
 
-export interface MultiPassAnalysis {
-  title: string;
-  summary: string;
-  consensus: string;
-  disagreements: string;
-  debate: {
-    pro: string;
-    con: string;
-    synthesis: string;
-  };
+export interface CausalLink {
+  id: number;
+  claim: string;
   evidence: string;
-  implications: string;
-  risks: string;
-  open_questions: string;
-  what_changes_mind: string;
-  // V3 additions
+  warrant: string;
+  temporalStatus: TemporalStatus;
+  derivesFrom: number | null;
+}
+
+export interface ProspectiveNote {
+  title: string;
+  throughLine: string;
+  verdict: string;
+  convictionLevel: "firm" | "tempered" | "causal_only";
+  anchoringBasis: string;
+  causalChain: CausalLink[];
+  trajectory: {
+    horizon: string;
+    state: string;
+    assumptions: string;
+  };
+  rejectedAlternatives: Array<{
+    scenario: string;
+    whyRejected: string;
+    residualRisk: string;
+  }>;
+  whatToWatch: {
+    signals: string[];
+    whatWouldChangeMind: string;
+    horizonCheck: string;
+  };
+  evidenceAssessment: {
+    strongestLinks: string[];
+    weakestLink: string;
+    gaps: string[];
+    sourceDiversity: string;
+  };
+  keyFindings: string[];
   _meta: {
     passes: number;
-    thematicMap: ThematicMap;
-    contradictionMap: ContradictionMap;
+    frictionMap: FrictionMap;
+    stressTestMap: StressTestMap;
     totalTokensUsed: number;
     totalCostUsd: number;
-    /** LLM family that produced the final synthesis (Pass 3) — used for opposite-family verification rule */
     producerFamily?: import('../llm/unified-llm').LLMFamily;
   };
 }
 
-// Re-export for backward compatibility
-export type AnalysisOutput = Omit<MultiPassAnalysis, '_meta'>;
+// Backward compatibility aliases
+export type AnalysisOutput = Omit<ProspectiveNote, '_meta'>;
+export type MultiPassAnalysis = ProspectiveNote;
+
+// Legacy type aliases for consumers that still reference them
+export type ThematicMap = FrictionMap;
+export type ContradictionMap = StressTestMap;
 
 // ============================================================================
 // DOMAIN-AWARE CONTEXT
@@ -192,76 +224,96 @@ function detectLanguage(question: string): string {
 }
 
 // ============================================================================
-// PASS 1: THEMATIC MAPPING
+// PASS 1: FRICTION MAPPING
 // ============================================================================
 
-async function pass1ThematicMapping(
+async function pass1FrictionMapping(
   question: string,
   ctx: string,
   sourceCount: number,
   domainContext?: string
-): Promise<{ map: ThematicMap; tokens: number; cost: number }> {
-  console.log(`[Analyst V3] PASS 1/3: Thematic Mapping (${sourceCount} sources)...`);
+): Promise<{ map: FrictionMap; tokens: number; cost: number }> {
+  console.log(`[Analyst V3] PASS 1/3: Friction Mapping (${sourceCount} sources)...`);
 
-  const prompt = `You are a senior research analyst performing THEMATIC MAPPING of academic sources.
+  const systemPrompt = `You are NomosX Analyst — Pass 1 of 3: FRICTION MAPPING.
 
-RESEARCH QUESTION: "${question}"
-${domainContext || ''}
+NomosX does not inventory sources. It isolates the strongest cross-domain
+causal chain and extrapolates its trajectory toward a dated future.
 
-SOURCES:
-${ctx}
-
-YOUR TASK — PASS 1 of 3: Identify and map all themes, data points, and methodologies.
+YOUR TASK — PASS 1: Map the raw material for the causal chain.
 
 Think step by step:
-1. Read each source carefully
-2. Identify recurring themes across sources
-3. Extract ALL specific data points (numbers, percentages, effect sizes, p-values)
-4. Categorize methodologies used
-5. Note sample sizes and populations
+1. Read each source for MECHANISMS — not themes. A mechanism is a dynamic
+   that produces an effect (e.g., "sanctions compress trade volume → displaced
+   flows seek alternative channels").
+2. Extract data points that ANCHOR mechanisms in fact (numbers, rates, trends).
+3. Identify where domains COLLIDE — where a dynamic in one field produces
+   effects in another that an expert of either field alone would miss.
+4. Note active dynamics (growth rates, adoption curves, regulatory shifts)
+   that have TRAJECTORY — things moving in a direction.
+5. Flag sources that describe present facts vs. active mechanisms vs.
+   projections already in the literature.
+
+PRIORITIZE DYNAMIC MECHANISMS OVER STATIC FACTS.
+A mechanism with a trajectory ("concentration is accelerating at X%/year")
+is more valuable than a static fact ("the market is worth $40B"). Static
+facts anchor, but dynamics drive extrapolation. Extract dynamics first,
+then the facts that anchor them.
 
 Return JSON:
 {
-  "themes": [
+  "mechanisms": [
     {
-      "name": "Theme name",
-      "description": "What this theme covers (2-3 sentences)",
+      "id": 1,
+      "description": "What the mechanism is and what it does (2-3 sentences)",
+      "domain": "Primary domain of this mechanism",
+      "crossDomainEffects": "What effects in OTHER domains this mechanism produces — the friction point. Empty string if none found.",
       "sources": ["[SRC-1]", "[SRC-3]"],
       "dataPoints": ["specific number or finding from source"],
-      "methodologies": ["RCT", "survey", etc.],
-      "confidence": "high|medium|low"
+      "temporalStatus": "present_fact|active_mechanism",
+      "trajectoryHint": "If this mechanism continues, where does it point? 1 sentence. Empty string if no trajectory."
     }
   ],
-  "methodologyBreakdown": {
-    "rct": ["[SRC-N]"],
-    "quasiExperimental": ["[SRC-N]"],
-    "observational": ["[SRC-N]"],
-    "qualitative": ["[SRC-N]"],
-    "theoretical": ["[SRC-N]"],
-    "metaAnalysis": ["[SRC-N]"]
-  },
+  "collisions": [
+    {
+      "domainA": "Domain 1",
+      "domainB": "Domain 2",
+      "friction": "What tension or non-obvious connection exists between these domains",
+      "sources": ["[SRC-N]"],
+      "surpriseFactor": "Why an expert in either domain alone would miss this (1 sentence)"
+    }
+  ],
   "dataLandscape": {
     "totalDataPoints": 0,
     "quantitativeFindings": ["finding with number and [SRC-N]"],
-    "qualitativeFindings": ["finding and [SRC-N]"],
-    "sampleSizes": [{"source": "[SRC-N]", "n": "sample size", "population": "who was studied"}]
+    "activeDynamics": ["dynamic with rate/direction and [SRC-N]"],
+    "projectionsInLiterature": ["projection already made by a source, with [SRC-N]"]
   }
 }
 
-Be EXHAUSTIVE. Extract EVERY data point. Miss nothing.`;
+Select what SERVES the argument — do not exhaustively dump everything.`;
+
+  const userPrompt = `RESEARCH QUESTION: "${question}"
+${domainContext || ''}
+
+SOURCES:
+${ctx}`;
 
   const response = await callLLM({
-    messages: [{ role: "user", content: prompt }],
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: userPrompt },
+    ],
     temperature: 0.1,
     jsonMode: true,
-    maxTokens: 4000,
+    maxTokens: 8000,
     enableCache: true,
     task: 'analyst_brief',
   });
 
-  const map = parseJson<ThematicMap>(response.content);
+  const map = parseJson<FrictionMap>(response.content);
   if (!map) throw new SyntaxError('Analyst pass 1: failed to parse LLM JSON');
-  console.log(`[Analyst V3] PASS 1 complete: ${map.themes?.length || 0} themes, ${map.dataLandscape?.totalDataPoints || 0} data points`);
+  console.log(`[Analyst V3] PASS 1 complete: ${map.mechanisms?.length || 0} mechanisms, ${map.collisions?.length || 0} collisions, ${map.dataLandscape?.totalDataPoints || 0} data points`);
 
   return {
     map,
@@ -271,98 +323,122 @@ Be EXHAUSTIVE. Extract EVERY data point. Miss nothing.`;
 }
 
 // ============================================================================
-// PASS 2: CONTRADICTION DETECTION
+// PASS 2: STRESS TEST
 // ============================================================================
 
-async function pass2ContradictionDetection(
+async function pass2StressTest(
   question: string,
   ctx: string,
-  thematicMap: ThematicMap,
+  frictionMap: FrictionMap,
   domainContext?: string
-): Promise<{ map: ContradictionMap; tokens: number; cost: number }> {
-  console.log(`[Analyst V3] PASS 2/3: Contradiction Detection...`);
+): Promise<{ map: StressTestMap; tokens: number; cost: number }> {
+  console.log(`[Analyst V3] PASS 2/3: Stress Test...`);
 
-  const themeSummary = (thematicMap.themes ?? [])
-    .map(t => `• ${t.name}: ${(t.sources ?? []).join(", ")} — ${(t.dataPoints ?? []).slice(0, 2).join("; ")}`)
+  const mechanismSummary = (frictionMap.mechanisms ?? [])
+    .map(m => `MECHANISM #${m.id}: ${m.description} [${m.temporalStatus}] — Sources: ${(m.sources ?? []).join(", ")} — Trajectory: ${m.trajectoryHint || "none"}`)
     .join("\n");
 
-  const prompt = `You are a senior research analyst performing CONTRADICTION DETECTION.
+  const collisionSummary = (frictionMap.collisions ?? [])
+    .map(c => `COLLISION: ${c.domainA} × ${c.domainB} — ${c.friction} — Surprise: ${c.surpriseFactor}`)
+    .join("\n");
 
-RESEARCH QUESTION: "${question}"
-${domainContext || ''}
+  const systemPrompt = `You are NomosX Analyst — Pass 2 of 3: STRESS TEST.
 
-THEMATIC MAP FROM PASS 1:
-${themeSummary}
+You are adversarial. Your job is to BREAK every mechanism and collision from
+Pass 1, not to summarize them. Only what survives your attack will enter the
+final causal chain.
 
-METHODOLOGY BREAKDOWN:
-${JSON.stringify(thematicMap.methodologyBreakdown ?? {}, null, 2)}
+YOUR TASK — PASS 2:
+1. For each mechanism: try to refute it. Would a hostile expert accept it?
+   What is their strongest objection? Does it hold, crack, or break?
+2. For each mechanism: can it support extrapolation? A mechanism that is
+   real but static (no trajectory) cannot ground a future projection.
+3. For each mechanism: trace the temporal chain — what present fact anchors
+   it, what mechanism drives it, and what future does it project toward?
+4. For each collision: is the cross-domain link causation, probable
+   causation, or merely correlation? Be rigorous.
+5. For each collision: does the surprise factor survive scrutiny?
 
-DATA POINTS:
-${thematicMap.dataLandscape?.quantitativeFindings?.slice(0, 15).join("\n") || "None extracted"}
-
-SOURCES:
-${ctx}
-
-YOUR TASK — PASS 2 of 3: Find ALL contradictions, build consensus map, rank evidence.
-
-Think step by step:
-1. Compare claims ACROSS themes — do any sources contradict each other?
-2. For each contradiction, determine WHY (different methods? populations? timeframes?)
-3. Assess which side has stronger evidence (methodology rigor, sample size, replication)
-4. Identify points of CONSENSUS (what do most/all sources agree on?)
-5. Rank each source by evidence weight
+PRIORITIZE CROSS-DOMAIN CONTRADICTIONS.
+When two domains make claims that collide (e.g., economics says X, climate
+science says not-X), that collision is more valuable than intra-domain
+disagreement. Cross-domain contradictions reveal hidden assumptions that
+neither field questions on its own. Surface them first and assess them
+rigorously.
 
 Return JSON:
 {
-  "contradictions": [
+  "mechanismAssessments": [
     {
-      "claim1": {"text": "claim text", "sources": ["[SRC-N]"], "strength": "strong|moderate|weak"},
-      "claim2": {"text": "opposing claim", "sources": ["[SRC-N]"], "strength": "strong|moderate|weak"},
-      "explanation": "WHY they disagree (methods? population? timing?)",
-      "resolution": "How to reconcile these findings",
-      "winner": "claim1|claim2|inconclusive",
-      "winnerReasoning": "Why this claim has stronger evidence"
+      "mechanismId": 1,
+      "verdict": "holds|cracks|breaks",
+      "reasoning": "Why it holds/cracks/breaks (2-3 sentences)",
+      "canSupportExtrapolation": true,
+      "hostileExpertObjection": "Strongest objection from a domain expert (1-2 sentences)",
+      "temporalChain": {
+        "anchoredIn": "The present fact that grounds this (with [SRC-N])",
+        "mechanism": "The active dynamic (with [SRC-N])",
+        "projectsTo": "What future state this points toward if it continues"
+      }
     }
   ],
-  "consensusPoints": [
+  "collisionAssessments": [
     {
-      "claim": "What sources agree on",
-      "sources": ["[SRC-1]", "[SRC-2]"],
-      "strength": "unanimous|strong_majority|majority|slight_majority",
-      "evidenceQuality": "high|medium|low"
+      "domainA": "Domain 1",
+      "domainB": "Domain 2",
+      "causationOrCorrelation": "causation|probable_causation|correlation_only",
+      "reasoning": "Why this is causation/correlation (2-3 sentences)",
+      "surpriseVerified": true,
+      "surpriseReasoning": "Does the surprise survive scrutiny? Why or why not?"
     }
   ],
-  "evidenceHierarchy": [
-    {
-      "source": "[SRC-N]",
-      "methodRigor": 8,
-      "sampleAdequacy": 7,
-      "replicability": 6,
-      "overallWeight": 7,
-      "reasoning": "Why this source is ranked here"
-    }
-  ]
+  "survivingMechanisms": [1, 3],
+  "strongestChain": {
+    "presentFactIds": [1, 2],
+    "mechanismIds": [3, 4],
+    "projectedFuture": "The most defensible future state implied by the surviving chain"
+  }
 }
 
-Be ADVERSARIAL. Actively look for conflicts. A good analyst finds what others miss.
+OUTPUT LIMITS:
+- One assessment per mechanism, one per collision.
+- Keep reasoning fields under 50 words each.
+- Output ONLY the JSON object — no markdown, no prose.`;
 
-OUTPUT LIMITS (to guarantee complete, parseable JSON):
-- Max 4 contradictions, max 6 consensusPoints, one evidenceHierarchy entry per source.
-- Keep every "reasoning"/"explanation"/"resolution" under 25 words.
-- Output ONLY the JSON object — no markdown, no prose before or after.`;
+  const userPrompt = `RESEARCH QUESTION: "${question}"
+${domainContext || ''}
+
+PASS 1 RESULTS: FRICTION MAP
+MECHANISMS:
+${mechanismSummary || "None extracted"}
+
+COLLISIONS:
+${collisionSummary || "None identified"}
+
+ACTIVE DYNAMICS:
+${frictionMap.dataLandscape?.activeDynamics?.slice(0, 10).join("\n") || "None"}
+
+PROJECTIONS IN LITERATURE:
+${frictionMap.dataLandscape?.projectionsInLiterature?.slice(0, 5).join("\n") || "None"}
+
+RAW SOURCES:
+${ctx}`;
 
   const response = await callLLM({
-    messages: [{ role: "user", content: prompt }],
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: userPrompt },
+    ],
     temperature: 0.15,
     jsonMode: true,
-    maxTokens: 4000,
+    maxTokens: 8000,
     enableCache: true,
     task: 'analyst_brief',
   });
 
-  const map = parseJson<ContradictionMap>(response.content);
+  const map = parseJson<StressTestMap>(response.content);
   if (!map) throw new SyntaxError('Analyst pass 2: failed to parse LLM JSON');
-  console.log(`[Analyst V3] PASS 2 complete: ${map.contradictions?.length || 0} contradictions, ${map.consensusPoints?.length || 0} consensus points`);
+  console.log(`[Analyst V3] PASS 2 complete: ${map.mechanismAssessments?.length || 0} assessments, ${map.survivingMechanisms?.length || 0} surviving`);
 
   return {
     map,
@@ -372,119 +448,190 @@ OUTPUT LIMITS (to guarantee complete, parseable JSON):
 }
 
 // ============================================================================
-// PASS 3: DEEP SYNTHESIS
+// PASS 3: PROSPECTIVE SYNTHESIS
 // ============================================================================
 
-async function pass3Synthesis(
+async function pass3ProspectiveSynthesis(
   question: string,
   ctx: string,
-  thematicMap: ThematicMap,
-  contradictionMap: ContradictionMap,
+  frictionMap: FrictionMap,
+  stressTestMap: StressTestMap,
   sourceCount: number,
   avgQuality: number,
   lang: string,
   domainContext?: string
 ): Promise<{ analysis: AnalysisOutput; tokens: number; cost: number; family: import('../llm/unified-llm').LLMFamily }> {
-  console.log(`[Analyst V3] PASS 3/3: Deep Synthesis...`);
+  console.log(`[Analyst V3] PASS 3/3: Prospective Synthesis...`);
 
-  // Build structured intelligence brief from passes 1-2
-  const themeBrief = (thematicMap.themes ?? [])
-    .map(t => `THEME: ${t.name} (${t.confidence ?? 'low'} confidence)
-  Sources: ${(t.sources ?? []).join(", ")}
-  Key data: ${(t.dataPoints ?? []).slice(0, 3).join("; ")}
-  Methods: ${(t.methodologies ?? []).join(", ")}`)
+  const mechanismBrief = (frictionMap.mechanisms ?? [])
+    .map(m => `MECHANISM #${m.id} [${m.temporalStatus}]: ${m.description}
+  Domain: ${m.domain} | Cross-domain: ${m.crossDomainEffects || "none"}
+  Sources: ${(m.sources ?? []).join(", ")}
+  Data: ${(m.dataPoints ?? []).slice(0, 3).join("; ")}
+  Trajectory: ${m.trajectoryHint || "none"}`)
     .join("\n\n");
 
-  const contradictionBrief = (contradictionMap.contradictions ?? [])
-    .map(c => `CONTRADICTION:
-  Claim A (${c.claim1?.strength ?? 'unknown'}): ${c.claim1?.text ?? ''} — ${(c.claim1?.sources ?? []).join(", ")}
-  Claim B (${c.claim2?.strength ?? 'unknown'}): ${c.claim2?.text ?? ''} — ${(c.claim2?.sources ?? []).join(", ")}
-  Why: ${c.explanation ?? ''}
-  Winner: ${c.winner ?? 'inconclusive'} — ${c.winnerReasoning ?? ''}`)
+  const stressBrief = (stressTestMap.mechanismAssessments ?? [])
+    .map(a => `ASSESSMENT #${a.mechanismId}: ${a.verdict.toUpperCase()}
+  Reasoning: ${a.reasoning}
+  Can extrapolate: ${a.canSupportExtrapolation}
+  Hostile objection: ${a.hostileExpertObjection}
+  Chain: ${a.temporalChain.anchoredIn} -> ${a.temporalChain.mechanism} -> ${a.temporalChain.projectsTo}`)
     .join("\n\n");
 
-  const consensusBrief = (contradictionMap.consensusPoints ?? [])
-    .map(c => `CONSENSUS (${c.strength ?? 'unknown'}, ${c.evidenceQuality ?? 'unknown'} evidence): ${c.claim ?? ''} — ${(c.sources ?? []).join(", ")}`)
-    .join("\n");
+  const collisionBrief = (stressTestMap.collisionAssessments ?? [])
+    .map(c => `COLLISION: ${c.domainA} x ${c.domainB}
+  Verdict: ${c.causationOrCorrelation}
+  Reasoning: ${c.reasoning}
+  Surprise verified: ${c.surpriseVerified} — ${c.surpriseReasoning}`)
+    .join("\n\n");
 
-  const evidenceRanking = contradictionMap.evidenceHierarchy
-    ?.sort((a, b) => b.overallWeight - a.overallWeight)
-    .slice(0, 10)
-    .map(e => `${e.source}: weight ${e.overallWeight}/10 — ${e.reasoning}`)
-    .join("\n") || "No ranking available";
+  const systemPrompt = `You are NomosX Analyst — Pass 3 of 3: PROSPECTIVE SYNTHESIS.
 
-  const prompt = `You are NomosX Analyst V3 — Elite strategic intelligence analyst.
-You have completed 2 analytical passes and now must produce the FINAL SYNTHESIS.
+You have mapped the mechanisms (Pass 1) and stress-tested them (Pass 2).
+Now you build the argument and take a position.
 
-RESEARCH QUESTION: "${question}"
-${domainContext || ''}
+NOMOSX IDENTITY:
+NomosX is a prospective think tank. It does not summarize what is known.
+It isolates the strongest causal chain, extrapolates its trajectory, and
+takes ONE assertive position — sober, dense, assured, falsifiable.
 
-═══ PASS 1 RESULTS: THEMATIC MAP ═══
-${themeBrief}
+VOICE:
+- Sober, dense, assured. No marketing superlatives. No false precision.
+- No "however" hedging after every claim. State the claim, then the
+  conditions under which it would be wrong.
+- Explicit falsifiability: every projection must name what would disprove it.
+- No "experts say" or "researchers believe" — name the mechanism, not the
+  consensus.
 
-Quantitative findings: ${thematicMap.dataLandscape?.quantitativeFindings?.slice(0, 10).join("; ") || "None"}
-Sample sizes: ${thematicMap.dataLandscape?.sampleSizes?.map(s => `${s.source}: n=${s.n} (${s.population})`).join("; ") || "None"}
+ANTI-HALLUCINATION RULES:
+- Every number, percentage, or quantitative claim MUST be a present_fact
+  with a [SRC-N] citation. No invented numbers.
+- future_extrapolation claims MUST derive from an active_mechanism or
+  present_fact via an explicit warrant. No free-floating predictions.
+- A future_extrapolation CANNOT derive from another future_extrapolation.
+  (No cascade extrapolations — derivesFrom must point to a present_fact
+  or active_mechanism, never to another future_extrapolation.)
+- The warrant field must name the MECHANISM that connects evidence to claim.
+  "Because the data shows X" is not a warrant. "Because mechanism Y
+  compresses margin, which forces consolidation" is a warrant.
 
-═══ PASS 2 RESULTS: CONTRADICTIONS & CONSENSUS ═══
-${contradictionBrief || "No contradictions found"}
+EPISTEMIC HUMILITY RULES (to survive Devil's Advocate):
+- In the "evidenceAssessment.gaps" field, explicitly acknowledge what you
+  DON'T know — missing data, untested assumptions, regional blind spots.
+- In the "verdict" field, after stating the position, include a paragraph
+  that qualifies the confidence level and names the key uncertainties.
+- If the source base is geographically skewed (e.g., mostly US studies for
+  a European question), acknowledge this mismatch in evidenceAssessment.sourceDiversity.
+- If there are regional variations (e.g., Nordic surplus vs. Iberian deficit),
+  name them explicitly in the trajectory or rejectedAlternatives.
 
-CONSENSUS POINTS:
-${consensusBrief || "No consensus identified"}
-
-EVIDENCE HIERARCHY:
-${evidenceRanking}
-
-═══ RAW SOURCES (for citation verification) ═══
-${ctx}
-
-═══ YOUR MISSION ═══
-Using the structured intelligence from Passes 1-2, produce the DEFINITIVE analysis.
-You have ${sourceCount} sources (avg quality: ${avgQuality}/100).
-
-CRITICAL RULES:
-1. LEVERAGE Pass 1-2 insights — don't re-analyze from scratch
-2. Every claim MUST cite [SRC-N]
-3. Use the EVIDENCE HIERARCHY to weight claims (higher-ranked sources = more weight)
-4. Address EVERY contradiction found in Pass 2
-5. Build on CONSENSUS points with specific data
-6. Be SPECIFIC: numbers, effect sizes, sample sizes, p-values
-7. Provide ACTIONABLE implications grounded in evidence strength
-8. Quantify uncertainty explicitly
-9. **MINIMUM 2500 WORDS TOTAL across all sections.** Each major section (consensus, disagreements, debate, evidence, implications, risks) must be 250-400 words. Summary must be 200-300 words. This is a professional think tank brief — depth and substance are non-negotiable.
+CAUSAL CHAIN STRUCTURE:
+Build a chain of 5-8 CausalLinks. The chain must flow:
+  present_fact -> present_fact -> active_mechanism -> active_mechanism -> future_extrapolation -> future_extrapolation
+Each link's derivesFrom must point to a prior link's id. The first links
+are present_facts (derivesFrom: null), then active_mechanisms, then
+future_extrapolations. A future_extrapolation's derivesFrom must NEVER
+point to another future_extrapolation — only to a present_fact or
+active_mechanism.
 
 Return JSON:
 {
-  "title": "Neutral, analytical title — NO partisan framing, NO loaded language, NO editorializing. Think tank standard: describe the TOPIC and KEY FINDING, not a position. Example: 'Military Intervention in Iran: Strategic Implications and Evidence Assessment' NOT 'On the U.S.-Israeli War in Iran'.",
-  "summary": "200-300 words. Executive summary: direct answer + confidence level + key quantitative findings + main insight + policy relevance. All with [SRC-*].",
-  "consensus": "250-400 words. What sources agree on. Use consensus points from Pass 2. Cite strength of agreement, evidence quality, sample sizes, and effect sizes. Distinguish strong vs weak consensus. All with [SRC-*].",
-  "disagreements": "250-400 words. Address EVERY contradiction from Pass 2. Explain WHY researchers disagree (methodology, scope, ideology, data). Cite evidence hierarchy. All with [SRC-*].",
-  "debate": {
-    "pro": "200-300 words. Strongest position with evidence hierarchy weighting. Cite specific data, methods, effect sizes, confidence intervals. [SRC-*].",
-    "con": "200-300 words. Counter-position with evidence. Use contradictions from Pass 2. Steel-man the opposing view. [SRC-*].",
-    "synthesis": "200-300 words. Reconciliation using thematic map + contradiction resolution. Nuanced position with conditions under which each side is right. [SRC-*]."
+  "title": "Title that names the collision and the position. Not neutral — assertive. Example: 'The Sanctions Cartel: Why Parallel Trade Architecture Will Outlast the War'",
+  "throughLine": "The single sentence that captures the entire argument. One sentence, max 40 words.",
+  "verdict": "200-400 words. The institute's position. State it first, then justify with the causal chain. Cite [SRC-N] for every factual anchor. No hedging in the first paragraph — state the position. Then qualify.",
+  "convictionLevel": "firm|tempered|causal_only",
+  "anchoringBasis": "100-200 words. What grounds this analysis — the strongest present facts and the data behind them. With [SRC-N].",
+  "causalChain": [
+    {
+      "id": 1,
+      "claim": "The specific claim this link makes. MUST include [SRC-N] citation for any factual assertion.",
+      "evidence": "The data or observation supporting this claim. MUST include at least one [SRC-N] citation. Example: 'Data center electricity demand doubled 2022-2024 [SRC-7]'.",
+      "warrant": "The MECHANISM that connects evidence to claim. Must name a dynamic, not just restate the data.",
+      "temporalStatus": "present_fact|active_mechanism|future_extrapolation",
+      "derivesFrom": null
+    }
+  ],
+  "trajectory": {
+    "horizon": "e.g., '2025-2028' or 'next 36 months'",
+    "state": "200-300 words. Describe the projected future state if the causal chain holds. Be specific — named actors, quantified shifts, structural changes.",
+    "assumptions": "100-200 words. What must remain true for this trajectory to hold. Be explicit."
   },
-  "evidence": "250-400 words. Critical assessment using evidence hierarchy from Pass 2. Methodology breakdown from Pass 1. Sample sizes. Replication status. Potential biases. CEBM evidence levels. [SRC-*].",
-  "implications": "250-400 words. Actionable recommendations weighted by evidence strength. Immediate (0-6 months) + medium (6-24 months) + long term (2-5 years). Include stakeholder-specific guidance. [SRC-*].",
-  "risks": "200-300 words. Limitations, generalizability constraints, evidence gaps, uncertainty quantification. What we DON'T know. [SRC-*].",
-  "open_questions": "150-200 words. Research gaps identified across all 3 passes. Specific studies needed.",
-  "what_changes_mind": "100-150 words. Specific falsifiable predictions. Evidence thresholds that would reverse conclusions."
+  "rejectedAlternatives": [
+    {
+      "scenario": "An alternative future that was considered",
+      "whyRejected": "Why the evidence does not support this scenario (2-3 sentences)",
+      "residualRisk": "What risk remains if this scenario is wrong"
+    }
+  ],
+  "whatToWatch": {
+    "signals": ["Observable indicators that would confirm or challenge the trajectory"],
+    "whatWouldChangeMind": "100-200 words. Specific falsifiable triggers that would reverse the position.",
+    "horizonCheck": "When should this projection be revisited? What date?"
+  },
+  "evidenceAssessment": {
+    "strongestLinks": ["Which causal chain links are strongest and why"],
+    "weakestLink": "The weakest link in the chain and why",
+    "gaps": ["What evidence is missing that would strengthen the argument"],
+    "sourceDiversity": "Assessment of cross-domain coverage"
+  },
+  "keyFindings": ["5 key findings, each 1-2 sentences. Each MUST include at least one [SRC-N] citation."]
 }
 
 LANGUAGE: Write in ${lang}.
-QUALITY: This is the final output for senior decision-makers. Intellectual rigor is paramount.`;
+MINIMUM 2000 WORDS TOTAL across all text fields. Depth and substance are non-negotiable.
+Output ONLY the JSON object — no markdown, no prose before or after.
+
+CITATION RULES (NON-NEGOTIABLE):
+- Every factual claim, number, or data point MUST have a [SRC-N] citation.
+- The "evidence" field of every causalChain link MUST contain at least one [SRC-N].
+- The "verdict" field MUST cite [SRC-N] for every factual anchor.
+- The "keyFindings" array: each finding MUST include [SRC-N].
+- A claim without [SRC-N] is not evidence — it is opinion. The Devil's Advocate will reject uncited claims.
+- future_extrapolation claims cite the present_fact or active_mechanism they derive from, not new sources.
+- CITATION DIVERSITY: You have ${sourceCount} sources. You MUST cite at least ${Math.ceil(sourceCount * 0.6)} different [SRC-N] sources across the analysis. Do not cluster on 3-4 sources — spread citations across the full source base. If a source is not relevant, do not force it, but the majority of sources should appear at least once.`;
+
+  const userPrompt = `RESEARCH QUESTION: "${question}"
+${domainContext || ''}
+
+PASS 1 RESULTS: FRICTION MAP
+${mechanismBrief}
+
+COLLISIONS:
+${(frictionMap.collisions ?? []).map(c => `${c.domainA} x ${c.domainB}: ${c.friction}`).join("\n") || "None"}
+
+PASS 2 RESULTS: STRESS TEST
+${stressBrief}
+
+COLLISION ASSESSMENTS:
+${collisionBrief || "None assessed"}
+
+SURVIVING MECHANISMS: ${(stressTestMap.survivingMechanisms ?? []).join(", ") || "none"}
+STRONGEST CHAIN: ${stressTestMap.strongestChain?.projectedFuture || "not identified"}
+
+RAW SOURCES (for citation verification):
+${ctx}
+
+YOUR MISSION:
+Using the structured intelligence from Passes 1-2, produce the prospective note.
+You have ${sourceCount} sources (avg quality: ${avgQuality}/100).
+Build the causal chain from the surviving mechanisms. Take ONE position.`;
 
   const response = await callLLM({
-    messages: [{ role: "user", content: prompt }],
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: userPrompt },
+    ],
     temperature: 0.2,
     jsonMode: true,
-    maxTokens: 4000,
+    maxTokens: 8000,
     enableCache: true,
     task: 'analyst_brief',
   });
 
   const analysis = parseJson<AnalysisOutput>(response.content);
   if (!analysis) throw new SyntaxError('Analyst pass 3: failed to parse LLM JSON');
-  console.log(`[Analyst V3] PASS 3 complete: synthesis generated`);
+  console.log(`[Analyst V3] PASS 3 complete: prospective synthesis generated`);
 
   return {
     analysis,
@@ -499,23 +646,24 @@ QUALITY: This is the final output for senior decision-makers. Intellectual rigor
 // ============================================================================
 
 /**
- * Validate Pass 1 thematic map against source reality:
+ * Validate Pass 1 friction map against source reality:
  * 1. All [SRC-N] references must be 1 ≤ N ≤ sourceCount
- * 2. Themes with zero valid citations are removed (likely hallucinated)
- * 3. Invalid references in valid themes are stripped
+ * 2. Mechanisms with zero valid citations are removed (likely hallucinated)
+ * 3. Invalid references in valid mechanisms are stripped
+ * 4. Cascade guard: future_extrapolation cannot derive from another future_extrapolation
  */
-function validateThematicMap(
-  map: ThematicMap,
+function validateFrictionMap(
+  map: FrictionMap,
   sourceCount: number
-): { map: ThematicMap; removedThemes: number; details: string } {
+): { map: FrictionMap; removedMechanisms: number; details: string } {
   const srcPattern = /\[SRC-(\d+)\]/g;
-  let removedThemes = 0;
-  const removedNames: string[] = [];
+  let removedMechanisms = 0;
+  const removedIds: string[] = [];
 
   function filterValidRefs(refs: string[]): string[] {
     return refs.filter(ref => {
       const matches = [...ref.matchAll(srcPattern)];
-      if (matches.length === 0) return true; // Keep non-citation strings
+      if (matches.length === 0) return true;
       return matches.every(m => {
         const n = parseInt(m[1], 10);
         return n >= 1 && n <= sourceCount;
@@ -523,37 +671,64 @@ function validateThematicMap(
     });
   }
 
-  const validatedThemes = (map.themes || []).filter(theme => {
-    const validSources = filterValidRefs(theme.sources || []);
-    if (validSources.length === 0 && (theme.sources || []).length > 0) {
-      // Theme had citations but ALL were invalid → likely hallucinated
-      removedThemes++;
-      removedNames.push(theme.name);
+  const validatedMechanisms = (map.mechanisms || []).filter(mech => {
+    const validSources = filterValidRefs(mech.sources || []);
+    if (validSources.length === 0 && (mech.sources || []).length > 0) {
+      removedMechanisms++;
+      removedIds.push(`#${mech.id}`);
       return false;
     }
-    theme.sources = validSources;
-    theme.dataPoints = filterValidRefs(theme.dataPoints || []);
+    mech.sources = validSources;
+    mech.dataPoints = filterValidRefs(mech.dataPoints || []);
     return true;
   });
-
-  // Validate methodology breakdown
-  const mb = map.methodologyBreakdown;
-  if (mb) {
-    for (const key of Object.keys(mb) as Array<keyof typeof mb>) {
-      mb[key] = filterValidRefs(mb[key] || []);
-    }
-  }
 
   // Validate data landscape
   if (map.dataLandscape) {
     map.dataLandscape.quantitativeFindings = filterValidRefs(map.dataLandscape.quantitativeFindings || []);
-    map.dataLandscape.qualitativeFindings = filterValidRefs(map.dataLandscape.qualitativeFindings || []);
+    map.dataLandscape.activeDynamics = filterValidRefs(map.dataLandscape.activeDynamics || []);
+    map.dataLandscape.projectionsInLiterature = filterValidRefs(map.dataLandscape.projectionsInLiterature || []);
+  }
+
+  // Validate collisions
+  if (map.collisions) {
+    for (const c of map.collisions) {
+      c.sources = filterValidRefs(c.sources || []);
+    }
   }
 
   return {
-    map: { ...map, themes: validatedThemes },
-    removedThemes,
-    details: removedNames.length > 0 ? removedNames.join(', ') : 'none',
+    map: { ...map, mechanisms: validatedMechanisms },
+    removedMechanisms,
+    details: removedIds.length > 0 ? removedIds.join(', ') : 'none',
+  };
+}
+
+/**
+ * Validate Pass 3 causal chain for cascade violations:
+ * A future_extrapolation's derivesFrom must NOT point to another future_extrapolation.
+ */
+function validateCausalChain(
+  analysis: AnalysisOutput
+): { valid: boolean; cascadeViolations: number; details: string } {
+  const chain = analysis.causalChain || [];
+  let violations = 0;
+  const violationDetails: string[] = [];
+
+  for (const link of chain) {
+    if (link.temporalStatus === 'future_extrapolation' && link.derivesFrom != null) {
+      const parent = chain.find(l => l.id === link.derivesFrom);
+      if (parent && parent.temporalStatus === 'future_extrapolation') {
+        violations++;
+        violationDetails.push(`Link #${link.id} derives from future_extrapolation #${parent.id}`);
+      }
+    }
+  }
+
+  return {
+    valid: violations === 0,
+    cascadeViolations: violations,
+    details: violationDetails.length > 0 ? violationDetails.join('; ') : 'none',
   };
 }
 
@@ -574,56 +749,60 @@ export async function analystAgentV3(
   const lang = detectLanguage(question);
   let ctx = buildSourceContext(sources, readings);
 
-  // Inject institutional memory from Context Primer (if available)
   if (options?.contextBlock) {
     ctx = `${options.contextBlock}\n\n${ctx}`;
     console.log(`[Analyst V3] Institutional memory injected (${options.contextBlock.length} chars)`);
   }
 
-  console.log(`[Analyst V3] Starting 3-pass analysis: ${sources.length} sources, avg quality ${avgQuality}/100`);
+  console.log(`[Analyst V3] Starting 3-pass prospective analysis: ${sources.length} sources, avg quality ${avgQuality}/100`);
 
   try {
     const domainContext = buildDomainAnalystContext(options?.domain);
     if (options?.domain) console.log(`[Analyst V3] Domain-aware mode: ${options.domain}`);
 
-    // PASS 1: Thematic Mapping
-    const p1 = await pass1ThematicMapping(question, ctx, sources.length, domainContext);
+    // PASS 1: Friction Mapping
+    const p1 = await pass1FrictionMapping(question, ctx, sources.length, domainContext);
 
     // INTER-PASS VALIDATION: Ground-truth check on Pass 1 output
-    // Prevents hallucinated themes from propagating to Pass 2 and Pass 3
-    const validatedMap = validateThematicMap(p1.map, sources.length);
-    if (validatedMap.removedThemes > 0) {
-      console.warn(`[Analyst V3] VALIDATION: removed ${validatedMap.removedThemes} themes with invalid citations (${validatedMap.details})`);
+    const validatedMap = validateFrictionMap(p1.map, sources.length);
+    if (validatedMap.removedMechanisms > 0) {
+      console.warn(`[Analyst V3] VALIDATION: removed ${validatedMap.removedMechanisms} mechanisms with invalid citations (${validatedMap.details})`);
     }
 
-    // PASS 2: Contradiction Detection (uses validated Pass 1 output)
-    let p2: { map: ContradictionMap; tokens: number; cost: number };
+    // PASS 2: Stress Test (uses validated Pass 1 output)
+    let p2: { map: StressTestMap; tokens: number; cost: number };
     try {
-      p2 = await pass2ContradictionDetection(question, ctx, validatedMap.map, domainContext);
+      p2 = await pass2StressTest(question, ctx, validatedMap.map, domainContext);
     } catch (pass2Err) {
-      console.warn(`[Analyst V3] PASS 2 failed, continuing with empty contradiction map:`, pass2Err);
+      console.warn(`[Analyst V3] PASS 2 failed, continuing with empty stress test map:`, pass2Err);
       p2 = {
-        map: { contradictions: [], consensusPoints: [], evidenceHierarchy: [] },
+        map: { mechanismAssessments: [], collisionAssessments: [], survivingMechanisms: [], strongestChain: { presentFactIds: [], mechanismIds: [], projectedFuture: '' } },
         tokens: 0,
         cost: 0,
       };
     }
 
-    // PASS 3: Deep Synthesis (uses Pass 1 + Pass 2 outputs)
-    const p3 = await pass3Synthesis(question, ctx, p1.map, p2.map, sources.length, avgQuality, lang, domainContext);
+    // PASS 3: Prospective Synthesis (uses Pass 1 + Pass 2 outputs)
+    const p3 = await pass3ProspectiveSynthesis(question, ctx, p1.map, p2.map, sources.length, avgQuality, lang, domainContext);
+
+    // CASCADE GUARD: Validate causal chain for cascade violations
+    const chainValidation = validateCausalChain(p3.analysis);
+    if (!chainValidation.valid) {
+      console.warn(`[Analyst V3] CASCADE GUARD: ${chainValidation.cascadeViolations} violations (${chainValidation.details})`);
+    }
 
     const totalTokens = p1.tokens + p2.tokens + p3.tokens;
     const totalCost = p1.cost + p2.cost + p3.cost;
     const elapsed = Date.now() - startTime;
 
-    console.log(`[Analyst V3] Complete in ${elapsed}ms | 3 passes | ${totalTokens} tokens | $${totalCost.toFixed(4)}`);
+    console.log(`[Analyst V3] Complete in ${elapsed}ms | 3 passes | ${totalTokens} tokens | $${totalCost.toFixed(4)} | cascade violations: ${chainValidation.cascadeViolations}`);
 
     // Validate required fields
     const analysis = p3.analysis;
-    const required: (keyof AnalysisOutput)[] = ['title', 'summary', 'consensus', 'debate'];
+    const required: (keyof AnalysisOutput)[] = ['title', 'throughLine', 'verdict', 'causalChain'];
     const missing = required.filter((k) => {
       const val = analysis[k];
-      if (k === 'debate') return !val || typeof val !== 'object' || !(val as any).pro || !(val as any).con;
+      if (k === 'causalChain') return !val || !Array.isArray(val) || val.length === 0;
       return !val || (typeof val === 'string' && !val.trim());
     });
 
@@ -635,8 +814,8 @@ export async function analystAgentV3(
       ...analysis,
       _meta: {
         passes: 3,
-        thematicMap: p1.map,
-        contradictionMap: p2.map,
+        frictionMap: p1.map,
+        stressTestMap: p2.map,
         totalTokensUsed: totalTokens,
         totalCostUsd: totalCost,
         producerFamily: p3.family,
@@ -645,26 +824,22 @@ export async function analystAgentV3(
   } catch (error: any) {
     console.error(`[Analyst V3] Failed: ${error.message}`);
 
-    // Sentry.captureException(error, {
-    //   tags: { agent: "analyst-v3", question, sourceCount: sources.length },
-    //   contexts: { analyst: { question, sourceCount: sources.length, avgQuality } },
-    // });
-
     return {
       title: "Analysis Failed",
-      summary: `Error: ${error.message}`,
-      consensus: "",
-      disagreements: "",
-      debate: { pro: "", con: "", synthesis: "" },
-      evidence: "",
-      implications: "",
-      risks: "",
-      open_questions: "",
-      what_changes_mind: "",
+      throughLine: `Error: ${error.message}`,
+      verdict: `Error: ${error.message}`,
+      convictionLevel: "causal_only",
+      anchoringBasis: "",
+      causalChain: [],
+      trajectory: { horizon: "", state: "", assumptions: "" },
+      rejectedAlternatives: [],
+      whatToWatch: { signals: [], whatWouldChangeMind: "", horizonCheck: "" },
+      evidenceAssessment: { strongestLinks: [], weakestLink: "", gaps: [], sourceDiversity: "" },
+      keyFindings: [],
       _meta: {
         passes: 0,
-        thematicMap: { themes: [], methodologyBreakdown: { rct: [], quasiExperimental: [], observational: [], qualitative: [], theoretical: [], metaAnalysis: [] }, dataLandscape: { totalDataPoints: 0, quantitativeFindings: [], qualitativeFindings: [], sampleSizes: [] } },
-        contradictionMap: { contradictions: [], consensusPoints: [], evidenceHierarchy: [] },
+        frictionMap: { mechanisms: [], collisions: [], dataLandscape: { totalDataPoints: 0, quantitativeFindings: [], activeDynamics: [], projectionsInLiterature: [] } },
+        stressTestMap: { mechanismAssessments: [], collisionAssessments: [], survivingMechanisms: [], strongestChain: { presentFactIds: [], mechanismIds: [], projectedFuture: '' } },
         totalTokensUsed: 0,
         totalCostUsd: 0,
       },

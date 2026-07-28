@@ -17,7 +17,7 @@ export async function searchLinkUp(query: string, limit = 15): Promise<any[]> {
   try {
     const client = new LinkupClient({ apiKey: LINKUP_API_KEY });
     const response = await client.search({
-      q: query,
+      query,
       depth: 'standard',
       outputType: 'searchResults',
       includeImages: false,
@@ -78,7 +78,7 @@ export async function searchLinkUp(query: string, limit = 15): Promise<any[]> {
         authors,
         institutions,
         citationCount: null,
-        qualityScore: 55,
+        qualityScore: 40,
         oaStatus: 'open',
         hasFullText: !!(item.content && item.content.length > 500),
         contentLength: item.content?.length || item.snippet?.length || 0,

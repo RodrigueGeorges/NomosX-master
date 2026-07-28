@@ -27,8 +27,27 @@ export function scoreSource(input: {
   const typeBonus = input.type === "thesis" ? 4 : 0;
   const providerBonus = input.provider === "thesesfr" ? 3 : 0;
   
+  // Real independent API providers — these have primary data, not OpenAlex wrappers
+  const realApiProviders = [
+    'openreview', 'biorxiv', 'papers-with-code', 'mit-dspace', 'harvard-dash',
+    'max-planck-pure', 'clinical-trials', 'istat', 'open-primitive', 'treasury-fiscal',
+    'energy-charts', 'smard', 'rte-france', 'energi-data', 'fingrid', 'entsog',
+    'eurostat', 'data-gouv', 'eeas', 'nato', 'nist', 'cisa', 'enisa',
+    'worldbank', 'imf', 'oecd-direct', 'fred', 'ecb', 'eib',
+  ];
+  const realApiBonus = realApiProviders.includes(input.provider || '') ? 8 : 0;
+
+  // T1 PRIMARY DATA tier — live quantitative data providers. Their value is the
+  // numbers themselves (exploited by QUANT agent), not abstract length.
+  const primaryDataProviders = [
+    'energy-charts', 'smard', 'rte-france', 'energi-data', 'fingrid', 'entsog',
+    'eurostat', 'treasury-fiscal', 'fred', 'imf', 'worldbank', 'istat', 'open-primitive',
+  ];
+  const isPrimaryData = primaryDataProviders.includes(input.provider || '') && (input.type === 'dataset' || input.documentType === 'dataset');
+  const primaryDataBonus = isPrimaryData ? 22 : 0;
+  
   // News sources: intrinsic value as real-time intelligence even without citations/full text
-  const newsProviders = ['gdelt-news', 'newsapi', 'mediastack', 'thenewsapi', 'gnews', 'eventregistry', 'linkup'];
+  const newsProviders = ['gdelt-news', 'newsapi', 'mediastack', 'thenewsapi', 'gnews', 'eventregistry'];
   const isNews = newsProviders.includes(input.provider || '');
 
   // News authority tiers — recognized news outlets get higher scores
@@ -108,7 +127,7 @@ export function scoreSource(input: {
     if (input.documentType === 'directive') institutionalBonus += 6;   // Directives officielles
   }
   
-  return Math.round(Math.min(100, recency + citeScore + oaScore + instScore + typeBonus + providerBonus + newsBonus + newsAuthorityBonus + freshnessBonus + contentBonus + institutionalBonus));
+  return Math.round(Math.min(100, recency + citeScore + oaScore + instScore + typeBonus + providerBonus + realApiBonus + primaryDataBonus + newsBonus + newsAuthorityBonus + freshnessBonus + contentBonus + institutionalBonus));
 }
 
 /**

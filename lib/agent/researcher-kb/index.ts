@@ -140,6 +140,15 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
     referencePapers: [
       { title: 'Governing the Commons', authors: 'Elinor Ostrom', year: 1990, journal: 'Cambridge University Press', significance: 'Nobel-winning framework for institutional analysis of collective action' },
       { title: 'Agendas, Alternatives, and Public Policies', authors: 'John Kingdon', year: 1984, journal: 'Longman', significance: 'Definitive model of policy agenda setting (multiple streams)' },
+      { title: 'Theories of the Policy Process', authors: 'Paul Sabatier', year: 2007, journal: 'Westview Press', significance: 'Comprehensive review of policy process theories (advocacy coalition, punctuated equilibrium, etc.)' },
+      { title: 'The Tools of Government in the Modern State', authors: 'Christopher Hood', year: 1983, journal: 'Macmillan', significance: 'Foundational taxonomy of policy instruments (nodality, authority, treasure, organization)' },
+      { title: 'Politics in Time: History, Institutions, and Political Analysis', authors: 'Paul Pierson', year: 2004, journal: 'Princeton University Press', significance: 'Path dependence and historical institutionalism in policy analysis' },
+      { title: 'Regulatory Legitimacy: A Study of the National Health Service', authors: 'Giandomenico Majone', year: 1996, journal: 'Oxford University Press', significance: 'Foundational work on the regulatory state and delegation to independent agencies' },
+      { title: 'Studying Public Policy: Policy Cycles and Policy Subsystems', authors: 'Michael Howlett et al.', year: 2009, journal: 'Oxford University Press', significance: 'Standard textbook integrating multiple policy process frameworks' },
+      { title: 'Nudge: Improving Decisions About Health, Wealth, and Happiness', authors: 'Thaler & Sunstein', year: 2008, journal: 'Yale University Press', significance: 'Foundational work on behavioral public policy and choice architecture' },
+      { title: 'The Art and Craft of Policy Analysis', authors: 'Aaron Wildavsky', year: 1979, journal: 'Macmillan', significance: 'Canonical policy analysis text — puzzling vs powering, incrementalism' },
+      { title: 'Politics: Who Gets What, When, How', authors: 'Harold Lasswell', year: 1936, journal: 'McGraw-Hill', significance: 'Foundational definition of politics and policy as resource allocation' },
+      { title: 'A Primer for Policy Analysis', authors: 'Stokey & Zeckhauser', year: 1978, journal: 'W.W. Norton', significance: 'Foundational textbook on rational policy analysis and cost-benefit framework' },
     ],
     dataSources: [
       { name: 'OECD STIP Compass', type: 'api', description: 'Science, Technology and Innovation Policy database — 6000+ policy initiatives', endpoint: 'https://stip.oecd.org/api', requiresKey: false, dataType: 'policy initiatives' },
@@ -190,6 +199,14 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
     referencePapers: [
       { title: 'Mostly Harmless Econometrics', authors: 'Angrist & Pischke', year: 2009, journal: 'Princeton University Press', significance: 'Gold standard for causal inference methods' },
       { title: 'The Fiscal Multiplier in Small Open Economies', authors: 'Ilzetzki, Mendoza & Végh', year: 2013, journal: 'Journal of Monetary Economics', significance: 'Definitive evidence on fiscal multiplier heterogeneity' },
+      { title: 'Why Nations Fail: The Origins of Power, Prosperity, and Poverty', authors: 'Acemoglu & Robinson', year: 2012, journal: 'Crown Publishing', significance: 'Institutional foundations of economic outcomes — extractive vs inclusive institutions' },
+      { title: 'The General Theory of Employment, Interest and Money', authors: 'John Maynard Keynes', year: 1936, journal: 'Macmillan', significance: 'Foundational macroeconomics — aggregate demand, liquidity trap, fiscal policy' },
+      { title: 'Capital in the Twenty-First Century', authors: 'Thomas Piketty', year: 2014, journal: 'Harvard University Press', significance: 'Definitive work on wealth inequality dynamics (r > g)' },
+      { title: 'One Economics, Many Recipes: Globalization, Institutions, and Economic Growth', authors: 'Dani Rodrik', year: 2007, journal: 'Princeton University Press', significance: 'Institutional diversity and context-specific growth strategies' },
+      { title: 'This Time Is Different: Eight Centuries of Financial Folly', authors: 'Reinhart & Rogoff', year: 2009, journal: 'Princeton University Press', significance: 'Definitive history of financial crises and sovereign defaults' },
+      { title: 'The Great Convergence', authors: 'Richard Baldwin', year: 2016, journal: 'Harvard University Press', significance: 'Globalization second unbundling and supply chain trade' },
+      { title: 'A Contribution to the Theory of Economic Growth', authors: 'Robert Solow', year: 1956, journal: 'Quarterly Journal of Economics', significance: 'Nobel-winning neoclassical growth model — foundational for all modern growth theory' },
+      { title: 'The Problem of Social Cost', authors: 'Ronald Coase', year: 1960, journal: 'Journal of Law and Economics', significance: 'Nobel-winning work on externalities, transaction costs, and property rights — Coase theorem' },
     ],
     dataSources: [
       { name: 'FRED', type: 'api', description: 'Federal Reserve Economic Data — 800K+ time series', endpoint: 'https://api.stlouisfed.org/fred', requiresKey: true, keyEnvVar: 'FRED_API_KEY', dataType: 'economic indicators' },
@@ -240,6 +257,15 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
     referencePapers: [
       { title: 'Scaling Data-Constrained Language Models', authors: 'Muennighoff et al.', year: 2024, journal: 'NeurIPS', significance: 'Definitive scaling laws for LLMs with data constraints' },
       { title: 'Sparks of AGI', authors: 'Bubeck et al.', year: 2023, journal: 'Microsoft Research', significance: 'Controversial but influential early GPT-4 capability assessment' },
+      { title: 'A Mathematical Theory of Communication', authors: 'Claude Shannon', year: 1948, journal: 'Bell System Technical Journal', significance: 'Foundational information theory — entropy, channel capacity, coding theorems' },
+      { title: 'Computing Machinery and Intelligence', authors: 'Alan Turing', year: 1950, journal: 'Mind', significance: 'Foundational paper on AI — the Turing Test and machine intelligence criteria' },
+      { title: 'Artificial Intelligence: A Modern Approach', authors: 'Russell & Norvig', year: 2020, journal: 'Pearson', significance: 'Definitive AI textbook — rational agent framework, search, learning, reasoning' },
+      { title: 'Power and Progress: Our Thousand-Year Struggle Over Technology and Prosperity', authors: 'Acemoglu & Johnson', year: 2023, journal: 'PublicAffairs', significance: 'How technology choices shape inequality — directed technical change' },
+      { title: 'The Second Machine Age: Work, Progress, and Prosperity in a Time of Brilliant Technologies', authors: 'Brynjolfsson & McAfee', year: 2014, journal: 'W.W. Norton', significance: 'Definitive work on digital transformation and economic impact of AI/automation' },
+      { title: 'Superintelligence: Paths, Dangers, Strategies', authors: 'Nick Bostrom', year: 2014, journal: 'Oxford University Press', significance: 'Foundational work on AI existential risk and alignment' },
+      { title: 'The Sciences of the Artificial', authors: 'Herbert Simon', year: 1969, journal: 'MIT Press', significance: 'Nobel laureate — foundational theory of design, bounded rationality, and artificial systems' },
+      { title: 'Attention Is All You Need', authors: 'Vaswani et al.', year: 2017, journal: 'NeurIPS', significance: 'The Transformer architecture paper — foundation of all modern LLMs (GPT, Claude, Gemini)' },
+      { title: 'Reinforcement Learning: An Introduction', authors: 'Sutton & Barto', year: 2018, journal: 'MIT Press', significance: 'Definitive textbook on RL — Markov decision processes, TD learning, policy gradient' },
     ],
     dataSources: [
       { name: 'Papers With Code', type: 'api', description: 'ML benchmarks, SOTA results, code repositories', endpoint: 'https://paperswithcode.com/api/v1', requiresKey: false, dataType: 'ML benchmarks and SOTA' },
@@ -288,6 +314,14 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
     ],
     referencePapers: [
       { title: 'Global Burden of Disease Study', authors: 'GBD Collaborators', year: 2024, journal: 'The Lancet', significance: 'Definitive reference for global disease burden and trends' },
+      { title: 'Evidence-Based Medicine: How to Practice and Teach EBM', authors: 'Sackett et al.', year: 2000, journal: 'Churchill Livingstone', significance: 'Foundational textbook of evidence-based medicine — hierarchy of evidence' },
+      { title: 'Cochrane Handbook for Systematic Reviews of Interventions', authors: 'Higgins & Green', year: 2011, journal: 'Cochrane Collaboration', significance: 'Gold standard methodology for systematic reviews and meta-analysis' },
+      { title: 'The Environment and Disease: Association or Causation?', authors: 'Austin Bradford Hill', year: 1965, journal: 'Proceedings of the Royal Society of Medicine', significance: 'Original Bradford Hill criteria for causal inference in epidemiology' },
+      { title: 'Global Health 101', authors: 'Richard Skolnik', year: 2016, journal: 'Jones & Bartlett', significance: 'Standard textbook on global health systems, financing, and burden of disease' },
+      { title: 'The Lancet Commission on Pollution and Health', authors: 'Landrigan et al.', year: 2017, journal: 'The Lancet', significance: 'Definitive assessment of pollution health impact — 9M deaths/year globally' },
+      { title: 'Disease Control Priorities (3rd Edition)', authors: 'DCP3 Editors', year: 2018, journal: 'World Bank', significance: 'Definitive cost-effectiveness analysis of health interventions in LMICs' },
+      { title: 'Modern Epidemiology', authors: 'Rothman, Greenland & Lash', year: 2008, journal: 'Lippincott Williams & Wilkins', significance: 'Definitive graduate-level epidemiology textbook — study design, confounding, interaction' },
+      { title: 'Uses of Epidemiology', authors: 'John Morris', year: 1957, journal: 'Little Brown', significance: 'Foundational text defining epidemiology applications beyond infectious disease' },
     ],
     dataSources: [
       { name: 'PubMed', type: 'api', description: '36M+ biomedical citations', endpoint: 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils', requiresKey: false, dataType: 'biomedical literature' },
@@ -336,6 +370,17 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
     ],
     referencePapers: [
       { title: 'Destined for War', authors: 'Graham Allison', year: 2017, journal: 'Houghton Mifflin', significance: 'Thucydides Trap framework for great power competition' },
+      { title: 'Arms and Influence', authors: 'Thomas Schelling', year: 1966, journal: 'Yale University Press', significance: 'Foundational work on deterrence, coercion, and strategic bargaining' },
+      { title: 'Perception and Misperception in International Politics', authors: 'Robert Jervis', year: 1976, journal: 'Princeton University Press', significance: 'Cognitive biases in security decision-making and escalation dynamics' },
+      { title: 'The Tragedy of Great Power Politics', authors: 'John Mearsheimer', year: 2001, journal: 'W.W. Norton', significance: 'Offensive realism theory — great power competition is structural' },
+      { title: 'The Origins of Alliances', authors: 'Stephen Walt', year: 1987, journal: 'Cornell University Press', significance: 'Balance of threat theory — states ally against strongest threat, not strongest power' },
+      { title: 'Counterinsurgency', authors: 'David Kilcullen', year: 2010, journal: 'Oxford University Press', significance: 'Definitive modern COIN doctrine — population-centric, hybrid threats' },
+      { title: 'Strategies of Containment', authors: 'John Lewis Gaddis', year: 1982, journal: 'Oxford University Press', significance: 'Definitive history of Cold War containment strategy and grand strategy' },
+      { title: 'The Shield of Achilles: War, Peace, and the Course of History', authors: 'Philip Bobbitt', year: 2002, journal: 'Anchor Books', significance: 'Constitutional order and epochal wars — market state vs nation state' },
+      { title: 'Man, the State, and War', authors: 'Kenneth Waltz', year: 1959, journal: 'Columbia University Press', significance: 'Foundational IR theory — three levels of analysis (individual, state, system)' },
+      { title: 'On War', authors: 'Carl von Clausewitz', year: 1832, journal: 'Penguin Classics', significance: 'Foundational treatise on war — fog of war, friction, center of gravity, politics by other means' },
+      { title: 'Rationalist Explanations for War', authors: 'James Fearon', year: 1995, journal: 'International Organization', significance: 'Canonical formal theory of why rational states fight wars — commitment problems, private information' },
+      { title: 'The Spread of Nuclear Weapons: An Enduring Debate', authors: 'Sagan & Waltz', year: 1995, journal: 'W.W. Norton', significance: 'Canonical debate — Waltz (more nukes = more stability) vs Sagan (organizational risks)' },
     ],
     dataSources: [
       { name: 'GDELT Project', type: 'api', description: 'Global event monitoring — conflict tone, article volume', endpoint: 'https://api.gdeltproject.org/api/v2/doc/doc', requiresKey: false, dataType: 'conflict monitoring' },
@@ -389,6 +434,14 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
       { title: 'The Brussels Effect', authors: 'Anu Bradford', year: 2020, journal: 'Oxford University Press', significance: 'Definitive work on EU regulatory globalization' },
       { title: 'The EU AI Act: A Comprehensive Overview', authors: 'Michael Veale & Frederik Zuiderveen Borgesius', year: 2023, journal: 'Computer Law & Security Review', significance: 'First systematic legal analysis of the EU AI Act risk classification framework' },
       { title: 'Law and Artificial Intelligence', authors: 'Woodrow Barfield & Ugo Pagallo', year: 2020, journal: 'Edward Elgar Publishing', significance: 'Comprehensive treatment of how AI challenges existing legal frameworks across domains' },
+      { title: 'The Concept of Law', authors: 'H.L.A. Hart', year: 1961, journal: 'Oxford University Press', significance: 'Foundational legal philosophy — rules of recognition, primary/secondary rules, legal positivism' },
+      { title: 'Taking Rights Seriously', authors: 'Ronald Dworkin', year: 1977, journal: 'Harvard University Press', significance: 'Rights as trumps — critique of legal positivism, principled adjudication' },
+      { title: 'Nudge: Improving Decisions About Health, Wealth, and Happiness', authors: 'Thaler & Sunstein', year: 2008, journal: 'Yale University Press', significance: 'Libertarian paternalism and regulatory choice architecture' },
+      { title: 'Code: And Other Laws of Cyberspace', authors: 'Lawrence Lessig', year: 1999, journal: 'Basic Books', significance: 'Code is law — architecture as regulatory instrument in cyberspace' },
+      { title: 'Law for the Computer Age', authors: 'Mireille Hildebrandt', year: 2020, journal: 'Oxford University Press', significance: 'Legal tech, computational law, and the future of legal protection in data-driven societies' },
+      { title: 'The Morality of Law', authors: 'Lon Fuller', year: 1964, journal: 'Yale University Press', significance: 'Inner morality of law — eight desiderata of legal systems, natural law vs positivism debate' },
+      { title: 'The Constitution of Liberty', authors: 'F.A. Hayek', year: 1960, journal: 'University of Chicago Press', significance: 'Definitive classical liberal legal philosophy — rule of law, spontaneous order, individual freedom' },
+      { title: 'The Path of the Law', authors: 'Oliver Wendell Holmes', year: 1897, journal: 'Harvard Law Review', significance: 'Foundational legal realist text — law as prediction, bad man theory' },
     ],
     dataSources: [
       { name: 'EUR-Lex', type: 'api', description: 'EU legislation database — directives, regulations, case law', endpoint: 'https://eur-lex.europa.eu/eurlex-ws/rest', requiresKey: false, dataType: 'EU legislation' },
@@ -439,8 +492,17 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
     ],
     referencePapers: [
       { title: 'IPCC AR6 Synthesis Report', authors: 'IPCC', year: 2023, journal: 'IPCC', significance: 'Definitive state of climate science and mitigation pathways' },
-      { title: 'A safe operating space for humanity', authors: 'Johan Rockström et al.', year: 2009, journal: 'Nature', significance: 'Original planetary boundaries framework — foundational for Earth system governance' },
+      { title: 'A safe operating space for humanity', authors: 'Johan Rockstrom et al.', year: 2009, journal: 'Nature', significance: 'Original planetary boundaries framework — foundational for Earth system governance' },
       { title: 'Global Carbon Budget 2023', authors: 'Friedlingstein et al.', year: 2023, journal: 'Earth System Science Data', significance: 'Annual authoritative assessment of global CO2 emissions, sinks, and remaining budget' },
+      { title: 'The Limits to Growth', authors: 'Meadows et al.', year: 1972, journal: 'Club of Rome', significance: 'Foundational systems dynamics work on resource constraints and exponential growth' },
+      { title: 'Our Common Future (Brundtland Report)', authors: 'WCED', year: 1987, journal: 'Oxford University Press', significance: 'Definitive definition of sustainable development — intergenerational equity' },
+      { title: 'The Stern Review: The Economics of Climate Change', authors: 'Nicholas Stern', year: 2006, journal: 'HM Treasury', significance: 'Landmark cost-benefit analysis of climate action vs inaction' },
+      { title: 'The Climate Casino: Risk, Uncertainty, and Economics for a Warming World', authors: 'William Nordhaus', year: 2013, journal: 'Yale University Press', significance: 'Nobel laureate integrated assessment model (DICE) and carbon pricing' },
+      { title: 'Doughnut Economics: Seven Ways to Think Like a 21st-Century Economist', authors: 'Kate Raworth', year: 2017, journal: 'Chelsea Green', significance: 'Regenerative and distributive economics framework — social foundation + ecological ceiling' },
+      { title: 'IPBES Global Assessment Report on Biodiversity and Ecosystem Services', authors: 'IPBES', year: 2019, journal: 'IPBES', significance: 'Definitive assessment of biodiversity loss and ecosystem degradation — 1M species at risk' },
+      { title: 'The Tragedy of the Commons', authors: 'Garrett Hardin', year: 1968, journal: 'Science', significance: 'Foundational paper on common-pool resource depletion — still debated and referenced' },
+      { title: 'Silent Spring', authors: 'Rachel Carson', year: 1962, journal: 'Houghton Mifflin', significance: 'Foundational environmental science — launched the modern environmental movement' },
+      { title: 'Thinking in Systems: A Primer', authors: 'Donella Meadows', year: 2008, journal: 'Chelsea Green', significance: 'Definitive systems thinking primer — feedback loops, leverage points, stocks and flows' },
     ],
     dataSources: [
       { name: 'NASA GISS', type: 'api', description: 'Global temperature anomaly data', endpoint: 'https://data.giss.nasa.gov/gistemp', requiresKey: false, dataType: 'temperature anomalies' },
@@ -1297,6 +1359,13 @@ export function buildKBInjection(domain: DomainExpertise): string {
   // Known biases
   if (kb.knownBiases.length > 0) {
     sections.push(`\n## BIASES TO WATCH FOR\n${kb.knownBiases.map(b => `- ${b}`).join('\n')}`);
+  }
+
+  // Foundational reference papers — must-know literature for this domain
+  if (kb.referencePapers.length > 0) {
+    sections.push(`\n## FOUNDATIONAL WORKS IN YOUR DOMAIN\nThese are seminal works that any serious analysis in this domain MUST engage with:\n${kb.referencePapers.map(p =>
+      `- **${p.title}** (${p.authors}, ${p.year})${p.journal ? ` — ${p.journal}` : ''}${p.significance ? ` — ${p.significance}` : ''}${p.doi ? ` — DOI: ${p.doi}` : ''}`
+    ).join('\n')}`);
   }
 
   // Standing questions

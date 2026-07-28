@@ -87,37 +87,86 @@ export function renderPositionFirstBriefHTML(input: PositionFirstBriefInput): st
     </section>`
       : '';
 
-  const analysisSection = (label: string, content: any) => {
-    if (!content) return '';
-    const text = String(content);
-    if (text.trim().length < 20) return '';
-    return `<section class="nx-block">
-      <p class="nx-eyebrow">${esc(label)}</p>
-      <div class="verdict-block">${renderParagraphs(text)}</div>
-    </section>`;
-  };
-
-  const debate = analysis.debate as any;
-  const debateHtml = debate
-    ? `<section class="nx-block">
-      <p class="nx-eyebrow">Debate</p>
-      <div class="verdict-block">
-        ${debate.pro ? `<p><strong>Pro:</strong> ${renderParagraphs(String(debate.pro))}</p>` : ''}
-        ${debate.con ? `<p><strong>Con:</strong> ${renderParagraphs(String(debate.con))}</p>` : ''}
-        ${debate.synthesis ? `<p><strong>Synthesis:</strong> ${renderParagraphs(String(debate.synthesis))}</p>` : ''}
-      </div>
-    </section>`
+  // ── Transform causalChain into continuous prose ──
+  const causalChain = (analysis.causalChain as any[]) || [];
+  const chainProse = causalChain.length > 0
+    ? causalChain.map((link) => {
+        const claim = String(link.claim || '');
+        const evidence = String(link.evidence || '');
+        const warrant = String(link.warrant || '');
+        const parts = [claim];
+        if (evidence && evidence !== claim) parts.push(evidence);
+        if (warrant) parts.push(`The mechanism: ${warrant}`);
+        return parts.join(' ');
+      }).join(' ')
     : '';
 
-  const analysisBodyHtml = [
-    analysisSection('Executive summary', analysis.summary),
-    analysisSection('Consensus', analysis.consensus),
-    analysisSection('Disagreements', analysis.disagreements),
-    debateHtml,
-    analysisSection('Evidence quality', analysis.evidence),
-    analysisSection('Strategic implications', analysis.implications),
-    analysisSection('Risks & limitations', analysis.risks),
-    analysisSection('Open questions', analysis.open_questions),
+  // ── Trajectory as prose ──
+  const trajectory = analysis.trajectory as any;
+  const trajectoryProse = trajectory
+    ? [trajectory.state, trajectory.assumptions].filter(Boolean).map(String).join(' ')
+    : '';
+
+  // ── Rejected alternatives as prose ──
+  const rejectedAlts = (analysis.rejectedAlternatives as any[]) || [];
+  const rejectedProse = rejectedAlts.length > 0
+    ? rejectedAlts.map((ra) => {
+        const scenario = String(ra.scenario || '');
+        const why = String(ra.whyRejected || '');
+        const risk = String(ra.residualRisk || '');
+        return [scenario, why, risk].filter(Boolean).join(' — ');
+      }).join(' ')
+    : '';
+
+  // ── What to watch as prose ──
+  const whatToWatch = analysis.whatToWatch as any;
+  const watchProse = whatToWatch
+    ? [
+        Array.isArray(whatToWatch.signals) ? whatToWatch.signals.join(' ') : '',
+        String(whatToWatch.whatWouldChangeMind || ''),
+        String(whatToWatch.horizonCheck || ''),
+      ].filter(Boolean).join(' ')
+    : '';
+
+  // ── Evidence assessment as prose ──
+  const evidenceAssessment = analysis.evidenceAssessment as any;
+  const evidenceProse = evidenceAssessment
+    ? [
+        Array.isArray(evidenceAssessment.strongestLinks) ? evidenceAssessment.strongestLinks.join(' ') : '',
+        String(evidenceAssessment.weakestLink || ''),
+        Array.isArray(evidenceAssessment.gaps) ? evidenceAssessment.gaps.join(' ') : '',
+        String(evidenceAssessment.sourceDiversity || ''),
+      ].filter(Boolean).join(' ')
+    : '';
+
+  // ── Key findings as prose ──
+  const keyFindings = (analysis.keyFindings as string[]) || [];
+  const keyFindingsProse = keyFindings.length > 0 ? keyFindings.join(' ') : '';
+
+  // ── Build prose-continuous body: verdict first, then chain, then trajectory, then rest ──
+  const verdictText = String(analysis.verdict || position.verdict || '');
+  const throughLine = String(analysis.throughLine || '');
+  const anchoringBasis = String(analysis.anchoringBasis || '');
+
+  const proseBodyHtml = [
+    // Verdict first — no section header
+    verdictText ? `<div class="verdict-block">${renderParagraphs(verdictText)}</div>` : '',
+    // Through line as a lead paragraph
+    throughLine ? `<p class="through-line" style="font-size:1.1em;font-weight:500;color:var(--muted);margin:1.5em 0">${replaceCitations(esc(throughLine))}</p>` : '',
+    // Anchoring basis
+    anchoringBasis ? `<div class="verdict-block">${renderParagraphs(anchoringBasis)}</div>` : '',
+    // Causal chain as continuous prose — no visible section break
+    chainProse ? `<div class="verdict-block">${renderParagraphs(chainProse)}</div>` : '',
+    // Trajectory flows naturally
+    trajectoryProse ? `<div class="verdict-block">${renderParagraphs(trajectoryProse)}</div>` : '',
+    // Rejected alternatives
+    rejectedProse ? `<div class="verdict-block">${renderParagraphs(rejectedProse)}</div>` : '',
+    // What to watch
+    watchProse ? `<div class="verdict-block">${renderParagraphs(watchProse)}</div>` : '',
+    // Evidence assessment
+    evidenceProse ? `<div class="verdict-block">${renderParagraphs(evidenceProse)}</div>` : '',
+    // Key findings
+    keyFindingsProse ? `<div class="verdict-block">${renderParagraphs(keyFindingsProse)}</div>` : '',
   ].filter(Boolean).join('\n');
 
   return `<!DOCTYPE html>
@@ -156,15 +205,7 @@ export function renderPositionFirstBriefHTML(input: PositionFirstBriefInput): st
       ${scenariosHtml || '<p class="scenario-desc">Scenario distribution pending further evidence.</p>'}
     </section>
 
-    <section class="nx-block">
-      <p class="nx-eyebrow">Institute position</p>
-      <div class="verdict-block">
-        ${renderParagraphs(position.verdict)}
-      </div>
-      <p class="confidence">Confidence ${position.confidence}/100 · ${position.confidenceLabel}</p>
-    </section>
-
-    ${analysisBodyHtml}
+    ${proseBodyHtml}
 
     ${objectionsHtml}
     ${changeMindHtml}

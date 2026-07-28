@@ -83,7 +83,7 @@ export const UpdateProfileSchema = z.object({
 
 export const CreateBriefSchema = z.object({
   question: z.string().min(10, 'Question must be at least 10 characters'),
-  type: z.enum(['EXECUTIVE_BRIEF', 'STRATEGIC_REPORT']),
+  type: z.enum(['ARTICLE', 'STRATEGIC_REPORT']),
   priority: z.enum(['low', 'medium', 'high']).optional(),
 })
 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { getSession } from '@/lib/auth';
 import { withRateLimit, rateLimitConfigs, commonSchemas } from '@/lib/validation';
 import { generatePrintHTML } from '@/lib/agent/pdf-export';
 import { publicPublicationWhere } from '@/lib/publication-visibility';
@@ -20,6 +21,11 @@ export async function GET(
     rateLimitConfigs.api,
     async (req) => {
       try {
+        const session = await getSession();
+        if (!session?.id) {
+          return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+        }
+
         const { id } = await params;
         const idValidation = commonSchemas.id.safeParse({ id });
         if (!idValidation.success) {
