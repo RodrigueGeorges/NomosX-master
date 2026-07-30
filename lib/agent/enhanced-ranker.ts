@@ -144,13 +144,17 @@ export async function enhancedRank(
   // But still filter out completely irrelevant sources (score < 1.5 means almost no keyword overlap)
   // When querying whole DB, use stricter threshold
   const relevanceThreshold = isScoped ? 1.5 : 1.0;
+  // Web and news providers use different vocabulary — exempt from relevance gate
+  const webProviderList = ['linkup', 'gdelt-news', 'newsapi', 'mediastack', 'thenewsapi', 'gnews', 'eventregistry'];
   const enhancedSources = sources.map(source => {
     const qualityScore = source.qualityScore || 0;
     const noveltyScore = source.noveltyScore || 0;
     
     const relevanceScore = calculateRelevanceScore(query, source);
     
-    if (relevanceScore < relevanceThreshold) {
+    // Web/news sources bypass relevance threshold — they were fetched with the query
+    const isWebProvider = webProviderList.includes(source.provider || '');
+    if (!isWebProvider && relevanceScore < relevanceThreshold) {
       rejectedCount++;
       return null;
     }
@@ -199,9 +203,47 @@ export async function enhancedRank(
   const filteredSources = applyEnhancedFilters(enhancedSources, finalOptions);
 
   // Sort by composite score and limit
-  const finalSources = filteredSources
+  let finalSources = filteredSources
     .sort((a, b) => b.compositeScore - a.compositeScore)
     .slice(0, finalOptions.limit!);
+
+  // Post-slice diversity enforcement: sort+slice can undo redistribution
+  // by selecting all top-scoring sources from a single provider.
+  // Re-cap per provider and fill from remaining sources to maintain diversity.
+  if (finalOptions.maxPerProvider && finalSources.length > 0) {
+    const providerCounts: Record<string, number> = {};
+    const capped: typeof finalSources = [];
+    const remaining: typeof finalSources = [];
+    for (const s of finalSources) {
+      const p = s.provider || 'unknown';
+      providerCounts[p] = (providerCounts[p] || 0) + 1;
+      if (providerCounts[p] <= finalOptions.maxPerProvider) {
+        capped.push(s);
+      } else {
+        remaining.push(s);
+      }
+    }
+    // If capping reduced the list, try to fill from sources that were sliced off
+    if (capped.length < finalSources.length) {
+      const usedIds = new Set(capped.map(s => s.id));
+      const overflow = filteredSources
+        .filter(s => !usedIds.has(s.id))
+        .sort((a, b) => b.compositeScore - a.compositeScore);
+      for (const s of overflow) {
+        if (capped.length >= (finalOptions.limit || 25)) break;
+        const p = s.provider || 'unknown';
+        providerCounts[p] = (providerCounts[p] || 0) + 1;
+        if (providerCounts[p] <= finalOptions.maxPerProvider) {
+          capped.push(s);
+        }
+      }
+    }
+    finalSources = capped;
+    const finalProviderList = [...new Set(finalSources.map(s => s.provider || 'unknown'))];
+    if (finalProviderList.length === 1 && finalSources.length > 1) {
+      console.warn(`[ENHANCED RANK] Post-slice: all ${finalSources.length} sources from single provider '${finalProviderList[0]}' — diversity enforcement failed`);
+    }
+  }
 
   // SAFETY NET: If we ended up with too few sources after filtering, relax and take what we have
   if (finalSources.length < 8 && enhancedSources.length > finalSources.length) {

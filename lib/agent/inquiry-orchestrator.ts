@@ -272,8 +272,14 @@ export async function runAndPublishInquiry(
 
   const costUsd = getPipelineCostUsd(pipeline.stats);
 
-  // 4. Post-pipeline dedup by briefId
-  if (!req.skipDuplicateCheck) {
+  // 4a. Handle pipeline refusal (insufficient evidence)
+  if (pipeline.refusal) {
+    console.warn(`[InquiryOrchestrator] Pipeline refused: ${pipeline.refusalReason}`);
+    return failResult(started, pipeline.refusalReason || 'Pipeline refused: evidence insufficient');
+  }
+
+  // 4. Post-pipeline dedup by briefId (skip if pipeline refused)
+  if (!req.skipDuplicateCheck && pipeline.briefId) {
     const briefDup = await findPublicationByBriefId(pipeline.briefId);
     if (briefDup) {
       console.log(`[InquiryOrchestrator] Brief ${pipeline.briefId} already published → ${briefDup.id}`);
@@ -344,6 +350,7 @@ export async function runAndPublishInquiry(
     fatalChallenges,
     researcherDecision: signOff?.decision,
     triangularOverride,
+    domain: req.domain,
   });
 
   const readiness = evaluatePublicationReadiness({
@@ -353,9 +360,20 @@ export async function runAndPublishInquiry(
     citationCoverage,
     wordCount,
     sourceIds,
+    domain: req.domain,
   });
 
   const minTrust = req.minTrustScore ?? 65;
+  // Adaptive trust: if enrichment reasoner found evidence sufficient (score ≥ 70),
+  // lower trust threshold by 5 — emerging topics may have slightly lower trust
+  // due to novelty but still be well-grounded
+  const enrichmentStats = pipeline.stats.enrichmentReasoner as Record<string, unknown> | undefined;
+  const enrichmentSufficiency = typeof enrichmentStats?.sufficiencyScore === 'number'
+    ? enrichmentStats.sufficiencyScore as number
+    : undefined;
+  const adaptiveMinTrust = enrichmentSufficiency !== undefined && enrichmentSufficiency >= 70
+    ? Math.max(55, minTrust - 5)
+    : minTrust;
   let status: InquiryPublishStatus = "held";
 
   // Use revised DA verdict if triangular judge overrode
@@ -364,15 +382,15 @@ export async function runAndPublishInquiry(
     : daVerdict;
 
   // Priority 1: Gate says publish + readiness OK + trust sufficient → publish
-  if (gate.decision === "publish" && readiness.ok && trustScore >= minTrust) {
+  if (gate.decision === "publish" && readiness.ok && trustScore >= adaptiveMinTrust) {
     status = "published";
   }
   // Priority 2: Gate says revise but metrics are strong → publish with DA advisory
-  else if (gate.decision === "revise" && readiness.ok && trustScore >= minTrust + 5) {
+  else if (gate.decision === "revise" && readiness.ok && trustScore >= adaptiveMinTrust + 5) {
     status = "published";
   }
   // Priority 3: DA reject with low trust → review (DA concern validated by weak metrics)
-  else if (effectiveDaVerdict === "reject" && trustScore < minTrust + 5) {
+  else if (effectiveDaVerdict === "reject" && trustScore < adaptiveMinTrust + 5) {
     status = "review";
   }
   // Priority 4: Sign-off not approved → draft
@@ -384,7 +402,7 @@ export async function runAndPublishInquiry(
     status = "held";
   }
   // Priority 6: Trust too low → draft
-  else if (trustScore < minTrust) {
+  else if (trustScore < adaptiveMinTrust) {
     status = "draft";
   }
 
@@ -444,7 +462,7 @@ export async function runAndPublishInquiry(
 
     if (status === "published") {
       await tx.brief.update({
-        where: { id: pipeline.briefId },
+        where: { id: pipeline.briefId! },
         data: { publicId, publishedAt: new Date() },
       });
     }
@@ -461,7 +479,7 @@ export async function runAndPublishInquiry(
   if (foresightPayload.foresight || pipeline.lineage.foresightRun) {
     await persistForesightRun({
       publicationId: publication.id,
-      briefId: pipeline.briefId,
+      briefId: pipeline.briefId!,
       lineage: pipeline.lineage as Record<string, unknown>,
       bundle: foresightPayload.foresight as ForesightBundle | undefined,
     });
@@ -474,7 +492,7 @@ export async function runAndPublishInquiry(
       status: status === "published" ? "published" : status === "review" ? "reviewing" : "reviewing",
       slug: publication.publicId ?? pipeline.inquiry.slug,
     },
-    briefId: pipeline.briefId,
+    briefId: pipeline.briefId!,
     publicationId: publication.id,
     publicId: publication.publicId ?? undefined,
     trustScore,

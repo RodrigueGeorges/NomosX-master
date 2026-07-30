@@ -12,14 +12,15 @@ import { classifyDomain } from "./domain-tiers";
 // ─── Types ────────────────────────────────────────────────────────
 
 export interface EvalMetrics {
-  groundingRate: number; // numéraux avec citation / total numéraux
+  groundingRate: number | null; // numéraux avec citation / total numéraux (null si 0 numéral)
   primarySourceRatio: number; // sources tier 1-2 / total classifié
   tier4Ratio: number; // sources tier 4 / total classifié
   unclassifiedRatio: number; // non classifié / total
   channelCoverage: number; // canaux couverts / canaux de la carte (stub: 0)
   gapResolutionRate: number; // gaps fermés / gaps ouverts (stub: 0)
-  hypothesisResolved: number; // hypothèses confirmed+refuted / total
+  hypothesisResolved: number; // hypothèses supported+refuted / total
   inconclusiveRate: number; // hypothèses inconclusive / total
+  partialRate: number; // hypothèses partially_supported / total
   refusalCorrectness: boolean; // refuse sur topic 2, ne refuse pas sur topic 1
   internalConsistency: number; // incohérences arithmétiques (doit = 0)
   costUsd: number;
@@ -67,6 +68,7 @@ export interface EvalSnapshot {
     avgUnclassifiedRatio: number;
     avgHypothesisResolved: number;
     avgInconclusiveRate: number;
+    avgPartialRate: number;
     refusalAccuracy: number;
     totalCostUsd: number;
     totalDurationMs: number;
@@ -232,24 +234,26 @@ function classifySources(sources: SourceForClassification[]): {
 
 function extractHypothesisMetrics(
   stats: Record<string, unknown>,
-): { resolved: number; inconclusive: number; total: number } {
+): { resolved: number; inconclusive: number; partial: number; total: number } {
   const hypothesisJudge = stats.hypothesisJudge as
     | { verdicts?: Array<{ verdict: string }> }
     | undefined;
 
   if (!hypothesisJudge?.verdicts || !Array.isArray(hypothesisJudge.verdicts)) {
-    return { resolved: 0, inconclusive: 0, total: 0 };
+    return { resolved: 0, inconclusive: 0, partial: 0, total: 0 };
   }
 
   const verdicts = hypothesisJudge.verdicts;
   const total = verdicts.length;
-  const confirmed = verdicts.filter((v) => v.verdict === "confirmed").length;
+  const supported = verdicts.filter((v) => v.verdict === "supported").length;
   const refuted = verdicts.filter((v) => v.verdict === "refuted").length;
+  const partial = verdicts.filter((v) => v.verdict === "partially_supported").length;
   const inconclusive = verdicts.filter((v) => v.verdict === "inconclusive").length;
 
   return {
-    resolved: total > 0 ? (confirmed + refuted) / total : 0,
+    resolved: total > 0 ? (supported + refuted) / total : 0,
     inconclusive: total > 0 ? inconclusive / total : 0,
+    partial: total > 0 ? partial / total : 0,
     total,
   };
 }
@@ -269,7 +273,7 @@ export function scoreTopic(
 ): TopicEvalResult {
   const numerals = extractNumerals(pipelineOutput.html);
   const grounded = numerals.filter((n) => n.hasCitation).length;
-  const groundingRate = numerals.length > 0 ? grounded / numerals.length : 0;
+  const groundingRate = numerals.length > 0 ? grounded / numerals.length : null;
 
   const { tier12, tier4, unclassified, total } = classifySources(
     pipelineOutput.sources,
@@ -297,6 +301,7 @@ export function scoreTopic(
     gapResolutionRate: 0, // TODO WO-3: gap resolver
     hypothesisResolved: hypo.resolved,
     inconclusiveRate: hypo.inconclusive,
+    partialRate: hypo.partial,
     refusalCorrectness,
     internalConsistency,
     costUsd: pipelineOutput.costUsd,
@@ -336,6 +341,7 @@ const NUMERIC_METRICS: Array<keyof EvalMetrics> = [
   "gapResolutionRate",
   "hypothesisResolved",
   "inconclusiveRate",
+  "partialRate",
   "internalConsistency",
   "costUsd",
   "durationMs",
@@ -350,7 +356,7 @@ export function aggregateTopicRuns(
   for (const metric of NUMERIC_METRICS) {
     const values = runs
       .map((r) => r.metrics[metric])
-      .filter((v) => typeof v === "number") as number[];
+      .filter((v): v is number => typeof v === "number" && v !== null) as number[];
     metricStats[metric] = computeStats(values);
   }
 
@@ -380,7 +386,7 @@ export function aggregateResults(
   const avgMetric = (key: keyof EvalMetrics): number => {
     const means = valid
       .map((t) => t.metricStats[key]?.mean)
-      .filter((v) => v !== undefined && Number.isFinite(v)) as number[];
+      .filter((v): v is number => v !== undefined && v !== null && Number.isFinite(v)) as number[];
     return means.length > 0
       ? means.reduce((s, v) => s + v, 0) / means.length
       : 0;
@@ -411,6 +417,7 @@ export function aggregateResults(
     avgUnclassifiedRatio: avgMetric("unclassifiedRatio"),
     avgHypothesisResolved: avgMetric("hypothesisResolved"),
     avgInconclusiveRate: avgMetric("inconclusiveRate"),
+    avgPartialRate: avgMetric("partialRate"),
     refusalAccuracy: valid.length > 0 ? refusalCorrect / valid.length : 0,
     totalCostUsd: totalCost,
     totalDurationMs: totalDuration,
@@ -464,6 +471,7 @@ export function compareSnapshots(
   compare("avgUnclassifiedRatio", prev.avgUnclassifiedRatio, curr.avgUnclassifiedRatio);
   compare("avgHypothesisResolved", prev.avgHypothesisResolved, curr.avgHypothesisResolved);
   compare("avgInconclusiveRate", prev.avgInconclusiveRate, curr.avgInconclusiveRate);
+  compare("avgPartialRate", prev.avgPartialRate ?? 0, curr.avgPartialRate ?? 0);
   compare("refusalAccuracy", prev.refusalAccuracy, curr.refusalAccuracy);
   compare("totalCostUsd", prev.totalCostUsd, curr.totalCostUsd);
   compare("totalDurationMs", prev.totalDurationMs, curr.totalDurationMs);

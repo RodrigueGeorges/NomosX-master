@@ -17,6 +17,7 @@ export type PipelineStep =
   | "DEDUP"
   | "INDEX"
   | "RANK"
+  | "ENRICHMENT"
   | "READER"
   | "TOPIC_VALIDATION"
   | "ORCHESTRATOR"
@@ -24,6 +25,7 @@ export type PipelineStep =
   | "ANALYST"
   | "CITATION_GUARD"
   | "EDITOR"
+  | "STRUCTURAL_EDITOR"
   | "HARVARD_COUNCIL"
   | "DELIBERATION"
   | "CITATION_VERIFIER"
@@ -60,6 +62,7 @@ const STEP_PROGRESS: Record<PipelineStep, number> = {
   DEDUP: 17,
   INDEX: 22,
   RANK: 25,
+  ENRICHMENT: 26,
   CASTING: 27,
   READER: 35,
   TOPIC_VALIDATION: 37,
@@ -68,6 +71,7 @@ const STEP_PROGRESS: Record<PipelineStep, number> = {
   ANALYST: 55,
   CITATION_GUARD: 57,
   EDITOR: 62,
+  STRUCTURAL_EDITOR: 60,
   HARVARD_COUNCIL: 75,
   DELIBERATION: 80,
   CITATION_VERIFIER: 83,

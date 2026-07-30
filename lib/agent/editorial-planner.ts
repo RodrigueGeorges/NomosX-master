@@ -59,7 +59,7 @@ export interface EditorialAgenda {
 
 const CONFIG = {
   // Auto-commission threshold: proposals above this confidence are auto-run
-  AUTO_COMMISSION_THRESHOLD: 85,
+  AUTO_COMMISSION_THRESHOLD: 75,
 
   // Stale coverage: briefs older than this (days) are candidates for revisit
   STALE_THRESHOLD_DAYS: 60,

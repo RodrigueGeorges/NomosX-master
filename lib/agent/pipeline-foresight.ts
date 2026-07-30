@@ -89,9 +89,8 @@ export async function runPipelineForesight(
   }
 
   const runDepth = depth ?? (isStrategic ? 'strategic' : 'standard');
-  if (runDepth !== 'strategic' && runDepth !== 'deep') {
-    return { analysis, skipped: true, reason: 'depth_not_eligible' };
-  }
+  // Foresight now enabled for all depths — briefs benefit from probabilistic scenarios too
+  // (was: if (runDepth !== 'strategic' && runDepth !== 'deep') skip)
 
   const scenarios = analysis.scenarios as Array<Record<string, unknown>> | undefined;
   if (!scenarios || scenarios.length < 2) {

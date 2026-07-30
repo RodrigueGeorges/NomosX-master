@@ -52,6 +52,15 @@
 6. **Failover LLM**: DeepSeek → GLM fonctionne. GPT-4o utilisé en fallback pour elenchus sur topic 5.
 7. **NLI Verifier**: Intégrité 54% sur les deux topics (27 supported, 23 partial, 26 unsupported, 4 misattributed pour topic 1).
 
+### Corrections post --fast (avant baseline)
+
+1. **Git SHA fix** (`eval/run.ts`): `findGit()` cherche git dans GitHubDesktop si non dans le PATH. Résout `Git: unknown @ unknown`.
+2. **Veto terminal** (`lib/agent/critical-loop-v2.ts`): Le grounding veto est maintenant terminal — cap grounding → sortie immédiate, pas de réécriture. Une réécriture de prose ne produit pas une citation manquante. Élimine la boucle morte (2 itérations, ~$0.20, 5-10 min de gaspillage systématique).
+3. **groundingRate null** (`eval/score.ts`): Dénominateur nul (0 numéral) → `null` au lieu de `0`. Évite de polluer la moyenne avec des zéros artificiels.
+4. **partially_supported bucket** (`eval/score.ts`): Ajout de `partialRate` aux métriques. Le verdict `partially_supported` (4e verdict de l'enum) est maintenant explicitement compté. Corrige aussi le bug `confirmed` → `supported` (le verdict `confirmed` n'existe pas dans l'enum).
+5. **Table de domaines élargie** (`eval/domain-tiers.ts`): +30 entrées (CSIS, Carnegie, Wilson Center, FRED, data.worldbank.org, Cambridge, OUP, IEEE, ACM, RePEc, etc.).
+6. **Concurrency** (`eval/run.ts`): `--concurrency N` pour exécuter N topics en parallèle. `--concurrency 3` réduit la baseline de ~9h à ~3h.
+
 ## WO-1 — Bugs diagnostiqués
 - **Statut**: en attente
 

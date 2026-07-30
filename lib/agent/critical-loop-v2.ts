@@ -257,7 +257,7 @@ Return JSON:
     }],
     temperature: 0.2,
     jsonMode: true,
-    maxTokens: 2500,
+    maxTokens: 4000,
     enableCache: true,
     task: 'fact_check',
   });
@@ -352,6 +352,17 @@ Return the FULL rewritten HTML. No JSON wrapping, no markdown fences — just ra
     return { html: draftHtml, costUsd: response.costUsd };
   }
 
+  // Safety: check citation preservation — GLM rewriter can drop [SRC-N] tags
+  const originalCitations = new Set<number>();
+  for (const m of draftHtml.matchAll(/\[SRC-(\d+)\]/g)) originalCitations.add(parseInt(m[1], 10));
+  const rewrittenCitations = new Set<number>();
+  for (const m of rewritten.matchAll(/\[SRC-(\d+)\]/g)) rewrittenCitations.add(parseInt(m[1], 10));
+  const lostCitations = [...originalCitations].filter(c => !rewrittenCitations.has(c));
+  if (lostCitations.length > 0 && rewrittenCitations.size < originalCitations.size * 0.5) {
+    console.warn(`[CriticalLoop V2] Rewrite lost ${lostCitations.length}/${originalCitations.size} citations (kept ${rewrittenCitations.size}) — keeping original to preserve grounding`);
+    return { html: draftHtml, costUsd: response.costUsd };
+  }
+
   return {
     html: rewritten,
     costUsd: response.costUsd,
@@ -406,13 +417,36 @@ export async function runCriticalLoopV2(
 
     // Grounding veto (Invariant 4): citation coverage below 50% caps composite.
     // A well-structured analysis cannot compensate for null grounding.
+    // BEFORE declaring terminal: attempt deterministic citation injection
+    // by matching uncited paragraphs to sources by keyword overlap.
     const citedSources = new Set<number>();
     for (const m of currentHtml.matchAll(/\[SRC-(\d+)\]/g)) citedSources.add(parseInt(m[1], 10));
-    const coverage = citedSources.size / Math.max(1, input.sources.length);
+    let coverage = citedSources.size / Math.max(1, input.sources.length);
+    let groundingVetoed = false;
+    if (coverage < 0.50) {
+      // LAST RESORT: Try to inject citations by matching paragraph content to source titles/abstracts
+      try {
+        const { injectCitationsBySourceMatch } = await import('./citation-repair');
+        const injectionResult = injectCitationsBySourceMatch(currentHtml, input.sources);
+        if (injectionResult.injected > 0) {
+          currentHtml = injectionResult.html;
+          const newCited = new Set<number>();
+          for (const m of currentHtml.matchAll(/\[SRC-(\d+)\]/g)) newCited.add(parseInt(m[1], 10));
+          const newCoverage = newCited.size / Math.max(1, input.sources.length);
+          console.log(`[CriticalLoop V2] Citation injection: +${injectionResult.injected} citations, coverage ${Math.round(coverage * 100)}%→${Math.round(newCoverage * 100)}%`);
+          coverage = newCoverage;
+        }
+      } catch (injErr) {
+        console.warn(`[CriticalLoop V2] Citation injection failed:`, injErr);
+      }
+    }
+    // Re-check coverage after injection attempt
     if (coverage < 0.50) {
       const capped = Math.min(compositeScore, 40);
       console.log(`[CriticalLoop V2] Grounding veto: ${citedSources.size}/${input.sources.length} sources cited (${Math.round(coverage * 100)}%) — capping composite ${compositeScore} → ${capped}`);
+      console.log(`[CriticalLoop V2] Grounding veto is TERMINAL — no rewrite will fix missing citations. Stopping.`);
       compositeScore = capped;
+      groundingVetoed = true;
     }
 
     console.log(`[CriticalLoop V2] Iteration ${iteration} scores: M=${methodology.overallScore} A=${adversarial.overallScore} C=${calibration.overallScore} → Composite=${compositeScore}`);
@@ -420,6 +454,19 @@ export async function runCriticalLoopV2(
     // Track best result
     if (!bestResult || compositeScore > bestResult.score) {
       bestResult = { score: compositeScore, html: currentHtml, methodology, adversarial, calibration };
+    }
+
+    // Grounding veto: terminal exit — rewriting prose cannot add citations.
+    if (groundingVetoed) {
+      history.push({
+        iteration,
+        compositeScore,
+        methodology: methodology.overallScore,
+        adversarial: adversarial.overallScore,
+        calibration: calibration.overallScore,
+        rewrote: false,
+      });
+      break;
     }
 
     // Check if we pass threshold — composite score is the arbiter

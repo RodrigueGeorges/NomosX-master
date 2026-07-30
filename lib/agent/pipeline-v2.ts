@@ -22,6 +22,7 @@ import { extractAndStoreConcepts } from './knowledge-graph';
 import { primeContext } from './context-primer';
 import { buildMemoryInjection, recordAgentPerformance, autoDetectFailureModes, extractLessons, storeLesson } from './agent-memory';
 import { extractAndStoreGaps, getRelevantGaps, markGapsFilled } from './gap-filler';
+import { assessEvidenceSufficiency } from './enrichment-reasoner';
 
 // P1-PERF: Optional agents are lazy-loaded via dynamic import() to reduce cold start
 // debateAgent, metaAnalysisEngine, runDevilsAdvocate, runHarvardCouncil,
@@ -51,7 +52,6 @@ import type { PipelineStats } from './pipeline-types';
 import { createLineageTracker as createLineageTrackerTyped, recordTransformation as recordTransformationTyped } from './pipeline-types';
 import { renderProfessionalBriefHTML, renderProfessionalStrategicHTML } from './editor-agent';
 import { renderPositionFirstBriefHTML } from './position-first-renderer';
-import { ensureEditorialScenarios } from './editorial-scenarios';
 import { castingAgent } from './casting-agent';
 import { editorialArbiter } from './editorial-arbiter';
 import type { CastingResult, InstitutePosition } from './editorial-types';
@@ -139,6 +139,15 @@ import { searchWHOGHO } from "../providers/who-gho";
 import { searchSemanticScholarGraph } from "../providers/semantic-scholar-api";
 import { unpaywallByDoi } from "../providers/unpaywall";
 import { searchLinkUp } from "../providers/linkup-sdk";
+import { searchTavily, searchTavilyNews } from "../providers/tavily-provider";
+import { searchExa, searchExaPublications } from "../providers/exa-provider";
+import { searchAPITube } from "../providers/apitube-provider";
+import { searchDimensions } from "../providers/dimensions-provider";
+import { searchLens } from "../providers/lens-provider";
+import { searchSpringer } from "../providers/springer-provider";
+import { searchOSTI } from "../providers/osti-provider";
+import { searchDataCite } from "../providers/datacite-provider";
+import { searchGoogleBooks } from "../providers/google-books-provider";
 import { indexAgent, deduplicateSources } from "./index-agent";
 import { strategicAnalystAgent } from "./strategic-analyst-agent";
 import { renderStrategicReportHTML } from "./strategic-report-renderer";
@@ -338,6 +347,10 @@ export type Providers = Array<
   | "nara" | "uk-archives" | "archives-fr"
   // Complémentaire - Web Search
   | "linkup"
+  // AI-Optimised Search & Enriched News
+  | "tavily" | "exa" | "apitube"
+  // Large-scale Academic Databases
+  | "dimensions" | "lens" | "springer" | "osti" | "datacite" | "google-books"
   // Real-time News Providers
   | "gdelt-news" | "newsapi" | "mediastack" | "thenewsapi" | "gnews" | "eventregistry"
   // Think tanks & Policy Labs
@@ -701,8 +714,18 @@ async function scoutImpl(query: string, providers: Providers, perProvider = 100)
     if (providerSet.has("dblp")) allPromises.push(searchDBLP(sq, Math.min(20, perProvider)));
     if (providerSet.has("zbmath")) allPromises.push(searchZbMath(sq, Math.min(20, perProvider)));
 
-    // COMPLÉMENTAIRE - WEB SEARCH
+    // ACADEMIC DATABASES — Large-scale scholarly indexes
+    if (providerSet.has("dimensions")) allPromises.push(searchDimensions(sq, Math.min(20, perProvider)));
+    if (providerSet.has("lens")) allPromises.push(searchLens(sq, Math.min(20, perProvider)));
+    if (providerSet.has("springer")) allPromises.push(searchSpringer(sq, Math.min(20, perProvider)));
+    if (providerSet.has("osti")) allPromises.push(searchOSTI(sq, Math.min(20, perProvider)));
+    if (providerSet.has("datacite")) allPromises.push(searchDataCite(sq, Math.min(15, perProvider)));
+    if (providerSet.has("google-books")) allPromises.push(searchGoogleBooks(sq, Math.min(15, perProvider)));
+
+    // COMPLÉMENTAIRE - WEB SEARCH (enrichment fallback, not primary research)
     if (providerSet.has("linkup")) allPromises.push(searchLinkUp(sq, Math.min(15, perProvider)));
+    if (providerSet.has("tavily")) allPromises.push(searchTavily(sq, Math.min(15, perProvider), { topic: 'general' }));
+    if (providerSet.has("exa")) allPromises.push(searchExaPublications(sq, Math.min(20, perProvider)));
 
     // REAL-TIME NEWS PROVIDERS
     if (providerSet.has("gdelt-news")) allPromises.push(searchGDELTNews(sq, Math.min(30, perProvider)));
@@ -711,6 +734,7 @@ async function scoutImpl(query: string, providers: Providers, perProvider = 100)
     if (providerSet.has("thenewsapi")) allPromises.push(searchTheNewsAPI(sq, Math.min(30, perProvider)));
     if (providerSet.has("gnews")) allPromises.push(searchGNews(sq, Math.min(10, perProvider)));
     if (providerSet.has("eventregistry")) allPromises.push(searchEventRegistry(sq, Math.min(25, perProvider)));
+    if (providerSet.has("apitube")) allPromises.push(searchAPITube(sq, Math.min(25, perProvider)));
 
     // THINK TANKS & POLICY LABS — catch-all for providers not explicitly routed above
     // (brookings, rand, cfr, iiss, chatham-house, cset, carnegie, cnas, newamerica, etc.)
@@ -749,8 +773,10 @@ async function scoutImpl(query: string, providers: Providers, perProvider = 100)
       "psychology", "sociology", "history", "geography",
       "chemistry", "biology", "political-science", "business",
       "dblp", "zbmath",
+      "dimensions", "lens", "springer", "osti", "datacite", "google-books",
       "nara", "uk-archives", "archives-fr",
       "linkup",
+      "tavily", "exa", "apitube",
       "gdelt-news", "newsapi", "mediastack", "thenewsapi", "gnews", "eventregistry",
     ]);
     const unroutedProviders = (providers as string[]).filter(p => !EXPLICITLY_ROUTED.has(p));
@@ -1002,6 +1028,42 @@ async function scoutImpl(query: string, providers: Providers, perProvider = 100)
 
   const elapsed = Date.now() - startTime;
   console.log(`[SCOUT] Done in ${elapsed}ms: ${rawCount} raw â†’ ${deduped.length} dedup â†’ ${finalPool.length} ranked â†’ ${upserted} saved`);
+
+  // LOT 1.3: Tag sources with detected domain (best-effort, non-blocking)
+  try {
+    const { detectDomain } = await import('./smart-provider-selector');
+    for (const sourceId of sourceIds) {
+      const source = await prisma.source.findUnique({ where: { id: sourceId }, select: { title: true } }).catch(() => null);
+      if (!source?.title) continue;
+      const domainSlug = detectDomain(source.title);
+      if (domainSlug && domainSlug !== 'default') {
+        const domain = await prisma.domain.upsert({
+          where: { slug: domainSlug },
+          update: {},
+          create: {
+            slug: domainSlug,
+            name: domainSlug,
+            nameEn: domainSlug,
+            icon: 'default',
+            color: '#666666',
+            description: `Auto-generated domain: ${domainSlug}`,
+            keywords: [],
+            jelCodes: [],
+          },
+        }).catch(() => null);
+        if (domain) {
+          await prisma.sourceDomain.upsert({
+            where: { sourceId_domainId: { sourceId: sourceId, domainId: domain.id } },
+            update: {},
+            create: { sourceId: sourceId, domainId: domain.id, score: 0.7 },
+          }).catch(() => { /* non-blocking */ });
+        }
+      }
+    }
+  } catch (err) {
+    console.warn(`[SCOUT] Domain tagging failed (non-blocking):`, err);
+  }
+
   return { found: rawCount, upserted, sourceIds };
 }
 
@@ -1150,6 +1212,22 @@ export async function analyst(question: string, sources: any[], readings?: any[]
 }
 
 // ================================
+// IDEMPOTENCY TOKENS (2026 best practice)
+// ================================
+
+const activeRuns = new Map<string, { startedAt: number; expiresAt: number }>();
+
+// ================================
+// HTML ESCAPE UTILITY
+// ================================
+
+function esc(s: string): string {
+  return String(s || '').replace(/[&<>"']/g, (m) =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m] as string)
+  );
+}
+
+// ================================
 // CITATION GUARD
 // ================================
 
@@ -1170,11 +1248,6 @@ export function citationGuard(json: any, sourceCount: number) {
 export function renderBriefHTML(out: any, sources: any[]) {
   // Governance: Assert EDITOR permissions
   assertPermission(AgentRole.EDITOR, "write:draft");
-  
-  const esc = (s: string) => 
-    String(s || "").replace(/[&<>"']/g, (m) => 
-      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[m] as string)
-    );
   
   const section = (h: string, v: any) => {
     if (!v) return "";
@@ -1350,11 +1423,30 @@ export interface PipelineCoreOptions {
 }
 
 async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
+  // LOT 6.3: FAILURE POLICY
+  // CRITICAL agents (throw on failure): SCOUT, RANK, ANALYST
+  // NON-BLOCKING agents (warn + continue): CONTEXT_PRIMER, EMBED, GAP_FILLER,
+  //   QUANT, FRAMING, HYPOTHESIS_JUDGE, FACT_CHECKER, CRITICAL_LOOP, DEVILS_ADVOCATE,
+  //   KNOWLEDGE_GRAPH, STYLE_GATES, EVIDENCE_IDS, RESEARCH_GAPS
   const { isStrategic } = opts;
   const editorialV2 = isEditorialV2Enabled();
   const label = isStrategic ? "[Strategic]" : "[Pipeline]";
   const stats: PipelineStats = {};
   const pipelineStart = Date.now();
+
+  // ── IDEMPOTENCY GUARD (2026 best practice) ──
+  // Prevent duplicate pipeline runs for the same query within a 2-hour window.
+  // If cron overlaps or dispatcher retries, the second run is rejected.
+  const idempotencyKey = `${isStrategic ? 'strat' : 'brief'}:${query.trim().toLowerCase().slice(0, 200)}`;
+  const IDEMPOTENCY_TTL_MS = 2 * 60 * 60 * 1000; // 2 hours
+  if (activeRuns.has(idempotencyKey)) {
+    const existing = activeRuns.get(idempotencyKey)!;
+    if (Date.now() < existing.expiresAt) {
+      console.warn(`${label} IDEMPOTENCY: duplicate run rejected (key=${idempotencyKey.slice(0, 30)}..., started ${Math.round((Date.now() - existing.startedAt) / 1000)}s ago)`);
+      throw new Error(`Pipeline already running for this query (started ${Math.round((Date.now() - existing.startedAt) / 1000)}s ago)`);
+    }
+  }
+  activeRuns.set(idempotencyKey, { startedAt: Date.now(), expiresAt: Date.now() + IDEMPOTENCY_TTL_MS });
 
   // P1-FIX: Running cost accumulator with budget guard
   const maxBudget = opts.maxBudgetUsd ?? getPipelineMaxBudgetUsd(isStrategic, editorialV2);
@@ -1401,7 +1493,33 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   }
   providers = healthyProviders.length >= 3 ? healthyProviders : providers; // fallback if too many blacklisted
 
-  const perProvider = opts.perProvider ?? (isStrategic ? 30 : 25);
+  // ── PRE-SCOUT COMPLEXITY ROUTING (Adaptive RAG, 2026 best practice) ──
+  // Deterministic query complexity classification — no LLM call.
+  // Adapts provider count and perProvider based on query complexity.
+  // Simple queries don't need 100+ providers; complex multi-hop ones do.
+  const queryWords = query.toLowerCase().split(/\s+/).filter(Boolean);
+  const comparisonMarkers = /\b(vs|versus|compared?|comparison|difference between|contrast)\b/i.test(query);
+  const causalMarkers = /\b(impact|effect|cause|consequence|result|influence|driver|lead to|because|due to)\b/i.test(query);
+  const multiHopMarkers = /\b(and|while|whereas|although|despite|in addition|furthermore|moreover|both)\b/i.test(query);
+  const conceptCount = queryWords.filter(w => w.length > 4 && !['what', 'which', 'where', 'when', 'while', 'their', 'there', 'these', 'those', 'about', 'would', 'could', 'should', 'between', 'through', 'during'].includes(w)).length;
+  const queryComplexity = (comparisonMarkers ? 2 : 0) + (causalMarkers ? 1 : 0) + (multiHopMarkers ? 1 : 0) + (conceptCount > 8 ? 2 : conceptCount > 5 ? 1 : 0);
+  const isSimpleQuery = queryComplexity <= 1 && queryWords.length < 12;
+  const isComplexQuery = queryComplexity >= 4;
+
+  let perProvider: number;
+  if (isSimpleQuery && !isStrategic) {
+    perProvider = opts.perProvider ?? 20;
+    if (providers.length > 15) {
+      providers = providers.slice(0, 12) as Providers;
+    }
+    console.log(`${label} COMPLEXITY ROUTING: simple query (score=${queryComplexity}) — reduced to ${providers.length} providers, ${perProvider}/provider`);
+  } else if (isComplexQuery || isStrategic) {
+    perProvider = opts.perProvider ?? (isStrategic ? 80 : 40);
+    console.log(`${label} COMPLEXITY ROUTING: ${isComplexQuery ? 'complex' : 'strategic'} query (score=${queryComplexity}) — full ${providers.length} providers, ${perProvider}/provider`);
+  } else {
+    perProvider = opts.perProvider ?? (isStrategic ? 80 : 30);
+    console.log(`${label} COMPLEXITY ROUTING: moderate query (score=${queryComplexity}) — ${providers.length} providers, ${perProvider}/provider`);
+  }
 
   // Create PipelineRun for persistent lineage tracking
   const pipelineRun = await prisma.pipelineRun.create({
@@ -1454,7 +1572,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     };
     console.log(`${label} CONTEXT PRIMER: ${primedContext.knownConcepts.length} concepts, ${primedContext.priorBriefs.length} prior briefs, ${primedContext.trendBreaks?.length ?? 0} trend breaks`);
   } catch (err) {
-    console.warn(`${label} CONTEXT PRIMER: failed (non-blocking):`, err);
+    console.error(`${label} CONTEXT PRIMER: FAILED — pipeline continues without institutional memory:`, err);
     stats.contextPrimer = { error: String(err) } as any;
   }
 
@@ -1482,6 +1600,81 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   } else {
   console.log(`${label} SCOUT: query="${query}" (${providers.length} providers, ${perProvider}/provider)`);
   const scoutStart = Date.now();
+
+  // ── LOT 2.1/2.2: DEEP PLANNER — decompose question into DAG, scout each node ──
+  let planResult: { plan: any; costUsd: number; error?: string } | null = null;
+  try {
+    const { deepPlan, topologicalSort, getAncestorSourceIds } = await import('./deep-planner');
+    planResult = await deepPlan(query, { domain: (opts as any).domain || 'general', isStrategic });
+    if (planResult.error) {
+      console.log(`${label} DEEP PLANNER: ${planResult.error}, falling back to flat scout`);
+    }
+    if (planResult.plan.nodes.length > 1) {
+      console.log(`${label} DEEP PLANNER: ${planResult.plan.nodes.length} sub-questions planned`);
+      const sortedNodes = topologicalSort(planResult.plan.nodes);
+      const perNodeProvider = isStrategic ? Math.max(perProvider, 80) : perProvider;
+
+      // Known providers set — used to filter Deep Planner LLM output
+      const KNOWN_PROVIDERS = new Set([
+        "openalex", "crossref", "semanticscholar", "arxiv", "hal", "pubmed", "base",
+        "core", "europepmc", "doaj", "ssrn", "repec", "nber", "who-gho",
+        "imf", "worldbank", "oecd", "bis", "ecb", "eurostat", "fred", "eib",
+        "nist", "cisa", "un", "undp", "unctad", "iaea", "irena", "cea", "iea",
+        "bruegel", "nato", "eeas", "linkup", "tavily", "exa", "apitube",
+        "gdelt-news", "newsapi", "eventregistry", "springer", "osti", "datacite",
+        "google-books", "dimensions", "lens", "zenodo", "openaire",
+        "brookings", "rand", "cfr", "carnegie", "csis", "iiss", "chatham-house",
+        "swp", "sipri", "iai", "ecfr", "dgap", "rsis", "cis",
+      ]);
+
+      for (const node of sortedNodes) {
+        node.status = 'scouting';
+        // Use node-specific producers if available, otherwise fall back to global providers
+        // Filter to known providers only — LLM may generate invalid names (e.g. 'area_studies')
+        const validNodeProducers = node.producers.filter(p => KNOWN_PROVIDERS.has(p));
+        const nodeProviders = validNodeProducers.length >= 3
+          ? Array.from(new Set([...validNodeProducers.slice(0, 8), ...providers.slice(0, 4)])) as Providers
+          : providers;
+        const nodeResult = await scout(node.subQuestion, nodeProviders, perNodeProvider);
+        const nodeSourceIds = Array.isArray(nodeResult) ? nodeResult.map(s => s.id) : (nodeResult.sourceIds || []);
+        node.sourceIds = nodeSourceIds;
+        node.sourceCount = nodeSourceIds.length;
+        node.status = nodeSourceIds.length > 0 ? 'done' : 'failed';
+        allSourceIds.push(...nodeSourceIds);
+        console.log(`${label} DEEP PLANNER: node ${node.id} "${node.subQuestion.slice(0, 60)}" → ${nodeSourceIds.length} sources`);
+
+        // LOT 2.3: DAG mutable — if < 5 sources, try expanded search with parent context
+        if (nodeSourceIds.length < 5) {
+          const ancestorIds = getAncestorSourceIds(node.id, planResult.plan.nodes);
+          if (ancestorIds.length > 0) {
+            // Inject parent context as additional search terms
+            const parentNodes = planResult.plan.nodes.filter((n: any) => node.parentIds.includes(n.id));
+            const contextTerms = parentNodes.map((n: any) => n.subQuestion.split(' ').slice(0, 3).join(' ')).join(' ');
+            if (contextTerms) {
+              const expandedQuery = `${node.subQuestion} ${contextTerms}`;
+              const expandResult = await scout(expandedQuery, providers, 25);
+              const expandIds = Array.isArray(expandResult) ? expandResult.map(s => s.id) : (expandResult.sourceIds || []);
+              allSourceIds.push(...expandIds);
+              node.sourceIds = [...new Set([...(node.sourceIds || []), ...expandIds])];
+              node.sourceCount = node.sourceIds.length;
+              node.status = 'expanded';
+              console.log(`${label} DEEP PLANNER: node ${node.id} expanded → +${expandIds.length} sources`);
+            }
+          }
+        }
+      }
+      allSourceIds = [...new Set(allSourceIds)];
+      stats.deepPlanner = { nodes: planResult.plan.nodes.length, costUsd: planResult.costUsd };
+    } else {
+      // Single node — fall through to normal scout
+      planResult = null;
+    }
+  } catch (err) {
+    console.warn(`${label} DEEP PLANNER: failed (non-blocking), falling back to flat scout:`, err);
+  }
+
+  // If DeepPlanner didn't produce results, run the original flat scout
+  if (allSourceIds.length === 0) {
   const scoutResult = await scout(query, providers, isStrategic ? Math.max(perProvider, 75) : perProvider);
   // Handle both cached array and fresh result object
   const sourceIds = Array.isArray(scoutResult) ? scoutResult.map(s => s.id) : (scoutResult.sourceIds || []);
@@ -1509,11 +1702,13 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   // RE_SCOUT loop — all formats (autonomous source collection)
   if (scoutDecision.action === "RE_SCOUT" && orchState.iteration < orchState.maxIterations) {
     console.log(`${label} ORCHESTRATOR: RE_SCOUT — ${scoutDecision.reason}`);
+    // Stuck-loop detection (2026 best practice): track unique sources before re-search
+    const preReScoutIds = new Set(allSourceIds);
     try {
       // Adaptive provider adjustment: analyze what was found and add missing providers
       const foundProviderPrefixes = new Set(allSourceIds.map(id => id.split(":")[0]));
-      const newsProvidersList = ["gdelt-news", "newsapi", "gnews", "mediastack", "thenewsapi", "eventregistry"];
-      const academicProvidersList = ["openalex", "crossref", "semanticscholar", "arxiv", "hal", "pubmed", "ssrn", "nber", "repec", "europepmc", "base", "doaj"];
+      const newsProvidersList = ["gdelt-news", "newsapi", "gnews", "mediastack", "thenewsapi", "eventregistry", "apitube", "tavily"];
+      const academicProvidersList = ["openalex", "crossref", "semanticscholar", "arxiv", "hal", "pubmed", "ssrn", "nber", "repec", "europepmc", "base", "doaj", "springer", "osti", "datacite", "lens", "dimensions", "google-books"];
       const hasNews = newsProvidersList.some(p => foundProviderPrefixes.has(p));
       const hasAcademic = academicProvidersList.some(p => foundProviderPrefixes.has(p));
 
@@ -1528,8 +1723,11 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
         adaptiveProviders.push(...["openalex", "crossref", "semanticscholar", "arxiv", "europepmc", "base", "doaj"] as any);
         console.log(`${label} RE_SCOUT: no academic sources found — adding openalex, crossref, semanticscholar, arxiv, europepmc, base, doaj`);
       }
-      // Note: linkup is a generic web search provider that returns anonymous, low-quality sources.
-      // It should NOT be force-added. Only include it if the user explicitly requested it.
+      // If total sources are critically low, add web search as fallback
+      if (allSourceIds.length < 5) {
+        adaptiveProviders.push(...["linkup", "tavily", "exa", "gdelt-news", "newsapi", "apitube"] as any);
+        console.log(`${label} RE_SCOUT: only ${allSourceIds.length} sources — adding linkup, tavily, exa, gdelt-news, newsapi, apitube as web search fallback`);
+      }
       const uniqueAdaptiveProviders = Array.from(new Set(adaptiveProviders)) as Providers;
 
       const expanded = await generateExpandedTerms(query, found, uniqueAdaptiveProviders);
@@ -1549,6 +1747,15 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
       }
       allSourceIds = [...new Set(allSourceIds)];
       orchState.sourcesFound = allSourceIds.length;
+
+      // Stuck-loop detection (2026 best practice): if >70% of sources already existed, topic is niche — stop re-searching
+      const newUniqueIds = allSourceIds.filter(id => !preReScoutIds.has(id));
+      const overlapRatio = allSourceIds.length > 0 ? (allSourceIds.length - newUniqueIds.length) / allSourceIds.length : 0;
+      if (overlapRatio > 0.70) {
+        console.log(`${label} RE_SCOUT: stuck-loop detected — ${Math.round(overlapRatio * 100)}% overlap with pre-existing sources, only ${newUniqueIds.length} new. Topic is likely niche — stopping re-search.`);
+      } else {
+        console.log(`${label} RE_SCOUT: +${newUniqueIds.length} new unique sources (${Math.round((1 - overlapRatio) * 100)}% novelty)`);
+      }
     } catch (err) {
       console.warn(`${label} RE_SCOUT: failed (non-blocking):`, err);
     }
@@ -1556,7 +1763,71 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
 
   // â”€â”€ STEP 2: INDEX â”€â”€
   emitProgress(pipelineRun.id, "SCOUT", "completed", `Found ${allSourceIds.length} sources`);
+  } // end if (flat scout fallback)
   } // end scout else branch
+
+  // ── FINAL FALLBACK: if still critically low on sources, do a direct web search ──
+  if (allSourceIds.length < 5) {
+    console.log(`${label} WEB FALLBACK: only ${allSourceIds.length} sources — searching web for raw question`);
+    try {
+      const webResults = await searchLinkUp(query, 20);
+      if (webResults.length > 0) {
+        const webSourceIds = webResults.map((s: any) => s.id);
+        allSourceIds.push(...webSourceIds);
+        console.log(`${label} WEB FALLBACK: linkup returned ${webResults.length} web sources`);
+      }
+      // Try Tavily for AI-optimised web search (both general + news)
+      const tavilyResults = await searchTavily(query, 20, { topic: 'general' });
+      if (tavilyResults.length > 0) {
+        const tavilySourceIds = tavilyResults.map((s: any) => s.id);
+        allSourceIds.push(...tavilySourceIds);
+        console.log(`${label} WEB FALLBACK: tavily returned ${tavilyResults.length} web sources`);
+      }
+      const tavilyNewsResults = await searchTavilyNews(query, 10);
+      if (tavilyNewsResults.length > 0) {
+        const tavilyNewsIds = tavilyNewsResults.map((s: any) => s.id);
+        allSourceIds.push(...tavilyNewsIds);
+        console.log(`${label} WEB FALLBACK: tavily news returned ${tavilyNewsResults.length} news sources`);
+      }
+      // Try Exa for semantic publication search
+      const exaResults = await searchExaPublications(query, 20);
+      if (exaResults.length > 0) {
+        const exaSourceIds = exaResults.map((s: any) => s.id);
+        allSourceIds.push(...exaSourceIds);
+        console.log(`${label} WEB FALLBACK: exa returned ${exaResults.length} publication sources`);
+      }
+      // Also try GDELT for news coverage
+      const { searchGDELTNews } = await import("../providers/news-scout-providers");
+      const newsResults = await searchGDELTNews(query, 20);
+      if (newsResults.length > 0) {
+        const newsSourceIds = newsResults.map((s: any) => s.id);
+        allSourceIds.push(...newsSourceIds);
+        console.log(`${label} WEB FALLBACK: gdelt returned ${newsResults.length} news sources`);
+      }
+      // Try APITube for enriched news
+      const apitubeResults = await searchAPITube(query, 20);
+      if (apitubeResults.length > 0) {
+        const apitubeSourceIds = apitubeResults.map((s: any) => s.id);
+        allSourceIds.push(...apitubeSourceIds);
+        console.log(`${label} WEB FALLBACK: apitube returned ${apitubeResults.length} news sources`);
+      }
+      // Try open-API academic providers (no key required)
+      const ostiResults = await searchOSTI(query, 20);
+      if (ostiResults.length > 0) {
+        const ostiIds = ostiResults.map((s: any) => s.id);
+        allSourceIds.push(...ostiIds);
+        console.log(`${label} WEB FALLBACK: osti returned ${ostiResults.length} sources`);
+      }
+      const dataciteResults = await searchDataCite(query, 15);
+      if (dataciteResults.length > 0) {
+        const dataciteIds = dataciteResults.map((s: any) => s.id);
+        allSourceIds.push(...dataciteIds);
+        console.log(`${label} WEB FALLBACK: datacite returned ${dataciteResults.length} sources`);
+      }
+    } catch (err) {
+      console.warn(`${label} WEB FALLBACK: failed (non-blocking):`, err);
+    }
+  }
 
   console.log(`${label} INDEX: ${allSourceIds.length} sources`);
   const indexResult = await index(allSourceIds);
@@ -1579,30 +1850,40 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   stats.dedupe = dedupeResult;
 
   // ── STEP 4: RANK (scoped to current SCOUT sourceIds) ──
+  // Adaptive diversity: relax constraints when source pool is small (niche/emerging topics)
+  const sourcePoolSize = allSourceIds.length;
+  const adaptiveMaxPerProvider = sourcePoolSize < 15 ? 12 : sourcePoolSize < 30 ? 8 : 6;
+  const adaptiveMinDiversity = sourcePoolSize < 10 ? 1 : sourcePoolSize < 30 ? 2 : 3;
   const rankOpts: RankOptions = isStrategic ? {
-    limit: 25,
+    limit: 60,
     mode: "balanced",
     sourceIds: allSourceIds,
     requireAbstract: false,
     minAbstractLength: 0,
-    minQuality: 65,
-    maxPerProvider: 6,
-    minProviderDiversity: 3,
+    minQuality: 0,
+    maxPerProvider: adaptiveMaxPerProvider,
+    minProviderDiversity: adaptiveMinDiversity,
     ...opts.rankOptions,
   } : {
-    limit: 18,
+    limit: 25,
     mode: "quality",
     sourceIds: allSourceIds,
-    minQuality: 55,
-    requireAbstract: true,
-    minAbstractLength: 150,
-    maxPerProvider: 5,
-    minProviderDiversity: 3,
+    minQuality: 0,
+    requireAbstract: sourcePoolSize >= 20,
+    minAbstractLength: sourcePoolSize >= 20 ? 150 : 0,
+    maxPerProvider: adaptiveMaxPerProvider,
+    minProviderDiversity: adaptiveMinDiversity,
   };
 
   emitProgress(pipelineRun.id, "RANK", "started", `Ranking top ${rankOpts.limit ?? 12} from ${allSourceIds.length} SCOUT sources...`);
   console.log(`${label} RANK: top ${rankOpts.limit ?? 12} from ${allSourceIds.length} SCOUT sources`);
   const topSources = await rank(query, rankOpts);
+
+  // LOT 2.5: Tag load-bearing sources (top 3) vs context sources
+  for (let i = 0; i < topSources.length; i++) {
+    (topSources[i] as any).loadBearing = i < 3;
+  }
+  console.log(`${label} LOAD BEARING: ${Math.min(3, topSources.length)} sources tagged as load_bearing`);
 
   // CRITICAL: Abort if no usable sources (prevents hallucinated briefs)
   if (topSources.length === 0) {
@@ -1610,24 +1891,114 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     throw new Error(`No relevant sources found for "${query.slice(0, 80)}" (${allSourceIds.length} scouted, 0 ranked). Try different providers or broader query.`);
   }
 
-  // P3.9: Structured refusal path — if evidence is critically insufficient
-  const minEvidenceCount = isStrategic ? 5 : 3;
-  if (topSources.length < minEvidenceCount) {
-    console.warn(`${label} REFUSAL: Only ${topSources.length} sources (min: ${minEvidenceCount}) — structured refusal`);
+  // P3.9: ADAPTIVE ENRICHMENT REASONING — replaces rigid structured refusal
+  // Instead of a fixed threshold (minEvidenceCount), an LLM reasons about
+  // whether the evidence is sufficient for this specific topic/domain/format.
+  // If gaps are identifiable and fillable, it generates targeted queries
+  // and we re-SCOUT. Only refuses if evidence is fundamentally insufficient.
+  emitProgress(pipelineRun.id, "ENRICHMENT", "started", `Assessing evidence sufficiency: ${topSources.length} sources...`);
+  const sourceSummaries = topSources.map((s: any) => ({
+    title: s.title || s.id || '',
+    provider: s.provider || 'unknown',
+    qualityScore: s.qualityScore || 0,
+    hasAbstract: !!(s.abstract && s.abstract.length > 50),
+    hasFullText: !!(s.fullTextUrl || s.openAccessPdf),
+    year: s.year || s.publishedDate?.slice(0, 4) || null,
+  }));
+
+  const enrichmentAssessment = await assessEvidenceSufficiency(
+    query,
+    'general',
+    isStrategic,
+    sourceSummaries,
+    allSourceIds.length,
+  );
+  addCost(enrichmentAssessment.costUsd, 'ENRICHMENT_REASONER');
+
+  if (enrichmentAssessment.verdict === 'enrich' && enrichmentAssessment.enrichmentQueries.length > 0) {
+    console.log(`${label} ENRICHMENT: ${enrichmentAssessment.gaps.length} gaps identified — searching with ${enrichmentAssessment.enrichmentQueries.length} targeted queries`);
+    emitProgress(pipelineRun.id, "ENRICHMENT", "started", `Filling ${enrichmentAssessment.gaps.length} evidence gaps...`);
+
+    // Run targeted enrichment searches
+    const enrichmentProviders = enrichmentAssessment.suggestedProviders.length > 0
+      ? Array.from(new Set([...providers, ...enrichmentAssessment.suggestedProviders])) as Providers
+      : providers;
+    const enrichmentResults = await Promise.allSettled(
+      enrichmentAssessment.enrichmentQueries.slice(0, 5).map(q => scout(q, enrichmentProviders, isStrategic ? 25 : 20))
+    );
+    let newSourceCount = 0;
+    for (const r of enrichmentResults) {
+      if (r.status === 'fulfilled') {
+        const newIds = Array.isArray(r.value) ? r.value.map(s => s.id) : (r.value.sourceIds || []);
+        const beforeLen = allSourceIds.length;
+        allSourceIds = [...new Set([...allSourceIds, ...newIds])];
+        newSourceCount += allSourceIds.length - beforeLen;
+      }
+    }
+
+    if (newSourceCount > 0) {
+      console.log(`${label} ENRICHMENT: +${newSourceCount} new sources from targeted queries — re-ranking`);
+      // Re-rank with enriched source pool
+      const enrichedRankOpts = isStrategic ? {
+        ...rankOpts,
+        sourceIds: allSourceIds,
+        limit: Math.min(30, (rankOpts.limit ?? 25) + 5),
+      } : {
+        ...rankOpts,
+        sourceIds: allSourceIds,
+        limit: Math.min(20, (rankOpts.limit ?? 12) + 3),
+      };
+      const enrichedTop = await rank(query, enrichedRankOpts);
+      // Replace topSources with enriched version if it's better
+      if (enrichedTop.length > topSources.length) {
+        topSources.length = 0;
+        topSources.push(...enrichedTop);
+        for (let i = 0; i < topSources.length; i++) {
+          (topSources[i] as any).loadBearing = i < 3;
+        }
+      }
+    }
+
+    stats.enrichmentReasoner = {
+      verdict: 'enrich',
+      sufficiencyScore: enrichmentAssessment.sufficiencyScore,
+      gapsFound: enrichmentAssessment.gaps.length,
+      enrichmentQueries: enrichmentAssessment.enrichmentQueries,
+      newSourcesAdded: newSourceCount,
+      costUsd: enrichmentAssessment.costUsd,
+    };
+    emitProgress(pipelineRun.id, "ENRICHMENT", "completed", `Enriched: +${newSourceCount} sources, ${topSources.length} total ranked`);
+  } else if (enrichmentAssessment.verdict === 'refuse') {
+    console.warn(`${label} REFUSAL: Evidence fundamentally insufficient — ${enrichmentAssessment.reasoning}`);
     stats.structuredRefusal = {
       reason: 'insufficient_evidence',
       sourceCount: topSources.length,
-      required: minEvidenceCount,
-      missing: [
-        `Need at least ${minEvidenceCount} quality sources for ${isStrategic ? 'strategic report' : 'article'}`,
-        `Current providers: ${[...new Set(topSources.map((s: any) => s.provider))].join(', ')}`,
-        'Try broadening the query or adding more providers',
-      ],
+      required: 0,
+      missing: enrichmentAssessment.gaps.map(g => `${g.type}: ${g.description}`),
     };
-    emitProgress(pipelineRun.id, "RANK", "completed", `Insufficient evidence: ${topSources.length}/${minEvidenceCount} sources — refusal`);
-    // Return early with structured refusal — don't attempt analysis with too few sources
-    stats.totalCostUsd = 0;
-    return { pipelineRun, stats, html: '', analysis: { refusal: stats.structuredRefusal } as any };
+    stats.enrichmentReasoner = {
+      verdict: 'refuse',
+      sufficiencyScore: enrichmentAssessment.sufficiencyScore,
+      gapsFound: enrichmentAssessment.gaps.length,
+      enrichmentQueries: [],
+      newSourcesAdded: 0,
+      costUsd: enrichmentAssessment.costUsd,
+    };
+    emitProgress(pipelineRun.id, "ENRICHMENT", "completed", `Refusal: evidence insufficient (score ${enrichmentAssessment.sufficiencyScore}/100)`);
+    stats.totalCostUsd = runningCostUsd;
+    activeRuns.delete(idempotencyKey);
+    return { briefId: undefined, pipelineRun, stats, html: '', analysis: { refusal: stats.structuredRefusal } as any };
+  } else {
+    stats.enrichmentReasoner = {
+      verdict: 'proceed',
+      sufficiencyScore: enrichmentAssessment.sufficiencyScore,
+      gapsFound: enrichmentAssessment.gaps.length,
+      enrichmentQueries: [],
+      newSourcesAdded: 0,
+      costUsd: enrichmentAssessment.costUsd,
+    };
+    emitProgress(pipelineRun.id, "ENRICHMENT", "completed", `Proceed: sufficiency score ${enrichmentAssessment.sufficiencyScore}/100, ${topSources.length} sources`);
+    console.log(`${label} ENRICHMENT: Proceed with ${topSources.length} sources (sufficiency: ${enrichmentAssessment.sufficiencyScore}/100)`);
   }
   orchState.avgQualityScore = topSources.length > 0
     ? Math.round(topSources.reduce((sum: number, s: any) => sum + (s.qualityScore || 0), 0) / topSources.length)
@@ -1665,7 +2036,14 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     if (isLowComplexity) {
       runMetaAnalysisStep = false;
       runDeliberationStep = false;
-      console.log(`${label} COMPLEXITY GATE: low-complexity topic (1 domain, confidence ${topicClassification.confidence}) — skipping meta-analysis, deliberation`);
+      runDebateStep = false;
+      console.log(`${label} COMPLEXITY GATE: low-complexity topic (1 domain, confidence ${topicClassification.confidence}) — skipping meta-analysis, deliberation, debate`);
+    }
+    // Meta-analysis only relevant for domains with effect sizes / quantitative studies
+    const META_ANALYSIS_DOMAINS = ['health', 'medical', 'economics', 'finance', 'social_sciences', 'statistics'];
+    if (!META_ANALYSIS_DOMAINS.includes(detectedDomain)) {
+      runMetaAnalysisStep = false;
+      console.log(`${label} COMPLEXITY GATE: meta-analysis skipped (domain "${detectedDomain}" not quantitative-study oriented)`);
     }
   }
 
@@ -1684,57 +2062,29 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   }
 
   // ── STEP 4c: INJECT FOUNDATIONAL SOURCES (PhD library) ──
-  // Pre-seed seminal works for the detected domain as real Source records
-  // so they flow through READER→ANALYST with [SRC-N] citations
+  // Reactivated: seminal works from researcher KB are injected as context-only sources
+  // so the analyst can reference them. They don't go through SCOUT but are added to the pool.
   try {
-    const kb = RESEARCHER_KBS[detectedDomain as DomainExpertise];
-    if (kb?.referencePapers?.length && isStrategic) {
-      const foundationalIds: string[] = [];
-      for (const paper of kb.referencePapers) {
-        const sourceId = `foundational:${detectedDomain}:${paper.year}:${paper.title.slice(0, 60)}`;
-        const existing = await prisma.source.findUnique({ where: { id: sourceId } }).catch(() => null);
-        if (!existing) {
-          await prisma.source.create({
-            data: {
-              id: sourceId,
-              title: paper.title,
-              abstract: `${paper.significance || ''}. Foundational reference in ${detectedDomain} domain.`,
-              year: paper.year,
-              provider: 'foundational-library',
-              url: paper.doi ? `https://doi.org/${paper.doi}` : '',
-              doi: paper.doi || null,
-              qualityScore: 95,
-              noveltyScore: 0,
-              type: 'report',
-              raw: { journal: paper.journal, significance: paper.significance, foundational: true, isPeerReviewed: true, authors: typeof paper.authors === 'string' ? paper.authors : paper.authors.join(', ') },
-            },
-          }).catch(() => null);
-        }
-        foundationalIds.push(sourceId);
-      }
-      // Fetch the foundational sources and add to topSources
-      const foundationalSources = await prisma.source.findMany({
-        where: { id: { in: foundationalIds } },
-        include: { authors: true, institutions: true },
-      });
-      if (foundationalSources.length > 0) {
-        // Add as EnhancedRankedSource with high composite score
-        for (const fs of foundationalSources) {
-          (topSources as any[]).push({
-            ...fs,
-            compositeScore: 90, // High priority for foundational works
-            relevanceScore: 0.7,
-            academicWeight: 1.0,
-            isPeerReviewed: true,
-            hasQuantitativeData: false,
-          });
-        }
-        allSourceIds.push(...foundationalIds);
-        console.log(`${label} FOUNDATIONAL LIBRARY: +${foundationalSources.length} seminal works injected (${detectedDomain})`);
-      }
+    const kb = RESEARCHER_KBS[detectedDomain as keyof typeof RESEARCHER_KBS];
+    if (kb?.referencePapers && kb.referencePapers.length > 0) {
+      const foundationalSources = kb.referencePapers.slice(0, 3).map((p, i) => ({
+        id: `foundational:${detectedDomain}:${i}`,
+        title: p.title,
+        abstract: `${p.significance}. Authors: ${p.authors}. Journal: ${p.journal}. Year: ${p.year}.`,
+        authors: [{ name: p.authors }],
+        year: p.year,
+        doi: null,
+        provider: 'foundational',
+        url: null,
+        type: 'reference',
+        qualityScore: 95,
+        metadata: { seminal: true, domain: detectedDomain },
+      }));
+      allSourceIds = [...new Set([...allSourceIds, ...foundationalSources.map(s => s.id)])];
+      console.log(`${label} FOUNDATIONAL INJECTION: +${foundationalSources.length} seminal works from ${detectedDomain} KB`);
     }
   } catch (err) {
-    console.warn(`${label} FOUNDATIONAL LIBRARY: failed (non-blocking):`, err);
+    console.warn(`${label} FOUNDATIONAL INJECTION: failed (non-blocking):`, err);
   }
 
   // STEP 4d: GAP FILLER SCOUT — run supplementary searches for prior knowledge gaps
@@ -1763,6 +2113,27 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     addCost(castingResult.costUsd, 'CASTING');
     emitProgress(pipelineRun.id, 'CASTING', 'completed', `${castingResult.team.length} lenses assigned`);
     console.log(`${label} CASTING: ${castingResult.team.map((t) => t.domain).join(', ')}`);
+  }
+
+  // ── LAS GATE (LLM-as-Scheduler, ACL 2026 best practice) ──
+  // Lightweight deterministic gate after RANK: adapt downstream agents based on evidence pool.
+  // No LLM call — uses pool size + domain + complexity to route.
+  {
+    const poolSize = topSources.length;
+    const providerDiversity = new Set(topSources.map((s: any) => s.provider)).size;
+    if (!isStrategic) {
+      // Briefs with small pools: skip expensive agents that need diverse evidence
+      if (poolSize < 8) {
+        runDebateStep = false;
+        runMetaAnalysisStep = false;
+        console.log(`${label} LAS GATE: small pool (${poolSize} sources) — skipping debate, meta-analysis`);
+      }
+      if (poolSize < 6 && providerDiversity < 3) {
+        runDevilsAdvocateStep = false;
+        console.log(`${label} LAS GATE: very small pool + low diversity — skipping devil's advocate (insufficient for epistemic challenge)`);
+      }
+    }
+    console.log(`${label} LAS GATE: pool=${poolSize}, providers=${providerDiversity}, debate=${runDebateStep}, meta=${runMetaAnalysisStep}, DA=${runDevilsAdvocateStep}, foresight_eligible=${poolSize >= 10}`);
   }
 
   // ── STEP 5: READER V3 + FRAMING + QUANT (parallel) ──
@@ -1801,6 +2172,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   orchState.sourcesWithFullText = fullTextCount;
   const readerDecision = assessAfterReader(orchState);
   recordDecision(orchState, readerDecision);
+  stats.orchestrator = stats.orchestrator || { decisions: [] };
   stats.orchestrator.decisions.push(readerDecision);
 
   // ── STEP 5b-2: HYPOTHESIS JUDGE — verdict per pre-registered hypothesis ──
@@ -1821,10 +2193,10 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   }
 
   // â”€â”€ STEP 6: ANALYST (brief = V3 multi-pass, strategic = Strategic Analyst) â”€â”€
-  emitProgress(pipelineRun.id, "ANALYST", "started", `${isStrategic ? "Strategic synthesis" : "Multi-pass analysis"}...`);
-  console.log(`${label} ANALYST: ${isStrategic ? "strategic synthesis" : "V3 multi-pass"}`);
+  emitProgress(pipelineRun.id, "ANALYST", "started", `${isStrategic ? "Strategic-depth multi-pass analysis" : "Multi-pass analysis"}...`);
+  console.log(`${label} ANALYST: V3 multi-pass (depth: ${isStrategic ? 'strategic' : 'brief'})`);
   // -- STEP 5b: AGENT MEMORY INJECTION -- inject past lessons into ANALYST --
-  const agentId = isStrategic ? "strategic-analyst" : "analyst";
+  const agentId = "analyst";
   let memoryBlock: string | undefined;
   try {
     const memInj = await buildMemoryInjection(agentId, undefined, { maxLessons: 5, lookbackDays: 90 });
@@ -1836,52 +2208,58 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   } catch (err) {
     console.warn(`${label} AGENT MEMORY: failed (non-blocking):`, err);
   }
+  // Build domain context block (injected via contextBlock for both formats)
+  let domainBlock = '';
+  const kb = RESEARCHER_KBS[detectedDomain as DomainExpertise];
+  const corpus = MULTI_DOMAIN_CORPUS[detectedDomain as DomainExpertise];
+  if (kb || corpus) {
+    const parts = [`Domain: ${detectedDomain.toUpperCase()}`];
+    if (kb?.keyConcepts?.length) parts.push(`Core concepts: ${kb.keyConcepts.slice(0, 5).map((c: KeyConcept) => c.name).join(', ')}`);
+    if (kb?.frameworks?.length) parts.push(`Frameworks: ${kb.frameworks.slice(0, 3).map((f: AnalyticalFramework) => f.name).join(', ')}`);
+    if (kb?.knownBiases?.length) parts.push(`Known biases: ${kb.knownBiases.slice(0, 3).join('; ')}`);
+    if (kb?.referencePapers?.length) parts.push(`Foundational works (cite when relevant): ${kb.referencePapers.map(p => `${p.title} (${p.authors}, ${p.year})`).join('; ')}`);
+    if (corpus?.keyFrameworks?.length) parts.push(`Key frameworks: ${corpus.keyFrameworks.join(', ')}`);
+    if (corpus?.seminalWorks?.length) parts.push(`Seminal works: ${corpus.seminalWorks.slice(0, 4).join('; ')}`);
+    domainBlock = parts.join('\n');
+  }
+
+  const strategicOptsBlock = isStrategic
+    ? [opts.focusAreas && `Focus areas: ${opts.focusAreas}`, opts.targetAudience && `Target audience: ${opts.targetAudience}`, opts.urgencyContext].filter(Boolean).join('\n') || undefined
+    : undefined;
+
   const fullContextBlock = [
     memoryBlock,
     primedContext?.contextBlock,
     gapContextBlock,
     quant.evidenceBlock || undefined,
     hypothesisVerdictBlock || undefined,
+    domainBlock || undefined,
+    strategicOptsBlock,
   ].filter(Boolean).join("\n\n---\n\n") || undefined;
 
   let analysis: any;
-  if (isStrategic) {
-    // Build domain context for strategic analyst (injected via urgencyContext)
-    let domainBlock = '';
-    const kb = RESEARCHER_KBS[detectedDomain as DomainExpertise];
-    const corpus = MULTI_DOMAIN_CORPUS[detectedDomain as DomainExpertise];
-    if (kb || corpus) {
-      const parts = [`Domain: ${detectedDomain.toUpperCase()}`];
-      if (kb?.keyConcepts?.length) parts.push(`Core concepts: ${kb.keyConcepts.slice(0, 5).map((c: KeyConcept) => c.name).join(', ')}`);
-      if (kb?.frameworks?.length) parts.push(`Frameworks: ${kb.frameworks.slice(0, 3).map((f: AnalyticalFramework) => f.name).join(', ')}`);
-      if (kb?.knownBiases?.length) parts.push(`Known biases: ${kb.knownBiases.slice(0, 3).join('; ')}`);
-      if (kb?.referencePapers?.length) parts.push(`Foundational works (cite when relevant): ${kb.referencePapers.map(p => `${p.title} (${p.authors}, ${p.year})`).join('; ')}`);
-      if (corpus?.keyFrameworks?.length) parts.push(`Key frameworks: ${corpus.keyFrameworks.join(', ')}`);
-      if (corpus?.seminalWorks?.length) parts.push(`Seminal works: ${corpus.seminalWorks.slice(0, 4).join('; ')}`);
-      domainBlock = parts.join('\n');
-    }
-    analysis = await strategicAnalystAgent(query, topSources, readings, {
-      focusAreas: opts.focusAreas,
-      targetAudience: opts.targetAudience,
-      urgencyContext: [opts.urgencyContext, fullContextBlock, domainBlock].filter(Boolean).join("\n\n") || undefined,
-    });
-    const analystCostUsd = typeof analysis._costUsd === "number" ? analysis._costUsd : undefined;
-    stats.analyst = {
-      hasDebate: !!analysis.debate,
-      keyFindingsCount: analysis.keyFindings?.length || 0,
-      scenariosCount: analysis.scenarios?.length || 0,
-      costUsd: analystCostUsd,
-    };
-    addCost(analystCostUsd, "STRATEGIC ANALYST");
-  } else {
-    analysis = await analystMultipass(query, topSources, readings, {
-      contextBlock: fullContextBlock,
-      domain: detectedDomain,
-    });
-    const analystCostUsd = typeof analysis._meta?.totalCostUsd === "number" ? analysis._meta.totalCostUsd : undefined;
-    stats.analyst = { hasDebate: !!analysis.causalChain?.length, passes: 3, costUsd: analystCostUsd };
-    addCost(analystCostUsd, "ANALYST MULTIPASS");
-  }
+  // Context surgery (2026 best practice): pass slim readings to analyst — only extracted fields, not full abstracts
+  const slimReadings = readings.map((r: any) => ({
+    sourceId: r.sourceId,
+    claims: r.claims || [],
+    methods: r.methods || [],
+    results: r.results || [],
+    limitations: r.limitations || [],
+    confidence: r.confidence || 'medium',
+  }));
+  analysis = await analystMultipass(query, topSources, slimReadings, {
+    contextBlock: fullContextBlock,
+    domain: detectedDomain,
+    depth: isStrategic ? "strategic" : "brief",
+  });
+  const analystCostUsd = typeof analysis._meta?.totalCostUsd === "number" ? analysis._meta.totalCostUsd : undefined;
+  stats.analyst = {
+    hasDebate: !!analysis.causalChain?.length,
+    passes: 3,
+    costUsd: analystCostUsd,
+    depth: isStrategic ? "strategic" : "brief",
+  };
+  addCost(analystCostUsd, `ANALYST MULTIPASS (${isStrategic ? 'strategic' : 'brief'})`);
   
   // CRITICAL: A+ LEVEL - Validate topic consistency after analysis
   const topicValidation = await validateTopicConsistency(query, topSources, analysis);
@@ -1901,8 +2279,20 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     stats.topicConsistency = { passed: true, issues: [] };
   }
 
+  // ── TERMINAL DISTANCE CHECK: detect analogical leaps in causal chain ──
+  const chain = (analysis as Record<string, unknown>)?.causalChain as Array<Record<string, unknown>> | undefined;
+  if (chain && chain.length >= 3) {
+    const firstDomain = (chain[0].temporalStatus as string) || detectedDomain;
+    const lastDomain = (chain[chain.length - 1].temporalStatus as string) || detectedDomain;
+    if (chain.length > 5 && firstDomain === lastDomain) {
+      stats.terminalDistanceWarning = `Causal chain starts and ends in ${firstDomain} — check for analogical leap`;
+      console.warn(`${label} TERMINAL DISTANCE: chain of ${chain.length} links starts and ends in ${firstDomain}`);
+    }
+  }
+
   const analystDecision = assessAfterAnalyst(orchState);
   recordDecision(orchState, analystDecision);
+  stats.orchestrator = stats.orchestrator || { decisions: [] };
   stats.orchestrator.decisions.push(analystDecision);
 
   // ── STEP 5c: GAP-AWARE EVIDENCE APPEND — log citation gaps for diagnostics ──
@@ -1923,166 +2313,131 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     console.warn(`${label} GAP ANALYSIS: failed (non-blocking):`, err);
   }
 
-  // ── STEP 6a: STRUCTURAL EDITOR — Storyline Review (McKinsey pyramid principle) ──
+  // LOT 2.6: Typed research gaps — classify what's missing from the evidence
   try {
-    const { structuralEditorReview } = await import('./structural-editor');
-    const structuralResult = await structuralEditorReview(analysis, query);
-    stats.structuralEditor = {
-      overallStructure: structuralResult.overallStructure,
-      narrativeArcValid: structuralResult.narrativeArcValid,
-      sectionsWithIssues: structuralResult.sectionReviews.filter(s => s.issues?.length > 0).length,
-      logicalGaps: structuralResult.logicalGaps.length,
-      costUsd: structuralResult.costUsd,
-    };
-    console.log(`${label} STRUCTURAL EDITOR: structure=${structuralResult.overallStructure}/100, arc=${structuralResult.narrativeArcValid}, gaps=${structuralResult.logicalGaps.length}`);
-    addCost(structuralResult.costUsd, "STRUCTURAL EDITOR");
+    const analysisObj = analysis as Record<string, unknown>;
+    const openQuestions = (analysisObj?.openQuestions as string) || '';
+    const limitations = (analysisObj?.risks as string) || '';
+    const researchGaps: { type: 'NOT_REACHED' | 'RESTRICTED' | 'INEXISTANT'; description: string }[] = [];
 
-    // If structural editor suggests restructuring, apply it
-    if (structuralResult.revisedAnalysis && structuralResult.overallStructure < 70) {
-      console.log(`${label} STRUCTURAL EDITOR: applying restructured analysis (original structure was ${structuralResult.overallStructure}/100)`);
-      // Merge restructured fields while preserving fields not revised
-      const revised = structuralResult.revisedAnalysis;
-      for (const key of Object.keys(revised)) {
-        if (revised[key] && revised[key].trim?.() !== '') {
-          (analysis as any)[key] = revised[key];
-        }
-      }
-      stats.structuralEditor.restructured = true;
+    // NOT_REACHED: the analysis didn't cover something it should have
+    if (topSources.length < (isStrategic ? 15 : 8)) {
+      researchGaps.push({ type: 'NOT_REACHED', description: `Only ${topSources.length} sources — insufficient coverage for ${isStrategic ? 'strategic' : 'standard'} depth` });
+    }
+
+    // RESTRICTED: sources exist but were inaccessible (paywalled, classified, etc.)
+    const noAbstractCount = topSources.filter((s: any) => !s.abstract || s.abstract.length < 100).length;
+    if (noAbstractCount > topSources.length * 0.3) {
+      researchGaps.push({ type: 'RESTRICTED', description: `${noAbstractCount} sources lack full abstracts — evidence base may be constrained` });
+    }
+
+    // INEXISTANT: the research literature doesn't cover this yet
+    if (openQuestions.toLowerCase().includes('no studies') || openQuestions.toLowerCase().includes('no research') || openQuestions.toLowerCase().includes('gap in') || openQuestions.toLowerCase().includes('remains unexplored')) {
+      researchGaps.push({ type: 'INEXISTANT', description: 'Analysis identifies areas with no existing research' });
+    }
+
+    if (researchGaps.length > 0) {
+      stats.researchGaps = researchGaps;
+      console.log(`${label} RESEARCH GAPS: ${researchGaps.length} typed gaps identified`);
+      researchGaps.forEach(g => console.log(`  - [${g.type}] ${g.description.slice(0, 80)}`));
     }
   } catch (err) {
-    console.warn(`${label} STRUCTURAL EDITOR: failed (non-blocking):`, err);
-    stats.structuralEditor = { error: String(err) };
+    console.warn(`${label} RESEARCH GAPS: classification failed (non-blocking):`, err);
   }
 
-  // ── STEP 6b: HARVARD COUNCIL — PhD Expert Analysis ──
-  if (!runHarvardCouncilStep) {
-    console.log(`${label} HARVARD COUNCIL: skipped (tier=standard)`);
-    stats.harvardCouncil = { skipped: true };
-  } else {
-    try {
-      const sourceCtx = topSources.map((s: any, i: number) =>
-        `[SRC-${i + 1}] ${s.title} (${s.year || "N/A"}) â€” ${(s.abstract || "").slice(0, 400)}`
-      ).join("\n\n");
-
-      let council;
-      if (runEnhancedCouncilStep) {
-        // Scale expert count with topic complexity: 3 for simple, 4 for medium, 6 for complex
-        const domainCount = topicClassification?.domains?.length ?? 1;
-        const isCrossDomain = topicClassification?.isCrossDomain ?? false;
-        const defaultExpertCount = isStrategic
-          ? (isCrossDomain && domainCount >= 3 ? 6 : domainCount >= 2 ? 4 : 3)
-          : 4;
-        const expertCount = opts.maxExperts || defaultExpertCount;
-        emitProgress(pipelineRun.id, "HARVARD_COUNCIL", "started", `${expertCount} PhD experts analyzing...`);
-        console.log(`${label} ENHANCED HARVARD COUNCIL: ${expertCount} PhD expert analysis (domains: ${domainCount}, cross-domain: ${isCrossDomain})`);
-        const { runEnhancedHarvardCouncil } = await import('./harvard-council-enhanced');
-        council = await runEnhancedHarvardCouncil(query, sourceCtx, topSources.length, {
-          maxExperts: expertCount,
-          enableHierarchical: opts.enableHierarchical !== false,
-          enableInterdisciplinary: opts.enableInterdisciplinary !== false,
-          strategic: isStrategic,
-          runId: pipelineRun.id,
+  // ── POST-ANALYST ENRICHMENT CHECKPOINT ──
+  // If the analysis revealed critical evidence gaps (NOT_REACHED type),
+  // attempt one final targeted search to fill them before rendering.
+  // This is adaptive — only triggers when gaps are critical, not on every run.
+  if (stats.researchGaps && Array.isArray(stats.researchGaps)) {
+    const criticalGaps = (stats.researchGaps as Array<{ type: string; description: string }>)
+      .filter(g => g.type === 'NOT_REACHED');
+    if (criticalGaps.length > 0 && topSources.length < (isStrategic ? 20 : 12)) {
+      console.log(`${label} POST-ANALYST ENRICHMENT: ${criticalGaps.length} critical gaps — attempting targeted search`);
+      try {
+        // Generate targeted queries from gap descriptions + original query
+        const gapQueries = criticalGaps.slice(0, 3).map(g => {
+          // Extract key terms from gap description
+          const desc = g.description.replace(/only.*sources.*depth/i, '').trim();
+          return desc.length > 10 ? `${query} ${desc}`.slice(0, 200) : query;
         });
-        
-        stats.harvardCouncil = {
-          enhanced: true,
-          experts: council.expertCount,
-          domainLeads: council.domainLeads.length,
-          interdisciplinary: {
-            connections: council.interdisciplinary.connections.length,
-            conflicts: council.interdisciplinary.conflicts.length,
-            synergies: council.interdisciplinary.synergies.length,
-          },
-          evidenceLevel: String(council.evidenceQuality.overallLevel),
-          avgConfidence: council.domainLeads.reduce((sum, lead) => sum + lead.leadExpert.confidence, 0) / council.domainLeads.length,
-          recommendations: {
-            immediate: council.recommendations.immediate.length,
-            shortTerm: council.recommendations.shortTerm.length,
-            longTerm: council.recommendations.longTerm.length,
-            research: council.recommendations.research.length,
-          },
-          costUsd: council.totalCostUsd,
-          durationMs: council.totalDurationMs,
-        };
-        
-        console.log(`${label} ENHANCED COUNCIL: ${council.expertCount} experts, ${council.domainLeads.length} domain leads, ${council.totalDurationMs}ms`);
-        addCost(council.totalCostUsd, "ENHANCED HARVARD COUNCIL");
-      } else {
-        // Use legacy council for backward compatibility
-        console.log(`${label} LEGACY HARVARD COUNCIL: 9 PhD expert analysis`);
-        const { runHarvardCouncil } = await import('./review-board');
-        council = await runHarvardCouncil(query, sourceCtx, topSources.length, {
-          strategic: isStrategic,
-          runId: pipelineRun.id,
-        });
-        
-        stats.harvardCouncil = {
-          enhanced: false,
-          experts: council.expertAnalyses.length,
-          reviewers: council.reviews.length,
-          evidenceLevel: String(council.evidenceGrade.cebmLevel),
-          gradeCertainty: council.evidenceGrade.gradeCertainty,
-          avgRigor: council.reviews.length > 0
-            ? Math.round(council.reviews.reduce((s, r) => s + r.overallRigor, 0) / council.reviews.length)
-            : 0,
-          predictions: council.synthesis.calibratedPredictions?.length || 0,
-          recommendations: council.synthesis.recommendations?.length || 0,
-          costUsd: council.totalCostUsd,
-          durationMs: council.totalDurationMs,
-        };
-        
-        console.log(`${label} LEGACY COUNCIL: CEBM ${council.evidenceGrade.cebmLevel}, GRADE ${council.evidenceGrade.gradeCertainty}, ${council.expertAnalyses.length} experts`);
-        addCost(council.totalCostUsd, "LEGACY HARVARD COUNCIL");
-      }
-      
-      // Store council synthesis in analysis
-      if (council && ('synthesis' in council ? (council.synthesis as any)?.consensus : (council as any).consensus)) {
-        (analysis as any)._harvardCouncil = 'synthesis' in council ? council.synthesis : council;
-      }
-
-      // ── STEP 6c: PhD COLLABORATIVE DELIBERATION ──
-      if (runDeliberationStep) {
-        try {
-          const expertAnalyses = 'domainLeads' in council
-            ? [...(council as any).domainLeads.map((dl: any) => dl.leadExpert)].filter(Boolean)
-            : ('expertAnalyses' in council ? (council as any).expertAnalyses : []);
-
-          if (expertAnalyses.length >= 2) {
-            console.log(`${label} PhD DELIBERATION: ${expertAnalyses.length} experts debating`);
-            const { runCollaborativeDeliberation, buildDeliberationContextBlock } = await import('./phd-deliberation');
-            const deliberation = await runCollaborativeDeliberation(query, expertAnalyses);
-            stats.deliberation = {
-              challenges: deliberation.totalChallenges,
-              criticalChallenges: deliberation.criticalChallenges,
-              consensusPoints: deliberation.consensusPoints.length,
-              activeDisagreements: deliberation.activeDisagreements.length,
-              emergentInsights: deliberation.emergentInsights.length,
-              deliberationDepth: deliberation.deliberationDepth,
-              consensusLevel: deliberation.consensusLevel,
-              costUsd: deliberation.costUsd,
-            };
-            const delibBlock = buildDeliberationContextBlock(deliberation);
-            if (delibBlock) {
-              (analysis as any)._deliberation = deliberation;
-              (analysis as any)._deliberationContext = delibBlock;
-            }
-            console.log(`${label} PhD DELIBERATION: depth=${deliberation.deliberationDepth}/100, consensus=${deliberation.consensusLevel}/100`);
-            addCost(deliberation.costUsd, "PhD DELIBERATION");
-          } else {
-            stats.deliberation = { skipped: true };
+        const enrichmentProviders = Array.from(new Set([...providers, 'linkup', 'tavily', 'openalex', 'crossref', 'springer', 'osti', 'datacite', 'google-books'] as any)) as Providers;
+        const postEnrichResults = await Promise.allSettled(
+          gapQueries.map(q => scout(q, enrichmentProviders, 15))
+        );
+        let postNewCount = 0;
+        for (const r of postEnrichResults) {
+          if (r.status === 'fulfilled') {
+            const newIds = Array.isArray(r.value) ? r.value.map(s => s.id) : (r.value.sourceIds || []);
+            const before = allSourceIds.length;
+            allSourceIds = [...new Set([...allSourceIds, ...newIds])];
+            postNewCount += allSourceIds.length - before;
           }
-        } catch (err) {
-          console.warn(`${label} PhD DELIBERATION: failed (non-blocking):`, err);
-          stats.deliberation = { error: String(err) };
         }
-      } else {
-        stats.deliberation = { skipped: true };
+        if (postNewCount > 0) {
+          console.log(`${label} POST-ANALYST ENRICHMENT: +${postNewCount} sources from gap-targeted search`);
+          // Re-rank and merge new sources
+          const postRankOpts = { ...rankOpts, sourceIds: allSourceIds, limit: (rankOpts.limit ?? 12) + 3 };
+          const postEnriched = await rank(query, postRankOpts);
+          // Compare quality, not just count — use average compositeScore of top sources
+          const oldAvgQuality = topSources.length > 0
+            ? topSources.reduce((sum: number, s: any) => sum + (s.compositeScore ?? s.qualityScore ?? 50), 0) / topSources.length
+            : 0;
+          const newAvgQuality = postEnriched.length > 0
+            ? postEnriched.reduce((sum: number, s: any) => sum + (s.compositeScore ?? s.qualityScore ?? 50), 0) / postEnriched.length
+            : 0;
+          if (postEnriched.length >= topSources.length && newAvgQuality >= oldAvgQuality) {
+            const oldLen = topSources.length;
+            topSources.length = 0;
+            topSources.push(...postEnriched);
+            for (let i = 0; i < topSources.length; i++) {
+              (topSources[i] as any).loadBearing = i < 3;
+            }
+            console.log(`${label} POST-ANALYST ENRICHMENT: sources ${oldLen} → ${topSources.length}, quality ${oldAvgQuality.toFixed(0)} → ${newAvgQuality.toFixed(0)}`);
+          } else {
+            console.log(`${label} POST-ANALYST ENRICHMENT: kept original sources (quality ${oldAvgQuality.toFixed(0)} ≥ ${newAvgQuality.toFixed(0)})`);
+          }
+          // Update enrichment stats
+          if (stats.enrichmentReasoner) {
+            (stats.enrichmentReasoner as any).postAnalystNewSources = postNewCount;
+          }
+        }
+      } catch (err) {
+        console.warn(`${label} POST-ANALYST ENRICHMENT: failed (non-blocking):`, err);
       }
-      
-    } catch (err) {
-      console.warn(`${label} HARVARD COUNCIL: failed (non-blocking):`, err);
-      stats.harvardCouncil = { error: String(err) };
     }
+  }
+
+  // ── STEP 6a: STRUCTURAL EDITOR (strategic only) — narrative arc validation ──
+  // Reactivated: validates Pyramid Principle, SCR (McKinsey), Constat-Enjeu-Option (France Stratégie)
+  // Harvard Council and PhD Deliberation stay suppressed — redundant with casting + debate at 1/10 cost
+  stats.harvardCouncil = { skipped: true };
+  stats.deliberation = { skipped: true };
+  if (isStrategic) {
+    try {
+      const { structuralEditorReview } = await import('./structural-editor');
+      emitProgress(pipelineRun.id, "STRUCTURAL_EDITOR", "started", "Reviewing narrative structure...");
+      const structuralReview = await structuralEditorReview(analysis, query);
+      stats.structuralEditor = {
+        overallStructure: structuralReview.overallStructure,
+        narrativeArcValid: structuralReview.narrativeArcValid,
+        logicalGaps: structuralReview.logicalGaps.length,
+        costUsd: structuralReview.costUsd,
+      };
+      addCost(structuralReview.costUsd, "STRUCTURAL_EDITOR");
+      console.log(`${label} STRUCTURAL EDITOR: score=${structuralReview.overallStructure}, gaps=${structuralReview.logicalGaps.length}`);
+      // If structural issues found, inject suggestions into analysis for editor to consider
+      if (structuralReview.overallStructure < 75 && structuralReview.restructuringSuggestions.length > 0) {
+        (analysis as any)._structuralSuggestions = structuralReview.restructuringSuggestions;
+        (analysis as any)._logicalGaps = structuralReview.logicalGaps;
+      }
+      emitProgress(pipelineRun.id, "STRUCTURAL_EDITOR", "completed", `Structure: ${structuralReview.overallStructure}/100`);
+    } catch (err) {
+      console.warn(`${label} STRUCTURAL EDITOR: failed (non-blocking):`, err);
+      stats.structuralEditor = { error: String(err) };
+    }
+  } else {
+    stats.structuralEditor = { skipped: true };
   }
 
   // â”€â”€ STEP 7: CITATION GUARD â”€â”€
@@ -2102,7 +2457,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   const renderEditorHtml = (): string => {
     console.log(`${label} EDITOR: render professional HTML`);
     try {
-      if (editorialV2 && castingResult && institutePosition && !isStrategic) {
+      if (editorialV2 && castingResult && institutePosition) {
         const rendered = renderPositionFirstBriefHTML({
           question: query,
           classification: topicClassification,
@@ -2113,16 +2468,20 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
           debate: debateResult,
           isStrategic,
         });
+        stats.rendererUsed = "position_first";
         console.log(`${label} EDITOR: position-first template (${(rendered.length / 1024).toFixed(0)}KB)`);
         return rendered;
       }
+      console.warn(`${label} RENDERER: position-first NOT used — editorialV2=${editorialV2}, casting=${!!castingResult}, arbiter=${!!institutePosition} — falling back to ${isStrategic ? 'strategic' : 'brief'} template`);
       const rendered = isStrategic
         ? renderProfessionalStrategicHTML(analysis, topSources)
         : renderProfessionalBriefHTML(analysis, topSources);
+      stats.rendererUsed = isStrategic ? "professional_strategic" : "professional_brief";
       console.log(`${label} EDITOR: ${isStrategic ? 'strategic' : 'brief'} template rendered (${(rendered.length / 1024).toFixed(0)}KB)`);
       return rendered;
     } catch (editorErr) {
       console.warn(`${label} EDITOR: professional template failed, using legacy:`, editorErr);
+      stats.rendererUsed = isStrategic ? "legacy_strategic" : "legacy_brief";
       return isStrategic
         ? renderStrategicReportHTML(analysis, topSources)
         : renderBriefHTML(analysis, topSources);
@@ -2209,46 +2568,87 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
       stats.factChecker = { error: String(err) };
     }
 
-    console.log(`${label} CRITICAL LOOP V2: iterative review`);
+    console.log(`${label} CRITICAL LOOP V2: 3 critics + 1 rewrite iteration (reactivated)`);
     try {
       const criticalResult = await runCriticalLoopV2({
         draftHtml: html,
         sources: topSources,
         readings,
-        maxIterations: 3,
+        maxIterations: 2,
         publishThreshold: 60,
         producerFamily: producerFamily as any,
       });
       stats.criticalLoop = {
         iterations: criticalResult.iterations,
         finalScore: criticalResult.compositeScore,
-        improvement: criticalResult.improvementDelta,
+        improvement: criticalResult.improvementDelta || 0,
         needsHumanReview: criticalResult.needsHumanReview,
       };
-      if (criticalResult.improvementDelta > 0) {
+      // Use rewritten HTML if critics improved it
+      if (criticalResult.finalHtml && criticalResult.improvementDelta > 0) {
         html = criticalResult.finalHtml;
-        console.log(`${label} CRITICAL LOOP V2: improved by +${criticalResult.improvementDelta} points`);
+        console.log(`${label} CRITICAL LOOP V2: applied rewrite (+${criticalResult.improvementDelta} improvement)`);
+        // POST-CRITICAL-LOOP REPAIR: the rewrite may have introduced unsourced numbers
+        // or lost citations — run citation repair + claim grounding again
+        try {
+          const { repairCitations } = await import('./citation-repair');
+          const postRepair = repairCitations(html, analysis as Record<string, unknown>, topSources);
+          if (postRepair.citationsBackfilled + postRepair.citationsInjected + postRepair.numbersSanitized > 0) {
+            html = postRepair.html;
+            console.log(`${label} POST-LOOP CITATION REPAIR: +${postRepair.citationsBackfilled} backfilled, +${postRepair.citationsInjected} injected, ${postRepair.numbersSanitized} numbers sanitized`);
+            stats.postLoopRepair = {
+              backfilled: postRepair.citationsBackfilled,
+              injected: postRepair.citationsInjected,
+              sanitized: postRepair.numbersSanitized,
+            };
+          }
+        } catch (postErr) {
+          console.warn(`${label} POST-LOOP CITATION REPAIR: failed (non-blocking):`, postErr);
+        }
+        try {
+          const { groundClaims } = await import('./claim-grounding');
+          const postGrounding = groundClaims(html, topSources, { mode: 'flag' });
+          if (postGrounding.removedClaims > 0 || postGrounding.unsupported > 0) {
+            html = postGrounding.html;
+            console.log(`${label} POST-LOOP CLAIM GROUNDING: ${postGrounding.supported} supported, ${postGrounding.partial} partial, ${postGrounding.unsupported} unsupported, ${postGrounding.uncited} uncited → groundedness ${Math.round(postGrounding.groundedness * 100)}%, ${postGrounding.removedClaims} flagged`);
+            stats.postLoopGrounding = {
+              supported: postGrounding.supported,
+              partial: postGrounding.partial,
+              unsupported: postGrounding.unsupported,
+              uncited: postGrounding.uncited,
+              contradicted: postGrounding.contradicted,
+              groundedness: Math.round(postGrounding.groundedness * 100),
+              flagged: postGrounding.removedClaims,
+            };
+          }
+        } catch (postGroundErr) {
+          console.warn(`${label} POST-LOOP CLAIM GROUNDING: failed (non-blocking):`, postGroundErr);
+        }
       }
+      addCost(criticalResult.totalCostUsd, "CRITICAL_LOOP");
     } catch (err) {
       console.warn(`${label} CRITICAL LOOP V2: failed (non-blocking):`, err);
-      // Fallback: compute a trust score from available metrics so we don't report trust=0
-      const debateConf = (stats.debate as any)?.confidence;
-      const structScore = (stats.structuralEditor as any)?.structureScore;
-      const fallbackScore = debateConf
-        ? Math.round(debateConf)
-        : structScore
-          ? Math.round(structScore)
-          : 50;
       stats.criticalLoop = {
         iterations: 0,
-        finalScore: fallbackScore,
+        finalScore: 50,
         improvement: 0,
         needsHumanReview: true,
       };
-      console.log(`${label} CRITICAL LOOP V2: using fallback trust score = ${fallbackScore}`);
     }
 
     orchState.trustScore = stats.criticalLoop?.finalScore ?? null;
+    // Boost trust score with claim grounding groundedness bonus
+    // Use post-loop grounding if available (more accurate after rewrite), else pre-loop
+    const groundingStats = stats.postLoopGrounding ?? stats.claimGrounding;
+    if (groundingStats && groundingStats.groundedness > 50) {
+      const groundingBonus = Math.round((groundingStats.groundedness - 50) * 0.1);
+      const boostedScore = Math.min(100, (orchState.trustScore ?? 50) + groundingBonus);
+      if (boostedScore > (orchState.trustScore ?? 0)) {
+        console.log(`${label} TRUST BOOST: +${groundingBonus} from claim grounding (${groundingStats.groundedness}% groundedness) → ${boostedScore}`);
+        orchState.trustScore = boostedScore;
+        stats.criticalLoop = { ...stats.criticalLoop!, finalScore: boostedScore };
+      }
+    }
     const criticalDecision = assessAfterCriticalLoop(orchState);
     recordDecision(orchState, criticalDecision);
     stats.orchestrator = stats.orchestrator ?? { decisions: [] };
@@ -2300,6 +2700,34 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
         forestPlotEntries: meta.forestPlot.length,
       };
       console.log(`${label} META-ANALYSIS: k=${meta.k}, pooled d=${stats.metaAnalysis.pooledEffect}, I²=${meta.heterogeneity.I2}%`);
+
+      // LOT 4.2-4.8: Chain probability from meta-analysis priors
+      try {
+        const { buildPriors, chainTournament, scenariosFromChain, inflectionCheck } = await import('./chain-probability');
+        const priors = buildPriors(meta);
+        if (priors.length > 0) {
+          // Extract mechanisms from readings
+          const allMechanisms = readings.flatMap((r: any) => r.mechanisms || []);
+          if (allMechanisms.length >= 2) {
+            const tournament = chainTournament(allMechanisms, priors);
+            const scenarios = scenariosFromChain(priors);
+            const inflection = inflectionCheck(allMechanisms);
+            stats.chainProbability = {
+              priors: priors.length,
+              bestJointProbability: tournament.bestJointProbability,
+              permutations: tournament.permutations,
+              scenarios: scenarios.length,
+              inflectionWarning: inflection.warning,
+            };
+            console.log(`${label} CHAIN PROBABILITY: joint P=${tournament.bestJointProbability.toFixed(3)}, ${scenarios.length} scenarios, inflection=${inflection.hasInflection}`);
+            if (inflection.warning) {
+              console.warn(`${label} CHAIN PROBABILITY: ${inflection.warning}`);
+            }
+          }
+        }
+      } catch (err) {
+        console.warn(`${label} CHAIN PROBABILITY: failed (non-blocking):`, err);
+      }
     } else if (metaResult.reason !== "skipped") {
       console.warn(`${label} META-ANALYSIS: failed (non-blocking):`, metaResult.reason);
     }
@@ -2382,131 +2810,20 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
       });
 
       const qualityThreshold = isStrategic ? 80 : 75;
-      if (
-        allowHtmlRevision &&
-        html.length > 0 &&
-        advocateReport.overallStrength < qualityThreshold &&
-        advocateReport.fatalChallenges.length > 0
-      ) {
-        const { lessons } = await extractLessons(agentId, query, html.slice(0, 500), {
-          trustScore: advocateReport.publishabilityScore,
-          qualityScore: advocateReport.overallStrength,
-          failureModes,
-        });
-        for (const lesson of lessons) {
-          await storeLesson(agentId, lesson, pipelineRun.id);
-        }
-
-        console.log(`${label} DEVIL'S ADVOCATE: ${advocateReport.fatalChallenges.length} fatal challenges — triggering auto-revision`);
-        try {
-          const fatalList = advocateReport.fatalChallenges.map((fc: any, i: number) =>
-            `${i + 1}. ${fc.description || fc.challenge || fc}: ${fc.suggestedRevision || fc.recommendation || "Address this challenge"}`
-          ).join('\n');
-          const majorList = advocateReport.majorChallenges.map((mc: any, i: number) =>
-            `${i + 1}. ${mc.description || mc.challenge || mc}: ${mc.suggestedRevision || mc.recommendation || "Address this challenge"}`
-          ).join('\n');
-
-          const analysisJson = JSON.stringify(analysis);
-          const analysisForPrompt = analysisJson.length > 30000
-            ? analysisJson.slice(0, 14000) + '\n\n[...MIDDLE SECTION...]\n\n' + analysisJson.slice(-14000)
-            : analysisJson;
-
-          // Compute original analysis word count for length validation
-          const originalWordCount = JSON.stringify(analysis).split(/\s+/).length;
-
-          const revisionResponse = await callLLM({
-            messages: [{
-              role: "system",
-              content: `You are a senior editor at an elite think tank. The Devil's Advocate has found FATAL challenges in this analysis. You must REVISE the analysis JSON to address ALL fatal and major challenges.
-
-CRITICAL RULES:
-1. Output ONLY the revised JSON object. No preamble, no commentary, no markdown fences.
-2. ALL citations MUST use the [SRC-N] format (e.g., [SRC-1], [SRC-2]). Do NOT use [E1] or any other format.
-3. Preserve every [SRC-N] citation from the original. Do not invent new source numbers.
-4. Keep the same JSON schema and field names. Only modify field VALUES to address the challenges.
-5. If the challenge is "non_evidence", add [SRC-N] citations to the uncited claims.
-6. If the challenge is "missing_warrant", strengthen the warrant field with an explicit mechanism.
-7. If the challenge is "overstated_conclusion", qualify the verdict and add uncertainty ranges.
-8. If the challenge is "cascade_extrapolation", ensure future_extrapolation claims derive from present_fact or active_mechanism only.
-9. PRESERVE CONTENT LENGTH: The original analysis is ~${originalWordCount} words. Your revised version MUST be at least ${Math.round(originalWordCount * 0.8)} words. Do NOT shorten sections — only modify values to address challenges. If a section doesn't need changes, keep it EXACTLY as-is.
-10. CITATION DENSITY: Each paragraph must have at least 2 [SRC-N] citations. Aim for 80%+ citation coverage. Uncited claims will be rejected.`
-            }, {
-              role: "user",
-              content: `ORIGINAL ANALYSIS JSON:
-${analysisForPrompt}
-
-═══ FATAL CHALLENGES (MUST ADDRESS ALL) ═══
-${fatalList}
-
-═══ MAJOR CHALLENGES (SHOULD ADDRESS) ═══
-${majorList}
-
-Return the FULL revised JSON object. Same schema, same field names, revised values. PRESERVE ALL SECTION LENGTHS. Start with { and end with }.`
-            }],
-            temperature: 0.2,
-            jsonMode: true,
-            maxTokens: 16000,
-            enableCache: false,
-            task: 'auto_revision',
-          });
-
-          if (revisionResponse.content) {
-            try {
-              const revisedAnalysis = JSON.parse(revisionResponse.content);
-              // Validate: must have causalChain or verdict (new schema) or title (legacy)
-              if (revisedAnalysis && (revisedAnalysis.causalChain || revisedAnalysis.verdict || revisedAnalysis.title)) {
-                // Length validation: reject revision if it's significantly shorter than original
-                const revisedWordCount = JSON.stringify(revisedAnalysis).split(/\s+/).length;
-                const minAcceptable = Math.round(originalWordCount * 0.7);
-                if (revisedWordCount < minAcceptable) {
-                  console.warn(`${label} DEVIL'S ADVOCATE: revised analysis too short (${revisedWordCount} words vs ${originalWordCount} original, min ${minAcceptable}) — keeping original and patching challenged claims only`);
-                  // Selectively patch: only update fields that the DA challenged
-                  // Keep original analysis but apply targeted fixes
-                  for (const fc of advocateReport.fatalChallenges) {
-                    const fix = fc.suggestedRevision;
-                    if (fix && typeof fix === 'string') {
-                      // Log the fix for audit trail
-                      console.log(`${label} DA FIX [${fc.challengeType}]: ${fix.slice(0, 100)}`);
-                    }
-                  }
-                  // Don't replace analysis — keep original rich content
-                } else {
-                  // Preserve _meta from original analysis
-                  if ((analysis as any)?._meta) {
-                    revisedAnalysis._meta = (analysis as any)._meta;
-                  }
-                  analysis = revisedAnalysis;
-                  console.log(`${label} DEVIL'S ADVOCATE: analysis JSON revised (${revisedWordCount} words), re-rendering HTML`);
-                }
-
-                // Re-render through the proper renderer
-                html = renderEditorHtml();
-                console.log(`${label} DEVIL'S ADVOCATE: re-rendered HTML (${(html.length / 1024).toFixed(0)}KB)`);
-
-                // Re-apply citation filter on the fresh HTML
-                try {
-                  const { applyCitationFilter } = await import('./citation-filter');
-                  const filterResult = applyCitationFilter(html);
-                  if (filterResult.backtrackedClaims > 0 || filterResult.removedSentences > 0) {
-                    html = filterResult.filteredHtml;
-                    console.log(`${label} DEVIL'S ADVOCATE: post-revision citation filter: +${filterResult.backtrackedClaims} backtracked, -${filterResult.removedSentences} removed`);
-                  }
-                } catch (filterErr) {
-                  console.warn(`${label} DEVIL'S ADVOCATE: post-revision citation filter failed (non-blocking):`, filterErr);
-                }
-
-                stats.devilsAdvocate = { ...stats.devilsAdvocate as object, autoRevised: true };
-                stats.htmlLength = html.length;
-              } else {
-                console.warn(`${label} DEVIL'S ADVOCATE: revised JSON missing required fields, keeping original`);
-              }
-            } catch (parseErr) {
-              console.warn(`${label} DEVIL'S ADVOCATE: failed to parse revised JSON, keeping original HTML`);
-            }
-          }
-          addCost(revisionResponse.costUsd, "DEVIL'S ADVOCATE REVISION");
-        } catch (revisionErr) {
-          console.warn(`${label} DEVIL'S ADVOCATE: auto-revision failed:`, revisionErr);
+      if (advocateReport.overallStrength < qualityThreshold && advocateReport.fatalChallenges.length > 0) {
+        // DA auto-revision: append fatal challenges as visible advisory section
+        // This ensures transparency — readers see the epistemic challenges
+        console.log(`${label} DEVIL'S ADVOCATE: ${advocateReport.fatalChallenges.length} fatal challenges — appending advisory section`);
+        const advisoryHtml = `
+<section class="nx-block epistemic-review" style="border-left:3px solid #c0392b;padding:12px 20px;margin:24px 0;background:#fdf2f2;border-radius:4px;">
+  <p class="nx-eyebrow" style="color:#c0392b;">Epistemic challenges identified</p>
+  ${advocateReport.fatalChallenges.slice(0, 3).map((fc: any, i: number) =>
+    `<div style="margin:8px 0;"><strong>${i + 1}. ${esc(fc.challengeType || 'Challenge')}</strong><br/>${esc((fc.challenge || '').slice(0, 300))}</div>`
+  ).join('')}
+</section>`;
+        if (allowHtmlRevision && html) {
+          html = html.replace('</article>', `${advisoryHtml}</article>`);
+          stats.devilsAdvocate!.autoRevised = true;
         }
       }
     } catch (err) {
@@ -2514,71 +2831,94 @@ Return the FULL revised JSON object. Same schema, same field names, revised valu
       stats.devilsAdvocate = { error: String(err) };
     }
 
-    // P3.7: Triangular judging — arbitrate DA vs Critical Loop disputes (only once)
-    const daStats = stats.devilsAdvocate as any;
-    if (daStats && !daStats.skipped && !daStats.error && !stats.triangularJudge && advocateReport) {
-      const clScore = stats.criticalLoop?.finalScore ?? 70;
-      const { needsTriangularJudging, runTriangularJudge } = await import('./triangular-judge');
-      if (needsTriangularJudging(daStats.verdict, clScore)) {
-        console.log(`${label} TRIANGULAR JUDGE: DA verdict="${daStats.verdict}" vs CL score=${clScore} — arbitrating`);
-        try {
-          const judgment = await runTriangularJudge(
-            advocateReport,
-            clScore,
-            html.slice(0, 1000),
-          );
-          stats.triangularJudge = {
-            verdict: judgment.verdict,
-            revisedVerdict: judgment.revisedVerdict,
-            confidence: judgment.confidence,
-          };
-          if (judgment.verdict === 'override_da' || judgment.verdict === 'downgrade') {
-            console.log(`${label} TRIANGULAR JUDGE: ${judgment.verdict} — DA verdict overridden to "${judgment.revisedVerdict}"`);
-            stats.devilsAdvocate = { ...daStats, verdict: judgment.revisedVerdict, triangularOverride: true };
-          } else {
-            console.log(`${label} TRIANGULAR JUDGE: ${judgment.verdict} — DA verdict upheld`);
-          }
-          addCost(judgment.costUsd, 'TRIANGULAR JUDGE');
-        } catch (tjErr) {
-          console.warn(`${label} TRIANGULAR JUDGE: failed (non-blocking):`, tjErr);
-        }
-      }
-    }
+    // Triangular judge suppressed (LOT 3.7) — DA verdict is final
   };
 
   if (editorialV2) {
     console.log(`${label} EDITORIAL V2: foresight → debate → devil's advocate → editor → quality gates`);
 
-    analysis = ensureEditorialScenarios(analysis as Record<string, unknown>, {
-      question: query,
-    }) as typeof analysis;
-
-    emitProgress(pipelineRun.id, "FORESIGHT", "started", "Monte Carlo scenario distribution...");
-    const foresight = await runPipelineForesight({
-      question: query,
-      analysis: analysis as Record<string, unknown>,
-      domain: detectedDomain,
-      sourceIds: topSources.map((s: any) => s.id),
-      isStrategic,
-      depth: 'deep',
-      seedSourceIds: opts.seedSourceIds,
-    });
-    if (!foresight.skipped && foresight.report) {
-      analysis = foresight.analysis as typeof analysis;
-      stats.foresight = {
-        scenarios: foresight.report.output.scenarios.length,
-        monteCarloRuns: foresight.report.output.monteCarloRuns,
-        converged: foresight.report.output.monteCarloConverged,
-        costUsd: foresight.costUsd,
-      };
-      addCost(foresight.costUsd, "FORESIGHT");
-      emitProgress(pipelineRun.id, "FORESIGHT", "completed", `MC: ${foresight.report.output.scenarios.length} scenarios`);
+    // Read scenarios from analyst multipass output (ProspectiveNote fields)
+    const analysisScenarios = (analysis as Record<string, unknown>).scenarios as Array<Record<string, unknown>> | undefined;
+    if (!analysisScenarios || analysisScenarios.length < 2) {
+      stats.foresight = { skipped: true, reason: `only ${analysisScenarios?.length ?? 0} scenarios in analysis — Monte Carlo needs ≥ 2` };
+      console.log(`${label} FORESIGHT: skipped (only ${analysisScenarios?.length ?? 0} scenarios in analysis)`);
+    } else if (topSources.length < 10) {
+      stats.foresight = { skipped: true, reason: `insufficient evidence (${topSources.length} sources) — Monte Carlo needs ≥ 10 for reliable probabilities` };
+      console.log(`${label} FORESIGHT: skipped (only ${topSources.length} sources — insufficient for reliable Monte Carlo)`);
     } else {
-      stats.foresight = { skipped: true, reason: foresight.reason };
-      console.log(`${label} FORESIGHT: skipped (${foresight.reason})`);
+      emitProgress(pipelineRun.id, "FORESIGHT", "started", "Monte Carlo scenario distribution...");
+      const foresight = await runPipelineForesight({
+        question: query,
+        analysis: analysis as Record<string, unknown>,
+        domain: detectedDomain,
+        sourceIds: topSources.map((s: any) => s.id),
+        isStrategic,
+        depth: isStrategic ? 'strategic' : 'standard',
+        seedSourceIds: opts.seedSourceIds,
+      });
+      if (!foresight.skipped && foresight.report) {
+        analysis = foresight.analysis as typeof analysis;
+        stats.foresight = {
+          scenarios: foresight.report.output.scenarios.length,
+          monteCarloRuns: foresight.report.output.monteCarloRuns,
+          converged: foresight.report.output.monteCarloConverged,
+          costUsd: foresight.costUsd,
+        };
+        addCost(foresight.costUsd, "FORESIGHT");
+        emitProgress(pipelineRun.id, "FORESIGHT", "completed", `MC: ${foresight.report.output.scenarios.length} scenarios`);
+      } else {
+        stats.foresight = { skipped: true, reason: foresight.reason };
+        console.log(`${label} FORESIGHT: skipped (${foresight.reason})`);
+      }
     }
 
-    await runDebateMetaBlock(undefined);
+    // Debate + meta-analysis reactivated — multi-perspective dialectical analysis
+    await runDebateMetaBlock(buildAnalysisReviewText(analysis as Record<string, unknown>, query));
+
+    // LOT 4.8: Inflection check on extracted mechanisms (V2 branch)
+    try {
+      const { inflectionCheck } = await import('./chain-probability');
+      const allMechanisms = readings.flatMap((r: any) => r.mechanisms || []);
+      if (allMechanisms.length >= 5) {
+        const inflection = inflectionCheck(allMechanisms);
+        if (inflection.warning) {
+          stats.chainProbability = stats.chainProbability || {} as any;
+          (stats.chainProbability as any).inflectionWarning = inflection.warning;
+          console.warn(`${label} INFLECTION CHECK: ${inflection.warning}`);
+        }
+      }
+    } catch (err) {
+      console.warn(`${label} INFLECTION CHECK: failed (non-blocking):`, err);
+    }
+
+    // LOT 7.1: Register predictions for retrospective auditing
+    try {
+      const analysisObj = analysis as Record<string, unknown>;
+      const scenarios = (analysisObj?.scenarios as Array<Record<string, unknown>>) || [];
+      const predictions: Array<{ claim: string; probability: number; timeframe: string }> = [];
+      for (const scenario of scenarios) {
+        const name = (scenario.name as string) || (scenario.label as string) || 'unnamed';
+        const description = (scenario.description as string) || '';
+        const probability = typeof scenario.probability === 'number' ? scenario.probability : 0.5;
+        if (description) {
+          predictions.push({ claim: `${name}: ${description.slice(0, 200)}`, probability, timeframe: '12 months' });
+        }
+      }
+      if (predictions.length > 0) {
+        await prisma.agentAuditLog.create({
+          data: {
+            agent: 'ANALYST',
+            action: 'PREDICTION_REGISTER',
+            resource: query.slice(0, 200),
+            metadata: JSON.stringify({ predictions, pipelineRunId: pipelineRun.id }) as any,
+          },
+        });
+        stats.predictions = { registered: predictions.length };
+        console.log(`${label} PREDICTIONS: registered ${predictions.length} predictions for retrospective audit`);
+      }
+    } catch (err) {
+      console.warn(`${label} PREDICTIONS: registration failed (non-blocking):`, err);
+    }
 
     if (castingResult) {
       emitProgress(pipelineRun.id, 'ARBITER', 'started', 'Formulating institute position...');
@@ -2603,6 +2943,44 @@ Return the FULL revised JSON object. Same schema, same field names, revised valu
 
     await runDevilsAdvocateBlock(buildAnalysisReviewText(analysis as Record<string, unknown>, query), false);
     html = renderEditorHtml();
+    // CITATION REPAIR: deterministically backfill missing [SRC-N] from analyst JSON,
+    // inject citations by source title/author matching, and sanitize unsourced numbers
+    try {
+      const { repairCitations } = await import('./citation-repair');
+      const repairResult = repairCitations(html, analysis as Record<string, unknown>, topSources);
+      if (repairResult.citationsBackfilled + repairResult.citationsInjected + repairResult.numbersSanitized > 0) {
+        html = repairResult.html;
+        console.log(`${label} CITATION REPAIR: +${repairResult.citationsBackfilled} backfilled, +${repairResult.citationsInjected} injected, ${repairResult.numbersSanitized} numbers sanitized`);
+        stats.citationRepair = {
+          backfilled: repairResult.citationsBackfilled,
+          injected: repairResult.citationsInjected,
+          sanitized: repairResult.numbersSanitized,
+        };
+      }
+    } catch (repairErr) {
+      console.warn(`${label} CITATION REPAIR: failed (non-blocking):`, repairErr);
+    }
+    // CLAIM GROUNDING: deterministically verify each claim against its cited source
+    // Inspired by groundrails/warrant/sourcecheck — lexical overlap, no LLM, CPU-only
+    try {
+      const { groundClaims } = await import('./claim-grounding');
+      const groundingResult = groundClaims(html, topSources, { mode: 'flag' });
+      if (groundingResult.removedClaims > 0 || groundingResult.unsupported > 0) {
+        html = groundingResult.html;
+        console.log(`${label} CLAIM GROUNDING: ${groundingResult.supported} supported, ${groundingResult.partial} partial, ${groundingResult.unsupported} unsupported, ${groundingResult.uncited} uncited → groundedness ${Math.round(groundingResult.groundedness * 100)}%, ${groundingResult.removedClaims} flagged`);
+        stats.claimGrounding = {
+          supported: groundingResult.supported,
+          partial: groundingResult.partial,
+          unsupported: groundingResult.unsupported,
+          uncited: groundingResult.uncited,
+          contradicted: groundingResult.contradicted,
+          groundedness: Math.round(groundingResult.groundedness * 100),
+          flagged: groundingResult.removedClaims,
+        };
+      }
+    } catch (groundErr) {
+      console.warn(`${label} CLAIM GROUNDING: failed (non-blocking):`, groundErr);
+    }
     // QUANT: inject SVG charts from primary data
     if (quant.chartData.length > 0) {
       try {
@@ -2641,6 +3019,44 @@ Return the FULL revised JSON object. Same schema, same field names, revised valu
     }
   } else {
     html = renderEditorHtml();
+    // CITATION REPAIR: deterministically backfill missing [SRC-N] from analyst JSON,
+    // inject citations by source title/author matching, and sanitize unsourced numbers
+    try {
+      const { repairCitations } = await import('./citation-repair');
+      const repairResult = repairCitations(html, analysis as Record<string, unknown>, topSources);
+      if (repairResult.citationsBackfilled + repairResult.citationsInjected + repairResult.numbersSanitized > 0) {
+        html = repairResult.html;
+        console.log(`${label} CITATION REPAIR: +${repairResult.citationsBackfilled} backfilled, +${repairResult.citationsInjected} injected, ${repairResult.numbersSanitized} numbers sanitized`);
+        stats.citationRepair = {
+          backfilled: repairResult.citationsBackfilled,
+          injected: repairResult.citationsInjected,
+          sanitized: repairResult.numbersSanitized,
+        };
+      }
+    } catch (repairErr) {
+      console.warn(`${label} CITATION REPAIR: failed (non-blocking):`, repairErr);
+    }
+    // CLAIM GROUNDING: deterministically verify each claim against its cited source
+    // Inspired by groundrails/warrant/sourcecheck — lexical overlap, no LLM, CPU-only
+    try {
+      const { groundClaims } = await import('./claim-grounding');
+      const groundingResult = groundClaims(html, topSources, { mode: 'flag' });
+      if (groundingResult.removedClaims > 0 || groundingResult.unsupported > 0) {
+        html = groundingResult.html;
+        console.log(`${label} CLAIM GROUNDING: ${groundingResult.supported} supported, ${groundingResult.partial} partial, ${groundingResult.unsupported} unsupported, ${groundingResult.uncited} uncited → groundedness ${Math.round(groundingResult.groundedness * 100)}%, ${groundingResult.removedClaims} flagged`);
+        stats.claimGrounding = {
+          supported: groundingResult.supported,
+          partial: groundingResult.partial,
+          unsupported: groundingResult.unsupported,
+          uncited: groundingResult.uncited,
+          contradicted: groundingResult.contradicted,
+          groundedness: Math.round(groundingResult.groundedness * 100),
+          flagged: groundingResult.removedClaims,
+        };
+      }
+    } catch (groundErr) {
+      console.warn(`${label} CLAIM GROUNDING: failed (non-blocking):`, groundErr);
+    }
     // QUANT: inject SVG charts from primary data
     if (quant.chartData.length > 0) {
       try {
@@ -2673,7 +3089,8 @@ Return the FULL revised JSON object. Same schema, same field names, revised valu
     }
     void generatePrintHTML(html);
     await runPostRenderQualityGates();
-    await runDebateMetaBlock(isStrategic ? html : undefined);
+    // Debate + meta-analysis reactivated
+    await runDebateMetaBlock(buildAnalysisReviewText(analysis as Record<string, unknown>, query));
     await runDevilsAdvocateBlock(html, true);
   }
 
@@ -2693,6 +3110,31 @@ Return the FULL revised JSON object. Same schema, same field names, revised valu
     console.log(`${label} EVIDENCE IDS: ${citStats.citedEvidence}/${citStats.totalEvidence} cited, ${citStats.uncitedEvidence} uncited`);
   } catch (err) {
     console.warn(`${label} EVIDENCE IDS: failed (non-blocking):`, err);
+  }
+
+  // LOT 5.1/5.7: Style gates + numerical gate on final HTML
+  try {
+    const { runStyleGates, runNumericalGate } = await import('./style-gates');
+    const styleResult = runStyleGates(html);
+    const numResult = runNumericalGate(html, topSources.length);
+    stats.styleGates = {
+      violations: styleResult.violations.length,
+      passed: styleResult.passed,
+      gateDetails: styleResult.violations.slice(0, 10).map(v => ({ gate: v.gate, match: v.match, suggestion: v.suggestion })),
+    };
+    stats.numericalGate = {
+      violations: numResult.violations.length,
+      passed: numResult.passed,
+      details: numResult.violations.slice(0, 10).map(v => ({ match: v.match, suggestion: v.suggestion })),
+    };
+    if (styleResult.violations.length > 0) {
+      console.log(`${label} STYLE GATES: ${styleResult.violations.length} violations (G1-G10)`);
+    }
+    if (numResult.violations.length > 0) {
+      console.log(`${label} NUMERICAL GATE: ${numResult.violations.length} unsourced numbers`);
+    }
+  } catch (err) {
+    console.warn(`${label} STYLE GATES: failed (non-blocking):`, err);
   }
 
   // â”€â”€ STEP 14: PUBLISHER â”€â”€
@@ -2806,6 +3248,9 @@ Return the FULL revised JSON object. Same schema, same field names, revised valu
     console.log(`${label} DONE: brief ${brief.id} | run ${pipelineRun.id} | $${totalCost.toFixed(4)} | ${durationMs}ms | ${orchState.decisions.length} orchestrator decisions`);
   }
 
+  // Clean up idempotency token on success
+  activeRuns.delete(idempotencyKey);
+
   return {
     briefId: brief.id,
     stats,
@@ -2814,6 +3259,8 @@ Return the FULL revised JSON object. Same schema, same field names, revised valu
   };
 
   } catch (error: any) {
+    // Clean up idempotency token on failure
+    activeRuns.delete(idempotencyKey);
     console.error(`${label} FATAL: ${error.message}`);
     emitProgress(pipelineRun.id, "ERROR", "failed", error.message);
     await prisma.pipelineRun.update({

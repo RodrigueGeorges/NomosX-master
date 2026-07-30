@@ -108,12 +108,17 @@ export function extractPipelineScores(
 
   let trustScore: number;
   if (criticalScore != null) {
-    // Primary: blend critical loop + source quality + citation coverage
-    trustScore = Math.round(
-      criticalScore * 0.5 +
-      qualityScore * 0.3 +
-      (citationCoverage * 100) * 0.2
-    );
+    if (criticalScore <= 40) {
+      // Grounding veto is terminal — no blend can compensate (Invariant 4)
+      trustScore = criticalScore;
+    } else {
+      // Primary: blend critical loop + source quality + citation coverage
+      trustScore = Math.round(
+        criticalScore * 0.5 +
+        qualityScore * 0.3 +
+        (citationCoverage * 100) * 0.2
+      );
+    }
   } else if (daScore != null) {
     trustScore = daScore;
   } else if (editorialScore != null) {

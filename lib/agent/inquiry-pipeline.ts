@@ -41,7 +41,7 @@ export interface RunInquiryPipelineInput extends CreateInquiryInput {
 
 export interface InquiryPipelineResult {
   inquiry: Inquiry;
-  briefId: string;
+  briefId: string | null;
   pipelineRunId?: string;
   html: string;
   stats: Record<string, unknown>;
@@ -49,6 +49,8 @@ export interface InquiryPipelineResult {
   trustScore: number;
   qualityScore: number;
   format: "brief" | "strategic";
+  refusal?: boolean;
+  refusalReason?: string;
 }
 
 // ─── Depth → pipeline format ─────────────────────────────────
@@ -451,6 +453,23 @@ export async function runInquiryPipeline(
   );
 
   const result = await runPipeline(question, format, options);
+
+  // Handle enrichment refusal — pipeline returns without briefId when evidence is insufficient
+  if (!result.briefId) {
+    const refusalMsg = (result.stats as any)?.structuredRefusal?.reason
+      || (result.analysis as any)?.refusal?.reason
+      || 'Pipeline refused: evidence insufficient';
+    console.warn(`[Inquiry] Pipeline refused to produce a brief: ${refusalMsg}`);
+    return {
+      briefId: null,
+      html: result.html || '',
+      stats: result.stats || {},
+      analysis: result.analysis || {},
+      costUsd: (result.stats as any)?.totalCostUsd || 0,
+      refusal: true,
+      refusalReason: refusalMsg,
+    } as any;
+  }
 
   const brief = await prisma.brief.findUnique({
     where: { id: result.briefId },

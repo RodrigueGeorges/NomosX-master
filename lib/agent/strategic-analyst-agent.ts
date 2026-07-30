@@ -222,16 +222,17 @@ Produce a COMPREHENSIVE STRATEGIC REPORT (10-15 pages equivalent) with the follo
 
 CRITICAL REQUIREMENTS:
 1. EVERY factual claim, statistic, or data point MUST cite [SRC-N] where N = source number. Claims WITHOUT citations will be REJECTED by the editorial gate.
-2. Be EXHAUSTIVE - use ALL available evidence from ALL sources
-3. SYNTHESIZE intelligently - don't just list, connect ideas across sources
-4. QUANTIFY whenever possible (percentages, sample sizes, effect sizes) — but ONLY with data from sources, never invented numbers
-5. ACKNOWLEDGE uncertainty explicitly (confidence levels, limitations)
-6. Provide ACTIONABLE intelligence, not generic observations
-7. COMPARE and CONTRAST methodologies when relevant
-8. IDENTIFY patterns and emergent themes across sources
-9. Write SUBSTANTIVELY - each section should be thorough and detailed
-10. TOTAL OUTPUT: 6000-8000 words minimum across all sections. This is a 10-15 page report, not a summary.
-11. CITATION DENSITY: Each paragraph should have at least 2 [SRC-N] citations. Aim for 80%+ citation coverage.
+2. POSITION-FIRST: The executive summary must lead with the assertive position/conclusion, then justify. Not the reverse. Readers should know the stance in the first paragraph.
+3. Be EXHAUSTIVE - use ALL available evidence from ALL sources
+4. SYNTHESIZE intelligently - don't just list, connect ideas across sources
+5. QUANTIFY whenever possible (percentages, sample sizes, effect sizes) — but ONLY with data from sources, never invented numbers
+6. ACKNOWLEDGE uncertainty explicitly (confidence levels, limitations)
+7. Provide ACTIONABLE intelligence, not generic observations
+8. COMPARE and CONTRAST methodologies when relevant
+9. IDENTIFY patterns and emergent themes across sources
+10. Write SUBSTANTIVELY - each section should be thorough and detailed
+11. TOTAL OUTPUT: 6000-8000 words minimum across all sections. This is a 10-15 page report, not a summary.
+12. CITATION DENSITY: Each paragraph should have at least 2 [SRC-N] citations. Aim for 80%+ citation coverage.
 12. NO UNSOURCED STATISTICS: Never write "hundreds of billions" or "significant portion" without a [SRC-N] backing the number. If no source provides a number, say "exact figures unavailable" rather than inventing one.
 13. HEDGE CALIBRATION: Match confidence language to evidence strength. Use "evidence suggests" for 1-2 sources, "studies indicate" for 3+, "research consensus" for 5+ agreeing sources.
 14. SECTION LENGTH ENFORCEMENT: executiveSummary (500+ words), literatureOverview (800+ words), thematic analysis (600+ words), debate position1 (400+ words), debate position2 (400+ words), evidenceQuality (400+ words), recommendations (500+ words), implementation (300+ words), conclusion (300+ words). If you write less than these minimums, the report will be REJECTED.

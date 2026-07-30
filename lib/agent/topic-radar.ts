@@ -37,6 +37,9 @@ export interface RadarTopic {
   publishedAt: Date | null;
   score: number;
   vertical?: string;
+  crossChannelBoost?: number;
+  channels?: string[];
+  signalStrength?: 'breaking' | 'emerging' | 'routine';
 }
 
 export interface RadarSweepResult {
@@ -50,6 +53,7 @@ export interface RadarSweepResult {
     dbSignals: number;
     totalRaw: number;
     afterDedup: number;
+    crossChannelCollisions: number;
     durationMs: number;
   };
 }
@@ -146,7 +150,8 @@ export async function runTopicRadar(options?: {
   const stats = {
     gdeltFetched: 0, rssFetched: 0, academicFetched: 0,
     policyFetched: 0, institutionalFetched: 0, dbSignals: 0,
-    totalRaw: 0, afterDedup: 0, durationMs: 0,
+    totalRaw: 0, afterDedup: 0, crossChannelCollisions: 0,
+    durationMs: 0,
   };
 
   // 5 parallel sweeps simultaneously
@@ -166,8 +171,51 @@ export async function runTopicRadar(options?: {
   stats.totalRaw = all.length;
   const deduped = deduplicateTopicsJaccard(all);
   stats.afterDedup = deduped.length;
+
+  // ── CROSS-CHANNEL COLLISION DETECTION (LOT 1.1) ──
+  // Group deduped topics by title similarity (Jaccard ≥ 0.40 — looser than dedup threshold)
+  // to detect the same story appearing across different source types (channels)
+  const collisionGroups = groupByCrossChannel(deduped);
+  for (const group of collisionGroups) {
+    if (group.channels.size >= 3) {
+      // Boost: ≥ 3 distinct channels → +15
+      const boost = 15;
+      for (const topic of group.topics) {
+        topic.crossChannelBoost = boost;
+        topic.channels = [...group.channels];
+        topic.score = clampScore(topic.score + boost);
+      }
+      stats.crossChannelCollisions++;
+    }
+  }
+
+  // ── SCORING BOOSTS (LOT 1.7) ──
+  for (const topic of deduped) {
+    // jointRecentBoost: new (< 24h) AND cross-channel → +20
+    if (topic.crossChannelBoost && topic.publishedAt) {
+      const hoursAgo = (Date.now() - topic.publishedAt.getTime()) / 3600000;
+      if (hoursAgo < 24) {
+        topic.score = clampScore(topic.score + 20);
+      }
+    }
+  }
+
   deduped.sort((a, b) => b.score - a.score);
+
+  // ── ADAPTIVE SIGNAL STRENGTH (replaces rigid cutoff) ──
+  // Instead of a hard cutoff at 60, tag each topic with signal strength
+  // so the Editor-in-Chief LLM can reason about the full spectrum.
+  // - breaking: score ≥ 70 — strong, multi-channel signal
+  // - emerging: score 45-69 — worth investigating, may be early signal
+  // - routine: score < 45 — weak signal, LLM can choose to skip
   const top = deduped.slice(0, maxTopics);
+  for (const topic of top) {
+    topic.signalStrength = topic.score >= 70 ? 'breaking' : topic.score >= 45 ? 'emerging' : 'routine';
+  }
+  const breakingCount = top.filter(t => t.signalStrength === 'breaking').length;
+  const emergingCount = top.filter(t => t.signalStrength === 'emerging').length;
+  const routineCount = top.filter(t => t.signalStrength === 'routine').length;
+  console.log(`[TOPIC RADAR V3] Signal distribution: ${breakingCount} breaking, ${emergingCount} emerging, ${routineCount} routine`);
 
   stats.durationMs = Date.now() - start;
   const result: RadarSweepResult = { topics: top, stats };
@@ -413,6 +461,40 @@ function deduplicateTopicsJaccard(topics: RadarTopic[]): RadarTopic[] {
     if (!duplicate) kept.push(topic);
   }
   return kept;
+}
+
+/** Group topics by loose title similarity (Jaccard ≥ 0.40) across different source types */
+function groupByCrossChannel(topics: RadarTopic[]): { topics: RadarTopic[]; channels: Set<string> }[] {
+  const wordSet = (title: string): Set<string> =>
+    new Set(title.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(w => w.length > 3));
+
+  const groups: { topics: RadarTopic[]; channels: Set<string> }[] = [];
+  const assigned = new Set<number>();
+
+  for (let i = 0; i < topics.length; i++) {
+    if (assigned.has(i)) continue;
+    const ws = wordSet(topics[i].title);
+    if (ws.size === 0) continue;
+    const group: RadarTopic[] = [topics[i]];
+    const channels = new Set<string>([topics[i].sourceType]);
+    assigned.add(i);
+
+    for (let j = i + 1; j < topics.length; j++) {
+      if (assigned.has(j)) continue;
+      const ews = wordSet(topics[j].title);
+      const intersection = [...ws].filter(w => ews.has(w)).length;
+      const union = new Set([...ws, ...ews]).size;
+      if (union > 0 && intersection / union >= 0.40) {
+        group.push(topics[j]);
+        channels.add(topics[j].sourceType);
+        assigned.add(j);
+      }
+    }
+
+    groups.push({ topics: group, channels });
+  }
+
+  return groups;
 }
 
 /** Recency decay: fresh content scored higher */

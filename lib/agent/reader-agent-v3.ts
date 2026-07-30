@@ -47,6 +47,16 @@ export interface QuantitativeData {
   }>;
 }
 
+// LOT 2.4: Mechanism — causal mechanism extracted from source
+export interface Mechanism {
+  description: string;       // What is the mechanism?
+  direction: 'positive' | 'negative' | 'reversing' | 'unclear';  // Effect direction
+  rate?: string;             // Rate of change (e.g., "10% per year", "0.5 std")
+  horizon: string;           // Time horizon (e.g., "short-term", "5-10 years")
+  isStated: boolean;         // true if explicitly stated by authors, false if inferred
+  sourceRef?: number;        // Reference to [SRC-N] if available
+}
+
 export interface ReadingResultV3 {
   sourceId: string;
   // Core extraction (backward compatible with V2)
@@ -65,6 +75,8 @@ export interface ReadingResultV3 {
   readingDepth: "full_text" | "abstract" | "rule_based";
   wordCount: number;             // How much text was actually read
   sections: string[];            // Which sections were found in the paper
+  // LOT 2.4: Causal mechanisms
+  mechanisms: Mechanism[];
   error?: string;
 }
 
@@ -409,10 +421,21 @@ Return JSON:
   "researchDesign": "RCT|quasi-experimental|observational|qualitative|mixed-methods|meta-analysis|theoretical|computational",
   "keyContributions": ["max 3 — what this paper adds to the field"],
   "futureDirections": ["max 2 — what the authors suggest for future research"],
-  "citedSources": ["max 5 — key references this paper cites (author, year format)"]
+  "citedSources": ["max 5 — key references this paper cites (author, year format)"],
+  "mechanisms": [
+    {
+      "description": "What is the causal mechanism? (e.g., 'Carbon tax reduces emissions by increasing fossil fuel prices')",
+      "direction": "positive|negative|reversing|unclear",
+      "rate": "Rate of change if stated (e.g., '10% per year') or null",
+      "horizon": "Time horizon (e.g., 'short-term', '5-10 years')",
+      "isStated": true,
+      "sourceRef": null
+    }
+  ]
 }
 
-Be PRECISE. Extract EXACT numbers. If a value is not stated, omit it. Do not invent data.`;
+Be PRECISE. Extract EXACT numbers. If a value is not stated, omit it. Do not invent data.
+For mechanisms: extract the causal chain — how does X affect Y? What is the direction? Is this explicitly stated by the authors (isStated=true) or inferred (isStated=false)?`;
 
   try {
     const response = await callLLM({
@@ -448,6 +471,14 @@ Be PRECISE. Extract EXACT numbers. If a value is not stated, omit it. Do not inv
       readingDepth: depth,
       wordCount: text.split(/\s+/).length,
       sections,
+      mechanisms: (extracted.mechanisms || []).map((m: any) => ({
+        description: String(m.description || '').trim(),
+        direction: (['positive', 'negative', 'reversing', 'unclear'].includes(m.direction) ? m.direction : 'unclear') as Mechanism['direction'],
+        rate: m.rate ? String(m.rate) : undefined,
+        horizon: String(m.horizon || 'unspecified').trim(),
+        isStated: m.isStated !== false, // default true — preserve, don't suppress
+        sourceRef: typeof m.sourceRef === 'number' ? m.sourceRef : undefined,
+      })).filter((m: Mechanism) => m.description),
     };
   } catch (error: any) {
     console.warn(`[Reader V3] Deep extraction failed for ${source.id}: ${error.message}`);
@@ -541,6 +572,7 @@ function ruleBasedExtractionV3(source: any, text?: string): ReadingResultV3 {
     readingDepth: "rule_based",
     wordCount: content.split(/\s+/).length,
     sections: [],
+    mechanisms: [],
     error: "Fallback to rule-based extraction",
   };
 }

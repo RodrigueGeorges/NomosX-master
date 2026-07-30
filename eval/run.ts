@@ -40,17 +40,49 @@ const FAST_TOPIC_IDS = new Set([
 
 // ─── Git metadata ──────────────────────────────────────────────────
 
-function getGitSha(): string {
+function findGit(): string {
+  // Check if git is in PATH
   try {
-    return execSync("git rev-parse HEAD", { encoding: "utf-8" }).trim();
+    execSync("git --version", { encoding: "utf-8", stdio: "pipe" });
+    return "git";
+  } catch {
+    // Search known locations
+    const candidates = [
+      "C:\\Program Files\\Git\\cmd\\git.exe",
+      "C:\\Program Files (x86)\\Git\\cmd\\git.exe",
+      `${process.env.USERPROFILE}\\AppData\\Local\\Programs\\Git\\cmd\\git.exe`,
+    ];
+    // Also search GitHub Desktop installations
+    const ghBase = `${process.env.USERPROFILE}\\AppData\\Local\\GitHubDesktop`;
+    if (fs.existsSync(ghBase)) {
+      for (const dir of fs.readdirSync(ghBase)) {
+        if (dir.startsWith("app-")) {
+          candidates.push(`${ghBase}\\${dir}\\resources\\app\\git\\cmd\\git.exe`);
+        }
+      }
+    }
+    for (const c of candidates) {
+      if (fs.existsSync(c)) return c;
+    }
+  }
+  return "";
+}
+
+const GIT_BIN = findGit();
+
+function getGitSha(): string {
+  if (!GIT_BIN) return "unknown";
+  try {
+    return execSync(`"${GIT_BIN}" rev-parse HEAD`, { encoding: "utf-8" }).trim();
   } catch {
     return "unknown";
   }
 }
 
 function getGitBranch(): string {
+  if (!GIT_BIN) return "unknown";
   try {
-    return execSync("git rev-parse --abbrev-ref HEAD", { encoding: "utf-8" }).trim();
+    return execSync(`"${GIT_BIN}" rev-parse --abbrev-ref HEAD`, { encoding: "utf-8" }).trim();
   } catch {
     return "unknown";
   }
@@ -95,7 +127,7 @@ async function runTopicOnce(
         topicId: topic.id,
         status: "error",
         metrics: {
-          groundingRate: 0,
+          groundingRate: null,
           primarySourceRatio: 0,
           tier4Ratio: 0,
           unclassifiedRatio: 0,
@@ -103,6 +135,7 @@ async function runTopicOnce(
           gapResolutionRate: 0,
           hypothesisResolved: 0,
           inconclusiveRate: 0,
+          partialRate: 0,
           refusalCorrectness: false,
           internalConsistency: 0,
           costUsd: result.costUsd,
@@ -138,7 +171,7 @@ async function runTopicOnce(
       topicId: topic.id,
       status: "error",
       metrics: {
-        groundingRate: 0,
+        groundingRate: null,
         primarySourceRatio: 0,
         tier4Ratio: 0,
         unclassifiedRatio: 0,
@@ -146,6 +179,7 @@ async function runTopicOnce(
         gapResolutionRate: 0,
         hypothesisResolved: 0,
         inconclusiveRate: 0,
+        partialRate: 0,
         refusalCorrectness: false,
         internalConsistency: 0,
         costUsd: 0,
@@ -209,7 +243,10 @@ function printTopicTable(aggregates: TopicAggregate[]): void {
   for (const t of aggregates) {
     const id = t.topicId.slice(0, 28).padEnd(28);
     const statuses = t.statuses.join(",").slice(0, 10).padEnd(10);
-    const gr = ((t.metricStats.groundingRate?.mean ?? 0) * 100).toFixed(1).padStart(7);
+    const grMean = t.metricStats.groundingRate?.mean;
+    const gr = grMean === undefined || grMean === null || !Number.isFinite(grMean)
+      ? "  N/A "
+      : (grMean * 100).toFixed(1).padStart(7);
     const psr = ((t.metricStats.primarySourceRatio?.mean ?? 0) * 100).toFixed(1).padStart(7);
     const t4 = ((t.metricStats.tier4Ratio?.mean ?? 0) * 100).toFixed(1).padStart(7);
     const hr = ((t.metricStats.hypothesisResolved?.mean ?? 0) * 100).toFixed(1).padStart(7);
@@ -228,6 +265,7 @@ function printPerMetricStats(aggregates: TopicAggregate[]): void {
     "unclassifiedRatio",
     "hypothesisResolved",
     "inconclusiveRate",
+    "partialRate",
     "internalConsistency",
     "costUsd",
     "durationMs",
@@ -255,6 +293,9 @@ async function main() {
   const customRepeats = args.includes("--repeats")
     ? parseInt(args[args.indexOf("--repeats") + 1], 10)
     : undefined;
+  const concurrency = args.includes("--concurrency")
+    ? parseInt(args[args.indexOf("--concurrency") + 1], 10)
+    : 1;
 
   const repeats = customRepeats ?? (fast ? 1 : 3);
 
@@ -263,7 +304,7 @@ async function main() {
   console.log("╚════════════════════════════════════════════════════════════╝");
   console.log(`  Started: ${new Date().toISOString()}`);
   console.log(`  Git: ${getGitBranch()} @ ${getGitSha().slice(0, 8)}`);
-  console.log(`  Mode: ${fast ? "fast" : "full"} | Repeats: ${repeats}`);
+  console.log(`  Mode: ${fast ? "fast" : "full"} | Repeats: ${repeats} | Concurrency: ${concurrency}`);
 
   if (noRun) {
     console.log("  Mode: --no-run (compare last two snapshots only)\n");
@@ -300,7 +341,8 @@ async function main() {
 
   const topicAggregates: TopicAggregate[] = [];
 
-  for (const topic of topics) {
+  // Run topics with concurrency support
+  async function runTopic(topic: CorpusTopic): Promise<TopicAggregate> {
     console.log(`\n${"═".repeat(70)}`);
     console.log(`  EVAL: ${topic.id}`);
     console.log(`  Q: "${topic.question.slice(0, 80)}..."`);
@@ -311,11 +353,25 @@ async function main() {
     for (let r = 0; r < repeats; r++) {
       const result = await runTopicOnce(topic, r);
       runs.push(result);
-      console.log(`  → repeat ${r + 1}: status=${result.status}, grounding=${(result.metrics.groundingRate * 100).toFixed(1)}%, refusal=${result.metrics.refusalCorrectness ? "✓" : "✗"}, cost=$${result.metrics.costUsd.toFixed(4)}, ${(result.metrics.durationMs / 1000).toFixed(1)}s`);
+      const gr = result.metrics.groundingRate;
+      console.log(`  → [${topic.id}] repeat ${r + 1}: status=${result.status}, grounding=${gr === null ? "N/A" : (gr * 100).toFixed(1) + "%"}, refusal=${result.metrics.refusalCorrectness ? "✓" : "✗"}, cost=$${result.metrics.costUsd.toFixed(4)}, ${(result.metrics.durationMs / 1000).toFixed(1)}s`);
     }
 
-    const agg = aggregateTopicRuns(topic.id, runs);
-    topicAggregates.push(agg);
+    return aggregateTopicRuns(topic.id, runs);
+  }
+
+  if (concurrency <= 1) {
+    for (const topic of topics) {
+      topicAggregates.push(await runTopic(topic));
+    }
+  } else {
+    // Batch topics with concurrency limit
+    for (let i = 0; i < topics.length; i += concurrency) {
+      const batch = topics.slice(i, i + concurrency);
+      console.log(`\n  ── Batch ${Math.floor(i / concurrency) + 1}: ${batch.map((t) => t.id).join(", ")} ──`);
+      const results = await Promise.all(batch.map((t) => runTopic(t)));
+      topicAggregates.push(...results);
+    }
   }
 
   const aggregate = aggregateResults(topicAggregates);
@@ -343,6 +399,7 @@ async function main() {
   console.log(`  avgUnclassifiedRatio:     ${(aggregate.avgUnclassifiedRatio * 100).toFixed(1)}%`);
   console.log(`  avgHypothesisResolved:    ${(aggregate.avgHypothesisResolved * 100).toFixed(1)}%`);
   console.log(`  avgInconclusiveRate:      ${(aggregate.avgInconclusiveRate * 100).toFixed(1)}%`);
+  console.log(`  avgPartialRate:           ${(aggregate.avgPartialRate * 100).toFixed(1)}%`);
   console.log(`  refusalAccuracy:          ${(aggregate.refusalAccuracy * 100).toFixed(1)}%`);
   console.log(`  totalCostUsd:             $${aggregate.totalCostUsd.toFixed(4)}`);
   console.log(`  totalDurationMs:          ${(aggregate.totalDurationMs / 1000).toFixed(1)}s`);

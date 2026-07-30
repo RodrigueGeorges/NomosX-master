@@ -51,6 +51,10 @@ export type LLMTask =
   | "auto_revision"
   // Conversational, routed by depth at call site
   | "studiox"
+  // Adaptive enrichment — fast reasoning about evidence sufficiency
+  | "enrichment_reasoner"
+  // Structural review — narrative arc validation (Pyramid Principle, SCR)
+  | "structural_editor"
   // Legacy task names — kept for backward compat during migration, mapped in LEGACY_TASK_ALIAS
   | "classification"
   | "extraction"
@@ -182,6 +186,8 @@ const TASK_ASSIGNMENT: Record<LLMTask, TaskAssignment> = {
 
   // Conversational
   studiox:                { provider: "deepseek", model: "deepseek-v4-pro", timeoutMs: 60_000 },
+  enrichment_reasoner:    { provider: "deepseek", model: "deepseek-v4-flash", timeoutMs: 30_000 },
+  structural_editor:      { provider: "deepseek", model: "deepseek-v4-flash", timeoutMs: 60_000 },
 
   // Legacy aliases — never read directly (normalizeTask() redirects before lookup),
   // kept so LLMTask stays a superset and TS doesn't complain about missing keys.
@@ -198,6 +204,7 @@ const TASK_ASSIGNMENT: Record<LLMTask, TaskAssignment> = {
 const FAST_TASKS: Set<LLMTask> = new Set([
   "query_enhancement", "topic_classification", "casting", "editor_in_chief",
   "swarm_persona", "fact_check", "citation_verification", "classification", "citation",
+  "enrichment_reasoner",
 ]);
 
 // ============================================================================

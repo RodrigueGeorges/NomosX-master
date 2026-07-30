@@ -226,7 +226,9 @@ export async function embedSourcesBatch(sourceIds: string[]): Promise<{ embedded
       const vectorLiteral = `[${embedding.join(",")}]`;
       prisma.$executeRawUnsafe(
         `UPDATE "Source" SET embedding = '${vectorLiteral}'::vector WHERE id = '${needsEmbedding[i].id.replace(/'/g, "''")}'`
-      ).catch(() => { /* pgvector not yet enabled — skip silently */ });
+      ).catch((err: unknown) => {
+        console.warn(`[SemanticEngine] pgvector write failed for ${needsEmbedding[i].id}:`, err instanceof Error ? err.message : String(err));
+      });
     }
   }
 
@@ -297,8 +299,8 @@ export async function semanticSearch(
       return results;
     }
     // 0 results with native vector → fall through to in-memory (migration pending)
-  } catch {
-    // pgvector extension not yet enabled or column missing → in-memory fallback
+  } catch (err: unknown) {
+    console.warn(`[SemanticEngine] pgvector search failed, falling back to in-memory:`, err instanceof Error ? err.message : String(err));
   }
 
   // In-memory fallback (Float[] JSON column)

@@ -89,7 +89,7 @@ Fichier: `lib/agent/pipeline-v2.ts` (~3060 lignes)
 
 ### STEP 5b: HYPOTHESIS JUDGE (ligne ~1806)
 - **Agent**: `hypothesisJudge()` — évalue chaque hypothèse contre les sources
-- **Sortie**: `verdicts[{id, verdict, confidence}]` — verdicts: "confirmed" | "refuted" | "inconclusive"
+- **Sortie**: `verdicts[{id, verdict, confidence}]` — verdicts: "supported" | "refuted" | "partially_supported" | "inconclusive"
 - **Non-blocking**
 
 ### STEP 6: ANALYST (ligne ~1823)
@@ -205,12 +205,14 @@ Si `editorialV2 = true` (strategic ou brief premium):
 - **Agent**: `runCriticalLoopV2()` dans `lib/agent/critical-loop-v2.ts`
 - **Process**: Itératif (max 3 iterations):
   1. Score: Methodology (M) + Analysis (A) + Calibration (C) → Composite
-  2. Si score < threshold → rewrite draft via LLM
-  3. Re-score → repeat
+  2. Grounding veto: si citation coverage < 50% → cap composite à 40 → **TERMINAL** (sortie immédiate, pas de réécriture)
+  3. Si score < threshold et pas de veto → rewrite draft via LLM
+  4. Re-score → repeat
 - **Threshold**: `Math.max(caller=60, calibrated=55)` → 60
 - **Sortie**: `{ iterations, finalScore, improvementDelta, finalHtml, needsHumanReview }`
 - **Failover**: Si LLM timeout → switch provider (GLM → DeepSeek)
 - **Fallback**: Si crash → compute fallback score from debate/structural editor
+- **FIX 2026-07-28**: Le grounding veto est maintenant terminal. Avant, la boucle réécrivait le prose en essayant d'améliorer la couverture — mais une réécriture ne produit pas de citations. Résultat: 2 itérations de gaspillage ($0.20, 5-10 min), couverture dégradée (39% → 0%), output jeté par length-validation. Maintenant: cap → break immédiat.
 
 #### STEP 13: DEVIL'S ADVOCATE — PASS 2 (ligne ~2639)
 - **Condition**: DA pass 1 n'a pas eu d'erreur et n'était pas skipped
@@ -363,6 +365,35 @@ Fichier: `lib/llm/unified-llm.ts`
 | CSS stripped | sanitizeHtml enlève `<style>` | Styles dupliqués dans globals.css | `globals.css` |
 | Auto-revision trop court | LLM raccourcit l'analyse | Length validation ≥ 70% de l'original | `pipeline-v2.ts:2461` |
 | Critical loop threshold trop bas | Calibrated < caller | `Math.max(caller, calibrated)` | `critical-loop-v2.ts:365` |
+| Grounding veto boucle morte | Veto cap → rewrite → coverage pire → veto re-trigger | Veto terminal: cap → break immédiat | `critical-loop-v2.ts:407-441` |
+
+---
+
+## BUGS DIAGNOSTIQUÉS (--fast run, 2026-07-28)
+
+### Bug A: Auto-révision ne fonctionne jamais
+- **Symptôme**: 0/3 succès. "LLM timeout", "les deux LLMs ont échoué", "trop courte, original gardé".
+- **Coût**: ~$0.05 et plusieurs minutes par run pour rien.
+- **Chemin de code**: STEP 13 auto-revision (même code que WO-1 Bug A).
+- **Priorité**: Remontée — même chemin que WO-1.
+
+### Bug B: SmartProvider filtre rien
+- **Symptôme**: `[SmartProvider] Filtered 22 → 22 providers for climate domain`
+- **22 → 22**: No-op. bioRxiv, IAEA, INRAE partent chercher sur du carbon pricing.
+- **Fichier**: SmartProvider (à localiser).
+
+### Bug C: Context primer contamine
+- **Symptôme**: 42 trend breaks sur carbon pricing dont "Cobalt", "clinical-trial", "thesis", "medicine". REALTIME tire 47 indicateurs (WHO, USGS, NVD/CISA) sans rapport. Tourne 2× par run (47s chaque).
+- **Cause racine**: Le US CPI at 332.568 [DATA] injecté dans le rapport sanctions vient d'ici.
+- **Fix requis**: Gate de pertinence WO-6 volet 1 doit couvrir le context primer, pas seulement le quant agent.
+
+### Bug D: Hypothesis verdicts — `confirmed` n'existe pas
+- **Symptôme**: `hypothesisResolved` toujours 0% — le scoring cherchait `confirmed` mais l'enum est `supported`.
+- **Fix**: `confirmed` → `supported` dans `eval/score.ts:246`. Ajout de `partialRate` pour `partially_supported` (4e verdict explicite).
+
+### Bug E: groundingRate dénominateur nul
+- **Symptôme**: 0 numéraux → groundingRate=0% au lieu de null. Pollue la moyenne (avgGroundingRate 32% était faux).
+- **Fix**: `null` quand 0 numéral, filtré des agrégats.
 
 ---
 

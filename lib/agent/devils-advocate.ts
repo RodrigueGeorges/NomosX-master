@@ -241,6 +241,7 @@ ALSO CHECK THESE PROSPECTIVE-SPECIFIC TESTS:
 5. NON-EVIDENCE: Are there claims presented as evidence-based that have no [SRC-N] citation? Every factual claim must cite a source. Flag uncited claims as "non_evidence".
 6. MISSING WARRANT: Are there claims where the warrant (the mechanism connecting evidence to claim) is missing or trivial? A warrant that just restates the evidence ("because the data shows X") is not a warrant. It must name a mechanism. Flag as "missing_warrant".
 7. CASCADE EXTRAPOLATION: Are there future_extrapolation claims that derive from other future_extrapolation claims? This is a cascade violation — a future projection must derive from a present_fact or active_mechanism, never from another future projection. Flag as "cascade_extrapolation".
+8. INVALID ANALOGY: If the analysis applies evidence from domain X to draw conclusions about domain Y, check if the analogy is structurally valid. Different causal mechanisms, different scale, or different context make the analogy invalid. Flag invalid analogies as "invalid_analogy" with severity "fatal".
 
 Also identify:
 - The "kill shot": the single argument that could most damage this analysis's credibility

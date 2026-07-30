@@ -1,5 +1,5 @@
 import { buildEvidenceLedger, extractCitationNumbers } from "./evidence-ledger";
-import { getPublicationQualityRule } from "@/lib/publication-visibility";
+import { getPublicationQualityRule, getAdaptiveMinSourceCount } from "@/lib/publication-visibility";
 
 export type PublicationGateDecision = "publish" | "revise" | "hold";
 
@@ -27,6 +27,8 @@ export interface PublicationGateInput {
   thresholds?: Partial<PublicationGateThresholds>;
   /** P3.7: If triangular judge overrode DA verdict, skip fatal_challenges hard gate */
   triangularOverride?: boolean;
+  /** Domain for adaptive source count threshold */
+  domain?: string | null;
 }
 
 export interface PublicationGateCheck {
@@ -85,13 +87,19 @@ export function evaluatePublicationGate(input: PublicationGateInput): Publicatio
         ? "ARTICLE"
         : input.format;
   const businessRule = getPublicationQualityRule(formatType);
+  // Adaptive source count: adjusts based on domain and available evidence
+  const adaptiveMinSources = getAdaptiveMinSourceCount(
+    formatType || 'ARTICLE',
+    input.domain,
+    input.sourceIds?.length,
+  );
   const thresholds = {
     ...DEFAULT_PUBLICATION_GATE_THRESHOLDS,
     minTrustScore: businessRule.minTrustScore,
     minQualityScore: businessRule.minQualityScore,
     minCitationCoverage: businessRule.minCitationCoverage,
-    minSourceCount: businessRule.minSourceCount,
-    strategicMinSourceCount: businessRule.minSourceCount,
+    minSourceCount: adaptiveMinSources,
+    strategicMinSourceCount: adaptiveMinSources,
     ...input.thresholds,
   };
   const evidenceLedger = buildEvidenceLedger(input.html || "");

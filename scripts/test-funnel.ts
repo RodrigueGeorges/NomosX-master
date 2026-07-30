@@ -138,7 +138,7 @@ async function main() {
     // Skip dedup to force run even if topic exists
     const result = await runAndPublishInquiry({
       question: customQuery,
-      depth: 'standard',
+      depth: 'strategic',
       source: 'manual',
       skipDuplicateCheck: true,
       minTrustScore: 60,

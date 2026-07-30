@@ -424,6 +424,18 @@ export function renderStrategicReportHTML(
       </div>
     </header>
 
+    <!-- Methodology Box -->
+    <section class="methodology-box" style="background:rgba(255,255,255,0.03);border-radius:8px;padding:16px 20px;margin:20px 0;font-size:13px;color:rgba(255,255,255,0.6);">
+      <p class="nx-eyebrow" style="margin-bottom:8px;color:rgba(255,255,255,0.5);">Methodology</p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
+        <div><strong>Sources:</strong> ${sources.length} ranked from ${[...new Set(sources.map((s:any) => s.provider).filter(Boolean))].length} providers</div>
+        <div><strong>Providers:</strong> ${[...new Set(sources.map((s:any) => s.provider).filter(Boolean))].join(', ')}</div>
+        <div><strong>Analysis depth:</strong> Strategic (multi-pass, 3 passes)</div>
+        <div><strong>Confidence:</strong> ${analysis.confidenceLevel}</div>
+        <div><strong>Urgency:</strong> ${analysis.urgencyLevel}</div>
+      </div>
+    </section>
+
     <!-- Table of Contents -->
     <nav class="toc">
       <h3 class="toc-title">Table of Contents</h3>

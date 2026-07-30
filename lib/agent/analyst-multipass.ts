@@ -87,6 +87,8 @@ export interface CausalLink {
   warrant: string;
   temporalStatus: TemporalStatus;
   derivesFrom: number | null;
+  sourceRef?: number;
+  unsupported?: boolean;
 }
 
 export interface ProspectiveNote {
@@ -214,7 +216,7 @@ ${reading && reading.confidence !== 'low' ? `CLAIMS: ${reading.claims?.join(" | 
 METHODS: ${reading.methods?.join(" | ") || "None"}
 RESULTS: ${reading.results?.join(" | ") || "None"}
 LIMITATIONS: ${reading.limitations?.join(" | ") || "None"}
-CONFIDENCE: ${reading.confidence}` : `ABSTRACT: ${(s.abstract || "").slice(0, 600)}...`}`;
+CONFIDENCE: ${reading.confidence}` : `ABSTRACT: ${(s.abstract || "").slice(0, 1200)}...`}`;
     })
     .join("\n\n");
 }
@@ -231,11 +233,22 @@ async function pass1FrictionMapping(
   question: string,
   ctx: string,
   sourceCount: number,
-  domainContext?: string
+  domainContext?: string,
+  depth?: "brief" | "strategic"
 ): Promise<{ map: FrictionMap; tokens: number; cost: number }> {
-  console.log(`[Analyst V3] PASS 1/3: Friction Mapping (${sourceCount} sources)...`);
+  console.log(`[Analyst V3] PASS 1/3: Friction Mapping (${sourceCount} sources, depth: ${depth ?? 'brief'})...`);
 
   const systemPrompt = `You are NomosX Analyst — Pass 1 of 3: FRICTION MAPPING.
+
+NOMOSX EDITORIAL DNA:
+You are agnostic — even anarchistic. You are not afraid to shock, to draw
+ambitious correlations that others dismiss. You detect the underlying
+bullshit that conventional analysis papers over. You are revolutionary in
+the best sense: you reason like Einstein, Marie Curie, Hobbes, the greatest
+inventors, philosophers, economists, and scientists. Your goal is to
+brilliant with every publication — to produce work worthy of a Pulitzer,
+a Fields Medal, a Nobel Prize. You dig deeper, reason harder, and see
+connections that specialists trapped in their silos cannot.
 
 NomosX does not inventory sources. It isolates the strongest cross-domain
 causal chain and extrapolates its trajectory toward a dated future.
@@ -259,6 +272,12 @@ A mechanism with a trajectory ("concentration is accelerating at X%/year")
 is more valuable than a static fact ("the market is worth $40B"). Static
 facts anchor, but dynamics drive extrapolation. Extract dynamics first,
 then the facts that anchor them.
+
+CITATION RULES (NON-NEGOTIABLE):
+- Every dataPoint MUST end with [SRC-N] referencing the source it came from.
+- A dataPoint without [SRC-N] is NOT a data point — it is an opinion.
+- Do NOT extract numbers you cannot trace to a specific source.
+- If a source mentions a number, extract it WITH the [SRC-N] tag.
 
 Return JSON:
 {
@@ -291,6 +310,13 @@ Return JSON:
   }
 }
 
+${depth === "strategic" ? `
+DEPTH: STRATEGIC REPORT MODE.
+- Extract more mechanisms (aim for 8-12 instead of 5-8).
+- For each mechanism, provide richer dataPoints (3-5 instead of 1-2).
+- Surface more collisions (aim for 4-6 instead of 2-3).
+- Develop trajectoryHint into 2-3 sentences with direction and rate where available.
+` : ""}
 Select what SERVES the argument — do not exhaustively dump everything.`;
 
   const userPrompt = `RESEARCH QUESTION: "${question}"
@@ -306,7 +332,7 @@ ${ctx}`;
     ],
     temperature: 0.1,
     jsonMode: true,
-    maxTokens: 8000,
+    maxTokens: depth === "strategic" ? 12000 : 8000,
     enableCache: true,
     task: 'analyst_brief',
   });
@@ -343,6 +369,13 @@ async function pass2StressTest(
     .join("\n");
 
   const systemPrompt = `You are NomosX Analyst — Pass 2 of 3: STRESS TEST.
+
+NOMOSX EDITORIAL DNA:
+You are agnostic — even anarchistic. You detect the underlying bullshit
+that conventional analysis papers over. You reason like Einstein, Marie
+Curie, Hobbes — the greatest minds. Your goal is to produce work worthy
+of a Pulitzer, a Fields Medal, a Nobel Prize. You dig deeper, reason
+harder, and see connections that specialists trapped in their silos cannot.
 
 You are adversarial. Your job is to BREAK every mechanism and collision from
 Pass 1, not to summarize them. Only what survives your attack will enter the
@@ -459,9 +492,10 @@ async function pass3ProspectiveSynthesis(
   sourceCount: number,
   avgQuality: number,
   lang: string,
-  domainContext?: string
+  domainContext?: string,
+  depth?: "brief" | "strategic"
 ): Promise<{ analysis: AnalysisOutput; tokens: number; cost: number; family: import('../llm/unified-llm').LLMFamily }> {
-  console.log(`[Analyst V3] PASS 3/3: Prospective Synthesis...`);
+  console.log(`[Analyst V3] PASS 3/3: Prospective Synthesis (depth: ${depth ?? 'brief'})...`);
 
   const mechanismBrief = (frictionMap.mechanisms ?? [])
     .map(m => `MECHANISM #${m.id} [${m.temporalStatus}]: ${m.description}
@@ -492,6 +526,15 @@ You have mapped the mechanisms (Pass 1) and stress-tested them (Pass 2).
 Now you build the argument and take a position.
 
 NOMOSX IDENTITY:
+You are agnostic — even anarchistic. You are not afraid to shock, to draw
+ambitious correlations that others dismiss. You detect the underlying
+bullshit that conventional analysis papers over. You are revolutionary in
+the best sense: you reason like Einstein, Marie Curie, Hobbes, the greatest
+inventors, philosophers, economists, and scientists. Your goal is to
+brilliant with every publication — to produce work worthy of a Pulitzer,
+a Fields Medal, a Nobel Prize. You dig deeper, reason harder, and see
+connections that specialists trapped in their silos cannot.
+
 NomosX is a prospective think tank. It does not summarize what is known.
 It isolates the strongest causal chain, extrapolates its trajectory, and
 takes ONE assertive position — sober, dense, assured, falsifiable.
@@ -503,10 +546,26 @@ VOICE:
 - Explicit falsifiability: every projection must name what would disprove it.
 - No "experts say" or "researchers believe" — name the mechanism, not the
   consensus.
+- BANNED PHRASES: "delves into", "sheds light on", "plays a crucial role",
+  "it is worth noting", "in today's world", "a testament to", "myriad",
+  "plethora", "tapestry", "landscape of", "navigates the", "underscores".
+- PREFERRED: precise verbs (analyzes, reveals, examines, isolates),
+  concrete numbers with [SRC-N], mechanism-first explanations.
+- Position-first: lead with the conclusion, then justify. Not the reverse.
 
-ANTI-HALLUCINATION RULES:
+ANTI-HALLUCINATION RULES (NON-NEGOTIABLE — violations cause grounding veto):
 - Every number, percentage, or quantitative claim MUST be a present_fact
   with a [SRC-N] citation. No invented numbers.
+- If you cannot find a number in any source, DO NOT invent one. Use
+  "non établie" instead. An absent datum is a fact about the research,
+  not about the subject.
+- NUMBERS WITHOUT [SRC-N] WILL BE DELETED by the citation repair system.
+  This is not a warning — it is a deterministic code execution. If you
+  write "attacks increased by 300%" without [SRC-N], the reader will see
+  "attacks increased by non établie". Cite or do not use numbers.
+- SOURCE-CLAIM MAPPING: Before writing any claim, identify which [SRC-N]
+  it comes from. If a claim does not map to a specific source, it is
+  opinion, not evidence. Do not include it as a factual claim.
 - future_extrapolation claims MUST derive from an active_mechanism or
   present_fact via an explicit warrant. No free-floating predictions.
 - A future_extrapolation CANNOT derive from another future_extrapolation.
@@ -527,7 +586,9 @@ EPISTEMIC HUMILITY RULES (to survive Devil's Advocate):
   name them explicitly in the trajectory or rejectedAlternatives.
 
 CAUSAL CHAIN STRUCTURE:
-Build a chain of 5-8 CausalLinks. The chain must flow:
+Build a causal chain with as many CausalLinks as the evidence supports.
+Do NOT fabricate links to reach a target length — if evidence supports only
+3 links, produce 3 links. The chain must flow:
   present_fact -> present_fact -> active_mechanism -> active_mechanism -> future_extrapolation -> future_extrapolation
 Each link's derivesFrom must point to a prior link's id. The first links
 are present_facts (derivesFrom: null), then active_mechanisms, then
@@ -539,9 +600,9 @@ Return JSON:
 {
   "title": "Title that names the collision and the position. Not neutral — assertive. Example: 'The Sanctions Cartel: Why Parallel Trade Architecture Will Outlast the War'",
   "throughLine": "The single sentence that captures the entire argument. One sentence, max 40 words.",
-  "verdict": "200-400 words. The institute's position. State it first, then justify with the causal chain. Cite [SRC-N] for every factual anchor. No hedging in the first paragraph — state the position. Then qualify.",
+  "verdict": "${depth === "strategic" ? "400-700" : "200-400"} words. The institute's position. State it first, then justify with the causal chain. Cite [SRC-N] for every factual anchor. No hedging in the first paragraph — state the position. Then qualify.",
   "convictionLevel": "firm|tempered|causal_only",
-  "anchoringBasis": "100-200 words. What grounds this analysis — the strongest present facts and the data behind them. With [SRC-N].",
+  "anchoringBasis": "${depth === "strategic" ? "200-400" : "100-200"} words. What grounds this analysis — the strongest present facts and the data behind them. With [SRC-N].",
   "causalChain": [
     {
       "id": 1,
@@ -549,13 +610,14 @@ Return JSON:
       "evidence": "The data or observation supporting this claim. MUST include at least one [SRC-N] citation. Example: 'Data center electricity demand doubled 2022-2024 [SRC-7]'.",
       "warrant": "The MECHANISM that connects evidence to claim. Must name a dynamic, not just restate the data.",
       "temporalStatus": "present_fact|active_mechanism|future_extrapolation",
-      "derivesFrom": null
+      "derivesFrom": null,
+      "sourceRef": "The [SRC-N] number that primarily supports this link. Required for every link."
     }
   ],
   "trajectory": {
     "horizon": "e.g., '2025-2028' or 'next 36 months'",
-    "state": "200-300 words. Describe the projected future state if the causal chain holds. Be specific — named actors, quantified shifts, structural changes.",
-    "assumptions": "100-200 words. What must remain true for this trajectory to hold. Be explicit."
+    "state": "${depth === "strategic" ? "300-500" : "200-300"} words. Describe the projected future state if the causal chain holds. Be specific — named actors, quantified shifts, structural changes.",
+    "assumptions": "${depth === "strategic" ? "150-300" : "100-200"} words. What must remain true for this trajectory to hold. Be explicit."
   },
   "rejectedAlternatives": [
     {
@@ -579,7 +641,7 @@ Return JSON:
 }
 
 LANGUAGE: Write in ${lang}.
-MINIMUM 2000 WORDS TOTAL across all text fields. Depth and substance are non-negotiable.
+MINIMUM ${depth === "strategic" ? "3500" : "2000"} WORDS TOTAL across all text fields. Depth and substance are non-negotiable.
 Output ONLY the JSON object — no markdown, no prose before or after.
 
 CITATION RULES (NON-NEGOTIABLE):
@@ -624,7 +686,7 @@ Build the causal chain from the surviving mechanisms. Take ONE position.`;
     ],
     temperature: 0.2,
     jsonMode: true,
-    maxTokens: 8000,
+    maxTokens: depth === "strategic" ? 12000 : 8000,
     enableCache: true,
     task: 'analyst_brief',
   });
@@ -740,7 +802,7 @@ export async function analystAgentV3(
   question: string,
   sources: any[],
   readings?: any[],
-  options?: { contextBlock?: string; domain?: string }
+  options?: { contextBlock?: string; domain?: string; depth?: "brief" | "strategic" }
 ): Promise<MultiPassAnalysis> {
   assertPermission(AgentRole.ANALYST, "write:analysis");
 
@@ -760,8 +822,10 @@ export async function analystAgentV3(
     const domainContext = buildDomainAnalystContext(options?.domain);
     if (options?.domain) console.log(`[Analyst V3] Domain-aware mode: ${options.domain}`);
 
+    const depth = options?.depth ?? "brief";
+
     // PASS 1: Friction Mapping
-    const p1 = await pass1FrictionMapping(question, ctx, sources.length, domainContext);
+    const p1 = await pass1FrictionMapping(question, ctx, sources.length, domainContext, depth);
 
     // INTER-PASS VALIDATION: Ground-truth check on Pass 1 output
     const validatedMap = validateFrictionMap(p1.map, sources.length);
@@ -783,12 +847,23 @@ export async function analystAgentV3(
     }
 
     // PASS 3: Prospective Synthesis (uses Pass 1 + Pass 2 outputs)
-    const p3 = await pass3ProspectiveSynthesis(question, ctx, p1.map, p2.map, sources.length, avgQuality, lang, domainContext);
+    const p3 = await pass3ProspectiveSynthesis(question, ctx, p1.map, p2.map, sources.length, avgQuality, lang, domainContext, depth);
 
     // CASCADE GUARD: Validate causal chain for cascade violations
     const chainValidation = validateCausalChain(p3.analysis);
     if (!chainValidation.valid) {
       console.warn(`[Analyst V3] CASCADE GUARD: ${chainValidation.cascadeViolations} violations (${chainValidation.details})`);
+      // Mark unsupported links deterministically (no LLM, no new agent)
+      if (p3.analysis.causalChain && Array.isArray(p3.analysis.causalChain)) {
+        for (const link of p3.analysis.causalChain) {
+          const hasSrc = typeof link.sourceRef === 'number' && link.sourceRef > 0
+            || (typeof link.evidence === 'string' && /\[SRC-\d+\]/.test(link.evidence))
+            || (typeof link.claim === 'string' && /\[SRC-\d+\]/.test(link.claim));
+          if (!hasSrc) {
+            link.unsupported = true;
+          }
+        }
+      }
     }
 
     const totalTokens = p1.tokens + p2.tokens + p3.tokens;

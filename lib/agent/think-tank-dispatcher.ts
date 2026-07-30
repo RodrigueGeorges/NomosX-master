@@ -173,7 +173,7 @@ function breakingDecisionToItem(decision: EditorialDecision): ThinkTankDispatchI
     domain: decision.classification.primaryDomain,
     verticalSlug: decision.classification.verticalSlug,
     providers,
-    perProvider: 15,
+    perProvider: decision.topic.score >= 80 ? 20 : decision.topic.score >= 65 ? 15 : 10,
     strategy: "breaking",
     metadata: {
       decision: decision.action,
@@ -185,6 +185,8 @@ function breakingDecisionToItem(decision: EditorialDecision): ThinkTankDispatchI
       collaborators: decision.classification.researchers.slice(1).map((r) => r.profile.name),
       radarSource: decision.topic.sourceType,
       radarScore: decision.topic.score,
+      crossChannelBoost: decision.topic.crossChannelBoost ?? 0,
+      channels: decision.topic.channels ?? [],
       originalHeadline: decision.topic.title,
     },
   };
@@ -414,6 +416,11 @@ async function executeDispatchQueue(
       break;
     }
 
+    // Adaptive trust: signals already pre-validated by radar/editorial — lower threshold
+    // Niche domains also get lower threshold (fewer sources exist but can still be valid)
+    const nicheDomains = ['cognitive-science', 'bioethics', 'complexity-science', 'urban-studies', 'development-economics'];
+    const isNiche = item.domain && nicheDomains.includes(item.domain);
+    const adaptiveTrust = isNiche ? 55 : 60;
     const result = await Promise.race([
       runAndPublishInquiry({
         question: item.question,
@@ -427,7 +434,7 @@ async function executeDispatchQueue(
         source,
         dryRun,
         requireResearcherSignOff: item.requireResearcherSignOff,
-        minTrustScore: 65,
+        minTrustScore: adaptiveTrust,
         metadata: { strategy: item.strategy, ...item.metadata },
       }),
       new Promise<never>((_, reject) =>

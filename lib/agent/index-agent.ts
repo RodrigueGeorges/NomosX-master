@@ -429,8 +429,56 @@ export async function deduplicateSources(): Promise<{ removed: number }> {
     }
   }
 
-  // TODO: Title similarity deduplication with Levenshtein distance
-  // For V1, DOI deduplication is sufficient
+  // LOT 6.1: Title-based semantic deduplication (Jaccard ≥ 80%)
+  try {
+    const recentSources = await prisma.source.findMany({
+      where: { deletedAt: null, doi: null },
+      select: { id: true, title: true, qualityScore: true, createdAt: true },
+      take: 500,
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const titleWordSet = (title: string): Set<string> =>
+      new Set(title.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(w => w.length > 3));
+
+    const jaccard = (a: Set<string>, b: Set<string>): number => {
+      const intersection = [...a].filter(x => b.has(x)).length;
+      const union = new Set([...a, ...b]).size;
+      return union > 0 ? intersection / union : 0;
+    };
+
+    let semanticRemoved = 0;
+    const toSoftDelete: string[] = [];
+
+    for (let i = 0; i < recentSources.length; i++) {
+      if (toSoftDelete.includes(recentSources[i].id)) continue;
+      const wordsI = titleWordSet(recentSources[i].title);
+      for (let j = i + 1; j < recentSources.length; j++) {
+        if (toSoftDelete.includes(recentSources[j].id)) continue;
+        const wordsJ = titleWordSet(recentSources[j].title);
+        const sim = jaccard(wordsI, wordsJ);
+        if (sim >= 0.80) {
+          // Keep the one with higher quality score
+          const keep = (recentSources[i].qualityScore || 0) >= (recentSources[j].qualityScore || 0) ? i : j;
+          const remove = keep === i ? j : i;
+          toSoftDelete.push(recentSources[remove].id);
+          console.log(`[Dedup SEMANTIC] "${recentSources[remove].title.slice(0, 50)}" ~ "${recentSources[keep].title.slice(0, 50)}" (Jaccard: ${sim.toFixed(2)})`);
+        }
+      }
+    }
+
+    if (toSoftDelete.length > 0) {
+      await prisma.source.updateMany({
+        where: { id: { in: toSoftDelete } },
+        data: { deletedAt: new Date() },
+      });
+      semanticRemoved = toSoftDelete.length;
+      removed += semanticRemoved;
+      console.log(`[Dedup SEMANTIC] Soft-deleted ${semanticRemoved} title-similar duplicates`);
+    }
+  } catch (err) {
+    console.warn('[Dedup SEMANTIC] failed (non-blocking):', err);
+  }
 
   return { removed };
 }

@@ -18,6 +18,7 @@
 
 import { callLLM } from '../llm/unified-llm';
 import { parseJson } from './json-utils';
+import { stripHtmlForEvidence } from './evidence-ledger';
 
 // ============================================================================
 // TYPES
@@ -66,8 +67,8 @@ export interface FactCheckerOutput {
 function extractNumericalClaims(html: string): NumericalClaim[] {
   const claims: NumericalClaim[] = [];
 
-  // Remove HTML tags for text extraction
-  const text = html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ');
+  // Normalize <sup class="cite"> back to [SRC-N] before stripping HTML tags
+  const text = stripHtmlForEvidence(html);
 
   // Find sentences containing numbers + [SRC-N] citations
   // Pattern: sentence with number + nearby [SRC-N]

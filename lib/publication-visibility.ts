@@ -100,6 +100,43 @@ export function getPublicationQualityRule(type?: string | null) {
   return PUBLICATION_QUALITY_RULES[type || ""] || DEFAULT_PUBLICATION_QUALITY_RULE;
 }
 
+/**
+ * Adaptive minimum source count — adjusts based on domain and evidence availability.
+ * Emerging/niche domains get lower thresholds than mature, well-studied fields.
+ * This replaces the rigid fixed minSourceCount with a context-aware value.
+ */
+export function getAdaptiveMinSourceCount(
+  formatType: string,
+  domain?: string | null,
+  availableSourceCount?: number,
+): number {
+  const baseRule = getPublicationQualityRule(formatType);
+  const baseMin = baseRule.minSourceCount;
+
+  // Domains with typically abundant literature — keep full threshold
+  const abundantLiteratureDomains = ['economics', 'finance', 'technology', 'health', 'policy'];
+  // Emerging/niche domains — reduce threshold (fewer sources exist)
+  const nicheDomains = ['cognitive-science', 'bioethics', 'complexity-science', 'urban-studies', 'development-economics'];
+
+  if (domain && nicheDomains.includes(domain)) {
+    return Math.max(5, Math.round(baseMin * 0.5));
+  }
+
+  // If we know how many sources are available, don't demand more than what exists
+  // (but still require a minimum to prevent hallucination)
+  if (availableSourceCount !== undefined && availableSourceCount < baseMin) {
+    // Accept 70% of available if at least 5, else floor at 5
+    return Math.max(5, Math.round(availableSourceCount * 0.7));
+  }
+
+  // For non-abundant domains, reduce slightly
+  if (domain && !abundantLiteratureDomains.includes(domain)) {
+    return Math.max(8, Math.round(baseMin * 0.7));
+  }
+
+  return baseMin;
+}
+
 export function evaluatePublicationReadiness(publication: {
   type?: string | null;
   trustScore?: number | null;
@@ -107,9 +144,24 @@ export function evaluatePublicationReadiness(publication: {
   citationCoverage?: number | null;
   wordCount?: number | null;
   sourceIds?: string[] | null;
+  domain?: string | null;
 }) {
   const rule = getPublicationQualityRule(publication.type);
   const sourceCount = publication.sourceIds?.length || 0;
+
+  // Adaptive thresholds: relax word count and citation coverage when evidence is scarce
+  // This prevents niche/emerging topics from being blocked by metrics designed for mature fields
+  const adaptiveMinWordCount = sourceCount < 10
+    ? Math.round(rule.minWordCount * 0.5)
+    : sourceCount < 15
+      ? Math.round(rule.minWordCount * 0.75)
+      : rule.minWordCount;
+  const adaptiveMinCitationCoverage = sourceCount < 8
+    ? Math.max(0.20, rule.minCitationCoverage * 0.5)
+    : sourceCount < 15
+      ? Math.max(0.30, rule.minCitationCoverage * 0.75)
+      : rule.minCitationCoverage;
+
   const failures: string[] = [];
 
   if ((publication.trustScore ?? 0) < rule.minTrustScore) {
@@ -118,11 +170,11 @@ export function evaluatePublicationReadiness(publication: {
   if ((publication.qualityScore ?? 0) < rule.minQualityScore) {
     failures.push(`qualityScore ${(publication.qualityScore ?? 0)}/100 < ${rule.minQualityScore}`);
   }
-  if ((publication.citationCoverage ?? 0) < rule.minCitationCoverage) {
-    failures.push(`citationCoverage ${Math.round((publication.citationCoverage ?? 0) * 100)}% < ${Math.round(rule.minCitationCoverage * 100)}%`);
+  if ((publication.citationCoverage ?? 0) < adaptiveMinCitationCoverage) {
+    failures.push(`citationCoverage ${Math.round((publication.citationCoverage ?? 0) * 100)}% < ${Math.round(adaptiveMinCitationCoverage * 100)}%`);
   }
-  if ((publication.wordCount ?? 0) < rule.minWordCount) {
-    failures.push(`wordCount ${(publication.wordCount ?? 0)} < ${rule.minWordCount}`);
+  if ((publication.wordCount ?? 0) < adaptiveMinWordCount) {
+    failures.push(`wordCount ${(publication.wordCount ?? 0)} < ${adaptiveMinWordCount}`);
   }
 
   return {

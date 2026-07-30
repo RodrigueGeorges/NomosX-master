@@ -16,8 +16,22 @@
  */
 
 import axios from 'axios';
+import crypto from 'crypto';
 
 const USER_AGENT = 'NomosX Research Bot (+https://nomosx.com)';
+
+// ============================================================================
+// SEMANTIC CACHE (2026 best practice — SemanticALLI)
+// Primary data from FRED/ECB/energy-charts doesn't change within hours.
+// Cache QUANT results for 1 hour to avoid redundant API calls on similar topics.
+// ============================================================================
+const QUANT_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
+const quantCache = new Map<string, { result: QuantOutput; expiresAt: number }>();
+
+function quantCacheKey(query: string, sources: any[]): string {
+  const sourceHash = sources.map(s => s.id).sort().join('|').slice(0, 200);
+  return crypto.createHash('sha256').update(`${query}::${sourceHash}`).digest('hex').slice(0, 16);
+}
 
 // ============================================================================
 // TYPES
@@ -296,6 +310,14 @@ export async function quantAgent(
   const start = Date.now();
   console.log(`[QUANT] Analyzing primary data opportunities for: "${query.slice(0, 80)}"`);
 
+  // Semantic cache check (2026 best practice)
+  const cacheKey = quantCacheKey(query, sources);
+  const cached = quantCache.get(cacheKey);
+  if (cached && Date.now() < cached.expiresAt) {
+    console.log(`[QUANT] Cache HIT (key=${cacheKey}) — reusing ${cached.result.series.length} series from previous run`);
+    return { ...cached.result, durationMs: Date.now() - start };
+  }
+
   const fetchers = selectFetchers(query, sources);
   if (fetchers.length === 0) {
     console.log('[QUANT] No relevant primary-data fetchers for this query');
@@ -327,5 +349,10 @@ export async function quantAgent(
   const durationMs = Date.now() - start;
   console.log(`[QUANT] Complete: ${series.length} series, ${facts.length} facts from ${fetchedProviders.join(', ')} (${durationMs}ms)`);
 
-  return { series, facts, evidenceBlock, chartData: series, fetchedProviders, durationMs };
+  const result = { series, facts, evidenceBlock, chartData: series, fetchedProviders, durationMs };
+  // Store in cache
+  if (series.length > 0) {
+    quantCache.set(cacheKey, { result, expiresAt: Date.now() + QUANT_CACHE_TTL_MS });
+  }
+  return result;
 }

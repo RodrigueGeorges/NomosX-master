@@ -40,12 +40,64 @@ function renderParagraphs(text: string): string {
 const CSS = `<style>${POSITION_FIRST_BRIEF_CSS}</style>`;
 
 export function renderPositionFirstBriefHTML(input: PositionFirstBriefInput): string {
-  const { question, classification, casting, position, analysis, sources } = input;
+  const { question, classification, casting, position, analysis, sources, isStrategic } = input;
   const dimensions = dimensionsFromClassification(classification);
   const collision = collisionLabel(dimensions);
   const apaCitations = sources.map((s, i) => formatAPA(s, i + 1));
   const title = String(analysis.title ?? position.headline ?? question);
   const detectedReason = classification.detectedSubject ?? classification.reasoning ?? question;
+
+  // ── Methodology box ──
+  const providers = [...new Set(sources.map((s) => s.provider).filter(Boolean))];
+  const years = sources.map((s) => s.year).filter((y): y is number => typeof y === 'number' && y > 1900);
+  const yearRange = years.length > 0
+    ? years.length === 1 ? `${years[0]}` : `${Math.min(...years)}–${Math.max(...years)}`
+    : 'n.d.';
+  const methodologyHtml = `
+<section class="nx-block methodology-box" style="background:var(--bg-alt,#f8f9fa);border-radius:8px;padding:16px 20px;margin:24px 0;font-size:13px;color:var(--muted,#666);">
+  <p class="nx-eyebrow" style="margin-bottom:8px;">Methodology</p>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
+    <div><strong>Sources:</strong> ${sources.length} ranked from ${providers.length} providers</div>
+    <div><strong>Providers:</strong> ${providers.join(', ')}</div>
+    <div><strong>Evidence period:</strong> ${yearRange}</div>
+    <div><strong>Analysis depth:</strong> ${isStrategic ? 'Strategic (multi-pass)' : 'Brief (multi-pass)'}</div>
+    <div><strong>Confidence:</strong> ${position.confidence}/100 (${position.confidenceLabel})</div>
+    <div><strong>Cross-domain:</strong> ${classification.isCrossDomain ? 'Yes' : 'No'}</div>
+  </div>
+</section>`;
+
+  // ── Structured policy recommendations ──
+  const recommendations = (analysis as Record<string, unknown>).recommendations as Record<string, unknown> | undefined;
+  const immediateRecs = Array.isArray(recommendations?.immediate) ? (recommendations!.immediate as string[]) : [];
+  const shortTermRecs = Array.isArray(recommendations?.shortTerm) ? (recommendations!.shortTerm as string[]) : [];
+  const longTermRecs = Array.isArray(recommendations?.longTerm) ? (recommendations!.longTerm as string[]) : [];
+  const riskMitigation = Array.isArray(recommendations?.riskMitigation) ? (recommendations!.riskMitigation as string[]) : [];
+
+  const hasRecs = immediateRecs.length > 0 || shortTermRecs.length > 0 || longTermRecs.length > 0 || riskMitigation.length > 0;
+  const recommendationsHtml = hasRecs ? `
+<section class="nx-block recommendations">
+  <p class="nx-eyebrow">Policy recommendations</p>
+  ${immediateRecs.length > 0 ? `
+  <div style="margin:12px 0;">
+    <p style="font-weight:600;color:var(--text,#222);margin-bottom:4px;">Immediate (0–3 months)</p>
+    <ul>${immediateRecs.map((r) => `<li>${replaceCitations(esc(r))}</li>`).join('')}</ul>
+  </div>` : ''}
+  ${shortTermRecs.length > 0 ? `
+  <div style="margin:12px 0;">
+    <p style="font-weight:600;color:var(--text,#222);margin-bottom:4px;">Short-term (3–12 months)</p>
+    <ul>${shortTermRecs.map((r) => `<li>${replaceCitations(esc(r))}</li>`).join('')}</ul>
+  </div>` : ''}
+  ${longTermRecs.length > 0 ? `
+  <div style="margin:12px 0;">
+    <p style="font-weight:600;color:var(--text,#222);margin-bottom:4px;">Long-term (1–5 years)</p>
+    <ul>${longTermRecs.map((r) => `<li>${replaceCitations(esc(r))}</li>`).join('')}</ul>
+  </div>` : ''}
+  ${riskMitigation.length > 0 ? `
+  <div style="margin:12px 0;">
+    <p style="font-weight:600;color:#c0392b;margin-bottom:4px;">Risk mitigation</p>
+    <ul>${riskMitigation.map((r) => `<li>${replaceCitations(esc(r))}</li>`).join('')}</ul>
+  </div>` : ''}
+</section>` : '';
 
   const teamHtml = casting.team
     .map(
@@ -200,12 +252,16 @@ export function renderPositionFirstBriefHTML(input: PositionFirstBriefInput): st
       <div class="team-grid">${teamHtml}</div>
     </section>
 
+    ${methodologyHtml}
+
     <section class="nx-block">
       <p class="nx-eyebrow">Probable futures</p>
       ${scenariosHtml || '<p class="scenario-desc">Scenario distribution pending further evidence.</p>'}
     </section>
 
     ${proseBodyHtml}
+
+    ${recommendationsHtml}
 
     ${objectionsHtml}
     ${changeMindHtml}

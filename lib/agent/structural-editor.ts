@@ -130,7 +130,7 @@ Output ONLY the JSON object — no markdown, no prose.`;
       temperature: 0.15,
       jsonMode: true,
       maxTokens: 3000,
-      task: 'auto_revision',
+      task: 'structural_editor',
     });
 
     const result = parseJson<StructuralReviewResult>(response.content);

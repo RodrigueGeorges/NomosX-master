@@ -177,14 +177,17 @@ function validateSemanticConsistency(originalQuery: string, enhanced: any): { is
   const enhancedLower = (enhanced.enhanced || '').toLowerCase();
   const variations = (enhanced.variations || []).map((v: string) => v.toLowerCase());
   
-  // Topic domains for validation
-  const topicDomains = {
-    'ai employment': ['artificial intelligence', 'ai', 'machine learning', 'employment', 'job', 'work', 'labor', 'workforce', 'unemployment'],
+  // Topic domains for validation — use word-boundary matching to avoid false positives
+  // (e.g. 'ai' matching inside 'regional', 'rain', 'maintain')
+  const topicDomains: Record<string, string[]> = {
+    'ai employment': ['artificial intelligence', '\bai\b', 'machine learning', 'employment', '\bjob', 'work', 'labor', 'workforce', 'unemployment'],
     'climate economics': ['carbon', 'climate', 'tax', 'pricing', 'emission', 'environmental', 'greenhouse'],
-    'cybersecurity': ['security', 'cyber', 'vulnerability', 'cve', 'threat', 'attack', 'breach'],
+    'cybersecurity': ['security', 'cyber', 'vulnerability', '\bcve\b', 'threat', 'attack', 'breach'],
     'biotechnology': ['crispr', 'genetic', 'biotech', 'diagnostic', 'medical', 'health'],
     'quantum': ['quantum', 'computing', 'algorithm', 'physics', 'entanglement'],
-    'energy grid': ['energy', 'electricity', 'grid', 'power', 'transmission', 'renewable', 'datacenter', 'data center', 'hyperscaler', 'ai', 'artificial intelligence', 'load', 'capacity', 'infrastructure'],
+    'energy grid': ['energy', 'electricity', 'grid', 'power', 'transmission', 'renewable', 'datacenter', 'data center', 'hyperscaler', '\bai\b', 'artificial intelligence', 'load', 'capacity', 'infrastructure'],
+    'geopolitics': ['strait', 'hormuz', 'chokepoint', 'maritime', 'sanction', 'geopolitic', 'naval', 'blockade', 'territorial', 'sovereignty'],
+    'trade': ['tariff', 'trade', 'export', 'import', 'commerce', 'wto', 'dumping'],
   };
 
   // Geographic entities that MUST be preserved in enhanced queries
@@ -205,7 +208,7 @@ function validateSemanticConsistency(originalQuery: string, enhanced: any): { is
   // Detect original topic domain
   let originalDomain = '';
   for (const [domain, keywords] of Object.entries(topicDomains)) {
-    if (keywords.some(kw => originalLower.includes(kw))) {
+    if (keywords.some(kw => new RegExp(kw, 'i').test(originalLower))) {
       originalDomain = domain;
       break;
     }
@@ -216,8 +219,8 @@ function validateSemanticConsistency(originalQuery: string, enhanced: any): { is
   }
   
   // Check if enhanced query stays in the same domain
-  const domainKeywords = topicDomains[originalDomain as keyof typeof topicDomains];
-  const enhancedInDomain = domainKeywords.some(kw => enhancedLower.includes(kw));
+  const domainKeywords = topicDomains[originalDomain];
+  const enhancedInDomain = domainKeywords.some(kw => new RegExp(kw, 'i').test(enhancedLower));
   
   if (!enhancedInDomain) {
     return { 
@@ -228,7 +231,7 @@ function validateSemanticConsistency(originalQuery: string, enhanced: any): { is
   
   // Check variations for consistency
   const consistentVariations = variations.every((variation: string) => 
-    domainKeywords.some(kw => variation.includes(kw))
+    domainKeywords.some(kw => new RegExp(kw, 'i').test(variation))
   );
   
   if (!consistentVariations) {

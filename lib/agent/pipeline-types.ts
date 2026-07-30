@@ -32,6 +32,46 @@ export interface PipelineStats {
     durationMs?: number;
   } | any; // backward compat with cached array
 
+  // LOT 2.1: Deep Planner
+  deepPlanner?: {
+    nodes: number;
+    costUsd: number;
+  };
+
+  // LOT 2.6: Typed research gaps
+  researchGaps?: Array<{
+    type: 'NOT_REACHED' | 'RESTRICTED' | 'INEXISTANT';
+    description: string;
+  }>;
+
+  // LOT 5.1: Style gates
+  styleGates?: {
+    violations: number;
+    passed: boolean;
+    gateDetails?: Array<{ gate: string; match: string; suggestion: string }>;
+  };
+
+  // LOT 5.7: Numerical gate
+  numericalGate?: {
+    violations: number;
+    passed: boolean;
+    details?: Array<{ match: string; suggestion: string }>;
+  };
+
+  // LOT 7.1: Predictions registered for retrospective audit
+  predictions?: {
+    registered: number;
+  };
+
+  // LOT 4.2-4.8: Chain probability from meta-analysis
+  chainProbability?: {
+    priors: number;
+    bestJointProbability: number;
+    permutations: number;
+    scenarios: number;
+    inflectionWarning?: string;
+  };
+
   // Step 2: Index
   index?: {
     enriched: number;
@@ -136,6 +176,7 @@ export interface PipelineStats {
     keyFindingsCount?: number;
     scenariosCount?: number;
     costUsd?: number;
+    depth?: "brief" | "strategic";
   };
 
   // Topic consistency
@@ -143,6 +184,9 @@ export interface PipelineStats {
     passed: boolean;
     issues: string[];
   };
+
+  // Terminal distance check
+  terminalDistanceWarning?: string;
 
   // Step 6a: Structural Editor (storyline review)
   structuralEditor?: {
@@ -152,6 +196,7 @@ export interface PipelineStats {
     logicalGaps?: number;
     costUsd?: number;
     restructured?: boolean;
+    skipped?: boolean;
     error?: string;
   };
 
@@ -207,6 +252,7 @@ export interface PipelineStats {
 
   // Step 8: Editor
   htmlLength?: number;
+  rendererUsed?: "position_first" | "professional_strategic" | "professional_brief" | "legacy_strategic" | "legacy_brief";
 
   // Step 9: Citation Verifier
   citationVerifier?: {
@@ -292,6 +338,40 @@ export interface PipelineStats {
     coverageAfter: number;
   };
 
+  // Step 8c: Citation Repair (deterministic post-render)
+  citationRepair?: {
+    backfilled: number;
+    injected: number;
+    sanitized: number;
+  };
+
+  // Step 8d: Claim Grounding (deterministic lexical verification)
+  claimGrounding?: {
+    supported: number;
+    partial: number;
+    unsupported: number;
+    uncited: number;
+    contradicted: number;
+    groundedness: number;
+    flagged: number;
+  };
+
+  // Step 8e: Post-critical-loop repair (fixes rewrite-introduced issues)
+  postLoopRepair?: {
+    backfilled: number;
+    injected: number;
+    sanitized: number;
+  };
+  postLoopGrounding?: {
+    supported: number;
+    partial: number;
+    unsupported: number;
+    uncited: number;
+    contradicted: number;
+    groundedness: number;
+    flagged: number;
+  };
+
   // Step 13b: Triangular Judge (DA dispute arbitration)
   triangularJudge?: {
     verdict: string;
@@ -305,6 +385,16 @@ export interface PipelineStats {
     sourceCount: number;
     required: number;
     missing: string[];
+  };
+
+  // Enrichment Reasoner (adaptive evidence sufficiency)
+  enrichmentReasoner?: {
+    verdict: 'proceed' | 'enrich' | 'refuse';
+    sufficiencyScore: number;
+    gapsFound: number;
+    enrichmentQueries: string[];
+    newSourcesAdded: number;
+    costUsd: number;
   };
 
   // Stable evidence IDs (P3.8)

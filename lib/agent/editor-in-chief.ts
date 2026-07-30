@@ -148,6 +148,7 @@ async function llmTriage(
     source: t.source,
     type: t.sourceType,
     score: t.score,
+    signalStrength: t.signalStrength || 'emerging',
     vertical: t.vertical || 'unknown',
     age: getAgeLabel(t.publishedAt),
   }));
@@ -170,13 +171,18 @@ SELECTION CRITERIA (in order of importance):
 4. ANGLE — Can we add unique value with academic + news cross-referencing?
 5. DIVERSITY — Don't over-cover one domain. Mix geopolitics, tech, climate, etc.
 
+SIGNAL STRENGTH GUIDE:
+- "breaking" (score ≥ 70): Strong multi-channel signal — prioritize these.
+- "emerging" (score 45-69): Early signal worth investigating — select if the topic has strategic value, even if it's not yet mainstream news. Emerging topics often yield the most original analysis.
+- "routine" (score < 45): Weak signal — only select if no better options exist and the topic has clear strategic relevance.
+
 ACTIONS:
 - "publish_brief" — Standard 5-page analysis (cost: $2, time: 3-5min)
 - "publish_strategic" — Deep 15-page report (cost: $10, time: 8-12min). Only for major events with 3+ corroborating sources.
 - "monitor" — Not urgent enough now, but worth watching.
 - "skip" — Not relevant, duplicate, or low-value.
 
-Select at most ${maxPubs} topics for publication. Be SELECTIVE — quality over quantity.
+Select at most ${maxPubs} topics for publication. Be SELECTIVE but not OVERLY CONSERVATIVE — a think tank's value comes from covering emerging topics before they become mainstream.
 
 CRITICAL — RESEARCH QUESTION REFORMULATION:
 For each selected topic, reformulate the raw headline into an ANALYTICAL RESEARCH QUESTION, the way Brookings, RAND or Chatham House would frame it. The pipeline searches academic databases with this question — a news headline yields poor academic matches.

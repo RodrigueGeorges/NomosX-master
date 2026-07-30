@@ -34,6 +34,13 @@ export interface PredictionAuditResult {
   evidence: string;   // What new evidence supports the verdict
   accuracyScore: number; // 0-100 (100 = perfectly calibrated)
   costUsd: number;
+  // LOT 7.2: Detection anteriority — was the prediction made before the confirming evidence?
+  detectionAnteriority?: {
+    predictionDate: string;
+    earliestConfirmingSourceDate?: string;
+    leadTimeMonths?: number;
+    isAnterior: boolean;
+  };
 }
 
 export interface PredictionAuditOutput {
@@ -263,6 +270,18 @@ Accuracy scoring:
 
     const parsed = parseJson<any>(response.content);
     if (!parsed) throw new SyntaxError('Prediction auditor: failed to parse LLM JSON');
+
+    // LOT 7.2: Detection anteriority — was the prediction made before the confirming sources?
+    const predictionDate = pred.createdAt;
+    const earliestSourceDate = recentSources
+      .map(s => s.year ? new Date(`${s.year}-01-01`) : null)
+      .filter((d): d is Date => d !== null)
+      .sort((a, b) => a.getTime() - b.getTime())[0];
+    const leadTimeMonths = earliestSourceDate
+      ? (earliestSourceDate.getTime() - predictionDate.getTime()) / (1000 * 60 * 60 * 24 * 30)
+      : undefined;
+    const isAnterior = leadTimeMonths !== undefined && leadTimeMonths > 0;
+
     return {
       predictionId: pred.logId,
       researcherId: pred.researcherId,
@@ -274,6 +293,12 @@ Accuracy scoring:
       evidence: parsed.evidence || "",
       accuracyScore: parsed.accuracyScore || 50,
       costUsd: response.costUsd,
+      detectionAnteriority: {
+        predictionDate: predictionDate.toISOString(),
+        earliestConfirmingSourceDate: earliestSourceDate?.toISOString(),
+        leadTimeMonths: leadTimeMonths !== undefined ? Math.round(leadTimeMonths) : undefined,
+        isAnterior,
+      },
     };
   } catch {
     return {
