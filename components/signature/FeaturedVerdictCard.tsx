@@ -66,6 +66,7 @@ export function FeaturedVerdictCard({ data, className, animate = true }: Feature
       className={cn(
         "relative border border-white/[0.1] bg-white/[0.02]",
         "p-6 sm:p-8 transition-all duration-700",
+        "hover:border-white/[0.2]",
         mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2",
         className
       )}

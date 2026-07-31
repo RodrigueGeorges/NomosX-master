@@ -221,7 +221,7 @@ function StudioPageContent() {
           <PageHeader
             eyebrow="NomosX Studio"
             title="NomosX Studio"
-            description="Commission a custom inquiry. Pay per mandate — no subscription."
+            description="Commission a custom inquiry. Your question, our protocol — chaos structured into a position you can defend."
             align="center"
           />
 
@@ -275,9 +275,9 @@ function StudioPageContent() {
               <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-7">
                 <div>
                   <p className={cn(nx.eyebrow, "mb-3")}>Research Cockpit</p>
-                  <h2 className="font-display text-2xl sm:text-3xl font-semibold text-white mb-2">Custom intelligence, same publication protocol.</h2>
+                  <h2 className="font-display text-2xl sm:text-3xl font-semibold text-white mb-2">From chaos to clarity — your question, our protocol.</h2>
                   <p className={cn(nx.body, "max-w-2xl")}>
-                    NomosX Studio uses the same verification logic as public publications: source discovery, evidence ranking, synthesis, adversarial review, and citation integrity checks.
+                    NomosX Studio uses the same verification logic as public publications: source discovery, evidence mapping, adversarial review, and citation integrity. Your question goes in — a defensible position comes out.
                   </p>
                 </div>
                 <div className="nx-public-surface px-5 py-4">
@@ -501,7 +501,7 @@ function StudioPageContent() {
               </div>
               <h3 className="text-2xl font-semibold text-white mb-2">Ready to commission</h3>
               <p className="text-white/40 max-w-md mx-auto">
-                Define your research question, choose a format, and launch a custom inquiry.
+                Define your research question, choose a format, and launch a custom inquiry. The chaos of evidence becomes a position you can defend.
               </p>
             </div>
           )}

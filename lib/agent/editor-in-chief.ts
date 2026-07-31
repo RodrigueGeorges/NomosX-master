@@ -81,12 +81,45 @@ export async function editorialTriage(
   // Step 2: LLM triage — single call to select + prioritize
   const triageResult = await llmTriage(topics, recentTitles, maxPubs);
 
+  // Step 2b: DETERMINISTIC DOMAIN DIVERSITY — ensure multi-domain coverage
+  // The LLM may over-cluster on one domain. This filter guarantees variety.
+  const seenVerticals = new Set<string>();
+  const diverseSelected: TriageSelection[] = [];
+  const droppedForDiversity: TriageSelection[] = [];
+
+  for (const selected of triageResult.selected) {
+    const topic = topics.find(t => t.id === selected.topicId);
+    if (!topic) continue;
+    const vertical = topic.vertical || 'unknown';
+
+    if (maxPubs > 1 && seenVerticals.has(vertical)) {
+      // Already have a topic from this vertical — skip for diversity
+      droppedForDiversity.push(selected);
+      continue;
+    }
+    seenVerticals.add(vertical);
+    diverseSelected.push(selected);
+  }
+
+  // If diversity filter left slots empty, backfill from dropped items (best score first)
+  if (diverseSelected.length < maxPubs && droppedForDiversity.length > 0) {
+    droppedForDiversity.sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0));
+    for (const dropped of droppedForDiversity) {
+      if (diverseSelected.length >= maxPubs) break;
+      diverseSelected.push(dropped);
+    }
+  }
+
+  if (droppedForDiversity.length > 0) {
+    console.log(`[EDITOR-IN-CHIEF] Domain diversity filter: ${droppedForDiversity.length} topics dropped (same vertical), ${diverseSelected.length} kept across ${seenVerticals.size} verticals`);
+  }
+
   // Step 3: For selected topics, run full classification to get researchers + providers
   const decisions: EditorialDecision[] = [];
   let totalCost = triageResult.costUsd;
   let remainingBudget = budgetUsd;
 
-  for (const selected of triageResult.selected) {
+  for (const selected of diverseSelected) {
     const topic = topics.find(t => t.id === selected.topicId);
     if (!topic) continue;
 
@@ -200,8 +233,9 @@ Return JSON: { "selections": [{ "topicId": "...", "action": "publish_brief|publi
         }
       ],
       temperature: 0.15,
-      maxTokens: 1500,
+      maxTokens: 600,
       jsonMode: true,
+      enableCache: true,
       task: 'editor_in_chief',
     });
 

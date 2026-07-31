@@ -379,6 +379,12 @@ export interface PipelineStats {
     confidence: number;
   };
 
+  // Hero image generation
+  heroImage?: {
+    generated: boolean;
+    costUsd: number;
+  };
+
   // Structured refusal (P3.9)
   structuredRefusal?: {
     reason: string;

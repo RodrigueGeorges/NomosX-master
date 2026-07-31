@@ -160,8 +160,9 @@ Assess the evidence sufficiency for this ${formatLabel}.`,
         },
       ],
       temperature: 0.15,
-      maxTokens: 800,
+      maxTokens: 1500,
       jsonMode: true,
+      enableCache: true,
       task: 'enrichment_reasoner',
     });
 

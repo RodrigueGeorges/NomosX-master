@@ -54,6 +54,10 @@ const envSchema = z.object({
   // Anthropic (for Claude fallback)
   ANTHROPIC_API_KEY: z.string().optional(),
   
+  // Kimi K3 (Moonshot AI) — OpenAI-compatible, 1M context, 128K output, $3/$15 per M
+  MOONSHOT_API_KEY: z.string().optional(),
+  MOONSHOT_BASE_URL: z.string().url().optional().default("https://api.moonshot.ai/v1"),
+  
   // Qwen (Alibaba Cloud / DashScope / Together.ai — OpenAI-compatible)
   
   // Admin

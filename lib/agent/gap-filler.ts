@@ -105,7 +105,7 @@ Return JSON:
       },
     ],
     temperature: 0.3,
-    maxTokens: 600,
+    maxTokens: 1000,
     jsonMode: true,
     task: 'topic_classification',
   });

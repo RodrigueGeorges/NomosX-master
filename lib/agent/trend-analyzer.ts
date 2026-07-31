@@ -300,7 +300,7 @@ Only report REAL shifts with confidence ≥ 60.`
       }],
       temperature: 0.2,
       jsonMode: true,
-      maxTokens: 500,
+      maxTokens: 1500,
       enableCache: true,
       task: 'meta_analysis',
     });

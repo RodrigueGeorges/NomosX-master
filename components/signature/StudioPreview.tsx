@@ -6,10 +6,10 @@ import { ArrowRight, Check } from "lucide-react";
 const FOCUS_TAGS = ["Technology", "Economics", "Policy", "Climate", "Security", "Health"];
 
 const DELIVERABLES = [
-  "A clear position you can brief to a room",
+  "Chaos structured into a defensible causal chain",
   "Multiple futures, each with a probability",
   "Every assumption challenged, every doubt logged",
-  "Sources visible. Nothing taken on faith.",
+  "Sources visible. The map, not just the terrain.",
 ];
 
 interface StudioPreviewProps {

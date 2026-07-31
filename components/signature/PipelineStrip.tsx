@@ -8,25 +8,25 @@ const STEPS = [
     step: "01",
     label: "Map",
     icon: Map,
-    desc: "Every angle. Every source.",
+    desc: "Cartographier, pas accumuler.",
   },
   {
     step: "02",
     label: "Confront",
     icon: GitCompare,
-    desc: "Your position, stress-tested.",
+    desc: "Forcer la collision des domaines.",
   },
   {
     step: "03",
     label: "Quantify",
     icon: BarChart3,
-    desc: "Multiple futures. Real odds.",
+    desc: "Le chaos devient structure.",
   },
   {
     step: "04",
     label: "Decide",
     icon: Scale,
-    desc: "A position worth defending.",
+    desc: "Une position défendable.",
   },
 ] as const;
 

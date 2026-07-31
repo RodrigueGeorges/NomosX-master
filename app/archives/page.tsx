@@ -164,7 +164,7 @@ export default function ArchivesPage() {
           <PageHeader
             eyebrow="Published positions"
             title="Inquiry archives"
-            description="Every position we've published. Filter by depth, domain, and confidence."
+            description="Every position we've published — chaos structured into clarity. Filter by depth, domain, and confidence."
           />
 
           <div className="flex flex-col lg:flex-row gap-4 mb-6">

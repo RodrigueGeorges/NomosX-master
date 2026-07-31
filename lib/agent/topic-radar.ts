@@ -124,6 +124,11 @@ const PREMIUM_RSS_FEEDS: { name: string; url: string; tier: 'A' | 'B' | 'C'; ver
   { name: "BIS Research",           url: "https://www.bis.org/rss/index.htm",                                 tier: "C", vertical: "finance-macro" },
   { name: "ILO News",               url: "https://www.ilo.org/rss/ilonews.xml",                              tier: "C", vertical: "labor" },
   { name: "WTO News",               url: "https://www.wto.org/rss/rss_news_e.xml",                           tier: "C", vertical: "trade" },
+  // === TIER B: Health, Climate, Science ===
+  { name: "Lancet",                url: "https://www.thelancet.com/rssfeed/lancet_current.xml",              tier: "B", vertical: "health-biotech" },
+  { name: "Nature Climate",        url: "https://www.nature.com/nclimate.rss",                               tier: "B", vertical: "climate" },
+  { name: "Science Magazine",      url: "https://www.science.org/action/showFeed?type=etoc&feed=rss&jc=science", tier: "B", vertical: "science-frontier" },
+  { name: "Reuters Health",        url: "https://www.reuters.com/arc/outboundfeeds/rss/category/health/?outputType=xml", tier: "C", vertical: "health-biotech" },
 ];
 
 // ============================================================================
@@ -234,8 +239,8 @@ export async function runTopicRadar(options?: {
 async function sweepGDELT(): Promise<RadarTopic[]> {
   const promises = GDELT_SWEEP_QUERIES.map(async ({ query, vertical, urgencyBonus }) => {
     try {
-      const params = new URLSearchParams({ query, mode: "ArtList", maxrecords: "5", timespan: "12h", format: "json", sort: "DateDesc" });
-      const res = await fetch(`https://api.gdeltproject.org/api/v2/doc/doc?${params}`, { signal: AbortSignal.timeout(9000) });
+      const params = new URLSearchParams({ query, mode: "ArtList", maxrecords: "8", timespan: "24h", format: "json", sort: "DateDesc" });
+      const res = await fetch(`https://api.gdeltproject.org/api/v2/doc/doc?${params}`, { signal: AbortSignal.timeout(12000) });
       if (!res.ok) return [];
       let data: any;
       try { data = JSON.parse(await res.text()); } catch { return []; }
@@ -305,34 +310,59 @@ async function sweepAcademic(): Promise<RadarTopic[]> {
 }
 
 async function sweepOpenAlex(): Promise<RadarTopic[]> {
-  try {
-    const fromDate = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
-    const params = new URLSearchParams({
-      filter: `from_publication_date:${fromDate},cited_by_count:>3,has_abstract:true`,
-      sort: 'cited_by_count:desc', per_page: '12',
-      select: 'id,title,publication_date,cited_by_count,primary_location,abstract_inverted_index',
-    });
-    const res = await fetch(`https://api.openalex.org/works?${params}`, {
-      signal: AbortSignal.timeout(9000),
-      headers: { 'User-Agent': 'NomosX/3.0 (mailto:contact@nomosx.com)' },
-    });
-    if (!res.ok) return [];
-    const { results: works = [] } = await res.json();
-    return works.slice(0, 10).map((w: any) => ({
-      id: `openalex:${w.id?.split('/').pop()}`,
-      title: w.title || 'Untitled',
-      summary: reconstructAbstract(w.abstract_inverted_index).slice(0, 350),
-      url: w.primary_location?.landing_page_url || w.id,
-      source: w.primary_location?.source?.display_name || 'OpenAlex',
-      sourceType: 'academic' as const,
-      publishedAt: w.publication_date ? new Date(w.publication_date) : null,
-      score: clampScore(52 + Math.min(22, (w.cited_by_count || 0) * 3) + urgencyKeywordBonus(w.title)),
-    }));
-  } catch { return []; }
+  const fromDate = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
+  const domainQueries = [
+    { concept: 'C162324750', label: 'economics', vertical: 'economics' },
+    { concept: 'C71924100', label: 'medicine', vertical: 'health-biotech' },
+    { concept: 'C121332964', label: 'physics', vertical: 'science-frontier' },
+    { concept: 'C41008148', label: 'computer science', vertical: 'ai-technology' },
+    { concept: 'C111472273', label: 'environmental science', vertical: 'climate' },
+    { concept: 'C17744445', label: 'political science', vertical: 'geopolitics' },
+  ];
+
+  const promises = domainQueries.map(async ({ concept, label, vertical }) => {
+    try {
+      const params = new URLSearchParams({
+        filter: `from_publication_date:${fromDate},concepts.id:${concept},cited_by_count:>2,has_abstract:true`,
+        sort: 'cited_by_count:desc', per_page: '4',
+        select: 'id,title,publication_date,cited_by_count,primary_location,abstract_inverted_index',
+      });
+      const res = await fetch(`https://api.openalex.org/works?${params}`, {
+        signal: AbortSignal.timeout(9000),
+        headers: { 'User-Agent': 'NomosX/3.0 (mailto:contact@nomosx.com)' },
+      });
+      if (!res.ok) return [];
+      const { results: works = [] } = await res.json();
+      return works.slice(0, 3).map((w: any) => ({
+        id: `openalex:${w.id?.split('/').pop()}`,
+        title: w.title || 'Untitled',
+        summary: reconstructAbstract(w.abstract_inverted_index).slice(0, 350),
+        url: w.primary_location?.landing_page_url || w.id,
+        source: w.primary_location?.source?.display_name || 'OpenAlex',
+        sourceType: 'academic' as const,
+        publishedAt: w.publication_date ? new Date(w.publication_date) : null,
+        score: clampScore(52 + Math.min(22, (w.cited_by_count || 0) * 3) + urgencyKeywordBonus(w.title)),
+        vertical,
+      }));
+    } catch { return []; }
+  });
+  const out: RadarTopic[] = [];
+  for (const r of await Promise.allSettled(promises)) if (r.status === 'fulfilled') out.push(...r.value);
+  return out;
 }
 
 async function sweepArXiv(): Promise<RadarTopic[]> {
-  const cats = ['cs.AI', 'econ.GN', 'q-fin.GN', 'cs.CY'];
+  const cats = [
+    'cs.AI', 'econ.GN', 'q-fin.GN', 'cs.CY',
+    'physics.soc-ph', 'q-bio.QM', 'stat.AP',
+    'cs.CR', 'eess.SP', 'math.OC',
+  ];
+  const verticalMap: Record<string, string> = {
+    'cs.AI': 'ai-technology', 'econ.GN': 'economics', 'q-fin.GN': 'finance-macro',
+    'cs.CY': 'digital-governance', 'physics.soc-ph': 'social-stability',
+    'q-bio.QM': 'biotechnology', 'stat.AP': 'science-frontier',
+    'cs.CR': 'cybersecurity', 'eess.SP': 'science-frontier', 'math.OC': 'science-frontier',
+  };
   const promises = cats.map(async (cat) => {
     try {
       const res = await fetch(`https://export.arxiv.org/rss/${cat}`, {
@@ -348,6 +378,7 @@ async function sweepArXiv(): Promise<RadarTopic[]> {
         sourceType: 'academic' as const,
         publishedAt: item.pubDate ? new Date(item.pubDate) : null,
         score: clampScore(55 + urgencyKeywordBonus(item.title)),
+        vertical: verticalMap[cat],
       }));
     } catch { return []; }
   });

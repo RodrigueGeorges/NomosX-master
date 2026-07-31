@@ -38,20 +38,20 @@ import { AnimatePresence, motion } from "framer-motion";
 
 
 const READER_FEATURES = [
-  "All published inquiries & briefs",
+  "Every published position — open, no paywall",
   "Weekly intelligence dispatch",
   "Full source traceability on every claim",
-  "Positions with confidence bounds",
-  "Archives & domain filters",
+  "Positions with confidence bounds, not opinions",
+  "Archives, domain filters, and depth controls",
 ];
 
 const STUDIO_FEATURES = [
   "Commission a custom inquiry on any question",
-  "Scenario distributions & foresight",
-  "Choose depth: standard → strategic",
-  "Adversarial debate + citation export",
-  "Priority processing queue",
-  "White-label & API access (beta)",
+  "Chaos structured into a defensible causal chain",
+  "Scenario distributions — multiple futures, each with a probability",
+  "Adversarial debate before any position is published",
+  "Choose depth: standard → strategic report",
+  "Priority processing queue + white-label (beta)",
 ];
 
 
@@ -74,7 +74,7 @@ const FAQ = [
 
     q: "What is the Reader plan?",
 
-    a: "Reader is free, forever. Everything NomosX publishes — inquiries, briefs, signals, and the weekly dispatch — is open. No credit card.",
+    a: "Reader is free, forever. Every position NomosX publishes — inquiries, briefs, signals, and the weekly dispatch — is open. No credit card, no paywall.",
 
   },
 
@@ -82,7 +82,7 @@ const FAQ = [
 
     q: "What is NomosX Studio?",
 
-    a: "Studio lets you commission a custom inquiry on your research question. Same verification protocol, same traceability — with a verdict you can defend.",
+    a: "Studio lets you commission a custom inquiry on your own question. Same verification protocol, same traceability — the chaos of evidence structured into a position you can defend.",
 
   },
 
@@ -90,7 +90,7 @@ const FAQ = [
 
     q: "How is Studio priced?",
 
-    a: "Pay per commission. Price depends on depth and format; shown before you confirm. No subscription.",
+    a: "Pay per commission. Price depends on depth and format — shown before you confirm. No subscription, no lock-in.",
 
   },
 
@@ -165,9 +165,9 @@ export default function PricingPage() {
               </h1>
 
               <p className="text-base text-white/50 max-w-2xl mx-auto leading-relaxed">
-                NomosX publishes inquiries 24/7 — free to read.
-                Studio is the add-on for custom commissions, foresight,
-                and evidence-bound deliverables on demand.
+                The world doesn't suffer from a lack of information — it suffers from a lack of structure.
+                NomosX publishes positions 24/7, free to read. Studio is the add-on for custom commissions,
+                foresight, and evidence-bound deliverables on demand.
               </p>
 
             </header>
@@ -200,7 +200,7 @@ export default function PricingPage() {
 
                 <p className="text-sm text-white/45 mb-8">
 
-                  Open access to every published inquiry. Evidence-first, no paywall.
+                  Open access to every published position. Evidence-first, no paywall.
 
                 </p>
 
@@ -272,7 +272,7 @@ export default function PricingPage() {
 
                 <p className="text-sm text-white/45 mb-8">
 
-                  Custom inquiries with simulation, debate, and verified citations.
+                  Custom inquiries with scenario distributions, adversarial debate, and verified citations.
 
                 </p>
 
@@ -337,8 +337,8 @@ export default function PricingPage() {
                 </div>
 
                 <p className="text-sm text-white/45 max-w-xl">
-                  Define a question, select domains, and receive a verdict-backed inquiry with
-                  prospective distribution metrics.
+                  Define a question, select domains, and receive a position backed by a defensible causal chain —
+                  with prospective distributions, adversarial review, and full source traceability.
                 </p>
 
               </div>
@@ -527,7 +527,7 @@ export default function PricingPage() {
             <div className="text-center py-12">
 
               <h2 className="font-display text-2xl sm:text-3xl font-semibold mb-4">
-                Positions worth defending.{" "}
+                From Chaos to Clarity.{" "}
                 <span className="text-white/70">Open by default.</span>
               </h2>
 

@@ -18,6 +18,7 @@
 
 import { callLLM } from '../llm/unified-llm';
 import type { LLMFamily } from '../llm/unified-llm';
+import { detectNovlangue } from './novlangue-detector';
 import { parseJson } from './json-utils';
 import Sentry from '@sentry/nextjs';
 import { loadCalibratedThresholds } from './orchestrator';
@@ -305,6 +306,14 @@ async function rewriteDraft(
     ? `CALIBRATION ISSUES:\n${calibration.claimAssessments.filter((ca: any) => Math.abs(ca.gap) > 15).map((ca: any, i: number) => `${i + 1}. "${ca.claim}"\n   Stated: ${ca.statedConfidence}% → Should be: ${ca.calibratedConfidence}% (gap: ${ca.gap > 0 ? '+' : ''}${ca.gap})\n   FIX: ${ca.fixSuggestion || "Adjust hedging language"}`).join("\n\n")}\n\nUNDER-HEDGED: ${calibration.hedgingQuality?.underHedged?.join("; ") || "None"}\nOVER-HEDGED: ${calibration.hedgingQuality?.overHedged?.join("; ") || "None"}`
     : "Calibration is adequate.";
 
+  // Pillar 6: Novlangue detection — feed euphemism matches to the rewriter
+  // so it can replace them with their true names. This is not just a flag;
+  // the agent receives the detected term + its true meaning and reinterprets.
+  const novlangue = detectNovlangue(draftHtml);
+  const novlangueFeedback = novlangue.clean
+    ? "No novlangue detected — language is precise."
+    : `NOVLANGUE DETECTED — REPLACE EUPHEMISMS WITH TRUE NAMES:\n${novlangue.matches.map((m, i) => `${i + 1}. "${m.term}" → should say: ${m.trueName}\n   Context: "...${m.context}..."`).join("\n")}\n\nThese euphemisms mask violence, obscure accountability, or empty words of meaning. Rewrite each occurrence using the precise, true term. Do not soften — name the thing by its true name.`;
+
   const response = await callLLM({
     messages: [{
       role: "system",
@@ -322,6 +331,8 @@ ${adversarialFeedback}
 
 ${calibrationFeedback}
 
+${novlangueFeedback}
+
 ═══ REWRITE INSTRUCTIONS ═══
 1. Address EVERY concern raised by reviewers
 2. Add hedging language where calibration is off (use "suggests", "indicates", "evidence points to")
@@ -331,6 +342,7 @@ ${calibrationFeedback}
 6. Maintain the same HTML structure and sections
 7. Do NOT add new claims without source support
 8. If a blind spot was identified, acknowledge it as a limitation
+9. Replace EVERY novlangue euphemism with its true name — "collateral damage" becomes "civilian deaths", "optimization" becomes "layoffs", etc. Name the thing by its true name. This is non-negotiable.
 
 Return the FULL rewritten HTML. No JSON wrapping, no markdown fences — just raw HTML.`
     }],

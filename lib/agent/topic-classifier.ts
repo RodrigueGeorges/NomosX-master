@@ -402,7 +402,7 @@ IMPORTANT: dimensions are COLLISION AXES, not silos. Example: "EU AI Act" → di
       { role: "user", content: userContent }
     ],
     temperature: 0.1,
-    maxTokens: 600,
+    maxTokens: 1000,
     jsonMode: true,
     enableCache: true,
     task: 'topic_classification',

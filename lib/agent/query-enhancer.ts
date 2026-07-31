@@ -129,7 +129,7 @@ Now process the user query.`;
       messages: [{ role: "user", content: prompt }],
       temperature: 0.1,
       jsonMode: true,
-      maxTokens: 500,
+      maxTokens: 1000,
       enableCache: true,
       task: 'query_enhancement',
     });

@@ -9,6 +9,7 @@ import {  scoreSource, scoreNovelty  } from '../score';
 import {  clamp  } from '../text';
 import crypto from "crypto";
 import {  AgentRole, assertPermission  } from '../governance';
+import { BRAND_BRIEF_FOOTER, BRAND_MANIFESTO } from '@/lib/brand/public-copy';
 import { enhanceQuery, type EnhancedQuery } from './query-enhancer';
 import { filterByRelevance, logRelevanceScores } from './relevance-scorer';
 import { enhancedRank, type EnhancedRankedSource } from './enhanced-ranker';
@@ -2587,6 +2588,12 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
       // Use rewritten HTML if critics improved it
       if (criticalResult.finalHtml && criticalResult.improvementDelta > 0) {
         html = criticalResult.finalHtml;
+        // Re-inject position-first footer if the rewrite dropped it
+        if (editorialV2 && !html.includes('From Chaos to Clarity')) {
+          const footerHtml = `<footer class="brief-footer">${BRAND_BRIEF_FOOTER}<div style="margin-top:0.75rem;font-size:0.5rem;letter-spacing:0.08em;color:rgba(240,240,250,0.15);text-transform:none;line-height:1.6;">${BRAND_MANIFESTO.replace(/\n/g, '<br/>')}</div></footer>`;
+          html = html.replace(/<\/article>/, `${footerHtml}</article>`);
+          console.log(`${label} CRITICAL LOOP V2: re-injected position-first footer (manifesto)`);
+        }
         console.log(`${label} CRITICAL LOOP V2: applied rewrite (+${criticalResult.improvementDelta} improvement)`);
         // POST-CRITICAL-LOOP REPAIR: the rewrite may have introduced unsourced numbers
         // or lost citations — run citation repair + claim grounding again
@@ -3135,6 +3142,37 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     }
   } catch (err) {
     console.warn(`${label} STYLE GATES: failed (non-blocking):`, err);
+  }
+
+  // HERO IMAGE: Generate a conceptual abstract image for the publication
+  try {
+    const { generateHeroImage } = await import('./hero-image');
+    const collisionLbl = topicClassification?.dimensions?.length
+      ? topicClassification.dimensions.map((d: any) => d.label).join(' × ')
+      : topicClassification?.primaryDomain || detectedDomain || '';
+    const heroResult = await generateHeroImage(
+      String(analysis.title || query),
+      collisionLbl,
+      topicClassification?.primaryDomain || detectedDomain || '',
+    );
+    if (heroResult) {
+      const heroHtml = `<figure class="hero-image" style="margin:0 0 32px 0;width:100%;overflow:hidden;border:1px solid rgba(240,240,250,0.08);">
+        <img src="${heroResult.url}" alt="${String(analysis.title || query).replace(/"/g, '&quot;')}" style="width:100%;height:auto;display:block;object-fit:cover;filter:brightness(0.95) contrast(1.05);" />
+      </figure>`;
+      if (html.includes('<article')) {
+        html = html.replace(/(<article[^>]*>)/, `$1\n${heroHtml}`);
+      } else if (html.includes('<div class="nomosx-brief"')) {
+        html = html.replace(/(<div class="nomosx-brief[^"]*">)/, `$1\n${heroHtml}`);
+      } else {
+        html = heroHtml + html;
+      }
+      stats.heroImage = { generated: true, costUsd: heroResult.costUsd };
+      console.log(`${label} HERO IMAGE: generated and injected into HTML`);
+    } else {
+      stats.heroImage = { generated: false, costUsd: 0 };
+    }
+  } catch (heroErr) {
+    console.warn(`${label} HERO IMAGE: failed (non-blocking):`, heroErr);
   }
 
   // â”€â”€ STEP 14: PUBLISHER â”€â”€

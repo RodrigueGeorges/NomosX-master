@@ -32,6 +32,8 @@ import { FALLBACK_FEATURED_VERDICT } from "@/lib/brand/featured-verdict";
 import {
   BRAND_HERO_SUBTITLE,
   BRAND_HERO_TITLE,
+  BRAND_MANIFESTO,
+  NOMOS_PHILOSOPHY_PILLARS,
 } from "@/lib/brand/public-copy";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -454,7 +456,87 @@ function HomePageContent() {
 
           </section>
 
+          {/* Manifesto — the Nomos philosophy */}
 
+          <section className="px-6 sm:px-8 py-24 sm:py-32 border-b border-white/[0.06]">
+
+            <div className="max-w-3xl mx-auto text-center">
+
+              <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-white/30 mb-8">The principle</p>
+
+              <div className="space-y-6">
+
+                <p className="text-xl sm:text-2xl text-white/80 leading-[1.4] font-light">
+
+                  The world doesn't suffer from a lack of information.
+
+                </p>
+
+                <p className="text-xl sm:text-2xl text-white/80 leading-[1.4] font-light">
+
+                  It suffers from a lack of structure.
+
+                </p>
+
+                <div className="h-px w-12 bg-white/15 mx-auto my-8" />
+
+                <p className="text-base sm:text-lg text-white/50 leading-[1.6]">
+
+                  Knowledge without order creates noise.
+
+                </p>
+
+                <p className="text-base sm:text-lg text-white/50 leading-[1.6]">
+
+                  Order creates understanding.
+
+                </p>
+
+                <p className="text-base sm:text-lg text-white/50 leading-[1.6]">
+
+                  Understanding creates better decisions.
+
+                </p>
+
+                <p className="text-sm font-mono uppercase tracking-[0.2em] text-white/35 pt-6">
+
+                  That is NomosX.
+
+                </p>
+
+              </div>
+
+            </div>
+
+          </section>
+
+          {/* Six pillars */}
+
+          <section className="px-6 sm:px-8 py-20 sm:py-24 border-b border-white/[0.06]">
+
+            <div className="max-w-5xl mx-auto">
+
+              <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-white/30 mb-12 text-center">Six editorial pillars</p>
+
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+
+                {NOMOS_PHILOSOPHY_PILLARS.map((pillar, i) => (
+
+                  <div key={pillar} className="border border-white/[0.06] p-5 hover:border-white/[0.14] transition-colors">
+
+                    <p className="font-mono text-[9px] text-white/25 mb-3">0{i + 1}</p>
+
+                    <p className="text-sm text-white/60 leading-[1.5]">{pillar}</p>
+
+                  </div>
+
+                ))}
+
+              </div>
+
+            </div>
+
+          </section>
 
           {/* Live positions ticker */}
 
@@ -500,8 +582,6 @@ function HomePageContent() {
 
           </div>
 
-
-
           {/* Mission statement */}
 
           <section className="nx-public-section px-6 sm:px-8">
@@ -535,8 +615,6 @@ function HomePageContent() {
             </div>
 
           </section>
-
-
 
           {/* Live verdict proof */}
 
@@ -636,7 +714,7 @@ function HomePageContent() {
 
               <h2 className="font-display text-xl sm:text-2xl font-semibold text-white mb-3 tracking-tight">Intelligence dispatch</h2>
 
-              <p className="text-xs text-white/35 mb-8 font-mono uppercase tracking-[0.14em]">One email. Only what matters.</p>
+              <p className="text-xs text-white/35 mb-8 font-mono uppercase tracking-[0.14em]">Structure, not noise. Delivered.</p>
 
               {newsletterStatus === "success" ? (
 

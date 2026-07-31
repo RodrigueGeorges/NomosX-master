@@ -2,36 +2,51 @@
 
 export const BRAND_NAME = "NomosX";
 
-export const BRAND_TITLE = "NomosX — Strategic Intelligence, Always On";
+export const BRAND_TITLE = "NomosX — From Chaos to Clarity";
 
-export const BRAND_TAGLINE = "Verified positions. No editorial agenda.";
+export const BRAND_TAGLINE = "From Chaos to Clarity.";
 
-export const BRAND_SHORT = "Strategic foresight, on demand";
+export const BRAND_SHORT = "From Chaos to Clarity.";
 
-export const BRAND_HERO_SUBTITLE_SHORT = "Strategic foresight, on demand.";
+export const BRAND_HERO_SUBTITLE_SHORT = "From Chaos to Clarity.";
 
 export const BRAND_DESCRIPTION =
-  "NomosX produces strategic intelligence that institutions trust: verified sources, challenged assumptions, and a clear position — published without agenda.";
+  "NomosX is an autonomous think tank that transforms the chaos of information into structured, defensible positions — not opinions.";
 
 export const BRAND_OG_DESCRIPTION = `${BRAND_TAGLINE} Cross-domain foresight with defensible positions.`;
 
 export const BRAND_MANIFEST_DESCRIPTION = `${BRAND_TAGLINE} Cross-domain foresight with verified positions.`;
 
-export const BRAND_HERO_TITLE = "Making the future legible.";
+export const BRAND_HERO_TITLE = "From Chaos to Clarity.";
 
-export const BRAND_HERO_SUBTITLE = "NomosX is a think tank publishing verified positions on the questions that will define the next decade.";
+export const BRAND_HERO_SUBTITLE = "The world doesn't suffer from a lack of information. It suffers from a lack of structure.";
 
 export const BRAND_HERO_DETAIL =
   "250M+ sources · multi-scenario foresight · verified positions";
 
+export const BRAND_MANIFESTO =
+  "The world doesn't suffer from a lack of information. It suffers from a lack of structure.\n\nKnowledge without order creates noise. Order creates understanding. Understanding creates better decisions.\n\nThat is NomosX.";
+
 export const BRAND_MISSION =
-  "The challenge: strategic decisions are still made on single forecasts, opaque sources, and borrowed convictions. Our answer: an institute that maps the evidence, confronts every assumption, and publishes positions anyone can verify — as a public good.";
+  "Strategic decisions are still made on single forecasts, opaque sources, and borrowed convictions. We built an institute that does better: map the evidence across every relevant domain, force the strongest counter-argument before any position stands, and publish the result — traceable, defensible, agenda-free.";
+
+export const NOMOS_PHILOSOPHY_PILLARS = [
+  "Transform chaos into order",
+  "Meaning before answers",
+  "Map knowledge, do not accumulate it",
+  "Connect ideas across domains",
+  "Structure produces enlightened decisions",
+  "Combat novlangue, guard the truth",
+] as const;
+
+export const NOMOS_PHILOSOPHY_STATEMENT =
+  "The Nomos is not merely the law. It is the order that gives meaning to the world — tracing boundaries, organizing chaos, and allowing humans to inhabit a territory, physical, intellectual, or digital.";
 
 export const BRAND_SOURCES_LABEL = "250M+";
 
 export const BRAND_SOURCES_LINE = `${BRAND_SOURCES_LABEL} sources`;
 
-export const BRAND_EMAIL_TAGLINE = "Strategic Intelligence, Always On";
+export const BRAND_EMAIL_TAGLINE = "From Chaos to Clarity";
 
 export const BRAND_EMAIL_FOOTER = `${BRAND_NAME} · ${BRAND_EMAIL_TAGLINE}`;
 
@@ -44,19 +59,19 @@ export const METHOD_STEPS_INLINE = METHOD_STEPS.join(" · ");
 export const METHOD_BLOCKS = [
   {
     name: METHOD_STEPS[0],
-    desc: `We pull from ${BRAND_SOURCES_LABEL} sources across every relevant domain — academic research, institutional positions, primary data. The picture is never one-sided.`,
+    desc: `We pull from ${BRAND_SOURCES_LABEL} sources across every relevant domain — academic research, institutional positions, primary data. We don't accumulate sources — we map the intellectual territory, showing where evidence is dense, where it's absent, and where it contradicts itself.`,
   },
   {
     name: METHOD_STEPS[1],
-    desc: "Every claim is challenged. Every assumption attacked. We force the strongest counter-argument before we let any position stand.",
+    desc: "Every claim is challenged. Every assumption attacked. We force the strongest counter-argument before we let any position stand. The friction is the point — it's where certainty goes to get tested.",
   },
   {
     name: METHOD_STEPS[2],
-    desc: "Not one forecast. Multiple futures, each with a probability. Because the world doesn't move in straight lines — and decisions shouldn't either.",
+    desc: "Not one forecast. Multiple futures, each with a probability. Because the world doesn't move in straight lines — and decisions shouldn't either. We structure the uncertainty, not just the answer.",
   },
   {
     name: METHOD_STEPS[3],
-    desc: "A clear position, with the confidence to back it. Sources visible. Doubts logged. Everything you need to brief a room or sign a decision.",
+    desc: "A clear position, with the confidence to back it. Sources visible. Doubts logged. The map, not just the terrain — everything you need to brief a room or sign a decision.",
   },
 ] as const;
 
@@ -64,4 +79,4 @@ export const ABOUT_CTA_HEADLINE = "The briefing room,";
 export const ABOUT_CTA_HEADLINE_ACCENT = "open to everyone.";
 
 export const METHODOLOGY_INTRO =
-  "Four stages. No shortcuts. A position worth defending at the end.";
+  "Four stages. No shortcuts. Chaos in, clarity out — a position worth defending at the end.";

@@ -32,7 +32,7 @@ interface InquiryCardProps {
 function Watermark({ type }: { type: InquiryWatermark }) {
   if (type === "none") return null;
 
-  const base = "absolute right-4 bottom-4 w-24 h-24 opacity-[0.07] pointer-events-none";
+  const base = "absolute right-4 bottom-4 w-24 h-24 opacity-[0.04] pointer-events-none transition-opacity duration-500 group-hover:opacity-[0.08]";
 
   if (type === "map") {
     return (
@@ -104,7 +104,7 @@ export function InquiryCard({ inquiry, href, className }: InquiryCardProps) {
       <span className="absolute inset-x-0 top-0 h-px bg-white/20 scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left" />
       <Watermark type={watermark} />
 
-      <div className="relative z-[1] flex items-center justify-between mb-4">
+      <div className="relative z-[1] flex items-center justify-between mb-5">
         <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/40">
           {domain}
         </span>
@@ -134,15 +134,20 @@ export function InquiryCard({ inquiry, href, className }: InquiryCardProps) {
         </p>
       )}
 
-      <div className="relative z-[1] mt-auto flex items-end justify-between gap-4 pt-2">
+      <div className="relative z-[1] mt-auto flex items-end justify-between gap-4 pt-3 border-t border-white/[0.06]">
         {verdict ? (
           <div className="flex flex-col gap-0.5">
             <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-white/30">
               {verdict.label}
             </span>
-            <span className="font-mono text-xl font-light text-white tabular-nums">
-              {verdict.value}
-            </span>
+            <div className="flex items-baseline gap-2">
+              <span className="font-mono text-xl font-light text-white tabular-nums">
+                {verdict.value}
+              </span>
+              <span className="font-mono text-[9px] text-white/25">
+                {sourceCount} src{readTime ? ` · ${readTime} min` : ""}
+              </span>
+            </div>
           </div>
         ) : (
           <span className="font-mono text-[10px] text-white/30">
@@ -150,7 +155,7 @@ export function InquiryCard({ inquiry, href, className }: InquiryCardProps) {
           </span>
         )}
 
-        <div className="w-8 h-8 border border-white/[0.1] flex items-center justify-center group-hover:border-white/30 transition-colors">
+        <div className="w-8 h-8 border border-white/[0.1] flex items-center justify-center group-hover:border-white/30 group-hover:bg-white/[0.04] transition-all duration-300">
           <ArrowUpRight className="w-3.5 h-3.5 text-white/30 group-hover:text-white transition-colors" />
         </div>
       </div>

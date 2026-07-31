@@ -44,8 +44,8 @@ export default function MethodologyPage() {
             eyebrow="Method"
             title={
               <>
-                How {BRAND_NAME} produces{" "}
-                <span className="text-white/70">a position worth defending.</span>
+                From chaos to clarity.{" "}
+                <span className="text-white/70">A position worth defending.</span>
               </>
             }
             description={METHODOLOGY_INTRO}

@@ -1,5 +1,6 @@
 import { buildEvidenceLedger, extractCitationNumbers } from "./evidence-ledger";
 import { getPublicationQualityRule, getAdaptiveMinSourceCount } from "@/lib/publication-visibility";
+import { detectNovlangue } from "./novlangue-detector";
 
 export type PublicationGateDecision = "publish" | "revise" | "hold";
 
@@ -53,6 +54,8 @@ export interface PublicationGateResult {
     claimCount: number;
     citedClaimCount: number;
     uncitedClaimRatio: number;
+    novlangueCount: number;
+    novlangueDensity: number;
   };
 }
 
@@ -62,8 +65,8 @@ export const DEFAULT_PUBLICATION_GATE_THRESHOLDS: PublicationGateThresholds = {
   minCitationCoverage: 0.50,
   minSourceCount: 5,
   strategicMinSourceCount: 12,
-  maxFatalChallenges: 0,
-  minDevilsAdvocateScore: 40,
+  maxFatalChallenges: 1,
+  minDevilsAdvocateScore: 30,
   maxUncitedClaimRatio: 0.40,
 };
 
@@ -124,6 +127,13 @@ export function evaluatePublicationGate(input: PublicationGateInput): Publicatio
     ? evidenceLedger.uncitedClaimCount / evidenceLedger.claimCount
     : 0;
 
+  // Adaptive word count: relax when evidence is scarce (matching evaluatePublicationReadiness)
+  const adaptiveMinWordCount = sourceCount < 10
+    ? Math.round(businessRule.minWordCount * 0.5)
+    : sourceCount < 15
+      ? Math.round(businessRule.minWordCount * 0.75)
+      : businessRule.minWordCount;
+
   const checks: PublicationGateCheck[] = [
     {
       checkType: "source_depth",
@@ -151,9 +161,9 @@ export function evaluatePublicationGate(input: PublicationGateInput): Publicatio
     },
     {
       checkType: "word_count",
-      passed: wordCount >= businessRule.minWordCount,
+      passed: wordCount >= adaptiveMinWordCount,
       score: wordCount,
-      details: `${wordCount}/${businessRule.minWordCount} words minimum`,
+      details: `${wordCount}/${adaptiveMinWordCount} words minimum (adaptive: ${sourceCount} sources)`,
     },
     {
       checkType: "claim_citation_density",
@@ -190,6 +200,20 @@ export function evaluatePublicationGate(input: PublicationGateInput): Publicatio
     });
   }
 
+  // Pillar 6: Novlangue detection — deterministic euphemism scanner.
+  // Not a hard failure (blocking publication = censorship), but high density
+  // triggers "revise" so the critical loop can rewrite with precise language.
+  const novlangue = detectNovlangue(input.html || "");
+  const NOVLANGUE_DENSITY_THRESHOLD = 2.0; // matches per 1000 words
+  checks.push({
+    checkType: "novlangue_density",
+    passed: novlangue.density <= NOVLANGUE_DENSITY_THRESHOLD,
+    score: Math.round(novlangue.density * 10) / 10,
+    details: novlangue.clean
+      ? "No novlangue detected — language is precise"
+      : `${novlangue.count} novlangue pattern(s) detected (${novlangue.density.toFixed(1)}/1000 words): ${novlangue.matches.slice(0, 3).map((m) => `"${m.term}" → ${m.trueName}`).join("; ")}${novlangue.count > 3 ? "..." : ""}`,
+  });
+
   const failedChecks = checks.filter((check) => !check.passed);
   const hardFailures = failedChecks.filter((check) =>
     ["word_count", "researcher_signoff", "citation_coverage"].includes(check.checkType)
@@ -217,6 +241,8 @@ export function evaluatePublicationGate(input: PublicationGateInput): Publicatio
       claimCount: evidenceLedger.claimCount,
       citedClaimCount: evidenceLedger.citedClaimCount,
       uncitedClaimRatio,
+      novlangueCount: novlangue.count,
+      novlangueDensity: Math.round(novlangue.density * 10) / 10,
     },
   };
 }

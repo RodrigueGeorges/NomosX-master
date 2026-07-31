@@ -18,6 +18,7 @@ import { parseJson } from './json-utils';
 import { AgentRole, assertPermission } from '../governance/index';
 import { RESEARCHER_KBS, type DomainExpertise } from './researcher-kb/index';
 import { MULTI_DOMAIN_CORPUS } from '../knowledge/multi-domain-corpus';
+import { NOMOS_EDITORIAL_LINE_SHORT } from './editorial-config';
 
 // ============================================================================
 // TYPES
@@ -208,15 +209,36 @@ function buildSourceContext(sources: any[], readings?: any[]): string {
         })
         .filter((n: any): n is string => n !== null && n.length > 0) || [];
 
-      return `[SRC-${i + 1}] ${s.provider.toUpperCase()} | Quality: ${s.qualityScore || 0}/100 | Citations: ${s.citationCount || 0}
+      const abstract = (s.abstract || "").slice(0, 3000);
+      const fullText = (s.fullText || "").slice(0, 2000);
+
+      // Build rich context: reader extractions + full abstract + key full-text excerpt
+      let context = `[SRC-${i + 1}] ${s.provider.toUpperCase()} | Quality: ${s.qualityScore || 0}/100 | Citations: ${s.citationCount || 0}
 Title: ${s.title}
 Authors: ${authors.join(", ") || "N/A"}
-Year: ${s.year || "N/A"}
-${reading && reading.confidence !== 'low' ? `CLAIMS: ${reading.claims?.join(" | ") || "None"}
-METHODS: ${reading.methods?.join(" | ") || "None"}
-RESULTS: ${reading.results?.join(" | ") || "None"}
-LIMITATIONS: ${reading.limitations?.join(" | ") || "None"}
-CONFIDENCE: ${reading.confidence}` : `ABSTRACT: ${(s.abstract || "").slice(0, 1200)}...`}`;
+Year: ${s.year || "N/A"}`;
+
+      if (reading && reading.confidence !== 'low') {
+        context += `
+READER EXTRACTIONS:
+  CLAIMS: ${reading.claims?.join(" | ") || "None"}
+  METHODS: ${reading.methods?.join(" | ") || "None"}
+  RESULTS: ${reading.results?.join(" | ") || "None"}
+  LIMITATIONS: ${reading.limitations?.join(" | ") || "None"}
+  CONFIDENCE: ${reading.confidence}`;
+      }
+
+      if (abstract) {
+        context += `
+ABSTRACT (full): ${abstract}`;
+      }
+
+      if (fullText && fullText.length > 200) {
+        context += `
+KEY TEXT EXCERPT: ${fullText}`;
+      }
+
+      return context;
     })
     .join("\n\n");
 }
@@ -240,6 +262,8 @@ async function pass1FrictionMapping(
 
   const systemPrompt = `You are NomosX Analyst — Pass 1 of 3: FRICTION MAPPING.
 
+${NOMOS_EDITORIAL_LINE_SHORT}
+
 NOMOSX EDITORIAL DNA:
 You are agnostic — even anarchistic. You are not afraid to shock, to draw
 ambitious correlations that others dismiss. You detect the underlying
@@ -249,6 +273,16 @@ inventors, philosophers, economists, and scientists. Your goal is to
 brilliant with every publication — to produce work worthy of a Pulitzer,
 a Fields Medal, a Nobel Prize. You dig deeper, reason harder, and see
 connections that specialists trapped in their silos cannot.
+
+ANTI-NOVLANGUE RULE (Pillar 6 — non-negotiable):
+You NEVER use euphemisms that mask violence or obscure accountability.
+"Collateral damage" → "civilian deaths". "Optimization" → "layoffs".
+"Enhanced interrogation" → "torture". "Responsible moderation" → "censorship".
+"Reform" → name the actual policy change. "Modernization" → name what changes.
+If a source uses a euphemism, you quote it WITH BRACKETS and immediately
+provide the true name: "the report cites 'collateral damage' [i.e., civilian
+deaths]". Precision of language is the first defense against tyranny of
+thought. Name the thing by its true name. Always.
 
 NomosX does not inventory sources. It isolates the strongest cross-domain
 causal chain and extrapolates its trajectory toward a dated future.
@@ -332,7 +366,7 @@ ${ctx}`;
     ],
     temperature: 0.1,
     jsonMode: true,
-    maxTokens: depth === "strategic" ? 12000 : 8000,
+    maxTokens: depth === "strategic" ? 16000 : 8000,
     enableCache: true,
     task: 'analyst_brief',
   });
@@ -369,6 +403,8 @@ async function pass2StressTest(
     .join("\n");
 
   const systemPrompt = `You are NomosX Analyst — Pass 2 of 3: STRESS TEST.
+
+${NOMOS_EDITORIAL_LINE_SHORT}
 
 NOMOSX EDITORIAL DNA:
 You are agnostic — even anarchistic. You detect the underlying bullshit
@@ -525,6 +561,8 @@ async function pass3ProspectiveSynthesis(
 You have mapped the mechanisms (Pass 1) and stress-tested them (Pass 2).
 Now you build the argument and take a position.
 
+${NOMOS_EDITORIAL_LINE_SHORT}
+
 NOMOSX IDENTITY:
 You are agnostic — even anarchistic. You are not afraid to shock, to draw
 ambitious correlations that others dismiss. You detect the underlying
@@ -574,6 +612,30 @@ ANTI-HALLUCINATION RULES (NON-NEGOTIABLE — violations cause grounding veto):
 - The warrant field must name the MECHANISM that connects evidence to claim.
   "Because the data shows X" is not a warrant. "Because mechanism Y
   compresses margin, which forces consolidation" is a warrant.
+
+EVIDENCE-FIRST METHODOLOGY (CRITICAL FOR QUALITY):
+- BUILD FROM SOURCES, NOT FROM GENERAL KNOWLEDGE. Every factual claim in
+  your analysis must be traceable to specific text in the source abstracts
+  and excerpts provided above. If a source says "transformers process tokens
+  through self-attention layers [SRC-3]", your claim should echo that language:
+  "Self-attention layers in transformers process tokens sequentially [SRC-3]".
+- PARAPHRASE CLOSELY. Do not restate in completely different words — the
+  grounding system checks for lexical overlap between your claims and source
+  text. If the source says "adversarial perturbations exploit high-dimensional
+  input spaces", write "adversarial perturbations exploit high-dimensional
+  input spaces [SRC-5]" — not "attackers use sophisticated methods to fool
+  models [SRC-5]". Close paraphrase is not plagiarism in analysis — it is
+  evidence of grounding.
+- QUOTE KEY DATA POINTS VERBATIM. When a source provides a specific statistic,
+  finding, or conclusion, reproduce it closely with [SRC-N]. The reader needs
+  to see that your claim comes from the source, not from your imagination.
+- BEFORE EACH CAUSAL CHAIN LINK: Read the source context for [SRC-N] and
+  write the claim using the source's own vocabulary. If the source discusses
+  "autoregressive decoding vulnerabilities", use that exact phrase in your
+  claim — do not replace it with "sequential generation weaknesses".
+- STRUCTURE: For each causalChain link, the "evidence" field should contain
+  a near-verbatim quote or close paraphrase from the cited source, not a
+  summary in your own words. This is what makes the chain grounded.
 
 EPISTEMIC HUMILITY RULES (to survive Devil's Advocate):
 - In the "evidenceAssessment.gaps" field, explicitly acknowledge what you
@@ -641,7 +703,7 @@ Return JSON:
 }
 
 LANGUAGE: Write in ${lang}.
-MINIMUM ${depth === "strategic" ? "3500" : "2000"} WORDS TOTAL across all text fields. Depth and substance are non-negotiable.
+MINIMUM ${depth === "strategic" ? "5000" : "2500"} WORDS TOTAL across all text fields. Depth and substance are non-negotiable. For strategic reports, produce comprehensive analysis across all fields — the verdict, anchoringBasis, causalChain, trajectory, rejectedAlternatives, whatToWatch, evidenceAssessment, and keyFindings should each be substantial. Do not abbreviate or summarize — develop each section fully.
 Output ONLY the JSON object — no markdown, no prose before or after.
 
 CITATION RULES (NON-NEGOTIABLE):
@@ -686,7 +748,7 @@ Build the causal chain from the surviving mechanisms. Take ONE position.`;
     ],
     temperature: 0.2,
     jsonMode: true,
-    maxTokens: depth === "strategic" ? 12000 : 8000,
+    maxTokens: depth === "strategic" ? 16000 : 8000,
     enableCache: true,
     task: 'analyst_brief',
   });
