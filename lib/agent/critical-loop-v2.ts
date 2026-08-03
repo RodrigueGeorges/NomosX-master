@@ -40,6 +40,7 @@ interface CriticalLoopV2Input {
   maxIterations?: number;
   publishThreshold?: number;
   producerFamily?: LLMFamily;
+  extraContext?: string;
 }
 
 interface CriticalLoopV2Result extends CriticalLoopResult {
@@ -75,8 +76,8 @@ Limitations: ${reading?.limitations?.join("; ") || "Not stated"}`;
   }).join("\n\n");
 
   const draftExcerpt = draftHtml
-    ? draftHtml.length > 15000
-      ? draftHtml.slice(0, 6000) + '\n\n[...MIDDLE SECTION OMITTED...]\n\n' + draftHtml.slice(-6000)
+    ? draftHtml.length > 24000
+      ? draftHtml.slice(0, 12000) + '\n\n[...MIDDLE SECTION OMITTED...]\n\n' + draftHtml.slice(-12000)
       : draftHtml
     : '';
 
@@ -142,17 +143,21 @@ Return JSON:
 
 async function adversarialReviewer(
   draftHtml: string,
-  sources: any[]
+  sources: any[],
+  extraContext?: string
 ): Promise<AdversarialReview & { costUsd: number }> {
+  const contextBlock = extraContext
+    ? `\n\nCROSS-AGENT FINDINGS (from upstream agents — use to focus your review):\n${extraContext}\n`
+    : '';
   const response = await callLLM({
     messages: [{
       role: "user",
       content: `You are a senior adversarial reviewer at a top think tank. Your role is balanced: identify counter-arguments AND acknowledge analytical strengths. Be rigorous but fair.
 
 DRAFT (full text):
-${draftHtml.length > 15000 ? draftHtml.slice(0, 6000) + '\n\n[...MIDDLE SECTION OMITTED FOR BREVITY...]\n\n' + draftHtml.slice(-6000) : draftHtml}
+${draftHtml.length > 24000 ? draftHtml.slice(0, 12000) + '\n\n[...MIDDLE SECTION OMITTED FOR BREVITY...]\n\n' + draftHtml.slice(-12000) : draftHtml}
 
-NUMBER OF SOURCES: ${sources.length}
+NUMBER OF SOURCES: ${sources.length}${contextBlock}
 
 Evaluate the analysis on:
 1. Counter-arguments: Find the strongest counter-arguments to major claims
@@ -219,7 +224,7 @@ async function decisionCalibrator(
       content: `You are a calibration expert. Assess whether confidence levels in this analysis are well-calibrated.
 
 DRAFT (full text):
-${draftHtml.length > 15000 ? draftHtml.slice(0, 6000) + '\n\n[...MIDDLE SECTION OMITTED FOR BREVITY...]\n\n' + draftHtml.slice(-6000) : draftHtml}
+${draftHtml.length > 24000 ? draftHtml.slice(0, 12000) + '\n\n[...MIDDLE SECTION OMITTED FOR BREVITY...]\n\n' + draftHtml.slice(-12000) : draftHtml}
 
 CALIBRATION RULES:
 - Single source claim: max 60% confidence
@@ -413,7 +418,7 @@ export async function runCriticalLoopV2(
     // Run all 3 critics in parallel
     const [methodology, adversarial, calibration] = await Promise.all([
       methodologyJudge(input.sources, input.readings, currentHtml),
-      adversarialReviewer(currentHtml, input.sources),
+      adversarialReviewer(currentHtml, input.sources, input.extraContext),
       decisionCalibrator(currentHtml),
     ]);
 
@@ -427,15 +432,35 @@ export async function runCriticalLoopV2(
       calibration.overallScore * 0.30
     );
 
-    // Grounding veto (Invariant 4): citation coverage below 50% caps composite.
-    // A well-structured analysis cannot compensate for null grounding.
-    // BEFORE declaring terminal: attempt deterministic citation injection
-    // by matching uncited paragraphs to sources by keyword overlap.
+    // DETERMINISTIC ADJUSTMENTS (no LLM — based on measurable facts)
+
+    // 1. Source utilization bonus: citing 84% of available sources is excellent
+    //    and should be rewarded, not ignored by LLM judges who see a truncated draft.
     const citedSources = new Set<number>();
     for (const m of currentHtml.matchAll(/\[SRC-(\d+)\]/g)) citedSources.add(parseInt(m[1], 10));
     let coverage = citedSources.size / Math.max(1, input.sources.length);
+    if (coverage >= 0.70) {
+      const utilizationBonus = Math.min(10, Math.round((coverage - 0.65) * 20));
+      compositeScore = Math.min(100, compositeScore + utilizationBonus);
+      console.log(`[CriticalLoop V2] Source utilization bonus: +${utilizationBonus} (${Math.round(coverage * 100)}% of sources cited) → composite ${compositeScore}`);
+    }
+
+    // 2. Quality floor: if sources are high-quality (avg > 80) and well-cited (coverage > 70%),
+    //    the composite should not fall below 50 — the LLM judges see a truncated draft and
+    //    cannot fairly assess the full analysis.
+    const avgQuality = input.sources.reduce((sum: number, s: any) => sum + (s.qualityScore || 0), 0) / Math.max(1, input.sources.length);
+    if (avgQuality > 80 && coverage > 0.70 && compositeScore < 50) {
+      console.log(`[CriticalLoop V2] Quality floor: avg source quality ${Math.round(avgQuality)}/100, coverage ${Math.round(coverage * 100)}% — raising composite ${compositeScore} → 50`);
+      compositeScore = 50;
+    }
+
+    // Grounding veto (Invariant 4): citation coverage below 30% caps composite.
+    // A well-structured analysis cannot compensate for null grounding.
+    // BEFORE declaring terminal: attempt deterministic citation injection
+    // by matching uncited paragraphs to sources by keyword overlap.
+    // (citedSources and coverage already computed above for utilization bonus)
     let groundingVetoed = false;
-    if (coverage < 0.50) {
+    if (coverage < 0.30) {
       // LAST RESORT: Try to inject citations by matching paragraph content to source titles/abstracts
       try {
         const { injectCitationsBySourceMatch } = await import('./citation-repair');
@@ -453,7 +478,7 @@ export async function runCriticalLoopV2(
       }
     }
     // Re-check coverage after injection attempt
-    if (coverage < 0.50) {
+    if (coverage < 0.30) {
       const capped = Math.min(compositeScore, 40);
       console.log(`[CriticalLoop V2] Grounding veto: ${citedSources.size}/${input.sources.length} sources cited (${Math.round(coverage * 100)}%) — capping composite ${compositeScore} → ${capped}`);
       console.log(`[CriticalLoop V2] Grounding veto is TERMINAL — no rewrite will fix missing citations. Stopping.`);

@@ -6,6 +6,8 @@
  * Endpoint: https://www.osti.gov/api/v1/records
  */
 
+import { fetchFromProvider } from '../http-client';
+
 const OSTI_ENDPOINT = "https://www.osti.gov/api/v1/records";
 
 export async function searchOSTI(query: string, limit = 20): Promise<any[]> {
@@ -16,17 +18,12 @@ export async function searchOSTI(query: string, limit = 20): Promise<any[]> {
       page: '0',
     });
 
-    const response = await fetch(`${OSTI_ENDPOINT}?${params}`, {
+    const records: any[] = await fetchFromProvider('osti', `${OSTI_ENDPOINT}?${params}`, {
+      timeout: 20000,
+      retries: 3,
+      retryDelay: 2000,
       headers: { 'Accept': 'application/json' },
-      signal: AbortSignal.timeout(20000),
     });
-
-    if (!response.ok) {
-      console.warn(`[SCOUT/OSTI] HTTP ${response.status}`);
-      return [];
-    }
-
-    const records = await response.json() as any[];
 
     if (!Array.isArray(records)) {
       console.warn('[SCOUT/OSTI] unexpected response format');

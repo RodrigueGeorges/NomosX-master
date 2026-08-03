@@ -34,7 +34,7 @@ export function ScenarioMatrix({ scenarios }: ScenarioMatrixProps) {
             <div className="flex items-start justify-between gap-3 mb-3">
               <div className="min-w-0">
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="text-[10px] font-mono text-white/25">#{i + 1}</span>
+                  <span className="text-[10px] font-mono text-white/45">#{i + 1}</span>
                   {s.sourceGrounded && (
                     <span className="text-[9px] font-mono uppercase tracking-wider px-1.5 py-0.5 border border-white/15 text-white/50">
                       SRC
@@ -62,7 +62,7 @@ export function ScenarioMatrix({ scenarios }: ScenarioMatrixProps) {
                 style={{ width: `${Math.min(pct, 100)}%` }}
               />
             </div>
-            <div className="text-[10px] font-mono text-white/30 mb-3">
+            <div className="text-[10px] font-mono text-white/50 mb-3">
               CI 90%: {s.ciLabel[0]} – {s.ciLabel[1]}
             </div>
 
@@ -70,7 +70,7 @@ export function ScenarioMatrix({ scenarios }: ScenarioMatrixProps) {
               <div className="grid sm:grid-cols-2 gap-2 text-[11px]">
                 {s.keyDrivers.length > 0 && (
                   <div>
-                    <span className="text-white/25 font-mono uppercase tracking-wider text-[9px]">Drivers</span>
+                    <span className="text-white/45 font-mono uppercase tracking-wider text-[9px]">Drivers</span>
                     <div className="mt-1 flex flex-wrap gap-1">
                       {s.keyDrivers.map((d) => (
                         <span key={d} className="px-1.5 py-0.5 border border-white/10 text-white/55 font-mono">
@@ -82,7 +82,7 @@ export function ScenarioMatrix({ scenarios }: ScenarioMatrixProps) {
                 )}
                 {s.blockers.length > 0 && (
                   <div>
-                    <span className="text-white/25 font-mono uppercase tracking-wider text-[9px]">Blockers</span>
+                    <span className="text-white/45 font-mono uppercase tracking-wider text-[9px]">Blockers</span>
                     <div className="mt-1 flex flex-wrap gap-1">
                       {s.blockers.map((b) => (
                         <span key={b} className="px-1.5 py-0.5 border border-white/10 text-white/45 font-mono">

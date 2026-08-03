@@ -39,6 +39,15 @@ export interface ParsedEditorialInquiry {
   whatChangesMind: string[];
   evidenceTraceHtml: string;
   sourcesHtml: string;
+  // Extended Editorial V2 sections
+  causalChainHtml: string;
+  trajectoryHtml: string;
+  rejectedAltsHtml: string;
+  signalsHtml: string;
+  evidenceAssessmentHtml: string;
+  keyFindingsHtml: string;
+  recommendationsHtml: string;
+  anchoringBasisHtml: string;
 }
 
 function matchInner(html: string, pattern: RegExp): string {
@@ -86,7 +95,7 @@ export function parseEditorialInquiry(html: string): ParsedEditorialInquiry | nu
 
   const verdictHtml = matchInner(
     raw,
-    /Institute position<\/p>\s*<div class="verdict-block">\s*([\s\S]*?)<\/div>/i
+    /(?:Institute position|Position)<\/p>\s*<div class="verdict-block">\s*([\s\S]*?)<\/div>/i
   );
 
   const confidence = stripHtml(matchInner(raw, /<p class="confidence"[^>]*>([\s\S]*?)<\/p>/i));
@@ -98,6 +107,47 @@ export function parseEditorialInquiry(html: string): ParsedEditorialInquiry | nu
   const changeMindBlock = matchInner(
     raw,
     /What would change our mind<\/p>\s*<ul>([\s\S]*?)<\/ul>/i
+  );
+
+  // ── Additional Editorial V2 sections (not in original parser) ──
+  const causalChainHtml = matchInner(
+    raw,
+    /Causal chain<\/p>\s*([\s\S]*?)<\/section>/i
+  ).replace(/<section[\s\S]*$/, "");
+
+  const trajectoryHtml = matchInner(
+    raw,
+    /Trajectory<\/p>\s*([\s\S]*?)<\/section>/i
+  ).replace(/<section[\s\S]*$/, "");
+
+  const rejectedAltsHtml = matchInner(
+    raw,
+    /Rejected alternatives<\/p>\s*([\s\S]*?)<\/section>/i
+  ).replace(/<section[\s\S]*$/, "");
+
+  const signalsHtml = matchInner(
+    raw,
+    /Signals to watch<\/p>\s*([\s\S]*?)<\/section>/i
+  ).replace(/<section[\s\S]*$/, "");
+
+  const evidenceAssessmentHtml = matchInner(
+    raw,
+    /Evidence assessment<\/p>\s*([\s\S]*?)<\/section>/i
+  ).replace(/<section[\s\S]*$/, "");
+
+  const keyFindingsHtml = matchInner(
+    raw,
+    /Key findings<\/p>\s*<ul>([\s\S]*?)<\/ul>/i
+  );
+
+  const recommendationsHtml = matchInner(
+    raw,
+    /Policy recommendations<\/p>\s*([\s\S]*?)<\/section>/i
+  ).replace(/<section[\s\S]*$/, "");
+
+  const anchoringBasisHtml = matchInner(
+    raw,
+    /Anchoring basis<\/p>\s*<div class="verdict-block">\s*([\s\S]*?)<\/div>/i
   );
 
   const evidenceTraceHtml = matchInner(
@@ -125,6 +175,14 @@ export function parseEditorialInquiry(html: string): ParsedEditorialInquiry | nu
     whatChangesMind: parseListItems(changeMindBlock),
     evidenceTraceHtml,
     sourcesHtml,
+    causalChainHtml,
+    trajectoryHtml,
+    rejectedAltsHtml,
+    signalsHtml,
+    evidenceAssessmentHtml,
+    keyFindingsHtml,
+    recommendationsHtml,
+    anchoringBasisHtml,
   };
 }
 

@@ -420,7 +420,7 @@ function generateHtmlReport(
 <html lang="fr"><head><meta charset="utf-8"/><title>NomosX Institutional Audit</title>
 <style>
   body{font-family:system-ui,sans-serif;margin:2rem;background:#0a0a0f;color:#e2e8f0}
-  h1{color:#5eead4} table{border-collapse:collapse;width:100%;margin-top:1rem}
+  h1{color:#FFFFFF} table{border-collapse:collapse;width:100%;margin-top:1rem}
   th,td{border:1px solid #334155;padding:.5rem;text-align:left;font-size:.9rem}
   th{background:#1e293b}.platinum{color:#e879f9}.gold{color:#4ade80}.fail{color:#f87171}
   .metric{display:inline-block;margin:.5rem 1rem;padding:1rem;background:#1e293b;border-radius:8px}

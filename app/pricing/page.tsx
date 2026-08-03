@@ -146,17 +146,17 @@ export default function PricingPage() {
 
       <PublicPageShell currentPage="pricing" onSignInClick={() => setShowAuthModal(true)} particles={0}>
 
-          <div className="max-w-5xl mx-auto px-6 sm:px-8 py-20 sm:py-28">
+          <div className="max-w-5xl mx-auto px-6 sm:px-8 py-16 sm:py-20">
 
-            <header className="text-center mb-20 animate-rise">
+            <header className="text-center mb-12 animate-rise">
 
-              <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-white/35 mb-5">
+              <p className="nx-eyebrow mb-5">
 
                 Access
 
               </p>
 
-              <h1 className="font-display text-4xl sm:text-5xl font-semibold tracking-tight mb-5">
+              <h1 className="font-display text-3xl sm:text-4xl font-semibold tracking-tight mb-5">
 
                 Read free.{" "}
 
@@ -164,7 +164,7 @@ export default function PricingPage() {
 
               </h1>
 
-              <p className="text-base text-white/50 max-w-2xl mx-auto leading-relaxed">
+              <p className="text-base text-white/65 max-w-2xl mx-auto leading-relaxed">
                 The world doesn't suffer from a lack of information — it suffers from a lack of structure.
                 NomosX publishes positions 24/7, free to read. Studio is the add-on for custom commissions,
                 foresight, and evidence-bound deliverables on demand.
@@ -174,17 +174,17 @@ export default function PricingPage() {
 
 
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-24">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-16">
 
               <div
 
-                className="relative p-8 sm:p-9 nx-public-surface"
+                className="relative p-6 sm:p-7 nx-public-surface"
 
               >
 
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-20 h-px bg-white/20" />
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-20 h-px bg-white/60" />
 
-                <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/40 mb-4">
+                <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-white/55 mb-4">
 
                   Reader
 
@@ -192,13 +192,13 @@ export default function PricingPage() {
 
                 <div className="flex items-baseline gap-2 mb-2">
 
-                  <span className="font-mono text-5xl font-light text-text">Free</span>
+                  <span className="font-mono text-4xl font-light text-text">Free</span>
 
-                  <span className="text-sm text-white/35">forever</span>
+                  <span className="text-sm text-white/50">forever</span>
 
                 </div>
 
-                <p className="text-sm text-white/45 mb-8">
+                <p className="text-sm text-white/60 mb-8">
 
                   Open access to every published position. Evidence-first, no paywall.
 
@@ -208,9 +208,9 @@ export default function PricingPage() {
 
                   {READER_FEATURES.map((text) => (
 
-                    <li key={text} className="flex items-start gap-3 text-sm text-white/55">
+                    <li key={text} className="flex items-start gap-3 text-sm text-white/70">
 
-                      <Check className="w-4 h-4 text-white/50 flex-shrink-0 mt-0.5" strokeWidth={1.5} />
+                      <Check className="w-4 h-4 text-white flex-shrink-0 mt-0.5" strokeWidth={1.5} />
 
                       {text}
 
@@ -226,7 +226,7 @@ export default function PricingPage() {
 
                   onClick={openFreeAuth}
 
-                  className="w-full py-3.5 border border-white/[0.10] text-white/70 text-sm font-medium hover:border-white/30 hover:text-white transition-colors"
+                  className="w-full py-3.5 border border-white/30 text-white text-sm font-medium hover:border-white/60 hover:text-white transition-colors"
 
                 >
 
@@ -240,13 +240,13 @@ export default function PricingPage() {
 
               <div
 
-                className="relative p-8 sm:p-9 nx-public-surface border-white/20"
+                className="relative p-6 sm:p-7 nx-public-surface border-white/20"
 
               >
 
                 <div className="absolute -top-3 left-8">
 
-                  <span className="px-3 py-1 bg-white text-black text-[10px] font-mono font-semibold tracking-[0.14em] uppercase">
+                  <span className="px-3 py-1 bg-white text-black text-[11px] font-mono font-semibold tracking-[0.14em] uppercase">
 
                     Private beta
 
@@ -254,7 +254,7 @@ export default function PricingPage() {
 
                 </div>
 
-                <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/35 mb-4 mt-2">
+                <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-white/50 mb-4 mt-2">
 
                   NomosX Studio
 
@@ -270,7 +270,7 @@ export default function PricingPage() {
 
                 </div>
 
-                <p className="text-sm text-white/45 mb-8">
+                <p className="text-sm text-white/60 mb-8">
 
                   Custom inquiries with scenario distributions, adversarial debate, and verified citations.
 
@@ -280,7 +280,7 @@ export default function PricingPage() {
 
                   {STUDIO_FEATURES.map((text) => (
 
-                    <li key={text} className="flex items-start gap-3 text-sm text-white/60">
+                    <li key={text} className="flex items-start gap-3 text-sm text-white/75">
 
                       <Check className="w-4 h-4 text-white flex-shrink-0 mt-0.5" strokeWidth={1.5} />
 
@@ -314,13 +314,13 @@ export default function PricingPage() {
 
 
 
-            <section className="mb-24 nx-public-surface overflow-hidden">
+            <section className="mb-16 nx-public-surface overflow-hidden">
 
-              <div className="p-8 sm:p-10 border-b border-white/[0.06]">
+              <div className="p-6 sm:p-8 border-b border-white/[0.08]">
 
                 <div className="flex flex-wrap items-center gap-3 mb-4">
 
-                  <Sparkles className="w-4 h-4 text-white/35" />
+                  <Sparkles className="w-4 h-4 text-white/50" />
 
                   <h2 className="font-display text-xl font-semibold text-text">
 
@@ -328,7 +328,7 @@ export default function PricingPage() {
 
                   </h2>
 
-                  <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-white/40 px-2 py-0.5 border border-white/20">
+                  <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-white/55 px-2 py-0.5 border border-white/20">
 
                     Interface preview
 
@@ -336,20 +336,20 @@ export default function PricingPage() {
 
                 </div>
 
-                <p className="text-sm text-white/45 max-w-xl">
+                <p className="text-sm text-white/60 max-w-xl">
                   Define a question, select domains, and receive a position backed by a defensible causal chain —
                   with prospective distributions, adversarial review, and full source traceability.
                 </p>
 
               </div>
 
-              <div className="grid sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-white/[0.06]">
+              <div className="grid sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-white/[0.08]">
 
                 {STUDIO_STEPS.map((step, i) => (
 
-                  <div key={step.label} className="p-6 sm:p-8">
+                  <div key={step.label} className="p-5 sm:p-6">
 
-                    <span className="font-mono text-[10px] text-white/40">
+                    <span className="font-mono text-[11px] text-white/55">
 
                       {String(i + 1).padStart(2, "0")}
 
@@ -357,7 +357,7 @@ export default function PricingPage() {
 
                     <p className="text-sm font-medium text-text mt-2 mb-1">{step.label}</p>
 
-                    <p className="font-mono text-[10px] text-white/30">{step.detail}</p>
+                    <p className="font-mono text-[11px] text-white/50">{step.detail}</p>
 
                   </div>
 
@@ -365,7 +365,7 @@ export default function PricingPage() {
 
               </div>
 
-              <div className="p-8 sm:p-10 flex flex-col sm:flex-row sm:items-center justify-between gap-6 border-t border-white/[0.06]">
+              <div className="p-6 sm:p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-6 border-t border-white/[0.08]">
 
                 <div>
 
@@ -375,7 +375,7 @@ export default function PricingPage() {
 
                   </h3>
 
-                  <p className="text-sm text-white/40">Full pipeline · distribution · publication-ready</p>
+                  <p className="text-sm text-white/55">Full pipeline · distribution · publication-ready</p>
 
                 </div>
 
@@ -399,7 +399,7 @@ export default function PricingPage() {
 
 
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-24">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-16">
 
               {[
 
@@ -409,7 +409,7 @@ export default function PricingPage() {
 
                 { value: "4", label: "Method stages", icon: FileText },
 
-                { value: "24/7", label: "Always publishing", icon: Sparkles },
+                { value: "48", label: "Data providers", icon: Sparkles },
 
               ].map(({ value, label, icon: Icon }) => (
 
@@ -417,15 +417,15 @@ export default function PricingPage() {
 
                   key={label}
 
-                  className="nx-public-surface p-5 text-center"
+                  className="nx-public-surface p-4 text-center"
 
                 >
 
-                  <Icon className="w-4 h-4 text-white/40 mx-auto mb-3" strokeWidth={1.25} />
+                  <Icon className="w-4 h-4 text-white/55 mx-auto mb-3" strokeWidth={1.25} />
 
                   <div className="font-mono text-2xl font-light text-text tabular-nums">{value}</div>
 
-                  <div className="font-mono text-[10px] text-white/35 mt-1 uppercase tracking-[0.12em]">
+                  <div className="font-mono text-[11px] text-white/50 mt-1 uppercase tracking-[0.12em]">
 
                     {label}
 
@@ -441,7 +441,7 @@ export default function PricingPage() {
 
             <div className="mb-16">
 
-              <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/40 text-center mb-8">
+              <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-white/55 text-center mb-8">
 
                 Questions
 
@@ -468,7 +468,7 @@ export default function PricingPage() {
 
                       onClick={() => setOpenFaq(openFaq === i ? null : i)}
 
-                      className="w-full flex items-center justify-between px-6 py-5 text-left gap-4"
+                      className="w-full flex items-center justify-between px-5 py-4 text-left gap-4"
 
                     >
 
@@ -480,7 +480,7 @@ export default function PricingPage() {
 
                         className={cn(
 
-                          "text-white/30 flex-shrink-0 transition-transform",
+                          "text-white/50 flex-shrink-0 transition-transform",
 
                           openFaq === i && "rotate-180 text-white"
 
@@ -506,7 +506,7 @@ export default function PricingPage() {
 
                         >
 
-                          <p className="text-sm text-white/45 leading-relaxed px-6 pb-5">{item.a}</p>
+                          <p className="text-sm text-white/60 leading-relaxed px-6 pb-5">{item.a}</p>
 
                         </motion.div>
 
@@ -526,7 +526,7 @@ export default function PricingPage() {
 
             <div className="text-center py-12">
 
-              <h2 className="font-display text-2xl sm:text-3xl font-semibold mb-4">
+              <h2 className="font-display text-xl sm:text-2xl font-semibold mb-4">
                 From Chaos to Clarity.{" "}
                 <span className="text-white/70">Open by default.</span>
               </h2>
@@ -539,7 +539,7 @@ export default function PricingPage() {
 
                   onClick={openFreeAuth}
 
-                  className="px-7 py-3.5 border border-white/[0.10] text-sm text-white/70 hover:text-white"
+                  className="px-7 py-3.5 border border-white/30 text-sm text-white hover:text-white hover:border-white/60"
 
                 >
 

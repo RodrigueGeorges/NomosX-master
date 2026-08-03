@@ -60,7 +60,7 @@ function ResetPasswordContent() {
         <div className={`${cardClass} text-center`}>
           <NomosXLogo variant="symbol" size={LOGO_AUTH_SYMBOL} className="justify-center mb-8" />
           <h1 className="font-display text-2xl font-semibold text-text mb-3">Invalid link</h1>
-          <p className="text-sm text-white/40 mb-6">This password reset link is missing or invalid. Please request a new one.</p>
+          <p className="text-sm text-white/55 mb-6">This password reset link is missing or invalid. Please request a new one.</p>
           <button onClick={() => router.push('/')} className="text-sm text-white/60 hover:text-white transition-colors">
             ← Back to home
           </button>
@@ -74,11 +74,11 @@ function ResetPasswordContent() {
       <PublicPageShell showFooter={false} particles={0} contentClassName="flex items-center justify-center px-6">
         <div className={`${cardClass} text-center`}>
           <NomosXLogo variant="symbol" size={LOGO_AUTH_SYMBOL} className="justify-center mb-8" />
-          <div className="w-12 h-12 bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center mx-auto mb-6">
-            <CheckCircle size={24} className="text-emerald-400" />
+          <div className="w-12 h-12 bg-white/10 border border-white/30 flex items-center justify-center mx-auto mb-6">
+            <CheckCircle size={24} className="text-white" />
           </div>
           <h1 className="font-display text-2xl font-semibold text-text mb-3">Password reset</h1>
-          <p className="text-sm text-white/40 mb-6">Your password has been updated successfully. You can now sign in.</p>
+          <p className="text-sm text-white/55 mb-6">Your password has been updated successfully. You can now sign in.</p>
           <button
             onClick={() => router.push('/?auth=required')}
             className="nx-public-btn-primary px-6 py-3 text-[11px]"
@@ -98,7 +98,7 @@ function ResetPasswordContent() {
         </div>
 
         <h1 className="font-display text-2xl font-semibold text-text text-center mb-2">Choose a new password</h1>
-        <p className="text-sm text-white/40 text-center mb-8">Enter your new password below.</p>
+        <p className="text-sm text-white/55 text-center mb-8">Enter your new password below.</p>
 
         <form onSubmit={handleSubmit} className="space-y-5">
           {error && (
@@ -108,7 +108,7 @@ function ResetPasswordContent() {
           )}
 
           <div>
-            <label htmlFor="password" className="block text-sm font-medium mb-2 text-white/60">New password</label>
+            <label htmlFor="password" className="block text-sm font-medium mb-2 text-white/70">New password</label>
             <input
               id="password"
               type="password"
@@ -117,12 +117,12 @@ function ResetPasswordContent() {
               placeholder="At least 8 characters"
               required
               minLength={8}
-              className="w-full px-4 py-3 bg-white/[0.04] border border-white/[0.10] text-white placeholder-white/20 text-sm focus:outline-none focus:border-white/35 transition-colors"
+              className="w-full px-4 py-3 bg-white/[0.04] border border-white/[0.12] text-white placeholder-white/20 text-sm focus:outline-none focus:border-white/50 transition-colors"
             />
           </div>
 
           <div>
-            <label htmlFor="confirm" className="block text-sm font-medium mb-2 text-white/60">Confirm password</label>
+            <label htmlFor="confirm" className="block text-sm font-medium mb-2 text-white/70">Confirm password</label>
             <input
               id="confirm"
               type="password"
@@ -131,7 +131,7 @@ function ResetPasswordContent() {
               placeholder="Repeat your password"
               required
               minLength={8}
-              className="w-full px-4 py-3 bg-white/[0.04] border border-white/[0.10] text-white placeholder-white/20 text-sm focus:outline-none focus:border-white/35 transition-colors"
+              className="w-full px-4 py-3 bg-white/[0.04] border border-white/[0.12] text-white placeholder-white/20 text-sm focus:outline-none focus:border-white/50 transition-colors"
             />
           </div>
 
@@ -145,7 +145,7 @@ function ResetPasswordContent() {
         </form>
 
         <div className="mt-6 text-center">
-          <button onClick={() => router.push('/')} className="text-sm text-white/35 hover:text-white/60 transition-colors flex items-center gap-1.5 mx-auto">
+          <button onClick={() => router.push('/')} className="text-sm text-white/50 hover:text-white/60 transition-colors flex items-center gap-1.5 mx-auto">
             <ArrowLeft size={14} />
             Back to home
           </button>
@@ -160,7 +160,7 @@ export default function ResetPasswordPage() {
     <Suspense
       fallback={
         <div className="min-h-screen bg-black flex items-center justify-center">
-          <div className="w-8 h-8 border border-white/20 border-t-white rounded-full animate-spin" />
+          <div className="w-8 h-8 border border-white/40 border-t-white rounded-full animate-spin" />
         </div>
       }
     >

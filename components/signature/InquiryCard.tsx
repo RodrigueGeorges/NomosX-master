@@ -3,6 +3,7 @@
 import { cn } from "@/lib/utils";
 import { ArrowUpRight } from "lucide-react";
 import Link from "next/link";
+import { useRef } from "react";
 
 export type InquiryWatermark = "map" | "chart" | "globe" | "none";
 
@@ -21,6 +22,7 @@ export interface InquiryCardData {
   publishedAt: string;
   readTime?: number;
   hasForesight?: boolean;
+  formatLabel?: string;
 }
 
 interface InquiryCardProps {
@@ -32,7 +34,7 @@ interface InquiryCardProps {
 function Watermark({ type }: { type: InquiryWatermark }) {
   if (type === "none") return null;
 
-  const base = "absolute right-4 bottom-4 w-24 h-24 opacity-[0.04] pointer-events-none transition-opacity duration-500 group-hover:opacity-[0.08]";
+  const base = "nx-watermark absolute right-4 bottom-4 w-24 h-24 pointer-events-none opacity-[0.04] group-hover:opacity-[0.08] transition-opacity duration-500";
 
   if (type === "map") {
     return (
@@ -88,33 +90,45 @@ export function InquiryCard({ inquiry, href, className }: InquiryCardProps) {
     readTime,
   } = inquiry;
   const target = href ?? `/inquiry/${slug}`;
+  const cardRef = useRef<HTMLAnchorElement>(null);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    const el = cardRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    el.style.setProperty("--nx-mx", `${e.clientX - rect.left}px`);
+    el.style.setProperty("--nx-my", `${e.clientY - rect.top}px`);
+  };
 
   return (
     <Link
+      ref={cardRef}
       href={target}
+      onMouseMove={handleMouseMove}
       className={cn(
-        "group relative flex flex-col overflow-hidden",
-        "p-6 sm:p-8 min-h-[220px]",
-        "border border-white/[0.08] bg-white/[0.02]",
-        "transition-all duration-300 ease-out",
-        "hover:border-white/20 hover:bg-white/[0.04]",
+        "group nx-spotlight nx-surface relative flex flex-col cursor-pointer",
+        "p-5 sm:p-6 min-h-[220px]",
         className
       )}
     >
-      <span className="absolute inset-x-0 top-0 h-px bg-white/20 scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left" />
       <Watermark type={watermark} />
 
-      <div className="relative z-[1] flex items-center justify-between mb-5">
-        <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/40">
+      <div className="relative z-[1] flex items-center gap-2 mb-4 flex-wrap">
+        {inquiry.formatLabel && (
+          <span className="font-mono text-[9px] uppercase tracking-[0.16em] px-2 py-0.5 border border-white/30 text-white/90 bg-white/[0.06]">
+            {inquiry.formatLabel}
+          </span>
+        )}
+        <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-white/45">
           {domain}
         </span>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 ml-auto">
           {inquiry.hasForesight && (
-            <span className="font-mono text-[9px] uppercase tracking-wider px-1.5 py-0.5 border border-white/15 text-white/45">
+            <span className="font-mono text-[9px] uppercase tracking-wider px-1.5 py-0.5 border border-white/30 text-white/80 bg-white/5">
               Foresight
             </span>
           )}
-          <span className="font-mono text-[10px] text-white/30">
+          <span className="font-mono text-[10px] text-white/45">
             {new Date(publishedAt).toLocaleDateString("en-US", {
               month: "short",
               day: "numeric",
@@ -124,39 +138,35 @@ export function InquiryCard({ inquiry, href, className }: InquiryCardProps) {
         </div>
       </div>
 
-      <h3 className="relative z-[1] font-display text-lg font-medium text-text leading-snug tracking-tight mb-3 group-hover:text-white transition-colors line-clamp-2">
+      <h3 className="relative z-[1] font-display text-lg font-medium text-text leading-snug tracking-tight mb-4 group-hover:text-white transition-colors line-clamp-2">
         {title}
       </h3>
 
       {summary && (
-        <p className="relative z-[1] text-xs text-white/40 leading-relaxed line-clamp-2 mb-4 flex-1">
+        <p className="relative z-[1] text-xs text-white/55 leading-relaxed line-clamp-2 mb-3 flex-1">
           {summary}
         </p>
       )}
 
-      <div className="relative z-[1] mt-auto flex items-end justify-between gap-4 pt-3 border-t border-white/[0.06]">
-        {verdict ? (
-          <div className="flex flex-col gap-0.5">
-            <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-white/30">
-              {verdict.label}
-            </span>
-            <div className="flex items-baseline gap-2">
-              <span className="font-mono text-xl font-light text-white tabular-nums">
+      <div className="relative z-[1] mt-auto flex items-end justify-between gap-4 pt-3 border-t border-white/[0.08]">
+        <div className="flex flex-col gap-1">
+          {verdict && (
+            <div className="flex items-baseline gap-1.5">
+              <span className="font-mono text-2xl font-light text-white/80 tabular-nums">
                 {verdict.value}
               </span>
-              <span className="font-mono text-[9px] text-white/25">
-                {sourceCount} src{readTime ? ` · ${readTime} min` : ""}
+              <span className="font-mono text-[11px] uppercase tracking-[0.16em] text-white/40">
+                {verdict.label}
               </span>
             </div>
-          </div>
-        ) : (
-          <span className="font-mono text-[10px] text-white/30">
+          )}
+          <span className="font-mono text-[11px] text-white/40">
             {sourceCount} sources{readTime ? ` · ${readTime} min` : ""}
           </span>
-        )}
+        </div>
 
-        <div className="w-8 h-8 border border-white/[0.1] flex items-center justify-center group-hover:border-white/30 group-hover:bg-white/[0.04] transition-all duration-300">
-          <ArrowUpRight className="w-3.5 h-3.5 text-white/30 group-hover:text-white transition-colors" />
+        <div className="w-10 h-10 border border-white/[0.12] flex items-center justify-center group-hover:border-white/40 group-hover:bg-white/5 transition-all duration-300">
+          <ArrowUpRight className="w-4 h-4 text-white/45 group-hover:text-white transition-colors" />
         </div>
       </div>
     </Link>

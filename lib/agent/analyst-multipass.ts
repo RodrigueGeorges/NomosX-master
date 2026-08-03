@@ -197,6 +197,12 @@ function buildDomainAnalystContext(domain?: string): string {
 // ============================================================================
 
 function buildSourceContext(sources: any[], readings?: any[]): string {
+  // Adaptive tiered context: top sources get full treatment, rest get compact.
+  // Tier scales with corpus size — 25% of sources get full context (min 20, max 40).
+  // This ensures deep analysis of the best sources whether we have 40 or 200.
+  const FULL_TIER = Math.max(20, Math.min(40, Math.ceil(sources.length * 0.25)));
+  const COMPACT_ABSTRACT = 500; // Non-full-tier sources: abstract truncated to 500 chars
+
   return sources
     .map((s: any, i: number) => {
       const reading = readings?.[i];
@@ -209,16 +215,17 @@ function buildSourceContext(sources: any[], readings?: any[]): string {
         })
         .filter((n: any): n is string => n !== null && n.length > 0) || [];
 
-      const abstract = (s.abstract || "").slice(0, 3000);
-      const fullText = (s.fullText || "").slice(0, 2000);
+      const isFullTier = i < FULL_TIER;
+      const abstract = (s.abstract || "").slice(0, isFullTier ? 3000 : COMPACT_ABSTRACT);
+      const fullText = isFullTier ? (s.fullText || "").slice(0, 4000) : "";
 
-      // Build rich context: reader extractions + full abstract + key full-text excerpt
+      // Build context: full tier gets everything, compact tier gets title + abstract only
       let context = `[SRC-${i + 1}] ${s.provider.toUpperCase()} | Quality: ${s.qualityScore || 0}/100 | Citations: ${s.citationCount || 0}
 Title: ${s.title}
 Authors: ${authors.join(", ") || "N/A"}
 Year: ${s.year || "N/A"}`;
 
-      if (reading && reading.confidence !== 'low') {
+      if (isFullTier && reading && reading.confidence !== 'low') {
         context += `
 READER EXTRACTIONS:
   CLAIMS: ${reading.claims?.join(" | ") || "None"}
@@ -230,7 +237,7 @@ READER EXTRACTIONS:
 
       if (abstract) {
         context += `
-ABSTRACT (full): ${abstract}`;
+${isFullTier ? 'ABSTRACT (full)' : 'ABSTRACT'}: ${abstract}`;
       }
 
       if (fullText && fullText.length > 200) {
@@ -308,6 +315,7 @@ facts anchor, but dynamics drive extrapolation. Extract dynamics first,
 then the facts that anchor them.
 
 CITATION RULES (NON-NEGOTIABLE):
+- You have EXACTLY ${sourceCount} sources, numbered [SRC-1] through [SRC-${sourceCount}]. Do NOT cite [SRC-${sourceCount + 1}] or higher.
 - Every dataPoint MUST end with [SRC-N] referencing the source it came from.
 - A dataPoint without [SRC-N] is NOT a data point — it is an opinion.
 - Do NOT extract numbers you cannot trace to a specific source.
@@ -490,8 +498,8 @@ ${frictionMap.dataLandscape?.activeDynamics?.slice(0, 10).join("\n") || "None"}
 PROJECTIONS IN LITERATURE:
 ${frictionMap.dataLandscape?.projectionsInLiterature?.slice(0, 5).join("\n") || "None"}
 
-RAW SOURCES:
-${ctx}`;
+DATA POINTS (for verification):
+${(frictionMap.dataLandscape?.quantitativeFindings || []).slice(0, 15).join("\n") || "None"}`;
 
   const response = await callLLM({
     messages: [
@@ -592,6 +600,11 @@ VOICE:
 - Position-first: lead with the conclusion, then justify. Not the reverse.
 
 ANTI-HALLUCINATION RULES (NON-NEGOTIABLE — violations cause grounding veto):
+- EVIDENCE-FIRST ORDERING: For each causalChain link, FIRST identify which [SRC-N]
+  contains the evidence, THEN write the claim using that source's own vocabulary.
+  Do NOT write a claim first and bolt on a citation afterward — this is the #1
+  cause of ungrounded claims. Read the source, extract the fact, write it close
+  to the original wording, cite [SRC-N]. This is not optional.
 - Every number, percentage, or quantitative claim MUST be a present_fact
   with a [SRC-N] citation. No invented numbers.
 - If you cannot find a number in any source, DO NOT invent one. Use
@@ -616,7 +629,7 @@ ANTI-HALLUCINATION RULES (NON-NEGOTIABLE — violations cause grounding veto):
 EVIDENCE-FIRST METHODOLOGY (CRITICAL FOR QUALITY):
 - BUILD FROM SOURCES, NOT FROM GENERAL KNOWLEDGE. Every factual claim in
   your analysis must be traceable to specific text in the source abstracts
-  and excerpts provided above. If a source says "transformers process tokens
+  and full-text excerpts provided above. If a source says "transformers process tokens
   through self-attention layers [SRC-3]", your claim should echo that language:
   "Self-attention layers in transformers process tokens sequentially [SRC-3]".
 - PARAPHRASE CLOSELY. Do not restate in completely different words — the
@@ -707,7 +720,10 @@ MINIMUM ${depth === "strategic" ? "5000" : "2500"} WORDS TOTAL across all text f
 Output ONLY the JSON object — no markdown, no prose before or after.
 
 CITATION RULES (NON-NEGOTIABLE):
-- Every factual claim, number, or data point MUST have a [SRC-N] citation.
+- You have EXACTLY ${sourceCount} sources, numbered [SRC-1] through [SRC-${sourceCount}].
+- Any citation with N > ${sourceCount} or N < 1 is INVALID and will be DELETED by the system.
+- Do NOT use [SRC-${sourceCount + 1}] or higher — they do not exist. This is the #1 cause of rejected reports.
+- Every factual claim, number, or data point MUST have a [SRC-N] citation where 1 ≤ N ≤ ${sourceCount}.
 - The "evidence" field of every causalChain link MUST contain at least one [SRC-N].
 - The "verdict" field MUST cite [SRC-N] for every factual anchor.
 - The "keyFindings" array: each finding MUST include [SRC-N].
@@ -856,6 +872,64 @@ function validateCausalChain(
   };
 }
 
+/**
+ * Sanitize all [SRC-N] citations in the analysis JSON.
+ * Removes any [SRC-N] where N < 1 or N > sourceCount.
+ * Also fixes causalChain.sourceRef numbers that are out of range.
+ * This is deterministic — no LLM in the loop.
+ */
+function sanitizeAnalysisCitations(
+  analysis: AnalysisOutput,
+  sourceCount: number
+): AnalysisOutput {
+  const srcPattern = /\[SRC-(\d+)\]/g;
+  let totalRemoved = 0;
+
+  function sanitizeString(s: string): string {
+    if (typeof s !== 'string') return s;
+    const result = s.replace(srcPattern, (match, n) => {
+      const num = parseInt(n, 10);
+      if (num >= 1 && num <= sourceCount) {
+        return match; // Keep valid citation
+      }
+      totalRemoved++;
+      return ''; // Remove invalid citation
+    });
+    // Clean up double spaces left by removal
+    return result.replace(/\s+\s+/g, ' ').replace(/\s+([.,;:])/g, '$1').trim();
+  }
+
+  function sanitizeObject(obj: any): any {
+    if (typeof obj === 'string') return sanitizeString(obj);
+    if (Array.isArray(obj)) return obj.map(sanitizeObject);
+    if (obj && typeof obj === 'object') {
+      const result: any = {};
+      for (const key of Object.keys(obj)) {
+        if (key === 'sourceRef' && typeof obj[key] === 'number') {
+          if (obj[key] < 1 || obj[key] > sourceCount) {
+            totalRemoved++;
+            result[key] = null; // Null out invalid sourceRef
+          } else {
+            result[key] = obj[key];
+          }
+        } else {
+          result[key] = sanitizeObject(obj[key]);
+        }
+      }
+      return result;
+    }
+    return obj;
+  }
+
+  const sanitized = sanitizeObject(analysis) as AnalysisOutput;
+
+  if (totalRemoved > 0) {
+    console.warn(`[Analyst V3] CITATION SANITIZATION: removed ${totalRemoved} out-of-range [SRC-N] citations (source count: ${sourceCount})`);
+  }
+
+  return sanitized;
+}
+
 // ============================================================================
 // MAIN ENTRY POINT
 // ============================================================================
@@ -911,13 +985,18 @@ export async function analystAgentV3(
     // PASS 3: Prospective Synthesis (uses Pass 1 + Pass 2 outputs)
     const p3 = await pass3ProspectiveSynthesis(question, ctx, p1.map, p2.map, sources.length, avgQuality, lang, domainContext, depth);
 
+    // CITATION SANITIZATION: Strip all out-of-range [SRC-N] from analysis JSON.
+    // The LLM (deepseek-v4-flash) hallucinates citations beyond the source count.
+    // This is deterministic — no LLM in the loop.
+    const sanitizedAnalysis = sanitizeAnalysisCitations(p3.analysis, sources.length);
+
     // CASCADE GUARD: Validate causal chain for cascade violations
-    const chainValidation = validateCausalChain(p3.analysis);
+    const chainValidation = validateCausalChain(sanitizedAnalysis);
     if (!chainValidation.valid) {
       console.warn(`[Analyst V3] CASCADE GUARD: ${chainValidation.cascadeViolations} violations (${chainValidation.details})`);
       // Mark unsupported links deterministically (no LLM, no new agent)
-      if (p3.analysis.causalChain && Array.isArray(p3.analysis.causalChain)) {
-        for (const link of p3.analysis.causalChain) {
+      if (sanitizedAnalysis.causalChain && Array.isArray(sanitizedAnalysis.causalChain)) {
+        for (const link of sanitizedAnalysis.causalChain) {
           const hasSrc = typeof link.sourceRef === 'number' && link.sourceRef > 0
             || (typeof link.evidence === 'string' && /\[SRC-\d+\]/.test(link.evidence))
             || (typeof link.claim === 'string' && /\[SRC-\d+\]/.test(link.claim));
@@ -935,7 +1014,7 @@ export async function analystAgentV3(
     console.log(`[Analyst V3] Complete in ${elapsed}ms | 3 passes | ${totalTokens} tokens | $${totalCost.toFixed(4)} | cascade violations: ${chainValidation.cascadeViolations}`);
 
     // Validate required fields
-    const analysis = p3.analysis;
+    const analysis = sanitizedAnalysis;
     const required: (keyof AnalysisOutput)[] = ['title', 'throughLine', 'verdict', 'causalChain'];
     const missing = required.filter((k) => {
       const val = analysis[k];

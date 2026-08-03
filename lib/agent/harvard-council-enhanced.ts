@@ -213,7 +213,7 @@ Format as JSON with connections, conflicts, synergies arrays.`;
         { role: "user", content: prompt }
       ],
       temperature: 0.3,
-      maxTokens: 2000,
+      maxTokens: 1000,
       task: 'harvard_council',
       enableCache: true,
     });

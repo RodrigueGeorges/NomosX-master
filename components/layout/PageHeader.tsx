@@ -22,20 +22,20 @@ export function PageHeader({
   return (
     <header
       className={cn(
-        "mb-12 sm:mb-14",
+        "mb-10 sm:mb-12",
         centered && "text-center",
         className
       )}
     >
       <div
         className={cn(
-          "flex gap-6",
+          "flex gap-4",
           centered ? "flex-col items-center" : "flex-col sm:flex-row sm:items-end sm:justify-between"
         )}
       >
         <div className={cn(centered && "max-w-2xl")}>
           {eyebrow && (
-            <p className={cn("nx-public-eyebrow mb-4", centered && "flex items-center justify-center")}>
+            <p className={cn("nx-public-eyebrow mb-3", centered && "flex items-center justify-center")}>
               {eyebrow}
             </p>
           )}
@@ -43,7 +43,7 @@ export function PageHeader({
             {title}
           </h1>
           {description && (
-            <p className="mt-4 nx-read mx-auto text-[var(--nx-text-secondary)]">{description}</p>
+            <p className="mt-3 nx-read mx-auto text-[var(--nx-text-secondary)]">{description}</p>
           )}
         </div>
         {action && <div className="shrink-0">{action}</div>}
@@ -60,7 +60,7 @@ export function PageSection({
   className?: string;
 }) {
   return (
-    <section className={cn("max-w-6xl mx-auto px-6 sm:px-8 py-16 sm:py-20", className)}>
+    <section className={cn("max-w-6xl mx-auto px-6 sm:px-8 py-12 sm:py-16", className)}>
       {children}
     </section>
   );
@@ -76,7 +76,7 @@ export function EtherealCard({
   return (
     <div
       className={cn(
-        "border border-white/[0.08] bg-white/[0.02] p-6 sm:p-8 transition-colors hover:border-white/15",
+        "border border-white/[0.08] bg-white/[0.02] p-5 sm:p-6 transition-colors hover:border-white/15",
         className
       )}
     >

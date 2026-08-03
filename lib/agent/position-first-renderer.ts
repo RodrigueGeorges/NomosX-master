@@ -7,8 +7,6 @@ import { formatAPA, renderAPAHtml } from './pipeline-types';
 import type { PositionFirstBriefInput } from './editorial-types';
 import { collisionLabel, dimensionsFromClassification } from './editorial-types';
 import { POSITION_FIRST_BRIEF_CSS } from './position-first-brief.css';
-import { inlineLockupSvg } from '@/lib/brand/logo-inline';
-import { BRAND_BRIEF_FOOTER, NOMOS_PHILOSOPHY_STATEMENT, BRAND_MANIFESTO } from '@/lib/brand/public-copy';
 
 function esc(s: string): string {
   return String(s || '').replace(/[&<>"']/g, (m) =>
@@ -16,24 +14,28 @@ function esc(s: string): string {
   );
 }
 
-function replaceCitations(text: string): string {
+function replaceCitations(text: string, sourceCount?: number): string {
   let normalized = text
     .replace(/\(SRC-(\d+)(?:\s*,\s*SRC-(\d+))*\)/g, (match, ...nums) => {
       const refs = match.match(/SRC-(\d+)/g) || [];
       return refs.map(r => `[${r}]`).join('');
     })
     .replace(/(?<!\[)SRC-(\d+)(?!\])/g, '[SRC-$1]');
-  return normalized.replace(/\[SRC-(\d+)\]/g, (_, n) =>
-    `<sup class="cite"><a href="#ref-${n}" title="Source ${n}">${n}</a></sup>`
-  );
+  return normalized.replace(/\[SRC-(\d+)\]/g, (_, n) => {
+    const num = parseInt(n, 10);
+    if (sourceCount && (num < 1 || num > sourceCount)) {
+      return ''; // Remove out-of-range citation
+    }
+    return `<sup class="cite"><a href="#ref-${n}" title="Source ${n}">${n}</a></sup>`;
+  });
 }
 
-function renderParagraphs(text: string): string {
+function renderParagraphs(text: string, sourceCount?: number): string {
   if (!text) return '';
   return String(text)
     .split(/\n\n+/)
     .filter(Boolean)
-    .map((p) => `<p>${replaceCitations(esc(p).replace(/\n/g, '<br>'))}</p>`)
+    .map((p) => `<p>${replaceCitations(esc(p).replace(/\n/g, '<br>'), sourceCount)}</p>`)
     .join('\n');
 }
 
@@ -47,24 +49,9 @@ export function renderPositionFirstBriefHTML(input: PositionFirstBriefInput): st
   const title = String(analysis.title ?? position.headline ?? question);
   const detectedReason = classification.detectedSubject ?? classification.reasoning ?? question;
 
-  // ── Methodology box ──
+  // ── Minimal metadata line ──
   const providers = [...new Set(sources.map((s) => s.provider).filter(Boolean))];
-  const years = sources.map((s) => s.year).filter((y): y is number => typeof y === 'number' && y > 1900);
-  const yearRange = years.length > 0
-    ? years.length === 1 ? `${years[0]}` : `${Math.min(...years)}–${Math.max(...years)}`
-    : 'n.d.';
-  const methodologyHtml = `
-<section class="nx-block methodology-box" style="background:var(--bg-alt,#f8f9fa);border-radius:8px;padding:16px 20px;margin:24px 0;font-size:13px;color:var(--muted,#666);">
-  <p class="nx-eyebrow" style="margin-bottom:8px;">Methodology</p>
-  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
-    <div><strong>Sources:</strong> ${sources.length} ranked from ${providers.length} providers</div>
-    <div><strong>Providers:</strong> ${providers.join(', ')}</div>
-    <div><strong>Evidence period:</strong> ${yearRange}</div>
-    <div><strong>Analysis depth:</strong> ${isStrategic ? 'Strategic (multi-pass)' : 'Brief (multi-pass)'}</div>
-    <div><strong>Confidence:</strong> ${position.confidence}/100 (${position.confidenceLabel})</div>
-    <div><strong>Cross-domain:</strong> ${classification.isCrossDomain ? 'Yes' : 'No'}</div>
-  </div>
-</section>`;
+  const metaLine = `${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} · ${sources.length} sources · ${providers.length} providers · Confidence: ${position.confidence}/100`;
 
   // ── Structured policy recommendations ──
   const recommendations = (analysis as Record<string, unknown>).recommendations as Record<string, unknown> | undefined;
@@ -80,22 +67,22 @@ export function renderPositionFirstBriefHTML(input: PositionFirstBriefInput): st
   ${immediateRecs.length > 0 ? `
   <div style="margin:12px 0;">
     <p style="font-weight:600;color:var(--text,#222);margin-bottom:4px;">Immediate (0–3 months)</p>
-    <ul>${immediateRecs.map((r) => `<li>${replaceCitations(esc(r))}</li>`).join('')}</ul>
+    <ul>${immediateRecs.map((r) => `<li>${replaceCitations(esc(r), sources.length)}</li>`).join('')}</ul>
   </div>` : ''}
   ${shortTermRecs.length > 0 ? `
   <div style="margin:12px 0;">
     <p style="font-weight:600;color:var(--text,#222);margin-bottom:4px;">Short-term (3–12 months)</p>
-    <ul>${shortTermRecs.map((r) => `<li>${replaceCitations(esc(r))}</li>`).join('')}</ul>
+    <ul>${shortTermRecs.map((r) => `<li>${replaceCitations(esc(r), sources.length)}</li>`).join('')}</ul>
   </div>` : ''}
   ${longTermRecs.length > 0 ? `
   <div style="margin:12px 0;">
     <p style="font-weight:600;color:var(--text,#222);margin-bottom:4px;">Long-term (1–5 years)</p>
-    <ul>${longTermRecs.map((r) => `<li>${replaceCitations(esc(r))}</li>`).join('')}</ul>
+    <ul>${longTermRecs.map((r) => `<li>${replaceCitations(esc(r), sources.length)}</li>`).join('')}</ul>
   </div>` : ''}
   ${riskMitigation.length > 0 ? `
   <div style="margin:12px 0;">
     <p style="font-weight:600;color:#c0392b;margin-bottom:4px;">Risk mitigation</p>
-    <ul>${riskMitigation.map((r) => `<li>${replaceCitations(esc(r))}</li>`).join('')}</ul>
+    <ul>${riskMitigation.map((r) => `<li>${replaceCitations(esc(r), sources.length)}</li>`).join('')}</ul>
   </div>` : ''}
 </section>` : '';
 
@@ -118,7 +105,7 @@ export function renderPositionFirstBriefHTML(input: PositionFirstBriefInput): st
         <span class="scenario-name">${esc(s.name)}${position.dominantScenario === s.name ? ' · base' : ''}</span>
         <span class="scenario-prob">${esc(s.probability)}</span>
       </div>
-      <div class="scenario-desc">${replaceCitations(esc(s.description))}</div>
+      <div class="scenario-desc">${replaceCitations(esc(s.description), sources.length)}</div>
     </div>`
     )
     .join('');
@@ -127,7 +114,7 @@ export function renderPositionFirstBriefHTML(input: PositionFirstBriefInput): st
     position.objections.length > 0
       ? `<section class="nx-block objections">
       <p class="nx-eyebrow">Strongest objections</p>
-      <ul>${position.objections.map((o) => `<li>${replaceCitations(esc(o))}</li>`).join('')}</ul>
+      <ul>${position.objections.map((o) => `<li>${replaceCitations(esc(o), sources.length)}</li>`).join('')}</ul>
     </section>`
       : '';
 
@@ -149,9 +136,9 @@ export function renderPositionFirstBriefHTML(input: PositionFirstBriefInput): st
         const status = String(link.temporalStatus || '');
         const statusLabel = status === 'present_fact' ? 'Present Fact' : status === 'active_mechanism' ? 'Active Mechanism' : status === 'future_extrapolation' ? 'Future Projection' : '';
         const parts: string[] = [];
-        if (claim) parts.push(`<p class="chain-claim">${renderParagraphs(claim)}</p>`);
-        if (evidence && evidence !== claim) parts.push(`<p class="chain-evidence"><span class="chain-label">Evidence:</span> ${renderParagraphs(evidence)}</p>`);
-        if (warrant) parts.push(`<p class="chain-warrant"><span class="chain-label">Mechanism:</span> ${renderParagraphs(warrant)}</p>`);
+        if (claim) parts.push(`<p class="chain-claim">${renderParagraphs(claim, sources.length)}</p>`);
+        if (evidence && evidence !== claim) parts.push(`<p class="chain-evidence"><span class="chain-label">Evidence:</span> ${renderParagraphs(evidence, sources.length)}</p>`);
+        if (warrant) parts.push(`<p class="chain-warrant"><span class="chain-label">Mechanism:</span> ${renderParagraphs(warrant, sources.length)}</p>`);
         return `<div class="chain-link${idx < causalChain.length - 1 ? ' chain-connected' : ''}">
           ${statusLabel ? `<span class="chain-status chain-status-${status}">${statusLabel}</span>` : ''}
           ${parts.join('')}
@@ -164,7 +151,7 @@ export function renderPositionFirstBriefHTML(input: PositionFirstBriefInput): st
   const trajectoryHtml = trajectory
     ? `<section class="nx-block trajectory">
       <p class="nx-eyebrow">Trajectory</p>
-      ${renderParagraphs(String(trajectory.state))}${renderParagraphs(String(trajectory.assumptions))}
+      ${renderParagraphs(String(trajectory.state), sources.length)}${renderParagraphs(String(trajectory.assumptions), sources.length)}
     </section>`
     : '';
 
@@ -178,9 +165,9 @@ export function renderPositionFirstBriefHTML(input: PositionFirstBriefInput): st
         const why = String(ra.whyRejected || '');
         const risk = String(ra.residualRisk || '');
         return `<div class="rejected-alt">
-          ${scenario ? `<p class="rejected-scenario">${renderParagraphs(scenario)}</p>` : ''}
-          ${why ? `<p class="rejected-why"><span class="chain-label">Why rejected:</span> ${renderParagraphs(why)}</p>` : ''}
-          ${risk ? `<p class="rejected-risk"><span class="chain-label">Residual risk:</span> ${renderParagraphs(risk)}</p>` : ''}
+          ${scenario ? `<p class="rejected-scenario">${renderParagraphs(scenario, sources.length)}</p>` : ''}
+          ${why ? `<p class="rejected-why"><span class="chain-label">Why rejected:</span> ${renderParagraphs(why, sources.length)}</p>` : ''}
+          ${risk ? `<p class="rejected-risk"><span class="chain-label">Residual risk:</span> ${renderParagraphs(risk, sources.length)}</p>` : ''}
         </div>`;
       }).join('\n')}
     </section>`
@@ -192,10 +179,10 @@ export function renderPositionFirstBriefHTML(input: PositionFirstBriefInput): st
     ? `<section class="nx-block what-to-watch">
       <p class="nx-eyebrow">Signals to watch</p>
       ${Array.isArray(whatToWatch.signals) && whatToWatch.signals.length > 0
-        ? `<ul>${whatToWatch.signals.map((s: string) => `<li>${replaceCitations(esc(s))}</li>`).join('')}</ul>`
+        ? `<ul>${whatToWatch.signals.map((s: string) => `<li>${replaceCitations(esc(s), sources.length)}</li>`).join('')}</ul>`
         : ''}
-      ${whatToWatch.whatWouldChangeMind ? `<p class="change-mind"><span class="chain-label">What would change our mind:</span> ${renderParagraphs(String(whatToWatch.whatWouldChangeMind))}</p>` : ''}
-      ${whatToWatch.horizonCheck ? `<p class="horizon"><span class="chain-label">Revisit by:</span> ${replaceCitations(esc(String(whatToWatch.horizonCheck)))}</p>` : ''}
+      ${whatToWatch.whatWouldChangeMind ? `<p class="change-mind"><span class="chain-label">What would change our mind:</span> ${renderParagraphs(String(whatToWatch.whatWouldChangeMind), sources.length)}</p>` : ''}
+      ${whatToWatch.horizonCheck ? `<p class="horizon"><span class="chain-label">Revisit by:</span> ${replaceCitations(esc(String(whatToWatch.horizonCheck)), sources.length)}</p>` : ''}
     </section>`
     : '';
 
@@ -205,13 +192,13 @@ export function renderPositionFirstBriefHTML(input: PositionFirstBriefInput): st
     ? `<section class="nx-block evidence-assessment">
       <p class="nx-eyebrow">Evidence assessment</p>
       ${Array.isArray(evidenceAssessment.strongestLinks) && evidenceAssessment.strongestLinks.length > 0
-        ? `<div><p style="font-weight:600;margin-bottom:4px;">Strongest links</p><ul>${evidenceAssessment.strongestLinks.map((l: string) => `<li>${replaceCitations(esc(l))}</li>`).join('')}</ul></div>`
+        ? `<div><p style="font-weight:600;margin-bottom:4px;">Strongest links</p><ul>${evidenceAssessment.strongestLinks.map((l: string) => `<li>${replaceCitations(esc(l), sources.length)}</li>`).join('')}</ul></div>`
         : ''}
-      ${evidenceAssessment.weakestLink ? `<p class="weakest-link"><span class="chain-label">Weakest link:</span> ${renderParagraphs(String(evidenceAssessment.weakestLink))}</p>` : ''}
+      ${evidenceAssessment.weakestLink ? `<p class="weakest-link"><span class="chain-label">Weakest link:</span> ${renderParagraphs(String(evidenceAssessment.weakestLink), sources.length)}</p>` : ''}
       ${Array.isArray(evidenceAssessment.gaps) && evidenceAssessment.gaps.length > 0
         ? `<div><p style="font-weight:600;margin-bottom:4px;">Evidence gaps</p><ul>${evidenceAssessment.gaps.map((g: string) => `<li>${esc(g)}</li>`).join('')}</ul></div>`
         : ''}
-      ${evidenceAssessment.sourceDiversity ? `<p class="source-diversity"><span class="chain-label">Source diversity:</span> ${renderParagraphs(String(evidenceAssessment.sourceDiversity))}</p>` : ''}
+      ${evidenceAssessment.sourceDiversity ? `<p class="source-diversity"><span class="chain-label">Source diversity:</span> ${renderParagraphs(String(evidenceAssessment.sourceDiversity), sources.length)}</p>` : ''}
     </section>`
     : '';
 
@@ -220,7 +207,7 @@ export function renderPositionFirstBriefHTML(input: PositionFirstBriefInput): st
   const keyFindingsHtml = keyFindings.length > 0
     ? `<section class="nx-block key-findings">
       <p class="nx-eyebrow">Key findings</p>
-      <ul>${keyFindings.map((f) => `<li>${replaceCitations(esc(f))}</li>`).join('')}</ul>
+      <ul>${keyFindings.map((f) => `<li>${replaceCitations(esc(f), sources.length)}</li>`).join('')}</ul>
     </section>`
     : '';
 
@@ -231,11 +218,11 @@ export function renderPositionFirstBriefHTML(input: PositionFirstBriefInput): st
 
   const bodyHtml = [
     // Verdict first — no section header
-    verdictText ? `<section class="nx-block verdict"><p class="nx-eyebrow">Position</p><div class="verdict-block">${renderParagraphs(verdictText)}</div></section>` : '',
+    verdictText ? `<section class="nx-block verdict"><p class="nx-eyebrow">Position</p><div class="verdict-block">${renderParagraphs(verdictText, sources.length)}</div></section>` : '',
     // Through line as a lead paragraph
-    throughLine ? `<p class="through-line" style="font-size:1.1em;font-weight:500;color:var(--muted);margin:1.5em 0">${replaceCitations(esc(throughLine))}</p>` : '',
+    throughLine ? `<p class="through-line" style="font-size:1.1em;font-weight:500;color:var(--muted);margin:1.5em 0">${replaceCitations(esc(throughLine), sources.length)}</p>` : '',
     // Anchoring basis
-    anchoringBasis ? `<section class="nx-block anchoring"><p class="nx-eyebrow">Anchoring basis</p><div class="verdict-block">${renderParagraphs(anchoringBasis)}</div></section>` : '',
+    anchoringBasis ? `<section class="nx-block anchoring"><p class="nx-eyebrow">Anchoring basis</p><div class="verdict-block">${renderParagraphs(anchoringBasis, sources.length)}</div></section>` : '',
     // Causal chain as structured section
     chainHtml ? `<section class="nx-block causal-chain"><p class="nx-eyebrow">Causal chain</p>${chainHtml}</section>` : '',
     // Trajectory
@@ -255,33 +242,13 @@ export function renderPositionFirstBriefHTML(input: PositionFirstBriefInput): st
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="generator" content="NomosX Agentic Think Tank — Editorial V2">
   <title>${esc(title)}</title>
   ${CSS}
 </head>
 <body>
   <article class="nomosx-brief">
-    <header class="brief-hero">
-      <div class="brief-brand">${inlineLockupSvg(16, { mono: true })}<span class="brief-brand-tag">Agentic Think Tank</span></div>
-      <p class="nx-eyebrow">Detected subject</p>
-      <h1>${esc(title)}</h1>
-      <p class="collision-line">${esc(collision)}</p>
-      <p class="collision-line">${replaceCitations(esc(detectedReason))}</p>
-      <span class="urgency">${esc(classification.urgency)} signal · ${classification.isCrossDomain ? 'cross-domain' : 'focused'} inquiry</span>
-      <div class="metadata-bar">
-        ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
-        · ${sources.length} sources
-        · ${[...new Set(sources.map((s) => s.provider).filter(Boolean))].length} providers
-      </div>
-    </header>
-
-    <section class="nx-block">
-      <p class="nx-eyebrow">Dedicated team</p>
-      <p style="font-size:13px;color:var(--muted);margin-bottom:4px">${esc(casting.productiveFriction)}</p>
-      <div class="team-grid">${teamHtml}</div>
-    </section>
-
-    ${methodologyHtml}
+    <h1>${esc(title)}</h1>
+    <div class="brief-meta">${esc(metaLine)}</div>
 
     <section class="nx-block">
       <p class="nx-eyebrow">Probable futures</p>
@@ -299,11 +266,6 @@ export function renderPositionFirstBriefHTML(input: PositionFirstBriefInput): st
       <h2>Sources</h2>
       ${apaCitations.map((c) => renderAPAHtml(c)).join('\n')}
     </section>
-
-    <footer class="brief-footer">
-      ${BRAND_BRIEF_FOOTER}
-      <div style="margin-top:0.75rem;font-size:0.5rem;letter-spacing:0.08em;color:rgba(240,240,250,0.15);text-transform:none;line-height:1.6;">${BRAND_MANIFESTO.replace(/\n/g, '<br/>')}</div>
-    </footer>
   </article>
 </body>
 </html>`;

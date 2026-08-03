@@ -111,7 +111,7 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
             decisions owned, evidence verified.
           </p>
 
-          <div className="flex items-center justify-center gap-3 text-xs text-white/30 tracking-[0.15em] uppercase font-mono">
+          <div className="flex items-center justify-center gap-3 text-xs text-white/50 tracking-[0.15em] uppercase font-mono">
             <span>{BRAND_SOURCES_LABEL} Sources</span>
             <div className="w-1 h-1 rounded-full bg-white/30" />
             <span>Auto-published</span>
@@ -175,7 +175,7 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
                   autoFocus={!isSignup}
                   className={`${inputFocus} pl-11`}
                 />
-                <Mail size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/35" />
+                <Mail size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/50" />
               </div>
             </div>
 
@@ -237,11 +237,11 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
           <div className="relative space-y-6">
             {forgotSent ? (
               <div className="text-center py-4">
-                <div className="w-10 h-10 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center mx-auto mb-4">
-                  <span className="text-emerald-400 text-sm">✓</span>
+                <div className="w-10 h-10 rounded-full bg-white/10 border border-white/30 flex items-center justify-center mx-auto mb-4">
+                  <span className="text-white text-sm">✓</span>
                 </div>
                 <p className="text-sm text-white/60 mb-1">Check your inbox</p>
-                <p className="text-xs text-white/35">If an account exists with that email, you&apos;ll receive a reset link.</p>
+                <p className="text-xs text-white/50">If an account exists with that email, you&apos;ll receive a reset link.</p>
               </div>
             ) : (
               <>
@@ -265,7 +265,7 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
                       autoFocus
                       className="w-full px-4 py-3 pl-11 bg-white/[0.03] border border-white/10 text-white placeholder-white/20 text-base focus:outline-none focus:border-white/35 transition-colors"
                     />
-                    <Mail size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/35" />
+                    <Mail size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/50" />
                   </div>
                 </div>
                 <button
@@ -314,8 +314,8 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
           <div className="flex items-center justify-center gap-4 mb-4">
             <div className="flex items-center gap-1.5 text-xs text-white/40">
               <div className="relative flex-shrink-0">
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                <div className="absolute top-0.5 left-0.5 w-0.5 h-0.5 rounded-full bg-emerald-400/60 animate-pulse" />
+                <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                <div className="absolute top-0.5 left-0.5 w-0.5 h-0.5 rounded-full bg-white/60 animate-pulse" />
               </div>
               <span>Enterprise-grade security</span>
             </div>
@@ -328,9 +328,9 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
             </div>
           </div>
 
-          <p className="text-xs text-white/30 text-center leading-relaxed">
+          <p className="text-xs text-white/50 text-center leading-relaxed">
             By continuing, you agree to our{" "}
-            <a href="/terms" className="text-white/45 hover:text-white transition-colors">
+            <a href="/terms" className="text-white/70 hover:text-white transition-colors">
               Terms of Service
             </a>{" "}
             and{" "}

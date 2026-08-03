@@ -54,17 +54,20 @@ class RateLimiter {
   }
 
   async acquire(): Promise<void> {
-    this.refill();
+    // Loop until a token is actually available — prevents thundering herd:
+    // N concurrent waiters must NOT all proceed after a single wait period.
+    while (true) {
+      this.refill();
 
-    if (this.tokens >= 1) {
-      this.tokens -= 1;
-      return Promise.resolve();
+      if (this.tokens >= 1) {
+        this.tokens -= 1;
+        return;
+      }
+
+      // Wait for next token, then RE-CHECK (another waiter may have taken it)
+      const waitTime = (1 - this.tokens) / this.requestsPerSecond * 1000;
+      await new Promise((resolve) => setTimeout(resolve, Math.max(waitTime, 25)));
     }
-
-    // Wait for next token
-    const waitTime = (1 - this.tokens) / this.requestsPerSecond * 1000;
-    await new Promise((resolve) => setTimeout(resolve, waitTime));
-    this.tokens = 0;
   }
 }
 
@@ -83,7 +86,10 @@ export function setRateLimiter(provider: string, config: RateLimitConfig) {
 }
 
 // Default rate limits for known providers
-setRateLimiter("openalex", { requestsPerSecond: 2, burstSize: 2 });
+// OpenAlex: premium api_key = 10 req/s guaranteed; polite pool = ~5 req/s
+setRateLimiter("openalex", process.env.OPENALEX_API_KEY
+  ? { requestsPerSecond: 10, burstSize: 20 }
+  : { requestsPerSecond: 5, burstSize: 10 });
 setRateLimiter("crossref", { requestsPerSecond: 50, burstSize: 100 });
 setRateLimiter("semanticscholar", { requestsPerSecond: 1, burstSize: 2 });
 setRateLimiter("unpaywall", { requestsPerSecond: 10, burstSize: 20 });
@@ -115,7 +121,16 @@ setRateLimiter("political-science", { requestsPerSecond: 3, burstSize: 5 });
 setRateLimiter("business", { requestsPerSecond: 3, burstSize: 5 });
 setRateLimiter("dblp", { requestsPerSecond: 3, burstSize: 5 });
 setRateLimiter("zbmath", { requestsPerSecond: 3, burstSize: 5 });
-setRateLimiter("gdelt-news", { requestsPerSecond: 0.2, burstSize: 1 });
+setRateLimiter("gdelt-news", { requestsPerSecond: 0.5, burstSize: 1 });
+setRateLimiter("google-books", { requestsPerSecond: 2, burstSize: 3 });
+setRateLimiter("springer", { requestsPerSecond: 3, burstSize: 5 });
+setRateLimiter("osti", { requestsPerSecond: 3, burstSize: 5 });
+setRateLimiter("doaj", { requestsPerSecond: 5, burstSize: 10 });
+setRateLimiter("plos", { requestsPerSecond: 3, burstSize: 5 });
+setRateLimiter("federal-register", { requestsPerSecond: 3, burstSize: 5 });
+setRateLimiter("sec-edgar", { requestsPerSecond: 5, burstSize: 8 }); // SEC allows 10 req/s
+setRateLimiter("worldbank-docs", { requestsPerSecond: 3, burstSize: 5 });
+setRateLimiter("cordis", { requestsPerSecond: 2, burstSize: 3 });
 
 // ================================
 // HTTP CLIENT
@@ -227,14 +242,13 @@ export async function httpGet<T = any>(
                 retryAfterMs = Math.min(parsed * 1000, cap);
               }
             }
-            // SemanticScholar & OpenAlex: no Retry-After = rate-limited → fail-fast, don't waste retries
+            // SemanticScholar: no Retry-After = rate-limited → fail-fast, don't waste retries
             if (url.includes('semanticscholar.org') && !retryAfterRaw) {
               throw new HttpError(`HTTP 429 ${response.statusText}`, 429, text.slice(0, 500));
             }
-            // OpenAlex: fail-fast on 429 — 30+ institutional providers piggyback on it,
-            // retrying just cascades 429s and blocks the pipeline for minutes.
-            if (url.includes('openalex.org')) {
-              throw new HttpError(`HTTP 429 ${response.statusText}`, 429, text.slice(0, 500));
+            // OpenAlex: allow 1 retry with proper backoff (rate limiter is now 5 req/s)
+            if (url.includes('openalex.org') && !retryAfterRaw) {
+              backoff = 15000; // 15s cooldown for OpenAlex
             }
             // OpenAlex: at least 15s; generic: at least 10s
             const minCooldown = url.includes('openalex.org') ? 15000 : 10000;
@@ -371,9 +385,30 @@ export async function fetchFromProvider<T = any>(
   url: string,
   options: Omit<HttpOptions, "rateLimit"> = {}
 ): Promise<T> {
-  const limiter = getRateLimiter(provider);
+  // Shared-upstream detection: many providers piggyback on the same API
+  // (30+ institutional providers hit api.openalex.org). Rate-limit by the
+  // ACTUAL upstream host, not the provider label, to avoid 429 cascades.
+  let limiterKey = provider;
+  if (url.includes("openalex.org")) limiterKey = "openalex";
+  else if (url.includes("semanticscholar.org")) limiterKey = "semanticscholar";
+  else if (url.includes("api.crossref.org")) limiterKey = "crossref";
+  else if (url.includes("doaj.org")) limiterKey = "doaj";
+
+  const limiter = getRateLimiter(limiterKey);
   if (limiter) {
     await limiter.acquire();
+  }
+
+  // Central OpenAlex auth: inject api_key (premium credit) or mailto (polite pool)
+  // on ALL openalex.org calls — piggybacking providers previously called anonymously.
+  if (limiterKey === "openalex") {
+    const oaKey = env.OPENALEX_API_KEY || process.env.OPENALEX_API_KEY;
+    if (oaKey && !url.includes("api_key=")) {
+      url += (url.includes("?") ? "&" : "?") + `api_key=${encodeURIComponent(oaKey)}`;
+    } else if (!oaKey && !url.includes("mailto=")) {
+      const mailto = process.env.OPENALEX_MAILTO || env.UNPAYWALL_EMAIL || "contact@nomosx.com";
+      url += (url.includes("?") ? "&" : "?") + `mailto=${encodeURIComponent(mailto)}`;
+    }
   }
 
   // Add provider-specific headers

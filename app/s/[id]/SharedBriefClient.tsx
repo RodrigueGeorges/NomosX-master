@@ -29,7 +29,7 @@ export function SharedBriefClient({ brief }: SharedBriefClientProps) {
     <PublicPageShell particles={0}>
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
         <div className="flex items-center justify-between mb-10 pb-6 border-b border-white/[0.08]">
-          <span className={nx.eyebrow}>Shared inquiry</span>
+          <span className={nx.eyebrow}>Shared brief</span>
           <Link href="/?auth=required" className={cn(nx.btnPrimary, "px-5 py-2.5")}>
             Get access
           </Link>
@@ -51,7 +51,7 @@ export function SharedBriefClient({ brief }: SharedBriefClientProps) {
               {brief.title}
             </h1>
           )}
-          <p className="text-sm text-white/30 flex flex-wrap gap-3 font-mono">
+          <p className="text-sm text-white/50 flex flex-wrap gap-3 font-mono">
             {brief.publishedAt && (
               <span>
                 {new Date(brief.publishedAt).toLocaleDateString("en-GB", {

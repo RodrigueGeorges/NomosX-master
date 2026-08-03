@@ -256,11 +256,11 @@ export async function sendWelcomeEmail(email: string, topicName: string) {
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #EDE9E2; background: #0B0E12; }
         .container { max-width: 600px; margin: 0 auto; padding: 40px 20px; }
         .header { text-align: center; margin-bottom: 40px; }
-        .logo { font-size: 32px; font-weight: 700; color: #5EEAD4; }
+        .logo { font-size: 32px; font-weight: 700; color: #ffffff; }
         .content { background: #10151D; border: 1px solid #232833; border-radius: 16px; padding: 32px; }
         h1 { color: #EDE9E2; font-size: 24px; margin-bottom: 16px; }
         p { color: #8B8F98; line-height: 1.6; margin-bottom: 16px; }
-        .topic { display: inline-block; background: rgba(94,234,212,0.1); border: 1px solid rgba(94,234,212,0.3); color: #5EEAD4; padding: 8px 16px; border-radius: 8px; margin: 8px 0; }
+        .topic { display: inline-block; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.2); color: #ffffff; padding: 8px 16px; border-radius: 8px; margin: 8px 0; }
         .footer { text-align: center; margin-top: 32px; color: #5A5E66; font-size: 14px; }
       </style>
     </head>

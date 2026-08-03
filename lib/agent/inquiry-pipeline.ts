@@ -63,17 +63,17 @@ function depthToPipelineFormat(
 
   switch (depth) {
     case "surface":
-      base = { format: "brief", options: { rankOptions: { limit: 6 }, perProvider: 12 } };
+      base = { format: "brief", options: { perProvider: 15 } };
       break;
     case "standard":
-      base = { format: "brief", options: { perProvider: 20 } };
+      base = { format: "brief", options: { perProvider: 30 } };
       break;
     case "deep":
       base = {
         format: "strategic",
         options: {
-          perProvider: 25,
-          rankOptions: { limit: 20, requireAbstract: false, minQuality: 0 },
+          perProvider: 50,
+          rankOptions: { requireAbstract: false, minQuality: 0 },
         },
       };
       break;
@@ -81,8 +81,8 @@ function depthToPipelineFormat(
       base = {
         format: "strategic",
         options: {
-          perProvider: 30,
-          rankOptions: { limit: 25, requireAbstract: false, minQuality: 0 },
+          perProvider: 80,
+          rankOptions: { requireAbstract: false, minQuality: 0 },
         },
       };
       break;

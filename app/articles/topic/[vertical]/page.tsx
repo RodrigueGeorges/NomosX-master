@@ -92,7 +92,7 @@ export default function TopicPage() {
             onClick={() => router.push(PUBLIC_ROUTES.archives)}
             className="text-white/60 hover:text-white text-sm transition-colors"
           >
-            ← Back to inquiries
+            ← Back to briefs
           </button>
         </div>
         {showAuthModal && (
@@ -119,7 +119,7 @@ export default function TopicPage() {
             className="flex items-center gap-2 text-white/40 hover:text-white transition-colors text-sm mb-8"
           >
             <ArrowLeft size={14} />
-            All inquiries
+            All briefs
           </button>
 
           <PageHeader
@@ -158,7 +158,7 @@ export default function TopicPage() {
                   >
                     Previous
                   </button>
-                  <span className="font-mono text-sm text-white/30">
+                  <span className="font-mono text-sm text-white/50">
                     {page} / {totalPages}
                   </span>
                   <button

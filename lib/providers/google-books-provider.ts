@@ -6,6 +6,8 @@
  * Endpoint: https://www.googleapis.com/books/v1/volumes
  */
 
+import { fetchFromProvider } from '../http-client';
+
 const GOOGLE_BOOKS_API_KEY = process.env.GOOGLE_BOOKS_API_KEY || "";
 const GOOGLE_BOOKS_ENDPOINT = "https://www.googleapis.com/books/v1/volumes";
 
@@ -21,17 +23,14 @@ export async function searchGoogleBooks(query: string, limit = 15): Promise<any[
       params.set('key', GOOGLE_BOOKS_API_KEY);
     }
 
-    const response = await fetch(`${GOOGLE_BOOKS_ENDPOINT}?${params}`, {
-      signal: AbortSignal.timeout(15000),
+    const data: any = await fetchFromProvider('google-books', `${GOOGLE_BOOKS_ENDPOINT}?${params}`, {
+      timeout: 15000,
+      retries: 3,
+      retryDelay: 2000,
     });
 
-    if (!response.ok) {
-      console.warn(`[SCOUT/GoogleBooks] HTTP ${response.status}`);
-      return [];
-    }
-
-    const data = await response.json() as any;
     const items = data?.items || [];
+
 
     if (!Array.isArray(items)) {
       console.warn('[SCOUT/GoogleBooks] unexpected response format');

@@ -67,7 +67,8 @@ export type LLMTask =
   | "analysis"
   | "strategic_analysis"
   | "critique"
-  | "rewrite";
+  | "rewrite"
+  | "reflection";
 
 /** Maps deprecated task names (pre-Phase-0) onto the new task vocabulary. */
 const LEGACY_TASK_ALIAS: Partial<Record<LLMTask, LLMTask>> = {
@@ -145,7 +146,7 @@ const PROVIDER_DEFAULT_TIMEOUT_MS: Record<LLMProvider, number> = {
   glm: 180_000,
   openai: 60_000,
   anthropic: 90_000,
-  kimi: 120_000,
+  kimi: 300_000,
 };
 
 /** Hard floor per provider — never go below this even if a task requests less. */
@@ -154,7 +155,7 @@ const PROVIDER_MIN_TIMEOUT_MS: Record<LLMProvider, number> = {
   glm: 180_000,
   openai: 30_000,
   anthropic: 30_000,
-  kimi: 60_000,
+  kimi: 120_000,
 };
 
 const TASK_ASSIGNMENT: Record<LLMTask, TaskAssignment> = {
@@ -173,20 +174,22 @@ const TASK_ASSIGNMENT: Record<LLMTask, TaskAssignment> = {
   // Heavy INPUT + OUTPUT — Kimi K3 (Index 57, 1M context, 128K output, $3/$15)
   // K3's cache hit rate hits 90% on repeated context → effective input ~$0.30/M.
   // GLM stays as fallback for its 1M context window when Kimi is unavailable.
-  reader_v3:              { provider: "kimi", model: "kimi-k3", timeoutMs: 120_000 },
-  strategic_analyst:      { provider: "kimi", model: "kimi-k3", timeoutMs: 180_000 },
-  harvard_council:        { provider: "kimi", model: "kimi-k3", timeoutMs: 120_000 },
-  elenchus:               { provider: "kimi", model: "kimi-k3", timeoutMs: 120_000 },
+  reader_v3:              { provider: "kimi", model: "kimi-k3", timeoutMs: 300_000 },
+  strategic_analyst:      { provider: "kimi", model: "kimi-k3", timeoutMs: 300_000 },
+  harvard_council:        { provider: "kimi", model: "kimi-k3", timeoutMs: 300_000 },
+  elenchus:               { provider: "kimi", model: "kimi-k3", timeoutMs: 300_000 },
 
   // Heavy structured-JSON OUTPUT — Kimi K3 for deep reasoning + 128K output.
   // Produces 5000+ word analyses without truncation. DeepSeek Flash as fallback.
-  analyst_brief:          { provider: "kimi", model: "kimi-k3", timeoutMs: 180_000 },
-  auto_revision:          { provider: "kimi", model: "kimi-k3", timeoutMs: 180_000 },
-  editorial_arbiter:      { provider: "kimi", model: "kimi-k3", timeoutMs: 120_000 },
+  // DeepSeek as primary for analyst_brief: Kimi K3 consistently times out (180s+)
+  // on strategic-depth passes. DeepSeek Flash is faster and cheaper, with Kimi as fallback.
+  analyst_brief:          { provider: "deepseek", model: "deepseek-v4-flash", timeoutMs: 300_000 },
+  auto_revision:          { provider: "kimi", model: "kimi-k3", timeoutMs: 300_000 },
+  editorial_arbiter:      { provider: "kimi", model: "kimi-k3", timeoutMs: 300_000 },
 
-  // Verification / analysis — Anthropic Sonnet 5 (precision, $2/$10 intro pricing)
-  meta_analysis:          { provider: "anthropic", model: "claude-sonnet-5", timeoutMs: 90_000 },
-  structural_editor:      { provider: "anthropic", model: "claude-sonnet-5", timeoutMs: 60_000 },
+  // Verification / analysis — Anthropic Opus 5 (best reasoning, $5/$25 per M)
+  meta_analysis:          { provider: "anthropic", model: "claude-opus-5", timeoutMs: 90_000 },
+  structural_editor:      { provider: "anthropic", model: "claude-opus-5", timeoutMs: 60_000 },
 
   // Conversational
   studiox:                { provider: "deepseek", model: "deepseek-v4-flash", timeoutMs: 60_000 },
@@ -201,6 +204,7 @@ const TASK_ASSIGNMENT: Record<LLMTask, TaskAssignment> = {
   strategic_analysis:     { provider: "glm", model: "glm-5.2", timeoutMs: 180_000 },
   critique:               { provider: "glm", model: "glm-5.2", timeoutMs: 120_000 },
   rewrite:                { provider: "deepseek", model: "deepseek-v4-flash", timeoutMs: 120_000 },
+  reflection:             { provider: "deepseek", model: "deepseek-v4-flash", timeoutMs: 30_000 },
 };
 
 /** Fast tasks — used to pick fast vs. reasoning model on FALLBACK providers. */
@@ -510,7 +514,7 @@ function resolveModelForTask(provider: LLMProvider, task: LLMTask): string {
     case "openai":
       return isFast ? "gpt-4o-mini" : (env.OPENAI_MODEL || "gpt-4o");
     case "anthropic":
-      return isFast ? "claude-haiku-4-5-20251001" : "claude-sonnet-5";
+      return isFast ? "claude-sonnet-5" : "claude-opus-5";
     case "kimi":
       return "kimi-k3";
   }
@@ -523,9 +527,12 @@ function resolveModelForTask(provider: LLMProvider, task: LLMTask): string {
  */
 function getCallTimeout(provider: LLMProvider, task: LLMTask): number {
   const assignment = TASK_ASSIGNMENT[task];
+  // On fallback providers, keep the task's assigned timeout as a floor:
+  // a heavy task (300s on Kimi) must NOT drop to the provider default (60s)
+  // when failing over — that guarantees a second timeout.
   const taskTimeout = provider === assignment.provider
     ? assignment.timeoutMs
-    : PROVIDER_DEFAULT_TIMEOUT_MS[provider];
+    : Math.max(assignment.timeoutMs, PROVIDER_DEFAULT_TIMEOUT_MS[provider]);
   return Math.max(taskTimeout, PROVIDER_MIN_TIMEOUT_MS[provider]);
 }
 
@@ -610,61 +617,73 @@ async function callOpenAICompatible(
     }
   }
 
-  // GLM is a reasoning model: it consumes tokens in reasoning_content before
-  // producing visible content. Double the maxTokens budget so it has enough
-  // room for both reasoning and output, preventing finish_reason=length with
-  // empty content.
+  // Provider-specific maxTokens adjustments:
+  // - GLM: reasoning model, doubles token budget (reasoning_content consumes tokens)
+  // - Kimi: reasoning_effort=low still uses some tokens, enforce min 2000
+  // - DeepSeek: thinking disabled for fast tasks but enabled for reasoning, double budget
+  // - OpenAI: use requested value as-is
   let effectiveMaxTokens = request.maxTokens ?? 4000;
   if (provider === "glm") {
     effectiveMaxTokens = Math.max(effectiveMaxTokens * 2, 8000);
   }
-  // Kimi K3 has overhead even with thinking disabled. Ensure minimum 2000
-  // tokens so short JSON tasks don't return empty content.
   if (provider === "kimi") {
     effectiveMaxTokens = Math.max(effectiveMaxTokens, 2000);
   }
+  if (provider === "deepseek") {
+    effectiveMaxTokens = Math.max(effectiveMaxTokens * 2, 2000);
+  }
 
-  // Kimi K3 defaults to max thinking effort, which wastes tokens on reasoning
-  // before producing JSON output. For JSON mode, disable thinking to get clean
-  // structured output. For reasoning tasks (elenchus, analyst), keep thinking on.
+  // Kimi K3: always thinks, reasoning_effort controls depth (low/high/max).
+  // Use "low" for fast/JSON tasks to minimize token waste, "high" for reasoning.
+  // Per docs: temperature, top_p, n are fixed — do NOT pass them explicitly.
   const kimiExtraBody: Record<string, unknown> = {};
   if (provider === "kimi") {
     const normalizedTask = normalizeTask(request.task);
     const reasoningTasks = new Set(["elenchus", "reader_v3", "strategic_analyst", "analyst_brief", "auto_revision", "editorial_arbiter", "harvard_council", "critique", "extraction", "strategic_analysis"]);
-    const shouldThink = reasoningTasks.has(normalizedTask);
-    kimiExtraBody.enable_thinking = shouldThink;
-    if (!shouldThink) {
-      kimiExtraBody.thinking_budget = 0;
-    }
+    kimiExtraBody.reasoning_effort = reasoningTasks.has(normalizedTask) ? "high" : "low";
   }
 
-  // GLM-5.2 thinking control: disable reasoning for fast/extraction tasks and
-  // JSON mode to save tokens + latency (z.ai docs: "use thinking off for
-  // extraction, rewriting, classification"). Keep thinking enabled for
-  // reasoning-heavy tasks (elenchus, reader_v3, strategic_analyst).
+  // GLM-5.2 thinking control: disable reasoning for fast/JSON tasks to save
+  // tokens + latency. Keep thinking enabled for reasoning-heavy tasks.
+  // Per docs: thinking={type:"enabled"|"disabled"}, reasoning_effort="max"|"high"|"low"|"none".
   const glmExtraBody: Record<string, unknown> = {};
   if (provider === "glm") {
     const normalizedTask = normalizeTask(request.task);
     const reasoningTasks = new Set(["elenchus", "reader_v3", "strategic_analyst", "critique", "extraction", "strategic_analysis"]);
     const shouldThink = reasoningTasks.has(normalizedTask) && !request.jsonMode;
     glmExtraBody.thinking = { type: shouldThink ? "enabled" : "disabled" };
+    if (shouldThink) {
+      glmExtraBody.reasoning_effort = "high";
+    }
   }
 
-  // Kimi K3 requires temperature=1 in ALL cases (API constraint)
-  let effectiveTemperature = request.temperature ?? 0.2;
-  if (provider === "kimi") {
-    effectiveTemperature = 1;
+  // Temperature handling per provider:
+  // - Kimi K3: fixed at 1.0, must NOT be passed explicitly (API returns error)
+  // - GLM-5.2: default 1.0, adjustable — use requested temperature
+  // - DeepSeek: adjustable, use requested temperature
+  // - OpenAI: adjustable, use requested temperature
+  const effectiveTemperature = request.temperature ?? 0.2;
+  const shouldSendTemperature = provider !== "kimi";
+
+  // DeepSeek V4: thinking is ON by default. Disable for fast/JSON tasks.
+  const deepseekExtraBody: Record<string, unknown> = {};
+  if (provider === "deepseek") {
+    const normalizedTask = normalizeTask(request.task);
+    const reasoningTasks = new Set(["elenchus", "reader_v3", "strategic_analyst", "analyst_brief", "auto_revision", "editorial_arbiter", "harvard_council", "critique", "extraction", "strategic_analysis"]);
+    const shouldThink = reasoningTasks.has(normalizedTask) && !request.jsonMode;
+    deepseekExtraBody.thinking = { type: shouldThink ? "enabled" : "disabled" };
   }
 
   const completion = await withRetry(
     () => client.chat.completions.create({
       model: effectiveModel,
       messages: request.messages as any,
-      temperature: effectiveTemperature,
+      ...(shouldSendTemperature ? { temperature: effectiveTemperature } : {}),
       max_tokens: effectiveMaxTokens,
       response_format: request.jsonMode ? { type: "json_object" } as any : undefined,
-      ...(provider === "glm" ? { extra_body: glmExtraBody } : {}),
+      ...(provider === "glm" ? glmExtraBody : {}),
       ...(provider === "kimi" ? kimiExtraBody : {}),
+      ...(provider === "deepseek" ? deepseekExtraBody : {}),
     } as any),
     `${provider}/${effectiveModel}`,
   );
@@ -720,29 +739,74 @@ async function callAnthropic(request: LLMRequest, model: string): Promise<LLMRes
   const systemMessage = request.messages.find((m) => m.role === "system")?.content || "";
   const userMessages = request.messages.filter((m) => m.role !== "system");
   
-  // Claude Opus 5 and Sonnet 5 reject the temperature parameter.
-  // Only send it for older models (claude-3-*, claude-haiku-*).
+  // Claude Opus 5 / Sonnet 5: temperature/top_p/top_k return 400 error if non-default.
+  // Thinking is ON by default and shares max_tokens budget (thinking + text).
+  // For fast/JSON tasks, disable thinking to save tokens and avoid empty content.
   const isNewClaude = model.startsWith("claude-opus-5") || model.startsWith("claude-sonnet-5");
-  const completion = await withRetry<Anthropic.Message>(
-    () => client.messages.create({
-      model,
-      max_tokens: request.maxTokens ?? 4000,
-      ...(isNewClaude ? {} : { temperature: request.temperature ?? 0.2 }),
-      system: systemMessage,
-      messages: userMessages.map((m) => ({
-        role: m.role as "user" | "assistant",
-        content: m.content,
-      })),
-    }),
-    `Anthropic/${model}`
-  );
-  
-  const content = completion.content[0]?.type === "text" ? completion.content[0].text : "";
-  const tokensInput = completion.usage.input_tokens;
-  const tokensOutput = completion.usage.output_tokens;
+  const normalizedTask = normalizeTask(request.task);
+  const reasoningTasks = new Set(["elenchus", "reader_v3", "strategic_analyst", "analyst_brief", "auto_revision", "editorial_arbiter", "harvard_council", "critique", "extraction", "strategic_analysis"]);
+  const shouldThink = reasoningTasks.has(normalizedTask);
+
+  // For new Claude with thinking: max_tokens covers thinking + text, so double it.
+  // For new Claude without thinking: use requested max_tokens as-is.
+  let effectiveMaxTokens = request.maxTokens ?? 4000;
+  if (isNewClaude && shouldThink) {
+    effectiveMaxTokens = Math.max(effectiveMaxTokens * 2, 8000);
+  }
+
+  // Use streaming for heavy tasks to avoid Anthropic's 10-minute non-streaming limit.
+  // Light tasks (fact_check, citation_verification, structural_editor, meta_analysis) use non-streaming.
+  const heavyTasks = new Set(["analyst_brief", "auto_revision", "editorial_arbiter", "elenchus", "reader_v3", "strategic_analyst", "harvard_council"]);
+  const useStreaming = heavyTasks.has(normalizedTask);
+
+  let content: string;
+  let tokensInput: number;
+  let tokensOutput: number;
+
+  if (useStreaming) {
+    // Stream the response to avoid the 10-minute timeout error
+    const stream = await withRetry<any>(
+      () => Promise.resolve(client.messages.stream({
+        model,
+        max_tokens: effectiveMaxTokens,
+        ...(isNewClaude ? {} : { temperature: request.temperature ?? 0.2 }),
+        ...(isNewClaude && !shouldThink ? { thinking: { type: "disabled" as const } } : {}),
+        system: systemMessage,
+        messages: userMessages.map((m) => ({
+          role: m.role as "user" | "assistant",
+          content: m.content,
+        })),
+      } as any)),
+      `Anthropic/${model} (stream)`
+    );
+    const finalMessage = await stream.finalMessage();
+    const textBlock = finalMessage.content.find((b: any) => b.type === "text") as { text?: string } | undefined;
+    content = textBlock?.text ?? "";
+    tokensInput = finalMessage.usage.input_tokens;
+    tokensOutput = finalMessage.usage.output_tokens;
+  } else {
+    const completion = await withRetry<Anthropic.Message>(
+      () => client.messages.create({
+        model,
+        max_tokens: effectiveMaxTokens,
+        ...(isNewClaude ? {} : { temperature: request.temperature ?? 0.2 }),
+        ...(isNewClaude && !shouldThink ? { thinking: { type: "disabled" as const } } : {}),
+        system: systemMessage,
+        messages: userMessages.map((m) => ({
+          role: m.role as "user" | "assistant",
+          content: m.content,
+        })),
+      } as any),
+      `Anthropic/${model}`
+    );
+    const textBlock = completion.content.find((b) => b.type === "text") as { text?: string } | undefined;
+    content = textBlock?.text ?? "";
+    tokensInput = completion.usage.input_tokens;
+    tokensOutput = completion.usage.output_tokens;
+  }
 
   if (!content.trim()) {
-    throw new Error(`anthropic/${model} returned empty content (stop_reason=${completion.stop_reason}, out_tokens=${tokensOutput})`);
+    throw new Error(`anthropic/${model} returned empty content (out_tokens=${tokensOutput})`);
   }
   if (request.jsonMode && !isParseableJson(content)) {
     throw new Error(`anthropic/${model} returned non-parseable JSON (jsonMode=true) — triggering failover`);
@@ -969,13 +1033,14 @@ export async function streamLLM(
   }
   const model = resolveModelForTask(provider, task);
 
-  // Kimi K3 requires temperature=1; other OpenAI-compatible providers use the requested temperature
-  const streamTemperature = provider === "kimi" ? 1 : (request.temperature ?? 0.2);
+  // Kimi K3: temperature is fixed at 1.0 and must not be passed explicitly.
+  const shouldSendTemp = provider !== "kimi";
+  const streamTemperature = request.temperature ?? 0.2;
 
   const stream = await client.chat.completions.create({
     model,
     messages: request.messages as any,
-    temperature: streamTemperature,
+    ...(shouldSendTemp ? { temperature: streamTemperature } : {}),
     max_tokens: request.maxTokens ?? 4000,
     stream: true,
   }) as AsyncIterable<{ choices: Array<{ delta?: { content?: string } }> }>;
@@ -1073,10 +1138,10 @@ export async function checkLLMHealth(): Promise<Record<LLMProvider, boolean>> {
     const client = getAnthropicClient();
     if (client) {
       await client.messages.create({
-        model: "claude-haiku-4-5-20251001",
+        model: "claude-sonnet-5",
         max_tokens: 1,
         messages: [{ role: "user", content: "ping" }],
-      });
+      } as any);
       health.anthropic = true;
     }
   } catch (err) {
@@ -1090,7 +1155,6 @@ export async function checkLLMHealth(): Promise<Record<LLMProvider, boolean>> {
       await client.chat.completions.create({
         model: "kimi-k3",
         max_tokens: 1,
-        temperature: 1,
         messages: [{ role: "user", content: "ping" }],
       } as any);
       health.kimi = true;

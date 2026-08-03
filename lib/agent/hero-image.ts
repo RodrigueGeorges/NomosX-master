@@ -60,7 +60,6 @@ export async function generateHeroImage(
         n: 1,
         size: '1792x1024',
         quality: 'standard',
-        style: 'vivid',
       }),
       signal: AbortSignal.timeout(30000),
     });

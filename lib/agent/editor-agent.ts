@@ -14,7 +14,6 @@
  */
 
 import { formatAPA, renderAPAHtml } from './pipeline-types';
-import { inlineLockupSvg } from '@/lib/brand/logo-inline';
 
 // ============================================================================
 // HTML ESCAPING
@@ -71,15 +70,11 @@ function extractGoverningThought(content: string): string {
   return sentences[0]?.slice(0, 200) || '';
 }
 
-function section(heading: string, content: any, icon?: string, governingThought?: string): string {
+function section(heading: string, content: any): string {
   if (!content) return "";
-  const iconHtml = icon ? `<span class="section-icon">${icon}</span> ` : "";
-  const gtHtml = governingThought ? `
-      <div class="governing-thought">${replaceCitations(esc(governingThought))}</div>` : "";
   return `
     <section class="brief-section">
-      <h2>${iconHtml}${esc(heading)}</h2>
-      ${gtHtml}
+      <h2>${esc(heading)}</h2>
       ${renderParagraphs(String(content))}
     </section>`;
 }
@@ -162,7 +157,7 @@ function sourceDistributionSVG(sources: any[]): string {
   const labelWidth = 120;
   const svgHeight = entries.length * (barHeight + gap) + 10;
 
-  const colors = ["#3B82F6", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6", "#EC4899", "#06B6D4", "#84CC16"];
+  const colors = ["#ffffff", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6", "#EC4899", "#06B6D4", "#84CC16"];
 
   const bars = entries.map(([provider, count], i) => {
     const width = Math.max(8, (count / maxCount) * barWidth);
@@ -215,11 +210,11 @@ const BRIEF_CSS = `
     --bg-elevated: #141414;
     --text: #e4e4e7;
     --text-muted: #a1a1aa;
-    --text-dim: #52525b;
+    --text-dim: #71717a;
     --accent: #ffffff;
-    --accent-green: #10B981;
+    --accent-green: #ffffff;
     --accent-red: #F87171;
-    --accent-amber: #F59E0B;
+    --accent-amber: #FBBF24;
     --border: rgba(255,255,255,0.08);
     --font: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
     --font-serif: 'Merriweather', 'Georgia', serif;
@@ -233,7 +228,7 @@ const BRIEF_CSS = `
       --text: #18181b;
       --text-muted: #52525b;
       --text-dim: #71717a;
-      --accent: #000000;
+      --accent: #0d9488;
       --border: rgba(0,0,0,0.08);
     }
   }
@@ -241,96 +236,30 @@ const BRIEF_CSS = `
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
   article.nomosx-brief {
-    max-width: 780px;
+    max-width: 720px;
     margin: 0 auto;
     padding: 48px 32px;
     font-family: var(--font);
     color: var(--text);
-    line-height: 1.7;
+    line-height: 1.75;
     background: var(--bg);
-  }
-
-  .brief-header {
-    margin-bottom: 40px;
-    border-bottom: 1px solid var(--border);
-    padding-bottom: 24px;
-  }
-
-  .brief-brand {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.5rem 0.75rem;
-    margin-bottom: 16px;
-    color: var(--text);
-  }
-
-  .brief-brand-tag {
-    font-size: 11px;
-    color: var(--text-dim);
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    font-weight: 400;
   }
 
   h1 {
     font-family: var(--font-serif);
-    font-size: 2em;
+    font-size: 1.75em;
     font-weight: 700;
-    line-height: 1.25;
-    margin-bottom: 16px;
+    line-height: 1.3;
+    margin-bottom: 8px;
     color: var(--text);
   }
 
-  .metadata-bar {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0;
-    align-items: center;
-    font-size: 13px;
-    color: var(--text-muted);
-  }
-
-  .meta-item { padding: 0 4px; }
-  .meta-sep { color: var(--text-dim); padding: 0 6px; }
-
-  .key-findings-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-left: 4px solid var(--accent);
-    border-radius: 8px;
-    padding: 20px 24px;
-    margin: 24px 0 32px;
-  }
-
-  .key-findings-card h3 {
-    font-size: 14px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--accent);
-    margin-bottom: 12px;
-  }
-
-  .key-findings-card ul {
-    list-style: none;
-    padding: 0;
-  }
-
-  .key-findings-card li {
-    padding: 6px 0 6px 20px;
-    position: relative;
-    font-size: 14px;
-    line-height: 1.6;
-    color: var(--text);
-  }
-
-  .key-findings-card li::before {
-    content: "→";
-    position: absolute;
-    left: 0;
-    color: var(--accent);
-    font-weight: 700;
+  .brief-meta {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-bottom: 40px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
   }
 
   .brief-section {
@@ -339,17 +268,14 @@ const BRIEF_CSS = `
 
   .brief-section h2 {
     font-family: var(--font);
-    font-size: 1.3em;
-    font-weight: 700;
+    font-size: 1.15em;
+    font-weight: 600;
     color: var(--text);
-    margin-bottom: 16px;
-    padding-bottom: 8px;
-    border-bottom: 2px solid var(--accent);
-    display: inline-block;
+    margin-bottom: 14px;
   }
 
   .brief-section p {
-    margin-bottom: 12px;
+    margin-bottom: 14px;
     font-size: 15px;
     color: var(--text);
   }
@@ -357,39 +283,39 @@ const BRIEF_CSS = `
   .debate-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 24px;
+    gap: 20px;
     margin: 16px 0;
   }
 
   .debate-pro, .debate-con {
     background: var(--bg-card);
-    border-radius: 8px;
-    padding: 20px;
+    border-radius: 6px;
+    padding: 18px;
     border: 1px solid var(--border);
   }
 
-  .debate-pro { border-top: 3px solid var(--accent-green); }
-  .debate-con { border-top: 3px solid var(--accent-red); }
+  .debate-pro { border-top: 2px solid var(--accent-green); }
+  .debate-con { border-top: 2px solid var(--accent-red); }
 
-  .debate-pro h3 { color: var(--accent-green); font-size: 14px; margin-bottom: 12px; }
-  .debate-con h3 { color: var(--accent-red); font-size: 14px; margin-bottom: 12px; }
+  .debate-pro h3 { color: var(--accent-green); font-size: 13px; margin-bottom: 10px; }
+  .debate-con h3 { color: var(--accent-red); font-size: 13px; margin-bottom: 10px; }
 
   .debate-synthesis {
     background: var(--bg-card);
-    border-radius: 8px;
-    padding: 20px;
+    border-radius: 6px;
+    padding: 18px;
     border: 1px solid var(--border);
-    border-top: 3px solid var(--accent-amber);
+    border-top: 2px solid var(--accent-amber);
     margin-top: 16px;
   }
 
-  .debate-synthesis h3 { color: var(--accent-amber); font-size: 14px; margin-bottom: 12px; }
+  .debate-synthesis h3 { color: var(--accent-amber); font-size: 13px; margin-bottom: 10px; }
 
   sup.cite a {
     color: var(--accent);
     text-decoration: none;
     font-size: 10px;
-    font-weight: 700;
+    font-weight: 600;
     padding: 0 1px;
   }
 
@@ -398,19 +324,18 @@ const BRIEF_CSS = `
   .references-section {
     margin-top: 48px;
     padding-top: 24px;
-    border-top: 2px solid var(--border);
+    border-top: 1px solid var(--border);
   }
 
   .references-section h2 {
-    font-size: 1.2em;
+    font-size: 1.1em;
     margin-bottom: 16px;
-    border-bottom: none;
   }
 
   .apa-ref {
     display: block;
-    padding: 8px 0 8px 40px;
-    text-indent: -40px;
+    padding: 8px 0 8px 36px;
+    text-indent: -36px;
     font-size: 13px;
     line-height: 1.5;
     color: var(--text-muted);
@@ -420,60 +345,22 @@ const BRIEF_CSS = `
   .apa-ref:last-child { border-bottom: none; }
 
   .ref-num {
-    font-weight: 700;
+    font-weight: 600;
     color: var(--accent);
-    min-width: 32px;
+    min-width: 28px;
     display: inline-block;
   }
 
   .apa-ref em { color: var(--text); }
 
-  .source-distribution {
-    margin: 16px 0;
-  }
-
-  .governing-thought {
-    background: linear-gradient(135deg, rgba(59,130,246,0.08), rgba(16,185,129,0.08));
-    border-left: 4px solid var(--accent);
-    border-radius: 0 8px 8px 0;
-    padding: 14px 18px;
-    margin: 0 0 20px;
-    font-size: 15px;
-    font-weight: 600;
-    line-height: 1.5;
-    color: var(--text);
-  }
-
-  .so-what-callout {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-left: 4px solid var(--accent-green);
-    border-radius: 0 8px 8px 0;
-    padding: 14px 18px;
-    margin: 20px 0 0;
-    font-size: 14px;
-    color: var(--text-muted);
-  }
-  .so-what-callout strong { color: var(--accent-green); font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
-
-  .brief-footer {
-    margin-top: 48px;
-    padding-top: 16px;
-    border-top: 1px solid var(--border);
-    font-size: 11px;
-    color: var(--text-dim);
-    text-align: center;
-  }
-
   @media print {
     article.nomosx-brief { padding: 24px; max-width: 100%; }
     .debate-grid { grid-template-columns: 1fr; }
-    sup.cite a { color: #000; }
   }
 
   @media (max-width: 640px) {
     article.nomosx-brief { padding: 24px 16px; }
-    h1 { font-size: 1.5em; }
+    h1 { font-size: 1.4em; }
     .debate-grid { grid-template-columns: 1fr; }
   }
 </style>`;
@@ -548,33 +435,20 @@ export function renderProfessionalBriefHTML(analysis: any, sources: any[]): stri
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="generator" content="NomosX Agentic Think Tank">
-  <title>${esc(analysis.title || "NomosX Prospective Note")}</title>
+  <title>${esc(analysis.title || "NomosX Brief")}</title>
   ${BRIEF_CSS}
 </head>
 <body>
   <article class="nomosx-brief">
-    <header class="brief-header">
-      <div class="brief-brand">${inlineLockupSvg(16, { mono: true })}<span class="brief-brand-tag">Agentic Think Tank</span></div>
-      <h1>${esc(analysis.title || "Prospective Note")}</h1>
-      ${metadataBar(sources, wordCount)}
-    </header>
+    <h1>${esc(analysis.title || "Brief")}</h1>
+    <div class="brief-meta">${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} · ${sources.length} sources</div>
 
     ${proseHtml}
 
     <section class="references-section">
-      <h2>References</h2>
-      <div class="source-distribution">
-        ${sourceDistributionSVG(sources)}
-      </div>
+      <h2>Sources</h2>
       ${apaCitations.map(c => renderAPAHtml(c)).join("\n")}
     </section>
-
-    <footer class="brief-footer">
-      NomosX — ${sources.length} sources from ${[...new Set(sources.map(s => s.provider))].length} providers.
-      Generated by agentic pipeline (Scout → Index → Rank → Reader → Analyst → Editor).
-      Methodology: causal chain isolation, stress-tested mechanisms, prospective synthesis.
-    </footer>
   </article>
 </body>
 </html>`;
@@ -594,43 +468,28 @@ export function renderProfessionalBriefHTML(analysis: any, sources: any[]): stri
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="generator" content="NomosX Agentic Think Tank">
-  <title>${esc(analysis.title || "NomosX Research Brief")}</title>
+  <title>${esc(analysis.title || "NomosX Brief")}</title>
   ${BRIEF_CSS}
 </head>
 <body>
   <article class="nomosx-brief">
-    <header class="brief-header">
-      <div class="brief-brand">${inlineLockupSvg(16, { mono: true })}<span class="brief-brand-tag">Agentic Think Tank</span></div>
-      <h1>${esc(analysis.title || "Research Brief")}</h1>
-      ${metadataBar(sources, wordCount)}
-    </header>
+    <h1>${esc(analysis.title || "Brief")}</h1>
+    <div class="brief-meta">${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} · ${sources.length} sources</div>
 
-    ${keyFindingsCard(analysis)}
-
-    ${section("Executive Summary", analysis.summary, undefined, extractGoverningThought(analysis.summary))}
-    ${section("Consensus", analysis.consensus, undefined, extractGoverningThought(analysis.consensus))}
-    ${section("Disagreements", analysis.disagreements, undefined, extractGoverningThought(analysis.disagreements))}
+    ${section("Executive Summary", analysis.summary)}
+    ${section("Consensus", analysis.consensus)}
+    ${section("Disagreements", analysis.disagreements)}
     ${debateSection(analysis.debate)}
-    ${section("Evidence Quality", analysis.evidence, undefined, extractGoverningThought(analysis.evidence))}
-    ${section("Strategic Implications", analysis.implications, undefined, extractGoverningThought(analysis.implications))}
-    ${section("Risks & Limitations", analysis.risks, undefined, extractGoverningThought(analysis.risks))}
+    ${section("Evidence Quality", analysis.evidence)}
+    ${section("Strategic Implications", analysis.implications)}
+    ${section("Risks & Limitations", analysis.risks)}
     ${section("Open Questions", analysis.open_questions)}
     ${section("What Would Change Our Mind", analysis.what_changes_mind)}
 
     <section class="references-section">
-      <h2>References</h2>
-      <div class="source-distribution">
-        ${sourceDistributionSVG(sources)}
-      </div>
+      <h2>Sources</h2>
       ${apaCitations.map(c => renderAPAHtml(c)).join("\n")}
     </section>
-
-    <footer class="brief-footer">
-      NomosX — ${sources.length} sources from ${[...new Set(sources.map(s => s.provider))].length} providers.
-      Generated by agentic pipeline (Scout → Index → Rank → Reader → Analyst → Editor).
-      Methodology: causal chain isolation, stress-tested mechanisms, prospective synthesis.
-    </footer>
   </article>
 </body>
 </html>`;
@@ -800,30 +659,25 @@ export function renderProfessionalStrategicHTML(analysis: any, sources: any[]): 
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="generator" content="NomosX Agentic Think Tank">
   <title>${esc(analysis.title || "NomosX Strategic Report")}</title>
   ${BRIEF_CSS}
   ${STRATEGIC_EXTRA_CSS}
 </head>
 <body>
   <article class="nomosx-brief">
-    <header class="brief-header">
-      <div class="brief-brand">${inlineLockupSvg(16, { mono: true })}<span class="brief-brand-tag">Strategic Report</span></div>
-      <h1>${esc(analysis.title || "Strategic Report")}</h1>
-      ${metadataBar(sources, wordCount)}
-      ${badgeHtml}
-    </header>
+    <h1>${esc(analysis.title || "Strategic Report")}</h1>
+    <div class="brief-meta">${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} · ${sources.length} sources</div>
 
     ${keyFindingsHtml}
 
-    ${strategicSections.map(s => section(s.heading, analysis[s.key], undefined, extractGoverningThought(analysis[s.key]))).join("")}
+    ${strategicSections.map(s => section(s.heading, analysis[s.key])).join("")}
     ${themesHtml}
     ${keyStudiesHtml}
     ${debateSection(analysis.debate)}
 
-    ${section("Evidence Quality", typeof analysis.evidenceQuality === 'object' 
+    ${section("Evidence Quality", typeof analysis.evidenceQuality === 'object'
       ? `Overall score: ${analysis.evidenceQuality.overallScore || 'N/A'}/10\n\n${analysis.evidenceQuality.methodology || ''}\n\n${analysis.evidenceQuality.gaps || ''}`
-      : analysis.evidenceQuality, undefined, typeof analysis.evidenceQuality === 'string' ? extractGoverningThought(analysis.evidenceQuality) : undefined)}
+      : analysis.evidenceQuality)}
 
     ${stakeholderHtml}
     ${scenarioHtml}
@@ -837,23 +691,14 @@ export function renderProfessionalStrategicHTML(analysis: any, sources: any[]): 
         ].filter(Boolean).join('\n\n')
       : analysis.implementation)}
 
-    ${section("Conclusion", analysis.conclusion, undefined, extractGoverningThought(analysis.conclusion))}
+    ${section("Conclusion", analysis.conclusion)}
     ${section("Open Questions", Array.isArray(analysis.openQuestions) ? analysis.openQuestions.join('\n\n') : analysis.openQuestions || analysis.open_questions)}
     ${section("What Would Change Our Mind", analysis.whatChangesMind || analysis.what_changes_mind)}
 
     <section class="references-section">
-      <h2>References</h2>
-      <div class="source-distribution">
-        ${sourceDistributionSVG(sources)}
-      </div>
+      <h2>Sources</h2>
       ${apaCitations.map(c => renderAPAHtml(c)).join("\n")}
     </section>
-
-    <footer class="brief-footer">
-      NomosX Strategic Report — ${sources.length} sources, ${[...new Set(sources.map(s => s.provider))].length} providers.
-      Generated by agentic pipeline (DeepPlanner → Scout → Index → Rank → Reader → Strategic Analyst → Editor).
-      Methodology: DAG-based research decomposition, causal chain isolation, stress-tested mechanisms, prospective synthesis.
-    </footer>
   </article>
 </body>
 </html>`;

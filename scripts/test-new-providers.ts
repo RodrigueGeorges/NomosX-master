@@ -1,6 +1,7 @@
 /**
- * Test for the 7 new providers added in this session.
- * These all use direct APIs (no OpenAlex dependency) so no 429 risk.
+ * Live verification of providers newly added to the DEFAULT lists:
+ * thesesfr, openaire, zenodo, nber, worldbank-docs, cordis, sec-edgar.
+ * All use direct APIs — no OpenAlex dependency, no 429 risk.
  */
 import { config } from 'dotenv';
 config({ path: '.env.local' });
@@ -8,32 +9,26 @@ config({ path: '.env.local' });
 const query = process.argv[2] || 'climate change governance';
 
 async function main() {
-  console.log(`\nNew Providers Test — query: "${query}"\n`);
+  console.log(`\nNew Default Providers Test — query: "${query}"\n`);
 
-  const { searchISIDORE } = await import('../lib/providers/isidore');
-  const { searchERIC } = await import('../lib/providers/eric');
-  const { searchFAO } = await import('../lib/providers/fao');
-  const { searchUNODC } = await import('../lib/providers/unodc');
-  const { searchPhilPapers } = await import('../lib/providers/philpapers');
-  const { searchPersee } = await import('../lib/providers/persee');
+  const { searchThesesFr } = await import('../lib/providers/thesesfr');
   const { searchOpenAIRE } = await import('../lib/providers/openaire');
   const { searchZenodo } = await import('../lib/providers/zenodo');
+  const { searchNBER } = await import('../lib/providers/nber');
+  const { searchSECEdgar, searchWorldBankDocs, searchCORDIS } = await import('../lib/providers/open-access-providers');
 
-  // Group 1: independent APIs — run in parallel (no S2 dependency)
+  // All independent APIs — run in parallel
   const parallel = [
-    { name: 'ISIDORE (SHS)',   fn: () => searchISIDORE(query, 5) },
-    { name: 'Persée (SHS FR)', fn: () => searchPersee(query, 5) },
-    { name: 'OpenAIRE (EU)',   fn: () => searchOpenAIRE(query, 5) },
-    { name: 'Zenodo (CERN)',   fn: () => searchZenodo(query, 5) },
+    { name: 'Theses.fr (thèses)',      fn: () => searchThesesFr(query, 5) },
+    { name: 'OpenAIRE (science UE)',   fn: () => searchOpenAIRE(query, 5) },
+    { name: 'Zenodo (CERN)',           fn: () => searchZenodo(query, 5) },
+    { name: 'NBER (working papers)',   fn: () => searchNBER(query, 5) },
+    { name: 'WorldBank Docs (rapports)', fn: () => searchWorldBankDocs(query, 5) },
+    { name: 'CORDIS (projets UE)',     fn: () => searchCORDIS(query, 5) },
+    { name: 'SEC EDGAR (filings)',     fn: () => searchSECEdgar(query, 5) },
   ];
 
-  // Group 2: S2-primary with OpenAlex fallback — sequential with 3s gaps
-  const sequential = [
-    { name: 'PhilPapers (Philo)', fn: () => searchPhilPapers(query, 5) },
-    { name: 'ERIC (Education)',   fn: () => searchERIC(query, 5) },
-    { name: 'FAO (Agriculture)',  fn: () => searchFAO(query, 5) },
-    { name: 'UNODC (Crime)',      fn: () => searchUNODC(query, 5) },
-  ];
+  const sequential: typeof parallel = [];
 
   const parallelResults = await Promise.allSettled(parallel.map(async t => {
     const start = Date.now();

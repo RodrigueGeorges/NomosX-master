@@ -104,6 +104,12 @@ async function rerankWithCohere<T extends SourceForScoring & { id: string }>(
 
   console.log(`[Reranker] Cohere reranked ${sources.length} sources → ${results.length} results (min score: ${minScore})`);
   
+  // If Cohere returns too few results, fall back to local scoring to preserve source pool
+  if (results.length < 10 && sources.length > 20) {
+    console.log(`[Reranker] Cohere returned only ${results.length} results from ${sources.length} sources — falling back to local scoring for better coverage`);
+    return rerankLocally(sources, enhancedQuery, topK, minScore);
+  }
+  
   return results;
 }
 

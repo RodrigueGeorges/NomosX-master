@@ -7,34 +7,30 @@
  * Endpoint: https://api.springernature.com/metadata/json
  */
 
+import { fetchFromProvider } from '../http-client';
+import { searchOpenAlex } from './openalex';
+
 const SPRINGER_API_KEY = process.env.SPRINGER_API_KEY || "";
 const SPRINGER_ENDPOINT = "https://api.springernature.com/metadata/json";
 
 export async function searchSpringer(query: string, limit = 20): Promise<any[]> {
-  if (!SPRINGER_API_KEY) {
-    console.log('[SCOUT] Springer: skipped (no SPRINGER_API_KEY)');
-    return [];
-  }
+  // If we have an API key, use the direct Springer API
+  if (SPRINGER_API_KEY) {
+    try {
+      const params = new URLSearchParams({
+        q: query,
+        api_key: SPRINGER_API_KEY,
+        p: String(Math.min(limit, 100)),
+        s: '1',
+      });
 
-  try {
-    const params = new URLSearchParams({
-      q: query,
-      api_key: SPRINGER_API_KEY,
-      p: String(Math.min(limit, 100)),
-      s: '1',
-    });
+      const data: any = await fetchFromProvider('springer', `${SPRINGER_ENDPOINT}?${params}`, {
+        timeout: 20000,
+        retries: 3,
+        retryDelay: 2000,
+      });
 
-    const response = await fetch(`${SPRINGER_ENDPOINT}?${params}`, {
-      signal: AbortSignal.timeout(20000),
-    });
-
-    if (!response.ok) {
-      console.warn(`[SCOUT/Springer] HTTP ${response.status}`);
-      return [];
-    }
-
-    const data = await response.json() as any;
-    const records = data?.records || [];
+      const records = data?.records || [];
 
     if (!Array.isArray(records)) {
       console.warn('[SCOUT/Springer] unexpected response format');
@@ -80,8 +76,18 @@ export async function searchSpringer(query: string, limit = 20): Promise<any[]> 
         raw: item,
       };
     });
-  } catch (err: any) {
-    console.warn(`[SCOUT/Springer] Error: ${err.message}`);
+    } catch (err: any) {
+      console.warn(`[SCOUT/Springer] Direct API error: ${err.message} — falling back to OpenAlex`);
+    }
+  }
+
+  // Fallback: use OpenAlex filtered to Springer source (no API key needed)
+  try {
+    return await searchOpenAlex(query, limit, {
+      filter: 'primary_location.source.id:https://openalex.org/S4306401296',
+    });
+  } catch (fallbackErr: any) {
+    console.warn(`[SCOUT/Springer] OpenAlex fallback also failed: ${fallbackErr.message}`);
     return [];
   }
 }

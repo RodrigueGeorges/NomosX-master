@@ -67,7 +67,7 @@ export function ForesightPanel({ foresight, publicationId, className }: Foresigh
             <span
               key={layer.id}
               title={layer.detail}
-              className="px-2 py-0.5 rounded border border-white/[0.06] text-[9px] font-mono text-white/35 uppercase tracking-wider"
+              className="px-2 py-0.5 rounded border border-white/[0.08] text-[9px] font-mono text-white/50 uppercase tracking-wider"
             >
               {layer.label}
             </span>
@@ -114,14 +114,14 @@ export function ForesightPanel({ foresight, publicationId, className }: Foresigh
             <SwarmTelemetry telemetry={foresight.telemetry} />
             {foresight.sensitivity.length > 0 && (
               <div>
-                <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-wider text-white/30 mb-3">
+                <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-wider text-white/50 mb-3">
                   <GitBranch size={12} />
                   Sensitivity matrix
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-[11px] font-mono">
                     <thead>
-                      <tr className="text-white/30 border-b border-white/[0.06]">
+                      <tr className="text-white/50 border-b border-white/[0.08]">
                         <th className="text-left py-2 pr-4">Variable</th>
                         <th className="text-left py-2 pr-4">Scenario</th>
                         <th className="text-right py-2">Elasticity</th>
@@ -169,8 +169,8 @@ export function ForesightPanel({ foresight, publicationId, className }: Foresigh
         )}
       </div>
 
-      <div className="px-5 sm:px-6 py-4 border-t border-white/[0.05] bg-black/10">
-        <p className="text-[11px] text-white/35 leading-relaxed font-mono">
+      <div className="px-5 sm:px-6 py-4 border-t border-white/[0.08] bg-black/10">
+        <p className="text-[11px] text-white/50 leading-relaxed font-mono">
           Methodological note: displayed probabilities are scenario weightings from calibrated
           prospective runs on academic sources — not predictions. Any decision should cross-reference
           this signal with the cited corpus [SRC-N] and recorded dissent.

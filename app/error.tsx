@@ -26,7 +26,7 @@ export default function Error({
     <div className="min-h-screen bg-black flex items-center justify-center px-4">
       <div className="text-center max-w-md">
         <div className="flex items-center justify-center gap-3 mb-8">
-          <NomosXLogo variant="lockup" size={LOGO_ERROR_CAP} />
+          <NomosXLogo variant="wordmark" size={LOGO_ERROR_CAP} />
         </div>
 
         <h1 className="font-display text-2xl font-semibold text-white mb-3">

@@ -233,7 +233,7 @@ Return JSON: { "selections": [{ "topicId": "...", "action": "publish_brief|publi
         }
       ],
       temperature: 0.15,
-      maxTokens: 600,
+      maxTokens: 1500,
       jsonMode: true,
       enableCache: true,
       task: 'editor_in_chief',

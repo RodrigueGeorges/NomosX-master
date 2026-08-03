@@ -33,7 +33,7 @@ export function SwarmTelemetry({ telemetry }: SwarmTelemetryProps) {
             className="border border-white/[0.06] bg-black/20 p-3"
           >
             <Icon size={14} className="text-white/40 mb-2" />
-            <div className="text-[9px] text-white/25 uppercase tracking-[0.14em] font-mono">
+            <div className="text-[9px] text-white/45 uppercase tracking-[0.14em] font-mono">
               {item.label}
             </div>
             <div className="text-sm font-semibold text-white/85 font-mono mt-0.5">{item.value}</div>

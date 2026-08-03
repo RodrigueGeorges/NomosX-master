@@ -5,7 +5,7 @@ import { withRateLimit, rateLimitConfigs } from '@/lib/validation';
 import { FORMAT_TYPES_BY_FAMILY, getPublicationFormat } from '@/lib/publication-formats';
 import { publicPublicationWhere } from '@/lib/publication-visibility';
 import { htmlHasForesightSection } from '@/lib/foresight';
-import { extractBriefSummary } from '@/lib/agent/brief-html-extract';
+import { extractBriefSummary, isPositionFirstBrief } from '@/lib/agent/brief-html-extract';
 import { buildFeaturedVerdict } from '@/lib/brand/featured-verdict';
 
 /**
@@ -110,6 +110,13 @@ export async function GET(req: NextRequest) {
           totalCount = 0;
           briefs = [];
         }
+
+        // Filter out legacy (pre-Editorial V2) briefs — only new-format briefs are shown publicly
+        briefs = briefs.filter(brief => {
+          const rawHtml = (brief.html || '').replace(/^```html?\s*/i, '').replace(/\s*```\s*$/, '').trim();
+          return isPositionFirstBrief(rawHtml);
+        });
+        totalCount = briefs.length;
 
         // Transform data for public consumption
         const transformedBriefs = briefs.map(brief => {

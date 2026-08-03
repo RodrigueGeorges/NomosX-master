@@ -13,20 +13,28 @@ export const contentType = 'image/png';
 
 const V = LOGO_LAYOUT;
 
-function OgLockup({ cap }: { cap: number }) {
+const OG_ACCENT = '#FFFFFF';
+
+function OgWordmark({ cap }: { cap: number }) {
   const h = logoHeightFromCap(cap);
-  const w = (h / V.H) * V.Wlock;
+  const w = (h / V.H) * V.Wwm;
+  const xIndex = LOGO_GLYPHS.length - 1;
   return (
-    <svg width={w} height={h} viewBox={`0 0 ${V.Wlock} ${V.H}`}>
-      <g transform={`translate(${V.pad},${V.symY}) scale(${V.symScale})`}>
-        <line x1="7" y1="7" x2="25" y2="25" stroke="#FFFFFF" strokeWidth="2.6" strokeLinecap="round" />
-        <line x1="25" y1="7" x2="7" y2="25" stroke="#FFFFFF" strokeWidth="2.6" strokeLinecap="round" />
-        <circle cx="16" cy="16" r="2.6" fill="#FFFFFF" />
-      </g>
-      <g transform={`translate(${V.wordX},${V.baselineY}) scale(${V.S},${-V.S})`} fill="#FFFFFF">
-        {LOGO_GLYPHS.map((g, i) => (
-          <path key={i} transform={`translate(${g.x},0)`} d={g.d} />
-        ))}
+    <svg width={w} height={h} viewBox={`0 0 ${V.Wwm} ${V.H}`}>
+      <g transform={`translate(${V.pad},${V.baselineY}) scale(${V.S},${-V.S})`} fill="#FFFFFF">
+        {LOGO_GLYPHS.map((g, i) => {
+          if (i === xIndex) {
+            // Geometric X — two crossing lines + center dot
+            return (
+              <g key={i} transform={`translate(${g.x},0)`}>
+                <line x1={50} y1={700} x2={450} y2={0} stroke={OG_ACCENT} strokeWidth={88} strokeLinecap="round" fill="none" />
+                <line x1={450} y1={700} x2={50} y2={0} stroke={OG_ACCENT} strokeWidth={88} strokeLinecap="round" fill="none" />
+                <circle cx={250} cy={350} r={28} fill={OG_ACCENT} stroke="none" />
+              </g>
+            );
+          }
+          return <path key={i} transform={`translate(${g.x},0)`} d={g.d} />;
+        })}
       </g>
     </svg>
   );
@@ -60,7 +68,7 @@ export default async function Image() {
         />
 
         <div style={{ display: 'flex', marginBottom: 28 }}>
-          <OgLockup cap={52} />
+          <OgWordmark cap={52} />
         </div>
 
         <div
@@ -93,7 +101,7 @@ export default async function Image() {
           {[
             { value: BRAND_SOURCES_LABEL, label: 'Sources' },
             { value: '4', label: 'Method stages' },
-            { value: '24/7', label: 'Always on' },
+            { value: '48', label: 'Data providers' },
           ].map((stat) => (
             <div
               key={stat.label}
@@ -124,8 +132,8 @@ export default async function Image() {
             left: '0',
             right: '0',
             height: '2px',
-            background: '#FFFFFF',
-            opacity: 0.25,
+            background: OG_ACCENT,
+            opacity: 0.35,
           }}
         />
       </div>

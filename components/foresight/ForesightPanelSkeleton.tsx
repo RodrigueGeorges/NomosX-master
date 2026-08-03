@@ -22,13 +22,13 @@ export function ForesightPanelSkeleton() {
 export function ForesightEmptyState({ depth }: { depth?: string }) {
   return (
     <section className="border border-white/[0.06] bg-black/20 p-5 text-sm text-white/45">
-      <p className="font-mono text-[10px] uppercase tracking-wider text-white/30 mb-2">
+      <p className="font-mono text-[10px] uppercase tracking-wider text-white/50 mb-2">
         Prospective Engine
       </p>
       <p>
         {depth === "standard" || depth === "surface"
-          ? "Probabilistic foresight is available for Deep and Strategic inquiries."
-          : "No prospective distribution recorded for this publication. New strategic inquiries include the foresight panel automatically."}
+          ? "Probabilistic foresight is available for Deep and Strategic briefs."
+          : "No prospective distribution recorded for this publication. New strategic briefs include the foresight panel automatically."}
       </p>
     </section>
   );

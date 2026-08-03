@@ -77,6 +77,7 @@ export interface ReadingResultV3 {
   sections: string[];            // Which sections were found in the paper
   // LOT 2.4: Causal mechanisms
   mechanisms: Mechanism[];
+  extractedText?: string;        // Raw text extracted (for claim grounding)
   error?: string;
 }
 
@@ -479,6 +480,7 @@ For mechanisms: extract the causal chain — how does X affect Y? What is the di
         isStated: m.isStated !== false, // default true — preserve, don't suppress
         sourceRef: typeof m.sourceRef === 'number' ? m.sourceRef : undefined,
       })).filter((m: Mechanism) => m.description),
+      extractedText: text.slice(0, 8000),
     };
   } catch (error: any) {
     console.warn(`[Reader V3] Deep extraction failed for ${source.id}: ${error.message}`);
@@ -573,6 +575,7 @@ function ruleBasedExtractionV3(source: any, text?: string): ReadingResultV3 {
     wordCount: content.split(/\s+/).length,
     sections: [],
     mechanisms: [],
+    extractedText: (text || '').slice(0, 8000),
     error: "Fallback to rule-based extraction",
   };
 }

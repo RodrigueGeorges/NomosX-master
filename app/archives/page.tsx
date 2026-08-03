@@ -7,12 +7,11 @@ import { PublicPageShell } from "@/components/layout/PublicPageShell";
 import { PageHeader, PageSection } from "@/components/layout/PageHeader";
 import { InquiryCard } from "@/components/signature";
 import { mapBriefToInquiryWithMeta, type BriefLike } from "@/lib/inquiry-mapper";
-import { PUBLIC_ROUTES } from "@/lib/public-urls";
 import type { InquiryDepth } from "@/lib/types/inquiry";
-import type { InquiryCardData } from "@/components/signature";
 import { nx } from "@/lib/brand/public-ui";
 import { cn } from "@/lib/utils";
-import { ArrowRight, ChevronLeft, ChevronRight, Search } from "lucide-react";
+import { ArrowRight, ChevronLeft, ChevronRight, FileText, Search } from "lucide-react";
+import { PUBLIC_ROUTES } from "@/lib/public-urls";
 
 const DEPTH_FILTERS: { id: "all" | InquiryDepth; label: string }[] = [
   { id: "all", label: "All depths" },
@@ -37,58 +36,6 @@ const DOMAIN_FILTERS = [
 type SortKey = "date" | "trust" | "sources";
 
 const PAGE_SIZE = 12;
-
-const FALLBACK: (InquiryCardData & {
-  depth: InquiryDepth;
-  searchText: string;
-  trustScore: number;
-})[] = [
-  {
-    id: "demo-1",
-    slug: "demo-1",
-    title: "Will sovereign AI infrastructure reshape European policy?",
-    summary: "Regulatory momentum and compute sovereignty targets converge before 2028.",
-    domain: "TECHNOLOGY",
-    watermark: "map",
-    verdict: { value: "74%", label: "Confidence" },
-    sourceCount: 42,
-    publishedAt: new Date().toISOString(),
-    readTime: 8,
-    depth: "strategic",
-    searchText: "sovereign ai",
-    trustScore: 74,
-  },
-  {
-    id: "demo-2",
-    slug: "demo-2",
-    title: "Can border carbon adjustments prevent industrial leakage?",
-    summary: "Partial mitigation when paired with revenue recycling.",
-    domain: "CLIMATE",
-    watermark: "chart",
-    verdict: { value: "61%", label: "Confidence" },
-    sourceCount: 38,
-    publishedAt: new Date(Date.now() - 86400000 * 3).toISOString(),
-    readTime: 6,
-    depth: "deep",
-    searchText: "carbon",
-    trustScore: 61,
-  },
-  {
-    id: "demo-3",
-    slug: "demo-3",
-    title: "Will labor markets absorb AI displacement by 2030?",
-    summary: "Sectoral reallocation lags in high-inequality economies.",
-    domain: "SOCIETY",
-    watermark: "globe",
-    verdict: { value: "52%", label: "Confidence" },
-    sourceCount: 31,
-    publishedAt: new Date(Date.now() - 86400000 * 7).toISOString(),
-    readTime: 5,
-    depth: "standard",
-    searchText: "labor ai",
-    trustScore: 52,
-  },
-];
 
 export default function ArchivesPage() {
   const router = useRouter();
@@ -120,15 +67,13 @@ export default function ArchivesPage() {
   }, []);
 
   const allItems = useMemo(() => {
-    return briefs.length > 0
-      ? briefs.map((b, i) => {
+    return briefs.map((b, i) => {
           const mapped = mapBriefToInquiryWithMeta(b, i);
           return {
             ...mapped,
             trustScore: b.trustScore ?? (parseInt(mapped.verdict?.value ?? "0", 10) || 0),
           };
-        })
-      : FALLBACK;
+        });
   }, [briefs]);
 
   const filtered = useMemo(() => {
@@ -160,21 +105,21 @@ export default function ArchivesPage() {
   return (
     <>
       <PublicPageShell currentPage="inquiries" onSignInClick={() => setShowAuthModal(true)} particles={0}>
-        <PageSection className="pt-20 sm:pt-28">
+        <PageSection className="pt-16 sm:pt-20">
           <PageHeader
             eyebrow="Published positions"
-            title="Inquiry archives"
+            title="Brief archive"
             description="Every position we've published — chaos structured into clarity. Filter by depth, domain, and confidence."
           />
 
           <div className="flex flex-col lg:flex-row gap-4 mb-6">
             <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/25" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/45" />
               <input
                 type="search"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search inquiries…"
+                placeholder="Search briefs…"
                 className={cn("w-full pl-10 pr-4 py-2.5", nx.input)}
               />
             </div>
@@ -196,7 +141,7 @@ export default function ArchivesPage() {
                 type="button"
                 onClick={() => setDepthFilter(d.id)}
                 className={cn(
-                  "px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.12em]",
+                  "px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.12em]",
                   depthFilter === d.id ? nx.chipActive : nx.chip
                 )}
               >
@@ -205,18 +150,18 @@ export default function ArchivesPage() {
             ))}
           </div>
 
-          <div className="flex flex-wrap gap-2 mb-8">
+          <div className="flex flex-wrap gap-2 mb-6">
             {DOMAIN_FILTERS.map((d) => (
               <button
                 key={d}
                 type="button"
                 onClick={() => setDomainFilter(d)}
                 className={cn(
-                  "px-3 py-1 font-mono text-[10px] uppercase tracking-[0.1em]",
+                  "px-3 py-1 font-mono text-[11px] uppercase tracking-[0.1em]",
                   domainFilter.toLowerCase() === d.toLowerCase() ||
                     (d === "all" && domainFilter === "all")
-                    ? "bg-white/[0.08] text-text border border-white/[0.12]"
-                    : "text-white/35 border border-transparent"
+                    ? "bg-white/10 text-white border border-white/40"
+                    : "text-white/50 border border-transparent"
                 )}
               >
                 {d === "all" ? "All domains" : d}
@@ -235,17 +180,14 @@ export default function ArchivesPage() {
             </div>
           ) : pageItems.length > 0 ? (
             <>
-              <p className="font-mono text-[10px] text-white/30 mb-4">
-                {filtered.length} inquiries · page {page + 1}/{totalPages}
+              <p className="font-mono text-[11px] text-white/50 mb-4">
+                {filtered.length} briefs · page {page + 1}/{totalPages}
               </p>
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
                 {pageItems.map((inquiry) => (
                   <InquiryCard
                     key={inquiry.id}
                     inquiry={inquiry}
-                    {...(inquiry.slug.startsWith("demo")
-                      ? { href: PUBLIC_ROUTES.archives }
-                      : {})}
                   />
                 ))}
               </div>
@@ -259,7 +201,7 @@ export default function ArchivesPage() {
                   >
                     <ChevronLeft size={16} />
                   </button>
-                  <span className="font-mono text-[11px] text-white/40">
+                  <span className="font-mono text-xs text-white/55">
                     {page + 1} / {totalPages}
                   </span>
                   <button
@@ -274,8 +216,42 @@ export default function ArchivesPage() {
               )}
             </>
           ) : (
-            <div className="nx-public-surface p-12 text-center text-sm text-white/45">
-              No inquiries match your filters.
+            <div className="nx-public-surface p-12 text-center max-w-lg mx-auto">
+              <div className="w-10 h-10 mx-auto mb-6 border border-white/[0.08] flex items-center justify-center">
+                <FileText className="w-5 h-5 text-white/30" strokeWidth={1.25} />
+              </div>
+              <h3 className="font-display text-lg font-semibold text-text mb-3">
+                {search || depthFilter !== "all" || domainFilter !== "all"
+                  ? "No briefs match your filters"
+                  : "The archive is being assembled"}
+              </h3>
+              <p className="text-sm text-white/50 leading-relaxed mb-8 max-w-sm mx-auto">
+                {search || depthFilter !== "all" || domainFilter !== "all"
+                  ? "Try adjusting your filters or search query to explore more briefs."
+                  : "Our editorial pipeline is producing new strategic briefs every week. Each one passes through adversarial review before publication."}
+              </p>
+              <div className="flex items-center justify-center gap-3">
+                {(search || depthFilter !== "all" || domainFilter !== "all") && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearch("");
+                      setDepthFilter("all");
+                      setDomainFilter("all");
+                    }}
+                    className={cn(nx.btnGhost, "px-5 py-2.5 normal-case tracking-normal text-xs")}
+                  >
+                    Clear filters
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => router.push(PUBLIC_ROUTES.studio)}
+                  className={cn(nx.btnPrimary, "px-5 py-2.5 normal-case tracking-normal text-xs")}
+                >
+                  Commission a brief
+                </button>
+              </div>
             </div>
           )}
         </PageSection>

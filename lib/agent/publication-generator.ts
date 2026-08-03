@@ -365,7 +365,7 @@ export async function generatePublication(
     const criticalLoopResult = await runCriticalLoopV2({
       draftHtml: html,
       sources,
-      maxIterations: 2,
+      maxIterations: 1,
       publishThreshold: 65,
     });
     agentStats.push({ name: "critical-loop-v2", durationMs: Date.now() - clStart, costUsd: criticalLoopResult.totalCostUsd || 0, status: "ok" });

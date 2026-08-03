@@ -249,6 +249,110 @@ export function injectCitationsBySourceMatch(
   return { html, injected, details };
 }
 
+// ─── 4. CITATION INJECTION BY CONTENT MATCHING ──────────────────────────────
+/**
+ * For uncited sentences containing factual markers (numbers, dates, percentages),
+ * match them to source abstracts/fullText by key term overlap and inject [SRC-N].
+ * This is deterministic — no LLM. It targets the gap between what the analyst
+ * wrote (factual claims) and what it cited (missing [SRC-N] tags).
+ */
+export function injectCitationsByContentMatch(
+  html: string,
+  sources: { abstract?: string; fullText?: string; title?: string }[],
+): { html: string; injected: number; details: string[] } {
+  const details: string[] = [];
+  let injected = 0;
+
+  // Build source text index: for each source, extract key terms
+  const sourceTerms: { idx: number; terms: Set<string> }[] = [];
+  for (let i = 0; i < sources.length; i++) {
+    const text = `${sources[i].abstract || ''} ${sources[i].fullText || ''} ${sources[i].title || ''}`.toLowerCase();
+    const terms = new Set<string>();
+    // Extract meaningful terms (length > 4, not stopwords)
+    const stopwords = new Set(['about', 'above', 'after', 'again', 'against', 'their', 'there', 'these', 'those', 'which', 'where', 'while', 'would', 'could', 'should', 'between', 'through', 'during', 'before', 'because']);
+    for (const word of text.match(/\b[a-z]{5,}\b/g) || []) {
+      if (!stopwords.has(word)) terms.add(word);
+    }
+    sourceTerms.push({ idx: i + 1, terms });
+  }
+
+  // Split HTML into segments to find uncited text
+  const segments: { type: 'tag' | 'text'; content: string }[] = [];
+  let lastIdx = 0;
+  for (const m of html.matchAll(/<[^>]+>/g)) {
+    if (m.index! > lastIdx) {
+      segments.push({ type: 'text', content: html.slice(lastIdx, m.index!) });
+    }
+    segments.push({ type: 'tag', content: m[0] });
+    lastIdx = m.index! + m[0].length;
+  }
+  if (lastIdx < html.length) {
+    segments.push({ type: 'text', content: html.slice(lastIdx) });
+  }
+
+  // Process text segments: find sentences with factual markers but no [SRC-N]
+  const repairedSegments = segments.map(seg => {
+    if (seg.type === 'tag') return seg.content;
+
+    let text = seg.content;
+    // Skip the references section
+    if (/^Sources$|^References$/i.test(text.trim())) return text;
+
+    // Find sentences with factual markers
+    const sentenceRegex = /[^.!?]+[.!?]*/g;
+    text = text.replace(sentenceRegex, (sentence) => {
+      const trimmed = sentence.trim();
+      if (trimmed.length < 20) return sentence;
+
+      // Must have a factual marker
+      const hasFactual = /\d+\.?\d*\s*%|\$\s?\d+|\b\d{4}\b|\b\d+[.,]?\d*\s*(?:billion|million|thousand)\b/i.test(trimmed);
+      if (!hasFactual) return sentence;
+
+      // Must NOT already have [SRC-N]
+      if (/\[SRC-\d+\]/.test(trimmed)) return sentence;
+
+      // Match to source by term overlap
+      const sentenceTerms = new Set<string>();
+      for (const word of (trimmed.toLowerCase().match(/\b[a-z]{5,}\b/g) || [])) {
+        sentenceTerms.add(word);
+      }
+      if (sentenceTerms.size < 3) return sentence;
+
+      let bestMatch = 0;
+      let bestScore = 0;
+      for (const src of sourceTerms) {
+        let overlap = 0;
+        for (const term of sentenceTerms) {
+          if (src.terms.has(term)) overlap++;
+        }
+        const score = overlap / sentenceTerms.size;
+        if (score > bestScore) {
+          bestScore = score;
+          bestMatch = src.idx;
+        }
+      }
+
+      // Only inject if we have a reasonable match (>30% term overlap)
+      if (bestScore > 0.3 && bestMatch > 0) {
+        injected++;
+        details.push(`Injected [SRC-${bestMatch}] (overlap: ${Math.round(bestScore * 100)}%) into: "${trimmed.slice(0, 60)}..."`);
+        // Insert citation before the final punctuation
+        const punctMatch = sentence.match(/([.!?]+\s*)$/);
+        if (punctMatch) {
+          return sentence.slice(0, -punctMatch[1].length) + ` [SRC-${bestMatch}]` + punctMatch[1];
+        }
+        return sentence + ` [SRC-${bestMatch}]`;
+      }
+
+      return sentence;
+    });
+
+    return text;
+  });
+
+  return { html: repairedSegments.join(''), injected, details };
+}
+
 // ─── MAIN ENTRY POINT ───────────────────────────────────────────────────────
 
 export function repairCitations(
@@ -268,13 +372,19 @@ export function repairCitations(
   totalBackfilled = backfill.injected;
   allDetails.push(...backfill.details);
 
-  // Step 2: Inject citations by source matching
+  // Step 2: Inject citations by source matching (title/author)
   const injection = injectCitationsBySourceMatch(workingHtml, sources);
   workingHtml = injection.html;
   totalInjected = injection.injected;
   allDetails.push(...injection.details);
 
-  // Step 3: Sanitize unsourced numbers (must run AFTER injection)
+  // Step 2b: Inject citations by content matching (abstract/fullText overlap)
+  const contentInjection = injectCitationsByContentMatch(workingHtml, sources as any);
+  workingHtml = contentInjection.html;
+  totalInjected += contentInjection.injected;
+  allDetails.push(...contentInjection.details);
+
+  // Step 3: Sanitize unsourced numbers (must run AFTER all injection)
   const sanitization = sanitizeUnsourcedNumbers(workingHtml);
   workingHtml = sanitization.html;
   totalSanitized = sanitization.sanitized;

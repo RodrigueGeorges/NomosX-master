@@ -11,17 +11,17 @@ export default function PrivacyPage() {
 
         <div className="mb-12">
 
-          <p className="font-mono text-[10px] text-white/35 tracking-[0.2em] uppercase mb-3">Legal</p>
+          <p className="nx-eyebrow mb-3">Legal</p>
 
           <h1 className="font-display text-4xl font-semibold text-white mb-3">Privacy Policy</h1>
 
-          <p className="text-sm text-white/40 font-mono">Last updated: February 2026</p>
+          <p className="text-sm text-white/55 font-mono">Last updated: February 2026</p>
 
         </div>
 
 
 
-        <div className="space-y-8 text-white/70 leading-relaxed text-sm">
+        <div className="space-y-8 text-white/80 leading-relaxed text-sm">
 
 
 
@@ -53,17 +53,17 @@ export default function PrivacyPage() {
 
             <h2 className="text-lg font-medium text-white mb-3">2. Data We Collect</h2>
 
-            <ul className="space-y-2 list-disc list-inside text-white/60">
+            <ul className="space-y-2 list-disc list-inside text-white/70">
 
-              <li><strong className="text-white/80">Account data:</strong> email address, name, hashed password</li>
+              <li><strong className="text-white/90">Account data:</strong> email address, name, hashed password</li>
 
-              <li><strong className="text-white/80">Usage data:</strong> research queries, brief views, session activity</li>
+              <li><strong className="text-white/90">Usage data:</strong> research queries, brief views, session activity</li>
 
-              <li><strong className="text-white/80">Newsletter data:</strong> email address, subscription status, confirmation date</li>
+              <li><strong className="text-white/90">Newsletter data:</strong> email address, subscription status, confirmation date</li>
 
-              <li><strong className="text-white/80">Billing data:</strong> processed by Stripe — we do not store card numbers</li>
+              <li><strong className="text-white/90">Billing data:</strong> processed by Stripe — we do not store card numbers</li>
 
-              <li><strong className="text-white/80">Technical data:</strong> IP address (for rate limiting), browser type</li>
+              <li><strong className="text-white/90">Technical data:</strong> IP address (for rate limiting), browser type</li>
 
             </ul>
 
@@ -75,7 +75,7 @@ export default function PrivacyPage() {
 
             <h2 className="text-lg font-medium text-white mb-3">3. How We Use Your Data</h2>
 
-            <ul className="space-y-2 list-disc list-inside text-white/60">
+            <ul className="space-y-2 list-disc list-inside text-white/70">
 
               <li>To provide and improve the Service</li>
 
@@ -103,13 +103,13 @@ export default function PrivacyPage() {
 
             <h2 className="text-lg font-medium text-white mb-3">4. Legal Basis (GDPR)</h2>
 
-            <ul className="space-y-2 list-disc list-inside text-white/60">
+            <ul className="space-y-2 list-disc list-inside text-white/70">
 
-              <li><strong className="text-white/80">Contract performance:</strong> account management, service delivery</li>
+              <li><strong className="text-white/90">Contract performance:</strong> account management, service delivery</li>
 
-              <li><strong className="text-white/80">Consent:</strong> newsletter subscription (double opt-in)</li>
+              <li><strong className="text-white/90">Consent:</strong> newsletter subscription (double opt-in)</li>
 
-              <li><strong className="text-white/80">Legitimate interest:</strong> security, fraud prevention, analytics</li>
+              <li><strong className="text-white/90">Legitimate interest:</strong> security, fraud prevention, analytics</li>
 
             </ul>
 
@@ -139,17 +139,17 @@ export default function PrivacyPage() {
 
             <h2 className="text-lg font-medium text-white mb-3">6. Third-Party Services</h2>
 
-            <ul className="space-y-2 list-disc list-inside text-white/60">
+            <ul className="space-y-2 list-disc list-inside text-white/70">
 
-              <li><strong className="text-white/80">Resend</strong> — transactional email delivery</li>
+              <li><strong className="text-white/90">Resend</strong> — transactional email delivery</li>
 
-              <li><strong className="text-white/80">Stripe</strong> — payment processing</li>
+              <li><strong className="text-white/90">Stripe</strong> — payment processing</li>
 
-              <li><strong className="text-white/80">Neon</strong> — PostgreSQL database hosting (EU region)</li>
+              <li><strong className="text-white/90">Neon</strong> — PostgreSQL database hosting (EU region)</li>
 
-              <li><strong className="text-white/80">OpenAI</strong> — AI model inference (data not used for training)</li>
+              <li><strong className="text-white/90">OpenAI</strong> — AI model inference (data not used for training)</li>
 
-              <li><strong className="text-white/80">Sentry</strong> — error monitoring</li>
+              <li><strong className="text-white/90">Sentry</strong> — error monitoring</li>
 
             </ul>
 
@@ -163,7 +163,7 @@ export default function PrivacyPage() {
 
             <p>Under GDPR, you have the right to:</p>
 
-            <ul className="space-y-2 list-disc list-inside text-white/60 mt-2">
+            <ul className="space-y-2 list-disc list-inside text-white/70 mt-2">
 
               <li>Access your personal data</li>
 
@@ -201,9 +201,9 @@ export default function PrivacyPage() {
 
             <p>
 
-              We use a single session cookie (<code className="text-white/70">nomosx-session</code>) for
+              We use a single session cookie (<code className="text-white/80">nomosx-session</code>) for
 
-              authentication. It is <code className="text-white/70">httpOnly</code>, <code className="text-white/70">secure</code>,
+              authentication. It is <code className="text-white/80">httpOnly</code>, <code className="text-white/80">secure</code>,
 
               and expires after 7 days. We do not use tracking or advertising cookies.
 
@@ -263,7 +263,7 @@ export default function PrivacyPage() {
 
 
 
-        <div className="mt-12 pt-8 border-t border-white/[0.06] flex gap-6 text-sm text-white/40">
+        <div className="mt-12 pt-8 border-t border-white/[0.08] flex gap-6 text-sm text-white/55">
 
           <Link href="/terms" className="hover:text-white transition-colors">Terms of Service</Link>
 

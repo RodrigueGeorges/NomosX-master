@@ -103,9 +103,11 @@ export interface PipelineStats {
 
   // Editorial V2 — casting + arbiter
   casting?: {
-    teamSize: number;
-    collisionSummary: string;
+    teamSize?: number;
+    collisionSummary?: string;
     costUsd?: number;
+    skipped?: boolean;
+    reason?: string;
   };
   editorialArbiter?: {
     confidence: number;
@@ -197,6 +199,7 @@ export interface PipelineStats {
     costUsd?: number;
     restructured?: boolean;
     skipped?: boolean;
+    reason?: string;
     error?: string;
   };
 
@@ -273,12 +276,22 @@ export interface PipelineStats {
   };
   factCheckerFatalFlagged?: boolean;
 
-  // Step 10: Critical Loop
+  // Step 10: Critical Loop (replaced by deterministic trust scoring)
   criticalLoop?: {
     iterations: number;
     finalScore: number;
     improvement: number;
     needsHumanReview: boolean;
+    skipped?: boolean;
+    skipReason?: string;
+  };
+
+  // Methodology & transparency note (RAND standard — deterministic)
+  methodologyNote?: {
+    injected: boolean;
+    corpusSize: number;
+    providers: number;
+    citedDistinct: number;
   };
 
   // Step 11: Debate
@@ -299,6 +312,7 @@ export interface PipelineStats {
     biasDetected?: boolean;
     forestPlotEntries?: number;
     skipped?: boolean;
+    reason?: string;
     error?: string;
   };
 
@@ -320,6 +334,7 @@ export interface PipelineStats {
     costUsd?: number;
     autoRevised?: boolean;
     skipped?: boolean;
+    reason?: string;
     error?: string;
   };
 
@@ -430,8 +445,23 @@ export interface PipelineStats {
     expandedTerms?: string[];
   };
 
+  // Post-analyst quality gate (diagnostic only — no agents skipped)
+  qualityGate?: {
+    skipped: string[];
+    reason: string;
+  };
+
+  // Self-reflection (SUPPRESSED — redundant with 3-pass analyst)
+  selfReflection?: {
+    skipped?: boolean;
+    reason?: string;
+  };
+
   // Aggregate accounting
   totalCostUsd?: number;
+
+  // Blackboard summary (2026 pattern — cross-agent shared context)
+  blackboard?: Record<string, unknown>;
 
   // Error
   error?: string;
@@ -603,9 +633,9 @@ export function renderAPAHtml(citation: APACitation): string {
   html += `${esc(citation.source)}.`;
   
   if (citation.doi) {
-    html += ` <a href="https://doi.org/${esc(citation.doi)}" target="_blank" rel="noopener" style="color:#3B82F6;">https://doi.org/${esc(citation.doi)}</a>`;
+    html += ` <a href="https://doi.org/${esc(citation.doi)}" target="_blank" rel="noopener" style="color:#ffffff;">https://doi.org/${esc(citation.doi)}</a>`;
   } else if (citation.url) {
-    html += ` <a href="${esc(citation.url)}" target="_blank" rel="noopener" style="color:#3B82F6;">${esc(citation.url)}</a>`;
+    html += ` <a href="${esc(citation.url)}" target="_blank" rel="noopener" style="color:#ffffff;">${esc(citation.url)}</a>`;
   }
   
   html += `</span>`;

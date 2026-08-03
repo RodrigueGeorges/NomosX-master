@@ -54,6 +54,8 @@ export async function enhancedRank(
     ? { limit: limitOrOptions, mode }
     : { limit: 12, mode, ...limitOrOptions };
 
+  console.log(`[ENHANCED RANK] DEBUG: limitOrOptions type=${typeof limitOrOptions}, limitOrOptions.limit=${(limitOrOptions as any)?.limit}, options.limit=${options.limit}`);
+
   // Permissive defaults — let SCOUT's relevance filter + Cohere reranking do the heavy lifting
   // The ranker should NOT aggressively filter; it should RANK.
   const finalOptions = {
@@ -140,10 +142,11 @@ export async function enhancedRank(
 
   // Enhanced scoring algorithm with relevance filtering
   let rejectedCount = 0;
-  // When scoped to SCOUT sourceIds, use minimal threshold (sources already query-matched)
-  // But still filter out completely irrelevant sources (score < 1.5 means almost no keyword overlap)
-  // When querying whole DB, use stricter threshold
-  const relevanceThreshold = isScoped ? 1.5 : 1.0;
+  // When scoped to SCOUT sourceIds, sources already passed SCOUT relevance filter + Cohere rerank.
+  // The keyword-overlap score here is crude (title/abstract term matching) and misses semantic relevance.
+  // Use a minimal threshold (0.5) to only reject completely irrelevant sources.
+  // When querying whole DB, use stricter threshold.
+  const relevanceThreshold = isScoped ? 0.5 : 1.0;
   // Web and news providers use different vocabulary — exempt from relevance gate
   const webProviderList = ['linkup', 'gdelt-news', 'newsapi', 'mediastack', 'thenewsapi', 'gnews', 'eventregistry'];
   const enhancedSources = sources.map(source => {

@@ -12,6 +12,7 @@ import { StrategicAnalysisOutput } from './strategic-analyst-agent';
 import { AgentRole,assertPermission } from '../governance/index';
 import { renderEvidenceGaugeSVG, renderStakeholderImpactSVG, renderScenariosSVG, renderSourceDistributionSVG } from './chart-generator';
 import { inlineLockupSvg } from '@/lib/brand/logo-inline';
+// logo-inline import kept for backward compat but no longer used in render
 import { BRAND_EMAIL_TAGLINE, BRAND_NAME, BRAND_MANIFESTO } from '@/lib/brand/public-copy';
 
 const esc = (s: string) =>
@@ -421,50 +422,10 @@ export function renderStrategicReportHTML(
   return `${STYLES}
 <div class="report-wrapper">
   <article>
-    <!-- Header -->
-    <header class="report-header">
-      <div class="report-brand">${inlineLockupSvg(16, { mono: true })}<span class="report-brand-tag">Strategic Intelligence Report</span></div>
-      <h1 class="report-title">${esc(analysis.title)}</h1>
-      <div class="report-meta">
-        <span class="meta-item">📅 ${now}</span>
-        <span class="meta-item">📊 ${sources.length} sources analyzed</span>
-        <span class="meta-item">
-          <span class="badge ${urgencyClass}">${analysis.urgencyLevel} urgency</span>
-        </span>
-        <span class="meta-item">
-          <span class="badge ${confidenceClass}">${analysis.confidenceLevel} confidence</span>
-        </span>
-      </div>
-    </header>
-
-    <!-- Methodology Box -->
-    <section class="methodology-box" style="background:rgba(255,255,255,0.03);border-radius:8px;padding:16px 20px;margin:20px 0;font-size:13px;color:rgba(255,255,255,0.6);">
-      <p class="nx-eyebrow" style="margin-bottom:8px;color:rgba(255,255,255,0.5);">Methodology</p>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
-        <div><strong>Sources:</strong> ${sources.length} ranked from ${[...new Set(sources.map((s:any) => s.provider).filter(Boolean))].length} providers</div>
-        <div><strong>Providers:</strong> ${[...new Set(sources.map((s:any) => s.provider).filter(Boolean))].join(', ')}</div>
-        <div><strong>Analysis depth:</strong> Strategic (multi-pass, 3 passes)</div>
-        <div><strong>Confidence:</strong> ${analysis.confidenceLevel}</div>
-        <div><strong>Urgency:</strong> ${analysis.urgencyLevel}</div>
-      </div>
-    </section>
-
-    <!-- Table of Contents -->
-    <nav class="toc">
-      <h3 class="toc-title">Table of Contents</h3>
-      <ol class="toc-list">
-        <li><a href="#executive"><span class="toc-num">1</span>Executive Summary</a></li>
-        <li><a href="#literature"><span class="toc-num">2</span>Literature Review</a></li>
-        <li><a href="#themes"><span class="toc-num">3</span>Thematic Analysis</a></li>
-        <li><a href="#debate"><span class="toc-num">4</span>Debate & Perspectives</a></li>
-        <li><a href="#evidence"><span class="toc-num">5</span>Evidence Assessment</a></li>
-        <li><a href="#stakeholders"><span class="toc-num">6</span>Stakeholder Impact</a></li>
-        <li><a href="#scenarios"><span class="toc-num">7</span>Scenario Planning</a></li>
-        <li><a href="#recommendations"><span class="toc-num">8</span>Recommendations</a></li>
-        <li><a href="#implementation"><span class="toc-num">9</span>Implementation</a></li>
-        <li><a href="#conclusion"><span class="toc-num">10</span>Conclusion</a></li>
-      </ol>
-    </nav>
+    <h1 class="report-title">${esc(analysis.title)}</h1>
+    <div class="report-meta" style="font-size:12px;color:rgba(240,240,250,0.4);margin-bottom:2rem;padding-bottom:1rem;border-bottom:1px solid rgba(240,240,250,0.08);">
+      ${now} · ${sources.length} sources · ${analysis.confidenceLevel} confidence
+    </div>
 
     <!-- Section 1: Executive Summary -->
     <section id="executive" class="executive-summary">
@@ -578,15 +539,8 @@ export function renderStrategicReportHTML(
     <!-- Sources -->
     <section class="sources-section">
       <h2 class="section-title">Sources</h2>
-      ${renderSourceDistributionSVG(sources)}
       ${renderSources()}
     </section>
-
-    <!-- Footer -->
-    <footer style="margin-top: 3rem; padding-top: 2rem; border-top: 1px solid rgba(240,240,250,0.08); text-align: center; font-family: 'JetBrains Mono', monospace; font-size: 0.5625rem; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(240,240,250,0.18);">
-      <p>${BRAND_NAME} — ${BRAND_EMAIL_TAGLINE}</p>
-      <div style="margin-top:0.75rem;font-size:0.5rem;letter-spacing:0.08em;color:rgba(240,240,250,0.15);text-transform:none;line-height:1.6;">${BRAND_MANIFESTO.replace(/\n/g, '<br/>')}</div>
-    </footer>
   </article>
 </div>`;
 }

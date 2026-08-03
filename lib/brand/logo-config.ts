@@ -1,7 +1,7 @@
-/** Brand mark accent — collision node (favicon + optional UI accent). */
-export const LOGO_ACCENT = "#4A9EFF";
+/** Brand mark accent — white luminous — X glyph glows brighter than the wordmark. */
+export const LOGO_ACCENT = "#FFFFFF";
 
-/** Public surfaces: monochrome SpaceX grammar. Favicon keeps blue node in asset. */
+/** Public surfaces: monochrome SpaceX grammar, X glyph keeps luminous accent. */
 export const LOGO_MONO_DEFAULT = true;
 
 /** Nav cap-height — tuned for h-14 (56px) bar. */

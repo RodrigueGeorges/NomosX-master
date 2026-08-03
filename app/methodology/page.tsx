@@ -39,7 +39,7 @@ export default function MethodologyPage() {
   return (
     <>
       <PublicPageShell onSignInClick={() => setShowAuthModal(true)} particles={0}>
-        <PageSection className="pt-20 sm:pt-28 pb-4">
+        <PageSection className="pt-16 sm:pt-20 pb-4">
           <PageHeader
             eyebrow="Method"
             title={
@@ -62,9 +62,9 @@ export default function MethodologyPage() {
               const Icon = METHOD_ICONS[name];
               return (
                 <EtherealCard key={name}>
-                  <Icon className="w-5 h-5 text-white/45 mb-3" strokeWidth={1.25} />
+                  <Icon className="w-5 h-5 text-white mb-3" strokeWidth={1.25} />
                   <h3 className="font-mono text-sm uppercase tracking-[0.12em] text-white mb-2">{name}</h3>
-                  <p className="text-sm text-white/45 leading-relaxed">{desc}</p>
+                  <p className="text-sm text-white/60 leading-relaxed">{desc}</p>
                 </EtherealCard>
               );
             })}
@@ -79,18 +79,18 @@ export default function MethodologyPage() {
           <div className="grid sm:grid-cols-2 gap-4">
             {STANDARDS.map(({ icon: Icon, title, text }) => (
               <div key={title} className="flex gap-4 nx-public-surface p-5">
-                <Icon className="w-5 h-5 text-white/40 shrink-0 mt-0.5" strokeWidth={1.25} />
+                <Icon className="w-5 h-5 text-white shrink-0 mt-0.5" strokeWidth={1.25} />
                 <div>
                   <h3 className="text-sm font-medium text-white mb-1">{title}</h3>
-                  <p className="text-xs text-white/40 leading-relaxed">{text}</p>
+                  <p className="text-sm text-white/55 leading-relaxed">{text}</p>
                 </div>
               </div>
             ))}
           </div>
         </PageSection>
 
-        <PageSection className="border-t border-white/[0.05] text-center pb-24">
-          <p className="text-sm text-white/45 mb-6 max-w-lg mx-auto">{BRAND_TAGLINE}</p>
+        <PageSection className="border-t border-white/[0.08] text-center pb-16">
+          <p className="text-sm text-white/60 mb-6 max-w-lg mx-auto">{BRAND_TAGLINE}</p>
           <button type="button" onClick={() => router.push(PUBLIC_ROUTES.archives)} className="nx-public-btn-primary">
             Explore inquiries
           </button>

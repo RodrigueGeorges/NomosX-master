@@ -19,7 +19,7 @@ export function isPositionFirstBrief(html: string): boolean {
   return (
     html.includes('Editorial V2') ||
     html.includes('Institute position') ||
-    html.includes('class="nomosx-brief"')
+    html.includes('class="verdict-block"')
   );
 }
 

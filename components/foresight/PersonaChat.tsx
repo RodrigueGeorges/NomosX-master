@@ -44,7 +44,7 @@ export function PersonaChat({ personas, question, publicationId }: PersonaChatPr
   if (!personas.length) {
     return (
       <p className="text-sm text-white/40 font-mono">
-        No stakeholder perspective available for this inquiry.
+        No stakeholder perspective available for this brief.
       </p>
     );
   }
@@ -88,7 +88,7 @@ export function PersonaChat({ personas, question, publicationId }: PersonaChatPr
           onChange={(e) => setMessage(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleSend()}
           placeholder="Ask this stakeholder perspective…"
-          className="flex-1 border border-white/[0.08] bg-black/30 px-3 py-2 text-sm text-white/80 placeholder:text-white/25 focus:outline-none focus:border-white/25"
+          className="flex-1 border border-white/[0.08] bg-black/30 px-3 py-2 text-sm text-white/80 placeholder:text-white/45 focus:outline-none focus:border-white/40"
         />
         <button
           type="button"

@@ -196,7 +196,19 @@ function lexicalGrounding(
   for (const term of claimTerms) {
     if (sourceTerms.has(term)) overlap++;
   }
-  const score = claimTerms.size > 0 ? overlap / claimTerms.size : 0;
+  const unigramScore = claimTerms.size > 0 ? overlap / claimTerms.size : 0;
+
+  // Bigram overlap: catches phrase-level matches that unigram Jaccard misses
+  const claimBigrams = extractBigrams(claim.text);
+  const sourceBigrams = extractBigrams(sourceText);
+  let bigramOverlap = 0;
+  for (const bg of claimBigrams) {
+    if (sourceBigrams.has(bg)) bigramOverlap++;
+  }
+  const bigramScore = claimBigrams.size > 0 ? bigramOverlap / claimBigrams.size : 0;
+
+  // Composite score: weighted blend of unigram and bigram overlap
+  const score = unigramScore * 0.6 + bigramScore * 0.4;
 
   // Number check: every number in the claim must appear in the source
   const claimNumbers = extractNumbers(claim.text);
@@ -234,13 +246,26 @@ function lexicalGrounding(
   if (polarityMismatch) {
     return { verdict: 'contradicted', score, evidenceSnippet };
   }
-  if (score >= 0.6 && numbersOk && bestSentScore >= 0.5) {
+  if (score >= 0.5 && numbersOk && bestSentScore >= 0.4) {
     return { verdict: 'supported', score, evidenceSnippet };
   }
-  if (score >= 0.3 && numbersOk) {
+  if (score >= 0.25 && numbersOk) {
     return { verdict: 'partial', score, evidenceSnippet };
   }
   return { verdict: 'unsupported', score, evidenceSnippet };
+}
+
+/**
+ * Extract bigrams (consecutive word pairs) for phrase-level matching.
+ * More robust than unigram Jaccard for detecting paraphrased claims.
+ */
+function extractBigrams(text: string): Set<string> {
+  const tokens = tokenize(text);
+  const bigrams = new Set<string>();
+  for (let i = 0; i < tokens.length - 1; i++) {
+    bigrams.add(`${tokens[i]}_${tokens[i + 1]}`);
+  }
+  return bigrams;
 }
 
 // ─── 3. CLAIM REPAIR ────────────────────────────────────────────────────────
@@ -320,7 +345,7 @@ function repairHtmlWithGrounding(
 
 export function groundClaims(
   html: string,
-  sources: { title: string; abstract?: string | null; fullTextUrl?: string; openAccessPdf?: string; provider?: string }[],
+  sources: { title: string; abstract?: string | null; fullText?: string | null; fullTextUrl?: string; openAccessPdf?: string; provider?: string }[],
   options?: { mode?: 'remove' | 'flag'; minScore?: number },
 ): GroundingResult {
   const mode = options?.mode ?? 'flag';
@@ -347,6 +372,7 @@ export function groundClaims(
     const sourceText = [
       source.title || '',
       source.abstract || '',
+      (source.fullText || '').slice(0, 5000), // Use READER V3 extracted full text
     ].join(' ');
 
     const result = lexicalGrounding(claim, sourceText);
@@ -362,10 +388,15 @@ export function groundClaims(
   const uncited = claims.filter(c => c.verdict === 'uncited').length;
   const contradicted = claims.filter(c => c.verdict === 'contradicted').length;
   const total = claims.length;
-  const groundedness = total > 0 ? (supported + partial) / total : 0;
-  const strictGroundedness = total > 0 ? Math.max(0, (supported - contradicted) / total) : 0;
+  // Groundedness = of claims that cited a source, how many are supported?
+  // Uncited claims are narrative prose, not failed grounding.
+  const citedTotal = supported + partial + unsupported + contradicted;
+  const groundedness = citedTotal > 0 ? (supported + partial) / citedTotal : 0;
+  // Citation rate = what fraction of factual claims have a citation at all
+  const citationRate = total > 0 ? citedTotal / total : 0;
+  const strictGroundedness = citedTotal > 0 ? Math.max(0, (supported - contradicted) / citedTotal) : 0;
 
-  console.log(`[CLAIM GROUNDING] Verdicts: ${supported} supported, ${partial} partial, ${unsupported} unsupported, ${uncited} uncited, ${contradicted} contradicted → groundedness ${Math.round(groundedness * 100)}%`);
+  console.log(`[CLAIM GROUNDING] Verdicts: ${supported} supported, ${partial} partial, ${unsupported} unsupported, ${uncited} uncited, ${contradicted} contradicted → groundedness ${Math.round(groundedness * 100)}% (citation rate: ${Math.round(citationRate * 100)}%)`);
 
   // Step 5: Repair HTML
   const repair = repairHtmlWithGrounding(html, claims, mode);

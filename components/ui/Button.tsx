@@ -31,7 +31,7 @@ export function Button({
     ai: "bg-white text-black hover:bg-white/90",
     ghost: "bg-transparent text-white/60 border border-white/15 hover:border-white/35 hover:text-white",
     danger: "bg-red-600 text-white hover:bg-red-500",
-    success: "bg-emerald-600 text-white hover:bg-emerald-500",
+    success: "bg-white text-black hover:bg-white/90",
     outline: "bg-transparent text-white/80 border border-white/30 hover:border-white/60 hover:text-white",
     destructive: "bg-red-600 text-white hover:bg-red-500"
   }[variant];

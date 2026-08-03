@@ -202,7 +202,7 @@ export async function sendNewsletterWelcome(to: string): Promise<void> {
       You're subscribed.
     </h1>
     <p style="font-size:14px;color:#a1a1aa;margin:0 0 24px;line-height:1.6;">
-      Every week, NomosX publishes strategic inquiries — cross-domain foresight with probabilistic
+      Every week, NomosX publishes strategic briefs — cross-domain foresight with probabilistic
       verdicts, sourced from 250M+ academic publications and full [SRC-N] traceability.
       We don't add to the noise. We structure it.
     </p>

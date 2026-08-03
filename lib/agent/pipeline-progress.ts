@@ -37,6 +37,7 @@ export type PipelineStep =
   | "ARBITER"
   | "QUALITY"
   | "DEVILS_ADVOCATE"
+  | "GAP_FILL"
   | "PUBLISHER"
   | "KNOWLEDGE_GRAPH"
   | "COMPLETE"
@@ -82,6 +83,7 @@ const STEP_PROGRESS: Record<PipelineStep, number> = {
   ARBITER: 58,
   QUALITY: 84,
   DEVILS_ADVOCATE: 96,
+  GAP_FILL: 97,
   PUBLISHER: 98,
   KNOWLEDGE_GRAPH: 99,
   COMPLETE: 100,

@@ -30,7 +30,7 @@ import {
 
 import { FALLBACK_FEATURED_VERDICT } from "@/lib/brand/featured-verdict";
 import {
-  BRAND_HERO_SUBTITLE,
+  BRAND_DESCRIPTION,
   BRAND_HERO_TITLE,
   BRAND_MANIFESTO,
   NOMOS_PHILOSOPHY_PILLARS,
@@ -38,7 +38,15 @@ import {
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
+import { NomosXLogo } from "@/components/brand/NomosXLogo";
+
 import { PUBLIC_ROUTES } from "@/lib/public-urls";
+
+import { ScrollReveal } from "@/components/ui/ScrollReveal";
+import { ScrollProgress } from "@/components/ui/ScrollProgress";
+import { StatCounter } from "@/components/ui/StatCounter";
+import { WordReveal } from "@/components/ui/WordReveal";
+import { MagneticButton } from "@/components/ui/MagneticButton";
 
 import { ArrowRight } from "lucide-react";
 
@@ -53,6 +61,8 @@ type PublicBrief = {
   summary: string;
 
   type: string;
+
+  displayType?: string;
 
   publishedAt: string;
 
@@ -69,6 +79,27 @@ type PublicBrief = {
 
 
 const WATERMARKS: InquiryWatermark[] = ["map", "chart", "globe"];
+
+
+
+const DATA_SOURCES: { id: string; name: string; desc: string }[] = [
+  { id: "openalex", name: "OpenAlex", desc: "250M+ scholarly works" },
+  { id: "crossref", name: "Crossref", desc: "DOI registry" },
+  { id: "pubmed", name: "PubMed", desc: "biomedical literature" },
+  { id: "arxiv", name: "arXiv", desc: "preprints · physics & CS" },
+  { id: "ssrn", name: "SSRN", desc: "social science research" },
+  { id: "reuters", name: "Reuters", desc: "real-time wire" },
+  { id: "crunchbase", name: "Crunchbase", desc: "market intelligence" },
+  { id: "worldbank", name: "World Bank", desc: "open data" },
+  { id: "imf", name: "IMF", desc: "macroeconomic indicators" },
+  { id: "oecd", name: "OECD", desc: "policy statistics" },
+  { id: "nato", name: "NATO", desc: "strategic reports" },
+  { id: "rand", name: "RAND", desc: "defense analysis" },
+  { id: "brookings", name: "Brookings", desc: "policy research" },
+  { id: "cia-foia", name: "CIA FOIA", desc: "declassified archives" },
+  { id: "nara", name: "NARA", desc: "national archives" },
+  { id: "google-patents", name: "Google Patents", desc: "IP landscape" },
+];
 
 
 
@@ -96,87 +127,15 @@ function mapBriefToInquiry(b: PublicBrief, index: number): InquiryCardData {
 
     readTime: b.readTime,
 
+    formatLabel: b.displayType,
+
   };
 
 }
 
 
 
-const FALLBACK_INQUIRIES: InquiryCardData[] = [
 
-  {
-
-    id: "f1",
-
-    slug: "f1",
-
-    title: "Will sovereign AI infrastructure reshape European policy?",
-
-    summary: "Regulatory momentum and compute sovereignty targets converge before 2028.",
-
-    domain: "TECHNOLOGY",
-
-    watermark: "map",
-
-    verdict: { value: "74%", label: "Confidence" },
-
-    sourceCount: 42,
-
-    publishedAt: new Date().toISOString(),
-
-    readTime: 8,
-
-  },
-
-  {
-
-    id: "f2",
-
-    slug: "f2",
-
-    title: "Can border carbon adjustments prevent industrial leakage?",
-
-    summary: "Evidence suggests partial mitigation when paired with revenue recycling.",
-
-    domain: "CLIMATE",
-
-    watermark: "chart",
-
-    verdict: { value: "61%", label: "Confidence" },
-
-    sourceCount: 38,
-
-    publishedAt: new Date(Date.now() - 86400000 * 3).toISOString(),
-
-    readTime: 6,
-
-  },
-
-  {
-
-    id: "f3",
-
-    slug: "f3",
-
-    title: "Will labor markets absorb AI displacement by 2030?",
-
-    summary: "Sectoral reallocation lags in high-inequality economies without active policy.",
-
-    domain: "SOCIETY",
-
-    watermark: "globe",
-
-    verdict: { value: "52%", label: "Confidence" },
-
-    sourceCount: 31,
-
-    publishedAt: new Date(Date.now() - 86400000 * 7).toISOString(),
-
-    readTime: 5,
-
-  },
-
-];
 
 
 
@@ -318,9 +277,15 @@ function HomePageContent() {
 
     return (
 
-      <div className="min-h-screen bg-black flex items-center justify-center">
+      <div className="min-h-screen bg-black flex flex-col items-center justify-center gap-6">
 
-        <div className="w-8 h-8 border border-white/20 border-t-white rounded-full animate-spin" />
+        <NomosXLogo variant="wordmark" size={20} className="opacity-40" />
+
+        <div className="relative w-32 h-px bg-white/10 overflow-hidden">
+
+          <div className="absolute inset-y-0 w-1/3 bg-gradient-to-r from-transparent via-white/60 to-transparent animate-marquee" />
+
+        </div>
 
       </div>
 
@@ -330,7 +295,16 @@ function HomePageContent() {
 
 
 
-  const displayInquiries = latestInquiries.length > 0 ? latestInquiries : FALLBACK_INQUIRIES;
+  const displayInquiries = latestInquiries;
+
+  // Total section count is dynamic: the "Latest briefs" section (05) is
+  // hidden when there are no briefs, so the denominator must adjust.
+  const sectionCount = displayInquiries.length > 0 ? 7 : 6;
+  const sectionTotal = String(sectionCount).padStart(2, "0");
+  // Sections after the briefs block shift down by one when briefs are hidden
+  // so the numerators stay sequential (01, 02, 03 ...).
+  const studioSectionNum = displayInquiries.length > 0 ? "06" : "05";
+  const newsletterSectionNum = displayInquiries.length > 0 ? "07" : "06";
 
 
 
@@ -354,17 +328,17 @@ function HomePageContent() {
 
           <section className="relative px-6 sm:px-8 min-h-[calc(100svh-3.5rem)] flex flex-col items-center justify-center py-16 sm:py-20 overflow-hidden">
 
-            <div className="nx-grid-bg nx-grid-bg-animated" aria-hidden="true" />
+            <div className="nx-grid-bg-enhanced nx-grid-bg-animated" aria-hidden="true" />
 
-            <div className="nx-horizon-glow" aria-hidden="true" />
+            <div className="nx-aurora" aria-hidden="true" />
 
             <div className="relative max-w-4xl mx-auto text-center w-full">
 
               <div className="flex items-center justify-center mb-10 animate-rise">
 
-                <span className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.2em] text-white/35">
+                <span className="nx-eyebrow">
 
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400/70 animate-pulse" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-white/80 nx-glow-dot" />
 
                   The think tank, always on
 
@@ -372,39 +346,39 @@ function HomePageContent() {
 
               </div>
 
-              <h1 className="nx-spx-hero mb-8 animate-rise max-w-4xl mx-auto">
+              <h1 className="nx-spx-hero mb-8 max-w-4xl mx-auto">
 
-                {BRAND_HERO_TITLE}
+                <WordReveal text={BRAND_HERO_TITLE} baseDelay={300} stagger={140} />
 
               </h1>
 
-              <p className="text-base sm:text-lg text-[var(--nx-text-secondary)] max-w-2xl mx-auto leading-[1.5] mb-6 animate-rise">
+              <p className="text-base sm:text-lg text-[var(--nx-text-secondary)] max-w-2xl mx-auto leading-[1.5] mb-6 animate-rise" style={{ animationDelay: "900ms" }}>
 
-                {BRAND_HERO_SUBTITLE}
+                {BRAND_DESCRIPTION}
 
               </p>
 
-              <div className="flex flex-wrap items-start justify-center gap-x-12 gap-y-6 mb-14 animate-rise">
+              <div className="flex flex-wrap items-start justify-center gap-x-12 gap-y-6 mb-10 animate-rise">
 
-                {[
+                {([
 
-                  { value: "250M+", label: "Sources indexed" },
+                  { end: 250, suffix: "M+", label: "Sources indexed" },
 
-                  { value: "24/7", label: "Continuous operation" },
+                  { end: 48, suffix: "", label: "Data providers" },
 
-                  { value: "100%", label: "Claims traceable" },
+                  { end: 100, suffix: "%", label: "Claims traceable" },
 
-                ].map((stat, i) => (
+                ] as const).map((stat, i) => (
 
                   <div key={stat.label} className={`text-center animate-rise delay-${(i + 1) * 100}`} style={{ opacity: 0 }}>
 
                     <p className="font-mono text-2xl sm:text-3xl font-light text-white tabular-nums leading-none mb-2">
 
-                      {stat.value}
+                      <StatCounter end={stat.end} suffix={stat.suffix} />
 
                     </p>
 
-                    <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-white/30">
+                    <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-white/50">
 
                       {stat.label}
 
@@ -416,15 +390,15 @@ function HomePageContent() {
 
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-4 justify-center animate-rise">
+              <div className="flex flex-col sm:flex-row gap-4 justify-center animate-rise" style={{ animationDelay: "1100ms" }}>
 
-                <button
+                <MagneticButton
 
                   type="button"
 
                   onClick={() => router.push(PUBLIC_ROUTES.archives)}
 
-                  className="group nx-spx-cta"
+                  className="group nx-cta"
 
                 >
 
@@ -432,23 +406,25 @@ function HomePageContent() {
 
                   <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
 
-                </button>
+                </MagneticButton>
 
-                <button
+                <MagneticButton
 
                   type="button"
 
                   onClick={openStudio}
 
-                  className="group nx-public-btn-secondary"
+                  className="group nx-cta-secondary"
+
+                  strength={0.18}
 
                 >
 
-                  Commission an inquiry
+                  Commission a brief
 
                   <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
 
-                </button>
+                </MagneticButton>
 
               </div>
 
@@ -458,53 +434,57 @@ function HomePageContent() {
 
           {/* Manifesto — the Nomos philosophy */}
 
-          <section className="px-6 sm:px-8 py-24 sm:py-32 border-b border-white/[0.06]">
+          <section className="nx-section-divide relative px-6 sm:px-8 py-16 sm:py-20">
+
+            <span className="nx-section-index">01 / {sectionTotal}</span>
 
             <div className="max-w-3xl mx-auto text-center">
 
-              <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-white/30 mb-8">The principle</p>
+              <ScrollReveal>
+                <p className="nx-eyebrow mb-8">The principle</p>
+              </ScrollReveal>
 
-              <div className="space-y-6">
+              <ScrollReveal stagger className="space-y-6">
 
-                <p className="text-xl sm:text-2xl text-white/80 leading-[1.4] font-light">
+                <p className="text-lg sm:text-xl text-white/85 leading-[1.4] font-light">
 
                   The world doesn't suffer from a lack of information.
 
                 </p>
 
-                <p className="text-xl sm:text-2xl text-white/80 leading-[1.4] font-light">
+                <p className="text-lg sm:text-xl text-white/85 leading-[1.4] font-light">
 
                   It suffers from a lack of structure.
 
                 </p>
 
-                <div className="h-px w-12 bg-white/15 mx-auto my-8" />
+                <div className="nx-divider w-12 mx-auto my-6" />
 
-                <p className="text-base sm:text-lg text-white/50 leading-[1.6]">
+                <p className="text-base sm:text-lg text-white/65 leading-[1.6]">
 
                   Knowledge without order creates noise.
 
                 </p>
 
-                <p className="text-base sm:text-lg text-white/50 leading-[1.6]">
+                <p className="text-base sm:text-lg text-white/65 leading-[1.6]">
 
                   Order creates understanding.
 
                 </p>
 
-                <p className="text-base sm:text-lg text-white/50 leading-[1.6]">
+                <p className="text-base sm:text-lg text-white/65 leading-[1.6]">
 
                   Understanding creates better decisions.
 
                 </p>
 
-                <p className="text-sm font-mono uppercase tracking-[0.2em] text-white/35 pt-6">
+                <p className="text-sm font-mono uppercase tracking-[0.2em] text-white/55 pt-6">
 
                   That is NomosX.
 
                 </p>
 
-              </div>
+              </ScrollReveal>
 
             </div>
 
@@ -512,69 +492,75 @@ function HomePageContent() {
 
           {/* Six pillars */}
 
-          <section className="px-6 sm:px-8 py-20 sm:py-24 border-b border-white/[0.06]">
+          <section className="nx-section-divide relative px-6 sm:px-8 py-16 sm:py-20">
+
+            <span className="nx-section-index">02 / {sectionTotal}</span>
 
             <div className="max-w-5xl mx-auto">
 
-              <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-white/30 mb-12 text-center">Six editorial pillars</p>
+              <ScrollReveal>
+                <p className="nx-eyebrow mb-6 text-center">Six editorial pillars</p>
+              </ScrollReveal>
 
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              <ScrollReveal stagger className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
 
                 {NOMOS_PHILOSOPHY_PILLARS.map((pillar, i) => (
 
-                  <div key={pillar} className="border border-white/[0.06] p-5 hover:border-white/[0.14] transition-colors">
+                  <div key={pillar} className="nx-surface nx-pillar p-5">
 
-                    <p className="font-mono text-[9px] text-white/25 mb-3">0{i + 1}</p>
+                    <p className="font-mono text-[11px] text-white/45 mb-3">0{i + 1}</p>
 
-                    <p className="text-sm text-white/60 leading-[1.5]">{pillar}</p>
+                    <p className="text-sm text-white/70 leading-[1.5]">{pillar}</p>
 
                   </div>
 
                 ))}
 
-              </div>
+              </ScrollReveal>
 
             </div>
 
           </section>
 
-          {/* Live positions ticker */}
+          {/* Data sources ticker */}
 
-          <div className="border-y border-white/[0.06] bg-white/[0.01] overflow-hidden" aria-hidden="true">
+          <div className="border-y border-white/[0.08] bg-white/[0.01]">
 
-            <div className="flex items-center">
+            <div className="flex items-stretch">
 
-              <span className="shrink-0 flex items-center gap-2 px-5 py-3 border-r border-white/[0.06] font-mono text-[9px] uppercase tracking-[0.2em] text-white/35 bg-black">
+              <span className="shrink-0 flex items-center gap-2 px-5 py-3 border-r border-white/[0.08] font-mono text-[9px] uppercase tracking-[0.2em] text-white/55 bg-black">
 
-                <span className="w-1 h-1 rounded-full bg-emerald-400/70 animate-pulse" />
+                <span className="w-1 h-1 rounded-full bg-white/80 nx-glow-dot" />
 
-                Latest positions
+                Data sources
 
               </span>
 
-              <div className="flex whitespace-nowrap animate-marquee-slow">
+              <div className="nx-marquee-pause flex-1 overflow-hidden">
 
-                {[...displayInquiries, ...displayInquiries].map((inq, i) => (
+                <div className="flex whitespace-nowrap animate-marquee-slow py-3">
 
-                  <span key={`${inq.id}-${i}`} className="flex items-center font-mono text-[10px] uppercase tracking-[0.14em] text-white/30 py-3">
+                  {[...DATA_SOURCES, ...DATA_SOURCES].map((src, i) => (
 
-                    <span className="px-6 text-white/15">///</span>
+                    <span
 
-                    <span className="text-white/45">{inq.domain}</span>
+                      key={`${src.id}-${i}`}
 
-                    <span className="px-2 text-white/20">—</span>
+                      className="flex items-center font-mono text-[11px] uppercase tracking-[0.12em] text-white/40 px-5"
 
-                    {inq.title}
+                    >
 
-                    {inq.verdict && (
+                      <span className="text-white/50 mr-2.5 text-[10px]">●</span>
 
-                      <span className="ml-2 text-emerald-400/50">{inq.verdict.value}</span>
+                      <span className="text-white/65">{src.name}</span>
 
-                    )}
+                      <span className="ml-2 text-white/45 normal-case tracking-normal text-[11px]">{src.desc}</span>
 
-                  </span>
+                    </span>
 
-                ))}
+                  ))}
+
+                </div>
 
               </div>
 
@@ -584,13 +570,15 @@ function HomePageContent() {
 
           {/* Mission statement */}
 
-          <section className="nx-public-section px-6 sm:px-8">
+          <section className="nx-section-divide relative px-6 sm:px-8 py-16 sm:py-20">
+
+            <span className="nx-section-index">03 / {sectionTotal}</span>
 
             <div className="max-w-4xl mx-auto grid sm:grid-cols-2 gap-10 sm:gap-16">
 
-              <div>
+              <ScrollReveal>
 
-                <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-white/30 mb-5">The challenge</p>
+                <p className="nx-eyebrow mb-6">The challenge</p>
 
                 <p className="text-lg sm:text-xl text-[var(--nx-text-secondary)] leading-[1.55]">
 
@@ -598,11 +586,11 @@ function HomePageContent() {
 
                 </p>
 
-              </div>
+              </ScrollReveal>
 
-              <div>
+              <ScrollReveal delay={120}>
 
-                <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-white/30 mb-5">Our answer</p>
+                <p className="nx-eyebrow mb-6">Our answer</p>
 
                 <p className="text-lg sm:text-xl text-[var(--nx-text-secondary)] leading-[1.55]">
 
@@ -610,7 +598,7 @@ function HomePageContent() {
 
                 </p>
 
-              </div>
+              </ScrollReveal>
 
             </div>
 
@@ -618,13 +606,19 @@ function HomePageContent() {
 
           {/* Live verdict proof */}
 
-          <section className="px-6 sm:px-8 py-20 sm:py-28 border-t border-white/[0.08]">
+          <section className="nx-section-divide relative px-6 sm:px-8 py-16 sm:py-20">
+
+            <span className="nx-section-index">04 / {sectionTotal}</span>
 
             <div className="max-w-lg mx-auto">
 
-              <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-white/30 mb-8 text-center">Latest position</p>
+              <ScrollReveal>
+                <p className="nx-eyebrow mb-8 justify-center">Featured brief</p>
+              </ScrollReveal>
 
-              <FeaturedVerdictCard data={featuredVerdict} />
+              <ScrollReveal delay={100}>
+                <FeaturedVerdictCard data={featuredVerdict} />
+              </ScrollReveal>
 
             </div>
 
@@ -636,19 +630,19 @@ function HomePageContent() {
 
 
 
-          {/* Latest inquiries */}
+          {/* Latest briefs */}
 
-          <section className="px-6 sm:px-8 py-24 sm:py-32 border-t border-white/[0.08]">
+          {displayInquiries.length > 0 && (
+
+          <section className="nx-section-divide relative px-6 sm:px-8 py-16 sm:py-20">
+
+            <span className="nx-section-index">05 / {sectionTotal}</span>
 
             <div className="max-w-6xl mx-auto">
 
-              <div className="flex items-end justify-between gap-4 mb-12">
+              <ScrollReveal className="flex items-end justify-between gap-4 mb-12">
 
-                <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-white/35">
-
-                  Active intelligence
-
-                </p>
+                <p className="nx-eyebrow">Latest briefs</p>
 
                 <button
 
@@ -656,7 +650,7 @@ function HomePageContent() {
 
                   onClick={() => router.push(PUBLIC_ROUTES.archives)}
 
-                  className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.16em] text-white/40 hover:text-white transition-colors"
+                  className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.12em] text-white/55 hover:text-white transition-colors"
 
                 >
 
@@ -666,9 +660,9 @@ function HomePageContent() {
 
                 </button>
 
-              </div>
+              </ScrollReveal>
 
-              <div className="grid md:grid-cols-3 gap-4">
+              <ScrollReveal stagger className="grid md:grid-cols-3 gap-4">
 
                 {displayInquiries.map((inquiry) => (
 
@@ -678,21 +672,17 @@ function HomePageContent() {
 
                     inquiry={inquiry}
 
-                    {...(inquiry.slug.startsWith("f")
-
-                      ? { href: PUBLIC_ROUTES.archives }
-
-                      : {})}
-
                   />
 
                 ))}
 
-              </div>
+              </ScrollReveal>
 
             </div>
 
           </section>
+
+          )}
 
 
 
@@ -702,23 +692,31 @@ function HomePageContent() {
 
             onLearnMore={() => router.push(PUBLIC_ROUTES.pricing)}
 
+            sectionIndex={`${studioSectionNum} / ${sectionTotal}`}
+
           />
 
 
 
           {/* Newsletter */}
 
-          <section id="newsletter" className="px-6 sm:px-8 py-24 border-t border-white/[0.08]">
+          <section id="newsletter" className="nx-section-divide relative px-6 sm:px-8 py-16">
+
+            <span className="nx-section-index">{newsletterSectionNum} / {sectionTotal}</span>
 
             <div className="max-w-md mx-auto text-center">
 
-              <h2 className="font-display text-xl sm:text-2xl font-semibold text-white mb-3 tracking-tight">Intelligence dispatch</h2>
+              <ScrollReveal>
 
-              <p className="text-xs text-white/35 mb-8 font-mono uppercase tracking-[0.14em]">Structure, not noise. Delivered.</p>
+                <h2 className="font-display text-lg sm:text-xl font-medium text-white mb-3 tracking-tight">Intelligence dispatch</h2>
+
+                <p className="nx-eyebrow mb-8 justify-center">Structure, not noise. Delivered.</p>
+
+              </ScrollReveal>
 
               {newsletterStatus === "success" ? (
 
-                <p className="text-sm text-white/55">{newsletterMessage}</p>
+                <p className="text-sm text-white/70">{newsletterMessage}</p>
 
               ) : (
 
@@ -736,7 +734,7 @@ function HomePageContent() {
 
                     required
 
-                    className="flex-1 px-4 py-3 bg-white/[0.04] border border-white/[0.12] text-sm text-white focus:outline-none focus:border-white/30"
+                    className="nx-input flex-1 px-4 py-3 bg-white/[0.04] border border-white/[0.12] text-sm text-white focus:outline-none focus:border-white/30 transition-all"
 
                   />
 
@@ -746,7 +744,7 @@ function HomePageContent() {
 
                     disabled={newsletterStatus === "loading"}
 
-                    className="px-6 py-3 bg-white text-black text-[11px] font-semibold uppercase tracking-[0.14em] disabled:opacity-50 hover:bg-white/90 transition-colors"
+                    className="px-6 py-3 bg-white text-black text-xs font-semibold uppercase tracking-[0.12em] disabled:opacity-50 hover:bg-white/90 transition-colors"
 
                   >
 
@@ -804,9 +802,15 @@ export default function HomePage() {
 
       fallback={
 
-        <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="min-h-screen bg-black flex flex-col items-center justify-center gap-6">
 
-          <div className="w-8 h-8 border border-white/20 border-t-white rounded-full animate-spin" />
+          <NomosXLogo variant="wordmark" size={20} className="opacity-40" />
+
+          <div className="relative w-32 h-px bg-white/10 overflow-hidden">
+
+            <div className="absolute inset-y-0 w-1/3 bg-gradient-to-r from-transparent via-white/60 to-transparent animate-marquee" />
+
+          </div>
 
         </div>
 
@@ -821,5 +825,7 @@ export default function HomePage() {
   );
 
 }
+
+
 
 

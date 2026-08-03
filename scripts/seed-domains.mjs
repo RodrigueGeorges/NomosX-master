@@ -67,7 +67,7 @@ const DOMAINS = [
     name: "Écologie & Climat",
     nameEn: "Ecology & Climate",
     icon: "Leaf",
-    color: "#5EEAD4",
+    color: "#FFFFFF",
     description: "Environnement, climat, biodiversité, développement durable",
     keywords: [
       "climate",

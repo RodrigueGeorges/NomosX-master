@@ -72,7 +72,9 @@ export type Provider =
   // TIER 7: AI-Optimised Search & Enriched News (fallback only, not in DOMAIN_PROVIDER_MAP)
   | "tavily" | "exa" | "apitube"
   // TIER 8: Large-scale Academic Databases
-  | "dimensions" | "lens" | "springer" | "osti" | "datacite" | "google-books";
+  | "dimensions" | "lens" | "springer" | "osti" | "datacite" | "google-books"
+  // TIER 9: Open-Access Free APIs (no key)
+  | "plos" | "federal-register" | "sec-edgar" | "worldbank-docs" | "cordis";
 
 export interface SmartSelection {
   providers: Provider[];
@@ -138,7 +140,7 @@ function filterProvidersByDomain(providers: Provider[], domain: string): Provide
 
 const DOMAIN_PROVIDER_MAP: Record<string, Provider[]> = {
   // Health & Medicine
-  health: ["openalex", "pubmed", "europepmc", "semanticscholar", "crossref", "who-gho", "who-direct", "ecdc", "ema", "inserm", "cochrane", "cdc", "nih", "base", "doaj", "worldbank", "un", "biorxiv", "clinical-trials", "dimensions", "lens", "springer", "datacite", "google-books", "linkup"],
+  health: ["openalex", "pubmed", "europepmc", "semanticscholar", "crossref", "who-gho", "who-direct", "ecdc", "ema", "inserm", "cochrane", "cdc", "nih", "base", "doaj", "worldbank", "un", "biorxiv", "clinical-trials", "plos", "dimensions", "lens", "springer", "datacite", "google-books", "linkup"],
   medical: ["pubmed", "europepmc", "openalex", "semanticscholar", "crossref", "who-gho", "who-direct", "ecdc", "ema", "inserm", "cochrane", "cdc", "nih", "base", "doaj", "worldbank", "un", "biorxiv", "clinical-trials", "dimensions", "lens", "springer", "datacite", "google-books", "linkup"],
 
   // Exact sciences
@@ -147,8 +149,8 @@ const DOMAIN_PROVIDER_MAP: Record<string, Provider[]> = {
   computer_science: ["semanticscholar", "arxiv", "openalex", "crossref", "hal", "core", "allen-ai", "inria", "eth-zurich", "cset", "ainow", "datasociety", "openreview", "papers-with-code", "mit-dspace", "harvard-dash", "max-planck-pure", "dimensions", "lens", "springer", "datacite", "linkup"],
 
   // Social sciences & Economics
-  economics: ["openalex", "crossref", "nber", "ssrn", "repec", "worldbank", "imf", "oecd", "oecd-direct", "bis", "ecb", "eib", "fred", "eurostat", "hal", "bruegel", "brookings", "rand", "treasury-fiscal", "open-primitive", "dimensions", "lens", "google-books", "linkup"],
-  finance: ["openalex", "crossref", "nber", "ssrn", "repec", "worldbank", "imf", "bis", "ecb", "eib", "fred", "oecd", "oecd-direct", "hal", "bruegel", "brookings", "rand", "rstreet", "treasury-fiscal", "open-primitive", "dimensions", "lens", "google-books", "linkup"],
+  economics: ["openalex", "crossref", "nber", "ssrn", "repec", "worldbank", "worldbank-docs", "imf", "oecd", "oecd-direct", "bis", "ecb", "eib", "fred", "eurostat", "hal", "bruegel", "brookings", "rand", "treasury-fiscal", "open-primitive", "sec-edgar", "dimensions", "lens", "google-books", "linkup"],
+  finance: ["openalex", "crossref", "nber", "ssrn", "repec", "worldbank", "worldbank-docs", "imf", "bis", "ecb", "eib", "fred", "oecd", "oecd-direct", "hal", "bruegel", "brookings", "rand", "rstreet", "treasury-fiscal", "open-primitive", "sec-edgar", "dimensions", "lens", "google-books", "linkup"],
   social_sciences: ["openalex", "crossref", "ssrn", "hal", "semanticscholar", "doaj", "un", "undp", "insee", "eurostat", "brookings", "rand", "newamerica", "datasociety", "ainow", "istat", "open-primitive", "dimensions", "lens", "google-books", "linkup"],
 
   // Environment & Climate
@@ -162,8 +164,8 @@ const DOMAIN_PROVIDER_MAP: Record<string, Provider[]> = {
   energy_technology: ["openalex", "crossref", "semanticscholar", "arxiv", "hal", "iea", "iaea", "irena", "cea", "entsoe", "jrc", "acer", "entsog", "energy-charts", "smard", "rte-france", "energi-data", "fingrid", "shift-project", "worldbank", "oecd", "oecd-direct", "eurostat", "data-gouv", "ademe", "france-strategie", "iddri", "inria", "allen-ai", "cset", "ainow", "datasociety", "ecfr", "swp", "bruegel", "eea", "openreview", "papers-with-code", "mit-dspace", "harvard-dash", "max-planck-pure", "brookings", "rand", "dimensions", "lens", "springer", "osti", "datacite", "gdelt-news", "newsapi", "linkup"],
 
   // Politics & Law
-  politics: ["openalex", "crossref", "ssrn", "hal", "un", "brookings", "rand", "cnas", "newamerica", "aspen-digital", "rstreet", "cdt", "france-strategie", "bruegel", "ecfr", "swp", "istat", "open-primitive", "dimensions", "lens", "google-books", "gdelt-news", "newsapi", "linkup"],
-  law: ["openalex", "crossref", "ssrn", "hal", "lawzero", "eur-lex", "legifrance", "un", "brookings", "rand", "cdt", "rstreet", "newamerica", "caidp", "aspen-digital", "bruegel", "dimensions", "lens", "google-books", "gdelt-news", "newsapi", "linkup"],
+  politics: ["openalex", "crossref", "ssrn", "hal", "un", "brookings", "rand", "cnas", "newamerica", "aspen-digital", "rstreet", "cdt", "france-strategie", "bruegel", "ecfr", "swp", "istat", "open-primitive", "federal-register", "dimensions", "lens", "google-books", "gdelt-news", "newsapi", "linkup"],
+  law: ["openalex", "crossref", "ssrn", "hal", "lawzero", "eur-lex", "legifrance", "un", "brookings", "rand", "cdt", "rstreet", "newamerica", "caidp", "aspen-digital", "bruegel", "federal-register", "dimensions", "lens", "google-books", "gdelt-news", "newsapi", "linkup"],
 
   // Technology & Innovation
   technology: ["semanticscholar", "openalex", "arxiv", "crossref", "hal", "core", "allen-ai", "inria", "eth-zurich", "max-planck", "max-planck-pure", "cset", "ainow", "datasociety", "ifp", "abundance", "openreview", "papers-with-code", "mit-dspace", "harvard-dash", "biorxiv", "dimensions", "lens", "springer", "datacite", "google-books", "gdelt-news", "newsapi", "linkup"],
@@ -188,10 +190,10 @@ const DOMAIN_PROVIDER_MAP: Record<string, Provider[]> = {
 
   // Default (multi-disciplinary)
   // European think tanks / foreign policy
-  european_policy: ["openalex", "crossref", "ecfr", "swp", "sipri", "iai", "eeas", "nato", "un", "brookings", "rand", "ssrn", "bruegel", "eea", "istat", "open-primitive", "dimensions", "lens", "google-books", "gdelt-news", "newsapi", "linkup"],
+  european_policy: ["openalex", "crossref", "ecfr", "swp", "sipri", "iai", "eeas", "nato", "un", "brookings", "rand", "ssrn", "bruegel", "eea", "istat", "open-primitive", "cordis", "dimensions", "lens", "google-books", "gdelt-news", "newsapi", "linkup"],
   foreign_policy: ["openalex", "crossref", "ecfr", "swp", "sipri", "iai", "nato", "eeas", "un", "rand", "cnas", "brookings", "ssrn", "bruegel", "open-primitive", "dimensions", "lens", "google-books", "gdelt-news", "linkup"],
 
-  default: ["openalex", "semanticscholar", "crossref", "hal", "thesesfr", "nber", "ssrn", "worldbank", "un", "brookings", "rand", "cset", "openreview", "biorxiv", "papers-with-code", "max-planck-pure", "mit-dspace", "harvard-dash", "clinical-trials", "istat", "open-primitive", "bruegel", "eea", "dimensions", "lens", "springer", "datacite", "google-books", "gdelt-news", "newsapi", "linkup"],
+  default: ["openalex", "semanticscholar", "crossref", "hal", "thesesfr", "nber", "ssrn", "worldbank", "un", "brookings", "rand", "cset", "openreview", "biorxiv", "papers-with-code", "max-planck-pure", "mit-dspace", "harvard-dash", "clinical-trials", "istat", "open-primitive", "bruegel", "eea", "plos", "worldbank-docs", "dimensions", "lens", "springer", "datacite", "google-books", "gdelt-news", "newsapi", "linkup"],
 };
 
 /**

@@ -5,8 +5,8 @@ import { NomosXLogo } from "@/components/brand/NomosXLogo";
 import { BRAND_NAME, BRAND_TAGLINE } from "@/lib/brand/public-copy";
 
 const FOOTER_LINKS = [
-  { label: "Inquiries", href: "/archives" },
-  { label: "Lenses", href: "/researchers" },
+  { label: "Briefs", href: "/archives" },
+  { label: "Domains", href: "/researchers" },
   { label: "Method", href: "/methodology" },
   { label: "Studio", href: "/studio" },
   { label: "About", href: "/about" },
@@ -24,14 +24,14 @@ export default function SiteFooter(_props: SiteFooterProps) {
 
   return (
     <footer className="border-t border-white/[0.08] bg-black">
-      <div className="max-w-6xl mx-auto px-6 sm:px-8 py-10 flex flex-col items-center gap-6 text-center sm:flex-row sm:justify-between sm:text-left">
+      <div className="max-w-6xl mx-auto px-6 sm:px-8 py-8 flex flex-col items-center gap-4 text-center sm:flex-row sm:justify-between sm:text-left">
         <div className="flex flex-col items-center sm:items-start gap-3">
-          <NomosXLogo variant="lockup" size={16} className="opacity-70" />
+          <NomosXLogo variant="wordmark" size={16} className="opacity-80" />
           <div>
-          <p className="font-mono text-[11px] text-white/30 tracking-wide">
+          <p className="font-mono text-xs text-white/50 tracking-wide">
             © {year} {BRAND_NAME}
           </p>
-          <p className="font-mono text-[10px] text-white/20 tracking-wide mt-1">
+          <p className="font-mono text-[11px] text-white/40 tracking-wide mt-2">
             {BRAND_TAGLINE}
           </p>
           </div>
@@ -42,7 +42,7 @@ export default function SiteFooter(_props: SiteFooterProps) {
               key={link.href}
               type="button"
               onClick={() => router.push(link.href)}
-              className="font-mono text-[11px] text-white/35 hover:text-white transition-colors"
+              className="font-mono text-xs text-white/50 hover:text-white transition-colors"
             >
               {link.label}
             </button>

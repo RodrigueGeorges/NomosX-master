@@ -5,15 +5,24 @@ function nodeFill(mono: boolean, accent: string): string {
   return mono ? "currentColor" : accent;
 }
 
-function glyphPathsHtml(): string {
-  return LOGO_GLYPHS.map(
-    (g) => `<path transform="translate(${g.x},0)" d="${g.d}"/>`
-  ).join("");
+function glyphPathsHtml(accent?: string): string {
+  const xIndex = LOGO_GLYPHS.length - 1;
+  return LOGO_GLYPHS.map((g, i) => {
+    if (i === xIndex && accent) {
+      // Geometric X — two crossing lines + center dot (matches symbol mark)
+      return `<g transform="translate(${g.x},0)">
+        <line x1="50" y1="700" x2="450" y2="0" stroke="${accent}" stroke-width="88" stroke-linecap="round" fill="none"/>
+        <line x1="450" y1="700" x2="50" y2="0" stroke="${accent}" stroke-width="88" stroke-linecap="round" fill="none"/>
+        <circle cx="250" cy="350" r="28" fill="${accent}" stroke="none"/>
+      </g>`;
+    }
+    return `<path transform="translate(${g.x},0)" d="${g.d}"/>`;
+  }).join("");
 }
 
-function wordmarkGroup(x: number): string {
+function wordmarkGroup(x: number, accent?: string): string {
   const V = LOGO_LAYOUT;
-  return `<g transform="translate(${x},${V.baselineY}) scale(${V.S},${-V.S})" fill="currentColor">${glyphPathsHtml()}</g>`;
+  return `<g transform="translate(${x},${V.baselineY}) scale(${V.S},${-V.S})" fill="currentColor">${glyphPathsHtml(accent)}</g>`;
 }
 
 function markGroup(node: string): string {
@@ -40,12 +49,13 @@ export function inlineSymbolSvg(
 </svg>`;
 }
 
-export function inlineWordmarkSvg(capHeight: number): string {
+export function inlineWordmarkSvg(capHeight: number, accent?: string): string {
   const V = LOGO_LAYOUT;
   const h = logoHeightFromCap(capHeight);
   const w = (h / V.H) * V.Wwm;
+  const ac = accent ?? LOGO_ACCENT;
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${w.toFixed(2)}" height="${h.toFixed(2)}" viewBox="0 0 ${V.Wwm} ${V.H}" fill="currentColor" aria-hidden="true" role="img">
-  ${wordmarkGroup(V.pad)}
+  ${wordmarkGroup(V.pad, ac)}
 </svg>`;
 }
 
@@ -61,10 +71,10 @@ export function inlineLockupSvg(
   const node = nodeFill(mono, accent);
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${w.toFixed(2)}" height="${h.toFixed(2)}" viewBox="0 0 ${V.Wlock} ${V.H}" fill="none" aria-label="NomosX" role="img">
   ${markGroup(node)}
-  ${wordmarkGroup(V.wordX)}
+  ${wordmarkGroup(V.wordX, accent)}
 </svg>`;
 }
 
 export function emailLogoHeaderHtml(capHeight = 20): string {
-  return `<div style="line-height:0;margin:0 auto 8px;width:fit-content;color:#ffffff;">${inlineLockupSvg(capHeight, { mono: true })}</div>`;
+  return `<div style="line-height:0;margin:0 auto 8px;width:fit-content;color:#ffffff;">${inlineWordmarkSvg(capHeight)}</div>`;
 }

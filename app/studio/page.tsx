@@ -15,8 +15,8 @@ import { getStudioXPrice } from '@/lib/studiox-pricing';
 import { nx } from '@/lib/brand/public-ui';
 import { cn } from '@/lib/utils';
 
-const OPTION_SELECTED = "border-white/25 bg-white/10";
-const OPTION_DEFAULT = "border-white/[0.06] bg-black/20 hover:border-white/[0.10]";
+const OPTION_SELECTED = "border-white/40 bg-white/10";
+const OPTION_DEFAULT = "border-white/[0.08] bg-black/20 hover:border-white/[0.12]";
 
 function StudioPageContent() {
   const searchParams = useSearchParams();
@@ -185,7 +185,7 @@ function StudioPageContent() {
   if (!hasSession) return (
     <>
       <PublicPageShell currentPage="studio" onSignInClick={() => setShowAuthModal(true)}>
-        <PageSection className="flex items-center justify-center min-h-[60vh]">
+        <PageSection className="flex items-center justify-center min-h-[50vh]">
           <div className="text-center max-w-md">
             <PageHeader
               eyebrow="NomosX Studio"
@@ -226,24 +226,24 @@ function StudioPageContent() {
           />
 
           {cancelled && (
-            <div className="mb-6 flex items-center gap-3 border border-red-500/20 bg-red-500/5 px-5 py-4 text-sm text-red-300">
+            <div className="mb-6 flex items-center gap-3 border border-red-500/20 bg-red-500/5 px-4 py-3 text-sm text-red-300">
               <AlertCircle size={16} className="flex-shrink-0" />
               Payment cancelled — your mandate is saved. Commission again when ready.
             </div>
           )}
           {orderStatus === 'verifying' && (
-            <div className="mb-6 flex items-center gap-3 nx-public-surface px-5 py-4 text-sm text-white/70">
+            <div className="mb-6 flex items-center gap-3 nx-public-surface px-4 py-3 text-sm text-white/70">
               <Loader2 size={16} className={cn("flex-shrink-0 animate-spin", nx.icon)} />
               Verifying payment…
             </div>
           )}
           {orderStatus === 'running' && (
-            <div className="mb-6 flex items-center gap-3 nx-public-surface px-5 py-4 text-sm text-white/70">
+            <div className="mb-6 flex items-center gap-3 nx-public-surface px-4 py-3 text-sm text-white/70">
               <Loader2 size={16} className={cn("flex-shrink-0 animate-spin", nx.icon)} />
               <div>
                 <div>Research pipeline running…</div>
                 {progressMessage && (
-                  <div className="text-xs text-white/40 mt-1">
+                  <div className="text-xs text-white/55 mt-1">
                     {progressMessage}
                     {typeof progressPct === 'number' && progressPct >= 0 ? ` (${progressPct}%)` : ''}
                   </div>
@@ -252,35 +252,35 @@ function StudioPageContent() {
             </div>
           )}
           {orderStatus === 'done' && (
-            <div className="mb-6 flex items-center gap-3 border border-emerald-500/20 bg-emerald-500/5 px-5 py-4 text-sm text-emerald-300">
+            <div className="mb-6 flex items-center gap-3 border border-white/20 bg-white/5 px-4 py-3 text-sm text-white">
               <CheckCircle size={16} className="flex-shrink-0" />
               Research complete — your deliverable is ready below.
             </div>
           )}
           {orderStatus === 'failed' && failureReason && (
-            <div className="mb-6 flex items-center gap-3 border border-red-500/20 bg-red-500/5 px-5 py-4 text-sm text-red-300">
+            <div className="mb-6 flex items-center gap-3 border border-red-500/20 bg-red-500/5 px-4 py-3 text-sm text-red-300">
               <AlertCircle size={16} className="flex-shrink-0" />
               {failureReason}
             </div>
           )}
           {orderStatus === 'refunded' && failureReason && (
-            <div className="mb-6 flex items-center gap-3 border border-amber-500/20 bg-amber-500/5 px-5 py-4 text-sm text-amber-200">
+            <div className="mb-6 flex items-center gap-3 border border-amber-500/20 bg-amber-500/5 px-4 py-3 text-sm text-amber-200">
               <AlertCircle size={16} className="flex-shrink-0" />
               {failureReason}
             </div>
           )}
 
-          <div className="mb-8 nx-public-surface overflow-hidden">
-            <div className="p-6 sm:p-8">
-              <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-7">
+          <div className="mb-6 nx-public-surface overflow-hidden">
+            <div className="p-5 sm:p-6">
+              <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-5">
                 <div>
                   <p className={cn(nx.eyebrow, "mb-3")}>Research Cockpit</p>
-                  <h2 className="font-display text-2xl sm:text-3xl font-semibold text-white mb-2">From chaos to clarity — your question, our protocol.</h2>
+                  <h2 className="font-display text-xl sm:text-2xl font-semibold text-white mb-2">From chaos to clarity — your question, our protocol.</h2>
                   <p className={cn(nx.body, "max-w-2xl")}>
                     NomosX Studio uses the same verification logic as public publications: source discovery, evidence mapping, adversarial review, and citation integrity. Your question goes in — a defensible position comes out.
                   </p>
                 </div>
-                <div className="nx-public-surface px-5 py-4">
+                <div className="nx-public-surface px-4 py-3">
                   <div className={nx.label}>Mode</div>
                   <div className="mt-1 text-lg text-white font-semibold uppercase tracking-wide text-[13px]">pay per commission</div>
                 </div>
@@ -294,7 +294,7 @@ function StudioPageContent() {
                 ].map((item) => {
                   const CIcon = item.icon;
                   return (
-                    <div key={item.label} className="nx-public-surface p-4">
+                    <div key={item.label} className="nx-public-surface p-3">
                       <CIcon size={15} className={cn(nx.icon, "mb-4")} />
                       <div className={nx.label}>{item.label}</div>
                       <div className="text-sm text-white/75 font-medium mt-1">{item.value}</div>
@@ -305,8 +305,8 @@ function StudioPageContent() {
             </div>
           </div>
 
-          <div className="grid lg:grid-cols-[220px_minmax(0,1fr)_220px] gap-4 mb-8">
-            <div className="nx-public-surface p-4">
+          <div className="grid lg:grid-cols-[220px_minmax(0,1fr)_220px] gap-4 mb-6">
+            <div className="nx-public-surface p-3">
               <div className={cn(nx.label, "mb-4")}>Modes</div>
               <div className="space-y-2">
                 {[
@@ -325,22 +325,22 @@ function StudioPageContent() {
                     )}
                   >
                     <div className="text-sm text-white/80 font-medium">{mode.label}</div>
-                    <div className="text-[11px] text-white/30">{mode.value}</div>
+                    <div className="text-[11px] text-white/50">{mode.value}</div>
                   </button>
                 ))}
               </div>
             </div>
 
             <Card className="nx-public-surface backdrop-blur-none shadow-none">
-              <div className="p-6">
+              <div className="p-5">
                 <div className="flex items-center justify-between gap-4 mb-4">
                   <div>
                     <div className={cn(nx.eyebrow, "mb-1")}>Mandate</div>
-                    <h3 className="text-lg text-white font-semibold">Define the research question</h3>
+                    <h3 className="text-base text-white font-semibold">Define the research question</h3>
                   </div>
                   <div className="hidden sm:block text-right">
                     <div className={nx.label}>Protocol</div>
-                    <div className="text-xs text-white/55">gate before publication</div>
+                    <div className="text-xs text-white/70">gate before publication</div>
                   </div>
                 </div>
                 <Textarea
@@ -361,7 +361,7 @@ function StudioPageContent() {
                 <div className="mb-5">
                   <div className="flex items-center justify-between mb-3">
                     <div className={nx.label}>Output format</div>
-                    <div className="text-[10px] text-white/40 font-mono uppercase tracking-[0.12em]">
+                    <div className="text-[10px] text-white/55 font-mono uppercase tracking-[0.12em]">
                       {PUBLICATION_FORMATS.find((f) => f.type === selectedFormat)?.pages}
                     </div>
                   </div>
@@ -382,7 +382,7 @@ function StudioPageContent() {
                             <div className="text-sm text-white/80 font-medium">{format.label}</div>
                             <span className="text-[11px] font-semibold text-white/60 font-mono">{price.display}</span>
                           </div>
-                          <div className="mt-1 text-[11px] text-white/35">{format.sourceDepth}</div>
+                          <div className="mt-1 text-[11px] text-white/50">{format.sourceDepth}</div>
                         </button>
                       );
                     })}
@@ -423,7 +423,7 @@ function StudioPageContent() {
               </div>
             </Card>
 
-            <div className="nx-public-surface p-4">
+            <div className="nx-public-surface p-3">
               <div className={cn(nx.label, "mb-4")}>Mandate rail</div>
               <label className="block mb-3">
                 <span className={cn(nx.label, "block mb-1.5")}>Audience</span>
@@ -457,12 +457,12 @@ function StudioPageContent() {
                   return (
                     <div key={item.label} className="flex items-center gap-3 nx-public-surface px-3 py-2.5">
                       <RIcon size={14} className={nx.icon} />
-                      <span className="text-xs text-white/55">{item.label}</span>
+                      <span className="text-xs text-white/70">{item.label}</span>
                     </div>
                   );
                 })}
               </div>
-              <p className="mt-4 text-[10px] text-white/25 leading-relaxed">
+              <p className="mt-4 text-[10px] text-white/45 leading-relaxed">
                 One payment per commission. No subscription. Result stored in your account.
               </p>
             </div>
@@ -470,12 +470,12 @@ function StudioPageContent() {
 
           {result && (
             <Card className="nx-public-surface backdrop-blur-none shadow-none animate-fade-in">
-              <div className="p-6">
+              <div className="p-5">
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 nx-public-surface flex items-center justify-center">
+                  <div className="w-8 h-8 nx-public-surface flex items-center justify-center">
                     <FileText size={20} className="text-white/80" />
                   </div>
-                  <h2 className="text-xl font-semibold text-white">Research Result</h2>
+                  <h2 className="text-lg font-semibold text-white">Research Result</h2>
                 </div>
                 {/^\s*<(?:!doctype|html|div|section|article|h[1-6]|p|main)/i.test(result) ? (
                   <iframe
@@ -495,11 +495,11 @@ function StudioPageContent() {
           )}
 
           {!result && !loading && orderStatus === 'idle' && !cancelled && (
-            <div className="text-center py-12">
-              <div className="w-20 h-20 bg-white/[0.02] flex items-center justify-center mx-auto mb-6">
-                <Layers size={40} className="text-white/20" />
+            <div className="text-center py-10">
+              <div className="w-16 h-16 bg-white/[0.02] flex items-center justify-center mx-auto mb-6">
+                <Layers size={32} className="text-white/20" />
               </div>
-              <h3 className="text-2xl font-semibold text-white mb-2">Ready to commission</h3>
+              <h3 className="text-xl font-semibold text-white mb-2">Ready to commission</h3>
               <p className="text-white/40 max-w-md mx-auto">
                 Define your research question, choose a format, and launch a custom inquiry. The chaos of evidence becomes a position you can defend.
               </p>
@@ -524,7 +524,7 @@ export default function StudioPage() {
     <Suspense fallback={
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center">
-          <Loader2 size={48} className={cn("mx-auto mb-4 animate-spin", nx.icon)} />
+          <Loader2 size={36} className={cn("mx-auto mb-4 animate-spin", nx.icon)} />
           <p className="text-white/50 font-mono text-[11px] uppercase tracking-[0.14em]">Loading Studio</p>
         </div>
       </div>

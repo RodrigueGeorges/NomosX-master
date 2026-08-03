@@ -10,13 +10,13 @@ export const EMAIL_BRAND = {
   white: "#ffffff",
   black: "#000000",
   eyebrow:
-    "font-size:10px;font-weight:600;letter-spacing:0.2em;color:rgba(255,255,255,0.35);text-transform:uppercase;",
+    "font-size:10px;font-weight:600;letter-spacing:0.2em;color:rgba(255,255,255,0.50);text-transform:uppercase;",
   cta:
     "display:inline-block;background:#ffffff;color:#000000;text-decoration:none;padding:12px 28px;font-size:11px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;",
   ctaSm:
     "display:inline-block;background:#ffffff;color:#000000;text-decoration:none;padding:10px 22px;font-size:11px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;",
-  link: "color:#a1a1aa;text-decoration:underline;text-underline-offset:2px;",
-  linkPlain: "color:#a1a1aa;text-decoration:none;font-weight:500;",
+  link: "color:#ffffff;text-decoration:underline;text-underline-offset:2px;",
+  linkPlain: "color:#ffffff;text-decoration:none;font-weight:500;",
   hr: "border:none;border-top:1px solid rgba(255,255,255,0.08);margin:32px 0;",
 } as const;
 

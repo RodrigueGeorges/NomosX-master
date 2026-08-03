@@ -3,7 +3,7 @@
  * Shared by NomosXLogo (React) and logo-inline (HTML emails / briefs).
  */
 
-export const LOGO_ACCENT_COLOR = "#4A9EFF";
+export const LOGO_ACCENT_COLOR = "#FFFFFF";
 
 /** NOMOSX outlines — pure vector, no font at render time. */
 export const LOGO_GLYPHS: { x: number; d: string }[] = [

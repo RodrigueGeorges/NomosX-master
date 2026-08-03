@@ -2297,3 +2297,690 @@ article.nomosx-brief .brief-footer {
 @media (max-width: 640px) {
   article.nomosx-brief .brief-hero h1 { font-size: 1.75rem; }
 }
+
+/* ============================================================================
+   NomosX Design Enhancement — Head of Design pass
+   Better readability · richer interactions · atmospheric visuals
+   ============================================================================ */
+
+/* ── 1. Readability boost ──────────────────────────────────────────────
+   Bump the barely-visible opacity tiers so text is actually legible
+   on pure black, while preserving the visual hierarchy.               */
+
+:root {
+  --nx-text-tertiary: rgba(240, 240, 250, 0.50);
+  --nx-text-quaternary: rgba(240, 240, 250, 0.38);
+}
+
+/* ── 2. Scroll reveal ────────────────────────────────────────────────── */
+
+@keyframes nx-reveal {
+  from { opacity: 0; transform: translateY(32px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.nx-reveal {
+  opacity: 0;
+  transform: translateY(32px);
+  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.nx-reveal.nx-reveal-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Stagger children */
+.nx-reveal-stagger > * {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.nx-reveal-stagger.nx-reveal-visible > * {
+  opacity: 1;
+  transform: translateY(0);
+}
+.nx-reveal-stagger.nx-reveal-visible > *:nth-child(1) { transition-delay: 0ms; }
+.nx-reveal-stagger.nx-reveal-visible > *:nth-child(2) { transition-delay: 80ms; }
+.nx-reveal-stagger.nx-reveal-visible > *:nth-child(3) { transition-delay: 160ms; }
+.nx-reveal-stagger.nx-reveal-visible > *:nth-child(4) { transition-delay: 240ms; }
+.nx-reveal-stagger.nx-reveal-visible > *:nth-child(5) { transition-delay: 320ms; }
+.nx-reveal-stagger.nx-reveal-visible > *:nth-child(6) { transition-delay: 400ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  .nx-reveal,
+  .nx-reveal-stagger > * {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+}
+
+/* ── 3. Hero aurora — atmospheric color depth (still monochrome-first) ─ */
+
+@keyframes nx-aurora {
+  0%, 100% { transform: translate(-50%, 0) scale(1); opacity: 0.5; }
+  33%      { transform: translate(-48%, -2%) scale(1.08); opacity: 0.7; }
+  66%      { transform: translate(-52%, 1%) scale(0.95); opacity: 0.4; }
+}
+
+.nx-aurora {
+  position: absolute;
+  left: 50%;
+  bottom: -12rem;
+  transform: translateX(-50%);
+  width: 120%;
+  height: 28rem;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 40% 60% at 30% 100%, rgba(255, 255, 255, 0.06), transparent 60%),
+    radial-gradient(ellipse 35% 55% at 70% 100%, rgba(129, 140, 248, 0.05), transparent 60%),
+    radial-gradient(ellipse 50% 100% at 50% 100%, rgba(240, 240, 250, 0.06), transparent 65%);
+  border-radius: 50% 50% 0 0;
+  animation: nx-aurora 16s ease-in-out infinite;
+  filter: blur(2px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nx-aurora { animation: none; }
+}
+
+/* ── 4. Enhanced grid background with depth ──────────────────────────── */
+
+.nx-grid-bg-enhanced {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(240, 240, 250, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(240, 240, 250, 0.05) 1px, transparent 1px),
+    linear-gradient(rgba(240, 240, 250, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(240, 240, 250, 0.02) 1px, transparent 1px);
+  background-size: 72px 72px, 72px 72px, 18px 18px, 18px 18px;
+  -webkit-mask-image: radial-gradient(ellipse 85% 70% at 50% 40%, black 0%, transparent 75%);
+  mask-image: radial-gradient(ellipse 85% 70% at 50% 40%, black 0%, transparent 75%);
+}
+
+/* ── 5. Card spotlight — cursor-following glow on hover ──────────────── */
+
+.nx-spotlight {
+  position: relative;
+  overflow: hidden;
+}
+
+.nx-spotlight::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  background: radial-gradient(
+    circle 280px at var(--nx-mx, 50%) var(--nx-my, 50%),
+    rgba(240, 240, 250, 0.08),
+    transparent 70%
+  );
+}
+
+.nx-spotlight:hover::before {
+  opacity: 1;
+}
+
+/* ── 6. Card lift — smooth 3D elevation on hover ─────────────────────── */
+
+.nx-card-lift {
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.3s ease,
+              background 0.3s ease,
+              box-shadow 0.4s ease;
+}
+
+.nx-card-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 50px -12px rgba(0, 0, 0, 0.8),
+              0 0 0 1px rgba(240, 240, 250, 0.12);
+}
+
+/* ── 7. Animated gradient border on hover ────────────────────────────── */
+
+@keyframes nx-border-flow {
+  0%   { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+
+.nx-border-flow {
+  position: relative;
+}
+
+.nx-border-flow::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 1px;
+  border-radius: inherit;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.3),
+    rgba(129, 140, 248, 0.3),
+    transparent
+  );
+  background-size: 200% 100%;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.nx-border-flow:hover::after {
+  opacity: 1;
+  animation: nx-border-flow 3s linear infinite;
+}
+
+/* ── 8. Shimmer text — for hero accent words ─────────────────────────── */
+
+@keyframes nx-text-shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+.nx-text-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(240, 240, 250, 0.7) 0%,
+    rgba(240, 240, 250, 1) 25%,
+    rgba(255, 255, 255, 1) 50%,
+    rgba(240, 240, 250, 1) 75%,
+    rgba(240, 240, 250, 0.7) 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: nx-text-shimmer 6s linear infinite;
+}
+
+/* ── 9. Pillar card — interactive hover with glow accent ─────────────── */
+
+.nx-pillar {
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.3s ease,
+              background 0.3s ease;
+}
+
+.nx-pillar::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), transparent);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.nx-pillar:hover {
+  transform: translateY(-3px);
+  border-color: rgba(240, 240, 250, 0.18);
+  background: rgba(240, 240, 250, 0.03);
+}
+
+.nx-pillar:hover::before {
+  transform: scaleX(1);
+}
+
+/* ── 10. Pipeline step — interactive glow ring ───────────────────────── */
+
+.nx-pipeline-step {
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.nx-pipeline-step:hover {
+  transform: translateY(-2px);
+}
+
+.nx-pipeline-icon {
+  position: relative;
+  transition: border-color 0.3s ease, background 0.3s ease, box-shadow 0.4s ease;
+}
+
+.nx-pipeline-icon::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: inherit;
+  border: 1px solid transparent;
+  transition: border-color 0.3s ease;
+}
+
+.nx-pipeline-step:hover .nx-pipeline-icon {
+  border-color: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.04);
+  box-shadow: 0 0 24px -4px rgba(255, 255, 255, 0.2);
+}
+
+.nx-pipeline-step:hover .nx-pipeline-icon::after {
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+/* ── 11. CTA button — enhanced hover with glow ───────────────────────── */
+
+.nx-spx-cta,
+.nx-public-btn-primary {
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.3s ease, background-color 0.3s ease, box-shadow 0.4s ease;
+}
+
+.nx-spx-cta::before,
+.nx-public-btn-primary::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(240, 240, 250, 0.12), transparent);
+  transition: left 0.6s ease;
+}
+
+.nx-spx-cta:hover::before,
+.nx-public-btn-primary:hover::before {
+  left: 100%;
+}
+
+.nx-spx-cta:hover,
+.nx-public-btn-primary:hover {
+  border-color: rgba(240, 240, 250, 0.55);
+  background: rgba(20, 20, 25, 0.8);
+  box-shadow: 0 0 30px -8px rgba(240, 240, 250, 0.15);
+}
+
+/* ── 12. Marquee pause on hover ──────────────────────────────────────── */
+
+.nx-marquee-pause:hover .animate-marquee-slow {
+  animation-play-state: paused;
+}
+
+/* ── 13. Enhanced watermark visibility ───────────────────────────────── */
+
+.nx-watermark {
+  opacity: 0.06;
+  transition: opacity 0.5s ease, transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.nx-spotlight:hover .nx-watermark,
+.group:hover .nx-watermark {
+  opacity: 0.12;
+  transform: scale(1.05);
+}
+
+/* ── 14. Section divider — animated gradient line ────────────────────── */
+
+@keyframes nx-divider-flow {
+  0%   { background-position: -100% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.nx-divider {
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(240, 240, 250, 0.12) 30%,
+    rgba(240, 240, 250, 0.2) 50%,
+    rgba(240, 240, 250, 0.12) 70%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: nx-divider-flow 8s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nx-divider { animation: none; }
+}
+
+/* ── 15. Confidence meter — animated fill bar ────────────────────────── */
+
+@keyframes nx-meter-fill {
+  from { width: 0%; }
+}
+
+.nx-meter-track {
+  position: relative;
+  height: 3px;
+  background: rgba(240, 240, 250, 0.08);
+  overflow: hidden;
+  border-radius: 2px;
+}
+
+.nx-meter-fill {
+  height: 100%;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.6), rgba(129, 140, 248, 0.6));
+  border-radius: 2px;
+  animation: nx-meter-fill 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* ── 16. Glow dot — enhanced live indicator ──────────────────────────── */
+
+@keyframes nx-glow-dot {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.4); }
+  50%      { box-shadow: 0 0 0 6px rgba(255, 255, 255, 0); }
+}
+
+.nx-glow-dot {
+  animation: nx-glow-dot 2s ease-in-out infinite;
+}
+
+/* ── 17. Input focus — enhanced glow ─────────────────────────────────── */
+
+.nx-input:focus {
+  border-color: rgba(240, 240, 250, 0.35) !important;
+  box-shadow: 0 0 0 3px rgba(240, 240, 250, 0.06);
+}
+
+/* ── 18. Scroll progress bar ─────────────────────────────────────────── */
+
+.nx-scroll-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 2px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.6), rgba(129, 140, 248, 0.6));
+  z-index: 100;
+  transition: width 0.1s ease;
+  pointer-events: none;
+}
+
+/* ============================================================================
+   Harmonization + Innovation pass — subtle, cohesive, alive
+   ============================================================================ */
+
+/* ── H1. Unified eyebrow label — one style everywhere ────────────────── */
+
+.nx-eyebrow {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: rgba(240, 240, 250, 0.50);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.nx-eyebrow--dim {
+  color: rgba(240, 240, 250, 0.40);
+}
+
+/* ── H2. Unified section divider — replaces ad-hoc borders ───────────── */
+
+.nx-section-divide {
+  position: relative;
+  border-top: none;
+}
+
+.nx-section-divide::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(100%, 6xl);
+  max-width: 72rem;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(240, 240, 250, 0.06) 15%,
+    rgba(240, 240, 250, 0.12) 50%,
+    rgba(240, 240, 250, 0.06) 85%,
+    transparent 100%
+  );
+  pointer-events: none;
+}
+
+/* ── H3. Unified accent — white is the single accent color ─────────── */
+
+:root {
+  --nx-accent-emerald: rgba(255, 255, 255, 1);
+  --nx-accent-emerald-dim: rgba(255, 255, 255, 0.5);
+  --nx-accent-emerald-faint: rgba(255, 255, 255, 0.15);
+  --nx-accent-indigo: rgba(129, 140, 248, 1);
+  --nx-accent-indigo-dim: rgba(129, 140, 248, 0.5);
+}
+
+/* ── H4. Film grain overlay — tactile depth, barely perceptible ──────── */
+
+.nx-grain {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.035;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 180px 180px;
+  animation: nx-grain-shift 8s steps(4) infinite;
+}
+
+@keyframes nx-grain-shift {
+  0%   { transform: translate(0, 0); }
+  25%  { transform: translate(-2%, 1%); }
+  50%  { transform: translate(1%, -2%); }
+  75%  { transform: translate(-1%, -1%); }
+  100% { transform: translate(0, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nx-grain { animation: none; }
+}
+
+/* ── H5. Ambient cursor glow — the page breathes with you ────────────── */
+
+.nx-cursor-glow {
+  position: fixed;
+  width: 480px;
+  height: 480px;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 0;
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.04) 0%,
+    rgba(129, 140, 248, 0.025) 35%,
+    transparent 65%
+  );
+  transform: translate(-50%, -50%);
+  transition: opacity 0.6s ease;
+  opacity: 0;
+  will-change: transform;
+}
+
+.nx-cursor-glow.nx-cursor-active {
+  opacity: 1;
+}
+
+/* ── H6. Vignette — focus toward center ──────────────────────────────── */
+
+.nx-vignette {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: radial-gradient(
+    ellipse 120% 100% at 50% 50%,
+    transparent 50%,
+    rgba(0, 0, 0, 0.4) 100%
+  );
+}
+
+/* ── H7. Magnetic button — subtle cursor attraction ──────────────────── */
+
+.nx-magnetic {
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
+}
+
+/* ── H8. Word-by-word reveal — blur to focus ─────────────────────────── */
+
+@keyframes nx-word-reveal {
+  from {
+    opacity: 0;
+    filter: blur(8px);
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0);
+  }
+}
+
+.nx-word {
+  display: inline-block;
+  opacity: 0;
+  animation: nx-word-reveal 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nx-word {
+    opacity: 1;
+    animation: none;
+    filter: none;
+    transform: none;
+  }
+}
+
+/* ── H9. Unified card surface — one hover language for all cards ─────── */
+
+.nx-surface {
+  position: relative;
+  border: 1px solid rgba(240, 240, 250, 0.08);
+  background: rgba(240, 240, 250, 0.02);
+  transition: border-color 0.4s ease, background 0.4s ease, transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+}
+
+.nx-surface::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--nx-accent-emerald-dim), transparent);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+}
+
+.nx-surface:hover {
+  border-color: rgba(240, 240, 250, 0.16);
+  background: rgba(240, 240, 250, 0.035);
+  transform: translateY(-3px);
+}
+
+.nx-surface:hover::before {
+  transform: scaleX(1);
+}
+
+/* ── H10. Subtle parallax helper ─────────────────────────────────────── */
+
+.nx-parallax {
+  will-change: transform;
+  transition: transform 0.1s linear;
+}
+
+/* ── H11. Section index marker — editorial numbering ─────────────────── */
+
+.nx-section-index {
+  position: absolute;
+  top: 1.5rem;
+  right: 1.5rem;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  color: rgba(240, 240, 250, 0.15);
+  pointer-events: none;
+  user-select: none;
+}
+
+/* ── H12. Refined CTA — magnetic + glow + shine (unified) ────────────── */
+
+.nx-cta {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 48px;
+  padding: 0 1.5rem;
+  background: rgba(10, 10, 12, 0.6);
+  color: var(--nx-text-primary);
+  border: 1px solid rgba(240, 240, 250, 0.20);
+  border-radius: var(--nx-radius-cta);
+  font-family: var(--font-sans);
+  font-size: var(--nx-body-size);
+  font-weight: 400;
+  letter-spacing: normal;
+  text-transform: none;
+  overflow: hidden;
+  transition: border-color 0.3s ease, background 0.3s ease, box-shadow 0.4s ease, transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
+}
+
+.nx-cta::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08), transparent);
+  transition: left 0.7s ease;
+  pointer-events: none;
+}
+
+.nx-cta:hover {
+  border-color: rgba(255, 255, 255, 0.35);
+  background: rgba(15, 18, 20, 0.8);
+  box-shadow: 0 0 32px -8px rgba(255, 255, 255, 0.15), 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.nx-cta:hover::before {
+  left: 100%;
+}
+
+.nx-cta-secondary {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 48px;
+  padding: 0 1.5rem;
+  border: 1px solid rgba(240, 240, 250, 0.14);
+  color: rgba(240, 240, 250, 0.65);
+  background: transparent;
+  border-radius: var(--nx-radius-cta);
+  font-family: var(--font-sans);
+  font-size: var(--nx-body-size);
+  font-weight: 400;
+  transition: border-color 0.3s ease, color 0.3s ease, transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
+}
+
+.nx-cta-secondary:hover {
+  border-color: rgba(240, 240, 250, 0.30);
+  color: var(--nx-text-primary);
+}

@@ -47,7 +47,7 @@ export const VERTICALS: VerticalDefinition[] = [
     nameEn: "Climate & Industry",
     description: "Transition énergétique, décarbonation industrielle, CBAM",
     icon: "🌍",
-    color: "#10B981", // emerald-500
+    color: "#FFFFFF", // white accent
     config: {
       maxPublicationsPerWeek: 4,
       allowedTypes: ["ARTICLE", "SUMMARY_BRIEF", "STRATEGIC_REPORT", "RESEARCH_BRIEF", "EXECUTIVE_BRIEF", "UPDATE_NOTE", "DATA_NOTE", "DOSSIER"] as PublicationType[],

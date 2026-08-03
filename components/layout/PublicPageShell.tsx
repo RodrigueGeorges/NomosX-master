@@ -4,6 +4,9 @@ import React from "react";
 import PublicNav, { type PublicNavPage } from "@/components/PublicNav";
 import SiteFooter from "@/components/SiteFooter";
 import { EtherealBackground } from "@/components/signature";
+import { ScrollProgress } from "@/components/ui/ScrollProgress";
+import { CursorGlow } from "@/components/ui/CursorGlow";
+import { GrainOverlay } from "@/components/ui/GrainOverlay";
 import { cn } from "@/lib/utils";
 
 interface PublicPageShellProps {
@@ -29,6 +32,11 @@ export function PublicPageShell({
 }: PublicPageShellProps) {
   return (
     <div className={cn("min-h-screen bg-black text-text overflow-x-hidden relative", className)}>
+      {/* Atmospheric layers — subtle, cohesive, alive */}
+      <GrainOverlay />
+      <CursorGlow />
+      <div className="nx-vignette" aria-hidden="true" />
+      <ScrollProgress />
       {particles > 0 && <EtherealBackground particleCount={particles} radialGlow={false} />}
       <div className="relative z-10 flex flex-col min-h-screen">
         <PublicNav

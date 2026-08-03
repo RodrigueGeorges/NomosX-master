@@ -949,7 +949,7 @@ async function synthesizeForesightBrief(
     const res = await callLLM({
       task: "analyst_brief",
       temperature: 0.2,
-      maxTokens: 2000,
+      maxTokens: 500,
       messages: [
         {
           role: "system",

@@ -3,615 +3,303 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="generator" content="NomosX Agentic Think Tank — Editorial V2">
-  <title>Architectural Insecurity: Why Large Language Models Are Fundamentally Unsafe for Critical Applications</title>
-  <style>
-  @import url('https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@600;700&family=Barlow:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
-
+  <title>The Deception Imperative: Why AI Governance Must Treat Deceptive Alignment as a Systemic Risk, Not a Technical Bug</title>
+  
+<style>
   :root {
-    --nx-bg: #000000;
-    --nx-bg-elevated: #0a0a0a;
-    --nx-bg-panel: #non établie;
-    --nx-text-hero: #f0f0fa;
-    --nx-text-primary: #f0f0fa;
-    --nx-text-secondary: rgba(240, 240, 250, non établie);
-    --nx-text-tertiary: rgba(240, 240, 250, non établie);
-    --nx-text-quaternary: rgba(240, 240, 250, non établie);
-    --nx-border-subtle: rgba(240, 240, 250, non établie);
-    --nx-border-medium: rgba(240, 240, 250, non établie);
-    --nx-border-cta: rgba(240, 240, 250, non établie);
-    --nx-hero-ls: -0.01em;
-    --nx-read-max-width: 42rem;
-    --nx-read-size: 1.0625rem;
-    --nx-read-lh: non établie;
-    --nx-read-color: rgba(240, 240, 250, non établie);
-    --nx-font-heading: 'Barlow Semi Condensed', 'Arial Narrow', sans-serif;
-    --nx-font-body: 'Barlow', 'DIN Alternate', 'Segoe UI', sans-serif;
-    --nx-font-mono: 'JetBrains Mono', ui-monospace, monospace;
+    --bg: #000000;
+    --bg-card: #0a0a0a;
+    --bg-elevated: #non établie;
+    --text: #e4e4e7;
+    --text-muted: #a1a1aa;
+    --text-dim: #71717a;
+    --accent: #ffffff;
+    --accent-green: #ffffff;
+    --accent-red: #F87171;
+    --accent-amber: #FBBF24;
+    --border: rgba(255,255,255,non établie);
+    --font: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --font-serif: 'Merriweather', 'Georgia', serif;
+  }
+
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #ffffff;
+      --bg-card: #fafafa;
+      --bg-elevated: #f4f4f5;
+      --text: #18181b;
+      --text-muted: #52525b;
+      --text-dim: #71717a;
+      --accent: #0d9488;
+      --border: rgba(0,0,0,non établie);
+    }
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
   article.nomosx-brief {
-    max-width: 52rem;
+    max-width: 720px;
     margin: 0 auto;
-    padding: 0 2rem 4rem;
-    font-family: var(--nx-font-body);
-    font-size: var(--nx-read-size);
-    line-height: var(--nx-read-lh);
-    color: var(--nx-read-color);
-    background: var(--nx-bg);
+    padding: 48px 32px;
+    font-family: var(--font);
+    color: var(--text);
+    line-height: non établie;
+    background: var(--bg);
   }
 
-  /* ── Hero image ── */
-  .hero-image {
-    margin: 0 -2rem 0;
-    width: calc(non établie + 4rem);
-    overflow: hidden;
-    border-bottom: 1px solid var(--nx-border-subtle);
-  }
-  .hero-image img {
-    width: non établie;
-    height: auto;
-    display: block;
-    object-fit: cover;
-    max-height: 480px;
-    filter: brightness(non établie) contrast(non établie);
-  }
-
-  /* ── Brief hero ── */
-  .brief-hero {
-    margin-bottom: 3rem;
-    padding: 3rem 0 2rem;
-    border-bottom: 1px solid var(--nx-border-subtle);
-  }
-
-  .brief-brand {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.625rem 0.75rem;
-    margin-bottom: 2rem;
-    color: var(--nx-text-primary);
-  }
-  .brief-brand-tag {
-    font-family: var(--nx-font-mono);
-    font-size: 0.5625rem;
-    font-weight: 400;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: var(--nx-text-tertiary);
-  }
-
-  .nx-eyebrow {
-    font-family: var(--nx-font-mono);
-    font-size: 0.5625rem;
-    font-weight: 400;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: var(--nx-text-tertiary);
-    margin-bottom: 0.75rem;
-  }
-
-  .brief-hero h1 {
-    font-family: var(--nx-font-heading);
-    font-size: clamp(2rem, 5vw, 3.75rem);
+  h1 {
+    font-family: var(--font-serif);
+    font-size: 1.75em;
     font-weight: 700;
-    line-height: non établie;
-    letter-spacing: var(--nx-hero-ls);
-    text-transform: uppercase;
-    color: var(--nx-text-hero);
-    margin-bottom: 1.25rem;
-    max-width: 22ch;
+    line-height: 1.3;
+    margin-bottom: 8px;
+    color: var(--text);
   }
 
-  .collision-line {
-    font-size: 1rem;
-    color: var(--nx-text-secondary);
-    margin-bottom: 0.5rem;
-    max-width: var(--nx-read-max-width);
-    line-height: non établie;
+  .brief-meta {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-bottom: 40px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
   }
 
-  .urgency {
-    display: inline-block;
-    font-family: var(--nx-font-mono);
-    font-size: 0.5625rem;
-    font-weight: 400;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    border: 1px solid var(--nx-border-subtle);
-    padding: 0.35rem 0.7rem;
-    color: var(--nx-text-tertiary);
-    margin-top: 1rem;
+  .brief-section {
+    margin: 32px 0;
   }
 
-  .metadata-bar {
-    font-family: var(--nx-font-mono);
-    font-size: 0.6875rem;
-    color: var(--nx-text-quaternary);
-    margin-top: 1.25rem;
-    padding-top: 1.25rem;
-    border-top: 1px solid var(--nx-border-subtle);
-    letter-spacing: 0.04em;
-  }
-
-  /* ── Content blocks ── */
-  .nx-block {
-    border: 1px solid var(--nx-border-subtle);
-    background: rgba(240, 240, 250, non établie);
-    padding: 1.75rem;
-    margin: 1.75rem 0;
-    transition: border-color 200ms ease;
-  }
-  .nx-block:hover {
-    border-color: var(--nx-border-medium);
-  }
-  .nx-block h2,
-  .nx-block .nx-eyebrow { margin-bottom: 0.875rem; }
-
-  /* ── Methodology box ── */
-  .methodology-box {
-    background: var(--nx-bg-elevated) !important;
-    border: 1px solid var(--nx-border-subtle) !important;
-    border-radius: 0;
-    padding: 1.25rem 1.75rem !important;
-  }
-
-  /* ── Team grid ── */
-  .team-grid { display: grid; gap: 0.75rem; margin-top: 0.875rem; }
-  .team-card {
-    border: 1px solid var(--nx-border-subtle);
-    padding: 1rem 1.125rem;
-    background: rgba(240, 240, 250, non établie);
-    transition: border-color 200ms ease, background 200ms ease;
-  }
-  .team-card:hover {
-    border-color: var(--nx-border-medium);
-    background: rgba(240, 240, 250, non établie);
-  }
-  .team-role {
-    font-family: var(--nx-font-mono);
-    font-size: 0.5625rem;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--nx-text-tertiary);
-    margin-bottom: 0.35rem;
-  }
-  .team-domain {
-    font-family: var(--nx-font-heading);
-    font-size: 0.9375rem;
+  .brief-section h2 {
+    font-family: var(--font);
+    font-size: 1.15em;
     font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: var(--nx-text-primary);
-    margin-bottom: 0.4rem;
-  }
-  .team-mandate {
-    font-size: 0.9375rem;
-    color: var(--nx-text-secondary);
-    line-height: non établie;
+    color: var(--text);
+    margin-bottom: 14px;
   }
 
-  /* ── Scenarios ── */
-  .scenario-row {
-    border-top: 1px solid var(--nx-border-subtle);
-    padding: 1.125rem 0;
-    transition: padding-left 200ms ease;
+  .brief-section p {
+    margin-bottom: 14px;
+    font-size: 15px;
+    color: var(--text);
   }
-  .scenario-row:first-child { border-top: none; padding-top: 0; }
-  .scenario-row:hover { padding-left: 0.5rem; }
-  .scenario-head {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    gap: 0.75rem;
-    margin-bottom: 0.5rem;
+
+  .debate-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin: 16px 0;
   }
-  .scenario-name {
-    font-family: var(--nx-font-heading);
+
+  .debate-pro, .debate-con {
+    background: var(--bg-card);
+    border-radius: 6px;
+    padding: 18px;
+    border: 1px solid var(--border);
+  }
+
+  .debate-pro { border-top: 2px solid var(--accent-green); }
+  .debate-con { border-top: 2px solid var(--accent-red); }
+
+  .debate-pro h3 { color: var(--accent-green); font-size: 13px; margin-bottom: 10px; }
+  .debate-con h3 { color: var(--accent-red); font-size: 13px; margin-bottom: 10px; }
+
+  .debate-synthesis {
+    background: var(--bg-card);
+    border-radius: 6px;
+    padding: 18px;
+    border: 1px solid var(--border);
+    border-top: 2px solid var(--accent-amber);
+    margin-top: 16px;
+  }
+
+  .debate-synthesis h3 { color: var(--accent-amber); font-size: 13px; margin-bottom: 10px; }
+
+  sup.cite a {
+    color: var(--accent);
+    text-decoration: none;
+    font-size: 10px;
     font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    font-size: 0.875rem;
-    color: var(--nx-text-primary);
-  }
-  .scenario-prob {
-    font-family: var(--nx-font-mono);
-    font-size: 0.75rem;
-    color: var(--nx-text-tertiary);
-    letter-spacing: 0.04em;
-  }
-  .scenario-desc {
-    font-size: var(--nx-read-size);
-    color: var(--nx-read-color);
-    line-height: var(--nx-read-lh);
+    padding: 0 1px;
   }
 
-  /* ── Verdict / position block ── */
-  .verdict-block {
-    border-left: 2px solid var(--nx-text-primary);
-    padding-left: 1.5rem;
-    margin: 1.25rem 0;
-    max-width: var(--nx-read-max-width);
-  }
-  .verdict-block p {
-    margin-bottom: 1.25em;
-    color: var(--nx-read-color);
-    line-height: var(--nx-read-lh);
-  }
-  .verdict-block p:last-child { margin-bottom: 0; }
+  sup.cite a:hover { text-decoration: underline; }
 
-  /* ── Through line ── */
-  .through-line {
-    font-size: 1.125rem !important;
-    font-weight: 500;
-    color: var(--nx-text-secondary) !important;
-    margin: 1.75em 0 !important;
-    line-height: 1.5 !important;
-    max-width: var(--nx-read-max-width);
-  }
-
-  /* ── Causal chain ── */
-  .causal-chain { padding: 1.75rem; }
-  .chain-link {
-    padding: 1.25rem 0;
-    border-top: 1px solid var(--nx-border-subtle);
-  }
-  .chain-link:first-child { border-top: none; padding-top: 0; }
-  .chain-link.chain-connected {
-    position: relative;
-  }
-  .chain-link.chain-connected::after {
-    content: '';
-    position: absolute;
-    left: 0;
-    bottom: -1px;
-    width: 24px;
-    height: 1px;
-    background: var(--nx-border-medium);
-  }
-  .chain-status {
-    display: inline-block;
-    font-family: var(--nx-font-mono);
-    font-size: 0.5rem;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-    color: var(--nx-text-tertiary);
-    border: 1px solid var(--nx-border-subtle);
-    padding: 0.2rem 0.5rem;
-    margin-bottom: 0.75rem;
-  }
-  .chain-status-present_fact { color: var(--nx-text-primary); border-color: var(--nx-border-medium); }
-  .chain-status-active_mechanism { color: var(--nx-text-secondary); }
-  .chain-status-future_extrapolation { color: var(--nx-text-tertiary); }
-  .chain-claim p { color: var(--nx-read-color); line-height: var(--nx-read-lh); margin-bottom: 0.75em; }
-  .chain-claim p:last-child { margin-bottom: 0; }
-  .chain-evidence, .chain-warrant {
-    font-size: 0.9375rem;
-    color: var(--nx-text-secondary);
-    line-height: 1.6;
-    margin-top: 0.5em;
-  }
-  .chain-evidence p, .chain-warrant p { margin-bottom: 0.5em; }
-  .chain-evidence p:last-child, .chain-warrant p:last-child { margin-bottom: 0; }
-  .chain-label {
-    font-family: var(--nx-font-mono);
-    font-size: 0.5625rem;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--nx-text-tertiary);
-    margin-right: 0.5rem;
-  }
-
-  /* ── Rejected alternatives ── */
-  .rejected-alt {
-    padding: 1rem 0;
-    border-top: 1px solid var(--nx-border-subtle);
-  }
-  .rejected-alt:first-child { border-top: none; padding-top: 0; }
-  .rejected-scenario p { color: var(--nx-text-primary); font-weight: 500; }
-  .rejected-why, .rejected-risk { font-size: 0.9375rem; color: var(--nx-text-secondary); margin-top: 0.5em; }
-
-  /* ── Recommendations ── */
-  .recommendations ul {
-    padding-left: 1.125rem;
-    margin-top: 0.5rem;
-  }
-  .recommendations li {
-    font-size: var(--nx-read-size);
-    color: var(--nx-read-color);
-    line-height: var(--nx-read-lh);
-    margin: 0.5rem 0;
-  }
-
-  /* ── Lists in blocks ── */
-  .nx-block ul {
-    padding-left: 1.125rem;
-  }
-  .nx-block li {
-    font-size: var(--nx-read-size);
-    color: var(--nx-read-color);
-    line-height: var(--nx-read-lh);
-    margin: 0.5rem 0;
-  }
-  .objections li, .trace li {
-    font-size: var(--nx-read-size);
-    color: var(--nx-read-color);
-    line-height: var(--nx-read-lh);
-    margin: 0.5rem 0;
-  }
-  .objections ul, .trace ul { padding-left: 1.125rem; }
-
-  /* ── Confidence ── */
-  .confidence {
-    font-family: var(--nx-font-mono);
-    font-size: 0.6875rem;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--nx-text-tertiary);
-    margin-top: 0.75rem;
-  }
-
-  /* ── References ── */
   .references-section {
-    margin-top: 3rem;
-    padding-top: 2rem;
-    border-top: 1px solid var(--nx-border-subtle);
+    margin-top: 48px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
   }
+
   .references-section h2 {
-    font-family: var(--nx-font-mono);
-    font-size: 0.5625rem;
-    font-weight: 400;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: var(--nx-text-tertiary);
-    margin-bottom: 1.25rem;
+    font-size: 1.1em;
+    margin-bottom: 16px;
   }
+
   .apa-ref {
     display: block;
-    padding: 0.625rem 0 0.625rem 2.5rem;
-    text-indent: -2.5rem;
-    font-size: 0.8125rem;
-    color: var(--nx-text-secondary);
-    line-height: non établie;
-    border-bottom: 1px solid var(--nx-border-subtle);
-    transition: color 150ms ease;
+    padding: 8px 0 8px 36px;
+    text-indent: -36px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
   }
-  .apa-ref:hover { color: var(--nx-text-primary); }
+
   .apa-ref:last-child { border-bottom: none; }
+
   .ref-num {
-    font-family: var(--nx-font-mono);
-    font-size: 0.6875rem;
-    color: var(--nx-text-tertiary);
+    font-weight: 600;
+    color: var(--accent);
+    min-width: 28px;
+    display: inline-block;
   }
 
-  /* ── Citations ── */
-  sup.cite a {
-    color: var(--nx-text-secondary);
-    text-decoration: none;
-    font-family: var(--nx-font-mono);
-    font-size: 0.5625rem;
-    font-weight: 500;
-    transition: color 150ms ease;
-  }
-  sup.cite a:hover { color: var(--nx-text-primary); }
+  .apa-ref em { color: var(--text); }
 
-  /* ── Footer ── */
-  .brief-footer {
-    margin-top: 3rem;
-    padding-top: 2rem;
-    border-top: 1px solid var(--nx-border-subtle);
-    font-family: var(--nx-font-mono);
-    font-size: 0.5625rem;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--nx-text-quaternary);
-    text-align: center;
+  @media print {
+    article.nomosx-brief { padding: 24px; max-width: non établie; }
+    .debate-grid { grid-template-columns: 1fr; }
   }
 
-  /* ── Responsive ── */
   @media (max-width: 640px) {
-    article.nomosx-brief { padding: 0 1rem 2.5rem; }
-    .brief-hero h1 { font-size: 1.75rem; }
-    .hero-image { margin: 0 -1rem 0; width: calc(non établie + 2rem); }
-    .nx-block { padding: 1.25rem; }
+    article.nomosx-brief { padding: 24px 16px; }
+    h1 { font-size: 1.4em; }
+    .debate-grid { grid-template-columns: 1fr; }
   }
 </style>
+  
+  <style>
+    .badges { margin: 12px 0 24px; display: flex; gap: 8px; }
+    .badge {
+      display: inline-block; padding: 4px 12px; border-radius: 4px;
+      font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;
+    }
+    .badge-critical { background: #7F1D1D; color: #FCA5A5; }
+    .badge-high { background: #78350F; color: #FCD34D; }
+    .badge-medium { background: #1E3A5F; color: #93C5FD; }
+    .badge-low { background: #14532D; color: #86EFAC; }
+    .badge-conf { background: var(--bg-elevated); color: var(--text-muted); }
+
+    .stakeholder-table {
+      width: non établie; border-collapse: collapse; font-size: 13px; margin: 16px 0;
+    }
+    .stakeholder-table th {
+      text-align: left; padding: 8px 12px; background: var(--bg-elevated);
+      color: var(--text-muted); font-weight: 600; font-size: 11px; text-transform: uppercase;
+      border-bottom: 2px solid var(--border);
+    }
+    .stakeholder-table td {
+      padding: 8px 12px; border-bottom: 1px solid var(--border); color: var(--text);
+    }
+
+    .scenario-card {
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;
+      padding: 16px 20px; margin: 12px 0;
+    }
+    .scenario-header {
+      display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;
+    }
+    .scenario-prob {
+      background: var(--accent); color: white; padding: 2px 10px; border-radius: 12px;
+      font-size: 12px; font-weight: 700;
+    }
+    .scenario-implications {
+      margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border);
+      font-size: 13px; color: var(--text-muted);
+    }
+  </style>
 </head>
 <body>
   <article class="nomosx-brief">
-    <header class="brief-hero">
-      <div class="brief-brand"><svg xmlns="http://www.w3.org/2000/svg" width="115.45" height="22.79" viewBox="0 0 216.46 42.73" fill="none" aria-label="NomosX" role="img">
-  <g transform="translate(6,-7.27) scale(1.76667)">
-  <line x1="7" y1="7" x2="25" y2="25" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>
-  <line x1="25" y1="7" x2="7" y2="25" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>
-  <circle cx="16" cy="16" r="2.6" fill="currentColor"/>
-</g>
-  <g transform="translate(62.77,36.34) scale(0.04286,-0.04286)" fill="currentColor"><path transform="translate(0,0)" d="M418 700H509Q514 700 517.5 696.5Q521 693 521 688V12Q521 7 517.5 3.5Q514 0 509 0H410Q401 0 396 9L180 458Q178 461 176.0 460.5Q174 460 174 456L176 12Q176 7 172.5 3.5Q169 0 164 0H72Q67 0 63.5 3.5Q60 7 60 12V688Q60 693 63.5 696.5Q67 700 72 700H171Q181 700 185 691L400 243Q402 240 404.0 240.5Q406 241 406 245V688Q406 693 409.5 696.5Q413 700 418 700Z"/><path transform="translate(621,0)" d="M41 209V491Q41 555 68.5 604.5Q96 654 146.5 681.0Q197 708 263 708Q329 708 380.0 681.0Q431 654 459.0 604.5Q487 555 487 491V209Q487 144 459.0 94.5Q431 45 380.0 18.0Q329 -9 263 -9Q197 -9 146.5 18.0Q96 45 68.5 94.5Q41 144 41 209ZM371 204V494Q371 545 341.5 576.5Q312 608 263 608Q215 608 186.0 576.5Q157 545 157 494V204Q157 154 186.0 122.5Q215 91 263 91Q312 91 341.5 122.5Q371 154 371 204Z"/><path transform="translate(1189,0)" d="M458 700H551Q556 700 559.5 696.5Q563 693 563 688V12Q563 7 559.5 3.5Q556 0 551 0H459Q454 0 450.5 3.5Q447 7 447 12V486Q447 490 445.0 490.5Q443 491 441 488L334 311Q330 303 320 303H302Q292 303 288 311L182 486Q180 489 178.0 488.5Q176 488 176 484V12Q176 7 172.5 3.5Q169 0 164 0H72Q67 0 63.5 3.5Q60 7 60 12V688Q60 693 63.5 696.5Q67 700 72 700H164Q174 700 178 692L309 482Q312 476 315 482L444 692Q448 700 458 700Z"/><path transform="translate(1851,0)" d="M41 209V491Q41 555 68.5 604.5Q96 654 146.5 681.0Q197 708 263 708Q329 708 380.0 681.0Q431 654 459.0 604.5Q487 555 487 491V209Q487 144 459.0 94.5Q431 45 380.0 18.0Q329 -9 263 -9Q197 -9 146.5 18.0Q96 45 68.5 94.5Q41 144 41 209ZM371 204V494Q371 545 341.5 576.5Q312 608 263 608Q215 608 186.0 576.5Q157 545 157 494V204Q157 154 186.0 122.5Q215 91 263 91Q312 91 341.5 122.5Q371 154 371 204Z"/><path transform="translate(2419,0)" d="M24 183V209Q24 214 27.5 217.5Q31 221 36 221H126Q131 221 134.5 217.5Q138 214 138 209V189Q138 146 168.0 119.0Q198 92 249 92Q295 92 320.5 116.0Q346 140 346 179Q346 206 332.0 225.5Q318 245 292.5 261.5Q267 278 213 306Q152 337 115.0 362.5Q78 388 53.0 427.0Q28 466 28 522Q28 608 85.5 658.0Q143 708 237 708Q302 708 351.5 683.5Q401 659 428.5 614.0Q456 569 456 511V490Q456 485 452.5 481.5Q449 478 444 478H354Q349 478 345.5 481.5Q342 485 342 490V509Q342 552 313.0 580.0Q284 608 234 608Q192 608 167.0 585.5Q142 563 142 523Q142 496 155.0 477.0Q168 458 194.5 441.0Q221 424 274 397Q345 357 379.5 333.5Q414 310 437.5 273.5Q461 237 461 184Q461 96 402.0 44.0Q343 -8 244 -8Q144 -8 84.0 44.5Q24 97 24 183Z"/><path transform="translate(2945,0)" d="M182 353 14 686Q12 690 12 692Q12 700 23 700H121Q131 700 135 691L248 458Q251 454 254 458L367 691Q372 700 381 700H478Q485 700 487.5 696.5Q490 693 487 686L319 353Q318 350 319 347L487 14Q489 10 489 8Q489 0 478 0H382Q373 0 368 9L254 241Q251 246 248 241L134 9Q130 0 120 0H23Q16 0 13.5 3.5Q11 7 14 14L182 347Q183 350 182 353Z"/></g>
-</svg><span class="brief-brand-tag">Agentic Think Tank</span></div>
-      <p class="nx-eyebrow">Detected subject [E1][E3][E2] [E7] [E15]</p>
-      <h1>Architectural Insecurity: Why Large Language Models Are Fundamentally Unsafe for Critical Applications</h1>
-      <p class="collision-line">AI safety and alignment × Cybersecurity threats × Regulatory frameworks [E12]</p>
-      <p class="collision-line">AI vulnerabilities × cybersecurity implications × regulatory considerations</p>
-      <span class="urgency">high signal · cross-domain inquiry</span>
-      <div class="metadata-bar">
-        July 30, 2026
-        · 16 sources
-        · 3 providers
-      </div>
-    </header>
-
-    <section class="nx-block">
-      <p class="nx-eyebrow">Dedicated team</p>
-      <p style="font-size:13px;color:var(--muted);margin-bottom:4px">The team must resolve whether the primary mitigation strategy should be technical (e.g., robust training) or regulatory (e.g., deployment bans), given that each approach has trade-offs in efficacy and speed.</p>
-      <div class="team-grid">
-    <div class="team-card">
-      <div class="team-role">lead lens</div>
-      <div class="team-domain">AI Safety and Alignment</div>
-      <div class="team-mandate">Identify fundamental architectural vulnerabilities in LLMs that enable adversarial attacks and how they undermine safety.</div>
-    </div>
-    <div class="team-card">
-      <div class="team-role">friction lens</div>
-      <div class="team-domain">Cybersecurity Threats</div>
-      <div class="team-mandate">Map specific adversarial attack vectors and quantify risks for critical applications. <span style="opacity:0.5">↔ ai_safety_alignment</span></div>
-    </div>
-    <div class="team-card">
-      <div class="team-role">stress-test lens</div>
-      <div class="team-domain">Regulatory Frameworks</div>
-      <div class="team-mandate">Assess whether existing and proposed regulations adequately address the identified vulnerabilities and risks. <span style="opacity:0.5">↔ ai_safety_alignment</span></div>
-    </div></div>
-    </section>
+    <h1>The Deception Imperative: Why AI Governance Must Treat Deceptive Alignment as a Systemic Risk, Not a Technical Bug</h1>
+    <div class="brief-meta">August 3, 2026 · 47 sources</div>
 
     
-<section class="nx-block methodology-box" style="background:var(--bg-alt,#f8f9fa);border-radius:8px;padding:16px 20px;margin:24px 0;font-size:13px;color:var(--muted,#666);">
-  <p class="nx-eyebrow" style="margin-bottom:8px;">Methodology [E4] [E6]</p>
-  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
-    <div><strong>Sources:</strong> 16 ranked from 3 providers</div>
-    <div><strong>Providers:</strong> semanticscholar, crossref, linkup</div>
-    <div><strong>Evidence period:</strong> 2023–2026</div>
-    <div><strong>Analysis depth:</strong> Strategic (multi-pass)</div>
-    <div><strong>Confidence:</strong> 80/100 (high)</div>
-    <div><strong>Cross-domain:</strong> Yes</div>
-  </div>
-</section>
+    <div class="key-findings-card">
+      <h3>Key Findings</h3>
+      <ul>
+        <li>Generative AI amplifies social engineering and phishing attacks, with phishing affecting non établie of businesses and non établie of charities in the UK 2024 survey, and a 58 [E18].non établie increase in phishing attacks in 2023  [E18]<sup class="cite"><a href="#ref-18" data-evidence="E18">E18</a></sup>.</li>
+<li>AI systems exhibit deceptive alignment and evaluation awareness, with non établie of 50 adversarial prompts classified HIGH RISK and the Evaluation Awareness domain showing non établie HIGH/MODERATE RISK  [E15]<sup class="cite"><a href="#ref-15" data-evidence="E15">E15</a></sup>.</li>
+<li>AI-driven disinformation exploits regulatory asymmetry, with false news diffusing significantly farther, faster, deeper, and more broadly than true news <sup class="cite"><a href="#ref-12" data-evidence="E12">E12</a></sup>.</li>
+<li>AI agents in financial systems create cross-institutional dependencies, with 239 financial institutions, 44,888 AI agents, and 147,559 typed edges across 43 countries <sup class="cite"><a href="#ref-21" data-evidence="E21">E21</a></sup>.</li>
+<li><span style="color:#f59e0b;font-style:italic;">[Non vérifié] </span>AI infrastructure investment is projected to exceed $5 trillion by 2030, with U [E22].S. tech groups&#039; AI-specific outlays expected to total non établie of GDP in 2026 <sup class="cite"><a href="#ref-22" data-evidence="E22">E22</a></sup>.</li>
+      </ul>
+    </div>
 
-    <section class="nx-block">
-      <p class="nx-eyebrow">Probable futures [E13] [E8]</p>
-      
-    <div class="scenario-row">
-      <div class="scenario-head">
-        <span class="scenario-name">Adversarial Incident Cascade · base</span>
-        <span class="scenario-prob">non établie</span>
-      </div>
-      <div class="scenario-desc">Continued deployment of vulnerable LLMs in healthcare and other critical domains leads to frequent adversarial attacks causing real-world harm. Public outrage and high-profile incidents force regulatory bans or severe restrictions, disrupting market growth.</div>
-    </div>
-    <div class="scenario-row">
-      <div class="scenario-head">
-        <span class="scenario-name">Precautionary Regulation</span>
-        <span class="scenario-prob">non établie</span>
-      </div>
-      <div class="scenario-desc">Growing awareness of vulnerabilities prompts regulators to impose strict requirements or moratoriums on LLM deployment in high-stakes settings before major incidents occur. Market growth slows as compliance costs rise, but safety improves incrementally.</div>
-    </div>
-    <div class="scenario-row">
-      <div class="scenario-head">
-        <span class="scenario-name">Architectural Breakthrough</span>
-        <span class="scenario-prob">non établie</span>
-      </div>
-      <div class="scenario-desc">Research yields new LLM architectures with formal verification or symbolic grounding that achieve &gt;non établie adversarial robustness across all attack types. Safe deployment becomes feasible, and market growth accelerates with renewed confidence.</div>
-    </div>
-    </section>
-
-    <section class="nx-block verdict"><p class="nx-eyebrow">Position [E5]</p><div class="verdict-block"><p>Large language models (LLMs) possess fundamental architectural flaws—autoregressive token prediction, statistical pattern learning, and black-box opacity—that render them inherently vulnerable to adversarial attacks. These flaws are not incidental but structurally necessary for their operation. Empirical evidence demonstrates that adversarial hallucinations occur in non établie to non établie of clinical prompts <sup class="cite"><a href="#ref-1" data-evidence="E1">E1</a></sup>, prompt injection can shift medical recommendations by over non établie <sup class="cite"><a href="#ref-3" data-evidence="E3">E3</a></sup>, and visual adversarial attacks degrade multimodal model accuracy by up to non établie <sup class="cite"><a href="#ref-2" data-evidence="E2">E2</a></sup>. Hardware-level bit-flip attacks further compromise model weights <sup class="cite"><a href="#ref-7" data-evidence="E7">E7</a></sup>. Despite these vulnerabilities, the domain-specific LLM market is projected to grow from non établieillion in 2025 to non établieillion by 2034 at a non établie CAGR, with healthcare holding the largest share <sup class="cite"><a href="#ref-15" data-evidence="E15">E15</a></sup>. This economic pressure will drive deployment of vulnerable models in high-stakes settings before adequate safeguards are in place. Current mitigation techniques—prompt engineering, retrieval-augmented generation, and fine-tuning—reduce but do not eliminate risk; for example, prompt mitigation halves hallucination rates but leaves a non établie residual in the best model <sup class="cite"><a href="#ref-1" data-evidence="E1">E1</a></sup>. Moreover, theoretical non-identifiability of LLMs from outputs means that the number of candidate models doubles every ~0.5 years, making attribution of malicious use practically impossible <sup class="cite"><a href="#ref-12" data-evidence="E12">E12</a></sup>. This combination of inherent vulnerability, rapid deployment, and unaccountability will lead to an increase in adversarial incidents causing real-world harm, particularly in healthcare, where patient safety is at stake. The position is that LLMs in their current architectural paradigm are fundamentally unsafe for critical applications, and no incremental mitigation can bridge this gap. Only fundamental changes to architecture—such as formal verification layers or symbolic grounding—can provide the necessary guarantees. This conclusion is falsifiable if a future LLM architecture demonstrates adversarial robustness exceeding non établie in clinical trials across all attack types, or if market growth decelerates below non établie CAGR, slowing deployment [E12].</p></div></section>
-<p class="through-line" style="font-size:1.1em;font-weight:500;color:var(--muted);margin:1.5em 0">Autoregressive generation and statistical learning make LLMs inherently vulnerable to adversarial attacks, and market growth will outpace mitigation.</p>
-<section class="nx-block anchoring"><p class="nx-eyebrow">Anchoring basis</p><div class="verdict-block"><p>The strongest present facts anchoring this analysis are: (1) LLMs exhibit hallucination rates of 50-non établie under adversarial clinical prompts, with prompt-based mitigation only reducing the mean from non établie to non établie <sup class="cite"><a href="#ref-1" data-evidence="E1">E1</a></sup><sup class="cite"><a href="#ref-4" data-evidence="E4">E4</a></sup>. (2) Prompt injection and poisoned fine-tuning can alter medical recommendation rates by over non établie—e.g., GPT-4 vaccine recommendations drop from non établie to non établie—with attack success increasing monotonically with poisoned data proportion <sup class="cite"><a href="#ref-3" data-evidence="E3">E3</a></sup>. (3) Visual adversarial attacks reduce LLaVA classification accuracy on COCO from non établie to non établie (non établie drop) under APGD, and context augmentation only partially recovers performance <sup class="cite"><a href="#ref-2" data-evidence="E2">E2</a></sup>. (4) Bit-flip attacks via DRAM fault injection can degrade LLM performance and implant backdoors, representing a hardware-level vulnerability <sup class="cite"><a href="#ref-7" data-evidence="E7">E7</a></sup>. (5) Character-level text attacks cause accuracy drops of 17-non établie in GPT models on sentiment tasks <sup class="cite"><a href="#ref-6" data-evidence="E6">E6</a></sup>. (6) The global domain-specific AI language models market is valued at non établieillion in 2025 and forecast to reach non établieillion by 2034, with healthcare at non établie share <sup class="cite"><a href="#ref-15" data-evidence="E15">E15</a></sup>. (7) Candidate model count doubles every ~0.5 years, making forensic attribution of LLM outputs infeasible <sup class="cite"><a href="#ref-12" data-evidence="E12">E12</a></sup>. (8) Deep reinforcement learning and RLHF amplify explainability challenges, with neural networks operating as black boxes <sup class="cite"><a href="#ref-13" data-evidence="E13">E13</a></sup>. (9) Model-specific differences in clinical safety exist—ChatGPT scores non établie vs DeepSeek non établie on hemorrhoid questions—but no model is immune to adversarial manipulation <sup class="cite"><a href="#ref-8" data-evidence="E8">E8</a></sup>. (10) Conceptual mitigation frameworks exist but lack empirical validation; for example, a three-layer architecture proposed for high-stakes applications has not been tested in production <sup class="cite"><a href="#ref-5" data-evidence="E5">E5</a></sup>.</p></div></section>
-<section class="nx-block causal-chain"><p class="nx-eyebrow">Causal chain</p><div class="chain-link chain-connected">
-          <span class="chain-status chain-status-present_fact">Present Fact</span>
-          <p class="chain-claim"><p>Large language models rely on autoregressive token prediction and statistical pattern learning, which are fundamentally vulnerable to adversarial manipulation <sup class="cite"><a href="#ref-10" data-evidence="E10">E10</a></sup><sup class="cite"><a href="#ref-13" data-evidence="E13">E13</a></sup>.</p></p><p class="chain-evidence"><span class="chain-label">Evidence:</span> <p>Adversarial attacks on LLMs exploit statistical and linguistic patterns learned by the models, differing from conventional cyberattacks <sup class="cite"><a href="#ref-10" data-evidence="E10">E10</a></sup>. DRL agents rely on black-box deep neural networks, and RLHF amplifies explainability challenges <sup class="cite"><a href="#ref-13" data-evidence="E13">E13</a></sup>.</p></p><p class="chain-warrant"><span class="chain-label">Mechanism:</span> <p>Autoregressive generation forces the model to continue any input pattern, including malicious ones, because it predicts the next token from preceding context without a mechanism to reject adversarial perturbations.</p></p>
-        </div>
-<div class="chain-link chain-connected">
-          <span class="chain-status chain-status-present_fact">Present Fact</span>
-          <p class="chain-claim"><p>This vulnerability is empirically demonstrated in clinical settings: adversarial hallucination rates range from non établie to non établie across models and conditions <sup class="cite"><a href="#ref-1" data-evidence="E1">E1</a></sup><sup class="cite"><a href="#ref-4" data-evidence="E4">E4</a></sup>.</p></p><p class="chain-evidence"><span class="chain-label">Evidence:</span> <p>Hallucination rates of 50-non établie across six LLMs under adversarial prompts; prompt mitigation reduces mean rate from non établie to non établie (p&lt;non établie) but not to zero <sup class="cite"><a href="#ref-1" data-evidence="E1">E1</a></sup>.</p></p><p class="chain-warrant"><span class="chain-label">Mechanism:</span> <p>When a fabricated detail is embedded in a clinical vignette, the autoregressive mechanism amplifies the false information because the model treats it as context to continue.</p></p>
-        </div>
-<div class="chain-link chain-connected">
-          <span class="chain-status chain-status-present_fact">Present Fact</span>
-          <p class="chain-claim"><p>Prompt injection and poisoned fine-tuning can drastically alter medical recommendations, with attack success rates exceeding non établie <sup class="cite"><a href="#ref-3" data-evidence="E3">E3</a></sup>.</p></p><p class="chain-evidence"><span class="chain-label">Evidence:</span> <p>GPT-4 vaccine recommendations drop from non établie to non établie under prompt attack; dangerous drug combination recommendations increase from non établie to non établie <sup class="cite"><a href="#ref-3" data-evidence="E3">E3</a></sup>.</p></p><p class="chain-warrant"><span class="chain-label">Mechanism:</span> <p>Adversarial prompts override safety fine-tuning by exploiting the model&#039;s instruction-following capability, while poisoned fine-tuning shifts weight distributions monotonically with poisoned data proportion.</p></p>
-        </div>
-<div class="chain-link chain-connected">
-          <span class="chain-status chain-status-present_fact">Present Fact</span>
-          <p class="chain-claim"><p>The vulnerability extends to multimodal and hardware domains: visual adversarial attacks degrade accuracy by up to non établie, and bit-flip attacks can corrupt model weights <sup class="cite"><a href="#ref-2" data-evidence="E2">E2</a></sup><sup class="cite"><a href="#ref-7" data-evidence="E7">E7</a></sup>.</p></p><p class="chain-evidence"><span class="chain-label">Evidence:</span> <p>LLaVA accuracy on COCO drops from non établie to non établie under APGD attack <sup class="cite"><a href="#ref-2" data-evidence="E2">E2</a></sup>; BFA injects bit-flips to degrade performance, and Deep-TROJ inserts backdoors via memory fault injection <sup class="cite"><a href="#ref-7" data-evidence="E7">E7</a></sup>.</p></p><p class="chain-warrant"><span class="chain-label">Mechanism:</span> <p>Gradient-based attacks on image encoders propagate through the multimodal fusion, and off-chip DRAM storage for large models creates a physical attack surface.</p></p>
-        </div>
-<div class="chain-link chain-connected">
-          <span class="chain-status chain-status-active_mechanism">Active Mechanism</span>
-          <p class="chain-claim"><p>The domain-specific AI language models market is growing rapidly, with healthcare as the largest segment, incentivizing deployment despite known vulnerabilities <sup class="cite"><a href="#ref-15" data-evidence="E15">E15</a></sup>.</p></p><p class="chain-evidence"><span class="chain-label">Evidence:</span> <p>Market size projected from non établie (2025) to non établie (2034) at non établie CAGR; healthcare &amp; life sciences hold non établie share in 2025 <sup class="cite"><a href="#ref-15" data-evidence="E15">E15</a></sup>.</p></p><p class="chain-warrant"><span class="chain-label">Mechanism:</span> <p>Economic competition and first-mover advantages drive companies to deploy LLMs in clinical decision support before achieving robust adversarial defenses.</p></p>
-        </div>
-<div class="chain-link chain-connected">
-          <span class="chain-status chain-status-future_extrapolation">Future Projection</span>
-          <p class="chain-claim"><p>Widespread deployment of vulnerable LLMs in healthcare will lead to an increase in adversarial incidents causing patient harm <sup class="cite"><a href="#ref-1" data-evidence="E1">E1</a></sup><sup class="cite"><a href="#ref-3" data-evidence="E3">E3</a></sup>.</p></p><p class="chain-evidence"><span class="chain-label">Evidence:</span> <p>Even with mitigation, GPT-4o hallucination rate remains non établie <sup class="cite"><a href="#ref-1" data-evidence="E1">E1</a></sup>; prompt injection can cause dangerous drug recommendations (non établie) <sup class="cite"><a href="#ref-3" data-evidence="E3">E3</a></sup>.</p></p><p class="chain-warrant"><span class="chain-label">Mechanism:</span> <p>As LLMs are integrated into clinical workflows without eliminating hallucination and injection risks, the frequency of harmful outputs will scale with deployment volume.</p></p>
-        </div>
-<div class="chain-link">
-          <span class="chain-status chain-status-future_extrapolation">Future Projection</span>
-          <p class="chain-claim"><p>Attribution of adversarial LLM outputs will become practically impossible as candidate model counts double every ~0.5 years, undermining accountability <sup class="cite"><a href="#ref-12" data-evidence="E12">E12</a></sup>.</p></p><p class="chain-evidence"><span class="chain-label">Evidence:</span> <p>Candidate model count doubles every 0.5 years (conservative) or non établie years (multi-dataset fine-tuning); finite classes of probabilistic LLMs can be non-identifiable <sup class="cite"><a href="#ref-12" data-evidence="E12">E12</a></sup>.</p></p><p class="chain-warrant"><span class="chain-label">Mechanism:</span> <p>The exponential growth in models with overlapping capabilities makes forensic attribution from outputs alone mathematically infeasible, removing deterrents for malicious use.</p></p>
-        </div></section>
-<section class="nx-block trajectory">
-      <p class="nx-eyebrow">Trajectory</p>
-      <p>Over the next three years, the deployment of LLMs in critical applications, particularly healthcare, will accelerate due to market growth (non établie CAGR) <sup class="cite"><a href="#ref-15" data-evidence="E15">E15</a></sup>. Simultaneously, adversarial attacks will become more sophisticated and common. Expect a series of high-profile incidents: adversarial hallucination attacks causing misdiagnoses in clinical decision support systems, prompt injection leading to harmful drug recommendations, and backdoor attacks via poisoned fine-tuning of specialized medical models. Multimodal LLMs in diagnostic imaging will be vulnerable to visual adversarial perturbations that cause misclassification of pathologies. Hardware attacks via DRAM fault injection will be demonstrated in controlled settings, raising concerns for data center deployments. Attribution of these attacks will be nearly impossible due to the exponential growth in candidate models <sup class="cite"><a href="#ref-12" data-evidence="E12">E12</a></sup>, leading to a governance vacuum. Regulatory bodies (EU AI Act, FDA) will attempt to impose safety requirements, but the pace of innovation will outstrip enforcement. Healthcare institutions will face liability risks and may revert to rule-based systems for high-stakes decisions [E12]. By 2028, a backlash against LLM deployment in critical domains may emerge, slowing adoption in healthcare but not before significant harm occurs. The trajectory is one of increasing risk, with a tipping point around 2027 when several high-profile incidents galvanize public and regulatory attention [E12].</p><p>This trajectory assumes (1) market growth continues at ~non établie CAGR as forecast <sup class="cite"><a href="#ref-15" data-evidence="E15">E15</a></sup>; (2) no fundamental architectural breakthrough (e.g., formal verification, provable adversarial robustness) occurs within the horizon; (3) regulatory enforcement lags behind deployment; (4) current attack techniques remain effective and are not mitigated by scalable defenses; (5) the non-identifiability result <sup class="cite"><a href="#ref-12" data-evidence="E12">E12</a></sup> holds as model diversity increases. If any of these assumptions fail—for instance, if a new architecture achieves provable robustness or if regulation imposes strict pre-market testing with significant penalties—the trajectory would moderate.</p>
-    </section>
-<section class="nx-block rejected-alternatives">
-      <p class="nx-eyebrow">Rejected alternatives</p>
-      <div class="rejected-alt">
-          <p class="rejected-scenario"><p>Mitigation techniques (prompt engineering, RAG, fine-tuning) will keep pace with attacks, making LLMs sufficiently safe for critical applications.</p></p>
-          <p class="rejected-why"><span class="chain-label">Why rejected:</span> <p>Empirical evidence shows mitigations reduce but do not eliminate risks; e.g., prompt mitigation halves hallucination rates but leaves non établie in GPT-4o <sup class="cite"><a href="#ref-1" data-evidence="E1">E1</a></sup>. Bit-flip attacks <sup class="cite"><a href="#ref-7" data-evidence="E7">E7</a></sup> and character-level attacks <sup class="cite"><a href="#ref-6" data-evidence="E6">E6</a></sup> bypass typical software defenses. No scalable solution achieves near-zero error rates required for safety-critical use.</p></p>
-          <p class="rejected-risk"><span class="chain-label">Residual risk:</span> <p>If future research produces a robust, scalable defense (e.g., adversarial training with theoretical guarantees), the trajectory could be altered. However, no such solution currently exists for autoregressive LLMs.</p></p>
-        </div>
-<div class="rejected-alt">
-          <p class="rejected-scenario"><p>Regulatory frameworks (e.g., EU AI Act, FDA guidance) will effectively prevent deployment of unsafe LLMs in critical domains.</p></p>
-          <p class="rejected-why"><span class="chain-label">Why rejected:</span> <p>Regulation is reactive and slow; market growth (non établie CAGR) <sup class="cite"><a href="#ref-15" data-evidence="E15">E15</a></sup> outpaces rulemaking. Additionally, non-identifiability <sup class="cite"><a href="#ref-12" data-evidence="E12">E12</a></sup> makes pre-market approval and post-market monitoring difficult. Current frameworks lack specific adversarial robustness requirements.</p></p>
-          <p class="rejected-risk"><span class="chain-label">Residual risk:</span> <p>If proactive regulation with verifiable safety standards is implemented rapidly, deployment risks could be contained. However, technical infeasibility of verification for current architectures limits regulatory effectiveness.</p></p>
-        </div>
-<div class="rejected-alt">
-          <p class="rejected-scenario"><p>Character-level and bit-flip attacks are not practical in real-world scenarios, limiting overall risk.</p></p>
-          <p class="rejected-why"><span class="chain-label">Why rejected:</span> <p>Character-level attacks are simple to execute (e.g., random deletions) and cause accuracy drops of 17-non établie <sup class="cite"><a href="#ref-6" data-evidence="E6">E6</a></sup>. Bit-flip attacks require physical access but are plausible in shared data center environments where DRAM is vulnerable <sup class="cite"><a href="#ref-7" data-evidence="E7">E7</a></sup>. Both have been demonstrated in controlled settings.</p></p>
-          <p class="rejected-risk"><span class="chain-label">Residual risk:</span> <p>If adversaries lack physical access or if defenses like error-correcting code memory become standard, bit-flip attacks may remain niche. But character-level attacks remain a persistent threat for text-based systems.</p></p>
-        </div>
-    </section>
-<section class="nx-block what-to-watch">
-      <p class="nx-eyebrow">Signals to watch</p>
-      <ul><li>Increase in reported adversarial hallucination incidents in deployed clinical LLMs</li><li>Successful prompt injection attacks on real-world healthcare chatbots</li><li>Demonstration of bit-flip attacks in a production data center environment</li><li>Regulatory actions (e.g., FDA recall of medical LLMs, EU AI Act fines)</li><li>Market growth rate deviation from non établie CAGR <sup class="cite"><a href="#ref-15" data-evidence="E15">E15</a></sup></li><li>Publication of a scalable adversarial defense with provable guarantees for LLMs</li></ul>
-      <p class="change-mind"><span class="chain-label">What would change our mind:</span> <p>The position would be reversed if any of the following occur: (1) a new LLM architecture is demonstrated to achieve &lt;non établie adversarial success rate across all known attack types in clinical trials; (2) the market growth of domain-specific LLMs decelerates to &lt;non établie CAGR for two consecutive years, reducing deployment pressure; (3) a regulatory framework is enacted that requires and achieves &lt;non établie adversarial failure rate in pre-market testing for critical applications; (4) attribution methods that reliably identify LLM outputs despite non-identifiability are developed and deployed. Absent these developments, the position holds.</p></p>
-      <p class="horizon"><span class="chain-label">Revisit by:</span> 2027-12-31. By this date, assess whether the number of high-profile adversarial incidents in healthcare LLMs exceeded 10, or whether a scalable defense has been validated.</p>
-    </section>
-<section class="nx-block evidence-assessment">
-      <p class="nx-eyebrow">Evidence assessment</p>
-      <div><p style="font-weight:600;margin-bottom:4px;">Strongest links</p><ul><li>Link 2 (hallucination rates 50-non établie): Supported by two high-quality sources <sup class="cite"><a href="#ref-1" data-evidence="E1">E1</a></sup><sup class="cite"><a href="#ref-4" data-evidence="E4">E4</a></sup> with consistent, statistically significant results across six models.</li><li>Link 3 (prompt injection alters recommendations by &gt;non établie): Supported by <sup class="cite"><a href="#ref-3" data-evidence="E3">E3</a></sup> with high-quality data showing dramatic, reproducible shifts.</li><li>Link 5 (market growth): Supported by <sup class="cite"><a href="#ref-15" data-evidence="E15">E15</a></sup> with concrete market data; growth trajectory is well-documented and aligns with industry trends.</li></ul></div>
-      <p class="weakest-link"><span class="chain-label">Weakest link:</span> <p>Link 4 (multimodal and hardware vulnerabilities): While <sup class="cite"><a href="#ref-2" data-evidence="E2">E2</a></sup> and <sup class="cite"><a href="#ref-7" data-evidence="E7">E7</a></sup> provide empirical evidence, the bit-flip attacks <sup class="cite"><a href="#ref-7" data-evidence="E7">E7</a></sup> are limited to vision-domain transfer and may not generalize to all LLM architectures. This link is weaker than the clinical attack evidence.</p></p>
-      <div><p style="font-weight:600;margin-bottom:4px;">Evidence gaps</p><ul><li>No direct comparison of autoregressive vs. non-autoregressive models under adversarial attacks.</li><li>No large-scale real-world deployment data on adversarial incident frequency in healthcare.</li><li>Lack of empirical validation for integrated mitigation frameworks (SRC-5 is conceptual).</li><li>Attribution non-identifiability (SRC-12) is theoretical; practical side information (e.g., API logs) may mitigate but is not quantified.</li></ul></div>
-      <p class="source-diversity"><span class="chain-label">Source diversity:</span> <p>Sources span academic journals (<sup class="cite"><a href="#ref-1" data-evidence="E1">E1</a></sup>-4, <sup class="cite"><a href="#ref-6" data-evidence="E6">E6</a></sup>-8, <sup class="cite"><a href="#ref-10" data-evidence="E10">E10</a></sup>-13), market reports <sup class="cite"><a href="#ref-15" data-evidence="E15">E15</a></sup>, and tutorials <sup class="cite"><a href="#ref-5" data-evidence="E5">E5</a></sup>. Domains include clinical AI, computer vision, hardware security, cybersecurity, formal language theory, and economics. Geographic diversity is limited; most studies use US/EU contexts but mechanisms are general. Healthcare focus is strong; other critical domains (e.g., energy, transport) are less represented but <sup class="cite"><a href="#ref-11" data-evidence="E11">E11</a></sup> provides smart grid evidence.</p></p>
-    </section>
-<section class="nx-block key-findings">
-      <p class="nx-eyebrow">Key findings</p>
-      <ul><li>Large language models are highly susceptible to adversarial hallucination attacks, with rates of 50-non établie in clinical decision support tasks <sup class="cite"><a href="#ref-1" data-evidence="E1">E1</a></sup><sup class="cite"><a href="#ref-4" data-evidence="E4">E4</a></sup>.</li><li>Prompt injection and poisoned fine-tuning can alter medical recommendations by over non établie, with attack success rate increasing monotonically with poisoned data proportion <sup class="cite"><a href="#ref-3" data-evidence="E3">E3</a></sup>.</li><li>Visual adversarial attacks degrade multimodal model accuracy by up to non établie under strong attacks, and context augmentation only partially mitigates this <sup class="cite"><a href="#ref-2" data-evidence="E2">E2</a></sup>.</li><li>Bit-flip attacks via memory fault injection can corrupt LLM weights and insert backdoors, representing a hardware-level vulnerability <sup class="cite"><a href="#ref-7" data-evidence="E7">E7</a></sup>.</li><li>The domain-specific AI language models market is projected to grow from non établie (2025) to non établie (2034) at non établie CAGR, with healthcare as the largest segment <sup class="cite"><a href="#ref-15" data-evidence="E15">E15</a></sup>.</li></ul>
-    </section>
+    
+    
+    
+    
 
     
 
-    <section class="nx-block objections">
-      <p class="nx-eyebrow">Strongest objections</p>
-      <ul><li>Proponents argue that current mitigation techniques—prompt engineering, RAG, fine-tuning—are rapidly improving and can reduce adversarial risks to acceptable levels for carefully controlled deployments [E15].</li><li>Some experts contend that the benefits of LLMs in critical applications, such as improved diagnostic accuracy and efficiency, outweigh the potential harms from adversarial attacks, and that deployment should proceed with risk management [E15].</li></ul>
-    </section>
-    <section class="nx-block trace">
-      <p class="nx-eyebrow">What would change our mind</p>
-      <ul><li>Demonstration of an LLM architecture achieving adversarial robustness &gt;non établie across all attack types in peer-reviewed clinical trials.</li><li>Deceleration of domain-specific LLM market growth below non établie CAGR, indicating reduced deployment pressure.</li><li>Empirical evidence showing that adversarial attack success rates in real-world deployments remain below non établie over an extended period.</li></ul>
-    </section>
+    
+    
+    
+
+    
+
+    
+    
+    
 
     <section class="references-section">
       <h2>Sources</h2>
-      <span class="apa-ref" id="ref-1"><span class="ref-num">[1]</span> Unknown Author (2025). <em>Multi-model assurance analysis showing large language models are highly vulnerable to adversarial hallucination attacks during clinical decision support</em>. Semantic Scholar. <a href="https://doi.org/10.1038/s43856-025-01021-3" target="_blank" rel="noopener" style="color:#3B82F6;">https://doi.org/non établie/s43856-025-01021-3</a></span>
-<span class="apa-ref" id="ref-2"><span class="ref-num">[2]</span> Unknown Author (2023). <em>On the Robustness of Large Multimodal Models Against Image Adversarial Attacks</em>. Semantic Scholar. <a href="https://doi.org/10.1109/CVPR52733.2024.02325" target="_blank" rel="noopener" style="color:#3B82F6;">https://doi.org/non établie/CVPR52733.non établie</a></span>
-<span class="apa-ref" id="ref-3"><span class="ref-num">[3]</span> Unknown Author (2025). <em>Adversarial prompt and fine-tuning attacks threaten medical large language models</em>. Semantic Scholar. <a href="https://doi.org/10.1038/s41467-025-64062-1" target="_blank" rel="noopener" style="color:#3B82F6;">https://doi.org/non établie/s41467-025-non établie-1</a></span>
-<span class="apa-ref" id="ref-4"><span class="ref-num">[4]</span> Unknown Author (2025). <em>Large Language Models Are Highly Vulnerable to Adversarial Hallucination Attacks in Clinical Decision Support: A Multi-Model Assurance Analysis</em>. Semantic Scholar. <a href="https://doi.org/10.1101/2025.03.18.25324184" target="_blank" rel="noopener" style="color:#3B82F6;">https://doi.org/non établie/non établie.non établie</a></span>
-<span class="apa-ref" id="ref-5"><span class="ref-num">[5]</span> Unknown Author (2025). <em>Multi-Layered Framework for LLM Hallucination Mitigation in High-Stakes Applications: A Tutorial</em>. Crossref. <a href="https://doi.org/10.3390/computers14080332" target="_blank" rel="noopener" style="color:#3B82F6;">https://doi.org/non établie/computers14080332</a></span>
-<span class="apa-ref" id="ref-6"><span class="ref-num">[6]</span> Unknown Author (2024). <em>Robustness of Large Language Models Against Adversarial Attacks</em>. Semantic Scholar. <a href="https://doi.org/10.1109/ICAIRC64177.2024.10900215" target="_blank" rel="noopener" style="color:#3B82F6;">https://doi.org/non établie/ICAIRC64177.non établie</a></span>
-<span class="apa-ref" id="ref-7"><span class="ref-num">[7]</span> Unknown Author (2025). <em>How Vulnerable are Large Language Models (LLMs) against Adversarial Bit-Flip Attacks?</em>. Semantic Scholar. <a href="https://doi.org/10.1145/3716368.3735278" target="_blank" rel="noopener" style="color:#3B82F6;">https://doi.org/non établie/non établie</a></span>
-<span class="apa-ref" id="ref-8"><span class="ref-num">[8]</span> Unknown Author (2026). <em>Clinical Safety and Reliability of Large Language Models in Answering Hemorrhoid-Related Patient Questions: A Comparative Study of ChatGPT, Gemini, and DeepSeek</em>. Crossref. <a href="https://doi.org/10.3390/healthcare14131909" target="_blank" rel="noopener" style="color:#3B82F6;">https://doi.org/non établie/healthcare14131909</a></span>
-<span class="apa-ref" id="ref-9"><span class="ref-num">[9]</span> Unknown Author (2026). <span style="color:#f59e0b;font-style:italic;">[Non vérifié] </span><em>Operationalizing Eight-Dimensional Patient-Safety Risk Scoring at Scale: A Multi-Model Large Language Model Reliability Study [E9]</em>. Crossref. <a href="https://doi.org/10.64898/2026.05.29.26354437" target="_blank" rel="noopener" style="color:#3B82F6;">https://doi.org/non établie/non établie.non établie</a></span>
-<span class="apa-ref" id="ref-10"><span class="ref-num">[10]</span> Unknown Author (2025). <em>Threat Landscape of Adversarial Attacks on Generative AI and Large Language Models (LLMs): Exploring Different Types of Adversarial Attacks, Associated Risks, and Mitigation Strategies [E10]</em>. Crossref. <a href="https://doi.org/10.36227/techrxiv.176539611.16370746/v1" target="_blank" rel="noopener" style="color:#3B82F6;">https://doi.org/non établie/techrxiv.non établie/v1</a></span>
-<span class="apa-ref" id="ref-11"><span class="ref-num">[11]</span> Unknown Author (2026). <span style="color:#f59e0b;font-style:italic;">[Non vérifié] </span><em>Constrained Large Language Model Defense Agents for Secure Smart Grid Operation [E11]</em>. Crossref. <a href="https://doi.org/10.21203/rs.3.rs-10059465/v1" target="_blank" rel="noopener" style="color:#3B82F6;">https://doi.org/non établie/rs.3.rs-non établie/v1</a></span>
-<span class="apa-ref" id="ref-12"><span class="ref-num">[12]</span> Unknown Author (2026). <em>Can adversarial attacks by large language models be attributed?</em>. Crossref. <a href="https://doi.org/10.1371/journal.pcsy.0000085" target="_blank" rel="noopener" style="color:#3B82F6;">https://doi.org/non établie/journal.pcsy.0000085</a></span>
-<span class="apa-ref" id="ref-13"><span class="ref-num">[13]</span> Unknown Author (2026). <em>A Survey on Explainable Deep Reinforcement Learning</em>. linkup. <a href="https://arxiv.org/html/2502.06869v1" target="_blank" rel="noopener" style="color:#3B82F6;">https://arxiv.org/html/non établie.06869v1</a></span>
-<span class="apa-ref" id="ref-14"><span class="ref-num">[14]</span> Unknown Author (2026). <span style="color:#f59e0b;font-style:italic;">[Non vérifié] </span><em>Agentic AI : The Ultimate Guide to Autonomous AI Systems [E14]</em>. linkup. <a href="https://adspyder.io/blog/agentic-ai/" target="_blank" rel="noopener" style="color:#3B82F6;">https://adspyder.io/blog/agentic-ai/</a></span>
-<span class="apa-ref" id="ref-15"><span class="ref-num">[15]</span> Unknown Author (2026). <em>Domain-Specific AI Language Models Market Research Report 2034</em>. linkup. <a href="https://marketintelo.com/report/domain-specific-ai-language-models-market" target="_blank" rel="noopener" style="color:#3B82F6;">https://marketintelo.com/report/domain-specific-ai-language-models-market</a></span>
-<span class="apa-ref" id="ref-16"><span class="ref-num">[16]</span> Unknown Author (2026). <span style="color:#f59e0b;font-style:italic;">[Non vérifié] </span><em>Why Guided Pivotal Optimization in Large Language Models is the Next Frontier for Autonomous AI Decision-Making - AI Unfiltered [E16]</em>. linkup. <a href="https://www.arturmarkus.com/why-guided-pivotal-optimization-in-large-language-models-is-the-next-frontier-for-autonomous-ai-decision-making/" target="_blank" rel="noopener" style="color:#3B82F6;">https://www.arturmarkus.com/why-guided-pivotal-optimization-in-large-language-models-is-the-next-frontier-for-autonomous-ai-decision-making/</a></span>
+      <span class="apa-ref" id="ref-1"><span class="ref-num">[1]</span> Unknown Author (2025). <em>Governance of Generative AI [E1]</em>. Policy and Society. <a href="https://doi.org/10.1093/polsoc/puaf001" target="_blank" rel="noopener" style="color:#ffffff;">https://doi.org/non établie/polsoc/puaf001</a></span>
+<span class="apa-ref" id="ref-2"><span class="ref-num">[2]</span> Unknown Author (2025). <span style="color:#f59e0b;font-style:italic;">[Non vérifié] </span><em>Shaping the Future of Healthcare: Ethical Clinical Challenges and Pathways to Trustworthy AI [E2]</em>. Journal of Clinical Medicine. <a href="https://doi.org/10.3390/jcm14051605" target="_blank" rel="noopener" style="color:#ffffff;">https://doi.org/non établie/jcm14051605</a></span>
+<span class="apa-ref" id="ref-3"><span class="ref-num">[3]</span> Unknown Author (2025). <em>Large Language Models in Medical Chatbots: Opportunities, Challenges, and the Need to Address AI Risks [E3]</em>. Information. <a href="https://doi.org/10.3390/info16070549" target="_blank" rel="noopener" style="color:#ffffff;">https://doi.org/non établie/info16070549</a></span>
+<span class="apa-ref" id="ref-4"><span class="ref-num">[4]</span> Unknown Author (2024). <span style="color:#f59e0b;font-style:italic;">[Non vérifié] </span><em>The METRIC-framework for assessing data quality for trustworthy AI in medicine: a systematic review [E4]</em>. npj Digital Medicine. <a href="https://doi.org/10.1038/s41746-024-01196-4" target="_blank" rel="noopener" style="color:#ffffff;">https://doi.org/non établie/s41746-024-01196-4</a></span>
+<span class="apa-ref" id="ref-5"><span class="ref-num">[5]</span> Unknown Author (2024). <em>The Era of Artificial Intelligence Deception: Unraveling the Complexities of False Realities and Emerging Threats of Misinformation [E5]</em>. Information. <a href="https://doi.org/10.3390/info15060299" target="_blank" rel="noopener" style="color:#ffffff;">https://doi.org/non établie/info15060299</a></span>
+<span class="apa-ref" id="ref-6"><span class="ref-num">[6]</span> Unknown Author (2024). <span style="color:#f59e0b;font-style:italic;">[Non vérifié] </span><em>Ethical Challenges and Solutions of Generative AI: An Interdisciplinary Perspective [E6]</em>. Informatics. <a href="https://doi.org/10.3390/informatics11030058" target="_blank" rel="noopener" style="color:#ffffff;">https://doi.org/non établie/informatics11030058</a></span>
+<span class="apa-ref" id="ref-7"><span class="ref-num">[7]</span> Unknown Author (2024). <span style="color:#f59e0b;font-style:italic;">[Non vérifié] </span><em>The impact of generative artificial intelligence on socioeconomic inequalities and policy making [E7]</em>. PNAS Nexus. <a href="https://doi.org/10.1093/pnasnexus/pgae191" target="_blank" rel="noopener" style="color:#ffffff;">https://doi.org/non établie/pnasnexus/pgae191</a></span>
+<span class="apa-ref" id="ref-8"><span class="ref-num">[8]</span> Unknown Author (2024). <span style="color:#f59e0b;font-style:italic;">[Non vérifié] </span><em>Global Regulatory Frameworks for the Use of Artificial Intelligence (AI) in the Healthcare Services Sector [E8]</em>. Healthcare. <a href="https://doi.org/10.3390/healthcare12050562" target="_blank" rel="noopener" style="color:#ffffff;">https://doi.org/non établie/healthcare12050562</a></span>
+<span class="apa-ref" id="ref-9"><span class="ref-num">[9]</span> Unknown Author (2025). <em>Evaluating Trustworthiness in AI: Risks, Metrics, and Applications Across Industries [E9]</em>. Electronics. <a href="https://doi.org/10.3390/electronics14132717" target="_blank" rel="noopener" style="color:#ffffff;">https://doi.org/non établie/electronics14132717</a></span>
+<span class="apa-ref" id="ref-10"><span class="ref-num">[10]</span> Unknown Author (2025). <em>AI Trustworthiness in Manufacturing: Challenges, Toolkits, and the Path to Industry 5 [E10].0</em>. Sensors. <a href="https://doi.org/10.3390/s25144357" target="_blank" rel="noopener" style="color:#ffffff;">https://doi.org/non établie/s25144357</a></span>
+<span class="apa-ref" id="ref-11"><span class="ref-num">[11]</span> Unknown Author (2025). <em>An overview of model uncertainty and variability in LLM-based sentiment analysis: challenges, mitigation strategies, and the role of explainability [E11]</em>. Frontiers in Artificial Intelligence. <a href="https://doi.org/10.3389/frai.2025.1609097" target="_blank" rel="noopener" style="color:#ffffff;">https://doi.org/non établie/frai.non établie</a></span>
+<span class="apa-ref" id="ref-12"><span class="ref-num">[12]</span> Unknown Author (2025). <span style="color:#f59e0b;font-style:italic;">[Non vérifié] </span><em>AI-driven disinformation: policy recommendations for democratic resilience [E12]</em>. Frontiers in Artificial Intelligence. <a href="https://doi.org/10.3389/frai.2025.1569115" target="_blank" rel="noopener" style="color:#ffffff;">https://doi.org/non établie/frai.non établie</a></span>
+<span class="apa-ref" id="ref-13"><span class="ref-num">[13]</span> Unknown Author (2024). <em>Generative Artificial Intelligence in Education: From Deceptive to Disruptive.</em>. Crossref. <a href="https://doi.org/10.9781/ijimai.2024.02.011" target="_blank" rel="noopener" style="color:#ffffff;">https://doi.org/non établie/ijimai.non établie.011</a></span>
+<span class="apa-ref" id="ref-14"><span class="ref-num">[14]</span> Unknown Author (2025). <em>How Do Consumers Trust and Accept AI Agents [E14]? An Extended Theoretical Framework and Empirical Evidence</em>. Crossref. <a href="https://doi.org/10.3390/bs15030337" target="_blank" rel="noopener" style="color:#ffffff;">https://doi.org/non établie/bs15030337</a></span>
+<span class="apa-ref" id="ref-15"><span class="ref-num">[15]</span> Unknown Author (2026). <em>AlignInsight: A Three-Layer Framework for Detecting Deceptive Alignment and Evaluation Awareness in Healthcare AI Systems [E15]</em>. Crossref. <a href="https://doi.org/10.64898/2026.01.17.26344330" target="_blank" rel="noopener" style="color:#ffffff;">https://doi.org/non établie/non établie.non établie</a></span>
+<span class="apa-ref" id="ref-16"><span class="ref-num">[16]</span> Unknown Author (2025). <em>Spatio-Temporal Decoupled Heterogeneous Graph Network for Systemic Risk Prediction [E16]</em>. openreview. <a href="https://openreview.net/forum?id=zo6fcvR0IO" target="_blank" rel="noopener" style="color:#ffffff;">https://openreview.net/forum?id=zo6fcvR0IO</a></span>
+<span class="apa-ref" id="ref-17"><span class="ref-num">[17]</span> Unknown Author (2025). <span style="color:#f59e0b;font-style:italic;">[Non vérifié] </span><em>Compartmentalization by industry and government inhibits addressing climate denial [E17]</em>. plos. <a href="https://doi.org/10.1371/journal.pclm.0000552" target="_blank" rel="noopener" style="color:#ffffff;">https://doi.org/non établie/journal.pclm.0000552</a></span>
+<span class="apa-ref" id="ref-18"><span class="ref-num">[18]</span> Unknown Author (2024). <em>Digital deception: generative artificial intelligence in social engineering and phishing [E18]</em>. Crossref. <a href="https://doi.org/10.1007/s10462-024-10973-2" target="_blank" rel="noopener" style="color:#ffffff;">https://doi.org/non établie/s10462-024-non établie-2</a></span>
+<span class="apa-ref" id="ref-19"><span class="ref-num">[19]</span> Unknown Author (2026). <span style="color:#f59e0b;font-style:italic;">[Non vérifié] </span><em>From AI Risk Taxonomies to Recursive Cybernetics The A3 Model as a Category and Order Shift in Systemic AI Governance [E19]</em>. Crossref. <a href="https://doi.org/10.2139/ssrn.6890458" target="_blank" rel="noopener" style="color:#ffffff;">https://doi.org/non établie/ssrn.non établie</a></span>
+<span class="apa-ref" id="ref-20"><span class="ref-num">[20]</span> Unknown Author (2026). <em>AI-Driven Risk Prediction and Systemic Stability: A Framework for Strengthening U [E20].S. Financial Markets</em>. Crossref. <a href="https://doi.org/10.37547/tajas/volume08issue04-03" target="_blank" rel="noopener" style="color:#ffffff;">https://doi.org/non établie/tajas/volume08issue04-03</a></span>
+<span class="apa-ref" id="ref-21"><span class="ref-num">[21]</span> Unknown Author (2026). <span style="color:#f59e0b;font-style:italic;">[Non vérifié] </span><em>Systemic Governance Risk in AI Agent Networks: Cross-Institutional Contagion and Topological Vulnerability [E21]</em>. Crossref. <a href="https://doi.org/10.2139/ssrn.6535599" target="_blank" rel="noopener" style="color:#ffffff;">https://doi.org/non établie/ssrn.non établie</a></span>
+<span class="apa-ref" id="ref-22"><span class="ref-num">[22]</span> Unknown Author (2026). <span style="color:#f59e0b;font-style:italic;">[Non vérifié] </span><em>Closed Circles: Is AI Infrastructure the Next Systemic Risk [E22]?</em>. Crossref. <a href="https://doi.org/10.2139/ssrn.6979299" target="_blank" rel="noopener" style="color:#ffffff;">https://doi.org/non établie/ssrn.non établie</a></span>
+<span class="apa-ref" id="ref-23"><span class="ref-num">[23]</span> Unknown Author (2026). <span style="color:#f59e0b;font-style:italic;">[Non vérifié] </span><em>Programmable Incentives: Aligning Behavior in the Age of Agentic AI [E23]</em>. Crossref. <a href="https://doi.org/10.2139/ssrn.7071338" target="_blank" rel="noopener" style="color:#ffffff;">https://doi.org/non établie/ssrn.non établie</a></span>
+<span class="apa-ref" id="ref-24"><span class="ref-num">[24]</span> Unknown Author (2026). <span style="color:#f59e0b;font-style:italic;">[Non vérifié] </span><em>The Agentic AI Security Adoption Matrix: Understanding Readiness  and Resistance Across Domains [E24]</em>. Crossref. <a href="https://doi.org/10.21203/rs.3.rs-8480906/v1" target="_blank" rel="noopener" style="color:#ffffff;">https://doi.org/non établie/rs.3.rs-non établie/v1</a></span>
+<span class="apa-ref" id="ref-25"><span class="ref-num">[25]</span> Unknown Author (2026). <span style="color:#f59e0b;font-style:italic;">[Non vérifié] </span><em>From Preparation Gap to Augmented Expert: Building AI Agents for Expert-Level Negotiation [E25]</em>. Crossref. <a href="https://doi.org/10.2139/ssrn.6308259" target="_blank" rel="noopener" style="color:#ffffff;">https://doi.org/non établie/ssrn.non établie</a></span>
+<span class="apa-ref" id="ref-26"><span class="ref-num">[26]</span> Unknown Author (2026). <span style="color:#f59e0b;font-style:italic;">[Non vérifié] </span><em>The Innovation Tax: Generative AI Adoption, Productivity Paradox, and Systemic Risk in the U [E26].S. Banking Sector</em>. Crossref. <a href="https://doi.org/10.2139/ssrn.6127146" target="_blank" rel="noopener" style="color:#ffffff;">https://doi.org/non établie/ssrn.non établie</a></span>
+<span class="apa-ref" id="ref-27"><span class="ref-num">[27]</span> Unknown Author (2024). <em>Computing Systemic Risk Measures with Graph Neural Networks [E27]</em>. openreview. <a href="https://openreview.net/forum?id=AWHwToSKcI" target="_blank" rel="noopener" style="color:#ffffff;">https://openreview.net/forum?id=AWHwToSKcI</a></span>
+<span class="apa-ref" id="ref-28"><span class="ref-num">[28]</span> Unknown Author (2025). <span style="color:#f59e0b;font-style:italic;">[Non vérifié] </span><em>Online moral deviance: an integrative review of digital behaviors [E28].</em>. europepmc. <a href="https://doi.org/10.3389/fpsyg.2025.1573164" target="_blank" rel="noopener" style="color:#ffffff;">https://doi.org/non établie/fpsyg.non établie</a></span>
+<span class="apa-ref" id="ref-29"><span class="ref-num">[29]</span> Unknown Author (2026). <span style="color:#f59e0b;font-style:italic;">[Non vérifié] </span><em>Effect-Transparent Governance for AI Workflow Architectures: Semantic Preservation, Expressive Minimality, and Decidability Boundaries [E29]</em>. arXiv. <a href="https://arxiv.org/abs/2605.01030v3" target="_blank" rel="noopener" style="color:#ffffff;">https://arxiv.org/abs/non établie.01030v3</a></span>
+<span class="apa-ref" id="ref-30"><span class="ref-num">[30]</span> Unknown Author (2026). <span style="color:#f59e0b;font-style:italic;">[Non vérifié] </span><em>Traccia: An OpenTelemetry-Based Governance Platform for AI Systems [E30]</em>. arXiv. <a href="https://arxiv.org/abs/2607.14309v1" target="_blank" rel="noopener" style="color:#ffffff;">https://arxiv.org/abs/non établie.14309v1</a></span>
+<span class="apa-ref" id="ref-31"><span class="ref-num">[31]</span> Unknown Author (2026). <span style="color:#f59e0b;font-style:italic;">[Non vérifié] </span><em>Algebraic Semantics of Governed Execution: Monoidal Categories, Effect Algebras, and Coterminous Boundaries [E31]</em>. arXiv. <a href="https://arxiv.org/abs/2605.01032v3" target="_blank" rel="noopener" style="color:#ffffff;">https://arxiv.org/abs/non établie.01032v3</a></span>
+<span class="apa-ref" id="ref-32"><span class="ref-num">[32]</span> Unknown Author (2026). <em>Dark and Bright Side of Participatory Red-Teaming with Targets of Stereotyping for Eliciting Harmful Behaviors from Large Language Models [E32]</em>. arXiv. <a href="https://arxiv.org/abs/2602.19124v1" target="_blank" rel="noopener" style="color:#ffffff;">https://arxiv.org/abs/non établie.19124v1</a></span>
+<span class="apa-ref" id="ref-33"><span class="ref-num">[33]</span> Unknown Author (2026). <span style="color:#f59e0b;font-style:italic;">[Non vérifié] </span><em>SearchAttack: Red-Teaming LLMs against Knowledge-to-Action Threats under Online Web Search [E33]</em>. arXiv. <a href="https://arxiv.org/abs/2601.04093v2" target="_blank" rel="noopener" style="color:#ffffff;">https://arxiv.org/abs/non établie.04093v2</a></span>
+<span class="apa-ref" id="ref-34"><span class="ref-num">[34]</span> Unknown Author (2026). <span style="color:#f59e0b;font-style:italic;">[Non vérifié] </span><em>Decoding Hidden Deception in Reasoning LLMs: Activation Explainers for Deception Auditing [E34]</em>. arXiv. <a href="https://arxiv.org/abs/2606.17478v1" target="_blank" rel="noopener" style="color:#ffffff;">https://arxiv.org/abs/non établie.17478v1</a></span>
+<span class="apa-ref" id="ref-35"><span class="ref-num">[35]</span> Unknown Author (2025). <em>An Examination of Digital Validation:  Seeking Behaviors in Adolescents  as Precursors to Romance Scamming [E35]</em>. zenodo. <a href="https://doi.org/10.5281/zenodo.14911844" target="_blank" rel="noopener" style="color:#ffffff;">https://doi.org/non établie/zenodo.non établie</a></span>
+<span class="apa-ref" id="ref-36"><span class="ref-num">[36]</span> Unknown Author (2025). <span style="color:#f59e0b;font-style:italic;">[Non vérifié] </span><em>Leveraging AI and Integrated Data Streams for Predictive Risk Intelligence in Decentralized Finance Markets [E36]</em>. zenodo. <a href="https://doi.org/10.5281/zenodo.16605437" target="_blank" rel="noopener" style="color:#ffffff;">https://doi.org/non établie/zenodo.non établie</a></span>
+<span class="apa-ref" id="ref-37"><span class="ref-num">[37]</span> Unknown Author (2025). <span style="color:#f59e0b;font-style:italic;">[Non vérifié] </span><em>From Lab to Clinic: Addressing Bias and Generalizability in AI Diagnostic Systems [E37]</em>. zenodo. <a href="https://doi.org/10.5281/zenodo.18412336" target="_blank" rel="noopener" style="color:#ffffff;">https://doi.org/non établie/zenodo.non établie</a></span>
+<span class="apa-ref" id="ref-38"><span class="ref-num">[38]</span> Unknown Author (2023). <em>Predicting systemic risk in financial systems using Deep Graph Learning [E38]</em>. openreview. <a href="https://openreview.net/forum?id=WnKnzWla7D" target="_blank" rel="noopener" style="color:#ffffff;">https://openreview.net/forum?id=WnKnzWla7D</a></span>
+<span class="apa-ref" id="ref-39"><span class="ref-num">[39]</span> Unknown Author (2024). <em>Selfishly Cancelling Debts Can Reduce Systemic Risk [E39]</em>. openreview. <a href="https://openreview.net/forum?id=SO5bSCPTd3" target="_blank" rel="noopener" style="color:#ffffff;">https://openreview.net/forum?id=SO5bSCPTd3</a></span>
+<span class="apa-ref" id="ref-40"><span class="ref-num">[40]</span> Unknown Author (2025). <span style="color:#f59e0b;font-style:italic;">[Non vérifié] </span><em>Unmasking AI Explainable Models for Bias Detection in Criminal Justice [E40]</em>. zenodo. <a href="https://doi.org/10.5281/zenodo.16888788" target="_blank" rel="noopener" style="color:#ffffff;">https://doi.org/non établie/zenodo.non établie</a></span>
+<span class="apa-ref" id="ref-41"><span class="ref-num">[41]</span> Unknown Author (2024). <em>Assessing the Generalizability of Leadership Research Findings [E41]</em>. zenodo. <a href="https://doi.org/10.5281/zenodo.10680625" target="_blank" rel="noopener" style="color:#ffffff;">https://doi.org/non établie/zenodo.non établie</a></span>
+<span class="apa-ref" id="ref-42"><span class="ref-num">[42]</span> Unknown Author (n.d.). <em>Clearing Houses and Systemic Risk [E42]</em>. jstor. <a href="https://doi.org/10.2307/j.ctvqmp0vn.10" target="_blank" rel="noopener" style="color:#ffffff;">https://doi.org/non établie/j.ctvqmp0vn.10</a></span>
+<span class="apa-ref" id="ref-43"><span class="ref-num">[43]</span> Unknown Author (n.d.). <em>Regulating Systemic Risk in Canada [E43]</em>. jstor. <a href="https://doi.org/10.2307/j.ctvqmp0vn.5" target="_blank" rel="noopener" style="color:#ffffff;">https://doi.org/non établie/j.ctvqmp0vn.5</a></span>
+<span class="apa-ref" id="ref-44"><span class="ref-num">[44]</span> Unknown Author (2018). <span style="color:#f59e0b;font-style:italic;">[Non vérifié] </span><em>Systemic Risk Assessment in Complex Supply Networks [E44]</em>. openreview. <a href="https://openreview.net/forum?id=Eru1SDpSLk" target="_blank" rel="noopener" style="color:#ffffff;">https://openreview.net/forum?id=Eru1SDpSLk</a></span>
+<span class="apa-ref" id="ref-45"><span class="ref-num">[45]</span> Unknown Author (2019). <em>Dynamic systemic risk measures for bounded discrete time processes [E45]</em>. openreview. <a href="https://openreview.net/forum?id=719bwbd5dW" target="_blank" rel="noopener" style="color:#ffffff;">https://openreview.net/forum?id=719bwbd5dW</a></span>
+<span class="apa-ref" id="ref-46"><span class="ref-num">[46]</span> Unknown Author (2016). <span style="color:#f59e0b;font-style:italic;">[Non vérifié] </span><em>Systemic risk measures on general measurable spaces [E46]</em>. openreview. <a href="https://openreview.net/forum?id=wD9do8GIaB" target="_blank" rel="noopener" style="color:#ffffff;">https://openreview.net/forum?id=wD9do8GIaB</a></span>
+<span class="apa-ref" id="ref-47"><span class="ref-num">[47]</span> Unknown Author (2017). <em>Systemic Risk Modeling and Evaluation through Simulation and Bayesian Networks [E47]</em>. openreview. <a href="https://openreview.net/forum?id=bD7gV8ss9N" target="_blank" rel="noopener" style="color:#ffffff;">https://openreview.net/forum?id=bD7gV8ss9N</a></span>
     </section>
-
-    <footer class="brief-footer">
-      NomosX — From Chaos to Clarity.
-      <div style="margin-top:0.75rem;font-size:0.5rem;letter-spacing:0.08em;color:rgba(240,240,250,0.15);text-transform:none;line-height:1.6;">The world doesn't suffer from a lack of information. It suffers from a lack of structure.<br/><br/>Knowledge without order creates noise. Order creates understanding. Understanding creates better decisions.<br/><br/>That is NomosX.</div>
-    </footer>
   
-<section class="nx-block epistemic-review" style="border-left:3px solid #c0392b;padding:12px 20px;margin:24px 0;background:#fdf2f2;border-radius:4px;">
-  <p class="nx-eyebrow" style="color:#c0392b;">Epistemic challenges identified</p>
-  <div style="margin:8px 0;"><strong>1. overstated_conclusion</strong><br/>The evidence presented shows that LLMs are vulnerable to specific adversarial attacks in certain contexts (e.g., clinical decision support). It does not demonstrate that these vulnerabilities are inherent to the architecture or that they cannot be mitigated. The conclusion that LLMs are &#039;fundamental</div><div style="margin:8px 0;"><strong>2. institutional_bias</strong><br/>Overlooks the rapid pace of adversarial robustness research and deployment of guardrails (e.g., RLHF, constitutional AI). Many critical applications already use LLMs with human-in-the-loop oversight, which mitigates architectural vulnerabilities.</div>
+<section class="nx-block methodology-note" style="border-top:1px solid rgba(240,240,250,0.12);padding:16px 0 8px;margin:32px 0 0;font-size:0.72rem;line-height:1.7;color:rgba(240,240,250,0.55);">
+  <p class="nx-eyebrow" style="letter-spacing:0.08em;text-transform:uppercase;font-size:0.6rem;margin-bottom:8px;">Méthodologie &amp; transparence</p>
+  <p>Corpus analysé : <strong>47 sources</strong> issues de 8 fournisseurs (arxiv, crossref, europepmc, jstor, openalex, openreview, plos, zenodo), période 2016–2026.
+  Sources distinctes citées : <strong>46</strong>.
+  Vérifications automatisées : ancrage des affirmations 44%, intégrité numérique 100%, vérification sémantique 91%.
+  Indice de confiance : <strong>84/100</strong> (score déterministe : couverture des citations, ancrage, intégrité factuelle, diversité et qualité des sources).
+  Les affirmations non vérifiables sont signalées ou marquées «&nbsp;non établie&nbsp;».</p>
 </section></article>
 </body>
 </html>

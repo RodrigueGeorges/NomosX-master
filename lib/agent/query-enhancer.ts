@@ -129,7 +129,7 @@ Now process the user query.`;
       messages: [{ role: "user", content: prompt }],
       temperature: 0.1,
       jsonMode: true,
-      maxTokens: 1000,
+      maxTokens: 500,
       enableCache: true,
       task: 'query_enhancement',
     });
@@ -248,23 +248,28 @@ function validateSemanticConsistency(originalQuery: string, enhanced: any): { is
  * Create fallback enhancement when semantic validation fails
  */
 function createFallbackEnhancement(query: string, language: string): EnhancedQuery {
-  const simpleKeywords = query.toLowerCase()
+  // Preserve the FULL original query as enhanced — never strip to meaningless keywords
+  // Extract meaningful keywords ( nouns/proper nouns, length > 3, excluding question words)
+  const stopWords = new Set(['what', 'how', 'why', 'when', 'where', 'which', 'are', 'the', 'and', 'that', 'this', 'with', 'from', 'have', 'been', 'will', 'their', 'there', 'would', 'could', 'should', 'about', 'into', 'also', 'such', 'very', 'only', 'some', 'any', 'each', 'other', 'then', 'thus']);
+  const words = query.toLowerCase()
+    .replace(/[?!.,;:"]/g, '')
     .split(/\s+/)
-    .filter(word => word.length > 3)
-    .slice(0, 5);
-  
+    .filter(w => w.length > 3 && !stopWords.has(w));
+  const keywords = [...new Set(words)].slice(0, 8);
+
+  // Build variations from keyword pairs (keeps domain context)
+  const v1 = keywords.slice(0, 5).join(' ');
+  const v2 = keywords.slice(2, 7).join(' ');
+  const v3 = `${keywords.slice(0, 4).join(' ')} study`;
+
   return {
     original: query,
     language,
-    translated: language === 'fr' ? query : query, // Simple translation fallback
-    enhanced: simpleKeywords.join(' '),
-    variations: [
-      simpleKeywords.join(' '),
-      `${simpleKeywords[0] || ''} ${simpleKeywords[1] || ''} ${simpleKeywords[2] || ''}`,
-      `${simpleKeywords.slice(0, 3).join(' ')} study`
-    ],
-    keywords: simpleKeywords,
-    topics: ['general'] // Conservative fallback
+    translated: query, // Keep original — translation is best-effort in LLM path
+    enhanced: query.slice(0, 200), // Full query, truncated for API limits
+    variations: [v1, v2, v3].filter(v => v.length > 10),
+    keywords,
+    topics: ['general'],
   };
 }
 

@@ -25,8 +25,8 @@ interface PublicNavProps {
 }
 
 const NAV_LINKS: { label: string; page: PublicNavPage; href: string }[] = [
-  { label: "Inquiries", page: "inquiries", href: "/archives" },
-  { label: "Lenses", page: "research", href: "/researchers" },
+  { label: "Briefs", page: "inquiries", href: "/archives" },
+  { label: "Domains", page: "research", href: "/researchers" },
   { label: "Studio", page: "studio", href: "/studio" },
   { label: "About", page: "about", href: "/about" },
 ];
@@ -36,31 +36,34 @@ export default function PublicNav({ currentPage, onSignInClick, isAuthenticated 
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <nav className="sticky top-0 z-50 w-full border-b border-white/[0.08] bg-black/95">
-      <div className="max-w-6xl mx-auto px-6 sm:px-8 h-14 flex items-center justify-between">
+    <nav className="sticky top-0 z-50 w-full border-b border-white/[0.08] bg-black/80 backdrop-blur-xl">
+      <div className="max-w-6xl mx-auto px-5 sm:px-6 h-12 flex items-center justify-between">
         <button
           type="button"
           onClick={() => router.push("/")}
           className="text-white hover:opacity-80 transition-opacity focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40 rounded-sm"
           aria-label="NomosX home"
         >
-          <NomosXLogo variant="lockup" size={LOGO_NAV_CAP} />
+          <NomosXLogo variant="wordmark" size={LOGO_NAV_CAP} />
         </button>
 
-        <div className="hidden md:flex items-center gap-8">
+        <div className="hidden md:flex items-center gap-6">
           {NAV_LINKS.map((link) => (
             <button
               key={link.page}
               type="button"
               onClick={() => router.push(link.href)}
               className={cn(
-                "font-mono text-[11px] uppercase tracking-[0.16em] transition-colors",
+                "relative font-mono text-xs uppercase tracking-[0.1em] transition-colors py-1",
                 currentPage === link.page
                   ? "text-white"
-                  : "text-white/40 hover:text-white/70"
+                  : "text-white/55 hover:text-white"
               )}
             >
               {link.label}
+              {currentPage === link.page && (
+                <span className="absolute -bottom-px left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/60 to-transparent" />
+              )}
             </button>
           ))}
         </div>
@@ -70,7 +73,7 @@ export default function PublicNav({ currentPage, onSignInClick, isAuthenticated 
             <button
               type="button"
               onClick={() => router.push("/dashboard")}
-              className="hidden sm:block font-mono text-[11px] uppercase tracking-[0.14em] text-white/50 hover:text-white transition-colors"
+              className="hidden sm:block font-mono text-[11px] uppercase tracking-[0.14em] text-white/60 hover:text-white transition-colors"
             >
               Dashboard
             </button>
@@ -78,7 +81,7 @@ export default function PublicNav({ currentPage, onSignInClick, isAuthenticated 
             <button
               type="button"
               onClick={onSignInClick}
-              className="hidden sm:block px-4 py-2 border border-white/25 text-white/80 font-mono text-[11px] uppercase tracking-[0.14em] hover:border-white/50 hover:text-white transition-colors"
+              className="hidden sm:block px-4 py-2.5 border border-white/25 text-white/85 font-mono text-[11px] uppercase tracking-[0.14em] hover:border-white/50 hover:text-white hover:bg-white/[0.04] transition-all"
             >
               Access
             </button>
@@ -87,7 +90,7 @@ export default function PublicNav({ currentPage, onSignInClick, isAuthenticated 
           <button
             type="button"
             onClick={() => setMobileOpen(!mobileOpen)}
-            className="md:hidden w-9 h-9 flex items-center justify-center text-white/50 hover:text-white"
+            className="md:hidden w-9 h-9 flex items-center justify-center text-white/60 hover:text-white"
             aria-label="Toggle menu"
           >
             {mobileOpen ? <X size={18} /> : <Menu size={18} />}
@@ -103,7 +106,7 @@ export default function PublicNav({ currentPage, onSignInClick, isAuthenticated 
             exit={{ height: 0, opacity: 0 }}
             className="md:hidden overflow-hidden border-t border-white/[0.08] bg-black"
           >
-            <div className="px-6 py-6 flex flex-col gap-4">
+            <div className="px-5 py-5 flex flex-col gap-3">
               {NAV_LINKS.map((link) => (
                 <button
                   key={link.page}
@@ -113,8 +116,8 @@ export default function PublicNav({ currentPage, onSignInClick, isAuthenticated 
                     setMobileOpen(false);
                   }}
                   className={cn(
-                    "font-mono text-[11px] uppercase tracking-[0.16em] text-left",
-                    currentPage === link.page ? "text-white" : "text-white/45"
+                    "font-mono text-xs uppercase tracking-[0.16em] text-left",
+                    currentPage === link.page ? "text-white" : "text-white/60"
                   )}
                 >
                   {link.label}
@@ -126,7 +129,7 @@ export default function PublicNav({ currentPage, onSignInClick, isAuthenticated 
                   onSignInClick();
                   setMobileOpen(false);
                 }}
-                className="mt-2 w-full py-3 border border-white/25 text-white font-mono text-[11px] uppercase tracking-[0.14em]"
+                className="mt-4 w-full py-3 border border-white/25 text-white font-mono text-[11px] uppercase tracking-[0.14em] hover:bg-white/[0.04] transition-colors"
               >
                 Access
               </button>

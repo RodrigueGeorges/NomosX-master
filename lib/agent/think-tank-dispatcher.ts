@@ -18,11 +18,12 @@ import { publicationTypeToDepth } from "./inquiry-funnel-utils";
 import { runTopicRadar } from "./topic-radar";
 import { editorialTriage, type EditorialDecision } from "./editor-in-chief";
 import { planEditorialAgenda } from "./editorial-planner";
-import { selectSmartProviders } from "./smart-provider-selector";
 import { getVerticalForTopic } from "./researcher-ownership";
 import { classifyTopic } from "./topic-classifier";
 import type { InquiryDepth } from "@/lib/types/inquiry";
-import type { Providers } from "./pipeline-v2";
+import { searchOpenAlex } from "../providers/academic/openalex-api";
+import { searchCrossref } from "../providers/academic/crossref-api";
+import { searchSemanticScholar } from "../providers/semanticscholar";
 
 // ─── Config ────────────────────────────────────────────────────
 
@@ -41,8 +42,6 @@ export interface ThinkTankDispatchItem {
   verticalId?: string;
   verticalSlug?: string;
   signalId?: string;
-  providers?: Providers;
-  perProvider?: number;
   requireResearcherSignOff?: boolean;
   strategy: ThinkTankStrategy;
   metadata?: Record<string, unknown>;
@@ -162,9 +161,6 @@ function emptyResult(mode: ThinkTankCycleMode, cadence: CadenceState, started: n
 // ─── Item collectors ───────────────────────────────────────────
 
 function breakingDecisionToItem(decision: EditorialDecision): ThinkTankDispatchItem {
-  const classifiedProviders = decision.classification.providers.slice(0, 4);
-  const newsProviders = ["gdelt-news", "newsapi", "linkup"];
-  const providers = Array.from(new Set([...classifiedProviders, ...newsProviders])).slice(0, 8) as Providers;
   const leadResearcher = decision.classification.researchers[0];
 
   return {
@@ -172,8 +168,7 @@ function breakingDecisionToItem(decision: EditorialDecision): ThinkTankDispatchI
     depth: decision.priority >= 80 ? "strategic" : "standard",
     domain: decision.classification.primaryDomain,
     verticalSlug: decision.classification.verticalSlug,
-    providers,
-    perProvider: decision.topic.score >= 80 ? 20 : decision.topic.score >= 65 ? 15 : 10,
+    // Don't pass providers or perProvider — let the pipeline's smart selector + DEFAULT_ACADEMIC_PROVIDERS merge handle it
     strategy: "breaking",
     metadata: {
       decision: decision.action,
@@ -190,6 +185,57 @@ function breakingDecisionToItem(decision: EditorialDecision): ThinkTankDispatchI
       originalHeadline: decision.topic.title,
     },
   };
+}
+
+// ─── Pre-flight academic source viability check ─────────────────
+//
+// Before committing 35+ minutes of pipeline compute to a topic, verify that
+// academic literature actually exists for the reformulated research question.
+// This prevents the pipeline from producing news-heavy reports with 0% grounding
+// that always end up HELD.
+//
+// Strategy: lightweight parallel search on OpenAlex + Crossref + Semantic Scholar
+// with a 12s timeout per provider. If fewer than MIN_ACADEMIC_SOURCES are found
+// across all three, the topic is rejected and the next candidate is tried.
+
+const PREFLIGHT_MIN_ACADEMIC_SOURCES = 5;
+const PREFLIGHT_TIMEOUT_MS = 12_000;
+
+async function preflightSourceCheck(researchQuestion: string): Promise<{
+  viable: boolean;
+  academicCount: number;
+  details: string;
+}> {
+  const query = researchQuestion.slice(0, 300);
+
+  const [openalexR, crossrefR, s2R] = await Promise.allSettled([
+    withTimeout(searchOpenAlex(query, 10), PREFLIGHT_TIMEOUT_MS, "openalex"),
+    withTimeout(searchCrossref(query, 10), PREFLIGHT_TIMEOUT_MS, "crossref"),
+    withTimeout(searchSemanticScholar(query, 10), PREFLIGHT_TIMEOUT_MS, "semantic-scholar"),
+  ]);
+
+  let openalexCount = 0, crossrefCount = 0, s2Count = 0;
+  if (openalexR.status === "fulfilled") openalexCount = openalexR.value.length;
+  if (crossrefR.status === "fulfilled") crossrefCount = crossrefR.value.length;
+  if (s2R.status === "fulfilled") s2Count = s2R.value.length;
+
+  const total = openalexCount + crossrefCount + s2Count;
+  const details = `openalex=${openalexCount}, crossref=${crossrefCount}, s2=${s2Count}`;
+
+  return {
+    viable: total >= PREFLIGHT_MIN_ACADEMIC_SOURCES,
+    academicCount: total,
+    details,
+  };
+}
+
+async function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms)
+    ),
+  ]);
 }
 
 async function collectBreakingItems(
@@ -211,17 +257,52 @@ async function collectBreakingItems(
     };
   }
 
+  // Request 3x more candidates than needed so pre-flight check can filter
+  // without running out of options.
+  const candidatePool = Math.min(maxPublications * 3, 6);
   const decideStart = Date.now();
   const triageResult = await editorialTriage(radarResult.topics, {
-    maxPublications,
+    maxPublications: candidatePool,
     budgetUsd,
   });
   const decideMs = Date.now() - decideStart;
 
-  const items = triageResult.decisions.map(breakingDecisionToItem);
+  // ── Pre-flight academic viability check ──
+  // For each candidate, verify that academic literature exists before committing
+  // to a 35-minute pipeline run. Skip topics with insufficient academic sources.
+  const viableItems: ThinkTankDispatchItem[] = [];
+  const preflightResults: Array<{ question: string; viable: boolean; count: number; details: string }> = [];
+
+  for (const decision of triageResult.decisions) {
+    if (viableItems.length >= maxPublications) break;
+
+    const question = decision.researchQuestion?.trim() || decision.topic.title;
+    const preflightStart = Date.now();
+    const check = await preflightSourceCheck(question);
+    const preflightMs = Date.now() - preflightStart;
+
+    preflightResults.push({
+      question: question.slice(0, 80),
+      viable: check.viable,
+      count: check.academicCount,
+      details: check.details,
+    });
+
+    if (check.viable) {
+      console.log(`[PREFLIGHT] ✅ "${question.slice(0, 80)}" — ${check.academicCount} academic sources (${check.details}) in ${preflightMs}ms`);
+      viableItems.push(breakingDecisionToItem(decision));
+    } else {
+      console.log(`[PREFLIGHT] ❌ Skipping "${question.slice(0, 80)}" — only ${check.academicCount} academic sources (${check.details}) in ${preflightMs}ms`);
+    }
+  }
+
+  if (viableItems.length === 0 && triageResult.decisions.length > 0) {
+    console.warn(`[PREFLIGHT] ⚠️ ALL ${triageResult.decisions.length} candidates failed academic viability check. Falling back to top candidate without pre-flight.`);
+    viableItems.push(breakingDecisionToItem(triageResult.decisions[0]));
+  }
 
   return {
-    items,
+    items: viableItems,
     decideCostUsd: triageResult.costUsd,
     phases: {
       detect: { durationMs: detectMs, topicsFound: radarResult.topics.length, stats: radarResult.stats },
@@ -230,6 +311,12 @@ async function collectBreakingItems(
         selected: triageResult.decisions.length,
         skipped: triageResult.skipped,
         costUsd: triageResult.costUsd,
+      },
+      preflight: {
+        checked: preflightResults.length,
+        viable: viableItems.length,
+        rejected: preflightResults.filter(r => !r.viable).length,
+        results: preflightResults,
       },
     },
     errors,
@@ -249,17 +336,6 @@ async function collectWeeklyItems(
 
     for (const proposal of agenda.autoCommission) {
       if (items.length >= remainingSlots) break;
-
-      const smartSel =
-        proposal.suggestedProviders.length > 0
-          ? null
-          : await selectSmartProviders(proposal.topic).catch(() => null);
-      const baseProviders: Providers =
-        proposal.suggestedProviders.length > 0
-          ? (proposal.suggestedProviders as Providers)
-          : (smartSel?.providers ?? []);
-      const newsProviders: Providers = ["gdelt-news", "newsapi", "linkup"];
-      const providers: Providers = Array.from(new Set([...baseProviders, ...newsProviders])) as Providers;
 
       const depth: InquiryDepth = proposal.suggestedFormat === "strategic" ? "strategic" : "standard";
       const topicClassification = await classifyTopic(proposal.topic).catch(() => null);
@@ -284,8 +360,7 @@ async function collectWeeklyItems(
         depth,
         domain: topicClassification?.primaryDomain,
         verticalSlug: matchedSlug ?? vertical?.slug,
-        providers,
-        perProvider: depth === "strategic" ? 25 : 20,
+        // Don't pass providers — let the pipeline's smart selector + DEFAULT_ACADEMIC_PROVIDERS merge handle it
         requireResearcherSignOff: true,
         strategy: "editorial",
         metadata: {
@@ -378,8 +453,8 @@ async function executeDispatchQueue(
   let totalCostUsd = 0;
   let executed = 0;
 
-  // Dispatch timeout must exceed pipeline timeout (2400s) to avoid race conditions
-  const DISPATCH_TIMEOUT_MS = 2_700_000; // 45min — pipeline is 40min + 5min buffer
+  // Dispatch timeout must exceed pipeline timeout (3000s strategic) to avoid race conditions
+  const DISPATCH_TIMEOUT_MS = 5_400_000; // 90min — pipeline is 50min strategic + LLM retries + buffer
 
   for (const item of items) {
     if (executed >= maxExecutions) break;
@@ -429,8 +504,6 @@ async function executeDispatchQueue(
         verticalId: item.verticalId,
         verticalSlug: item.verticalSlug,
         signalId: item.signalId,
-        providers: item.providers,
-        perProvider: item.perProvider,
         source,
         dryRun,
         requireResearcherSignOff: item.requireResearcherSignOff,

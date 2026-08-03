@@ -40,6 +40,7 @@ export function mapBriefToInquiryCard(b: BriefLike, index = 0): InquiryCardData 
     publishedAt: b.publishedAt,
     readTime: b.readTime,
     hasForesight: b.hasForesight,
+    formatLabel: b.displayType,
   };
 }
 
