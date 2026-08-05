@@ -190,3 +190,13 @@ main().catch((err) => {
   console.error('Fatal error:', err);
   process.exit(1);
 });
+
+// Prevent HTTP/2 socket errors (remote API closing connection) from crashing the process
+process.on('uncaughtException', (err) => {
+  if (err && (err.code === 'UND_ERR_SOCKET' || err.code === 'ECONNRESET' || err.code === 'EPIPE')) {
+    console.warn(`[Funnel] Network error (non-fatal): ${err.code} — ${err.message?.slice(0, 100)}`);
+    return;
+  }
+  console.error('Uncaught exception:', err);
+  process.exit(1);
+});

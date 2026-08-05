@@ -62,12 +62,12 @@ export interface PublicationGateResult {
 export const DEFAULT_PUBLICATION_GATE_THRESHOLDS: PublicationGateThresholds = {
   minTrustScore: 65,
   minQualityScore: 70,
-  minCitationCoverage: 0.50,
+  minCitationCoverage: 0.60,
   minSourceCount: 5,
   strategicMinSourceCount: 12,
   maxFatalChallenges: 1,
-  minDevilsAdvocateScore: 30,
-  maxUncitedClaimRatio: 0.40,
+  minDevilsAdvocateScore: 40,
+  maxUncitedClaimRatio: 0.30,
 };
 
 function clampScore(value: number | undefined, fallback: number): number {
@@ -216,7 +216,7 @@ export function evaluatePublicationGate(input: PublicationGateInput): Publicatio
 
   const failedChecks = checks.filter((check) => !check.passed);
   const hardFailures = failedChecks.filter((check) =>
-    ["word_count", "researcher_signoff", "citation_coverage"].includes(check.checkType)
+    ["source_depth", "trust_score", "word_count", "researcher_signoff", "citation_coverage"].includes(check.checkType)
   );
   const decision: PublicationGateDecision = failedChecks.length === 0
     ? "publish"

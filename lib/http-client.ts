@@ -19,6 +19,7 @@ export interface HttpOptions {
   retryDelay?: number; // ms
   headers?: Record<string, string>;
   rateLimit?: RateLimitConfig;
+  rateLimiterKey?: string; // Key into global rate limiter registry — re-acquires on retry
   responseType?: "json" | "text"; // Type de réponse attendue
 }
 
@@ -91,7 +92,7 @@ setRateLimiter("openalex", process.env.OPENALEX_API_KEY
   ? { requestsPerSecond: 10, burstSize: 20 }
   : { requestsPerSecond: 5, burstSize: 10 });
 setRateLimiter("crossref", { requestsPerSecond: 50, burstSize: 100 });
-setRateLimiter("semanticscholar", { requestsPerSecond: 1, burstSize: 2 });
+setRateLimiter("semanticscholar", { requestsPerSecond: 1, burstSize: 1 }); // Strict 1 req/s — no burst, S2 rate limits are aggressive
 setRateLimiter("unpaywall", { requestsPerSecond: 10, burstSize: 20 });
 setRateLimiter("ror", { requestsPerSecond: 10, burstSize: 20 });
 setRateLimiter("orcid", { requestsPerSecond: 10, burstSize: 20 });
@@ -121,8 +122,8 @@ setRateLimiter("political-science", { requestsPerSecond: 3, burstSize: 5 });
 setRateLimiter("business", { requestsPerSecond: 3, burstSize: 5 });
 setRateLimiter("dblp", { requestsPerSecond: 3, burstSize: 5 });
 setRateLimiter("zbmath", { requestsPerSecond: 3, burstSize: 5 });
-setRateLimiter("gdelt-news", { requestsPerSecond: 0.5, burstSize: 1 });
-setRateLimiter("google-books", { requestsPerSecond: 2, burstSize: 3 });
+setRateLimiter("gdelt-news", { requestsPerSecond: 0.5, burstSize: 1 }); // GDELT is very strict — 1 req per 2s
+setRateLimiter("google-books", { requestsPerSecond: 1, burstSize: 1 }); // Google Books 429s easily
 setRateLimiter("springer", { requestsPerSecond: 3, burstSize: 5 });
 setRateLimiter("osti", { requestsPerSecond: 3, burstSize: 5 });
 setRateLimiter("doaj", { requestsPerSecond: 5, burstSize: 10 });
@@ -131,6 +132,36 @@ setRateLimiter("federal-register", { requestsPerSecond: 3, burstSize: 5 });
 setRateLimiter("sec-edgar", { requestsPerSecond: 5, burstSize: 8 }); // SEC allows 10 req/s
 setRateLimiter("worldbank-docs", { requestsPerSecond: 3, burstSize: 5 });
 setRateLimiter("cordis", { requestsPerSecond: 2, burstSize: 3 });
+setRateLimiter("brookings", { requestsPerSecond: 2, burstSize: 3 });
+setRateLimiter("rand", { requestsPerSecond: 2, burstSize: 3 });
+setRateLimiter("cnas", { requestsPerSecond: 2, burstSize: 3 });
+setRateLimiter("ecfr", { requestsPerSecond: 2, burstSize: 3 });
+setRateLimiter("swp", { requestsPerSecond: 2, burstSize: 3 });
+setRateLimiter("sipri", { requestsPerSecond: 2, burstSize: 3 });
+setRateLimiter("france-strategie", { requestsPerSecond: 2, burstSize: 3 });
+setRateLimiter("allen-ai", { requestsPerSecond: 2, burstSize: 3 });
+setRateLimiter("max-planck", { requestsPerSecond: 2, burstSize: 3 });
+setRateLimiter("harvard-dash", { requestsPerSecond: 2, burstSize: 3 });
+setRateLimiter("mit-dspace", { requestsPerSecond: 2, burstSize: 3 });
+setRateLimiter("openreview", { requestsPerSecond: 2, burstSize: 3 });
+setRateLimiter("biorxiv", { requestsPerSecond: 2, burstSize: 3 });
+setRateLimiter("papers-with-code", { requestsPerSecond: 2, burstSize: 3 });
+setRateLimiter("jstor", { requestsPerSecond: 2, burstSize: 3 });
+setRateLimiter("unesco", { requestsPerSecond: 2, burstSize: 3 });
+setRateLimiter("ipcc", { requestsPerSecond: 2, burstSize: 3 });
+setRateLimiter("internet-archive", { requestsPerSecond: 2, burstSize: 3 });
+setRateLimiter("hathitrust", { requestsPerSecond: 2, burstSize: 3 });
+setRateLimiter("club-of-rome", { requestsPerSecond: 1, burstSize: 2 });
+setRateLimiter("millennium-project", { requestsPerSecond: 1, burstSize: 2 });
+setRateLimiter("inria", { requestsPerSecond: 2, burstSize: 3 });
+setRateLimiter("eth-zurich", { requestsPerSecond: 2, burstSize: 3 });
+setRateLimiter("datacite", { requestsPerSecond: 3, burstSize: 5 });
+setRateLimiter("newsapi", { requestsPerSecond: 3, burstSize: 5 });
+setRateLimiter("mediastack", { requestsPerSecond: 3, burstSize: 5 });
+setRateLimiter("thenewsapi", { requestsPerSecond: 3, burstSize: 5 });
+setRateLimiter("gnews", { requestsPerSecond: 1, burstSize: 2 });
+setRateLimiter("eventregistry", { requestsPerSecond: 3, burstSize: 5 });
+setRateLimiter("apitube", { requestsPerSecond: 3, burstSize: 5 });
 
 // ================================
 // HTTP CLIENT
@@ -185,18 +216,27 @@ export async function httpGet<T = any>(
     retryDelay = 1000,
     headers = {},
     rateLimit,
+    rateLimiterKey,
     responseType = "json",
   } = options;
 
-  // Apply rate limiting if configured
-  if (rateLimit) {
-    const limiter = new RateLimiter(rateLimit);
-    await limiter.acquire();
+  // Acquire shared rate limiter (re-acquired on retry via rateLimiterKey)
+  async function acquireLimiter() {
+    if (rateLimiterKey) {
+      const limiter = getRateLimiter(rateLimiterKey);
+      if (limiter) await limiter.acquire();
+    } else if (rateLimit) {
+      const limiter = new RateLimiter(rateLimit);
+      await limiter.acquire();
+    }
   }
+
+  await acquireLimiter();
 
   let lastError: Error | null = null;
 
   for (let attempt = 0; attempt <= retries; attempt++) {
+    if (attempt > 0) await acquireLimiter(); // Re-acquire on retry
     try {
       const response = await fetchWithTimeout(
         url,
@@ -305,17 +345,25 @@ export async function httpPost<T = any>(
     retryDelay = 1000,
     headers = {},
     rateLimit,
+    rateLimiterKey,
   } = options;
 
-  // Apply rate limiting if configured
-  if (rateLimit) {
-    const limiter = new RateLimiter(rateLimit);
-    await limiter.acquire();
+  async function acquireLimiter() {
+    if (rateLimiterKey) {
+      const limiter = getRateLimiter(rateLimiterKey);
+      if (limiter) await limiter.acquire();
+    } else if (rateLimit) {
+      const limiter = new RateLimiter(rateLimit);
+      await limiter.acquire();
+    }
   }
+
+  await acquireLimiter();
 
   let lastError: Error | null = null;
 
   for (let attempt = 0; attempt <= retries; attempt++) {
+    if (attempt > 0) await acquireLimiter();
     try {
       const response = await fetchWithTimeout(
         url,
@@ -344,7 +392,19 @@ export async function httpPost<T = any>(
         }
 
         if (attempt < retries) {
-          const backoff = retryDelay * Math.pow(2, attempt);
+          let backoff = retryDelay * Math.pow(2, attempt);
+          if (response.status === 429) {
+            const retryAfterRaw = response.headers.get('Retry-After');
+            if (retryAfterRaw) {
+              const parsed = parseFloat(retryAfterRaw);
+              if (parsed > 1_000_000_000) {
+                backoff = Math.min((parsed - Date.now() / 1000) * 1000, 120000);
+              } else {
+                backoff = Math.min(parsed * 1000, 120000);
+              }
+            }
+            backoff = Math.max(backoff, 10000);
+          }
           await sleep(backoff);
           continue;
         }
@@ -393,11 +453,17 @@ export async function fetchFromProvider<T = any>(
   else if (url.includes("semanticscholar.org")) limiterKey = "semanticscholar";
   else if (url.includes("api.crossref.org")) limiterKey = "crossref";
   else if (url.includes("doaj.org")) limiterKey = "doaj";
+  else if (url.includes("api.gdeltproject.org")) limiterKey = "gdelt-news";
+  else if (url.includes("googleapis.com/books")) limiterKey = "google-books";
+  else if (url.includes("api.springer.com")) limiterKey = "springer";
+  else if (url.includes("api.osti.gov")) limiterKey = "osti";
+  else if (url.includes("api.datacite.org")) limiterKey = "datacite";
+  else if (url.includes("zenodo.org")) limiterKey = "zenodo";
+  else if (url.includes("api.openaire.eu")) limiterKey = "openaire";
+  else if (url.includes("api.plos.org")) limiterKey = "plos";
+  else if (url.includes("www.federalregister.gov")) limiterKey = "federal-register";
 
   const limiter = getRateLimiter(limiterKey);
-  if (limiter) {
-    await limiter.acquire();
-  }
 
   // Central OpenAlex auth: inject api_key (premium credit) or mailto (polite pool)
   // on ALL openalex.org calls — piggybacking providers previously called anonymously.
@@ -425,5 +491,6 @@ export async function fetchFromProvider<T = any>(
     }
   }
 
-  return httpGet<T>(url, { ...options, headers });
+  // Pass rateLimiterKey so httpGet re-acquires the shared limiter on retry
+  return httpGet<T>(url, { ...options, headers, rateLimiterKey: limiter ? limiterKey : undefined });
 }

@@ -132,23 +132,61 @@ export function sanitizeUnsourcedNumbers(html: string): { html: string; sanitize
   const statPattern = /(\d+\.?\d*\s*%|\$\s?\d+\.?\d*\s*[BbMmKk]|\b\d+\.\d{2,}\b|\b[1-9]\d{3,}\b)/g;
 
   // We need to check in the text content (between tags)
-  // Split HTML into tag and text segments
-  const segments: { type: 'tag' | 'text'; content: string }[] = [];
+  // Split HTML into tag and text segments, but SKIP <style> and <script> blocks
+  // entirely — CSS values (rgba, line-height, font-size) are not statistics.
+  const segments: { type: 'tag' | 'text' | 'skip'; content: string }[] = [];
   let lastIdx = 0;
-  for (const m of html.matchAll(/<[^>]+>/g)) {
-    if (m.index! > lastIdx) {
-      segments.push({ type: 'text', content: html.slice(lastIdx, m.index!) });
-    }
-    segments.push({ type: 'tag', content: m[0] });
-    lastIdx = m.index! + m[0].length;
+  const skipBlockRe = /<(style|script)\b[^>]*>[\s\S]*?<\/\1>/gi;
+  const tagRe = /<[^>]+>/g;
+  let skipMatch: RegExpExecArray | null;
+  // Build segments, marking style/script blocks as 'skip'
+  const allTokens: { type: 'tag' | 'text' | 'skip'; content: string }[] = [];
+  let cursor = 0;
+  // First, find all style/script blocks
+  const skipRanges: Array<[number, number]> = [];
+  while ((skipMatch = skipBlockRe.exec(html)) !== null) {
+    skipRanges.push([skipMatch.index, skipMatch.index + skipMatch[0].length]);
   }
-  if (lastIdx < html.length) {
-    segments.push({ type: 'text', content: html.slice(lastIdx) });
+  // Then, walk through tags, but skip over style/script ranges
+  let tagMatch: RegExpExecArray | null;
+  tagRe.lastIndex = 0;
+  while ((tagMatch = tagRe.exec(html)) !== null) {
+    const tagStart = tagMatch.index;
+    const tagEnd = tagMatch.index + tagMatch[0].length;
+    // Check if this tag is inside a skip range
+    const inSkip = skipRanges.some(([s, e]) => tagStart >= s && tagEnd <= e);
+    if (inSkip) continue;
+    // Check if there's a skip range between cursor and this tag
+    const skipBefore = skipRanges.find(([s, e]) => s >= cursor && e <= tagStart);
+    if (skipBefore) {
+      if (skipBefore[0] > cursor) {
+        allTokens.push({ type: 'text', content: html.slice(cursor, skipBefore[0]) });
+      }
+      allTokens.push({ type: 'skip', content: html.slice(skipBefore[0], skipBefore[1]) });
+      cursor = skipBefore[1];
+    }
+    if (tagStart > cursor) {
+      allTokens.push({ type: 'text', content: html.slice(cursor, tagStart) });
+    }
+    allTokens.push({ type: 'tag', content: html.slice(tagStart, tagEnd) });
+    cursor = tagEnd;
+  }
+  // Handle remaining skip ranges and text after last tag
+  const remainingSkip = skipRanges.find(([s]) => s >= cursor);
+  if (remainingSkip) {
+    if (remainingSkip[0] > cursor) {
+      allTokens.push({ type: 'text', content: html.slice(cursor, remainingSkip[0]) });
+    }
+    allTokens.push({ type: 'skip', content: html.slice(remainingSkip[0], remainingSkip[1]) });
+    cursor = remainingSkip[1];
+  }
+  if (cursor < html.length) {
+    allTokens.push({ type: 'text', content: html.slice(cursor) });
   }
 
-  // Process text segments
-  const repairedSegments = segments.map(seg => {
-    if (seg.type === 'tag') return seg.content;
+  // Process text segments (skip style/script blocks and tags)
+  const repairedSegments = allTokens.map(seg => {
+    if (seg.type === 'tag' || seg.type === 'skip') return seg.content;
 
     let text = seg.content;
     // Skip the sources section (SRC-N entries themselves)
@@ -201,12 +239,19 @@ export function injectCitationsBySourceMatch(
   const details: string[] = [];
   let injected = 0;
 
+  // Extract style/script blocks and exclude them from matching
+  const skipBlocks: string[] = [];
+  let workingHtml = html.replace(/<(style|script)\b[^>]*>[\s\S]*?<\/\1>/gi, (m) => {
+    skipBlocks.push(m);
+    return `\x00SKIP${skipBlocks.length - 1}\x00`;
+  });
+
   for (let i = 0; i < sources.length; i++) {
     const src = sources[i];
     const srcTag = `[SRC-${i + 1}]`;
 
     // Check if this source is already cited
-    if (html.includes(srcTag)) continue;
+    if (workingHtml.includes(srcTag)) continue;
 
     // Build search patterns from source metadata
     const patterns: string[] = [];
@@ -225,28 +270,36 @@ export function injectCitationsBySourceMatch(
     }
 
     for (const pattern of patterns) {
-      const regex = new RegExp(pattern, 'i');
-      const match = regex.exec(html);
-      if (match && match.index !== undefined) {
+      const regex = new RegExp(pattern, 'gi');
+      let match;
+      let injectionsForThisSource = 0;
+      while ((match = regex.exec(workingHtml)) !== null && injectionsForThisSource < 3) {
+        const matchIdx = match.index;
+        if (matchIdx === undefined) break;
         // Check if there's already a [SRC-N] within 200 chars
-        const context = html.slice(Math.max(0, match.index - 100), match.index + pattern.length + 100);
+        const context = workingHtml.slice(Math.max(0, matchIdx - 100), matchIdx + pattern.length + 100);
         if (/\[SRC-\d+\]/.test(context)) continue; // Already cited nearby
 
         // Find the end of the current sentence or paragraph
-        const afterMatch = html.slice(match.index + pattern.length);
+        const afterMatch = workingHtml.slice(matchIdx + pattern.length);
         const endIdx = afterMatch.search(/[.!?</]/);
         if (endIdx >= 0 && endIdx < 200) {
-          const insertPos = match.index + pattern.length + endIdx;
-          html = html.slice(0, insertPos) + ' ' + srcTag + html.slice(insertPos);
+          const insertPos = matchIdx + pattern.length + endIdx;
+          workingHtml = workingHtml.slice(0, insertPos) + ' ' + srcTag + workingHtml.slice(insertPos);
           injected++;
+          injectionsForThisSource++;
           details.push(`Injected ${srcTag} near "${pattern}"`);
-          break; // One injection per source
+          // Update regex lastIndex since we modified the string
+          regex.lastIndex = insertPos + srcTag.length + 1;
         }
       }
     }
   }
 
-  return { html, injected, details };
+  // Restore style/script blocks
+  workingHtml = workingHtml.replace(/\x00SKIP(\d+)\x00/g, (_, i) => skipBlocks[parseInt(i, 10)]);
+
+  return { html: workingHtml, injected, details };
 }
 
 // ─── 4. CITATION INJECTION BY CONTENT MATCHING ──────────────────────────────
@@ -276,15 +329,44 @@ export function injectCitationsByContentMatch(
     sourceTerms.push({ idx: i + 1, terms });
   }
 
-  // Split HTML into segments to find uncited text
-  const segments: { type: 'tag' | 'text'; content: string }[] = [];
+  // Split HTML into segments to find uncited text, skipping <style>/<script> blocks
+  const skipBlockRe = /<(style|script)\b[^>]*>[\s\S]*?<\/\1>/gi;
+  const skipRanges: Array<[number, number]> = [];
+  let skipMatch: RegExpExecArray | null;
+  while ((skipMatch = skipBlockRe.exec(html)) !== null) {
+    skipRanges.push([skipMatch.index, skipMatch.index + skipMatch[0].length]);
+  }
+
+  const segments: { type: 'tag' | 'text' | 'skip'; content: string }[] = [];
   let lastIdx = 0;
   for (const m of html.matchAll(/<[^>]+>/g)) {
-    if (m.index! > lastIdx) {
-      segments.push({ type: 'text', content: html.slice(lastIdx, m.index!) });
+    const tagStart = m.index!;
+    const tagEnd = m.index! + m[0].length;
+    // Skip tags inside style/script blocks
+    const inSkip = skipRanges.some(([s, e]) => tagStart >= s && tagEnd <= e);
+    if (inSkip) continue;
+    // Check for skip block between lastIdx and this tag
+    const skipBefore = skipRanges.find(([s, e]) => s >= lastIdx && e <= tagStart);
+    if (skipBefore) {
+      if (skipBefore[0] > lastIdx) {
+        segments.push({ type: 'text', content: html.slice(lastIdx, skipBefore[0]) });
+      }
+      segments.push({ type: 'skip', content: html.slice(skipBefore[0], skipBefore[1]) });
+      lastIdx = skipBefore[1];
+    }
+    if (tagStart > lastIdx) {
+      segments.push({ type: 'text', content: html.slice(lastIdx, tagStart) });
     }
     segments.push({ type: 'tag', content: m[0] });
-    lastIdx = m.index! + m[0].length;
+    lastIdx = tagEnd;
+  }
+  const remainingSkip = skipRanges.find(([s]) => s >= lastIdx);
+  if (remainingSkip) {
+    if (remainingSkip[0] > lastIdx) {
+      segments.push({ type: 'text', content: html.slice(lastIdx, remainingSkip[0]) });
+    }
+    segments.push({ type: 'skip', content: html.slice(remainingSkip[0], remainingSkip[1]) });
+    lastIdx = remainingSkip[1];
   }
   if (lastIdx < html.length) {
     segments.push({ type: 'text', content: html.slice(lastIdx) });
@@ -292,7 +374,7 @@ export function injectCitationsByContentMatch(
 
   // Process text segments: find sentences with factual markers but no [SRC-N]
   const repairedSegments = segments.map(seg => {
-    if (seg.type === 'tag') return seg.content;
+    if (seg.type === 'tag' || seg.type === 'skip') return seg.content;
 
     let text = seg.content;
     // Skip the references section
@@ -304,10 +386,6 @@ export function injectCitationsByContentMatch(
       const trimmed = sentence.trim();
       if (trimmed.length < 20) return sentence;
 
-      // Must have a factual marker
-      const hasFactual = /\d+\.?\d*\s*%|\$\s?\d+|\b\d{4}\b|\b\d+[.,]?\d*\s*(?:billion|million|thousand)\b/i.test(trimmed);
-      if (!hasFactual) return sentence;
-
       // Must NOT already have [SRC-N]
       if (/\[SRC-\d+\]/.test(trimmed)) return sentence;
 
@@ -317,6 +395,11 @@ export function injectCitationsByContentMatch(
         sentenceTerms.add(word);
       }
       if (sentenceTerms.size < 3) return sentence;
+
+      // Must have a factual marker OR be a substantial sentence with domain terms
+      const hasFactual = /\d+\.?\d*\s*%|\$\s?\d+|\b\d{4}\b|\b\d+[.,]?\d*\s*(?:billion|million|thousand)\b/i.test(trimmed);
+      const isSubstantial = trimmed.length > 60 && sentenceTerms.size >= 5;
+      if (!hasFactual && !isSubstantial) return sentence;
 
       let bestMatch = 0;
       let bestScore = 0;
@@ -332,8 +415,8 @@ export function injectCitationsByContentMatch(
         }
       }
 
-      // Only inject if we have a reasonable match (>30% term overlap)
-      if (bestScore > 0.3 && bestMatch > 0) {
+      // Only inject if we have a reasonable match (>25% term overlap)
+      if (bestScore > 0.25 && bestMatch > 0) {
         injected++;
         details.push(`Injected [SRC-${bestMatch}] (overlap: ${Math.round(bestScore * 100)}%) into: "${trimmed.slice(0, 60)}..."`);
         // Insert citation before the final punctuation

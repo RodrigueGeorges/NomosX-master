@@ -29,7 +29,8 @@ export function StatCounter({
     const el = ref.current;
     if (!el) return;
 
-    if (typeof IntersectionObserver === "undefined") {
+    if (typeof IntersectionObserver === "undefined" ||
+        (typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches)) {
       setStarted(true);
       return;
     }
@@ -50,6 +51,11 @@ export function StatCounter({
 
   useEffect(() => {
     if (!started) return;
+
+    if (typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setDisplay(end);
+      return;
+    }
 
     let frame: number;
     let startTime: number | null = null;

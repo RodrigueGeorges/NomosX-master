@@ -199,168 +199,324 @@ function metadataBar(sources: any[], wordCount: number): string {
 }
 
 // ============================================================================
+// BRAND HEADER — NomosX logo + tagline
+// ============================================================================
+
+const BRAND_HEADER = `<div class="nx-brand-header">
+  <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 32 32" fill="none" aria-label="NomosX" role="img" style="flex-shrink:0;">
+    <line x1="7" y1="7" x2="25" y2="25" stroke="#f0f0fa" stroke-width="2.6" stroke-linecap="round"/>
+    <line x1="25" y1="7" x2="7" y2="25" stroke="#f0f0fa" stroke-width="2.6" stroke-linecap="round"/>
+    <circle cx="16" cy="16" r="2.6" fill="#f0f0fa" stroke="none"/>
+  </svg>
+  <span class="nx-brand-mark">NOMOS<span class="x-glyph">X</span></span>
+  <span class="nx-brand-tag">From Chaos to Clarity</span>
+</div>`;
+
+// ============================================================================
 // CSS STYLESHEET
 // ============================================================================
 
 const BRIEF_CSS = `
 <style>
-  :root {
-    --bg: #000000;
-    --bg-card: #0a0a0a;
-    --bg-elevated: #141414;
-    --text: #e4e4e7;
-    --text-muted: #a1a1aa;
-    --text-dim: #71717a;
-    --accent: #ffffff;
-    --accent-green: #ffffff;
-    --accent-red: #F87171;
-    --accent-amber: #FBBF24;
-    --border: rgba(255,255,255,0.08);
-    --font: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
-    --font-serif: 'Merriweather', 'Georgia', serif;
-  }
+  @import url('https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@600;700&family=Barlow:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
-  @media (prefers-color-scheme: light) {
-    :root {
-      --bg: #ffffff;
-      --bg-card: #fafafa;
-      --bg-elevated: #f4f4f5;
-      --text: #18181b;
-      --text-muted: #52525b;
-      --text-dim: #71717a;
-      --accent: #0d9488;
-      --border: rgba(0,0,0,0.08);
-    }
+  :root {
+    --nx-bg: #000000;
+    --nx-bg-elevated: #0a0a0a;
+    --nx-bg-panel: #111111;
+    --nx-text-hero: #f0f0fa;
+    --nx-text-primary: #f0f0fa;
+    --nx-text-secondary: rgba(240, 240, 250, 0.62);
+    --nx-text-tertiary: rgba(240, 240, 250, 0.35);
+    --nx-text-quaternary: rgba(240, 240, 250, 0.25);
+    --nx-border-subtle: rgba(240, 240, 250, 0.08);
+    --nx-border-medium: rgba(240, 240, 250, 0.14);
+    --nx-border-cta: rgba(240, 240, 250, 0.35);
+    --nx-read-color: rgba(240, 240, 250, 0.78);
+    --nx-radius: 4px;
+    --font-sans: 'Barlow', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-display: 'Barlow Semi Condensed', 'Arial Narrow', sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, monospace;
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
+  body {
+    background: var(--nx-bg);
+    color: var(--nx-text-primary);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
   article.nomosx-brief {
-    max-width: 720px;
+    max-width: 42rem;
     margin: 0 auto;
-    padding: 48px 32px;
-    font-family: var(--font);
-    color: var(--text);
+    padding: 3rem 2rem 5rem;
+    font-family: var(--font-sans);
+    color: var(--nx-read-color);
+    font-size: 1.0625rem;
     line-height: 1.75;
-    background: var(--bg);
+    background: var(--nx-bg);
+    position: relative;
+  }
+
+  /* NomosX grid background */
+  article.nomosx-brief::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+      linear-gradient(rgba(240, 240, 250, 0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(240, 240, 250, 0.025) 1px, transparent 1px);
+    background-size: 72px 72px;
+    -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 30%, black 0%, transparent 70%);
+    mask-image: radial-gradient(ellipse 80% 60% at 50% 30%, black 0%, transparent 70%);
+    z-index: 0;
+  }
+
+  article.nomosx-brief > * { position: relative; z-index: 1; }
+
+  /* Brand header */
+  .nx-brand-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem 0.75rem;
+    margin-bottom: 3rem;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid var(--nx-border-subtle);
+  }
+  .nx-brand-mark {
+    font-family: var(--font-display);
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--nx-text-hero);
+    letter-spacing: -0.01em;
+    text-transform: uppercase;
+  }
+  .nx-brand-mark .x-glyph { color: var(--nx-text-hero); }
+  .nx-brand-tag {
+    font-family: var(--font-mono);
+    font-size: 0.5625rem;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--nx-text-tertiary);
   }
 
   h1 {
-    font-family: var(--font-serif);
-    font-size: 1.75em;
+    font-family: var(--font-display);
+    font-size: clamp(1.75rem, 4vw, 2.5rem);
     font-weight: 700;
-    line-height: 1.3;
-    margin-bottom: 8px;
-    color: var(--text);
+    line-height: 0.92;
+    letter-spacing: -0.01em;
+    text-transform: uppercase;
+    color: var(--nx-text-hero);
+    margin-bottom: 1rem;
   }
 
   .brief-meta {
-    font-size: 12px;
-    color: var(--text-dim);
-    margin-bottom: 40px;
-    padding-bottom: 24px;
-    border-bottom: 1px solid var(--border);
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    color: var(--nx-text-tertiary);
+    margin-bottom: 3rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--nx-border-subtle);
+    letter-spacing: 0.04em;
   }
 
   .brief-section {
-    margin: 32px 0;
+    margin: 2.5rem 0;
   }
 
   .brief-section h2 {
-    font-family: var(--font);
-    font-size: 1.15em;
+    font-family: var(--font-sans);
+    font-size: 1.125rem;
     font-weight: 600;
-    color: var(--text);
-    margin-bottom: 14px;
+    color: var(--nx-text-primary);
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--nx-border-subtle);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .brief-section h3 {
+    font-family: var(--font-sans);
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--nx-text-secondary);
+    margin: 1.5rem 0 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
   }
 
   .brief-section p {
-    margin-bottom: 14px;
-    font-size: 15px;
-    color: var(--text);
+    margin-bottom: 1.25rem;
+    color: var(--nx-read-color);
+  }
+
+  .brief-section strong {
+    color: var(--nx-text-primary);
+    font-weight: 600;
+  }
+
+  .brief-section a {
+    color: var(--nx-text-primary);
+    text-decoration: none;
+    border-bottom: 1px solid var(--nx-border-medium);
+  }
+
+  .prose-block { margin: 1.5rem 0; }
+  .prose-block p { margin-bottom: 1.25rem; }
+
+  .through-line {
+    font-size: 1.1em;
+    font-weight: 500;
+    color: var(--nx-text-secondary);
+    margin: 1.5em 0;
+    padding-left: 1rem;
+    border-left: 2px solid var(--nx-border-medium);
   }
 
   .debate-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 20px;
-    margin: 16px 0;
+    gap: 1.25rem;
+    margin: 1.5rem 0;
   }
 
   .debate-pro, .debate-con {
-    background: var(--bg-card);
-    border-radius: 6px;
-    padding: 18px;
-    border: 1px solid var(--border);
+    background: rgba(240, 240, 250, 0.02);
+    border: 1px solid var(--nx-border-subtle);
+    border-radius: var(--nx-radius);
+    padding: 1.25rem;
   }
 
-  .debate-pro { border-top: 2px solid var(--accent-green); }
-  .debate-con { border-top: 2px solid var(--accent-red); }
+  .debate-pro { border-top: 2px solid var(--nx-text-secondary); }
+  .debate-con { border-top: 2px solid var(--nx-text-quaternary); }
 
-  .debate-pro h3 { color: var(--accent-green); font-size: 13px; margin-bottom: 10px; }
-  .debate-con h3 { color: var(--accent-red); font-size: 13px; margin-bottom: 10px; }
+  .debate-pro h3, .debate-con h3 {
+    font-family: var(--font-mono);
+    font-size: 0.625rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--nx-text-tertiary);
+    margin-bottom: 0.75rem;
+  }
 
   .debate-synthesis {
-    background: var(--bg-card);
-    border-radius: 6px;
-    padding: 18px;
-    border: 1px solid var(--border);
-    border-top: 2px solid var(--accent-amber);
-    margin-top: 16px;
+    background: rgba(240, 240, 250, 0.02);
+    border: 1px solid var(--nx-border-subtle);
+    border-top: 2px solid var(--nx-text-primary);
+    border-radius: var(--nx-radius);
+    padding: 1.25rem;
+    margin-top: 1rem;
   }
 
-  .debate-synthesis h3 { color: var(--accent-amber); font-size: 13px; margin-bottom: 10px; }
+  .debate-synthesis h3 {
+    font-family: var(--font-mono);
+    font-size: 0.625rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--nx-text-secondary);
+    margin-bottom: 0.75rem;
+  }
 
-  sup.cite a {
-    color: var(--accent);
+  .key-findings-card {
+    background: rgba(240, 240, 250, 0.015);
+    border: 1px solid var(--nx-border-subtle);
+    border-left: 2px solid var(--nx-text-primary);
+    border-radius: var(--nx-radius);
+    padding: 1.25rem 1.5rem;
+    margin: 1.75rem 0;
+  }
+  .key-findings-card h3 {
+    font-family: var(--font-mono);
+    font-size: 0.625rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--nx-text-tertiary);
+    margin-bottom: 0.75rem;
+  }
+  .key-findings-card ul { padding-left: 1.25rem; }
+  .key-findings-card li { margin-bottom: 0.5rem; color: var(--nx-read-color); }
+
+  sup.cite a, sup.citation {
+    color: var(--nx-text-secondary);
     text-decoration: none;
-    font-size: 10px;
+    font-size: 0.75em;
     font-weight: 600;
+    font-family: var(--font-mono);
     padding: 0 1px;
+    vertical-align: super;
   }
 
-  sup.cite a:hover { text-decoration: underline; }
+  sup.cite a:hover { color: var(--nx-text-primary); }
 
   .references-section {
-    margin-top: 48px;
-    padding-top: 24px;
-    border-top: 1px solid var(--border);
+    margin-top: 4rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--nx-border-subtle);
   }
 
   .references-section h2 {
-    font-size: 1.1em;
-    margin-bottom: 16px;
+    font-family: var(--font-mono);
+    font-size: 0.625rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--nx-text-tertiary);
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--nx-border-subtle);
   }
 
   .apa-ref {
     display: block;
-    padding: 8px 0 8px 36px;
-    text-indent: -36px;
-    font-size: 13px;
-    line-height: 1.5;
-    color: var(--text-muted);
-    border-bottom: 1px solid var(--border);
+    padding: 0.5rem 0 0.5rem 2rem;
+    text-indent: -2rem;
+    font-size: 0.8125rem;
+    line-height: 1.6;
+    color: var(--nx-text-secondary);
+    border-bottom: 1px solid var(--nx-border-subtle);
   }
 
   .apa-ref:last-child { border-bottom: none; }
 
   .ref-num {
-    font-weight: 600;
-    color: var(--accent);
-    min-width: 28px;
+    font-family: var(--font-mono);
+    font-weight: 500;
+    color: var(--nx-text-tertiary);
+    min-width: 1.75rem;
     display: inline-block;
   }
 
-  .apa-ref em { color: var(--text); }
+  .apa-ref em { color: var(--nx-text-primary); }
+
+  /* Hero image */
+  .hero-image {
+    margin: 0 0 2rem 0;
+    width: 100%;
+    overflow: hidden;
+    border: 1px solid var(--nx-border-subtle);
+    border-radius: var(--nx-radius);
+  }
+  .hero-image img {
+    width: 100%;
+    height: auto;
+    display: block;
+    object-fit: cover;
+  }
 
   @media print {
-    article.nomosx-brief { padding: 24px; max-width: 100%; }
+    article.nomosx-brief { padding: 1.5rem; max-width: 100%; }
     .debate-grid { grid-template-columns: 1fr; }
+    article.nomosx-brief::before { display: none; }
   }
 
   @media (max-width: 640px) {
-    article.nomosx-brief { padding: 24px 16px; }
-    h1 { font-size: 1.4em; }
+    article.nomosx-brief { padding: 1.5rem 1rem; }
+    h1 { font-size: 1.5rem; }
     .debate-grid { grid-template-columns: 1fr; }
   }
 </style>`;
@@ -440,6 +596,7 @@ export function renderProfessionalBriefHTML(analysis: any, sources: any[]): stri
 </head>
 <body>
   <article class="nomosx-brief">
+    ${BRAND_HEADER}
     <h1>${esc(analysis.title || "Brief")}</h1>
     <div class="brief-meta">${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} · ${sources.length} sources</div>
 
@@ -473,6 +630,7 @@ export function renderProfessionalBriefHTML(analysis: any, sources: any[]): stri
 </head>
 <body>
   <article class="nomosx-brief">
+    ${BRAND_HEADER}
     <h1>${esc(analysis.title || "Brief")}</h1>
     <div class="brief-meta">${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} · ${sources.length} sources</div>
 
@@ -539,10 +697,10 @@ export function renderProfessionalStrategicHTML(analysis: any, sources: any[]): 
     <section class="brief-section">
       <h2>Thematic Analysis</h2>
       ${themes.map((t: any) => `
-        <div class="theme-entry" style="margin:12px 0;padding:12px 16px;background:var(--bg-card);border-left:3px solid var(--accent);border-radius:0 6px 6px 0;">
+        <div class="theme-entry">
           <strong>${esc(t.name || '')}</strong>
-          ${t.evidence ? `<span style="font-size:12px;color:var(--accent-green);margin-left:8px;">${esc(t.evidence)}</span>` : ""}
-          ${t.description ? `<p style="margin-top:6px;font-size:14px;">${replaceCitations(esc(t.description))}</p>` : ""}
+          ${t.evidence ? `<span style="font-family:var(--font-mono);font-size:0.5625rem;color:var(--nx-text-tertiary);margin-left:0.5rem;text-transform:uppercase;letter-spacing:0.1em;">${esc(t.evidence)}</span>` : ""}
+          ${t.description ? `<p style="margin-top:0.5rem;font-size:0.875rem;">${replaceCitations(esc(t.description))}</p>` : ""}
         </div>`).join("")}
     </section>` : "";
 
@@ -552,10 +710,10 @@ export function renderProfessionalStrategicHTML(analysis: any, sources: any[]): 
     <section class="brief-section">
       <h2>Key Studies</h2>
       ${keyStudies.map((ks: any) => `
-        <div style="margin:10px 0;padding:10px 14px;background:var(--bg-card);border-radius:6px;font-size:14px;">
+        <div style="margin:0.625rem 0;padding:0.625rem 0.875rem;background:rgba(240,240,250,0.015);border:1px solid var(--nx-border-subtle);border-radius:var(--nx-radius);font-size:0.875rem;">
           <strong>${replaceCitations(esc(ks.citation || ''))}</strong>
           ${ks.contribution ? ` — ${esc(ks.contribution)}` : ""}
-          ${ks.limitations ? `<br><em style="color:var(--text-muted)">Limitation: ${esc(ks.limitations)}</em>` : ""}
+          ${ks.limitations ? `<br><em style="color:var(--nx-text-tertiary);font-size:0.8125rem;">Limitation: ${esc(ks.limitations)}</em>` : ""}
         </div>`).join("")}
     </section>` : "";
 
@@ -605,52 +763,66 @@ export function renderProfessionalStrategicHTML(analysis: any, sources: any[]): 
   const recsHtml = (recs.immediate.length || recs.shortTerm.length || recs.longTerm.length) ? `
     <section class="brief-section">
       <h2>Recommendations</h2>
-      ${recs.immediate.length ? `<h3 style="color:var(--accent-green);">Immediate (0-6 months)</h3><ul>${recs.immediate.map((r: string) => `<li>${replaceCitations(esc(r))}</li>`).join("")}</ul>` : ""}
-      ${recs.shortTerm.length ? `<h3 style="color:var(--accent-amber);">Short-Term (6-24 months)</h3><ul>${recs.shortTerm.map((r: string) => `<li>${replaceCitations(esc(r))}</li>`).join("")}</ul>` : ""}
-      ${recs.longTerm.length ? `<h3 style="color:var(--accent);">Long-Term (2-5 years)</h3><ul>${recs.longTerm.map((r: string) => `<li>${replaceCitations(esc(r))}</li>`).join("")}</ul>` : ""}
-      ${recs.riskMitigation.length ? `<h3 style="color:var(--accent-red);">Risk Mitigation</h3><ul>${recs.riskMitigation.map((r: string) => `<li>${replaceCitations(esc(r))}</li>`).join("")}</ul>` : ""}
-      ${recs.costOfInaction ? `<div style="border-left:4px solid var(--accent-red);background:#fef2f2;padding:16px 20px;margin:16px 0;border-radius:0 8px 8px 0;"><h3 style="color:var(--accent-red);margin:0 0 8px;">Cost of Inaction</h3><p style="margin:0;line-height:1.6;">${replaceCitations(esc(recs.costOfInaction))}</p></div>` : ""}
+      ${recs.immediate.length ? `<h3>Immediate (0-6 months)</h3><ul>${recs.immediate.map((r: string) => `<li>${replaceCitations(esc(r))}</li>`).join("")}</ul>` : ""}
+      ${recs.shortTerm.length ? `<h3>Short-Term (6-24 months)</h3><ul>${recs.shortTerm.map((r: string) => `<li>${replaceCitations(esc(r))}</li>`).join("")}</ul>` : ""}
+      ${recs.longTerm.length ? `<h3>Long-Term (2-5 years)</h3><ul>${recs.longTerm.map((r: string) => `<li>${replaceCitations(esc(r))}</li>`).join("")}</ul>` : ""}
+      ${recs.riskMitigation.length ? `<h3>Risk Mitigation</h3><ul>${recs.riskMitigation.map((r: string) => `<li>${replaceCitations(esc(r))}</li>`).join("")}</ul>` : ""}
+      ${recs.costOfInaction ? `<div style="border-left:2px solid var(--nx-text-primary);background:rgba(240,240,250,0.02);padding:1rem 1.25rem;margin:1rem 0;border-radius:0 var(--nx-radius) var(--nx-radius) 0;"><h3 style="margin:0 0 0.5rem;">Cost of Inaction</h3><p style="margin:0;line-height:1.6;">${replaceCitations(esc(recs.costOfInaction))}</p></div>` : ""}
     </section>` : "";
 
   const STRATEGIC_EXTRA_CSS = `
   <style>
-    .badges { margin: 12px 0 24px; display: flex; gap: 8px; }
+    .badges { margin: 0.75rem 0 2rem; display: flex; gap: 0.5rem; }
     .badge {
-      display: inline-block; padding: 4px 12px; border-radius: 4px;
-      font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;
+      display: inline-block; padding: 0.25rem 0.75rem; border-radius: var(--nx-radius);
+      font-family: var(--font-mono); font-size: 0.5625rem; font-weight: 500;
+      text-transform: uppercase; letter-spacing: 0.14em;
+      border: 1px solid var(--nx-border-subtle);
     }
-    .badge-critical { background: #7F1D1D; color: #FCA5A5; }
-    .badge-high { background: #78350F; color: #FCD34D; }
-    .badge-medium { background: #1E3A5F; color: #93C5FD; }
-    .badge-low { background: #14532D; color: #86EFAC; }
-    .badge-conf { background: var(--bg-elevated); color: var(--text-muted); }
+    .badge-critical { color: var(--nx-text-primary); border-color: var(--nx-border-cta); }
+    .badge-high { color: var(--nx-text-secondary); border-color: var(--nx-border-medium); }
+    .badge-medium { color: var(--nx-text-tertiary); }
+    .badge-low { color: var(--nx-text-quaternary); }
+    .badge-conf { color: var(--nx-text-tertiary); }
 
     .stakeholder-table {
-      width: 100%; border-collapse: collapse; font-size: 13px; margin: 16px 0;
+      width: 100%; border-collapse: collapse; font-size: 0.8125rem; margin: 1rem 0;
     }
     .stakeholder-table th {
-      text-align: left; padding: 8px 12px; background: var(--bg-elevated);
-      color: var(--text-muted); font-weight: 600; font-size: 11px; text-transform: uppercase;
-      border-bottom: 2px solid var(--border);
+      text-align: left; padding: 0.5rem 0.75rem;
+      color: var(--nx-text-tertiary); font-weight: 500; font-size: 0.5625rem;
+      font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.14em;
+      border-bottom: 1px solid var(--nx-border-medium);
     }
     .stakeholder-table td {
-      padding: 8px 12px; border-bottom: 1px solid var(--border); color: var(--text);
+      padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--nx-border-subtle);
+      color: var(--nx-read-color); vertical-align: top;
     }
 
     .scenario-card {
-      background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;
-      padding: 16px 20px; margin: 12px 0;
+      background: rgba(240, 240, 250, 0.015);
+      border: 1px solid var(--nx-border-subtle);
+      border-radius: var(--nx-radius);
+      padding: 1rem 1.25rem; margin: 0.75rem 0;
     }
     .scenario-header {
-      display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;
+      display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;
     }
     .scenario-prob {
-      background: var(--accent); color: white; padding: 2px 10px; border-radius: 12px;
-      font-size: 12px; font-weight: 700;
+      font-family: var(--font-mono); font-size: 0.625rem; font-weight: 500;
+      color: var(--nx-text-secondary); padding: 0.125rem 0.5rem;
+      border: 1px solid var(--nx-border-medium); border-radius: var(--nx-radius);
     }
     .scenario-implications {
-      margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border);
-      font-size: 13px; color: var(--text-muted);
+      margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid var(--nx-border-subtle);
+      font-size: 0.8125rem; color: var(--nx-text-secondary);
+    }
+
+    .theme-entry {
+      margin: 0.75rem 0; padding: 0.75rem 1rem;
+      background: rgba(240, 240, 250, 0.015);
+      border-left: 2px solid var(--nx-text-secondary);
+      border-radius: 0 var(--nx-radius) var(--nx-radius) 0;
     }
   </style>`;
 
@@ -665,6 +837,7 @@ export function renderProfessionalStrategicHTML(analysis: any, sources: any[]): 
 </head>
 <body>
   <article class="nomosx-brief">
+    ${BRAND_HEADER}
     <h1>${esc(analysis.title || "Strategic Report")}</h1>
     <div class="brief-meta">${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} · ${sources.length} sources</div>
 

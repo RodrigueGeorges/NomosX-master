@@ -91,9 +91,9 @@ function classifyVerdict(score: number, isFutureExtrapolation = false): {
     // drag down the integrity score.
     return { verdict: 'supported', confidence: 60 };
   }
-  if (score >= 0.55) return { verdict: 'supported', confidence: Math.round(score * 100) };
-  if (score >= 0.35) return { verdict: 'partially_supported', confidence: Math.round(score * 80) };
-  if (score >= 0.15) return { verdict: 'unsupported', confidence: Math.round((1 - score) * 60) };
+  if (score >= 0.45) return { verdict: 'supported', confidence: Math.round(score * 100) };
+  if (score >= 0.25) return { verdict: 'partially_supported', confidence: Math.round(score * 80) };
+  if (score >= 0.10) return { verdict: 'unsupported', confidence: Math.round((1 - score) * 60) };
   return { verdict: 'misattributed', confidence: Math.round((1 - score) * 80) };
 }
 

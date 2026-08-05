@@ -20,10 +20,31 @@
 import { DomainExpertise, AutoPublisherLineage } from './types';
 import { callLLM } from '../llm/unified-llm';
 import { parseJson } from './json-utils';
+import { getResearcher } from '../researchers';
 
 // ============================================================================
 // RESEARCHER REGISTRY - Domain Ownership Mapping
+// 
+// F-B9 FIX: lib/researchers.ts is the single source of truth for UI-facing
+// researcher identity (name, title, institution, color, etc.).
+// This registry holds pipeline-specific config (providers, cadence, thresholds).
+// Use getResearcherUIName(domain) to get the display name from the unified registry.
 // ============================================================================
+
+/** Get the UI-facing researcher name from the unified registry in lib/researchers.ts */
+export function getResearcherUIName(domain: DomainExpertise): string {
+  return getResearcher(domain)?.name ?? domain;
+}
+
+/** Get the UI-facing researcher title from the unified registry */
+export function getResearcherUITitle(domain: DomainExpertise): string {
+  return getResearcher(domain)?.title ?? '';
+}
+
+/** Get the UI-facing researcher institution from the unified registry */
+export function getResearcherUIInstitution(domain: DomainExpertise): string {
+  return getResearcher(domain)?.institution ?? '';
+}
 
 export interface ResearcherProfile {
   id: string;

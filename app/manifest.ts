@@ -12,6 +12,7 @@ export default function manifest(): MetadataRoute.Manifest {
     description: BRAND_MANIFEST_DESCRIPTION,
     start_url: '/',
     display: 'standalone',
+    categories: ['news', 'education', 'productivity'],
     background_color: '#000000',
     theme_color: '#000000',
     icons: [

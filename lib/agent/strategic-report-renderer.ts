@@ -422,6 +422,15 @@ export function renderStrategicReportHTML(
   return `${STYLES}
 <div class="report-wrapper">
   <article>
+    <div class="report-brand">
+      <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 32 32" fill="none" aria-label="NomosX" role="img" style="flex-shrink:0;">
+        <line x1="7" y1="7" x2="25" y2="25" stroke="#f0f0fa" stroke-width="2.6" stroke-linecap="round"/>
+        <line x1="25" y1="7" x2="7" y2="25" stroke="#f0f0fa" stroke-width="2.6" stroke-linecap="round"/>
+        <circle cx="16" cy="16" r="2.6" fill="#f0f0fa" stroke="none"/>
+      </svg>
+      <span style="font-family:'Barlow Semi Condensed',sans-serif;font-size:1.25rem;font-weight:700;color:#f0f0fa;letter-spacing:-0.01em;text-transform:uppercase;">NOMOS<span style="color:#f0f0fa;">X</span></span>
+      <span class="report-brand-tag">From Chaos to Clarity</span>
+    </div>
     <h1 class="report-title">${esc(analysis.title)}</h1>
     <div class="report-meta" style="font-size:12px;color:rgba(240,240,250,0.4);margin-bottom:2rem;padding-bottom:1rem;border-bottom:1px solid rgba(240,240,250,0.08);">
       ${now} · ${sources.length} sources · ${analysis.confidenceLevel} confidence

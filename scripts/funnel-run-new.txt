@@ -1,0 +1,46 @@
+[dotenv@17.2.4] injecting env (30) from .env.local -- tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild
+
+╔════════════════════════════════════════════════════════════╗
+║  NomosX — FULL FUNNEL TEST (Swarm)                         ║
+╚════════════════════════════════════════════════════════════╝
+  Mode: breaking
+  Started: 2026-08-05T14:26:29.645Z
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  PHASE 1: THINK TANK DISPATCHER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  [Dispatcher] Launching breaking cycle...
+(node:16260) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+prisma:error 
+Invalid `prisma.thinkTankPublication.count()` invocation in
+C:\Users\DELL\Desktop\NomosX-master\lib\agent\think-tank-dispatcher.ts:105:33
+
+  102 const weeklyMax = getWeeklyPublicationMax();
+  103 
+  104 const [publishedThisWeek, recentPubs] = await Promise.all([
+→ 105   prisma.thinkTankPublication.count(
+The table `(not available)` does not exist in the current database.
+Fatal error: PrismaClientKnownRequestError: 
+Invalid `prisma.thinkTankPublication.count()` invocation in
+C:\Users\DELL\Desktop\NomosX-master\lib\agent\think-tank-dispatcher.ts:105:33
+
+  102 const weeklyMax = getWeeklyPublicationMax();
+  103 
+  104 const [publishedThisWeek, recentPubs] = await Promise.all([
+→ 105   prisma.thinkTankPublication.count(
+The table `(not available)` does not exist in the current database.
+    at $n.handleRequestError (C:\Users\DELL\Desktop\NomosX-master\node_modules\@prisma\client\runtime\library.js:121:7315)
+    at $n.handleAndLogRequestError (C:\Users\DELL\Desktop\NomosX-master\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\DELL\Desktop\NomosX-master\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (C:\Users\DELL\Desktop\NomosX-master\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async Promise.all (index 0)
+    at async getCadenceState (C:\Users\DELL\Desktop\NomosX-master\lib\agent\think-tank-dispatcher.ts:104:43)
+    at async runThinkTankCycle (C:\Users\DELL\Desktop\NomosX-master\lib\agent\think-tank-dispatcher.ts:595:19)
+    at async main (C:\Users\DELL\Desktop\NomosX-master\scripts\test-funnel.ts:49:25) {
+  code: 'P2021',
+  clientVersion: '5.22.0',
+  meta: { modelName: 'ThinkTankPublication', table: '(not available)' }
+}

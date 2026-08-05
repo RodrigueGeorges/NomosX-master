@@ -3,11 +3,14 @@ import { prisma } from "@/lib/db";
 import { publicPublicationWhere } from "@/lib/publication-visibility";
 import { getPublicationFormat } from "@/lib/publication-formats";
 import { inquiryUrl } from "@/lib/public-urls";
+import { BreadcrumbJsonLd } from "@/components/seo/JsonLd";
 
 interface Props {
   params: Promise<{ slug: string }>;
   children: React.ReactNode;
 }
+
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://nomosx.com';
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
@@ -80,6 +83,33 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default function InquiryLayout({ children }: { children: React.ReactNode }) {
-  return <>{children}</>;
+export default async function InquiryLayout({ params, children }: Props) {
+  const { slug } = await params;
+
+  let breadcrumbItems: Array<{ name: string; url: string }> = [];
+
+  if (/^[a-zA-Z0-9_-]+$/.test(slug)) {
+    const article = await prisma.thinkTankPublication
+      .findFirst({
+        where: publicPublicationWhere({ OR: [{ id: slug }, { publicId: slug }] }),
+        select: { id: true, title: true },
+      })
+      .catch(() => null);
+
+    if (article) {
+      const canonical = inquiryUrl(article.id, true);
+      breadcrumbItems = [
+        { name: 'NomosX', url: APP_URL },
+        { name: 'Briefs', url: `${APP_URL}/archives` },
+        { name: article.title || 'Inquiry', url: canonical },
+      ];
+    }
+  }
+
+  return (
+    <>
+      {breadcrumbItems.length > 0 && <BreadcrumbJsonLd items={breadcrumbItems} />}
+      {children}
+    </>
+  );
 }

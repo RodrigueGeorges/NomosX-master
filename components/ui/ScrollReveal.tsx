@@ -36,7 +36,8 @@ export function ScrollReveal({
     const el = ref.current;
     if (!el) return;
 
-    if (typeof IntersectionObserver === "undefined") {
+    if (typeof IntersectionObserver === "undefined" ||
+        (typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches)) {
       setVisible(true);
       return;
     }

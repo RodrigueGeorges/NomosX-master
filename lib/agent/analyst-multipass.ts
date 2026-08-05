@@ -14,11 +14,12 @@
 
 import { callLLM } from '../llm/unified-llm';
 import { parseJson } from './json-utils';
-// import Sentry from '@sentry/nextjs'; // Commenté pour éviter l'erreur TypeScript
+import Sentry from '@sentry/nextjs';
 import { AgentRole, assertPermission } from '../governance/index';
 import { RESEARCHER_KBS, type DomainExpertise } from './researcher-kb/index';
 import { MULTI_DOMAIN_CORPUS } from '../knowledge/multi-domain-corpus';
 import { NOMOS_EDITORIAL_LINE_SHORT } from './editorial-config';
+import { runAllPruningGates, gateHedgingStrip, type PruningResult } from './pruning-gates';
 
 // ============================================================================
 // TYPES
@@ -128,6 +129,7 @@ export interface ProspectiveNote {
     totalTokensUsed: number;
     totalCostUsd: number;
     producerFamily?: import('../llm/unified-llm').LLMFamily;
+    pruning?: PruningResult;
   };
 }
 
@@ -766,7 +768,7 @@ Build the causal chain from the surviving mechanisms. Take ONE position.`;
     jsonMode: true,
     maxTokens: depth === "strategic" ? 16000 : 8000,
     enableCache: true,
-    task: 'analyst_brief',
+    task: depth === "strategic" ? 'strategic_analyst' : 'analyst_brief',
   });
 
   const analysis = parseJson<AnalysisOutput>(response.content);
@@ -990,21 +992,39 @@ export async function analystAgentV3(
     // This is deterministic — no LLM in the loop.
     const sanitizedAnalysis = sanitizeAnalysisCitations(p3.analysis, sources.length);
 
-    // CASCADE GUARD: Validate causal chain for cascade violations
-    const chainValidation = validateCausalChain(sanitizedAnalysis);
-    if (!chainValidation.valid) {
-      console.warn(`[Analyst V3] CASCADE GUARD: ${chainValidation.cascadeViolations} violations (${chainValidation.details})`);
-      // Mark unsupported links deterministically (no LLM, no new agent)
-      if (sanitizedAnalysis.causalChain && Array.isArray(sanitizedAnalysis.causalChain)) {
-        for (const link of sanitizedAnalysis.causalChain) {
-          const hasSrc = typeof link.sourceRef === 'number' && link.sourceRef > 0
-            || (typeof link.evidence === 'string' && /\[SRC-\d+\]/.test(link.evidence))
-            || (typeof link.claim === 'string' && /\[SRC-\d+\]/.test(link.claim));
-          if (!hasSrc) {
-            link.unsupported = true;
-          }
-        }
+    // PRUNING GATES: Deterministic post-generation quality assurance.
+    // Gates PRUNE, never BLOCK. Invalid content is removed before render.
+    // Trust propagates through the DAG: weak parents reduce confidence in children.
+    const pruningResult = runAllPruningGates(sanitizedAnalysis, sources.length);
+
+    // Apply pruned chain back to analysis
+    const prunedAnalysis: AnalysisOutput = {
+      ...sanitizedAnalysis,
+      causalChain: pruningResult.prunedChain,
+    };
+
+    // Apply hedging strip to verdict (deterministic, no LLM)
+    if (prunedAnalysis.verdict) {
+      const hedgeResult = gateHedgingStrip(prunedAnalysis.verdict);
+      if (hedgeResult.modified) {
+        console.warn(`[Analyst V3] HEDGING GATE: stripped ${hedgeResult.hedgeCount} hedge phrases from verdict`);
+        prunedAnalysis.verdict = hedgeResult.cleaned;
       }
+    }
+
+    // Log pruning results
+    if (pruningResult.removed.length > 0) {
+      console.warn(`[Analyst V3] PRUNING GATES: removed ${pruningResult.removed.length} links — ${pruningResult.removed.map(r => `#${r.link.id}(${r.gate})`).join(', ')}`);
+    }
+    if (pruningResult.warnings.length > 0) {
+      pruningResult.warnings.forEach(w => console.warn(`[Analyst V3] GATE WARNING: ${w}`));
+    }
+    console.log(`[Analyst V3] Trust propagation: overall=${pruningResult.overallTrust}, chain=${pruningResult.prunedChain.length}/${sanitizedAnalysis.causalChain?.length || 0} links survived`);
+
+    // Backward-compatible cascade validation (extended, not replaced)
+    const chainValidation = validateCausalChain(prunedAnalysis);
+    if (!chainValidation.valid) {
+      console.warn(`[Analyst V3] CASCADE GUARD (post-pruning): ${chainValidation.cascadeViolations} violations (${chainValidation.details})`);
     }
 
     const totalTokens = p1.tokens + p2.tokens + p3.tokens;
@@ -1014,7 +1034,7 @@ export async function analystAgentV3(
     console.log(`[Analyst V3] Complete in ${elapsed}ms | 3 passes | ${totalTokens} tokens | $${totalCost.toFixed(4)} | cascade violations: ${chainValidation.cascadeViolations}`);
 
     // Validate required fields
-    const analysis = sanitizedAnalysis;
+    const analysis = prunedAnalysis;
     const required: (keyof AnalysisOutput)[] = ['title', 'throughLine', 'verdict', 'causalChain'];
     const missing = required.filter((k) => {
       const val = analysis[k];
@@ -1035,6 +1055,7 @@ export async function analystAgentV3(
         totalTokensUsed: totalTokens,
         totalCostUsd: totalCost,
         producerFamily: p3.family,
+        pruning: pruningResult,
       },
     };
   } catch (error: any) {

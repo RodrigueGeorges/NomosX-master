@@ -113,10 +113,13 @@ export function extractPipelineScores(
       trustScore = criticalScore;
     } else {
       // Primary: blend critical loop + source quality + citation coverage
+      // criticalScore already incorporates citationCoverage, groundedness, diversity, etc.
+      // so it gets the highest weight. citationCoverage is double-counted intentionally
+      // (it's the most important gate metric) but with reduced weight.
       trustScore = Math.round(
-        criticalScore * 0.5 +
-        qualityScore * 0.3 +
-        (citationCoverage * 100) * 0.2
+        criticalScore * 0.6 +
+        qualityScore * 0.25 +
+        (citationCoverage * 100) * 0.15
       );
     }
   } else if (daScore != null) {

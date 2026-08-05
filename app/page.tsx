@@ -299,12 +299,12 @@ function HomePageContent() {
 
   // Total section count is dynamic: the "Latest briefs" section (05) is
   // hidden when there are no briefs, so the denominator must adjust.
-  const sectionCount = displayInquiries.length > 0 ? 7 : 6;
+  const sectionCount = displayInquiries.length > 0 ? 8 : 7;
   const sectionTotal = String(sectionCount).padStart(2, "0");
   // Sections after the briefs block shift down by one when briefs are hidden
   // so the numerators stay sequential (01, 02, 03 ...).
-  const studioSectionNum = displayInquiries.length > 0 ? "06" : "05";
-  const newsletterSectionNum = displayInquiries.length > 0 ? "07" : "06";
+  const studioSectionNum = displayInquiries.length > 0 ? "07" : "06";
+  const newsletterSectionNum = displayInquiries.length > 0 ? "08" : "07";
 
 
 
@@ -683,6 +683,94 @@ function HomePageContent() {
           </section>
 
           )}
+
+
+
+          {/* Social proof */}
+
+          <section className="nx-section-divide relative px-6 sm:px-8 py-16 sm:py-20">
+
+            <div className="max-w-4xl mx-auto text-center">
+
+              <ScrollReveal>
+
+                <p className="nx-eyebrow mb-10 justify-center">Built for those who need to be right</p>
+
+              </ScrollReveal>
+
+              <ScrollReveal stagger className="grid sm:grid-cols-3 gap-8 sm:gap-12">
+
+                <div className="text-center">
+
+                  <p className="font-mono text-3xl font-light text-white tabular-nums leading-none mb-3">
+
+                    <StatCounter end={19} suffix="" />
+
+                  </p>
+
+                  <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-white/50">
+
+                    Pipeline stages
+
+                  </p>
+
+                  <p className="text-xs text-white/40 mt-2 leading-relaxed">
+
+                    Scout to publisher — every claim traceable
+
+                  </p>
+
+                </div>
+
+                <div className="text-center">
+
+                  <p className="font-mono text-3xl font-light text-white tabular-nums leading-none mb-3">
+
+                    <StatCounter end={6} suffix="" />
+
+                  </p>
+
+                  <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-white/50">
+
+                    Adversarial reviews
+
+                  </p>
+
+                  <p className="text-xs text-white/40 mt-2 leading-relaxed">
+
+                    Harvard Council, Devil's Advocate, Elenchus
+
+                  </p>
+
+                </div>
+
+                <div className="text-center">
+
+                  <p className="font-mono text-3xl font-light text-white tabular-nums leading-none mb-3">
+
+                    <StatCounter end={100} suffix="%" />
+
+                  </p>
+
+                  <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-white/50">
+
+                    Source-grounded
+
+                  </p>
+
+                  <p className="text-xs text-white/40 mt-2 leading-relaxed">
+
+                    No claim without a verifiable citation
+
+                  </p>
+
+                </div>
+
+              </ScrollReveal>
+
+            </div>
+
+          </section>
 
 
 

@@ -202,7 +202,7 @@ Return JSON:
     jsonMode: true,
     maxTokens: 3000,
     enableCache: true,
-    task: 'meta_analysis',
+    task: 'editorial_arbiter',
   });
 
   totalCost += pass2Response.costUsd;

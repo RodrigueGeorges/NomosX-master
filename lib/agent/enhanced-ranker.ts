@@ -38,6 +38,8 @@ export interface EnhancedRankedSource extends Source {
   hasQuantitativeData: boolean;
   peerReviewed: boolean;
   trustTier?: SourceTrustTier;
+  loadBearing?: boolean;       // T8: true for top sources that anchor the causal chain
+  readingBudget?: 'full_text' | 'abstract' | 'skip';  // T8: concentrated reading budget
 }
 
 /**
@@ -53,8 +55,6 @@ export async function enhancedRank(
   const options: EnhancedRankOptions = typeof limitOrOptions === 'number' 
     ? { limit: limitOrOptions, mode }
     : { limit: 12, mode, ...limitOrOptions };
-
-  console.log(`[ENHANCED RANK] DEBUG: limitOrOptions type=${typeof limitOrOptions}, limitOrOptions.limit=${(limitOrOptions as any)?.limit}, options.limit=${options.limit}`);
 
   // Permissive defaults — let SCOUT's relevance filter + Cohere reranking do the heavy lifting
   // The ranker should NOT aggressively filter; it should RANK.
@@ -254,8 +254,37 @@ export async function enhancedRank(
     const relaxed = enhancedSources
       .sort((a, b) => b.compositeScore - a.compositeScore)
       .slice(0, finalOptions.limit!);
-    console.log(`[ENHANCED RANK] Relaxed selection: ${relaxed.length} sources`);
-    return relaxed;
+    // T8: Mark load-bearing on relaxed selection too
+    const lbCount = Math.max(3, Math.ceil(relaxed.length * 0.3));
+    const absCount = Math.ceil(relaxed.length * 0.8);
+    const markedRelaxed = relaxed.map((s, i) => ({
+      ...s,
+      loadBearing: i < lbCount,
+      readingBudget: (i < lbCount ? 'full_text' : i < absCount ? 'abstract' : 'skip') as 'full_text' | 'abstract' | 'skip',
+    }));
+    console.log(`[ENHANCED RANK] Relaxed selection: ${markedRelaxed.length} sources`);
+    return markedRelaxed;
+  }
+
+  // T8: Mark load-bearing sources and assign reading budgets
+  // Top 30% by composite score are load-bearing → full-text reading priority
+  // Next 50% get abstract reading
+  // Bottom 20% get skip (minimal reading)
+  if (finalSources.length > 0) {
+    const loadBearingCount = Math.max(3, Math.ceil(finalSources.length * 0.3));
+    const abstractCount = Math.ceil(finalSources.length * 0.8);
+    finalSources = finalSources.map((s, i) => {
+      if (i < loadBearingCount) {
+        return { ...s, loadBearing: true, readingBudget: 'full_text' as const };
+      } else if (i < abstractCount) {
+        return { ...s, loadBearing: false, readingBudget: 'abstract' as const };
+      } else {
+        return { ...s, loadBearing: false, readingBudget: 'skip' as const };
+      }
+    });
+    const lbCount = finalSources.filter(s => s.loadBearing).length;
+    const fullTextCount = finalSources.filter(s => s.readingBudget === 'full_text').length;
+    console.log(`[ENHANCED RANK] T8: ${lbCount} load-bearing sources (full-text), ${fullTextCount - lbCount + finalSources.filter(s => s.readingBudget === 'abstract').length} abstract, ${finalSources.filter(s => s.readingBudget === 'skip').length} skip`);
   }
 
   console.log(`[ENHANCED RANK] Final selection: ${finalSources.length} sources`);

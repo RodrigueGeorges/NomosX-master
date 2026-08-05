@@ -42,7 +42,6 @@ export const metadata = {
     template: `%s | ${BRAND_NAME}`,
   },
   description: BRAND_DESCRIPTION,
-  keywords: ["think tank", "strategic intelligence", "foresight", "decision intelligence", "strategic analysis", "scenario planning", "evidence-based research"],
   authors: [{ name: BRAND_NAME }],
   creator: BRAND_NAME,
   icons: {
@@ -58,6 +57,7 @@ export const metadata = {
     follow: true,
   },
   alternates: {
+    canonical: process.env.NEXT_PUBLIC_APP_URL || 'https://nomosx.com',
     types: {
       'application/rss+xml': '/feed.xml',
     },

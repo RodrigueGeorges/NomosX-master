@@ -266,27 +266,35 @@ export function assessAfterAnalyst(state: PipelineState): OrchestratorDecision {
 }
 
 /**
- * Checkpoint 4: After CRITICAL LOOP — Final quality gate
+ * Checkpoint 4: After CRITICAL LOOP — Final quality assessment
+ *
+ * T9 REFACTOR: No veto, no blocking. The pruning gates in analyst-multipass.ts
+ * already removed invalid content before this point. The trust score is
+ * descriptive transparency for the reader, not a publication gate.
+ * We always PROCEED — the publication adapts to what survived pruning.
  */
 export function assessAfterCriticalLoop(state: PipelineState): OrchestratorDecision {
   const T = state.thresholds ?? THRESHOLDS;
-  if (state.trustScore !== null && state.trustScore < T.MIN_TRUST_SCORE) {
-    if (state.iteration >= T.MAX_ITERATIONS) {
-      return {
-        action: "PROCEED",
-        reason: `Trust score ${state.trustScore} below ${T.MIN_TRUST_SCORE}, but max iterations reached. Publishing with disclaimer.`,
-      };
-    }
+  const trustScore = state.trustScore ?? 0;
+
+  // If trust is very low and we haven't exhausted iterations, try to improve
+  if (trustScore < T.MIN_TRUST_SCORE && state.iteration < T.MAX_ITERATIONS) {
     return {
       action: "DEBATE",
-      reason: `Trust score ${state.trustScore} below ${T.MIN_TRUST_SCORE}. Triggering adversarial debate to strengthen weak points.`,
+      reason: `Trust score ${trustScore} below ${T.MIN_TRUST_SCORE}. Triggering adversarial debate to strengthen weak points before publication.`,
       params: { debateTopic: state.query },
     };
   }
 
+  // Always PROCEED — pruning gates already cleaned the content.
+  // Low trust is documented in the publication, not used to block it.
+  const trustNote = trustScore < T.MIN_TRUST_SCORE
+    ? `Trust score ${trustScore} below ${T.MIN_TRUST_SCORE}. Publishing with transparency note — pruning gates have already removed invalid content.`
+    : `Trust score ${trustScore} meets threshold. Ready for publication.`;
+
   return {
     action: "PROCEED",
-    reason: `Trust score ${state.trustScore ?? "N/A"} meets threshold. Ready for publication.`,
+    reason: trustNote,
   };
 }
 

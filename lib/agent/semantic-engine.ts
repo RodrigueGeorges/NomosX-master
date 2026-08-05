@@ -176,6 +176,14 @@ export async function embedSource(sourceId: string): Promise<void> {
       embeddingModel: EMBEDDING_MODEL,
     },
   });
+
+  // F-B16: Also write to native pgvector column (best-effort, non-blocking)
+  const vectorLiteral = `[${embedding.join(",")}]`;
+  prisma.$executeRawUnsafe(
+    `UPDATE "Source" SET embedding = '${vectorLiteral}'::vector WHERE id = '${sourceId.replace(/'/g, "''")}'`
+  ).catch((err: unknown) => {
+    console.warn(`[SemanticEngine] pgvector write failed for ${sourceId}:`, err instanceof Error ? err.message : String(err));
+  });
 }
 
 /**

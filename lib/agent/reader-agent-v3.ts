@@ -55,6 +55,8 @@ export interface Mechanism {
   horizon: string;           // Time horizon (e.g., "short-term", "5-10 years")
   isStated: boolean;         // true if explicitly stated by authors, false if inferred
   sourceRef?: number;        // Reference to [SRC-N] if available
+  statedSpan?: string;       // T5: Verbatim text span from source that supports this mechanism
+  spanVerified?: boolean;    // T5: True if statedSpan was verified as a substring of the source text
 }
 
 export interface ReadingResultV3 {
@@ -341,6 +343,44 @@ function buildDomainGuidance(domain?: string): string {
 }
 
 // ============================================================================
+// T5: VERBATIM SPAN VERIFICATION
+// ============================================================================
+
+/**
+ * Verify that a statedSpan is actually present in the source text.
+ * Uses normalized substring matching to handle whitespace differences.
+ * Returns true only if a meaningful span (>=20 chars) is found.
+ */
+function verifyStatedSpan(span: string, sourceText: string): boolean {
+  if (!span || span.length < 20) return false;
+  if (!sourceText || sourceText.length < 50) return false;
+
+  // Normalize: collapse whitespace, lowercase for comparison
+  const normalize = (s: string) => s.replace(/\s+/g, ' ').trim().toLowerCase();
+  const normSpan = normalize(span);
+  const normText = normalize(sourceText);
+
+  // Direct substring match
+  if (normText.includes(normSpan)) return true;
+
+  // Try with first 60 chars (LLM may paraphrase slightly at the end)
+  const prefix = normSpan.slice(0, 60);
+  if (prefix.length >= 20 && normText.includes(prefix)) return true;
+
+  // Try with last 60 chars
+  const suffix = normSpan.slice(-60);
+  if (suffix.length >= 20 && normText.includes(suffix)) return true;
+
+  // Try word-level matching: check if >80% of words from span appear in text
+  const spanWords = normSpan.split(' ').filter(w => w.length > 3);
+  if (spanWords.length < 3) return false;
+  const textWords = new Set(normText.split(' '));
+  const matched = spanWords.filter(w => textWords.has(w)).length;
+  const matchRatio = matched / spanWords.length;
+  return matchRatio >= 0.8;
+}
+
+// ============================================================================
 // DEEP EXTRACTION (LLM-powered)
 // ============================================================================
 
@@ -430,7 +470,8 @@ Return JSON:
       "rate": "Rate of change if stated (e.g., '10% per year') or null",
       "horizon": "Time horizon (e.g., 'short-term', '5-10 years')",
       "isStated": true,
-      "sourceRef": null
+      "sourceRef": null,
+      "statedSpan": "EXACT verbatim sentence(s) from the text that states this mechanism. Copy the exact words from the paper. If isStated=false (inferred), set to null."
     }
   ]
 }
@@ -472,14 +513,22 @@ For mechanisms: extract the causal chain — how does X affect Y? What is the di
       readingDepth: depth,
       wordCount: text.split(/\s+/).length,
       sections,
-      mechanisms: (extracted.mechanisms || []).map((m: any) => ({
-        description: String(m.description || '').trim(),
-        direction: (['positive', 'negative', 'reversing', 'unclear'].includes(m.direction) ? m.direction : 'unclear') as Mechanism['direction'],
-        rate: m.rate ? String(m.rate) : undefined,
-        horizon: String(m.horizon || 'unspecified').trim(),
-        isStated: m.isStated !== false, // default true — preserve, don't suppress
-        sourceRef: typeof m.sourceRef === 'number' ? m.sourceRef : undefined,
-      })).filter((m: Mechanism) => m.description),
+      mechanisms: (extracted.mechanisms || []).map((m: any) => {
+        const desc = String(m.description || '').trim();
+        const statedSpan = m.statedSpan ? String(m.statedSpan).trim() : undefined;
+        // T5: Verify statedSpan is actually a substring of the source text
+        const spanVerified = statedSpan ? verifyStatedSpan(statedSpan, text) : false;
+        return {
+          description: desc,
+          direction: (['positive', 'negative', 'reversing', 'unclear'].includes(m.direction) ? m.direction : 'unclear') as Mechanism['direction'],
+          rate: m.rate ? String(m.rate) : undefined,
+          horizon: String(m.horizon || 'unspecified').trim(),
+          isStated: m.isStated !== false,
+          sourceRef: typeof m.sourceRef === 'number' ? m.sourceRef : undefined,
+          statedSpan: spanVerified ? statedSpan : undefined,
+          spanVerified,
+        } as Mechanism;
+      }).filter((m: Mechanism) => m.description),
       extractedText: text.slice(0, 8000),
     };
   } catch (error: any) {

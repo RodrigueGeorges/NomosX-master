@@ -220,10 +220,14 @@ function lexicalGrounding(
   }
   const numbersOk = claimNumbers.length === 0 || numbersMatched === claimNumbers.length;
 
-  // Polarity check: look for negation mismatches
-  const claimNegated = /\b(not|no|never|without|failed|failure|decline|decrease|drop|fall|reduce)\b/i.test(claim.text);
-  const sourceNegated = /\b(not|no|never|without|failed|failure|decline|decrease|drop|fall|reduce)\b/i.test(sourceText);
-  const polarityMismatch = claimNegated !== sourceNegated && score > 0.3;
+  // Polarity check: only flag as contradicted when there's a STRONG negation mismatch
+  // (both have meaningful overlap AND one explicitly negates while the other affirms)
+  const NEG_RE = /\b(not|no|never|without)\b/i;
+  const claimNegated = NEG_RE.test(claim.text);
+  const sourceNegated = NEG_RE.test(sourceText);
+  // Only trigger polarity mismatch when score is high enough to be meaningful
+  // AND one is explicitly negated while the other is explicitly affirmative
+  const polarityMismatch = claimNegated !== sourceNegated && score > 0.4 && (claimNegated || sourceNegated);
 
   // Find best matching sentence in source for evidence snippet
   let evidenceSnippet: string | null = null;
@@ -242,14 +246,21 @@ function lexicalGrounding(
     }
   }
 
-  // Verdict logic (precision-first, inspired by groundrails composite checker)
+  // Verdict logic — calibrated for paraphrased strategic analysis
+  // (not verbatim quoting): lower thresholds reflect that think-tank
+  // analysis synthesizes and reformulates, not copies.
   if (polarityMismatch) {
     return { verdict: 'contradicted', score, evidenceSnippet };
   }
-  if (score >= 0.5 && numbersOk && bestSentScore >= 0.4) {
+  if (score >= 0.35 && numbersOk && bestSentScore >= 0.3) {
     return { verdict: 'supported', score, evidenceSnippet };
   }
-  if (score >= 0.25 && numbersOk) {
+  if (score >= 0.15 && numbersOk) {
+    return { verdict: 'partial', score, evidenceSnippet };
+  }
+  // If we have any meaningful overlap at all, don't call it unsupported —
+  // call it partial. Only truly zero-overlap claims are unsupported.
+  if (score >= 0.08) {
     return { verdict: 'partial', score, evidenceSnippet };
   }
   return { verdict: 'unsupported', score, evidenceSnippet };

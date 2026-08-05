@@ -6,9 +6,9 @@ export const BRAND_TITLE = "NomosX — From Chaos to Clarity";
 
 export const BRAND_TAGLINE = "From Chaos to Clarity.";
 
-export const BRAND_SHORT = "From Chaos to Clarity.";
+export const BRAND_SHORT = BRAND_TAGLINE;
 
-export const BRAND_HERO_SUBTITLE_SHORT = "From Chaos to Clarity.";
+export const BRAND_HERO_SUBTITLE_SHORT = BRAND_TAGLINE;
 
 export const BRAND_DESCRIPTION =
   "NomosX is an autonomous think tank that transforms the chaos of information into structured, defensible positions — not opinions.";
@@ -17,7 +17,7 @@ export const BRAND_OG_DESCRIPTION = `${BRAND_TAGLINE} Cross-domain foresight wit
 
 export const BRAND_MANIFEST_DESCRIPTION = `${BRAND_TAGLINE} Cross-domain foresight with verified positions.`;
 
-export const BRAND_HERO_TITLE = "From Chaos to Clarity.";
+export const BRAND_HERO_TITLE = BRAND_TAGLINE;
 
 export const BRAND_HERO_SUBTITLE = "The world doesn't suffer from a lack of information. It suffers from a lack of structure.";
 

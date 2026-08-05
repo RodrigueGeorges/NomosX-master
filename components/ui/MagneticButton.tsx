@@ -22,7 +22,11 @@ export function MagneticButton({
 }: MagneticButtonProps) {
   const ref = useRef<HTMLButtonElement>(null);
 
+  const reducedMotion = typeof window !== "undefined" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
   const handleMouseMove = (e: React.MouseEvent<HTMLButtonElement>) => {
+    if (reducedMotion) return;
     const el = ref.current;
     if (!el) return;
     const rect = el.getBoundingClientRect();
@@ -32,6 +36,7 @@ export function MagneticButton({
   };
 
   const handleMouseLeave = () => {
+    if (reducedMotion) return;
     const el = ref.current;
     if (!el) return;
     el.style.transform = "translate(0, 0)";

@@ -35,6 +35,8 @@ import {
 
 import { AnimatePresence, motion } from "framer-motion";
 
+import { FaqJsonLd } from "@/components/seo/JsonLd";
+
 
 
 const READER_FEATURES = [
@@ -143,6 +145,8 @@ export default function PricingPage() {
   return (
 
     <>
+
+      <FaqJsonLd items={FAQ} />
 
       <PublicPageShell currentPage="pricing" onSignInClick={() => setShowAuthModal(true)} particles={0}>
 

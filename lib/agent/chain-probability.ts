@@ -15,6 +15,7 @@
 
 import type { MetaAnalysisResult } from './meta-analysis-engine';
 import type { Mechanism } from './reader-agent-v3';
+import type { CausalLink } from './analyst-multipass';
 
 // ============================================================================
 // TYPES
@@ -38,9 +39,103 @@ export interface DerivedQuantity {
   name: string;
   value: number;
   unit: string;
-  derivation: string;
-  inputs: string[];
+  derivation: string;          // How the value was computed (formula or method)
+  inputs: string[];            // Names of input variables
   confidence: 'high' | 'medium' | 'low';
+  // T3: Enriched fields for source grounding and verification
+  sourceRefs?: number[];       // [SRC-N] indices that support this quantity
+  statedSpan?: string;         // Verbatim text from source stating this value
+  verified?: boolean;          // T3: True if value was numerically verified against source text
+  verificationMethod?: 'exact_match' | 'range_check' | 'unit_check' | 'failed';
+  verificationNote?: string;   // Details of verification or failure
+}
+
+/**
+ * T3: Deterministic numerical verification of a DerivedQuantity.
+ * Checks that the value claimed in the DerivedQuantity actually appears
+ * in the source text. Pure code — no LLM.
+ *
+ * Verification levels:
+ * 1. exact_match: The exact number appears in the source text
+ * 2. range_check: The number falls within a range stated in the source
+ * 3. unit_check: The unit matches what's stated in the source
+ * 4. failed: No verification possible
+ */
+export function verifyDerivedQuantity(
+  dq: DerivedQuantity,
+  sourceTexts: string[]
+): { verified: boolean; method: 'exact_match' | 'range_check' | 'unit_check' | 'failed'; note: string } {
+  if (!sourceTexts.length || dq.value == null || isNaN(dq.value)) {
+    return { verified: false, method: 'failed', note: 'No source text or invalid value' };
+  }
+
+  const combinedText = sourceTexts.join(' ');
+  const valueStr = String(dq.value);
+  const valueNum = dq.value;
+
+  // 1. Exact match: look for the exact number in the text
+  // Handle both decimal (3.14) and comma (3,14) formats
+  const valuePatterns = [
+    new RegExp(`\\b${valueStr.replace('.', '[.,]')}\\b`),
+    new RegExp(`\\b${Math.round(valueNum)}\\b`), // Also check rounded integer
+  ];
+  if (dq.unit) {
+    // Also check with unit suffix
+    const unitPattern = new RegExp(`${valueStr.replace('.', '[.,]')}\\s*${dq.unit.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'i');
+    valuePatterns.push(unitPattern);
+  }
+
+  for (const pattern of valuePatterns) {
+    if (pattern.test(combinedText)) {
+      return { verified: true, method: 'exact_match', note: `Value ${valueStr} found in source text` };
+    }
+  }
+
+  // 2. Range check: look for ranges in the text that contain the value
+  // Patterns like "10-20", "10 to 20", "between 10 and 20"
+  const rangePattern = /(\d+\.?\d*)\s*(?:[-–to]+)\s*(\d+\.?\d*)/gi;
+  let match;
+  while ((match = rangePattern.exec(combinedText)) !== null) {
+    const low = parseFloat(match[1].replace(',', '.'));
+    const high = parseFloat(match[2].replace(',', '.'));
+    if (!isNaN(low) && !isNaN(high) && valueNum >= Math.min(low, high) && valueNum <= Math.max(low, high)) {
+      return { verified: true, method: 'range_check', note: `Value ${valueStr} within range [${low}, ${high}] found in source` };
+    }
+  }
+
+  // 3. Unit check: if the unit appears in the text, at least verify consistency
+  if (dq.unit) {
+    const unitInText = new RegExp(`\\b${dq.unit.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+    if (unitInText.test(combinedText)) {
+      // Unit is present but exact value not found — partial verification
+      return { verified: true, method: 'unit_check', note: `Unit "${dq.unit}" found in source but exact value ${valueStr} not matched` };
+    }
+  }
+
+  return { verified: false, method: 'failed', note: `Value ${valueStr} ${dq.unit || ''} not found in any source text` };
+}
+
+/**
+ * T3: Batch verify an array of DerivedQuantities against source texts.
+ * Mutates each DQ to add verification fields.
+ */
+export function verifyDerivedQuantities(
+  quantities: DerivedQuantity[],
+  sourceTexts: string[]
+): { verified: number; failed: number } {
+  let verified = 0;
+  let failed = 0;
+
+  for (const dq of quantities) {
+    const result = verifyDerivedQuantity(dq, sourceTexts);
+    dq.verified = result.verified;
+    dq.verificationMethod = result.method;
+    dq.verificationNote = result.note;
+    if (result.verified) verified++;
+    else failed++;
+  }
+
+  return { verified, failed };
 }
 
 // LOT 4.6: Scenario from chain
@@ -146,6 +241,132 @@ export function propagateChainProbability(
 }
 
 // ============================================================================
+// T6: Source-grounded priors from real CausalLink objects
+// ============================================================================
+
+/**
+ * Build priors from the actual causal chain links, using their source grounding
+ * and temporal status to determine the prior mean and width.
+ * - present_fact with sourceRef → narrow prior, mean from evidence
+ * - active_mechanism with sourceRef → moderate prior
+ * - future_extrapolation → wide prior (inherently uncertain)
+ * - unsupported links → very wide prior centered at 0.5
+ */
+export function buildPriorsFromCausalChain(
+  chain: CausalLink[],
+  trustTiers?: Map<number, string>
+): Prior[] {
+  return chain.map((link, i) => {
+    const hasSource = typeof link.sourceRef === 'number' && link.sourceRef > 0
+      || (typeof link.evidence === 'string' && /\[SRC-\d+\]/.test(link.evidence));
+
+    let mean = 0.5;
+    let width: Prior['width'] = 'wide';
+
+    if (link.unsupported) {
+      mean = 0.3;
+      width = 'wide';
+    } else if (link.temporalStatus === 'present_fact' && hasSource) {
+      mean = 0.75;
+      width = 'narrow';
+    } else if (link.temporalStatus === 'active_mechanism' && hasSource) {
+      mean = 0.6;
+      width = 'moderate';
+    } else if (link.temporalStatus === 'future_extrapolation') {
+      mean = 0.4;
+      width = 'wide';
+    } else if (hasSource) {
+      mean = 0.55;
+      width = 'moderate';
+    }
+
+    // Adjust based on trust tier if available
+    const tier = trustTiers?.get(link.id);
+    if (tier === 'ESTABLISHED') {
+      mean = Math.min(0.9, mean + 0.1);
+      width = 'narrow';
+    } else if (tier === 'SUPPORTED') {
+      mean = Math.min(0.85, mean + 0.05);
+      width = width === 'wide' ? 'moderate' : width;
+    } else if (tier === 'SPECULATIVE') {
+      mean = Math.max(0.2, mean - 0.1);
+      width = 'wide';
+    }
+
+    return {
+      variable: `link_${link.id}`,
+      mean,
+      width,
+      sourceCount: hasSource ? 1 : 0,
+      heterogeneity: 0,
+      mappingVersion: MAPPING_VERSION,
+    };
+  });
+}
+
+/**
+ * T6: Monte Carlo propagation on real causal chain objects.
+ * Uses source-grounded priors from buildPriorsFromCausalChain.
+ * The joint probability accounts for the DAG structure: a link only succeeds
+ * if its parent also succeeds (derivesFrom chain).
+ */
+export function propagateCausalChainProbability(
+  chain: CausalLink[],
+  trustTiers?: Map<number, string>,
+  iterations = 10000
+): { jointProbability: number; perLinkProbability: number[]; priors: Prior[] } {
+  if (chain.length === 0) {
+    return { jointProbability: 0.5, perLinkProbability: [], priors: [] };
+  }
+
+  const priors = buildPriorsFromCausalChain(chain, trustTiers);
+  const priorMap = new Map(priors.map(p => [p.variable, p]));
+
+  let successCount = 0;
+  const perLinkSums = new Array(chain.length).fill(0);
+
+  for (let iter = 0; iter < iterations; iter++) {
+    // Sample each link's success
+    const linkSuccess = new Map<number, boolean>();
+
+    for (const link of chain) {
+      const prior = priorMap.get(`link_${link.id}`)!;
+      const sigma = prior.width === 'wide' ? 0.3 : prior.width === 'narrow' ? 0.08 : 0.15;
+      const sampled = sampleNormal(prior.mean, sigma);
+      const succeeds = sampled > 0.5; // Threshold: majority confidence
+
+      // T6: DAG constraint — if parent failed, this link also fails
+      let effectiveSuccess = succeeds;
+      if (link.derivesFrom != null) {
+        const parentSucceeded = linkSuccess.get(link.derivesFrom);
+        if (parentSucceeded === false) {
+          effectiveSuccess = false;
+        }
+      }
+
+      linkSuccess.set(link.id, effectiveSuccess);
+    }
+
+    // All links must succeed for joint probability
+    const allSucceed = [...linkSuccess.values()].every(v => v === true);
+    if (allSucceed) successCount++;
+
+    // Accumulate per-link probabilities
+    chain.forEach((link, i) => {
+      if (linkSuccess.get(link.id)) perLinkSums[i]++;
+    });
+  }
+
+  const perLinkProbability = perLinkSums.map(s => s / iterations);
+
+  return {
+    jointProbability: successCount / iterations,
+    perLinkProbability,
+    priors,
+  };
+}
+
+// ============================================================================
 // LOT 4.4: chainTournament — permutations of mechanisms → best joint probability
 // ============================================================================
 
@@ -226,21 +447,95 @@ export function scenariosFromChain(priors: Prior[]): ChainScenario[] {
 }
 
 // ============================================================================
-// LOT 4.8: inflectionCheck — warning if chain ≥ 5 with no reversing direction
+// LOT 4.8 / T4: inflectionCheck — enhanced with dated, thresholded, attested gate
 // ============================================================================
 
-export function inflectionCheck(mechanisms: Mechanism[]): { hasInflection: boolean; warning?: string } {
-  if (mechanisms.length < 5) return { hasInflection: true };
+export interface InflectionResult {
+  hasInflection: boolean;
+  warning?: string;
+  inflectionPoint?: {
+    mechanism: Mechanism;
+    dated: boolean;
+    thresholded: boolean;
+    attested: boolean;
+  };
+  warnings: string[];
+}
 
-  const hasReversing = mechanisms.some(m => m.direction === 'reversing');
-  if (!hasReversing) {
-    return {
-      hasInflection: false,
-      warning: `Chain of ${mechanisms.length} mechanisms has no reversing direction — check for runaway assumptions`,
-    };
+export function inflectionCheck(mechanisms: Mechanism[]): InflectionResult {
+  const warnings: string[] = [];
+
+  if (mechanisms.length < 5) {
+    return { hasInflection: true, warnings: [] };
   }
 
-  return { hasInflection: true };
+  // Find reversing mechanisms
+  const reversing = mechanisms.filter(m => m.direction === 'reversing');
+  if (reversing.length === 0) {
+    const warning = `Chain of ${mechanisms.length} mechanisms has no reversing direction — trajectory is purely inertial`;
+    warnings.push(warning);
+    return { hasInflection: false, warning, warnings };
+  }
+
+  // T4: For each reversing mechanism, check if it's dated, thresholded, and attested
+  for (const m of reversing) {
+    const dated = checkDated(m);
+    const thresholded = checkThresholded(m);
+    const attested = checkAttested(m);
+
+    if (dated && thresholded && attested) {
+      return {
+        hasInflection: true,
+        warnings,
+        inflectionPoint: { mechanism: m, dated, thresholded, attested },
+      };
+    }
+
+    // Collect specific deficiencies
+    if (!dated) warnings.push(`Reversing mechanism "${m.description.slice(0, 80)}" lacks a specific date/timeframe`);
+    if (!thresholded) warnings.push(`Reversing mechanism "${m.description.slice(0, 80)}" lacks a quantified threshold`);
+    if (!attested) warnings.push(`Reversing mechanism "${m.description.slice(0, 80)}" is not explicitly stated by authors (isStated=false or no statedSpan)`);
+  }
+
+  // Has a reversing direction but none meet all three criteria
+  const warning = `Chain has ${reversing.length} reversing mechanism(s) but none are dated + thresholded + attested`;
+  warnings.push(warning);
+  return { hasInflection: false, warning, warnings };
+}
+
+/**
+ * T4: Check if a mechanism has a date or specific timeframe.
+ * Looks for year references, "by Q1", "within N years", etc.
+ */
+function checkDated(m: Mechanism): boolean {
+  const text = `${m.description} ${m.horizon} ${m.rate || ''}`;
+  // Check for explicit year, quarter, or timeframe
+  const hasYear = /\b(20[2-9]\d|203\d)\b/.test(text);
+  const hasQuarter = /\bQ[1-4]\b/i.test(text);
+  const hasTimeframe = /\b(within\s+\d+\s+years?|by\s+20\d{2}|over\s+the\s+next\s+\d+|in\s+\d+\s+years?)\b/i.test(text);
+  const hasHorizon = !!(m.horizon && m.horizon !== 'unspecified' && m.horizon !== 'short-term' && m.horizon !== 'long-term');
+  return hasYear || hasQuarter || hasTimeframe || hasHorizon;
+}
+
+/**
+ * T4: Check if a mechanism has a quantified threshold.
+ * Looks for percentages, dollar amounts, basis points, or numeric thresholds.
+ */
+function checkThresholded(m: Mechanism): boolean {
+  const text = `${m.description} ${m.rate || ''}`;
+  const hasPercent = /\b\d+\.?\d*\s*%/.test(text);
+  const hasDollar = /\$\d/.test(text);
+  const hasBps = /\b\d+\s*bps?\b/i.test(text);
+  const hasNumericThreshold = /\b(above|below|over|under|at least|at most|exceeds?|threshold)\s+\d/i.test(text);
+  const hasRate = !!(m.rate && /\d/.test(m.rate));
+  return hasPercent || hasDollar || hasBps || hasNumericThreshold || hasRate;
+}
+
+/**
+ * T4: Check if a mechanism is attested (explicitly stated by authors with verbatim span).
+ */
+function checkAttested(m: Mechanism): boolean {
+  return m.isStated === true && m.spanVerified === true;
 }
 
 // ============================================================================

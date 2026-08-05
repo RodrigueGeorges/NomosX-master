@@ -26,13 +26,16 @@ export function WordReveal({
 }: WordRevealProps) {
   const words = text.split(" ");
 
+  const reducedMotion = typeof window !== "undefined" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
   return (
     <span className={cn("inline", className)}>
       {words.map((word, i) => (
         <span
           key={`${word}-${i}`}
           className={cn("nx-word", wordClassName)}
-          style={{ animationDelay: `${baseDelay + i * stagger}ms` }}
+          style={reducedMotion ? undefined : { animationDelay: `${baseDelay + i * stagger}ms` }}
         >
           {word}
           {i < words.length - 1 ? "\u00A0" : ""}

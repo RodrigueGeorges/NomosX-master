@@ -175,7 +175,7 @@ const TASK_ASSIGNMENT: Record<LLMTask, TaskAssignment> = {
   // K3's cache hit rate hits 90% on repeated context → effective input ~$0.30/M.
   // GLM stays as fallback for its 1M context window when Kimi is unavailable.
   reader_v3:              { provider: "kimi", model: "kimi-k3", timeoutMs: 300_000 },
-  strategic_analyst:      { provider: "kimi", model: "kimi-k3", timeoutMs: 300_000 },
+  strategic_analyst:      { provider: "kimi", model: "kimi-k3", timeoutMs: 600_000 },
   harvard_council:        { provider: "kimi", model: "kimi-k3", timeoutMs: 300_000 },
   elenchus:               { provider: "kimi", model: "kimi-k3", timeoutMs: 300_000 },
 
@@ -270,6 +270,8 @@ const RETRY_CONFIG = {
 
 function isRetryableError(error: any): boolean {
   if (!error) return false;
+  // Terminal errors are never retryable
+  if (isTerminalError(error)) return false;
   const status = error.status || error.statusCode || error?.response?.status;
   if (RETRY_CONFIG.retryableStatusCodes.includes(status)) return true;
   const msg = (error.message || "").toLowerCase();
@@ -292,6 +294,10 @@ async function withRetry<T>(fn: () => Promise<T>, label: string): Promise<T> {
       return await fn();
     } catch (error: any) {
       lastError = error;
+      // Terminal errors (suspended accounts, auth failures) won't resolve on retry
+      if (isTerminalError(error)) {
+        throw error;
+      }
       if (attempt < RETRY_CONFIG.maxRetries && isRetryableError(error)) {
         const delay = getRetryDelay(attempt);
         console.warn(`⚠️ ${label} attempt ${attempt + 1} failed (${error.status || error.message}), retrying in ${Math.round(delay)}ms...`);
@@ -355,11 +361,11 @@ async function isCircuitOpen(provider: string): Promise<boolean> {
 }
 
 async function recordProviderFailure(provider: string, error?: Error): Promise<void> {
-  // Failure-Class Routing (2026): only systemic errors (500/503/timeout/overloaded)
-  // advance the circuit breaker. Terminal errors (unparseable JSON, empty content,
-  // finish_reason=length) are deterministic — retrying is pure waste and tripping
-  // the breaker on them causes unnecessary provider swaps.
-  if (error && isTerminalError(error)) {
+  // Failure-Class Routing (2026): only systemic errors advance the circuit breaker.
+  // - Deterministic errors (JSON parse, empty content): per-call issue, don't trip breaker.
+  // - Systemic account errors (suspended, balance, auth): provider-wide outage, DO trip breaker.
+  // - Transient errors (429, 500, timeout): advance breaker as before.
+  if (error && isDeterministicError(error)) {
     return;
   }
   const cb = await getCBState(provider);
@@ -371,13 +377,36 @@ async function recordProviderFailure(provider: string, error?: Error): Promise<v
   await setCBState(provider, next);
 }
 
-/** Terminal errors are deterministic — retrying or tripping the breaker is waste. */
-function isTerminalError(error: Error): boolean {
+/**
+ * Deterministic errors: retrying is waste, and tripping the circuit breaker
+ * is unnecessary (these are per-call issues, not provider-wide outages).
+ * Examples: unparseable JSON, empty content, finish_reason=length.
+ */
+function isDeterministicError(error: Error): boolean {
   const msg = (error.message || "").toLowerCase();
   return msg.includes("unparseable json") ||
     msg.includes("empty content") ||
     msg.includes("finish_reason=length") ||
     msg.includes("non-parseable json");
+}
+
+/**
+ * Systemic account errors: retrying is waste (won't resolve), but these ARE
+ * provider-wide outages — the circuit breaker SHOULD trip so subsequent calls
+ * skip this provider entirely instead of wasting time on a dead account.
+ * Examples: suspended account, insufficient balance, invalid API key.
+ */
+function isSystemicAccountError(error: Error): boolean {
+  const msg = (error.message || "").toLowerCase();
+  return msg.includes("suspended") ||
+    msg.includes("insufficient balance") ||
+    msg.includes("authentication") ||
+    msg.includes("invalid api key");
+}
+
+/** Non-retryable = deterministic + systemic account errors. */
+function isTerminalError(error: Error): boolean {
+  return isDeterministicError(error) || isSystemicAccountError(error);
 }
 
 async function recordProviderSuccess(provider: string): Promise<void> {
@@ -556,6 +585,8 @@ export interface LLMRequest {
   enableCache?: boolean;
   /** Family that produced the text being verified — required for opposite-family rule to activate. */
   producerFamily?: LLMFamily;
+  /** F-B12: Per-call cost cap in USD. If the response exceeds this, throw to trigger failover. */
+  maxCostUsd?: number;
 }
 
 export interface LLMResponse {
@@ -975,6 +1006,13 @@ export async function callLLM(request: LLMRequest): Promise<LLMResponse> {
       if (request.jsonMode && !isParseableJson(response.content)) {
         throw new Error(
           `${provider}/${response.model} returned unparseable JSON (len=${response.content.length})`
+        );
+      }
+
+      // F-B12: Per-call cost budget enforcement
+      if (request.maxCostUsd && response.costUsd > request.maxCostUsd) {
+        throw new Error(
+          `${provider}/${response.model} exceeded per-call cost cap: $${response.costUsd.toFixed(4)} > $${request.maxCostUsd} (in=${response.tokensInput}, out=${response.tokensOutput})`
         );
       }
 

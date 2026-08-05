@@ -60,9 +60,11 @@ model Source {
   noveltyScore Int? @default(0)
 
   // Embeddings (pgvector + JSON storage)
-  // embedding      Unsupported("vector(1536)")?
+  // F-B16: pgvector native column for SQL-level similarity search.
+  // Kept Float[] embeddings as fallback for environments without pgvector.
+  embedding      Unsupported("vector(1536)")?
   embeddingModel String?                      @default("text-embedding-3-small")
-  embeddings     Float[]                      @default([]) // JSON storage of embeddings for Prisma compatibility
+  embeddings     Float[]                      @default([]) // JSON fallback when pgvector unavailable
 
   // Full-text search
   // searchVector Unsupported("tsvector")?
@@ -92,9 +94,8 @@ model Source {
   @@index([noveltyScore])
   @@index([createdAt])
   @@index([lastSyncedAt])
-  // TODO: Enable vector indexes once pgvector extension is active
-  // @@index([embedding(ops: raw("vector_cosine_ops"))], type: Gin)
-  // @@index([searchVector], type: Gin)
+  // F-B16: HNSW vector index created via raw SQL migration (Prisma doesn't support Hnsw type yet)
+  // See: scripts/enable-pgvector-indexes.sql
 }
 
 // ============================================================================
@@ -109,7 +110,8 @@ model SourceChunk {
   contentHash String // SHA-256 for deduplication
 
   // Hybrid retrieval
-  // embedding      Unsupported("vector(1536)")?
+  // F-B16: pgvector native column for chunk-level semantic search
+  embedding      Unsupported("vector(1536)")?
   embeddingModel String?                      @default("text-embedding-3-small")
   // searchVector   Unsupported("tsvector")?
 
@@ -128,9 +130,8 @@ model SourceChunk {
   @@unique([sourceId, chunkIndex])
   @@unique([contentHash])
   @@index([sourceId])
-  // TODO: Enable vector indexes once pgvector extension is active
-  // @@index([embedding(ops: raw("vector_cosine_ops"))], type: Gin)
-  // @@index([searchVector], type: Gin)
+  // F-B16: HNSW vector index created via raw SQL migration (Prisma doesn't support Hnsw type yet)
+  // See: scripts/enable-pgvector-indexes.sql
 }
 
 // ============================================================================
@@ -291,6 +292,17 @@ model MacroPoint {
 // CLAIMS & EVIDENCE SYSTEM (NEW - CORE AUDIT)
 // ============================================================================
 
+// ============================================================================
+// CLAIM — Pipeline-internal claim extracted during analysis runs
+// ============================================================================
+// F-B13: Claim vs ThinkTankClaim distinction:
+//   Claim            = extracted during pipeline runs (AnalysisRun), ephemeral,
+//                      used for contradiction detection and verification within
+//                      a single run. Linked to Source and AnalysisRun.
+//   ThinkTankClaim   = extracted from PUBLISHED ThinkTankPublication HTML,
+//                      persistent, used for public claim tracking, evidence
+//                      spans, and contradiction detection across publications.
+// ============================================================================
 model Claim {
   id String @id @default(cuid())
 
@@ -701,6 +713,8 @@ model Brief {
 
   topic       Topic?       @relation(fields: [topicId], references: [id], onDelete: SetNull)
   pipelineRun PipelineRun? @relation(fields: [pipelineRunId], references: [id])
+  predictions Prediction[]
+  causalLinks CausalLink[]
 
   @@index([topicId])
   @@index([kind])
@@ -777,6 +791,82 @@ model PipelineRun {
   @@index([format])
   @@index([startedAt])
   @@index([totalCostUsd])
+}
+
+// ============================================================================
+// PREDICTIONS — Track record for prospective analysis (T10)
+// ============================================================================
+
+model Prediction {
+  id String @id @default(cuid())
+
+  // Link to the brief that produced this prediction
+  briefId String?
+
+  // The prediction content
+  claim      String  @db.Text // What we predict will happen
+  horizon    String  // e.g. "2027-Q2", "2028", "2029-2030"
+  probability Float? // 0-1, if quantified (null = non-quantifiable)
+  confidence String  // ESTABLISHED, SUPPORTED, EMERGING, SPECULATIVE
+
+  // Resolution criteria — what observable fact would confirm or refute
+  resolutionCriteria String @db.Text
+  whatWouldFalsify   String @db.Text
+
+  // Source grounding
+  sourceRefs Int[] // [SRC-N] indices from the brief
+
+  // Resolution tracking
+  status      String  @default("OPEN") // OPEN, CONFIRMED, REFUTED, EXPIRED, SUPERSEDED
+  resolvedAt  DateTime?
+  outcome     String? @db.Text // What actually happened
+  resolutionNotes String? @db.Text
+
+  // Metadata
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  brief Brief? @relation(fields: [briefId], references: [id], onDelete: SetNull)
+
+  @@index([briefId])
+  @@index([status])
+  @@index([horizon])
+  @@index([confidence])
+  @@index([createdAt])
+}
+
+// ============================================================================
+// CAUSAL LINKS — Persisted causal chains from analyst (F-B17)
+// ============================================================================
+
+model CausalLink {
+  id        String @id @default(cuid())
+
+  // Link to the brief that produced this causal chain
+  briefId   String
+
+  // Chain position
+  linkIndex Int
+
+  // Content
+  claim      String @db.Text
+  evidence   String @db.Text
+  warrant    String @db.Text
+
+  // Classification
+  temporalStatus String // established, emerging, projected, contested
+  derivesFrom    Int?   // linkIndex of the parent link (null = root)
+  sourceRef      Int?   // [SRC-N] reference number
+  unsupported    Boolean @default(false)
+
+  // Relations
+  brief Brief @relation(fields: [briefId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([briefId])
+  @@index([linkIndex])
 }
 
 // ============================================================================
@@ -1472,6 +1562,8 @@ model ThinkTankPublication {
 // INSTITUTIONAL THINK TANK - CLAIMS
 // ============================================================================
 
+// F-B13: ThinkTankClaim = published claims extracted from ThinkTankPublication HTML.
+// See Claim model above for the pipeline-internal counterpart.
 model ThinkTankClaim {
   id            String   @id @default(cuid())
   publicationId String
