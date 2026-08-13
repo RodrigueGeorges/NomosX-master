@@ -2988,6 +2988,282 @@ article.nomosx-brief .brief-footer {
 /* ── 17. Manifesto crawl — cinematic Star Wars-style intro ───────────── */
 /* On-brand: black field, white mono, grid + aurora. Not yellow. */
 
+/* ── 17b. Premium brand intro — 5s wordmark reveal (2026 best practices) ── */
+
+.nx-intro-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.nx-intro-overlay.nx-intro-exit {
+  animation: nx-intro-exit 1s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes nx-intro-exit {
+  0%   { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.04); }
+}
+
+/* Atmospheric layers — fade in on mount */
+.nx-intro-grid {
+  opacity: 0;
+  animation: nx-intro-bg-in 1.2s ease forwards;
+}
+
+.nx-intro-aurora {
+  opacity: 0;
+  animation: nx-intro-bg-in 1.8s ease 0.3s forwards;
+}
+
+@keyframes nx-intro-bg-in {
+  to { opacity: 1; }
+}
+
+/* Skip button */
+.nx-intro-skip {
+  position: absolute;
+  top: 1.5rem;
+  right: 1.5rem;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.9rem;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(240, 240, 250, 0.4);
+  background: transparent;
+  border: 1px solid rgba(240, 240, 250, 0.1);
+  border-radius: 0;
+  cursor: pointer;
+  transition: color 0.3s ease, border-color 0.3s ease;
+  opacity: 0;
+  animation: nx-intro-bg-in 0.6s ease 1s forwards;
+}
+
+.nx-intro-skip:hover,
+.nx-intro-skip:focus-visible {
+  color: rgba(240, 240, 250, 0.8);
+  border-color: rgba(240, 240, 250, 0.3);
+  outline: none;
+}
+
+/* ── Phase 1: Punchline reveal ─────────────────────────────────────────── */
+
+.nx-intro-reveal {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 0 2rem;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+  z-index: 2;
+}
+
+.nx-intro-reveal.nx-intro-active {
+  opacity: 1;
+}
+
+.nx-intro-line {
+  font-family: var(--nx-font-heading);
+  font-weight: 600;
+  font-size: clamp(1.5rem, 1.25rem + 2vw, 3rem);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: var(--nx-text-primary);
+  margin: 0;
+  opacity: 0;
+  transform: translateY(12px);
+  animation: nx-intro-line-in 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.nx-intro-reveal.nx-intro-active .nx-intro-line:nth-child(1) { animation-delay: 0.2s; }
+.nx-intro-reveal.nx-intro-active .nx-intro-line:nth-child(2) { animation-delay: 0.5s; }
+.nx-intro-reveal.nx-intro-active .nx-intro-line:nth-child(4) { animation-delay: 1.1s; }
+
+@keyframes nx-intro-line-in {
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.nx-intro-line--accent {
+  position: relative;
+  display: inline-block;
+}
+
+.nx-intro-line--accent::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -0.1em;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(240, 240, 250, 0.4), transparent);
+  transform: scaleX(0);
+  animation: nx-intro-underline 1s ease 1.6s forwards;
+}
+
+@keyframes nx-intro-underline {
+  to { transform: scaleX(1); }
+}
+
+.nx-intro-divider {
+  width: 0;
+  height: 1px;
+  margin: 1.5rem auto;
+  background: rgba(240, 240, 250, 0.15);
+  animation: nx-intro-divider 0.6s ease 0.9s forwards;
+}
+
+@keyframes nx-intro-divider {
+  to { width: 3rem; }
+}
+
+/* ── Phase 2: Wordmark brand reveal ────────────────────────────────────── */
+
+.nx-intro-brand {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  opacity: 0;
+  transform: scale(0.96);
+  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 2;
+}
+
+.nx-intro-brand.nx-intro-active {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.nx-intro-brand.nx-intro-brand-out {
+  opacity: 0;
+  transform: scale(1.08);
+  transition: opacity 0.8s ease, transform 0.8s ease;
+}
+
+.nx-intro-wordmark {
+  font-family: var(--nx-font-heading);
+  font-weight: 600;
+  font-size: clamp(3rem, 2rem + 6vw, 7rem);
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: var(--nx-text-primary);
+  margin: 0;
+  text-shadow: 0 0 60px rgba(240, 240, 250, 0.15);
+}
+
+.nx-intro-x {
+  position: relative;
+  display: inline-block;
+}
+
+.nx-intro-x::after {
+  content: '';
+  position: absolute;
+  left: -0.05em;
+  right: -0.05em;
+  bottom: 0.05em;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, rgba(240, 240, 250, 0.6), transparent);
+}
+
+.nx-intro-tagline {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: clamp(0.7rem, 0.65rem + 0.3vw, 0.9rem);
+  letter-spacing: 0.38em;
+  text-transform: uppercase;
+  color: rgba(240, 240, 250, 0.5);
+  margin-top: 1.5rem;
+  opacity: 0;
+  animation: nx-intro-tagline 0.8s ease 0.3s forwards;
+}
+
+.nx-intro-brand.nx-intro-active .nx-intro-tagline {
+  animation-play-state: running;
+}
+
+@keyframes nx-intro-tagline {
+  to { opacity: 1; }
+}
+
+/* ── Progress bar — minimal line at bottom ──────────────────────────────── */
+
+.nx-intro-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: rgba(240, 240, 250, 0.05);
+  z-index: 3;
+}
+
+.nx-intro-progress-bar {
+  height: 100%;
+  width: 0;
+  background: linear-gradient(90deg, rgba(240, 240, 250, 0.3), rgba(240, 240, 250, 0.6));
+  animation: nx-intro-progress linear forwards;
+}
+
+@keyframes nx-intro-progress {
+  from { width: 0; }
+  to   { width: 100%; }
+}
+
+/* ── Mobile ─────────────────────────────────────────────────────────────── */
+
+@media (max-width: 640px) {
+  .nx-intro-line {
+    font-size: clamp(1.25rem, 1rem + 3vw, 2rem);
+  }
+  .nx-intro-wordmark {
+    font-size: clamp(2.5rem, 1.5rem + 8vw, 5rem);
+  }
+  .nx-intro-tagline {
+    font-size: 0.65rem;
+    letter-spacing: 0.28em;
+  }
+  .nx-intro-divider {
+    margin: 1rem auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nx-intro-line,
+  .nx-intro-divider,
+  .nx-intro-tagline,
+  .nx-intro-progress-bar,
+  .nx-intro-grid,
+  .nx-intro-aurora,
+  .nx-intro-skip {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+    width: auto !important;
+  }
+  .nx-intro-line--accent::after {
+    transform: scaleX(1) !important;
+    animation: none !important;
+  }
+}
+
 /* ── 17a. Manifesto section — permanent, high-impact typography ──────── */
 
 .nx-manifesto-line {
@@ -3092,264 +3368,4 @@ article.nomosx-brief .brief-footer {
   }
 }
 
-:root {
-  --nx-crawl-angle: 28deg;
-  --nx-crawl-perspective: 420px;
-}
-
-.nx-crawl-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 80;
-  background: #000000;
-  overflow: hidden;
-  transition: opacity 900ms ease;
-}
-
-.nx-crawl-overlay::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(ellipse at center, transparent 35%, rgba(0, 0, 0, 0.55) 100%);
-  pointer-events: none;
-  z-index: 1;
-}
-
-.nx-crawl-overlay.nx-crawl-fading {
-  opacity: 0;
-  pointer-events: none;
-}
-
-.nx-crawl-stage {
-  position: absolute;
-  inset: 0;
-  perspective: var(--nx-crawl-perspective);
-  perspective-origin: 50% 100%;
-  overflow: hidden;
-  /* Fade text as it recedes into the distance at the top */
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 24%, black 100%);
-  mask-image: linear-gradient(to bottom, transparent 0%, black 24%, black 100%);
-}
-
-.nx-crawl-scroll {
-  position: absolute;
-  left: 50%;
-  bottom: 0;
-  width: min(82vw, 50rem);
-  transform: translateX(-50%) rotateX(var(--nx-crawl-angle));
-  transform-origin: 50% 100%;
-  will-change: transform, opacity;
-}
-
-.nx-crawl-scroll.nx-crawl-anim {
-  animation: nx-crawl-scroll 18s linear forwards;
-}
-
-@keyframes nx-crawl-scroll {
-  0%   { transform: translateX(-50%) translateY(100vh) rotateX(var(--nx-crawl-angle)); opacity: 0; }
-  7%   { opacity: 1; }
-  85%  { opacity: 1; }
-  100% { transform: translateX(-50%) translateY(-220%) rotateX(var(--nx-crawl-angle)); opacity: 0; }
-}
-
-.nx-crawl-line {
-  font-family: var(--nx-font-heading);
-  font-weight: 500;
-  font-size: clamp(1.25rem, 1rem + 1.6vw, 2.6rem);
-  line-height: 1.32;
-  letter-spacing: 0.005em;
-  color: var(--nx-text-primary);
-  margin: 0 0 1.4em;
-  text-align: center;
-  hyphens: none;
-}
-
-.nx-crawl-line--dim {
-  color: rgba(240, 240, 250, 0.72);
-  font-weight: 400;
-  font-size: clamp(1rem, 0.9rem + 1vw, 1.9rem);
-}
-
-.nx-crawl-signoff {
-  font-family: var(--font-mono), ui-monospace, monospace;
-  font-size: clamp(0.8rem, 0.75rem + 0.3vw, 1rem);
-  letter-spacing: 0.32em;
-  text-transform: uppercase;
-  color: rgba(240, 240, 250, 0.55);
-  margin-top: 2.6em;
-  text-align: center;
-}
-
-.nx-crawl-signoff-x {
-  color: var(--nx-text-primary);
-  font-weight: 600;
-}
-
-/* Teaser line — opening beat */
-.nx-crawl-teaser {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 1.5rem;
-  font-family: var(--font-mono), ui-monospace, monospace;
-  font-size: clamp(0.9rem, 0.85rem + 0.4vw, 1.25rem);
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: rgba(240, 240, 250, 0.78);
-  text-align: center;
-  opacity: 0;
-  line-height: 1.6;
-  max-width: 36rem;
-  margin: 0 auto;
-}
-
-.nx-crawl-teaser.nx-crawl-teaser-in {
-  animation: nx-crawl-teaser 2.8s ease forwards;
-}
-
-@keyframes nx-crawl-teaser {
-  0%   { opacity: 0; transform: translateY(8px); }
-  22%  { opacity: 1; transform: translateY(0); }
-  78%  { opacity: 1; transform: translateY(0); }
-  100% { opacity: 0; transform: translateY(-4px); }
-}
-
-/* Title card — wordmark recedes like the Star Wars logo */
-.nx-crawl-title {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 1.25rem;
-  opacity: 0;
-}
-
-.nx-crawl-title.nx-crawl-title-in {
-  animation: nx-crawl-title 4s ease forwards;
-}
-
-@keyframes nx-crawl-title {
-  0%   { opacity: 0; transform: scale(1.18); }
-  20%  { opacity: 1; transform: scale(1); }
-  70%  { opacity: 1; transform: scale(1); }
-  100% { opacity: 0; transform: scale(0.62); }
-}
-
-.nx-crawl-title-word {
-  font-family: var(--nx-font-heading);
-  font-weight: 600;
-  font-size: clamp(2.5rem, 1.5rem + 7vw, 9rem);
-  letter-spacing: -0.03em;
-  line-height: 1;
-  color: var(--nx-text-primary);
-}
-
-.nx-crawl-title-sub {
-  font-family: var(--font-mono), ui-monospace, monospace;
-  font-size: clamp(0.7rem, 0.65rem + 0.3vw, 0.95rem);
-  letter-spacing: 0.38em;
-  text-transform: uppercase;
-  color: rgba(240, 240, 250, 0.5);
-}
-
-/* Skip control */
-.nx-crawl-skip {
-  position: absolute;
-  top: 1.5rem;
-  right: 1.5rem;
-  z-index: 2;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 0.9rem;
-  font-family: var(--font-mono), ui-monospace, monospace;
-  font-size: 10px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: rgba(240, 240, 250, 0.45);
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(240, 240, 250, 0.12);
-  border-radius: 2px;
-  cursor: pointer;
-  transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease;
-}
-
-.nx-crawl-skip:hover {
-  color: var(--nx-text-primary);
-  border-color: rgba(240, 240, 250, 0.35);
-  background: rgba(255, 255, 255, 0.04);
-}
-
-/* Progress rail — bottom edge */
-.nx-crawl-rail {
-  position: absolute;
-  left: 0;
-  bottom: 0;
-  height: 1px;
-  width: 100%;
-  background: rgba(240, 240, 250, 0.06);
-  z-index: 2;
-}
-
-.nx-crawl-rail-fill {
-  height: 100%;
-  width: 0;
-  background: rgba(240, 240, 250, 0.5);
-}
-
-.nx-crawl-rail-fill.nx-crawl-rail-anim {
-  animation: nx-crawl-rail 18s linear forwards;
-  animation-delay: 6.8s;
-}
-
-@keyframes nx-crawl-rail {
-  to { width: 100%; }
-}
-
-/* Mobile — gentler perspective + bumped font minimums for readability */
-@media (max-width: 640px) {
-  :root {
-    --nx-crawl-angle: 22deg;
-    --nx-crawl-perspective: 340px;
-  }
-  .nx-crawl-line {
-    font-size: clamp(1.15rem, 1rem + 1.2vw, 2rem);
-    margin-bottom: 1.2em;
-  }
-  .nx-crawl-line--dim {
-    font-size: clamp(0.95rem, 0.9rem + 0.8vw, 1.5rem);
-  }
-  .nx-crawl-teaser {
-    font-size: clamp(0.85rem, 0.8rem + 0.5vw, 1.15rem);
-    letter-spacing: 0.1em;
-    line-height: 1.7;
-    padding: 0 1.25rem;
-  }
-  .nx-crawl-signoff {
-    font-size: 0.75rem;
-    letter-spacing: 0.24em;
-  }
-  .nx-crawl-scroll {
-    width: 88vw;
-  }
-  .nx-crawl-title-word {
-    font-size: clamp(2.25rem, 1.5rem + 5vw, 5rem);
-  }
-  .nx-crawl-title-sub {
-    font-size: 0.7rem;
-    letter-spacing: 0.28em;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .nx-crawl-scroll.nx-crawl-anim,
-  .nx-crawl-teaser.nx-crawl-teaser-in,
-  .nx-crawl-title.nx-crawl-title-in,
-  .nx-crawl-rail-fill.nx-crawl-rail-anim {
-    animation: none;
-  }
-}
+/* (legacy crawl CSS removed — replaced by 17b premium brand intro above) */
