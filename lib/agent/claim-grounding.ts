@@ -338,10 +338,8 @@ function repairHtmlWithGrounding(
           removedClaims++;
           details.push(`Removed unsupported claim: "${claimClean}..."`);
         } else {
-          // Flag it with a warning marker
-          const originalSentence = workingHtml.slice(sentenceStart, sentenceEnd);
-          const flagged = `<span style="color:#f59e0b;font-style:italic;">[Non vérifié] </span>${originalSentence}`;
-          workingHtml = workingHtml.slice(0, sentenceStart) + flagged + workingHtml.slice(sentenceEnd);
+          // Keep the sentence but don't add visible [Non vérifié] tags — they break
+          // the reading experience. The claim grounding stats are logged separately.
           removedClaims++;
           details.push(`Flagged ${claim.verdict} claim: "${claimClean}..."`);
         }

@@ -85,6 +85,7 @@ export interface StrategicAnalysisOutput {
   scenarios?: Array<{
     name: string;
     probability: "high" | "medium" | "low";
+    probabilityValue?: number; // 0-1 numeric probability (calibrated)
     description: string;
     implications: string;
     signals: string;
@@ -328,6 +329,7 @@ OUTPUT FORMAT - Return this EXACT JSON structure:
     {
       "name": "Scenario name",
       "probability": "high|medium|low",
+      "probabilityValue": 0.65,
       "description": "200+ word description of this scenario",
       "implications": "Key implications if this scenario materializes",
       "signals": "Early warning signals to monitor"

@@ -132,6 +132,16 @@ const STYLES = `
   @media (max-width: 700px) { .report-wrapper .recommendations-grid { grid-template-columns: 1fr; } }
   .report-wrapper .rec-card { padding: 1.25rem; }
   .report-wrapper .rec-immediate { background: rgba(240,240,250,0.03); border-left: 2px solid rgba(240,240,250,0.62); }
+
+  /* Contradictions — transparent disagreement surfacing */
+  .report-wrapper .contradictions-list { margin: 1rem 0; }
+  .report-wrapper .contradiction-card { background: rgba(240,240,250,0.01); border: 1px solid rgba(240,240,250,0.06); padding: 1rem 1.25rem; margin: 0.75rem 0; }
+  .report-wrapper .contradiction-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; }
+  .report-wrapper .contradiction-confidence { font-family: 'JetBrains Mono', monospace; font-size: 0.6875rem; color: rgba(240,240,250,0.35); text-transform: uppercase; letter-spacing: 0.1em; }
+  .report-wrapper .contradiction-claims { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 0.75rem; }
+  @media (max-width: 700px) { .report-wrapper .contradiction-claims { grid-template-columns: 1fr; } }
+  .report-wrapper .contradiction-claim { font-size: 0.875rem; color: rgba(240,240,250,0.65); line-height: 1.5; padding: 0.5rem; background: rgba(240,240,250,0.015); }
+  .report-wrapper .contradiction-explanation { font-size: 0.8125rem; color: rgba(240,240,250,0.50); line-height: 1.5; margin: 0; }
   .report-wrapper .rec-short     { background: rgba(240,240,250,0.02); border-left: 2px solid rgba(240,240,250,0.35); }
   .report-wrapper .rec-long      { background: rgba(240,240,250,0.015); border-left: 2px solid rgba(240,240,250,0.18); }
   .report-wrapper .rec-risk      { background: rgba(240,240,250,0.01); border-left: 2px solid rgba(240,240,250,0.10); }
@@ -178,7 +188,14 @@ const STYLES = `
 
 export function renderStrategicReportHTML(
   analysis: StrategicAnalysisOutput,
-  sources: any[]
+  sources: any[],
+  contradictions?: Array<{
+    claim1: string;
+    claim2: string;
+    contradictionType: string;
+    confidence: number;
+    explanation: string;
+  }>
 ): string {
   assertPermission(AgentRole.EDITOR, "write:draft");
 
@@ -335,7 +352,7 @@ export function renderStrategicReportHTML(
       <div class="scenario-card">
         <div class="scenario-header">
           <span class="scenario-name">${esc(s.name)}</span>
-          <span class="badge probability-${s.probability}">${s.probability.toUpperCase()} PROBABILITY</span>
+          <span class="badge probability-${s.probability}">${s.probability.toUpperCase()} PROBABILITY${s.probabilityValue !== undefined ? ` · ${Math.round(s.probabilityValue * 100)}%` : ""}</span>
         </div>
         <p>${formatCitations(s.description)}</p>
         <p><strong>Implications:</strong> ${formatCitations(s.implications)}</p>
@@ -344,6 +361,31 @@ export function renderStrategicReportHTML(
     `
       )
       .join("");
+  };
+
+  const renderContradictions = () => {
+    if (!contradictions?.length) return "";
+    return `
+      <div class="contradictions-list">
+        ${contradictions
+          .map(
+            (c) => `
+        <div class="contradiction-card">
+          <div class="contradiction-header">
+            <span class="badge badge-${c.contradictionType === "direct" ? "critical" : "medium"}">${esc(c.contradictionType.toUpperCase())}</span>
+            <span class="contradiction-confidence">${Math.round(c.confidence)}% confidence</span>
+          </div>
+          <div class="contradiction-claims">
+            <div class="contradiction-claim"><strong>Position A:</strong> ${esc(c.claim1)}</div>
+            <div class="contradiction-claim"><strong>Position B:</strong> ${esc(c.claim2)}</div>
+          </div>
+          <p class="contradiction-explanation">${esc(c.explanation)}</p>
+        </div>
+        `
+          )
+          .join("")}
+      </div>
+    `;
   };
 
   const renderRecommendations = () => {
@@ -393,7 +435,7 @@ export function renderStrategicReportHTML(
       .map((s, i) => {
         const authors =
           s.authors
-            ?.map((sa: any) => sa.author?.name)
+            ?.map((sa: any) => sa.author?.name || sa.name || (typeof sa === 'string' ? sa : null))
             .filter(Boolean)
             .slice(0, 3)
             .join(", ") || "Unknown";
@@ -435,6 +477,23 @@ export function renderStrategicReportHTML(
     <div class="report-meta" style="font-size:12px;color:rgba(240,240,250,0.4);margin-bottom:2rem;padding-bottom:1rem;border-bottom:1px solid rgba(240,240,250,0.08);">
       ${now} · ${sources.length} sources · ${analysis.confidenceLevel} confidence
     </div>
+
+    <!-- Table of Contents -->
+    <nav class="toc" aria-label="Table of contents">
+      <p class="toc-title">Contents</p>
+      <ul class="toc-list">
+        <li><a href="#executive"><span class="toc-num">1</span>Executive Summary</a></li>
+        <li><a href="#literature"><span class="toc-num">2</span>Literature Review</a></li>
+        <li><a href="#themes"><span class="toc-num">3</span>Thematic Analysis</a></li>
+        <li><a href="#debate"><span class="toc-num">4</span>Debate & Perspectives</a></li>
+        <li><a href="#evidence"><span class="toc-num">5</span>Evidence Quality</a></li>
+        <li><a href="#stakeholders"><span class="toc-num">6</span>Stakeholder Impact</a></li>
+        <li><a href="#scenarios"><span class="toc-num">7</span>Scenario Planning</a></li>
+        <li><a href="#recommendations"><span class="toc-num">8</span>Recommendations</a></li>
+        <li><a href="#implementation"><span class="toc-num">9</span>Implementation Roadmap</a></li>
+        <li><a href="#conclusion"><span class="toc-num">10</span>Conclusion</a></li>
+      </ul>
+    </nav>
 
     <!-- Section 1: Executive Summary -->
     <section id="executive" class="executive-summary">
@@ -492,6 +551,11 @@ export function renderStrategicReportHTML(
     <section id="debate" class="section">
       <h2 class="section-title"><span class="section-num">4</span> Debate & Perspectives</h2>
       ${renderDebate()}
+      ${contradictions?.length ? `
+      <h3 class="subsection-title">Source Contradictions Detected</h3>
+      <p style="font-size:0.875rem;color:rgba(240,240,250,0.5);margin-bottom:1rem;">The following contradictions were identified between sources. We surface them transparently rather than hiding the disagreement.</p>
+      ${renderContradictions()}
+      ` : ""}
     </section>
 
     <!-- Section 5: Evidence Assessment -->

@@ -32,6 +32,38 @@ interface ExtractedPrediction {
 }
 
 /**
+ * Derive a subjective probability (0-1) from the analysis conviction level
+ * and the pruning-gate confidence tier. This is a deterministic mapping —
+ * not LLM-generated — so predictions remain auditable.
+ *
+ * Calibration anchors (Brier-score friendly):
+ *  - ESTABLISHED + firm    → 0.85 (strong evidence, high conviction)
+ *  - ESTABLISHED + tempered→ 0.75
+ *  - SUPPORTED  + firm    → 0.70
+ *  - SUPPORTED  + tempered→ 0.60
+ *  - EMERGING   + firm    → 0.60
+ *  - EMERGING   + tempered→ 0.55
+ *  - SPECULATIVE + any    → 0.45
+ *  - causal_only reduces by 0.10 (mechanism plausible, outcome uncertain)
+ */
+function deriveProbability(
+  conviction: "firm" | "tempered" | "causal_only" | undefined,
+  tier: ConfidenceTier,
+): number {
+  let base: number;
+  switch (tier) {
+    case "ESTABLISHED": base = conviction === "firm" ? 0.85 : 0.75; break;
+    case "SUPPORTED":   base = conviction === "firm" ? 0.70 : 0.60; break;
+    case "EMERGING":    base = conviction === "firm" ? 0.60 : 0.55; break;
+    case "SPECULATIVE":
+    default:            base = 0.45; break;
+  }
+  if (conviction === "causal_only") base = Math.max(0.3, base - 0.10);
+  // Clamp to [0.05, 0.95] — never claim certainty of 0 or 1.
+  return Math.min(0.95, Math.max(0.05, Math.round(base * 100) / 100));
+}
+
+/**
  * Extract testable predictions from the analysis output.
  * Deterministic — no LLM. Pure structural extraction.
  */
@@ -41,6 +73,7 @@ export function extractPredictions(
 ): ExtractedPrediction[] {
   const predictions: ExtractedPrediction[] = [];
   const tiers = pruningResult?.confidenceTiers ?? new Map<number, ConfidenceTier>();
+  const conviction = (analysis as any).convictionLevel as "firm" | "tempered" | "causal_only" | undefined;
 
   // 1. Extract from future_extrapolation links in causal chain
   const chain = analysis.causalChain || [];
@@ -53,7 +86,7 @@ export function extractPredictions(
     predictions.push({
       claim: link.claim,
       horizon: analysis.trajectory?.horizon || '1-2 years',
-      probability: null,
+      probability: deriveProbability(conviction, tier),
       confidence: tier,
       resolutionCriteria: buildResolutionCriteria(link, analysis),
       whatWouldFalsify: analysis.whatToWatch?.whatWouldChangeMind || 'Not specified',
@@ -71,7 +104,7 @@ export function extractPredictions(
       predictions.push({
         claim: trajectoryClaim,
         horizon: analysis.trajectory.horizon,
-        probability: null,
+        probability: deriveProbability(conviction, 'EMERGING'),
         confidence: 'EMERGING',
         resolutionCriteria: `By ${analysis.trajectory.horizon}: ${trajectoryClaim.slice(0, 200)}`,
         whatWouldFalsify: analysis.whatToWatch?.whatWouldChangeMind || 'Not specified',
@@ -89,7 +122,7 @@ export function extractPredictions(
     predictions.push({
       claim: signal,
       horizon: analysis.trajectory?.horizon || '1-2 years',
-      probability: null,
+      probability: deriveProbability(conviction, 'SUPPORTED'),
       confidence: 'SUPPORTED',
       resolutionCriteria: `Observable signal: ${signal.slice(0, 200)}`,
       whatWouldFalsify: `Signal does not materialize by ${analysis.trajectory?.horizon || 'horizon'}`,
@@ -141,10 +174,22 @@ export async function registerPredictions(
 
     for (const pred of predictions) {
       try {
+        const claimKey = pred.claim.slice(0, 5000);
+        // Deduplicate: skip if an OPEN prediction with the same claim already
+        // exists for this brief (e.g. pipeline re-run). Resolved predictions
+        // are preserved — we never overwrite a track-record entry.
+        const existing = await prisma.prediction.findFirst({
+          where: { briefId, claim: claimKey, status: 'OPEN' },
+          select: { id: true },
+        });
+        if (existing) {
+          // Already registered — skip silently.
+          continue;
+        }
         await prisma.prediction.create({
           data: {
             briefId,
-            claim: pred.claim.slice(0, 5000),
+            claim: claimKey,
             horizon: pred.horizon,
             probability: pred.probability,
             confidence: pred.confidence,

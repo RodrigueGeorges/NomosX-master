@@ -834,6 +834,9 @@ model Prediction {
   @@index([horizon])
   @@index([confidence])
   @@index([createdAt])
+  // One prediction per (brief, claim) — prevents duplicates on pipeline re-runs.
+  // The code-level findFirst check is the graceful path; this is the safety net.
+  @@unique([briefId, claim])
 }
 
 // ============================================================================
@@ -1528,8 +1531,14 @@ model ThinkTankPublication {
   sourceIds   String[]
   
   // Status
-  status      String   @default("PUBLISHED") // PUBLISHED, HELD, SILENT
-  
+  status      String   @default("PUBLISHED") // PUBLISHED, HELD, SILENT, CORRECTED, RETRACTED
+
+  // Correction / Retraction system
+  correctionNotice  String? @db.Text   // Public notice shown on corrected reports
+  correctedAt       DateTime?
+  retractedAt       DateTime?
+  retractionReason  String? @db.Text
+
   // Publishing
   publicId    String?  @unique
   publishedAt DateTime?
@@ -1966,6 +1975,7 @@ model StudioXOrder {
   mode       String @default("COMMISSION")
   audience   String?
   urgency    String?
+  quantDepth String? // QUANT BRIDGE depth: none | parametric | io | full
 
   // Payment
   amountCents         Int

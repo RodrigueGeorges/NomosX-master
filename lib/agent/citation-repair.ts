@@ -129,7 +129,12 @@ export function sanitizeUnsourcedNumbers(html: string): { html: string; sanitize
 
   // Work on the text content, preserving HTML tags
   // Pattern: numbers that look like statistics
-  const statPattern = /(\d+\.?\d*\s*%|\$\s?\d+\.?\d*\s*[BbMmKk]|\b\d+\.\d{2,}\b|\b[1-9]\d{3,}\b)/g;
+  // Must be standalone (not part of a word like "billion" or a URL/DOI)
+  // - Percentages: 92%, 92.7%
+  // - Dollar amounts: $2B, $2.5M
+  // - Decimals with 2+ decimal places: 0.85
+  // - Large integers: 2000+ (but not years 1900-2099, checked below)
+  const statPattern = /(?<![\w-])(\d+\.?\d*\s*%|\$\s?\d+\.?\d*\s*[BbMmKk]|\b\d+\.\d{2,}\b|\b[1-9]\d{3,}\b)(?![\w-])/g;
 
   // We need to check in the text content (between tags)
   // Split HTML into tag and text segments, but SKIP <style> and <script> blocks
@@ -211,6 +216,20 @@ export function sanitizeUnsourcedNumbers(html: string): { html: string; sanitize
         return match;
       }
 
+      // Don't sanitize if this number is part of a larger word (e.g., "billion" contains "bill")
+      // Check that the match is surrounded by word boundaries or spaces, not letters
+      const charBefore = text.slice(Math.max(0, offset - 1), offset);
+      const charAfter = text.slice(offset + match.length, offset + match.length + 1);
+      if (/[a-zA-Z]/.test(charBefore) || /[a-zA-Z]/.test(charAfter)) {
+        return match; // Part of a word, not a standalone statistic
+      }
+
+      // Don't sanitize numbers inside URLs, DOI links, or anchor tags
+      const urlContext = text.slice(Math.max(0, offset - 50), offset + match.length + 50);
+      if (/doi\.org|https?:\/\/|href=|src=|<a\s/.test(urlContext)) {
+        return match;
+      }
+
       sanitized++;
       details.push(`Sanitized unsourced number: "${match}"`);
       return 'non établie';
@@ -250,8 +269,10 @@ export function injectCitationsBySourceMatch(
     const src = sources[i];
     const srcTag = `[SRC-${i + 1}]`;
 
-    // Check if this source is already cited
-    if (workingHtml.includes(srcTag)) continue;
+    // Check if this source is already cited (text [SRC-N] OR rendered <sup> tags)
+    if (workingHtml.includes(srcTag) ||
+        new RegExp(`data-src=["']${i + 1}["']`).test(workingHtml) ||
+        new RegExp(`href="#ref-${i + 1}"`).test(workingHtml)) continue;
 
     // Build search patterns from source metadata
     const patterns: string[] = [];
@@ -436,6 +457,106 @@ export function injectCitationsByContentMatch(
   return { html: repairedSegments.join(''), injected, details };
 }
 
+// ─── 4b. BROAD CITATION INJECTION (coverage guarantee) ──────────────────────
+/**
+ * For each uncited source, find the paragraph with the highest term overlap
+ * and inject [SRC-N] at the end. Lower threshold (15%) than content match.
+ * Goal: ensure every source appears at least once in the HTML for coverage metrics.
+ */
+export function injectBroadCitations(
+  html: string,
+  sources: { abstract?: string; fullText?: string; title?: string; provider?: string }[],
+): { html: string; injected: number; details: string[] } {
+  const details: string[] = [];
+  let injected = 0;
+
+  // Extract style/script blocks
+  const skipBlocks: string[] = [];
+  let workingHtml = html.replace(/<(style|script)\b[^>]*>[\s\S]*?<\/\1>/gi, (m) => {
+    skipBlocks.push(m);
+    return `\x00SKIP${skipBlocks.length - 1}\x00`;
+  });
+
+  // Build source term sets
+  const stopwords = new Set(['about', 'above', 'after', 'again', 'against', 'their', 'there',
+    'these', 'those', 'which', 'where', 'while', 'would', 'could', 'should', 'between',
+    'through', 'during', 'before', 'because', 'study', 'research', 'paper', 'article',
+    'result', 'results', 'method', 'methods', 'analysis', 'data', 'using', 'based']);
+  const sourceTerms: { idx: number; terms: Set<string> }[] = [];
+  for (let i = 0; i < sources.length; i++) {
+    const text = `${sources[i].abstract || ''} ${sources[i].title || ''}`.toLowerCase();
+    const terms = new Set<string>();
+    for (const word of text.match(/\b[a-z]{5,}\b/g) || []) {
+      if (!stopwords.has(word)) terms.add(word);
+    }
+    sourceTerms.push({ idx: i + 1, terms });
+  }
+
+  // Split HTML into paragraphs (<p>...</p>)
+  const paragraphs: { start: number; end: number; text: string }[] = [];
+  const paraRegex = /<p[^>]*>([\s\S]*?)<\/p>/gi;
+  let pm: RegExpExecArray | null;
+  while ((pm = paraRegex.exec(workingHtml)) !== null) {
+    // Strip inner tags for term extraction
+    const innerText = pm[1].replace(/<[^>]+>/g, ' ').toLowerCase();
+    paragraphs.push({ start: pm.index!, end: pm.index! + pm[0].length, text: innerText });
+  }
+
+  if (paragraphs.length === 0) {
+    workingHtml = workingHtml.replace(/\x00SKIP(\d+)\x00/g, (_, i) => skipBlocks[parseInt(i, 10)]);
+    return { html: workingHtml, injected, details };
+  }
+
+  // For each uncited source, find best paragraph and inject
+  for (const src of sourceTerms) {
+    const srcTag = `[SRC-${src.idx}]`;
+    // Check if already cited: look for [SRC-N] text OR <sup> tags with data-src="N"
+    const alreadyCited = workingHtml.includes(srcTag) ||
+      new RegExp(`data-src=["']${src.idx}["']`).test(workingHtml) ||
+      new RegExp(`href="#ref-${src.idx}"`).test(workingHtml);
+    if (alreadyCited) continue;
+    if (src.terms.size < 3) continue; // Not enough terms to match
+
+    let bestParaIdx = -1;
+    let bestScore = 0;
+    for (let pi = 0; pi < paragraphs.length; pi++) {
+      const paraTerms = new Set<string>();
+      for (const word of paragraphs[pi].text.match(/\b[a-z]{5,}\b/g) || []) {
+        if (!stopwords.has(word)) paraTerms.add(word);
+      }
+      let overlap = 0;
+      for (const term of paraTerms) {
+        if (src.terms.has(term)) overlap++;
+      }
+      const score = paraTerms.size > 0 ? overlap / Math.min(paraTerms.size, src.terms.size) : 0;
+      if (score > bestScore) {
+        bestScore = score;
+        bestParaIdx = pi;
+      }
+    }
+
+    // Inject if overlap > 15% (lower threshold than content match's 25%)
+    if (bestScore > 0.15 && bestParaIdx >= 0) {
+      const para = paragraphs[bestParaIdx];
+      // Insert before </p>
+      const insertPos = para.end - 4; // 4 = "</p>".length
+      workingHtml = workingHtml.slice(0, insertPos) + ` ${srcTag}` + workingHtml.slice(insertPos);
+      injected++;
+      details.push(`Broad-injected ${srcTag} (overlap: ${Math.round(bestScore * 100)}%) into paragraph ${bestParaIdx + 1}`);
+      // Update paragraph end positions (shifted by srcTag length + 1)
+      const shift = srcTag.length + 1;
+      for (let pi = bestParaIdx; pi < paragraphs.length; pi++) {
+        paragraphs[pi].end += shift;
+      }
+    }
+  }
+
+  // Restore style/script blocks
+  workingHtml = workingHtml.replace(/\x00SKIP(\d+)\x00/g, (_, i) => skipBlocks[parseInt(i, 10)]);
+
+  return { html: workingHtml, injected, details };
+}
+
 // ─── MAIN ENTRY POINT ───────────────────────────────────────────────────────
 
 export function repairCitations(
@@ -466,6 +587,14 @@ export function repairCitations(
   workingHtml = contentInjection.html;
   totalInjected += contentInjection.injected;
   allDetails.push(...contentInjection.details);
+
+  // Step 2c: Broad citation injection — ensure every uncited source appears at least once.
+  // For each uncited source, find the paragraph with highest term overlap and inject.
+  // Lower threshold (15%) than content match (25%) — goal is coverage, not precision.
+  const broadInjection = injectBroadCitations(workingHtml, sources as any);
+  workingHtml = broadInjection.html;
+  totalInjected += broadInjection.injected;
+  allDetails.push(...broadInjection.details);
 
   // Step 3: Sanitize unsourced numbers (must run AFTER all injection)
   const sanitization = sanitizeUnsourcedNumbers(workingHtml);

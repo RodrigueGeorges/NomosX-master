@@ -1,0 +1,74 @@
+# NomosX quant-service
+
+Deterministic quantitative model API — the Python side of the **QUANT BRIDGE**.
+
+Computes Leontief input-output analysis on **Eurostat FIGARO** inter-country
+industry-by-industry tables (free, official EU statistics, commercially safe).
+
+## Why a separate service?
+
+The NomosX app runs on Netlify (Node/Next.js) which cannot host
+pandas/numpy workloads. This service runs on any container host
+(Railway, Fly.io, Render...) and is reached via `QUANT_SERVICE_URL`.
+
+## Endpoints
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET | `/health` | Liveness + loaded matrix info |
+| POST | `/v1/io/shock` | Final-demand shock propagation (output, VA, spillovers) |
+| GET | `/v1/io/multipliers?region=FR&industry=C26` | Leontief multipliers for a sector |
+
+### Example
+
+```bash
+curl -X POST http://localhost:8100/v1/io/shock \
+  -H "Content-Type: application/json" \
+  -d '{"region": "FR", "industry": "C26", "demandShockMeur": 1000}'
+```
+
+Response: total output impact (direct + indirect), value-added impact,
+type-I output multiplier, top spillover sectors — all in M EUR, with
+data source and methodology statement attached.
+
+## Run locally
+
+```bash
+pip install -r requirements.txt
+FIGARO_DEMO=1 uvicorn main:app --port 8100   # demo matrix, offline
+uvicorn main:app --port 8100                 # real FIGARO (downloads ~100MB once)
+```
+
+## Environment variables
+
+| Var | Default | Purpose |
+|---|---|---|
+| `FIGARO_YEAR` | `2021` | Reference year of the IO table |
+| `FIGARO_EDITION` | `24ed` | FIGARO release edition |
+| `FIGARO_CACHE_DIR` | `./.cache` | Where the parquet cache lives |
+| `FIGARO_DEMO` | `0` | `1` = bundled demo matrix (dev/CI) |
+
+## Next.js integration
+
+Set in the Netlify environment:
+
+```
+QUANT_SERVICE_URL=https://your-quant-service.example.com
+```
+
+The pipeline (`lib/quant/quant-bridge.ts`) automatically derives
+sector×region shocks from strategic queries and injects results as
+`[MODEL-N]` evidence into the STRATEGIC ANALYST prompt.
+
+## Methodology & limits (stated in every response)
+
+- Leontief type-I: fixed technical coefficients, no price effects,
+  no supply constraints, no induced (household) effects.
+- Results are linear in the shock — read as impact per €1bn.
+- Static structural analysis, not a dynamic forecast.
+
+## Roadmap
+
+- FIGARO-E3 extensions (employment FTE, kt CO2e per sector)
+- FIGARO-REG (NUTS2 regional impact analysis)
+- TwinRD D4.2 model integration when released (July 2026, open source)

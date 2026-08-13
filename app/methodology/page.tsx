@@ -8,6 +8,7 @@ import { EtherealCard, PageHeader, PageSection } from "@/components/layout/PageH
 import { PUBLIC_ROUTES } from "@/lib/public-urls";
 import { PipelineStrip } from "@/components/signature";
 import { BRAND_NAME, BRAND_TAGLINE, METHOD_BLOCKS, METHODOLOGY_INTRO } from "@/lib/brand/public-copy";
+import { ScrollReveal } from "@/components/ui/ScrollReveal";
 import {
   BarChart3,
   GitCompare,
@@ -39,7 +40,7 @@ export default function MethodologyPage() {
   return (
     <>
       <PublicPageShell onSignInClick={() => setShowAuthModal(true)} particles={0}>
-        <PageSection className="pt-16 sm:pt-20 pb-4">
+        <PageSection className="pt-16 sm:pt-20 pb-4" sectionIndex="01 / 04">
           <PageHeader
             eyebrow="Method"
             title={
@@ -55,9 +56,9 @@ export default function MethodologyPage() {
 
         <PipelineStrip />
 
-        <PageSection>
+        <PageSection sectionIndex="02 / 04">
           <PageHeader eyebrow="Process" title="From question to position" />
-          <div className="grid sm:grid-cols-2 gap-4">
+          <ScrollReveal stagger className="grid sm:grid-cols-2 gap-4">
             {METHOD_BLOCKS.map(({ name, desc }) => {
               const Icon = METHOD_ICONS[name];
               return (
@@ -68,17 +69,17 @@ export default function MethodologyPage() {
                 </EtherealCard>
               );
             })}
-          </div>
+          </ScrollReveal>
         </PageSection>
 
-        <PageSection className="nx-public-section">
+        <PageSection className="nx-public-section" sectionIndex="03 / 04">
           <PageHeader
             eyebrow="Standards"
             title="What separates us from a summary"
           />
-          <div className="grid sm:grid-cols-2 gap-4">
+          <ScrollReveal stagger className="grid sm:grid-cols-2 gap-4">
             {STANDARDS.map(({ icon: Icon, title, text }) => (
-              <div key={title} className="flex gap-4 nx-public-surface p-5">
+              <div key={title} className="flex gap-4 nx-surface nx-pillar p-5">
                 <Icon className="w-5 h-5 text-white shrink-0 mt-0.5" strokeWidth={1.25} />
                 <div>
                   <h3 className="text-sm font-medium text-white mb-1">{title}</h3>
@@ -86,14 +87,16 @@ export default function MethodologyPage() {
                 </div>
               </div>
             ))}
-          </div>
+          </ScrollReveal>
         </PageSection>
 
-        <PageSection className="border-t border-white/[0.08] text-center pb-16">
-          <p className="text-sm text-white/60 mb-6 max-w-lg mx-auto">{BRAND_TAGLINE}</p>
-          <button type="button" onClick={() => router.push(PUBLIC_ROUTES.archives)} className="nx-public-btn-primary">
-            Explore inquiries
-          </button>
+        <PageSection className="border-t border-white/[0.08] text-center pb-16" sectionIndex="04 / 04">
+          <ScrollReveal>
+            <p className="text-sm text-white/60 mb-6 max-w-lg mx-auto">{BRAND_TAGLINE}</p>
+            <button type="button" onClick={() => router.push(PUBLIC_ROUTES.archives)} className="nx-public-btn-primary">
+              Explore inquiries
+            </button>
+          </ScrollReveal>
         </PageSection>
       </PublicPageShell>
 

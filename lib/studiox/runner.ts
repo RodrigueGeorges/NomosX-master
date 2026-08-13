@@ -119,6 +119,7 @@ export async function processStudioXOrder(orderId: string): Promise<void> {
     const run = await runPipeline(order.question, reportFormat, {
       targetAudience: order.audience ?? undefined,
       urgencyContext: order.urgency ?? undefined,
+      quantDepth: (order as { quantDepth?: string | null }).quantDepth as import('@/lib/quant/quant-bridge').QuantDepth | undefined ?? undefined,
     });
 
     const brief = await prisma.brief.findUnique({

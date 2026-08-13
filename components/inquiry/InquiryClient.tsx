@@ -6,6 +6,7 @@ import { ArrowLeft, Share2, Download, FileText, Tag } from "lucide-react";
 import { sanitizeHtml } from "@/lib/sanitize";
 import AuthModal from "@/components/AuthModal";
 import { PublicPageShell } from "@/components/layout/PublicPageShell";
+import { ReaderFeedback } from "@/components/inquiry/ReaderFeedback";
 import { PageSection } from "@/components/layout/PageHeader";
 import { ForesightPanel, ForesightPanelSkeleton, ForesightEmptyState } from "@/components/foresight";
 import type { ForesightBundle } from "@/lib/foresight";
@@ -33,6 +34,8 @@ export function InquiryClient({
   const router = useRouter();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
+  const [exportSuccess, setExportSuccess] = useState(false);
   const [foresight, setForesight] = useState<ForesightBundle>(emptyForesight());
   const [foresightLoading, setForesightLoading] = useState(true);
 
@@ -45,6 +48,8 @@ export function InquiryClient({
       })
       .catch(() => {})
       .finally(() => { if (!cancelled) setForesightLoading(false); });
+    // Fire-and-forget view count increment (non-blocking)
+    fetch(`/api/articles/${inquiry.id}/view`, { method: "POST" }).catch(() => {});
     return () => { cancelled = true; };
   }, [inquiry.id]);
 
@@ -62,28 +67,38 @@ export function InquiryClient({
     }
   }
 
-  async function handleExport() {
+  async function downloadExport(path: string, extension: string) {
     if (exporting) return;
     setExporting(true);
+    setExportError(null);
+    setExportSuccess(false);
     try {
-      const response = await fetch(`/api/articles/${inquiry.id}/export`);
-      if (response.ok) {
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `nomosx-${inquiry.title.replace(/[^a-z0-9]+/gi, "-").toLowerCase().slice(0, 60)}.html`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
+      const response = await fetch(path);
+      if (!response.ok) {
+        throw new Error(`Export failed (${response.status}). Please try again.`);
       }
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `nomosx-${inquiry.title.replace(/[^a-z0-9]+/gi, "-").toLowerCase().slice(0, 60)}.${extension}`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      setExportSuccess(true);
+      setTimeout(() => setExportSuccess(false), 3000);
     } catch (error) {
+      const msg = error instanceof Error ? error.message : "Export failed. Please try again.";
+      setExportError(msg);
       console.error("Export failed:", error);
     } finally {
       setExporting(false);
     }
   }
+
+  const handleExport = () => downloadExport(`/api/articles/${inquiry.id}/export`, "html");
+  const handleExportXlsx = () => downloadExport(`/api/articles/${inquiry.id}/export/data?format=xlsx`, "xlsx");
 
   const format = inquiry.format || getPublicationFormat(inquiry.type as any);
   const editorial = parseEditorialInquiry(inquiry.content);
@@ -127,6 +142,7 @@ export function InquiryClient({
               onClick={handleShare}
               className="p-2 border border-white/[0.08] text-white/50 hover:border-white/25"
               title="Share"
+              aria-label="Share this report"
             >
               <Share2 size={16} />
             </button>
@@ -135,7 +151,8 @@ export function InquiryClient({
               onClick={handleExport}
               disabled={exporting}
               className="p-2 border border-white/[0.08] text-white/50 disabled:opacity-40"
-              title="Export"
+              title="Export report (HTML / print to PDF)"
+              aria-label="Export report as HTML"
             >
               {exporting ? (
                 <div className={cn("w-4 h-4", nx.spinner, "w-4 h-4")} />
@@ -143,7 +160,27 @@ export function InquiryClient({
                 <Download size={16} />
               )}
             </button>
+            <button
+              type="button"
+              onClick={handleExportXlsx}
+              disabled={exporting}
+              className="p-2 border border-white/[0.08] text-white/50 disabled:opacity-40 text-[10px] font-mono uppercase tracking-wide"
+              title="Export data workbook (Excel — sources + model tables)"
+              aria-label="Export data workbook as Excel"
+            >
+              xlsx
+            </button>
             </div>
+            {exportError && (
+              <p role="alert" className="absolute top-full right-0 mt-2 text-xs text-rose-400 bg-rose-950/80 px-3 py-1.5 rounded">
+                {exportError}
+              </p>
+            )}
+            {exportSuccess && (
+              <p role="status" className="absolute top-full right-0 mt-2 text-xs text-emerald-400 bg-emerald-950/80 px-3 py-1.5 rounded">
+                Export downloaded
+              </p>
+            )}
           </div>
           <Breadcrumbs
             items={[
@@ -173,6 +210,30 @@ export function InquiryClient({
                 <span>·</span>
                 <span>{inquiry.sources} sources</span>
               </div>
+
+              {/* Correction / Retraction notice */}
+              {(inquiry as any).status === "CORRECTED" && (inquiry as any).correctionNotice && (
+                <div role="alert" className="mb-6 p-4 border border-amber-500/30 bg-amber-950/20">
+                  <p className="text-xs font-mono uppercase tracking-wider text-amber-400 mb-2">Correction Notice</p>
+                  <p className="text-sm text-amber-100/80">{(inquiry as any).correctionNotice}</p>
+                  {(inquiry as any).correctedAt && (
+                    <p className="text-xs text-amber-400/60 mt-2 font-mono">
+                      Corrected on {new Date((inquiry as any).correctedAt).toLocaleDateString()}
+                    </p>
+                  )}
+                </div>
+              )}
+              {(inquiry as any).status === "RETRACTED" && (
+                <div role="alert" className="mb-6 p-4 border border-rose-500/40 bg-rose-950/30">
+                  <p className="text-xs font-mono uppercase tracking-wider text-rose-400 mb-2">Retracted</p>
+                  <p className="text-sm text-rose-100/80">
+                    This report has been retracted{(inquiry as any).retractionReason ? `: ${(inquiry as any).retractionReason}` : "."}
+                  </p>
+                  {(inquiry as any).correctionNotice && (
+                    <p className="text-sm text-rose-100/60 mt-2">{(inquiry as any).correctionNotice}</p>
+                  )}
+                </div>
+              )}
             </div>
 
             {inquiry.topics.length > 0 && (
@@ -215,6 +276,9 @@ export function InquiryClient({
                 <ForesightEmptyState />
               </div>
             )}
+
+            {/* Reader feedback — error reporting + rating */}
+            <ReaderFeedback publicationId={inquiry.id} />
 
             {related.length > 0 && (
               <div className="mt-16 pt-8 border-t border-white/[0.08]">

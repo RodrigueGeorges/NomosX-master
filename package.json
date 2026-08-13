@@ -92,6 +92,7 @@
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.0",
     "dotenv": "^17.2.3",
+    "exceljs": "^4.4.0",
     "framer-motion": "^12.38.0",
     "import-in-the-middle": "^3.0.0",
     "ioredis": "^5.4.1",

@@ -32,12 +32,12 @@ import { FALLBACK_FEATURED_VERDICT } from "@/lib/brand/featured-verdict";
 import {
   BRAND_DESCRIPTION,
   BRAND_HERO_TITLE,
-  BRAND_MANIFESTO,
   NOMOS_PHILOSOPHY_PILLARS,
 } from "@/lib/brand/public-copy";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
+import { ManifestoCrawl } from "@/components/brand/ManifestoCrawl";
 import { NomosXLogo } from "@/components/brand/NomosXLogo";
 
 import { PUBLIC_ROUTES } from "@/lib/public-urls";
@@ -163,6 +163,14 @@ function HomePageContent() {
 
   const [newsletterMessage, setNewsletterMessage] = useState("");
 
+  const [trackRecord, setTrackRecord] = useState<{
+    total: number;
+    open: number;
+    resolved: number;
+    accuracyPct: number | null;
+    brierScore: number | null;
+  } | null>(null);
+
 
 
   useEffect(() => {
@@ -198,6 +206,20 @@ function HomePageContent() {
       })
 
       .catch(() => {});
+
+
+
+    fetch("/api/public/track-record")
+
+      .then((r) => (r.ok ? r.json() : null))
+
+      .then((d) => {
+
+        if (d?.stats && d.stats.total > 0) setTrackRecord(d.stats);
+
+      })
+
+      .catch((err) => console.warn("[Home] Track record fetch failed (non-blocking):", err));
 
 
 
@@ -299,18 +321,20 @@ function HomePageContent() {
 
   // Total section count is dynamic: the "Latest briefs" section (05) is
   // hidden when there are no briefs, so the denominator must adjust.
-  const sectionCount = displayInquiries.length > 0 ? 8 : 7;
+  const sectionCount = displayInquiries.length > 0 ? 7 : 6;
   const sectionTotal = String(sectionCount).padStart(2, "0");
   // Sections after the briefs block shift down by one when briefs are hidden
   // so the numerators stay sequential (01, 02, 03 ...).
-  const studioSectionNum = displayInquiries.length > 0 ? "07" : "06";
-  const newsletterSectionNum = displayInquiries.length > 0 ? "08" : "07";
+  const studioSectionNum = displayInquiries.length > 0 ? "06" : "05";
+  const newsletterSectionNum = displayInquiries.length > 0 ? "07" : "06";
 
 
 
   return (
 
     <ErrorBoundary>
+
+      <ManifestoCrawl />
 
       <PublicPageShell
 
@@ -364,7 +388,7 @@ function HomePageContent() {
 
                   { end: 250, suffix: "M+", label: "Sources indexed" },
 
-                  { end: 48, suffix: "", label: "Data providers" },
+                  { end: 115, suffix: "", label: "Data providers" },
 
                   { end: 100, suffix: "%", label: "Claims traceable" },
 
@@ -432,58 +456,58 @@ function HomePageContent() {
 
           </section>
 
-          {/* Manifesto — the Nomos philosophy */}
+          {/* Manifesto — the Nomos philosophy (permanent, always visible) */}
 
-          <section className="nx-section-divide relative px-6 sm:px-8 py-16 sm:py-20">
+          <section className="nx-section-divide relative px-6 sm:px-8 py-20 sm:py-28 overflow-hidden">
 
             <span className="nx-section-index">01 / {sectionTotal}</span>
 
-            <div className="max-w-3xl mx-auto text-center">
+            <div className="nx-grid-bg-enhanced opacity-30" aria-hidden="true" />
+
+            <div className="relative max-w-4xl mx-auto text-center">
 
               <ScrollReveal>
-                <p className="nx-eyebrow mb-8">The principle</p>
+                <p className="nx-eyebrow mb-10">The principle</p>
               </ScrollReveal>
 
-              <ScrollReveal stagger className="space-y-6">
+              <ScrollReveal stagger className="space-y-2">
 
-                <p className="text-lg sm:text-xl text-white/85 leading-[1.4] font-light">
-
-                  The world doesn't suffer from a lack of information.
-
+                <p className="nx-manifesto-line">
+                  The world doesn&apos;t suffer
                 </p>
 
-                <p className="text-lg sm:text-xl text-white/85 leading-[1.4] font-light">
+                <p className="nx-manifesto-line">
+                  from a lack of information.
+                </p>
 
+                <div className="nx-divider w-16 mx-auto my-8" />
+
+                <p className="nx-manifesto-line nx-manifesto-line--accent">
                   It suffers from a lack of structure.
-
                 </p>
 
-                <div className="nx-divider w-12 mx-auto my-6" />
+              </ScrollReveal>
 
-                <p className="text-base sm:text-lg text-white/65 leading-[1.6]">
+              <ScrollReveal stagger delay={200} className="mt-12 space-y-1">
 
+                <p className="nx-manifesto-cascade">
                   Knowledge without order creates noise.
-
                 </p>
 
-                <p className="text-base sm:text-lg text-white/65 leading-[1.6]">
-
+                <p className="nx-manifesto-cascade">
                   Order creates understanding.
-
                 </p>
 
-                <p className="text-base sm:text-lg text-white/65 leading-[1.6]">
-
+                <p className="nx-manifesto-cascade">
                   Understanding creates better decisions.
-
                 </p>
 
-                <p className="text-sm font-mono uppercase tracking-[0.2em] text-white/55 pt-6">
+              </ScrollReveal>
 
-                  That is NomosX.
-
+              <ScrollReveal delay={400}>
+                <p className="nx-manifesto-signoff">
+                  That is Nomos<span className="nx-manifesto-signoff-x">X</span>
                 </p>
-
               </ScrollReveal>
 
             </div>
@@ -771,6 +795,122 @@ function HomePageContent() {
             </div>
 
           </section>
+
+
+
+          {/* Track record — public accountability */}
+
+          {trackRecord && (
+
+          <section className="nx-section-divide relative px-6 sm:px-8 py-16 sm:py-20">
+
+            <div className="max-w-4xl mx-auto text-center">
+
+              <ScrollReveal>
+
+                <p className="nx-eyebrow mb-4 justify-center">Track record</p>
+
+                <h2 className="font-display text-lg sm:text-xl font-medium text-white mb-10 tracking-tight">
+
+                  Judge us on our calls — every prediction dated, falsifiable, resolved in public
+
+                </h2>
+
+              </ScrollReveal>
+
+              <ScrollReveal stagger className="grid grid-cols-2 sm:grid-cols-4 gap-8 sm:gap-10 mb-10">
+
+                <div className="text-center">
+
+                  <p className="font-mono text-3xl font-light text-white tabular-nums leading-none mb-3">
+
+                    <StatCounter end={trackRecord.total} suffix="" />
+
+                  </p>
+
+                  <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-white/50">Predictions made</p>
+
+                </div>
+
+                <div className="text-center">
+
+                  <p className="font-mono text-3xl font-light text-white tabular-nums leading-none mb-3">
+
+                    <StatCounter end={trackRecord.open} suffix="" />
+
+                  </p>
+
+                  <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-white/50">Open — hold us to them</p>
+
+                </div>
+
+                <div className="text-center">
+
+                  <p className="font-mono text-3xl font-light text-white tabular-nums leading-none mb-3">
+
+                    {trackRecord.accuracyPct !== null ? (
+
+                      <StatCounter end={Math.round(trackRecord.accuracyPct)} suffix="%" />
+
+                    ) : (
+
+                      <span className="text-white/40 text-xl">pending</span>
+
+                    )}
+
+                  </p>
+
+                  <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-white/50">Hit rate</p>
+
+                </div>
+
+                <div className="text-center">
+
+                  <p className="font-mono text-3xl font-light text-white tabular-nums leading-none mb-3">
+
+                    {trackRecord.brierScore !== null ? (
+
+                      <span>{trackRecord.brierScore}</span>
+
+                    ) : (
+
+                      <span className="text-white/40 text-xl">pending</span>
+
+                    )}
+
+                  </p>
+
+                  <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-white/50">Brier score</p>
+
+                </div>
+
+              </ScrollReveal>
+
+              <ScrollReveal>
+
+                <button
+
+                  type="button"
+
+                  onClick={() => router.push(PUBLIC_ROUTES.trackRecord)}
+
+                  className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.12em] text-white/55 hover:text-white transition-colors"
+
+                >
+
+                  Full track record
+
+                  <ArrowRight size={14} />
+
+                </button>
+
+              </ScrollReveal>
+
+            </div>
+
+          </section>
+
+          )}
 
 
 

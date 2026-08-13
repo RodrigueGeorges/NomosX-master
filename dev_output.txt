@@ -1,0 +1,118 @@
+
+> dev
+> next dev
+
+▲ Next.js 16.1.6 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.1.206:3000
+- Environments: .env.local, .env
+
+✓ Starting...
+⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+[Sentry] SENTRY_DSN not configured, error monitoring disabled
+✓ Ready in 11.1s
+○ Compiling / ...
+Browserslist: browsers data (caniuse-lite) is 7 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+ GET / 200 in 21.3s (compile: 20.8s, proxy.ts: 108ms, render: 417ms)
+ GET /manifest.webmanifest 200 in 876ms (compile: 801ms, proxy.ts: 15ms, render: 59ms)
+⚠ Cross origin request detected from 127.0.0.1 to /_next/* resource. In a future major version of Next.js, you will need to explicitly configure "allowedDevOrigins" in next.config to allow this.
+Read more: https://nextjs.org/docs/app/api-reference/config/next-config-js/allowedDevOrigins
+ GET /api/auth/me 401 in 1299ms (compile: 885ms, proxy.ts: 145ms, render: 268ms)
+ GET /api/auth/me 401 in 56ms (compile: 10ms, proxy.ts: 20ms, render: 25ms)
+ GET /api/public/briefs?limit=3&featured=1 200 in 1671ms (compile: 1001ms, proxy.ts: 150ms, render: 520ms)
+ GET /api/public/track-record 200 in 1746ms (compile: 1609ms, proxy.ts: 19ms, render: 118ms)
+ GET / 200 in 177ms (compile: 69ms, proxy.ts: 17ms, render: 91ms)
+ GET /api/auth/me 401 in 24ms (compile: 7ms, proxy.ts: 5ms, render: 12ms)
+ GET /api/auth/me 401 in 67ms (compile: 14ms, proxy.ts: 9ms, render: 45ms)
+ GET /api/public/track-record 200 in 191ms (compile: 31ms, proxy.ts: 11ms, render: 149ms)
+ GET /api/public/briefs?limit=3&featured=1 200 in 255ms (compile: 21ms, proxy.ts: 10ms, render: 225ms)
+○ Compiling /inquiry/[slug] ...
+ GET / 200 in 3.3s (compile: 1670ms, proxy.ts: 156ms, render: 1514ms)
+ GET /manifest.webmanifest 200 in 104ms (compile: 46ms, proxy.ts: 15ms, render: 42ms)
+ GET /api/auth/me 401 in 164ms (compile: 107ms, proxy.ts: 25ms, render: 33ms)
+ GET /api/auth/me 401 in 154ms (compile: 107ms, proxy.ts: 18ms, render: 30ms)
+ GET /api/public/track-record 200 in 188ms (compile: 71ms, proxy.ts: 32ms, render: 84ms)
+ GET /api/public/briefs?limit=3&featured=1 200 in 353ms (compile: 48ms, proxy.ts: 33ms, render: 272ms)
+✓ Compiled in 693ms
+ GET / 200 in 3.1s (compile: 950ms, proxy.ts: 21ms, render: 2.1s)
+ GET /manifest.webmanifest 200 in 583ms (compile: 46ms, proxy.ts: 517ms, render: 20ms)
+ GET /api/auth/me 401 in 623ms (compile: 157ms, proxy.ts: 108ms, render: 358ms)
+ GET /api/public/track-record 200 in 556ms (compile: 335ms, proxy.ts: 50ms, render: 171ms)
+ GET /api/public/briefs?limit=3&featured=1 200 in 718ms (compile: 185ms, proxy.ts: 49ms, render: 484ms)
+ GET /api/auth/me 401 in 278ms (compile: 155ms, proxy.ts: 78ms, render: 44ms)
+ GET /api/auth/me 401 in 73ms (compile: 26ms, proxy.ts: 16ms, render: 31ms)
+ GET /inquiry/how-do-rising-bond-yields-and-elevated-leverage-interact-to-increase-systemic-fi 200 in 19.8s (compile: 13.6s, proxy.ts: 15ms, render: 6.3s)
+○ Compiling /api/articles/[id]/view ...
+ GET / 200 in 2.1s (compile: 680ms, proxy.ts: 27ms, render: 1347ms)
+ GET /manifest.webmanifest 200 in 165ms (compile: 81ms, proxy.ts: 50ms, render: 34ms)
+ GET /api/auth/me 401 in 544ms (compile: 211ms, proxy.ts: 299ms, render: 33ms)
+ GET /api/public/track-record 200 in 227ms (compile: 126ms, proxy.ts: 29ms, render: 73ms)
+ GET /api/auth/me 401 in 164ms (compile: 70ms, proxy.ts: 37ms, render: 58ms)
+ GET /api/public/briefs?limit=3&featured=1 200 in 448ms (compile: 130ms, proxy.ts: 86ms, render: 231ms)
+ GET /api/inquiry/cmsrvmx9b035sjmqvx59x2cfy/foresight 200 in 9.0s (compile: 8.8s, proxy.ts: 47ms, render: 167ms)
+ GET /api/inquiry/cmsrvmx9b035sjmqvx59x2cfy/foresight 200 in 152ms (compile: 64ms, proxy.ts: 8ms, render: 80ms)
+ POST /api/articles/cmsrvmx9b035sjmqvx59x2cfy/view 200 in 13.4s (compile: 13.2s, proxy.ts: 40ms, render: 146ms)
+ POST /api/articles/cmsrvmx9b035sjmqvx59x2cfy/view 200 in 13.4s (compile: 13.2s, proxy.ts: 74ms, render: 147ms)
+✓ Compiled in 1126ms
+ GET / 200 in 1993ms (compile: 508ms, proxy.ts: 161ms, render: 1325ms)
+ GET /manifest.webmanifest 200 in 329ms (compile: 246ms, proxy.ts: 64ms, render: 18ms)
+ GET /api/auth/me 401 in 147ms (compile: 63ms, proxy.ts: 56ms, render: 27ms)
+ GET /api/auth/me 401 in 43ms (compile: 18ms, proxy.ts: 13ms, render: 12ms)
+ GET /api/public/track-record 200 in 103ms (compile: 43ms, proxy.ts: 13ms, render: 46ms)
+ GET /api/auth/me 401 in 234ms (compile: 66ms, proxy.ts: 9ms, render: 158ms)
+ GET /api/public/briefs?limit=3&featured=1 200 in 622ms (compile: 31ms, proxy.ts: 13ms, render: 578ms)
+ GET /api/public/track-record 200 in 542ms (compile: 322ms, proxy.ts: 17ms, render: 203ms)
+ GET /api/public/briefs?limit=3&featured=1 200 in 253ms (compile: 31ms, proxy.ts: 25ms, render: 198ms)
+✓ Compiled in 652ms
+ GET / 200 in 3.0s (compile: 1608ms, proxy.ts: 144ms, render: 1285ms)
+ GET /manifest.webmanifest 200 in 226ms (compile: 122ms, proxy.ts: 50ms, render: 54ms)
+ GET /api/auth/me 401 in 281ms (compile: 128ms, proxy.ts: 74ms, render: 79ms)
+ GET /api/auth/me 401 in 86ms (compile: 26ms, proxy.ts: 26ms, render: 34ms)
+ GET /api/public/track-record 200 in 124ms (compile: 59ms, proxy.ts: 15ms, render: 51ms)
+ GET /api/auth/me 401 in 176ms (compile: 34ms, proxy.ts: 21ms, render: 121ms)
+ GET /api/public/briefs?limit=3&featured=1 200 in 409ms (compile: 37ms, proxy.ts: 15ms, render: 356ms)
+✓ Compiled in 496ms
+ GET /api/public/track-record 200 in 386ms (compile: 304ms, proxy.ts: 9ms, render: 73ms)
+ GET /api/public/briefs?limit=3&featured=1 200 in 288ms (compile: 14ms, proxy.ts: 48ms, render: 226ms)
+ GET / 200 in 630ms (compile: 327ms, proxy.ts: 20ms, render: 283ms)
+ GET /manifest.webmanifest 200 in 61ms (compile: 32ms, proxy.ts: 19ms, render: 10ms)
+ GET /api/auth/me 401 in 77ms (compile: 44ms, proxy.ts: 19ms, render: 13ms)
+ GET /api/auth/me 401 in 375ms (compile: 238ms, proxy.ts: 13ms, render: 124ms)
+ GET /api/public/track-record 200 in 433ms (compile: 266ms, proxy.ts: 18ms, render: 148ms)
+ GET /api/public/briefs?limit=3&featured=1 200 in 691ms (compile: 40ms, proxy.ts: 15ms, render: 637ms)
+ GET /api/auth/me 401 in 477ms (compile: 286ms, proxy.ts: 48ms, render: 144ms)
+ GET /api/public/track-record 200 in 631ms (compile: 413ms, proxy.ts: 55ms, render: 162ms)
+ GET /api/public/briefs?limit=3&featured=1 200 in 922ms (compile: 140ms, proxy.ts: 125ms, render: 657ms)
+✓ Compiled in 874ms
+ GET / 200 in 693ms (compile: 218ms, proxy.ts: 18ms, render: 457ms)
+ GET /manifest.webmanifest 200 in 131ms (compile: 56ms, proxy.ts: 22ms, render: 53ms)
+ GET /api/auth/me 401 in 160ms (compile: 56ms, proxy.ts: 63ms, render: 41ms)
+ GET /api/auth/me 401 in 72ms (compile: 18ms, proxy.ts: 20ms, render: 34ms)
+ GET /api/public/track-record 200 in 221ms (compile: 148ms, proxy.ts: 10ms, render: 63ms)
+ GET /api/auth/me 401 in 71ms (compile: 34ms, proxy.ts: 9ms, render: 28ms)
+ GET /api/public/briefs?limit=3&featured=1 200 in 355ms (compile: 31ms, proxy.ts: 13ms, render: 311ms)
+ GET /api/public/track-record 200 in 187ms (compile: 26ms, proxy.ts: 94ms, render: 67ms)
+ GET /api/public/briefs?limit=3&featured=1 200 in 244ms (compile: 54ms, proxy.ts: 10ms, render: 180ms)
+✓ Compiled in 1597ms
+ GET / 200 in 1235ms (compile: 432ms, proxy.ts: 16ms, render: 787ms)
+ GET /manifest.webmanifest 200 in 89ms (compile: 42ms, proxy.ts: 27ms, render: 20ms)
+ GET /api/auth/me 401 in 89ms (compile: 35ms, proxy.ts: 19ms, render: 35ms)
+ GET /api/auth/me 401 in 97ms (compile: 58ms, proxy.ts: 17ms, render: 23ms)
+ GET /api/public/track-record 200 in 171ms (compile: 103ms, proxy.ts: 16ms, render: 51ms)
+ GET /api/public/briefs?limit=3&featured=1 200 in 335ms (compile: 73ms, proxy.ts: 27ms, render: 235ms)
+ GET / 200 in 199ms (compile: 39ms, proxy.ts: 52ms, render: 108ms)
+ GET /api/auth/me 401 in 25ms (compile: 6ms, proxy.ts: 5ms, render: 14ms)
+ GET /api/auth/me 401 in 61ms (compile: 12ms, proxy.ts: 6ms, render: 43ms)
+ GET /api/public/briefs?limit=3&featured=1 200 in 230ms (compile: 21ms, proxy.ts: 6ms, render: 202ms)
+ GET /api/public/track-record 200 in 236ms (compile: 31ms, proxy.ts: 6ms, render: 198ms)
+✓ Compiled in 668ms
+ GET / 200 in 901ms (compile: 328ms, proxy.ts: 40ms, render: 534ms)
+ GET /manifest.webmanifest 200 in 64ms (compile: 33ms, proxy.ts: 13ms, render: 18ms)
+ GET /api/auth/me 401 in 40ms (compile: 14ms, proxy.ts: 6ms, render: 19ms)
+ GET /api/auth/me 401 in 81ms (compile: 26ms, proxy.ts: 11ms, render: 44ms)
+ GET /api/public/track-record 200 in 168ms (compile: 67ms, proxy.ts: 11ms, render: 90ms)
+ GET /api/public/briefs?limit=3&featured=1 200 in 308ms (compile: 40ms, proxy.ts: 16ms, render: 253ms)
+✓ Compiled in 1776ms
+✓ Compiled in 2.7s

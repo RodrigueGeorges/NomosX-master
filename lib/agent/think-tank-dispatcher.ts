@@ -21,9 +21,7 @@ import { planEditorialAgenda } from "./editorial-planner";
 import { getVerticalForTopic } from "./researcher-ownership";
 import { classifyTopic } from "./topic-classifier";
 import type { InquiryDepth } from "@/lib/types/inquiry";
-import { searchOpenAlex } from "../providers/academic/openalex-api";
-import { searchCrossref } from "../providers/academic/crossref-api";
-import { searchSemanticScholar } from "../providers/semanticscholar";
+// Search providers are now used by the evidence-gatherer module directly
 
 // ─── Config ────────────────────────────────────────────────────
 
@@ -198,44 +196,45 @@ function breakingDecisionToItem(decision: EditorialDecision): ThinkTankDispatchI
 // with a 12s timeout per provider. If fewer than MIN_ACADEMIC_SOURCES are found
 // across all three, the topic is rejected and the next candidate is tried.
 
-const PREFLIGHT_MIN_ACADEMIC_SOURCES = 5;
-const PREFLIGHT_TIMEOUT_MS = 12_000;
+// Thresholds are now managed by the evidence-gatherer module
 
-async function preflightSourceCheck(researchQuestion: string): Promise<{
+/**
+ * Preflight source check — now delegates to the adaptive evidence gatherer.
+ * The gatherer decomposes the question into sub-angles, searches each across
+ * 4 providers (OpenAlex, Crossref, Semantic Scholar, ArXiv), combines + dedups,
+ * and reassesses semantic alignment. Returns a reformulated question if needed.
+ */
+async function preflightSourceCheck(researchQuestion: string, domain?: string): Promise<{
   viable: boolean;
   academicCount: number;
   details: string;
+  semanticAligned: boolean;
+  semanticScore: number;
+  semanticReasoning: string;
+  reformulatedQuestion: string | null;
+  subAngles: string[];
+  strategy: string;
 }> {
-  const query = researchQuestion.slice(0, 300);
-
-  const [openalexR, crossrefR, s2R] = await Promise.allSettled([
-    withTimeout(searchOpenAlex(query, 10), PREFLIGHT_TIMEOUT_MS, "openalex"),
-    withTimeout(searchCrossref(query, 10), PREFLIGHT_TIMEOUT_MS, "crossref"),
-    withTimeout(searchSemanticScholar(query, 10), PREFLIGHT_TIMEOUT_MS, "semantic-scholar"),
-  ]);
-
-  let openalexCount = 0, crossrefCount = 0, s2Count = 0;
-  if (openalexR.status === "fulfilled") openalexCount = openalexR.value.length;
-  if (crossrefR.status === "fulfilled") crossrefCount = crossrefR.value.length;
-  if (s2R.status === "fulfilled") s2Count = s2R.value.length;
-
-  const total = openalexCount + crossrefCount + s2Count;
-  const details = `openalex=${openalexCount}, crossref=${crossrefCount}, s2=${s2Count}`;
+  // Use the adaptive evidence gatherer — it decomposes, searches, and reassesses
+  const { gatherEvidence } = await import('./evidence-gatherer');
+  const result = await gatherEvidence(researchQuestion, {
+    maxSubAngles: 4,
+    maxSourcesPerAngle: 8,
+    domain,
+    includeWeb: true, // Enable web search + news + institutional providers
+  });
 
   return {
-    viable: total >= PREFLIGHT_MIN_ACADEMIC_SOURCES,
-    academicCount: total,
-    details,
+    viable: result.viable,
+    academicCount: result.sources.length,
+    details: `strategy=${result.strategy}, subAngles=${result.subAngles.length}, semantic=${Math.round(result.semanticScore * 100)}%`,
+    semanticAligned: result.semanticScore >= 0.5,
+    semanticScore: result.semanticScore,
+    semanticReasoning: result.semanticReasoning,
+    reformulatedQuestion: result.reformulatedQuestion,
+    subAngles: result.subAngles,
+    strategy: result.strategy,
   };
-}
-
-async function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<T>((_, reject) =>
-      setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms)
-    ),
-  ]);
 }
 
 async function collectBreakingItems(
@@ -267,18 +266,22 @@ async function collectBreakingItems(
   });
   const decideMs = Date.now() - decideStart;
 
-  // ── Pre-flight academic viability check ──
-  // For each candidate, verify that academic literature exists before committing
-  // to a 35-minute pipeline run. Skip topics with insufficient academic sources.
+  // ── Pre-flight: Adaptive Evidence Gathering ──
+  // Instead of just counting sources, the gatherer:
+  //   1. Searches the question directly
+  //   2. If misaligned/insufficient → decomposes into sub-angles
+  //   3. Searches each sub-angle across 4 providers
+  //   4. Combines + dedups + reassesses
+  //   5. Returns a reformulated question if the original was misaligned
   const viableItems: ThinkTankDispatchItem[] = [];
-  const preflightResults: Array<{ question: string; viable: boolean; count: number; details: string }> = [];
+  const preflightResults: Array<{ question: string; viable: boolean; count: number; details: string; semanticScore: number; semanticReasoning: string; strategy: string }> = [];
 
   for (const decision of triageResult.decisions) {
     if (viableItems.length >= maxPublications) break;
 
     const question = decision.researchQuestion?.trim() || decision.topic.title;
     const preflightStart = Date.now();
-    const check = await preflightSourceCheck(question);
+    const check = await preflightSourceCheck(question, decision.classification.primaryDomain);
     const preflightMs = Date.now() - preflightStart;
 
     preflightResults.push({
@@ -286,20 +289,27 @@ async function collectBreakingItems(
       viable: check.viable,
       count: check.academicCount,
       details: check.details,
+      semanticScore: check.semanticScore,
+      semanticReasoning: check.semanticReasoning,
+      strategy: check.strategy,
     });
 
     if (check.viable) {
-      console.log(`[PREFLIGHT] ✅ "${question.slice(0, 80)}" — ${check.academicCount} academic sources (${check.details}) in ${preflightMs}ms`);
-      viableItems.push(breakingDecisionToItem(decision));
+      // If the gatherer reformulated the question, use the reformulated version
+      const finalQuestion = check.reformulatedQuestion || question;
+      console.log(`[PREFLIGHT] ✅ "${question.slice(0, 60)}" — ${check.academicCount} sources, semantic=${Math.round(check.semanticScore * 100)}%, strategy=${check.strategy} in ${preflightMs}ms${check.reformulatedQuestion ? ` → reformulated: "${check.reformulatedQuestion.slice(0, 60)}"` : ''}`);
+      const item = breakingDecisionToItem(decision);
+      if (check.reformulatedQuestion) {
+        item.question = check.reformulatedQuestion;
+      }
+      viableItems.push(item);
     } else {
-      console.log(`[PREFLIGHT] ❌ Skipping "${question.slice(0, 80)}" — only ${check.academicCount} academic sources (${check.details}) in ${preflightMs}ms`);
+      console.log(`[PREFLIGHT] ❌ Skipping "${question.slice(0, 60)}" — ${check.academicCount} sources, semantic=${Math.round(check.semanticScore * 100)}%, strategy=${check.strategy} in ${preflightMs}ms. ${check.semanticReasoning}`);
     }
   }
 
-  if (viableItems.length === 0 && triageResult.decisions.length > 0) {
-    console.warn(`[PREFLIGHT] ⚠️ ALL ${triageResult.decisions.length} candidates failed academic viability check. Falling back to top candidate without pre-flight.`);
-    viableItems.push(breakingDecisionToItem(triageResult.decisions[0]));
-  }
+  // No bypass — if all candidates fail, the cycle produces nothing.
+  // This is intentional: better to skip a cycle than waste 5 minutes on a doomed pipeline run.
 
   return {
     items: viableItems,

@@ -12,11 +12,14 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { question, formatType, mode, audience, urgency } = body;
+  const { question, formatType, mode, audience, urgency, quantDepth } = body;
 
   if (!question?.trim()) {
     return NextResponse.json({ error: 'Question is required' }, { status: 400 });
   }
+
+  const validQuantDepths = ['none', 'parametric', 'io', 'full'];
+  const normalizedQuantDepth = validQuantDepths.includes(quantDepth) ? quantDepth : null;
 
   const format = getPublicationFormat(formatType);
   const price = getStudioXPrice(formatType);
@@ -30,6 +33,7 @@ export async function POST(req: NextRequest) {
       mode: mode ?? 'COMMISSION',
       audience: audience ?? null,
       urgency: urgency ?? null,
+      quantDepth: normalizedQuantDepth,
       amountCents: price.amountCents,
       currency: 'eur',
       status: 'PENDING',

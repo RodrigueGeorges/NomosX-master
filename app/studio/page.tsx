@@ -34,6 +34,7 @@ function StudioPageContent() {
   const [selectedMode, setSelectedMode] = useState('COMMISSION');
   const [audience, setAudience] = useState('Decision-makers');
   const [urgency, setUrgency] = useState('Standard');
+  const [quantDepth, setQuantDepth] = useState('none');
   const [orderStatus, setOrderStatus] = useState<'idle' | 'verifying' | 'running' | 'done' | 'failed' | 'refunded'>('idle');
   const [progressMessage, setProgressMessage] = useState<string | null>(null);
   const [progressPct, setProgressPct] = useState<number | null>(null);
@@ -162,7 +163,7 @@ function StudioPageContent() {
       const res = await fetch('/api/studiox/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question, formatType: selectedFormat, mode: selectedMode, audience, urgency }),
+        body: JSON.stringify({ question, formatType: selectedFormat, mode: selectedMode, audience, urgency, quantDepth }),
       });
       if (!res.ok) throw new Error('Checkout failed');
       const data = await res.json();
@@ -386,6 +387,35 @@ function StudioPageContent() {
                         </button>
                       );
                     })}
+                  </div>
+                </div>
+
+                <div className="mb-5">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className={nx.label}>Quantitative depth</div>
+                    <div className="text-[10px] text-white/55 font-mono uppercase tracking-[0.12em]">
+                      deterministic models
+                    </div>
+                  </div>
+                  <div className="grid sm:grid-cols-3 gap-2">
+                    {[
+                      { key: 'none', label: 'Qualitative', detail: 'literature synthesis only' },
+                      { key: 'parametric', label: 'Indicative costing', detail: 'sourced unit costs × volumes' },
+                      { key: 'io', label: 'IO modelling', detail: 'Eurostat FIGARO multipliers' },
+                    ].map((opt) => (
+                      <button
+                        key={opt.key}
+                        type="button"
+                        onClick={() => setQuantDepth(opt.key)}
+                        className={cn(
+                          "text-left border px-3 py-3 transition-all",
+                          quantDepth === opt.key ? OPTION_SELECTED : OPTION_DEFAULT
+                        )}
+                      >
+                        <div className="text-sm text-white/80 font-medium">{opt.label}</div>
+                        <div className="mt-1 text-[11px] text-white/50">{opt.detail}</div>
+                      </button>
+                    ))}
                   </div>
                 </div>
 

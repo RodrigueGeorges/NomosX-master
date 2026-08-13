@@ -475,6 +475,19 @@ export async function runAndPublishInquiry(
     `[InquiryOrchestrator] ${status.toUpperCase()} pub=${publication.id} brief=${pipeline.briefId} trust=${trustScore}`
   );
 
+  // Persist structured quality checks (ThinkTankQualityCheck) for audit trail
+  await persistQualityChecks(
+    publication.id,
+    gate,
+    readiness,
+    daVerdict ? { verdict: daVerdict, score: (da as Record<string, unknown>)?.score as number | undefined } : null,
+    signOff ?? null,
+    trustScore,
+    qualityScore
+  ).catch(
+    (err) => console.warn('[InquiryOrchestrator] QualityCheck persist failed (non-blocking):', err)
+  );
+
   const foresightPayload = buildForesightPersistPayload(pipeline.lineage, pipeline.inquiry);
   if (foresightPayload.foresight || pipeline.lineage.foresightRun) {
     await persistForesightRun({
@@ -511,4 +524,108 @@ export async function runInquiryOnly(
   input: RunInquiryPipelineInput
 ): Promise<InquiryPipelineResult> {
   return runInquiryPipeline(input);
+}
+
+/**
+ * Persist structured quality checks for audit trail.
+ * Creates ThinkTankQualityCheck records for each gate criterion.
+ */
+async function persistQualityChecks(
+  publicationId: string,
+  gate: { metrics?: Record<string, number>; decision?: string },
+  readiness: { ok?: boolean; checks?: Array<{ name: string; ok: boolean; detail?: string }> },
+  daVerdict: { score?: number; verdict?: string } | null,
+  signOff: { researcherName?: string; decision?: string; confidence?: number } | null,
+  trustScore: number,
+  qualityScore: number
+): Promise<void> {
+  const checks: Array<{
+    publicationId: string;
+    checkType: string;
+    passed: boolean;
+    score: number;
+    details: Record<string, unknown>;
+  }> = [];
+
+  // THRESHOLD checks
+  checks.push({
+    publicationId,
+    checkType: "THRESHOLD",
+    passed: trustScore >= 65,
+    score: trustScore,
+    details: { checkName: "trust_score", threshold: 65, detail: `Trust score ${trustScore} (min 65)` },
+  });
+  checks.push({
+    publicationId,
+    checkType: "THRESHOLD",
+    passed: qualityScore >= 70,
+    score: qualityScore,
+    details: { checkName: "quality_score", threshold: 70, detail: `Quality score ${qualityScore} (min 70)` },
+  });
+
+  // CITATION checks
+  const citationCoverage = (gate.metrics?.citationCoverage ?? 0) * 100;
+  checks.push({
+    publicationId,
+    checkType: "CITATION",
+    passed: citationCoverage >= 60,
+    score: Math.round(citationCoverage),
+    details: { checkName: "citation_coverage", threshold: 60, detail: `Citation coverage ${citationCoverage.toFixed(1)}% (min 60%)` },
+  });
+
+  // ADVERSARIAL checks (devil's advocate)
+  if (daVerdict) {
+    checks.push({
+      publicationId,
+      checkType: "ADVERSARIAL",
+      passed: (daVerdict.score ?? 0) >= 40,
+      score: daVerdict.score ?? 0,
+      details: { checkName: "devils_advocate", threshold: 40, detail: `Devil's advocate score ${daVerdict.score} (${daVerdict.verdict ?? "unknown"})` },
+    });
+  }
+
+  // METHODOLOGY checks (sign-off)
+  if (signOff) {
+    checks.push({
+      publicationId,
+      checkType: "METHODOLOGY",
+      passed: signOff.decision === "approve",
+      score: signOff.confidence ?? 0,
+      details: { checkName: "researcher_signoff", threshold: 50, detail: `Sign-off by ${signOff.researcherName}: ${signOff.decision} (confidence ${signOff.confidence})` },
+    });
+  }
+
+  // CALIBRATION checks
+  checks.push({
+    publicationId,
+    checkType: "CALIBRATION",
+    passed: gate.decision === "publish",
+    score: gate.decision === "publish" ? 100 : 0,
+    details: { checkName: "publication_gate_decision", threshold: 100, detail: `Gate decision: ${gate.decision}` },
+  });
+
+  // QUALITY checks from readiness
+  if (readiness.checks) {
+    for (const check of readiness.checks) {
+      checks.push({
+        publicationId,
+        checkType: "QUALITY",
+        passed: check.ok,
+        score: check.ok ? 100 : 0,
+        details: { checkName: check.name, threshold: 100, detail: check.detail || `${check.name}: ${check.ok ? "pass" : "fail"}` },
+      });
+    }
+  }
+
+  await prisma.thinkTankQualityCheck.createMany({
+    data: checks.map((c) => ({
+      publicationId: c.publicationId,
+      checkType: c.checkType,
+      passed: c.passed,
+      score: c.score,
+      details: c.details as unknown as Prisma.InputJsonValue,
+    })),
+  });
+
+  console.log(`[QualityCheck] Persisted ${checks.length} quality checks for publication ${publicationId}`);
 }

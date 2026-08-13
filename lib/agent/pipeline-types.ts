@@ -165,6 +165,13 @@ export interface PipelineStats {
   };
   quantCharts?: number;
 
+  // Step 5d-bis: QUANT BRIDGE (deterministic model layer — parametric costing + FIGARO IO)
+  quantBridge?: {
+    models: number;
+    kinds: string[];
+    durationMs: number;
+  };
+
   // Step 5e: Hypothesis Judge
   hypothesisJudge?: {
     verdicts: Array<{ id: string; verdict: string; confidence: number }>;
@@ -250,6 +257,9 @@ export interface PipelineStats {
     ok: boolean;
     usedCount: number;
     invalid: number[];
+    usedModelCount?: number;
+    invalidModels?: number[];
+    malformedModelCount?: number;
   };
   citationGuardDegraded?: boolean;
 
@@ -275,6 +285,21 @@ export interface PipelineStats {
     error?: string;
   };
   factCheckerFatalFlagged?: boolean;
+
+  // Step 9c: Originality Check (plagiarism / close paraphrasing detection)
+  originalityCheck?: {
+    originalityScore: number;
+    flaggedSections: number;
+    averageOverlap: number;
+  };
+
+  // Step 9d: Bias Detection (systematic corpus bias check)
+  biasDetection?: {
+    biasCount: number;
+    overallBiasRisk: number;
+    sourceDiversityScore: number;
+    biasTypes: string[];
+  };
 
   // Step 10: Critical Loop (replaced by deterministic trust scoring)
   criticalLoop?: {
@@ -406,6 +431,9 @@ export interface PipelineStats {
     sourceCount: number;
     required: number;
     missing: string[];
+    retryAttempted?: boolean;
+    retrySucceeded?: boolean;
+    retryQueries?: string[];
   };
 
   // Enrichment Reasoner (adaptive evidence sufficiency)
@@ -548,7 +576,7 @@ export interface APACitation {
 export function formatAPA(source: any, index: number): APACitation {
   // Extract authors
   const authorList = source.authors
-    ?.map((sa: any) => sa.author?.name || sa.name)
+    ?.map((sa: any) => sa.author?.name || sa.name || (typeof sa === 'string' ? sa : null))
     .filter(Boolean) || [];
   
   let authors: string;

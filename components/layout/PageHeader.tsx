@@ -1,3 +1,6 @@
+"use client";
+
+import { ScrollReveal } from "@/components/ui/ScrollReveal";
 import { cn } from "@/lib/utils";
 
 interface PageHeaderProps {
@@ -27,40 +30,59 @@ export function PageHeader({
         className
       )}
     >
-      <div
-        className={cn(
-          "flex gap-4",
-          centered ? "flex-col items-center" : "flex-col sm:flex-row sm:items-end sm:justify-between"
-        )}
-      >
-        <div className={cn(centered && "max-w-2xl")}>
-          {eyebrow && (
-            <p className={cn("nx-public-eyebrow mb-3", centered && "flex items-center justify-center")}>
-              {eyebrow}
-            </p>
+      <ScrollReveal>
+        <div
+          className={cn(
+            "flex gap-4",
+            centered ? "flex-col items-center" : "flex-col sm:flex-row sm:items-end sm:justify-between"
           )}
-          <h1 className="nx-spx-section-title text-[clamp(2rem,4vw,3rem)]">
-            {title}
-          </h1>
-          {description && (
-            <p className="mt-3 nx-read mx-auto text-[var(--nx-text-secondary)]">{description}</p>
-          )}
+        >
+          <div className={cn(centered && "max-w-2xl")}>
+            {eyebrow && (
+              <p className={cn("nx-eyebrow mb-4", centered && "justify-center")}>
+                {eyebrow}
+              </p>
+            )}
+            <h1 className="nx-spx-section-title text-[clamp(2rem,4vw,3rem)]">
+              {title}
+            </h1>
+            {description && (
+              <p className="mt-4 nx-read mx-auto text-[var(--nx-text-secondary)] text-base sm:text-lg leading-[1.5]">
+                {description}
+              </p>
+            )}
+          </div>
+          {action && <div className="shrink-0">{action}</div>}
         </div>
-        {action && <div className="shrink-0">{action}</div>}
-      </div>
+      </ScrollReveal>
     </header>
   );
+}
+
+interface PageSectionProps {
+  children: React.ReactNode;
+  className?: string;
+  sectionIndex?: string;
+  divided?: boolean;
 }
 
 export function PageSection({
   children,
   className,
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) {
+  sectionIndex,
+  divided = true,
+}: PageSectionProps) {
   return (
-    <section className={cn("max-w-6xl mx-auto px-6 sm:px-8 py-12 sm:py-16", className)}>
+    <section
+      className={cn(
+        "relative max-w-6xl mx-auto px-6 sm:px-8 py-12 sm:py-16",
+        divided && "nx-section-divide",
+        className
+      )}
+    >
+      {sectionIndex && (
+        <span className="nx-section-index">{sectionIndex}</span>
+      )}
       {children}
     </section>
   );

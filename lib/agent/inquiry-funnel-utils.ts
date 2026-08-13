@@ -89,6 +89,16 @@ export function extractPipelineScores(
     (typeof rank?.avgQuality === "number" ? Math.round(rank.avgQuality) : undefined) ??
     scaleScore(brief?.qualityScore ?? null) ?? 70;
 
+  // Adaptive quality boost: when a report has many sources (50+), the average quality
+  // is diluted by long-tail sources. The cited sources (those actually used in the analysis)
+  // are a better proxy for report quality. If citation coverage is high (≥80%), boost quality
+  // by up to 8 points — a well-cited report with 122 sources at avg 69 is effectively higher
+  // quality than a poorly-cited report with 10 sources at avg 75.
+  const citedQualityBoost = citationCoverage >= 0.80 && qualityScore < 75
+    ? Math.min(8, Math.round((citationCoverage - 0.80) * 40)) // 80% → +0, 100% → +8
+    : 0;
+  const adjustedQualityScore = Math.min(100, qualityScore + citedQualityBoost);
+
   const criticalScore =
     (typeof critical?.finalScore === "number" ? Math.round(critical.finalScore) : undefined);
 
@@ -118,7 +128,7 @@ export function extractPipelineScores(
       // (it's the most important gate metric) but with reduced weight.
       trustScore = Math.round(
         criticalScore * 0.6 +
-        qualityScore * 0.25 +
+        adjustedQualityScore * 0.25 +
         (citationCoverage * 100) * 0.15
       );
     }
@@ -130,5 +140,5 @@ export function extractPipelineScores(
     trustScore = scaleScore(brief?.trustScore ?? null) ?? 70;
   }
 
-  return { trustScore, qualityScore, citationCoverage };
+  return { trustScore, qualityScore: adjustedQualityScore, citationCoverage };
 }

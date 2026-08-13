@@ -30,6 +30,8 @@ export interface PublicationGateInput {
   triangularOverride?: boolean;
   /** Domain for adaptive source count threshold */
   domain?: string | null;
+  /** Structured claims from READER agent (Claim table). When provided, used instead of HTML heuristics. */
+  dbClaims?: Array<{ text: string; sourceRef?: number | null; evidenceCount?: number }>;
 }
 
 export interface PublicationGateCheck {
@@ -105,7 +107,29 @@ export function evaluatePublicationGate(input: PublicationGateInput): Publicatio
     strategicMinSourceCount: adaptiveMinSources,
     ...input.thresholds,
   };
-  const evidenceLedger = buildEvidenceLedger(input.html || "");
+  // Use structured claims from READER agent when available, otherwise parse HTML
+  let evidenceLedger: ReturnType<typeof buildEvidenceLedger>;
+  if (input.dbClaims && input.dbClaims.length > 0) {
+    const citedClaims = input.dbClaims.filter(c => c.sourceRef != null && c.sourceRef > 0);
+    const allRefs = input.dbClaims
+      .map(c => c.sourceRef)
+      .filter((r): r is number => r != null && r > 0);
+    evidenceLedger = {
+      claimCount: input.dbClaims.length,
+      citedClaimCount: citedClaims.length,
+      uncitedClaimCount: input.dbClaims.length - citedClaims.length,
+      citationCount: allRefs.length,
+      uniqueCitationCount: new Set(allRefs).size,
+      claims: input.dbClaims.map((c, i) => ({
+        id: `db-claim-${i + 1}`,
+        text: c.text,
+        citations: c.sourceRef ? [c.sourceRef] : [],
+        supportStatus: c.sourceRef ? "unverified" as const : "unsupported" as const,
+      })),
+    };
+  } else {
+    evidenceLedger = buildEvidenceLedger(input.html || "");
+  }
   const allCitationNumbers = extractCitationNumbers(input.html || "");
   const sourceCount = input.sourceIds?.length || 0;
   const derivedCoverage = sourceCount > 0

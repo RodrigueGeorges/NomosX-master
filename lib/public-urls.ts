@@ -10,6 +10,7 @@ export const PUBLIC_ROUTES = {
   about: "/about",
   methodology: "/methodology",
   pricing: "/pricing",
+  trackRecord: "/track-record",
 } as const;
 
 export function inquiryUrl(slug: string, absolute = false): string {

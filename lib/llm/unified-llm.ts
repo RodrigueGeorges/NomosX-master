@@ -58,6 +58,9 @@ export type LLMTask =
   | "studiox"
   // Adaptive enrichment — fast reasoning about evidence sufficiency
   | "enrichment_reasoner"
+  // Preflight checks — semantic alignment + query reformulation
+  | "preflight_semantic_check"
+  | "query_reformulation"
   // Structural review — narrative arc validation (Pyramid Principle, SCR)
   | "structural_editor"
   // Legacy task names — kept for backward compat during migration, mapped in LEGACY_TASK_ALIAS
@@ -108,11 +111,11 @@ const FAMILY_PROVIDER: Record<LLMFamily, LLMProvider> = {
  * stops publication.
  */
 const CROSS_FAMILY_FALLBACK: Record<LLMFamily, LLMFamily[]> = {
-  deepseek: ["kimi", "glm", "openai", "anthropic"],
-  glm: ["deepseek", "kimi", "openai", "anthropic"],
-  openai: ["anthropic", "deepseek", "kimi", "glm"],
+  deepseek: ["kimi", "glm", "openai"],
+  glm: ["deepseek", "kimi", "openai"],
+  openai: ["deepseek", "kimi", "glm"],
   anthropic: ["kimi", "openai", "deepseek", "glm"],
-  kimi: ["anthropic", "deepseek", "glm", "openai"],
+  kimi: ["deepseek", "glm", "openai"],
 };
 
 /** Opposite family for the fact_check / citation_verification independence rule. */
@@ -171,13 +174,12 @@ const TASK_ASSIGNMENT: Record<LLMTask, TaskAssignment> = {
   fact_check:             { provider: "anthropic", model: "claude-sonnet-5", timeoutMs: 60_000 },
   citation_verification:  { provider: "anthropic", model: "claude-sonnet-5", timeoutMs: 60_000 },
 
-  // Heavy INPUT + OUTPUT — Kimi K3 (Index 57, 1M context, 128K output, $3/$15)
-  // K3's cache hit rate hits 90% on repeated context → effective input ~$0.30/M.
-  // GLM stays as fallback for its 1M context window when Kimi is unavailable.
-  reader_v3:              { provider: "kimi", model: "kimi-k3", timeoutMs: 300_000 },
-  strategic_analyst:      { provider: "kimi", model: "kimi-k3", timeoutMs: 600_000 },
-  harvard_council:        { provider: "kimi", model: "kimi-k3", timeoutMs: 300_000 },
-  elenchus:               { provider: "kimi", model: "kimi-k3", timeoutMs: 300_000 },
+  // Heavy INPUT + OUTPUT — DeepSeek Flash as primary (10x cheaper than Kimi,
+  // sufficient for abstract/PDF reading). Kimi K3 as fallback for long PDFs.
+  reader_v3:              { provider: "deepseek", model: "deepseek-v4-flash", timeoutMs: 300_000 },
+  strategic_analyst:      { provider: "deepseek", model: "deepseek-v4-flash", timeoutMs: 600_000 },
+  harvard_council:        { provider: "deepseek", model: "deepseek-v4-flash", timeoutMs: 300_000 },
+  elenchus:               { provider: "deepseek", model: "deepseek-v4-flash", timeoutMs: 300_000 },
 
   // Heavy structured-JSON OUTPUT — Kimi K3 for deep reasoning + 128K output.
   // Produces 5000+ word analyses without truncation. DeepSeek Flash as fallback.
@@ -194,6 +196,8 @@ const TASK_ASSIGNMENT: Record<LLMTask, TaskAssignment> = {
   // Conversational
   studiox:                { provider: "deepseek", model: "deepseek-v4-flash", timeoutMs: 60_000 },
   enrichment_reasoner:    { provider: "deepseek", model: "deepseek-v4-flash", timeoutMs: 30_000 },
+  preflight_semantic_check: { provider: "deepseek", model: "deepseek-v4-flash", timeoutMs: 15_000 },
+  query_reformulation:    { provider: "deepseek", model: "deepseek-v4-flash", timeoutMs: 15_000 },
 
   // Legacy aliases — never read directly (normalizeTask() redirects before lookup),
   // kept so LLMTask stays a superset and TS doesn't complain about missing keys.

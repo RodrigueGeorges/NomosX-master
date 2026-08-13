@@ -246,21 +246,27 @@ function selectFetchers(query: string, sources: any[]): Fetcher[] {
   const fetchers: Fetcher[] = [];
 
   const isEnergy = /\b(energy|electricity|power|grid|datacenter|data center|nuclear|renewable|solar|wind|gas)\b/.test(q);
-  const isFiscal = /\b(debt|fiscal|treasury|budget|deficit|spending|tax)\b/.test(q);
+  const isFiscal = /\b(debt|fiscal|treasury|budget|deficit|spending|tax|bond|yield|interest rate|monetary|banking|finance|leverage|systemic|credit|central bank|fed|ecb|basel)\b/.test(q);
   const isClimate = /\b(co2|carbon|emission|climate)\b/.test(q);
 
-  if (isEnergy || providersInSources.has('energy-charts') || providersInSources.has('smard')) {
-    fetchers.push(() => fetchEnergyChartsPrice('de'));
-    fetchers.push(() => fetchEnergyChartsPrice('fr'));
-  }
-  if (isEnergy || providersInSources.has('rte-france')) {
-    fetchers.push(fetchRTEConsumption);
+  // Energy data only if explicitly energy-related AND not a finance report
+  if (isEnergy && !isFiscal) {
+    if (providersInSources.has('energy-charts') || providersInSources.has('smard')) {
+      fetchers.push(() => fetchEnergyChartsPrice('de'));
+      fetchers.push(() => fetchEnergyChartsPrice('fr'));
+    }
+    if (providersInSources.has('rte-france')) {
+      fetchers.push(fetchRTEConsumption);
+    }
   }
   if (isFiscal || providersInSources.has('treasury-fiscal')) {
     fetchers.push(fetchTreasuryDebt);
   }
-  if (isClimate || isEnergy || providersInSources.has('energi-data')) {
-    fetchers.push(fetchEnergiDataCO2);
+  // Climate data only if explicitly climate-related AND not a finance report
+  if (isClimate && !isFiscal) {
+    if (providersInSources.has('energi-data')) {
+      fetchers.push(fetchEnergiDataCO2);
+    }
   }
 
   return fetchers;

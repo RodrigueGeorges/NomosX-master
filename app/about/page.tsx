@@ -5,12 +5,12 @@ import { useRouter } from "next/navigation";
 import AuthModal from "@/components/AuthModal";
 import { PublicPageShell } from "@/components/layout/PublicPageShell";
 import { EtherealCard, PageHeader, PageSection } from "@/components/layout/PageHeader";
+import { ScrollReveal } from "@/components/ui/ScrollReveal";
 import { PUBLIC_ROUTES } from "@/lib/public-urls";
 import { PipelineStrip } from "@/components/signature";
 import {
   BRAND_SOURCES_LABEL,
   BRAND_TAGLINE,
-  BRAND_MANIFESTO,
   NOMOS_PHILOSOPHY_PILLARS,
   NOMOS_PHILOSOPHY_STATEMENT,
   ABOUT_CTA_HEADLINE,
@@ -73,66 +73,69 @@ export default function AboutPage() {
         </PageSection>
 
         {/* Nomos philosophy statement */}
-        <PageSection className="pb-8">
+        <PageSection sectionIndex="01 / 06" className="pb-8">
           <div className="max-w-2xl mx-auto text-center">
-            <p className="nx-eyebrow mb-6">The principle</p>
-            <p className="text-base sm:text-lg text-white/70 leading-[1.6] italic">
-              {NOMOS_PHILOSOPHY_STATEMENT}
-            </p>
+            <ScrollReveal>
+              <p className="nx-eyebrow mb-6 justify-center">The principle</p>
+            </ScrollReveal>
+            <ScrollReveal delay={100}>
+              <p className="text-base sm:text-lg text-white/70 leading-[1.6] italic">
+                {NOMOS_PHILOSOPHY_STATEMENT}
+              </p>
+            </ScrollReveal>
           </div>
         </PageSection>
 
-        {/* Manifesto */}
-        <section className="px-6 sm:px-8 py-12 sm:py-16 nx-section-divide">
-          <div className="max-w-2xl mx-auto text-center">
-            <div className="space-y-5">
-              <p className="text-lg sm:text-xl text-white/80 leading-[1.4] font-light">
-                The world doesn't suffer from a lack of information.
+        {/* Manifesto — using brand typography classes (harmonized with home) */}
+        <section className="nx-section-divide relative px-6 sm:px-8 py-16 sm:py-20 overflow-hidden">
+          <span className="nx-section-index">02 / 06</span>
+          <div className="nx-grid-bg-enhanced opacity-30" aria-hidden="true" />
+          <div className="relative max-w-4xl mx-auto text-center">
+            <ScrollReveal stagger className="space-y-2">
+              <p className="nx-manifesto-line">The world doesn&apos;t suffer</p>
+              <p className="nx-manifesto-line">from a lack of information.</p>
+              <div className="nx-divider w-16 mx-auto my-8" />
+              <p className="nx-manifesto-line nx-manifesto-line--accent">It suffers from a lack of structure.</p>
+            </ScrollReveal>
+            <ScrollReveal stagger delay={200} className="mt-12 space-y-1">
+              <p className="nx-manifesto-cascade">Knowledge without order creates noise.</p>
+              <p className="nx-manifesto-cascade">Order creates understanding.</p>
+              <p className="nx-manifesto-cascade">Understanding creates better decisions.</p>
+            </ScrollReveal>
+            <ScrollReveal delay={400}>
+              <p className="nx-manifesto-signoff">
+                That is Nomos<span className="nx-manifesto-signoff-x">X</span>
               </p>
-              <p className="text-lg sm:text-xl text-white/80 leading-[1.4] font-light">
-                It suffers from a lack of structure.
-              </p>
-              <div className="h-px w-12 bg-white/15 mx-auto my-6" />
-              <p className="text-sm sm:text-base text-white/65 leading-[1.6]">
-                Knowledge without order creates noise.
-              </p>
-              <p className="text-sm sm:text-base text-white/65 leading-[1.6]">
-                Order creates understanding.
-              </p>
-              <p className="text-sm sm:text-base text-white/65 leading-[1.6]">
-                Understanding creates better decisions.
-              </p>
-              <p className="text-sm font-mono uppercase tracking-[0.2em] text-white/50 pt-4">
-                That is NomosX.
-              </p>
-            </div>
+            </ScrollReveal>
           </div>
         </section>
 
         {/* Six pillars */}
-        <PageSection className="py-10">
+        <PageSection sectionIndex="03 / 06" className="py-10">
           <div className="max-w-5xl mx-auto">
-            <p className="nx-eyebrow mb-10 text-center">Six editorial pillars</p>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <ScrollReveal>
+              <p className="nx-eyebrow mb-10 text-center">Six editorial pillars</p>
+            </ScrollReveal>
+            <ScrollReveal stagger className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {NOMOS_PHILOSOPHY_PILLARS.map((pillar, i) => (
-                <div key={pillar} className="nx-public-surface p-5 hover:border-white/[0.14] transition-colors">
+                <div key={pillar} className="nx-surface nx-pillar p-5">
                   <p className="font-mono text-[11px] text-white/45 mb-3">0{i + 1}</p>
-                  <p className="text-sm text-white/75 leading-[1.5]">{pillar}</p>
+                  <p className="text-sm text-white/70 leading-[1.5]">{pillar}</p>
                 </div>
               ))}
-            </div>
+            </ScrollReveal>
           </div>
         </PageSection>
 
         <PipelineStrip />
 
-        <PageSection>
+        <PageSection sectionIndex="04 / 06">
           <PageHeader
             eyebrow="What we do"
             title="The vision"
             description="Four principles that define every publication NomosX produces."
           />
-          <div className="grid sm:grid-cols-2 gap-4">
+          <ScrollReveal stagger className="grid sm:grid-cols-2 gap-4">
             {VISION.map(({ icon: Icon, title, description }) => (
               <EtherealCard key={title}>
                 <Icon className="w-5 h-5 text-white mb-4" strokeWidth={1.25} />
@@ -140,35 +143,37 @@ export default function AboutPage() {
                 <p className="text-sm text-white/60 leading-relaxed">{description}</p>
               </EtherealCard>
             ))}
-          </div>
+          </ScrollReveal>
         </PageSection>
 
-        <PageSection className="nx-public-section">
+        <PageSection sectionIndex="05 / 06">
           <PageHeader
             eyebrow="Values"
             title="What we optimize for"
             description="Four principles govern every publication."
           />
-          <div className="grid sm:grid-cols-2 gap-4">
+          <ScrollReveal stagger className="grid sm:grid-cols-2 gap-4">
             {VALUES.map((v) => (
-              <div key={v.title} className="nx-public-surface p-6">
+              <div key={v.title} className="nx-surface p-6">
                 <h3 className="text-sm font-medium text-white mb-2">{v.title}</h3>
                 <p className="text-sm text-white/55 leading-relaxed">{v.description}</p>
               </div>
             ))}
-          </div>
+          </ScrollReveal>
         </PageSection>
 
-        <PageSection className="border-t border-white/[0.08] text-center pb-16">
-          <h2 className="font-display text-2xl font-semibold mb-4">
-            {ABOUT_CTA_HEADLINE}{" "}
-            <span className="text-white/70">{ABOUT_CTA_HEADLINE_ACCENT}</span>
-          </h2>
-          <p className="text-sm text-white/55 mb-8 max-w-md mx-auto">{BRAND_TAGLINE}</p>
-          <button type="button" onClick={() => router.push(PUBLIC_ROUTES.archives)} className="nx-public-btn-primary">
-            Browse inquiries
-            <ArrowRight size={14} />
-          </button>
+        <PageSection sectionIndex="06 / 06" className="text-center pb-16">
+          <ScrollReveal>
+            <h2 className="font-display text-2xl font-semibold mb-4">
+              {ABOUT_CTA_HEADLINE}{" "}
+              <span className="text-white/70">{ABOUT_CTA_HEADLINE_ACCENT}</span>
+            </h2>
+            <p className="text-sm text-white/55 mb-8 max-w-md mx-auto">{BRAND_TAGLINE}</p>
+            <button type="button" onClick={() => router.push(PUBLIC_ROUTES.archives)} className="nx-public-btn-primary">
+              Browse inquiries
+              <ArrowRight size={14} />
+            </button>
+          </ScrollReveal>
         </PageSection>
       </PublicPageShell>
 

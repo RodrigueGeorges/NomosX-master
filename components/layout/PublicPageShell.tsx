@@ -38,7 +38,7 @@ export function PublicPageShell({
       <div className="nx-vignette" aria-hidden="true" />
       <ScrollProgress />
       {particles > 0 && <EtherealBackground particleCount={particles} radialGlow={false} />}
-      <div className="relative z-10 flex flex-col min-h-screen">
+      <div className="relative z-10 flex flex-col min-h-screen" data-nx-main>
         <PublicNav
           currentPage={currentPage}
           onSignInClick={onSignInClick}

@@ -1,0 +1,16 @@
+__pycache__/
+*.pyc
+*.pyo
+.git/
+.gitignore
+.cache/
+.pytest_cache/
+*.egg-info/
+.venv/
+venv/
+env/
+figaro-cache/
+*.parquet
+README.md
+Dockerfile
+.dockerignore

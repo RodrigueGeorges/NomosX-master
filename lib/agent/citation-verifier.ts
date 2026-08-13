@@ -133,8 +133,14 @@ async function verifySingleCitation(
   citation: CitationInstance,
   source: any,
   producerFamily?: LLMFamily,
+  readings?: any[],
 ): Promise<CitationVerification> {
-  const sourceContent = `${source.title}\n${source.abstract || ""}`.trim();
+  // Use full-text from READER V3 when available — abstracts alone miss specific numbers/quotes
+  const reading = readings?.find((r: any) => r.sourceId === source.id);
+  const fullText = reading?.extractedText || (source as any).fullText;
+  const sourceContent = fullText
+    ? fullText.slice(0, 4000)
+    : `${source.title}\n${source.abstract || ""}`.trim();
 
   // Step 1: Semantic similarity (fast, cheap)
   let semanticSim = 0;
@@ -166,7 +172,7 @@ BROADER CONTEXT:
 
 CITED SOURCE:
 Title: ${source.title}
-Abstract: ${(source.abstract || "No abstract available").slice(0, 1500)}
+${fullText ? `Full Text (excerpt): ${sourceContent.slice(0, 4000)}` : `Abstract: ${(source.abstract || "No abstract available").slice(0, 1500)}`}
 Year: ${source.year || "N/A"}
 
 VERDICT OPTIONS:
@@ -242,9 +248,11 @@ export async function verifyCitations(
     producerFamily?: LLMFamily;
     /** Hard cap on claim-citation pairs to verify (bounds critical-path time). */
     maxClaims?: number;
+    /** Full-text readings from READER V3 — enables accurate verification of specific claims */
+    readings?: any[];
   } = {}
 ): Promise<VerificationReport> {
-  const { maxConcurrency = 8, producerFamily, maxClaims = 50 } = options;
+  const { maxConcurrency = 8, producerFamily, maxClaims = 50, readings = [] } = options;
   let totalCost = 0;
 
   console.log(`[CitationVerifier] Starting verification for ${sources.length} sources...`);
@@ -327,7 +335,7 @@ export async function verifyCitations(
             suggestedFix: `Remove or replace [SRC-${citation.srcIndex}] with a valid source reference`,
           });
         }
-        return verifySingleCitation(citation, sources[sourceIndex], producerFamily);
+        return verifySingleCitation(citation, sources[sourceIndex], producerFamily, readings);
       })
     );
 

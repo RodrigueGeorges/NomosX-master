@@ -11,6 +11,7 @@ import { PUBLIC_ROUTES, archivesDomainUrl } from "@/lib/public-urls";
 import { nx } from "@/lib/brand/public-ui";
 import { cn } from "@/lib/utils";
 import { ArrowRight } from "lucide-react";
+import { ScrollReveal } from "@/components/ui/ScrollReveal";
 
 const TIERS = [
   { id: "all", label: "All" },
@@ -23,7 +24,7 @@ const LENSES = getReasoningLenses();
 
 function LensCard({ lens }: { lens: ReasoningLens }) {
   return (
-    <article className="group relative flex flex-col p-6 nx-public-surface hover:border-white/20 transition-all">
+    <article className="group relative flex flex-col p-6 nx-surface hover:border-white/20 transition-all">
       <div className="flex items-start justify-between gap-4 mb-5">
         <div
           className="w-12 h-12 flex items-center justify-center font-mono text-[11px] font-semibold uppercase tracking-wider"
@@ -86,69 +87,77 @@ export default function ResearchersPage() {
   return (
     <>
       <PublicPageShell currentPage="research" onSignInClick={() => setShowAuthModal(true)} particles={0}>
-        <PageSection className="pt-16 sm:pt-20">
+        <PageSection className="pt-16 sm:pt-20" sectionIndex="01 / 01">
           <PageHeader
             eyebrow="Reasoning models"
             title={`${REASONING_LENS_COUNT} domain lenses`}
             description="Cross-domain analytical models — not personas. Each lens maps evidence, challenges assumptions, and feeds the final position."
           />
 
-          <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6">
-            <div className="flex flex-wrap gap-2">
-              {TIERS.map((t) => (
-                <button
-                  key={t.id}
-                  type="button"
-                  onClick={() => setTierFilter(t.id)}
-                  className={cn(
-                    "px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.14em]",
-                    tierFilter === t.id
-                      ? "bg-white/10 text-white border border-white/40"
-                      : "text-white/50 border border-white/[0.08]"
-                  )}
-                >
-                  {t.label}
-                </button>
+          <ScrollReveal>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6">
+              <div className="flex flex-wrap gap-2">
+                {TIERS.map((t) => (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => setTierFilter(t.id)}
+                    className={cn(
+                      "px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.14em]",
+                      tierFilter === t.id
+                        ? "bg-white/10 text-white border border-white/40"
+                        : "text-white/50 border border-white/[0.08]"
+                    )}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+              <select
+                value={domainFilter}
+                onChange={(e) => setDomainFilter(e.target.value)}
+                className={nx.select}
+              >
+                <option value="all">All domains</option>
+                {domains.map((d) => (
+                  <option key={d} value={d}>
+                    {d}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </ScrollReveal>
+
+          <ScrollReveal>
+            <p className="font-mono text-[11px] text-white/50 mb-6 uppercase tracking-[0.14em]">
+              {filtered.length} lenses
+            </p>
+          </ScrollReveal>
+
+          <ScrollReveal stagger>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-12">
+              {filtered.map((l) => (
+                <LensCard key={l.id} lens={l} />
               ))}
             </div>
-            <select
-              value={domainFilter}
-              onChange={(e) => setDomainFilter(e.target.value)}
-              className={nx.select}
-            >
-              <option value="all">All domains</option>
-              {domains.map((d) => (
-                <option key={d} value={d}>
-                  {d}
-                </option>
-              ))}
-            </select>
-          </div>
+          </ScrollReveal>
 
-          <p className="font-mono text-[11px] text-white/50 mb-6 uppercase tracking-[0.14em]">
-            {filtered.length} lenses
-          </p>
-
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-12">
-            {filtered.map((l) => (
-              <LensCard key={l.id} lens={l} />
-            ))}
-          </div>
-
-          <div className="text-center nx-public-surface p-8">
-            <h2 className="font-display text-lg font-semibold mb-3">Always publishing</h2>
-            <p className="text-sm text-white/60 mb-6 max-w-md mx-auto">
-              New positions every day. Browse the full archive.
-            </p>
-            <button
-              type="button"
-              onClick={() => router.push(PUBLIC_ROUTES.archives)}
-              className="inline-flex items-center gap-2 px-6 py-3 bg-white text-bg text-xs font-semibold uppercase tracking-[0.1em] hover:bg-white/90 group"
-            >
-              Explore briefs
-              <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
-            </button>
-          </div>
+          <ScrollReveal>
+            <div className="text-center nx-surface p-8">
+              <h2 className="font-display text-lg font-semibold mb-3">Always publishing</h2>
+              <p className="text-sm text-white/60 mb-6 max-w-md mx-auto">
+                New positions every day. Browse the full archive.
+              </p>
+              <button
+                type="button"
+                onClick={() => router.push(PUBLIC_ROUTES.archives)}
+                className="inline-flex items-center gap-2 px-6 py-3 bg-white text-bg text-xs font-semibold uppercase tracking-[0.1em] hover:bg-white/90 group"
+              >
+                Explore briefs
+                <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
+              </button>
+            </div>
+          </ScrollReveal>
         </PageSection>
       </PublicPageShell>
 

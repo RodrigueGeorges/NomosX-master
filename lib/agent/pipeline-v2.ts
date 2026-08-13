@@ -1252,14 +1252,33 @@ function esc(s: string): string {
 // CITATION GUARD
 // ================================
 
-export function citationGuard(json: any, sourceCount: number) {
+export function citationGuard(json: any, sourceCount: number, modelCount = 0) {
   const allText = JSON.stringify(json || {});
   // Count distinct cited sources (a source cited multiple times counts once).
   const used = Array.from(
     new Set(Array.from(allText.matchAll(/SRC-(\d+)/g)).map((m) => Number(m[1])))
   );
   const invalid = used.filter((n) => n < 1 || n > sourceCount);
-  return { ok: used.length > 0 && invalid.length === 0, usedCount: used.length, invalid };
+  // MODEL-N tags reference deterministic QUANT BRIDGE models; any tag beyond
+  // the number of models actually run is a fabricated model reference.
+  const usedModels = Array.from(
+    new Set(Array.from(allText.matchAll(/MODEL-(\d+)/g)).map((m) => Number(m[1])))
+  );
+  const invalidModels = usedModels.filter((n) => n < 1 || n > modelCount);
+  // Detect malformed tags like [MODEL-] or [MODEL-abc] that the digit regex misses.
+  // These indicate the model tried to cite a model but formatted it wrong — flag them.
+  const malformedModelTags = Array.from(
+    allText.matchAll(/\[MODEL-(?!\d)/gi)
+  );
+  const malformedModelCount = malformedModelTags.length;
+  return {
+    ok: used.length > 0 && invalid.length === 0 && invalidModels.length === 0 && malformedModelCount === 0,
+    usedCount: used.length,
+    invalid,
+    usedModelCount: usedModels.length,
+    invalidModels,
+    malformedModelCount,
+  };
 }
 
 // ================================
@@ -1496,6 +1515,10 @@ export interface PipelineCoreOptions {
   /** Pre-validated sources — skip SCOUT when len ≥ minSeedSourcesToSkipScout */
   seedSourceIds?: string[];
   minSeedSourcesToSkipScout?: number;
+  /** QUANT BRIDGE — deterministic model layer (parametric costing + FIGARO IO). Default: "io" for strategic, "none" for brief */
+  quantDepth?: import("../quant/quant-bridge").QuantDepth;
+  /** Optional structured costing exercise from StudioX orders */
+  parametricInput?: import("../quant/types").ParametricCostInput;
 }
 
 async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
@@ -2160,24 +2183,158 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     emitProgress(pipelineRun.id, "ENRICHMENT", "completed", `Enriched: +${newSourceCount} sources, ${topSources.length} total ranked`);
   } else if (enrichmentAssessment.verdict === 'refuse') {
     console.warn(`${label} REFUSAL: Evidence fundamentally insufficient — ${enrichmentAssessment.reasoning}`);
-    stats.structuredRefusal = {
-      reason: 'insufficient_evidence',
-      sourceCount: topSources.length,
-      required: 0,
-      missing: enrichmentAssessment.gaps.map(g => `${g.type}: ${g.description}`),
-    };
-    stats.enrichmentReasoner = {
-      verdict: 'refuse',
-      sufficiencyScore: enrichmentAssessment.sufficiencyScore,
-      gapsFound: enrichmentAssessment.gaps.length,
-      enrichmentQueries: [],
-      newSourcesAdded: 0,
-      costUsd: enrichmentAssessment.costUsd,
-    };
-    emitProgress(pipelineRun.id, "ENRICHMENT", "completed", `Refusal: evidence insufficient (score ${enrichmentAssessment.sufficiencyScore}/100)`);
-    stats.totalCostUsd = runningCostUsd;
-    activeRuns.delete(idempotencyKey);
-    return { briefId: undefined, pipelineRun, stats, html: '', analysis: { refusal: stats.structuredRefusal } as any };
+
+    // ── REFORMULATION RETRY — instead of giving up, try broadening the query ──
+    // The enrichment reasoner identified gaps. Use its enrichmentQueries as reformulations
+    // and re-scout with them. If we find enough aligned sources, proceed.
+    const reformulationQueries = enrichmentAssessment.enrichmentQueries?.length > 0
+      ? enrichmentAssessment.enrichmentQueries.slice(0, 3)
+      : [query]; // fallback to original if no enrichment queries
+
+    if (reformulationQueries.length > 0 && reformulationQueries[0] !== query) {
+      console.log(`${label} REFUSAL RETRY: Re-scouting with ${reformulationQueries.length} reformulated queries...`);
+      emitProgress(pipelineRun.id, "ENRICHMENT", "started", `Retrying with reformulated queries...`);
+
+      const retryScoutResults = await Promise.allSettled(
+        reformulationQueries.map(q => scout(q, providers, isStrategic ? 30 : 20))
+      );
+      let retryNewSourceIds: string[] = [];
+      for (const r of retryScoutResults) {
+        if (r.status === 'fulfilled') {
+          const newIds = Array.isArray(r.value) ? r.value.map((s: any) => s.id) : (r.value.sourceIds || []);
+          retryNewSourceIds = [...new Set([...retryNewSourceIds, ...newIds])];
+        }
+      }
+
+      if (retryNewSourceIds.length > 0) {
+        // Re-rank with the new sources
+        const retryRanked = await rank(query, { limit: isStrategic ? 25 : 15, mode: 'balanced' });
+        if (retryRanked.length > topSources.length) {
+          console.log(`${label} REFUSAL RETRY: Found ${retryRanked.length} sources (was ${topSources.length}). Proceeding with enriched corpus.`);
+          topSources = retryRanked;
+          // Re-assess sufficiency with the new sources
+          const retrySourceSummaries = topSources.slice(0, 15).map((s: any) => ({
+            title: s.title || '',
+            provider: s.provider || '',
+            year: s.year,
+            qualityScore: s.qualityScore || 0,
+            hasAbstract: !!(s.abstract || s.summary),
+            hasFullText: !!s.fullTextUrl,
+          }));
+          const retryAssessment = await assessEvidenceSufficiency(query, 'general', isStrategic, retrySourceSummaries, topSources.length);
+          addCost(retryAssessment.costUsd, 'ENRICHMENT_REASONER_RETRY');
+
+          if (retryAssessment.verdict !== 'refuse') {
+            // Success — proceed with the enriched corpus
+            console.log(`${label} REFUSAL RETRY: ✅ Sufficiency reassessed as ${retryAssessment.verdict} (score ${retryAssessment.sufficiencyScore}/100)`);
+            stats.enrichmentReasoner = {
+              verdict: retryAssessment.verdict,
+              sufficiencyScore: retryAssessment.sufficiencyScore,
+              gapsFound: retryAssessment.gaps.length,
+              enrichmentQueries: reformulationQueries,
+              newSourcesAdded: retryNewSourceIds.length,
+              costUsd: enrichmentAssessment.costUsd + retryAssessment.costUsd,
+              retryAttempted: true,
+              retrySucceeded: true,
+            } as any;
+            // Skip to analysis with the new sources
+          } else {
+            // Still refused after retry — give up
+            console.warn(`${label} REFUSAL RETRY: ❌ Still insufficient after reformulation. Giving up.`);
+            stats.structuredRefusal = {
+              reason: 'insufficient_evidence',
+              sourceCount: topSources.length,
+              required: 0,
+              missing: enrichmentAssessment.gaps.map(g => `${g.type}: ${g.description}`),
+              retryAttempted: true,
+              retryQueries: reformulationQueries,
+            };
+            stats.enrichmentReasoner = {
+              verdict: 'refuse',
+              sufficiencyScore: retryAssessment.sufficiencyScore,
+              gapsFound: retryAssessment.gaps.length,
+              enrichmentQueries: [],
+              newSourcesAdded: 0,
+              costUsd: enrichmentAssessment.costUsd + retryAssessment.costUsd,
+              retryAttempted: true,
+              retrySucceeded: false,
+            } as any;
+            emitProgress(pipelineRun.id, "ENRICHMENT", "completed", `Refusal after retry: evidence still insufficient`);
+            stats.totalCostUsd = runningCostUsd;
+            activeRuns.delete(idempotencyKey);
+            return { briefId: undefined, pipelineRun, stats, html: '', analysis: { refusal: stats.structuredRefusal } as any };
+          }
+        } else {
+          console.warn(`${label} REFUSAL RETRY: Reformulation didn't find more sources. Giving up.`);
+          stats.structuredRefusal = {
+            reason: 'insufficient_evidence',
+            sourceCount: topSources.length,
+            required: 0,
+            missing: enrichmentAssessment.gaps.map(g => `${g.type}: ${g.description}`),
+            retryAttempted: true,
+            retrySucceeded: false,
+          };
+          stats.enrichmentReasoner = {
+            verdict: 'refuse',
+            sufficiencyScore: enrichmentAssessment.sufficiencyScore,
+            gapsFound: enrichmentAssessment.gaps.length,
+            enrichmentQueries: [],
+            newSourcesAdded: 0,
+            costUsd: enrichmentAssessment.costUsd,
+            retryAttempted: true,
+            retrySucceeded: false,
+          } as any;
+          emitProgress(pipelineRun.id, "ENRICHMENT", "completed", `Refusal after retry: no new sources found`);
+          stats.totalCostUsd = runningCostUsd;
+          activeRuns.delete(idempotencyKey);
+          return { briefId: undefined, pipelineRun, stats, html: '', analysis: { refusal: stats.structuredRefusal } as any };
+        }
+      } else {
+        // No new sources from reformulation
+        stats.structuredRefusal = {
+          reason: 'insufficient_evidence',
+          sourceCount: topSources.length,
+          required: 0,
+          missing: enrichmentAssessment.gaps.map(g => `${g.type}: ${g.description}`),
+          retryAttempted: true,
+          retrySucceeded: false,
+        };
+        stats.enrichmentReasoner = {
+          verdict: 'refuse',
+          sufficiencyScore: enrichmentAssessment.sufficiencyScore,
+          gapsFound: enrichmentAssessment.gaps.length,
+          enrichmentQueries: [],
+          newSourcesAdded: 0,
+          costUsd: enrichmentAssessment.costUsd,
+          retryAttempted: true,
+          retrySucceeded: false,
+        } as any;
+        emitProgress(pipelineRun.id, "ENRICHMENT", "completed", `Refusal: reformulation found no sources`);
+        stats.totalCostUsd = runningCostUsd;
+        activeRuns.delete(idempotencyKey);
+        return { briefId: undefined, pipelineRun, stats, html: '', analysis: { refusal: stats.structuredRefusal } as any };
+      }
+    } else {
+      // No reformulation queries available — give up
+      stats.structuredRefusal = {
+        reason: 'insufficient_evidence',
+        sourceCount: topSources.length,
+        required: 0,
+        missing: enrichmentAssessment.gaps.map(g => `${g.type}: ${g.description}`),
+      };
+      stats.enrichmentReasoner = {
+        verdict: 'refuse',
+        sufficiencyScore: enrichmentAssessment.sufficiencyScore,
+        gapsFound: enrichmentAssessment.gaps.length,
+        enrichmentQueries: [],
+        newSourcesAdded: 0,
+        costUsd: enrichmentAssessment.costUsd,
+      };
+      emitProgress(pipelineRun.id, "ENRICHMENT", "completed", `Refusal: evidence insufficient (score ${enrichmentAssessment.sufficiencyScore}/100)`);
+      stats.totalCostUsd = runningCostUsd;
+      activeRuns.delete(idempotencyKey);
+      return { briefId: undefined, pipelineRun, stats, html: '', analysis: { refusal: stats.structuredRefusal } as any };
+    }
   } else {
     stats.enrichmentReasoner = {
       verdict: 'proceed',
@@ -2334,7 +2491,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   // ── STEP 5: READER V3 + FRAMING + QUANT (parallel) ──
   emitProgress(pipelineRun.id, "READER", "started", `Deep extraction from ${topSources.length} sources...`);
   console.log(`${label} READER V3: deep extraction from ${topSources.length} sources (domain: ${detectedDomain})`);
-  const [readings, framingSettled, quantSettled] = await Promise.all([
+  const [readings, framingSettled, quantSettled, quantBridgeSettled] = await Promise.all([
     readerAgentV3(topSources, {
       enablePdf: true,
       maxConcurrency: 8,
@@ -2348,9 +2505,20 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
       console.warn(`${label} QUANT: failed (non-blocking):`, err);
       return { series: [], facts: [], evidenceBlock: '', chartData: [], fetchedProviders: [], durationMs: 0 };
     }),
+    // QUANT BRIDGE: deterministic model layer (parametric costing + FIGARO IO multipliers)
+    import('../quant/quant-bridge').then(m => m.runQuantBridge(query, {
+      depth: opts.quantDepth ?? (isStrategic ? 'io' : 'none'),
+      parametricInput: opts.parametricInput,
+    })).catch((err) => {
+      console.warn(`${label} QUANT BRIDGE: failed (non-blocking):`, err);
+      return { models: [] as any[], evidenceBlock: '', usedModels: [] as any[], durationMs: 0 };
+    }),
   ]);
   const framing = framingSettled;
   const quant = quantSettled;
+  const quantBridge = quantBridgeSettled;
+  stats.quantBridge = { models: quantBridge.models.length, kinds: quantBridge.usedModels, durationMs: quantBridge.durationMs };
+  if (quantBridge.models.length > 0) console.log(`${label} QUANT BRIDGE: ${quantBridge.models.length} deterministic model(s) [${quantBridge.usedModels.join(', ')}]`);
   addCost(framing.costUsd, 'FRAMING');
   stats.framing = { hypotheses: framing.hypotheses.length, keyUnknowns: framing.keyUnknowns.length, costUsd: framing.costUsd };
   stats.quant = { series: quant.series.length, facts: quant.facts.length, providers: quant.fetchedProviders, durationMs: quant.durationMs };
@@ -2443,18 +2611,19 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   // ── EDITORIAL NORTH STAR — injected FIRST so the analyst reasons toward the finality ──
   // The publication is scored deterministically. Tell the analyst EXACTLY what is measured,
   // so producing a high-trust publication is the optimization target from the first token.
-  const citationTarget = Math.min(40, Math.max(15, Math.ceil(topSources.length * 0.6)));
+  // Citation target: 50% of sources, no artificial cap — a 143-source report must cite 72+.
+  const citationTarget = Math.max(20, Math.ceil(topSources.length * 0.5));
   const editorialNorthStar = [
     `## EDITORIAL NORTH STAR — NON-NEGOTIABLE FINALITY`,
     `You are producing a publication for a think tank whose entire credibility rests on trust and rigor.`,
     `You have ${topSources.length} pertinent sources selected by quality and relevance. Use them.`,
     `The final publication is scored DETERMINISTICALLY on these exact criteria:`,
-    `1. CITATION COVERAGE (25%): cite at least ${citationTarget} DISTINCT sources with [SRC-N] tags. This is ${Math.round(citationTarget / topSources.length * 100)}% of your evidence base — spread citations broadly. Do NOT over-rely on 5-10 sources. Every source in your evidence base was selected for a reason — cite it at least once.`,
+    `1. CITATION COVERAGE (25%): cite at least ${citationTarget} DISTINCT sources with [SRC-N] tags. This is ${Math.round(citationTarget / topSources.length * 100)}% of your evidence base. MANDATORY: Before returning JSON, count your distinct [SRC-N] citations. If below ${citationTarget}, add citations from uncited sources to relevant claims. Do NOT cluster on 5-10 sources — spread across the full evidence base. Every source was selected for a reason — cite it at least once.`,
     `2. GROUNDEDNESS (20%): every factual claim must be directly supported by the cited source's actual content. If a source doesn't say it, don't claim it. Unsourced claims are penalized heavily.`,
     `3. NUMERICAL INTEGRITY (30%): every number, percentage, or statistic MUST come from a cited source. An unsourced number is a fatal defect. If no source provides the number, write "non établie".`,
     `4. SOURCE QUALITY (15%): prioritize claims from the highest-quality sources (peer-reviewed, recent, methodologically strong).`,
     `5. DIVERSITY (10%): draw on the full breadth of providers and years available. Cite from at least 7 different providers.`,
-    `ANTI-PATTERN WARNING: The most common failure mode is citing only 40-50% of sources. This caps trust at ~60/100 and blocks publication. Audit your draft before returning: count distinct [SRC-N] tags. If below ${citationTarget}, go back and add citations from uncited sources to relevant claims.`,
+    `ANTI-PATTERN WARNING: The most common failure mode is citing only 5-10 sources out of ${topSources.length}. This caps trust at ~60/100 and blocks publication. AUDIT YOUR DRAFT: extract all [SRC-N] tags, convert to a Set, check size. If below ${citationTarget}, go back and add citations from uncited sources. Reports with fewer than ${citationTarget} distinct citations WILL BE REJECTED.`,
     `Editorial line: decision-ready analysis, no hedging filler, no generic advice. Every section must either state evidence, state a position derived from evidence, or state explicitly what is unknown. A research gap is a fact about the research, never about the actor studied.`,
   ].join('\n');
 
@@ -2464,6 +2633,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     primedContext?.contextBlock,
     gapContextBlock,
     quant.evidenceBlock || undefined,
+    quantBridge.evidenceBlock || undefined,
     hypothesisVerdictBlock || undefined,
     domainBlock || undefined,
     strategicOptsBlock,
@@ -2786,10 +2956,10 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
 
   // â”€â”€ STEP 7: CITATION GUARD â”€â”€
   console.log(`${label} GUARD: validate citations`);
-  const guard = citationGuard(analysis, topSources.length);
+  const guard = citationGuard(analysis, topSources.length, quantBridge.models.length);
   stats.guard = guard;
   if (!guard.ok) {
-    console.warn(`${label} Citation guard warning: ${guard.usedCount} citations, ${guard.invalid.length} invalid (non-fatal, proceeding with degraded quality)`);
+    console.warn(`${label} Citation guard warning: ${guard.usedCount} citations, ${guard.invalid.length} invalid, ${guard.invalidModels.length} invalid model refs (non-fatal, proceeding with degraded quality)`);
     stats.citationGuardDegraded = true;
   }
 
@@ -2893,7 +3063,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     };
   }
 
-  const renderEditorHtml = (): string => {
+  const renderEditorHtml = async (): Promise<string> => {
     console.log(`${label} EDITOR: render professional HTML`);
     try {
       if (editorialV2 && castingResult && institutePosition) {
@@ -2922,8 +3092,21 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     } catch (editorErr) {
       console.warn(`${label} EDITOR: professional template failed, using legacy:`, editorErr);
       stats.rendererUsed = isStrategic ? "legacy_strategic" : "legacy_brief";
+      // Fetch contradictions from DB to surface in the report (non-blocking)
+      let contradictionsForRender: Array<{ claim1: string; claim2: string; contradictionType: string; confidence: number; explanation: string }> = [];
+      if (isStrategic && topSources.length > 0) {
+        try {
+          const dbContradictions = await prisma.contradiction.findMany({
+            where: { sourceId1: { in: topSources.map(s => s.id) } },
+            select: { claim1: true, claim2: true, contradictionType: true, confidence: true, explanation: true },
+            take: 10,
+            orderBy: { confidence: "desc" },
+          });
+          contradictionsForRender = dbContradictions;
+        } catch { /* non-blocking */ }
+      }
       return isStrategic
-        ? renderStrategicReportHTML(analysis, topSources)
+        ? renderStrategicReportHTML(analysis, topSources, contradictionsForRender)
         : renderBriefHTML(analysis, topSources);
     }
   };
@@ -2959,7 +3142,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
       if (verification.flaggedClaims.length > 5 && verification.flaggedClaims.length < 30) {
         console.log(`${label} CITATION VERIFIER: LLM deep-check on ${verification.flaggedClaims.length} flagged claims`);
         try {
-          const llmVerification = await verifyCitations(html, topSources, { maxConcurrency: 8, maxClaims: 30, producerFamily });
+          const llmVerification = await verifyCitations(html, topSources, { maxConcurrency: 8, maxClaims: 30, producerFamily, readings });
           // Use LLM result if it found fewer issues (NLI is more aggressive)
           if (llmVerification.overallIntegrity > verification.overallIntegrity) {
             stats.citationVerifier = {
@@ -2976,7 +3159,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     } catch (err) {
       console.warn(`${label} CITATION VERIFIER: NLI failed, falling back to LLM:`, err);
       try {
-        const verification = await verifyCitations(html, topSources, { maxConcurrency: 8, maxClaims: 50, producerFamily });
+        const verification = await verifyCitations(html, topSources, { maxConcurrency: 8, maxClaims: 50, producerFamily, readings });
         stats.citationVerifier = {
           integrity: verification.overallIntegrity,
           supported: verification.supported,
@@ -3019,6 +3202,49 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
       stats.factChecker = { error: String(err) };
     }
 
+    // ── ORIGINALITY CHECK — detect close paraphrasing / plagiarism ──
+    try {
+      const { checkOriginality } = await import('./originality-check');
+      const analysisSections: Record<string, string> = {};
+      for (const [key, value] of Object.entries(analysis as Record<string, unknown>)) {
+        if (typeof value === "string" && value.length > 50) {
+          analysisSections[key] = value;
+        }
+      }
+      const originality = checkOriginality(analysisSections, topSources);
+      stats.originalityCheck = {
+        originalityScore: originality.originalityScore,
+        flaggedSections: originality.flaggedSections.length,
+        averageOverlap: originality.averageOverlap,
+      };
+      if (originality.flaggedSections.length > 0) {
+        console.warn(`${label} ORIGINALITY: ${originality.flaggedSections.length} sections flagged for high source overlap (avg ${(originality.averageOverlap * 100).toFixed(1)}%)`);
+      } else {
+        console.log(`${label} ORIGINALITY: OK (score ${(originality.originalityScore * 100).toFixed(0)}%, avg overlap ${(originality.averageOverlap * 100).toFixed(1)}%)`);
+      }
+    } catch (err) {
+      console.warn(`${label} ORIGINALITY: failed (non-blocking):`, err);
+    }
+
+    // ── BIAS DETECTION — systematic corpus bias check ──
+    try {
+      const { detectBiases } = await import('./bias-detector');
+      const biasReport = detectBiases(topSources, html);
+      stats.biasDetection = {
+        biasCount: biasReport.biases.length,
+        overallBiasRisk: biasReport.overallBiasRisk,
+        sourceDiversityScore: biasReport.sourceDiversityScore,
+        biasTypes: biasReport.biases.map((b) => b.biasType),
+      };
+      if (biasReport.biases.length > 0) {
+        console.warn(`${label} BIAS DETECTOR: ${biasReport.biases.length} biases detected (risk ${(biasReport.overallBiasRisk * 100).toFixed(0)}%): ${biasReport.biases.map((b) => `${b.biasType}(${b.severity})`).join(", ")}`);
+      } else {
+        console.log(`${label} BIAS DETECTOR: OK (diversity score ${(biasReport.sourceDiversityScore * 100).toFixed(0)}%)`);
+      }
+    } catch (err) {
+      console.warn(`${label} BIAS DETECTOR: failed (non-blocking):`, err);
+    }
+
     // ── DETERMINISTIC TRUST SCORING — replaces Critical Loop V2 ──
     // LLM judges have calibration drift, position bias, and see truncated drafts (FlowVerify 2026).
     // TrustBench (AAAI 2026): TrustScore = 0.3 × confidence + 0.7 × deterministic runtime metrics.
@@ -3027,8 +3253,12 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
       // 1. Citation coverage: how many distinct sources are cited.
       // Target is adaptive: min(40, 60% of sources) — matches what the North Star told the analyst.
       // This ensures the scoring measures exactly what the analyst was asked to optimize.
+      // Recognizes both [SRC-N] (brief format) and E-N (strategic report evidence format).
       const citedSources = new Set<number>();
       for (const m of html.matchAll(/\[SRC-(\d+)\]/g)) citedSources.add(parseInt(m[1], 10));
+      // Strategic reports use <sup class="cite"><a href="#ref-N" data-evidence="EN">EN</a></sup>
+      for (const m of html.matchAll(/data-evidence="E(\d+)"/g)) citedSources.add(parseInt(m[1], 10));
+      for (const m of html.matchAll(/href="#ref-(\d+)"/g)) citedSources.add(parseInt(m[1], 10));
       const coverageTarget = Math.min(40, Math.max(15, Math.ceil(topSources.length * 0.6)));
       const citationCoverage = coverageTarget > 0 ? Math.min(1, citedSources.size / coverageTarget) : 0;
 
@@ -3269,7 +3499,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     }
 
     await runDevilsAdvocateBlock(buildAnalysisReviewText(analysis as Record<string, unknown>, query), false);
-    html = renderEditorHtml();
+    html = await renderEditorHtml();
     // CITATION REPAIR: deterministically backfill missing [SRC-N] from analyst JSON,
     // inject citations by source title/author matching, and sanitize unsourced numbers
     try {
@@ -3348,7 +3578,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     //   await runDevilsAdvocateBlock(html, true);
     // }
   } else {
-    html = renderEditorHtml();
+    html = await renderEditorHtml();
     // CITATION REPAIR: deterministically backfill missing [SRC-N] from analyst JSON,
     // inject citations by source title/author matching, and sanitize unsourced numbers
     try {
@@ -3611,6 +3841,8 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   const citedIndices = Array.from(new Set([
     ...Array.from(html.matchAll(/\[E(\d+)\]/g)).map(m => parseInt(m[1], 10) - 1),
     ...Array.from(html.matchAll(/\[SRC-(\d+)\]/g)).map(m => parseInt(m[1], 10) - 1),
+    ...Array.from(html.matchAll(/data-evidence="E(\d+)"/g)).map(m => parseInt(m[1], 10) - 1),
+    ...Array.from(html.matchAll(/href="#ref-(\d+)"/g)).map(m => parseInt(m[1], 10) - 1),
   ])).filter(i => i >= 0 && i < topSources.length);
   const citedSourceIds = citedIndices.map(i => (topSources[i] as any).id);
   recordSourceUsage(
@@ -3731,6 +3963,10 @@ export interface StrategicPipelineOptions {
   /** Pre-validated source IDs — skip SCOUT when count ≥ minSeedSourcesToSkipScout (default 8) */
   seedSourceIds?: string[];
   minSeedSourcesToSkipScout?: number;
+  /** QUANT BRIDGE depth: "none" | "parametric" | "io" | "full" (default: "io" for strategic) */
+  quantDepth?: import("../quant/quant-bridge").QuantDepth;
+  /** Structured costing exercise (StudioX orders with chiffrage indicatif) */
+  parametricInput?: import("../quant/types").ParametricCostInput;
 }
 
 /**
@@ -3755,6 +3991,8 @@ export async function runStrategicPipeline(
     enableDevilsAdvocate: options.enableDevilsAdvocate,
     seedSourceIds: options.seedSourceIds,
     minSeedSourcesToSkipScout: options.minSeedSourcesToSkipScout,
+    quantDepth: options.quantDepth,
+    parametricInput: options.parametricInput,
   });
 }
 
@@ -3813,6 +4051,8 @@ export async function runPipeline(
         enableDeliberation: options.enableDeliberation,
         seedSourceIds: options.seedSourceIds,
         minSeedSourcesToSkipScout: options.minSeedSourcesToSkipScout,
+        quantDepth: options.quantDepth,
+        parametricInput: options.parametricInput,
       }),
       timeoutMs,
       `runPipeline(${format})`

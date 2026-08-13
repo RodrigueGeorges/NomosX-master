@@ -9,6 +9,8 @@ import { useRouter } from "next/navigation";
 import AuthModal from "@/components/AuthModal";
 
 import { PublicPageShell } from "@/components/layout/PublicPageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { ScrollReveal } from "@/components/ui/ScrollReveal";
 
 import { PUBLIC_ROUTES } from "@/lib/public-urls";
 
@@ -152,37 +154,25 @@ export default function PricingPage() {
 
           <div className="max-w-5xl mx-auto px-6 sm:px-8 py-16 sm:py-20">
 
-            <header className="text-center mb-12 animate-rise">
-
-              <p className="nx-eyebrow mb-5">
-
-                Access
-
-              </p>
-
-              <h1 className="font-display text-3xl sm:text-4xl font-semibold tracking-tight mb-5">
-
-                Read free.{" "}
-
-                <span className="text-white">Commission when it matters.</span>
-
-              </h1>
-
-              <p className="text-base text-white/65 max-w-2xl mx-auto leading-relaxed">
-                The world doesn't suffer from a lack of information — it suffers from a lack of structure.
-                NomosX publishes positions 24/7, free to read. Studio is the add-on for custom commissions,
-                foresight, and evidence-bound deliverables on demand.
-              </p>
-
-            </header>
+            <PageHeader
+              eyebrow="Access"
+              title={
+                <>
+                  Read free.{" "}
+                  <span className="text-white">Commission when it matters.</span>
+                </>
+              }
+              description="The world doesn't suffer from a lack of information — it suffers from a lack of structure. NomosX publishes positions 24/7, free to read. Studio is the add-on for custom commissions, foresight, and evidence-bound deliverables on demand."
+              align="center"
+            />
 
 
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-16">
+            <ScrollReveal stagger className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-16">
 
               <div
 
-                className="relative p-6 sm:p-7 nx-public-surface"
+                className="relative p-6 sm:p-7 nx-surface"
 
               >
 
@@ -244,7 +234,7 @@ export default function PricingPage() {
 
               <div
 
-                className="relative p-6 sm:p-7 nx-public-surface border-white/20"
+                className="relative p-6 sm:p-7 nx-surface border-white/20"
 
               >
 
@@ -314,11 +304,11 @@ export default function PricingPage() {
 
               </div>
 
-            </div>
+            </ScrollReveal>
 
 
 
-            <section className="mb-16 nx-public-surface overflow-hidden">
+            <section className="mb-16 nx-surface overflow-hidden">
 
               <div className="p-6 sm:p-8 border-b border-white/[0.08]">
 
@@ -421,7 +411,7 @@ export default function PricingPage() {
 
                   key={label}
 
-                  className="nx-public-surface p-4 text-center"
+                  className="nx-surface p-4 text-center"
 
                 >
 
@@ -460,7 +450,7 @@ export default function PricingPage() {
                     key={item.q}
 
                     className={cn(
-                      "nx-public-surface overflow-hidden transition-colors",
+                      "nx-surface overflow-hidden transition-colors",
                       openFaq === i && "border-white/20"
                     )}
 

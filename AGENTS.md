@@ -590,6 +590,24 @@ async function runFullPipeline(query: string, providers: string[]) {
 }
 ```
 
+### QUANT BRIDGE — Deterministic model layer (NEW)
+
+**Files**: `lib/quant/` (TS orchestrator) + `quant-service/` (Python FastAPI)
+
+**Purpose**: Inject machine-computed, fully-lineaged quantitative results into strategic reports — cited as `[MODEL-N]` (validated by the extended `citationGuard(json, sourceCount, modelCount)`).
+
+**Models**:
+1. **Parametric costing** (`lib/quant/parametric-cost.ts`) — unit costs from the sourced reference DB (`reference-costs.ts`, Eurostat/OECD/IEA) × volumes, uncertainty propagation (low/central/high), risk factors, optional NPV. Pure TS, zero LLM.
+2. **FIGARO input-output** (`quant-service/`) — Leontief type-I shock propagation on Eurostat FIGARO IC-IO tables (free, official, commercially safe). Output/VA multipliers, spillover sectors. Python microservice (pandas/numpy can't run on Netlify) reached via `QUANT_SERVICE_URL`. `FIGARO_DEMO=1` for offline dev.
+
+**Pipeline integration**: `runQuantBridge()` runs in STEP 5 parallel to READER/QUANT; its `evidenceBlock` is injected into the ANALYST context. Depth controlled by `quantDepth` option (`none|parametric|io|full`) — StudioX orders carry it via `StudioXOrder.quantDepth`.
+
+**Exports**: `/api/articles/[id]/export/data?format=xlsx|csv` — Excel workbook (report meta + source register + one sheet per model) via `lib/export/report-workbook.ts`.
+
+**Determinism**: ✅ Fully deterministic (both models)
+
+---
+
 ### Sequential Flow (STRATEGIC REPORT) — NEW
 
 ```typescript

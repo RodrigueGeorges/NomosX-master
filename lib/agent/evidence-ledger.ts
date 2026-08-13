@@ -29,6 +29,22 @@ const CLAIM_HINTS = [
   "reduces",
   "causes",
   "correlates",
+  "demonstrates",
+  "reveals",
+  "confirms",
+  "decreases",
+  "improves",
+  "worsens",
+  "montre",
+  "suggere",
+  "indique",
+  "augmente",
+  "reduit",
+  "demontre",
+  "prouve",
+];
+
+const WEAK_HINTS = [
   "evidence",
   "impact",
   "risk",
@@ -36,11 +52,6 @@ const CLAIM_HINTS = [
   "study",
   "research",
   "according",
-  "montre",
-  "suggere",
-  "indique",
-  "augmente",
-  "reduit",
   "preuve",
   "risque",
   "etude",
@@ -76,8 +87,12 @@ export function extractCitationNumbers(text: string): number[] {
 function looksLikeClaim(sentence: string): boolean {
   const normalized = sentence.toLowerCase();
   if (sentence.length < 45) return false;
+  // Cited sentences are always claims
   if (/\[SRC-\d+\]/.test(sentence)) return true;
-  return CLAIM_HINTS.some((hint) => normalized.includes(hint));
+  // Uncited sentences need a strong causal/empirical verb
+  if (CLAIM_HINTS.some((hint) => normalized.includes(hint))) return true;
+  // Weak hints alone (policy, risk, study...) are editorial prose, not claims
+  return false;
 }
 
 export function buildEvidenceLedger(html: string): EvidenceLedger {

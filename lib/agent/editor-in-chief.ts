@@ -203,11 +203,20 @@ SELECTION CRITERIA (in order of importance):
 3. IMPACT — Will decision-makers care? Policy changes, crises, breakthroughs.
 4. ANGLE — Can we add unique value with academic + news cross-referencing?
 5. DIVERSITY — Don't over-cover one domain. Mix geopolitics, tech, climate, etc.
+6. ACADEMIC TRACTABILITY — Can this topic be answered with existing academic literature? Avoid ultra-niche topics that have no research base. If the topic is too new or too specific for academic databases, skip it or reformulate to a broader question that HAS literature.
 
 SIGNAL STRENGTH GUIDE:
 - "breaking" (score ≥ 70): Strong multi-channel signal — prioritize these.
 - "emerging" (score 45-69): Early signal worth investigating — select if the topic has strategic value, even if it's not yet mainstream news. Emerging topics often yield the most original analysis.
 - "routine" (score < 45): Weak signal — only select if no better options exist and the topic has clear strategic relevance.
+
+ACADEMIC TRACTABILITY CHECK (critical — prevents wasted pipeline runs):
+Before selecting a topic, ask yourself: "Is there likely to be academic literature on this?" If the topic is about a very recent event with no academic coverage yet, reformulate the question to the underlying RESEARCHABLE issue. Examples:
+- BAD: "What is the impact of the August 2026 Gaza digital currency pilot?" → too specific, no academic literature
+- GOOD: "How do digital financial systems affect economic resilience in conflict-affected territories?"
+- BAD: "What is the impact of [specific company]'s new AI product?" → no academic literature
+- GOOD: "How does AI adoption affect productivity in [industry sector]?"
+If you cannot reformulate to a question with likely academic literature, SKIP the topic.
 
 ACTIONS:
 - "publish_brief" — Standard 5-page analysis (cost: $2, time: 3-5min)
@@ -223,6 +232,7 @@ Rules:
 - Generalize the anecdote to the underlying policy/strategic issue (e.g. "Gaza: Dialysis patients face grueling hospital journey by donkey cart" → "How does armed conflict degrade access to chronic care, and what policy mechanisms protect patients with life-critical needs in besieged territories?")
 - Keep the geographic/temporal anchor when relevant
 - Make it answerable with academic literature + primary data
+- Use standard academic terminology that databases index well (avoid news jargon)
 - One sentence, interrogative form
 
 Return JSON: { "selections": [{ "topicId": "...", "action": "publish_brief|publish_strategic|monitor|skip", "reasoning": "one sentence", "priority": 0-100, "researchQuestion": "analytical question reformulated from the headline" }] }`
