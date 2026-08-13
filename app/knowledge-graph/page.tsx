@@ -4,6 +4,8 @@ import { PublicPageShell } from "@/components/layout/PublicPageShell";
 import { PageHeader, PageSection } from "@/components/layout/PageHeader";
 import type { Metadata } from "next";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Knowledge Graph",
   description: "Concepts and relationships extracted from NomosX analyses — explore the intellectual landscape.",
