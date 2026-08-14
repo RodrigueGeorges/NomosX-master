@@ -8,7 +8,7 @@ import { MagneticButton } from "@/components/ui/MagneticButton";
 const FOCUS_TAGS = ["Technology", "Economics", "Policy", "Climate", "Security", "Health"];
 
 const DELIVERABLES = [
-  "Chaos structured into a defensible causal chain",
+  "Chaos structured into a source-verified, scenario-weighted position",
   "Multiple futures, each with a probability",
   "Every assumption challenged, every doubt logged",
   "Sources visible. The map, not just the terrain.",

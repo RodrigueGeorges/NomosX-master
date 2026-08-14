@@ -1,0 +1,114 @@
+(node:13932) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS lib/__tests__/score.test.ts (10.65 s)
+(node:7840) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS lib/agent/__tests__/relevance-scorer.test.ts (10.797 s)
+(node:4804) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS __tests__/security.test.ts (10.72 s)
+(node:19544) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:19628) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS __tests__/format-system.test.ts (12.034 s)
+FAIL __tests__/api/security.test.ts (12.221 s)
+  ● Comprehensive Auth Coverage › all non-public routes should have auth protection
+
+    Found 4 non-public route(s) without auth:
+      - app/api/articles/[id]/comments/route.ts
+      - app/api/articles/[id]/feedback/route.ts
+      - app/api/articles/[id]/view/route.ts
+      - app/api/dashboard/metrics/route.ts
+
+    [0m [90m 27 |[39m [36mif[39m ([36mtypeof[39m global[33m.[39mfail [33m===[39m [32m'undefined'[39m) {
+     [90m 28 |[39m   global[33m.[39mfail [33m=[39m (reason [33m=[39m [32m'fail() called'[39m) [33m=>[39m {
+    [31m[1m>[22m[39m[90m 29 |[39m     [36mthrow[39m [36mnew[39m [33mError[39m([36mtypeof[39m reason [33m===[39m [32m'string'[39m [33m?[39m reason [33m:[39m [33mJSON[39m[33m.[39mstringify(reason))
+     [90m    |[39m           [31m[1m^[22m[39m
+     [90m 30 |[39m   }
+     [90m 31 |[39m }
+     [90m 32 |[39m[0m
+
+      at global.fail (jest.setup.js:29:11)
+      at Object.fail (__tests__/api/security.test.ts:369:7)
+
+(node:9796) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+FAIL __tests__/experts/domain-experts-22.test.ts (12.422 s)
+  ● 22 Domain Experts System › Expert Registry › All 22 experts properly defined
+
+    expect(received).toHaveLength(expected)
+
+    Expected length: 22
+    Received length: 26
+    Received array:  ["economics", "technology", "policy", "health", "security", "law", "environment", "quantitative", "finance", "social-sciences", …]
+
+    [0m [90m 22 |[39m       ][33m;[39m
+     [90m 23 |[39m       
+    [31m[1m>[22m[39m[90m 24 |[39m       expect([33mObject[39m[33m.[39mkeys([33mDOMAIN_EXPERTS[39m))[33m.[39mtoHaveLength([35m22[39m)[33m;[39m
+     [90m    |[39m                                           [31m[1m^[22m[39m
+     [90m 25 |[39m       
+     [90m 26 |[39m       domains[33m.[39mforEach(domain [33m=>[39m {
+     [90m 27 |[39m         expect([33mDOMAIN_EXPERTS[39m[domain])[33m.[39mtoBeDefined()[33m;[39m[0m
+
+      at Object.toHaveLength (__tests__/experts/domain-experts-22.test.ts:24:43)
+
+  ● 22 Domain Experts System › Expert Registry › Expert names follow ethical guidelines
+
+    expect(received).toContain(expected) // indexOf
+
+    Expected substring: "Analyst"
+    Received string:    "Anthropology & Cultural Analysis Expert"
+
+    [0m [90m 45 |[39m         
+     [90m 46 |[39m         [90m// Should contain "Analyst" instead of "PhD"[39m
+    [31m[1m>[22m[39m[90m 47 |[39m         expect(expert[33m.[39mtitle)[33m.[39mtoContain([32m'Analyst'[39m)[33m;[39m
+     [90m    |[39m                              [31m[1m^[22m[39m
+     [90m 48 |[39m         
+     [90m 49 |[39m         [90m// Should have verifiable expertise[39m
+     [90m 50 |[39m         expect(expert[33m.[39msubDomains)[33m.[39mtoBeDefined()[33m;[39m[0m
+
+      at toContain (__tests__/experts/domain-experts-22.test.ts:47:30)
+          at Array.forEach (<anonymous>)
+      at Object.forEach (__tests__/experts/domain-experts-22.test.ts:41:37)
+
+  ● 22 Domain Experts System › Knowledge Base Integration › Knowledge base has all 22 domains
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 22
+    Received: 26
+
+    [0m [90m 71 |[39m     test([32m'Knowledge base has all 22 domains'[39m[33m,[39m [36masync[39m () [33m=>[39m {
+     [90m 72 |[39m       [36mconst[39m stats [33m=[39m knowledgeBase[33m.[39mgetCorpusStats()[33m;[39m
+    [31m[1m>[22m[39m[90m 73 |[39m       expect(stats[33m.[39mtotalDomains)[33m.[39mtoBe([35m22[39m)[33m;[39m
+     [90m    |[39m                                  [31m[1m^[22m[39m
+     [90m 74 |[39m       
+     [90m 75 |[39m       [36mconst[39m domains[33m:[39m [33mDomainExpertise[39m[] [33m=[39m [
+     [90m 76 |[39m         [32m'economics'[39m[33m,[39m [32m'technology'[39m[33m,[39m [32m'policy'[39m[33m,[39m [32m'health'[39m[33m,[39m [32m'security'[39m[33m,[39m [0m
+
+      at Object.toBe (__tests__/experts/domain-experts-22.test.ts:73:34)
+
+  ● 22 Domain Experts System › Council Manager › Load balancing prevents expert overload
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 22
+    Received: 26
+
+    [0m [90m 196 |[39m       [90m// Check load distribution[39m
+     [90m 197 |[39m       [36mconst[39m metrics [33m=[39m councilManager[33m.[39mgetCouncilMetrics()[33m;[39m
+    [31m[1m>[22m[39m[90m 198 |[39m       expect(metrics[33m.[39mtotalExperts)[33m.[39mtoBe([35m22[39m)[33m;[39m
+     [90m     |[39m                                    [31m[1m^[22m[39m
+     [90m 199 |[39m       expect(metrics[33m.[39mavgLoad)[33m.[39mtoBeLessThan([35m5[39m)[33m;[39m [90m// Should distribute load[39m
+     [90m 200 |[39m     })[33m;[39m
+     [90m 201 |[39m     [0m
+
+      at Object.toBe (__tests__/experts/domain-experts-22.test.ts:198:36)
+
+PASS lib/__tests__/domains.test.ts
+(node:19692) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS lib/agent/__tests__/query-enhancer.test.ts (22.75 s)
+PASS lib/quant/__tests__/quant-bridge.test.ts (26.18 s)
+PASS lib/agent/__tests__/citation-guard.test.ts (28.419 s)

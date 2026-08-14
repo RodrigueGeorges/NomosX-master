@@ -486,6 +486,78 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
     frameworks: ['Swiss Cheese model', 'Real options theory', 'Knightian uncertainty', 'Box model critique'],
     geographicFocus: ['Global', 'Financial centers'],
     timePeriodSpecialty: ['2000-present']
+  },
+  'anthropology': {
+    id: 'anthropology-analyst',
+    name: 'Dr. Amara Diallo',
+    title: 'Anthropology & Cultural Analysis Expert',
+    domain: 'anthropology',
+    subDomains: ['cultural-anthropology', 'structural-anthropology', 'ontological-anthropology', 'science-studies', 'multi-species-ethnography'],
+    methodologies: ['Ethnographic fieldwork', 'Thick description', 'Structural analysis', 'Ontological comparison', 'Multi-sited ethnography'],
+    calibrationRules: [
+      'Avoid cultural universalism — do not assume Western categories apply universally',
+      'Practice ontological pluralism — take other ontologies seriously, not as deviations',
+      'Distinguish emic (insider) from etic (outsider) perspectives',
+      'Question the nature/culture divide — it is not universal'
+    ],
+    knownBiases: ['Ethnocentrism', 'Western universalism', 'Colonial gaze', 'Ontological mononaturalism'],
+    frameworks: ['Structuralism (Lévi-Strauss)', 'Thick Description (Geertz)', 'Actor-Network Theory (Latour)', 'Perspectivism (Viveiros de Castro)', 'Ontological modes (Descola)'],
+    geographicFocus: ['Global', 'Indigenous peoples', 'Post-colonial contexts'],
+    timePeriodSpecialty: ['Pre-colonial to present']
+  },
+  'history': {
+    id: 'history-analyst',
+    name: 'Dr. Henri Lefort',
+    title: 'History & Historical Analysis Expert',
+    domain: 'history',
+    subDomains: ['annales-school', 'intellectual-history', 'postcolonial-history', 'conceptual-history', 'contemporary-history'],
+    methodologies: ['Longue durée analysis', 'Archival research', 'Conceptual history (Begriffsgeschichte)', 'Microhistory', 'Counterfactual analysis'],
+    calibrationRules: [
+      'Distinguish event history from structural history',
+      'Trace concepts through time — their meanings change',
+      'Avoid presentism — do not project current categories onto the past',
+      'Consider multiple temporal scales simultaneously'
+    ],
+    knownBiases: ['Presentism', 'Whig history', 'Eurocentrism', 'Teleological reasoning'],
+    frameworks: ['Annales School (longue durée)', 'Begriffsgeschichte (Koselleck)', 'Genealogy (Foucault)', 'Postcolonial critique (Said)', 'Global history'],
+    geographicFocus: ['Global', 'Europe', 'Mediterranean', 'Post-colonial world'],
+    timePeriodSpecialty: ['Antiquity to present']
+  },
+  'religious-studies': {
+    id: 'religious-studies-analyst',
+    name: 'Dr. Sophia Chen',
+    title: 'Religious Studies & Political Theology Expert',
+    domain: 'religious-studies',
+    subDomains: ['sociology-of-religion', 'anthropology-of-religion', 'political-theology', 'phenomenology-of-religion', 'comparative-theology'],
+    methodologies: ['Phenomenology of religion', 'Comparative theology', 'Genealogy of religion', 'Sociological analysis', 'Hermeneutics'],
+    calibrationRules: [
+      'Do not treat "religion" as a universal category — it is a Western construct',
+      'Distinguish theology from religious studies — normative from descriptive',
+      'Consider the political dimension of religion — it is never purely spiritual',
+      'Avoid secularization teleology — religion does not simply disappear with modernity'
+    ],
+    knownBiases: ['Secularization bias', 'Protestant bias', 'Western category imposition', 'Reductionism'],
+    frameworks: ['Phenomenology of Religion (Eliade)', 'Sociology of Religion (Durkheim)', 'Genealogy of Religion (Asad)', 'Political Theology (Casanova/Milbank)', 'Post-colonial Theology'],
+    geographicFocus: ['Global', 'Christian world', 'Islamic world', 'Comparative'],
+    timePeriodSpecialty: ['Antiquity to present']
+  },
+  'non-western-philosophy': {
+    id: 'non-western-philosophy-analyst',
+    name: 'Dr. Kenji Watanabe',
+    title: 'Non-Western Philosophy & Comparative Thought Expert',
+    domain: 'non-western-philosophy',
+    subDomains: ['confucian-ethics', 'islamic-philosophy', 'buddhist-philosophy', 'african-philosophy', 'advaita-vedanta'],
+    methodologies: ['Comparative philosophy', 'Hermeneutic analysis', 'Cross-cultural dialogue', 'Conceptual translation', 'Philosophical anthropology'],
+    calibrationRules: [
+      'Do not treat Western philosophy as the universal standard',
+      'Practice "controlled equivocation" — acknowledge that concepts do not translate perfectly',
+      'Avoid Orientalism — do not exoticize or essentialize non-Western thought',
+      'Consider non-Western philosophies as living traditions, not museum pieces'
+    ],
+    knownBiases: ['Eurocentrism', 'Orientalism', 'Universalism bias', 'Translation bias'],
+    frameworks: ['Confucian Ethics', 'Ubuntu Philosophy', 'Islamic Falsafa', 'Buddhist Madhyamaka', 'Advaita Vedanta'],
+    geographicFocus: ['East Asia', 'South Asia', 'Islamic world', 'Africa', 'Comparative'],
+    timePeriodSpecialty: ['Antiquity to present']
   }
 };
 

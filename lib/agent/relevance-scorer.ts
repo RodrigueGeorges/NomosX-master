@@ -47,6 +47,78 @@ export interface SourceForScoring {
 }
 
 /**
+ * Group query keywords into concept clusters for multi-concept coverage enforcement.
+ * This prevents sources that match only one concept (e.g., "governance" alone)
+ * from getting high relevance scores when the query spans multiple concepts
+ * (e.g., "religion" + "AI" + "governance").
+ *
+ * Clustering is heuristic: keywords that share a common word are grouped together.
+ * For "religious institutions shape global governance frameworks for artificial intelligence":
+ *   Cluster A: ["religious", "institutions", "religious institutions"]
+ *   Cluster B: ["artificial intelligence", "ai"]
+ *   Cluster C: ["governance", "frameworks", "global governance"]
+ */
+function clusterKeywords(keywords: string[]): string[][] {
+  if (keywords.length <= 2) return [keywords];
+
+  const lower = keywords.map(k => k.toLowerCase());
+  const clusters: string[][] = [];
+  const assigned = new Set<number>();
+
+  for (let i = 0; i < lower.length; i++) {
+    if (assigned.has(i)) continue;
+    const cluster = [keywords[i]];
+    assigned.add(i);
+    const words_i = new Set(lower[i].split(/\s+/).filter(w => w.length > 2));
+
+    for (let j = i + 1; j < lower.length; j++) {
+      if (assigned.has(j)) continue;
+      const words_j = new Set(lower[j].split(/\s+/).filter(w => w.length > 2));
+      // Group if they share any word > 2 chars
+      const shared = [...words_i].some(w => words_j.has(w));
+      if (shared) {
+        cluster.push(keywords[j]);
+        assigned.add(j);
+      }
+    }
+    clusters.push(cluster);
+  }
+  return clusters;
+}
+
+/**
+ * Compute multi-concept coverage: how many distinct concept clusters
+ * are represented in the source text. Returns 0.0 to 1.0.
+ * A source matching only 1 of 3 clusters gets heavily penalized.
+ */
+function multiConceptCoverage(
+  sourceText: string,
+  clusters: string[][]
+): { coverage: number; matchedClusters: number; totalClusters: number } {
+  const totalClusters = clusters.length;
+  if (totalClusters <= 1) return { coverage: 1.0, matchedClusters: 1, totalClusters };
+
+  const lowerText = sourceText.toLowerCase();
+  let matchedClusters = 0;
+
+  for (const cluster of clusters) {
+    const matched = cluster.some(kw => lowerText.includes(kw.toLowerCase()));
+    if (matched) matchedClusters++;
+  }
+
+  // Coverage ratio with penalty for single-cluster matches
+  const ratio = matchedClusters / totalClusters;
+  // If only 1 of 3+ clusters matched, apply severe penalty
+  if (matchedClusters === 1 && totalClusters >= 3) {
+    return { coverage: ratio * 0.3, matchedClusters, totalClusters };
+  }
+  if (matchedClusters === 1 && totalClusters === 2) {
+    return { coverage: ratio * 0.5, matchedClusters, totalClusters };
+  }
+  return { coverage: ratio, matchedClusters, totalClusters };
+}
+
+/**
  * Compute relevance score for a source given an enhanced query
  */
 export function scoreRelevance(
@@ -69,6 +141,13 @@ export function scoreRelevance(
   const abstractWeight = abstract ? 0.4 : 0.0;
   
   const topicOverlap = Math.min(1.0, (keywordsInTitle * titleWeight + keywordsInAbstract * abstractWeight) / Math.max(1, queryKeywords.length));
+
+  // 1b. Multi-Concept Coverage (NEW — critical for filtering off-topic sources)
+  // Group keywords into concept clusters and require multi-concept match
+  const clusters = clusterKeywords(enhancedQuery.keywords);
+  const mcc = multiConceptCoverage(fullText, clusters);
+  // Apply as a multiplier: if source only matches 1 of 3 concepts, score drops 70%
+  const conceptMultiplier = mcc.coverage;
 
   // 2. Field Match (30% weight)
   // Check if source topics overlap with query topics
@@ -117,7 +196,9 @@ export function scoreRelevance(
   // Weighted overall score
   // Topic overlap is king — if keywords match, the source is relevant.
   // N-gram similarity is a weak signal (Jaccard on bigrams gives ~3-5% for most papers)
-  const overall = Math.min(1.0,
+  // Multi-concept coverage acts as a multiplier: a source matching only 1 of 3
+  // query concepts (e.g., "governance" but not "religion" or "AI") gets heavily penalized.
+  const baseScore = Math.min(1.0,
     topicOverlap * 0.45 +
     fieldMatch * 0.20 +
     semanticSimilarity * 0.10 +
@@ -125,8 +206,13 @@ export function scoreRelevance(
     titleKeywordBonus * 0.15
   );
 
+  // Apply multi-concept multiplier — this is the key fix for source pollution.
+  // A source about "governance institutions" that doesn't mention religion OR AI
+  // will have conceptMultiplier ~0.3, dropping its score from ~0.5 to ~0.15.
+  const overall = baseScore * conceptMultiplier;
+
   // Explanation for debugging
-  const explanation = `Topic: ${(topicOverlap * 100).toFixed(0)}% | Field: ${(fieldMatch * 100).toFixed(0)}% | Semantic: ${(semanticSimilarity * 100).toFixed(0)}% | Temporal: ${(temporalRelevance * 100).toFixed(0)}% | TitleBonus: ${(titleKeywordBonus * 100).toFixed(0)}%`;
+  const explanation = `Topic: ${(topicOverlap * 100).toFixed(0)}% | Field: ${(fieldMatch * 100).toFixed(0)}% | Semantic: ${(semanticSimilarity * 100).toFixed(0)}% | Temporal: ${(temporalRelevance * 100).toFixed(0)}% | TitleBonus: ${(titleKeywordBonus * 100).toFixed(0)}% | Concepts: ${mcc.matchedClusters}/${mcc.totalClusters} (x${conceptMultiplier.toFixed(2)})`;
 
   return {
     overall: Math.min(1.0, overall),

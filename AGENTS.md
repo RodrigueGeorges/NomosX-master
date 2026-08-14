@@ -544,7 +544,177 @@ const cards = await generateRadarCards(5);
 
 ---
 
-## 🔄 Agent Orchestration
+## � Verification & Trust Layer (2026 Open-Source Innovations)
+
+Six new modules upgrade the pipeline from lexical-overlap heuristics to
+semantic NLI entailment, source provenance verification, conflict-aware
+reasoning, calibrated trust scores, and claim-level traceability.
+
+### V1. NLI Engine (`lib/agent/nli-engine.ts`)
+
+**Purpose**: Real Natural Language Inference for claim→source verification.
+
+**Architecture**: Pluggable — local model (primary) + embedding fallback.
+
+- **Primary**: mDeBERTa-v3-base-mnli-xli (multilingual NLI, 100+ languages including French)
+  - Loaded via `@huggingface/transformers` (quantized, ~280MB, cached locally)
+  - 3 labels: `entailment`, `neutral`, `contradiction`
+  - Deterministic, CPU-only, $0 cost
+- **Fallback**: OpenAI embeddings + negation detection + number verification
+  - Used when local model is not available (first run, no disk space)
+
+**Public API**:
+- `classifyNLI(claim, sourceContent)` → `NLIClassification`
+- `classifyNLIBatch(pairs, maxConcurrency)` → `NLIBatchResult`
+- `nliToGroundingVerdict(nli)` → `supported | partial | unsupported | contradicted`
+- `nliToCitationVerdict(nli)` → `supported | partially_supported | unsupported | misattributed | unverifiable`
+- `isNLIModelAvailable()` → `boolean`
+- `preloadNLIModel()` → `void`
+
+**Integration**: Replaces the heuristic composite scoring in `nli-verifier.ts`
+and powers the async `groundClaimsWithNLI()` in `claim-grounding.ts`.
+
+**Inspired by**: VerifAI (2026), FactReasoner (IBM), HallDetect (2026), TrustBench (AAAI 2026).
+
+---
+
+### V2. Source Check (`lib/agent/sourcecheck.ts`)
+
+**Purpose**: Provenance-first verification — does the cited source exist,
+is it retracted, is the quoted text actually there?
+
+**Three checks per citation**:
+1. **EXISTENCE**: Does the DOI/title resolve to a real source? (OpenAlex + Crossref)
+2. **RETRACTION**: Is the source retracted or has an expression of concern?
+3. **PRESENCE**: Does the claim content appear in the source's abstract/full text?
+
+**Cost**: $0 (OpenAlex + Crossref APIs are free)
+**Latency**: ~100ms per source (parallel batch, max 10 concurrent)
+
+**Public API**:
+- `checkSource(source, claim?)` → `SourceCheckResult`
+- `checkSourcesBatch(sources, claims?, maxConcurrency)` → `SourceCheckBatchResult`
+
+**Integration**: Runs after NLI verifier, before trust score calculation.
+Retraction veto: if any source is retracted, trust score is capped at 50.
+
+**Inspired by**: sourcecheck (aberaio) — "abstain when you can't confirm".
+
+---
+
+### V3. Atomic Claim Decomposition (`lib/agent/atomic-claims.ts`)
+
+**Purpose**: Decompose complex paragraphs into atomic, decontextualized claims
+that can be independently verified against sources.
+
+**Key innovation**: Decontextualization — resolves pronouns ("they" → "Smith et al."),
+demonstratives ("this study" → "the 2023 carbon tax study"), and incomplete names
+to make each claim standalone.
+
+**Cost**: ~$0.001 per paragraph (one LLM call, temp=0, json mode)
+**Fallback**: Rule-based sentence splitting (no LLM, no decontextualization)
+
+**Public API**:
+- `decomposeIntoAtomicClaims(text, paragraphIndex)` → `{ claims, costUsd, usedLLM }`
+- `decomposeHtmlIntoAtomicClaims(html, maxParagraphs)` → `DecompositionResult`
+
+**Inspired by**: FactReasoner (IBM), VeriScore, HallDetect (2026), chaincheck.
+
+---
+
+### V4. Conflict-Aware Reasoning (`lib/agent/conflict-aware.ts`)
+
+**Purpose**: Detect contradictions between sources BEFORE analysis, inject as
+explicit context for the analyst.
+
+**Key innovation**: Instead of normalizing away contradictions (averaging sources),
+this module DETECTS contradictions using NLI and injects them as context.
+The analyst then has three options:
+1. Direct answering (if consensus)
+2. Conflict-aware answering (if contradictions exist — acknowledge both sides)
+3. Abstention (if evidence is too conflicting)
+
+**Cost**: $0 (NLI is free, local model)
+**Pairs checked**: K*(K-1)/2 = 45 for K=10 sources
+
+**Public API**:
+- `detectSourceConflicts(sources, readings?, options?)` → `ConflictDetectionResult`
+
+**Integration**: Runs after READER, before ANALYST. The `contextBlock` is
+injected into the analyst prompt so the analyst acknowledges contradictions.
+
+**Inspired by**: EvidentialRAG (2026), ConflictRAG (2026), ConflictScore (2026), CONFRAG (ACL 2026).
+
+---
+
+### V5. Trust Score Calibration (`lib/agent/trust-calibration.ts`)
+
+**Purpose**: Calibrate the trust score so 65 = 65% actual accuracy.
+
+**Metrics**:
+1. **ECE** (Expected Calibration Error) — how well confidence matches accuracy
+2. **Brier score** — accuracy of probabilistic predictions
+3. **ACE** (Adaptive Calibration Error) — equal-mass bins, more robust than ECE
+4. **MCE** (Maximum Calibration Error) — worst-case bin
+5. **Reliability bins** — for diagnostic visualization
+6. **Temperature scaling** — post-hoc calibration for future scores
+
+**Public API**:
+- `analyzeCalibration(pairs)` → `CalibrationResult`
+- `applyTemperatureScaling(trustScore, temperature)` → `number`
+- `computeECE(pairs, numBins)` → `{ ece, mce, bins }`
+- `computeBrierScore(pairs)` → `number`
+
+**Usage**: After each pipeline run, record (trustScore, wasQualityGood) pair.
+After N runs, compute ECE/Brier. If ECE > 0.10, apply temperature scaling.
+
+**Inspired by**: reliability-eval, conf-cal (isotonic regression), reliably (bootstrap CIs).
+
+---
+
+### V6. Claim-Level Provenance Graph (`lib/agent/provenance-graph.ts`)
+
+**Purpose**: Every claim in a NomosX publication gets a stable ID, validation
+status, and evidence link — enabling click-to-verify and staleness detection.
+
+**Per-claim metadata**:
+1. **STABLE ID**: `claim-{pubId}-{idx}` — persists across revisions
+2. **VALIDATION STATUS**: `valid | invalid | stale | needs_review | unresolved`
+3. **EVIDENCE LINK**: source + evidence snippet + NLI verdict
+4. **STALENESS FLAG**: when the underlying source is retracted, claims are flagged
+
+**Public API**:
+- `buildProvenanceGraph(publicationId, html, sources, options?)` → `ProvenanceGraph`
+- `markStaleClaims(graph, retractedSourceIds)` → `ProvenanceGraph`
+
+**Integration**: Runs after trust score calculation. The `htmlAnnotations`
+field contains HTML with `data-claim-id` attributes for frontend click-to-verify.
+
+**Inspired by**: ClaimKit, agent-grounding, verified-science-agent.
+
+---
+
+### Updated Trust Score Formula
+
+The deterministic trust score now includes 7 weighted metrics:
+
+```
+TrustScore = citationCoverage × 22      (22% — citing sources)
+           + groundedness × 18           (18% — NLI-verified claim support)
+           + factIntegrity × 0.13        (13% — numbers verified)
+           + nliIntegrity × 0.13         (13% — NLI semantic check)
+           + sourceCheckIntegrity × 0.09 (9%  — sources exist, not retracted)
+           + diversityScore × 0.10       (10% — diverse providers)
+           + avgQuality × 0.15           (15% — high-quality sources)
+```
+
+**Vetoes** (override the score):
+- Retracted source detected → cap at 50
+- Groundedness < 15% → cap at 45
+
+---
+
+## �🔄 Agent Orchestration
 
 ### Report Formats
 
@@ -781,6 +951,195 @@ const DIGEST_TEMP = 0.3;
 const RADAR_TEMP = 0.4;
 const MAX_JOB_RETRIES = 3;
 ```
+
+---
+
+## 🧠 Intelligent Pipeline Layer (2026 Innovations)
+
+### INTELLIGENT SCOUT Agent
+
+**File**: `lib/agent/intelligent-scout.ts`
+
+**Purpose**: Multi-lens eclectic source discovery for scenario-rich analysis
+
+**6 Lenses**:
+1. **Core** — consensus, mainstream sources
+2. **Contrarian** — dissident views, critiques, failures
+3. **Cross-domain** — analogues from other fields
+4. **Historical** — precedents and past parallels
+5. **Weak signal** — emerging, low-attention signals
+6. **Scenario** — projections, alternative futures
+
+**Innovations**:
+- **Adaptive Search Depth** (AutoSearch pattern): stops when sufficient evidence
+- **UCB1 Bandit** (EACL 2026, +35% precision): allocates budget between lenses
+- **Pre-filtering + Source Authority**: classifies authority before embedding
+
+**Outputs**: `{ lenses, totalSources, diversityScore, consensusScore, scenarioRichness }`
+
+---
+
+### CRITIC Agent (NEW)
+
+**File**: `lib/agent/critic-agent.ts`
+
+**Purpose**: Multi-stage verification with adversarial scrutiny (post-ANALYST)
+
+**Innovations**:
+- **Critic-Guided Hybrid Agentic RAG** (OpenReview 2026): multi-stage verification
+- **GAVEL** (ACL 2026): Evidence-Contract with mechanized scrutiny
+- **Self-Correcting RAG** (ACL 2026): NLI-guided repair
+
+**5-Stage Pipeline**:
+1. **Claim Decomposition** — breaks analysis into atomic claims
+2. **Evidence Grounding** — NLI-based verification against sources
+3. **Contradiction Detection** — finds mutually exclusive claims
+4. **Bias Detection** — funder, selection, confirmation, publication, language, temporal
+5. **Citation Validation** — checks [SRC-N] tags are valid and well-attributed
+
+**Verdicts**: `accept` (score≥75, no severe issues) | `repair` (score≥40) | `reject` (score<40)
+
+**Repair**: Generates targeted instructions for ANALYST retry
+
+---
+
+### CROSS-MODEL CONSENSUS (NEW)
+
+**File**: `lib/agent/cross-model-consensus.ts`
+
+**Purpose**: LLM Jury — multiple models verify critical claims independently
+
+**Innovation**: Cross-Model Consensus (arxiv 2026, +4.6 accuracy vs single model)
+
+**Providers**: OpenAI GPT-4o-mini, DeepSeek V4 Flash, GLM-4 Flash (independent training = error decorrelation)
+
+**Process**: 3 models verify claim → majority vote → agreement score
+
+**Use Cases**: Key statistics, controversial claims, contradicted claims
+
+---
+
+### REFLECTIVE RAG (NEW)
+
+**File**: `lib/agent/cross-model-consensus.ts`
+
+**Purpose**: Self-evaluation after each pipeline phase
+
+**Innovation**: Reflective RAG (ACL 2026 Findings): reflection tagging + strategy optimization
+
+**Phases Evaluated**:
+- **After SCOUT**: "Do we have enough diverse, relevant sources?"
+- **After READER**: "Are readings consistent and well-grounded?"
+- **After ANALYST**: "Is the analysis balanced, well-cited, non-hallucinated?"
+
+**Outputs**: `{ quality, score, issues, recommendations, shouldRetry, retryStrategy }`
+
+**Semantic Failure Memory**: Records past failures to avoid repeating them
+
+---
+
+### SCENARIO ENGINE (NEW)
+
+**File**: `lib/agent/scenario-engine.ts`
+
+**Purpose**: Causal analogical reasoning + scattered hypothesis generation + courtroom debate
+
+**3 Innovations**:
+
+1. **CANA** (arxiv 2026, +10% vs deep research agents):
+   - Decomposes situation into causal mechanisms (incentive, constraint, feedback_loop, etc.)
+   - Finds historical analogues by MECHANISM ALIGNMENT (not surface similarity)
+   - Generates search queries for the "historical" lens
+
+2. **SCATTER** (ACL 2026):
+   - Generates 5-8 diverse hypotheses about future outcomes
+   - 5 categories: continuation, disruption, transformation, collapse, surprise
+   - Optimizes inclusiveness + diversity
+   - Generates search queries for the "scenario" lens
+
+3. **PROCLAIM** (arxiv 2026, 81.7% accuracy, +10pp vs standard debate):
+   - Courtroom-style debate: Plaintiff vs Defense vs Judge
+   - Progressive RAG expands evidence pool during debate
+   - For controversial claims flagged by Critic
+
+---
+
+### KNOWLEDGE GRAPH (NEW)
+
+**File**: `lib/agent/knowledge-infrastructure.ts`
+
+**Purpose**: Inter-paper entity/relation graph for multi-hop reasoning
+
+**Innovation**: Agents-K1 (arxiv 2026): agent-native knowledge orchestration
+
+**Process**:
+1. Extract entities (methods, datasets, metrics, concepts, organizations, policies)
+2. Extract relations (uses, evaluates, contradicts, supports, extends, cites, funds, regulates)
+3. Detect clusters (groups of densely connected entities)
+4. Detect bridges (entities connecting multiple clusters)
+
+**Outputs**: `{ entities, relations, clusters, bridges }`
+
+---
+
+### EXPERIENCE BANK (NEW)
+
+**File**: `lib/agent/knowledge-infrastructure.ts`
+
+**Purpose**: Persistent memory of past analyses (TMAS, ICML 2026)
+
+**Two Banks**:
+1. **Experience Bank**: Reusable insights and patterns from past runs
+2. **Guideline Bank**: Rules that future runs should follow for similar topics
+
+**Process**: After each pipeline run, LLM extracts experiences + guidelines → stored in-memory (production: DB)
+
+**Retrieval**: On new run, relevant experiences/guidelines are retrieved by topic similarity
+
+---
+
+### CONTEXT COMPRESSION (NEW)
+
+**File**: `lib/agent/knowledge-infrastructure.ts`
+
+**Purpose**: Compress intermediate findings to fit context window
+
+**Innovation**: IterResearch (ICLR 2026): 2048+ tool calls in 40k context
+
+**Process**: After READER, compress readings into concise summary (preserves claims, citations, structure)
+
+**Outputs**: `{ originalSize, compressedSize, costUsd }`
+
+---
+
+### HYBRID SEARCH (NEW)
+
+**File**: `lib/agent/semantic-engine.ts`
+
+**Purpose**: Dense (pgvector) + Sparse (full-text) + Reciprocal Rank Fusion
+
+**Innovation**: llmbestpractices 2026 — hybrid retrieval captures both semantic and exact matches
+
+**Process**:
+1. Dense search (pgvector, top 30) — paraphrase, synonyms
+2. Sparse search (Postgres ILIKE/BM25, top 30) — exact keywords
+3. Reciprocal Rank Fusion (k=60) — robust merge by rank
+
+---
+
+### CITATION GRAPH (NEW)
+
+**File**: `lib/agent/citation-graph.ts`
+
+**Purpose**: Find hub + bridge papers via citation network traversal
+
+**Innovation**: Paper Circle (ACL 2026) — citation graph discovers foundational papers
+
+**Process**:
+1. Fetch referenced_works from OpenAlex for top sources
+2. Count in-degree → hub papers (cited by ≥3 sources)
+3. Co-citation Jaccard clustering → schools of thought
+4. Bridge papers connect multiple clusters
 
 ---
 

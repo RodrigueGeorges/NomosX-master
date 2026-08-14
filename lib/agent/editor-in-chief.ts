@@ -38,6 +38,10 @@ export interface EditorialDecision {
   estimatedCostUsd: number;
   /** Analytical research question reformulated from the raw headline (think-tank framing) */
   researchQuestion?: string;
+  /** How much the question challenges conventional thinking (0-100) */
+  intellectualAmbition?: number;
+  /** Strength of heterodox/contrarian angle (0-100) */
+  contrarianSignal?: number;
 }
 
 export interface EditorialTriageResult {
@@ -141,6 +145,8 @@ export async function editorialTriage(
       classification,
       estimatedCostUsd: estimatedCost,
       researchQuestion: selected.researchQuestion,
+      intellectualAmbition: selected.intellectualAmbition,
+      contrarianSignal: selected.contrarianSignal,
     });
 
     remainingBudget -= estimatedCost;
@@ -167,6 +173,8 @@ interface TriageSelection {
   reasoning: string;
   priority: number;
   researchQuestion?: string;
+  intellectualAmbition?: number;  // 0-100 — how much the question challenges conventional thinking
+  contrarianSignal?: number;      // 0-100 — strength of heterodox/contrarian angle
 }
 
 async function llmTriage(
@@ -195,7 +203,12 @@ async function llmTriage(
       messages: [
         {
           role: 'system',
-          content: `You are the Editor-in-Chief of NomosX, an AI-powered think tank. Your job is to select the most valuable topics for publication RIGHT NOW.
+          content: `You are the Editor-in-Chief of NomosX — a revolutionary AI-powered think tank that does not merely summarize consensus but challenges it, crosses domains that others keep separate, and asks questions that conventional institutions are afraid to pose.
+
+Your editorial DNA:
+- COMBAT NOVLANGUE: Name things by their true name. When power renames repression as "reform," expose the linguistic deception.
+- CONNECT IDEAS ACROSS DOMAINS: The most consequential insights live at the intersection of domains.
+- MEANING BEFORE ANSWERS: Before producing a conclusion, establish what the question actually means.
 
 SELECTION CRITERIA (in order of importance):
 1. NOVELTY — Is this NEW? Skip anything already covered in recent publications.
@@ -204,6 +217,16 @@ SELECTION CRITERIA (in order of importance):
 4. ANGLE — Can we add unique value with academic + news cross-referencing?
 5. DIVERSITY — Don't over-cover one domain. Mix geopolitics, tech, climate, etc.
 6. ACADEMIC TRACTABILITY — Can this topic be answered with existing academic literature? Avoid ultra-niche topics that have no research base. If the topic is too new or too specific for academic databases, skip it or reformulate to a broader question that HAS literature.
+7. INTELLECTUAL AMBITION — Does this topic offer PARADIGM-SHIFTING insights? Prioritize:
+   - Contrarian positions that challenge consensus
+   - Interdisciplinary synthesis opportunities (topics spanning 2+ domains)
+   - First-principles thinking over incremental updates
+   - Topics that expose hidden assumptions or power dynamics
+   - Topics that connect to deeper ontological/philosophical questions
+8. CONTRARIAN SIGNAL — Does this topic challenge the mainstream narrative? Prioritize:
+   - Topics where the consensus may be wrong
+   - Topics where independent/dissident voices are raising alarms
+   - Topics that reveal the gap between official discourse and structural reality
 
 SIGNAL STRENGTH GUIDE:
 - "breaking" (score ≥ 70): Strong multi-channel signal — prioritize these.
@@ -224,18 +247,20 @@ ACTIONS:
 - "monitor" — Not urgent enough now, but worth watching.
 - "skip" — Not relevant, duplicate, or low-value.
 
-Select at most ${maxPubs} topics for publication. Be SELECTIVE but not OVERLY CONSERVATIVE — a think tank's value comes from covering emerging topics before they become mainstream.
+Select at most ${maxPubs} topics for publication. Be SELECTIVE but not OVERLY CONSERVATIVE — a think tank's value comes from covering emerging topics before they become mainstream, and from asking questions others won't.
 
 CRITICAL — RESEARCH QUESTION REFORMULATION:
-For each selected topic, reformulate the raw headline into an ANALYTICAL RESEARCH QUESTION, the way Brookings, RAND or Chatham House would frame it. The pipeline searches academic databases with this question — a news headline yields poor academic matches.
+For each selected topic, reformulate the raw headline into an ANALYTICAL RESEARCH QUESTION. The pipeline searches academic databases with this question — a news headline yields poor academic matches.
 Rules:
-- Generalize the anecdote to the underlying policy/strategic issue (e.g. "Gaza: Dialysis patients face grueling hospital journey by donkey cart" → "How does armed conflict degrade access to chronic care, and what policy mechanisms protect patients with life-critical needs in besieged territories?")
+- Generalize the anecdote to the underlying policy/strategic issue
 - Keep the geographic/temporal anchor when relevant
 - Make it answerable with academic literature + primary data
 - Use standard academic terminology that databases index well (avoid news jargon)
 - One sentence, interrogative form
+- INNOVATION: Where possible, frame the question in a way that CHALLENGES the conventional framing. Don't just ask "What is the impact of X?" — ask "Who benefits from framing this as an X problem?" or "What assumptions are hidden in the dominant discourse on X?" or "How does X connect to the deeper question of Y?"
+- CROSS-DOMAIN: Where possible, frame the question to invite cross-domain insights. Don't just ask an economics question — ask how economics, anthropology, and philosophy intersect on this issue.
 
-Return JSON: { "selections": [{ "topicId": "...", "action": "publish_brief|publish_strategic|monitor|skip", "reasoning": "one sentence", "priority": 0-100, "researchQuestion": "analytical question reformulated from the headline" }] }`
+Return JSON: { "selections": [{ "topicId": "...", "action": "publish_brief|publish_strategic|monitor|skip", "reasoning": "one sentence", "priority": 0-100, "researchQuestion": "analytical question reformulated from the headline", "intellectualAmbition": 0-100, "contrarianSignal": 0-100 }] }`
         },
         {
           role: 'user',
@@ -253,6 +278,15 @@ Return JSON: { "selections": [{ "topicId": "...", "action": "publish_brief|publi
     if (!parsed) return { selected: [], costUsd: result.costUsd };
     const selections: TriageSelection[] = (parsed.selections || [])
       .filter((s: any) => s.action === 'publish_brief' || s.action === 'publish_strategic')
+      .map((s: any) => ({
+        topicId: s.topicId,
+        action: s.action as TriageSelection['action'],
+        reasoning: s.reasoning || '',
+        priority: typeof s.priority === 'number' ? s.priority : 50,
+        researchQuestion: s.researchQuestion,
+        intellectualAmbition: typeof s.intellectualAmbition === 'number' ? s.intellectualAmbition : undefined,
+        contrarianSignal: typeof s.contrarianSignal === 'number' ? s.contrarianSignal : undefined,
+      }))
       .slice(0, maxPubs);
 
     return { selected: selections, costUsd: result.costUsd };

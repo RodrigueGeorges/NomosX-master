@@ -38,6 +38,82 @@ export interface PipelineStats {
     costUsd: number;
   };
 
+  // Intelligent Scout: Multi-lens eclectic enrichment
+  intelligentScout?: {
+    lenses: Array<{ type: string; sources: number; yield: number }>;
+    totalSources: number;
+    uniqueSources: number;
+    diversityScore: number;
+    consensusScore: number;
+    scenarioRichness: number;
+    adaptiveDepth: number;
+    costUsd: number;
+    durationMs: number;
+  };
+
+  // Citation Graph: Hub + bridge paper discovery
+  citationGraph?: {
+    hubs: number;
+    bridges: number;
+    clusters: number;
+    newSources: number;
+    totalNodes: number;
+    totalEdges: number;
+  };
+
+  // Critic Agent: Multi-stage verification
+  critic?: {
+    verdict: 'accept' | 'repair' | 'reject';
+    overallScore: number;
+    groundedness: number;
+    claimsCount: number;
+    contradictions: number;
+    biases: number;
+    citationIssues: number;
+    stageResults: {
+      decomposition: { claimsExtracted: number };
+      grounding: { supported: number; partial: number; unsupported: number; contradicted: number; unverifiable: number };
+      contradictions: { pairsFound: number; severeCount: number };
+      bias: { flagsRaised: number; highSeverity: number };
+      citations: { issuesFound: number };
+    };
+    costUsd: number;
+    durationMs: number;
+  };
+
+  // Reflective RAG: Self-evaluation after each phase
+  reflection?: {
+    phase: string;
+    quality: 'high' | 'medium' | 'low';
+    score: number;
+    issues: string[];
+    recommendations: string[];
+    shouldRetry: boolean;
+    costUsd: number;
+  };
+
+  // Scenario Engine: CANA + SCATTER
+  scenarioEngine?: {
+    cana: { mechanisms: number; analogues: number; searchQueries: number; costUsd: number };
+    scatter: { hypotheses: number; diversityScore: number; costUsd: number };
+  };
+
+  // Knowledge Graph: Inter-paper entity/relation graph
+  knowledgeGraph?: {
+    entities: number;
+    relations: number;
+    clusters: number;
+    bridges: number;
+    costUsd: number;
+  };
+
+  // Context Compression: Intermediate findings compressed for downstream agents
+  contextCompression?: {
+    originalSize: number;
+    compressedSize: number;
+    costUsd: number;
+  };
+
   // LOT 2.6: Typed research gaps
   researchGaps?: Array<{
     type: 'NOT_REACHED' | 'RESTRICTED' | 'INEXISTANT';
@@ -147,6 +223,46 @@ export interface PipelineStats {
   agentMemory?: {
     lessons: number;
     agentId: string;
+  };
+
+  // Step 5b-bis: Innovator Author Detection
+  innovatorAuthors?: {
+    totalAuthors: number;
+    emergingCount: number;
+    crossDomainCount: number;
+    heterodoxCount: number;
+    dissidentCount: number;
+  };
+
+  // Step 7d: Cross-Model Consensus (controversial claim verification)
+  crossModelConsensus?: {
+    claimsVerified: number;
+    agreements: number;
+    disagreements: number;
+    uncertain: number;
+    costUsd: number;
+  };
+
+  // V3.1: DPP Synthesis (diverse key point selection)
+  dppSynthesis?: {
+    totalPoints: number;
+    selectedPoints: number;
+    diversityScore: number;
+    coverageScore: number;
+  };
+
+  // V3.1: Adaptive RAG (source sufficiency assessment)
+  adaptiveRag?: {
+    sufficient: boolean;
+    confidence: number;
+    gaps: string[];
+  };
+
+  // V3.1: Round-Table Deliberation (multi-model debate)
+  roundTable?: {
+    consensus: string;
+    participants: number;
+    rounds: number;
   };
 
   // Step 5c: Framing (hypothesis-driven analysis)
@@ -267,12 +383,32 @@ export interface PipelineStats {
   htmlLength?: number;
   rendererUsed?: "position_first" | "professional_strategic" | "professional_brief" | "legacy_strategic" | "legacy_brief";
 
-  // Step 9: Citation Verifier
+  // Step 9: Citation Verifier (NLI-enhanced — uses mDeBERTa-v3 for entailment classification)
   citationVerifier?: {
     integrity: number;
     supported: number;
     flagged: number;
     costUsd?: number;
+  };
+
+  // Step 9a: Source Check (retraction detection + claim presence verification)
+  // Resolves each cited source via OpenAlex/Crossref, checks for retraction,
+  // and verifies the claim text appears in the source. Free, deterministic.
+  sourceCheck?: {
+    checked: number;
+    retracted: number;
+    verified: number;
+    notFound: number;
+    claimAbsent: number;
+    integrityScore: number;
+  };
+
+  // Step 5b: Conflict-Aware Reasoning (EvidentialRAG pattern)
+  // Detects contradictions between sources before analysis, injects as context.
+  conflictDetection?: {
+    conflicts: number;
+    consensusRate: number; // 0-100
+    pairsChecked: number;
   };
 
   // Step 9b: Fact-Checker
@@ -309,6 +445,45 @@ export interface PipelineStats {
     needsHumanReview: boolean;
     skipped?: boolean;
     skipReason?: string;
+    loopRetried?: boolean;
+    loopImprovement?: number;
+  };
+
+  // Post-Render Quality Loop (Karpathy Loop pattern — retry citation repair if trust < threshold)
+  qualityLoop?: {
+    attempted: boolean;
+    trustBefore?: number;
+    trustAfter?: number;
+    improvement?: number;
+    citationsBackfilled?: number;
+    citationsInjected?: number;
+    reason?: string;
+    error?: string;
+  };
+
+  // Claim-Level Provenance Graph (ClaimKit pattern — stable claim IDs + validation status)
+  provenanceGraph?: {
+    totalClaims: number;
+    validClaims: number;
+    invalidClaims: number;
+    staleClaims: number;
+    needsReviewClaims: number;
+    validityRate: number; // 0-100
+  };
+
+  // Trust Score Calibration (ECE/Brier — record pairs for post-hoc analysis)
+  trustCalibration?: {
+    predictedTrust: number; // 0-100, the trust score
+    proxyActualQuality: number; // 0-1, proxy ground truth (avg of sub-metrics)
+    subMetrics: {
+      citationCoverage: number;
+      groundedness: number;
+      factIntegrity: number;
+      nliIntegrity: number;
+      sourceCheckIntegrity: number;
+      diversityScore: number;
+      avgQuality: number;
+    };
   };
 
   // Methodology & transparency note (RAND standard — deterministic)
@@ -459,14 +634,6 @@ export interface PipelineStats {
     estimatedPages?: number;
   };
 
-  // Step 15: Knowledge Graph
-  knowledgeGraph?: {
-    concepts: number;
-    relations: number;
-    costUsd?: number;
-    error?: string;
-  };
-
   // Orchestrator
   orchestrator?: {
     decisions: any[];
@@ -581,7 +748,7 @@ export function formatAPA(source: any, index: number): APACitation {
   
   let authors: string;
   if (authorList.length === 0) {
-    authors = "Unknown Author";
+    authors = ""; // No author — omit entirely instead of "Unknown Author"
   } else if (authorList.length === 1) {
     authors = formatAuthorName(authorList[0]);
   } else if (authorList.length === 2) {
@@ -656,16 +823,21 @@ export function renderAPAHtml(citation: APACitation): string {
 
   let html = `<span class="apa-ref" id="ref-${citation.index}">`;
   html += `<span class="ref-num">[${citation.index}]</span> `;
-  html += `${esc(citation.authors)} (${esc(citation.year)}). `;
+  // Omit authors entirely if empty (was "Unknown Author")
+  if (citation.authors && citation.authors.trim()) {
+    html += `${esc(citation.authors)} (${esc(citation.year)}). `;
+  } else {
+    html += `(${esc(citation.year)}). `;
+  }
   html += `<em>${esc(citation.title)}</em>. `;
   html += `${esc(citation.source)}.`;
-  
+
   if (citation.doi) {
     html += ` <a href="https://doi.org/${esc(citation.doi)}" target="_blank" rel="noopener" style="color:#ffffff;">https://doi.org/${esc(citation.doi)}</a>`;
   } else if (citation.url) {
     html += ` <a href="${esc(citation.url)}" target="_blank" rel="noopener" style="color:#ffffff;">${esc(citation.url)}</a>`;
   }
-  
+
   html += `</span>`;
   return html;
 }

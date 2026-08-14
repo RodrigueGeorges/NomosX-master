@@ -1,100 +1,54 @@
 /**
- * NomosX NLI Citation Verifier — Lightweight entailment-based verification
+ * NomosX NLI Citation Verifier — Real entailment-based verification
  *
- * Inspired by VeriCite (arXiv 2025) and citation-guard (GooTec).
+ * Powered by nli-engine.ts which uses mDeBERTa-v3 (multilingual NLI model)
+ * for true entailment classification: entailment / neutral / contradiction.
  *
- * Replaces expensive LLM-based citation verification with a fast NLI-style
- * approach using semantic similarity + lexical overlap + entailment heuristics.
+ * Falls back to embedding-based NLI (OpenAI embeddings + negation + numbers)
+ * when the local model is not available.
  *
  * Three-stage process:
  * 1. Extract claim-citation pairs from HTML
- * 2. For each pair, compute entailment score (semantic + lexical + keyword)
- * 3. Classify as supported / partially_supported / unsupported / unverifiable
+ * 2. For each pair, classify with NLI model (entailment / neutral / contradiction)
+ * 3. Map to supported / partially_supported / unsupported / misattributed
  *
- * Much faster and cheaper than LLM verification, with comparable accuracy
- * on SciFact gold (recall ~0.85-0.90 at precision ~0.80).
+ * Inspired by VerifAI (2026), FactReasoner (IBM), HallDetect (2026).
+ * Replaces the old heuristic composite scoring with real NLI.
  */
 
-import { cosineSimilarity, embedText } from './semantic-engine';
 import { extractCitations, type CitationInstance } from './citation-verifier';
 import type { VerificationReport, CitationVerification } from './citation-verifier';
+import { classifyNLI, nliToCitationVerdict, type NLIClassification } from './nli-engine';
 
 /**
- * Compute a composite entailment score between a claim and source content.
- * Uses three signals:
- * 1. Semantic similarity (cosine of embeddings) — captures paraphrasing
- * 2. Lexical overlap (Jaccard on content words) — captures direct matching
- * 3. Key entity matching — checks if named entities/numbers appear in source
- */
-async function computeEntailmentScore(
-  claim: string,
-  sourceContent: string,
-): Promise<{ semantic: number; lexical: number; entity: number; composite: number }> {
-  // 1. Semantic similarity
-  let semantic = 0;
-  try {
-    const [claimEmb, sourceEmb] = await Promise.all([
-      embedText(claim.slice(0, 500)),
-      embedText(sourceContent.slice(0, 2000)),
-    ]);
-    semantic = cosineSimilarity(claimEmb, sourceEmb);
-  } catch {
-    semantic = 0;
-  }
-
-  // 2. Lexical overlap (Jaccard on content words)
-  const stopWords = new Set([
-    'the', 'and', 'for', 'are', 'but', 'not', 'you', 'all', 'can', 'had',
-    'her', 'was', 'one', 'our', 'out', 'with', 'from', 'this', 'that',
-    'have', 'been', 'they', 'what', 'when', 'where', 'which', 'their',
-    'about', 'would', 'there', 'could', 'other', 'into', 'more', 'some',
-    'than', 'them', 'very', 'after', 'also', 'over', 'such', 'only',
-    'these', 'will', 'each', 'make', 'like', 'just', 'between', 'its',
-  ]);
-
-  const claimWords = new Set(
-    claim.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/)
-      .filter(w => w.length > 2 && !stopWords.has(w))
-  );
-  const sourceWords = new Set(
-    sourceContent.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/)
-      .filter(w => w.length > 2 && !stopWords.has(w))
-  );
-
-  const intersection = [...claimWords].filter(w => sourceWords.has(w)).length;
-  const union = new Set([...claimWords, ...sourceWords]).size;
-  const lexical = union > 0 ? intersection / union : 0;
-
-  // 3. Entity matching — check if numbers and key terms from claim appear in source
-  const claimNumbers = claim.match(/\d+\.?\d*%?|\$[\d,.]+[BMK]?/g) || [];
-  const entityMatches = claimNumbers.filter(n => sourceContent.includes(n)).length;
-  const entity = claimNumbers.length > 0 ? entityMatches / claimNumbers.length : 0.5;
-
-  // Composite: weighted average favoring semantic + entity
-  const composite = (semantic * 0.4) + (lexical * 0.25) + (entity * 0.35);
-
-  return { semantic, lexical, entity, composite };
-}
-
-/**
- * Classify entailment score into verdict.
+ * Classify a claim→source pair using the NLI engine.
  * Future extrapolation claims are exempted from source-support checks.
  */
-function classifyVerdict(score: number, isFutureExtrapolation = false): {
-  verdict: CitationVerification['verdict'];
-  confidence: number;
-} {
+async function classifyWithNLI(
+  claim: string,
+  sourceContent: string,
+  isFutureExtrapolation = false,
+): Promise<{ verdict: CitationVerification['verdict']; confidence: number; nli: NLIClassification }> {
   if (isFutureExtrapolation) {
     // Future extrapolation claims cannot be directly verified against sources.
     // They are valid if they have a citation (chaining is checked elsewhere).
-    // Give them a 'supported' verdict with moderate confidence so they don't
-    // drag down the integrity score.
-    return { verdict: 'supported', confidence: 60 };
+    return {
+      verdict: 'supported',
+      confidence: 60,
+      nli: {
+        verdict: 'entailment',
+        confidence: 0.6,
+        scores: { entailment: 0.6, neutral: 0.3, contradiction: 0.1 },
+        source: 'local-mdeberta',
+      },
+    };
   }
-  if (score >= 0.45) return { verdict: 'supported', confidence: Math.round(score * 100) };
-  if (score >= 0.25) return { verdict: 'partially_supported', confidence: Math.round(score * 80) };
-  if (score >= 0.10) return { verdict: 'unsupported', confidence: Math.round((1 - score) * 60) };
-  return { verdict: 'misattributed', confidence: Math.round((1 - score) * 80) };
+
+  const nli = await classifyNLI(claim, sourceContent);
+  const verdict = nliToCitationVerdict(nli);
+  const confidence = Math.round(nli.confidence * 100);
+
+  return { verdict, confidence, nli };
 }
 
 /**
@@ -216,9 +170,8 @@ export async function verifyCitationsNLI(
           ? [reading.claims?.join(' '), reading.results?.join(' '), reading.methods?.join(' ')].filter(Boolean).join(' ').slice(0, 3000)
           : `${source.title}\n${source.abstract || ''}`;
 
-        const scores = await computeEntailmentScore(citation.claim, sourceContent);
         const isFuture = isFutureExtrapolationClaim(citation.claim);
-        const { verdict, confidence } = classifyVerdict(scores.composite, isFuture);
+        const { verdict, confidence, nli } = await classifyWithNLI(citation.claim, sourceContent, isFuture);
 
         return {
           srcIndex: citation.srcIndex,
@@ -227,8 +180,8 @@ export async function verifyCitationsNLI(
           sourceAbstract: (source.abstract || '').slice(0, 200),
           verdict,
           confidence,
-          semanticSimilarity: scores.semantic,
-          explanation: `NLI: semantic=${scores.semantic.toFixed(2)}, lexical=${scores.lexical.toFixed(2)}, entity=${scores.entity.toFixed(2)}, composite=${scores.composite.toFixed(2)}`,
+          semanticSimilarity: nli.scores.entailment,
+          explanation: `NLI (${nli.source}): verdict=${nli.verdict}, confidence=${(nli.confidence * 100).toFixed(0)}%, entailment=${nli.scores.entailment.toFixed(2)}, neutral=${nli.scores.neutral.toFixed(2)}, contradiction=${nli.scores.contradiction.toFixed(2)}${nli.evidenceSnippet ? ` | evidence: "${nli.evidenceSnippet.slice(0, 100)}..."` : ''}`,
         } satisfies CitationVerification;
       })
     );

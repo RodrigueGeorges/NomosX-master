@@ -139,7 +139,20 @@ export function runStyleGates(html: string): { violations: StyleViolation[]; pas
 
 export function runNumericalGate(html: string, sourceCount: number): { violations: StyleViolation[]; passed: boolean } {
   const violations: StyleViolation[] = [];
-  const text = html.replace(/<[^>]+>/g, ' ');
+
+  // Convert <sup class="cite"> tags to [SRC-N] markers BEFORE stripping HTML tags,
+  // so that citations are preserved as text markers for the gate to find.
+  let normalized = html.replace(
+    /<sup class="cite"><a href="#ref-(\d+)"[^>]*>[^<]*<\/a><\/sup>/g,
+    ' [SRC-$1] '
+  );
+  // Also convert standalone <a href="#ref-N"> to [SRC-N]
+  normalized = normalized.replace(/<a href="#ref-(\d+)"[^>]*>[^<]*<\/a>/g, ' [SRC-$1] ');
+
+  // Remove <style>/<script> blocks entirely (CSS values are not statistics)
+  normalized = normalized.replace(/<(style|script)\b[^>]*>[\s\S]*?<\/\1>/gi, ' ');
+
+  const text = normalized.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
 
   // Find all numbers that look like statistics (percentages, decimals, large numbers)
   const statPattern = /(\d+\.?\d*\s*%|\b\d+\.\d{2,}\b|\b[1-9]\d{3,}\b)/g;
@@ -149,9 +162,13 @@ export function runNumericalGate(html: string, sourceCount: number): { violation
     const matchStr = match[0];
     const pos = match.index ?? 0;
 
-    // Check for [SRC-N] or [E-N] within 100 chars after the number
-    const context = text.slice(pos, pos + matchStr.length + 100);
-    if (!/\[(?:SRC|E)-\d+\]/.test(context)) {
+    // Skip years (1900-2099)
+    if (/^\b(19\d{2}|20\d{2})\b$/.test(matchStr)) continue;
+
+    // Check for [SRC-N] or [E-N] within 100 chars after AND before the number
+    const after = text.slice(pos, pos + matchStr.length + 100);
+    const before = text.slice(Math.max(0, pos - 100), pos);
+    if (!/\[(?:SRC|E)-\d+\]/.test(after) && !/\[(?:SRC|E)-\d+\]/.test(before)) {
       violations.push({
         gate: 'NUM',
         pattern: statPattern.source,

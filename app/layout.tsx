@@ -8,6 +8,7 @@ import {
   BRAND_DESCRIPTION,
   BRAND_NAME,
   BRAND_OG_DESCRIPTION,
+  BRAND_POSITIONING,
   BRAND_TITLE,
 } from '@/lib/brand/public-copy';
 
@@ -83,14 +84,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     name: 'NomosX',
     url: process.env.NEXT_PUBLIC_APP_URL || 'https://nomosx.com',
     logo: `${process.env.NEXT_PUBLIC_APP_URL || 'https://nomosx.com'}/favicon.svg`,
-    description: 'A think tank for strategic foresight — cross-domain mapping, adversarial review, and source-verified positions published without agenda.',
+    description: `${BRAND_POSITIONING}. A think tank for scenario-weighted reasoning — cross-domain mapping, adversarial review, and source-verified positions published without agenda.`,
     sameAs: [
       'https://x.com/nomosx_ai',
       'https://github.com/nomosx',
     ],
     foundingDate: '2024',
     knowsAbout: [
-      'Strategic Analysis', 'Strategic Foresight', 'Decision Intelligence',
+      'Strategic Analysis', 'Scenario Planning', 'Decision Intelligence',
       'Evidence-Based Policy', 'Cross-Domain Research', 'Scenario Planning',
     ],
   };

@@ -86,11 +86,99 @@ export function setRateLimiter(provider: string, config: RateLimitConfig) {
   rateLimiters.set(provider, new RateLimiter(config));
 }
 
+// ================================
+// CIRCUIT BREAKER (V3.1 — Deep Search resilience)
+// ================================
+// When a provider returns repeated 429s, trip the circuit breaker.
+// All subsequent requests to that provider fail-fast (return []) for a cooldown period.
+// This prevents cascading rate-limit blocks from paralyzing the pipeline.
+
+interface CircuitBreakerState {
+  consecutive429s: number;
+  tripped: boolean;
+  trippedAt: number;       // timestamp when tripped
+  cooldownMs: number;      // how long to skip requests
+  totalTrips: number;      // lifetime counter
+}
+
+const circuitBreakers = new Map<string, CircuitBreakerState>();
+
+// Thresholds per provider
+const CB_THRESHOLDS: Record<string, { max429s: number; cooldownMs: number }> = {
+  'openalex': { max429s: 3, cooldownMs: 10_000 },      // 3× 429 → skip for 10s (polite pool recovers fast)
+  'semanticscholar': { max429s: 1, cooldownMs: 120_000 }, // 1× 429 → skip for 2min (S2 is aggressive)
+  'arxiv': { max429s: 2, cooldownMs: 15_000 },          // 2× 429 → skip for 15s
+  'google-books': { max429s: 1, cooldownMs: 60_000 },   // 1× 429 → skip for 60s
+};
+
+/**
+ * Check if a provider's circuit breaker is tripped.
+ * If tripped but cooldown expired, auto-reset.
+ */
+export function isCircuitBreakerTripped(provider: string): boolean {
+  const cb = circuitBreakers.get(provider);
+  if (!cb || !cb.tripped) return false;
+  // Auto-reset after cooldown
+  if (Date.now() - cb.trippedAt > cb.cooldownMs) {
+    cb.tripped = false;
+    cb.consecutive429s = 0;
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Record a 429 for a provider. Trips the circuit breaker if threshold reached.
+ */
+function record429(provider: string): void {
+  const threshold = CB_THRESHOLDS[provider];
+  if (!threshold) return; // no circuit breaker for this provider
+
+  let cb = circuitBreakers.get(provider);
+  if (!cb) {
+    cb = { consecutive429s: 0, tripped: false, trippedAt: 0, cooldownMs: threshold.cooldownMs, totalTrips: 0 };
+    circuitBreakers.set(provider, cb);
+  }
+
+  cb.consecutive429s++;
+  if (cb.consecutive429s >= threshold.max429s && !cb.tripped) {
+    cb.tripped = true;
+    cb.trippedAt = Date.now();
+    cb.totalTrips++;
+    console.warn(`[CIRCUIT BREAKER] ${provider} tripped after ${cb.consecutive429s}× 429 — skipping for ${cb.cooldownMs / 1000}s`);
+  }
+}
+
+/**
+ * Reset a provider's circuit breaker (e.g., after a successful request).
+ */
+function resetCircuitBreaker(provider: string): void {
+  const cb = circuitBreakers.get(provider);
+  if (cb) cb.consecutive429s = 0;
+}
+
+/**
+ * Get circuit breaker stats for monitoring.
+ */
+export function getCircuitBreakerStats(): Record<string, any> {
+  const stats: Record<string, any> = {};
+  for (const [provider, cb] of circuitBreakers) {
+    stats[provider] = {
+      tripped: cb.tripped,
+      consecutive429s: cb.consecutive429s,
+      totalTrips: cb.totalTrips,
+      cooldownRemaining: cb.tripped ? Math.max(0, cb.cooldownMs - (Date.now() - cb.trippedAt)) : 0,
+    };
+  }
+  return stats;
+}
+
 // Default rate limits for known providers
-// OpenAlex: premium api_key = 10 req/s guaranteed; polite pool = ~5 req/s
+// OpenAlex: premium api_key = 10 req/s guaranteed; polite pool = ~2 req/s (conservative)
+// V3.1: If API key credits are exhausted, polite pool is much slower.
 setRateLimiter("openalex", process.env.OPENALEX_API_KEY
   ? { requestsPerSecond: 10, burstSize: 20 }
-  : { requestsPerSecond: 5, burstSize: 10 });
+  : { requestsPerSecond: 2, burstSize: 3 }); // Polite pool: 2 req/s, small burst
 setRateLimiter("crossref", { requestsPerSecond: 50, burstSize: 100 });
 setRateLimiter("semanticscholar", { requestsPerSecond: 1, burstSize: 1 }); // Strict 1 req/s — no burst, S2 rate limits are aggressive
 setRateLimiter("unpaywall", { requestsPerSecond: 10, burstSize: 20 });
@@ -220,6 +308,17 @@ export async function httpGet<T = any>(
     responseType = "json",
   } = options;
 
+  // V3.1: Circuit breaker — fail-fast if provider is tripped
+  if (rateLimiterKey && isCircuitBreakerTripped(rateLimiterKey)) {
+    const cb = circuitBreakers.get(rateLimiterKey);
+    const remaining = cb ? Math.ceil((cb.cooldownMs - (Date.now() - cb.trippedAt)) / 1000) : 0;
+    throw new HttpError(
+      `Circuit breaker tripped for ${rateLimiterKey} (${remaining}s remaining)`,
+      429,
+      'CIRCUIT_BREAKER_TRIPPED'
+    );
+  }
+
   // Acquire shared rate limiter (re-acquired on retry via rateLimiterKey)
   async function acquireLimiter() {
     if (rateLimiterKey) {
@@ -236,6 +335,14 @@ export async function httpGet<T = any>(
   let lastError: Error | null = null;
 
   for (let attempt = 0; attempt <= retries; attempt++) {
+    // V3.1: Check circuit breaker before each attempt
+    if (rateLimiterKey && isCircuitBreakerTripped(rateLimiterKey)) {
+      throw new HttpError(
+        `Circuit breaker tripped for ${rateLimiterKey}`,
+        429,
+        'CIRCUIT_BREAKER_TRIPPED'
+      );
+    }
     if (attempt > 0) await acquireLimiter(); // Re-acquire on retry
     try {
       const response = await fetchWithTimeout(
@@ -286,12 +393,33 @@ export async function httpGet<T = any>(
             if (url.includes('semanticscholar.org') && !retryAfterRaw) {
               throw new HttpError(`HTTP 429 ${response.statusText}`, 429, text.slice(0, 500));
             }
-            // OpenAlex: allow 1 retry with proper backoff (rate limiter is now 5 req/s)
-            if (url.includes('openalex.org') && !retryAfterRaw) {
-              backoff = 15000; // 15s cooldown for OpenAlex
+            // V3.1: Record 429 for circuit breaker
+            if (response.status === 429 && rateLimiterKey) {
+              record429(rateLimiterKey);
+              // If circuit breaker just tripped, fail-fast
+              if (isCircuitBreakerTripped(rateLimiterKey)) {
+                throw new HttpError(`Circuit breaker tripped for ${rateLimiterKey}`, 429, 'CIRCUIT_BREAKER_TRIPPED');
+              }
             }
-            // OpenAlex: at least 15s; generic: at least 10s
-            const minCooldown = url.includes('openalex.org') ? 15000 : 10000;
+            // V3.1: Detect exhausted OpenAlex API key credits → switch to polite pool
+            if (response.status === 429 && url.includes('openalex.org')) {
+              const remaining = response.headers.get('x-ratelimit-remaining');
+              if (remaining === '0') {
+                // Credits exhausted — dynamically import and mark
+                try {
+                  const { markOpenAlexKeyExhausted } = await import('./providers/openalex');
+                  markOpenAlexKeyExhausted();
+                } catch { /* non-blocking */ }
+                // Don't retry with the exhausted key — fail-fast, next call will use mailto
+                throw new HttpError(`OpenAlex API key credits exhausted`, 429, 'KEY_EXHAUSTED');
+              }
+            }
+            // OpenAlex: allow 1 retry with short backoff (polite pool recovers fast)
+            if (url.includes('openalex.org') && !retryAfterRaw) {
+              backoff = 3000; // 3s cooldown — much shorter than before
+            }
+            // OpenAlex: at least 3s; generic: at least 5s
+            const minCooldown = url.includes('openalex.org') ? 3000 : 5000;
             backoff = Math.max(backoff, retryAfterMs, minCooldown);
           }
           if (env.NODE_ENV === "development") {

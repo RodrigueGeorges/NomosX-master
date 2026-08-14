@@ -7,6 +7,7 @@ import { sanitizeHtml } from "@/lib/sanitize";
 import AuthModal from "@/components/AuthModal";
 import { PublicPageShell } from "@/components/layout/PublicPageShell";
 import { ReaderFeedback } from "@/components/inquiry/ReaderFeedback";
+import { PublicationActions } from "@/components/inquiry/PublicationActions";
 import { PageSection } from "@/components/layout/PageHeader";
 import { ForesightPanel, ForesightPanelSkeleton, ForesightEmptyState } from "@/components/foresight";
 import type { ForesightBundle } from "@/lib/foresight";
@@ -279,6 +280,9 @@ export function InquiryClient({
 
             {/* Reader feedback — error reporting + rating */}
             <ReaderFeedback publicationId={inquiry.id} />
+
+            {/* Like / Dislike / Comment / Share */}
+            <PublicationActions publicationId={inquiry.id} publicationTitle={inquiry.title} />
 
             {related.length > 0 && (
               <div className="mt-16 pt-8 border-t border-white/[0.08]">

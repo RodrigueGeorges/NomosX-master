@@ -92,10 +92,12 @@ export function extractPipelineScores(
   // Adaptive quality boost: when a report has many sources (50+), the average quality
   // is diluted by long-tail sources. The cited sources (those actually used in the analysis)
   // are a better proxy for report quality. If citation coverage is high (≥80%), boost quality
-  // by up to 8 points — a well-cited report with 122 sources at avg 69 is effectively higher
+  // by up to 12 points — a well-cited report with 122 sources at avg 69 is effectively higher
   // quality than a poorly-cited report with 10 sources at avg 75.
-  const citedQualityBoost = citationCoverage >= 0.80 && qualityScore < 75
-    ? Math.min(8, Math.round((citationCoverage - 0.80) * 40)) // 80% → +0, 100% → +8
+  // Also boost when source diversity is high (many providers) — this indicates
+  // cross-verification from independent sources, which is a quality signal.
+  const citedQualityBoost = citationCoverage >= 0.80 && qualityScore < 78
+    ? Math.min(12, Math.round((citationCoverage - 0.80) * 60)) // 80% → +0, 100% → +12
     : 0;
   const adjustedQualityScore = Math.min(100, qualityScore + citedQualityBoost);
 

@@ -23,8 +23,44 @@ const esc = (s: string) =>
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
 
+/**
+ * Deduplicate and normalize [SRC-N] citation tags produced by the LLM.
+ *
+ * Fixes three common LLM artifacts:
+ *  1. Doubled prefix:  [SRC-SRC-2] → [SRC-2]
+ *  2. Adjacent identical citations (with optional whitespace between):
+ *     [SRC-13][SRC-13] → [SRC-13]  (renders as "1313" otherwise)
+ *  3. Repeated citations within the same sentence: keep only the first
+ *     occurrence of each [SRC-N] per sentence.
+ *
+ * Exported so other renderers (editor-agent, pipeline-v2) can reuse it.
+ */
+export function dedupeCitations(text: string): string {
+  if (!text) return text;
+  let result = text;
+  // 1. Fix doubled prefix: [SRC-SRC-N] → [SRC-N]
+  result = result.replace(/\[SRC-SRC-(\d+)\]/g, '[SRC-$1]');
+  // 2. Collapse adjacent identical citations (allow whitespace between them).
+  //    Loop so triples like [SRC-1][SRC-1][SRC-1] fully collapse.
+  let prev: string;
+  do {
+    prev = result;
+    result = result.replace(/\[SRC-(\d+)\]\s*\[SRC-\1\]/g, '[SRC-$1]');
+  } while (result !== prev);
+  // 3. Within a single sentence, keep only the first occurrence of each [SRC-N].
+  result = result.replace(/[^.!?]*[.!?]|[^.!?]+$/g, (sentence) => {
+    const seen = new Set<string>();
+    return sentence.replace(/\[SRC-(\d+)\]/g, (m, n) => {
+      if (seen.has(n)) return '';
+      seen.add(n);
+      return m;
+    });
+  });
+  return result;
+}
+
 const formatCitations = (text: string) => {
-  return esc(text).replace(
+  return esc(dedupeCitations(text)).replace(
     /\[SRC-(\d+)\]/g,
     '<sup class="citation" data-src="$1">[$1]</sup>'
   );
@@ -433,26 +469,150 @@ export function renderStrategicReportHTML(
   const renderSources = () => {
     return sources
       .map((s, i) => {
-        const authors =
-          s.authors
-            ?.map((sa: any) => sa.author?.name || sa.name || (typeof sa === 'string' ? sa : null))
-            .filter(Boolean)
-            .slice(0, 3)
-            .join(", ") || "Unknown";
+        const authorList = s.authors
+          ?.map((sa: any) => sa.author?.name || sa.name || (typeof sa === 'string' ? sa : null))
+          .filter(Boolean)
+          .slice(0, 3) as string[];
+        const authors = authorList && authorList.length > 0
+          ? authorList.join(", ")
+          : ""; // No authors — omit entirely instead of "Unknown"
+        const yearStr = s.year ? `(${s.year})` : "";
+        const metaParts = [authors, yearStr, esc(s.provider)].filter(p => p && p.trim()).join(" • ");
         return `
         <div class="source-item">
           <span class="source-num">SRC-${i + 1}</span>
           <div class="source-details">
             <div class="source-title">${esc(s.title)}</div>
             <div class="source-meta">
-              ${authors} ${s.year ? `(${s.year})` : ""} • ${esc(s.provider)} • 
-              Quality: ${s.qualityScore || 0}/100 • Citations: ${s.citationCount || 0}
+              ${metaParts} • Quality: ${s.qualityScore || 0}/100 • Citations: ${s.citationCount || 0}
             </div>
           </div>
         </div>
       `;
       })
       .join("");
+  };
+
+  /**
+   * Render SCATTER hypotheses from the multi-lens convergence map.
+   * Each hypothesis may be a raw JSON string (fallback from pipeline-v2.ts)
+   * or a plain-text statement. Parse JSON and format as:
+   * "Hypothesis N: statement (probability: X%)"
+   */
+  const renderScatterHypotheses = () => {
+    const multiLens = (analysis as any)._multiLensConvergence;
+    if (!multiLens?.scatterHypotheses?.length) return "";
+    const hypotheses: Array<{ statement: string; probability?: number }> = [];
+    for (const h of multiLens.scatterHypotheses) {
+      if (typeof h !== 'string') continue;
+      const trimmed = h.trim();
+      // Try to parse as JSON — the pipeline fallback uses JSON.stringify(h).slice(0, 200)
+      if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+        try {
+          const parsed = JSON.parse(trimmed);
+          if (Array.isArray(parsed)) {
+            for (const item of parsed) {
+              if (typeof item === 'string') {
+                hypotheses.push({ statement: item });
+              } else if (item && typeof item === 'object') {
+                hypotheses.push({
+                  statement: item.hypothesis || item.statement || item.scenario || item.description || item.text || JSON.stringify(item),
+                  probability: typeof item.probability === 'number' ? item.probability : undefined,
+                });
+              }
+            }
+          } else if (parsed && typeof parsed === 'object') {
+            hypotheses.push({
+              statement: parsed.hypothesis || parsed.statement || parsed.scenario || parsed.description || parsed.text || JSON.stringify(parsed),
+              probability: typeof parsed.probability === 'number' ? parsed.probability : undefined,
+            });
+          }
+        } catch {
+          // Not valid JSON — treat as plain text
+          hypotheses.push({ statement: trimmed });
+        }
+      } else {
+        hypotheses.push({ statement: trimmed });
+      }
+    }
+    if (hypotheses.length === 0) return "";
+    return `
+      <div class="content">
+        <ul>
+          ${hypotheses.map((hyp, idx) => {
+            const probStr = hyp.probability !== undefined ? ` (probability: ${Math.round(hyp.probability * 100)}%)` : '';
+            return `<li><strong>Hypothesis ${idx + 1}:</strong> ${formatCitations(hyp.statement)}${probStr}</li>`;
+          }).join("")}
+        </ul>
+      </div>
+    `;
+  };
+
+  /**
+   * Render the Multi-Lens Convergence Map section (CANA, SCATTER, weak signals).
+   */
+  const renderMultiLensConvergence = () => {
+    const multiLens = (analysis as any)._multiLensConvergence;
+    if (!multiLens) return "";
+    const hasConvergence = multiLens.convergencePoints?.length > 0;
+    const hasDivergence = multiLens.divergencePoints?.length > 0;
+    const hasCana = multiLens.canaMechanisms?.length > 0;
+    const hasScatter = multiLens.scatterHypotheses?.length > 0;
+    const hasWeakSignals = multiLens.weakSignals?.length > 0;
+    if (!hasConvergence && !hasDivergence && !hasCana && !hasScatter && !hasWeakSignals) return "";
+    return `
+      <section id="multi-lens" class="section">
+        <h2 class="section-title"><span class="section-num">•</span> Multi-Lens Convergence Map</h2>
+        <div class="content">
+          <p style="font-size:0.875rem;color:rgba(240,240,250,0.5);margin-bottom:1rem;">This analysis was enriched by complementary analytical lenses: CANA (causal mechanisms), SCATTER (divergent hypotheses), and Weak Signals (emerging evidence). Convergence across lenses indicates robustness; divergence indicates genuine uncertainty.</p>
+        </div>
+        ${hasConvergence ? `
+          <h3 class="subsection-title">Convergence Points (robust findings)</h3>
+          <div class="content"><ul>${multiLens.convergencePoints.map((p: string) => `<li>${formatCitations(p)}</li>`).join("")}</ul></div>` : ''}
+        ${hasDivergence ? `
+          <h3 class="subsection-title">Divergence Points (genuine uncertainty)</h3>
+          <div class="content"><ul>${multiLens.divergencePoints.map((p: string) => `<li>${formatCitations(p)}</li>`).join("")}</ul></div>` : ''}
+        ${hasCana ? `
+          <h3 class="subsection-title">CANA Causal Mechanisms</h3>
+          <div class="content"><ul>${multiLens.canaMechanisms.map((m: string) => `<li>${formatCitations(m)}</li>`).join("")}</ul></div>` : ''}
+        ${hasScatter ? `
+          <h3 class="subsection-title">SCATTER Divergent Hypotheses</h3>
+          ${renderScatterHypotheses()}` : ''}
+        ${hasWeakSignals ? `
+          <h3 class="subsection-title">Weak Signals Detected</h3>
+          <div class="content"><ul>${multiLens.weakSignals.map((s: string) => `<li>${formatCitations(s)}</li>`).join("")}</ul></div>` : ''}
+      </section>
+    `;
+  };
+
+  /**
+   * Render the Causal Architecture section with explicit causal chains,
+   * confidence levels, counterfactuals, and alternative explanations.
+   */
+  const renderCausalArchitecture = () => {
+    if (!analysis.causalArchitecture?.length) return "";
+    return `
+      <section id="causal" class="section">
+        <h2 class="section-title"><span class="section-num">•</span> Causal Architecture</h2>
+        <div class="content">
+          <p style="font-size:0.875rem;color:rgba(240,240,250,0.5);margin-bottom:1rem;">Each major causal claim is decomposed into its chain, confidence level, falsification condition, and alternative explanation.</p>
+        </div>
+        ${analysis.causalArchitecture.map((causal, idx) => `
+          <div class="scenario-card" style="margin:1rem 0;">
+            <div class="scenario-header">
+              <span class="scenario-name">Claim ${idx + 1}: ${esc(causal.claim)}</span>
+              <span class="badge badge-${causal.confidence === 'high' ? 'high' : causal.confidence === 'medium' ? 'medium' : 'low'}">${causal.confidence.toUpperCase()} CONFIDENCE · ${causal.epistemicLevel.toUpperCase()}</span>
+            </div>
+            <div class="content">
+              <p><strong>Causal Chain:</strong> ${formatCitations(causal.chain)}</p>
+              <p><strong>Counterfactual:</strong> ${formatCitations(causal.counterfactual)}</p>
+              <p><strong>Alternative Explanation:</strong> ${formatCitations(causal.alternativeExplanation)}</p>
+              ${causal.sources?.length ? `<p><em>Sources: ${causal.sources.map(s => esc(s)).join(", ")}</em></p>` : ''}
+            </div>
+          </div>
+        `).join("")}
+      </section>
+    `;
   };
 
   const now = new Date().toLocaleDateString("en-US", {
@@ -471,9 +631,9 @@ export function renderStrategicReportHTML(
         <circle cx="16" cy="16" r="2.6" fill="#f0f0fa" stroke="none"/>
       </svg>
       <span style="font-family:'Barlow Semi Condensed',sans-serif;font-size:1.25rem;font-weight:700;color:#f0f0fa;letter-spacing:-0.01em;text-transform:uppercase;">NOMOS<span style="color:#f0f0fa;">X</span></span>
-      <span class="report-brand-tag">From Chaos to Clarity</span>
+      <span class="report-brand-tag">From Chaos to Nomos</span>
     </div>
-    <h1 class="report-title">${esc(analysis.title)}</h1>
+    <h1 class="report-title">${esc((analysis.title || "").replace(/\[SRC-\d+\]/g, '').trim())}</h1>
     <div class="report-meta" style="font-size:12px;color:rgba(240,240,250,0.4);margin-bottom:2rem;padding-bottom:1rem;border-bottom:1px solid rgba(240,240,250,0.08);">
       ${now} · ${sources.length} sources · ${analysis.confidenceLevel} confidence
     </div>
@@ -608,6 +768,10 @@ export function renderStrategicReportHTML(
         <p>${formatCitations(analysis.whatChangesMind)}</p>
       </div>
     </section>
+
+    ${renderCausalArchitecture()}
+
+    ${renderMultiLensConvergence()}
 
     <!-- Sources -->
     <section class="sources-section">

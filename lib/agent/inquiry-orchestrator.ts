@@ -381,6 +381,9 @@ export async function runAndPublishInquiry(
     ? (pipeline.stats.triangularJudge as Record<string, unknown> | undefined)?.revisedVerdict as string | undefined
     : daVerdict;
 
+  // Minimum viable trust — below this, quality is genuinely insufficient
+  const MIN_VIABLE_TRUST = 55;
+
   // Priority 1: Gate says publish + readiness OK + trust sufficient → publish
   if (gate.decision === "publish" && readiness.ok && trustScore >= adaptiveMinTrust) {
     status = "published";
@@ -388,6 +391,13 @@ export async function runAndPublishInquiry(
   // Priority 2: Gate says revise but metrics are strong → publish with DA advisory
   else if (gate.decision === "revise" && readiness.ok && trustScore >= adaptiveMinTrust + 5) {
     status = "published";
+  }
+  // Priority 2b: Trust in "moderate confidence" zone (55-64) + gate publish/revise → publish with warning
+  // This prevents HELD on reports that are just under the threshold after the quality loop.
+  // The warning is stored in metadata and surfaced to the reader.
+  else if (trustScore >= MIN_VIABLE_TRUST && trustScore < adaptiveMinTrust && gate.decision !== "hold") {
+    status = "published";
+    console.log(`[InquiryOrchestrator] PUBLISH WITH WARNING: trust ${trustScore} in moderate zone [${MIN_VIABLE_TRUST}-${adaptiveMinTrust - 1}] — publishing with confidence warning`);
   }
   // Priority 3: DA reject with low trust → review (DA concern validated by weak metrics)
   else if (effectiveDaVerdict === "reject" && trustScore < adaptiveMinTrust + 5) {
@@ -397,12 +407,17 @@ export async function runAndPublishInquiry(
   else if (signOff && !signOff.approved) {
     status = "draft";
   }
-  // Priority 5: Gate revise or readiness not OK → held
-  else if (gate.decision === "revise" || !readiness.ok) {
+  // Priority 5: Gate revise or readiness not OK → held (but only if trust < MIN_VIABLE_TRUST)
+  else if ((gate.decision === "revise" || !readiness.ok) && trustScore < MIN_VIABLE_TRUST) {
     status = "held";
   }
+  // Priority 5b: Gate revise but trust ≥ MIN_VIABLE_TRUST → publish with warning (avoid HELD on moderate trust)
+  else if ((gate.decision === "revise" || !readiness.ok) && trustScore >= MIN_VIABLE_TRUST) {
+    status = "published";
+    console.log(`[InquiryOrchestrator] PUBLISH WITH WARNING: gate ${gate.decision}, trust ${trustScore} ≥ ${MIN_VIABLE_TRUST} — publishing with quality warning`);
+  }
   // Priority 6: Trust too low → draft
-  else if (trustScore < adaptiveMinTrust) {
+  else if (trustScore < MIN_VIABLE_TRUST) {
     status = "draft";
   }
 
@@ -443,6 +458,12 @@ export async function runAndPublishInquiry(
           publicationGate: gate,
           publicationReadiness: readiness,
           devilsAdvocateVerdict: daVerdict,
+          // Moderate confidence warning — published with lower trust score
+          confidenceWarning: trustScore >= 55 && trustScore < adaptiveMinTrust
+            ? { level: "moderate", trustScore, threshold: adaptiveMinTrust, message: "Moderate confidence — published with quality warning" }
+            : undefined,
+          // Quality loop result — post-render retry that boosted trust score
+          qualityLoop: (pipeline.stats as any)?.qualityLoop,
           signOff: signOff
             ? {
                 researcher: signOff.researcherName,

@@ -63,7 +63,7 @@ export async function GET(_req: NextRequest) {
     <title>NomosX — Think Tank Publications</title>
     <link>${APP_URL}</link>
     <atom:link href="${APP_URL}/feed.xml" rel="self" type="application/rss+xml"/>
-    <description>Verified positions from NomosX. Cross-domain foresight, every source traced.</description>
+    <description>Verified positions from NomosX. Scenario-weighted reasoning, every source traced.</description>
     <language>en</language>
     <lastBuildDate>${now}</lastBuildDate>
     <ttl>60</ttl>

@@ -703,6 +703,9 @@ model Brief {
   // Lineage (full pipeline trace)
   lineage Json? // PipelineLineage JSON
 
+  // Metadata for episodic memory and other extensions (V3.1)
+  metadata Json?
+
   // Publishing
   publicId    String?   @unique
   publishedAt DateTime?
@@ -723,6 +726,29 @@ model Brief {
   @@index([trustScore])
   @@index([createdAt])
   @@index([publishedAt])
+}
+
+// ============================================================================
+// EPISODIC MEMORY — Pipeline run learning (V3.1)
+// Stores each pipeline run as an episode for cross-run learning.
+// Inspired by A-Mem (NeurIPS 2025) and Experience Memory Graph.
+// ============================================================================
+
+model EpisodicMemory {
+  id        String   @id @default(cuid())
+  query     String   @db.Text
+  researchQuestion String @db.Text
+  sourceCount      Int
+  criticScore      Float?
+  criticVerdict    String?
+  mistakes         Json?   // string[]
+  successes        Json?   // string[]
+  domains          Json?   // string[]
+  embedding        Json?   // number[] (pseudo-embedding for similarity search)
+  createdAt        DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([criticScore])
 }
 
 model Digest {
@@ -1091,6 +1117,8 @@ model User {
   subscription        Subscription?
   verticalPreferences UserVerticalPreference[]
   studioXOrders       StudioXOrder[]
+  reactions           PublicationReaction[]
+  comments            PublicationComment[]
 
   @@index([email])
   @@index([role])
@@ -1546,6 +1574,10 @@ model ThinkTankPublication {
   // Distribution
   distributedAt DateTime?
   viewCount     Int      @default(0)
+
+  // Social media distribution
+  tweetedAt     DateTime?
+  tweetId       String?
   
   // Relations
   vertical Vertical  @relation(fields: [verticalId], references: [id])
@@ -1555,16 +1587,56 @@ model ThinkTankPublication {
   runs     ThinkTankPublicationRun[]
   checks   ThinkTankQualityCheck[]
   foresightRun ForesightRun?
-  
+  reactions PublicationReaction[]
+  comments  PublicationComment[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   @@index([verticalId])
   @@index([type])
   @@index([status])
   @@index([trustScore])
   @@index([publishedAt])
   @@index([publicId])
+}
+
+// ============================================================================
+// PUBLICATION REACTIONS (like / dislike)
+// ============================================================================
+
+model PublicationReaction {
+  id            String   @id @default(cuid())
+  userId        String
+  publicationId String
+  type          String   // LIKE, DISLIKE
+  createdAt     DateTime @default(now())
+
+  user        User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  publication ThinkTankPublication @relation(fields: [publicationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, publicationId])
+  @@index([publicationId, type])
+  @@index([userId])
+}
+
+// ============================================================================
+// PUBLICATION COMMENTS
+// ============================================================================
+
+model PublicationComment {
+  id            String   @id @default(cuid())
+  userId        String
+  publicationId String
+  content       String   @db.Text
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user        User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  publication ThinkTankPublication @relation(fields: [publicationId], references: [id], onDelete: Cascade)
+
+  @@index([publicationId, createdAt])
+  @@index([userId])
 }
 
 // ============================================================================

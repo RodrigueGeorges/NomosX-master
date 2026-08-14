@@ -27,10 +27,10 @@ const METHOD_ICONS: Record<(typeof METHOD_BLOCKS)[number]["name"], typeof Map> =
 };
 
 const STANDARDS = [
-  { icon: Shield, title: "Citation guard", text: "Every [SRC-N] validated against available sources." },
-  { icon: Search, title: "Evidence ledger", text: "Full pipeline lineage stored per inquiry." },
-  { icon: Globe, title: "Provider diversity", text: "Minimum provider spread enforced at rank stage." },
-  { icon: Scale, title: "Arbitration gate", text: "Adversarial challenge runs before every publication." },
+  { icon: Shield, title: "Citation guard", text: "Every [SRC-N] validated against available sources — no claim without a verdict." },
+  { icon: Search, title: "Evidence ledger", text: "Full pipeline lineage stored per inquiry. Every step is reproducible." },
+  { icon: Globe, title: "Provider diversity", text: "Minimum provider spread enforced at rank stage — no single-source monopoly." },
+  { icon: Scale, title: "Arbitration gate", text: "Adversarial challenge runs before every publication. Scenarios stress-tested, not asserted." },
 ];
 
 export default function MethodologyPage() {
@@ -45,7 +45,7 @@ export default function MethodologyPage() {
             eyebrow="Method"
             title={
               <>
-                From chaos to clarity.{" "}
+                From chaos to nomos.{" "}
                 <span className="text-white/70">A position worth defending.</span>
               </>
             }
@@ -76,6 +76,7 @@ export default function MethodologyPage() {
           <PageHeader
             eyebrow="Standards"
             title="What separates us from a summary"
+            description="A summary aggregates. NomosX legislates — every claim on trial, every scenario stress-tested, every source traceable."
           />
           <ScrollReveal stagger className="grid sm:grid-cols-2 gap-4">
             {STANDARDS.map(({ icon: Icon, title, text }) => (

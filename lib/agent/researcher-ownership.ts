@@ -616,6 +616,98 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
       "Cascading failures and multi-layer risk assessment"
     ],
     costThreshold: 20.0
+  },
+  "anthropology": {
+    id: "anthropology",
+    name: "Dr. Amara Diallo",
+    title: "Anthropology & Cultural Analysis Expert",
+    institution: "EHESS Paris",
+    domains: ["anthropology"],
+    keywords: [
+      "anthropology", "ethnography", "culture", "ritual", "myth", "symbol",
+      "ontological turn", "perspectivism", "structuralism", "thick description",
+      "nature culture", "indigenous", "post-colonial", "multispecies"
+    ],
+    providers: ["openalex", "crossref", "hal", "persee", "jstor", "philpapers"],
+    publicationCadence: "monthly",
+    minQualityThreshold: 75,
+    maxBriefPerRun: 1,
+    preferredFormats: ["brief", "strategic"],
+    focusAreas: [
+      "Ontological pluralism and non-Western worldviews",
+      "Cultural analysis of technology and governance",
+      "Post-colonial anthropology and decolonial thought"
+    ],
+    costThreshold: 15.0
+  },
+  "history": {
+    id: "history",
+    name: "Dr. Henri Lefort",
+    title: "History & Historical Analysis Expert",
+    institution: "Sorbonne",
+    domains: ["history"],
+    keywords: [
+      "history", "historical", "longue durée", "annales", "archival",
+      "intellectual history", "conceptual history", "postcolonial", "genealogy",
+      "counterfactual", "temporal", "century", "precedent"
+    ],
+    providers: ["openalex", "crossref", "jstor", "hal", "persee", "internet-archive"],
+    publicationCadence: "biweekly",
+    minQualityThreshold: 75,
+    maxBriefPerRun: 1,
+    preferredFormats: ["brief", "strategic"],
+    focusAreas: [
+      "Historical analogues and structural patterns across centuries",
+      "Conceptual history and the genealogy of present categories",
+      "Post-colonial history and the critique of Eurocentric narratives"
+    ],
+    costThreshold: 15.0
+  },
+  "religious-studies": {
+    id: "religious-studies",
+    name: "Dr. Sophia Chen",
+    title: "Religious Studies & Political Theology Expert",
+    institution: "Harvard Divinity School",
+    domains: ["religious-studies"],
+    keywords: [
+      "religion", "religious", "theology", "sacred", "secular", "spiritual",
+      "church", "islam", "buddhism", "hinduism", "confucianism", "interfaith",
+      "political theology", "secularization", "deprivatization", "religious authority"
+    ],
+    providers: ["openalex", "crossref", "jstor", "hal", "philpapers", "persee"],
+    publicationCadence: "biweekly",
+    minQualityThreshold: 75,
+    maxBriefPerRun: 1,
+    preferredFormats: ["brief", "strategic"],
+    focusAreas: [
+      "Religion and AI governance — normative frameworks and ontological assumptions",
+      "Political theology and the public role of religion",
+      "Comparative theology and interfaith dialogue on technology"
+    ],
+    costThreshold: 15.0
+  },
+  "non-western-philosophy": {
+    id: "non-western-philosophy",
+    name: "Dr. Kenji Watanabe",
+    title: "Non-Western Philosophy & Comparative Thought Expert",
+    institution: "University of Tokyo",
+    domains: ["non-western-philosophy"],
+    keywords: [
+      "confucian", "buddhist", "islamic philosophy", "falsafa", "ubuntu",
+      "advaita vedanta", "madhyamaka", "african philosophy", "eastern philosophy",
+      "comparative philosophy", "non-western", "decolonial philosophy"
+    ],
+    providers: ["openalex", "crossref", "jstor", "hal", "philpapers"],
+    publicationCadence: "monthly",
+    minQualityThreshold: 75,
+    maxBriefPerRun: 1,
+    preferredFormats: ["brief", "strategic"],
+    focusAreas: [
+      "Non-Western philosophical perspectives on technology and governance",
+      "Comparative ethics and cross-cultural dialogue",
+      "Decolonial philosophy and the critique of Western universalism"
+    ],
+    costThreshold: 15.0
   }
 };
 

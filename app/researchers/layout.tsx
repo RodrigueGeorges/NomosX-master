@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   alternates: { canonical: `${BASE_URL}/researchers` },
   openGraph: {
     title: "NomosX Reasoning Lenses",
-    description: "Cross-domain analytical models for foresight and decision-ready positions.",
+    description: "Cross-domain analytical models for scenario-weighted reasoning and decision-ready positions.",
   },
 };
 

@@ -224,6 +224,32 @@ export async function primeContext(
     );
     newSince.push(...newConcepts.map(c => `New concept: "${c.name}" (${c.type}, confidence ${c.confidence}%)`));
 
+    // NomosX: Populate whatChanged — compare current KG state with prior coverage
+    // Identify concepts that changed trend (stable → emerging → contested)
+    for (const concept of knownConcepts) {
+      if (concept.lastSeen > lastCoverageDate!) {
+        if (concept.type === 'emerging_trend') {
+          whatChanged.push(`"${concept.name}" shifted from stable to EMERGING — this concept is gaining traction`);
+        } else if (concept.type === 'controversy') {
+          whatChanged.push(`"${concept.name}" became CONTESTED — positions are diverging`);
+        } else if (concept.type === 'breakthrough') {
+          whatChanged.push(`"${concept.name}" emerged as a BREAKTHROUGH — new evidence or paradigm`);
+        }
+      }
+    }
+    // Track emerging trends that weren't present before
+    for (const trend of emergingTrends) {
+      if (!whatChanged.some(w => w.includes(trend))) {
+        whatChanged.push(`Emerging trend: "${trend}"`);
+      }
+    }
+    // Track controversies that evolved
+    for (const controversy of activeControversies) {
+      if (!whatChanged.some(w => w.includes(controversy))) {
+        whatChanged.push(`Active controversy: "${controversy}" — positions may have shifted since last coverage`);
+      }
+    }
+
     if (coverageGap > 30) {
       revisitReasons.push(`${coverageGap} days since last coverage — data may be stale`);
     }
@@ -232,6 +258,18 @@ export async function primeContext(
     }
     if (activeControversies.length > 0) {
       revisitReasons.push(`${activeControversies.length} active controversy(ies) — positions may have shifted`);
+    }
+    // NomosX: Contrarian registry — track if prior briefs took contrarian positions
+    if (priorBriefs.length > 0) {
+      const contrarianBriefs = priorBriefs.filter(b =>
+        b.question?.toLowerCase().includes('challenge') ||
+        b.question?.toLowerCase().includes('contrary') ||
+        b.question?.toLowerCase().includes('critique') ||
+        b.question?.toLowerCase().includes('against')
+      );
+      if (contrarianBriefs.length > 0) {
+        revisitReasons.push(`${contrarianBriefs.length} prior brief(s) took contrarian positions — verify if they were validated or refuted`);
+      }
     }
   } else {
     revisitReasons.push("First analysis on this topic — no prior institutional coverage");
@@ -380,6 +418,15 @@ function buildContextBlock(ctx: {
       sections.push(`- ${reason}`);
     }
   }
+
+  // V3.1: Source diversity awareness
+  sections.push("\n## Source Diversity Directive (V3.1 Omniscience)");
+  sections.push("NomosX now draws from 100+ providers spanning academic, intelligence, NGO, think-tank, international organizations, and science/tech sources.");
+  sections.push("ANALYST INSTRUCTIONS:");
+  sections.push("- Weigh evidence by source type: academic for empirical rigor, intelligence for threat assessment, NGO for ground truth, think-tank for policy implications, international orgs for official positions, science orgs for technical breakthroughs.");
+  sections.push("- Look for CROSS-CORROBORATION: does an academic study confirm an intelligence report? Does an NGO investigation corroborate a think-tank analysis?");
+  sections.push("- Note INSTITUTIONAL BIAS: intelligence agencies may inflate threats, NGOs may focus on violations, think tanks reflect political orientations, AI labs may overstate capabilities.");
+  sections.push("- Synthesize across source types: the strongest conclusions come from convergent evidence across DIFFERENT types of sources, not just many sources of the same type.");
 
   sections.push("\n=== END INSTITUTIONAL MEMORY ===");
 

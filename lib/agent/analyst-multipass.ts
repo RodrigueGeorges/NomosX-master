@@ -316,6 +316,62 @@ is more valuable than a static fact ("the market is worth $40B"). Static
 facts anchor, but dynamics drive extrapolation. Extract dynamics first,
 then the facts that anchor them.
 
+SOURCE DIVERSITY ANALYSIS (NomosX multi-provider corpus):
+NomosX now draws from 100+ providers spanning diverse origin types. You MUST
+recognize and weigh each source type differently:
+- ACADEMIC (OpenAlex, Crossref, Semantic Scholar): peer-reviewed empirical rigor.
+  Weight for methodological soundness, replicability, statistical significance.
+- INTELLIGENCE (MI5, GCHQ, Europol, Interpol, Bellingcat): threat assessment,
+  operational detail, classified-derived insights. Weight for threat dynamics
+  but note threat-inflation bias and classification bias (you only see
+  declassified fragments). National perspective bias: each agency frames
+  through its government's priorities.
+- NGO (Amnesty, HRW, Transparency International): ground truth, on-the-ground
+  violations, field investigations. Weight for primary evidence of abuses but
+  note advocacy-oriented framing — NGOs highlight violations by mission mandate.
+- THINK TANK (Carnegie, Chatham House, IFRI, IRIS, Heritage, Cato): policy
+  implications, strategic analysis. Weight for policy-relevant synthesis but
+  note political orientation bias (Heritage=conservative, Cato=libertarian,
+  CAP=progressive, Carnegie=centrist). Identify the orientation when citing.
+- INTERNATIONAL ORG (WTO, ICC, UNHCR, ILO, UN agencies): official positions,
+  treaty obligations, aggregated statistics. Weight for authoritative data
+  and legal frameworks but note consensus-seeking bias — diplomatic language
+  may downplay conflicts between member states.
+- SCIENCE ORG (CERN, ESA, DARPA): technical breakthroughs, experimental results.
+  Weight for technical accuracy and reproducibility.
+- AI LAB (OpenAI, DeepMind, Anthropic): capability claims, safety research.
+  Weight for technical insight but note commercial bias toward overstating
+  capabilities and "safety theater" — labs may frame results to favor
+  regulatory moats or demonstrate responsibility for market positioning.
+- NEWS: timely reporting, event-driven. Weight for recency and factual events
+  but verify against primary sources.
+
+CROSS-CORROBORATION BETWEEN SOURCE TYPES (critical):
+The strongest mechanisms are those corroborated by INDEPENDENT source types.
+Explicitly look for:
+- Does an ACADEMIC study confirm what an INTELLIGENCE report claims?
+- Does an NGO field investigation corroborate a THINK TANK analysis?
+- Does a SCIENCE ORG publication validate an AI LAB capability claim?
+- Do INTERNATIONAL ORG statistics align with ACADEMIC findings?
+When two or more source types independently converge on a finding, flag it
+as CROSS-TYPE CORROBORATED — this is the highest-confidence evidence tier.
+When source types DISAGREE (e.g., an AI lab claims a capability that academic
+evaluations cannot reproduce), flag the conflict and note which type has
+stronger methodological grounds for the claim.
+
+INSTITUTIONAL BIAS AWARENESS:
+When extracting mechanisms, note the source type's characteristic bias:
+- Intelligence agencies may OVERSTATE threats (budget/mandate incentives).
+- NGOs may FOCUS on violations (advocacy mission — absence of violation
+  reporting does not mean absence of violations, but neither does presence
+  prove systemic patterns without scale data).
+- Think tanks may REFLECT political orientations in framing and emphasis.
+- AI labs may OVERSTATE capabilities (commercial incentives) or OVERSTATE
+  risks (regulatory capture incentives). Check if claims are benchmarked.
+- International orgs may use DIPLOMATIC LANGUAGE that obscures disagreement.
+Record these biases in the mechanism's trajectoryHint or dataPoints when
+they materially affect the evidence weight.
+
 CITATION RULES (NON-NEGOTIABLE):
 - You have EXACTLY ${sourceCount} sources, numbered [SRC-1] through [SRC-${sourceCount}]. Do NOT cite [SRC-${sourceCount + 1}] or higher.
 - Every dataPoint MUST end with [SRC-N] referencing the source it came from.
@@ -446,6 +502,22 @@ disagreement. Cross-domain contradictions reveal hidden assumptions that
 neither field questions on its own. Surface them first and assess them
 rigorously.
 
+SOURCE-TYPE STRESS TESTING:
+When evaluating whether a mechanism holds, cracks, or breaks, consider the
+source TYPE behind each claim and its characteristic bias:
+- Intelligence-sourced claims: may overstate threats. Does independent
+  corroboration from academic or NGO sources exist?
+- AI-lab capability claims: may be commercially inflated. Are they
+  reproduced in peer-reviewed academic evaluations?
+- Think-tank analyses: may reflect political orientation. Does a source
+  from a different political orientation agree or disagree?
+- NGO violation reports: advocacy-framed. Is the scale corroborated by
+  international-org statistics or academic field studies?
+A mechanism that rests on a SINGLE source type is weaker than one
+corroborated across multiple independent source types. Factor this into
+your verdict and into the hostileExpertObjection — the strongest hostile
+objection often comes from a different source type's perspective.
+
 Return JSON:
 {
   "mechanismAssessments": [
@@ -574,6 +646,15 @@ Now you build the argument and take a position.
 
 ${NOMOS_EDITORIAL_LINE_SHORT}
 
+${depth === "strategic" ? `THINK TANK EDITORIAL STANDARDS (Chatham House / RAND / Brookings grade):
+→ CAUSAL PRUDENCE: Never make causal jumps the evidence cannot support. Distinguish what the data SHOWS from what the literature INTERPRETS from what we ARGUE from what we PROJECT.
+→ EPISTEMIC LADDER: Tag claims with their epistemic level — "The data demonstrates [X]" (proven), "The literature suggests [X]" (interpreted), "This analysis proposes [X]" (our contribution), "We project [X]" (future projection, framed as thought experiment NOT prediction).
+→ NEUTRAL VOCABULARY: Describe, never accuse. Analyze, never advocate. No polemical titles.
+→ KPI ARGUMENT REFRAMING: If discussing religious institutions and metrics/KPIs, frame as "translating normative objectives into measurable governance frameworks" NOT "religions becoming AI-governed organizations".
+→ CENTRE OF GRAVITY: The deepest question is NOT "will religious institutions influence AI?" but "Can a universal AI governance framework exist without imposing a particular conception of what a human being is?" Religious institutions are ONE of several actors, not THE actor.
+→ CONCLUSION SUBTLETY: The verdict should acknowledge that "the question is not whether religion will influence AI governance, but whether global AI governance will have the institutional mechanisms necessary to recognize competing conceptions of human dignity, knowledge and agency."
+→ CAUSAL ARCHITECTURE: For each major causal claim, identify (1) the causal chain, (2) confidence level, (3) what would falsify it, (4) alternative explanation. This is the NomosX method for causal transparency.` : ""}
+
 NOMOSX IDENTITY:
 You are agnostic — even anarchistic. You are not afraid to shock, to draw
 ambitious correlations that others dismiss. You detect the underlying
@@ -676,7 +757,7 @@ active_mechanism.
 
 Return JSON:
 {
-  "title": "Title that names the collision and the position. Not neutral — assertive. Example: 'The Sanctions Cartel: Why Parallel Trade Architecture Will Outlast the War'",
+  "title": "Neutral, analytical title UNDER 100 characters. NO partisan framing, NO loaded language. Describe the TOPIC and KEY FINDING objectively. BANNED words: cartel, conspiracy, crisis, threat, war, battle, weapon, scheme, plot. Example: 'AI Governance and Religious Pluralism: Ontological Politics and Policy Implications' NOT 'The Vatican's Algorithm: How Religion Will Control AI'.",
   "throughLine": "The single sentence that captures the entire argument. One sentence, max 40 words.",
   "verdict": "${depth === "strategic" ? "400-700" : "200-400"} words. The institute's position. State it first, then justify with the causal chain. Cite [SRC-N] for every factual anchor. No hedging in the first paragraph — state the position. Then qualify.",
   "convictionLevel": "firm|tempered|causal_only",
@@ -713,7 +794,7 @@ Return JSON:
     "strongestLinks": ["Which causal chain links are strongest and why"],
     "weakestLink": "The weakest link in the chain and why",
     "gaps": ["What evidence is missing that would strengthen the argument"],
-    "sourceDiversity": "Assessment of cross-domain coverage"
+    "sourceDiversity": "Assessment of cross-domain AND cross-source-type coverage. Explicitly note which source TYPES are present (academic, intelligence, NGO, think-tank, international-org, science-org, ai-lab, news) and which agree vs. disagree. Identify cross-type corroboration (e.g., 'academic [SRC-3] confirms intelligence [SRC-7] threat assessment') and cross-type conflicts (e.g., 'AI lab [SRC-12] capability claim not reproduced in academic [SRC-18] evaluation'). Note institutional biases that may skew the evidence base."
   },
   "keyFindings": ["5 key findings, each 1-2 sentences. Each MUST include at least one [SRC-N] citation."]
 }

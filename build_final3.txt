@@ -1,0 +1,90 @@
+▲ Next.js 16.1.6 (Turbopack)
+- Environments: .env.local, .env.production, .env
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 54s
+  Running TypeScript ...
+  Collecting page data using 7 workers ...
+  Generating static pages using 7 workers (0/43) ...
+  Generating static pages using 7 workers (10/43) 
+  Generating static pages using 7 workers (21/43) 
+  Generating static pages using 7 workers (32/43) 
+✓ Generating static pages using 7 workers (43/43) in 2.3s
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ○ /about
+├ ƒ /api/articles/[id]
+├ ƒ /api/articles/[id]/comments
+├ ƒ /api/articles/[id]/correction
+├ ƒ /api/articles/[id]/export
+├ ƒ /api/articles/[id]/export/data
+├ ƒ /api/articles/[id]/feedback
+├ ƒ /api/articles/[id]/reactions
+├ ƒ /api/articles/[id]/view
+├ ƒ /api/auth/forgot-password
+├ ƒ /api/auth/login
+├ ƒ /api/auth/logout
+├ ƒ /api/auth/me
+├ ƒ /api/auth/register
+├ ƒ /api/auth/reset-password
+├ ƒ /api/auth/send-verification
+├ ƒ /api/auth/verify-email
+├ ƒ /api/cron/auto-scan
+├ ƒ /api/cron/editorial-plan
+├ ƒ /api/cron/generate-briefs
+├ ƒ /api/cron/macro-refresh
+├ ƒ /api/cron/newsletter
+├ ƒ /api/cron/self-improve
+├ ƒ /api/cron/studiox-drain
+├ ƒ /api/cron/tweet-publications
+├ ƒ /api/dashboard/metrics
+├ ƒ /api/foresight/chat
+├ ƒ /api/inquiry/[id]/foresight
+├ ƒ /api/newsletter/confirm
+├ ƒ /api/newsletter/subscribe
+├ ƒ /api/newsletter/unsubscribe
+├ ƒ /api/public/briefs
+├ ƒ /api/public/publications/[id]
+├ ƒ /api/public/track-record
+├ ƒ /api/stripe/webhook
+├ ƒ /api/studiox
+├ ƒ /api/studiox/checkout
+├ ƒ /api/studiox/order/[id]
+├ ƒ /api/studiox/process
+├ ƒ /api/webhooks/resend
+├ ƒ /archives
+├ ○ /articles
+├ ƒ /articles/[id]
+├ ƒ /articles/topic/[vertical]
+├ ƒ /feed.xml
+├ ƒ /inquiry/[slug]
+├ ƒ /inquiry/[slug]/opengraph-image
+├ ƒ /knowledge-graph
+├ ○ /manifest.webmanifest
+├ ○ /methodology
+├ ƒ /opengraph-image
+├ ƒ /predictions
+├ ○ /pricing
+├ ○ /privacy
+├ ○ /publications
+├ ƒ /publications/[id]
+├ ○ /researchers
+├ ○ /reset-password
+├ ○ /robots.txt
+├ ƒ /s/[id]
+├ ○ /sitemap.xml
+├ ○ /studio
+├ ○ /terms
+├ ○ /track-record
+├ ƒ /track-record/opengraph-image
+└ ○ /unsubscribed
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

@@ -35,6 +35,45 @@ function releaseOpenAlexSlot(): void {
   if (next) next();
 }
 
+// ── V3.1: Auto-detect exhausted API key credits ────────────────────────────
+// OpenAlex API keys have a credit budget. When credits run out, the key
+// returns 429 even though the polite pool (mailto) would work fine.
+// We detect this on first 429 and fall back to the polite pool for the rest of the session.
+let openAlexKeyExhausted = false;
+let openAlexKeyChecked = false;
+
+async function checkOpenAlexKeyExhausted(): Promise<void> {
+  if (!env.OPENALEX_API_KEY || openAlexKeyChecked) return;
+  openAlexKeyChecked = true;
+  try {
+    const testUrl = `https://api.openalex.org/works?search=test&per-page=1&api_key=${env.OPENALEX_API_KEY}`;
+    const resp = await fetch(testUrl);
+    if (resp.status === 429) {
+      const remaining = resp.headers.get('x-ratelimit-remaining');
+      if (remaining === '0') {
+        openAlexKeyExhausted = true;
+        console.warn('[OpenAlex] API key credits exhausted (x-ratelimit-remaining: 0) — falling back to polite pool (mailto)');
+        return;
+      }
+    }
+    console.log('[OpenAlex] API key OK — using premium tier');
+  } catch { /* non-blocking — will retry with mailto on first 429 */ }
+}
+
+/**
+ * Mark the API key as exhausted (called when we get a 429 with x-ratelimit-remaining: 0).
+ * This immediately switches all subsequent requests to the polite pool.
+ */
+export function markOpenAlexKeyExhausted(): void {
+  if (!openAlexKeyExhausted) {
+    openAlexKeyExhausted = true;
+    console.warn('[OpenAlex] API key marked as exhausted — switching to polite pool (mailto)');
+  }
+}
+
+// Check synchronously at module load (fire and forget)
+checkOpenAlexKeyExhausted();
+
 export async function searchOpenAlex(query: string, perPage = 25, options?: { filter?: string; group_by?: string }): Promise<any[]> {
   const base = env.OPENALEX_API;
   let url = `${base}?search=${encodeURIComponent(query)}&per-page=${perPage}`;
@@ -51,7 +90,8 @@ export async function searchOpenAlex(query: string, perPage = 25, options?: { fi
   // the "polite pool" (mailto) grants higher limits than anonymous. This matters
   // because many providers (OECD, WorldBank, IMF, NBER, WHO-GHO, RePEc) piggyback
   // on OpenAlex and cause concurrent bursts.
-  if (env.OPENALEX_API_KEY) {
+  // V3.1: If API key credits are exhausted, fall back to polite pool automatically.
+  if (env.OPENALEX_API_KEY && !openAlexKeyExhausted) {
     url += `&api_key=${encodeURIComponent(env.OPENALEX_API_KEY)}`;
   } else {
     const mailto = env.UNPAYWALL_EMAIL || "contact@nomosx.com";
@@ -60,7 +100,7 @@ export async function searchOpenAlex(query: string, perPage = 25, options?: { fi
   
   await acquireOpenAlexSlot();
   try {
-    const data = await fetchFromProvider<Resp>("openalex", url, { timeout: 20000, retries: 3 });
+    const data = await fetchFromProvider<Resp>("openalex", url, { timeout: 20000, retries: 2 });
     
     const results = (data.results ?? []).map((w: any) => ({
       id: w.id,
@@ -107,7 +147,7 @@ export async function getOpenAlexConceptGroups(query: string): Promise<{ concept
   const base = env.OPENALEX_API;
   let url = `${base}?search=${encodeURIComponent(query)}&per-page=200&group_by=concepts.id`;
 
-  if (env.OPENALEX_API_KEY) {
+  if (env.OPENALEX_API_KEY && !openAlexKeyExhausted) {
     url += `&api_key=${encodeURIComponent(env.OPENALEX_API_KEY)}`;
   } else {
     const mailto = env.UNPAYWALL_EMAIL || "contact@nomosx.com";

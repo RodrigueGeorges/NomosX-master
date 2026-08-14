@@ -29,6 +29,8 @@ const EMBEDDING_MODEL = "text-embedding-3-small";
 const EMBEDDING_DIMS = 1536;
 const BATCH_SIZE = 100; // OpenAI supports up to 2048 inputs per call
 const MAX_INPUT_TOKENS = 8191; // Model limit per input
+const MAX_CONCURRENT_BATCHES = 5; // Parallel API calls (5 × 100 = 500 texts in parallel)
+const DB_UPDATE_CHUNK = 50; // DB transaction chunk size (avoid huge transactions)
 
 let openaiClient: OpenAI | null = null;
 
@@ -88,31 +90,55 @@ export async function embedBatch(texts: string[]): Promise<number[][]> {
     console.warn('[SemanticEngine] OpenAI API key not configured — returning zero vectors. Semantic search will be degraded.');
     return texts.map(() => zeroVector());
   }
-  const results: number[][] = [];
 
-  // Process in batches of BATCH_SIZE
+  // Split into batches of BATCH_SIZE
+  const batches: Array<{ index: number; texts: string[] }> = [];
   for (let i = 0; i < texts.length; i += BATCH_SIZE) {
     const batch = texts.slice(i, i + BATCH_SIZE).map(t => {
       if (!t || t.trim().length === 0) return " "; // OpenAI rejects empty strings
       return t.slice(0, 30000);
     });
+    batches.push({ index: i, texts: batch });
+  }
 
-    try {
-      const response = await client.embeddings.create({
-        model: EMBEDDING_MODEL,
-        input: batch,
-        dimensions: EMBEDDING_DIMS,
-      });
+  // Process batches with controlled concurrency (MAX_CONCURRENT_BATCHES parallel)
+  const allResults: Array<{ startIndex: number; embeddings: number[][] }> = [];
+  for (let i = 0; i < batches.length; i += MAX_CONCURRENT_BATCHES) {
+    const wave = batches.slice(i, i + MAX_CONCURRENT_BATCHES);
+    const waveResults = await Promise.allSettled(
+      wave.map(async (batch) => {
+        const response = await client.embeddings.create({
+          model: EMBEDDING_MODEL,
+          input: batch.texts,
+          dimensions: EMBEDDING_DIMS,
+        });
+        // Sort by index to maintain order
+        const sorted = response.data.sort((a, b) => a.index - b.index);
+        return { startIndex: batch.index, embeddings: sorted.map(d => d.embedding) };
+      }),
+    );
 
-      // Sort by index to maintain order
-      const sorted = response.data.sort((a, b) => a.index - b.index);
-      results.push(...sorted.map(d => d.embedding));
-    } catch (error: any) {
-      console.error(`[SemanticEngine] Batch embed failed (batch ${i / BATCH_SIZE}): ${error.message}`);
-      Sentry.captureException(error, { tags: { agent: "semantic-engine", operation: "embedBatch" } });
-      // Fill failed batch with zero vectors
-      results.push(...batch.map(() => new Array(EMBEDDING_DIMS).fill(0)));
+    for (let j = 0; j < waveResults.length; j++) {
+      const result = waveResults[j];
+      if (result.status === 'fulfilled') {
+        allResults.push(result.value);
+      } else {
+        // Fill failed batch with zero vectors
+        const failedBatch = wave[j];
+        console.error(`[SemanticEngine] Batch embed failed (batch at offset ${failedBatch.index}): ${result.reason?.message || result.reason}`);
+        allResults.push({
+          startIndex: failedBatch.index,
+          embeddings: failedBatch.texts.map(() => new Array(EMBEDDING_DIMS).fill(0)),
+        });
+      }
     }
+  }
+
+  // Reassemble in order
+  allResults.sort((a, b) => a.startIndex - b.startIndex);
+  const results: number[][] = [];
+  for (const r of allResults) {
+    results.push(...r.embeddings);
   }
 
   return results;
@@ -191,60 +217,99 @@ export async function embedSource(sourceId: string): Promise<void> {
  * Returns count of newly embedded sources.
  */
 export async function embedSourcesBatch(sourceIds: string[]): Promise<{ embedded: number; skipped: number; failed: number }> {
-  const sources = await prisma.source.findMany({
-    where: { id: { in: sourceIds } },
-    select: { id: true, title: true, abstract: true, embeddings: true, embeddingModel: true },
-  });
+  // Query sources in chunks to avoid loading 4000 rows at once
+  const CHUNK_QUERY = 500;
+  let allSources: Array<{ id: string; title: string; abstract: string | null; embeddings: number[]; embeddingModel: string | null }> = [];
+  for (let i = 0; i < sourceIds.length; i += CHUNK_QUERY) {
+    const chunk = sourceIds.slice(i, i + CHUNK_QUERY);
+    const sources = await prisma.source.findMany({
+      where: { id: { in: chunk } },
+      select: { id: true, title: true, abstract: true, embeddings: true, embeddingModel: true },
+    });
+    allSources.push(...sources);
+  }
 
   // Filter out already-embedded sources
-  const needsEmbedding = sources.filter(
+  const needsEmbedding = allSources.filter(
     s => s.embeddings.length !== EMBEDDING_DIMS || s.embeddingModel !== EMBEDDING_MODEL
   );
 
   if (needsEmbedding.length === 0) {
-    return { embedded: 0, skipped: sources.length, failed: 0 };
+    return { embedded: 0, skipped: allSources.length, failed: 0 };
   }
 
-  console.log(`[SemanticEngine] Embedding ${needsEmbedding.length} sources (${sources.length - needsEmbedding.length} already done)...`);
+  console.log(`[SemanticEngine] Embedding ${needsEmbedding.length} sources (${allSources.length - needsEmbedding.length} already done)...`);
 
   const texts = needsEmbedding.map(s => `${s.title}\n\n${s.abstract || ""}`.trim());
   const embeddings = await embedBatch(texts);
 
+  let embedded = 0;
   let failed = 0;
 
-  // Batch update in DB
-  const updates = needsEmbedding.map((source, i) => {
-    const embedding = embeddings[i];
-    if (!embedding || embedding.every(v => v === 0)) {
-      failed++;
-      return null;
-    }
-    return prisma.source.update({
-      where: { id: source.id },
-      data: { embeddings: embedding, embeddingModel: EMBEDDING_MODEL },
-    });
-  }).filter(Boolean);
+  // Update DB in chunks to avoid huge transactions
+  for (let i = 0; i < needsEmbedding.length; i += DB_UPDATE_CHUNK) {
+    const chunk = needsEmbedding.slice(i, i + DB_UPDATE_CHUNK);
+    const chunkUpdates: Promise<any>[] = [];
 
-  if (updates.length > 0) {
-    await prisma.$transaction(updates as any);
-    // Also write to native vector column (pgvector) — best-effort, non-blocking
-    for (let i = 0; i < needsEmbedding.length; i++) {
-      const embedding = embeddings[i];
-      if (!embedding || embedding.every(v => v === 0)) continue;
-      const vectorLiteral = `[${embedding.join(",")}]`;
-      prisma.$executeRawUnsafe(
-        `UPDATE "Source" SET embedding = '${vectorLiteral}'::vector WHERE id = '${needsEmbedding[i].id.replace(/'/g, "''")}'`
-      ).catch((err: unknown) => {
-        console.warn(`[SemanticEngine] pgvector write failed for ${needsEmbedding[i].id}:`, err instanceof Error ? err.message : String(err));
-      });
+    for (let j = 0; j < chunk.length; j++) {
+      const source = chunk[j];
+      const embedding = embeddings[i + j];
+      if (!embedding || embedding.every(v => v === 0)) {
+        failed++;
+        continue;
+      }
+      chunkUpdates.push(
+        prisma.source.update({
+          where: { id: source.id },
+          data: { embeddings: embedding, embeddingModel: EMBEDDING_MODEL },
+        }),
+      );
+    }
+
+    if (chunkUpdates.length > 0) {
+      try {
+        await prisma.$transaction(chunkUpdates as any);
+        embedded += chunkUpdates.length;
+      } catch (err) {
+        console.warn(`[SemanticEngine] DB update chunk failed, trying individual updates:`, err instanceof Error ? err.message : String(err));
+        // Fallback: individual updates
+        for (const u of chunkUpdates) {
+          try { await u; embedded++; } catch { failed++; }
+        }
+      }
+    }
+
+    // Progress log every 500 sources
+    if ((i + DB_UPDATE_CHUNK) % 500 === 0 || i + DB_UPDATE_CHUNK >= needsEmbedding.length) {
+      console.log(`[SemanticEngine] Embedding progress: ${Math.min(i + DB_UPDATE_CHUNK, needsEmbedding.length)}/${needsEmbedding.length}`);
     }
   }
 
-  console.log(`[SemanticEngine] Embedded ${updates.length} sources, ${failed} failed`);
+  // Write to pgvector column in chunks (best-effort, non-blocking but awaited)
+  for (let i = 0; i < needsEmbedding.length; i += DB_UPDATE_CHUNK) {
+    const chunk = needsEmbedding.slice(i, i + DB_UPDATE_CHUNK);
+    const pgvectorPromises: Promise<void>[] = [];
+    for (let j = 0; j < chunk.length; j++) {
+      const embedding = embeddings[i + j];
+      if (!embedding || embedding.every(v => v === 0)) continue;
+      const source = chunk[j];
+      const vectorLiteral = `[${embedding.join(",")}]`;
+      pgvectorPromises.push(
+        prisma.$executeRawUnsafe(
+          `UPDATE "Source" SET embedding = '${vectorLiteral}'::vector WHERE id = '${source.id.replace(/'/g, "''")}'`
+        ).then(() => {}).catch((err: unknown) => {
+          // pgvector write failure is non-blocking — embeddings[] fallback still works
+        }),
+      );
+    }
+    await Promise.allSettled(pgvectorPromises);
+  }
+
+  console.log(`[SemanticEngine] Embedded ${embedded} sources, ${failed} failed`);
 
   return {
-    embedded: updates.length,
-    skipped: sources.length - needsEmbedding.length,
+    embedded,
+    skipped: allSources.length - needsEmbedding.length,
     failed,
   };
 }
@@ -333,6 +398,176 @@ export async function semanticSearch(
     .filter(s => s.similarity >= minSimilarity)
     .sort((a, b) => b.similarity - a.similarity)
     .slice(0, limit);
+}
+
+// ============================================================================
+// HYBRID SEARCH: Dense (pgvector) + Sparse (Postgres full-text) + Reciprocal Rank Fusion
+// Best practice 2026 (llmbestpractices.com):
+//   Dense top-k: 20-30 (cheap, captures paraphrase/semantic match)
+//   Sparse top-k: 20-30 (almost free, captures exact keywords/identifiers)
+//   Merge with Reciprocal Rank Fusion (RRF)
+//   Then cross-encoder rerank → top 5-8
+// ============================================================================
+
+/**
+ * Reciprocal Rank Fusion (RRF).
+ * Merges multiple ranked lists into a single ranking.
+ * Formula: score(d) = Σ 1 / (k + rank_i(d))  where k=60 (standard)
+ *
+ * RRF is robust because it doesn't need scores — only ranks.
+ * This makes it perfect for fusing dense (cosine similarity) + sparse (BM25/TS).
+ */
+export function reciprocalRankFusion(
+  rankedLists: Array<Array<{ id: string; score?: number }>>,
+  k: number = 60,
+): Array<{ id: string; rrfScore: number }> {
+  const rrfScores = new Map<string, number>();
+
+  for (const list of rankedLists) {
+    for (let rank = 0; rank < list.length; rank++) {
+      const id = list[rank].id;
+      const rrf = 1 / (k + rank + 1); // +1 because ranks are 0-indexed
+      rrfScores.set(id, (rrfScores.get(id) || 0) + rrf);
+    }
+  }
+
+  return Array.from(rrfScores.entries())
+    .map(([id, rrfScore]) => ({ id, rrfScore }))
+    .sort((a, b) => b.rrfScore - a.rrfScore);
+}
+
+/**
+ * Sparse search using Postgres full-text search (tsvector).
+ * This is the BM25 arm of hybrid retrieval — captures exact keyword matches
+ * that dense embeddings might miss (e.g. specific identifiers, rare terms).
+ *
+ * Uses ILIKE fallback if no tsvector column exists.
+ */
+export async function sparseSearch(
+  query: string,
+  options: {
+    limit?: number;
+    sourceIds?: string[];
+    minQuality?: number;
+    providers?: string[];
+  } = {},
+): Promise<Array<{ sourceId: string; title: string; sparseScore: number }>> {
+  const { limit = 30, sourceIds, minQuality, providers } = options;
+
+  // Build ILIKE query — extracts keywords from the query and searches title + abstract
+  const keywords = query
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .filter(w => w.length > 2)
+    .slice(0, 10); // Top 10 keywords
+
+  if (keywords.length === 0) return [];
+
+  try {
+    type SearchRow = { id: string; title: string; score: number };
+    const conditions: string[] = [];
+    const params: string[] = [];
+
+    // Build OR conditions for each keyword
+    for (const kw of keywords) {
+      params.push(`%${kw.replace(/'/g, "''")}%`);
+      conditions.push(`(s.title ILIKE $${params.length} OR s.abstract ILIKE $${params.length})`);
+    }
+
+    let whereClause = `WHERE (${conditions.join(' OR ')})`;
+    if (sourceIds && sourceIds.length > 0) {
+      const idList = sourceIds.map(id => `'${id.replace(/'/g, "''")}'`).join(',');
+      whereClause += ` AND s.id IN (${idList})`;
+    }
+    if (minQuality) {
+      whereClause += ` AND s."qualityScore" >= ${minQuality}`;
+    }
+    if (providers && providers.length > 0) {
+      const provList = providers.map(p => `'${p.replace(/'/g, "''")}'`).join(',');
+      whereClause += ` AND s.provider IN (${provList})`;
+    }
+
+    // Score = number of keyword matches (simple BM25-like scoring)
+    const scoreExpr = keywords.map(kw => {
+      const escaped = kw.replace(/'/g, "''");
+      return `CASE WHEN s.title ILIKE '%${escaped}%' THEN 2 ELSE 0 END + CASE WHEN s.abstract ILIKE '%${escaped}%' THEN 1 ELSE 0 END`;
+    }).join(' + ');
+
+    const rows = await prisma.$queryRawUnsafe<SearchRow[]>(`
+      SELECT s.id, s.title, (${scoreExpr}) AS score
+      FROM "Source" s
+      ${whereClause}
+      ORDER BY score DESC
+      LIMIT ${limit}
+    `);
+
+    return rows.map(r => ({
+      sourceId: r.id,
+      title: r.title,
+      sparseScore: Number(r.score),
+    }));
+  } catch (err) {
+    console.warn('[SemanticEngine] Sparse search failed:', err instanceof Error ? err.message : String(err));
+    return [];
+  }
+}
+
+/**
+ * Hybrid search: combines dense (pgvector) + sparse (full-text) via Reciprocal Rank Fusion.
+ *
+ * This is the 2026 best practice (llmbestpractices.com):
+ * - Dense retrieval captures semantic similarity (paraphrase, synonyms)
+ * - Sparse retrieval captures exact matches (identifiers, rare terms)
+ * - RRF merges them robustly without needing score calibration
+ *
+ * Result: captures both "the database that ships with the OS" (sparse)
+ * AND "embedded database for mobile" (dense) → both map to SQLite.
+ */
+export async function hybridSearch(
+  query: string,
+  options: {
+    limit?: number;
+    minSimilarity?: number;
+    sourceIds?: string[];
+    minQuality?: number;
+    providers?: string[];
+  } = {},
+): Promise<Array<{ sourceId: string; title: string; hybridScore: number; denseRank?: number; sparseRank?: number }>> {
+  const { limit = 30 } = options;
+
+  // Run dense + sparse in parallel
+  const [denseResults, sparseResults] = await Promise.all([
+    semanticSearch(query, { ...options, limit: limit * 2 }),
+    sparseSearch(query, { ...options, limit: limit * 2 }),
+  ]);
+
+  // Convert to ranked lists for RRF
+  const denseRanked = denseResults.map(r => ({ id: r.sourceId, score: r.similarity }));
+  const sparseRanked = sparseResults.map(r => ({ id: r.sourceId, score: r.sparseScore }));
+
+  // Fuse with Reciprocal Rank Fusion
+  const fused = reciprocalRankFusion([denseRanked, sparseRanked]);
+
+  // Build result with rank info
+  const denseRankMap = new Map(denseResults.map((r, i) => [r.sourceId, i + 1]));
+  const sparseRankMap = new Map(sparseResults.map((r, i) => [r.sourceId, i + 1]));
+  const titleMap = new Map([
+    ...denseResults.map(r => [r.sourceId, r.title] as const),
+    ...sparseResults.map(r => [r.sourceId, r.title] as const),
+  ]);
+
+  const results = fused.slice(0, limit).map(f => ({
+    sourceId: f.id,
+    title: titleMap.get(f.id) || '',
+    hybridScore: f.rrfScore,
+    denseRank: denseRankMap.get(f.id),
+    sparseRank: sparseRankMap.get(f.id),
+  }));
+
+  console.log(`[SemanticEngine] Hybrid search: dense=${denseResults.length}, sparse=${sparseResults.length}, fused=${results.length}`);
+
+  return results;
 }
 
 // ============================================================================

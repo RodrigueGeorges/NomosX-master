@@ -51,7 +51,7 @@ const READER_FEATURES = [
 
 const STUDIO_FEATURES = [
   "Commission a custom inquiry on any question",
-  "Chaos structured into a defensible causal chain",
+  "Chaos structured into a source-verified, scenario-weighted position",
   "Scenario distributions — multiple futures, each with a probability",
   "Adversarial debate before any position is published",
   "Choose depth: standard → strategic report",
@@ -86,7 +86,7 @@ const FAQ = [
 
     q: "What is NomosX Studio?",
 
-    a: "Studio lets you commission a custom inquiry on your own question. Same verification protocol, same traceability — the chaos of evidence structured into a position you can defend.",
+    a: "Studio lets you commission a custom inquiry on your own question. Same verification protocol, same traceability — the chaos of evidence structured into a position you can defend, with scenarios stress-tested and sources on trial.",
 
   },
 
@@ -162,7 +162,7 @@ export default function PricingPage() {
                   <span className="text-white">Commission when it matters.</span>
                 </>
               }
-              description="The world doesn't suffer from a lack of information — it suffers from a lack of structure. NomosX publishes positions 24/7, free to read. Studio is the add-on for custom commissions, foresight, and evidence-bound deliverables on demand."
+              description="The world doesn't suffer from a lack of information — it suffers from a lack of verifiable order. NomosX publishes positions 24/7, free to read. Studio is the add-on for custom commissions, scenario stress-testing, and evidence-bound deliverables on demand."
               align="center"
             />
 
@@ -331,7 +331,7 @@ export default function PricingPage() {
                 </div>
 
                 <p className="text-sm text-white/60 max-w-xl">
-                  Define a question, select domains, and receive a position backed by a defensible causal chain —
+                  Define a question, select domains, and receive a position backed by a source-verified, scenario-weighted chain —
                   with prospective distributions, adversarial review, and full source traceability.
                 </p>
 
@@ -521,7 +521,7 @@ export default function PricingPage() {
             <div className="text-center py-12">
 
               <h2 className="font-display text-xl sm:text-2xl font-semibold mb-4">
-                From Chaos to Clarity.{" "}
+                From Chaos to Nomos.{" "}
                 <span className="text-white/70">Open by default.</span>
               </h2>
 

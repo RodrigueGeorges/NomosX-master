@@ -10,6 +10,7 @@
 
 import { prisma } from '../db';
 import type { Source } from '@prisma/client';
+import { filterLowQualitySources } from '../providers/source-quality-filter';
 
 export interface EnhancedRankOptions {
   limit?: number;
@@ -137,6 +138,15 @@ export async function enhancedRank(
     }
   }
 
+  // ── SOURCE QUALITY FILTER (defensive second pass) ──
+  // Catches any SEO farms / spam directories that slipped past the SCOUT filter.
+  const beforeQualityFilter = sources.length;
+  sources = filterLowQualitySources(sources as any[]) as typeof sources;
+  const qualityFiltered = beforeQualityFilter - sources.length;
+  if (qualityFiltered > 0) {
+    console.log(`[ENHANCED RANK] Filtered ${qualityFiltered} low-quality sources (SEO farms, spam)`);
+  }
+
   const isScoped = !!(finalOptions as any).sourceIds?.length;
   console.log(`[ENHANCED RANK] Found ${sources.length} sources before scoring (scoped: ${isScoped})`);
 
@@ -149,9 +159,30 @@ export async function enhancedRank(
   const relevanceThreshold = isScoped ? 0.5 : 1.0;
   // Web and news providers use different vocabulary — exempt from relevance gate
   const webProviderList = ['linkup', 'gdelt-news', 'newsapi', 'mediastack', 'thenewsapi', 'gnews', 'eventregistry'];
+
+  // ── RELEVANCE PENALTY PRECOMPUTE ──
+  // Query terms (stop words removed) used to detect title overlap.
+  // A source whose title shares NO word with the query is heavily penalized
+  // (quality score ÷ 2) — it is likely off-topic even if it passed other gates.
+  const stopWords = new Set(['the','and','for','are','but','not','you','all','can','had','her','was','one','our','out','with','from','this','that','have','been','they','what','when','where','which','their','about','would','there','could','other','into','more','some','than','them','very','after','also','over','such','only','these','will','each','make','like','just','between']);
+  const queryTerms = (query || '').toLowerCase().split(/\s+/).filter(t => t.length > 2 && !stopWords.has(t));
+  const hasQueryTerms = queryTerms.length > 0;
+  let titleOverlapPenaltyCount = 0;
+
   const enhancedSources = sources.map(source => {
-    const qualityScore = source.qualityScore || 0;
+    let qualityScore = source.qualityScore || 0;
     const noveltyScore = source.noveltyScore || 0;
+
+    // Relevance penalty: if the title contains NONE of the query terms, halve
+    // the quality score. Web/news providers are exempt (different vocabulary).
+    if (hasQueryTerms && !webProviderList.includes(source.provider || '')) {
+      const titleLower = (source.title || '').toLowerCase();
+      const hasAnyOverlap = queryTerms.some(term => titleLower.includes(term));
+      if (!hasAnyOverlap) {
+        qualityScore = qualityScore / 2;
+        titleOverlapPenaltyCount++;
+      }
+    }
     
     const relevanceScore = calculateRelevanceScore(query, source);
     
@@ -170,10 +201,23 @@ export async function enhancedRank(
     
     // A+ LEVEL: Quantitative data detection
     const hasQuantitativeData = detectQuantitativeData(source);
-    
+
     // A+ LEVEL: Peer review detection
     const peerReviewed = detectPeerReview(source);
-    
+
+    // NomosX: Cross-domain detection — sources spanning multiple domains get a bonus
+    const sourceDomains = Array.isArray(source.topics) ? source.topics.filter((t: unknown): t is string => typeof t === 'string') : [];
+    const crossDomainScore = sourceDomains.length > 0 ? Math.min(1, sourceDomains.length / 4) : 0; // 4+ topics = max cross-domain
+
+    // NomosX: Heterodox detection — sources with critique/challenge keywords get a bonus
+    const heterodoxKeywords = ['critique', 'challenge', 'reconsider', 'against', 'problematic', 'dissent', 'heterodox', 'alternative', 'contrarian', 'rethink', 'paradigm'];
+    const sourceText = ((source.title || '') + ' ' + (source.abstract || '')).toLowerCase();
+    const heterodoxScore = Math.min(1, heterodoxKeywords.filter(kw => sourceText.includes(kw)).length / 3);
+
+    // NomosX: Independent media detection
+    const independentProviders = ['independent-media', 'gdelt-independent'];
+    const independentScore = independentProviders.includes(source.provider || '') ? 1 : 0;
+
     // Composite score with relevance as critical factor
     const compositeScore = calculateCompositeScore({
       quality: qualityScore,
@@ -182,6 +226,9 @@ export async function enhancedRank(
       academic: academicWeight,
       quantitative: hasQuantitativeData ? 1 : 0,
       peerReviewed: peerReviewed ? 1 : 0,
+      crossDomain: crossDomainScore,
+      heterodox: heterodoxScore,
+      independent: independentScore,
       mode: finalOptions.mode || 'balanced'
     });
     
@@ -200,6 +247,9 @@ export async function enhancedRank(
 
   if (rejectedCount > 0) {
     console.log(`[ENHANCED RANK] Rejected ${rejectedCount}/${sources.length} sources (relevance < ${relevanceThreshold})`);
+  }
+  if (titleOverlapPenaltyCount > 0) {
+    console.log(`[ENHANCED RANK] Penalized ${titleOverlapPenaltyCount} sources (quality ÷ 2 — no query-term overlap in title)`);
   }
 
   // Apply enhanced diversity and quality filters
@@ -319,20 +369,74 @@ export function classifyTrustTier(source: any): { tier: SourceTrustTier; weight:
   const newsProviders = ['gdelt-news', 'newsapi', 'mediastack', 'thenewsapi', 'gnews', 'eventregistry'];
   const isNews = newsProviders.includes(source.provider || '');
 
+  // Global consolidated RSS providers (80+ international organizations)
+  const globalProviders = ['global-intelligence', 'global-orgs', 'global-think-tanks', 'global-science'];
+  const isGlobalProvider = globalProviders.includes(source.provider || '');
+
+  // Global providers: tier based on provider type (before news branch)
+  if (isGlobalProvider) {
+    const provider = source.provider || '';
+    // AI labs within global-science are industry research (not peer-reviewed)
+    const aiLabProviders = ['openai-research', 'deepmind', 'google-research', 'msr', 'meta-ai', 'amazon-science'];
+    // Bellingcat (OSINT) within global-intelligence is community-tier
+    const sourceUrl = source.url || '';
+    const sourceDomain = sourceUrl ? sourceUrl.replace(/^https?:\/\//, '').split('/')[0].replace(/^www\./, '') : '';
+    const isBellingcat = sourceDomain === 'bellingcat.com' || sourceDomain.endsWith('.bellingcat.com');
+
+    if (provider === 'global-orgs') {
+      // Official international organizations (UN agencies, WTO, ICC, etc.) — highly authoritative
+      return { tier: 'canonical', weight: 0.90 };
+    }
+    if (provider === 'global-intelligence') {
+      // Bellingcat is OSINT — community tier
+      if (isBellingcat) return { tier: 'community', weight: 0.70 };
+      // Official government/intelligence agency publications — authoritative but not peer-reviewed
+      return { tier: 'verified', weight: 0.85 };
+    }
+    if (provider === 'global-think-tanks') {
+      // Policy analysis from reputable think tanks — strong analytical value, institutional bias
+      return { tier: 'verified', weight: 0.80 };
+    }
+    if (provider === 'global-science') {
+      // AI labs are industry research (not peer-reviewed) — community tier
+      if (aiLabProviders.includes(source.provider || '')) return { tier: 'community', weight: 0.75 };
+      // Official science/research organizations — authoritative
+      return { tier: 'verified', weight: 0.85 };
+    }
+  }
+
   // News sources: tier based on domain authority
   if (isNews) {
     const newsAuthorityDomains = [
+      // Mainstream (Tier A — canonical)
       'reuters.com', 'apnews.com', 'bbc.com', 'bbc.co.uk', 'nytimes.com', 'ft.com',
       'wsj.com', 'washingtonpost.com', 'theguardian.com', 'bloomberg.com', 'economist.com',
       'politico.eu', 'euronews.com', 'lemonde.fr', 'figaro.fr', 'liberation.fr',
       'bruegel.org', 'csis.org', 'brookings.edu', 'chathamhouse.org', 'cfr.org',
       'rand.org', 'carnegieendowment.org', 'ecfr.eu', 'sipri.org',
+      // Independent investigative journalism (Tier A — canonical for investigative work)
+      'theintercept.com', 'propublica.org', 'icij.org', 'occrp.org', 'bellingcat.com',
+      'mediapart.fr',
+      // Heterodox / independent analysis (Tier A- — verified, high editorial quality)
+      'jacobin.com', 'nakedcapitalism.com', 'roarmag.org', 'novaramedia.com',
+      'currentaffairs.org', 'versobooks.com',
+      // Expert blogs (Tier B+ — verified, domain expertise)
+      'marginalrevolution.com', 'overcomingbias.com', 'lesswrong.com',
+      'astralcodexten.substack.com',
+      // Global South / non-Western (Tier A- — canonical for non-Western perspectives)
+      'africaisacountry.com', 'scroll.in', 'thewire.in', 'scmp.com',
     ];
     const sourceUrl = source.url || '';
     const sourceDomain = sourceUrl ? sourceUrl.replace(/^https:\/\//, '').split('/')[0].replace(/^www\./, '') : '';
     const isAuthorityDomain = newsAuthorityDomains.some(d => sourceDomain === d || sourceDomain.endsWith('.' + d));
 
     if (isAuthorityDomain) return { tier: 'canonical', weight: 0.9 };
+    // Independent media providers get verified tier (not penalized for lacking DOI)
+    const independentProviders = ['independent-media', 'gdelt-independent'];
+    if (independentProviders.includes(source.provider || '')) {
+      if (source.abstract && source.abstract.length > 200) return { tier: 'verified', weight: 0.80 };
+      return { tier: 'community', weight: 0.70 };
+    }
     if (source.abstract && source.abstract.length > 200) return { tier: 'verified', weight: 0.75 };
     return { tier: 'community', weight: 0.65 };
   }
@@ -437,6 +541,12 @@ function detectQuantitativeData(source: any): boolean {
  * Detect peer review status
  */
 function detectPeerReview(source: any): boolean {
+  // Global consolidated RSS providers publish reports/analyses, not peer-reviewed papers
+  const globalProviders = ['global-intelligence', 'global-orgs', 'global-think-tanks', 'global-science'];
+  if (globalProviders.includes(source.provider || '')) {
+    return false;
+  }
+
   // Heuristics for peer review detection
   const peerReviewedIndicators = [
     source.doi && source.doi.includes('10.'),
@@ -458,13 +568,16 @@ function calculateCompositeScore(params: {
   academic: number;
   quantitative: number;
   peerReviewed: number;
+  crossDomain?: number;   // 0-1, how much this source spans multiple domains
+  heterodox?: number;     // 0-1, how much this source challenges consensus
+  independent?: number;   // 0-1, whether this source is from independent media
   mode: 'quality' | 'novelty' | 'balanced';
 }): number {
-  const { quality, novelty, relevance, academic, quantitative, peerReviewed, mode } = params;
-  
+  const { quality, novelty, relevance, academic, quantitative, peerReviewed, crossDomain = 0, heterodox = 0, independent = 0, mode } = params;
+
   // Base weights by mode
   let weights: { quality: number; novelty: number; relevance: number };
-  
+
   switch (mode) {
     case 'quality':
       weights = { quality: 0.4, novelty: 0.2, relevance: 0.4 };
@@ -477,18 +590,22 @@ function calculateCompositeScore(params: {
       weights = { quality: 0.3, novelty: 0.3, relevance: 0.4 };
       break;
   }
-  
+
   // Calculate base composite score
-  let composite = 
+  let composite =
     (quality / 100) * weights.quality +
     (novelty / 100) * weights.novelty +
     (relevance / 3) * weights.relevance; // relevance max is 3.0
-  
+
   // Apply bonuses (additive, not multiplicative — multiplying by 0 zeroes everything)
   composite *= academic;                        // Academic weight (0.5-1.0 range, safe)
   composite += quantitative * 0.05;             // +5% bonus for quantitative data
   composite += peerReviewed * 0.05;             // +5% bonus for peer review
-  
+  // NomosX innovation bonuses — reward cross-domain, heterodox, and independent sources
+  composite += crossDomain * 0.08;              // +8% bonus for cross-domain sources
+  composite += heterodox * 0.06;                // +6% bonus for heterodox/contrarian sources
+  composite += independent * 0.04;              // +4% bonus for independent media sources
+
   return Math.min(composite * 100, 100);
 }
 
@@ -507,7 +624,7 @@ function calculateRelevanceScore(query: string, source: any): number {
   
   const title = (source.title || '').toLowerCase();
   const abstract = (source.abstract || '').toLowerCase();
-  const topics = (source.topics || []).join(' ').toLowerCase();
+  const topics = (Array.isArray(source.topics) ? source.topics.filter((t: unknown): t is string => typeof t === 'string') : []).join(' ').toLowerCase();
   
   let score = 0;
   let titleMatches = 0;

@@ -55,6 +55,7 @@ export interface RadarSweepResult {
     afterDedup: number;
     crossChannelCollisions: number;
     durationMs: number;
+    crossSourceSignals?: { clustersDetected: number; topScore: number };
   };
 }
 
@@ -89,6 +90,10 @@ const URGENCY_PATTERNS: { re: RegExp; bonus: number }[] = [
   { re: /\b(collapse|invasion|attack|outbreak|explosion|crash|breach|failure)\b/i, bonus: 14 },
   { re: /\b(record|unprecedented|historic|landmark|breakthrough|first.ever)\b/i, bonus: 9 },
   { re: /\b(ban|sanction|embargo|resign|election|summit|vote)\b/i, bonus: 6 },
+  // NomosX: Provocative/contrarian keywords — boost topics that challenge consensus
+  { re: /\b(scandal|cover.up|whistleblower|leak|expose|revealed|secret|hidden)\b/i, bonus: 12 },
+  { re: /\b(critique|challenge|reconsider|contradicts|debunk|myth|illusion|deception)\b/i, bonus: 10 },
+  { re: /\b(paradigm.shift|game.changer|revolutionary|radical|unconventional|heterodox)\b/i, bonus: 8 },
 ];
 
 /** 28 elite feeds: think tanks + news + policy + central banks + institutional */
@@ -129,6 +134,27 @@ const PREMIUM_RSS_FEEDS: { name: string; url: string; tier: 'A' | 'B' | 'C'; ver
   { name: "Nature Climate",        url: "https://www.nature.com/nclimate.rss",                               tier: "B", vertical: "climate" },
   { name: "Science Magazine",      url: "https://www.science.org/action/showFeed?type=etoc&feed=rss&jc=science", tier: "B", vertical: "science-frontier" },
   { name: "Reuters Health",        url: "https://www.reuters.com/arc/outboundfeeds/rss/category/health/?outputType=xml", tier: "C", vertical: "health-biotech" },
+  // === TIER A: Independent Investigative Journalism (NomosX addition) ===
+  { name: "The Intercept",         url: "https://theintercept.com/feed/",                                    tier: "A", vertical: "geopolitics" },
+  { name: "ProPublica",            url: "https://feeds.propublica.org/propublica/main",                      tier: "A" },
+  { name: "ICIJ",                  url: "https://www.icij.org/feed/",                                        tier: "A", vertical: "geopolitics" },
+  { name: "OCCRP",                 url: "https://www.occrp.org/en/rss.xml",                                  tier: "A", vertical: "geopolitics" },
+  { name: "Bellingcat",            url: "https://www.bellingcat.com/feed/",                                  tier: "A", vertical: "security" },
+  { name: "Mediapart",             url: "https://www.mediapart.fr/articles/feed",                            tier: "A", vertical: "eu-policy" },
+  // === TIER B: Heterodox / Independent Analysis ===
+  { name: "Jacobin",               url: "https://jacobin.com/feeds/posts.atom",                              tier: "B", vertical: "social-stability" },
+  { name: "Naked Capitalism",      url: "https://www.nakedcapitalism.com/feed",                              tier: "B", vertical: "finance-macro" },
+  { name: "Roar Magazine",         url: "https://roarmag.org/feed/",                                          tier: "B", vertical: "social-stability" },
+  { name: "Novara Media",          url: "https://novaramedia.com/feed/",                                      tier: "B", vertical: "eu-policy" },
+  { name: "Current Affairs",       url: "https://www.currentaffairs.org/feed",                                tier: "B" },
+  // === TIER B: Expert Blogs ===
+  { name: "Marginal Revolution",   url: "https://marginalrevolution.com/feed",                                tier: "B", vertical: "economics" },
+  { name: "LessWrong",             url: "https://www.lesswrong.com/feed.xml",                                 tier: "B", vertical: "ai-technology" },
+  { name: "Astral Codex Ten",      url: "https://astralcodexten.substack.com/feed",                           tier: "B", vertical: "ai-technology" },
+  // === TIER B: Global South / Non-Western ===
+  { name: "Africa Is a Country",   url: "https://africaisacountry.com/feed",                                  tier: "B", vertical: "emerging-markets" },
+  { name: "Scroll.in",             url: "https://scroll.in/rss",                                              tier: "B", vertical: "emerging-markets" },
+  { name: "The Wire India",        url: "https://thewire.in/feed",                                            tier: "B", vertical: "emerging-markets" },
 ];
 
 // ============================================================================
@@ -152,7 +178,13 @@ export async function runTopicRadar(options?: {
 
   console.log('[TOPIC RADAR V3] Starting maximum coverage sweep...');
 
-  const stats = {
+  const stats: {
+    gdeltFetched: number; rssFetched: number; academicFetched: number;
+    policyFetched: number; institutionalFetched: number; dbSignals: number;
+    totalRaw: number; afterDedup: number; crossChannelCollisions: number;
+    durationMs: number;
+    crossSourceSignals?: { clustersDetected: number; topScore: number };
+  } = {
     gdeltFetched: 0, rssFetched: 0, academicFetched: 0,
     policyFetched: 0, institutionalFetched: 0, dbSignals: 0,
     totalRaw: 0, afterDedup: 0, crossChannelCollisions: 0,
@@ -172,6 +204,34 @@ export async function runTopicRadar(options?: {
   if (rssR.status === 'fulfilled')      { all.push(...rssR.value);      stats.rssFetched      = rssR.value.length; }
   if (academicR.status === 'fulfilled') { all.push(...academicR.value); stats.academicFetched = academicR.value.length; }
   if (dbR.status === 'fulfilled')       { all.push(...dbR.value);       stats.dbSignals       = dbR.value.length; }
+
+  // ── CROSS-SOURCE SIGNAL DETECTION (V3.1) — corroboration + velocity ──
+  try {
+    const { detectCrossSourceSignals } = await import('./cross-source-signals');
+    const newsItems = all.map(t => ({
+      title: t.title,
+      source: t.source || 'unknown',
+      url: t.url,
+      publishedAt: t.publishedAt || new Date(),
+      summary: t.summary,
+      tier: (t as any).tier,
+      vertical: t.vertical,
+    }));
+    const signalClusters = detectCrossSourceSignals(newsItems);
+    if (signalClusters.length > 0) {
+      console.log(`[TOPIC RADAR V3] CROSS-SOURCE SIGNALS: ${signalClusters.length} high-confidence clusters (top score: ${signalClusters[0]?.totalScore})`);
+      stats.crossSourceSignals = { clustersDetected: signalClusters.length, topScore: signalClusters[0]?.totalScore || 0 } as any;
+      // Boost topics that appear in high-scoring signal clusters
+      for (const cluster of signalClusters.slice(0, 5)) {
+        const matchingTopics = all.filter(t => cluster.items.some(item => item.title === t.title));
+        for (const topic of matchingTopics) {
+          topic.score = Math.min(100, (topic.score || 0) + Math.round(cluster.corroborationScore * 10));
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('[TOPIC RADAR V3] Cross-source signal detection failed (non-blocking):', err);
+  }
 
   stats.totalRaw = all.length;
   const deduped = deduplicateTopicsJaccard(all);

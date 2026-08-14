@@ -7,12 +7,12 @@ export const metadata: Metadata = {
     'Browse NomosX inquiries: verified positions, scenario distributions, and source-traced analysis — every claim sourced from 250M+ publications.',
   alternates: { canonical: archivesUrl(true) },
   openGraph: {
-    title: 'NomosX Inquiries — Strategic Foresight',
+    title: 'NomosX Inquiries — Scenario-Tested Positions',
     description: 'Positions published continuously. Updated daily.',
   },
   twitter: {
-    title: 'NomosX Inquiries — Strategic Foresight',
-    description: 'Cross-domain foresight with verified citations. Updated daily.',
+    title: 'NomosX Inquiries — Scenario-Tested Positions',
+    description: 'Scenario-weighted positions with verified citations. Updated daily.',
   },
 };
 

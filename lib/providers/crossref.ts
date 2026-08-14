@@ -37,6 +37,12 @@ export async function searchCrossref(query: string, rows = 10): Promise<any[]> {
       topics: it.subject || [],
       jelCodes: [],
       citationCount: it["is-referenced-by-count"] ?? null,
+      // Extract funder information for conflict-of-interest detection
+      funders: (it.funder || []).map((f: any) => ({
+        name: f.name || '',
+        doi: f.DOI || null,
+        award: f.award || null,
+      })).filter((f: any) => f.name),
       raw: it
     }));
   } catch (error: any) {

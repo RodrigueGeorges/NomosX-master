@@ -1,0 +1,14 @@
+lib/agent/pipeline-v2.ts(2080,48): error TS2304: Cannot find name 'isDossier'.
+lib/agent/pipeline-v2.ts(4011,11): error TS2304: Cannot find name 'inquiryId'.
+lib/agent/pipeline-v2.ts(4638,30): error TS2353: Object literal may only specify known properties, and 'concepts' does not exist in type '{ entities: number; relations: number; clusters: number; bridges: number; costUsd: number; }'.
+lib/agent/semantic-engine.ts(271,35): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(arg: PrismaPromise<any>[], options?: { isolationLevel?: TransactionIsolationLevel | undefined; } | undefined): Promise<any[]>', gave the following error.
+    Argument of type 'Promise<any>[]' is not assignable to parameter of type 'PrismaPromise<any>[]'.
+      Type 'Promise<any>' is not assignable to type 'PrismaPromise<any>'.
+        Types of property '[Symbol.toStringTag]' are incompatible.
+          Type 'string' is not assignable to type '"PrismaPromise"'.
+  Overload 2 of 2, '(fn: (prisma: Omit<PrismaClient<PrismaClientOptions, never, DefaultArgs>, "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends">) => Promise<...>, options?: { ...; } | undefined): Promise<...>', gave the following error.
+    Argument of type 'Promise<any>[]' is not assignable to parameter of type '(prisma: Omit<PrismaClient<PrismaClientOptions, never, DefaultArgs>, "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends">) => Promise<...>'.
+      Type 'Promise<any>[]' provides no match for the signature '(prisma: Omit<PrismaClient<PrismaClientOptions, never, DefaultArgs>, "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends">): Promise<...>'.
+lib/twitter/client.ts(90,13): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{ oauth_signature: string; }'.
+  No index signature with a parameter of type 'string' was found on type '{ oauth_signature: string; }'.

@@ -27,8 +27,8 @@ export function ForesightEmptyState({ depth }: { depth?: string }) {
       </p>
       <p>
         {depth === "standard" || depth === "surface"
-          ? "Probabilistic foresight is available for Deep and Strategic briefs."
-          : "No prospective distribution recorded for this publication. New strategic briefs include the foresight panel automatically."}
+          ? "Scenario distributions are available for Deep and Strategic briefs."
+          : "No scenario distribution recorded for this publication. New strategic briefs include the foresight panel automatically."}
       </p>
     </section>
   );

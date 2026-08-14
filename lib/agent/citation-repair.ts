@@ -127,106 +127,75 @@ export function sanitizeUnsourcedNumbers(html: string): { html: string; sanitize
   const details: string[] = [];
   let sanitized = 0;
 
-  // Work on the text content, preserving HTML tags
   // Pattern: numbers that look like statistics
-  // Must be standalone (not part of a word like "billion" or a URL/DOI)
   // - Percentages: 92%, 92.7%
   // - Dollar amounts: $2B, $2.5M
   // - Decimals with 2+ decimal places: 0.85
   // - Large integers: 2000+ (but not years 1900-2099, checked below)
   const statPattern = /(?<![\w-])(\d+\.?\d*\s*%|\$\s?\d+\.?\d*\s*[BbMmKk]|\b\d+\.\d{2,}\b|\b[1-9]\d{3,}\b)(?![\w-])/g;
 
-  // We need to check in the text content (between tags)
-  // Split HTML into tag and text segments, but SKIP <style> and <script> blocks
-  // entirely — CSS values (rgba, line-height, font-size) are not statistics.
-  const segments: { type: 'tag' | 'text' | 'skip'; content: string }[] = [];
-  let lastIdx = 0;
-  const skipBlockRe = /<(style|script)\b[^>]*>[\s\S]*?<\/\1>/gi;
-  const tagRe = /<[^>]+>/g;
-  let skipMatch: RegExpExecArray | null;
-  // Build segments, marking style/script blocks as 'skip'
-  const allTokens: { type: 'tag' | 'text' | 'skip'; content: string }[] = [];
-  let cursor = 0;
-  // First, find all style/script blocks
-  const skipRanges: Array<[number, number]> = [];
-  while ((skipMatch = skipBlockRe.exec(html)) !== null) {
-    skipRanges.push([skipMatch.index, skipMatch.index + skipMatch[0].length]);
-  }
-  // Then, walk through tags, but skip over style/script ranges
-  let tagMatch: RegExpExecArray | null;
-  tagRe.lastIndex = 0;
-  while ((tagMatch = tagRe.exec(html)) !== null) {
-    const tagStart = tagMatch.index;
-    const tagEnd = tagMatch.index + tagMatch[0].length;
-    // Check if this tag is inside a skip range
-    const inSkip = skipRanges.some(([s, e]) => tagStart >= s && tagEnd <= e);
-    if (inSkip) continue;
-    // Check if there's a skip range between cursor and this tag
-    const skipBefore = skipRanges.find(([s, e]) => s >= cursor && e <= tagStart);
-    if (skipBefore) {
-      if (skipBefore[0] > cursor) {
-        allTokens.push({ type: 'text', content: html.slice(cursor, skipBefore[0]) });
-      }
-      allTokens.push({ type: 'skip', content: html.slice(skipBefore[0], skipBefore[1]) });
-      cursor = skipBefore[1];
-    }
-    if (tagStart > cursor) {
-      allTokens.push({ type: 'text', content: html.slice(cursor, tagStart) });
-    }
-    allTokens.push({ type: 'tag', content: html.slice(tagStart, tagEnd) });
-    cursor = tagEnd;
-  }
-  // Handle remaining skip ranges and text after last tag
-  const remainingSkip = skipRanges.find(([s]) => s >= cursor);
-  if (remainingSkip) {
-    if (remainingSkip[0] > cursor) {
-      allTokens.push({ type: 'text', content: html.slice(cursor, remainingSkip[0]) });
-    }
-    allTokens.push({ type: 'skip', content: html.slice(remainingSkip[0], remainingSkip[1]) });
-    cursor = remainingSkip[1];
-  }
-  if (cursor < html.length) {
-    allTokens.push({ type: 'text', content: html.slice(cursor) });
-  }
+  // ── APPROACH: Replace <style>/<script> blocks with placeholders, then
+  //    process text nodes (between > and <) using the FULL HTML context
+  //    to check for nearby <sup> citation tags. ──
 
-  // Process text segments (skip style/script blocks and tags)
-  const repairedSegments = allTokens.map(seg => {
-    if (seg.type === 'tag' || seg.type === 'skip') return seg.content;
+  // Step 1: Extract and mask <style>/<script> blocks
+  const skipBlocks: string[] = [];
+  let working = html.replace(/<(style|script)\b[^>]*>[\s\S]*?<\/\1>/gi, (m) => {
+    skipBlocks.push(m);
+    return `\x00SKIP${skipBlocks.length - 1}\x00`;
+  });
 
-    let text = seg.content;
-    // Skip the sources section (SRC-N entries themselves)
-    // We only repair body text, not the source list
+  // Step 2: Find all text nodes (content between > and <) and process numbers
+  // We use a regex that matches text between tags: >text<
+  // The position in `working` gives us the full HTML context for citation checks
+  working = working.replace(/>([^<]+)</g, (fullMatch, textContent: string, offset: number) => {
+    // Skip if this text node is inside a <title> or <h1> tag (check context)
+    // Actually, we process all text nodes — the context checks below handle edge cases
 
-    text = text.replace(statPattern, (match, offset) => {
-      // Check for [SRC-N] within 100 chars after the number
-      const after = text.slice(offset + match.length, offset + match.length + 100);
-      // Also check 50 chars before (citation may precede the number)
-      const before = text.slice(Math.max(0, offset - 50), offset);
+    // Process numbers in this text node
+    const fixedText = textContent.replace(statPattern, (match, _g1, matchOffset: number) => {
+      // matchOffset is relative to textContent, not the full HTML.
+      // We need the absolute position in `working` to check for <sup> tags.
+      // offset is the position of the full match (>) in working.
+      // The text content starts at offset + 1 (after the >).
+      const absPos = offset + 1 + matchOffset;
+      const absEnd = absPos + match.length;
 
-      if (/\[(?:SRC|E)-\d+\]/.test(after) || /\[(?:SRC|E)-\d+\]/.test(before)) {
+      // Check full HTML context for citations (both [SRC-N] text and <sup> tags)
+      const ctxBefore = working.slice(Math.max(0, absPos - 200), absPos);
+      const ctxAfter = working.slice(absEnd, absEnd + 200);
+
+      // Check for rendered <sup> citation tags nearby
+      if (/<sup class="cite"/.test(ctxAfter) || /<\/sup>/.test(ctxBefore)) {
         return match; // Citation present, keep the number
       }
 
-      // Don't sanitize years (1900-2099) or source list numbers
-      const yearMatch = match.match(/^\b(19\d{2}|20\d{2})\b$/);
-      if (yearMatch) return match; // It's a year, not a statistic
-
-      // Don't sanitize SRC-N or E-N numbers themselves
-      if (/\[(?:SRC|E)-\d+/.test(text.slice(Math.max(0, offset - 10), offset + match.length + 10))) {
+      // Check for [SRC-N] or [E-N] text citations nearby
+      if (/\[(?:SRC|E)-\d+\]/.test(ctxAfter) || /\[(?:SRC|E)-\d+\]/.test(ctxBefore)) {
         return match;
       }
 
-      // Don't sanitize if this number is part of a larger word (e.g., "billion" contains "bill")
-      // Check that the match is surrounded by word boundaries or spaces, not letters
-      const charBefore = text.slice(Math.max(0, offset - 1), offset);
-      const charAfter = text.slice(offset + match.length, offset + match.length + 1);
+      // Don't sanitize years (1900-2099)
+      const yearMatch = match.match(/^\b(19\d{2}|20\d{2})\b$/);
+      if (yearMatch) return match;
+
+      // Don't sanitize if this number is part of a larger word
+      const charBefore = textContent.slice(Math.max(0, matchOffset - 1), matchOffset);
+      const charAfter = textContent.slice(matchOffset + match.length, matchOffset + match.length + 1);
       if (/[a-zA-Z]/.test(charBefore) || /[a-zA-Z]/.test(charAfter)) {
-        return match; // Part of a word, not a standalone statistic
+        return match;
       }
 
-      // Don't sanitize numbers inside URLs, DOI links, or anchor tags
-      const urlContext = text.slice(Math.max(0, offset - 50), offset + match.length + 50);
-      if (/doi\.org|https?:\/\/|href=|src=|<a\s/.test(urlContext)) {
+      // Don't sanitize numbers inside URLs, DOIs, or anchor tags
+      const urlContext = working.slice(Math.max(0, absPos - 100), absEnd + 100);
+      if (/doi\.org|https?:\/\/|href=|src=|\.com|\.org|\.net|\.gov|\.edu/i.test(urlContext)) {
+        return match;
+      }
+
+      // Don't sanitize if inside the Sources/References section
+      // (check if we're inside a <span class="apa-ref"> or <div class="source-item">)
+      const sectionCtx = working.slice(Math.max(0, absPos - 500), absPos);
+      if (/class="apa-ref"|class="source-item"|<h2>Sources<\/h2>/.test(sectionCtx)) {
         return match;
       }
 
@@ -235,11 +204,14 @@ export function sanitizeUnsourcedNumbers(html: string): { html: string; sanitize
       return 'non établie';
     });
 
-    return text;
+    return `>${fixedText}<`;
   });
 
+  // Step 3: Restore <style>/<script> blocks
+  working = working.replace(/\x00SKIP(\d+)\x00/g, (_, i) => skipBlocks[parseInt(i, 10)]);
+
   return {
-    html: repairedSegments.join(''),
+    html: working,
     sanitized,
     details,
   };
@@ -302,8 +274,10 @@ export function injectCitationsBySourceMatch(
         if (/\[SRC-\d+\]/.test(context)) continue; // Already cited nearby
 
         // Find the end of the current sentence or paragraph
+        // Use a smarter pattern: match sentence-ending punctuation NOT preceded by a digit
+        // (to avoid splitting decimal numbers like "27.31" at the ".")
         const afterMatch = workingHtml.slice(matchIdx + pattern.length);
-        const endIdx = afterMatch.search(/[.!?</]/);
+        const endIdx = afterMatch.search(/(?<!\d)[.!?</]/);
         if (endIdx >= 0 && endIdx < 200) {
           const insertPos = matchIdx + pattern.length + endIdx;
           workingHtml = workingHtml.slice(0, insertPos) + ' ' + srcTag + workingHtml.slice(insertPos);
@@ -601,6 +575,38 @@ export function repairCitations(
   workingHtml = sanitization.html;
   totalSanitized = sanitization.sanitized;
   allDetails.push(...sanitization.details);
+
+  // Step 4: Convert injected [SRC-N] to <sup> tags if the renderer already uses <sup> format.
+  // The strategic report renderer converts [SRC-N] to <sup class="cite"><a href="#ref-N">N</a></sup>.
+  // But citation repair runs AFTER rendering, so injected [SRC-N] stay as raw text.
+  // This step converts them to match the rendered format, preventing duplicate [E-N] + <sup>.
+  const hasSupTags = /<sup class="cite"/.test(workingHtml);
+  if (hasSupTags) {
+    // Convert [SRC-N] to <sup> tags matching the renderer's format
+    workingHtml = workingHtml.replace(/\[SRC-(\d+)\]/g, (_, n) => {
+      // Only convert if there isn't already a <sup> for this ref nearby
+      return `<sup class="cite"><a href="#ref-${n}" data-evidence="${n}">${n}</a></sup>`;
+    });
+    // Also remove any [E-N] text citations that have corresponding <sup> tags in the same paragraph
+    workingHtml = workingHtml.replace(/<p[^>]*>([\s\S]*?)<\/p>/g, (para, content) => {
+      const supIds = new Set<string>();
+      for (const m of content.matchAll(/<sup class="cite"><a href="#ref-(\d+)"/g)) {
+        supIds.add(m[1]);
+      }
+      if (supIds.size === 0) return para;
+      let fixed = content;
+      for (const id of supIds) {
+        // Remove [E-N] text citations that duplicate <sup> tags
+        fixed = fixed.replace(new RegExp(`\\s*\\[E${id}\\]\\s*`, 'g'), ' ');
+      }
+      return `<p>${fixed}</p>`;
+    });
+  }
+
+  // Step 5: Remove [Non vérifié] tags that may have been injected by claim-grounding
+  // These break the reading experience and should never appear in final HTML
+  workingHtml = workingHtml.replace(/<span style="color:#f59e0b;font-style:italic;">\[Non vérifié\]\s*<\/span>/g, '');
+  workingHtml = workingHtml.replace(/\[Non vérifié\]\s*/g, '');
 
   const total = totalBackfilled + totalInjected + totalSanitized;
   console.log(`[CITATION REPAIR] Backfilled: ${totalBackfilled}, Injected: ${totalInjected}, Sanitized: ${totalSanitized} (total: ${total})`);

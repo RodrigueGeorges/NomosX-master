@@ -107,8 +107,7 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
           </h2>
 
           <p className="text-base text-white/50 leading-relaxed max-w-md mx-auto mb-6">
-            Join decision teams using probabilistic foresight — probable futures,
-            decisions owned, evidence verified.
+            The first AI think tank, always on. Join decision teams using scenario-weighted reasoning — probable futures, decisions owned, evidence verified.
           </p>
 
           <div className="flex items-center justify-center gap-3 text-xs text-white/50 tracking-[0.15em] uppercase font-mono">

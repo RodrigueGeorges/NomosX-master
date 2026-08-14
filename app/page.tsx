@@ -362,9 +362,9 @@ function HomePageContent() {
 
                 <span className="nx-eyebrow">
 
-                  <span className="w-1.5 h-1.5 rounded-full bg-white/80 nx-glow-dot" />
+                  <NomosXLogo variant="symbol" size={12} className="nx-glow-x" />
 
-                  The think tank, always on
+                  The first AI think tank, always on
 
                 </span>
 

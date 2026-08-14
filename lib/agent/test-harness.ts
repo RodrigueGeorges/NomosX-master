@@ -74,7 +74,11 @@ export interface PipelineMetrics {
 }
 
 export function computeMetrics(stats: any, html: string, sources: any[]): PipelineMetrics {
-  const text = html.replace(/<[^>]+>/g, ' ');
+  // Convert <sup class="cite"> tags to [SRC-N] markers BEFORE stripping HTML tags
+  const normalized = html
+    .replace(/<sup class="cite"><a href="#ref-(\d+)"[^>]*>[^<]*<\/a><\/sup>/g, '[SRC-$1]')
+    .replace(/<a href="#ref-(\d+)"[^>]*>[^<]*<\/a>/g, '[SRC-$1]');
+  const text = normalized.replace(/<[^>]+>/g, ' ');
   const wordCount = text.split(/\s+/).filter(Boolean).length;
   const citationCount = (text.match(/\[SRC-\d+\]/g) || []).length;
 

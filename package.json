@@ -68,6 +68,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.71.2",
     "@floating-ui/dom": "^1.7.5",
+    "@huggingface/transformers": "^4.2.0",
     "@netlify/functions": "^5.1.2",
     "@prisma/client": "^5.22.0",
     "@radix-ui/react-dialog": "^1.0.5",

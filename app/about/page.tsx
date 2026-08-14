@@ -11,6 +11,7 @@ import { PipelineStrip } from "@/components/signature";
 import {
   BRAND_SOURCES_LABEL,
   BRAND_TAGLINE,
+  BRAND_POSITIONING,
   NOMOS_PHILOSOPHY_PILLARS,
   NOMOS_PHILOSOPHY_STATEMENT,
   ABOUT_CTA_HEADLINE,
@@ -21,9 +22,9 @@ import { ArrowRight, Globe, Lightbulb, Shield, Network } from "lucide-react";
 const VISION = [
   {
     icon: Globe,
-    title: "From chaos to order",
+    title: "From chaos to nomos",
     description:
-      "The world produces a flood of fragmented signals. NomosX structures the chaos into a defensible causal chain that a decision-maker can act on.",
+      "The world produces a flood of fragmented signals. NomosX structures the chaos into scenario-weighted, source-verified positions a decision-maker can defend — not just act on.",
   },
   {
     icon: Network,
@@ -47,8 +48,8 @@ const VISION = [
 const VALUES = [
   { title: "Transform chaos into order", description: "Structure the noise into a causal chain anyone can follow." },
   { title: "Map knowledge, don't accumulate it", description: "Cartograph the intellectual territory — show where evidence is dense, absent, or contradictory." },
-  { title: "Position before consensus", description: "We publish what we believe — with confidence bounds, not false balance." },
-  { title: "Structure produces enlightened decisions", description: "A position worth defending emerges from structured thinking, not opinion or intuition." },
+  { title: "Probability over prophecy", description: "We publish what we believe — with confidence bounds and stress-tested scenarios, not false balance." },
+  { title: "Citation is the law", description: "A position worth defending emerges from source-verified, scenario-weighted evidence — not opinion or intuition." },
 ];
 
 export default function AboutPage() {
@@ -60,11 +61,11 @@ export default function AboutPage() {
       <PublicPageShell currentPage="about" onSignInClick={() => setShowAuthModal(true)} particles={0}>
         <PageSection className="pt-16 sm:pt-20 pb-6">
           <PageHeader
-            eyebrow="About"
+            eyebrow={BRAND_POSITIONING}
             title={
               <>
                 From Chaos{" "}
-                <span className="text-white/70">to Clarity.</span>
+                <span className="text-white/70">to Nomos.</span>
               </>
             }
             description="NomosX is an autonomous think tank that maps evidence, challenges assumptions, and publishes positions anyone can verify — as a public good."

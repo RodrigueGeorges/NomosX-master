@@ -1,0 +1,33 @@
+lib/agent/context-primer.ts(242,51): error TS2339: Property 'concept' does not exist on type 'string'.
+lib/agent/context-primer.ts(243,52): error TS2339: Property 'concept' does not exist on type 'string'.
+lib/agent/context-primer.ts(243,72): error TS2339: Property 'description' does not exist on type 'string'.
+lib/agent/context-primer.ts(248,57): error TS2339: Property 'concept' does not exist on type 'string'.
+lib/agent/context-primer.ts(249,62): error TS2339: Property 'concept' does not exist on type 'string'.
+lib/agent/context-primer.ts(263,9): error TS2304: Cannot find name 'relatedBriefs'.
+lib/agent/context-primer.ts(264,32): error TS2304: Cannot find name 'relatedBriefs'.
+lib/agent/context-primer.ts(264,53): error TS7006: Parameter 'b' implicitly has an 'any' type.
+lib/agent/enhanced-ranker.ts(178,63): error TS2339: Property 'tags' does not exist on type '{ authors: { sourceId: string; authorId: string; position: number | null; isCorresponding: boolean; }[]; institutions: { sourceId: string; institutionId: string; }[]; } & { id: string; provider: string; ... 30 more ...; lastSyncedAt: Date; }'.
+lib/agent/pipeline-types.ts(102,3): error TS2300: Duplicate identifier 'knowledgeGraph'.
+lib/agent/pipeline-types.ts(616,3): error TS2300: Duplicate identifier 'knowledgeGraph'.
+lib/agent/pipeline-types.ts(616,3): error TS2717: Subsequent property declarations must have the same type.  Property 'knowledgeGraph' must be of type '{ entities: number; relations: number; clusters: number; bridges: number; costUsd: number; } | undefined', but here has type '{ concepts: number; relations: number; costUsd?: number | undefined; error?: string | undefined; } | undefined'.
+lib/agent/pipeline-v2.ts(2033,48): error TS2304: Cannot find name 'isDossier'.
+lib/agent/pipeline-v2.ts(3328,59): error TS2345: Argument of type 'string[]' is not assignable to parameter of type 'string'.
+lib/agent/pipeline-v2.ts(3334,39): error TS2551: Property 'verdicts' does not exist on type 'ConsensusResult'. Did you mean 'verdict'?
+lib/agent/pipeline-v2.ts(3334,55): error TS7006: Parameter 'v' implicitly has an 'any' type.
+lib/agent/pipeline-v2.ts(3335,42): error TS2551: Property 'verdicts' does not exist on type 'ConsensusResult'. Did you mean 'verdict'?
+lib/agent/pipeline-v2.ts(3335,58): error TS7006: Parameter 'v' implicitly has an 'any' type.
+lib/agent/pipeline-v2.ts(3336,38): error TS2551: Property 'verdicts' does not exist on type 'ConsensusResult'. Did you mean 'verdict'?
+lib/agent/pipeline-v2.ts(3336,54): error TS7006: Parameter 'v' implicitly has an 'any' type.
+lib/agent/pipeline-v2.ts(3927,11): error TS2304: Cannot find name 'inquiryId'.
+lib/agent/pipeline-v2.ts(4554,30): error TS2353: Object literal may only specify known properties, and 'concepts' does not exist in type '{ entities: number; relations: number; clusters: number; bridges: number; costUsd: number; }'.
+lib/agent/semantic-engine.ts(271,35): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(arg: PrismaPromise<any>[], options?: { isolationLevel?: TransactionIsolationLevel | undefined; } | undefined): Promise<any[]>', gave the following error.
+    Argument of type 'Promise<any>[]' is not assignable to parameter of type 'PrismaPromise<any>[]'.
+      Type 'Promise<any>' is not assignable to type 'PrismaPromise<any>'.
+        Types of property '[Symbol.toStringTag]' are incompatible.
+          Type 'string' is not assignable to type '"PrismaPromise"'.
+  Overload 2 of 2, '(fn: (prisma: Omit<PrismaClient<PrismaClientOptions, never, DefaultArgs>, "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends">) => Promise<...>, options?: { ...; } | undefined): Promise<...>', gave the following error.
+    Argument of type 'Promise<any>[]' is not assignable to parameter of type '(prisma: Omit<PrismaClient<PrismaClientOptions, never, DefaultArgs>, "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends">) => Promise<...>'.
+      Type 'Promise<any>[]' provides no match for the signature '(prisma: Omit<PrismaClient<PrismaClientOptions, never, DefaultArgs>, "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends">): Promise<...>'.
+lib/twitter/client.ts(90,13): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{ oauth_signature: string; }'.
+  No index signature with a parameter of type 'string' was found on type '{ oauth_signature: string; }'.

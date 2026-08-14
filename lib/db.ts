@@ -11,14 +11,19 @@ declare global {
 function getDatabaseUrl(): string {
   const url = process.env.DATABASE_URL || '';
   if (!url) return url;
-  
+
+  // Skip pgbouncer params for local PostgreSQL (localhost/127.0.0.1)
+  // pgbouncer=true is only needed for Neon serverless Postgres
+  const isLocal = url.includes('localhost') || url.includes('127.0.0.1');
+  if (isLocal) return url;
+
   const separator = url.includes('?') ? '&' : '?';
   const params: string[] = [];
-  
+
   if (!url.includes('pgbouncer=')) params.push('pgbouncer=true');
   if (!url.includes('connection_limit=')) params.push('connection_limit=10');
   if (!url.includes('pool_timeout=')) params.push('pool_timeout=30');
-  
+
   return params.length > 0 ? `${url}${separator}${params.join('&')}` : url;
 }
 

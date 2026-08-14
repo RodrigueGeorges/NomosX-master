@@ -278,7 +278,9 @@ async function analyzeConsensusShifts(sources: any[]): Promise<TrendBreak[]> {
     const response = await callLLM({
       messages: [{
         role: "user",
-        content: `Analyze if there's a consensus shift or methodology change between these two research periods.
+        content: `You are NomosX — a revolutionary trend analyst who does not merely track mainstream trends but identifies counter-trends, weak signals, and paradigm shifts that conventional analysis misses.
+
+Analyze if there's a consensus shift, methodology change, OR counter-trend emergence between these two research periods.
 
 EARLIER PERIOD (${firstHalf.length} sources):
 ${summaryFirst}
@@ -286,21 +288,31 @@ ${summaryFirst}
 RECENT PERIOD (${secondHalf.length} sources):
 ${summarySecond}
 
+Look for:
+1. CONSENSUS SHIFT — Has the mainstream view changed?
+2. METHODOLOGY CHANGE — Have research methods shifted?
+3. COUNTER-TREND — Is there a minority viewpoint gaining traction that challenges the dominant narrative?
+4. WEAK SIGNAL — Is there a small but potentially significant pattern that could grow into a major trend?
+5. PARADIGM SHIFT — Is there evidence of a fundamental change in how the field conceptualizes the problem?
+
 Return JSON:
 {
   "hasShift": boolean,
-  "shiftType": "consensus_shift" | "methodology_change" | null,
+  "shiftType": "consensus_shift" | "methodology_change" | "counter_trend" | "weak_signal" | "paradigm_shift" | null,
   "confidence": 0-100,
   "description": "what changed and why it matters",
   "beforeConsensus": "brief summary of earlier view",
-  "afterConsensus": "brief summary of current view"
+  "afterConsensus": "brief summary of current view",
+  "counterTrend": "description of any counter-trend or minority viewpoint gaining traction, or null",
+  "weakSignal": "description of any weak signal that could grow into a major trend, or null",
+  "crossDomainPotential": "could this trend affect other domains? if so, which ones?"
 }
 
-Only report REAL shifts with confidence ≥ 60.`
+Only report REAL shifts with confidence ≥ 60. But DO look for counter-trends and weak signals — a revolutionary think tank's value comes from identifying what others miss.`
       }],
       temperature: 0.2,
       jsonMode: true,
-      maxTokens: 500,
+      maxTokens: 800,
       enableCache: true,
       task: 'meta_analysis',
     });

@@ -74,7 +74,11 @@ export type Provider =
   // TIER 8: Large-scale Academic Databases
   | "dimensions" | "lens" | "springer" | "osti" | "datacite" | "google-books"
   // TIER 9: Open-Access Free APIs (no key)
-  | "plos" | "federal-register" | "sec-edgar" | "worldbank-docs" | "cordis";
+  | "plos" | "federal-register" | "sec-edgar" | "worldbank-docs" | "cordis"
+  // V3.1: Consolidated institutions (batch OpenAlex ROR queries)
+  | "consolidated-institutions"
+  // V3.1: Global Omniscience Layer — RSS-based providers covering 80+ organizations
+  | "global-intelligence" | "global-orgs" | "global-think-tanks" | "global-science";
 
 export interface SmartSelection {
   providers: Provider[];
@@ -140,60 +144,60 @@ function filterProvidersByDomain(providers: Provider[], domain: string): Provide
 
 const DOMAIN_PROVIDER_MAP: Record<string, Provider[]> = {
   // Health & Medicine
-  health: ["openalex", "pubmed", "europepmc", "semanticscholar", "crossref", "who-gho", "who-direct", "ecdc", "ema", "inserm", "cochrane", "cdc", "nih", "base", "doaj", "worldbank", "un", "biorxiv", "clinical-trials", "plos", "dimensions", "lens", "springer", "datacite", "google-books", "linkup"],
-  medical: ["pubmed", "europepmc", "openalex", "semanticscholar", "crossref", "who-gho", "who-direct", "ecdc", "ema", "inserm", "cochrane", "cdc", "nih", "base", "doaj", "worldbank", "un", "biorxiv", "clinical-trials", "dimensions", "lens", "springer", "datacite", "google-books", "linkup"],
+  health: ["pubmed", "europepmc", "semanticscholar", "core", "crossref", "openalex", "consolidated-institutions", "base", "doaj", "biorxiv", "clinical-trials", "plos", "dimensions", "lens", "springer", "datacite", "google-books", "global-intelligence", "global-orgs", "global-think-tanks", "global-science", "tavily", "exa", "linkup"],
+  medical: ["pubmed", "europepmc", "openalex", "core", "semanticscholar", "crossref", "consolidated-institutions", "base", "doaj", "biorxiv", "clinical-trials", "dimensions", "lens", "springer", "datacite", "google-books", "global-intelligence", "global-orgs", "global-think-tanks", "global-science", "tavily", "exa", "linkup"],
 
   // Exact sciences
-  physics: ["openalex", "arxiv", "semanticscholar", "crossref", "hal", "base", "doaj", "max-planck", "max-planck-pure", "eth-zurich", "cea", "cset", "ifp", "mit-dspace", "harvard-dash", "openreview", "dimensions", "lens", "springer", "osti", "datacite", "google-books", "linkup"],
-  mathematics: ["openalex", "arxiv", "semanticscholar", "crossref", "hal", "base", "doaj", "max-planck", "max-planck-pure", "eth-zurich", "cset", "abundance", "mit-dspace", "harvard-dash", "dimensions", "lens", "springer", "google-books", "linkup"],
-  computer_science: ["semanticscholar", "arxiv", "openalex", "crossref", "hal", "core", "allen-ai", "inria", "eth-zurich", "cset", "ainow", "datasociety", "openreview", "papers-with-code", "mit-dspace", "harvard-dash", "max-planck-pure", "dimensions", "lens", "springer", "datacite", "linkup"],
+  physics: ["arxiv", "semanticscholar", "crossref", "core", "openalex", "hal", "base", "doaj", "max-planck", "max-planck-pure", "eth-zurich", "cea", "cset", "ifp", "mit-dspace", "harvard-dash", "openreview", "dimensions", "lens", "springer", "osti", "datacite", "google-books", "global-intelligence", "global-orgs", "global-think-tanks", "global-science", "tavily", "exa", "linkup"],
+  mathematics: ["arxiv", "semanticscholar", "crossref", "core", "openalex", "hal", "base", "doaj", "max-planck", "max-planck-pure", "eth-zurich", "cset", "abundance", "mit-dspace", "harvard-dash", "dimensions", "lens", "springer", "google-books", "global-intelligence", "global-orgs", "global-think-tanks", "global-science", "tavily", "exa", "linkup"],
+  computer_science: ["semanticscholar", "arxiv", "openalex", "crossref", "hal", "core", "allen-ai", "inria", "eth-zurich", "cset", "ainow", "datasociety", "openreview", "papers-with-code", "mit-dspace", "harvard-dash", "max-planck-pure", "dimensions", "lens", "springer", "datacite", "global-intelligence", "global-orgs", "global-think-tanks", "global-science", "tavily", "exa", "linkup"],
 
   // Social sciences & Economics
-  economics: ["openalex", "crossref", "nber", "ssrn", "repec", "worldbank", "worldbank-docs", "imf", "oecd", "oecd-direct", "bis", "ecb", "eib", "fred", "eurostat", "hal", "bruegel", "brookings", "rand", "treasury-fiscal", "open-primitive", "sec-edgar", "dimensions", "lens", "google-books", "linkup"],
-  finance: ["openalex", "crossref", "nber", "ssrn", "repec", "worldbank", "worldbank-docs", "imf", "bis", "ecb", "eib", "fred", "oecd", "oecd-direct", "hal", "bruegel", "brookings", "rand", "rstreet", "treasury-fiscal", "open-primitive", "sec-edgar", "dimensions", "lens", "google-books", "linkup"],
-  social_sciences: ["openalex", "crossref", "ssrn", "hal", "semanticscholar", "doaj", "un", "undp", "insee", "eurostat", "brookings", "rand", "newamerica", "datasociety", "ainow", "istat", "open-primitive", "dimensions", "lens", "google-books", "linkup"],
+  economics: ["crossref", "openalex", "nber", "core", "ssrn", "repec", "consolidated-institutions", "worldbank-docs", "treasury-fiscal", "open-primitive", "sec-edgar", "dimensions", "lens", "google-books", "global-intelligence", "global-orgs", "global-think-tanks", "global-science", "tavily", "exa", "linkup"],
+  finance: ["crossref", "openalex", "nber", "core", "ssrn", "repec", "consolidated-institutions", "worldbank-docs", "treasury-fiscal", "open-primitive", "sec-edgar", "dimensions", "lens", "google-books", "global-intelligence", "global-orgs", "global-think-tanks", "global-science", "tavily", "exa", "linkup"],
+  social_sciences: ["crossref", "openalex", "ssrn", "core", "hal", "semanticscholar", "doaj", "consolidated-institutions", "dimensions", "lens", "google-books", "global-intelligence", "global-orgs", "global-think-tanks", "global-science", "tavily", "exa", "linkup"],
 
   // Environment & Climate
-  climate: ["openalex", "crossref", "worldbank", "un", "undp", "oecd", "oecd-direct", "hal", "doaj", "inrae", "ademe", "shift-project", "iddri", "irena", "iaea", "eea", "brookings", "rand", "biorxiv", "energy-charts", "energi-data", "bruegel", "dimensions", "lens", "springer", "osti", "datacite", "google-books", "linkup"],
-  environment: ["openalex", "crossref", "worldbank", "un", "undp", "oecd", "hal", "doaj", "inrae", "ademe", "shift-project", "iddri", "eea", "brookings", "rand", "newamerica", "biorxiv", "energy-charts", "bruegel", "dimensions", "lens", "springer", "osti", "datacite", "google-books", "linkup"],
+  climate: ["crossref", "openalex", "consolidated-institutions", "core", "hal", "doaj", "biorxiv", "dimensions", "lens", "springer", "osti", "datacite", "google-books", "global-intelligence", "global-orgs", "global-think-tanks", "global-science", "tavily", "exa", "linkup"],
+  environment: ["crossref", "openalex", "consolidated-institutions", "core", "hal", "doaj", "biorxiv", "dimensions", "lens", "springer", "osti", "datacite", "google-books", "global-intelligence", "global-orgs", "global-think-tanks", "global-science", "tavily", "exa", "linkup"],
 
   // Energy (enriched with European providers)
-  energy: ["openalex", "crossref", "iea", "iaea", "irena", "cea", "entsoe", "jrc", "acer", "entsog", "energy-charts", "smard", "rte-france", "energi-data", "fingrid", "shift-project", "worldbank", "oecd", "oecd-direct", "hal", "eurostat", "data-gouv", "ademe", "inrae", "france-strategie", "iddri", "insee", "eib", "ecb", "eur-lex", "eeas", "ecfr", "swp", "bruegel", "eea", "brookings", "rand", "newamerica", "rstreet", "dimensions", "lens", "springer", "osti", "datacite", "gdelt-news", "newsapi", "linkup"],
+  energy: ["crossref", "openalex", "iea", "core", "iaea", "irena", "cea", "entsoe", "jrc", "acer", "entsog", "energy-charts", "smard", "rte-france", "energi-data", "fingrid", "shift-project", "worldbank", "oecd", "oecd-direct", "hal", "eurostat", "data-gouv", "ademe", "inrae", "france-strategie", "iddri", "insee", "eib", "ecb", "eur-lex", "eeas", "ecfr", "swp", "bruegel", "eea", "brookings", "rand", "newamerica", "rstreet", "dimensions", "lens", "springer", "osti", "datacite", "gdelt-news", "newsapi", "global-intelligence", "global-orgs", "global-think-tanks", "global-science", "tavily", "exa", "linkup"],
 
   // Cross-domain: Energy × Technology (AI datacenters, smart grid, etc.)
-  energy_technology: ["openalex", "crossref", "semanticscholar", "arxiv", "hal", "iea", "iaea", "irena", "cea", "entsoe", "jrc", "acer", "entsog", "energy-charts", "smard", "rte-france", "energi-data", "fingrid", "shift-project", "worldbank", "oecd", "oecd-direct", "eurostat", "data-gouv", "ademe", "france-strategie", "iddri", "inria", "allen-ai", "cset", "ainow", "datasociety", "ecfr", "swp", "bruegel", "eea", "openreview", "papers-with-code", "mit-dspace", "harvard-dash", "max-planck-pure", "brookings", "rand", "dimensions", "lens", "springer", "osti", "datacite", "gdelt-news", "newsapi", "linkup"],
+  energy_technology: ["crossref", "openalex", "semanticscholar", "core", "arxiv", "hal", "iea", "iaea", "irena", "cea", "entsoe", "jrc", "acer", "entsog", "energy-charts", "smard", "rte-france", "energi-data", "fingrid", "shift-project", "worldbank", "oecd", "oecd-direct", "eurostat", "data-gouv", "ademe", "france-strategie", "iddri", "inria", "allen-ai", "cset", "ainow", "datasociety", "ecfr", "swp", "bruegel", "eea", "openreview", "papers-with-code", "mit-dspace", "harvard-dash", "max-planck-pure", "brookings", "rand", "dimensions", "lens", "springer", "osti", "datacite", "gdelt-news", "newsapi", "global-intelligence", "global-orgs", "global-think-tanks", "global-science", "tavily", "exa", "linkup"],
 
   // Politics & Law
-  politics: ["openalex", "crossref", "ssrn", "hal", "un", "brookings", "rand", "cnas", "newamerica", "aspen-digital", "rstreet", "cdt", "france-strategie", "bruegel", "ecfr", "swp", "istat", "open-primitive", "federal-register", "dimensions", "lens", "google-books", "gdelt-news", "newsapi", "linkup"],
-  law: ["openalex", "crossref", "ssrn", "hal", "lawzero", "eur-lex", "legifrance", "un", "brookings", "rand", "cdt", "rstreet", "newamerica", "caidp", "aspen-digital", "bruegel", "federal-register", "dimensions", "lens", "google-books", "gdelt-news", "newsapi", "linkup"],
+  politics: ["crossref", "openalex", "ssrn", "core", "hal", "consolidated-institutions", "federal-register", "dimensions", "lens", "google-books", "gdelt-news", "newsapi", "global-intelligence", "global-orgs", "global-think-tanks", "global-science", "tavily", "exa", "linkup"],
+  law: ["crossref", "openalex", "ssrn", "core", "hal", "lawzero", "eur-lex", "legifrance", "consolidated-institutions", "federal-register", "dimensions", "lens", "google-books", "gdelt-news", "newsapi", "global-intelligence", "global-orgs", "global-think-tanks", "global-science", "tavily", "exa", "linkup"],
 
   // Technology & Innovation
-  technology: ["semanticscholar", "openalex", "arxiv", "crossref", "hal", "core", "allen-ai", "inria", "eth-zurich", "max-planck", "max-planck-pure", "cset", "ainow", "datasociety", "ifp", "abundance", "openreview", "papers-with-code", "mit-dspace", "harvard-dash", "biorxiv", "dimensions", "lens", "springer", "datacite", "google-books", "gdelt-news", "newsapi", "linkup"],
-  ai: ["semanticscholar", "openalex", "arxiv", "crossref", "core", "allen-ai", "inria", "govai", "iaps", "caip", "aipi", "cset", "ainow", "datasociety", "caidp", "openreview", "papers-with-code", "mit-dspace", "harvard-dash", "max-planck-pure", "biorxiv", "dimensions", "lens", "springer", "datacite", "gdelt-news", "newsapi", "linkup"],
+  technology: ["semanticscholar", "openalex", "arxiv", "crossref", "hal", "core", "consolidated-institutions", "openreview", "papers-with-code", "mit-dspace", "harvard-dash", "biorxiv", "dimensions", "lens", "springer", "datacite", "google-books", "gdelt-news", "newsapi", "global-intelligence", "global-orgs", "global-think-tanks", "global-science", "tavily", "exa", "linkup"],
+  ai: ["semanticscholar", "openalex", "arxiv", "crossref", "core", "consolidated-institutions", "openreview", "papers-with-code", "mit-dspace", "harvard-dash", "biorxiv", "dimensions", "lens", "springer", "datacite", "gdelt-news", "newsapi", "global-intelligence", "global-orgs", "global-think-tanks", "global-science", "tavily", "exa", "linkup"],
 
   // Defense & Security
-  defense: ["openalex", "crossref", "nato", "sgdsn", "eeas", "eda", "sipri", "swp", "ecfr", "iai", "rand", "cnas", "scsp", "brookings", "newamerica", "ssrn", "bruegel", "istat", "open-primitive", "dimensions", "lens", "google-books", "gdelt-news", "newsapi", "linkup"],
-  security: ["openalex", "crossref", "semanticscholar", "nato", "nsa", "uk-jic", "sgdsn", "sipri", "swp", "ecfr", "rand", "cnas", "scsp", "brookings", "cset", "open-primitive", "dimensions", "lens", "google-books", "gdelt-news", "newsapi", "linkup"],
+  defense: ["crossref", "openalex", "consolidated-institutions", "core", "ssrn", "dimensions", "lens", "google-books", "gdelt-news", "newsapi", "global-intelligence", "global-orgs", "global-think-tanks", "global-science", "tavily", "exa", "linkup"],
+  security: ["crossref", "openalex", "semanticscholar", "core", "consolidated-institutions", "dimensions", "lens", "google-books", "gdelt-news", "newsapi", "global-intelligence", "global-orgs", "global-think-tanks", "global-science", "tavily", "exa", "linkup"],
 
   // Cybersecurity
-  cyber: ["openalex", "semanticscholar", "arxiv", "nist", "cisa", "enisa", "crossref", "core", "allen-ai", "cset", "rand", "cnas", "cdt", "open-primitive", "openreview", "papers-with-code", "dimensions", "lens", "springer", "gdelt-news", "newsapi", "linkup"],
+  cyber: ["semanticscholar", "openalex", "arxiv", "consolidated-institutions", "core", "openreview", "papers-with-code", "dimensions", "lens", "springer", "gdelt-news", "newsapi", "global-intelligence", "global-orgs", "global-think-tanks", "global-science", "tavily", "exa", "linkup"],
 
   // Intelligence & Geopolitics
-  intelligence: ["openalex", "crossref", "nato", "rand", "cnas", "scsp", "brookings", "nara", "bruegel", "ecfr", "swp", "open-primitive", "dimensions", "lens", "google-books", "gdelt-news", "ssrn", "linkup"],
-  geopolitics: ["openalex", "crossref", "semanticscholar", "nato", "eeas", "un", "unctad", "sipri", "swp", "ecfr", "iai", "rand", "cnas", "brookings", "newamerica", "bruegel", "istat", "open-primitive", "dimensions", "lens", "google-books", "gdelt-news", "ssrn", "linkup"],
+  intelligence: ["crossref", "openalex", "consolidated-institutions", "core", "nara", "dimensions", "lens", "google-books", "gdelt-news", "ssrn", "global-intelligence", "global-orgs", "global-think-tanks", "global-science", "tavily", "exa", "linkup"],
+  geopolitics: ["crossref", "openalex", "semanticscholar", "core", "consolidated-institutions", "dimensions", "lens", "google-books", "gdelt-news", "ssrn", "global-intelligence", "global-orgs", "global-think-tanks", "global-science", "tavily", "exa", "linkup"],
 
   // France (enriched)
-  france: ["openalex", "thesesfr", "hal", "crossref", "cnrs", "inria", "ens", "insee", "sgdsn", "cea", "inrae", "ademe", "france-strategie", "shift-project", "iddri", "terra-nova", "legifrance", "vie-publique", "archives-fr", "rte-france", "istat", "dimensions", "lens", "google-books", "gdelt-news", "newsapi", "linkup"],
+  france: ["thesesfr", "hal", "crossref", "core", "openalex", "consolidated-institutions", "legifrance", "vie-publique", "archives-fr", "dimensions", "lens", "google-books", "gdelt-news", "newsapi", "global-intelligence", "global-orgs", "global-think-tanks", "global-science", "tavily", "exa", "linkup"],
 
   // Statistics & Data (new domain)
-  statistics: ["openalex", "crossref", "eurostat", "insee", "worldbank", "imf", "data-gouv", "fred", "oecd", "oecd-direct", "un", "repec", "nber", "istat", "open-primitive", "treasury-fiscal", "energy-charts", "smard", "energi-data", "dimensions", "lens", "datacite", "gdelt-news", "newsapi", "linkup"],
+  statistics: ["crossref", "openalex", "consolidated-institutions", "core", "worldbank-docs", "treasury-fiscal", "dimensions", "lens", "datacite", "gdelt-news", "newsapi", "global-intelligence", "global-orgs", "global-think-tanks", "global-science", "tavily", "exa", "linkup"],
 
   // Default (multi-disciplinary)
   // European think tanks / foreign policy
-  european_policy: ["openalex", "crossref", "ecfr", "swp", "sipri", "iai", "eeas", "nato", "un", "brookings", "rand", "ssrn", "bruegel", "eea", "istat", "open-primitive", "cordis", "dimensions", "lens", "google-books", "gdelt-news", "newsapi", "linkup"],
-  foreign_policy: ["openalex", "crossref", "ecfr", "swp", "sipri", "iai", "nato", "eeas", "un", "rand", "cnas", "brookings", "ssrn", "bruegel", "open-primitive", "dimensions", "lens", "google-books", "gdelt-news", "linkup"],
+  european_policy: ["crossref", "openalex", "consolidated-institutions", "core", "eur-lex", "cordis", "dimensions", "lens", "google-books", "gdelt-news", "newsapi", "global-intelligence", "global-orgs", "global-think-tanks", "global-science", "tavily", "exa", "linkup"],
+  foreign_policy: ["crossref", "openalex", "consolidated-institutions", "core", "dimensions", "lens", "google-books", "gdelt-news", "global-intelligence", "global-orgs", "global-think-tanks", "global-science", "tavily", "exa", "linkup"],
 
-  default: ["openalex", "semanticscholar", "crossref", "hal", "thesesfr", "nber", "ssrn", "worldbank", "un", "brookings", "rand", "cset", "openreview", "biorxiv", "papers-with-code", "max-planck-pure", "mit-dspace", "harvard-dash", "clinical-trials", "istat", "open-primitive", "bruegel", "eea", "plos", "worldbank-docs", "dimensions", "lens", "springer", "datacite", "google-books", "gdelt-news", "newsapi", "linkup"],
+  default: ["semanticscholar", "crossref", "openalex", "core", "hal", "thesesfr", "nber", "ssrn", "consolidated-institutions", "global-intelligence", "global-orgs", "global-think-tanks", "global-science", "openreview", "biorxiv", "papers-with-code", "mit-dspace", "harvard-dash", "clinical-trials", "plos", "worldbank-docs", "dimensions", "lens", "springer", "datacite", "google-books", "gdelt-news", "newsapi", "tavily", "exa", "linkup"],
 };
 
 /**

@@ -80,7 +80,229 @@ export interface ReadingResultV3 {
   // LOT 2.4: Causal mechanisms
   mechanisms: Mechanism[];
   extractedText?: string;        // Raw text extracted (for claim grounding)
+  // V3.1 additions — heterodox/novelty detection
+  claimClassifications?: Array<{
+    claim: string;
+    type: 'consensus' | 'novel' | 'controversial' | 'replication';
+    challengesConsensus: boolean;
+    reasoning: string;
+  }>;
+  originalityAssessment?: {
+    level: 'incremental' | 'moderate' | 'paradigm-shifting';
+    noveltyScore: number;        // 0-100
+    reasoning: string;
+  };
+  // V3.2: Non-academic source type (intelligence, NGO, think-tank, etc.)
+  sourceType?: string;
   error?: string;
+}
+
+// ============================================================================
+// SOURCE TYPE DETECTION (V3.2 — non-academic source support)
+// ============================================================================
+
+/**
+ * Detect the type of a source based on its provider and feed metadata.
+ * NomosX now collects from 80+ international organizations via RSS feeds,
+ * so not every source is an academic paper. This lets the READER adapt its
+ * prompt and extraction schema to the actual source type.
+ */
+const ACADEMIC_PROVIDERS = [
+  'openalex', 'crossref', 'arxiv', 'pubmed', 'semantic-scholar',
+  'unpaywall', 'doaj', 'core', 'dimensions', 'scopus', 'wos',
+  'google-scholar', 'jstor', 'ssrn',
+];
+
+const INTELLIGENCE_PROVIDERS = [
+  'global-intelligence', 'cia-foia', 'nsa', 'odni', 'nara',
+  'dni', 'state-dept', 'dod', 'fbi-foia',
+];
+
+const NGO_FEEDS = [
+  'amnesty', 'hrw', 'human-rights-watch', 'rsf', 'reporters-without-borders',
+  'transparency', 'transparency-international', 'freedom-house', 'osf',
+  'open-society', 'doctors-without-borders', 'msf', 'oxfam', 'save-the-children',
+  'human-rights-first', 'aclu',
+];
+
+const AI_LAB_FEEDS = [
+  'openai-research', 'openai', 'deepmind', 'google-research', 'google-ai',
+  'msr', 'microsoft-research', 'meta-ai', 'meta-research', 'amazon-science',
+  'anthropic', 'ai21', 'cohere',
+];
+
+/**
+ * Detect the source type. Returns one of:
+ * 'academic' | 'intelligence' | 'ngo' | 'think-tank' | 'international-org' |
+ * 'science-org' | 'ai-lab' | 'news' | 'default'
+ */
+function detectSourceType(source: any): string {
+  const provider = String(source?.provider || '').toLowerCase();
+  const feed = String(source?.raw?.feed || source?.feed || '').toLowerCase();
+
+  // News providers
+  if (NEWS_PROVIDERS.includes(provider)) {
+    return 'news';
+  }
+
+  // Intelligence / security reports
+  if (INTELLIGENCE_PROVIDERS.includes(provider)) {
+    return 'intelligence';
+  }
+
+  // Global think-tanks provider — distinguish NGO vs think-tank by feed
+  if (provider === 'global-think-tanks') {
+    if (NGO_FEEDS.some(ngo => feed.includes(ngo))) {
+      return 'ngo';
+    }
+    return 'think-tank';
+  }
+
+  // International organizations
+  if (provider === 'global-orgs' || provider === 'global-organizations') {
+    return 'international-org';
+  }
+
+  // Global science provider — distinguish AI labs vs science orgs by feed
+  if (provider === 'global-science') {
+    if (AI_LAB_FEEDS.some(lab => feed.includes(lab))) {
+      return 'ai-lab';
+    }
+    return 'science-org';
+  }
+
+  // Academic providers
+  if (ACADEMIC_PROVIDERS.includes(provider)) {
+    return 'academic';
+  }
+
+  // Has a DOI → treat as academic
+  if (source?.doi) {
+    return 'academic';
+  }
+
+  return 'default';
+}
+
+// ============================================================================
+// ADAPTIVE PROMPT BUILDERS (V3.2)
+// ============================================================================
+
+/** Role description per source type */
+function buildRoleDescription(sourceType: string): string {
+  switch (sourceType) {
+    case 'academic':
+      return 'You are a PhD-level research analyst performing DEEP EXTRACTION from an academic paper.';
+    case 'intelligence':
+      return 'You are an intelligence analyst performing DEEP EXTRACTION from an intelligence/security report or declassified document. Extract key findings, threat assessments, methodology (OSINT, HUMINT, SIGINT, etc.), confidence levels, and source reliability.';
+    case 'ngo':
+      return 'You are a human rights/policy analyst performing DEEP EXTRACTION from an NGO investigation report. Extract documented violations, evidence quality, witness accounts, methodology, and policy recommendations.';
+    case 'think-tank':
+      return 'You are a policy analyst performing DEEP EXTRACTION from a think-tank policy analysis. Extract policy recommendations, strategic assessments, geopolitical analysis, and evidence base.';
+    case 'international-org':
+      return 'You are an international policy analyst performing DEEP EXTRACTION from an official international organization report. Extract official positions, statistical findings, policy frameworks, and multilateral recommendations.';
+    case 'science-org':
+      return 'You are a science analyst performing DEEP EXTRACTION from a research organization publication. Extract scientific findings, experimental results, technological breakthroughs, and research implications.';
+    case 'ai-lab':
+      return 'You are an AI research analyst performing DEEP EXTRACTION from an AI lab research blog/publication. Extract model capabilities, benchmarks, safety findings, and technical contributions.';
+    case 'news':
+      return 'You are a news analyst performing DEEP EXTRACTION from a news article. Extract key facts, reported events, sources cited, and potential bias indicators.';
+    default:
+      return 'You are a research analyst performing DEEP EXTRACTION from a source document.';
+  }
+}
+
+/** Methods field description per source type */
+function buildMethodsDescriptor(sourceType: string): string {
+  switch (sourceType) {
+    case 'intelligence':
+      return 'max 5 intelligence methods (OSINT, HUMINT, SIGINT, IMINT, etc.) and analytical approach';
+    case 'ngo':
+      return 'max 5 investigation methods (field research, satellite imagery, witness interviews, document analysis, etc.)';
+    case 'think-tank':
+      return 'max 5 analytical methods (policy analysis, scenario modeling, expert elicitation, etc.)';
+    case 'international-org':
+      return 'max 5 methods (statistical reporting, policy frameworks, multilateral consultations, etc.)';
+    case 'science-org':
+      return 'max 5 methods (experimental design, observation, simulation, engineering, etc.)';
+    case 'ai-lab':
+      return 'max 5 methods (model training, benchmarking, ablation studies, safety evaluation, etc.)';
+    case 'news':
+      return 'max 5 methods (reporting approach, sourcing, investigative journalism, etc.)';
+    case 'academic':
+    default:
+      return 'max 5 methods — include design type, sample details, analytical approach';
+  }
+}
+
+/** Results field description per source type */
+function buildResultsDescriptor(sourceType: string): string {
+  switch (sourceType) {
+    case 'intelligence':
+      return 'max 5 key findings — include threat assessments, confidence levels, and source reliability if stated';
+    case 'ngo':
+      return 'max 5 key findings — include documented violations, casualty figures, evidence quality if stated';
+    case 'think-tank':
+      return 'max 5 key findings — include policy recommendations, strategic assessments, projected impacts if stated';
+    case 'international-org':
+      return 'max 5 key findings — include official statistics, policy positions, multilateral outcomes if stated';
+    case 'science-org':
+      return 'max 5 key findings — include experimental results, technological metrics, performance figures if stated';
+    case 'ai-lab':
+      return 'max 5 key findings — include benchmark scores, model capabilities, safety results if stated';
+    case 'news':
+      return 'max 5 key facts — include reported events, figures, and statements if stated';
+    case 'academic':
+    default:
+      return 'max 5 key findings — include effect sizes, p-values, confidence intervals if stated';
+  }
+}
+
+/** researchDesign options per source type */
+function buildResearchDesignOptions(sourceType: string): string {
+  const academic = 'RCT|quasi-experimental|observational|qualitative|mixed-methods|meta-analysis|theoretical|computational';
+  switch (sourceType) {
+    case 'intelligence':
+      return 'osint-investigation|official-assessment|field-investigation|technical-report|analytical-assessment';
+    case 'ngo':
+      return 'field-investigation|osint-investigation|statistical-report|official-assessment|technical-report';
+    case 'think-tank':
+      return 'policy-analysis|scenario-modeling|statistical-report|expert-elicitation|technical-report';
+    case 'international-org':
+      return 'statistical-report|official-assessment|policy-analysis|technical-report';
+    case 'science-org':
+      return 'experimental|observational|computational|technical-report|engineering';
+    case 'ai-lab':
+      return 'computational|experimental|benchmark-evaluation|safety-analysis|technical-report';
+    case 'news':
+      return 'field-investigation|reporting|osint-investigation|statistical-report';
+    case 'academic':
+    default:
+      return academic;
+  }
+}
+
+/** quantitative field descriptor per source type */
+function buildQuantitativeDescriptor(sourceType: string): string {
+  switch (sourceType) {
+    case 'intelligence':
+      return 'Extract threat statistics, casualty figures, operational metrics, and confidence levels.';
+    case 'ngo':
+      return 'Extract documented violation counts, casualty figures, displacement numbers, and economic impact figures.';
+    case 'think-tank':
+      return 'Extract economic projections, policy impact estimates, polling figures, and statistical analyses.';
+    case 'international-org':
+      return 'Extract official statistics, economic indicators, demographic data, and policy metrics.';
+    case 'science-org':
+      return 'Extract experimental measurements, performance metrics, and technological specifications.';
+    case 'ai-lab':
+      return 'Extract benchmark scores, model parameters, training metrics, and performance comparisons.';
+    case 'news':
+      return 'Extract reported figures, event statistics, and any quantitative claims.';
+    case 'academic':
+    default:
+      return 'For quantitative data, extract EXACT numbers including effect sizes, p-values, and confidence intervals.';
+  }
 }
 
 // ============================================================================
@@ -419,31 +641,42 @@ async function deepExtract(
 
   const domainGuidance = buildDomainGuidance(_currentDomain);
 
-  const prompt = `You are a PhD-level research analyst performing DEEP EXTRACTION from an academic paper.
+  // V3.2: Detect source type and build an adaptive prompt
+  const sourceType = detectSourceType(source);
+  const roleDescription = buildRoleDescription(sourceType);
+  const methodsDescriptor = buildMethodsDescriptor(sourceType);
+  const resultsDescriptor = buildResultsDescriptor(sourceType);
+  const researchDesignOptions = buildResearchDesignOptions(sourceType);
+  const quantitativeDescriptor = buildQuantitativeDescriptor(sourceType);
+  const isAcademic = sourceType === 'academic';
+
+  const prompt = `${roleDescription}
 
 TITLE: ${source.title}
 AUTHORS: ${(source.authors || []).slice(0, 5).map((a: any) => a.author?.name || a.name || "").filter(Boolean).join(", ") || "N/A"}
 YEAR: ${source.year || "N/A"}
-READING DEPTH: ${isFullText ? "FULL PAPER" : "ABSTRACT ONLY"}
+SOURCE TYPE: ${sourceType}
+READING DEPTH: ${isFullText ? "FULL TEXT" : "ABSTRACT ONLY"}
 ${isFullText ? `SECTIONS FOUND: ${sections.join(", ")}` : ""}
 ${domainGuidance}
 
 TEXT:
 ${extractionText}
 
-EXTRACT the following with maximum precision. For quantitative data, extract EXACT numbers.
+EXTRACT the following with maximum precision. ${quantitativeDescriptor}
 
 Return JSON:
 {
-  "claims": ["max 5 main claims/hypotheses — be specific, include numbers if available"],
-  "methods": ["max 5 methods — include design type, sample details, analytical approach"],
-  "results": ["max 5 key findings — include effect sizes, p-values, confidence intervals if stated"],
+  "sourceType": "${sourceType}",
+  "claims": ["max 5 main claims/findings — be specific, include numbers if available"],
+  "methods": ["${methodsDescriptor}"],
+  "results": ["${resultsDescriptor}"],
   "limitations": ["max 3 — both stated and implied limitations"],
   "confidence": "high|medium|low",
   "quantitative": {
     "effectSizes": [
       {
-        "measure": "Cohen's d|OR|RR|HR|β|r|η²|percentage|other",
+        "measure": "Cohen's d|OR|RR|HR|β|r|η²|percentage|count|other",
         "value": 0.0,
         "ci95": [lower, upper] or null,
         "pValue": 0.05 or null,
@@ -451,18 +684,31 @@ Return JSON:
       }
     ],
     "sampleSizes": [
-      {"n": 0, "population": "who", "design": "RCT|cohort|cross-sectional|survey|case-control|meta-analysis|qualitative|theoretical"}
+      {"n": 0, "population": "who", "design": "${researchDesignOptions.split('|').join('|')}"}
     ],
     "statisticalTests": ["t-test", "ANOVA", "regression", "chi-square", etc.],
     "keyMetrics": [
       {"name": "metric name", "value": "exact value", "unit": "unit", "context": "what it measures"}
     ]
   },
-  "theoreticalFramework": "Main theoretical framework or approach used (1-2 sentences)",
-  "researchDesign": "RCT|quasi-experimental|observational|qualitative|mixed-methods|meta-analysis|theoretical|computational",
-  "keyContributions": ["max 3 — what this paper adds to the field"],
-  "futureDirections": ["max 2 — what the authors suggest for future research"],
-  "citedSources": ["max 5 — key references this paper cites (author, year format)"],
+  "theoreticalFramework": "Main theoretical framework, analytical approach, or policy doctrine used (1-2 sentences)",
+  "researchDesign": "${researchDesignOptions}",
+  "keyContributions": ["max 3 — what this ${isAcademic ? 'paper' : 'report'} adds to the field"],
+  "claimClassifications": [
+    {
+      "claim": "the claim text (first few words)",
+      "type": "consensus|novel|controversial|replication",
+      "challengesConsensus": true|false,
+      "reasoning": "why this classification"
+    }
+  ],
+  "originalityAssessment": {
+    "level": "incremental|moderate|paradigm-shifting",
+    "noveltyScore": 0-100,
+    "reasoning": "what makes this work novel (or not)"
+  },
+  "futureDirections": ["max 2 — what the authors suggest for future research or policy action"],
+  "citedSources": ["max 5 — key references this ${isAcademic ? 'paper' : 'report'} cites (author, year format)"],
   "mechanisms": [
     {
       "description": "What is the causal mechanism? (e.g., 'Carbon tax reduces emissions by increasing fossil fuel prices')",
@@ -471,13 +717,20 @@ Return JSON:
       "horizon": "Time horizon (e.g., 'short-term', '5-10 years')",
       "isStated": true,
       "sourceRef": null,
-      "statedSpan": "EXACT verbatim sentence(s) from the text that states this mechanism. Copy the exact words from the paper. If isStated=false (inferred), set to null."
+      "statedSpan": "EXACT verbatim sentence(s) from the text that states this mechanism. Copy the exact words from the source. If isStated=false (inferred), set to null."
     }
   ]
 }
 
 Be PRECISE. Extract EXACT numbers. If a value is not stated, omit it. Do not invent data.
-For mechanisms: extract the causal chain — how does X affect Y? What is the direction? Is this explicitly stated by the authors (isStated=true) or inferred (isStated=false)?`;
+For mechanisms: extract the causal chain — how does X affect Y? What is the direction? Is this explicitly stated by the authors (isStated=true) or inferred (isStated=false)?
+For claimClassifications: classify EACH claim as:
+- "consensus": aligns with established view in the field
+- "novel": presents new evidence or perspective that extends but doesn't challenge consensus
+- "controversial": challenges the established consensus or mainstream view
+- "replication": replicates or confirms prior findings
+Set challengesConsensus=true if the claim contradicts or significantly revises the dominant view.
+For originalityAssessment: assess whether this work is incremental (extends existing literature), moderate (new angle/method), or paradigm-shifting (fundamentally changes how the field thinks about the problem).`;
 
   try {
     const response = await callLLM({
@@ -499,6 +752,8 @@ For mechanisms: extract the causal chain — how does X affect Y? What is the di
       results: extracted.results || [],
       limitations: extracted.limitations || [],
       confidence: extracted.confidence || "medium",
+      // V3.2: record detected source type
+      sourceType: extracted.sourceType || sourceType,
       quantitative: {
         effectSizes: extracted.quantitative?.effectSizes || [],
         sampleSizes: extracted.quantitative?.sampleSizes || [],
@@ -530,6 +785,26 @@ For mechanisms: extract the causal chain — how does X affect Y? What is the di
         } as Mechanism;
       }).filter((m: Mechanism) => m.description),
       extractedText: text.slice(0, 8000),
+      // V3.1: Claim classifications and originality assessment
+      claimClassifications: Array.isArray(extracted.claimClassifications)
+        ? extracted.claimClassifications.map((c: any) => ({
+            claim: String(c.claim || '').slice(0, 300),
+            type: (['consensus', 'novel', 'controversial', 'replication'].includes(c.type) ? c.type : 'consensus') as 'consensus' | 'novel' | 'controversial' | 'replication',
+            challengesConsensus: Boolean(c.challengesConsensus),
+            reasoning: String(c.reasoning || '').slice(0, 200),
+          }))
+        : undefined,
+      originalityAssessment: extracted.originalityAssessment
+        ? {
+            level: (['incremental', 'moderate', 'paradigm-shifting'].includes(extracted.originalityAssessment.level)
+              ? extracted.originalityAssessment.level
+              : 'incremental') as 'incremental' | 'moderate' | 'paradigm-shifting',
+            noveltyScore: typeof extracted.originalityAssessment.noveltyScore === 'number'
+              ? Math.max(0, Math.min(100, extracted.originalityAssessment.noveltyScore))
+              : 0,
+            reasoning: String(extracted.originalityAssessment.reasoning || '').slice(0, 300),
+          }
+        : undefined,
     };
   } catch (error: any) {
     console.warn(`[Reader V3] Deep extraction failed for ${source.id}: ${error.message}`);

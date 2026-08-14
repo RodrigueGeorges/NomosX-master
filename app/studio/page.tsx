@@ -276,9 +276,9 @@ function StudioPageContent() {
               <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-5">
                 <div>
                   <p className={cn(nx.eyebrow, "mb-3")}>Research Cockpit</p>
-                  <h2 className="font-display text-xl sm:text-2xl font-semibold text-white mb-2">From chaos to clarity — your question, our protocol.</h2>
+                  <h2 className="font-display text-xl sm:text-2xl font-semibold text-white mb-2">From chaos to nomos — your question, our protocol.</h2>
                   <p className={cn(nx.body, "max-w-2xl")}>
-                    NomosX Studio uses the same verification logic as public publications: source discovery, evidence mapping, adversarial review, and citation integrity. Your question goes in — a defensible position comes out.
+                    NomosX Studio uses the same verification logic as public publications: source discovery, evidence mapping, adversarial review, scenario stress-testing, and citation integrity. Your question goes in — a scenario-weighted, source-verified position comes out.
                   </p>
                 </div>
                 <div className="nx-public-surface px-4 py-3">

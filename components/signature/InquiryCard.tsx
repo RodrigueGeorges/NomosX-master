@@ -125,7 +125,7 @@ export function InquiryCard({ inquiry, href, className }: InquiryCardProps) {
         <div className="flex items-center gap-2 ml-auto">
           {inquiry.hasForesight && (
             <span className="font-mono text-[9px] uppercase tracking-wider px-1.5 py-0.5 border border-white/30 text-white/80 bg-white/5">
-              Foresight
+              Scenarios
             </span>
           )}
           <span className="font-mono text-[10px] text-white/45">

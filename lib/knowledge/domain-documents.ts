@@ -478,7 +478,11 @@ export function getAllDomainDocuments(): Record<DomainExpertise, KnowledgeDocume
     'computational-social-science': MULTI_DOMAIN_CORPUS['computational-social-science'].documents,
     'bioethics': MULTI_DOMAIN_CORPUS['bioethics'].documents,
     'complexity-science': MULTI_DOMAIN_CORPUS['complexity-science'].documents,
-    'risk-analysis': MULTI_DOMAIN_CORPUS['risk-analysis'].documents
+    'risk-analysis': MULTI_DOMAIN_CORPUS['risk-analysis'].documents,
+    'anthropology': MULTI_DOMAIN_CORPUS['anthropology'].documents,
+    'history': MULTI_DOMAIN_CORPUS['history'].documents,
+    'religious-studies': MULTI_DOMAIN_CORPUS['religious-studies'].documents,
+    'non-western-philosophy': MULTI_DOMAIN_CORPUS['non-western-philosophy'].documents
   };
 }
 

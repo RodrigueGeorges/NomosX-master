@@ -68,6 +68,13 @@ export function ManifestoCrawl({ onComplete }: { onComplete?: () => void }) {
     if (completedRef.current) return;
     completedRef.current = true;
     clearTimers();
+
+    // Restore body scroll and remove inert BEFORE hiding the overlay,
+    // so the page is interactive immediately when the overlay fades out.
+    document.body.style.overflow = "";
+    const mainContent = document.querySelector("[data-nx-main]") as HTMLElement | null;
+    if (mainContent) mainContent.inert = false;
+
     setPhase("exit");
     const t = window.setTimeout(() => {
       setHidden(true);
@@ -81,6 +88,10 @@ export function ManifestoCrawl({ onComplete }: { onComplete?: () => void }) {
     if (shouldSkipAutoplay()) {
       setHidden(true);
       completedRef.current = true;
+      // Safety: ensure body scroll and inert are not stuck from a previous run
+      document.body.style.overflow = "";
+      const main = document.querySelector("[data-nx-main]") as HTMLElement | null;
+      if (main) main.inert = false;
       onComplete?.();
       return;
     }
@@ -174,7 +185,7 @@ export function ManifestoCrawl({ onComplete }: { onComplete?: () => void }) {
         <h2 className="nx-intro-wordmark">
           Nomos<span className="nx-intro-x">X</span>
         </h2>
-        <p className="nx-intro-tagline">From Chaos to Clarity</p>
+        <p className="nx-intro-tagline">From Chaos to Nomos</p>
       </div>
 
       {/* Progress indicator — minimal line at bottom */}

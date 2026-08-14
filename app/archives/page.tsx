@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Brief archive",
-  description: "Every position NomosX has published — chaos structured into clarity. Filter by depth, domain, and confidence.",
+  description: "Every position NomosX has published — chaos legislated into nomos. Filter by depth, domain, and confidence.",
   alternates: {
     canonical: "/archives",
   },

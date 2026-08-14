@@ -14,6 +14,7 @@
  */
 
 import { formatAPA, renderAPAHtml } from './pipeline-types';
+import { computeEvidenceTiers, summarizeEvidenceTiers, type EvidenceTiers } from './evidence-tiering';
 
 // ============================================================================
 // HTML ESCAPING
@@ -22,6 +23,46 @@ import { formatAPA, renderAPAHtml } from './pipeline-types';
 function esc(s: string): string {
   return String(s || "").replace(/[&<>"']/g, m =>
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[m] as string));
+}
+
+// ============================================================================
+// CITATION DEDUPLICATION — shared helper
+// ============================================================================
+
+/**
+ * Deduplicate and normalize [SRC-N] citation tags produced by the LLM.
+ *
+ * Fixes three common LLM artifacts:
+ *  1. Doubled prefix:  [SRC-SRC-2] → [SRC-2]
+ *  2. Adjacent identical citations (with optional whitespace between):
+ *     [SRC-13][SRC-13] → [SRC-13]  (renders as "1313" otherwise)
+ *  3. Repeated citations within the same sentence: keep only the first
+ *     occurrence of each [SRC-N] per sentence.
+ *
+ * Exported so other renderers (strategic-report-renderer, pipeline-v2) can reuse it.
+ */
+export function dedupeCitations(text: string): string {
+  if (!text) return text;
+  let result = text;
+  // 1. Fix doubled prefix: [SRC-SRC-N] → [SRC-N]
+  result = result.replace(/\[SRC-SRC-(\d+)\]/g, '[SRC-$1]');
+  // 2. Collapse adjacent identical citations (allow whitespace between them).
+  //    Loop so triples like [SRC-1][SRC-1][SRC-1] fully collapse.
+  let prev: string;
+  do {
+    prev = result;
+    result = result.replace(/\[SRC-(\d+)\]\s*\[SRC-\1\]/g, '[SRC-$1]');
+  } while (result !== prev);
+  // 3. Within a single sentence, keep only the first occurrence of each [SRC-N].
+  result = result.replace(/[^.!?]*[.!?]|[^.!?]+$/g, (sentence) => {
+    const seen = new Set<string>();
+    return sentence.replace(/\[SRC-(\d+)\]/g, (m, n) => {
+      if (seen.has(n)) return '';
+      seen.add(n);
+      return m;
+    });
+  });
+  return result;
 }
 
 // ============================================================================
@@ -37,6 +78,8 @@ function replaceCitations(text: string): string {
       return refs.map(r => `[${r}]`).join('');
     })
     .replace(/(?<!\[)SRC-(\d+)(?!\])/g, '[SRC-$1]');
+  // Deduplicate before rendering so [SRC-13][SRC-13] doesn't render as "1313".
+  normalized = dedupeCitations(normalized);
   return normalized.replace(/\[SRC-(\d+)\]/g, (_, n) =>
     `<sup class="cite"><a href="#ref-${n}" title="Source ${n}">${n}</a></sup>`
   );
@@ -209,7 +252,7 @@ const BRAND_HEADER = `<div class="nx-brand-header">
     <circle cx="16" cy="16" r="2.6" fill="#f0f0fa" stroke="none"/>
   </svg>
   <span class="nx-brand-mark">NOMOS<span class="x-glyph">X</span></span>
-  <span class="nx-brand-tag">From Chaos to Clarity</span>
+  <span class="nx-brand-tag">From Chaos to Nomos</span>
 </div>`;
 
 // ============================================================================
@@ -740,15 +783,22 @@ export function renderProfessionalStrategicHTML(analysis: any, sources: any[]): 
   const scenarioHtml = scenarios.length > 0 ? `
     <section class="brief-section">
       <h2>Scenario Planning</h2>
-      ${scenarios.map((s: any) => `
+      ${scenarios.map((s: any) => {
+        const probLabel = s.probability ? String(s.probability) : '';
+        const probValue = typeof s.probabilityValue === 'number'
+          ? `${Math.round(s.probabilityValue * 100)}%`
+          : (typeof s.probability === 'number' ? `${s.probability}%` : probLabel);
+        return `
         <div class="scenario-card">
           <div class="scenario-header">
             <strong>${esc(s.name || '')}</strong>
-            <span class="scenario-prob">${s.probability ? `${s.probability}%` : ''}</span>
+            <span class="scenario-prob">${probValue}</span>
           </div>
           ${renderParagraphs(s.description || '')}
           ${s.implications ? `<div class="scenario-implications"><strong>Implications:</strong> ${replaceCitations(esc(s.implications))}</div>` : ''}
-        </div>`).join("")}
+          ${s.signals ? `<div class="scenario-implications"><strong>Early warning signals:</strong> ${replaceCitations(esc(s.signals))}</div>` : ''}
+        </div>`;
+      }).join("")}
     </section>` : "";
 
   // Recommendations
@@ -769,6 +819,128 @@ export function renderProfessionalStrategicHTML(analysis: any, sources: any[]): 
       ${recs.riskMitigation.length ? `<h3>Risk Mitigation</h3><ul>${recs.riskMitigation.map((r: string) => `<li>${replaceCitations(esc(r))}</li>`).join("")}</ul>` : ""}
       ${recs.costOfInaction ? `<div style="border-left:2px solid var(--nx-text-primary);background:rgba(240,240,250,0.02);padding:1rem 1.25rem;margin:1rem 0;border-radius:0 var(--nx-radius) var(--nx-radius) 0;"><h3 style="margin:0 0 0.5rem;">Cost of Inaction</h3><p style="margin:0;line-height:1.6;">${replaceCitations(esc(recs.costOfInaction))}</p></div>` : ""}
     </section>` : "";
+
+  // ─── CAUSAL ARCHITECTURE ───
+  // Explicit causal chains with confidence, counterfactuals, and alternative explanations
+  const causalArch = asArray(analysis.causalArchitecture);
+  const causalArchitectureHtml = causalArch.length > 0 ? `
+    <section class="brief-section">
+      <h2>Causal Architecture</h2>
+      <p style="color:var(--nx-text-tertiary);font-size:0.8125rem;margin-bottom:1rem;">Each major causal claim is decomposed into its chain, confidence level, falsification condition, and alternative explanation. This is the NomosX method for causal transparency.</p>
+      ${causalArch.map((c: any, idx: number) => {
+        const confColor = c.confidence === 'high' ? 'var(--nx-text-primary)' : c.confidence === 'medium' ? 'var(--nx-text-secondary)' : 'var(--nx-text-tertiary)';
+        const epiBadge = c.epistemicLevel ? `<span class="epistemic-badge epistemic-${c.epistemicLevel}">${esc(c.epistemicLevel)}</span>` : '';
+        return `
+        <div class="causal-card">
+          <div class="causal-header">
+            <strong>Claim ${idx + 1}:</strong> ${replaceCitations(esc(c.claim || ''))}
+            ${epiBadge}
+            <span class="causal-conf" style="color:${confColor};">${esc(c.confidence || '')} confidence</span>
+          </div>
+          ${c.chain ? `<div class="causal-chain"><strong>Causal chain:</strong> ${replaceCitations(esc(c.chain))}</div>` : ''}
+          ${c.counterfactual ? `<div class="causal-counterfactual"><strong>Falsified if:</strong> ${replaceCitations(esc(c.counterfactual))}</div>` : ''}
+          ${c.alternativeExplanation ? `<div class="causal-alt"><strong>Alternative explanation:</strong> ${replaceCitations(esc(c.alternativeExplanation))}</div>` : ''}
+          ${c.sources?.length ? `<div class="causal-sources">${c.sources.map((s: string) => replaceCitations(esc(s))).join(' ')}</div>` : ''}
+        </div>`;
+      }).join("")}
+    </section>` : "";
+
+  // ─── EVIDENCE TIERS ───
+  // 5-tier classification of sources (computed post-hoc, not LLM-generated)
+  const evidenceTiersData: EvidenceTiers | null = analysis._evidenceTiers || null;
+  let evidenceTiersHtml = "";
+  if (evidenceTiersData) {
+    const tierRows = [
+      { label: "Tier 1 — Empirical", desc: "Controlled studies, datasets, quantitative research", items: evidenceTiersData.tier1_empirical, color: "var(--nx-text-primary)" },
+      { label: "Tier 2 — Institutional", desc: "Official documents from governments, IGOs, religious institutions", items: evidenceTiersData.tier2_institutional, color: "var(--nx-text-secondary)" },
+      { label: "Tier 3 — Academic", desc: "Peer-reviewed papers and systematic reviews", items: evidenceTiersData.tier3_academic, color: "var(--nx-text-secondary)" },
+      { label: "Tier 4 — Policy", desc: "EU AI Act, OECD, UNESCO, ISO standards, regulatory frameworks", items: evidenceTiersData.tier4_policy, color: "var(--nx-text-tertiary)" },
+      { label: "Tier 5 — Emerging", desc: "Preprints, working papers, exploratory research", items: evidenceTiersData.tier5_emerging, color: "var(--nx-text-tertiary)" },
+    ].filter(t => t.items.length > 0);
+
+    if (tierRows.length > 0) {
+      evidenceTiersHtml = `
+      <section class="brief-section">
+        <h2>Evidence Base — Source Hierarchy</h2>
+        <p style="color:var(--nx-text-tertiary);font-size:0.8125rem;margin-bottom:1rem;">Sources are classified into 5 evidence tiers, from strongest (empirical) to emerging (exploratory). This hierarchy shows what is established vs what is exploratory in the evidence base.</p>
+        <table class="evidence-tier-table">
+          <thead><tr><th>Tier</th><th>Description</th><th>Count</th><th>Sources</th></tr></thead>
+          <tbody>
+            ${tierRows.map(t => `<tr>
+              <td><strong style="color:${t.color};">${esc(t.label)}</strong></td>
+              <td style="font-size:0.8125rem;color:var(--nx-text-secondary);">${esc(t.desc)}</td>
+              <td style="font-family:var(--font-mono);font-size:0.75rem;">${t.items.length}</td>
+              <td style="font-size:0.75rem;color:var(--nx-text-tertiary);">${t.items.slice(0, 8).map((i: any) => replaceCitations(esc(i.src))).join(' ')}${t.items.length > 8 ? ` <em>+${t.items.length - 8} more</em>` : ''}</td>
+            </tr>`).join("")}
+          </tbody>
+        </table>
+      </section>`;
+    }
+  }
+
+  // ─── ADVERSARIAL TRANSPARENCY ───
+  // Exposes the Critic agent's objections, downgrades, and preprint penalties
+  const advTrans = analysis._adversarialTransparency;
+  let adversarialTransparencyHtml = "";
+  if (advTrans && (advTrans.criticObjections?.length || advTrans.preprintDowngrades?.length)) {
+    adversarialTransparencyHtml = `
+    <section class="brief-section">
+      <h2>Adversarial Transparency — Critic Audit</h2>
+      <p style="color:var(--nx-text-tertiary);font-size:0.8125rem;margin-bottom:1rem;">This section exposes the objections raised by the NomosX Critic agent during validation. No other think tank exposes its internal peer review. This is our commitment to intellectual honesty.</p>
+      ${advTrans.criticScore ? `<div style="margin-bottom:1rem;font-family:var(--font-mono);font-size:0.875rem;">Critic overall score: <strong>${advTrans.criticScore}/100</strong></div>` : ''}
+      ${advTrans.criticObjections?.length ? `
+        <h3 style="font-size:0.875rem;">Objections Raised</h3>
+        <ul style="font-size:0.8125rem;">
+          ${advTrans.criticObjections.map((o: any) => `<li>
+            <strong>${esc(o.severity || 'medium')} severity</strong> ${o.resolved ? '<span style="color:var(--nx-text-secondary);">✓ resolved</span>' : '<span style="color:var(--nx-text-primary);">⚠ unresolved</span>'}: ${replaceCitations(esc(o.claim || ''))} — <em>${replaceCitations(esc(o.objection || ''))}</em>
+          </li>`).join("")}
+        </ul>` : ''}
+      ${advTrans.preprintDowngrades?.length ? `
+        <h3 style="font-size:0.875rem;">Preprint Downgrades</h3>
+        <ul style="font-size:0.8125rem;">
+          ${advTrans.preprintDowngrades.map((d: any) => `<li>
+            Claim: ${replaceCitations(esc(d.claim || ''))} — Sources: ${d.sources?.map((s: string) => replaceCitations(esc(s))).join(' ') || 'N/A'} — Reason: <em>${esc(d.reason || '')}</em>
+          </li>`).join("")}
+        </ul>` : ''}
+    </section>`;
+  }
+
+  // ─── MULTI-LENS CONVERGENCE MAP ───
+  // Shows where CANA, SCATTER, and weak signals converge or diverge
+  const multiLens = analysis._multiLensConvergence;
+  let multiLensConvergenceHtml = "";
+  if (multiLens && (multiLens.convergencePoints?.length || multiLens.divergencePoints?.length)) {
+    multiLensConvergenceHtml = `
+    <section class="brief-section">
+      <h2>Multi-Lens Convergence Map</h2>
+      <p style="color:var(--nx-text-tertiary);font-size:0.8125rem;margin-bottom:1rem;">This analysis was enriched by three complementary analytical lenses: CANA (causal mechanisms), SCATTER (divergent hypotheses), and Weak Signals (emerging evidence). Convergence across lenses indicates robustness; divergence indicates genuine uncertainty.</p>
+      ${multiLens.convergencePoints?.length ? `
+        <h3 style="font-size:0.875rem;color:var(--nx-text-secondary);">Convergence Points (robust findings)</h3>
+        <ul style="font-size:0.8125rem;">
+          ${multiLens.convergencePoints.map((p: string) => `<li>${replaceCitations(esc(p))}</li>`).join("")}
+        </ul>` : ''}
+      ${multiLens.divergencePoints?.length ? `
+        <h3 style="font-size:0.875rem;color:var(--nx-text-primary);">Divergence Points (genuine uncertainty)</h3>
+        <ul style="font-size:0.8125rem;">
+          ${multiLens.divergencePoints.map((p: string) => `<li>${replaceCitations(esc(p))}</li>`).join("")}
+        </ul>` : ''}
+      ${multiLens.canaMechanisms?.length ? `
+        <h3 style="font-size:0.8125rem;">CANA Causal Mechanisms</h3>
+        <ul style="font-size:0.8125rem;color:var(--nx-text-secondary);">
+          ${multiLens.canaMechanisms.map((m: string) => `<li>${replaceCitations(esc(m))}</li>`).join("")}
+        </ul>` : ''}
+      ${multiLens.scatterHypotheses?.length ? `
+        <h3 style="font-size:0.8125rem;">SCATTER Divergent Hypotheses</h3>
+        <ul style="font-size:0.8125rem;color:var(--nx-text-secondary);">
+          ${multiLens.scatterHypotheses.map((h: string) => `<li>${replaceCitations(esc(h))}</li>`).join("")}
+        </ul>` : ''}
+      ${multiLens.weakSignals?.length ? `
+        <h3 style="font-size:0.8125rem;">Weak Signals Detected</h3>
+        <ul style="font-size:0.8125rem;color:var(--nx-text-tertiary);">
+          ${multiLens.weakSignals.map((s: string) => `<li>${replaceCitations(esc(s))}</li>`).join("")}
+        </ul>` : ''}
+    </section>`;
+  }
 
   const STRATEGIC_EXTRA_CSS = `
   <style>
@@ -824,6 +996,56 @@ export function renderProfessionalStrategicHTML(analysis: any, sources: any[]): 
       border-left: 2px solid var(--nx-text-secondary);
       border-radius: 0 var(--nx-radius) var(--nx-radius) 0;
     }
+
+    .causal-card {
+      background: rgba(240, 240, 250, 0.015);
+      border: 1px solid var(--nx-border-subtle);
+      border-radius: var(--nx-radius);
+      padding: 1rem 1.25rem; margin: 0.75rem 0;
+      font-size: 0.875rem;
+    }
+    .causal-header {
+      margin-bottom: 0.5rem; line-height: 1.5;
+    }
+    .causal-chain, .causal-counterfactual, .causal-alt {
+      margin-top: 0.5rem; padding-top: 0.5rem;
+      border-top: 1px solid var(--nx-border-subtle);
+      color: var(--nx-text-secondary); font-size: 0.8125rem;
+    }
+    .causal-counterfactual { color: var(--nx-text-primary); }
+    .causal-sources {
+      margin-top: 0.5rem; font-family: var(--font-mono); font-size: 0.75rem;
+      color: var(--nx-text-tertiary);
+    }
+    .causal-conf {
+      font-family: var(--font-mono); font-size: 0.625rem; font-weight: 500;
+      padding: 0.125rem 0.5rem; margin-left: 0.5rem;
+      border: 1px solid var(--nx-border-medium); border-radius: var(--nx-radius);
+    }
+    .epistemic-badge {
+      display: inline-block; padding: 0.125rem 0.5rem; margin-left: 0.5rem;
+      font-family: var(--font-mono); font-size: 0.5625rem; font-weight: 500;
+      text-transform: uppercase; letter-spacing: 0.1em;
+      border-radius: var(--nx-radius);
+    }
+    .epistemic-demonstrated { background: rgba(94, 234, 212, 0.1); color: #5EEAD4; border: 1px solid rgba(94, 234, 212, 0.3); }
+    .epistemic-suggested { background: rgba(167, 139, 250, 0.1); color: #A78BFA; border: 1px solid rgba(167, 139, 250, 0.3); }
+    .epistemic-proposed { background: rgba(251, 191, 36, 0.1); color: #FBBF24; border: 1px solid rgba(251, 191, 36, 0.3); }
+    .epistemic-projected { background: rgba(251, 113, 133, 0.1); color: #FB7185; border: 1px solid rgba(251, 113, 133, 0.3); }
+
+    .evidence-tier-table {
+      width: 100%; border-collapse: collapse; font-size: 0.8125rem; margin: 1rem 0;
+    }
+    .evidence-tier-table th {
+      text-align: left; padding: 0.5rem 0.75rem;
+      color: var(--nx-text-tertiary); font-weight: 500; font-size: 0.5625rem;
+      font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.14em;
+      border-bottom: 1px solid var(--nx-border-medium);
+    }
+    .evidence-tier-table td {
+      padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--nx-border-subtle);
+      vertical-align: top;
+    }
   </style>`;
 
   return `<!DOCTYPE html>
@@ -863,6 +1085,11 @@ export function renderProfessionalStrategicHTML(analysis: any, sources: any[]): 
           analysis.implementation.obstacles?.length ? `Obstacles: ${analysis.implementation.obstacles.join('; ')}` : '',
         ].filter(Boolean).join('\n\n')
       : analysis.implementation)}
+
+    ${causalArchitectureHtml}
+    ${evidenceTiersHtml}
+    ${adversarialTransparencyHtml}
+    ${multiLensConvergenceHtml}
 
     ${section("Conclusion", analysis.conclusion)}
     ${section("Open Questions", Array.isArray(analysis.openQuestions) ? analysis.openQuestions.join('\n\n') : analysis.openQuestions || analysis.open_questions)}

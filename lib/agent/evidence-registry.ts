@@ -98,7 +98,7 @@ export function replaceSrcWithEvidenceIds(
       if (evidenceId) {
         const entry = registry.evidenceToSource.get(evidenceId);
         if (entry) entry.citationCount++;
-        return `<sup class="cite"><a href="#ref-${num}" data-evidence="${evidenceId}">${evidenceId}</a></sup>`;
+        return `<sup class="cite"><a href="#ref-${num}" data-evidence="${evidenceId}">${num}</a></sup>`;
       }
       return match;
     },

@@ -20,13 +20,13 @@ const STEPS = [
     step: "03",
     label: "Quantify",
     icon: BarChart3,
-    desc: "Le chaos devient structure.",
+    desc: "Le chaos devient scénario.",
   },
   {
     step: "04",
     label: "Decide",
     icon: Scale,
-    desc: "Une position défendable.",
+    desc: "Une position vérifiable.",
   },
 ] as const;
 

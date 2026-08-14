@@ -88,7 +88,7 @@ export function ArchivesClient({ initialBriefs }: { initialBriefs: BriefLike[] }
           <PageHeader
             eyebrow="Published positions"
             title="Brief archive"
-            description="Every position we've published — chaos structured into clarity. Filter by depth, domain, and confidence."
+            description="Every position we've published — chaos legislated into nomos. Filter by depth, domain, and confidence."
           />
 
           <div className="flex flex-col lg:flex-row gap-4 mb-6">

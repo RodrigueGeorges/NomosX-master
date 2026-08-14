@@ -1,0 +1,39 @@
+
+> dev
+> next dev
+
+▲ Next.js 16.1.6 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.1.206:3000
+- Environments: .env.local, .env
+
+✓ Starting...
+⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+[Sentry] SENTRY_DSN not configured, error monitoring disabled
+✓ Ready in 12.4s
+○ Compiling / ...
+Browserslist: browsers data (caniuse-lite) is 7 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+ GET / 200 in 9.5s (compile: 8.5s, proxy.ts: 5ms, render: 1002ms)
+ GET /api/public/briefs 200 in 1619ms (compile: 1157ms, proxy.ts: 10ms, render: 453ms)
+ GET /api/public/briefs 200 in 45ms (compile: 7ms, proxy.ts: 5ms, render: 33ms)
+ GET /api/public/publications/cmst7cmlc04k1158k0hho3vq6 404 in 2.9s (compile: 2.7s, proxy.ts: 7ms, render: 188ms)
+ GET / 200 in 187ms (compile: 29ms, proxy.ts: 25ms, render: 133ms)
+⚠ Cross origin request detected from 127.0.0.1 to /_next/* resource. In a future major version of Next.js, you will need to explicitly configure "allowedDevOrigins" in next.config to allow this.
+Read more: https://nextjs.org/docs/app/api-reference/config/next-config-js/allowedDevOrigins
+ GET /api/auth/me 401 in 324ms (compile: 290ms, proxy.ts: 9ms, render: 25ms)
+ GET /api/auth/me 401 in 106ms (compile: 36ms, proxy.ts: 19ms, render: 51ms)
+ GET /api/public/briefs?limit=3&featured=1 200 in 171ms (compile: 55ms, proxy.ts: 23ms, render: 94ms)
+ GET /api/public/track-record 200 in 521ms (compile: 270ms, proxy.ts: 29ms, render: 223ms)
+○ Compiling /inquiry/[slug] ...
+ GET /inquiry/how-do-religious-institutions-shape-global-governance-frameworks-for-artificial-intelligence 200 in 9.7s (compile: 8.2s, proxy.ts: 91ms, render: 1465ms)
+ GET /api/auth/me 401 in 216ms (compile: 71ms, proxy.ts: 32ms, render: 113ms)
+ GET /api/auth/me 401 in 70ms (compile: 29ms, proxy.ts: 18ms, render: 22ms)
+ GET /inquiry/how-do-religious-institutions-shape-global-governance-frameworks-for-artificial-intelligence 200 in 1807ms (compile: 38ms, proxy.ts: 9ms, render: 1760ms)
+ GET /api/articles/cmst7cmlc04k1158k0hho3vq6/reactions 404 in 782ms (compile: 81ms, proxy.ts: 27ms, render: 674ms)
+ POST /api/articles/cmst7cmlc04k1158k0hho3vq6/view 404 in 775ms (compile: 160ms, proxy.ts: 28ms, render: 587ms)
+ GET /api/inquiry/cmst7cmlc04k1158k0hho3vq6/foresight 404 in 766ms (compile: 238ms, proxy.ts: 23ms, render: 505ms)
+ POST /api/articles/cmst7cmlc04k1158k0hho3vq6/view 404 in 753ms (compile: 273ms, proxy.ts: 9ms, render: 471ms)
+ GET /api/articles/cmst7cmlc04k1158k0hho3vq6/reactions 404 in 356ms (compile: 96ms, proxy.ts: 39ms, render: 222ms)
+ GET /api/inquiry/cmst7cmlc04k1158k0hho3vq6/foresight 404 in 303ms (compile: 151ms, proxy.ts: 38ms, render: 114ms)

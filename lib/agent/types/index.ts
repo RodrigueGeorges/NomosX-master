@@ -18,7 +18,9 @@ export type DomainExpertise =
   | "digital-society" | "cognitive-science"
   // SPECIALIZED DOMAINS
   | "behavioral-economics" | "urban-studies" | "bioethics" | "complexity-science"
-  | "computational-social-science" | "development-economics" | "risk-analysis";
+  | "computational-social-science" | "development-economics" | "risk-analysis"
+  // NEW DEEP-DOMAIN LENS (added for ontological depth)
+  | "anthropology" | "history" | "religious-studies" | "non-western-philosophy";
 
 // ============================================================================
 // EXPERT ANALYSIS - Unified interface

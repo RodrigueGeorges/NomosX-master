@@ -139,9 +139,9 @@ export async function sendWelcomeEmail(to: string, name?: string | null): Promis
       Welcome to NomosX, ${displayName}.
     </h1>
     <p style="font-size:14px;color:#a1a1aa;margin:0 0 24px;line-height:1.6;">
-      Your account is active. NomosX is an agentic think tank — we don't add to the noise,
-      we structure it. Autonomous cross-domain foresight, probabilistic distributions,
-      and institute positions sourced from 250M+ publications. From chaos to clarity.
+      Your account is active. NomosX is the first AI think tank, always on — we don't add to the noise,
+      we legislate it. Autonomous cross-domain scenario reasoning, scenario-weighted positions,
+      and institute verdicts sourced from 250M+ publications. From chaos to nomos.
     </p>
     <p style="font-size:14px;color:#a1a1aa;margin:0 0 32px;line-height:1.6;">
       As an <strong style="color:#e4e4e7;">Analyst</strong>, you have access to all published briefs
@@ -173,7 +173,7 @@ export async function sendNewsletterConfirmation(to: string, confirmToken: strin
     <p style="font-size:14px;color:#a1a1aa;margin:0 0 24px;line-height:1.6;">
       You requested to receive the NomosX weekly intelligence dispatch — institute positions
       published autonomously across economics, policy, technology, climate, and more.
-      Every position is structured, sourced, and defensible. From chaos to clarity.
+      Every position is structured, sourced, and defensible. From chaos to nomos.
     </p>
     <p style="font-size:14px;color:#a1a1aa;margin:0 0 32px;line-height:1.6;">
       Click below to confirm your email address and activate your subscription.
@@ -202,9 +202,9 @@ export async function sendNewsletterWelcome(to: string): Promise<void> {
       You're subscribed.
     </h1>
     <p style="font-size:14px;color:#a1a1aa;margin:0 0 24px;line-height:1.6;">
-      Every week, NomosX publishes strategic briefs — cross-domain foresight with probabilistic
+      Every week, NomosX publishes strategic briefs — cross-domain scenario reasoning with scenario-weighted
       verdicts, sourced from 250M+ academic publications and full [SRC-N] traceability.
-      We don't add to the noise. We structure it.
+      We don't add to the noise. We legislate it.
     </p>
     <p style="font-size:14px;color:#a1a1aa;margin:0 0 32px;line-height:1.6;">
       Your first dispatch arrives next Monday. In the meantime, browse our published briefs.

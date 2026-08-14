@@ -1,0 +1,1212 @@
+[dotenv@17.2.4] injecting env (31) from .env.local -- tip: ⚙️  suppress all logs with { quiet: true }
+
+╔════════════════════════════════════════════════════════════╗
+║  NomosX — FULL FUNNEL TEST (Swarm)                         ║
+╚════════════════════════════════════════════════════════════╝
+  Mode: breaking
+  Started: 2026-08-14T20:21:30.832Z
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  PHASE 1: THINK TANK DISPATCHER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  [Dispatcher] Launching breaking cycle...
+(node:12188) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+[ThinkTank] Cycle mode=breaking cadence=2/3 dryRun=false
+[TOPIC RADAR V3] Starting maximum coverage sweep...
+[TOPIC RADAR V3] Signal distribution: 15 breaking, 0 emerging, 0 routine
+[TOPIC RADAR V3] ✅ 122 raw → 121 deduped → 15 topics in 10779ms | gdelt:0 rss:63 academic:49 db:10
+[EDITOR-IN-CHIEF] Triaging 15 topics (max 3 publications, budget $25)...
+✅ deepseek/deepseek-v4-flash [editor_in_chief] | 3908ms | 2595+365 tok | $0.0005
+[EDITOR-IN-CHIEF] Domain diversity filter: 2 topics dropped (same vertical), 3 kept across 1 verticals
+✅ deepseek/deepseek-v4-flash [topic_classification] | 3379ms | 1935+304 tok | $0.0004
+✅ deepseek/deepseek-v4-flash [topic_classification] | 2867ms | 1923+245 tok (1280 cache-hit) | $0.0003
+✅ deepseek/deepseek-v4-flash [topic_classification] | 2908ms | 1907+256 tok (1792 cache-hit) | $0.0003
+[EDITOR-IN-CHIEF] ✅ 3 publications selected, 0 budget-cut, 12 skipped in 13072ms ($0.0015)
+[HTTP] Retry 1/3 after 30000ms: https://api.openalex.org/works?search=How%20do%20industrial%20policies%20and%20foreign%20investment%20shape%20the%20upgrading%20of%20value%20chains%20in%20emerging%20economies%20like%20Indonesia%3F&per-page=5&api_key=idTr1pFPkemE7N3z2e3lcv
+CORE search failed: HttpError: HTTP 401 
+    at httpGet (C:\Users\DELL\Desktop\NomosX-master\lib\http-client.ts:259:17)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async searchCORE (C:\Users\DELL\Desktop\NomosX-master\lib\providers\core.ts:23:23)
+    at async searchRegistry (C:\Users\DELL\Desktop\NomosX-master\lib\providers\registry-bridge.ts:180:19)
+    at async Promise.allSettled (index 4)
+    at async searchExtendedProviders (C:\Users\DELL\Desktop\NomosX-master\lib\providers\registry-bridge.ts:761:19)
+    at async withTimeout (C:\Users\DELL\Desktop\NomosX-master\lib\agent\evidence-gatherer.ts:55:12)
+    at async searchAcrossProviders (C:\Users\DELL\Desktop\NomosX-master\lib\agent\evidence-gatherer.ts:280:28)
+    at async gatherEvidence (C:\Users\DELL\Desktop\NomosX-master\lib\agent\evidence-gatherer.ts:362:25)
+    at async preflightSourceCheck (C:\Users\DELL\Desktop\NomosX-master\lib\agent\think-tank-dispatcher.ts:220:18) {
+  status: 401,
+  response: '{"message":"Your trial API key period has expired, you will need to get a license to keep using it."}'
+}
+OpenAlex API error: OpenAlex API error: 400
+ORCID lookup failed for How do industrial policies and foreign investment shape the upgrading of value chains in emerging economies like Indonesia?: HttpError: HTTP 404 
+    at httpGet (C:\Users\DELL\Desktop\NomosX-master\lib\http-client.ts:259:17)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async getORCIDById (C:\Users\DELL\Desktop\NomosX-master\lib\providers\orcid.ts:23:18)
+    at async searchRegistry (C:\Users\DELL\Desktop\NomosX-master\lib\providers\registry-bridge.ts:171:21)
+    at async Promise.allSettled (index 2)
+    at async searchExtendedProviders (C:\Users\DELL\Desktop\NomosX-master\lib\providers\registry-bridge.ts:761:19)
+    at async withTimeout (C:\Users\DELL\Desktop\NomosX-master\lib\agent\evidence-gatherer.ts:55:12)
+    at async searchAcrossProviders (C:\Users\DELL\Desktop\NomosX-master\lib\agent\evidence-gatherer.ts:280:28)
+    at async gatherEvidence (C:\Users\DELL\Desktop\NomosX-master\lib\agent\evidence-gatherer.ts:362:25)
+    at async preflightSourceCheck (C:\Users\DELL\Desktop\NomosX-master\lib\agent\think-tank-dispatcher.ts:220:18) {
+  status: 404,
+  response: '{"response-code":404,"developer-message":"404 Not Found: The resource was not found.","user-message":"The resource was not found.","error-code":9016,"more-info":"https://members.orcid.org/api/resources/troubleshooting"}'
+}
+semantic-scholar API error: TypeError: Cannot read properties of undefined (reading 'map')
+    at searchSemanticscholar (C:\Users\DELL\Desktop\NomosX-master\lib\providers\semantic-scholar.js:11:25)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async searchRegistry (C:\Users\DELL\Desktop\NomosX-master\lib\providers\registry-bridge.ts:174:19)
+    at async Promise.allSettled (index 3)
+    at async searchExtendedProviders (C:\Users\DELL\Desktop\NomosX-master\lib\providers\registry-bridge.ts:761:19)
+    at async withTimeout (C:\Users\DELL\Desktop\NomosX-master\lib\agent\evidence-gatherer.ts:55:12)
+    at async searchAcrossProviders (C:\Users\DELL\Desktop\NomosX-master\lib\agent\evidence-gatherer.ts:280:28)
+    at async gatherEvidence (C:\Users\DELL\Desktop\NomosX-master\lib\agent\evidence-gatherer.ts:362:25)
+    at async preflightSourceCheck (C:\Users\DELL\Desktop\NomosX-master\lib\agent\think-tank-dispatcher.ts:220:18)
+    at async collectBreakingItems (C:\Users\DELL\Desktop\NomosX-master\lib\agent\think-tank-dispatcher.ts:284:19)
+[SemanticScholar] Found 0 papers
+[SemanticScholar] 0/0 with rich abstracts (NaN%)
+[Crossref] Found 5 works for "How do industrial policies and foreign investment "
+[Crossref] Found 10 works for "How do industrial policies and foreign investment "
+[SCOUT/GDELT] Error: fetch failed
+✅ deepseek/deepseek-v4-flash [preflight_semantic_check] | 1644ms | 308+113 tok | $0.0001
+[PREFLIGHT] ✅ "How do industrial policies and foreign investment shape the " — 29 sources, semantic=30%, strategy=direct in 21763ms
+[ThinkTank] Dispatching 1 item(s), max execute=1
+[InquiryOrchestrator] RUN depth=standard source=auto-scan vertical=eu-policy q="How do industrial policies and foreign investment shape the upgrading of..."
+[Inquiry] RUN depth=standard format=brief q="How do industrial policies and foreign investment shape the ..."
+[SmartProvider] Detected domain: ai
+[Pipeline] COMPLEXITY ROUTING: moderate query (score=3) — 25 providers, 30/provider
+[Pipeline] CONTEXT PRIMER: loading institutional memory
+[CONTEXT PRIMER] Priming context for: "How do industrial policies and foreign investment shape the upgrading of value c..."
+[KNOWLEDGE] Querying: "How do industrial policies and foreign investment shape the ..."
+[TREND_ANALYZER] Analyzing trends over 6 months...
+[REALTIME] Fetching multi-domain live intelligence (12 providers)...
+[KNOWLEDGE] Longitudinal insights: 7 tracked concepts
+[KNOWLEDGE] Found 0 relevant concepts across 0 briefs
+[REALTIME] FRED: 22/24 indicators fetched
+[TREND_ANALYZER] Analyzing 4945 sources
+❌ anthropic failed for task "meta_analysis": 400 {"type":"error","error":{"type":"invalid_request_error","message":"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits."},"request_id":"req_011Ce3GH93YCgcZPTDwrYrpC"}
+[REALTIME] ECB/Stock: 2 indicators
+[REALTIME] Papers With Code failed: Unexpected token '<', "<!doctype "... is not valid JSON
+❌ kimi failed for task "meta_analysis": 429 Your account org-774d71d4dfd84636b8fc43ef23175faa <ak-fbpa5sih1x3111ghdf1i> is suspended due to insufficient balance, please recharge your account or check your plan and billing details
+✅ openai/gpt-4o-mini [meta_analysis] | 6429ms | 853+282 tok | $0.0003
+[TREND_ANALYZER] Detected 128 trend breaks
+[TREND_ANALYZER] Created TREND_BREAK signal: Bioethics
+[TREND_ANALYZER] Created TREND_BREAK signal: Christianity
+[TREND_ANALYZER] Created TREND_BREAK signal: Media, Religion, Digital Communication
+[TREND_ANALYZER] Created TREND_BREAK signal: Islamic Finance and Communication
+[TREND_ANALYZER] Created TREND_BREAK signal: Adolescent Sexual and Reproductive Health
+[TREND_ANALYZER] Created TREND_BREAK signal: Religion, Spirituality, and Psychology
+[TREND_ANALYZER] Created TREND_BREAK signal: Religion and Society Interactions
+[TREND_ANALYZER] Created TREND_BREAK signal: Christian Theology and Mission
+[TREND_ANALYZER] Created TREND_BREAK signal: Religious Tourism and Spaces
+[TREND_ANALYZER] Created TREND_BREAK signal: American Constitutional Law and Politics
+[TREND_ANALYZER] Created TREND_BREAK signal: Islamic Studies and History
+[TREND_ANALYZER] Created TREND_BREAK signal: Contemporary Christian Leadership and Education
+[TREND_ANALYZER] Created TREND_BREAK signal: Islamic Studies and Radicalism
+[TREND_ANALYZER] Created TREND_BREAK signal: Ethics in medical practice
+[TREND_ANALYZER] Created TREND_BREAK signal: Organ Donation and Transplantation
+[TREND_ANALYZER] Created TREND_BREAK signal: Health Knowledge, Attitudes, Practice
+[TREND_ANALYZER] Created TREND_BREAK signal: Intention
+[TREND_ANALYZER] Created TREND_BREAK signal: Infant, Newborn
+[TREND_ANALYZER] Created TREND_BREAK signal: Adaptation, Psychological
+[TREND_ANALYZER] Created TREND_BREAK signal: Religion and Psychology
+[TREND_ANALYZER] Created TREND_BREAK signal: Religion
+[TREND_ANALYZER] Created TREND_BREAK signal: Religion and Medicine
+[TREND_ANALYZER] Created TREND_BREAK signal: Cultural Diversity
+[TREND_ANALYZER] Created TREND_BREAK signal: Decision Making
+[TREND_ANALYZER] Created TREND_BREAK signal: Cultural Differences and Values
+[TREND_ANALYZER] Created TREND_BREAK signal: Social and Intergroup Psychology
+[TREND_ANALYZER] Created TREND_BREAK signal: Islamic Finance and Banking Studies
+[TREND_ANALYZER] Created TREND_BREAK signal: Turkey's Politics and Society
+[TREND_ANALYZER] Created TREND_BREAK signal: Indian History and Philosophy
+[TREND_ANALYZER] Created TREND_BREAK signal: AI Governance
+[TREND_ANALYZER] Created TREND_BREAK signal: Social and Cultural Dynamics
+[TREND_ANALYZER] Created TREND_BREAK signal: Mindfulness and Compassion Interventions
+[TREND_ANALYZER] Created TREND_BREAK signal: Evolutionary Game Theory and Cooperation
+[TREND_ANALYZER] Created TREND_BREAK signal: Anthropological Studies and Insights
+[TREND_ANALYZER] Created TREND_BREAK signal: African cultural and philosophical studies
+[TREND_ANALYZER] Created TREND_BREAK signal: Workplace Spirituality and Leadership
+[TREND_ANALYZER] Created TREND_BREAK signal: cs.GT
+[TREND_ANALYZER] Created TREND_BREAK signal: cs.ET
+[TREND_ANALYZER] Created TREND_BREAK signal: Alzheimer Disease
+[TREND_ANALYZER] Created TREND_BREAK signal: Aged, 80 and over
+[TREND_ANALYZER] Created TREND_BREAK signal: Brain
+[TREND_ANALYZER] Created TREND_BREAK signal: Socioeconomic Factors
+[TREND_ANALYZER] Created TREND_BREAK signal: Transients and Migrants
+[TREND_ANALYZER] Created TREND_BREAK signal: Neoplasms
+[TREND_ANALYZER] Created TREND_BREAK signal: Indonesia
+[TREND_ANALYZER] Created TREND_BREAK signal: Papillomavirus Infections
+[TREND_ANALYZER] Created TREND_BREAK signal: Uterine Cervical Neoplasms
+[TREND_ANALYZER] Created TREND_BREAK signal: Papillomavirus Vaccines
+[TREND_ANALYZER] Created TREND_BREAK signal: Education and Islamic Studies
+[TREND_ANALYZER] Created TREND_BREAK signal: Patient Dignity and Privacy
+[TREND_ANALYZER] Created TREND_BREAK signal: BIM and Construction Integration
+[TREND_ANALYZER] Created TREND_BREAK signal: Infrastructure Maintenance and Monitoring
+[TREND_ANALYZER] Created TREND_BREAK signal: Digital Education and Society
+[TREND_ANALYZER] Created TREND_BREAK signal: Death Anxiety and Social Exclusion
+[TREND_ANALYZER] Created TREND_BREAK signal: Antibiotic Use and Resistance
+[TREND_ANALYZER] Created TREND_BREAK signal: Innovative Human-Technology Interaction
+[TREND_ANALYZER] Created TREND_BREAK signal: Organizational and Employee Performance
+[TREND_ANALYZER] Created TREND_BREAK signal: Systemic AI Governance
+[TREND_ANALYZER] Created TREND_BREAK signal: ISO/IEC 42001
+[TREND_ANALYZER] Created TREND_BREAK signal: Governance
+[TREND_ANALYZER] Created TREND_BREAK signal: AIGN OS
+[TREND_ANALYZER] Created TREND_BREAK signal: EU AI Act
+[TREND_ANALYZER] Created TREND_BREAK signal: Educational Curriculum and Learning Methods
+[TREND_ANALYZER] Created TREND_BREAK signal: Ethical AI
+[TREND_ANALYZER] Created TREND_BREAK signal: Theology and Philosophy of Evil
+[TREND_ANALYZER] Created TREND_BREAK signal: Religion, Ecology, and Ethics
+[TREND_ANALYZER] Created TREND_BREAK signal: Educational Leadership and Innovation
+[TREND_ANALYZER] Created TREND_BREAK signal: code
+[TREND_ANALYZER] Created TREND_BREAK signal: benchmark
+[TREND_ANALYZER] Created TREND_BREAK signal: Digital Transformation in Industry
+[TREND_ANALYZER] Created TREND_BREAK signal: Gender, Feminism, and Media
+[TREND_ANALYZER] Created TREND_BREAK signal: South Asian Studies and Diaspora
+[TREND_ANALYZER] Created TREND_BREAK signal: cs.IT
+[TREND_ANALYZER] Created TREND_BREAK signal: artificial intelligence
+[TREND_ANALYZER] Created TREND_BREAK signal: Impact of AI and Big Data on Business and Society
+[TREND_ANALYZER] Created TREND_BREAK signal: Diverse Aspects of Tourism Research
+[TREND_ANALYZER] Created TREND_BREAK signal: Evaluation and Performance Assessment
+[TREND_ANALYZER] Created TREND_BREAK signal: Indigenous Health, Education, and Rights
+[TREND_ANALYZER] Created TREND_BREAK signal: HIV/AIDS Research and Interventions
+[TREND_ANALYZER] Created TREND_BREAK signal: HIV Research and Treatment
+[TREND_ANALYZER] Created TREND_BREAK signal: COVID-19 Prevention and Impact
+[TREND_ANALYZER] Created TREND_BREAK signal: Reproductive Health and Technologies
+[TREND_ANALYZER] Created TREND_BREAK signal: Environmental Education and Sustainability
+[TREND_ANALYZER] Created TREND_BREAK signal: Healthcare Systems and Reforms
+[TREND_ANALYZER] Created TREND_BREAK signal: Rural Population
+[TREND_ANALYZER] Created TREND_BREAK signal: Health Care Reform
+[TREND_ANALYZER] Created TREND_BREAK signal: Vaccination Hesitancy
+[TREND_ANALYZER] Created TREND_BREAK signal: Sub-Saharan Africa
+[TREND_ANALYZER] Created TREND_BREAK signal: Foucault, Power, and Ethics
+[TREND_ANALYZER] Created TREND_BREAK signal: Indian and Buddhist Studies
+[TREND_ANALYZER] Created TREND_BREAK signal: Religious Education and Schools
+[TREND_ANALYZER] Created TREND_BREAK signal: European Union
+[TREND_ANALYZER] Created TREND_BREAK signal: Artificial intelligence
+[TREND_ANALYZER] Created TREND_BREAK signal: Romania
+[TREND_ANALYZER] Created TREND_BREAK signal: Bangladesh Politics, Society, and Development
+[TREND_ANALYZER] Created TREND_BREAK signal: Halal products and consumer behavior
+[TREND_ANALYZER] Created TREND_BREAK signal: Cultural and Religious Practices in Indonesia
+[TREND_ANALYZER] Created TREND_BREAK signal: Electoral Systems and Political Participation
+[TREND_ANALYZER] Created TREND_BREAK signal: Socio-political and Technological Issues
+[TREND_ANALYZER] Created TREND_BREAK signal: Indigenous Studies and Ecology
+[TREND_ANALYZER] Created TREND_BREAK signal: Qur’anic Interpretation Studies
+[TREND_ANALYZER] Created TREND_BREAK signal: Language and cultural evolution
+[TREND_ANALYZER] Created TREND_BREAK signal: Interdisciplinary Studies: Technology, Society, and Humanities
+[TREND_ANALYZER] Created TREND_BREAK signal: Academic integrity and plagiarism
+[TREND_ANALYZER] Created TREND_BREAK signal: CRISPR and Genetic Engineering
+[TREND_ANALYZER] Created TREND_BREAK signal: Engineering Education and Technology
+[TREND_ANALYZER] Created TREND_BREAK signal: ICT in Developing Communities
+[TREND_ANALYZER] Created TREND_BREAK signal: Agriculture Sustainability and Environmental Impact
+[TREND_ANALYZER] Created TREND_BREAK signal: Organic Food and Agriculture
+[TREND_ANALYZER] Created TREND_BREAK signal: Ego Development and Educational Practices
+[TREND_ANALYZER] Created TREND_BREAK signal: Immunization Programs
+[TREND_ANALYZER] Created TREND_BREAK signal: Income, Poverty, and Inequality
+[TREND_ANALYZER] Created TREND_BREAK signal: Cyberloafing and Workplace Behavior
+[TREND_ANALYZER] Created TREND_BREAK signal: Resilience and Mental Health
+[TREND_ANALYZER] Created TREND_BREAK signal: Research Data Management Practices
+[TREND_ANALYZER] Created TREND_BREAK signal: Scientific Computing and Data Management
+[TREND_ANALYZER] Created TREND_BREAK signal: Technology-Enhanced Education Studies
+[TREND_ANALYZER] Created TREND_BREAK signal: Innovations in Education and Learning Technologies
+[TREND_ANALYZER] Created TREND_BREAK signal: Creativity in Education and Neuroscience
+[TREND_ANALYZER] Created TREND_BREAK signal: University-Industry-Government Innovation Models
+[TREND_ANALYZER] Created TREND_BREAK signal: SMEs Development and Digital Marketing
+[TREND_ANALYZER] Created TREND_BREAK signal: Food Waste Reduction and Sustainability
+[TREND_ANALYZER] Created TREND_BREAK signal: ICT Impact and Policies
+[TREND_ANALYZER] Created TREND_BREAK signal: hep-ex
+[TREND_ANALYZER] Created TREND_BREAK signal: 0.info
+[TREND_ANALYZER] Created TREND_BREAK signal: 1.info.info-im
+[TREND_ANALYZER] Created TREND_BREAK signal: Religious Freedom and Discrimination
+[TREND_ANALYZER] Created TREND_BREAK signal: Research Consensus
+[HTTP] Retry 2/3 after 30000ms: https://api.openalex.org/works?search=How%20do%20industrial%20policies%20and%20foreign%20investment%20shape%20the%20upgrading%20of%20value%20chains%20in%20emerging%20economies%20like%20Indonesia%3F&per-page=5&api_key=idTr1pFPkemE7N3z2e3lcv
+[REALTIME] GDELT conflict failed: The operation was aborted due to timeout
+[REALTIME] World Bank: 15/17 indicators fetched
+[REALTIME] WHO: 0 indicators
+[REALTIME] USGS: 2 indicators
+[REALTIME] Climate: 1 indicators
+[REALTIME] Federal Register: 2 indicators
+[REALTIME] Papers With Code: 0 indicators
+[REALTIME] EUR-Lex: 1 indicators
+[REALTIME] NVD/CISA: 2 indicators
+[REALTIME] GDELT: 0 indicators
+[REALTIME] NASA GISS: 0 indicators
+[REALTIME] ECB: 2 indicators
+[REALTIME] ✅ Pulse complete: 47 indicators, 5 alerts (10935ms)
+[CONTEXT PRIMER] Real-time data: 47 indicators, 5 alerts
+[CONTEXT PRIMER] KG: 0 concepts, 7 trends, 0 controversies, 3 trend breaks
+[CONTEXT PRIMER] Prior briefs: 0 related (from 3 scanned)
+[REALTIME] Fetching multi-domain live intelligence (12 providers)...
+[REALTIME] FRED: 22/24 indicators fetched
+[REALTIME] ECB/Stock: 2 indicators
+[REALTIME] Papers With Code failed: Unexpected token '<', "<!doctype "... is not valid JSON
+[REALTIME] GDELT conflict failed: The operation was aborted due to timeout
+[REALTIME] World Bank: 15/17 indicators fetched
+[REALTIME] WHO: 0 indicators
+[REALTIME] USGS: 2 indicators
+[REALTIME] Climate: 1 indicators
+[REALTIME] Federal Register: 2 indicators
+[REALTIME] Papers With Code: 0 indicators
+[REALTIME] EUR-Lex: 1 indicators
+[REALTIME] NVD/CISA: 2 indicators
+[REALTIME] GDELT: 0 indicators
+[REALTIME] NASA GISS: 0 indicators
+[REALTIME] ECB: 2 indicators
+[REALTIME] ✅ Pulse complete: 47 indicators, 5 alerts (10481ms)
+[CONTEXT PRIMER] ✅ Context primed in 21732ms (0 concepts, 0 prior briefs, 3 trend breaks)
+[Pipeline] CONTEXT PRIMER: 0 concepts, 0 prior briefs, 3 trend breaks
+[Pipeline] SCOUT: query="How do industrial policies and foreign investment shape the upgrading of value chains in emerging economies like Indonesia?" (25 providers, 30/provider)
+✅ deepseek/deepseek-v4-flash [query_enhancement] | 3907ms | 434+557 tok | $0.0002
+[Pipeline] DEEP PLANNER: 7 sub-questions planned
+[SCOUT] Cache MISS for "What is the historical trajectory of industrial policies and foreign investment in Indonesia's value chain upgrading?", running providers...
+✅ deepseek/deepseek-v4-flash [query_enhancement] | 1939ms | 771+146 tok | $0.0001
+[SCOUT] Query enhanced: "Indonesia industrial policy foreign direct investment value chain upgrading historical trajectory" (+3 variations)
+[SCOUT] Launching 24 parallel requests across 4 query variations
+[HTTP] Retry 1/2 after 1000ms: fetch failed
+[HTTP] Retry 1/2 after 1000ms: fetch failed
+[HTTP] Retry 1/2 after 1000ms: fetch failed
+[HTTP] Retry 1/2 after 1000ms: fetch failed
+[HTTP] Retry 1/3 after 30000ms: https://api.openalex.org/works?search=Historical%20evolution%20industrial%20policies%20FDI%20Indonesia%20upgrading%20value%20chains&per-page=30&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 1/3 after 30000ms: https://api.openalex.org/works?search=Foreign%20investment%20industrial%20policy%20Indonesia%20value%20chain%20development&per-page=30&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 1/3 after 30000ms: https://api.openalex.org/works?search=Indonesia%20industrial%20policy%20foreign%20direct%20investment%20value%20chain%20upgrading%20historical%20trajectory&per-page=30&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 1/3 after 30000ms: https://api.openalex.org/works?search=Indonesia%20industrial%20policy%20FDI%20global%20value%20chain%20upgrading%20history&per-page=30&api_key=idTr1pFPkemE7N3z2e3lcv
+[Crossref] Found 30 works for "Indonesia industrial policy foreign direct investm"
+[SemanticScholar] Search failed: HTTP 429 
+[Crossref] Found 30 works for "Indonesia industrial policy FDI global value chain"
+[Crossref] Found 30 works for "Foreign investment industrial policy Indonesia val"
+[Crossref] Found 30 works for "Historical evolution industrial policies FDI Indon"
+[HTTP] Retry 2/2 after 2000ms: fetch failed
+[HTTP] Retry 2/2 after 2000ms: fetch failed
+[HTTP] Retry 2/2 after 2000ms: fetch failed
+[HTTP] Retry 2/2 after 2000ms: fetch failed
+[SemanticScholar] Search failed: HTTP 429 
+[SemanticScholar] Search failed: HTTP 429 
+[IMF-SDMX] Dataflow fetch failed: fetch failed
+[IMF-SDMX] Dataflow fetch failed: fetch failed
+[IMF-SDMX] Dataflow fetch failed: fetch failed
+[IMF-SDMX] Dataflow fetch failed: fetch failed
+[SemanticScholar] Found 30 papers
+[SemanticScholar] 26/30 with rich abstracts (87%)
+[HTTP] Retry 3/3 after 30000ms: https://api.openalex.org/works?search=How%20do%20industrial%20policies%20and%20foreign%20investment%20shape%20the%20upgrading%20of%20value%20chains%20in%20emerging%20economies%20like%20Indonesia%3F&per-page=5&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 2/3 after 30000ms: https://api.openalex.org/works?search=Historical%20evolution%20industrial%20policies%20FDI%20Indonesia%20upgrading%20value%20chains&per-page=30&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 2/3 after 30000ms: https://api.openalex.org/works?search=Indonesia%20industrial%20policy%20foreign%20direct%20investment%20value%20chain%20upgrading%20historical%20trajectory&per-page=30&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 2/3 after 30000ms: https://api.openalex.org/works?search=Foreign%20investment%20industrial%20policy%20Indonesia%20value%20chain%20development&per-page=30&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 2/3 after 30000ms: https://api.openalex.org/works?search=Indonesia%20industrial%20policy%20FDI%20global%20value%20chain%20upgrading%20history&per-page=30&api_key=idTr1pFPkemE7N3z2e3lcv
+[OpenAlex] Search failed: HTTP 429 
+[HTTP] Retry 1/3 after 30000ms: https://api.openalex.org/works?search=Indonesia%20industrial%20policy%20foreign%20direct%20investment%20value%20chain%20upgrading%20historical%20trajectory&per-page=20&filter=authorships.institutions.ror%3Ahttps%3A%2F%2Fror.org%2F04grmx538&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 3/3 after 30000ms: https://api.openalex.org/works?search=Foreign%20investment%20industrial%20policy%20Indonesia%20value%20chain%20development&per-page=30&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 3/3 after 30000ms: https://api.openalex.org/works?search=Historical%20evolution%20industrial%20policies%20FDI%20Indonesia%20upgrading%20value%20chains&per-page=30&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 3/3 after 30000ms: https://api.openalex.org/works?search=Indonesia%20industrial%20policy%20FDI%20global%20value%20chain%20upgrading%20history&per-page=30&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 3/3 after 30000ms: https://api.openalex.org/works?search=Indonesia%20industrial%20policy%20foreign%20direct%20investment%20value%20chain%20upgrading%20historical%20trajectory&per-page=30&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 2/3 after 30000ms: https://api.openalex.org/works?search=Indonesia%20industrial%20policy%20foreign%20direct%20investment%20value%20chain%20upgrading%20historical%20trajectory&per-page=20&filter=authorships.institutions.ror%3Ahttps%3A%2F%2Fror.org%2F04grmx538&api_key=idTr1pFPkemE7N3z2e3lcv
+[OpenAlex] Search failed: HTTP 429 
+[HTTP] Retry 1/3 after 30000ms: https://api.openalex.org/works?search=Indonesia%20industrial%20policy%20FDI%20global%20value%20chain%20upgrading%20history&per-page=20&filter=authorships.institutions.ror%3Ahttps%3A%2F%2Fror.org%2F04grmx538&api_key=idTr1pFPkemE7N3z2e3lcv
+[OpenAlex] Search failed: HTTP 429 
+[OpenAlex] Search failed: HTTP 429 
+[OpenAlex] Search failed: HTTP 429 
+[HTTP] Retry 1/3 after 30000ms: https://api.openalex.org/works?search=Foreign%20investment%20industrial%20policy%20Indonesia%20value%20chain%20development&per-page=20&filter=authorships.institutions.ror%3Ahttps%3A%2F%2Fror.org%2F04grmx538&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 1/3 after 30000ms: https://api.openalex.org/works?search=Historical%20evolution%20industrial%20policies%20FDI%20Indonesia%20upgrading%20value%20chains&per-page=20&filter=authorships.institutions.ror%3Ahttps%3A%2F%2Fror.org%2F04grmx538&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 3/3 after 30000ms: https://api.openalex.org/works?search=Indonesia%20industrial%20policy%20foreign%20direct%20investment%20value%20chain%20upgrading%20historical%20trajectory&per-page=20&filter=authorships.institutions.ror%3Ahttps%3A%2F%2Fror.org%2F04grmx538&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 2/3 after 30000ms: https://api.openalex.org/works?search=Indonesia%20industrial%20policy%20FDI%20global%20value%20chain%20upgrading%20history&per-page=20&filter=authorships.institutions.ror%3Ahttps%3A%2F%2Fror.org%2F04grmx538&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 2/3 after 30000ms: https://api.openalex.org/works?search=Foreign%20investment%20industrial%20policy%20Indonesia%20value%20chain%20development&per-page=20&filter=authorships.institutions.ror%3Ahttps%3A%2F%2Fror.org%2F04grmx538&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 2/3 after 30000ms: https://api.openalex.org/works?search=Historical%20evolution%20industrial%20policies%20FDI%20Indonesia%20upgrading%20value%20chains&per-page=20&filter=authorships.institutions.ror%3Ahttps%3A%2F%2Fror.org%2F04grmx538&api_key=idTr1pFPkemE7N3z2e3lcv
+[OpenAlex] Search failed: HTTP 429 
+[nber] Found 0 publications (filter: https://ror.org/04grmx538)
+[HTTP] Retry 3/3 after 30000ms: https://api.openalex.org/works?search=Indonesia%20industrial%20policy%20FDI%20global%20value%20chain%20upgrading%20history&per-page=20&filter=authorships.institutions.ror%3Ahttps%3A%2F%2Fror.org%2F04grmx538&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 3/3 after 30000ms: https://api.openalex.org/works?search=Foreign%20investment%20industrial%20policy%20Indonesia%20value%20chain%20development&per-page=20&filter=authorships.institutions.ror%3Ahttps%3A%2F%2Fror.org%2F04grmx538&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 3/3 after 30000ms: https://api.openalex.org/works?search=Historical%20evolution%20industrial%20policies%20FDI%20Indonesia%20upgrading%20value%20chains&per-page=20&filter=authorships.institutions.ror%3Ahttps%3A%2F%2Fror.org%2F04grmx538&api_key=idTr1pFPkemE7N3z2e3lcv
+[OpenAlex] Search failed: HTTP 429 
+[nber] Found 0 publications (filter: https://ror.org/04grmx538)
+[OpenAlex] Search failed: HTTP 429 
+[nber] Found 0 publications (filter: https://ror.org/04grmx538)
+[OpenAlex] Search failed: HTTP 429 
+[nber] Found 0 publications (filter: https://ror.org/04grmx538)
+[SCOUT] Per-provider results: _unknown=0, crossref=120, arxiv=120, imf=20, semanticscholar=26
+[SCOUT] Raw results: 286 sources from 4 query variations (4 providers: crossref, arxiv, imf, semanticscholar)
+[SCOUT] After dedup: 201/286
+[SCOUT] After relevance filter: 17/201
+
+[RelevanceScorer] Top 5 sources by relevance:
+1. [20%] Key Policy of Thailand Special Economic Zone
+   Topic: 25% | Field: 50% | Semantic: 2% | Temporal: 70% | TitleBonus: 0% | Concepts: 5/7 (x0.71)
+2. [18%] Foreign Direct Investment and Industrial Upgrading in Developing Economies: A Ca
+   Topic: 25% | Field: 50% | Semantic: 2% | Temporal: 50% | TitleBonus: 30% | Concepts: 4/7 (x0.57)
+3. [15%] Industrial Policy in Indonesia: A Global Value Chain Perspective
+   Topic: 25% | Field: 50% | Semantic: 1% | Temporal: 100% | TitleBonus: 30% | Concepts: 3/7 (x0.43)
+4. [14%] Foreign direct investment, global value chains and labour markets
+   Topic: 30% | Field: 50% | Semantic: 2% | Temporal: 50% | TitleBonus: 30% | Concepts: 3/7 (x0.43)
+5. [14%] Industrial Policy and Global Value Chains in India: Evaluating the Impact of PLI
+   Topic: 30% | Field: 50% | Semantic: 1% | Temporal: 50% | TitleBonus: 30% | Concepts: 3/7 (x0.43)
+
+⚠️  17 sources below 40% relevance (filtered out)
+[Reranker] Cohere reranked 17 sources → 6 results (min score: 0.1)
+[SCOUT] After Cohere rerank: 6 sources
+[SCOUT] Enriched 3 sources with Unpaywall (batched)
+[SCOUT] Done in 183851ms: 286 raw â†’ 201 dedup â†’ 6 ranked â†’ 6 saved
+[Pipeline] DEEP PLANNER: node n1 "What is the historical trajectory of industrial policies and" → 6 sources
+[SCOUT] Cache MISS for "What is the direct effect of industrial policies on value chain upgrading in emerging economies like Indonesia?", running providers...
+✅ deepseek/deepseek-v4-flash [query_enhancement] | 2121ms | 771+149 tok | $0.0001
+[SCOUT] Query enhanced: "industrial policy value chain upgrading emerging economies Indonesia manufacturing upgrading" (+3 variations)
+[SCOUT] Launching 24 parallel requests across 4 query variations
+[HTTP] Retry 1/2 after 1000ms: fetch failed
+[HTTP] Retry 1/2 after 1000ms: fetch failed
+[HTTP] Retry 1/2 after 1000ms: fetch failed
+[HTTP] Retry 1/2 after 1000ms: fetch failed
+[HTTP] Retry 1/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policy%20impact%20on%20global%20value%20chain%20participation%20in%20developing%20countries&per-page=30&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 1/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policy%20value%20chain%20upgrading%20emerging%20economies%20Indonesia%20manufacturing%20upgrading&per-page=30&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 1/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policy%20value%20chain%20upgrading%20emerging%20economies%20Indonesia%20manufacturing%20upgrading&per-page=20&filter=authorships.institutions.ror%3Ahttps%3A%2F%2Fror.org%2F04grmx538&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 1/3 after 30000ms: https://api.openalex.org/works?search=government%20industrial%20policies%20and%20value%20chain%20upgrading%20in%20emerging%20markets&per-page=30&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 1/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policy%20and%20upgrading%20in%20Indonesian%20manufacturing%20value%20chains&per-page=30&api_key=idTr1pFPkemE7N3z2e3lcv
+[SemanticScholar] Search failed: HTTP 429 
+[Crossref] Found 30 works for "industrial policy value chain upgrading emerging e"
+[Crossref] Found 30 works for "government industrial policies and value chain upg"
+[Crossref] Found 30 works for "industrial policy and upgrading in Indonesian manu"
+[Crossref] Found 30 works for "industrial policy impact on global value chain par"
+[HTTP] Retry 2/2 after 2000ms: fetch failed
+[HTTP] Retry 2/2 after 2000ms: fetch failed
+[HTTP] Retry 2/2 after 2000ms: fetch failed
+[HTTP] Retry 2/2 after 2000ms: fetch failed
+[SemanticScholar] Search failed: HTTP 429 
+[SemanticScholar] Found 21 papers
+[SemanticScholar] 9/21 with rich abstracts (43%)
+[IMF-SDMX] Dataflow fetch failed: fetch failed
+[IMF-SDMX] Dataflow fetch failed: fetch failed
+[IMF-SDMX] Dataflow fetch failed: fetch failed
+[IMF-SDMX] Dataflow fetch failed: fetch failed
+[SemanticScholar] Search failed: HTTP 429 
+[HTTP] Retry 2/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policy%20and%20upgrading%20in%20Indonesian%20manufacturing%20value%20chains&per-page=30&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 2/3 after 30000ms: https://api.openalex.org/works?search=government%20industrial%20policies%20and%20value%20chain%20upgrading%20in%20emerging%20markets&per-page=30&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 2/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policy%20value%20chain%20upgrading%20emerging%20economies%20Indonesia%20manufacturing%20upgrading&per-page=20&filter=authorships.institutions.ror%3Ahttps%3A%2F%2Fror.org%2F04grmx538&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 2/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policy%20impact%20on%20global%20value%20chain%20participation%20in%20developing%20countries&per-page=30&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 2/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policy%20value%20chain%20upgrading%20emerging%20economies%20Indonesia%20manufacturing%20upgrading&per-page=30&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 3/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policy%20and%20upgrading%20in%20Indonesian%20manufacturing%20value%20chains&per-page=30&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 3/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policy%20value%20chain%20upgrading%20emerging%20economies%20Indonesia%20manufacturing%20upgrading&per-page=30&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 3/3 after 30000ms: https://api.openalex.org/works?search=government%20industrial%20policies%20and%20value%20chain%20upgrading%20in%20emerging%20markets&per-page=30&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 3/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policy%20value%20chain%20upgrading%20emerging%20economies%20Indonesia%20manufacturing%20upgrading&per-page=20&filter=authorships.institutions.ror%3Ahttps%3A%2F%2Fror.org%2F04grmx538&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 3/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policy%20impact%20on%20global%20value%20chain%20participation%20in%20developing%20countries&per-page=30&api_key=idTr1pFPkemE7N3z2e3lcv
+[OpenAlex] Search failed: HTTP 429 
+[OpenAlex] Search failed: HTTP 429 
+[OpenAlex] Search failed: HTTP 429 
+[OpenAlex] Search failed: HTTP 429 
+[nber] Found 0 publications (filter: https://ror.org/04grmx538)
+[OpenAlex] Search failed: HTTP 429 
+[HTTP] Retry 1/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policy%20impact%20on%20global%20value%20chain%20participation%20in%20developing%20countries&per-page=20&filter=authorships.institutions.ror%3Ahttps%3A%2F%2Fror.org%2F04grmx538&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 1/3 after 30000ms: https://api.openalex.org/works?search=government%20industrial%20policies%20and%20value%20chain%20upgrading%20in%20emerging%20markets&per-page=20&filter=authorships.institutions.ror%3Ahttps%3A%2F%2Fror.org%2F04grmx538&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 1/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policy%20and%20upgrading%20in%20Indonesian%20manufacturing%20value%20chains&per-page=20&filter=authorships.institutions.ror%3Ahttps%3A%2F%2Fror.org%2F04grmx538&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 2/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policy%20impact%20on%20global%20value%20chain%20participation%20in%20developing%20countries&per-page=20&filter=authorships.institutions.ror%3Ahttps%3A%2F%2Fror.org%2F04grmx538&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 2/3 after 30000ms: https://api.openalex.org/works?search=government%20industrial%20policies%20and%20value%20chain%20upgrading%20in%20emerging%20markets&per-page=20&filter=authorships.institutions.ror%3Ahttps%3A%2F%2Fror.org%2F04grmx538&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 2/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policy%20and%20upgrading%20in%20Indonesian%20manufacturing%20value%20chains&per-page=20&filter=authorships.institutions.ror%3Ahttps%3A%2F%2Fror.org%2F04grmx538&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 3/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policy%20and%20upgrading%20in%20Indonesian%20manufacturing%20value%20chains&per-page=20&filter=authorships.institutions.ror%3Ahttps%3A%2F%2Fror.org%2F04grmx538&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 3/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policy%20impact%20on%20global%20value%20chain%20participation%20in%20developing%20countries&per-page=20&filter=authorships.institutions.ror%3Ahttps%3A%2F%2Fror.org%2F04grmx538&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 3/3 after 30000ms: https://api.openalex.org/works?search=government%20industrial%20policies%20and%20value%20chain%20upgrading%20in%20emerging%20markets&per-page=20&filter=authorships.institutions.ror%3Ahttps%3A%2F%2Fror.org%2F04grmx538&api_key=idTr1pFPkemE7N3z2e3lcv
+[OpenAlex] Search failed: HTTP 429 
+[nber] Found 0 publications (filter: https://ror.org/04grmx538)
+[OpenAlex] Search failed: HTTP 429 
+[nber] Found 0 publications (filter: https://ror.org/04grmx538)
+[OpenAlex] Search failed: HTTP 429 
+[nber] Found 0 publications (filter: https://ror.org/04grmx538)
+[SCOUT] Per-provider results: _unknown=0, crossref=120, arxiv=120, imf=20, semanticscholar=9
+[SCOUT] Raw results: 269 sources from 4 query variations (4 providers: crossref, arxiv, imf, semanticscholar)
+[SCOUT] After dedup: 208/269
+[SCOUT] After relevance filter: 8/208
+
+[RelevanceScorer] Top 5 sources by relevance:
+1. [17%] Industrialization paths and industrial policy for developing countries in global
+   Topic: 38% | Field: 50% | Semantic: 6% | Temporal: 70% | TitleBonus: 30% | Concepts: 3/7 (x0.43)
+2. [16%] Industrial Policy and Global Value Chains in India: Evaluating the Impact of PLI
+   Topic: 30% | Field: 50% | Semantic: 1% | Temporal: 90% | TitleBonus: 30% | Concepts: 3/7 (x0.43)
+3. [14%] Global Value Chains, Industrial Upgrading, and Local Labor Markets
+   Topic: 23% | Field: 50% | Semantic: 1% | Temporal: 90% | TitleBonus: 30% | Concepts: 3/7 (x0.43)
+4. [14%] Technological Disruptions, GVCs, and Industrial Policy
+   Topic: 23% | Field: 50% | Semantic: 1% | Temporal: 70% | TitleBonus: 30% | Concepts: 3/7 (x0.43)
+5. [13%] Industrial Policy in Indonesia: A Global Value Chain Perspective
+   Topic: 25% | Field: 50% | Semantic: 1% | Temporal: 50% | TitleBonus: 30% | Concepts: 3/7 (x0.43)
+
+⚠️  8 sources below 40% relevance (filtered out)
+[Reranker] Cohere reranked 8 sources → 7 results (min score: 0.1)
+[SCOUT] After Cohere rerank: 7 sources
+[SCOUT] Enriched 7 sources with Unpaywall (batched)
+[SCOUT] Done in 183700ms: 269 raw â†’ 208 dedup â†’ 7 ranked â†’ 7 saved
+[Pipeline] DEEP PLANNER: node n2 "What is the direct effect of industrial policies on value ch" → 7 sources
+[SCOUT] Cache MISS for "What is the direct effect of foreign investment on value chain upgrading in emerging economies like Indonesia?", running providers...
+✅ deepseek/deepseek-v4-flash [query_enhancement] | 1767ms | 771+143 tok | $0.0001
+[SCOUT] Query enhanced: "foreign direct investment value chain upgrading emerging economies Indonesia" (+3 variations)
+[SCOUT] Launching 24 parallel requests across 4 query variations
+[HTTP] Retry 1/2 after 1000ms: fetch failed
+[HTTP] Retry 1/2 after 1000ms: fetch failed
+[HTTP] Retry 1/2 after 1000ms: fetch failed
+[HTTP] Retry 1/2 after 1000ms: fetch failed
+[HTTP] Retry 1/3 after 30000ms: https://api.openalex.org/works?search=foreign%20investment%20and%20industrial%20upgrading%20in%20emerging%20markets&per-page=30&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 1/3 after 30000ms: https://api.openalex.org/works?search=foreign%20direct%20investment%20value%20chain%20upgrading%20emerging%20economies%20Indonesia&per-page=20&filter=authorships.institutions.ror%3Ahttps%3A%2F%2Fror.org%2F04grmx538&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 1/3 after 30000ms: https://api.openalex.org/works?search=foreign%20direct%20investment%20value%20chain%20upgrading%20emerging%20economies%20Indonesia&per-page=30&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 1/3 after 30000ms: https://api.openalex.org/works?search=FDI%20impact%20on%20global%20value%20chain%20participation%20in%20developing%20countries&per-page=30&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 1/3 after 30000ms: https://api.openalex.org/works?search=role%20of%20FDI%20in%20value%20chain%20modernization%20in%20Indonesia&per-page=30&api_key=idTr1pFPkemE7N3z2e3lcv
+[SemanticScholar] Search failed: HTTP 429 
+[Crossref] Found 30 works for "role of FDI in value chain modernization in Indone"
+[Crossref] Found 30 works for "foreign direct investment value chain upgrading em"
+[Crossref] Found 30 works for "foreign investment and industrial upgrading in eme"
+[Crossref] Found 30 works for "FDI impact on global value chain participation in "
+[HTTP] Retry 2/2 after 2000ms: fetch failed
+[HTTP] Retry 2/2 after 2000ms: fetch failed
+[HTTP] Retry 2/2 after 2000ms: fetch failed
+[HTTP] Retry 2/2 after 2000ms: fetch failed
+[SemanticScholar] Search failed: HTTP 429 
+[SemanticScholar] Found 30 papers
+[SemanticScholar] 11/30 with rich abstracts (37%)
+[IMF-SDMX] Dataflow fetch failed: fetch failed
+[IMF-SDMX] Dataflow fetch failed: fetch failed
+[IMF-SDMX] Dataflow fetch failed: fetch failed
+[IMF-SDMX] Dataflow fetch failed: fetch failed
+[SemanticScholar] Search failed: HTTP 429 
+[HTTP] Retry 2/3 after 30000ms: https://api.openalex.org/works?search=foreign%20direct%20investment%20value%20chain%20upgrading%20emerging%20economies%20Indonesia&per-page=30&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 2/3 after 30000ms: https://api.openalex.org/works?search=FDI%20impact%20on%20global%20value%20chain%20participation%20in%20developing%20countries&per-page=30&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 2/3 after 30000ms: https://api.openalex.org/works?search=foreign%20investment%20and%20industrial%20upgrading%20in%20emerging%20markets&per-page=30&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 2/3 after 30000ms: https://api.openalex.org/works?search=foreign%20direct%20investment%20value%20chain%20upgrading%20emerging%20economies%20Indonesia&per-page=20&filter=authorships.institutions.ror%3Ahttps%3A%2F%2Fror.org%2F04grmx538&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 2/3 after 30000ms: https://api.openalex.org/works?search=role%20of%20FDI%20in%20value%20chain%20modernization%20in%20Indonesia&per-page=30&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 3/3 after 30000ms: https://api.openalex.org/works?search=role%20of%20FDI%20in%20value%20chain%20modernization%20in%20Indonesia&per-page=30&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 3/3 after 30000ms: https://api.openalex.org/works?search=foreign%20direct%20investment%20value%20chain%20upgrading%20emerging%20economies%20Indonesia&per-page=30&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 3/3 after 30000ms: https://api.openalex.org/works?search=FDI%20impact%20on%20global%20value%20chain%20participation%20in%20developing%20countries&per-page=30&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 3/3 after 30000ms: https://api.openalex.org/works?search=foreign%20investment%20and%20industrial%20upgrading%20in%20emerging%20markets&per-page=30&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 3/3 after 30000ms: https://api.openalex.org/works?search=foreign%20direct%20investment%20value%20chain%20upgrading%20emerging%20economies%20Indonesia&per-page=20&filter=authorships.institutions.ror%3Ahttps%3A%2F%2Fror.org%2F04grmx538&api_key=idTr1pFPkemE7N3z2e3lcv
+[OpenAlex] Search failed: HTTP 429 
+[HTTP] Retry 1/3 after 30000ms: https://api.openalex.org/works?search=FDI%20impact%20on%20global%20value%20chain%20participation%20in%20developing%20countries&per-page=20&filter=authorships.institutions.ror%3Ahttps%3A%2F%2Fror.org%2F04grmx538&api_key=idTr1pFPkemE7N3z2e3lcv
+[OpenAlex] Search failed: HTTP 429 
+[OpenAlex] Search failed: HTTP 429 
+[OpenAlex] Search failed: HTTP 429 
+[nber] Found 0 publications (filter: https://ror.org/04grmx538)
+[OpenAlex] Search failed: HTTP 429 
+[HTTP] Retry 1/3 after 30000ms: https://api.openalex.org/works?search=foreign%20investment%20and%20industrial%20upgrading%20in%20emerging%20markets&per-page=20&filter=authorships.institutions.ror%3Ahttps%3A%2F%2Fror.org%2F04grmx538&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 1/3 after 30000ms: https://api.openalex.org/works?search=role%20of%20FDI%20in%20value%20chain%20modernization%20in%20Indonesia&per-page=20&filter=authorships.institutions.ror%3Ahttps%3A%2F%2Fror.org%2F04grmx538&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 2/3 after 30000ms: https://api.openalex.org/works?search=FDI%20impact%20on%20global%20value%20chain%20participation%20in%20developing%20countries&per-page=20&filter=authorships.institutions.ror%3Ahttps%3A%2F%2Fror.org%2F04grmx538&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 2/3 after 30000ms: https://api.openalex.org/works?search=foreign%20investment%20and%20industrial%20upgrading%20in%20emerging%20markets&per-page=20&filter=authorships.institutions.ror%3Ahttps%3A%2F%2Fror.org%2F04grmx538&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 2/3 after 30000ms: https://api.openalex.org/works?search=role%20of%20FDI%20in%20value%20chain%20modernization%20in%20Indonesia&per-page=20&filter=authorships.institutions.ror%3Ahttps%3A%2F%2Fror.org%2F04grmx538&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 3/3 after 30000ms: https://api.openalex.org/works?search=FDI%20impact%20on%20global%20value%20chain%20participation%20in%20developing%20countries&per-page=20&filter=authorships.institutions.ror%3Ahttps%3A%2F%2Fror.org%2F04grmx538&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 3/3 after 30000ms: https://api.openalex.org/works?search=role%20of%20FDI%20in%20value%20chain%20modernization%20in%20Indonesia&per-page=20&filter=authorships.institutions.ror%3Ahttps%3A%2F%2Fror.org%2F04grmx538&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 3/3 after 30000ms: https://api.openalex.org/works?search=foreign%20investment%20and%20industrial%20upgrading%20in%20emerging%20markets&per-page=20&filter=authorships.institutions.ror%3Ahttps%3A%2F%2Fror.org%2F04grmx538&api_key=idTr1pFPkemE7N3z2e3lcv
+[OpenAlex] Search failed: HTTP 429 
+[nber] Found 0 publications (filter: https://ror.org/04grmx538)
+[OpenAlex] Search failed: HTTP 429 
+[nber] Found 0 publications (filter: https://ror.org/04grmx538)
+[OpenAlex] Search failed: HTTP 429 
+[nber] Found 0 publications (filter: https://ror.org/04grmx538)
+[SCOUT] Per-provider results: _unknown=0, crossref=120, arxiv=120, imf=20, semanticscholar=11
+[SCOUT] Raw results: 271 sources from 4 query variations (4 providers: crossref, arxiv, imf, semanticscholar)
+[SCOUT] After dedup: 229/271
+[SCOUT] After relevance filter: 30/229
+
+[RelevanceScorer] Top 5 sources by relevance:
+1. [30%] Foreign Direct Investment and Industrial Upgrading in Developing Economies: A Ca
+   Topic: 31% | Field: 50% | Semantic: 2% | Temporal: 90% | TitleBonus: 30% | Concepts: 4/5 (x0.80)
+2. [23%] Determinants of Foreign Direct Investment in Indonesia
+   Topic: 34% | Field: 50% | Semantic: 2% | Temporal: 90% | TitleBonus: 30% | Concepts: 3/5 (x0.60)
+3. [22%] FDI, Global Value Chains, and Local Sourcing in Developing Countries
+   Topic: 34% | Field: 50% | Semantic: 3% | Temporal: 70% | TitleBonus: 30% | Concepts: 3/5 (x0.60)
+4. [22%] Outward Foreign Direct Investment in Emerging Economies
+   Topic: 34% | Field: 50% | Semantic: 3% | Temporal: 70% | TitleBonus: 30% | Concepts: 3/5 (x0.60)
+5. [21%] Rapid FDI of emerging-market firms: foreign participation and leapfrogging in th
+   Topic: 26% | Field: 50% | Semantic: 2% | Temporal: 90% | TitleBonus: 30% | Concepts: 3/5 (x0.60)
+
+⚠️  30 sources below 40% relevance (filtered out)
+[Reranker] Cohere reranked 30 sources → 12 results (min score: 0.1)
+[SCOUT] After Cohere rerank: 12 sources
+[Unpaywall] Lookup failed for 10.37473/fic/10.1108/ijoem-12-2021-1878: HTTP 404 
+[Unpaywall] Lookup failed for 10.37473/dac/10.1108/ijoem-12-2021-1878: HTTP 404 
+[SCOUT] Enriched 10 sources with Unpaywall (batched)
+[SCOUT] Done in 183400ms: 271 raw â†’ 229 dedup â†’ 12 ranked â†’ 12 saved
+[Pipeline] DEEP PLANNER: node n3 "What is the direct effect of foreign investment on value cha" → 12 sources
+[SCOUT] Cache MISS for "What mechanisms explain how industrial policies and foreign investment influence value chain upgrading?", running providers...
+✅ deepseek/deepseek-v4-flash [query_enhancement] | 1853ms | 767+143 tok | $0.0001
+[SCOUT] Query enhanced: "industrial policy foreign direct investment global value chain upgrading mechanisms" (+3 variations)
+[OpenReview] Searching for: "industrial policy foreign direct investment global value chain upgrading mechanisms"
+[bioRxiv] Searching for: "industrial policy foreign direct investment global value chain upgrading mechanisms"
+[PapersWithCode] Searching for: "industrial policy foreign direct investment global value chain upgrading mechanisms"
+[MIT-DSpace] Searching for: "industrial policy foreign direct investment global value chain upgrading mechanisms"
+[Harvard-DASH] Searching for: "industrial policy foreign direct investment global value chain upgrading mechanisms"
+[MaxPlanck-PuRe] Searching for: "industrial policy foreign direct investment global value chain upgrading mechanisms"
+[AllenAI] Searching via OpenAlex ROR for: "industrial policy foreign direct investment global value chain upgrading mechanisms"
+[INRIA] Searching via OpenAlex ROR for: "industrial policy foreign direct investment global value chain upgrading mechanisms"
+[SCOUT] Dimensions: skipped (no DIMENSIONS_API_KEY)
+[SCOUT] Lens: skipped (no LENS_API_TOKEN)
+[OpenReview] Searching for: "industrial policies FDI value chain upgrading economic development"
+[bioRxiv] Searching for: "industrial policies FDI value chain upgrading economic development"
+[PapersWithCode] Searching for: "industrial policies FDI value chain upgrading economic development"
+[MIT-DSpace] Searching for: "industrial policies FDI value chain upgrading economic development"
+[Harvard-DASH] Searching for: "industrial policies FDI value chain upgrading economic development"
+[MaxPlanck-PuRe] Searching for: "industrial policies FDI value chain upgrading economic development"
+[AllenAI] Searching via OpenAlex ROR for: "industrial policies FDI value chain upgrading economic development"
+[INRIA] Searching via OpenAlex ROR for: "industrial policies FDI value chain upgrading economic development"
+[SCOUT] Dimensions: skipped (no DIMENSIONS_API_KEY)
+[SCOUT] Lens: skipped (no LENS_API_TOKEN)
+[OpenReview] Searching for: "foreign investment industrial policy upgrading global value chains"
+[bioRxiv] Searching for: "foreign investment industrial policy upgrading global value chains"
+[PapersWithCode] Searching for: "foreign investment industrial policy upgrading global value chains"
+[MIT-DSpace] Searching for: "foreign investment industrial policy upgrading global value chains"
+[Harvard-DASH] Searching for: "foreign investment industrial policy upgrading global value chains"
+[MaxPlanck-PuRe] Searching for: "foreign investment industrial policy upgrading global value chains"
+[AllenAI] Searching via OpenAlex ROR for: "foreign investment industrial policy upgrading global value chains"
+[INRIA] Searching via OpenAlex ROR for: "foreign investment industrial policy upgrading global value chains"
+[SCOUT] Dimensions: skipped (no DIMENSIONS_API_KEY)
+[SCOUT] Lens: skipped (no LENS_API_TOKEN)
+[OpenReview] Searching for: "mechanisms industrial policy FDI value chain modernization"
+[bioRxiv] Searching for: "mechanisms industrial policy FDI value chain modernization"
+[PapersWithCode] Searching for: "mechanisms industrial policy FDI value chain modernization"
+[MIT-DSpace] Searching for: "mechanisms industrial policy FDI value chain modernization"
+[Harvard-DASH] Searching for: "mechanisms industrial policy FDI value chain modernization"
+[MaxPlanck-PuRe] Searching for: "mechanisms industrial policy FDI value chain modernization"
+[AllenAI] Searching via OpenAlex ROR for: "mechanisms industrial policy FDI value chain modernization"
+[INRIA] Searching via OpenAlex ROR for: "mechanisms industrial policy FDI value chain modernization"
+[SCOUT] Dimensions: skipped (no DIMENSIONS_API_KEY)
+[SCOUT] Lens: skipped (no LENS_API_TOKEN)
+[SCOUT] Launching 72 parallel requests across 4 query variations
+[HTTP] Retry 1/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policy%20foreign%20direct%20investment%20global%20value%20chain%20upgrading%20mechanisms&per-page=15&filter=authorships.institutions.ror%3Ahttps%3A%2F%2Fror.org%2F02kvxyf05&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 1/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policy%20foreign%20direct%20investment%20global%20value%20chain%20upgrading%20mechanisms&per-page=30&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 1/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policy%20foreign%20direct%20investment%20global%20value%20chain%20upgrading%20mechanisms&per-page=15&filter=authorships.institutions.ror%3Ahttps%3A%2F%2Fror.org%2F05w520734&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 1/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policy%20foreign%20direct%20investment%20global%20value%20chain%20upgrading%20mechanisms%20artificial%20intelligence%20policy%20institute&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+CORE search failed: HttpError: HTTP 401 
+    at httpGet (C:\Users\DELL\Desktop\NomosX-master\lib\http-client.ts:259:17)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async searchCORE (C:\Users\DELL\Desktop\NomosX-master\lib\providers\core.ts:23:23)
+    at async Promise.allSettled (index 4)
+    at async scoutImpl (C:\Users\DELL\Desktop\NomosX-master\lib\agent\pipeline-v2.ts:824:22)
+    at async scout (C:\Users\DELL\Desktop\NomosX-master\lib\agent\pipeline-v2.ts:486:18)
+    at async runPipelineCore (C:\Users\DELL\Desktop\NomosX-master\lib\agent\pipeline-v2.ts:1798:28) {
+  status: 401,
+  response: '{"message":"Your trial API key period has expired, you will need to get a license to keep using it."}'
+}
+[HTTP] Retry 1/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policy%20foreign%20direct%20investment%20global%20value%20chain%20upgrading%20mechanisms%20AI%20social%20impact%20algorithmic%20accountability&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+CORE search failed: HttpError: HTTP 401 
+    at httpGet (C:\Users\DELL\Desktop\NomosX-master\lib\http-client.ts:259:17)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async searchCORE (C:\Users\DELL\Desktop\NomosX-master\lib\providers\core.ts:23:23)
+    at async Promise.allSettled (index 40)
+    at async scoutImpl (C:\Users\DELL\Desktop\NomosX-master\lib\agent\pipeline-v2.ts:824:22)
+    at async scout (C:\Users\DELL\Desktop\NomosX-master\lib\agent\pipeline-v2.ts:486:18)
+    at async runPipelineCore (C:\Users\DELL\Desktop\NomosX-master\lib\agent\pipeline-v2.ts:1798:28) {
+  status: 401,
+  response: '{"message":"Your trial API key period has expired, you will need to get a license to keep using it."}'
+}
+CORE search failed: HttpError: HTTP 401 
+    at httpGet (C:\Users\DELL\Desktop\NomosX-master\lib\http-client.ts:259:17)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async searchCORE (C:\Users\DELL\Desktop\NomosX-master\lib\providers\core.ts:23:23)
+    at async Promise.allSettled (index 22)
+    at async scoutImpl (C:\Users\DELL\Desktop\NomosX-master\lib\agent\pipeline-v2.ts:824:22)
+    at async scout (C:\Users\DELL\Desktop\NomosX-master\lib\agent\pipeline-v2.ts:486:18)
+    at async runPipelineCore (C:\Users\DELL\Desktop\NomosX-master\lib\agent\pipeline-v2.ts:1798:28) {
+  status: 401,
+  response: '{"message":"Your trial API key period has expired, you will need to get a license to keep using it."}'
+}
+CORE search failed: HttpError: HTTP 401 
+    at httpGet (C:\Users\DELL\Desktop\NomosX-master\lib\http-client.ts:259:17)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async searchCORE (C:\Users\DELL\Desktop\NomosX-master\lib\providers\core.ts:23:23)
+    at async Promise.allSettled (index 58)
+    at async scoutImpl (C:\Users\DELL\Desktop\NomosX-master\lib\agent\pipeline-v2.ts:824:22)
+    at async scout (C:\Users\DELL\Desktop\NomosX-master\lib\agent\pipeline-v2.ts:486:18)
+    at async runPipelineCore (C:\Users\DELL\Desktop\NomosX-master\lib\agent\pipeline-v2.ts:1798:28) {
+  status: 401,
+  response: '{"message":"Your trial API key period has expired, you will need to get a license to keep using it."}'
+}
+[MaxPlanck-PuRe] Found 10 publications
+[MaxPlanck-PuRe] Found 10 publications
+[MaxPlanck-PuRe] Found 10 publications
+[SCOUT/Springer] Direct API error: HTTP 401  — falling back to OpenAlex
+[SCOUT/Springer] Direct API error: HTTP 401  — falling back to OpenAlex
+[SCOUT/Springer] Direct API error: HTTP 401  — falling back to OpenAlex
+[SCOUT/Springer] Direct API error: HTTP 401  — falling back to OpenAlex
+[MaxPlanck-PuRe] Found 10 publications
+[SemanticScholar] Search failed: HTTP 429 
+[PapersWithCode] Found 20 papers
+[MIT-DSpace] Found 15 works
+[MIT-DSpace] Found 15 works
+[Harvard-DASH] Found 15 works
+[Harvard-DASH] Found 15 works
+[MIT-DSpace] Found 15 works
+[PapersWithCode] Found 20 papers
+[MIT-DSpace] Found 15 works
+[Harvard-DASH] Found 15 works
+[Crossref] Found 30 works for "industrial policy foreign direct investment global"
+[Harvard-DASH] Found 15 works
+[PapersWithCode] Found 20 papers
+[PapersWithCode] Found 20 papers
+[Crossref] Found 30 works for "industrial policies FDI value chain upgrading econ"
+[Crossref] Found 30 works for "mechanisms industrial policy FDI value chain moder"
+[Crossref] Found 30 works for "foreign investment industrial policy upgrading glo"
+[SemanticScholar] Search failed: HTTP 429 
+[SemanticScholar] Search failed: HTTP 429 
+[OpenReview] Found 20 papers
+[OpenReview] Found 20 papers
+[OpenReview] Found 20 papers
+[OpenReview] Found 20 papers
+[SemanticScholar] Search failed: HTTP 429 
+[bioRxiv] Search failed: timeout of 15000ms exceeded
+[bioRxiv] Search failed: timeout of 15000ms exceeded
+[bioRxiv] Search failed: timeout of 15000ms exceeded
+[bioRxiv] Search failed: timeout of 15000ms exceeded
+[HTTP] Retry 2/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policy%20foreign%20direct%20investment%20global%20value%20chain%20upgrading%20mechanisms&per-page=15&filter=authorships.institutions.ror%3Ahttps%3A%2F%2Fror.org%2F02kvxyf05&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 2/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policy%20foreign%20direct%20investment%20global%20value%20chain%20upgrading%20mechanisms&per-page=30&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 2/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policy%20foreign%20direct%20investment%20global%20value%20chain%20upgrading%20mechanisms&per-page=15&filter=authorships.institutions.ror%3Ahttps%3A%2F%2Fror.org%2F05w520734&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 2/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policy%20foreign%20direct%20investment%20global%20value%20chain%20upgrading%20mechanisms%20artificial%20intelligence%20policy%20institute&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 2/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policy%20foreign%20direct%20investment%20global%20value%20chain%20upgrading%20mechanisms%20AI%20social%20impact%20algorithmic%20accountability&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 3/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policy%20foreign%20direct%20investment%20global%20value%20chain%20upgrading%20mechanisms&per-page=15&filter=authorships.institutions.ror%3Ahttps%3A%2F%2Fror.org%2F02kvxyf05&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 3/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policy%20foreign%20direct%20investment%20global%20value%20chain%20upgrading%20mechanisms%20artificial%20intelligence%20policy%20institute&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 3/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policy%20foreign%20direct%20investment%20global%20value%20chain%20upgrading%20mechanisms&per-page=15&filter=authorships.institutions.ror%3Ahttps%3A%2F%2Fror.org%2F05w520734&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 3/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policy%20foreign%20direct%20investment%20global%20value%20chain%20upgrading%20mechanisms&per-page=30&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 3/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policy%20foreign%20direct%20investment%20global%20value%20chain%20upgrading%20mechanisms%20AI%20social%20impact%20algorithmic%20accountability&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[OpenAlex] Search failed: HTTP 429 
+[AllenAI] Found 0 publications
+[OpenAlex] Search failed: HTTP 429 
+[OpenAlex] Search failed: HTTP 429 
+[INRIA] Found 0 publications
+[HTTP] Retry 1/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policy%20foreign%20direct%20investment%20global%20value%20chain%20upgrading%20mechanisms%20AI%20democracy%20public%20participation%20governance&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[OpenAlex] Search failed: HTTP 429 
+[HTTP] Retry 1/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policy%20foreign%20direct%20investment%20global%20value%20chain%20upgrading%20mechanisms%20AI%20policy%20center%20governance&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 1/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policy%20foreign%20direct%20investment%20global%20value%20chain%20upgrading%20mechanisms%20AI%20security%20emerging%20technology%20policy&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 1/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policy%20foreign%20direct%20investment%20global%20value%20chain%20upgrading%20mechanisms%20data%20society%20technology%20social%20impact&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[OpenAlex] Search failed: HTTP 429 
+[HTTP] Retry 1/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policy%20foreign%20direct%20investment%20global%20value%20chain%20upgrading%20mechanisms%20AI%20governance%20policy%20global&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 2/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policy%20foreign%20direct%20investment%20global%20value%20chain%20upgrading%20mechanisms%20AI%20democracy%20public%20participation%20governance&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 2/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policy%20foreign%20direct%20investment%20global%20value%20chain%20upgrading%20mechanisms%20AI%20policy%20center%20governance&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 2/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policy%20foreign%20direct%20investment%20global%20value%20chain%20upgrading%20mechanisms%20AI%20security%20emerging%20technology%20policy&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 2/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policy%20foreign%20direct%20investment%20global%20value%20chain%20upgrading%20mechanisms%20data%20society%20technology%20social%20impact&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 2/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policy%20foreign%20direct%20investment%20global%20value%20chain%20upgrading%20mechanisms%20AI%20governance%20policy%20global&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 3/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policy%20foreign%20direct%20investment%20global%20value%20chain%20upgrading%20mechanisms%20AI%20democracy%20public%20participation%20governance&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 3/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policy%20foreign%20direct%20investment%20global%20value%20chain%20upgrading%20mechanisms%20AI%20policy%20center%20governance&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 3/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policy%20foreign%20direct%20investment%20global%20value%20chain%20upgrading%20mechanisms%20AI%20security%20emerging%20technology%20policy&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 3/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policy%20foreign%20direct%20investment%20global%20value%20chain%20upgrading%20mechanisms%20data%20society%20technology%20social%20impact&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 3/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policy%20foreign%20direct%20investment%20global%20value%20chain%20upgrading%20mechanisms%20AI%20governance%20policy%20global&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[OpenAlex] Search failed: HTTP 429 
+[HTTP] Retry 1/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policy%20foreign%20direct%20investment%20global%20value%20chain%20upgrading%20mechanisms%20AI%20policy%20safety%20international&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[OpenAlex] Search failed: HTTP 429 
+[OpenAlex] Search failed: HTTP 429 
+[OpenAlex] Search failed: HTTP 429 
+[OpenAlex] Search failed: HTTP 429 
+[HTTP] Retry 1/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policies%20FDI%20value%20chain%20upgrading%20economic%20development&per-page=30&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 1/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policies%20FDI%20value%20chain%20upgrading%20economic%20development&per-page=15&filter=authorships.institutions.ror%3Ahttps%3A%2F%2Fror.org%2F05w520734&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 1/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policies%20FDI%20value%20chain%20upgrading%20economic%20development&per-page=15&filter=authorships.institutions.ror%3Ahttps%3A%2F%2Fror.org%2F02kvxyf05&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 1/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policies%20FDI%20value%20chain%20upgrading%20economic%20development%20AI%20social%20impact%20algorithmic%20accountability&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 2/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policy%20foreign%20direct%20investment%20global%20value%20chain%20upgrading%20mechanisms%20AI%20policy%20safety%20international&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 2/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policies%20FDI%20value%20chain%20upgrading%20economic%20development&per-page=30&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 2/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policies%20FDI%20value%20chain%20upgrading%20economic%20development&per-page=15&filter=authorships.institutions.ror%3Ahttps%3A%2F%2Fror.org%2F02kvxyf05&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 2/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policies%20FDI%20value%20chain%20upgrading%20economic%20development&per-page=15&filter=authorships.institutions.ror%3Ahttps%3A%2F%2Fror.org%2F05w520734&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 2/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policies%20FDI%20value%20chain%20upgrading%20economic%20development%20AI%20social%20impact%20algorithmic%20accountability&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 3/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policies%20FDI%20value%20chain%20upgrading%20economic%20development&per-page=30&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 3/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policies%20FDI%20value%20chain%20upgrading%20economic%20development&per-page=15&filter=authorships.institutions.ror%3Ahttps%3A%2F%2Fror.org%2F05w520734&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 3/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policies%20FDI%20value%20chain%20upgrading%20economic%20development&per-page=15&filter=authorships.institutions.ror%3Ahttps%3A%2F%2Fror.org%2F02kvxyf05&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 3/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policies%20FDI%20value%20chain%20upgrading%20economic%20development%20AI%20social%20impact%20algorithmic%20accountability&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 3/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policy%20foreign%20direct%20investment%20global%20value%20chain%20upgrading%20mechanisms%20AI%20policy%20safety%20international&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[OpenAlex] Search failed: HTTP 429 
+[OpenAlex] Search failed: HTTP 429 
+[AllenAI] Found 0 publications
+[OpenAlex] Search failed: HTTP 429 
+[INRIA] Found 0 publications
+[HTTP] Retry 1/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policies%20FDI%20value%20chain%20upgrading%20economic%20development%20artificial%20intelligence%20policy%20institute&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[OpenAlex] Search failed: HTTP 429 
+[HTTP] Retry 1/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policies%20FDI%20value%20chain%20upgrading%20economic%20development%20AI%20democracy%20public%20participation%20governance&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 1/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policies%20FDI%20value%20chain%20upgrading%20economic%20development%20AI%20policy%20center%20governance&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 1/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policies%20FDI%20value%20chain%20upgrading%20economic%20development%20AI%20security%20emerging%20technology%20policy&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[OpenAlex] Search failed: HTTP 429 
+[HTTP] Retry 1/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policies%20FDI%20value%20chain%20upgrading%20economic%20development%20data%20society%20technology%20social%20impact&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 2/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policies%20FDI%20value%20chain%20upgrading%20economic%20development%20AI%20democracy%20public%20participation%20governance&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 2/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policies%20FDI%20value%20chain%20upgrading%20economic%20development%20artificial%20intelligence%20policy%20institute&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 2/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policies%20FDI%20value%20chain%20upgrading%20economic%20development%20AI%20policy%20center%20governance&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 2/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policies%20FDI%20value%20chain%20upgrading%20economic%20development%20AI%20security%20emerging%20technology%20policy&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 2/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policies%20FDI%20value%20chain%20upgrading%20economic%20development%20data%20society%20technology%20social%20impact&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 3/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policies%20FDI%20value%20chain%20upgrading%20economic%20development%20AI%20democracy%20public%20participation%20governance&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 3/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policies%20FDI%20value%20chain%20upgrading%20economic%20development%20AI%20policy%20center%20governance&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 3/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policies%20FDI%20value%20chain%20upgrading%20economic%20development%20artificial%20intelligence%20policy%20institute&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 3/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policies%20FDI%20value%20chain%20upgrading%20economic%20development%20AI%20security%20emerging%20technology%20policy&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 3/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policies%20FDI%20value%20chain%20upgrading%20economic%20development%20data%20society%20technology%20social%20impact&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[OpenAlex] Search failed: HTTP 429 
+[OpenAlex] Search failed: HTTP 429 
+[OpenAlex] Search failed: HTTP 429 
+[HTTP] Retry 1/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policies%20FDI%20value%20chain%20upgrading%20economic%20development%20AI%20governance%20policy%20global&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 1/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policies%20FDI%20value%20chain%20upgrading%20economic%20development%20AI%20policy%20safety%20international&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 1/3 after 30000ms: https://api.openalex.org/works?search=foreign%20investment%20industrial%20policy%20upgrading%20global%20value%20chains&per-page=30&api_key=idTr1pFPkemE7N3z2e3lcv
+[OpenAlex] Search failed: HTTP 429 
+[HTTP] Retry 1/3 after 30000ms: https://api.openalex.org/works?search=foreign%20investment%20industrial%20policy%20upgrading%20global%20value%20chains&per-page=15&filter=authorships.institutions.ror%3Ahttps%3A%2F%2Fror.org%2F05w520734&api_key=idTr1pFPkemE7N3z2e3lcv
+[OpenAlex] Search failed: HTTP 429 
+[HTTP] Retry 1/3 after 30000ms: https://api.openalex.org/works?search=foreign%20investment%20industrial%20policy%20upgrading%20global%20value%20chains&per-page=15&filter=authorships.institutions.ror%3Ahttps%3A%2F%2Fror.org%2F02kvxyf05&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 2/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policies%20FDI%20value%20chain%20upgrading%20economic%20development%20AI%20governance%20policy%20global&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 2/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policies%20FDI%20value%20chain%20upgrading%20economic%20development%20AI%20policy%20safety%20international&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 2/3 after 30000ms: https://api.openalex.org/works?search=foreign%20investment%20industrial%20policy%20upgrading%20global%20value%20chains&per-page=30&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 2/3 after 30000ms: https://api.openalex.org/works?search=foreign%20investment%20industrial%20policy%20upgrading%20global%20value%20chains&per-page=15&filter=authorships.institutions.ror%3Ahttps%3A%2F%2Fror.org%2F05w520734&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 2/3 after 30000ms: https://api.openalex.org/works?search=foreign%20investment%20industrial%20policy%20upgrading%20global%20value%20chains&per-page=15&filter=authorships.institutions.ror%3Ahttps%3A%2F%2Fror.org%2F02kvxyf05&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 3/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policies%20FDI%20value%20chain%20upgrading%20economic%20development%20AI%20governance%20policy%20global&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 3/3 after 30000ms: https://api.openalex.org/works?search=foreign%20investment%20industrial%20policy%20upgrading%20global%20value%20chains&per-page=30&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 3/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policies%20FDI%20value%20chain%20upgrading%20economic%20development%20AI%20policy%20safety%20international&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 3/3 after 30000ms: https://api.openalex.org/works?search=foreign%20investment%20industrial%20policy%20upgrading%20global%20value%20chains&per-page=15&filter=authorships.institutions.ror%3Ahttps%3A%2F%2Fror.org%2F05w520734&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 3/3 after 30000ms: https://api.openalex.org/works?search=foreign%20investment%20industrial%20policy%20upgrading%20global%20value%20chains&per-page=15&filter=authorships.institutions.ror%3Ahttps%3A%2F%2Fror.org%2F02kvxyf05&api_key=idTr1pFPkemE7N3z2e3lcv
+[OpenAlex] Search failed: HTTP 429 
+[OpenAlex] Search failed: HTTP 429 
+[OpenAlex] Search failed: HTTP 429 
+[HTTP] Retry 1/3 after 30000ms: https://api.openalex.org/works?search=foreign%20investment%20industrial%20policy%20upgrading%20global%20value%20chains%20AI%20social%20impact%20algorithmic%20accountability&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 1/3 after 30000ms: https://api.openalex.org/works?search=foreign%20investment%20industrial%20policy%20upgrading%20global%20value%20chains%20artificial%20intelligence%20policy%20institute&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 1/3 after 30000ms: https://api.openalex.org/works?search=foreign%20investment%20industrial%20policy%20upgrading%20global%20value%20chains%20AI%20democracy%20public%20participation%20governance&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[OpenAlex] Search failed: HTTP 429 
+[AllenAI] Found 0 publications
+[HTTP] Retry 1/3 after 30000ms: https://api.openalex.org/works?search=foreign%20investment%20industrial%20policy%20upgrading%20global%20value%20chains%20AI%20policy%20center%20governance&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[OpenAlex] Search failed: HTTP 429 
+[INRIA] Found 0 publications
+[HTTP] Retry 1/3 after 30000ms: https://api.openalex.org/works?search=foreign%20investment%20industrial%20policy%20upgrading%20global%20value%20chains%20AI%20security%20emerging%20technology%20policy&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 2/3 after 30000ms: https://api.openalex.org/works?search=foreign%20investment%20industrial%20policy%20upgrading%20global%20value%20chains%20AI%20democracy%20public%20participation%20governance&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 2/3 after 30000ms: https://api.openalex.org/works?search=foreign%20investment%20industrial%20policy%20upgrading%20global%20value%20chains%20AI%20social%20impact%20algorithmic%20accountability&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 2/3 after 30000ms: https://api.openalex.org/works?search=foreign%20investment%20industrial%20policy%20upgrading%20global%20value%20chains%20artificial%20intelligence%20policy%20institute&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 2/3 after 30000ms: https://api.openalex.org/works?search=foreign%20investment%20industrial%20policy%20upgrading%20global%20value%20chains%20AI%20policy%20center%20governance&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 2/3 after 30000ms: https://api.openalex.org/works?search=foreign%20investment%20industrial%20policy%20upgrading%20global%20value%20chains%20AI%20security%20emerging%20technology%20policy&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 3/3 after 30000ms: https://api.openalex.org/works?search=foreign%20investment%20industrial%20policy%20upgrading%20global%20value%20chains%20artificial%20intelligence%20policy%20institute&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 3/3 after 30000ms: https://api.openalex.org/works?search=foreign%20investment%20industrial%20policy%20upgrading%20global%20value%20chains%20AI%20social%20impact%20algorithmic%20accountability&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 3/3 after 30000ms: https://api.openalex.org/works?search=foreign%20investment%20industrial%20policy%20upgrading%20global%20value%20chains%20AI%20democracy%20public%20participation%20governance&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 3/3 after 30000ms: https://api.openalex.org/works?search=foreign%20investment%20industrial%20policy%20upgrading%20global%20value%20chains%20AI%20policy%20center%20governance&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 3/3 after 30000ms: https://api.openalex.org/works?search=foreign%20investment%20industrial%20policy%20upgrading%20global%20value%20chains%20AI%20security%20emerging%20technology%20policy&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[OpenAlex] Search failed: HTTP 429 
+[OpenAlex] Search failed: HTTP 429 
+[OpenAlex] Search failed: HTTP 429 
+[OpenAlex] Search failed: HTTP 429 
+[HTTP] Retry 1/3 after 30000ms: https://api.openalex.org/works?search=foreign%20investment%20industrial%20policy%20upgrading%20global%20value%20chains%20data%20society%20technology%20social%20impact&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 1/3 after 30000ms: https://api.openalex.org/works?search=foreign%20investment%20industrial%20policy%20upgrading%20global%20value%20chains%20AI%20governance%20policy%20global&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 1/3 after 30000ms: https://api.openalex.org/works?search=foreign%20investment%20industrial%20policy%20upgrading%20global%20value%20chains%20AI%20policy%20safety%20international&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 1/3 after 30000ms: https://api.openalex.org/works?search=mechanisms%20industrial%20policy%20FDI%20value%20chain%20modernization&per-page=30&api_key=idTr1pFPkemE7N3z2e3lcv
+[OpenAlex] Search failed: HTTP 429 
+[HTTP] Retry 1/3 after 30000ms: https://api.openalex.org/works?search=mechanisms%20industrial%20policy%20FDI%20value%20chain%20modernization&per-page=15&filter=authorships.institutions.ror%3Ahttps%3A%2F%2Fror.org%2F05w520734&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 2/3 after 30000ms: https://api.openalex.org/works?search=foreign%20investment%20industrial%20policy%20upgrading%20global%20value%20chains%20data%20society%20technology%20social%20impact&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 2/3 after 30000ms: https://api.openalex.org/works?search=foreign%20investment%20industrial%20policy%20upgrading%20global%20value%20chains%20AI%20governance%20policy%20global&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 2/3 after 30000ms: https://api.openalex.org/works?search=mechanisms%20industrial%20policy%20FDI%20value%20chain%20modernization&per-page=30&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 2/3 after 30000ms: https://api.openalex.org/works?search=foreign%20investment%20industrial%20policy%20upgrading%20global%20value%20chains%20AI%20policy%20safety%20international&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 2/3 after 30000ms: https://api.openalex.org/works?search=mechanisms%20industrial%20policy%20FDI%20value%20chain%20modernization&per-page=15&filter=authorships.institutions.ror%3Ahttps%3A%2F%2Fror.org%2F05w520734&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 3/3 after 30000ms: https://api.openalex.org/works?search=foreign%20investment%20industrial%20policy%20upgrading%20global%20value%20chains%20AI%20governance%20policy%20global&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 3/3 after 30000ms: https://api.openalex.org/works?search=foreign%20investment%20industrial%20policy%20upgrading%20global%20value%20chains%20data%20society%20technology%20social%20impact&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 3/3 after 30000ms: https://api.openalex.org/works?search=foreign%20investment%20industrial%20policy%20upgrading%20global%20value%20chains%20AI%20policy%20safety%20international&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 3/3 after 30000ms: https://api.openalex.org/works?search=mechanisms%20industrial%20policy%20FDI%20value%20chain%20modernization&per-page=30&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 3/3 after 30000ms: https://api.openalex.org/works?search=mechanisms%20industrial%20policy%20FDI%20value%20chain%20modernization&per-page=15&filter=authorships.institutions.ror%3Ahttps%3A%2F%2Fror.org%2F05w520734&api_key=idTr1pFPkemE7N3z2e3lcv
+[OpenAlex] Search failed: HTTP 429 
+[OpenAlex] Search failed: HTTP 429 
+[OpenAlex] Search failed: HTTP 429 
+[OpenAlex] Search failed: HTTP 429 
+[HTTP] Retry 1/3 after 30000ms: https://api.openalex.org/works?search=mechanisms%20industrial%20policy%20FDI%20value%20chain%20modernization&per-page=15&filter=authorships.institutions.ror%3Ahttps%3A%2F%2Fror.org%2F02kvxyf05&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 1/3 after 30000ms: https://api.openalex.org/works?search=mechanisms%20industrial%20policy%20FDI%20value%20chain%20modernization%20AI%20social%20impact%20algorithmic%20accountability&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 1/3 after 30000ms: https://api.openalex.org/works?search=mechanisms%20industrial%20policy%20FDI%20value%20chain%20modernization%20artificial%20intelligence%20policy%20institute&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 1/3 after 30000ms: https://api.openalex.org/works?search=mechanisms%20industrial%20policy%20FDI%20value%20chain%20modernization%20AI%20democracy%20public%20participation%20governance&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[OpenAlex] Search failed: HTTP 429 
+[AllenAI] Found 0 publications
+[HTTP] Retry 1/3 after 30000ms: https://api.openalex.org/works?search=mechanisms%20industrial%20policy%20FDI%20value%20chain%20modernization%20AI%20policy%20center%20governance&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 2/3 after 30000ms: https://api.openalex.org/works?search=mechanisms%20industrial%20policy%20FDI%20value%20chain%20modernization%20AI%20democracy%20public%20participation%20governance&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 2/3 after 30000ms: https://api.openalex.org/works?search=mechanisms%20industrial%20policy%20FDI%20value%20chain%20modernization%20AI%20social%20impact%20algorithmic%20accountability&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 2/3 after 30000ms: https://api.openalex.org/works?search=mechanisms%20industrial%20policy%20FDI%20value%20chain%20modernization&per-page=15&filter=authorships.institutions.ror%3Ahttps%3A%2F%2Fror.org%2F02kvxyf05&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 2/3 after 30000ms: https://api.openalex.org/works?search=mechanisms%20industrial%20policy%20FDI%20value%20chain%20modernization%20artificial%20intelligence%20policy%20institute&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 2/3 after 30000ms: https://api.openalex.org/works?search=mechanisms%20industrial%20policy%20FDI%20value%20chain%20modernization%20AI%20policy%20center%20governance&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 3/3 after 30000ms: https://api.openalex.org/works?search=mechanisms%20industrial%20policy%20FDI%20value%20chain%20modernization%20AI%20democracy%20public%20participation%20governance&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 3/3 after 30000ms: https://api.openalex.org/works?search=mechanisms%20industrial%20policy%20FDI%20value%20chain%20modernization%20artificial%20intelligence%20policy%20institute&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 3/3 after 30000ms: https://api.openalex.org/works?search=mechanisms%20industrial%20policy%20FDI%20value%20chain%20modernization%20AI%20social%20impact%20algorithmic%20accountability&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 3/3 after 30000ms: https://api.openalex.org/works?search=mechanisms%20industrial%20policy%20FDI%20value%20chain%20modernization&per-page=15&filter=authorships.institutions.ror%3Ahttps%3A%2F%2Fror.org%2F02kvxyf05&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 3/3 after 30000ms: https://api.openalex.org/works?search=mechanisms%20industrial%20policy%20FDI%20value%20chain%20modernization%20AI%20policy%20center%20governance&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[OpenAlex] Search failed: HTTP 429 
+[OpenAlex] Search failed: HTTP 429 
+[OpenAlex] Search failed: HTTP 429 
+[HTTP] Retry 1/3 after 30000ms: https://api.openalex.org/works?search=mechanisms%20industrial%20policy%20FDI%20value%20chain%20modernization%20data%20society%20technology%20social%20impact&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 1/3 after 30000ms: https://api.openalex.org/works?search=mechanisms%20industrial%20policy%20FDI%20value%20chain%20modernization%20AI%20security%20emerging%20technology%20policy&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[OpenAlex] Search failed: HTTP 429 
+[INRIA] Found 0 publications
+[HTTP] Retry 1/3 after 30000ms: https://api.openalex.org/works?search=mechanisms%20industrial%20policy%20FDI%20value%20chain%20modernization%20AI%20governance%20policy%20global&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 1/3 after 30000ms: https://api.openalex.org/works?search=mechanisms%20industrial%20policy%20FDI%20value%20chain%20modernization%20AI%20policy%20safety%20international&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[OpenAlex] Search failed: HTTP 429 
+[HTTP] Retry 1/3 after 30000ms: https://api.openalex.org/works?search=foreign%20investment%20industrial%20policy%20upgrading%20global%20value%20chains&per-page=20&filter=primary_location.source.id%3Ahttps%3A%2F%2Fopenalex.org%2FS4306401296&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 2/3 after 30000ms: https://api.openalex.org/works?search=mechanisms%20industrial%20policy%20FDI%20value%20chain%20modernization%20data%20society%20technology%20social%20impact&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 2/3 after 30000ms: https://api.openalex.org/works?search=mechanisms%20industrial%20policy%20FDI%20value%20chain%20modernization%20AI%20governance%20policy%20global&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 2/3 after 30000ms: https://api.openalex.org/works?search=mechanisms%20industrial%20policy%20FDI%20value%20chain%20modernization%20AI%20security%20emerging%20technology%20policy&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 2/3 after 30000ms: https://api.openalex.org/works?search=mechanisms%20industrial%20policy%20FDI%20value%20chain%20modernization%20AI%20policy%20safety%20international&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 2/3 after 30000ms: https://api.openalex.org/works?search=foreign%20investment%20industrial%20policy%20upgrading%20global%20value%20chains&per-page=20&filter=primary_location.source.id%3Ahttps%3A%2F%2Fopenalex.org%2FS4306401296&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 3/3 after 30000ms: https://api.openalex.org/works?search=mechanisms%20industrial%20policy%20FDI%20value%20chain%20modernization%20data%20society%20technology%20social%20impact&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 3/3 after 30000ms: https://api.openalex.org/works?search=mechanisms%20industrial%20policy%20FDI%20value%20chain%20modernization%20AI%20security%20emerging%20technology%20policy&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 3/3 after 30000ms: https://api.openalex.org/works?search=mechanisms%20industrial%20policy%20FDI%20value%20chain%20modernization%20AI%20governance%20policy%20global&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 3/3 after 30000ms: https://api.openalex.org/works?search=mechanisms%20industrial%20policy%20FDI%20value%20chain%20modernization%20AI%20policy%20safety%20international&per-page=20&api_key=idTr1pFPkemE7N3z2e3lcv
+[HTTP] Retry 3/3 after 30000ms: https://api.openalex.org/works?search=foreign%20investment%20industrial%20policy%20upgrading%20global%20value%20chains&per-page=20&filter=primary_location.source.id%3Ahttps%3A%2F%2Fopenalex.org%2FS4306401296&api_key=idTr1pFPkemE7N3z2e3lcv
+[OpenAlex] Search failed: HTTP 429 
+[HTTP] Retry 1/3 after 30000ms: https://api.openalex.org/works?search=industrial%20policy%20foreign%20direct%20investment%20global%20value%20chain%20upgrading%20mechanisms&per-page=20&filter=primary_location.source.id%3Ahttps%3A%2F%2Fopenalex.org%2FS4306401296&api_key=idTr1pFPkemE7N3z2e3lcv
+[OpenAlex] Search failed: HTTP 429 
+[HTTP] Retry 1/3 after 30000ms: https://api.openalex.org/works?search=mechanisms%20industrial%20policy%20FDI%20value%20chain%20modernization&per-page=20&filter=primary_location.source.id%3Ahttps%3A%2F%2Fopenalex.org%2FS4306401296&api_key=idTr1pFPkemE7N3z2e3lcv
+[OpenAlex] Found 20 works for "mechanisms industrial policy FDI value chain moder"
+[OpenAlex] Found 20 works for "mechanisms industrial policy FDI value chain moder"
+[OpenAlex] Found 20 works for "mechanisms industrial policy FDI value chain moder"
+[OpenAlex] Found 0 works for "industrial policies FDI value chain upgrading econ"
+[OpenAlex] Found 0 works for "industrial policy foreign direct investment global"
+[OpenAlex] Found 0 works for "mechanisms industrial policy FDI value chain moder"
+[SCOUT] Per-provider results: _unknown=0, crossref=120, arxiv=120, openreview=80, papers-with-code=80, mit-dspace=60, harvard-dash=60, max-planck=40, datacite=27, openalex=60
+[SCOUT] Raw results: 647 sources from 4 query variations (9 providers: crossref, arxiv, openreview, papers-with-code, mit-dspace, harvard-dash, max-planck, datacite, openalex)
+[SCOUT] After dedup: 410/647
+[SCOUT] After relevance filter: 73/410
+
+[RelevanceScorer] Top 5 sources by relevance:
+1. [41%] Essays on global value chains and economic development
+   Topic: 53% | Field: 50% | Semantic: 2% | Temporal: 90% | TitleBonus: 30% | Concepts: 6/7 (x0.86)
+2. [28%] Industrial Policy and Global Value Chains in India: Evaluating the Impact of PLI
+   Topic: 55% | Field: 50% | Semantic: 1% | Temporal: 90% | TitleBonus: 30% | Concepts: 4/7 (x0.57)
+3. [25%] Impact of global value chain on China's automobile industry upgrading: The media
+   Topic: 43% | Field: 50% | Semantic: 4% | Temporal: 90% | TitleBonus: 30% | Concepts: 4/7 (x0.57)
+4. [24%] Essays on mechanisms of technological catch-up and industrial upgrading in econo
+   Topic: 43% | Field: 50% | Semantic: 0% | Temporal: 90% | TitleBonus: 30% | Concepts: 4/7 (x0.57)
+5. [24%] Essays on mechanisms of technological catch-up and industrial upgrading in econo
+   Topic: 43% | Field: 50% | Semantic: 0% | Temporal: 90% | TitleBonus: 30% | Concepts: 4/7 (x0.57)
+
+⚠️  72 sources below 40% relevance (filtered out)
+[Reranker] Cohere reranked 73 sources → 53 results (min score: 0.1)
+[SCOUT] After Cohere rerank: 53 sources
+[Unpaywall] Lookup failed for 10.21953/researchonline.lse.ac.uk.00140345: HTTP 404 
+[Unpaywall] Lookup failed for 10.25911/5d5155f87dc12: HTTP 404 
+[Unpaywall] Lookup failed for 10.25911/5d50047403358: HTTP 404 
+[Unpaywall] Lookup failed for 10.25911/5d4eb3168e620: HTTP 404 
+[Unpaywall] Lookup failed for 10.25911/5d4d620ad59da: HTTP 404 
+[SCOUT] Enriched 48 sources with Unpaywall (batched)
+[SCOUT] Done in 849801ms: 647 raw â†’ 410 dedup â†’ 53 ranked â†’ 53 saved
+[Pipeline] DEEP PLANNER: node n4 "What mechanisms explain how industrial policies and foreign " → 53 sources
+[SCOUT] Cache MISS for "What contextual factors (e.g., institutional quality, sector characteristics, global value chain position) moderate the effects of industrial policies and foreign investment?", running providers...
+✅ deepseek/deepseek-v4-flash [query_enhancement] | 2419ms | 781+193 tok | $0.0002
+[SCOUT] Query enhanced: "industrial policy foreign investment moderating effects institutional quality sector characteristics global value chain position" (+3 variations)
+[OpenReview] Searching for: "industrial policy foreign investment moderating effects institutional quality sector characteristics global value chain position"
+[bioRxiv] Searching for: "industrial policy foreign investment moderating effects institutional quality sector characteristics global value chain position"
+[PapersWithCode] Searching for: "industrial policy foreign investment moderating effects institutional quality sector characteristics global value chain position"
+[MIT-DSpace] Searching for: "industrial policy foreign investment moderating effects institutional quality sector characteristics global value chain position"
+[Harvard-DASH] Searching for: "industrial policy foreign investment moderating effects institutional quality sector characteristics global value chain position"
+[MaxPlanck-PuRe] Searching for: "industrial policy foreign investment moderating effects institutional quality sector characteristics global value chain position"
+[AllenAI] Searching via OpenAlex ROR for: "industrial policy foreign investment moderating effects institutional quality sector characteristics global value chain position"
+[INRIA] Searching via OpenAlex ROR for: "industrial policy foreign investment moderating effects institutional quality sector characteristics global value chain position"
+[SCOUT] Dimensions: skipped (no DIMENSIONS_API_KEY)
+[SCOUT] Lens: skipped (no LENS_API_TOKEN)
+[OpenReview] Searching for: "institutional quality moderating industrial policy foreign direct investment"
+[bioRxiv] Searching for: "institutional quality moderating industrial policy foreign direct investment"
+[PapersWithCode] Searching for: "institutional quality moderating industrial policy foreign direct investment"
+[MIT-DSpace] Searching for: "institutional quality moderating industrial policy foreign direct investment"
+[Harvard-DASH] Searching for: "institutional quality moderating industrial policy foreign direct investment"
+[MaxPlanck-PuRe] Searching for: "institutional quality moderating industrial policy foreign direct investment"
+[AllenAI] Searching via OpenAlex ROR for: "institutional quality moderating industrial policy foreign direct investment"
+[INRIA] Searching via OpenAlex ROR for: "institutional quality moderating industrial policy foreign direct investment"
+[SCOUT] Dimensions: skipped (no DIMENSIONS_API_KEY)
+[SCOUT] Lens: skipped (no LENS_API_TOKEN)
+[OpenReview] Searching for: "sector characteristics global value chain position industrial policy FDI effectiveness"
+[bioRxiv] Searching for: "sector characteristics global value chain position industrial policy FDI effectiveness"
+[PapersWithCode] Searching for: "sector characteristics global value chain position industrial policy FDI effectiveness"
+[MIT-DSpace] Searching for: "sector characteristics global value chain position industrial policy FDI effectiveness"
+[Harvard-DASH] Searching for: "sector characteristics global value chain position industrial policy FDI effectiveness"
+[MaxPlanck-PuRe] Searching for: "sector characteristics global value chain position industrial policy FDI effectiveness"
+[AllenAI] Searching via OpenAlex ROR for: "sector characteristics global value chain position industrial policy FDI effectiveness"
+[INRIA] Searching via OpenAlex ROR for: "sector characteristics global value chain position industrial policy FDI effectiveness"
+[SCOUT] Dimensions: skipped (no DIMENSIONS_API_KEY)
+[SCOUT] Lens: skipped (no LENS_API_TOKEN)
+[OpenReview] Searching for: "contextual factors moderating industrial policy foreign investment outcomes"
+[bioRxiv] Searching for: "contextual factors moderating industrial policy foreign investment outcomes"
+[PapersWithCode] Searching for: "contextual factors moderating industrial policy foreign investment outcomes"
+[MIT-DSpace] Searching for: "contextual factors moderating industrial policy foreign investment outcomes"
+[Harvard-DASH] Searching for: "contextual factors moderating industrial policy foreign investment outcomes"
+[MaxPlanck-PuRe] Searching for: "contextual factors moderating industrial policy foreign investment outcomes"
+[AllenAI] Searching via OpenAlex ROR for: "contextual factors moderating industrial policy foreign investment outcomes"
+[INRIA] Searching via OpenAlex ROR for: "contextual factors moderating industrial policy foreign investment outcomes"
+[SCOUT] Dimensions: skipped (no DIMENSIONS_API_KEY)
+[SCOUT] Lens: skipped (no LENS_API_TOKEN)
+[SCOUT] Launching 72 parallel requests across 4 query variations
+CORE search failed: HttpError: HTTP 401 
+    at httpGet (C:\Users\DELL\Desktop\NomosX-master\lib\http-client.ts:259:17)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async searchCORE (C:\Users\DELL\Desktop\NomosX-master\lib\providers\core.ts:23:23)
+    at async Promise.allSettled (index 22)
+    at async scoutImpl (C:\Users\DELL\Desktop\NomosX-master\lib\agent\pipeline-v2.ts:824:22)
+    at async scout (C:\Users\DELL\Desktop\NomosX-master\lib\agent\pipeline-v2.ts:486:18)
+    at async runPipelineCore (C:\Users\DELL\Desktop\NomosX-master\lib\agent\pipeline-v2.ts:1798:28) {
+  status: 401,
+  response: '{"message":"Your trial API key period has expired, you will need to get a license to keep using it."}'
+}
+CORE search failed: HttpError: HTTP 401 
+    at httpGet (C:\Users\DELL\Desktop\NomosX-master\lib\http-client.ts:259:17)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async searchCORE (C:\Users\DELL\Desktop\NomosX-master\lib\providers\core.ts:23:23)
+    at async Promise.allSettled (index 4)
+    at async scoutImpl (C:\Users\DELL\Desktop\NomosX-master\lib\agent\pipeline-v2.ts:824:22)
+    at async scout (C:\Users\DELL\Desktop\NomosX-master\lib\agent\pipeline-v2.ts:486:18)
+    at async runPipelineCore (C:\Users\DELL\Desktop\NomosX-master\lib\agent\pipeline-v2.ts:1798:28) {
+  status: 401,
+  response: '{"message":"Your trial API key period has expired, you will need to get a license to keep using it."}'
+}
+CORE search failed: HttpError: HTTP 401 
+    at httpGet (C:\Users\DELL\Desktop\NomosX-master\lib\http-client.ts:259:17)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async searchCORE (C:\Users\DELL\Desktop\NomosX-master\lib\providers\core.ts:23:23)
+    at async Promise.allSettled (index 58)
+    at async scoutImpl (C:\Users\DELL\Desktop\NomosX-master\lib\agent\pipeline-v2.ts:824:22)
+    at async scout (C:\Users\DELL\Desktop\NomosX-master\lib\agent\pipeline-v2.ts:486:18)
+    at async runPipelineCore (C:\Users\DELL\Desktop\NomosX-master\lib\agent\pipeline-v2.ts:1798:28) {
+  status: 401,
+  response: '{"message":"Your trial API key period has expired, you will need to get a license to keep using it."}'
+}
+CORE search failed: HttpError: HTTP 401 
+    at httpGet (C:\Users\DELL\Desktop\NomosX-master\lib\http-client.ts:259:17)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async searchCORE (C:\Users\DELL\Desktop\NomosX-master\lib\providers\core.ts:23:23)
+    at async Promise.allSettled (index 40)
+    at async scoutImpl (C:\Users\DELL\Desktop\NomosX-master\lib\agent\pipeline-v2.ts:824:22)
+    at async scout (C:\Users\DELL\Desktop\NomosX-master\lib\agent\pipeline-v2.ts:486:18)
+    at async runPipelineCore (C:\Users\DELL\Desktop\NomosX-master\lib\agent\pipeline-v2.ts:1798:28) {
+  status: 401,
+  response: '{"message":"Your trial API key period has expired, you will need to get a license to keep using it."}'
+}
+[MaxPlanck-PuRe] Found 10 publications
+[HTTP] Retry 1/3 after 10000ms: http://export.arxiv.org/api/query?search_query=all:contextual%20factors%20moderating%20industrial%20policy%20foreign%20investment%20outcomes&start=0&max_results=30&sortBy=relevance&sortOrder=descending
+[HTTP] Retry 1/3 after 10000ms: http://export.arxiv.org/api/query?search_query=all:industrial%20policy%20foreign%20investment%20moderating%20effects%20institutional%20quality%20sector%20characteristics%20global%20value%20chain%20position&start=0&max_results=30&sortBy=relevance&sortOrder=descending
+[HTTP] Retry 1/3 after 10000ms: http://export.arxiv.org/api/query?search_query=all:institutional%20quality%20moderating%20industrial%20policy%20foreign%20direct%20investment&start=0&max_results=30&sortBy=relevance&sortOrder=descending
+[MaxPlanck-PuRe] Found 10 publications
+[HTTP] Retry 1/3 after 10000ms: http://export.arxiv.org/api/query?search_query=all:sector%20characteristics%20global%20value%20chain%20position%20industrial%20policy%20FDI%20effectiveness&start=0&max_results=30&sortBy=relevance&sortOrder=descending
+[MaxPlanck-PuRe] Found 10 publications
+[SCOUT/Springer] Direct API error: HTTP 401  — falling back to OpenAlex
+[SCOUT/Springer] Direct API error: HTTP 401  — falling back to OpenAlex
+[SCOUT/Springer] Direct API error: HTTP 401  — falling back to OpenAlex
+[OpenAlex] Found 0 works for "industrial policy foreign investment moderating ef"
+[AllenAI] Found 0 publications
+[OpenAlex] Found 0 works for "industrial policy foreign investment moderating ef"
+[INRIA] Found 0 publications
+[SCOUT/Springer] Direct API error: HTTP 401  — falling back to OpenAlex
+[MaxPlanck-PuRe] Found 10 publications
+[HTTP] Retry 1/4 after 10000ms: https://api.crossref.org/works?query=industrial%20policy%20foreign%20investment%20moderating%20effects%20institutional%20quality%20sector%20characteristics%20global%20value%20chain%20position&rows=30
+[HTTP] Retry 1/4 after 10000ms: https://api.crossref.org/works?query=institutional%20quality%20moderating%20industrial%20policy%20foreign%20direct%20investment&rows=30
+[SemanticScholar] Search failed: HTTP 429 
+[HTTP] Retry 1/4 after 10000ms: https://api.crossref.org/works?query=contextual%20factors%20moderating%20industrial%20policy%20foreign%20investment%20outcomes&rows=30
+[HTTP] Retry 1/4 after 10000ms: https://api.crossref.org/works?query=sector%20characteristics%20global%20value%20chain%20position%20industrial%20policy%20FDI%20effectiveness&rows=30
+[MIT-DSpace] Found 15 works
+[MIT-DSpace] Found 15 works
+[MIT-DSpace] Found 15 works
+[PapersWithCode] Found 20 papers
+[MIT-DSpace] Found 15 works
+[Harvard-DASH] Found 15 works
+[OpenAlex] Found 20 works for "industrial policy foreign investment moderating ef"
+[Harvard-DASH] Found 15 works
+[Harvard-DASH] Found 15 works
+[PapersWithCode] Found 20 papers
+[PapersWithCode] Found 20 papers
+[Harvard-DASH] Found 15 works
+[PapersWithCode] Found 20 papers
+[OpenAlex] Found 20 works for "industrial policy foreign investment moderating ef"
+[OpenAlex] Found 30 works for "industrial policy foreign investment moderating ef"
+[SemanticScholar] Search failed: HTTP 429 
+[OpenAlex] Found 20 works for "industrial policy foreign investment moderating ef"
+[OpenAlex] Found 20 works for "industrial policy foreign investment moderating ef"
+[OpenAlex] Found 20 works for "industrial policy foreign investment moderating ef"
+[OpenAlex] Found 20 works for "industrial policy foreign investment moderating ef"
+[OpenReview] Found 20 papers
+[OpenAlex] Found 0 works for "institutional quality moderating industrial policy"
+[AllenAI] Found 0 publications
+[OpenAlex] Found 20 works for "industrial policy foreign investment moderating ef"
+[SemanticScholar] Search failed: HTTP 429 
+[OpenAlex] Found 1 works for "institutional quality moderating industrial policy"
+[INRIA] Found 1 publications
+[OpenAlex] Found 20 works for "industrial policy foreign investment moderating ef"
+[OpenReview] Found 20 papers
+[OpenAlex] Found 30 works for "institutional quality moderating industrial policy"
+[OpenAlex] Found 20 works for "institutional quality moderating industrial policy"
+[OpenAlex] Found 20 works for "institutional quality moderating industrial policy"
+[OpenAlex] Found 20 works for "institutional quality moderating industrial policy"
+[OpenAlex] Found 20 works for "institutional quality moderating industrial policy"
+[OpenAlex] Found 20 works for "institutional quality moderating industrial policy"
+[OpenAlex] Found 20 works for "institutional quality moderating industrial policy"
+[OpenReview] Found 20 papers
+[SemanticScholar] Search failed: HTTP 429 
+[OpenAlex] Found 20 works for "institutional quality moderating industrial policy"
+[OpenAlex] Found 0 works for "sector characteristics global value chain position"
+[AllenAI] Found 0 publications
+[OpenAlex] Found 0 works for "sector characteristics global value chain position"
+[INRIA] Found 0 publications
+[OpenReview] Found 20 papers
+[OpenAlex] Found 20 works for "institutional quality moderating industrial policy"
+[OpenAlex] Found 30 works for "sector characteristics global value chain position"
+[OpenAlex] Found 20 works for "sector characteristics global value chain position"
+[OpenAlex] Found 20 works for "sector characteristics global value chain position"
+[OpenAlex] Found 20 works for "sector characteristics global value chain position"
+[OpenAlex] Found 20 works for "sector characteristics global value chain position"
+[OpenAlex] Found 20 works for "sector characteristics global value chain position"
+[OpenAlex] Found 0 works for "contextual factors moderating industrial policy fo"
+[AllenAI] Found 0 publications
+[OpenAlex] Found 20 works for "sector characteristics global value chain position"
+[OpenAlex] Found 0 works for "contextual factors moderating industrial policy fo"
+[INRIA] Found 0 publications
+[OpenAlex] Found 20 works for "sector characteristics global value chain position"
+[OpenAlex] Found 20 works for "sector characteristics global value chain position"
+[OpenAlex] Found 30 works for "contextual factors moderating industrial policy fo"
+[OpenAlex] Found 20 works for "contextual factors moderating industrial policy fo"
+[OpenAlex] Found 20 works for "contextual factors moderating industrial policy fo"
+[OpenAlex] Found 20 works for "contextual factors moderating industrial policy fo"
+[OpenAlex] Found 20 works for "contextual factors moderating industrial policy fo"
+[OpenAlex] Found 20 works for "contextual factors moderating industrial policy fo"
+[OpenAlex] Found 0 works for "contextual factors moderating industrial policy fo"
+[OpenAlex] Found 1 works for "industrial policy foreign investment moderating ef"
+[OpenAlex] Found 20 works for "contextual factors moderating industrial policy fo"
+[OpenAlex] Found 1 works for "sector characteristics global value chain position"
+[OpenAlex] Found 0 works for "institutional quality moderating industrial policy"
+[OpenAlex] Found 20 works for "contextual factors moderating industrial policy fo"
+[OpenAlex] Found 20 works for "contextual factors moderating industrial policy fo"
+[HTTP] Retry 2/3 after 10000ms: http://export.arxiv.org/api/query?search_query=all:contextual%20factors%20moderating%20industrial%20policy%20foreign%20investment%20outcomes&start=0&max_results=30&sortBy=relevance&sortOrder=descending
+[HTTP] Retry 2/3 after 10000ms: http://export.arxiv.org/api/query?search_query=all:institutional%20quality%20moderating%20industrial%20policy%20foreign%20direct%20investment&start=0&max_results=30&sortBy=relevance&sortOrder=descending
+[HTTP] Retry 2/3 after 10000ms: http://export.arxiv.org/api/query?search_query=all:industrial%20policy%20foreign%20investment%20moderating%20effects%20institutional%20quality%20sector%20characteristics%20global%20value%20chain%20position&start=0&max_results=30&sortBy=relevance&sortOrder=descending
+[HTTP] Retry 2/3 after 10000ms: http://export.arxiv.org/api/query?search_query=all:sector%20characteristics%20global%20value%20chain%20position%20industrial%20policy%20FDI%20effectiveness&start=0&max_results=30&sortBy=relevance&sortOrder=descending
+[Crossref] Found 30 works for "institutional quality moderating industrial policy"
+[Crossref] Found 30 works for "sector characteristics global value chain position"
+[Crossref] Found 30 works for "contextual factors moderating industrial policy fo"
+[Crossref] Found 30 works for "industrial policy foreign investment moderating ef"
+[bioRxiv] Search failed: timeout of 15000ms exceeded
+[bioRxiv] Search failed: timeout of 15000ms exceeded
+[bioRxiv] Search failed: timeout of 15000ms exceeded
+[bioRxiv] Search failed: timeout of 15000ms exceeded
+[HTTP] Retry 3/3 after 10000ms: http://export.arxiv.org/api/query?search_query=all:contextual%20factors%20moderating%20industrial%20policy%20foreign%20investment%20outcomes&start=0&max_results=30&sortBy=relevance&sortOrder=descending
+[HTTP] Retry 3/3 after 10000ms: http://export.arxiv.org/api/query?search_query=all:industrial%20policy%20foreign%20investment%20moderating%20effects%20institutional%20quality%20sector%20characteristics%20global%20value%20chain%20position&start=0&max_results=30&sortBy=relevance&sortOrder=descending
+[HTTP] Retry 3/3 after 10000ms: http://export.arxiv.org/api/query?search_query=all:institutional%20quality%20moderating%20industrial%20policy%20foreign%20direct%20investment&start=0&max_results=30&sortBy=relevance&sortOrder=descending
+[HTTP] Retry 3/3 after 10000ms: http://export.arxiv.org/api/query?search_query=all:sector%20characteristics%20global%20value%20chain%20position%20industrial%20policy%20FDI%20effectiveness&start=0&max_results=30&sortBy=relevance&sortOrder=descending
+[arXiv] Search failed: HTTP 429 
+[arXiv] Search failed: HTTP 429 
+[arXiv] Search failed: HTTP 429 
+[arXiv] Search failed: HTTP 429 
+[SCOUT] Per-provider results: openalex=762, crossref=120, _unknown=0, openreview=80, papers-with-code=80, mit-dspace=60, harvard-dash=60, max-planck=40, inria=1, datacite=2
+[SCOUT] Raw results: 1205 sources from 4 query variations (9 providers: openalex, crossref, openreview, papers-with-code, mit-dspace, harvard-dash, max-planck, inria, datacite)
+[SCOUT] After dedup: 608/1205
+[SCOUT] After relevance filter: 11/608
+
+[RelevanceScorer] Top 5 sources by relevance:
+1. [16%] Impact of Global Value Chain Integration on Foreign Direct Investment Attraction
+   Topic: 30% | Field: 50% | Semantic: 2% | Temporal: 90% | TitleBonus: 30% | Concepts: 3/7 (x0.43)
+2. [14%] The impact of institutional quality on foreign direct investment: empirical anal
+   Topic: 32% | Field: 20% | Semantic: 2% | Temporal: 90% | TitleBonus: 30% | Concepts: 3/7 (x0.43)
+3. [11%] MODERATING ROLE OF INSTITUTIONAL QUALITY IN THE RELATIONSHIP BETWEEN FOREIGN DIR
+   Topic: 30% | Field: 50% | Semantic: 1% | Temporal: 90% | TitleBonus: 30% | Concepts: 2/7 (x0.29)
+4. [11%] MODERATING ROLE OF INSTITUTIONAL QUALITY IN THE RELATIONSHIP BETWEEN FOREIGN DIR
+   Topic: 30% | Field: 50% | Semantic: 1% | Temporal: 90% | TitleBonus: 30% | Concepts: 2/7 (x0.29)
+5. [11%] The Role of Foreign Direct Investment in Innovation: Does Institutional Quality 
+   Topic: 30% | Field: 50% | Semantic: 1% | Temporal: 90% | TitleBonus: 30% | Concepts: 2/7 (x0.29)
+
+⚠️  11 sources below 40% relevance (filtered out)
+[Reranker] Cohere reranked 11 sources → 8 results (min score: 0.1)
+[SCOUT] After Cohere rerank: 8 sources
+[SCOUT] Enriched 5 sources with Unpaywall (batched)
+[SCOUT] Done in 34407ms: 1205 raw â†’ 608 dedup â†’ 8 ranked â†’ 8 saved
+[Pipeline] DEEP PLANNER: node n5 "What contextual factors (e.g., institutional quality, sector" → 8 sources
+[SCOUT] Cache MISS for "What are the quantitative bounds (e.g., effect sizes, elasticities) of the impacts of industrial policies and foreign investment on value chain upgrading in Indonesia?", running providers...
+✅ deepseek/deepseek-v4-flash [query_enhancement] | 2599ms | 784+177 tok | $0.0002
+[SCOUT] Query enhanced: "industrial policy foreign direct investment value chain upgrading Indonesia quantitative effect size elasticity" (+3 variations)
+[AllenAI] Searching via OpenAlex ROR for: "industrial policy foreign direct investment value chain upgrading Indonesia quantitative effect size elasticity"
+[AllenAI] Searching via OpenAlex ROR for: "industrial policies FDI global value chain participation upgrading Indonesia econometric analysis"
+[AllenAI] Searching via OpenAlex ROR for: "foreign investment industrial policy manufacturing upgrading Indonesia causal effects measurement"
+[AllenAI] Searching via OpenAlex ROR for: "quantitative impact industrial policy FDI value chain position Indonesia panel data"
+[SCOUT] Launching 24 parallel requests across 4 query variations
+[HTTP] Retry 1/2 after 1000ms: fetch failed
+[HTTP] Retry 1/2 after 1000ms: fetch failed
+[HTTP] Retry 1/2 after 1000ms: fetch failed
+[HTTP] Retry 1/2 after 1000ms: fetch failed
+[HTTP] Retry 1/3 after 10000ms: http://export.arxiv.org/api/query?search_query=all:industrial%20policy%20foreign%20direct%20investment%20value%20chain%20upgrading%20Indonesia%20quantitative%20effect%20size%20elasticity&start=0&max_results=30&sortBy=relevance&sortOrder=descending
+[HTTP] Retry 1/3 after 10000ms: http://export.arxiv.org/api/query?search_query=all:quantitative%20impact%20industrial%20policy%20FDI%20value%20chain%20position%20Indonesia%20panel%20data&start=0&max_results=30&sortBy=relevance&sortOrder=descending
+[HTTP] Retry 1/3 after 10000ms: http://export.arxiv.org/api/query?search_query=all:foreign%20investment%20industrial%20policy%20manufacturing%20upgrading%20Indonesia%20causal%20effects%20measurement&start=0&max_results=30&sortBy=relevance&sortOrder=descending
+[HTTP] Retry 1/3 after 10000ms: http://export.arxiv.org/api/query?search_query=all:industrial%20policies%20FDI%20global%20value%20chain%20participation%20upgrading%20Indonesia%20econometric%20analysis&start=0&max_results=30&sortBy=relevance&sortOrder=descending
+[OpenAlex] Found 0 works for "industrial policy foreign direct investment value "
+[AllenAI] Found 0 publications
+[OpenAlex] Found 0 works for "industrial policies FDI global value chain partici"
+[AllenAI] Found 0 publications
+[HTTP] Retry 2/2 after 2000ms: fetch failed
+[HTTP] Retry 2/2 after 2000ms: fetch failed
+[HTTP] Retry 2/2 after 2000ms: fetch failed
+[HTTP] Retry 2/2 after 2000ms: fetch failed
+[OpenAlex] Found 20 works for "industrial policy foreign direct investment value "
+[OpenAlex] Found 30 works for "industrial policies FDI global value chain partici"
+[OpenAlex] Found 30 works for "industrial policy foreign direct investment value "
+[OpenAlex] Found 14 works for "industrial policies FDI global value chain partici"
+[OpenAlex] Found 0 works for "foreign investment industrial policy manufacturing"
+[AllenAI] Found 0 publications
+[OpenAlex] Found 20 works for "industrial policy foreign direct investment value "
+[OpenAlex] Found 20 works for "industrial policies FDI global value chain partici"
+[OpenAlex] Found 30 works for "foreign investment industrial policy manufacturing"
+[OpenAlex] Found 20 works for "foreign investment industrial policy manufacturing"
+[OpenAlex] Found 20 works for "foreign investment industrial policy manufacturing"
+[OpenAlex] Found 0 works for "quantitative impact industrial policy FDI value ch"
+[AllenAI] Found 0 publications
+[OpenAlex] Found 20 works for "quantitative impact industrial policy FDI value ch"
+[OpenAlex] Found 13 works for "industrial policy foreign direct investment value "
+[nber] Found 13 publications (filter: https://ror.org/04grmx538)
+[OpenAlex] Found 6 works for "industrial policies FDI global value chain partici"
+[nber] Found 6 publications (filter: https://ror.org/04grmx538)
+[OpenAlex] Found 30 works for "quantitative impact industrial policy FDI value ch"
+[IMF-SDMX] Dataflow fetch failed: fetch failed
+[IMF-SDMX] Dataflow fetch failed: fetch failed
+[IMF-SDMX] Dataflow fetch failed: fetch failed
+[IMF-SDMX] Dataflow fetch failed: fetch failed
+[OpenAlex] Found 20 works for "quantitative impact industrial policy FDI value ch"
+[nber] Found 20 publications (filter: https://ror.org/04grmx538)
+[OpenAlex] Found 20 works for "foreign investment industrial policy manufacturing"
+[nber] Found 20 publications (filter: https://ror.org/04grmx538)
+[OpenAlex] Found 20 works for "quantitative impact industrial policy FDI value ch"
+[HTTP] Retry 2/3 after 10000ms: http://export.arxiv.org/api/query?search_query=all:industrial%20policy%20foreign%20direct%20investment%20value%20chain%20upgrading%20Indonesia%20quantitative%20effect%20size%20elasticity&start=0&max_results=30&sortBy=relevance&sortOrder=descending
+[HTTP] Retry 2/3 after 10000ms: http://export.arxiv.org/api/query?search_query=all:quantitative%20impact%20industrial%20policy%20FDI%20value%20chain%20position%20Indonesia%20panel%20data&start=0&max_results=30&sortBy=relevance&sortOrder=descending
+[HTTP] Retry 2/3 after 10000ms: http://export.arxiv.org/api/query?search_query=all:industrial%20policies%20FDI%20global%20value%20chain%20participation%20upgrading%20Indonesia%20econometric%20analysis&start=0&max_results=30&sortBy=relevance&sortOrder=descending
+[HTTP] Retry 2/3 after 10000ms: http://export.arxiv.org/api/query?search_query=all:foreign%20investment%20industrial%20policy%20manufacturing%20upgrading%20Indonesia%20causal%20effects%20measurement&start=0&max_results=30&sortBy=relevance&sortOrder=descending
+[HTTP] Retry 3/3 after 10000ms: http://export.arxiv.org/api/query?search_query=all:industrial%20policy%20foreign%20direct%20investment%20value%20chain%20upgrading%20Indonesia%20quantitative%20effect%20size%20elasticity&start=0&max_results=30&sortBy=relevance&sortOrder=descending
+[HTTP] Retry 3/3 after 10000ms: http://export.arxiv.org/api/query?search_query=all:foreign%20investment%20industrial%20policy%20manufacturing%20upgrading%20Indonesia%20causal%20effects%20measurement&start=0&max_results=30&sortBy=relevance&sortOrder=descending
+[HTTP] Retry 3/3 after 10000ms: http://export.arxiv.org/api/query?search_query=all:quantitative%20impact%20industrial%20policy%20FDI%20value%20chain%20position%20Indonesia%20panel%20data&start=0&max_results=30&sortBy=relevance&sortOrder=descending
+[HTTP] Retry 3/3 after 10000ms: http://export.arxiv.org/api/query?search_query=all:industrial%20policies%20FDI%20global%20value%20chain%20participation%20upgrading%20Indonesia%20econometric%20analysis&start=0&max_results=30&sortBy=relevance&sortOrder=descending
+[arXiv] Search failed: HTTP 429 
+[arXiv] Search failed: HTTP 429 
+[arXiv] Search failed: HTTP 429 
+[arXiv] Search failed: HTTP 429 
+[SCOUT] Per-provider results: openalex=274, _unknown=0, nber=59, imf=20
+[SCOUT] Raw results: 353 sources from 4 query variations (3 providers: openalex, nber, imf)
+[SCOUT] After dedup: 259/353
+[SCOUT] Relevance filter too strict (0 results), keeping all 259
+[SCOUT] Enriched 45 sources with Unpaywall (batched)
+[Pipeline] Timeout cleanup: marking RUNNING runs as FAILED for query "How do industrial policies and foreign investment shape the "
+[InquiryOrchestrator] Pipeline failed: [Pipeline] runPipeline(brief) timed out after 1500s
+[ThinkTank] Done mode=breaking published=0 held=0 skipped=0 failed=1 $0.0015 1546252ms
+
+  ── DISPATCHER RESULT ──
+  Success: false
+  Duration: 1546.3s
+  Collected: 1 topics
+  Published: 0
+  Held: 0
+  Skipped: 0
+  Failed: 1
+  Total cost: $0.0015
+  Topics: none
+  Errors:
+    - "How do industrial policies and foreign i": [Pipeline] runPipeline(brief) timed out after 1500s
+  Phases: {
+  "detect": {
+    "durationMs": 10779,
+    "topicsFound": 15,
+    "stats": {
+      "gdeltFetched": 0,
+      "rssFetched": 63,
+      "academicFetched": 49,
+      "policyFetched": 0,
+      "institutionalFetched": 0,
+      "dbSignals": 10,
+      "totalRaw": 122,
+      "afterDedup": 121,
+      "crossChannelCollisions": 0,
+      "durationMs": 10779
+    }
+  },
+  "decide": {
+    "durationMs": 13073,
+    "selected": 3,
+    "skipped": 12,
+    "costUsd": 0.001498
+  },
+  "preflight": {
+    "checked": 1,
+
+
+  ── OUTCOME: "How do industrial policies and foreign investment shape the ..." ──
+  Status: failed
+  Trust: 0
+  Quality: 0
+  Words: 0
+  Cost: $0.0000
+  Duration: 1500.3s
+  Error: [Pipeline] runPipeline(brief) timed out after 1500s
+
+  Total funnel duration: 26.0 min
+  Finished: 2026-08-14T20:47:28.192Z
+
+  ⚠️  Funnel ran but nothing published (held/failed)
+

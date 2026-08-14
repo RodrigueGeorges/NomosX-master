@@ -44,7 +44,7 @@ export function ForesightPanel({ foresight, publicationId, className }: Foresigh
               NomosX Prospective Engine
             </div>
             <h2 className="font-display text-xl font-semibold text-text">
-              Probabilistic foresight
+              Scenario distributions
             </h2>
             <p className="text-xs text-white/40 mt-1 max-w-2xl leading-relaxed">
               {foresight.telemetry.monteCarloRuns.toLocaleString()} Monte Carlo runs ·{" "}

@@ -69,7 +69,7 @@ async function detectSignalTypeLLM(source: any): Promise<SignalType> {
     const response = await callLLM({
       messages: [{
         role: "user",
-        content: `Classify this research into ONE signal type.
+        content: `Classify this research into ONE signal type AND assess its second-order implications.
 
 Title: ${source.title}
 Abstract: ${abstract}
@@ -84,11 +84,20 @@ Signal Types:
 - CONTRADICTION: Findings that contradict established consensus
 - TREND_BREAK: Significant shift from historical patterns
 
-Return JSON: {"signalType": "TYPE", "confidence": 0-100, "reason": "brief explanation"}`
+Return JSON: {
+  "signalType": "TYPE",
+  "confidence": 0-100,
+  "reason": "brief explanation",
+  "secondOrderEffects": ["1-3 implications of this signal — what does this enable/prevent that then enables/prevents something else?"],
+  "crossDomainImpact": ["0-3 other domains this signal could affect (e.g., an AI policy change could affect economics, ethics, labor)"],
+  "contrarianPotential": 0-100
+}
+
+The contrarianPotential score (0-100) indicates how much this signal challenges the mainstream consensus. A high score means this finding, if confirmed, would significantly revise the dominant view.`
       }],
       temperature: 0.1,
       jsonMode: true,
-      maxTokens: 200,
+      maxTokens: 500,
       enableCache: true,
       task: 'topic_classification',
     });
@@ -99,6 +108,14 @@ Return JSON: {"signalType": "TYPE", "confidence": 0-100, "reason": "brief explan
     
     if (validTypes.includes(result.signalType) && result.confidence >= 60) {
       console.log(`[SIGNAL_DETECTOR] LLM classified as ${result.signalType} (${result.confidence}%): ${result.reason}`);
+      // Store enriched metadata on the source object for downstream use
+      if (source && typeof source === 'object') {
+        (source as any)._signalMetadata = {
+          secondOrderEffects: Array.isArray(result.secondOrderEffects) ? result.secondOrderEffects.slice(0, 3) : [],
+          crossDomainImpact: Array.isArray(result.crossDomainImpact) ? result.crossDomainImpact.slice(0, 3) : [],
+          contrarianPotential: typeof result.contrarianPotential === 'number' ? Math.max(0, Math.min(100, result.contrarianPotential)) : 0,
+        };
+      }
       return result.signalType;
     }
   } catch (error) {
