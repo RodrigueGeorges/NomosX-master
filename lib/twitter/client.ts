@@ -83,12 +83,10 @@ function generateOAuthHeader(
   const headerParams: Record<string, string> = { ...oauthParams, oauth_signature: signature };
   return (
     "OAuth " +
-    Object.keys(headerParams)
+    Object.entries(headerParams)
       .map(
-        (key) =>
-          `${encodeURIComponent(key)}="${encodeURIComponent(
-            headerParams[key]
-          )}"`
+        ([key, value]) =>
+          `${encodeURIComponent(key)}="${encodeURIComponent(value)}"`
       )
       .join(", ")
   );

@@ -7,8 +7,11 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { withAuth } from '@/lib/validation';
 
-export async function GET(_req: NextRequest) {
+export async function GET(req: NextRequest) {
+  return withAuth(
+    async () => {
   try {
     // Last 30 days of briefs
     const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
@@ -85,4 +88,6 @@ export async function GET(_req: NextRequest) {
     console.error('[DASHBOARD] Error:', err);
     return NextResponse.json({ error: 'Failed to fetch metrics' }, { status: 500 });
   }
+    }
+  )(req);
 }

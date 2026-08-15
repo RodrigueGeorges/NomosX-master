@@ -1,0 +1,4 @@
+app/inquiry/[slug]/opengraph-image.tsx(200,65): error TS2322: Type '"#5EEAD4" | "#FBBF24" | "#FB7185" | null' is not assignable to type 'Color | undefined'.
+  Type 'null' is not assignable to type 'Color | undefined'.
+app/publications/[id]/opengraph-image.tsx(192,65): error TS2322: Type '"#5EEAD4" | "#FBBF24" | "#FB7185" | null' is not assignable to type 'Color | undefined'.
+  Type 'null' is not assignable to type 'Color | undefined'.

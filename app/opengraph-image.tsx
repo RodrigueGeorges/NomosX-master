@@ -1,8 +1,9 @@
 import { ImageResponse } from 'next/og';
 import { LOGO_GLYPHS, LOGO_LAYOUT, logoHeightFromCap } from '@/lib/brand/logo-paths';
 import {
-  BRAND_EMAIL_TAGLINE,
+  BRAND_POSITIONING,
   BRAND_SOURCES_LABEL,
+  BRAND_TAGLINE,
   BRAND_TITLE,
 } from '@/lib/brand/public-copy';
 
@@ -73,28 +74,42 @@ export default async function Image() {
 
         <div
           style={{
-            fontSize: '26px',
+            fontSize: '28px',
             fontWeight: 600,
             color: '#FFFFFF',
             textAlign: 'center',
-            marginBottom: '10px',
+            marginBottom: '8px',
             letterSpacing: '-0.01em',
           }}
         >
-          {BRAND_EMAIL_TAGLINE}
+          {BRAND_TAGLINE.replace(/\.$/, '')}
         </div>
 
         <div
           style={{
-            fontSize: '16px',
-            color: 'rgba(255,255,255,0.45)',
+            fontSize: '15px',
+            color: 'rgba(255,255,255,0.5)',
+            textAlign: 'center',
+            maxWidth: '680px',
+            lineHeight: 1.5,
+            marginBottom: '12px',
+            letterSpacing: '0.02em',
+          }}
+        >
+          {BRAND_POSITIONING}
+        </div>
+
+        <div
+          style={{
+            fontSize: '14px',
+            color: 'rgba(255,255,255,0.35)',
             textAlign: 'center',
             maxWidth: '640px',
             lineHeight: 1.5,
             marginBottom: '36px',
           }}
         >
-          Verified positions · Scenario distributions · Full source traceability
+          Scenario-weighted positions · Source-verified · Full traceability
         </div>
 
         <div style={{ display: 'flex', gap: '40px', alignItems: 'center' }}>

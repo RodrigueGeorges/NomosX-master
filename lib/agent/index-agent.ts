@@ -34,8 +34,8 @@ async function mapWithConcurrency<T>(
       const idx = cursor++;
       try {
         await worker(items[idx], idx);
-      } catch {
-        /* best-effort — swallow individual failures */
+      } catch (err) {
+        console.warn(`[INDEX] Item at index ${idx} failed:`, err);
       }
     }
   });

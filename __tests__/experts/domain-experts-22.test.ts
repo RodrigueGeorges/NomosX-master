@@ -9,19 +9,20 @@ import { knowledgeBase } from '@/lib/knowledge/multi-domain-corpus';
 import { councilManager } from '@/lib/council/council-manager';
 
 describe('22 Domain Experts System', () => {
-  
+
   describe('Expert Registry', () => {
-    test('All 22 experts properly defined', () => {
+    test('All 26 experts properly defined', () => {
       const domains: DomainExpertise[] = [
-        'economics', 'technology', 'policy', 'health', 'security', 
+        'economics', 'technology', 'policy', 'health', 'security',
         'law', 'environment', 'quantitative', 'finance',
-        'social-sciences', 'humanities', 'energy-advanced', 'geopolitics', 
+        'social-sciences', 'humanities', 'energy-advanced', 'geopolitics',
         'cognitive-science', 'digital-society',
-        'behavioral-economics', 'urban-studies', 'development-economics', 
-        'computational-social-science', 'bioethics', 'complexity-science', 'risk-analysis'
+        'behavioral-economics', 'urban-studies', 'development-economics',
+        'computational-social-science', 'bioethics', 'complexity-science', 'risk-analysis',
+        'anthropology', 'history', 'religious-studies', 'non-western-philosophy'
       ];
-      
-      expect(Object.keys(DOMAIN_EXPERTS)).toHaveLength(22);
+
+      expect(Object.keys(DOMAIN_EXPERTS)).toHaveLength(26);
       
       domains.forEach(domain => {
         expect(DOMAIN_EXPERTS[domain]).toBeDefined();
@@ -68,17 +69,18 @@ describe('22 Domain Experts System', () => {
   });
   
   describe('Knowledge Base Integration', () => {
-    test('Knowledge base has all 22 domains', async () => {
+    test('Knowledge base has all 26 domains', async () => {
       const stats = knowledgeBase.getCorpusStats();
-      expect(stats.totalDomains).toBe(22);
-      
+      expect(stats.totalDomains).toBe(26);
+
       const domains: DomainExpertise[] = [
-        'economics', 'technology', 'policy', 'health', 'security', 
+        'economics', 'technology', 'policy', 'health', 'security',
         'law', 'environment', 'quantitative', 'finance',
-        'social-sciences', 'humanities', 'energy-advanced', 'geopolitics', 
+        'social-sciences', 'humanities', 'energy-advanced', 'geopolitics',
         'cognitive-science', 'digital-society',
-        'behavioral-economics', 'urban-studies', 'development-economics', 
-        'computational-social-science', 'bioethics', 'complexity-science', 'risk-analysis'
+        'behavioral-economics', 'urban-studies', 'development-economics',
+        'computational-social-science', 'bioethics', 'complexity-science', 'risk-analysis',
+        'anthropology', 'history', 'religious-studies', 'non-western-philosophy'
       ];
       
       domains.forEach(domain => {
@@ -195,7 +197,7 @@ describe('22 Domain Experts System', () => {
       
       // Check load distribution
       const metrics = councilManager.getCouncilMetrics();
-      expect(metrics.totalExperts).toBe(22);
+      expect(metrics.totalExperts).toBe(26);
       expect(metrics.avgLoad).toBeLessThan(5); // Should distribute load
     });
     

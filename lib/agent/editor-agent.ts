@@ -640,7 +640,7 @@ export function renderProfessionalBriefHTML(analysis: any, sources: any[]): stri
 <body>
   <article class="nomosx-brief">
     ${BRAND_HEADER}
-    <h1>${esc(analysis.title || "Brief")}</h1>
+    <h1>${esc((analysis.title || "Brief").replace(/\[SRC-\d+\]/g, '').replace(/\[E\d+\]/g, '').trim())}</h1>
     <div class="brief-meta">${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} · ${sources.length} sources</div>
 
     ${proseHtml}
@@ -674,7 +674,7 @@ export function renderProfessionalBriefHTML(analysis: any, sources: any[]): stri
 <body>
   <article class="nomosx-brief">
     ${BRAND_HEADER}
-    <h1>${esc(analysis.title || "Brief")}</h1>
+    <h1>${esc((analysis.title || "Brief").replace(/\[SRC-\d+\]/g, '').replace(/\[E\d+\]/g, '').trim())}</h1>
     <div class="brief-meta">${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} · ${sources.length} sources</div>
 
     ${section("Executive Summary", analysis.summary)}
@@ -701,8 +701,16 @@ export function renderProfessionalBriefHTML(analysis: any, sources: any[]): stri
 // ============================================================================
 
 export function renderProfessionalStrategicHTML(analysis: any, sources: any[]): string {
-  const allText = JSON.stringify(analysis || {});
-  const wordCount = allText.split(/\s+/).length;
+  // Count words from actual text content (not JSON)
+  const textForCount = [
+    analysis.executiveSummary, analysis.literatureOverview, analysis.theoreticalFrameworks,
+    analysis.methodologicalApproaches, analysis.consensus, analysis.controversies,
+    analysis.emergingTrends, analysis.conclusion, analysis.whatChangesMind,
+    ...(Array.isArray(analysis.keyFindings) ? analysis.keyFindings : []),
+    analysis.debate?.position1?.arguments, analysis.debate?.position2?.arguments,
+    analysis.debate?.synthesis, analysis.debate?.nuances,
+  ].filter(Boolean).join(' ').replace(/\[SRC-\d+\]/g, '').replace(/\s+/g, ' ').trim();
+  const wordCount = textForCount ? textForCount.split(' ').filter(Boolean).length : 0;
   const apaCitations = sources.map((s, i) => formatAPA(s, i + 1));
 
   const strategicSections = [
@@ -1053,14 +1061,14 @@ export function renderProfessionalStrategicHTML(analysis: any, sources: any[]): 
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${esc(analysis.title || "NomosX Strategic Report")}</title>
+  <title>${esc((analysis.title || "NomosX Strategic Report").replace(/\[SRC-\d+\]/g, '').replace(/\[E\d+\]/g, '').trim())}</title>
   ${BRIEF_CSS}
   ${STRATEGIC_EXTRA_CSS}
 </head>
 <body>
   <article class="nomosx-brief">
     ${BRAND_HEADER}
-    <h1>${esc(analysis.title || "Strategic Report")}</h1>
+    <h1>${esc((analysis.title || "Strategic Report").replace(/\[SRC-\d+\]/g, '').replace(/\[E\d+\]/g, '').trim())}</h1>
     <div class="brief-meta">${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} · ${sources.length} sources</div>
 
     ${keyFindingsHtml}
@@ -1070,9 +1078,13 @@ export function renderProfessionalStrategicHTML(analysis: any, sources: any[]): 
     ${keyStudiesHtml}
     ${debateSection(analysis.debate)}
 
-    ${section("Evidence Quality", typeof analysis.evidenceQuality === 'object'
-      ? `Overall score: ${analysis.evidenceQuality.overallScore || 'N/A'}/10\n\n${analysis.evidenceQuality.methodology || ''}\n\n${analysis.evidenceQuality.gaps || ''}`
-      : analysis.evidenceQuality)}
+    ${analysis.evidenceQuality ? section("Evidence Quality", typeof analysis.evidenceQuality === 'object'
+      ? [
+          analysis.evidenceQuality.overallScore != null ? `Overall score: ${analysis.evidenceQuality.overallScore}/10` : '',
+          analysis.evidenceQuality.methodology || '',
+          analysis.evidenceQuality.gaps || '',
+        ].filter(Boolean).join('\n\n')
+      : analysis.evidenceQuality) : ''}
 
     ${stakeholderHtml}
     ${scenarioHtml}

@@ -175,12 +175,23 @@ export async function enhancedRank(
 
     // Relevance penalty: if the title contains NONE of the query terms, halve
     // the quality score. Web/news providers are exempt (different vocabulary).
+    // V3.2: For low-quality sources (q < 55), apply a stricter penalty (÷3) —
+    // these are typically JSTOR book chapters or generic references that
+    // happen to match one keyword but are fundamentally off-topic.
     if (hasQueryTerms && !webProviderList.includes(source.provider || '')) {
       const titleLower = (source.title || '').toLowerCase();
-      const hasAnyOverlap = queryTerms.some(term => titleLower.includes(term));
+      const abstractLower = (source.abstract || '').toLowerCase();
+      const hasAnyOverlap = queryTerms.some(term => titleLower.includes(term) || abstractLower.includes(term));
       if (!hasAnyOverlap) {
         qualityScore = qualityScore / 2;
         titleOverlapPenaltyCount++;
+      } else if (qualityScore < 55) {
+        // Low-quality source with only abstract overlap (not title) — penalize harder
+        const hasTitleOverlap = queryTerms.some(term => titleLower.includes(term));
+        if (!hasTitleOverlap) {
+          qualityScore = qualityScore / 3;
+          titleOverlapPenaltyCount++;
+        }
       }
     }
     

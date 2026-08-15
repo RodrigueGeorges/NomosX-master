@@ -249,7 +249,7 @@ export async function embedSourcesBatch(sourceIds: string[]): Promise<{ embedded
   // Update DB in chunks to avoid huge transactions
   for (let i = 0; i < needsEmbedding.length; i += DB_UPDATE_CHUNK) {
     const chunk = needsEmbedding.slice(i, i + DB_UPDATE_CHUNK);
-    const chunkUpdates: Promise<any>[] = [];
+    const chunkUpdates: any[] = [];
 
     for (let j = 0; j < chunk.length; j++) {
       const source = chunk[j];

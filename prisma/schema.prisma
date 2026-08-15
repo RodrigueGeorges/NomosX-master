@@ -1571,6 +1571,9 @@ model ThinkTankPublication {
   publicId    String?  @unique
   publishedAt DateTime?
   
+  // Editorial hero image (AI-generated illustration per publication)
+  heroImageUrl String?  @db.Text
+  
   // Distribution
   distributedAt DateTime?
   viewCount     Int      @default(0)

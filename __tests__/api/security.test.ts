@@ -321,6 +321,10 @@ describe('Comprehensive Auth Coverage', () => {
       'app/api/articles/[id]/export/route.ts',
       'app/api/foresight/chat/route.ts',
       'app/api/inquiry/[id]/foresight/route.ts',
+      // Public reader feedback — public accountability, rate-limited only
+      'app/api/articles/[id]/feedback/route.ts',
+      // Public view counter — fire-and-forget increment, no auth needed
+      'app/api/articles/[id]/view/route.ts',
     ]);
 
     const apiDir = path.join(process.cwd(), 'app', 'api');
@@ -356,6 +360,7 @@ describe('Comprehensive Auth Coverage', () => {
         content.includes('getSession') ||
         content.includes('requireAuth') ||
         content.includes('requireAdmin') ||
+        content.includes('withAuth') ||
         content.includes('x-admin-key') ||
         content.includes('CRON_SECRET') ||
         content.includes('ADMIN_KEY');

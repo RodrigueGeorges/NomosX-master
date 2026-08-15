@@ -44,6 +44,147 @@ export interface EvidenceGap {
   importance: 'critical' | 'important' | 'nice_to_have';
 }
 
+// ============================================================================
+// META-COGNITIVE STATE — "What the agent knows it doesn't know"
+// Inspired by Reflexion (NeurIPS 2023): explicit representation of ignorance.
+// ============================================================================
+
+export interface MetaCognitiveState {
+  // What the agent knows with high confidence
+  knownKnowns: string[];
+  // What the agent knows is missing (gaps it's aware of)
+  knownUnknowns: string[];
+  // Potential blind spots the agent should probe (areas it might not know are missing)
+  suspectedBlindSpots: string[];
+  // Distribution of confidence across claims
+  confidenceDistribution: {
+    high: number;    // Count of claims with high confidence
+    medium: number;
+    low: number;
+  };
+  // Overall self-assessment
+  selfAssessment: {
+    overallConfidence: number;     // 0-100
+    evidenceSufficiency: number;   // 0-100
+    biasRisk: 'low' | 'moderate' | 'high';
+    recommendedAction: 'proceed' | 'enrich' | 'refuse' | 'reflect';
+  };
+}
+
+/**
+ * Build a meta-cognitive state from evidence + gaps + readings.
+ * This gives the agent explicit awareness of its own knowledge boundaries.
+ */
+export function buildMetaCognitiveState(
+  sources: any[],
+  gaps: EvidenceGap[],
+  readings?: any[]
+): MetaCognitiveState {
+  const knownKnowns: string[] = [];
+  const knownUnknowns: string[] = [];
+  const suspectedBlindSpots: string[] = [];
+
+  // Known knowns: claims supported by multiple high-quality sources
+  const claimsByTopic = new Map<string, number>();
+  for (const s of sources) {
+    if ((s.qualityScore || 0) >= 75) {
+      const topic = (s.title || '').slice(0, 80);
+      claimsByTopic.set(topic, (claimsByTopic.get(topic) || 0) + 1);
+    }
+  }
+  for (const [topic, count] of claimsByTopic) {
+    if (count >= 2) knownKnowns.push(topic);
+  }
+
+  // Known unknowns: from detected gaps
+  for (const gap of gaps) {
+    if (gap.importance === 'critical' || gap.importance === 'important') {
+      knownUnknowns.push(gap.description);
+    }
+  }
+
+  // Suspected blind spots: domains with very few sources
+  const providerCounts = new Map<string, number>();
+  for (const s of sources) {
+    providerCounts.set(s.provider || 'unknown', (providerCounts.get(s.provider || 'unknown') || 0) + 1);
+  }
+  const minProviderCount = Math.min(...Array.from(providerCounts.values()));
+  if (minProviderCount <= 1 && providerCounts.size > 3) {
+    suspectedBlindSpots.push('Single-source providers may indicate underexplored perspectives');
+  }
+
+  // Confidence distribution from readings
+  let high = 0, medium = 0, low = 0;
+  if (readings && readings.length > 0) {
+    for (const r of readings) {
+      if (r.confidence === 'high') high++;
+      else if (r.confidence === 'medium') medium++;
+      else low++;
+    }
+  } else {
+    // Estimate from source quality
+    for (const s of sources) {
+      if ((s.qualityScore || 0) >= 80) high++;
+      else if ((s.qualityScore || 0) >= 60) medium++;
+      else low++;
+    }
+  }
+
+  const total = high + medium + low || 1;
+  const overallConfidence = Math.round(((high * 100 + medium * 60 + low * 30) / total));
+  const evidenceSufficiency = Math.round(Math.min(100, (sources.length / 20) * 100));
+  const biasRisk: MetaCognitiveState['selfAssessment']['biasRisk'] =
+    providerCounts.size < 3 ? 'high' : providerCounts.size < 5 ? 'moderate' : 'low';
+
+  const recommendedAction: MetaCognitiveState['selfAssessment']['recommendedAction'] =
+    knownUnknowns.filter(g => gaps.find(g2 => g2.description === g)?.importance === 'critical').length > 0
+      ? 'enrich'
+      : overallConfidence < 40 ? 'refuse'
+      : overallConfidence < 65 ? 'reflect'
+      : 'proceed';
+
+  return {
+    knownKnowns: knownKnowns.slice(0, 10),
+    knownUnknowns: knownUnknowns.slice(0, 10),
+    suspectedBlindSpots: suspectedBlindSpots.slice(0, 5),
+    confidenceDistribution: { high, medium, low },
+    selfAssessment: {
+      overallConfidence,
+      evidenceSufficiency,
+      biasRisk,
+      recommendedAction,
+    },
+  };
+}
+
+/**
+ * Format meta-cognitive state as a prompt block for injection into agent prompts.
+ */
+export function formatMetaCognitiveBlock(state: MetaCognitiveState): string {
+  const lines: string[] = ['=== YOUR META-COGNITIVE STATE ==='];
+
+  if (state.knownKnowns.length > 0) {
+    lines.push('\n✅ WHAT YOU KNOW (high confidence):');
+    for (const k of state.knownKnowns) lines.push(`- ${k}`);
+  }
+
+  if (state.knownUnknowns.length > 0) {
+    lines.push('\n❓ WHAT YOU KNOW YOU DON\'T KNOW (address these):');
+    for (const k of state.knownUnknowns) lines.push(`- ${k}`);
+  }
+
+  if (state.suspectedBlindSpots.length > 0) {
+    lines.push('\n⚠️  SUSPECTED BLIND SPOTS (probe these):');
+    for (const b of state.suspectedBlindSpots) lines.push(`- ${b}`);
+  }
+
+  lines.push(`\nConfidence distribution: ${state.confidenceDistribution.high} high / ${state.confidenceDistribution.medium} medium / ${state.confidenceDistribution.low} low`);
+  lines.push(`Overall confidence: ${state.selfAssessment.overallConfidence}/100 | Bias risk: ${state.selfAssessment.biasRisk}`);
+  lines.push(`Recommended action: ${state.selfAssessment.recommendedAction.toUpperCase()}`);
+
+  return lines.join('\n');
+}
+
 interface SourceSummary {
   title: string;
   provider: string;

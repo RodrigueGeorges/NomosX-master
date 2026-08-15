@@ -1,53 +1,62 @@
+/**
+ * Clean Slate — Delete ALL publications, briefs, pipeline runs, and related data.
+ *
+ * This resets NomosX to a clean state before launching a fresh publication.
+ * Deletes in dependency order to avoid foreign key constraint violations.
+ */
+
 import { config } from 'dotenv';
 config({ path: '.env.local' });
 
-async function main() {
-  const { prisma } = await import('../lib/db');
+import { prisma } from '../lib/db';
 
-  // STEP 1: AgentAuditLog — DELETE ALL (563)
-  console.log('STEP 1: Deleting AgentAuditLog...');
-  const auditDeleted = await prisma.agentAuditLog.deleteMany({});
-  console.log(`  ✅ Deleted ${auditDeleted.count} AgentAuditLog records`);
+async function cleanSlate() {
+  console.log('\n╔════════════════════════════════════════════════════════════╗');
+  console.log('║  NomosX — CLEAN SLATE (delete all publications)            ║');
+  console.log('╚════════════════════════════════════════════════════════════╝');
+  console.log(`  Started: ${new Date().toISOString()}\n`);
 
-  // STEP 2: ConceptRelation — DELETE ALL (318)
-  console.log('STEP 2: Deleting ConceptRelation...');
-  const relDeleted = await prisma.conceptRelation.deleteMany({});
-  console.log(`  ✅ Deleted ${relDeleted.count} ConceptRelation records`);
+  const tables = [
+    { name: 'PublicationReaction', model: prisma.publicationReaction },
+    { name: 'PublicationComment', model: prisma.publicationComment },
+    { name: 'ThinkTankPublicationRun', model: prisma.thinkTankPublicationRun },
+    { name: 'ThinkTankPublication', model: prisma.thinkTankPublication },
+    { name: 'Brief', model: prisma.brief },
+    { name: 'PipelineRun', model: prisma.pipelineRun },
+    { name: 'AgentAuditLog', model: prisma.agentAuditLog },
+    { name: 'SourceChunk', model: prisma.sourceChunk },
+    { name: 'SourceAuthor', model: prisma.sourceAuthor },
+    { name: 'SourceInstitution', model: prisma.sourceInstitution },
+    { name: 'SourceDomain', model: prisma.sourceDomain },
+    { name: 'Source', model: prisma.source },
+  ];
 
-  // STEP 3: ConceptNode — DELETE ALL (295)
-  console.log('STEP 3: Deleting ConceptNode...');
-  const conceptDeleted = await prisma.conceptNode.deleteMany({});
-  console.log(`  ✅ Deleted ${conceptDeleted.count} ConceptNode records`);
+  let totalDeleted = 0;
 
-  // STEP 4: Signal — UPDATE 3 PUBLISHED → NEW
-  console.log('STEP 4: Resetting 3 PUBLISHED signals to NEW...');
-  const signalReset = await prisma.signal.updateMany({
-    where: { status: 'PUBLISHED' },
-    data: { status: 'NEW' },
-  });
-  console.log(`  ✅ Reset ${signalReset.count} signals to NEW`);
+  for (const { name, model } of tables) {
+    try {
+      const count = await model.count();
+      if (count > 0) {
+        await model.deleteMany({});
+        console.log(`  ✅ ${name}: ${count} records deleted`);
+        totalDeleted += count;
+      } else {
+        console.log(`  ⏭️  ${name}: 0 records (skip)`);
+      }
+    } catch (err: any) {
+      console.warn(`  ⚠️  ${name}: ${err.message}`);
+    }
+  }
 
-  // STEP 5: ThinkTankPublication — DELETE ALL (19)
-  // No children (0 claims, 0 evidence, 0 runs, 0 checks, 0 foresight)
-  console.log('STEP 5: Deleting ThinkTankPublication...');
-  const pubDeleted = await prisma.thinkTankPublication.deleteMany({});
-  console.log(`  ✅ Deleted ${pubDeleted.count} ThinkTankPublication records`);
-
-  // STEP 6: Brief — DELETE ALL (11)
-  // No FK from Brief to ThinkTankPublication (linked via publicId, not FK)
-  // Brief.pipelineRunId → PipelineRun.id (no onDelete, but we keep PipelineRun)
-  console.log('STEP 6: Deleting Brief...');
-  const briefDeleted = await prisma.brief.deleteMany({});
-  console.log(`  ✅ Deleted ${briefDeleted.count} Brief records`);
-
-  // STEP 7: PipelineRun — KEPT (Option A)
-  console.log('STEP 7: PipelineRun — KEPT (telemetry preserved)');
+  console.log(`\n  Total records deleted: ${totalDeleted}`);
+  console.log(`  Finished: ${new Date().toISOString()}`);
+  console.log('\n  ✅ Clean slate complete — ready for fresh publication\n');
 
   await prisma.$disconnect();
-  console.log('\n✅ Clean slate deletion complete.');
+  process.exit(0);
 }
 
-main().catch((e) => {
-  console.error('❌ Deletion failed:', e);
+cleanSlate().catch((err) => {
+  console.error('Clean slate failed:', err);
   process.exit(1);
 });

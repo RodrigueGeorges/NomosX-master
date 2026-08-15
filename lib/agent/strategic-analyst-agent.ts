@@ -118,7 +118,7 @@ export interface StrategicAnalysisOutput {
   // Each major causal claim in the report must be decomposed into its chain,
   // confidence level, and falsification condition.
   causalArchitecture?: Array<{
-    claim: string;           // The causal claim (e.g., "Religious institutions will shape AI governance")
+    claim: string;           // The causal claim (e.g., "Actor X will shape domain Y")
     chain: string;           // The causal chain: A → B → C → D, with each link explained
     confidence: "high" | "medium" | "low";
     epistemicLevel: "demonstrated" | "suggested" | "proposed" | "projected";
@@ -133,7 +133,7 @@ export interface StrategicAnalysisOutput {
   /** Post-hoc: Evidence tier classification (computed from sources, NOT LLM-generated) */
   _evidenceTiers?: {
     tier1_empirical: string[];    // SRC-N list: controlled studies, datasets, quantitative
-    tier2_institutional: string[];// SRC-N list: Vatican, UN, UNESCO, governments, official docs
+    tier2_institutional: string[];// SRC-N list: governments, UN, UNESCO, official institutional docs
     tier3_academic: string[];     // SRC-N list: peer-reviewed papers
     tier4_policy: string[];       // SRC-N list: EU AI Act, OECD, Council of Europe, GPAI
     tier5_emerging: string[];     // SRC-N list: preprints, working papers, exploratory
@@ -206,9 +206,9 @@ function deduplicateSections(analysis: any): void {
       console.warn(`[Strategic Analyst] Detected duplication: ${keyB} is ${Math.round(similarity * 100)}% similar to ${keyA}. Replacing duplicated content.`);
       // Replace the duplicated section with a distinct synthesis
       if (replaceKey === 'conclusion') {
-        analysis[replaceKey] = `This analysis has identified key boundaries in the current evidence base. The most critical gap is the lack of longitudinal studies tracking how ${analysis.title || 'these dynamics'} evolve over time. For decision-makers, the central implication is that the trajectory described in the executive summary remains contingent on several identifiable factors — monitoring these factors is essential. The research landscape is likely to shift as new empirical evidence emerges, particularly from cross-disciplinary studies that bridge the gaps identified in this report. The position taken here is defensible but should be revisited annually as the evidence base matures. What remains unresolved is whether current institutional architectures are adequate to the task of governing technologies whose implications outpace the deliberative cycles of democratic institutions. The evidence suggests they are not, but the path to reform is neither obvious nor inevitable.`;
+        analysis[replaceKey] = `This analysis has identified key boundaries in the current evidence base. The most critical gap is the lack of longitudinal studies tracking how ${analysis.title || 'these dynamics'} evolve over time. For decision-makers, the central implication is that the trajectory described in the executive summary remains contingent on several identifiable factors — monitoring these factors is essential. The research landscape is likely to shift as new empirical evidence emerges, particularly from cross-disciplinary studies that bridge the gaps identified in this report. The position taken here is defensible but should be revisited annually as the evidence base matures. What remains unresolved is whether current institutional and strategic architectures are adequate to address the challenges identified. The evidence suggests they are not, but the path to reform is neither obvious nor inevitable.`;
       } else {
-        analysis[replaceKey] = `Beyond the baseline trajectory, several under-examined developments warrant attention. First, the convergence between regulatory frameworks across jurisdictions may accelerate faster than anticipated, creating de facto standards that reduce fragmentation. Second, the role of civil society organizations in translating transparency mandates into practical scrutiny remains understudied — they are the missing link between policy and accountability. Third, technical advances in explainable AI may shift the boundary between what is technically impossible and what is merely politically inconvenient, potentially undermining the 'rhetorical shield' identified in this analysis.`;
+        analysis[replaceKey] = `Beyond the baseline trajectory, several under-examined developments warrant attention. First, the convergence between policy frameworks across jurisdictions may accelerate faster than anticipated, creating de facto standards that reduce fragmentation. Second, the role of institutional actors in translating transparency mandates into practical scrutiny remains understudied — they are the missing link between policy and accountability. Third, technical and structural shifts may change the boundary between what is currently feasible and what is merely politically difficult, potentially altering the strategic calculus identified in this analysis.`;
       }
     }
   }
@@ -459,8 +459,8 @@ Use these EXACT phrases to prefix claims:
 - "The literature suggests [X]" → for claims supported by academic interpretation but not directly proven
 - "This analysis proposes [X]" → for our original analytical contribution (synthesis, argument, framework)
 - "We project [X]" → for future projections (scenarios, forecasts) — MUST be framed as thought experiments, NOT predictions
-Example BAD: "Religious institutions will shape AI governance" (unqualified assertion)
-Example GOOD: "This analysis proposes that religious institutions represent one of several actors capable of articulating alternative normative frameworks for AI governance. Their future influence will depend less on theological authority than on their ability to translate normative claims into technically legible governance mechanisms."
+Example BAD: "[Actor X] will shape [domain Y]" (unqualified assertion)
+Example GOOD: "This analysis proposes that [actor X] represents one of several actors capable of [action]. Their future influence will depend less on [factor A] than on their ability to [factor B]."
 
 CAUSAL PRUDENCE RULE (Belfer/International Security standard):
 - Never make a causal jump without explicitly acknowledging the inferential leap
@@ -468,18 +468,31 @@ CAUSAL PRUDENCE RULE (Belfer/International Security standard):
 - Distinguish between: what the data SHOWS, what the literature INTERPRETS, what we ARGUE, and what we PROJECT
 - Every major causal claim must have a counterfactual: "This finding would be falsified if [condition]"
 
-KPI ARGUMENT REFRAMING (CRITICAL):
-- FORBIDDEN framing: "religious institutions are becoming AI-governed organizations" or "religions are adopting algorithmic governance"
-- REQUIRED framing: "religious institutions are increasingly translating normative and theological objectives into measurable governance frameworks, creating a potential bridge between religious ethics and algorithmic governance"
-- The KPI argument must be about TRANSLATION of normative objectives into measurable frameworks, NOT about religions being governed by AI
-- This is more defensible AND more intellectually interesting
+COMPETING HYPOTHESES RULE (NON-NEGOTIABLE — CIA Analysis of Competing Hypotheses standard):
+- For every causal interpretation, present at least 2-3 competing hypotheses
+- Example: If an ally increases defense procurement, consider: (H1) confidence erosion in US guarantees, (H2) normal force regeneration after depletion, (H3) burden-sharing response. State which hypothesis the evidence best supports and WHY.
+- Never present a single causal explanation without acknowledging alternatives
+- Distinguish between CONVERGENT INDICATORS (multiple signals pointing same direction) and PROOF (direct causal evidence)
 
-CENTRE OF GRAVITY (the real question):
-The deepest question this report should address is NOT "will religious institutions influence AI governance?"
-It is: "Can a universal AI governance framework exist without imposing a particular conception of what a human being is?"
-AI governance is becoming a contest over competing conceptions of the human — of dignity, agency, knowledge, and flourishing.
-Religious institutions are ONE of several actors capable of articulating alternative normative frameworks.
-The concept of "ontological flattening" (the conversion of situated, contested meanings into restricted technical categories treated as neutral) is central to this analysis.
+WEAK SIGNAL vs PRIMARY EVIDENCE (Chatham House standard):
+- Prediction markets, social media sentiment, and speculative analysis are WEAK SIGNALS — not primary evidence
+- Weak signals belong in a dedicated "Weak Signals" subsection, NOT in the main causal chain
+- Primary evidence = peer-reviewed research, official government data, institutional reports, documented events
+- Never build a causal claim primarily on weak signals. State: "Market sentiment [SRC-N] provides a weak signal that..."
+
+HISTORICAL DEPTH (RUSI/IISS standard):
+- When analyzing strategic/military/geopolitical topics, include historical precedents
+- Has this situation occurred before? (e.g., Cold War stockpile crises, Gulf War attrition, previous deterrence challenges)
+- Is the current situation structurally different from past episodes, or is it cyclical?
+- This distinguishes a think tank report from journalism
+
+EVIDENCE GRADUATION TABLE (NON-NEGOTIABLE):
+Include in the methodologicalApproaches section a table classifying key propositions:
+- ESTABLISHED: Directly proven by multiple independent sources
+- EMERGING: Supported by some evidence but not yet consolidated
+- INFERRED: Our interpretation from indirect evidence
+- PROJECTED: Forward-looking assessment with explicit uncertainty
+This table is the single most important methodological innovation — it shows the reader exactly what they can trust.
 
 EPISTEMIC RULES (NON-NEGOTIABLE):
 A. NULLABLE FIELDS: If insufficient evidence exists for stakeholderAnalysis, scenarios, evidenceQuality, recommendations, implementation, keyStudies, or themes — return EMPTY ARRAY [] or OMIT the field. Do NOT fabricate content to fill a section.
@@ -489,9 +502,9 @@ C. ACTIVITY vs RESULT: Never confuse activity variables (nb of designations, nb 
 OUTPUT FORMAT - Return this EXACT JSON structure:
 
 {
-  "title": "Neutral, analytical title UNDER 100 characters. NO partisan framing, NO loaded language, NO editorializing, NO banned words (cartel, conspiracy, crisis, threat, war, battle). Describe the TOPIC and KEY FINDING objectively. Example: 'AI Governance and Religious Pluralism: Ontological Politics and Policy Implications' NOT 'The Ontological Cartel'.",
+  "title": "Neutral, analytical title UNDER 100 characters. NO partisan framing, NO loaded language, NO editorializing, NO banned words (cartel, conspiracy, crisis, threat, war, battle). Describe the TOPIC and KEY FINDING objectively. Example: 'The Material Foundations of Deterrence: Missile Stockpiles and Alliance Credibility' NOT 'The Missile Crisis'.",
   
-  "executiveSummary": "500+ word executive summary. The CENTRAL QUESTION this report addresses is: 'Can a universal AI governance framework exist without imposing a particular conception of what a human being is?' Frame the analysis around this question. Cover: (1) Direct answer to the research question with confidence level — using the EPISTEMIC LADDER (what the data demonstrates vs what the literature suggests vs what this analysis proposes vs what we project), (2) Key quantitative findings with citations, (3) Main methodological insights, (4) Critical uncertainties and causal jumps acknowledged explicitly, (5) Top 3 actionable recommendations. All with [SRC-*] citations. IMPORTANT: This section must be a FORWARD-LOOKING EXECUTIVE BRIEF — focus on what decision-makers need to know NOW. Do NOT repeat this content in the conclusion. Religious institutions should be framed as ONE of several actors, not THE actor.",
+  "executiveSummary": "500+ word executive summary. Frame the analysis around the research question. Cover: (1) Direct answer to the research question with confidence level — using the EPISTEMIC LADDER (what the data demonstrates vs what the literature suggests vs what this analysis proposes vs what we project), (2) Key quantitative findings with citations, (3) Main methodological insights, (4) Critical uncertainties and causal jumps acknowledged explicitly, (5) Top 3 actionable recommendations. All with [SRC-*] citations. IMPORTANT: This section must be a FORWARD-LOOKING EXECUTIVE BRIEF — focus on what decision-makers need to know NOW. Do NOT repeat this content in the conclusion. Present the central thesis clearly but with appropriate epistemic hedging.",
   
   "keyFindings": [
     "Finding 1 with specific data and [SRC-*] citation",
@@ -581,9 +594,9 @@ OUTPUT FORMAT - Return this EXACT JSON structure:
   
   "recommendations": {
     "immediate": ["WHO does WHAT by WHEN — format: '[Actor] should [specific action] by [timeline] because [evidence-based rationale] [SRC-*]'. Recommendations must be ACTIONABLE POLICY RECOMMENDATIONS, not metrics or observations. Each recommendation should start with a verb (e.g., 'Mandate...', 'Establish...', 'Require...'). Each recommendation must include a THEORY OF CHANGE: 'This will achieve [outcome] via [mechanism], falsified if [condition]'. Generate exactly 2 immediate recommendations (0-6 months)."],
-    "shortTerm": ["WHO does WHAT by WHEN — same format with Theory of Change. Recommendations must be ACTIONABLE POLICY RECOMMENDATIONS, not metrics or observations. Each recommendation should start with a verb (e.g., 'Mandate...', 'Establish...', 'Require...'). 6-24 month horizon. Generate exactly 2 short-term recommendations. Where relevant, incorporate these policy innovations: (1) Ontological Impact Assessment — before deploying AI in sensitive domains, evaluate which cultural/religious conceptions of person, family, knowledge, or community are implicitly encoded; (2) Pluralistic AI Governance Councils — not just 'ethics boards' but councils including philosophers, anthropologists, religious representatives, indigenous communities, lawyers, and technical experts; (3) Epistemic Diversity Metrics — create metrics to evaluate the diversity of knowledge systems represented in models."],
-    "longTerm": ["WHO does WHAT by WHEN — same format with Theory of Change. Recommendations must be ACTIONABLE POLICY RECOMMENDATIONS, not metrics or observations. Each recommendation should start with a verb (e.g., 'Mandate...', 'Establish...', 'Require...'). 1-5 year horizon. Generate exactly 1 long-term recommendation. Where relevant, incorporate: (4) Distinguish Universal Rights from Cultural Ontologies — do not conflate fundamental universal rights with cultural values, religious traditions, or social norms; (5) International Framework for Epistemic Representation in AI — the most ambitious recommendation, creating an international instrument ensuring diverse epistemologies are represented in AI systems."],
-    "riskMitigation": ["Specific risk mitigation: WHO monitors WHAT signal and takes WHAT action. Example: 'The IEEE Global Initiative should track religious bias metrics in LLM benchmarks annually and publish corrective guidance if bias scores exceed 0.3 [SRC-30]'"],
+    "shortTerm": ["WHO does WHAT by WHEN — same format with Theory of Change. Recommendations must be ACTIONABLE POLICY RECOMMENDATIONS, not metrics or observations. Each recommendation should start with a verb (e.g., 'Mandate...', 'Establish...', 'Require...'). 6-24 month horizon. Generate exactly 2 short-term recommendations. Each recommendation must be specific to the research topic and supported by evidence from the sources."],
+    "longTerm": ["WHO does WHAT by WHEN — same format with Theory of Change. Recommendations must be ACTIONABLE POLICY RECOMMENDATIONS, not metrics or observations. Each recommendation should start with a verb (e.g., 'Mandate...', 'Establish...', 'Require...'). 1-5 year horizon. Generate exactly 1 long-term recommendation. Each recommendation must be specific to the research topic and supported by evidence from the sources."],
+    "riskMitigation": ["Specific risk mitigation: WHO monitors WHAT signal and takes WHAT action. Example: 'The [relevant institution] should monitor [specific metric] annually and publish corrective guidance if [threshold] is exceeded [SRC-N]'"],
     "costOfInaction": "200+ word QUANTIFIED estimate of what happens if these recommendations are NOT acted upon. Include: (1) measurable risks (financial, strategic, regulatory, reputational) with order-of-magnitude estimates, (2) a timeline for when consequences materialize, (3) which stakeholders bear the cost. Use evidence from sources to anchor estimates — do NOT invent precise figures, but DO provide ranges (e.g., 'estimated 5-15% efficiency loss' or 'potential regulatory exposure of €100M-€500M'). All with [SRC-*] citations where possible."
   },
   
@@ -598,16 +611,16 @@ OUTPUT FORMAT - Return this EXACT JSON structure:
   "causalArchitecture": [
     {
       "claim": "The major causal claim this report makes (e.g., 'Religious institutions are increasingly translating normative objectives into measurable governance frameworks')",
-      "chain": "Explicit causal chain: A → B → C → D. Explain each link. Example: 'AI systems reproduce religious biases (A) → these biases constitute ontological flattening (B) → religious institutions develop KPI frameworks as response (C) → this creates a bridge between religious ethics and algorithmic governance (D)'. Mark which links are DEMONSTRATED vs SUGGESTED vs PROPOSED.",
+      "chain": "Explicit causal chain: A → B → C → D. Explain each link. Example: 'Factor A causes change B (demonstrated) → change B enables outcome C (suggested) → outcome C reshapes system D (proposed)'. Mark which links are DEMONSTRATED vs SUGGESTED vs PROPOSED.",
       "confidence": "high|medium|low",
       "epistemicLevel": "demonstrated|suggested|proposed|projected",
-      "counterfactual": "What evidence would FALSIFY this claim. Example: 'If AI systems were shown to not reproduce religious biases, or if religious institutions ceased developing governance frameworks, the causal chain would break at link A or C respectively.'",
-      "alternativeExplanation": "Alternative causal explanation for the same observation. Example: 'An alternative explanation is that KPI adoption by religious institutions is driven by secular accountability pressures rather than by AI governance concerns.'",
+      "counterfactual": "What evidence would FALSIFY this claim. Example: 'If factor A were shown not to cause change B, or if outcome C occurred without change B, the causal chain would break at link A or B respectively.'",
+      "alternativeExplanation": "Alternative causal explanation for the same observation. Example: 'An alternative explanation is that the observed change is driven by [confounding factor] rather than by the proposed causal mechanism.'",
       "sources": ["[SRC-1]", "[SRC-5]", "[SRC-12]"]
     }
   ],
 
-  "conclusion": "400+ word conclusion. The conclusion MUST be different from the executive summary. Do NOT copy paste. The conclusion should synthesize the key insights from ALL sections (debate, scenarios, recommendations) and provide a forward-looking statement. The executive summary introduces the analysis; the conclusion closes it. SUBTLE and REFLECTIVE tone (McKinsey standard: 'societies are highly adaptable and will adapt in ways our models don't attempt to anticipate'). The central message should be: 'The question is not whether religion will influence AI governance, but whether global AI governance will have the institutional mechanisms necessary to recognize competing conceptions of human dignity, knowledge and agency.' Then: religious institutions represent one of several actors capable of articulating alternative normative frameworks; their future influence will depend less on theological authority than on their ability to translate normative claims into technically and institutionally legible governance mechanisms. Focus on: (1) What the evidence DOES NOT tell us — the boundaries of knowledge, (2) The single most important implication for policy/strategy, (3) How the research landscape is likely to shift, (4) A final reflective judgment on the strength of the position. Do NOT restate the executive summary. All with [SRC-*] citations.",
+  "conclusion": "400+ word conclusion. The conclusion MUST be different from the executive summary. Do NOT copy paste. The conclusion should synthesize the key insights from ALL sections (debate, scenarios, recommendations) and provide a forward-looking statement. The executive summary introduces the analysis; the conclusion closes it. SUBTLE and REFLECTIVE tone (McKinsey standard: 'societies are highly adaptable and will adapt in ways our models don't attempt to anticipate'). The central message should articulate the deepest insight from the analysis — not a restatement of findings, but a synthesis that elevates the discussion. Focus on: (1) What the evidence DOES NOT tell us — the boundaries of knowledge, (2) The single most important implication for policy/strategy, (3) How the research landscape is likely to shift, (4) A final reflective judgment on the strength of the position. Do NOT restate the executive summary. All with [SRC-*] citations.",
   
   "openQuestions": [
     "Critical unanswered question 1",
@@ -651,7 +664,7 @@ TOTAL TARGET: 8000-12000 words. This is a STRATEGIC REPORT, not a brief. Depth i
       messages: [{ role: "user", content: prompt }],
       temperature: 0.2,
       jsonMode: true,
-      maxTokens: 24000, // 24K tokens ≈ 9000-12000 words (V3.1: increased for deeper content)
+      maxTokens: 20000, // 20K tokens ≈ 8000-10000 words (V3.1: increased from 16K for deeper content)
       enableCache: true,
       task: 'strategic_analyst',
     });
@@ -679,10 +692,38 @@ TOTAL TARGET: 8000-12000 words. This is a STRATEGIC REPORT, not a brief. Depth i
     }
 
     // Quality gate: reject thin analysis to trigger cross-provider failover
-    const execSummaryLen = (analysis.executiveSummary || '').trim().length;
-    const litReviewLen = (analysis.literatureOverview || '').trim().length;
-    if (execSummaryLen < 200 || litReviewLen < 200) {
-      throw new Error(`Strategic analysis too thin (execSummary=${execSummaryLen}chars, litReview=${litReviewLen}chars) — triggering failover`);
+    // V3.2: Comprehensive word-count validation (was: 200 chars for 2 sections only)
+    const wordCount = (s: string | undefined): number => {
+      if (!s) return 0;
+      return s.trim().split(/\s+/).filter(w => w.length > 0).length;
+    };
+    const sectionMinimums: Record<string, number> = {
+      executiveSummary: 400,      // prompt asks 600, but accept 400+ as pass
+      literatureOverview: 600,    // prompt asks 1000, but accept 600+ as pass
+      theoreticalFrameworks: 200,
+      methodologicalApproaches: 200,
+      consensus: 200,
+      controversies: 200,
+      emergingTrends: 200,
+      conclusion: 200,
+      whatChangesMind: 100,
+    };
+    const thinSections: string[] = [];
+    for (const [field, minWords] of Object.entries(sectionMinimums)) {
+      const wc = wordCount((analysis as any)[field]);
+      if (wc < minWords) {
+        thinSections.push(`${field}=${wc}words (min ${minWords})`);
+      }
+    }
+    // Only trigger failover if the TWO critical sections are thin
+    const execSummaryWords = wordCount(analysis.executiveSummary);
+    const litReviewWords = wordCount(analysis.literatureOverview);
+    if (execSummaryWords < 150 || litReviewWords < 200) {
+      throw new Error(`Strategic analysis too thin (execSummary=${execSummaryWords}words, litReview=${litReviewWords}words) — triggering failover. Thin sections: ${thinSections.join(', ')}`);
+    }
+    // Log warnings for non-critical thin sections (don't fail, just warn)
+    if (thinSections.length > 0) {
+      console.warn(`[Strategic Analyst] Thin sections detected (non-fatal): ${thinSections.join(', ')}`);
     }
 
     // Post-processing: detect and fix section duplications

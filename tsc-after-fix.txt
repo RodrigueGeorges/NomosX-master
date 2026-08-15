@@ -1,0 +1,1 @@
+lib/agent/index-agent.ts(38,52): error TS2339: Property 'id' does not exist on type 'NonNullable<T>'.

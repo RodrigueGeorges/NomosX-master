@@ -542,13 +542,23 @@ export async function groundClaimsWithNLI(
   const BATCH_SIZE = 8;
   for (let i = 0; i < nliPairs.length; i += BATCH_SIZE) {
     const batch = nliPairs.slice(i, i + BATCH_SIZE);
-    const nliResults = await Promise.all(
+    const nliSettled = await Promise.allSettled(
       batch.map(async ({ claimRef, claim, sourceContent }) => {
         const nli = await classifyNLI(claim, sourceContent);
         const verdict = nliToGroundingVerdict(nli);
         return { claimRef, verdict, score: nli.confidence, evidenceSnippet: nli.evidenceSnippet, nliSource: nli.source };
       }),
     );
+
+    const nliResults = nliSettled
+      .filter((r): r is PromiseFulfilledResult<any> => r.status === 'fulfilled')
+      .map(r => r.value);
+
+    for (const rejected of nliSettled) {
+      if (rejected.status === 'rejected') {
+        console.warn('[ClaimGrounding] NLI classification failed:', rejected.reason);
+      }
+    }
 
     for (const { claimRef, verdict, score, evidenceSnippet, nliSource } of nliResults) {
       claimRef.verdict = verdict;

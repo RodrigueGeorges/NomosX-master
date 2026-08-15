@@ -106,10 +106,20 @@ const THRESHOLDS = {
  */
 export async function loadCalibratedThresholds(domain?: string): Promise<typeof THRESHOLDS> {
   try {
-    const [analystCal, scoutCal] = await Promise.all([
+    const [analystRes, scoutRes] = await Promise.allSettled([
       computeCalibration("analyst", domain as any, 90),
       computeCalibration("strategic-analyst", domain as any, 90),
     ]);
+
+    if (analystRes.status === 'rejected') {
+      console.warn('[Orchestrator] analyst calibration failed:', analystRes.reason);
+    }
+    if (scoutRes.status === 'rejected') {
+      console.warn('[Orchestrator] strategic-analyst calibration failed:', scoutRes.reason);
+    }
+
+    const analystCal = analystRes.status === 'fulfilled' ? analystRes.value : { totalRuns: 0, avgTrustScore: 0, minQualityThreshold: 0 };
+    const scoutCal = scoutRes.status === 'fulfilled' ? scoutRes.value : { totalRuns: 0, avgTrustScore: 0, minQualityThreshold: 0 };
 
     // Use the better-performing agent's calibration
     const bestCal = analystCal.totalRuns >= scoutCal.totalRuns ? analystCal : scoutCal;

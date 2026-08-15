@@ -774,7 +774,7 @@ export async function runExpertAnalysis(
 
   try {
     const [memory, profile] = await Promise.all([
-      buildMemoryInjection(`phd:${domain}`, domain, { maxLessons: 4, lookbackDays: 90 }),
+      buildMemoryInjection(`phd:${domain}`, domain, { maxLessons: 4, lookbackDays: 90, topicQuery: question }),
       buildResearcherProfile(domain, question, 180),
     ]);
     if (memory.promptBlock) {

@@ -330,8 +330,8 @@ async function extractPdfText(url: string, timeout = 15000): Promise<string | nu
     const parser = new PDFParse({ data: Buffer.from(response.data) });
     const data = await parser.getText();
     let numPages = 0;
-    try { const info = await parser.getInfo(); numPages = info.total; } catch {}
-    try { await parser.destroy(); } catch {}
+    try { const info = await parser.getInfo(); numPages = info.total; } catch (err) { console.warn('[Reader V3] PDF getInfo failed:', err); }
+    try { await parser.destroy(); } catch (err) { console.warn('[Reader V3] PDF destroy failed:', err); }
 
     const text = data?.text || '';
     if (text.trim().length < 100) {
@@ -616,7 +616,8 @@ let _currentDomain: string | undefined;
 async function deepExtract(
   source: any,
   text: string,
-  depth: "full_text" | "abstract"
+  depth: "full_text" | "abstract",
+  memoryBlock?: string
 ): Promise<ReadingResultV3> {
   const isFullText = depth === "full_text";
   const chunks = isFullText ? chunkPaper(text) : [];
@@ -651,7 +652,7 @@ async function deepExtract(
   const isAcademic = sourceType === 'academic';
 
   const prompt = `${roleDescription}
-
+${memoryBlock ? `\n${memoryBlock}\n` : ''}
 TITLE: ${source.title}
 AUTHORS: ${(source.authors || []).slice(0, 5).map((a: any) => a.author?.name || a.name || "").filter(Boolean).join(", ") || "N/A"}
 YEAR: ${source.year || "N/A"}
@@ -926,13 +927,15 @@ export async function readerAgentV3(
     maxConcurrency?: number;   // Default: 5
     timeout?: number;          // Per-source timeout in ms. Default: 20000
     domain?: string;           // Domain for domain-aware extraction guidance
+    memoryBlock?: string;      // Agent memory injection (lessons from past runs)
   } = {}
 ): Promise<ReadingResultV3[]> {
   assertPermission(AgentRole.READER, "write:claims");
 
-  const { enablePdf = true, maxConcurrency = 5, timeout = 90000, domain } = options;
+  const { enablePdf = true, maxConcurrency = 5, timeout = 90000, domain, memoryBlock } = options;
   _currentDomain = domain;
   if (domain) console.log(`[Reader V3] Domain-aware mode: ${domain}`);
+  if (memoryBlock) console.log(`[Reader V3] Memory injection: ${memoryBlock.length} chars`);
 
   console.log(`[Reader V3] Processing ${sources.length} sources (PDF: ${enablePdf}, concurrency: ${maxConcurrency})`);
 
@@ -950,7 +953,7 @@ export async function readerAgentV3(
       batch.map(async (source) => {
         // Wrap in timeout
         return Promise.race([
-          processSource(source, enablePdf),
+          processSource(source, enablePdf, memoryBlock),
           new Promise<ReadingResultV3>((_, reject) =>
             setTimeout(() => reject(new Error('Reader V3 timeout')), timeout)
           ),
@@ -986,7 +989,7 @@ export async function readerAgentV3(
 /**
  * Process a single source: get text → extract → return
  */
-async function processSource(source: any, enablePdf: boolean): Promise<ReadingResultV3> {
+async function processSource(source: any, enablePdf: boolean, memoryBlock?: string): Promise<ReadingResultV3> {
   // Skip sources with no content at all
   const hasContent = source.abstract?.length > 50 || source.pdfUrl || source.url;
   if (!hasContent) {
@@ -1017,7 +1020,7 @@ async function processSource(source: any, enablePdf: boolean): Promise<ReadingRe
   }
 
   // Deep extraction
-  return deepExtract(source, text, depth);
+  return deepExtract(source, text, depth, memoryBlock);
 }
 
 // ============================================================================

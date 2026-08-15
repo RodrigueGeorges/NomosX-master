@@ -38,6 +38,84 @@ export const DOMAIN_BLACKLIST: string[] = [
   'news-directory.com',
   'blog-directory.com',
 
+  // ── V3.2: Content farms & low-quality aggregators ──
+  // Video platforms — not peer-reviewed, not citable for strategic reports
+  'youtube.com',
+  'youtu.be',
+  'vimeo.com',
+  'tiktok.com',
+  'dailymotion.com',
+
+  // Document sharing platforms — user-uploaded, no editorial control
+  'scribd.com',
+  'slideshare.net',
+  'docplayer.net',
+  'coursehero.com',
+  'chegg.com',
+
+  // Educational content mills — simplified explanations, not research
+  'study.com',
+  'khanacademy.org',       // Legit but not a research source
+  'quizlet.com',
+  'sparknotes.com',
+  'cliffsnotes.com',
+  'bartleby.com',
+  'coursehero.com',
+
+  // Personal blogs & self-publishing (non-institutional)
+  'troylendman.com',
+  'medium.com',            // Handled separately by isLowQualityMediumPost()
+
+  // Q&A sites — not primary sources
+  'quora.com',
+  'reddit.com',
+  'stackexchange.com',
+  'stackoverflow.com',     // Legit for coding but not for policy research
+  'answers.com',
+  'wikihow.com',
+
+  // Encyclopedias — tertiary sources, not primary research
+  'wikipedia.org',         // Good for orientation, not for citing in reports
+  'britannica.com',
+  'encyclopedia.com',
+
+  // SEO & marketing sites
+  'sustainability-directory.com',
+  'semrush.com',
+  'ahrefs.com',
+  'moz.com',
+
+  // AI-generated content farms
+  'chatgpt-demo.com',
+  'ai-content-generator.com',
+
+  // ── V3.2: SEO directory submission sites (from content-farm-lists) ──
+  'linkcentre.com',
+  'ontoplist.com',
+  'avivadirectory.com',
+  'bloggernity.com',
+  'exactseek.com',
+  'alive-directory.com',
+  'abc-directory.com',
+  'bloghints.com',
+  'cipinet.com',
+  'prolinkdirectory.com',
+  'submissionwebdirectory.com',
+  'directoryvault.com',
+  '10directory.com',
+  'alistdirectory.com',
+  '9sites.net',
+  'directoryworld.net',
+  'infotiger.com',
+  'freewebsitedirectory.com',
+  'mastermoz.com',
+  'linkpedia.net',
+  'upsdirectory.com',
+  'directory6.org',
+  'marketinginternetdirectory.com',
+  '1websdirectory.com',
+  'highrankdirectory.com',
+
   // NOTE: academia.edu is deliberately excluded — it is a legitimate academic
   // preprint/sharing platform and should NOT be filtered.
 ];
@@ -48,6 +126,15 @@ export const DOMAIN_BLACKLIST: string[] = [
  */
 const DOMAIN_WHITELIST: string[] = [
   'academia.edu',
+  // V3.2: Legitimate academic platforms that could be caught by patterns
+  'researchgate.net',
+  'mendeley.com',
+  'scholar.google.com',
+  'doaj.org',
+  'core.ac.uk',
+  'unpaywall.org',
+  'orcid.org',
+  'ror.org',
 ];
 
 /**
@@ -57,6 +144,16 @@ const DOMAIN_WHITELIST: string[] = [
 const DOMAIN_PATTERN_BLACKLIST: RegExp[] = [
   // any subdomain + `-directory.com` (e.g. seo-directory.com, fashion-directory.com)
   /(^|\.)[\w-]+-directory\.com$/i,
+  // V3.2: Also catch .net, .org, .info variants
+  /(^|\.)[\w-]+-directory\.net$/i,
+  /(^|\.)[\w-]+-directory\.org$/i,
+  /(^|\.)[\w-]+-directory\.info$/i,
+  // Content farm wikis (not legitimate wikis like wikipedia.org which is in explicit blacklist)
+  /(^|\.)[\w-]+-wiki\.com$/i,
+  // Auto-generated encyclopedia clones
+  /(^|\.)[\w-]+-encyclopedia\.com$/i,
+  // Content farm answer sites (not stackoverflow.com which is in explicit blacklist)
+  /(^|\.)[\w-]+-answers\.com$/i,
 ];
 
 /**
@@ -142,10 +239,55 @@ export const RELEVANCE_KEYWORDS: Record<string, string[]> = {
     'Circumvention of Lawful Pathways',
     'Emissions Standards',
     'Vehicle Emissions',
+    // V3.2: Added for AI/governance queries
+    'Artificial Intelligence',
+    'Algorithmic Accountability',
+    'Federal Acquisition Regulation',
+    'Privacy Act',
+    'FOIA',
+    'Cybersecurity',
+    'National Security',
   ],
   'internet-archive': [
     // Internet Archive returns broad web-archive hits; relevance must be
     // validated against the query terms at the SCOUT level.
+  ],
+  // V3.2: Added relevance keywords for major institutional providers
+  'who': [
+    'Public Health', 'Epidemiology', 'Health Policy', 'Disease Control',
+    'Global Health', 'Pandemic', 'Vaccine', 'Health Systems',
+  ],
+  'worldbank': [
+    'Development Economics', 'Poverty Reduction', 'Infrastructure',
+    'Climate Finance', 'Development Policy', 'Economic Growth',
+  ],
+  'imf': [
+    'Fiscal Policy', 'Monetary Policy', 'Economic Outlook',
+    'Financial Stability', 'Exchange Rates', 'Inflation',
+  ],
+  'oecd': [
+    'Economic Policy', 'Social Policy', 'Environmental Policy',
+    'Governance', 'Statistics', 'Innovation', 'Digital Economy',
+  ],
+  'brookings': [
+    'Policy Research', 'Governance', 'Economic Policy',
+    'Foreign Policy', 'Global Economy', 'Technology Policy',
+  ],
+  'rand': [
+    'Public Policy', 'National Security', 'Defense',
+    'Healthcare', 'Education', 'Cybersecurity',
+  ],
+  'jstor': [
+    // JSTOR returns broad humanities/social science hits; relevance must be
+    // validated against query terms. Common off-topic patterns:
+    'Socratic', 'Dialectic',  // Ancient philosophy — usually off-topic for modern policy
+  ],
+  'tavily': [
+    // Tavily is a web search API — relevance is query-dependent
+  ],
+  'cordis': [
+    'Research Project', 'European Union', 'Horizon',
+    'Innovation', 'Technology', 'Science',
   ],
 };
 

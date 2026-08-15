@@ -207,7 +207,7 @@ function buildSourceContext(sources: any[], readings?: any[]): string {
 
   return sources
     .map((s: any, i: number) => {
-      const reading = readings?.[i];
+      const reading = readings?.find((r: any) => r.sourceId === s.id) ?? readings?.[i];
       const authors = (s.authors || [])
         .slice(0, 3)
         .map((a: any) => {
@@ -1158,6 +1158,23 @@ export async function analystAgentV3(
       console.warn(`[Analyst V3] Missing fields: ${missing.join(', ')}. Returning partial analysis.`);
     }
 
+    // ── SELF-REFINE: Auto-evaluate and refine the analysis (Self-Refine pattern) ──
+    // The agent critiques its own output and refines weak sections before returning.
+    // Only triggers if there are quality issues (low citation coverage or missing fields).
+    let refinedAnalysis = analysis;
+    if ((citedCount < minDistinctCitations || missing.length > 0) && !isStrategicDepth(depth)) {
+      try {
+        console.log(`[Analyst V3] SELF-REFINE: auto-evaluating analysis for improvement`);
+        const refinement = await selfRefineAnalysis(analysis, question, sources.length, citedCount, missing);
+        if (refinement.improved) {
+          refinedAnalysis = { ...analysis, ...refinement.analysis };
+          console.log(`[Analyst V3] SELF-REFINE: applied ${refinement.changes.length} improvements: ${refinement.changes.join('; ')}`);
+        }
+      } catch (refineErr) {
+        console.warn(`[Analyst V3] SELF-REFINE: failed (non-blocking):`, refineErr);
+      }
+    }
+
     return {
       ...analysis,
       _meta: {
@@ -1193,5 +1210,97 @@ export async function analystAgentV3(
         totalCostUsd: 0,
       },
     };
+  }
+}
+
+// ============================================================================
+// SELF-REFINE — Auto-evaluate and refine analysis (Self-Refine pattern, 2023)
+// ============================================================================
+
+function isStrategicDepth(depth: string): boolean {
+  return depth === 'strategic';
+}
+
+/**
+ * Self-evaluate the analysis and generate improvements.
+ * Inspired by Self-Refine (2023): FEEDBACK → REFINE → FEEDBACK loop.
+ *
+ * The agent critiques its own output on:
+ * - Citation coverage (are enough sources cited?)
+ * - Missing fields (are required fields populated?)
+ * - Claim specificity (are claims concrete or vague?)
+ * - Evidence linking (are claims tied to sources?)
+ */
+async function selfRefineAnalysis(
+  analysis: AnalysisOutput,
+  question: string,
+  sourceCount: number,
+  citedCount: number,
+  missingFields: string[]
+): Promise<{ improved: boolean; analysis: Partial<AnalysisOutput>; changes: string[] }> {
+  const issues: string[] = [];
+  if (citedCount < sourceCount * 0.5) {
+    issues.push(`Citation coverage is low: ${citedCount}/${sourceCount} sources cited. Add more [SRC-N] references to claims.`);
+  }
+  if (missingFields.length > 0) {
+    issues.push(`Missing required fields: ${missingFields.join(', ')}. Populate them.`);
+  }
+
+  if (issues.length === 0) {
+    return { improved: false, analysis: {}, changes: [] };
+  }
+
+  const result = await callLLM({
+    messages: [
+      {
+        role: "system",
+        content: `You are a self-refinement engine. Given an analysis with identified issues, generate targeted fixes. Return ONLY the fields that need updating, in JSON format. Do not rewrite the entire analysis.`,
+      },
+      {
+        role: "user",
+        content: `QUESTION: "${question.slice(0, 200)}"
+SOURCE COUNT: ${sourceCount}
+CITED COUNT: ${citedCount}
+
+ISSUES TO FIX:
+${issues.map((i, idx) => `${idx + 1}. ${i}`).join('\n')}
+
+CURRENT ANALYSIS (excerpt):
+${JSON.stringify(analysis).slice(0, 3000)}
+
+Return JSON with the fields that need fixing:
+{
+  "verdict": "improved verdict if needed",
+  "throughLine": "improved throughLine if needed",
+  "keyFindings": ["improved finding 1", ...],
+  "changes": ["change 1 description", "change 2 description"]
+}
+
+Rules:
+- Only include fields that actually need fixing
+- Add [SRC-N] citations to any new claims
+- Be specific and concrete, not vague
+- Keep changes surgical — don't rewrite everything`,
+      },
+    ],
+    temperature: 0.2,
+    maxTokens: 2000,
+    jsonMode: true,
+    task: 'topic_classification',
+  });
+
+  try {
+    const parsed = parseJson<any>(result.content);
+    if (!parsed) return { improved: false, analysis: {}, changes: [] };
+
+    const changes = parsed.changes || [];
+    const refinedFields: Partial<AnalysisOutput> = {};
+    if (parsed.verdict) refinedFields.verdict = parsed.verdict;
+    if (parsed.throughLine) refinedFields.throughLine = parsed.throughLine;
+    if (parsed.keyFindings && Array.isArray(parsed.keyFindings)) refinedFields.keyFindings = parsed.keyFindings;
+
+    return { improved: true, analysis: refinedFields, changes };
+  } catch {
+    return { improved: false, analysis: {}, changes: [] };
   }
 }

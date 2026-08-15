@@ -9128,3 +9128,195 @@ BASE search failed: HttpError: Request timeout after 15000ms
 ❌ glm failed for task "reader_v3": 429 Insufficient balance or no resource package. Please recharge.
 ✅ deepseek/deepseek-v4-flash [reader_v3] | 7283ms | 539+72 tok (512 cache-hit) | $0.0001
 [Strategic] CROSS-MODEL CONSENSUS: controversial claim verified | verdict: uncertain | agreement: 100%
+✅ deepseek/deepseek-v4-flash [reader_v3] | 18645ms | 1634+4354 tok | $0.0014
+❌ deepseek failed for task "reader_v3": deepseek/deepseek-v4-flash returned unparseable JSON (len=17914)
+⚡ Circuit breaker OPEN for kimi (3 consecutive failures)
+❌ kimi failed for task "reader_v3": 429 Your account org-774d71d4dfd84636b8fc43ef23175faa <ak-fbpa5sih1x3111ghdf1i> is suspended due to insufficient balance, please recharge your account or check your plan and billing details
+❌ glm failed for task "reader_v3": 429 Insufficient balance or no resource package. Please recharge.
+✅ openai/gpt-4o [reader_v3] | 40664ms | 1523+943 tok | $0.0218
+[KG] Built graph: 45 entities, 30 relations, 11 clusters, 9 bridges
+[Strategic] KNOWLEDGE GRAPH: 45 entities, 30 relations, 11 clusters
+[Strategic] EVIDENCE TIERS: Tier 1 (Empirical): 1 | Tier 2 (Institutional): 0 | Tier 3 (Academic): 20 | Tier 4 (Policy): 37 | Tier 5 (Emerging): 15
+[Strategic] ADVERSARIAL TRANSPARENCY: 7 objections, 0 preprint downgrades injected
+[Strategic] MULTI-LENS CONVERGENCE: 1 convergence, 2 divergence points
+[Strategic] EDITORIAL V2: foresight → debate → devil's advocate → editor → quality gates
+[Strategic] FORESIGHT: skipped (only 0 scenarios in analysis)
+[Strategic] DEBATE: running (meta-analysis suppressed)
+[DEBATE] Starting adversarial deliberation for: "How does algorithmic transparency affect democratic accountability?..."
+[DEBATE] Pass 1: Thesis identification + steel-man construction
+✅ deepseek/deepseek-v4-flash [elenchus] | 7347ms | 19429+871 tok | $0.0030
+[DEBATE] Pass 2: Synthesis and nuance extraction
+✅ deepseek/deepseek-v4-flash [editorial_arbiter] | 5474ms | 475+443 tok | $0.0002
+[DEBATE] ✅ Complete: P1 strength=75, P2 strength=60, confidence=70%, cost=$0.0032
+[Strategic] DEBATE: confidence=70%, steel-man=75
+[Strategic] INFLECTION CHECK: Chain of 95 mechanisms has no reversing direction — trajectory is purely inertial
+[Strategic] INFLECTION DETAIL: Chain of 95 mechanisms has no reversing direction — trajectory is purely inertial
+[Strategic] DEVIL'S ADVOCATE: suppressed — deterministic gates handle quality
+[Strategic] EDITOR: render professional HTML
+[Strategic] RENDERER: position-first NOT used — editorialV2=true, casting=false, arbiter=false — falling back to strategic template
+[Strategic] EDITOR: strategic template rendered (99KB)
+[CITATION REPAIR] Backfilled: 2, Injected: 296, Sanitized: 0 (total: 298)
+[Strategic] CITATION REPAIR: +2 backfilled, +296 injected, 0 numbers sanitized
+[CLAIM GROUNDING NLI] Extracted 573 sentences from HTML
+✅ deepseek/deepseek-v4-flash [reader_v3] | 1251ms | 1829+83 tok | $0.0003
+[CLAIM GROUNDING NLI] LLM decomposition: 1 atomic claims (decontextualized), cost $0.0003
+[CLAIM GROUNDING NLI] Decomposed into 1 atomic claims (1 cited, 0 uncited) [LLM decontextualized]
+[CLAIM GROUNDING NLI] Verdicts: 0 supported, 1 partial, 0 unsupported, 0 uncited, 0 contradicted → groundedness 100% (citation rate: 100%)
+[Strategic] CLAIM GROUNDING: 0 supported, 1 partial, 0 unsupported, 0 uncited → groundedness 100%, 0 flagged
+[Strategic] CITATION FILTER: +6 backtracked, -0 removed, coverage 97%→99%
+[Strategic] CITATION VERIFIER: NLI semantic check
+[NLI Verifier] Starting verification for 73 sources...
+[NLI Verifier] Found 442 citation instances
+[NLI Verifier] 80 unique claim-citation pairs to verify
+[NLI Verifier] ✅ Complete: 7 supported, 2 partial, 0 unsupported, 14 misattributed | Integrity: 37%
+[Strategic] CITATION VERIFIER: NLI integrity 37% (14 flagged)
+[Strategic] CITATION VERIFIER: LLM deep-check on 14 flagged claims
+[CitationVerifier] Starting verification for 73 sources...
+[CitationVerifier] Found 442 citation instances
+[CitationVerifier] Capped 347 → 30 pairs (round-robin across 73 sources)
+[CitationVerifier] 30 unique claim-citation pairs to verify
+❌ anthropic failed for task "citation_verification": 400 {"type":"error","error":{"type":"invalid_request_error","message":"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits."},"request_id":"req_011Ce3TasNVmEvX4kEENYmfG"}
+⚡ Circuit breaker OPEN for anthropic (3 consecutive failures)
+❌ anthropic failed for task "citation_verification": 400 {"type":"error","error":{"type":"invalid_request_error","message":"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits."},"request_id":"req_011Ce3TaseN3xVuHF86wJPWM"}
+⚡ Circuit breaker OPEN for anthropic (4 consecutive failures)
+❌ anthropic failed for task "citation_verification": 400 {"type":"error","error":{"type":"invalid_request_error","message":"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits."},"request_id":"req_011Ce3TassWeaGVFq1Ascj4E"}
+⚡ Circuit breaker OPEN for anthropic (5 consecutive failures)
+❌ anthropic failed for task "citation_verification": 400 {"type":"error","error":{"type":"invalid_request_error","message":"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits."},"request_id":"req_011Ce3TassWaugwAihPj3mGD"}
+⚡ Circuit breaker OPEN for anthropic (6 consecutive failures)
+❌ anthropic failed for task "citation_verification": 400 {"type":"error","error":{"type":"invalid_request_error","message":"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits."},"request_id":"req_011Ce3Tast18NpCScYnKNKrJ"}
+⚡ Circuit breaker OPEN for anthropic (7 consecutive failures)
+❌ anthropic failed for task "citation_verification": 400 {"type":"error","error":{"type":"invalid_request_error","message":"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits."},"request_id":"req_011Ce3TasuF2tmMSEvPLmDFp"}
+⚡ Circuit breaker OPEN for anthropic (8 consecutive failures)
+❌ anthropic failed for task "citation_verification": 400 {"type":"error","error":{"type":"invalid_request_error","message":"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits."},"request_id":"req_011Ce3TastFVkUwuuW9UYodX"}
+⚡ Circuit breaker OPEN for anthropic (9 consecutive failures)
+❌ anthropic failed for task "citation_verification": 400 {"type":"error","error":{"type":"invalid_request_error","message":"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits."},"request_id":"req_011Ce3TasvyrVb9rhxx7vsGZ"}
+✅ openai/gpt-4o-mini [citation_verification] | 1374ms | 617+77 tok | $0.0001
+✅ openai/gpt-4o-mini [citation_verification] | 1895ms | 754+103 tok | $0.0002
+✅ openai/gpt-4o-mini [citation_verification] | 1935ms | 761+104 tok | $0.0002
+✅ openai/gpt-4o-mini [citation_verification] | 2014ms | 348+109 tok | $0.0001
+✅ openai/gpt-4o-mini [citation_verification] | 2283ms | 1259+113 tok | $0.0003
+✅ openai/gpt-4o-mini [citation_verification] | 2279ms | 602+87 tok | $0.0001
+✅ openai/gpt-4o-mini [citation_verification] | 2542ms | 751+148 tok | $0.0002
+✅ openai/gpt-4o-mini [citation_verification] | 3238ms | 1314+116 tok | $0.0003
+✅ openai/gpt-4o-mini [citation_verification] | 1705ms | 1217+122 tok | $0.0003
+✅ openai/gpt-4o-mini [citation_verification] | 1884ms | 1201+147 tok | $0.0003
+✅ openai/gpt-4o-mini [citation_verification] | 1916ms | 1219+123 tok | $0.0003
+✅ openai/gpt-4o-mini [citation_verification] | 1943ms | 592+143 tok | $0.0002
+✅ openai/gpt-4o-mini [citation_verification] | 2291ms | 1114+182 tok | $0.0003
+✅ openai/gpt-4o-mini [citation_verification] | 2464ms | 1183+147 tok | $0.0003
+✅ openai/gpt-4o-mini [citation_verification] | 2741ms | 1230+131 tok | $0.0003
+✅ openai/gpt-4o-mini [citation_verification] | 2777ms | 567+170 tok | $0.0002
+✅ openai/gpt-4o-mini [citation_verification] | 1580ms | 697+95 tok | $0.0002
+✅ openai/gpt-4o-mini [citation_verification] | 2013ms | 774+148 tok | $0.0002
+✅ openai/gpt-4o-mini [citation_verification] | 2039ms | 504+132 tok | $0.0002
+✅ openai/gpt-4o-mini [citation_verification] | 2185ms | 782+141 tok | $0.0002
+✅ openai/gpt-4o-mini [citation_verification] | 2175ms | 681+138 tok | $0.0002
+✅ openai/gpt-4o-mini [citation_verification] | 2277ms | 1243+146 tok | $0.0003
+✅ openai/gpt-4o-mini [citation_verification] | 2286ms | 1287+186 tok | $0.0003
+✅ openai/gpt-4o-mini [citation_verification] | 2755ms | 338+98 tok | $0.0001
+✅ openai/gpt-4o-mini [citation_verification] | 1703ms | 732+126 tok | $0.0002
+✅ openai/gpt-4o-mini [citation_verification] | 1700ms | 1327+121 tok | $0.0003
+✅ openai/gpt-4o-mini [citation_verification] | 1748ms | 691+126 tok | $0.0002
+✅ openai/gpt-4o-mini [citation_verification] | 1913ms | 1193+160 tok | $0.0003
+✅ openai/gpt-4o-mini [citation_verification] | 1939ms | 697+141 tok | $0.0002
+✅ openai/gpt-4o-mini [citation_verification] | 2030ms | 1309+140 tok | $0.0003
+[CitationVerifier] ✅ Complete: 5 supported, 12 partial, 11 unsupported, 0 misattributed | Integrity: 44%
+[Strategic] CITATION VERIFIER: LLM corrected integrity to 44%
+[FACT-CHECKER] Verifying numerical claims in HTML (118KB, 73 sources)
+[FACT-CHECKER] Found 0 numerical claims to verify
+[Strategic] FACT-CHECKER: 0 claims, 0 verified, 0 major, 0 fatal → integrity 100%
+[Strategic] ORIGINALITY: OK (score 98%, avg overlap 1.1%)
+[Strategic] BIAS DETECTOR: 1 biases detected (risk 20%): selection(low)
+[Strategic] SOURCE CHECK: 20 verified, 0 retracted, 0 not found, 0 claim absent → integrity 100%
+[Strategic] FACT-CHECK: only 0 claims found — flooring integrity at 100 (was 100)
+[Strategic] TRUST: critic veto — critic score 20/100 (reject), capping trust at 55
+[Strategic] DETERMINISTIC TRUST: 55/100 — coverage=100%, groundedness=100%, factCheck=100%, nli=44%, sourceCheck=100%, diversity=100, avgQuality=65
+[Strategic] PROVENANCE GRAPH: failed (non-blocking): ReferenceError: inquiryId is not defined
+    at runPostRenderQualityGates (C:\Users\DELL\Desktop\NomosX-master\lib\agent\pipeline-v2.ts:4079:11)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async runPipelineCore (C:\Users\DELL\Desktop\NomosX-master\lib\agent\pipeline-v2.ts:4357:5)
+[Strategic] METHODOLOGY NOTE: injected (73 sources, 12 providers, 73 cited)
+[ORCHESTRATOR] Decision: DEBATE — Trust score 55 below 65. Triggering adversarial debate to strengthen weak points before publication.
+[Strategic] EVIDENCE IDS: 73/73 cited, 0 uncited
+[Strategic] STYLE GATES: 4 violations (G1-G10)
+[Strategic] NUMERICAL GATE: 8 unsourced numbers
+[Strategic] QUALITY LOOP: trust 55 < 65 — retrying citation repair with aggressive settings
+[CITATION REPAIR] Backfilled: 8, Injected: 288, Sanitized: 4 (total: 300)
+[Strategic] QUALITY LOOP: aggressive citation repair +8 backfilled, +288 injected
+[CLAIM GROUNDING NLI] Extracted 579 sentences from HTML
+✅ deepseek/deepseek-v4-flash [reader_v3] | 1772ms | 1830+150 tok | $0.0003
+[CLAIM GROUNDING NLI] LLM decomposition: 2 atomic claims (decontextualized), cost $0.0003
+[CLAIM GROUNDING NLI] Decomposed into 2 atomic claims (0 cited, 2 uncited) [LLM decontextualized]
+[CLAIM GROUNDING NLI] Verdicts: 0 supported, 0 partial, 0 unsupported, 2 uncited, 0 contradicted → groundedness 0% (citation rate: 0%)
+[Strategic] QUALITY LOOP: re-grounding → 0 supported, 0 unsupported → groundedness 0%
+[Strategic] QUALITY LOOP: trust 55 → 45 (+-10) — coverage 100%, groundedness 0%
+[HERO IMAGE] Generating for: "Algorithmic Transparency and Democratic Accountability: Stru..."
+[HERO IMAGE] ✅ Generated via gpt-image-1 (cost ~$0.02)
+[Strategic] HERO IMAGE: generated and injected into HTML
+[Strategic] PUBLISHER: save strategic report
+[PREDICTIONS] Registered 3/3 predictions for brief cmstjkkkw0399295t0h11n64h
+[Strategic] PREDICTIONS: registered 3 predictions for brief cmstjkkkw0399295t0h11n64h
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `la colonne « src » n'existe pas`
+[Strategic] CAUSAL LINKS: persistence failed (non-blocking): PrismaClientKnownRequestError: 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `42703`. Message: `la colonne « src » n'existe pas`
+    at $n.handleRequestError (C:\Users\DELL\Desktop\NomosX-master\node_modules\@prisma\client\runtime\library.js:121:7315)
+    at $n.handleAndLogRequestError (C:\Users\DELL\Desktop\NomosX-master\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\DELL\Desktop\NomosX-master\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (C:\Users\DELL\Desktop\NomosX-master\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async runPipelineCore (C:\Users\DELL\Desktop\NomosX-master\lib\agent\pipeline-v2.ts:4693:7) {
+  code: 'P2010',
+  clientVersion: '5.22.0',
+  meta: { code: '42703', message: "la colonne « src » n'existe pas" }
+}
+[Strategic] KNOWLEDGE GRAPH: extracting concepts
+[KNOWLEDGE] Extracting concepts from brief cmstjkkkw0399295t0h11n64h
+✅ deepseek/deepseek-v4-flash [reader_v3] | 7677ms | 1625+1194 tok | $0.0006
+[KNOWLEDGE] Updated existing concept: "Algorithmic transparency" (5 occurrences)
+[KNOWLEDGE] Updated existing concept: "Democratic accountability" (5 occurrences)
+[KNOWLEDGE] Updated existing concept: "Structural limits of transparency" (4 occurrences)
+[KNOWLEDGE] Updated existing concept: "Institutional remedies" (4 occurrences)
+[KNOWLEDGE] Updated existing concept: "Complexity of algorithms" (2 occurrences)
+[KNOWLEDGE] Created new concept: "Opacity of proprietary algorithms" (entity)
+[KNOWLEDGE] Updated existing concept: "Information asymmetry" (3 occurrences)
+[KNOWLEDGE] Created new concept: "Independent oversight" (policy)
+[KNOWLEDGE] Created new concept: "Algorithmic auditing" (method)
+[KNOWLEDGE] Updated existing concept: "Participatory governance" (3 occurrences)
+[KNOWLEDGE] Updated existing concept: "Transparency paradox" (4 occurrences)
+[KNOWLEDGE] Updated existing concept: "Accountability gap" (3 occurrences)
+[KNOWLEDGE] ✅ Extracted 12 concepts, 12 relations, cost=$0.0006
+[Strategic] KNOWLEDGE GRAPH: 12 concepts, 12 relations
+✅ deepseek/deepseek-v4-flash [enrichment_reasoner] | 2044ms | 12+112 tok | $0.0000
+[EMG] Episode stored: How does algorithmic transparency affect democratic accounta... | score: 20
+[Strategic] EPISODIC MEMORY: episode stored for brief cmstjkkkw0399295t0h11n64h
+[PredictionTracker] Stored: continuation: Algorithmic transparency becomes a legal requi... (p=0.2, horizon=5-10 years)
+[PredictionTracker] Stored: disruption: A major AI-driven scandal (e.g., algorithmic bia... (p=0.15, horizon=5-10 years)
+[PredictionTracker] Stored: transformation: Democratic governance transforms with the ad... (p=0.1, horizon=5-10 years)
+[PredictionTracker] Stored: collapse: The current democratic accountability framework co... (p=0.1, horizon=5-10 years)
+[PredictionTracker] Stored: surprise: A breakthrough in quantum computing makes current ... (p=0.05, horizon=5-10 years)
+[PredictionTracker] Stored: transformation: A cultural shift towards 'algorithmic litera... (p=0.15, horizon=5-10 years)
+[PredictionTracker] Stored: surprise: An unexpected geopolitical crisis (e.g., a cyberat... (p=0.1, horizon=5-10 years)
+[PredictionTracker] Stored: surprise: The concept of 'algorithmic transparency' becomes ... (p=0.1, horizon=5-10 years)
+[PredictionTracker] Stored: surprise: A cross-domain disruption from neuroscience: brain... (p=0.05, horizon=5-10 years)
+[Strategic] PREDICTION TRACKER: stored 9 hypotheses
+[Strategic] EXPERIENCE BANK: extraction queued
+[PREDICTION AUDITOR] Starting retrospective accuracy check...
+[PREDICTION AUDITOR] Found 0 predictions to audit
+
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  âœ… STRATEGIC REPORT COMPLETE
+  Brief: cmstjkkkw0399295t0h11n64h | Run: cmstiuc920000295tn6mua8k6
+  Sources: 73 | Pages: ~907
+  Cost: $0.0190 | Duration: 1236698ms
+  Orchestrator: 0 decisions
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+
+[Inquiry] Complete brief=cmstjkkkw0399295t0h11n64h sections=1 sources=73 foresight=false
+
+C:\Users\DELL\Desktop\NomosX-master>

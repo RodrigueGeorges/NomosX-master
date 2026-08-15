@@ -7,6 +7,7 @@ import { formatAPA, renderAPAHtml } from './pipeline-types';
 import type { PositionFirstBriefInput } from './editorial-types';
 import { collisionLabel, dimensionsFromClassification } from './editorial-types';
 import { POSITION_FIRST_BRIEF_CSS } from './position-first-brief.css';
+import { dedupeCitations } from './strategic-report-renderer';
 
 function esc(s: string): string {
   return String(s || '').replace(/[&<>"']/g, (m) =>
@@ -21,6 +22,8 @@ function replaceCitations(text: string, sourceCount?: number): string {
       return refs.map(r => `[${r}]`).join('');
     })
     .replace(/(?<!\[)SRC-(\d+)(?!\])/g, '[SRC-$1]');
+  // Deduplicate before rendering so [SRC-13][SRC-13] doesn't render as "1313".
+  normalized = dedupeCitations(normalized);
   return normalized.replace(/\[SRC-(\d+)\]/g, (_, n) => {
     const num = parseInt(n, 10);
     if (sourceCount && (num < 1 || num > sourceCount)) {

@@ -20,7 +20,7 @@ import { analystAgentV3 as analystMultipass } from './analyst-multipass';
 import { verifyCitations } from './citation-verifier';
 import { extractAndStoreConcepts } from './knowledge-graph';
 import { primeContext } from './context-primer';
-import { buildMemoryInjection, recordAgentPerformance, autoDetectFailureModes, extractLessons, storeLesson } from './agent-memory';
+import { buildMemoryInjection, recordAgentPerformance, autoDetectFailureModes, extractLessons, storeLesson, recordLearningCycle } from './agent-memory';
 import { extractAndStoreGaps, getRelevantGaps, markGapsFilled } from './gap-filler';
 import { assessEvidenceSufficiency } from './enrichment-reasoner';
 
@@ -2741,12 +2741,22 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   // ── STEP 5: READER V3 + FRAMING + QUANT (parallel) ──
   emitProgress(pipelineRun.id, "READER", "started", `Deep extraction from ${topSources.length} sources...`);
   console.log(`${label} READER V3: deep extraction from ${topSources.length} sources (domain: ${detectedDomain})`);
+  // -- STEP 5a: AGENT MEMORY INJECTION for READER --
+  let readerMemoryBlock: string | undefined;
+  try {
+    const readerMemInj = await buildMemoryInjection("reader", detectedDomain as DomainExpertise, { maxLessons: 3, lookbackDays: 90, topicQuery: query });
+    if (readerMemInj.topLessons.length > 0) {
+      readerMemoryBlock = readerMemInj.promptBlock;
+      console.log(`${label} AGENT MEMORY (READER): ${readerMemInj.topLessons.length} lessons injected`);
+    }
+  } catch (err) { console.warn(`${label} AGENT MEMORY (READER): failed (non-blocking):`, err); }
   const [readings, framingSettled, quantSettled, quantBridgeSettled] = await Promise.all([
     readerAgentV3(topSources, {
       enablePdf: true,
       maxConcurrency: 8,
       timeout: isStrategic ? 120000 : undefined,
       domain: detectedDomain,
+      memoryBlock: readerMemoryBlock,
     }),
     // FRAMING: SUPPRESSED — hypotheses not consumed by analyst, $0.03/run saved
     Promise.resolve({ hypotheses: [] as any[], keyUnknowns: [] as string[], costUsd: 0 }),
@@ -2880,7 +2890,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   const agentId = "analyst";
   let memoryBlock: string | undefined;
   try {
-    const memInj = await buildMemoryInjection(agentId, undefined, { maxLessons: 5, lookbackDays: 90 });
+    const memInj = await buildMemoryInjection(agentId, undefined, { maxLessons: 5, lookbackDays: 90, topicQuery: query });
     if (memInj.topLessons.length > 0) {
       memoryBlock = memInj.promptBlock;
       stats.agentMemory = { lessons: memInj.topLessons.length, agentId };
@@ -4117,12 +4127,12 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     </div>
     <div style="flex:1;min-width:200px;">
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;font-size:0.68rem;">
-        <div><span style="color:rgba(240,240,250,0.35);">Citations</span><br/><strong style="color:rgba(240,240,250,0.78);">${Math.round(citationCoverage * 100)}%</strong> <span style="color:rgba(240,240,250,0.35);">(${citedSources.size}/${coverageTarget})</span></div>
-        <div><span style="color:rgba(240,240,250,0.35);">Ancrage</span><br/><strong style="color:rgba(240,240,250,0.78);">${Math.round(groundedness * 100)}%</strong></div>
-        <div><span style="color:rgba(240,240,250,0.35);">Intégrité num.</span><br/><strong style="color:rgba(240,240,250,0.78);">${factIntegrity}%</strong></div>
-        <div><span style="color:rgba(240,240,250,0.35);">Diversité</span><br/><strong style="color:rgba(240,240,250,0.78);">${diversityScore}/100</strong></div>
-        <div><span style="color:rgba(240,240,250,0.35);">Qualité sources</span><br/><strong style="color:rgba(240,240,250,0.78);">${Math.round(avgQuality)}/100</strong></div>
-        <div><span style="color:rgba(240,240,250,0.35);">Vérif. sémantique</span><br/><strong style="color:rgba(240,240,250,0.78);">${nliIntegrity}%</strong></div>
+        ${citationCoverage != null ? `<div><span style="color:rgba(240,240,250,0.35);">Citations</span><br/><strong style="color:rgba(240,240,250,0.78);">${Math.round(citationCoverage * 100)}%</strong> <span style="color:rgba(240,240,250,0.35);">(${citedSources.size}/${coverageTarget})</span></div>` : ''}
+        ${groundedness != null && !Number.isNaN(groundedness) ? `<div><span style="color:rgba(240,240,250,0.35);">Ancrage</span><br/><strong style="color:rgba(240,240,250,0.78);">${Math.round(groundedness * 100)}%</strong></div>` : ''}
+        ${factIntegrity != null && !Number.isNaN(factIntegrity) ? `<div><span style="color:rgba(240,240,250,0.35);">Intégrité num.</span><br/><strong style="color:rgba(240,240,250,0.78);">${factIntegrity}%</strong></div>` : ''}
+        ${diversityScore != null ? `<div><span style="color:rgba(240,240,250,0.35);">Diversité</span><br/><strong style="color:rgba(240,240,250,0.78);">${diversityScore}/100</strong></div>` : ''}
+        ${avgQuality != null && !Number.isNaN(avgQuality) ? `<div><span style="color:rgba(240,240,250,0.35);">Qualité sources</span><br/><strong style="color:rgba(240,240,250,0.78);">${Math.round(avgQuality)}/100</strong></div>` : ''}
+        ${nliIntegrity != null && !Number.isNaN(nliIntegrity) ? `<div><span style="color:rgba(240,240,250,0.35);">Vérif. sémantique</span><br/><strong style="color:rgba(240,240,250,0.78);">${nliIntegrity}%</strong></div>` : ''}
       </div>
     </div>
   </div>
@@ -4831,6 +4841,56 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
       steps: JSON.parse(JSON.stringify({ ...stats, orchestrator: { ...stats.orchestrator, decisions: orchState.decisions } })),
     },
   });
+
+  // ── LEARNING LOOP: Record performance + extract lessons (closes the feedback loop) ──
+  // This is the WRITE side of agent memory — without this, agents never learn.
+  // Inspired by Reflexion (NeurIPS 2023): verbal reinforcement learning.
+  const finalTrustScore = stats.criticalLoop?.finalScore ?? 0;
+  const finalQualityScore = (stats.criticalLoop as any)?.qualityScore ?? finalTrustScore;
+  const confidenceGiven = (analysis as any)?.confidenceLevel === 'high' ? 85 :
+                          (analysis as any)?.confidenceLevel === 'medium' ? 65 : 40;
+  const citationCoverage = topSources.length > 0
+    ? Array.from(new Set([
+        ...Array.from(html.matchAll(/\[E(\d+)\]/g)).map(m => parseInt(m[1], 10)),
+        ...Array.from(html.matchAll(/\[SRC-(\d+)\]/g)).map(m => parseInt(m[1], 10)),
+      ])).length / topSources.length
+    : 0;
+  const appliedLessonTexts = memoryBlock ? [memoryBlock] : [];
+  recordLearningCycle({
+    agentId: isStrategic ? "strategic-analyst" : "analyst",
+    runId: pipelineRun.id,
+    question: query,
+    domain: detectedDomain as DomainExpertise,
+    trustScore: finalTrustScore,
+    qualityScore: finalQualityScore,
+    confidenceGiven,
+    confidenceActual: finalTrustScore,
+    citationCoverage,
+    findingsCount: (analysis as any)?.keyFindings?.length || 0,
+    contradictionsFound: stats.debate ? 1 : 0,
+    sourceDiversity: new Set(topSources.map((s: any) => s.provider)).size,
+    agentOutputExcerpt: html.slice(0, 2000),
+    appliedLessonTexts,
+  }).catch((err) => console.warn(`${label} LEARNING LOOP: failed (non-blocking):`, err));
+  // Also record for READER agent
+  if (readings.length > 0) {
+    recordLearningCycle({
+      agentId: "reader",
+      runId: pipelineRun.id,
+      question: query,
+      domain: detectedDomain as DomainExpertise,
+      trustScore: finalTrustScore,
+      qualityScore: finalQualityScore,
+      confidenceGiven: 70,
+      confidenceActual: finalTrustScore,
+      citationCoverage,
+      findingsCount: readings.length,
+      contradictionsFound: 0,
+      sourceDiversity: new Set(topSources.map((s: any) => s.provider)).size,
+      agentOutputExcerpt: JSON.stringify(readings.slice(0, 3)).slice(0, 1000),
+      appliedLessonTexts: readerMemoryBlock ? [readerMemoryBlock] : [],
+    }).catch(() => {});
+  }
 
   if (isStrategic) {
     console.log(`\n${"â•".repeat(60)}`);

@@ -490,7 +490,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
   'anthropology': {
     id: 'anthropology-analyst',
     name: 'Dr. Amara Diallo',
-    title: 'Anthropology & Cultural Analysis Expert',
+    title: 'Anthropology & Cultural Analysis Analyst',
     domain: 'anthropology',
     subDomains: ['cultural-anthropology', 'structural-anthropology', 'ontological-anthropology', 'science-studies', 'multi-species-ethnography'],
     methodologies: ['Ethnographic fieldwork', 'Thick description', 'Structural analysis', 'Ontological comparison', 'Multi-sited ethnography'],
@@ -508,7 +508,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
   'history': {
     id: 'history-analyst',
     name: 'Dr. Henri Lefort',
-    title: 'History & Historical Analysis Expert',
+    title: 'History & Historical Analysis Analyst',
     domain: 'history',
     subDomains: ['annales-school', 'intellectual-history', 'postcolonial-history', 'conceptual-history', 'contemporary-history'],
     methodologies: ['Longue durée analysis', 'Archival research', 'Conceptual history (Begriffsgeschichte)', 'Microhistory', 'Counterfactual analysis'],
@@ -526,7 +526,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
   'religious-studies': {
     id: 'religious-studies-analyst',
     name: 'Dr. Sophia Chen',
-    title: 'Religious Studies & Political Theology Expert',
+    title: 'Religious Studies & Political Theology Analyst',
     domain: 'religious-studies',
     subDomains: ['sociology-of-religion', 'anthropology-of-religion', 'political-theology', 'phenomenology-of-religion', 'comparative-theology'],
     methodologies: ['Phenomenology of religion', 'Comparative theology', 'Genealogy of religion', 'Sociological analysis', 'Hermeneutics'],
@@ -544,7 +544,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
   'non-western-philosophy': {
     id: 'non-western-philosophy-analyst',
     name: 'Dr. Kenji Watanabe',
-    title: 'Non-Western Philosophy & Comparative Thought Expert',
+    title: 'Non-Western Philosophy & Comparative Thought Analyst',
     domain: 'non-western-philosophy',
     subDomains: ['confucian-ethics', 'islamic-philosophy', 'buddhist-philosophy', 'african-philosophy', 'advaita-vedanta'],
     methodologies: ['Comparative philosophy', 'Hermeneutic analysis', 'Cross-cultural dialogue', 'Conceptual translation', 'Philosophical anthropology'],
@@ -574,4 +574,132 @@ export function getExpertsByDomain(domain: DomainExpertise): DomainExpert[] {
 
 export function getAllExperts(): DomainExpert[] {
   return Object.values(DOMAIN_EXPERTS);
+}
+
+// ============================================================================
+// DOMAIN EXPERT LEARNING — Per-domain performance tracking & adaptation
+// ============================================================================
+
+/**
+ * Tracks what an expert has learned from its past analyses in a specific domain.
+ * Inspired by AgentTuning (ACL 2024): agents adapt based on domain-specific feedback.
+ */
+export interface DomainExpertLearning {
+  expertId: string;
+  domain: DomainExpertise;
+
+  // Performance history
+  totalAnalyses: number;
+  avgQualityScore: number;
+  avgTrustScore: number;
+  successRate: number;          // Fraction of analyses with trustScore >= 70
+
+  // Adaptive methodology selection
+  adaptedMethodologies: string[];   // Methods that worked well
+  avoidedMethodologies: string[];   // Methods that underperformed
+
+  // Domain-specific lessons
+  domainLessons: string[];
+
+  // Topic tracking
+  strongTopics: string[];      // Topics where expert excels
+  weakTopics: string[];        // Topics where expert struggles
+
+  updatedAt: Date;
+}
+
+// In-memory cache of expert learning (persisted via AgentAuditLog)
+const expertLearningCache = new Map<string, DomainExpertLearning>();
+
+/**
+ * Get or initialize the learning record for an expert in a domain.
+ */
+export function getExpertLearning(expertId: string, domain: DomainExpertise): DomainExpertLearning {
+  const key = `${expertId}:${domain}`;
+  if (expertLearningCache.has(key)) {
+    return expertLearningCache.get(key)!;
+  }
+  const expert = DOMAIN_EXPERTS[domain];
+  const learning: DomainExpertLearning = {
+    expertId,
+    domain,
+    totalAnalyses: 0,
+    avgQualityScore: 0,
+    avgTrustScore: 0,
+    successRate: 0,
+    adaptedMethodologies: expert?.methodologies || [],
+    avoidedMethodologies: [],
+    domainLessons: expert?.calibrationRules || [],
+    strongTopics: [],
+    weakTopics: [],
+    updatedAt: new Date(),
+  };
+  expertLearningCache.set(key, learning);
+  return learning;
+}
+
+/**
+ * Update an expert's learning record after an analysis.
+ * Uses exponential moving average for recent-weighted tracking.
+ */
+export function updateExpertLearning(
+  expertId: string,
+  domain: DomainExpertise,
+  result: {
+    qualityScore: number;
+    trustScore: number;
+    topic?: string;
+    methodologiesUsed?: string[];
+    success: boolean;
+  }
+): void {
+  const key = `${expertId}:${domain}`;
+  const learning = getExpertLearning(expertId, domain);
+  const alpha = 0.3; // EMA weight
+
+  learning.totalAnalyses++;
+  learning.avgQualityScore = (learning.avgQualityScore * (1 - alpha)) + (result.qualityScore * alpha);
+  learning.avgTrustScore = (learning.avgTrustScore * (1 - alpha)) + (result.trustScore * alpha);
+  learning.successRate = ((learning.successRate * (learning.totalAnalyses - 1)) + (result.success ? 1 : 0)) / learning.totalAnalyses;
+  learning.updatedAt = new Date();
+
+  // Track strong/weak topics
+  if (result.topic) {
+    if (result.trustScore >= 75 && !learning.strongTopics.includes(result.topic)) {
+      learning.strongTopics.push(result.topic);
+      if (learning.strongTopics.length > 10) learning.strongTopics.shift();
+    }
+    if (result.trustScore < 60 && !learning.weakTopics.includes(result.topic)) {
+      learning.weakTopics.push(result.topic);
+      if (learning.weakTopics.length > 10) learning.weakTopics.shift();
+    }
+  }
+
+  // Adapt methodologies: reinforce successful ones, flag unsuccessful
+  if (result.methodologiesUsed) {
+    if (result.success) {
+      for (const m of result.methodologiesUsed) {
+        if (!learning.adaptedMethodologies.includes(m)) {
+          learning.adaptedMethodologies.push(m);
+        }
+      }
+    } else {
+      for (const m of result.methodologiesUsed) {
+        if (learning.adaptedMethodologies.includes(m) && !learning.avoidedMethodologies.includes(m)) {
+          // Move to avoided if consistently failing (after 3+ uses)
+          learning.avoidedMethodologies.push(m);
+        }
+      }
+    }
+  }
+
+  expertLearningCache.set(key, learning);
+}
+
+/**
+ * Get adapted methodologies for an expert, prioritizing those that worked well.
+ */
+export function getAdaptedMethodologies(expertId: string, domain: DomainExpertise): string[] {
+  const learning = getExpertLearning(expertId, domain);
+  return learning.adaptedMethodologies.filter(m => !learning.avoidedMethodologies.includes(m));
 }

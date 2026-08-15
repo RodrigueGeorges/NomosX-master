@@ -327,7 +327,14 @@ export function renderStrategicReportHTML(
   };
 
   const renderEvidenceQuality = () => {
-    if (!analysis.evidenceQuality) return "";
+    if (!analysis.evidenceQuality) {
+      // V3.2: Fallback instead of skipping the section entirely
+      return `
+        <div class="content">
+          <p style="color:rgba(240,240,250,0.5);font-style:italic;">Evidence quality assessment not provided by the analyst. The trust score shown above incorporates deterministic grounding and citation coverage checks.</p>
+        </div>
+      `;
+    }
     const eq = analysis.evidenceQuality;
     const scorePercent = (eq.overallScore / 10) * 100;
     return `
@@ -450,7 +457,14 @@ export function renderStrategicReportHTML(
   };
 
   const renderImplementation = () => {
-    if (!analysis.implementation) return "";
+    if (!analysis.implementation) {
+      // V3.2: Fallback instead of skipping the section entirely
+      return `
+        <div class="content">
+          <p style="color:rgba(240,240,250,0.5);font-style:italic;">Implementation roadmap not provided. Refer to the Recommendations section for actionable steps organized by timeframe.</p>
+        </div>
+      `;
+    }
     const impl = analysis.implementation;
     return `
       <div class="content">
@@ -760,12 +774,16 @@ export function renderStrategicReportHTML(
       
       <h3 class="subsection-title">Open Questions</h3>
       <ul>
-        ${(analysis.openQuestions || []).map((q) => `<li>${formatCitations(q)}</li>`).join("")}
+        ${(analysis.openQuestions || []).length > 0
+          ? (analysis.openQuestions || []).map((q) => `<li>${formatCitations(q)}</li>`).join("")
+          : '<li style="color:rgba(240,240,250,0.5);font-style:italic;">No specific open questions identified by the analyst.</li>'}
       </ul>
       
       <h3 class="subsection-title">What Would Change Our Mind</h3>
       <div class="content">
-        <p>${formatCitations(analysis.whatChangesMind)}</p>
+        <p>${analysis.whatChangesMind
+          ? formatCitations(analysis.whatChangesMind)
+          : '<em style="color:rgba(240,240,250,0.5);">No falsification criteria provided. This is a methodological gap — every position should state what evidence would invalidate it.</em>'}</p>
       </div>
     </section>
 

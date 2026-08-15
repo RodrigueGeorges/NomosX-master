@@ -39,20 +39,11 @@ export async function generateMetadata(
         siteName: 'NomosX',
         publishedTime: pub.publishedAt ?? undefined,
         tags: pub.vertical ? [pub.vertical, typeLabel] : [typeLabel],
-        images: [
-          {
-            url: `${APP_URL}/og-default.svg`,
-            width: 1200,
-            height: 630,
-            alt: pub.title,
-          },
-        ],
       },
       twitter: {
         card: 'summary_large_image',
         title: pub.title,
         description,
-        images: [`${APP_URL}/og-default.png`],
       },
       alternates: {
         canonical: url,

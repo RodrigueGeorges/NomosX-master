@@ -57,13 +57,32 @@ export interface ExpertLoadBalance {
   successRate: number;
   lastUsed: Date;
   capacity: number;
+  // Performance history (AgentTuning-inspired)
+  totalTasks: number;
+  avgQualityScore: number;
+  avgTrustScore: number;
+  bestTopics: string[];
+  weakTopics: string[];
+}
+
+export interface ExpertPerformanceRecord {
+  expertId: string;
+  domain: string;
+  topic: string;
+  qualityScore: number;
+  trustScore: number;
+  durationMs: number;
+  success: boolean;
+  timestamp: Date;
 }
 
 export class CouncilManager {
-  
+
   private expertLoadBalance: Map<string, ExpertLoadBalance> = new Map();
+  private performanceHistory: ExpertPerformanceRecord[] = [];
   private readonly MAX_CONCURRENT_EXPERTS = 22;
   private readonly DEFAULT_TIMEOUT = 20000; // 20s per expert
+  private readonly MAX_HISTORY = 500; // Keep last 500 records
   
   constructor() {
     this.initializeLoadBalance();
@@ -80,7 +99,12 @@ export class CouncilManager {
         avgResponseTime: 15000, // 15s average
         successRate: 0.95, // 95% success rate
         lastUsed: new Date(),
-        capacity: 10 // Max concurrent requests
+        capacity: 10, // Max concurrent requests
+        totalTasks: 0,
+        avgQualityScore: 0,
+        avgTrustScore: 0,
+        bestTopics: [],
+        weakTopics: [],
       });
     });
   }
@@ -425,23 +449,69 @@ export class CouncilManager {
    * Update expert performance metrics
    */
   updateExpertMetrics(
-    expertId: string, 
-    duration: number, 
-    success: boolean
+    expertId: string,
+    duration: number,
+    success: boolean,
+    performance?: { qualityScore?: number; trustScore?: number; domain?: string; topic?: string }
   ): void {
     const load = this.expertLoadBalance.get(expertId);
     if (!load) return;
-    
+
     // Update load
     load.currentLoad = Math.max(0, load.currentLoad - 1);
-    
+
     // Update response time (exponential moving average)
     const alpha = 0.1; // Smoothing factor
     load.avgResponseTime = load.avgResponseTime * (1 - alpha) + duration * alpha;
-    
+
     // Update success rate
     const beta = 0.05; // Smoothing factor
     load.successRate = load.successRate * (1 - beta) + (success ? 1 : 0) * beta;
+
+    // Track detailed performance (AgentTuning-inspired)
+    if (performance) {
+      load.totalTasks++;
+      if (performance.qualityScore !== undefined) {
+        load.avgQualityScore = load.avgQualityScore * (1 - alpha) + performance.qualityScore * alpha;
+      }
+      if (performance.trustScore !== undefined) {
+        load.avgTrustScore = load.avgTrustScore * (1 - alpha) + performance.trustScore * alpha;
+      }
+      // Track best/weak topics
+      if (performance.topic) {
+        if ((performance.trustScore ?? 0) >= 75 && !load.bestTopics.includes(performance.topic)) {
+          load.bestTopics.push(performance.topic);
+          if (load.bestTopics.length > 10) load.bestTopics.shift();
+        }
+        if ((performance.trustScore ?? 100) < 60 && !load.weakTopics.includes(performance.topic)) {
+          load.weakTopics.push(performance.topic);
+          if (load.weakTopics.length > 10) load.weakTopics.shift();
+        }
+      }
+      // Store in history
+      this.performanceHistory.push({
+        expertId,
+        domain: performance.domain || '',
+        topic: performance.topic || '',
+        qualityScore: performance.qualityScore || 0,
+        trustScore: performance.trustScore || 0,
+        durationMs: duration,
+        success,
+        timestamp: new Date(),
+      });
+      // Trim history
+      if (this.performanceHistory.length > this.MAX_HISTORY) {
+        this.performanceHistory = this.performanceHistory.slice(-this.MAX_HISTORY);
+      }
+    }
+  }
+
+  /**
+   * Get performance history for an expert (or all experts if no ID specified).
+   */
+  getPerformanceHistory(expertId?: string): ExpertPerformanceRecord[] {
+    if (expertId) return this.performanceHistory.filter(r => r.expertId === expertId);
+    return this.performanceHistory;
   }
   
   /**

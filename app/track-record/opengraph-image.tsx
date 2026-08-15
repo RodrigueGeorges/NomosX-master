@@ -80,8 +80,8 @@ export default async function Image() {
 
         <div
           style={{
-            fontSize: '16px',
-            color: 'rgba(255,255,255,0.45)',
+            fontSize: '14px',
+            color: 'rgba(255,255,255,0.35)',
             textAlign: 'center',
             maxWidth: '680px',
             lineHeight: 1.5,

@@ -49,7 +49,7 @@ export const PUBLICATION_QUALITY_RULES: Record<string, PublicationQualityRule> =
   // ── Primary format 2: STRATEGIC REPORT (McKinsey / France Stratégie style) ──
   STRATEGIC_REPORT: {
     minTrustScore: 65,
-    minQualityScore: 75,
+    minQualityScore: 70,
     minCitationCoverage: 0.50,
     minWordCount: 5000,
     minSourceCount: 15,

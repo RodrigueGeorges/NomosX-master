@@ -308,7 +308,7 @@ export async function saveHeroImage(
   try {
     await prisma.thinkTankPublication.update({
       where: { id: publicationId },
-      data: { heroImageUrl: imageUrl } as any,
+      data: { heroImageUrl: imageUrl },
     });
   } catch (err) {
     console.warn(`[HERO IMAGE] Failed to save URL: ${err}`);

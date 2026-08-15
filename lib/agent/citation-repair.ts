@@ -230,9 +230,18 @@ export function injectCitationsBySourceMatch(
   const details: string[] = [];
   let injected = 0;
 
-  // Extract style/script blocks and exclude them from matching
+  // Extract style/script blocks AND h1/title blocks (never inject citations into titles)
   const skipBlocks: string[] = [];
   let workingHtml = html.replace(/<(style|script)\b[^>]*>[\s\S]*?<\/\1>/gi, (m) => {
+    skipBlocks.push(m);
+    return `\x00SKIP${skipBlocks.length - 1}\x00`;
+  });
+  // Also skip <h1>...</h1> and <title>...</title> — never inject citations into titles
+  workingHtml = workingHtml.replace(/<h1\b[^>]*>[\s\S]*?<\/h1>/gi, (m) => {
+    skipBlocks.push(m);
+    return `\x00SKIP${skipBlocks.length - 1}\x00`;
+  });
+  workingHtml = workingHtml.replace(/<title\b[^>]*>[\s\S]*?<\/title>/gi, (m) => {
     skipBlocks.push(m);
     return `\x00SKIP${skipBlocks.length - 1}\x00`;
   });
@@ -324,8 +333,8 @@ export function injectCitationsByContentMatch(
     sourceTerms.push({ idx: i + 1, terms });
   }
 
-  // Split HTML into segments to find uncited text, skipping <style>/<script> blocks
-  const skipBlockRe = /<(style|script)\b[^>]*>[\s\S]*?<\/\1>/gi;
+  // Split HTML into segments to find uncited text, skipping <style>/<script>/<h1>/<title> blocks
+  const skipBlockRe = /<(style|script|h1|title)\b[^>]*>[\s\S]*?<\/\1>/gi;
   const skipRanges: Array<[number, number]> = [];
   let skipMatch: RegExpExecArray | null;
   while ((skipMatch = skipBlockRe.exec(html)) !== null) {
@@ -444,9 +453,17 @@ export function injectBroadCitations(
   const details: string[] = [];
   let injected = 0;
 
-  // Extract style/script blocks
+  // Extract style/script blocks AND h1/title blocks (never inject citations into titles)
   const skipBlocks: string[] = [];
   let workingHtml = html.replace(/<(style|script)\b[^>]*>[\s\S]*?<\/\1>/gi, (m) => {
+    skipBlocks.push(m);
+    return `\x00SKIP${skipBlocks.length - 1}\x00`;
+  });
+  workingHtml = workingHtml.replace(/<h1\b[^>]*>[\s\S]*?<\/h1>/gi, (m) => {
+    skipBlocks.push(m);
+    return `\x00SKIP${skipBlocks.length - 1}\x00`;
+  });
+  workingHtml = workingHtml.replace(/<title\b[^>]*>[\s\S]*?<\/title>/gi, (m) => {
     skipBlocks.push(m);
     return `\x00SKIP${skipBlocks.length - 1}\x00`;
   });

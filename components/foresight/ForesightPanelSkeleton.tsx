@@ -20,16 +20,7 @@ export function ForesightPanelSkeleton() {
 }
 
 export function ForesightEmptyState({ depth }: { depth?: string }) {
-  return (
-    <section className="border border-white/[0.06] bg-black/20 p-5 text-sm text-white/45">
-      <p className="font-mono text-[10px] uppercase tracking-wider text-white/50 mb-2">
-        Prospective Engine
-      </p>
-      <p>
-        {depth === "standard" || depth === "surface"
-          ? "Scenario distributions are available for Deep and Strategic briefs."
-          : "No scenario distribution recorded for this publication. New strategic briefs include the foresight panel automatically."}
-      </p>
-    </section>
-  );
+  // Hide the empty state entirely — it's an internal pipeline artifact,
+  // not something that should be shown to public readers.
+  return null;
 }

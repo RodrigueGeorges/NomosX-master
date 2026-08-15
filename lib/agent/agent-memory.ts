@@ -327,9 +327,16 @@ function defaultCalibration(agentId: string, domain?: DomainExpertise): AgentCal
 export async function buildMemoryInjection(
   agentId: string,
   domain?: DomainExpertise,
-  options: { maxLessons?: number; lookbackDays?: number } = {}
+  options: {
+    maxLessons?: number;
+    lookbackDays?: number;
+    /** Current research topic — lessons are filtered by thematic relevance to avoid cross-topic contamination */
+    topicQuery?: string;
+    /** Minimum cosine similarity (0-1) between lesson and topic. Default: 0.25 */
+    minRelevance?: number;
+  } = {}
 ): Promise<MemoryInjection> {
-  const { maxLessons = 5, lookbackDays = 90 } = options;
+  const { maxLessons = 5, lookbackDays = 90, topicQuery, minRelevance = 0.25 } = options;
   const cutoff = new Date(Date.now() - lookbackDays * 24 * 60 * 60 * 1000);
 
   // Fetch calibration + lessons in parallel
@@ -366,10 +373,62 @@ export async function buildMemoryInjection(
     })
     .filter(Boolean) as AgentLesson[];
 
-  // Sort by weight × successRate, take top N
-  const topLessons = lessons
-    .sort((a, b) => (b.weight * b.successRate) - (a.weight * a.successRate))
-    .slice(0, maxLessons);
+  // ── THEMATIC RELEVANCE FILTER (anti-contamination) ──
+  // When a topicQuery is provided, filter lessons by embedding similarity.
+  // This prevents lessons from a previous run (e.g., "AI/religion") from
+  // contaminating a different topic run (e.g., "missiles/deterrence").
+  // Calibration data (failure modes, confidence adjustments) is ALWAYS injected
+  // regardless of topic — it's about the agent's general performance, not topic-specific lessons.
+  let relevantLessons = lessons;
+  if (topicQuery && lessons.length > 0) {
+    try {
+      const topicEmbedding = await embedText(topicQuery.slice(0, 500));
+      const scored: Array<{ lesson: AgentLesson; sim: number }> = [];
+
+      for (const lesson of lessons) {
+        const lessonEmbedding = await embedText(lesson.lesson.slice(0, 500)).catch(() => null);
+        if (!lessonEmbedding) {
+          // If embedding fails, keep the lesson but with low priority
+          scored.push({ lesson, sim: 0.1 });
+          continue;
+        }
+        const sim = cosineSimilarity(topicEmbedding, lessonEmbedding);
+        scored.push({ lesson, sim });
+      }
+
+      // Filter by relevance threshold and log rejected lessons
+      const before = scored.length;
+      relevantLessons = scored
+        .filter(s => {
+          if (s.sim < minRelevance) {
+            console.log(`[AGENT MEMORY] Rejected lesson (relevance ${s.sim.toFixed(2)} < ${minRelevance}): "${s.lesson.lesson.slice(0, 80)}..."`);
+            return false;
+          }
+          return true;
+        })
+        .sort((a, b) => {
+          // Sort by relevance × weight × successRate
+          const scoreA = a.sim * a.lesson.weight * a.lesson.successRate;
+          const scoreB = b.sim * b.lesson.weight * b.lesson.successRate;
+          return scoreB - scoreA;
+        })
+        .map(s => s.lesson);
+
+      const rejected = before - relevantLessons.length;
+      if (rejected > 0) {
+        console.log(`[AGENT MEMORY] Thematic filter: ${relevantLessons.length}/${before} lessons kept (topic: "${topicQuery.slice(0, 60)}...")`);
+      }
+    } catch (err) {
+      console.warn(`[AGENT MEMORY] Thematic filter failed (using all lessons):`, err);
+      // Fall back to unfiltered lessons if embedding fails
+      relevantLessons = lessons.sort((a, b) => (b.weight * b.successRate) - (a.weight * a.successRate));
+    }
+  } else {
+    // No topic query — sort by weight × successRate (original behavior)
+    relevantLessons = lessons.sort((a, b) => (b.weight * b.successRate) - (a.weight * a.successRate));
+  }
+
+  const topLessons = relevantLessons.slice(0, maxLessons);
 
   // Build prompt block
   const promptBlock = buildPromptBlock(agentId, domain, calibration, topLessons);
@@ -536,6 +595,157 @@ export async function storeLesson(
   } catch (err) {
     console.warn("[AGENT MEMORY] Failed to store lesson:", err);
   }
+}
+
+// ============================================================================
+// LESSON SUCCESS TRACKING — Close the learning loop
+// ============================================================================
+
+/**
+ * Update a lesson's success rate after a run where it was applied.
+ * This closes the learning loop: lessons that work get reinforced, those that
+ * don't get pruned. Implements the Reflexion pattern (NeurIPS 2023).
+ *
+ * @param lessonText - The lesson text (used to find the record via embedding match)
+ * @param agentId - The agent that applied the lesson
+ * @param success - Whether the run was successful (trustScore >= 70)
+ */
+export async function updateLessonSuccessRate(
+  lessonText: string,
+  agentId: string,
+  success: boolean
+): Promise<void> {
+  try {
+    const lessons = await prisma.agentAuditLog.findMany({
+      where: { agent: agentId, action: "LESSON_LEARNED" },
+      orderBy: { timestamp: "desc" },
+      take: 30,
+    });
+
+    if (lessons.length === 0) return;
+
+    // Find the best matching lesson by text similarity
+    const newEmbedding = await embedText(lessonText).catch(() => null);
+    if (!newEmbedding) return;
+
+    let bestMatch: { id: string; metadata: any; similarity: number } | null = null;
+    for (const record of lessons) {
+      try {
+        const m = JSON.parse(record.metadata || "{}");
+        if (!m.lesson) continue;
+        const existingEmbedding = await embedText(m.lesson).catch(() => null);
+        if (!existingEmbedding) continue;
+        const sim = cosineSimilarity(newEmbedding, existingEmbedding);
+        if (sim > 0.7 && (!bestMatch || sim > bestMatch.similarity)) {
+          bestMatch = { id: record.id, metadata: m, similarity: sim };
+        }
+      } catch { continue; }
+    }
+
+    if (!bestMatch) return;
+
+    // Update appliedCount and successRate (exponential moving average)
+    const currentCount = bestMatch.metadata.appliedCount || 0;
+    const currentSuccessRate = bestMatch.metadata.successRate || 0.5;
+    const newCount = currentCount + 1;
+    // EMA: weight recent outcomes more heavily
+    const alpha = 0.3;
+    const newSuccessRate = (currentSuccessRate * (1 - alpha)) + (success ? 1 : 0) * alpha;
+
+    await prisma.agentAuditLog.update({
+      where: { id: bestMatch.id },
+      data: {
+        metadata: JSON.stringify({
+          ...bestMatch.metadata,
+          appliedCount: newCount,
+          successRate: Math.round(newSuccessRate * 1000) / 1000,
+          lastApplied: new Date().toISOString(),
+        }),
+      },
+    });
+  } catch (err) {
+    console.warn("[AGENT MEMORY] Failed to update lesson success rate:", err);
+  }
+}
+
+/**
+ * Record a complete learning cycle after a pipeline run:
+ * 1. Record agent performance
+ * 2. Auto-detect failure modes
+ * 3. Extract lessons via LLM
+ * 4. Store lessons
+ *
+ * This is the WRITE side of the learning loop — call it after every run.
+ */
+export async function recordLearningCycle(params: {
+  agentId: string;
+  runId: string;
+  question: string;
+  domain?: DomainExpertise;
+  trustScore: number;
+  qualityScore: number;
+  confidenceGiven: number;
+  confidenceActual: number;
+  citationCoverage: number;
+  findingsCount: number;
+  contradictionsFound: number;
+  sourceDiversity: number;
+  agentOutputExcerpt: string;
+  appliedLessonTexts: string[];
+}): Promise<{ lessonsStored: number; costUsd: number }> {
+  const {
+    agentId, runId, question, domain,
+    trustScore, qualityScore, confidenceGiven, confidenceActual,
+    citationCoverage, findingsCount, contradictionsFound, sourceDiversity,
+    agentOutputExcerpt, appliedLessonTexts,
+  } = params;
+
+  let costUsd = 0;
+
+  // 1. Auto-detect failure modes
+  const failureModes = autoDetectFailureModes({
+    confidenceGiven, trustScore, citationCoverage,
+    contradictionsFound, sourceDiversity, findingsCount,
+  });
+
+  // 2. Record performance
+  await recordAgentPerformance({
+    agentId, domain, runId, question,
+    trustScore, qualityScore,
+    confidenceGiven, confidenceActual,
+    citationCoverage, findingsCount,
+    failureModes,
+    lessonsLearned: [],
+  });
+
+  // 3. Update success rates of lessons that were applied this run
+  const success = trustScore >= 70;
+  for (const lessonText of appliedLessonTexts) {
+    await updateLessonSuccessRate(lessonText, agentId, success).catch(() => {});
+  }
+
+  // 4. Extract new lessons (only if there were issues)
+  if (failureModes.length > 0 || trustScore < 80) {
+    try {
+      const { lessons, costUsd: extractCost } = await extractLessons(
+        agentId, question, agentOutputExcerpt,
+        { trustScore, qualityScore, failureModes },
+        domain
+      );
+      costUsd += extractCost;
+
+      // 5. Store lessons
+      for (const lesson of lessons) {
+        await storeLesson(agentId, lesson, runId, domain, 0.7);
+      }
+
+      return { lessonsStored: lessons.length, costUsd };
+    } catch (err) {
+      console.warn(`[AGENT MEMORY] Lesson extraction failed for ${agentId}:`, err);
+    }
+  }
+
+  return { lessonsStored: 0, costUsd };
 }
 
 // ============================================================================
