@@ -1,4 +1,5 @@
 import React from 'react';
+import Script from 'next/script';
 
 interface JsonLdProps {
   data: Record<string, unknown>;
@@ -6,8 +7,9 @@ interface JsonLdProps {
 
 export function JsonLd({ data }: JsonLdProps) {
   return (
-    <script
+    <Script
       type="application/ld+json"
+      strategy="afterInteractive"
       dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
     />
   );

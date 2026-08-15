@@ -38,7 +38,7 @@ export default function TermsPage() {
         <section>
           <h2 className="text-lg font-medium text-text mb-3">4. Billing</h2>
           <p>
-            Reader access is free. NomosX Studio commissions are pay-per-use via Stripe. Prices are shown before payment.
+            Reader access is free. Nomos Engine studies are pay-per-use via Stripe. Prices are shown before payment.
           </p>
         </section>
 

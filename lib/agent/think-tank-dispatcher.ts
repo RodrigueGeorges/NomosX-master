@@ -25,9 +25,53 @@ import type { InquiryDepth } from "@/lib/types/inquiry";
 
 // ─── Config ────────────────────────────────────────────────────
 
-const DEFAULT_WEEKLY_MAX = 3;
+const DEFAULT_WEEKLY_MAX = 10;
 const DEFAULT_BREAKING_MAX = 2;
 const DEFAULT_BREAKING_BUDGET_USD = 20;
+
+/**
+ * Select publication format based on the EDITORIAL ANGLE of the signal.
+ *
+ * All formats share the SAME quality bar. The difference is PURPOSE, not rigor:
+ *
+ *   Signal Brief     — ALERT: "Something important just happened" → inform NOW
+ *   Decision Memo    — ACTION: "A decision is pending" → help decide
+ *   Article          — ANALYSIS: "This needs to be understood" → deep comprehension
+ *   Strategic Report — STRATEGY: "A structural shift is underway" → plan long-term
+ *
+ * Selection is based on signalType (the NATURE of the event), NOT on signal
+ * strength or priority score. Quality is enforced uniformly by the publication gate.
+ */
+export function selectFormatFromSignal(
+  signalType: string,
+  _priorityScore: number
+): string {
+  switch (signalType) {
+    // ── ALERT: something new emerged → Signal Brief ──
+    case "NEW_EVIDENCE":
+      return "SUMMARY_BRIEF";
+    case "DATA_RELEASE":
+      return "SUMMARY_BRIEF";
+
+    // ── ACTION: a decision is pending → Decision Memo ──
+    case "POLICY_CHANGE":
+      return "DECISION_MEMO";
+
+    // ── ANALYSIS: this needs to be understood → Article ──
+    case "CONTRADICTION":
+      return "ARTICLE";
+
+    // ── STRATEGY: structural shift → Strategic Report ──
+    case "TREND_BREAK":
+      return "STRATEGIC_REPORT";
+    case "METHODOLOGY_SHIFT":
+      return "STRATEGIC_REPORT";
+
+    // ── Default: Article (the analytical default) ──
+    default:
+      return "ARTICLE";
+  }
+}
 
 export type ThinkTankCycleMode = "breaking" | "weekly";
 
@@ -161,9 +205,16 @@ function emptyResult(mode: ThinkTankCycleMode, cadence: CadenceState, started: n
 function breakingDecisionToItem(decision: EditorialDecision): ThinkTankDispatchItem {
   const leadResearcher = decision.classification.researchers[0];
 
+  // Map editorial action → Inquiry depth (4 formats = 4 angles, same quality bar)
+  const depth: InquiryDepth = decision.action === 'publish_strategic' ? 'strategic'
+    : decision.action === 'publish_brief' ? 'deep'
+    : decision.action === 'publish_memo' ? 'standard'
+    : decision.action === 'publish_signal' ? 'surface'
+    : 'deep'; // fallback for monitor/skip (shouldn't reach here)
+
   return {
     question: decision.researchQuestion?.trim() || decision.topic.title,
-    depth: decision.priority >= 80 ? "strategic" : "standard",
+    depth,
     domain: decision.classification.primaryDomain,
     verticalSlug: decision.classification.verticalSlug,
     // Don't pass providers or perProvider — let the pipeline's smart selector + DEFAULT_ACADEMIC_PROVIDERS merge handle it
@@ -347,7 +398,10 @@ async function collectWeeklyItems(
     for (const proposal of agenda.autoCommission) {
       if (items.length >= remainingSlots) break;
 
-      const depth: InquiryDepth = proposal.suggestedFormat === "strategic" ? "strategic" : "standard";
+      const depth: InquiryDepth = proposal.suggestedFormat === "strategic" ? "strategic"
+        : proposal.suggestedFormat === "deep" ? "deep"
+        : proposal.suggestedFormat === "surface" ? "surface"
+        : "standard";
       const topicClassification = await classifyTopic(proposal.topic).catch(() => null);
       const matchedSlug = topicClassification?.verticalSlug || getVerticalForTopic(proposal.topic);
 
@@ -417,7 +471,7 @@ async function collectWeeklyItems(
       items.push({
         question: signal.title,
         depth: publicationTypeToDepth(
-          signal.priorityScore >= 85 ? "STRATEGIC_REPORT" : "ARTICLE"
+          selectFormatFromSignal(signal.signalType, signal.priorityScore)
         ),
         verticalId: signal.verticalId,
         signalId: signal.id,
@@ -728,9 +782,10 @@ export async function getThinkTankStatus() {
     last7d: {
       totalPublications: recentPubs.length,
       byType: {
-        article: recentPubs.filter((p) => p.type === "ARTICLE" || p.type === "EXECUTIVE_BRIEF" || p.type === "RESEARCH_BRIEF").length,
-        strategic: recentPubs.filter((p) => p.type === "STRATEGIC_REPORT").length,
-        summary: recentPubs.filter((p) => p.type === "SUMMARY_BRIEF").length,
+        article: recentPubs.filter((p) => p.type === "ARTICLE").length,
+        memo: recentPubs.filter((p) => p.type === "DECISION_MEMO" || p.type === "EXECUTIVE_BRIEF" || p.type === "RESEARCH_BRIEF" || p.type === "POLICY_NOTE").length,
+        strategic: recentPubs.filter((p) => p.type === "STRATEGIC_REPORT" || p.type === "DOSSIER").length,
+        summary: recentPubs.filter((p) => p.type === "SUMMARY_BRIEF" || p.type === "UPDATE_NOTE" || p.type === "DATA_NOTE").length,
       },
     },
     verticals: verticals.map((v) => ({

@@ -16,6 +16,8 @@ import { PUBLIC_ROUTES } from "@/lib/public-urls";
 
 import { cn } from "@/lib/utils";
 import { nx } from "@/lib/brand/public-ui";
+import { PUBLICATION_FORMATS } from "@/lib/publication-formats";
+import { getStudioXPrice } from "@/lib/studiox-pricing";
 
 import {
 
@@ -50,7 +52,7 @@ const READER_FEATURES = [
 ];
 
 const STUDIO_FEATURES = [
-  "Commission a custom inquiry on any question",
+  "Commission a custom study on any question",
   "Chaos structured into a source-verified, scenario-weighted position",
   "Scenario distributions — multiple futures, each with a probability",
   "Adversarial debate before any position is published",
@@ -84,17 +86,17 @@ const FAQ = [
 
   {
 
-    q: "What is NomosX Studio?",
+    q: "What is Nomos Engine?",
 
-    a: "Studio lets you commission a custom inquiry on your own question. Same verification protocol, same traceability — the chaos of evidence structured into a position you can defend, with scenarios stress-tested and sources on trial.",
+    a: "Nomos Engine lets you commission a custom study on your own question. Same verification protocol, same traceability — the chaos of evidence structured into a position you can defend, with scenarios stress-tested and sources on trial.",
 
   },
 
   {
 
-    q: "How is Studio priced?",
+    q: "How is Engine priced?",
 
-    a: "Pay per commission. Price depends on depth and format — shown before you confirm. No subscription, no lock-in.",
+    a: "Pay per study. Price depends on format and depth — shown before you confirm. No subscription, no lock-in.",
 
   },
 
@@ -162,7 +164,7 @@ export default function PricingPage() {
                   <span className="text-white">Commission when it matters.</span>
                 </>
               }
-              description="The world doesn't suffer from a lack of information — it suffers from a lack of verifiable order. NomosX publishes positions 24/7, free to read. Studio is the add-on for custom commissions, scenario stress-testing, and evidence-bound deliverables on demand."
+              description="The world doesn't suffer from a lack of information — it suffers from a lack of verifiable order. NomosX publishes positions 24/7, free to read. Nomos Engine is the add-on for custom studies, scenario stress-testing, and evidence-bound deliverables on demand."
               align="center"
             />
 
@@ -242,7 +244,7 @@ export default function PricingPage() {
 
                   <span className="px-3 py-1 bg-white text-black text-[11px] font-mono font-semibold tracking-[0.14em] uppercase">
 
-                    Private beta
+                    Pay per study
 
                   </span>
 
@@ -250,7 +252,7 @@ export default function PricingPage() {
 
                 <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-white/50 mb-4 mt-2">
 
-                  NomosX Studio
+                  Nomos Engine
 
                 </p>
 
@@ -258,9 +260,11 @@ export default function PricingPage() {
 
                   <span className="font-display text-3xl font-semibold text-text">
 
-                    On demand
+                    From €39
 
                   </span>
+
+                  <span className="text-sm text-white/50">per study</span>
 
                 </div>
 
@@ -296,7 +300,7 @@ export default function PricingPage() {
 
                 >
 
-                  Commission an inquiry
+                  Commission a study
 
                   <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
 
@@ -308,6 +312,48 @@ export default function PricingPage() {
 
 
 
+            {/* ── 4 formats pricing grid ── */}
+            <section className="mb-16">
+              <div className="text-center mb-8">
+                <p className={cn(nx.eyebrow, "mb-3")}>4 formats · 4 angles</p>
+                <h2 className="font-display text-xl sm:text-2xl font-semibold text-text mb-2">
+                  Pay per study. No subscription.
+                </h2>
+                <p className="text-sm text-white/55 max-w-lg mx-auto">
+                  Each format serves a different editorial angle. Same verification protocol, same rigor — choose the depth that fits your question.
+                </p>
+              </div>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {PUBLICATION_FORMATS.map((format) => {
+                  const price = getStudioXPrice(format.type);
+                  return (
+                    <div key={format.type} className="nx-surface p-5 flex flex-col">
+                      <div className="text-sm text-white font-semibold mb-1">{format.label}</div>
+                      <div className="text-[10px] font-mono uppercase tracking-[0.12em] text-white/40 mb-3">{format.pages}</div>
+                      <p className="text-xs text-white/55 leading-relaxed mb-4 flex-1">{format.description}</p>
+                      <div className="border-t border-white/[0.08] pt-3">
+                        <div className="text-2xl font-display font-semibold text-text">{price.display}</div>
+                        <div className="text-[10px] text-white/35 uppercase tracking-wide mt-0.5">per study</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="text-center mt-6">
+                <button
+                  type="button"
+                  onClick={openStudioAuth}
+                  className={cn(nx.btnPrimary)}
+                >
+                  Commission a study
+                  <ArrowRight size={14} className="ml-2" />
+                </button>
+                <p className="mt-3 text-[11px] text-white/35">
+                  Money-back guarantee · Secure checkout via Stripe · No subscription
+                </p>
+              </div>
+            </section>
+
             <section className="mb-16 nx-surface overflow-hidden">
 
               <div className="p-6 sm:p-8 border-b border-white/[0.08]">
@@ -318,7 +364,7 @@ export default function PricingPage() {
 
                   <h2 className="font-display text-xl font-semibold text-text">
 
-                    NomosX Studio
+                    Nomos Engine
 
                   </h2>
 
@@ -365,7 +411,7 @@ export default function PricingPage() {
 
                   <h3 className="font-display text-lg font-medium text-text mb-1">
 
-                    Commission a custom inquiry
+                    Commission a custom study
 
                   </h3>
 
@@ -551,7 +597,7 @@ export default function PricingPage() {
 
                 >
 
-                  Open Studio
+                  Open Engine
 
                   <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
 

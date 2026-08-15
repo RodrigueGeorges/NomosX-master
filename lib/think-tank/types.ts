@@ -32,10 +32,10 @@ export type SignalStatus = typeof SIGNAL_STATUSES[number];
 
 export const PUBLICATION_TYPES = [
   // 4 canonical formats — aligned 1:1 with Inquiry depths and Engine pricing
-  "SUMMARY_BRIEF",     // surface depth  — 200-400 words, 5+ sources   → 39 €
-  "DECISION_MEMO",     // standard depth — 800-1,500 words, 8+ sources  → 99 €
-  "ARTICLE",           // deep depth     — 3,000-5,000 words, 15+ sources → 199 €
-  "STRATEGIC_REPORT",  // strategic depth — 5,000-10,000 words, 20+ sources → 699 €
+  "SUMMARY_BRIEF",     // surface depth  — 500-1,200 words, 5+ sources   → 39 €
+  "DECISION_MEMO",     // standard depth — 1,200-2,500 words, 8+ sources  → 99 €
+  "ARTICLE",           // deep depth     — 3,000-6,000 words, 15+ sources → 199 €
+  "STRATEGIC_REPORT",  // strategic depth — 8,000-20,000 words, 20+ sources → 699 €
   // Legacy formats (kept for DB backward-compat, mapped via FORMAT_MAPPING)
   "RESEARCH_BRIEF",
   "EXECUTIVE_BRIEF",

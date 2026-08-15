@@ -27,7 +27,7 @@ export interface EditorialDecision {
   /** The selected topic */
   topic: RadarTopic;
   /** What to do with it */
-  action: 'publish_brief' | 'publish_strategic' | 'monitor' | 'skip';
+  action: 'publish_signal' | 'publish_memo' | 'publish_brief' | 'publish_strategic' | 'monitor' | 'skip';
   /** Why this decision */
   reasoning: string;
   /** Priority 0-100 */
@@ -131,7 +131,11 @@ export async function editorialTriage(
     const classification = await classifyTopic(topic.title, topic.summary);
     totalCost += classification.costUsd;
 
-    const estimatedCost = selected.action === 'publish_strategic' ? 10.0 : 2.0;
+    const estimatedCost = selected.action === 'publish_strategic' ? 10.0
+      : selected.action === 'publish_brief' ? 3.0
+      : selected.action === 'publish_memo' ? 1.5
+      : selected.action === 'publish_signal' ? 0.5
+      : 2.0;
 
     if (estimatedCost > remainingBudget && selected.priority < 90) {
       continue; // Skip if over budget (unless critical)
@@ -169,7 +173,7 @@ export async function editorialTriage(
 
 interface TriageSelection {
   topicId: string;
-  action: 'publish_brief' | 'publish_strategic' | 'monitor' | 'skip';
+  action: 'publish_signal' | 'publish_memo' | 'publish_brief' | 'publish_strategic' | 'monitor' | 'skip';
   reasoning: string;
   priority: number;
   researchQuestion?: string;
@@ -241,11 +245,40 @@ Before selecting a topic, ask yourself: "Is there likely to be academic literatu
 - GOOD: "How does AI adoption affect productivity in [industry sector]?"
 If you cannot reformulate to a question with likely academic literature, SKIP the topic.
 
-ACTIONS:
-- "publish_brief" — Standard 5-page analysis (cost: $2, time: 3-5min)
-- "publish_strategic" — Deep 15-page report (cost: $10, time: 8-12min). Only for major events with 3+ corroborating sources.
+ACTIONS (4 publication formats — each is a DIFFERENT EDITORIAL ANGLE, not a quality tier):
+ALL formats share the SAME quality bar. The difference is PURPOSE and ANGLE, not rigor.
+
+- "publish_signal" — Signal Brief (2-4 pages, 500-1,200 words, cost: $0.50, time: 1-2min)
+  ANGLE: "Something important just happened" → ALERT
+  PURPOSE: Inform the reader NOW with full rigor. What happened, why it matters, what to watch.
+  CHOOSE THIS WHEN: New evidence emerged, significant data was released, a verifiable signal just appeared.
+  DO NOT CHOOSE THIS FOR: Topics that need deep analysis or where a decision is pending.
+
+- "publish_memo" — Decision Memo (4-8 pages, 1,200-2,500 words, cost: $1.50, time: 2-4min)
+  ANGLE: "A decision is pending" → ACTION
+  PURPOSE: Help the reader DECIDE. Context, key evidence, options, recommendation, risks.
+  CHOOSE THIS WHEN: A policy change is underway, a regulatory decision is pending, a strategic fork exists.
+  DO NOT CHOOSE THIS FOR: Pure information alerts or topics needing deep narrative analysis.
+
+- "publish_brief" — Article (8-15 pages, 3,000-6,000 words, cost: $3, time: 3-5min)
+  ANGLE: "This needs to be understood" → ANALYSIS
+  PURPOSE: Deep comprehension. Narrative, nuance, multiple perspectives, what the evidence says.
+  CHOOSE THIS WHEN: The topic is complex, evidence is contradictory, or understanding requires context.
+  DO NOT CHOOSE THIS FOR: Breaking alerts (use Signal Brief) or pending decisions (use Decision Memo).
+
+- "publish_strategic" — Strategic Report (20-50 pages, 8,000-20,000 words, cost: $10, time: 8-12min)
+  ANGLE: "A structural shift is underway" → STRATEGY
+  PURPOSE: Foresight and planning. Scenarios, stakeholder impact, roadmap for long-term preparation.
+  CHOOSE THIS WHEN: A trend is breaking, a methodology is shifting, a paradigm change is visible.
+  DO NOT CHOOSE THIS FOR: Routine analysis or single-event alerts.
+
 - "monitor" — Not urgent enough now, but worth watching.
 - "skip" — Not relevant, duplicate, or low-value.
+
+FORMAT SELECTION IS ABOUT ANGLE, NOT QUALITY:
+- The format choice reflects WHAT THE READER NEEDS from this topic, not how strong the signal is.
+- A Signal Brief on a major finding is just as rigorous as a Strategic Report — it's shorter because the reader needs speed, not because the evidence is weaker.
+- When in doubt, ask: "What does the reader need to DO with this?" → Inform (Signal) / Decide (Memo) / Understand (Article) / Plan (Strategic).
 
 Select at most ${maxPubs} topics for publication. Be SELECTIVE but not OVERLY CONSERVATIVE — a think tank's value comes from covering emerging topics before they become mainstream, and from asking questions others won't.
 
@@ -260,7 +293,7 @@ Rules:
 - INNOVATION: Where possible, frame the question in a way that CHALLENGES the conventional framing. Don't just ask "What is the impact of X?" — ask "Who benefits from framing this as an X problem?" or "What assumptions are hidden in the dominant discourse on X?" or "How does X connect to the deeper question of Y?"
 - CROSS-DOMAIN: Where possible, frame the question to invite cross-domain insights. Don't just ask an economics question — ask how economics, anthropology, and philosophy intersect on this issue.
 
-Return JSON: { "selections": [{ "topicId": "...", "action": "publish_brief|publish_strategic|monitor|skip", "reasoning": "one sentence", "priority": 0-100, "researchQuestion": "analytical question reformulated from the headline", "intellectualAmbition": 0-100, "contrarianSignal": 0-100 }] }`
+Return JSON: { "selections": [{ "topicId": "...", "action": "publish_signal|publish_memo|publish_brief|publish_strategic|monitor|skip", "reasoning": "one sentence", "priority": 0-100, "researchQuestion": "analytical question reformulated from the headline", "intellectualAmbition": 0-100, "contrarianSignal": 0-100 }] }`
         },
         {
           role: 'user',
@@ -277,7 +310,7 @@ Return JSON: { "selections": [{ "topicId": "...", "action": "publish_brief|publi
     const parsed = parseJson<any>(result.content);
     if (!parsed) return { selected: [], costUsd: result.costUsd };
     const selections: TriageSelection[] = (parsed.selections || [])
-      .filter((s: any) => s.action === 'publish_brief' || s.action === 'publish_strategic')
+      .filter((s: any) => s.action === 'publish_signal' || s.action === 'publish_memo' || s.action === 'publish_brief' || s.action === 'publish_strategic')
       .map((s: any) => ({
         topicId: s.topicId,
         action: s.action as TriageSelection['action'],
@@ -291,14 +324,28 @@ Return JSON: { "selections": [{ "topicId": "...", "action": "publish_brief|publi
 
     return { selected: selections, costUsd: result.costUsd };
   } catch (err) {
-    console.warn('[EDITOR-IN-CHIEF] LLM triage failed, falling back to score-based selection:', err);
-    // Fallback: top N by score
-    const fallback = topics.slice(0, maxPubs).map(t => ({
-      topicId: t.id,
-      action: 'publish_brief' as const,
-      reasoning: 'Fallback: selected by score',
-      priority: t.score,
-    }));
+    console.warn('[EDITOR-IN-CHIEF] LLM triage failed, falling back to source-type-based selection:', err);
+    // Fallback: top N by score, with format selected by EDITORIAL ANGLE (sourceType)
+    // NOT by quality — all formats share the same quality bar
+    const fallback = topics.slice(0, maxPubs).map(t => {
+      // Map sourceType → editorial angle → format
+      let action: TriageSelection['action'] = 'publish_brief'; // analytical default
+      if (t.sourceType === 'data' || t.sourceType === 'signal') {
+        action = 'publish_signal'; // ALERT: something new emerged
+      } else if (t.sourceType === 'policy' || t.sourceType === 'institutional') {
+        action = 'publish_memo'; // ACTION: a decision is pending
+      } else if (t.sourceType === 'news' || t.sourceType === 'think-tank') {
+        action = 'publish_brief'; // ANALYSIS: this needs to be understood
+      } else if (t.sourceType === 'academic') {
+        action = 'publish_strategic'; // STRATEGY: structural shift from research
+      }
+      return {
+        topicId: t.id,
+        action,
+        reasoning: 'Fallback: selected by source type angle',
+        priority: t.score,
+      };
+    });
     return { selected: fallback, costUsd: 0 };
   }
 }

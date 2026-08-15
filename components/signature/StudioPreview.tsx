@@ -8,7 +8,7 @@ import { MagneticButton } from "@/components/ui/MagneticButton";
 const FOCUS_TAGS = ["Technology", "Economics", "Policy", "Climate", "Security", "Health"];
 
 const DELIVERABLES = [
-  "Chaos structured into a source-verified, scenario-weighted position",
+  "A source-verified, scenario-weighted study on your question",
   "Multiple futures, each with a probability",
   "Every assumption challenged, every doubt logged",
   "Sources visible. The map, not just the terrain.",
@@ -36,16 +36,16 @@ export function StudioPreview({ onGetStarted, onLearnMore, className, sectionInd
       <div className="max-w-6xl mx-auto grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)_minmax(240px,280px)] gap-6 lg:gap-8 items-stretch">
         <div className="flex flex-col justify-center lg:pr-4">
           <div className="flex flex-wrap items-center gap-3 mb-4">
-            <span className="nx-eyebrow">NomosX Studio</span>
+            <span className="nx-eyebrow">Nomos Engine</span>
             <span className="font-mono text-[11px] uppercase tracking-[0.1em] text-white/60 px-2 py-0.5 border border-white/20">
-              Restricted access
+              Pay per study
             </span>
           </div>
           <h2 className="font-display text-2xl font-semibold text-white mb-3 tracking-tight">
-            Your question.<br />A position worth signing.
+            Your question.<br />A study worth defending.
           </h2>
           <p className="text-sm text-white/55 leading-relaxed mb-5 max-w-sm">
-            Ask anything. Get back a verified, multi-scenario analysis — ready to brief, publish, or decide on.
+            Ask anything. Get back a verified, multi-scenario study — ready to brief, decide, or act on.
           </p>
           <button
             type="button"
@@ -113,10 +113,10 @@ export function StudioPreview({ onGetStarted, onLearnMore, className, sectionInd
 
         <div className="nx-surface p-5 sm:p-6 flex flex-col justify-center" style={{ borderColor: "rgba(240,240,250,0.12)", background: "rgba(240,240,250,0.03)" }}>
           <h3 className="font-display text-lg font-semibold text-white mb-2 leading-snug">
-            Open a brief
+            Commission a study
           </h3>
           <p className="nx-eyebrow nx-eyebrow--dim mb-6" style={{ fontSize: "11px" }}>
-            Verified · challenged · ready to defend
+            From €39 · Money-back guarantee
           </p>
           <MagneticButton
             type="button"
@@ -124,7 +124,7 @@ export function StudioPreview({ onGetStarted, onLearnMore, className, sectionInd
             strength={0.12}
             className="w-full py-3.5 bg-white text-black text-xs font-semibold uppercase tracking-[0.14em] hover:bg-white/90 transition-colors flex items-center justify-center gap-2 group"
           >
-            Commission a brief
+            Start a study
             <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
           </MagneticButton>
         </div>

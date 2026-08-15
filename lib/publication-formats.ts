@@ -11,29 +11,32 @@
  * resolveFormatType() to one of the 4 canonical formats.
  */
 export const PUBLICATION_FORMATS = [
-  // ── 1. Signal Brief (surface depth) ──
+  // ── 1. Signal Brief (surface depth) — ALERT angle ──
+  // Benchmark: Carsey fact sheet (900-1000w), FAO policy brief (700w), World Bank short brief (1500w)
   {
     type: "SUMMARY_BRIEF",
     label: "Signal Brief",
     shortLabel: "Signal",
     family: "signals",
     access: "Open",
-    pages: "1-2 pages",
+    pages: "2-4 pages",
     sourceDepth: "5+ sources",
-    description: "Fast synthesis of a verified weak signal, policy move, or emerging evidence shift. 200-400 words.",
+    description: "Rigorous alert on a verified signal, policy move, or emerging evidence shift. What happened, why it matters, what to watch. 500-1,200 words.",
   },
-  // ── 2. Decision Memo (standard depth) ──
+  // ── 2. Decision Memo (standard depth) — ACTION angle ──
+  // Benchmark: GNSI Decision Brief (2400w), WHO policy brief (1000-3000w), National Academies (1500-2000w), ERF (2000-2500w)
   {
     type: "DECISION_MEMO",
     label: "Decision Memo",
     shortLabel: "Memo",
     family: "memos",
     access: "Open",
-    pages: "2-3 pages",
+    pages: "4-8 pages",
     sourceDepth: "8+ sources",
-    description: "Structured decision brief — context, evidence, options, recommendation, risks. 800-1,500 words. For policy makers and executives.",
+    description: "Structured decision brief for policy makers and executives — context, key evidence, options, recommendation, risks. 1,200-2,500 words.",
   },
-  // ── 3. Article (deep depth) ──
+  // ── 3. Article (deep depth) — ANALYSIS angle ──
+  // Benchmark: Carsey issue brief (1800-4000w), McKinsey Quarterly article (3000-8000w)
   {
     type: "ARTICLE",
     label: "Article",
@@ -42,18 +45,19 @@ export const PUBLICATION_FORMATS = [
     access: "Open",
     pages: "8-15 pages",
     sourceDepth: "15+ sources",
-    description: "Long-form analytical article — data-driven, narrative, rigorous. 3,000-5,000 words.",
+    description: "Long-form analytical article — data-driven, narrative, rigorous. Multiple perspectives, what the evidence says. 3,000-6,000 words.",
   },
-  // ── 4. Strategic Report (strategic depth) ──
+  // ── 4. Strategic Report (strategic depth) — STRATEGY angle ──
+  // Benchmark: McKinsey white paper (8000-20000w), France Stratégie rapport (15000-40000w), Fraser Mustard policy study (17500-30000w)
   {
     type: "STRATEGIC_REPORT",
     label: "Strategic Report",
     shortLabel: "Report",
     family: "reports",
     access: "Open",
-    pages: "15-30 pages",
+    pages: "20-50 pages",
     sourceDepth: "20+ sources",
-    description: "Comprehensive strategic analysis with scenarios, stakeholder impact, recommendations, and implementation roadmap. 5,000-10,000 words.",
+    description: "Comprehensive strategic analysis with scenarios, stakeholder impact, recommendations, and implementation roadmap. 8,000-20,000 words.",
   },
 ] as const;
 

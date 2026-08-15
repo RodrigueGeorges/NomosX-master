@@ -1806,7 +1806,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
 
   // Create PipelineRun for persistent lineage tracking
   const pipelineRun = await prisma.pipelineRun.create({
-    data: { question: query, format: isStrategic ? "strategic" : "brief", status: "RUNNING" },
+    data: { question: query, format: isStrategic ? "strategic" : isMemo ? "memo" : "brief", status: "RUNNING" },
   });
 
   try {
@@ -2170,7 +2170,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   // This is what makes NomosX a think tank, not a search engine: it finds dissent, analogues, and weak signals
   try {
     const { runIntelligentScout } = await import('./intelligent-scout');
-    const format = isStrategic ? 'strategic' : isDossier ? 'dossier' : 'brief';
+    const format = isStrategic ? 'strategic' : isDossier ? 'dossier' : isMemo ? 'memo' : 'brief';
     const domain = (opts as any).domain || 'general';
 
     // Wrapper: delegate to existing scout() and return normalized sources
@@ -4989,7 +4989,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     briefId: brief.id,
     stats,
     pipelineRunId: pipelineRun.id,
-    format: (isStrategic ? "strategic" : "brief") as ReportFormat,
+    format: (isStrategic ? "strategic" : isMemo ? "memo" : "brief") as ReportFormat,
   };
 
   } catch (error: any) {

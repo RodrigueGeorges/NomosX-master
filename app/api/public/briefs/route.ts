@@ -31,8 +31,9 @@ const PublicBriefsSchema = z.object({
 });
 
 const VALID_TYPES = new Set([
-  'EXECUTIVE_BRIEF', 'RESEARCH_BRIEF', 'SUMMARY_BRIEF',
-  'UPDATE_NOTE', 'DATA_NOTE', 'POLICY_NOTE', 'DOSSIER', 'STRATEGIC_REPORT',
+  'SUMMARY_BRIEF', 'DECISION_MEMO', 'ARTICLE', 'STRATEGIC_REPORT',
+  // Legacy types (still accepted for backward compat queries)
+  'EXECUTIVE_BRIEF', 'RESEARCH_BRIEF', 'UPDATE_NOTE', 'DATA_NOTE', 'POLICY_NOTE', 'DOSSIER',
   'all',
   ...Object.keys(FORMAT_TYPES_BY_FAMILY),
 ]);

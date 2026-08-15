@@ -145,31 +145,33 @@ export const SIGNAL_TYPE_LABELS: Record<string, string> = {
 };
 
 export const PUBLICATION_TYPE_LABELS: Record<string, string> = {
-  // Primary formats (2-format model)
+  // Canonical formats (4-format model)
+  SUMMARY_BRIEF: "Signal Brief",
+  DECISION_MEMO: "Decision Memo",
   ARTICLE: "Article",
   STRATEGIC_REPORT: "Strategic Report",
-  SUMMARY_BRIEF: "Signal Brief",
-  // Legacy formats (for backward compatibility)
-  RESEARCH_BRIEF: "Article",
-  EXECUTIVE_BRIEF: "Article",
+  // Legacy formats (mapped to canonical labels)
+  RESEARCH_BRIEF: "Decision Memo",
+  EXECUTIVE_BRIEF: "Decision Memo",
   UPDATE_NOTE: "Signal Brief",
   DATA_NOTE: "Signal Brief",
-  POLICY_NOTE: "Article",
-  DOSSIER: "Research Dossier"
+  POLICY_NOTE: "Decision Memo",
+  DOSSIER: "Strategic Report"
 };
 
 export const PUBLICATION_TYPE_META: Record<string, { pages: string; audience: string }> = {
-  // Primary formats (2-format model)
-  ARTICLE: { pages: "8-15 pages", audience: "Open publication / StudioX" },
-  STRATEGIC_REPORT: { pages: "15-30 pages", audience: "Strategy tier / StudioX" },
-  SUMMARY_BRIEF: { pages: "1-2 pages", audience: "Free — all readers" },
-  // Legacy formats (for backward compatibility)
-  RESEARCH_BRIEF: { pages: "8-15 pages", audience: "Open publication / StudioX" },
-  EXECUTIVE_BRIEF: { pages: "8-15 pages", audience: "Open publication / StudioX" },
-  UPDATE_NOTE: { pages: "1-2 pages", audience: "Open publication" },
-  DATA_NOTE: { pages: "1-2 pages", audience: "Open publication" },
-  POLICY_NOTE: { pages: "8-15 pages", audience: "Open publication / StudioX" },
-  DOSSIER: { pages: "30-50 pages", audience: "StudioX / research teams" }
+  // Canonical formats (4-format model) — benchmarked against top think tanks
+  SUMMARY_BRIEF: { pages: "2-4 pages", audience: "Free — all readers" },
+  DECISION_MEMO: { pages: "4-8 pages", audience: "Open publication / Engine" },
+  ARTICLE: { pages: "8-15 pages", audience: "Open publication / Engine" },
+  STRATEGIC_REPORT: { pages: "20-50 pages", audience: "Strategy tier / Engine" },
+  // Legacy formats (mapped to canonical meta)
+  RESEARCH_BRIEF: { pages: "4-8 pages", audience: "Open publication / Engine" },
+  EXECUTIVE_BRIEF: { pages: "4-8 pages", audience: "Open publication / Engine" },
+  UPDATE_NOTE: { pages: "2-4 pages", audience: "Open publication" },
+  DATA_NOTE: { pages: "2-4 pages", audience: "Open publication" },
+  POLICY_NOTE: { pages: "4-8 pages", audience: "Open publication / Engine" },
+  DOSSIER: { pages: "20-50 pages", audience: "Strategy tier / Engine" }
 };
 
 export const SIGNAL_STATUS_LABELS: Record<string, string> = {

@@ -1,13 +1,15 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Script from "next/script";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Share2, Download, FileText, Tag } from "lucide-react";
+import { ArrowLeft, Share2, Download, FileText, Tag, FileDown } from "lucide-react";
 import { sanitizeHtml } from "@/lib/sanitize";
 import AuthModal from "@/components/AuthModal";
 import { PublicPageShell } from "@/components/layout/PublicPageShell";
 import { ReaderFeedback } from "@/components/inquiry/ReaderFeedback";
 import { PublicationActions } from "@/components/inquiry/PublicationActions";
+import { CommissionCTA } from "@/components/inquiry/CommissionCTA";
 import { PageSection } from "@/components/layout/PageHeader";
 import { ForesightPanel, ForesightPanelSkeleton, ForesightEmptyState } from "@/components/foresight";
 import type { ForesightBundle } from "@/lib/foresight";
@@ -99,6 +101,7 @@ export function InquiryClient({
   }
 
   const handleExport = () => downloadExport(`/api/articles/${inquiry.id}/export`, "html");
+  const handleExportPdf = () => downloadExport(`/api/articles/${inquiry.id}/export/pdf`, "pdf");
   const handleExportXlsx = () => downloadExport(`/api/articles/${inquiry.id}/export/data?format=xlsx`, "xlsx");
 
   const format = inquiry.format || getPublicationFormat(inquiry.type as any);
@@ -123,7 +126,7 @@ export function InquiryClient({
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(inquiryJsonLd) }} />
+      <Script id="jsonld-inquiry" type="application/ld+json" strategy="afterInteractive" dangerouslySetInnerHTML={{ __html: JSON.stringify(inquiryJsonLd) }} />
       <PublicPageShell currentPage="inquiries" onSignInClick={() => setShowAuthModal(true)}>
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 border-b border-white/[0.08]">
           <div className="flex items-center justify-between">
@@ -170,6 +173,20 @@ export function InquiryClient({
               aria-label="Export data workbook as Excel"
             >
               xlsx
+            </button>
+            <button
+              type="button"
+              onClick={handleExportPdf}
+              disabled={exporting}
+              className="p-2 border border-white/[0.08] text-white/50 disabled:opacity-40"
+              title="Export as PDF"
+              aria-label="Export report as PDF"
+            >
+              {exporting ? (
+                <div className={cn("w-4 h-4", nx.spinner, "w-4 h-4")} />
+              ) : (
+                <FileDown size={16} />
+              )}
             </button>
             </div>
             {exportError && (
@@ -283,6 +300,9 @@ export function InquiryClient({
 
             {/* Like / Dislike / Comment / Share */}
             <PublicationActions publicationId={inquiry.id} publicationTitle={inquiry.title} />
+
+            {/* Commission CTA — convert readers into paying clients */}
+            <CommissionCTA />
 
             {related.length > 0 && (
               <div className="mt-16 pt-8 border-t border-white/[0.08]">

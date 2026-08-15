@@ -404,6 +404,8 @@ function isSystemicAccountError(error: Error): boolean {
   const msg = (error.message || "").toLowerCase();
   return msg.includes("suspended") ||
     msg.includes("insufficient balance") ||
+    msg.includes("credit balance is too low") ||
+    msg.includes("credit balance too low") ||
     msg.includes("authentication") ||
     msg.includes("invalid api key");
 }

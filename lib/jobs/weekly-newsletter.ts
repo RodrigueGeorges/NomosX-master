@@ -264,7 +264,7 @@ async function getWeeklyBriefs() {
 
   const publications = await prisma.thinkTankPublication.findMany({
     where: publicPublicationWhere({
-      type: { in: ["ARTICLE", "SUMMARY_BRIEF", "STRATEGIC_REPORT", "RESEARCH_BRIEF", "EXECUTIVE_BRIEF"] },
+      type: { in: ["ARTICLE", "SUMMARY_BRIEF", "DECISION_MEMO", "STRATEGIC_REPORT", "RESEARCH_BRIEF", "EXECUTIVE_BRIEF", "POLICY_NOTE"] },
       publishedAt: { gte: oneWeekAgo },
     }),
     orderBy: { publishedAt: "desc" },

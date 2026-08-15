@@ -219,7 +219,7 @@ export function ArchivesClient({ initialBriefs }: { initialBriefs: BriefLike[] }
                   onClick={() => router.push(PUBLIC_ROUTES.studio)}
                   className={cn(nx.btnPrimary, "px-5 py-2.5 normal-case tracking-normal text-xs")}
                 >
-                  Commission a brief
+                  Commission a study
                 </button>
               </div>
             </div>

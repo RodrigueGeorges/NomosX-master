@@ -1,4 +1,5 @@
 import React from 'react';
+import Script from 'next/script';
 import {Barlow, Barlow_Semi_Condensed, JetBrains_Mono} from 'next/font/google';
 import {NextIntlClientProvider} from 'next-intl';
 import {getMessages, getTranslations, setRequestLocale} from 'next-intl/server';
@@ -155,13 +156,13 @@ export default async function LocaleLayout({
       className={`${barlow.variable} ${barlowCondensed.variable} ${jetbrainsMono.variable}`}
       suppressHydrationWarning
     >
-      <head>
-        <script
+      <body className="font-primary">
+        <Script
+          id="jsonld-organization"
           type="application/ld+json"
+          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{__html: JSON.stringify(jsonLd)}}
         />
-      </head>
-      <body className="font-primary">
         <a
           href="#main-content"
           className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[9999] focus:px-4 focus:py-2 focus:bg-white focus:text-black focus:text-sm focus:font-mono focus:uppercase focus:tracking-wider"

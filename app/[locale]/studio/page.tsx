@@ -3,7 +3,7 @@
 import React from 'react';
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Sparkles, FileText, Layers, Loader2, ArrowRight, Shield, Activity, Database, Scale, CheckCircle, AlertCircle } from 'lucide-react';
+import { Sparkles, FileText, Layers, Loader2, ArrowRight, ArrowLeft, Shield, CheckCircle, AlertCircle, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Textarea } from '@/components/ui/Textarea';
@@ -18,6 +18,13 @@ import { cn } from '@/lib/utils';
 const OPTION_SELECTED = "border-white/40 bg-white/10";
 const OPTION_DEFAULT = "border-white/[0.08] bg-black/20 hover:border-white/[0.12]";
 
+const EXAMPLE_QUESTIONS = [
+  "What would change the EU policy position on open-source AI models over the next 24 months?",
+  "Is the evidence for carbon border adjustment mechanisms reducing leakage robust?",
+  "What are the systemic risks of stablecoin adoption for institutional treasuries?",
+  "How credible is the evidence that remote work reduces productivity?",
+];
+
 function StudioPageContent() {
   const searchParams = useSearchParams();
   const orderId = searchParams.get('orderId');
@@ -30,15 +37,14 @@ function StudioPageContent() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [sessionChecked, setSessionChecked] = useState(false);
   const [hasSession, setHasSession] = useState(false);
-  const [selectedFormat, setSelectedFormat] = useState<PublicationFormatType>('ARTICLE');
-  const [selectedMode, setSelectedMode] = useState('COMMISSION');
-  const [audience, setAudience] = useState('Decision-makers');
-  const [urgency, setUrgency] = useState('Standard');
-  const [quantDepth, setQuantDepth] = useState('none');
+  const [selectedFormat, setSelectedFormat] = useState<PublicationFormatType>('DECISION_MEMO');
   const [orderStatus, setOrderStatus] = useState<'idle' | 'verifying' | 'running' | 'done' | 'failed' | 'refunded'>('idle');
   const [progressMessage, setProgressMessage] = useState<string | null>(null);
   const [progressPct, setProgressPct] = useState<number | null>(null);
   const [failureReason, setFailureReason] = useState<string | null>(null);
+
+  // Step 1 = prompt only, Step 2 = configure & pay
+  const [step, setStep] = useState<'prompt' | 'configure'>('prompt');
 
   useEffect(() => {
     fetch('/api/auth/me')
@@ -61,19 +67,13 @@ function StudioPageContent() {
       result?: string | null;
       question?: string;
       formatType?: string;
-      mode?: string;
-      audience?: string | null;
-      urgency?: string | null;
       progress?: { step?: string | null; pct?: number | null; message?: string | null };
       failureReason?: string | null;
     }) {
       if (cancelled) return;
 
       setQuestion(order.question ?? '');
-      setSelectedFormat((order.formatType as PublicationFormatType) ?? 'ARTICLE');
-      setSelectedMode(order.mode ?? 'COMMISSION');
-      if (order.audience) setAudience(order.audience);
-      if (order.urgency) setUrgency(order.urgency);
+      setSelectedFormat((order.formatType as PublicationFormatType) ?? 'DECISION_MEMO');
 
       if (order.progress?.message) setProgressMessage(order.progress.message);
       if (typeof order.progress?.pct === 'number') setProgressPct(order.progress.pct);
@@ -108,6 +108,7 @@ function StudioPageContent() {
       if (['PAID', 'QUEUED', 'RUNNING'].includes(order.status)) {
         setOrderStatus('running');
         setLoading(true);
+        setStep('configure');
         if (order.status === 'PAID') {
           await fetch('/api/studiox', {
             method: 'POST',
@@ -163,7 +164,7 @@ function StudioPageContent() {
       const res = await fetch('/api/studiox/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question, formatType: selectedFormat, mode: selectedMode, audience, urgency, quantDepth }),
+        body: JSON.stringify({ question, formatType: selectedFormat, mode: 'COMMISSION' }),
       });
       if (!res.ok) throw new Error('Checkout failed');
       const data = await res.json();
@@ -175,7 +176,17 @@ function StudioPageContent() {
     }
   }
 
+  function handleSendPrompt() {
+    if (!question.trim()) return;
+    setStep('configure');
+  }
+
+  function handleBackToPrompt() {
+    setStep('prompt');
+  }
+
   const selectedPrice = getStudioXPrice(selectedFormat);
+  const selectedFormatMeta = PUBLICATION_FORMATS.find((f) => f.type === selectedFormat);
 
   if (!sessionChecked) return (
     <div className="min-h-screen bg-black flex items-center justify-center">
@@ -189,9 +200,9 @@ function StudioPageContent() {
         <PageSection className="flex items-center justify-center min-h-[50vh]">
           <div className="text-center max-w-md">
             <PageHeader
-              eyebrow="NomosX Studio"
-              title="NomosX Studio"
-              description="Commission custom inquiries through the full verification protocol. Pay per commission — no subscription."
+              eyebrow="Nomos Engine"
+              title="Nomos Engine"
+              description="Commission custom studies through the full verification protocol. Pay per study — no subscription."
               align="center"
             />
             <button
@@ -218,18 +229,18 @@ function StudioPageContent() {
   return (
     <>
       <PublicPageShell currentPage="studio" onSignInClick={() => setShowAuthModal(true)} isAuthenticated>
-        <PageSection className="max-w-5xl">
+        <PageSection className="max-w-3xl">
           <PageHeader
-            eyebrow="NomosX Studio"
-            title="NomosX Studio"
-            description="Commission a custom inquiry. Your question, our protocol — chaos structured into a position you can defend."
+            eyebrow="Nomos Engine"
+            title="Nomos Engine"
+            description="Commission a custom study. Your question, our protocol — chaos structured into a position you can defend."
             align="center"
           />
 
           {cancelled && (
             <div className="mb-6 flex items-center gap-3 border border-red-500/20 bg-red-500/5 px-4 py-3 text-sm text-red-300">
               <AlertCircle size={16} className="flex-shrink-0" />
-              Payment cancelled — your mandate is saved. Commission again when ready.
+              Payment cancelled — your question is saved. Commission again when ready.
             </div>
           )}
           {orderStatus === 'verifying' && (
@@ -255,7 +266,7 @@ function StudioPageContent() {
           {orderStatus === 'done' && (
             <div className="mb-6 flex items-center gap-3 border border-white/20 bg-white/5 px-4 py-3 text-sm text-white">
               <CheckCircle size={16} className="flex-shrink-0" />
-              Research complete — your deliverable is ready below.
+              Study complete — your deliverable is ready below.
             </div>
           )}
           {orderStatus === 'failed' && failureReason && (
@@ -271,241 +282,213 @@ function StudioPageContent() {
             </div>
           )}
 
-          <div className="mb-6 nx-public-surface overflow-hidden">
-            <div className="p-5 sm:p-6">
-              <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-5">
-                <div>
-                  <p className={cn(nx.eyebrow, "mb-3")}>Research Cockpit</p>
-                  <h2 className="font-display text-xl sm:text-2xl font-semibold text-white mb-2">From chaos to nomos — your question, our protocol.</h2>
-                  <p className={cn(nx.body, "max-w-2xl")}>
-                    NomosX Studio uses the same verification logic as public publications: source discovery, evidence mapping, adversarial review, scenario stress-testing, and citation integrity. Your question goes in — a scenario-weighted, source-verified position comes out.
-                  </p>
-                </div>
-                <div className="nx-public-surface px-4 py-3">
-                  <div className={nx.label}>Mode</div>
-                  <div className="mt-1 text-lg text-white font-semibold uppercase tracking-wide text-[13px]">pay per commission</div>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                {[
-                  { icon: Database, label: "Corpus", value: "expanded" },
-                  { icon: Scale, label: "Dissent", value: "forced" },
-                  { icon: Shield, label: "Citations", value: "guarded" },
-                  { icon: Activity, label: "Lineage", value: "logged" },
-                ].map((item) => {
-                  const CIcon = item.icon;
-                  return (
-                    <div key={item.label} className="nx-public-surface p-3">
-                      <CIcon size={15} className={cn(nx.icon, "mb-4")} />
-                      <div className={nx.label}>{item.label}</div>
-                      <div className="text-sm text-white/75 font-medium mt-1">{item.value}</div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-
-          <div className="grid lg:grid-cols-[220px_minmax(0,1fr)_220px] gap-4 mb-6">
-            <div className="nx-public-surface p-3">
-              <div className={cn(nx.label, "mb-4")}>Modes</div>
-              <div className="space-y-2">
-                {[
-                  { label: "Commission", value: "new publication", key: "COMMISSION" },
-                  { label: "Monitor", value: "topic radar", key: "MONITOR" },
-                  { label: "Compare", value: "positions", key: "COMPARE" },
-                  { label: "Board Memo", value: "decision note", key: "BOARD_MEMO" },
-                ].map((mode) => (
-                  <button
-                    key={mode.label}
-                    type="button"
-                    onClick={() => setSelectedMode(mode.key)}
-                    className={cn(
-                      "w-full text-left border px-3 py-2.5 transition-all",
-                      selectedMode === mode.key ? OPTION_SELECTED : OPTION_DEFAULT
-                    )}
-                  >
-                    <div className="text-sm text-white/80 font-medium">{mode.label}</div>
-                    <div className="text-[11px] text-white/50">{mode.value}</div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <Card className="nx-public-surface backdrop-blur-none shadow-none">
-              <div className="p-5">
-                <div className="flex items-center justify-between gap-4 mb-4">
-                  <div>
-                    <div className={cn(nx.eyebrow, "mb-1")}>Mandate</div>
-                    <h3 className="text-base text-white font-semibold">Define the research question</h3>
+          {/* ── STEP 1: PROMPT ─────────────────────────────────────────── */}
+          {step === 'prompt' && orderStatus === 'idle' && (
+            <div className="mt-8">
+              <Card className="nx-public-surface backdrop-blur-none shadow-none">
+                <div className="p-6 sm:p-8">
+                  <div className="text-center mb-6">
+                    <div className={cn(nx.eyebrow, "mb-3")}>Your Question</div>
+                    <h2 className="font-display text-xl sm:text-2xl font-semibold text-white mb-2">
+                      What do you need to know?
+                    </h2>
+                    <p className={cn(nx.body, "max-w-lg mx-auto")}>
+                      Frame your question. Be specific — the sharper the question, the sharper the output.
+                    </p>
                   </div>
-                  <div className="hidden sm:block text-right">
-                    <div className={nx.label}>Protocol</div>
-                    <div className="text-xs text-white/70">gate before publication</div>
-                  </div>
-                </div>
-                <Textarea
-                  value={question}
-                  onChange={(e) => setQuestion(e.target.value)}
-                  placeholder="Example: What would change the EU policy position on open-source AI models over the next 24 months?"
-                  rows={6}
-                  className={cn(nx.input, "mb-4 resize-none")}
-                  disabled={loading || checkoutLoading}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-                      e.preventDefault();
-                      handleCommission();
-                    }
-                  }}
-                />
 
-                <div className="mb-5">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className={nx.label}>Output format</div>
-                    <div className="text-[10px] text-white/55 font-mono uppercase tracking-[0.12em]">
-                      {PUBLICATION_FORMATS.find((f) => f.type === selectedFormat)?.pages}
-                    </div>
-                  </div>
-                  <div className="grid sm:grid-cols-2 gap-2">
-                    {PUBLICATION_FORMATS.map((format) => {
-                      const price = getStudioXPrice(format.type);
-                      return (
+                  <Textarea
+                    value={question}
+                    onChange={(e) => setQuestion(e.target.value)}
+                    placeholder="Example: What would change the EU policy position on open-source AI models over the next 24 months?"
+                    rows={5}
+                    className={cn(nx.input, "mb-4 resize-none text-sm")}
+                    disabled={loading || checkoutLoading}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                        e.preventDefault();
+                        handleSendPrompt();
+                      }
+                    }}
+                  />
+
+                  <div className="mb-6">
+                    <div className={cn(nx.label, "mb-3")}>Or try one of these</div>
+                    <div className="space-y-2">
+                      {EXAMPLE_QUESTIONS.map((q) => (
                         <button
-                          key={format.type}
+                          key={q}
                           type="button"
-                          onClick={() => setSelectedFormat(format.type)}
+                          onClick={() => setQuestion(q)}
                           className={cn(
-                            "text-left border px-3 py-3 transition-all",
-                            selectedFormat === format.type ? OPTION_SELECTED : OPTION_DEFAULT
+                            "w-full text-left border px-4 py-3 transition-all text-sm text-white/60 hover:text-white/90",
+                            OPTION_DEFAULT
                           )}
                         >
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="text-sm text-white/80 font-medium">{format.label}</div>
-                            <span className="text-[11px] font-semibold text-white/60 font-mono">{price.display}</span>
-                          </div>
-                          <div className="mt-1 text-[11px] text-white/50">{format.sourceDepth}</div>
+                          {q}
                         </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div className="mb-5">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className={nx.label}>Quantitative depth</div>
-                    <div className="text-[10px] text-white/55 font-mono uppercase tracking-[0.12em]">
-                      deterministic models
+                      ))}
                     </div>
                   </div>
-                  <div className="grid sm:grid-cols-3 gap-2">
-                    {[
-                      { key: 'none', label: 'Qualitative', detail: 'literature synthesis only' },
-                      { key: 'parametric', label: 'Indicative costing', detail: 'sourced unit costs × volumes' },
-                      { key: 'io', label: 'IO modelling', detail: 'Eurostat FIGARO multipliers' },
-                    ].map((opt) => (
-                      <button
-                        key={opt.key}
-                        type="button"
-                        onClick={() => setQuantDepth(opt.key)}
-                        className={cn(
-                          "text-left border px-3 py-3 transition-all",
-                          quantDepth === opt.key ? OPTION_SELECTED : OPTION_DEFAULT
-                        )}
-                      >
-                        <div className="text-sm text-white/80 font-medium">{opt.label}</div>
-                        <div className="mt-1 text-[11px] text-white/50">{opt.detail}</div>
-                      </button>
-                    ))}
+
+                  <div className="flex flex-col items-center gap-3">
+                    <Button
+                      onClick={handleSendPrompt}
+                      disabled={!question.trim() || loading || checkoutLoading}
+                      className={cn(nx.btnPrimary, "min-w-[220px] border-0 shadow-none hover:scale-100")}
+                    >
+                      <Sparkles size={16} className="mr-2" />
+                      Send
+                      <ArrowRight size={14} className="ml-2" />
+                    </Button>
+                    <a
+                      href="/pricing"
+                      className="text-[11px] font-mono uppercase tracking-[0.14em] text-white/30 hover:text-white/55 transition-colors"
+                    >
+                      See pricing →
+                    </a>
                   </div>
                 </div>
+              </Card>
 
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div className="flex flex-wrap gap-2">
-                    {["scope", "sources", "dissent", "memo"].map((tag) => (
-                      <span key={tag} className={nx.chip}>
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                  <Button
-                    onClick={handleCommission}
-                    disabled={!question.trim() || loading || checkoutLoading}
-                    className={cn(nx.btnPrimary, "min-w-[200px] border-0 shadow-none hover:scale-100")}
-                  >
-                    {checkoutLoading ? (
-                      <>
-                        <Loader2 size={16} className="mr-2 animate-spin" />
-                        Redirecting...
-                      </>
-                    ) : loading ? (
-                      <>
-                        <Loader2 size={16} className="mr-2 animate-spin" />
-                        Generating...
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles size={16} className="mr-2" />
-                        Commission — {selectedPrice.display}
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </div>
-            </Card>
-
-            <div className="nx-public-surface p-3">
-              <div className={cn(nx.label, "mb-4")}>Mandate rail</div>
-              <label className="block mb-3">
-                <span className={cn(nx.label, "block mb-1.5")}>Audience</span>
-                <input
-                  value={audience}
-                  onChange={(e) => setAudience(e.target.value)}
-                  className={cn(nx.input, "text-xs py-2")}
-                />
-              </label>
-              <label className="block mb-4">
-                <span className={cn(nx.label, "block mb-1.5")}>Urgency</span>
-                <select
-                  value={urgency}
-                  onChange={(e) => setUrgency(e.target.value)}
-                  className={cn(nx.select, "w-full text-xs py-2")}
-                >
-                  <option>Standard</option>
-                  <option>Board deadline</option>
-                  <option>Crisis watch</option>
-                  <option>Exploratory</option>
-                </select>
-              </label>
-              <div className="space-y-2">
+              <div className="mt-6 grid sm:grid-cols-3 gap-3">
                 {[
-                  { icon: Database, label: "Corpus preview" },
-                  { icon: Shield, label: "Citation gate" },
-                  { icon: Scale, label: "Opposing case" },
-                  { icon: Activity, label: "Audit trail" },
+                  { icon: Shield, label: "Same protocol", value: "as public publications" },
+                  { icon: CheckCircle, label: "Money-back", value: "if pipeline fails" },
+                  { icon: Lock, label: "Private", value: "your question, your output" },
                 ].map((item) => {
-                  const RIcon = item.icon;
+                  const Icon = item.icon;
                   return (
-                    <div key={item.label} className="flex items-center gap-3 nx-public-surface px-3 py-2.5">
-                      <RIcon size={14} className={nx.icon} />
-                      <span className="text-xs text-white/70">{item.label}</span>
+                    <div key={item.label} className="nx-public-surface p-4 text-center">
+                      <Icon size={16} className={cn(nx.icon, "mx-auto mb-3")} />
+                      <div className="text-sm text-white/80 font-medium">{item.label}</div>
+                      <div className="text-[11px] text-white/45 mt-0.5">{item.value}</div>
                     </div>
                   );
                 })}
               </div>
-              <p className="mt-4 text-[10px] text-white/45 leading-relaxed">
-                One payment per commission. No subscription. Result stored in your account.
+            </div>
+          )}
+
+          {/* ── STEP 2: CONFIGURE & PAY ────────────────────────────────── */}
+          {step === 'configure' && orderStatus === 'idle' && (
+            <div className="mt-8">
+              <button
+                type="button"
+                onClick={handleBackToPrompt}
+                className={cn(nx.btnGhost, "mb-6")}
+              >
+                <ArrowLeft size={14} className="mr-2" />
+                Back to question
+              </button>
+
+              {/* Question recap */}
+              <div className="nx-public-surface p-5 mb-6">
+                <div className={cn(nx.label, "mb-2")}>Your question</div>
+                <p className="text-sm text-white/85 leading-relaxed">{question}</p>
+              </div>
+
+              {/* Format selection */}
+              <div className="mb-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <div className={cn(nx.eyebrow, "mb-1")}>Choose your format</div>
+                    <h3 className="text-base text-white font-semibold">4 formats, 4 angles</h3>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  {PUBLICATION_FORMATS.map((format) => {
+                    const price = getStudioXPrice(format.type);
+                    const isSelected = selectedFormat === format.type;
+                    return (
+                      <button
+                        key={format.type}
+                        type="button"
+                        onClick={() => setSelectedFormat(format.type)}
+                        className={cn(
+                          "w-full text-left border p-5 transition-all",
+                          isSelected ? OPTION_SELECTED : OPTION_DEFAULT
+                        )}
+                      >
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-1">
+                              <div className="text-base text-white font-semibold">{format.label}</div>
+                              <span className="text-[10px] font-mono uppercase tracking-[0.12em] text-white/40">
+                                {format.pages}
+                              </span>
+                            </div>
+                            <p className="text-sm text-white/55 leading-relaxed">{format.description}</p>
+                            <div className="mt-2 text-[11px] text-white/40 font-mono">
+                              {format.sourceDepth}
+                            </div>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <div className="text-lg text-white font-bold font-mono">{price.display}</div>
+                            <div className="text-[10px] text-white/35 uppercase tracking-wide">per study</div>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Money-back guarantee */}
+              <div className="nx-public-surface p-4 mb-6 flex items-center gap-3">
+                <Shield size={18} className="text-white/60 shrink-0" />
+                <p className="text-xs text-white/55 leading-relaxed">
+                  <span className="text-white/80 font-medium">Money-back guarantee.</span> If the research pipeline cannot complete your study, your payment is fully refunded. No questions asked.
+                </p>
+              </div>
+
+              {/* Commission button */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 nx-public-surface p-5">
+                <div>
+                  <div className={cn(nx.label, "mb-1")}>Selected</div>
+                  <div className="text-sm text-white font-medium">
+                    {selectedFormatMeta?.label} · {selectedFormatMeta?.pages}
+                  </div>
+                </div>
+                <Button
+                  onClick={handleCommission}
+                  disabled={!question.trim() || loading || checkoutLoading}
+                  className={cn(nx.btnPrimary, "min-w-[240px] border-0 shadow-none hover:scale-100")}
+                >
+                  {checkoutLoading ? (
+                    <>
+                      <Loader2 size={16} className="mr-2 animate-spin" />
+                      Redirecting…
+                    </>
+                  ) : loading ? (
+                    <>
+                      <Loader2 size={16} className="mr-2 animate-spin" />
+                      Generating…
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles size={16} className="mr-2" />
+                      Commission — {selectedPrice.display}
+                    </>
+                  )}
+                </Button>
+              </div>
+
+              <p className="mt-4 text-center text-[10px] text-white/35">
+                One payment per study. No subscription. Result stored in your account. Secure checkout via Stripe.
               </p>
             </div>
-          </div>
+          )}
 
+          {/* ── RESULT ─────────────────────────────────────────────────── */}
           {result && (
-            <Card className="nx-public-surface backdrop-blur-none shadow-none animate-fade-in">
+            <Card className="nx-public-surface backdrop-blur-none shadow-none animate-fade-in mt-6">
               <div className="p-5">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-8 h-8 nx-public-surface flex items-center justify-center">
                     <FileText size={20} className="text-white/80" />
                   </div>
-                  <h2 className="text-lg font-semibold text-white">Research Result</h2>
+                  <h2 className="text-lg font-semibold text-white">Your Study</h2>
                 </div>
                 {/^\s*<(?:!doctype|html|div|section|article|h[1-6]|p|main)/i.test(result) ? (
                   <iframe
@@ -524,14 +507,15 @@ function StudioPageContent() {
             </Card>
           )}
 
-          {!result && !loading && orderStatus === 'idle' && !cancelled && (
-            <div className="text-center py-10">
+          {/* ── EMPTY STATE (only if no result, no order, no step) ─────── */}
+          {!result && !loading && orderStatus === 'idle' && step === 'prompt' && !question && !cancelled && (
+            <div className="text-center py-10 mt-4">
               <div className="w-16 h-16 bg-white/[0.02] flex items-center justify-center mx-auto mb-6">
                 <Layers size={32} className="text-white/20" />
               </div>
-              <h3 className="text-xl font-semibold text-white mb-2">Ready to commission</h3>
+              <h3 className="text-xl font-semibold text-white mb-2">Ready when you are</h3>
               <p className="text-white/40 max-w-md mx-auto">
-                Define your research question, choose a format, and launch a custom inquiry. The chaos of evidence becomes a position you can defend.
+                Type your question above. The chaos of evidence becomes a position you can defend.
               </p>
             </div>
           )}
@@ -555,7 +539,7 @@ export default function StudioPage() {
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center">
           <Loader2 size={36} className={cn("mx-auto mb-4 animate-spin", nx.icon)} />
-          <p className="text-white/50 font-mono text-[11px] uppercase tracking-[0.14em]">Loading Studio</p>
+          <p className="text-white/50 font-mono text-[11px] uppercase tracking-[0.14em]">Loading Engine</p>
         </div>
       </div>
     }>
@@ -563,4 +547,3 @@ export default function StudioPage() {
     </Suspense>
   );
 }
-

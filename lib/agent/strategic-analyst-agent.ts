@@ -33,7 +33,7 @@ export interface StrategicAnalysisOutput {
    */
   confidenceValue?: number;
   
-  // SECTION 2: Literature Review (2-3 pages)
+  // SECTION 2: Literature Review (~3-5 pages)
   literatureOverview: string;
   theoreticalFrameworks: string;
   methodologicalApproaches: string;
@@ -43,7 +43,7 @@ export interface StrategicAnalysisOutput {
     limitations: string;
   }>;
   
-  // SECTION 3: Thematic Analysis (2-3 pages) — nullable if no themes emerge
+  // SECTION 3: Thematic Analysis (~3-5 pages) — nullable if no themes emerge
   themes?: Array<{
     name: string;
     description: string;
@@ -72,7 +72,7 @@ export interface StrategicAnalysisOutput {
     nuances: string;
   };
   
-  // SECTION 5: Evidence Assessment (1-2 pages) — nullable if insufficient evidence
+  // SECTION 5: Evidence Assessment (~2-3 pages) — nullable if insufficient evidence
   evidenceQuality?: {
     overallScore: number;
     methodology: string;

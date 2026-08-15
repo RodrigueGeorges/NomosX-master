@@ -16,7 +16,7 @@ export interface PublicationGateThresholds {
 }
 
 export interface PublicationGateInput {
-  format?: "brief" | "strategic" | "signal" | string;
+  format?: "brief" | "memo" | "strategic" | "signal" | string;
   html: string;
   sourceIds: string[];
   trustScore?: number;
@@ -64,7 +64,7 @@ export interface PublicationGateResult {
 export const DEFAULT_PUBLICATION_GATE_THRESHOLDS: PublicationGateThresholds = {
   minTrustScore: 65,
   minQualityScore: 70,
-  minCitationCoverage: 0.60,
+  minCitationCoverage: 0.50,
   minSourceCount: 5,
   strategicMinSourceCount: 12,
   maxFatalChallenges: 1,
@@ -88,9 +88,11 @@ export function evaluatePublicationGate(input: PublicationGateInput): Publicatio
     ? "STRATEGIC_REPORT"
     : input.format === "signal"
       ? "SUMMARY_BRIEF"
-      : input.format === "brief"
-        ? "ARTICLE"
-        : input.format;
+      : input.format === "memo"
+        ? "DECISION_MEMO"
+        : input.format === "brief"
+          ? "ARTICLE"
+          : input.format;
   const businessRule = getPublicationQualityRule(formatType);
   // Adaptive source count: adjusts based on domain and available evidence
   const adaptiveMinSources = getAdaptiveMinSourceCount(

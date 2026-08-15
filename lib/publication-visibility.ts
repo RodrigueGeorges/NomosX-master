@@ -37,60 +37,102 @@ export type PublicationQualityRule = {
   minSourceCount: number;
 };
 
+/**
+ * Publication quality rules — UNIFORM QUALITY BAR across all formats.
+ *
+ * The difference between formats is ANGLE and LENGTH, not quality.
+ * A Signal Brief is held to the SAME trust/quality standard as a Strategic Report.
+ * What varies is only the minimum word count and source count (format length).
+ *
+ *   minTrustScore:       65 for ALL formats (same credibility bar)
+ *   minQualityScore:     70 for ALL formats (same analytical rigor)
+ *   minCitationCoverage: 50% for ALL formats (same evidence standard)
+ *   minWordCount:        varies by format (500 → 8000) — benchmarked against top think tanks
+ *   minSourceCount:      varies by format (5 → 20)
+ */
+const UNIFORM_MIN_TRUST = 65;
+const UNIFORM_MIN_QUALITY = 70;
+const UNIFORM_MIN_CITATION = 0.50;
+
 export const PUBLICATION_QUALITY_RULES: Record<string, PublicationQualityRule> = {
-  // ── Primary format 1: ARTICLE (Le Shift Project / LawZero style) ──
-  ARTICLE: {
-    minTrustScore: 65,
-    minQualityScore: 70,
-    minCitationCoverage: 0.60,
-    minWordCount: 3000,
-    minSourceCount: 15,
-  },
-  // ── Primary format 2: STRATEGIC REPORT (McKinsey / France Stratégie style) ──
-  STRATEGIC_REPORT: {
-    minTrustScore: 65,
-    minQualityScore: 70,
-    minCitationCoverage: 0.50,
-    minWordCount: 5000,
-    minSourceCount: 15,
-  },
-  // ── Signal format (breaking news) ──
+  // ── 1. Signal Brief — ALERT angle, 2-4 pages ──
+  // Benchmark: Carsey fact sheet (900w), FAO (700w), World Bank short (1500w)
   SUMMARY_BRIEF: {
-    minTrustScore: 60,
-    minQualityScore: 65,
-    minCitationCoverage: 0.30,
-    minWordCount: 700,
+    minTrustScore: UNIFORM_MIN_TRUST,
+    minQualityScore: UNIFORM_MIN_QUALITY,
+    minCitationCoverage: UNIFORM_MIN_CITATION,
+    minWordCount: 500,
     minSourceCount: 5,
   },
-  // ── Legacy aliases → map to ARTICLE rules ──
-  RESEARCH_BRIEF: {
-    minTrustScore: 65,
-    minQualityScore: 70,
-    minCitationCoverage: 0.60,
+  // ── 2. Decision Memo — ACTION angle, 4-8 pages ──
+  // Benchmark: GNSI (2400w), WHO (1000-3000w), National Academies (1500-2000w), ERF (2000-2500w)
+  DECISION_MEMO: {
+    minTrustScore: UNIFORM_MIN_TRUST,
+    minQualityScore: UNIFORM_MIN_QUALITY,
+    minCitationCoverage: UNIFORM_MIN_CITATION,
+    minWordCount: 1200,
+    minSourceCount: 8,
+  },
+  // ── 3. Article — ANALYSIS angle, 8-15 pages ──
+  // Benchmark: Carsey issue brief (1800-4000w), McKinsey Quarterly (3000-8000w)
+  ARTICLE: {
+    minTrustScore: UNIFORM_MIN_TRUST,
+    minQualityScore: UNIFORM_MIN_QUALITY,
+    minCitationCoverage: UNIFORM_MIN_CITATION,
     minWordCount: 3000,
     minSourceCount: 15,
+  },
+  // ── 4. Strategic Report — STRATEGY angle, 20-50 pages ──
+  // Benchmark: McKinsey white paper (8000-20000w), France Stratégie rapport (15000-40000w)
+  STRATEGIC_REPORT: {
+    minTrustScore: UNIFORM_MIN_TRUST,
+    minQualityScore: UNIFORM_MIN_QUALITY,
+    minCitationCoverage: UNIFORM_MIN_CITATION,
+    minWordCount: 8000,
+    minSourceCount: 20,
+  },
+  // ── Legacy aliases → same uniform quality, format-specific length ──
+  RESEARCH_BRIEF: {
+    minTrustScore: UNIFORM_MIN_TRUST,
+    minQualityScore: UNIFORM_MIN_QUALITY,
+    minCitationCoverage: UNIFORM_MIN_CITATION,
+    minWordCount: 1200,
+    minSourceCount: 8,
   },
   EXECUTIVE_BRIEF: {
-    minTrustScore: 65,
-    minQualityScore: 70,
-    minCitationCoverage: 0.60,
-    minWordCount: 3000,
-    minSourceCount: 15,
+    minTrustScore: UNIFORM_MIN_TRUST,
+    minQualityScore: UNIFORM_MIN_QUALITY,
+    minCitationCoverage: UNIFORM_MIN_CITATION,
+    minWordCount: 1200,
+    minSourceCount: 8,
   },
   POLICY_NOTE: {
-    minTrustScore: 65,
-    minQualityScore: 70,
-    minCitationCoverage: 0.60,
-    minWordCount: 3000,
-    minSourceCount: 15,
+    minTrustScore: UNIFORM_MIN_TRUST,
+    minQualityScore: UNIFORM_MIN_QUALITY,
+    minCitationCoverage: UNIFORM_MIN_CITATION,
+    minWordCount: 1200,
+    minSourceCount: 8,
   },
-  // ── Future format ──
+  UPDATE_NOTE: {
+    minTrustScore: UNIFORM_MIN_TRUST,
+    minQualityScore: UNIFORM_MIN_QUALITY,
+    minCitationCoverage: UNIFORM_MIN_CITATION,
+    minWordCount: 500,
+    minSourceCount: 5,
+  },
+  DATA_NOTE: {
+    minTrustScore: UNIFORM_MIN_TRUST,
+    minQualityScore: UNIFORM_MIN_QUALITY,
+    minCitationCoverage: UNIFORM_MIN_CITATION,
+    minWordCount: 500,
+    minSourceCount: 5,
+  },
   DOSSIER: {
-    minTrustScore: 72,
-    minQualityScore: 78,
-    minCitationCoverage: 0.45,
+    minTrustScore: UNIFORM_MIN_TRUST,
+    minQualityScore: UNIFORM_MIN_QUALITY,
+    minCitationCoverage: UNIFORM_MIN_CITATION,
     minWordCount: 8000,
-    minSourceCount: 35,
+    minSourceCount: 20,
   },
 };
 

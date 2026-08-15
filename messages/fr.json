@@ -2,7 +2,7 @@
   "Nav": {
     "briefs": "Briefs",
     "domains": "Domaines",
-    "studio": "Studio",
+    "studio": "Engine",
     "about": "À propos",
     "method": "Méthode",
     "methodology": "Méthodologie",
@@ -76,15 +76,15 @@
     "latestBriefs": "Derniers briefs",
     "featuredVerdict": "Verdict à la une",
     "trackRecord": "Bilan",
-    "openStudio": "Ouvrir le Studio",
+    "openStudio": "Ouvrir l'Engine",
     "sourcesIndexed": "Sources indexées",
     "dataProviders": "Fournisseurs de données",
     "claimsTraceable": "Affirmations traçables",
     "browseIntelligence": "Parcourir les analyses",
-    "commissionBrief": "Commander une analyse",
+    "commissionBrief": "Commander une étude",
     "thePrinciple": "Le principe",
     "theMethod": "La méthode",
-    "theStudio": "Le studio",
+    "theStudio": "L'engine",
     "stayAhead": "Devancez le chaos",
     "sixPillars": "Six piliers éditoriaux",
     "manifestoLine1": "[À TRADUIRE] The world doesn't suffer",
@@ -97,8 +97,8 @@
     "dataSources": "Sources de données",
     "methodLabel": "La méthode",
     "methodDesc": "[À TRADUIRE] Every NomosX brief follows a four-step protocol — from mapping the evidence to stress-testing the position.",
-    "studioLabel": "Le studio",
-    "studioDesc": "[À TRADUIRE] Commission a custom intelligence brief on any question. Same verification logic, same adversarial review, same source-verified output.",
+    "studioLabel": "L'engine",
+    "studioDesc": "Commandez une étude sur-mesure sur n'importe quelle question. Même logique de vérification, même revue contradictoire, même output sourcé et vérifié.",
     "newsletterDesc": "[À TRADUIRE] Weekly intelligence briefs, delivered Sunday morning. No noise, no agenda — just verified positions.",
     "newsletterDisclaimer": "[À TRADUIRE] By subscribing, you agree to our privacy policy. Unsubscribe anytime.",
     "theChallenge": "Le défi",
@@ -125,7 +125,7 @@
     "structureNotNoise": "[À TRADUIRE] Structure, not noise. Delivered."
   },
   "Studio": {
-    "title": "NomosX Studio",
+    "title": "Nomos Engine",
     "subtitle": "Définissez la question de recherche",
     "mandate": "Mandat",
     "protocol": "Protocole",
@@ -152,7 +152,7 @@
     "citationsValue": "vérifiées",
     "lineage": "Traçabilité",
     "lineageValue": "journalisée",
-    "verificationNote": "[À TRADUIRE] NomosX Studio uses the same verification logic as public publications: source discovery, evidence mapping, adversarial review, scenario stress-testing, and citation integrity. Your question goes in — a scenario-weighted, source-verified position comes out."
+    "verificationNote": "Nomos Engine utilise la même logique de vérification que les publications publiques : découverte des sources, cartographie des preuves, revue contradictoire, stress-test des scénarios, et intégrité des citations. Votre question entre — une position pondérée par les scénarios et vérifiée par les sources sort."
   },
   "Article": {
     "sources": "Sources",

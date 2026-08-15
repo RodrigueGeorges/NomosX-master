@@ -54,23 +54,58 @@ interface PipelineLineage {
 // TEMPLATE SELECTION
 // ============================================================================
 
-function selectPublicationType(signalType: string, sourceCount = 0): PublicationType {
-  // SUMMARY_BRIEF: quick factual updates, few sources
-  // ARTICLE: decision-grade analysis, standard depth
-  // STRATEGIC_REPORT: major structural shifts, deep research base
+/**
+ * Select publication format based on the EDITORIAL ANGLE of the signal.
+ *
+ * All formats share the SAME quality bar — a Signal Brief is not a "lower quality"
+ * format, it's a DIFFERENT ANGLE. The difference is purpose, not rigor.
+ *
+ *   Signal Brief     — ANGLE: "Something important just happened" → ALERT
+ *                      Purpose: inform the reader NOW, with full rigor
+ *                      Trigger: new evidence, data release, emerging observation
+ *
+ *   Decision Memo    — ANGLE: "A decision is pending" → ACTION
+ *                      Purpose: help the reader DECIDE (options, recommendation, risks)
+ *                      Trigger: policy change, regulatory move, vote, strategic fork
+ *
+ *   Article          — ANGLE: "This needs to be understood" → ANALYSIS
+ *                      Purpose: deep comprehension, narrative, nuance
+ *                      Trigger: contradiction, complex topic, accumulating evidence
+ *
+ *   Strategic Report — ANGLE: "A structural shift is underway" → STRATEGY
+ *                      Purpose: foresight, scenarios, roadmap for long-term planning
+ *                      Trigger: trend break, methodology shift, paradigm change
+ *
+ * Selection is based on signalType (the NATURE of the event), NOT on signal
+ * strength or source count. Quality is enforced uniformly by the publication gate.
+ */
+export function selectPublicationType(
+  signalType: string,
+  _sourceCount = 0,
+  _priorityScore = 50
+): PublicationType {
   switch (signalType) {
+    // ── ALERT: something new emerged → Signal Brief ──
+    case "NEW_EVIDENCE":
+      return "SUMMARY_BRIEF";
     case "DATA_RELEASE":
-      return sourceCount >= 8 ? "ARTICLE" : "SUMMARY_BRIEF";
+      return "SUMMARY_BRIEF";
+
+    // ── ACTION: a decision is pending → Decision Memo ──
     case "POLICY_CHANGE":
-      return "ARTICLE";
+      return "DECISION_MEMO";
+
+    // ── ANALYSIS: this needs to be understood → Article ──
     case "CONTRADICTION":
       return "ARTICLE";
+
+    // ── STRATEGY: structural shift → Strategic Report ──
     case "TREND_BREAK":
-      return sourceCount >= 12 ? "STRATEGIC_REPORT" : "ARTICLE";
+      return "STRATEGIC_REPORT";
     case "METHODOLOGY_SHIFT":
       return "STRATEGIC_REPORT";
-    case "NEW_EVIDENCE":
-      return sourceCount >= 10 ? "ARTICLE" : "SUMMARY_BRIEF";
+
+    // ── Default: Article (the analytical default) ──
     default:
       return "ARTICLE";
   }
@@ -231,15 +266,18 @@ ${sources.map((s, i) => {
 
 function formatPublicationType(type: string): string {
   const formats: Record<string, string> = {
+    // Canonical
     ARTICLE: "Article",
     SUMMARY_BRIEF: "Signal Brief",
+    DECISION_MEMO: "Decision Memo",
     STRATEGIC_REPORT: "Strategic Report",
-    RESEARCH_BRIEF: "Article",
-    EXECUTIVE_BRIEF: "Article",
+    // Legacy → canonical labels
+    RESEARCH_BRIEF: "Decision Memo",
+    EXECUTIVE_BRIEF: "Decision Memo",
     UPDATE_NOTE: "Signal Brief",
     DATA_NOTE: "Signal Brief",
-    POLICY_NOTE: "Article",
-    DOSSIER: "Dossier",
+    POLICY_NOTE: "Decision Memo",
+    DOSSIER: "Strategic Report",
   };
   return formats[type] || type;
 }
@@ -310,7 +348,11 @@ export async function generatePublication(
   }
   
   // Select publication type and template
-  const pubType = input.publicationType || selectPublicationType(signal.signalType, sources.length);
+  const pubType = input.publicationType || selectPublicationType(
+    signal.signalType,
+    sources.length,
+    typeof signal.priorityScore === "number" ? signal.priorityScore : 50
+  );
   const template = getTemplate(pubType);
   
   if (!template) {

@@ -18,9 +18,15 @@ export type BriefLike = {
 };
 
 export function inferInquiryDepth(type: string): InquiryDepth {
-  if (type === "STRATEGIC_REPORT" || type === "DOSSIER") return "strategic";
-  if (type === "ARTICLE" || type === "POLICY_NOTE" || type === "RESEARCH_BRIEF" || type === "EXECUTIVE_BRIEF") return "deep";
-  if (type === "SUMMARY_BRIEF" || type === "UPDATE_NOTE") return "surface";
+  // Canonical 1:1 mapping
+  if (type === "STRATEGIC_REPORT") return "strategic";
+  if (type === "ARTICLE") return "deep";
+  if (type === "DECISION_MEMO") return "standard";
+  if (type === "SUMMARY_BRIEF") return "surface";
+  // Legacy → canonical depth
+  if (type === "DOSSIER") return "strategic";
+  if (type === "RESEARCH_BRIEF" || type === "EXECUTIVE_BRIEF" || type === "POLICY_NOTE") return "standard";
+  if (type === "UPDATE_NOTE" || type === "DATA_NOTE") return "surface";
   return "deep";
 }
 
