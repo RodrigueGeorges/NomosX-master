@@ -1674,6 +1674,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   //   KNOWLEDGE_GRAPH, STYLE_GATES, EVIDENCE_IDS, RESEARCH_GAPS
   const { isStrategic } = opts;
   const isDossier = (opts as any).format === "dossier";
+  const isMemo = (opts as any).format === "memo";
   const editorialV2 = isEditorialV2Enabled();
   const label = isStrategic ? "[Strategic]" : "[Pipeline]";
   const stats: PipelineStats = {};
