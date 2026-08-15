@@ -85,9 +85,11 @@ export async function GET(
 
         // Try to generate a real PDF via Puppeteer + @sparticuz/chromium
         try {
-          const chromium = await import('@sparticuz/chromium');
+          const chromiumModule = await import('@sparticuz/chromium');
           const puppeteer = await import('puppeteer-core');
 
+          // @sparticuz/chromium exports the Chromium class as default
+          const chromium = (chromiumModule as any).default ?? chromiumModule;
           const executablePath = await chromium.executablePath();
           const browser = await puppeteer.default.launch({
             args: chromium.args,
