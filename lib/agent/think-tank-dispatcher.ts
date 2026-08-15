@@ -399,8 +399,6 @@ async function collectWeeklyItems(
       if (items.length >= remainingSlots) break;
 
       const depth: InquiryDepth = proposal.suggestedFormat === "strategic" ? "strategic"
-        : proposal.suggestedFormat === "deep" ? "deep"
-        : proposal.suggestedFormat === "surface" ? "surface"
         : "standard";
       const topicClassification = await classifyTopic(proposal.topic).catch(() => null);
       const matchedSlug = topicClassification?.verticalSlug || getVerticalForTopic(proposal.topic);
