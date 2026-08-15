@@ -6,11 +6,8 @@
 # Externalize heavy packages not needed by Netlify functions.
 # Without this, onnxruntime-node (210MB) + @sparticuz/chromium (58MB) + sharp (48MB)
 # get bundled into ALL functions, pushing them over the 250MB Netlify limit.
-# These packages are either:
-# - Native binaries (onnxruntime, sharp) — loaded at runtime via node_modules
-# - Only used by specific API routes (chromium, puppeteer-core, pdfjs-dist)
-# - Not needed by the pipeline (three, d3, etc.)
-# The NLI engine falls back to OpenAI embeddings when onnxruntime is not bundled.
+# external_node_modules: don't bundle into JS but still include in zip
+# included_files: explicitly exclude from the zip entirely
 [functions]
   node_bundler = "esbuild"
   external_node_modules = [
@@ -22,7 +19,28 @@
     "sharp",
     "pdfjs-dist",
     "three",
-    "@napi-rs/canvas"
+    "three-stdlib",
+    "@napi-rs/canvas",
+    "@react-three",
+    "hls.js",
+    "@mediapipe",
+    "stats-gl"
+  ]
+  included_files = [
+    "!node_modules/@sparticuz/**",
+    "!node_modules/puppeteer-core/**",
+    "!node_modules/onnxruntime-node/**",
+    "!node_modules/onnxruntime-web/**",
+    "!node_modules/@huggingface/transformers/**",
+    "!node_modules/sharp/**",
+    "!node_modules/pdfjs-dist/**",
+    "!node_modules/three/**",
+    "!node_modules/three-stdlib/**",
+    "!node_modules/@napi-rs/**",
+    "!node_modules/@react-three/**",
+    "!node_modules/hls.js/**",
+    "!node_modules/@mediapipe/**",
+    "!node_modules/stats-gl/**"
   ]
 
 [build.environment]
