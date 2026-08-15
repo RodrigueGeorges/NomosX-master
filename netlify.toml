@@ -3,6 +3,12 @@
   publish = ".next"
   functions = "netlify/functions"
 
+# Externalize heavy packages that are only used by the PDF export API route.
+# Without this, @sparticuz/chromium (~50MB) gets bundled into ALL Netlify functions,
+# pushing the studiox-run-pipeline-background function over the 250MB limit.
+[functions]
+  external_node_modules = ["@sparticuz/chromium", "puppeteer-core"]
+
 [build.environment]
   # Node.js 22.x LTS - aligns with React Three Fiber camera-controls dependency
   # Node.js 24+ causes "exports is not defined in ES module scope"
