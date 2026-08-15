@@ -3,11 +3,27 @@
   publish = ".next"
   functions = "netlify/functions"
 
-# Externalize heavy packages that are only used by the PDF export API route.
-# Without this, @sparticuz/chromium (~50MB) gets bundled into ALL Netlify functions,
-# pushing the studiox-run-pipeline-background function over the 250MB limit.
+# Externalize heavy packages not needed by Netlify functions.
+# Without this, onnxruntime-node (210MB) + @sparticuz/chromium (58MB) + sharp (48MB)
+# get bundled into ALL functions, pushing them over the 250MB Netlify limit.
+# These packages are either:
+# - Native binaries (onnxruntime, sharp) — loaded at runtime via node_modules
+# - Only used by specific API routes (chromium, puppeteer-core, pdfjs-dist)
+# - Not needed by the pipeline (three, d3, etc.)
+# The NLI engine falls back to OpenAI embeddings when onnxruntime is not bundled.
 [functions]
-  external_node_modules = ["@sparticuz/chromium", "puppeteer-core"]
+  node_bundler = "esbuild"
+  external_node_modules = [
+    "@sparticuz/chromium",
+    "puppeteer-core",
+    "onnxruntime-node",
+    "onnxruntime-web",
+    "@huggingface/transformers",
+    "sharp",
+    "pdfjs-dist",
+    "three",
+    "@napi-rs/canvas"
+  ]
 
 [build.environment]
   # Node.js 22.x LTS - aligns with React Three Fiber camera-controls dependency
