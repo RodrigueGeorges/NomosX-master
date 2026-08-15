@@ -351,6 +351,7 @@ export async function runAndPublishInquiry(
     researcherDecision: signOff?.decision,
     triangularOverride,
     domain: req.domain,
+    dbClaims: pipeline.readerClaims,
   });
 
   const readiness = evaluatePublicationReadiness({

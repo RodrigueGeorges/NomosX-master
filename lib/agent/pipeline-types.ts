@@ -303,6 +303,11 @@ export interface PipelineStats {
     costUsd?: number;
     depth?: "brief" | "strategic";
     model?: string;
+    /** Agentic ReAct mode */
+    agentic?: boolean;
+    reactSteps?: number;
+    reactStopReason?: string;
+    discoveredSources?: number;
   };
 
   // Topic consistency
@@ -639,6 +644,44 @@ export interface PipelineStats {
   orchestrator?: {
     decisions: any[];
     expandedTerms?: string[];
+    /** DEEPEN action was triggered (full-text extraction) */
+    deepenTriggered?: boolean;
+    deepenedCount?: number;
+    /** RE_ANALYZE action was triggered (re-run analyst with stronger requirements) */
+    reAnalyzeTriggered?: boolean;
+    reAnalyzeCitationDelta?: number;
+  };
+
+  // Self-correction layer (Reflexion pattern)
+  selfCorrection?: {
+    reader?: {
+      phase: string;
+      triggered: boolean;
+      originalScore: number;
+      finalScore: number;
+      retries: number;
+      improved: boolean;
+      issues: string[];
+      recommendations: string[];
+      costUsd: number;
+    };
+    analyst?: {
+      phase: string;
+      triggered: boolean;
+      originalScore: number;
+      finalScore: number;
+      retries: number;
+      improved: boolean;
+      issues: string[];
+      recommendations: string[];
+      costUsd: number;
+    };
+  };
+
+  // Gap-fill re-analysis (ANALYST re-executed with gap-filled sources)
+  gapFillReAnalysis?: {
+    triggered: boolean;
+    citationDelta: number;
   };
 
   // Post-analyst quality gate (diagnostic only — no agents skipped)

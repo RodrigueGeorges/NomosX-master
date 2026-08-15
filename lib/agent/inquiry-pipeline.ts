@@ -51,6 +51,7 @@ export interface InquiryPipelineResult {
   format: "brief" | "memo" | "strategic";
   refusal?: boolean;
   refusalReason?: string;
+  readerClaims?: Array<{ text: string; sourceRef?: number | null }>;
 }
 
 // ─── Depth → pipeline format ─────────────────────────────────
@@ -579,6 +580,7 @@ export async function runInquiryPipeline(
     trustScore,
     qualityScore,
     format,
+    readerClaims: (result as any).readerClaims,
   };
 }
 

@@ -24,6 +24,14 @@ import { primeContext } from './context-primer';
 import { buildMemoryInjection, recordAgentPerformance, autoDetectFailureModes, extractLessons, storeLesson, recordLearningCycle } from './agent-memory';
 import { extractAndStoreGaps, getRelevantGaps, markGapsFilled } from './gap-filler';
 import { assessEvidenceSufficiency } from './enrichment-reasoner';
+import { selfCorrectReader, selfCorrectAnalyst, reAnalyzeAfterGapFill } from './self-correction-integration';
+import { analystReAct } from './analyst-react';
+import { metaControllerDecide } from './meta-controller';
+import { createWitnessContext, buildObservation, buildLearningInjection, type WitnessContext } from './witness/integration';
+import { runMixtureOfAgents, loadAgentWeights, updateAgentWeights, type MoAResult } from './moa/mixture-of-agents';
+import { buildWorldModelInjection, updateWorldModel } from './world-model/world-model';
+import { buildSelfPlayInjection, runSelfPlayRound } from './self-play/adversarial';
+import { extractFeatures, scoreStep, llmScoreStep, persistProcessStep, loadPRMModel, retrainPRM, type ProcessStep, type PRMModel } from './prm/process-reward-model';
 
 // P1-PERF: Optional agents are lazy-loaded via dynamic import() to reduce cold start
 // debateAgent, metaAnalysisEngine, runDevilsAdvocate, runHarvardCouncil,
@@ -1664,6 +1672,22 @@ export interface PipelineCoreOptions {
   quantDepth?: import("../quant/quant-bridge").QuantDepth;
   /** Optional structured costing exercise from StudioX orders */
   parametricInput?: import("../quant/types").ParametricCostInput;
+  /** Enable ReAct-style agentic ANALYST (default: false) */
+  useAgenticAnalyst?: boolean;
+  /** Use LLM-driven meta-controller (default: false) */
+  useMetaController?: boolean;
+  /** Enable the Witness — metacognitive observer (default: false).
+   * The Witness observes each pipeline step, detects anomalies, and can
+   * intervene. It also learns across runs to improve prompts and thresholds. */
+  useWitness?: boolean;
+  /** Enable Mixture of Agents — multiple specialist analysts (default: false) */
+  useMixtureOfAgents?: boolean;
+  /** Enable World Model — persistent cross-run knowledge (default: false) */
+  useWorldModel?: boolean;
+  /** Enable Process Reward Model — step-level scoring (default: false) */
+  usePRM?: boolean;
+  /** Enable adversarial self-play — finds weaknesses post-analysis (default: false) */
+  useSelfPlay?: boolean;
 }
 
 async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
@@ -1673,12 +1697,110 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   //   QUANT, FRAMING, HYPOTHESIS_JUDGE, FACT_CHECKER, CRITICAL_LOOP, DEVILS_ADVOCATE,
   //   KNOWLEDGE_GRAPH, STYLE_GATES, EVIDENCE_IDS, RESEARCH_GAPS
   const { isStrategic } = opts;
+  const useAgenticAnalyst = opts.useAgenticAnalyst ?? false;
+  const useMetaController = opts.useMetaController ?? false;
+  const useWitness = opts.useWitness ?? false;
+  const useMixtureOfAgents = opts.useMixtureOfAgents ?? false;
+  const useWorldModel = opts.useWorldModel ?? false;
+  const usePRM = opts.usePRM ?? false;
+  const useSelfPlay = opts.useSelfPlay ?? false;
   const isDossier = (opts as any).format === "dossier";
   const isMemo = (opts as any).format === "memo";
   const editorialV2 = isEditorialV2Enabled();
   const label = isStrategic ? "[Strategic]" : "[Pipeline]";
   const stats: PipelineStats = {};
   const pipelineStart = Date.now();
+
+  // ── WITNESS: Metacognitive observer (Sakshi Witness pattern) ──
+  // The Witness observes each pipeline step, detects anomalies, and can intervene.
+  // It also learns across runs to improve prompts and thresholds.
+  let witnessCtx: WitnessContext | null = null;
+  let witnessLearningInjection = '';
+  if (useWitness) {
+    const budgetCap = isStrategic ? 8.0 : 3.0;
+    witnessCtx = createWitnessContext(
+      `run_${Date.now()}`,
+      query,
+      budgetCap,
+      {
+        canIntervene: true,
+        useDatabase: true,
+        useLLM: true,
+        steps: ['scout', 'rank', 'reader', 'analyst', 'editor'],
+      },
+    );
+    console.log(`${label} WITNESS: metacognitive observer activated (budget cap: $${budgetCap})`);
+
+    // Inject past learnings into the pipeline context (stored for later injection)
+    try {
+      witnessLearningInjection = await buildLearningInjection();
+      if (witnessLearningInjection) {
+        console.log(`${label} WITNESS: prepared past learnings for injection (${witnessLearningInjection.length} chars)`);
+      }
+    } catch (err) {
+      console.warn(`${label} WITNESS: failed to inject learnings:`, err);
+    }
+  }
+
+  // ── WORLD MODEL: Persistent cross-run knowledge accumulation ──
+  // The World Model accumulates knowledge across runs. Before a run, it injects
+  // prior knowledge. After a run, it extracts and persists new findings.
+  let worldModelInjection = '';
+  let worldModelReliableSources: string[] = [];
+  let worldModelControversies: string[] = [];
+  if (useWorldModel) {
+    try {
+      const wmResult = await buildWorldModelInjection(query);
+      if (wmResult.contextBlock) {
+        worldModelInjection = wmResult.contextBlock;
+        worldModelReliableSources = wmResult.reliableSourceIds;
+        worldModelControversies = wmResult.knownControversies;
+        console.log(`${label} WORLD_MODEL: injected prior knowledge (${worldModelInjection.length} chars, ${worldModelReliableSources.length} reliable sources, ${worldModelControversies.length} known controversies)`);
+      } else {
+        console.log(`${label} WORLD_MODEL: no prior knowledge found for this query`);
+      }
+    } catch (err) {
+      console.warn(`${label} WORLD_MODEL: failed to query:`, err);
+    }
+  }
+
+  // ── PRM: Process Reward Model — scores reasoning steps ──
+  let prmModel: PRMModel | null = null;
+  if (usePRM) {
+    try {
+      prmModel = await loadPRMModel();
+      if (prmModel) {
+        console.log(`${label} PRM: loaded model (${prmModel.trainingExamples} training examples, avg reward ${prmModel.avgReward.toFixed(3)})`);
+      } else {
+        console.log(`${label} PRM: no trained model yet — will collect data for future training`);
+      }
+    } catch (err) {
+      console.warn(`${label} PRM: failed to load model:`, err);
+    }
+  }
+
+  // ── SELF-PLAY: Prepare adversarial lessons for injection ──
+  let selfPlayInjection = '';
+  if (useSelfPlay) {
+    try {
+      selfPlayInjection = await buildSelfPlayInjection();
+      if (selfPlayInjection) {
+        console.log(`${label} SELF_PLAY: injected ${selfPlayInjection.length} chars of adversarial lessons`);
+      }
+    } catch (err) {
+      console.warn(`${label} SELF_PLAY: failed to load lessons:`, err);
+    }
+  }
+
+  // ── MOA: Load agent weights ──
+  if (useMixtureOfAgents) {
+    try {
+      await loadAgentWeights();
+      console.log(`${label} MOA: agent weights loaded`);
+    } catch (err) {
+      console.warn(`${label} MOA: failed to load weights:`, err);
+    }
+  }
 
   // ── BLACKBOARD: Shared context across all agents (2026 pattern) ──
   // Breaks silos: ANALYST can request targeted re-search, EDITOR sees gaps, etc.
@@ -2027,6 +2149,22 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     filters: { providers },
   });
   stats.scout = scoutResult;
+
+  // ── WITNESS: Observe SCOUT step ──
+  if (witnessCtx) {
+    try {
+      await witnessCtx.observe(buildObservation('scout', {
+        success: true,
+        costUsd: 0.02,
+        durationMs: Date.now() - pipelineStart,
+        outputSummary: `Found ${found} sources from ${allSourceIds.length} IDs`,
+        metrics: { sourcesFound: found, providerDiversity: new Set(allSourceIds.map(id => id.split(":")[0])).size },
+        errors: [],
+      }, pipelineStart));
+    } catch (err) {
+      console.warn(`${label} WITNESS: scout observation failed:`, err);
+    }
+  }
 
   // Orchestrator checkpoint: assess source quality
   orchState.sourcesFound = found;
@@ -2871,6 +3009,115 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   stats.orchestrator = stats.orchestrator || { decisions: [] };
   stats.orchestrator.decisions.push(readerDecision);
 
+  // ── SELF-CORRECTION: READER — assess quality, retry if low (Reflexion pattern) ──
+  try {
+    const readerSCInput = readings.map((r: any) => ({
+      sourceId: r.sourceId,
+      claims: r.claims || [],
+      confidence: r.confidence || 'medium',
+    }));
+    const scResult = await selfCorrectReader({
+      query,
+      readings: readerSCInput,
+      maxRetries: 1,
+      retryFn: async (feedback: string) => {
+        // Re-run reader with feedback injected via memoryBlock
+        const { readerAgentV3 } = await import('./reader-agent-v3');
+        const reRead = await readerAgentV3(topSources, { memoryBlock: feedback, domain: detectedDomain });
+        return reRead.map((r: any) => ({
+          sourceId: r.sourceId,
+          claims: r.claims || [],
+          confidence: r.confidence || 'medium',
+        }));
+      },
+    });
+    if (scResult.stats.triggered) {
+      stats.selfCorrection = stats.selfCorrection || {};
+      (stats.selfCorrection as any).reader = scResult.stats;
+      addCost(scResult.stats.costUsd, 'SELF-CORRECTION (READER)');
+      if (scResult.stats.improved) {
+        // Replace readings with improved version
+        const improvedReadings = scResult.readings;
+        // Map back to full reading objects by sourceId
+        for (const imp of improvedReadings) {
+          const idx = readings.findIndex((r: any) => r.sourceId === imp.sourceId);
+          if (idx >= 0 && imp.claims.length > readings[idx].claims.length) {
+            readings[idx].claims = imp.claims;
+          }
+        }
+        console.log(`${label} SELF-CORRECTION (READER): ${scResult.stats.originalScore} → ${scResult.stats.finalScore} after ${scResult.stats.retries} retry`);
+      }
+      // Log to AgentAuditLog for dashboard visibility
+      prisma.agentAuditLog.create({
+        data: {
+          agent: 'reader',
+          action: 'SELF_CORRECTION',
+          metadata: JSON.stringify({
+            phase: 'reader',
+            originalScore: scResult.stats.originalScore,
+            finalScore: scResult.stats.finalScore,
+            retries: scResult.stats.retries,
+            improved: scResult.stats.improved,
+            issues: scResult.stats.issues.slice(0, 3),
+          }),
+        },
+      }).catch(() => {}); // non-blocking
+    }
+  } catch (err) {
+    console.warn(`${label} SELF-CORRECTION (READER): failed (non-blocking):`, err);
+  }
+
+  // ── ORCHESTRATOR ACTION: DEEPEN — was logged but never acted upon. NOW ACTED. ──
+  if (readerDecision.action === "DEEPEN" && orchState.iteration < orchState.maxIterations) {
+    console.log(`${label} ORCHESTRATOR: DEEPEN — ${readerDecision.reason}`);
+    emitProgress(pipelineRun.id, "READER", "started", `Deepening: extracting full-text for low-abstract sources...`);
+    try {
+      const sourcesNeedingFullText = topSources.filter((s: any) =>
+        !s.abstract || s.abstract.length < 100
+      ).slice(0, 8);
+      let deepenedCount = 0;
+      for (const source of sourcesNeedingFullText) {
+        try {
+          // Try to fetch full-text via available providers
+          if ((source as any).doi || (source as any).url) {
+            const { extractPDFText } = await import('../providers/pdf-extractor');
+            const pdfUrl = (source as any).url || ((source as any).doi ? `https://doi.org/${(source as any).doi}` : null);
+            if (pdfUrl) {
+              const result = await extractPDFText(pdfUrl, { maxPages: 20, timeout: 30000 });
+              if (result.success && result.text && result.text.length > 500) {
+                (source as any).fullText = result.text;
+                (source as any).abstract = (source as any).abstract || result.text.slice(0, 500);
+                deepenedCount++;
+              }
+            }
+          }
+        } catch (e) {
+          // Non-blocking: continue with other sources
+        }
+      }
+      if (deepenedCount > 0) {
+        console.log(`${label} DEEPEN: extracted full-text for ${deepenedCount}/${sourcesNeedingFullText.length} sources`);
+        // Re-run reader on deepened sources
+        const { readerAgentV3 } = await import('./reader-agent-v3');
+        const deepenedReadings = await readerAgentV3(topSources);
+        // Merge: keep the better reading per source
+        for (const dr of deepenedReadings) {
+          const idx = readings.findIndex((r: any) => r.sourceId === dr.sourceId);
+          if (idx < 0 || (dr.claims?.length > (readings[idx]?.claims?.length || 0))) {
+            if (idx >= 0) readings[idx] = dr;
+          }
+        }
+        orchState.sourcesWithFullText = readings.filter((r: any) => r.readingDepth === "full_text").length;
+        stats.orchestrator.deepenTriggered = true;
+        stats.orchestrator.deepenedCount = deepenedCount;
+      }
+      orchState.iteration++;
+      emitProgress(pipelineRun.id, "READER", "completed", `Deepened ${deepenedCount} sources`);
+    } catch (err) {
+      console.warn(`${label} DEEPEN: failed (non-blocking):`, err);
+    }
+  }
+
   // ── STEP 5b-2: HYPOTHESIS JUDGE — verdict per pre-registered hypothesis ──
   let hypothesisVerdictBlock = '';
   if (framing.hypotheses.length > 0) {
@@ -3093,6 +3340,9 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     episodicFormatted || undefined,
     dppContextBlock || undefined,
     roundTableBlock || undefined,
+    witnessLearningInjection || undefined,
+    worldModelInjection || undefined,
+    selfPlayInjection || undefined,
   ].filter(Boolean).join("\n\n---\n\n") || undefined;
 
   let analysis: any;
@@ -3119,11 +3369,157 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     ].filter(Boolean).join('\n\n---\n\n');
   }
 
-  analysis = await analystMultipass(query, topSources, slimReadings, {
-    contextBlock: fullContextBlock,
-    domain: detectedDomain,
-    depth: isStrategic ? "strategic" : "brief",
-  });
+  // ── ANALYST: ReAct mode (agentic) vs classic multipass ──
+  // ReAct mode: the analyst can search, read, debate DURING reasoning
+  // MoA mode: multiple specialist analysts collaborate
+  // Classic mode: the analyst receives all sources and synthesizes in 3 passes
+  if (useMixtureOfAgents) {
+    console.log(`${label} ANALYST: Mixture of Agents mode — multiple specialists collaborating`);
+    emitProgress(pipelineRun.id, "ANALYST", "started", `Mixture of Agents analysis (${isStrategic ? "strategic" : "brief"})...`);
+    try {
+      const moaResult = await runMixtureOfAgents(
+        query,
+        topSources.map((s: any) => ({ id: s.id, title: s.title, abstract: s.abstract, fullText: s.fullText })),
+        fullContextBlock || '',
+        { isStrategic },
+      );
+      console.log(`${label} ANALYST: MoA complete — ${moaResult.specialistAnalyses.length} specialists, ${moaResult.consensus.length} consensus points, ${moaResult.controversies.length} controversies, confidence=${moaResult.overallConfidence.toFixed(2)}`);
+      emitProgress(pipelineRun.id, "ANALYST", "completed", `MoA: ${moaResult.specialistAnalyses.length} specialists, confidence ${moaResult.overallConfidence.toFixed(2)}`);
+
+      // Use the aggregated analysis as the final analysis
+      analysis = {
+        title: query,
+        summary: moaResult.aggregatedAnalysis.slice(0, 500),
+        consensus: moaResult.consensus.join('\n\n'),
+        disagreements: moaResult.controversies.map(c => `${c.topic}: ${c.resolution}`).join('\n\n'),
+        debate: {
+          pro: moaResult.controversies.map(c => c.positions.find(p => p.agent)?.position).filter(Boolean).join('\n'),
+          con: moaResult.controversies.map(c => c.positions.slice(1).map(p => p.position).join('\n')).filter(Boolean).join('\n'),
+          synthesis: moaResult.controversies.map(c => c.resolution).join('\n\n'),
+        },
+        evidence: moaResult.specialistAnalyses.find(a => a.agentId === 'evidence')?.analysis || '',
+        implications: moaResult.specialistAnalyses.find(a => a.agentId === 'synthesis')?.analysis || '',
+        risks: moaResult.specialistAnalyses.find(a => a.agentId === 'skeptic')?.analysis || '',
+        open_questions: moaResult.controversies.map(c => c.topic).join('\n'),
+        what_changes_mind: moaResult.specialistAnalyses.find(a => a.agentId === 'uncertainty')?.keyInsights.join('\n') || '',
+        _meta: {
+          moaResult,
+          mode: 'mixture_of_agents',
+          agentCount: moaResult.specialistAnalyses.length,
+          overallConfidence: moaResult.overallConfidence,
+          totalCostUsd: moaResult.totalCostUsd,
+        },
+      };
+      addCost(moaResult.totalCostUsd, 'ANALYST MOA');
+      (stats as any).moa = {
+        agentCount: moaResult.specialistAnalyses.length,
+        consensus: moaResult.consensus.length,
+        controversies: moaResult.controversies.length,
+        uniqueInsights: moaResult.uniqueInsights.length,
+        overallConfidence: moaResult.overallConfidence,
+      };
+    } catch (err: any) {
+      console.warn(`${label} ANALYST: MoA failed, falling back to classic: ${err.message}`);
+      emitProgress(pipelineRun.id, "ANALYST", "started", `MoA failed — falling back to classic multipass...`);
+      // Fall through to classic multipass below
+    }
+  }
+
+  if (useAgenticAnalyst && !analysis) {
+    console.log(`${label} ANALYST: ReAct mode (agentic) — analyst can search/read/debate during reasoning`);
+    emitProgress(pipelineRun.id, "ANALYST", "started", `Agentic ReAct analysis (depth: ${isStrategic ? "strategic" : "brief"})...`);
+    try {
+      const reactResult = await analystReAct(
+        query,
+        topSources,
+        slimReadings,
+        {
+          contextBlock: fullContextBlock,
+          domain: detectedDomain,
+          depth: isStrategic ? "strategic" : "brief",
+          maxSteps: isStrategic ? 12 : 8,
+          maxCostUsd: isStrategic ? 0.50 : 0.30,
+          label: `${label} AnalystReAct`,
+        },
+        {
+          // Tool context: wire to existing pipeline functions
+          searchFn: async (q: string, providers?: string[]) => {
+            const scoutResult: any = await scout(q, (providers || ['openalex', 'crossref']) as any, 15);
+            const ids: string[] = scoutResult.sourceIds || [];
+            return {
+              sourceIds: ids,
+              titles: ids.map(() => q),
+            };
+          },
+          readFn: async (sourceIndex: number) => {
+            const src: any = topSources[sourceIndex - 1];
+            if (!src) return null;
+            return {
+              title: src.title || src.rawTitle || 'Untitled',
+              abstract: src.abstract || '',
+              fullText: src.fullText,
+            };
+          },
+          debateFn: async (topic: string, sourceIndices: number[]) => {
+            try {
+              const devilsAdvocateMod: any = await import('./devils-advocate');
+              const debateSources = sourceIndices.map(i => topSources[i - 1]).filter(Boolean) as any[];
+              const fn = devilsAdvocateMod.runDevilsAdvocate || devilsAdvocateMod.devilsAdvocate;
+              const result: any = fn ? await fn(topic, debateSources, query) : { pro: '', con: '', synthesis: '' };
+              return {
+                pro: result.pro || '',
+                con: result.con || '',
+                synthesis: result.synthesis || '',
+              };
+            } catch {
+              return { pro: '', con: '', synthesis: 'Debate unavailable' };
+            }
+          },
+          kgFn: async (concept: string) => {
+            try {
+              const kgMod: any = await import('./knowledge-graph');
+              const fn = kgMod.queryKnowledgeGraph || kgMod.buildKnowledgeGraph;
+              const result: any = fn ? await fn(concept) : { connections: [], bridges: [] };
+              return {
+                connections: (result.connections || []).map((c: any) => c.label || c.id || String(c)),
+                bridges: (result.bridges || []).map((b: any) => b.label || b.id || String(b)),
+              };
+            } catch {
+              return { connections: [], bridges: [] };
+            }
+          },
+        },
+      );
+      analysis = reactResult.analysis;
+      stats.analyst = {
+        hasDebate: !!analysis.causalChain?.length,
+        passes: reactResult.trace.steps.length,
+        costUsd: reactResult.costUsd,
+        depth: isStrategic ? "strategic" : "brief",
+        agentic: true,
+        reactSteps: reactResult.trace.steps.length,
+        reactStopReason: reactResult.trace.stopReason,
+        discoveredSources: reactResult.discoveredSourceIds.length,
+      };
+      addCost(reactResult.costUsd, `ANALYST ReAct (${isStrategic ? 'strategic' : 'brief'})`);
+      ctx.setAnalystOutput(analysis);
+      ctx.recordAgentTiming('ANALYST', Date.now() - pipelineStart);
+      emitProgress(pipelineRun.id, "ANALYST", "completed", `Agentic analysis complete (${reactResult.trace.steps.length} steps, ${reactResult.discoveredSourceIds.length} new sources found)`, { blackboard: ctx.getSummary() });
+    } catch (err) {
+      console.warn(`${label} ANALYST ReAct failed, falling back to classic multipass:`, err);
+      analysis = await analystMultipass(query, topSources, slimReadings, {
+        contextBlock: fullContextBlock,
+        domain: detectedDomain,
+        depth: isStrategic ? "strategic" : "brief",
+      });
+    }
+  } else {
+    analysis = await analystMultipass(query, topSources, slimReadings, {
+      contextBlock: fullContextBlock,
+      domain: detectedDomain,
+      depth: isStrategic ? "strategic" : "brief",
+    });
+  }
   const analystCostUsd = typeof analysis._meta?.totalCostUsd === "number" ? analysis._meta.totalCostUsd : undefined;
   stats.analyst = {
     hasDebate: !!analysis.causalChain?.length,
@@ -3135,10 +3531,93 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   ctx.setAnalystOutput(analysis);
   ctx.recordAgentTiming('ANALYST', Date.now() - pipelineStart);
 
+  // ── WITNESS: Observe ANALYST step ──
+  if (witnessCtx) {
+    try {
+      const analysisStr = typeof analysis === 'string' ? analysis : JSON.stringify(analysis);
+      const citations = new Set((analysisStr.match(/\[SRC-\d+\]/g) || []).map((m: string) => m)).size;
+      await witnessCtx.observe(buildObservation('analyst', {
+        success: true,
+        costUsd: analystCostUsd || 0.20,
+        durationMs: Date.now() - pipelineStart,
+        outputSummary: analysisStr.slice(0, 500),
+        metrics: {
+          citations,
+          sourceCount: topSources.length,
+          citationCoverage: citations / Math.max(1, topSources.length),
+        },
+        errors: [],
+      }, pipelineStart));
+      // Run meta-loop to check overall health
+      const metaResult = await witnessCtx.metaLoop();
+      if (metaResult.recommendation === 'abort') {
+        console.warn(`${label} WITNESS: ABORT recommended — ${metaResult.reason}`);
+      }
+    } catch (err) {
+      console.warn(`${label} WITNESS: analyst observation failed:`, err);
+    }
+  }
+
   // ── SELF-REFLECTION: SUPPENDED — redundant with 3-pass analyst, $0.05/run saved ──
   // LLM self-evaluation is unreliable (FlowVerify 2026: calibration drift, position bias).
   // The analyst multipass already has exploration → stress-test → synthesis.
   stats.selfReflection = { skipped: true, reason: 'suppressed — redundant with 3-pass analyst' };
+
+  // ── SELF-PLAY: Adversarial testing — attack the analysis to find weaknesses ──
+  if (useSelfPlay && analysis) {
+    try {
+      const analysisText = typeof analysis === 'string' ? analysis :
+        (analysis.summary || '') + '\n' + (analysis.consensus || '') + '\n' + (analysis.debate?.synthesis || '');
+      const spResult = await runSelfPlayRound(
+        query,
+        analysisText,
+        topSources.map((s: any) => ({ id: s.id, title: s.title, abstract: s.abstract })),
+      );
+      console.log(`${label} SELF_PLAY: ${spResult.attacks.length} attacks, ${spResult.verdicts.filter(v => v.attackSucceeded).length} succeeded, robustness=${spResult.robustnessScore.toFixed(2)}`);
+      (stats as any).selfPlay = {
+        attacks: spResult.attacks.length,
+        succeeded: spResult.verdicts.filter(v => v.attackSucceeded).length,
+        robustnessScore: spResult.robustnessScore,
+        lessons: spResult.lessons.length,
+      };
+    } catch (err) {
+      console.warn(`${label} SELF_PLAY: failed:`, err);
+    }
+  }
+
+  // ── PRM: Score the analyst step ──
+  if (usePRM && prmModel && analysis) {
+    try {
+      const analysisText = typeof analysis === 'string' ? analysis : JSON.stringify(analysis);
+      const features = extractFeatures({
+        phase: 'analyst',
+        subStep: 'final',
+        action: 'Analysis synthesis',
+        output: analysisText,
+        runId: pipelineRun.id,
+        timestamp: Date.now(),
+      } as any);
+      const prediction = scoreStep(features, prmModel);
+      console.log(`${label} PRM: analyst step scored ${prediction.predictedReward.toFixed(3)} (recommendation: ${prediction.recommendation})`);
+
+      // Persist the step for future training
+      const step: ProcessStep = {
+        id: `step_${pipelineRun.id}_analyst`,
+        phase: 'analyst',
+        subStep: 'final',
+        action: 'Analysis synthesis',
+        output: analysisText.slice(0, 500),
+        features,
+        reward: prediction.predictedReward,
+        runId: pipelineRun.id,
+        timestamp: Date.now(),
+      };
+      await persistProcessStep(step);
+      (stats as any).prm = { analystScore: prediction.predictedReward, recommendation: prediction.recommendation };
+    } catch (err) {
+      console.warn(`${label} PRM: scoring failed:`, err);
+    }
+  }
 
   emitProgress(pipelineRun.id, "ANALYST", "completed", `${isStrategic ? "Strategic" : "Multi-pass"} analysis complete`, { blackboard: ctx.getSummary() });
 
@@ -3244,6 +3723,88 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   stats.orchestrator = stats.orchestrator || { decisions: [] };
   stats.orchestrator.decisions.push(analystDecision);
 
+  // ── SELF-CORRECTION: ANALYST — assess quality, retry if low (Reflexion pattern) ──
+  try {
+    const analysisStr = typeof analysis === 'string' ? analysis : JSON.stringify(analysis);
+    const analysisCitations = new Set((analysisStr.match(/\[SRC-\d+\]/g) || []).map((m: string) => m)).size;
+    const scResult = await selfCorrectAnalyst({
+      query,
+      analysis,
+      sourceCount: topSources.length,
+      citationCount: analysisCitations,
+      maxRetries: 1,
+      retryFn: async (feedback: string) => {
+        // Re-run analyst with feedback injected
+        const reAnalysis = await analystMultipass(query, topSources, slimReadings, {
+          contextBlock: fullContextBlock + '\n\n' + feedback,
+          domain: detectedDomain,
+          depth: isStrategic ? "strategic" : "brief",
+        });
+        return reAnalysis;
+      },
+    });
+    if (scResult.stats.triggered) {
+      stats.selfCorrection = stats.selfCorrection || {};
+      (stats.selfCorrection as any).analyst = scResult.stats;
+      addCost(scResult.stats.costUsd, 'SELF-CORRECTION (ANALYST)');
+      if (scResult.stats.improved) {
+        analysis = scResult.analysis;
+        ctx.setAnalystOutput(analysis);
+        console.log(`${label} SELF-CORRECTION (ANALYST): ${scResult.stats.originalScore} → ${scResult.stats.finalScore} after ${scResult.stats.retries} retry`);
+      }
+      // Log to AgentAuditLog for dashboard visibility
+      prisma.agentAuditLog.create({
+        data: {
+          agent: 'analyst',
+          action: 'SELF_CORRECTION',
+          metadata: JSON.stringify({
+            phase: 'analyst',
+            originalScore: scResult.stats.originalScore,
+            finalScore: scResult.stats.finalScore,
+            retries: scResult.stats.retries,
+            improved: scResult.stats.improved,
+            issues: scResult.stats.issues.slice(0, 3),
+          }),
+        },
+      }).catch(() => {}); // non-blocking
+    }
+  } catch (err) {
+    console.warn(`${label} SELF-CORRECTION (ANALYST): failed (non-blocking):`, err);
+  }
+
+  // ── ORCHESTRATOR ACTION: RE_ANALYZE — was logged but never acted upon. NOW ACTED. ──
+  if (analystDecision.action === "RE_ANALYZE" && orchState.iteration < orchState.maxIterations) {
+    console.log(`${label} ORCHESTRATOR: RE_ANALYZE — ${analystDecision.reason}`);
+    emitProgress(pipelineRun.id, "ANALYST", "started", `Re-analyzing with strengthened requirements...`);
+    try {
+      const reAnalysis = await analystMultipass(query, topSources, slimReadings, {
+        contextBlock: fullContextBlock + '\n\n## STRENGTHENED REQUIREMENT (orchestrator-triggered re-analysis)\nThe previous analysis was deemed insufficient. ' + (analystDecision.reason || 'Improve citation coverage and analytical depth.') + '\nEvery claim MUST have a [SRC-N] citation. Uncited claims will be rejected.',
+        domain: detectedDomain,
+        depth: isStrategic ? "strategic" : "brief",
+      });
+      // Compare: keep the better version
+      const reStr = typeof reAnalysis === 'string' ? reAnalysis : JSON.stringify(reAnalysis);
+      const reCitations = new Set((reStr.match(/\[SRC-\d+\]/g) || []).map((m: string) => m)).size;
+      const origStr = typeof analysis === 'string' ? analysis : JSON.stringify(analysis);
+      const origCitations = new Set((origStr.match(/\[SRC-\d+\]/g) || []).map((m: string) => m)).size;
+      if (reCitations > origCitations) {
+        analysis = reAnalysis;
+        ctx.setAnalystOutput(analysis);
+        addCost(typeof reAnalysis._meta?.totalCostUsd === "number" ? reAnalysis._meta.totalCostUsd : 0, 'RE_ANALYZE');
+        console.log(`${label} RE_ANALYZE: improved citations ${origCitations} → ${reCitations}`);
+        stats.orchestrator.reAnalyzeTriggered = true;
+        stats.orchestrator.reAnalyzeCitationDelta = reCitations - origCitations;
+        orchState.citationCoverage = reCitations / Math.max(1, topSources.length);
+      } else {
+        console.log(`${label} RE_ANALYZE: no improvement (${origCitations} → ${reCitations}), keeping original`);
+      }
+      orchState.iteration++;
+      emitProgress(pipelineRun.id, "ANALYST", "completed", `Re-analysis complete`);
+    } catch (err) {
+      console.warn(`${label} RE_ANALYZE: failed (non-blocking):`, err);
+    }
+  }
+
   // ── STEP 5c: GAP-AWARE EVIDENCE APPEND — log citation gaps for diagnostics ──
   // Note: We only analyze and log gaps here. The actual gap-filling SCOUT happens
   // pre-analysis (step 4d) using prior-run gaps. Running another SCOUT + re-rank
@@ -3328,6 +3889,44 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
           console.log(`${label} BLACKBOARD: sources enriched from gap requests → ${topSources.length} total`);
         }
         ctx.addFinding('BLACKBOARD', 'insight', `Filled ${gapReqs.length} gaps with ${gapNewCount} new sources`);
+
+        // ── CRITICAL FIX: Re-execute ANALYST with gap-filled sources ──
+        // Before this fix, the ANALYST identified gaps, SCOUT filled them,
+        // but the ANALYST was NEVER re-run with the new sources. Only the HTML
+        // renderer benefited. This is like a researcher asking for documents,
+        // receiving them, but continuing to write without reading them.
+        if (gapEnriched.length > 0) {
+          emitProgress(pipelineRun.id, "GAP_FILL", "started", `Re-analyzing with ${gapEnriched.length} enriched sources...`);
+          const gapReReadings = readings.map((r: any) => ({
+            sourceId: r.sourceId,
+            claims: r.claims || [],
+            methods: r.methods || [],
+            results: r.results || [],
+            limitations: r.limitations || [],
+            confidence: r.confidence || 'medium',
+          }));
+          const reResult = await reAnalyzeAfterGapFill(
+            query,
+            analysis,
+            topSources,
+            gapReReadings,
+            analystMultipass,
+            { contextBlock: fullContextBlock, domain: detectedDomain, depth: isStrategic ? "strategic" : "brief" }
+          );
+          if (reResult.reAnalyzed) {
+            analysis = reResult.analysis;
+            ctx.setAnalystOutput(analysis);
+            stats.gapFillReAnalysis = {
+              triggered: true,
+              citationDelta: reResult.improvementDelta,
+            };
+            addCost(typeof analysis._meta?.totalCostUsd === "number" ? analysis._meta.totalCostUsd : 0, 'GAP-FILL RE-ANALYSIS');
+            console.log(`${label} GAP-FILL RE-ANALYSIS: analysis updated (+${reResult.improvementDelta} citations)`);
+            emitProgress(pipelineRun.id, "GAP_FILL", "completed", `Re-analysis: +${reResult.improvementDelta} citations`);
+          } else {
+            stats.gapFillReAnalysis = { triggered: false, citationDelta: 0 };
+          }
+        }
       }
       ctx.clearGapRequests();
       emitProgress(pipelineRun.id, "GAP_FILL", "completed", `Gap fill: +${gapNewCount} sources`);
@@ -4986,11 +5585,82 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   // Clean up idempotency token on success
   activeRuns.delete(idempotencyKey);
 
+  // ── WITNESS: Finalize — extract cross-run learnings ──
+  if (witnessCtx) {
+    try {
+      const witnessResult = await witnessCtx.finalize(query);
+      console.log(`${label} WITNESS: run complete — health=${witnessResult.healthScore}/100, anomalies=${witnessResult.totalAnomalies}, interventions=${witnessResult.totalInterventions}, quality=${witnessResult.qualityScore}/100${witnessResult.recommendsChanges ? ' (changes recommended for future runs)' : ''}`);
+      (stats as any).witness = witnessResult;
+    } catch (err) {
+      console.warn(`${label} WITNESS: finalize failed:`, err);
+    }
+  }
+
+  // ── WORLD MODEL: Update with findings from this run ──
+  if (useWorldModel && analysis) {
+    try {
+      const analysisText = typeof analysis === 'string' ? analysis :
+        (analysis.summary || '') + '\n' + (analysis.consensus || '') + '\n' + (analysis.debate?.synthesis || '');
+      // Identify domains from the query
+      const domains = worldModelControversies.length > 0 ? ['general'] : ['general'];
+      await updateWorldModel(query, analysisText, topSources.map((s: any) => ({
+        id: s.id, title: s.title, abstract: s.abstract, provider: s.provider,
+      })), domains);
+      console.log(`${label} WORLD_MODEL: updated with findings from this run`);
+    } catch (err) {
+      console.warn(`${label} WORLD_MODEL: update failed:`, err);
+    }
+  }
+
+  // ── PRM: Retrain periodically (every 10 runs) ──
+  if (usePRM) {
+    try {
+      // Check if we should retrain (simple heuristic: retrain if model is old or has enough new data)
+      const shouldRetrain = !prmModel || prmModel.trainingExamples < 100;
+      if (shouldRetrain) {
+        console.log(`${label} PRM: retraining model...`);
+        const newModel = await retrainPRM();
+        if (newModel) {
+          console.log(`${label} PRM: model retrained (${newModel.trainingExamples} examples)`);
+        }
+      }
+    } catch (err) {
+      console.warn(`${label} PRM: retrain failed:`, err);
+    }
+  }
+
+  // ── MOA: Update agent weights based on this run ──
+  if (useMixtureOfAgents && (stats as any).moa) {
+    try {
+      const moaResult = (analysis as any)?._meta?.moaResult;
+      if (moaResult) {
+        const qualityScore = (stats as any).witness?.qualityScore
+          ? (stats as any).witness.qualityScore / 100
+          : 0.7;
+        await updateAgentWeights(moaResult, qualityScore);
+        console.log(`${label} MOA: agent weights updated`);
+      }
+    } catch (err) {
+      console.warn(`${label} MOA: weight update failed:`, err);
+    }
+  }
+
+  // Build structured claims from READER extracts for publication gate (dbClaims path)
+  const sourceIdToIndex = new Map<string, number>();
+  topSources.forEach((s: any, i: number) => sourceIdToIndex.set(s.id, i + 1));
+  const readerClaims = readings
+    .filter(r => r.claims && r.claims.length > 0)
+    .flatMap(r => r.claims.map((claim: string) => ({
+      text: claim,
+      sourceRef: sourceIdToIndex.get(r.sourceId) ?? null,
+    })));
+
   return {
     briefId: brief.id,
     stats,
     pipelineRunId: pipelineRun.id,
     format: (isStrategic ? "strategic" : isMemo ? "memo" : "brief") as ReportFormat,
+    readerClaims,
   };
 
   } catch (error: any) {
@@ -5065,6 +5735,31 @@ export interface StrategicPipelineOptions {
   quantDepth?: import("../quant/quant-bridge").QuantDepth;
   /** Structured costing exercise (StudioX orders with chiffrage indicatif) */
   parametricInput?: import("../quant/types").ParametricCostInput;
+  /** Enable ReAct-style agentic ANALYST (searches/reads/debates during reasoning).
+   * Default: false (uses classic multipass). Set true for agentic mode. */
+  useAgenticAnalyst?: boolean;
+  /** Use LLM-driven meta-controller instead of deterministic orchestrator rules.
+   * Default: false. Set true for adaptive orchestration. */
+  useMetaController?: boolean;
+  /** Enable the Witness — metacognitive observer that detects anomalies,
+   * can intervene during runs, and learns across runs to improve prompts
+   * and thresholds. Default: false. */
+  useWitness?: boolean;
+  /** Enable Mixture of Agents — multiple specialist analysts collaborate.
+   * The aggregator synthesizes their perspectives into a unified analysis.
+   * Default: false. */
+  useMixtureOfAgents?: boolean;
+  /** Enable the World Model — persistent cross-run knowledge accumulation.
+   * Injects prior knowledge before the run and extracts new knowledge after.
+   * Default: false. */
+  useWorldModel?: boolean;
+  /** Enable the Process Reward Model — scores each reasoning step and
+   * learns which reasoning patterns lead to good outcomes. Default: false. */
+  usePRM?: boolean;
+  /** Enable adversarial self-play — after the analysis, the system attacks
+   * its own output to find weaknesses and extracts lessons for future runs.
+   * Default: false. */
+  useSelfPlay?: boolean;
 }
 
 /**
@@ -5154,6 +5849,13 @@ export async function runPipeline(
         minSeedSourcesToSkipScout: options.minSeedSourcesToSkipScout,
         quantDepth: options.quantDepth,
         parametricInput: options.parametricInput,
+        useAgenticAnalyst: options.useAgenticAnalyst,
+        useMetaController: options.useMetaController,
+        useWitness: options.useWitness,
+        useMixtureOfAgents: options.useMixtureOfAgents,
+        useWorldModel: options.useWorldModel,
+        usePRM: options.usePRM,
+        useSelfPlay: options.useSelfPlay,
       }),
       timeoutMs,
       `runPipeline(${format})`

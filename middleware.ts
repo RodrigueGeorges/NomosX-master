@@ -96,9 +96,22 @@ function applySecurityAndAuth(request: NextRequest, response: NextResponse): Nex
     return NextResponse.json({error: 'CSRF validation failed'}, {status: 403});
   }
 
+  // Auth guard for internal dashboard API routes
+  if (isApi && pathname.startsWith('/api/dashboard/')) {
+    const session = request.cookies.get('nomosx-session')?.value;
+    if (!session) {
+      return NextResponse.json({error: 'Authentication required'}, {status: 401});
+    }
+  }
+
   // Auth guard: redirect to homepage if no session cookie on protected routes.
   // Match protected prefixes regardless of locale prefix (e.g. /fr/studio).
-  const protectedPatterns = ['/studio', '/fr/studio'];
+  const protectedPatterns = [
+    '/studio', '/fr/studio',
+    '/learning', '/fr/learning',
+    '/witness', '/fr/witness',
+    '/moat', '/fr/moat',
+  ];
   const isProtected = protectedPatterns.some(
     (p) => pathname === p || pathname.startsWith(p + '/')
   );

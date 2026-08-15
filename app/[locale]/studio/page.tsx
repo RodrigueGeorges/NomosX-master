@@ -3,7 +3,7 @@
 import React from 'react';
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Sparkles, FileText, Layers, Loader2, ArrowRight, ArrowLeft, Shield, CheckCircle, AlertCircle, Lock } from 'lucide-react';
+import { Sparkles, FileText, Layers, Loader2, ArrowRight, ArrowLeft, Shield, CheckCircle, AlertCircle, Lock, TrendingUp, Eye, Trophy } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Textarea } from '@/components/ui/Textarea';
@@ -520,6 +520,35 @@ function StudioPageContent() {
             </div>
           )}
         </PageSection>
+
+        {/* ── AI SYSTEM DASHBOARDS (internal) ─────────────────────────── */}
+        <PageSection className="max-w-3xl mt-12">
+          <div className="border-t border-white/[0.08] pt-8">
+            <div className="text-xs font-mono uppercase tracking-[0.14em] text-white/40 mb-4">
+              AI System Dashboards
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <DashboardLink
+                href="/learning"
+                icon={<TrendingUp size={16} />}
+                label="Learning"
+                description="Self-correction & human feedback"
+              />
+              <DashboardLink
+                href="/witness"
+                icon={<Eye size={16} />}
+                label="Witness"
+                description="Metacognitive observer"
+              />
+              <DashboardLink
+                href="/moat"
+                icon={<Trophy size={16} />}
+                label="Moat"
+                description="4-pillar self-improvement"
+              />
+            </div>
+          </div>
+        </PageSection>
       </PublicPageShell>
 
       {showAuthModal && (
@@ -530,6 +559,21 @@ function StudioPageContent() {
         />
       )}
     </>
+  );
+}
+
+function DashboardLink({ href, icon, label, description }: { href: string; icon: React.ReactNode; label: string; description: string }) {
+  return (
+    <a
+      href={href}
+      className="block p-4 rounded-lg border border-white/[0.08] bg-black/20 hover:border-white/20 hover:bg-white/[0.04] transition-all group"
+    >
+      <div className="flex items-center gap-2 mb-2 text-white/60 group-hover:text-white transition-colors">
+        {icon}
+        <span className="font-mono text-xs uppercase tracking-[0.14em]">{label}</span>
+      </div>
+      <p className="text-xs text-white/40">{description}</p>
+    </a>
   );
 }
 

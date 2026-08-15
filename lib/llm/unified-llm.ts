@@ -579,7 +579,7 @@ export function getModelForTask(task: LLMTask, provider?: LLMProvider): string {
 }
 
 export interface LLMRequest {
-  messages: Array<{ role: "system" | "user" | "assistant"; content: string }>;
+  messages: Array<{ role: "system" | "user" | "assistant" | "tool"; content: string; tool_call_id?: string; tool_calls?: ToolCall[] }>;
   temperature?: number;
   maxTokens?: number;
   jsonMode?: boolean;
@@ -593,6 +593,42 @@ export interface LLMRequest {
   producerFamily?: LLMFamily;
   /** F-B12: Per-call cost cap in USD. If the response exceeds this, throw to trigger failover. */
   maxCostUsd?: number;
+  /** Tool definitions for function/tool calling (ReAct pattern). When provided,
+   * the model can request tool executions instead of (or before) producing a
+   * final answer. The caller is responsible for executing the tools and
+   * feeding results back via a `tool` role message. */
+  tools?: ToolDefinition[];
+  /** Controls tool selection: "auto" (model decides), "required" (must call a tool),
+   * "none" (don't call tools). Default: "auto" when tools are provided. */
+  toolChoice?: "auto" | "required" | "none";
+}
+
+/** A tool/function that the LLM can call during reasoning (ReAct pattern). */
+export interface ToolDefinition {
+  /** Function name — verbs, snake_case (e.g., "search_sources"). */
+  name: string;
+  /** One-two sentences: what it does, when to use, when NOT to use. */
+  description: string;
+  /** JSON Schema for the parameters object. */
+  parameters: {
+    type: "object";
+    properties: Record<string, {
+      type: string;
+      description: string;
+      enum?: string[];
+      default?: any;
+    }>;
+    required?: string[];
+  };
+}
+
+/** A tool call requested by the LLM. */
+export interface ToolCall {
+  id: string;
+  /** The function name to call. */
+  name: string;
+  /** JSON-stringified arguments matching the tool's parameter schema. */
+  arguments: string;
 }
 
 export interface LLMResponse {
@@ -606,6 +642,10 @@ export interface LLMResponse {
   cachedInputTokens?: number;
   costUsd: number;
   cached: boolean;
+  /** Tool calls requested by the model (empty if the model produced a final answer). */
+  toolCalls?: ToolCall[];
+  /** Why the model stopped generating: "stop" (final answer), "tool_calls" (wants tools), "length" (token limit). */
+  finishReason?: "stop" | "tool_calls" | "length" | "content_filter";
 }
 
 /**
@@ -711,6 +751,26 @@ async function callOpenAICompatible(
     deepseekExtraBody.thinking = { type: shouldThink ? "enabled" : "disabled" };
   }
 
+  // Tool calling support (ReAct pattern) — OpenAI-compatible API format.
+  // DeepSeek, GLM, Kimi all support the OpenAI tool calling format.
+  const toolsParam = request.tools?.length
+    ? request.tools.map(t => ({
+        type: "function" as const,
+        function: {
+          name: t.name,
+          description: t.description,
+          parameters: t.parameters as any,
+        },
+      }))
+    : undefined;
+  const toolChoiceParam = request.tools?.length
+    ? request.toolChoice === "required"
+      ? "required"
+      : request.toolChoice === "none"
+        ? "none"
+        : "auto"
+    : undefined;
+
   const completion = await withRetry(
     () => client.chat.completions.create({
       model: effectiveModel,
@@ -721,6 +781,8 @@ async function callOpenAICompatible(
       ...(provider === "glm" ? glmExtraBody : {}),
       ...(provider === "kimi" ? kimiExtraBody : {}),
       ...(provider === "deepseek" ? deepseekExtraBody : {}),
+      ...(toolsParam ? { tools: toolsParam } : {}),
+      ...(toolChoiceParam ? { tool_choice: toolChoiceParam } : {}),
     } as any),
     `${provider}/${effectiveModel}`,
   );
@@ -741,10 +803,20 @@ async function callOpenAICompatible(
   // GLM/z.ai and Kimi K3 report prefix-cache hits here when the request prefix matched a prior call
   const cachedInputTokens = (completion as any).usage?.prompt_tokens_details?.cached_tokens || 0;
 
-  // If the model burned tokens but produced no usable text (typically a reasoning
-  // model that hit `length` mid-thought), throw so callLLM fails over to the next
-  // provider instead of returning an empty string that breaks downstream parsing.
-  if (!content.trim()) {
+  // Extract tool calls if present (ReAct pattern)
+  const rawToolCalls = message?.tool_calls;
+  const toolCalls: ToolCall[] | undefined = rawToolCalls?.length
+    ? rawToolCalls.map((tc: any) => ({
+        id: tc.id,
+        name: tc.function?.name || "",
+        arguments: tc.function?.arguments || "{}",
+      }))
+    : undefined;
+
+  // If the model burned tokens but produced no usable text AND no tool calls
+  // (typically a reasoning model that hit `length` mid-thought), throw so
+  // callLLM fails over to the next provider.
+  if (!content.trim() && !toolCalls?.length) {
     throw new Error(
       `${provider}/${effectiveModel} returned empty content (finish_reason=${finishReason}, out_tokens=${tokensOutput})`
     );
@@ -760,6 +832,8 @@ async function callOpenAICompatible(
     cachedInputTokens: cachedInputTokens > 0 ? cachedInputTokens : undefined,
     costUsd: calculateCost(provider, effectiveModel, tokensInput, tokensOutput, cachedInputTokens || undefined),
     cached: false,
+    toolCalls,
+    finishReason: finishReason as any,
   };
 }
 
@@ -794,11 +868,22 @@ async function callAnthropic(request: LLMRequest, model: string): Promise<LLMRes
   // Use streaming for heavy tasks to avoid Anthropic's 10-minute non-streaming limit.
   // Light tasks (fact_check, citation_verification, structural_editor, meta_analysis) use non-streaming.
   const heavyTasks = new Set(["analyst_brief", "auto_revision", "editorial_arbiter", "elenchus", "reader_v3", "strategic_analyst", "harvard_council"]);
-  const useStreaming = heavyTasks.has(normalizedTask);
+  const useStreaming = heavyTasks.has(normalizedTask) && !request.tools?.length;
+
+  // Tool calling support for Anthropic (different format from OpenAI)
+  const anthropicTools = request.tools?.length
+    ? request.tools.map(t => ({
+        name: t.name,
+        description: t.description,
+        input_schema: t.parameters as any,
+      }))
+    : undefined;
 
   let content: string;
   let tokensInput: number;
   let tokensOutput: number;
+  let toolCalls: ToolCall[] | undefined;
+  let finishReason: string | undefined;
 
   if (useStreaming) {
     // Stream the response to avoid the 10-minute timeout error
@@ -821,6 +906,16 @@ async function callAnthropic(request: LLMRequest, model: string): Promise<LLMRes
     content = textBlock?.text ?? "";
     tokensInput = finalMessage.usage.input_tokens;
     tokensOutput = finalMessage.usage.output_tokens;
+    finishReason = finalMessage.stop_reason;
+    // Extract tool_use blocks
+    const toolUseBlocks = finalMessage.content.filter((b: any) => b.type === "tool_use");
+    if (toolUseBlocks.length > 0) {
+      toolCalls = toolUseBlocks.map((b: any) => ({
+        id: b.id,
+        name: b.name,
+        arguments: JSON.stringify(b.input || {}),
+      }));
+    }
   } else {
     const completion = await withRetry<Anthropic.Message>(
       () => client.messages.create({
@@ -833,6 +928,9 @@ async function callAnthropic(request: LLMRequest, model: string): Promise<LLMRes
           role: m.role as "user" | "assistant",
           content: m.content,
         })),
+        ...(anthropicTools ? { tools: anthropicTools as any } : {}),
+        ...(request.toolChoice === "required" ? { tool_choice: { type: "any" } as any } : {}),
+        ...(request.toolChoice === "none" ? { tool_choice: { type: "none" } as any } : {}),
       } as any),
       `Anthropic/${model}`
     );
@@ -840,9 +938,19 @@ async function callAnthropic(request: LLMRequest, model: string): Promise<LLMRes
     content = textBlock?.text ?? "";
     tokensInput = completion.usage.input_tokens;
     tokensOutput = completion.usage.output_tokens;
+    finishReason = completion.stop_reason ?? undefined;
+    // Extract tool_use blocks
+    const toolUseBlocks = completion.content.filter((b: any) => b.type === "tool_use");
+    if (toolUseBlocks.length > 0) {
+      toolCalls = toolUseBlocks.map((b: any) => ({
+        id: b.id,
+        name: b.name,
+        arguments: JSON.stringify(b.input || {}),
+      }));
+    }
   }
 
-  if (!content.trim()) {
+  if (!content.trim() && !toolCalls?.length) {
     throw new Error(`anthropic/${model} returned empty content (out_tokens=${tokensOutput})`);
   }
   if (request.jsonMode && !isParseableJson(content)) {
@@ -858,6 +966,8 @@ async function callAnthropic(request: LLMRequest, model: string): Promise<LLMRes
     tokensOutput,
     costUsd: calculateCost("anthropic", model, tokensInput, tokensOutput),
     cached: false,
+    toolCalls,
+    finishReason: finishReason as any,
   };
 }
 

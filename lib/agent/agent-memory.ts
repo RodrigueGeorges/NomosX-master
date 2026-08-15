@@ -358,12 +358,18 @@ export async function buildMemoryInjection(
     .map(r => {
       try {
         const m = JSON.parse(r.metadata || "{}");
+        // Human corrections get a weight boost — they are explicit signals
+        // from the user that something was wrong. Auto-extracted lessons are
+        // weaker signals (the system guessed what went wrong).
+        const isHumanCorrection = m.source === 'HUMAN_CORRECTION';
+        const baseWeight = m.weight || 0.5;
+        const weight = isHumanCorrection ? Math.min(1.0, baseWeight * 1.5) : baseWeight;
         return {
           agentId,
           domain: m.domain,
           lesson: m.lesson,
-          learnedFrom: m.runId || "",
-          weight: m.weight || 0.5,
+          learnedFrom: m.runId || (isHumanCorrection ? 'human-correction' : ""),
+          weight,
           appliedCount: m.appliedCount || 0,
           successRate: m.successRate || 0.5,
           createdAt: r.timestamp,

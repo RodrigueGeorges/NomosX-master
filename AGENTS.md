@@ -11,15 +11,350 @@ Each agent in NomosX has:
 - **Deterministic behavior**: Same inputs → same outputs (within LLM variance)
 - **Traceable outputs**: All decisions logged
 - **Fail-safe**: Graceful degradation on errors
+- **Self-correction**: Each phase assesses its own quality and retries if low (Reflexion pattern)
+- **Human feedback learning**: Manual corrections are recorded and converted to lessons
+- **Metacognitive observation**: The Witness observes every step, detects anomalies, can intervene, and learns across runs
 
 Agents communicate via:
 - Database (Prisma ORM)
 - Job queue (priority-based)
 - JSON payloads (structured data)
+- Pipeline blackboard (shared context, gap requests, findings)
 
 ---
 
-## 📋 Agent Catalog
+## 🔄 Self-Correction Layer (2026-08 Upgrade)
+
+The pipeline now includes a **self-correction layer** inspired by Reflexion (NeurIPS 2023) and MASC (ACL 2026):
+
+### After READER (`selfCorrectReader`)
+- Assesses: claims extracted, confidence distribution, specificity
+- If score < 50: re-runs READER with feedback injected via `memoryBlock`
+- Max 1 retry, keeps the better version
+- Logged to `AgentAuditLog` with action `SELF_CORRECTION`
+
+### After ANALYST (`selfCorrectAnalyst`)
+- Assesses: citation count, addresses question, non-trivial synthesis, debate sections
+- If score < 50: re-runs ANALYST with feedback injected into `contextBlock`
+- Max 1 retry, keeps the better version
+- Logged to `AgentAuditLog` with action `SELF_CORRECTION`
+
+### Orchestrator Actions (now ACTED, not just logged)
+- **DEEPEN** (after READER): triggers PDF full-text extraction for sources without abstracts
+- **RE_ANALYZE** (after ANALYST): re-runs ANALYST with strengthened citation requirements
+- Both respect `maxIterations` to prevent infinite loops
+
+### Gap-Fill Re-Analysis (critical fix)
+- When ANALYST identifies evidence gaps → SCOUT fills them → **ANALYST is now re-executed** with the new sources
+- Before this fix, the ANALYST was never re-run with gap-filled sources (only the HTML renderer benefited)
+- The better version (by citation count + length) is kept
+
+---
+
+## 👨‍🏫 Human Feedback Learning (2026-08 Upgrade)
+
+The system now learns from **manual corrections**:
+
+### API: `POST /api/feedback/learn`
+Submit a correction with:
+- `briefId`, `agentId`, `section`, `originalText`, `correctedText`
+- `correctionType`: factual_error | missing_citation | wrong_citation | bias | incomplete | misleading | style | other
+- `comment` (optional)
+
+The correction is:
+1. Recorded in `AgentAuditLog` with action `HUMAN_CORRECTION`
+2. An LLM extracts a **generalizable lesson** from the correction
+3. The lesson is stored with `source: 'HUMAN_CORRECTION'` and **weight × 1.5** (human signals are stronger than auto-extracted)
+4. Future runs inject these lessons via `buildMemoryInjection()`
+
+### Dashboard: `/learning`
+- Total lessons (auto + human), corrections, self-corrections
+- Improvement rate (self-corrections that improved the score)
+- Per-agent breakdown with success rates
+- Recent lessons with severity, category, source badge
+- Recent self-corrections with score delta
+- Recent human corrections with type and comment
+
+---
+
+## 🤖 Agentic Layer (2026-08 Sprint 2-3 — State of the Art)
+
+The pipeline now supports **true agentic reasoning** via three new modules:
+
+### Tool Calling (`lib/llm/unified-llm.ts`)
+- `LLMRequest` now accepts `tools: ToolDefinition[]` and `toolChoice`
+- `LLMResponse` now returns `toolCalls: ToolCall[]` and `finishReason`
+- Works across all providers: OpenAI, DeepSeek, GLM, Kimi (OpenAI-compatible format) + Anthropic (native format)
+- This was the **critical bottleneck** — without tool calling, no ReAct loop was possible
+
+### ReAct Loop (`lib/agent/react-loop.ts`)
+- Bounded Thought → Action → Observation loop
+- **max_steps** (default 8-12): prevents infinite loops
+- **max_cost_usd** (default $0.30-$0.50): budget hard cap
+- **Context compaction** (COMPASS pattern): summarizes old tool results when history > 20 messages
+- **Goal reminder** (ReflAct pattern): re-injects the goal every 3 steps
+- **Parallel tool calling** (LLMCompiler pattern): executes multiple tool calls in parallel
+- **Force final answer**: when budget/steps are exhausted, forces a final synthesis
+
+### Tool Registry (`lib/agent/tool-registry.ts`)
+Six tools available to agentic agents:
+1. `search_sources` — Search for additional sources on a sub-topic
+2. `read_source` — Read a specific source's full content by index
+3. `request_debate` — Trigger a structured debate on a contradiction
+4. `request_more_sources` — Request sources from specific providers (diversity)
+5. `query_knowledge_graph` — Explore cross-domain connections
+6. `finish` — Signal that analysis is complete
+
+### Meta-Controller (`lib/agent/meta-controller.ts`)
+- LLM-driven replacement for the deterministic orchestrator rules
+- Pattern: COMPASS (LLM as controller) + D2Plan (hierarchical planning)
+- Takes into account the specific query, not just metrics
+- Falls back to deterministic rules if LLM fails or budget is tight
+- `planRemainingPhases()` — soft-plans future phases for context
+
+### Agentic ANALYST (`lib/agent/analyst-react.ts`)
+- The ANALYST can now **search, read, and debate DURING reasoning**
+- Instead of receiving all sources passively, it actively explores
+- Activated via `useAgenticAnalyst: true` in pipeline options
+- Falls back to classic multipass if ReAct fails
+- Output is the same `MultiPassAnalysis` shape (backward compatible)
+- ReAct trace stored in `analysis._meta.reactTrace` for debugging
+
+### Dynamic DAG Planner (`lib/agent/dag-planner.ts`)
+- The pipeline is no longer a fixed sequence — it's a **DAG that can be replanned**
+- `generateInitialPlan()` — creates the initial step graph
+- `replanDAG()` — after each step, evaluates if the plan should change:
+  - Rule-based: add `broaden_search` if few sources, add `debate` if contradictions, add `self_correction` if low citations
+  - LLM-based: the LLM can suggest adding/removing steps based on context
+- `pruneOptionalSteps()` — removes optional steps when budget is tight
+- `getNextSteps()` — returns steps whose dependencies are satisfied (parallel execution ready)
+
+### Pipeline Activation
+```typescript
+// Enable all agentic features:
+await runPipeline(query, "strategic", {
+  useAgenticAnalyst: true,   // ReAct-style analyst
+  useMetaController: true,   // LLM-driven orchestration
+});
+```
+
+---
+
+## �️ Witness — Metacognitive Observer (2026-08 Sprint 4)
+
+The Witness is a **metacognitive layer** that sits above the pipeline. It observes every step, detects anomalies, can intervene when things go wrong, and — crucially — **learns across runs** to improve prompts and thresholds for future runs.
+
+Inspired by:
+- **Sakshi** (bionicbutterfly13/sakshi) — Witness pattern: observe via typed seams, never own the cognition
+- **MIDCA** — Metacognitive Integrated Dual-Cycle Architecture: monitor → assess → control
+- **HyperAgents** — Self-referential improvement: the system improves itself between runs
+
+### Architecture
+
+```
+┌─────────────────────────────────────────────┐
+│              PIPELINE (host)                 │
+│  SCOUT → RANK → READER → ANALYST → EDITOR   │
+│       ↕ (seams)                              │
+│  ┌────────────────────────────────────────┐  │
+│  │              WITNESS                   │  │
+│  │  ┌──────────────────────────────────┐  │  │
+│  │  │  Cognitive Cycle (6 phases)      │  │  │
+│  │  │  PERCEIVE → INTERPRET → EVAL     │  │  │
+│  │  │  → INTEND → PLAN → ACT           │  │  │
+│  │  └──────────────────────────────────┘  │  │
+│  │  ┌──────────────────────────────────┐  │  │
+│  │  │  Meta-Loop (3 phases)            │  │  │
+│  │  │  MONITOR → ASSESS → CONTROL      │  │  │
+│  │  └──────────────────────────────────┘  │  │
+│  │  ┌──────────────────────────────────┐  │  │
+│  │  │  Cross-Run Learning              │  │  │
+│  │  │  (prompt mods, threshold adjs)   │  │  │
+│  │  └──────────────────────────────────┘  │  │
+│  └────────────────────────────────────────┘  │
+└─────────────────────────────────────────────┘
+```
+
+### Files
+
+| File | Purpose |
+|------|---------|
+| `lib/agent/witness/types.ts` | All Witness types: CycleTrace, AnomalyEvent, InterventionRecord, GuardDecision, RunLearning, PromptModification, ThresholdAdjustment |
+| `lib/agent/witness/seams.ts` | Typed seams: EventBus, GoalStateStore, WriteGuard, Clock, InterventionExecutor + implementations (Console, Database, InMemory, Production, DenyByDefault, NoOp) |
+| `lib/agent/witness/cognitive-cycle.ts` | The `Witness` class — runs the 6-phase cognitive cycle for each pipeline step |
+| `lib/agent/witness/meta-loop.ts` | Meta-loop (MONITOR → ASSESS → CONTROL) + cross-run learning (`extractRunLearning`, `getPastLearnings`, `buildLearningInjection`) |
+| `lib/agent/witness/integration.ts` | `createWitnessContext()` — wires the Witness into the pipeline; `buildObservation()` helper |
+| `app/api/dashboard/witness/route.ts` | Dashboard API — returns anomaly/intervention/learning metrics |
+| `app/[locale]/witness/page.tsx` | Dashboard UI — visualizes Witness activity |
+
+### Cognitive Cycle (6 phases)
+
+For each pipeline step, the Witness runs:
+
+1. **PERCEIVE** — Receive raw observations (cost, duration, metrics, errors, LLM calls)
+2. **INTERPRET** — Make sense of what happened (rule-based + optional LLM)
+3. **EVAL** — Evaluate against expectations (cost range, duration range, quality, citations, budget)
+   - Detects anomalies: cost_overrun, latency_spike, quality_drop, citation_gap, budget_depletion, empty_output, hallucination_risk, contradiction, loop_stuck, rate_limit, refusal
+4. **INTEND** — Decide whether to intervene (rule-based: intervene if high/critical anomaly; LLM: conservative JSON decision)
+5. **PLAN** — Plan the intervention (build params, describe action)
+6. **ACT** — Validate with WriteGuard, then execute via InterventionExecutor
+
+### Meta-Loop (3 phases)
+
+After each cognitive cycle, the meta-loop assesses overall run health:
+
+1. **MONITOR** — Collect overall metrics (health score, total anomalies, budget used)
+2. **ASSESS** — Evaluate: is the run on track?
+3. **CONTROL** — Recommend: `continue` | `proceed_with_caution` | `reduce_scope` | `abort`
+
+### Interventions (11 types)
+
+| Type | Description | Guard Rule |
+|------|-------------|------------|
+| `force_synthesis` | Force the agent to produce output now | Only after step 3 |
+| `abort_step` | Abort current step, use fallback | Non-critical steps only |
+| `adjust_threshold` | Adjust a threshold (e.g., trust score) | Max 30% change |
+| `modify_prompt` | Append to the agent's prompt | Append only, no replace |
+| `switch_provider` | Switch LLM provider | Always allowed |
+| `reduce_scope` | Reduce analysis scope | Always allowed |
+| `request_human_review` | Flag for human review | Always allowed |
+| `skip_optional_step` | Skip an optional step | Non-critical steps only |
+| `add_step` | Add a step (debate, gap_fill, self_correction, etc.) | Known step types only |
+| `retry_with_feedback` | Retry the step with feedback injected | Max 2 retries |
+| `log_only` | Just log the anomaly | Always allowed |
+
+### WriteGuard (Safety)
+
+The `ProductionWriteGuard` validates every intervention before execution:
+- Critical steps (scout, rank, reader, analyst) cannot be aborted or skipped
+- Prompt modifications can only append, not replace
+- Threshold adjustments are capped at 30% change
+- Force synthesis is only allowed after step 3
+- Retry with feedback is capped at 2 retries
+
+### Cross-Run Learning
+
+After each pipeline run, the Witness extracts a `RunLearning`:
+- **Successes** and **failures** from the run
+- **Recurring anomalies** (types that appeared ≥ 2 times)
+- **Prompt modifications** — concrete suggestions to improve agent prompts
+- **Threshold adjustments** — concrete suggestions to tune thresholds
+- **Quality score** (0-100)
+
+These learnings are persisted to `AgentAuditLog` and injected into future runs via `buildLearningInjection()` — this is the **self-improvement loop**: past learnings → future run prompts.
+
+### Pipeline Activation
+
+```typescript
+// Enable the Witness:
+await runPipeline(query, "strategic", {
+  useWitness: true,           // Metacognitive observer
+  useAgenticAnalyst: true,    // ReAct-style analyst
+  useMetaController: true,    // LLM-driven orchestration
+});
+```
+
+### Dashboard: `/witness`
+
+- Summary: cycle traces, anomalies, interventions, avg quality
+- Anomaly distribution by type and severity
+- Intervention distribution (approved vs denied)
+- Anomalies by pipeline step
+- Cross-run learning: prompt modifications and threshold adjustments
+- Recent anomalies, interventions, and run learnings
+
+---
+
+## Moat — 4-Pillar Self-Improvement System (2026-08 Sprint 5)
+
+The Moat system is the **defensible advantage** of NomosX. Four pillars that compound over time: the more the system runs, the better it gets, and the harder it becomes for competitors to replicate.
+
+### Pillar 1: Process Reward Model (PRM)
+
+**File**: `lib/agent/prm/process-reward-model.ts`
+
+Scores every reasoning step (not just the final output) and learns which reasoning patterns lead to good outcomes. After thousands of runs, the PRM contains proprietary knowledge of "what good research reasoning looks like."
+
+- **Feature extraction**: 16 features (citation density, specificity, hedging, evidence grounding, etc.)
+- **Linear model**: logistic regression with L2 regularization, trained via gradient descent
+- **LLM scoring**: high-quality labels via LLM judge for cold start and calibration
+- **Best-of-N selection**: given multiple reasoning paths, the PRM selects the best one
+- **Persistence**: model and steps stored in `AgentAuditLog`
+- **Retraining**: periodic retraining from accumulated data (`retrainPRM()`)
+
+### Pillar 2: Adversarial Self-Play
+
+**File**: `lib/agent/self-play/adversarial.ts`
+
+The system attacks its own analyses to find weaknesses before users do. Four roles: Generator > Attacker > Defender > Judge.
+
+- **Generator**: creates adversarial queries (10 challenge types: internal contradictions, false premises, subtle bias, etc.)
+- **Attacker**: finds weaknesses in analyses (8 attack targets: claims, citations, methodology, bias, omissions, logic, evidence quality, synthesis)
+- **Defender**: attempts to defend or concede each attack
+- **Judge**: evaluates whether attacks succeeded and extracts lessons
+- **11 weakness categories**: hallucination, unsupported_claim, cherry_picking, false_balance, temporal_bias, geographic_bias, methodological_ignorance, oversimplification, missing_nuance, circular_reasoning, appeal_to_authority
+- **Lessons injected** into future runs via `buildSelfPlayInjection()`
+
+### Pillar 3: Mixture of Agents (MoA)
+
+**File**: `lib/agent/moa/mixture-of-agents.ts`
+
+Instead of one analyst, multiple specialist analysts collaborate in parallel, then an aggregator synthesizes their perspectives. Quality emerges from diversity.
+
+- **8 specialist agents**: Methodology, Bias, Evidence, Synthesis, Skeptic, Temporal, Stakeholder, Uncertainty
+- **Parallel execution**: all specialists run simultaneously
+- **Aggregator**: identifies consensus, resolves controversies, preserves unique insights
+- **Weight learning**: agent weights are adjusted based on their contribution quality (EMA of reliability x confidence)
+- **Weight persistence**: learned weights are stored and loaded across runs
+
+### Pillar 4: World Model
+
+**File**: `lib/agent/world-model/world-model.ts`
+
+Persistent cross-run knowledge accumulation. The system remembers what it learned from past runs and injects relevant prior knowledge into new runs.
+
+- **Domain memories**: per-domain knowledge (concepts, positions, controversies, sources, paradigm shifts)
+- **Cross-domain links**: connections between concepts across different domains
+- **Source reliability index**: learns which sources are reliable over time
+- **Controversy tracker**: tracks ongoing debates and their evolution
+- **Paradigm tracker**: records paradigm shifts and their dates
+- **Knowledge extraction**: LLM extracts structured knowledge from each completed analysis
+- **Injection**: prior knowledge is injected into the pipeline context before each run
+
+### Pipeline Activation
+
+```typescript
+// Enable all 4 moat pillars:
+await runPipeline(query, "strategic", {
+  useWitness: true,            // Metacognitive observer (Sprint 4)
+  usePRM: true,                // Process Reward Model
+  useSelfPlay: true,           // Adversarial self-play
+  useMixtureOfAgents: true,    // Multiple specialist analysts
+  useWorldModel: true,         // Persistent knowledge accumulation
+  useAgenticAnalyst: false,    // MoA replaces agentic analyst
+  useMetaController: true,     // LLM-driven orchestration
+});
+```
+
+### Dashboard: `/moat`
+
+- Summary: PRM examples, self-play rounds, MoA runs, world model domains
+- PRM: learned feature weights, training examples, avg reward
+- Self-Play: attack success rate, robustness score, weakness categories
+- MoA: specialist usage, agent weights, consensus/controversies per run
+- World Model: domain breakdown, concepts, positions, controversies, sources
+- Cross-domain connections with strength scores
+
+### How the Moat Compounds
+
+1. **Run 1-10**: System collects data, PRM is untrained, World Model is empty
+2. **Run 10-100**: PRM starts predicting quality, World Model accumulates domain knowledge, self-play finds common weaknesses
+3. **Run 100-1000**: PRM is well-trained (proprietary asset), World Model has deep domain expertise, self-play has hardened the system against known weaknesses, MoA weights are optimized
+4. **Run 1000+**: The system has a moat that cannot be replicated without the same volume of runs
+
+---
+
+## �📋 Agent Catalog
 
 ### 1. SCOUT Agent
 
@@ -1471,3 +1806,4 @@ SCOUT → INDEX → EMBED → DEDUP → RANK → READER V3 → ANALYST V3 → GU
 ```
 
 **Agents v7.0** — Self-improving autonomous research system. Each PhD researcher remembers their past positions and calibrates their confidence. Every publication is challenged by a permanent adversarial agent before release. The system learns from every run — getting measurably better over time.
+
