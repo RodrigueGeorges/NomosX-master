@@ -1,14 +1,22 @@
 /**
- * NomosX Institutional Think Tank - Publication Templates
- * 
- * Defines structure and constraints for each publication type
+ * NomosX Institutional Think Tank — Publication Templates
+ *
+ * 4 canonical templates aligned 1:1 with Inquiry depths and Engine formats:
+ *   SUMMARY_BRIEF    → surface depth   — 200-400 words, 2+ sources
+ *   DECISION_MEMO    → standard depth  — 800-1,500 words, 8+ sources
+ *   ARTICLE          → deep depth      — 3,000-5,000 words, 15+ sources
+ *   STRATEGIC_REPORT → strategic depth — 5,000-10,000 words, 20+ sources
+ *
+ * Legacy types (RESEARCH_BRIEF, EXECUTIVE_BRIEF, etc.) are resolved to
+ * canonical templates via FORMAT_MAPPING in getTemplate().
  */
 
-import { PublicationTemplate,ClaimType,FORBIDDEN_PHRASES } from './types';
+import { PublicationTemplate, ClaimType, FORBIDDEN_PHRASES } from './types';
+import { FORMAT_MAPPING } from './types';
 
 export const PUBLICATION_TEMPLATES: Record<string, PublicationTemplate> = {
 
-  // ── PRIMARY 3-TIER FORMATS ──────────────────────────────────────────────────
+  // ── 1. SIGNAL BRIEF (surface depth) ──────────────────────────────────────
 
   SUMMARY_BRIEF: {
     type: "SUMMARY_BRIEF",
@@ -44,55 +52,61 @@ export const PUBLICATION_TEMPLATES: Record<string, PublicationTemplate> = {
     forbiddenPhrases: [...FORBIDDEN_PHRASES]
   },
 
-  EXECUTIVE_BRIEF: {
-    type: "EXECUTIVE_BRIEF",
+  // ── 2. DECISION MEMO (standard depth) ────────────────────────────────────
+  // Structured decision brief for policy makers and executives.
+  // Replaces legacy RESEARCH_BRIEF, EXECUTIVE_BRIEF, POLICY_NOTE.
+
+  DECISION_MEMO: {
+    type: "DECISION_MEMO",
     sections: [
       {
-        id: "executive_summary",
-        title: "Synthèse Exécutive",
-        required: true,
-        minWords: 75,
-        maxWords: 150,
-        claimTypes: ["FACT", "INTERPRETATION"] as ClaimType[]
-      },
-      {
-        id: "evidence_base",
-        title: "Base de Preuves",
-        required: true,
-        minWords: 150,
-        maxWords: 300,
-        claimTypes: ["FACT"] as ClaimType[]
-      },
-      {
-        id: "strategic_implications",
-        title: "Implications Stratégiques",
+        id: "decision_context",
+        title: "Contexte de la Décision",
         required: true,
         minWords: 100,
         maxWords: 200,
-        claimTypes: ["INTERPRETATION", "SCENARIO"] as ClaimType[]
+        claimTypes: ["FACT"] as ClaimType[]
       },
       {
-        id: "decision_points",
-        title: "Points de Décision",
+        id: "key_evidence",
+        title: "Preuves Clés",
+        required: true,
+        minWords: 200,
+        maxWords: 400,
+        claimTypes: ["FACT"] as ClaimType[]
+      },
+      {
+        id: "options_assessment",
+        title: "Évaluation des Options",
+        required: true,
+        minWords: 150,
+        maxWords: 300,
+        claimTypes: ["FACT", "INTERPRETATION"] as ClaimType[]
+      },
+      {
+        id: "recommendation",
+        title: "Recommandation",
+        required: true,
+        minWords: 100,
+        maxWords: 200,
+        claimTypes: ["INTERPRETATION", "OPINION"] as ClaimType[]
+      },
+      {
+        id: "risks_what_changes_mind",
+        title: "Risques & Ce Qui Changerait Notre Avis",
         required: true,
         minWords: 75,
         maxWords: 150,
-        claimTypes: ["INTERPRETATION"] as ClaimType[]
-      },
-      {
-        id: "limitations",
-        title: "Limites & Incertitudes",
-        required: true,
-        minWords: 50,
-        maxWords: 100,
-        claimTypes: ["FACT", "INTERPRETATION"] as ClaimType[]
+        claimTypes: ["SCENARIO"] as ClaimType[]
       }
     ],
-    totalMinWords: 500,
-    totalMaxWords: 1000,
-    minSources: 4,
+    totalMinWords: 800,
+    totalMaxWords: 1500,
+    minSources: 8,
     forbiddenPhrases: [...FORBIDDEN_PHRASES]
   },
+
+  // ── 3. ARTICLE (deep depth) ──────────────────────────────────────────────
 
   ARTICLE: {
     type: "ARTICLE",
@@ -151,6 +165,8 @@ export const PUBLICATION_TEMPLATES: Record<string, PublicationTemplate> = {
     minSources: 15,
     forbiddenPhrases: [...FORBIDDEN_PHRASES]
   },
+
+  // ── 4. STRATEGIC REPORT (strategic depth) ────────────────────────────────
 
   STRATEGIC_REPORT: {
     type: "STRATEGIC_REPORT",
@@ -232,269 +248,23 @@ export const PUBLICATION_TEMPLATES: Record<string, PublicationTemplate> = {
     totalMaxWords: 10000,
     minSources: 20,
     forbiddenPhrases: [...FORBIDDEN_PHRASES]
-  },
-
-  // ── LEGACY FORMATS (backward compatibility) ─────────────────────────────────
-
-  RESEARCH_BRIEF: {
-    type: "RESEARCH_BRIEF",
-    sections: [
-      {
-        id: "key_finding",
-        title: "Constat Principal",
-        required: true,
-        minWords: 50,
-        maxWords: 100,
-        claimTypes: ["FACT", "INTERPRETATION"] as ClaimType[]
-      },
-      {
-        id: "evidence_base",
-        title: "Base de Preuves",
-        required: true,
-        minWords: 150,
-        maxWords: 300,
-        claimTypes: ["FACT"] as ClaimType[]
-      },
-      {
-        id: "methodology_assessment",
-        title: "Évaluation Méthodologique",
-        required: true,
-        minWords: 100,
-        maxWords: 200,
-        claimTypes: ["FACT", "INTERPRETATION"] as ClaimType[]
-      },
-      {
-        id: "implications",
-        title: "Implications",
-        required: true,
-        minWords: 100,
-        maxWords: 200,
-        claimTypes: ["INTERPRETATION", "SCENARIO"] as ClaimType[]
-      },
-      {
-        id: "limitations",
-        title: "Limites & Incertitudes",
-        required: true,
-        minWords: 75,
-        maxWords: 150,
-        claimTypes: ["FACT", "INTERPRETATION"] as ClaimType[]
-      },
-      {
-        id: "what_changes_mind",
-        title: "Ce Qui Changerait Notre Avis",
-        required: true,
-        minWords: 50,
-        maxWords: 100,
-        claimTypes: ["SCENARIO"] as ClaimType[]
-      }
-    ],
-    totalMinWords: 800,
-    totalMaxWords: 1500,
-    minSources: 5,
-    forbiddenPhrases: [...FORBIDDEN_PHRASES]
-  },
-
-  UPDATE_NOTE: {
-    type: "UPDATE_NOTE",
-    sections: [
-      {
-        id: "what_changed",
-        title: "Ce Qui a Changé",
-        required: true,
-        minWords: 50,
-        maxWords: 100,
-        claimTypes: ["FACT"] as ClaimType[]
-      },
-      {
-        id: "new_evidence",
-        title: "Nouvelle Évidence",
-        required: true,
-        minWords: 100,
-        maxWords: 200,
-        claimTypes: ["FACT"] as ClaimType[]
-      },
-      {
-        id: "updated_assessment",
-        title: "Évaluation Mise à Jour",
-        required: true,
-        minWords: 75,
-        maxWords: 150,
-        claimTypes: ["INTERPRETATION"] as ClaimType[]
-      },
-      {
-        id: "action_items",
-        title: "Actions Recommandées",
-        required: false,
-        minWords: 50,
-        maxWords: 100,
-        claimTypes: ["INTERPRETATION", "SCENARIO"] as ClaimType[]
-      }
-    ],
-    totalMinWords: 300,
-    totalMaxWords: 600,
-    minSources: 2,
-    forbiddenPhrases: [...FORBIDDEN_PHRASES]
-  },
-
-  DATA_NOTE: {
-    type: "DATA_NOTE",
-    sections: [
-      {
-        id: "data_summary",
-        title: "Résumé des Données",
-        required: true,
-        minWords: 75,
-        maxWords: 150,
-        claimTypes: ["FACT"] as ClaimType[]
-      },
-      {
-        id: "key_figures",
-        title: "Chiffres Clés",
-        required: true,
-        minWords: 100,
-        maxWords: 200,
-        claimTypes: ["FACT"] as ClaimType[]
-      },
-      {
-        id: "trend_analysis",
-        title: "Analyse des Tendances",
-        required: true,
-        minWords: 100,
-        maxWords: 200,
-        claimTypes: ["FACT", "INTERPRETATION"] as ClaimType[]
-      },
-      {
-        id: "methodology_note",
-        title: "Note Méthodologique",
-        required: true,
-        minWords: 50,
-        maxWords: 100,
-        claimTypes: ["FACT"] as ClaimType[]
-      }
-    ],
-    totalMinWords: 400,
-    totalMaxWords: 800,
-    minSources: 1,
-    forbiddenPhrases: [...FORBIDDEN_PHRASES]
-  },
-
-  POLICY_NOTE: {
-    type: "POLICY_NOTE",
-    sections: [
-      {
-        id: "policy_summary",
-        title: "Résumé de la Politique",
-        required: true,
-        minWords: 75,
-        maxWords: 150,
-        claimTypes: ["FACT"] as ClaimType[]
-      },
-      {
-        id: "key_provisions",
-        title: "Dispositions Clés",
-        required: true,
-        minWords: 150,
-        maxWords: 300,
-        claimTypes: ["FACT"] as ClaimType[]
-      },
-      {
-        id: "impact_assessment",
-        title: "Évaluation d'Impact",
-        required: true,
-        minWords: 100,
-        maxWords: 200,
-        claimTypes: ["FACT", "INTERPRETATION", "SCENARIO"] as ClaimType[]
-      },
-      {
-        id: "timeline",
-        title: "Calendrier",
-        required: true,
-        minWords: 50,
-        maxWords: 100,
-        claimTypes: ["FACT"] as ClaimType[]
-      },
-      {
-        id: "action_required",
-        title: "Actions Requises",
-        required: false,
-        minWords: 50,
-        maxWords: 100,
-        claimTypes: ["INTERPRETATION"] as ClaimType[]
-      }
-    ],
-    totalMinWords: 500,
-    totalMaxWords: 1000,
-    minSources: 2,
-    forbiddenPhrases: [...FORBIDDEN_PHRASES]
-  },
-
-  DOSSIER: {
-    type: "DOSSIER",
-    sections: [
-      {
-        id: "executive_summary",
-        title: "Résumé Exécutif",
-        required: true,
-        minWords: 200,
-        maxWords: 400,
-        claimTypes: ["FACT", "INTERPRETATION"] as ClaimType[]
-      },
-      {
-        id: "background",
-        title: "Contexte",
-        required: true,
-        minWords: 300,
-        maxWords: 600,
-        claimTypes: ["FACT"] as ClaimType[]
-      },
-      {
-        id: "evidence_synthesis",
-        title: "Synthèse des Preuves",
-        required: true,
-        minWords: 500,
-        maxWords: 1000,
-        claimTypes: ["FACT", "INTERPRETATION"] as ClaimType[]
-      },
-      {
-        id: "stakeholder_positions",
-        title: "Positions des Parties Prenantes",
-        required: true,
-        minWords: 200,
-        maxWords: 400,
-        claimTypes: ["FACT"] as ClaimType[]
-      },
-      {
-        id: "scenarios",
-        title: "Scénarios",
-        required: true,
-        minWords: 300,
-        maxWords: 600,
-        claimTypes: ["SCENARIO"] as ClaimType[]
-      },
-      {
-        id: "recommendations",
-        title: "Recommandations",
-        required: true,
-        minWords: 200,
-        maxWords: 400,
-        claimTypes: ["INTERPRETATION", "OPINION"] as ClaimType[]
-      },
-      {
-        id: "limitations",
-        title: "Limites de l'Analyse",
-        required: true,
-        minWords: 100,
-        maxWords: 200,
-        claimTypes: ["FACT", "INTERPRETATION"] as ClaimType[]
-      }
-    ],
-    totalMinWords: 2500,
-    totalMaxWords: 5000,
-    minSources: 15,
-    forbiddenPhrases: [...FORBIDDEN_PHRASES]
   }
 };
 
+/**
+ * Get the template for a publication type.
+ * Legacy types are automatically resolved to their canonical template
+ * via FORMAT_MAPPING (e.g. RESEARCH_BRIEF → DECISION_MEMO).
+ */
 export function getTemplate(type: string): PublicationTemplate | undefined {
-  return PUBLICATION_TEMPLATES[type];
+  // Direct hit on canonical template
+  if (PUBLICATION_TEMPLATES[type]) {
+    return PUBLICATION_TEMPLATES[type];
+  }
+  // Resolve legacy type → canonical type
+  const canonical = FORMAT_MAPPING[type];
+  if (canonical && PUBLICATION_TEMPLATES[canonical]) {
+    return PUBLICATION_TEMPLATES[canonical];
+  }
+  return undefined;
 }

@@ -1,4 +1,16 @@
-import { NextRequest, NextResponse } from 'next/server';
+import {NextRequest, NextResponse} from 'next/server';
+import createIntlMiddleware from 'next-intl/middleware';
+import {routing} from './i18n/routing';
+
+// ----------------------------------------------------------------------------
+// next-intl middleware — handles locale detection, prefixing (/fr) and the
+// NEXT_LOCALE cookie. Runs first, before CSRF / auth / security headers.
+// ----------------------------------------------------------------------------
+const intlMiddleware = createIntlMiddleware(routing);
+
+// ----------------------------------------------------------------------------
+// Existing NomosX middleware logic (CSRF + auth guard + security headers)
+// ----------------------------------------------------------------------------
 
 // Allowed origins for CSRF validation
 function getAllowedOrigins(): string[] {
@@ -12,7 +24,7 @@ function checkCsrf(request: NextRequest): boolean {
   const method = request.method.toUpperCase();
   if (['GET', 'HEAD', 'OPTIONS'].includes(method)) return true;
 
-  const { pathname } = request.nextUrl;
+  const {pathname} = request.nextUrl;
 
   // Only cron/webhook routes bypass CSRF — they use CRON_SECRET or webhook signatures
   const isInternalRoute =
@@ -38,19 +50,58 @@ function checkCsrf(request: NextRequest): boolean {
   return false;
 }
 
-export function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+// Route prefixes that are NOT locale-prefixed and should bypass i18n entirely.
+// API routes, Next.js internals, and static assets are excluded via the matcher.
+const NON_LOCALE_PREFIXES = ['/api', '/_next', '/favicon', '/robots', '/sitemap'];
+
+function isNonLocaleRoute(pathname: string): boolean {
+  return NON_LOCALE_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + '/'));
+}
+
+export async function middleware(request: NextRequest) {
+  const {pathname} = request.nextUrl;
+
+  // 1. next-intl: locale negotiation + prefix handling.
+  //    Skipped for API and other non-locale routes.
+  if (!isNonLocaleRoute(pathname)) {
+    const intlResponse = await intlMiddleware(request);
+    // intlMiddleware may return a response (redirect for locale prefixing)
+    // or `NextResponse.next()` for already-canonical URLs. We only short-circuit
+    // when it actually redirects; otherwise we continue to apply CSRF/auth/headers
+    // on the same response object.
+    if (intlResponse instanceof NextResponse) {
+      const isRedirect =
+        intlResponse.status >= 300 && intlResponse.status < 400;
+      if (isRedirect) {
+        return intlResponse;
+      }
+      // Carry on with security headers + auth on the intl response
+      return applySecurityAndAuth(request, intlResponse);
+    }
+  }
+
+  return applySecurityAndAuth(request, NextResponse.next());
+}
+
+/**
+ * Apply CSRF validation, auth guard and security headers to a response.
+ * Factored out so both the intl and non-intl paths share the same logic.
+ */
+function applySecurityAndAuth(request: NextRequest, response: NextResponse): NextResponse {
+  const {pathname} = request.nextUrl;
   const isApi = pathname.startsWith('/api');
 
   // CSRF protection for API mutations
   if (isApi && !checkCsrf(request)) {
-    return NextResponse.json({ error: 'CSRF validation failed' }, { status: 403 });
+    return NextResponse.json({error: 'CSRF validation failed'}, {status: 403});
   }
 
   // Auth guard: redirect to homepage if no session cookie on protected routes.
-  // Only guard routes that actually exist as pages (avoid protecting 404s).
-  const protectedPrefixes = ['/studio'];
-  const isProtected = protectedPrefixes.some(p => pathname.startsWith(p));
+  // Match protected prefixes regardless of locale prefix (e.g. /fr/studio).
+  const protectedPatterns = ['/studio', '/fr/studio'];
+  const isProtected = protectedPatterns.some(
+    (p) => pathname === p || pathname.startsWith(p + '/')
+  );
   if (isProtected) {
     const session = request.cookies.get('nomosx-session')?.value;
     if (!session) {
@@ -60,8 +111,6 @@ export function middleware(request: NextRequest) {
       return NextResponse.redirect(url);
     }
   }
-
-  const response = NextResponse.next();
 
   // Security headers for ALL routes
   response.headers.set('X-Frame-Options', 'DENY');
@@ -95,7 +144,10 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
+  // Match everything except static assets. next-intl needs to run on page
+  // routes to handle locale prefixing; the rest (CSRF, headers) applies to
+  // API routes too.
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico).*)',
+    '/((?!_next/static|_next/image|favicon.ico|favicon.svg|favicon.ico|robots.txt|sitemap.xml|feed.xml).*)',
   ],
-}
+};

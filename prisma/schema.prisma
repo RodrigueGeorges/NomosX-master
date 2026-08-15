@@ -1541,6 +1541,7 @@ model ThinkTankPublication {
   title       String
   html        String   @db.Text
   wordCount   Int
+  language    String   @default("en") // Original language: en, fr, etc.
   
   // Quality Metrics (0-100)
   trustScore      Int
@@ -1592,6 +1593,7 @@ model ThinkTankPublication {
   foresightRun ForesightRun?
   reactions PublicationReaction[]
   comments  PublicationComment[]
+  translations PublicationTranslation[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1602,6 +1604,38 @@ model ThinkTankPublication {
   @@index([trustScore])
   @@index([publishedAt])
   @@index([publicId])
+  @@index([language])
+}
+
+// ============================================================================
+// PUBLICATION TRANSLATIONS — on-demand translations of published articles
+// ============================================================================
+// When a user visits /fr/inquiry/[slug], we look up or generate a translation.
+// Translations are cached here so subsequent visits are instant.
+// The original article stays in its original language; translations are linked.
+
+model PublicationTranslation {
+  id            String   @id @default(cuid())
+
+  publicationId String
+  locale        String   // Target locale: fr, es, de, etc.
+
+  // Translated content
+  title         String
+  html          String   @db.Text
+
+  // Translation metadata
+  model         String?  // Which LLM produced this (e.g. "gpt-4-turbo")
+  quality       String?  // "machine" | "human-reviewed"
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  publication   ThinkTankPublication @relation(fields: [publicationId], references: [id], onDelete: Cascade)
+
+  @@unique([publicationId, locale])
+  @@index([publicationId])
+  @@index([locale])
 }
 
 // ============================================================================

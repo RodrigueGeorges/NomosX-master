@@ -302,6 +302,7 @@ export interface PipelineStats {
     scenariosCount?: number;
     costUsd?: number;
     depth?: "brief" | "strategic";
+    model?: string;
   };
 
   // Topic consistency
@@ -654,6 +655,7 @@ export interface PipelineStats {
 
   // Aggregate accounting
   totalCostUsd?: number;
+  trustScore?: number;
 
   // Blackboard summary (2026 pattern — cross-agent shared context)
   blackboard?: Record<string, unknown>;

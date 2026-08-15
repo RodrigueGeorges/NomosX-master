@@ -15,6 +15,9 @@
 
 import { formatAPA, renderAPAHtml } from './pipeline-types';
 import { computeEvidenceTiers, summarizeEvidenceTiers, type EvidenceTiers } from './evidence-tiering';
+import { renderResearchProtocol, renderAIDisclaimer } from './research-protocol';
+import { renderTrackRecordHtml, type TrackRecordStats } from './track-record';
+import { renderScenarioChartSvg, renderLineChartSvg } from './svg-charts';
 
 // ============================================================================
 // HTML ESCAPING
@@ -115,8 +118,9 @@ function extractGoverningThought(content: string): string {
 
 function section(heading: string, content: any): string {
   if (!content) return "";
+  const id = heading.toLowerCase().replace(/[^a-z0-9]/g, '-');
   return `
-    <section class="brief-section">
+    <section class="brief-section" id="${id}">
       <h2>${esc(heading)}</h2>
       ${renderParagraphs(String(content))}
     </section>`;
@@ -700,7 +704,7 @@ export function renderProfessionalBriefHTML(analysis: any, sources: any[]): stri
 // MAIN RENDER: STRATEGIC REPORT HTML
 // ============================================================================
 
-export function renderProfessionalStrategicHTML(analysis: any, sources: any[]): string {
+export function renderProfessionalStrategicHTML(analysis: any, sources: any[], protocolMeta?: any, trackRecord?: TrackRecordStats | null): string {
   // Count words from actual text content (not JSON)
   const textForCount = [
     analysis.executiveSummary, analysis.literatureOverview, analysis.theoreticalFrameworks,
@@ -788,9 +792,11 @@ export function renderProfessionalStrategicHTML(analysis: any, sources: any[]): 
 
   // Scenarios
   const scenarios = asArray(analysis.scenarios);
+  const scenarioChartSvg = scenarios.length > 0 ? renderScenarioChartSvg(scenarios) : '';
   const scenarioHtml = scenarios.length > 0 ? `
     <section class="brief-section">
       <h2>Scenario Planning</h2>
+      ${scenarioChartSvg ? `<div style="margin-bottom:1.5rem;">${scenarioChartSvg}</div>` : ''}
       ${scenarios.map((s: any) => {
         const probLabel = s.probability ? String(s.probability) : '';
         const probValue = typeof s.probabilityValue === 'number'
@@ -838,11 +844,12 @@ export function renderProfessionalStrategicHTML(analysis: any, sources: any[]): 
       ${causalArch.map((c: any, idx: number) => {
         const confColor = c.confidence === 'high' ? 'var(--nx-text-primary)' : c.confidence === 'medium' ? 'var(--nx-text-secondary)' : 'var(--nx-text-tertiary)';
         const epiBadge = c.epistemicLevel ? `<span class="epistemic-badge epistemic-${c.epistemicLevel}">${esc(c.epistemicLevel)}</span>` : '';
+        const probBadge = c.probabilityValue != null ? `<span class="prob-badge" style="font-family:var(--font-mono);font-size:0.5625rem;color:var(--nx-text-secondary);border:1px solid var(--nx-border-medium);padding:0.125rem 0.5rem;border-radius:var(--nx-radius);margin-left:0.5rem;">p=${(c.probabilityValue * 100).toFixed(0)}%</span>` : '';
         return `
         <div class="causal-card">
           <div class="causal-header">
             <strong>Claim ${idx + 1}:</strong> ${replaceCitations(esc(c.claim || ''))}
-            ${epiBadge}
+            ${epiBadge}${probBadge}
             <span class="causal-conf" style="color:${confColor};">${esc(c.confidence || '')} confidence</span>
           </div>
           ${c.chain ? `<div class="causal-chain"><strong>Causal chain:</strong> ${replaceCitations(esc(c.chain))}</div>` : ''}
@@ -851,6 +858,113 @@ export function renderProfessionalStrategicHTML(analysis: any, sources: any[]): 
           ${c.sources?.length ? `<div class="causal-sources">${c.sources.map((s: string) => replaceCitations(esc(s))).join(' ')}</div>` : ''}
         </div>`;
       }).join("")}
+    </section>` : "";
+
+  // ─── TIMELINE (IISS Strategic Survey / ICG CrisisWatch standard) ───
+  const timelineData = Array.isArray(analysis.timeline) ? analysis.timeline : [];
+  const timelineHtml = timelineData.length > 0 ? `
+    <section class="brief-section">
+      <h2>Timeline</h2>
+      <div class="timeline-container">
+        ${timelineData.map((t: any) => `
+          <div class="timeline-item">
+            <div class="timeline-date">${esc(t.date || '')}</div>
+            <div class="timeline-content">
+              <div class="timeline-event">${replaceCitations(esc(t.event || ''))}</div>
+              ${t.significance ? `<div class="timeline-significance" style="font-size:0.875rem;color:var(--nx-text-secondary);margin-top:0.25rem;">${replaceCitations(esc(t.significance))}</div>` : ''}
+              ${t.sources?.length ? `<div class="timeline-sources" style="margin-top:0.25rem;">${t.sources.map((s: string) => replaceCitations(esc(s))).join(' ')}</div>` : ''}
+            </div>
+          </div>`).join("")}
+      </div>
+    </section>` : "";
+
+  // ─── ACH MATRIX (CIA Analysis of Competing Hypotheses) ───
+  const achData = analysis.achMatrix;
+  const achHtml = achData && achData.hypotheses?.length > 0 ? (() => {
+    const hyps = achData.hypotheses;
+    const evRows = Array.isArray(achData.evidence) ? achData.evidence : [];
+    const surviving = achData.survivingHypothesis ?? -1;
+    const cellColor = (v: string) => v === 'consistent' ? 'rgba(34,197,94,0.15)' : v === 'inconsistent' ? 'rgba(239,68,68,0.15)' : 'rgba(240,240,250,0.03)';
+    const cellSymbol = (v: string) => v === 'consistent' ? '✓' : v === 'inconsistent' ? '✗' : '—';
+    return `
+    <section class="brief-section">
+      <h2>Analysis of Competing Hypotheses</h2>
+      <p style="color:var(--nx-text-tertiary);font-size:0.8125rem;margin-bottom:1rem;">The surviving hypothesis is the one <strong>least inconsistent</strong> with the evidence — not the one most confirmed. This is the CIA ACH method for debiased analysis.</p>
+      <table class="ach-matrix-table">
+        <thead>
+          <tr>
+            <th style="text-align:left;width:40%;">Evidence</th>
+            ${hyps.map((h: string, i: number) => `<th class="${i === surviving ? 'ach-surviving' : ''}">${esc(h)}</th>`).join("")}
+          </tr>
+        </thead>
+        <tbody>
+          ${evRows.map((e: any) => `
+            <tr>
+              <td><strong>${replaceCitations(esc(e.src || ''))}</strong><br/><span style="font-size:0.8125rem;color:var(--nx-text-secondary);">${replaceCitations(esc(e.description || ''))}</span></td>
+              ${hyps.map((_: string, i: number) => {
+                const v = e.consistency?.[i] || e.consistency?.[String(i)] || 'neutral';
+                return `<td style="text-align:center;background:${cellColor(v)};font-family:var(--font-mono);">${cellSymbol(v)}</td>`;
+              }).join("")}
+            </tr>`).join("")}
+        </tbody>
+      </table>
+      ${achData.rationale ? `<div style="margin-top:1rem;padding:0.75rem 1rem;background:rgba(240,240,250,0.02);border-left:2px solid var(--nx-border-cta);border-radius:0 var(--nx-radius) var(--nx-radius) 0;"><strong>Surviving hypothesis:</strong> ${esc(hyps[surviving] || 'N/A')}<br/><span style="font-size:0.875rem;color:var(--nx-text-secondary);">${replaceCitations(esc(achData.rationale))}</span></div>` : ''}
+    </section>`;
+  })() : "";
+
+  // ─── TAIL RISKS (CIA High-Impact/Low-Probability Analysis) ───
+  const tailRisksData = Array.isArray(analysis.tailRisks) ? analysis.tailRisks : [];
+  const tailRisksHtml = tailRisksData.length > 0 ? `
+    <section class="brief-section">
+      <h2>Tail Risks</h2>
+      <p style="color:var(--nx-text-tertiary);font-size:0.8125rem;margin-bottom:1rem;">High-impact, low-probability events that would invalidate the main analysis if they occurred. These are black swans — monitored, not predicted.</p>
+      ${tailRisksData.map((t: any) => `
+        <div class="scenario-card" style="border-color:rgba(239,68,68,0.2);">
+          <div class="scenario-header">
+            <strong>${replaceCitations(esc(t.event || ''))}</strong>
+            <span class="scenario-prob" style="color:rgba(239,68,68,0.7);border-color:rgba(239,68,68,0.3);">p=${(t.probability * 100).toFixed(0)}%</span>
+          </div>
+          ${t.impact ? `<div class="scenario-implications"><strong>Impact:</strong> ${replaceCitations(esc(t.impact))}</div>` : ''}
+          ${t.earlyWarningSignals ? `<div class="scenario-implications"><strong>Early warning signals:</strong> ${replaceCitations(esc(t.earlyWarningSignals))}</div>` : ''}
+          ${t.mitigation ? `<div class="scenario-implications"><strong>Mitigation:</strong> ${replaceCitations(esc(t.mitigation))}</div>` : ''}
+          ${t.sources?.length ? `<div style="margin-top:0.5rem;">${t.sources.map((s: string) => replaceCitations(esc(s))).join(' ')}</div>` : ''}
+        </div>`).join("")}
+    </section>` : "";
+
+  // ─── OUTSIDE-IN PERSPECTIVE (CIA Outside-In Thinking) ───
+  const outsideInData = Array.isArray(analysis.outsideIn) ? analysis.outsideIn : [];
+  const outsideInHtml = outsideInData.length > 0 ? `
+    <section class="brief-section">
+      <h2>Outside-In Perspectives</h2>
+      <p style="color:var(--nx-text-tertiary);font-size:0.8125rem;margin-bottom:1rem;">How non-Western actors frame this issue. This counters mirror-imaging bias by surfacing alternative strategic perspectives.</p>
+      ${outsideInData.map((o: any) => `
+        <div class="theme-entry" style="border-left:2px solid var(--nx-border-medium);padding-left:1rem;">
+          <strong>${esc(o.perspective || '')}</strong>
+          ${o.framing ? `<p style="margin-top:0.5rem;">${replaceCitations(esc(o.framing))}</p>` : ''}
+          ${o.keyDifferences ? `<p style="font-size:0.875rem;color:var(--nx-text-secondary);margin-top:0.25rem;"><strong>Key differences:</strong> ${replaceCitations(esc(o.keyDifferences))}</p>` : ''}
+          ${o.sources?.length ? `<div style="margin-top:0.25rem;">${o.sources.map((s: string) => replaceCitations(esc(s))).join(' ')}</div>` : ''}
+        </div>`).join("")}
+    </section>` : "";
+
+  // ─── RED TEAM ASSESSMENT (CIA Devil's Advocacy) ───
+  const redTeamData = analysis._redTeam;
+  const redTeamHtml = redTeamData ? `
+    <section class="brief-section">
+      <h2>Red Team Assessment</h2>
+      <p style="color:var(--nx-text-tertiary);font-size:0.8125rem;margin-bottom:1rem;">Structured rebuttal generated by a different LLM family to counter confirmation bias. This is the NomosX devil's advocacy layer.</p>
+      <div style="padding:0.75rem 1rem;background:rgba(239,68,68,0.03);border:1px solid rgba(239,68,68,0.15);border-radius:var(--nx-radius);margin-bottom:0.75rem;">
+        <strong style="color:rgba(239,68,68,0.8);">Devil's Advocate:</strong>
+        <p style="margin-top:0.5rem;">${replaceCitations(esc(redTeamData.devilAdvocate || ''))}</p>
+      </div>
+      <div style="padding:0.75rem 1rem;background:rgba(240,240,250,0.02);border:1px solid var(--nx-border-subtle);border-radius:var(--nx-radius);margin-bottom:0.75rem;">
+        <strong>Strongest objection:</strong>
+        <p style="margin-top:0.5rem;">${replaceCitations(esc(redTeamData.strongestObjection || ''))}</p>
+      </div>
+      <div style="padding:0.75rem 1rem;background:rgba(240,240,250,0.02);border:1px solid var(--nx-border-subtle);border-radius:var(--nx-radius);margin-bottom:0.75rem;">
+        <strong>Unresolved tension:</strong>
+        <p style="margin-top:0.5rem;">${replaceCitations(esc(redTeamData.unresolvedTension || ''))}</p>
+      </div>
+      ${redTeamData.revisedConfidence != null ? `<div style="padding:0.5rem 0.75rem;border-top:1px solid var(--nx-border-medium);"><span class="prob-badge" style="font-family:var(--font-mono);font-size:0.5625rem;color:var(--nx-text-secondary);border:1px solid var(--nx-border-medium);padding:0.125rem 0.5rem;border-radius:var(--nx-radius);">Revised confidence: ${(redTeamData.revisedConfidence * 100).toFixed(0)}%</span></div>` : ''}
     </section>` : "";
 
   // ─── EVIDENCE TIERS ───
@@ -1054,6 +1168,87 @@ export function renderProfessionalStrategicHTML(analysis: any, sources: any[]): 
       padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--nx-border-subtle);
       vertical-align: top;
     }
+
+    /* Timeline (IISS / ICG standard) */
+    .timeline-container { position: relative; padding-left: 1.5rem; }
+    .timeline-container::before {
+      content: ''; position: absolute; left: 0.25rem; top: 0; bottom: 0;
+      width: 1px; background: var(--nx-border-medium);
+    }
+    .timeline-item { position: relative; margin-bottom: 1.25rem; }
+    .timeline-item::before {
+      content: ''; position: absolute; left: -1.3rem; top: 0.4rem;
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--nx-text-secondary); border: 1px solid var(--nx-bg);
+    }
+    .timeline-date {
+      font-family: var(--font-mono); font-size: 0.6875rem;
+      color: var(--nx-text-secondary); text-transform: uppercase; letter-spacing: 0.08em;
+      margin-bottom: 0.25rem;
+    }
+    .timeline-event { font-size: 0.9375rem; color: var(--nx-read-color); }
+
+    /* ACH Matrix (CIA standard) */
+    .ach-matrix-table { width: 100%; border-collapse: collapse; font-size: 0.8125rem; }
+    .ach-matrix-table th {
+      text-align: center; padding: 0.5rem 0.5rem; font-size: 0.75rem;
+      color: var(--nx-text-secondary); font-weight: 500;
+      border-bottom: 1px solid var(--nx-border-medium); vertical-align: bottom;
+    }
+    .ach-matrix-table th.ach-surviving {
+      color: var(--nx-text-primary); border-bottom: 2px solid var(--nx-text-primary);
+    }
+    .ach-matrix-table td {
+      padding: 0.5rem 0.5rem; border-bottom: 1px solid var(--nx-border-subtle);
+      vertical-align: top;
+    }
+
+    /* BLUF box */
+    .bluf-box { margin: 1.5rem 0 2rem; }
+
+    /* Table of contents */
+    .toc {
+      margin: 1.5rem 0 2rem; padding: 1rem 1.25rem;
+      background: rgba(240,240,250,0.02); border: 1px solid var(--nx-border-subtle);
+      border-radius: var(--nx-radius);
+    }
+    .toc-title {
+      font-family: var(--font-mono); font-size: 0.5625rem; text-transform: uppercase;
+      letter-spacing: 0.14em; color: var(--nx-text-tertiary); margin-bottom: 0.75rem;
+    }
+    .toc-list { display: grid; grid-template-columns: 1fr 1fr; gap: 0.25rem 1.5rem; list-style: none; padding: 0; }
+    .toc-list a {
+      font-size: 0.8125rem; color: var(--nx-text-secondary); text-decoration: none;
+      padding: 0.25rem 0; border-bottom: none; display: block;
+    }
+    .toc-list a:hover { color: var(--nx-text-primary); }
+    @media (max-width: 640px) { .toc-list { grid-template-columns: 1fr; } }
+
+    /* Pull quote */
+    .pull-quote {
+      margin: 2rem 0; padding: 1.5rem 0 1.5rem 1.5rem;
+      border-left: 3px solid var(--nx-text-primary);
+      font-family: var(--font-display); font-size: 1.25rem; font-weight: 600;
+      line-height: 1.4; color: var(--nx-text-primary); letter-spacing: -0.01em;
+    }
+
+    /* Data callout */
+    .data-callout {
+      margin: 1.5rem 0; padding: 1rem 1.25rem;
+      background: rgba(94, 234, 212, 0.04); border: 1px solid rgba(94, 234, 212, 0.15);
+      border-radius: var(--nx-radius);
+    }
+    .data-callout-label {
+      font-family: var(--font-mono); font-size: 0.5625rem; text-transform: uppercase;
+      letter-spacing: 0.14em; color: rgba(94, 234, 212, 0.7); margin-bottom: 0.5rem;
+    }
+    .data-callout-value {
+      font-family: var(--font-display); font-size: 1.75rem; font-weight: 700;
+      color: var(--nx-text-primary); line-height: 1; margin-bottom: 0.25rem;
+    }
+    .data-callout-context {
+      font-size: 0.8125rem; color: var(--nx-text-secondary);
+    }
   </style>`;
 
   return `<!DOCTYPE html>
@@ -1071,12 +1266,48 @@ export function renderProfessionalStrategicHTML(analysis: any, sources: any[]): 
     <h1>${esc((analysis.title || "Strategic Report").replace(/\[SRC-\d+\]/g, '').replace(/\[E\d+\]/g, '').trim())}</h1>
     <div class="brief-meta">${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} · ${sources.length} sources</div>
 
+    ${analysis.bottomLine ? `<div class="bluf-box" style="margin:1.5rem 0 2rem;padding:1rem 1.25rem;background:rgba(240,240,250,0.04);border-left:3px solid var(--nx-text-primary);border-radius:0 var(--nx-radius) var(--nx-radius) 0;"><div style="font-family:var(--font-mono);font-size:0.5625rem;text-transform:uppercase;letter-spacing:0.14em;color:var(--nx-text-tertiary);margin-bottom:0.5rem;">Bottom Line</div><p style="font-size:1.125rem;font-weight:500;line-height:1.5;color:var(--nx-text-primary);margin:0;">${esc(analysis.bottomLine)}</p></div>` : ''}
+
+    ${(() => {
+      // Auto-generate table of contents from sections actually present in the report
+      const tocItems: Array<{id: string, label: string}> = [];
+      const sections = [
+        { key: 'executiveSummary', label: 'Executive Summary' },
+        { key: 'literatureOverview', label: 'Literature Review' },
+        { key: 'consensus', label: 'Consensus' },
+        { key: 'controversies', label: 'Controversies' },
+        { key: 'emergingTrends', label: 'Emerging Trends' },
+        { key: 'themes', label: 'Thematic Analysis' },
+        { key: 'debate', label: 'Debate' },
+        { key: 'evidenceQuality', label: 'Evidence Quality' },
+        { key: 'scenarios', label: 'Scenario Planning' },
+        { key: 'recommendations', label: 'Recommendations' },
+        { key: 'conclusion', label: 'Conclusion' },
+      ];
+      for (const s of sections) {
+        const val = analysis[s.key];
+        if (val && (typeof val === 'string' ? val.trim() : (Array.isArray(val) ? val.length > 0 : true))) {
+          const id = s.key.toLowerCase().replace(/[^a-z0-9]/g, '-');
+          tocItems.push({ id, label: s.label });
+        }
+      }
+      if (tocItems.length < 4) return ''; // Not enough sections for a TOC
+      return `<nav class="toc">
+        <div class="toc-title">Contents</div>
+        <ul class="toc-list">
+          ${tocItems.map(t => `<li><a href="#${t.id}">${esc(t.label)}</a></li>`).join('')}
+        </ul>
+      </nav>`;
+    })()}
+
     ${keyFindingsHtml}
 
     ${strategicSections.map(s => section(s.heading, analysis[s.key])).join("")}
+    ${timelineHtml}
     ${themesHtml}
     ${keyStudiesHtml}
     ${debateSection(analysis.debate)}
+    ${achHtml}
 
     ${analysis.evidenceQuality ? section("Evidence Quality", typeof analysis.evidenceQuality === 'object'
       ? [
@@ -1088,6 +1319,7 @@ export function renderProfessionalStrategicHTML(analysis: any, sources: any[]): 
 
     ${stakeholderHtml}
     ${scenarioHtml}
+    ${tailRisksHtml}
     ${recsHtml}
 
     ${section("Implementation Roadmap", typeof analysis.implementation === 'object'
@@ -1099,18 +1331,26 @@ export function renderProfessionalStrategicHTML(analysis: any, sources: any[]): 
       : analysis.implementation)}
 
     ${causalArchitectureHtml}
+    ${outsideInHtml}
     ${evidenceTiersHtml}
     ${adversarialTransparencyHtml}
     ${multiLensConvergenceHtml}
+    ${redTeamHtml}
 
     ${section("Conclusion", analysis.conclusion)}
     ${section("Open Questions", Array.isArray(analysis.openQuestions) ? analysis.openQuestions.join('\n\n') : analysis.openQuestions || analysis.open_questions)}
     ${section("What Would Change Our Mind", analysis.whatChangesMind || analysis.what_changes_mind)}
 
+    ${trackRecord ? renderTrackRecordHtml(trackRecord) : ''}
+
+    ${protocolMeta ? renderResearchProtocol(protocolMeta) : ''}
+
     <section class="references-section">
       <h2>Sources</h2>
       ${apaCitations.map(c => renderAPAHtml(c)).join("\n")}
     </section>
+
+    ${protocolMeta ? renderAIDisclaimer(protocolMeta) : ''}
   </article>
 </body>
 </html>`;

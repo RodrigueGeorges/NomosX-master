@@ -179,7 +179,7 @@ export function getCircuitBreakerStats(): Record<string, any> {
 setRateLimiter("openalex", process.env.OPENALEX_API_KEY
   ? { requestsPerSecond: 10, burstSize: 20 }
   : { requestsPerSecond: 2, burstSize: 3 }); // Polite pool: 2 req/s, small burst
-setRateLimiter("crossref", { requestsPerSecond: 50, burstSize: 100 });
+setRateLimiter("crossref", { requestsPerSecond: 3, burstSize: 3 }); // Crossref API limit: 3 req/s — was 50 (caused 429 cascades)
 setRateLimiter("semanticscholar", { requestsPerSecond: 1, burstSize: 1 }); // Strict 1 req/s — no burst, S2 rate limits are aggressive
 setRateLimiter("unpaywall", { requestsPerSecond: 10, burstSize: 20 });
 setRateLimiter("ror", { requestsPerSecond: 10, burstSize: 20 });

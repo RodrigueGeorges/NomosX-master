@@ -56,8 +56,8 @@ export async function generateHeroImage(
           model: 'gpt-image-1',
           prompt,
           n: 1,
-          size: '1536x1024',
-          quality: 'high',
+          size: '1024x1024',
+          quality: 'medium',
         }),
         signal: AbortSignal.timeout(180000),
       });
@@ -66,10 +66,18 @@ export async function generateHeroImage(
         const data = await res.json();
         const b64 = data.data?.[0]?.b64_json;
         const url = data.data?.[0]?.url;
-        const imageUrl = b64 ? `data:image/png;base64,${b64}` : url;
-        if (imageUrl) {
-          console.log(`[HERO IMAGE] ✅ Generated via gpt-image-1 (cost ~$0.02)`);
+        // Size guard: if base64 > 500KB (~667K chars), use SVG fallback instead.
+        // A 2.5MB PNG bloats the HTML, slows page load, and bloats the database.
+        const MAX_B64_CHARS = 667_000; // ~500KB decoded
+        if (b64 && b64.length > MAX_B64_CHARS) {
+          console.warn(`[HERO IMAGE] base64 too large (${(b64.length / 1024).toFixed(0)}KB chars) — using SVG fallback`);
+        } else if (b64) {
+          const imageUrl = `data:image/png;base64,${b64}`;
+          console.log(`[HERO IMAGE] ✅ Generated via gpt-image-1 (${(b64.length / 1024).toFixed(0)}KB, cost ~$0.02)`);
           return { url: imageUrl, prompt, costUsd: 0.02, cached: false };
+        } else if (url) {
+          console.log(`[HERO IMAGE] ✅ Generated via gpt-image-1 (URL, cost ~$0.02)`);
+          return { url, prompt, costUsd: 0.02, cached: false };
         }
       } else {
         const err = await res.text().catch(() => '');

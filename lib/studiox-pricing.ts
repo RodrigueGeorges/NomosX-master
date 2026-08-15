@@ -1,16 +1,27 @@
+/**
+ * Nomos Engine pricing — pay-per-study, aligned with the 4 canonical formats.
+ *
+ * Positioning: premium but accessible. Benchmark against ResearchOS ($1,649),
+ * Revv Research ($295), StratBear ($699 white-label).
+ */
 export const STUDIOX_PRICES: Record<string, { amountCents: number; display: string }> = {
-  ARTICLE:           { amountCents: 4900,  display: "49 €" },
-  SUMMARY_BRIEF:     { amountCents: 900,   display: "9 €" },
-  STRATEGIC_REPORT:  { amountCents: 14900, display: "149 €" },
-  DOSSIER:           { amountCents: 29900, display: "299 €" },
-  // Legacy aliases — same price as ARTICLE
-  RESEARCH_BRIEF:    { amountCents: 4900,  display: "49 €" },
-  EXECUTIVE_BRIEF:   { amountCents: 4900,  display: "49 €" },
-  POLICY_NOTE:       { amountCents: 4900,  display: "49 €" },
-  UPDATE_NOTE:       { amountCents: 900,   display: "9 €" },
-  DATA_NOTE:         { amountCents: 1900,  display: "19 €" },
+  SUMMARY_BRIEF:     { amountCents: 3900,   display: "39 €" },
+  DECISION_MEMO:     { amountCents: 9900,   display: "99 €" },
+  ARTICLE:           { amountCents: 19900,  display: "199 €" },
+  STRATEGIC_REPORT:  { amountCents: 69900,  display: "699 €" },
+
+  // Legacy aliases — mapped to canonical price via resolveFormatType
+  RESEARCH_BRIEF:    { amountCents: 9900,   display: "99 €" },   // → Decision Memo
+  EXECUTIVE_BRIEF:   { amountCents: 9900,   display: "99 €" },   // → Decision Memo
+  POLICY_NOTE:       { amountCents: 9900,   display: "99 €" },   // → Decision Memo
+  UPDATE_NOTE:       { amountCents: 3900,   display: "39 €" },   // → Signal Brief
+  DATA_NOTE:         { amountCents: 3900,   display: "39 €" },   // → Signal Brief
+  DOSSIER:           { amountCents: 69900,  display: "699 €" },  // → Strategic Report
 };
 
+import { resolveFormatType } from "@/lib/publication-formats";
+
 export function getStudioXPrice(formatType?: string | null) {
-  return STUDIOX_PRICES[formatType ?? ""] ?? STUDIOX_PRICES.ARTICLE;
+  const resolved = resolveFormatType(formatType);
+  return STUDIOX_PRICES[resolved] ?? STUDIOX_PRICES.ARTICLE;
 }

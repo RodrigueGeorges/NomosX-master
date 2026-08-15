@@ -494,6 +494,7 @@ export async function groundClaimsWithNLI(
   // Step 2: Decompose into atomic claims
   // Try LLM-based decomposition (with decontextualization) first, fall back to deterministic
   let claims = decomposeIntoClaims(sentences);
+  const deterministicClaimCount = claims.length;
   let usedLLMDecomposition = false;
   let decompositionCost = 0;
   try {
@@ -502,7 +503,11 @@ export async function groundClaimsWithNLI(
     const paragraphText = sentences.map(s => s.text).join(' ');
     if (paragraphText.length > 50) {
       const atomicResult = await decomposeIntoAtomicClaims(paragraphText, 0);
-      if (atomicResult.usedLLM && atomicResult.claims.length > 0) {
+      // CRITICAL: Only use LLM decomposition if it produces AT LEAST as many claims
+      // as the deterministic fallback. The LLM only sees text.slice(0, 4000) which
+      // is a tiny fraction of the full document — it often returns 1-2 claims for
+      // a 50K-char document, which would nuke the groundedness score to 0%.
+      if (atomicResult.usedLLM && atomicResult.claims.length > 0 && atomicResult.claims.length >= deterministicClaimCount) {
         // Map atomic claims back to our AtomicClaim format
         claims = atomicResult.claims.map((ac, idx) => ({
           text: ac.text,

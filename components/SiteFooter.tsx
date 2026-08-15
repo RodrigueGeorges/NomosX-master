@@ -1,17 +1,17 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { NomosXLogo } from "@/components/brand/NomosXLogo";
-import { BRAND_NAME, BRAND_TAGLINE } from "@/lib/brand/public-copy";
+import { Link, useRouter } from "@/i18n/navigation";
 
-const FOOTER_LINKS = [
-  { label: "Briefs", href: "/archives" },
-  { label: "Domains", href: "/researchers" },
-  { label: "Method", href: "/methodology" },
-  { label: "Studio", href: "/studio" },
-  { label: "About", href: "/about" },
-  { label: "Privacy", href: "/privacy" },
-  { label: "Terms", href: "/terms" },
+const FOOTER_LINKS: { labelKey: string; href: string }[] = [
+  { labelKey: "Nav.briefs", href: "/archives" },
+  { labelKey: "Nav.domains", href: "/researchers" },
+  { labelKey: "Nav.method", href: "/methodology" },
+  { labelKey: "Nav.studio", href: "/studio" },
+  { labelKey: "Nav.about", href: "/about" },
+  { labelKey: "Nav.privacy", href: "/privacy" },
+  { labelKey: "Nav.terms", href: "/terms" },
 ];
 
 interface SiteFooterProps {
@@ -19,6 +19,7 @@ interface SiteFooterProps {
 }
 
 export default function SiteFooter(_props: SiteFooterProps) {
+  const t = useTranslations();
   const router = useRouter();
   const year = new Date().getFullYear();
 
@@ -29,10 +30,10 @@ export default function SiteFooter(_props: SiteFooterProps) {
           <NomosXLogo variant="wordmark" size={16} className="opacity-80" />
           <div>
           <p className="font-mono text-xs text-white/50 tracking-wide">
-            © {year} {BRAND_NAME}
+            © {year} {t("Brand.name")}
           </p>
           <p className="font-mono text-[11px] text-white/40 tracking-wide mt-2">
-            {BRAND_TAGLINE}
+            {t("Brand.tagline")}
           </p>
           </div>
         </div>
@@ -44,7 +45,7 @@ export default function SiteFooter(_props: SiteFooterProps) {
               onClick={() => router.push(link.href)}
               className="font-mono text-xs text-white/50 hover:text-white transition-colors"
             >
-              {link.label}
+              {t(link.labelKey)}
             </button>
           ))}
         </nav>

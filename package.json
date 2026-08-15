@@ -101,6 +101,7 @@
     "linkup-sdk": "^2.6.2",
     "lucide-react": "^0.376.0",
     "next": "^16.1.3",
+    "next-intl": "^4.13.6",
     "nodemailer": "^7.0.12",
     "openai": "^4.0.0",
     "pdf-parse": "^2.4.5",

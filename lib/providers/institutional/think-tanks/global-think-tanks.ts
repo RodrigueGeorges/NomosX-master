@@ -38,7 +38,7 @@ const DIRECT_FEEDS: FeedConfig[] = [
   { url: 'https://www.amnesty.org/en/feed/', provider: 'amnesty', issuer: 'Amnesty International', type: 'report', domain: 'human-rights', direct: true },
   { url: 'https://www.hrw.org/en/rss/news', provider: 'hrw', issuer: 'Human Rights Watch', type: 'report', domain: 'human-rights', direct: true },
 
-  // US Think Tanks
+  // US Think Tanks — direct RSS feeds (tested 2026-08-15)
   { url: 'https://www.foreignaffairs.com/rss.xml', provider: 'foreign-affairs', issuer: 'Foreign Affairs', type: 'article', domain: 'foreign-policy', direct: true },
   { url: 'https://www.atlanticcouncil.org/feed/', provider: 'atlantic-council', issuer: 'Atlantic Council', type: 'analysis', domain: 'geopolitics', direct: true },
   { url: 'https://www.crisisgroup.org/rss.xml', provider: 'crisis-group', issuer: 'International Crisis Group', type: 'analysis', domain: 'conflict', direct: true },
@@ -47,22 +47,30 @@ const DIRECT_FEEDS: FeedConfig[] = [
   { url: 'https://www.aspeninstitute.org/feed/', provider: 'aspen', issuer: 'Aspen Institute', type: 'analysis', domain: 'policy', direct: true },
   { url: 'https://www.csis.org/rss.xml', provider: 'csis', issuer: 'CSIS (Strategic & International Studies)', type: 'analysis', domain: 'geopolitics', direct: true },
   { url: 'https://www.hoover.org/rss.xml', provider: 'hoover', issuer: 'Hoover Institution', type: 'analysis', domain: 'policy', direct: true },
+  // Previously via Google News RSS (503 blocked) — now direct feeds
+  { url: 'https://carnegieendowment.org/feed', provider: 'carnegie', issuer: 'Carnegie Endowment', type: 'analysis', domain: 'geopolitics', direct: true },
+  { url: 'https://www.brookings.edu/feed/', provider: 'brookings', issuer: 'Brookings Institution', type: 'analysis', domain: 'policy', direct: true },
+  { url: 'https://www.aei.org/feed/', provider: 'aei', issuer: 'American Enterprise Institute', type: 'analysis', domain: 'policy', direct: true },
+
+  // European Think Tanks — direct RSS feeds (tested 2026-08-15)
+  { url: 'https://www.clingendael.org/rss.xml', provider: 'clingendael', issuer: 'Clingendael (Netherlands)', type: 'analysis', domain: 'geopolitics', direct: true },
+
+  // NGOs (direct RSS — tested 2026-08-15)
+  { url: 'https://freedomhouse.org/rss.xml', provider: 'freedom-house', issuer: 'Freedom House', type: 'report', domain: 'democracy', direct: true },
 ];
 
-// ─── Google News RSS for think tanks without public RSS ─────────────────────
+// ─── Google News RSS fallback for think tanks without public RSS ────────────
+// NOTE: Google News RSS returns 503 from some IPs. These feeds are fallbacks
+// and will silently fail without blocking the pipeline.
 const GN_FEEDS: FeedConfig[] = [
-  // US Think Tanks
-  { url: 'https://news.google.com/rss/search?q=site:carnegieendowment.org+OR+Carnegie+Endowment&hl=en&gl=US&ceid=US:en', provider: 'carnegie', issuer: 'Carnegie Endowment', type: 'analysis', domain: 'geopolitics', direct: false },
+  // US Think Tanks (no direct RSS found)
   { url: 'https://news.google.com/rss/search?q=site:cfr.org+OR+Council+Foreign+Relations&hl=en&gl=US&ceid=US:en', provider: 'cfr', issuer: 'Council on Foreign Relations', type: 'analysis', domain: 'foreign-policy', direct: false },
   { url: 'https://news.google.com/rss/search?q=site:rand.org+OR+RAND+Corporation&hl=en&gl=US&ceid=US:en', provider: 'rand', issuer: 'RAND Corporation', type: 'analysis', domain: 'policy', direct: false },
-  { url: 'https://news.google.com/rss/search?q=site:brookings.edu+OR+Brookings+Institution&hl=en&gl=US&ceid=US:en', provider: 'brookings', issuer: 'Brookings Institution', type: 'analysis', domain: 'policy', direct: false },
   { url: 'https://news.google.com/rss/search?q=site:cato.org+OR+Cato+Institute&hl=en&gl=US&ceid=US:en', provider: 'cato', issuer: 'Cato Institute', type: 'analysis', domain: 'policy', direct: false },
   { url: 'https://news.google.com/rss/search?q=site:americanprogress.org+OR+Center+American+Progress&hl=en&gl=US&ceid=US:en', provider: 'cap', issuer: 'Center for American Progress', type: 'analysis', domain: 'policy', direct: false },
-  { url: 'https://news.google.com/rss/search?q=site:aei.org+OR+American+Enterprise+Institute&hl=en&gl=US&ceid=US:en', provider: 'aei', issuer: 'American Enterprise Institute', type: 'analysis', domain: 'policy', direct: false },
 
-  // European Think Tanks
+  // European Think Tanks (no direct RSS found)
   { url: 'https://news.google.com/rss/search?q=site:chathamhouse.org+OR+Chatham+House&hl=en&gl=US&ceid=US:en', provider: 'chatham-house', issuer: 'Chatham House', type: 'analysis', domain: 'geopolitics', direct: false },
-  { url: 'https://news.google.com/rss/search?q=site:clingendael.org+OR+Clingendael&hl=en&gl=US&ceid=US:en', provider: 'clingendael', issuer: 'Clingendael (Netherlands)', type: 'analysis', domain: 'geopolitics', direct: false },
   { url: 'https://news.google.com/rss/search?q=site:ifri.org+OR+IFRI+relations+internationales&hl=en&gl=US&ceid=US:en', provider: 'ifri', issuer: 'IFRI (France)', type: 'analysis', domain: 'geopolitics', direct: false },
   { url: 'https://news.google.com/rss/search?q=site:iris-france.org+OR+IRIS+strategiques&hl=en&gl=US&ceid=US:en', provider: 'iris', issuer: 'IRIS (France)', type: 'analysis', domain: 'geopolitics', direct: false },
   { url: 'https://news.google.com/rss/search?q=site:ceps.eu+OR+CEPS+European+policy&hl=en&gl=US&ceid=US:en', provider: 'ceps', issuer: 'CEPS (European Policy Studies)', type: 'analysis', domain: 'eu-policy', direct: false },
@@ -74,7 +82,6 @@ const GN_FEEDS: FeedConfig[] = [
 
   // NGOs (without RSS)
   { url: 'https://news.google.com/rss/search?q=site:transparency.org+OR+Transparency+International+corruption&hl=en&gl=US&ceid=US:en', provider: 'transparency', issuer: 'Transparency International', type: 'report', domain: 'corruption', direct: false },
-  { url: 'https://news.google.com/rss/search?q=site:freedomhouse.org+OR+Freedom+House+democracy&hl=en&gl=US&ceid=US:en', provider: 'freedom-house', issuer: 'Freedom House', type: 'report', domain: 'democracy', direct: false },
   { url: 'https://news.google.com/rss/search?q=site:rsf.org+OR+Reporters+Without+Borders+press+freedom&hl=en&gl=US&ceid=US:en', provider: 'rsf', issuer: 'Reporters Without Borders', type: 'report', domain: 'press-freedom', direct: false },
   { url: 'https://news.google.com/rss/search?q=site:opensocietyfoundations.org+OR+Open+Society+Foundations&hl=en&gl=US&ceid=US:en', provider: 'osf', issuer: 'Open Society Foundations', type: 'report', domain: 'democracy', direct: false },
 ];
@@ -138,7 +145,10 @@ export async function searchGlobalThinkTanks(query: string, limit = 25): Promise
 
         return matching;
       } catch (err: any) {
-        console.warn(`[GLOBAL-THINKTANKS] Feed ${feedConfig.provider} failed: ${err.message?.slice(0, 60)}`);
+        const msg = err.message?.slice(0, 60) || '';
+        if (!msg.includes('503') && !msg.includes('403') && !msg.includes('404')) {
+          console.warn(`[GLOBAL-THINKTANKS] Feed ${feedConfig.provider} failed: ${msg}`);
+        }
         return [];
       }
     })

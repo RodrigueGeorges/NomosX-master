@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/db';
 import { publicPublicationWhere } from '@/lib/publication-visibility';
 import { getPublicationFormat } from '@/lib/publication-formats';
+import { getPublicationInLocale } from '@/lib/agent/translation-service';
 
 const TOPIC_KEYWORDS = [
   'ai', 'artificial intelligence', 'machine learning', 'climate', 'regulation',
@@ -83,7 +84,7 @@ export interface RelatedInquiryData {
   readTime: number;
 }
 
-export async function fetchInquiryData(slug: string): Promise<{
+export async function fetchInquiryData(slug: string, locale: string = 'en'): Promise<{
   inquiry: InquiryData | null;
   related: RelatedInquiryData[];
 }> {
@@ -99,6 +100,7 @@ export async function fetchInquiryData(slug: string): Promise<{
         wordCount: true,
         sourceIds: true,
         trustScore: true,
+        language: true,
       },
     });
 
@@ -106,7 +108,18 @@ export async function fetchInquiryData(slug: string): Promise<{
       return { inquiry: null, related: [] };
     }
 
-    const rawHtml = (article.html || '')
+    // If a non-default locale is requested, get the translated version
+    let articleTitle = article.title;
+    let articleHtml = article.html;
+    if (locale !== 'en' && locale !== (article.language || 'en')) {
+      const translated = await getPublicationInLocale(article.id, locale);
+      if (translated) {
+        articleTitle = translated.title;
+        articleHtml = translated.html;
+      }
+    }
+
+    const rawHtml = (articleHtml || '')
       .replace(/^```html?\s*/i, '')
       .replace(/\s*```\s*$/, '')
       .trim();
@@ -134,14 +147,14 @@ export async function fetchInquiryData(slug: string): Promise<{
     return {
       inquiry: {
         id: article.id,
-        title: article.title,
+        title: articleTitle,
         content,
         type: article.type,
         format: getPublicationFormat(article.type),
         publishedAt: article.publishedAt?.toISOString() || new Date().toISOString(),
         readTime: Math.max(1, Math.ceil(article.wordCount / 200)),
         sources: article.sourceIds?.length || 0,
-        topics: extractTopics(article.title || ''),
+        topics: extractTopics(articleTitle || ''),
         trustScore: article.trustScore,
       },
       related: relatedArticles.map((r) => ({

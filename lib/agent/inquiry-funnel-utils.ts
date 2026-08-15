@@ -21,20 +21,28 @@ export function getPipelineCostUsd(stats: Record<string, unknown>): number {
 }
 
 export function publicationTypeToDepth(type: string): InquiryDepth {
+  // Canonical 1:1 mapping — 4 formats = 4 depths
   if (type === "STRATEGIC_REPORT") return "strategic";
-  if (type === "ARTICLE" || type === "RESEARCH_BRIEF" || type === "EXECUTIVE_BRIEF" || type === "POLICY_NOTE" || type === "DOSSIER") return "deep";
-  if (type === "SUMMARY_BRIEF" || type === "UPDATE_NOTE" || type === "DATA_NOTE") return "surface";
+  if (type === "ARTICLE") return "deep";
+  if (type === "DECISION_MEMO") return "standard";
+  if (type === "SUMMARY_BRIEF") return "surface";
+  // Legacy aliases → canonical depth
+  if (type === "RESEARCH_BRIEF" || type === "EXECUTIVE_BRIEF" || type === "POLICY_NOTE") return "standard";
+  if (type === "UPDATE_NOTE" || type === "DATA_NOTE") return "surface";
+  if (type === "DOSSIER") return "strategic";
   return "deep";
 }
 
 export function depthToPublicationType(
   depth: InquiryDepth,
-  format: "brief" | "strategic"
+  format?: "brief" | "memo" | "strategic"
 ): string {
   if (depth === "strategic") return "STRATEGIC_REPORT";
   if (depth === "deep") return "ARTICLE";
+  if (depth === "standard") return "DECISION_MEMO";
   if (depth === "surface") return "SUMMARY_BRIEF";
   if (format === "strategic") return "STRATEGIC_REPORT";
+  if (format === "memo") return "DECISION_MEMO";
   return "ARTICLE";
 }
 

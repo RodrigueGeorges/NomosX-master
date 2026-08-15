@@ -76,8 +76,16 @@ export function replaceSrcWithEvidenceIds(
   html: string,
   registry: EvidenceRegistry,
 ): string {
+  // CRITICAL: Mask <style>/<script> blocks to prevent citation replacement
+  // from corrupting CSS content (e.g., converting numbers in CSS to <sup> tags).
+  const skipBlocks: string[] = [];
+  let masked = html.replace(/<(style|script)\b[^>]*>[\s\S]*?<\/\1>/gi, (m) => {
+    skipBlocks.push(m);
+    return `\x00SKIPER${skipBlocks.length - 1}\x00`;
+  });
+
   // Replace [SRC-N] text citations
-  let result = html.replace(/\[SRC-(\d+)\]/g, (match, numStr: string) => {
+  masked = masked.replace(/\[SRC-(\d+)\]/g, (match, numStr: string) => {
     const num = parseInt(numStr);
     const evidenceId = registry.indexToEvidence.get(num - 1);
     if (evidenceId) {
@@ -90,7 +98,7 @@ export function replaceSrcWithEvidenceIds(
   });
 
   // Replace HTML <sup class="cite"> tags
-  result = result.replace(
+  masked = masked.replace(
     /<sup class="cite"><a href="#ref-(\d+)"[^>]*>\s*\d+\s*<\/a><\/sup>/gi,
     (match, numStr: string) => {
       const num = parseInt(numStr);
@@ -103,6 +111,24 @@ export function replaceSrcWithEvidenceIds(
       return match;
     },
   );
+
+  // Restore <style>/<script> blocks
+  let result = masked.replace(/\x00SKIPER(\d+)\x00/g, (_, i) => skipBlocks[parseInt(i, 10)]);
+
+  // Deduplicate adjacent <sup> tags for the same ref-N.
+  // Multiple pipeline stages (renderer, citation-repair, backfill) can inject
+  // <sup> tags for the same source at the same position, producing "15 15 15".
+  // This pass collapses them to a single tag.
+  // Loop so triples like [sup-15][sup-15][sup-15] fully collapse.
+  let prev: string;
+  do {
+    prev = result;
+    // Collapse adjacent identical <sup> tags (allow whitespace between them)
+    result = result.replace(
+      /(<sup class="cite"><a href="#ref-(\d+)"[^>]*>\s*\2\s*<\/a><\/sup>)\s*<sup class="cite"><a href="#ref-\2"[^>]*>\s*\2\s*<\/a><\/sup>/g,
+      '$1',
+    );
+  } while (result !== prev);
 
   return result;
 }

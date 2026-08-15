@@ -4,7 +4,9 @@
 
 import React, { useEffect, useState, Suspense } from "react";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { useRouter } from "@/i18n/navigation";
 
 import AuthModal from "@/components/AuthModal";
 
@@ -29,11 +31,6 @@ import {
 } from "@/components/signature";
 
 import { FALLBACK_FEATURED_VERDICT } from "@/lib/brand/featured-verdict";
-import {
-  BRAND_DESCRIPTION,
-  BRAND_HERO_TITLE,
-  NOMOS_PHILOSOPHY_PILLARS,
-} from "@/lib/brand/public-copy";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
@@ -141,6 +138,7 @@ function mapBriefToInquiry(b: PublicBrief, index: number): InquiryCardData {
 
 function HomePageContent() {
 
+  const t = useTranslations();
   const router = useRouter();
 
   const searchParams = useSearchParams();
@@ -364,7 +362,7 @@ function HomePageContent() {
 
                   <NomosXLogo variant="symbol" size={12} className="nx-glow-x" />
 
-                  The first AI think tank, always on
+                  {t("Brand.positioning")}
 
                 </span>
 
@@ -372,13 +370,13 @@ function HomePageContent() {
 
               <h1 className="nx-spx-hero mb-8 max-w-4xl mx-auto">
 
-                <WordReveal text={BRAND_HERO_TITLE} baseDelay={300} stagger={140} />
+                <WordReveal text={t("Brand.heroTitle")} baseDelay={300} stagger={140} />
 
               </h1>
 
               <p className="text-base sm:text-lg text-[var(--nx-text-secondary)] max-w-2xl mx-auto leading-[1.5] mb-6 animate-rise" style={{ animationDelay: "900ms" }}>
 
-                {BRAND_DESCRIPTION}
+                {t("Brand.description")}
 
               </p>
 
@@ -386,11 +384,11 @@ function HomePageContent() {
 
                 {([
 
-                  { end: 250, suffix: "M+", label: "Sources indexed" },
+                  { end: 250, suffix: "M+", label: t("Home.sourcesIndexed") },
 
-                  { end: 115, suffix: "", label: "Data providers" },
+                  { end: 115, suffix: "", label: t("Home.dataProviders") },
 
-                  { end: 100, suffix: "%", label: "Claims traceable" },
+                  { end: 100, suffix: "%", label: t("Home.claimsTraceable") },
 
                 ] as const).map((stat, i) => (
 
@@ -426,7 +424,7 @@ function HomePageContent() {
 
                 >
 
-                  Browse intelligence
+                  {t("Home.browseIntelligence")}
 
                   <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
 
@@ -444,7 +442,7 @@ function HomePageContent() {
 
                 >
 
-                  Commission a brief
+                  {t("Home.commissionBrief")}
 
                   <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
 
@@ -467,23 +465,23 @@ function HomePageContent() {
             <div className="relative max-w-4xl mx-auto text-center">
 
               <ScrollReveal>
-                <p className="nx-eyebrow mb-10">The principle</p>
+                <p className="nx-eyebrow mb-10">{t("Home.thePrinciple")}</p>
               </ScrollReveal>
 
               <ScrollReveal stagger className="space-y-2">
 
                 <p className="nx-manifesto-line">
-                  The world doesn&apos;t suffer
+                  {t("Home.manifestoLine1")}
                 </p>
 
                 <p className="nx-manifesto-line">
-                  from a lack of information.
+                  {t("Home.manifestoLine2")}
                 </p>
 
                 <div className="nx-divider w-16 mx-auto my-8" />
 
                 <p className="nx-manifesto-line nx-manifesto-line--accent">
-                  It suffers from a lack of structure.
+                  {t("Home.manifestoLine3")}
                 </p>
 
               </ScrollReveal>
@@ -491,22 +489,22 @@ function HomePageContent() {
               <ScrollReveal stagger delay={200} className="mt-12 space-y-1">
 
                 <p className="nx-manifesto-cascade">
-                  Knowledge without order creates noise.
+                  {t("Home.manifestoCascade1")}
                 </p>
 
                 <p className="nx-manifesto-cascade">
-                  Order creates understanding.
+                  {t("Home.manifestoCascade2")}
                 </p>
 
                 <p className="nx-manifesto-cascade">
-                  Understanding creates better decisions.
+                  {t("Home.manifestoCascade3")}
                 </p>
 
               </ScrollReveal>
 
               <ScrollReveal delay={400}>
                 <p className="nx-manifesto-signoff">
-                  That is Nomos<span className="nx-manifesto-signoff-x">X</span>
+                  {t("Home.manifestoSignoff")}<span className="nx-manifesto-signoff-x">X</span>
                 </p>
               </ScrollReveal>
 
@@ -523,18 +521,18 @@ function HomePageContent() {
             <div className="max-w-5xl mx-auto">
 
               <ScrollReveal>
-                <p className="nx-eyebrow mb-6 text-center">Six editorial pillars</p>
+                <p className="nx-eyebrow mb-6 text-center">{t("Home.sixPillars")}</p>
               </ScrollReveal>
 
               <ScrollReveal stagger className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
 
-                {NOMOS_PHILOSOPHY_PILLARS.map((pillar, i) => (
+                {[0, 1, 2, 3, 4, 5].map((i) => (
 
-                  <div key={pillar} className="nx-surface nx-pillar p-5">
+                  <div key={i} className="nx-surface nx-pillar p-5">
 
                     <p className="font-mono text-[11px] text-white/45 mb-3">0{i + 1}</p>
 
-                    <p className="text-sm text-white/70 leading-[1.5]">{pillar}</p>
+                    <p className="text-sm text-white/70 leading-[1.5]">{t(`Brand.philosophyPillars.${i}`)}</p>
 
                   </div>
 
@@ -556,7 +554,7 @@ function HomePageContent() {
 
                 <span className="w-1 h-1 rounded-full bg-white/80 nx-glow-dot" />
 
-                Data sources
+                {t("Home.dataSources")}
 
               </span>
 
@@ -602,11 +600,11 @@ function HomePageContent() {
 
               <ScrollReveal>
 
-                <p className="nx-eyebrow mb-6">The challenge</p>
+                <p className="nx-eyebrow mb-6">{t("Home.theChallenge")}</p>
 
                 <p className="text-lg sm:text-xl text-[var(--nx-text-secondary)] leading-[1.55]">
 
-                  Strategic decisions are still made on single forecasts, opaque sources, and borrowed convictions.
+                  {t("Home.challengeText")}
 
                 </p>
 
@@ -614,11 +612,11 @@ function HomePageContent() {
 
               <ScrollReveal delay={120}>
 
-                <p className="nx-eyebrow mb-6">Our answer</p>
+                <p className="nx-eyebrow mb-6">{t("Home.ourAnswer")}</p>
 
                 <p className="text-lg sm:text-xl text-[var(--nx-text-secondary)] leading-[1.55]">
 
-                  An institute that maps the evidence, confronts every assumption, and publishes positions anyone can verify — as a public good.
+                  {t("Home.answerText")}
 
                 </p>
 
@@ -637,7 +635,7 @@ function HomePageContent() {
             <div className="max-w-lg mx-auto">
 
               <ScrollReveal>
-                <p className="nx-eyebrow mb-8 justify-center">Featured brief</p>
+                <p className="nx-eyebrow mb-8 justify-center">{t("Home.featuredBrief")}</p>
               </ScrollReveal>
 
               <ScrollReveal delay={100}>
@@ -666,7 +664,7 @@ function HomePageContent() {
 
               <ScrollReveal className="flex items-end justify-between gap-4 mb-12">
 
-                <p className="nx-eyebrow">Latest briefs</p>
+                <p className="nx-eyebrow">{t("Home.latestBriefs")}</p>
 
                 <button
 
@@ -678,7 +676,7 @@ function HomePageContent() {
 
                 >
 
-                  Full archive
+                  {t("Home.fullArchive")}
 
                   <ArrowRight size={14} />
 
@@ -718,7 +716,7 @@ function HomePageContent() {
 
               <ScrollReveal>
 
-                <p className="nx-eyebrow mb-10 justify-center">Built for those who need to be right</p>
+                <p className="nx-eyebrow mb-10 justify-center">{t("Home.builtFor")}</p>
 
               </ScrollReveal>
 
@@ -734,13 +732,13 @@ function HomePageContent() {
 
                   <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-white/50">
 
-                    Pipeline stages
+                    {t("Home.pipelineStages")}
 
                   </p>
 
                   <p className="text-xs text-white/40 mt-2 leading-relaxed">
 
-                    Scout to publisher — every claim traceable
+                    {t("Home.pipelineStagesDesc")}
 
                   </p>
 
@@ -756,13 +754,13 @@ function HomePageContent() {
 
                   <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-white/50">
 
-                    Adversarial reviews
+                    {t("Home.adversarialReviews")}
 
                   </p>
 
                   <p className="text-xs text-white/40 mt-2 leading-relaxed">
 
-                    Harvard Council, Devil's Advocate, Elenchus
+                    {t("Home.adversarialReviewsDesc")}
 
                   </p>
 
@@ -778,13 +776,13 @@ function HomePageContent() {
 
                   <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-white/50">
 
-                    Source-grounded
+                    {t("Home.sourceGrounded")}
 
                   </p>
 
                   <p className="text-xs text-white/40 mt-2 leading-relaxed">
 
-                    No claim without a verifiable citation
+                    {t("Home.sourceGroundedDesc")}
 
                   </p>
 
@@ -808,11 +806,11 @@ function HomePageContent() {
 
               <ScrollReveal>
 
-                <p className="nx-eyebrow mb-4 justify-center">Track record</p>
+                <p className="nx-eyebrow mb-4 justify-center">{t("Home.trackRecord")}</p>
 
                 <h2 className="font-display text-lg sm:text-xl font-medium text-white mb-10 tracking-tight">
 
-                  Judge us on our calls — every prediction dated, falsifiable, resolved in public
+                  {t("Home.trackRecordDesc")}
 
                 </h2>
 
@@ -828,7 +826,7 @@ function HomePageContent() {
 
                   </p>
 
-                  <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-white/50">Predictions made</p>
+                  <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-white/50">{t("Home.predictionsMade")}</p>
 
                 </div>
 
@@ -840,7 +838,7 @@ function HomePageContent() {
 
                   </p>
 
-                  <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-white/50">Open — hold us to them</p>
+                  <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-white/50">{t("Home.openPredictions")}</p>
 
                 </div>
 
@@ -854,13 +852,13 @@ function HomePageContent() {
 
                     ) : (
 
-                      <span className="text-white/40 text-xl">pending</span>
+                      <span className="text-white/40 text-xl">{t("Home.pending")}</span>
 
                     )}
 
                   </p>
 
-                  <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-white/50">Hit rate</p>
+                  <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-white/50">{t("Home.hitRate")}</p>
 
                 </div>
 
@@ -874,13 +872,13 @@ function HomePageContent() {
 
                     ) : (
 
-                      <span className="text-white/40 text-xl">pending</span>
+                      <span className="text-white/40 text-xl">{t("Home.pending")}</span>
 
                     )}
 
                   </p>
 
-                  <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-white/50">Brier score</p>
+                  <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-white/50">{t("Home.brierScore")}</p>
 
                 </div>
 
@@ -898,7 +896,7 @@ function HomePageContent() {
 
                 >
 
-                  Full track record
+                  {t("Home.fullTrackRecord")}
 
                   <ArrowRight size={14} />
 
@@ -936,9 +934,9 @@ function HomePageContent() {
 
               <ScrollReveal>
 
-                <h2 className="font-display text-lg sm:text-xl font-medium text-white mb-3 tracking-tight">Intelligence dispatch</h2>
+                <h2 className="font-display text-lg sm:text-xl font-medium text-white mb-3 tracking-tight">{t("Home.intelligenceDispatch")}</h2>
 
-                <p className="nx-eyebrow mb-8 justify-center">Structure, not noise. Delivered.</p>
+                <p className="nx-eyebrow mb-8 justify-center">{t("Home.structureNotNoise")}</p>
 
               </ScrollReveal>
 
@@ -976,7 +974,7 @@ function HomePageContent() {
 
                   >
 
-                    Subscribe
+                    {t("Home.newsletterButton")}
 
                   </button>
 

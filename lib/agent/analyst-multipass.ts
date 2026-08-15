@@ -683,6 +683,28 @@ VOICE:
   concrete numbers with [SRC-N], mechanism-first explanations.
 - Position-first: lead with the conclusion, then justify. Not the reverse.
 
+PROSE STRUCTURE RULE (Chatham House / RUSI / ECFR standard — NON-NEGOTIABLE):
+- BANNED: "First, ... Second, ... Third, ..." enumeration in prose. This is a
+  student essay, not a think tank report. If you have 3 points, weave them
+  into analytical prose with transition phrases, not a numbered list.
+  BAD: "First, climate models show X [SRC-1]. Second, phenology shifts Y [SRC-2]. Third, adaptation limits Z [SRC-3]."
+  GOOD: "Climate models consistently show X [SRC-1], a pattern reinforced by observed phenology shifts Y [SRC-2]. These trends converge toward Z [SRC-3], though adaptation limits remain."
+- BANNED: Starting paragraphs with "It is important to note that..." or
+  "It should be emphasized that..." — start with the FINDING, not the setup.
+- BANNED: "This paper examines..." or "This report explores..." — the reader
+  already knows what the report is about.
+- REQUIRED: Start each paragraph with the FINDING or the CLAIM, not the setup.
+- REQUIRED: Vary sentence structure. Mix short declarative findings with
+  longer analytical sentences. Never write 3 consecutive sentences with the
+  same structure.
+- REQUIRED: Use transition phrases that show analytical logic:
+  "This pattern is reinforced by..." / "A competing interpretation suggests..." /
+  "The critical variable here is..." / "What distinguishes this case from..." /
+  "The implication is that..." / "Against this backdrop..." / "Yet the data also reveal..."
+- REQUIRED: Write in the INSTITUTIONAL VOICE — "This analysis proposes..." /
+  "The evidence indicates..." / "The central finding is that..." — never "I think"
+  or "we feel" or "it seems to me"
+
 ANTI-HALLUCINATION RULES (NON-NEGOTIABLE — violations cause grounding veto):
 - EVIDENCE-FIRST ORDERING: For each causalChain link, FIRST identify which [SRC-N]
   contains the evidence, THEN write the claim using that source's own vocabulary.
@@ -1016,6 +1038,65 @@ function sanitizeAnalysisCitations(
   return sanitized;
 }
 
+/**
+ * Strip student-essay enumeration markers from prose fields.
+ * Removes "First, ", "Second, ", "Third, ", "Fourth, ", "Fifth, ",
+ * "Finally, " when they appear at the start of a sentence OR mid-sentence
+ * after a colon/semicolon (common in DeepSeek output).
+ * This is a deterministic post-processing step — the LLM prompt bans
+ * this pattern but DeepSeek/GPT still produce it.
+ */
+function stripEssayEnumerations(analysis: any): void {
+  // Match "First, " / "Second, " etc. at sentence start or after : ; —
+  const essayMarkers = /\b(First|Second|Third|Fourth|Fifth|Finally|Lastly),\s+/gi;
+  let stripped = 0;
+
+  function cleanString(s: string): string {
+    return s.replace(essayMarkers, (match, _word, offset) => {
+      if (offset === 0) { stripped++; return ''; }
+      // Look backwards past citations [SRC-N] and whitespace to find the real previous char
+      let i = offset - 1;
+      while (i >= 0) {
+        const ch = s[i];
+        if (ch === ' ' || ch === '\n' || ch === '\t') { i--; continue; }
+        // Skip [SRC-N] citations
+        if (ch === ']') {
+          const bracketStart = s.lastIndexOf('[', i);
+          if (bracketStart >= 0 && /\[SRC-\d+\]/.test(s.substring(bracketStart, i + 1))) {
+            i = bracketStart - 1;
+            continue;
+          }
+        }
+        // Found the real previous character
+        if (ch === '.' || ch === '!' || ch === '?' || ch === ':' ||
+            ch === ';' || ch === '—' || ch === '–') {
+          stripped++;
+          return '';
+        }
+        return match; // Previous char is a letter/comma — not a sentence boundary
+      }
+      stripped++;
+      return ''; // Start of string
+    });
+  }
+
+  function cleanObject(obj: any): any {
+    if (typeof obj === 'string') return cleanString(obj);
+    if (Array.isArray(obj)) return obj.map(cleanObject);
+    if (obj && typeof obj === 'object') {
+      for (const key of Object.keys(obj)) {
+        obj[key] = cleanObject(obj[key]);
+      }
+    }
+    return obj;
+  }
+
+  cleanObject(analysis);
+  if (stripped > 0) {
+    console.log(`[Analyst V3] PROSE FIX: stripped ${stripped} essay enumeration markers (First/Second/Third...)`);
+  }
+}
+
 // ============================================================================
 // MAIN ENTRY POINT
 // ============================================================================
@@ -1174,6 +1255,9 @@ export async function analystAgentV3(
         console.warn(`[Analyst V3] SELF-REFINE: failed (non-blocking):`, refineErr);
       }
     }
+
+    // Deterministic prose fix: strip "First, / Second, / Third, ..." essay markers
+    stripEssayEnumerations(refinedAnalysis);
 
     return {
       ...analysis,

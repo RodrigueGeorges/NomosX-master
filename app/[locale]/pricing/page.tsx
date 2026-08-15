@@ -54,7 +54,7 @@ const STUDIO_FEATURES = [
   "Chaos structured into a source-verified, scenario-weighted position",
   "Scenario distributions — multiple futures, each with a probability",
   "Adversarial debate before any position is published",
-  "Choose depth: standard → strategic report",
+  "4 formats: Signal Brief → Decision Memo → Article → Strategic Report",
   "Priority processing queue + white-label (beta)",
 ];
 

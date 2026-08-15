@@ -17,6 +17,7 @@ import { rerankSources } from './cohere-reranker';
 import { embedSourcesBatch } from './semantic-engine';
 import { readerAgentV3 } from './reader-agent-v3';
 import { analystAgentV3 as analystMultipass } from './analyst-multipass';
+import { backfillMissingAnalyticalFields } from './strategic-analyst-agent';
 import { verifyCitations } from './citation-verifier';
 import { extractAndStoreConcepts } from './knowledge-graph';
 import { primeContext } from './context-primer';
@@ -53,6 +54,7 @@ import type { PipelineStats } from './pipeline-types';
 import { createLineageTracker as createLineageTrackerTyped, recordTransformation as recordTransformationTyped } from './pipeline-types';
 import { renderProfessionalBriefHTML, renderProfessionalStrategicHTML } from './editor-agent';
 import { renderPositionFirstBriefHTML } from './position-first-renderer';
+import { computeTrackRecordStats } from './track-record';
 
 import { editorialArbiter } from './editorial-arbiter';
 import type { CastingResult, InstitutePosition } from './editorial-types';
@@ -163,6 +165,14 @@ import { trendAnalyzer } from "./trend-analyzer";
 import { signalDetector } from "./signal-detector";
 import { searchGDELTNews, searchNewsAPI, searchMediaStack, searchTheNewsAPI, searchGNews, searchEventRegistry } from "../providers/news-scout-providers";
 import { searchIndependentMedia, searchGDELTIndependent } from "../providers/independent-media-provider";
+// Grey Literature
+import { searchOverton } from "../providers/overton";
+// Foreign Academic Sources — Non-Western databases
+import { searchCyberLeninka } from "../providers/foreign/cyberleninka";
+import { searchWanfang } from "../providers/foreign/wanfang";
+import { searchJStage } from "../providers/foreign/jstage";
+import { searchSciELO } from "../providers/foreign/scielo";
+import { searchELibrary } from "../providers/foreign/elibrary-ru";
 import { searchISIDORE } from "../providers/isidore";
 import { searchERIC } from "../providers/eric";
 import { searchFAO } from "../providers/fao";
@@ -373,6 +383,10 @@ export type Providers = Array<
   | "cset" | "ainow" | "datasociety" | "abundance" | "caidp"
   | "scsp" | "ifp" | "cdt" | "brookings" | "fai"
   | "cnas" | "rand" | "newamerica" | "aspen-digital" | "rstreet"
+  // Grey Literature — Policy documents, government reports, think tank papers
+  | "overton"
+  // Foreign Academic Sources — Non-Western databases
+  | "cyberleninka" | "wanfang" | "jstage" | "scielo" | "elibrary-ru"
 >;
 
 export const SHS_PROVIDERS = [
@@ -444,6 +458,10 @@ export const ALL_PROVIDERS = [
   'ipcc', 'internet-archive', 'hathitrust', 'open-library', 'jstor', 'unesco',
   // Foresight & Prospective Sources
   'club-of-rome', 'millennium-project',
+  // Grey Literature — 20M+ policy documents worldwide
+  'overton',
+  // Foreign Academic Sources — Non-Western databases
+  'cyberleninka', 'wanfang', 'jstage', 'scielo', 'elibrary-ru',
 ];
 
 export const NEWS_PROVIDERS = [
@@ -795,6 +813,20 @@ async function scoutImpl(query: string, providers: Providers, perProvider = 100)
     if (providerSet.has("independent-media")) allPromises.push(searchIndependentMedia(sq, Math.min(30, perProvider)));
     if (providerSet.has("gdelt-independent")) allPromises.push(searchGDELTIndependent(sq, Math.min(20, perProvider)));
 
+    // GREY LITERATURE — Overton: 20M+ policy documents from governments, think tanks, IGOs worldwide
+    if (providerSet.has("overton")) allPromises.push(searchOverton(sq, Math.min(25, perProvider)));
+
+    // FOREIGN ACADEMIC SOURCES — Non-Western databases for geographic coverage
+    // China
+    if (providerSet.has("wanfang")) allPromises.push(searchWanfang(sq, Math.min(20, perProvider)));
+    // Russia
+    if (providerSet.has("cyberleninka")) allPromises.push(searchCyberLeninka(sq, Math.min(20, perProvider)));
+    if (providerSet.has("elibrary-ru")) allPromises.push(searchELibrary(sq, Math.min(20, perProvider)));
+    // Japan
+    if (providerSet.has("jstage")) allPromises.push(searchJStage(sq, Math.min(20, perProvider)));
+    // Latin America / Africa / Iberian
+    if (providerSet.has("scielo")) allPromises.push(searchSciELO(sq, Math.min(20, perProvider)));
+
     // THINK TANKS & POLICY LABS — catch-all for providers not explicitly routed above
     // (brookings, rand, cfr, iiss, chatham-house, cset, carnegie, cnas, newamerica, etc.)
     const EXPLICITLY_ROUTED = new Set([
@@ -841,6 +873,10 @@ async function scoutImpl(query: string, providers: Providers, perProvider = 100)
       "tavily", "exa", "apitube",
       "gdelt-news", "newsapi", "mediastack", "thenewsapi", "gnews", "eventregistry",
       "independent-media", "gdelt-independent",
+      // Grey Literature
+      "overton",
+      // Foreign Academic Sources
+      "cyberleninka", "wanfang", "jstage", "scielo", "elibrary-ru",
     ]);
     const unroutedProviders = (providers as string[]).filter(p => !EXPLICITLY_ROUTED.has(p));
     if (unroutedProviders.length > 0) {
@@ -1587,6 +1623,10 @@ export const DEFAULT_ACADEMIC_PROVIDERS: Providers = [
   "ipcc", "internet-archive", "hathitrust", "open-library", "jstor", "unesco", "google-books",
   // Foresight & prospective
   "club-of-rome", "millennium-project",
+  // Grey Literature — policy documents, government reports
+  "overton",
+  // Foreign Academic Sources — geographic coverage (free APIs first)
+  "cyberleninka", "jstage", "scielo",
   // Pouls de l'actualité (gratuit)
   "gdelt-news",
 ];
@@ -3739,8 +3779,32 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
       }
       console.warn(`${label} RENDERER: position-first NOT used — editorialV2=${editorialV2}, casting=${!!castingResult}, arbiter=${!!institutePosition} — falling back to ${isStrategic ? 'strategic' : 'brief'} template`);
       const renderAnalysis = isStrategic ? mapProspectiveToRenderFormat(analysis) : analysis;
+
+      // Backfill missing analytical fields (tailRisks, outsideIn, _redTeam, timeline, achMatrix)
+      // The analyst multipass doesn't produce these fields — a focused second-pass LLM call generates them.
+      if (isStrategic) {
+        await backfillMissingAnalyticalFields(renderAnalysis, query, topSources);
+      }
+      // Build protocol metadata for transparency section (RAND 2022 standard)
+      const protocolMeta = isStrategic ? {
+        query,
+        providers: stats.scout?.providers || [],
+        sourcesFound: stats.scout?.found || 0,
+        sourcesRetained: topSources.length,
+        minQuality: 70,
+        recentOnly: false,
+        maxPerProvider: 4,
+        llmFamily: analysis._producerFamily || 'unknown',
+        llmModel: stats.analyst?.model || 'unknown',
+        generationDate: new Date().toISOString(),
+        pipelineVersion: 'v2',
+        trustScore: stats.trustScore,
+        citationCount: stats.citationRepair?.injected,
+        claimCount: stats.claimGrounding ? (stats.claimGrounding.supported + stats.claimGrounding.partial + stats.claimGrounding.unsupported + stats.claimGrounding.uncited + stats.claimGrounding.contradicted) : undefined,
+        groundedness: stats.claimGrounding?.groundedness,
+      } : undefined;
       const rendered = isStrategic
-        ? renderProfessionalStrategicHTML(renderAnalysis, topSources)
+        ? renderProfessionalStrategicHTML(renderAnalysis, topSources, protocolMeta, await computeTrackRecordStats())
         : renderProfessionalBriefHTML(analysis, topSources);
       stats.rendererUsed = isStrategic ? "professional_strategic" : "professional_brief";
       console.log(`${label} EDITOR: ${isStrategic ? 'strategic' : 'brief'} template rendered (${(rendered.length / 1024).toFixed(0)}KB)`);
@@ -4517,6 +4581,14 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
           (stats.citationRepair as any).loopBackfilled = aggressiveRepair.citationsBackfilled;
           (stats.citationRepair as any).loopInjected = aggressiveRepair.citationsInjected;
         }
+        // Re-apply evidence IDs to the newly injected citations so they get data-evidence="EN"
+        // (repairCitations produces <sup> without data-evidence; replaceSrcWithEvidenceIds adds it)
+        try {
+          const { replaceSrcWithEvidenceIds } = await import('./evidence-registry');
+          html = replaceSrcWithEvidenceIds(html, evidenceRegistry);
+        } catch (eErr) {
+          console.warn(`${label} QUALITY LOOP: evidence ID re-application failed (non-blocking):`, eErr);
+        }
       }
 
       // Re-run claim grounding on repaired HTML (NLI-enhanced)
@@ -4644,9 +4716,15 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     console.warn(`${label} HERO IMAGE: failed (non-blocking):`, heroErr);
   }
 
-  // â”€â”€ STEP 14: PUBLISHER â”€â”€
+  // ── STEP 14: PUBLISHER ──
   console.log(`${label} PUBLISHER: save ${isStrategic ? "strategic report" : "brief"}`);
   const estimatedPages = isStrategic ? Math.round(html.length / 3000) : undefined;
+
+  // CSS fix: ensure `article.nomosx-brief` selectors are not split by a space
+  // (some CSS processing steps insert a space, turning compound selectors into
+  // descendant selectors, which breaks the grid background)
+  html = html.replace(/article\s+\.nomosx-brief/g, 'article.nomosx-brief');
+
   const sanitizeForJson = (str: string): string => {
     // Remove control characters (0x00-0x08, 0x0B, 0x0C, 0x0E-0x1F) that break JSON serialization
     // Keep tab (0x09), LF (0x0A), CR (0x0D) as they are valid in JSON strings
@@ -4963,7 +5041,7 @@ export async function runFullPipeline(
 // STRATEGIC REPORT PIPELINE (10-15 pages)
 // ================================
 
-export type ReportFormat = "brief" | "strategic" | "dossier";
+export type ReportFormat = "brief" | "memo" | "strategic" | "dossier";
 
 export interface StrategicPipelineOptions {
   providers?: Providers;
@@ -5041,15 +5119,18 @@ export async function runPipeline(
   options: StrategicPipelineOptions = {}
 ) {
   const isDossier = format === "dossier";
+  const isMemo = format === "memo";
   const isStrategic = format === "strategic" || isDossier;
-  const timeoutMs = isStrategic ? 4_500_000 : 1_500_000; // 75min strategic, 25min brief
+  const timeoutMs = isStrategic ? 4_500_000 : 1_500_000; // 75min strategic, 25min brief/memo
 
   // DOSSIER = extended strategic report — wider corpus and more ranked sources
-  // so a €299 dossier produces a materially deeper deliverable than a strategic report.
+  // so a €699 dossier produces a materially deeper deliverable than a strategic report.
   const dossierRankOptions: RankOptions = isDossier
     ? { limit: 40, maxPerProvider: 8, minProviderDiversity: 6 }
     : {};
-  const perProvider = options.perProvider ?? (isDossier ? 120 : undefined);
+  // MEMO = Decision Memo — moderate depth brief (standard depth, ~30 perProvider)
+  const memoPerProvider = isMemo ? 30 : undefined;
+  const perProvider = options.perProvider ?? memoPerProvider ?? (isDossier ? 120 : undefined);
   const rankOptions = { ...dossierRankOptions, ...options.rankOptions };
 
   try {

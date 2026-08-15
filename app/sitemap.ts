@@ -1,24 +1,60 @@
 import { MetadataRoute } from 'next';
 import { prisma } from '@/lib/db';
 import { publicPublicationWhere } from '@/lib/publication-visibility';
-import { archivesUrl, inquiryUrl } from '@/lib/public-urls';
+import { LOCALES, DEFAULT_LOCALE, NON_DEFAULT_LOCALES } from '@/i18n/routing';
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://nomosx.com';
 
+/**
+ * Build the URL for a given path and locale.
+ * - Default locale (en): no prefix → nomosx.com/path
+ * - Non-default (fr): prefixed → nomosx.com/fr/path
+ */
+function localizedUrl(path: string, locale: string): string {
+  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  if (locale === DEFAULT_LOCALE) {
+    return `${BASE_URL}${cleanPath}`;
+  }
+  return `${BASE_URL}/${locale}${cleanPath}`;
+}
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const staticPages: MetadataRoute.Sitemap = [
-    { url: BASE_URL, lastModified: new Date(), changeFrequency: 'daily', priority: 1.0 },
-    { url: `${BASE_URL}/archives`, lastModified: new Date(), changeFrequency: 'daily', priority: 0.9 },
-    { url: `${BASE_URL}/track-record`, lastModified: new Date(), changeFrequency: 'weekly', priority: 0.85 },
-    { url: `${BASE_URL}/about`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.8 },
-    { url: `${BASE_URL}/methodology`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.7 },
-    { url: `${BASE_URL}/pricing`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.8 },
-    { url: `${BASE_URL}/researchers`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.7 },
-    { url: `${BASE_URL}/studio`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.8 },
-    { url: `${BASE_URL}/privacy`, lastModified: new Date(), changeFrequency: 'yearly', priority: 0.3 },
-    { url: `${BASE_URL}/terms`, lastModified: new Date(), changeFrequency: 'yearly', priority: 0.3 },
+  const staticPaths = [
+    '/',
+    '/archives',
+    '/track-record',
+    '/about',
+    '/methodology',
+    '/pricing',
+    '/researchers',
+    '/studio',
+    '/privacy',
+    '/terms',
   ];
 
+  // Static pages — one entry per locale with hreflang alternates
+  const staticPages: MetadataRoute.Sitemap = [];
+  for (const path of staticPaths) {
+    for (const locale of LOCALES) {
+      const alternates: Record<string, string> = {};
+      for (const altLocale of LOCALES) {
+        const hreflang = altLocale === 'en' ? 'en' : altLocale;
+        alternates[hreflang] = localizedUrl(path, altLocale);
+      }
+      // Also add x-default pointing to the default locale
+      alternates['x-default'] = localizedUrl(path, DEFAULT_LOCALE);
+
+      staticPages.push({
+        url: localizedUrl(path, locale),
+        lastModified: new Date(),
+        changeFrequency: path === '/' ? 'daily' as const : path === '/archives' ? 'daily' as const : 'monthly' as const,
+        priority: path === '/' ? 1.0 : path === '/archives' ? 0.9 : 0.7,
+        alternates: { languages: alternates },
+      });
+    }
+  }
+
+  // Article pages — one entry per locale with hreflang alternates
   let inquiryPages: MetadataRoute.Sitemap = [];
   try {
     const articles = await prisma.thinkTankPublication.findMany({
@@ -27,12 +63,25 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       orderBy: { publishedAt: 'desc' },
       take: 500,
     });
-    inquiryPages = articles.map((article) => ({
-      url: inquiryUrl(article.id, true),
-      lastModified: article.publishedAt ?? new Date(),
-      changeFrequency: 'weekly' as const,
-      priority: 0.6,
-    }));
+
+    for (const article of articles) {
+      const path = `/inquiry/${article.id}`;
+      for (const locale of LOCALES) {
+        const alternates: Record<string, string> = {};
+        for (const altLocale of LOCALES) {
+          alternates[altLocale === 'en' ? 'en' : altLocale] = localizedUrl(path, altLocale);
+        }
+        alternates['x-default'] = localizedUrl(path, DEFAULT_LOCALE);
+
+        inquiryPages.push({
+          url: localizedUrl(path, locale),
+          lastModified: article.publishedAt ?? new Date(),
+          changeFrequency: 'weekly' as const,
+          priority: 0.6,
+          alternates: { languages: alternates },
+        });
+      }
+    }
   } catch {
     // DB unavailable at build time
   }

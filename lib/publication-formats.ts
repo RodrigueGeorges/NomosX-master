@@ -1,5 +1,39 @@
+/**
+ * NomosX Publication Formats — aligned 1:1 with Inquiry depths and Engine pricing.
+ *
+ *   Signal Brief      → depth "surface"    → 39 €
+ *   Decision Memo     → depth "standard"   → 99 €
+ *   Article           → depth "deep"       → 199 €
+ *   Strategic Report  → depth "strategic"  → 699 €
+ *
+ * Legacy aliases (RESEARCH_BRIEF, EXECUTIVE_BRIEF, UPDATE_NOTE, DATA_NOTE,
+ * POLICY_NOTE, DOSSIER) are kept for DB backward-compat and mapped via
+ * resolveFormatType() to one of the 4 canonical formats.
+ */
 export const PUBLICATION_FORMATS = [
-  // ── Primary format 1: ARTICLE (Le Shift Project / LawZero style) ──
+  // ── 1. Signal Brief (surface depth) ──
+  {
+    type: "SUMMARY_BRIEF",
+    label: "Signal Brief",
+    shortLabel: "Signal",
+    family: "signals",
+    access: "Open",
+    pages: "1-2 pages",
+    sourceDepth: "5+ sources",
+    description: "Fast synthesis of a verified weak signal, policy move, or emerging evidence shift. 200-400 words.",
+  },
+  // ── 2. Decision Memo (standard depth) ──
+  {
+    type: "DECISION_MEMO",
+    label: "Decision Memo",
+    shortLabel: "Memo",
+    family: "memos",
+    access: "Open",
+    pages: "2-3 pages",
+    sourceDepth: "8+ sources",
+    description: "Structured decision brief — context, evidence, options, recommendation, risks. 800-1,500 words. For policy makers and executives.",
+  },
+  // ── 3. Article (deep depth) ──
   {
     type: "ARTICLE",
     label: "Article",
@@ -10,7 +44,7 @@ export const PUBLICATION_FORMATS = [
     sourceDepth: "15+ sources",
     description: "Long-form analytical article — data-driven, narrative, rigorous. 3,000-5,000 words.",
   },
-  // ── Primary format 2: STRATEGIC REPORT (McKinsey / France Stratégie style) ──
+  // ── 4. Strategic Report (strategic depth) ──
   {
     type: "STRATEGIC_REPORT",
     label: "Strategic Report",
@@ -21,59 +55,6 @@ export const PUBLICATION_FORMATS = [
     sourceDepth: "20+ sources",
     description: "Comprehensive strategic analysis with scenarios, stakeholder impact, recommendations, and implementation roadmap. 5,000-10,000 words.",
   },
-  // ── Signal formats (for breaking news / auto-scan) ──
-  {
-    type: "SUMMARY_BRIEF",
-    label: "Signal Brief",
-    shortLabel: "Signal",
-    family: "signals",
-    access: "Open",
-    pages: "1-2 pages",
-    sourceDepth: "5+ sources",
-    description: "Fast synthesis of a verified weak signal, policy move, or emerging evidence shift.",
-  },
-  // ── Legacy aliases (kept for backward compat, map to ARTICLE) ──
-  {
-    type: "RESEARCH_BRIEF",
-    label: "Research Brief",
-    shortLabel: "Brief",
-    family: "articles",
-    access: "Open",
-    pages: "8-15 pages",
-    sourceDepth: "15+ sources",
-    description: "Legacy label — now maps to Article format.",
-  },
-  {
-    type: "EXECUTIVE_BRIEF",
-    label: "Decision Brief",
-    shortLabel: "Decision",
-    family: "articles",
-    access: "Open",
-    pages: "8-15 pages",
-    sourceDepth: "15+ sources",
-    description: "Legacy label — now maps to Article format.",
-  },
-  {
-    type: "POLICY_NOTE",
-    label: "Policy Memo",
-    shortLabel: "Memo",
-    family: "articles",
-    access: "Open",
-    pages: "8-15 pages",
-    sourceDepth: "15+ sources",
-    description: "Legacy label — now maps to Article format.",
-  },
-  // ── Future format ──
-  {
-    type: "DOSSIER",
-    label: "Research Dossier",
-    shortLabel: "Dossier",
-    family: "dossiers",
-    access: "Open",
-    pages: "30-50 pages",
-    sourceDepth: "50+ sources",
-    description: "Appendix-heavy evidence file for analysts and researchers.",
-  },
 ] as const;
 
 export type PublicationFormatType = typeof PUBLICATION_FORMATS[number]["type"];
@@ -81,10 +62,10 @@ export type PublicationFormatFamily = typeof PUBLICATION_FORMATS[number]["family
 
 export const FORMAT_FILTERS = [
   { value: "all", label: "All Formats" },
+  { value: "signals", label: "Signal Briefs" },
+  { value: "memos", label: "Decision Memos" },
   { value: "articles", label: "Articles" },
   { value: "reports", label: "Strategic Reports" },
-  { value: "signals", label: "Signals" },
-  { value: "dossiers", label: "Dossiers" },
 ] as const;
 
 export const PUBLICATION_FORMAT_BY_TYPE = Object.fromEntries(
@@ -96,17 +77,29 @@ export const FORMAT_TYPES_BY_FAMILY = PUBLICATION_FORMATS.reduce((acc, format) =
   return acc;
 }, {} as Record<string, string[]>);
 
+/**
+ * Legacy → canonical format migration map.
+ * Old publications in DB keep their original type but are displayed
+ * and priced as the canonical format.
+ */
 const FORMAT_ALIASES: Record<string, string> = {
-  RESEARCH_BRIEF: "ARTICLE",
-  EXECUTIVE_BRIEF: "ARTICLE",
-  POLICY_NOTE: "ARTICLE",
+  // Signal Brief family
   UPDATE_NOTE: "SUMMARY_BRIEF",
   DATA_NOTE: "SUMMARY_BRIEF",
+  // Decision Memo family
+  RESEARCH_BRIEF: "DECISION_MEMO",
+  EXECUTIVE_BRIEF: "DECISION_MEMO",
+  POLICY_NOTE: "DECISION_MEMO",
+  // Strategic Report family (Dossier was never fully implemented)
+  DOSSIER: "STRATEGIC_REPORT",
 };
 
 export function resolveFormatType(type?: string | null): string {
   if (!type) return "ARTICLE";
-  return FORMAT_ALIASES[type] || type;
+  // If it's already a canonical format, return as-is
+  if (PUBLICATION_FORMAT_BY_TYPE[type]) return type;
+  // Otherwise resolve via aliases
+  return FORMAT_ALIASES[type] || "ARTICLE";
 }
 
 export function getPublicationFormat(type?: string | null) {

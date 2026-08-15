@@ -31,12 +31,12 @@ export const SIGNAL_STATUSES = [
 export type SignalStatus = typeof SIGNAL_STATUSES[number];
 
 export const PUBLICATION_TYPES = [
-  // 2 Primary formats
-  "ARTICLE",           // Le Shift Project / LawZero style — 3,000-5,000 words
-  "STRATEGIC_REPORT",  // McKinsey / France Stratégie style — 5,000-10,000 words
-  // Signal format (breaking news)
-  "SUMMARY_BRIEF",     // 700-1,500 words
-  // Legacy formats (backward compatibility, map to ARTICLE)
+  // 4 canonical formats — aligned 1:1 with Inquiry depths and Engine pricing
+  "SUMMARY_BRIEF",     // surface depth  — 200-400 words, 5+ sources   → 39 €
+  "DECISION_MEMO",     // standard depth — 800-1,500 words, 8+ sources  → 99 €
+  "ARTICLE",           // deep depth     — 3,000-5,000 words, 15+ sources → 199 €
+  "STRATEGIC_REPORT",  // strategic depth — 5,000-10,000 words, 20+ sources → 699 €
+  // Legacy formats (kept for DB backward-compat, mapped via FORMAT_MAPPING)
   "RESEARCH_BRIEF",
   "EXECUTIVE_BRIEF",
   "UPDATE_NOTE",
@@ -47,16 +47,19 @@ export const PUBLICATION_TYPES = [
 
 export type PublicationType = typeof PUBLICATION_TYPES[number];
 
-// Primary format mapping
-export const FORMAT_MAPPING: Record<string, "ARTICLE" | "STRATEGIC_REPORT" | "SUMMARY_BRIEF"> = {
+// Canonical format mapping — legacy types → 4 canonical formats
+export const FORMAT_MAPPING: Record<string, "SUMMARY_BRIEF" | "DECISION_MEMO" | "ARTICLE" | "STRATEGIC_REPORT"> = {
+  // Canonical (identity)
+  SUMMARY_BRIEF: "SUMMARY_BRIEF",
+  DECISION_MEMO: "DECISION_MEMO",
   ARTICLE: "ARTICLE",
   STRATEGIC_REPORT: "STRATEGIC_REPORT",
-  SUMMARY_BRIEF: "SUMMARY_BRIEF",
-  RESEARCH_BRIEF: "ARTICLE",
-  EXECUTIVE_BRIEF: "ARTICLE",
+  // Legacy → canonical
+  RESEARCH_BRIEF: "DECISION_MEMO",
+  EXECUTIVE_BRIEF: "DECISION_MEMO",
+  POLICY_NOTE: "DECISION_MEMO",
   UPDATE_NOTE: "SUMMARY_BRIEF",
   DATA_NOTE: "SUMMARY_BRIEF",
-  POLICY_NOTE: "ARTICLE",
   DOSSIER: "STRATEGIC_REPORT",
 };
 

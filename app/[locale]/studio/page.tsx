@@ -367,7 +367,7 @@ function StudioPageContent() {
                     </div>
                   </div>
                   <div className="grid sm:grid-cols-2 gap-2">
-                    {PUBLICATION_FORMATS.filter((f) => f.type !== 'EXECUTIVE_BRIEF').map((format) => {
+                    {PUBLICATION_FORMATS.map((format) => {
                       const price = getStudioXPrice(format.type);
                       return (
                         <button

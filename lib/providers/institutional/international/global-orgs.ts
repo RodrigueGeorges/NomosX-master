@@ -145,7 +145,11 @@ export async function searchGlobalOrgs(query: string, limit = 25): Promise<any[]
 
         return matching;
       } catch (err: any) {
-        console.warn(`[GLOBAL-ORGS] Feed ${feedConfig.provider} failed: ${err.message?.slice(0, 60)}`);
+        // Suppress warnings for Google News 503 (known IP blocking issue) and 403/404 (dead feeds)
+        const msg = err.message?.slice(0, 60) || '';
+        if (!msg.includes('503') && !msg.includes('403') && !msg.includes('404')) {
+          console.warn(`[GLOBAL-ORGS] Feed ${feedConfig.provider} failed: ${msg}`);
+        }
         return [];
       }
     })

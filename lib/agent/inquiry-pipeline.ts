@@ -48,7 +48,7 @@ export interface InquiryPipelineResult {
   lineage: Record<string, unknown>;
   trustScore: number;
   qualityScore: number;
-  format: "brief" | "strategic";
+  format: "brief" | "memo" | "strategic";
   refusal?: boolean;
   refusalReason?: string;
 }
@@ -58,19 +58,22 @@ export interface InquiryPipelineResult {
 function depthToPipelineFormat(
   depth: InquiryDepth,
   overrides?: StrategicPipelineOptions
-): { format: "brief" | "strategic"; options: StrategicPipelineOptions } {
-  let base: { format: "brief" | "strategic"; options: StrategicPipelineOptions };
+): { format: "brief" | "memo" | "strategic"; options: StrategicPipelineOptions } {
+  let base: { format: "brief" | "memo" | "strategic"; options: StrategicPipelineOptions };
 
   switch (depth) {
     case "surface":
+      // Signal Brief — shallow, fast
       base = { format: "brief", options: { perProvider: 15 } };
       break;
     case "standard":
-      base = { format: "brief", options: { perProvider: 30 } };
+      // Decision Memo — moderate depth, brief pipeline with memo rendering
+      base = { format: "memo", options: { perProvider: 30 } };
       break;
     case "deep":
+      // Article — deeper brief pipeline (NOT strategic), more sources
       base = {
-        format: "strategic",
+        format: "brief",
         options: {
           perProvider: 50,
           rankOptions: { requireAbstract: false, minQuality: 0 },
@@ -78,6 +81,7 @@ function depthToPipelineFormat(
       };
       break;
     case "strategic":
+      // Strategic Report — full strategic pipeline
       base = {
         format: "strategic",
         options: {
@@ -119,7 +123,7 @@ async function maybeRunSimulation(
     return { analysis, lineage };
   }
 
-  const isStrategic = depth === "strategic" || depth === "deep";
+  const isStrategic = depth === "strategic";
   const foresight = await Promise.race([
     runPipelineForesight({
       question,
@@ -333,7 +337,7 @@ function buildSections(analysis: Record<string, unknown>, depth: InquiryDepth): 
   }
 
   const simReport = analysis._simulationReport as SimulationReport | undefined;
-  if ((depth === "strategic" || depth === "deep") && simReport?.output) {
+  if (depth === "strategic" && simReport?.output) {
     const out = simReport.output;
     sections.push({
       type: "simulation",

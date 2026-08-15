@@ -1,0 +1,4 @@
+lib/providers/foreign/wanfang.ts(45,7): error TS2353: Object literal may only specify known properties, and 'method' does not exist in type 'Omit<HttpOptions, "rateLimit">'.
+lib/providers/social/bluesky.ts(18,32): error TS2307: Cannot find module '../http-client' or its corresponding type declarations.
+lib/providers/social/hackernews.ts(18,32): error TS2307: Cannot find module '../http-client' or its corresponding type declarations.
+lib/providers/social/reddit.ts(25,32): error TS2307: Cannot find module '../http-client' or its corresponding type declarations.

@@ -1,8 +1,15 @@
 /**
  * NomosX Signal Detector Agent
- * 
+ *
  * Detects meaningful signals from newly ingested sources
  * Part of the Institutional Think Tank pipeline
+ *
+ * SOCIAL SIGNAL INTEGRATION (2026):
+ * Social media signals (Reddit, Hacker News, Bluesky) feed into the
+ * signal detection pipeline as a SEPARATE FLOW — they never enter the
+ * SCOUT→INDEX→RANK evidence pipeline. This prevents social media noise
+ * from contaminating analytical briefs while still capturing emerging
+ * trends and weak signals for the radar.
  */
 
 import { prisma } from '@/lib/db';
@@ -643,4 +650,172 @@ function truncate(text: string, maxLength: number): string {
   if (!text) return "";
   if (text.length <= maxLength) return text;
   return text.slice(0, maxLength - 3) + "...";
+}
+
+// ============================================================================
+// SOCIAL SIGNAL PROCESSING (Reddit, Hacker News, Bluesky)
+// ============================================================================
+//
+// Social signals are a SEPARATE FLOW from the evidence pipeline.
+// They feed into signal detection for trend/radar purposes only.
+// They NEVER appear in analytical briefs as cited sources.
+// This prevents social media noise from contaminating evidence while
+// still capturing emerging trends and weak signals.
+
+import type { SocialSignal } from '../providers/social/reddit';
+import { searchRedditSignals } from '../providers/social/reddit';
+import { searchHackerNewsSignals } from '../providers/social/hackernews';
+import { searchBlueskySignals } from '../providers/social/bluesky';
+
+/**
+ * Fetch social signals from all configured social platforms in parallel.
+ * Returns SocialSignal[] — these are NOT ScoutResult and never enter the
+ * SCOUT→INDEX→RANK evidence pipeline.
+ *
+ * Graceful degradation: platforms without API keys return empty arrays.
+ */
+export async function fetchSocialSignals(query: string, limit = 25): Promise<SocialSignal[]> {
+  console.log(`[SIGNAL_DETECTOR/SOCIAL] Fetching social signals for: "${query.slice(0, 60)}..."`);
+
+  const [reddit, hackernews, bluesky] = await Promise.allSettled([
+    searchRedditSignals(query, limit),
+    searchHackerNewsSignals(query, limit),
+    searchBlueskySignals(query, limit),
+  ]);
+
+  const signals: SocialSignal[] = [];
+  const platforms = ['reddit', 'hackernews', 'bluesky'] as const;
+
+  ([reddit, hackernews, bluesky] as const).forEach((r, i) => {
+    if (r.status === 'fulfilled') {
+      console.log(`[SIGNAL_DETECTOR/SOCIAL] ${platforms[i]}: ${r.value.length} signals`);
+      signals.push(...r.value);
+    } else {
+      console.warn(`[SIGNAL_DETECTOR/SOCIAL] ${platforms[i]} failed: ${r.reason}`);
+    }
+  });
+
+  console.log(`[SIGNAL_DETECTOR/SOCIAL] Total: ${signals.length} social signals from ${platforms.length} platforms`);
+  return signals;
+}
+
+/**
+ * Process social signals and store as DB signals for the radar.
+ *
+ * Unlike academic signals, social signals:
+ *   - Have shorter TTL (3 days vs 14 days)
+ *   - Use lower confidence scores (social ≠ peer-reviewed)
+ *   - Are tagged with [SOCIAL] prefix for editorial filtering
+ *   - Only trigger TREND_BREAK or NEW_EVIDENCE signal types
+ *     (social media cannot produce DATA_RELEASE or POLICY_CHANGE)
+ *
+ * Score weighting:
+ *   - High upvote/engagement → higher impact (but capped)
+ *   - Low confidence always (social media is not evidence)
+ *   - Urgency based on recency (last 48h = high)
+ */
+export async function processSocialSignals(
+  query: string,
+  limit = 25
+): Promise<{ detected: number; byPlatform: Record<string, number> }> {
+  const signals = await fetchSocialSignals(query, limit);
+  if (signals.length === 0) return { detected: 0, byPlatform: {} };
+
+  console.log(`[SIGNAL_DETECTOR/SOCIAL] Processing ${signals.length} social signals...`);
+
+  // Get active verticals from DB
+  const verticals = await prisma.vertical.findMany({
+    where: { isActive: true },
+  });
+  const verticalMap = new Map(verticals.map(v => [v.slug, v.id]));
+
+  let detected = 0;
+  const byPlatform: Record<string, number> = {};
+
+  for (const sig of signals) {
+    // Classify vertical from title + body
+    const text = `${sig.title} ${sig.body}`.toLowerCase();
+    let bestVertical: string | null = null;
+    let bestScore = 0;
+
+    for (const [slug, keywords] of Object.entries(VERTICAL_KEYWORDS)) {
+      const score = keywords.filter(k => text.includes(k)).length;
+      if (score > bestScore) {
+        bestScore = score;
+        bestVertical = slug;
+      }
+    }
+
+    // Social signals need at least 1 keyword match
+    if (bestScore < 1 || !bestVertical) continue;
+
+    const verticalId = verticalMap.get(bestVertical);
+    if (!verticalId) continue;
+
+    // Compute scores for social signals
+    // Engagement-based impact (capped — viral ≠ important)
+    const engagementScore = Math.min(
+      Math.log10(sig.score + 1) * 15 + sig.commentCount * 0.5,
+      60
+    );
+
+    // Recency-based urgency (last 48h = high, last week = medium)
+    const ageHours = sig.createdAt
+      ? (Date.now() - new Date(sig.createdAt).getTime()) / (1000 * 60 * 60)
+      : 168;
+    const urgencyScore = ageHours < 48 ? 80 : ageHours < 168 ? 60 : 40;
+
+    // Low confidence always — social media is not evidence
+    const confidenceScore = Math.min(30 + engagementScore * 0.2, 45);
+
+    // Novelty: high for social (emerging discussion before academic coverage)
+    const noveltyScore = Math.min(70 + engagementScore * 0.15, 85);
+
+    const priorityScore = Math.round(
+      noveltyScore * 0.25 +
+      engagementScore * 0.25 +
+      confidenceScore * 0.10 +
+      urgencyScore * 0.40
+    );
+
+    // Skip low priority (higher threshold for social — they're noisy)
+    if (priorityScore < SIGNAL_THRESHOLDS.MIN_PRIORITY_FOR_CONSIDERATION + 5) continue;
+
+    // Check for duplicate (same ID within 72h)
+    const existing = await prisma.signal.findFirst({
+      where: {
+        title: { contains: sig.title.slice(0, 50) },
+        detectedAt: { gte: new Date(Date.now() - 72 * 60 * 60 * 1000) },
+      },
+    });
+    if (existing) continue;
+
+    // Social signals are always TREND_BREAK or NEW_EVIDENCE
+    const signalType: SignalType = /breakthrough|new|first|novel|emerging|unprecedented/i.test(text)
+      ? "TREND_BREAK"
+      : "NEW_EVIDENCE";
+
+    await prisma.signal.create({
+      data: {
+        verticalId,
+        signalType,
+        title: `[SOCIAL/${sig.platform.toUpperCase()}] ${truncate(sig.title, 60)}`,
+        summary: `${sig.community || sig.platform} (score: ${sig.score}, comments: ${sig.commentCount}) — ${truncate(sig.body, 300)}. URL: ${sig.url}`,
+        noveltyScore,
+        impactScore: Math.round(engagementScore),
+        confidenceScore,
+        urgencyScore,
+        priorityScore,
+        sourceIds: [sig.id],
+        status: "NEW",
+        expiresAt: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // 3 days (shortest TTL)
+      },
+    });
+
+    detected++;
+    byPlatform[sig.platform] = (byPlatform[sig.platform] || 0) + 1;
+  }
+
+  console.log(`[SIGNAL_DETECTOR/SOCIAL] ✅ ${detected} social signals stored (${Object.entries(byPlatform).map(([k, v]) => `${k}:${v}`).join(", ")})`);
+  return { detected, byPlatform };
 }

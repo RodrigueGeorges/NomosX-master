@@ -86,26 +86,43 @@ export function backfillCitationsFromAnalysis(
       const cleanSnippet = sentence.replace(/\[SRC-\d+\]/g, '').trim().slice(0, 50);
       if (cleanSnippet.length < 15) continue;
 
-      // Search for this snippet in the HTML (strip tags for matching)
-      const htmlText = html.replace(/<[^>]+>/g, ' ');
-      const idx = htmlText.indexOf(cleanSnippet.slice(0, 30));
+      // Search for this snippet in the HTML body only (exclude <style>/<script>/<head>)
+      // Strip tags AND skip CSS/script content to avoid position mismatch
+      const bodyOnly = html.replace(/<(style|script|head)\b[^>]*>[\s\S]*?<\/\1>/gi, ' ')
+                           .replace(/<[^>]+>/g, ' ');
+      const idx = bodyOnly.indexOf(cleanSnippet.slice(0, 30));
       if (idx >= 0) {
-        // Find the position in the actual HTML (approximate)
+        // Find the position in the actual HTML body (not in CSS/head)
         // Insert the missing citation at the end of the matched text
         const afterIdx = idx + cleanSnippet.length;
-        // Find the next </p> or end of text after this position
-        const htmlAfter = html.slice(afterIdx);
-        const closeTagIdx = htmlAfter.search(/<\/p>|<br\s*\/?>|<\/li>/i);
+        // Find the next </p> or end of text after this position in the body-only text
+        const bodyAfter = bodyOnly.slice(afterIdx);
+        const closeTagIdx = bodyAfter.search(/<\/p>|<br\s*\/?>|<\/li>/i);
         if (closeTagIdx >= 0) {
-          const insertPos = afterIdx + closeTagIdx;
-          const citations = missingHere.join('');
-          html = html.slice(0, insertPos) + ' ' + citations + html.slice(insertPos);
-          injected += missingHere.length;
-          details.push(`Backfilled ${missingHere.join(', ')} near "${cleanSnippet.slice(0, 30)}..."`);
-          // Remove from missing list
-          for (const c of missingHere) {
-            const i = missing.indexOf(c);
-            if (i >= 0) missing.splice(i, 1);
+          // Map back to original HTML: find the close tag in the original HTML
+          // by searching for the same tag pattern after the approximate position
+          const approxPos = afterIdx + closeTagIdx;
+          // Find the actual position in the original HTML by searching for </p>/<br>/<li>
+          // starting from a position that accounts for tag length differences
+          const searchStart = Math.max(0, approxPos - 50);
+          const htmlSlice = html.slice(searchStart);
+          const tagMatch = htmlSlice.search(/<\/p>|<br\s*\/?>|<\/li>/i);
+          if (tagMatch >= 0) {
+            const insertPos = searchStart + tagMatch;
+            // Verify we're not inside a <style> block
+            const beforeInsert = html.slice(Math.max(0, insertPos - 500), insertPos);
+            if (/<style/i.test(beforeInsert) && !/<\/style>/i.test(beforeInsert)) {
+              continue; // Skip — would insert inside CSS
+            }
+            const citations = missingHere.join('');
+            html = html.slice(0, insertPos) + ' ' + citations + html.slice(insertPos);
+            injected += missingHere.length;
+            details.push(`Backfilled ${missingHere.join(', ')} near "${cleanSnippet.slice(0, 30)}..."`);
+            // Remove from missing list
+            for (const c of missingHere) {
+              const i = missing.indexOf(c);
+              if (i >= 0) missing.splice(i, 1);
+            }
           }
         }
       }
@@ -199,6 +216,13 @@ export function sanitizeUnsourcedNumbers(html: string): { html: string; sanitize
         return match;
       }
 
+      // Don't sanitize numbers inside the Methodology & Transparency section
+      // (these are pipeline metrics like trust score, citation coverage, etc.)
+      const methodologyCtx = working.slice(Math.max(0, absPos - 1000), absPos);
+      if (/class="nx-block methodology-note"|Méthodologie|TRUST|nx-eyebrow/.test(methodologyCtx)) {
+        return match;
+      }
+
       sanitized++;
       details.push(`Sanitized unsourced number: "${match}"`);
       return 'non établie';
@@ -259,7 +283,9 @@ export function injectCitationsBySourceMatch(
     const patterns: string[] = [];
     if (src.title) {
       // Use first 30 chars of title as a search pattern
-      const titleSnippet = src.title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').slice(0, 30);
+      // CRITICAL: slice BEFORE escaping — slicing after escaping can cut an escape sequence in half
+      // (e.g., "\(" sliced at char 30 becomes "\" → invalid regex)
+      const titleSnippet = src.title.slice(0, 30).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       if (titleSnippet.length > 10) patterns.push(titleSnippet);
     }
     // Check author names
@@ -597,13 +623,25 @@ export function repairCitations(
   // The strategic report renderer converts [SRC-N] to <sup class="cite"><a href="#ref-N">N</a></sup>.
   // But citation repair runs AFTER rendering, so injected [SRC-N] stay as raw text.
   // This step converts them to match the rendered format, preventing duplicate [E-N] + <sup>.
+  // CRITICAL: Must skip <style>/<script> blocks — [SRC-N] in CSS would corrupt the layout.
+  // CRITICAL: Produce [SRC-N] text (NOT <sup> HTML) so that replaceSrcWithEvidenceIds
+  // can uniformly convert ALL citations to data-evidence="EN" format later.
+  // Producing <sup data-evidence="N"> here would create duplicates with <sup data-evidence="EN">.
   const hasSupTags = /<sup class="cite"/.test(workingHtml);
   if (hasSupTags) {
-    // Convert [SRC-N] to <sup> tags matching the renderer's format
-    workingHtml = workingHtml.replace(/\[SRC-(\d+)\]/g, (_, n) => {
-      // Only convert if there isn't already a <sup> for this ref nearby
-      return `<sup class="cite"><a href="#ref-${n}" data-evidence="${n}">${n}</a></sup>`;
+    // Mask <style>/<script> blocks before conversion
+    const skipBlocks4: string[] = [];
+    let masked = workingHtml.replace(/<(style|script)\b[^>]*>[\s\S]*?<\/\1>/gi, (m) => {
+      skipBlocks4.push(m);
+      return `\x00SKIP4_${skipBlocks4.length - 1}\x00`;
     });
+    // Convert [SRC-N] to <sup> tags matching the renderer's format (NO data-evidence attribute —
+    // replaceSrcWithEvidenceIds will add the correct data-evidence="EN" later)
+    masked = masked.replace(/\[SRC-(\d+)\]/g, (_, n) => {
+      return `<sup class="cite"><a href="#ref-${n}">${n}</a></sup>`;
+    });
+    // Restore <style>/<script> blocks
+    workingHtml = masked.replace(/\x00SKIP4_(\d+)\x00/g, (_, i) => skipBlocks4[parseInt(i, 10)]);
     // Also remove any [E-N] text citations that have corresponding <sup> tags in the same paragraph
     workingHtml = workingHtml.replace(/<p[^>]*>([\s\S]*?)<\/p>/g, (para, content) => {
       const supIds = new Set<string>();
@@ -624,6 +662,23 @@ export function repairCitations(
   // These break the reading experience and should never appear in final HTML
   workingHtml = workingHtml.replace(/<span style="color:#f59e0b;font-style:italic;">\[Non vérifié\]\s*<\/span>/g, '');
   workingHtml = workingHtml.replace(/\[Non vérifié\]\s*/g, '');
+
+  // Step 6: Safety net — strip any HTML tags that leaked into <style> blocks.
+  // Citation injection/repair should never modify CSS, but if any <sup> or [SRC-N]
+  // tags ended up inside <style>, remove them to prevent layout corruption.
+  workingHtml = workingHtml.replace(
+    /(<(style)\b[^>]*>)([\s\S]*?)(<\/\2>)/gi,
+    (_, openTag, _tag, cssContent, closeTag) => {
+      // Remove any injected <sup> tags, [SRC-N], or [E-N] from CSS
+      const cleaned = cssContent
+        .replace(/<sup class="cite"[^>]*>[\s\S]*?<\/sup>/gi, '')
+        .replace(/<sup[^>]*>[\s\S]*?<\/sup>/gi, '')
+        .replace(/\[SRC-\d+\]/g, '')
+        .replace(/\[E\d+\]/g, '')
+        .replace(/\s{2,}/g, ' '); // Collapse multiple spaces left by removals
+      return `${openTag}${cleaned}${closeTag}`;
+    }
+  );
 
   const total = totalBackfilled + totalInjected + totalSanitized;
   console.log(`[CITATION REPAIR] Backfilled: ${totalBackfilled}, Injected: ${totalInjected}, Sanitized: ${totalSanitized} (total: ${total})`);
