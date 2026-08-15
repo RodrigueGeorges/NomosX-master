@@ -414,7 +414,7 @@ export async function backfillMissingAnalyticalFields(
     `KEY FINDINGS: ${(analysis.keyFindings || []).slice(0, 3).map((f, i) => `${i + 1}. ${f.slice(0, 150)}`).join('\n')}`,
     `CONSENSUS: ${(analysis.consensus || '').slice(0, 300)}`,
     `CONTROVERSIES: ${(analysis.controversies || '').slice(0, 300)}`,
-    `SCENARIOS: ${(analysis.scenarios || []).map(s => `- ${s.name} (${s.probibility || s.probability || 'unknown'}): ${(s.description || '').slice(0, 100)}`).join('\n')}`,
+    `SCENARIOS: ${(analysis.scenarios || []).map(s => `- ${s.name} (${s.probability || 'unknown'}): ${(s.description || '').slice(0, 100)}`).join('\n')}`,
   ].join('\n\n');
 
   // Build source context (top 10 sources)
