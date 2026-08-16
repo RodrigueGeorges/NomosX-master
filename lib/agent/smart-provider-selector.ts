@@ -80,7 +80,7 @@ export type Provider =
   // V3.1: Global Omniscience Layer — RSS-based providers covering 80+ organizations
   | "global-intelligence" | "global-orgs" | "global-think-tanks" | "global-science"
   // V3.2: Heritage & historical sources (2026-08 expansion) — books, primary sources, cultural heritage
-  | "gallica" | "europeana" | "gutenberg" | "dpla" | "wikisource"
+  | "gallica" | "europeana" | "gutenberg" | "dpla" | "wikisource" | "isidore" | "persee"
   // V3.2: Global South & regional (2026-08 expansion) — Africa, Iberia/LatAm, India, Korea
   | "ajol" | "dialnet" | "shodhganga" | "riss"
   // V3.2: Preprints & open-science data (2026-08 expansion)
