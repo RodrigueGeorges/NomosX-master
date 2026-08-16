@@ -4,6 +4,7 @@ import React from "react";
 import PublicNav, { type PublicNavPage } from "@/components/PublicNav";
 import SiteFooter from "@/components/SiteFooter";
 import { EtherealBackground } from "@/components/signature";
+import { AgenticCore } from "@/components/signature";
 import { ScrollProgress } from "@/components/ui/ScrollProgress";
 import { CursorGlow } from "@/components/ui/CursorGlow";
 import { GrainOverlay } from "@/components/ui/GrainOverlay";
@@ -37,6 +38,8 @@ export function PublicPageShell({
       <CursorGlow />
       <div className="nx-vignette" aria-hidden="true" />
       <ScrollProgress />
+      {/* Living convergence field — the signature atmosphere */}
+      <AgenticCore variant="atmosphere" />
       {particles > 0 && <EtherealBackground particleCount={particles} radialGlow={false} />}
       <div className="relative z-10 flex flex-col min-h-screen" data-nx-main>
         <PublicNav

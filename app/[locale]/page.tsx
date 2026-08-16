@@ -18,8 +18,6 @@ import {
 
   FeaturedVerdictCard,
 
-  AgenticCore,
-
   InquiryCard,
 
   StudioPreview,
@@ -452,30 +450,6 @@ function HomePageContent() {
                 </MagneticButton>
 
               </div>
-
-            </div>
-
-          </section>
-
-          {/* Funnel — mission-control pipeline visual (the differentiator made visible) */}
-
-          <section className="nx-section-divide relative px-6 sm:px-8 py-16 sm:py-20">
-
-            <span className="nx-section-index">01 / {sectionTotal}</span>
-
-            <div className="max-w-4xl mx-auto">
-
-              <ScrollReveal>
-
-                <p className="nx-eyebrow mb-8 text-center">{t("Home.theMethod")}</p>
-
-              </ScrollReveal>
-
-              <ScrollReveal delay={120}>
-
-                <AgenticCore />
-
-              </ScrollReveal>
 
             </div>
 

@@ -10,7 +10,6 @@ import { ScrollReveal } from "@/components/ui/ScrollReveal";
 import { StatCounter } from "@/components/ui/StatCounter";
 import { PUBLIC_ROUTES } from "@/lib/public-urls";
 import { DomainMap } from "@/components/signature/DomainMap";
-import { AgenticCore } from "@/components/signature/AgenticCore";
 import { KnowledgeGraphHero } from "@/components/signature/KnowledgeGraphHero";
 import {
   BRAND_POSITIONING,
@@ -73,20 +72,17 @@ export default function AboutPage() {
           </div>
         </PageSection>
 
-        {/* 02 — How we work (Harvard pattern: the protocol made tangible) */}
+        {/* 02 — How we work (the protocol, told not diagrammed) */}
         <PageSection sectionIndex="02 / 07" className="py-16 sm:py-20">
-          <div className="max-w-4xl mx-auto">
+          <div className="max-w-2xl mx-auto">
             <ScrollReveal>
               <p className="nx-eyebrow mb-3">{t("About.howWeWork")}</p>
-              <h2 className="font-display text-2xl sm:text-3xl font-semibold text-white tracking-tight mb-3">
+              <h2 className="font-display text-2xl sm:text-3xl font-semibold text-white tracking-tight mb-5">
                 {t("Brand.methodStepsInline")}
               </h2>
-              <p className="text-sm text-white/55 max-w-xl leading-relaxed mb-10">
+              <p className="text-base text-white/65 leading-[1.6]">
                 {t("About.howWeWorkDesc")}
               </p>
-            </ScrollReveal>
-            <ScrollReveal delay={150}>
-              <AgenticCore />
             </ScrollReveal>
           </div>
         </PageSection>

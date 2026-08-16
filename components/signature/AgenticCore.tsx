@@ -32,17 +32,21 @@ interface Particle {
   opacity: number;
 }
 
-const PARTICLE_COUNT = 28;
+const PARTICLE_COUNT_SECTION = 28;
+const PARTICLE_COUNT_ATMOS = 18;
 const CONNECT_DISTANCE = 18; // viewBox units
 const CENTER = { x: 50, y: 50 };
 
 interface AgenticCoreProps {
   className?: string;
-  /** "hero" = large, centered, with breathing center (home/About sections) */
-  variant?: "hero";
+  /**
+   * "section" = focal visual in a section (larger, more visible)
+   * "atmosphere" = subtle full-page background behind content
+   */
+  variant?: "section" | "atmosphere";
 }
 
-export function AgenticCore({ className }: AgenticCoreProps) {
+export function AgenticCore({ className, variant = "section" }: AgenticCoreProps) {
   const t = useTranslations();
   const [mounted, setMounted] = useState(false);
   const [frame, setFrame] = useState(0);
@@ -52,17 +56,19 @@ export function AgenticCore({ className }: AgenticCoreProps) {
 
   // Initialize particles once
   useEffect(() => {
-    particlesRef.current = Array.from({ length: PARTICLE_COUNT }, (_, i) => ({
+    const count = variant === "atmosphere" ? PARTICLE_COUNT_ATMOS : PARTICLE_COUNT_SECTION;
+    const baseOpacity = variant === "atmosphere" ? 0.08 : 0.25;
+    particlesRef.current = Array.from({ length: count }, (_, i) => ({
       id: i,
-      x: 20 + Math.random() * 60,
-      y: 20 + Math.random() * 60,
-      vx: (Math.random() - 0.5) * 0.08,
-      vy: (Math.random() - 0.5) * 0.08,
-      size: Math.random() * 0.8 + 0.4,
-      opacity: Math.random() * 0.3 + 0.15,
+      x: 15 + Math.random() * 70,
+      y: 15 + Math.random() * 70,
+      vx: (Math.random() - 0.5) * (variant === "atmosphere" ? 0.04 : 0.08),
+      vy: (Math.random() - 0.5) * (variant === "atmosphere" ? 0.04 : 0.08),
+      size: Math.random() * (variant === "atmosphere" ? 0.5 : 0.8) + 0.3,
+      opacity: Math.random() * (variant === "atmosphere" ? 0.12 : 0.3) + baseOpacity,
     }));
     setMounted(true);
-  }, []);
+  }, [variant]);
 
   // Animation loop — drift + gentle attraction toward center
   useEffect(() => {
@@ -144,24 +150,32 @@ export function AgenticCore({ className }: AgenticCoreProps) {
     <div
       ref={containerRef}
       className={cn(
-        "relative w-full flex items-center justify-center min-h-[360px] sm:min-h-[440px]",
+        variant === "atmosphere"
+          ? "fixed inset-0 pointer-events-none overflow-hidden z-0"
+          : "relative w-full flex items-center justify-center min-h-[360px] sm:min-h-[440px]",
         className
       )}
-      aria-label={t("AgenticCore.ariaLabel")}
+      aria-label={variant === "atmosphere" ? undefined : t("AgenticCore.ariaLabel")}
+      aria-hidden={variant === "atmosphere"}
     >
       {/* Faint radial glow — the light source */}
-      <div
-        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(60%,420px)] aspect-square pointer-events-none"
-        style={{
-          background:
-            "radial-gradient(circle, rgba(240,240,250,0.06) 0%, transparent 65%)",
-        }}
-      />
+      {variant === "section" && (
+        <div
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(60%,420px)] aspect-square pointer-events-none"
+          style={{
+            background:
+              "radial-gradient(circle, rgba(240,240,250,0.06) 0%, transparent 65%)",
+          }}
+        />
+      )}
 
       <svg
-        className="absolute inset-0 w-full h-full"
+        className={cn(
+          "absolute inset-0 w-full h-full",
+          variant === "atmosphere" && "opacity-30"
+        )}
         viewBox="0 0 100 100"
-        preserveAspectRatio="xMidYMid meet"
+        preserveAspectRatio={variant === "atmosphere" ? "xMidYMid slice" : "xMidYMid meet"}
       >
         {/* Connections — hairlines that fade with distance */}
         {connections.map((c, i) => {
@@ -190,35 +204,39 @@ export function AgenticCore({ className }: AgenticCoreProps) {
           />
         ))}
 
-        {/* Center — the position, breathing */}
-        <circle
-          cx={CENTER.x}
-          cy={CENTER.y}
-          r="2.5"
-          fill="rgba(240,240,250,0.08)"
-          stroke="rgba(240,240,250,0.45)"
-          strokeWidth="0.18"
-          className="nx-core-breath"
-        />
-        {/* Emit ring — the position radiating outward */}
-        <circle
-          cx={CENTER.x}
-          cy={CENTER.y}
-          r="2.5"
-          fill="none"
-          stroke="rgba(240,240,250,0.2)"
-          strokeWidth="0.1"
-          className="nx-core-emit"
-        />
-        <circle
-          cx={CENTER.x}
-          cy={CENTER.y}
-          r="2.5"
-          fill="none"
-          stroke="rgba(240,240,250,0.15)"
-          strokeWidth="0.08"
-          className="nx-core-emit-2"
-        />
+        {/* Center — the position, breathing (only in section variant) */}
+        {variant === "section" && (
+          <>
+            <circle
+              cx={CENTER.x}
+              cy={CENTER.y}
+              r="2.5"
+              fill="rgba(240,240,250,0.08)"
+              stroke="rgba(240,240,250,0.45)"
+              strokeWidth="0.18"
+              className="nx-core-breath"
+            />
+            {/* Emit ring — the position radiating outward */}
+            <circle
+              cx={CENTER.x}
+              cy={CENTER.y}
+              r="2.5"
+              fill="none"
+              stroke="rgba(240,240,250,0.2)"
+              strokeWidth="0.1"
+              className="nx-core-emit"
+            />
+            <circle
+              cx={CENTER.x}
+              cy={CENTER.y}
+              r="2.5"
+              fill="none"
+              stroke="rgba(240,240,250,0.15)"
+              strokeWidth="0.08"
+              className="nx-core-emit-2"
+            />
+          </>
+        )}
       </svg>
 
       <style jsx global>{`
