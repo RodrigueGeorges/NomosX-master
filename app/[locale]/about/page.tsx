@@ -7,43 +7,32 @@ import AuthModal from "@/components/AuthModal";
 import { PublicPageShell } from "@/components/layout/PublicPageShell";
 import { EtherealCard, PageHeader, PageSection } from "@/components/layout/PageHeader";
 import { ScrollReveal } from "@/components/ui/ScrollReveal";
+import { StatCounter } from "@/components/ui/StatCounter";
 import { PUBLIC_ROUTES } from "@/lib/public-urls";
-import { PipelineStrip } from "@/components/signature";
+import { DomainMap } from "@/components/signature/DomainMap";
+import { FunnelVisual } from "@/components/signature/FunnelVisual";
 import {
-  BRAND_TAGLINE,
   BRAND_POSITIONING,
+  BRAND_TAGLINE,
+  NOMOS_PHILOSOPHY_STATEMENT,
 } from "@/lib/brand/public-copy";
-import { ArrowRight, Globe, Lightbulb, Shield, Network } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 
-const VISION = [
-  {
-    icon: Globe,
-    titleKey: "About.vision1Title",
-    descKey: "About.vision1Desc",
-  },
-  {
-    icon: Network,
-    titleKey: "About.vision2Title",
-    descKey: "About.vision2Desc",
-  },
-  {
-    icon: Shield,
-    titleKey: "About.vision3Title",
-    descKey: "About.vision3Desc",
-  },
-  {
-    icon: Lightbulb,
-    titleKey: "About.vision4Title",
-    descKey: "About.vision4Desc",
-  },
-];
-
-const VALUES = [
-  { titleKey: "About.value1Title", descKey: "About.value1Desc" },
-  { titleKey: "About.value2Title", descKey: "About.value2Desc" },
-  { titleKey: "About.value3Title", descKey: "About.value3Desc" },
-  { titleKey: "About.value4Title", descKey: "About.value4Desc" },
-];
+/**
+ * About page — SpaceX + Harvard Growth Lab inspired.
+ *
+ * Structure (Harvard "How we work / Where we work" + SpaceX mission-led):
+ *  01 Mission statement (full-bleed, outcome-led, no card)
+ *  02 How we work (FunnelVisual — the protocol made tangible)
+ *  03 Where we work (DomainMap — eight domains)
+ *  04 The institute (the agentic system as the "team" — NomosX twist)
+ *  05 The origin (philosophy statement)
+ *  06 Six pillars (compacted)
+ *  07 CTA
+ *
+ * Removed vs. old: redundant manifesto (duplicated on home), overlapping
+ * Vision + Values 4-card grids (collapsed into the institute + pillars).
+ */
 
 export default function AboutPage() {
   const router = useRouter();
@@ -53,7 +42,8 @@ export default function AboutPage() {
   return (
     <>
       <PublicPageShell currentPage="about" onSignInClick={() => setShowAuthModal(true)} particles={0}>
-        <PageSection className="pt-16 sm:pt-20 pb-6">
+        {/* Hero — SpaceX-style mission block, outcome-led */}
+        <PageSection className="pt-16 sm:pt-24 pb-10">
           <PageHeader
             eyebrow={BRAND_POSITIONING}
             title={
@@ -67,49 +57,93 @@ export default function AboutPage() {
           />
         </PageSection>
 
-        {/* Nomos philosophy statement */}
-        <PageSection sectionIndex="01 / 06" className="pb-8">
-          <div className="max-w-2xl mx-auto text-center">
+        {/* 01 — Mission statement (full-bleed, large type, no card) */}
+        <PageSection sectionIndex="01 / 07" className="py-16 sm:py-24">
+          <div className="max-w-3xl mx-auto text-center">
             <ScrollReveal>
-              <p className="nx-eyebrow mb-6 justify-center">{t("About.thePrinciple")}</p>
+              <p className="nx-eyebrow mb-8 justify-center">{t("About.missionEyebrow")}</p>
             </ScrollReveal>
-            <ScrollReveal delay={100}>
-              <p className="text-base sm:text-lg text-white/70 leading-[1.6] italic">
-                {t("Brand.philosophyStatement")}
+            <ScrollReveal delay={120}>
+              <p className="font-display text-2xl sm:text-3xl lg:text-4xl font-light text-white leading-[1.25] tracking-tight">
+                {t("About.missionStatement")}
               </p>
             </ScrollReveal>
           </div>
         </PageSection>
 
-        {/* Manifesto — using brand typography classes (harmonized with home) */}
-        <section className="nx-section-divide relative px-6 sm:px-8 py-16 sm:py-20 overflow-hidden">
-          <span className="nx-section-index">02 / 06</span>
-          <div className="nx-grid-bg-enhanced opacity-30" aria-hidden="true" />
-          <div className="relative max-w-4xl mx-auto text-center">
-            <ScrollReveal stagger className="space-y-2">
-              <p className="nx-manifesto-line">{t("Home.manifestoLine1")}</p>
-              <p className="nx-manifesto-line">{t("Home.manifestoLine2")}</p>
-              <div className="nx-divider w-16 mx-auto my-8" />
-              <p className="nx-manifesto-line nx-manifesto-line--accent">{t("Home.manifestoLine3")}</p>
+        {/* 02 — How we work (Harvard pattern: the protocol made tangible) */}
+        <PageSection sectionIndex="02 / 07" className="py-16 sm:py-20">
+          <div className="max-w-4xl mx-auto">
+            <ScrollReveal>
+              <p className="nx-eyebrow mb-3">{t("About.howWeWork")}</p>
+              <h2 className="font-display text-2xl sm:text-3xl font-semibold text-white tracking-tight mb-3">
+                {t("Brand.methodStepsInline")}
+              </h2>
+              <p className="text-sm text-white/55 max-w-xl leading-relaxed mb-10">
+                {t("About.howWeWorkDesc")}
+              </p>
             </ScrollReveal>
-            <ScrollReveal stagger delay={200} className="mt-12 space-y-1">
-              <p className="nx-manifesto-cascade">{t("Home.manifestoCascade1")}</p>
-              <p className="nx-manifesto-cascade">{t("Home.manifestoCascade2")}</p>
-              <p className="nx-manifesto-cascade">{t("Home.manifestoCascade3")}</p>
+            <ScrollReveal delay={150}>
+              <FunnelVisual />
             </ScrollReveal>
-            <ScrollReveal delay={400}>
-              <p className="nx-manifesto-signoff">
-                {t("Home.manifestoSignoff")}<span className="nx-manifesto-signoff-x">X</span>
+          </div>
+        </PageSection>
+
+        {/* 03 — Where we work (DomainMap) */}
+        <DomainMap sectionIndex="03 / 07" />
+
+        {/* 04 — The institute (the agentic system as the "team") */}
+        <PageSection sectionIndex="04 / 07" className="py-16 sm:py-20">
+          <div className="max-w-4xl mx-auto">
+            <ScrollReveal>
+              <p className="nx-eyebrow mb-3">{t("About.theInstitute")}</p>
+              <h2 className="font-display text-2xl sm:text-3xl font-semibold text-white tracking-tight mb-5">
+                {t("About.title")} <span className="text-white/70">{t("About.titleAccent")}</span>
+              </h2>
+              <p className="text-base text-white/65 leading-[1.6] max-w-2xl">
+                {t("About.theInstituteDesc")}
+              </p>
+            </ScrollReveal>
+
+            <ScrollReveal stagger delay={150} className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-white/[0.06] border border-white/[0.06] mt-10">
+              {([
+                { end: 19, suffix: "", label: t("About.instituteStat1") },
+                { end: 6, suffix: "", label: t("About.instituteStat2") },
+                { end: 250, suffix: "M+", label: t("About.instituteStat3") },
+                { end: 100, suffix: "%", label: t("About.instituteStat4") },
+              ] as const).map((stat) => (
+                <div key={stat.label} className="bg-black p-5 sm:p-6 text-center">
+                  <p className="font-mono text-2xl sm:text-3xl font-light text-white tabular-nums leading-none mb-2">
+                    <StatCounter end={stat.end} suffix={stat.suffix} />
+                  </p>
+                  <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-white/45">
+                    {stat.label}
+                  </p>
+                </div>
+              ))}
+            </ScrollReveal>
+          </div>
+        </PageSection>
+
+        {/* 05 — The origin (philosophy statement, SpaceX "from the founder" tone) */}
+        <PageSection sectionIndex="05 / 07" className="py-16 sm:py-24">
+          <div className="max-w-2xl mx-auto text-center">
+            <ScrollReveal>
+              <p className="nx-eyebrow mb-8 justify-center">{t("About.origin")}</p>
+            </ScrollReveal>
+            <ScrollReveal delay={120}>
+              <p className="text-base sm:text-lg text-white/70 leading-[1.6] italic">
+                {NOMOS_PHILOSOPHY_STATEMENT}
               </p>
             </ScrollReveal>
           </div>
-        </section>
+        </PageSection>
 
-        {/* Six pillars */}
-        <PageSection sectionIndex="03 / 06" className="py-10">
+        {/* 06 — Six pillars (compacted) */}
+        <PageSection sectionIndex="06 / 07" className="py-12">
           <div className="max-w-5xl mx-auto">
             <ScrollReveal>
-              <p className="nx-eyebrow mb-10 text-center">{t("About.sixPillars")}</p>
+              <p className="nx-eyebrow mb-8 text-center">{t("About.sixPillars")}</p>
             </ScrollReveal>
             <ScrollReveal stagger className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {[0, 1, 2, 3, 4, 5].map((i) => (
@@ -122,42 +156,8 @@ export default function AboutPage() {
           </div>
         </PageSection>
 
-        <PipelineStrip />
-
-        <PageSection sectionIndex="04 / 06">
-          <PageHeader
-            eyebrow={t("About.whatWeDo")}
-            title={t("About.theVision")}
-            description={t("About.visionDesc")}
-          />
-          <ScrollReveal stagger className="grid sm:grid-cols-2 gap-4">
-            {VISION.map(({ icon: Icon, titleKey, descKey }) => (
-              <EtherealCard key={titleKey}>
-                <Icon className="w-5 h-5 text-white mb-4" strokeWidth={1.25} />
-                <h3 className="font-display text-lg font-medium text-white mb-2">{t(titleKey)}</h3>
-                <p className="text-sm text-white/60 leading-relaxed">{t(descKey)}</p>
-              </EtherealCard>
-            ))}
-          </ScrollReveal>
-        </PageSection>
-
-        <PageSection sectionIndex="05 / 06">
-          <PageHeader
-            eyebrow={t("About.values")}
-            title={t("About.whatWeOptimizeFor")}
-            description={t("About.valuesDesc")}
-          />
-          <ScrollReveal stagger className="grid sm:grid-cols-2 gap-4">
-            {VALUES.map((v) => (
-              <div key={v.titleKey} className="nx-surface p-6">
-                <h3 className="text-sm font-medium text-white mb-2">{t(v.titleKey)}</h3>
-                <p className="text-sm text-white/55 leading-relaxed">{t(v.descKey)}</p>
-              </div>
-            ))}
-          </ScrollReveal>
-        </PageSection>
-
-        <PageSection sectionIndex="06 / 06" className="text-center pb-16">
+        {/* 07 — CTA */}
+        <PageSection sectionIndex="07 / 07" className="text-center pb-16">
           <ScrollReveal>
             <h2 className="font-display text-2xl font-semibold mb-4">
               {t("About.ctaHeadline")}{" "}

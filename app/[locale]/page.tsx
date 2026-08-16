@@ -14,7 +14,11 @@ import { PublicPageShell } from "@/components/layout/PublicPageShell";
 
 import {
 
+  DomainMap,
+
   FeaturedVerdictCard,
+
+  FunnelVisual,
 
   InquiryCard,
 
@@ -317,14 +321,15 @@ function HomePageContent() {
 
   const displayInquiries = latestInquiries;
 
-  // Total section count is dynamic: the "Latest briefs" section (05) is
+  // Total section count is dynamic: the "Latest briefs" section (07) is
   // hidden when there are no briefs, so the denominator must adjust.
-  const sectionCount = displayInquiries.length > 0 ? 7 : 6;
+  // 01 Funnel · 02 Manifesto · 03 Pillars · 04 Domains · 05 Sources · 06 Method · 07 Briefs? · 08/07 Studio · 09/08 Newsletter
+  const sectionCount = displayInquiries.length > 0 ? 9 : 8;
   const sectionTotal = String(sectionCount).padStart(2, "0");
   // Sections after the briefs block shift down by one when briefs are hidden
   // so the numerators stay sequential (01, 02, 03 ...).
-  const studioSectionNum = displayInquiries.length > 0 ? "06" : "05";
-  const newsletterSectionNum = displayInquiries.length > 0 ? "07" : "06";
+  const studioSectionNum = displayInquiries.length > 0 ? "08" : "07";
+  const newsletterSectionNum = displayInquiries.length > 0 ? "09" : "08";
 
 
 
@@ -454,11 +459,35 @@ function HomePageContent() {
 
           </section>
 
+          {/* Funnel — mission-control pipeline visual (the differentiator made visible) */}
+
+          <section className="nx-section-divide relative px-6 sm:px-8 py-16 sm:py-20">
+
+            <span className="nx-section-index">01 / {sectionTotal}</span>
+
+            <div className="max-w-4xl mx-auto">
+
+              <ScrollReveal>
+
+                <p className="nx-eyebrow mb-8 text-center">{t("Home.theMethod")}</p>
+
+              </ScrollReveal>
+
+              <ScrollReveal delay={120}>
+
+                <FunnelVisual />
+
+              </ScrollReveal>
+
+            </div>
+
+          </section>
+
           {/* Manifesto — the Nomos philosophy (permanent, always visible) */}
 
           <section className="nx-section-divide relative px-6 sm:px-8 py-20 sm:py-28 overflow-hidden">
 
-            <span className="nx-section-index">01 / {sectionTotal}</span>
+            <span className="nx-section-index">02 / {sectionTotal}</span>
 
             <div className="nx-grid-bg-enhanced opacity-30" aria-hidden="true" />
 
@@ -516,7 +545,7 @@ function HomePageContent() {
 
           <section className="nx-section-divide relative px-6 sm:px-8 py-16 sm:py-20">
 
-            <span className="nx-section-index">02 / {sectionTotal}</span>
+            <span className="nx-section-index">03 / {sectionTotal}</span>
 
             <div className="max-w-5xl mx-auto">
 
@@ -543,6 +572,10 @@ function HomePageContent() {
             </div>
 
           </section>
+
+          {/* Domain map — where we work (Harvard "Where we work" inspired) */}
+
+          <DomainMap sectionIndex={`04 / ${sectionTotal}`} />
 
           {/* Data sources ticker */}
 
@@ -594,7 +627,7 @@ function HomePageContent() {
 
           <section className="nx-section-divide relative px-6 sm:px-8 py-16 sm:py-20">
 
-            <span className="nx-section-index">03 / {sectionTotal}</span>
+            <span className="nx-section-index">05 / {sectionTotal}</span>
 
             <div className="max-w-4xl mx-auto grid sm:grid-cols-2 gap-10 sm:gap-16">
 
@@ -630,7 +663,7 @@ function HomePageContent() {
 
           <section className="nx-section-divide relative px-6 sm:px-8 py-16 sm:py-20">
 
-            <span className="nx-section-index">04 / {sectionTotal}</span>
+            <span className="nx-section-index">06 / {sectionTotal}</span>
 
             <div className="max-w-lg mx-auto">
 
@@ -658,7 +691,7 @@ function HomePageContent() {
 
           <section className="nx-section-divide relative px-6 sm:px-8 py-16 sm:py-20">
 
-            <span className="nx-section-index">05 / {sectionTotal}</span>
+            <span className="nx-section-index">07 / {sectionTotal}</span>
 
             <div className="max-w-6xl mx-auto">
 

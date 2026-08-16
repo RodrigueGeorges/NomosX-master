@@ -1,6 +1,8 @@
 export { FeaturedVerdictCard } from "./FeaturedVerdictCard";
 export type { FeaturedVerdictData } from "./FeaturedVerdictCard";
+export { DomainMap } from "./DomainMap";
 export { EtherealBackground } from "./EtherealBackground";
+export { FunnelVisual } from "./FunnelVisual";
 export { InquiryCard } from "./InquiryCard";
 export type { InquiryCardData, InquiryWatermark } from "./InquiryCard";
 export { PolicyNetwork } from "./PolicyNetwork";
