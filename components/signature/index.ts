@@ -5,6 +5,7 @@ export { EtherealBackground } from "./EtherealBackground";
 export { FunnelVisual } from "./FunnelVisual";
 export { InquiryCard } from "./InquiryCard";
 export type { InquiryCardData, InquiryWatermark } from "./InquiryCard";
+export { KnowledgeGraphHero } from "./KnowledgeGraphHero";
 export { PolicyNetwork } from "./PolicyNetwork";
 export { PipelineStrip } from "./PipelineStrip";
 export { StudioPreview } from "./StudioPreview";

@@ -11,6 +11,7 @@ import { StatCounter } from "@/components/ui/StatCounter";
 import { PUBLIC_ROUTES } from "@/lib/public-urls";
 import { DomainMap } from "@/components/signature/DomainMap";
 import { FunnelVisual } from "@/components/signature/FunnelVisual";
+import { KnowledgeGraphHero } from "@/components/signature/KnowledgeGraphHero";
 import {
   BRAND_POSITIONING,
   BRAND_TAGLINE,
@@ -58,8 +59,9 @@ export default function AboutPage() {
         </PageSection>
 
         {/* 01 — Mission statement (full-bleed, large type, no card) */}
-        <PageSection sectionIndex="01 / 07" className="py-16 sm:py-24">
-          <div className="max-w-3xl mx-auto text-center">
+        <PageSection sectionIndex="01 / 07" className="relative py-20 sm:py-32 overflow-hidden">
+          <KnowledgeGraphHero />
+          <div className="relative max-w-3xl mx-auto text-center">
             <ScrollReveal>
               <p className="nx-eyebrow mb-8 justify-center">{t("About.missionEyebrow")}</p>
             </ScrollReveal>

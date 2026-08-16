@@ -22,8 +22,6 @@ import {
 
   InquiryCard,
 
-  PipelineStrip,
-
   StudioPreview,
 
   type FeaturedVerdictData,
@@ -681,10 +679,6 @@ function HomePageContent() {
 
 
 
-          <PipelineStrip />
-
-
-
           {/* Latest briefs */}
 
           {displayInquiries.length > 0 && (
@@ -829,9 +823,7 @@ function HomePageContent() {
 
 
 
-          {/* Track record — public accountability */}
-
-          {trackRecord && (
+          {/* Track record — public accountability (always visible; pending state when no data) */}
 
           <section className="nx-section-divide relative px-6 sm:px-8 py-16 sm:py-20">
 
@@ -855,7 +847,7 @@ function HomePageContent() {
 
                   <p className="font-mono text-3xl font-light text-white tabular-nums leading-none mb-3">
 
-                    <StatCounter end={trackRecord.total} suffix="" />
+                    <StatCounter end={trackRecord?.total ?? 0} suffix="" />
 
                   </p>
 
@@ -867,7 +859,7 @@ function HomePageContent() {
 
                   <p className="font-mono text-3xl font-light text-white tabular-nums leading-none mb-3">
 
-                    <StatCounter end={trackRecord.open} suffix="" />
+                    <StatCounter end={trackRecord?.open ?? 0} suffix="" />
 
                   </p>
 
@@ -879,7 +871,7 @@ function HomePageContent() {
 
                   <p className="font-mono text-3xl font-light text-white tabular-nums leading-none mb-3">
 
-                    {trackRecord.accuracyPct !== null ? (
+                    {trackRecord?.accuracyPct != null ? (
 
                       <StatCounter end={Math.round(trackRecord.accuracyPct)} suffix="%" />
 
@@ -899,7 +891,7 @@ function HomePageContent() {
 
                   <p className="font-mono text-3xl font-light text-white tabular-nums leading-none mb-3">
 
-                    {trackRecord.brierScore !== null ? (
+                    {trackRecord?.brierScore != null ? (
 
                       <span>{trackRecord.brierScore}</span>
 
@@ -940,8 +932,6 @@ function HomePageContent() {
             </div>
 
           </section>
-
-          )}
 
 
 
