@@ -137,8 +137,8 @@ export default function WitnessDashboardPage() {
   return (
     <PublicPageShell>
       <PageHeader
-        title="Witness — Metacognitive Observer"
-        description="The Witness observes the pipeline, detects anomalies, intervenes when needed, and learns across runs."
+        title="Witness — Observateur métacognitif"
+        description="Le Witness observe le pipeline, détecte les anomalies, intervient si nécessaire, et apprend entre les runs."
       />
 
       <div className="px-6 pb-12 max-w-7xl mx-auto">
@@ -146,7 +146,7 @@ export default function WitnessDashboardPage() {
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2 text-sm text-gray-400">
             <Eye className="w-4 h-4" />
-            <span>Metacognitive layer — Sakshi Witness pattern</span>
+            <span>Couche métacognitive — pattern Sakshi Witness</span>
           </div>
           <button
             onClick={fetchData}
@@ -177,7 +177,7 @@ export default function WitnessDashboardPage() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
               <SummaryCard
                 icon={<Activity className="w-5 h-5" />}
-                label="Cycle Traces"
+                label="Traces de cycle"
                 value={data.summary.totalCycleTraces}
                 color="text-blue-300"
               />
@@ -191,12 +191,12 @@ export default function WitnessDashboardPage() {
                 icon={<Shield className="w-5 h-5" />}
                 label="Interventions"
                 value={`${data.summary.approvedInterventions}/${data.summary.totalInterventions}`}
-                sublabel={`${data.summary.deniedInterventions} denied`}
+                sublabel={`${data.summary.deniedInterventions} refusées`}
                 color="text-purple-300"
               />
               <SummaryCard
                 icon={<TrendingUp className="w-5 h-5" />}
-                label="Avg Quality"
+                label="Qualité moyenne"
                 value={data.summary.avgQualityScore !== null ? `${data.summary.avgQualityScore}/100` : "—"}
                 sublabel={`${data.summary.totalRunLearnings} runs`}
                 color="text-green-300"
@@ -206,9 +206,9 @@ export default function WitnessDashboardPage() {
             {/* Two-column: Anomalies + Interventions */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
               {/* Anomaly Distribution */}
-              <Panel title="Anomaly Distribution" icon={<AlertTriangle className="w-4 h-4" />}>
+              <Panel title="Distribution des anomalies" icon={<AlertTriangle className="w-4 h-4" />}>
                 {Object.keys(data.anomalyTypeCounts).length === 0 ? (
-                  <EmptyState text="No anomalies detected" />
+                  <EmptyState text="Aucune anomalie détectée" />
                 ) : (
                   <div className="space-y-2">
                     {Object.entries(data.anomalyTypeCounts)
@@ -235,7 +235,7 @@ export default function WitnessDashboardPage() {
                 {/* Severity breakdown */}
                 {Object.keys(data.anomalySeverityCounts).length > 0 && (
                   <div className="mt-4 pt-4 border-t border-white/5">
-                    <div className="text-xs text-gray-500 mb-2">By Severity</div>
+                    <div className="text-xs text-gray-500 mb-2">Par sévérité</div>
                     <div className="flex gap-2 flex-wrap">
                       {Object.entries(data.anomalySeverityCounts).map(([sev, count]) => (
                         <span
@@ -251,9 +251,9 @@ export default function WitnessDashboardPage() {
               </Panel>
 
               {/* Intervention Distribution */}
-              <Panel title="Intervention Distribution" icon={<Zap className="w-4 h-4" />}>
+              <Panel title="Distribution des interventions" icon={<Zap className="w-4 h-4" />}>
                 {Object.keys(data.interventionTypeCounts).length === 0 ? (
-                  <EmptyState text="No interventions executed" />
+                  <EmptyState text="Aucune intervention exécutée" />
                 ) : (
                   <div className="space-y-2">
                     {Object.entries(data.interventionTypeCounts)
@@ -282,9 +282,9 @@ export default function WitnessDashboardPage() {
             </div>
 
             {/* Per-step anomaly counts */}
-            <Panel title="Anomalies by Pipeline Step" icon={<Activity className="w-4 h-4" />} className="mb-8">
+            <Panel title="Anomalies par étape du pipeline" icon={<Activity className="w-4 h-4" />} className="mb-8">
               {Object.keys(data.stepAnomalyCounts).length === 0 ? (
-                <EmptyState text="No step-level anomaly data" />
+                <EmptyState text="Aucune donnée d'anomalie par étape" />
               ) : (
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                   {Object.entries(data.stepAnomalyCounts).map(([step, count]) => (
@@ -299,12 +299,12 @@ export default function WitnessDashboardPage() {
 
             {/* Cross-Run Learning: Prompt Modifications */}
             <Panel
-              title="Cross-Run Learning — Prompt Modifications"
+              title="Apprentissage cross-run — Modifications de prompts"
               icon={<Lightbulb className="w-4 h-4" />}
               className="mb-8"
             >
               {data.promptModifications.length === 0 ? (
-                <EmptyState text="No prompt modifications suggested yet" />
+                <EmptyState text="Aucune modification de prompt suggérée" />
               ) : (
                 <div className="space-y-3">
                   {data.promptModifications.map((mod, i) => (
@@ -328,12 +328,12 @@ export default function WitnessDashboardPage() {
 
             {/* Threshold Adjustments */}
             <Panel
-              title="Cross-Run Learning — Threshold Adjustments"
+              title="Apprentissage cross-run — Ajustements de seuils"
               icon={<TrendingUp className="w-4 h-4" />}
               className="mb-8"
             >
               {data.thresholdAdjustments.length === 0 ? (
-                <EmptyState text="No threshold adjustments suggested yet" />
+                <EmptyState text="Aucun ajustement de seuil suggéré" />
               ) : (
                 <div className="space-y-3">
                   {data.thresholdAdjustments.map((adj, i) => (
@@ -357,9 +357,9 @@ export default function WitnessDashboardPage() {
             </Panel>
 
             {/* Recent Anomalies */}
-            <Panel title="Recent Anomalies" icon={<AlertTriangle className="w-4 h-4" />} className="mb-8">
+            <Panel title="Anomalies récentes" icon={<AlertTriangle className="w-4 h-4" />} className="mb-8">
               {data.recentAnomalies.length === 0 ? (
-                <EmptyState text="No recent anomalies" />
+                <EmptyState text="Aucune anomalie récente" />
               ) : (
                 <div className="space-y-2">
                   {data.recentAnomalies.map((a, i) => (
@@ -387,9 +387,9 @@ export default function WitnessDashboardPage() {
             </Panel>
 
             {/* Recent Interventions */}
-            <Panel title="Recent Interventions" icon={<Zap className="w-4 h-4" />} className="mb-8">
+            <Panel title="Interventions récentes" icon={<Zap className="w-4 h-4" />} className="mb-8">
               {data.recentInterventions.length === 0 ? (
-                <EmptyState text="No recent interventions" />
+                <EmptyState text="Aucune intervention récente" />
               ) : (
                 <div className="space-y-2">
                   {data.recentInterventions.map((int, i) => (
@@ -426,9 +426,9 @@ export default function WitnessDashboardPage() {
             </Panel>
 
             {/* Recent Run Learnings */}
-            <Panel title="Recent Run Learnings" icon={<TrendingUp className="w-4 h-4" />} className="mb-8">
+            <Panel title="Apprentissages récents des runs" icon={<TrendingUp className="w-4 h-4" />} className="mb-8">
               {data.recentLearnings.length === 0 ? (
-                <EmptyState text="No run learnings yet — run the pipeline with useWitness:true" />
+                <EmptyState text="Aucun apprentissage — lancez le pipeline avec useWitness:true" />
               ) : (
                 <div className="space-y-2">
                   {data.recentLearnings.map((l, i) => (

@@ -88,8 +88,8 @@ export default function MoatDashboardPage() {
   return (
     <PublicPageShell>
       <PageHeader
-        title="Moat — Autonomous Self-Improvement"
-        description="Four pillars of defensible advantage: Process Rewards, Adversarial Self-Play, Mixture of Agents, and World Model."
+        title="Moat — Auto-amélioration autonome"
+        description="Quatre piliers d'avantage compétitif défendable : Process Rewards, Self-Play adversarial, Mixture of Agents, et World Model."
       />
 
       <div className="px-6 pb-12 max-w-7xl mx-auto">
@@ -97,7 +97,7 @@ export default function MoatDashboardPage() {
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2 text-sm text-gray-400">
             <Trophy className="w-4 h-4" />
-            <span>4-pillar moat system — PRM + Self-Play + MoA + World Model</span>
+            <span>Système moat à 4 piliers — PRM + Self-Play + MoA + World Model</span>
           </div>
           <button
             onClick={fetchData}
@@ -126,16 +126,16 @@ export default function MoatDashboardPage() {
           <>
             {/* Summary Cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-              <SummaryCard icon={<Brain className="w-5 h-5" />} label="PRM Examples" value={data.summary.prmTrainingExamples} sublabel={`${data.summary.prmSteps} steps scored`} color="text-blue-300" />
-              <SummaryCard icon={<Swords className="w-5 h-5" />} label="Self-Play Rounds" value={data.summary.selfPlayRounds} sublabel={`${data.selfPlay.succeededAttacks} weaknesses found`} color="text-red-300" />
-              <SummaryCard icon={<Users className="w-5 h-5" />} label="MoA Runs" value={data.summary.moaRuns} sublabel={data.moa.avgConfidence !== null ? `${(data.moa.avgConfidence * 100).toFixed(0)}% avg confidence` : ""} color="text-purple-300" />
-              <SummaryCard icon={<Globe className="w-5 h-5" />} label="World Model Domains" value={data.summary.worldModelDomains} sublabel={`${data.summary.crossDomainLinks} cross-links`} color="text-green-300" />
+              <SummaryCard icon={<Brain className="w-5 h-5" />} label="Exemples PRM" value={data.summary.prmTrainingExamples} sublabel={`${data.summary.prmSteps} étapes scorées`} color="text-blue-300" />
+              <SummaryCard icon={<Swords className="w-5 h-5" />} label="Runs Self-Play" value={data.summary.selfPlayRounds} sublabel={`${data.selfPlay.succeededAttacks} faiblesses trouvées`} color="text-red-300" />
+              <SummaryCard icon={<Users className="w-5 h-5" />} label="Runs MoA" value={data.summary.moaRuns} sublabel={data.moa.avgConfidence !== null ? `${(data.moa.avgConfidence * 100).toFixed(0)}% confiance moyenne` : ""} color="text-purple-300" />
+              <SummaryCard icon={<Globe className="w-5 h-5" />} label="Domaines World Model" value={data.summary.worldModelDomains} sublabel={`${data.summary.crossDomainLinks} liens inter-domaines`} color="text-green-300" />
             </div>
 
             {/* PRM Section */}
-            <Panel title="Process Reward Model — Learned Feature Weights" icon={<Brain className="w-4 h-4" />} className="mb-8">
+            <Panel title="Process Reward Model — Poids des features appris" icon={<Brain className="w-4 h-4" />} className="mb-8">
               {data.prm.topFeatures.length === 0 ? (
-                <EmptyState text="No PRM model trained yet — run with usePRM:true to collect data" />
+                <EmptyState text="Aucun modèle PRM entraîné — lancez avec usePRM:true pour collecter des données" />
               ) : (
                 <>
                   <div className="space-y-2 mb-4">
@@ -157,9 +157,9 @@ export default function MoatDashboardPage() {
                     ))}
                   </div>
                   <div className="flex gap-4 text-sm text-gray-500 pt-3 border-t border-white/5">
-                    <span>Training examples: {data.prm.trainingExamples}</span>
+                    <span>Exemples d'entraînement : {data.prm.trainingExamples}</span>
                     {data.prm.avgReward !== null && (
-                      <span>Avg reward: {data.prm.avgReward.toFixed(3)}</span>
+                      <span>Récompense moyenne : {data.prm.avgReward.toFixed(3)}</span>
                     )}
                   </div>
                 </>
@@ -168,20 +168,20 @@ export default function MoatDashboardPage() {
 
             {/* Self-Play Section */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-              <Panel title="Adversarial Self-Play — Weakness Discovery" icon={<Swords className="w-4 h-4" />}>
+              <Panel title="Self-Play adversarial — Découverte de faiblesses" icon={<Swords className="w-4 h-4" />}>
                 {data.selfPlay.totalRounds === 0 ? (
-                  <EmptyState text="No self-play rounds yet — run with useSelfPlay:true" />
+                  <EmptyState text="Aucun run self-play — lancez avec useSelfPlay:true" />
                 ) : (
                   <>
                     <div className="grid grid-cols-2 gap-3 mb-4">
-                      <Metric label="Total Attacks" value={data.selfPlay.totalAttacks} />
-                      <Metric label="Succeeded" value={data.selfPlay.succeededAttacks} color="text-red-300" />
-                      <Metric label="Success Rate" value={data.selfPlay.successRate !== null ? `${(data.selfPlay.successRate * 100).toFixed(0)}%` : "—"} />
-                      <Metric label="Avg Robustness" value={data.selfPlay.avgRobustness !== null ? `${(data.selfPlay.avgRobustness * 100).toFixed(0)}%` : "—"} color="text-green-300" />
+                      <Metric label="Attaques totales" value={data.selfPlay.totalAttacks} />
+                      <Metric label="Réussies" value={data.selfPlay.succeededAttacks} color="text-red-300" />
+                      <Metric label="Taux de réussite" value={data.selfPlay.successRate !== null ? `${(data.selfPlay.successRate * 100).toFixed(0)}%` : "—"} />
+                      <Metric label="Robustesse moyenne" value={data.selfPlay.avgRobustness !== null ? `${(data.selfPlay.avgRobustness * 100).toFixed(0)}%` : "—"} color="text-green-300" />
                     </div>
                     {Object.keys(data.selfPlay.weaknessCategories).length > 0 && (
                       <div className="pt-3 border-t border-white/5">
-                        <div className="text-xs text-gray-500 mb-2">Weakness Categories Found</div>
+                        <div className="text-xs text-gray-500 mb-2">Catégories de faiblesses trouvées</div>
                         <div className="flex gap-2 flex-wrap">
                           {Object.entries(data.selfPlay.weaknessCategories)
                             .sort((a, b) => b[1] - a[1])
@@ -197,9 +197,9 @@ export default function MoatDashboardPage() {
                 )}
               </Panel>
 
-              <Panel title="Self-Play — Recent Rounds" icon={<TrendingUp className="w-4 h-4" />}>
+              <Panel title="Self-Play — Runs récents" icon={<TrendingUp className="w-4 h-4" />}>
                 {data.selfPlay.recentRounds.length === 0 ? (
-                  <EmptyState text="No recent rounds" />
+                  <EmptyState text="Aucun run récent" />
                 ) : (
                   <div className="space-y-2">
                     {data.selfPlay.recentRounds.map((r, i) => (
@@ -226,9 +226,9 @@ export default function MoatDashboardPage() {
 
             {/* MoA Section */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-              <Panel title="Mixture of Agents — Specialist Usage" icon={<Users className="w-4 h-4" />}>
+              <Panel title="Mixture of Agents — Utilisation des spécialistes" icon={<Users className="w-4 h-4" />}>
                 {Object.keys(data.moa.agentUsage).length === 0 ? (
-                  <EmptyState text="No MoA runs yet — run with useMixtureOfAgents:true" />
+                  <EmptyState text="Aucun run MoA — lancez avec useMixtureOfAgents:true" />
                 ) : (
                   <div className="space-y-2">
                     {Object.entries(data.moa.agentUsage)
@@ -251,7 +251,7 @@ export default function MoatDashboardPage() {
                 )}
                 {data.moa.latestWeights && (
                   <div className="mt-4 pt-3 border-t border-white/5">
-                    <div className="text-xs text-gray-500 mb-2">Current Agent Weights</div>
+                    <div className="text-xs text-gray-500 mb-2">Poids actuels des agents</div>
                     <div className="flex gap-2 flex-wrap">
                       {Object.entries(data.moa.latestWeights).map(([agent, info]) => (
                         <span key={agent} className="px-2 py-0.5 text-xs rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">
@@ -263,9 +263,9 @@ export default function MoatDashboardPage() {
                 )}
               </Panel>
 
-              <Panel title="MoA — Recent Runs" icon={<TrendingUp className="w-4 h-4" />}>
+              <Panel title="MoA — Runs récents" icon={<TrendingUp className="w-4 h-4" />}>
                 {data.moa.recentRuns.length === 0 ? (
-                  <EmptyState text="No recent MoA runs" />
+                  <EmptyState text="Aucun run MoA récent" />
                 ) : (
                   <div className="space-y-2">
                     {data.moa.recentRuns.map((r, i) => (
@@ -291,22 +291,22 @@ export default function MoatDashboardPage() {
             </div>
 
             {/* World Model Section */}
-            <Panel title="World Model — Persistent Knowledge" icon={<Globe className="w-4 h-4" />} className="mb-8">
+            <Panel title="World Model — Connaissance persistante" icon={<Globe className="w-4 h-4" />} className="mb-8">
               {data.worldModel.domainCount === 0 ? (
-                <EmptyState text="No world model data yet — run with useWorldModel:true" />
+                <EmptyState text="Aucune donnée World Model — lancez avec useWorldModel:true" />
               ) : (
                 <>
                   <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
-                    <Metric label="Domains" value={data.worldModel.domainCount} />
+                    <Metric label="Domaines" value={data.worldModel.domainCount} />
                     <Metric label="Concepts" value={data.worldModel.totalConcepts} />
                     <Metric label="Positions" value={data.worldModel.totalPositions} color="text-green-300" />
-                    <Metric label="Controversies" value={data.worldModel.totalControversies} color="text-yellow-300" />
+                    <Metric label="Controverses" value={data.worldModel.totalControversies} color="text-yellow-300" />
                     <Metric label="Sources" value={data.worldModel.totalSources} />
                   </div>
 
                   {/* Domain breakdown */}
                   <div className="pt-3 border-t border-white/5">
-                    <div className="text-xs text-gray-500 mb-2">Domains</div>
+                    <div className="text-xs text-gray-500 mb-2">Domaines</div>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                       {data.worldModel.domains.map((d, i) => (
                         <div key={i} className="p-2 rounded-lg bg-white/5 border border-white/10">
@@ -325,9 +325,9 @@ export default function MoatDashboardPage() {
             </Panel>
 
             {/* Cross-Domain Links */}
-            <Panel title="Cross-Domain Connections" icon={<Link2 className="w-4 h-4" />} className="mb-8">
+            <Panel title="Connexions inter-domaines" icon={<Link2 className="w-4 h-4" />} className="mb-8">
               {data.worldModel.crossDomainLinks.length === 0 ? (
-                <EmptyState text="No cross-domain links discovered yet" />
+                <EmptyState text="Aucune connexion inter-domaines découverte" />
               ) : (
                 <div className="space-y-2">
                   {data.worldModel.crossDomainLinks.map((link, i) => (

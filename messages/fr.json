@@ -175,5 +175,14 @@
   "Metadata": {
     "localeEn": "en_US",
     "localeFr": "fr_FR"
+  },
+  "Dashboards": {
+    "section": "Tableaux de bord du système IA",
+    "learning": "Apprentissage",
+    "learningDesc": "Auto-correction & retours humains",
+    "witness": "Witness",
+    "witnessDesc": "Observateur métacognitif",
+    "moat": "Moat",
+    "moatDesc": "Auto-amélioration à 4 piliers"
   }
 }

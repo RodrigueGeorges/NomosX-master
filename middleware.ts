@@ -107,7 +107,7 @@ function applySecurityAndAuth(request: NextRequest, response: NextResponse): Nex
   // Auth guard: redirect to homepage if no session cookie on protected routes.
   // Match protected prefixes regardless of locale prefix (e.g. /fr/studio).
   const protectedPatterns = [
-    '/studio', '/fr/studio',
+    '/dashboard', '/fr/dashboard',
     '/learning', '/fr/learning',
     '/witness', '/fr/witness',
     '/moat', '/fr/moat',

@@ -175,5 +175,14 @@
   "Metadata": {
     "localeEn": "en_US",
     "localeFr": "fr_FR"
+  },
+  "Dashboards": {
+    "section": "AI System Dashboards",
+    "learning": "Learning",
+    "learningDesc": "Self-correction & human feedback",
+    "witness": "Witness",
+    "witnessDesc": "Metacognitive observer",
+    "moat": "Moat",
+    "moatDesc": "4-pillar self-improvement"
   }
 }

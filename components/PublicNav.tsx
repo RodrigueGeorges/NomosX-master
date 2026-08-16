@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
-import { Menu, X, Globe } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Menu, X, Globe, LayoutDashboard } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useTranslations } from "next-intl";
 import { NomosXLogo } from "@/components/brand/NomosXLogo";
@@ -39,6 +39,20 @@ export default function PublicNav({ currentPage, onSignInClick, isAuthenticated 
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  // Check if user is admin (for dashboard link)
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    fetch("/api/auth/me")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data?.user?.role === "admin" || data?.user?.role === "superadmin") {
+          setIsAdmin(true);
+        }
+      })
+      .catch(() => {});
+  }, [isAuthenticated]);
 
   // Detect current locale from pathname (/fr/... → fr, else en)
   const currentLocale: AppLocale = pathname.startsWith("/fr") ? "fr" : "en";
@@ -81,6 +95,16 @@ export default function PublicNav({ currentPage, onSignInClick, isAuthenticated 
               )}
             </button>
           ))}
+          {isAdmin && (
+            <button
+              type="button"
+              onClick={() => router.push("/dashboard")}
+              className="flex items-center gap-1.5 font-mono text-xs uppercase tracking-[0.1em] text-white/55 hover:text-white transition-colors py-1"
+            >
+              <LayoutDashboard size={12} />
+              Dashboard
+            </button>
+          )}
         </div>
 
         <div className="flex items-center gap-2">
@@ -177,6 +201,20 @@ export default function PublicNav({ currentPage, onSignInClick, isAuthenticated 
                   {t(link.labelKey)}
                 </button>
               ))}
+
+              {isAdmin && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    router.push("/dashboard");
+                    setMobileOpen(false);
+                  }}
+                  className="flex items-center gap-2 font-mono text-xs uppercase tracking-[0.16em] text-left text-white/60"
+                >
+                  <LayoutDashboard size={14} />
+                  Dashboard
+                </button>
+              )}
 
               {/* Mobile language switcher */}
               <div className="flex gap-3 pt-2 border-t border-white/[0.06]">
