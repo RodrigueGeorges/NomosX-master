@@ -325,6 +325,7 @@ export interface PipelineStats {
     narrativeArcValid?: boolean;
     sectionsWithIssues?: number;
     logicalGaps?: number;
+    suggestions?: number;
     costUsd?: number;
     restructured?: boolean;
     skipped?: boolean;
@@ -453,6 +454,7 @@ export interface PipelineStats {
     skipReason?: string;
     loopRetried?: boolean;
     loopImprovement?: number;
+    mode?: string;
   };
 
   // Post-Render Quality Loop (Karpathy Loop pattern — retry citation repair if trust < threshold)
@@ -529,6 +531,8 @@ export interface PipelineStats {
     publishabilityScore?: number;
     fatalChallenges?: number;
     majorChallenges?: number;
+    killShot?: string;
+    futureVulnerabilities?: number;
     vsInstitutions?: string;
     institutionScores?: {
       mckinsey: number;

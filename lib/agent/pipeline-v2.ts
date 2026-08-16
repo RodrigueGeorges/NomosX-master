@@ -26,12 +26,11 @@ import { extractAndStoreGaps, getRelevantGaps, markGapsFilled } from './gap-fill
 import { assessEvidenceSufficiency } from './enrichment-reasoner';
 import { selfCorrectReader, selfCorrectAnalyst, reAnalyzeAfterGapFill } from './self-correction-integration';
 import { analystReAct } from './analyst-react';
-import { metaControllerDecide } from './meta-controller';
 import { createWitnessContext, buildObservation, buildLearningInjection, type WitnessContext } from './witness/integration';
-import { runMixtureOfAgents, loadAgentWeights, updateAgentWeights, type MoAResult } from './moa/mixture-of-agents';
+import { runMixtureOfAgents, loadAgentWeights, updateAgentWeights } from './moa/mixture-of-agents';
 import { buildWorldModelInjection, updateWorldModel } from './world-model/world-model';
 import { buildSelfPlayInjection, runSelfPlayRound } from './self-play/adversarial';
-import { extractFeatures, scoreStep, llmScoreStep, persistProcessStep, loadPRMModel, retrainPRM, type ProcessStep, type PRMModel } from './prm/process-reward-model';
+import { extractFeatures, scoreStep, persistProcessStep, loadPRMModel, retrainPRM, type ProcessStep, type PRMModel } from './prm/process-reward-model';
 
 // P1-PERF: Optional agents are lazy-loaded via dynamic import() to reduce cold start
 // debateAgent, metaAnalysisEngine, runDevilsAdvocate, runHarvardCouncil,
@@ -2791,6 +2790,49 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   const topicClassification = await classifyTopic(query);
   const detectedDomain = topicClassification.primaryDomain;
   ctx.setDomain(detectedDomain);
+
+  // ── PREPARE FOUNDATIONAL SOURCES (post-classification, pre-rank) ──
+  // Seminal works from researcher KB — prepared here, injected AFTER rank.
+  // They don't exist in DB, so rank() would filter them out.
+  let foundationalSources: Array<{
+    id: string; title: string; abstract: string; authors: Array<{ name: string }>;
+    year: number; doi: string | null; provider: string; url: string | null;
+    type: string; qualityScore: number; metadata: Record<string, unknown>;
+  }> = [];
+  try {
+    const kb = RESEARCHER_KBS[detectedDomain as keyof typeof RESEARCHER_KBS];
+    if (kb?.referencePapers && kb.referencePapers.length > 0) {
+      foundationalSources = kb.referencePapers.slice(0, 3).map((p, i) => ({
+        id: `foundational:${detectedDomain}:${i}`,
+        title: p.title,
+        abstract: `${p.significance}. Authors: ${p.authors}. Journal: ${p.journal}. Year: ${p.year}.`,
+        authors: [{ name: String(p.authors) }],
+        year: p.year,
+        doi: null,
+        provider: 'foundational',
+        url: null,
+        type: 'reference',
+        qualityScore: 95,
+        metadata: { seminal: true, domain: detectedDomain },
+      }));
+      console.log(`${label} FOUNDATIONAL INJECTION: prepared ${foundationalSources.length} seminal works from ${detectedDomain} KB (will inject after rank)`);
+    }
+  } catch (err) {
+    console.warn(`${label} FOUNDATIONAL INJECTION: failed (non-blocking):`, err);
+  }
+
+  // ── INJECT FOUNDATIONAL SOURCES (post-rank, post-classification) ──
+  // Seminal works from researcher KB are added directly to topSources.
+  // They bypass rank() because they don't exist in the DB — they're context-only
+  // reference papers that the analyst can cite for theoretical grounding.
+  if (foundationalSources.length > 0) {
+    for (const fs of foundationalSources) {
+      (fs as any).loadBearing = false;
+      (fs as any).compositeScore = 85;
+      topSources.push(fs as any);
+    }
+    console.log(`${label} FOUNDATIONAL INJECTION: +${foundationalSources.length} seminal works injected into topSources (now ${topSources.length} total)`);
+  }
   ctx.addFinding('CLASSIFIER', 'insight', `Domain: ${detectedDomain} (confidence: ${topicClassification.confidence})`, { domains: topicClassification.domains, isCrossDomain: topicClassification.isCrossDomain });
   stats.topicClassification = {
     primaryDomain: topicClassification.primaryDomain,
@@ -2849,32 +2891,6 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     }
   } catch (err) {
     console.warn(`${label} GAP FILLER: retrieval failed (non-blocking):`, err);
-  }
-
-  // ── STEP 4c: INJECT FOUNDATIONAL SOURCES (PhD library) ──
-  // Reactivated: seminal works from researcher KB are injected as context-only sources
-  // so the analyst can reference them. They don't go through SCOUT but are added to the pool.
-  try {
-    const kb = RESEARCHER_KBS[detectedDomain as keyof typeof RESEARCHER_KBS];
-    if (kb?.referencePapers && kb.referencePapers.length > 0) {
-      const foundationalSources = kb.referencePapers.slice(0, 3).map((p, i) => ({
-        id: `foundational:${detectedDomain}:${i}`,
-        title: p.title,
-        abstract: `${p.significance}. Authors: ${p.authors}. Journal: ${p.journal}. Year: ${p.year}.`,
-        authors: [{ name: p.authors }],
-        year: p.year,
-        doi: null,
-        provider: 'foundational',
-        url: null,
-        type: 'reference',
-        qualityScore: 95,
-        metadata: { seminal: true, domain: detectedDomain },
-      }));
-      allSourceIds = [...new Set([...allSourceIds, ...foundationalSources.map(s => s.id)])];
-      console.log(`${label} FOUNDATIONAL INJECTION: +${foundationalSources.length} seminal works from ${detectedDomain} KB`);
-    }
-  } catch (err) {
-    console.warn(`${label} FOUNDATIONAL INJECTION: failed (non-blocking):`, err);
   }
 
   // STEP 4d: GAP FILLER SCOUT — run supplementary searches for prior knowledge gaps
@@ -3999,14 +4015,39 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     }
   }
 
-  // ── STEP 6a: STRUCTURAL EDITOR — SUPPRESSED (strategic only) ──
-  // Redundant with analyst multipass 3-pass structure. LLM rewrite introduces noise.
-  // $0.05/run saved.
+  // ── STEP 6a: STRUCTURAL EDITOR (strategic only) ──
+  // Reviews narrative structure (Pyramid Principle, SCR, governing thoughts)
+  // BEFORE rendering to HTML. Assessment only — does not rewrite.
+  // For briefs: skipped (3-pass analyst handles structure adequately).
   stats.harvardCouncil = { skipped: true };
   stats.deliberation = { skipped: true };
-  stats.structuralEditor = { skipped: true, reason: 'suppressed — redundant with 3-pass analyst' };
   if (isStrategic) {
-    console.log(`${label} STRUCTURAL EDITOR: suppressed — analyst multipass handles structure`);
+    try {
+      const { structuralEditorReview } = await import('./structural-editor');
+      const structuralResult = await structuralEditorReview(analysis, query);
+      stats.structuralEditor = {
+        overallStructure: structuralResult.overallStructure,
+        narrativeArcValid: structuralResult.narrativeArcValid,
+        sectionsWithIssues: structuralResult.sectionReviews?.filter(s => s.issues?.length > 0).length || 0,
+        logicalGaps: structuralResult.logicalGaps?.length || 0,
+        suggestions: structuralResult.restructuringSuggestions?.length || 0,
+        costUsd: structuralResult.costUsd,
+      };
+      addCost(structuralResult.costUsd, 'STRUCTURAL_EDITOR');
+      console.log(`${label} STRUCTURAL EDITOR: structure=${structuralResult.overallStructure}/100, arc=${structuralResult.narrativeArcValid}, ${structuralResult.logicalGaps?.length || 0} gaps, ${structuralResult.sectionReviews?.filter(s => s.issues?.length > 0).length || 0} sections with issues`);
+
+      // If structural issues are critical (score < 40), inject suggestions into context for re-render
+      if (structuralResult.overallStructure < 40 && structuralResult.restructuringSuggestions?.length > 0) {
+        const structuralFeedback = `\n## STRUCTURAL EDITOR FEEDBACK (inject into rendering)\nThe narrative structure scored ${structuralResult.overallStructure}/100. Key issues:\n${structuralResult.restructuringSuggestions.slice(0, 3).map(s => `- ${s}`).join('\n')}\nLogical gaps:\n${structuralResult.logicalGaps.slice(0, 3).map(g => `- ${g}`).join('\n')}`;
+        fullContextBlock = (fullContextBlock || '') + '\n\n---\n\n' + structuralFeedback;
+        console.warn(`${label} STRUCTURAL EDITOR: critical structure score (${structuralResult.overallStructure}/100) — feedback injected for rendering`);
+      }
+    } catch (err) {
+      console.warn(`${label} STRUCTURAL EDITOR: failed (non-blocking):`, err);
+      stats.structuralEditor = { error: String(err) };
+    }
+  } else {
+    stats.structuralEditor = { skipped: true, reason: 'brief format — analyst multipass handles structure' };
   }
 
   // â”€â”€ STEP 7: CITATION GUARD â”€â”€
@@ -4710,8 +4751,9 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
         finalScore: deterministicScore,
         improvement: 0,
         needsHumanReview: deterministicScore < 55,
-        skipped: true,
-        skipReason: 'Deterministic scoring (no LLM judges)',
+        skipped: false,
+        mode: 'deterministic',
+        skipReason: undefined,
       };
 
       console.log(`${label} DETERMINISTIC TRUST: ${deterministicScore}/100 — coverage=${Math.round(citationCoverage * 100)}%, groundedness=${Math.round(groundedness * 100)}%, factCheck=${factIntegrity}%, nli=${nliIntegrity}%, sourceCheck=${sourceCheckIntegrity}%, diversity=${diversityScore}, avgQuality=${Math.round(avgQuality)}`);
@@ -4861,13 +4903,119 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     }
   };
 
-  const runDevilsAdvocateBlock = async (_contentForReview: string, _allowHtmlRevision: boolean) => {
-    // DEVIL'S ADVOCATE: SUPPRESSED — destroys trust score without improving quality.
-    // LLM judge sees truncated content, makes hostile assessments with calibration drift.
-    // Deterministic gates (citation repair, claim grounding, fact-checker) already catch real issues.
-    // $0.07/run saved.
-    stats.devilsAdvocate = { skipped: true, reason: 'suppressed — destroys trust score without quality improvement' };
-    console.log(`${label} DEVIL'S ADVOCATE: suppressed — deterministic gates handle quality`);
+  const runDevilsAdvocateBlock = async (contentForReview: string, _allowHtmlRevision: boolean) => {
+    // DEVIL'S ADVOCATE — strategic reports only.
+    // For briefs: skipped (deterministic gates + 3-pass analyst suffice).
+    // For strategic: runs as ADVISORY epistemic challenge — identifies fatal challenges,
+    // kill shots, and future vulnerabilities. Does NOT modify trust score (which is
+    // deterministic). Challenges are appended as an advisory section to the HTML.
+    if (!isStrategic || !runDevilsAdvocateStep) {
+      stats.devilsAdvocate = { skipped: true, reason: !isStrategic ? 'brief format' : 'disabled by LAS gate' };
+      console.log(`${label} DEVIL'S ADVOCATE: skipped (${!isStrategic ? 'brief' : 'LAS gate'})`);
+      return;
+    }
+    emitProgress(pipelineRun.id, "DEVILS_ADVOCATE", "started", "Adversarial epistemic challenge...");
+    try {
+      const { runDevilsAdvocate } = await import('./devils-advocate');
+      const daResult = await runDevilsAdvocate(
+        query,
+        contentForReview,
+        topSources.map((s: any) => ({ title: s.title, provider: s.provider, year: s.year })),
+        {
+          mode: 'strategic',
+          domain: detectedDomain,
+          debateContext,
+        },
+      );
+      stats.devilsAdvocate = {
+        verdict: daResult.verdict,
+        overallStrength: daResult.overallStrength,
+        publishabilityScore: daResult.publishabilityScore,
+        fatalChallenges: daResult.fatalChallenges?.length || 0,
+        majorChallenges: daResult.majorChallenges?.length || 0,
+        killShot: daResult.killShot?.slice(0, 200) || '',
+        futureVulnerabilities: daResult.futureVulnerabilities?.length || 0,
+        costUsd: daResult.costUsd,
+      };
+      addCost(daResult.costUsd, "DEVILS_ADVOCATE");
+      console.log(`${label} DEVIL'S ADVOCATE: verdict=${daResult.verdict}, strength=${daResult.overallStrength}/100, fatal=${daResult.fatalChallenges?.length || 0}, major=${daResult.majorChallenges?.length || 0}`);
+      emitProgress(pipelineRun.id, "DEVILS_ADVOCATE", "completed", `Verdict: ${daResult.verdict} (${daResult.overallStrength}/100)`);
+    } catch (err) {
+      console.warn(`${label} DEVIL'S ADVOCATE: failed (non-blocking):`, err);
+      stats.devilsAdvocate = { error: String(err) };
+    }
+  };
+
+  // ── SHARED POST-RENDER QUALITY GATES ──
+  // Extracted from duplicated V2/non-V2 paths to ensure both paths get identical treatment.
+  const runPostRenderCitationAndGrounding = async () => {
+    // CITATION REPAIR: deterministically backfill missing [SRC-N] from analyst JSON
+    try {
+      const { repairCitations } = await import('./citation-repair');
+      const repairResult = repairCitations(html, analysis as Record<string, unknown>, topSources);
+      if (repairResult.citationsBackfilled + repairResult.citationsInjected + repairResult.numbersSanitized > 0) {
+        html = repairResult.html;
+        console.log(`${label} CITATION REPAIR: +${repairResult.citationsBackfilled} backfilled, +${repairResult.citationsInjected} injected, ${repairResult.numbersSanitized} numbers sanitized`);
+        stats.citationRepair = {
+          backfilled: repairResult.citationsBackfilled,
+          injected: repairResult.citationsInjected,
+          sanitized: repairResult.numbersSanitized,
+        };
+      }
+    } catch (repairErr) {
+      console.warn(`${label} CITATION REPAIR: failed (non-blocking):`, repairErr);
+    }
+    // CLAIM GROUNDING: deterministically verify each claim against its cited source (NLI, CPU-only)
+    try {
+      const { groundClaimsWithNLI } = await import('./claim-grounding');
+      const groundingResult = await groundClaimsWithNLI(html, topSources, { mode: 'flag', readings });
+      if (groundingResult.removedClaims > 0 || groundingResult.unsupported > 0) {
+        html = groundingResult.html;
+      }
+      console.log(`${label} CLAIM GROUNDING: ${groundingResult.supported} supported, ${groundingResult.partial} partial, ${groundingResult.unsupported} unsupported, ${groundingResult.uncited} uncited → groundedness ${Math.round(groundingResult.groundedness * 100)}%, ${groundingResult.removedClaims} flagged`);
+      stats.claimGrounding = {
+        supported: groundingResult.supported,
+        partial: groundingResult.partial,
+        unsupported: groundingResult.unsupported,
+        uncited: groundingResult.uncited,
+        contradicted: groundingResult.contradicted,
+        groundedness: Math.round(groundingResult.groundedness * 100),
+        flagged: groundingResult.removedClaims,
+      };
+    } catch (groundErr) {
+      console.warn(`${label} CLAIM GROUNDING: failed (non-blocking):`, groundErr);
+    }
+    // QUANT: inject SVG charts from primary data
+    if (quant.chartData.length > 0) {
+      try {
+        const { injectQuantSection } = await import('./svg-charts');
+        html = injectQuantSection(html, quant.chartData);
+        stats.quantCharts = quant.chartData.length;
+        console.log(`${label} QUANT CHARTS: ${quant.chartData.length} SVG charts injected into HTML`);
+      } catch (err) {
+        console.warn(`${label} QUANT CHARTS: injection failed (non-blocking):`, err);
+      }
+    }
+    stats.htmlLength = html.length;
+    // P1.1: Post-generation citation filter — back-track implicit citations + flag uncited claims
+    try {
+      const { applyCitationFilter } = await import('./citation-filter');
+      const filterResult = applyCitationFilter(html);
+      if (filterResult.backtrackedClaims > 0 || filterResult.removedSentences > 0) {
+        html = filterResult.filteredHtml;
+        console.log(`${label} CITATION FILTER: +${filterResult.backtrackedClaims} backtracked, -${filterResult.removedSentences} removed, coverage ${filterResult.citationCoverageBefore * 100 | 0}%→${filterResult.citationCoverageAfter * 100 | 0}%`);
+      }
+      stats.citationFilter = {
+        backtracked: filterResult.backtrackedClaims,
+        removed: filterResult.removedSentences,
+        coverageBefore: Math.round(filterResult.citationCoverageBefore * 100),
+        coverageAfter: Math.round(filterResult.citationCoverageAfter * 100),
+      };
+    } catch (err) {
+      console.warn(`${label} CITATION FILTER: failed (non-blocking):`, err);
+    }
+    void generatePrintHTML(html);
+    await runPostRenderQualityGates();
   };
 
   if (editorialV2) {
@@ -4959,77 +5107,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
 
     await runDevilsAdvocateBlock(buildAnalysisReviewText(analysis as Record<string, unknown>, query), false);
     html = await renderEditorHtml();
-    // CITATION REPAIR: deterministically backfill missing [SRC-N] from analyst JSON,
-    // inject citations by source title/author matching, and sanitize unsourced numbers
-    try {
-      const { repairCitations } = await import('./citation-repair');
-      const repairResult = repairCitations(html, analysis as Record<string, unknown>, topSources);
-      if (repairResult.citationsBackfilled + repairResult.citationsInjected + repairResult.numbersSanitized > 0) {
-        html = repairResult.html;
-        console.log(`${label} CITATION REPAIR: +${repairResult.citationsBackfilled} backfilled, +${repairResult.citationsInjected} injected, ${repairResult.numbersSanitized} numbers sanitized`);
-        stats.citationRepair = {
-          backfilled: repairResult.citationsBackfilled,
-          injected: repairResult.citationsInjected,
-          sanitized: repairResult.numbersSanitized,
-        };
-      }
-    } catch (repairErr) {
-      console.warn(`${label} CITATION REPAIR: failed (non-blocking):`, repairErr);
-    }
-    // CLAIM GROUNDING: deterministically verify each claim against its cited source
-    // Inspired by groundrails/warrant/sourcecheck — lexical overlap, no LLM, CPU-only
-    try {
-      const { groundClaimsWithNLI } = await import('./claim-grounding');
-      const groundingResult = await groundClaimsWithNLI(html, topSources, { mode: 'flag', readings });
-      if (groundingResult.removedClaims > 0 || groundingResult.unsupported > 0) {
-        html = groundingResult.html;
-      }
-      // ALWAYS record grounding stats — trust score depends on groundedness even when all claims are supported
-      console.log(`${label} CLAIM GROUNDING: ${groundingResult.supported} supported, ${groundingResult.partial} partial, ${groundingResult.unsupported} unsupported, ${groundingResult.uncited} uncited → groundedness ${Math.round(groundingResult.groundedness * 100)}%, ${groundingResult.removedClaims} flagged`);
-      stats.claimGrounding = {
-        supported: groundingResult.supported,
-        partial: groundingResult.partial,
-        unsupported: groundingResult.unsupported,
-        uncited: groundingResult.uncited,
-        contradicted: groundingResult.contradicted,
-        groundedness: Math.round(groundingResult.groundedness * 100),
-        flagged: groundingResult.removedClaims,
-      };
-    } catch (groundErr) {
-      console.warn(`${label} CLAIM GROUNDING: failed (non-blocking):`, groundErr);
-    }
-    // QUANT: inject SVG charts from primary data
-    if (quant.chartData.length > 0) {
-      try {
-        const { injectQuantSection } = await import('./svg-charts');
-        html = injectQuantSection(html, quant.chartData);
-        stats.quantCharts = quant.chartData.length;
-        console.log(`${label} QUANT CHARTS: ${quant.chartData.length} SVG charts injected into HTML`);
-      } catch (err) {
-        console.warn(`${label} QUANT CHARTS: injection failed (non-blocking):`, err);
-      }
-    }
-    stats.htmlLength = html.length;
-    // P1.1: Post-generation citation filter — back-track implicit citations + flag uncited claims
-    try {
-      const { applyCitationFilter } = await import('./citation-filter');
-      const filterResult = applyCitationFilter(html);
-      if (filterResult.backtrackedClaims > 0 || filterResult.removedSentences > 0) {
-        html = filterResult.filteredHtml;
-        console.log(`${label} CITATION FILTER: +${filterResult.backtrackedClaims} backtracked, -${filterResult.removedSentences} removed, coverage ${filterResult.citationCoverageBefore * 100 | 0}%→${filterResult.citationCoverageAfter * 100 | 0}%`);
-      }
-      // ALWAYS record coverage stats (even when no changes) — gate scoring depends on coverageAfter
-      stats.citationFilter = {
-        backtracked: filterResult.backtrackedClaims,
-        removed: filterResult.removedSentences,
-        coverageBefore: Math.round(filterResult.citationCoverageBefore * 100),
-        coverageAfter: Math.round(filterResult.citationCoverageAfter * 100),
-      };
-    } catch (err) {
-      console.warn(`${label} CITATION FILTER: failed (non-blocking):`, err);
-    }
-    void generatePrintHTML(html);
-    await runPostRenderQualityGates();
+    await runPostRenderCitationAndGrounding();
     // V2: second DA pass on rendered HTML — DISABLED to save ~10min of LLM time
     // The first DA pass already appends fatal challenges as advisory section.
     // Re-running on rendered HTML adds marginal value but costs heavily in LLM timeouts.
@@ -5038,77 +5116,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     // }
   } else {
     html = await renderEditorHtml();
-    // CITATION REPAIR: deterministically backfill missing [SRC-N] from analyst JSON,
-    // inject citations by source title/author matching, and sanitize unsourced numbers
-    try {
-      const { repairCitations } = await import('./citation-repair');
-      const repairResult = repairCitations(html, analysis as Record<string, unknown>, topSources);
-      if (repairResult.citationsBackfilled + repairResult.citationsInjected + repairResult.numbersSanitized > 0) {
-        html = repairResult.html;
-        console.log(`${label} CITATION REPAIR: +${repairResult.citationsBackfilled} backfilled, +${repairResult.citationsInjected} injected, ${repairResult.numbersSanitized} numbers sanitized`);
-        stats.citationRepair = {
-          backfilled: repairResult.citationsBackfilled,
-          injected: repairResult.citationsInjected,
-          sanitized: repairResult.numbersSanitized,
-        };
-      }
-    } catch (repairErr) {
-      console.warn(`${label} CITATION REPAIR: failed (non-blocking):`, repairErr);
-    }
-    // CLAIM GROUNDING: deterministically verify each claim against its cited source
-    // Inspired by groundrails/warrant/sourcecheck — NLI engine, CPU-only
-    try {
-      const { groundClaimsWithNLI } = await import('./claim-grounding');
-      const groundingResult = await groundClaimsWithNLI(html, topSources, { mode: 'flag', readings });
-      if (groundingResult.removedClaims > 0 || groundingResult.unsupported > 0) {
-        html = groundingResult.html;
-      }
-      // ALWAYS record grounding stats — trust score depends on groundedness even when all claims are supported
-      console.log(`${label} CLAIM GROUNDING: ${groundingResult.supported} supported, ${groundingResult.partial} partial, ${groundingResult.unsupported} unsupported, ${groundingResult.uncited} uncited → groundedness ${Math.round(groundingResult.groundedness * 100)}%, ${groundingResult.removedClaims} flagged`);
-      stats.claimGrounding = {
-        supported: groundingResult.supported,
-        partial: groundingResult.partial,
-        unsupported: groundingResult.unsupported,
-        uncited: groundingResult.uncited,
-        contradicted: groundingResult.contradicted,
-        groundedness: Math.round(groundingResult.groundedness * 100),
-        flagged: groundingResult.removedClaims,
-      };
-    } catch (groundErr) {
-      console.warn(`${label} CLAIM GROUNDING: failed (non-blocking):`, groundErr);
-    }
-    // QUANT: inject SVG charts from primary data
-    if (quant.chartData.length > 0) {
-      try {
-        const { injectQuantSection } = await import('./svg-charts');
-        html = injectQuantSection(html, quant.chartData);
-        stats.quantCharts = quant.chartData.length;
-        console.log(`${label} QUANT CHARTS: ${quant.chartData.length} SVG charts injected into HTML`);
-      } catch (err) {
-        console.warn(`${label} QUANT CHARTS: injection failed (non-blocking):`, err);
-      }
-    }
-    stats.htmlLength = html.length;
-    // P1.1: Post-generation citation filter (non-V2 path)
-    try {
-      const { applyCitationFilter } = await import('./citation-filter');
-      const filterResult = applyCitationFilter(html);
-      if (filterResult.backtrackedClaims > 0 || filterResult.removedSentences > 0) {
-        html = filterResult.filteredHtml;
-        console.log(`${label} CITATION FILTER: +${filterResult.backtrackedClaims} backtracked, -${filterResult.removedSentences} removed, coverage ${filterResult.citationCoverageBefore * 100 | 0}%→${filterResult.citationCoverageAfter * 100 | 0}%`);
-      }
-      // ALWAYS record coverage stats (even when no changes) — gate scoring depends on coverageAfter
-      stats.citationFilter = {
-        backtracked: filterResult.backtrackedClaims,
-        removed: filterResult.removedSentences,
-        coverageBefore: Math.round(filterResult.citationCoverageBefore * 100),
-        coverageAfter: Math.round(filterResult.citationCoverageAfter * 100),
-      };
-    } catch (err) {
-      console.warn(`${label} CITATION FILTER: failed (non-blocking):`, err);
-    }
-    void generatePrintHTML(html);
-    await runPostRenderQualityGates();
+    await runPostRenderCitationAndGrounding();
     // Debate + meta-analysis reactivated
     await runDebateMetaBlock(buildAnalysisReviewText(analysis as Record<string, unknown>, query));
     await runDevilsAdvocateBlock(html, true);
