@@ -3,6 +3,7 @@
 import React from 'react';
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { Sparkles, FileText, Layers, Loader2, ArrowRight, ArrowLeft, Shield, CheckCircle, AlertCircle, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -19,13 +20,14 @@ const OPTION_SELECTED = "border-white/40 bg-white/10";
 const OPTION_DEFAULT = "border-white/[0.08] bg-black/20 hover:border-white/[0.12]";
 
 const EXAMPLE_QUESTIONS = [
-  "What would change the EU policy position on open-source AI models over the next 24 months?",
-  "Is the evidence for carbon border adjustment mechanisms reducing leakage robust?",
-  "What are the systemic risks of stablecoin adoption for institutional treasuries?",
-  "How credible is the evidence that remote work reduces productivity?",
+  "StudioPage.exampleQ1",
+  "StudioPage.exampleQ2",
+  "StudioPage.exampleQ3",
+  "StudioPage.exampleQ4",
 ];
 
 function StudioPageContent() {
+  const t = useTranslations();
   const searchParams = useSearchParams();
   const orderId = searchParams.get('orderId');
   const cancelled = searchParams.get('cancelled');
@@ -87,7 +89,7 @@ function StudioPageContent() {
       }
 
       if (order.status === 'FAILED') {
-        setFailureReason(order.failureReason ?? 'Pipeline failed');
+        setFailureReason(order.failureReason ?? t('StudioPage.pipelineFailed'));
         setOrderStatus('failed');
         setLoading(false);
         if (pollTimer) clearInterval(pollTimer);
@@ -97,7 +99,7 @@ function StudioPageContent() {
       if (order.status === 'REFUNDED') {
         setFailureReason(
           order.progress?.message ??
-            'Your payment has been refunded. The research pipeline could not complete.'
+            t('StudioPage.paymentRefunded')
         );
         setOrderStatus('refunded');
         setLoading(false);
@@ -211,29 +213,29 @@ function StudioPageContent() {
       <PublicPageShell currentPage="studio" onSignInClick={() => setShowAuthModal(true)} isAuthenticated={hasSession}>
         <PageSection className="max-w-3xl">
           <PageHeader
-            eyebrow="Nomos Engine"
-            title="Nomos Engine"
-            description="Commission a custom study. Your question, our protocol — chaos structured into a position you can defend."
+            eyebrow={t('StudioPage.eyebrow')}
+            title={t('StudioPage.title')}
+            description={t('StudioPage.description')}
             align="center"
           />
 
           {cancelled && (
             <div className="mb-6 flex items-center gap-3 border border-red-500/20 bg-red-500/5 px-4 py-3 text-sm text-red-300">
               <AlertCircle size={16} className="flex-shrink-0" />
-              Payment cancelled — your question is saved. Commission again when ready.
+              {t('StudioPage.paymentCancelled')}
             </div>
           )}
           {orderStatus === 'verifying' && (
             <div className="mb-6 flex items-center gap-3 nx-public-surface px-4 py-3 text-sm text-white/70">
               <Loader2 size={16} className={cn("flex-shrink-0 animate-spin", nx.icon)} />
-              Verifying payment…
+              {t('StudioPage.verifyingPayment')}
             </div>
           )}
           {orderStatus === 'running' && (
             <div className="mb-6 flex items-center gap-3 nx-public-surface px-4 py-3 text-sm text-white/70">
               <Loader2 size={16} className={cn("flex-shrink-0 animate-spin", nx.icon)} />
               <div>
-                <div>Research pipeline running…</div>
+                <div>{t('StudioPage.pipelineRunning')}</div>
                 {progressMessage && (
                   <div className="text-xs text-white/55 mt-1">
                     {progressMessage}
@@ -246,7 +248,7 @@ function StudioPageContent() {
           {orderStatus === 'done' && (
             <div className="mb-6 flex items-center gap-3 border border-white/20 bg-white/5 px-4 py-3 text-sm text-white">
               <CheckCircle size={16} className="flex-shrink-0" />
-              Study complete — your deliverable is ready below.
+              {t('StudioPage.studyComplete')}
             </div>
           )}
           {orderStatus === 'failed' && failureReason && (
@@ -268,19 +270,19 @@ function StudioPageContent() {
               <Card className="nx-public-surface backdrop-blur-none shadow-none">
                 <div className="p-6 sm:p-8">
                   <div className="text-center mb-6">
-                    <div className={cn(nx.eyebrow, "mb-3")}>Your Question</div>
+                    <div className={cn(nx.eyebrow, "mb-3")}>{t('StudioPage.yourQuestion')}</div>
                     <h2 className="font-display text-xl sm:text-2xl font-semibold text-white mb-2">
-                      What do you need to know?
+                      {t('StudioPage.whatNeedToKnow')}
                     </h2>
                     <p className={cn(nx.body, "max-w-lg mx-auto")}>
-                      Frame your question. Be specific — the sharper the question, the sharper the output.
+                      {t('StudioPage.frameQuestion')}
                     </p>
                   </div>
 
                   <Textarea
                     value={question}
                     onChange={(e) => setQuestion(e.target.value)}
-                    placeholder="Example: What would change the EU policy position on open-source AI models over the next 24 months?"
+                    placeholder={t('StudioPage.questionPlaceholder')}
                     rows={5}
                     className={cn(nx.input, "mb-4 resize-none text-sm")}
                     disabled={loading || checkoutLoading}
@@ -293,19 +295,19 @@ function StudioPageContent() {
                   />
 
                   <div className="mb-6">
-                    <div className={cn(nx.label, "mb-3")}>Or try one of these</div>
+                    <div className={cn(nx.label, "mb-3")}>{t('StudioPage.orTryOne')}</div>
                     <div className="space-y-2">
-                      {EXAMPLE_QUESTIONS.map((q) => (
+                      {EXAMPLE_QUESTIONS.map((qKey) => (
                         <button
-                          key={q}
+                          key={qKey}
                           type="button"
-                          onClick={() => setQuestion(q)}
+                          onClick={() => setQuestion(t(qKey))}
                           className={cn(
                             "w-full text-left border px-4 py-3 transition-all text-sm text-white/60 hover:text-white/90",
                             OPTION_DEFAULT
                           )}
                         >
-                          {q}
+                          {t(qKey)}
                         </button>
                       ))}
                     </div>
@@ -318,14 +320,14 @@ function StudioPageContent() {
                       className={cn(nx.btnPrimary, "min-w-[220px] border-0 shadow-none hover:scale-100")}
                     >
                       <Sparkles size={16} className="mr-2" />
-                      Send
+                      {t('StudioPage.send')}
                       <ArrowRight size={14} className="ml-2" />
                     </Button>
                     <a
                       href="/pricing"
                       className="text-[11px] font-mono uppercase tracking-[0.14em] text-white/30 hover:text-white/55 transition-colors"
                     >
-                      See pricing →
+                      {t('StudioPage.seePricing')}
                     </a>
                   </div>
                 </div>
@@ -333,9 +335,9 @@ function StudioPageContent() {
 
               <div className="mt-6 grid sm:grid-cols-3 gap-3">
                 {[
-                  { icon: Shield, label: "Same protocol", value: "as public publications" },
-                  { icon: CheckCircle, label: "Money-back", value: "if pipeline fails" },
-                  { icon: Lock, label: "Private", value: "your question, your output" },
+                  { icon: Shield, label: t('StudioPage.sameProtocol'), value: t('StudioPage.asPublications') },
+                  { icon: CheckCircle, label: t('StudioPage.moneyBack'), value: t('StudioPage.ifPipelineFails') },
+                  { icon: Lock, label: t('StudioPage.private'), value: t('StudioPage.yourQuestionYourOutput') },
                 ].map((item) => {
                   const Icon = item.icon;
                   return (
@@ -359,12 +361,12 @@ function StudioPageContent() {
                 className={cn(nx.btnGhost, "mb-6")}
               >
                 <ArrowLeft size={14} className="mr-2" />
-                Back to question
+                {t('StudioPage.backToQuestion')}
               </button>
 
               {/* Question recap */}
               <div className="nx-public-surface p-5 mb-6">
-                <div className={cn(nx.label, "mb-2")}>Your question</div>
+                <div className={cn(nx.label, "mb-2")}>{t('StudioPage.yourQuestionLabel')}</div>
                 <p className="text-sm text-white/85 leading-relaxed">{question}</p>
               </div>
 
@@ -372,14 +374,18 @@ function StudioPageContent() {
               <div className="mb-6">
                 <div className="flex items-center justify-between mb-4">
                   <div>
-                    <div className={cn(nx.eyebrow, "mb-1")}>Choose your format</div>
-                    <h3 className="text-base text-white font-semibold">4 formats, 4 angles</h3>
+                    <div className={cn(nx.eyebrow, "mb-1")}>{t('StudioPage.chooseFormat')}</div>
+                    <h3 className="text-base text-white font-semibold">{t('StudioPage.formatsAngles')}</h3>
                   </div>
                 </div>
                 <div className="space-y-3">
                   {PUBLICATION_FORMATS.map((format) => {
                     const price = getStudioXPrice(format.type);
                     const isSelected = selectedFormat === format.type;
+                    const labelKey = format.type === "SUMMARY_BRIEF" ? "Formats.signalBrief" : format.type === "DECISION_MEMO" ? "Formats.decisionMemo" : format.type === "ARTICLE" ? "Formats.article" : "Formats.strategicReport";
+                    const pagesKey = format.type === "SUMMARY_BRIEF" ? "Formats.signalBriefPages" : format.type === "DECISION_MEMO" ? "Formats.decisionMemoPages" : format.type === "ARTICLE" ? "Formats.articlePages" : "Formats.strategicReportPages";
+                    const descKey = format.type === "SUMMARY_BRIEF" ? "Formats.signalBriefDesc" : format.type === "DECISION_MEMO" ? "Formats.decisionMemoDesc" : format.type === "ARTICLE" ? "Formats.articleDesc" : "Formats.strategicReportDesc";
+                    const depthKey = format.type === "SUMMARY_BRIEF" ? "Formats.signalBriefDepth" : format.type === "DECISION_MEMO" ? "Formats.decisionMemoDepth" : format.type === "ARTICLE" ? "Formats.articleDepth" : "Formats.strategicReportDepth";
                     return (
                       <button
                         key={format.type}
@@ -393,19 +399,19 @@ function StudioPageContent() {
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex-1">
                             <div className="flex items-center gap-3 mb-1">
-                              <div className="text-base text-white font-semibold">{format.label}</div>
+                              <div className="text-base text-white font-semibold">{t(labelKey)}</div>
                               <span className="text-[10px] font-mono uppercase tracking-[0.12em] text-white/40">
-                                {format.pages}
+                                {t(pagesKey)}
                               </span>
                             </div>
-                            <p className="text-sm text-white/55 leading-relaxed">{format.description}</p>
+                            <p className="text-sm text-white/55 leading-relaxed">{t(descKey)}</p>
                             <div className="mt-2 text-[11px] text-white/40 font-mono">
-                              {format.sourceDepth}
+                              {t(depthKey)}
                             </div>
                           </div>
                           <div className="text-right shrink-0">
                             <div className="text-lg text-white font-bold font-mono">{price.display}</div>
-                            <div className="text-[10px] text-white/35 uppercase tracking-wide">per study</div>
+                            <div className="text-[10px] text-white/35 uppercase tracking-wide">{t('Pricing.perStudyShort')}</div>
                           </div>
                         </div>
                       </button>
@@ -418,16 +424,16 @@ function StudioPageContent() {
               <div className="nx-public-surface p-4 mb-6 flex items-center gap-3">
                 <Shield size={18} className="text-white/60 shrink-0" />
                 <p className="text-xs text-white/55 leading-relaxed">
-                  <span className="text-white/80 font-medium">Money-back guarantee.</span> If the research pipeline cannot complete your study, your payment is fully refunded. No questions asked.
+                  <span className="text-white/80 font-medium">{t('StudioPage.moneyBackGuarantee')}</span> {t('StudioPage.moneyBackDesc')}
                 </p>
               </div>
 
               {/* Commission button */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 nx-public-surface p-5">
                 <div>
-                  <div className={cn(nx.label, "mb-1")}>Selected</div>
+                  <div className={cn(nx.label, "mb-1")}>{t('StudioPage.selected')}</div>
                   <div className="text-sm text-white font-medium">
-                    {selectedFormatMeta?.label} · {selectedFormatMeta?.pages}
+                    {selectedFormatMeta ? t(selectedFormatMeta.type === "SUMMARY_BRIEF" ? "Formats.signalBrief" : selectedFormatMeta.type === "DECISION_MEMO" ? "Formats.decisionMemo" : selectedFormatMeta.type === "ARTICLE" ? "Formats.article" : "Formats.strategicReport") : ""} · {selectedFormatMeta ? t(selectedFormatMeta.type === "SUMMARY_BRIEF" ? "Formats.signalBriefPages" : selectedFormatMeta.type === "DECISION_MEMO" ? "Formats.decisionMemoPages" : selectedFormatMeta.type === "ARTICLE" ? "Formats.articlePages" : "Formats.strategicReportPages") : ""}
                   </div>
                 </div>
                 <Button
@@ -438,24 +444,24 @@ function StudioPageContent() {
                   {checkoutLoading ? (
                     <>
                       <Loader2 size={16} className="mr-2 animate-spin" />
-                      Redirecting…
+                      {t('StudioPage.redirecting')}
                     </>
                   ) : loading ? (
                     <>
                       <Loader2 size={16} className="mr-2 animate-spin" />
-                      Generating…
+                      {t('StudioPage.generating')}
                     </>
                   ) : (
                     <>
                       <Sparkles size={16} className="mr-2" />
-                      Commission — {selectedPrice.display}
+                      {t('StudioPage.commission')} — {selectedPrice.display}
                     </>
                   )}
                 </Button>
               </div>
 
               <p className="mt-4 text-center text-[10px] text-white/35">
-                One payment per study. No subscription. Result stored in your account. Secure checkout via Stripe.
+                {t('StudioPage.onePaymentNote')}
               </p>
             </div>
           )}
@@ -468,11 +474,11 @@ function StudioPageContent() {
                   <div className="w-8 h-8 nx-public-surface flex items-center justify-center">
                     <FileText size={20} className="text-white/80" />
                   </div>
-                  <h2 className="text-lg font-semibold text-white">Your Study</h2>
+                  <h2 className="text-lg font-semibold text-white">{t('StudioPage.yourStudy')}</h2>
                 </div>
                 {/^\s*<(?:!doctype|html|div|section|article|h[1-6]|p|main)/i.test(result) ? (
                   <iframe
-                    title="Research Result"
+                    title={t('StudioPage.researchResult')}
                     srcDoc={result}
                     className="w-full border border-white/10 bg-white"
                     style={{ height: '80vh' }}
@@ -493,9 +499,9 @@ function StudioPageContent() {
               <div className="w-16 h-16 bg-white/[0.02] flex items-center justify-center mx-auto mb-6">
                 <Layers size={32} className="text-white/20" />
               </div>
-              <h3 className="text-xl font-semibold text-white mb-2">Ready when you are</h3>
+              <h3 className="text-xl font-semibold text-white mb-2">{t('StudioPage.readyWhenYouAre')}</h3>
               <p className="text-white/40 max-w-md mx-auto">
-                Type your question above. The chaos of evidence becomes a position you can defend.
+                {t('StudioPage.typeQuestionAbove')}
               </p>
             </div>
           )}

@@ -36,6 +36,13 @@ const envSchema = z.object({
   SEMANTICSCHOLAR_API_KEY: z.string().optional(),
   CORE_API_KEY: z.string().optional(),
   UNPAYWALL_EMAIL: z.string().email().optional(),
+
+  // Heritage / cultural aggregator APIs (free keys)
+  EUROPEANA_API_KEY: z.string().optional(),
+  DPLA_API_KEY: z.string().optional(),
+
+  // Preprints & open-science platforms
+  OSF_API_KEY: z.string().optional(),
   
   // Identity enrichment
   ROR_API: z.string().url().optional().default("https://api.ror.org/organizations"),

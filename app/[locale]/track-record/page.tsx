@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useCallback } from "react";
+import { useTranslations } from "next-intl";
 import { PublicPageShell } from "@/components/layout/PublicPageShell";
 import { PageHeader, PageSection } from "@/components/layout/PageHeader";
 import { JsonLd } from "@/components/seo/JsonLd";
@@ -59,6 +60,7 @@ const SITE_URL = typeof window !== "undefined" ? window.location.origin : "https
 
 export default function TrackRecordPage() {
   const router = useRouter();
+  const t = useTranslations();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [data, setData] = useState<TrackRecordData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -125,9 +127,9 @@ export default function TrackRecordPage() {
         {/* Section 01 / 03 — Header + Aggregate stats */}
         <PageSection sectionIndex="01 / 03" className="max-w-5xl">
           <PageHeader
-            eyebrow="Accountability"
-            title="Track Record"
-            description="Every prediction we publish is dated, falsifiable, and resolved in public. Judge us on our calls — not our prose."
+            eyebrow={t("TrackRecord.accountability")}
+            title={t("TrackRecord.title")}
+            description={t("TrackRecord.description")}
             align="center"
           />
 
@@ -146,7 +148,7 @@ export default function TrackRecordPage() {
                 onClick={() => fetchData(page)}
                 className={cn(nx.btnPrimary, "mx-auto")}
               >
-                Retry
+                {t("TrackRecord.retry")}
               </button>
             </div>
           )}
@@ -157,10 +159,10 @@ export default function TrackRecordPage() {
               <ScrollReveal stagger>
                 <section aria-label="Aggregate prediction statistics" className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-12">
                   {[
-                    { label: "Predictions made", value: String(stats.total) },
-                    { label: "Resolved", value: String(stats.resolved) },
-                    { label: "Hit rate", value: stats.accuracyPct !== null ? `${stats.accuracyPct}%` : "pending" },
-                    { label: "Brier score", value: stats.brierScore !== null ? String(stats.brierScore) : "pending" },
+                    { label: t("TrackRecord.predictionsMade"), value: String(stats.total) },
+                    { label: t("TrackRecord.resolved"), value: String(stats.resolved) },
+                    { label: t("TrackRecord.hitRate"), value: stats.accuracyPct !== null ? `${stats.accuracyPct}%` : "pending" },
+                    { label: t("TrackRecord.brierScore"), value: stats.brierScore !== null ? String(stats.brierScore) : "pending" },
                   ].map((s) => (
                     <div key={s.label} className="nx-surface p-4 text-center">
                       <p className="font-mono text-2xl font-light text-white tabular-nums mb-2">{s.value}</p>
@@ -172,24 +174,21 @@ export default function TrackRecordPage() {
 
               <ScrollReveal>
                 <p className="text-xs text-white/40 text-center mb-12 max-w-2xl mx-auto leading-relaxed">
-                  Hit rate = confirmed / (confirmed + refuted). Expired ({stats.expired}) and superseded ({stats.superseded}) predictions
-                  are shown but excluded. Brier score measures probability calibration on {stats.quantifiedResolved} quantified
-                  resolved predictions — 0 is perfect, 0.25 is chance-level.
+                  {t("TrackRecord.hitRateNote", { expired: stats.expired, superseded: stats.superseded, quantifiedResolved: stats.quantifiedResolved })}
                 </p>
               </ScrollReveal>
 
               {stats.total === 0 && (
                 <div className="text-center py-12">
                   <p className="text-sm text-white/60 mb-6">
-                    No predictions registered yet. Strategic reports produce falsifiable predictions —
-                    they will appear here, dated and immutable, as they are published.
+                    {t("TrackRecord.noPredictions")}
                   </p>
                   <button
                     type="button"
                     onClick={() => router.push(PUBLIC_ROUTES.archives)}
                     className={cn(nx.btnPrimary, "mx-auto")}
                   >
-                    Browse published intelligence
+                    {t("TrackRecord.browsePublished")}
                     <ArrowRight size={14} />
                   </button>
                 </div>
@@ -203,15 +202,15 @@ export default function TrackRecordPage() {
           <PageSection sectionIndex="02 / 03" className="max-w-5xl">
             <ScrollReveal stagger>
               <section aria-label="Recently resolved predictions" className="mb-12">
-                <h2 className={cn(nx.eyebrow, "mb-6")}>Recently resolved</h2>
+                <h2 className={cn(nx.eyebrow, "mb-6")}>{t("TrackRecord.recentlyResolved")}</h2>
                 <div className="space-y-3">
                   {data!.recentResolved.map((p) => (
                     <article key={p.id} className="nx-surface p-4">
                       <div className="flex items-start gap-3">
                         {p.status === "CONFIRMED" ? (
-                          <CheckCircle size={16} className="mt-0.5 shrink-0 text-emerald-400" aria-label="Confirmed" />
+                          <CheckCircle size={16} className="mt-0.5 shrink-0 text-emerald-400" aria-label={t("TrackRecord.confirmed")} />
                         ) : (
-                          <XCircle size={16} className="mt-0.5 shrink-0 text-rose-400" aria-label="Refuted" />
+                          <XCircle size={16} className="mt-0.5 shrink-0 text-rose-400" aria-label={t("TrackRecord.refuted")} />
                         )}
                         <div className="min-w-0">
                           <p className="text-sm text-white/85 leading-relaxed">{p.claim}</p>
@@ -219,7 +218,7 @@ export default function TrackRecordPage() {
                             {p.status} · horizon {p.horizon} · called {pct(p.probability)} · made {new Date(p.createdAt).toISOString().slice(0, 10)}
                             {p.resolvedAt ? ` · resolved ${new Date(p.resolvedAt).toISOString().slice(0, 10)}` : ""}
                           </p>
-                          {p.outcome && <p className="mt-2 text-xs text-white/55 leading-relaxed">What happened: {p.outcome}</p>}
+                          {p.outcome && <p className="mt-2 text-xs text-white/55 leading-relaxed">{t("TrackRecord.whatHappened", { outcome: p.outcome })}</p>}
                         </div>
                       </div>
                     </article>
@@ -230,7 +229,7 @@ export default function TrackRecordPage() {
                     current={page}
                     total={pagination.totalPagesResolved}
                     onPage={fetchData}
-                    label="resolved predictions"
+                    label={t("TrackRecord.recentlyResolved").toLowerCase()}
                   />
                 )}
               </section>
@@ -243,19 +242,19 @@ export default function TrackRecordPage() {
           <PageSection sectionIndex="03 / 03" className="max-w-5xl">
             <ScrollReveal stagger>
               <section aria-label="Open predictions awaiting resolution" className="mb-12">
-                <h2 className={cn(nx.eyebrow, "mb-6")}>Open predictions — hold us to these</h2>
+                <h2 className={cn(nx.eyebrow, "mb-6")}>{t("TrackRecord.openPredictionsHold")}</h2>
                 <div className="space-y-3">
                   {data!.openPredictions.map((p) => (
                     <article key={p.id} className="nx-surface p-4">
                       <div className="flex items-start gap-3">
-                        <Clock size={16} className="mt-0.5 shrink-0 text-white/40" aria-label="Open" />
+                        <Clock size={16} className="mt-0.5 shrink-0 text-white/40" aria-label={t("TrackRecord.open")} />
                         <div className="min-w-0">
                           <p className="text-sm text-white/85 leading-relaxed">{p.claim}</p>
                           <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.12em] text-white/45">
                             OPEN · horizon {p.horizon} · confidence {p.confidence.toLowerCase()} · called {pct(p.probability)} · made {new Date(p.createdAt).toISOString().slice(0, 10)}
                           </p>
                           {p.resolutionCriteria && (
-                            <p className="mt-2 text-xs text-white/55 leading-relaxed">Resolves when: {p.resolutionCriteria}</p>
+                            <p className="mt-2 text-xs text-white/55 leading-relaxed">{t("TrackRecord.resolvesWhen", { criteria: p.resolutionCriteria })}</p>
                           )}
                         </div>
                       </div>
@@ -267,7 +266,7 @@ export default function TrackRecordPage() {
                     current={page}
                     total={pagination.totalPagesOpen}
                     onPage={fetchData}
-                    label="open predictions"
+                    label={t("TrackRecord.open").toLowerCase()}
                   />
                 )}
               </section>
@@ -293,6 +292,7 @@ function PaginationControls({
   onPage: (p: number) => void;
   label: string;
 }) {
+  const t = useTranslations();
   return (
     <nav
       className="flex items-center justify-center gap-4 mt-6"
@@ -306,10 +306,10 @@ function PaginationControls({
         aria-label="Previous page"
       >
         <ChevronLeft size={14} />
-        Prev
+        {t("TrackRecord.prev")}
       </button>
       <span className="font-mono text-[11px] text-white/45" aria-live="polite">
-        Page {current} of {total}
+        {t("TrackRecord.pageOf", { current, total })}
       </span>
       <button
         type="button"
@@ -318,7 +318,7 @@ function PaginationControls({
         className="flex items-center gap-1 font-mono text-[11px] uppercase tracking-[0.12em] text-white/55 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
         aria-label="Next page"
       >
-        Next
+        {t("TrackRecord.next")}
         <ChevronRight size={14} />
       </button>
     </nav>

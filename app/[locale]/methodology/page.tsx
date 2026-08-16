@@ -2,12 +2,13 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import AuthModal from "@/components/AuthModal";
 import { PublicPageShell } from "@/components/layout/PublicPageShell";
 import { EtherealCard, PageHeader, PageSection } from "@/components/layout/PageHeader";
 import { PUBLIC_ROUTES } from "@/lib/public-urls";
 import { PipelineStrip } from "@/components/signature";
-import { BRAND_NAME, BRAND_TAGLINE, METHOD_BLOCKS, METHODOLOGY_INTRO } from "@/lib/brand/public-copy";
+import { BRAND_TAGLINE } from "@/lib/brand/public-copy";
 import { ScrollReveal } from "@/components/ui/ScrollReveal";
 import {
   BarChart3,
@@ -19,22 +20,30 @@ import {
   Shield,
 } from "lucide-react";
 
-const METHOD_ICONS: Record<(typeof METHOD_BLOCKS)[number]["name"], typeof Map> = {
+const METHOD_ICONS: Record<string, typeof Map> = {
   Map,
   Confront: GitCompare,
   Quantify: BarChart3,
   Decide: Scale,
 };
 
+const METHOD_KEYS = [
+  { name: "Map", nameKey: "Brand.methodSteps.0", descKey: "Methodology.mapDesc" },
+  { name: "Confront", nameKey: "Brand.methodSteps.1", descKey: "Methodology.confrontDesc" },
+  { name: "Quantify", nameKey: "Brand.methodSteps.2", descKey: "Methodology.quantifyDesc" },
+  { name: "Decide", nameKey: "Brand.methodSteps.3", descKey: "Methodology.decideDesc" },
+];
+
 const STANDARDS = [
-  { icon: Shield, title: "Citation guard", text: "Every [SRC-N] validated against available sources — no claim without a verdict." },
-  { icon: Search, title: "Evidence ledger", text: "Full pipeline lineage stored per inquiry. Every step is reproducible." },
-  { icon: Globe, title: "Provider diversity", text: "Minimum provider spread enforced at rank stage — no single-source monopoly." },
-  { icon: Scale, title: "Arbitration gate", text: "Adversarial challenge runs before every publication. Scenarios stress-tested, not asserted." },
+  { icon: Shield, titleKey: "Methodology.standard1Title", textKey: "Methodology.standard1Text" },
+  { icon: Search, titleKey: "Methodology.standard2Title", textKey: "Methodology.standard2Text" },
+  { icon: Globe, titleKey: "Methodology.standard3Title", textKey: "Methodology.standard3Text" },
+  { icon: Scale, titleKey: "Methodology.standard4Title", textKey: "Methodology.standard4Text" },
 ];
 
 export default function MethodologyPage() {
   const router = useRouter();
+  const t = useTranslations();
   const [showAuthModal, setShowAuthModal] = useState(false);
 
   return (
@@ -42,14 +51,14 @@ export default function MethodologyPage() {
       <PublicPageShell onSignInClick={() => setShowAuthModal(true)} particles={0}>
         <PageSection className="pt-16 sm:pt-20 pb-4" sectionIndex="01 / 04">
           <PageHeader
-            eyebrow="Method"
+            eyebrow={t("Methodology.method")}
             title={
               <>
-                From chaos to nomos.{" "}
-                <span className="text-white/70">A position worth defending.</span>
+                {t("Methodology.title")}{" "}
+                <span className="text-white/70">{t("Methodology.titleAccent")}</span>
               </>
             }
-            description={METHODOLOGY_INTRO}
+            description={t("Methodology.intro")}
             align="center"
           />
         </PageSection>
@@ -57,15 +66,15 @@ export default function MethodologyPage() {
         <PipelineStrip />
 
         <PageSection sectionIndex="02 / 04">
-          <PageHeader eyebrow="Process" title="From question to position" />
+          <PageHeader eyebrow={t("Methodology.process")} title={t("Methodology.fromQuestionToPosition")} />
           <ScrollReveal stagger className="grid sm:grid-cols-2 gap-4">
-            {METHOD_BLOCKS.map(({ name, desc }) => {
+            {METHOD_KEYS.map(({ name, nameKey, descKey }) => {
               const Icon = METHOD_ICONS[name];
               return (
                 <EtherealCard key={name}>
                   <Icon className="w-5 h-5 text-white mb-3" strokeWidth={1.25} />
-                  <h3 className="font-mono text-sm uppercase tracking-[0.12em] text-white mb-2">{name}</h3>
-                  <p className="text-sm text-white/60 leading-relaxed">{desc}</p>
+                  <h3 className="font-mono text-sm uppercase tracking-[0.12em] text-white mb-2">{t(nameKey)}</h3>
+                  <p className="text-sm text-white/60 leading-relaxed">{t(descKey)}</p>
                 </EtherealCard>
               );
             })}
@@ -74,17 +83,17 @@ export default function MethodologyPage() {
 
         <PageSection className="nx-public-section" sectionIndex="03 / 04">
           <PageHeader
-            eyebrow="Standards"
-            title="What separates us from a summary"
-            description="A summary aggregates. NomosX legislates — every claim on trial, every scenario stress-tested, every source traceable."
+            eyebrow={t("Methodology.standards")}
+            title={t("Methodology.whatSeparatesUs")}
+            description={t("Methodology.standardsDesc")}
           />
           <ScrollReveal stagger className="grid sm:grid-cols-2 gap-4">
-            {STANDARDS.map(({ icon: Icon, title, text }) => (
-              <div key={title} className="flex gap-4 nx-surface nx-pillar p-5">
+            {STANDARDS.map(({ icon: Icon, titleKey, textKey }) => (
+              <div key={titleKey} className="flex gap-4 nx-surface nx-pillar p-5">
                 <Icon className="w-5 h-5 text-white shrink-0 mt-0.5" strokeWidth={1.25} />
                 <div>
-                  <h3 className="text-sm font-medium text-white mb-1">{title}</h3>
-                  <p className="text-sm text-white/55 leading-relaxed">{text}</p>
+                  <h3 className="text-sm font-medium text-white mb-1">{t(titleKey)}</h3>
+                  <p className="text-sm text-white/55 leading-relaxed">{t(textKey)}</p>
                 </div>
               </div>
             ))}
@@ -95,7 +104,7 @@ export default function MethodologyPage() {
           <ScrollReveal>
             <p className="text-sm text-white/60 mb-6 max-w-lg mx-auto">{BRAND_TAGLINE}</p>
             <button type="button" onClick={() => router.push(PUBLIC_ROUTES.archives)} className="nx-public-btn-primary">
-              Explore inquiries
+              {t("Methodology.exploreInquiries")}
             </button>
           </ScrollReveal>
         </PageSection>

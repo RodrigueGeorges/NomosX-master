@@ -3,6 +3,7 @@
 import React from 'react';
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { Home, RefreshCw } from 'lucide-react';
 import { NomosXLogo } from '@/components/brand/NomosXLogo';
 import { LOGO_ERROR_CAP } from '@/lib/brand/logo-config';
@@ -17,6 +18,7 @@ export default function Error({
   reset: () => void;
 }) {
   const router = useRouter();
+  const t = useTranslations();
 
   useEffect(() => {
     console.error("[NomosX Error Boundary]", error);
@@ -30,21 +32,21 @@ export default function Error({
         </div>
 
         <h1 className="font-display text-2xl font-semibold text-white mb-3">
-          Something went wrong
+          {t("ErrorPage.title")}
         </h1>
 
         <p className={cn(nx.body, "mb-8")}>
-          An unexpected error occurred. Please try again or return to the home page.
+          {t("ErrorPage.description")}
         </p>
 
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <button type="button" onClick={() => reset()} className={cn(nx.btnPrimary, "group")}>
             <RefreshCw size={16} />
-            Try again
+            {t("ErrorPage.tryAgain")}
           </button>
           <button type="button" onClick={() => router.push("/")} className={nx.btnSecondary}>
             <Home size={16} />
-            Back to home
+            {t("ErrorPage.backToHome")}
           </button>
         </div>
       </div>

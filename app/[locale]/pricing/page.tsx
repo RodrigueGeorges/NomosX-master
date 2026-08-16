@@ -3,115 +3,67 @@
 
 
 import React, { useState } from "react";
-
 import { useRouter } from "next/navigation";
-
+import { useTranslations } from "next-intl";
 import AuthModal from "@/components/AuthModal";
-
 import { PublicPageShell } from "@/components/layout/PublicPageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { ScrollReveal } from "@/components/ui/ScrollReveal";
-
 import { PUBLIC_ROUTES } from "@/lib/public-urls";
-
 import { cn } from "@/lib/utils";
 import { nx } from "@/lib/brand/public-ui";
 import { PUBLICATION_FORMATS } from "@/lib/publication-formats";
 import { getStudioXPrice } from "@/lib/studiox-pricing";
-
 import {
-
   ArrowRight,
-
   BookOpen,
-
   Brain,
-
   Check,
-
   ChevronDown,
-
   FileText,
-
   Sparkles,
-
 } from "lucide-react";
-
 import { AnimatePresence, motion } from "framer-motion";
-
 import { FaqJsonLd } from "@/components/seo/JsonLd";
 
 
 
 const READER_FEATURES = [
-  "Every published position — open, no paywall",
-  "Weekly intelligence dispatch",
-  "Full source traceability on every claim",
-  "Positions with confidence bounds, not opinions",
-  "Archives, domain filters, and depth controls",
+  "Pricing.readerFeature0",
+  "Pricing.readerFeature1",
+  "Pricing.readerFeature2",
+  "Pricing.readerFeature3",
+  "Pricing.readerFeature4",
 ];
 
 const STUDIO_FEATURES = [
-  "Commission a custom study on any question",
-  "Chaos structured into a source-verified, scenario-weighted position",
-  "Scenario distributions — multiple futures, each with a probability",
-  "Adversarial debate before any position is published",
-  "4 formats: Signal Brief → Decision Memo → Article → Strategic Report",
-  "Priority processing queue + white-label (beta)",
+  "Pricing.studioFeature0",
+  "Pricing.studioFeature1",
+  "Pricing.studioFeature2",
+  "Pricing.studioFeature3",
+  "Pricing.studioFeature4",
+  "Pricing.studioFeature5",
 ];
-
-
 
 const STUDIO_STEPS = [
-
-  { label: "Define question", detail: "0 / 240 characters" },
-
-  { label: "Select focus areas", detail: "Technology · Economics · Policy · …" },
-
-  { label: "Delivery & access", detail: "Institute position · Distribution · Verified sources" },
-
+  { labelKey: "Pricing.step1Label", detailKey: "Pricing.step1Detail" },
+  { labelKey: "Pricing.step2Label", detailKey: "Pricing.step2Detail" },
+  { labelKey: "Pricing.step3Label", detailKey: "Pricing.step3Detail" },
 ];
 
-
-
 const FAQ = [
-
-  {
-
-    q: "What is the Reader plan?",
-
-    a: "Reader is free, forever. Every position NomosX publishes — inquiries, briefs, signals, and the weekly dispatch — is open. No credit card, no paywall.",
-
-  },
-
-  {
-
-    q: "What is Nomos Engine?",
-
-    a: "Nomos Engine lets you commission a custom study on your own question. Same verification protocol, same traceability — the chaos of evidence structured into a position you can defend, with scenarios stress-tested and sources on trial.",
-
-  },
-
-  {
-
-    q: "How is Engine priced?",
-
-    a: "Pay per study. Price depends on format and depth — shown before you confirm. No subscription, no lock-in.",
-
-  },
-
+  { qKey: "Pricing.faq0Q", aKey: "Pricing.faq0A" },
+  { qKey: "Pricing.faq1Q", aKey: "Pricing.faq1A" },
+  { qKey: "Pricing.faq2Q", aKey: "Pricing.faq2A" },
 ];
 
 
 
 export default function PricingPage() {
-
   const router = useRouter();
-
+  const t = useTranslations();
   const [showAuthModal, setShowAuthModal] = useState(false);
-
   const [authRedirect, setAuthRedirect] = useState<"studio" | "free">("free");
-
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
 
@@ -150,21 +102,21 @@ export default function PricingPage() {
 
     <>
 
-      <FaqJsonLd items={FAQ} />
+      <FaqJsonLd items={FAQ.map((f) => ({ q: t(f.qKey), a: t(f.aKey) }))} />
 
       <PublicPageShell currentPage="pricing" onSignInClick={() => setShowAuthModal(true)} particles={0}>
 
           <div className="max-w-5xl mx-auto px-6 sm:px-8 py-16 sm:py-20">
 
             <PageHeader
-              eyebrow="Access"
+              eyebrow={t("Pricing.access")}
               title={
                 <>
-                  Read free.{" "}
-                  <span className="text-white">Commission when it matters.</span>
+                  {t("Pricing.title")}{" "}
+                  <span className="text-white">{t("Pricing.titleAccent")}</span>
                 </>
               }
-              description="The world doesn't suffer from a lack of information — it suffers from a lack of verifiable order. NomosX publishes positions 24/7, free to read. Nomos Engine is the add-on for custom studies, scenario stress-testing, and evidence-bound deliverables on demand."
+              description={t("Pricing.description")}
               align="center"
             />
 
@@ -181,53 +133,33 @@ export default function PricingPage() {
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 w-20 h-px bg-white/60" />
 
                 <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-white/55 mb-4">
-
-                  Reader
-
+                  {t("Pricing.reader")}
                 </p>
 
                 <div className="flex items-baseline gap-2 mb-2">
-
-                  <span className="font-mono text-4xl font-light text-text">Free</span>
-
-                  <span className="text-sm text-white/50">forever</span>
-
+                  <span className="font-mono text-4xl font-light text-text">{t("Pricing.free")}</span>
+                  <span className="text-sm text-white/50">{t("Pricing.forever")}</span>
                 </div>
 
                 <p className="text-sm text-white/60 mb-8">
-
-                  Open access to every published position. Evidence-first, no paywall.
-
+                  {t("Pricing.readerDesc")}
                 </p>
 
                 <ul className="space-y-3 mb-9">
-
-                  {READER_FEATURES.map((text) => (
-
-                    <li key={text} className="flex items-start gap-3 text-sm text-white/70">
-
+                  {READER_FEATURES.map((key) => (
+                    <li key={key} className="flex items-start gap-3 text-sm text-white/70">
                       <Check className="w-4 h-4 text-white flex-shrink-0 mt-0.5" strokeWidth={1.5} />
-
-                      {text}
-
+                      {t(key)}
                     </li>
-
                   ))}
-
                 </ul>
 
                 <button
-
                   type="button"
-
                   onClick={openFreeAuth}
-
                   className="w-full py-3.5 border border-white/30 text-white text-sm font-medium hover:border-white/60 hover:text-white transition-colors"
-
                 >
-
-                  Start reading
-
+                  {t("Pricing.startReading")}
                 </button>
 
               </div>
@@ -243,46 +175,42 @@ export default function PricingPage() {
                 <div className="absolute -top-3 left-8">
 
                   <span className="px-3 py-1 bg-white text-black text-[11px] font-mono font-semibold tracking-[0.14em] uppercase">
-
-                    Pay per study
-
+                    {t("Pricing.payPerStudy")}
                   </span>
 
                 </div>
 
                 <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-white/50 mb-4 mt-2">
-
-                  Nomos Engine
+                  {t("StudioPage.eyebrow")}
 
                 </p>
 
                 <div className="flex items-baseline gap-2 mb-2">
 
                   <span className="font-display text-3xl font-semibold text-text">
-
-                    From €39
+                    {t("Pricing.fromPrice")}
 
                   </span>
 
-                  <span className="text-sm text-white/50">per study</span>
+                  <span className="text-sm text-white/50">{t("Pricing.perStudy")}</span>
 
                 </div>
 
                 <p className="text-sm text-white/60 mb-8">
 
-                  Custom inquiries with scenario distributions, adversarial debate, and verified citations.
+                  {t("Pricing.studioDesc")}
 
                 </p>
 
                 <ul className="space-y-3 mb-9">
 
-                  {STUDIO_FEATURES.map((text) => (
+                  {STUDIO_FEATURES.map((key) => (
 
-                    <li key={text} className="flex items-start gap-3 text-sm text-white/75">
+                    <li key={key} className="flex items-start gap-3 text-sm text-white/75">
 
                       <Check className="w-4 h-4 text-white flex-shrink-0 mt-0.5" strokeWidth={1.5} />
 
-                      {text}
+                      {t(key)}
 
                     </li>
 
@@ -300,7 +228,7 @@ export default function PricingPage() {
 
                 >
 
-                  Commission a study
+                  {t("Pricing.commissionStudy")}
 
                   <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
 
@@ -315,25 +243,28 @@ export default function PricingPage() {
             {/* ── 4 formats pricing grid ── */}
             <section className="mb-16">
               <div className="text-center mb-8">
-                <p className={cn(nx.eyebrow, "mb-3")}>4 formats · 4 angles</p>
+                <p className={cn(nx.eyebrow, "mb-3")}>{t("Pricing.formatsAngles")}</p>
                 <h2 className="font-display text-xl sm:text-2xl font-semibold text-text mb-2">
-                  Pay per study. No subscription.
+                  {t("Pricing.payPerStudyNoSub")}
                 </h2>
                 <p className="text-sm text-white/55 max-w-lg mx-auto">
-                  Each format serves a different editorial angle. Same verification protocol, same rigor — choose the depth that fits your question.
+                  {t("Pricing.formatsDesc")}
                 </p>
               </div>
               <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {PUBLICATION_FORMATS.map((format) => {
                   const price = getStudioXPrice(format.type);
+                  const labelKey = format.type === "SUMMARY_BRIEF" ? "Formats.signalBrief" : format.type === "DECISION_MEMO" ? "Formats.decisionMemo" : format.type === "ARTICLE" ? "Formats.article" : "Formats.strategicReport";
+                  const pagesKey = format.type === "SUMMARY_BRIEF" ? "Formats.signalBriefPages" : format.type === "DECISION_MEMO" ? "Formats.decisionMemoPages" : format.type === "ARTICLE" ? "Formats.articlePages" : "Formats.strategicReportPages";
+                  const descKey = format.type === "SUMMARY_BRIEF" ? "Formats.signalBriefDesc" : format.type === "DECISION_MEMO" ? "Formats.decisionMemoDesc" : format.type === "ARTICLE" ? "Formats.articleDesc" : "Formats.strategicReportDesc";
                   return (
                     <div key={format.type} className="nx-surface p-5 flex flex-col">
-                      <div className="text-sm text-white font-semibold mb-1">{format.label}</div>
-                      <div className="text-[10px] font-mono uppercase tracking-[0.12em] text-white/40 mb-3">{format.pages}</div>
-                      <p className="text-xs text-white/55 leading-relaxed mb-4 flex-1">{format.description}</p>
+                      <div className="text-sm text-white font-semibold mb-1">{t(labelKey)}</div>
+                      <div className="text-[10px] font-mono uppercase tracking-[0.12em] text-white/40 mb-3">{t(pagesKey)}</div>
+                      <p className="text-xs text-white/55 leading-relaxed mb-4 flex-1">{t(descKey)}</p>
                       <div className="border-t border-white/[0.08] pt-3">
                         <div className="text-2xl font-display font-semibold text-text">{price.display}</div>
-                        <div className="text-[10px] text-white/35 uppercase tracking-wide mt-0.5">per study</div>
+                        <div className="text-[10px] text-white/35 uppercase tracking-wide mt-0.5">{t("Pricing.perStudyShort")}</div>
                       </div>
                     </div>
                   );
@@ -345,11 +276,11 @@ export default function PricingPage() {
                   onClick={openStudioAuth}
                   className={cn(nx.btnPrimary)}
                 >
-                  Commission a study
+                  {t("Pricing.commissionStudy")}
                   <ArrowRight size={14} className="ml-2" />
                 </button>
                 <p className="mt-3 text-[11px] text-white/35">
-                  Money-back guarantee · Secure checkout via Stripe · No subscription
+                  {t("Pricing.moneyBackNote")}
                 </p>
               </div>
             </section>
@@ -363,22 +294,17 @@ export default function PricingPage() {
                   <Sparkles className="w-4 h-4 text-white/50" />
 
                   <h2 className="font-display text-xl font-semibold text-text">
-
-                    Nomos Engine
-
+                    {t("StudioPage.eyebrow")}
                   </h2>
 
                   <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-white/55 px-2 py-0.5 border border-white/20">
-
-                    Interface preview
-
+                    {t("Pricing.interfacePreview")}
                   </span>
 
                 </div>
 
                 <p className="text-sm text-white/60 max-w-xl">
-                  Define a question, select domains, and receive a position backed by a source-verified, scenario-weighted chain —
-                  with prospective distributions, adversarial review, and full source traceability.
+                  {t("Pricing.engineDesc")}
                 </p>
 
               </div>
@@ -387,7 +313,7 @@ export default function PricingPage() {
 
                 {STUDIO_STEPS.map((step, i) => (
 
-                  <div key={step.label} className="p-5 sm:p-6">
+                  <div key={step.labelKey} className="p-5 sm:p-6">
 
                     <span className="font-mono text-[11px] text-white/55">
 
@@ -395,9 +321,9 @@ export default function PricingPage() {
 
                     </span>
 
-                    <p className="text-sm font-medium text-text mt-2 mb-1">{step.label}</p>
+                    <p className="text-sm font-medium text-text mt-2 mb-1">{t(step.labelKey)}</p>
 
-                    <p className="font-mono text-[11px] text-white/50">{step.detail}</p>
+                    <p className="font-mono text-[11px] text-white/50">{t(step.detailKey)}</p>
 
                   </div>
 
@@ -410,12 +336,10 @@ export default function PricingPage() {
                 <div>
 
                   <h3 className="font-display text-lg font-medium text-text mb-1">
-
-                    Commission a custom study
-
+                    {t("Pricing.commissionCustom")}
                   </h3>
 
-                  <p className="text-sm text-white/55">Full pipeline · distribution · publication-ready</p>
+                  <p className="text-sm text-white/55">{t("Pricing.fullPipeline")}</p>
 
                 </div>
 
@@ -429,7 +353,7 @@ export default function PricingPage() {
 
                 >
 
-                  Get started
+                  {t("Pricing.getStarted")}
 
                 </button>
 
@@ -443,13 +367,10 @@ export default function PricingPage() {
 
               {[
 
-                { value: "250M+", label: "Sources indexed", icon: BookOpen },
-
-                { value: "12+", label: "Domain lenses", icon: Brain },
-
-                { value: "4", label: "Method stages", icon: FileText },
-
-                { value: "48", label: "Data providers", icon: Sparkles },
+                { value: "250M+", label: t("Pricing.sourcesIndexed"), icon: BookOpen },
+                { value: "12+", label: t("Pricing.domainLenses"), icon: Brain },
+                { value: "4", label: t("Pricing.methodStages"), icon: FileText },
+                { value: "48", label: t("Pricing.dataProviders"), icon: Sparkles },
 
               ].map(({ value, label, icon: Icon }) => (
 
@@ -482,9 +403,7 @@ export default function PricingPage() {
             <div className="mb-16">
 
               <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-white/55 text-center mb-8">
-
-                Questions
-
+                {t("Pricing.questions")}
               </p>
 
               <div className="space-y-2">
@@ -493,7 +412,7 @@ export default function PricingPage() {
 
                   <div
 
-                    key={item.q}
+                    key={item.qKey}
 
                     className={cn(
                       "nx-surface overflow-hidden transition-colors",
@@ -512,7 +431,7 @@ export default function PricingPage() {
 
                     >
 
-                      <span className="text-sm font-medium text-text">{item.q}</span>
+                      <span className="text-sm font-medium text-text">{t(item.qKey)}</span>
 
                       <ChevronDown
 
@@ -546,7 +465,7 @@ export default function PricingPage() {
 
                         >
 
-                          <p className="text-sm text-white/60 leading-relaxed px-6 pb-5">{item.a}</p>
+                          <p className="text-sm text-white/60 leading-relaxed px-6 pb-5">{t(item.aKey)}</p>
 
                         </motion.div>
 
@@ -567,8 +486,8 @@ export default function PricingPage() {
             <div className="text-center py-12">
 
               <h2 className="font-display text-xl sm:text-2xl font-semibold mb-4">
-                From Chaos to Nomos.{" "}
-                <span className="text-white/70">Open by default.</span>
+                {t("Pricing.fromChaosOpen")}{" "}
+                <span className="text-white/70">{t("Pricing.openByDefault")}</span>
               </h2>
 
               <div className="flex flex-col sm:flex-row gap-3 justify-center mt-8">
@@ -583,7 +502,7 @@ export default function PricingPage() {
 
                 >
 
-                  Enter the think tank
+                  {t("Pricing.enterThinkTank")}
 
                 </button>
 
@@ -597,7 +516,7 @@ export default function PricingPage() {
 
                 >
 
-                  Open Engine
+                  {t("Pricing.openEngine")}
 
                   <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
 

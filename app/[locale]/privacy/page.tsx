@@ -1,21 +1,20 @@
 import Link from 'next/link';
 import { LegalPageShell } from '@/components/layout/LegalPageShell';
+import { getTranslations } from 'next-intl/server';
 
-
-
-export default function PrivacyPage() {
-
+export default async function PrivacyPage() {
+  const t = await getTranslations('Privacy');
   return (
 
     <LegalPageShell>
 
         <div className="mb-12">
 
-          <p className="nx-eyebrow mb-3">Legal</p>
+          <p className="nx-eyebrow mb-3">{t('legal')}</p>
 
-          <h1 className="font-display text-4xl font-semibold text-white mb-3">Privacy Policy</h1>
+          <h1 className="font-display text-4xl font-semibold text-white mb-3">{t('title')}</h1>
 
-          <p className="text-sm text-white/55 font-mono">Last updated: February 2026</p>
+          <p className="text-sm text-white/55 font-mono">{t('lastUpdated')}</p>
 
         </div>
 
@@ -27,21 +26,11 @@ export default function PrivacyPage() {
 
           <section>
 
-            <h2 className="text-lg font-medium text-white mb-3">1. Who We Are</h2>
+            <h2 className="text-lg font-medium text-white mb-3">{t('s1Title')}</h2>
 
             <p>
 
-              NomosX SAS operates the NomosX platform at nomosx.com. We are committed to protecting
-
-              your personal data in accordance with the GDPR and applicable French law.
-
-              Data controller: NomosX SAS — contact:{' '}
-
-              <a href="mailto:privacy@nomosx.com" className="text-white/70 hover:text-white">
-
-                privacy@nomosx.com
-
-              </a>
+              {t('s1Body')}
 
             </p>
 
@@ -51,19 +40,19 @@ export default function PrivacyPage() {
 
           <section>
 
-            <h2 className="text-lg font-medium text-white mb-3">2. Data We Collect</h2>
+            <h2 className="text-lg font-medium text-white mb-3">{t('s2Title')}</h2>
 
             <ul className="space-y-2 list-disc list-inside text-white/70">
 
-              <li><strong className="text-white/90">Account data:</strong> email address, name, hashed password</li>
+              <li>{t('s2Account')}</li>
 
-              <li><strong className="text-white/90">Usage data:</strong> research queries, brief views, session activity</li>
+              <li>{t('s2Usage')}</li>
 
-              <li><strong className="text-white/90">Newsletter data:</strong> email address, subscription status, confirmation date</li>
+              <li>{t('s2Newsletter')}</li>
 
-              <li><strong className="text-white/90">Billing data:</strong> processed by Stripe — we do not store card numbers</li>
+              <li>{t('s2Billing')}</li>
 
-              <li><strong className="text-white/90">Technical data:</strong> IP address (for rate limiting), browser type</li>
+              <li>{t('s2Technical')}</li>
 
             </ul>
 
@@ -73,25 +62,25 @@ export default function PrivacyPage() {
 
           <section>
 
-            <h2 className="text-lg font-medium text-white mb-3">3. How We Use Your Data</h2>
+            <h2 className="text-lg font-medium text-white mb-3">{t('s3Title')}</h2>
 
             <ul className="space-y-2 list-disc list-inside text-white/70">
 
-              <li>To provide and improve the Service</li>
+              <li>{t('s3Item1')}</li>
 
-              <li>To send transactional emails (account confirmation, weekly dispatch)</li>
+              <li>{t('s3Item2')}</li>
 
-              <li>To process subscription payments via Stripe</li>
+              <li>{t('s3Item3')}</li>
 
-              <li>To prevent abuse and enforce rate limits</li>
+              <li>{t('s3Item4')}</li>
 
-              <li>To comply with legal obligations</li>
+              <li>{t('s3Item5')}</li>
 
             </ul>
 
             <p className="mt-3">
 
-              We do not sell your data to third parties. We do not use your data to train AI models.
+              {t('s3Note')}
 
             </p>
 
@@ -101,15 +90,15 @@ export default function PrivacyPage() {
 
           <section>
 
-            <h2 className="text-lg font-medium text-white mb-3">4. Legal Basis (GDPR)</h2>
+            <h2 className="text-lg font-medium text-white mb-3">{t('s4Title')}</h2>
 
             <ul className="space-y-2 list-disc list-inside text-white/70">
 
-              <li><strong className="text-white/90">Contract performance:</strong> account management, service delivery</li>
+              <li>{t('s4Contract')}</li>
 
-              <li><strong className="text-white/90">Consent:</strong> newsletter subscription (double opt-in)</li>
+              <li>{t('s4Consent')}</li>
 
-              <li><strong className="text-white/90">Legitimate interest:</strong> security, fraud prevention, analytics</li>
+              <li>{t('s4Legitimate')}</li>
 
             </ul>
 
@@ -119,15 +108,11 @@ export default function PrivacyPage() {
 
           <section>
 
-            <h2 className="text-lg font-medium text-white mb-3">5. Data Retention</h2>
+            <h2 className="text-lg font-medium text-white mb-3">{t('s5Title')}</h2>
 
             <p>
 
-              Account data is retained for the duration of your account plus 3 years after deletion.
-
-              Newsletter data is retained until you unsubscribe, then deleted within 30 days.
-
-              Usage logs are retained for 12 months.
+              {t('s5Body')}
 
             </p>
 
@@ -137,19 +122,19 @@ export default function PrivacyPage() {
 
           <section>
 
-            <h2 className="text-lg font-medium text-white mb-3">6. Third-Party Services</h2>
+            <h2 className="text-lg font-medium text-white mb-3">{t('s6Title')}</h2>
 
             <ul className="space-y-2 list-disc list-inside text-white/70">
 
-              <li><strong className="text-white/90">Resend</strong> — transactional email delivery</li>
+              <li>{t('s6Resend')}</li>
 
-              <li><strong className="text-white/90">Stripe</strong> — payment processing</li>
+              <li>{t('s6Stripe')}</li>
 
-              <li><strong className="text-white/90">Neon</strong> — PostgreSQL database hosting (EU region)</li>
+              <li>{t('s6Neon')}</li>
 
-              <li><strong className="text-white/90">OpenAI</strong> — AI model inference (data not used for training)</li>
+              <li>{t('s6OpenAI')}</li>
 
-              <li><strong className="text-white/90">Sentry</strong> — error monitoring</li>
+              <li>{t('s6Sentry')}</li>
 
             </ul>
 
@@ -159,35 +144,29 @@ export default function PrivacyPage() {
 
           <section>
 
-            <h2 className="text-lg font-medium text-white mb-3">7. Your Rights</h2>
+            <h2 className="text-lg font-medium text-white mb-3">{t('s7Title')}</h2>
 
-            <p>Under GDPR, you have the right to:</p>
+            <p>{t('s7Intro')}</p>
 
             <ul className="space-y-2 list-disc list-inside text-white/70 mt-2">
 
-              <li>Access your personal data</li>
+              <li>{t('s7Item1')}</li>
 
-              <li>Rectify inaccurate data</li>
+              <li>{t('s7Item2')}</li>
 
-              <li>Request deletion (&ldquo;right to be forgotten&rdquo;)</li>
+              <li>{t('s7Item3')}</li>
 
-              <li>Object to processing</li>
+              <li>{t('s7Item4')}</li>
 
-              <li>Data portability</li>
+              <li>{t('s7Item5')}</li>
 
-              <li>Withdraw consent at any time (newsletter: unsubscribe link in every email)</li>
+              <li>{t('s7Item6')}</li>
 
             </ul>
 
             <p className="mt-3">
 
-              To exercise these rights, email{' '}
-
-              <a href="mailto:privacy@nomosx.com" className="text-white/70 hover:text-white">
-
-                privacy@nomosx.com
-
-              </a>. We respond within 30 days.
+              {t('s7Note')}
 
             </p>
 
@@ -197,15 +176,11 @@ export default function PrivacyPage() {
 
           <section>
 
-            <h2 className="text-lg font-medium text-white mb-3">8. Cookies</h2>
+            <h2 className="text-lg font-medium text-white mb-3">{t('s8Title')}</h2>
 
             <p>
 
-              We use a single session cookie (<code className="text-white/80">nomosx-session</code>) for
-
-              authentication. It is <code className="text-white/80">httpOnly</code>, <code className="text-white/80">secure</code>,
-
-              and expires after 7 days. We do not use tracking or advertising cookies.
+              {t('s8Body')}
 
             </p>
 
@@ -215,13 +190,11 @@ export default function PrivacyPage() {
 
           <section>
 
-            <h2 className="text-lg font-medium text-white mb-3">9. Security</h2>
+            <h2 className="text-lg font-medium text-white mb-3">{t('s9Title')}</h2>
 
             <p>
 
-              Passwords are hashed with bcrypt (12 rounds). All connections use TLS. API routes are
-
-              protected with CSRF validation and rate limiting. We conduct regular security audits.
+              {t('s9Body')}
 
             </p>
 
@@ -231,29 +204,11 @@ export default function PrivacyPage() {
 
           <section>
 
-            <h2 className="text-lg font-medium text-white mb-3">10. Contact & Complaints</h2>
+            <h2 className="text-lg font-medium text-white mb-3">{t('s10Title')}</h2>
 
             <p>
 
-              Data protection inquiries:{' '}
-
-              <a href="mailto:privacy@nomosx.com" className="text-white/70 hover:text-white">
-
-                privacy@nomosx.com
-
-              </a>
-
-              <br />
-
-              You may also lodge a complaint with the CNIL (Commission Nationale de l&apos;Informatique et des Libertés)
-
-              at{' '}
-
-              <a href="https://www.cnil.fr" target="_blank" rel="noopener noreferrer" className="text-white/70 hover:text-white">
-
-                cnil.fr
-
-              </a>.
+              {t('s10Body')}
 
             </p>
 
@@ -265,9 +220,9 @@ export default function PrivacyPage() {
 
         <div className="mt-12 pt-8 border-t border-white/[0.08] flex gap-6 text-sm text-white/55">
 
-          <Link href="/terms" className="hover:text-white transition-colors">Terms of Service</Link>
+          <Link href="/terms" className="hover:text-white transition-colors">{t('termsLink')}</Link>
 
-          <Link href="/" className="hover:text-white transition-colors">← Back to NomosX</Link>
+          <Link href="/" className="hover:text-white transition-colors">{t('backToNomosX')}</Link>
 
         </div>
 

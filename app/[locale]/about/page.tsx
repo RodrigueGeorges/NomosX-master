@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import AuthModal from "@/components/AuthModal";
 import { PublicPageShell } from "@/components/layout/PublicPageShell";
 import { EtherealCard, PageHeader, PageSection } from "@/components/layout/PageHeader";
@@ -9,51 +10,44 @@ import { ScrollReveal } from "@/components/ui/ScrollReveal";
 import { PUBLIC_ROUTES } from "@/lib/public-urls";
 import { PipelineStrip } from "@/components/signature";
 import {
-  BRAND_SOURCES_LABEL,
   BRAND_TAGLINE,
   BRAND_POSITIONING,
-  NOMOS_PHILOSOPHY_PILLARS,
-  NOMOS_PHILOSOPHY_STATEMENT,
-  ABOUT_CTA_HEADLINE,
-  ABOUT_CTA_HEADLINE_ACCENT,
 } from "@/lib/brand/public-copy";
 import { ArrowRight, Globe, Lightbulb, Shield, Network } from "lucide-react";
 
 const VISION = [
   {
     icon: Globe,
-    title: "From chaos to nomos",
-    description:
-      "The world produces a flood of fragmented signals. NomosX structures the chaos into scenario-weighted, source-verified positions a decision-maker can defend — not just act on.",
+    titleKey: "About.vision1Title",
+    descKey: "About.vision1Desc",
   },
   {
     icon: Network,
-    title: "Connect, don't isolate",
-    description: `The most consequential insights live at the intersection of domains. NomosX forces the collision across ${BRAND_SOURCES_LABEL} sources and extracts the friction.`,
+    titleKey: "About.vision2Title",
+    descKey: "About.vision2Desc",
   },
   {
     icon: Shield,
-    title: "Trust through traceability",
-    description:
-      "Every claim links to its source. Every source to its DOI. Nothing is taken on faith. The map is the product; the sources are the terrain.",
+    titleKey: "About.vision3Title",
+    descKey: "About.vision3Desc",
   },
   {
     icon: Lightbulb,
-    title: "Meaning before answers",
-    description:
-      "Before producing a conclusion, NomosX establishes what the question actually means. A precise question poorly answered beats a vague one answered confidently.",
+    titleKey: "About.vision4Title",
+    descKey: "About.vision4Desc",
   },
 ];
 
 const VALUES = [
-  { title: "Transform chaos into order", description: "Structure the noise into a causal chain anyone can follow." },
-  { title: "Map knowledge, don't accumulate it", description: "Cartograph the intellectual territory — show where evidence is dense, absent, or contradictory." },
-  { title: "Probability over prophecy", description: "We publish what we believe — with confidence bounds and stress-tested scenarios, not false balance." },
-  { title: "Citation is the law", description: "A position worth defending emerges from source-verified, scenario-weighted evidence — not opinion or intuition." },
+  { titleKey: "About.value1Title", descKey: "About.value1Desc" },
+  { titleKey: "About.value2Title", descKey: "About.value2Desc" },
+  { titleKey: "About.value3Title", descKey: "About.value3Desc" },
+  { titleKey: "About.value4Title", descKey: "About.value4Desc" },
 ];
 
 export default function AboutPage() {
   const router = useRouter();
+  const t = useTranslations();
   const [showAuthModal, setShowAuthModal] = useState(false);
 
   return (
@@ -64,11 +58,11 @@ export default function AboutPage() {
             eyebrow={BRAND_POSITIONING}
             title={
               <>
-                From Chaos{" "}
-                <span className="text-white/70">to Nomos.</span>
+                {t("About.title")}{" "}
+                <span className="text-white/70">{t("About.titleAccent")}</span>
               </>
             }
-            description="NomosX is an autonomous think tank that maps evidence, challenges assumptions, and publishes positions anyone can verify — as a public good."
+            description={t("About.description")}
             align="center"
           />
         </PageSection>
@@ -77,11 +71,11 @@ export default function AboutPage() {
         <PageSection sectionIndex="01 / 06" className="pb-8">
           <div className="max-w-2xl mx-auto text-center">
             <ScrollReveal>
-              <p className="nx-eyebrow mb-6 justify-center">The principle</p>
+              <p className="nx-eyebrow mb-6 justify-center">{t("About.thePrinciple")}</p>
             </ScrollReveal>
             <ScrollReveal delay={100}>
               <p className="text-base sm:text-lg text-white/70 leading-[1.6] italic">
-                {NOMOS_PHILOSOPHY_STATEMENT}
+                {t("Brand.philosophyStatement")}
               </p>
             </ScrollReveal>
           </div>
@@ -93,19 +87,19 @@ export default function AboutPage() {
           <div className="nx-grid-bg-enhanced opacity-30" aria-hidden="true" />
           <div className="relative max-w-4xl mx-auto text-center">
             <ScrollReveal stagger className="space-y-2">
-              <p className="nx-manifesto-line">The world doesn&apos;t suffer</p>
-              <p className="nx-manifesto-line">from a lack of information.</p>
+              <p className="nx-manifesto-line">{t("Home.manifestoLine1")}</p>
+              <p className="nx-manifesto-line">{t("Home.manifestoLine2")}</p>
               <div className="nx-divider w-16 mx-auto my-8" />
-              <p className="nx-manifesto-line nx-manifesto-line--accent">It suffers from a lack of structure.</p>
+              <p className="nx-manifesto-line nx-manifesto-line--accent">{t("Home.manifestoLine3")}</p>
             </ScrollReveal>
             <ScrollReveal stagger delay={200} className="mt-12 space-y-1">
-              <p className="nx-manifesto-cascade">Knowledge without order creates noise.</p>
-              <p className="nx-manifesto-cascade">Order creates understanding.</p>
-              <p className="nx-manifesto-cascade">Understanding creates better decisions.</p>
+              <p className="nx-manifesto-cascade">{t("Home.manifestoCascade1")}</p>
+              <p className="nx-manifesto-cascade">{t("Home.manifestoCascade2")}</p>
+              <p className="nx-manifesto-cascade">{t("Home.manifestoCascade3")}</p>
             </ScrollReveal>
             <ScrollReveal delay={400}>
               <p className="nx-manifesto-signoff">
-                That is Nomos<span className="nx-manifesto-signoff-x">X</span>
+                {t("Home.manifestoSignoff")}<span className="nx-manifesto-signoff-x">X</span>
               </p>
             </ScrollReveal>
           </div>
@@ -115,13 +109,13 @@ export default function AboutPage() {
         <PageSection sectionIndex="03 / 06" className="py-10">
           <div className="max-w-5xl mx-auto">
             <ScrollReveal>
-              <p className="nx-eyebrow mb-10 text-center">Six editorial pillars</p>
+              <p className="nx-eyebrow mb-10 text-center">{t("About.sixPillars")}</p>
             </ScrollReveal>
             <ScrollReveal stagger className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {NOMOS_PHILOSOPHY_PILLARS.map((pillar, i) => (
-                <div key={pillar} className="nx-surface nx-pillar p-5">
+              {[0, 1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="nx-surface nx-pillar p-5">
                   <p className="font-mono text-[11px] text-white/45 mb-3">0{i + 1}</p>
-                  <p className="text-sm text-white/70 leading-[1.5]">{pillar}</p>
+                  <p className="text-sm text-white/70 leading-[1.5]">{t(`Brand.philosophyPillars.${i}`)}</p>
                 </div>
               ))}
             </ScrollReveal>
@@ -132,16 +126,16 @@ export default function AboutPage() {
 
         <PageSection sectionIndex="04 / 06">
           <PageHeader
-            eyebrow="What we do"
-            title="The vision"
-            description="Four principles that define every publication NomosX produces."
+            eyebrow={t("About.whatWeDo")}
+            title={t("About.theVision")}
+            description={t("About.visionDesc")}
           />
           <ScrollReveal stagger className="grid sm:grid-cols-2 gap-4">
-            {VISION.map(({ icon: Icon, title, description }) => (
-              <EtherealCard key={title}>
+            {VISION.map(({ icon: Icon, titleKey, descKey }) => (
+              <EtherealCard key={titleKey}>
                 <Icon className="w-5 h-5 text-white mb-4" strokeWidth={1.25} />
-                <h3 className="font-display text-lg font-medium text-white mb-2">{title}</h3>
-                <p className="text-sm text-white/60 leading-relaxed">{description}</p>
+                <h3 className="font-display text-lg font-medium text-white mb-2">{t(titleKey)}</h3>
+                <p className="text-sm text-white/60 leading-relaxed">{t(descKey)}</p>
               </EtherealCard>
             ))}
           </ScrollReveal>
@@ -149,15 +143,15 @@ export default function AboutPage() {
 
         <PageSection sectionIndex="05 / 06">
           <PageHeader
-            eyebrow="Values"
-            title="What we optimize for"
-            description="Four principles govern every publication."
+            eyebrow={t("About.values")}
+            title={t("About.whatWeOptimizeFor")}
+            description={t("About.valuesDesc")}
           />
           <ScrollReveal stagger className="grid sm:grid-cols-2 gap-4">
             {VALUES.map((v) => (
-              <div key={v.title} className="nx-surface p-6">
-                <h3 className="text-sm font-medium text-white mb-2">{v.title}</h3>
-                <p className="text-sm text-white/55 leading-relaxed">{v.description}</p>
+              <div key={v.titleKey} className="nx-surface p-6">
+                <h3 className="text-sm font-medium text-white mb-2">{t(v.titleKey)}</h3>
+                <p className="text-sm text-white/55 leading-relaxed">{t(v.descKey)}</p>
               </div>
             ))}
           </ScrollReveal>
@@ -166,12 +160,12 @@ export default function AboutPage() {
         <PageSection sectionIndex="06 / 06" className="text-center pb-16">
           <ScrollReveal>
             <h2 className="font-display text-2xl font-semibold mb-4">
-              {ABOUT_CTA_HEADLINE}{" "}
-              <span className="text-white/70">{ABOUT_CTA_HEADLINE_ACCENT}</span>
+              {t("About.ctaHeadline")}{" "}
+              <span className="text-white/70">{t("About.ctaHeadlineAccent")}</span>
             </h2>
             <p className="text-sm text-white/55 mb-8 max-w-md mx-auto">{BRAND_TAGLINE}</p>
             <button type="button" onClick={() => router.push(PUBLIC_ROUTES.archives)} className="nx-public-btn-primary">
-              Browse inquiries
+              {t("About.browseInquiries")}
               <ArrowRight size={14} />
             </button>
           </ScrollReveal>

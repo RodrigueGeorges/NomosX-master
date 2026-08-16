@@ -78,7 +78,13 @@ export type Provider =
   // V3.1: Consolidated institutions (batch OpenAlex ROR queries)
   | "consolidated-institutions"
   // V3.1: Global Omniscience Layer — RSS-based providers covering 80+ organizations
-  | "global-intelligence" | "global-orgs" | "global-think-tanks" | "global-science";
+  | "global-intelligence" | "global-orgs" | "global-think-tanks" | "global-science"
+  // V3.2: Heritage & historical sources (2026-08 expansion) — books, primary sources, cultural heritage
+  | "gallica" | "europeana" | "gutenberg" | "dpla" | "wikisource"
+  // V3.2: Global South & regional (2026-08 expansion) — Africa, Iberia/LatAm, India, Korea
+  | "ajol" | "dialnet" | "shodhganga" | "riss"
+  // V3.2: Preprints & open-science data (2026-08 expansion)
+  | "chemrxiv" | "osf" | "preprints-org" | "dryad";
 
 export interface SmartSelection {
   providers: Provider[];
@@ -155,11 +161,11 @@ const DOMAIN_PROVIDER_MAP: Record<string, Provider[]> = {
   // Social sciences & Economics
   economics: ["crossref", "openalex", "nber", "core", "ssrn", "repec", "consolidated-institutions", "worldbank-docs", "treasury-fiscal", "open-primitive", "sec-edgar", "dimensions", "lens", "google-books", "global-intelligence", "global-orgs", "global-think-tanks", "global-science", "tavily", "exa", "linkup"],
   finance: ["crossref", "openalex", "nber", "core", "ssrn", "repec", "consolidated-institutions", "worldbank-docs", "treasury-fiscal", "open-primitive", "sec-edgar", "dimensions", "lens", "google-books", "global-intelligence", "global-orgs", "global-think-tanks", "global-science", "tavily", "exa", "linkup"],
-  social_sciences: ["crossref", "openalex", "ssrn", "core", "hal", "semanticscholar", "doaj", "consolidated-institutions", "dimensions", "lens", "google-books", "global-intelligence", "global-orgs", "global-think-tanks", "global-science", "tavily", "exa", "linkup"],
+  social_sciences: ["crossref", "openalex", "ssrn", "core", "hal", "semanticscholar", "doaj", "consolidated-institutions", "isidore", "persee", "gallica", "gutenberg", "wikisource", "ajol", "dialnet", "shodhganga", "osf", "preprints-org", "dimensions", "lens", "google-books", "global-intelligence", "global-orgs", "global-think-tanks", "global-science", "tavily", "exa", "linkup"],
 
   // Environment & Climate
-  climate: ["crossref", "openalex", "consolidated-institutions", "core", "hal", "doaj", "biorxiv", "dimensions", "lens", "springer", "osti", "datacite", "google-books", "global-intelligence", "global-orgs", "global-think-tanks", "global-science", "tavily", "exa", "linkup"],
-  environment: ["crossref", "openalex", "consolidated-institutions", "core", "hal", "doaj", "biorxiv", "dimensions", "lens", "springer", "osti", "datacite", "google-books", "global-intelligence", "global-orgs", "global-think-tanks", "global-science", "tavily", "exa", "linkup"],
+  climate: ["crossref", "openalex", "consolidated-institutions", "core", "hal", "doaj", "biorxiv", "osf", "dryad", "preprints-org", "dimensions", "lens", "springer", "osti", "datacite", "google-books", "global-intelligence", "global-orgs", "global-think-tanks", "global-science", "tavily", "exa", "linkup"],
+  environment: ["crossref", "openalex", "consolidated-institutions", "core", "hal", "doaj", "biorxiv", "osf", "dryad", "preprints-org", "dimensions", "lens", "springer", "osti", "datacite", "google-books", "global-intelligence", "global-orgs", "global-think-tanks", "global-science", "tavily", "exa", "linkup"],
 
   // Energy (enriched with European providers)
   energy: ["crossref", "openalex", "iea", "core", "iaea", "irena", "cea", "entsoe", "jrc", "acer", "entsog", "energy-charts", "smard", "rte-france", "energi-data", "fingrid", "shift-project", "worldbank", "oecd", "oecd-direct", "hal", "eurostat", "data-gouv", "ademe", "inrae", "france-strategie", "iddri", "insee", "eib", "ecb", "eur-lex", "eeas", "ecfr", "swp", "bruegel", "eea", "brookings", "rand", "newamerica", "rstreet", "dimensions", "lens", "springer", "osti", "datacite", "gdelt-news", "newsapi", "global-intelligence", "global-orgs", "global-think-tanks", "global-science", "tavily", "exa", "linkup"],
@@ -168,8 +174,8 @@ const DOMAIN_PROVIDER_MAP: Record<string, Provider[]> = {
   energy_technology: ["crossref", "openalex", "semanticscholar", "core", "arxiv", "hal", "iea", "iaea", "irena", "cea", "entsoe", "jrc", "acer", "entsog", "energy-charts", "smard", "rte-france", "energi-data", "fingrid", "shift-project", "worldbank", "oecd", "oecd-direct", "eurostat", "data-gouv", "ademe", "france-strategie", "iddri", "inria", "allen-ai", "cset", "ainow", "datasociety", "ecfr", "swp", "bruegel", "eea", "openreview", "papers-with-code", "mit-dspace", "harvard-dash", "max-planck-pure", "brookings", "rand", "dimensions", "lens", "springer", "osti", "datacite", "gdelt-news", "newsapi", "global-intelligence", "global-orgs", "global-think-tanks", "global-science", "tavily", "exa", "linkup"],
 
   // Politics & Law
-  politics: ["crossref", "openalex", "ssrn", "core", "hal", "consolidated-institutions", "federal-register", "dimensions", "lens", "google-books", "gdelt-news", "newsapi", "global-intelligence", "global-orgs", "global-think-tanks", "global-science", "tavily", "exa", "linkup"],
-  law: ["crossref", "openalex", "ssrn", "core", "hal", "lawzero", "eur-lex", "legifrance", "consolidated-institutions", "federal-register", "dimensions", "lens", "google-books", "gdelt-news", "newsapi", "global-intelligence", "global-orgs", "global-think-tanks", "global-science", "tavily", "exa", "linkup"],
+  politics: ["crossref", "openalex", "ssrn", "core", "hal", "consolidated-institutions", "federal-register", "gallica", "wikisource", "dialnet", "dimensions", "lens", "google-books", "gdelt-news", "newsapi", "global-intelligence", "global-orgs", "global-think-tanks", "global-science", "tavily", "exa", "linkup"],
+  law: ["crossref", "openalex", "ssrn", "core", "hal", "lawzero", "eur-lex", "legifrance", "consolidated-institutions", "federal-register", "gallica", "wikisource", "dialnet", "dimensions", "lens", "google-books", "gdelt-news", "newsapi", "global-intelligence", "global-orgs", "global-think-tanks", "global-science", "tavily", "exa", "linkup"],
 
   // Technology & Innovation
   technology: ["semanticscholar", "openalex", "arxiv", "crossref", "hal", "core", "consolidated-institutions", "openreview", "papers-with-code", "mit-dspace", "harvard-dash", "biorxiv", "dimensions", "lens", "springer", "datacite", "google-books", "gdelt-news", "newsapi", "global-intelligence", "global-orgs", "global-think-tanks", "global-science", "tavily", "exa", "linkup"],
@@ -187,7 +193,7 @@ const DOMAIN_PROVIDER_MAP: Record<string, Provider[]> = {
   geopolitics: ["crossref", "openalex", "semanticscholar", "core", "consolidated-institutions", "dimensions", "lens", "google-books", "gdelt-news", "ssrn", "global-intelligence", "global-orgs", "global-think-tanks", "global-science", "tavily", "exa", "linkup"],
 
   // France (enriched)
-  france: ["thesesfr", "hal", "crossref", "core", "openalex", "consolidated-institutions", "legifrance", "vie-publique", "archives-fr", "dimensions", "lens", "google-books", "gdelt-news", "newsapi", "global-intelligence", "global-orgs", "global-think-tanks", "global-science", "tavily", "exa", "linkup"],
+  france: ["thesesfr", "hal", "crossref", "core", "openalex", "consolidated-institutions", "legifrance", "vie-publique", "archives-fr", "gallica", "isidore", "persee", "insee", "data-gouv", "france-strategie", "dimensions", "lens", "google-books", "gdelt-news", "newsapi", "global-intelligence", "global-orgs", "global-think-tanks", "global-science", "tavily", "exa", "linkup"],
 
   // Statistics & Data (new domain)
   statistics: ["crossref", "openalex", "consolidated-institutions", "core", "worldbank-docs", "treasury-fiscal", "dimensions", "lens", "datacite", "gdelt-news", "newsapi", "global-intelligence", "global-orgs", "global-think-tanks", "global-science", "tavily", "exa", "linkup"],
@@ -197,7 +203,27 @@ const DOMAIN_PROVIDER_MAP: Record<string, Provider[]> = {
   european_policy: ["crossref", "openalex", "consolidated-institutions", "core", "eur-lex", "cordis", "dimensions", "lens", "google-books", "gdelt-news", "newsapi", "global-intelligence", "global-orgs", "global-think-tanks", "global-science", "tavily", "exa", "linkup"],
   foreign_policy: ["crossref", "openalex", "consolidated-institutions", "core", "dimensions", "lens", "google-books", "gdelt-news", "global-intelligence", "global-orgs", "global-think-tanks", "global-science", "tavily", "exa", "linkup"],
 
-  default: ["semanticscholar", "crossref", "openalex", "core", "hal", "thesesfr", "nber", "ssrn", "consolidated-institutions", "global-intelligence", "global-orgs", "global-think-tanks", "global-science", "openreview", "biorxiv", "papers-with-code", "mit-dspace", "harvard-dash", "clinical-trials", "plos", "worldbank-docs", "dimensions", "lens", "springer", "datacite", "google-books", "gdelt-news", "newsapi", "tavily", "exa", "linkup"],
+  default: ["semanticscholar", "crossref", "openalex", "core", "hal", "thesesfr", "nber", "ssrn", "consolidated-institutions", "global-intelligence", "global-orgs", "global-think-tanks", "global-science", "openreview", "biorxiv", "papers-with-code", "mit-dspace", "harvard-dash", "clinical-trials", "plos", "worldbank-docs", "dimensions", "lens", "springer", "datacite", "google-books", "gdelt-news", "newsapi", "tavily", "exa", "linkup", "gallica", "europeana", "gutenberg", "wikisource", "osf", "preprints-org", "ajol", "dialnet"],
+
+  // V3.2 NEW DOMAINS (2026-08 expansion)
+
+  // History & historiography — primary sources, classical texts, archives
+  history: ["crossref", "openalex", "semanticscholar", "core", "hal", "thesesfr", "isidore", "persee", "gallica", "europeana", "gutenberg", "dpla", "wikisource", "google-books", "consolidated-institutions", "archives-fr", "nara", "uk-archives", "dimensions", "lens", "ajol", "dialnet", "shodhganga", "global-intelligence", "global-orgs", "global-think-tanks", "global-science", "tavily", "exa", "linkup"],
+
+  // Humanities & literature — philosophy, philology, classics, religious texts
+  humanities: ["crossref", "openalex", "semanticscholar", "core", "hal", "thesesfr", "isidore", "persee", "philpapers", "gallica", "gutenberg", "wikisource", "google-books", "europeana", "dpla", "dialnet", "shodhganga", "dimensions", "lens", "global-intelligence", "global-orgs", "global-think-tanks", "global-science", "tavily", "exa", "linkup"],
+
+  // Chemistry
+  chemistry: ["semanticscholar", "crossref", "openalex", "core", "hal", "chemrxiv", "biorxiv", "preprints-org", "osf", "dryad", "max-planck", "max-planck-pure", "eth-zurich", "cea", "mit-dspace", "harvard-dash", "openreview", "dimensions", "lens", "springer", "osti", "datacite", "google-books", "global-intelligence", "global-orgs", "global-think-tanks", "global-science", "tavily", "exa", "linkup"],
+
+  // Africa
+  africa: ["crossref", "openalex", "semanticscholar", "core", "hal", "ajol", "consolidated-institutions", "fao", "who-direct", "worldbank-docs", "cordis", "dimensions", "lens", "google-books", "global-intelligence", "global-orgs", "global-think-tanks", "global-science", "tavily", "exa", "linkup"],
+
+  // Latin America & Iberia
+  latin_america: ["crossref", "openalex", "semanticscholar", "core", "hal", "dialnet", "scielo", "consolidated-institutions", "dimensions", "lens", "google-books", "global-intelligence", "global-orgs", "global-think-tanks", "global-science", "tavily", "exa", "linkup"],
+
+  // Asia (beyond what's covered by jstage/wanfang/scielo)
+  asia: ["crossref", "openalex", "semanticscholar", "core", "hal", "riss", "shodhganga", "jstage", "wanfang", "consolidated-institutions", "dimensions", "lens", "google-books", "global-intelligence", "global-orgs", "global-think-tanks", "global-science", "tavily", "exa", "linkup"],
 };
 
 /**
@@ -229,6 +255,13 @@ const DOMAIN_KEYWORDS: Record<string, string[]> = {
   medical: ["médecin", "hôpital", "clinique", "médicament", "vaccin", "pandémie", "épidémie", "physician", "hospital", "drug", "vaccine", "pandemic", "epidemic"],
   european_policy: ["union européenne", "europe", "bruxelles", "commission européenne", "conseil européen", "european union", "eu policy", "brussels", "european commission", "schengen"],
   foreign_policy: ["politique étrangère", "diplomatie", "affaires étrangères", "relations extérieures", "foreign policy", "diplomacy", "international affairs", "bilateral", "multilateral"],
+  // V3.2 new domains (2026-08 expansion)
+  history: ["histoire", "historique", "historiographie", "passé", "archive", "manuscrit", "history", "historical", "historiography", "past", "archive", "manuscript", "primary source", "source primaire", "antiquité", "médiéval", "medieval", "renaissance", "colonial", "colonialisme"],
+  humanities: ["humanités", "littérature", "philosophie", "philologie", "classique", "religion", "théologie", "humanities", "literature", "philosophy", "philology", "classics", "religion", "theology", "linguistique", "linguistics"],
+  chemistry: ["chimie", "molécule", "catalyse", "polymère", "chemistry", "chemical", "molecule", "catalysis", "polymer", "synthèse", "synthesis", "réaction", "reaction"],
+  africa: ["afrique", "africain", "africaine", "sahel", "subsaharienne", "africa", "african", "sahel", "sub-saharan", "nigeria", "kenya", "afrique du sud", "south africa", "éthiopie", "ethiopia"],
+  latin_america: ["amérique latine", "latino-américain", "brésil", "argentine", "mexique", "chili", "colombie", "pérou", "ibérique", "espagne", "portugal", "latin america", "latam", "brazil", "argentina", "mexico", "chile", "colombia", "peru", "iberian", "spain", "portugal", "hispanique", "hispanic"],
+  asia: ["asie", "asiatique", "inde", "indien", "corée", "coréen", "japon", "chine", "vietnam", "thaïlande", "asia", "asian", "india", "indian", "korea", "korean", "japan", "china", "vietnam", "thailand", "asie du sud", "south asia", "asie de l'est", "east asia"],
 };
 
 /**

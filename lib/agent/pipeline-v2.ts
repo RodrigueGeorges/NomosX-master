@@ -162,6 +162,22 @@ import { searchGoogleBooks } from "../providers/google-books-provider";
 import { searchPLOS, searchFederalRegister, searchSECEdgar, searchWorldBankDocs, searchCORDIS } from "../providers/open-access-providers";
 import { searchIPCC, searchInternetArchive, searchHathiTrust, searchOpenLibrary, searchJSTOR, searchUNESCO } from "../providers/academic/foundational-sources";
 import { searchClubOfRome, searchMillenniumProject } from "../providers/academic/foresight-sources";
+// Heritage & historical sources (2026-08 expansion)
+import { searchGallica } from "../providers/heritage/gallica";
+import { searchEuropeana } from "../providers/heritage/europeana";
+import { searchGutenberg } from "../providers/heritage/gutenberg";
+import { searchDPLA } from "../providers/heritage/dpla";
+import { searchWikisource } from "../providers/heritage/wikisource";
+// Global South & regional (2026-08 expansion)
+import { searchAJOL } from "../providers/global-south/ajol";
+import { searchDialnet } from "../providers/global-south/dialnet";
+import { searchShodhganga } from "../providers/global-south/shodhganga";
+import { searchRISS } from "../providers/global-south/riss";
+// Preprints & open-science data (2026-08 expansion)
+import { searchChemRxiv } from "../providers/preprints/chemrxiv";
+import { searchOSF } from "../providers/preprints/osf";
+import { searchPreprintsOrg } from "../providers/preprints/preprints-org";
+import { searchDryad } from "../providers/preprints/dryad";
 import { PipelineContext } from "./pipeline-context";
 import { indexAgent, deduplicateSources } from "./index-agent";
 import { strategicAnalystAgent } from "./strategic-analyst-agent";
@@ -774,6 +790,25 @@ async function scoutImpl(query: string, providers: Providers, perProvider = 100)
     // CS CONFERENCES & MATH (DBLP + zbMATH — dedicated APIs with S2/OpenAlex fallback)
     if (providerSet.has("dblp")) allPromises.push(searchDBLP(sq, Math.min(20, perProvider)));
     if (providerSet.has("zbmath")) allPromises.push(searchZbMath(sq, Math.min(20, perProvider)));
+
+    // HERITAGE & HISTORICAL SOURCES (2026-08 expansion) — books, primary sources, cultural heritage
+    if (providerSet.has("gallica")) allPromises.push(searchGallica(sq, Math.min(20, perProvider)));
+    if (providerSet.has("europeana")) allPromises.push(searchEuropeana(sq, Math.min(20, perProvider)));
+    if (providerSet.has("gutenberg")) allPromises.push(searchGutenberg(sq, Math.min(20, perProvider)));
+    if (providerSet.has("dpla")) allPromises.push(searchDPLA(sq, Math.min(20, perProvider)));
+    if (providerSet.has("wikisource")) allPromises.push(searchWikisource(sq, Math.min(20, perProvider)));
+
+    // GLOBAL SOUTH & REGIONAL (2026-08 expansion) — Africa, Iberia/LatAm, India, Korea
+    if (providerSet.has("ajol")) allPromises.push(searchAJOL(sq, Math.min(20, perProvider)));
+    if (providerSet.has("dialnet")) allPromises.push(searchDialnet(sq, Math.min(20, perProvider)));
+    if (providerSet.has("shodhganga")) allPromises.push(searchShodhganga(sq, Math.min(20, perProvider)));
+    if (providerSet.has("riss")) allPromises.push(searchRISS(sq, Math.min(20, perProvider)));
+
+    // PREPRINTS & OPEN-SCIENCE DATA (2026-08 expansion) — chemRxiv, OSF, preprints.org, Dryad
+    if (providerSet.has("chemrxiv")) allPromises.push(searchChemRxiv(sq, Math.min(20, perProvider)));
+    if (providerSet.has("osf")) allPromises.push(searchOSF(sq, Math.min(20, perProvider)));
+    if (providerSet.has("preprints-org")) allPromises.push(searchPreprintsOrg(sq, Math.min(20, perProvider)));
+    if (providerSet.has("dryad")) allPromises.push(searchDryad(sq, Math.min(20, perProvider)));
 
     // ACADEMIC DATABASES — Large-scale scholarly indexes
     if (providerSet.has("dimensions")) allPromises.push(searchDimensions(sq, Math.min(20, perProvider)));
