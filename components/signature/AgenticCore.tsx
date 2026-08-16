@@ -5,264 +5,249 @@ import { cn } from "@/lib/utils";
 import { useTranslations } from "next-intl";
 
 /**
- * AgenticCore — the autonomous think tank, rendered as a living system.
+ * AgenticCore — the visual soul of NomosX.
  *
- * What it shows (not tells):
- *   • 6 specialist agents in a ring, each pulsing on its own rhythm (autonomy)
- *   • Cross-connections between agents that light up randomly (debate / MoA)
- *   • All agents converge to a central synthesis node (the emerging position)
- *   • Occasionally a connection pulses backward (self-correction / Reflexion)
- *   • The center breathes — the position is alive, not static
+ * Not a schema. Not a pipeline diagram. A living metaphor:
+ * points of light drift in chaos, connect, and converge into order.
+ * That's what the think tank does. That's all we show.
  *
- * What it does NOT show:
- *   • No fake metrics, no hardcoded percentages, no source name lists
- *   • No linear pipeline — this is a parallel + convergent system
- *   • No clutter — 6 agent labels + 1 center label, that's it
+ * Three layers of motion:
+ *   1. Drift — scattered points wander slowly (the chaos of raw information)
+ *   2. Connect — hairlines form between nearby points (the system mapping)
+ *   3. Converge — everything pulses toward a breathing center (order emerges)
  *
- * Charter: black canvas, #f0f0fa hairlines, white = only accent, light = life.
+ * No labels. No agent names. No metrics. Just light, motion, and structure.
+ * Sexy enough to stop the scroll. Serious enough for a think tank.
+ *
+ * Charter: black canvas, #f0f0fa, white = only accent, light = life.
  */
 
-// 6 specialist agents (matches MoA in AGENTS.md: Methodology, Bias, Evidence,
-// Synthesis, Skeptic, Uncertainty). Positioned in a hexagonal ring.
-const AGENTS = [
-  { id: "methodology", label: "Methodology", angle: -90, rhythm: 3200 },
-  { id: "bias", label: "Bias", angle: -30, rhythm: 2800 },
-  { id: "evidence", label: "Evidence", angle: 30, rhythm: 3600 },
-  { id: "synthesis", label: "Synthesis", angle: 90, rhythm: 3000 },
-  { id: "skeptic", label: "Skeptic", angle: 150, rhythm: 3400 },
-  { id: "uncertainty", label: "Uncertainty", angle: 210, rhythm: 2600 },
-];
+interface Particle {
+  id: number;
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  size: number;
+  opacity: number;
+}
 
-const RADIUS = 32; // ring radius in viewBox units
+const PARTICLE_COUNT = 28;
+const CONNECT_DISTANCE = 18; // viewBox units
 const CENTER = { x: 50, y: 50 };
-
-// Precompute agent positions
-const POSITIONS = AGENTS.map((a) => {
-  const rad = (a.angle * Math.PI) / 180;
-  return {
-    ...a,
-    x: CENTER.x + RADIUS * Math.cos(rad),
-    y: CENTER.y + RADIUS * Math.sin(rad),
-  };
-});
-
-// Cross-connections (debate pairs) — not all-to-all, curated non-adjacent pairs
-const DEBATE_LINKS = [
-  [0, 3], // Methodology ↔ Synthesis
-  [1, 4], // Bias ↔ Skeptic
-  [2, 5], // Evidence ↔ Uncertainty
-  [0, 4], // Methodology ↔ Skeptic
-  [1, 5], // Bias ↔ Uncertainty
-];
 
 interface AgenticCoreProps {
   className?: string;
-  /** "full" = with labels (home section), "minimal" = pure motion (hero backdrop) */
-  variant?: "full" | "minimal";
+  /** "hero" = large, centered, with breathing center (home/About sections) */
+  variant?: "hero";
 }
 
-export function AgenticCore({ className, variant = "full" }: AgenticCoreProps) {
+export function AgenticCore({ className }: AgenticCoreProps) {
   const t = useTranslations();
   const [mounted, setMounted] = useState(false);
-  const [tick, setTick] = useState(0);
+  const [frame, setFrame] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
+  const particlesRef = useRef<Particle[]>([]);
+  const rafRef = useRef<number>(0);
 
-  useEffect(() => setMounted(true), []);
+  // Initialize particles once
+  useEffect(() => {
+    particlesRef.current = Array.from({ length: PARTICLE_COUNT }, (_, i) => ({
+      id: i,
+      x: 20 + Math.random() * 60,
+      y: 20 + Math.random() * 60,
+      vx: (Math.random() - 0.5) * 0.08,
+      vy: (Math.random() - 0.5) * 0.08,
+      size: Math.random() * 0.8 + 0.4,
+      opacity: Math.random() * 0.3 + 0.15,
+    }));
+    setMounted(true);
+  }, []);
 
-  // Slow tick for debate link cycling — which cross-connection is active
+  // Animation loop — drift + gentle attraction toward center
   useEffect(() => {
     if (!mounted) return;
     const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
     if (reduce) return;
 
-    let timer: ReturnType<typeof setTimeout>;
-    const cycle = () => {
-      setTick((t) => t + 1);
-      timer = setTimeout(cycle, 2400);
-    };
-    timer = setTimeout(cycle, 2000);
-
+    let visible = true;
     const el = containerRef.current;
     const io =
       el && "IntersectionObserver" in window
         ? new IntersectionObserver(
             (entries) => {
-              for (const e of entries) {
-                if (!e.isIntersecting) clearTimeout(timer);
-                else timer = setTimeout(cycle, 2400);
-              }
+              visible = entries[0]?.isIntersecting ?? false;
             },
             { threshold: 0.05 }
           )
         : null;
     if (el && io) io.observe(el);
 
+    const tick = () => {
+      if (!visible) {
+        rafRef.current = requestAnimationFrame(tick);
+        return;
+      }
+      const ps = particlesRef.current;
+      for (const p of ps) {
+        // Gentle attraction to center (order emerging from chaos)
+        const dx = CENTER.x - p.x;
+        const dy = CENTER.y - p.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist > 5) {
+          p.vx += (dx / dist) * 0.002;
+          p.vy += (dy / dist) * 0.002;
+        }
+        // Damping
+        p.vx *= 0.985;
+        p.vy *= 0.985;
+        // Small random drift
+        p.vx += (Math.random() - 0.5) * 0.01;
+        p.vy += (Math.random() - 0.5) * 0.01;
+        p.x += p.vx;
+        p.y += p.vy;
+        // Bounds — wrap softly
+        if (p.x < 10) { p.x = 10; p.vx *= -0.5; }
+        if (p.x > 90) { p.x = 90; p.vx *= -0.5; }
+        if (p.y < 10) { p.y = 10; p.vy *= -0.5; }
+        if (p.y > 90) { p.y = 90; p.vy *= -0.5; }
+      }
+      setFrame((f) => (f + 1) % 100000);
+      rafRef.current = requestAnimationFrame(tick);
+    };
+    rafRef.current = requestAnimationFrame(tick);
+
     return () => {
-      clearTimeout(timer);
+      cancelAnimationFrame(rafRef.current);
       io?.disconnect();
     };
   }, [mounted]);
 
-  const activeDebate = tick % DEBATE_LINKS.length;
-  const showLabels = variant === "full";
+  const particles = particlesRef.current;
+
+  // Compute connections (only render nearby pairs — O(n²) but n=28 is fine)
+  const connections: Array<{ a: Particle; b: Particle; dist: number }> = [];
+  if (mounted) {
+    for (let i = 0; i < particles.length; i++) {
+      for (let j = i + 1; j < particles.length; j++) {
+        const dx = particles[i].x - particles[j].x;
+        const dy = particles[i].y - particles[j].y;
+        const d = Math.sqrt(dx * dx + dy * dy);
+        if (d < CONNECT_DISTANCE) {
+          connections.push({ a: particles[i], b: particles[j], dist: d });
+        }
+      }
+    }
+  }
 
   return (
     <div
       ref={containerRef}
       className={cn(
-        "relative w-full flex items-center justify-center",
-        variant === "full" ? "min-h-[340px] sm:min-h-[400px]" : "absolute inset-0",
+        "relative w-full flex items-center justify-center min-h-[360px] sm:min-h-[440px]",
         className
       )}
       aria-label={t("AgenticCore.ariaLabel")}
     >
+      {/* Faint radial glow — the light source */}
+      <div
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(60%,420px)] aspect-square pointer-events-none"
+        style={{
+          background:
+            "radial-gradient(circle, rgba(240,240,250,0.06) 0%, transparent 65%)",
+        }}
+      />
+
       <svg
-        className={cn(
-          "w-full h-full",
-          variant === "minimal" && "absolute inset-0 opacity-60"
-        )}
+        className="absolute inset-0 w-full h-full"
         viewBox="0 0 100 100"
         preserveAspectRatio="xMidYMid meet"
       >
-        {/* Convergence edges: each agent → center (hairline, always visible) */}
-        {POSITIONS.map((p) => (
-          <line
-            key={`conv-${p.id}`}
-            x1={p.x}
-            y1={p.y}
-            x2={CENTER.x}
-            y2={CENTER.y}
-            stroke="rgba(240,240,250,0.08)"
-            strokeWidth="0.15"
-          />
-        ))}
-
-        {/* Debate links — only the active one is bright, others are ghost-faint */}
-        {DEBATE_LINKS.map(([a, b], i) => {
-          const pa = POSITIONS[a];
-          const pb = POSITIONS[b];
-          const isActive = i === activeDebate && mounted;
+        {/* Connections — hairlines that fade with distance */}
+        {connections.map((c, i) => {
+          const alpha = (1 - c.dist / CONNECT_DISTANCE) * 0.12;
           return (
             <line
-              key={`debate-${a}-${b}`}
-              x1={pa.x}
-              y1={pa.y}
-              x2={pb.x}
-              y2={pb.y}
-              stroke={isActive ? "rgba(240,240,250,0.45)" : "rgba(240,240,250,0.03)"}
-              strokeWidth={isActive ? "0.2" : "0.12"}
-              style={{ transition: "stroke 0.6s ease, stroke-width 0.6s ease" }}
+              key={`c-${i}-${frame}`}
+              x1={c.a.x}
+              y1={c.a.y}
+              x2={c.b.x}
+              y2={c.b.y}
+              stroke={`rgba(240,240,250,${alpha})`}
+              strokeWidth="0.12"
             />
           );
         })}
 
-        {/* Agent nodes — each pulses on its own rhythm (autonomy) */}
-        {POSITIONS.map((p) => (
-          <g key={p.id}>
-            {/* Pulse ring */}
-            <circle
-              cx={p.x}
-              cy={p.y}
-              r="2.2"
-              fill="none"
-              stroke="rgba(240,240,250,0.15)"
-              strokeWidth="0.1"
-              className="nx-agent-pulse"
-              style={{ animationDuration: `${p.rhythm}ms` }}
-            />
-            {/* Core dot */}
-            <circle
-              cx={p.x}
-              cy={p.y}
-              r="1.4"
-              fill="rgba(240,240,250,0.25)"
-              stroke="rgba(240,240,250,0.4)"
-              strokeWidth="0.15"
-            />
-            {/* Label */}
-            {showLabels && (
-              <text
-                x={p.x}
-                y={p.y + (p.angle > 90 || p.angle < -90 ? 5.5 : -3.5)}
-                textAnchor="middle"
-                className="fill-white/[0.35]"
-                style={{
-                  fontSize: "2.2px",
-                  fontFamily: "var(--font-mono), monospace",
-                  letterSpacing: "0.08em",
-                }}
-              >
-                {p.label.toUpperCase()}
-              </text>
-            )}
-          </g>
+        {/* Particles — points of light */}
+        {particles.map((p) => (
+          <circle
+            key={p.id}
+            cx={p.x}
+            cy={p.y}
+            r={p.size}
+            fill={`rgba(240,240,250,${p.opacity})`}
+          />
         ))}
 
-        {/* Center — synthesis node (breathes) */}
-        <g>
-          <circle
-            cx={CENTER.x}
-            cy={CENTER.y}
-            r="3"
-            fill="rgba(240,240,250,0.06)"
-            stroke="rgba(240,240,250,0.5)"
-            strokeWidth="0.2"
-            className="nx-agent-center"
-          />
-          {/* Expanding ring — the position emerging */}
-          <circle
-            cx={CENTER.x}
-            cy={CENTER.y}
-            r="3"
-            fill="none"
-            stroke="rgba(240,240,250,0.25)"
-            strokeWidth="0.12"
-            className="nx-agent-emit"
-          />
-          {showLabels && (
-            <text
-              x={CENTER.x}
-              y={CENTER.y + 8}
-              textAnchor="middle"
-              className="fill-white/[0.5]"
-              style={{
-                fontSize: "2.6px",
-                fontFamily: "var(--font-mono), monospace",
-                letterSpacing: "0.2em",
-              }}
-            >
-              POSITION
-            </text>
-          )}
-        </g>
+        {/* Center — the position, breathing */}
+        <circle
+          cx={CENTER.x}
+          cy={CENTER.y}
+          r="2.5"
+          fill="rgba(240,240,250,0.08)"
+          stroke="rgba(240,240,250,0.45)"
+          strokeWidth="0.18"
+          className="nx-core-breath"
+        />
+        {/* Emit ring — the position radiating outward */}
+        <circle
+          cx={CENTER.x}
+          cy={CENTER.y}
+          r="2.5"
+          fill="none"
+          stroke="rgba(240,240,250,0.2)"
+          strokeWidth="0.1"
+          className="nx-core-emit"
+        />
+        <circle
+          cx={CENTER.x}
+          cy={CENTER.y}
+          r="2.5"
+          fill="none"
+          stroke="rgba(240,240,250,0.15)"
+          strokeWidth="0.08"
+          className="nx-core-emit-2"
+        />
       </svg>
 
       <style jsx global>{`
-        @keyframes nx-agent-pulse {
-          0%, 100% { r: 2.2; stroke-opacity: 0.15; }
-          50% { r: 3.8; stroke-opacity: 0; }
+        @keyframes nx-core-breath {
+          0%, 100% { stroke-opacity: 0.45; r: 2.5; }
+          50% { stroke-opacity: 0.8; r: 3; }
         }
-        .nx-agent-pulse {
-          animation: nx-agent-pulse 3s ease-in-out infinite;
+        .nx-core-breath {
+          animation: nx-core-breath 4s ease-in-out infinite;
         }
-        @keyframes nx-agent-center {
-          0%, 100% { stroke-opacity: 0.5; r: 3; }
-          50% { stroke-opacity: 0.85; r: 3.4; }
+        @keyframes nx-core-emit {
+          0% { r: 2.5; stroke-opacity: 0.2; }
+          100% { r: 14; stroke-opacity: 0; }
         }
-        .nx-agent-center {
-          animation: nx-agent-center 4s ease-in-out infinite;
+        .nx-core-emit {
+          animation: nx-core-emit 5s ease-out infinite;
         }
-        @keyframes nx-agent-emit {
-          0% { r: 3; stroke-opacity: 0.25; }
-          100% { r: 12; stroke-opacity: 0; }
+        @keyframes nx-core-emit-2 {
+          0% { r: 2.5; stroke-opacity: 0.15; }
+          100% { r: 22; stroke-opacity: 0; }
         }
-        .nx-agent-emit {
-          animation: nx-agent-emit 5s ease-out infinite;
+        .nx-core-emit-2 {
+          animation: nx-core-emit-2 7s ease-out infinite;
+          animation-delay: 2s;
         }
         @media (prefers-reduced-motion: reduce) {
-          .nx-agent-pulse,
-          .nx-agent-center,
-          .nx-agent-emit { animation: none; }
+          .nx-core-breath, .nx-core-emit, .nx-core-emit-2 {
+            animation: none;
+          }
         }
       `}</style>
     </div>
