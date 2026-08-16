@@ -84,7 +84,9 @@ export type Provider =
   // V3.2: Global South & regional (2026-08 expansion) — Africa, Iberia/LatAm, India, Korea
   | "ajol" | "dialnet" | "shodhganga" | "riss"
   // V3.2: Preprints & open-science data (2026-08 expansion)
-  | "chemrxiv" | "osf" | "preprints-org" | "dryad";
+  | "chemrxiv" | "osf" | "preprints-org" | "dryad"
+  // V3.2: Humanities & regional databases (2026-08 expansion)
+  | "philpapers" | "fao" | "scielo" | "jstage" | "wanfang";
 
 export interface SmartSelection {
   providers: Provider[];
