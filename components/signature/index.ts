@@ -1,5 +1,6 @@
 export { FeaturedVerdictCard } from "./FeaturedVerdictCard";
 export type { FeaturedVerdictData } from "./FeaturedVerdictCard";
+export { AgenticCore } from "./AgenticCore";
 export { DomainMap } from "./DomainMap";
 export { EtherealBackground } from "./EtherealBackground";
 export { FunnelVisual } from "./FunnelVisual";

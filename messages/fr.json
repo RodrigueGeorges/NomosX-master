@@ -141,6 +141,9 @@
     "stressTested": "stress-testés",
     "distributionNote": "Illustratif. Chaque position publiée est livrée avec sa propre distribution, sources visibles, doutes consignés."
   },
+  "AgenticCore": {
+    "ariaLabel": "Système agentique NomosX — six agents spécialisés raisonnant en parallèle, débattant, et convergeant vers une position unique"
+  },
   "DomainMap": {
     "eyebrow": "Où nous travaillons",
     "title": "Huit domaines. Une carte.",

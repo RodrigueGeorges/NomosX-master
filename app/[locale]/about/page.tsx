@@ -10,7 +10,7 @@ import { ScrollReveal } from "@/components/ui/ScrollReveal";
 import { StatCounter } from "@/components/ui/StatCounter";
 import { PUBLIC_ROUTES } from "@/lib/public-urls";
 import { DomainMap } from "@/components/signature/DomainMap";
-import { FunnelVisual } from "@/components/signature/FunnelVisual";
+import { AgenticCore } from "@/components/signature/AgenticCore";
 import { KnowledgeGraphHero } from "@/components/signature/KnowledgeGraphHero";
 import {
   BRAND_POSITIONING,
@@ -24,7 +24,7 @@ import { ArrowRight } from "lucide-react";
  *
  * Structure (Harvard "How we work / Where we work" + SpaceX mission-led):
  *  01 Mission statement (full-bleed, outcome-led, no card)
- *  02 How we work (FunnelVisual — the protocol made tangible)
+ *  02 How we work (AgenticCore — the living system)
  *  03 Where we work (DomainMap — eight domains)
  *  04 The institute (the agentic system as the "team" — NomosX twist)
  *  05 The origin (philosophy statement)
@@ -86,7 +86,7 @@ export default function AboutPage() {
               </p>
             </ScrollReveal>
             <ScrollReveal delay={150}>
-              <FunnelVisual />
+              <AgenticCore />
             </ScrollReveal>
           </div>
         </PageSection>

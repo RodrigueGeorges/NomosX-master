@@ -141,6 +141,9 @@
     "stressTested": "stress-tested",
     "distributionNote": "Illustrative. Every published position ships with its own distribution, sources visible, doubts logged."
   },
+  "AgenticCore": {
+    "ariaLabel": "NomosX agentic system — six specialist agents reasoning in parallel, debating, and converging into a single position"
+  },
   "DomainMap": {
     "eyebrow": "Where we work",
     "title": "Eight domains. One map.",

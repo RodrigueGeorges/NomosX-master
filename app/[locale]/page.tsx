@@ -18,7 +18,7 @@ import {
 
   FeaturedVerdictCard,
 
-  FunnelVisual,
+  AgenticCore,
 
   InquiryCard,
 
@@ -473,7 +473,7 @@ function HomePageContent() {
 
               <ScrollReveal delay={120}>
 
-                <FunnelVisual />
+                <AgenticCore />
 
               </ScrollReveal>
 
