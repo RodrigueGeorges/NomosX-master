@@ -2386,6 +2386,41 @@ article.nomosx-brief .brief-footer {
   .nx-aurora { animation: none; }
 }
 
+/* ── 3b. Mesh gradient background — Linear/Stripe 2026 approach ──────── */
+/* Pure CSS, no canvas, no JS. 3 radial-gradients drifting on black.     */
+/* Under 1KB. The atmosphere — felt, not seen.                           */
+
+.nx-mesh-bg {
+  background-color: #000000;
+  background-image:
+    radial-gradient(ellipse 60% 50% at 20% 30%, rgba(240, 240, 250, 0.035) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 60% at 80% 70%, rgba(240, 240, 250, 0.028) 0%, transparent 55%),
+    radial-gradient(ellipse 70% 40% at 50% 50%, rgba(240, 240, 250, 0.022) 0%, transparent 65%);
+  background-size: 200% 200%, 220% 220%, 180% 180%;
+  background-position: 0% 0%, 100% 100%, 50% 50%;
+  background-repeat: no-repeat;
+  animation: nx-mesh-drift 40s ease-in-out infinite alternate;
+}
+
+@keyframes nx-mesh-drift {
+  0% {
+    background-position: 0% 0%, 100% 100%, 50% 50%;
+    background-size: 200% 200%, 220% 220%, 180% 180%;
+  }
+  50% {
+    background-position: 30% 20%, 70% 80%, 60% 40%;
+    background-size: 240% 240%, 200% 200%, 220% 220%;
+  }
+  100% {
+    background-position: 10% 40%, 90% 60%, 40% 60%;
+    background-size: 200% 200%, 240% 240%, 200% 200%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nx-mesh-bg { animation: none; }
+}
+
 /* ── 4. Enhanced grid background with depth ──────────────────────────── */
 
 .nx-grid-bg-enhanced {
