@@ -4,18 +4,14 @@ import { useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 
 /**
- * AgenticCore — latent space, breathing.
+ * AgenticCore — medusa mode.
  *
- * A continuous noise field rendered at low resolution and scaled up.
- * No blobs, no dots, no nodes, no bands — just black that breathes.
- * The field shifts slowly (the system thinking) and very rarely,
- * a soft convergence brightens a region (a thought emerging).
+ * Translucent organisms drifting in dark water.
+ * No black fill — pure alpha canvas that blends with the page.
+ * Soft radial glows that breathe, drift, and trail.
+ * Bioluminescent. Organic. Alive.
  *
- * Technique: low-res canvas (80×50) with smoothed noise → scaled to full screen.
- * This is the domain-warped gradient approach used by Stripe, Vercel, and
- * the best 2026 shader backgrounds — but on 2D canvas, no WebGL needed.
- *
- * Charter: black canvas, #f0f0fa, white = only accent, light = life.
+ * Charter: black canvas (from page), #f0f0fa, white = only accent, light = life.
  */
 
 interface AgenticCoreProps {
@@ -23,68 +19,22 @@ interface AgenticCoreProps {
   variant?: "section" | "atmosphere";
 }
 
-// --- Value noise (cheap, smooth, no deps) ---
-// We use a grid of random values + bilinear interpolation.
-// This produces smooth, organic fields — not blocky.
-
-const GRID_W = 80;
-const GRID_H = 50;
-
-function makeNoiseGrid(): Float32Array {
-  const g = new Float32Array(GRID_W * GRID_H);
-  for (let i = 0; i < g.length; i++) g[i] = Math.random();
-  return g;
+interface Medusa {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  radius: number;
+  baseAlpha: number;
+  pulsePhase: number;
+  pulseSpeed: number;
+  // Trail — past positions for soft trailing glow
+  trail: Array<{ x: number; y: number; alpha: number }>;
 }
 
-// Smooth interpolation between grid points
-function sampleNoise(
-  grids: Float32Array[],
-  x: number,
-  y: number,
-  t: number
-): number {
-  // Wrap coordinates
-  const gx = ((x % GRID_W) + GRID_W) % GRID_W;
-  const gy = ((y % GRID_H) + GRID_H) % GRID_H;
-  const x0 = Math.floor(gx);
-  const y0 = Math.floor(gy);
-  const x1 = (x0 + 1) % GRID_W;
-  const y1 = (y0 + 1) % GRID_H;
-  const fx = gx - x0;
-  const fy = gy - y0;
-  // Smoothstep
-  const sx = fx * fx * (3 - 2 * fx);
-  const sy = fy * fy * (3 - 2 * fy);
-
-  // Cycle through grids over time for temporal variation
-  const cycle = t * 0.00008;
-  const i0 = Math.floor(cycle) % grids.length;
-  const i1 = (Math.floor(cycle) + 1) % grids.length;
-  const tf = cycle - Math.floor(cycle);
-  const tfSmooth = tf * tf * (3 - 2 * tf);
-
-  const g0 = grids[i0];
-  const g1 = grids[i1];
-
-  const v00 = g0[y0 * GRID_W + x0];
-  const v10 = g0[y0 * GRID_W + x1];
-  const v01 = g0[y1 * GRID_W + x0];
-  const v11 = g0[y1 * GRID_W + x1];
-  const v00b = g1[y0 * GRID_W + x0];
-  const v10b = g1[y0 * GRID_W + x1];
-  const v01b = g1[y1 * GRID_W + x0];
-  const v11b = g1[y1 * GRID_W + x1];
-
-  const a = v00 * (1 - sx) + v10 * sx;
-  const b = v01 * (1 - sx) + v11 * sx;
-  const c = v00b * (1 - sx) + v10b * sx;
-  const d = v01b * (1 - sx) + v11b * sx;
-
-  const v0 = a * (1 - sy) + b * sy;
-  const v1 = c * (1 - sy) + d * sy;
-
-  return v0 * (1 - tfSmooth) + v1 * tfSmooth;
-}
+const COLOR_R = 240;
+const COLOR_G = 240;
+const COLOR_B = 250;
 
 export function AgenticCore({ className, variant = "atmosphere" }: AgenticCoreProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -103,14 +53,6 @@ export function AgenticCore({ className, variant = "atmosphere" }: AgenticCorePr
 
     let W = 0, H = 0, dpr = 1;
 
-    // Low-res buffer for noise field
-    const buffer = document.createElement("canvas");
-    const bufCtx = buffer.getContext("2d");
-    if (!bufCtx) return;
-    buffer.width = GRID_W;
-    buffer.height = GRID_H;
-    const imageData = bufCtx.createImageData(GRID_W, GRID_H);
-
     const resize = () => {
       dpr = Math.min(window.devicePixelRatio || 1, isAtmos ? 1.5 : 2);
       const rect = container.getBoundingClientRect();
@@ -121,29 +63,33 @@ export function AgenticCore({ className, variant = "atmosphere" }: AgenticCorePr
       canvas.style.width = `${W}px`;
       canvas.style.height = `${H}px`;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      // Scale buffer to full screen with smoothing
-      ctx.imageSmoothingEnabled = true;
-      ctx.imageSmoothingQuality = "high";
     };
     resize();
     window.addEventListener("resize", resize);
 
-    // Pre-generate noise grids (cycle through them for temporal evolution)
-    const NUM_GRIDS = 8;
-    const grids: Float32Array[] = [];
-    for (let i = 0; i < NUM_GRIDS; i++) grids.push(makeNoiseGrid());
+    // --- Medusas ---
+    const COUNT = isAtmos ? 4 : 3;
+    const medusas: Medusa[] = [];
 
-    // --- Convergence events ---
-    interface Convergence {
-      gx: number;
-      gy: number;
-      radius: number;
-      maxRadius: number;
-      life: number;
-    }
-    const convergences: Convergence[] = [];
-    let convTimer = 0;
-    const CONV_INTERVAL = isAtmos ? 12000 : 8000;
+    const initMedusas = () => {
+      medusas.length = 0;
+      for (let i = 0; i < COUNT; i++) {
+        const r = Math.min(W, H) * (0.15 + Math.random() * 0.12);
+        medusas.push({
+          x: Math.random() * W,
+          y: Math.random() * H,
+          vx: (Math.random() - 0.5) * 0.15,
+          vy: (Math.random() - 0.5) * 0.12,
+          radius: r,
+          baseAlpha: isAtmos ? 0.025 + Math.random() * 0.015 : 0.04 + Math.random() * 0.02,
+          pulsePhase: Math.random() * Math.PI * 2,
+          pulseSpeed: 0.0004 + Math.random() * 0.0003,
+          trail: [],
+        });
+      }
+    };
+    initMedusas();
+    window.addEventListener("resize", initMedusas);
 
     // --- Animation ---
     let raf = 0;
@@ -160,11 +106,6 @@ export function AgenticCore({ className, variant = "atmosphere" }: AgenticCorePr
         : null;
     if (container) io?.observe(container);
 
-    // Opacity settings — tuned to be visible but not distracting
-    const BASE_BRIGHTNESS = isAtmos ? 10 : 16; // 0-255 scale, very low
-    const BREATH_AMP = isAtmos ? 4 : 6; // how much it oscillates
-    const CONV_BOOST = isAtmos ? 18 : 28; // convergence brightening
-
     const draw = (now: number) => {
       raf = requestAnimationFrame(draw);
       if (!visible) return;
@@ -172,107 +113,105 @@ export function AgenticCore({ className, variant = "atmosphere" }: AgenticCorePr
       lastTime = now;
       time += dt;
 
-      // Convergence timer
-      convTimer += dt;
-      if (convTimer > CONV_INTERVAL + Math.random() * 5000) {
-        convTimer = 0;
-        convergences.push({
-          gx: 10 + Math.random() * (GRID_W - 20),
-          gy: 8 + Math.random() * (GRID_H - 16),
-          radius: 0,
-          maxRadius: 25,
-          life: 0,
-        });
-      }
-
-      // Update convergences
-      for (let i = convergences.length - 1; i >= 0; i--) {
-        const c = convergences[i];
-        c.life += dt / 4000;
-        c.radius = c.life * c.maxRadius;
-        if (c.life >= 1) convergences.splice(i, 1);
-      }
-
-      // Render noise field to low-res buffer
-      const data = imageData.data;
-      const breath = Math.sin(time * 0.0003) * 0.5 + 0.5; // 0..1, slow breath
-
-      // Offset for domain warping — shifts the field over time
-      const warpX = time * 0.003;
-      const warpY = time * 0.002;
-
-      for (let y = 0; y < GRID_H; y++) {
-        for (let x = 0; x < GRID_W; x++) {
-          // Domain-warped noise: sample at warped coordinates
-          const wx = x + warpX + sampleNoise(grids, x * 0.5, y * 0.5, time) * 4;
-          const wy = y + warpY + sampleNoise(grids, x * 0.5 + 100, y * 0.5 + 100, time) * 4;
-          const n = sampleNoise(grids, wx, wy, time);
-
-          // Base brightness from noise + breathing
-          let brightness = BASE_BRIGHTNESS + n * BREATH_AMP + breath * BREATH_AMP * 0.3;
-
-          // Convergence boost
-          for (const c of convergences) {
-            const dx = x - c.gx;
-            const dy = y - c.gy;
-            const d = Math.sqrt(dx * dx + dy * dy);
-            const distFromFront = Math.abs(d - c.radius);
-            const waveWidth = 8;
-            if (distFromFront < waveWidth) {
-              const proximity = 1 - distFromFront / waveWidth;
-              const fade = Math.sin(c.life * Math.PI); // fade in and out
-              brightness += proximity * CONV_BOOST * fade;
-            }
-          }
-
-          // Clamp
-          brightness = Math.min(40, Math.max(0, brightness));
-
-          const idx = (y * GRID_W + x) * 4;
-          data[idx] = brightness * 0.94;     // R (240/255)
-          data[idx + 1] = brightness * 0.94; // G
-          data[idx + 2] = brightness;        // B (250/255)
-          data[idx + 3] = 255;
-        }
-      }
-
-      bufCtx.putImageData(imageData, 0, 0);
-
-      // Draw scaled to full screen
-      ctx.clearRect(0, 0, W, H);
-      ctx.drawImage(buffer, 0, 0, GRID_W, GRID_H, 0, 0, W, H);
-
-      // Optional: subtle vignette mask to fade edges (blend with pure black)
-      const vGrad = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.3, W / 2, H / 2, Math.max(W, H) * 0.7);
-      vGrad.addColorStop(0, "rgba(0, 0, 0, 0)");
-      vGrad.addColorStop(1, "rgba(0, 0, 0, 0.5)");
-      ctx.fillStyle = vGrad;
+      // Transparent clear — NO black fill, just fade old frames slightly
+      // This creates natural trails without covering the page background
+      ctx.globalCompositeOperation = "destination-out";
+      ctx.fillStyle = "rgba(0, 0, 0, 0.06)";
       ctx.fillRect(0, 0, W, H);
+      ctx.globalCompositeOperation = "source-over";
+
+      for (const m of medusas) {
+        // Drift — slow, organic
+        m.x += m.vx * dt / 16;
+        m.y += m.vy * dt / 16;
+
+        // Gentle direction changes (organic wandering)
+        m.vx += (Math.random() - 0.5) * 0.003;
+        m.vy += (Math.random() - 0.5) * 0.003;
+        // Clamp speed
+        const speed = Math.sqrt(m.vx * m.vx + m.vy * m.vy);
+        const maxSpeed = 0.25;
+        if (speed > maxSpeed) {
+          m.vx = (m.vx / speed) * maxSpeed;
+          m.vy = (m.vy / speed) * maxSpeed;
+        }
+
+        // Wrap around screen
+        const margin = m.radius;
+        if (m.x < -margin) m.x = W + margin;
+        if (m.x > W + margin) m.x = -margin;
+        if (m.y < -margin) m.y = H + margin;
+        if (m.y > H + margin) m.y = -margin;
+
+        // Pulse — the medusa contracts and expands
+        m.pulsePhase += m.pulseSpeed * dt;
+        const pulse = 0.75 + Math.sin(m.pulsePhase) * 0.25; // 0.5..1.0
+        const alpha = m.baseAlpha * pulse;
+        const radius = m.radius * pulse;
+
+        // Update trail
+        m.trail.push({ x: m.x, y: m.y, alpha: alpha });
+        if (m.trail.length > 20) m.trail.shift();
+
+        // Draw trail — soft, fading glows behind the medusa
+        for (let i = 0; i < m.trail.length; i++) {
+          const t = m.trail[i];
+          const trailFade = (i / m.trail.length) * 0.3; // trails are much fainter
+          const trailAlpha = t.alpha * trailFade;
+          const trailR = radius * (0.6 + (i / m.trail.length) * 0.4);
+
+          const grad = ctx.createRadialGradient(t.x, t.y, 0, t.x, t.y, trailR);
+          grad.addColorStop(0, `rgba(${COLOR_R}, ${COLOR_G}, ${COLOR_B}, ${trailAlpha})`);
+          grad.addColorStop(0.4, `rgba(${COLOR_R}, ${COLOR_G}, ${COLOR_B}, ${trailAlpha * 0.3})`);
+          grad.addColorStop(1, `rgba(${COLOR_R}, ${COLOR_G}, ${COLOR_B}, 0)`);
+          ctx.fillStyle = grad;
+          ctx.beginPath();
+          ctx.arc(t.x, t.y, trailR, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        // Draw medusa body — soft translucent glow
+        const bodyGrad = ctx.createRadialGradient(m.x, m.y, 0, m.x, m.y, radius);
+        bodyGrad.addColorStop(0, `rgba(${COLOR_R}, ${COLOR_G}, ${COLOR_B}, ${alpha * 0.8})`);
+        bodyGrad.addColorStop(0.3, `rgba(${COLOR_R}, ${COLOR_G}, ${COLOR_B}, ${alpha * 0.4})`);
+        bodyGrad.addColorStop(0.7, `rgba(${COLOR_R}, ${COLOR_G}, ${COLOR_B}, ${alpha * 0.1})`);
+        bodyGrad.addColorStop(1, `rgba(${COLOR_R}, ${COLOR_G}, ${COLOR_B}, 0)`);
+        ctx.fillStyle = bodyGrad;
+        ctx.beginPath();
+        ctx.arc(m.x, m.y, radius, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Brighter core — the "nerve" of the medusa
+        const coreR = radius * 0.15;
+        const coreGrad = ctx.createRadialGradient(m.x, m.y, 0, m.x, m.y, coreR);
+        coreGrad.addColorStop(0, `rgba(${COLOR_R}, ${COLOR_G}, ${COLOR_B}, ${alpha * 1.5})`);
+        coreGrad.addColorStop(1, `rgba(${COLOR_R}, ${COLOR_G}, ${COLOR_B}, 0)`);
+        ctx.fillStyle = coreGrad;
+        ctx.beginPath();
+        ctx.arc(m.x, m.y, coreR, 0, Math.PI * 2);
+        ctx.fill();
+      }
     };
 
     if (!reduce) {
       raf = requestAnimationFrame(draw);
     } else {
-      // Static: faint noise
-      const data = imageData.data;
-      for (let y = 0; y < GRID_H; y++) {
-        for (let x = 0; x < GRID_W; x++) {
-          const n = grids[0][y * GRID_W + x];
-          const b = (BASE_BRIGHTNESS + n * BREATH_AMP) * 0.5;
-          const idx = (y * GRID_W + x) * 4;
-          data[idx] = b * 0.94;
-          data[idx + 1] = b * 0.94;
-          data[idx + 2] = b;
-          data[idx + 3] = 255;
-        }
+      // Static: one faint medusa
+      for (const m of medusas) {
+        const grad = ctx.createRadialGradient(m.x, m.y, 0, m.x, m.y, m.radius);
+        grad.addColorStop(0, `rgba(${COLOR_R}, ${COLOR_G}, ${COLOR_B}, ${m.baseAlpha * 0.5})`);
+        grad.addColorStop(1, `rgba(${COLOR_R}, ${COLOR_G}, ${COLOR_B}, 0)`);
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(m.x, m.y, m.radius, 0, Math.PI * 2);
+        ctx.fill();
       }
-      bufCtx.putImageData(imageData, 0, 0);
-      ctx.drawImage(buffer, 0, 0, GRID_W, GRID_H, 0, 0, W, H);
     }
 
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", resize);
+      window.removeEventListener("resize", initMedusas);
       io?.disconnect();
     };
   }, [variant]);
