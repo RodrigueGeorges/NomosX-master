@@ -76,8 +76,9 @@ function findNearestPrecedingCitation(
 export function applyCitationFilter(html: string): CitationFilterResult {
   const text = stripHtmlForEvidence(html);
 
-  // Split into sentences
-  const allSentences = text.split(/(?<=[.!?])\s+/).map(s => s.trim()).filter(Boolean);
+  // Split into sentences.
+  // CRITICAL: Don't split on '.' between digits (decimal points like "0.5" or "27.31").
+  const allSentences = text.split(/(?<=[.!?])(?<!\d)\s+/).map(s => s.trim()).filter(Boolean);
 
   // Track which sentences are claims
   const claimFlags = allSentences.map(s => looksLikeClaim(s));

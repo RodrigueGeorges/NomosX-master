@@ -94,7 +94,7 @@ export function AgenticCore({ className, variant = "atmosphere" }: AgenticCorePr
           vx: (Math.random() - 0.5) * 0.08,
           vy: (Math.random() - 0.5) * 0.08,
           radius: Math.min(W, H) * (0.3 + Math.random() * 0.2),
-          baseOpacity: isAtmos ? 0.04 + Math.random() * 0.02 : 0.06 + Math.random() * 0.025,
+          baseOpacity: isAtmos ? 0.12 + Math.random() * 0.06 : 0.15 + Math.random() * 0.08,
           phase: Math.random() * Math.PI * 2,
           phaseSpeed: 0.0003 + Math.random() * 0.0002,
         });
@@ -114,7 +114,7 @@ export function AgenticCore({ className, variant = "atmosphere" }: AgenticCorePr
         radius: 0,
         maxRadius: Math.max(W, H) * 0.5,
         speed: isAtmos ? 0.8 : 1.2,
-        intensity: isAtmos ? 0.04 : 0.06,
+        intensity: isAtmos ? 0.1 : 0.14,
       });
     };
 

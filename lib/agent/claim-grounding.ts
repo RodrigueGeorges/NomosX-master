@@ -68,13 +68,23 @@ function extractSentencesFromHtml(html: string): { text: string; raw: string; st
   );
   // Also convert standalone <a href="#ref-N"> to [SRC-N]
   normalized = normalized.replace(/<a href="#ref-(\d+)"[^>]*>[^<]*<\/a>/g, '[SRC-$1]');
+  // Handle HTML-escaped sup tags (safety net — should not occur after editor-agent fix,
+  // but just in case other renderers produce escaped tags)
+  normalized = normalized.replace(
+    /&lt;sup class=&quot;cite&quot;&gt;&lt;a href=&quot;#ref-(\d+)&quot;[^&]*&gt;[^&]*&lt;\/a&gt;&lt;\/sup&gt;/g,
+    '[SRC-$1]'
+  );
+  // Normalize [E-N] evidence IDs to [SRC-N] (strategic reports use E-N format)
+  normalized = normalized.replace(/\[E(\d+)\]/g, '[SRC-$1]');
 
   // Strip HTML tags to get text content, keeping [SRC-N] markers
   const text = normalized.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
 
-  // Split into sentences (keep [SRC-N] with the sentence)
+  // Split into sentences (keep [SRC-N] with the sentence).
+  // CRITICAL: Don't split on '.' between digits (decimal points like "0.5" or "27.31").
+  // \.(?=\d) matches a decimal point and treats it as part of the sentence content.
   const sentences: { text: string; raw: string; startIdx: number }[] = [];
-  const sentenceRegex = /[^.!?]+[.!?]*/g;
+  const sentenceRegex = /(?:[^.!?]|\.(?=\d))+[.!?]*/g;
   let match;
   while ((match = sentenceRegex.exec(text)) !== null) {
     const sentence = match[0].trim();

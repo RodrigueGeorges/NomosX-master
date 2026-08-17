@@ -564,6 +564,21 @@ async function scoutImpl(query: string, providers: Providers, perProvider = 100)
   const pool: any[] = [];
   const providerSet = new Set(providers as string[]);
 
+  // ── DISABLE DEAD PROVIDERS ──
+  // These providers consistently fail (expired API keys, dead endpoints, or persistent 403/404).
+  // Keeping them active wastes time on retries/timeouts and pollutes logs.
+  // They are removed from the provider set before any search calls are made.
+  // To re-enable: fix the API key/endpoint and remove the provider name from this list.
+  const DEAD_PROVIDERS = new Set([
+    'core',       // HTTP 401 — trial API key expired ("Your trial API key period has expired")
+    'jrc',        // HTTP 404 — endpoints obsolete (JRC API changed)
+    'acer',       // HTTP 403 — access denied (ACER API requires auth that is not configured)
+    'imf-sdmx',   // fetch failed — IMF SDMX API is down or unreachable from this network
+  ]);
+  for (const dead of DEAD_PROVIDERS) {
+    providerSet.delete(dead);
+  }
+
   // â”€â”€ STEP 1: MULTI-QUERY PARALLEL SEARCH (58+ providers) â”€â”€
   // Theses handled separately due to HAL bridge enrichment
   let thesesResults: any[] = [];
@@ -4101,7 +4116,33 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   let savedCriticResult: any = null;
   try {
     const { runCritic } = await import('./critic-agent');
-    const analysisText = typeof analysis === 'string' ? analysis : JSON.stringify(analysis);
+    // CRITICAL: Only pass factual analysis fields to the critic.
+    // Speculative fields (rejectedAlternatives, whatToWatch, trajectory, evidenceAssessment)
+    // and meta fields (_meta, _deliberationContext, _harvardCouncil) produce claims that
+    // are unverifiable by design → they get flagged as "unsupported" and "biased",
+    // collapsing the critic score from ~61 (v3) to ~9-38 (after integrations).
+    // The critic should only evaluate claims that are meant to be factually grounded.
+    const criticAnalysisObj = typeof analysis === 'string'
+      ? JSON.parse(analysis)
+      : { ...analysis };
+    const SPECULATIVE_OR_META_KEYS = new Set([
+      '_meta', '_deliberationContext', '_harvardCouncil',
+      'rejectedAlternatives', 'whatToWatch', 'trajectory',
+      'evidenceAssessment', 'convictionLevel',
+    ]);
+    const criticFiltered: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(criticAnalysisObj)) {
+      if (!SPECULATIVE_OR_META_KEYS.has(key)) {
+        criticFiltered[key] = value;
+      }
+    }
+    // CRITICAL: Normalize [E-N] evidence IDs to [SRC-N] format.
+    // The critic's decomposition prompt expects [SRC-N] citations to extract sourceIndex.
+    // If the analysis uses [E-N] (from replaceSrcWithEvidenceIds), the critic can't
+    // match claims to sources → all claims become "unverifiable" → groundedness collapses
+    // from ~100% (v3) to ~0-67% (after integrations).
+    let analysisText = JSON.stringify(criticFiltered);
+    analysisText = analysisText.replace(/\[E(\d+)\]/g, '[SRC-$1]');
     const criticSources = topSources.map((s: any, i: number) => ({
       index: i + 1,
       title: s.title || '',
@@ -5416,14 +5457,23 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
         const evidence = String(link.evidence || "").replace(/'/g, "''").slice(0, 5000);
         const warrant = String(link.warrant || "").replace(/'/g, "''").slice(0, 5000);
         const temporalStatus = String(link.temporalStatus || "established").replace(/'/g, "''");
-        const derivesFrom = link.derivesFrom ?? 'NULL';
-        const sourceRef = link.sourceRef ?? 'NULL';
+        // derivesFrom and sourceRef are Int? columns — use NULL or the integer value.
+        // link.id is a STRING (e.g., "src-1") and must NOT be used as linkIndex (Int column).
+        // Use the array index i as the linkIndex instead.
+        const derivesFrom = (typeof link.derivesFrom === 'number' && !isNaN(link.derivesFrom)) ? link.derivesFrom : 'NULL';
+        const sourceRef = (typeof link.sourceRef === 'number' && !isNaN(link.sourceRef)) ? link.sourceRef : 'NULL';
         const unsupported = Boolean(link.unsupported);
-        const linkIndex = link.id ?? i;
-        return `('${brief.id.replace(/'/g, "''")}', ${linkIndex}, '${claim}', '${evidence}', '${warrant}', '${temporalStatus}', ${derivesFrom}, ${sourceRef}, ${unsupported})`;
+        const linkIndex = i;
+        // CRITICAL: The "id" column has @default(cuid()) but raw SQL INSERT does NOT
+        // trigger Prisma defaults. We must generate the cuid explicitly.
+        // Using crypto.randomUUID() as a safe alternative to cuid().
+        const id = crypto.randomUUID().replace(/-/g, '').slice(0, 24);
+        return `('${id}', '${brief.id.replace(/'/g, "''")}', ${linkIndex}, '${claim}', '${evidence}', '${warrant}', '${temporalStatus}', ${derivesFrom}, ${sourceRef}, ${unsupported})`;
       });
+      // NOTE: "createdAt" has @default(now()) in the schema — do NOT include it in the INSERT.
+      // The "id" column also has @default(cuid()) but raw SQL doesn't trigger it, so we generate it.
       await prisma.$executeRawUnsafe(
-        `INSERT INTO "CausalLink" ("briefId", "linkIndex", "claim", "evidence", "warrant", "temporalStatus", "derivesFrom", "sourceRef", "unsupported", "createdAt") VALUES ${values.join(", ")}`
+        `INSERT INTO "CausalLink" ("id", "briefId", "linkIndex", "claim", "evidence", "warrant", "temporalStatus", "derivesFrom", "sourceRef", "unsupported") VALUES ${values.join(", ")}`
       );
       console.log(`${label} CAUSAL LINKS: persisted ${chain.length} links for brief ${brief.id}`);
     }

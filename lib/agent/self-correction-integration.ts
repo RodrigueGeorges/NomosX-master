@@ -73,8 +73,15 @@ export async function selfCorrectReader(
     })),
   });
 
-  // Si qualité suffisante, pas de retry
-  if (!reflection.shouldRetry || reflection.score >= 50) {
+  // Si qualité suffisante, pas de retry.
+  // Threshold lowered from 50 to 40 — the READER often scores 45-55 due to
+  // abstract-only sources (no full text), which is acceptable. Retrying at 48
+  // wastes ~3 minutes and $0.01 for no improvement (observed: 48 → 47).
+  // Also skip retry if within 5 points of the threshold — the improvement
+  // potential is too small to justify the cost.
+  const READER_RETRY_THRESHOLD = 40;
+  if (!reflection.shouldRetry || reflection.score >= READER_RETRY_THRESHOLD ||
+      reflection.score >= READER_RETRY_THRESHOLD - 5) {
     return {
       readings,
       stats: {

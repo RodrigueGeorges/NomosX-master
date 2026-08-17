@@ -621,16 +621,21 @@ export function renderProfessionalBriefHTML(analysis: any, sources: any[]): stri
     const allText = [verdictText, throughLine, anchoringBasis, chainProse, trajectoryProse, rejectedProse, watchProse, evidenceProse, keyFindingsProse].filter(Boolean).join(' ');
     const wordCount = allText.split(/\s+/).length;
 
+    // NOTE: renderParagraphs already calls replaceCitations(esc(p)) internally.
+    // Calling replaceCitations BEFORE renderParagraphs would insert <sup> tags
+    // that esc() then escapes into &lt;sup&gt; — producing invisible citations.
+    // throughLine uses replaceCitations(esc(...)) directly (no renderParagraphs) so
+    // the order is escape-first-then-insert-sup, which is correct.
     const proseHtml = [
-      verdictText ? `<div class="prose-block">${renderParagraphs(replaceCitations(verdictText))}</div>` : '',
+      verdictText ? `<div class="prose-block">${renderParagraphs(verdictText)}</div>` : '',
       throughLine ? `<p class="through-line" style="font-size:1.1em;font-weight:500;opacity:0.8;margin:1.5em 0">${replaceCitations(esc(throughLine))}</p>` : '',
-      anchoringBasis ? `<div class="prose-block">${renderParagraphs(replaceCitations(anchoringBasis))}</div>` : '',
-      chainProse ? `<div class="prose-block">${renderParagraphs(replaceCitations(chainProse))}</div>` : '',
-      trajectoryProse ? `<div class="prose-block">${renderParagraphs(replaceCitations(trajectoryProse))}</div>` : '',
-      rejectedProse ? `<div class="prose-block">${renderParagraphs(replaceCitations(rejectedProse))}</div>` : '',
-      watchProse ? `<div class="prose-block">${renderParagraphs(replaceCitations(watchProse))}</div>` : '',
-      evidenceProse ? `<div class="prose-block">${renderParagraphs(replaceCitations(evidenceProse))}</div>` : '',
-      keyFindingsProse ? `<div class="prose-block">${renderParagraphs(replaceCitations(keyFindingsProse))}</div>` : '',
+      anchoringBasis ? `<div class="prose-block">${renderParagraphs(anchoringBasis)}</div>` : '',
+      chainProse ? `<div class="prose-block">${renderParagraphs(chainProse)}</div>` : '',
+      trajectoryProse ? `<div class="prose-block">${renderParagraphs(trajectoryProse)}</div>` : '',
+      rejectedProse ? `<div class="prose-block">${renderParagraphs(rejectedProse)}</div>` : '',
+      watchProse ? `<div class="prose-block">${renderParagraphs(watchProse)}</div>` : '',
+      evidenceProse ? `<div class="prose-block">${renderParagraphs(evidenceProse)}</div>` : '',
+      keyFindingsProse ? `<div class="prose-block">${renderParagraphs(keyFindingsProse)}</div>` : '',
     ].filter(Boolean).join('\n');
 
     return `<!DOCTYPE html>

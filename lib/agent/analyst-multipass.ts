@@ -1379,9 +1379,37 @@ Rules:
 
     const changes = parsed.changes || [];
     const refinedFields: Partial<AnalysisOutput> = {};
-    if (parsed.verdict) refinedFields.verdict = parsed.verdict;
-    if (parsed.throughLine) refinedFields.throughLine = parsed.throughLine;
-    if (parsed.keyFindings && Array.isArray(parsed.keyFindings)) refinedFields.keyFindings = parsed.keyFindings;
+
+    // Validation helper: reject garbled text from the LLM.
+    // Checks for: concatenated words without spaces (e.g., "thatmirrored"),
+    // text shorter than 80% of original (degradation), or empty strings.
+    const isGarbled = (text: string): boolean => {
+      if (!text || text.trim().length < 20) return true;
+      // Detect concatenated words: a lowercase letter directly followed by
+      // an uppercase letter, or a word >25 chars (likely two words jammed together)
+      if (/[a-z][A-Z]/.test(text)) return true;
+      const words = text.split(/\s+/);
+      if (words.some(w => w.length > 25 && /[a-z]/.test(w))) return true;
+      return false;
+    };
+
+    if (parsed.verdict && !isGarbled(parsed.verdict) &&
+        (!analysis.verdict || parsed.verdict.length >= analysis.verdict.length * 0.8)) {
+      refinedFields.verdict = parsed.verdict;
+    }
+    if (parsed.throughLine && !isGarbled(parsed.throughLine) &&
+        (!analysis.throughLine || parsed.throughLine.length >= analysis.throughLine.length * 0.8)) {
+      refinedFields.throughLine = parsed.throughLine;
+    }
+    if (parsed.keyFindings && Array.isArray(parsed.keyFindings)) {
+      const cleanFindings = parsed.keyFindings.filter((f: any) => typeof f === 'string' && !isGarbled(f));
+      if (cleanFindings.length > 0) refinedFields.keyFindings = cleanFindings;
+    }
+
+    // Only report improvement if at least one field passed validation
+    if (Object.keys(refinedFields).length === 0) {
+      return { improved: false, analysis: {}, changes: [] };
+    }
 
     return { improved: true, analysis: refinedFields, changes };
   } catch {

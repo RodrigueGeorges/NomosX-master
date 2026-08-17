@@ -82,8 +82,11 @@ function extractNumericalClaims(html: string): NumericalClaim[] {
     /(?:increase|decrease|rise|drop|fall|growth|decline)\s+(?:of\s+)?(\d+\.?\d*)/gi, // changes: increase of 12%
   ];
 
-  // Split into sentences
-  const sentences = text.split(/(?<=[.!?])\s+/).filter(s => s.length > 20);
+  // Split into sentences.
+  // CRITICAL: Don't split on '.' between digits (decimal points like "0.5" or "27.31").
+  // The lookbehind (?<=[.!?])(?<!\d) ensures we only split on sentence-ending punctuation
+  // that is NOT preceded by a digit.
+  const sentences = text.split(/(?<=[.!?])(?<!\d)\s+/).filter(s => s.length > 20);
 
   for (const sentence of sentences) {
     // Check if sentence has a [SRC-N] reference

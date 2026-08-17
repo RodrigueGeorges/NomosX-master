@@ -75,8 +75,12 @@ export function backfillCitationsFromAnalysis(
     const val = analysis[field];
     if (typeof val !== 'string') continue;
 
-    // Find sentences with missing citations
-    const sentences = val.split(/(?<=[.!?])\s+/);
+    // Find sentences with missing citations.
+    // CRITICAL: Don't split on '.' between digits (decimal points like "0.5").
+    // The lookbehind (?<=[.!?]) matches any of .!? followed by whitespace.
+    // To avoid splitting "0.5 " as a sentence boundary, we use a negative
+    // lookbehind for digits: (?<!\d) before the [.!?].
+    const sentences = val.split(/(?<=[.!?])(?<!\d)\s+/);
     for (const sentence of sentences) {
       const srcInSentence = [...sentence.matchAll(/\[SRC-(\d+)\]/g)].map(m => `[SRC-${m[1]}]`);
       const missingHere = srcInSentence.filter(s => missing.includes(s));
@@ -311,8 +315,19 @@ export function injectCitationsBySourceMatch(
         // Find the end of the current sentence or paragraph
         // Use a smarter pattern: match sentence-ending punctuation NOT preceded by a digit
         // (to avoid splitting decimal numbers like "27.31" at the ".")
-        const afterMatch = workingHtml.slice(matchIdx + pattern.length);
-        const endIdx = afterMatch.search(/(?<!\d)[.!?</]/);
+        // CRITICAL: The lookbehind (?<!\d) only sees within `afterMatch`. If the '.'
+        // is at position 0 of afterMatch (e.g., the match ended right before a decimal
+        // like "0.5"), the lookbehind sees nothing — not the digit before it. We must
+        // check the last character of the match to detect this case.
+        const matchEnd = matchIdx + pattern.length;
+        const prevChar = workingHtml[matchEnd - 1] || '';
+        const afterMatch = workingHtml.slice(matchEnd);
+        let endIdx = afterMatch.search(/(?<!\d)[.!?</]/);
+        // Fix: if '.' is at position 0 and prevChar is a digit, it's a decimal point
+        if (endIdx === 0 && afterMatch[0] === '.' && /\d/.test(prevChar)) {
+          const nextIdx = afterMatch.slice(1).search(/(?<!\d)[.!?</]/);
+          endIdx = nextIdx >= 0 ? nextIdx + 1 : -1;
+        }
         if (endIdx >= 0 && endIdx < 200) {
           const insertPos = matchIdx + pattern.length + endIdx;
           workingHtml = workingHtml.slice(0, insertPos) + ' ' + srcTag + workingHtml.slice(insertPos);
@@ -410,8 +425,11 @@ export function injectCitationsByContentMatch(
     // Skip the references section
     if (/^Sources$|^References$/i.test(text.trim())) return text;
 
-    // Find sentences with factual markers
-    const sentenceRegex = /[^.!?]+[.!?]*/g;
+    // Find sentences with factual markers.
+    // CRITICAL: The regex must NOT split on '.' between digits (decimal points like 0.5).
+    // \.(?=\d) matches a decimal point (period followed by digit) and treats it as
+    // part of the sentence content, not a sentence terminator.
+    const sentenceRegex = /(?:[^.!?]|\.(?=\d))+[.!?]*/g;
     text = text.replace(sentenceRegex, (sentence) => {
       const trimmed = sentence.trim();
       if (trimmed.length < 20) return sentence;

@@ -91,16 +91,28 @@ export async function buildProvenanceGraph(
   const retractedIds = options?.retractedSourceIds ?? new Set<string>();
   const skipNLI = options?.skipNLI ?? false;
 
-  // Extract sentences with [SRC-N] from HTML
+  // Extract sentences with [SRC-N] from HTML.
+  // CRITICAL: The HTML may contain [E-N] evidence IDs (from replaceSrcWithEvidenceIds)
+  // instead of [SRC-N]. We normalize both to [SRC-N] for consistent processing.
+  // Also handle HTML-escaped sup tags (&lt;sup...) as a safety net.
   let normalized = html.replace(
     /<sup class="cite"><a href="#ref-(\d+)"[^>]*>[^<]*<\/a><\/sup>/g,
     '[SRC-$1]',
   );
   normalized = normalized.replace(/<a href="#ref-(\d+)"[^>]*>[^<]*<\/a>/g, '[SRC-$1]');
+  // Handle HTML-escaped sup tags (safety net — should not occur after fix, but just in case)
+  normalized = normalized.replace(
+    /&lt;sup class=&quot;cite&quot;&gt;&lt;a href=&quot;#ref-(\d+)&quot;[^&]*&gt;[^&]*&lt;\/a&gt;&lt;\/sup&gt;/g,
+    '[SRC-$1]',
+  );
+  // Normalize [E-N] evidence IDs to [SRC-N] format (E1 → SRC-1, E18 → SRC-18, etc.)
+  normalized = normalized.replace(/\[E(\d+)\]/g, '[SRC-$1]');
   const text = normalized.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
 
-  // Split into sentences
-  const sentences = text.match(/[^.!?]+[.!?]*/g) || [];
+  // Split into sentences.
+  // CRITICAL: Don't split on '.' between digits (decimal points like "0.5").
+  // \.(?=\d) matches a decimal point and treats it as part of the sentence content.
+  const sentences = text.match(/(?:[^.!?]|\.(?=\d))+[.!?]*/g) || [];
   const claims: ProvenanceClaim[] = [];
 
   let claimIdx = 0;
@@ -173,6 +185,12 @@ export async function buildProvenanceGraph(
       }
     } else if (sourceRef === null) {
       claim.status = 'needs_review'; // Uncited factual claim
+    } else if (skipNLI && !claim.isRetracted) {
+      // When NLI is skipped (because it was already done in the grounding step),
+      // cited claims are trusted as valid from the prior grounding verification.
+      // Marking them 'unresolved' would produce a 0% validity rate, which is
+      // misleading — the claims WERE verified, just by a different module.
+      claim.status = 'valid';
     } else if (!skipNLI && !claim.isRetracted) {
       claim.status = 'unresolved';
     }

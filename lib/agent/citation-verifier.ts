@@ -68,9 +68,14 @@ export function extractCitations(text: string): CitationInstance[] {
   const citations: CitationInstance[] = [];
   // First normalize citation variants to [SRC-N] format:
   // "(SRC-2, SRC-8)" → "[SRC-2][SRC-8]", "SRC-3" → "[SRC-3]"
+  // Also handle HTML-escaped sup tags and [E-N] evidence IDs.
   const normalized = text
     .replace(/<sup class="cite"><a href="#ref-(\d+)"[^>]*>\s*(\d+)\s*<\/a><\/sup>/gi, "[SRC-$1]")
     .replace(/<sup class="cite"><a href="#ref-(\d+)"[^>]*>([\s\S]*?)<\/a><\/sup>/gi, "[SRC-$1]")
+    // Handle HTML-escaped sup tags (safety net for escaped renderers)
+    .replace(/&lt;sup class=&quot;cite&quot;&gt;&lt;a href=&quot;#ref-(\d+)&quot;[^&]*&gt;[^&]*&lt;\/a&gt;&lt;\/sup&gt;/gi, "[SRC-$1]")
+    // Normalize [E-N] evidence IDs to [SRC-N] (strategic reports use E-N format)
+    .replace(/\[E(\d+)\]/g, "[SRC-$1]")
     .replace(/\(SRC-(\d+)(?:\s*,\s*SRC-(\d+))*\)/g, (match, ...nums) => {
       const refs = match.match(/SRC-(\d+)/g) || [];
       return refs.map(r => `[${r}]`).join('');

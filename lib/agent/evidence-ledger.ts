@@ -62,6 +62,10 @@ export function stripHtmlForEvidence(html: string): string {
   return html
     .replace(/<sup class="cite"><a href="#ref-(\d+)"[^>]*>\s*(\d+)\s*<\/a><\/sup>/gi, "[SRC-$1]")
     .replace(/<sup class="cite"><a href="#ref-(\d+)"[^>]*>([\s\S]*?)<\/a><\/sup>/gi, "[SRC-$1]")
+    // Handle HTML-escaped sup tags (safety net for escaped renderers)
+    .replace(/&lt;sup class=&quot;cite&quot;&gt;&lt;a href=&quot;#ref-(\d+)&quot;[^&]*&gt;[^&]*&lt;\/a&gt;&lt;\/sup&gt;/gi, "[SRC-$1]")
+    // Normalize [E-N] evidence IDs to [SRC-N] (strategic reports use E-N format)
+    .replace(/\[E(\d+)\]/g, "[SRC-$1]")
     .replace(/<script[\s\S]*?<\/script>/gi, " ")
     .replace(/<style[\s\S]*?<\/style>/gi, " ")
     .replace(/<\/(p|li|h[1-6]|blockquote|section|article|div)>/gi, ". ")
@@ -77,7 +81,11 @@ export function stripHtmlForEvidence(html: string): string {
 export function extractCitationNumbers(text: string): number[] {
   const normalized = text
     .replace(/<sup class="cite"><a href="#ref-(\d+)"[^>]*>\s*(\d+)\s*<\/a><\/sup>/gi, "[SRC-$1]")
-    .replace(/<sup class="cite"><a href="#ref-(\d+)"[^>]*>([\s\S]*?)<\/a><\/sup>/gi, "[SRC-$1]");
+    .replace(/<sup class="cite"><a href="#ref-(\d+)"[^>]*>([\s\S]*?)<\/a><\/sup>/gi, "[SRC-$1]")
+    // Handle HTML-escaped sup tags
+    .replace(/&lt;sup class=&quot;cite&quot;&gt;&lt;a href=&quot;#ref-(\d+)&quot;[^&]*&gt;[^&]*&lt;\/a&gt;&lt;\/sup&gt;/gi, "[SRC-$1]")
+    // Normalize [E-N] to [SRC-N]
+    .replace(/\[E(\d+)\]/g, "[SRC-$1]");
   const matches = normalized.matchAll(/\[SRC-(\d+)\]/g);
   return Array.from(new Set(Array.from(matches, (match) => Number(match[1]))))
     .filter((value) => Number.isFinite(value) && value > 0)
@@ -98,7 +106,10 @@ function looksLikeClaim(sentence: string): boolean {
 export function buildEvidenceLedger(html: string): EvidenceLedger {
   const text = stripHtmlForEvidence(html);
   const sentences = text
-    .split(/(?<=[.!?])\s+/)
+    // CRITICAL: Don't split on '.' between digits (decimal points like "0.5" or "27.31").
+    // The lookbehind (?<=[.!?])(?<!\d) ensures we only split on sentence-ending punctuation
+    // that is NOT preceded by a digit.
+    .split(/(?<=[.!?])(?<!\d)\s+/)
     .map((sentence) => sentence.trim())
     .filter(Boolean)
     .filter(looksLikeClaim);
