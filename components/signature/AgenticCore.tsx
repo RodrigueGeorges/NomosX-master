@@ -4,20 +4,19 @@ import { useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 
 /**
- * AgenticCore — atmospheric convergence field.
+ * AgenticCore — the agentic think tank, felt not explained.
  *
- * Canvas-based. What it evokes (not shows):
- *   • Points of light drift along an invisible flow field (organic, not random)
- *   • Hairlines form between nearby points (the system mapping territory)
- *   • Pulses travel along connections (thoughts passing between agents)
- *   • Periodically, a region brightens — convergence (the system focusing)
- *   • Depth: 3 layers (far/mid/near) at different scales and opacities
+ * What it evokes:
+ *   • Nodes (agents) positioned in a loose constellation, each oscillating
+ *     gently around its anchor — alive but purposeful, not drifting
+ *   • Connections form between nearby nodes (the system mapping territory)
+ *   • Signals travel along connections (agents communicating, debating)
+ *   • Periodically a wave of activation spreads from one node to its
+ *     neighbors — a "thought cascade" (the system working, not just existing)
+ *   • A central node breathes — the emerging position
+ *   • Depth: 3 layers (far/mid/near) for parallax richness
  *
- * Inspired by: Stripe gradient mesh, Linear particle field, Vercel grid,
- * OpenAI's dark aesthetic. Premium, cinematic, never distracting.
- *
- * Performance: single canvas, 60fps, ~60 particles total, pauses off-screen
- * and on reduced-motion. No external libs.
+ * Not a galaxy. Not a particle field. A working mind.
  *
  * Charter: black canvas, #f0f0fa, white = only accent, light = life.
  */
@@ -27,40 +26,34 @@ interface AgenticCoreProps {
   variant?: "section" | "atmosphere";
 }
 
-interface P {
+interface Node {
+  // Anchor position (the "home" position this agent oscillates around)
+  ax: number;
+  ay: number;
+  // Current position
   x: number;
   y: number;
-  vx: number;
-  vy: number;
+  // Oscillation
+  oscPhase: number;
+  oscSpeed: number;
+  oscAmp: number;
+  // Visual
   size: number;
-  opacity: number;
+  baseOpacity: number;
   layer: number; // 0=far, 1=mid, 2=near
-  phase: number;
+  // Activation (when a signal arrives or a cascade starts here)
+  activation: number; // 0..1, decays
 }
 
-interface Pulse {
-  conn: [P, P];
-  progress: number; // 0..1
+interface Signal {
+  from: Node;
+  to: Node;
+  progress: number;
   speed: number;
-}
-
-interface Convergence {
-  x: number;
-  y: number;
-  radius: number;
   intensity: number;
-  life: number; // 0..1
 }
 
 const COLOR = "240, 240, 250";
-
-// Simple 2D pseudo-noise for the flow field (cheaper than Perlin)
-function flowAngle(x: number, y: number, t: number): number {
-  return (
-    Math.sin(x * 0.008 + t * 0.0003) * Math.cos(y * 0.006 + t * 0.0002) * Math.PI * 2 +
-    Math.sin(y * 0.01 + t * 0.00015) * Math.PI
-  );
-}
 
 export function AgenticCore({ className, variant = "atmosphere" }: AgenticCoreProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -77,10 +70,7 @@ export function AgenticCore({ className, variant = "atmosphere" }: AgenticCorePr
     const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
     const isAtmos = variant === "atmosphere";
 
-    // --- Setup ---
-    let W = 0;
-    let H = 0;
-    let dpr = 1;
+    let W = 0, H = 0, dpr = 1;
 
     const resize = () => {
       dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -96,65 +86,77 @@ export function AgenticCore({ className, variant = "atmosphere" }: AgenticCorePr
     resize();
     window.addEventListener("resize", resize);
 
-    // --- Particles (3 depth layers) ---
-    const counts = isAtmos
-      ? [28, 18, 10] // far, mid, near
-      : [18, 12, 6];
-    const total = counts.reduce((a, b) => a + b, 0);
-    const particles: P[] = [];
+    // --- Nodes: positioned in a loose constellation ---
+    // 3 layers. Each node has an anchor + oscillation.
+    const nodes: Node[] = [];
+    const nodeCounts = isAtmos ? [14, 10, 6] : [10, 8, 5];
+    const connectDist = isAtmos ? 160 : 180;
 
-    const initParticles = () => {
-      particles.length = 0;
-      let id = 0;
+    const initNodes = () => {
+      nodes.length = 0;
       for (let layer = 0; layer < 3; layer++) {
-        for (let i = 0; i < counts[layer]; i++) {
-          const layerScale = [0.6, 0.8, 1.2][layer];
-          const layerOpacity = isAtmos
-            ? [0.12, 0.2, 0.35][layer]
-            : [0.25, 0.4, 0.6][layer];
-          particles.push({
-            x: Math.random() * W,
-            y: Math.random() * H,
-            vx: 0,
-            vy: 0,
-            size: (Math.random() * 1.2 + 0.6) * layerScale,
-            opacity: layerOpacity * (Math.random() * 0.4 + 0.6),
+        const count = nodeCounts[layer];
+        const layerScale = [0.5, 0.75, 1.0][layer];
+        const layerOpacity = isAtmos
+          ? [0.15, 0.28, 0.45][layer]
+          : [0.3, 0.5, 0.7][layer];
+
+        for (let i = 0; i < count; i++) {
+          // Distribute in a loose grid with jitter — looks intentional, not random
+          const cols = Math.ceil(Math.sqrt(count * (W / H)));
+          const rows = Math.ceil(count / cols);
+          const col = i % cols;
+          const row = Math.floor(i / cols);
+          const cellW = W / cols;
+          const cellH = H / rows;
+          const jitterX = (Math.random() - 0.5) * cellW * 0.6;
+          const jitterY = (Math.random() - 0.5) * cellH * 0.6;
+
+          const ax = cellW * (col + 0.5) + jitterX;
+          const ay = cellH * (row + 0.5) + jitterY;
+
+          nodes.push({
+            ax,
+            ay,
+            x: ax,
+            y: ay,
+            oscPhase: Math.random() * Math.PI * 2,
+            oscSpeed: Math.random() * 0.0008 + 0.0004,
+            oscAmp: Math.random() * 12 + 6,
+            size: (Math.random() * 1.0 + 0.8) * layerScale,
+            baseOpacity: layerOpacity * (Math.random() * 0.3 + 0.7),
             layer,
-            phase: Math.random() * Math.PI * 2,
+            activation: 0,
           });
-          id++;
         }
       }
     };
-    initParticles();
+    initNodes();
+    // Re-init on resize
+    window.addEventListener("resize", initNodes);
 
-    // --- Pulses (signals traveling along connections) ---
-    const pulses: Pulse[] = [];
-    const maxPulses = isAtmos ? 3 : 5;
+    // --- Signals ---
+    const signals: Signal[] = [];
+    const maxSignals = isAtmos ? 4 : 8;
 
-    // --- Convergence events ---
-    const convergences: Convergence[] = [];
+    // --- Cascade timer ---
+    let cascadeTimer = 0;
+    const cascadeInterval = isAtmos ? 5000 : 3500;
 
     // --- Mouse parallax ---
-    let mouseX = W / 2;
-    let mouseY = H / 2;
-    let targetMouseX = mouseX;
-    let targetMouseY = mouseY;
+    let mouseX = W / 2, mouseY = H / 2;
+    let tMouseX = mouseX, tMouseY = mouseY;
     const onMouse = (e: MouseEvent) => {
-      targetMouseX = e.clientX;
-      targetMouseY = e.clientY;
+      tMouseX = e.clientX;
+      tMouseY = e.clientY;
     };
     window.addEventListener("mousemove", onMouse);
-
-    // --- Connection distance per layer ---
-    const connectDist = isAtmos ? 130 : 160;
 
     // --- Animation ---
     let raf = 0;
     let visible = true;
     let lastTime = 0;
     let time = 0;
-    let convTimer = 0;
 
     const io =
       "IntersectionObserver" in window
@@ -165,6 +167,56 @@ export function AgenticCore({ className, variant = "atmosphere" }: AgenticCorePr
         : null;
     if (container) io?.observe(container);
 
+    // Find neighbors of a node (same layer, within connectDist)
+    const neighbors = (n: Node): Node[] =>
+      nodes.filter(
+        (m) =>
+          m !== n &&
+          m.layer === n.layer &&
+          Math.hypot(m.ax - n.ax, m.ay - n.ay) < connectDist
+      );
+
+    // Trigger a cascade: activate a node, spawn signals to neighbors
+    const triggerCascade = () => {
+      // Pick a random near/mid node as origin
+      const candidates = nodes.filter((n) => n.layer >= 1);
+      if (candidates.length === 0) return;
+      const origin = candidates[Math.floor(Math.random() * candidates.length)];
+      origin.activation = 1;
+
+      const nbrs = neighbors(origin);
+      for (const nb of nbrs.slice(0, 3)) {
+        if (signals.length < maxSignals) {
+          signals.push({
+            from: origin,
+            to: nb,
+            progress: 0,
+            speed: 0.006 + Math.random() * 0.004,
+            intensity: 0.6 + Math.random() * 0.3,
+          });
+        }
+      }
+    };
+
+    // Spawn a random signal between connected nodes
+    const spawnRandomSignal = () => {
+      const candidates = nodes.filter((n) => n.layer >= 1);
+      if (candidates.length < 2) return;
+      const from = candidates[Math.floor(Math.random() * candidates.length)];
+      const nbrs = neighbors(from);
+      if (nbrs.length === 0) return;
+      const to = nbrs[Math.floor(Math.random() * nbrs.length)];
+      if (signals.length < maxSignals) {
+        signals.push({
+          from,
+          to,
+          progress: 0,
+          speed: 0.005 + Math.random() * 0.005,
+          intensity: 0.3 + Math.random() * 0.3,
+        });
+      }
+    };
+
     const draw = (now: number) => {
       raf = requestAnimationFrame(draw);
       if (!visible) return;
@@ -173,85 +225,52 @@ export function AgenticCore({ className, variant = "atmosphere" }: AgenticCorePr
       time += dt;
 
       // Smooth mouse
-      mouseX += (targetMouseX - mouseX) * 0.02;
-      mouseY += (targetMouseY - mouseY) * 0.02;
-      const parallaxX = (mouseX - W / 2) * 0.008;
-      const parallaxY = (mouseY - H / 2) * 0.008;
+      mouseX += (tMouseX - mouseX) * 0.02;
+      mouseY += (tMouseY - mouseY) * 0.02;
+      const parallaxX = (mouseX - W / 2) * 0.01;
+      const parallaxY = (mouseY - H / 2) * 0.01;
 
-      // Clear with slight trail (creates motion blur on connections)
-      ctx.fillStyle = "rgba(0, 0, 0, 0.12)";
+      // Trail clear (motion blur)
+      ctx.fillStyle = "rgba(0, 0, 0, 0.15)";
       ctx.fillRect(0, 0, W, H);
 
-      // Update particles via flow field
-      for (const p of particles) {
-        const angle = flowAngle(p.x, p.y, time);
-        const speed = isAtmos ? 0.15 : 0.25;
-        p.vx += Math.cos(angle) * speed * 0.02;
-        p.vy += Math.sin(angle) * speed * 0.02;
-        p.vx *= 0.96;
-        p.vy *= 0.96;
-        p.x += p.vx;
-        p.y += p.vy;
-
-        // Wrap around
-        if (p.x < -10) p.x = W + 10;
-        if (p.x > W + 10) p.x = -10;
-        if (p.y < -10) p.y = H + 10;
-        if (p.y > H + 10) p.y = -10;
-
-        p.phase += 0.003;
+      // Update nodes — oscillate around anchor
+      for (const n of nodes) {
+        n.oscPhase += n.oscSpeed * dt;
+        n.x = n.ax + Math.cos(n.oscPhase) * n.oscAmp;
+        n.y = n.ay + Math.sin(n.oscPhase * 0.7) * n.oscAmp;
+        n.activation *= 0.97; // decay
       }
 
-      // Convergence events — spawn every ~7s
-      convTimer += dt;
-      if (convTimer > 7000 && convergences.length < 1) {
-        convTimer = 0;
-        convergences.push({
-          x: W * (0.2 + Math.random() * 0.6),
-          y: H * (0.2 + Math.random() * 0.6),
-          radius: 0,
-          intensity: 0,
-          life: 0,
-        });
-      }
-      for (let i = convergences.length - 1; i >= 0; i--) {
-        const c = convergences[i];
-        c.life += dt / 4000; // 4s life
-        c.radius = c.life * 200;
-        c.intensity = Math.sin(c.life * Math.PI) * 0.15; // fade in and out
-        if (c.life >= 1) convergences.splice(i, 1);
+      // Cascade timer
+      cascadeTimer += dt;
+      if (cascadeTimer > cascadeInterval) {
+        cascadeTimer = 0;
+        triggerCascade();
       }
 
-      // Draw connections (same layer only)
-      const layerOffsets = [0, 0, 0]; // parallax per layer
+      // Random signals
+      if (Math.random() < 0.015) spawnRandomSignal();
+
+      // Draw connections (same layer)
       for (let layer = 0; layer < 3; layer++) {
-        const layerParts = particles.filter((p) => p.layer === layer);
-        const px = parallaxX * (layer + 1) * 0.5;
-        const py = parallaxY * (layer + 1) * 0.5;
+        const layerNodes = nodes.filter((n) => n.layer === layer);
+        const px = parallaxX * (layer + 1) * 0.4;
+        const py = parallaxY * (layer + 1) * 0.4;
 
-        for (let i = 0; i < layerParts.length; i++) {
-          for (let j = i + 1; j < layerParts.length; j++) {
-            const a = layerParts[i];
-            const b = layerParts[j];
-            const dx = a.x - b.x;
-            const dy = a.y - b.y;
-            const d = Math.sqrt(dx * dx + dy * dy);
+        for (let i = 0; i < layerNodes.length; i++) {
+          for (let j = i + 1; j < layerNodes.length; j++) {
+            const a = layerNodes[i];
+            const b = layerNodes[j];
+            const d = Math.hypot(a.x - b.x, a.y - b.y);
             if (d > connectDist) continue;
 
             const proximity = 1 - d / connectDist;
-            const baseAlpha = isAtmos ? 0.04 : 0.08;
-            let alpha = proximity * baseAlpha;
+            let alpha = proximity * (isAtmos ? 0.05 : 0.1);
 
-            // Boost near convergence events
-            for (const c of convergences) {
-              const midX = (a.x + b.x) / 2;
-              const midY = (a.y + b.y) / 2;
-              const cd = Math.sqrt((midX - c.x) ** 2 + (midY - c.y) ** 2);
-              if (cd < c.radius) {
-                const convProx = 1 - cd / c.radius;
-                alpha += convProx * c.intensity * proximity;
-              }
-            }
+            // Boost if either endpoint is activated
+            const actBoost = Math.max(a.activation, b.activation) * proximity * 0.15;
+            alpha += actBoost;
 
             if (alpha < 0.005) continue;
 
@@ -260,97 +279,87 @@ export function AgenticCore({ className, variant = "atmosphere" }: AgenticCorePr
             const bx = b.x + px;
             const by = b.y + py;
 
-            // Gradient stroke — fade at both ends (premium look)
             const grad = ctx.createLinearGradient(ax, ay, bx, by);
             grad.addColorStop(0, `rgba(${COLOR}, 0)`);
             grad.addColorStop(0.5, `rgba(${COLOR}, ${alpha})`);
             grad.addColorStop(1, `rgba(${COLOR}, 0)`);
             ctx.strokeStyle = grad;
-            ctx.lineWidth = (layer + 1) * 0.3;
+            ctx.lineWidth = (layer + 1) * 0.35;
             ctx.beginPath();
             ctx.moveTo(ax, ay);
             ctx.lineTo(bx, by);
             ctx.stroke();
-
-            // Occasionally spawn a pulse on this connection
-            if (pulses.length < maxPulses && Math.random() < 0.0008 * proximity) {
-              pulses.push({ conn: [a, b], progress: 0, speed: 0.008 + Math.random() * 0.006 });
-            }
           }
         }
       }
 
-      // Draw and update pulses
-      for (let i = pulses.length - 1; i >= 0; i--) {
-        const pulse = pulses[i];
-        pulse.progress += pulse.speed;
-        if (pulse.progress >= 1) {
-          pulses.splice(i, 1);
+      // Draw and update signals
+      for (let i = signals.length - 1; i >= 0; i--) {
+        const s = signals[i];
+        s.progress += s.speed * dt / 16;
+        if (s.progress >= 1) {
+          // Arrived — activate target
+          s.to.activation = Math.min(1, s.to.activation + s.intensity * 0.5);
+          // Chain: spawn new signals from target to its neighbors
+          if (s.intensity > 0.4) {
+            const nbrs = neighbors(s.to).filter((n) => n !== s.from);
+            for (const nb of nbrs.slice(0, 2)) {
+              if (signals.length < maxSignals) {
+                signals.push({
+                  from: s.to,
+                  to: nb,
+                  progress: 0,
+                  speed: 0.005 + Math.random() * 0.003,
+                  intensity: s.intensity * 0.6,
+                });
+              }
+            }
+          }
+          signals.splice(i, 1);
           continue;
         }
-        const [a, b] = pulse.conn;
-        const px = parallaxX * (a.layer + 1) * 0.5;
-        const py = parallaxY * (a.layer + 1) * 0.5;
-        const x = a.x + (b.x - a.x) * pulse.progress + px;
-        const y = a.y + (b.y - a.y) * pulse.progress + py;
-        const fade = Math.sin(pulse.progress * Math.PI); // bright in middle
-        const pulseAlpha = fade * (isAtmos ? 0.25 : 0.5);
+
+        const px = parallaxX * (s.from.layer + 1) * 0.4;
+        const py = parallaxY * (s.from.layer + 1) * 0.4;
+        const x = s.from.x + (s.to.x - s.from.x) * s.progress + px;
+        const y = s.from.y + (s.to.y - s.from.y) * s.progress + py;
+        const fade = Math.sin(s.progress * Math.PI);
+        const alpha = fade * s.intensity * (isAtmos ? 0.3 : 0.6);
 
         // Glow
-        const glow = ctx.createRadialGradient(x, y, 0, x, y, 6);
-        glow.addColorStop(0, `rgba(${COLOR}, ${pulseAlpha})`);
+        const glow = ctx.createRadialGradient(x, y, 0, x, y, 8);
+        glow.addColorStop(0, `rgba(${COLOR}, ${alpha})`);
+        glow.addColorStop(0.5, `rgba(${COLOR}, ${alpha * 0.3})`);
         glow.addColorStop(1, `rgba(${COLOR}, 0)`);
         ctx.fillStyle = glow;
         ctx.beginPath();
-        ctx.arc(x, y, 6, 0, Math.PI * 2);
+        ctx.arc(x, y, 8, 0, Math.PI * 2);
         ctx.fill();
       }
 
-      // Draw particles with glow
-      for (const p of particles) {
-        const px = parallaxX * (p.layer + 1) * 0.5;
-        const py = parallaxY * (p.layer + 1) * 0.5;
-        const x = p.x + px;
-        const y = p.y + py;
-        const twinkle = 0.7 + Math.sin(p.phase) * 0.3;
-        let alpha = p.opacity * twinkle;
+      // Draw nodes with glow
+      for (const n of nodes) {
+        const px = parallaxX * (n.layer + 1) * 0.4;
+        const py = parallaxY * (n.layer + 1) * 0.4;
+        const x = n.x + px;
+        const y = n.y + py;
+        const alpha = n.baseOpacity + n.activation * 0.3;
 
-        // Boost near convergence
-        for (const c of convergences) {
-          const cd = Math.sqrt((x - c.x) ** 2 + (y - c.y) ** 2);
-          if (cd < c.radius) {
-            alpha += (1 - cd / c.radius) * c.intensity;
-          }
-        }
-
-        // Soft radial glow
-        const glowSize = p.size * 4;
+        // Outer glow
+        const glowSize = n.size * (4 + n.activation * 3);
         const glow = ctx.createRadialGradient(x, y, 0, x, y, glowSize);
-        glow.addColorStop(0, `rgba(${COLOR}, ${alpha * 0.8})`);
-        glow.addColorStop(0.4, `rgba(${COLOR}, ${alpha * 0.2})`);
+        glow.addColorStop(0, `rgba(${COLOR}, ${alpha * 0.6})`);
+        glow.addColorStop(0.4, `rgba(${COLOR}, ${alpha * 0.15})`);
         glow.addColorStop(1, `rgba(${COLOR}, 0)`);
         ctx.fillStyle = glow;
         ctx.beginPath();
         ctx.arc(x, y, glowSize, 0, Math.PI * 2);
         ctx.fill();
 
-        // Core dot
-        ctx.fillStyle = `rgba(${COLOR}, ${alpha})`;
+        // Core
+        ctx.fillStyle = `rgba(${COLOR}, ${Math.min(1, alpha)})`;
         ctx.beginPath();
-        ctx.arc(x, y, p.size, 0, Math.PI * 2);
-        ctx.fill();
-      }
-
-      // Draw convergence ripple
-      for (const c of convergences) {
-        if (c.intensity <= 0) continue;
-        const ripple = ctx.createRadialGradient(c.x, c.y, c.radius * 0.7, c.x, c.y, c.radius);
-        ripple.addColorStop(0, `rgba(${COLOR}, 0)`);
-        ripple.addColorStop(0.8, `rgba(${COLOR}, ${c.intensity * 0.3})`);
-        ripple.addColorStop(1, `rgba(${COLOR}, 0)`);
-        ctx.fillStyle = ripple;
-        ctx.beginPath();
-        ctx.arc(c.x, c.y, c.radius, 0, Math.PI * 2);
+        ctx.arc(x, y, n.size, 0, Math.PI * 2);
         ctx.fill();
       }
     };
@@ -358,13 +367,11 @@ export function AgenticCore({ className, variant = "atmosphere" }: AgenticCorePr
     if (!reduce) {
       raf = requestAnimationFrame(draw);
     } else {
-      // Static frame
-      ctx.fillStyle = "rgba(0, 0, 0, 1)";
-      ctx.fillRect(0, 0, W, H);
-      for (const p of particles) {
-        ctx.fillStyle = `rgba(${COLOR}, ${p.opacity * 0.5})`;
+      // Static
+      for (const n of nodes) {
+        ctx.fillStyle = `rgba(${COLOR}, ${n.baseOpacity * 0.5})`;
         ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.arc(n.x, n.y, n.size, 0, Math.PI * 2);
         ctx.fill();
       }
     }
@@ -372,6 +379,7 @@ export function AgenticCore({ className, variant = "atmosphere" }: AgenticCorePr
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", resize);
+      window.removeEventListener("resize", initNodes);
       window.removeEventListener("mousemove", onMouse);
       io?.disconnect();
     };
