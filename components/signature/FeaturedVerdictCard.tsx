@@ -3,6 +3,7 @@
 import { cn } from "@/lib/utils";
 import { AlertTriangle, BookOpen } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 
 export interface FeaturedVerdictData {
   question: string;
@@ -15,6 +16,7 @@ export interface FeaturedVerdictData {
   updatedAt: string;
   serialId: string;
   sparkline?: number[];
+  domains?: string[];
 }
 
 interface FeaturedVerdictCardProps {
@@ -52,6 +54,7 @@ function Sparkline({ points }: { points: number[] }) {
 }
 
 export function FeaturedVerdictCard({ data, className, animate = true }: FeaturedVerdictCardProps) {
+  const t = useTranslations();
   const [mounted, setMounted] = useState(!animate);
   const [meterWidth, setMeterWidth] = useState(0);
   const cardRef = useRef<HTMLElement>(null);
@@ -99,7 +102,7 @@ export function FeaturedVerdictCard({ data, className, animate = true }: Feature
       </div>
       <div className="flex items-center gap-2 mb-3">
         <span className="w-1.5 h-1.5 rounded-full bg-white/70 nx-glow-dot" />
-        <p className="nx-eyebrow" style={{ letterSpacing: "0.14em" }}>Institute position</p>
+        <p className="nx-eyebrow" style={{ letterSpacing: "0.14em" }}>{t("FeaturedVerdict.institutePosition")}</p>
       </div>
 
       <h2 className="font-display text-xl sm:text-2xl font-medium text-white leading-snug mb-3">
@@ -114,7 +117,7 @@ export function FeaturedVerdictCard({ data, className, animate = true }: Feature
 
       <div className="grid grid-cols-2 gap-px bg-white/[0.08] mb-4">
         <div className="bg-black p-4">
-          <p className="nx-eyebrow nx-eyebrow--dim mb-3" style={{ fontSize: "11px", letterSpacing: "0.1em" }}>Confidence</p>
+          <p className="nx-eyebrow nx-eyebrow--dim mb-3" style={{ fontSize: "11px", letterSpacing: "0.1em" }}>{t("FeaturedVerdict.confidence")}</p>
           <div className="flex items-end justify-between gap-2 mb-3">
             <p className="font-mono text-2xl font-light text-white tabular-nums">{data.confidence}</p>
             <Sparkline points={sparkline} />
@@ -127,7 +130,7 @@ export function FeaturedVerdictCard({ data, className, animate = true }: Feature
           </div>
         </div>
         <div className="bg-black p-4">
-          <p className="nx-eyebrow nx-eyebrow--dim mb-3" style={{ fontSize: "11px", letterSpacing: "0.1em" }}>Distribution</p>
+          <p className="nx-eyebrow nx-eyebrow--dim mb-3" style={{ fontSize: "11px", letterSpacing: "0.1em" }}>{t("FeaturedVerdict.distribution")}</p>
           <p className="font-mono text-base sm:text-lg text-white tabular-nums leading-tight">{data.simulation}</p>
         </div>
       </div>
@@ -135,13 +138,27 @@ export function FeaturedVerdictCard({ data, className, animate = true }: Feature
       <div className="flex flex-wrap items-center gap-4 mb-4 font-mono text-xs text-white/50">
         <span className="inline-flex items-center gap-1.5">
           <BookOpen className="w-3.5 h-3.5 text-white/55" strokeWidth={1.25} />
-          {data.sources} sources
+          {data.sources} {t("FeaturedVerdict.sources")}
         </span>
         <span className="inline-flex items-center gap-1.5">
           <AlertTriangle className="w-3.5 h-3.5 text-white/55" strokeWidth={1.25} />
-          {data.objections} dissents
+          {data.objections} {t("FeaturedVerdict.dissents")}
         </span>
       </div>
+
+      {/* Domain tags — cross-domain proof */}
+      {data.domains && data.domains.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mb-4">
+          {data.domains.map((d) => (
+            <span
+              key={d}
+              className="font-mono text-[10px] uppercase tracking-[0.1em] text-white/45 border border-white/[0.08] px-2 py-0.5"
+            >
+              {d}
+            </span>
+          ))}
+        </div>
+      )}
 
       <div className="flex justify-between pt-4 border-t border-white/[0.08] font-mono text-[11px] uppercase tracking-[0.1em] text-white/40">
         <span>Updated {data.updatedAt}</span>

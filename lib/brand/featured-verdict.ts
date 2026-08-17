@@ -14,6 +14,7 @@ export interface FeaturedBriefSource {
   sourceIds?: string[] | null;
   trustScore?: number | null;
   criticalLoopResult?: unknown;
+  domains?: string[] | null;
 }
 
 function stripHtml(html: string): string {
@@ -116,18 +117,25 @@ export function buildFeaturedVerdict(brief: FeaturedBriefSource): FeaturedVerdic
     updatedAt: formatUpdatedAt(brief.publishedAt),
     serialId: formatSerialId(brief.id, brief.publishedAt),
     sparkline: sparklineFromConfidence(confidence),
+    domains: brief.domains ?? [],
   };
 }
 
 export const FALLBACK_FEATURED_VERDICT: FeaturedVerdictData = {
-  question: "Will sovereign AI infrastructure reshape European policy?",
-  verdictPrefix: "Yes",
-  verdictBody: "consolidation is likely around sovereign infrastructure models.",
-  confidence: "74%",
-  simulation: "3 trajectories",
-  sources: 42,
-  objections: 3,
-  updatedAt: "MAY 18, 2026",
-  serialId: "NX-2026-0518-01",
-  sparkline: [52, 58, 61, 68, 72, 74, 73, 74],
+  question: "",
+  verdictPrefix: "",
+  verdictBody: "",
+  confidence: "—",
+  simulation: "—",
+  sources: 0,
+  objections: 0,
+  updatedAt: "—",
+  serialId: "—",
+  sparkline: [],
+  domains: [],
 };
+
+/** Check if the featured verdict is empty (no real data yet). */
+export function isEmptyVerdict(v: FeaturedVerdictData): boolean {
+  return !v.question || v.confidence === "—";
+}

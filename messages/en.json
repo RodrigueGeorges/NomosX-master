@@ -144,6 +144,17 @@
   "AgenticCore": {
     "ariaLabel": "NomosX agentic system — six specialist agents reasoning in parallel, debating, and converging into a single position"
   },
+  "FeaturedVerdict": {
+    "institutePosition": "Institute position",
+    "confidence": "Confidence",
+    "distribution": "Distribution",
+    "sources": "sources",
+    "dissents": "dissents",
+    "noPositionYet": "No position published yet",
+    "noPositionDesc": "The institute is running. The first position will appear here with full sources, scenarios, and dissents.",
+    "updated": "Updated",
+    "pending": "Pending"
+  },
   "DomainMap": {
     "eyebrow": "Where we work",
     "title": "Eight domains. One map.",

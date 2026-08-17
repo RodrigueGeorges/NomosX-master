@@ -30,7 +30,7 @@ import {
 
 } from "@/components/signature";
 
-import { FALLBACK_FEATURED_VERDICT } from "@/lib/brand/featured-verdict";
+import { FALLBACK_FEATURED_VERDICT, isEmptyVerdict } from "@/lib/brand/featured-verdict";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
@@ -644,7 +644,15 @@ function HomePageContent() {
               </ScrollReveal>
 
               <ScrollReveal delay={100}>
-                <FeaturedVerdictCard data={featuredVerdict} />
+                {isEmptyVerdict(featuredVerdict) ? (
+                  <div className="nx-surface nx-border-flow relative p-6 sm:p-8 text-center">
+                    <span className="w-1.5 h-1.5 rounded-full bg-white/30 inline-block mb-4 nx-glow-dot" />
+                    <p className="font-display text-lg text-white/80 mb-2">{t("FeaturedVerdict.noPositionYet")}</p>
+                    <p className="text-sm text-white/45 leading-relaxed max-w-sm mx-auto">{t("FeaturedVerdict.noPositionDesc")}</p>
+                  </div>
+                ) : (
+                  <FeaturedVerdictCard data={featuredVerdict} />
+                )}
               </ScrollReveal>
 
             </div>

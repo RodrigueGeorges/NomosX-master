@@ -144,6 +144,17 @@
   "AgenticCore": {
     "ariaLabel": "Système agentique NomosX — six agents spécialisés raisonnant en parallèle, débattant, et convergeant vers une position unique"
   },
+  "FeaturedVerdict": {
+    "institutePosition": "Position de l'institut",
+    "confidence": "Confiance",
+    "distribution": "Distribution",
+    "sources": "sources",
+    "dissents": "dissensions",
+    "noPositionYet": "Aucune position publiée",
+    "noPositionDesc": "L'institut tourne. La première position apparaîtra ici avec sources, scénarios et dissensions.",
+    "updated": "Mise à jour",
+    "pending": "En attente"
+  },
   "DomainMap": {
     "eyebrow": "Où nous travaillons",
     "title": "Huit domaines. Une carte.",
