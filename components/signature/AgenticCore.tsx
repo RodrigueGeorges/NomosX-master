@@ -73,7 +73,7 @@ export function AgenticCore({ className, variant = "section" }: AgenticCoreProps
       vy: (Math.random() - 0.5) * (isAtmos ? 0.03 : 0.08),
       size: Math.random() * (isAtmos ? 0.5 : 0.8) + (isAtmos ? 0.2 : 0.3),
       baseOpacity: isAtmos
-        ? Math.random() * 0.04 + 0.02
+        ? Math.random() * 0.08 + 0.06
         : Math.random() * 0.25 + 0.15,
       twinklePhase: Math.random() * Math.PI * 2,
       twinkleSpeed: Math.random() * 0.008 + 0.003,
@@ -183,10 +183,10 @@ export function AgenticCore({ className, variant = "section" }: AgenticCoreProps
   // Connection pulse — each connection has a slow shimmer based on pulse + idx
   const connectionAlpha = (dist: number, idx: number) => {
     const proximity = 1 - dist / connectDist; // 0..1
-    const base = isAtmos ? 0.025 : 0.12;
+    const base = isAtmos ? 0.06 : 0.12;
     // Slow shimmer — different phase per connection
     const shimmer = (Math.sin(pulse * 0.015 + idx * 0.7) + 1) / 2; // 0..1
-    const shimmerBoost = isAtmos ? shimmer * 0.02 : shimmer * 0.06;
+    const shimmerBoost = isAtmos ? shimmer * 0.04 : shimmer * 0.06;
     return proximity * (base + shimmerBoost);
   };
 
