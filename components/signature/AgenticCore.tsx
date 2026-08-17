@@ -4,20 +4,16 @@ import { useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 
 /**
- * AgenticCore — quiet intelligence, felt not seen.
+ * AgenticCore — latent space, breathing.
  *
- * 2026 approach: shader-like mesh gradient on canvas. No particles,
- * no nodes, no lines. Just light that breathes.
+ * A continuous noise field rendered at low resolution and scaled up.
+ * No blobs, no dots, no nodes, no bands — just black that breathes.
+ * The field shifts slowly (the system thinking) and very rarely,
+ * a soft convergence brightens a region (a thought emerging).
  *
- * What it does:
- *   • 5 soft radial gradients drift slowly across the screen (the "mind")
- *   • They breathe — opacity oscillates over ~20s cycles (the system is alive)
- *   • Very rarely (~10s), a convergence wave rippled outward from a point
- *     (a thought cascading) — a brief brightening that fades
- *   • Everything sits at 1-4% above pure black — you feel it, not see it
- *
- * Inspired by: Stripe mesh gradient, Vercel dark aesthetic,
- * OpenAI restraint, Anthropic editorial calm.
+ * Technique: low-res canvas (80×50) with smoothed noise → scaled to full screen.
+ * This is the domain-warped gradient approach used by Stripe, Vercel, and
+ * the best 2026 shader backgrounds — but on 2D canvas, no WebGL needed.
  *
  * Charter: black canvas, #f0f0fa, white = only accent, light = life.
  */
@@ -27,27 +23,68 @@ interface AgenticCoreProps {
   variant?: "section" | "atmosphere";
 }
 
-interface Blob {
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
-  radius: number;
-  baseOpacity: number;
-  phase: number;
-  phaseSpeed: number;
+// --- Value noise (cheap, smooth, no deps) ---
+// We use a grid of random values + bilinear interpolation.
+// This produces smooth, organic fields — not blocky.
+
+const GRID_W = 80;
+const GRID_H = 50;
+
+function makeNoiseGrid(): Float32Array {
+  const g = new Float32Array(GRID_W * GRID_H);
+  for (let i = 0; i < g.length; i++) g[i] = Math.random();
+  return g;
 }
 
-interface Ripple {
-  x: number;
-  y: number;
-  radius: number;
-  maxRadius: number;
-  speed: number;
-  intensity: number;
-}
+// Smooth interpolation between grid points
+function sampleNoise(
+  grids: Float32Array[],
+  x: number,
+  y: number,
+  t: number
+): number {
+  // Wrap coordinates
+  const gx = ((x % GRID_W) + GRID_W) % GRID_W;
+  const gy = ((y % GRID_H) + GRID_H) % GRID_H;
+  const x0 = Math.floor(gx);
+  const y0 = Math.floor(gy);
+  const x1 = (x0 + 1) % GRID_W;
+  const y1 = (y0 + 1) % GRID_H;
+  const fx = gx - x0;
+  const fy = gy - y0;
+  // Smoothstep
+  const sx = fx * fx * (3 - 2 * fx);
+  const sy = fy * fy * (3 - 2 * fy);
 
-const COLOR = "240, 240, 250";
+  // Cycle through grids over time for temporal variation
+  const cycle = t * 0.00008;
+  const i0 = Math.floor(cycle) % grids.length;
+  const i1 = (Math.floor(cycle) + 1) % grids.length;
+  const tf = cycle - Math.floor(cycle);
+  const tfSmooth = tf * tf * (3 - 2 * tf);
+
+  const g0 = grids[i0];
+  const g1 = grids[i1];
+
+  const v00 = g0[y0 * GRID_W + x0];
+  const v10 = g0[y0 * GRID_W + x1];
+  const v01 = g0[y1 * GRID_W + x0];
+  const v11 = g0[y1 * GRID_W + x1];
+  const v00b = g1[y0 * GRID_W + x0];
+  const v10b = g1[y0 * GRID_W + x1];
+  const v01b = g1[y1 * GRID_W + x0];
+  const v11b = g1[y1 * GRID_W + x1];
+
+  const a = v00 * (1 - sx) + v10 * sx;
+  const b = v01 * (1 - sx) + v11 * sx;
+  const c = v00b * (1 - sx) + v10b * sx;
+  const d = v01b * (1 - sx) + v11b * sx;
+
+  const v0 = a * (1 - sy) + b * sy;
+  const v1 = c * (1 - sy) + d * sy;
+
+  return v0 * (1 - tfSmooth) + v1 * tfSmooth;
+}
 
 export function AgenticCore({ className, variant = "atmosphere" }: AgenticCoreProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -66,6 +103,14 @@ export function AgenticCore({ className, variant = "atmosphere" }: AgenticCorePr
 
     let W = 0, H = 0, dpr = 1;
 
+    // Low-res buffer for noise field
+    const buffer = document.createElement("canvas");
+    const bufCtx = buffer.getContext("2d");
+    if (!bufCtx) return;
+    buffer.width = GRID_W;
+    buffer.height = GRID_H;
+    const imageData = bufCtx.createImageData(GRID_W, GRID_H);
+
     const resize = () => {
       dpr = Math.min(window.devicePixelRatio || 1, isAtmos ? 1.5 : 2);
       const rect = container.getBoundingClientRect();
@@ -76,47 +121,29 @@ export function AgenticCore({ className, variant = "atmosphere" }: AgenticCorePr
       canvas.style.width = `${W}px`;
       canvas.style.height = `${H}px`;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      // Scale buffer to full screen with smoothing
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = "high";
     };
     resize();
     window.addEventListener("resize", resize);
 
-    // --- Blobs (soft radial gradients that drift) ---
-    const BLOB_COUNT = isAtmos ? 5 : 4;
-    const blobs: Blob[] = [];
-    const ripples: Ripple[] = [];
+    // Pre-generate noise grids (cycle through them for temporal evolution)
+    const NUM_GRIDS = 8;
+    const grids: Float32Array[] = [];
+    for (let i = 0; i < NUM_GRIDS; i++) grids.push(makeNoiseGrid());
 
-    const initBlobs = () => {
-      blobs.length = 0;
-      for (let i = 0; i < BLOB_COUNT; i++) {
-        blobs.push({
-          x: Math.random() * W,
-          y: Math.random() * H,
-          vx: (Math.random() - 0.5) * 0.08,
-          vy: (Math.random() - 0.5) * 0.08,
-          radius: Math.min(W, H) * (0.3 + Math.random() * 0.2),
-          baseOpacity: isAtmos ? 0.12 + Math.random() * 0.06 : 0.15 + Math.random() * 0.08,
-          phase: Math.random() * Math.PI * 2,
-          phaseSpeed: 0.0003 + Math.random() * 0.0002,
-        });
-      }
-    };
-    initBlobs();
-    window.addEventListener("resize", initBlobs);
-
-    // --- Ripple timer ---
-    let rippleTimer = 0;
-    const RIPPLE_INTERVAL = isAtmos ? 10000 : 7000;
-
-    const spawnRipple = () => {
-      ripples.push({
-        x: W * (0.2 + Math.random() * 0.6),
-        y: H * (0.2 + Math.random() * 0.6),
-        radius: 0,
-        maxRadius: Math.max(W, H) * 0.5,
-        speed: isAtmos ? 0.8 : 1.2,
-        intensity: isAtmos ? 0.1 : 0.14,
-      });
-    };
+    // --- Convergence events ---
+    interface Convergence {
+      gx: number;
+      gy: number;
+      radius: number;
+      maxRadius: number;
+      life: number;
+    }
+    const convergences: Convergence[] = [];
+    let convTimer = 0;
+    const CONV_INTERVAL = isAtmos ? 12000 : 8000;
 
     // --- Animation ---
     let raf = 0;
@@ -133,6 +160,11 @@ export function AgenticCore({ className, variant = "atmosphere" }: AgenticCorePr
         : null;
     if (container) io?.observe(container);
 
+    // Opacity settings — tuned to be visible but not distracting
+    const BASE_BRIGHTNESS = isAtmos ? 10 : 16; // 0-255 scale, very low
+    const BREATH_AMP = isAtmos ? 4 : 6; // how much it oscillates
+    const CONV_BOOST = isAtmos ? 18 : 28; // convergence brightening
+
     const draw = (now: number) => {
       raf = requestAnimationFrame(draw);
       if (!visible) return;
@@ -140,79 +172,107 @@ export function AgenticCore({ className, variant = "atmosphere" }: AgenticCorePr
       lastTime = now;
       time += dt;
 
-      // Clear
-      ctx.clearRect(0, 0, W, H);
-
-      // Ripple timer
-      rippleTimer += dt;
-      if (rippleTimer > RIPPLE_INTERVAL + Math.random() * 4000) {
-        rippleTimer = 0;
-        spawnRipple();
+      // Convergence timer
+      convTimer += dt;
+      if (convTimer > CONV_INTERVAL + Math.random() * 5000) {
+        convTimer = 0;
+        convergences.push({
+          gx: 10 + Math.random() * (GRID_W - 20),
+          gy: 8 + Math.random() * (GRID_H - 16),
+          radius: 0,
+          maxRadius: 25,
+          life: 0,
+        });
       }
 
-      // Update + draw blobs (soft radial gradients)
-      for (const b of blobs) {
-        // Drift
-        b.x += b.vx * dt / 16;
-        b.y += b.vy * dt / 16;
-        // Wrap
-        if (b.x < -b.radius) b.x = W + b.radius;
-        if (b.x > W + b.radius) b.x = -b.radius;
-        if (b.y < -b.radius) b.y = H + b.radius;
-        if (b.y > H + b.radius) b.y = -b.radius;
-        // Breathe
-        b.phase += b.phaseSpeed * dt;
-        const breath = 0.7 + Math.sin(b.phase) * 0.3;
-        const opacity = b.baseOpacity * breath;
-
-        // Radial gradient — soft, organic
-        const grad = ctx.createRadialGradient(b.x, b.y, 0, b.x, b.y, b.radius);
-        grad.addColorStop(0, `rgba(${COLOR}, ${opacity})`);
-        grad.addColorStop(0.5, `rgba(${COLOR}, ${opacity * 0.3})`);
-        grad.addColorStop(1, `rgba(${COLOR}, 0)`);
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, W, H);
+      // Update convergences
+      for (let i = convergences.length - 1; i >= 0; i--) {
+        const c = convergences[i];
+        c.life += dt / 4000;
+        c.radius = c.life * c.maxRadius;
+        if (c.life >= 1) convergences.splice(i, 1);
       }
 
-      // Update + draw ripples (convergence waves)
-      for (let i = ripples.length - 1; i >= 0; i--) {
-        const r = ripples[i];
-        r.radius += r.speed * dt / 16;
-        if (r.radius > r.maxRadius) {
-          ripples.splice(i, 1);
-          continue;
+      // Render noise field to low-res buffer
+      const data = imageData.data;
+      const breath = Math.sin(time * 0.0003) * 0.5 + 0.5; // 0..1, slow breath
+
+      // Offset for domain warping — shifts the field over time
+      const warpX = time * 0.003;
+      const warpY = time * 0.002;
+
+      for (let y = 0; y < GRID_H; y++) {
+        for (let x = 0; x < GRID_W; x++) {
+          // Domain-warped noise: sample at warped coordinates
+          const wx = x + warpX + sampleNoise(grids, x * 0.5, y * 0.5, time) * 4;
+          const wy = y + warpY + sampleNoise(grids, x * 0.5 + 100, y * 0.5 + 100, time) * 4;
+          const n = sampleNoise(grids, wx, wy, time);
+
+          // Base brightness from noise + breathing
+          let brightness = BASE_BRIGHTNESS + n * BREATH_AMP + breath * BREATH_AMP * 0.3;
+
+          // Convergence boost
+          for (const c of convergences) {
+            const dx = x - c.gx;
+            const dy = y - c.gy;
+            const d = Math.sqrt(dx * dx + dy * dy);
+            const distFromFront = Math.abs(d - c.radius);
+            const waveWidth = 8;
+            if (distFromFront < waveWidth) {
+              const proximity = 1 - distFromFront / waveWidth;
+              const fade = Math.sin(c.life * Math.PI); // fade in and out
+              brightness += proximity * CONV_BOOST * fade;
+            }
+          }
+
+          // Clamp
+          brightness = Math.min(40, Math.max(0, brightness));
+
+          const idx = (y * GRID_W + x) * 4;
+          data[idx] = brightness * 0.94;     // R (240/255)
+          data[idx + 1] = brightness * 0.94; // G
+          data[idx + 2] = brightness;        // B (250/255)
+          data[idx + 3] = 255;
         }
-
-        const fade = 1 - r.radius / r.maxRadius;
-        const alpha = r.intensity * fade;
-
-        // Soft ring
-        const ringWidth = 80;
-        const innerR = Math.max(0, r.radius - ringWidth);
-        const grad = ctx.createRadialGradient(r.x, r.y, innerR, r.x, r.y, r.radius);
-        grad.addColorStop(0, `rgba(${COLOR}, 0)`);
-        grad.addColorStop(0.5, `rgba(${COLOR}, ${alpha})`);
-        grad.addColorStop(1, `rgba(${COLOR}, 0)`);
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, W, H);
       }
+
+      bufCtx.putImageData(imageData, 0, 0);
+
+      // Draw scaled to full screen
+      ctx.clearRect(0, 0, W, H);
+      ctx.drawImage(buffer, 0, 0, GRID_W, GRID_H, 0, 0, W, H);
+
+      // Optional: subtle vignette mask to fade edges (blend with pure black)
+      const vGrad = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.3, W / 2, H / 2, Math.max(W, H) * 0.7);
+      vGrad.addColorStop(0, "rgba(0, 0, 0, 0)");
+      vGrad.addColorStop(1, "rgba(0, 0, 0, 0.5)");
+      ctx.fillStyle = vGrad;
+      ctx.fillRect(0, 0, W, H);
     };
 
     if (!reduce) {
       raf = requestAnimationFrame(draw);
     } else {
-      // Static: one faint blob
-      const grad = ctx.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, Math.min(W, H) * 0.4);
-      grad.addColorStop(0, `rgba(${COLOR}, 0.015)`);
-      grad.addColorStop(1, `rgba(${COLOR}, 0)`);
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, W, H);
+      // Static: faint noise
+      const data = imageData.data;
+      for (let y = 0; y < GRID_H; y++) {
+        for (let x = 0; x < GRID_W; x++) {
+          const n = grids[0][y * GRID_W + x];
+          const b = (BASE_BRIGHTNESS + n * BREATH_AMP) * 0.5;
+          const idx = (y * GRID_W + x) * 4;
+          data[idx] = b * 0.94;
+          data[idx + 1] = b * 0.94;
+          data[idx + 2] = b;
+          data[idx + 3] = 255;
+        }
+      }
+      bufCtx.putImageData(imageData, 0, 0);
+      ctx.drawImage(buffer, 0, 0, GRID_W, GRID_H, 0, 0, W, H);
     }
 
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", resize);
-      window.removeEventListener("resize", initBlobs);
       io?.disconnect();
     };
   }, [variant]);
