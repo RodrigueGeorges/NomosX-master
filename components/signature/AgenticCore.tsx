@@ -128,6 +128,8 @@ export function AgenticCore({
           pulseIntensity: 0,
           baseOpacity: 0.025 + Math.random() * 0.02,
           connections: 0,
+          wobbleSeed: Math.random() * 100,
+          wobblePhase: Math.random() * Math.PI * 2,
         });
       }
 
@@ -145,6 +147,8 @@ export function AgenticCore({
           pulseIntensity: 0,
           baseOpacity: 0.045 + Math.random() * 0.025,
           connections: 0,
+          wobbleSeed: Math.random() * 100,
+          wobblePhase: Math.random() * Math.PI * 2,
         });
       }
 
@@ -163,6 +167,8 @@ export function AgenticCore({
           pulseIntensity: 0,
           baseOpacity: isHub ? 0.11 + Math.random() * 0.03 : 0.07 + Math.random() * 0.025,
           connections: 0,
+          wobbleSeed: Math.random() * 100,
+          wobblePhase: Math.random() * Math.PI * 2,
         });
       }
 
