@@ -31,7 +31,10 @@ interface AgentNode {
   phase: number;
   pulseIntensity: number;
   baseOpacity: number;
-  connections: number; // dynamic connection count for visual weight
+  connections: number;
+  // Organic motion — each node has its own drift seed + wobble
+  wobbleSeed: number;
+  wobblePhase: number;
 }
 
 interface Pulse {
@@ -41,9 +44,9 @@ interface Pulse {
   speed: number;
   intensity: number;
   trail: { x: number; y: number; alpha: number }[];
-  // Curved path control point — synapses don't travel in straight lines
-  cx: number;
-  cy: number;
+  // Cubic Bézier control points — organic axon path
+  cx1: number; cy1: number;
+  cx2: number; cy2: number;
 }
 
 interface DataStream {
@@ -249,17 +252,26 @@ export function AgenticCore({
 
             const opacity = baseOpacity + pulseBoost;
 
-            // Curved connection — synapse, not wire.
-            // Control point is perpendicular offset from midpoint, seeded by node indices
-            // so each connection has a stable but organic curve.
-            const midX = (ax + bx) / 2;
-            const midY = (ay + by) / 2;
-            const perpAngle = Math.atan2(by - ay, bx - ax) + Math.PI / 2;
-            // Deterministic curve seed from indices — stable per connection
-            const curveSeed = ((i * 73 + j * 37) % 100) / 100 - 0.5;
-            const curveAmount = dist * 0.12 * curveSeed;
-            const cx = midX + Math.cos(perpAngle) * curveAmount;
-            const cy = midY + Math.sin(perpAngle) * curveAmount;
+            // Curved connection — organic axon, not a straight wire.
+            // Two control points with large perpendicular offset create
+            // the sinuous, meandering curves of real neural networks.
+            const angleAB = Math.atan2(by - ay, bx - ax);
+            const perpAngle = angleAB + Math.PI / 2;
+            // Deterministic curve seeds from indices — stable per connection
+            const curveSeed1 = ((i * 73 + j * 37) % 100) / 100 - 0.5;
+            const curveSeed2 = ((i * 41 + j * 89) % 100) / 100 - 0.5;
+            // Large offset — 25-35% of distance — gives real axon-like meandering
+            const curveAmount1 = dist * 0.28 * curveSeed1;
+            const curveAmount2 = dist * 0.22 * curveSeed2;
+            // Two control points at 1/3 and 2/3 along the line, offset perpendicularly
+            const t1x = ax + (bx - ax) * 0.33;
+            const t1y = ay + (by - ay) * 0.33;
+            const t2x = ax + (bx - ax) * 0.66;
+            const t2y = ay + (by - ay) * 0.66;
+            const cx1 = t1x + Math.cos(perpAngle) * curveAmount1;
+            const cy1 = t1y + Math.sin(perpAngle) * curveAmount1;
+            const cx2 = t2x + Math.cos(perpAngle) * curveAmount2;
+            const cy2 = t2y + Math.sin(perpAngle) * curveAmount2;
 
             // Gradient line — fade from both ends toward center
             if (hasHub && t > 0.3) {
@@ -276,7 +288,7 @@ export function AgenticCore({
             ctx.lineWidth = hasHub ? 0.9 : (nodes[i].layer === 2 || nodes[j].layer === 2 ? 0.7 : 0.45);
             ctx.beginPath();
             ctx.moveTo(ax, ay);
-            ctx.quadraticCurveTo(cx, cy, bx, by);
+            ctx.bezierCurveTo(cx1, cy1, cx2, cy2, bx, by);
             ctx.stroke();
           }
         }
@@ -304,23 +316,30 @@ export function AgenticCore({
             }
             if (neighbors.length > 0) {
               const j = neighbors[Math.floor(Math.random() * neighbors.length)];
-              // Compute curved path control point — same formula as connection drawing
+              // Compute cubic Bézier control points — same formula as connection drawing
               const fx0 = rx(nodes[i]), fy0 = ry(nodes[i]);
               const tx0 = rx(nodes[j]), ty0 = ry(nodes[j]);
-              const midX0 = (fx0 + tx0) / 2;
-              const midY0 = (fy0 + ty0) / 2;
-              const perpAngle0 = Math.atan2(ty0 - fy0, tx0 - fx0) + Math.PI / 2;
-              const curveSeed0 = ((i * 73 + j * 37) % 100) / 100 - 0.5;
               const d0 = Math.sqrt((fx0 - tx0) ** 2 + (fy0 - ty0) ** 2);
-              const curveAmount0 = d0 * 0.12 * curveSeed0;
+              const ang0 = Math.atan2(ty0 - fy0, tx0 - fx0);
+              const perp0 = ang0 + Math.PI / 2;
+              const cs1 = ((i * 73 + j * 37) % 100) / 100 - 0.5;
+              const cs2 = ((i * 41 + j * 89) % 100) / 100 - 0.5;
+              const ca1 = d0 * 0.28 * cs1;
+              const ca2 = d0 * 0.22 * cs2;
+              const t1x0 = fx0 + (tx0 - fx0) * 0.33;
+              const t1y0 = fy0 + (ty0 - fy0) * 0.33;
+              const t2x0 = fx0 + (tx0 - fx0) * 0.66;
+              const t2y0 = fy0 + (ty0 - fy0) * 0.66;
               pulses.push({
                 fromIdx: i, toIdx: j,
                 progress: 0,
                 speed: 0.0025 + Math.random() * 0.003,
                 intensity: 0.75 + Math.random() * 0.25,
                 trail: [],
-                cx: midX0 + Math.cos(perpAngle0) * curveAmount0,
-                cy: midY0 + Math.sin(perpAngle0) * curveAmount0,
+                cx1: t1x0 + Math.cos(perp0) * ca1,
+                cy1: t1y0 + Math.sin(perp0) * ca1,
+                cx2: t2x0 + Math.cos(perp0) * ca2,
+                cy2: t2y0 + Math.sin(perp0) * ca2,
               });
               nodes[i].pulseIntensity = 1;
               // Sometimes chain — spawn a second pulse from the destination
@@ -338,20 +357,27 @@ export function AgenticCore({
                     const k = secondNeighbors[Math.floor(Math.random() * secondNeighbors.length)];
                     const fx1 = rx(nodes[j]), fy1 = ry(nodes[j]);
                     const tx1 = rx(nodes[k]), ty1 = ry(nodes[k]);
-                    const midX1 = (fx1 + tx1) / 2;
-                    const midY1 = (fy1 + ty1) / 2;
-                    const perpAngle1 = Math.atan2(ty1 - fy1, tx1 - fx1) + Math.PI / 2;
-                    const curveSeed1 = ((j * 73 + k * 37) % 100) / 100 - 0.5;
                     const d1 = Math.sqrt((fx1 - tx1) ** 2 + (fy1 - ty1) ** 2);
-                    const curveAmount1 = d1 * 0.12 * curveSeed1;
+                    const ang1 = Math.atan2(ty1 - fy1, tx1 - fx1);
+                    const perp1 = ang1 + Math.PI / 2;
+                    const cs1b = ((j * 73 + k * 37) % 100) / 100 - 0.5;
+                    const cs2b = ((j * 41 + k * 89) % 100) / 100 - 0.5;
+                    const ca1b = d1 * 0.28 * cs1b;
+                    const ca2b = d1 * 0.22 * cs2b;
+                    const t1x1 = fx1 + (tx1 - fx1) * 0.33;
+                    const t1y1 = fy1 + (ty1 - fy1) * 0.33;
+                    const t2x1 = fx1 + (tx1 - fx1) * 0.66;
+                    const t2y1 = fy1 + (ty1 - fy1) * 0.66;
                     pulses.push({
                       fromIdx: j, toIdx: k,
                       progress: 0,
                       speed: 0.003 + Math.random() * 0.003,
                       intensity: 0.6 + Math.random() * 0.2,
                       trail: [],
-                      cx: midX1 + Math.cos(perpAngle1) * curveAmount1,
-                      cy: midY1 + Math.sin(perpAngle1) * curveAmount1,
+                      cx1: t1x1 + Math.cos(perp1) * ca1b,
+                      cy1: t1y1 + Math.sin(perp1) * ca1b,
+                      cx2: t2x1 + Math.cos(perp1) * ca2b,
+                      cy2: t2y1 + Math.sin(perp1) * ca2b,
                     });
                     nodes[j].pulseIntensity = 0.8;
                   }
@@ -380,10 +406,10 @@ export function AgenticCore({
             ? 2 * p.progress * p.progress
             : 1 - Math.pow(-2 * p.progress + 2, 2) / 2;
 
-          // Quadratic Bézier position — follows the curved synapse path
-          const oneMinusE = 1 - eased;
-          const px = oneMinusE * oneMinusE * fx + 2 * oneMinusE * eased * p.cx + eased * eased * tx;
-          const py = oneMinusE * oneMinusE * fy + 2 * oneMinusE * eased * p.cy + eased * eased * ty;
+          // Cubic Bézier position — follows the organic axon path
+          const u = 1 - eased;
+          const px = u * u * u * fx + 3 * u * u * eased * p.cx1 + 3 * u * eased * eased * p.cx2 + eased * eased * eased * tx;
+          const py = u * u * u * fy + 3 * u * u * eased * p.cy1 + 3 * u * eased * eased * p.cy2 + eased * eased * eased * ty;
 
           // Synaptic flicker — micro-discharges that make the pulse feel alive
           // The intensity oscillates rapidly, like a neural spike
