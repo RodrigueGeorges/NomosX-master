@@ -41,6 +41,9 @@ interface Pulse {
   speed: number;
   intensity: number;
   trail: { x: number; y: number; alpha: number }[];
+  // Curved path control point — synapses don't travel in straight lines
+  cx: number;
+  cy: number;
 }
 
 interface DataStream {
@@ -246,6 +249,18 @@ export function AgenticCore({
 
             const opacity = baseOpacity + pulseBoost;
 
+            // Curved connection — synapse, not wire.
+            // Control point is perpendicular offset from midpoint, seeded by node indices
+            // so each connection has a stable but organic curve.
+            const midX = (ax + bx) / 2;
+            const midY = (ay + by) / 2;
+            const perpAngle = Math.atan2(by - ay, bx - ax) + Math.PI / 2;
+            // Deterministic curve seed from indices — stable per connection
+            const curveSeed = ((i * 73 + j * 37) % 100) / 100 - 0.5;
+            const curveAmount = dist * 0.12 * curveSeed;
+            const cx = midX + Math.cos(perpAngle) * curveAmount;
+            const cy = midY + Math.sin(perpAngle) * curveAmount;
+
             // Gradient line — fade from both ends toward center
             if (hasHub && t > 0.3) {
               const grad = ctx.createLinearGradient(ax, ay, bx, by);
@@ -261,7 +276,7 @@ export function AgenticCore({
             ctx.lineWidth = hasHub ? 0.9 : (nodes[i].layer === 2 || nodes[j].layer === 2 ? 0.7 : 0.45);
             ctx.beginPath();
             ctx.moveTo(ax, ay);
-            ctx.lineTo(bx, by);
+            ctx.quadraticCurveTo(cx, cy, bx, by);
             ctx.stroke();
           }
         }
@@ -289,12 +304,23 @@ export function AgenticCore({
             }
             if (neighbors.length > 0) {
               const j = neighbors[Math.floor(Math.random() * neighbors.length)];
+              // Compute curved path control point — same formula as connection drawing
+              const fx0 = rx(nodes[i]), fy0 = ry(nodes[i]);
+              const tx0 = rx(nodes[j]), ty0 = ry(nodes[j]);
+              const midX0 = (fx0 + tx0) / 2;
+              const midY0 = (fy0 + ty0) / 2;
+              const perpAngle0 = Math.atan2(ty0 - fy0, tx0 - fx0) + Math.PI / 2;
+              const curveSeed0 = ((i * 73 + j * 37) % 100) / 100 - 0.5;
+              const d0 = Math.sqrt((fx0 - tx0) ** 2 + (fy0 - ty0) ** 2);
+              const curveAmount0 = d0 * 0.12 * curveSeed0;
               pulses.push({
                 fromIdx: i, toIdx: j,
                 progress: 0,
                 speed: 0.0025 + Math.random() * 0.003,
                 intensity: 0.75 + Math.random() * 0.25,
                 trail: [],
+                cx: midX0 + Math.cos(perpAngle0) * curveAmount0,
+                cy: midY0 + Math.sin(perpAngle0) * curveAmount0,
               });
               nodes[i].pulseIntensity = 1;
               // Sometimes chain — spawn a second pulse from the destination
@@ -310,12 +336,22 @@ export function AgenticCore({
                   }
                   if (secondNeighbors.length > 0) {
                     const k = secondNeighbors[Math.floor(Math.random() * secondNeighbors.length)];
+                    const fx1 = rx(nodes[j]), fy1 = ry(nodes[j]);
+                    const tx1 = rx(nodes[k]), ty1 = ry(nodes[k]);
+                    const midX1 = (fx1 + tx1) / 2;
+                    const midY1 = (fy1 + ty1) / 2;
+                    const perpAngle1 = Math.atan2(ty1 - fy1, tx1 - fx1) + Math.PI / 2;
+                    const curveSeed1 = ((j * 73 + k * 37) % 100) / 100 - 0.5;
+                    const d1 = Math.sqrt((fx1 - tx1) ** 2 + (fy1 - ty1) ** 2);
+                    const curveAmount1 = d1 * 0.12 * curveSeed1;
                     pulses.push({
                       fromIdx: j, toIdx: k,
                       progress: 0,
                       speed: 0.003 + Math.random() * 0.003,
                       intensity: 0.6 + Math.random() * 0.2,
                       trail: [],
+                      cx: midX1 + Math.cos(perpAngle1) * curveAmount1,
+                      cy: midY1 + Math.sin(perpAngle1) * curveAmount1,
                     });
                     nodes[j].pulseIntensity = 0.8;
                   }
@@ -344,14 +380,21 @@ export function AgenticCore({
             ? 2 * p.progress * p.progress
             : 1 - Math.pow(-2 * p.progress + 2, 2) / 2;
 
-          const px = fx + (tx - fx) * eased;
-          const py = fy + (ty - fy) * eased;
+          // Quadratic Bézier position — follows the curved synapse path
+          const oneMinusE = 1 - eased;
+          const px = oneMinusE * oneMinusE * fx + 2 * oneMinusE * eased * p.cx + eased * eased * tx;
+          const py = oneMinusE * oneMinusE * fy + 2 * oneMinusE * eased * p.cy + eased * eased * ty;
+
+          // Synaptic flicker — micro-discharges that make the pulse feel alive
+          // The intensity oscillates rapidly, like a neural spike
+          const flicker = 0.85 + Math.sin(time * 0.08 + k * 1.7) * 0.10 + (Math.random() < 0.08 ? 0.15 : 0);
+          const liveIntensity = p.intensity * flicker;
 
           // Trail
-          p.trail.push({ x: px, y: py, alpha: p.intensity });
+          p.trail.push({ x: px, y: py, alpha: liveIntensity });
           if (p.trail.length > 15) p.trail.shift();
 
-          // Draw trail as a fading line
+          // Draw trail as a fading curved line
           if (p.trail.length > 2) {
             ctx.beginPath();
             ctx.moveTo(p.trail[0].x, p.trail[0].y);
@@ -360,7 +403,7 @@ export function AgenticCore({
             }
             const trailGrad = ctx.createLinearGradient(p.trail[0].x, p.trail[0].y, px, py);
             trailGrad.addColorStop(0, "rgba(170, 195, 255, 0)");
-            trailGrad.addColorStop(1, `rgba(170, 195, 255, ${p.intensity * 0.15})`);
+            trailGrad.addColorStop(1, `rgba(170, 195, 255, ${liveIntensity * 0.15})`);
             ctx.strokeStyle = trailGrad;
             ctx.lineWidth = 0.8;
             ctx.stroke();
@@ -369,16 +412,16 @@ export function AgenticCore({
           // Pulse glow
           const glowR = 16;
           const grad = ctx.createRadialGradient(px, py, 0, px, py, glowR);
-          grad.addColorStop(0, `rgba(200, 220, 255, ${p.intensity * 0.2})`);
-          grad.addColorStop(0.3, `rgba(170, 195, 255, ${p.intensity * 0.08})`);
+          grad.addColorStop(0, `rgba(200, 220, 255, ${liveIntensity * 0.2})`);
+          grad.addColorStop(0.3, `rgba(170, 195, 255, ${liveIntensity * 0.08})`);
           grad.addColorStop(1, "rgba(170, 195, 255, 0)");
           ctx.fillStyle = grad;
           ctx.beginPath();
           ctx.arc(px, py, glowR, 0, Math.PI * 2);
           ctx.fill();
 
-          // Pulse core
-          ctx.fillStyle = `rgba(230, 240, 255, ${p.intensity * 0.35})`;
+          // Pulse core — brightens during flicker spikes
+          ctx.fillStyle = `rgba(230, 240, 255, ${liveIntensity * 0.35})`;
           ctx.beginPath();
           ctx.arc(px, py, 1.3, 0, Math.PI * 2);
           ctx.fill();
