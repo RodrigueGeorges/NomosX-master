@@ -26,6 +26,7 @@
 
 import { callLLM } from '../../llm/unified-llm';
 import { parseJson } from '../json-utils';
+import { judgeForPRM } from '../local-judge';
 import { prisma } from '../../db';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -205,6 +206,11 @@ export function scoreStep(
  */
 export async function llmScoreStep(step: ProcessStep): Promise<number> {
   try {
+    // Sprint 6: use open-source local judge for PRM labels when enabled
+    if (process.env.ENABLE_LOCAL_JUDGE === 'true') {
+      const { score } = await judgeForPRM(step.output);
+      return score;
+    }
     const response = await callLLM({
       messages: [
         {

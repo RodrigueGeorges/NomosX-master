@@ -66,9 +66,11 @@ export async function generateHeroImage(
         const data = await res.json();
         const b64 = data.data?.[0]?.b64_json;
         const url = data.data?.[0]?.url;
-        // Size guard: if base64 > 500KB (~667K chars), use SVG fallback instead.
-        // A 2.5MB PNG bloats the HTML, slows page load, and bloats the database.
-        const MAX_B64_CHARS = 667_000; // ~500KB decoded
+        // Size guard: if base64 > 2MB (~2.67M chars), use SVG fallback instead.
+        // Increased from 500KB to 2MB — gpt-image-1 typically produces 1-1.5MB PNGs
+        // which are acceptable for a hero image. The HTML is already 200KB+ so
+        // a 1.5MB image is a reasonable proportion. Rejected 1524KB images before.
+        const MAX_B64_CHARS = 2_670_000; // ~2MB decoded
         if (b64 && b64.length > MAX_B64_CHARS) {
           console.warn(`[HERO IMAGE] base64 too large (${(b64.length / 1024).toFixed(0)}KB chars) — using SVG fallback`);
         } else if (b64) {

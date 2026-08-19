@@ -14,10 +14,11 @@
  */
 
 import type { ToolDefinition } from '../llm/unified-llm';
+import { getAllMcpToolsAsNomos, executeMcpTool } from './mcp';
 
 // ─── Tool Definitions (schemas for the LLM) ────────────────────────────────
 
-export const ANALYST_TOOLS: ToolDefinition[] = [
+let BASE_ANALYST_TOOLS: ToolDefinition[] = [
   {
     name: "search_sources",
     description:
@@ -126,6 +127,20 @@ export const ANALYST_TOOLS: ToolDefinition[] = [
     },
   },
 ];
+
+/** Names of native NomosX tools (anything else with an underscore is treated as MCP). */
+const NATIVE_TOOL_NAMES = new Set(BASE_ANALYST_TOOLS.map(t => t.name));
+
+/** Get the analyst tools, optionally augmented with connected MCP servers. */
+export function getAnalystTools(useMCP = false): ToolDefinition[] {
+  if (useMCP) {
+    return [...BASE_ANALYST_TOOLS, ...getAllMcpToolsAsNomos()];
+  }
+  return BASE_ANALYST_TOOLS;
+}
+
+// Backward-compatible export
+export const ANALYST_TOOLS = BASE_ANALYST_TOOLS;
 
 // ─── Tool Executor ─────────────────────────────────────────────────────────
 
@@ -288,13 +303,24 @@ export async function executeTool(
         };
       }
 
-      default:
+      default: {
+        // Try to execute as an MCP tool if the name is not a native tool and looks like server_tool
+        if (!NATIVE_TOOL_NAMES.has(toolCall.name) && toolCall.name.includes('_')) {
+          const mcpResult = await executeMcpTool(toolCall.name, args);
+          return {
+            toolName: toolCall.name,
+            success: mcpResult.success,
+            result: mcpResult.result,
+            error: mcpResult.error,
+          };
+        }
         return {
           toolName: toolCall.name,
           success: false,
           result: "",
           error: `Unknown tool: ${toolCall.name}`,
         };
+      }
     }
   } catch (err) {
     return {

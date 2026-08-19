@@ -331,7 +331,7 @@ export function renderStrategicReportHTML(
       // V3.2: Fallback instead of skipping the section entirely
       return `
         <div class="content">
-          <p style="color:rgba(240,240,250,0.5);font-style:italic;">Evidence quality assessment not provided by the analyst. The trust score shown above incorporates deterministic grounding and citation coverage checks.</p>
+          <p style="color:rgba(240,240,250,0.5);font-style:italic;">Evidence quality assessment not provided by the analyst. The evidence confidence rating shown above incorporates deterministic grounding and citation coverage checks.</p>
         </div>
       `;
     }

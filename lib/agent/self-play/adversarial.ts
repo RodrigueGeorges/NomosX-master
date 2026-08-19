@@ -29,6 +29,7 @@
 import { callLLM } from '../../llm/unified-llm';
 import { parseJson } from '../json-utils';
 import { prisma } from '../../db';
+import { judgeAttack } from '../local-judge';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -430,15 +431,28 @@ Respond to the attack:`,
 export async function judgeSelfPlay(
   attacks: AttackVector[],
   defenses: DefenseResponse[],
+  analysis = '',
 ): Promise<Array<{ attackId: string; attackSucceeded: boolean; severity: number; lesson: string }>> {
   const verdicts: Array<{ attackId: string; attackSucceeded: boolean; severity: number; lesson: string }> = [];
 
   for (const attack of attacks) {
     const defense = defenses.find(d => d.attackId === attack.id);
 
-    // Simple rule: if defender concedes, attack succeeded
+    // Sprint 6: use local judge for attack evaluation when enabled
     let attackSucceeded = defense?.response === 'concede';
     let severity = attack.severity;
+
+    if (process.env.ENABLE_LOCAL_JUDGE === 'true' && analysis.trim()) {
+      try {
+        const judgeResult = await judgeAttack(analysis, attack.attack);
+        attackSucceeded = judgeResult.success;
+        severity = attack.severity * judgeResult.score;
+      } catch (err) {
+        console.warn('[SelfPlay] Local judge failed, using rule-based fallback:', err);
+      }
+    }
+
+    // Simple rule: if defender concedes, attack succeeded (if no judge override)
 
     // If partial, use defense quality to determine
     if (defense?.response === 'partial') {
@@ -530,7 +544,7 @@ export async function runSelfPlayRound(
 
   // Step 3: Judge
   console.log('[SelfPlay] Phase 3: Judging...');
-  const verdicts = await judgeSelfPlay(attacks, defenses);
+  const verdicts = await judgeSelfPlay(attacks, defenses, analysis);
 
   // Step 4: Extract lessons
   const succeededAttacks = verdicts.filter(v => v.attackSucceeded);

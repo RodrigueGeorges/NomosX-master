@@ -25,9 +25,14 @@
  */
 
 import { reactLoop, type ReActConfig, type ReActResult } from './react-loop';
-import { ANALYST_TOOLS, executeTool, type ToolExecutionContext } from './tool-registry';
+import { getAnalystTools, executeTool, type ToolExecutionContext } from './tool-registry';
 import { callLLM } from '../llm/unified-llm';
 import { parseJson } from './json-utils';
+import { selfDiscover, buildReasoningStructureInjection } from './self-discover';
+import { budgetForcingInstruction } from './budget-forcing';
+import { buildReflectionTokenHint } from './adaptive-rag';
+import { runLATS, type LATSConfig } from './lats';
+import { guardOutput, buildRepairFeedback } from './output-guard';
 
 /** Detect if text is primarily French (simple heuristic — matches analyst-multipass.ts) */
 function detectLanguage(text: string): string {
@@ -52,6 +57,20 @@ export interface AnalystReActOptions {
   contextBlock?: string;
   /** Label for logging */
   label?: string;
+  /** Run ID for observability */
+  runId?: string;
+  /** Enable Self-Discover — composed reasoning structure per query (default: false) */
+  useSelfDiscover?: boolean;
+  /** Enable budget forcing — s1-style test-time scaling (default: false) */
+  useBudgetForcing?: boolean;
+  /** Enable Adaptive RAG — reflection tokens for dynamic retrieval (default: false) */
+  useAdaptiveRAG?: boolean;
+  /** Enable MCP client tools — allow external MCP servers in ReAct (default: false) */
+  useMCP?: boolean;
+  /** Enable LATS — tree search reasoning instead of linear ReAct (default: false) */
+  useLATS?: boolean;
+  /** Enable output guardrails — validate final JSON before returning (default: false) */
+  useOutputGuard?: boolean;
 }
 
 export interface AnalystReActResult {
@@ -91,8 +110,20 @@ export async function analystReAct(
 
   console.log(`[${label}] Starting ReAct analysis: ${sources.length} sources, ${depth} mode, lang=${lang}`);
 
+  // Optional Self-Discover: compose a reasoning structure for this query
+  let reasoningStructure = '';
+  if (options.useSelfDiscover) {
+    try {
+      const structure = await selfDiscover(question, options.domain);
+      reasoningStructure = buildReasoningStructureInjection(structure);
+      console.log(`[${label}] Self-Discover: selected ${structure.selectedModules.join(', ')}`);
+    } catch (err) {
+      console.warn(`[${label}] Self-Discover failed:`, err);
+    }
+  }
+
   // Build the system prompt
-  const systemPrompt = buildAnalystSystemPrompt(question, sources, readings, options, isFrench, isStrategic);
+  const systemPrompt = buildAnalystSystemPrompt(question, sources, readings, options, isFrench, isStrategic, reasoningStructure, options.useBudgetForcing, options.useAdaptiveRAG);
 
   // Build the initial input (what the agent sees first)
   const initialInput = buildInitialInput(question, sources, readings, isFrench, isStrategic);
@@ -100,7 +131,7 @@ export async function analystReAct(
   // Configure the ReAct loop
   const config: ReActConfig = {
     systemPrompt,
-    tools: ANALYST_TOOLS,
+    tools: getAnalystTools(options.useMCP),
     maxSteps: options.maxSteps ?? (isStrategic ? 12 : 8),
     maxCostUsd: options.maxCostUsd ?? (isStrategic ? 0.50 : 0.30),
     task: isStrategic ? 'strategic_analysis' : 'analyst_brief',
@@ -117,10 +148,57 @@ export async function analystReAct(
     readings,
   };
 
-  // Run the loop
-  const trace = await reactLoop(config, initialInput, fullToolCtx);
+  // Run the loop (ReAct or LATS)
+  let trace: ReActResult;
+  if (options.useLATS) {
+    const latsConfig: LATSConfig = {
+      systemPrompt,
+      tools: getAnalystTools(options.useMCP),
+      maxSimulations: isStrategic ? 20 : 10,
+      maxDepth: isStrategic ? 6 : 4,
+      branchingFactor: 2,
+      explorationConstant: 1.414,
+      maxCostUsd: options.maxCostUsd ?? (isStrategic ? 0.50 : 0.30),
+      temperature: 0.3,
+      maxTokens: isStrategic ? 8000 : 4000,
+      task: isStrategic ? 'strategic_analysis' : 'analyst_brief',
+      label: `${label} LATS`,
+    };
+    const latsResult = await runLATS(latsConfig, initialInput, fullToolCtx);
+    trace = {
+      finalAnswer: latsResult.finalAnswer,
+      finishedExplicitly: true,
+      steps: [],
+      totalCostUsd: latsResult.totalCostUsd,
+      totalDurationMs: 0,
+      discoveredSourceIds: [],
+      stopReason: 'finish',
+    };
+    console.log(`[${label}] LATS completed: ${latsResult.simulationsRun} sims, best path ${latsResult.bestPath.length}, $${latsResult.totalCostUsd.toFixed(4)}`);
+  } else {
+    trace = await reactLoop(config, initialInput, fullToolCtx);
+  }
 
   console.log(`[${label}] Completed: ${trace.steps.length} steps, $${trace.totalCostUsd.toFixed(4)}, stop=${trace.stopReason}`);
+
+  // Output guardrails: validate final JSON before parsing
+  if (options.useOutputGuard) {
+    const guard = guardOutput(trace.finalAnswer, {
+      requireCitations: true,
+      validateCitationRanges: true,
+      sourceCount: sources.length,
+      checkPII: true,
+      checkSafety: true,
+      maxPiiCount: 0,
+      confidenceMode: 'cautious',
+      requiredFormat: 'json',
+    });
+    if (guard.outcome === 'fail') {
+      console.warn(`[${label}] OUTPUT GUARD FAIL: ${guard.violations.length} critical violations`);
+    } else if (guard.outcome === 'repair' || guard.outcome === 'warning') {
+      console.warn(`[${label}] OUTPUT GUARD ${guard.outcome}: ${guard.violations.length} violations, score=${guard.score}`);
+    }
+  }
 
   // Parse the final answer into the MultiPassAnalysis shape
   const analysis = parseAnalysisOutput(trace.finalAnswer, question, sources, isStrategic);
@@ -156,6 +234,9 @@ function buildAnalystSystemPrompt(
   options: AnalystReActOptions,
   isFrench: boolean,
   isStrategic: boolean,
+  reasoningStructure?: string,
+  useBudgetForcing?: boolean,
+  useAdaptiveRAG?: boolean,
 ): string {
   const lang = isFrench ? 'fr' : 'en';
   const depthInstruction = isStrategic
@@ -213,6 +294,12 @@ Your final answer MUST be valid JSON with this structure:
 }
 
 ${depthInstruction}
+
+${reasoningStructure ? reasoningStructure : ''}
+
+${useBudgetForcing ? budgetForcingInstruction() : ''}
+
+${useAdaptiveRAG ? buildReflectionTokenHint() : ''}
 
 ## RULES
 1. Every factual claim MUST have a [SRC-N] citation. Uncited claims are unacceptable.

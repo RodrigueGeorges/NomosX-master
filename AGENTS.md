@@ -1807,3 +1807,69 @@ SCOUT → INDEX → EMBED → DEDUP → RANK → READER V3 → ANALYST V3 → GU
 
 **Agents v7.0** — Self-improving autonomous research system. Each PhD researcher remembers their past positions and calibrates their confidence. Every publication is challenged by a permanent adversarial agent before release. The system learns from every run — getting measurably better over time.
 
+---
+
+## 2026-08-19 Sprint 6 — State-of-the-Art Research Agent Upgrades
+
+A deep search of open-source AI agent research produced 15 targeted improvements, now integrated into the pipeline as opt-in features.
+
+### New Pipeline Options (`runPipeline` / `runStrategicPipeline`)
+
+All new features are opt-in to preserve backward compatibility:
+
+```typescript
+await runPipeline(query, "strategic", {
+  useAgenticAnalyst: true,
+  useSelfDiscover: true,          // composed reasoning structure per query
+  useAdaptiveRAG: true,           // reflection tokens (Self-RAG / CRAG)
+  useBudgetForcing: true,         // s1-style test-time scaling
+  useLATS: true,                  // Monte Carlo Tree Search (stub — activate module)
+  useOutputGuard: true,           // structured output validation
+  useLocalJudge: true,            // Prometheus 2 / JudgeLM judge
+  useStorm: true,                 // STORM + PaperQA2 perspective/citation traversal
+  useTemporalMemory: true,        // bi-temporal knowledge tracking
+  useLangfuse: true,              // observability tracing
+  useMCP: true,                   // Model Context Protocol client/server
+  useADAS: true,                  // automated agent design
+  useDurableExecution: true,      // lightweight snapshots
+});
+```
+
+### Modules Added
+
+| Module | File(s) | What it does |
+|--------|---------|--------------|
+| Prompt Optimizer | `lib/agent/prompt-optimizer/` | End-to-end prompt optimization from run feedback (DSPy/TextGrad-style) |
+| Adaptive RAG | `lib/agent/adaptive-rag.ts` | Self-RAG/CRAG reflection tokens + retrieval evaluator + web search fallback |
+| Chain-of-Verification | `lib/agent/chain-verification.ts` | CoVe: plan → draft → verify → revise |
+| Budget Forcing | `lib/agent/budget-forcing.ts` | s1 test-time scaling via Wait tokens |
+| HippoRAG | `lib/agent/knowledge-graph-pagerank.ts` | Multi-hop retrieval via Personalized PageRank on KG |
+| LATS | `lib/agent/lats/` | MCTS for multi-hypothesis agent reasoning |
+| Self-Discover | `lib/agent/self-discover.ts` | Compose a reasoning structure per query |
+| ADAS | `lib/agent/adas/` | Auto-generate and test new agent prompt variants |
+| MCP | `lib/agent/mcp/` | Expose/consume Model Context Protocol tools |
+| Local Judge | `lib/agent/local-judge.ts` | Open-source Prometheus 2 / JudgeLM judge with rubrics |
+| Output Guardrails | `lib/agent/output-guard.ts` | Structured output validation (schema, PII, citations) |
+| STORM + PaperQA2 | `lib/agent/research-patterns.ts` | Perspective-driven question generation + citation traversal |
+| Temporal Memory | `lib/agent/temporal-memory.ts` | Bi-temporal knowledge tracking (validFrom / validTo / recordedAt) |
+| Langfuse | `lib/agent/langfuse.ts` | LLM tracing and scoring |
+| Durable Execution | `lib/agent/durable-execution.ts` | Lightweight run snapshots + engine comparison |
+
+### What is currently wired live
+
+- `callLLM` automatically traces to Langfuse when `runId` is passed.
+- Agentic ANALYST (`analyst-react.ts`) supports `useSelfDiscover`, `useBudgetForcing`, `useAdaptiveRAG`.
+- Classic ANALYST path supports `useOutputGuard` and `useLocalJudge` post-analysis.
+- Durable Execution is initialized when `useDurableExecution` is true.
+- New options are propagated through `runPipeline` → `runPipelineCore`.
+
+### Activation pattern
+
+1. Set `ENABLE_LANGFUSE=true`, `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY` for observability.
+2. Pass `useSelfDiscover: true` and `useBudgetForcing: true` with `useAgenticAnalyst: true` for the best agentic experience.
+3. Use `useOutputGuard: true` and `useLocalJudge: true` for quality validation.
+
+### TypeScript
+
+All new modules compile: `npx tsc --noEmit` is green.
+

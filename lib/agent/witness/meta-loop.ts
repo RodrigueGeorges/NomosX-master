@@ -19,6 +19,7 @@
 import { callLLM } from '../../llm/unified-llm';
 import { parseJson } from '../json-utils';
 import { prisma } from '../../db';
+import { optimizeAllPrompts } from '../prompt-optimizer';
 import type {
   WitnessState,
   RunLearning,
@@ -170,6 +171,30 @@ export async function extractRunLearning(
 
   // Persist the learning
   await persistRunLearning(learning);
+
+  // Sprint 6: ADAS / Prompt Optimizer — optimize agent prompts from this run's learnings
+  if (process.env.ENABLE_ADAS === 'true' && promptModifications.length > 0) {
+    try {
+      const feedbackByAgent = new Map([[
+        'analyst',
+        {
+          prmScores: [qualityScore / 100],
+          selfPlayLessons: failures,
+          humanCorrections: [],
+          witnessSuggestions: promptModifications.map(p => ({ agent: p.agentId || 'analyst', suggestedFragment: p.suggestedFragment, reason: p.reason, confidence: p.confidence })),
+          selfCorrectionFeedback: [],
+          criticFeedback: [],
+          avgCitationCount: 0,
+          avgTrustScore: 0,
+          avgPrmReward: qualityScore / 100,
+        },
+      ]]);
+      const optimized = await optimizeAllPrompts(feedbackByAgent);
+      console.log(`[Witness/Learning] ADAS optimized ${optimized.length} prompts`);
+    } catch (err) {
+      console.warn('[Witness/Learning] ADAS prompt optimization failed:', err);
+    }
+  }
 
   return learning;
 }

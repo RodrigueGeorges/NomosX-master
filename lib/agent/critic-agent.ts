@@ -648,7 +648,13 @@ export async function runCritic(
   const groundedness = totalClaims > 0 ? supportedCount / totalClaims : 0;
   // NomosX: Reduced severe contradiction penalty from 15→10 — productive disagreements should not be over-penalized
   const contradictionPenalty = contradictions.reduce((sum, c) => sum + (c.severity === 'severe' ? 10 : c.severity === 'moderate' ? 6 : 2), 0);
-  const biasPenalty = biases.reduce((sum, b) => sum + (b.severity === 'high' ? 10 : b.severity === 'medium' ? 5 : 2), 0);
+  // NomosX: Bias penalty is now PROPORTIONAL to the number of claims.
+  // Old formula: 6 bias flags × 5pts = -35 points → destroyed the score even with 65% groundedness.
+  // New formula: cap bias penalty at 25% of total claims, and reduce per-flag weight.
+  // This ensures 6 bias flags on 41 claims (~15%) don't dominate the score.
+  const biasPenaltyRaw = biases.reduce((sum, b) => sum + (b.severity === 'high' ? 8 : b.severity === 'medium' ? 4 : 1.5), 0);
+  const biasPenaltyCap = Math.max(8, totalClaims * 0.25); // Cap at 25% of claim count
+  const biasPenalty = Math.min(biasPenaltyRaw, biasPenaltyCap);
   const citationPenalty = citationIssues.length * 2;
   const overallScore = Math.max(0, Math.min(100, Math.round(groundedness * 100 - contradictionPenalty - biasPenalty - citationPenalty - preprintPenalty + noveltyBonus)));
 

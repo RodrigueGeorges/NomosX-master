@@ -20,6 +20,7 @@ import crypto from 'crypto';
 import { env } from '../env';
 import { getCachedLLMResponse,cacheLLMResponse } from '../cache/redis-cache';
 import Sentry from '@sentry/nextjs';
+import { traceLLMCall } from '../agent/langfuse';
 
 // ============================================================================
 // FAMILY & PROVIDER TYPES
@@ -593,6 +594,10 @@ export interface LLMRequest {
   producerFamily?: LLMFamily;
   /** F-B12: Per-call cost cap in USD. If the response exceeds this, throw to trigger failover. */
   maxCostUsd?: number;
+  /** Trace/run ID for observability (Langfuse, durable execution, etc.) */
+  runId?: string;
+  /** Trace name for observability. Default: the task name. */
+  traceName?: string;
   /** Tool definitions for function/tool calling (ReAct pattern). When provided,
    * the model can request tool executions instead of (or before) producing a
    * final answer. The caller is responsible for executing the tools and
@@ -1139,6 +1144,11 @@ export async function callLLM(request: LLMRequest): Promise<LLMResponse> {
       console.log(
         `✅ ${provider}/${response.model} [${task}] | ${duration}ms | ${response.tokensInput}+${response.tokensOutput} tok${cacheNote} | $${response.costUsd.toFixed(4)}`
       );
+
+      // Trace to Langfuse (fire-and-forget)
+      if (request.runId) {
+        traceLLMCall(request, response, request.runId, request.traceName || task, undefined, Date.now() - startTime);
+      }
 
       // Cache successful response (fire-and-forget)
       if (cacheKey) {

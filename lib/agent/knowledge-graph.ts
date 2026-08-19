@@ -18,6 +18,7 @@ import { callLLM } from '../llm/unified-llm';
 import { parseJson } from './json-utils';
 import { AgentRole, assertPermission } from '../governance/index';
 import { embedText, embedBatch, cosineSimilarity } from './semantic-engine';
+import { recordTemporalFact } from './temporal-memory';
 
 // ============================================================================
 // TYPES
@@ -100,7 +101,8 @@ export async function extractAndStoreConcepts(
   briefId: string,
   question: string,
   analysisText: string,
-  sourceIds: string[]
+  sourceIds: string[],
+  useTemporalMemory = false,
 ): Promise<ConceptExtractionResult> {
   assertPermission(AgentRole.ANALYST, "write:analysis");
   console.log(`[KNOWLEDGE] Extracting concepts from brief ${briefId}`);
@@ -195,6 +197,17 @@ Return JSON:
       });
       concepts.push(mapPrismaToConcept(updated));
       console.log(`[KNOWLEDGE] Updated existing concept: "${raw.name}" (${updated.occurrenceCount} occurrences)`);
+
+      if (useTemporalMemory) {
+        await recordTemporalFact({
+          claim: raw.description || raw.name,
+          domain: question.slice(0, 80),
+          conceptIds: [updated.id],
+          sourceIds,
+          confidence: raw.confidence || 70,
+          briefId,
+        }).catch(err => console.warn('[TEMPORAL MEMORY] record failed:', err));
+      }
     } else {
       // Create new concept
       try {
@@ -216,6 +229,17 @@ Return JSON:
         });
         concepts.push(mapPrismaToConcept(created));
         console.log(`[KNOWLEDGE] Created new concept: "${raw.name}" (${raw.type})`);
+
+        if (useTemporalMemory) {
+          await recordTemporalFact({
+            claim: raw.description || raw.name,
+            domain: question.slice(0, 80),
+            conceptIds: [created.id],
+            sourceIds,
+            confidence: raw.confidence || 70,
+            briefId,
+          }).catch(err => console.warn('[TEMPORAL MEMORY] record failed:', err));
+        }
       } catch (err) {
         console.warn(`[KNOWLEDGE] Failed to create concept "${raw.name}":`, err);
       }

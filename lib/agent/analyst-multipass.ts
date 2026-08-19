@@ -699,11 +699,17 @@ PROSE STRUCTURE RULE (Chatham House / RUSI / ECFR standard — NON-NEGOTIABLE):
   same structure.
 - REQUIRED: Use transition phrases that show analytical logic:
   "This pattern is reinforced by..." / "A competing interpretation suggests..." /
-  "The critical variable here is..." / "What distinguishes this case from..." /
-  "The implication is that..." / "Against this backdrop..." / "Yet the data also reveal..."
+  "A key conditioning factor appears to be..." / "What distinguishes this case from..." /
+  "The evidence suggests that..." / "Against this backdrop..." / "Yet the data also reveal..."
 - REQUIRED: Write in the INSTITUTIONAL VOICE — "This analysis proposes..." /
   "The evidence indicates..." / "The central finding is that..." — never "I think"
   or "we feel" or "it seems to me"
+- REQUIRED: CAUSAL PRUDENCE — distinguish between:
+  • ASSOCIATION (what the data shows) — use "is associated with", "correlates with", "tends to coincide with"
+  • MECHANISM (what the literature proposes) — use "appears to transmit through", "may operate via"
+  • CAUSATION (only when identified by the source) — use "the study identifies a causal effect", "the authors establish causation"
+  Never write "X is the critical variable" or "X determines Y" unless the cited source explicitly makes that causal claim.
+  Prefer: "X appears to be a critical conditioning factor" / "The evidence suggests X strongly conditions Y" / "X may play a mediating role"
 
 ANTI-HALLUCINATION RULES (NON-NEGOTIABLE — violations cause grounding veto):
 - EVIDENCE-FIRST ORDERING: For each causalChain link, FIRST identify which [SRC-N]
@@ -781,7 +787,7 @@ Return JSON:
 {
   "title": "Neutral, analytical title UNDER 100 characters. NO partisan framing, NO loaded language. Describe the TOPIC and KEY FINDING objectively. BANNED words: cartel, conspiracy, crisis, threat, war, battle, weapon, scheme, plot. Example: 'AI Governance and Religious Pluralism: Ontological Politics and Policy Implications' NOT 'The Vatican's Algorithm: How Religion Will Control AI'.",
   "throughLine": "The single sentence that captures the entire argument. One sentence, max 40 words.",
-  "verdict": "${depth === "strategic" ? "400-700" : "200-400"} words. The institute's position. State it first, then justify with the causal chain. Cite [SRC-N] for every factual anchor. No hedging in the first paragraph — state the position. Then qualify.",
+  "verdict": "${depth === "strategic" ? "400-700" : "200-400"} words. The institute's position. State it first, then justify with the causal chain. Cite [SRC-N] for every factual anchor. State the position confidently but with causal prudence — use 'the evidence indicates', 'the central finding is that', NOT 'X is the critical variable' or 'X determines Y' unless the source explicitly establishes causation. Then qualify.",
   "convictionLevel": "firm|tempered|causal_only",
   "anchoringBasis": "${depth === "strategic" ? "200-400" : "100-200"} words. What grounds this analysis — the strongest present facts and the data behind them. With [SRC-N].",
   "causalChain": [
