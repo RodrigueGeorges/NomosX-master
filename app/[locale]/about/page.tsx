@@ -26,9 +26,8 @@ import { ArrowRight } from "lucide-react";
  *  02 How we work (AgenticCore — the living system)
  *  03 Where we work (DomainMap — eight domains)
  *  04 The institute (the agentic system as the "team" — NomosX twist)
- *  05 The origin (philosophy statement)
- *  06 Six pillars (compacted)
- *  07 CTA
+ *  05 The origin + pillars (philosophy + what you get, merged)
+ *  06 CTA
  *
  * Removed vs. old: redundant manifesto (duplicated on home), overlapping
  * Vision + Values 4-card grids (collapsed into the institute + pillars).
@@ -58,7 +57,7 @@ export default function AboutPage() {
         </PageSection>
 
         {/* 01 — Mission statement (full-bleed, large type, no card) */}
-        <PageSection sectionIndex="01 / 07" className="relative py-20 sm:py-32 overflow-hidden">
+        <PageSection sectionIndex="01 / 06" className="relative py-20 sm:py-32 overflow-hidden">
           <KnowledgeGraphHero />
           <div className="relative max-w-3xl mx-auto text-center">
             <ScrollReveal>
@@ -73,7 +72,7 @@ export default function AboutPage() {
         </PageSection>
 
         {/* 02 — How we work (the protocol, told not diagrammed) */}
-        <PageSection sectionIndex="02 / 07" className="py-16 sm:py-20">
+        <PageSection sectionIndex="02 / 06" className="py-16 sm:py-20">
           <div className="max-w-2xl mx-auto">
             <ScrollReveal>
               <p className="nx-eyebrow mb-3">{t("About.howWeWork")}</p>
@@ -88,10 +87,10 @@ export default function AboutPage() {
         </PageSection>
 
         {/* 03 — Where we work (DomainMap) */}
-        <DomainMap sectionIndex="03 / 07" />
+        <DomainMap sectionIndex="03 / 06" />
 
         {/* 04 — The institute (the agentic system as the "team") */}
-        <PageSection sectionIndex="04 / 07" className="py-16 sm:py-20">
+        <PageSection sectionIndex="04 / 06" className="py-16 sm:py-20">
           <div className="max-w-4xl mx-auto">
             <ScrollReveal>
               <p className="nx-eyebrow mb-3">{t("About.theInstitute")}</p>
@@ -123,8 +122,8 @@ export default function AboutPage() {
           </div>
         </PageSection>
 
-        {/* 05 — The origin (philosophy statement, SpaceX "from the founder" tone) */}
-        <PageSection sectionIndex="05 / 07" className="py-16 sm:py-24">
+        {/* 05 — The origin + pillars (merged: philosophy + what you get) */}
+        <PageSection sectionIndex="05 / 06" className="py-16 sm:py-24">
           <div className="max-w-2xl mx-auto text-center">
             <ScrollReveal>
               <p className="nx-eyebrow mb-8 justify-center">{t("About.origin")}</p>
@@ -135,11 +134,9 @@ export default function AboutPage() {
               </p>
             </ScrollReveal>
           </div>
-        </PageSection>
 
-        {/* 06 — Six pillars (compacted) */}
-        <PageSection sectionIndex="06 / 07" className="py-12">
-          <div className="max-w-5xl mx-auto">
+          {/* Pillars merged into origin — what you get */}
+          <div className="max-w-5xl mx-auto mt-16">
             <ScrollReveal>
               <p className="nx-eyebrow mb-8 text-center">{t("About.sixPillars")}</p>
             </ScrollReveal>
@@ -154,8 +151,8 @@ export default function AboutPage() {
           </div>
         </PageSection>
 
-        {/* 07 — CTA */}
-        <PageSection sectionIndex="07 / 07" className="text-center pb-16">
+        {/* 06 — CTA */}
+        <PageSection sectionIndex="06 / 06" className="text-center pb-16">
           <ScrollReveal>
             <h2 className="font-display text-2xl font-semibold mb-4">
               {t("About.ctaHeadline")}{" "}

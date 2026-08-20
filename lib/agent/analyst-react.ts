@@ -33,6 +33,7 @@ import { budgetForcingInstruction } from './budget-forcing';
 import { buildReflectionTokenHint } from './adaptive-rag';
 import { runLATS, type LATSConfig } from './lats';
 import { guardOutput, buildRepairFeedback } from './output-guard';
+import { judge } from './local-judge';
 
 /** Detect if text is primarily French (simple heuristic — matches analyst-multipass.ts) */
 function detectLanguage(text: string): string {
@@ -71,6 +72,8 @@ export interface AnalystReActOptions {
   useLATS?: boolean;
   /** Enable output guardrails — validate final JSON before returning (default: false) */
   useOutputGuard?: boolean;
+  /** Best-of-N: generate N candidate analyses and pick the highest-scoring (default: 1) */
+  bestOfN?: number;
 }
 
 export interface AnalystReActResult {
@@ -148,35 +151,58 @@ export async function analystReAct(
     readings,
   };
 
-  // Run the loop (ReAct or LATS)
+  // Best-of-N: generate N candidate traces and pick the best one
+  const n = Math.min(Math.max(1, options.bestOfN ?? 1), 5);
+  const candidates: ReActResult[] = [];
+  for (let i = 0; i < n; i++) {
+    const seedLabel = n > 1 ? `${label}-n${i + 1}` : label;
+    const temperature = i === 0 ? 0.3 : 0.3 + i * 0.15;
+    try {
+      let oneTrace: ReActResult;
+      if (options.useLATS) {
+        const latsConfig: LATSConfig = {
+          systemPrompt,
+          tools: getAnalystTools(options.useMCP),
+          maxSimulations: isStrategic ? 20 : 10,
+          maxDepth: isStrategic ? 6 : 4,
+          branchingFactor: 2,
+          explorationConstant: 1.414,
+          maxCostUsd: (options.maxCostUsd ?? (isStrategic ? 0.50 : 0.30)) / n,
+          temperature,
+          maxTokens: isStrategic ? 8000 : 4000,
+          task: isStrategic ? 'strategic_analysis' : 'analyst_brief',
+          label: `${seedLabel} LATS`,
+        };
+        const latsResult = await runLATS(latsConfig, initialInput, fullToolCtx);
+        oneTrace = {
+          finalAnswer: latsResult.finalAnswer,
+          finishedExplicitly: true,
+          steps: [],
+          totalCostUsd: latsResult.totalCostUsd,
+          totalDurationMs: 0,
+          discoveredSourceIds: [],
+          stopReason: 'finish',
+        };
+      } else {
+        const seededConfig: ReActConfig = { ...config, temperature, label: seedLabel };
+        oneTrace = await reactLoop(seededConfig, initialInput, fullToolCtx);
+      }
+      candidates.push(oneTrace);
+      console.log(`[${seedLabel}] Candidate ${i + 1}/${n}: ${oneTrace.steps.length} steps, $${oneTrace.totalCostUsd.toFixed(4)}, stop=${oneTrace.stopReason}`);
+    } catch (err) {
+      console.warn(`[${seedLabel}] Candidate ${i + 1}/${n} failed:`, err);
+    }
+  }
+
+  if (candidates.length === 0) {
+    throw new Error(`${label}: all ${n} candidates failed`);
+  }
+
   let trace: ReActResult;
-  if (options.useLATS) {
-    const latsConfig: LATSConfig = {
-      systemPrompt,
-      tools: getAnalystTools(options.useMCP),
-      maxSimulations: isStrategic ? 20 : 10,
-      maxDepth: isStrategic ? 6 : 4,
-      branchingFactor: 2,
-      explorationConstant: 1.414,
-      maxCostUsd: options.maxCostUsd ?? (isStrategic ? 0.50 : 0.30),
-      temperature: 0.3,
-      maxTokens: isStrategic ? 8000 : 4000,
-      task: isStrategic ? 'strategic_analysis' : 'analyst_brief',
-      label: `${label} LATS`,
-    };
-    const latsResult = await runLATS(latsConfig, initialInput, fullToolCtx);
-    trace = {
-      finalAnswer: latsResult.finalAnswer,
-      finishedExplicitly: true,
-      steps: [],
-      totalCostUsd: latsResult.totalCostUsd,
-      totalDurationMs: 0,
-      discoveredSourceIds: [],
-      stopReason: 'finish',
-    };
-    console.log(`[${label}] LATS completed: ${latsResult.simulationsRun} sims, best path ${latsResult.bestPath.length}, $${latsResult.totalCostUsd.toFixed(4)}`);
+  if (candidates.length === 1) {
+    trace = candidates[0];
   } else {
-    trace = await reactLoop(config, initialInput, fullToolCtx);
+    trace = await pickBestTrace(candidates, question, sources, isStrategic, label);
   }
 
   console.log(`[${label}] Completed: ${trace.steps.length} steps, $${trace.totalCostUsd.toFixed(4)}, stop=${trace.stopReason}`);
@@ -414,4 +440,59 @@ function normalizeAnalysis(parsed: any, question: string): any {
     causalChain: parsed.causalChain || [],
     _meta: {},
   };
+}
+
+// ─── Best-of-N selection ────────────────────────────────────────────────────
+
+async function pickBestTrace(
+  candidates: ReActResult[],
+  question: string,
+  sources: any[],
+  isStrategic: boolean,
+  label: string,
+): Promise<ReActResult> {
+  const scored = await Promise.all(
+    candidates.map(async (trace, idx) => ({
+      trace,
+      idx,
+      score: await scoreTrace(trace, question, sources, isStrategic),
+    })),
+  );
+  scored.sort((a, b) => b.score - a.score);
+  const best = scored[0];
+  console.log(`[${label}] Best-of-N selected candidate ${best.idx + 1}/${candidates.length} (score=${best.score.toFixed(3)})`);
+  return best.trace;
+}
+
+async function scoreTrace(
+  trace: ReActResult,
+  question: string,
+  sources: any[],
+  isStrategic: boolean,
+): Promise<number> {
+  let score = 0;
+  try {
+    const analysis = parseAnalysisOutput(trace.finalAnswer, question, sources, isStrategic);
+    // More fields filled → better
+    const fieldCount = ['summary', 'consensus', 'evidence', 'implications', 'risks', 'open_questions']
+      .filter(k => typeof analysis[k] === 'string' && analysis[k].trim().length > 30).length;
+    score += fieldCount * 5;
+    // More citations → better
+    const text = JSON.stringify(analysis);
+    const citations = (text.match(/\[SRC-\d+\]/g) || []).length;
+    score += citations * 10;
+    // Finished explicitly preferred
+    if (trace.finishedExplicitly) score += 15;
+    // Try local judge if available
+    try {
+      const judgeResult = await judge(trace.finalAnswer);
+      score += judgeResult.overallScore * 30;
+    } catch {
+      // local judge optional
+    }
+  } catch {
+    // Unparseable trace gets low score
+    score = -1000;
+  }
+  return score;
 }

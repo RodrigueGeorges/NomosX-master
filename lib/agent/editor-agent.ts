@@ -18,6 +18,7 @@ import { computeEvidenceTiers, summarizeEvidenceTiers, type EvidenceTiers } from
 import { renderResearchProtocol, renderAIDisclaimer } from './research-protocol';
 import { renderTrackRecordHtml, type TrackRecordStats } from './track-record';
 import { renderScenarioChartSvg, renderLineChartSvg } from './svg-charts';
+import { getPublicationFormat } from '../publication-formats';
 
 // ============================================================================
 // HTML ESCAPING
@@ -223,7 +224,17 @@ function sourceDistributionSVG(sources: any[]): string {
 // METADATA BAR
 // ============================================================================
 
-function metadataBar(sources: any[], wordCount: number): string {
+/**
+ * Format badge — small pill displayed in the metadata bar so the reader
+ * immediately sees what kind of publication they're reading
+ * (Signal Brief / Decision Memo / Article / Strategic Report).
+ */
+function formatBadge(publicationType?: string): string {
+  const fmt = getPublicationFormat(publicationType);
+  return `<span class="format-badge" title="${esc(fmt.description)}">${esc(fmt.label)}</span>`;
+}
+
+function metadataBar(sources: any[], wordCount: number, publicationType?: string): string {
   const providers = [...new Set(sources.map(s => s.provider))];
   const years = sources.map(s => s.year).filter(Boolean);
   const minYear = years.length > 0 ? Math.min(...years) : null;
@@ -234,6 +245,7 @@ function metadataBar(sources: any[], wordCount: number): string {
 
   return `
     <div class="metadata-bar">
+      ${formatBadge(publicationType)}
       <span class="meta-item"><strong>${dateStr}</strong></span>
       <span class="meta-sep">·</span>
       <span class="meta-item">${sources.length} sources</span>
@@ -370,6 +382,22 @@ const BRIEF_CSS = `
     padding-bottom: 1.5rem;
     border-bottom: 1px solid var(--nx-border-subtle);
     letter-spacing: 0.04em;
+  }
+
+  .format-badge {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 0.625rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--nx-text-primary);
+    background: rgba(240, 240, 250, 0.08);
+    border: 1px solid rgba(240, 240, 250, 0.18);
+    padding: 0.15rem 0.5rem;
+    border-radius: 2px;
+    margin-right: 0.5rem;
+    vertical-align: middle;
   }
 
   .brief-section {
@@ -572,7 +600,7 @@ const BRIEF_CSS = `
 // MAIN RENDER: BRIEF HTML
 // ============================================================================
 
-export function renderProfessionalBriefHTML(analysis: any, sources: any[]): string {
+export function renderProfessionalBriefHTML(analysis: any, sources: any[], publicationType?: string): string {
   // Format APA citations
   const apaCitations = sources.map((s, i) => formatAPA(s, i + 1));
 
@@ -650,7 +678,7 @@ export function renderProfessionalBriefHTML(analysis: any, sources: any[]): stri
   <article class="nomosx-brief">
     ${BRAND_HEADER}
     <h1>${esc((analysis.title || "Brief").replace(/\[SRC-\d+\]/g, '').replace(/\[E\d+\]/g, '').trim())}</h1>
-    <div class="brief-meta">${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} · ${sources.length} sources</div>
+    <div class="brief-meta">${formatBadge(publicationType)} ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} · ${sources.length} sources</div>
 
     ${proseHtml}
 
@@ -684,7 +712,7 @@ export function renderProfessionalBriefHTML(analysis: any, sources: any[]): stri
   <article class="nomosx-brief">
     ${BRAND_HEADER}
     <h1>${esc((analysis.title || "Brief").replace(/\[SRC-\d+\]/g, '').replace(/\[E\d+\]/g, '').trim())}</h1>
-    <div class="brief-meta">${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} · ${sources.length} sources</div>
+    <div class="brief-meta">${formatBadge(publicationType)} ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} · ${sources.length} sources</div>
 
     ${section("Executive Summary", analysis.summary)}
     ${section("Consensus", analysis.consensus)}
@@ -709,7 +737,7 @@ export function renderProfessionalBriefHTML(analysis: any, sources: any[]): stri
 // MAIN RENDER: STRATEGIC REPORT HTML
 // ============================================================================
 
-export function renderProfessionalStrategicHTML(analysis: any, sources: any[], protocolMeta?: any, trackRecord?: TrackRecordStats | null): string {
+export function renderProfessionalStrategicHTML(analysis: any, sources: any[], protocolMeta?: any, trackRecord?: TrackRecordStats | null, publicationType?: string): string {
   // Count words from actual text content (not JSON)
   const textForCount = [
     analysis.executiveSummary, analysis.literatureOverview, analysis.theoreticalFrameworks,
@@ -1269,7 +1297,7 @@ export function renderProfessionalStrategicHTML(analysis: any, sources: any[], p
   <article class="nomosx-brief">
     ${BRAND_HEADER}
     <h1>${esc((analysis.title || "Strategic Report").replace(/\[SRC-\d+\]/g, '').replace(/\[E\d+\]/g, '').trim())}</h1>
-    <div class="brief-meta">${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} · ${sources.length} sources</div>
+    <div class="brief-meta">${formatBadge(publicationType)} ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} · ${sources.length} sources</div>
 
     ${analysis.bottomLine ? `<div class="bluf-box" style="margin:1.5rem 0 2rem;padding:1rem 1.25rem;background:rgba(240,240,250,0.04);border-left:3px solid var(--nx-text-primary);border-radius:0 var(--nx-radius) var(--nx-radius) 0;"><div style="font-family:var(--font-mono);font-size:0.5625rem;text-transform:uppercase;letter-spacing:0.14em;color:var(--nx-text-tertiary);margin-bottom:0.5rem;">Bottom Line</div><p style="font-size:1.125rem;font-weight:500;line-height:1.5;color:var(--nx-text-primary);margin:0;">${esc(analysis.bottomLine)}</p></div>` : ''}
 

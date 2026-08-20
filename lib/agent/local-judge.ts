@@ -73,11 +73,13 @@ export const DEFAULT_LOCAL_JUDGE_CONFIG: LocalJudgeConfig = {
   enabled: process.env.ENABLE_LOCAL_JUDGE === 'true',
   timeoutMs: 30000,
   defaultRubrics: [
-    { name: 'citations', description: 'All factual claims have [SRC-N] citations', maxScore: 10, weight: 0.25 },
-    { name: 'nuance', description: 'Uncertainty is acknowledged where appropriate', maxScore: 10, weight: 0.15 },
-    { name: 'balance', description: 'Counter-evidence and disagreements are presented', maxScore: 10, weight: 0.20 },
-    { name: 'specificity', description: 'Claims are specific, with numbers/dates/entities', maxScore: 10, weight: 0.15 },
-    { name: 'verification', description: 'Claims can be verified against provided sources', maxScore: 10, weight: 0.25 },
+    { name: 'citations', description: 'All factual claims have [SRC-N] citations', maxScore: 10, weight: 0.20 },
+    { name: 'grounding', description: 'Claims are grounded in cited sources (low hallucination)', maxScore: 10, weight: 0.20 },
+    { name: 'nuance', description: 'Uncertainty is acknowledged where appropriate', maxScore: 10, weight: 0.10 },
+    { name: 'balance', description: 'Counter-evidence and disagreements are presented', maxScore: 10, weight: 0.15 },
+    { name: 'specificity', description: 'Claims are specific, with numbers/dates/entities', maxScore: 10, weight: 0.10 },
+    { name: 'policy_relevance', description: 'Recommendations are actionable and decision-oriented', maxScore: 10, weight: 0.15 },
+    { name: 'quality', description: 'Overall think tank quality: clarity, structure, voice', maxScore: 10, weight: 0.10 },
   ],
   fallbackToCloud: true,
 };
@@ -110,25 +112,27 @@ function formatJudgePrompt(
   reference?: string,
 ): string {
   const rubricText = rubrics
-    .map(r => `- ${r.name} (${r.maxScore} pts): ${r.description}`)
+    .map(r => `${r.name}: ${r.description} (0-${r.maxScore})`)
     .join('\n');
 
-  const referenceText = reference ? `\nReference answer:\n${reference.slice(0, 2000)}\n` : '';
+  const referenceText = reference ? `\nReference material to compare against:\n${reference.slice(0, 2000)}\n` : '';
 
-  return `You are an expert judge. Evaluate the following response based on the rubrics.
+  return `You are an expert evaluator model (Prometheus 2 / M-Prometheus style). Evaluate the following response carefully and return only valid JSON.
 
-Rubrics:
+Evaluation rubrics:
 ${rubricText}
 
 ${referenceText}
 Response to evaluate:
 ${content.slice(0, 4000)}
 
+Evaluate each rubric, then produce a final overall score. Be critical: a think tank brief must be factually grounded, nuanced, balanced, specific, decision-relevant, and well-structured. Deduct heavily for hallucinated citations, overstatements, missing uncertainty, or generic recommendations.
+
 Provide your evaluation as JSON:
 {
   "rubrics": {
     "citations": 8,
-    "nuance": 6,
+    "grounding": 7,
     ...
   },
   "overallScore": 0.75,

@@ -19,6 +19,7 @@ import { readerAgentV3 } from './reader-agent-v3';
 import { analystAgentV3 as analystMultipass } from './analyst-multipass';
 import { backfillMissingAnalyticalFields } from './strategic-analyst-agent';
 import { verifyCitations } from './citation-verifier';
+import { rankSourcesByQuality } from './source-quality';
 import { extractAndStoreConcepts } from './knowledge-graph';
 import { primeContext } from './context-primer';
 import { buildMemoryInjection, recordAgentPerformance, autoDetectFailureModes, extractLessons, storeLesson, recordLearningCycle } from './agent-memory';
@@ -28,6 +29,7 @@ import { guardOutput } from './output-guard';
 import { judge } from './local-judge';
 import { initDurableRun } from './durable-execution';
 import { generateStormPerspectives } from './research-patterns';
+import { augmentThinkTankHtml } from './think-tank-pack';
 import { selfCorrectReader, selfCorrectAnalyst, reAnalyzeAfterGapFill } from './self-correction-integration';
 import { analystReAct } from './analyst-react';
 import { createWitnessContext, buildObservation, buildLearningInjection, type WitnessContext } from './witness/integration';
@@ -48,6 +50,8 @@ import { filterLowQualitySources } from '../providers/source-quality-filter';
 import { classifyTopic } from './topic-classifier';
 import { isEditorialV2Enabled, getPipelineMaxBudgetUsd } from './editorial-config';
 import { buildAnalysisReviewText } from './analysis-review-text';
+import { runPeerReview, renderPeerReviewInjection } from './peer-reviewer';
+import { evaluateBriefRAG } from './ragas-eval';
 import { runPipelineForesight } from './pipeline-foresight';
 import { RESEARCHER_KBS, type KeyConcept, type AnalyticalFramework, type DomainExpertise } from './researcher-kb/index';
 import { MULTI_DOMAIN_CORPUS } from '../knowledge/multi-domain-corpus';
@@ -1777,6 +1781,14 @@ export interface PipelineCoreOptions {
   useLangfuse?: boolean;
   /** Enable MCP client — consume external Model Context Protocol servers (default: false) */
   useMCP?: boolean;
+  /** Best-of-N for agentic analyst — generate N candidates and pick best (default: 1) */
+  bestOfN?: number;
+  /** Enable Think Tank Quality Pack — recommendations, economics, editorial polish (default: false) */
+  useThinkTankPack?: boolean;
+  /** Enable Feynman-style peer review before editor (default: false) */
+  usePeerReview?: boolean;
+  /** Enable RAGAS-style RAG evaluation (default: false) */
+  useRagasEval?: boolean;
   /** Enable ADAS — automated agent design / search (default: false) */
   useADAS?: boolean;
   /** Enable durable execution — lightweight snapshots for long runs (default: false) */
@@ -1807,6 +1819,10 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   const useTemporalMemory = opts.useTemporalMemory ?? false;
   const useLangfuse = opts.useLangfuse ?? false;
   const useMCP = opts.useMCP ?? false;
+  const bestOfN = Math.min(Math.max(1, opts.bestOfN ?? 1), 5);
+  const useThinkTankPack = opts.useThinkTankPack ?? false;
+  const usePeerReview = opts.usePeerReview ?? false;
+  const useRagasEval = opts.useRagasEval ?? false;
   const useADAS = opts.useADAS ?? false;
   const useDurableExecution = opts.useDurableExecution ?? false;
   const isDossier = (opts as any).format === "dossier";
@@ -2602,6 +2618,22 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
 
     topSources = rankedCandidates.slice(0, cutIndex);
     console.log(`${label} PERTINENCE SELECTION: kept ${topSources.length}/${rankedCandidates.length} candidates (bar=${qualityBar.toFixed(1)}, top=${topScore.toFixed(1)}, cutoff score=${scores[Math.min(cutIndex, scores.length - 1)]?.toFixed(1) ?? 'n/a'})`);
+
+    // ── SOURCE QUALITY RERANK — boost top sources by reliability, recency, richness ──
+    try {
+      const qualityScored = rankSourcesByQuality(topSources);
+      for (const qs of qualityScored) {
+        const match = topSources.find((s: any) => s.id === qs.source.id);
+        if (match) {
+          (match as any).sourceQuality = qs.score;
+          (match as any).compositeScore = ((match as any).compositeScore ?? 0) * 0.6 + qs.score.overall * 0.4;
+        }
+      }
+      topSources.sort((a: any, b: any) => (b.compositeScore ?? 0) - (a.compositeScore ?? 0));
+      console.log(`${label} SOURCE QUALITY: re-ranked ${topSources.length} by composite (relevance 60% + quality 40%)`);
+    } catch (err) {
+      console.warn(`${label} SOURCE QUALITY: re-rank failed (non-blocking):`, err);
+    }
   }
 
   // ── DOMAIN RELEVANCE FILTER — remove off-topic sources ──
@@ -3581,6 +3613,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
           useLATS,
           useMCP,
           useOutputGuard,
+          bestOfN,
         },
         {
           // Tool context: wire to existing pipeline functions
@@ -4627,8 +4660,8 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
         groundedness: stats.claimGrounding?.groundedness,
       } : undefined;
       const rendered = isStrategic
-        ? renderProfessionalStrategicHTML(renderAnalysis, topSources, protocolMeta, await computeTrackRecordStats())
-        : renderProfessionalBriefHTML(analysis, topSources);
+        ? renderProfessionalStrategicHTML(renderAnalysis, topSources, protocolMeta, await computeTrackRecordStats(), isStrategic ? 'STRATEGIC_REPORT' : isMemo ? 'DECISION_MEMO' : 'ARTICLE')
+        : renderProfessionalBriefHTML(analysis, topSources, isMemo ? 'DECISION_MEMO' : 'ARTICLE');
       stats.rendererUsed = isStrategic ? "professional_strategic" : "professional_brief";
       console.log(`${label} EDITOR: ${isStrategic ? 'strategic' : 'brief'} template rendered (${(rendered.length / 1024).toFixed(0)}KB)`);
       return rendered;
@@ -5298,6 +5331,32 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
 
     await runDevilsAdvocateBlock(buildAnalysisReviewText(analysis as Record<string, unknown>, query), false);
     html = await renderEditorHtml();
+    if (usePeerReview) {
+      try {
+        const review = await runPeerReview(html, topSources, { title: analysis.title });
+        (stats as any).peerReview = {
+          score: review.overallScore,
+          recommendation: review.recommendation,
+          critical: review.issues.filter(i => i.severity === 'critical').length,
+          major: review.issues.filter(i => i.severity === 'major').length,
+        };
+        addCost(review.costUsd, 'PEER REVIEW');
+        console.log(`${label} PEER REVIEW: score=${review.overallScore}, rec=${review.recommendation}, critical=${(stats as any).peerReview.critical}, major=${(stats as any).peerReview.major}`);
+      } catch (err) {
+        console.warn(`${label} PEER REVIEW: failed (non-blocking):`, err);
+      }
+    }
+    if (useThinkTankPack) {
+      try {
+        const pack = await augmentThinkTankHtml(html, query, topSources, { domain: detectedDomain });
+        html = pack.html;
+        addCost(pack.costUsd, 'THINK TANK PACK');
+        (stats as any).thinkTankPack = pack.stats;
+        console.log(`${label} THINK TANK PACK: applied (cost=$${pack.costUsd.toFixed(4)})`);
+      } catch (err) {
+        console.warn(`${label} THINK TANK PACK: failed (non-blocking):`, err);
+      }
+    }
     await runPostRenderCitationAndGrounding();
     // V2: second DA pass on rendered HTML — DISABLED to save ~10min of LLM time
     // The first DA pass already appends fatal challenges as advisory section.
@@ -5307,6 +5366,32 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     // }
   } else {
     html = await renderEditorHtml();
+    if (usePeerReview) {
+      try {
+        const review = await runPeerReview(html, topSources, { title: analysis.title });
+        (stats as any).peerReview = {
+          score: review.overallScore,
+          recommendation: review.recommendation,
+          critical: review.issues.filter(i => i.severity === 'critical').length,
+          major: review.issues.filter(i => i.severity === 'major').length,
+        };
+        addCost(review.costUsd, 'PEER REVIEW');
+        console.log(`${label} PEER REVIEW: score=${review.overallScore}, rec=${review.recommendation}, critical=${(stats as any).peerReview.critical}, major=${(stats as any).peerReview.major}`);
+      } catch (err) {
+        console.warn(`${label} PEER REVIEW: failed (non-blocking):`, err);
+      }
+    }
+    if (useThinkTankPack) {
+      try {
+        const pack = await augmentThinkTankHtml(html, query, topSources, { domain: detectedDomain });
+        html = pack.html;
+        addCost(pack.costUsd, 'THINK TANK PACK');
+        (stats as any).thinkTankPack = pack.stats;
+        console.log(`${label} THINK TANK PACK: applied (cost=$${pack.costUsd.toFixed(4)})`);
+      } catch (err) {
+        console.warn(`${label} THINK TANK PACK: failed (non-blocking):`, err);
+      }
+    }
     await runPostRenderCitationAndGrounding();
     // Debate + meta-analysis reactivated
     await runDebateMetaBlock(buildAnalysisReviewText(analysis as Record<string, unknown>, query));
@@ -5489,6 +5574,13 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
       String(analysis.title || query),
       collisionLbl,
       topicClassification?.primaryDomain || detectedDomain || '',
+      {
+        throughLine: (analysis as any).throughLine || undefined,
+        keyFindings: (analysis as any).keyFindings || undefined,
+        summary: (analysis as any).summary || undefined,
+        sectionTitles: extractSectionTitles(html),
+        publicationType: isStrategic ? 'STRATEGIC_REPORT' : isMemo ? 'DECISION_MEMO' : isDossier ? 'STRATEGIC_REPORT' : 'ARTICLE',
+      },
     );
     if (heroResult) {
       const heroHtml = `<figure class="hero-image" style="margin:0 0 32px 0;width:100%;overflow:hidden;border:1px solid rgba(240,240,250,0.08);border-radius:4px;">
@@ -5853,6 +5945,25 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     }
   }
 
+  // ── RAGAS EVAL: 2026 RAG quality metrics ──
+  if (useRagasEval) {
+    try {
+      const ragas = await evaluateBriefRAG(query, html, topSources);
+      (stats as any).ragas = {
+        overall: ragas.metrics.overall,
+        faithfulness: ragas.metrics.faithfulness,
+        answerRelevancy: ragas.metrics.answerRelevancy,
+        contextPrecision: ragas.metrics.contextPrecision,
+        contextRecall: ragas.metrics.contextRecall,
+        explanation: ragas.explanation,
+      };
+      addCost(ragas.costUsd, 'RAGAS EVAL');
+      console.log(`${label} RAGAS EVAL: overall=${ragas.metrics.overall}%, faithfulness=${ragas.metrics.faithfulness}%, relevancy=${ragas.metrics.answerRelevancy}%`);
+    } catch (err) {
+      console.warn(`${label} RAGAS EVAL: failed (non-blocking):`, err);
+    }
+  }
+
   // Build structured claims from READER extracts for publication gate (dbClaims path)
   const sourceIdToIndex = new Map<string, number>();
   topSources.forEach((s: any, i: number) => sourceIdToIndex.set(s.id, i + 1));
@@ -6013,6 +6124,21 @@ export async function runStrategicPipeline(
  * P1 FIX: Timeout wrapper to prevent infinite pipeline execution
  * Default: 120s for briefs, 300s for strategic reports
  */
+
+/**
+ * Extract section titles (<h2>, <h3>) from rendered HTML for hero image context.
+ */
+function extractSectionTitles(html: string): string[] {
+  const titles: string[] = [];
+  const re = /<h[23][^>]*>([^<]+)<\/h[23]>/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(html)) !== null) {
+    const t = m[1].replace(/&amp;/g, '&').replace(/&quot;/g, '"').trim();
+    if (t && t.length > 2 && t.length < 120) titles.push(t);
+  }
+  return titles.slice(0, 10);
+}
+
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => {

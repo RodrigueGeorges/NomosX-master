@@ -5,8 +5,8 @@ import type { Metadata } from "next";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Brief archive",
-  description: "Every position NomosX has published — chaos legislated into nomos. Filter by depth, domain, and confidence.",
+  title: "Positions — NomosX",
+  description: "Every position NomosX has published — source-verified, scenario-weighted, free to read. Filter by depth, domain, and confidence.",
   alternates: {
     canonical: "/archives",
   },

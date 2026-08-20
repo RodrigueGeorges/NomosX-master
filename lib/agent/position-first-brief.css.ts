@@ -133,6 +133,22 @@ export const POSITION_FIRST_BRIEF_CSS = `
     letter-spacing: 0.04em;
   }
 
+  .format-badge {
+    display: inline-block;
+    font-family: var(--nx-font-mono);
+    font-size: 0.625rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--nx-text-primary);
+    background: rgba(240, 240, 250, 0.08);
+    border: 1px solid rgba(240, 240, 250, 0.18);
+    padding: 0.15rem 0.5rem;
+    border-radius: 2px;
+    margin-right: 0.5rem;
+    vertical-align: middle;
+  }
+
   /* ── Content blocks ── */
   .nx-block {
     border: 1px solid var(--nx-border-subtle);

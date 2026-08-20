@@ -19,6 +19,7 @@ import { parseJson } from './json-utils';
 import { AgentRole, assertPermission } from '../governance/index';
 import { embedText, embedBatch, cosineSimilarity } from './semantic-engine';
 import { recordTemporalFact } from './temporal-memory';
+import { multiHopRetrieve, isMultiHopQuery } from './knowledge-graph-pagerank';
 
 // ============================================================================
 // TYPES
@@ -330,6 +331,66 @@ export async function queryKnowledgeGraph(
     .filter(c => c.similarity >= minSimilarity)
     .sort((a, b) => b.similarity - a.similarity)
     .slice(0, limit);
+
+  // ── HippoRAG 2 multi-hop extension for multi-hop / causal queries ──
+  if (isMultiHopQuery(query)) {
+    try {
+      const hopResult = await multiHopRetrieve(query, { topK: limit, numSeeds: 5, maxHopDistance: 3 });
+      if (hopResult.reached.length > 0) {
+        const reachedIds = new Set(hopResult.reached.map(r => r.id).filter((id): id is string => !!id));
+        const reachedConcepts = hopResult.reached.map(r => {
+          const full = allConcepts.find(c => c.id === r.id);
+          const base = full
+            ? mapPrismaToConcept(full)
+            : {
+                id: r.id,
+                name: r.name,
+                type: r.type as ConceptType,
+                description: r.description || '',
+                embedding: undefined,
+                confidence: r.confidence || 0,
+                firstSeen: new Date(),
+                lastSeen: new Date(),
+                occurrenceCount: 0,
+                sourceIds: [],
+                briefIds: [],
+                relatedConcepts: [],
+                metadata: {},
+              };
+          return {
+            ...base,
+            similarity: r.pagerankScore, // use PPR score as relevance proxy
+            hopDistance: r.hopDistance,
+          };
+        }).filter(c => !reachedIds.has(c.id ?? '')); // include all reached
+
+        // Merge without duplicates, prioritizing higher PPR score
+        const mergedById = new Map<string, any>();
+        for (const c of scored) mergedById.set(c.id ?? '', c);
+        for (const c of reachedConcepts) {
+          const existing = mergedById.get(c.id || '');
+          if (!existing || (c.similarity > existing.similarity)) {
+            mergedById.set(c.id || '', c);
+          }
+        }
+        const merged = Array.from(mergedById.values())
+          .sort((a, b) => (b.similarity || 0) - (a.similarity || 0))
+          .slice(0, limit);
+
+        const mergedBriefs = [...new Set(merged.flatMap(c => c.briefIds || []))];
+        const mergedTimeline = merged.map(c => ({
+          date: c.firstSeen,
+          event: `First mention of "${c.name}" (${c.type})`,
+          conceptId: c.id || "",
+        })).sort((a, b) => a.date.getTime() - b.date.getTime());
+
+        console.log(`[KNOWLEDGE] Multi-hop HippoRAG: ${hopResult.reached.length} reached, merged to ${merged.length} concepts`);
+        return { concepts: merged, relatedBriefs: mergedBriefs, timeline: mergedTimeline };
+      }
+    } catch (err) {
+      console.warn(`[KNOWLEDGE] Multi-hop retrieval failed (falling back to vector):`, err);
+    }
+  }
 
   // Collect related briefs
   const relatedBriefs = [...new Set(scored.flatMap(c => c.briefIds))];

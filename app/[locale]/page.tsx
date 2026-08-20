@@ -317,15 +317,16 @@ function HomePageContent() {
 
   const displayInquiries = latestInquiries;
 
-  // Total section count is dynamic: the "Latest briefs" section (07) is
-  // hidden when there are no briefs, so the denominator must adjust.
-  // 01 Funnel · 02 Manifesto · 03 Pillars · 04 Domains · 05 Sources · 06 Method · 07 Briefs? · 08/07 Studio · 09/08 Newsletter
-  const sectionCount = displayInquiries.length > 0 ? 9 : 8;
+  // Section order: 01 Hero · 02 Featured · 03 Briefs? · 04 Manifesto · 05 Domain · 06 Mission · 07 Studio · 08 Newsletter
+  // Briefs section (03) is hidden when there are no briefs, so the denominator adjusts.
+  const sectionCount = displayInquiries.length > 0 ? 8 : 7;
   const sectionTotal = String(sectionCount).padStart(2, "0");
   // Sections after the briefs block shift down by one when briefs are hidden
-  // so the numerators stay sequential (01, 02, 03 ...).
-  const studioSectionNum = displayInquiries.length > 0 ? "08" : "07";
-  const newsletterSectionNum = displayInquiries.length > 0 ? "09" : "08";
+  const manifestoSectionNum = displayInquiries.length > 0 ? "04" : "03";
+  const domainSectionNum = displayInquiries.length > 0 ? "05" : "04";
+  const missionSectionNum = displayInquiries.length > 0 ? "06" : "05";
+  const studioSectionNum = displayInquiries.length > 0 ? "07" : "06";
+  const newsletterSectionNum = displayInquiries.length > 0 ? "08" : "07";
 
 
 
@@ -455,11 +456,93 @@ function HomePageContent() {
 
           </section>
 
-          {/* Manifesto — the Nomos philosophy (permanent, always visible) */}
+          {/* Featured verdict — proof first, philosophy later */}
+
+          <section className="nx-section-divide relative px-6 sm:px-8 py-16 sm:py-20">
+
+            <span className="nx-section-index">02 / {sectionTotal}</span>
+
+            <div className="max-w-lg mx-auto">
+
+              <ScrollReveal>
+                <p className="nx-eyebrow mb-8 justify-center">{t("Home.featuredBrief")}</p>
+              </ScrollReveal>
+
+              <ScrollReveal delay={100}>
+                {isEmptyVerdict(featuredVerdict) ? (
+                  <div className="nx-surface nx-border-flow relative p-6 sm:p-8 text-center">
+                    <span className="w-1.5 h-1.5 rounded-full bg-white/30 inline-block mb-4 nx-glow-dot" />
+                    <p className="font-display text-lg text-white/80 mb-2">{t("FeaturedVerdict.noPositionYet")}</p>
+                    <p className="text-sm text-white/45 leading-relaxed max-w-sm mx-auto">{t("FeaturedVerdict.noPositionDesc")}</p>
+                  </div>
+                ) : (
+                  <FeaturedVerdictCard data={featuredVerdict} />
+                )}
+              </ScrollReveal>
+
+            </div>
+
+          </section>
+
+          {/* Latest briefs — more proof, if available */}
+
+          {displayInquiries.length > 0 && (
+
+          <section className="nx-section-divide relative px-6 sm:px-8 py-16 sm:py-20">
+
+            <span className="nx-section-index">03 / {sectionTotal}</span>
+
+            <div className="max-w-6xl mx-auto">
+
+              <ScrollReveal className="flex items-end justify-between gap-4 mb-12">
+
+                <p className="nx-eyebrow">{t("Home.latestBriefs")}</p>
+
+                <button
+
+                  type="button"
+
+                  onClick={() => router.push(PUBLIC_ROUTES.archives)}
+
+                  className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.12em] text-white/55 hover:text-white transition-colors"
+
+                >
+
+                  {t("Home.fullArchive")}
+
+                  <ArrowRight size={14} />
+
+                </button>
+
+              </ScrollReveal>
+
+              <ScrollReveal stagger className="grid md:grid-cols-3 gap-4">
+
+                {displayInquiries.map((inquiry) => (
+
+                  <InquiryCard
+
+                    key={inquiry.id}
+
+                    inquiry={inquiry}
+
+                  />
+
+                ))}
+
+              </ScrollReveal>
+
+            </div>
+
+          </section>
+
+          )}
+
+          {/* Manifesto + pillars — the philosophy, now that they've seen the proof */}
 
           <section className="nx-section-divide relative px-6 sm:px-8 py-20 sm:py-28 overflow-hidden">
 
-            <span className="nx-section-index">02 / {sectionTotal}</span>
+            <span className="nx-section-index">{manifestoSectionNum} / {sectionTotal}</span>
 
             <div className="nx-grid-bg-enhanced opacity-30" aria-hidden="true" />
 
@@ -511,15 +594,9 @@ function HomePageContent() {
 
             </div>
 
-          </section>
+            {/* Pillars merged into manifesto — what you get */}
 
-          {/* Six pillars */}
-
-          <section className="nx-section-divide relative px-6 sm:px-8 py-16 sm:py-20">
-
-            <span className="nx-section-index">03 / {sectionTotal}</span>
-
-            <div className="max-w-5xl mx-auto">
+            <div className="relative max-w-5xl mx-auto mt-16">
 
               <ScrollReveal>
                 <p className="nx-eyebrow mb-6 text-center">{t("Home.sixPillars")}</p>
@@ -547,7 +624,7 @@ function HomePageContent() {
 
           {/* Domain map — where we work (Harvard "Where we work" inspired) */}
 
-          <DomainMap sectionIndex={`04 / ${sectionTotal}`} />
+          <DomainMap sectionIndex={`${domainSectionNum} / ${sectionTotal}`} />
 
           {/* Data sources ticker */}
 
@@ -599,7 +676,7 @@ function HomePageContent() {
 
           <section className="nx-section-divide relative px-6 sm:px-8 py-16 sm:py-20">
 
-            <span className="nx-section-index">05 / {sectionTotal}</span>
+            <span className="nx-section-index">{missionSectionNum} / {sectionTotal}</span>
 
             <div className="max-w-4xl mx-auto grid sm:grid-cols-2 gap-10 sm:gap-16">
 
@@ -630,92 +707,6 @@ function HomePageContent() {
             </div>
 
           </section>
-
-          {/* Live verdict proof */}
-
-          <section className="nx-section-divide relative px-6 sm:px-8 py-16 sm:py-20">
-
-            <span className="nx-section-index">06 / {sectionTotal}</span>
-
-            <div className="max-w-lg mx-auto">
-
-              <ScrollReveal>
-                <p className="nx-eyebrow mb-8 justify-center">{t("Home.featuredBrief")}</p>
-              </ScrollReveal>
-
-              <ScrollReveal delay={100}>
-                {isEmptyVerdict(featuredVerdict) ? (
-                  <div className="nx-surface nx-border-flow relative p-6 sm:p-8 text-center">
-                    <span className="w-1.5 h-1.5 rounded-full bg-white/30 inline-block mb-4 nx-glow-dot" />
-                    <p className="font-display text-lg text-white/80 mb-2">{t("FeaturedVerdict.noPositionYet")}</p>
-                    <p className="text-sm text-white/45 leading-relaxed max-w-sm mx-auto">{t("FeaturedVerdict.noPositionDesc")}</p>
-                  </div>
-                ) : (
-                  <FeaturedVerdictCard data={featuredVerdict} />
-                )}
-              </ScrollReveal>
-
-            </div>
-
-          </section>
-
-
-
-          {/* Latest briefs */}
-
-          {displayInquiries.length > 0 && (
-
-          <section className="nx-section-divide relative px-6 sm:px-8 py-16 sm:py-20">
-
-            <span className="nx-section-index">07 / {sectionTotal}</span>
-
-            <div className="max-w-6xl mx-auto">
-
-              <ScrollReveal className="flex items-end justify-between gap-4 mb-12">
-
-                <p className="nx-eyebrow">{t("Home.latestBriefs")}</p>
-
-                <button
-
-                  type="button"
-
-                  onClick={() => router.push(PUBLIC_ROUTES.archives)}
-
-                  className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.12em] text-white/55 hover:text-white transition-colors"
-
-                >
-
-                  {t("Home.fullArchive")}
-
-                  <ArrowRight size={14} />
-
-                </button>
-
-              </ScrollReveal>
-
-              <ScrollReveal stagger className="grid md:grid-cols-3 gap-4">
-
-                {displayInquiries.map((inquiry) => (
-
-                  <InquiryCard
-
-                    key={inquiry.id}
-
-                    inquiry={inquiry}
-
-                  />
-
-                ))}
-
-              </ScrollReveal>
-
-            </div>
-
-          </section>
-
-          )}
-
-
 
           {/* Social proof */}
 

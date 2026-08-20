@@ -281,8 +281,9 @@ async function extractSeeds(
  */
 export async function multiHopRetrieve(
   query: string,
-  config: MultiHopConfig = DEFAULT_MULTIHOP_CONFIG,
+  partialConfig: Partial<MultiHopConfig> = {},
 ): Promise<MultiHopResult> {
+  const config: MultiHopConfig = { ...DEFAULT_MULTIHOP_CONFIG, ...partialConfig };
   // Load all concepts and relations from the KG
   const [concepts, relations] = await Promise.all([
     loadAllConcepts(),

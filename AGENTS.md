@@ -1824,6 +1824,7 @@ await runPipeline(query, "strategic", {
   useAdaptiveRAG: true,           // reflection tokens (Self-RAG / CRAG)
   useBudgetForcing: true,         // s1-style test-time scaling
   useLATS: true,                  // Monte Carlo Tree Search (stub — activate module)
+  bestOfN: 3,                     // generate 3 analyst outputs, pick best
   useOutputGuard: true,           // structured output validation
   useLocalJudge: true,            // Prometheus 2 / JudgeLM judge
   useStorm: true,                 // STORM + PaperQA2 perspective/citation traversal
@@ -1832,6 +1833,7 @@ await runPipeline(query, "strategic", {
   useMCP: true,                   // Model Context Protocol client/server
   useADAS: true,                  // automated agent design
   useDurableExecution: true,      // lightweight snapshots
+  useThinkTankPack: true,         // think tank quality pack
 });
 ```
 
@@ -1843,22 +1845,34 @@ await runPipeline(query, "strategic", {
 | Adaptive RAG | `lib/agent/adaptive-rag.ts` | Self-RAG/CRAG reflection tokens + retrieval evaluator + web search fallback |
 | Chain-of-Verification | `lib/agent/chain-verification.ts` | CoVe: plan → draft → verify → revise |
 | Budget Forcing | `lib/agent/budget-forcing.ts` | s1 test-time scaling via Wait tokens |
-| HippoRAG | `lib/agent/knowledge-graph-pagerank.ts` | Multi-hop retrieval via Personalized PageRank on KG |
+| HippoRAG 2 / LightRAG hybrid | `lib/agent/knowledge-graph-pagerank.ts` + `knowledge-graph.ts` | Multi-hop KG + vector retrieval; activated for multi-hop/causal queries |
+| Source Quality Engine | `lib/agent/source-quality.ts` | Rerank sources by recency, authority, content richness, diversity |
+| Peer Reviewer (Feynman-style) | `lib/agent/peer-reviewer.ts` | External peer review with severity-graded issues |
+| RAGAS Eval | `lib/agent/ragas-eval.ts` | RAG quality: faithfulness, relevancy, context precision/recall |
 | LATS | `lib/agent/lats/` | MCTS for multi-hypothesis agent reasoning |
 | Self-Discover | `lib/agent/self-discover.ts` | Compose a reasoning structure per query |
 | ADAS | `lib/agent/adas/` | Auto-generate and test new agent prompt variants |
 | MCP | `lib/agent/mcp/` | Expose/consume Model Context Protocol tools |
 | Local Judge | `lib/agent/local-judge.ts` | Open-source Prometheus 2 / JudgeLM judge with rubrics |
+| Citation Verifier | `lib/agent/citation-verifier.ts` | OpenScholar-style passage-level citation grounding + source reliability |
 | Output Guardrails | `lib/agent/output-guard.ts` | Structured output validation (schema, PII, citations) |
 | STORM + PaperQA2 | `lib/agent/research-patterns.ts` | Perspective-driven question generation + citation traversal |
 | Temporal Memory | `lib/agent/temporal-memory.ts` | Bi-temporal knowledge tracking (validFrom / validTo / recordedAt) |
 | Langfuse | `lib/agent/langfuse.ts` | LLM tracing and scoring |
 | Durable Execution | `lib/agent/durable-execution.ts` | Lightweight run snapshots + engine comparison |
+| Think Tank Quality Pack | `lib/agent/think-tank-pack.ts` | Policy recommendations, stakeholder mapping, economics, editorial polish |
 
 ### What is currently wired live
 
 - `callLLM` automatically traces to Langfuse when `runId` is passed.
-- Agentic ANALYST (`analyst-react.ts`) supports `useSelfDiscover`, `useBudgetForcing`, `useAdaptiveRAG`.
+- Agentic ANALYST (`analyst-react.ts`) supports `useSelfDiscover`, `useBudgetForcing`, `useAdaptiveRAG`, `useLATS`, `useMCP`.
+- **Best-of-N** — the agentic ANALYST can generate `bestOfN` candidate outputs, score them (coverage, citations, judge), and return the best.
+- **JSON mode final answer** — `reactLoop` forces the final LLM call to use `jsonMode`, improving structured output reliability.
+- **Think Tank Quality Pack** — `lib/agent/think-tank-pack.ts` : relecture éditoriale, recommandations par stakeholder, options/trade-offs, contexte économique et régulatoire.
+- **OpenScholar-style Citation Verifier** — `lib/agent/citation-verifier.ts` now retrieves relevant passages from full text, scores source reliability, and returns evidence snippets.
+- **M-Prometheus / Prometheus 2 Local Judge** — `lib/agent/local-judge.ts` enhanced rubrics: grounding, policy relevance, think tank quality.
+- **Feynman-style Peer Reviewer** — `lib/agent/peer-reviewer.ts` simulates external peer review with severity-graded feedback.
+- **RAGAS Evaluation** — `lib/agent/ragas-eval.ts` evaluates faithfulness, answer relevancy, context precision, context recall.
 - Classic ANALYST path supports `useOutputGuard` and `useLocalJudge` post-analysis.
 - Durable Execution is initialized when `useDurableExecution` is true.
 - New options are propagated through `runPipeline` → `runPipelineCore`.

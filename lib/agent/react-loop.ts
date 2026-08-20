@@ -289,7 +289,8 @@ async function forceFinalAnswer(
         ...messages,
         { role: 'user', content: 'Based on all the evidence gathered above, produce your final analysis now. Do not call any more tools.' },
       ],
-      // No tools — force text output
+      // No tools — force JSON final answer
+      jsonMode: true,
       task: config.task,
       temperature: config.temperature ?? 0.3,
       maxTokens: config.maxTokens ?? 8000,

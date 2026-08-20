@@ -14,6 +14,7 @@ import { renderEvidenceGaugeSVG, renderStakeholderImpactSVG, renderScenariosSVG,
 import { inlineLockupSvg } from '@/lib/brand/logo-inline';
 // logo-inline import kept for backward compat but no longer used in render
 import { BRAND_EMAIL_TAGLINE, BRAND_NAME, BRAND_MANIFESTO } from '@/lib/brand/public-copy';
+import { getPublicationFormat } from '../publication-formats';
 
 const esc = (s: string) =>
   String(s || "")
@@ -649,6 +650,7 @@ export function renderStrategicReportHTML(
     </div>
     <h1 class="report-title">${esc((analysis.title || "").replace(/\[SRC-\d+\]/g, '').trim())}</h1>
     <div class="report-meta" style="font-size:12px;color:rgba(240,240,250,0.4);margin-bottom:2rem;padding-bottom:1rem;border-bottom:1px solid rgba(240,240,250,0.08);">
+      <span class="format-badge" style="display:inline-block;font-family:'JetBrains Mono',monospace;font-size:0.625rem;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;color:#f0f0fa;background:rgba(240,240,250,0.08);border:1px solid rgba(240,240,250,0.18);padding:0.15rem 0.5rem;border-radius:2px;margin-right:0.5rem;">${esc(getPublicationFormat('STRATEGIC_REPORT').label)}</span>
       ${now} · ${sources.length} sources · ${analysis.confidenceLevel} confidence
     </div>
 

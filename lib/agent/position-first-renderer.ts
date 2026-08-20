@@ -8,6 +8,7 @@ import type { PositionFirstBriefInput } from './editorial-types';
 import { collisionLabel, dimensionsFromClassification } from './editorial-types';
 import { POSITION_FIRST_BRIEF_CSS } from './position-first-brief.css';
 import { dedupeCitations } from './strategic-report-renderer';
+import { getPublicationFormat } from '../publication-formats';
 
 function esc(s: string): string {
   return String(s || '').replace(/[&<>"']/g, (m) =>
@@ -52,9 +53,12 @@ export function renderPositionFirstBriefHTML(input: PositionFirstBriefInput): st
   const title = String(analysis.title ?? position.headline ?? question);
   const detectedReason = classification.detectedSubject ?? classification.reasoning ?? question;
 
-  // ── Minimal metadata line ──
+  // ── Format badge + minimal metadata line ──
   const providers = [...new Set(sources.map((s) => s.provider).filter(Boolean))];
-  const metaLine = `${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} · ${sources.length} sources · ${providers.length} providers · Confidence: ${position.confidence}/100`;
+  const publicationType = isStrategic ? 'STRATEGIC_REPORT' : 'ARTICLE';
+  const fmt = getPublicationFormat(publicationType);
+  const formatBadgeHtml = `<span class="format-badge" title="${esc(fmt.description)}">${esc(fmt.label)}</span>`;
+  const metaLine = `${formatBadgeHtml} ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} · ${sources.length} sources · ${providers.length} providers · Confidence: ${position.confidence}/100`;
 
   // ── Structured policy recommendations ──
   const recommendations = (analysis as Record<string, unknown>).recommendations as Record<string, unknown> | undefined;

@@ -40,6 +40,8 @@ export interface CitationVerification {
   semanticSimilarity: number; // 0-1 cosine similarity between claim and source
   explanation: string;
   suggestedFix?: string;      // How to fix if problematic
+  evidenceSnippets?: string[]; // Exact passages from the source that support or contradict
+  sourceReliability?: number; // 0-100 estimate of source trustworthiness
 }
 
 export interface VerificationReport {
@@ -128,11 +130,72 @@ export function extractCitations(text: string): CitationInstance[] {
 }
 
 // ============================================================================
+// PASSAGE-LEVEL GROUNDING (OpenScholar-style)
+// ============================================================================
+
+const MIN_PASSAGE_LEN = 80;
+const MAX_PASSAGE_LEN = 600;
+
+function splitIntoPassages(text: string): string[] {
+  const sentences = text
+    .replace(/\s+/g, ' ')
+    .split(/(?<=[.!?])\s+/)
+    .filter(s => s.trim().length > 30);
+  const passages: string[] = [];
+  let current = '';
+  for (const s of sentences) {
+    current += (current ? ' ' : '') + s;
+    if (current.length >= MIN_PASSAGE_LEN) {
+      passages.push(current.trim());
+      current = '';
+    }
+  }
+  if (current.trim()) passages.push(current.trim());
+  return passages;
+}
+
+async function findRelevantPassages(
+  claim: string,
+  fullText: string,
+  topK = 3,
+): Promise<{ passage: string; score: number }[]> {
+  const passages = splitIntoPassages(fullText);
+  if (passages.length === 0) return [];
+  try {
+    const [claimEmb, ...passageEmbs] = await Promise.all([
+      embedText(claim),
+      ...passages.map(p => embedText(p)),
+    ]);
+    const scored = passages.map((p, i) => ({
+      passage: p,
+      score: cosineSimilarity(claimEmb, passageEmbs[i]),
+    }));
+    return scored.sort((a, b) => b.score - a.score).slice(0, topK);
+  } catch {
+    return [];
+  }
+}
+
+function computeSourceReliability(source: any): number {
+  let score = 50;
+  if (source.year && new Date().getFullYear() - source.year <= 3) score += 15;
+  else if (source.year && new Date().getFullYear() - source.year <= 7) score += 5;
+  if (source.doi) score += 10;
+  if (source.venue || source.journal) score += 10;
+  if (source.citationCount && source.citationCount > 50) score += 15;
+  else if (source.citationCount && source.citationCount > 10) score += 5;
+  if (source.openAccess) score += 5;
+  return Math.min(100, score);
+}
+
+// ============================================================================
 // SEMANTIC VERIFICATION
 // ============================================================================
 
 /**
  * Verify a single citation using both semantic similarity and LLM judgment.
+ * OpenScholar-style: retrieve the most relevant passages from the full text
+ * and ask the LLM to judge entailment at the sentence/paragraph level.
  */
 async function verifySingleCitation(
   citation: CitationInstance,
@@ -143,11 +206,21 @@ async function verifySingleCitation(
   // Use full-text from READER V3 when available — abstracts alone miss specific numbers/quotes
   const reading = readings?.find((r: any) => r.sourceId === source.id);
   const fullText = reading?.extractedText || (source as any).fullText;
-  const sourceContent = fullText
-    ? fullText.slice(0, 4000)
-    : `${source.title}\n${source.abstract || ""}`.trim();
+  const sourceAbstract = (source.abstract || '').slice(0, 800);
 
-  // Step 1: Semantic similarity (fast, cheap)
+  // Step 1: Retrieve the most relevant passages from the full text (OpenScholar-style)
+  let relevantPassages: { passage: string; score: number }[] = [];
+  let sourceContent: string;
+  if (fullText && fullText.length > 100) {
+    relevantPassages = await findRelevantPassages(citation.claim, fullText, 3);
+    sourceContent = relevantPassages.length
+      ? relevantPassages.map(p => p.passage).join('\n\n')
+      : fullText.slice(0, 4000);
+  } else {
+    sourceContent = `${source.title}\n${sourceAbstract}`.trim();
+  }
+
+  // Step 2: Semantic similarity (fast, cheap)
   let semanticSim = 0;
   try {
     const [claimEmb, sourceEmb] = await Promise.all([
@@ -162,42 +235,51 @@ async function verifySingleCitation(
     semanticSim = -1;
   }
 
-  // Step 2: LLM verification (deep, accurate)
+  // Step 3: LLM NLI verification (deep, accurate, at passage level)
   try {
     const response = await callLLM({
       messages: [{
         role: "user",
-        content: `You are a citation verification expert. Determine if the cited source actually supports the claim made.
+        content: `You are a citation verification expert working at the level of OpenScholar. Your task is to determine whether the cited source actually supports the exact claim made.
 
 CLAIM IN THE ANALYSIS:
 "${citation.claim}"
 
-BROADER CONTEXT:
+BROADER CONTEXT FROM THE ANALYSIS:
 "${citation.context.slice(0, 500)}"
 
 CITED SOURCE:
 Title: ${source.title}
-${fullText ? `Full Text (excerpt): ${sourceContent.slice(0, 4000)}` : `Abstract: ${(source.abstract || "No abstract available").slice(0, 1500)}`}
 Year: ${source.year || "N/A"}
+Reliability estimate: ${computeSourceReliability(source)}/100
 
-VERDICT OPTIONS:
-- "supported": The source clearly supports this claim
-- "partially_supported": The source is related but the claim overstates or simplifies
-- "unsupported": The source does not support this specific claim
-- "misattributed": The claim contradicts what the source actually says
-- "unverifiable": Cannot determine (e.g., no abstract available)
+MOST RELEVANT PASSAGES FROM THE SOURCE (retrieved by semantic search):
+${relevantPassages.length
+  ? relevantPassages.map((p, i) => `--- Passage ${i + 1} (similarity ${(p.score * 100).toFixed(1)}%) ---\n${p.passage}`).join('\n\n')
+  : (sourceContent.length ? `Source content:\n${sourceContent.slice(0, 3000)}` : 'No content available')}
+
+${sourceAbstract ? `ABSTRACT:\n${sourceAbstract}` : ''}
+
+INSTRUCTIONS:
+1. Find the exact sentence or passage in the source that addresses the claim.
+2. If the claim is clearly supported by the source, return "supported".
+3. If the source only loosely or partially supports the claim (e.g., overstates a result, mixes correlation with causation, extrapolates beyond the source), return "partially_supported".
+4. If the source does not support the claim, return "unsupported".
+5. If the source contradicts the claim, return "misattributed".
+6. If the source content is missing or too thin to decide, return "unverifiable".
 
 Return JSON:
 {
   "verdict": "supported|partially_supported|unsupported|misattributed|unverifiable",
   "confidence": 0-100,
-  "explanation": "Why this verdict — be specific about what matches or doesn't",
-  "suggestedFix": "How to fix if problematic (null if supported)"
+  "explanation": "Why this verdict — quote or refer to the specific passage",
+  "suggestedFix": "How to fix if problematic (null if supported)",
+  "evidenceSnippets": ["exact supporting or contradicting passage(s) from the source"]
 }`
       }],
       temperature: 0.1,
       jsonMode: true,
-      maxTokens: 1500,
+      maxTokens: 1800,
       enableCache: true,
       task: 'citation_verification',
       producerFamily,
@@ -210,24 +292,29 @@ Return JSON:
       srcIndex: citation.srcIndex,
       claim: citation.claim,
       sourceTitle: source.title,
-      sourceAbstract: (source.abstract || "").slice(0, 200),
+      sourceAbstract: sourceAbstract.slice(0, 200),
       verdict: result.verdict || "unverifiable",
       confidence: result.confidence || 50,
       semanticSimilarity: semanticSim,
       explanation: result.explanation || "",
       suggestedFix: result.suggestedFix || undefined,
+      evidenceSnippets: Array.isArray(result.evidenceSnippets) ? result.evidenceSnippets : [],
+      sourceReliability: computeSourceReliability(source),
     };
   } catch (error: any) {
     console.warn(`[CitationVerifier] LLM verification failed for SRC-${citation.srcIndex}: ${error.message}`);
+    Sentry?.captureException?.(error);
     return {
       srcIndex: citation.srcIndex,
       claim: citation.claim,
       sourceTitle: source.title,
-      sourceAbstract: (source.abstract || "").slice(0, 200),
+      sourceAbstract: sourceAbstract.slice(0, 200),
       verdict: "unverifiable",
       confidence: 0,
       semanticSimilarity: semanticSim,
       explanation: `Verification failed: ${error.message}`,
+      evidenceSnippets: relevantPassages.map(p => p.passage),
+      sourceReliability: computeSourceReliability(source),
     };
   }
 }
