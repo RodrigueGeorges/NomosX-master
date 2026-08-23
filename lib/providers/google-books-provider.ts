@@ -24,17 +24,49 @@ export async function searchGoogleBooks(query: string, limit = 15): Promise<any[
     }
 
     const data: any = await fetchFromProvider('google-books', `${GOOGLE_BOOKS_ENDPOINT}?${params}`, {
-      timeout: 15000,
-      retries: 3,
-      retryDelay: 2000,
+      timeout: 20000,
+      retries: 1,
+      retryDelay: 3000,
     });
 
     const items = data?.items || [];
 
-
-    if (!Array.isArray(items)) {
-      console.warn('[SCOUT/GoogleBooks] unexpected response format');
-      return [];
+    if (!Array.isArray(items) || items.length === 0) {
+      // Fallback: Open Library (free, no key, same book coverage)
+      try {
+        const olParams = new URLSearchParams({
+          q: query,
+          limit: String(Math.min(limit, 20)),
+          fields: 'key,title,author_name,first_publish_year,publisher,isbn,subject,language,edition_count',
+        });
+        const olData: any = await fetchFromProvider('google-books',
+          `https://openlibrary.org/search.json?${olParams}`,
+          { timeout: 15000, retries: 1, headers: { 'User-Agent': 'NomosX/1.0 (mailto:contact@nomosx.com)' } });
+        const olDocs = olData?.docs || [];
+        return olDocs.slice(0, limit).map((doc: any) => ({
+          id: `google-books:ol-${doc.key?.split('/').pop() || Math.random()}`,
+          provider: 'google-books',
+          type: 'book',
+          title: doc.title || 'Untitled',
+          abstract: doc.subject?.slice(0, 10).join(', ') || null,
+          url: `https://openlibrary.org${doc.key || ''}`,
+          doi: null,
+          isbn: doc.isbn?.[0] || null,
+          year: doc.first_publish_year || null,
+          publishedDate: null,
+          authors: (doc.author_name || []).map((name: string) => ({ name })),
+          institutions: (doc.publisher || []).slice(0, 2),
+          citationCount: doc.edition_count || 0,
+          qualityScore: 50,
+          oaStatus: 'open',
+          hasFullText: false,
+          contentLength: 0,
+          raw: doc,
+        }));
+      } catch {
+        console.warn('[SCOUT/GoogleBooks] No results and Open Library fallback failed');
+        return [];
+      }
     }
 
     return items.slice(0, limit).map((item: any, idx: number) => {

@@ -8,6 +8,15 @@ function stripHtml(html: string): string {
   return html
     .replace(/<[^>]*>/g, " ")
     .replace(/\[SRC-\d+\]/g, "")
+    .replace(/&#0?39;/gi, "'")
+    .replace(/&#x?27;/gi, "'")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"')
+    .replace(/&nbsp;/gi, " ")
+    // Decode &amp; LAST to avoid double-decoding (&amp;lt; should stay as &lt;, not become <)
+    .replace(/&amp;/gi, "&")
+    .replace(/\[LIVE-DATA\]/gi, "")
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -48,6 +57,7 @@ export interface ParsedEditorialInquiry {
   keyFindingsHtml: string;
   recommendationsHtml: string;
   anchoringBasisHtml: string;
+  heroImageUrl: string;
 }
 
 function matchInner(html: string, pattern: RegExp): string {
@@ -162,6 +172,10 @@ export function parseEditorialInquiry(html: string): ParsedEditorialInquiry | nu
     /Dedicated team<\/p>\s*<p[^>]*>([\s\S]*?)<\/p>/i
   );
 
+  // Extract hero image (data URI or URL) from the hero-image div
+  const heroImgMatch = raw.match(/<div class="hero-image"[^>]*>[\s\S]*?<img[^>]*src=["']([^"']+)["']/i);
+  const heroImageUrl = heroImgMatch?.[1] ?? "";
+
   return {
     collision: collisionLines[0] ?? "",
     detectedReason: collisionLines[1] ?? collisionLines[0] ?? "",
@@ -183,6 +197,7 @@ export function parseEditorialInquiry(html: string): ParsedEditorialInquiry | nu
     keyFindingsHtml,
     recommendationsHtml,
     anchoringBasisHtml,
+    heroImageUrl,
   };
 }
 

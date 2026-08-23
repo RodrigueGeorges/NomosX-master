@@ -1,16 +1,20 @@
 import { fetchPublicBriefs } from "@/lib/queries/public-briefs";
 import { ArchivesClient } from "@/components/archives/ArchivesClient";
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "Positions — NomosX",
-  description: "Every position NomosX has published — source-verified, scenario-weighted, free to read. Filter by depth, domain, and confidence.",
-  alternates: {
-    canonical: "/archives",
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("Archives");
+  return {
+    title: `${t("title")} — NomosX`,
+    description: t("description"),
+    alternates: {
+      canonical: "/archives",
+    },
+  };
+}
 
 export default async function ArchivesPage() {
   const briefs = await fetchPublicBriefs(48);

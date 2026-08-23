@@ -173,3 +173,128 @@ export async function getOpenAlexConceptGroups(query: string): Promise<{ concept
     releaseOpenAlexSlot();
   }
 }
+
+/**
+ * V3.2: OpenAlex Semantic Search (2026 feature)
+ *
+ * OpenAlex launched semantic search in 2026 — embeddings-based retrieval
+ * that understands query semantics better than keyword search.
+ *
+ * This function uses the new `search_filter` parameter with semantic matching.
+ * Falls back to keyword search if semantic search is not available.
+ *
+ * Based on: OpenAlex 2026 release — semantic embeddings, PDF hosting, bulk CLI
+ */
+export async function searchOpenAlexSemantic(
+  query: string,
+  perPage = 25,
+  options?: { filter?: string; minCitations?: number }
+): Promise<any[]> {
+  const base = env.OPENALEX_API;
+
+  // V3.2: Use semantic search endpoint (search_filter with semantic matching)
+  // The new endpoint uses embeddings to find semantically similar works
+  let url = `${base}?search=${encodeURIComponent(query)}&per-page=${perPage}&search_type=semantic`;
+
+  if (options?.filter) {
+    url += `&filter=${encodeURIComponent(options.filter)}`;
+  }
+
+  // Add minimum citations filter if specified
+  if (options?.minCitations && options?.minCitations > 0) {
+    const citedByFilter = `cited_by_count:>${options.minCitations}`;
+    url += url.includes('filter=')
+      ? `,${encodeURIComponent(citedByFilter)}`
+      : `&filter=${encodeURIComponent(citedByFilter)}`;
+  }
+
+  // API key or polite pool
+  if (env.OPENALEX_API_KEY && !openAlexKeyExhausted) {
+    url += `&api_key=${encodeURIComponent(env.OPENALEX_API_KEY)}`;
+  } else {
+    const mailto = env.UNPAYWALL_EMAIL || "contact@nomosx.com";
+    url += `&mailto=${encodeURIComponent(mailto)}`;
+  }
+
+  await acquireOpenAlexSlot();
+  try {
+    const data = await fetchFromProvider<Resp>("openalex", url, { timeout: 25000, retries: 2 });
+
+    const results = (data.results ?? []).map((w: any) => ({
+      id: w.id,
+      provider: "openalex",
+      type: "paper",
+      title: w.title || "",
+      abstract: invertedIndexToText(w.abstract_inverted_index) || null,
+      year: w.publication_year ?? null,
+      doi: normalizeDOI(w.doi),
+      url: w.primary_location?.landing_page_url ?? null,
+      pdfUrl: w.primary_location?.pdf_url ?? null,
+      oaStatus: w.open_access?.oa_status ?? (w.primary_location?.is_oa ? "oa" : null),
+      authors: (w.authorships ?? []).map((a: any) => ({
+        name: a.author?.display_name,
+        orcid: a.author?.orcid?.replace("https://orcid.org/", ""),
+      })).filter((a: any) => a.name),
+      institutions: (w.authorships ?? []).flatMap((a: any) =>
+        (a.institutions ?? []).map((i: any) => ({
+          name: i.display_name,
+          rorId: i.ror?.replace("https://ror.org/", ""),
+        }))
+      ).filter((i: any) => i.name),
+      topics: (w.topics ?? []).map((t: any) => t.display_name).filter(Boolean),
+      jelCodes: [],
+      citationCount: w.cited_by_count ?? null,
+      raw: w
+    }));
+
+    console.log(`[OpenAlex-Semantic] Found ${results.length} works for "${query.slice(0, 50)}" (semantic search)`);
+    return results;
+  } catch (error: any) {
+    console.warn(`[OpenAlex-Semantic] Semantic search failed, falling back to keyword: ${error.message}`);
+    // Fallback to regular keyword search
+    return searchOpenAlex(query, perPage, { filter: options?.filter });
+  } finally {
+    releaseOpenAlexSlot();
+  }
+}
+
+/**
+ * V3.2: Batch fetch OpenAlex works by DOI list
+ *
+ * Useful for verifying citations in bulk — pass a list of DOIs and get
+ * back metadata for all of them in one request.
+ */
+export async function batchFetchByDoi(dois: string[]): Promise<any[]> {
+  if (dois.length === 0) return [];
+
+  const base = env.OPENALEX_API;
+  // OpenAlex supports filter=doi:doi1|doi2|doi3 for batch lookup
+  const doiFilter = dois.slice(0, 50).map(d => d.replace(/^https?:\/\/(dx\.)?doi\.org\//i, '')).join('|');
+  let url = `${base}?filter=doi:${encodeURIComponent(doiFilter)}&per-page=50`;
+
+  if (env.OPENALEX_API_KEY && !openAlexKeyExhausted) {
+    url += `&api_key=${encodeURIComponent(env.OPENALEX_API_KEY)}`;
+  } else {
+    const mailto = env.UNPAYWALL_EMAIL || "contact@nomosx.com";
+    url += `&mailto=${encodeURIComponent(mailto)}`;
+  }
+
+  await acquireOpenAlexSlot();
+  try {
+    const data = await fetchFromProvider<Resp>("openalex", url, { timeout: 20000, retries: 1 });
+    const results = (data.results ?? []).map((w: any) => ({
+      doi: normalizeDOI(w.doi),
+      title: w.title || '',
+      year: w.publication_year ?? null,
+      citationCount: w.cited_by_count ?? 0,
+      exists: true,
+    }));
+    console.log(`[OpenAlex-Batch] Verified ${results.length}/${dois.length} DOIs`);
+    return results;
+  } catch (error: any) {
+    console.warn(`[OpenAlex-Batch] Batch fetch failed: ${error.message}`);
+    return [];
+  } finally {
+    releaseOpenAlexSlot();
+  }
+}

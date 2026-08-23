@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { AlertTriangle, FileText, GitBranch, MessageSquare, Network, Radar, BarChart3 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import type { ForesightBundle } from "@/lib/foresight";
 import { FORESIGHT_LAYERS } from "@/lib/foresight";
 import { ScenarioMatrix } from "./ScenarioMatrix";
@@ -18,6 +19,7 @@ interface ForesightPanelProps {
 }
 
 export function ForesightPanel({ foresight, publicationId, className }: ForesightPanelProps) {
+  const t = useTranslations();
   const [tab, setTab] = useState<TabId>("scenarios");
 
   if (!foresight.available || !foresight.scenarios.length) {
@@ -25,30 +27,29 @@ export function ForesightPanel({ foresight, publicationId, className }: Foresigh
   }
 
   const tabs: { id: TabId; label: string; icon: typeof Radar }[] = [
-    { id: "scenarios", label: "Scenarios", icon: Radar },
-    { id: "distribution", label: "Distribution", icon: BarChart3 },
-    { id: "graph", label: "Evidence graph", icon: Network },
-    { id: "dissent", label: "Dissent", icon: AlertTriangle },
-    { id: "perspectives", label: "Perspectives", icon: MessageSquare },
+    { id: "scenarios", label: t('Foresight.tabScenarios'), icon: Radar },
+    { id: "distribution", label: t('Foresight.tabDistribution'), icon: BarChart3 },
+    { id: "graph", label: t('Foresight.tabGraph'), icon: Network },
+    { id: "dissent", label: t('Foresight.tabDissent'), icon: AlertTriangle },
+    { id: "perspectives", label: t('Foresight.tabPerspectives'), icon: MessageSquare },
   ];
 
   return (
     <section
       className={`border border-white/[0.08] bg-white/[0.02] overflow-hidden ${className ?? ""}`}
-      aria-label="NomosX Prospective Engine"
+      aria-label={t('Foresight.ariaLabel')}
     >
       <div className="px-5 sm:px-6 py-5 border-b border-white/[0.06]">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-white/40 mb-1">
-              NomosX Prospective Engine
+              {t('Foresight.engineTitle')}
             </div>
             <h2 className="font-display text-xl font-semibold text-text">
-              Scenario distributions
+              {t('Foresight.scenarioDistributions')}
             </h2>
             <p className="text-xs text-white/40 mt-1 max-w-2xl leading-relaxed">
-              {foresight.telemetry.monteCarloRuns.toLocaleString()} Monte Carlo runs ·{" "}
-              {foresight.telemetry.seedRuns} seeds · adversarial gate
+              {t('Foresight.monteCarloDesc', { runs: foresight.telemetry.monteCarloRuns.toLocaleString(), seeds: foresight.telemetry.seedRuns })}
             </p>
           </div>
           <span
@@ -58,7 +59,7 @@ export function ForesightPanel({ foresight, publicationId, className }: Foresigh
                 : "border-warning/25 bg-warning/10 text-warning"
             }`}
           >
-            {foresight.telemetry.adversarialValidated ? "Validated" : "Review"}
+            {foresight.telemetry.adversarialValidated ? t('Foresight.validated') : t('Foresight.review')}
           </span>
         </div>
 
@@ -79,28 +80,28 @@ export function ForesightPanel({ foresight, publicationId, className }: Foresigh
         <div className="px-5 sm:px-6 py-4 border-b border-white/[0.05] bg-black/15">
           <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-wider text-white/40 mb-2">
             <FileText size={12} />
-            Executive synthesis
+            {t('Foresight.executiveSynthesis')}
           </div>
           <p className="text-sm text-white/70 leading-relaxed">{foresight.executiveBrief}</p>
         </div>
       )}
 
       <div className="px-5 sm:px-6 pt-4 flex gap-1 border-b border-white/[0.05] overflow-x-auto">
-        {tabs.map((t) => {
-          const Icon = t.icon;
+        {tabs.map((tabItem) => {
+          const Icon = tabItem.icon;
           return (
             <button
-              key={t.id}
+              key={tabItem.id}
               type="button"
-              onClick={() => setTab(t.id)}
+              onClick={() => setTab(tabItem.id)}
               className={`flex items-center gap-1.5 px-3 py-2.5 text-xs font-mono border-b-2 -mb-px transition-colors whitespace-nowrap ${
-                tab === t.id
+                tab === tabItem.id
                   ? "border-white text-white"
                   : "border-transparent text-white/40 hover:text-white/60"
               }`}
             >
               <Icon size={13} />
-              {t.label}
+              {tabItem.label}
             </button>
           );
         })}
@@ -116,15 +117,15 @@ export function ForesightPanel({ foresight, publicationId, className }: Foresigh
               <div>
                 <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-wider text-white/50 mb-3">
                   <GitBranch size={12} />
-                  Sensitivity matrix
+                  {t('Foresight.sensitivityMatrix')}
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-[11px] font-mono">
                     <thead>
                       <tr className="text-white/50 border-b border-white/[0.08]">
-                        <th className="text-left py-2 pr-4">Variable</th>
-                        <th className="text-left py-2 pr-4">Scenario</th>
-                        <th className="text-right py-2">Elasticity</th>
+                        <th className="text-left py-2 pr-4">{t('Foresight.variable')}</th>
+                        <th className="text-left py-2 pr-4">{t('Foresight.scenario')}</th>
+                        <th className="text-right py-2">{t('Foresight.elasticity')}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -150,12 +151,12 @@ export function ForesightPanel({ foresight, publicationId, className }: Foresigh
             {foresight.redTeamChallenge ? (
               <div className="border border-warning/20 bg-warning/[0.04] p-4">
                 <div className="text-[10px] font-mono uppercase tracking-wider text-warning/80 mb-2">
-                  Red team — steel-man counter-scenario
+                  {t('Foresight.redTeam')}
                 </div>
                 <p className="text-sm text-white/70 leading-relaxed">{foresight.redTeamChallenge}</p>
               </div>
             ) : (
-              <p className="text-sm text-white/40 font-mono">No adversarial challenge recorded.</p>
+              <p className="text-sm text-white/40 font-mono">{t('Foresight.noAdversarial')}</p>
             )}
           </div>
         )}
@@ -171,9 +172,7 @@ export function ForesightPanel({ foresight, publicationId, className }: Foresigh
 
       <div className="px-5 sm:px-6 py-4 border-t border-white/[0.08] bg-black/10">
         <p className="text-[11px] text-white/50 leading-relaxed font-mono">
-          Methodological note: displayed probabilities are scenario weightings from calibrated
-          prospective runs on academic sources — not predictions. Any decision should cross-reference
-          this signal with the cited corpus [SRC-N] and recorded dissent.
+          {t('Foresight.methodNote')}
         </p>
       </div>
     </section>

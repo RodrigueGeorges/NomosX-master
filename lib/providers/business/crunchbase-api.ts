@@ -3,20 +3,15 @@
  * Recherche d'entreprises via Crunchbase (web scraping fallback)
  */
 
+import { fetchFromProvider } from '../../http-client';
+
 export async function searchCrunchbase(query: string, limit: number = 10): Promise<any[]> {
   try {
     // Note: Crunchbase requires API key, this is a web scraping fallback
-    const response = await fetch(`https://www.crunchbase.com/search?q=${encodeURIComponent(query)}&page=1`, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-      }
-    });
-    
-    if (!response.ok) {
-      throw new Error(`Crunchbase scraping error: ${response.status}`);
+    const html: string = await fetchFromProvider('crunchbase', `https://www.crunchbase.com/search?q=${encodeURIComponent(query)}&page=1`, { timeout: 15000, retries: 2, responseType: 'text', headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36' } });
+    if (!html) {
+      throw new Error('Crunchbase scraping request failed');
     }
-    
-    const html = await response.text();
     
     // Simple scraping for company profiles
     const companyMatches = html.match(/crunchbase\.com\/[^\/]+\/[^\/]+/g) || [];

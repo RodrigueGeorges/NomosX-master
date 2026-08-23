@@ -25,6 +25,15 @@ function replaceCitations(text: string, sourceCount?: number): string {
     .replace(/(?<!\[)SRC-(\d+)(?!\])/g, '[SRC-$1]');
   // Deduplicate before rendering so [SRC-13][SRC-13] doesn't render as "1313".
   normalized = dedupeCitations(normalized);
+  // Fix broken abbreviations: "e [SRC-N] g." → "e.g. [SRC-N]"
+  // LLM sometimes inserts citations inside common abbreviations
+  normalized = normalized
+    .replace(/\be\s*\[SRC-(\d+)\]\s*g\./gi, 'e.g. [SRC-$1]')
+    .replace(/\bi\s*\[SRC-(\d+)\]\s*e\./gi, 'i.e. [SRC-$1]')
+    .replace(/\be\s*<sup[^>]*>.*?<\/sup>\s*g\./gi, 'e.g.')
+    .replace(/\bi\s*<sup[^>]*>.*?<\/sup>\s*e\./gi, 'i.e.')
+    // Remove [LIVE-DATA] placeholders that LLM left in text
+    .replace(/\[LIVE-DATA\]/gi, '');
   return normalized.replace(/\[SRC-(\d+)\]/g, (_, n) => {
     const num = parseInt(n, 10);
     if (sourceCount && (num < 1 || num > sourceCount)) {
@@ -61,7 +70,8 @@ export function renderPositionFirstBriefHTML(input: PositionFirstBriefInput): st
   const metaLine = `${formatBadgeHtml} ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} · ${sources.length} sources · ${providers.length} providers · Confidence: ${position.confidence}/100`;
 
   // ── Structured policy recommendations ──
-  const recommendations = (analysis as Record<string, unknown>).recommendations as Record<string, unknown> | undefined;
+  // Prefer position.recommendations (from arbiter), fall back to analysis.recommendations
+  const recommendations = position.recommendations ?? (analysis as Record<string, unknown>).recommendations as Record<string, unknown> | undefined;
   const immediateRecs = Array.isArray(recommendations?.immediate) ? (recommendations!.immediate as string[]) : [];
   const shortTermRecs = Array.isArray(recommendations?.shortTerm) ? (recommendations!.shortTerm as string[]) : [];
   const longTermRecs = Array.isArray(recommendations?.longTerm) ? (recommendations!.longTerm as string[]) : [];
@@ -106,14 +116,20 @@ export function renderPositionFirstBriefHTML(input: PositionFirstBriefInput): st
 
   const scenariosHtml = position.scenarios
     .map(
-      (s) => `
+      (s) => {
+        const signalsHtml = s.signals && s.signals.length > 0
+          ? `<div class="scenario-signals"><span class="signal-label">Signals to watch:</span> ${s.signals.map(sig => `<span class="signal-tag">${esc(sig)}</span>`).join('')}</div>`
+          : '';
+        return `
     <div class="scenario-row">
       <div class="scenario-head">
         <span class="scenario-name">${esc(s.name)}${position.dominantScenario === s.name ? ' · base' : ''}</span>
         <span class="scenario-prob">${esc(s.probability)}</span>
       </div>
       <div class="scenario-desc">${replaceCitations(esc(s.description), sources.length)}</div>
-    </div>`
+      ${signalsHtml}
+    </div>`;
+      }
     )
     .join('');
 
@@ -225,7 +241,7 @@ export function renderPositionFirstBriefHTML(input: PositionFirstBriefInput): st
 
   const bodyHtml = [
     // Verdict first — no section header
-    verdictText ? `<section class="nx-block verdict"><p class="nx-eyebrow">Position</p><div class="verdict-block">${renderParagraphs(verdictText, sources.length)}</div></section>` : '',
+    verdictText ? `<section class="nx-block verdict"><p class="nx-eyebrow">Institute position</p><div class="verdict-block">${renderParagraphs(verdictText, sources.length)}</div></section>` : '',
     // Through line as a lead paragraph
     throughLine ? `<p class="through-line" style="font-size:1.1em;font-weight:500;color:var(--muted);margin:1.5em 0">${replaceCitations(esc(throughLine), sources.length)}</p>` : '',
     // Anchoring basis
@@ -256,6 +272,16 @@ export function renderPositionFirstBriefHTML(input: PositionFirstBriefInput): st
   <article class="nomosx-brief">
     <h1>${esc(title)}</h1>
     <div class="brief-meta">${esc(metaLine)}</div>
+
+    <section class="nx-block detected-subject-block">
+      <p class="nx-eyebrow">Detected subject</p>
+      <p class="detected-subject">${esc(detectedReason)}</p>
+    </section>
+
+    <section class="nx-block dedicated-team-block">
+      <p class="nx-eyebrow">Dedicated team</p>
+      <div class="dedicated-team">${teamHtml}</div>
+    </section>
 
     <section class="nx-block">
       <p class="nx-eyebrow">Probable futures</p>

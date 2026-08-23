@@ -1,4 +1,4 @@
-import { getRateLimiter } from '../http-client';
+import { fetchFromProvider, httpPost } from '../http-client';
 
 /**
  * NomosX News SCOUT Providers
@@ -51,41 +51,44 @@ function makeId(provider: string, raw: string): string {
 }
 
 /**
- * Shared retry helper for news providers: retries on 429 and 5xx with backoff.
- * Returns null after exhausting retries (callers log and return []).
+ * Shared helper for news providers: uses fetchFromProvider/httpPost with retries.
+ * Returns parsed data or null (callers log and return []).
  */
 async function fetchNewsWithRetry(
   label: string,
   url: string,
   init: RequestInit & { timeoutMs?: number } = {},
   retries = 2
-): Promise<Response | null> {
-  const { timeoutMs = 10000, ...rest } = init;
-  let res: Response | null = null;
-  for (let attempt = 0; attempt <= retries; attempt++) {
+): Promise<any | null> {
+  const { timeoutMs = 10000, method, body, headers } = init;
+  const providerKey = label.toLowerCase();
+
+  if (method === 'POST' && body) {
     try {
-      res = await fetch(url, { ...rest, signal: AbortSignal.timeout(timeoutMs) });
+      const data: any = await httpPost(url, JSON.parse(body as string), {
+        timeout: timeoutMs,
+        retries,
+        rateLimiterKey: providerKey,
+        headers: (headers as Record<string, string>) || {},
+      });
+      return data;
     } catch (err: any) {
-      if (attempt === retries) {
-        console.warn(`[SCOUT/${label}] fetch error: ${err.message}`);
-        return null;
-      }
-      await new Promise(r => setTimeout(r, 2000 * (attempt + 1)));
-      continue;
+      console.warn(`[SCOUT/${label}] POST error: ${err.message}`);
+      return null;
     }
-    if (res.ok) return res;
-    // Retry only on rate limit / server errors
-    if ((res.status === 429 || res.status >= 500) && attempt < retries) {
-      const retryAfter = parseInt(res.headers.get('retry-after') || '0', 10);
-      const backoffMs = Math.max(retryAfter * 1000, 2000 * (attempt + 1));
-      console.warn(`[SCOUT/${label}] HTTP ${res.status}, retry ${attempt + 1}/${retries} in ${backoffMs}ms`);
-      await new Promise(r => setTimeout(r, backoffMs));
-      continue;
-    }
-    console.warn(`[SCOUT/${label}] HTTP ${res.status}`);
+  }
+
+  try {
+    const data: any = await fetchFromProvider(providerKey, url, {
+      timeout: timeoutMs,
+      retries,
+      headers: (headers as Record<string, string>) || {},
+    });
+    return data;
+  } catch (err: any) {
+    console.warn(`[SCOUT/${label}] GET error: ${err.message}`);
     return null;
   }
-  return null;
 }
 
 // ============================================================================
@@ -108,28 +111,19 @@ export async function searchGDELTNews(query: string, limit = 30): Promise<ScoutN
     const encoded = encodeURIComponent(cleanQuery);
     const url = `https://api.gdeltproject.org/api/v2/doc/doc?query=${encoded}&mode=ArtList&maxrecords=${Math.min(limit, 250)}&format=json&sort=DateDesc&timespan=14d`;
 
-    // GDELT soft-rate-limits (~1 req / 5s) → use rate limiter to serialize
-    const limiter = getRateLimiter('gdelt-news');
-    if (limiter) await limiter.acquire();
-
-    let res: Response | null = null;
-    for (let attempt = 0; attempt < 3; attempt++) {
-      res = await fetch(url, {
-        signal: AbortSignal.timeout(15000),
-        headers: { 'User-Agent': 'NomosX Research Bot (+https://nomosx.com)' },
-      });
-      if (res.status !== 429) break;
-      const backoffMs = 5000 * (attempt + 1);
-      console.warn(`[SCOUT/GDELT] HTTP 429, retry ${attempt + 1}/2 in ${backoffMs}ms`);
-      await new Promise(r => setTimeout(r, backoffMs));
-    }
-    if (!res || !res.ok) {
-      console.warn(`[SCOUT/GDELT] HTTP ${res?.status ?? 'no-response'}`);
+    // GDELT soft-rate-limits (~1 req / 5s) → fetchFromProvider handles rate limiting
+    const text: string = await fetchFromProvider('gdelt-news', url, {
+      timeout: 15000,
+      retries: 2,
+      responseType: 'text',
+      headers: { 'User-Agent': 'NomosX Research Bot (+https://nomosx.com)' },
+    });
+    if (!text) {
+      console.warn(`[SCOUT/GDELT] No response`);
       return [];
     }
 
     // GDELT returns plain text errors ("One or more errors...") instead of JSON
-    const text = await res.text();
     let data: any;
     try {
       data = JSON.parse(text);
@@ -190,10 +184,9 @@ export async function searchNewsAPI(query: string, limit = 30): Promise<ScoutNew
     const encoded = encodeURIComponent(query);
     const url = `https://newsapi.org/v2/everything?q=${encoded}&sortBy=publishedAt&pageSize=${Math.min(limit, 100)}&language=en&apiKey=${apiKey}`;
 
-    const res = await fetchNewsWithRetry('NewsAPI', url);
-    if (!res) return [];
+    const data: any = await fetchNewsWithRetry('NewsAPI', url);
+    if (!data) return [];
 
-    const data = await res.json();
     const articles: any[] = data?.articles || [];
 
     return articles.slice(0, limit).map((a: any) => {
@@ -247,10 +240,9 @@ export async function searchMediaStack(query: string, limit = 25): Promise<Scout
     // MediaStack free tier uses HTTP only
     const url = `http://api.mediastack.com/v1/news?access_key=${apiKey}&keywords=${encoded}&limit=${Math.min(limit, 100)}&languages=en,fr&sort=published_desc`;
 
-    const res = await fetchNewsWithRetry('MediaStack', url);
-    if (!res) return [];
+    const data: any = await fetchNewsWithRetry('MediaStack', url);
+    if (!data) return [];
 
-    const data = await res.json();
     const articles: any[] = data?.data || [];
 
     return articles.slice(0, limit).map((a: any) => {
@@ -303,10 +295,9 @@ export async function searchTheNewsAPI(query: string, limit = 30): Promise<Scout
     const encoded = encodeURIComponent(query);
     const url = `https://api.thenewsapi.com/v1/news/all?api_token=${apiKey}&search=${encoded}&language=en&limit=${Math.min(limit, 50)}&sort=published_at`;
 
-    const res = await fetchNewsWithRetry('TheNewsAPI', url);
-    if (!res) return [];
+    const data: any = await fetchNewsWithRetry('TheNewsAPI', url);
+    if (!data) return [];
 
-    const data = await res.json();
     const articles: any[] = data?.data || [];
 
     return articles.slice(0, limit).map((a: any) => {
@@ -359,10 +350,9 @@ export async function searchGNews(query: string, limit = 10): Promise<ScoutNewsR
     const encoded = encodeURIComponent(query);
     const url = `https://gnews.io/api/v4/search?q=${encoded}&lang=en&max=${Math.min(limit, 10)}&sortby=publishedAt&token=${apiKey}`;
 
-    const res = await fetchNewsWithRetry('GNews', url);
-    if (!res) return [];
+    const data: any = await fetchNewsWithRetry('GNews', url);
+    if (!data) return [];
 
-    const data = await res.json();
     const articles: any[] = data?.articles || [];
 
     return articles.slice(0, limit).map((a: any) => {
@@ -425,15 +415,14 @@ export async function searchEventRegistry(query: string, limit = 25): Promise<Sc
       apiKey,
     };
 
-    const res = await fetchNewsWithRetry('EventRegistry', 'https://eventregistry.org/api/v1/article/getArticles', {
+    const data: any = await fetchNewsWithRetry('EventRegistry', 'https://eventregistry.org/api/v1/article/getArticles', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
       timeoutMs: 15000,
     });
-    if (!res) return [];
+    if (!data) return [];
 
-    const data = await res.json();
     const articles: any[] = data?.articles?.results || [];
 
     return articles.slice(0, limit).map((a: any) => {

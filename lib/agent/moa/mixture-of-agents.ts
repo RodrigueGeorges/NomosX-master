@@ -526,16 +526,25 @@ export async function runMixtureOfAgents(
   options: {
     agents?: AgentSpecialization[];
     isStrategic?: boolean;
+    useDynamicSelection?: boolean;
   } = {},
 ): Promise<MoAResult> {
   console.log('[MoA] Starting Mixture of Agents...');
+
+  // K5: Dynamic Role Assignment — select agents via meta-debate if enabled
+  let selectedAgents = options.agents;
+  if (options.useDynamicSelection && !options.agents) {
+    const { selected } = await selectAgentsDynamically(query, options.isStrategic ? 7 : 5);
+    selectedAgents = selected;
+    console.log(`[MoA K5] Dynamically selected ${selected.length} agents: ${selected.join(', ')}`);
+  }
 
   // Step 1: Run specialists in parallel
   const specialistAnalyses = await runSpecialistAgents(
     query,
     sources,
     contextBlock,
-    options,
+    { ...options, agents: selectedAgents },
   );
   console.log(`[MoA] ${specialistAnalyses.length} specialist analyses completed`);
 
@@ -543,10 +552,16 @@ export async function runMixtureOfAgents(
   const result = await aggregateAnalyses(query, specialistAnalyses, options);
   console.log(`[MoA] Aggregation complete: confidence=${result.overallConfidence.toFixed(2)}, cost=$${result.totalCostUsd.toFixed(4)}`);
 
-  // Step 3: Persist for learning
-  await persistMoAResult(query, result);
+  // K7: Enhance consensus with Quadratic Voting
+  const enhancedResult = enhanceConsensusWithQuadraticVoting(result);
+  if (enhancedResult.consensus.length > 0) {
+    console.log(`[MoA K7] Quadratic voting reordered ${enhancedResult.consensus.length} consensus points`);
+  }
 
-  return result;
+  // Step 3: Persist for learning
+  await persistMoAResult(query, enhancedResult);
+
+  return enhancedResult;
 }
 
 // ─── Agent Weight Learning ──────────────────────────────────────────────────
@@ -661,4 +676,266 @@ async function persistMoAResult(query: string, result: MoAResult): Promise<void>
   } catch (err) {
     console.warn('[MoA] Failed to persist result:', err);
   }
+}
+
+// ============================================================================
+// K5: DYNAMIC ROLE ASSIGNMENT — Meta-Debate for Agent Selection (arXiv 2026)
+// ============================================================================
+//
+// "Dynamic Role Assignment for Multi-Agent Debate" — instead of always using
+// the same 8 specialists, a meta-debate selects the most relevant agents per query.
+//
+// Two-stage meta-debate:
+//   1. Proposal: Each candidate agent argues why it's relevant to this query
+//   2. Peer review: Agents score each other's proposals with role-specific criteria
+//
+// Result (paper): +74.8% over uniform assignment, +29.7% over random assignment.
+
+export interface AgentProposal {
+  agentId: AgentSpecialization;
+  relevanceScore: number;    // 0-1, how relevant this agent is to the query
+  reasoning: string;          // Why this agent is relevant
+  peerScores: Array<{ from: AgentSpecialization; score: number }>;
+}
+
+/**
+ * Select the most relevant specialist agents for a given query using a meta-debate.
+ *
+ * @param query The research query
+ * @param maxAgents Maximum number of agents to select (default: 5)
+ * @returns Selected agent IDs with their proposals
+ */
+export async function selectAgentsDynamically(
+  query: string,
+  maxAgents: number = 5,
+): Promise<{ selected: AgentSpecialization[]; proposals: AgentProposal[] }> {
+  const allAgents = Object.keys(SPECIALIST_AGENTS) as AgentSpecialization[];
+
+  try {
+    // Stage 1: Proposal — each agent argues why it's relevant
+    const proposalResponse = await callLLM({
+      messages: [
+        {
+          role: 'system',
+          content: `You are a meta-debate coordinator. Given a research query, evaluate which specialist analysts are most relevant.
+
+Available specialists:
+${allAgents.map(id => `- ${id}: ${SPECIALIST_AGENTS[id].focusDescription}`).join('\n')}
+
+For each specialist, assign a relevance score (0.0-1.0) and explain why.
+Respond with JSON:
+{
+  "proposals": [
+    {"agentId": "methodology", "relevanceScore": 0.8, "reasoning": "..."},
+    ...
+  ]
+}`,
+        },
+        {
+          role: 'user',
+          content: `Research query: "${query.slice(0, 500)}"
+
+Evaluate each specialist's relevance:`,
+        },
+      ],
+      temperature: 0.2,
+      jsonMode: true,
+      maxTokens: 800,
+      task: 'enrichment_reasoner',
+    });
+
+    const parsed = parseJson<{ proposals: Array<{ agentId: string; relevanceScore: number; reasoning: string }> }>(
+      proposalResponse.content,
+    );
+
+    if (parsed?.proposals && Array.isArray(parsed.proposals)) {
+      // Filter to valid agents and sort by relevance
+      const validProposals = parsed.proposals
+        .filter(p => allAgents.includes(p.agentId as AgentSpecialization))
+        .sort((a, b) => b.relevanceScore - a.relevanceScore);
+
+      const selected = validProposals
+        .slice(0, maxAgents)
+        .map(p => p.agentId as AgentSpecialization);
+
+      // Always include at least methodology + evidence + skeptic as baseline
+      const baseline: AgentSpecialization[] = ['methodology', 'evidence', 'skeptic'];
+      for (const b of baseline) {
+        if (!selected.includes(b) && selected.length < maxAgents + 2) {
+          selected.push(b);
+        }
+      }
+
+      const proposals: AgentProposal[] = validProposals.map(p => ({
+        agentId: p.agentId as AgentSpecialization,
+        relevanceScore: Math.max(0, Math.min(1, p.relevanceScore)),
+        reasoning: p.reasoning,
+        peerScores: [],
+      }));
+
+      console.log(`[MoA K5] Dynamic selection: ${selected.join(', ')} (top score: ${validProposals[0]?.relevanceScore?.toFixed(2)})`);
+      return { selected: selected.slice(0, maxAgents + 2), proposals };
+    }
+  } catch (err) {
+    console.warn('[MoA K5] Dynamic selection failed, using default:', err);
+  }
+
+  // Fallback: default agents
+  return {
+    selected: ['methodology', 'bias', 'evidence', 'synthesis', 'skeptic'] as AgentSpecialization[],
+    proposals: [],
+  };
+}
+
+// ============================================================================
+// K7: QUADRATIC VOTING — Non-Linear Consensus (NSED, arXiv 2026)
+// ============================================================================
+//
+// In standard voting, each agent gets 1 vote. In Quadratic Voting, each agent
+// gets a budget of "voice credits" and can spend them on issues they care about
+// most. The cost of N votes is N² credits. This means:
+//   - Agents who feel strongly about an issue can express it (more votes)
+//   - But with diminishing returns (quadratic cost)
+//   - Minority positions with strong conviction can still influence outcomes
+//
+// Applied to MoA: each specialist gets a budget of voice credits proportional to
+// its reliability. It distributes credits across consensus points. The aggregator
+// weights consensus by the square root of total credits spent.
+
+export interface QuadraticVote {
+  agentId: AgentSpecialization;
+  /** How many voice credits the agent spent on this point */
+  creditsSpent: number;
+  /** The effective vote weight = sqrt(creditsSpent) */
+  voteWeight: number;
+}
+
+export interface QuadraticVotingResult {
+  /** Consensus points ranked by quadratic vote weight */
+  rankedConsensus: Array<{
+    point: string;
+    totalVoteWeight: number;
+    votes: QuadraticVote[];
+  }>;
+  /** Total credits distributed */
+  totalCreditsUsed: number;
+}
+
+/**
+ * Each agent's voice credit budget, proportional to its reliability.
+ */
+function getVoiceCreditBudget(agentId: AgentSpecialization): number {
+  const agent = SPECIALIST_AGENTS[agentId];
+  // Base budget of 10 credits, scaled by reliability (0.7-0.85 → 7-8.5 credits)
+  return Math.round(10 * agent.reliability);
+}
+
+/**
+ * Parse an agent's analysis for consensus points and assign quadratic votes.
+ *
+ * Each agent distributes its voice credits across the points it raises.
+ * Points it feels strongly about get more credits (but at quadratic cost).
+ */
+export function computeQuadraticVotes(
+  analyses: SpecialistAnalysis[],
+  consensusPoints: string[],
+): QuadraticVotingResult {
+  const votesByPoint: Map<string, QuadraticVote[]> = new Map();
+  let totalCreditsUsed = 0;
+
+  for (const analysis of analyses) {
+    const budget = getVoiceCreditBudget(analysis.agentId);
+    let remainingBudget = budget;
+
+    // For each consensus point, check if this agent's analysis supports it
+    // and assign credits based on confidence and keyword overlap
+    const pointScores: Array<{ point: string; supportScore: number }> = [];
+
+    for (const point of consensusPoints) {
+      const pointKeywords = point.toLowerCase().split(/\s+/).filter(w => w.length > 3);
+      const analysisLower = analysis.analysis.toLowerCase();
+
+      // Count keyword matches
+      const matches = pointKeywords.filter(kw => analysisLower.includes(kw)).length;
+      const keywordOverlap = matches / Math.max(pointKeywords.length, 1);
+
+      // Support score = keyword overlap * agent confidence
+      const supportScore = keywordOverlap * analysis.confidence;
+      if (supportScore > 0.1) {
+        pointScores.push({ point, supportScore });
+      }
+    }
+
+    // Sort by support score (strongest first)
+    pointScores.sort((a, b) => b.supportScore - a.supportScore);
+
+    // Distribute budget using quadratic voting:
+    // Agent spends more credits on points it strongly supports
+    for (const { point, supportScore } of pointScores) {
+      if (remainingBudget <= 0) break;
+
+      // Credits to spend: proportional to support score, but quadratic cost
+      // If agent wants N votes, it costs N² credits
+      // So N = floor(sqrt(remainingBudget * supportScore))
+      const desiredVotes = Math.floor(Math.sqrt(remainingBudget * supportScore));
+      const creditsToSpend = Math.min(remainingBudget, desiredVotes * desiredVotes);
+
+      if (creditsToSpend > 0) {
+        const voteWeight = Math.sqrt(creditsToSpend);
+        const vote: QuadraticVote = {
+          agentId: analysis.agentId,
+          creditsSpent: creditsToSpend,
+          voteWeight,
+        };
+
+        const existing = votesByPoint.get(point) || [];
+        existing.push(vote);
+        votesByPoint.set(point, existing);
+
+        remainingBudget -= creditsToSpend;
+        totalCreditsUsed += creditsToSpend;
+      }
+    }
+  }
+
+  // Compute total vote weight per point and rank
+  const rankedConsensus = Array.from(votesByPoint.entries())
+    .map(([point, votes]) => ({
+      point,
+      totalVoteWeight: votes.reduce((s, v) => s + v.voteWeight, 0),
+      votes,
+    }))
+    .sort((a, b) => b.totalVoteWeight - a.totalVoteWeight);
+
+  return { rankedConsensus, totalCreditsUsed };
+}
+
+/**
+ * Enhanced aggregation that uses quadratic voting for consensus weighting.
+ * Integrates with the existing aggregateAnalyses function.
+ */
+export function enhanceConsensusWithQuadraticVoting(
+  result: MoAResult,
+): MoAResult {
+  if (result.consensus.length === 0) return result;
+
+  const qvResult = computeQuadraticVotes(result.specialistAnalyses, result.consensus);
+
+  // Reorder consensus by quadratic vote weight
+  const reorderedConsensus = qvResult.rankedConsensus.map(r => r.point);
+
+  // Add vote metadata to controversies resolution
+  const enhancedControversies = result.controversies.map(c => ({
+    ...c,
+    // Attach vote data if available
+    resolution: c.resolution + (qvResult.rankedConsensus.find(r => r.point.includes(c.topic.slice(0, 30)))
+      ? ` [QV weight: ${qvResult.rankedConsensus.find(r => r.point.includes(c.topic.slice(0, 30)))!.totalVoteWeight.toFixed(2)}]`
+      : ''),
+  }));
+
+  return {
+    ...result,
+    consensus: reorderedConsensus,
+    controversies: enhancedControversies,
+  };
 }

@@ -273,6 +273,11 @@ export function injectCitationsBySourceMatch(
     skipBlocks.push(m);
     return `\x00SKIP${skipBlocks.length - 1}\x00`;
   });
+  // Skip the references section — never inject citations into reference titles
+  workingHtml = workingHtml.replace(/<section class="references-section">[\s\S]*?<\/section>/gi, (m) => {
+    skipBlocks.push(m);
+    return `\x00SKIP${skipBlocks.length - 1}\x00`;
+  });
 
   for (let i = 0; i < sources.length; i++) {
     const src = sources[i];
@@ -375,7 +380,8 @@ export function injectCitationsByContentMatch(
   }
 
   // Split HTML into segments to find uncited text, skipping <style>/<script>/<h1>/<title> blocks
-  const skipBlockRe = /<(style|script|h1|title)\b[^>]*>[\s\S]*?<\/\1>/gi;
+  // Also skip <section class="references-section"> — never inject citations into reference titles
+  const skipBlockRe = /<(style|script|h1|title)\b[^>]*>[\s\S]*?<\/\1>|<section class="references-section">[\s\S]*?<\/section>/gi;
   const skipRanges: Array<[number, number]> = [];
   let skipMatch: RegExpExecArray | null;
   while ((skipMatch = skipBlockRe.exec(html)) !== null) {
@@ -508,6 +514,11 @@ export function injectBroadCitations(
     return `\x00SKIP${skipBlocks.length - 1}\x00`;
   });
   workingHtml = workingHtml.replace(/<title\b[^>]*>[\s\S]*?<\/title>/gi, (m) => {
+    skipBlocks.push(m);
+    return `\x00SKIP${skipBlocks.length - 1}\x00`;
+  });
+  // Skip the references section — never inject citations into reference titles
+  workingHtml = workingHtml.replace(/<section class="references-section">[\s\S]*?<\/section>/gi, (m) => {
     skipBlocks.push(m);
     return `\x00SKIP${skipBlocks.length - 1}\x00`;
   });
@@ -661,7 +672,8 @@ export function repairCitations(
     // Restore <style>/<script> blocks
     workingHtml = masked.replace(/\x00SKIP4_(\d+)\x00/g, (_, i) => skipBlocks4[parseInt(i, 10)]);
     // Also remove any [E-N] text citations that have corresponding <sup> tags in the same paragraph
-    workingHtml = workingHtml.replace(/<p[^>]*>([\s\S]*?)<\/p>/g, (para, content) => {
+    // CRITICAL: Preserve original <p> attributes (class, style) — don't strip them
+    workingHtml = workingHtml.replace(/<p([^>]*)>([\s\S]*?)<\/p>/g, (para, attrs, content) => {
       const supIds = new Set<string>();
       for (const m of content.matchAll(/<sup class="cite"><a href="#ref-(\d+)"/g)) {
         supIds.add(m[1]);
@@ -672,7 +684,7 @@ export function repairCitations(
         // Remove [E-N] text citations that duplicate <sup> tags
         fixed = fixed.replace(new RegExp(`\\s*\\[E${id}\\]\\s*`, 'g'), ' ');
       }
-      return `<p>${fixed}</p>`;
+      return `<p${attrs}>${fixed}</p>`;
     });
   }
 

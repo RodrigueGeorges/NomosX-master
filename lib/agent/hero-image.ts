@@ -14,6 +14,7 @@
 
 import { prisma } from '../db';
 import { callLLM } from '../llm/unified-llm';
+import { httpPost } from '../http-client';
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const IMAGE_ENDPOINT = 'https://api.openai.com/v1/images/generations';
@@ -65,24 +66,25 @@ export async function generateHeroImage(
     console.log(`[HERO IMAGE] Generating for: "${title.slice(0, 60)}..."`);
 
     if (OPENAI_API_KEY) {
-      const res = await fetch(IMAGE_ENDPOINT, {
-        method: 'POST',
+      const data: any = await httpPost(IMAGE_ENDPOINT, {
+        model: 'gpt-image-1',
+        prompt,
+        n: 1,
+        size: '1024x1024',
+        quality: 'medium',
+      }, {
+        timeout: 180000,
+        retries: 1,
+        rateLimiterKey: 'openai-image',
         headers: {
-          'Content-Type': 'application/json',
           'Authorization': `Bearer ${OPENAI_API_KEY}`,
         },
-        body: JSON.stringify({
-          model: 'gpt-image-1',
-          prompt,
-          n: 1,
-          size: '1024x1024',
-          quality: 'medium',
-        }),
-        signal: AbortSignal.timeout(180000),
+      }).catch((err: any) => {
+        console.warn(`[HERO IMAGE] gpt-image-1 error: ${err.message?.slice(0, 200)}`);
+        return null;
       });
 
-      if (res.ok) {
-        const data = await res.json();
+      if (data) {
         const b64 = data.data?.[0]?.b64_json;
         const url = data.data?.[0]?.url;
         // Size guard: if base64 > 2MB (~2.67M chars), use SVG fallback instead.
@@ -100,9 +102,6 @@ export async function generateHeroImage(
           console.log(`[HERO IMAGE] ✅ Generated via gpt-image-1 (URL, cost ~$0.02)`);
           return { url, prompt, costUsd: 0.02, cached: false };
         }
-      } else {
-        const err = await res.text().catch(() => '');
-        console.warn(`[HERO IMAGE] gpt-image-1 error ${res.status}: ${err.slice(0, 200)}`);
       }
     } else {
       console.warn('[HERO IMAGE] No OPENAI_API_KEY — skipping gpt-image-1');

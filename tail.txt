@@ -1,0 +1,127 @@
+✅ deepseek/deepseek-v4-flash [reader_v3] | 13149ms | 1680+1945 tok | $0.0008
+[KNOWLEDGE] Updated existing concept: "AI governance fragmentation" (3 occurrences)
+[KNOWLEDGE] Created new concept: "Regulatory autonomy" (entity)
+[KNOWLEDGE] Updated existing concept: "Strategic implications" (2 occurrences)
+[KNOWLEDGE] Updated existing concept: "AI governance frameworks" (5 occurrences)
+[KNOWLEDGE] Updated existing concept: "Regulatory competition" (2 occurrences)
+[KNOWLEDGE] Updated existing concept: "Brussels effect" (2 occurrences)
+[KNOWLEDGE] Created new concept: "AI regulatory divergence" (trend)
+[KNOWLEDGE] Updated existing concept: "Risk-based approach" (3 occurrences)
+[KNOWLEDGE] Created new concept: "Sectoral approach" (method)
+[KNOWLEDGE] Created new concept: "State-centric model" (method)
+[KNOWLEDGE] Updated existing concept: "EU AI Act" (3 occurrences)
+[KNOWLEDGE] Created new concept: "US AI regulatory landscape" (policy)
+[KNOWLEDGE] Created new concept: "China AI governance" (policy)
+[KNOWLEDGE] Created new concept: "International cooperation on AI" (trend)
+[KNOWLEDGE] Updated existing concept: "Regulatory arbitrage" (3 occurrences)
+[KNOWLEDGE] Created new concept: "AI sovereignty" (entity)
+[KNOWLEDGE] Created new concept: "Governance interoperability" (claim)
+[KNOWLEDGE] Created new concept: "Normative divergence" (controversy)
+[KNOWLEDGE] Updated existing concept: "AI governance and trade" (2 occurrences)
+[KNOWLEDGE] Updated existing concept: "Regulatory capacity" (2 occurrences)
+[KNOWLEDGE] ✅ Extracted 20 concepts, 17 relations, cost=$0.0008
+[Strategic] KNOWLEDGE GRAPH: 20 concepts, 17 relations
+[Strategic] EPISODIC MEMORY: episode stored for brief cmt49fty00409zoc8eg8a1xll
+[PredictionTracker] Stored: continuation: AI governance remains fragmented, with major e... (p=0.25, horizon=5-10 years)
+[PredictionTracker] Stored: disruption: A major AI-related disaster (e.g., autonomous ve... (p=0.15, horizon=5-10 years)
+[PredictionTracker] Stored: transformation: A breakthrough in AI interpretability and ve... (p=0.1, horizon=5-10 years)
+[PredictionTracker] Stored: collapse: A catastrophic failure of AI governance frameworks... (p=0.05, horizon=5-10 years)
+[PredictionTracker] Stored: surprise: A small nation or non-state actor (e.g., a tech co... (p=0.1, horizon=5-10 years)
+[PredictionTracker] Stored: surprise: A fundamental shift in the AI governance debate oc... (p=0.05, horizon=5-10 years)
+[PredictionTracker] Stored: transformation: AI governance becomes intertwined with clima... (p=0.15, horizon=5-10 years)
+[PredictionTracker] Stored: disruption: A global pandemic or other biological catastroph... (p=0.1, horizon=5-10 years)
+[PredictionTracker] Stored: surprise: A cultural shift towards 'digital minimalism' and ... (p=0.05, horizon=5-10 years)
+[Strategic] PREDICTION TRACKER: stored 9 hypotheses
+[Strategic] EXPERIENCE BANK: extraction queued
+[PREDICTION AUDITOR] Starting retrospective accuracy check...
+
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  âœ… STRATEGIC REPORT COMPLETE
+  Brief: cmt49fty00409zoc8eg8a1xll | Run: cmt48afr90000zoc873xptkhj
+  Sources: 83 | Pages: ~627
+  Cost: $0.0275 | Duration: 1949108ms
+  Orchestrator: 0 decisions
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+
+[AGENT MEMORY] Recorded performance for reader (trust=83, quality=83)
+[AGENT MEMORY] Recorded performance for strategic-analyst (trust=83, quality=83)
+[PREDICTION AUDITOR] Found 0 predictions to audit
+[Inquiry] Complete brief=cmt49fty00409zoc8eg8a1xll sections=1 sources=80 foresight=false
+[InquiryOrchestrator] PUBLISH WITH WARNING: gate hold, trust 85 ≥ 55 — publishing with quality warning
+[InquiryOrchestrator] PUBLISHED pub=cmt49g8pl044pzoc8b7lu9d30 brief=cmt49fty00409zoc8eg8a1xll trust=85
+[QualityCheck] Persisted 5 quality checks for publication cmt49g8pl044pzoc8b7lu9d30
+[ThinkTank] Done mode=breaking published=1 held=0 skipped=0 failed=0 $0.0291 2211365ms
+
+══ Results ══
+
+Mode: breaking
+Success: true
+Duration: 2211.4s
+Collected: 1 topics
+Published: 1
+Held: 0
+Skipped: 0
+Failed: 0
+Total cost: $0.0291
+Decide cost: $0.0016
+
+Outcomes:
+  - [published] AI governance frameworks regulatory autonomy
+    Domain: technology, Strategy: breaking
+    Trust: 85
+    Brief ID: cmt49fty00409zoc8eg8a1xll
+
+Topics detected by radar:
+  - [N/A] undefined
+
+Phases:
+{
+  "detect": {
+    "durationMs": 202372,
+    "topicsFound": 15,
+    "stats": {
+      "gdeltFetched": 0,
+      "rssFetched": 72,
+      "academicFetched": 15,
+      "policyFetched": 0,
+      "institutionalFetched": 0,
+      "dbSignals": 10,
+      "totalRaw": 97,
+      "afterDedup": 93,
+      "crossChannelCollisions": 0,
+      "durationMs": 202371,
+      "crossSourceSignals": {
+        "clustersDetected": 11,
+        "topScore": 82
+      }
+    }
+  },
+  "decide": {
+    "durationMs": 13163,
+    "selected": 1,
+    "skipped": 14,
+    "costUsd": 0.0016175599999999999
+  },
+  "preflight": {
+    "checked": 1,
+    "viable": 1,
+    "rejected": 0,
+    "results": [
+      {
+        "question": "How do global AI governance frameworks and local regulatory autonomy interact, a",
+        "viable": true,
+        "count": 243,
+        "details": "strategy=reformulated, subAngles=5, semantic=20%",
+        "semanticScore": 0.2,
+        "semanticReasoning": "Only sources 2 and 3 directly address global AI governance frameworks and their interaction with local regulatory autonomy, while others focus on different domains or aspects.",
+        "strategy": "reformulated"
+      }
+    ]
+  },
+  "delegate": {
+    "durationMs": 1950676,
+    "published": 1
+  }
+}
+
+✅ Done — 1 publication(s) generated

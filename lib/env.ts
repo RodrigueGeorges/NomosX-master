@@ -117,6 +117,7 @@ const envSchema = z.object({
 
   // News Intelligence (live event monitoring)
   NEWSAPI_KEY: z.string().optional(),
+  NEWSDATA_API_KEY: z.string().optional(),
 
   // LinkUp (complementary web search — grey literature, think tanks, real-time web)
   LINKUP_API_KEY: z.string().optional(),

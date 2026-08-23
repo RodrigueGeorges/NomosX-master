@@ -15,8 +15,8 @@
  * - Fail-safe: every fetcher isolated, pipeline never blocks on QUANT
  */
 
-import axios from 'axios';
 import crypto from 'crypto';
+import { fetchFromProvider } from '../http-client';
 
 const USER_AGENT = 'NomosX Research Bot (+https://nomosx.com)';
 
@@ -126,14 +126,14 @@ async function fetchEnergyChartsPrice(country: string, days = 30): Promise<Quant
     const end = new Date();
     const start = new Date(end);
     start.setDate(start.getDate() - days);
-    const { data } = await axios.get('https://api.energy-charts.info/price', {
-      params: {
-        country: country.toLowerCase(),
-        start: start.toISOString().split('T')[0],
-        end: end.toISOString().split('T')[0],
-      },
+    const params = new URLSearchParams({
+      country: country.toLowerCase(),
+      start: start.toISOString().split('T')[0],
+      end: end.toISOString().split('T')[0],
+    });
+    const data: any = await fetchFromProvider('energy-charts', `https://api.energy-charts.info/price?${params}`, {
+      timeout: 12000, retries: 2,
       headers: { 'User-Agent': USER_AGENT, 'Accept': 'application/json' },
-      timeout: 12000,
     });
     const prices: number[] = data?.price ?? [];
     const stamps: number[] = data?.unix_seconds ?? [];
@@ -156,10 +156,10 @@ async function fetchEnergyChartsPrice(country: string, days = 30): Promise<Quant
 
 async function fetchRTEConsumption(): Promise<QuantSeries | null> {
   try {
-    const { data } = await axios.get('https://odre.opendatasoft.com/api/records/1.0/search', {
-      params: { dataset: 'eco2mix-national-tr', rows: 96 },
+    const params = new URLSearchParams({ dataset: 'eco2mix-national-tr', rows: '96' });
+    const data: any = await fetchFromProvider('rte-france', `https://odre.opendatasoft.com/api/records/1.0/search?${params}`, {
+      timeout: 12000, retries: 2,
       headers: { 'User-Agent': USER_AGENT, 'Accept': 'application/json' },
-      timeout: 12000,
     });
     const records = data?.records ?? [];
     if (records.length === 0) return null;
@@ -183,12 +183,13 @@ async function fetchRTEConsumption(): Promise<QuantSeries | null> {
 
 async function fetchTreasuryDebt(): Promise<QuantSeries | null> {
   try {
-    const { data } = await axios.get(
-      'https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v2/accounting/od/debt_to_penny',
+    const params = new URLSearchParams({ 'page[size]': '30', sort: '-record_date' });
+    const data: any = await fetchFromProvider(
+      'treasury-fiscal',
+      `https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v2/accounting/od/debt_to_penny?${params}`,
       {
-        params: { 'page[size]': 30, sort: '-record_date' },
+        timeout: 12000, retries: 2,
         headers: { 'User-Agent': USER_AGENT, 'Accept': 'application/json' },
-        timeout: 12000,
       },
     );
     const records = data?.data ?? [];
@@ -210,10 +211,10 @@ async function fetchTreasuryDebt(): Promise<QuantSeries | null> {
 
 async function fetchEnergiDataCO2(): Promise<QuantSeries | null> {
   try {
-    const { data } = await axios.get('https://api.energidataservice.dk/dataset/CO2Emis', {
-      params: { limit: 96, sort: 'Minutes5UTC DESC' },
+    const params = new URLSearchParams({ limit: '96', sort: 'Minutes5UTC DESC' });
+    const data: any = await fetchFromProvider('energi-data', `https://api.energidataservice.dk/dataset/CO2Emis?${params}`, {
+      timeout: 12000, retries: 2,
       headers: { 'User-Agent': USER_AGENT, 'Accept': 'application/json' },
-      timeout: 12000,
     });
     const records = data?.records ?? [];
     if (records.length === 0) return null;

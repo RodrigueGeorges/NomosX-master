@@ -1,9 +1,9 @@
 /**
  * Analytics Service — Product Analytics & Tracking
- * 
+ *
  * Tracks user behavior, conversion events, and business metrics.
  * Integrates with Posthog (or Plausible) for product analytics.
- * 
+ *
  * Events tracked:
  * - signup: User registration
  * - trial_started: Trial activation
@@ -13,6 +13,8 @@
  * - strategic_report: User commissions strategic report
  * - studio_analysis: User runs studio analysis
  */
+
+import { httpPost } from './http-client';
 
 
 export interface AnalyticsEvent {
@@ -55,27 +57,21 @@ export async function trackEvent(event: string, properties?: Record<string, any>
   // Send to Posthog if configured
   if (POSTHOG_API_KEY) {
     try {
-      const response = await fetch(`${POSTHOG_HOST}/capture/`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+      await httpPost(`${POSTHOG_HOST}/capture/`, {
+        api_key: POSTHOG_API_KEY,
+        event,
+        properties: {
+          ...properties,
+          distinct_id: userId || 'anonymous',
+          timestamp: eventData.timestamp.toISOString(),
         },
-        body: JSON.stringify({
-          api_key: POSTHOG_API_KEY,
-          event,
-          properties: {
-            ...properties,
-            distinct_id: userId || 'anonymous',
-            timestamp: eventData.timestamp.toISOString(),
-          },
-        }),
+      }, {
+        timeout: 10000,
+        retries: 1,
+        rateLimiterKey: 'posthog',
       });
-
-      if (!response.ok) {
-        console.error('[Analytics] Posthog capture failed:', await response.text());
-      }
-    } catch (error) {
-      console.error('[Analytics] Posthog error:', error);
+    } catch (error: any) {
+      console.error('[Analytics] Posthog error:', error.message?.slice(0, 200));
     }
   }
 }

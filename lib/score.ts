@@ -33,7 +33,8 @@ export function scoreSource(input: {
     'max-planck-pure', 'clinical-trials', 'istat', 'open-primitive', 'treasury-fiscal',
     'energy-charts', 'smard', 'rte-france', 'energi-data', 'fingrid', 'entsog',
     'eurostat', 'data-gouv', 'eeas', 'nato', 'nist', 'cisa', 'enisa',
-    'worldbank', 'imf', 'oecd-direct', 'fred', 'ecb', 'eib',
+    'worldbank', 'imf', 'oecd-direct', 'fred', 'ecb', 'eib', 'opencitations',
+    'hf-papers', 'data-europa', 'ietf',
   ];
   const realApiBonus = realApiProviders.includes(input.provider || '') ? 8 : 0;
 

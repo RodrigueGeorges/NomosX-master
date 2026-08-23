@@ -24,6 +24,29 @@
 
 import { prisma } from '../db';
 import { embedText, cosineSimilarity } from './semantic-engine';
+import { createEvoMemKG, addToWorkingMemory, retrieveExperience, buildEvoMemKGInjection, type EvoMemKGState } from './knowledge-graph';
+
+// ─── CatRAG-style Query-Aware Helpers (ACL 2026) ─────────────────────────────
+
+const STOP_WORDS = new Set(['the', 'and', 'for', 'are', 'but', 'not', 'you', 'all', 'can', 'had', 'her', 'was', 'one', 'our', 'out', 'day', 'get', 'has', 'him', 'his', 'how', 'man', 'new', 'now', 'old', 'see', 'two', 'way', 'who', 'boy', 'did', 'its', 'let', 'put', 'say', 'she', 'too', 'use', 'with', 'have', 'this', 'will', 'your', 'from', 'they', 'know', 'want', 'been', 'good', 'much', 'some', 'time', 'very', 'when', 'come', 'here', 'just', 'like', 'long', 'make', 'many', 'over', 'such', 'take', 'than', 'them', 'well', 'were']);
+
+function extractQueryTerms(query: string): string[] {
+  const tokens = query.toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .filter(t => t.length > 3 && !STOP_WORDS.has(t));
+  return [...new Set(tokens)];
+}
+
+function nodeMatches(node: GraphNode, terms: string[]): number {
+  const text = `${node.name} ${node.description} ${node.type}`.toLowerCase();
+  return terms.reduce((count, term) => count + (text.includes(term) ? 1 : 0), 0);
+}
+
+function edgeMatches(edge: GraphEdge, from: GraphNode, to: GraphNode, terms: string[]): number {
+  const text = `${edge.type} ${from.name} ${from.description} ${to.name} ${to.description}`.toLowerCase();
+  return terms.reduce((count, term) => count + (text.includes(term) ? 1 : 0), 0);
+}
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -105,19 +128,23 @@ export function personalizedPageRank(
   edges: GraphEdge[],
   seedIds: string[],
   config: MultiHopConfig = DEFAULT_MULTIHOP_CONFIG,
+  query?: string,
 ): Map<string, number> {
   const n = nodes.length;
   if (n === 0) return new Map();
 
   const nodeIds = new Set(nodes.map(node => node.id));
   const seedSet = new Set(seedIds);
+  const terms = query ? extractQueryTerms(query) : [];
 
   // Build adjacency list (outgoing edges)
   const outEdges = new Map<string, string[]>();
   const inEdges = new Map<string, string[]>();
+  const nodeById = new Map<string, GraphNode>();
   for (const node of nodes) {
     outEdges.set(node.id, []);
     inEdges.set(node.id, []);
+    nodeById.set(node.id, node);
   }
   for (const edge of edges) {
     if (nodeIds.has(edge.fromId) && nodeIds.has(edge.toId)) {
@@ -126,13 +153,39 @@ export function personalizedPageRank(
     }
   }
 
-  // Initialize scores
+  // CatRAG: pre-compute query-aware boosts for each edge
+  const edgeBoost = new Map<string, number>();
+  for (const edge of edges) {
+    const from = nodeById.get(edge.fromId);
+    const to = nodeById.get(edge.toId);
+    if (!from || !to || !terms.length) {
+      edgeBoost.set(`${edge.fromId}->${edge.toId}`, 1.0);
+      continue;
+    }
+    const matches = edgeMatches(edge, from, to, terms);
+    // Max boost ~2.5x for highly query-aligned edges
+    edgeBoost.set(`${edge.fromId}->${edge.toId}`, 1.0 + Math.min(1.5, matches * 0.3));
+  }
+
+  // Initialize scores with symbolic anchoring: seeds that match query terms get more weight
   let scores = new Map<string, number>();
   const seedWeight = seedIds.length > 0 ? 1 / seedIds.length : 1 / n;
 
-  // Personalization vector: uniform over seeds, 0 elsewhere
   for (const node of nodes) {
-    scores.set(node.id, seedSet.has(node.id) ? seedWeight : 0);
+    const base = seedSet.has(node.id) ? seedWeight : 0;
+    // Symbolic anchoring: boost seeds matching query terms
+    const anchorBoost = seedSet.has(node.id) && terms.length ? 1.0 + Math.min(2.0, nodeMatches(node, terms) * 0.4) : 1.0;
+    scores.set(node.id, base * anchorBoost);
+  }
+
+  // Normalize seeds after boosting
+  const seedTotal = Array.from(scores.entries())
+    .filter(([id]) => seedSet.has(id))
+    .reduce((sum, [, score]) => sum + score, 0);
+  if (seedTotal > 0) {
+    for (const id of seedIds) {
+      scores.set(id, (scores.get(id) || 0) / seedTotal);
+    }
   }
 
   // Iterate
@@ -141,11 +194,8 @@ export function personalizedPageRank(
     let maxDelta = 0;
 
     for (const node of nodes) {
-      // PageRank formula:
-      // PR(n) = (1-d) * P(n) + d * sum(PR(m) / outdeg(m) for m in inEdges(n))
-      // where P(n) is the personalization vector
-
-      let rank = (1 - config.dampingFactor) * (seedSet.has(node.id) ? seedWeight : 0);
+      // PageRank formula with query-aware edge weighting
+      let rank = (1 - config.dampingFactor) * (scores.get(node.id) || 0);
 
       // Add contributions from incoming edges
       const incoming = inEdges.get(node.id) || [];
@@ -153,10 +203,23 @@ export function personalizedPageRank(
         const sourceScore = scores.get(sourceId) || 0;
         const sourceOutDeg = (outEdges.get(sourceId) || []).length;
         if (sourceOutDeg > 0) {
-          rank += config.dampingFactor * (sourceScore / sourceOutDeg);
+          // CatRAG dynamic edge weight: align with query terms
+          const boost = edgeBoost.get(`${sourceId}->${node.id}`) || 1.0;
+          // Normalize outgoing edge boosts so a high-degree node doesn't overflow
+          const sourceEdges = (outEdges.get(sourceId) || []).map(t => edgeBoost.get(`${sourceId}->${t}`) || 1.0);
+          const normalizer = sourceEdges.reduce((a, b) => a + b, 0);
+          rank += config.dampingFactor * (sourceScore * boost) / normalizer;
         } else {
           // Dangling node: distribute to all seeds
           rank += config.dampingFactor * (sourceScore / seedIds.length) * (seedSet.has(node.id) ? 1 : 0);
+        }
+      }
+
+      // Key-fact passage weight enhancement: boost reached nodes matching query terms
+      if (terms.length && !seedSet.has(node.id)) {
+        const matches = nodeMatches(node, terms);
+        if (matches > 0) {
+          rank *= 1.0 + Math.min(1.0, matches * 0.15);
         }
       }
 
@@ -317,8 +380,8 @@ export async function multiHopRetrieve(
 
   const seedIds = seeds.map(s => s.id);
 
-  // Step 2: Run Personalized PageRank
-  const pagerankScores = personalizedPageRank(concepts, relations, seedIds, config);
+  // Step 2: Run Personalized PageRank (CatRAG query-aware)
+  const pagerankScores = personalizedPageRank(concepts, relations, seedIds, config, query);
 
   // Step 3: Calculate hop distances
   const hopDistances = calculateHopDistances(concepts, relations, seedIds);
@@ -353,12 +416,30 @@ export async function multiHopRetrieve(
   // Step 7: Build reasoning chain
   const reasoningChain = buildReasoningChain(seeds, reached, traversedEdges);
 
+  // K12: EvoMemKG — add retrieved triplets to working memory and retrieve experience
+  let evoMemInjection = '';
+  try {
+    const evoState: EvoMemKGState = createEvoMemKG();
+    // Convert traversed edges to triplets and add to working memory
+    const triplets = traversedEdges.map(e => ({
+      subject: e.fromId,
+      predicate: e.type,
+      object: e.toId,
+    }));
+    if (triplets.length > 0) {
+      addToWorkingMemory(evoState, triplets);
+      evoMemInjection = buildEvoMemKGInjection(evoState);
+    }
+  } catch (err) {
+    // Non-blocking — EvoMemKG is an enhancement
+  }
+
   return {
     seeds,
     reached,
     edges: traversedEdges,
     sourceIds: Array.from(sourceIds),
-    reasoningChain,
+    reasoningChain: evoMemInjection ? `${reasoningChain}\n${evoMemInjection}` : reasoningChain,
     costUsd,
   };
 }

@@ -4,27 +4,14 @@
  * Supplements the OpenAlex-based OECD provider with direct iLibrary results
  */
 
+import { fetchFromProvider } from '../../../http-client';
+
 export async function searchOECDDirect(query: string, limit = 15): Promise<any[]> {
   console.log(`[OECD-DIRECT] Searching iLibrary for: "${query}"`);
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000);
-
     const encoded = encodeURIComponent(query);
-    const res = await fetch(
-      `https://www.oecd-ilibrary.org/search/feed?query=${encoded}&contentType=10,11,12,13,14&sort=relevance&language=en`,
-      {
-        signal: controller.signal,
-        headers: {
-          'Accept': 'application/rss+xml, text/xml',
-          'User-Agent': 'NomosX/1.0 (research aggregator)',
-        },
-      }
-    );
-    clearTimeout(timeout);
-
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const xml = await res.text();
+    const xml: string = await fetchFromProvider('oecd', `https://www.oecd-ilibrary.org/search/feed?query=${encoded}&contentType=10,11,12,13,14&sort=relevance&language=en`, { timeout: 15000, retries: 2, responseType: 'text', headers: { 'Accept': 'application/rss+xml, text/xml', 'User-Agent': 'NomosX/1.0 (research aggregator)' } });
+    if (!xml) throw new Error('Request failed');
 
     const items = xml.match(/<item>([\s\S]*?)<\/item>/g) || [];
     const results: any[] = [];

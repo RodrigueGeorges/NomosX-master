@@ -3,19 +3,14 @@
  * Recherche de datasets via Figshare
  */
 
+import { fetchFromProvider } from '../../http-client';
+
 export async function searchFigshare(query: string, limit: number = 10): Promise<any[]> {
   try {
-    const response = await fetch(`https://api.figshare.com/v2/articles?search=${encodeURIComponent(query)}&page_size=${limit}`, {
-      headers: {
-        'User-Agent': 'NomosX/1.0 (mailto:contact@nomosx.com)'
-      }
-    });
-    
-    if (!response.ok) {
-      throw new Error(`Figshare API error: ${response.status}`);
+    const data: any = await fetchFromProvider('figshare', `https://api.figshare.com/v2/articles?search=${encodeURIComponent(query)}&page_size=${limit}`, { timeout: 15000, retries: 2, headers: { 'User-Agent': 'NomosX/1.0 (mailto:contact@nomosx.com)' } });
+    if (!data) {
+      throw new Error('Figshare API request failed');
     }
-    
-    const data = await response.json();
     
     return data.map((item: any) => ({
       id: `figshare:${item.id}`,

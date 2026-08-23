@@ -15,12 +15,17 @@ export async function searchSemanticScholarGraph(query: string, limit = 25): Pro
   const fields = "paperId,title,abstract,year,citationCount,influentialCitationCount,authors,openAccessPdf,url,externalIds,venue,publicationTypes,tldr,fieldsOfStudy";
   const url = `https://api.semanticscholar.org/graph/v1/paper/search?query=${encodeURIComponent(query)}&limit=${Math.min(limit, 50)}&fields=${fields}`;
 
+  const headers: Record<string, string> = {
+    Accept: "application/json",
+  };
+  if (env.SEMANTICSCHOLAR_API_KEY) {
+    headers['x-api-key'] = env.SEMANTICSCHOLAR_API_KEY;
+  }
+
   try {
     const data: any = await fetchFromProvider("semantic-scholar-graph", url, {
       timeout: 15000,
-      headers: {
-        Accept: "application/json",
-      },
+      headers,
     });
 
     const items = data?.data || [];

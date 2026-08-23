@@ -15,7 +15,7 @@
  *   radar-agent.ts. Never enters the SCOUT→INDEX→RANK evidence pipeline.
  */
 
-import { getRateLimiter } from '../../http-client';
+import { fetchFromProvider } from '../../http-client';
 import type { SocialSignal } from './reddit';
 
 /**
@@ -24,26 +24,23 @@ import type { SocialSignal } from './reddit';
  */
 export async function searchHackerNewsSignals(query: string, limit = 25): Promise<SocialSignal[]> {
   try {
-    const limiter = getRateLimiter('hackernews');
-    if (limiter) await limiter.acquire();
-
     // Algolia HN Search — search stories (more substantive than comments)
     const url = `https://hn.algolia.com/api/v1/search?query=${encodeURIComponent(query)}&tags=story&hitsPerPage=${Math.min(limit, 50)}`;
 
-    const res = await fetch(url, {
-      signal: AbortSignal.timeout(10000),
+    const data: any = await fetchFromProvider('hackernews', url, {
+      timeout: 10000,
+      retries: 2,
       headers: {
         Accept: 'application/json',
         'User-Agent': 'NomosX Research Bot (+https://nomosx.com)',
       },
     });
 
-    if (!res.ok) {
-      console.warn(`[HackerNews] HTTP ${res.status}`);
+    if (!data) {
+      console.warn(`[HackerNews] No data returned`);
       return [];
     }
 
-    const data: any = await res.json();
     const hits: any[] = data?.hits || [];
 
     const signals: SocialSignal[] = hits

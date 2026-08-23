@@ -3,36 +3,24 @@
  * Recherche de publications médicales via PubMed
  */
 
+import { fetchFromProvider } from '../../http-client';
+
 export async function searchPubMed(query: string, limit: number = 10): Promise<any[]> {
   try {
     // Search step
-    const searchResponse = await fetch(`https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&term=${encodeURIComponent(query)}&retmax=${limit}&retmode=json`, {
-      headers: {
-        'User-Agent': 'NomosX/1.0 (mailto:contact@nomosx.com)'
-      }
-    });
-    
-    if (!searchResponse.ok) {
-      throw new Error(`PubMed search error: ${searchResponse.status}`);
+    const searchData: any = await fetchFromProvider('pubmed', `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&term=${encodeURIComponent(query)}&retmax=${limit}&retmode=json`, { timeout: 15000, retries: 2, headers: { 'User-Agent': 'NomosX/1.0 (mailto:contact@nomosx.com)' } });
+    if (!searchData) {
+      throw new Error('PubMed search request failed');
     }
-    
-    const searchData = await searchResponse.json();
     const pmids = searchData.esearchresult.idlist;
     
     if (!pmids.length) return [];
     
     // Fetch details
-    const summaryResponse = await fetch(`https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pubmed&id=${pmids.join(',')}&retmode=json`, {
-      headers: {
-        'User-Agent': 'NomosX/1.0 (mailto:contact@nomosx.com)'
-      }
-    });
-    
-    if (!summaryResponse.ok) {
-      throw new Error(`PubMed summary error: ${summaryResponse.status}`);
+    const summaryData: any = await fetchFromProvider('pubmed', `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pubmed&id=${pmids.join(',')}&retmode=json`, { timeout: 15000, retries: 2, headers: { 'User-Agent': 'NomosX/1.0 (mailto:contact@nomosx.com)' } });
+    if (!summaryData) {
+      throw new Error('PubMed summary request failed');
     }
-    
-    const summaryData = await summaryResponse.json();
     
     return Object.entries(summaryData.result).filter(([key]) => key !== 'uids').map(([pmid, item]: [string, any]) => ({
       id: `pubmed:${pmid}`,

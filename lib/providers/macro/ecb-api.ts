@@ -4,6 +4,7 @@
  */
 
 import { z } from 'zod';
+import { fetchFromProvider } from '../../http-client';
 
 const ECBResultSchema = z.object({
   series: z.object({
@@ -49,19 +50,10 @@ export async function searchECB(query: string, limit = 15): Promise<any[]> {
     
     console.log(`[ECB] Fetching dataset: ${dataset}`);
     
-    const response = await fetch(url, {
-      headers: {
-        'Accept': 'application/vnd.sdmx.structure+json;version=1.0,application/json',
-        'Accept-Language': 'en'
-      },
-      signal: AbortSignal.timeout(15000)
-    });
-
-    if (!response.ok) {
-      throw new Error(`ECB API error: ${response.status} ${response.statusText}`);
+    const data: any = await fetchFromProvider('ecb', url, { timeout: 15000, retries: 2, headers: { 'Accept': 'application/vnd.sdmx.structure+json;version=1.0,application/json', 'Accept-Language': 'en' } });
+    if (!data) {
+      throw new Error('ECB API request failed');
     }
-
-    const data = await response.json();
     
     // Transformer les données BCE en format NomosX
     const sources = await transformECBToSources(data, dataset, query);

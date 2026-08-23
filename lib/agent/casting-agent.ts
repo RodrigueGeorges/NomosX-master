@@ -22,16 +22,31 @@ function buildDeterministicTeam(
   const team: CastTeamMember[] = [];
 
   if (dimensions.length === 0) {
+    // Even with 0 dimensions, produce 3 team members for productive friction
     team.push({
       lensId: 'general',
       domain: 'Policy',
       role: 'lead',
       mandate: `Primary analytical lens on: ${question.slice(0, 120)}`,
     });
+    team.push({
+      lensId: 'evidence',
+      domain: 'Evidence integrity',
+      role: 'friction',
+      mandate: 'Challenge causal claims and test whether conclusions survive missing counterevidence.',
+      frictionWith: 'Policy',
+    });
+    team.push({
+      lensId: 'foresight',
+      domain: 'Strategic foresight',
+      role: 'stress-test',
+      mandate: 'Stress-test projections against alternative futures and identify black-swan risks.',
+      frictionWith: 'Evidence integrity',
+    });
     return {
       team,
-      collisionSummary: question,
-      productiveFriction: 'Single-domain inquiry — adversarial review applied at institute gate.',
+      collisionSummary: question.slice(0, 100),
+      productiveFriction: 'Evidence integrity challenges Policy assumptions; foresight stress-tests against alternative futures.',
     };
   }
 
@@ -50,6 +65,15 @@ function buildDeterministicTeam(
       mandate: dimensions[1].angle,
       frictionWith: formatDomainLabel(dimensions[0].domain),
     });
+  } else {
+    // Always add a friction lens even with 1 dimension
+    team.push({
+      lensId: 'evidence',
+      domain: 'Evidence integrity',
+      role: 'friction',
+      mandate: 'Challenge causal claims and test whether conclusions survive missing counterevidence.',
+      frictionWith: formatDomainLabel(dimensions[0].domain),
+    });
   }
 
   if (dimensions.length >= 3) {
@@ -60,17 +84,20 @@ function buildDeterministicTeam(
       mandate: dimensions[2].angle,
       frictionWith: formatDomainLabel(dimensions[1].domain),
     });
-  } else if (isCrossDomain && dimensions.length === 1) {
+  } else {
+    // Always add a stress-test lens
     team.push({
-      lensId: 'stress-test',
-      domain: 'Evidence integrity',
+      lensId: 'foresight',
+      domain: 'Strategic foresight',
       role: 'stress-test',
-      mandate: 'Challenge causal claims and test whether conclusions survive missing counterevidence.',
-      frictionWith: formatDomainLabel(dimensions[0].domain),
+      mandate: 'Stress-test projections against alternative futures and identify black-swan risks.',
+      frictionWith: team[1]?.domain ?? 'Evidence integrity',
     });
   }
 
-  const collisionSummary = dimensions.map((d) => d.label).join(' × ');
+  const collisionSummary = dimensions.length >= 2
+    ? dimensions.map((d) => d.label).join(' × ')
+    : `${dimensions[0]?.label ?? question.slice(0, 60)} × Evidence × Foresight`;
 
   return {
     team,
@@ -78,7 +105,7 @@ function buildDeterministicTeam(
     productiveFriction:
       dimensions.length >= 2
         ? `${formatDomainLabel(dimensions[1].domain)} stress-tests assumptions from ${formatDomainLabel(dimensions[0].domain)} before institute position.`
-        : 'Institute gate applies adversarial review on a focused domain lens.',
+        : 'Evidence integrity challenges the lead lens; foresight stress-tests against alternative futures.',
   };
 }
 

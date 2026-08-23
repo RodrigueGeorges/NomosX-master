@@ -375,3 +375,245 @@ function budgetCapUsdFromPct(budgetUsedPct: number, config: BudgetForcingConfig)
 export function budgetForcingInstruction(): string {
   return `\n=== BUDGET FORCING ===\nYour reasoning budget is limited. If you find yourself stuck or looping, stop and produce the best answer you can. If you have time remaining and the answer is not yet solid, use "Wait, let me reconsider this more carefully." to extend your reasoning before finalizing.\n=== END BUDGET FORCING ===`;
 }
+
+// ============================================================================
+// K3: REFRAIN — Adaptive Early-Stopping via SW-UCB Bandit (ACL 2026, Sun et al.)
+// ============================================================================
+//
+// "Stop When Enough" — instead of a fixed budget cap, a Sliding-Window Upper
+// Confidence Bound (SW-UCB) multi-armed bandit dynamically adjusts the stopping
+// threshold according to problem difficulty, without supervision or fine-tuning.
+//
+// Two arms:
+//   - "stop"    : produce the final answer now
+//   - "continue": extend reasoning by one more step
+//
+// The bandit tracks reward (PRM score improvement) for each arm over a sliding
+// window of recent decisions. UCB1 selects the arm with the highest upper
+// confidence bound. When "stop" is selected, the agent is forced to synthesize.
+//
+// Result (paper): 20-55% token reduction while maintaining or improving accuracy.
+
+export interface SWUCBArmStats {
+  /** Number of times this arm was selected in the sliding window */
+  pulls: number;
+  /** Cumulative reward observed for this arm in the sliding window */
+  cumulativeReward: number;
+  /** Recent (timestamp, reward) pairs for sliding-window computation */
+  history: Array<{ step: number; reward: number }>;
+}
+
+export interface SWUCBBanditState {
+  stop: SWUCBArmStats;
+  continue: SWUCBArmStats;
+  /** Sliding window size (number of recent decisions to consider) */
+  windowSize: number;
+  /** UCB exploration constant */
+  explorationConstant: number;
+  /** Current step counter */
+  totalSteps: number;
+  /** Minimum steps before the bandit can decide to stop (warmup) */
+  minStepsBeforeStop: number;
+  /** Difficulty estimate (0-1, higher = harder) */
+  difficultyEstimate: number;
+}
+
+export function createSWUCBBandit(
+  windowSize: number = 10,
+  explorationConstant: number = 1.414,
+  minStepsBeforeStop: number = 3,
+): SWUCBBanditState {
+  return {
+    stop: { pulls: 0, cumulativeReward: 0, history: [] },
+    continue: { pulls: 0, cumulativeReward: 0, history: [] },
+    windowSize,
+    explorationConstant,
+    totalSteps: 0,
+    minStepsBeforeStop,
+    difficultyEstimate: 0.5,
+  };
+}
+
+/**
+ * Select an arm (stop or continue) using SW-UCB.
+ * Returns 'stop' if the bandit thinks enough reasoning has been done.
+ */
+export function swUcbSelect(
+  state: SWUCBBanditState,
+  currentPrmScore: number,
+  progressScore: number,
+): 'stop' | 'continue' {
+  state.totalSteps++;
+
+  // Warmup: always continue during the first few steps
+  if (state.totalSteps <= state.minStepsBeforeStop) {
+    return 'continue';
+  }
+
+  // Update difficulty estimate based on PRM score trajectory
+  // Low PRM + low progress = hard problem → bias toward continuing
+  state.difficultyEstimate = 0.7 * state.difficultyEstimate + 0.3 * (1 - currentPrmScore);
+
+  // Compute SW-UCB values for each arm
+  const windowStart = state.totalSteps - state.windowSize;
+
+  const stopInWindow = state.stop.history.filter(h => h.step >= windowStart);
+  const continueInWindow = state.continue.history.filter(h => h.step >= windowStart);
+
+  const stopPulls = stopInWindow.length;
+  const continuePulls = continueInWindow.length;
+
+  const stopAvgReward = stopPulls > 0
+    ? stopInWindow.reduce((s, h) => s + h.reward, 0) / stopPulls
+    : 0.5; // optimistic prior
+  const continueAvgReward = continuePulls > 0
+    ? continueInWindow.reduce((s, h) => s + h.reward, 0) / continuePulls
+    : 0.5;
+
+  const totalPulls = stopPulls + continuePulls;
+  const lnTotal = totalPulls > 0 ? Math.log(totalPulls) : 0;
+
+  // UCB1 formula: Q(a) + c * sqrt(ln(N) / n_a)
+  const stopUCB = stopPulls > 0
+    ? stopAvgReward + state.explorationConstant * Math.sqrt(lnTotal / stopPulls)
+    : Infinity; // always explore untried arms
+  const continueUCB = continuePulls > 0
+    ? continueAvgReward + state.explorationConstant * Math.sqrt(lnTotal / continuePulls)
+    : Infinity;
+
+  // Difficulty bias: for hard problems, add a bonus to "continue"
+  // This implements the adaptive threshold from the REFRAIN paper
+  const continueBonus = state.difficultyEstimate * 0.15;
+  const adjustedContinueUCB = continueUCB + continueBonus;
+
+  // Progress penalty: if not making progress, penalize "continue"
+  const progressPenalty = (1 - progressScore) * 0.2;
+  const finalContinueUCB = adjustedContinueUCB - progressPenalty;
+
+  // High PRM score bonus for "stop": if quality is already high, prefer stopping
+  const stopBonus = currentPrmScore > 0.8 ? 0.3 : 0;
+  const finalStopUCB = stopUCB + stopBonus;
+
+  return finalStopUCB >= finalContinueUCB ? 'stop' : 'continue';
+}
+
+/**
+ * Record the outcome of a bandit decision.
+ * Call this after the step is executed to update the bandit's statistics.
+ *
+ * @param state The bandit state
+ * @param arm Which arm was selected
+ * @param reward The reward observed (e.g., PRM score improvement delta)
+ */
+export function swUcbUpdate(
+  state: SWUCBBanditState,
+  arm: 'stop' | 'continue',
+  reward: number,
+): void {
+  const armStats = state[arm];
+  armStats.pulls++;
+  armStats.cumulativeReward += reward;
+  armStats.history.push({ step: state.totalSteps, reward });
+
+  // Trim history to sliding window (keep last 2x window for safety)
+  const maxHistory = state.windowSize * 2;
+  if (armStats.history.length > maxHistory) {
+    armStats.history = armStats.history.slice(-maxHistory);
+  }
+}
+
+/**
+ * REFRAIN-style adaptive budget forcing decision.
+ *
+ * Combines the existing rule-based budget forcing with the SW-UCB bandit.
+ * The bandit provides the primary decision; rules provide safety guardrails.
+ *
+ * @param bandit The SW-UCB bandit state (persisted across steps)
+ * @param prmScore Current PRM score (0-1)
+ * @param step Current step
+ * @param maxSteps Max steps
+ * @param costUsd Current cost
+ * @param budgetCapUsd Budget cap
+ * @param progressScore Progress score (0-1)
+ * @param config Budget forcing config
+ */
+export function refrainDecide(
+  bandit: SWUCBBanditState,
+  prmScore: number,
+  step: number,
+  maxSteps: number,
+  costUsd: number,
+  budgetCapUsd: number,
+  progressScore: number,
+  config: BudgetForcingConfig = DEFAULT_BUDGET_FORCING_CONFIG,
+): BudgetForcingDecision {
+  if (!config.enabled) {
+    return { action: 'continue', reason: 'Budget forcing disabled', confidence: 1 };
+  }
+
+  // Safety guardrails (always checked first)
+  const budgetUsedPct = budgetCapUsd > 0 ? (costUsd / budgetCapUsd) * 100 : 0;
+
+  // Hard budget cap
+  if (budgetUsedPct >= 100) {
+    return {
+      action: 'force_synthesis',
+      reason: `Budget exhausted (${budgetUsedPct.toFixed(0)}%) — forcing synthesis`,
+      confidence: 1,
+    };
+  }
+
+  // Hard step cap
+  if (step >= maxSteps) {
+    return {
+      action: 'force_synthesis',
+      reason: `Max steps (${maxSteps}) reached — forcing synthesis`,
+      confidence: 1,
+    };
+  }
+
+  // Abort if quality is very low
+  if (prmScore < config.abortThreshold && step > 3) {
+    return {
+      action: 'abort',
+      reason: `PRM score ${prmScore.toFixed(2)} < ${config.abortThreshold} — quality too low`,
+      confidence: 0.9,
+    };
+  }
+
+  // Stuck detection
+  if (progressScore < 0.1 && step > 5) {
+    return {
+      action: 'force_synthesis',
+      reason: `Progress score ${progressScore.toFixed(2)} — agent is stuck`,
+      confidence: 0.8,
+    };
+  }
+
+  // SW-UCB bandit decision
+  const arm = swUcbSelect(bandit, prmScore, progressScore);
+
+  if (arm === 'stop') {
+    return {
+      action: 'force_synthesis',
+      reason: `REFRAIN SW-UCB selected "stop" (difficulty=${bandit.difficultyEstimate.toFixed(2)}, PRM=${prmScore.toFixed(2)})`,
+      confidence: Math.min(0.95, 0.5 + prmScore * 0.5),
+    };
+  }
+
+  // "continue" — but check if we should extend reasoning with a Wait token
+  if (prmScore < config.extendReasoningThreshold && progressScore > 0.2) {
+    return {
+      action: 'extend_reasoning',
+      reason: `REFRAIN SW-UCB selected "continue" — extending reasoning (PRM=${prmScore.toFixed(2)})`,
+      injectionToken: getWaitToken(step),
+      confidence: 0.6,
+    };
+  }
+
+  return {
+    action: 'continue',
+    reason: `REFRAIN SW-UCB selected "continue" (difficulty=${bandit.difficultyEstimate.toFixed(2)})`,
+    confidence: 0.7,
+  };
+}

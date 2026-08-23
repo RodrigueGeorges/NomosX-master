@@ -20,7 +20,7 @@
  * Graceful skip: If OVERTON_API_KEY is not set, returns empty array.
  */
 
-import { getRateLimiter } from '../http-client';
+import { fetchFromProvider } from '../http-client';
 
 export interface OvertonResult {
   id: string;
@@ -55,27 +55,23 @@ export async function searchOverton(query: string, limit = 25): Promise<OvertonR
   }
 
   try {
-    // Overton rate limit: 1 req/sec — use rate limiter to serialize
-    const limiter = getRateLimiter('overton');
-    if (limiter) await limiter.acquire();
-
     const encoded = encodeURIComponent(query);
     const url = `https://app.overton.io/policies.php?api_key=${apiKey}&search_terms=${encoded}&limit=${Math.min(limit, 100)}&format=json`;
 
-    const res = await fetch(url, {
-      signal: AbortSignal.timeout(20000),
+    const data: any = await fetchFromProvider('overton', url, {
+      timeout: 20000,
+      retries: 2,
       headers: {
         Accept: 'application/json',
         'User-Agent': 'NomosX Research Bot (+https://nomosx.com)',
       },
     });
 
-    if (!res.ok) {
-      console.warn(`[Overton] HTTP ${res.status}`);
+    if (!data) {
+      console.warn(`[Overton] No data returned`);
       return [];
     }
 
-    const data: any = await res.json();
     const docs: any[] = data?.results || [];
 
     console.log(`[Overton] Found ${docs.length} policy documents`);
@@ -129,23 +125,20 @@ export async function searchOvertonScholarly(query: string, limit = 20): Promise
   }
 
   try {
-    const limiter = getRateLimiter('overton');
-    if (limiter) await limiter.acquire();
-
     const encoded = encodeURIComponent(query);
     const url = `https://app.overton.io/articles.php?api_key=${apiKey}&search_terms=${encoded}&limit=${Math.min(limit, 100)}&format=json`;
 
-    const res = await fetch(url, {
-      signal: AbortSignal.timeout(20000),
+    const data: any = await fetchFromProvider('overton', url, {
+      timeout: 20000,
+      retries: 2,
       headers: {
         Accept: 'application/json',
         'User-Agent': 'NomosX Research Bot (+https://nomosx.com)',
       },
     });
 
-    if (!res.ok) return [];
+    if (!data) return [];
 
-    const data: any = await res.json();
     const docs: any[] = data?.results || [];
 
     return docs

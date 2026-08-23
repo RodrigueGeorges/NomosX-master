@@ -39,7 +39,30 @@ export interface ScoredSource {
 
 // ─── Heuristic scoring ──────────────────────────────────────────────────────
 
-export function scoreSource(source: any, currentYear = new Date().getFullYear()): SourceQualityScore {
+/**
+ * S15-14: Check Crossref API for retraction notices.
+ * Returns true if the DOI is a retraction or has a retraction assertion.
+ */
+async function checkCrossrefRetraction(doi: string): Promise<boolean> {
+  if (!doi) return false;
+  try {
+    const res = await fetch(`https://api.crossref.org/works/${doi}`, {
+      headers: { 'User-Agent': 'NomosX/1.0 (mailto:contact@nomosx.com)' },
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!res.ok) return false;
+    const data = await res.json();
+    const work = data.message;
+    // Check for retraction type or retraction assertion
+    return work?.type === 'retraction' ||
+           work?.assertion?.some((a: any) => a.label?.toLowerCase().includes('retract')) ||
+           false;
+  } catch {
+    return false;
+  }
+}
+
+export async function scoreSource(source: any, currentYear = new Date().getFullYear()): Promise<SourceQualityScore> {
   const year = source.year ?? source.publishedAt ? new Date(source.publishedAt).getFullYear() : undefined;
 
   // Recency: 100 if ≤2 years, drops off to 0 at 30 years
@@ -94,7 +117,7 @@ export function scoreSource(source: any, currentYear = new Date().getFullYear())
     diversity,
     hasDoi: !!source.doi,
     isOpenAccess: !!(source.openAccess || source.isOpenAccess),
-    hasRetractionWarning: false, // TODO: Crossref retraction check
+    hasRetractionWarning: await checkCrossrefRetraction(source.doi || ''),
     tier,
   };
 }
@@ -129,11 +152,13 @@ export function computeDiversityScores(sources: any[]): number[] {
 
 // ─── Main re-ranker ─────────────────────────────────────────────────────────
 
-export function rankSourcesByQuality(sources: any[], includeReliability = true): ScoredSource[] {
+export async function rankSourcesByQuality(sources: any[], includeReliability = true): Promise<ScoredSource[]> {
   const diversityScores = computeDiversityScores(sources);
 
-  const scored = sources.map((source, i) => {
-    const score = scoreSource(source);
+  const scored: ScoredSource[] = [];
+  for (let i = 0; i < sources.length; i++) {
+    const source = sources[i];
+    const score = await scoreSource(source);
     score.diversity = diversityScores[i];
 
     // Recompute overall with diversity
@@ -152,20 +177,20 @@ export function rankSourcesByQuality(sources: any[], includeReliability = true):
     if (source.citationCount) reasons.push(`${source.citationCount} citations`);
     if (score.diversity > 70) reasons.push('high diversity');
 
-    return { source, score, reason: reasons.join(', ') || 'standard source' };
-  });
+    scored.push({ source, score, reason: reasons.join(', ') || 'standard source' });
+  }
 
   return scored.sort((a, b) => b.score.overall - a.score.overall);
 }
 
 // ─── Filter / boost ─────────────────────────────────────────────────────────
 
-export function filterAndBoostTopSources(
+export async function filterAndBoostTopSources(
   sources: any[],
   topK: number,
   minScore = 35,
-): { selected: any[]; scored: ScoredSource[] } {
-  const scored = rankSourcesByQuality(sources);
+): Promise<{ selected: any[]; scored: ScoredSource[] }> {
+  const scored = await rankSourcesByQuality(sources);
   const selected = scored
     .filter(s => s.score.overall >= minScore)
     .slice(0, topK)

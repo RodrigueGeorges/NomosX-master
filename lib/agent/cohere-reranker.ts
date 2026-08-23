@@ -52,7 +52,8 @@ export async function rerankSources<T extends SourceForScoring & { id: string }>
 }
 
 /**
- * Rerank using Cohere API
+ * Rerank using Cohere API — with 2 retries + exponential backoff + jitter.
+ * Retries on 429 (rate limit) and 5xx (server errors) only.
  */
 async function rerankWithCohere<T extends SourceForScoring & { id: string }>(
   sources: T[],
@@ -65,52 +66,82 @@ async function rerankWithCohere<T extends SourceForScoring & { id: string }>(
     text: `${s.title}\n\n${s.abstract || ""}`.trim(),
   }));
 
-  const response = await fetch("https://api.cohere.ai/v1/rerank", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${env.COHERE_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "rerank-english-v3.0",
-      query: enhancedQuery.enhanced,
-      documents: documents.map(d => d.text),
-      top_n: Math.min(topK, sources.length),
-      return_documents: false,
-    }),
+  const body = JSON.stringify({
+    model: "rerank-english-v3.0",
+    query: enhancedQuery.enhanced,
+    documents: documents.map(d => d.text),
+    top_n: Math.min(topK, sources.length),
+    return_documents: false,
   });
 
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Cohere API error: ${response.status} - ${error}`);
-  }
+  const MAX_RETRIES = 2;
+  let lastError: Error | null = null;
 
-  const data = await response.json();
-  const results: RerankResult<T>[] = [];
-
-  for (const result of data.results || []) {
-    const index = result.index;
-    const score = result.relevance_score; // Cohere returns 0-1 score
-    
-    if (score >= minScore) {
-      results.push({
-        source: sources[index],
-        relevanceScore: score,
-        index,
-        rerankScore: score,
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const response = await fetch("https://api.cohere.ai/v1/rerank", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${env.COHERE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body,
       });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        // Retry on 429 and 5xx only
+        if ((response.status === 429 || response.status >= 500) && attempt < MAX_RETRIES) {
+          const retryAfter = response.headers.get('Retry-After');
+          let backoff = retryAfter ? parseFloat(retryAfter) * 1000 : 2000 * Math.pow(2, attempt);
+          backoff = Math.round(backoff * (0.75 + Math.random() * 0.5)); // jitter
+          backoff = Math.min(backoff, 30000); // cap at 30s
+          console.warn(`[Reranker] Cohere ${response.status}, retry ${attempt + 1}/${MAX_RETRIES} after ${backoff}ms`);
+          await new Promise(resolve => setTimeout(resolve, backoff));
+          continue;
+        }
+        throw new Error(`Cohere API error: ${response.status} - ${errorText}`);
+      }
+
+      const data = await response.json();
+      const results: RerankResult<T>[] = [];
+
+      for (const result of data.results || []) {
+        const index = result.index;
+        const score = result.relevance_score; // Cohere returns 0-1 score
+
+        if (score >= minScore) {
+          results.push({
+            source: sources[index],
+            relevanceScore: score,
+            index,
+            rerankScore: score,
+          });
+        }
+      }
+
+      console.log(`[Reranker] Cohere reranked ${sources.length} sources → ${results.length} results (min score: ${minScore}, attempt ${attempt + 1})`);
+
+      // If Cohere returns too few results, fall back to local scoring to preserve source pool
+      if (results.length < 10 && sources.length > 20) {
+        console.log(`[Reranker] Cohere returned only ${results.length} results from ${sources.length} sources — falling back to local scoring for better coverage`);
+        return rerankLocally(sources, enhancedQuery, topK, minScore);
+      }
+
+      return results;
+    } catch (error: any) {
+      lastError = error;
+      // Network errors (not HttpError) — retry
+      if (attempt < MAX_RETRIES) {
+        const backoff = Math.round(2000 * Math.pow(2, attempt) * (0.75 + Math.random() * 0.5));
+        console.warn(`[Reranker] Cohere network error, retry ${attempt + 1}/${MAX_RETRIES} after ${backoff}ms: ${error.message}`);
+        await new Promise(resolve => setTimeout(resolve, backoff));
+        continue;
+      }
     }
   }
 
-  console.log(`[Reranker] Cohere reranked ${sources.length} sources → ${results.length} results (min score: ${minScore})`);
-  
-  // If Cohere returns too few results, fall back to local scoring to preserve source pool
-  if (results.length < 10 && sources.length > 20) {
-    console.log(`[Reranker] Cohere returned only ${results.length} results from ${sources.length} sources — falling back to local scoring for better coverage`);
-    return rerankLocally(sources, enhancedQuery, topK, minScore);
-  }
-  
-  return results;
+  throw lastError || new Error("Cohere rerank failed after all retries");
 }
 
 /**

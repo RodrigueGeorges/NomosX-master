@@ -128,7 +128,7 @@ export function scoreRelevance(
   const title = (source.title || "").toLowerCase();
   const abstract = (source.abstract || "").toLowerCase();
   const fullText = `${title} ${abstract}`;
-  const sourceTopics = (source.topics || []).map(t => t.toLowerCase());
+  const sourceTopics = (source.topics || []).map(t => String(t ?? '').toLowerCase());
 
   // 1. Topic Overlap (40% weight)
   // Count how many query keywords appear in title/abstract
@@ -292,4 +292,217 @@ export function logRelevanceScores(
   if (belowThreshold > 0) {
     console.log(`\n⚠️  ${belowThreshold} sources below 40% relevance (filtered out)`);
   }
+}
+
+// ============================================================================
+// K10: CARE — Context-Aware Retriever Evaluation (arXiv 2026, Brehme et al.)
+// ============================================================================
+//
+// "Evaluating Multi-Hop Reasoning in RAG Systems" — standard retriever evaluation
+// checks if each source is individually relevant to the query. But in multi-hop
+// queries, individual sources may appear irrelevant in isolation yet become
+// essential when combined with other sources.
+//
+// CARE evaluates retriever quality by checking:
+//   1. Individual relevance: Is each source relevant to the query alone?
+//   2. Combined relevance: Do sources together cover all query concepts?
+//   3. Multi-hop potential: Can sources be chained to answer multi-hop sub-questions?
+//   4. Coverage diversity: Do sources span different aspects of the query?
+//
+// Result (paper): CARE consistently outperforms existing methods for evaluating
+// multi-hop reasoning, especially for models with larger context windows.
+
+export interface CAREResult {
+  /** Overall CARE score (0-1) — weighted combination of all factors */
+  overall: number;
+  /** Average individual relevance of sources (0-1) */
+  individualRelevance: number;
+  /** Combined coverage: do sources together cover all query concepts? (0-1) */
+  combinedCoverage: number;
+  /** Multi-hop potential: can sources be chained for multi-hop reasoning? (0-1) */
+  multiHopPotential: number;
+  /** Coverage diversity: do sources span different aspects? (0-1) */
+  coverageDiversity: number;
+  /** Sources that are individually irrelevant but contribute to combined coverage */
+  hiddenGems: Array<{ sourceId: string; reason: string }>;
+  /** Sources that are individually relevant but redundant with others */
+  redundantSources: Array<{ sourceId: string; redundantWith: string[] }>;
+  /** Recommended action */
+  recommendation: 'sufficient' | 'add_more_diverse' | 'remove_redundant' | 'add_missing_concepts';
+  /** Missing concepts not covered by any source */
+  missingConcepts: string[];
+}
+
+/**
+ * Evaluate retriever quality using CARE (Context-Aware Retriever Evaluation).
+ *
+ * @param sources The retrieved sources
+ * @param enhancedQuery The enhanced query with keywords and concept clusters
+ * @returns CARE evaluation result
+ */
+export function evaluateWithCARE(
+  sources: Array<SourceForScoring & { id: string }>,
+  enhancedQuery: EnhancedQuery,
+): CAREResult {
+  if (sources.length === 0) {
+    return {
+      overall: 0,
+      individualRelevance: 0,
+      combinedCoverage: 0,
+      multiHopPotential: 0,
+      coverageDiversity: 0,
+      hiddenGems: [],
+      redundantSources: [],
+      recommendation: 'add_missing_concepts',
+      missingConcepts: enhancedQuery.keywords,
+    };
+  }
+
+  // 1. Individual relevance: average relevance score across all sources
+  // Sanitize sources to ensure abstract is always a string
+  const sanitizedSources = sources.map(s => ({
+    ...s,
+    title: typeof s.title === 'string' ? s.title : String(s.title || ''),
+    abstract: typeof s.abstract === 'string' ? s.abstract : String(s.abstract || ''),
+  }));
+  const scored = sanitizedSources.map(s => ({
+    source: s,
+    score: scoreRelevance(s, enhancedQuery),
+  }));
+  const individualRelevance = scored.reduce((sum, s) => sum + s.score.overall, 0) / scored.length;
+
+  // 2. Combined coverage: do sources together cover all concept clusters?
+  const clusters = clusterKeywords(enhancedQuery.keywords);
+  const allSourceText = sources
+    .map(s => `${typeof s.title === 'string' ? s.title : ''} ${typeof s.abstract === 'string' ? s.abstract : ''}`.toLowerCase())
+    .join(' ');
+
+  const matchedClusters: string[][] = [];
+  const missingClusters: string[][] = [];
+  for (const cluster of clusters) {
+    const matched = cluster.some(kw => allSourceText.includes(kw.toLowerCase()));
+    if (matched) {
+      matchedClusters.push(cluster);
+    } else {
+      missingClusters.push(cluster);
+    }
+  }
+  const combinedCoverage = clusters.length > 0 ? matchedClusters.length / clusters.length : 1;
+
+  // 3. Multi-hop potential: check if sources have overlapping concepts that could chain
+  // Two sources can form a multi-hop chain if they share at least one concept
+  // but each also has unique concepts
+  let multiHopPairs = 0;
+  let totalPairs = 0;
+  for (let i = 0; i < sources.length; i++) {
+    for (let j = i + 1; j < sources.length; j++) {
+      totalPairs++;
+      const textI = `${sources[i].title} ${sources[i].abstract || ''}`.toLowerCase();
+      const textJ = `${sources[j].title} ${sources[j].abstract || ''}`.toLowerCase();
+
+      // Check for shared concepts (potential chain link)
+      const sharedConcepts = clusters.filter(cluster =>
+        cluster.some(kw => textI.includes(kw.toLowerCase()) && textJ.includes(kw.toLowerCase()))
+      );
+
+      // Check for unique concepts (each source contributes something new)
+      const uniqueToI = clusters.filter(cluster =>
+        cluster.some(kw => textI.includes(kw.toLowerCase())) &&
+        !cluster.some(kw => textJ.includes(kw.toLowerCase()))
+      );
+      const uniqueToJ = clusters.filter(cluster =>
+        cluster.some(kw => textJ.includes(kw.toLowerCase())) &&
+        !cluster.some(kw => textI.includes(kw.toLowerCase()))
+      );
+
+      // Multi-hop potential: shared concept + unique concepts on both sides
+      if (sharedConcepts.length > 0 && uniqueToI.length > 0 && uniqueToJ.length > 0) {
+        multiHopPairs++;
+      }
+    }
+  }
+  const multiHopPotential = totalPairs > 0 ? multiHopPairs / totalPairs : 0;
+
+  // 4. Coverage diversity: do sources span different providers/types?
+  const providers = new Set(sources.map(s => s.provider));
+  const types = new Set(sources.map(s => s.type));
+  const providerDiversity = Math.min(1, providers.size / 5); // 5+ providers = max diversity
+  const typeDiversity = Math.min(1, types.size / 3); // 3+ types = max diversity
+  const coverageDiversity = (providerDiversity + typeDiversity) / 2;
+
+  // 5. Hidden gems: sources with low individual relevance but high concept contribution
+  const hiddenGems: Array<{ sourceId: string; reason: string }> = [];
+  for (const { source, score } of scored) {
+    if (score.overall < 0.4) {
+      // Check if this source covers a concept cluster that others miss
+      const sourceText = `${source.title} ${source.abstract || ''}`.toLowerCase();
+      const uniqueClusters = clusters.filter(cluster =>
+        cluster.some(kw => sourceText.includes(kw.toLowerCase())) &&
+        !matchedClusters.includes(cluster)
+      );
+      if (uniqueClusters.length > 0) {
+        hiddenGems.push({
+          sourceId: source.id,
+          reason: `Low individual relevance (${(score.overall * 100).toFixed(0)}%) but covers unique concept: ${uniqueClusters[0].join(', ')}`,
+        });
+      }
+    }
+  }
+
+  // 6. Redundant sources: high individual relevance but overlap heavily with others
+  const redundantSources: Array<{ sourceId: string; redundantWith: string[] }> = [];
+  for (let i = 0; i < scored.length; i++) {
+    if (scored[i].score.overall < 0.6) continue;
+    const textI = `${scored[i].source.title} ${scored[i].source.abstract || ''}`.toLowerCase();
+    const redundantWith: string[] = [];
+    for (let j = 0; j < scored.length; j++) {
+      if (i === j) continue;
+      if (scored[j].score.overall < 0.6) continue;
+      const textJ = `${scored[j].source.title} ${scored[j].source.abstract || ''}`.toLowerCase();
+      // Check Jaccard similarity
+      const wordsI = new Set(textI.split(/\s+/).filter(w => w.length > 3));
+      const wordsJ = new Set(textJ.split(/\s+/).filter(w => w.length > 3));
+      const intersection = [...wordsI].filter(w => wordsJ.has(w)).length;
+      const union = new Set([...wordsI, ...wordsJ]).size;
+      const jaccard = union > 0 ? intersection / union : 0;
+      if (jaccard > 0.6) {
+        redundantWith.push(scored[j].source.id);
+      }
+    }
+    if (redundantWith.length > 0) {
+      redundantSources.push({ sourceId: scored[i].source.id, redundantWith });
+    }
+  }
+
+  // 7. Missing concepts
+  const missingConcepts = missingClusters.flat();
+
+  // 8. Overall CARE score
+  const overall =
+    individualRelevance * 0.25 +
+    combinedCoverage * 0.35 +
+    multiHopPotential * 0.20 +
+    coverageDiversity * 0.20;
+
+  // 9. Recommendation
+  let recommendation: CAREResult['recommendation'] = 'sufficient';
+  if (missingClusters.length > 0) {
+    recommendation = 'add_missing_concepts';
+  } else if (coverageDiversity < 0.4) {
+    recommendation = 'add_more_diverse';
+  } else if (redundantSources.length > sources.length * 0.3) {
+    recommendation = 'remove_redundant';
+  }
+
+  return {
+    overall,
+    individualRelevance,
+    combinedCoverage,
+    multiHopPotential,
+    coverageDiversity,
+    hiddenGems,
+    redundantSources,
+    recommendation,
+    missingConcepts,
+  };
 }

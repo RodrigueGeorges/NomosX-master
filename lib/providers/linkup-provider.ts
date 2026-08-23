@@ -6,6 +6,7 @@
  */
 
 import { z } from 'zod';
+import { httpPost } from '../http-client';
 
 // ===== SCHEMAS ROBUSTES =====
 const LinkUpSearchSchema = z.object({
@@ -178,24 +179,20 @@ export class LinkUpClient {
 
   private async searchEndpoint(endpoint: string, params: LinkUpSearchParams): Promise<any[]> {
     const url = `${this.baseUrl}${endpoint}`;
-    const headers = {
-      'Authorization': `Bearer ${this.apiKey}`,
-      'Content-Type': 'application/json',
-      'User-Agent': 'NomosX-LinkUp-Client/1.0'
-    };
     
     try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(params)
+      const data: any = await httpPost(url, params, {
+        timeout: 20000,
+        retries: 2,
+        rateLimiterKey: 'linkup',
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+          'User-Agent': 'NomosX-LinkUp-Client/1.0',
+        },
       });
-      
-      if (!response.ok) {
-        throw new Error(`LinkUp API error: ${response.status}`);
+      if (!data) {
+        throw new Error('LinkUp API request failed');
       }
-      
-      const data = await response.json();
       return data.results || [];
     } catch (error) {
       console.error(`LinkUp search error for ${endpoint}:`, error);

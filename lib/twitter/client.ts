@@ -13,6 +13,7 @@
  */
 
 import crypto from "crypto";
+import { httpPost } from "../http-client";
 
 interface TwitterEnv {
   TWITTER_API_KEY: string;
@@ -111,35 +112,21 @@ export async function postTweet(text: string): Promise<TweetResult> {
 
   // Twitter API v2 — POST /2/tweets
   const url = "https://api.twitter.com/2/tweets";
-  const body = JSON.stringify({ text });
 
   // For POST with JSON body, OAuth signature uses no body params
   const authHeader = generateOAuthHeader("POST", url, {}, env);
 
-  const response = await fetch(url, {
-    method: "POST",
+  const data: any = await httpPost(url, { text }, {
+    timeout: 15000,
+    retries: 2,
+    rateLimiterKey: 'twitter',
     headers: {
       Authorization: authHeader,
-      "Content-Type": "application/json",
     },
-    body,
+  }).catch((err: any) => {
+    throw new Error(`Twitter API error: ${err.message?.slice(0, 200)}`);
   });
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    let errorMsg = `Twitter API error (${response.status})`;
-    try {
-      const errorJson = JSON.parse(errorText);
-      errorMsg = `Twitter API error: ${
-        errorJson.title || errorJson.detail || errorText
-      }`;
-    } catch {
-      errorMsg = `Twitter API error (${response.status}): ${errorText}`;
-    }
-    throw new Error(errorMsg);
-  }
-
-  const data = await response.json();
   return {
     id: data.data?.id || "",
     text: data.data?.text || text,

@@ -6,6 +6,7 @@
  */
 
 import { searchOpenAlex } from '../../openalex';
+import { fetchFromProvider } from '../../../http-client';
 
 export async function searchWHODirect(query: string, limit = 15): Promise<any[]> {
   console.log(`[WHO-DIRECT] Searching WHO IRIS + OpenAlex for: "${query}"`);
@@ -44,21 +45,10 @@ export async function searchWHODirect(query: string, limit = 15): Promise<any[]>
 
 async function searchWHOIRIS(query: string, limit: number): Promise<any[]> {
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 12000);
     const encoded = encodeURIComponent(query);
 
-    const res = await fetch(
-      `https://iris.who.int/rest/search?query=${encoded}&size=${limit}&scope=/`,
-      {
-        signal: controller.signal,
-        headers: { 'Accept': 'application/json', 'User-Agent': 'NomosX/1.0' },
-      }
-    );
-    clearTimeout(timeout);
-
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
+    const data: any = await fetchFromProvider('who', `https://iris.who.int/rest/search?query=${encoded}&size=${limit}&scope=/`, { timeout: 12000, retries: 2, headers: { 'Accept': 'application/json', 'User-Agent': 'NomosX/1.0' } });
+    if (!data) throw new Error('WHO IRIS request failed');
 
     return (data['search-results']?.entry || []).slice(0, limit).map((item: any) => ({
       id: `who-iris:${item['dc:identifier'] || item.id || Math.random()}`,

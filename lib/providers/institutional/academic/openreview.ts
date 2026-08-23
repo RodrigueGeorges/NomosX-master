@@ -44,7 +44,11 @@ export async function searchOpenReview(query: string, limit = 20): Promise<any[]
           abstract: typeof abstract === 'string' ? abstract.slice(0, 2000) : '',
           authors: Array.isArray(authors) ? authors : [],
           url: `https://openreview.net/forum?id=${note.forum || note.id}`,
-          pdfUrl: content?.pdf?.value ? `https://openreview.net${content.pdf.value}` : null,
+          pdfUrl: content?.pdf?.value
+            ? (content.pdf.value.startsWith('http')
+              ? content.pdf.value
+              : `https://openreview.net${content.pdf.value}`)
+            : null,
           year,
           venue: typeof venue === 'string' ? venue : '',
           issuer: venue || 'OpenReview',

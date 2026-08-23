@@ -12,33 +12,61 @@ import { env } from '../env';
 
 export async function searchCORE(query: string, limit = 30): Promise<any[]> {
   const apiKey = env.CORE_API_KEY;
-  if (!apiKey) {
-    console.warn('[CORE] No API key configured');
-    return [];
+
+  // With API key: use authenticated endpoint (higher rate limits)
+  if (apiKey) {
+    const url = `https://api.core.ac.uk/v3/search/works?q=${encodeURIComponent(query)}&pageSize=${limit}&apiKey=${apiKey}`;
+
+    try {
+      const data: any = await fetchFromProvider("core", url, { timeout: 15000 });
+      const results = data?.results || [];
+
+      return results.map((item: any) => ({
+        id: `core:${item.id}`,
+        provider: "core",
+        type: "academic",
+        title: item.title,
+        abstract: item.description || item.abstract,
+        authors: item.authors?.map((author: any) => ({ name: author.name, institution: null })) || [],
+        journal: item.journal?.title || "Unknown",
+        year: item.yearPublished || null,
+        doi: item.doi || null,
+        url: item.downloadUrl || item.sourceUrl,
+        trustScore: 0.7,
+        raw: item
+      }));
+    } catch (error: any) {
+      console.error('CORE search failed:', error);
+    }
   }
-  
-  const url = `https://api.core.ac.uk/v3/search/works?q=${encodeURIComponent(query)}&pageSize=${limit}&apiKey=${apiKey}`;
-  
+
+  // Keyless fallback: CORE's search endpoint works without a key (throttled)
   try {
-    const data: any = await fetchFromProvider("core", url, { timeout: 15000 });
+    const url = `https://api.core.ac.uk/v3/search/works?q=${encodeURIComponent(query)}&pageSize=${Math.min(limit, 20)}`;
+    const data: any = await fetchFromProvider("core", url, {
+      timeout: 15000,
+      retries: 1,
+      headers: { 'Accept': 'application/json' },
+    });
     const results = data?.results || [];
-    
+    console.log(`[CORE] Keyless fallback: found ${results.length} results`);
+
     return results.map((item: any) => ({
       id: `core:${item.id}`,
       provider: "core",
       type: "academic",
-      title: item.title,
-      abstract: item.description || item.abstract,
+      title: item.title || 'Untitled',
+      abstract: item.description || item.abstract || null,
       authors: item.authors?.map((author: any) => ({ name: author.name, institution: null })) || [],
-      journal: item.journal?.title || "Unknown",
+      journal: item.journal?.title || null,
       year: item.yearPublished || null,
       doi: item.doi || null,
-      url: item.downloadUrl || item.sourceUrl,
-      trustScore: 0.7,
+      url: item.downloadUrl || item.sourceUrl || null,
+      trustScore: 0.6,
       raw: item
     }));
-  } catch (error) {
-    console.error('CORE search failed:', error);
+  } catch (error: any) {
+    console.warn('[CORE] Keyless fallback also failed:', error.message);
     return [];
   }
 }

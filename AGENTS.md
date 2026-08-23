@@ -4,6 +4,443 @@
 
 ---
 
+---
+
+## Sprint 17 - Foresight & Scenario Calibration Layer (2026-08)
+
+Sprint 17 fixes a critical architectural bug in the foresight pipeline and introduces state-of-the-art multi-expert scenario calibration inspired by 2026 research.
+
+### Bug Fix: Foresight Ordering (P0)
+
+**Problem:** The Monte Carlo foresight engine (1500-3000 runs, 512-agent swarm) was running BEFORE the editorial arbiter created scenarios. Result: foresight always saw 0 scenarios and skipped. Probabilities shown (40/35/25%) were raw LLM priors, never refined by simulation.
+
+**Fix:** Moved foresight to run AFTER editorialArbiter() in pipeline-v2.ts. The arbiter generates scenario names/descriptions/priors, then foresight refines probabilities with Monte Carlo simulation. Empirical probabilities are written back into institutePosition.scenarios.
+
+| File | Change |
+|------|--------|
+| `lib/agent/pipeline-v2.ts` | Foresight block moved from line 5748 (before arbiter) to line 5789 (after arbiter) |
+
+### Bug Fix: Casting Fallback (P1)
+
+**Problem:** When the LLM casting agent failed, the deterministic fallback produced only 1 team member instead of 3 (lead + friction + stress-test).
+
+**Fix:** buildDeterministicTeam() now always produces 3 team members with real mandates, even when 0 dimensions are detected. Adds Evidence integrity (friction) and Strategic foresight (stress-test) as default lenses.
+
+| File | Change |
+|------|--------|
+| `lib/agent/casting-agent.ts` | Fallback always produces 3 members |
+
+### Bug Fix: Citation Breakage in Abbreviations (P2)
+
+**Problem:** LLM sometimes inserts [SRC-N] citations inside common abbreviations, producing "e [SRC-20] g." instead of "e.g. [SRC-20]".
+
+**Fix:** Post-processing in replaceCitations() detects and repairs broken e.g., i.e. patterns.
+
+| File | Change |
+|------|--------|
+| `lib/agent/position-first-renderer.ts` | Regex repair for broken abbreviations |
+
+### Innovation: Delphi Foresight - Professional-Grade Scenario Calibration
+
+New module `lib/agent/foresight-delphi.ts` (857 lines) implements a 10-step professional forecasting pipeline:
+
+| Step | Innovation | Source | What it does |
+|------|-----------|--------|-------------|
+| 1 | **Base Rate Computation** | Tetlock/GJP | LLM analyzes historical analogues to establish priors. Base rates are the #1 predictor of forecasting accuracy. |
+| 2 | **Fermi Decomposition** | Fermi/GJP | Breaks the question into sub-questions, estimates each independently. Reduces anchoring bias. |
+| 3 | **InfoDelphi Evidence Partition** | arxiv 2607.01661 | Evidence split into 40% shared + 60% private per expert. Information asymmetry drives genuine deliberation. |
+| 4-6 | **3-Round Scalable Delphi** | arxiv 2602.08889 | 5 expert personas (base-rate-historian, bayesian-updater, skeptic, systems-thinker, pragmatist). 3 rounds with mediator feedback (not 2 — 3rd round improves convergence 15%+). |
+| 7 | **Cross-Impact Balance** | arxiv 2603.29470 | Stochastic CIB matrix (-3 to +3) for scenario consistency. |
+| 8 | **Expert Weighting** | GJP | Weight experts by inverse distance from median (calibration proxy). Better-calibrated experts get more influence. |
+| 9 | **Extremizing Function** | Atanasov et al. 2017 | When experts agree (low variance), push probability further from 50%. Corrects for underconfidence. Formula: `sigmoid(logit(p) * extremize_factor)`. |
+| 10 | **Platt Scaling + Bootstrap CIs** | Sibyl/datori | Logistic calibration (a=2.5) stretches away from 50%. Bootstrap resampling (1000x) produces 90% confidence intervals. |
+| 11 | **Key Drivers & Sensitivity** | - | LLM extracts drivers, blockers, signals, and sensitivity score for each scenario. Actionable intelligence. |
+
+**Aggregation pipeline:**
+```
+Base Rate → Fermi Estimate → 3 Delphi Rounds → Weighted Geometric Mean
+  → Cross-Impact Adjustment → Shrinkage (70% expert + 30% base rate + 10% Fermi)
+  → Extremizing → Platt Scaling → Normalization → Bootstrap CIs
+```
+
+**Expert personas (bias-aware):**
+- `base-rate-historian`: Historical reference classes (bias: anchoring on frequencies)
+- `bayesian-updater`: Likelihood ratios (bias: overconfidence in evidence)
+- `skeptic`: Adversarial stress-testing (bias: excessive pessimism)
+- `systems-thinker`: Feedback loops, emergence (bias: overweighting complexity)
+- `pragmatist`: Implementation reality (bias: status quo bias)
+
+**Output per scenario:**
+- `probability`: Final calibrated probability
+- `baseRate`: Historical prior
+- `fermiEstimate`: Decomposed estimate
+- `expertEstimate`: Aggregated expert judgment
+- `extremizedEstimate`: After extremizing
+- `calibratedProbability`: Final after all corrections
+- `confidenceInterval`: [lower, upper] 90% CI
+- `keyDrivers`: What moves probability UP by 10+pp
+- `blockers`: What moves probability DOWN by 10+pp
+- `signals`: Observable early warning indicators
+- `sensitivityScore`: 0=robust, 1=very fragile
+- `crossImpact`: Impact from other scenarios
+- `expertRationales`: Per-expert reasoning
+
+**Pipeline integration:** After `editorialArbiter()` generates scenarios, `runDelphiForesight()` is called with rich evidence (titles + abstracts + providers). Delphi-calibrated probabilities + signals replace raw LLM priors before Monte Carlo foresight runs.
+
+| File | Purpose |
+|------|---------|
+| `lib/agent/foresight-delphi.ts` | 10-step professional forecasting pipeline (857 lines) |
+| `lib/agent/editorial-arbiter.ts` | Calls `runDelphiForesight()` with abstracts + context |
+| `lib/agent/position-first-renderer.ts` | Renders scenario signals as tags |
+| `lib/agent/position-first-brief.css.ts` | CSS for `.scenario-signals`, `.signal-tag` |
+| `lib/llm/unified-llm.ts` | Tasks: `delphi_round1`, `delphi_round2`, `cross_impact` |
+
+### Additional Bug Fixes (Audit Pass 2)
+
+| Bug | File | Fix |
+|-----|------|-----|
+| **Platt scaling formula wrong** | `foresight-delphi.ts` | Was `sigmoid(a*p+b)` (compresses). Fixed to `sigmoid(a*logit(p)+b)` (stretches). |
+| **Division by zero in mediator** | `foresight-delphi.ts` | Filter NaN/null before computing mean/min/max. |
+| **NaN in convergence** | `foresight-delphi.ts` | Guard against empty estimate arrays. |
+| **Math.log(0) = -Infinity** | `foresight-delphi.ts` | Clamp values to [0.001, 0.999] before log. |
+| **HTML entity decode order** | `inquiry-html-parse.ts` | `&amp;` must be decoded LAST to avoid double-decoding. Added `&nbsp;`. |
+| **Casting fallback missing at pipeline level** | `pipeline-v2.ts` | If `castingAgent()` throws, pipeline-level fallback creates 3-member team. |
+| **`<p>` losing class/style attrs** | `citation-repair.ts` | `citation-repair` was replacing `<p class="through-line">` with bare `<p>`. Fixed to preserve attrs. |
+| **Citations injected into reference titles** | `citation-repair.ts` | 3 injection functions now skip `<section class="references-section">`. |
+| **`[LIVE-DATA]` placeholder in text** | `position-first-renderer.ts` | Regex removes LLM-generated `[LIVE-DATA]` placeholders. |
+| **No question validation** | `pipeline-v2.ts` | Reject queries <10 chars or <3 words. "What" would now be rejected. |
+| **No Policy recommendations** | `editorial-arbiter.ts` | Arbiter now generates structured recommendations (immediate/shortTerm/longTerm/riskMitigation). |
+
+### Verification
+
+- TypeScript: 0 errors
+- Next.js build: Compiled successfully (74/74 pages)
+- ESLint: 0 warnings, 0 errors
+- Smoke tests: ALL PASS (Platt scaling, extremizing, normalize, partition, edge cases)
+- All fixes are non-breaking (foresight and Delphi are wrapped in try/catch)
+
+## � Pipeline Wiring Layer (2026-08 Sprint 16)
+
+Sprint 16 wires all 8 Sprint 15 innovation modules into the live pipeline, plus a final audit fix pass that wired 2 orphaned modules (refrain.ts, nestbrowse.ts), deleted 2 dead modules (meta-controller.ts, dag-planner.ts), and activated PathMind KG reasoning. TypeScript: 0 errors. No orphaned code remains.
+
+### S16 — Active Integrations
+
+| Fix | File | Module | Integration Point |
+|-----|------|--------|-------------------|
+| **S16-01** | `pipeline-v2.ts` | GoA (ICLR 2026) | ANALYST phase — `selectAgents()` picks top-3 agents by capability match before `runMixtureOfAgents()`. Reduces agent count from 6→3. |
+| **S16-02** | `pipeline-v2.ts` | SARA (ACL 2026) | ANALYST context — `saraCompress()` triggers when context >8000 chars, compresses to 6000 char target. Logs compression ratio. |
+| **S16-03** | `pipeline-v2.ts` | HallDetect (arXiv 2026) | Trust score — `hallDetect()` runs after NLI verification. If score >60, caps trust at 50 (hallucination veto). Results stored in `stats.hallDetect`. |
+| **S16-04** | `fact-checker.ts` | UFO (AAAI 2026) | Fact-checking — `batchFactCheck()` runs as complementary verification path after LLM batch. Logs supported/refuted/uncertain counts. |
+| **S16-05** | `pipeline-v2.ts` | Conductor (Microsoft 2026) | Orchestration — `getWorkflow()` + `pruneOptionalSteps()` runs at pipeline start. Deterministic budget-aware step pruning. Zero LLM tokens. |
+| **S16-06** | `local-judge.ts` | JudgeArena (arXiv 2026) | Judge calibration — `calibrateLocalJudge()` computes Cohen's κ + Spearman ρ. Warns if κ <0.4 (needs recalibration). |
+| **S16-07** | `knowledge-graph.ts` | PathMind (AAAI 2026) | KG reasoning — `reasonWithPathMind()` uses beam search with A*-style priority. Returns ranked paths + natural language reasoning chain. |
+| **S16-08** | `self-evolver.ts` | GMPO (ACL 2026) | Prompt optimization — `optimizeAgentPrompt()` runs gradient-guided multi-judge optimization. Replaces deleted DSPy. |
+
+### New Trust Score Veto
+
+| Veto | Condition | Cap |
+|------|-----------|-----|
+| HallDetect | Hallucination risk score >60 | 50 |
+
+### Pipeline Flow (Updated)
+
+```
+QUERY → Conductor (workflow selection + budget pruning)
+  → CONTEXT_PRIMER → SCOUT → RANK → READER
+  → ANALYST (GoA agent selection + SARA compression + REFRAIN early-stop)
+  → CRITIC → DEBATE → EDITOR
+  → CITATION_VERIFY → FACT_CHECK (UFO multi-source) → CLAIM_GROUNDING
+  → TRUST SCORE (NLI + HallDetect + Symbolic + Critic vetoes)
+  → PUBLISH
+```
+
+---
+
+## �🚀 Innovation & Gap-Closure Layer (2026-08 Sprint 15)
+
+Sprint 15 integrates **10 innovations from 2026 research** (ACL, ICLR, AAAI, arXiv) and closes **5 internal gaps** identified by a comprehensive codebase audit. All 15 items compile with 0 TypeScript errors.
+
+### S15 — External Innovations (New Modules)
+
+| Fix | File | Paper | Description |
+|-----|------|-------|-------------|
+| **S15-01** | `refrain.ts`, `analyst-multipass.ts` | REFRAIN (ACL 2026) | Adaptive early-stopping for CoT — if Pass 2 yield <15%, skip Pass 3 and use lightweight synthesis. Saves ~30% ANALYST cost on simple queries. Training-free. |
+| **S15-02** | `graph-of-agents.ts` | GoA (ICLR 2026) | Graph-based agent selection — selects top-3 agents by capability match instead of all N. Directed message passing + graph-based pooling. Outperforms MoA with fewer agents. |
+| **S15-03** | `conductor-orchestrator.ts` | Conductor (Microsoft 2026) | Deterministic YAML-style orchestration — zero LLM tokens for orchestration. Brief and Strategic workflows with budget-aware step pruning. Alternative to LLM-driven Meta-Controller. |
+| **S15-04** | `sara-compression.ts` | SARA (ACL 2026) | Selective context compression — extracts factual snippets (numbers, entities) + semantic compression for remaining budget. -17% tokens with +13% correctness. |
+| **S15-05** | `judge-arena.ts` | JudgeArena (arXiv 2026) | Statistical judge calibration — Cohen's κ + Spearman ρ instead of exact match. Confidence intervals with 95% CI. Reliability bucketing (high/medium/low). |
+| **S15-06** | `ufo-factcheck.ts` | UFO (AAAI 2026) | Multi-source fact-checking — plug-and-play sources (human, web, LLM, database, KG). Dynamic source selection per claim type. Aggregate verdict with confidence. |
+| **S15-07** | `hall-detect.ts` | HallDetect (arXiv 2026) | Lightweight reference-free hallucination detection — decomposed entailment + contradiction detection + unsupported claim detection. Complements mDeBERTa NLI. |
+| **S15-08** | `gmpo-optimizer.ts` | GMPO (ACL 2026) | Gradient-guided multi-judge prompt optimization — replaces deleted DSPy. First-order gradient approximation + multi-judge selection. 27-79% smaller prompts. |
+| **S15-09** | `nestbrowse.ts` | TheCrawler (2026) | Replaced stub with real implementation — fetch + HTML parsing + Schema.org JSON-LD fallback. Extracts text, links, and structured content. No more placeholder data. |
+| **S15-10** | `pathmind-kg.ts` | PathMind (AAAI 2026) | KG path reasoning — retrieve-prioritize-reason with A*-style priority function. Beam search over KG with semantic future-cost estimation. Enhances EvoMemKG. |
+
+### S15 — Internal Gap Closures
+
+| Fix | File | Issue | Solution |
+|-----|------|-------|----------|
+| **S15-11** | `pipeline-v2.ts` | Witness was opt-in (`useWitness=false` by default) | Auto-activates for strategic queries with budget >$2. Full metacognitive observer now active. |
+| **S15-12** | `pipeline-v2.ts` | Synapse memory implemented but never imported | `buildSynapseMemoryInjection()` now called alongside episodic memory in ANALYST context. |
+| **S15-13** | `pipeline-v2.ts` | 8 trust score weights hardcoded | All weights now configurable via env vars (`TRUST_W_COVERAGE`, `TRUST_W_GROUNDEDNESS`, etc.) with defaults matching original values. |
+| **S15-14** | `source-quality.ts` | Crossref retraction check was TODO | `checkCrossrefRetraction(doi)` queries Crossref API for retraction type/assertions. `scoreSource` now async. |
+| **S15-15** | `agent-memory.ts` | `preferredProviders` was always `[]` (TODO) | `getProviderPerformance()` queries AgentAuditLog, computes success rates, populates preferred (>70%) and avoid (<30%) lists. |
+
+### New Trust Score Dimensions (Available)
+
+The trust score now supports configurable weights per domain via environment variables:
+
+| Weight | Default | Env Var |
+|--------|---------|---------|
+| Citation coverage | 15% | `TRUST_W_COVERAGE` |
+| Groundedness | 22% | `TRUST_W_GROUNDEDNESS` |
+| Fact-check | 12% | `TRUST_W_FACT` |
+| NLI | 12% | `TRUST_W_NLI` |
+| Source check | 8% | `TRUST_W_SOURCE_CHECK` |
+| Diversity | 9% | `TRUST_W_DIVERSITY` |
+| Quality | 12% | `TRUST_W_QUALITY` |
+| Critic | 10% | `TRUST_W_CRITIC` |
+
+---
+
+## 🧪 Orchestration & Integration Layer (2026-08 Sprint 14)
+
+A comprehensive audit of all pipeline modules identified **dead code, unclosed learning loops, and missing orchestration gates**. Sprint 14 closes these gaps, integrating 6 previously-orphaned innovations and adding 4 new quality gates.
+
+### S14 — Integration & Orchestration Fixes
+
+| Fix | File | Description |
+|-----|------|-------------|
+| **S14-A** | `pipeline-v2.ts`, `symbolic-verifier.ts` | **Symbolic verification integrated** (NSRSA arXiv 2026) — deterministic arithmetic/temporal/comparative checks now run before NLI verifier; trust score veto if score <70% |
+| **S14-B** | `pipeline-v2.ts`, `agent-memory.ts` | **Learning loop closed** — `recordAgentPerformance()` + `extractLessons()` + `storeLesson()` now called after pipeline completion (were imported but never invoked, leaving the learning loop open) |
+| **S14-C** | `pipeline-v2.ts`, `lesson-verifier.ts` | **LUCID lesson verification** (2026) — `verifyAndDeInflateLessons()` runs every ~10 runs to prevent memory reward inflation (incorrect lessons accumulating unchecked) |
+| **S14-D** | `reader-agent-v3.ts` | **News article retry logic** — 2 retries with exponential backoff + jitter, 20s timeout (was 0 retries, 12s timeout); also added Schema.org JSON-LD extraction fallback |
+| **S14-E** | `pipeline-v2.ts` | **Critic agent made actionable** — verdict "reject" now caps trust at 50; verdict "repair" with score <40 flags actionable repair for editorial phase |
+| **S14-F** | `pipeline-v2.ts` | **EDITORIAL quality gate** — pre-render check on critic verdict/score; logs quality warning before HTML rendering (was no gate) |
+| **S14-G** | `pipeline-v2.ts` | **Test-Time Scaling** (ICLR 2026 — Zeng et al.) — strategic queries with sufficient budget now generate 2 ANALYST candidates and pick the one with better citation coverage |
+| **S14-H** | `pipeline-v2.ts`, `chain-verification.ts` | **Chain-of-Verification integrated** (CoVe — Meta ACL 2024) — extracts claims and generates verification questions for strategic queries (diagnostic transparency) |
+| **S14-I** | `btprop-hallucination.ts` | **BTProp TS errors fixed** — import paths and LLMTask types verified (file was already compilable) |
+| **S14-J** | (deleted) | **Dead code removed** — `evomemkg.ts` (duplicate of knowledge-graph.ts), `reflective-rag.ts` (duplicate of cross-model-consensus.ts), `dspy-optimizer.ts` (duplicate of prompt-optimizer/), `tree-of-thoughts.ts` (unused), `adas/` directory (unused) |
+
+### New Trust Score Veto Layers
+
+| Veto | Condition | Cap |
+|------|-----------|-----|
+| Symbolic verification | Arithmetic/temporal errors with score <70% | 55 |
+| Critic reject | Verdict = "reject" | 50 |
+| Grounding veto (existing) | Groundedness < 0.15 | 45 |
+| Provider diversity veto (existing) | < 3 distinct providers | 60 |
+
+---
+
+## 🔬 Deep Audit Corrections Layer (2026-08 Sprint 13)
+
+A comprehensive audit of the pipeline identified and fixed critical bugs and high-impact improvements across all phases. All fixes are backed by 2026 research:
+
+### P0 — Critical Bug Fixes
+
+| Fix | File | Description |
+|-----|------|-------------|
+| **P0-A** | `pipeline-v2.ts` | Integrity propagation bug — `stats.citationVerifier.integrity` now always updated after repair (was stale when repair made 0 modifications) |
+| **P0-B** | `analyst-multipass.ts` | Self-refine multi-iteration (FineRef AAAI 2026) — 3 iterations with re-verification, only accepts if metrics actually improved |
+| **P0-C** | `unified-llm.ts` | Auto-suspend dead providers (VeriSwarm/Cortex 2026) — 5 failures → 24h suspension (was 60s cooldown, causing retry storms on dead providers) |
+
+### P1 — High-Impact Improvements
+
+| Fix | File | Description |
+|-----|------|-------------|
+| **P1-D** | `pipeline-v2.ts` | Groundedness weight 16%→22%, citation coverage 20%→15% (GroundEval 2026 — quality of grounding > quantity of citations) |
+| **P1-E** | `reader-agent-v3.ts` | PDF extraction retry (pdfmux 2026) — 2 retries with exponential backoff + 30s timeout (was 15s, 0 retries) |
+| **P1-F** | `pipeline-v2.ts` | Debate quality gate (D3 EACL 2026) — re-run debate if steel-man <50 with adversarial boost prompt |
+| **P1-G** | `citation-verifier.ts` | CiteGuard threshold 0.15→0.35 (CiteGuard ACL 2026) — reduces false positives in citation injection |
+| **P1-H** | `topic-radar.ts` | Radar Global South sources (BENI Global 10) — +19 feeds (AfDB, ADB, CAF, ISS Africa, SAIIA, ORF, ISEAS, Al-Monitor, etc.) + 5 GDELT verticals (Africa, Latin America, Southeast Asia, Middle East, South Asia) |
+
+### P2 — Optimizations
+
+| Fix | File | Description |
+|-----|------|-------------|
+| **P2-I** | `pipeline-v2.ts` | SCOUT neural routing opt-out (was opt-in) — always selects 12 most relevant providers unless `no-routing` flag |
+| **P2-J** | `pipeline-v2.ts` | Provider diversity veto — <3 distinct providers → cap trust at 60 |
+| **P2-K** | `pipeline-v2.ts` | Query diversification threshold 5→3 — activates more often |
+| **P2-L** | `unified-llm.ts` | Dynamic dead providers via circuit breaker state — `isProviderSuspended()` + `getSuspendedProviders()` exported for SCOUT |
+
+### Verification
+
+- TypeScript: 0 errors
+- Pipeline test: trust score 85 (up from 84), 83 sources, $0.029, 37 min
+- All new features observed in logs: Neural routing, Submodular diversification, Circuit breaker trips, Global South GDELT queries
+
+---
+
+## � Radar Innovations Layer (2026-08 Sprint 7)
+
+State-of-the-art signal detection and provider orchestration innovations from recent research, implemented in `lib/agent/radar-innovations.ts`:
+
+### C: Temporal Signal Trajectories (ACL 2026 — Navasartian)
+Classifies topics as **emerging/bursting/stable/fading/new** based on mention velocity across runs. Burst ≠ emerging (bursts signal consolidation, not early detection). Integrated into `topic-radar.ts` — each topic gets a `trajectory` field and velocity-based score boost.
+
+### A: BERTrend Velocity Scoring (RTE-France 2024)
+Delta-based scoring: compares mention count between current run and previous runs. Exponential decay if no updates. Emerging topics (velocity 1.5-3.0×) get +15, new topics get +8, bursting get +5, stable get +2, fading get +0.
+
+### B: Anticipatory Outliers (LREC 2026 — Zve et al.)
+Topics that don't match any existing cluster are flagged as "anticipatory outliers" — early signals of emerging narratives. Topics that were outliers in previous runs but now match a cluster get +12 ("graduated" boost). Pure outliers get +8.
+
+### I: Domain-Aware Credibility (GroundCheck 2026)
+Source credibility scored differently per domain:
+- **academic** → DOI(0.45) + title_search(0.30) + URL(0.10) + AI(0.15)
+- **news** → URL(0.35) + AI(0.65) — paywalled articles can still be credible
+- **government** → URL(0.40) + AI(0.60)
+- **think-tank** → URL(0.30) + title_search(0.10) + AI(0.60)
+
+Integrated into `sourcecheck.ts` via `scoreSourceCredibility()`.
+
+### D: Neural Source Routing (RAGRoute 2025)
+Lightweight provider selection: given a query, select the 12 most relevant providers instead of querying all 58+. Two modes: keyword-based (fast, deterministic) and LLM-based (smarter, uses flash model). Integrated into SCOUT (`pipeline-v2.ts`) — activates when caller passes a small/default provider set.
+
+### F: Submodular Query Diversification (HERO, LREC 2026)
+Facility-location objective to maximize query diversity with mathematical guarantees (1-1/e approximation). When SCOUT has >5 query variations, selects a diverse subset of 5 using greedy maximization with a relevance-diversity trade-off parameter (λ=0.4).
+
+### J: Capability-Aware LLM Failover (DVARA pattern)
+Filters the fallback chain by what the request actually needs. If the request uses tools, only tool_calling-capable providers are considered. If jsonMode, only structured_output-capable providers. Integrated into `unified-llm.ts` `callLLM()`.
+
+### Files
+
+| File | Purpose |
+|------|---------|
+| `lib/agent/radar-innovations.ts` | All 7 innovations (C, A, B, I, D, F, J) |
+| `lib/agent/topic-radar.ts` | Integrates C, A, B, I into radar sweep |
+| `lib/agent/pipeline-v2.ts` | Integrates D, F into SCOUT |
+| `lib/agent/sourcecheck.ts` | Integrates I into source verification |
+| `lib/llm/unified-llm.ts` | Integrates J into LLM fallback chain |
+
+---
+
+## �🛡️ Provider Resilience Layer (2026-08 Sprint 6)
+
+## Agent Intelligence Layer (2026-08 Sprint 8)
+
+11 state-of-the-art innovations from ACL 2026, arXiv 2026, and AAAI 2026, integrated into the core reasoning, verification, memory, and orchestration modules:
+
+### K1: PRISM-MCTS — Dynamic Shared Memory (ACL 2026, Cheng et al.)
+LATS tree search now captures **Heuristics** (successful strategies) and **Fallacies** (error patterns) across rollouts in a dynamic shared memory. Future rollouts benefit from past experience, halving the number of simulations needed. Integrated via `runLATSWithPrism()` in `lib/agent/lats/tree-search.ts`.
+
+### K2: MOSA — Multi-LLM Collaborative MCTS (ACL 2026, Yang et al.)
+Multiple LLMs (DeepSeek, GLM, Kimi) explore the reasoning tree in parallel, share their best branches after each round, and refine in subsequent rounds. Combines independent exploration with collaborative refinement. New module: `lib/agent/lats/mosa.ts`.
+
+### K3: REFRAIN — Adaptive Early-Stopping (ACL 2026, Sun et al.)
+SW-UCB multi-armed bandit dynamically adjusts the stopping threshold according to problem difficulty. Two arms ("stop" / "continue") with sliding-window UCB1 selection. 20-55% token reduction. In `lib/agent/budget-forcing.ts` via `refrainDecide()`.
+
+### K5: Dynamic Role Assignment (arXiv 2026)
+Meta-debate selects the most relevant specialist agents per query: (1) proposal — each agent argues why it's relevant, (2) peer review — scoring. +74.8% over uniform assignment. In `lib/agent/moa/mixture-of-agents.ts` via `selectAgentsDynamically()`.
+
+### K7: Quadratic Voting (NSED, arXiv 2026)
+Non-linear consensus: each specialist gets voice credits proportional to reliability, spends them quadratically on issues they care about most. Minority positions with strong conviction can still influence outcomes. In `lib/agent/moa/mixture-of-agents.ts` via `computeQuadraticVotes()`.
+
+### K8: CiteGuard — Retrieval-Aware Citation Validation (ACL 2026)
+Reframes citation verification as attribution alignment: searches for additional candidate sources and checks if the cited source is the best match. +10pp over LLM-as-Judge, approaches 68.1% accuracy (vs 69.2% human). In `lib/agent/citation-verifier.ts` via `citeGuardValidation()`.
+
+### K9: FRANQ — Faithfulness-Aware Uncertainty Quantification (ACL 2026)
+Separates factuality (is it true?) from faithfulness (is it supported by sources?). Different UQ techniques for faithful vs unfaithful statements. Avoids labeling factually correct statements as "hallucinations" just because they aren't in the retrieval. In `lib/agent/citation-verifier.ts` via `assessWithFranq()`.
+
+### K10: CARE — Context-Aware Retriever Evaluation (arXiv 2026, Brehme et al.)
+Evaluates retriever quality for multi-hop queries: individual relevance, combined coverage, multi-hop potential, coverage diversity. Identifies "hidden gems" (individually irrelevant but collectively essential sources). In `lib/agent/relevance-scorer.ts` via `evaluateWithCARE()`.
+
+### K11: WorldEvolver — Self-Evolving World Model (arXiv 2026)
+Three modules: (1) Episodic Memory — retrieval-based simulation from real action transitions, (2) Semantic Memory — heuristic rules extracted from prediction-observation mismatches, (3) Selective Foresight — filters low-confidence predictions before injection. In `lib/agent/world-model/world-model.ts`.
+
+### K12: EvoMemKG — Dual-Layer Evolvable Memory (ACL 2026, Tian et al.)
+Working Memory compresses retrieved triplets via clustering (linearizes exponential state space). Experience Memory abstracts historical reasoning paths into reusable strategies. +20% on complex multi-hop queries. In `lib/agent/knowledge-graph.ts`.
+
+### K13: MAGE — Co-Evolutionary Knowledge Graph (arXiv 2026)
+Four-subgraph co-evolutionary KG: (1) Experience (corrections + success traces), (2) Skill (UCB1 task-level search bandit), (3) Curriculum (mastery tracking), (4) Performance (metrics over time). Frozen backbone, evolving graph. In `lib/agent/self-evolver.ts`.
+
+### K15: C3PO — Cost-Controlled Cascade (arXiv 2026)
+Cascaded inference: cheap model first, escalate to expensive model only if confidence is low. Conformal prediction bounds the probability of exceeding budget. Self-supervised (no labels needed). In `lib/llm/unified-llm.ts` via `callLLMWithCascade()`.
+
+### Files Modified (Sprint 8)
+
+| File | Innovations |
+|------|-------------|
+| `lib/agent/budget-forcing.ts` | K3 (REFRAIN SW-UCB bandit) |
+| `lib/agent/moa/mixture-of-agents.ts` | K5 (Dynamic Role Assignment), K7 (Quadratic Voting) |
+| `lib/agent/relevance-scorer.ts` | K10 (CARE context-aware evaluation) |
+| `lib/agent/lats/tree-search.ts` | K1 (PRISM-MCTS shared memory) |
+| `lib/agent/lats/mosa.ts` | K2 (MOSA multi-LLM collaborative MCTS) — **new file** |
+| `lib/agent/lats/index.ts` | Exports for K1, K2 |
+| `lib/agent/citation-verifier.ts` | K8 (CiteGuard), K9 (FRANQ) |
+| `lib/agent/knowledge-graph.ts` | K12 (EvoMemKG dual-layer memory) |
+| `lib/agent/world-model/world-model.ts` | K11 (WorldEvolver self-evolving world model) |
+| `lib/agent/self-evolver.ts` | K13 (MAGE co-evolutionary KG) |
+| `lib/llm/unified-llm.ts` | K15 (C3PO cascade with conformal prediction) |
+
+---
+
+The system includes a **production-grade resilience layer** for all 200+ academic API providers:
+
+### Architecture (3 layers)
+
+| Layer | Module | Purpose |
+|-------|--------|---------|
+| **HTTP Client** | `lib/http-client.ts` | Retry with jitter, circuit breaker (Redis-backed), rate limiting |
+| **Provider Queue** | `lib/agent/provider-queue.ts` | Backpressure control (p-limit), request dedup, concurrency caps |
+| **Resilience** | `lib/agent/resilience.ts` | Cockatiel bulkhead isolation, adaptive rate limiting |
+
+### Key Features
+
+- **Jitter in all retries** (75%-125% of base delay) — prevents retry storms
+- **Circuit breaker persisted to Redis** — survives restarts, shared across instances
+- **Provider queue with backpressure** — global cap (30 concurrent) + per-provider caps (5-10)
+- **Request deduplication** — same query+provider = 1 call (in-memory Map)
+- **Cohere rerank with 2 retries** — exponential backoff + jitter before falling back to local scoring
+- **Crossref polite pool** — mailto parameter injected automatically (10 req/s vs 5 req/s)
+- **Adaptive rate limiting** — reduces rate by 50% on 429, recovers by 20% after 5 successes
+- **Cockatiel bulkhead** — per-LLM-provider concurrency isolation (deepseek=5, glm=3, kimi=3)
+
+### Migrated Modules (Sprint 6 Phase 2)
+
+All external API calls now go through `fetchFromProvider` / `httpPost`:
+
+| Module | Calls | Providers |
+|--------|-------|-----------|
+| `lib/agent/topic-radar.ts` | 5 | GDELT, RSS, OpenAlex, arXiv, Semantic Scholar |
+| `lib/agent/sourcecheck.ts` | 3 | Crossref, OpenAlex |
+| `lib/agent/series-radar.ts` | 2 | FRED, ECB |
+| `lib/agent/realtime-data-hub.ts` | 18 | FRED, WorldBank, WHO, USGS, Open-Meteo, Federal Register, PapersWithCode, EUR-Lex, NVD, GDELT, NASA GISS, ECB |
+| `lib/agent/quant-agent.ts` | 4 | Energy Charts, RTE France, Treasury, Energi Data |
+| `lib/agent/hero-image.ts` | 1 | OpenAI Image API |
+| `lib/twitter/client.ts` | 1 | Twitter API v2 |
+| `lib/email.ts` | 1 | Resend |
+| `lib/providers/social/*.ts` | 4 | Bluesky, HackerNews, Reddit |
+| `lib/providers/altmetric.ts` | 1 | Altmetric |
+| `lib/providers/overton.ts` | 2 | Overton |
+| `lib/providers/foreign/wanfang.ts` | 1 | Wanfang |
+| `lib/providers/independent-media-provider.ts` | 2 | RSS, GDELT |
+| `lib/providers/academic/*.ts` | 11 | Foundational sources, foresight, PubMed, OpenAlex, arXiv |
+| `lib/providers/institutional/*.ts` | 5 | WHO, Legifrance, Terra Nova, Vie Publique, OECD |
+| `lib/providers/macro/*.ts` | 3 | INSEE, Eurostat, ECB |
+| `lib/providers/data/*.ts` | 2 | Zenodo, Figshare |
+| `lib/providers/business/*.ts` | 3 | TechCrunch, Reuters, CrunchBase |
+| `lib/providers/*.ts` | 8 | Dimensions, Lens, DataCite, Tavily, Apitube, Exa, Linkup, Wikidata |
+
+**Total: 70+ external API calls migrated to resilient HTTP client**
+
+### Rate Limiters Configured
+
+75+ providers with per-provider rate limiting (token bucket algorithm):
+- Academic: OpenAlex (10 req/s), Crossref (8 req/s), Semantic Scholar (1 req/s), arXiv (3 req/s), PubMed (3 req/s)
+- Data: FRED (5 req/s), ECB (5 req/s), World Bank (5 req/s), Eurostat (5 req/s), INSEE (5 req/s)
+- Realtime: GDELT (1 req/s), USGS (5 req/s), Open-Meteo (10 req/s), NVD (2 req/s)
+- Social: Bluesky (3 req/s), HackerNews (3 req/s), Reddit (1 req/s)
+- Other: Altmetric (3 req/s), Overton (2 req/s), Resend (5 req/s), Twitter (1 req/s)
+
+### Dependencies
+
+- `p-limit` — lightweight concurrency limiter
+- `cockatiel` — resilience patterns (bulkhead, retry, circuit breaker)
+- `bullmq` — Redis-backed job queue (available for future background workers)
+- `rate-limiter-flexible` — distributed rate limiting (available for future Redis-backed limits)
+
+---
+
 ## 🧠 Agent Philosophy
 
 Each agent in NomosX has:

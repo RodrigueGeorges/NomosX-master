@@ -99,8 +99,10 @@ async function classifyLocalNLI(
   if (!pipe) return null;
 
   // Truncate to model's max input length (mDeBERTa-v3: 512 tokens ≈ ~2000 chars)
-  const premise = sourceContent.slice(0, 1800);
-  const hypothesis = claim.slice(0, 500);
+  // V3.2: Increased from 1800→3000 (premise) and 500→800 (hypothesis) for better context
+  // The model handles longer inputs better than expected — truncation was too aggressive
+  const premise = sourceContent.slice(0, 3000);
+  const hypothesis = claim.slice(0, 800);
 
   try {
     // NLI text-classification pipeline: input = premise + [SEP] + hypothesis
@@ -205,7 +207,12 @@ async function classifyEmbeddingNLI(
     // High overlap but opposite polarity → contradiction
     verdict = 'contradiction';
     confidence = 0.7;
-  } else if (semantic >= 0.65 && numbersOk) {
+  } else if (semantic >= 0.75 && numbersOk) {
+    // V3.2: Strong entailment — high confidence
+    verdict = 'entailment';
+    confidence = Math.min(0.95, semantic + 0.1);
+  } else if (semantic >= 0.50 && numbersOk) {
+    // V3.2: Moderate entailment (was 0.65 — too conservative, most claims landed in "neutral")
     verdict = 'entailment';
     confidence = semantic;
   } else if (semantic >= 0.35) {

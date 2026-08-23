@@ -15,7 +15,7 @@
  *   radar-agent.ts. Never enters the SCOUT→INDEX→RANK evidence pipeline.
  */
 
-import { getRateLimiter } from '../../http-client';
+import { fetchFromProvider } from '../../http-client';
 import type { SocialSignal } from './reddit';
 
 /**
@@ -24,26 +24,23 @@ import type { SocialSignal } from './reddit';
  */
 export async function searchBlueskySignals(query: string, limit = 25): Promise<SocialSignal[]> {
   try {
-    const limiter = getRateLimiter('bluesky');
-    if (limiter) await limiter.acquire();
-
     // Bluesky public search API — search posts
     const url = `https://public.api.bsky.app/xrpc/app.bsky.feed.searchPosts?q=${encodeURIComponent(query)}&limit=${Math.min(limit, 50)}`;
 
-    const res = await fetch(url, {
-      signal: AbortSignal.timeout(10000),
+    const data: any = await fetchFromProvider('bluesky', url, {
+      timeout: 10000,
+      retries: 2,
       headers: {
         Accept: 'application/json',
         'User-Agent': 'NomosX Research Bot (+https://nomosx.com)',
       },
     });
 
-    if (!res.ok) {
-      console.warn(`[Bluesky] HTTP ${res.status}`);
+    if (!data) {
+      console.warn(`[Bluesky] No data returned`);
       return [];
     }
 
-    const data: any = await res.json();
     const posts: any[] = data?.posts || [];
 
     const signals: SocialSignal[] = posts

@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { Flag, Star, Check } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 /**
  * ReaderFeedback — public accountability mechanism.
@@ -9,6 +10,7 @@ import { Flag, Star, Check } from "lucide-react";
  * No auth required — anyone can submit.
  */
 export function ReaderFeedback({ publicationId }: { publicationId: string }) {
+  const t = useTranslations();
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<"error" | "rating">("error");
   const [message, setMessage] = useState("");
@@ -34,7 +36,7 @@ export function ReaderFeedback({ publicationId }: { publicationId: string }) {
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "Submission failed");
+        throw new Error(data.error || t('ReaderFeedback.submissionFailed'));
       }
       setSubmitted(true);
       setTimeout(() => {
@@ -44,7 +46,7 @@ export function ReaderFeedback({ publicationId }: { publicationId: string }) {
         setRating(0);
       }, 3000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Submission failed");
+      setError(err instanceof Error ? err.message : t('ReaderFeedback.submissionFailed'));
     } finally {
       setSubmitting(false);
     }
@@ -54,7 +56,7 @@ export function ReaderFeedback({ publicationId }: { publicationId: string }) {
     <div className="mt-16 pt-8 border-t border-white/[0.08]">
       <div className="flex items-center justify-between">
         <h3 className="font-display text-sm font-semibold text-white/70 uppercase tracking-wider">
-          Reader Feedback
+          {t('ReaderFeedback.title')}
         </h3>
         <button
           type="button"
@@ -63,7 +65,7 @@ export function ReaderFeedback({ publicationId }: { publicationId: string }) {
           aria-label="Toggle reader feedback form"
         >
           <Flag size={14} />
-          {open ? "Close" : "Report an issue or rate"}
+          {open ? t('ReaderFeedback.toggleClose') : t('ReaderFeedback.toggleOpen')}
         </button>
       </div>
 
@@ -71,7 +73,7 @@ export function ReaderFeedback({ publicationId }: { publicationId: string }) {
         <div className="mt-4 p-5 nx-public-surface">
           {submitted ? (
             <div className="flex items-center gap-2 text-emerald-400 text-sm">
-              <Check size={16} /> Thank you — your feedback has been received.
+              <Check size={16} /> {t('ReaderFeedback.thankYou')}
             </div>
           ) : (
             <>
@@ -85,7 +87,7 @@ export function ReaderFeedback({ publicationId }: { publicationId: string }) {
                       : "border-white/[0.08] text-white/50 hover:text-white/70"
                   }`}
                 >
-                  Report Error
+                  {t('ReaderFeedback.reportError')}
                 </button>
                 <button
                   type="button"
@@ -96,7 +98,7 @@ export function ReaderFeedback({ publicationId }: { publicationId: string }) {
                       : "border-white/[0.08] text-white/50 hover:text-white/70"
                   }`}
                 >
-                  Rate
+                  {t('ReaderFeedback.rate')}
                 </button>
               </div>
 
@@ -104,14 +106,14 @@ export function ReaderFeedback({ publicationId }: { publicationId: string }) {
                 <textarea
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
-                  placeholder="Describe the error or issue you found (citation, factual, methodological, etc.)..."
+                  placeholder={t('ReaderFeedback.errorPlaceholder')}
                   rows={4}
                   className="w-full bg-black/30 border border-white/[0.08] text-white/80 text-sm p-3 focus:border-white/25 focus:outline-none resize-none"
                   aria-label="Error report message"
                 />
               ) : (
                 <div className="flex items-center gap-2 py-2">
-                  <span className="text-sm text-white/60 mr-2">Your rating:</span>
+                  <span className="text-sm text-white/60 mr-2">{t('ReaderFeedback.yourRating')}</span>
                   {[1, 2, 3, 4, 5].map((n) => (
                     <button
                       key={n}
@@ -152,7 +154,7 @@ export function ReaderFeedback({ publicationId }: { publicationId: string }) {
                   }
                   className="px-4 py-2 text-xs font-mono uppercase tracking-wide border border-white/20 text-white/80 hover:bg-white/5 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 >
-                  {submitting ? "Submitting..." : "Submit"}
+                  {submitting ? t('ReaderFeedback.submitting') : t('ReaderFeedback.submit')}
                 </button>
               </div>
             </>

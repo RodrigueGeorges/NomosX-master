@@ -6,6 +6,8 @@
  * Endpoint: https://api.datacite.org/dois
  */
 
+import { fetchFromProvider } from '../http-client';
+
 const DATACITE_ENDPOINT = "https://api.datacite.org/dois";
 
 export async function searchDataCite(query: string, limit = 20): Promise<any[]> {
@@ -16,17 +18,11 @@ export async function searchDataCite(query: string, limit = 20): Promise<any[]> 
       'page[number]': '1',
     });
 
-    const response = await fetch(`${DATACITE_ENDPOINT}?${params}`, {
-      headers: { 'Accept': 'application/vnd.api+json' },
-      signal: AbortSignal.timeout(20000),
-    });
-
-    if (!response.ok) {
-      console.warn(`[SCOUT/DataCite] HTTP ${response.status}`);
+    const data: any = await fetchFromProvider('datacite', `${DATACITE_ENDPOINT}?${params}`, { timeout: 20000, retries: 2, headers: { 'Accept': 'application/vnd.api+json' } });
+    if (!data) {
+      console.warn(`[SCOUT/DataCite] Request failed`);
       return [];
     }
-
-    const data = await response.json() as any;
     const items = data?.data || [];
 
     if (!Array.isArray(items)) {

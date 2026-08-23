@@ -4,6 +4,7 @@
  */
 
 import { z } from 'zod';
+import { fetchFromProvider } from '../../http-client';
 
 const EurostatResultSchema = z.object({
   code: z.string(),
@@ -47,19 +48,10 @@ export async function searchEurostat(query: string, limit = 15): Promise<any[]> 
     
     console.log(`[Eurostat] Fetching dataset: ${dataset}`);
     
-    const response = await fetch(url, {
-      headers: {
-        'Accept': 'application/json',
-        'User-Agent': 'NomosX/1.0'
-      },
-      signal: AbortSignal.timeout(15000)
-    });
-
-    if (!response.ok) {
-      throw new Error(`Eurostat API error: ${response.status} ${response.statusText}`);
+    const data: any = await fetchFromProvider('eurostat', url, { timeout: 15000, retries: 2, headers: { 'Accept': 'application/json', 'User-Agent': 'NomosX/1.0' } });
+    if (!data) {
+      throw new Error('Eurostat API request failed');
     }
-
-    const data = await response.json();
     
     // Transformer les données Eurostat en format NomosX
     const sources = await transformEurostatToSources(data, dataset, query);

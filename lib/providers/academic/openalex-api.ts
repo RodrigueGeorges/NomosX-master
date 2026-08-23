@@ -3,19 +3,14 @@
  * Recherche de publications académiques via OpenAlex
  */
 
+import { fetchFromProvider } from '../../http-client';
+
 export async function searchOpenAlex(query: string, limit: number = 10): Promise<any[]> {
   try {
-    const response = await fetch(`https://api.openalex.org/works?search=${encodeURIComponent(query)}&per_page=${limit}`, {
-      headers: {
-        'User-Agent': 'NomosX/1.0 (mailto:contact@nomosx.com)'
-      }
-    });
-    
-    if (!response.ok) {
-      throw new Error(`OpenAlex API error: ${response.status}`);
+    const data: any = await fetchFromProvider('openalex', `https://api.openalex.org/works?search=${encodeURIComponent(query)}&per_page=${limit}`, { timeout: 15000, retries: 2, headers: { 'User-Agent': 'NomosX/1.0 (mailto:contact@nomosx.com)' } });
+    if (!data) {
+      throw new Error('OpenAlex API request failed');
     }
-    
-    const data = await response.json();
     
     return data.results.map((item: any) => ({
       id: `openalex:${item.id}`,

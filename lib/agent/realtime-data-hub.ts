@@ -26,6 +26,7 @@
  */
 
 import { prisma } from '../db';
+import { fetchFromProvider } from '../http-client';
 
 // ============================================================================
 // TYPES
@@ -145,13 +146,9 @@ async function fetchFREDSeries(seriesId: string, fredApiKey?: string): Promise<R
       limit: '2',
     });
 
-    const response = await fetch(`${FRED_BASE}?${params}`, {
-      signal: AbortSignal.timeout(10000),
-    });
+    const data: any = await fetchFromProvider('fred', `${FRED_BASE}?${params}`, { timeout: 10000, retries: 2 });
+    if (!data) return null;
 
-    if (!response.ok) return null;
-
-    const data = await response.json();
     const observations = (data.observations || []).filter((o: any) => o.value !== '.');
 
     if (observations.length === 0) return null;
@@ -219,10 +216,9 @@ async function fetchWorldBankIndicator(indicatorCode: string): Promise<RealTimeI
 
   try {
     const url = `https://api.worldbank.org/v2/country/WLD/indicator/${indicatorCode}?format=json&per_page=2&mrv=2`;
-    const response = await fetch(url, { signal: AbortSignal.timeout(10000) });
-    if (!response.ok) return null;
+    const data: any = await fetchFromProvider('worldbank', url, { timeout: 10000, retries: 2 });
+    if (!data) return null;
 
-    const data = await response.json();
     const records = data[1] || [];
     const latest = records.find((r: any) => r.value !== null);
     const previous = records.find((r: any) => r.value !== null && r !== latest);
@@ -261,10 +257,9 @@ async function fetchWHOOutbreaks(): Promise<RealTimeIndicator[]> {
   try {
     // WHO Disease Outbreak News RSS feed (parsed as XML)
     const url = 'https://www.who.int/feeds/entity/don/en/rss.xml';
-    const response = await fetch(url, { signal: AbortSignal.timeout(10000) });
-    if (!response.ok) return [];
+    const xml: any = await fetchFromProvider('who', url, { timeout: 10000, retries: 2, responseType: 'text' });
+    if (!xml) return [];
 
-    const xml = await response.text();
     const items: WHOOutbreak[] = [];
 
     const itemRegex = /<item>([\s\S]*?)<\/item>/g;
@@ -316,10 +311,9 @@ async function fetchUSGSEarthquakes(): Promise<RealTimeIndicator[]> {
   try {
     // Significant earthquakes in the last 7 days
     const url = 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_week.geojson';
-    const response = await fetch(url, { signal: AbortSignal.timeout(10000) });
-    if (!response.ok) return [];
+    const data: any = await fetchFromProvider('usgs', url, { timeout: 10000, retries: 2 });
+    if (!data) return [];
 
-    const data = await response.json();
     const quakes = data.features || [];
 
     const indicators: RealTimeIndicator[] = [];
@@ -377,12 +371,9 @@ async function fetchGlobalClimateData(): Promise<RealTimeIndicator[]> {
     for (const city of cities) {
       try {
         const url = `https://api.open-meteo.com/v1/forecast?latitude=${city.lat}&longitude=${city.lon}&current=temperature_2m&timezone=auto`;
-        const response = await fetch(url, { signal: AbortSignal.timeout(5000) });
-        if (response.ok) {
-          const data = await response.json();
-          if (data.current?.temperature_2m != null) {
-            temps.push(data.current.temperature_2m);
-          }
+        const data: any = await fetchFromProvider('open-meteo', url, { timeout: 5000, retries: 2 });
+        if (data?.current?.temperature_2m != null) {
+          temps.push(data.current.temperature_2m);
         }
       } catch { /* skip city */ }
     }
@@ -417,10 +408,9 @@ async function fetchFederalRegister(): Promise<RealTimeIndicator[]> {
     const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
     const url = `https://www.federalregister.gov/api/v1/documents.json?conditions[publication_date][gte]=${weekAgo}&conditions[publication_date][lte]=${today}&conditions[type][]=RULE&conditions[type][]=PRORULE&conditions[type][]=PRESDOCU&per_page=5&order=newest`;
-    const response = await fetch(url, { signal: AbortSignal.timeout(10000) });
-    if (!response.ok) return [];
+    const data: any = await fetchFromProvider('federal-register', url, { timeout: 10000, retries: 2 });
+    if (!data) return [];
 
-    const data = await response.json();
     const results = data.results || [];
     const totalCount = data.count || results.length;
 
@@ -466,10 +456,9 @@ async function fetchAIMLTrends(): Promise<RealTimeIndicator[]> {
   try {
     // Trending papers on Papers With Code (last 7 days)
     const url = 'https://paperswithcode.com/api/v1/papers/?ordering=-proceeding&items_per_page=1';
-    const response = await fetch(url, { signal: AbortSignal.timeout(10000) });
-    if (!response.ok) return [];
+    const data: any = await fetchFromProvider('paperswithcode', url, { timeout: 10000, retries: 2 });
+    if (!data) return [];
 
-    const data = await response.json();
     const totalPapers = data.count || 0;
 
     const indicators: RealTimeIndicator[] = [];
@@ -487,9 +476,8 @@ async function fetchAIMLTrends(): Promise<RealTimeIndicator[]> {
     // Also try to get trending methods
     try {
       const methodsUrl = 'https://paperswithcode.com/api/v1/methods/?ordering=-paper_count&items_per_page=1';
-      const methodsResp = await fetch(methodsUrl, { signal: AbortSignal.timeout(8000) });
-      if (methodsResp.ok) {
-        const methodsData = await methodsResp.json();
+      const methodsData: any = await fetchFromProvider('paperswithcode', methodsUrl, { timeout: 8000, retries: 2 });
+      if (methodsData) {
         indicators.push({
           provider: 'paperswithcode',
           code: 'PWC_TOTAL_METHODS',
@@ -527,14 +515,13 @@ async function fetchEURLexRegulations(): Promise<RealTimeIndicator[]> {
       }`;
 
     const url = `https://publications.europa.eu/webapi/rdf/sparql?query=${encodeURIComponent(sparql)}&format=application/json`;
-    const response = await fetch(url, { signal: AbortSignal.timeout(12000) });
+    const data: any = await fetchFromProvider('eurlex', url, { timeout: 12000, retries: 2 });
 
-    if (!response.ok) {
+    if (!data) {
       // Fallback: use the EUR-Lex RSS feed for recent acts
       return await fetchEURLexRSS();
     }
 
-    const data = await response.json();
     const count = parseInt(data?.results?.bindings?.[0]?.count?.value || '0');
 
     return [{
@@ -555,10 +542,9 @@ async function fetchEURLexRegulations(): Promise<RealTimeIndicator[]> {
 async function fetchEURLexRSS(): Promise<RealTimeIndicator[]> {
   try {
     const url = 'https://eur-lex.europa.eu/EN/display-feed.html?rssId=1';
-    const response = await fetch(url, { signal: AbortSignal.timeout(8000) });
-    if (!response.ok) return [];
+    const xml: any = await fetchFromProvider('eurlex', url, { timeout: 8000, retries: 2, responseType: 'text' });
+    if (!xml) return [];
 
-    const xml = await response.text();
     let count = 0;
     const itemRegex = /<item>/g;
     while (itemRegex.exec(xml) !== null) count++;
@@ -588,13 +574,9 @@ async function fetchNVDVulnerabilities(): Promise<RealTimeIndicator[]> {
     const now = new Date().toISOString();
 
     const url = `https://services.nvd.nist.gov/rest/json/cves/2.0/?pubStartDate=${weekAgo}&pubEndDate=${now}&cvssV3Severity=CRITICAL&resultsPerPage=5`;
-    const response = await fetch(url, {
-      signal: AbortSignal.timeout(15000),
-      headers: { 'Accept': 'application/json' },
-    });
-    if (!response.ok) return [];
+    const data: any = await fetchFromProvider('nvd', url, { timeout: 15000, retries: 2, headers: { 'Accept': 'application/json' } });
+    if (!data) return [];
 
-    const data = await response.json();
     const totalResults = data.totalResults || 0;
     const vulnerabilities = data.vulnerabilities || [];
 
@@ -645,11 +627,10 @@ async function fetchGDELTConflicts(): Promise<RealTimeIndicator[]> {
     // GDELT Event Database — count conflict events worldwide (last 24h)
     // Uses the GDELT DOC API which returns article counts by theme
     const url = 'https://api.gdeltproject.org/api/v2/doc/doc?query=conflict%20OR%20war%20OR%20military&mode=artlist&maxrecords=1&format=json&timespan=1d';
-    const response = await fetch(url, { signal: AbortSignal.timeout(10000) });
+    const rawText: any = await fetchFromProvider('gdelt', url, { timeout: 10000, retries: 2, responseType: 'text' });
 
-    if (!response.ok) return [];
+    if (!rawText) return [];
 
-    const rawText = await response.text();
     let data: any;
     try { data = JSON.parse(rawText); } catch { return []; }
     const articleCount = data.articles?.length || 0;
@@ -659,9 +640,8 @@ async function fetchGDELTConflicts(): Promise<RealTimeIndicator[]> {
     // Use the GDELT GKG (Global Knowledge Graph) for conflict tone
     try {
       const toneUrl = 'https://api.gdeltproject.org/api/v2/doc/doc?query=conflict%20OR%20military%20strike&mode=tonechart&format=json&timespan=7d';
-      const toneResp = await fetch(toneUrl, { signal: AbortSignal.timeout(8000) });
-      if (toneResp.ok) {
-        const toneText = await toneResp.text();
+      const toneText: any = await fetchFromProvider('gdelt', toneUrl, { timeout: 8000, retries: 2, responseType: 'text' });
+      if (toneText) {
         let toneData: any;
         try { toneData = JSON.parse(toneText); } catch { toneData = {}; }
         // Average tone (negative = more conflict-heavy coverage)
@@ -684,9 +664,8 @@ async function fetchGDELTConflicts(): Promise<RealTimeIndicator[]> {
     // Also count total conflict articles
     try {
       const countUrl = 'https://api.gdeltproject.org/api/v2/doc/doc?query=conflict%20OR%20war%20OR%20armed&mode=artlist&maxrecords=250&format=json&timespan=1d';
-      const countResp = await fetch(countUrl, { signal: AbortSignal.timeout(8000) });
-      if (countResp.ok) {
-        const countText = await countResp.text();
+      const countText: any = await fetchFromProvider('gdelt', countUrl, { timeout: 8000, retries: 2, responseType: 'text' });
+      if (countText) {
         let countData: any;
         try { countData = JSON.parse(countText); } catch { countData = {}; }
         indicators.push({
@@ -716,11 +695,10 @@ async function fetchNASAGISSTemperature(): Promise<RealTimeIndicator[]> {
   try {
     // NASA GISS Surface Temperature Analysis — global mean annual anomaly
     const url = 'https://data.giss.nasa.gov/gistemp/tabledata_v4/GLB.Ts+dSST.csv';
-    const response = await fetch(url, { signal: AbortSignal.timeout(10000) });
-    if (!response.ok) return [];
+    const csv: any = await fetchFromProvider('nasa-giss', url, { timeout: 10000, retries: 2, responseType: 'text' });
+    if (!csv) return [];
 
-    const csv = await response.text();
-    const lines = csv.split('\n').filter(l => l.trim() && !l.startsWith('Year'));
+    const lines = csv.split('\n').filter((l: string) => l.trim() && !l.startsWith('Year'));
 
     // Find the last line with actual annual data
     let latestYear = '';
@@ -770,12 +748,8 @@ async function fetchStockIndices(): Promise<RealTimeIndicator[]> {
   // ECB SDW — Euro area stock prices
   try {
     const url = 'https://data-api.ecb.europa.eu/service/data/MNA/Q.N.I8.W2.S1.S1.B.B1GQ._Z._Z._Z.EUR.LR.N?lastNObservations=2&format=jsondata';
-    const response = await fetch(url, {
-      signal: AbortSignal.timeout(10000),
-      headers: { 'Accept': 'application/json' },
-    });
-    if (response.ok) {
-      const data = await response.json();
+    const data: any = await fetchFromProvider('ecb', url, { timeout: 10000, retries: 2, headers: { 'Accept': 'application/json' } });
+    if (data) {
       const observations = data?.dataSets?.[0]?.series?.['0:0:0:0:0:0:0:0:0:0:0:0:0:0:0']?.observations;
       if (observations) {
         const keys = Object.keys(observations).sort();
@@ -803,12 +777,8 @@ async function fetchStockIndices(): Promise<RealTimeIndicator[]> {
   // ECB Exchange Rates — EUR/USD, EUR/GBP
   try {
     const url = 'https://data-api.ecb.europa.eu/service/data/EXR/D.USD.EUR.SP00.A?lastNObservations=2&format=jsondata';
-    const response = await fetch(url, {
-      signal: AbortSignal.timeout(8000),
-      headers: { 'Accept': 'application/json' },
-    });
-    if (response.ok) {
-      const data = await response.json();
+    const data: any = await fetchFromProvider('ecb', url, { timeout: 8000, retries: 2, headers: { 'Accept': 'application/json' } });
+    if (data) {
       const observations = data?.dataSets?.[0]?.series?.['0:0:0:0:0']?.observations;
       if (observations) {
         const keys = Object.keys(observations).sort();
@@ -836,12 +806,8 @@ async function fetchStockIndices(): Promise<RealTimeIndicator[]> {
   // ECB Key Interest Rate (MRO)
   try {
     const url = 'https://data-api.ecb.europa.eu/service/data/FM/B.U2.EUR.4F.KR.MRR_FR.LEV?lastNObservations=2&format=jsondata';
-    const response = await fetch(url, {
-      signal: AbortSignal.timeout(8000),
-      headers: { 'Accept': 'application/json' },
-    });
-    if (response.ok) {
-      const data = await response.json();
+    const data: any = await fetchFromProvider('ecb', url, { timeout: 8000, retries: 2, headers: { 'Accept': 'application/json' } });
+    if (data) {
       const series = data?.dataSets?.[0]?.series;
       const firstSeriesKey = series ? Object.keys(series)[0] : null;
       if (firstSeriesKey) {

@@ -3,19 +3,14 @@
  * Recherche de datasets et publications via Zenodo
  */
 
+import { fetchFromProvider } from '../../http-client';
+
 export async function searchZenodo(query: string, limit: number = 10): Promise<any[]> {
   try {
-    const response = await fetch(`https://zenodo.org/api/records?q=${encodeURIComponent(query)}&size=${limit}`, {
-      headers: {
-        'User-Agent': 'NomosX/1.0 (mailto:contact@nomosx.com)'
-      }
-    });
-    
-    if (!response.ok) {
-      throw new Error(`Zenodo API error: ${response.status}`);
+    const data: any = await fetchFromProvider('zenodo', `https://zenodo.org/api/records?q=${encodeURIComponent(query)}&size=${limit}`, { timeout: 15000, retries: 2, headers: { 'User-Agent': 'NomosX/1.0 (mailto:contact@nomosx.com)' } });
+    if (!data) {
+      throw new Error('Zenodo API request failed');
     }
-    
-    const data = await response.json();
     
     return data.hits.hits.map((hit: any) => ({
       id: `zenodo:${hit.id}`,

@@ -3,6 +3,8 @@
  * Enhanced with multiple RSS feeds, robust parsing, and fallbacks
  */
 
+import { fetchFromProvider } from '../../http-client';
+
 export async function searchTechCrunch(query: string, limit: number = 10): Promise<any[]> {
   console.log(`[TechCrunch] Searching for: "${query}" (limit: ${limit})`);
   
@@ -21,7 +23,10 @@ export async function searchTechCrunch(query: string, limit: number = 10): Promi
     // Fetch from multiple feeds in parallel
     const feedPromises = rssFeeds.map(async (feedUrl, index) => {
       try {
-        const response = await fetch(feedUrl, {
+        const xmlText: string = await fetchFromProvider('techcrunch', feedUrl, {
+          timeout: 15000,
+          retries: 2,
+          responseType: 'text',
           headers: {
             'User-Agent': 'Mozilla/5.0 (compatible; NomosX-Bot/1.0; +https://nomosx.com/bot)',
             'Accept': 'application/rss+xml, application/xml, text/xml',
@@ -30,12 +35,9 @@ export async function searchTechCrunch(query: string, limit: number = 10): Promi
             'Referer': 'https://techcrunch.com/'
           }
         });
-        
-        if (!response.ok) {
-          throw new Error(`Feed ${index} failed: ${response.status}`);
+        if (!xmlText) {
+          throw new Error(`Feed ${index} failed: no data`);
         }
-        
-        const xmlText = await response.text();
         const items = parseTechCrunchRSS(xmlText, index);
         
         console.log(`[TechCrunch] Feed ${index}: ${items.length} items`);

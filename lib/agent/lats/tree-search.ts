@@ -509,3 +509,250 @@ export async function runLATS(
     stopReason,
   };
 }
+
+// ============================================================================
+// K1: PRISM-MCTS — Dynamic Shared Memory (Heuristics + Fallacies)
+// ACL 2026 (Cheng et al.) — "Learning from Reasoning Trajectories with
+// Metacognitive Reflection"
+// ============================================================================
+//
+// Standard MCTS treats each rollout as an isolated trajectory. PRISM-MCTS adds
+// a dynamic shared memory that captures:
+//   - Heuristics: strategies that led to successful outcomes (reinforce them)
+//   - Fallacies:  reasoning patterns that led to failures (prune them)
+//
+// The shared memory is injected into the expansion prompt, so future rollouts
+// benefit from past experience. This halves the trajectory requirements.
+//
+// "Notably, it halves the trajectory requirements on GPQA while surpassing
+//  MCTS-RAG and Search-o1, demonstrating that it scales inference by reasoning
+//  judiciously rather than exhaustively."
+
+export interface PrismHeuristic {
+  /** The heuristic strategy description */
+  strategy: string;
+  /** How many times this heuristic led to a high-value outcome */
+  successCount: number;
+  /** Average reward when this heuristic was used */
+  avgReward: number;
+  /** The reasoning step where this heuristic was discovered */
+  discoveredAtStep: number;
+}
+
+export interface PrismFallacy {
+  /** The fallacy/error pattern description */
+  pattern: string;
+  /** How many times this pattern led to a low-value outcome */
+  failureCount: number;
+  /** Average reward when this pattern appeared */
+  avgReward: number;
+  /** The reasoning step where this fallacy was discovered */
+  discoveredAtStep: number;
+}
+
+export interface PrismSharedMemory {
+  heuristics: PrismHeuristic[];
+  fallacies: PrismFallacy[];
+  /** Max items to keep (LRU eviction) */
+  maxItems: number;
+}
+
+export function createPrismMemory(maxItems: number = 10): PrismSharedMemory {
+  return {
+    heuristics: [],
+    fallacies: [],
+    maxItems,
+  };
+}
+
+/**
+ * Update the shared memory after a simulation.
+ * If the reward is high (> 0.7), extract a heuristic from the node's thought.
+ * If the reward is low (< 0.3), extract a fallacy.
+ */
+export function updatePrismMemory(
+  memory: PrismSharedMemory,
+  node: LATSTreeNode,
+  reward: number,
+): void {
+  // Extract a concise description from the node's thought
+  const description = node.thought.slice(0, 200).replace(/\n/g, ' ');
+
+  if (reward > 0.7) {
+    // Heuristic: successful strategy
+    const existing = memory.heuristics.find(h => h.strategy.slice(0, 50) === description.slice(0, 50));
+    if (existing) {
+      existing.successCount++;
+      existing.avgReward = (existing.avgReward * (existing.successCount - 1) + reward) / existing.successCount;
+    } else {
+      memory.heuristics.push({
+        strategy: description,
+        successCount: 1,
+        avgReward: reward,
+        discoveredAtStep: node.depth,
+      });
+      // Sort by successCount * avgReward and keep top N
+      memory.heuristics.sort((a, b) => b.successCount * b.avgReward - a.successCount * a.avgReward);
+      if (memory.heuristics.length > memory.maxItems) {
+        memory.heuristics = memory.heuristics.slice(0, memory.maxItems);
+      }
+    }
+  } else if (reward < 0.3) {
+    // Fallacy: error pattern
+    const existing = memory.fallacies.find(f => f.pattern.slice(0, 50) === description.slice(0, 50));
+    if (existing) {
+      existing.failureCount++;
+      existing.avgReward = (existing.avgReward * (existing.failureCount - 1) + reward) / existing.failureCount;
+    } else {
+      memory.fallacies.push({
+        pattern: description,
+        failureCount: 1,
+        avgReward: reward,
+        discoveredAtStep: node.depth,
+      });
+      // Sort by failureCount and keep top N
+      memory.fallacies.sort((a, b) => b.failureCount - a.failureCount);
+      if (memory.fallacies.length > memory.maxItems) {
+        memory.fallacies = memory.fallacies.slice(0, memory.maxItems);
+      }
+    }
+  }
+}
+
+/**
+ * Build a prompt injection from the shared memory.
+ * This is added to the expansion prompt so future rollouts learn from past experience.
+ */
+export function buildPrismInjection(memory: PrismSharedMemory): string {
+  const parts: string[] = [];
+
+  if (memory.heuristics.length > 0) {
+    parts.push('=== SUCCESSFUL STRATEGIES (from previous explorations) ===');
+    for (const h of memory.heuristics.slice(0, 5)) {
+      parts.push(`- [used ${h.successCount}x, avg reward ${h.avgReward.toFixed(2)}] ${h.strategy.slice(0, 120)}`);
+    }
+    parts.push('=== END STRATEGIES ===');
+  }
+
+  if (memory.fallacies.length > 0) {
+    parts.push('=== KNOWN PITFALLS (avoid these patterns) ===');
+    for (const f of memory.fallacies.slice(0, 5)) {
+      parts.push(`- [failed ${f.failureCount}x, avg reward ${f.avgReward.toFixed(2)}] ${f.pattern.slice(0, 120)}`);
+    }
+    parts.push('=== END PITFALLS ===');
+  }
+
+  return parts.length > 0 ? `\n${parts.join('\n')}\n` : '';
+}
+
+/**
+ * Enhanced LATS with PRISM-MCTS shared memory.
+ *
+ * This is a drop-in replacement for runLATS that adds dynamic shared memory.
+ * The shared memory captures heuristics and fallacies across rollouts, halving
+ * the number of simulations needed.
+ */
+export async function runLATSWithPrism(
+  config: LATSConfig,
+  query: string,
+  toolCtx: ToolExecutionContext,
+  options: { prismMemory?: PrismSharedMemory; maxHeuristics?: number } = {},
+): Promise<LATSResult & { prismMemory: PrismSharedMemory }> {
+  const memory = options.prismMemory || createPrismMemory(options.maxHeuristics || 10);
+  const label = config.label || 'LATS-PRISM';
+  const startTime = Date.now();
+  let totalCost = 0;
+  let simulations = 0;
+
+  const tree = new LATSTree(`Query: ${query}`);
+  const initialMessages: LLMRequest['messages'] = [
+    { role: 'system', content: config.systemPrompt },
+    { role: 'user', content: query },
+  ];
+
+  let bestTerminal: LATSTreeNode | null = null;
+  let bestValue = -1;
+
+  while (simulations < config.maxSimulations) {
+    if (totalCost >= config.maxCostUsd) {
+      console.log(`[${label}] Stopping: budget exceeded`);
+      break;
+    }
+
+    simulations++;
+    console.log(`[${label}] Simulation ${simulations}/${config.maxSimulations} (heuristics: ${memory.heuristics.length}, fallacies: ${memory.fallacies.length})`);
+
+    // Step 1: Selection
+    const leaf = selectLeaf(tree, config);
+
+    // Step 2: Expansion (with PRISM injection)
+    if (!leaf.isTerminal && !leaf.isFullyExpanded && leaf.depth < config.maxDepth) {
+      const prismInjection = buildPrismInjection(memory);
+      const enhancedMessages: LLMRequest['messages'] = prismInjection
+        ? [...initialMessages, { role: 'system', content: prismInjection }]
+        : initialMessages;
+
+      const children = await expand(leaf, tree, config, query, toolCtx, enhancedMessages);
+
+      if (children.length === 0) {
+        leaf.isFullyExpanded = true;
+        continue;
+      }
+
+      // Step 3: Simulation + PRISM memory update
+      for (const child of children) {
+        const value = await simulate(child, config);
+        tree.updateNode(child.id, { value });
+
+        // PRISM: update shared memory with this outcome
+        updatePrismMemory(memory, child, value);
+
+        if (child.isTerminal && value > bestValue) {
+          bestValue = value;
+          bestTerminal = child;
+        }
+
+        backpropagate(child, tree, value);
+      }
+    } else if (leaf.isTerminal) {
+      const value = await simulate(leaf, config);
+      tree.updateNode(leaf.id, { value });
+      updatePrismMemory(memory, leaf, value);
+      backpropagate(leaf, tree, value);
+
+      if (value > bestValue) {
+        bestValue = value;
+        bestTerminal = leaf;
+      }
+    }
+
+    // PRISM: early termination with lower threshold (shared memory makes us more confident)
+    if (bestTerminal && bestValue > 0.75) {
+      console.log(`[${label}] Early termination (PRISM-enhanced): best value ${bestValue.toFixed(2)}`);
+      break;
+    }
+  }
+
+  const bestPath: string[] = [];
+  let current: LATSTreeNode | undefined = bestTerminal || tree.getRoot();
+  while (current) {
+    bestPath.unshift(current.id);
+    current = current.parentId ? tree.getNode(current.parentId) : undefined;
+  }
+
+  const stopReason: LATSResult['stopReason'] =
+    bestTerminal ? 'found_terminal' :
+    simulations >= config.maxSimulations ? 'max_simulations' :
+    totalCost >= config.maxCostUsd ? 'budget' : 'max_depth';
+
+  return {
+    finalAnswer: bestTerminal?.finalAnswer || bestTerminal?.thought || '',
+    bestPath,
+    nodes: tree.getAllNodes(),
+    totalCostUsd: totalCost,
+    simulationsRun: simulations,
+    bestValue,
+    stopReason,
+    prismMemory: memory,
+  };
+}

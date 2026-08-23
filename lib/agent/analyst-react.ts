@@ -31,7 +31,7 @@ import { parseJson } from './json-utils';
 import { selfDiscover, buildReasoningStructureInjection } from './self-discover';
 import { budgetForcingInstruction } from './budget-forcing';
 import { buildReflectionTokenHint } from './adaptive-rag';
-import { runLATS, type LATSConfig } from './lats';
+import { runLATS, runLATSWithPrism, runMOSA, type LATSConfig } from './lats';
 import { guardOutput, buildRepairFeedback } from './output-guard';
 import { judge } from './local-judge';
 
@@ -70,6 +70,8 @@ export interface AnalystReActOptions {
   useMCP?: boolean;
   /** Enable LATS — tree search reasoning instead of linear ReAct (default: false) */
   useLATS?: boolean;
+  /** Enable MOSA — multi-LLM collaborative MCTS (requires useLATS, strategic only) */
+  useMOSA?: boolean;
   /** Enable output guardrails — validate final JSON before returning (default: false) */
   useOutputGuard?: boolean;
   /** Best-of-N: generate N candidate analyses and pick the highest-scoring (default: 1) */
@@ -173,7 +175,30 @@ export async function analystReAct(
           task: isStrategic ? 'strategic_analysis' : 'analyst_brief',
           label: `${seedLabel} LATS`,
         };
-        const latsResult = await runLATS(latsConfig, initialInput, fullToolCtx);
+        // K1: Use PRISM-MCTS (shared memory) instead of vanilla LATS
+        // K2: For strategic queries, use MOSA (multi-LLM collaborative MCTS) if enabled
+        let latsResult;
+        if (options.useMOSA && isStrategic) {
+          const { runMOSA: runMOSAFn } = await import('./lats/mosa');
+          latsResult = await runMOSAFn({
+            systemPrompt,
+            tools: getAnalystTools(options.useMCP),
+            agents: [
+              { provider: 'deepseek' as any, label: 'DeepSeek-Explorer', temperature: 0.3, isAggregator: false },
+              { provider: 'glm' as any, label: 'GLM-Explorer', temperature: 0.5, isAggregator: false },
+            ],
+            simulationsPerAgent: 8,
+            maxDepth: 5,
+            rounds: 2,
+            maxCostUsd: (options.maxCostUsd ?? 0.50) / n,
+            task: 'strategic_analysis' as any,
+            maxTokens: 8000,
+            branchingFactor: 2,
+          }, initialInput, fullToolCtx);
+          console.log(`[${seedLabel}] MOSA: best agent=${latsResult.bestAgent}, value=${latsResult.bestValue.toFixed(2)}, rounds=${latsResult.roundsRun}`);
+        } else {
+          latsResult = await runLATSWithPrism(latsConfig, initialInput, fullToolCtx);
+        }
         oneTrace = {
           finalAnswer: latsResult.finalAnswer,
           finishedExplicitly: true,

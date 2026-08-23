@@ -13,6 +13,7 @@
  */
 
 import { prisma } from '../db';
+import { fetchFromProvider } from '../http-client';
 
 // ============================================================================
 // TYPES
@@ -172,9 +173,8 @@ async function fetchFREDSeries(): Promise<{ id: string; name: string; provider: 
     const promises = batch.map(async (s) => {
       try {
         const url = `https://api.stlouisfed.org/fred/series/observations?series_id=${s.fredId}&api_key=${apiKey}&file_type=json&limit=120&sort_order=desc`;
-        const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
-        if (!res.ok) return null;
-        const data = await res.json();
+        const data: any = await fetchFromProvider('fred', url, { timeout: 8000, retries: 2 }).catch(() => null);
+        if (!data) return null;
         const observations = (data.observations || []).filter((o: any) => o.value !== '.');
         const values = observations.map((o: any) => parseFloat(o.value)).reverse();
         const dates = observations.map((o: any) => new Date(o.date)).reverse();
@@ -198,9 +198,8 @@ async function fetchECBSeries(): Promise<{ id: string; name: string; provider: s
   for (const s of ECB_SERIES) {
     try {
       const url = `https://data-api.ecb.europa.eu/service/data/${s.ecbKey}?format=csvdata&lastNObservations=120`;
-      const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
-      if (!res.ok) continue;
-      const text = await res.text();
+      const text = await fetchFromProvider('ecb', url, { timeout: 8000, retries: 2, responseType: 'text' }).catch(() => null);
+      if (!text) continue;
       const lines = text.trim().split('\n');
       const header = lines[0].split(',');
       const valueIdx = header.indexOf('OBS_VALUE');

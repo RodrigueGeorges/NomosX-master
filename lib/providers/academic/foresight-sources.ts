@@ -14,6 +14,8 @@
  * organizations publish reports rather than journal articles.
  */
 
+import { fetchFromProvider } from '../../http-client';
+
 // ─── Club of Rome ─────────────────────────────────────────────────
 //
 // Club of Rome reports (Meadows "Limits to Growth", etc.) are
@@ -25,17 +27,11 @@ export async function searchClubOfRome(query: string, limit = 10): Promise<any[]
     const enhancedQuery = `"Club of Rome" ${query}`.slice(0, 500);
     const url = `https://api.crossref.org/works?query=${encodeURIComponent(enhancedQuery)}&filter=type:book,type:report&rows=${limit * 2}`;
 
-    const response = await fetch(url, {
-      headers: { 'User-Agent': 'NomosX/1.0 (mailto:contact@nomosx.com)' },
-      signal: AbortSignal.timeout(20000),
-    });
-
-    if (!response.ok) {
-      console.warn(`[SCOUT/ClubOfRome] Crossref HTTP ${response.status}`);
+    const data: any = await fetchFromProvider('club-of-rome', url, { timeout: 20000, retries: 2, headers: { 'User-Agent': 'NomosX/1.0 (mailto:contact@nomosx.com)' } });
+    if (!data) {
+      console.warn(`[SCOUT/ClubOfRome] Crossref request failed`);
       return [];
     }
-
-    const data = await response.json() as any;
     const items = data?.message?.items || [];
 
     return items
@@ -91,22 +87,17 @@ export async function searchMillenniumProject(query: string, limit = 10): Promis
 
     // Search Crossref for Millennium Project publications
     const crossrefUrl = `https://api.crossref.org/works?query=${encodeURIComponent(enhancedQuery)}&rows=${limit * 2}`;
-    const [crossrefResponse, iaResponse] = await Promise.allSettled([
-      fetch(crossrefUrl, {
-        headers: { 'User-Agent': 'NomosX/1.0 (mailto:contact@nomosx.com)' },
-        signal: AbortSignal.timeout(20000),
-      }),
-      fetch(`https://archive.org/advancedsearch.php?q=${encodeURIComponent(`"Millennium Project" ${query} AND mediatype:texts`)}&fl=identifier,title,creator,date,description,subject&rows=${limit}&output=json`, {
-        headers: { 'User-Agent': 'NomosX/1.0 (mailto:contact@nomosx.com)' },
-        signal: AbortSignal.timeout(20000),
-      }),
+    const iaUrl = `https://archive.org/advancedsearch.php?q=${encodeURIComponent(`"Millennium Project" ${query} AND mediatype:texts`)}&fl=identifier,title,creator,date,description,subject&rows=${limit}&output=json`;
+    const [crossrefResult, iaResult] = await Promise.allSettled([
+      fetchFromProvider('millennium-project', crossrefUrl, { timeout: 20000, retries: 2, headers: { 'User-Agent': 'NomosX/1.0 (mailto:contact@nomosx.com)' } }),
+      fetchFromProvider('millennium-project', iaUrl, { timeout: 20000, retries: 2, headers: { 'User-Agent': 'NomosX/1.0 (mailto:contact@nomosx.com)' } }),
     ]);
 
     const results: any[] = [];
 
     // Parse Crossref results
-    if (crossrefResponse.status === 'fulfilled' && crossrefResponse.value.ok) {
-      const data = await crossrefResponse.value.json() as any;
+    if (crossrefResult.status === 'fulfilled' && crossrefResult.value) {
+      const data = crossrefResult.value as any;
       const items = data?.message?.items || [];
       for (const item of items) {
         const title = (item.title?.[0] || '').toLowerCase();
@@ -143,8 +134,8 @@ export async function searchMillenniumProject(query: string, limit = 10): Promis
     }
 
     // Parse Internet Archive results
-    if (iaResponse.status === 'fulfilled' && iaResponse.value.ok) {
-      const iaData = await iaResponse.value.json() as any;
+    if (iaResult.status === 'fulfilled' && iaResult.value) {
+      const iaData = iaResult.value as any;
       const iaDocs = iaData?.response?.docs || [];
       for (const doc of iaDocs) {
         const year = doc.date ? parseInt(String(doc.date).slice(0, 4)) : null;

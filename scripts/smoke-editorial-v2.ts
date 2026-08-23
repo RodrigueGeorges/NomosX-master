@@ -195,6 +195,9 @@ async function phaseFullPipeline() {
   const result = await runPipeline(QUERY, 'brief', {
     providers: ['openalex', 'crossref'] as any,
     perProvider: 5,
+    useThinkTankPack: true,
+    policyCouncil: true,
+    useSelfEvolution: true,
   });
 
   const duration = ((Date.now() - start) / 1000).toFixed(1);

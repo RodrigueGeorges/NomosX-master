@@ -3,6 +3,8 @@
  * Multiple strategies for reliable patent data collection
  */
 
+import { fetchFromProvider } from '../../http-client';
+
 export async function searchGooglePatents(query: string, limit: number = 10): Promise<any[]> {
   console.log(`[Google-Patents] Searching for: "${query}" (limit: ${limit})`);
   
@@ -13,7 +15,9 @@ export async function searchGooglePatents(query: string, limit: number = 10): Pr
     try {
       const searchUrl = `https://patents.google.com/xhr/query?url=search%3Fq%3D${encodeURIComponent(query)}%26o%3D${encodeURIComponent(query)}%26num%3D${limit}`;
       
-      const response = await fetch(searchUrl, {
+      const data: any = await fetchFromProvider('google-patents', searchUrl, {
+        timeout: 15000,
+        retries: 2,
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
           'Accept': 'application/json, text/plain, */*',
@@ -21,10 +25,8 @@ export async function searchGooglePatents(query: string, limit: number = 10): Pr
           'Referer': 'https://patents.google.com/'
         }
       });
-      
-      if (response.ok) {
-        const data = await response.json();
-        
+
+      if (data) {
         if (data.results && data.results.length > 0) {
           for (const patent of data.results.slice(0, limit)) {
             results.push({
@@ -61,7 +63,10 @@ export async function searchGooglePatents(query: string, limit: number = 10): Pr
       try {
         const webSearchUrl = `https://patents.google.com/search?q=${encodeURIComponent(query)}&oq=${encodeURIComponent(query)}`;
         
-        const response = await fetch(webSearchUrl, {
+        const htmlText: string = await fetchFromProvider('google-patents', webSearchUrl, {
+          timeout: 15000,
+          retries: 2,
+          responseType: 'text',
           headers: {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
@@ -72,8 +77,7 @@ export async function searchGooglePatents(query: string, limit: number = 10): Pr
           }
         });
         
-        if (response.ok) {
-          const htmlText = await response.text();
+        if (htmlText) {
           const patents = parseGooglePatentsHTML(htmlText);
           
           // Add patents to results (avoid duplicates)
@@ -173,13 +177,16 @@ async function searchAlternativePatentAPIs(query: string, limit: number): Promis
   try {
     const usptoUrl = `https://patft.uspto.gov/netacgi/nph-Parser?patentnumber=8,000,000&patentnumber=8,000,001&patentnumber=8,000,002&Submit=Search`;
     
-    const response = await fetch(usptoUrl, {
+    const htmlText: string = await fetchFromProvider('google-patents', usptoUrl, {
+      timeout: 15000,
+      retries: 2,
+      responseType: 'text',
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
       }
     });
     
-    if (response.ok) {
+    if (htmlText) {
       // Parse USPTO results (simplified)
       results.push({
         id: `uspto:alternative-${Date.now()}`,

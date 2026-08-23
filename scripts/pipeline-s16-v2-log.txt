@@ -1,0 +1,2425 @@
+[dotenv@17.2.4] injecting env (31) from .env.local -- tip: ⚙️  enable debug logging with { debug: true }
+
+╔════════════════════════════════════════════════════════════╗
+║  NomosX — Pipeline Test (is        )                        ║
+╚════════════════════════════════════════════════════════════╝
+  Query: "What"
+  Format: is
+  Started: 2026-08-22T15:39:01.587Z
+
+[Pipeline] CONDUCTOR: workflow="brief", 10 steps (pruned optional steps due to budget=$3)
+[SmartProvider] Detected domain: default
+[Pipeline] COMPLEXITY ROUTING: simple query (score=0) — reduced to 12 providers, 20/provider
+[Pipeline] CONTEXT PRIMER: loading institutional memory
+[CONTEXT PRIMER] Priming context for: "What..."
+[KNOWLEDGE] Querying: "What..."
+[TREND_ANALYZER] Analyzing trends over 6 months...
+[REALTIME] Fetching multi-domain live intelligence (12 providers)...
+[KNOWLEDGE] Longitudinal insights: 10 tracked concepts
+[TREND_ANALYZER] Analyzing 11725 sources
+[REALTIME] FRED: 22/24 indicators fetched
+[KNOWLEDGE] Found 0 relevant concepts across 0 briefs
+[REALTIME] ECB/Stock: 2 indicators
+✅ openai/gpt-4o-mini [meta_analysis] | 6502ms | 937+321 tok | $0.0003
+[TREND_ANALYZER] Detected 400 trend breaks
+[TREND_ANALYZER] Created TREND_BREAK signal: Industry
+[TREND_ANALYZER] Created TREND_BREAK signal: Political science
+[TREND_ANALYZER] Created TREND_BREAK signal: Social Sciences
+[TREND_ANALYZER] Created TREND_BREAK signal: Economics as a science
+[TREND_ANALYZER] Created TREND_BREAK signal: Supply chain
+[TREND_ANALYZER] Created TREND_BREAK signal: Predictive Analytics
+[TREND_ANALYZER] Created TREND_BREAK signal: Supply Chain Resilience
+[TREND_ANALYZER] Created TREND_BREAK signal: Risk Management
+[TREND_ANALYZER] Created TREND_BREAK signal: Electricity
+[TREND_ANALYZER] Created TREND_BREAK signal: Forecasting
+[TREND_ANALYZER] Created TREND_BREAK signal: Economic Development
+[TREND_ANALYZER] Created TREND_BREAK signal: transparency
+[TREND_ANALYZER] Created TREND_BREAK signal: electricity
+[TREND_ANALYZER] Created TREND_BREAK signal: europe
+[TREND_ANALYZER] Created TREND_BREAK signal: energy
+[TREND_ANALYZER] Created TREND_BREAK signal: Global Energy and Sustainability Research
+[TREND_ANALYZER] Created TREND_BREAK signal: Market Dynamics and Volatility
+[TREND_ANALYZER] Created TREND_BREAK signal: Sustainable Finance and Green Bonds
+[TREND_ANALYZER] Created TREND_BREAK signal: Natural Resources and Economic Development
+[TREND_ANALYZER] Created TREND_BREAK signal: Energy, Environment, Economic Growth
+[TREND_ANALYZER] Created TREND_BREAK signal: Energy, Environment, and Transportation Policies
+[TREND_ANALYZER] Created TREND_BREAK signal: Integrated Energy Systems Optimization
+[TREND_ANALYZER] Created TREND_BREAK signal: Environmental Impact and Sustainability
+[TREND_ANALYZER] Created TREND_BREAK signal: FinTech, Crowdfunding, Digital Finance
+[TREND_ANALYZER] Created TREND_BREAK signal: Banking stability, regulation, efficiency
+[TREND_ANALYZER] Created TREND_BREAK signal: Organic Food and Agriculture
+[TREND_ANALYZER] Created TREND_BREAK signal: Agriculture, Land Use, Rural Development
+[TREND_ANALYZER] Created TREND_BREAK signal: Bioeconomy and Sustainability Development
+[TREND_ANALYZER] Created TREND_BREAK signal: Innovation and Socioeconomic Development
+[TREND_ANALYZER] Created TREND_BREAK signal: Agricultural Innovations and Practices
+[TREND_ANALYZER] Created TREND_BREAK signal: Entrepreneurship Studies and Influences
+[TREND_ANALYZER] Created TREND_BREAK signal: Water-Energy-Food Nexus Studies
+[TREND_ANALYZER] Created TREND_BREAK signal: Water resources management and optimization
+[TREND_ANALYZER] Created TREND_BREAK signal: Electric Vehicles and Infrastructure
+[TREND_ANALYZER] Created TREND_BREAK signal: Oil Palm Production and Sustainability
+[TREND_ANALYZER] Created TREND_BREAK signal: Agricultural risk and resilience
+[TREND_ANALYZER] Created TREND_BREAK signal: Disaster Management and Resilience
+[TREND_ANALYZER] Created TREND_BREAK signal: Coastal and Marine Management
+[TREND_ANALYZER] Created TREND_BREAK signal: Coral and Marine Ecosystems Studies
+[TREND_ANALYZER] Created TREND_BREAK signal: Complex Systems and Decision Making
+[TREND_ANALYZER] Created TREND_BREAK signal: Sustainability and Ecological Systems Analysis
+[TREND_ANALYZER] Created TREND_BREAK signal: Financial Risk and Volatility Modeling
+[TREND_ANALYZER] Created TREND_BREAK signal: Monetary Policy and Economic Impact
+[TREND_ANALYZER] Created TREND_BREAK signal: Agriculture Sustainability and Environmental Impact
+[TREND_ANALYZER] Created TREND_BREAK signal: Global Health Care Issues
+[TREND_ANALYZER] Created TREND_BREAK signal: Health disparities and outcomes
+[TREND_ANALYZER] Created TREND_BREAK signal: Child Nutrition and Water Access
+[TREND_ANALYZER] Created TREND_BREAK signal: Obesity, Physical Activity, Diet
+[TREND_ANALYZER] Created TREND_BREAK signal: COVID-19 Pandemic Impacts
+[TREND_ANALYZER] Created TREND_BREAK signal: COVID-19 impact on air quality
+[TREND_ANALYZER] Created TREND_BREAK signal: COVID-19 epidemiological studies
+[TREND_ANALYZER] Created TREND_BREAK signal: Healthcare Policy and Management
+[TREND_ANALYZER] Created TREND_BREAK signal: Primary Care and Health Outcomes
+[TREND_ANALYZER] Created TREND_BREAK signal: Healthcare cost, quality, practices
+[TREND_ANALYZER] Created TREND_BREAK signal: Economic Growth and Productivity
+[TREND_ANALYZER] Created TREND_BREAK signal: Global Trade and Competitiveness
+[TREND_ANALYZER] Created TREND_BREAK signal: Advanced battery technologies research
+[TREND_ANALYZER] Created TREND_BREAK signal: Advanced Battery Technologies Research
+[TREND_ANALYZER] Created TREND_BREAK signal: Extraction and Separation Processes
+[TREND_ANALYZER] Created TREND_BREAK signal: Land Rights and Reforms
+[TREND_ANALYZER] Created TREND_BREAK signal: Infrastructure Resilience and Vulnerability Analysis
+[TREND_ANALYZER] Created TREND_BREAK signal: Biodiesel Production and Applications
+[TREND_ANALYZER] Created TREND_BREAK signal: Process Optimization and Integration
+[TREND_ANALYZER] Created TREND_BREAK signal: Fiscal Policy and Economic Growth
+[TREND_ANALYZER] Created TREND_BREAK signal: Economic theories and models
+[TREND_ANALYZER] Created TREND_BREAK signal: Reservoir Engineering and Simulation Methods
+[TREND_ANALYZER] Created TREND_BREAK signal: Digital Economy and Work Transformation
+[TREND_ANALYZER] Created TREND_BREAK signal: Taxation and Compliance Studies
+[TREND_ANALYZER] Created TREND_BREAK signal: Global Financial Crisis and Policies
+[TREND_ANALYZER] Created TREND_BREAK signal: Economics of Agriculture and Food Markets
+[TREND_ANALYZER] Created TREND_BREAK signal: Local Government Finance and Decentralization
+[TREND_ANALYZER] Created TREND_BREAK signal: Global trade, sustainability, and social impact
+[TREND_ANALYZER] Created TREND_BREAK signal: Rangeland Management and Livestock Ecology
+[TREND_ANALYZER] Created TREND_BREAK signal: Carbon Dioxide Capture Technologies
+[TREND_ANALYZER] Created TREND_BREAK signal: CO2 Sequestration and Geologic Interactions
+[TREND_ANALYZER] Created TREND_BREAK signal: Atmospheric and Environmental Gas Dynamics
+[TREND_ANALYZER] Created TREND_BREAK signal: Building Energy and Comfort Optimization
+[TREND_ANALYZER] Created TREND_BREAK signal: Sustainable Building Design and Assessment
+[TREND_ANALYZER] Created TREND_BREAK signal: Energy Efficiency and Management
+[TREND_ANALYZER] Created TREND_BREAK signal: Risk and Safety Analysis
+[TREND_ANALYZER] Created TREND_BREAK signal: Financial Markets and Investment Strategies
+[TREND_ANALYZER] Created TREND_BREAK signal: Air Quality and Health Impacts
+[TREND_ANALYZER] Created TREND_BREAK signal: Urban Transport and Accessibility
+[TREND_ANALYZER] Created TREND_BREAK signal: Transportation Planning and Optimization
+[TREND_ANALYZER] Created TREND_BREAK signal: Insect Pest Control Strategies
+[TREND_ANALYZER] Created TREND_BREAK signal: Microgrid Control and Optimization
+[TREND_ANALYZER] Created TREND_BREAK signal: Smart Grid Energy Management
+[TREND_ANALYZER] Created TREND_BREAK signal: Risk Management in Financial Firms
+[TREND_ANALYZER] Created TREND_BREAK signal: Economic Theory and Policy
+[TREND_ANALYZER] Created TREND_BREAK signal: Italy: Economic History and Contemporary Issues
+[TREND_ANALYZER] Created TREND_BREAK signal: Culture, Economy, and Development Studies
+[TREND_ANALYZER] Created TREND_BREAK signal: Corruption and Economic Development
+[TREND_ANALYZER] Created TREND_BREAK signal: Experimental Behavioral Economics Studies
+[TREND_ANALYZER] Created TREND_BREAK signal: Economic Theory and Institutions
+[TREND_ANALYZER] Created TREND_BREAK signal: Decision-Making and Behavioral Economics
+[TREND_ANALYZER] Created TREND_BREAK signal: Early Childhood Education and Development
+[TREND_ANALYZER] Created TREND_BREAK signal: Poverty, Education, and Child Welfare
+[TREND_ANALYZER] Created TREND_BREAK signal: Mining and Resource Management
+[TREND_ANALYZER] Created TREND_BREAK signal: Complex Systems and Time Series Analysis
+[TREND_ANALYZER] Created TREND_BREAK signal: Islamic Finance and Banking Studies
+[TREND_ANALYZER] Created TREND_BREAK signal: Religion and Society Interactions
+[TREND_ANALYZER] Created TREND_BREAK signal: Firm Innovation and Growth
+[TREND_ANALYZER] Created TREND_BREAK signal: Income, Poverty, and Inequality
+[TREND_ANALYZER] Created TREND_BREAK signal: Stock Market Forecasting Methods
+[TREND_ANALYZER] Created TREND_BREAK signal: Labor market dynamics and wage inequality
+[TREND_ANALYZER] Created TREND_BREAK signal: Gender, Labor, and Family Dynamics
+[TREND_ANALYZER] Created TREND_BREAK signal: preprint
+[TREND_ANALYZER] Created TREND_BREAK signal: biology
+[TREND_ANALYZER] Created TREND_BREAK signal: Auditing, Earnings Management, Governance
+[TREND_ANALYZER] Created TREND_BREAK signal: Corporate Insolvency and Governance
+[TREND_ANALYZER] Created TREND_BREAK signal: Fiscal Policies and Political Economy
+[TREND_ANALYZER] Created TREND_BREAK signal: Marine Bivalve and Aquaculture Studies
+[TREND_ANALYZER] Created TREND_BREAK signal: State Capitalism and Financial Governance
+[TREND_ANALYZER] Created TREND_BREAK signal: Economic Policies and Impacts
+[TREND_ANALYZER] Created TREND_BREAK signal: China's Socioeconomic Reforms and Governance
+[TREND_ANALYZER] Created TREND_BREAK signal: Housing Market and Economics
+[TREND_ANALYZER] Created TREND_BREAK signal: Forest Management and Policy
+[TREND_ANALYZER] Created TREND_BREAK signal: Environmental Sustainability in Business
+[TREND_ANALYZER] Created TREND_BREAK signal: Corporate Social Responsibility Reporting
+[TREND_ANALYZER] Created TREND_BREAK signal: Ecosystem dynamics and resilience
+[TREND_ANALYZER] Created TREND_BREAK signal: Climate Change and Geoengineering
+[TREND_ANALYZER] Created TREND_BREAK signal: International Business and FDI
+[TREND_ANALYZER] Created TREND_BREAK signal: Economic Growth and Development
+[TREND_ANALYZER] Created TREND_BREAK signal: Historical Economic and Social Studies
+[TREND_ANALYZER] Created TREND_BREAK signal: Digital Platforms and Economics
+[TREND_ANALYZER] Created TREND_BREAK signal: Auction Theory and Applications
+[TREND_ANALYZER] Created TREND_BREAK signal: Regional Economics and Spatial Analysis
+[TREND_ANALYZER] Created TREND_BREAK signal: Social Policy and Reform Studies
+[TREND_ANALYZER] Created TREND_BREAK signal: Insurance and Financial Risk Management
+[TREND_ANALYZER] Created TREND_BREAK signal: Southeast Asian Sociopolitical Studies
+[TREND_ANALYZER] Created TREND_BREAK signal: International Arbitration and Investment Law
+[TREND_ANALYZER] Created TREND_BREAK signal: Sustainable Agricultural Systems Analysis
+[TREND_ANALYZER] Created TREND_BREAK signal: Regulation and Compliance Studies
+[TREND_ANALYZER] Created TREND_BREAK signal: Consumer Attitudes and Food Labeling
+[TREND_ANALYZER] Created TREND_BREAK signal: Nutritional Studies and Diet
+[TREND_ANALYZER] Created TREND_BREAK signal: Housing, Finance, and Neoliberalism
+[TREND_ANALYZER] Created TREND_BREAK signal: Urban Planning and Governance
+[TREND_ANALYZER] Created TREND_BREAK signal: Sustainable Industrial Ecology
+[TREND_ANALYZER] Created TREND_BREAK signal: Hydropower, Displacement, Environmental Impact
+[TREND_ANALYZER] Created TREND_BREAK signal: Land Use and Ecosystem Services
+[TREND_ANALYZER] Created TREND_BREAK signal: Employment and Welfare Studies
+[TREND_ANALYZER] Created TREND_BREAK signal: Corporate Taxation and Avoidance
+[TREND_ANALYZER] Created TREND_BREAK signal: Labor Movements and Unions
+[TREND_ANALYZER] Created TREND_BREAK signal: Social Acceptance of Renewable Energy
+[TREND_ANALYZER] Created TREND_BREAK signal: Green IT and Sustainability
+[TREND_ANALYZER] Created TREND_BREAK signal: Innovation Diffusion and Forecasting
+[TREND_ANALYZER] Created TREND_BREAK signal: Resilience and Mental Health
+[TREND_ANALYZER] Created TREND_BREAK signal: Policy Transfer and Learning
+[TREND_ANALYZER] Created TREND_BREAK signal: Digital Marketing and Social Media
+[TREND_ANALYZER] Created TREND_BREAK signal: Consumer Retail Behavior Studies
+[TREND_ANALYZER] Created TREND_BREAK signal: Financial Literacy, Pension, Retirement Analysis
+[TREND_ANALYZER] Created TREND_BREAK signal: Scheduling and Optimization Algorithms
+[TREND_ANALYZER] Created TREND_BREAK signal: Health and Conflict Studies
+[TREND_ANALYZER] Created TREND_BREAK signal: Energy Load and Power Forecasting
+[TREND_ANALYZER] Created TREND_BREAK signal: Electric Power System Optimization
+[TREND_ANALYZER] Created TREND_BREAK signal: Regional resilience and development
+[TREND_ANALYZER] Created TREND_BREAK signal: Zoonotic diseases and public health
+[TREND_ANALYZER] Created TREND_BREAK signal: Microfinance and Financial Inclusion
+[TREND_ANALYZER] Created TREND_BREAK signal: Flood Risk Assessment and Management
+[TREND_ANALYZER] Created TREND_BREAK signal: Family Business Performance and Succession
+[TREND_ANALYZER] Created TREND_BREAK signal: Environmental Conservation and Management
+[TREND_ANALYZER] Created TREND_BREAK signal: Bioenergy crop production and management
+[TREND_ANALYZER] Created TREND_BREAK signal: Biofuel production and bioconversion
+[TREND_ANALYZER] Created TREND_BREAK signal: Animal Disease Management and Epidemiology
+[TREND_ANALYZER] Created TREND_BREAK signal: IoT Networks and Protocols
+[TREND_ANALYZER] Created TREND_BREAK signal: Advanced Wireless Communication Technologies
+[TREND_ANALYZER] Created TREND_BREAK signal: cs.PL
+[TREND_ANALYZER] Created TREND_BREAK signal: Economic, financial, and policy analysis
+[TREND_ANALYZER] Created TREND_BREAK signal: Photovoltaic Systems and Sustainability
+[TREND_ANALYZER] Created TREND_BREAK signal: Business Strategy and Innovation
+[TREND_ANALYZER] Created TREND_BREAK signal: Geochemistry and Geologic Mapping
+[TREND_ANALYZER] Created TREND_BREAK signal: Nigeria
+[TREND_ANALYZER] Created TREND_BREAK signal: Models, Economic
+[TREND_ANALYZER] Created TREND_BREAK signal: Nutrition Policy
+[TREND_ANALYZER] Created TREND_BREAK signal: Costs and Cost Analysis
+[TREND_ANALYZER] Created TREND_BREAK signal: Risk Assessment
+[TREND_ANALYZER] Created TREND_BREAK signal: Cloud Computing and Resource Management
+[TREND_ANALYZER] Created TREND_BREAK signal: Advanced Data Storage Technologies
+[TREND_ANALYZER] Created TREND_BREAK signal: Global Maternal and Child Health
+[TREND_ANALYZER] Created TREND_BREAK signal: Healthcare Systems and Reforms
+[TREND_ANALYZER] Created TREND_BREAK signal: Climate variability and models
+[TREND_ANALYZER] Created TREND_BREAK signal: International Cooperation
+[TREND_ANALYZER] Created TREND_BREAK signal: Ethiopia
+[TREND_ANALYZER] Created TREND_BREAK signal: Investments
+[TREND_ANALYZER] Created TREND_BREAK signal: Insect-Plant Interactions and Control
+[TREND_ANALYZER] Created TREND_BREAK signal: Insect and Pesticide Research
+[TREND_ANALYZER] Created TREND_BREAK signal: Political Economy and Marxism
+[TREND_ANALYZER] Created TREND_BREAK signal: Social Media and Politics
+[TREND_ANALYZER] Created TREND_BREAK signal: Forecasting Techniques and Applications
+[TREND_ANALYZER] Created TREND_BREAK signal: Spectroscopy and Chemometric Analyses
+[TREND_ANALYZER] Created TREND_BREAK signal: Smart Agriculture and AI
+[TREND_ANALYZER] Created TREND_BREAK signal: Climate Change and Environmental Impact
+[TREND_ANALYZER] Created TREND_BREAK signal: Migration and Labor Dynamics
+[TREND_ANALYZER] Created TREND_BREAK signal: Climate Change, Adaptation, Migration
+[TREND_ANALYZER] Created TREND_BREAK signal: Environmental and Social Impact Assessments
+[TREND_ANALYZER] Created TREND_BREAK signal: Economic and Technological Developments in Russia
+[TREND_ANALYZER] Created TREND_BREAK signal: Organizational and Employee Performance
+[TREND_ANALYZER] Created TREND_BREAK signal: Pharmaceutical and Antibiotic Environmental Impacts
+[TREND_ANALYZER] Created TREND_BREAK signal: Microbial Metabolic Engineering and Bioproduction
+[TREND_ANALYZER] Created TREND_BREAK signal: Innovative Microfluidic and Catalytic Techniques Innovation
+[TREND_ANALYZER] Created TREND_BREAK signal: Urban Agriculture and Sustainability
+[TREND_ANALYZER] Created TREND_BREAK signal: Public Policy and Administration Research
+[TREND_ANALYZER] Created TREND_BREAK signal: Antibiotic Use and Resistance
+[TREND_ANALYZER] Created TREND_BREAK signal: Pharmaceutical Economics and Policy
+[TREND_ANALYZER] Created TREND_BREAK signal: Corporate Identity and Reputation
+[TREND_ANALYZER] Created TREND_BREAK signal: Identification and Quantification in Food
+[TREND_ANALYZER] Created TREND_BREAK signal: Technology Adoption and User Behaviour
+[TREND_ANALYZER] Created TREND_BREAK signal: Retirement, Disability, and Employment
+[TREND_ANALYZER] Created TREND_BREAK signal: Evolutionary Game Theory and Cooperation
+[TREND_ANALYZER] Created TREND_BREAK signal: Human Mobility and Location-Based Analysis
+[TREND_ANALYZER] Created TREND_BREAK signal: Law, Economics, and Judicial Systems
+[TREND_ANALYZER] Created TREND_BREAK signal: Economic and Technological Systems Analysis
+[TREND_ANALYZER] Created TREND_BREAK signal: Global Educational Policies and Reforms
+[TREND_ANALYZER] Created TREND_BREAK signal: Community Development and Social Impact
+[TREND_ANALYZER] Created TREND_BREAK signal: Health Systems, Economic Evaluations, Quality of Life
+[TREND_ANALYZER] Created TREND_BREAK signal: Urban Green Space and Health
+[TREND_ANALYZER] Created TREND_BREAK signal: Occupational Health and Safety Research
+[TREND_ANALYZER] Created TREND_BREAK signal: Community Health and Development
+[TREND_ANALYZER] Created TREND_BREAK signal: Business and Economic Development
+[TREND_ANALYZER] Created TREND_BREAK signal: Explainable Artificial Intelligence (XAI)
+[TREND_ANALYZER] Created TREND_BREAK signal: Adversarial Robustness in Machine Learning
+[TREND_ANALYZER] Created TREND_BREAK signal: Machine Learning and Data Classification
+[TREND_ANALYZER] Created TREND_BREAK signal: Artificial Intelligence in Healthcare and Education
+[TREND_ANALYZER] Created TREND_BREAK signal: Radiomics and Machine Learning in Medical Imaging
+[TREND_ANALYZER] Created TREND_BREAK signal: Advanced Malware Detection Techniques
+[TREND_ANALYZER] Created TREND_BREAK signal: Anomaly Detection Techniques and Applications
+[TREND_ANALYZER] Created TREND_BREAK signal: COVID-19 diagnosis using AI
+[TREND_ANALYZER] Created TREND_BREAK signal: Advanced Neural Network Applications
+[TREND_ANALYZER] Created TREND_BREAK signal: Topic Modeling
+[TREND_ANALYZER] Created TREND_BREAK signal: Bacillus and Francisella bacterial research
+[TREND_ANALYZER] Created TREND_BREAK signal: Machine Learning in Materials Science
+[TREND_ANALYZER] Created TREND_BREAK signal: Neural dynamics and brain function
+[TREND_ANALYZER] Created TREND_BREAK signal: EEG and Brain-Computer Interfaces
+[TREND_ANALYZER] Created TREND_BREAK signal: Hate Speech and Cyberbullying Detection
+[TREND_ANALYZER] Created TREND_BREAK signal: Natural Language Processing Techniques
+[TREND_ANALYZER] Created TREND_BREAK signal: Gender Diversity and Inequality
+[TREND_ANALYZER] Created TREND_BREAK signal: Sex and Gender in Healthcare
+[TREND_ANALYZER] Created TREND_BREAK signal: Information Systems Theories and Implementation
+[TREND_ANALYZER] Created TREND_BREAK signal: Network Security and Intrusion Detection
+[TREND_ANALYZER] Created TREND_BREAK signal: Smart Grid Security and Resilience
+[TREND_ANALYZER] Created TREND_BREAK signal: Video Surveillance and Tracking Methods
+[TREND_ANALYZER] Created TREND_BREAK signal: Machine Learning in Healthcare
+[TREND_ANALYZER] Created TREND_BREAK signal: AI in cancer detection
+[TREND_ANALYZER] Created TREND_BREAK signal: Species Distribution and Climate Change
+[TREND_ANALYZER] Created TREND_BREAK signal: Remote Sensing in Agriculture
+[TREND_ANALYZER] Created TREND_BREAK signal: Scientific Computing and Data Management
+[TREND_ANALYZER] Created TREND_BREAK signal: Regional Development and Policy
+[TREND_ANALYZER] Created TREND_BREAK signal: EU Law and Policy Analysis
+[TREND_ANALYZER] Created TREND_BREAK signal: Maritime Transport Emissions and Efficiency
+[TREND_ANALYZER] Created TREND_BREAK signal: Maritime Navigation and Safety
+[TREND_ANALYZER] Created TREND_BREAK signal: Big Data and Business Intelligence
+[TREND_ANALYZER] Created TREND_BREAK signal: Healthcare Systems and Public Health
+[TREND_ANALYZER] Created TREND_BREAK signal: Misinformation and Its Impacts
+[TREND_ANALYZER] Created TREND_BREAK signal: Computational and Text Analysis Methods
+[TREND_ANALYZER] Created TREND_BREAK signal: Electricity Theft Detection Techniques
+[TREND_ANALYZER] Created TREND_BREAK signal: Political Influence and Corporate Strategies
+[TREND_ANALYZER] Created TREND_BREAK signal: Graphite, nuclear technology, radiation studies
+[TREND_ANALYZER] Created TREND_BREAK signal: Forest Ecology and Biodiversity Studies
+[TREND_ANALYZER] Created TREND_BREAK signal: Mycorrhizal Fungi and Plant Interactions
+[TREND_ANALYZER] Created TREND_BREAK signal: Ecology and Vegetation Dynamics Studies
+[TREND_ANALYZER] Created TREND_BREAK signal: Geology and Paleoclimatology Research
+[TREND_ANALYZER] Created TREND_BREAK signal: Wildlife Ecology and Conservation
+[TREND_ANALYZER] Created TREND_BREAK signal: Environmental DNA in Biodiversity Studies
+[TREND_ANALYZER] Created TREND_BREAK signal: E-commerce and Technology Innovations
+[TREND_ANALYZER] Created TREND_BREAK signal: Advanced Manufacturing and Logistics Optimization
+[TREND_ANALYZER] Created TREND_BREAK signal: Food Supply Chain Traceability
+[TREND_ANALYZER] Created TREND_BREAK signal: Municipal Solid Waste Management
+[TREND_ANALYZER] Created TREND_BREAK signal: Healthcare and Environmental Waste Management
+[TREND_ANALYZER] Created TREND_BREAK signal: Law, AI, and Intellectual Property
+[TREND_ANALYZER] Created TREND_BREAK signal: Economic Development and Digital Transformation
+[TREND_ANALYZER] Created TREND_BREAK signal: Smart Cities and Technologies
+[TREND_ANALYZER] Created TREND_BREAK signal: Traffic Prediction and Management Techniques
+[TREND_ANALYZER] Created TREND_BREAK signal: Online Learning and Analytics
+[TREND_ANALYZER] Created TREND_BREAK signal: World Trade Organization Law
+[TREND_ANALYZER] Created TREND_BREAK signal: Digital Transformation in Law
+[TREND_ANALYZER] Created TREND_BREAK signal: Law, logistics, and international trade
+[TREND_ANALYZER] Created TREND_BREAK signal: UAV Applications and Optimization
+[TREND_ANALYZER] Created TREND_BREAK signal: Remote Sensing and LiDAR Applications
+[TREND_ANALYZER] Created TREND_BREAK signal: 1.shs.gestion
+[TREND_ANALYZER] Created TREND_BREAK signal: Infrastructure Maintenance and Monitoring
+[TREND_ANALYZER] Created TREND_BREAK signal: BIM and Construction Integration
+[TREND_ANALYZER] Created TREND_BREAK signal: Book
+[TREND_ANALYZER] Created TREND_BREAK signal: Water Quality Monitoring Technologies
+[TREND_ANALYZER] Created TREND_BREAK signal: Fire effects on ecosystems
+[TREND_ANALYZER] Created TREND_BREAK signal: Soil Carbon and Nitrogen Dynamics
+[TREND_ANALYZER] Created TREND_BREAK signal: University-Industry-Government Innovation Models
+[TREND_ANALYZER] Created TREND_BREAK signal: Intellectual Property and Patents
+[TREND_ANALYZER] Created TREND_BREAK signal: Open Source Software Innovations
+[TREND_ANALYZER] Created TREND_BREAK signal: Sharing Economy and Platforms
+[TREND_ANALYZER] Created TREND_BREAK signal: Technology Assessment and Management
+[TREND_ANALYZER] Created TREND_BREAK signal: Manufacturing Process and Optimization
+[TREND_ANALYZER] Created TREND_BREAK signal: Internet of Things and AI
+[TREND_ANALYZER] Created TREND_BREAK signal: Advanced Data and IoT Technologies
+[TREND_ANALYZER] Created TREND_BREAK signal: Renewable energy and sustainable power systems
+[TREND_ANALYZER] Created TREND_BREAK signal: Digitalization, Law, and Regulation
+[TREND_ANALYZER] Created TREND_BREAK signal: grid
+[TREND_ANALYZER] Created TREND_BREAK signal: Education
+[TREND_ANALYZER] Created TREND_BREAK signal: AI Governance
+[TREND_ANALYZER] Created TREND_BREAK signal: 1.shs.socio
+[TREND_ANALYZER] Created TREND_BREAK signal: 1.shs.scipo
+[TREND_ANALYZER] Created TREND_BREAK signal: Intelligence artificielle
+[TREND_ANALYZER] Created TREND_BREAK signal: Oral Health
+[TREND_ANALYZER] Created TREND_BREAK signal: Digital Technology
+[TREND_ANALYZER] Created TREND_BREAK signal: Business
+[TREND_ANALYZER] Created TREND_BREAK signal: Physicians
+[TREND_ANALYZER] Created TREND_BREAK signal: Decision Support Systems, Clinical
+[TREND_ANALYZER] Created TREND_BREAK signal: Cooperative Behavior
+[TREND_ANALYZER] Created TREND_BREAK signal: Sports
+[TREND_ANALYZER] Created TREND_BREAK signal: Pilot Projects
+[TREND_ANALYZER] Created TREND_BREAK signal: One Health
+[TREND_ANALYZER] Created TREND_BREAK signal: Systemic AI Governance
+[TREND_ANALYZER] Created TREND_BREAK signal: Responsible AI
+[TREND_ANALYZER] Created TREND_BREAK signal: Hospitals
+[TREND_ANALYZER] Created TREND_BREAK signal: Clinical Competence
+[TREND_ANALYZER] Created TREND_BREAK signal: Informed Consent
+[TREND_ANALYZER] Created TREND_BREAK signal: Law in general. Comparative and uniform law. Jurisprudence
+[TREND_ANALYZER] Created TREND_BREAK signal: Physician-Patient Relations
+[TREND_ANALYZER] Created TREND_BREAK signal: Learning Health System
+[TREND_ANALYZER] Created TREND_BREAK signal: AIGN OS
+[TREND_ANALYZER] Created TREND_BREAK signal: Medicine
+[TREND_ANALYZER] Created TREND_BREAK signal: Science
+[TREND_ANALYZER] Created TREND_BREAK signal: Corporate Governance and Law
+[TREND_ANALYZER] Created TREND_BREAK signal: Ethics in Clinical Research
+[TREND_ANALYZER] Created TREND_BREAK signal: Air Quality Monitoring and Forecasting
+[TREND_ANALYZER] Created TREND_BREAK signal: Virtual Reality Applications and Impacts
+[TREND_ANALYZER] Created TREND_BREAK signal: Artificial Intelligence in Healthcare
+[TREND_ANALYZER] Created TREND_BREAK signal: Antibiotic Resistance in Bacteria
+[TREND_ANALYZER] Created TREND_BREAK signal: Digital Education and Society
+[TREND_ANALYZER] Created TREND_BREAK signal: Neuroethics, Human Enhancement, Biomedical Innovations
+[TREND_ANALYZER] Created TREND_BREAK signal: E-Government and Public Services
+[TREND_ANALYZER] Created TREND_BREAK signal: AI in Service Interactions
+[TREND_ANALYZER] Created TREND_BREAK signal: Impact of AI and Big Data on Business and Society
+[TREND_ANALYZER] Created TREND_BREAK signal: Telemedicine and Telehealth Implementation
+[TREND_ANALYZER] Created TREND_BREAK signal: Privacy-Preserving Technologies in Data
+[TREND_ANALYZER] Created TREND_BREAK signal: Genomics and Rare Diseases
+[TREND_ANALYZER] Created TREND_BREAK signal: Legal and Policy Issues
+[TREND_ANALYZER] Created TREND_BREAK signal: Free Will and Agency
+[TREND_ANALYZER] Created TREND_BREAK signal: Human-Automation Interaction and Safety
+[TREND_ANALYZER] Created TREND_BREAK signal: Cybercrime and Law Enforcement Studies
+[TREND_ANALYZER] Created TREND_BREAK signal: International Law and Human Rights
+[TREND_ANALYZER] Created TREND_BREAK signal: Graphene and Nanomaterials Applications
+[TREND_ANALYZER] Created TREND_BREAK signal: Privacy, Security, and Data Protection
+[TREND_ANALYZER] Created TREND_BREAK signal: Electronic Health Records Systems
+[TREND_ANALYZER] Created TREND_BREAK signal: Intelligent Tutoring Systems and Adaptive Learning
+[TREND_ANALYZER] Created TREND_BREAK signal: Digital Mental Health Interventions
+[TREND_ANALYZER] Created TREND_BREAK signal: Retinal and Optic Conditions
+[TREND_ANALYZER] Created TREND_BREAK signal: Travel-related health issues
+[TREND_ANALYZER] Created TREND_BREAK signal: Sustainability and Innovation in Business
+[TREND_ANALYZER] Created TREND_BREAK signal: AI and HR Technologies
+[TREND_ANALYZER] Created TREND_BREAK signal: Computational Drug Discovery Methods
+[TREND_ANALYZER] Created TREND_BREAK signal: Biosimilars and Bioanalytical Methods
+[TREND_ANALYZER] Created TREND_BREAK signal: Psychology of Moral and Emotional Judgment
+[TREND_ANALYZER] Created TREND_BREAK signal: Hydrology and Watershed Management Studies
+[TREND_ANALYZER] Created TREND_BREAK signal: Neural Networks and Reservoir Computing
+[TREND_ANALYZER] Created TREND_BREAK signal: Freedom of Expression and Defamation
+[TREND_ANALYZER] Created TREND_BREAK signal: Innovation, Sustainability, Human-Machine Systems
+[TREND_ANALYZER] Created TREND_BREAK signal: Research Data Management Practices
+[TREND_ANALYZER] Created TREND_BREAK signal: Data Quality and Management
+[TREND_ANALYZER] Created TREND_BREAK signal: Impact of Technology on Adolescents
+[TREND_ANALYZER] Created TREND_BREAK signal: Global Financial Regulation and Crises
+[TREND_ANALYZER] Created TREND_BREAK signal: Environmental Toxicology and Ecotoxicology
+[TREND_ANALYZER] Created TREND_BREAK signal: Nutrition, Genetics, and Disease
+[TREND_ANALYZER] Created TREND_BREAK signal: Mobile Health and mHealth Applications
+[TREND_ANALYZER] Created TREND_BREAK signal: Engineering Education and Technology
+[TREND_ANALYZER] Created TREND_BREAK signal: Spam and Phishing Detection
+[TREND_ANALYZER] Created TREND_BREAK signal: Functional Brain Connectivity Studies
+[TREND_ANALYZER] Created TREND_BREAK signal: Health, Environment, Cognitive Aging
+[TREND_ANALYZER] Created TREND_BREAK signal: Data-Driven Disease Surveillance
+[TREND_ANALYZER] Created TREND_BREAK signal: Disaster Response and Management
+[TREND_ANALYZER] Created TREND_BREAK signal: Health and Medical Research Impacts
+[TREND_ANALYZER] Created TREND_BREAK signal: Biomedical and Engineering Education
+[TREND_ANALYZER] Created TREND_BREAK signal: COVID-19 Digital Contact Tracing
+[TREND_ANALYZER] Created TREND_BREAK signal: Autopsy Techniques and Outcomes
+[TREND_ANALYZER] Created TREND_BREAK signal: Innovation, Technology, and Society
+[TREND_ANALYZER] Created TREND_BREAK signal: Public Health Policies and Education
+[TREND_ANALYZER] Created TREND_BREAK signal: Innovative Approaches in Technology and Social Development
+[TREND_ANALYZER] Created TREND_BREAK signal: Fish Ecology and Management Studies
+[TREND_ANALYZER] Created TREND_BREAK signal: Advanced MIMO Systems Optimization
+[TREND_ANALYZER] Created TREND_BREAK signal: Child Nutrition and Feeding Issues
+[TREND_ANALYZER] Created TREND_BREAK signal: European Union Policy and Governance
+[TREND_ANALYZER] Created TREND_BREAK signal: Global Health and Surgery
+[TREND_ANALYZER] Created TREND_BREAK signal: Private Equity and Venture Capital
+[TREND_ANALYZER] Created TREND_BREAK signal: Quality and Safety in Healthcare
+[TREND_ANALYZER] Created TREND_BREAK signal: Impact of Light on Environment and Health
+[TREND_ANALYZER] Created TREND_BREAK signal: Law
+[TREND_ANALYZER] Created TREND_BREAK signal: GDPR
+[TREND_ANALYZER] Created TREND_BREAK signal: International relations
+[TREND_ANALYZER] Created TREND_BREAK signal: 1.info.eiah
+[TREND_ANALYZER] Created TREND_BREAK signal: Artificial Intelligence in Law
+[TREND_ANALYZER] Created TREND_BREAK signal: Data Governance
+[TREND_ANALYZER] Created TREND_BREAK signal: Technology Assessment, Biomedical
+[TREND_ANALYZER] Created TREND_BREAK signal: Regulation
+[TREND_ANALYZER] Created TREND_BREAK signal: Learning
+[TREND_ANALYZER] Created TREND_BREAK signal: 1.info.info-ai
+[TREND_ANALYZER] Created TREND_BREAK signal: 1.info.info-lg
+[TREND_ANALYZER] Created TREND_BREAK signal: Technology (General)
+[TREND_ANALYZER] Created TREND_BREAK signal: 1.shs.droit
+[TREND_ANALYZER] Created TREND_BREAK signal: history
+[TREND_ANALYZER] Created TREND_BREAK signal: primary-source
+[TREND_ANALYZER] Created TREND_BREAK signal: Research Consensus
+[REALTIME] World Bank: 15/17 indicators fetched
+[REALTIME] WHO: 0 indicators
+[REALTIME] USGS: 2 indicators
+[REALTIME] Climate: 1 indicators
+[REALTIME] Federal Register: 1 indicators
+[REALTIME] Papers With Code: 0 indicators
+[REALTIME] EUR-Lex: 1 indicators
+[REALTIME] NVD/CISA: 2 indicators
+[REALTIME] GDELT: 0 indicators
+[REALTIME] NASA GISS: 1 indicators
+[REALTIME] ECB: 2 indicators
+[REALTIME] ✅ Pulse complete: 47 indicators, 5 alerts (36215ms)
+[CONTEXT PRIMER] Real-time data: 47 indicators, 5 alerts
+[CONTEXT PRIMER] KG: 0 concepts, 10 trends, 0 controversies, 0 trend breaks
+[CONTEXT PRIMER] Prior briefs: 0 related (from 23 scanned)
+[REALTIME] Fetching multi-domain live intelligence (12 providers)...
+[REALTIME] FRED: 22/24 indicators fetched
+[REALTIME] ECB/Stock: 2 indicators
+[REALTIME] World Bank: 15/17 indicators fetched
+[REALTIME] WHO: 0 indicators
+[REALTIME] USGS: 2 indicators
+[REALTIME] Climate: 1 indicators
+[REALTIME] Federal Register: 1 indicators
+[REALTIME] Papers With Code: 0 indicators
+[REALTIME] EUR-Lex: 1 indicators
+[REALTIME] NVD/CISA: 2 indicators
+[REALTIME] GDELT: 0 indicators
+[REALTIME] NASA GISS: 1 indicators
+[REALTIME] ECB: 2 indicators
+[REALTIME] ✅ Pulse complete: 47 indicators, 5 alerts (36045ms)
+[CONTEXT PRIMER] ✅ Context primed in 72737ms (0 concepts, 0 prior briefs, 0 trend breaks)
+[Pipeline] CONTEXT PRIMER: 0 concepts, 0 prior briefs, 0 trend breaks
+[Pipeline] SCOUT: query="What" (12 providers, 20/provider)
+✅ deepseek/deepseek-v4-flash [query_enhancement] | 4149ms | 417+541 tok | $0.0002
+[Pipeline] DEEP PLANNER: 7 sub-questions planned
+[SCOUT] Cache MISS for "What is the historical context and evolution of the concept of 'What'?", running providers...
+✅ deepseek/deepseek-v4-flash [query_enhancement] | 1773ms | 768+149 tok | $0.0001
+[SCOUT] Query enhanced: "concept 'What' historical context evolution philosophy language semantics" (+3 variations)
+[SCOUT] Neural routing selected 3 providers: openalex, wikidata, crossref...
+[SCOUT] Submodular diversification selected 4 diverse queries from 4
+[SCOUT] Fetching theses from theses.fr...
+[ThesesFr] Searching for: "What is the historical context and evolution of the concept of 'What'?"
+[ThesesFr] Found 0 theses
+[SCOUT] Found 0 theses
+[SCOUT] 0/0 theses with exploitable content
+[CONSOLIDATED-INSTITUTIONS] Searching 31 institutions in 3 batch(es) for: "concept 'What' historical context evolution philosophy langu..."
+[GLOBAL-INTELLIGENCE] Searching 16 intelligence feeds for: "concept 'What' historical context evolution philosophy langu..."
+[GLOBAL-ORGS] Searching 25 international org feeds for: "concept 'What' historical context evolution philosophy langu..."
+[GLOBAL-THINKTANKS] Searching 29 think tank feeds for: "concept 'What' historical context evolution philosophy langu..."
+[CONSOLIDATED-INSTITUTIONS] Searching 31 institutions in 3 batch(es) for: "history and development of the concept 'What' in philosophy..."
+[GLOBAL-INTELLIGENCE] Searching 16 intelligence feeds for: "history and development of the concept 'What' in philosophy..."
+[GLOBAL-ORGS] Searching 25 international org feeds for: "history and development of the concept 'What' in philosophy..."
+[GLOBAL-THINKTANKS] Searching 29 think tank feeds for: "history and development of the concept 'What' in philosophy..."
+[CONSOLIDATED-INSTITUTIONS] Searching 31 institutions in 3 batch(es) for: "semantic evolution of the term 'What' across languages..."
+[GLOBAL-INTELLIGENCE] Searching 16 intelligence feeds for: "semantic evolution of the term 'What' across languages..."
+[GLOBAL-ORGS] Searching 25 international org feeds for: "semantic evolution of the term 'What' across languages..."
+[GLOBAL-THINKTANKS] Searching 29 think tank feeds for: "semantic evolution of the term 'What' across languages..."
+[CONSOLIDATED-INSTITUTIONS] Searching 31 institutions in 3 batch(es) for: "philosophical analysis of the concept 'What' over time..."
+[GLOBAL-INTELLIGENCE] Searching 16 intelligence feeds for: "philosophical analysis of the concept 'What' over time..."
+[GLOBAL-ORGS] Searching 25 international org feeds for: "philosophical analysis of the concept 'What' over time..."
+[GLOBAL-THINKTANKS] Searching 29 think tank feeds for: "philosophical analysis of the concept 'What' over time..."
+[SCOUT] Launching 44 parallel requests across 4 query variations
+[nber] Found 0 publications (filter: https://ror.org/04grmx538)
+[nber] Found 0 publications (filter: https://ror.org/04grmx538)
+[CONSOLIDATED-INSTITUTIONS] Got 0 results from 31 institutions
+[nber] Found 0 publications (filter: https://ror.org/04grmx538)
+[CONSOLIDATED-INSTITUTIONS] Got 0 results from 31 institutions
+[nber] Found 0 publications (filter: https://ror.org/04grmx538)
+[CONSOLIDATED-INSTITUTIONS] Got 0 results from 31 institutions
+[CONSOLIDATED-INSTITUTIONS] Got 0 results from 31 institutions
+[HAL] Found 0 documents
+[HAL] 0/0 with rich abstracts (0%)
+[HAL] Found 1 documents
+[HAL] 1/1 with rich abstracts (100%)
+[HAL] Found 20 documents
+[HAL] 20/20 with rich abstracts (100%)
+[HAL] Found 6 documents
+[HAL] 6/6 with rich abstracts (100%)
+[Crossref] Found 20 works for "philosophical analysis of the concept 'What' over "
+[Crossref] Found 20 works for "concept 'What' historical context evolution philos"
+[Crossref] Found 20 works for "history and development of the concept 'What' in p"
+[Crossref] Found 20 works for "semantic evolution of the term 'What' across langu"
+[GLOBAL-INTELLIGENCE] Got 0 matching items from 16 feeds
+[GLOBAL-INTELLIGENCE] Got 5 matching items from 16 feeds
+[GLOBAL-THINKTANKS] Got 12 matching items from 29 feeds
+[GLOBAL-INTELLIGENCE] Got 0 matching items from 16 feeds
+[GLOBAL-ORGS] Got 3 matching items from 25 feeds
+[GLOBAL-ORGS] Got 3 matching items from 25 feeds
+[GLOBAL-THINKTANKS] Got 20 matching items from 29 feeds
+[GLOBAL-ORGS] Got 3 matching items from 25 feeds
+[GLOBAL-INTELLIGENCE] Got 0 matching items from 16 feeds
+[GLOBAL-THINKTANKS] Got 19 matching items from 29 feeds
+[GLOBAL-THINKTANKS] Got 20 matching items from 29 feeds
+[GLOBAL-ORGS] Got 3 matching items from 25 feeds
+[SCOUT] Per-provider results: _unknown=0, crossref=80, who=12, hrw=12, hal=27, amnesty=59, bellingcat=5
+[SCOUT] Filtered 1 low-quality sources (SEO farms, spam)
+[SCOUT] Raw results: 194 sources from 4 query variations (15 providers: crossref, who, hrw, foreign-affairs, heritage, csis, aei, freedom-house, hal, amnesty, atlantic-council, aspen, crisis-group, gmf, bellingcat)
+[SCOUT] After dedup: 117/194
+[SCOUT] After relevance filter: 17/117
+
+[RelevanceScorer] Top 5 sources by relevance:
+1. [26%] What Does History Matter to Philosophy of Science? The Concept of Replication an
+   Topic: 38% | Field: 50% | Semantic: 1% | Temporal: 100% | TitleBonus: 30% | Concepts: 5/8 (x0.63)
+2. [19%] Defining Human Consciousness through the Concept of “Oneself as Another”: From t
+   Topic: 35% | Field: 50% | Semantic: 0% | Temporal: 70% | TitleBonus: 30% | Concepts: 4/8 (x0.50)
+3. [18%] Evolution of the concept of care: cultural narratives and historical comparisons
+   Topic: 30% | Field: 50% | Semantic: 0% | Temporal: 70% | TitleBonus: 30% | Concepts: 4/8 (x0.50)
+4. [17%] Name-strategies and antropoiesis discourse in the history of philosophy
+   Topic: 28% | Field: 50% | Semantic: 0% | Temporal: 70% | TitleBonus: 30% | Concepts: 4/8 (x0.50)
+5. [16%] Le concept d'Etats défaillants dans les relations internationales : une étude po
+   Topic: 33% | Field: 0% | Semantic: 0% | Temporal: 70% | TitleBonus: 30% | Concepts: 5/8 (x0.63)
+
+⚠️  17 sources below 40% relevance (filtered out)
+[Reranker] Cohere reranked 17 sources → 1 results (min score: 0.1, attempt 1)
+[SCOUT] After Cohere rerank: 1 sources
+[SCOUT K10] CARE: overall=22%, individual=16%, combinedCoverage=38%, multiHop=0%, diversity=27%
+[SCOUT K10] ⚠️ Missing concepts: What, historical context, evolution, language, meaning — IntelligentScout should gap-fill these
+[SCOUT] Enriched 1 sources with Unpaywall (batched)
+[SCOUT] Done in 14569ms: 194 raw â†’ 117 dedup â†’ 1 ranked â†’ 1 saved
+[Pipeline] DEEP PLANNER: node n1 "What is the historical context and evolution of the concept " → 1 sources
+[SCOUT] Cache MISS for "What are the primary mechanisms through which 'What' operates?", running providers...
+✅ deepseek/deepseek-v4-flash [query_enhancement] | 1503ms | 765+120 tok | $0.0001
+[SCOUT] Query enhanced: "mechanisms of operation primary mechanisms 'What' functioning" (+3 variations)
+[SCOUT] Neural routing selected 2 providers: openalex, crossref...
+[SCOUT] Submodular diversification selected 4 diverse queries from 4
+[CONSOLIDATED-INSTITUTIONS] Searching 31 institutions in 3 batch(es) for: "mechanisms of operation primary mechanisms 'What' functionin..."
+[GLOBAL-INTELLIGENCE] Searching 16 intelligence feeds for: "mechanisms of operation primary mechanisms 'What' functionin..."
+[CONSOLIDATED-INSTITUTIONS] Searching 31 institutions in 3 batch(es) for: "operating mechanisms of 'What' core processes..."
+[GLOBAL-INTELLIGENCE] Searching 16 intelligence feeds for: "operating mechanisms of 'What' core processes..."
+[CONSOLIDATED-INSTITUTIONS] Searching 31 institutions in 3 batch(es) for: "primary operational mechanisms 'What' underlying principles..."
+[GLOBAL-INTELLIGENCE] Searching 16 intelligence feeds for: "primary operational mechanisms 'What' underlying principles..."
+[CONSOLIDATED-INSTITUTIONS] Searching 31 institutions in 3 batch(es) for: "how 'What' works fundamental mechanisms..."
+[GLOBAL-INTELLIGENCE] Searching 16 intelligence feeds for: "how 'What' works fundamental mechanisms..."
+[SCOUT] Launching 28 parallel requests across 4 query variations
+[nber] Found 0 publications (filter: https://ror.org/04grmx538)
+[nber] Found 0 publications (filter: https://ror.org/04grmx538)
+[CONSOLIDATED-INSTITUTIONS] Got 0 results from 31 institutions
+[nber] Found 0 publications (filter: https://ror.org/04grmx538)
+[CONSOLIDATED-INSTITUTIONS] Got 0 results from 31 institutions
+[nber] Found 0 publications (filter: https://ror.org/04grmx538)
+[CONSOLIDATED-INSTITUTIONS] Got 0 results from 31 institutions
+[CONSOLIDATED-INSTITUTIONS] Got 0 results from 31 institutions
+[Crossref] Found 20 works for "how 'What' works fundamental mechanisms"
+[Crossref] Found 20 works for "mechanisms of operation primary mechanisms 'What' "
+[Crossref] Found 20 works for "primary operational mechanisms 'What' underlying p"
+[Crossref] Found 20 works for "operating mechanisms of 'What' core processes"
+[GLOBAL-INTELLIGENCE] Got 0 matching items from 16 feeds
+[GLOBAL-INTELLIGENCE] Got 1 matching items from 16 feeds
+[GLOBAL-INTELLIGENCE] Got 0 matching items from 16 feeds
+[GLOBAL-INTELLIGENCE] Got 0 matching items from 16 feeds
+[SCOUT] Per-provider results: _unknown=0, crossref=80, bellingcat=1
+[SCOUT] Filtered 3 low-quality sources (SEO farms, spam)
+[SCOUT] Raw results: 78 sources from 4 query variations (2 providers: crossref, bellingcat)
+[SCOUT] After dedup: 78/78
+[SCOUT] After relevance filter: 16/78
+
+[RelevanceScorer] Top 5 sources by relevance:
+1. [25%] Understanding the Cognitive Mechanisms of Meditation: Enhancing Mindfulness thro
+   Topic: 40% | Field: 50% | Semantic: 0% | Temporal: 90% | TitleBonus: 30% | Concepts: 3/5 (x0.60)
+2. [17%] Review for "Disentangling biodiversity-ecosystem functioning relationship mechan
+   Topic: 40% | Field: 50% | Semantic: 0% | Temporal: 90% | TitleBonus: 30% | Concepts: 2/5 (x0.40)
+3. [17%] Review for "Disentangling biodiversity-ecosystem functioning relationship mechan
+   Topic: 40% | Field: 50% | Semantic: 0% | Temporal: 90% | TitleBonus: 30% | Concepts: 2/5 (x0.40)
+4. [17%] Review for "Disentangling biodiversity-ecosystem functioning relationship mechan
+   Topic: 40% | Field: 50% | Semantic: 0% | Temporal: 90% | TitleBonus: 30% | Concepts: 2/5 (x0.40)
+5. [17%] Review for "Disentangling biodiversity-ecosystem functioning relationship mechan
+   Topic: 40% | Field: 50% | Semantic: 0% | Temporal: 90% | TitleBonus: 30% | Concepts: 2/5 (x0.40)
+
+⚠️  16 sources below 40% relevance (filtered out)
+[Reranker] Cohere reranked 16 sources → 2 results (min score: 0.1, attempt 1)
+[SCOUT] After Cohere rerank: 2 sources
+[SCOUT K10] CARE: overall=50%, individual=15%, combinedCoverage=60%, multiHop=100%, diversity=27%
+[SCOUT K10] ⚠️ Missing concepts: processes, principles — IntelligentScout should gap-fill these
+[SCOUT] Enriched 2 sources with Unpaywall (batched)
+[SCOUT] Done in 12330ms: 78 raw â†’ 78 dedup â†’ 2 ranked â†’ 2 saved
+[Pipeline] DEEP PLANNER: node n2 "What are the primary mechanisms through which 'What' operate" → 2 sources
+[SCOUT] Cache MISS for "What are the primary mechanisms through which 'What' operates? What is the", running providers...
+✅ deepseek/deepseek-v4-flash [query_enhancement] | 1461ms | 769+115 tok | $0.0001
+[SCOUT] Query enhanced: "mechanisms of operation 'What'" (+3 variations)
+[SCOUT] Neural routing selected 2 providers: openalex, crossref...
+[SCOUT] Submodular diversification selected 4 diverse queries from 4
+[SCOUT] Fetching theses from theses.fr...
+[ThesesFr] Searching for: "What are the primary mechanisms through which 'What' operates? What is the"
+[ThesesFr] Found 0 theses
+[SCOUT] Found 0 theses
+[SCOUT] 0/0 theses with exploitable content
+[CONSOLIDATED-INSTITUTIONS] Searching 31 institutions in 3 batch(es) for: "mechanisms of operation 'What'..."
+[GLOBAL-INTELLIGENCE] Searching 16 intelligence feeds for: "mechanisms of operation 'What'..."
+[GLOBAL-ORGS] Searching 25 international org feeds for: "mechanisms of operation 'What'..."
+[GLOBAL-THINKTANKS] Searching 29 think tank feeds for: "mechanisms of operation 'What'..."
+[CONSOLIDATED-INSTITUTIONS] Searching 31 institutions in 3 batch(es) for: "operating mechanisms of 'What'..."
+[GLOBAL-INTELLIGENCE] Searching 16 intelligence feeds for: "operating mechanisms of 'What'..."
+[GLOBAL-ORGS] Searching 25 international org feeds for: "operating mechanisms of 'What'..."
+[GLOBAL-THINKTANKS] Searching 29 think tank feeds for: "operating mechanisms of 'What'..."
+[CONSOLIDATED-INSTITUTIONS] Searching 31 institutions in 3 batch(es) for: "how does 'What' function mechanisms..."
+[GLOBAL-INTELLIGENCE] Searching 16 intelligence feeds for: "how does 'What' function mechanisms..."
+[GLOBAL-ORGS] Searching 25 international org feeds for: "how does 'What' function mechanisms..."
+[GLOBAL-THINKTANKS] Searching 29 think tank feeds for: "how does 'What' function mechanisms..."
+[CONSOLIDATED-INSTITUTIONS] Searching 31 institutions in 3 batch(es) for: "primary mechanisms underlying 'What'..."
+[GLOBAL-INTELLIGENCE] Searching 16 intelligence feeds for: "primary mechanisms underlying 'What'..."
+[GLOBAL-ORGS] Searching 25 international org feeds for: "primary mechanisms underlying 'What'..."
+[GLOBAL-THINKTANKS] Searching 29 think tank feeds for: "primary mechanisms underlying 'What'..."
+[SCOUT] Launching 44 parallel requests across 4 query variations
+[nber] Found 0 publications (filter: https://ror.org/04grmx538)
+[CONSOLIDATED-INSTITUTIONS] Got 0 results from 31 institutions
+[nber] Found 0 publications (filter: https://ror.org/04grmx538)
+[CONSOLIDATED-INSTITUTIONS] Got 0 results from 31 institutions
+[nber] Found 0 publications (filter: https://ror.org/04grmx538)
+[CONSOLIDATED-INSTITUTIONS] Got 0 results from 31 institutions
+[nber] Found 0 publications (filter: https://ror.org/04grmx538)
+[CONSOLIDATED-INSTITUTIONS] Got 0 results from 31 institutions
+[HAL] Found 25 documents
+[HAL] 25/25 with rich abstracts (100%)
+[HAL] Found 25 documents
+[HAL] 25/25 with rich abstracts (100%)
+[HAL] Found 25 documents
+[HAL] 25/25 with rich abstracts (100%)
+[HAL] Found 25 documents
+[HAL] 25/25 with rich abstracts (100%)
+[Crossref] Found 25 works for "mechanisms of operation 'What'"
+[Crossref] Found 25 works for "operating mechanisms of 'What'"
+[Crossref] Found 25 works for "how does 'What' function mechanisms"
+[Crossref] Found 25 works for "primary mechanisms underlying 'What'"
+[SemanticScholar] Found 25 papers
+[SemanticScholar] 10/25 with rich abstracts (40%)
+[GLOBAL-INTELLIGENCE] Got 0 matching items from 16 feeds
+[GLOBAL-INTELLIGENCE] Got 1 matching items from 16 feeds
+[GLOBAL-INTELLIGENCE] Got 0 matching items from 16 feeds
+[GLOBAL-THINKTANKS] Got 15 matching items from 29 feeds
+[GLOBAL-ORGS] Got 0 matching items from 25 feeds
+[GLOBAL-THINKTANKS] Got 9 matching items from 29 feeds
+[GLOBAL-ORGS] Got 3 matching items from 25 feeds
+[GLOBAL-THINKTANKS] Got 9 matching items from 29 feeds
+[GLOBAL-ORGS] Got 3 matching items from 25 feeds
+[GLOBAL-INTELLIGENCE] Got 0 matching items from 16 feeds
+[GLOBAL-THINKTANKS] Got 17 matching items from 29 feeds
+[GLOBAL-ORGS] Got 1 matching items from 25 feeds
+[SCOUT] Per-provider results: _unknown=0, crossref=100, hal=100, bellingcat=1, who=7, amnesty=50, semanticscholar=10
+[SCOUT] Filtered 10 low-quality sources (SEO farms, spam)
+[SCOUT] Raw results: 258 sources from 4 query variations (14 providers: crossref, hal, bellingcat, who, amnesty, hrw, atlantic-council, heritage, gmf, csis, aei, freedom-house, semanticscholar, clingendael)
+[SCOUT] After dedup: 203/258
+[SCOUT] After relevance filter: 38/203
+
+[RelevanceScorer] Top 5 sources by relevance:
+1. [24%] Niveaux de compétence et apprentissage dans l’artisanat des matières osseuses au
+   Topic: 32% | Field: 33% | Semantic: 0% | Temporal: 90% | TitleBonus: 0% | Concepts: 4/5 (x0.80)
+2. [24%] Energy efficiency concepts in sugar house operation – what is old, what is new?
+   Topic: 36% | Field: 50% | Semantic: 0% | Temporal: 90% | TitleBonus: 30% | Concepts: 3/5 (x0.60)
+3. [24%] A discrete dislocation dynamics study of precipitate bypass mechanisms in nickel
+   Topic: 36% | Field: 50% | Semantic: 0% | Temporal: 90% | TitleBonus: 30% | Concepts: 3/5 (x0.60)
+4. [19%] Entre prescription et réalité : quelles tensions dans l'implantation d'un dispos
+   Topic: 32% | Field: 0% | Semantic: 0% | Temporal: 90% | TitleBonus: 0% | Concepts: 4/5 (x0.80)
+5. [19%] Autonomy in a French Integration Sewing Workshop. Skills, Labor Control, and Wor
+   Topic: 32% | Field: 0% | Semantic: 0% | Temporal: 90% | TitleBonus: 0% | Concepts: 4/5 (x0.80)
+
+⚠️  38 sources below 40% relevance (filtered out)
+[Reranker] Cohere reranked 38 sources → 3 results (min score: 0.1, attempt 1)
+[Reranker] Cohere returned only 3 results from 38 sources — falling back to local scoring for better coverage
+[Reranker] Local scoring: 38 sources → 38 results (min score: 0.1)
+[SCOUT] After Cohere rerank: 38 sources
+[SCOUT K10] CARE: overall=58%, individual=14%, combinedCoverage=100%, multiHop=52%, diversity=47%
+[SCOUT] Enriched 15 sources with Unpaywall (batched)
+[SCOUT] Done in 14434ms: 258 raw â†’ 203 dedup â†’ 38 ranked â†’ 38 saved
+[Pipeline] DEEP PLANNER: node n2 expanded → +38 sources
+[SCOUT] Cache MISS for "What is the empirical evidence base for the effects of 'What'?", running providers...
+✅ deepseek/deepseek-v4-flash [query_enhancement] | 1288ms | 767+111 tok | $0.0001
+[SCOUT] Query enhanced: "empirical evidence effects 'What'" (+3 variations)
+[SCOUT] Neural routing selected 3 providers: cochrane, openalex, crossref...
+[SCOUT] Submodular diversification selected 4 diverse queries from 4
+[CONSOLIDATED-INSTITUTIONS] Searching 31 institutions in 3 batch(es) for: "empirical evidence effects 'What'..."
+[GLOBAL-INTELLIGENCE] Searching 16 intelligence feeds for: "empirical evidence effects 'What'..."
+[CONSOLIDATED-INSTITUTIONS] Searching 31 institutions in 3 batch(es) for: "empirical evidence base for effects of 'What'..."
+[GLOBAL-INTELLIGENCE] Searching 16 intelligence feeds for: "empirical evidence base for effects of 'What'..."
+[CONSOLIDATED-INSTITUTIONS] Searching 31 institutions in 3 batch(es) for: "research evidence on impacts of 'What'..."
+[GLOBAL-INTELLIGENCE] Searching 16 intelligence feeds for: "research evidence on impacts of 'What'..."
+[CONSOLIDATED-INSTITUTIONS] Searching 31 institutions in 3 batch(es) for: "studies on outcomes of 'What'..."
+[GLOBAL-INTELLIGENCE] Searching 16 intelligence feeds for: "studies on outcomes of 'What'..."
+[SCOUT] Launching 24 parallel requests across 4 query variations
+[CONSOLIDATED-INSTITUTIONS] Got 0 results from 31 institutions
+[CONSOLIDATED-INSTITUTIONS] Got 0 results from 31 institutions
+[CONSOLIDATED-INSTITUTIONS] Got 0 results from 31 institutions
+[CONSOLIDATED-INSTITUTIONS] Got 0 results from 31 institutions
+[Crossref] Found 20 works for "studies on outcomes of 'What'"
+[Crossref] Found 20 works for "empirical evidence effects 'What'"
+[Crossref] Found 20 works for "empirical evidence base for effects of 'What'"
+[Crossref] Found 20 works for "research evidence on impacts of 'What'"
+[GLOBAL-INTELLIGENCE] Got 0 matching items from 16 feeds
+[GLOBAL-INTELLIGENCE] Got 0 matching items from 16 feeds
+[GLOBAL-INTELLIGENCE] Got 1 matching items from 16 feeds
+[GLOBAL-INTELLIGENCE] Got 0 matching items from 16 feeds
+[SCOUT] Per-provider results: _unknown=0, crossref=80, bellingcat=1
+[SCOUT] Filtered 2 low-quality sources (SEO farms, spam)
+[SCOUT] Raw results: 79 sources from 4 query variations (2 providers: crossref, bellingcat)
+[SCOUT] After dedup: 66/79
+[SCOUT] After relevance filter: 25/66
+
+[RelevanceScorer] Top 5 sources by relevance:
+1. [25%] Carbon Policy Design and Distributional Impacts: What Does the Research Tell Us?
+   Topic: 40% | Field: 50% | Semantic: 0% | Temporal: 90% | TitleBonus: 30% | Concepts: 3/5 (x0.60)
+2. [24%] What are the Enablers and Impacts of Digital Financial Services? An Updated Evid
+   Topic: 36% | Field: 50% | Semantic: 0% | Temporal: 90% | TitleBonus: 30% | Concepts: 3/5 (x0.60)
+3. [24%] What evidence exists on the impacts of large herbivores on climate change? A sys
+   Topic: 36% | Field: 50% | Semantic: 0% | Temporal: 90% | TitleBonus: 30% | Concepts: 3/5 (x0.60)
+4. [24%] What is the evidence for the impacts of airborne anthropogenic noise on wildlife
+   Topic: 36% | Field: 50% | Semantic: 0% | Temporal: 90% | TitleBonus: 30% | Concepts: 3/5 (x0.60)
+5. [23%] What evidence exists on the local impacts of energy systems on marine ecosystem 
+   Topic: 36% | Field: 50% | Semantic: 0% | Temporal: 70% | TitleBonus: 30% | Concepts: 3/5 (x0.60)
+
+⚠️  25 sources below 40% relevance (filtered out)
+[Reranker] Cohere reranked 25 sources → 13 results (min score: 0.1, attempt 1)
+[SCOUT] After Cohere rerank: 13 sources
+[SCOUT K10] CARE: overall=33%, individual=15%, combinedCoverage=60%, multiHop=15%, diversity=27%
+[SCOUT K10] ⚠️ Missing concepts: impacts, outcomes — IntelligentScout should gap-fill these
+[SCOUT] Enriched 13 sources with Unpaywall (batched)
+[SCOUT] Done in 12240ms: 79 raw â†’ 66 dedup â†’ 13 ranked â†’ 13 saved
+[Pipeline] DEEP PLANNER: node n3 "What is the empirical evidence base for the effects of 'What" → 13 sources
+[SCOUT] Cache MISS for "What are the counter-arguments and limitations to the mainstream view on 'What'?", running providers...
+✅ deepseek/deepseek-v4-flash [query_enhancement] | 1683ms | 770+132 tok | $0.0001
+[SCOUT] Query enhanced: "critique limitations mainstream view counterarguments philosophical analysis" (+3 variations)
+[SCOUT] Neural routing selected 9 providers: mit-dspace, arxiv, un, paperswithcode, undp, inria, openalex, hackernews...
+[SCOUT] Submodular diversification selected 4 diverse queries from 4
+[SCOUT] Fetching theses from theses.fr...
+[ThesesFr] Searching for: "What are the counter-arguments and limitations to the mainstream view on 'What'?"
+[ThesesFr] Found 0 theses
+[SCOUT] Found 0 theses
+[SCOUT] 0/0 theses with exploitable content
+[CONSOLIDATED-INSTITUTIONS] Searching 31 institutions in 3 batch(es) for: "critique limitations mainstream view counterarguments philos..."
+[GLOBAL-INTELLIGENCE] Searching 16 intelligence feeds for: "critique limitations mainstream view counterarguments philos..."
+[GLOBAL-ORGS] Searching 25 international org feeds for: "critique limitations mainstream view counterarguments philos..."
+[GLOBAL-THINKTANKS] Searching 29 think tank feeds for: "critique limitations mainstream view counterarguments philos..."
+[MIT-DSpace] Searching for: "critique limitations mainstream view counterarguments philosophical analysis"
+[CONSOLIDATED-INSTITUTIONS] Searching 31 institutions in 3 batch(es) for: "challenges to dominant perspective objections and weaknesses..."
+[GLOBAL-INTELLIGENCE] Searching 16 intelligence feeds for: "challenges to dominant perspective objections and weaknesses..."
+[GLOBAL-ORGS] Searching 25 international org feeds for: "challenges to dominant perspective objections and weaknesses..."
+[GLOBAL-THINKTANKS] Searching 29 think tank feeds for: "challenges to dominant perspective objections and weaknesses..."
+[MIT-DSpace] Searching for: "challenges to dominant perspective objections and weaknesses"
+[CONSOLIDATED-INSTITUTIONS] Searching 31 institutions in 3 batch(es) for: "alternative viewpoints and criticisms of prevailing opinion..."
+[GLOBAL-INTELLIGENCE] Searching 16 intelligence feeds for: "alternative viewpoints and criticisms of prevailing opinion..."
+[GLOBAL-ORGS] Searching 25 international org feeds for: "alternative viewpoints and criticisms of prevailing opinion..."
+[GLOBAL-THINKTANKS] Searching 29 think tank feeds for: "alternative viewpoints and criticisms of prevailing opinion..."
+[MIT-DSpace] Searching for: "alternative viewpoints and criticisms of prevailing opinion"
+[CONSOLIDATED-INSTITUTIONS] Searching 31 institutions in 3 batch(es) for: "debate over mainstream theory limitations and counterpoints..."
+[GLOBAL-INTELLIGENCE] Searching 16 intelligence feeds for: "debate over mainstream theory limitations and counterpoints..."
+[GLOBAL-ORGS] Searching 25 international org feeds for: "debate over mainstream theory limitations and counterpoints..."
+[GLOBAL-THINKTANKS] Searching 29 think tank feeds for: "debate over mainstream theory limitations and counterpoints..."
+[MIT-DSpace] Searching for: "debate over mainstream theory limitations and counterpoints"
+[SCOUT] Launching 52 parallel requests across 4 query variations
+[nber] Found 0 publications (filter: https://ror.org/04grmx538)
+[nber] Found 0 publications (filter: https://ror.org/04grmx538)
+[CONSOLIDATED-INSTITUTIONS] Got 0 results from 31 institutions
+[nber] Found 0 publications (filter: https://ror.org/04grmx538)
+[CONSOLIDATED-INSTITUTIONS] Got 0 results from 31 institutions
+[nber] Found 0 publications (filter: https://ror.org/04grmx538)
+[CONSOLIDATED-INSTITUTIONS] Got 0 results from 31 institutions
+[CONSOLIDATED-INSTITUTIONS] Got 0 results from 31 institutions
+[HAL] Found 0 documents
+[HAL] 0/0 with rich abstracts (0%)
+[HAL] Found 0 documents
+[HAL] 0/0 with rich abstracts (0%)
+[MIT-DSpace] Found 15 works
+[HAL] Found 0 documents
+[HAL] 0/0 with rich abstracts (0%)
+[HAL] Found 0 documents
+[HAL] 0/0 with rich abstracts (0%)
+[MIT-DSpace] Found 15 works
+[MIT-DSpace] Found 15 works
+[Crossref] Found 20 works for "challenges to dominant perspective objections and "
+[Crossref] Found 20 works for "debate over mainstream theory limitations and coun"
+[MIT-DSpace] Found 15 works
+[Crossref] Found 20 works for "critique limitations mainstream view counterargume"
+[Crossref] Found 20 works for "alternative viewpoints and criticisms of prevailin"
+[GLOBAL-ORGS] Got 0 matching items from 25 feeds
+[GLOBAL-THINKTANKS] Got 7 matching items from 29 feeds
+[GLOBAL-INTELLIGENCE] Got 0 matching items from 16 feeds
+[GLOBAL-ORGS] Got 3 matching items from 25 feeds
+[GLOBAL-INTELLIGENCE] Got 2 matching items from 16 feeds
+[GLOBAL-THINKTANKS] Got 20 matching items from 29 feeds
+[GLOBAL-THINKTANKS] Got 10 matching items from 29 feeds
+[GLOBAL-ORGS] Got 3 matching items from 25 feeds
+[GLOBAL-INTELLIGENCE] Got 0 matching items from 16 feeds
+[GLOBAL-INTELLIGENCE] Got 3 matching items from 16 feeds
+[GLOBAL-THINKTANKS] Got 16 matching items from 29 feeds
+[GLOBAL-ORGS] Got 3 matching items from 25 feeds
+[SCOUT] Per-provider results: _unknown=0, crossref=80, arxiv=80, bellingcat=5, who=9, hrw=33, mit-dspace=60, amnesty=20
+[SCOUT] Raw results: 287 sources from 4 query variations (16 providers: crossref, arxiv, bellingcat, who, hrw, atlantic-council, heritage, csis, clingendael, freedom-house, mit-dspace, amnesty, foreign-affairs, crisis-group, gmf, aspen)
+[SCOUT] After dedup: 231/287
+[SCOUT] After relevance filter: 4/231
+
+[RelevanceScorer] Top 5 sources by relevance:
+1. [17%] A Methodological Critique of Long-Memory Analysis in Chinese Equities: Limitatio
+   Topic: 40% | Field: 50% | Semantic: 0% | Temporal: 90% | TitleBonus: 30% | Concepts: 2/5 (x0.40)
+2. [15%] A Critique of Rorty’s Contingent View of Truth and Philosophy
+   Topic: 40% | Field: 50% | Semantic: 0% | Temporal: 50% | TitleBonus: 30% | Concepts: 2/5 (x0.40)
+3. [14%] Philosophy as linguistic analysis: A Nietzschean critique
+   Topic: 40% | Field: 50% | Semantic: 0% | Temporal: 30% | TitleBonus: 30% | Concepts: 2/5 (x0.40)
+4. [10%] CodeCriticBench: A Holistic Code Critique Benchmark for Large Language Models
+   Topic: 28% | Field: 0% | Semantic: 0% | Temporal: 90% | TitleBonus: 30% | Concepts: 2/5 (x0.40)
+
+⚠️  4 sources below 40% relevance (filtered out)
+[Reranker] Cohere reranked 4 sources → 0 results (min score: 0.1, attempt 1)
+[SCOUT] After Cohere rerank: 0 sources
+[SCOUT] Done in 13157ms: 287 raw â†’ 231 dedup â†’ 0 ranked â†’ 0 saved
+[Pipeline] DEEP PLANNER: node n4 "What are the counter-arguments and limitations to the mainst" → 0 sources
+[SCOUT] Cache MISS for "What are the counter-arguments and limitations to the mainstream view on 'What'? What are the What is the", running providers...
+✅ deepseek/deepseek-v4-flash [query_enhancement] | 1510ms | 777+122 tok | $0.0001
+[SCOUT] Query enhanced: "counter-arguments limitations mainstream view critique" (+3 variations)
+[SCOUT] Neural routing selected 9 providers: mit-dspace, arxiv, un, paperswithcode, undp, inria, openalex, hackernews...
+[SCOUT] Submodular diversification selected 4 diverse queries from 4
+[SCOUT] Fetching theses from theses.fr...
+[ThesesFr] Searching for: "What are the counter-arguments and limitations to the mainstream view on 'What'? What are the What is the"
+[ThesesFr] Found 0 theses
+[SCOUT] Found 0 theses
+[SCOUT] 0/0 theses with exploitable content
+[CONSOLIDATED-INSTITUTIONS] Searching 31 institutions in 3 batch(es) for: "counter-arguments limitations mainstream view critique..."
+[GLOBAL-INTELLIGENCE] Searching 16 intelligence feeds for: "counter-arguments limitations mainstream view critique..."
+[GLOBAL-ORGS] Searching 25 international org feeds for: "counter-arguments limitations mainstream view critique..."
+[GLOBAL-THINKTANKS] Searching 29 think tank feeds for: "counter-arguments limitations mainstream view critique..."
+[MIT-DSpace] Searching for: "counter-arguments limitations mainstream view critique"
+[CONSOLIDATED-INSTITUTIONS] Searching 31 institutions in 3 batch(es) for: "critique of mainstream perspective limitations..."
+[GLOBAL-INTELLIGENCE] Searching 16 intelligence feeds for: "critique of mainstream perspective limitations..."
+[GLOBAL-ORGS] Searching 25 international org feeds for: "critique of mainstream perspective limitations..."
+[GLOBAL-THINKTANKS] Searching 29 think tank feeds for: "critique of mainstream perspective limitations..."
+[MIT-DSpace] Searching for: "critique of mainstream perspective limitations"
+[CONSOLIDATED-INSTITUTIONS] Searching 31 institutions in 3 batch(es) for: "opposing arguments to dominant view weaknesses..."
+[GLOBAL-INTELLIGENCE] Searching 16 intelligence feeds for: "opposing arguments to dominant view weaknesses..."
+[GLOBAL-ORGS] Searching 25 international org feeds for: "opposing arguments to dominant view weaknesses..."
+[GLOBAL-THINKTANKS] Searching 29 think tank feeds for: "opposing arguments to dominant view weaknesses..."
+[MIT-DSpace] Searching for: "opposing arguments to dominant view weaknesses"
+[CONSOLIDATED-INSTITUTIONS] Searching 31 institutions in 3 batch(es) for: "challenges to conventional wisdom limitations..."
+[GLOBAL-INTELLIGENCE] Searching 16 intelligence feeds for: "challenges to conventional wisdom limitations..."
+[GLOBAL-ORGS] Searching 25 international org feeds for: "challenges to conventional wisdom limitations..."
+[GLOBAL-THINKTANKS] Searching 29 think tank feeds for: "challenges to conventional wisdom limitations..."
+[MIT-DSpace] Searching for: "challenges to conventional wisdom limitations"
+[SCOUT] Launching 52 parallel requests across 4 query variations
+[nber] Found 0 publications (filter: https://ror.org/04grmx538)
+[nber] Found 0 publications (filter: https://ror.org/04grmx538)
+[CONSOLIDATED-INSTITUTIONS] Got 0 results from 31 institutions
+[nber] Found 0 publications (filter: https://ror.org/04grmx538)
+[CONSOLIDATED-INSTITUTIONS] Got 0 results from 31 institutions
+[nber] Found 0 publications (filter: https://ror.org/04grmx538)
+[CONSOLIDATED-INSTITUTIONS] Got 0 results from 31 institutions
+[CONSOLIDATED-INSTITUTIONS] Got 0 results from 31 institutions
+[HAL] Found 0 documents
+[HAL] 0/0 with rich abstracts (0%)
+[HAL] Found 1 documents
+[HAL] 1/1 with rich abstracts (100%)
+[MIT-DSpace] Found 15 works
+[HAL] Found 0 documents
+[HAL] 0/0 with rich abstracts (0%)
+[HAL] Found 1 documents
+[HAL] 1/1 with rich abstracts (100%)
+[MIT-DSpace] Found 15 works
+[Crossref] Found 25 works for "challenges to conventional wisdom limitations"
+[MIT-DSpace] Found 15 works
+[Crossref] Found 25 works for "opposing arguments to dominant view weaknesses"
+[MIT-DSpace] Found 15 works
+[Crossref] Found 25 works for "counter-arguments limitations mainstream view crit"
+[Crossref] Found 25 works for "critique of mainstream perspective limitations"
+[GLOBAL-THINKTANKS] Got 13 matching items from 29 feeds
+[GLOBAL-THINKTANKS] Got 6 matching items from 29 feeds
+[GLOBAL-THINKTANKS] Got 13 matching items from 29 feeds
+[GLOBAL-INTELLIGENCE] Got 0 matching items from 16 feeds
+[GLOBAL-INTELLIGENCE] Got 0 matching items from 16 feeds
+[GLOBAL-ORGS] Got 3 matching items from 25 feeds
+[GLOBAL-ORGS] Got 2 matching items from 25 feeds
+[GLOBAL-ORGS] Got 1 matching items from 25 feeds
+[GLOBAL-INTELLIGENCE] Got 0 matching items from 16 feeds
+[GLOBAL-ORGS] Got 3 matching items from 25 feeds
+[GLOBAL-INTELLIGENCE] Got 0 matching items from 16 feeds
+[GLOBAL-THINKTANKS] Got 8 matching items from 29 feeds
+[SCOUT] Per-provider results: _unknown=0, crossref=100, arxiv=100, who=9, hrw=26, mit-dspace=60, hal=2, heritage=14
+[SCOUT] Raw results: 311 sources from 4 query variations (10 providers: crossref, arxiv, who, hrw, atlantic-council, heritage, csis, freedom-house, mit-dspace, hal)
+[SCOUT] After dedup: 250/311
+[SCOUT] After relevance filter: 16/250
+
+[RelevanceScorer] Top 5 sources by relevance:
+1. [30%] The Contributions and Limitations of Walter Brueggemann’s Prophetic Homiletics :
+   Topic: 60% | Field: 50% | Semantic: 0% | Temporal: 90% | TitleBonus: 30% | Concepts: 3/5 (x0.60)
+2. [28%] Behavioral and Islamic economics critique mainstream views on unemployment: a jo
+   Topic: 52% | Field: 50% | Semantic: 1% | Temporal: 90% | TitleBonus: 30% | Concepts: 3/5 (x0.60)
+3. [28%] A sustainable perspective on the knowledge economy: A critique of Austrian and m
+   Topic: 60% | Field: 50% | Semantic: 0% | Temporal: 50% | TitleBonus: 30% | Concepts: 3/5 (x0.60)
+4. [17%] Limitations of Mainstream Climate Crisis Response in the Chilean Salar de Atacam
+   Topic: 40% | Field: 50% | Semantic: 7% | Temporal: 90% | TitleBonus: 30% | Concepts: 2/5 (x0.40)
+5. [17%] A Critique of the Mainstream Economic Analysis of the Fiscal Effects of Immigrat
+   Topic: 40% | Field: 50% | Semantic: 0% | Temporal: 90% | TitleBonus: 30% | Concepts: 2/5 (x0.40)
+
+⚠️  16 sources below 40% relevance (filtered out)
+[Reranker] Cohere reranked 16 sources → 0 results (min score: 0.1, attempt 1)
+[SCOUT] After Cohere rerank: 0 sources
+[SCOUT] Done in 13167ms: 311 raw â†’ 250 dedup â†’ 0 ranked â†’ 0 saved
+[Pipeline] DEEP PLANNER: node n4 expanded → +0 sources
+[SCOUT] Cache MISS for "What contextual factors (e.g., institutional, cultural, economic) moderate the impact of 'What'?", running providers...
+✅ deepseek/deepseek-v4-flash [query_enhancement] | 1618ms | 774+141 tok | $0.0001
+[SCOUT] Query enhanced: "contextual factors moderating impact institutional cultural economic" (+3 variations)
+[SCOUT] Neural routing selected 4 providers: altmetric, openalex, wikidata, crossref...
+[SCOUT] Submodular diversification selected 4 diverse queries from 4
+[CONSOLIDATED-INSTITUTIONS] Searching 31 institutions in 3 batch(es) for: "contextual factors moderating impact institutional cultural ..."
+[GLOBAL-INTELLIGENCE] Searching 16 intelligence feeds for: "contextual factors moderating impact institutional cultural ..."
+[CONSOLIDATED-INSTITUTIONS] Searching 31 institutions in 3 batch(es) for: "institutional cultural economic moderators of impact..."
+[GLOBAL-INTELLIGENCE] Searching 16 intelligence feeds for: "institutional cultural economic moderators of impact..."
+[CONSOLIDATED-INSTITUTIONS] Searching 31 institutions in 3 batch(es) for: "contextual moderators influence institutional cultural econo..."
+[GLOBAL-INTELLIGENCE] Searching 16 intelligence feeds for: "contextual moderators influence institutional cultural econo..."
+[CONSOLIDATED-INSTITUTIONS] Searching 31 institutions in 3 batch(es) for: "moderating role of institutional cultural economic factors..."
+[GLOBAL-INTELLIGENCE] Searching 16 intelligence feeds for: "moderating role of institutional cultural economic factors..."
+[SCOUT] Launching 28 parallel requests across 4 query variations
+[nber] Found 0 publications (filter: https://ror.org/04grmx538)
+[nber] Found 0 publications (filter: https://ror.org/04grmx538)
+[CONSOLIDATED-INSTITUTIONS] Got 0 results from 31 institutions
+[nber] Found 0 publications (filter: https://ror.org/04grmx538)
+[CONSOLIDATED-INSTITUTIONS] Got 0 results from 31 institutions
+[nber] Found 0 publications (filter: https://ror.org/04grmx538)
+[CONSOLIDATED-INSTITUTIONS] Got 0 results from 31 institutions
+[CONSOLIDATED-INSTITUTIONS] Got 0 results from 31 institutions
+[Crossref] Found 20 works for "moderating role of institutional cultural economic"
+[Crossref] Found 20 works for "institutional cultural economic moderators of impa"
+[Crossref] Found 20 works for "contextual moderators influence institutional cult"
+[Crossref] Found 20 works for "contextual factors moderating impact institutional"
+[SemanticScholar] Found 20 papers
+[SemanticScholar] 14/20 with rich abstracts (70%)
+[GLOBAL-INTELLIGENCE] Got 0 matching items from 16 feeds
+[GLOBAL-INTELLIGENCE] Got 0 matching items from 16 feeds
+[GLOBAL-INTELLIGENCE] Got 0 matching items from 16 feeds
+[GLOBAL-INTELLIGENCE] Got 0 matching items from 16 feeds
+[SCOUT] Per-provider results: _unknown=0, crossref=80, semanticscholar=14
+[SCOUT] Extended registry: +0 sources from 5 providers (economics)
+[SCOUT] Raw results: 94 sources from 4 query variations (2 providers: crossref, semanticscholar)
+[SCOUT] After dedup: 79/94
+[SCOUT] After relevance filter: 60/79
+
+[RelevanceScorer] Top 5 sources by relevance:
+1. [39%] The Impact of Digital Teaching Technologies (DTTs) in Saudi and Egyptian Univers
+   Topic: 73% | Field: 0% | Semantic: 0% | Temporal: 90% | TitleBonus: 30% | Concepts: 5/6 (x0.83)
+2. [36%] Culture and innovation: : The moderating effect of cultural values on corporate 
+   Topic: 53% | Field: 50% | Semantic: 0% | Temporal: 50% | TitleBonus: 30% | Concepts: 5/6 (x0.83)
+3. [36%] The Impact of Cultural, Economic, Institutional, Interpersonal and Technological
+   Topic: 67% | Field: 50% | Semantic: 0% | Temporal: 90% | TitleBonus: 30% | Concepts: 4/6 (x0.67)
+4. [34%] The Impact of Financial, Economic and Environmental Factors on Energy Efficiency
+   Topic: 60% | Field: 50% | Semantic: 0% | Temporal: 90% | TitleBonus: 30% | Concepts: 4/6 (x0.67)
+5. [33%] Moderating Role of Contextual Factors on the Impact of Cultural Distance: A Conc
+   Topic: 67% | Field: 50% | Semantic: 7% | Temporal: 50% | TitleBonus: 30% | Concepts: 4/6 (x0.67)
+
+⚠️  60 sources below 40% relevance (filtered out)
+[Reranker] Cohere reranked 60 sources → 25 results (min score: 0.1, attempt 1)
+[SCOUT] After Cohere rerank: 25 sources
+[SCOUT K10] CARE: overall=61%, individual=27%, combinedCoverage=100%, multiHop=61%, diversity=37%
+[SCOUT] Enriched 16 sources with Unpaywall (batched)
+[SCOUT] Done in 12595ms: 94 raw â†’ 79 dedup â†’ 25 ranked â†’ 25 saved
+[Pipeline] DEEP PLANNER: node n5 "What contextual factors (e.g., institutional, cultural, econ" → 25 sources
+[SCOUT] Cache MISS for "What are the quantitative bounds (effect sizes, confidence intervals) for the impact of 'What'?", running providers...
+✅ deepseek/deepseek-v4-flash [query_enhancement] | 1605ms | 773+125 tok | $0.0001
+[SCOUT] Query enhanced: "quantitative bounds effect sizes confidence intervals impact" (+3 variations)
+[SCOUT] Neural routing selected 5 providers: un, undp, altmetric, openalex, crossref...
+[SCOUT] Submodular diversification selected 4 diverse queries from 4
+[CONSOLIDATED-INSTITUTIONS] Searching 31 institutions in 3 batch(es) for: "quantitative bounds effect sizes confidence intervals impact..."
+[GLOBAL-INTELLIGENCE] Searching 16 intelligence feeds for: "quantitative bounds effect sizes confidence intervals impact..."
+[CONSOLIDATED-INSTITUTIONS] Searching 31 institutions in 3 batch(es) for: "effect size confidence interval quantitative impact measurem..."
+[GLOBAL-INTELLIGENCE] Searching 16 intelligence feeds for: "effect size confidence interval quantitative impact measurem..."
+[CONSOLIDATED-INSTITUTIONS] Searching 31 institutions in 3 batch(es) for: "statistical bounds effect magnitude uncertainty interval..."
+[GLOBAL-INTELLIGENCE] Searching 16 intelligence feeds for: "statistical bounds effect magnitude uncertainty interval..."
+[CONSOLIDATED-INSTITUTIONS] Searching 31 institutions in 3 batch(es) for: "quantified impact effect size confidence limits..."
+[GLOBAL-INTELLIGENCE] Searching 16 intelligence feeds for: "quantified impact effect size confidence limits..."
+[SCOUT] Launching 24 parallel requests across 4 query variations
+[CONSOLIDATED-INSTITUTIONS] Got 0 results from 31 institutions
+[CONSOLIDATED-INSTITUTIONS] Got 0 results from 31 institutions
+[CONSOLIDATED-INSTITUTIONS] Got 0 results from 31 institutions
+[CONSOLIDATED-INSTITUTIONS] Got 0 results from 31 institutions
+[Crossref] Found 20 works for "quantified impact effect size confidence limits"
+[Crossref] Found 20 works for "quantitative bounds effect sizes confidence interv"
+[Crossref] Found 20 works for "effect size confidence interval quantitative impac"
+[Crossref] Found 20 works for "statistical bounds effect magnitude uncertainty in"
+[GLOBAL-INTELLIGENCE] Got 1 matching items from 16 feeds
+[GLOBAL-INTELLIGENCE] Got 0 matching items from 16 feeds
+[GLOBAL-INTELLIGENCE] Got 0 matching items from 16 feeds
+[GLOBAL-INTELLIGENCE] Got 0 matching items from 16 feeds
+[SCOUT] Per-provider results: _unknown=0, crossref=80, bellingcat=1
+[SCOUT] Raw results: 81 sources from 4 query variations (2 providers: crossref, bellingcat)
+[SCOUT] After dedup: 79/81
+[SCOUT] After relevance filter: 25/79
+
+[RelevanceScorer] Top 5 sources by relevance:
+1. [28%] Statistical Significance, Effect Size, and Confidence Intervals
+   Topic: 60% | Field: 50% | Semantic: 9% | Temporal: 50% | TitleBonus: 30% | Concepts: 3/5 (x0.60)
+2. [28%] Faculty Opinions recommendation of Effect size, confidence interval and statisti
+   Topic: 60% | Field: 50% | Semantic: 0% | Temporal: 50% | TitleBonus: 30% | Concepts: 3/5 (x0.60)
+3. [28%] Faculty Opinions recommendation of Effect size, confidence interval and statisti
+   Topic: 60% | Field: 50% | Semantic: 0% | Temporal: 50% | TitleBonus: 30% | Concepts: 3/5 (x0.60)
+4. [17%] Effect sizes and confidence intervals
+   Topic: 40% | Field: 50% | Semantic: 22% | Temporal: 90% | TitleBonus: 30% | Concepts: 2/5 (x0.40)
+5. [17%] Confidence Intervals for Fine-Grained Effect Sizes (Poster 4)
+   Topic: 40% | Field: 50% | Semantic: 18% | Temporal: 90% | TitleBonus: 30% | Concepts: 2/5 (x0.40)
+
+⚠️  25 sources below 40% relevance (filtered out)
+[Reranker] Cohere reranked 25 sources → 5 results (min score: 0.1, attempt 1)
+[Reranker] Cohere returned only 5 results from 25 sources — falling back to local scoring for better coverage
+[Reranker] Local scoring: 25 sources → 25 results (min score: 0.1)
+[SCOUT] After Cohere rerank: 25 sources
+[SCOUT K10] CARE: overall=31%, individual=17%, combinedCoverage=60%, multiHop=0%, diversity=27%
+[SCOUT K10] ⚠️ Missing concepts: quantitative analysis, impact measurement — IntelligentScout should gap-fill these
+[SCOUT] Enriched 25 sources with Unpaywall (batched)
+[SCOUT] Done in 12707ms: 81 raw â†’ 79 dedup â†’ 25 ranked â†’ 25 saved
+[Pipeline] DEEP PLANNER: node n6 "What are the quantitative bounds (effect sizes, confidence i" → 25 sources
+[SCOUT] Cache MISS for "Who are the key stakeholders affected by 'What' and what are their interests?", running providers...
+✅ deepseek/deepseek-v4-flash [query_enhancement] | 1799ms | 770+125 tok | $0.0001
+[SCOUT] Query enhanced: "stakeholder analysis interests affected parties impact assessment" (+3 variations)
+[SCOUT] Neural routing selected 3 providers: who, openalex, crossref...
+[SCOUT] Submodular diversification selected 4 diverse queries from 4
+[CONSOLIDATED-INSTITUTIONS] Searching 31 institutions in 3 batch(es) for: "stakeholder analysis interests affected parties impact asses..."
+[GLOBAL-INTELLIGENCE] Searching 16 intelligence feeds for: "stakeholder analysis interests affected parties impact asses..."
+[CONSOLIDATED-INSTITUTIONS] Searching 31 institutions in 3 batch(es) for: "key stakeholders interests influence impact..."
+[GLOBAL-INTELLIGENCE] Searching 16 intelligence feeds for: "key stakeholders interests influence impact..."
+[CONSOLIDATED-INSTITUTIONS] Searching 31 institutions in 3 batch(es) for: "stakeholder engagement affected groups concerns..."
+[GLOBAL-INTELLIGENCE] Searching 16 intelligence feeds for: "stakeholder engagement affected groups concerns..."
+[CONSOLIDATED-INSTITUTIONS] Searching 31 institutions in 3 batch(es) for: "stakeholder mapping interests influence affected entities..."
+[GLOBAL-INTELLIGENCE] Searching 16 intelligence feeds for: "stakeholder mapping interests influence affected entities..."
+[SCOUT] Launching 28 parallel requests across 4 query variations
+[nber] Found 0 publications (filter: https://ror.org/04grmx538)
+[nber] Found 0 publications (filter: https://ror.org/04grmx538)
+[CONSOLIDATED-INSTITUTIONS] Got 0 results from 31 institutions
+[nber] Found 0 publications (filter: https://ror.org/04grmx538)
+[CONSOLIDATED-INSTITUTIONS] Got 0 results from 31 institutions
+[nber] Found 0 publications (filter: https://ror.org/04grmx538)
+[CONSOLIDATED-INSTITUTIONS] Got 0 results from 31 institutions
+[CONSOLIDATED-INSTITUTIONS] Got 0 results from 31 institutions
+[Crossref] Found 20 works for "stakeholder mapping interests influence affected e"
+[Crossref] Found 20 works for "stakeholder engagement affected groups concerns"
+[Crossref] Found 20 works for "key stakeholders interests influence impact"
+[Crossref] Found 20 works for "stakeholder analysis interests affected parties im"
+[SemanticScholar] Found 20 papers
+[SemanticScholar] 19/20 with rich abstracts (95%)
+[GLOBAL-INTELLIGENCE] Got 0 matching items from 16 feeds
+[GLOBAL-INTELLIGENCE] Got 2 matching items from 16 feeds
+[GLOBAL-INTELLIGENCE] Got 0 matching items from 16 feeds
+[GLOBAL-INTELLIGENCE] Got 0 matching items from 16 feeds
+[SCOUT] Per-provider results: _unknown=0, crossref=80, bellingcat=2, semanticscholar=19
+[SCOUT] Raw results: 101 sources from 4 query variations (3 providers: crossref, bellingcat, semanticscholar)
+[SCOUT] After dedup: 95/101
+[SCOUT] After relevance filter: 27/95
+
+[RelevanceScorer] Top 5 sources by relevance:
+1. [31%] Analyzing who is relevant to engage in environmental decision-making processes b
+   Topic: 56% | Field: 0% | Semantic: 0% | Temporal: 90% | TitleBonus: 30% | Concepts: 4/5 (x0.80)
+2. [30%] The impact of the COVID-19 pandemic on the operation of shopping centres and sta
+   Topic: 60% | Field: 50% | Semantic: 0% | Temporal: 90% | TitleBonus: 30% | Concepts: 3/5 (x0.60)
+3. [27%] Assessment of the Impact of Harmony (Disharmony) of Interests with Key Stakehold
+   Topic: 52% | Field: 50% | Semantic: 0% | Temporal: 70% | TitleBonus: 30% | Concepts: 3/5 (x0.60)
+4. [24%] Stakeholder Capitalism and Sustainability: Redefining Corporate Governance and B
+   Topic: 36% | Field: 50% | Semantic: 0% | Temporal: 90% | TitleBonus: 30% | Concepts: 3/5 (x0.60)
+5. [22%] Conflicting interests over hydropower: Identifying and representing stakeholder 
+   Topic: 28% | Field: 50% | Semantic: 0% | Temporal: 90% | TitleBonus: 30% | Concepts: 3/5 (x0.60)
+
+⚠️  27 sources below 40% relevance (filtered out)
+[Reranker] Cohere reranked 27 sources → 5 results (min score: 0.1, attempt 1)
+[Reranker] Cohere returned only 5 results from 27 sources — falling back to local scoring for better coverage
+[Reranker] Local scoring: 27 sources → 27 results (min score: 0.1)
+[SCOUT] After Cohere rerank: 27 sources
+[SCOUT K10] CARE: overall=41%, individual=17%, combinedCoverage=80%, multiHop=7%, diversity=37%
+[SCOUT K10] ⚠️ Missing concepts: affected parties — IntelligentScout should gap-fill these
+[SCOUT] Enriched 21 sources with Unpaywall (batched)
+[SCOUT] Done in 12724ms: 101 raw â†’ 95 dedup â†’ 27 ranked â†’ 27 saved
+[Pipeline] DEEP PLANNER: node n7 "Who are the key stakeholders affected by 'What' and what are" → 27 sources
+✅ deepseek/deepseek-v4-flash [reader_v3] | 5941ms | 2147+889 tok (256 cache-hit) | $0.0005
+[IntelligentScout] Generated 9 lenses: core(4q), contrarian(4q), cross_domain(4q), historical(4q), weak_signal(4q), scenario(4q), provocative(4q), ontological(4q), dissident(4q)
+[SCOUT] Cache MISS for "meaning of life philosophy", running providers...
+✅ deepseek/deepseek-v4-flash [query_enhancement] | 1554ms | 759+123 tok | $0.0001
+[SCOUT] Query enhanced: "meaning of life philosophy existentialism purpose human existence" (+3 variations)
+[SCOUT] Neural routing selected 2 providers: openalex, crossref...
+[SCOUT] Submodular diversification selected 4 diverse queries from 4
+[SCOUT] Launching 12 parallel requests across 4 query variations
+[Crossref] Found 4 works for "existentialist perspectives on the meaning of life"
+[Crossref] Found 4 works for "philosophical inquiry into the meaning of life"
+[Crossref] Found 4 works for "purpose and significance of human existence in phi"
+[Crossref] Found 4 works for "meaning of life philosophy existentialism purpose "
+[SCOUT] Per-provider results: _unknown=0, crossref=16
+[SCOUT] Raw results: 16 sources from 4 query variations (1 providers: crossref)
+[SCOUT] After dedup: 16/16
+[SCOUT] After relevance filter: 3/16
+
+[RelevanceScorer] Top 5 sources by relevance:
+1. [30%] 4.4 Classical Indian Philosophy of Education: A Pedagogic Approach to Ultimate M
+   Topic: 60% | Field: 50% | Semantic: 18% | Temporal: 70% | TitleBonus: 30% | Concepts: 3/5 (x0.60)
+2. [17%] The Meaning Of Life In Existentialist Philosophy
+   Topic: 40% | Field: 50% | Semantic: 1% | Temporal: 90% | TitleBonus: 30% | Concepts: 2/5 (x0.40)
+3. [14%] Linguistic Philosophy and the Meaning of Life’
+   Topic: 40% | Field: 50% | Semantic: 0% | Temporal: 30% | TitleBonus: 30% | Concepts: 2/5 (x0.40)
+
+⚠️  3 sources below 40% relevance (filtered out)
+[Reranker] Cohere reranked 3 sources → 2 results (min score: 0.1, attempt 1)
+[SCOUT] After Cohere rerank: 2 sources
+[SCOUT K10] CARE: overall=59%, individual=23%, combinedCoverage=80%, multiHop=100%, diversity=27%
+[SCOUT K10] ⚠️ Missing concepts: existentialism — IntelligentScout should gap-fill these
+[SCOUT] Enriched 2 sources with Unpaywall (batched)
+[SCOUT] Done in 5336ms: 16 raw â†’ 16 dedup â†’ 2 ranked â†’ 2 saved
+[SCOUT] Cache MISS for "purpose of existence philosophical perspectives", running providers...
+✅ deepseek/deepseek-v4-flash [query_enhancement] | 1889ms | 761+132 tok | $0.0001
+[SCOUT] Query enhanced: "meaning of life existential purpose philosophical perspectives ontology" (+3 variations)
+[SCOUT] Neural routing selected 2 providers: openalex, crossref...
+[SCOUT] Submodular diversification selected 4 diverse queries from 4
+[SCOUT] Launching 12 parallel requests across 4 query variations
+[Crossref] Found 4 works for "teleology purpose existence philosophical inquiry"
+[Crossref] Found 4 works for "existentialism meaning of life purpose human exist"
+[Crossref] Found 4 works for "meaning of life existential purpose philosophical "
+[Crossref] Found 4 works for "philosophy of life existential purpose ontology me"
+[SemanticScholar] Found 4 papers
+[SemanticScholar] 4/4 with rich abstracts (100%)
+[SCOUT] Per-provider results: _unknown=0, crossref=16, semanticscholar=4
+[SCOUT] Raw results: 20 sources from 4 query variations (2 providers: crossref, semanticscholar)
+[SCOUT] After dedup: 19/20
+[SCOUT] After relevance filter: 5/19
+
+[RelevanceScorer] Top 5 sources by relevance:
+1. [24%] The Purpose of Human Life: Existentialism vs. the Theory of Moksha
+   Topic: 46% | Field: 0% | Semantic: 0% | Temporal: 90% | TitleBonus: 30% | Concepts: 5/7 (x0.71)
+2. [24%] Existentialism Theology: Christian Existentialism and Human Existence in Theolog
+   Topic: 40% | Field: 50% | Semantic: 1% | Temporal: 90% | TitleBonus: 30% | Concepts: 4/7 (x0.57)
+3. [12%] Jean-Paul Sartre: Analyzing Human Existence Through the Lens of Existentialism
+   Topic: 34% | Field: 0% | Semantic: 0% | Temporal: 90% | TitleBonus: 30% | Concepts: 3/7 (x0.43)
+4. [11%] Existence beyond Deities:
+   Topic: 26% | Field: 0% | Semantic: 0% | Temporal: 90% | TitleBonus: 30% | Concepts: 3/7 (x0.43)
+5. [10%] Behavior, Purpose, and Teleology Revisited
+   Topic: 29% | Field: 50% | Semantic: 0% | Temporal: 90% | TitleBonus: 30% | Concepts: 2/7 (x0.29)
+
+⚠️  5 sources below 40% relevance (filtered out)
+[Reranker] Cohere reranked 5 sources → 3 results (min score: 0.1, attempt 1)
+[SCOUT] After Cohere rerank: 3 sources
+[SCOUT K10] CARE: overall=37%, individual=20%, combinedCoverage=71%, multiHop=0%, diversity=37%
+[SCOUT K10] ⚠️ Missing concepts: ontology, teleology — IntelligentScout should gap-fill these
+[SCOUT] Enriched 1 sources with Unpaywall (batched)
+[SCOUT] Done in 5692ms: 20 raw â†’ 19 dedup â†’ 3 ranked â†’ 3 saved
+[SCOUT] Cache MISS for "meaning of life psychology research", running providers...
+✅ deepseek/deepseek-v4-flash [query_enhancement] | 1426ms | 760+119 tok | $0.0001
+[SCOUT] Query enhanced: "meaning of life psychology existential meaning purpose well-being research" (+3 variations)
+[SCOUT] Neural routing selected 12 providers: openalex, crossref, semanticscholar, nih, nber, doaj, core, ssrn...
+[SCOUT] Submodular diversification selected 4 diverse queries from 4
+[CNRS] Searching via OpenAlex ROR for: "meaning of life psychology existential meaning purpose well-being research"
+[MaxPlanck] Searching via OpenAlex ROR for: "meaning of life psychology existential meaning purpose well-being research"
+[INRIA] Searching via OpenAlex ROR for: "meaning of life psychology existential meaning purpose well-being research"
+[NIH] Enriched search for: "meaning of life psychology existential meaning purpose well-being research"
+[CNRS] Searching via OpenAlex ROR for: "existential psychology meaning purpose life satisfaction"
+[MaxPlanck] Searching via OpenAlex ROR for: "existential psychology meaning purpose life satisfaction"
+[INRIA] Searching via OpenAlex ROR for: "existential psychology meaning purpose life satisfaction"
+[NIH] Enriched search for: "existential psychology meaning purpose life satisfaction"
+[CNRS] Searching via OpenAlex ROR for: "psychological research meaning in life purpose well-being"
+[MaxPlanck] Searching via OpenAlex ROR for: "psychological research meaning in life purpose well-being"
+[INRIA] Searching via OpenAlex ROR for: "psychological research meaning in life purpose well-being"
+[NIH] Enriched search for: "psychological research meaning in life purpose well-being"
+[CNRS] Searching via OpenAlex ROR for: "meaning of life existential psychology empirical studies"
+[MaxPlanck] Searching via OpenAlex ROR for: "meaning of life existential psychology empirical studies"
+[INRIA] Searching via OpenAlex ROR for: "meaning of life existential psychology empirical studies"
+[NIH] Enriched search for: "meaning of life existential psychology empirical studies"
+[SCOUT] Launching 44 parallel requests across 4 query variations
+[MaxPlanck] Found 0 publications
+[RePEc] Found 0 economics papers (via OpenAlex)
+[RePEc] Found 0 economics papers (via OpenAlex)
+[CNRS] Found 0 publications
+[MaxPlanck] Found 0 publications
+[INRIA] Found 0 publications
+[RePEc] Found 0 economics papers (via OpenAlex)
+[CNRS] Found 0 publications
+[MaxPlanck] Found 0 publications
+[INRIA] Found 0 publications
+[RePEc] Found 0 economics papers (via OpenAlex)
+[CNRS] Found 0 publications
+[MaxPlanck] Found 0 publications
+[INRIA] Found 0 publications
+[nber] Found 0 publications (filter: https://ror.org/04grmx538)
+[nber] Found 0 publications (filter: https://ror.org/04grmx538)
+[nber] Found 0 publications (filter: https://ror.org/04grmx538)
+[nber] Found 0 publications (filter: https://ror.org/04grmx538)
+[INRIA] Found 0 publications
+[DOAJ] Found 4 articles
+[DOAJ] 4/4 with abstracts
+[CNRS] Found 0 publications
+[Crossref] Found 4 works for "existential psychology meaning purpose life satisf"
+[DOAJ] Found 4 articles
+[DOAJ] 4/4 with abstracts
+[DOAJ] Found 4 articles
+[DOAJ] 4/4 with abstracts
+[DOAJ] Found 4 articles
+[DOAJ] 4/4 with abstracts
+[Crossref] Found 4 works for "meaning of life existential psychology empirical s"
+[Crossref] Found 4 works for "meaning of life psychology existential meaning pur"
+[Crossref] Found 4 works for "psychological research meaning in life purpose wel"
+[NIH] Found 3 publications (OA: 0, PubMed: 3)
+[NIH] Found 3 publications (OA: 0, PubMed: 3)
+[NIH] Found 3 publications (OA: 0, PubMed: 3)
+[NIH] Found 2 publications (OA: 0, PubMed: 2)
+[SCOUT] Per-provider results: _unknown=0, crossref=16, doaj=16, nih=11
+[SCOUT] Raw results: 43 sources from 4 query variations (3 providers: crossref, doaj, nih)
+[SCOUT] After dedup: 37/43
+[SCOUT] After relevance filter: 9/37
+
+[RelevanceScorer] Top 5 sources by relevance:
+1. [27%] Analysis of the novel “Show Yourself to Me That I May Look at You”  by Khawla Ha
+   Topic: 44% | Field: 0% | Semantic: 0% | Temporal: 90% | TitleBonus: 30% | Concepts: 4/5 (x0.80)
+2. [15%] The Effectiveness of Group Logo Therapy on Self-Belief and Feelings of Worthless
+   Topic: 24% | Field: 25% | Semantic: 0% | Temporal: 90% | TitleBonus: 0% | Concepts: 3/5 (x0.60)
+3. [14%] Religiosity, Anxiety, and Meaning and Purpose: Religion's Consequences for Psych
+   Topic: 40% | Field: 50% | Semantic: 0% | Temporal: 30% | TitleBonus: 30% | Concepts: 2/5 (x0.40)
+4. [14%] Importancia del constructo sentido de la vida en diferentes ámbitos psicológicos
+   Topic: 24% | Field: 25% | Semantic: 0% | Temporal: 70% | TitleBonus: 0% | Concepts: 3/5 (x0.60)
+5. [12%] Well-being and internal resources during the COVID-19 pandemic in relation to me
+   Topic: 28% | Field: 25% | Semantic: 1% | Temporal: 90% | TitleBonus: 30% | Concepts: 2/5 (x0.40)
+
+⚠️  9 sources below 40% relevance (filtered out)
+[Reranker] Cohere reranked 9 sources → 8 results (min score: 0.1, attempt 1)
+[SCOUT] After Cohere rerank: 8 sources
+[SCOUT K10] CARE: overall=39%, individual=14%, combinedCoverage=80%, multiHop=0%, diversity=37%
+[SCOUT K10] ⚠️ Missing concepts: psychological research — IntelligentScout should gap-fill these
+[SCOUT] Enriched 5 sources with Unpaywall (batched)
+[SCOUT] Done in 13189ms: 43 raw â†’ 37 dedup â†’ 8 ranked â†’ 8 saved
+[SCOUT] Cache MISS for "existential meaning and well-being studies", running providers...
+✅ deepseek/deepseek-v4-flash [query_enhancement] | 1958ms | 762+132 tok | $0.0001
+[SCOUT] Query enhanced: "existential meaning well-being psychological studies purpose life satisfaction" (+3 variations)
+[SCOUT] Neural routing selected 2 providers: openalex, crossref...
+[SCOUT] Submodular diversification selected 4 diverse queries from 4
+[SCOUT] Launching 12 parallel requests across 4 query variations
+[Crossref] Found 4 works for "existential psychology well-being purpose meaning"
+[Crossref] Found 4 works for "meaning in life and subjective well-being studies"
+[Crossref] Found 4 works for "existential meaning well-being psychological studi"
+[Crossref] Found 4 works for "existential meaning and psychological well-being r"
+[SCOUT] Per-provider results: _unknown=0, crossref=16
+[SCOUT] Raw results: 16 sources from 4 query variations (1 providers: crossref)
+[SCOUT] After dedup: 15/16
+[SCOUT] After relevance filter: 6/15
+
+[RelevanceScorer] Top 5 sources by relevance:
+1. [20%] Subjective Well-Being and Life Satisfaction
+   Topic: 33% | Field: 50% | Semantic: 10% | Temporal: 90% | TitleBonus: 30% | Concepts: 2/4 (x0.50)
+2. [19%] MEANING IN LIFE, MEANING-FOCUSED COPING AND SUBJECTIVE WELL-BEING OF PARENTS RAI
+   Topic: 33% | Field: 50% | Semantic: 0% | Temporal: 90% | TitleBonus: 30% | Concepts: 2/4 (x0.50)
+3. [19%] Purpose, Meaning, and Well-Being at Work
+   Topic: 33% | Field: 50% | Semantic: 0% | Temporal: 90% | TitleBonus: 30% | Concepts: 2/4 (x0.50)
+4. [19%] Cultivating Meaning and Purpose for Well-Being
+   Topic: 33% | Field: 50% | Semantic: 0% | Temporal: 90% | TitleBonus: 30% | Concepts: 2/4 (x0.50)
+5. [17%] Time perspective, meaning in life and subjective well-being in macedonian underg
+   Topic: 33% | Field: 50% | Semantic: 0% | Temporal: 50% | TitleBonus: 30% | Concepts: 2/4 (x0.50)
+
+⚠️  6 sources below 40% relevance (filtered out)
+[Reranker] Cohere reranked 6 sources → 0 results (min score: 0.1, attempt 1)
+[SCOUT] After Cohere rerank: 0 sources
+[SCOUT] Done in 5596ms: 16 raw â†’ 15 dedup â†’ 0 ranked â†’ 0 saved
+[IntelligentScout] Iteration 1: lens=core, found=13, total=13
+[SCOUT] Cache MISS for "meaning of life criticism nihilism", running providers...
+✅ deepseek/deepseek-v4-flash [query_enhancement] | 1434ms | 761+121 tok | $0.0001
+[SCOUT] Query enhanced: "meaning of life nihilism criticism existentialism philosophy" (+3 variations)
+[SCOUT] Neural routing selected 3 providers: nih, openalex, crossref...
+[SCOUT] Submodular diversification selected 4 diverse queries from 4
+[NIH] Enriched search for: "meaning of life nihilism criticism existentialism philosophy"
+[NIH] Enriched search for: "nihilism critique meaning of life existential philosophy"
+[NIH] Enriched search for: "meaning of life nihilistic perspective philosophical criticism"
+[NIH] Enriched search for: "existential nihilism and the meaning of life critique"
+[SCOUT] Launching 20 parallel requests across 4 query variations
+[NIH] Found 0 publications (OA: 0, PubMed: 0)
+[NIH] Found 0 publications (OA: 0, PubMed: 0)
+[ADAPTIVE RATE] pubmed: rate recovered to 0.60 req/s
+[NIH] Found 0 publications (OA: 0, PubMed: 0)
+[Crossref] Found 2 works for "existential nihilism and the meaning of life criti"
+[Crossref] Found 2 works for "meaning of life nihilistic perspective philosophic"
+[Crossref] Found 2 works for "meaning of life nihilism criticism existentialism "
+[Crossref] Found 2 works for "nihilism critique meaning of life existential phil"
+[SemanticScholar] Found 0 papers
+[SemanticScholar] 0/0 with rich abstracts (NaN%)
+[NIH] Found 0 publications (OA: 0, PubMed: 0)
+[SemanticScholar] Found 2 papers
+[SemanticScholar] 1/2 with rich abstracts (50%)
+[SCOUT] Per-provider results: _unknown=0, crossref=8, semanticscholar=1
+[SCOUT] Raw results: 9 sources from 4 query variations (2 providers: crossref, semanticscholar)
+[SCOUT] After dedup: 9/9
+[SCOUT K10] CARE: overall=52%, individual=15%, combinedCoverage=100%, multiHop=31%, diversity=37%
+[SCOUT] Enriched 8 sources with Unpaywall (batched)
+[SCOUT] Done in 7486ms: 9 raw â†’ 9 dedup â†’ 9 ranked â†’ 9 saved
+[SCOUT] Cache MISS for "critique of existentialism meaninglessness", running providers...
+✅ deepseek/deepseek-v4-flash [query_enhancement] | 1790ms | 762+142 tok | $0.0001
+[SCOUT] Query enhanced: "existentialism critique meaninglessness absurdity nihilism philosophy" (+3 variations)
+[SCOUT] Neural routing selected 2 providers: openalex, crossref...
+[SCOUT] Submodular diversification selected 4 diverse queries from 4
+[SCOUT] Launching 16 parallel requests across 4 query variations
+[Crossref] Found 2 works for "critique of existentialist philosophy meaninglessn"
+[Crossref] Found 2 works for "philosophical critique existentialism meaninglessn"
+[Crossref] Found 2 works for "existentialism critique meaninglessness absurdity "
+[Crossref] Found 2 works for "existentialism criticism nihilism absurdity meanin"
+[SCOUT] Per-provider results: _unknown=0, crossref=8
+[SCOUT] Raw results: 8 sources from 4 query variations (1 providers: crossref)
+[SCOUT] After dedup: 8/8
+[SCOUT K10] CARE: overall=46%, individual=12%, combinedCoverage=100%, multiHop=14%, diversity=27%
+[SCOUT] Enriched 8 sources with Unpaywall (batched)
+[SCOUT] Done in 5464ms: 8 raw â†’ 8 dedup â†’ 8 ranked â†’ 8 saved
+[SCOUT] Cache MISS for "limitations of meaning-making research", running providers...
+✅ deepseek/deepseek-v4-flash [query_enhancement] | 1566ms | 761+116 tok | $0.0001
+[SCOUT] Query enhanced: "meaning-making research limitations challenges critique methodology" (+3 variations)
+[SCOUT] Neural routing selected 12 providers: openalex, mit-dspace, crossref, semanticscholar, nih, nber, doaj, core...
+[SCOUT] Submodular diversification selected 4 diverse queries from 4
+[MIT-DSpace] Searching for: "meaning-making research limitations challenges critique methodology"
+[MaxPlanck] Searching via OpenAlex ROR for: "meaning-making research limitations challenges critique methodology"
+[INRIA] Searching via OpenAlex ROR for: "meaning-making research limitations challenges critique methodology"
+[NIH] Enriched search for: "meaning-making research limitations challenges critique methodology"
+[MIT-DSpace] Searching for: "meaning-making theory limitations and criticisms"
+[MaxPlanck] Searching via OpenAlex ROR for: "meaning-making theory limitations and criticisms"
+[INRIA] Searching via OpenAlex ROR for: "meaning-making theory limitations and criticisms"
+[NIH] Enriched search for: "meaning-making theory limitations and criticisms"
+[MIT-DSpace] Searching for: "challenges in meaning-making research methods"
+[MaxPlanck] Searching via OpenAlex ROR for: "challenges in meaning-making research methods"
+[INRIA] Searching via OpenAlex ROR for: "challenges in meaning-making research methods"
+[NIH] Enriched search for: "challenges in meaning-making research methods"
+[MIT-DSpace] Searching for: "critique of meaning-making approach in psychology"
+[MaxPlanck] Searching via OpenAlex ROR for: "critique of meaning-making approach in psychology"
+[INRIA] Searching via OpenAlex ROR for: "critique of meaning-making approach in psychology"
+[NIH] Enriched search for: "critique of meaning-making approach in psychology"
+[SCOUT] Launching 44 parallel requests across 4 query variations
+[RePEc] Found 0 economics papers (via OpenAlex)
+[MaxPlanck] Found 0 publications
+[INRIA] Found 0 publications
+[RePEc] Found 0 economics papers (via OpenAlex)
+[MaxPlanck] Found 0 publications
+[INRIA] Found 0 publications
+[RePEc] Found 0 economics papers (via OpenAlex)
+[MaxPlanck] Found 0 publications
+[INRIA] Found 0 publications
+[RePEc] Found 0 economics papers (via OpenAlex)
+[MaxPlanck] Found 0 publications
+[INRIA] Found 0 publications
+[nber] Found 0 publications (filter: https://ror.org/04grmx538)
+[nber] Found 0 publications (filter: https://ror.org/04grmx538)
+[nber] Found 0 publications (filter: https://ror.org/04grmx538)
+[nber] Found 0 publications (filter: https://ror.org/04grmx538)
+[DOAJ] Found 0 articles
+[DOAJ] 0/0 with abstracts
+[DOAJ] Found 1 articles
+[DOAJ] 1/1 with abstracts
+[DOAJ] Found 2 articles
+[DOAJ] 2/2 with abstracts
+[DOAJ] Found 2 articles
+[DOAJ] 2/2 with abstracts
+[Crossref] Found 2 works for "meaning-making theory limitations and criticisms"
+[Crossref] Found 2 works for "critique of meaning-making approach in psychology"
+[Crossref] Found 2 works for "meaning-making research limitations challenges cri"
+[MIT-DSpace] Found 2 works
+[MIT-DSpace] Found 2 works
+[Crossref] Found 2 works for "challenges in meaning-making research methods"
+[MIT-DSpace] Found 2 works
+[MIT-DSpace] Found 2 works
+[NIH] Found 1 publications (OA: 0, PubMed: 1)
+[NIH] Found 2 publications (OA: 0, PubMed: 2)
+[NIH] Found 2 publications (OA: 0, PubMed: 2)
+[NIH] Found 0 publications (OA: 0, PubMed: 0)
+[SCOUT] Per-provider results: _unknown=0, crossref=8, doaj=5, mit-dspace=8, nih=5
+[SCOUT] Raw results: 26 sources from 4 query variations (4 providers: crossref, doaj, mit-dspace, nih)
+[SCOUT] After dedup: 26/26
+[SCOUT] After relevance filter: 8/26
+
+[RelevanceScorer] Top 5 sources by relevance:
+1. [29%] Navigating Consensus in Team-Based Qualitative Research: Challenges and Strategi
+   Topic: 47% | Field: 0% | Semantic: 0% | Temporal: 90% | TitleBonus: 30% | Concepts: 5/6 (x0.83)
+2. [28%] Critique and Analysis of the "Cultural Dictionary of Saeb's Poetry" by Ahmad Gol
+   Topic: 43% | Field: 0% | Semantic: 0% | Temporal: 90% | TitleBonus: 30% | Concepts: 5/6 (x0.83)
+3. [14%] Making meaning of trauma in psychosis.
+   Topic: 20% | Field: 50% | Semantic: 0% | Temporal: 90% | TitleBonus: 0% | Concepts: 3/6 (x0.50)
+4. [13%] Deconstructing Successful Aging: A Social Constructionist Critique and an Altern
+   Topic: 33% | Field: 50% | Semantic: 0% | Temporal: 90% | TitleBonus: 30% | Concepts: 2/6 (x0.33)
+5. [12%] A conversation about digital meaning-making, research methods and open access
+   Topic: 27% | Field: 50% | Semantic: 0% | Temporal: 90% | TitleBonus: 30% | Concepts: 2/6 (x0.33)
+
+⚠️  8 sources below 40% relevance (filtered out)
+[Reranker] Cohere reranked 8 sources → 1 results (min score: 0.1, attempt 1)
+[SCOUT] After Cohere rerank: 1 sources
+[SCOUT K10] CARE: overall=42%, individual=29%, combinedCoverage=83%, multiHop=0%, diversity=27%
+[SCOUT K10] ⚠️ Missing concepts: limitations — IntelligentScout should gap-fill these
+[SCOUT] Enriched 1 sources with Unpaywall (batched)
+[SCOUT] Done in 14583ms: 26 raw â†’ 26 dedup â†’ 1 ranked â†’ 1 saved
+[SCOUT] Cache MISS for "failure of philosophical answers to meaning", running providers...
+✅ deepseek/deepseek-v4-flash [query_enhancement] | 1796ms | 761+127 tok | $0.0001
+[SCOUT] Query enhanced: "philosophy meaning failure inadequacy critique answers" (+3 variations)
+[SCOUT] Neural routing selected 7 providers: arxiv, paperswithcode, inria, mit-dspace, openalex, hackernews, crossref...
+[SCOUT] Submodular diversification selected 4 diverse queries from 4
+[MIT-DSpace] Searching for: "philosophy meaning failure inadequacy critique answers"
+[INRIA] Searching via OpenAlex ROR for: "philosophy meaning failure inadequacy critique answers"
+[MIT-DSpace] Searching for: "philosophical theories of meaning shortcomings"
+[INRIA] Searching via OpenAlex ROR for: "philosophical theories of meaning shortcomings"
+[MIT-DSpace] Searching for: "critique of philosophical accounts of meaning"
+[INRIA] Searching via OpenAlex ROR for: "critique of philosophical accounts of meaning"
+[MIT-DSpace] Searching for: "inadequacy of philosophical solutions to meaning"
+[INRIA] Searching via OpenAlex ROR for: "inadequacy of philosophical solutions to meaning"
+[SCOUT] Launching 28 parallel requests across 4 query variations
+[INRIA] Found 0 publications
+[INRIA] Found 0 publications
+[INRIA] Found 0 publications
+[INRIA] Found 0 publications
+[Crossref] Found 2 works for "critique of philosophical accounts of meaning"
+[Crossref] Found 2 works for "inadequacy of philosophical solutions to meaning"
+[Crossref] Found 2 works for "philosophy meaning failure inadequacy critique ans"
+[Crossref] Found 2 works for "philosophical theories of meaning shortcomings"
+[MIT-DSpace] Found 2 works
+[MIT-DSpace] Found 2 works
+[MIT-DSpace] Found 2 works
+[MIT-DSpace] Found 2 works
+[SCOUT] Per-provider results: _unknown=0, crossref=8, arxiv=8, mit-dspace=8
+[SCOUT] Raw results: 24 sources from 4 query variations (3 providers: crossref, arxiv, mit-dspace)
+[SCOUT] After dedup: 22/24
+[SCOUT] Relevance filter too strict (0 results), keeping all 22
+[SCOUT K10] CARE: overall=46%, individual=1%, combinedCoverage=86%, multiHop=1%, diversity=80%
+[SCOUT K10] ⚠️ Missing concepts: answers — IntelligentScout should gap-fill these
+[SCOUT] Enriched 8 sources with Unpaywall (batched)
+[SCOUT] Done in 5508ms: 24 raw â†’ 22 dedup â†’ 22 ranked â†’ 22 saved
+[IntelligentScout] Iteration 2: lens=contrarian, found=40, total=53
+[SCOUT] Cache MISS for "future of meaning in a post-human world", running providers...
+✅ deepseek/deepseek-v4-flash [query_enhancement] | 1890ms | 763+144 tok | $0.0001
+[SCOUT] Query enhanced: "posthumanism meaning future human condition artificial intelligence transhumanism" (+3 variations)
+[SCOUT] Neural routing selected 2 providers: openalex, crossref...
+[SCOUT] Submodular diversification selected 4 diverse queries from 4
+[SCOUT] Launching 24 parallel requests across 4 query variations
+[nber] Found 0 publications (filter: https://ror.org/04grmx538)
+[oecd] Found 0 publications (filter: https://ror.org/0438wbg98)
+[nber] Found 0 publications (filter: https://ror.org/04grmx538)
+[oecd] Found 0 publications (filter: https://ror.org/0438wbg98)
+[nber] Found 0 publications (filter: https://ror.org/04grmx538)
+[oecd] Found 0 publications (filter: https://ror.org/0438wbg98)
+[nber] Found 0 publications (filter: https://ror.org/04grmx538)
+[oecd] Found 0 publications (filter: https://ror.org/0438wbg98)
+[Crossref] Found 15 works for "semantics of meaning in posthumanism digital age"
+[Crossref] Found 15 works for "post-human world meaning construction artificial i"
+[Crossref] Found 15 works for "future of meaning posthuman era technology society"
+[Crossref] Found 15 works for "posthumanism meaning future human condition artifi"
+[SCOUT] Per-provider results: _unknown=0, crossref=60, imf=20
+[SCOUT] Extended registry: +0 sources from 10 providers (ai, security)
+[SCOUT] Raw results: 80 sources from 4 query variations (2 providers: crossref, imf)
+[SCOUT] After dedup: 65/80
+[SCOUT] After relevance filter: 7/65
+
+[RelevanceScorer] Top 5 sources by relevance:
+1. [27%] Mapping AI avant-gardes in time: posthumanism, transhumanism, genhumanism
+   Topic: 40% | Field: 50% | Semantic: 0% | Temporal: 100% | TitleBonus: 30% | Concepts: 5/8 (x0.63)
+2. [16%] The meaning of being human and the future of humanity in the world of artificial
+   Topic: 38% | Field: 50% | Semantic: 0% | Temporal: 100% | TitleBonus: 30% | Concepts: 3/8 (x0.38)
+3. [16%] Human Understanding in the Age of Artificial Intelligence: A Comparative Study o
+   Topic: 38% | Field: 50% | Semantic: 0% | Temporal: 100% | TitleBonus: 30% | Concepts: 3/8 (x0.38)
+4. [16%] Transhumanism and Posthumanism: Reflection of the Human Civilization Future
+   Topic: 38% | Field: 50% | Semantic: 0% | Temporal: 100% | TitleBonus: 30% | Concepts: 3/8 (x0.38)
+5. [15%] “The Singularity is near!” Visions of Artificial Intelligence in Posthumanism an
+   Topic: 32% | Field: 50% | Semantic: 1% | Temporal: 100% | TitleBonus: 30% | Concepts: 3/8 (x0.38)
+
+⚠️  7 sources below 40% relevance (filtered out)
+[Reranker] Cohere reranked 7 sources → 5 results (min score: 0.1, attempt 1)
+[SCOUT] After Cohere rerank: 5 sources
+[SCOUT K10] CARE: overall=56%, individual=18%, combinedCoverage=88%, multiHop=80%, diversity=27%
+[SCOUT K10] ⚠️ Missing concepts: human condition — IntelligentScout should gap-fill these
+[SCOUT] Enriched 5 sources with Unpaywall (batched)
+[SCOUT] Done in 5546ms: 80 raw â†’ 65 dedup â†’ 5 ranked â†’ 5 saved
+[IntelligentScout] Gap fill: lens=scenario, found=5
+[SCOUT] Cache MISS for "meaning making in anthropology ritual", running providers...
+✅ deepseek/deepseek-v4-flash [query_enhancement] | 1558ms | 760+130 tok | $0.0001
+[SCOUT] Query enhanced: "meaning making anthropology ritual symbolism cultural performance" (+3 variations)
+[SCOUT] Neural routing selected 2 providers: openalex, crossref...
+[SCOUT] Submodular diversification selected 4 diverse queries from 4
+[SCOUT] Launching 16 parallel requests across 4 query variations
+[Crossref] Found 15 works for "ritual meaning construction anthropological perspe"
+[Crossref] Found 15 works for "meaning making anthropology ritual symbolism cultu"
+[Crossref] Found 15 works for "meaning-making rituals ethnography symbolic anthro"
+[Crossref] Found 15 works for "anthropology ritual sense-making cultural practice"
+[SCOUT] Per-provider results: _unknown=0, crossref=60, jstor=60
+[SCOUT] Raw results: 120 sources from 4 query variations (2 providers: crossref, jstor)
+[SCOUT] After dedup: 106/120
+[SCOUT] After relevance filter: 7/106
+
+[RelevanceScorer] Top 5 sources by relevance:
+1. [18%] Military Symbolism in Modern Vyshyvankas as a Source of the Latest Cultural Codi
+   Topic: 29% | Field: 50% | Semantic: 0% | Temporal: 90% | TitleBonus: 30% | Concepts: 3/6 (x0.50)
+2. [18%] Cultural Homecoming Without Return: Elephant Symbolism, Hakka Migration, and the
+   Topic: 29% | Field: 50% | Semantic: 0% | Temporal: 90% | TitleBonus: 30% | Concepts: 3/6 (x0.50)
+3. [11%] In-Between Ethnography and Filmmaking: Field Notes and Rituals behind the Frame
+   Topic: 29% | Field: 50% | Semantic: 0% | Temporal: 70% | TitleBonus: 30% | Concepts: 2/6 (x0.33)
+4. [11%] Triumphator and Ancestor Rituals Between Symbolic Anthropology and Magic
+   Topic: 31% | Field: 50% | Semantic: 0% | Temporal: 50% | TitleBonus: 30% | Concepts: 2/6 (x0.33)
+5. [11%] Symbolism in Ritual
+   Topic: 29% | Field: 50% | Semantic: 0% | Temporal: 50% | TitleBonus: 30% | Concepts: 2/6 (x0.33)
+
+⚠️  7 sources below 40% relevance (filtered out)
+[Reranker] Cohere reranked 7 sources → 0 results (min score: 0.1, attempt 1)
+[SCOUT] After Cohere rerank: 0 sources
+[SCOUT] Done in 7292ms: 120 raw â†’ 106 dedup â†’ 0 ranked â†’ 0 saved
+[IntelligentScout] Gap fill: lens=cross_domain, found=0
+[SCOUT] Cache MISS for "meaning of life in ancient Greek philosophy", running providers...
+✅ deepseek/deepseek-v4-flash [query_enhancement] | 1735ms | 762+140 tok | $0.0001
+[SCOUT] Query enhanced: "meaning of life ancient Greek philosophy eudaimonia telos arete" (+3 variations)
+[SCOUT] Neural routing selected 2 providers: openalex, crossref...
+[SCOUT] Submodular diversification selected 4 diverse queries from 4
+[SCOUT] Launching 16 parallel requests across 4 query variations
+[ADAPTIVE RATE] crossref: rate recovered to 2.40 req/s
+[Crossref] Found 2 works for "Greek philosophical views on the meaning of life"
+[Crossref] Found 2 works for "meaning of life ancient Greek philosophy eudaimoni"
+[Crossref] Found 2 works for "eudaimonia and the good life in ancient philosophy"
+[Crossref] Found 2 works for "purpose of human existence ancient Greek thought"
+[SCOUT] Per-provider results: _unknown=0, crossref=8, jstor=8, internet-archive=5
+[SCOUT] Raw results: 21 sources from 4 query variations (3 providers: crossref, jstor, internet-archive)
+[SCOUT] After dedup: 17/21
+[SCOUT] After relevance filter: 3/17
+
+[RelevanceScorer] Top 5 sources by relevance:
+1. [16%] Eudaimonia Talents And Finance
+   Topic: 26% | Field: 50% | Semantic: 2% | Temporal: 50% | TitleBonus: 30% | Concepts: 3/6 (x0.50)
+2. [13%] Ancient Greek Philosophy and Current Definitions of Eudaimonia
+   Topic: 29% | Field: 50% | Semantic: 25% | Temporal: 90% | TitleBonus: 30% | Concepts: 2/6 (x0.33)
+3. [11%] Eudaimonia: the ancients and the good life
+   Topic: 29% | Field: 50% | Semantic: 0% | Temporal: 70% | TitleBonus: 30% | Concepts: 2/6 (x0.33)
+
+⚠️  3 sources below 40% relevance (filtered out)
+[Reranker] Cohere reranked 3 sources → 2 results (min score: 0.1, attempt 1)
+[SCOUT] After Cohere rerank: 2 sources
+[SCOUT K10] CARE: overall=32%, individual=14%, combinedCoverage=50%, multiHop=0%, diversity=53%
+[SCOUT K10] ⚠️ Missing concepts: meaning of life, good life, telos, arete — IntelligentScout should gap-fill these
+[SCOUT] Enriched 1 sources with Unpaywall (batched)
+[SCOUT] Done in 7405ms: 21 raw â†’ 17 dedup â†’ 2 ranked â†’ 2 saved
+[SCOUT] Cache MISS for "existentialism 19th century origins", running providers...
+✅ deepseek/deepseek-v4-flash [query_enhancement] | 1531ms | 763+123 tok | $0.0001
+[SCOUT] Query enhanced: "existentialism 19th century origins philosophy" (+3 variations)
+[SCOUT] Neural routing selected 2 providers: openalex, crossref...
+[SCOUT] Submodular diversification selected 4 diverse queries from 4
+[SCOUT] Launching 16 parallel requests across 4 query variations
+[ADAPTIVE RATE] crossref: rate recovered to 2.88 req/s
+[Crossref] Found 2 works for "existentialism 19th century origins philosophy"
+[Crossref] Found 2 works for "19th century existentialism precursors"
+[ADAPTIVE RATE] crossref: rate recovered to 3.46 req/s
+[Crossref] Found 2 works for "origins of existentialism 19th century thinkers"
+[Crossref] Found 2 works for "existentialist philosophy 19th century roots"
+[SCOUT] Per-provider results: _unknown=0, crossref=8, internet-archive=2, jstor=8
+[SCOUT] Raw results: 18 sources from 4 query variations (3 providers: crossref, internet-archive, jstor)
+[SCOUT] After dedup: 16/18
+[SCOUT K10] CARE: overall=45%, individual=5%, combinedCoverage=80%, multiHop=0%, diversity=80%
+[SCOUT K10] ⚠️ Missing concepts: 19th century — IntelligentScout should gap-fill these
+[SCOUT] Enriched 14 sources with Unpaywall (batched)
+[SCOUT] Done in 2967ms: 18 raw â†’ 16 dedup â†’ 16 ranked â†’ 16 saved
+[SCOUT] Cache MISS for "meaning of life in medieval theology", running providers...
+✅ deepseek/deepseek-v4-flash [query_enhancement] | 1558ms | 761+121 tok | $0.0001
+[SCOUT] Query enhanced: "meaning of life medieval theology Christian philosophy" (+3 variations)
+[SCOUT] Neural routing selected 2 providers: openalex, crossref...
+[SCOUT] Submodular diversification selected 4 diverse queries from 4
+[SCOUT] Launching 16 parallel requests across 4 query variations
+[ADAPTIVE RATE] crossref: rate recovered to 2.07 req/s
+[Crossref] Found 2 works for "medieval theological perspectives on the meaning o"
+[Crossref] Found 2 works for "Christian medieval philosophy on the purpose of li"
+[Crossref] Found 2 works for "meaning of life medieval theology Christian philos"
+[Crossref] Found 2 works for "purpose of human existence medieval Christian thou"
+[SCOUT] Per-provider results: _unknown=0, crossref=8, internet-archive=8, jstor=8
+[SCOUT] Raw results: 24 sources from 4 query variations (3 providers: crossref, internet-archive, jstor)
+[SCOUT] After dedup: 19/24
+[SCOUT K10] CARE: overall=34%, individual=0%, combinedCoverage=50%, multiHop=0%, diversity=80%
+[SCOUT K10] ⚠️ Missing concepts: medieval theology, medieval thought, purpose of existence — IntelligentScout should gap-fill these
+[SCOUT] Enriched 16 sources with Unpaywall (batched)
+[SCOUT] Done in 7216ms: 24 raw â†’ 19 dedup â†’ 19 ranked â†’ 19 saved
+[SCOUT] Cache MISS for "historical perspectives on human purpose", running providers...
+✅ deepseek/deepseek-v4-flash [query_enhancement] | 1601ms | 760+116 tok | $0.0001
+[SCOUT] Query enhanced: "historical perspectives human purpose meaning teleology philosophy history" (+3 variations)
+[SCOUT] Neural routing selected 2 providers: openalex, crossref...
+[SCOUT] Submodular diversification selected 4 diverse queries from 4
+[SCOUT] Launching 16 parallel requests across 4 query variations
+[Crossref] Found 2 works for "teleology history human existence purpose"
+[ADAPTIVE RATE] crossref: rate recovered to 1.20 req/s
+[Crossref] Found 2 works for "historical perspectives human purpose meaning tele"
+[Crossref] Found 2 works for "historical views on human purpose and meaning"
+[Crossref] Found 2 works for "human purpose historical context philosophical mea"
+[SCOUT] Per-provider results: _unknown=0, crossref=8, jstor=8, internet-archive=6
+[SCOUT] Filtered 5 low-quality sources (SEO farms, spam)
+[SCOUT] Raw results: 17 sources from 4 query variations (3 providers: crossref, jstor, internet-archive)
+[SCOUT] After dedup: 16/17
+[SCOUT] Relevance filter too strict (0 results), keeping all 16
+[SCOUT K10] CARE: overall=37%, individual=1%, combinedCoverage=60%, multiHop=0%, diversity=80%
+[SCOUT K10] ⚠️ Missing concepts: historical perspectives, meaning of life — IntelligentScout should gap-fill these
+[SCOUT] Enriched 10 sources with Unpaywall (batched)
+[SCOUT] Done in 14829ms: 17 raw â†’ 16 dedup â†’ 16 ranked â†’ 16 saved
+[IntelligentScout] Iteration 3: lens=historical, found=53, total=111
+[SCOUT] Cache MISS for "meaning making in anthropology ritual", running providers...
+✅ deepseek/deepseek-v4-flash [query_enhancement] | 1450ms | 760+123 tok (640 cache-hit) | $0.0001
+[SCOUT] Query enhanced: "meaning-making ritual anthropology symbolic interpretation cultural performance" (+3 variations)
+[SCOUT] Neural routing selected 2 providers: openalex, crossref...
+[SCOUT] Submodular diversification selected 4 diverse queries from 4
+[SCOUT] Launching 16 parallel requests across 4 query variations
+[Crossref] Found 15 works for "meaning-making ritual anthropology symbolic interp"
+[ADAPTIVE RATE] crossref: rate recovered to 1.20 req/s
+[Crossref] Found 15 works for "symbolic meaning ritual performance ethnographic s"
+[Crossref] Found 15 works for "anthropological analysis ritual meaning-making cul"
+[Crossref] Found 15 works for "ritual symbolism meaning construction anthropology"
+[SCOUT] Per-provider results: _unknown=0, crossref=60, jstor=60
+[SCOUT] Raw results: 120 sources from 4 query variations (2 providers: crossref, jstor)
+[SCOUT] After dedup: 104/120
+[SCOUT] After relevance filter: 3/104
+
+[RelevanceScorer] Top 5 sources by relevance:
+1. [17%] Exploring Psychological Resilience and Meaning-Making in Hindu Bhakti Practices:
+   Topic: 34% | Field: 50% | Semantic: 0% | Temporal: 90% | TitleBonus: 30% | Concepts: 3/7 (x0.43)
+2. [15%] Ritual, Dalits and Discrimination (An Ethnographic Study of Sacrificial Ritual i
+   Topic: 26% | Field: 50% | Semantic: 0% | Temporal: 90% | TitleBonus: 30% | Concepts: 3/7 (x0.43)
+3. [10%] Symbolism in Ritual
+   Topic: 29% | Field: 50% | Semantic: 0% | Temporal: 90% | TitleBonus: 30% | Concepts: 2/7 (x0.29)
+
+⚠️  3 sources below 40% relevance (filtered out)
+[Reranker] Cohere reranked 3 sources → 0 results (min score: 0.1, attempt 1)
+[SCOUT] After Cohere rerank: 0 sources
+[SCOUT] Done in 7048ms: 120 raw â†’ 104 dedup â†’ 0 ranked â†’ 0 saved
+[IntelligentScout] Gap fill: lens=cross_domain, found=0
+[IntelligentScout] Pre-filter: 111 → 45 (dropped 66: {"no_abstract":61,"too_old":5})
+[IntelligentScout] Done: 45 sources, diversity=83%, consensus=0%, scenarioRichness=44%, 121750ms
+[Pipeline] INTELLIGENT SCOUT: +45 eclectic sources (45 from 9 lenses, diversity=83%, scenarioRichness=44%)
+[Pipeline] INTELLIGENT SCOUT lenses: core(11), contrarian(16), cross_domain(0), historical(15), weak_signal(0), scenario(3), provocative(0), ontological(0), dissident(0)
+[Pipeline] INDEX: 175 sources
+[Index] Enriching 22 authors in 2 batches
+[Index] Batch complete: 20/22
+[Index] Batch complete: 22/22
+[Index] Batched: 175 sources, 278 new authors, 12 new institutions, 394 author-links, 15 inst-links
+[WIKIDATA] "Weatherman To Know Which Way" → 0 entities (450ms)
+[WIKIDATA] "The Wind Blows The" → 0 entities (465ms)
+[WIKIDATA] "Modern Korean Concept" → 0 entities (628ms)
+[WIKIDATA] "French Integration Sewing Workshop" → 0 entities (786ms)
+[WIKIDATA] "Zero Long" → 0 entities (840ms)
+[WIKIDATA] "Term Unemployment Territories This" → 0 entities (958ms)
+[WIKIDATA] "Conceptual Study" → 2 entities (1084ms)
+[WIKIDATA] "Cultural Distance" → 2 entities (1120ms)
+[WIKIDATA] "Contextual Factors" → 2 entities (1145ms)
+[WIKIDATA] "The Historical Semantics" → 2 entities (1270ms)
+[WIKIDATA] "You Don" → 2 entities (1408ms)
+[WIKIDATA] "Moderating Role" → 2 entities (1434ms)
+[WIKIDATA] "ACTIVE" → 2 entities (1433ms)
+[WIKIDATA] "Abstract Order" → 1 entities (1554ms)
+[WIKIDATA] "Labor Control" → 2 entities (1618ms)
+[WIKIDATA] "OF" → 2 entities (1629ms)
+[WIKIDATA] "Work Quality" → 2 entities (1806ms)
+[Index] Wikidata enriched 6/10 sources with entity data
+[INDEX] Updated novelty scores for 175 sources (batched)
+[Pipeline] EMBED: generating semantic vectors...
+[SemanticEngine] Embedding 167 sources (8 already done)...
+[SemanticEngine] Embedding progress: 167/167
+[SemanticEngine] Embedded 167 sources, 0 failed
+[Pipeline] EMBED: 167 new, 8 cached
+[Pipeline] DEDUPLICATE
+[Dedup] Keeping crossref:10.1109/isgteurope56780.2023.10407482 (quality:60) over openaire:doi_dedup___::8a7ae02baf392da649f49fcb70ddb17c (quality:44)
+[Dedup P1] Soft-deleted 1 duplicate(s), kept crossref:10.1109/isgteurope56780.2023.10407482
+[Dedup P1] Reason: Quality score comparison - best=60, removed=44
+[Pipeline] RANK: scoring candidates from 175 SCOUT sources (ceiling 100)
+[RANK] Using A+ level enhanced ranking with query: "What"
+[ENHANCED RANK] Starting WAR MACHINE ranking with optimized thresholds: { minQuality: 0, requireAbstract: true, maxPerProvider: 8, limit: 100 }
+[ENHANCED RANK] Abstract filter: 175 → 119 (0 news exempted, min 150 chars)
+[ENHANCED RANK] Found 119 sources before scoring (scoped: true)
+[ENHANCED RANK] T8: 15 load-bearing sources (full-text), 25 abstract, 9 skip
+[ENHANCED RANK] Final selection: 49 sources
+[ENHANCED RANK] Quality stats: {
+  avgQuality: 60,
+  academicSources: 34,
+  quantitativeSources: 5,
+  peerReviewedSources: 49,
+  providers: 'semanticscholar, hal, internet-archive, crossref, doaj, nih, arxiv, mit-dspace'
+}
+[Pipeline] PERTINENCE SELECTION: kept 49/49 candidates (bar=55.0, top=100.0, cutoff score=100.0)
+[Pipeline] SOURCE QUALITY: re-ranked 49 by composite (relevance 60% + quality 40%)
+[Pipeline] LOAD BEARING: 3 sources tagged as load_bearing
+✅ deepseek/deepseek-v4-flash [enrichment_reasoner] | 4681ms | 1201+500 tok (640 cache-hit) | $0.0003
+[Pipeline] ENRICHMENT: 4 gaps identified — searching with 5 targeted queries
+[SCOUT] Cache MISS for "systematic review [specific topic] 2020-2025", running providers...
+[SCOUT] Cache MISS for "meta-analysis [specific topic]", running providers...
+[SCOUT] Cache MISS for "recent empirical study [specific topic] 2023", running providers...
+[SCOUT] Cache MISS for "case study [specific topic] in [geography]", running providers...
+[SCOUT] Cache MISS for "theoretical framework [specific topic]", running providers...
+✅ deepseek/deepseek-v4-flash [query_enhancement] | 1211ms | 766+113 tok | $0.0001
+[SCOUT] Query enhanced: "recent empirical study 2023 [specific topic]" (+3 variations)
+[SCOUT] Neural routing selected 2 providers: openalex, crossref...
+[SCOUT] Submodular diversification selected 4 diverse queries from 4
+[SCOUT] Fetching theses from theses.fr...
+[ThesesFr] Searching for: "recent empirical study [specific topic] 2023"
+[SCOUT] Found 0 theses
+[SCOUT] 0/0 theses with exploitable content
+[CONSOLIDATED-INSTITUTIONS] Searching 31 institutions in 3 batch(es) for: "recent empirical study 2023 [specific topic]..."
+[GLOBAL-INTELLIGENCE] Searching 16 intelligence feeds for: "recent empirical study 2023 [specific topic]..."
+[GLOBAL-ORGS] Searching 25 international org feeds for: "recent empirical study 2023 [specific topic]..."
+[GLOBAL-THINKTANKS] Searching 29 think tank feeds for: "recent empirical study 2023 [specific topic]..."
+[CONSOLIDATED-INSTITUTIONS] Searching 31 institutions in 3 batch(es) for: "2023 empirical research [specific topic]..."
+[GLOBAL-INTELLIGENCE] Searching 16 intelligence feeds for: "2023 empirical research [specific topic]..."
+[GLOBAL-ORGS] Searching 25 international org feeds for: "2023 empirical research [specific topic]..."
+[GLOBAL-THINKTANKS] Searching 29 think tank feeds for: "2023 empirical research [specific topic]..."
+[CONSOLIDATED-INSTITUTIONS] Searching 31 institutions in 3 batch(es) for: "recent empirical evidence [specific topic] 2023..."
+[GLOBAL-INTELLIGENCE] Searching 16 intelligence feeds for: "recent empirical evidence [specific topic] 2023..."
+[GLOBAL-ORGS] Searching 25 international org feeds for: "recent empirical evidence [specific topic] 2023..."
+[GLOBAL-THINKTANKS] Searching 29 think tank feeds for: "recent empirical evidence [specific topic] 2023..."
+[CONSOLIDATED-INSTITUTIONS] Searching 31 institutions in 3 batch(es) for: "2023 empirical analysis [specific topic]..."
+[GLOBAL-INTELLIGENCE] Searching 16 intelligence feeds for: "2023 empirical analysis [specific topic]..."
+[GLOBAL-ORGS] Searching 25 international org feeds for: "2023 empirical analysis [specific topic]..."
+[GLOBAL-THINKTANKS] Searching 29 think tank feeds for: "2023 empirical analysis [specific topic]..."
+[SCOUT] Launching 52 parallel requests across 4 query variations
+[nber] Found 0 publications (filter: https://ror.org/04grmx538)
+[nber] Found 0 publications (filter: https://ror.org/04grmx538)
+[CONSOLIDATED-INSTITUTIONS] Got 0 results from 31 institutions
+[nber] Found 0 publications (filter: https://ror.org/04grmx538)
+[CONSOLIDATED-INSTITUTIONS] Got 0 results from 31 institutions
+[nber] Found 0 publications (filter: https://ror.org/04grmx538)
+[CONSOLIDATED-INSTITUTIONS] Got 0 results from 31 institutions
+[CONSOLIDATED-INSTITUTIONS] Got 0 results from 31 institutions
+✅ deepseek/deepseek-v4-flash [query_enhancement] | 1979ms | 768+125 tok | $0.0001
+[SCOUT] Query enhanced: "systematic review [specific topic] 2020-2025" (+3 variations)
+[SCOUT] Neural routing selected 3 providers: cochrane, openalex, crossref...
+[SCOUT] Submodular diversification selected 4 diverse queries from 4
+[SCOUT] Fetching theses from theses.fr...
+[ThesesFr] Searching for: "systematic review [specific topic] 2020-2025"
+✅ deepseek/deepseek-v4-flash [query_enhancement] | 1982ms | 766+129 tok | $0.0001
+[SCOUT] Query enhanced: "case study [specific topic] [geography]" (+3 variations)
+[SCOUT] Neural routing selected 3 providers: openalex, wikidata, crossref...
+[SCOUT] Submodular diversification selected 4 diverse queries from 4
+[SCOUT] Fetching theses from theses.fr...
+[ThesesFr] Searching for: "case study [specific topic] in [geography]"
+✅ deepseek/deepseek-v4-flash [query_enhancement] | 2118ms | 761+119 tok | $0.0001
+[SCOUT] Query enhanced: "meta-analysis [specific topic] systematic review effect size" (+3 variations)
+[SCOUT] Neural routing selected 3 providers: rss, openalex, crossref...
+[SCOUT] Submodular diversification selected 4 diverse queries from 4
+[SCOUT] Fetching theses from theses.fr...
+[ThesesFr] Searching for: "meta-analysis [specific topic]"
+✅ deepseek/deepseek-v4-flash [query_enhancement] | 2124ms | 762+101 tok | $0.0001
+[SCOUT] Query enhanced: "theoretical framework [specific topic]" (+3 variations)
+[SCOUT] Neural routing selected 2 providers: openalex, crossref...
+[SCOUT] Submodular diversification selected 4 diverse queries from 4
+[SCOUT] Fetching theses from theses.fr...
+[ThesesFr] Searching for: "theoretical framework [specific topic]"
+[HAL] Found 0 documents
+[HAL] 0/0 with rich abstracts (0%)
+[SCOUT] Found 0 theses
+[SCOUT] 0/0 theses with exploitable content
+[CONSOLIDATED-INSTITUTIONS] Searching 31 institutions in 3 batch(es) for: "systematic review [specific topic] 2020-2025..."
+[GLOBAL-INTELLIGENCE] Searching 16 intelligence feeds for: "systematic review [specific topic] 2020-2025..."
+[nber] Found 0 publications (filter: https://ror.org/04grmx538)
+[GLOBAL-ORGS] Searching 25 international org feeds for: "systematic review [specific topic] 2020-2025..."
+[CONSOLIDATED-INSTITUTIONS] Got 0 results from 31 institutions
+[GLOBAL-THINKTANKS] Searching 29 think tank feeds for: "systematic review [specific topic] 2020-2025..."
+[CONSOLIDATED-INSTITUTIONS] Searching 31 institutions in 3 batch(es) for: "systematic review [specific topic] 2020-2025..."
+[GLOBAL-INTELLIGENCE] Searching 16 intelligence feeds for: "systematic review [specific topic] 2020-2025..."
+[GLOBAL-ORGS] Searching 25 international org feeds for: "systematic review [specific topic] 2020-2025..."
+[GLOBAL-THINKTANKS] Searching 29 think tank feeds for: "systematic review [specific topic] 2020-2025..."
+[CONSOLIDATED-INSTITUTIONS] Searching 31 institutions in 3 batch(es) for: "meta-analysis [specific topic] 2020-2025..."
+[nber] Found 0 publications (filter: https://ror.org/04grmx538)
+[CONSOLIDATED-INSTITUTIONS] Got 0 results from 31 institutions
+[GLOBAL-INTELLIGENCE] Searching 16 intelligence feeds for: "meta-analysis [specific topic] 2020-2025..."
+[GLOBAL-ORGS] Searching 25 international org feeds for: "meta-analysis [specific topic] 2020-2025..."
+[GLOBAL-THINKTANKS] Searching 29 think tank feeds for: "meta-analysis [specific topic] 2020-2025..."
+[CONSOLIDATED-INSTITUTIONS] Searching 31 institutions in 3 batch(es) for: "comprehensive review [specific topic] 2020-2025..."
+[nber] Found 0 publications (filter: https://ror.org/04grmx538)
+[GLOBAL-INTELLIGENCE] Searching 16 intelligence feeds for: "comprehensive review [specific topic] 2020-2025..."
+[nber] Found 0 publications (filter: https://ror.org/04grmx538)
+[GLOBAL-ORGS] Searching 25 international org feeds for: "comprehensive review [specific topic] 2020-2025..."
+[CONSOLIDATED-INSTITUTIONS] Got 0 results from 31 institutions
+[GLOBAL-THINKTANKS] Searching 29 think tank feeds for: "comprehensive review [specific topic] 2020-2025..."
+[SCOUT] Launching 52 parallel requests across 4 query variations
+[CONSOLIDATED-INSTITUTIONS] Got 0 results from 31 institutions
+[HAL] Found 0 documents
+[HAL] 0/0 with rich abstracts (0%)
+[HAL] Found 0 documents
+[HAL] 0/0 with rich abstracts (0%)
+[HAL] Found 0 documents
+[HAL] 0/0 with rich abstracts (0%)
+[HAL] Found 0 documents
+[HAL] 0/0 with rich abstracts (0%)
+[HAL] Found 0 documents
+[HAL] 0/0 with rich abstracts (0%)
+[HAL] Found 0 documents
+[HAL] 0/0 with rich abstracts (0%)
+[SCOUT] Found 0 theses
+[SCOUT] 0/0 theses with exploitable content
+[CONSOLIDATED-INSTITUTIONS] Searching 31 institutions in 3 batch(es) for: "case study [specific topic] [geography]..."
+[GLOBAL-INTELLIGENCE] Searching 16 intelligence feeds for: "case study [specific topic] [geography]..."
+[nber] Found 0 publications (filter: https://ror.org/04grmx538)
+[GLOBAL-ORGS] Searching 25 international org feeds for: "case study [specific topic] [geography]..."
+[CONSOLIDATED-INSTITUTIONS] Got 0 results from 31 institutions
+[GLOBAL-THINKTANKS] Searching 29 think tank feeds for: "case study [specific topic] [geography]..."
+[CONSOLIDATED-INSTITUTIONS] Searching 31 institutions in 3 batch(es) for: "[specific topic] case study [geography]..."
+[GLOBAL-INTELLIGENCE] Searching 16 intelligence feeds for: "[specific topic] case study [geography]..."
+[GLOBAL-ORGS] Searching 25 international org feeds for: "[specific topic] case study [geography]..."
+[GLOBAL-THINKTANKS] Searching 29 think tank feeds for: "[specific topic] case study [geography]..."
+[CONSOLIDATED-INSTITUTIONS] Searching 31 institutions in 3 batch(es) for: "[specific topic] [geography] empirical analysis..."
+[nber] Found 0 publications (filter: https://ror.org/04grmx538)
+[CONSOLIDATED-INSTITUTIONS] Got 0 results from 31 institutions
+[GLOBAL-INTELLIGENCE] Searching 16 intelligence feeds for: "[specific topic] [geography] empirical analysis..."
+[GLOBAL-ORGS] Searching 25 international org feeds for: "[specific topic] [geography] empirical analysis..."
+[GLOBAL-THINKTANKS] Searching 29 think tank feeds for: "[specific topic] [geography] empirical analysis..."
+[CONSOLIDATED-INSTITUTIONS] Searching 31 institutions in 3 batch(es) for: "[specific topic] [geography] field study..."
+[nber] Found 0 publications (filter: https://ror.org/04grmx538)
+[GLOBAL-INTELLIGENCE] Searching 16 intelligence feeds for: "[specific topic] [geography] field study..."
+[nber] Found 0 publications (filter: https://ror.org/04grmx538)
+[GLOBAL-ORGS] Searching 25 international org feeds for: "[specific topic] [geography] field study..."
+[CONSOLIDATED-INSTITUTIONS] Got 0 results from 31 institutions
+[GLOBAL-THINKTANKS] Searching 29 think tank feeds for: "[specific topic] [geography] field study..."
+[SCOUT] Launching 52 parallel requests across 4 query variations
+[CONSOLIDATED-INSTITUTIONS] Got 0 results from 31 institutions
+[SCOUT] Found 0 theses
+[SCOUT] 0/0 theses with exploitable content
+[CONSOLIDATED-INSTITUTIONS] Searching 31 institutions in 3 batch(es) for: "meta-analysis [specific topic] systematic review effect size..."
+[GLOBAL-INTELLIGENCE] Searching 16 intelligence feeds for: "meta-analysis [specific topic] systematic review effect size..."
+[nber] Found 0 publications (filter: https://ror.org/04grmx538)
+[GLOBAL-ORGS] Searching 25 international org feeds for: "meta-analysis [specific topic] systematic review effect size..."
+[CONSOLIDATED-INSTITUTIONS] Got 0 results from 31 institutions
+[GLOBAL-THINKTANKS] Searching 29 think tank feeds for: "meta-analysis [specific topic] systematic review effect size..."
+[CONSOLIDATED-INSTITUTIONS] Searching 31 institutions in 3 batch(es) for: "meta-analysis [specific topic] pooled analysis..."
+[GLOBAL-INTELLIGENCE] Searching 16 intelligence feeds for: "meta-analysis [specific topic] pooled analysis..."
+[GLOBAL-ORGS] Searching 25 international org feeds for: "meta-analysis [specific topic] pooled analysis..."
+[GLOBAL-THINKTANKS] Searching 29 think tank feeds for: "meta-analysis [specific topic] pooled analysis..."
+[CONSOLIDATED-INSTITUTIONS] Searching 31 institutions in 3 batch(es) for: "systematic review and meta-analysis [specific topic]..."
+[nber] Found 0 publications (filter: https://ror.org/04grmx538)
+[CONSOLIDATED-INSTITUTIONS] Got 0 results from 31 institutions
+[GLOBAL-INTELLIGENCE] Searching 16 intelligence feeds for: "systematic review and meta-analysis [specific topic]..."
+[GLOBAL-ORGS] Searching 25 international org feeds for: "systematic review and meta-analysis [specific topic]..."
+[GLOBAL-THINKTANKS] Searching 29 think tank feeds for: "systematic review and meta-analysis [specific topic]..."
+[CONSOLIDATED-INSTITUTIONS] Searching 31 institutions in 3 batch(es) for: "meta-analytic review [specific topic]..."
+[nber] Found 0 publications (filter: https://ror.org/04grmx538)
+[GLOBAL-INTELLIGENCE] Searching 16 intelligence feeds for: "meta-analytic review [specific topic]..."
+[nber] Found 0 publications (filter: https://ror.org/04grmx538)
+[GLOBAL-ORGS] Searching 25 international org feeds for: "meta-analytic review [specific topic]..."
+[CONSOLIDATED-INSTITUTIONS] Got 0 results from 31 institutions
+[GLOBAL-THINKTANKS] Searching 29 think tank feeds for: "meta-analytic review [specific topic]..."
+[SCOUT] Launching 52 parallel requests across 4 query variations
+[CONSOLIDATED-INSTITUTIONS] Got 0 results from 31 institutions
+[SCOUT] Found 0 theses
+[SCOUT] 0/0 theses with exploitable content
+[CONSOLIDATED-INSTITUTIONS] Searching 31 institutions in 3 batch(es) for: "theoretical framework [specific topic]..."
+[GLOBAL-INTELLIGENCE] Searching 16 intelligence feeds for: "theoretical framework [specific topic]..."
+[nber] Found 0 publications (filter: https://ror.org/04grmx538)
+[GLOBAL-ORGS] Searching 25 international org feeds for: "theoretical framework [specific topic]..."
+[CONSOLIDATED-INSTITUTIONS] Got 0 results from 31 institutions
+[GLOBAL-THINKTANKS] Searching 29 think tank feeds for: "theoretical framework [specific topic]..."
+[CONSOLIDATED-INSTITUTIONS] Searching 31 institutions in 3 batch(es) for: "theoretical framework [specific topic]..."
+[GLOBAL-INTELLIGENCE] Searching 16 intelligence feeds for: "theoretical framework [specific topic]..."
+[GLOBAL-ORGS] Searching 25 international org feeds for: "theoretical framework [specific topic]..."
+[GLOBAL-THINKTANKS] Searching 29 think tank feeds for: "theoretical framework [specific topic]..."
+[CONSOLIDATED-INSTITUTIONS] Searching 31 institutions in 3 batch(es) for: "[specific topic]..."
+[nber] Found 0 publications (filter: https://ror.org/04grmx538)
+[CONSOLIDATED-INSTITUTIONS] Got 0 results from 31 institutions
+[GLOBAL-INTELLIGENCE] Searching 16 intelligence feeds for: "[specific topic]..."
+[GLOBAL-ORGS] Searching 25 international org feeds for: "[specific topic]..."
+[GLOBAL-THINKTANKS] Searching 29 think tank feeds for: "[specific topic]..."
+[CONSOLIDATED-INSTITUTIONS] Searching 31 institutions in 3 batch(es) for: "theoretical framework [specific topic] study..."
+[nber] Found 0 publications (filter: https://ror.org/04grmx538)
+[GLOBAL-INTELLIGENCE] Searching 16 intelligence feeds for: "theoretical framework [specific topic] study..."
+[nber] Found 0 publications (filter: https://ror.org/04grmx538)
+[GLOBAL-ORGS] Searching 25 international org feeds for: "theoretical framework [specific topic] study..."
+[CONSOLIDATED-INSTITUTIONS] Got 0 results from 31 institutions
+[GLOBAL-THINKTANKS] Searching 29 think tank feeds for: "theoretical framework [specific topic] study..."
+[SCOUT] Launching 52 parallel requests across 4 query variations
+[CONSOLIDATED-INSTITUTIONS] Got 0 results from 31 institutions
+[HAL] Found 0 documents
+[HAL] 0/0 with rich abstracts (0%)
+[HAL] Found 0 documents
+[HAL] 0/0 with rich abstracts (0%)
+[Crossref] Found 20 works for "meta-analysis [specific topic] 2020-2025"
+[ADAPTIVE RATE] crossref: rate recovered to 1.44 req/s
+[Crossref] Found 20 works for "2023 empirical research [specific topic]"
+[HAL] Found 0 documents
+[HAL] 0/0 with rich abstracts (0%)
+[Crossref] Found 20 works for "recent empirical study 2023 [specific topic]"
+[HAL] Found 0 documents
+[HAL] 0/0 with rich abstracts (0%)
+[Crossref] Found 20 works for "recent empirical evidence [specific topic] 2023"
+[HAL] Found 0 documents
+[HAL] 0/0 with rich abstracts (0%)
+[Crossref] Found 20 works for "2023 empirical analysis [specific topic]"
+[Crossref] Found 20 works for "case study [specific topic] [geography]"
+[ADAPTIVE RATE] crossref: rate recovered to 1.73 req/s
+[Crossref] Found 20 works for "[specific topic] case study [geography]"
+[Crossref] Found 20 works for "[specific topic] [geography] empirical analysis"
+[Crossref] Found 20 works for "[specific topic] [geography] field study"
+[Crossref] Found 20 works for "systematic review [specific topic] 2020-2025"
+[Crossref] Found 20 works for "systematic review [specific topic] 2020-2025"
+[Crossref] Found 20 works for "comprehensive review [specific topic] 2020-2025"
+[HAL] Found 0 documents
+[HAL] 0/0 with rich abstracts (0%)
+[HAL] Found 0 documents
+[HAL] 0/0 with rich abstracts (0%)
+[ADAPTIVE RATE] crossref: rate recovered to 2.07 req/s
+[Crossref] Found 20 works for "meta-analysis [specific topic] pooled analysis"
+[Crossref] Found 20 works for "meta-analysis [specific topic] systematic review e"
+[Crossref] Found 20 works for "systematic review and meta-analysis [specific topi"
+[HAL] Found 0 documents
+[HAL] 0/0 with rich abstracts (0%)
+[Crossref] Found 20 works for "meta-analytic review [specific topic]"
+[HAL] Found 0 documents
+[HAL] 0/0 with rich abstracts (0%)
+[Crossref] Found 20 works for "theoretical framework [specific topic]"
+[Crossref] Found 20 works for "theoretical framework [specific topic]"
+[SemanticScholar] Found 20 papers
+[SemanticScholar] 13/20 with rich abstracts (65%)
+[HAL] Found 0 documents
+[HAL] 0/0 with rich abstracts (0%)
+[HAL] Found 0 documents
+[HAL] 0/0 with rich abstracts (0%)
+[ADAPTIVE RATE] crossref: rate recovered to 2.49 req/s
+[Crossref] Found 20 works for "[specific topic]"
+[HAL] Found 0 documents
+[HAL] 0/0 with rich abstracts (0%)
+[Crossref] Found 20 works for "theoretical framework [specific topic] study"
+[HAL] Found 0 documents
+[HAL] 0/0 with rich abstracts (0%)
+[GLOBAL-ORGS] Got 3 matching items from 25 feeds
+[GLOBAL-INTELLIGENCE] Got 0 matching items from 16 feeds
+[GLOBAL-THINKTANKS] Got 16 matching items from 29 feeds
+[GLOBAL-THINKTANKS] Got 16 matching items from 29 feeds
+[GLOBAL-INTELLIGENCE] Got 2 matching items from 16 feeds
+[GLOBAL-INTELLIGENCE] Got 2 matching items from 16 feeds
+[GLOBAL-ORGS] Got 3 matching items from 25 feeds
+[GLOBAL-INTELLIGENCE] Got 2 matching items from 16 feeds
+[GLOBAL-THINKTANKS] Got 15 matching items from 29 feeds
+[GLOBAL-THINKTANKS] Got 15 matching items from 29 feeds
+[GLOBAL-ORGS] Got 2 matching items from 25 feeds
+[GLOBAL-ORGS] Got 3 matching items from 25 feeds
+[SemanticScholar] Found 20 papers
+[SemanticScholar] 13/20 with rich abstracts (65%)
+[GLOBAL-INTELLIGENCE] Got 0 matching items from 16 feeds
+[GLOBAL-ORGS] Got 3 matching items from 25 feeds
+[GLOBAL-INTELLIGENCE] Got 0 matching items from 16 feeds
+[GLOBAL-THINKTANKS] Got 9 matching items from 29 feeds
+[GLOBAL-THINKTANKS] Got 9 matching items from 29 feeds
+[GLOBAL-ORGS] Got 2 matching items from 25 feeds
+[GLOBAL-INTELLIGENCE] Got 0 matching items from 16 feeds
+[GLOBAL-ORGS] Got 0 matching items from 25 feeds
+[GLOBAL-INTELLIGENCE] Got 0 matching items from 16 feeds
+[GLOBAL-ORGS] Got 2 matching items from 25 feeds
+[GLOBAL-THINKTANKS] Got 11 matching items from 29 feeds
+[GLOBAL-THINKTANKS] Got 0 matching items from 29 feeds
+[GLOBAL-THINKTANKS] Got 13 matching items from 29 feeds
+[GLOBAL-INTELLIGENCE] Got 0 matching items from 16 feeds
+[GLOBAL-INTELLIGENCE] Got 0 matching items from 16 feeds
+[GLOBAL-THINKTANKS] Got 16 matching items from 29 feeds
+[GLOBAL-INTELLIGENCE] Got 0 matching items from 16 feeds
+[GLOBAL-INTELLIGENCE] Got 0 matching items from 16 feeds
+[GLOBAL-INTELLIGENCE] Got 0 matching items from 16 feeds
+[GLOBAL-INTELLIGENCE] Got 2 matching items from 16 feeds
+[GLOBAL-ORGS] Got 3 matching items from 25 feeds
+[GLOBAL-THINKTANKS] Got 13 matching items from 29 feeds
+[GLOBAL-INTELLIGENCE] Got 2 matching items from 16 feeds
+[GLOBAL-THINKTANKS] Got 10 matching items from 29 feeds
+[GLOBAL-ORGS] Got 0 matching items from 25 feeds
+[GLOBAL-ORGS] Got 2 matching items from 25 feeds
+[GLOBAL-THINKTANKS] Got 6 matching items from 29 feeds
+[GLOBAL-ORGS] Got 3 matching items from 25 feeds
+[GLOBAL-THINKTANKS] Got 10 matching items from 29 feeds
+[GLOBAL-ORGS] Got 2 matching items from 25 feeds
+[GLOBAL-INTELLIGENCE] Got 0 matching items from 16 feeds
+[GLOBAL-ORGS] Got 3 matching items from 25 feeds
+[GLOBAL-ORGS] Got 0 matching items from 25 feeds
+[GLOBAL-ORGS] Got 3 matching items from 25 feeds
+[GLOBAL-THINKTANKS] Got 10 matching items from 29 feeds
+[GLOBAL-ORGS] Got 0 matching items from 25 feeds
+[GLOBAL-INTELLIGENCE] Got 2 matching items from 16 feeds
+[GLOBAL-THINKTANKS] Got 10 matching items from 29 feeds
+[GLOBAL-THINKTANKS] Got 6 matching items from 29 feeds
+[GLOBAL-INTELLIGENCE] Got 0 matching items from 16 feeds
+[GLOBAL-THINKTANKS] Got 9 matching items from 29 feeds
+[GLOBAL-ORGS] Got 3 matching items from 25 feeds
+[GLOBAL-ORGS] Got 3 matching items from 25 feeds
+[GLOBAL-THINKTANKS] Got 7 matching items from 29 feeds
+[GLOBAL-ORGS] Got 2 matching items from 25 feeds
+[GLOBAL-THINKTANKS] Got 0 matching items from 29 feeds
+[GLOBAL-INTELLIGENCE] Got 0 matching items from 16 feeds
+[GLOBAL-INTELLIGENCE] Got 0 matching items from 16 feeds
+[SCOUT] Per-provider results: _unknown=0, crossref=80, arxiv=80, bellingcat=6, who=11, amnesty=47, hrw=15
+[SCOUT] Raw results: 239 sources from 4 query variations (13 providers: crossref, arxiv, bellingcat, who, amnesty, hrw, atlantic-council, heritage, gmf, csis, aei, freedom-house, clingendael)
+[SCOUT] After dedup: 105/239
+[SCOUT] After relevance filter: 24/105
+
+[RelevanceScorer] Top 5 sources by relevance:
+1. [25%] Recent Advances, Applications, and Open Challenges in Machine Learning for Healt
+   Topic: 60% | Field: 0% | Semantic: 0% | Temporal: 100% | TitleBonus: 30% | Concepts: 3/5 (x0.60)
+2. [21%] Interest-Rate Smoothing and Optimal Monetary Policy: A Review of Recent Empirica
+   Topic: 40% | Field: 50% | Semantic: 1% | Temporal: 30% | TitleBonus: 30% | Concepts: 3/5 (x0.60)
+3. [20%] West Bank: Israel-Backed Settler Violence Drives Displacement
+   Topic: 32% | Field: 0% | Semantic: 0% | Temporal: 100% | TitleBonus: 0% | Concepts: 4/5 (x0.80)
+4. [19%] Empirical evidence on the impact of recent Korean tax reforms
+   Topic: 32% | Field: 50% | Semantic: 0% | Temporal: 30% | TitleBonus: 30% | Concepts: 3/5 (x0.60)
+5. [18%] Reproduction Report for SV-COMP 2023
+   Topic: 36% | Field: 0% | Semantic: 0% | Temporal: 100% | TitleBonus: 30% | Concepts: 3/5 (x0.60)
+
+⚠️  24 sources below 40% relevance (filtered out)
+[Reranker] Cohere reranked 24 sources → 1 results (min score: 0.1, attempt 1)
+[Reranker] Cohere returned only 1 results from 24 sources — falling back to local scoring for better coverage
+[Reranker] Local scoring: 24 sources → 24 results (min score: 0.1)
+[SCOUT] After Cohere rerank: 24 sources
+[SCOUT K10] CARE: overall=62%, individual=15%, combinedCoverage=100%, multiHop=37%, diversity=80%
+[SCOUT] Enriched 12 sources with Unpaywall (batched)
+[SCOUT] Done in 70526ms: 239 raw â†’ 105 dedup â†’ 24 ranked â†’ 24 saved
+[SCOUT] Per-provider results: _unknown=0, crossref=80, arxiv=80, who=7, hrw=29
+[SCOUT] Raw results: 196 sources from 4 query variations (7 providers: crossref, arxiv, who, hrw, heritage, freedom-house, csis)
+[SCOUT] After dedup: 112/196
+[SCOUT] Relevance filter too strict (0 results), keeping all 112
+[SCOUT K10] CARE: overall=55%, individual=1%, combinedCoverage=100%, multiHop=0%, diversity=100%
+[SCOUT] Enriched 52 sources with Unpaywall (batched)
+[SCOUT] Done in 141163ms: 196 raw â†’ 112 dedup â†’ 112 ranked â†’ 112 saved
+[SCOUT] Per-provider results: _unknown=0, crossref=80, semanticscholar=26, arxiv=80, who=8, hrw=36, bellingcat=4, heritage=10
+[SCOUT] Raw results: 244 sources from 4 query variations (13 providers: crossref, semanticscholar, arxiv, who, hrw, foreign-affairs, atlantic-council, heritage, aei, freedom-house, bellingcat, csis, clingendael)
+[SCOUT] After dedup: 122/244
+[SCOUT] After relevance filter: 14/122
+
+[RelevanceScorer] Top 5 sources by relevance:
+1. [17%] Do development zones increase urban land use intensity? Empirical analysis from 
+   Topic: 40% | Field: 50% | Semantic: 0% | Temporal: 90% | TitleBonus: 30% | Concepts: 2/5 (x0.40)
+2. [15%] Clusters and the New Geography of InventionÂ â An Empirical Analysis of Pharma
+   Topic: 40% | Field: 50% | Semantic: 0% | Temporal: 50% | TitleBonus: 30% | Concepts: 2/5 (x0.40)
+3. [15%] The Contribution of New Businesses to Regional Employment-An Empirical Analysis
+   Topic: 40% | Field: 50% | Semantic: 0% | Temporal: 50% | TitleBonus: 30% | Concepts: 2/5 (x0.40)
+4. [15%] The impact of the current economic crisis on the geography of air traffic volume
+   Topic: 40% | Field: 50% | Semantic: 0% | Temporal: 50% | TitleBonus: 30% | Concepts: 2/5 (x0.40)
+5. [14%] SPATIAL CONSTRAINTS-ORIENTED MODELING: EMPIRICAL ANALYSIS
+   Topic: 40% | Field: 50% | Semantic: 0% | Temporal: 30% | TitleBonus: 30% | Concepts: 2/5 (x0.40)
+
+⚠️  14 sources below 40% relevance (filtered out)
+[Reranker] Cohere reranked 14 sources → 0 results (min score: 0.1, attempt 1)
+[SCOUT] After Cohere rerank: 0 sources
+[SCOUT] Done in 204628ms: 244 raw â†’ 122 dedup â†’ 0 ranked â†’ 0 saved
+[SCOUT] Per-provider results: _unknown=0, crossref=80, arxiv=80, who=7, amnesty=16, bellingcat=2, heritage=10, hrw=16
+[SCOUT] Raw results: 211 sources from 4 query variations (13 providers: crossref, arxiv, who, amnesty, hrw, atlantic-council, crisis-group, heritage, gmf, csis, freedom-house, bellingcat, clingendael)
+[SCOUT] After dedup: 138/211
+[SCOUT] After relevance filter: 42/138
+
+[RelevanceScorer] Top 5 sources by relevance:
+1. [29%] The effect of short-term exposure to the natural environment on depressive mood:
+   Topic: 56% | Field: 0% | Semantic: 1% | Temporal: 70% | TitleBonus: 30% | Concepts: 4/5 (x0.80)
+2. [25%] The Sepsis Trial Landscape: A Domain-Specific Systematic Review and Meta-analysi
+   Topic: 40% | Field: 50% | Semantic: 0% | Temporal: 90% | TitleBonus: 30% | Concepts: 3/5 (x0.60)
+3. [21%] Meta-analysis models relaxing the random effects normality assumption: methodolo
+   Topic: 48% | Field: 0% | Semantic: 1% | Temporal: 90% | TitleBonus: 30% | Concepts: 3/5 (x0.60)
+4. [21%] Artificial intelligence in digital pathology: a systematic review and meta-analy
+   Topic: 48% | Field: 0% | Semantic: 0% | Temporal: 90% | TitleBonus: 30% | Concepts: 3/5 (x0.60)
+5. [18%] Generative AI and Creativity: A Systematic Literature Review and Meta-Analysis
+   Topic: 36% | Field: 0% | Semantic: 0% | Temporal: 90% | TitleBonus: 30% | Concepts: 3/5 (x0.60)
+
+⚠️  42 sources below 40% relevance (filtered out)
+[Reranker] Cohere reranked 42 sources → 9 results (min score: 0.1, attempt 1)
+[Reranker] Cohere returned only 9 results from 42 sources — falling back to local scoring for better coverage
+[Reranker] Local scoring: 42 sources → 42 results (min score: 0.1)
+[SCOUT] After Cohere rerank: 42 sources
+[SCOUT K10] CARE: overall=58%, individual=16%, combinedCoverage=100%, multiHop=43%, diversity=53%
+[SCOUT] Enriched 28 sources with Unpaywall (batched)
+[SCOUT] Done in 272659ms: 211 raw â†’ 138 dedup â†’ 42 ranked â†’ 42 saved
+[SCOUT] Per-provider results: _unknown=0, crossref=80, arxiv=80, who=9, hrw=22
+[SCOUT] Filtered 1 low-quality sources (SEO farms, spam)
+[SCOUT] Raw results: 190 sources from 4 query variations (7 providers: crossref, arxiv, who, hrw, atlantic-council, heritage, freedom-house)
+[SCOUT] After dedup: 85/190
+[SCOUT] After relevance filter: 16/85
+
+[RelevanceScorer] Top 5 sources by relevance:
+1. [23%] Generative AI and Strategic Management Research: A Topic-Modelling Based Review 
+   Topic: 50% | Field: 50% | Semantic: 1% | Temporal: 90% | TitleBonus: 30% | Concepts: 2/4 (x0.50)
+2. [23%] Agent-Specific Privacy Layer Architecture for Privacy-Preserving Data Transfer i
+   Topic: 50% | Field: 50% | Semantic: 1% | Temporal: 90% | TitleBonus: 30% | Concepts: 2/4 (x0.50)
+3. [23%] LPV&amp;nbsp;Theoretical Framework&amp;nbsp;Land Production Value (LPV): A Domai
+   Topic: 50% | Field: 50% | Semantic: 1% | Temporal: 90% | TitleBonus: 30% | Concepts: 2/4 (x0.50)
+4. [23%] A 4D Theoretical Framework for Measuring Topic-Specific Influence on Twitter: De
+   Topic: 50% | Field: 50% | Semantic: 0% | Temporal: 90% | TitleBonus: 30% | Concepts: 2/4 (x0.50)
+5. [23%] A 4D Theoretical Framework for Measuring Topic-Specific Influence on Twitter: De
+   Topic: 50% | Field: 50% | Semantic: 0% | Temporal: 90% | TitleBonus: 30% | Concepts: 2/4 (x0.50)
+
+⚠️  16 sources below 40% relevance (filtered out)
+[Reranker] Cohere reranked 16 sources → 12 results (min score: 0.1, attempt 1)
+[SCOUT] After Cohere rerank: 12 sources
+[SCOUT K10] CARE: overall=33%, individual=21%, combinedCoverage=50%, multiHop=0%, diversity=53%
+[SCOUT K10] ⚠️ Missing concepts: [specific, topic] — IntelligentScout should gap-fill these
+[SCOUT] Enriched 9 sources with Unpaywall (batched)
+[SCOUT] Done in 339565ms: 190 raw â†’ 85 dedup â†’ 12 ranked â†’ 12 saved
+[Pipeline] ENRICHMENT: +182 new sources from targeted queries — re-ranking
+[RANK] Using A+ level enhanced ranking with query: "What"
+[ENHANCED RANK] Starting WAR MACHINE ranking with optimized thresholds: { minQuality: 0, requireAbstract: true, maxPerProvider: 8, limit: 100 }
+[ENHANCED RANK] Abstract filter: 357 → 235 (0 news exempted, min 150 chars)
+[ENHANCED RANK] Found 235 sources before scoring (scoped: true)
+[ENHANCED RANK] T8: 14 load-bearing sources (full-text), 23 abstract, 9 skip
+[ENHANCED RANK] Final selection: 46 sources
+[ENHANCED RANK] Quality stats: {
+  avgQuality: 63,
+  academicSources: 30,
+  quantitativeSources: 5,
+  peerReviewedSources: 46,
+  providers: 'semanticscholar, crossref, hal, freedom-house, heritage, hrw, internet-archive, doaj, nih, who, mit-dspace, csis'
+}
+✅ deepseek/deepseek-v4-flash [topic_classification] | 2558ms | 1858+267 tok (1792 cache-hit) | $0.0003
+[Pipeline] FOUNDATIONAL INJECTION: prepared 2 seminal works from cognitive-science KB (will inject after rank)
+[Pipeline] FOUNDATIONAL INJECTION: +2 seminal works injected into topSources (now 51 total)
+[Pipeline] DOMAIN: cognitive-science (confidence: 0.7, cross=false)
+[BLACKBOARD] Step "meta-analysis" marked for skip
+[Pipeline] COMPLEXITY GATE: meta-analysis skipped (domain "cognitive-science" not quantitative-study oriented)
+[Pipeline] CASTING: 1 lenses — Comprehension processes
+[Pipeline] LAS GATE: pool=51, providers=9, debate=true, meta=false, DA=true, foresight_eligible=true
+[Pipeline] READER V3: deep extraction from 51 sources (domain: cognitive-science)
+[AGENT MEMORY] Rejected lesson (relevance 0.09 < 0.25): "Cross-check the relevance of each source to the research question, and if a sour..."
+[AGENT MEMORY] Rejected lesson (relevance 0.10 < 0.25): "Verify that the extracted claims are complete and not truncated, as incomplete q..."
+[AGENT MEMORY] Rejected lesson (relevance 0.10 < 0.25): "When analyzing geopolitical topics, prioritize sources that explicitly address g..."
+[AGENT MEMORY] Rejected lesson (relevance 0.08 < 0.25): "Ensure that cited sources directly support the specific claims made, avoiding mi..."
+[AGENT MEMORY] Rejected lesson (relevance 0.14 < 0.25): "For intersection questions, structure the analysis around interaction mechanisms..."
+[AGENT MEMORY] Rejected lesson (relevance 0.10 < 0.25): "Prefer empirical and policy-domain sources (CBAM legislation texts, EU implement..."
+[AGENT MEMORY] Rejected lesson (relevance 0.09 < 0.25): "Close citation gaps by pairing every analytical claim with a source: the failure..."
+[AGENT MEMORY] Rejected lesson (relevance 0.13 < 0.25): "Enforce topical relevance gating on sources before citing: the excerpt cites a p..."
+[AGENT MEMORY] Thematic filter: 0/8 lessons kept (topic: "What...")
+[Reader V3] Domain-aware mode: cognitive-science
+[Reader V3] Processing 51 sources (PDF: true, concurrency: 8)
+[Reader V3] Batch 1/7 (8 sources)
+[QUANT] Analyzing primary data opportunities for: "What"
+[QUANT] No relevant primary-data fetchers for this query
+[Reader V3] PDF extracted: 87569 chars, 18 pages
+[Reader V3] PDF extracted: 94974 chars, 17 pages
+✅ deepseek/deepseek-v4-flash [reader_v3] | 7017ms | 1303+926 tok | $0.0004
+✅ deepseek/deepseek-v4-flash [reader_v3] | 8301ms | 1574+1257 tok | $0.0006
+✅ deepseek/deepseek-v4-flash [reader_v3] | 8655ms | 1475+1295 tok | $0.0006
+✅ deepseek/deepseek-v4-flash [reader_v3] | 8864ms | 1559+1379 tok | $0.0006
+✅ deepseek/deepseek-v4-flash [reader_v3] | 10711ms | 1389+1684 tok | $0.0007
+✅ deepseek/deepseek-v4-flash [reader_v3] | 8686ms | 1464+1235 tok | $0.0006
+✅ deepseek/deepseek-v4-flash [reader_v3] | 11143ms | 4133+1587 tok | $0.0010
+✅ deepseek/deepseek-v4-flash [reader_v3] | 9701ms | 3639+1516 tok | $0.0009
+[Reader V3] Batch 2/7 (8 sources)
+[Reader V3] PDF extracted: 24006 chars, 11 pages
+[Reader V3] PDF extracted: 52082 chars, 11 pages
+[Reader V3] PDF extracted: 428794 chars, 164 pages
+[Reader V3] PDF extracted: 310726 chars, 158 pages
+✅ deepseek/deepseek-v4-flash [reader_v3] | 8205ms | 1357+1187 tok | $0.0005
+✅ deepseek/deepseek-v4-flash [reader_v3] | 9394ms | 3282+1249 tok | $0.0008
+✅ deepseek/deepseek-v4-flash [reader_v3] | 8011ms | 2736+1150 tok | $0.0007
+✅ deepseek/deepseek-v4-flash [reader_v3] | 8868ms | 1921+1274 tok | $0.0006
+✅ deepseek/deepseek-v4-flash [reader_v3] | 7656ms | 2746+1075 tok | $0.0007
+✅ deepseek/deepseek-v4-flash [reader_v3] | 9153ms | 1361+1176 tok | $0.0005
+✅ deepseek/deepseek-v4-flash [reader_v3] | 9030ms | 2735+1229 tok | $0.0007
+✅ deepseek/deepseek-v4-flash [reader_v3] | 14083ms | 3068+2223 tok | $0.0011
+[Reader V3] Batch 3/7 (8 sources)
+[Reader V3] PDF extracted: 58454 chars, 24 pages
+[Reader V3] PDF extracted: 67399 chars, 38 pages
+[Reader V3] PDF extracted: 62591 chars, 17 pages
+✅ deepseek/deepseek-v4-flash [reader_v3] | 5611ms | 1428+886 tok | $0.0004
+✅ deepseek/deepseek-v4-flash [reader_v3] | 7798ms | 1255+1092 tok | $0.0005
+✅ deepseek/deepseek-v4-flash [reader_v3] | 8665ms | 1525+1239 tok | $0.0006
+✅ deepseek/deepseek-v4-flash [reader_v3] | 7748ms | 1422+1056 tok | $0.0005
+✅ deepseek/deepseek-v4-flash [reader_v3] | 9114ms | 2927+1290 tok | $0.0008
+✅ deepseek/deepseek-v4-flash [reader_v3] | 11139ms | 2031+1546 tok | $0.0007
+✅ deepseek/deepseek-v4-flash [reader_v3] | 9179ms | 2443+1507 tok | $0.0008
+✅ deepseek/deepseek-v4-flash [reader_v3] | 12170ms | 4080+1919 tok | $0.0011
+[Reader V3] Batch 4/7 (8 sources)
+[Reader V3] PDF extracted: 57136 chars, 11 pages
+[Reader V3] PDF extracted: 59740 chars, 10 pages
+[Reader V3] PDF extracted: 28390 chars, 10 pages
+[Reader V3] PDF extracted: 36126 chars, 6 pages
+[Reader V3] PDF extracted: 2073682 chars, 631 pages
+✅ deepseek/deepseek-v4-flash [reader_v3] | 9889ms | 1368+1006 tok | $0.0005
+✅ deepseek/deepseek-v4-flash [reader_v3] | 10098ms | 2220+1296 tok | $0.0007
+✅ deepseek/deepseek-v4-flash [reader_v3] | 9072ms | 1465+1299 tok | $0.0006
+✅ deepseek/deepseek-v4-flash [reader_v3] | 11070ms | 4052+1485 tok | $0.0010
+✅ deepseek/deepseek-v4-flash [reader_v3] | 11387ms | 2991+1961 tok | $0.0010
+✅ deepseek/deepseek-v4-flash [reader_v3] | 11347ms | 3302+1607 tok | $0.0009
+✅ deepseek/deepseek-v4-flash [reader_v3] | 12399ms | 4193+2150 tok | $0.0012
+✅ deepseek/deepseek-v4-flash [reader_v3] | 9926ms | 3968+1187 tok | $0.0009
+[Reader V3] Batch 5/7 (8 sources)
+[Reader V3] PDF extracted: 16465 chars, 8 pages
+[Reader V3] PDF extracted: 25398 chars, 10 pages
+[Reader V3] PDF extracted: 37352 chars, 13 pages
+✅ deepseek/deepseek-v4-flash [reader_v3] | 6297ms | 1314+952 tok | $0.0005
+✅ deepseek/deepseek-v4-flash [reader_v3] | 6484ms | 2333+909 tok | $0.0006
+✅ deepseek/deepseek-v4-flash [reader_v3] | 7659ms | 1297+1110 tok | $0.0005
+✅ deepseek/deepseek-v4-flash [reader_v3] | 7694ms | 1460+1014 tok | $0.0005
+✅ deepseek/deepseek-v4-flash [reader_v3] | 8011ms | 2039+1095 tok | $0.0006
+✅ deepseek/deepseek-v4-flash [reader_v3] | 9557ms | 2537+1256 tok | $0.0007
+✅ deepseek/deepseek-v4-flash [reader_v3] | 10800ms | 1293+1429 tok | $0.0006
+✅ deepseek/deepseek-v4-flash [reader_v3] | 12116ms | 3436+1790 tok | $0.0010
+[Reader V3] Batch 6/7 (8 sources)
+✅ deepseek/deepseek-v4-flash [reader_v3] | 4374ms | 1267+602 tok | $0.0003
+✅ deepseek/deepseek-v4-flash [reader_v3] | 7098ms | 1351+964 tok | $0.0005
+✅ deepseek/deepseek-v4-flash [reader_v3] | 7355ms | 1567+1030 tok | $0.0005
+✅ deepseek/deepseek-v4-flash [reader_v3] | 7368ms | 1473+970 tok | $0.0005
+✅ deepseek/deepseek-v4-flash [reader_v3] | 7754ms | 1324+1223 tok | $0.0005
+✅ deepseek/deepseek-v4-flash [reader_v3] | 8096ms | 1484+1159 tok | $0.0005
+✅ deepseek/deepseek-v4-flash [reader_v3] | 8341ms | 1614+1082 tok | $0.0005
+✅ deepseek/deepseek-v4-flash [reader_v3] | 9011ms | 1602+1132 tok | $0.0005
+[Reader V3] Batch 7/7 (3 sources)
+✅ deepseek/deepseek-v4-flash [reader_v3] | 4377ms | 1197+604 tok | $0.0003
+[Reader V3] ✅ Complete: 17 full-text, 32 abstract, 2 rule-based | 18 with quantitative data
+✅ deepseek/deepseek-v4-flash [reader_v3] | 19251ms | 2314+2680 tok | $0.0011
+[ContextCompress] 7587 → 809 words (89% reduction)
+[Pipeline] CONTEXT COMPRESSION: 30 readings → 809 words
+[ORCHESTRATOR] Decision: PROCEED — 51/49 sources have abstracts (104%). Sufficient for analysis.
+✅ deepseek/deepseek-v4-flash [reader_v3] | 2085ms | 198+162 tok | $0.0001
+[Pipeline] DPP SYNTHESIS: 20/565 points (diversity=100%)
+✅ deepseek/deepseek-v4-flash [enrichment_reasoner] | 2033ms | 6927+98 tok | $0.0010
+[Pipeline] ADAPTIVE RAG: insufficient (0%): Low retrieval confidence (0%)
+[Pipeline] ANALYST: V3 multi-pass (depth: brief)
+[AGENT MEMORY] Rejected lesson (relevance 0.10 < 0.25): "Before finalizing, conduct a systematic citation audit: verify that every key cl..."
+[AGENT MEMORY] Rejected lesson (relevance 0.15 < 0.25): "In geopolitical analyses, attribute statements about national strategies or inte..."
+[AGENT MEMORY] Rejected lesson (relevance 0.08 < 0.25): "When analyzing supply chain dynamics, explicitly cite the sources for any quanti..."
+[AGENT MEMORY] Rejected lesson (relevance 0.09 < 0.25): "Ensure all factual claims, especially those about specific policies, market shar..."
+[AGENT MEMORY] Rejected lesson (relevance 0.15 < 0.25): "Structure the interaction analysis around the two regulatory tracks explicitly (..."
+[AGENT MEMORY] Rejected lesson (relevance 0.10 < 0.25): "Close citation gaps at causal junctions: wherever the analysis asserts that auto..."
+[AGENT MEMORY] Rejected lesson (relevance 0.12 < 0.25): "Anchor every mechanism claim to a specific primary source: cite the EU CBAM regu..."
+[AGENT MEMORY] Rejected lesson (relevance 0.11 < 0.25): "Convert hedged qualitative claims into quantified estimates with explicit confid..."
+[AGENT MEMORY] Thematic filter: 0/8 lessons kept (topic: "What...")
+[Pipeline] CONFLICT-AWARE: no contradictions detected (consensus 100%)
+[Pipeline] INNOVATOR AUTHORS: 2 authors | 0 emerging | 0 cross-domain | 0 heterodox | 0 dissident
+[Analyst V3] Institutional memory injected (12325 chars)
+[Analyst V3] Starting 3-pass prospective analysis: 51 sources, avg quality 61/100
+[Analyst V3] Domain-aware mode: cognitive-science
+[Analyst V3] PASS 1/3: Friction Mapping (51 sources, depth: brief)...
+✅ deepseek/deepseek-v4-flash [analyst_brief] | 57921ms | 41880+7260 tok (1408 cache-hit) | $0.0079
+[Analyst V3] PASS 1 complete: 20 mechanisms, 19 collisions, 25 data points
+[Analyst V3] PASS 2/3: Stress Test...
+✅ deepseek/deepseek-v4-flash [analyst_brief] | 32340ms | 4964+4871 tok (1024 cache-hit) | $0.0021
+[Analyst V3] PASS 2 complete: 20 assessments, 10 surviving
+[Analyst V3] PASS 3/3: Prospective Synthesis (depth: brief)...
+✅ deepseek/deepseek-v4-flash [analyst_brief] | 29290ms | 51556+3444 tok (3200 cache-hit) | $0.0082
+[Analyst V3] PASS 3 complete: prospective synthesis generated
+[Analyst V3] CITATION COVERAGE: 13/51 distinct sources cited
+[Analyst V3] Trust propagation: overall=0.77, chain=3/7 links survived
+[Analyst V3] Complete in 119573ms | 3 passes | 113975 tokens | $0.0181 | cascade violations: 0
+[Analyst V3] SELF-REFINE iteration 1/3: citations=13/18, missing=0
+✅ deepseek/deepseek-v4-flash [topic_classification] | 2880ms | 745+432 tok | $0.0002
+[Analyst V3] SELF-REFINE iteration 1: no improvement in metrics — stopping
+[Pipeline] DIAGNOSTIC: chain=3, findings=5, verdict=1918ch, citDensity=2.6/1K
+[ORCHESTRATOR] Decision: PROCEED — Analysis quality acceptable: confidence=N/A, citations=N/A.
+✅ deepseek/deepseek-v4-flash [reader_v3] | 3399ms | 579+301 tok | $0.0002
+[Pipeline] GAP ANALYSIS: all sections have adequate citation coverage
+[Pipeline] GUARD: validate citations
+[Critic] Stage 1: Decomposing analysis into atomic claims...
+✅ deepseek/deepseek-v4-flash [reader_v3] | 7860ms | 1417+1495 tok | $0.0006
+[Critic] Decomposed into 24 atomic claims
+[Critic] Stage 2: Grounding claims against sources...
+✅ deepseek/deepseek-v4-flash [reader_v3] | 4444ms | 983+716 tok (256 cache-hit) | $0.0003
+✅ deepseek/deepseek-v4-flash [reader_v3] | 3594ms | 795+531 tok (256 cache-hit) | $0.0003
+✅ deepseek/deepseek-v4-flash [reader_v3] | 2572ms | 962+386 tok (256 cache-hit) | $0.0002
+✅ deepseek/deepseek-v4-flash [reader_v3] | 2322ms | 1057+341 tok (256 cache-hit) | $0.0002
+✅ deepseek/deepseek-v4-flash [reader_v3] | 1924ms | 885+255 tok (256 cache-hit) | $0.0002
+✅ deepseek/deepseek-v4-flash [reader_v3] | 1590ms | 641+106 tok (256 cache-hit) | $0.0001
+[Critic] Grounding: 13 supported, 4 partial, 3 unsupported, 0 contradicted, 4 unverifiable
+[Critic] Stage 3: Detecting contradictions...
+✅ deepseek/deepseek-v4-flash [reader_v3] | 764ms | 1002+9 tok | $0.0001
+[Critic] Found 0 contradictions (0 severe)
+[Critic] Stage 4: Detecting bias...
+✅ deepseek/deepseek-v4-flash [reader_v3] | 4364ms | 2073+674 tok (256 cache-hit) | $0.0005
+[Critic] Found 5 bias flags (1 high severity)
+[Critic] Stage 5: Validating citations...
+[Critic] Found 0 citation issues
+✅ deepseek/deepseek-v4-flash [reader_v3] | 2762ms | 706+265 tok | $0.0002
+[Critic] Verdict: repair (score=55, groundedness=63%, 32211ms, $0.0028)
+[Pipeline] CRITIC: verdict=repair, score=55, groundedness=63%, 0 contradictions, 5 biases
+[Pipeline] CRITIC: repair instructions generated (3 claims to fix)
+✅ deepseek/deepseek-v4-flash [reader_v3] | 2978ms | 579+278 tok (512 cache-hit) | $0.0002
+[Pipeline] REFLECTION (analyst): quality=medium, score=72, shouldRetry=true
+✅ deepseek/deepseek-v4-flash [reader_v3] | 1227ms | 508+79 tok | $0.0001
+✅ glm/glm-5.2 [reader_v3] | 1645ms | 554+82 tok | $0.0011
+✅ openai/gpt-4o [reader_v3] | 2100ms | 496+93 tok | $0.0039
+[Pipeline] CROSS-MODEL CONSENSUS: controversial claim verified | verdict: uncertain | agreement: 100%
+✅ glm/glm-5.2 [reader_v3] | 67863ms | 1709+4339 tok | $0.0215
+✅ deepseek/deepseek-v4-flash [reader_v3] | 9458ms | 1867+2016 tok | $0.0008
+[KG] Built graph: 53 entities, 35 relations, 8 clusters, 11 bridges
+[Pipeline] KNOWLEDGE GRAPH: 53 entities, 35 relations, 8 clusters
+[Pipeline] EDITORIAL V2: foresight → debate → devil's advocate → editor → quality gates
+[Pipeline] FORESIGHT: skipped (only 0 scenarios in analysis)
+[Pipeline] DEBATE: running (meta-analysis suppressed)
+[DEBATE] Starting adversarial deliberation for: "What..."
+[DEBATE] Pass 1: Thesis identification + steel-man construction
+✅ deepseek/deepseek-v4-flash [elenchus] | 9348ms | 17377+1108 tok | $0.0027
+[DEBATE] Pass 2: Synthesis and nuance extraction
+✅ deepseek/deepseek-v4-flash [editorial_arbiter] | 7612ms | 581+514 tok | $0.0002
+[DEBATE] ✅ Complete: P1 strength=75, P2 strength=45, confidence=70%, cost=$0.0030
+[Pipeline] DEBATE: confidence=70%, steel-man=70
+✅ deepseek/deepseek-v4-flash [enrichment_reasoner] | 2565ms | 611+193 tok | $0.0001
+✅ deepseek/deepseek-v4-flash [editorial_arbiter] | 7583ms | 2185+858 tok (384 cache-hit) | $0.0005
+[Pipeline] ARBITER: confidence=70, scenarios=3
+[Pipeline] DEVIL'S ADVOCATE: skipped (brief)
+[Pipeline] EDITOR: render professional HTML
+[Pipeline] EDITOR: position-first template (53KB)
+[CITATION REPAIR] Backfilled: 0, Injected: 154, Sanitized: 0 (total: 154)
+[Pipeline] CITATION REPAIR: +0 backfilled, +154 injected, 0 numbers sanitized
+[CLAIM GROUNDING NLI] Extracted 321 sentences from HTML
+✅ glm/glm-5.2 [reader_v3] | 17256ms | 1898+11 tok | $0.0027
+[CLAIM GROUNDING NLI] Decomposed into 193 atomic claims (141 cited, 52 uncited) [deterministic]
+[CLAIM GROUNDING NLI] Verdicts: 3 supported, 88 partial, 4 unsupported, 52 uncited, 46 contradicted → groundedness 65% (citation rate: 73%)
+[CLAIM GROUNDING NLI] Flagged 29 unsupported/contradicted claims
+[Pipeline] CLAIM GROUNDING: 3 supported, 88 partial, 4 unsupported, 52 uncited → groundedness 65%, 29 flagged
+[Pipeline] CITATION FILTER: +3 backtracked, -0 removed, coverage 97%→98%
+[Pipeline] SYMBOLIC VERIFY: 1 checks passed, 0 failed
+[Pipeline] CITATION VERIFIER: NLI semantic check
+[NLI Verifier] Starting verification for 51 sources...
+[NLI Verifier] Found 192 citation instances
+[NLI Verifier] 80 unique claim-citation pairs to verify
+[NLI Verifier] ✅ Complete: 12 supported, 10 partial, 0 unsupported, 23 misattributed | Integrity: 42%
+[Pipeline] CITATION VERIFIER: NLI integrity 42% (23 flagged)
+[Pipeline] ACTIVE REPAIR: integrity 42% < 85% — launching repair loop (CiteGuard + FRANQ + NLI)
+[ActiveRepair] Pre-computing source embeddings for 51 sources...
+[ActiveRepair] Starting repair loop: integrity=42% → target=85%
+[ActiveRepair] Iteration 1/3: integrity=42%
+[ActiveRepair] Processing 23 NLI-flagged claims directly
+[NLI Verifier] Starting verification for 51 sources...
+[NLI Verifier] Found 192 citation instances
+[NLI Verifier] 80 unique claim-citation pairs to verify
+[NLI Verifier] ✅ Complete: 23 supported, 5 partial, 1 unsupported, 24 misattributed | Integrity: 50%
+[ActiveRepair] Re-verification: 42% → 50%
+[ActiveRepair] Iteration 2/3: integrity=50%
+[NLI Verifier] Starting verification for 51 sources...
+[NLI Verifier] Found 192 citation instances
+[NLI Verifier] 80 unique claim-citation pairs to verify
+[NLI Verifier] ✅ Complete: 23 supported, 5 partial, 1 unsupported, 24 misattributed | Integrity: 50%
+[ActiveRepair] Re-verification: 50% → 50%
+[ActiveRepair] Iteration 3/3: integrity=50%
+[NLI Verifier] Starting verification for 51 sources...
+[NLI Verifier] Found 192 citation instances
+[NLI Verifier] 80 unique claim-citation pairs to verify
+[NLI Verifier] ✅ Complete: 23 supported, 5 partial, 1 unsupported, 24 misattributed | Integrity: 50%
+[ActiveRepair] Re-verification: 50% → 50%
+[ActiveRepair] Complete: 42% → 50% (3 iterations, 3 replaced, 0 removed, 0 added, 0 hedged)
+[Pipeline] ACTIVE REPAIR: 42% → 50% (3 iterations, 3 citations replaced, 0 hallucinations removed, 0 citations added)
+[Pipeline] CITATION VERIFIER: LLM deep-check on 23 flagged claims (post-repair integrity still 50%)
+[CitationVerifier] Starting verification for 51 sources...
+[CitationVerifier] Found 192 citation instances
+[CitationVerifier] Capped 171 → 30 pairs (round-robin across 51 sources)
+[CitationVerifier] 30 unique claim-citation pairs to verify
+✅ deepseek/deepseek-v4-flash [citation_verification] | 3851ms | 868+174 tok | $0.0002
+✅ deepseek/deepseek-v4-flash [citation_verification] | 4024ms | 884+201 tok | $0.0002
+✅ deepseek/deepseek-v4-flash [citation_verification] | 4284ms | 915+183 tok | $0.0002
+✅ deepseek/deepseek-v4-flash [citation_verification] | 4410ms | 785+161 tok | $0.0002
+✅ deepseek/deepseek-v4-flash [citation_verification] | 4438ms | 798+226 tok | $0.0002
+✅ deepseek/deepseek-v4-flash [citation_verification] | 4460ms | 872+270 tok | $0.0002
+✅ deepseek/deepseek-v4-flash [citation_verification] | 4790ms | 722+215 tok | $0.0002
+✅ deepseek/deepseek-v4-flash [citation_verification] | 5034ms | 852+317 tok | $0.0002
+✅ openai/gpt-4o-mini [citation_verification] | 1978ms | 829+126 tok | $0.0002
+✅ openai/gpt-4o-mini [citation_verification] | 2115ms | 736+128 tok | $0.0002
+✅ openai/gpt-4o-mini [citation_verification] | 2169ms | 762+144 tok | $0.0002
+✅ openai/gpt-4o-mini [citation_verification] | 2324ms | 660+114 tok | $0.0002
+✅ openai/gpt-4o-mini [citation_verification] | 2335ms | 2061+128 tok | $0.0004
+✅ openai/gpt-4o-mini [citation_verification] | 2602ms | 769+224 tok | $0.0002
+✅ openai/gpt-4o-mini [citation_verification] | 2738ms | 887+139 tok | $0.0002
+✅ openai/gpt-4o-mini [citation_verification] | 2778ms | 731+194 tok | $0.0002
+✅ openai/gpt-4o-mini [citation_verification] | 1317ms | 866+90 tok | $0.0002
+✅ openai/gpt-4o-mini [citation_verification] | 1352ms | 732+111 tok | $0.0002
+✅ openai/gpt-4o-mini [citation_verification] | 1747ms | 746+171 tok | $0.0002
+✅ openai/gpt-4o-mini [citation_verification] | 1999ms | 724+183 tok | $0.0002
+✅ openai/gpt-4o-mini [citation_verification] | 2398ms | 686+156 tok | $0.0002
+✅ openai/gpt-4o-mini [citation_verification] | 2511ms | 783+203 tok | $0.0002
+✅ openai/gpt-4o-mini [citation_verification] | 2720ms | 745+204 tok | $0.0002
+✅ openai/gpt-4o-mini [citation_verification] | 2960ms | 748+107 tok | $0.0002
+✅ openai/gpt-4o-mini [citation_verification] | 1697ms | 1028+139 tok | $0.0002
+✅ openai/gpt-4o-mini [citation_verification] | 1895ms | 911+138 tok | $0.0002
+✅ openai/gpt-4o-mini [citation_verification] | 1915ms | 870+175 tok | $0.0002
+✅ openai/gpt-4o-mini [citation_verification] | 2048ms | 934+161 tok | $0.0002
+✅ openai/gpt-4o-mini [citation_verification] | 2264ms | 811+129 tok | $0.0002
+✅ openai/gpt-4o-mini [citation_verification] | 2387ms | 975+187 tok | $0.0003
+[CitationVerifier K9] Running FRANQ faithfulness assessment...
+[CitationVerifier K9] FRANQ: faithfulness=55%, factuality=69%, hallucination risks=0
+[CitationVerifier] ✅ Complete: 9 supported, 8 partial, 13 unsupported, 0 misattributed | Integrity: 46%
+[FACT-CHECKER] Verifying numerical claims in HTML (57KB, 51 sources)
+[FACT-CHECKER] Found 4 numerical claims to verify
+[FACT-CHECKER] Deterministic pre-check: 4/4 verified, 0 need LLM
+[FactChecker] UFO: 0 supported, 0 refuted, 4 uncertain
+[FACT-CHECKER] Complete: 4 claims, 4 verified, 0 major, 0 fatal → integrity 100%
+[Pipeline] FACT-CHECKER: 4 claims, 4 verified, 0 major, 0 fatal → integrity 100%
+[Pipeline] ORIGINALITY: OK (score 96%, avg overlap 1.8%)
+[ADAPTIVE RATE] crossref: rate recovered to 2.99 req/s
+[Pipeline] SOURCE CHECK: 18 verified, 0 retracted, 2 not found, 0 claim absent → integrity 90%
+[Pipeline] FACT-CHECK: only 4 claims found — flooring integrity at 100 (was 100)
+[Pipeline] TRUST: critic penalty — critic score 55/100, applying 2% penalty → 74
+[Pipeline] DETERMINISTIC TRUST: 50/100 — coverage=100%, groundedness=65%, factCheck=100%, nli=50%, sourceCheck=90%, diversity=100, avgQuality=61
+[Pipeline] PROVENANCE GRAPH: 196 claims → 143 valid, 0 invalid, 0 stale, 53 needs_review → validity 73%
+[Pipeline] METHODOLOGY NOTE: injected (51 sources, 9 providers, 51 cited)
+[ORCHESTRATOR] Decision: DEBATE — Trust score 50 below 65. Triggering adversarial debate to strengthen weak points before publication.
+[Pipeline] EVIDENCE IDS: 49/49 cited, 0 uncited
+[Pipeline] NUMERICAL GATE: 7 unsourced numbers
+[Pipeline] QUALITY LOOP: trust 50 < 65 — retrying citation repair with aggressive settings
+[CITATION REPAIR] Backfilled: 0, Injected: 141, Sanitized: 0 (total: 141)
+[Pipeline] QUALITY LOOP: aggressive citation repair +0 backfilled, +141 injected
+[CLAIM GROUNDING NLI] Extracted 326 sentences from HTML
+✅ glm/glm-5.2 [reader_v3] | 18281ms | 1898+11 tok (1792 cache-hit) | $0.0007
+[CLAIM GROUNDING NLI] Decomposed into 195 atomic claims (142 cited, 53 uncited) [deterministic]
+[CLAIM GROUNDING NLI] Verdicts: 3 supported, 89 partial, 4 unsupported, 53 uncited, 46 contradicted → groundedness 65% (citation rate: 73%)
+[CLAIM GROUNDING NLI] Flagged 31 unsupported/contradicted claims
+[Pipeline] QUALITY LOOP: re-grounding → 3 supported, 4 unsupported → groundedness 65%
+[Pipeline] QUALITY LOOP: trust 50 → 80 (+30) — coverage 100%, groundedness 65%
+✅ deepseek/deepseek-v4-flash [reader_v3] | 20069ms | 1279+1700 tok | $0.0007
+[HERO IMAGE] LLM motif derived (475 chars): A colossal stone archway in a dark, empty hall. The massive voussoirs are perfectly cut and seem to ...
+[HERO IMAGE] Generating for: "Meaning, Trust, and Institutional Quality: Cognitive Foundat..."
+[HERO IMAGE] ✅ Generated via gpt-image-1 (1861KB, cost ~$0.02)
+[Pipeline] HERO IMAGE: generated and injected into HTML
+[Pipeline] PUBLISHER: save brief
+[PREDICTIONS] Registered 2/2 predictions for brief cmt4kepee018vt49h42x6b8jo
+[Pipeline] PREDICTIONS: registered 2 predictions for brief cmt4kepee018vt49h42x6b8jo
+[Pipeline] CAUSAL LINKS: persisted 3 links for brief cmt4kepee018vt49h42x6b8jo
+[Pipeline] KNOWLEDGE GRAPH: extracting concepts
+[KNOWLEDGE] Extracting concepts from brief cmt4kepee018vt49h42x6b8jo
+✅ glm/glm-5.2 [reader_v3] | 306512ms | 1701+553 tok | $0.0048
+[KNOWLEDGE] Created new concept: "Meaning" (entity)
+[KNOWLEDGE] Created new concept: "Trust" (entity)
+[KNOWLEDGE] Updated existing concept: "Institutional Quality" (2 occurrences)
+[KNOWLEDGE] Created new concept: "Cognitive Foundations of Resilience" (theory)
+[KNOWLEDGE] Updated existing concept: "Resilience" (2 occurrences)
+[KNOWLEDGE] ✅ Extracted 5 concepts, 6 relations, cost=$0.0048
+[Pipeline] KNOWLEDGE GRAPH: 5 concepts, 6 relations
+[Pipeline] EPISODIC MEMORY: episode stored for brief cmt4kepee018vt49h42x6b8jo
+[Pipeline] EXPERIENCE BANK: extraction queued
+[PREDICTION AUDITOR] Starting retrospective accuracy check...
+[PREDICTION AUDITOR] Found 0 predictions to audit
+[Pipeline] DONE: brief cmt4kepee018vt49h42x6b8jo | run cmt4jn0jq0000t49hrrdnprlh | $0.0220 | 1600584ms | 0 orchestrator decisions
+
+╔════════════════════════════════════════════════════════════╗
+║  PIPELINE RESULT                                           ║
+╚════════════════════════════════════════════════════════════╝
+
+  PipelineRun ID: cmt4jn0jq0000t49hrrdnprlh
+
+  Result keys: briefId, stats, pipelineRunId, format, readerClaims
+
+  Duration: 26.7 min (1600814 ms)
+  Finished: 2026-08-22T16:05:49.617Z
+
+  ✅ Pipeline completed successfully
+

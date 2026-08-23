@@ -239,3 +239,55 @@ Les gaps P0-P2 sont implémentés dans ce sprint. Voir `lib/agent/` pour les nou
 
 Chaque module est conçu pour s'intégrer avec l'existant sans casser la compatibilité.
 Activation via options de `runPipeline()`.
+  
+---  
+## SPRINT 9-12 (2026-08) - IMPLEMENTED INNOVATIONS  
+  
+### Sprint 9 - P0+P1 Corrections  
+- **P0-1**: Critic veto fix (tiered: <10  cap 40, <25  cap 55, <60  proportional)  
+- **P0-2**: Provider 400 low-balance now triggers cross-family fallback  
+- **P1-3**: NLI input length increased (18003000 premise, 500800 hypothesis)  
+- **P1-4**: Groundedness threshold lowered (0.650.50 entailment, +0.75 strong tier)  
+- **P1-5**: SCOUT provider registry expanded (2353 providers)  
+- **P1-6**: ANALYST citation target lowered (50%%35%%)  
+- **P1-7**: Auto-activation K1/K5/K11 (MoA, LATS, WorldEvolver)  
+  
+### Sprint 10 - P2 Innovations (ACL/arXiv 2026)  
+- **Verbal-R3** (ACL 2026): Verbal reranker - generates annotations explaining source relevance  
+- **Reflective RAG** (ACL 2026): Self-evaluation driven retrieval strategy optimization  
+- **LLM-as-a-Verifier** (arXiv 2026): Continuous scoring via logit expectation  
+- **CiteAudit** (arXiv 2026): Multi-agent citation authenticity verification  
+  
+### Sprint 11 - P2 Innovations (ICLR/arXiv 2026)  
+- **Argus** (arXiv 2026): Evidence assembly with Navigator+Searcher pattern  
+- **Test-Time Scaling** (ICLR 2026): Asymmetric verification - 3 parallel generations + heavy verify  
+- **DSPy/MIPROv2** (Stanford): Automatic prompt optimization via Bayesian search  
+- **OpenAlex Semantic Search** (2026): Embeddings-based retrieval + batch DOI verification  
+  
+### Sprint 12 - P3 Frontier (2026-2027)  
+- **REMem** (arXiv 2026): Episodic memory with hybrid graph (gists + facts)  
+- **EvoMemKG** (ACL 2026): Evolvable memory for multi-hop KG reasoning  
+- **VMAO** (ICLR 2026): Plan-Execute-Verify-Replan DAG orchestrator  
+- **FS-Researcher** (arXiv 2026): File-system dual agent for 100+ sources  
+- **NestBrowse** (ACL 2026): Nested browser-use for deep web access  
+- **NSRSA** (arXiv 2026): Neuro-symbolic recursive self-alignment  
+  
+  
+## SPRINT 13 (2026-08) - DEEP AUDIT CORRECTIONS  
+  
+### P0 - Critical Bug Fixes  
+- **P0-A**: Integrity propagation bug - repair result now always updates stats (was stale 58%% vs actual 79%%)  
+- **P0-B**: Self-refine multi-iteration (FineRef AAAI 2026) - 3 iterations with re-verification, only accepts if improved  
+- **P0-C**: Auto-suspend dead providers (VeriSwarm/Cortex 2026) - 5 failures  24h suspension (was 60s cooldown)  
+  
+### P1 - High-Impact Improvements  
+- **P1-D**: Groundedness weight 16%%22%%, citation coverage 20%%15%% (GroundEval 2026 - quality over quantity)  
+- **P1-E**: PDF extraction retry (pdfmux 2026) - 2 retries with exponential backoff + 30s timeout (was 15s, 0 retries)  
+- **P1-F**: Debate quality gate (D3 EACL 2026) - re-run debate if steel-man <50 with adversarial boost prompt  
+- **P1-G**: CiteGuard threshold 0.150.35 (CiteGuard ACL 2026) - reduces false positives in citation injection  
+- **P1-H**: Radar Global South sources (BENI Global 10) - +19 feeds (AfDB, ADB, CAF, ISS Africa, SAIIA, ORF, ISEAS, Al-Monitor, etc.) + 5 GDELT verticals (Africa, Latin America, Southeast Asia, Middle East, South Asia)  
+  
+### P2 - Optimizations  
+- **P2-I**: SCOUT neural routing opt-out (was opt-in) - always selects 12 most relevant providers  
+- **P2-J**: Provider diversity veto - <3 providers  cap trust at 60  
+- **P2-K**: Query diversification threshold 53 - activates more often  

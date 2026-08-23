@@ -8,6 +8,8 @@
  * Auth: Bearer token
  */
 
+import { httpPost } from '../http-client';
+
 const LENS_API_TOKEN = process.env.LENS_API_TOKEN || "";
 const LENS_ENDPOINT = "https://api.lens.org/scholarly/search";
 
@@ -30,22 +32,18 @@ export async function searchLens(query: string, limit = 20): Promise<any[]> {
       sort: [{ "year": "desc" }, { "scholarly_citations_count": "desc" }],
     };
 
-    const response = await fetch(LENS_ENDPOINT, {
-      method: 'POST',
+    const data: any = await httpPost(LENS_ENDPOINT, body, {
+      timeout: 20000,
+      retries: 2,
+      rateLimiterKey: 'lens',
       headers: {
-        'Content-Type': 'application/json',
         'Authorization': `Bearer ${LENS_API_TOKEN}`,
       },
-      body: JSON.stringify(body),
-      signal: AbortSignal.timeout(20000),
     });
-
-    if (!response.ok) {
-      console.warn(`[SCOUT/Lens] HTTP ${response.status}`);
+    if (!data) {
+      console.warn(`[SCOUT/Lens] Request failed`);
       return [];
     }
-
-    const data = await response.json() as any;
     const hits = data?.hits?.hits || [];
 
     if (!Array.isArray(hits)) {

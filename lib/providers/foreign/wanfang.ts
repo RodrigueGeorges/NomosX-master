@@ -17,6 +17,8 @@
  * Graceful skip: If WANFANG_APPKEY is not set, returns empty array.
  */
 
+import { httpPost } from '../../http-client';
+
 export async function searchWanfang(query: string, limit = 20): Promise<any[]> {
   const appKey = process.env.WANFANG_APPKEY;
   const appCode = process.env.WANFANG_APPCODE;
@@ -29,32 +31,29 @@ export async function searchWanfang(query: string, limit = 20): Promise<any[]> {
   const pageSize = Math.min(limit, 50);
   // Wanfang Open API — keyword search across periodicals and theses
   const url = `https://api.wanfangdata.com.cn/open/search/query`;
-  const body = JSON.stringify({
+  const body = {
     query,
     collections: ["OpenPeriodical", "OpenThesis", "OpenConference"],
     rows: pageSize,
     start: 0,
-  });
+  };
 
   try {
-    const res = await fetch(url, {
-      method: 'POST',
-      signal: AbortSignal.timeout(12000),
+    const data: any = await httpPost(url, body, {
+      timeout: 12000,
+      retries: 2,
       headers: {
-        'Content-Type': 'application/json',
         'X-Ca-AppKey': appKey,
         'Authorization': `APPCODE ${appCode}`,
         'Accept': 'application/json',
         "User-Agent": "NomosX Research Bot (+https://nomosx.com)",
         "Accept-Language": "zh,en;q=0.8",
       },
-      body,
     });
-    if (!res.ok) {
-      console.warn(`[Wanfang] HTTP ${res.status}`);
+    if (!data) {
+      console.warn(`[Wanfang] No data returned`);
       return [];
     }
-    const data: any = await res.json();
 
     const articles: any[] = data?.results || data?.data || data?.records || [];
 

@@ -22,7 +22,7 @@
  * Graceful skip: If credentials not set, returns empty array.
  */
 
-import { getRateLimiter } from '../../http-client';
+import { fetchFromProvider, httpPost } from '../../http-client';
 
 export interface SocialSignal {
   id: string;
@@ -68,19 +68,21 @@ async function getRedditToken(): Promise<string | null> {
   }
 
   try {
-    const res = await fetch('https://www.reddit.com/api/v1/access_token', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`,
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'User-Agent': 'NomosX/1.0 (research bot)',
-      },
-      body: 'grant_type=client_credentials',
-      signal: AbortSignal.timeout(10000),
-    });
+    // OAuth2 client_credentials flow requires POST with form-urlencoded body
+    const data: any = await httpPost('https://www.reddit.com/api/v1/access_token',
+      'grant_type=client_credentials',
+      {
+        timeout: 10000,
+        retries: 2,
+        rateLimiterKey: 'reddit',
+        headers: {
+          'Authorization': `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`,
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'User-Agent': 'NomosX/1.0 (research bot)',
+        },
+      });
 
-    if (!res.ok) return null;
-    const data: any = await res.json();
+    if (!data) return null;
     cachedToken = {
       token: data.access_token,
       expires: Date.now() + (data.expires_in * 1000),
@@ -119,21 +121,18 @@ export async function searchRedditSignals(query: string, limit = 25): Promise<So
 
   for (const subreddit of subreddits) {
     try {
-      const limiter = getRateLimiter('reddit');
-      if (limiter) await limiter.acquire();
-
       const url = `https://oauth.reddit.com/r/${subreddit}/search?q=${encodeURIComponent(query)}&restrict_sr=1&sort=relevance&t=year&limit=${Math.ceil(limit / subreddits.length)}`;
 
-      const res = await fetch(url, {
+      const data: any = await fetchFromProvider('reddit', url, {
+        timeout: 10000,
+        retries: 2,
         headers: {
           'Authorization': `Bearer ${token}`,
           'User-Agent': 'NomosX/1.0 (research bot)',
         },
-        signal: AbortSignal.timeout(10000),
       });
 
-      if (!res.ok) continue;
-      const data: any = await res.json();
+      if (!data) continue;
       const posts = data?.data?.children || [];
 
       for (const post of posts) {

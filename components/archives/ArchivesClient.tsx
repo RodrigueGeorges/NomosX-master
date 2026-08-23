@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import AuthModal from "@/components/AuthModal";
 import { PublicPageShell } from "@/components/layout/PublicPageShell";
 import { PageHeader, PageSection } from "@/components/layout/PageHeader";
@@ -13,12 +14,12 @@ import { cn } from "@/lib/utils";
 import { ChevronLeft, ChevronRight, FileText, Search } from "lucide-react";
 import { PUBLIC_ROUTES } from "@/lib/public-urls";
 
-const DEPTH_FILTERS: { id: "all" | InquiryDepth; label: string }[] = [
-  { id: "all", label: "All depths" },
-  { id: "surface", label: "Surface" },
-  { id: "standard", label: "Standard" },
-  { id: "deep", label: "Deep" },
-  { id: "strategic", label: "Strategic" },
+const DEPTH_FILTERS: { id: "all" | InquiryDepth; labelKey: string }[] = [
+  { id: "all", labelKey: "Archives.allDepths" },
+  { id: "surface", labelKey: "Archives.surface" },
+  { id: "standard", labelKey: "Archives.standard" },
+  { id: "deep", labelKey: "Archives.deep" },
+  { id: "strategic", labelKey: "Archives.strategic" },
 ];
 
 const DOMAIN_FILTERS = [
@@ -38,6 +39,7 @@ type SortKey = "date" | "trust" | "sources";
 const PAGE_SIZE = 12;
 
 export function ArchivesClient({ initialBriefs }: { initialBriefs: BriefLike[] }) {
+  const t = useTranslations();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -86,9 +88,9 @@ export function ArchivesClient({ initialBriefs }: { initialBriefs: BriefLike[] }
       <PublicPageShell currentPage="inquiries" onSignInClick={() => setShowAuthModal(true)} particles={0}>
         <PageSection className="pt-16 sm:pt-20">
           <PageHeader
-            eyebrow="Published positions"
-            title="Brief archive"
-            description="Every position we've published — chaos legislated into nomos. Filter by depth, domain, and confidence."
+            eyebrow={t("Archives.eyebrow")}
+            title={t("Archives.title")}
+            description={t("Archives.description")}
           />
 
           <div className="flex flex-col lg:flex-row gap-4 mb-6">
@@ -98,7 +100,7 @@ export function ArchivesClient({ initialBriefs }: { initialBriefs: BriefLike[] }
                 type="search"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search briefs…"
+                placeholder={t("Archives.searchPlaceholder")}
                 className={cn("w-full pl-10 pr-4 py-2.5", nx.input)}
               />
             </div>
@@ -107,9 +109,9 @@ export function ArchivesClient({ initialBriefs }: { initialBriefs: BriefLike[] }
               onChange={(e) => setSortBy(e.target.value as SortKey)}
               className={nx.select}
             >
-              <option value="date">Sort: newest</option>
-              <option value="trust">Sort: trust score</option>
-              <option value="sources">Sort: source count</option>
+              <option value="date">{t("Archives.sortNewest")}</option>
+              <option value="trust">{t("Archives.sortTrust")}</option>
+              <option value="sources">{t("Archives.sortSources")}</option>
             </select>
           </div>
 
@@ -124,7 +126,7 @@ export function ArchivesClient({ initialBriefs }: { initialBriefs: BriefLike[] }
                   depthFilter === d.id ? nx.chipActive : nx.chip
                 )}
               >
-                {d.label}
+                {t(d.labelKey)}
               </button>
             ))}
           </div>
@@ -143,7 +145,7 @@ export function ArchivesClient({ initialBriefs }: { initialBriefs: BriefLike[] }
                     : "text-white/50 border border-transparent"
                 )}
               >
-                {d === "all" ? "All domains" : d}
+                {d === "all" ? t("Archives.allDomains") : d}
               </button>
             ))}
           </div>
@@ -151,7 +153,7 @@ export function ArchivesClient({ initialBriefs }: { initialBriefs: BriefLike[] }
           {pageItems.length > 0 ? (
             <>
               <p className="font-mono text-[11px] text-white/50 mb-4">
-                {filtered.length} briefs · page {page + 1}/{totalPages}
+                {t("Archives.briefsCount", { count: filtered.length, current: page + 1, total: totalPages })}
               </p>
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
                 {pageItems.map((inquiry) => (
@@ -192,13 +194,13 @@ export function ArchivesClient({ initialBriefs }: { initialBriefs: BriefLike[] }
               </div>
               <h3 className="font-display text-lg font-semibold text-text mb-3">
                 {search || depthFilter !== "all" || domainFilter !== "all"
-                  ? "No briefs match your filters"
-                  : "The archive is being assembled"}
+                  ? t("Archives.noMatchTitle")
+                  : t("Archives.emptyTitle")}
               </h3>
               <p className="text-sm text-white/50 leading-relaxed mb-8 max-w-sm mx-auto">
                 {search || depthFilter !== "all" || domainFilter !== "all"
-                  ? "Try adjusting your filters or search query to explore more briefs."
-                  : "Our editorial pipeline is producing new strategic briefs every week. Each one passes through adversarial review before publication."}
+                  ? t("Archives.noMatchDesc")
+                  : t("Archives.emptyDesc")}
               </p>
               <div className="flex items-center justify-center gap-3">
                 {(search || depthFilter !== "all" || domainFilter !== "all") && (
@@ -211,7 +213,7 @@ export function ArchivesClient({ initialBriefs }: { initialBriefs: BriefLike[] }
                     }}
                     className={cn(nx.btnGhost, "px-5 py-2.5 normal-case tracking-normal text-xs")}
                   >
-                    Clear filters
+                    {t("Archives.clearFilters")}
                   </button>
                 )}
                 <button
@@ -219,7 +221,7 @@ export function ArchivesClient({ initialBriefs }: { initialBriefs: BriefLike[] }
                   onClick={() => router.push(PUBLIC_ROUTES.studio)}
                   className={cn(nx.btnPrimary, "px-5 py-2.5 normal-case tracking-normal text-xs")}
                 >
-                  Commission a study
+                  {t("Archives.commissionStudy")}
                 </button>
               </div>
             </div>

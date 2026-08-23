@@ -87,11 +87,12 @@ export function setRateLimiter(provider: string, config: RateLimitConfig) {
 }
 
 // ================================
-// CIRCUIT BREAKER (V3.1 — Deep Search resilience)
+// CIRCUIT BREAKER (V4 — Redis-backed, distributed)
 // ================================
 // When a provider returns repeated 429s, trip the circuit breaker.
 // All subsequent requests to that provider fail-fast (return []) for a cooldown period.
-// This prevents cascading rate-limit blocks from paralyzing the pipeline.
+// State is persisted to Redis so it survives restarts and is shared across instances.
+// Falls back to in-memory if Redis is unavailable.
 
 interface CircuitBreakerState {
   consecutive429s: number;
@@ -102,6 +103,8 @@ interface CircuitBreakerState {
 }
 
 const circuitBreakers = new Map<string, CircuitBreakerState>();
+const CB_REDIS_KEY = (p: string) => `nomosx:cb:http:${p}`;
+const CB_REDIS_TTL_SEC = 300; // 5 min TTL — longer than any cooldown
 
 // Thresholds per provider
 const CB_THRESHOLDS: Record<string, { max429s: number; cooldownMs: number }> = {
@@ -112,8 +115,48 @@ const CB_THRESHOLDS: Record<string, { max429s: number; cooldownMs: number }> = {
 };
 
 /**
+ * Load circuit breaker state from Redis (if available), falling back to in-memory.
+ */
+async function loadCBState(provider: string): Promise<CircuitBreakerState | null> {
+  // Fast path: in-memory hit
+  const mem = circuitBreakers.get(provider);
+  if (mem && mem.tripped && Date.now() - mem.trippedAt < mem.cooldownMs) {
+    return mem; // Still tripped in memory — skip Redis round-trip
+  }
+  // Try Redis for cross-instance state
+  try {
+    const { simpleRedisManager } = await import('./agent/redis-simple');
+    if (simpleRedisManager.isRedisConnected()) {
+      const remote = await simpleRedisManager.get<CircuitBreakerState>(CB_REDIS_KEY(provider));
+      if (remote) {
+        // Merge: take the worse state (higher 429s, or tripped)
+        if (remote.tripped && (!mem || !mem.tripped)) {
+          circuitBreakers.set(provider, remote);
+          return remote;
+        }
+      }
+    }
+  } catch { /* Redis unavailable — use in-memory */ }
+  return mem ?? null;
+}
+
+/**
+ * Save circuit breaker state to Redis (if available) + in-memory.
+ */
+async function saveCBState(provider: string, cb: CircuitBreakerState): Promise<void> {
+  circuitBreakers.set(provider, cb);
+  try {
+    const { simpleRedisManager } = await import('./agent/redis-simple');
+    if (simpleRedisManager.isRedisConnected()) {
+      await simpleRedisManager.setWithTTL(CB_REDIS_KEY(provider), cb, CB_REDIS_TTL_SEC);
+    }
+  } catch { /* Redis unavailable — in-memory only */ }
+}
+
+/**
  * Check if a provider's circuit breaker is tripped.
  * If tripped but cooldown expired, auto-reset.
+ * Sync version — uses in-memory state only (fast path).
  */
 export function isCircuitBreakerTripped(provider: string): boolean {
   const cb = circuitBreakers.get(provider);
@@ -128,17 +171,31 @@ export function isCircuitBreakerTripped(provider: string): boolean {
 }
 
 /**
- * Record a 429 for a provider. Trips the circuit breaker if threshold reached.
+ * Async version — checks Redis for cross-instance circuit breaker state.
+ * Use this when you can afford an async check (e.g., before starting a batch).
  */
-function record429(provider: string): void {
+export async function isCircuitBreakerTrippedAsync(provider: string): Promise<boolean> {
+  const cb = await loadCBState(provider);
+  if (!cb || !cb.tripped) return false;
+  if (Date.now() - cb.trippedAt > cb.cooldownMs) {
+    await saveCBState(provider, { ...cb, tripped: false, consecutive429s: 0 });
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Record a 429 for a provider. Trips the circuit breaker if threshold reached.
+ * Persists state to Redis for cross-instance awareness.
+ */
+async function record429(provider: string): Promise<void> {
   const threshold = CB_THRESHOLDS[provider];
   if (!threshold) return; // no circuit breaker for this provider
 
-  let cb = circuitBreakers.get(provider);
-  if (!cb) {
-    cb = { consecutive429s: 0, tripped: false, trippedAt: 0, cooldownMs: threshold.cooldownMs, totalTrips: 0 };
-    circuitBreakers.set(provider, cb);
-  }
+  const existing = circuitBreakers.get(provider);
+  const cb: CircuitBreakerState = existing ?? {
+    consecutive429s: 0, tripped: false, trippedAt: 0, cooldownMs: threshold.cooldownMs, totalTrips: 0
+  };
 
   cb.consecutive429s++;
   if (cb.consecutive429s >= threshold.max429s && !cb.tripped) {
@@ -147,14 +204,19 @@ function record429(provider: string): void {
     cb.totalTrips++;
     console.warn(`[CIRCUIT BREAKER] ${provider} tripped after ${cb.consecutive429s}× 429 — skipping for ${cb.cooldownMs / 1000}s`);
   }
+
+  await saveCBState(provider, cb);
 }
 
 /**
  * Reset a provider's circuit breaker (e.g., after a successful request).
  */
-function resetCircuitBreaker(provider: string): void {
+async function resetCircuitBreaker(provider: string): Promise<void> {
   const cb = circuitBreakers.get(provider);
-  if (cb) cb.consecutive429s = 0;
+  if (cb) {
+    cb.consecutive429s = 0;
+    await saveCBState(provider, cb);
+  }
 }
 
 /**
@@ -179,13 +241,14 @@ export function getCircuitBreakerStats(): Record<string, any> {
 setRateLimiter("openalex", process.env.OPENALEX_API_KEY
   ? { requestsPerSecond: 10, burstSize: 20 }
   : { requestsPerSecond: 2, burstSize: 3 }); // Polite pool: 2 req/s, small burst
-setRateLimiter("crossref", { requestsPerSecond: 3, burstSize: 3 }); // Crossref API limit: 3 req/s — was 50 (caused 429 cascades)
+setRateLimiter("crossref", { requestsPerSecond: 8, burstSize: 8 }); // Crossref polite pool (with mailto): 10 req/s — conservative 8
 setRateLimiter("semanticscholar", { requestsPerSecond: 1, burstSize: 1 }); // Strict 1 req/s — no burst, S2 rate limits are aggressive
 setRateLimiter("unpaywall", { requestsPerSecond: 10, burstSize: 20 });
 setRateLimiter("ror", { requestsPerSecond: 10, burstSize: 20 });
 setRateLimiter("orcid", { requestsPerSecond: 10, burstSize: 20 });
 setRateLimiter("eurostat", { requestsPerSecond: 5, burstSize: 10 });
 setRateLimiter("ecb", { requestsPerSecond: 5, burstSize: 10 });
+setRateLimiter("fred", { requestsPerSecond: 5, burstSize: 10 }); // FRED API: 120 req/min
 setRateLimiter("insee", { requestsPerSecond: 5, burstSize: 10 });
 setRateLimiter("melodi", { requestsPerSecond: 3, burstSize: 5 });
 setRateLimiter("arxiv", { requestsPerSecond: 3, burstSize: 5 }); // NCBI guidelines
@@ -250,6 +313,44 @@ setRateLimiter("thenewsapi", { requestsPerSecond: 3, burstSize: 5 });
 setRateLimiter("gnews", { requestsPerSecond: 1, burstSize: 2 });
 setRateLimiter("eventregistry", { requestsPerSecond: 3, burstSize: 5 });
 setRateLimiter("apitube", { requestsPerSecond: 3, burstSize: 5 });
+setRateLimiter("rss", { requestsPerSecond: 10, burstSize: 15 }); // RSS feeds — generous, most feeds have no rate limit
+
+// ─── Realtime Data Hub providers ────────────────────────────────────────────
+setRateLimiter("gdelt", { requestsPerSecond: 1, burstSize: 2 }); // GDELT GKG/doc API
+setRateLimiter("worldbank", { requestsPerSecond: 5, burstSize: 10 }); // World Bank API: generous
+setRateLimiter("who", { requestsPerSecond: 3, burstSize: 5 }); // WHO RSS + API
+setRateLimiter("usgs", { requestsPerSecond: 5, burstSize: 10 }); // USGS Earthquake API
+setRateLimiter("open-meteo", { requestsPerSecond: 10, burstSize: 20 }); // Open-Meteo: free, generous
+setRateLimiter("nvd", { requestsPerSecond: 2, burstSize: 3 }); // NVD: strict rate limits
+setRateLimiter("eurlex", { requestsPerSecond: 3, burstSize: 5 }); // EUR-Lex RSS
+setRateLimiter("nasa-giss", { requestsPerSecond: 2, burstSize: 3 }); // NASA GISS CSV
+setRateLimiter("paperswithcode", { requestsPerSecond: 2, burstSize: 3 }); // Papers With Code
+
+// ─── Quant Agent providers ───────────────────────────────────────────────────
+setRateLimiter("energy-charts", { requestsPerSecond: 3, burstSize: 5 });
+setRateLimiter("rte-france", { requestsPerSecond: 3, burstSize: 5 });
+setRateLimiter("treasury-fiscal", { requestsPerSecond: 3, burstSize: 5 });
+setRateLimiter("energi-data", { requestsPerSecond: 3, burstSize: 5 });
+
+// ─── Social providers ────────────────────────────────────────────────────────
+setRateLimiter("bluesky", { requestsPerSecond: 3, burstSize: 5 });
+setRateLimiter("hackernews", { requestsPerSecond: 3, burstSize: 5 }); // Algolia HN API
+setRateLimiter("reddit", { requestsPerSecond: 1, burstSize: 2 }); // Reddit: strict OAuth rate limits
+
+// ─── Other providers ─────────────────────────────────────────────────────────
+setRateLimiter("altmetric", { requestsPerSecond: 3, burstSize: 5 });
+setRateLimiter("overton", { requestsPerSecond: 2, burstSize: 3 }); // Overton: policy docs
+setRateLimiter("opencitations", { requestsPerSecond: 3, burstSize: 5 }); // OpenCitations: free citation graph
+setRateLimiter("newsdata", { requestsPerSecond: 1, burstSize: 2 }); // NewsData.io: free tier 200 credits/day
+setRateLimiter("hf-papers", { requestsPerSecond: 2, burstSize: 3 }); // HuggingFace Papers: free, CDN-cached
+setRateLimiter("data-europa", { requestsPerSecond: 3, burstSize: 5 }); // data.europa.eu: EU open data portal
+setRateLimiter("ietf", { requestsPerSecond: 2, burstSize: 3 }); // IETF Datatracker: Django REST API
+setRateLimiter("wanfang", { requestsPerSecond: 2, burstSize: 3 }); // Wanfang: Chinese academic DB
+setRateLimiter("resend", { requestsPerSecond: 5, burstSize: 10 }); // Resend email API
+setRateLimiter("twitter", { requestsPerSecond: 1, burstSize: 2 }); // Twitter v2: strict rate limits
+setRateLimiter("openai-image", { requestsPerSecond: 1, burstSize: 2 }); // OpenAI Image API
+setRateLimiter("sendgrid", { requestsPerSecond: 5, burstSize: 10 }); // SendGrid email API
+setRateLimiter("posthog", { requestsPerSecond: 10, burstSize: 20 }); // PostHog analytics
 
 // ================================
 // HTTP CLIENT
@@ -268,6 +369,14 @@ export class HttpError extends Error {
 
 async function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Add jitter to backoff delay to prevent retry storms.
+ * Pattern: delay * (0.75 + Math.random() * 0.5) → 75%-125% of base delay.
+ */
+function withJitter(delay: number): number {
+  return Math.round(delay * (0.75 + Math.random() * 0.5));
 }
 
 async function fetchWithTimeout(
@@ -372,7 +481,7 @@ export async function httpGet<T = any>(
 
         // Retry on server errors (5xx) and rate limits (429)
         if (attempt < retries) {
-          let backoff = retryDelay * Math.pow(2, attempt);
+          let backoff = withJitter(retryDelay * Math.pow(2, attempt));
           if (response.status === 429) {
             // Honour Retry-After header if present.
             // Some APIs (OpenAlex) send a Unix timestamp instead of duration — detect and convert.
@@ -393,9 +502,14 @@ export async function httpGet<T = any>(
             if (url.includes('semanticscholar.org') && !retryAfterRaw) {
               throw new HttpError(`HTTP 429 ${response.statusText}`, 429, text.slice(0, 500));
             }
-            // V3.1: Record 429 for circuit breaker
+            // V4: Record 429 for circuit breaker (async — persists to Redis)
             if (response.status === 429 && rateLimiterKey) {
-              record429(rateLimiterKey);
+              await record429(rateLimiterKey);
+              // V4: Adaptive rate limiting — reduce rate on 429
+              try {
+                const { recordAdaptive429 } = await import('./agent/resilience');
+                recordAdaptive429(rateLimiterKey);
+              } catch { /* non-blocking */ }
               // If circuit breaker just tripped, fail-fast
               if (isCircuitBreakerTripped(rateLimiterKey)) {
                 throw new HttpError(`Circuit breaker tripped for ${rateLimiterKey}`, 429, 'CIRCUIT_BREAKER_TRIPPED');
@@ -437,9 +551,19 @@ export async function httpGet<T = any>(
       }
 
       // Parse response based on type
-      const data = responseType === "text" 
+      const data = responseType === "text"
         ? await response.text()
         : await response.json();
+
+      // V4: Reset circuit breaker on success (provider recovered)
+      if (rateLimiterKey) {
+        await resetCircuitBreaker(rateLimiterKey).catch(() => {});
+        // V4: Adaptive rate limiting — increase rate on success
+        try {
+          const { recordAdaptiveSuccess } = await import('./agent/resilience');
+          recordAdaptiveSuccess(rateLimiterKey);
+        } catch { /* non-blocking */ }
+      }
       return data as T;
     } catch (error: any) {
       lastError = error;
@@ -449,7 +573,7 @@ export async function httpGet<T = any>(
       }
 
       if (attempt < retries) {
-        const backoff = retryDelay * Math.pow(2, attempt);
+        const backoff = withJitter(retryDelay * Math.pow(2, attempt));
         if (env.NODE_ENV === "development") {
           console.warn(`[HTTP] Retry ${attempt + 1}/${retries} after ${backoff}ms: ${error.message}`);
         }
@@ -520,7 +644,7 @@ export async function httpPost<T = any>(
         }
 
         if (attempt < retries) {
-          let backoff = retryDelay * Math.pow(2, attempt);
+          let backoff = withJitter(retryDelay * Math.pow(2, attempt));
           if (response.status === 429) {
             const retryAfterRaw = response.headers.get('Retry-After');
             if (retryAfterRaw) {
@@ -545,6 +669,17 @@ export async function httpPost<T = any>(
       }
 
       const data = await response.json();
+
+      // V4: Reset circuit breaker on success (provider recovered)
+      if (rateLimiterKey) {
+        await resetCircuitBreaker(rateLimiterKey).catch(() => {});
+        // V4: Adaptive rate limiting — increase rate on success
+        try {
+          const { recordAdaptiveSuccess } = await import('./agent/resilience');
+          recordAdaptiveSuccess(rateLimiterKey);
+        } catch { /* non-blocking */ }
+      }
+
       return data as T;
     } catch (error: any) {
       lastError = error;
@@ -554,7 +689,7 @@ export async function httpPost<T = any>(
       }
 
       if (attempt < retries) {
-        const backoff = retryDelay * Math.pow(2, attempt);
+        const backoff = withJitter(retryDelay * Math.pow(2, attempt));
         await sleep(backoff);
         continue;
       }
@@ -605,6 +740,12 @@ export async function fetchFromProvider<T = any>(
     }
   }
 
+  // Crossref polite pool: inject mailto parameter for 2x rate limit (5→10 req/s)
+  if (limiterKey === "crossref" && !url.includes("mailto=")) {
+    const mailto = process.env.CROSSREF_MAILTO || env.UNPAYWALL_EMAIL || "contact@nomosx.com";
+    url += (url.includes("?") ? "&" : "?") + `mailto=${encodeURIComponent(mailto)}`;
+  }
+
   // Add provider-specific headers
   const headers = { ...options.headers };
   
@@ -620,5 +761,18 @@ export async function fetchFromProvider<T = any>(
   }
 
   // Pass rateLimiterKey so httpGet re-acquires the shared limiter on retry
-  return httpGet<T>(url, { ...options, headers, rateLimiterKey: limiter ? limiterKey : undefined });
+  // V4: Wrap in queuedProviderCall for backpressure control + dedup
+  const httpCall = () => httpGet<T>(url, { ...options, headers, rateLimiterKey: limiter ? limiterKey : undefined });
+
+  // Use the provider queue for concurrency control + dedup
+  // Lazy import to avoid circular dependency
+  try {
+    const { queuedProviderCall } = await import('./agent/provider-queue');
+    return queuedProviderCall(limiterKey, httpCall, {
+      dedupKey: `http:${limiterKey}:${url}`,
+    });
+  } catch {
+    // Queue module unavailable — direct call (graceful degradation)
+    return httpCall();
+  }
 }

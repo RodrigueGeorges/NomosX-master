@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { ArrowUpRight } from "lucide-react";
 import Link from "next/link";
 import { useRef } from "react";
+import { useTranslations } from "next-intl";
 
 export type InquiryWatermark = "map" | "chart" | "globe" | "none";
 
@@ -78,6 +79,7 @@ function Watermark({ type }: { type: InquiryWatermark }) {
 }
 
 export function InquiryCard({ inquiry, href, className }: InquiryCardProps) {
+  const t = useTranslations();
   const {
     slug,
     title,
@@ -125,7 +127,7 @@ export function InquiryCard({ inquiry, href, className }: InquiryCardProps) {
         <div className="flex items-center gap-2 ml-auto">
           {inquiry.hasForesight && (
             <span className="font-mono text-[9px] uppercase tracking-wider px-1.5 py-0.5 border border-white/30 text-white/80 bg-white/5">
-              Scenarios
+              {t("InquiryCard.scenarios")}
             </span>
           )}
           <span className="font-mono text-[10px] text-white/45">
@@ -161,7 +163,7 @@ export function InquiryCard({ inquiry, href, className }: InquiryCardProps) {
             </div>
           )}
           <span className="font-mono text-[11px] text-white/40">
-            {sourceCount} sources{readTime ? ` · ${readTime} min` : ""}
+            {readTime ? t("InquiryCard.sourcesReadTime", { count: sourceCount, readTime }) : t("InquiryCard.sources", { count: sourceCount })}
           </span>
         </div>
 

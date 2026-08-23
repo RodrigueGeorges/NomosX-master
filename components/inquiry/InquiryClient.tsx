@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Script from "next/script";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { ArrowLeft, Share2, Download, FileText, Tag, FileDown } from "lucide-react";
 import { sanitizeHtml } from "@/lib/sanitize";
 import AuthModal from "@/components/AuthModal";
@@ -34,6 +35,7 @@ export function InquiryClient({
   inquiry: InquiryData;
   related: RelatedInquiryData[];
 }) {
+  const t = useTranslations();
   const router = useRouter();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -92,7 +94,7 @@ export function InquiryClient({
       setExportSuccess(true);
       setTimeout(() => setExportSuccess(false), 3000);
     } catch (error) {
-      const msg = error instanceof Error ? error.message : "Export failed. Please try again.";
+      const msg = error instanceof Error ? error.message : t('Inquiry.exportFailed');
       setExportError(msg);
       console.error("Export failed:", error);
     } finally {
@@ -137,7 +139,7 @@ export function InquiryClient({
                 className="flex items-center gap-2 text-sm text-white/50 hover:text-white transition-colors"
               >
                 <ArrowLeft size={16} />
-                Back to briefs
+                {t('Inquiry.backToBriefs')}
               </button>
             </div>
             <div className="flex items-center gap-2">
@@ -145,8 +147,8 @@ export function InquiryClient({
               type="button"
               onClick={handleShare}
               className="p-2 border border-white/[0.08] text-white/50 hover:border-white/25"
-              title="Share"
-              aria-label="Share this report"
+              title={t('Inquiry.share')}
+              aria-label={t('Inquiry.shareReport')}
             >
               <Share2 size={16} />
             </button>
@@ -155,8 +157,8 @@ export function InquiryClient({
               onClick={handleExport}
               disabled={exporting}
               className="p-2 border border-white/[0.08] text-white/50 disabled:opacity-40"
-              title="Export report (HTML / print to PDF)"
-              aria-label="Export report as HTML"
+              title={t('Inquiry.exportHtml')}
+              aria-label={t('Inquiry.exportHtmlAria')}
             >
               {exporting ? (
                 <div className={cn("w-4 h-4", nx.spinner, "w-4 h-4")} />
@@ -169,8 +171,8 @@ export function InquiryClient({
               onClick={handleExportXlsx}
               disabled={exporting}
               className="p-2 border border-white/[0.08] text-white/50 disabled:opacity-40 text-[10px] font-mono uppercase tracking-wide"
-              title="Export data workbook (Excel — sources + model tables)"
-              aria-label="Export data workbook as Excel"
+              title={t('Inquiry.exportXlsx')}
+              aria-label={t('Inquiry.exportXlsxAria')}
             >
               xlsx
             </button>
@@ -179,8 +181,8 @@ export function InquiryClient({
               onClick={handleExportPdf}
               disabled={exporting}
               className="p-2 border border-white/[0.08] text-white/50 disabled:opacity-40"
-              title="Export as PDF"
-              aria-label="Export report as PDF"
+              title={t('Inquiry.exportPdf')}
+              aria-label={t('Inquiry.exportPdfAria')}
             >
               {exporting ? (
                 <div className={cn("w-4 h-4", nx.spinner, "w-4 h-4")} />
@@ -196,14 +198,14 @@ export function InquiryClient({
             )}
             {exportSuccess && (
               <p role="status" className="absolute top-full right-0 mt-2 text-xs text-emerald-400 bg-emerald-950/80 px-3 py-1.5 rounded">
-                Export downloaded
+                {t('Inquiry.exportDownloaded')}
               </p>
             )}
           </div>
           <Breadcrumbs
             items={[
-              { label: "NomosX", href: "/" },
-              { label: "Briefs", href: "/archives" },
+              { label: t('Inquiry.breadcrumbsHome'), href: "/" },
+              { label: t('Inquiry.breadcrumbsBriefs'), href: "/archives" },
               { label: inquiry.title.length > 50 ? inquiry.title.slice(0, 50) + "…" : inquiry.title },
             ]}
             className="mt-3"
@@ -213,39 +215,54 @@ export function InquiryClient({
         <PageSection className="py-8">
           <div className="max-w-3xl mx-auto">
             <div className="mb-8 nx-public-surface p-6 sm:p-8 overflow-hidden relative">
-              <div className="flex items-center gap-3 mb-4">
+              <div className="flex items-center gap-3 mb-4 flex-wrap">
                 <span className="px-3 py-1 border border-white/40 bg-white/5 text-white text-xs font-medium font-mono uppercase tracking-wider">
                   {format.label}
                 </span>
+                {format.pages && (
+                  <span className="text-white/40 text-xs font-mono">{format.pages}</span>
+                )}
+                {format.sourceDepth && (
+                  <span className="text-white/40 text-xs font-mono">{format.sourceDepth}</span>
+                )}
+                {format.access && (
+                  <span className="px-2 py-0.5 border border-white/20 text-white/50 text-[10px] font-mono uppercase tracking-wider">
+                    {format.access}
+                  </span>
+                )}
               </div>
 
               <h1 className="font-display text-3xl md:text-4xl font-semibold text-text mb-4">{inquiry.title}</h1>
 
+              {format.description && (
+                <p className="text-sm text-white/45 mb-4 leading-relaxed max-w-2xl">{format.description}</p>
+              )}
+
               <div className="flex flex-wrap items-center gap-4 text-sm text-white/55 mb-6 font-mono">
                 <span>{new Date(inquiry.publishedAt).toLocaleDateString()}</span>
                 <span>·</span>
-                <span>{inquiry.readTime} min read</span>
+                <span>{t('Inquiry.minRead', { count: inquiry.readTime })}</span>
                 <span>·</span>
-                <span>{inquiry.sources} sources</span>
+                <span>{t('Inquiry.sourcesCount', { count: inquiry.sources })}</span>
               </div>
 
               {/* Correction / Retraction notice */}
               {(inquiry as any).status === "CORRECTED" && (inquiry as any).correctionNotice && (
                 <div role="alert" className="mb-6 p-4 border border-amber-500/30 bg-amber-950/20">
-                  <p className="text-xs font-mono uppercase tracking-wider text-amber-400 mb-2">Correction Notice</p>
+                  <p className="text-xs font-mono uppercase tracking-wider text-amber-400 mb-2">{t('Inquiry.correctionNotice')}</p>
                   <p className="text-sm text-amber-100/80">{(inquiry as any).correctionNotice}</p>
                   {(inquiry as any).correctedAt && (
                     <p className="text-xs text-amber-400/60 mt-2 font-mono">
-                      Corrected on {new Date((inquiry as any).correctedAt).toLocaleDateString()}
+                      {t('Inquiry.correctedOn', { date: new Date((inquiry as any).correctedAt).toLocaleDateString() })}
                     </p>
                   )}
                 </div>
               )}
               {(inquiry as any).status === "RETRACTED" && (
                 <div role="alert" className="mb-6 p-4 border border-rose-500/40 bg-rose-950/30">
-                  <p className="text-xs font-mono uppercase tracking-wider text-rose-400 mb-2">Retracted</p>
+                  <p className="text-xs font-mono uppercase tracking-wider text-rose-400 mb-2">{t('Inquiry.retracted')}</p>
                   <p className="text-sm text-rose-100/80">
-                    This report has been retracted{(inquiry as any).retractionReason ? `: ${(inquiry as any).retractionReason}` : "."}
+                    {t('Inquiry.retractedMsg', { reason: (inquiry as any).retractionReason ? `: ${(inquiry as any).retractionReason}` : "." })}
                   </p>
                   {(inquiry as any).correctionNotice && (
                     <p className="text-sm text-rose-100/60 mt-2">{(inquiry as any).correctionNotice}</p>
@@ -306,7 +323,7 @@ export function InquiryClient({
 
             {related.length > 0 && (
               <div className="mt-16 pt-8 border-t border-white/[0.08]">
-                <h3 className="font-display text-lg font-semibold text-text mb-6">Related briefs</h3>
+                <h3 className="font-display text-lg font-semibold text-text mb-6">{t('Inquiry.relatedBriefs')}</h3>
                 <div className="grid sm:grid-cols-2 gap-4">
                   {related.map((item) => (
                     <button
@@ -319,7 +336,7 @@ export function InquiryClient({
                         <span className="text-xs text-white/55 uppercase tracking-wider font-mono">
                           {inquiryTypeLabel(item.type)}
                         </span>
-                        <span className="text-xs text-white/50 font-mono">{item.readTime} min</span>
+                        <span className="text-xs text-white/50 font-mono">{item.readTime} {t('Inquiry.min')}</span>
                       </div>
                       <h4 className="text-sm font-medium text-white/90 mb-1 line-clamp-2 group-hover:text-white transition-colors">
                         {item.title}
@@ -342,21 +359,22 @@ export function InquiryClient({
 }
 
 export function InquiryNotFound() {
+  const t = useTranslations();
   const router = useRouter();
   return (
     <div className="min-h-screen bg-bg text-text flex items-center justify-center px-6">
       <div className="text-center max-w-sm">
         <FileText className="w-12 h-12 text-white/20 mx-auto mb-4" />
-        <h3 className="font-display text-xl font-semibold text-text mb-2">Brief not found</h3>
+        <h3 className="font-display text-xl font-semibold text-text mb-2">{t('Inquiry.notFoundTitle')}</h3>
         <p className="text-sm text-white/40 mb-6">
-          This brief does not exist or is not publicly available.
+          {t('Inquiry.notFoundDesc')}
         </p>
         <button
           type="button"
           onClick={() => router.push(PUBLIC_ROUTES.archives)}
           className={cn(nx.btnGhost, "normal-case tracking-normal font-medium")}
         >
-          Back to briefs
+          {t('Inquiry.backToBriefs')}
         </button>
       </div>
     </div>

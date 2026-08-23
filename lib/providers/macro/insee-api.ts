@@ -4,6 +4,7 @@
  */
 
 import { z } from 'zod';
+import { fetchFromProvider } from '../../http-client';
 
 const INSEEResultSchema = z.object({
   id: z.string(),
@@ -49,24 +50,10 @@ export async function searchINSEE(query: string, limit = 15): Promise<any[]> {
     
     console.log(`[INSEE] Fetching dataset: ${dataset}`);
     
-    const response = await fetch(url, {
-      headers: {
-        'Accept': 'application/json',
-        'Authorization': `Bearer ${process.env.INSEE_API_KEY || ''}`,
-        'Accept-Language': 'fr'
-      },
-      signal: AbortSignal.timeout(15000)
-    });
-
-    if (!response.ok) {
-      if (response.status === 401) {
-        console.warn(`[INSEE] API key required or invalid, using fallback`);
-        throw new Error('INSEE API authentication required');
-      }
-      throw new Error(`INSEE API error: ${response.status} ${response.statusText}`);
+    const data: any = await fetchFromProvider('insee', url, { timeout: 15000, retries: 2, headers: { 'Accept': 'application/json', 'Accept-Language': 'fr' } });
+    if (!data) {
+      throw new Error('INSEE API request failed');
     }
-
-    const data = await response.json();
     
     // Transformer les données INSEE en format NomosX
     const sources = await transformINSEEToSources(data, dataset, query);

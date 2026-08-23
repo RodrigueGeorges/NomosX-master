@@ -12,7 +12,7 @@
  * This is the DISSIDENT lens backbone — voices outside the institutional mainstream.
  */
 
-import { getRateLimiter } from '../http-client';
+import { fetchFromProvider } from '../http-client';
 
 interface ScoutNewsResult {
   id: string;
@@ -105,18 +105,19 @@ async function fetchRSSFeed(feed: RSSFeed, query: string, limit: number): Promis
     const keywords = query.toLowerCase().split(/\s+/).filter(w => w.length >= 3);
     if (keywords.length === 0) return [];
 
-    const res = await fetch(feed.url, {
-      signal: AbortSignal.timeout(10000),
+    const xml: string = await fetchFromProvider('rss', feed.url, {
+      timeout: 10000,
+      retries: 2,
       headers: {
         'User-Agent': 'NomosX Research Bot (+https://nomosx.com)',
         'Accept': 'application/rss+xml, application/xml, text/xml, application/atom+xml',
       },
+      responseType: 'text',
     });
-    if (!res.ok) {
-      console.warn(`[SCOUT/${feed.name}] HTTP ${res.status}`);
+    if (!xml) {
+      console.warn(`[SCOUT/${feed.name}] No data returned`);
       return [];
     }
-    const xml = await res.text();
 
     // Lightweight RSS parsing — extract <item> or <entry> blocks
     const items: string[] = [];
@@ -238,19 +239,17 @@ export async function searchGDELTIndependent(query: string, limit = 20): Promise
     const encoded = encodeURIComponent(cleanQuery);
     const url = `https://api.gdeltproject.org/api/v2/doc/doc?query=${encoded}%20domain:${encodeURIComponent(domainFilter)}&mode=ArtList&maxrecords=${Math.min(limit, 250)}&format=json&sort=DateDesc&timespan=30d`;
 
-    const limiter = getRateLimiter('gdelt-independent');
-    if (limiter) await limiter.acquire();
-
-    const res = await fetch(url, {
-      signal: AbortSignal.timeout(15000),
+    const text: string = await fetchFromProvider('gdelt', url, {
+      timeout: 15000,
+      retries: 2,
       headers: { 'User-Agent': 'NomosX Research Bot (+https://nomosx.com)' },
+      responseType: 'text',
     });
-    if (!res.ok) {
-      console.warn(`[SCOUT/GDELT-Independent] HTTP ${res.status}`);
+    if (!text) {
+      console.warn(`[SCOUT/GDELT-Independent] No data returned`);
       return [];
     }
 
-    const text = await res.text();
     let data: any;
     try {
       data = JSON.parse(text);

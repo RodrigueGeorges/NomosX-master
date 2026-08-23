@@ -23,7 +23,7 @@
  * Graceful skip: If ALTMETRIC_API_KEY is not set, returns null.
  */
 
-import { getRateLimiter } from '../http-client';
+import { fetchFromProvider } from '../http-client';
 
 export interface AltmetricData {
   doi: string;
@@ -51,28 +51,20 @@ export async function getAltmetricForDOI(doi: string): Promise<AltmetricData | n
   if (!doi) return null;
 
   try {
-    const limiter = getRateLimiter('altmetric');
-    if (limiter) await limiter.acquire();
-
     // Altmetric DOI endpoint — works with or without API key (rate-limited without)
     const keyParam = apiKey ? `&key=${apiKey}` : '';
     const url = `https://api.altmetric.com/v1/doi/${encodeURIComponent(doi)}?${keyParam}`;
 
-    const res = await fetch(url, {
-      signal: AbortSignal.timeout(10000),
+    const data: any = await fetchFromProvider('altmetric', url, {
+      timeout: 10000,
+      retries: 2,
       headers: {
         Accept: 'application/json',
         'User-Agent': 'NomosX Research Bot (+https://nomosx.com)',
       },
     });
 
-    if (res.status === 404) return null; // No altmetric data for this DOI
-    if (!res.ok) {
-      console.warn(`[Altmetric] HTTP ${res.status} for DOI ${doi}`);
-      return null;
-    }
-
-    const data: any = await res.json();
+    if (!data) return null; // No altmetric data for this DOI
 
     return {
       doi,

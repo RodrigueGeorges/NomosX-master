@@ -17,6 +17,13 @@ import { parseJson } from './json-utils';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
+export interface RagasSubMetrics {
+  faithfulness: { claim_coverage: number; contradiction_absence: number };
+  answerRelevancy: { question_alignment: number; conciseness: number };
+  contextPrecision: { relevance_ratio: number; noise_level: number };
+  contextRecall: { coverage: number; specificity: number };
+}
+
 export interface RagasMetrics {
   faithfulness: number;      // 0-100: answer supported by context
   answerRelevancy: number;   // 0-100: answer addresses question
@@ -59,11 +66,20 @@ ANSWER: ${answerShort}
 RETRIEVED CONTEXTS:
 ${joinedContexts}
 
-Evaluate the following metrics (0-100 each):
+Evaluate the following RAGAS rubric trees (0-100 each):
+
 1. **Faithfulness**: every claim in the answer is supported by the retrieved contexts.
+   - claim_coverage: every answer claim has a matching context passage
+   - contradiction_absence: no claims contradict the contexts
 2. **Answer Relevancy**: the answer directly addresses the question, no off-topic content.
+   - question_alignment: the answer matches the question intent
+   - conciseness: no unnecessary tangents
 3. **Context Precision**: the retrieved contexts are mostly relevant to the question.
+   - relevance_ratio: most retrieved text is relevant
+   - noise_level: little irrelevant or redundant context
 4. **Context Recall**: the contexts contain enough information to fully answer the question.
+   - coverage: key information needed to answer is present
+   - specificity: contexts include specific facts, not vague statements
 
 Return JSON:
 {
@@ -72,6 +88,12 @@ Return JSON:
     "answerRelevancy": 0-100,
     "contextPrecision": 0-100,
     "contextRecall": 0-100
+  },
+  "subMetrics": {
+    "faithfulness": { "claim_coverage": 0-100, "contradiction_absence": 0-100 },
+    "answerRelevancy": { "question_alignment": 0-100, "conciseness": 0-100 },
+    "contextPrecision": { "relevance_ratio": 0-100, "noise_level": 0-100 },
+    "contextRecall": { "coverage": 0-100, "specificity": 0-100 }
   },
   "explanation": "short explanation of the scores"
 }

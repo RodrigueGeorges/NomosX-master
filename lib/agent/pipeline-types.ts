@@ -398,6 +398,18 @@ export interface PipelineStats {
     costUsd?: number;
   };
 
+  // Step 8b: Active Repair Loop (CiteGuard + FRANQ driven correction)
+  activeRepair?: {
+    iterations: number;
+    citationsReplaced: number;
+    hallucinationsRemoved: number;
+    citationsAdded: number;
+    hedgesInjected: number;
+    integrityBefore: number;
+    integrityAfter: number;
+    qualityThresholdMet: boolean;
+  };
+
   // Step 9a: Source Check (retraction detection + claim presence verification)
   // Resolves each cited source via OpenAlex/Crossref, checks for retraction,
   // and verifies the claim text appears in the source. Free, deterministic.
@@ -706,6 +718,27 @@ export interface PipelineStats {
 
   // Blackboard summary (2026 pattern — cross-agent shared context)
   blackboard?: Record<string, unknown>;
+
+  // S14-A: Symbolic verification (NSRSA 2026) — deterministic arithmetic/temporal checks
+  symbolicVerifier?: {
+    score: number;
+    passed: number;
+    failed: number;
+    flagged: number;
+  };
+
+  // S14-G: Test-Time Scaling (ICLR 2026) — parallel candidate generation + verification
+  testTimeScaling?: {
+    activated: boolean;
+    candidatesCompared: number;
+    winnerCitations: number;
+  };
+
+  // S14-H: Chain-of-Verification (CoVe — Meta ACL 2024) — claim extraction + question planning
+  chainVerification?: {
+    claimsExtracted: number;
+    questionsGenerated: number;
+  };
 
   // Error
   error?: string;

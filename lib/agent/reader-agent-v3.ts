@@ -312,102 +312,169 @@ function buildQuantitativeDescriptor(sourceType: string): string {
 /**
  * Download and parse a PDF, returning raw text.
  * Uses pdf-parse (already in package.json).
+ * P1-E FIX (pdfmux 2026 pattern): 2 retries with exponential backoff + 30s timeout.
+ * Old: single attempt, 15s timeout → permanent fallback on network blips.
+ * New: 2 retries with 2s/4s backoff + jitter, 30s timeout for large papers.
  */
-async function extractPdfText(url: string, timeout = 15000): Promise<string | null> {
-  try {
-    // Download PDF
-    const response = await axios.get(url, {
-      responseType: 'arraybuffer',
-      timeout,
-      maxContentLength: 20 * 1024 * 1024, // 20MB max
-      headers: {
-        'User-Agent': 'NomosX/3.0 (Academic Research Platform; mailto:contact@nomosx.com)',
-      },
-    });
+async function extractPdfText(url: string, timeout = 30000): Promise<string | null> {
+  const MAX_RETRIES = 2;
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      // Download PDF
+      const response = await axios.get(url, {
+        responseType: 'arraybuffer',
+        timeout,
+        maxContentLength: 20 * 1024 * 1024, // 20MB max
+        headers: {
+          'User-Agent': 'NomosX/3.0 (Academic Research Platform; mailto:contact@nomosx.com)',
+        },
+      });
 
-    // Use dynamic import for pdf-parse (new API: PDFParse class)
-    const { PDFParse } = await import('pdf-parse');
-    const parser = new PDFParse({ data: Buffer.from(response.data) });
-    const data = await parser.getText();
-    let numPages = 0;
-    try { const info = await parser.getInfo(); numPages = info.total; } catch (err) { console.warn('[Reader V3] PDF getInfo failed:', err); }
-    try { await parser.destroy(); } catch (err) { console.warn('[Reader V3] PDF destroy failed:', err); }
+      // Use dynamic import for pdf-parse (new API: PDFParse class)
+      const { PDFParse } = await import('pdf-parse');
+      const parser = new PDFParse({ data: Buffer.from(response.data) });
+      const data = await parser.getText();
+      let numPages = 0;
+      try { const info = await parser.getInfo(); numPages = info.total; } catch (err) { console.warn('[Reader V3] PDF getInfo failed:', err); }
+      try { await parser.destroy(); } catch (err) { console.warn('[Reader V3] PDF destroy failed:', err); }
 
-    const text = data?.text || '';
-    if (text.trim().length < 100) {
-      console.log(`[Reader V3] PDF parsed but too short (${text.length} chars)`);
-      return null;
+      const text = data?.text || '';
+      if (text.trim().length < 100) {
+        console.log(`[Reader V3] PDF parsed but too short (${text.length} chars)`);
+        return null;
+      }
+
+      console.log(`[Reader V3] PDF extracted: ${text.length} chars, ${numPages} pages${attempt > 0 ? ` (attempt ${attempt + 1})` : ''}`);
+      return text;
+    } catch (error: any) {
+      // Classify failure: transient (timeout, 5xx, network) → retry; structural (403, 404, invalid PDF) → don't retry
+      const isTransient = error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT' ||
+        error.code === 'ECONNRESET' || error.code === 'ENOTFOUND' ||
+        (error.response && error.response.status >= 500) ||
+        error.message.includes('timeout') || error.message.includes('network');
+      const isStructural = (error.response && (error.response.status === 403 || error.response.status === 404)) ||
+        error.message.includes('Invalid PDF structure');
+
+      if (isStructural || attempt === MAX_RETRIES) {
+        console.warn(`[Reader V3] PDF extraction failed: ${error.message}${attempt > 0 ? ` (after ${attempt + 1} attempts)` : ''}`);
+        return null;
+      }
+      if (isTransient) {
+        // Exponential backoff with jitter: 2s, 4s + 0-1s jitter
+        const baseDelay = 2000 * Math.pow(2, attempt);
+        const jitter = Math.random() * 1000;
+        const delay = baseDelay + jitter;
+        console.warn(`[Reader V3] PDF extraction attempt ${attempt + 1} failed (${error.message}), retrying in ${Math.round(delay)}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      } else {
+        console.warn(`[Reader V3] PDF extraction failed: ${error.message}`);
+        return null;
+      }
     }
-
-    console.log(`[Reader V3] PDF extracted: ${text.length} chars, ${numPages} pages`);
-    return text;
-  } catch (error: any) {
-    console.warn(`[Reader V3] PDF extraction failed: ${error.message}`);
-    return null;
   }
+  return null;
 }
 
 /**
  * Fetch a news article URL and extract readable text from HTML.
  * Strips scripts, styles, nav, and extracts main content.
  */
-async function fetchNewsArticleText(url: string, timeout = 12000): Promise<string | null> {
-  try {
-    const res = await fetch(url, {
-      signal: AbortSignal.timeout(timeout),
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; NomosXBot/1.0; +https://nomosx.com)',
-        'Accept': 'text/html,application/xhtml+xml',
-      },
-      redirect: 'follow',
-    });
+async function fetchNewsArticleText(url: string, timeout = 20000): Promise<string | null> {
+  // S14-D FIX: Added retry logic matching PDF pattern (2 retries with backoff + jitter)
+  // Also increased timeout from 12s to 20s for slow news sites.
+  const MAX_RETRIES = 2;
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const res = await fetch(url, {
+        signal: AbortSignal.timeout(timeout),
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; NomosXBot/1.0; +https://nomosx.com)',
+          'Accept': 'text/html,application/xhtml+xml',
+        },
+        redirect: 'follow',
+      });
 
-    if (!res.ok) {
-      console.warn(`[Reader V3] News fetch HTTP ${res.status} for ${url.slice(0, 80)}`);
-      return null;
+      if (!res.ok) {
+        // Structural errors (403, 404) — don't retry
+        if (res.status === 403 || res.status === 404 || res.status === 410) {
+          console.warn(`[Reader V3] News fetch HTTP ${res.status} for ${url.slice(0, 80)}`);
+          return null;
+        }
+        // Transient errors (429, 5xx) — retry
+        if (attempt < MAX_RETRIES && (res.status === 429 || res.status >= 500)) {
+          const delay = 2000 * Math.pow(2, attempt) + Math.random() * 1000;
+          console.warn(`[Reader V3] News fetch HTTP ${res.status}, retrying in ${Math.round(delay)}ms (attempt ${attempt + 1})`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+          continue;
+        }
+        console.warn(`[Reader V3] News fetch HTTP ${res.status} for ${url.slice(0, 80)}`);
+        return null;
+      }
+
+      const html = await res.text();
+      if (html.length < 500) return null;
+
+      // Extract text from common article content patterns
+      let text = html;
+
+      // Remove script and style blocks
+      text = text.replace(/<script[\s\S]*?<\/script>/gi, '');
+      text = text.replace(/<style[\s\S]*?<\/style>/gi, '');
+      text = text.replace(/<nav[\s\S]*?<\/nav>/gi, '');
+      text = text.replace(/<footer[\s\S]*?<\/footer>/gi, '');
+      text = text.replace(/<header[\s\S]*?<\/header>/gi, '');
+      text = text.replace(/<aside[\s\S]*?<\/aside>/gi, '');
+
+      // Try to extract <article> or <main> content first
+      const articleMatch = text.match(/<(?:article|main)[\s\S]*?>([\s\S]*?)<\/(?:article|main)>/i);
+      if (articleMatch && articleMatch[1].length > 500) {
+        text = articleMatch[1];
+      }
+
+      // S14-D: Also try Schema.org JSON-LD extraction for article body
+      const jsonLdMatch = html.match(/<script[^>]*type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/i);
+      if (jsonLdMatch && text.length < 1000) {
+        try {
+          const jsonLd = JSON.parse(jsonLdMatch[1]);
+          if (jsonLd.articleBody && typeof jsonLd.articleBody === 'string') {
+            text = jsonLd.articleBody;
+          }
+        } catch { /* JSON-LD parse failed — fall back to HTML extraction */ }
+      }
+
+      // Remove remaining HTML tags
+      text = text.replace(/<[^>]+>/g, ' ');
+      // Decode common HTML entities
+      text = text.replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+      // Collapse whitespace
+      text = text.replace(/\s+/g, ' ').trim();
+
+      if (text.length < 200) {
+        console.warn(`[Reader V3] News article too short (${text.length} chars) for ${url.slice(0, 80)}`);
+        return null;
+      }
+
+      // Cap at 8000 chars to stay within LLM context limits
+      if (text.length > 8000) text = text.slice(0, 8000);
+
+      console.log(`[Reader V3] News article extracted: ${text.length} chars from ${url.slice(0, 80)}${attempt > 0 ? ` (attempt ${attempt + 1})` : ''}`);
+      return text;
+    } catch (error: any) {
+      // Classify: transient (timeout, network) → retry; structural → don't retry
+      const isTransient = error.name === 'TimeoutError' || error.name === 'AbortError' ||
+        error.message.includes('timeout') || error.message.includes('network') ||
+        error.message.includes('fetch failed') || error.message.includes('ECONNRESET');
+      if (isTransient && attempt < MAX_RETRIES) {
+        const delay = 2000 * Math.pow(2, attempt) + Math.random() * 1000;
+        console.warn(`[Reader V3] News fetch attempt ${attempt + 1} failed (${error.message}), retrying in ${Math.round(delay)}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      } else {
+        console.warn(`[Reader V3] News fetch failed: ${error.message} for ${url.slice(0, 80)}`);
+        return null;
+      }
     }
-
-    const html = await res.text();
-    if (html.length < 500) return null;
-
-    // Extract text from common article content patterns
-    let text = html;
-
-    // Remove script and style blocks
-    text = text.replace(/<script[\s\S]*?<\/script>/gi, '');
-    text = text.replace(/<style[\s\S]*?<\/style>/gi, '');
-    text = text.replace(/<nav[\s\S]*?<\/nav>/gi, '');
-    text = text.replace(/<footer[\s\S]*?<\/footer>/gi, '');
-    text = text.replace(/<header[\s\S]*?<\/header>/gi, '');
-    text = text.replace(/<aside[\s\S]*?<\/aside>/gi, '');
-
-    // Try to extract <article> or <main> content first
-    const articleMatch = text.match(/<(?:article|main)[\s\S]*?>([\s\S]*?)<\/(?:article|main)>/i);
-    if (articleMatch && articleMatch[1].length > 500) {
-      text = articleMatch[1];
-    }
-
-    // Remove remaining HTML tags
-    text = text.replace(/<[^>]+>/g, ' ');
-    // Decode common HTML entities
-    text = text.replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'");
-    // Collapse whitespace
-    text = text.replace(/\s+/g, ' ').trim();
-
-    if (text.length < 200) {
-      console.warn(`[Reader V3] News article too short (${text.length} chars) for ${url.slice(0, 80)}`);
-      return null;
-    }
-
-    // Cap at 8000 chars to stay within LLM context limits
-    if (text.length > 8000) text = text.slice(0, 8000);
-
-    console.log(`[Reader V3] News article extracted: ${text.length} chars from ${url.slice(0, 80)}`);
-    return text;
-  } catch (error: any) {
-    console.warn(`[Reader V3] News fetch failed: ${error.message} for ${url.slice(0, 80)}`);
-    return null;
   }
+  return null;
 }
 
 const NEWS_PROVIDERS = ['gdelt-news', 'newsapi', 'mediastack', 'thenewsapi', 'gnews', 'eventregistry', 'linkup'];

@@ -5,6 +5,7 @@
 
 import { callLLM } from '../llm/unified-llm';
 import { parseJson } from './json-utils';
+import { composeIntelligentStyleGuide } from './style-judge';
 import type { DebateResult } from './debate-agent';
 import type {
   CastingResult,
@@ -110,13 +111,36 @@ export async function editorialArbiter(input: ArbiterInput): Promise<InstitutePo
     .join('\n');
 
   try {
+    const { guide: style } = await composeIntelligentStyleGuide({
+      question: input.question,
+      domain: input.classification?.detectedSubject,
+      audience: 'policymaker',
+      sources: input.sources,
+    });
+
+    const { getLatestPrompt } = await import('./self-evolver');
+    const evolvedInstructions = await getLatestPrompt('editorial_arbiter', style.promptBlock);
+
     const response = await callLLM({
       messages: [
         {
           role: 'system',
-          content: `You are the editorial arbiter at NomosX — the institute's final decision voice.
-You publish a POSITION, not a literature review. Every claim needs [SRC-N] citations.
-Be decisive. Acknowledge uncertainty via confidence score, not vague balance.`,
+          content: `You are the editorial arbiter at NomosX — the institute's final decision voice. Voice: ${style.combinedVoice}.
+
+${evolvedInstructions}
+
+ADDITIONAL INSTRUCTIONS (apply strictly):
+1. PROBLEM FIRST, NOT TOPIC — open by defining the specific policy problem, not the general issue. (HKS rule: "The geopolitics of X are shifting" is an issue; "The U.S. lacks tools to protect Y" is a problem.)
+2. B.L.U.F. — in the first 100 words: the problem, the stakes, the finding, the recommended action.
+3. ANALYZE, DON'T JUST PRESENT — explain how the evidence supports the conclusion. Show reasoning, not assertion.
+4. CAREFUL CONCLUSIONS — draw conclusions the data can bear. Do not overstate or misrepresent. Distinguish correlation from causation.
+5. NUANCED BUT ACTIONABLE RECOMMENDATIONS — give a first choice, a fallback, and who should act. Acknowledge trade-offs and counter-arguments.
+6. ACTIVE, PRECISE LANGUAGE — "We recommend...", "The priority should be...", not "It has been suggested..." or "The literature indicates..."
+7. SCOPE IS WIDE — cover geopolitical, institutional, legal, social, technological, and economic dimensions where relevant; do not reduce everything to economics.
+8. EVERY CLAIM needs [SRC-N] citations. Use confidence score to express uncertainty, not hedging prose.
+9. CONCISION — one idea per sentence; cut "somewhat", "could perhaps", "might be considered".
+10. AUDIENCE-AWARE — assume a smart, busy reader with policy expertise but not deep subject-matter expertise. Avoid jargon and acronyms unless defined.`,
+
         },
         {
           role: 'user',
@@ -159,12 +183,18 @@ Return JSON:
   ],
   "dominantScenario": "name of most likely scenario",
   "objections": ["strongest counter-argument 1", "..."],
-  "whatChangesMind": ["falsifiable trigger 1", "..."]
+  "whatChangesMind": ["falsifiable trigger 1", "..."],
+  "recommendations": {
+    "immediate": ["actionable recommendation for 0-3 months with [SRC-N]", "..."],
+    "shortTerm": ["recommendation for 3-12 months", "..."],
+    "longTerm": ["recommendation for 1-5 years", "..."],
+    "riskMitigation": ["how to mitigate the key risk", "..."]
+  }
 }`,
         },
       ],
       temperature: 0.2,
-      maxTokens: 3000,
+      maxTokens: 4000,
       jsonMode: true,
       enableCache: false,
       task: 'editorial_arbiter',
@@ -181,16 +211,83 @@ Return JSON:
       signals: Array.isArray(s.signals) ? s.signals.map(String) : undefined,
     }));
 
+    // ── Delphi foresight: multi-expert scenario calibration ──
+    // Professional-grade forecasting: base rates + Fermi decomposition + 3-round Delphi
+    // + extremizing + bootstrap CIs + key drivers + sensitivity analysis
+    let delphiCostUsd = 0;
+    let delphiMeta: { convergence: number; brierEstimate: number; baseRateAnalysis: string } | undefined;
+    if (outScenarios.length >= 2 && input.sources.length >= 5) {
+      try {
+        const { runDelphiForesight } = await import('./foresight-delphi');
+        // Build rich evidence snippets — include abstracts when available
+        const evidenceSnippets = input.sources
+          .slice(0, 20)
+          .map((s: any) => {
+            const parts = [s.title ?? ''];
+            if (s.year) parts.push(`(${s.year})`);
+            if (s.provider) parts.push(`— ${s.provider}`);
+            // Include abstract snippet if available (truncated)
+            const abstract = s.abstract ?? s.raw?.abstract ?? '';
+            if (abstract) parts.push(`: ${abstract.slice(0, 200)}`);
+            return parts.join(' ');
+          });
+        const contextStr = String(
+          input.analysis.verdict ?? input.analysis.summary ?? input.analysis.executiveSummary ?? input.question
+        ).slice(0, 2000);
+        const delphiResult = await runDelphiForesight(
+          input.question,
+          outScenarios.map(s => s.name),
+          outScenarios.map(s => s.description),
+          evidenceSnippets,
+          contextStr
+        );
+        delphiCostUsd = delphiResult.costUsd;
+        delphiMeta = {
+          convergence: delphiResult.convergenceScore,
+          brierEstimate: delphiResult.brierScoreEstimate,
+          baseRateAnalysis: delphiResult.baseRateAnalysis,
+        };
+        // Apply calibrated probabilities with confidence intervals
+        for (const scenario of outScenarios) {
+          const delphiScenario = delphiResult.scenarios.find(d => d.name === scenario.name);
+          if (delphiScenario) {
+            const pct = (delphiScenario.calibratedProbability * 100).toFixed(0);
+            const ciLow = (delphiScenario.confidenceInterval[0] * 100).toFixed(0);
+            const ciHigh = (delphiScenario.confidenceInterval[1] * 100).toFixed(0);
+            scenario.probability = `${pct}%`;
+            scenario.empiricalProbability = delphiScenario.calibratedProbability;
+            // Enrich signals with Delphi-extracted signals + key drivers
+            const delphiSignals = [
+              ...delphiScenario.signals,
+              ...delphiScenario.keyDrivers.slice(0, 2).map(d => `Driver: ${d}`),
+            ];
+            if (delphiSignals.length > 0) {
+              scenario.signals = delphiSignals.slice(0, 5);
+            }
+          }
+        }
+        console.log(`[EDITORIAL ARBITER] Delphi: ${outScenarios.length} scenarios, convergence=${(delphiResult.convergenceScore * 100).toFixed(0)}%, Brier est=${delphiResult.brierScoreEstimate.toFixed(3)}, cost=$${delphiCostUsd.toFixed(4)}`);
+      } catch (delphiErr) {
+        console.warn('[EDITORIAL ARBITER] Delphi foresight failed (non-blocking):', delphiErr);
+      }
+    }
+
     return {
-      headline: String(parsed.headline ?? fallback.headline),
-      verdict: String(parsed.verdict ?? fallback.verdict),
+      headline: String(parsed.headline || fallback.headline),
+      verdict: String(parsed.verdict || fallback.verdict),
       confidence: conf,
       confidenceLabel: confidenceLabel(conf),
       scenarios: outScenarios.length ? outScenarios : fallback.scenarios,
       dominantScenario: parsed.dominantScenario ? String(parsed.dominantScenario) : outScenarios[0]?.name,
       objections: (parsed.objections ?? []).map(String).slice(0, 5),
       whatChangesMind: (parsed.whatChangesMind ?? []).map(String).slice(0, 5),
-      costUsd: response.costUsd,
+      recommendations: parsed.recommendations ? {
+        immediate: Array.isArray(parsed.recommendations.immediate) ? parsed.recommendations.immediate.map(String).slice(0, 5) : undefined,
+        shortTerm: Array.isArray(parsed.recommendations.shortTerm) ? parsed.recommendations.shortTerm.map(String).slice(0, 5) : undefined,
+        longTerm: Array.isArray(parsed.recommendations.longTerm) ? parsed.recommendations.longTerm.map(String).slice(0, 5) : undefined,
+        riskMitigation: Array.isArray(parsed.recommendations.riskMitigation) ? parsed.recommendations.riskMitigation.map(String).slice(0, 5) : undefined,
+      } : undefined,
+      costUsd: response.costUsd + delphiCostUsd,
     };
   } catch (err) {
     console.warn('[EDITORIAL ARBITER] failed, using fallback position:', err);

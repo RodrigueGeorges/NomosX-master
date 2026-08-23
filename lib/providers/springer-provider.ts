@@ -81,13 +81,46 @@ export async function searchSpringer(query: string, limit = 20): Promise<any[]> 
     }
   }
 
-  // Fallback: use OpenAlex filtered to Springer source (no API key needed)
+  // Fallback 1: use OpenAlex filtered to Springer source (no API key needed)
   try {
-    return await searchOpenAlex(query, limit, {
+    const results = await searchOpenAlex(query, limit, {
       filter: 'primary_location.source.id:https://openalex.org/S4306401296',
     });
+    if (results.length > 0) return results;
   } catch (fallbackErr: any) {
-    console.warn(`[SCOUT/Springer] OpenAlex fallback also failed: ${fallbackErr.message}`);
+    console.warn(`[SCOUT/Springer] OpenAlex fallback failed: ${fallbackErr.message}`);
+  }
+
+  // Fallback 2: Crossref filtered to Springer DOI prefix (10.1007)
+  try {
+    const { searchCrossref } = await import('./crossref');
+    const crUrl = `https://api.crossref.org/works?query=${encodeURIComponent(query)}&filter=prefix:10.1007&rows=${Math.min(limit, 25)}`;
+    const data: any = await fetchFromProvider('springer', crUrl, {
+      timeout: 20000,
+      retries: 2,
+      headers: { 'User-Agent': 'NomosX/1.0 (mailto:contact@nomosx.com)' },
+    });
+    const items = data?.message?.items || [];
+    return items.slice(0, limit).map((item: any) => ({
+      id: `springer:${item.DOI || Math.random()}`,
+      provider: 'springer',
+      type: 'journal-article',
+      title: item.title?.[0] || 'Untitled',
+      abstract: item.abstract || null,
+      url: item.URL || (item.DOI ? `https://doi.org/${item.DOI}` : ''),
+      doi: item.DOI || null,
+      year: item.published?.dateParts?.[0]?.[0] || null,
+      publishedDate: item.published?.dateParts?.[0]?.join('-') || '',
+      authors: (item.author || []).map((a: any) => ({ name: `${a.given || ''} ${a.family || ''}`.trim() })),
+      institutions: [item.publisher].filter(Boolean),
+      citationCount: item['is-referenced-by-count'] || 0,
+      qualityScore: 65,
+      oaStatus: 'closed',
+      hasFullText: false,
+      raw: item,
+    }));
+  } catch (crErr: any) {
+    console.warn(`[SCOUT/Springer] Crossref fallback also failed: ${crErr.message}`);
     return [];
   }
 }

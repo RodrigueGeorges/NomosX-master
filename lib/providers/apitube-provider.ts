@@ -5,6 +5,8 @@
  * Each article enriched with entities, sentiment, categories, source authority.
  */
 
+import { fetchFromProvider } from '../http-client';
+
 const APITUBE_API_KEY = process.env.APITUBE_API_KEY || "";
 const APITUBE_ENDPOINT = "https://api.apitube.io/v1/news/articles";
 
@@ -21,21 +23,11 @@ export async function searchAPITube(query: string, limit = 20): Promise<any[]> {
       sort: 'date_desc',
     });
 
-    const response = await fetch(`${APITUBE_ENDPOINT}?${params}`, {
-      method: 'GET',
-      headers: {
-        'X-API-Key': APITUBE_API_KEY,
-        'Accept': 'application/json',
-      },
-      signal: AbortSignal.timeout(15000),
-    });
-
-    if (!response.ok) {
-      console.warn(`[SCOUT/APITube] HTTP ${response.status}`);
+    const data: any = await fetchFromProvider('apitube', `${APITUBE_ENDPOINT}?${params}`, { timeout: 15000, retries: 2, headers: { 'X-API-Key': APITUBE_API_KEY, 'Accept': 'application/json' } });
+    if (!data) {
+      console.warn(`[SCOUT/APITube] Request failed`);
       return [];
     }
-
-    const data = await response.json() as any;
     const articles = data?.articles || data?.data || data?.results || [];
 
     if (!Array.isArray(articles)) {

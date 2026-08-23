@@ -95,6 +95,8 @@ export interface ThinkTankCycleOptions {
   maxPublications?: number;
   budgetUsd?: number;
   dryRun?: boolean;
+  /** Bypass weekly cadence check — force publication even if slots are full */
+  bypassCadence?: boolean;
 }
 
 export interface ThinkTankDispatchOutcome {
@@ -553,6 +555,24 @@ async function executeDispatchQueue(
       break;
     }
 
+    // Global budget gate — check monthly/daily caps before each dispatch
+    try {
+      const { checkBudgetGate } = await import('./budget-manager');
+      const gate = await checkBudgetGate();
+      if (gate === 'stop') {
+        console.log(`[ThinkTank] Global budget cap exceeded — skipping remaining ${items.length - executed} item(s)`);
+        skipped += items.length - executed;
+        break;
+      }
+      if (gate === 'throttle' && executed >= 1) {
+        console.log(`[ThinkTank] Budget critical — throttling (1 dispatch max this cycle)`);
+        skipped += items.length - executed;
+        break;
+      }
+    } catch (budgetErr) {
+      // Non-blocking — don't fail the cycle if budget check fails
+    }
+
     // Adaptive trust: signals already pre-validated by radar/editorial — lower threshold
     // Niche domains also get lower threshold (fewer sources exist but can still be valid)
     const nicheDomains = ['cognitive-science', 'bioethics', 'complexity-science', 'urban-studies', 'development-economics'];
@@ -592,6 +612,13 @@ async function executeDispatchQueue(
     outcomes.push({ item, result });
     totalCostUsd += result.costUsd;
     executed++;
+
+    // Record spend to global budget tracker
+    if (result.costUsd > 0) {
+      import('./budget-manager')
+        .then(({ recordSpend }) => recordSpend(result.costUsd, 'pipeline', item.question.slice(0, 60)))
+        .catch(() => {});
+    }
 
     if (result.status === "published") {
       published++;
@@ -661,7 +688,7 @@ export async function runThinkTankCycle(
     `[ThinkTank] Cycle mode=${options.mode} cadence=${cadence.remainingSlots}/${cadence.weeklyMax} dryRun=${!!options.dryRun}`
   );
 
-  if (options.mode === "weekly" && cadence.remainingSlots <= 0) {
+  if (options.mode === "weekly" && cadence.remainingSlots <= 0 && !options.bypassCadence) {
     console.log("[ThinkTank] Weekly cadence full — silence is respected");
     return emptyResult(options.mode, cadence, started);
   }
@@ -682,8 +709,10 @@ export async function runThinkTankCycle(
     phases = collected.phases;
     errors.push(...collected.errors);
 
-    // Breaking scans respect global weekly cadence too
-    maxExecutions = Math.min(maxExecutions, cadence.remainingSlots);
+    // Breaking scans respect global weekly cadence too (unless bypassed)
+    if (!options.bypassCadence) {
+      maxExecutions = Math.min(maxExecutions, cadence.remainingSlots);
+    }
     if (maxExecutions <= 0) {
       console.log("[ThinkTank] No weekly slots left for breaking publish");
       return { ...emptyResult(options.mode, cadence, started), phases, decideCostUsd };

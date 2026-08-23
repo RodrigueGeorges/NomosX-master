@@ -13,6 +13,7 @@
 import { inquiryUrl, archivesUrl } from '@/lib/public-urls';
 import { EMAIL_BRAND as EMAIL } from '@/lib/brand/email-brand';
 import { emailLogoHeaderHtml } from '@/lib/brand/logo-inline';
+import { httpPost } from './http-client';
 import {
   BRAND_EMAIL_FOOTER,
   BRAND_EMAIL_TAGLINE,
@@ -52,22 +53,18 @@ async function sendEmail({ to, subject, html, text }: { to: string; subject: str
     return { success: false, error: 'RESEND_API_KEY not configured' };
   }
 
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${RESEND_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ from: EMAIL_FROM, to, subject, html, text }),
-  });
-
-  if (!res.ok) {
-    const body = await res.text();
-    console.error('[Email] Resend error:', res.status, body);
-    return { success: false, error: `Resend error: ${res.status}` };
+  try {
+    await httpPost('https://api.resend.com/emails', { from: EMAIL_FROM, to, subject, html, text }, {
+      timeout: 15000,
+      retries: 2,
+      rateLimiterKey: 'resend',
+      headers: { 'Authorization': `Bearer ${RESEND_API_KEY}` },
+    });
+    return { success: true };
+  } catch (err: any) {
+    console.error('[Email] Resend error:', err.message?.slice(0, 200));
+    return { success: false, error: `Resend error: ${err.message?.slice(0, 100)}` };
   }
-
-  return { success: true };
 }
 
 // ─── Shared layout wrapper ──────────────────────────────────────────────────

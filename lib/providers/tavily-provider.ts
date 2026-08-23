@@ -7,6 +7,8 @@
  * Auth: Bearer tvly-YOUR_API_KEY
  */
 
+import { httpPost } from '../http-client';
+
 const TAVILY_API_KEY = process.env.TAVILY_API_KEY || "";
 const TAVILY_ENDPOINT = "https://api.tavily.com/search";
 
@@ -48,22 +50,18 @@ export async function searchTavily(
     if (options?.exclude_domains?.length) body.exclude_domains = options.exclude_domains;
     if (options?.country) body.country = options.country;
 
-    const response = await fetch(TAVILY_ENDPOINT, {
-      method: 'POST',
+    const data: any = await httpPost(TAVILY_ENDPOINT, body, {
+      timeout: 20000,
+      retries: 2,
+      rateLimiterKey: 'tavily',
       headers: {
-        'Content-Type': 'application/json',
         'Authorization': `Bearer ${TAVILY_API_KEY}`,
       },
-      body: JSON.stringify(body),
-      signal: AbortSignal.timeout(20000),
     });
-
-    if (!response.ok) {
-      console.warn(`[SCOUT/Tavily] HTTP ${response.status}`);
+    if (!data) {
+      console.warn(`[SCOUT/Tavily] Request failed`);
       return [];
     }
-
-    const data = await response.json() as any;
     const results = data?.results || [];
 
     if (!Array.isArray(results)) {

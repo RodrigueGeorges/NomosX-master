@@ -216,6 +216,38 @@ Return JSON: { "lessons": ["lesson 1", "lesson 2", ...] }`,
 // ============================================================================
 
 /**
+ * S15-15: Get per-provider performance from AgentAuditLog.
+ * Returns lists of preferred (>70% success) and avoid (<30% success) providers.
+ */
+export async function getProviderPerformance(): Promise<{ preferred: string[]; avoid: string[] }> {
+  try {
+    const records = await prisma.agentAuditLog.findMany({
+      where: { action: 'PROVIDER_RESULT' },
+      orderBy: { timestamp: 'desc' },
+      take: 100,
+    });
+    const stats: Record<string, { success: number; total: number }> = {};
+    for (const r of records) {
+      const m = JSON.parse(r.metadata || '{}');
+      if (!m.provider) continue;
+      if (!stats[m.provider]) stats[m.provider] = { success: 0, total: 0 };
+      stats[m.provider].total++;
+      if (m.success) stats[m.provider].success++;
+    }
+    const preferred: string[] = [];
+    const avoid: string[] = [];
+    for (const [provider, s] of Object.entries(stats)) {
+      const rate = s.success / s.total;
+      if (rate > 0.7 && s.total >= 3) preferred.push(provider);
+      if (rate < 0.3 && s.total >= 3) avoid.push(provider);
+    }
+    return { preferred, avoid };
+  } catch {
+    return { preferred: [], avoid: [] };
+  }
+}
+
+/**
  * Compute calibration for an agent based on its performance history.
  * Returns adjusted thresholds and provider preferences.
  */
@@ -283,13 +315,16 @@ export async function computeCalibration(
     recentAvg > olderAvg + 3 ? "improving" :
     recentAvg < olderAvg - 3 ? "degrading" : "stable";
 
+  // S15-15: Per-provider performance tracking
+  const perf = await getProviderPerformance();
+
   return {
     agentId,
     domain,
     confidenceAdjustment,
     minQualityThreshold: Math.max(50, avgQuality - 10),
-    preferredProviders: [],   // TODO: track per-provider performance
-    avoidProviders: [],
+    preferredProviders: perf.preferred,
+    avoidProviders: perf.avoid,
     strengthenChecks: topFailures,
     totalRuns: parsed.length,
     avgTrustScore: avgTrust,
@@ -389,7 +424,7 @@ export async function buildMemoryInjection(
   if (topicQuery && lessons.length > 0) {
     try {
       const topicEmbedding = await embedText(topicQuery.slice(0, 500));
-      const scored: Array<{ lesson: AgentLesson; sim: number }> = [];
+      const scored: Array<{ lesson: AgentLesson; sim: number; embedding?: number[] }> = [];
 
       for (const lesson of lessons) {
         const lessonEmbedding = await embedText(lesson.lesson.slice(0, 500)).catch(() => null);
@@ -399,26 +434,45 @@ export async function buildMemoryInjection(
           continue;
         }
         const sim = cosineSimilarity(topicEmbedding, lessonEmbedding);
-        scored.push({ lesson, sim });
+        scored.push({ lesson, sim, embedding: lessonEmbedding });
       }
 
       // Filter by relevance threshold and log rejected lessons
       const before = scored.length;
-      relevantLessons = scored
-        .filter(s => {
-          if (s.sim < minRelevance) {
-            console.log(`[AGENT MEMORY] Rejected lesson (relevance ${s.sim.toFixed(2)} < ${minRelevance}): "${s.lesson.lesson.slice(0, 80)}..."`);
-            return false;
+      const filtered = scored.filter(s => {
+        if (s.sim < minRelevance) {
+          console.log(`[AGENT MEMORY] Rejected lesson (relevance ${s.sim.toFixed(2)} < ${minRelevance}): "${s.lesson.lesson.slice(0, 80)}..."`);
+          return false;
+        }
+        return true;
+      });
+
+      // RAR-style MMR (Retrieval-Augmented Reflexion): diversify similar past lessons
+      // so the agent learns from contrastive experiences, not just the most similar ones.
+      const lambda = 0.5;
+      const selected: Array<{ lesson: AgentLesson; sim: number; embedding?: number[] }> = [];
+      const remaining = [...filtered];
+      while (selected.length < maxLessons && remaining.length > 0) {
+        let bestIndex = 0;
+        let bestScore = -Infinity;
+        for (let i = 0; i < remaining.length; i++) {
+          const candidate = remaining[i];
+          const relevance = candidate.sim * candidate.lesson.weight * candidate.lesson.successRate;
+          const maxRedundancy = selected.length === 0 || !candidate.embedding
+            ? 0
+            : Math.max(...selected
+                .filter(s => s.embedding)
+                .map(s => cosineSimilarity(s.embedding!, candidate.embedding!)));
+          const mmrScore = lambda * relevance - (1 - lambda) * maxRedundancy;
+          if (mmrScore > bestScore) {
+            bestScore = mmrScore;
+            bestIndex = i;
           }
-          return true;
-        })
-        .sort((a, b) => {
-          // Sort by relevance × weight × successRate
-          const scoreA = a.sim * a.lesson.weight * a.lesson.successRate;
-          const scoreB = b.sim * b.lesson.weight * b.lesson.successRate;
-          return scoreB - scoreA;
-        })
-        .map(s => s.lesson);
+        }
+        selected.push(remaining[bestIndex]);
+        remaining.splice(bestIndex, 1);
+      }
+      relevantLessons = selected.map(s => s.lesson);
 
       const rejected = before - relevantLessons.length;
       if (rejected > 0) {

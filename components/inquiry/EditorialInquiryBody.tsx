@@ -35,6 +35,18 @@ function Block({ children, className }: { children: React.ReactNode; className?:
 export function EditorialInquiryBody({ data, className }: EditorialInquiryBodyProps) {
   return (
     <div className={cn("max-w-3xl", className)}>
+      {data.heroImageUrl && (
+        <div className="mb-8 -mx-6 sm:-mx-8 overflow-hidden border-b border-white/[0.08]">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={data.heroImageUrl}
+            alt={data.collision || "Brief hero illustration"}
+            className="w-full h-auto max-h-[480px] object-cover"
+            style={{ filter: "brightness(0.92) contrast(1.08)" }}
+          />
+        </div>
+      )}
+
       {(data.collision || data.detectedReason) && (
         <Block>
           <Eyebrow>Detected subject</Eyebrow>

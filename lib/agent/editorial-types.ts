@@ -46,6 +46,12 @@ export interface InstitutePosition {
   dominantScenario?: string;
   objections: string[];
   whatChangesMind: string[];
+  recommendations?: {
+    immediate?: string[];
+    shortTerm?: string[];
+    longTerm?: string[];
+    riskMitigation?: string[];
+  };
   costUsd: number;
 }
 

@@ -12,6 +12,8 @@
  * All APIs are free and require no authentication (with rate limits).
  */
 
+import { fetchFromProvider } from '../../http-client';
+
 // ─── IPCC / GIEC ──────────────────────────────────────────────────
 //
 // IPCC reports are published by Cambridge University Press and have DOIs
@@ -26,17 +28,11 @@ export async function searchIPCC(query: string, limit = 15): Promise<any[]> {
     const enhancedQuery = `IPCC ${query}`.slice(0, 500);
     const url = `https://api.crossref.org/works?query=${encodeURIComponent(enhancedQuery)}&filter=type:report,type:book&rows=${limit}`;
 
-    const response = await fetch(url, {
-      headers: { 'User-Agent': 'NomosX/1.0 (mailto:contact@nomosx.com)' },
-      signal: AbortSignal.timeout(20000),
-    });
-
-    if (!response.ok) {
-      console.warn(`[SCOUT/IPCC] Crossref HTTP ${response.status}`);
+    const data: any = await fetchFromProvider('ipcc', url, { timeout: 20000, retries: 2, headers: { 'User-Agent': 'NomosX/1.0 (mailto:contact@nomosx.com)' } });
+    if (!data) {
+      console.warn(`[SCOUT/IPCC] Crossref request failed`);
       return [];
     }
-
-    const data = await response.json() as any;
     const items = data?.message?.items || [];
 
     return items
@@ -98,17 +94,11 @@ export async function searchInternetArchive(query: string, limit = 20): Promise<
       output: 'json',
     });
 
-    const response = await fetch(`https://archive.org/advancedsearch.php?${params}`, {
-      headers: { 'User-Agent': 'NomosX/1.0 (mailto:contact@nomosx.com)' },
-      signal: AbortSignal.timeout(20000),
-    });
-
-    if (!response.ok) {
-      console.warn(`[SCOUT/InternetArchive] HTTP ${response.status}`);
+    const data: any = await fetchFromProvider('internet-archive', `https://archive.org/advancedsearch.php?${params}`, { timeout: 20000, retries: 2, headers: { 'User-Agent': 'NomosX/1.0 (mailto:contact@nomosx.com)' } });
+    if (!data) {
+      console.warn(`[SCOUT/InternetArchive] Request failed`);
       return [];
     }
-
-    const data = await response.json() as any;
     const docs = data?.response?.docs || [];
 
     return docs.slice(0, limit).map((doc: any) => {
@@ -148,66 +138,88 @@ export async function searchInternetArchive(query: string, limit = 20): Promise<
   }
 }
 
-// ─── HathiTrust ───────────────────────────────────────────────────
+// ─── HathiTrust (via Open Library + Crossref books) ───────────────
 //
-// HathiTrust is a partnership of research libraries holding millions
-// of digitized books. Their API provides bibliographic search.
-//
-// API docs: https://www.hathitrust.org/hathifiles_description
-// We use the catalog API for bibliographic search.
+// HathiTrust's bibliographic API is NOT a search API — it requires
+// ISBN/OCLC/htid identifiers. We use Open Library (which indexes many
+// HathiTrust items) for book search, and Crossref filtered to books
+// for academic monographs. This gives us HathiTrust-like coverage
+// without the broken catalog endpoint.
 
 export async function searchHathiTrust(query: string, limit = 15): Promise<any[]> {
   try {
-    const url = `https://catalog.hathitrust.org/api/volumes?q=${encodeURIComponent(query)}&format=json&limit=${limit}`;
-
-    const response = await fetch(url, {
-      headers: { 'User-Agent': 'NomosX/1.0 (mailto:contact@nomosx.com)' },
-      signal: AbortSignal.timeout(20000),
+    // Strategy 1: Open Library (indexes HathiTrust digitized books)
+    const olParams = new URLSearchParams({
+      q: query,
+      limit: String(Math.min(limit, 20)),
+      fields: 'key,title,author_name,first_publish_year,publisher,isbn,subject,language,edition_count',
     });
+    const olData: any = await fetchFromProvider('hathitrust',
+      `https://openlibrary.org/search.json?${olParams}`,
+      { timeout: 15000, retries: 2, headers: { 'User-Agent': 'NomosX/1.0 (mailto:contact@nomosx.com)' } });
 
-    if (!response.ok) {
-      console.warn(`[SCOUT/HathiTrust] HTTP ${response.status}`);
-      return [];
-    }
+    const olDocs = olData?.docs || [];
+    const olResults = olDocs.slice(0, Math.ceil(limit * 0.6)).map((doc: any) => ({
+      id: `hathitrust:ol-${doc.key?.split('/').pop() || Math.random()}`,
+      provider: 'hathitrust',
+      type: 'book',
+      title: doc.title || 'Untitled',
+      abstract: doc.subject?.slice(0, 10).join(', ') || null,
+      url: `https://openlibrary.org${doc.key || ''}`,
+      doi: null,
+      isbn: doc.isbn?.[0] || null,
+      year: doc.first_publish_year || null,
+      publishedDate: null,
+      authors: (doc.author_name || []).map((name: string) => ({ name })),
+      institutions: (doc.publisher || []).slice(0, 2),
+      citationCount: doc.edition_count || 0,
+      qualityScore: 60,
+      oaStatus: 'open',
+      hasFullText: false,
+      documentType: 'book',
+      issuer: doc.publisher?.[0] || 'HathiTrust/OpenLibrary',
+      issuerType: 'library',
+      classification: 'academic',
+      language: doc.language?.[0] || 'en',
+      contentFormat: 'text',
+      raw: doc,
+    }));
 
-    const data = await response.json() as any;
-    const items = data?.items || data?.records || [];
+    // Strategy 2: Crossref filtered to books/reports
+    const crUrl = `https://api.crossref.org/works?query=${encodeURIComponent(query)}&filter=type:book,type:book-chapter,type:report&rows=${Math.floor(limit * 0.4)}`;
+    const crData: any = await fetchFromProvider('hathitrust', crUrl,
+      { timeout: 20000, retries: 2, headers: { 'User-Agent': 'NomosX/1.0 (mailto:contact@nomosx.com)' } });
 
-    if (!Array.isArray(items)) return [];
+    const crItems = crData?.message?.items || [];
+    const crResults = crItems.slice(0, Math.floor(limit * 0.4)).map((item: any) => ({
+      id: `hathitrust:cr-${item.DOI || Math.random()}`,
+      provider: 'hathitrust',
+      type: 'book',
+      title: item.title?.[0] || 'Untitled',
+      abstract: item.abstract || null,
+      url: item.URL || (item.DOI ? `https://doi.org/${item.DOI}` : ''),
+      doi: item.DOI || null,
+      isbn: item.ISBN?.[0] || null,
+      year: item.published?.dateParts?.[0]?.[0] || null,
+      publishedDate: item.published?.dateParts?.[0]?.join('-') || '',
+      authors: (item.author || []).map((a: any) => ({ name: `${a.given || ''} ${a.family || ''}`.trim() })),
+      institutions: [item.publisher].filter(Boolean),
+      citationCount: item['is-referenced-by-count'] || 0,
+      qualityScore: 65,
+      oaStatus: 'closed',
+      hasFullText: false,
+      documentType: item.type || 'book',
+      issuer: item.publisher || 'HathiTrust/Crossref',
+      issuerType: 'publisher',
+      classification: 'academic',
+      language: 'en',
+      contentFormat: 'text',
+      raw: item,
+    }));
 
-    return items.slice(0, limit).map((item: any) => {
-      const record = item.record || item;
-      const title = record.title || record.titles?.[0] || 'Untitled';
-      const year = record.publishDate || record.year || null;
-      const authors = record.authors || record.contributors || [];
-      const subjects = record.subjects || [];
-
-      return {
-        id: `hathitrust:${item.itemURL || item.htid || Math.random()}`,
-        provider: 'hathitrust',
-        type: 'book',
-        title,
-        abstract: subjects.join(', ').slice(0, 1000) || null,
-        url: item.itemURL || `https://babel.hathitrust.org/cgi/pt?id=${item.htid}`,
-        doi: null,
-        isbn: record.isbn?.[0] || null,
-        year: year && !isNaN(year) ? year : null,
-        publishedDate: null,
-        authors: authors.map((a: any) => ({ name: typeof a === 'string' ? a : a.name || '' })),
-        institutions: record.publisher ? [record.publisher] : [],
-        citationCount: 0,
-        qualityScore: 65,
-        oaStatus: record.rights?.includes('pd') || record.rights?.includes('ic') ? 'open' : 'closed',
-        hasFullText: record.rights?.includes('pd') || false,
-        documentType: 'book',
-        issuer: record.publisher || 'HathiTrust',
-        issuerType: 'library',
-        classification: 'academic',
-        language: record.language || 'en',
-        contentFormat: 'text',
-        raw: record,
-      };
-    });
+    const all = [...olResults, ...crResults].slice(0, limit);
+    console.log(`[SCOUT/HathiTrust] Found ${all.length} books (OpenLibrary: ${olResults.length}, Crossref: ${crResults.length})`);
+    return all;
   } catch (err: any) {
     console.warn(`[SCOUT/HathiTrust] Error: ${err.message}`);
     return [];
@@ -230,17 +242,11 @@ export async function searchOpenLibrary(query: string, limit = 15): Promise<any[
       fields: 'key,title,author_name,first_publish_year,publisher,isbn,subject,language,edition_count',
     });
 
-    const response = await fetch(`https://openlibrary.org/search.json?${params}`, {
-      headers: { 'User-Agent': 'NomosX/1.0 (mailto:contact@nomosx.com)' },
-      signal: AbortSignal.timeout(15000),
-    });
-
-    if (!response.ok) {
-      console.warn(`[SCOUT/OpenLibrary] HTTP ${response.status}`);
+    const data: any = await fetchFromProvider('open-library', `https://openlibrary.org/search.json?${params}`, { timeout: 15000, retries: 2, headers: { 'User-Agent': 'NomosX/1.0 (mailto:contact@nomosx.com)' } });
+    if (!data) {
+      console.warn(`[SCOUT/OpenLibrary] Request failed`);
       return [];
     }
-
-    const data = await response.json() as any;
     const docs = data?.docs || [];
 
     return docs.slice(0, limit).map((doc: any) => ({
@@ -286,17 +292,11 @@ export async function searchJSTOR(query: string, limit = 15): Promise<any[]> {
   try {
     const url = `https://api.crossref.org/works?query=${encodeURIComponent(query)}&filter=prefix:10.2307&rows=${limit}`;
 
-    const response = await fetch(url, {
-      headers: { 'User-Agent': 'NomosX/1.0 (mailto:contact@nomosx.com)' },
-      signal: AbortSignal.timeout(20000),
-    });
-
-    if (!response.ok) {
-      console.warn(`[SCOUT/JSTOR] Crossref HTTP ${response.status}`);
+    const data: any = await fetchFromProvider('jstor', url, { timeout: 20000, retries: 2, headers: { 'User-Agent': 'NomosX/1.0 (mailto:contact@nomosx.com)' } });
+    if (!data) {
+      console.warn(`[SCOUT/JSTOR] Crossref request failed`);
       return [];
     }
-
-    const data = await response.json() as any;
     const items = data?.message?.items || [];
 
     return items.slice(0, limit).map((item: any) => ({
@@ -331,63 +331,74 @@ export async function searchJSTOR(query: string, limit = 15): Promise<any[]> {
   }
 }
 
-// ─── UNESCO Digital Library ───────────────────────────────────────
+// ─── UNESCO Digital Library (via DataHub Opendatasoft API) ────────
 //
 // UNESCO Digital Library (UNESDOC) hosts reports, publications,
-// and policy documents. We use their public search API.
+// and policy documents. The old unesdoc.unesco.org/api/search endpoint
+// returns 403. We use the official UNESCO DataHub Opendatasoft Explore API
+// which provides access to the UNESDOC catalogue (dataset doc001).
 //
-// API: https://unesdoc.unesco.org/search?...
+// API: https://data.unesco.org/api/explore/v2.1
+// Dataset: doc001 (UNESDOC Catalogue)
+// No key required for public read access.
 
 export async function searchUNESCO(query: string, limit = 15): Promise<any[]> {
   try {
     const params = new URLSearchParams({
       q: query,
       limit: String(Math.min(limit, 30)),
-      sort: 'date_desc',
+      sort: '-date',
+      lang: 'en',
     });
 
-    const response = await fetch(`https://unesdoc.unesco.org/api/search?${params}`, {
-      headers: { 'User-Agent': 'NomosX/1.0 (mailto:contact@nomosx.com)' },
-      signal: AbortSignal.timeout(20000),
-    });
-
-    if (!response.ok) {
-      console.warn(`[SCOUT/UNESCO] HTTP ${response.status}`);
+    const data: any = await fetchFromProvider('unesco',
+      `https://data.unesco.org/api/explore/v2.1/catalog/datasets/doc001/records?${params}`,
+      { timeout: 20000, retries: 2, headers: { 'User-Agent': 'NomosX/1.0 (mailto:contact@nomosx.com)' } });
+    if (!data) {
+      console.warn(`[SCOUT/UNESCO] DataHub request failed`);
       return [];
     }
-
-    const data = await response.json() as any;
-    const items = data?.results || data?.items || [];
+    const items = data?.records || data?.results || [];
 
     if (!Array.isArray(items)) return [];
 
-    return items.slice(0, limit).map((item: any) => ({
-      id: `unesco:${item.id || item.identifier || Math.random()}`,
-      provider: 'unesco',
-      type: 'report',
-      title: item.title || item.titre || 'Untitled',
-      abstract: item.description || item.abstract || null,
-      url: item.url || item.link || '',
-      doi: item.doi || null,
-      isbn: item.isbn || null,
-      year: item.date ? parseInt(String(item.date).slice(0, 4)) : null,
-      publishedDate: item.date || null,
-      authors: (item.authors || item.auteurs || []).map((a: any) => ({
-        name: typeof a === 'string' ? a : a.name || a.nom || '',
-      })),
-      institutions: ['UNESCO'],
-      citationCount: 0,
-      qualityScore: 85,
-      oaStatus: 'open',
-      hasFullText: true,
-      documentType: 'report',
-      issuer: 'UNESCO',
-      issuerType: 'international-body',
-      classification: 'academic',
-      language: item.language || item.langue || 'en',
-      contentFormat: 'text',
-      raw: item,
-    }));
+    return items.slice(0, limit).map((item: any) => {
+      const fields = item.record?.fields || item.fields || item;
+      const title = fields.title || fields.titre || fields.name || 'Untitled';
+      const description = fields.description || fields.abstract || fields.summary || null;
+      const date = fields.date || fields.publication_date || fields.date_pub || null;
+      const year = date ? parseInt(String(date).slice(0, 4)) : null;
+      const docUrl = fields.url || fields.link || fields.uri || '';
+      const docId = fields.id || fields.identifier || item.record?.id || Math.random();
+
+      return {
+        id: `unesco:${docId}`,
+        provider: 'unesco',
+        type: 'report',
+        title,
+        abstract: description,
+        url: docUrl,
+        doi: fields.doi || null,
+        isbn: fields.isbn || null,
+        year: year && !isNaN(year) ? year : null,
+        publishedDate: date,
+        authors: (fields.authors || fields.auteurs || fields.creator || []).map((a: any) => ({
+          name: typeof a === 'string' ? a : a.name || a.nom || '',
+        })),
+        institutions: ['UNESCO'],
+        citationCount: 0,
+        qualityScore: 85,
+        oaStatus: 'open',
+        hasFullText: true,
+        documentType: fields.type || fields.document_type || 'report',
+        issuer: 'UNESCO',
+        issuerType: 'international-body',
+        classification: 'academic',
+        language: fields.language || fields.langue || 'en',
+        contentFormat: 'text',
+        raw: fields,
+      };
+    });
   } catch (err: any) {
     console.warn(`[SCOUT/UNESCO] Error: ${err.message}`);
     return [];

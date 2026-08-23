@@ -5,27 +5,14 @@
  * Website: https://www.vie-publique.fr
  */
 
+import { fetchFromProvider } from '../../../http-client';
+
 export async function searchViePublique(query: string, limit = 15): Promise<any[]> {
   console.log(`[VIE-PUBLIQUE] Searching for: "${query}"`);
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 12000);
-
     const encoded = encodeURIComponent(query);
-    const res = await fetch(
-      `https://www.vie-publique.fr/recherche?keys=${encoded}&type=All&op=Rechercher`,
-      {
-        signal: controller.signal,
-        headers: {
-          'User-Agent': 'NomosX/1.0 (research aggregator)',
-          'Accept': 'text/html',
-        },
-      }
-    );
-    clearTimeout(timeout);
-
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const html = await res.text();
+    const html: string = await fetchFromProvider('rss', `https://www.vie-publique.fr/recherche?keys=${encoded}&type=All&op=Rechercher`, { timeout: 12000, retries: 2, responseType: 'text', headers: { 'User-Agent': 'NomosX/1.0 (research aggregator)', 'Accept': 'text/html' } });
+    if (!html) throw new Error('Request failed');
 
     const articlePattern = /<article[^>]*>([\s\S]*?)<\/article>/g;
     const results: any[] = [];

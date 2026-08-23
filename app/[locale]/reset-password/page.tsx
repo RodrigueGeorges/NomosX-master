@@ -2,12 +2,14 @@
 
 import React, { Suspense, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { NomosXLogo } from '@/components/brand/NomosXLogo';
 import { LOGO_AUTH_SYMBOL } from '@/lib/brand/logo-config';
 import { ArrowLeft, CheckCircle } from 'lucide-react';
 import { PublicPageShell } from '@/components/layout/PublicPageShell';
 
 function ResetPasswordContent() {
+  const t = useTranslations();
   const searchParams = useSearchParams();
   const router = useRouter();
   const token = searchParams.get('token');
@@ -23,11 +25,11 @@ function ResetPasswordContent() {
     setError('');
 
     if (password.length < 8) {
-      setError('Password must be at least 8 characters.');
+      setError(t('ResetPassword.passwordTooShort'));
       return;
     }
     if (password !== confirm) {
-      setError('Passwords do not match.');
+      setError(t('ResetPassword.passwordsDoNotMatch'));
       return;
     }
 
@@ -41,12 +43,12 @@ function ResetPasswordContent() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error || 'Something went wrong.');
+        setError(data.error || t('ResetPassword.somethingWrong'));
       } else {
         setSuccess(true);
       }
     } catch {
-      setError('Connection error. Please try again.');
+      setError(t('ResetPassword.connectionError'));
     } finally {
       setLoading(false);
     }
@@ -59,10 +61,10 @@ function ResetPasswordContent() {
       <PublicPageShell showFooter={false} particles={0} contentClassName="flex items-center justify-center px-6">
         <div className={`${cardClass} text-center`}>
           <NomosXLogo variant="symbol" size={LOGO_AUTH_SYMBOL} className="justify-center mb-8" />
-          <h1 className="font-display text-2xl font-semibold text-text mb-3">Invalid link</h1>
-          <p className="text-sm text-white/55 mb-6">This password reset link is missing or invalid. Please request a new one.</p>
+          <h1 className="font-display text-2xl font-semibold text-text mb-3">{t('ResetPassword.invalidLink')}</h1>
+          <p className="text-sm text-white/55 mb-6">{t('ResetPassword.invalidLinkDesc')}</p>
           <button onClick={() => router.push('/')} className="text-sm text-white/60 hover:text-white transition-colors">
-            ← Back to home
+            {t('ResetPassword.backToHome')}
           </button>
         </div>
       </PublicPageShell>
@@ -77,13 +79,13 @@ function ResetPasswordContent() {
           <div className="w-12 h-12 bg-white/10 border border-white/30 flex items-center justify-center mx-auto mb-6">
             <CheckCircle size={24} className="text-white" />
           </div>
-          <h1 className="font-display text-2xl font-semibold text-text mb-3">Password reset</h1>
-          <p className="text-sm text-white/55 mb-6">Your password has been updated successfully. You can now sign in.</p>
+          <h1 className="font-display text-2xl font-semibold text-text mb-3">{t('ResetPassword.passwordReset')}</h1>
+          <p className="text-sm text-white/55 mb-6">{t('ResetPassword.passwordResetSuccess')}</p>
           <button
             onClick={() => router.push('/?auth=required')}
             className="nx-public-btn-primary px-6 py-3 text-[11px]"
           >
-            Sign in
+            {t('ResetPassword.signIn')}
           </button>
         </div>
       </PublicPageShell>
@@ -97,8 +99,8 @@ function ResetPasswordContent() {
           <NomosXLogo variant="symbol" size={LOGO_AUTH_SYMBOL} />
         </div>
 
-        <h1 className="font-display text-2xl font-semibold text-text text-center mb-2">Choose a new password</h1>
-        <p className="text-sm text-white/55 text-center mb-8">Enter your new password below.</p>
+        <h1 className="font-display text-2xl font-semibold text-text text-center mb-2">{t('ResetPassword.chooseNewPassword')}</h1>
+        <p className="text-sm text-white/55 text-center mb-8">{t('ResetPassword.enterNewPassword')}</p>
 
         <form onSubmit={handleSubmit} className="space-y-5">
           {error && (
@@ -108,13 +110,13 @@ function ResetPasswordContent() {
           )}
 
           <div>
-            <label htmlFor="password" className="block text-sm font-medium mb-2 text-white/70">New password</label>
+            <label htmlFor="password" className="block text-sm font-medium mb-2 text-white/70">{t('ResetPassword.newPassword')}</label>
             <input
               id="password"
               type="password"
               value={password}
               onChange={e => setPassword(e.target.value)}
-              placeholder="At least 8 characters"
+              placeholder={t('ResetPassword.passwordPlaceholder')}
               required
               minLength={8}
               className="w-full px-4 py-3 bg-white/[0.04] border border-white/[0.12] text-white placeholder-white/20 text-sm focus:outline-none focus:border-white/50 transition-colors"
@@ -122,13 +124,13 @@ function ResetPasswordContent() {
           </div>
 
           <div>
-            <label htmlFor="confirm" className="block text-sm font-medium mb-2 text-white/70">Confirm password</label>
+            <label htmlFor="confirm" className="block text-sm font-medium mb-2 text-white/70">{t('ResetPassword.confirmPassword')}</label>
             <input
               id="confirm"
               type="password"
               value={confirm}
               onChange={e => setConfirm(e.target.value)}
-              placeholder="Repeat your password"
+              placeholder={t('ResetPassword.confirmPlaceholder')}
               required
               minLength={8}
               className="w-full px-4 py-3 bg-white/[0.04] border border-white/[0.12] text-white placeholder-white/20 text-sm focus:outline-none focus:border-white/50 transition-colors"
@@ -140,14 +142,14 @@ function ResetPasswordContent() {
             disabled={loading || !password || !confirm}
             className="w-full py-3.5 nx-public-btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? 'Resetting...' : 'Reset password'}
+            {loading ? t('ResetPassword.resetting') : t('ResetPassword.resetPassword')}
           </button>
         </form>
 
         <div className="mt-6 text-center">
           <button onClick={() => router.push('/')} className="text-sm text-white/50 hover:text-white/60 transition-colors flex items-center gap-1.5 mx-auto">
             <ArrowLeft size={14} />
-            Back to home
+            {t('ResetPassword.backToHome')}
           </button>
         </div>
       </div>

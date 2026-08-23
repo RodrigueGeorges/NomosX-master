@@ -4,20 +4,13 @@
  * Website: https://tnova.fr
  */
 
+import { fetchFromProvider } from '../../../http-client';
+
 export async function searchTerraNova(query: string, limit = 15): Promise<any[]> {
   console.log(`[TERRA-NOVA] Searching RSS for: "${query}"`);
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 12000);
-
-    const res = await fetch(
-      'https://tnova.fr/feed/',
-      { signal: controller.signal, headers: { 'User-Agent': 'NomosX/1.0 (research aggregator)' } }
-    );
-    clearTimeout(timeout);
-
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const xml = await res.text();
+    const xml: string = await fetchFromProvider('rss', 'https://tnova.fr/feed/', { timeout: 12000, retries: 2, responseType: 'text', headers: { 'User-Agent': 'NomosX/1.0 (research aggregator)' } });
+    if (!xml) throw new Error('RSS request failed');
 
     const items = xml.match(/<item>([\s\S]*?)<\/item>/g) || [];
     const queryLower = query.toLowerCase();

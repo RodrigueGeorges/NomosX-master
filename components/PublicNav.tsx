@@ -102,7 +102,7 @@ export default function PublicNav({ currentPage, onSignInClick, isAuthenticated 
               className="flex items-center gap-1.5 font-mono text-xs uppercase tracking-[0.1em] text-white/55 hover:text-white transition-colors py-1"
             >
               <LayoutDashboard size={12} />
-              Dashboard
+              {t("Nav.dashboard")}
             </button>
           )}
         </div>
@@ -212,7 +212,7 @@ export default function PublicNav({ currentPage, onSignInClick, isAuthenticated 
                   className="flex items-center gap-2 font-mono text-xs uppercase tracking-[0.16em] text-left text-white/60"
                 >
                   <LayoutDashboard size={14} />
-                  Dashboard
+                  {t("Nav.dashboard")}
                 </button>
               )}
 
@@ -228,7 +228,7 @@ export default function PublicNav({ currentPage, onSignInClick, isAuthenticated 
                       currentLocale === loc ? "text-white" : "text-white/50"
                     )}
                   >
-                    {loc === "en" ? "EN" : "FR"}
+                    {loc === "en" ? t("Nav.languageEn") : t("Nav.languageFr")}
                   </button>
                 ))}
               </div>

@@ -21,6 +21,9 @@
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
+import { fetchFromProvider } from '../http-client';
+import { scoreCredibility, classifySourceDomain, getCredibilityThreshold, type CredibilityScore } from './radar-innovations';
+
 export type SourceCheckVerdict = 'verified' | 'retracted' | 'not_found' | 'claim_absent' | 'no_doi';
 
 export interface SourceCheckResult {
@@ -44,6 +47,45 @@ export interface SourceCheckBatchResult {
   claimAbsentCount: number;
   noDoiCount: number;
   integrityScore: number; // 0-100, (verified / total) * 100
+  // ── I: Domain-aware credibility (GroundCheck 2026) ──
+  credibilityScores?: CredibilityScore[];
+  lowCredibilitySources?: string[]; // source IDs below domain threshold
+}
+
+/**
+ * I: Domain-aware credibility scoring (GroundCheck 2026).
+ *
+ * Scores each source's credibility using domain-specific weights:
+ *   academic → DOI + title search + URL + AI
+ *   news → URL + AI (paywalled articles can still be credible)
+ *   government → URL + AI
+ *   think-tank → URL + title + AI
+ *
+ * Sources below their domain threshold are flagged.
+ */
+export function scoreSourceCredibility(
+  sources: { id: string; title: string; url?: string; source: string; doi?: string | null }[]
+): { scores: CredibilityScore[]; lowCredibility: string[] } {
+  const scores: CredibilityScore[] = [];
+  const lowCredibility: string[] = [];
+
+  for (const src of sources) {
+    const cred = scoreCredibility(src.source, src.url, {
+      hasDoi: !!src.doi,
+      titleMatchQuality: src.title.length > 10 ? 0.8 : 0.4,
+      urlAccessible: src.url ? 0.8 : 0.3,
+      aiCredibility: 0.6, // default — would be set by LLM assessment if available
+    });
+
+    scores.push(cred);
+
+    const threshold = getCredibilityThreshold(cred.domain);
+    if (cred.score < threshold) {
+      lowCredibility.push(src.id);
+    }
+  }
+
+  return { scores, lowCredibility };
 }
 
 // ─── OpenAlex Retraction Check ──────────────────────────────────────────────
@@ -79,17 +121,12 @@ async function checkRetractionWatch(doi: string): Promise<{
     // For now, we use a lightweight check: search Crossref for retraction-type
     // documents that reference this DOI.
     const url = `https://api.crossref.org/works?filter=type:retraction,from-created-date:2010-01-01&query.bibliographic=${encodeURIComponent(doi)}&rows=1`;
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 6000);
-
-    const resp = await fetch(url, {
-      signal: controller.signal,
+    const data: any = await fetchFromProvider('crossref', url, {
+      timeout: 6000, retries: 2,
       headers: { 'User-Agent': 'NomosX/1.0 (mailto:research@nomosx.ai)' },
-    });
-    clearTimeout(timeout);
+    }).catch(() => null);
 
-    if (!resp.ok) return null;
-    const data = await resp.json() as any;
+    if (!data) return null;
     const items = data?.message?.items || [];
 
     if (items.length === 0) return { isRetracted: false };
@@ -123,17 +160,12 @@ async function checkOpenAlexRetraction(doi: string): Promise<{
   try {
     // OpenAlex API: https://api.openalex.org/works/doi:{doi}
     const url = `https://api.openalex.org/works/doi:${encodeURIComponent(doi)}?select=is_retracted,title,publication_year,type,retraction_type`;
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 8000);
-
-    const resp = await fetch(url, {
-      signal: controller.signal,
+    const data: any = await fetchFromProvider('openalex', url, {
+      timeout: 8000, retries: 2,
       headers: { 'User-Agent': 'NomosX/1.0 (mailto:research@nomosx.ai)' },
-    });
-    clearTimeout(timeout);
+    }).catch(() => null);
 
-    if (!resp.ok) return null;
-    const data = await resp.json() as any;
+    if (!data) return null;
 
     return {
       isRetracted: !!data.is_retracted,
@@ -158,17 +190,12 @@ async function checkCrossrefRetraction(doi: string): Promise<{
 } | null> {
   try {
     const url = `https://api.crossref.org/works/${encodeURIComponent(doi)}`;
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 8000);
-
-    const resp = await fetch(url, {
-      signal: controller.signal,
+    const data: any = await fetchFromProvider('crossref', url, {
+      timeout: 8000, retries: 2,
       headers: { 'User-Agent': 'NomosX/1.0 (mailto:research@nomosx.ai)' },
-    });
-    clearTimeout(timeout);
+    }).catch(() => null);
 
-    if (!resp.ok) return null;
-    const data = await resp.json() as any;
+    if (!data) return null;
     const work = data?.message;
 
     if (!work) return null;

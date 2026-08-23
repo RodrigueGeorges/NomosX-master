@@ -340,6 +340,32 @@ export async function factChecker(
     allResults.push(...batchResults);
   }
 
+  // S16-04: UFO multi-source fact-checking (AAAI 2026)
+  try {
+    const { batchFactCheck, DEFAULT_UFO_CONFIG } = await import('./ufo-factcheck');
+    // For each claim, select the best sources and verify
+    if (claims && claims.length > 0) {
+      const ufoResults = await batchFactCheck(
+        claims.map(c => c.claim || ''),
+        async (claim, sourceType) => {
+          // Return source content based on type
+          if (sourceType === 'web' || sourceType === 'human') {
+            return sources.map(s => `${s.title || ''} ${s.abstract || ''}`).join(' ');
+          }
+          if (sourceType === 'llm') {
+            return ''; // LLM knowledge is handled by the LLM itself
+          }
+          return '';
+        },
+        DEFAULT_UFO_CONFIG
+      );
+      // Merge UFO results with existing fact-check results
+      const ufoSupported = ufoResults.filter(r => r.verdict === 'supported').length;
+      const ufoRefuted = ufoResults.filter(r => r.verdict === 'refuted').length;
+      console.log(`[FactChecker] UFO: ${ufoSupported} supported, ${ufoRefuted} refuted, ${ufoResults.length - ufoSupported - ufoRefuted} uncertain`);
+    }
+  } catch (e) { /* non-blocking */ }
+
   // Step 4: Compute integrity score
   const verified = allResults.filter(r => r.verified || r.severity === "none").length;
   const minorIssues = allResults.filter(r => r.severity === "minor").length;

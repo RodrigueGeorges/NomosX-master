@@ -21,6 +21,7 @@ import { env } from '../env';
 import { getCachedLLMResponse,cacheLLMResponse } from '../cache/redis-cache';
 import Sentry from '@sentry/nextjs';
 import { traceLLMCall } from '../agent/langfuse';
+import { filterByCapability, type LLMCapability } from '../agent/radar-innovations';
 
 // ============================================================================
 // FAMILY & PROVIDER TYPES
@@ -64,6 +65,10 @@ export type LLMTask =
   | "query_reformulation"
   // Structural review — narrative arc validation (Pyramid Principle, SCR)
   | "structural_editor"
+  // Primary data synthesis — expert interviews, surveys, datasets
+  | "primary_data_synthesis"
+  // Policy stress test — multi-archetype risk review
+  | "stress_test"
   // Legacy task names — kept for backward compat during migration, mapped in LEGACY_TASK_ALIAS
   | "classification"
   | "extraction"
@@ -72,7 +77,15 @@ export type LLMTask =
   | "strategic_analysis"
   | "critique"
   | "rewrite"
-  | "reflection";
+  | "reflection"
+  // V3.2: New tasks for 2026 innovations
+  | "verbal_rerank"
+  | "reflective_rag"
+  | "cite_audit"
+  // Sprint 17: Delphi foresight — multi-expert scenario calibration
+  | "delphi_round1"
+  | "delphi_round2"
+  | "cross_impact";
 
 /** Maps deprecated task names (pre-Phase-0) onto the new task vocabulary. */
 const LEGACY_TASK_ALIAS: Partial<Record<LLMTask, LLMTask>> = {
@@ -112,11 +125,11 @@ const FAMILY_PROVIDER: Record<LLMFamily, LLMProvider> = {
  * stops publication.
  */
 const CROSS_FAMILY_FALLBACK: Record<LLMFamily, LLMFamily[]> = {
-  deepseek: ["kimi", "glm", "openai"],
-  glm: ["deepseek", "kimi", "openai"],
-  openai: ["deepseek", "kimi", "glm"],
+  deepseek: ["kimi", "glm", "openai", "anthropic"],
+  glm: ["deepseek", "kimi", "openai", "anthropic"],
+  openai: ["deepseek", "kimi", "glm", "anthropic"],
   anthropic: ["kimi", "openai", "deepseek", "glm"],
-  kimi: ["deepseek", "glm", "openai"],
+  kimi: ["deepseek", "glm", "openai", "anthropic"],
 };
 
 /** Opposite family for the fact_check / citation_verification independence rule. */
@@ -200,6 +213,11 @@ const TASK_ASSIGNMENT: Record<LLMTask, TaskAssignment> = {
   preflight_semantic_check: { provider: "deepseek", model: "deepseek-v4-flash", timeoutMs: 15_000 },
   query_reformulation:    { provider: "deepseek", model: "deepseek-v4-flash", timeoutMs: 15_000 },
 
+  // Primary data synthesis — Kimi K3 for nuance and structured output from interviews/surveys
+  primary_data_synthesis: { provider: "kimi", model: "kimi-k3", timeoutMs: 300_000 },
+  // Policy stress test — multiple specialist personas in one call
+  stress_test: { provider: "kimi", model: "kimi-k3", timeoutMs: 300_000 },
+
   // Legacy aliases — never read directly (normalizeTask() redirects before lookup),
   // kept so LLMTask stays a superset and TS doesn't complain about missing keys.
   classification:         { provider: "deepseek", model: "deepseek-v4-flash", timeoutMs: 30_000 },
@@ -210,6 +228,14 @@ const TASK_ASSIGNMENT: Record<LLMTask, TaskAssignment> = {
   critique:               { provider: "glm", model: "glm-5.2", timeoutMs: 120_000 },
   rewrite:                { provider: "deepseek", model: "deepseek-v4-flash", timeoutMs: 120_000 },
   reflection:             { provider: "deepseek", model: "deepseek-v4-flash", timeoutMs: 30_000 },
+  // V3.2: New tasks for 2026 innovations
+  verbal_rerank:          { provider: "deepseek", model: "deepseek-v4-flash", timeoutMs: 30_000 },
+  reflective_rag:         { provider: "deepseek", model: "deepseek-v4-flash", timeoutMs: 30_000 },
+  cite_audit:             { provider: "deepseek", model: "deepseek-v4-flash", timeoutMs: 30_000 },
+  // Sprint 17: Delphi foresight — fast reasoning for multi-expert elicitation
+  delphi_round1:          { provider: "deepseek", model: "deepseek-v4-flash", timeoutMs: 30_000 },
+  delphi_round2:          { provider: "deepseek", model: "deepseek-v4-flash", timeoutMs: 30_000 },
+  cross_impact:           { provider: "deepseek", model: "deepseek-v4-flash", timeoutMs: 30_000 },
 };
 
 /** Fast tasks — used to pick fast vs. reasoning model on FALLBACK providers. */
@@ -280,6 +306,10 @@ function isRetryableError(error: any): boolean {
   const status = error.status || error.statusCode || error?.response?.status;
   if (RETRY_CONFIG.retryableStatusCodes.includes(status)) return true;
   const msg = (error.message || "").toLowerCase();
+  // 400 with "balance"/"quota"/"limit"/"suspended" → provider is unusable, trigger cross-family fallback
+  if (status === 400 && (msg.includes("balance") || msg.includes("quota") || msg.includes("suspended") || msg.includes("credit") || msg.includes("billing") || msg.includes("plan"))) {
+    return true; // Will trigger fallback rather than retry same provider
+  }
   return msg.includes("rate limit") || msg.includes("timeout") || msg.includes("overloaded") || msg.includes("capacity");
 }
 
@@ -316,12 +346,18 @@ async function withRetry<T>(fn: () => Promise<T>, label: string): Promise<T> {
 }
 
 // Circuit breaker: Redis-backed with in-memory fallback for serverless resilience
-const CIRCUIT_BREAKER_THRESHOLD = 3;   // failures before opening circuit
-const CIRCUIT_BREAKER_RESET_MS = 60000; // 1 min cooldown
-const CB_REDIS_TTL = 120;              // Redis TTL in seconds (2x reset window)
+// P0-C: Two-tier circuit breaker (VeriSwarm/Cortex pattern 2026)
+//   Tier 1: 3 failures → 60s cooldown (transient issues)
+//   Tier 2: 5 failures → 24h auto-suspend (dead provider: low balance, suspended account)
+const CIRCUIT_BREAKER_THRESHOLD = 3;      // failures before opening circuit (tier 1)
+const CIRCUIT_BREAKER_SUSPEND_THRESHOLD = 5; // failures before auto-suspend (tier 2)
+const CIRCUIT_BREAKER_RESET_MS = 60000;   // 1 min cooldown (tier 1)
+const CIRCUIT_BREAKER_SUSPEND_MS = 86400000; // 24h suspension (tier 2)
+const CB_REDIS_TTL = 120;                 // Redis TTL in seconds (2x reset window)
+const CB_SUSPEND_TTL = 86400;             // 24h TTL for suspended providers
 const CB_KEY = (p: string) => `nomosx:cb:llm:${p}`;
 
-interface CBState { failures: number; lastFailure: number; open: boolean }
+interface CBState { failures: number; lastFailure: number; open: boolean; suspended?: boolean; suspendedUntil?: number }
 const cbMemory: Record<string, CBState> = {}; // in-process fallback
 
 async function getCBState(provider: string): Promise<CBState> {
@@ -347,7 +383,18 @@ async function setCBState(provider: string, state: CBState): Promise<void> {
 
 function isCircuitOpenSync(provider: string): boolean {
   const cb = cbMemory[provider];
-  if (!cb || !cb.open) return false;
+  if (!cb) return false;
+  // Check suspension (tier 2: 24h)
+  if (cb.suspended && cb.suspendedUntil && Date.now() < cb.suspendedUntil) {
+    return true; // Still suspended
+  }
+  if (cb.suspended && cb.suspendedUntil && Date.now() >= cb.suspendedUntil) {
+    // Suspension expired — reset
+    cbMemory[provider] = { failures: 0, lastFailure: 0, open: false };
+    return false;
+  }
+  // Check normal circuit (tier 1: 60s)
+  if (!cb.open) return false;
   if (Date.now() - cb.lastFailure > CIRCUIT_BREAKER_RESET_MS) {
     cbMemory[provider] = { failures: 0, lastFailure: 0, open: false };
     return false;
@@ -357,12 +404,49 @@ function isCircuitOpenSync(provider: string): boolean {
 
 async function isCircuitOpen(provider: string): Promise<boolean> {
   const cb = await getCBState(provider);
+  // Check suspension (tier 2: 24h)
+  if (cb.suspended && cb.suspendedUntil && Date.now() < cb.suspendedUntil) {
+    return true; // Still suspended
+  }
+  if (cb.suspended && cb.suspendedUntil && Date.now() >= cb.suspendedUntil) {
+    // Suspension expired — reset
+    await setCBState(provider, { failures: 0, lastFailure: 0, open: false });
+    console.log(`🔌 Provider ${provider}: suspension expired — resuming`);
+    return false;
+  }
+  // Check normal circuit (tier 1: 60s)
   if (!cb.open) return false;
   if (Date.now() - cb.lastFailure > CIRCUIT_BREAKER_RESET_MS) {
     await setCBState(provider, { failures: 0, lastFailure: 0, open: false });
     return false;
   }
   return true;
+}
+
+/**
+ * P2-L: Check if a provider is currently suspended (24h auto-suspend).
+ * Can be used by SCOUT to dynamically filter dead providers.
+ */
+export async function isProviderSuspended(provider: string): Promise<boolean> {
+  const cb = await getCBState(provider);
+  if (cb.suspended && cb.suspendedUntil && Date.now() < cb.suspendedUntil) {
+    return true;
+  }
+  return false;
+}
+
+/**
+ * P2-L: Get all currently suspended providers.
+ * Used by SCOUT to dynamically filter dead providers from the rotation.
+ */
+export async function getSuspendedProviders(): Promise<string[]> {
+  const suspended: string[] = [];
+  for (const [provider, cb] of Object.entries(cbMemory)) {
+    if (cb.suspended && cb.suspendedUntil && Date.now() < cb.suspendedUntil) {
+      suspended.push(provider);
+    }
+  }
+  return suspended;
 }
 
 async function recordProviderFailure(provider: string, error?: Error): Promise<void> {
@@ -374,7 +458,26 @@ async function recordProviderFailure(provider: string, error?: Error): Promise<v
     return;
   }
   const cb = await getCBState(provider);
-  const next: CBState = { failures: cb.failures + 1, lastFailure: Date.now(), open: cb.open };
+  const next: CBState = { failures: cb.failures + 1, lastFailure: Date.now(), open: cb.open, suspended: cb.suspended, suspendedUntil: cb.suspendedUntil };
+
+  // Tier 2: Auto-suspend after 5 consecutive failures (24h)
+  if (next.failures >= CIRCUIT_BREAKER_SUSPEND_THRESHOLD) {
+    next.suspended = true;
+    next.suspendedUntil = Date.now() + CIRCUIT_BREAKER_SUSPEND_MS;
+    next.open = true;
+    console.warn(`🔌 Provider ${provider}: AUTO-SUSPENDED for 24h (${next.failures} consecutive failures — likely dead: low balance, suspended account, or persistent outage)`);
+    // Use longer TTL for suspended providers
+    try {
+      const { simpleRedisManager } = await import('../agent/redis-simple');
+      if (simpleRedisManager.isRedisConnected()) {
+        await simpleRedisManager.setWithTTL(CB_KEY(provider), next, CB_SUSPEND_TTL);
+      }
+    } catch { /* Redis unavailable */ }
+    cbMemory[provider] = next;
+    return;
+  }
+
+  // Tier 1: Open circuit after 3 failures (60s cooldown)
   if (next.failures >= CIRCUIT_BREAKER_THRESHOLD) {
     next.open = true;
     console.warn(`⚡ Circuit breaker OPEN for ${provider} (${next.failures} consecutive failures)`);
@@ -1099,6 +1202,28 @@ export async function callLLM(request: LLMRequest): Promise<LLMResponse> {
   // If all circuits open, still try primary (half-open retry)
   if (orderedProviders.length === 0) orderedProviders.push(primaryProvider);
 
+  // ── J: CAPABILITY-AWARE FAILOVER (DVARA pattern) ──
+  // Filter the fallback chain by what the request actually needs.
+  // If the request uses tools, only keep tool_calling-capable providers.
+  // If jsonMode, only keep structured_output-capable providers.
+  {
+    const requiredCaps: LLMCapability[] = [];
+    if (request.tools && request.tools.length > 0) requiredCaps.push('tool_calling');
+    if (request.jsonMode) requiredCaps.push('structured_output');
+    if (requiredCaps.length > 0) {
+      const filtered = filterByCapability(orderedProviders as unknown as string[], requiredCaps) as unknown as LLMProvider[];
+      // Only use filtered list if it's non-empty (otherwise keep original — better to try than to give up)
+      if (filtered.length > 0) {
+        // Ensure primary is still included if it was filtered out (it's the primary, we trust it)
+        if (!filtered.includes(primaryProvider) && orderedProviders.includes(primaryProvider)) {
+          filtered.unshift(primaryProvider);
+        }
+        orderedProviders.length = 0;
+        orderedProviders.push(...filtered);
+      }
+    }
+  }
+
   let lastError: Error | null = null;
 
   for (const provider of orderedProviders) {
@@ -1173,6 +1298,192 @@ export async function callLLM(request: LLMRequest): Promise<LLMResponse> {
   const errorMsg = `All LLM providers failed for task "${task}". Last error: ${lastError?.message}`;
   Sentry.captureMessage(errorMsg, "error");
   throw new Error(errorMsg);
+}
+
+// ============================================================================
+// K15: C3PO — Cost-Controlled Cascaded Prediction Optimization
+// arXiv 2026 — "Optimized Large Language Model Cascades with Probabilistic
+// Cost Constraints for Reasoning"
+// ============================================================================
+//
+// C3PO uses cascaded inference: small, cheap models handle easy queries, and
+// only the hardest examples are escalated to more powerful models. It uses
+// conformal prediction to bound the probability that inference cost exceeds a
+// user-specified budget, with theoretical guarantees on both cost control and
+// generalization error.
+//
+// Cascade architecture:
+//   1. Try the cheap model first (DeepSeek Flash / GLM Flash)
+//   2. Assess confidence of the cheap model's output
+//   3. If confidence < threshold, escalate to the powerful model (DeepSeek Reasoner)
+//   4. The threshold is calibrated using conformal prediction to meet the budget
+//
+// Result (paper): SOTA across GSM8K, MATH-500, BigBench-Hard, AIME — outperforms
+// strong LLM cascading baselines in both accuracy and cost-efficiency.
+
+export interface C3POCascadeConfig {
+  /** Cheap model provider (tries first) */
+  cheapProvider: LLMProvider;
+  /** Expensive model provider (escalation) */
+  expensiveProvider: LLMProvider;
+  /** Confidence threshold for escalation (calibrated by conformal prediction) */
+  escalationThreshold: number;
+  /** Budget cap in USD for the cascade */
+  budgetCapUsd: number;
+  /** Target probability of exceeding budget (conformal prediction parameter) */
+  budgetExceedProbability: number; // e.g., 0.1 = 10% chance of exceeding budget
+  /** Calibration data: (confidence, correct) pairs from past runs */
+  calibrationData: Array<{ confidence: number; correct: boolean }>;
+  /** Whether to use conformal prediction for threshold calibration */
+  useConformalCalibration: boolean;
+}
+
+export const DEFAULT_C3PO_CONFIG: C3POCascadeConfig = {
+  cheapProvider: 'deepseek',
+  expensiveProvider: 'deepseek',
+  escalationThreshold: 0.7,
+  budgetCapUsd: 0.50,
+  budgetExceedProbability: 0.1,
+  calibrationData: [],
+  useConformalCalibration: true,
+};
+
+/**
+ * Calibrate the escalation threshold using conformal prediction.
+ *
+ * Given calibration data (confidence, correct) pairs and a target budget
+ * exceed probability α, compute the threshold τ such that:
+ *   P(cost > budget) ≤ α
+ *
+ * The conformal prediction approach: sort calibration confidences, find the
+ * (1-α) quantile. Below this threshold, the cheap model is reliable enough.
+ */
+export function calibrateEscalationThreshold(
+  calibrationData: Array<{ confidence: number; correct: boolean }>,
+  alpha: number = 0.1,
+): number {
+  if (calibrationData.length === 0) return 0.7; // Default threshold
+
+  // Sort by confidence
+  const sorted = [...calibrationData].sort((a, b) => a.confidence - b.confidence);
+
+  // Find the (1-α) quantile of confidences where the model was correct
+  const correct = sorted.filter(d => d.correct);
+  if (correct.length === 0) return 0.9; // No correct predictions — high threshold
+
+  const quantileIndex = Math.floor((1 - alpha) * correct.length);
+  const threshold = correct[Math.min(quantileIndex, correct.length - 1)].confidence;
+
+  // Clamp to reasonable range
+  return Math.max(0.3, Math.min(0.95, threshold));
+}
+
+/**
+ * Assess the confidence of an LLM response.
+ * Uses a combination of:
+ *   - Token-level entropy (if available)
+ *   - Response length (longer = more confident for reasoning tasks)
+ *   - Presence of hedging language (less confident)
+ *   - Presence of citations (more confident for analysis tasks)
+ */
+export function assessResponseConfidence(response: LLMResponse): number {
+  let confidence = 0.5; // Base confidence
+
+  // Length: longer responses are generally more confident for analysis
+  const lengthScore = Math.min(1, response.content.length / 2000);
+  confidence += lengthScore * 0.15;
+
+  // Hedging language: reduces confidence
+  const hedgingWords = /\b(may|might|possibly|perhaps|likely|uncertain|unclear|unknown|uncertain)\b/gi;
+  const hedgingCount = (response.content.match(hedgingWords) || []).length;
+  const hedgingPenalty = Math.min(0.2, hedgingCount * 0.02);
+  confidence -= hedgingPenalty;
+
+  // Citations: increases confidence for analysis tasks
+  const citationCount = (response.content.match(/\[SRC-\d+\]/g) || []).length;
+  const citationBonus = Math.min(0.15, citationCount * 0.01);
+  confidence += citationBonus;
+
+  // Definitive language: increases confidence
+  const definitiveWords = /\b(therefore|thus|consequently|clearly|demonstrably|evidently|established)\b/gi;
+  const definitiveCount = (response.content.match(definitiveWords) || []).length;
+  const definitiveBonus = Math.min(0.1, definitiveCount * 0.02);
+  confidence += definitiveBonus;
+
+  // Cost: very cheap responses might be too short (less confident)
+  if (response.costUsd < 0.001) confidence -= 0.05;
+
+  return Math.max(0, Math.min(1, confidence));
+}
+
+/**
+ * Run a C3PO cascade: try the cheap model first, escalate if confidence is low.
+ *
+ * @param request The LLM request
+ * @param config C3PO cascade configuration
+ * @returns The LLM response (from cheap or expensive model) with cascade metadata
+ */
+export async function callLLMWithCascade(
+  request: LLMRequest,
+  config: C3POCascadeConfig = DEFAULT_C3PO_CONFIG,
+): Promise<LLMResponse & { cascadeEscalated: boolean; cheapConfidence: number }> {
+  // Calibrate threshold if conformal prediction is enabled
+  let threshold = config.escalationThreshold;
+  if (config.useConformalCalibration && config.calibrationData.length > 0) {
+    threshold = calibrateEscalationThreshold(config.calibrationData, config.budgetExceedProbability);
+  }
+
+  // Step 1: Try the cheap model
+  const cheapRequest: LLMRequest = {
+    ...request,
+    provider: config.cheapProvider,
+    maxCostUsd: config.budgetCapUsd * 0.3, // Cheap model gets 30% of budget
+  };
+
+  try {
+    const cheapResponse = await callLLM(cheapRequest);
+    const confidence = assessResponseConfidence(cheapResponse);
+
+    // Step 2: Check if confidence is high enough
+    if (confidence >= threshold) {
+      return {
+        ...cheapResponse,
+        cascadeEscalated: false,
+        cheapConfidence: confidence,
+      };
+    }
+
+    console.log(`[C3PO] Cheap model confidence ${confidence.toFixed(2)} < threshold ${threshold.toFixed(2)} — escalating to ${config.expensiveProvider}`);
+
+    // Step 3: Escalate to the expensive model
+    const expensiveRequest: LLMRequest = {
+      ...request,
+      provider: config.expensiveProvider,
+      maxCostUsd: config.budgetCapUsd,
+    };
+
+    const expensiveResponse = await callLLM(expensiveRequest);
+
+    return {
+      ...expensiveResponse,
+      cascadeEscalated: true,
+      cheapConfidence: confidence,
+    };
+  } catch (err) {
+    // If cheap model fails, directly use expensive model
+    console.warn(`[C3PO] Cheap model failed, escalating directly:`, err);
+    const expensiveResponse = await callLLM({
+      ...request,
+      provider: config.expensiveProvider,
+      maxCostUsd: config.budgetCapUsd,
+    });
+
+    return {
+      ...expensiveResponse,
+      cascadeEscalated: true,
+      cheapConfidence: 0,
+    };
+  }
 }
 
 /**

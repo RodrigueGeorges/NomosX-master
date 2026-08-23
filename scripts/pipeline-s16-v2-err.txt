@@ -1,0 +1,1383 @@
+(node:10680) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+[OpenAlex] API key credits exhausted (x-ratelimit-remaining: 0) — falling back to polite pool (mailto)
+❌ anthropic failed for task "meta_analysis": 400 {"type":"error","error":{"type":"invalid_request_error","message":"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits."},"request_id":"req_011CeJ39N4wWDmD4facWZ1VF"}
+[REALTIME] FRED fetch failed for GOLDAMGBD228NLBM: HTTP 400 
+[REALTIME] FRED fetch failed for LNS11300000: HTTP 400 
+[REALTIME] WHO outbreaks failed: HTTP 404 
+[HTTP] Retry 1/2 after 993ms: Unexpected token '<', "<!doctype "... is not valid JSON
+❌ kimi failed for task "meta_analysis": 429 Your account org-774d71d4dfd84636b8fc43ef23175faa <ak-fbpa5sih1x3111ghdf1i> is suspended due to insufficient balance, please recharge your account or check your plan and billing details
+[HTTP] Retry 2/2 after 2347ms: Unexpected token '<', "<!doctype "... is not valid JSON
+[REALTIME] Papers With Code failed: Unexpected token '<', "<!doctype "... is not valid JSON
+[HTTP] Retry 1/2 after 780ms: Request timeout after 10000ms
+[HTTP] Retry 2/2 after 2088ms: Request timeout after 10000ms
+[REALTIME] GDELT conflict failed: Request timeout after 10000ms
+[REALTIME] FRED fetch failed for GOLDAMGBD228NLBM: HTTP 400 
+[REALTIME] FRED fetch failed for LNS11300000: HTTP 400 
+[REALTIME] WHO outbreaks failed: HTTP 404 
+[HTTP] Retry 1/2 after 753ms: Unexpected token '<', "<!doctype "... is not valid JSON
+[HTTP] Retry 2/2 after 2272ms: Unexpected token '<', "<!doctype "... is not valid JSON
+[REALTIME] Papers With Code failed: Unexpected token '<', "<!doctype "... is not valid JSON
+[HTTP] Retry 1/2 after 980ms: Request timeout after 10000ms
+[HTTP] Retry 2/2 after 1782ms: Request timeout after 10000ms
+[REALTIME] GDELT conflict failed: Request timeout after 10000ms
+Unknown provider: consolidated-institutions, falling back to OpenAlex
+Unknown provider: global-intelligence, falling back to OpenAlex
+Unknown provider: global-orgs, falling back to OpenAlex
+Unknown provider: global-think-tanks, falling back to OpenAlex
+Unknown provider: consolidated-institutions, falling back to OpenAlex
+Unknown provider: global-intelligence, falling back to OpenAlex
+Unknown provider: global-orgs, falling back to OpenAlex
+Unknown provider: global-think-tanks, falling back to OpenAlex
+Unknown provider: consolidated-institutions, falling back to OpenAlex
+Unknown provider: global-intelligence, falling back to OpenAlex
+Unknown provider: global-orgs, falling back to OpenAlex
+Unknown provider: global-think-tanks, falling back to OpenAlex
+Unknown provider: consolidated-institutions, falling back to OpenAlex
+Unknown provider: global-intelligence, falling back to OpenAlex
+Unknown provider: global-orgs, falling back to OpenAlex
+Unknown provider: global-think-tanks, falling back to OpenAlex
+[ADAPTIVE RATE] openalex: rate reduced to 5.00 req/s after 1× 429
+[OpenAlex] Search failed: OpenAlex API key credits exhausted
+[ADAPTIVE RATE] openalex: rate reduced to 2.50 req/s after 2× 429
+[OpenAlex] Search failed: OpenAlex API key credits exhausted
+[CIRCUIT BREAKER] openalex tripped after 3× 429 — skipping for 10s
+[ADAPTIVE RATE] openalex: rate reduced to 1.25 req/s after 3× 429
+[OpenAlex] Search failed: Circuit breaker tripped for openalex
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[ADAPTIVE RATE] openalex: rate reduced to 1.00 req/s after 4× 429
+[OpenAlex] Search failed: Circuit breaker tripped for openalex
+[SemanticScholar] Search failed: HTTP 429 
+[OpenAlex] Search failed: Circuit breaker tripped for openalex
+[GLOBAL-THINKTANKS] Feed carnegie failed: Feed not recognized as RSS 1 or 2.
+[GLOBAL-THINKTANKS] Feed carnegie failed: Feed not recognized as RSS 1 or 2.
+[OpenAlex] Search failed: Circuit breaker tripped for openalex
+[OpenAlex] Search failed: Circuit breaker tripped for openalex
+[GLOBAL-THINKTANKS] Feed carnegie failed: Feed not recognized as RSS 1 or 2.
+[GLOBAL-THINKTANKS] Feed carnegie failed: Feed not recognized as RSS 1 or 2.
+[SSRN] Search failed: HTTP 403 
+[SSRN] Search failed: HTTP 403 
+[SSRN] Search failed: HTTP 403 
+[GLOBAL-THINKTANKS] Feed hoover failed: Cannot convert object to primitive value
+[GLOBAL-THINKTANKS] Feed hoover failed: Cannot convert object to primitive value
+[SSRN] Search failed: HTTP 403 
+[GLOBAL-THINKTANKS] Feed hoover failed: Cannot convert object to primitive value
+[GLOBAL-THINKTANKS] Feed hoover failed: Cannot convert object to primitive value
+[GLOBAL-THINKTANKS] Feed brookings failed: Invalid character in entity name
+Line: 111
+Column: 45
+Char: 
+[GLOBAL-THINKTANKS] Feed brookings failed: Feed not recognized as RSS 1 or 2.
+[GLOBAL-THINKTANKS] Feed brookings failed: Invalid character in entity name
+Line: 111
+Column: 45
+Char: 
+[GLOBAL-THINKTANKS] Feed brookings failed: Feed not recognized as RSS 1 or 2.
+[SemanticScholar] Search failed: HTTP 429 
+[SemanticScholar] Search failed: HTTP 429 
+[SemanticScholar] Search failed: HTTP 429 
+Unknown provider: consolidated-institutions, falling back to OpenAlex
+Unknown provider: global-intelligence, falling back to OpenAlex
+Unknown provider: consolidated-institutions, falling back to OpenAlex
+Unknown provider: global-intelligence, falling back to OpenAlex
+Unknown provider: consolidated-institutions, falling back to OpenAlex
+Unknown provider: global-intelligence, falling back to OpenAlex
+Unknown provider: consolidated-institutions, falling back to OpenAlex
+Unknown provider: global-intelligence, falling back to OpenAlex
+[OpenAlex] Search failed: OpenAlex API key credits exhausted
+[OpenAlex] Search failed: OpenAlex API key credits exhausted
+[OpenAlex] Search failed: OpenAlex API key credits exhausted
+[CIRCUIT BREAKER] openalex tripped after 3× 429 — skipping for 10s
+[OpenAlex] Search failed: Circuit breaker tripped for openalex
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex
+[OpenAlex] Search failed: Circuit breaker tripped for openalex
+[OpenAlex] Search failed: Circuit breaker tripped for openalex
+[OpenAlex] Search failed: Circuit breaker tripped for openalex
+[SemanticScholar] Search failed: HTTP 429 
+[SemanticScholar] Search failed: HTTP 429 
+[SemanticScholar] Search failed: HTTP 429 
+[SemanticScholar] Search failed: HTTP 429 
+[SCOUT] ⚠️ LOW DIVERSITY: only 2 provider(s) — crossref, bellingcat. Corpus may be biased.
+Unknown provider: consolidated-institutions, falling back to OpenAlex
+Unknown provider: global-intelligence, falling back to OpenAlex
+Unknown provider: global-orgs, falling back to OpenAlex
+Unknown provider: global-think-tanks, falling back to OpenAlex
+Unknown provider: consolidated-institutions, falling back to OpenAlex
+Unknown provider: global-intelligence, falling back to OpenAlex
+Unknown provider: global-orgs, falling back to OpenAlex
+Unknown provider: global-think-tanks, falling back to OpenAlex
+Unknown provider: consolidated-institutions, falling back to OpenAlex
+Unknown provider: global-intelligence, falling back to OpenAlex
+Unknown provider: global-orgs, falling back to OpenAlex
+Unknown provider: global-think-tanks, falling back to OpenAlex
+Unknown provider: consolidated-institutions, falling back to OpenAlex
+Unknown provider: global-intelligence, falling back to OpenAlex
+Unknown provider: global-orgs, falling back to OpenAlex
+Unknown provider: global-think-tanks, falling back to OpenAlex
+[OpenAlex] Search failed: OpenAlex API key credits exhausted
+[OpenAlex] Search failed: OpenAlex API key credits exhausted
+[CIRCUIT BREAKER] openalex tripped after 3× 429 — skipping for 10s
+[OpenAlex] Search failed: Circuit breaker tripped for openalex
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex
+[OpenAlex] Search failed: Circuit breaker tripped for openalex
+[OpenAlex] Search failed: Circuit breaker tripped for openalex
+[OpenAlex] Search failed: Circuit breaker tripped for openalex
+[SemanticScholar] Search failed: HTTP 429 
+[GLOBAL-THINKTANKS] Feed carnegie failed: Feed not recognized as RSS 1 or 2.
+[GLOBAL-THINKTANKS] Feed carnegie failed: Feed not recognized as RSS 1 or 2.
+[GLOBAL-THINKTANKS] Feed carnegie failed: Feed not recognized as RSS 1 or 2.
+[GLOBAL-THINKTANKS] Feed carnegie failed: Feed not recognized as RSS 1 or 2.
+[SSRN] Search failed: HTTP 403 
+[SSRN] Search failed: HTTP 403 
+[SSRN] Search failed: HTTP 403 
+[SSRN] Search failed: HTTP 403 
+[GLOBAL-THINKTANKS] Feed hoover failed: Cannot convert object to primitive value
+[GLOBAL-THINKTANKS] Feed hoover failed: Cannot convert object to primitive value
+[GLOBAL-THINKTANKS] Feed hoover failed: Cannot convert object to primitive value
+[GLOBAL-THINKTANKS] Feed brookings failed: Invalid character in entity name
+Line: 111
+Column: 45
+Char: 
+[GLOBAL-THINKTANKS] Feed brookings failed: Feed not recognized as RSS 1 or 2.
+[GLOBAL-THINKTANKS] Feed brookings failed: Invalid character in entity name
+Line: 111
+Column: 45
+Char: 
+[GLOBAL-THINKTANKS] Feed brookings failed: Feed not recognized as RSS 1 or 2.
+[GLOBAL-THINKTANKS] Feed hoover failed: Cannot convert object to primitive value
+[SemanticScholar] Search failed: HTTP 429 
+[SemanticScholar] Search failed: HTTP 429 
+Unknown provider: consolidated-institutions, falling back to OpenAlex
+Unknown provider: global-intelligence, falling back to OpenAlex
+Unknown provider: consolidated-institutions, falling back to OpenAlex
+Unknown provider: global-intelligence, falling back to OpenAlex
+Unknown provider: consolidated-institutions, falling back to OpenAlex
+Unknown provider: global-intelligence, falling back to OpenAlex
+Unknown provider: consolidated-institutions, falling back to OpenAlex
+Unknown provider: global-intelligence, falling back to OpenAlex
+[OpenAlex] Search failed: OpenAlex API key credits exhausted
+[OpenAlex] Search failed: OpenAlex API key credits exhausted
+[OpenAlex] Search failed: OpenAlex API key credits exhausted
+[CIRCUIT BREAKER] openalex tripped after 3× 429 — skipping for 10s
+[OpenAlex] Search failed: Circuit breaker tripped for openalex
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex
+[OpenAlex] Search failed: Circuit breaker tripped for openalex
+[OpenAlex] Search failed: Circuit breaker tripped for openalex
+[OpenAlex] Search failed: Circuit breaker tripped for openalex
+[SemanticScholar] Search failed: HTTP 429 
+[SemanticScholar] Search failed: HTTP 429 
+[SemanticScholar] Search failed: HTTP 429 
+[SemanticScholar] Search failed: HTTP 429 
+[SCOUT] ⚠️ LOW DIVERSITY: only 2 provider(s) — crossref, bellingcat. Corpus may be biased.
+Unknown provider: consolidated-institutions, falling back to OpenAlex
+Unknown provider: global-intelligence, falling back to OpenAlex
+Unknown provider: global-orgs, falling back to OpenAlex
+Unknown provider: global-think-tanks, falling back to OpenAlex
+Unknown provider: consolidated-institutions, falling back to OpenAlex
+Unknown provider: global-intelligence, falling back to OpenAlex
+Unknown provider: global-orgs, falling back to OpenAlex
+Unknown provider: global-think-tanks, falling back to OpenAlex
+Unknown provider: consolidated-institutions, falling back to OpenAlex
+Unknown provider: global-intelligence, falling back to OpenAlex
+Unknown provider: global-orgs, falling back to OpenAlex
+Unknown provider: global-think-tanks, falling back to OpenAlex
+Unknown provider: consolidated-institutions, falling back to OpenAlex
+Unknown provider: global-intelligence, falling back to OpenAlex
+Unknown provider: global-orgs, falling back to OpenAlex
+Unknown provider: global-think-tanks, falling back to OpenAlex
+[OpenAlex] Search failed: OpenAlex API key credits exhausted
+[OpenAlex] Search failed: OpenAlex API key credits exhausted
+[CIRCUIT BREAKER] openalex tripped after 3× 429 — skipping for 10s
+[OpenAlex] Search failed: Circuit breaker tripped for openalex
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex
+[OpenAlex] Search failed: Circuit breaker tripped for openalex
+[OpenAlex] Search failed: Circuit breaker tripped for openalex
+[OpenAlex] Search failed: Circuit breaker tripped for openalex
+[GLOBAL-THINKTANKS] Feed carnegie failed: Feed not recognized as RSS 1 or 2.
+[GLOBAL-THINKTANKS] Feed carnegie failed: Feed not recognized as RSS 1 or 2.
+[SemanticScholar] Search failed: HTTP 429 
+[GLOBAL-THINKTANKS] Feed carnegie failed: Feed not recognized as RSS 1 or 2.
+[GLOBAL-THINKTANKS] Feed carnegie failed: Feed not recognized as RSS 1 or 2.
+[SSRN] Search failed: HTTP 403 
+[SSRN] Search failed: HTTP 403 
+[SSRN] Search failed: HTTP 403 
+[SSRN] Search failed: HTTP 403 
+[GLOBAL-THINKTANKS] Feed hoover failed: Cannot convert object to primitive value
+[GLOBAL-THINKTANKS] Feed hoover failed: Cannot convert object to primitive value
+[GLOBAL-THINKTANKS] Feed hoover failed: Cannot convert object to primitive value
+[GLOBAL-THINKTANKS] Feed hoover failed: Cannot convert object to primitive value
+[GLOBAL-THINKTANKS] Feed brookings failed: Invalid character in entity name
+Line: 111
+Column: 45
+Char: 
+[GLOBAL-THINKTANKS] Feed brookings failed: Feed not recognized as RSS 1 or 2.
+[GLOBAL-THINKTANKS] Feed brookings failed: Invalid character in entity name
+Line: 111
+Column: 45
+Char: 
+[GLOBAL-THINKTANKS] Feed brookings failed: Feed not recognized as RSS 1 or 2.
+[SemanticScholar] Search failed: HTTP 429 
+[SemanticScholar] Search failed: HTTP 429 
+[SemanticScholar] Search failed: HTTP 429 
+Unknown provider: consolidated-institutions, falling back to OpenAlex
+Unknown provider: global-intelligence, falling back to OpenAlex
+Unknown provider: global-orgs, falling back to OpenAlex
+Unknown provider: global-think-tanks, falling back to OpenAlex
+Unknown provider: consolidated-institutions, falling back to OpenAlex
+Unknown provider: global-intelligence, falling back to OpenAlex
+Unknown provider: global-orgs, falling back to OpenAlex
+Unknown provider: global-think-tanks, falling back to OpenAlex
+Unknown provider: consolidated-institutions, falling back to OpenAlex
+Unknown provider: global-intelligence, falling back to OpenAlex
+Unknown provider: global-orgs, falling back to OpenAlex
+Unknown provider: global-think-tanks, falling back to OpenAlex
+Unknown provider: consolidated-institutions, falling back to OpenAlex
+Unknown provider: global-intelligence, falling back to OpenAlex
+Unknown provider: global-orgs, falling back to OpenAlex
+Unknown provider: global-think-tanks, falling back to OpenAlex
+[OpenAlex] Search failed: OpenAlex API key credits exhausted
+[OpenAlex] Search failed: OpenAlex API key credits exhausted
+[CIRCUIT BREAKER] openalex tripped after 3× 429 — skipping for 10s
+[OpenAlex] Search failed: Circuit breaker tripped for openalex
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex
+[OpenAlex] Search failed: Circuit breaker tripped for openalex
+[OpenAlex] Search failed: Circuit breaker tripped for openalex
+[OpenAlex] Search failed: Circuit breaker tripped for openalex
+[GLOBAL-THINKTANKS] Feed carnegie failed: Feed not recognized as RSS 1 or 2.
+[GLOBAL-THINKTANKS] Feed carnegie failed: Feed not recognized as RSS 1 or 2.
+[SemanticScholar] Search failed: HTTP 429 
+[GLOBAL-THINKTANKS] Feed carnegie failed: Feed not recognized as RSS 1 or 2.
+[GLOBAL-THINKTANKS] Feed carnegie failed: Feed not recognized as RSS 1 or 2.
+[SSRN] Search failed: HTTP 403 
+[SSRN] Search failed: HTTP 403 
+[SSRN] Search failed: HTTP 403 
+[SSRN] Search failed: HTTP 403 
+[SemanticScholar] Search failed: HTTP 429 
+[GLOBAL-THINKTANKS] Feed hoover failed: Cannot convert object to primitive value
+[GLOBAL-THINKTANKS] Feed brookings failed: Invalid character in entity name
+Line: 111
+Column: 45
+Char: 
+[GLOBAL-THINKTANKS] Feed hoover failed: Cannot convert object to primitive value
+[GLOBAL-THINKTANKS] Feed hoover failed: Cannot convert object to primitive value
+[GLOBAL-THINKTANKS] Feed hoover failed: Cannot convert object to primitive value
+[GLOBAL-THINKTANKS] Feed brookings failed: Invalid character in entity name
+Line: 111
+Column: 45
+Char: 
+[GLOBAL-THINKTANKS] Feed brookings failed: Feed not recognized as RSS 1 or 2.
+[GLOBAL-THINKTANKS] Feed brookings failed: Invalid character in entity name
+Line: 111
+Column: 45
+Char: 
+[SemanticScholar] Search failed: HTTP 429 
+[SemanticScholar] Search failed: HTTP 429 
+Unknown provider: consolidated-institutions, falling back to OpenAlex
+Unknown provider: global-intelligence, falling back to OpenAlex
+Unknown provider: consolidated-institutions, falling back to OpenAlex
+Unknown provider: global-intelligence, falling back to OpenAlex
+Unknown provider: consolidated-institutions, falling back to OpenAlex
+Unknown provider: global-intelligence, falling back to OpenAlex
+Unknown provider: consolidated-institutions, falling back to OpenAlex
+Unknown provider: global-intelligence, falling back to OpenAlex
+[OpenAlex] Search failed: OpenAlex API key credits exhausted
+[OpenAlex] Search failed: OpenAlex API key credits exhausted
+[OpenAlex] Search failed: OpenAlex API key credits exhausted
+[CIRCUIT BREAKER] openalex tripped after 3× 429 — skipping for 10s
+[OpenAlex] Search failed: Circuit breaker tripped for openalex
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex
+[OpenAlex] Search failed: Circuit breaker tripped for openalex
+[OpenAlex] Search failed: Circuit breaker tripped for openalex
+[OpenAlex] Search failed: Circuit breaker tripped for openalex
+[SemanticScholar] Search failed: HTTP 429 
+[SemanticScholar] Search failed: HTTP 429 
+[SemanticScholar] Search failed: HTTP 429 
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[SCOUT] ⚠️ LOW DIVERSITY: only 2 provider(s) — crossref, semanticscholar. Corpus may be biased.
+Unknown provider: consolidated-institutions, falling back to OpenAlex
+Unknown provider: global-intelligence, falling back to OpenAlex
+Unknown provider: consolidated-institutions, falling back to OpenAlex
+Unknown provider: global-intelligence, falling back to OpenAlex
+Unknown provider: consolidated-institutions, falling back to OpenAlex
+Unknown provider: global-intelligence, falling back to OpenAlex
+Unknown provider: consolidated-institutions, falling back to OpenAlex
+Unknown provider: global-intelligence, falling back to OpenAlex
+[OpenAlex] Search failed: OpenAlex API key credits exhausted
+[OpenAlex] Search failed: OpenAlex API key credits exhausted
+[CIRCUIT BREAKER] openalex tripped after 3× 429 — skipping for 10s
+[OpenAlex] Search failed: Circuit breaker tripped for openalex
+[OpenAlex] Search failed: Circuit breaker tripped for openalex
+[OpenAlex] Search failed: Circuit breaker tripped for openalex
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex
+[OpenAlex] Search failed: Circuit breaker tripped for openalex
+[SemanticScholar] Search failed: HTTP 429 
+[SemanticScholar] Search failed: HTTP 429 
+[SemanticScholar] Search failed: HTTP 429 
+[SemanticScholar] Search failed: HTTP 429 
+[SCOUT] ⚠️ LOW DIVERSITY: only 2 provider(s) — crossref, bellingcat. Corpus may be biased.
+[Unpaywall] Lookup failed for 10.7717/peerj.20695/supp-2: HTTP 404 
+[Unpaywall] Lookup failed for 10.7717/peerj.20695/supp-1: HTTP 404 
+[Unpaywall] Lookup failed for 10.7717/peerj.3895/table-4: HTTP 404 
+[Unpaywall] Lookup failed for 10.7717/peerj.13832/fig-1: HTTP 404 
+[Unpaywall] Lookup failed for 10.7717/peerj.19010/table-3: HTTP 404 
+[Unpaywall] Lookup failed for 10.7717/peerj-cs.3873/table-7: HTTP 404 
+Unknown provider: consolidated-institutions, falling back to OpenAlex
+Unknown provider: global-intelligence, falling back to OpenAlex
+Unknown provider: consolidated-institutions, falling back to OpenAlex
+Unknown provider: global-intelligence, falling back to OpenAlex
+Unknown provider: consolidated-institutions, falling back to OpenAlex
+Unknown provider: global-intelligence, falling back to OpenAlex
+Unknown provider: consolidated-institutions, falling back to OpenAlex
+Unknown provider: global-intelligence, falling back to OpenAlex
+[OpenAlex] Search failed: OpenAlex API key credits exhausted
+[OpenAlex] Search failed: OpenAlex API key credits exhausted
+[CIRCUIT BREAKER] openalex tripped after 3× 429 — skipping for 10s
+[OpenAlex] Search failed: Circuit breaker tripped for openalex
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex
+[OpenAlex] Search failed: Circuit breaker tripped for openalex
+[OpenAlex] Search failed: Circuit breaker tripped for openalex
+[OpenAlex] Search failed: Circuit breaker tripped for openalex
+[SemanticScholar] Search failed: HTTP 429 
+[SemanticScholar] Search failed: HTTP 429 
+[SemanticScholar] Search failed: HTTP 429 
+[Unpaywall] Lookup failed for 10.1787/888933932492: HTTP 404 
+[OpenAlex] Search failed: OpenAlex API key credits exhausted
+[OpenAlex] Search failed: OpenAlex API key credits exhausted
+[CIRCUIT BREAKER] openalex tripped after 3× 429 — skipping for 10s
+[OpenAlex] Search failed: Circuit breaker tripped for openalex
+[OpenAlex] Search failed: Circuit breaker tripped for openalex
+[SemanticScholar] Search failed: HTTP 429 
+[SemanticScholar] Search failed: HTTP 429 
+[SemanticScholar] Search failed: HTTP 429 
+[SemanticScholar] Search failed: HTTP 429 
+[SCOUT] ⚠️ LOW DIVERSITY: only 1 provider(s) — crossref. Corpus may be biased.
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[SemanticScholar] Search failed: HTTP 429 
+[SemanticScholar] Search failed: HTTP 429 
+[SemanticScholar] Search failed: HTTP 429 
+[SCOUT] ⚠️ LOW DIVERSITY: only 2 provider(s) — crossref, semanticscholar. Corpus may be biased.
+[SSRN] Search failed: HTTP 403 
+[SSRN] Search failed: HTTP 403 
+[SSRN] Search failed: HTTP 403 
+[SSRN] Search failed: HTTP 403 
+[OpenAlex] Search failed: OpenAlex API key credits exhausted
+[OpenAlex] Search failed: OpenAlex API key credits exhausted
+[CIRCUIT BREAKER] openalex tripped after 3× 429 — skipping for 10s
+[OpenAlex] Search failed: Circuit breaker tripped for openalex
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex
+[OpenAlex] Search failed: Circuit breaker tripped for openalex
+[OpenAlex] Search failed: Circuit breaker tripped for openalex
+[OpenAlex] Search failed: Circuit breaker tripped for openalex
+[ADAPTIVE RATE] pubmed: rate reduced to 1.50 req/s after 1× 429
+[HTTP] Retry 1/3 after 5000ms: https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&term=psychological%20research%20meaning%20in%20life%20purpose%20well-being&retmax=3&retmode=json&sort=relevance
+[ADAPTIVE RATE] pubmed: rate reduced to 0.75 req/s after 1× 429
+[HTTP] Retry 1/3 after 5000ms: https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=16110012,3794195,35748968&retmode=xml
+[SemanticScholar] Search failed: HTTP 429 
+[ADAPTIVE RATE] pubmed: rate reduced to 0.50 req/s after 2× 429
+[HTTP] Retry 1/3 after 5000ms: https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=16110012,32898466,40718556&retmode=xml
+[HTTP] Retry 1/3 after 5000ms: https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=37276295,31746703,36081230&retmode=xml
+[SemanticScholar] Search failed: HTTP 429 
+[SemanticScholar] Search failed: HTTP 429 
+[SemanticScholar] Search failed: HTTP 429 
+[HTTP] Retry 1/3 after 5000ms: https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=25468152,33420530,38131719&retmode=xml
+[HTTP] Retry 2/3 after 5000ms: https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=37276295,31746703,36081230&retmode=xml
+[OpenAlex] Search failed: OpenAlex API key credits exhausted
+[OpenAlex] Search failed: OpenAlex API key credits exhausted
+[CIRCUIT BREAKER] openalex tripped after 3× 429 — skipping for 10s
+[OpenAlex] Search failed: Circuit breaker tripped for openalex
+[OpenAlex] Search failed: Circuit breaker tripped for openalex
+[SemanticScholar] Search failed: HTTP 429 
+[SemanticScholar] Search failed: HTTP 429 
+[SemanticScholar] Search failed: HTTP 429 
+[SemanticScholar] Search failed: HTTP 429 
+[SCOUT] ⚠️ LOW DIVERSITY: only 1 provider(s) — crossref. Corpus may be biased.
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[SSRN] Search failed: HTTP 403 
+[SSRN] Search failed: HTTP 403 
+[SSRN] Search failed: HTTP 403 
+[SSRN] Search failed: HTTP 403 
+[SemanticScholar] Search failed: HTTP 429 
+[ADAPTIVE RATE] pubmed: rate reduced to 0.50 req/s after 1× 429
+[HTTP] Retry 1/3 after 5000ms: https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&term=nihilism%20critique%20meaning%20of%20life%20existential%20philosophy&retmax=2&retmode=json&sort=relevance
+[SemanticScholar] Search failed: HTTP 429 
+[SCOUT] ⚠️ LOW DIVERSITY: only 2 provider(s) — crossref, semanticscholar. Corpus may be biased.
+[SCOUT] ⚠️ LOW SOURCE COUNT: only 9 sources. Consider expanding providers or retrying.
+[SSRN] Search failed: HTTP 403 
+[SSRN] Search failed: HTTP 403 
+[SSRN] Search failed: HTTP 403 
+[SSRN] Search failed: HTTP 403 
+[OpenAlex] Search failed: OpenAlex API key credits exhausted
+[OpenAlex] Search failed: OpenAlex API key credits exhausted
+[CIRCUIT BREAKER] openalex tripped after 3× 429 — skipping for 10s
+[OpenAlex] Search failed: Circuit breaker tripped for openalex
+[OpenAlex] Search failed: Circuit breaker tripped for openalex
+[SemanticScholar] Search failed: HTTP 429 
+[SemanticScholar] Search failed: HTTP 429 
+[SemanticScholar] Search failed: HTTP 429 
+[SemanticScholar] Search failed: HTTP 429 
+[SCOUT] ⚠️ LOW DIVERSITY: only 1 provider(s) — crossref. Corpus may be biased.
+[SCOUT] ⚠️ LOW SOURCE COUNT: only 8 sources. Consider expanding providers or retrying.
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[SSRN] Search failed: HTTP 403 
+[SSRN] Search failed: HTTP 403 
+[SSRN] Search failed: HTTP 403 
+[SSRN] Search failed: HTTP 403 
+[HTTP] Retry 1/3 after 5000ms: https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&term=meaning-making%20theory%20limitations%20and%20criticisms&retmax=2&retmode=json&sort=relevance
+[HTTP] Retry 1/3 after 5000ms: https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=37054449&retmode=xml
+[HTTP] Retry 1/3 after 5000ms: https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=32048559,22232017&retmode=xml
+[SemanticScholar] Search failed: HTTP 429 
+[HTTP] Retry 1/3 after 5000ms: https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=33217358,38025479&retmode=xml
+[SemanticScholar] Search failed: HTTP 429 
+[SemanticScholar] Search failed: HTTP 429 
+[SemanticScholar] Search failed: HTTP 429 
+[HTTP] Retry 1/3 after 5000ms: https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=42475469&retmode=xml
+[HTTP] Retry 2/3 after 5000ms: https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=33217358,38025479&retmode=xml
+[Unpaywall] Lookup failed for 10.17169/fqs-26.3.4386: HTTP 404 
+[SSRN] Search failed: HTTP 403 
+[SSRN] Search failed: HTTP 403 
+[SSRN] Search failed: HTTP 403 
+[SSRN] Search failed: HTTP 403 
+[OpenAlex] Search failed: OpenAlex API key credits exhausted
+[OpenAlex] Search failed: OpenAlex API key credits exhausted
+[CIRCUIT BREAKER] openalex tripped after 3× 429 — skipping for 10s
+[OpenAlex] Search failed: Circuit breaker tripped for openalex
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex
+[OpenAlex] Search failed: Circuit breaker tripped for openalex
+[OpenAlex] Search failed: Circuit breaker tripped for openalex
+[OpenAlex] Search failed: Circuit breaker tripped for openalex
+[SemanticScholar] Search failed: HTTP 429 
+[SemanticScholar] Search failed: HTTP 429 
+[SemanticScholar] Search failed: HTTP 429 
+[SemanticScholar] Search failed: HTTP 429 
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[HTTP] Retry 1/2 after 1102ms: fetch failed
+[HTTP] Retry 1/2 after 766ms: fetch failed
+[HTTP] Retry 1/2 after 778ms: fetch failed
+[HTTP] Retry 1/2 after 828ms: fetch failed
+[SSRN] Search failed: HTTP 403 
+[SSRN] Search failed: HTTP 403 
+[SSRN] Search failed: HTTP 403 
+[SSRN] Search failed: HTTP 403 
+[HTTP] Retry 2/2 after 2264ms: fetch failed
+[HTTP] Retry 2/2 after 1558ms: fetch failed
+[HTTP] Retry 2/2 after 2102ms: fetch failed
+[HTTP] Retry 2/2 after 2143ms: fetch failed
+[IMF-SDMX] Dataflow fetch failed: fetch failed
+[IMF-SDMX] Dataflow fetch failed: fetch failed
+[IMF-SDMX] Dataflow fetch failed: fetch failed
+[IMF-SDMX] Dataflow fetch failed: fetch failed
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[SCOUT] ⚠️ LOW DIVERSITY: only 2 provider(s) — crossref, imf. Corpus may be biased.
+[OpenAlex] Search failed: OpenAlex API key credits exhausted
+[OpenAlex] Search failed: OpenAlex API key credits exhausted
+[CIRCUIT BREAKER] openalex tripped after 3× 429 — skipping for 10s
+[OpenAlex] Search failed: Circuit breaker tripped for openalex
+[OpenAlex] Search failed: Circuit breaker tripped for openalex
+[ADAPTIVE RATE] crossref: rate reduced to 4.00 req/s after 1× 429
+[HTTP] Retry 1/4 after 5000ms: https://api.crossref.org/works?query=anthropology%20ritual%20sense-making%20cultural%20practices%20symbolic%20interpretation&rows=15&mailto=dev%40nomosx.local
+[SCOUT] ⚠️ LOW DIVERSITY: only 2 provider(s) — crossref, jstor. Corpus may be biased.
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[ADAPTIVE RATE] crossref: rate reduced to 2.00 req/s after 1× 429
+[HTTP] Retry 1/4 after 5000ms: https://api.crossref.org/works?query=purpose%20of%20human%20existence%20ancient%20Greek%20thought&rows=2&mailto=dev%40nomosx.local
+[OpenAlex] Search failed: OpenAlex API key credits exhausted
+[OpenAlex] Search failed: OpenAlex API key credits exhausted
+[CIRCUIT BREAKER] openalex tripped after 3× 429 — skipping for 10s
+[OpenAlex] Search failed: Circuit breaker tripped for openalex
+[OpenAlex] Search failed: Circuit breaker tripped for openalex
+[SCOUT] Relevance/rerank failed (keeping deduped pool): TypeError: (source.abstract || "").toLowerCase is not a function
+    at scoreRelevance (C:\Users\DELL\Desktop\NomosX-master\lib\agent\relevance-scorer.ts:129:44)
+    at <anonymous> (C:\Users\DELL\Desktop\NomosX-master\lib\agent\relevance-scorer.ts:269:12)
+    at Array.map (<anonymous>)
+    at filterByRelevance (C:\Users\DELL\Desktop\NomosX-master\lib\agent\relevance-scorer.ts:267:26)
+    at scoutImpl (C:\Users\DELL\Desktop\NomosX-master\lib\agent\pipeline-v2.ts:1132:24)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async scout (C:\Users\DELL\Desktop\NomosX-master\lib\agent\pipeline-v2.ts:544:18)
+    at async intelligentSearchFn (C:\Users\DELL\Desktop\NomosX-master\lib\agent\pipeline-v2.ts:2590:22)
+    at async runIntelligentScout (C:\Users\DELL\Desktop\NomosX-master\lib\agent\intelligent-scout.ts:739:25)
+    at async runPipelineCore (C:\Users\DELL\Desktop\NomosX-master\lib\agent\pipeline-v2.ts:2611:28)
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[ADAPTIVE RATE] crossref: rate reduced to 1.73 req/s after 1× 429
+[HTTP] Retry 1/4 after 5000ms: https://api.crossref.org/works?query=purpose%20of%20human%20existence%20medieval%20Christian%20thought&rows=2&mailto=dev%40nomosx.local
+[SCOUT] Relevance/rerank failed (keeping deduped pool): TypeError: (source.abstract || "").toLowerCase is not a function
+    at scoreRelevance (C:\Users\DELL\Desktop\NomosX-master\lib\agent\relevance-scorer.ts:129:44)
+    at <anonymous> (C:\Users\DELL\Desktop\NomosX-master\lib\agent\relevance-scorer.ts:269:12)
+    at Array.map (<anonymous>)
+    at filterByRelevance (C:\Users\DELL\Desktop\NomosX-master\lib\agent\relevance-scorer.ts:267:26)
+    at scoutImpl (C:\Users\DELL\Desktop\NomosX-master\lib\agent\pipeline-v2.ts:1132:24)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async scout (C:\Users\DELL\Desktop\NomosX-master\lib\agent\pipeline-v2.ts:544:18)
+    at async intelligentSearchFn (C:\Users\DELL\Desktop\NomosX-master\lib\agent\pipeline-v2.ts:2590:22)
+    at async runIntelligentScout (C:\Users\DELL\Desktop\NomosX-master\lib\agent\intelligent-scout.ts:739:25)
+    at async runPipelineCore (C:\Users\DELL\Desktop\NomosX-master\lib\agent\pipeline-v2.ts:2611:28)
+[OpenAlex] Search failed: OpenAlex API key credits exhausted
+[OpenAlex] Search failed: OpenAlex API key credits exhausted
+[ADAPTIVE RATE] crossref: rate reduced to 1.04 req/s after 1× 429
+[HTTP] Retry 1/2 after 5000ms: https://api.crossref.org/works?query=human%20purpose%20historical%20context%20philosophical%20meaning&filter=prefix:10.2307&rows=2&mailto=dev%40nomosx.local
+[ADAPTIVE RATE] crossref: rate reduced to 1.00 req/s after 2× 429
+[HTTP] Retry 1/4 after 5000ms: https://api.crossref.org/works?query=human%20purpose%20historical%20context%20philosophical%20meaning&rows=2&mailto=dev%40nomosx.local
+[CIRCUIT BREAKER] openalex tripped after 3× 429 — skipping for 10s
+[OpenAlex] Search failed: Circuit breaker tripped for openalex
+[OpenAlex] Search failed: Circuit breaker tripped for openalex
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[ADAPTIVE RATE] crossref: rate reduced to 1.00 req/s after 1× 429
+[HTTP] Retry 1/2 after 5000ms: https://api.crossref.org/works?query=ritual%20symbolism%20meaning%20construction%20anthropology&filter=prefix:10.2307&rows=15&mailto=dev%40nomosx.local
+[HTTP] Retry 1/4 after 5000ms: https://api.crossref.org/works?query=ritual%20symbolism%20meaning%20construction%20anthropology&rows=15&mailto=dev%40nomosx.local
+[SCOUT] ⚠️ LOW DIVERSITY: only 2 provider(s) — crossref, jstor. Corpus may be biased.
+[ThesesFr] Search failed: HTTP 400 
+Unknown provider: consolidated-institutions, falling back to OpenAlex
+Unknown provider: global-intelligence, falling back to OpenAlex
+Unknown provider: global-orgs, falling back to OpenAlex
+Unknown provider: global-think-tanks, falling back to OpenAlex
+Unknown provider: consolidated-institutions, falling back to OpenAlex
+Unknown provider: global-intelligence, falling back to OpenAlex
+Unknown provider: global-orgs, falling back to OpenAlex
+Unknown provider: global-think-tanks, falling back to OpenAlex
+Unknown provider: consolidated-institutions, falling back to OpenAlex
+Unknown provider: global-intelligence, falling back to OpenAlex
+Unknown provider: global-orgs, falling back to OpenAlex
+Unknown provider: global-think-tanks, falling back to OpenAlex
+Unknown provider: consolidated-institutions, falling back to OpenAlex
+Unknown provider: global-intelligence, falling back to OpenAlex
+Unknown provider: global-orgs, falling back to OpenAlex
+Unknown provider: global-think-tanks, falling back to OpenAlex
+[OpenAlex] Search failed: OpenAlex API key credits exhausted
+[OpenAlex] Search failed: OpenAlex API key credits exhausted
+[CIRCUIT BREAKER] openalex tripped after 3× 429 — skipping for 10s
+[OpenAlex] Search failed: Circuit breaker tripped for openalex
+[OpenAlex] Search failed: Circuit breaker tripped for openalex
+[OpenAlex] Search failed: Circuit breaker tripped for openalex
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex
+[OpenAlex] Search failed: Circuit breaker tripped for openalex
+[SemanticScholar] Search failed: HTTP 429 
+[SSRN] Search failed: HTTP 403 
+[SSRN] Search failed: HTTP 403 
+[SSRN] Search failed: HTTP 403 
+[SSRN] Search failed: HTTP 403 
+[GLOBAL-THINKTANKS] Feed carnegie failed: Feed not recognized as RSS 1 or 2.
+[QueryEnhancer] Semantic drift detected: Some variations drifted from ai employment domain
+[GLOBAL-THINKTANKS] Feed carnegie failed: Feed not recognized as RSS 1 or 2.
+[GLOBAL-THINKTANKS] Feed carnegie failed: Feed not recognized as RSS 1 or 2.
+[ThesesFr] Search failed: HTTP 400 
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+Unknown provider: consolidated-institutions, falling back to OpenAlex
+Unknown provider: global-intelligence, falling back to OpenAlex
+Unknown provider: global-orgs, falling back to OpenAlex
+Unknown provider: global-think-tanks, falling back to OpenAlex
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+Unknown provider: consolidated-institutions, falling back to OpenAlex
+Unknown provider: global-intelligence, falling back to OpenAlex
+Unknown provider: global-orgs, falling back to OpenAlex
+Unknown provider: global-think-tanks, falling back to OpenAlex
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+Unknown provider: consolidated-institutions, falling back to OpenAlex
+Unknown provider: global-intelligence, falling back to OpenAlex
+Unknown provider: global-orgs, falling back to OpenAlex
+Unknown provider: global-think-tanks, falling back to OpenAlex
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+Unknown provider: consolidated-institutions, falling back to OpenAlex
+Unknown provider: global-intelligence, falling back to OpenAlex
+Unknown provider: global-orgs, falling back to OpenAlex
+Unknown provider: global-think-tanks, falling back to OpenAlex
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[GLOBAL-THINKTANKS] Feed carnegie failed: Feed not recognized as RSS 1 or 2.
+[GLOBAL-THINKTANKS] Feed carnegie failed: Feed not recognized as RSS 1 or 2.
+[GLOBAL-THINKTANKS] Feed carnegie failed: Feed not recognized as RSS 1 or 2.
+[GLOBAL-THINKTANKS] Feed carnegie failed: Feed not recognized as RSS 1 or 2.
+[SemanticScholar] Search failed: HTTP 429 
+[GLOBAL-THINKTANKS] Feed hoover failed: Cannot convert object to primitive value
+[SSRN] Search failed: HTTP 403 
+[SSRN] Search failed: HTTP 403 
+[ThesesFr] Search failed: HTTP 400 
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+Unknown provider: consolidated-institutions, falling back to OpenAlex
+Unknown provider: global-intelligence, falling back to OpenAlex
+Unknown provider: global-orgs, falling back to OpenAlex
+Unknown provider: global-think-tanks, falling back to OpenAlex
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+Unknown provider: consolidated-institutions, falling back to OpenAlex
+Unknown provider: global-intelligence, falling back to OpenAlex
+Unknown provider: global-orgs, falling back to OpenAlex
+Unknown provider: global-think-tanks, falling back to OpenAlex
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+Unknown provider: consolidated-institutions, falling back to OpenAlex
+Unknown provider: global-intelligence, falling back to OpenAlex
+Unknown provider: global-orgs, falling back to OpenAlex
+Unknown provider: global-think-tanks, falling back to OpenAlex
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+Unknown provider: consolidated-institutions, falling back to OpenAlex
+Unknown provider: global-intelligence, falling back to OpenAlex
+Unknown provider: global-orgs, falling back to OpenAlex
+Unknown provider: global-think-tanks, falling back to OpenAlex
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[GLOBAL-THINKTANKS] Feed hoover failed: Cannot convert object to primitive value
+[GLOBAL-THINKTANKS] Feed hoover failed: Cannot convert object to primitive value
+[GLOBAL-THINKTANKS] Feed hoover failed: Cannot convert object to primitive value
+[ThesesFr] Search failed: HTTP 400 
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+Unknown provider: consolidated-institutions, falling back to OpenAlex
+Unknown provider: global-intelligence, falling back to OpenAlex
+Unknown provider: global-orgs, falling back to OpenAlex
+Unknown provider: global-think-tanks, falling back to OpenAlex
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+Unknown provider: consolidated-institutions, falling back to OpenAlex
+Unknown provider: global-intelligence, falling back to OpenAlex
+Unknown provider: global-orgs, falling back to OpenAlex
+Unknown provider: global-think-tanks, falling back to OpenAlex
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+Unknown provider: consolidated-institutions, falling back to OpenAlex
+Unknown provider: global-intelligence, falling back to OpenAlex
+Unknown provider: global-orgs, falling back to OpenAlex
+Unknown provider: global-think-tanks, falling back to OpenAlex
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+Unknown provider: consolidated-institutions, falling back to OpenAlex
+Unknown provider: global-intelligence, falling back to OpenAlex
+Unknown provider: global-orgs, falling back to OpenAlex
+Unknown provider: global-think-tanks, falling back to OpenAlex
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[ThesesFr] Search failed: HTTP 400 
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+Unknown provider: consolidated-institutions, falling back to OpenAlex
+Unknown provider: global-intelligence, falling back to OpenAlex
+Unknown provider: global-orgs, falling back to OpenAlex
+Unknown provider: global-think-tanks, falling back to OpenAlex
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+Unknown provider: consolidated-institutions, falling back to OpenAlex
+Unknown provider: global-intelligence, falling back to OpenAlex
+Unknown provider: global-orgs, falling back to OpenAlex
+Unknown provider: global-think-tanks, falling back to OpenAlex
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+Unknown provider: consolidated-institutions, falling back to OpenAlex
+Unknown provider: global-intelligence, falling back to OpenAlex
+Unknown provider: global-orgs, falling back to OpenAlex
+Unknown provider: global-think-tanks, falling back to OpenAlex
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+Unknown provider: consolidated-institutions, falling back to OpenAlex
+Unknown provider: global-intelligence, falling back to OpenAlex
+Unknown provider: global-orgs, falling back to OpenAlex
+Unknown provider: global-think-tanks, falling back to OpenAlex
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[GLOBAL-THINKTANKS] Feed carnegie failed: Feed not recognized as RSS 1 or 2.
+[SSRN] Search failed: HTTP 403 
+[GLOBAL-THINKTANKS] Feed carnegie failed: Feed not recognized as RSS 1 or 2.
+[GLOBAL-THINKTANKS] Feed carnegie failed: Feed not recognized as RSS 1 or 2.
+[GLOBAL-THINKTANKS] Feed carnegie failed: Feed not recognized as RSS 1 or 2.
+[GLOBAL-THINKTANKS] Feed carnegie failed: Feed not recognized as RSS 1 or 2.
+[GLOBAL-THINKTANKS] Feed hoover failed: Cannot convert object to primitive value
+[GLOBAL-THINKTANKS] Feed hoover failed: Cannot convert object to primitive value
+[GLOBAL-THINKTANKS] Feed brookings failed: Invalid character in entity name
+Line: 111
+Column: 45
+Char: 
+[GLOBAL-THINKTANKS] Feed brookings failed: Feed not recognized as RSS 1 or 2.
+[GLOBAL-THINKTANKS] Feed brookings failed: Invalid character in entity name
+Line: 111
+Column: 45
+Char: 
+[GLOBAL-THINKTANKS] Feed brookings failed: Invalid character in entity name
+Line: 111
+Column: 45
+Char: 
+[GLOBAL-THINKTANKS] Feed hoover failed: Cannot convert object to primitive value
+[SemanticScholar] Search failed: HTTP 429 
+[SSRN] Search failed: HTTP 403 
+[SemanticScholar] Search failed: HTTP 429 
+[GLOBAL-THINKTANKS] Feed hoover failed: Cannot convert object to primitive value
+[GLOBAL-THINKTANKS] Feed hoover failed: Cannot convert object to primitive value
+[SSRN] Search failed: HTTP 403 
+[GLOBAL-THINKTANKS] Feed hoover failed: Cannot convert object to primitive value
+[GLOBAL-THINKTANKS] Feed brookings failed: Invalid character in entity name
+Line: 111
+Column: 45
+Char: 
+[GLOBAL-THINKTANKS] Feed brookings failed: Feed not recognized as RSS 1 or 2.
+[SemanticScholar] Search failed: HTTP 429 
+[SemanticScholar] Search failed: HTTP 429 
+[GLOBAL-THINKTANKS] Feed hoover failed: Cannot convert object to primitive value
+[GLOBAL-THINKTANKS] Feed hoover failed: Cannot convert object to primitive value
+[GLOBAL-THINKTANKS] Feed carnegie failed: Feed not recognized as RSS 1 or 2.
+[GLOBAL-THINKTANKS] Feed carnegie failed: Feed not recognized as RSS 1 or 2.
+[GLOBAL-THINKTANKS] Feed carnegie failed: Feed not recognized as RSS 1 or 2.
+[GLOBAL-THINKTANKS] Feed carnegie failed: Feed not recognized as RSS 1 or 2.
+[GLOBAL-THINKTANKS] Feed brookings failed: Invalid character in entity name
+Line: 111
+Column: 45
+Char: 
+[GLOBAL-THINKTANKS] Feed brookings failed: Invalid character in entity name
+Line: 111
+Column: 45
+Char: 
+[GLOBAL-THINKTANKS] Feed brookings failed: Invalid character in entity name
+Line: 111
+Column: 45
+Char: 
+[GLOBAL-THINKTANKS] Feed brookings failed: Feed not recognized as RSS 1 or 2.
+[GLOBAL-THINKTANKS] Feed brookings failed: Invalid character in entity name
+Line: 111
+Column: 45
+Char: 
+[GLOBAL-THINKTANKS] Feed brookings failed: Invalid character in entity name
+Line: 111
+Column: 45
+Char: 
+[GLOBAL-THINKTANKS] Feed brookings failed: Invalid character in entity name
+Line: 111
+Column: 45
+Char: 
+[GLOBAL-THINKTANKS] Feed brookings failed: Invalid character in entity name
+Line: 111
+Column: 45
+Char: 
+[GLOBAL-THINKTANKS] Feed carnegie failed: Feed not recognized as RSS 1 or 2.
+[GLOBAL-THINKTANKS] Feed carnegie failed: Feed not recognized as RSS 1 or 2.
+[GLOBAL-THINKTANKS] Feed carnegie failed: Feed not recognized as RSS 1 or 2.
+[GLOBAL-THINKTANKS] Feed carnegie failed: Feed not recognized as RSS 1 or 2.
+[SSRN] Search failed: HTTP 403 
+[GLOBAL-THINKTANKS] Feed hoover failed: Cannot convert object to primitive value
+[GLOBAL-THINKTANKS] Feed hoover failed: Cannot convert object to primitive value
+[GLOBAL-THINKTANKS] Feed hoover failed: Cannot convert object to primitive value
+[GLOBAL-THINKTANKS] Feed hoover failed: Cannot convert object to primitive value
+[GLOBAL-THINKTANKS] Feed hoover failed: Cannot convert object to primitive value
+[GLOBAL-THINKTANKS] Feed hoover failed: Cannot convert object to primitive value
+[GLOBAL-THINKTANKS] Feed hoover failed: Cannot convert object to primitive value
+[GLOBAL-THINKTANKS] Feed hoover failed: Cannot convert object to primitive value
+[SemanticScholar] Search failed: HTTP 429 
+[GLOBAL-THINKTANKS] Feed brookings failed: Invalid character in entity name
+Line: 111
+Column: 45
+Char: 
+[GLOBAL-THINKTANKS] Feed brookings failed: Feed not recognized as RSS 1 or 2.
+[GLOBAL-THINKTANKS] Feed brookings failed: Invalid character in entity name
+Line: 111
+Column: 45
+Char: 
+[GLOBAL-THINKTANKS] Feed brookings failed: Feed not recognized as RSS 1 or 2.
+[GLOBAL-THINKTANKS] Feed brookings failed: Invalid character in entity name
+Line: 111
+Column: 45
+Char: 
+[SSRN] Search failed: HTTP 403 
+[SSRN] Search failed: HTTP 403 
+[GLOBAL-THINKTANKS] Feed brookings failed: Feed not recognized as RSS 1 or 2.
+[SSRN] Search failed: HTTP 403 
+[SSRN] Search failed: HTTP 403 
+[SSRN] Search failed: HTTP 403 
+[SemanticScholar] Search failed: HTTP 429 
+[SSRN] Search failed: HTTP 403 
+[SSRN] Search failed: HTTP 403 
+[SSRN] Search failed: HTTP 403 
+[SSRN] Search failed: HTTP 403 
+[SemanticScholar] Search failed: HTTP 429 
+[SSRN] Search failed: HTTP 403 
+[SemanticScholar] Search failed: HTTP 429 
+[SemanticScholar] Search failed: HTTP 429 
+[SemanticScholar] Search failed: HTTP 429 
+[SemanticScholar] Search failed: HTTP 429 
+[SemanticScholar] Search failed: HTTP 429 
+[HTTP] Retry 1/3 after 1203ms: Request timeout after 15000ms
+[HTTP] Retry 1/3 after 936ms: Request timeout after 15000ms
+[HTTP] Retry 1/3 after 861ms: Request timeout after 15000ms
+[HTTP] Retry 1/3 after 1039ms: Request timeout after 15000ms
+[SemanticScholar] Search failed: HTTP 429 
+[SemanticScholar] Search failed: HTTP 429 
+[SemanticScholar] Search failed: HTTP 429 
+[SemanticScholar] Search failed: HTTP 429 
+[HTTP] Retry 2/3 after 1666ms: Request timeout after 15000ms
+[HTTP] Retry 2/3 after 2314ms: Request timeout after 15000ms
+[HTTP] Retry 2/3 after 2006ms: Request timeout after 15000ms
+[HTTP] Retry 2/3 after 2306ms: Request timeout after 15000ms
+[HTTP] Retry 3/3 after 3916ms: Request timeout after 15000ms
+[HTTP] Retry 3/3 after 4883ms: Request timeout after 15000ms
+[HTTP] Retry 3/3 after 4131ms: Request timeout after 15000ms
+[HTTP] Retry 3/3 after 4155ms: Request timeout after 15000ms
+[DOAJ] Search failed: Request timeout after 15000ms
+[DOAJ] Search failed: Request timeout after 15000ms
+[DOAJ] Search failed: Request timeout after 15000ms
+[DOAJ] Search failed: Request timeout after 15000ms
+[HTTP] Retry 1/3 after 812ms: Request timeout after 15000ms
+[HTTP] Retry 1/3 after 1191ms: Request timeout after 15000ms
+[HTTP] Retry 1/3 after 829ms: Request timeout after 15000ms
+[HTTP] Retry 1/3 after 782ms: Request timeout after 15000ms
+[HTTP] Retry 2/3 after 1759ms: Request timeout after 15000ms
+[HTTP] Retry 2/3 after 1999ms: Request timeout after 15000ms
+[HTTP] Retry 2/3 after 2325ms: Request timeout after 15000ms
+[HTTP] Retry 2/3 after 1873ms: Request timeout after 15000ms
+[HTTP] Retry 3/3 after 4289ms: Request timeout after 15000ms
+[HTTP] Retry 3/3 after 4291ms: Request timeout after 15000ms
+[HTTP] Retry 3/3 after 4820ms: Request timeout after 15000ms
+[HTTP] Retry 3/3 after 4790ms: Request timeout after 15000ms
+[DOAJ] Search failed: Request timeout after 15000ms
+[DOAJ] Search failed: Request timeout after 15000ms
+[DOAJ] Search failed: Request timeout after 15000ms
+[DOAJ] Search failed: Request timeout after 15000ms
+[DOAJ] Search failed: Request timeout after 15000ms
+[Unpaywall] Lookup failed for 10.7717/peerj-cs.4/fig-2: HTTP 404 
+[HTTP] Retry 1/3 after 979ms: Request timeout after 15000ms
+[HTTP] Retry 1/3 after 1202ms: Request timeout after 15000ms
+[HTTP] Retry 1/3 after 851ms: Request timeout after 15000ms
+[HTTP] Retry 1/3 after 1010ms: Request timeout after 15000ms
+[HTTP] Retry 2/3 after 2415ms: Request timeout after 15000ms
+[HTTP] Retry 2/3 after 2003ms: Request timeout after 15000ms
+[HTTP] Retry 2/3 after 2100ms: Request timeout after 15000ms
+[HTTP] Retry 2/3 after 1938ms: Request timeout after 15000ms
+[HTTP] Retry 3/3 after 4272ms: Request timeout after 15000ms
+[HTTP] Retry 3/3 after 4833ms: Request timeout after 15000ms
+[HTTP] Retry 3/3 after 3929ms: Request timeout after 15000ms
+[HTTP] Retry 3/3 after 4387ms: Request timeout after 15000ms
+[DOAJ] Search failed: Request timeout after 15000ms
+[DOAJ] Search failed: Request timeout after 15000ms
+[DOAJ] Search failed: Request timeout after 15000ms
+[DOAJ] Search failed: Request timeout after 15000ms
+[HTTP] Retry 1/3 after 1057ms: Request timeout after 15000ms
+[HTTP] Retry 1/3 after 831ms: Request timeout after 15000ms
+[HTTP] Retry 1/3 after 1150ms: Request timeout after 15000ms
+[HTTP] Retry 1/3 after 1021ms: Request timeout after 15000ms
+[HTTP] Retry 2/3 after 2195ms: Request timeout after 15000ms
+[HTTP] Retry 2/3 after 1772ms: Request timeout after 15000ms
+[HTTP] Retry 2/3 after 2331ms: Request timeout after 15000ms
+[HTTP] Retry 2/3 after 2101ms: Request timeout after 15000ms
+[HTTP] Retry 3/3 after 4449ms: Request timeout after 15000ms
+[HTTP] Retry 3/3 after 4115ms: Request timeout after 15000ms
+[HTTP] Retry 3/3 after 4274ms: Request timeout after 15000ms
+[HTTP] Retry 3/3 after 3394ms: Request timeout after 15000ms
+[DOAJ] Search failed: Request timeout after 15000ms
+[DOAJ] Search failed: Request timeout after 15000ms
+[DOAJ] Search failed: Request timeout after 15000ms
+[DOAJ] Search failed: Request timeout after 15000ms
+[DOAJ] Search failed: Request timeout after 15000ms
+[Unpaywall] Lookup failed for 10.7717/peerj.1709/supp-6: HTTP 404 
+[Unpaywall] Lookup failed for 10.37473/dac/10.1101/2020.04.14.20065276: HTTP 404 
+[HTTP] Retry 1/3 after 1145ms: Request timeout after 15000ms
+[HTTP] Retry 1/3 after 942ms: Request timeout after 15000ms
+[HTTP] Retry 2/3 after 1503ms: Request timeout after 15000ms
+[HTTP] Retry 2/3 after 2043ms: Request timeout after 15000ms
+[HTTP] Retry 3/3 after 4162ms: Request timeout after 15000ms
+[HTTP] Retry 3/3 after 5000ms: Request timeout after 15000ms
+[DOAJ] Search failed: Request timeout after 15000ms
+[DOAJ] Search failed: Request timeout after 15000ms
+[Reader V3] PDF extraction failed: Request failed with status code 403
+[Reader V3] PDF extraction failed: Request failed with status code 403
+[Reader V3] PDF extraction failed: Request failed with status code 403
+[Reader V3] PDF extraction failed: Request failed with status code 403
+[Reader V3] PDF extraction failed: Request failed with status code 403
+[Reader V3] PDF extraction failed: Invalid PDF structure.
+[Reader V3] PDF extraction failed: Request failed with status code 403
+[Reader V3] PDF extraction failed: Invalid PDF structure.
+[Reader V3] PDF extraction failed: Invalid PDF structure.
+[Reader V3] PDF extraction failed: maxContentLength size of 20971520 exceeded
+[Reader V3] PDF extraction failed: Request failed with status code 403
+[Reader V3] PDF extraction failed: Invalid PDF structure.
+[Reader V3] PDF extraction failed: Request failed with status code 403
+[Reader V3] PDF extraction failed: Invalid PDF structure.
+[NLI Engine] mDeBERTa-v3 not available, using embedding fallback: Error: Unauthorized access to file: "https://huggingface.co/MoritzLaurer/mDeBERTa-v3-base-mnli-xli/resolve/main/config.json".
+[Analyst V3] CITATION COVERAGE LOW: 13/51 distinct sources cited (target: 18). Deterministic citation injection will run downstream.
+[Analyst V3] PRUNING GATES: removed 4 links — #2(MULTI_ROOT), #3(MULTI_ROOT), #4(MULTI_ROOT), #7(MULTI_ROOT)
+[Analyst V3] GATE WARNING: Multi-root: Multiple roots found (3): keeping #1, pruning 2 alternatives
+[Pipeline] TOPIC CONSISTENCY ISSUES DETECTED:
+  - Low source relevance: 31.4% relevant sources
+❌ deepseek failed for task "reader_v3": deepseek/deepseek-v4-flash returned unparseable JSON (len=16411)
+❌ kimi failed for task "reader_v3": 429 Your account org-774d71d4dfd84636b8fc43ef23175faa <ak-fbpa5sih1x3111ghdf1i> is suspended due to insufficient balance, please recharge your account or check your plan and billing details
+⚡ Circuit breaker OPEN for kimi (3 consecutive failures)
+❌ kimi failed for task "editorial_arbiter": 429 Your account org-774d71d4dfd84636b8fc43ef23175faa <ak-fbpa5sih1x3111ghdf1i> is suspended due to insufficient balance, please recharge your account or check your plan and billing details
+[Pipeline] INFLECTION CHECK: Chain has 1 reversing mechanism(s) but none are dated + thresholded + attested
+[Pipeline] INFLECTION DETAIL: Reversing mechanism "For sufficiently high lattice misfit, the critical bypass configuration changes " lacks a specific date/timeframe
+[Pipeline] INFLECTION DETAIL: Reversing mechanism "For sufficiently high lattice misfit, the critical bypass configuration changes " lacks a quantified threshold
+[Pipeline] INFLECTION DETAIL: Chain has 1 reversing mechanism(s) but none are dated + thresholded + attested
+❌ deepseek failed for task "reader_v3": deepseek/deepseek-v4-flash returned unparseable JSON (len=13247)
+[Pipeline] ACTIVE REPAIR: ⚠️ Quality threshold NOT met after 3 iterations (50% < 85%) — will try LLM deep-check
+❌ kimi failed for task "citation_verification": 429 Your account org-774d71d4dfd84636b8fc43ef23175faa <ak-fbpa5sih1x3111ghdf1i> is suspended due to insufficient balance, please recharge your account or check your plan and billing details
+❌ kimi failed for task "citation_verification": 429 Your account org-774d71d4dfd84636b8fc43ef23175faa <ak-fbpa5sih1x3111ghdf1i> is suspended due to insufficient balance, please recharge your account or check your plan and billing details
+⚡ Circuit breaker OPEN for kimi (3 consecutive failures)
+❌ kimi failed for task "citation_verification": 429 Your account org-774d71d4dfd84636b8fc43ef23175faa <ak-fbpa5sih1x3111ghdf1i> is suspended due to insufficient balance, please recharge your account or check your plan and billing details
+⚡ Circuit breaker OPEN for kimi (4 consecutive failures)
+❌ kimi failed for task "citation_verification": 429 Your account org-774d71d4dfd84636b8fc43ef23175faa <ak-fbpa5sih1x3111ghdf1i> is suspended due to insufficient balance, please recharge your account or check your plan and billing details
+🔌 Provider kimi: AUTO-SUSPENDED for 24h (5 consecutive failures — likely dead: low balance, suspended account, or persistent outage)
+❌ kimi failed for task "citation_verification": 429 Your account org-774d71d4dfd84636b8fc43ef23175faa <ak-fbpa5sih1x3111ghdf1i> is suspended due to insufficient balance, please recharge your account or check your plan and billing details
+🔌 Provider kimi: AUTO-SUSPENDED for 24h (6 consecutive failures — likely dead: low balance, suspended account, or persistent outage)
+❌ kimi failed for task "citation_verification": 429 Your account org-774d71d4dfd84636b8fc43ef23175faa <ak-fbpa5sih1x3111ghdf1i> is suspended due to insufficient balance, please recharge your account or check your plan and billing details
+🔌 Provider kimi: AUTO-SUSPENDED for 24h (7 consecutive failures — likely dead: low balance, suspended account, or persistent outage)
+❌ kimi failed for task "citation_verification": 429 Your account org-774d71d4dfd84636b8fc43ef23175faa <ak-fbpa5sih1x3111ghdf1i> is suspended due to insufficient balance, please recharge your account or check your plan and billing details
+🔌 Provider kimi: AUTO-SUSPENDED for 24h (8 consecutive failures — likely dead: low balance, suspended account, or persistent outage)
+❌ kimi failed for task "citation_verification": 429 Your account org-774d71d4dfd84636b8fc43ef23175faa <ak-fbpa5sih1x3111ghdf1i> is suspended due to insufficient balance, please recharge your account or check your plan and billing details
+❌ anthropic failed for task "citation_verification": 400 {"type":"error","error":{"type":"invalid_request_error","message":"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits."},"request_id":"req_011CeJ4eiPzNZ5zhiXjRfUyc"}
+⚡ Circuit breaker OPEN for anthropic (3 consecutive failures)
+❌ anthropic failed for task "citation_verification": 400 {"type":"error","error":{"type":"invalid_request_error","message":"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits."},"request_id":"req_011CeJ4eiVwdvyrzjcL9SqEL"}
+⚡ Circuit breaker OPEN for anthropic (4 consecutive failures)
+❌ anthropic failed for task "citation_verification": 400 {"type":"error","error":{"type":"invalid_request_error","message":"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits."},"request_id":"req_011CeJ4eiTTjjAzoorQY2c2W"}
+🔌 Provider anthropic: AUTO-SUSPENDED for 24h (5 consecutive failures — likely dead: low balance, suspended account, or persistent outage)
+❌ anthropic failed for task "citation_verification": 400 {"type":"error","error":{"type":"invalid_request_error","message":"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits."},"request_id":"req_011CeJ4eieNJZrWZbLCfynEb"}
+🔌 Provider anthropic: AUTO-SUSPENDED for 24h (6 consecutive failures — likely dead: low balance, suspended account, or persistent outage)
+❌ anthropic failed for task "citation_verification": 400 {"type":"error","error":{"type":"invalid_request_error","message":"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits."},"request_id":"req_011CeJ4eiYfn7Z2LCd9vUcPc"}
+🔌 Provider anthropic: AUTO-SUSPENDED for 24h (7 consecutive failures — likely dead: low balance, suspended account, or persistent outage)
+❌ anthropic failed for task "citation_verification": 400 {"type":"error","error":{"type":"invalid_request_error","message":"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits."},"request_id":"req_011CeJ4eiWw8kzquo5tRGHbr"}
+🔌 Provider anthropic: AUTO-SUSPENDED for 24h (8 consecutive failures — likely dead: low balance, suspended account, or persistent outage)
+❌ anthropic failed for task "citation_verification": 400 {"type":"error","error":{"type":"invalid_request_error","message":"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits."},"request_id":"req_011CeJ4eiau941BTM6cWyojG"}
+🔌 Provider anthropic: AUTO-SUSPENDED for 24h (9 consecutive failures — likely dead: low balance, suspended account, or persistent outage)
+❌ anthropic failed for task "citation_verification": 400 {"type":"error","error":{"type":"invalid_request_error","message":"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits."},"request_id":"req_011CeJ4eikpUAHah4QSbknMY"}
+[Pipeline] BIAS DETECTOR: 1 biases detected (risk 20%): selection(low)
+[ADAPTIVE RATE] crossref: rate reduced to 1.49 req/s after 1× 429
+[HTTP] Retry 1/2 after 5000ms: https://api.crossref.org/works?filter=type:retraction,from-created-date:2010-01-01&query.bibliographic=10.1103%2FPhysRevApplied.23.014051&rows=1&mailto=dev%40nomosx.local
+[ADAPTIVE RATE] crossref: rate reduced to 1.00 req/s after 1× 429
+[HTTP] Retry 1/2 after 5000ms: https://api.crossref.org/works?filter=type:retraction,from-created-date:2010-01-01&query.bibliographic=10.1093%2Feurpub%2Fckae022&rows=1&mailto=dev%40nomosx.local
+[HTTP] Retry 1/2 after 5000ms: https://api.crossref.org/works?filter=type:retraction,from-created-date:2010-01-01&query.bibliographic=10.1089%2Fast.2023.0103&rows=1&mailto=dev%40nomosx.local
+[HTTP] Retry 1/2 after 5000ms: https://api.crossref.org/works?filter=type:retraction,from-created-date:2010-01-01&query.bibliographic=10.53573%2Frhimrj.2026.v13n04.010&rows=1&mailto=dev%40nomosx.local
+[HTTP] Retry 1/2 after 5000ms: https://api.crossref.org/works?filter=type:retraction,from-created-date:2010-01-01&query.bibliographic=10.70675%2F7c52358dz615az44bczb5ffzcb91fb4ef178&rows=1&mailto=dev%40nomosx.local
+[HTTP] Retry 1/2 after 5000ms: https://api.crossref.org/works?filter=type:retraction,from-created-date:2010-01-01&query.bibliographic=10.5281%2Fzenodo.10623231&rows=1&mailto=dev%40nomosx.local
+[HTTP] Retry 1/2 after 5000ms: https://api.crossref.org/works?filter=type:retraction,from-created-date:2010-01-01&query.bibliographic=10.4000%2F1516q&rows=1&mailto=dev%40nomosx.local
+[HTTP] Retry 1/2 after 5000ms: https://api.crossref.org/works?filter=type:retraction,from-created-date:2010-01-01&query.bibliographic=10.63028%2F10067%2F2079040151162165141&rows=1&mailto=dev%40nomosx.local
+[HTTP] Retry 1/2 after 5000ms: https://api.crossref.org/works?filter=type:retraction,from-created-date:2010-01-01&query.bibliographic=10.2139%2Fssrn.5237071&rows=1&mailto=dev%40nomosx.local
+[HTTP] Retry 1/2 after 5000ms: https://api.crossref.org/works?filter=type:retraction,from-created-date:2010-01-01&query.bibliographic=10.22126%2Fjap.2021.5871.1482&rows=1&mailto=dev%40nomosx.local
+[HTTP] Retry 1/2 after 5000ms: https://api.crossref.org/works?filter=type:retraction,from-created-date:2010-01-01&query.bibliographic=10.25095%2Fmufad.1605615&rows=1&mailto=dev%40nomosx.local
+[Pipeline] HallDetect: hallucination risk score 66/100 — 204 flagged claims
+[Pipeline] HallDetect veto: capping trust at 50 due to high hallucination risk
+❌ deepseek failed for task "reader_v3": deepseek/deepseek-v4-flash returned unparseable JSON (len=13130)
+❌ deepseek failed for task "reader_v3": deepseek/deepseek-v4-flash timed out after 300000ms

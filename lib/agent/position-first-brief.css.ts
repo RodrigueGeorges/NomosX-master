@@ -241,6 +241,30 @@ export const POSITION_FIRST_BRIEF_CSS = `
     line-height: var(--nx-read-lh);
   }
 
+  /* ── Scenario signals ── */
+  .scenario-signals {
+    margin-top: 0.5rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.375rem;
+    align-items: center;
+  }
+  .signal-label {
+    font-family: var(--nx-font-mono);
+    font-size: 0.5625rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--nx-text-tertiary);
+  }
+  .signal-tag {
+    font-size: 0.6875rem;
+    color: var(--nx-text-secondary);
+    background: var(--nx-surface-raised, rgba(255,255,255,0.04));
+    padding: 0.125rem 0.5rem;
+    border-radius: 0.25rem;
+    border: 1px solid var(--nx-border-subtle);
+  }
+
   /* ── Verdict / position block ── */
   .verdict-block {
     border-left: 2px solid var(--nx-text-primary);

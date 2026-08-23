@@ -16,8 +16,14 @@
 
 import { callLLM } from '../llm/unified-llm';
 import { parseJson } from './json-utils';
+import { synthesizePrimaryData, renderPrimaryDataSection, type PrimarySourceInput } from './primary-data-synthesizer';
+import { generateScenarioModeling, renderScenarioModeling } from './scenario-pack';
+import { stressTestRecommendations, renderStressTest } from './policy-stress-tester';
+import { runPolicyCouncil, renderPolicyCouncil } from './policy-council';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
+
+export { type PrimarySourceInput } from './primary-data-synthesizer';
 
 export interface Stakeholder {
   name: string;
@@ -34,6 +40,9 @@ export interface Recommendation {
   priority: 'high' | 'medium' | 'low';
   rationale: string;
   firstStep: string;
+  firstChoice?: boolean;
+  fallback?: string;
+  implementationRisks?: string[];
 }
 
 export interface PolicyOption {
@@ -44,6 +53,7 @@ export interface PolicyOption {
 
 export interface PolicyRecommendations {
   headline: string;
+  problem?: string;
   options: PolicyOption[];
   recommendations: Recommendation[];
   stakeholders: Stakeholder[];
@@ -72,6 +82,11 @@ export interface ThinkTankPackOptions {
   polish?: boolean;
   recommendations?: boolean;
   economics?: boolean;
+  primaryData?: PrimarySourceInput[];
+  scenarioModeling?: boolean;
+  maxScenarios?: number;
+  stressTest?: boolean;
+  policyCouncil?: boolean;
 }
 
 // ─── Recommandations ──────────────────────────────────────────────────────────
@@ -104,28 +119,32 @@ ${text}
 SOURCES:
 ${sourceList}
 
-TASK: Produce a policy section with the following JSON structure:
+TASK: Produce a Harvard Kennedy School / Belfer Center-style policy section. Return JSON with:
 {
-  "headline": "One-sentence bottom line for a busy decision-maker",
+  "headline": "One-sentence bottom line for a busy senior decision-maker — problem + stakes + recommended action",
+  "problem": "The specific policy problem, not the general topic. What is broken or at risk?",
   "options": [
     { "option": "Description of policy option 1", "pros": ["pro 1", "pro 2"], "cons": ["con 1", "con 2"] },
     { "option": "Description of policy option 2", "pros": ["pro 1"], "cons": ["con 1"] },
     { "option": "Description of policy option 3", "pros": ["pro 1"], "cons": ["con 1"] }
   ],
   "recommendations": [
-    { "stakeholder": "Regulators", "actor": "Specific body (e.g. FDA, EU AI Act Office)", "action": "Concrete action", "timeline": "e.g. 6-12 months", "priority": "high", "rationale": "Why this matters", "firstStep": "First actionable step" }
+    { "stakeholder": "Regulators", "actor": "Specific body (e.g. FDA, EU AI Act Office)", "action": "Concrete action", "firstChoice": true, "fallback": "Alternative if the first choice is blocked", "timeline": "e.g. 6-12 months", "priority": "high", "rationale": "Why this matters", "firstStep": "First 30-day step", "implementationRisks": ["risk 1"] }
   ],
   "stakeholders": [
     { "name": "Stakeholder name", "interest": "What they want", "power": "high|medium|low", "position": "Current position" }
   ]
 }
 
-Rules:
+Rules (Harvard policy-memo style):
+- Start with the problem, not the topic
 - ${max} recommendations maximum, each assigned to a specific actor
+- Each recommendation must have a first choice, a fallback, a first 30-day step, and 1-2 implementation risks
 - 3 policy options with explicit trade-offs
 - 4-6 stakeholders with Interest × Power mapping
+- Cover economic, legal, institutional, social, technological, and geopolitical dimensions where relevant (not only economics)
 - Use sources where possible; do not invent data
-- Headline must state the single most important action to take`,
+- Headline must state the problem + stakes + the single most important action to take`
       },
     ],
     task: 'strategic_analysis',
@@ -278,9 +297,10 @@ export async function augmentThinkTankHtml(
   let totalCost = 0;
   let currentHtml = html;
   const packStats: any = {};
+  let packRecommendations: PolicyRecommendations | null = null;
 
-  // 1. Editorial polish
-  if (options.polish !== false) {
+  // 1. Editorial polish (opt-in: fragile with full HTML, can strip tags)
+  if (options.polish === true) {
     try {
       const titleMatch = html.match(/<h1[^>]*>([^<]+)<\/h1>/i);
       const title = titleMatch ? titleMatch[1] : question;
@@ -295,10 +315,25 @@ export async function augmentThinkTankHtml(
     }
   }
 
-  // 2. Recommendations
+  // 2. Primary data synthesis
+  if (options.primaryData && options.primaryData.length > 0) {
+    try {
+      const primary = await synthesizePrimaryData(question, options.primaryData, { question });
+      currentHtml = insertBeforeConclusion(currentHtml, renderPrimaryDataSection(primary));
+      totalCost += primary.costUsd;
+      packStats.primaryData = { findings: primary.findings.length, quotes: primary.quotes.length };
+      console.log(`[ThinkTankPack] Primary data: ${primary.findings.length} findings, ${primary.quotes.length} quotes`);
+    } catch (err) {
+      console.warn('[ThinkTankPack] Primary data synthesis failed:', err);
+      packStats.primaryData = { error: true };
+    }
+  }
+
+  // 3. Recommendations
   if (options.recommendations !== false) {
     try {
       const recs = await generatePolicyRecommendations(question, currentHtml, sources, options);
+      packRecommendations = recs;
       currentHtml = insertBeforeConclusion(currentHtml, renderRecommendations(recs));
       totalCost += recs.costUsd;
       packStats.recommendations = { count: recs.recommendations.length, options: recs.options.length };
@@ -309,7 +344,35 @@ export async function augmentThinkTankHtml(
     }
   }
 
-  // 3. Economics
+  // 3b. Policy stress test
+  if (options.stressTest !== false && packRecommendations) {
+    try {
+      const stress = await stressTestRecommendations(question, packRecommendations.recommendations);
+      currentHtml = insertBeforeConclusion(currentHtml, renderStressTest(stress));
+      totalCost += stress.costUsd;
+      packStats.stressTest = { risks: stress.risks.length, riskLevel: stress.riskLevel };
+      console.log(`[ThinkTankPack] Stress test: ${stress.risks.length} risks, level=${stress.riskLevel}`);
+    } catch (err) {
+      console.warn('[ThinkTankPack] Stress test failed:', err);
+      packStats.stressTest = { error: true };
+    }
+  }
+
+  // 3c. Policy council
+  if (options.policyCouncil !== false && packRecommendations) {
+    try {
+      const council = await runPolicyCouncil(question, currentHtml, sources, { maxRecommendations: options.maxRecommendations });
+      currentHtml = insertBeforeConclusion(currentHtml, renderPolicyCouncil(council));
+      totalCost += council.costUsd;
+      packStats.policyCouncil = { recommendations: council.recommendations.length, confidence: council.confidence };
+      console.log(`[ThinkTankPack] Policy council: ${council.recommendations.length} recs, confidence=${council.confidence}%`);
+    } catch (err) {
+      console.warn('[ThinkTankPack] Policy council failed:', err);
+      packStats.policyCouncil = { error: true };
+    }
+  }
+
+  // 4. Economics
   if (options.economics !== false) {
     try {
       const econ = await generatePolicyEconomics(question, currentHtml, sources, options);
@@ -323,6 +386,20 @@ export async function augmentThinkTankHtml(
     }
   }
 
+  // 5. Scenario modeling & foresight
+  if (options.scenarioModeling !== false) {
+    try {
+      const scenarios = await generateScenarioModeling(question, currentHtml, sources, { maxScenarios: options.maxScenarios });
+      currentHtml = insertBeforeConclusion(currentHtml, renderScenarioModeling(scenarios));
+      totalCost += scenarios.costUsd;
+      packStats.scenarios = { count: scenarios.scenarios.length, dominant: scenarios.dominantScenario };
+      console.log(`[ThinkTankPack] Scenarios: ${scenarios.scenarios.length}, dominant=${scenarios.dominantScenario}`);
+    } catch (err) {
+      console.warn('[ThinkTankPack] Scenario modeling failed:', err);
+      packStats.scenarios = { error: true };
+    }
+  }
+
   return {
     html: currentHtml,
     stats: packStats,
@@ -333,6 +410,10 @@ export async function augmentThinkTankHtml(
 // ─── HTML Renderers ─────────────────────────────────────────────────────────
 
 function renderRecommendations(recs: PolicyRecommendations): string {
+  const problemHtml = recs.problem
+    ? `<p class="policy-problem"><strong>Problem:</strong> ${escapeHtml(recs.problem)}</p>`
+    : '';
+
   const optionsHtml = recs.options.length
     ? `<section class="policy-options"><h2>Options Considered</h2>${recs.options.map(o => `
       <div class="policy-option">
@@ -345,18 +426,21 @@ function renderRecommendations(recs: PolicyRecommendations): string {
   const recsHtml = recs.recommendations.length
     ? `<section class="recommendations"><h2>Recommendations</h2>
         <p class="headline"><strong>Bottom line:</strong> ${escapeHtml(recs.headline)}</p>
+        ${problemHtml}
         <table class="recommendations-table">
-          <thead><tr><th>Actor</th><th>Action</th><th>Timeline</th><th>Priority</th><th>First Step</th></tr></thead>
+          <thead><tr><th>Actor</th><th>Action</th><th>Priority</th><th>First 30-day step</th><th>Fallback if blocked</th></tr></thead>
           <tbody>${recs.recommendations.map(r => `
             <tr>
               <td>${escapeHtml(r.actor)}</td>
-              <td>${escapeHtml(r.action)}</td>
-              <td>${escapeHtml(r.timeline)}</td>
+              <td><strong>${r.firstChoice ? '★ ' : ''}</strong>${escapeHtml(r.action)}</td>
               <td>${r.priority}</td>
               <td>${escapeHtml(r.firstStep)}</td>
+              <td>${escapeHtml(r.fallback)}</td>
             </tr>`).join('')}
           </tbody>
         </table>
+        ${recs.recommendations.some(r => r.implementationRisks?.length) ? `<h3>Implementation Risks</h3>
+        <ul>${recs.recommendations.flatMap(r => (r.implementationRisks || []).map(risk => `<li>${escapeHtml(risk)}</li>`)).join('')}</ul>` : ''}
         <h3>Stakeholders</h3>
         <table class="stakeholders-table">
           <thead><tr><th>Stakeholder</th><th>Interest</th><th>Power</th><th>Position</th></tr></thead>

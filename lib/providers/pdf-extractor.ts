@@ -69,21 +69,30 @@ export async function extractPDFText(
       };
     }
 
-    // Télécharger le PDF
+    // Télécharger le PDF (with retry — fetchFromProvider doesn't support binary responses)
     const startTime = Date.now();
-    const response = await fetch(pdfUrl, {
-      headers: {
-        "User-Agent": "NomosX Research Agent (research@nomosx.fr)",
-        "Accept": "application/pdf"
-      },
-      signal: AbortSignal.timeout(timeout)
-    });
+    let response: Response | null = null;
+    for (let attempt = 0; attempt <= 1; attempt++) {
+      try {
+        response = await fetch(pdfUrl, {
+          headers: {
+            "User-Agent": "NomosX Research Agent (research@nomosx.fr)",
+            "Accept": "application/pdf"
+          },
+          signal: AbortSignal.timeout(timeout)
+        });
+        if (response.ok) break;
+      } catch (err: any) {
+        if (attempt === 1) throw err;
+        await new Promise(r => setTimeout(r, 2000));
+      }
+    }
 
-    if (!response.ok) {
-      console.warn(`[PDF Extractor] HTTP ${response.status}: ${response.statusText}`);
+    if (!response || !response.ok) {
+      console.warn(`[PDF Extractor] HTTP ${response?.status}: ${response?.statusText}`);
       return {
         success: false,
-        error: `HTTP ${response.status}: ${response.statusText}`
+        error: `HTTP ${response?.status}: ${response?.statusText}`
       };
     }
 

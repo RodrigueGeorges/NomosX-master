@@ -11,6 +11,8 @@
  * Rate limit: none enforced, but be respectful (we cap concurrency)
  */
 
+import { fetchFromProvider } from '../http-client';
+
 // ============================================================================
 // TYPES (same interface as google-knowledge-graph.ts for drop-in replacement)
 // ============================================================================
@@ -96,21 +98,11 @@ export async function searchKnowledgeGraph(
   });
 
   try {
-    const response = await fetch(`${WIKIDATA_API}?${params.toString()}`, {
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-        "User-Agent": USER_AGENT,
-      },
-      signal: AbortSignal.timeout(10000),
-    });
-
-    if (!response.ok) {
-      console.error(`[WIKIDATA] API error ${response.status}`);
+    const data: any = await fetchFromProvider('wikidata', `${WIKIDATA_API}?${params.toString()}`, { timeout: 10000, retries: 2, headers: { Accept: 'application/json', 'User-Agent': USER_AGENT } });
+    if (!data) {
+      console.error(`[WIKIDATA] API request failed`);
       return { entities: [], totalResults: 0, query, durationMs: Date.now() - startTime };
     }
-
-    const data = await response.json();
     const rawResults: any[] = data.search || [];
 
     // Fetch detailed descriptions for top results (cap at 3 to save time)
@@ -388,13 +380,8 @@ async function fetchEntityDetails(
       origin: "*",
     });
 
-    const response = await fetch(`${WIKIDATA_API}?${params.toString()}`, {
-      headers: { "User-Agent": USER_AGENT },
-      signal: AbortSignal.timeout(8000),
-    });
-
-    if (!response.ok) return result;
-    const data = await response.json();
+    const data: any = await fetchFromProvider('wikidata', `${WIKIDATA_API}?${params.toString()}`, { timeout: 8000, retries: 2, headers: { 'User-Agent': USER_AGENT } });
+    if (!data) return result;
 
     for (const id of ids) {
       const entity = data.entities?.[id];

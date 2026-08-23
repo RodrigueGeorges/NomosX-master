@@ -23,8 +23,19 @@
 
 import { callLLM } from '../llm/unified-llm';
 import { parseJson } from './json-utils';
+import { getLatestPrompt } from './self-evolver';
+import { cohensKappa, spearmanRho, calibrateJudge, type JudgeEvaluation as ArenaJudgeEvaluation, type JudgeCalibration as ArenaJudgeCalibration } from './judge-arena';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
+
+export interface RubricCriterion {
+  /** Short name of the sub-criterion */
+  name: string;
+  /** What is being evaluated */
+  description: string;
+  /** Max score for this sub-criterion */
+  maxScore: number;
+}
 
 export interface JudgeRubric {
   /** Short name */
@@ -35,6 +46,8 @@ export interface JudgeRubric {
   maxScore: number;
   /** Weight in the final score (0-1) */
   weight: number;
+  /** Optional QUEST-style rubric tree with sub-criteria */
+  criteria?: RubricCriterion[];
 }
 
 export interface JudgeEvaluation {
@@ -73,13 +86,55 @@ export const DEFAULT_LOCAL_JUDGE_CONFIG: LocalJudgeConfig = {
   enabled: process.env.ENABLE_LOCAL_JUDGE === 'true',
   timeoutMs: 30000,
   defaultRubrics: [
-    { name: 'citations', description: 'All factual claims have [SRC-N] citations', maxScore: 10, weight: 0.20 },
-    { name: 'grounding', description: 'Claims are grounded in cited sources (low hallucination)', maxScore: 10, weight: 0.20 },
-    { name: 'nuance', description: 'Uncertainty is acknowledged where appropriate', maxScore: 10, weight: 0.10 },
-    { name: 'balance', description: 'Counter-evidence and disagreements are presented', maxScore: 10, weight: 0.15 },
-    { name: 'specificity', description: 'Claims are specific, with numbers/dates/entities', maxScore: 10, weight: 0.10 },
-    { name: 'policy_relevance', description: 'Recommendations are actionable and decision-oriented', maxScore: 10, weight: 0.15 },
-    { name: 'quality', description: 'Overall think tank quality: clarity, structure, voice', maxScore: 10, weight: 0.10 },
+    {
+      name: 'citations', description: 'All factual claims have [SRC-N] citations', maxScore: 10, weight: 0.20,
+      criteria: [
+        { name: 'completeness', description: 'Key claims are cited', maxScore: 5 },
+        { name: 'accuracy', description: 'Citations match the claims', maxScore: 5 },
+      ],
+    },
+    {
+      name: 'grounding', description: 'Claims are grounded in cited sources (low hallucination)', maxScore: 10, weight: 0.20,
+      criteria: [
+        { name: 'source_alignment', description: 'Claims align with cited sources', maxScore: 5 },
+        { name: 'quote_precision', description: 'Quotes and data are precise', maxScore: 5 },
+      ],
+    },
+    {
+      name: 'nuance', description: 'Uncertainty is acknowledged where appropriate', maxScore: 10, weight: 0.10,
+      criteria: [
+        { name: 'uncertainty_markers', description: 'Uses confidence labels or hedges where needed', maxScore: 5 },
+        { name: 'avoid_overstatement', description: 'Does not overstate evidence', maxScore: 5 },
+      ],
+    },
+    {
+      name: 'balance', description: 'Counter-evidence and disagreements are presented', maxScore: 10, weight: 0.15,
+      criteria: [
+        { name: 'counter_arguments', description: 'Presents objections or limitations', maxScore: 5 },
+        { name: 'evidence_breadth', description: 'Uses diverse sources and perspectives', maxScore: 5 },
+      ],
+    },
+    {
+      name: 'specificity', description: 'Claims are specific, with numbers/dates/entities', maxScore: 10, weight: 0.10,
+      criteria: [
+        { name: 'quantitative_anchors', description: 'Includes numbers, dates, named actors', maxScore: 5 },
+        { name: 'mechanism_clarity', description: 'Causal mechanisms are explicit', maxScore: 5 },
+      ],
+    },
+    {
+      name: 'policy_relevance', description: 'Recommendations are actionable and decision-oriented', maxScore: 10, weight: 0.15,
+      criteria: [
+        { name: 'actionability', description: 'Recommends concrete actions for named actors', maxScore: 5 },
+        { name: 'trade_offs', description: 'Options and trade-offs are explicit', maxScore: 5 },
+      ],
+    },
+    {
+      name: 'quality', description: 'Overall think tank quality: clarity, structure, voice', maxScore: 10, weight: 0.10,
+      criteria: [
+        { name: 'clarity', description: 'Prose is clear and concise', maxScore: 5 },
+        { name: 'structure', description: 'Sections are well-organized', maxScore: 5 },
+      ],
+    },
   ],
   fallbackToCloud: true,
 };
@@ -106,18 +161,28 @@ export async function isLocalJudgeAvailable(config: LocalJudgeConfig = DEFAULT_L
 
 // ─── Format prompt for Prometheus 2 / JudgeLM ───────────────────────────────
 
+function formatRubricTreeText(rubric: JudgeRubric): string {
+  if (!rubric.criteria || rubric.criteria.length === 0) {
+    return `${rubric.name}: ${rubric.description} (0-${rubric.maxScore})`;
+  }
+  const criteriaText = rubric.criteria
+    .map((c) => `    - ${c.name}: ${c.description} (0-${c.maxScore})`)
+    .join('\n');
+  return `${rubric.name}: ${rubric.description} (0-${rubric.maxScore})\n${criteriaText}`;
+}
+
 function formatJudgePrompt(
   content: string,
   rubrics: JudgeRubric[],
   reference?: string,
 ): string {
-  const rubricText = rubrics
-    .map(r => `${r.name}: ${r.description} (0-${r.maxScore})`)
-    .join('\n');
+  const rubricText = rubrics.map(formatRubricTreeText).join('\n\n');
 
   const referenceText = reference ? `\nReference material to compare against:\n${reference.slice(0, 2000)}\n` : '';
 
-  return `You are an expert evaluator model (Prometheus 2 / M-Prometheus style). Evaluate the following response carefully and return only valid JSON.
+  return `You are an expert evaluator model (Prometheus 2 / M-Prometheus / QUEST style). Evaluate the following response using the provided rubric trees. Return only valid JSON.
+
+A rubric tree breaks each high-level rubric into sub-criteria. Score each sub-criterion, then derive the parent rubric score as the weighted sum of its criteria (or simply the total out of maxScore).
 
 Evaluation rubrics:
 ${rubricText}
@@ -126,7 +191,7 @@ ${referenceText}
 Response to evaluate:
 ${content.slice(0, 4000)}
 
-Evaluate each rubric, then produce a final overall score. Be critical: a think tank brief must be factually grounded, nuanced, balanced, specific, decision-relevant, and well-structured. Deduct heavily for hallucinated citations, overstatements, missing uncertainty, or generic recommendations.
+Be critical: a think tank brief must be factually grounded, nuanced, balanced, specific, decision-relevant, and well-structured. Deduct heavily for hallucinated citations, overstatements, missing uncertainty, or generic recommendations.
 
 Provide your evaluation as JSON:
 {
@@ -135,11 +200,22 @@ Provide your evaluation as JSON:
     "grounding": 7,
     ...
   },
+  "criteria": {
+    "citations": {
+      "completeness": 4,
+      "accuracy": 4
+    },
+    "grounding": {
+      "source_alignment": 4,
+      "quote_precision": 3
+    },
+    ...
+  },
   "overallScore": 0.75,
   "feedback": "brief explanation of strengths and weaknesses"
 }
 
-overallScore is 0.0 to 1.0. Rubrics are 0 to their maxScore.`;
+overallScore is 0.0 to 1.0. Rubrics and sub-criteria are 0 to their maxScore.`;
 }
 
 // ─── Call local judge ───────────────────────────────────────────────────────
@@ -206,27 +282,28 @@ async function callCloudJudge(
   rubrics: JudgeRubric[],
   reference?: string,
 ): Promise<JudgeEvaluation> {
-  const rubricText = rubrics
-    .map(r => `- ${r.name} (${r.maxScore} pts): ${r.description}`)
-    .join('\n');
+  const rubricText = rubrics.map(formatRubricTreeText).join('\n\n');
 
   const referenceText = reference ? `\nReference answer:\n${reference.slice(0, 2000)}\n` : '';
+
+  const baseInstructions = `You are an expert judge. Evaluate the following response using the rubric trees (main rubric + sub-criteria). Respond with JSON: {"rubrics": {"citations": 8, ...}, "criteria": {"citations": {"completeness": 4, ...}}, "overallScore": 0.75, "feedback": "..."} overallScore is 0-1.`;
+  const evolvedInstructions = await getLatestPrompt('local_judge', baseInstructions);
 
   try {
     const response = await callLLM({
       messages: [
         {
           role: 'system',
-          content: `You are an expert judge. Evaluate the following response based on the rubrics. Respond with JSON: {"rubrics": {"citations": 8, ...}, "overallScore": 0.75, "feedback": "..."} overallScore is 0-1.`,
+          content: evolvedInstructions,
         },
         {
           role: 'user',
-          content: `Rubrics:\n${rubricText}\n${referenceText}\nResponse to evaluate:\n${content.slice(0, 4000)}\nEvaluate:`,
+          content: `Rubric trees:\n${rubricText}\n${referenceText}\nResponse to evaluate:\n${content.slice(0, 4000)}\nEvaluate:`,
         },
       ],
       temperature: 0.2,
       jsonMode: true,
-      maxTokens: 600,
+      maxTokens: 800,
       task: 'enrichment_reasoner',
     });
 
@@ -351,5 +428,41 @@ export async function judgeAttack(
     success: result.overallScore > 0.7,
     score: result.overallScore,
     costUsd: result.costUsd,
+  };
+}
+
+// ─── S16-06: JudgeArena calibration ──────────────────────────────────────────
+
+/**
+ * Calibrate the local judge against a set of ground-truth scores using
+ * JudgeArena's statistical methods (Cohen's κ + Spearman ρ).
+ *
+ * Given the judge's past scores and the corresponding ground-truth scores,
+ * this computes the judge's reliability. If κ < 0.4 a warning is logged
+ * indicating the judge needs recalibration.
+ *
+ * @param scores - Past judge scores (0-1)
+ * @param groundTruth - Corresponding ground-truth scores (0-1)
+ * @returns Calibration summary with κ, ρ, and a reliability bucket
+ */
+export async function calibrateLocalJudge(
+  scores: number[],
+  groundTruth: number[],
+): Promise<{ kappa: number; rho: number; reliability: 'high' | 'medium' | 'low' }> {
+  const evaluations: ArenaJudgeEvaluation[] = scores.map((s) => ({
+    judgeId: 'local-judge',
+    score: s,
+    reasoning: '',
+  }));
+  const calibration: ArenaJudgeCalibration = calibrateJudge(evaluations, groundTruth);
+  if (calibration.cohensKappa < 0.4) {
+    console.warn(
+      `[LocalJudge] Low calibration: κ=${calibration.cohensKappa.toFixed(2)} — consider recalibration`,
+    );
+  }
+  return {
+    kappa: calibration.cohensKappa,
+    rho: calibration.spearmanRho,
+    reliability: calibration.reliability,
   };
 }

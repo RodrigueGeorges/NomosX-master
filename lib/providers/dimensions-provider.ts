@@ -8,6 +8,8 @@
  * Auth: JWT key
  */
 
+import { httpPost } from '../http-client';
+
 const DIMENSIONS_API_KEY = process.env.DIMENSIONS_API_KEY || "";
 const DIMENSIONS_ENDPOINT = "https://app.dimensions.ai/api/dsl";
 
@@ -21,22 +23,18 @@ export async function searchDimensions(query: string, limit = 20): Promise<any[]
     // Dimensions DSL query — search publications
     const dslQuery = `search publications in full_data for "${query.replace(/"/g, '\\"')}" return publications[basics+abstract+authors+open_access] limit ${Math.min(limit, 100)}`;
 
-    const response = await fetch(DIMENSIONS_ENDPOINT, {
-      method: 'POST',
+    const data: any = await httpPost(DIMENSIONS_ENDPOINT, { query: dslQuery }, {
+      timeout: 25000,
+      retries: 2,
+      rateLimiterKey: 'dimensions',
       headers: {
-        'Content-Type': 'application/json',
         'Authorization': `JWT ${DIMENSIONS_API_KEY}`,
       },
-      body: JSON.stringify({ query: dslQuery }),
-      signal: AbortSignal.timeout(25000),
     });
-
-    if (!response.ok) {
-      console.warn(`[SCOUT/Dimensions] HTTP ${response.status}`);
+    if (!data) {
+      console.warn(`[SCOUT/Dimensions] Request failed`);
       return [];
     }
-
-    const data = await response.json() as any;
     const publications = data?._stats?._total > 0 ? (data?.publications || []) : [];
 
     if (!Array.isArray(publications)) {

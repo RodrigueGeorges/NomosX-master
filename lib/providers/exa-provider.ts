@@ -4,6 +4,8 @@
  * Category "publication" for academic papers; general web for everything else.
  */
 
+import { httpPost } from '../http-client';
+
 const EXA_API_KEY = process.env.EXA_API_KEY || "";
 const EXA_ENDPOINT = "https://api.exa.ai/search";
 
@@ -46,22 +48,18 @@ export async function searchExa(
       body.excludeDomains = options.excludeDomains;
     }
 
-    const response = await fetch(EXA_ENDPOINT, {
-      method: 'POST',
+    const data: any = await httpPost(EXA_ENDPOINT, body, {
+      timeout: 30000,
+      retries: 2,
+      rateLimiterKey: 'exa',
       headers: {
-        'Content-Type': 'application/json',
         'x-api-key': EXA_API_KEY,
       },
-      body: JSON.stringify(body),
-      signal: AbortSignal.timeout(30000),
     });
-
-    if (!response.ok) {
-      console.warn(`[SCOUT/Exa] HTTP ${response.status}`);
+    if (!data) {
+      console.warn(`[SCOUT/Exa] Request failed`);
       return [];
     }
-
-    const data = await response.json() as any;
     const results = data?.results || data?.data || [];
 
     if (!Array.isArray(results)) {

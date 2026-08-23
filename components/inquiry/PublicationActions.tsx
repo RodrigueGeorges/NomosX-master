@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { ThumbsUp, ThumbsDown, MessageCircle, Share2, Send, Trash2, X, Check } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useTranslations } from "next-intl";
 
 type Reaction = "LIKE" | "DISLIKE" | null;
 
@@ -27,6 +28,7 @@ interface PublicationActionsProps {
  */
 export function PublicationActions({ publicationId, publicationTitle }: PublicationActionsProps) {
   const { user, isAuthenticated } = useAuth();
+  const t = useTranslations();
 
   const [reaction, setReaction] = useState<Reaction>(null);
   const [likes, setLikes] = useState(0);
@@ -85,7 +87,7 @@ export function PublicationActions({ publicationId, publicationTitle }: Publicat
   // ── Reaction toggle ──────────────────────────────────────────────────────
   async function toggleReaction(type: "LIKE" | "DISLIKE") {
     if (!isAuthenticated) {
-      setAuthPrompt("Sign in to react to this report.");
+      setAuthPrompt(t('PublicationActions.signInToReact'));
       return;
     }
     if (loadingReaction) return;
@@ -141,7 +143,7 @@ export function PublicationActions({ publicationId, publicationTitle }: Publicat
   // ── Post comment ──────────────────────────────────────────────────────────
   async function postComment() {
     if (!isAuthenticated) {
-      setAuthPrompt("Sign in to comment on this report.");
+      setAuthPrompt(t('PublicationActions.signInToComment'));
       return;
     }
     if (!commentText.trim() || postingComment) return;
@@ -154,14 +156,14 @@ export function PublicationActions({ publicationId, publicationTitle }: Publicat
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "Failed to post comment");
+        throw new Error(data.error || t('PublicationActions.failedToPost'));
       }
       const data = await res.json();
       setComments((prev) => [data.comment, ...prev]);
       setCommentTotal((prev) => prev + 1);
       setCommentText("");
     } catch (err) {
-      setAuthPrompt(err instanceof Error ? err.message : "Failed to post comment");
+      setAuthPrompt(err instanceof Error ? err.message : t('PublicationActions.failedToPost'));
     } finally {
       setPostingComment(false);
     }
@@ -217,7 +219,7 @@ export function PublicationActions({ publicationId, publicationTitle }: Publicat
               ? "text-emerald-400 border-emerald-500/30 bg-emerald-500/[0.06]"
               : "text-white/50 border-white/[0.08] hover:text-white/80 hover:border-white/20"
           }`}
-          aria-label="Like"
+          aria-label={t('PublicationActions.like')}
           aria-pressed={reaction === "LIKE"}
         >
           <ThumbsUp size={16} className={reaction === "LIKE" ? "fill-current" : ""} />
@@ -234,7 +236,7 @@ export function PublicationActions({ publicationId, publicationTitle }: Publicat
               ? "text-rose-400 border-rose-500/30 bg-rose-500/[0.06]"
               : "text-white/50 border-white/[0.08] hover:text-white/80 hover:border-white/20"
           }`}
-          aria-label="Dislike"
+          aria-label={t('PublicationActions.dislike')}
           aria-pressed={reaction === "DISLIKE"}
         >
           <ThumbsDown size={16} className={reaction === "DISLIKE" ? "fill-current" : ""} />
@@ -250,7 +252,7 @@ export function PublicationActions({ publicationId, publicationTitle }: Publicat
               ? "text-white/80 border-white/20"
               : "text-white/50 border-white/[0.08] hover:text-white/80 hover:border-white/20"
           }`}
-          aria-label="Comments"
+          aria-label={t('PublicationActions.comments')}
           aria-expanded={showComments}
         >
           <MessageCircle size={16} />
@@ -266,10 +268,10 @@ export function PublicationActions({ publicationId, publicationTitle }: Publicat
               ? "text-cyan-400 border-cyan-500/30 bg-cyan-500/[0.06]"
               : "text-white/50 border-white/[0.08] hover:text-white/80 hover:border-white/20"
           }`}
-          aria-label="Share"
+          aria-label={t('PublicationActions.share')}
         >
           {shared ? <Check size={16} /> : <Share2 size={16} />}
-          <span className="hidden sm:inline">{shared ? "Copied" : "Share"}</span>
+          <span className="hidden sm:inline">{shared ? t('PublicationActions.copied') : t('PublicationActions.share')}</span>
         </button>
       </div>
 
@@ -278,12 +280,12 @@ export function PublicationActions({ publicationId, publicationTitle }: Publicat
         <div className="mt-3 flex items-center justify-between gap-3 px-3 py-2 border border-amber-500/20 bg-amber-500/[0.04] text-amber-300/80 text-xs">
           <span>{authPrompt}</span>
           <div className="flex items-center gap-2">
-            <a href="/auth" className="underline hover:text-amber-200">Sign in</a>
+            <a href="/auth" className="underline hover:text-amber-200">{t('PublicationActions.signIn')}</a>
             <button
               type="button"
               onClick={() => setAuthPrompt(null)}
               className="text-amber-300/50 hover:text-amber-300"
-              aria-label="Dismiss"
+              aria-label={t('PublicationActions.dismiss')}
             >
               <X size={14} />
             </button>
@@ -303,7 +305,7 @@ export function PublicationActions({ publicationId, publicationTitle }: Publicat
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) postComment();
                 }}
-                placeholder="Add a comment…  (Cmd+Enter to post)"
+                placeholder={t('PublicationActions.addCommentPlaceholder')}
                 rows={2}
                 maxLength={2000}
                 className="flex-1 px-3 py-2 text-sm bg-white/[0.03] border border-white/[0.08] text-white/90 placeholder:text-white/30 focus:outline-none focus:border-white/20 resize-none"
@@ -313,23 +315,23 @@ export function PublicationActions({ publicationId, publicationTitle }: Publicat
                 onClick={postComment}
                 disabled={!commentText.trim() || postingComment}
                 className="self-end px-3 py-2 text-sm border border-white/20 text-white/80 hover:bg-white/[0.04] disabled:opacity-30 disabled:cursor-not-allowed"
-                aria-label="Post comment"
+                aria-label={t('PublicationActions.postComment')}
               >
                 <Send size={16} />
               </button>
             </div>
           ) : (
             <div className="px-3 py-3 border border-white/[0.06] bg-white/[0.02] text-xs text-white/40 text-center">
-              <a href="/auth" className="underline text-white/60 hover:text-white/80">Sign in</a> to join the discussion.
+              <a href="/auth" className="underline text-white/60 hover:text-white/80">{t('PublicationActions.signIn')}</a> {t('PublicationActions.signInToJoin')}
             </div>
           )}
 
           {/* Comments list */}
           {loadingComments ? (
-            <div className="text-xs text-white/30 text-center py-4">Loading comments…</div>
+            <div className="text-xs text-white/30 text-center py-4">{t('PublicationActions.loadingComments')}</div>
           ) : comments.length === 0 ? (
             <div className="text-xs text-white/30 text-center py-4">
-              No comments yet. Be the first to share your perspective.
+              {t('PublicationActions.noComments')}
             </div>
           ) : (
             <div className="space-y-3">
@@ -356,7 +358,7 @@ export function PublicationActions({ publicationId, publicationTitle }: Publicat
                         type="button"
                         onClick={() => deleteComment(c.id)}
                         className="text-white/20 hover:text-rose-400 transition-colors"
-                        aria-label="Delete comment"
+                        aria-label={t('PublicationActions.deleteComment')}
                       >
                         <Trash2 size={13} />
                       </button>

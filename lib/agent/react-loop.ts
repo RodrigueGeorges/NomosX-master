@@ -23,6 +23,7 @@
 import { callLLM } from '../llm/unified-llm';
 import type { LLMRequest, LLMResponse, ToolDefinition, ToolCall } from '../llm/unified-llm';
 import { executeTool, type ToolExecutionContext, type ToolExecutionResult } from './tool-registry';
+import { createSWUCBBandit, refrainDecide, swUcbUpdate, type SWUCBBanditState } from './budget-forcing';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -97,6 +98,11 @@ export async function reactLoop(
   let step = 0;
   const steps: ReActStep[] = [];
   const discoveredSourceIds: string[] = [];
+
+  // K3: REFRAIN — SW-UCB bandit for adaptive early-stopping
+  const refrainBandit: SWUCBBanditState = createSWUCBBandit(10, 1.414, 3);
+  let lastPrmScore = 0.5; // Estimated quality score (updated each step)
+  let lastProgressScore = 0.5; // Estimated progress score
 
   // Build initial message history
   // StateAct pattern: inject goal reminder at every step via system prompt
@@ -241,6 +247,52 @@ export async function reactLoop(
         role: 'tool',
         content: result.success ? result.result : `Error: ${result.error}`,
         tool_call_id: originalCall?.id || `call_${step}_${i}`,
+      });
+    }
+
+    // K3: REFRAIN — adaptive early-stopping via SW-UCB bandit
+    // Estimate PRM score from response quality signals
+    const responseLength = (response.content || '').length;
+    const hasCitations = /\[SRC-\d+\]|\[E\d+\]/.test(response.content || '');
+    const hasHedging = /\b(may|might|possibly|perhaps|uncertain|unclear)\b/i.test(response.content || '');
+    lastPrmScore = Math.min(1, 0.3 + (responseLength / 2000) * 0.3 + (hasCitations ? 0.2 : 0) - (hasHedging ? 0.1 : 0));
+    // Estimate progress: are we discovering new sources or making tool calls?
+    const newSourcesThisStep = toolResults.some(r => r.newSources && r.newSources.length > 0);
+    lastProgressScore = newSourcesThisStep ? 0.8 : (toolCalls.length > 0 ? 0.5 : 0.2);
+
+    const refrainDecision = refrainDecide(
+      refrainBandit,
+      lastPrmScore,
+      step,
+      config.maxSteps,
+      totalCost,
+      config.maxCostUsd,
+      lastProgressScore,
+    );
+
+    // Update bandit with the reward (PRM score as proxy)
+    const reward = lastPrmScore * 0.5 + lastProgressScore * 0.5;
+    swUcbUpdate(refrainBandit, 'continue', reward);
+
+    if (refrainDecision.action === 'force_synthesis') {
+      console.log(`[${label}] REFRAIN: ${refrainDecision.reason} — forcing final answer`);
+      const finalResult = await forceFinalAnswer(config, messages, label);
+      totalCost += finalResult.costUsd;
+      return {
+        finalAnswer: finalResult.content,
+        finishedExplicitly: false,
+        steps,
+        totalCostUsd: totalCost,
+        totalDurationMs: Date.now() - startTime,
+        discoveredSourceIds,
+        stopReason: 'budget',
+      };
+    }
+
+    if (refrainDecision.action === 'extend_reasoning' && refrainDecision.injectionToken) {
+      messages.push({
+        role: 'user',
+        content: refrainDecision.injectionToken,
       });
     }
 

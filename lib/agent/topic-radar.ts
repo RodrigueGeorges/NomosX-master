@@ -18,6 +18,15 @@
 
 import { prisma } from '../db';
 import { getTopicRadarQueries } from '../researchers';
+import { fetchFromProvider, httpGet } from '../http-client';
+import {
+  computeTopicVelocities,
+  detectAnticipatoryOutliers,
+  classifySourceDomain,
+  type SignalTrajectory,
+  type TopicVelocity,
+  type AnticipatoryOutlier,
+} from './radar-innovations';
 
 // In-memory TTL cache: avoids hammering APIs on rapid repeated calls
 let _cachedResult: { result: RadarSweepResult; expiresAt: number } | null = null;
@@ -40,6 +49,13 @@ export interface RadarTopic {
   crossChannelBoost?: number;
   channels?: string[];
   signalStrength?: 'breaking' | 'emerging' | 'routine';
+  // ── 2026 Innovations ──
+  trajectory?: SignalTrajectory;       // C: emerging/bursting/stable/fading/new
+  velocityBonus?: number;              // A: BERTrend velocity boost
+  isAnticipatoryOutlier?: boolean;     // B: doesn't match any cluster
+  outlierBoost?: number;               // B: score boost for anticipatory outliers
+  sourceDomain?: string;               // I: academic/news/government/think-tank/general
+  credibilityScore?: number;           // I: domain-aware credibility 0-1
 }
 
 export interface RadarSweepResult {
@@ -79,6 +95,12 @@ const GDELT_SWEEP_QUERIES: { query: string; vertical: string; urgencyBonus: numb
   { query: "social unrest OR protests OR inequality OR labor strike OR food insecurity OR migration crisis", vertical: "social-stability", urgencyBonus: 10 },
   { query: "platform regulation OR antitrust tech OR Big Tech lawsuit OR data privacy law OR digital sovereignty", vertical: "digital-governance", urgencyBonus: 5 },
   { query: "quantum computing OR nuclear fusion breakthrough OR space mission OR Nobel Prize OR scientific discovery", vertical: "science-frontier", urgencyBonus: 8 },
+  // P1-H: Global South verticals (BENI Global 10 inspired)
+  { query: "Africa development OR African Union OR ECOWAS OR Sahel conflict OR debt relief Africa OR African tech startup", vertical: "africa", urgencyBonus: 8 },
+  { query: "Latin America election OR Amazon deforestation OR cocaine trafficking OR leftist government OR lithium mining", vertical: "latin-america", urgencyBonus: 8 },
+  { query: "Southeast Asia ASEAN OR South China Sea OR Myanmar crisis OR Indonesia election OR Vietnam economy", vertical: "southeast-asia", urgencyBonus: 8 },
+  { query: "Middle East conflict OR Iran nuclear OR Saudi Arabia OR Israel Palestine OR Gulf states OR oil price OPEC", vertical: "middle-east", urgencyBonus: 12 },
+  { query: "India election OR Modi OR Pakistan crisis OR Bangladesh garment OR Sri Lanka economy OR Nepal", vertical: "south-asia", urgencyBonus: 8 },
 ];
 
 /** Source tier score bonuses */
@@ -155,6 +177,32 @@ const PREMIUM_RSS_FEEDS: { name: string; url: string; tier: 'A' | 'B' | 'C'; ver
   { name: "Africa Is a Country",   url: "https://africaisacountry.com/feed",                                  tier: "B", vertical: "emerging-markets" },
   { name: "Scroll.in",             url: "https://scroll.in/rss",                                              tier: "B", vertical: "emerging-markets" },
   { name: "The Wire India",        url: "https://thewire.in/feed",                                            tier: "B", vertical: "emerging-markets" },
+  // P1-H: Expanded Global South coverage (BENI Global 10 inspired)
+  // African institutions
+  { name: "AfDB Blog",             url: "https://www.afdb.org/en/news-and-events/rss",                        tier: "B", vertical: "emerging-markets" },
+  { name: "ACBF",                  url: "https://www.afdb.org/en/acbf/rss",                                   tier: "C", vertical: "emerging-markets" },
+  { name: "ISS Africa",            url: "https://issafrica.org/rss",                                          tier: "B", vertical: "security" },
+  { name: "SAIIA",                 url: "https://saiia.org.za/feed/",                                         tier: "B", vertical: "geopolitics" },
+  { name: "African Arguments",     url: "https://africanarguments.org/feed/",                                 tier: "B", vertical: "emerging-markets" },
+  { name: "Daily Maverick",        url: "https://www.dailymaverick.co.za/feed/",                              tier: "C", vertical: "emerging-markets" },
+  // Asian institutions
+  { name: "ADB Blog",              url: "https://blogs.adb.org/rss",                                          tier: "B", vertical: "emerging-markets" },
+  { name: "ISEAS Singapore",       url: "https://www.iseas.edu.sg/feed/",                                     tier: "B", vertical: "geopolitics" },
+  { name: "ORF India",             url: "https://www.orfonline.org/feed/",                                    tier: "B", vertical: "geopolitics" },
+  { name: "Carnegie China",        url: "https://carnegiechina.org/feed/",                                    tier: "B", vertical: "geopolitics" },
+  { name: "CSIS Indonesia",        url: "https://www.csis.or.id/rss",                                         tier: "C", vertical: "emerging-markets" },
+  { name: "East Asia Forum",       url: "https://www.eastasiaforum.org/feed/",                                tier: "B", vertical: "emerging-markets" },
+  // Latin American institutions
+  { name: "CAF Development Bank",  url: "https://www.caf.com/en/feed/",                                       tier: "B", vertical: "emerging-markets" },
+  { name: "CEPAL",                 url: "https://www.cepal.org/en/rss",                                       tier: "C", vertical: "emerging-markets" },
+  { name: "Folha de S.Paulo",      url: "https://feeds.folha.uol.com.br/poder/rss",                          tier: "C", vertical: "emerging-markets" },
+  { name: "El País América",       url: "https://feeds.elconfidencial.com/mundo",                             tier: "C", vertical: "emerging-markets" },
+  // Middle East
+  { name: "Al-Monitor",            url: "https://www.al-monitor.com/rss",                                     tier: "B", vertical: "geopolitics" },
+  { name: "Carnegie ME",           url: "https://carnegie-mec.org/feed/",                                     tier: "B", vertical: "geopolitics" },
+  // Independent media (Global South)
+  { name: "GroundUp South Africa", url: "https://www.groundup.org.za/feed/",                                  tier: "C", vertical: "emerging-markets" },
+  { name: "The Conversation Africa", url: "https://theconversation.com/africa/articles.atom",                 tier: "B", vertical: "emerging-markets" },
 ];
 
 // ============================================================================
@@ -206,6 +254,7 @@ export async function runTopicRadar(options?: {
   if (dbR.status === 'fulfilled')       { all.push(...dbR.value);       stats.dbSignals       = dbR.value.length; }
 
   // ── CROSS-SOURCE SIGNAL DETECTION (V3.1) — corroboration + velocity ──
+  let signalClusters: { topic: string; items: any[]; totalScore: number; corroborationScore: number }[] = [];
   try {
     const { detectCrossSourceSignals } = await import('./cross-source-signals');
     const newsItems = all.map(t => ({
@@ -217,7 +266,7 @@ export async function runTopicRadar(options?: {
       tier: (t as any).tier,
       vertical: t.vertical,
     }));
-    const signalClusters = detectCrossSourceSignals(newsItems);
+    signalClusters = detectCrossSourceSignals(newsItems);
     if (signalClusters.length > 0) {
       console.log(`[TOPIC RADAR V3] CROSS-SOURCE SIGNALS: ${signalClusters.length} high-confidence clusters (top score: ${signalClusters[0]?.totalScore})`);
       stats.crossSourceSignals = { clustersDetected: signalClusters.length, topScore: signalClusters[0]?.totalScore || 0 } as any;
@@ -265,6 +314,59 @@ export async function runTopicRadar(options?: {
     }
   }
 
+  // ── 2026 INNOVATIONS: Temporal Trajectories + Velocity + Anticipatory Outliers ──
+  try {
+    // C + A: Compute temporal velocities (compares against previous radar runs)
+    const velocities = await computeTopicVelocities(
+      deduped.map(t => ({ id: t.id, title: t.title, source: t.source }))
+    );
+
+    // B: Detect anticipatory outliers (topics that don't match any cluster)
+    const clusterKeywords = signalClusters.map(c => ({
+      topic: c.topic,
+      keywords: new Set(c.topic.split(' ')),
+    }));
+    const outliers = detectAnticipatoryOutliers(
+      deduped.map(t => ({ id: t.id, title: t.title, summary: t.summary, source: t.source })),
+      clusterKeywords
+    );
+
+    // I: Domain-aware credibility scoring
+    for (const topic of deduped) {
+      topic.sourceDomain = classifySourceDomain(topic.source, topic.url);
+    }
+
+    // Apply velocity + outlier boosts
+    let emergingCount = 0, burstingCount = 0, newCount = 0, fadingCount = 0;
+    let outlierCount = 0;
+    for (const topic of deduped) {
+      const vel = velocities.get(topic.id);
+      if (vel) {
+        topic.trajectory = vel.trajectory;
+        topic.velocityBonus = vel.velocityBonus;
+        topic.score = clampScore(topic.score + vel.velocityBonus);
+        if (vel.trajectory === 'emerging') emergingCount++;
+        else if (vel.trajectory === 'bursting') burstingCount++;
+        else if (vel.trajectory === 'new') newCount++;
+        else if (vel.trajectory === 'fading') fadingCount++;
+      }
+
+      const outlier = outliers.get(topic.id);
+      if (outlier) {
+        topic.isAnticipatoryOutlier = outlier.isAnticipatory;
+        topic.outlierBoost = outlier.outlierBoost;
+        topic.score = clampScore(topic.score + outlier.outlierBoost);
+        if (outlier.isAnticipatory || outlier.becameCluster) outlierCount++;
+      }
+    }
+
+    if (emergingCount + burstingCount + newCount + outlierCount > 0) {
+      console.log(`[TOPIC RADAR V3] Trajectories: ${emergingCount} emerging, ${burstingCount} bursting, ${newCount} new, ${fadingCount} fading | Anticipatory outliers: ${outlierCount}`);
+    }
+  } catch (err) {
+    console.warn('[TOPIC RADAR V3] Innovation scoring failed (non-blocking):', err);
+  }
+
   deduped.sort((a, b) => b.score - a.score);
 
   // ── ADAPTIVE SIGNAL STRENGTH (replaces rigid cutoff) ──
@@ -300,11 +402,13 @@ async function sweepGDELT(): Promise<RadarTopic[]> {
   const promises = GDELT_SWEEP_QUERIES.map(async ({ query, vertical, urgencyBonus }) => {
     try {
       const params = new URLSearchParams({ query, mode: "ArtList", maxrecords: "8", timespan: "24h", format: "json", sort: "DateDesc" });
-      const res = await fetch(`https://api.gdeltproject.org/api/v2/doc/doc?${params}`, { signal: AbortSignal.timeout(12000) });
-      if (!res.ok) return [];
-      let data: any;
-      try { data = JSON.parse(await res.text()); } catch { return []; }
-      return (data.articles || []).slice(0, 4).map((a: any, i: number) => {
+      const data: any = await fetchFromProvider('gdelt-news', `https://api.gdeltproject.org/api/v2/doc/doc?${params}`, {
+        timeout: 12000, retries: 2, responseType: 'text',
+      }).catch(() => null);
+      if (!data) return [];
+      let parsed: any;
+      try { parsed = JSON.parse(data); } catch { return []; }
+      return (parsed.articles || []).slice(0, 4).map((a: any, i: number) => {
         const pub = parseGDELTDate(a.seendate);
         return {
           id: `gdelt:${hashStr(a.url || a.title)}`,
@@ -332,9 +436,12 @@ async function sweepGDELT(): Promise<RadarTopic[]> {
 async function sweepRSS(): Promise<RadarTopic[]> {
   const promises = PREMIUM_RSS_FEEDS.map(async (feed) => {
     try {
-      const res = await fetch(feed.url, { signal: AbortSignal.timeout(7000), headers: { "User-Agent": "NomosX-Radar/3.0" } });
-      if (!res.ok) return [];
-      const items = parseRSSItems(await res.text()).slice(0, 3);
+      const text = await fetchFromProvider('rss', feed.url, {
+        timeout: 7000, retries: 1, responseType: 'text',
+        headers: { "User-Agent": "NomosX-Radar/3.0" },
+      }).catch(() => null);
+      if (!text) return [];
+      const items = parseRSSItems(text).slice(0, 3);
       return items.map((item, i) => {
         const pub = item.pubDate ? new Date(item.pubDate) : null;
         return {
@@ -387,12 +494,12 @@ async function sweepOpenAlex(): Promise<RadarTopic[]> {
         sort: 'cited_by_count:desc', per_page: '4',
         select: 'id,title,publication_date,cited_by_count,primary_location,abstract_inverted_index',
       });
-      const res = await fetch(`https://api.openalex.org/works?${params}`, {
-        signal: AbortSignal.timeout(9000),
+      const data: any = await fetchFromProvider('openalex', `https://api.openalex.org/works?${params}`, {
+        timeout: 9000, retries: 2,
         headers: { 'User-Agent': 'NomosX/3.0 (mailto:contact@nomosx.com)' },
-      });
-      if (!res.ok) return [];
-      const { results: works = [] } = await res.json();
+      }).catch(() => null);
+      if (!data) return [];
+      const { results: works = [] } = data;
       return works.slice(0, 3).map((w: any) => ({
         id: `openalex:${w.id?.split('/').pop()}`,
         title: w.title || 'Untitled',
@@ -425,11 +532,12 @@ async function sweepArXiv(): Promise<RadarTopic[]> {
   };
   const promises = cats.map(async (cat) => {
     try {
-      const res = await fetch(`https://export.arxiv.org/rss/${cat}`, {
-        signal: AbortSignal.timeout(7000), headers: { 'User-Agent': 'NomosX-Radar/3.0' }
-      });
-      if (!res.ok) return [];
-      return parseRSSItems(await res.text()).slice(0, 3).map((item) => ({
+      const text = await fetchFromProvider('arxiv', `https://export.arxiv.org/rss/${cat}`, {
+        timeout: 7000, retries: 2, responseType: 'text',
+        headers: { 'User-Agent': 'NomosX-Radar/3.0' },
+      }).catch(() => null);
+      if (!text) return [];
+      return parseRSSItems(text).slice(0, 3).map((item) => ({
         id: `arxiv:${hashStr(item.link || item.title)}`,
         title: cleanText(item.title),
         summary: cleanHTML(item.description).slice(0, 350),
@@ -460,12 +568,12 @@ async function sweepSemanticScholar(): Promise<RadarTopic[]> {
       const batch = queries.slice(i, i + BATCH_SIZE);
       const batchPromises = batch.map(async (q) => {
         const fields = 'paperId,title,abstract,citationCount,publicationDate,publicationVenue';
-        const res = await fetch(
+        const data: any = await fetchFromProvider('semanticscholar',
           `https://api.semanticscholar.org/graph/v1/paper/search?query=${encodeURIComponent(q)}&fields=${fields}&limit=4`,
-          { signal: AbortSignal.timeout(8000), headers: { 'User-Agent': 'NomosX/3.0' } }
-        );
-        if (!res.ok) return [];
-        const { data: papers = [] } = await res.json();
+          { timeout: 8000, retries: 1, headers: { 'User-Agent': 'NomosX/3.0' } }
+        ).catch(() => null);
+        if (!data) return [];
+        const { data: papers = [] } = data;
         return papers.slice(0, 3).map((p: any) => ({
           id: `s2:${p.paperId}`,
           title: p.title || 'Untitled',

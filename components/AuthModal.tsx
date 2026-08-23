@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useState } from 'react';
-
+import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
@@ -19,6 +19,7 @@ interface AuthModalProps {
 }
 
 export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSuccess }: AuthModalProps) {
+  const t = useTranslations();
   const router = useRouter();
   const [mode, setMode] = useState<"oauth" | "email" | "login" | "forgot">("oauth");
   const [email, setEmail] = useState("");
@@ -56,7 +57,7 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.error || "An error occurred");
+        setError(data.error || t("Auth.somethingWrong"));
         setLoading(false);
         return;
       }
@@ -76,7 +77,7 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
       }
     } catch (err: unknown) {
       console.error("Auth error:", err);
-      setError("Connection error. Please try again.");
+      setError(t("Auth.connectionError"));
       setLoading(false);
     }
   };
@@ -103,19 +104,19 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
           </div>
 
           <h2 className="font-display text-3xl sm:text-4xl font-semibold leading-tight mb-3 text-text">
-            Start your analysis
+            {t("Auth.startAnalysis")}
           </h2>
 
           <p className="text-base text-white/50 leading-relaxed max-w-md mx-auto mb-6">
-            The first AI think tank, always on. Join decision teams using scenario-weighted reasoning — probable futures, decisions owned, evidence verified.
+            {t("Auth.subtitle")}
           </p>
 
           <div className="flex items-center justify-center gap-3 text-xs text-white/50 tracking-[0.15em] uppercase font-mono">
             <span>{BRAND_SOURCES_LABEL} Sources</span>
             <div className="w-1 h-1 rounded-full bg-white/30" />
-            <span>Auto-published</span>
+            <span>{t("Auth.autoPublished")}</span>
             <div className="w-1 h-1 rounded-full bg-white/30" />
-            <span>Free to start</span>
+            <span>{t("Auth.freeToStart")}</span>
           </div>
         </div>
 
@@ -126,13 +127,13 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
               className={`${primaryBtn} flex items-center justify-center gap-3`}
             >
               <Mail size={18} strokeWidth={2} />
-              <span>Sign in with Email</span>
+              <span>{t("Auth.signInWithEmail")}</span>
             </button>
             <button
               onClick={() => { setIsSignup(true); setMode("email"); }}
               className="w-full p-4 bg-white/[0.04] border border-white/[0.10] text-white/80 hover:text-white hover:border-white/25 hover:bg-white/[0.07] transition-all duration-300"
             >
-              Create an account — free
+              {t("Auth.createAccountFree")}
             </button>
           </div>
         ) : (
@@ -146,14 +147,14 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
             {isSignup && (
               <div>
                 <label htmlFor="name" className="block text-sm font-medium mb-3 text-white/70">
-                  Name (optional)
+                  {t("Auth.nameOptional")}
                 </label>
                 <Input
                   id="name"
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="Your name"
+                  placeholder={t("Auth.namePlaceholder")}
                   className={inputFocus}
                 />
               </div>
@@ -161,7 +162,7 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
 
             <div>
               <label htmlFor="email" className="block text-sm font-medium mb-3 text-white/70">
-                Email address
+                {t("Auth.emailAddress")}
               </label>
               <div className="relative">
                 <Input
@@ -180,14 +181,14 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
 
             <div>
               <label htmlFor="password" className="block text-sm font-medium mb-3 text-white/70">
-                Password
+                {t("Auth.password")}
               </label>
               <Input
                 id="password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder={isSignup ? "At least 8 characters" : "Your password"}
+                placeholder={isSignup ? t("Auth.passwordSignupPlaceholder") : t("Auth.passwordSigninPlaceholder")}
                 required
                 minLength={isSignup ? 8 : undefined}
                 className={inputFocus}
@@ -195,7 +196,7 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
             </div>
 
             <button type="submit" disabled={loading || !email || !password} className={primaryBtn}>
-              {loading ? "Connecting..." : (isSignup ? "Create Account" : "Sign In")}
+              {loading ? t("Auth.connecting") : (isSignup ? t("Auth.createAccount") : t("Auth.signIn"))}
             </button>
 
             <div className="flex items-center justify-between text-sm">
@@ -205,7 +206,7 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
                 className="text-white/50 hover:text-white/80 transition-colors flex items-center gap-2"
               >
                 <span>←</span>
-                <span>Back</span>
+                <span>{t("Auth.back")}</span>
               </button>
               <div className="flex items-center gap-3">
                 {!isSignup && (
@@ -214,7 +215,7 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
                     onClick={() => { setMode("forgot"); setError(""); setForgotSent(false); }}
                     className="text-white/40 hover:text-white/60 transition-colors"
                   >
-                    Forgot password?
+                    {t("Auth.forgotPassword")}
                   </button>
                 )}
                 <button
@@ -225,7 +226,7 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
                   }}
                   className="text-white/50 hover:text-white transition-colors"
                 >
-                  {isSignup ? "Already have an account?" : "Create an account"}
+                  {isSignup ? t("Auth.alreadyHaveAccount") : t("Auth.createAccountLink")}
                 </button>
               </div>
             </div>
@@ -239,8 +240,8 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
                 <div className="w-10 h-10 rounded-full bg-white/10 border border-white/30 flex items-center justify-center mx-auto mb-4">
                   <span className="text-white text-sm">✓</span>
                 </div>
-                <p className="text-sm text-white/60 mb-1">Check your inbox</p>
-                <p className="text-xs text-white/50">If an account exists with that email, you&apos;ll receive a reset link.</p>
+                <p className="text-sm text-white/60 mb-1">{t("Auth.checkInbox")}</p>
+                <p className="text-xs text-white/50">{t("Auth.resetLinkSent")}</p>
               </div>
             ) : (
               <>
@@ -251,7 +252,7 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
                 )}
                 <div>
                   <label htmlFor="reset-email" className="block text-sm font-medium mb-3 text-white/70">
-                    Email address
+                    {t("Auth.emailAddress")}
                   </label>
                   <div className="relative">
                     <input
@@ -283,17 +284,17 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
                         setForgotSent(true);
                       } else {
                         const data = await res.json();
-                        setError(data.error || 'Something went wrong.');
+                        setError(data.error || t("Auth.somethingWrong"));
                       }
                     } catch {
-                      setError('Connection error. Please try again.');
+                      setError(t("Auth.connectionError"));
                     } finally {
                       setLoading(false);
                     }
                   }}
                   className={primaryBtn}
                 >
-                  {loading ? 'Sending...' : 'Send reset link'}
+                  {loading ? t("Auth.sending") : t("Auth.sendResetLink")}
                 </button>
               </>
             )}
@@ -303,7 +304,7 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
                 onClick={() => { setMode("oauth"); setError(""); setForgotSent(false); }}
                 className="text-sm text-white/50 hover:text-white/80 transition-colors"
               >
-                ← Back to sign in
+                {t("Auth.backToSignIn")}
               </button>
             </div>
           </div>
@@ -316,26 +317,22 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
                 <div className="w-1.5 h-1.5 rounded-full bg-white" />
                 <div className="absolute top-0.5 left-0.5 w-0.5 h-0.5 rounded-full bg-white/60 animate-pulse" />
               </div>
-              <span>Enterprise-grade security</span>
+              <span>{t("Auth.enterpriseSecurity")}</span>
             </div>
             <div className="flex items-center gap-1.5 text-xs text-white/40">
               <div className="relative flex-shrink-0">
                 <div className="w-1.5 h-1.5 rounded-full bg-white/60" />
                 <div className="absolute top-0.5 left-0.5 w-0.5 h-0.5 rounded-full bg-white/40 animate-pulse" />
               </div>
-              <span>No credit card required</span>
+              <span>{t("Auth.noCreditCard")}</span>
             </div>
           </div>
 
           <p className="text-xs text-white/50 text-center leading-relaxed">
-            By continuing, you agree to our{" "}
-            <a href="/terms" className="text-white/70 hover:text-white transition-colors">
-              Terms of Service
-            </a>{" "}
-            and{" "}
-            <a href="/privacy" className="text-white/45 hover:text-white transition-colors">
-              Privacy Policy
-            </a>
+            {t.rich("Auth.agreeTerms", {
+              terms: (chunks) => <a href="/terms" className="text-white/70 hover:text-white transition-colors">{chunks}</a>,
+              privacy: (chunks) => <a href="/privacy" className="text-white/45 hover:text-white transition-colors">{chunks}</a>
+            })}
           </p>
         </div>
 
@@ -343,7 +340,7 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
           <div className="relative mt-6 text-center">
             <div className="inline-flex items-center gap-3 text-sm text-white/50">
               <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-              <span>Securing your connection...</span>
+              <span>{t("Auth.securingConnection")}</span>
             </div>
           </div>
         )}

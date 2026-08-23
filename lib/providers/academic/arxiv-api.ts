@@ -3,19 +3,14 @@
  * Recherche de preprints via arXiv
  */
 
+import { fetchFromProvider } from '../../http-client';
+
 export async function searchArXiv(query: string, limit: number = 10): Promise<any[]> {
   try {
-    const response = await fetch(`http://export.arxiv.org/api/query?search_query=all:${encodeURIComponent(query)}&max_results=${limit}`, {
-      headers: {
-        'User-Agent': 'NomosX/1.0 (mailto:contact@nomosx.com)'
-      }
-    });
-    
-    if (!response.ok) {
-      throw new Error(`arXiv API error: ${response.status}`);
+    const xmlText: string = await fetchFromProvider('arxiv', `http://export.arxiv.org/api/query?search_query=all:${encodeURIComponent(query)}&max_results=${limit}`, { timeout: 15000, retries: 2, responseType: 'text', headers: { 'User-Agent': 'NomosX/1.0 (mailto:contact@nomosx.com)' } });
+    if (!xmlText) {
+      throw new Error('arXiv API request failed');
     }
-    
-    const xmlText = await response.text();
     
     // Simple XML parsing
     const entries = xmlText.match(/<entry>[\s\S]*?<\/entry>/g) || [];

@@ -3,6 +3,8 @@
  * Enhanced with multiple RSS feeds and comprehensive business coverage
  */
 
+import { fetchFromProvider } from '../../http-client';
+
 export async function searchReuters(query: string, limit: number = 10): Promise<any[]> {
   console.log(`[Reuters] Searching for: "${query}" (limit: ${limit})`);
   
@@ -26,7 +28,10 @@ export async function searchReuters(query: string, limit: number = 10): Promise<
     // Fetch from multiple feeds in parallel
     const feedPromises = rssFeeds.map(async (feedUrl, index) => {
       try {
-        const response = await fetch(feedUrl, {
+        const xmlText: string = await fetchFromProvider('reuters', feedUrl, {
+          timeout: 15000,
+          retries: 2,
+          responseType: 'text',
           headers: {
             'User-Agent': 'Mozilla/5.0 (compatible; NomosX-Bot/1.0; +https://nomosx.com/bot)',
             'Accept': 'application/rss+xml, application/xml, text/xml',
@@ -35,12 +40,9 @@ export async function searchReuters(query: string, limit: number = 10): Promise<
             'Referer': 'https://www.reuters.com/'
           }
         });
-        
-        if (!response.ok) {
-          throw new Error(`Reuters Feed ${index} failed: ${response.status}`);
+        if (!xmlText) {
+          throw new Error(`Reuters Feed ${index} failed: no data`);
         }
-        
-        const xmlText = await response.text();
         const items = parseReutersRSS(xmlText, index);
         
         console.log(`[Reuters] Feed ${index}: ${items.length} items`);

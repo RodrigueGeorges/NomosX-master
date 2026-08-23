@@ -546,6 +546,259 @@ async function findCrossDomainLinks(domains: string[]): Promise<CrossDomainLink[
   }
 }
 
+// ============================================================================
+// K11: WorldEvolver — Self-Evolving World Model
+// arXiv 2026 — "Self-Evolving World Models for LLM Agent Planning"
+// ============================================================================
+//
+// WorldEvolver revises its deployment-time context while keeping the downstream
+// agent and all model parameters frozen. Three modules:
+//
+//   1. Episodic Memory: exploits real action transitions through retrieval-based
+//      simulation. Stores (action, predicted_outcome, actual_outcome) tuples.
+//
+//   2. Semantic Memory: extracts persistent heuristic rules from
+//      prediction-observation mismatches. When a prediction is wrong, extract
+//      a correction rule and store it.
+//
+//   3. Selective Foresight: filters low-confidence predictions before
+//      integrating them into agent reasoning context. Only inject predictions
+//      with confidence > threshold.
+//
+// Result (paper): highest prediction accuracy across 3 backbones, leads other
+// world model baselines on downstream agent success rate.
+
+export interface EpisodicMemoryEntry {
+  /** The action that was taken */
+  action: string;
+  /** What the world model predicted would happen */
+  predictedOutcome: string;
+  /** What actually happened */
+  actualOutcome: string;
+  /** Whether the prediction was correct */
+  predictionCorrect: boolean;
+  /** Confidence of the prediction (0-1) */
+  predictionConfidence: number;
+  /** Domain this episode belongs to */
+  domain: string;
+  /** When this episode was recorded */
+  timestamp: number;
+}
+
+export interface SemanticMemoryRule {
+  /** The heuristic rule extracted from mismatches */
+  rule: string;
+  /** The domain this rule applies to */
+  domain: string;
+  /** How many times this rule has been validated */
+  validationCount: number;
+  /** How many times the rule correctly predicted the outcome */
+  correctPredictions: number;
+  /** Confidence in this rule (0-1) */
+  confidence: number;
+  /** When this rule was created */
+  createdAt: number;
+}
+
+export interface WorldEvolverState {
+  /** Episodic memory: stores real action transitions */
+  episodicMemory: EpisodicMemoryEntry[];
+  /** Semantic memory: extracted heuristic rules */
+  semanticMemory: SemanticMemoryRule[];
+  /** Selective foresight: minimum confidence to inject a prediction */
+  foresightConfidenceThreshold: number;
+  /** Maximum episodic memory entries (LRU) */
+  maxEpisodicEntries: number;
+  /** Maximum semantic memory rules */
+  maxSemanticRules: number;
+}
+
+/**
+ * Create a new WorldEvolver state.
+ */
+export function createWorldEvolver(
+  foresightConfidenceThreshold: number = 0.6,
+  maxEpisodicEntries: number = 100,
+  maxSemanticRules: number = 30,
+): WorldEvolverState {
+  return {
+    episodicMemory: [],
+    semanticMemory: [],
+    foresightConfidenceThreshold,
+    maxEpisodicEntries,
+    maxSemanticRules,
+  };
+}
+
+/**
+ * Record an episode: (action, prediction, actual outcome).
+ *
+ * If the prediction was wrong, extract a correction rule and add it to
+ * semantic memory.
+ */
+export function recordEpisode(
+  state: WorldEvolverState,
+  episode: Omit<EpisodicMemoryEntry, 'timestamp'>,
+): void {
+  const entry: EpisodicMemoryEntry = { ...episode, timestamp: Date.now() };
+  state.episodicMemory.push(entry);
+
+  // LRU eviction
+  if (state.episodicMemory.length > state.maxEpisodicEntries) {
+    state.episodicMemory = state.episodicMemory.slice(-state.maxEpisodicEntries);
+  }
+
+  // If prediction was wrong, extract a semantic rule
+  if (!episode.predictionCorrect && episode.predictionConfidence > 0.3) {
+    extractSemanticRule(state, entry);
+  }
+}
+
+/**
+ * Extract a heuristic rule from a prediction-observation mismatch.
+ *
+ * The rule captures what the world model got wrong, so it can avoid the same
+ * error in the future.
+ */
+function extractSemanticRule(state: WorldEvolverState, episode: EpisodicMemoryEntry): void {
+  // Simple rule extraction: "When action X, prediction Y is wrong; actual is Z"
+  const rule = `In ${episode.domain}: when "${episode.action.slice(0, 80)}", expected "${episode.predictedOutcome.slice(0, 60)}" but got "${episode.actualOutcome.slice(0, 60)}"`;
+
+  // Check if a similar rule already exists
+  const existing = state.semanticMemory.find(r =>
+    r.domain === episode.domain &&
+    r.rule.slice(0, 50) === rule.slice(0, 50)
+  );
+
+  if (existing) {
+    existing.validationCount++;
+    // The rule was validated by another mismatch — but we don't know if it's correct yet
+    // Correct predictions are tracked when the rule is used for future predictions
+  } else {
+    state.semanticMemory.push({
+      rule,
+      domain: episode.domain,
+      validationCount: 1,
+      correctPredictions: 0,
+      confidence: 0.5, // Initial confidence — increases as rule is validated
+      createdAt: Date.now(),
+    });
+
+    // Sort by validationCount and keep top N
+    state.semanticMemory.sort((a, b) => b.validationCount - a.validationCount);
+    if (state.semanticMemory.length > state.maxSemanticRules) {
+      state.semanticMemory = state.semanticMemory.slice(0, state.maxSemanticRules);
+    }
+  }
+}
+
+/**
+ * Selective Foresight: predict the outcome of an action, but only return
+ * the prediction if confidence is above the threshold.
+ *
+ * Uses episodic memory (retrieval-based simulation) and semantic memory
+ * (heuristic rules) to make predictions.
+ */
+export function predictWithForesight(
+  state: WorldEvolverState,
+  action: string,
+  domain: string,
+): { prediction: string | null; confidence: number; source: 'episodic' | 'semantic' | 'none' } {
+  // 1. Check episodic memory: has this action been taken before?
+  const similarEpisodes = state.episodicMemory.filter(
+    e => e.domain === domain && e.action.toLowerCase().includes(action.toLowerCase().slice(0, 30))
+  );
+
+  if (similarEpisodes.length > 0) {
+    // Use the most recent correct episode as a prediction
+    const correctEpisodes = similarEpisodes.filter(e => e.predictionCorrect);
+    if (correctEpisodes.length > 0) {
+      const recent = correctEpisodes[correctEpisodes.length - 1];
+      const confidence = Math.min(0.9, 0.5 + correctEpisodes.length * 0.1);
+
+      if (confidence >= state.foresightConfidenceThreshold) {
+        return {
+          prediction: recent.actualOutcome,
+          confidence,
+          source: 'episodic',
+        };
+      }
+    }
+  }
+
+  // 2. Check semantic memory: are there rules for this domain?
+  const domainRules = state.semanticMemory.filter(r => r.domain === domain);
+  if (domainRules.length > 0) {
+    // Find a rule that matches the action
+    const matchingRule = domainRules.find(r =>
+      r.rule.toLowerCase().includes(action.toLowerCase().slice(0, 20))
+    );
+
+    if (matchingRule && matchingRule.confidence >= state.foresightConfidenceThreshold) {
+      // Extract the "actual" part from the rule
+      const actualMatch = matchingRule.rule.match(/but got "([^"]+)"/);
+      const prediction = actualMatch ? actualMatch[1] : matchingRule.rule.slice(0, 100);
+
+      return {
+        prediction,
+        confidence: matchingRule.confidence,
+        source: 'semantic',
+      };
+    }
+  }
+
+  // 3. No confident prediction available
+  return { prediction: null, confidence: 0, source: 'none' };
+}
+
+/**
+ * Build a WorldEvolver injection for the agent's context.
+ * Only includes high-confidence predictions (Selective Foresight).
+ */
+export function buildWorldEvolverInjection(
+  state: WorldEvolverState,
+  domain: string,
+  plannedActions: string[],
+): string {
+  const parts: string[] = [];
+  const predictions: Array<{ action: string; prediction: string; confidence: number }> = [];
+
+  for (const action of plannedActions) {
+    const result = predictWithForesight(state, action, domain);
+    if (result.prediction && result.confidence >= state.foresightConfidenceThreshold) {
+      predictions.push({
+        action: action.slice(0, 80),
+        prediction: result.prediction.slice(0, 100),
+        confidence: result.confidence,
+      });
+    }
+  }
+
+  if (predictions.length > 0) {
+    parts.push('=== WORLD MODEL FORESIGHT (high-confidence predictions) ===');
+    for (const p of predictions) {
+      parts.push(`- Action: "${p.action}" → Predicted: "${p.prediction}" (${(p.confidence * 100).toFixed(0)}% confidence)`);
+    }
+    parts.push('=== END FORESIGHT ===');
+  }
+
+  // Include top semantic rules for this domain
+  const domainRules = state.semanticMemory
+    .filter(r => r.domain === domain)
+    .sort((a, b) => b.confidence - a.confidence)
+    .slice(0, 3);
+
+  if (domainRules.length > 0) {
+    parts.push('=== LEARNED RULES (from past experience) ===');
+    for (const r of domainRules) {
+      parts.push(`- [${(r.confidence * 100).toFixed(0)}% confidence] ${r.rule.slice(0, 120)}`);
+    }
+    parts.push('=== END RULES ===');
+  }
+
+  return parts.length > 0 ? `\n${parts.join('\n')}\n` : '';
+}
+
 // ─── World Model Injection ──────────────────────────────────────────────────
 
 /**

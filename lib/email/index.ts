@@ -1,15 +1,17 @@
 /**
  * Email Service
- * 
+ *
  * Abstraction layer for email sending.
  * Supports multiple providers: Resend, SendGrid, etc.
- * 
+ *
  * Configure via environment variables:
  * - EMAIL_PROVIDER: "resend" | "sendgrid" | "console" (default for dev)
  * - RESEND_API_KEY: API key for Resend
  * - SENDGRID_API_KEY: API key for SendGrid
  * - EMAIL_FROM: Default sender email
  */
+
+import { httpPost } from '../http-client';
 
 export interface EmailOptions {
   to: string | string[];
@@ -82,34 +84,25 @@ async function sendWithResend(options: EmailOptions): Promise<EmailResult> {
   }
 
   try {
-    const response = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from: options.from,
-        to: Array.isArray(options.to) ? options.to : [options.to],
-        subject: options.subject,
-        html: options.html,
-        text: options.text,
-        reply_to: options.replyTo,
-        tags: options.tags?.map(tag => ({ name: tag, value: "true" })),
-      }),
+    const data: any = await httpPost("https://api.resend.com/emails", {
+      from: options.from,
+      to: Array.isArray(options.to) ? options.to : [options.to],
+      subject: options.subject,
+      html: options.html,
+      text: options.text,
+      reply_to: options.replyTo,
+      tags: options.tags?.map(tag => ({ name: tag, value: "true" })),
+    }, {
+      timeout: 15000,
+      retries: 2,
+      rateLimiterKey: 'resend',
+      headers: { "Authorization": `Bearer ${apiKey}` },
     });
 
-    const data = await response.json();
-
-    if (!response.ok) {
-      console.error("[Email] Resend error:", data);
-      return { success: false, error: data.message || "Resend API error" };
-    }
-
     return { success: true, messageId: data.id };
-  } catch (error) {
-    console.error("[Email] Resend exception:", error);
-    return { success: false, error: String(error) };
+  } catch (error: any) {
+    console.error("[Email] Resend exception:", error.message?.slice(0, 200));
+    return { success: false, error: error.message?.slice(0, 100) || "Resend API error" };
   }
 }
 
@@ -127,35 +120,27 @@ async function sendWithSendGrid(options: EmailOptions): Promise<EmailResult> {
 
   try {
     const recipients = Array.isArray(options.to) ? options.to : [options.to];
-    
-    const response = await fetch("https://api.sendgrid.com/v3/mail/send", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        personalizations: [{ to: recipients.map(email => ({ email })) }],
-        from: { email: options.from?.match(/<(.+)>/)?.[1] || options.from },
-        subject: options.subject,
-        content: [
-          { type: "text/html", value: options.html },
-          ...(options.text ? [{ type: "text/plain", value: options.text }] : []),
-        ],
-      }),
+
+    await httpPost("https://api.sendgrid.com/v3/mail/send", {
+      personalizations: [{ to: recipients.map(email => ({ email })) }],
+      from: { email: options.from?.match(/<(.+)>/)?.[1] || options.from },
+      subject: options.subject,
+      content: [
+        { type: "text/html", value: options.html },
+        ...(options.text ? [{ type: "text/plain", value: options.text }] : []),
+      ],
+    }, {
+      timeout: 15000,
+      retries: 2,
+      rateLimiterKey: 'sendgrid',
+      headers: { "Authorization": `Bearer ${apiKey}` },
     });
 
-    if (!response.ok) {
-      const text = await response.text();
-      console.error("[Email] SendGrid error:", text);
-      return { success: false, error: text || "SendGrid API error" };
-    }
-
-    const messageId = response.headers.get("x-message-id") || `sg-${Date.now()}`;
+    const messageId = `sg-${Date.now()}`;
     return { success: true, messageId };
-  } catch (error) {
-    console.error("[Email] SendGrid exception:", error);
-    return { success: false, error: String(error) };
+  } catch (error: any) {
+    console.error("[Email] SendGrid exception:", error.message?.slice(0, 200));
+    return { success: false, error: error.message?.slice(0, 100) || "SendGrid API error" };
   }
 }
 

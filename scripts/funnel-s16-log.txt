@@ -1,0 +1,188 @@
+[dotenv@17.2.4] injecting env (31) from .env.local -- tip: 🛠️  run anywhere with `dotenvx run -- yourcommand`
+
+╔════════════════════════════════════════════════════════════╗
+║  NomosX — FULL FUNNEL TEST (Swarm)                         ║
+╚════════════════════════════════════════════════════════════╝
+  Mode: breaking
+  Started: 2026-08-22T13:51:39.583Z
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  PHASE 1: THINK TANK DISPATCHER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  [Dispatcher] Launching breaking cycle...
+(node:17328) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+[ThinkTank] Cycle mode=breaking cadence=0/10 dryRun=false
+[TOPIC RADAR V3] Starting maximum coverage sweep...
+[OpenAlex] API key OK — using premium tier
+[HTTP] Retry 1/1 after 1183ms: fetch failed
+[HTTP] Retry 1/1 after 916ms: fetch failed
+[HTTP] Retry 1/1 after 1221ms: fetch failed
+[ADAPTIVE RATE] gdelt-news: rate reduced to 1.50 req/s after 1× 429
+[HTTP] Retry 1/2 after 5000ms: https://api.gdeltproject.org/api/v2/doc/doc?query=EU+regulation+OR+European+Commission+OR+AI+Act+OR+ECB+decision+OR+eurozone+OR+Brussels+directive&mode=ArtList&maxrecords=8&timespan=24h&format=json&sort=DateDesc
+[ADAPTIVE RATE] gdelt-news: rate reduced to 0.75 req/s after 2× 429
+[HTTP] Retry 1/2 after 5000ms: https://api.gdeltproject.org/api/v2/doc/doc?query=climate+emergency+OR+IPCC+report+OR+COP+OR+carbon+tax+OR+extreme+weather+OR+heatwave+record+OR+sea+level&mode=ArtList&maxrecords=8&timespan=24h&format=json&sort=DateDesc
+[HTTP] Retry 1/2 after 1165ms: fetch failed
+[HTTP] Retry 1/2 after 868ms: fetch failed
+[ADAPTIVE RATE] gdelt-news: rate reduced to 0.50 req/s after 3× 429
+[HTTP] Retry 2/2 after 5000ms: https://api.gdeltproject.org/api/v2/doc/doc?query=artificial+intelligence+OR+AGI+OR+large+language+model+OR+AI+regulation+OR+AI+safety+OR+generative+AI&mode=ArtList&maxrecords=8&timespan=24h&format=json&sort=DateDesc
+[HTTP] Retry 1/2 after 5000ms: https://api.gdeltproject.org/api/v2/doc/doc?query=pandemic+OR+epidemic+OR+WHO+emergency+OR+drug+approval+OR+clinical+trial+OR+antimicrobial+resistance&mode=ArtList&maxrecords=8&timespan=24h&format=json&sort=DateDesc
+[HTTP] Retry 2/2 after 5000ms: https://api.gdeltproject.org/api/v2/doc/doc?query=climate+emergency+OR+IPCC+report+OR+COP+OR+carbon+tax+OR+extreme+weather+OR+heatwave+record+OR+sea+level&mode=ArtList&maxrecords=8&timespan=24h&format=json&sort=DateDesc
+[HTTP] Retry 2/2 after 5000ms: https://api.gdeltproject.org/api/v2/doc/doc?query=financial+crisis+OR+central+bank+OR+interest+rate+hike+OR+bank+failure+OR+recession+OR+sovereign+debt&mode=ArtList&maxrecords=8&timespan=24h&format=json&sort=DateDesc
+[HTTP] Retry 1/2 after 5000ms: https://api.gdeltproject.org/api/v2/doc/doc?query=energy+crisis+OR+oil+price+OR+gas+pipeline+OR+nuclear+plant+OR+renewable+breakthrough+OR+energy+security&mode=ArtList&maxrecords=8&timespan=24h&format=json&sort=DateDesc
+[HTTP] Retry 2/2 after 5000ms: https://api.gdeltproject.org/api/v2/doc/doc?query=pandemic+OR+epidemic+OR+WHO+emergency+OR+drug+approval+OR+clinical+trial+OR+antimicrobial+resistance&mode=ArtList&maxrecords=8&timespan=24h&format=json&sort=DateDesc
+[HTTP] Retry 1/2 after 5000ms: https://api.gdeltproject.org/api/v2/doc/doc?query=trade+war+OR+tariffs+OR+WTO+ruling+OR+supply+chain+OR+semiconductor+OR+export+controls+OR+trade+deal&mode=ArtList&maxrecords=8&timespan=24h&format=json&sort=DateDesc
+[HTTP] Retry 1/2 after 5000ms: https://api.gdeltproject.org/api/v2/doc/doc?query=cyber+attack+OR+data+breach+OR+ransomware+OR+critical+infrastructure+hack+OR+state-sponsored+espionage&mode=ArtList&maxrecords=8&timespan=24h&format=json&sort=DateDesc
+[HTTP] Retry 2/2 after 5000ms: https://api.gdeltproject.org/api/v2/doc/doc?query=cyber+attack+OR+data+breach+OR+ransomware+OR+critical+infrastructure+hack+OR+state-sponsored+espionage&mode=ArtList&maxrecords=8&timespan=24h&format=json&sort=DateDesc
+[HTTP] Retry 2/2 after 5000ms: https://api.gdeltproject.org/api/v2/doc/doc?query=trade+war+OR+tariffs+OR+WTO+ruling+OR+supply+chain+OR+semiconductor+OR+export+controls+OR+trade+deal&mode=ArtList&maxrecords=8&timespan=24h&format=json&sort=DateDesc
+[HTTP] Retry 1/2 after 5000ms: https://api.gdeltproject.org/api/v2/doc/doc?query=social+unrest+OR+protests+OR+inequality+OR+labor+strike+OR+food+insecurity+OR+migration+crisis&mode=ArtList&maxrecords=8&timespan=24h&format=json&sort=DateDesc
+[HTTP] Retry 2/2 after 5000ms: https://api.gdeltproject.org/api/v2/doc/doc?query=energy+crisis+OR+oil+price+OR+gas+pipeline+OR+nuclear+plant+OR+renewable+breakthrough+OR+energy+security&mode=ArtList&maxrecords=8&timespan=24h&format=json&sort=DateDesc
+[HTTP] Retry 1/2 after 5000ms: https://api.gdeltproject.org/api/v2/doc/doc?query=Africa+development+OR+African+Union+OR+ECOWAS+OR+Sahel+conflict+OR+debt+relief+Africa+OR+African+tech+startup&mode=ArtList&maxrecords=8&timespan=24h&format=json&sort=DateDesc
+[HTTP] Retry 1/2 after 5000ms: https://api.gdeltproject.org/api/v2/doc/doc?query=platform+regulation+OR+antitrust+tech+OR+Big+Tech+lawsuit+OR+data+privacy+law+OR+digital+sovereignty&mode=ArtList&maxrecords=8&timespan=24h&format=json&sort=DateDesc
+[HTTP] Retry 1/2 after 5000ms: https://api.gdeltproject.org/api/v2/doc/doc?query=quantum+computing+OR+nuclear+fusion+breakthrough+OR+space+mission+OR+Nobel+Prize+OR+scientific+discovery&mode=ArtList&maxrecords=8&timespan=24h&format=json&sort=DateDesc
+[HTTP] Retry 2/2 after 1645ms: fetch failed
+[HTTP] Retry 2/2 after 5000ms: https://api.gdeltproject.org/api/v2/doc/doc?query=Africa+development+OR+African+Union+OR+ECOWAS+OR+Sahel+conflict+OR+debt+relief+Africa+OR+African+tech+startup&mode=ArtList&maxrecords=8&timespan=24h&format=json&sort=DateDesc
+[HTTP] Retry 2/2 after 5000ms: https://api.gdeltproject.org/api/v2/doc/doc?query=platform+regulation+OR+antitrust+tech+OR+Big+Tech+lawsuit+OR+data+privacy+law+OR+digital+sovereignty&mode=ArtList&maxrecords=8&timespan=24h&format=json&sort=DateDesc
+[HTTP] Retry 1/2 after 5000ms: https://api.gdeltproject.org/api/v2/doc/doc?query=Latin+America+election+OR+Amazon+deforestation+OR+cocaine+trafficking+OR+leftist+government+OR+lithium+mining&mode=ArtList&maxrecords=8&timespan=24h&format=json&sort=DateDesc
+[HTTP] Retry 1/2 after 5000ms: https://api.gdeltproject.org/api/v2/doc/doc?query=Middle+East+conflict+OR+Iran+nuclear+OR+Saudi+Arabia+OR+Israel+Palestine+OR+Gulf+states+OR+oil+price+OPEC&mode=ArtList&maxrecords=8&timespan=24h&format=json&sort=DateDesc
+[HTTP] Retry 1/2 after 5000ms: https://api.gdeltproject.org/api/v2/doc/doc?query=India+election+OR+Modi+OR+Pakistan+crisis+OR+Bangladesh+garment+OR+Sri+Lanka+economy+OR+Nepal&mode=ArtList&maxrecords=8&timespan=24h&format=json&sort=DateDesc
+[HTTP] Retry 2/2 after 5000ms: https://api.gdeltproject.org/api/v2/doc/doc?query=Latin+America+election+OR+Amazon+deforestation+OR+cocaine+trafficking+OR+leftist+government+OR+lithium+mining&mode=ArtList&maxrecords=8&timespan=24h&format=json&sort=DateDesc
+[HTTP] Retry 2/2 after 5000ms: https://api.gdeltproject.org/api/v2/doc/doc?query=India+election+OR+Modi+OR+Pakistan+crisis+OR+Bangladesh+garment+OR+Sri+Lanka+economy+OR+Nepal&mode=ArtList&maxrecords=8&timespan=24h&format=json&sort=DateDesc
+[TOPIC RADAR V3] CROSS-SOURCE SIGNALS: 10 high-confidence clusters (top score: 82)
+[TOPIC RADAR V3] Trajectories: 0 emerging, 0 bursting, 86 new, 1 fading | Anticipatory outliers: 75
+[TOPIC RADAR V3] Signal distribution: 15 breaking, 0 emerging, 0 routine
+[TOPIC RADAR V3] ✅ 100 raw → 96 deduped → 15 topics in 148574ms | gdelt:0 rss:72 academic:18 db:10
+[EDITOR-IN-CHIEF] Triaging 15 topics (max 3 publications, budget $25)...
+✅ deepseek/deepseek-v4-flash [editor_in_chief] | 3537ms | 3259+372 tok (1664 cache-hit) | $0.0006
+✅ deepseek/deepseek-v4-flash [topic_classification] | 2919ms | 1898+282 tok (1792 cache-hit) | $0.0003
+✅ deepseek/deepseek-v4-flash [topic_classification] | 3437ms | 1965+324 tok (1920 cache-hit) | $0.0004
+✅ deepseek/deepseek-v4-flash [topic_classification] | 3053ms | 1924+286 tok (1920 cache-hit) | $0.0003
+[EDITOR-IN-CHIEF] ✅ 3 publications selected, 0 budget-cut, 12 skipped in 12955ms ($0.0016)
+[ADAPTIVE RATE] openalex: rate reduced to 5.00 req/s after 1× 429
+[OpenAlex] API key marked as exhausted — switching to polite pool (mailto)
+OpenAlex API error: OpenAlex API key credits exhausted
+[ADAPTIVE RATE] openalex: rate reduced to 2.50 req/s after 2× 429
+[OpenAlex] Search failed: OpenAlex API key credits exhausted
+[CIRCUIT BREAKER] openalex tripped after 3× 429 — skipping for 10s
+[ADAPTIVE RATE] openalex: rate reduced to 1.25 req/s after 3× 429
+[OpenAlex] Search failed: Circuit breaker tripped for openalex
+[ADAPTIVE RATE] openalex: rate reduced to 1.00 req/s after 4× 429
+[OpenAlex] Search failed: Circuit breaker tripped for openalex
+[OpenAlex] Search failed: Circuit breaker tripped for openalex
+[OpenAlex] Search failed: Circuit breaker tripped for openalex
+[SemanticScholar] Search failed: HTTP 429 
+[Crossref] Found 10 works for "How does the Federal Reserve's monetary policy int"
+[SCOUT/GDELT] Non-JSON response: One or more of your keywords contained an illegal character. To use a dash in a word, place it in quotes like "f-16".
+
+✅ deepseek/deepseek-v4-flash [preflight_semantic_check] | 1770ms | 312+134 tok | $0.0001
+✅ deepseek/deepseek-v4-flash [query_reformulation] | 1447ms | 353+57 tok | $0.0001
+OpenAlex API error: OpenAlex API key credits exhausted
+OpenAlex API error: OpenAlex API key credits exhausted
+[CIRCUIT BREAKER] openalex tripped after 3× 429 — skipping for 10s
+OpenAlex API error: Circuit breaker tripped for openalex
+OpenAlex API error: Circuit breaker tripped for openalex
+OpenAlex API error: Circuit breaker tripped for openalex
+OpenAlex API error: Circuit breaker tripped for openalex
+[OpenAlex] Search failed: Circuit breaker tripped for openalex (10s remaining)
+[OpenAlex] Search failed: Circuit breaker tripped for openalex (10s remaining)
+[OpenAlex] Search failed: Circuit breaker tripped for openalex (10s remaining)
+[OpenAlex] Search failed: Circuit breaker tripped for openalex (10s remaining)
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex (10s remaining)
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+[OpenAlex] Search failed: Circuit breaker tripped for openalex — skipping queued call
+OpenAlex API error: Circuit breaker tripped for openalex
+[Crossref] Found 8 works for "Federal Reserve independence constitutional law"
+[Crossref] Found 8 works for "Mostly Harmless Econometrics How does the Federal "
+[Crossref] Found 8 works for "US dollar reserve currency structural decline"
+[Crossref] Found 8 works for "The Fiscal Multiplier in Small Open Economies How "
+[Crossref] Found 8 works for "monetary policy international spillovers hegemony"
+[Crossref] Found 8 works for "Federal Reserve balance sheet policy global financ"
+[Crossref] Found 8 works for "central bank policy geopolitical economy"
+[SemanticScholar] Found 8 papers
+[SemanticScholar] 6/8 with rich abstracts (75%)
+[SemanticScholar] Search failed: HTTP 429 
+[SemanticScholar] Search failed: HTTP 429 
+[SemanticScholar] Search failed: HTTP 429 
+[SemanticScholar] Search failed: HTTP 429 
+[SemanticScholar] Search failed: HTTP 429 
+[SemanticScholar] Search failed: HTTP 429 
+[HTTP] Retry 1/2 after 5000ms: https://api.gdeltproject.org/api/v2/doc/doc?query=Federal%20Reserve%20independence%20constitutional%20law&mode=ArtList&maxrecords=4&format=json&sort=DateDesc&timespan=14d
+[HTTP] Retry 1/2 after 5000ms: https://api.gdeltproject.org/api/v2/doc/doc?query=dollar%20reserve%20currency%20structural%20decline&mode=ArtList&maxrecords=4&format=json&sort=DateDesc&timespan=14d
+[HTTP] Retry 1/2 after 5000ms: https://api.gdeltproject.org/api/v2/doc/doc?query=central%20bank%20policy%20geopolitical%20economy&mode=ArtList&maxrecords=4&format=json&sort=DateDesc&timespan=14d
+[EVIDENCE-GATHERER] Grounded with 6 seminal works, 0 known gaps addressed
+✅ deepseek/deepseek-v4-flash [preflight_semantic_check] | 2386ms | 316+119 tok | $0.0001
+[PREFLIGHT] ✅ "How does the Federal Reserve's monetary policy intersect wit" — 178 sources, semantic=10%, strategy=reformulated in 37071ms → reformulated: "Federal Reserve independence constitutional law"
+[ThinkTank] No weekly slots left for breaking publish
+
+  ── DISPATCHER RESULT ──
+  Success: true
+  Duration: 198.9s
+  Collected: 0 topics
+  Published: 0
+  Held: 0
+  Skipped: 0
+  Failed: 0
+  Total cost: $0.0000
+  Topics: none
+  Phases: {
+  "detect": {
+    "durationMs": 148575,
+    "topicsFound": 15,
+    "stats": {
+      "gdeltFetched": 0,
+      "rssFetched": 72,
+      "academicFetched": 18,
+      "policyFetched": 0,
+      "institutionalFetched": 0,
+      "dbSignals": 10,
+      "totalRaw": 100,
+      "afterDedup": 96,
+      "crossChannelCollisions": 0,
+      "durationMs": 148574,
+      "crossSourceSignals": {
+        "clustersDetected": 10,
+        "topScore": 82
+      }
+    }
+  },
+  "decide": {
+    "durationMs": 12956,
+    "se
+
+  Total funnel duration: 3.5 min
+  Finished: 2026-08-22T13:55:09.645Z
+
+  ⚠️  Funnel ran but no topics collected
+
+
+C:\Users\DELL\Desktop\NomosX-master>
