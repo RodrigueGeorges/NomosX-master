@@ -236,6 +236,12 @@ export function buildCorrectionFeedback(reflection: PhaseReflection): string {
 /**
  * Full self-correction loop for a phase.
  * Assesses quality, retries if needed (max 2 retries), returns final result.
+ *
+ * DISC enhancement (arXiv 2606.21724):
+ * - Binary judgment gate: only retry if a *specific* mistake is found
+ * - Evidence-conditioned: feedback targets specific issues, not holistic rewrite
+ * - Version buffer: keep original if retry degrades quality (CyberCorrect overshoot rollback)
+ * - EIR/ECR stability: stop iterating if corrections don't outpace new errors
  */
 export async function reflectAndRetry(
   phase: PipelinePhase,
@@ -250,18 +256,27 @@ export async function reflectAndRetry(
   let totalCost = 0;
   let currentOutput = input.output;
   let retries = 0;
+  // Version buffer: keep the best version seen so far (CyberCorrect)
+  let bestOutput = input.output;
+  let bestScore = 0;
 
   // Initial assessment
   let reflection = await assessPhaseQuality(input);
   reflections.push(reflection);
   totalCost += reflection.costUsd;
+  bestScore = reflection.score;
+  bestOutput = input.output;
 
-  // Retry loop
-  while (reflection.shouldRetry && retries < maxRetries) {
+  // DISC: Check if there's a specific mistake worth correcting
+  // If the only issue is "low score" without specific issues, don't retry
+  const hasSpecificIssues = reflection.issues.length > 0 && reflection.issues.some(i => i.length > 10);
+
+  // Retry loop — DISC gate: only retry if there are specific, actionable issues
+  while (reflection.shouldRetry && retries < maxRetries && hasSpecificIssues) {
     retries++;
     console.log(`[SelfCorrection] ${phase} retry ${retries}/${maxRetries} (score: ${reflection.score})`);
 
-    // Build feedback for retry
+    // Build feedback for retry — evidence-conditioned (targets specific issues only)
     const feedback = buildCorrectionFeedback(reflection);
 
     // Record failure for cross-run learning
@@ -280,16 +295,46 @@ export async function reflectAndRetry(
     reflections.push(reflection);
     totalCost += reflection.costUsd;
 
+    // Version buffer (CyberCorrect): keep the best version
+    if (reflection.score > bestScore) {
+      bestScore = reflection.score;
+      bestOutput = currentOutput;
+      console.log(`[SelfCorrection] ${phase} retry ${retries}: improved to ${reflection.score} (new best)`);
+    } else {
+      console.log(`[SelfCorrection] ${phase} retry ${retries}: ${reflection.score} ≤ best ${bestScore} — keeping best version (overshoot rollback)`);
+    }
+
     // Early stop if score is now good enough
     if (reflection.score >= minScore) {
-      console.log(`[SelfCorrection] ${phase} improved to ${reflection.score} — stopping retries`);
+      console.log(`[SelfCorrection] ${phase} reached ${reflection.score} — stopping retries`);
       break;
+    }
+
+    // EIR/ECR stability check: if retry made things worse, stop iterating
+    if (reflections.length >= 3) {
+      const scores = reflections.map(r => r.score);
+      let corrections = 0;
+      let introductions = 0;
+      for (let i = 1; i < scores.length; i++) {
+        const delta = scores[i] - scores[i - 1];
+        if (delta > 2) corrections++;
+        else if (delta < -2) introductions++;
+      }
+      if (introductions > corrections) {
+        console.log(`[SelfCorrection] ${phase} EIR/ECR: ${introductions} introductions > ${corrections} corrections — stopping (counterproductive)`);
+        break;
+      }
     }
   }
 
   const originalScore = reflections[0]?.score || 0;
-  const finalScore = reflections[reflections.length - 1]?.score || 0;
+  const finalScore = bestScore;
   const improved = finalScore > originalScore;
+
+  // Use the best version found (CyberCorrect version buffer)
+  if (improved && bestOutput !== currentOutput) {
+    console.log(`[SelfCorrection] ${phase}: using best version (${originalScore} → ${finalScore}, rollback from ${reflection.score})`);
+  }
 
   if (improved) {
     console.log(`[SelfCorrection] ${phase}: ${originalScore} → ${finalScore} (+${finalScore - originalScore} after ${retries} retries)`);

@@ -297,13 +297,13 @@ function HomePageContent() {
 
     return (
 
-      <div className="min-h-screen bg-black flex flex-col items-center justify-center gap-6">
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center gap-6">
 
         <NomosXLogo variant="wordmark" size={20} className="opacity-40" />
 
-        <div className="relative w-32 h-px bg-white/10 overflow-hidden">
+        <div className="relative w-32 h-px bg-black/10 overflow-hidden">
 
-          <div className="absolute inset-y-0 w-1/3 bg-gradient-to-r from-transparent via-white/60 to-transparent animate-marquee" />
+          <div className="absolute inset-y-0 w-1/3 bg-gradient-to-r from-transparent via-black/60 to-transparent animate-marquee" />
 
         </div>
 
@@ -396,13 +396,13 @@ function HomePageContent() {
 
                   <div key={stat.label} className={`text-center animate-rise delay-${(i + 1) * 100}`} style={{ opacity: 0 }}>
 
-                    <p className="font-mono text-2xl sm:text-3xl font-light text-white tabular-nums leading-none mb-2">
+                    <p className="font-mono text-2xl sm:text-3xl font-light text-black tabular-nums leading-none mb-2">
 
                       <StatCounter end={stat.end} suffix={stat.suffix} />
 
                     </p>
 
-                    <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-white/50">
+                    <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-black/50">
 
                       {stat.label}
 
@@ -471,9 +471,9 @@ function HomePageContent() {
               <ScrollReveal delay={100}>
                 {isEmptyVerdict(featuredVerdict) ? (
                   <div className="nx-surface nx-border-flow relative p-6 sm:p-8 text-center">
-                    <span className="w-1.5 h-1.5 rounded-full bg-white/30 inline-block mb-4 nx-glow-dot" />
-                    <p className="font-display text-lg text-white/80 mb-2">{t("FeaturedVerdict.noPositionYet")}</p>
-                    <p className="text-sm text-white/45 leading-relaxed max-w-sm mx-auto">{t("FeaturedVerdict.noPositionDesc")}</p>
+                    <span className="w-1.5 h-1.5 rounded-full bg-black/30 inline-block mb-4 nx-glow-dot" />
+                    <p className="font-display text-lg text-black/80 mb-2">{t("FeaturedVerdict.noPositionYet")}</p>
+                    <p className="text-sm text-black/45 leading-relaxed max-w-sm mx-auto">{t("FeaturedVerdict.noPositionDesc")}</p>
                   </div>
                 ) : (
                   <FeaturedVerdictCard data={featuredVerdict} />
@@ -504,7 +504,7 @@ function HomePageContent() {
 
                   onClick={() => router.push(PUBLIC_ROUTES.archives)}
 
-                  className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.12em] text-white/55 hover:text-white transition-colors"
+                  className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.12em] text-black/55 hover:text-black transition-colors"
 
                 >
 
@@ -608,9 +608,9 @@ function HomePageContent() {
 
                   <div key={i} className="nx-surface nx-pillar p-5">
 
-                    <p className="font-mono text-[11px] text-white/45 mb-3">0{i + 1}</p>
+                    <p className="font-mono text-[11px] text-black/45 mb-3">0{i + 1}</p>
 
-                    <p className="text-sm text-white/70 leading-[1.5]">{t(`Brand.philosophyPillars.${i}`)}</p>
+                    <p className="text-sm text-black/70 leading-[1.5]">{t(`Brand.philosophyPillars.${i}`)}</p>
 
                   </div>
 
@@ -628,13 +628,13 @@ function HomePageContent() {
 
           {/* Data sources ticker */}
 
-          <div className="border-y border-white/[0.08] bg-white/[0.01]">
+          <div className="border-y border-black/[0.08] bg-black/[0.01]">
 
             <div className="flex items-stretch">
 
-              <span className="shrink-0 flex items-center gap-2 px-5 py-3 border-r border-white/[0.08] font-mono text-[9px] uppercase tracking-[0.2em] text-white/55 bg-black">
+              <span className="shrink-0 flex items-center gap-2 px-5 py-3 border-r border-black/[0.08] font-mono text-[9px] uppercase tracking-[0.2em] text-black/55 bg-black/[0.03]">
 
-                <span className="w-1 h-1 rounded-full bg-white/80 nx-glow-dot" />
+                <span className="w-1 h-1 rounded-full bg-black/80 nx-glow-dot" />
 
                 {t("Home.dataSources")}
 
@@ -650,15 +650,15 @@ function HomePageContent() {
 
                       key={`${src.id}-${i}`}
 
-                      className="flex items-center font-mono text-[11px] uppercase tracking-[0.12em] text-white/40 px-5"
+                      className="flex items-center font-mono text-[11px] uppercase tracking-[0.12em] text-black/40 px-5"
 
                     >
 
-                      <span className="text-white/50 mr-2.5 text-[10px]">●</span>
+                      <span className="text-black/50 mr-2.5 text-[10px]">●</span>
 
-                      <span className="text-white/65">{src.name}</span>
+                      <span className="text-black/65">{src.name}</span>
 
-                      <span className="ml-2 text-white/45 normal-case tracking-normal text-[11px]">{src.desc}</span>
+                      <span className="ml-2 text-black/45 normal-case tracking-normal text-[11px]">{src.desc}</span>
 
                     </span>
 
@@ -724,19 +724,19 @@ function HomePageContent() {
 
                 <div className="text-center">
 
-                  <p className="font-mono text-3xl font-light text-white tabular-nums leading-none mb-3">
+                  <p className="font-mono text-3xl font-light text-black tabular-nums leading-none mb-3">
 
                     <StatCounter end={19} suffix="" />
 
                   </p>
 
-                  <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-white/50">
+                  <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-black/50">
 
                     {t("Home.pipelineStages")}
 
                   </p>
 
-                  <p className="text-xs text-white/40 mt-2 leading-relaxed">
+                  <p className="text-xs text-black/40 mt-2 leading-relaxed">
 
                     {t("Home.pipelineStagesDesc")}
 
@@ -746,19 +746,19 @@ function HomePageContent() {
 
                 <div className="text-center">
 
-                  <p className="font-mono text-3xl font-light text-white tabular-nums leading-none mb-3">
+                  <p className="font-mono text-3xl font-light text-black tabular-nums leading-none mb-3">
 
                     <StatCounter end={6} suffix="" />
 
                   </p>
 
-                  <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-white/50">
+                  <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-black/50">
 
                     {t("Home.adversarialReviews")}
 
                   </p>
 
-                  <p className="text-xs text-white/40 mt-2 leading-relaxed">
+                  <p className="text-xs text-black/40 mt-2 leading-relaxed">
 
                     {t("Home.adversarialReviewsDesc")}
 
@@ -768,19 +768,19 @@ function HomePageContent() {
 
                 <div className="text-center">
 
-                  <p className="font-mono text-3xl font-light text-white tabular-nums leading-none mb-3">
+                  <p className="font-mono text-3xl font-light text-black tabular-nums leading-none mb-3">
 
                     <StatCounter end={100} suffix="%" />
 
                   </p>
 
-                  <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-white/50">
+                  <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-black/50">
 
                     {t("Home.sourceGrounded")}
 
                   </p>
 
-                  <p className="text-xs text-white/40 mt-2 leading-relaxed">
+                  <p className="text-xs text-black/40 mt-2 leading-relaxed">
 
                     {t("Home.sourceGroundedDesc")}
 
@@ -806,7 +806,7 @@ function HomePageContent() {
 
                 <p className="nx-eyebrow mb-4 justify-center">{t("Home.trackRecord")}</p>
 
-                <h2 className="font-display text-lg sm:text-xl font-medium text-white mb-10 tracking-tight">
+                <h2 className="font-display text-lg sm:text-xl font-medium text-black mb-10 tracking-tight">
 
                   {t("Home.trackRecordDesc")}
 
@@ -818,31 +818,31 @@ function HomePageContent() {
 
                 <div className="text-center">
 
-                  <p className="font-mono text-3xl font-light text-white tabular-nums leading-none mb-3">
+                  <p className="font-mono text-3xl font-light text-black tabular-nums leading-none mb-3">
 
                     <StatCounter end={trackRecord?.total ?? 0} suffix="" />
 
                   </p>
 
-                  <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-white/50">{t("Home.predictionsMade")}</p>
+                  <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-black/50">{t("Home.predictionsMade")}</p>
 
                 </div>
 
                 <div className="text-center">
 
-                  <p className="font-mono text-3xl font-light text-white tabular-nums leading-none mb-3">
+                  <p className="font-mono text-3xl font-light text-black tabular-nums leading-none mb-3">
 
                     <StatCounter end={trackRecord?.open ?? 0} suffix="" />
 
                   </p>
 
-                  <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-white/50">{t("Home.openPredictions")}</p>
+                  <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-black/50">{t("Home.openPredictions")}</p>
 
                 </div>
 
                 <div className="text-center">
 
-                  <p className="font-mono text-3xl font-light text-white tabular-nums leading-none mb-3">
+                  <p className="font-mono text-3xl font-light text-black tabular-nums leading-none mb-3">
 
                     {trackRecord?.accuracyPct != null ? (
 
@@ -850,19 +850,19 @@ function HomePageContent() {
 
                     ) : (
 
-                      <span className="text-white/40 text-xl">{t("Home.pending")}</span>
+                      <span className="text-black/40 text-xl">{t("Home.pending")}</span>
 
                     )}
 
                   </p>
 
-                  <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-white/50">{t("Home.hitRate")}</p>
+                  <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-black/50">{t("Home.hitRate")}</p>
 
                 </div>
 
                 <div className="text-center">
 
-                  <p className="font-mono text-3xl font-light text-white tabular-nums leading-none mb-3">
+                  <p className="font-mono text-3xl font-light text-black tabular-nums leading-none mb-3">
 
                     {trackRecord?.brierScore != null ? (
 
@@ -870,13 +870,13 @@ function HomePageContent() {
 
                     ) : (
 
-                      <span className="text-white/40 text-xl">{t("Home.pending")}</span>
+                      <span className="text-black/40 text-xl">{t("Home.pending")}</span>
 
                     )}
 
                   </p>
 
-                  <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-white/50">{t("Home.brierScore")}</p>
+                  <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-black/50">{t("Home.brierScore")}</p>
 
                 </div>
 
@@ -890,7 +890,7 @@ function HomePageContent() {
 
                   onClick={() => router.push(PUBLIC_ROUTES.trackRecord)}
 
-                  className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.12em] text-white/55 hover:text-white transition-colors"
+                  className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.12em] text-black/55 hover:text-black transition-colors"
 
                 >
 
@@ -930,7 +930,7 @@ function HomePageContent() {
 
               <ScrollReveal>
 
-                <h2 className="font-display text-lg sm:text-xl font-medium text-white mb-3 tracking-tight">{t("Home.intelligenceDispatch")}</h2>
+                <h2 className="font-display text-lg sm:text-xl font-medium text-black mb-3 tracking-tight">{t("Home.intelligenceDispatch")}</h2>
 
                 <p className="nx-eyebrow mb-8 justify-center">{t("Home.structureNotNoise")}</p>
 
@@ -938,7 +938,7 @@ function HomePageContent() {
 
               {newsletterStatus === "success" ? (
 
-                <p className="text-sm text-white/70">{newsletterMessage}</p>
+                <p className="text-sm text-black/70">{newsletterMessage}</p>
 
               ) : (
 
@@ -956,7 +956,7 @@ function HomePageContent() {
 
                     required
 
-                    className="nx-input flex-1 px-4 py-3 bg-white/[0.04] border border-white/[0.12] text-sm text-white focus:outline-none focus:border-white/30 transition-all"
+                    className="nx-input flex-1 px-4 py-3 bg-black/[0.02] border border-black/[0.12] text-sm text-black placeholder:text-black/40 focus:outline-none focus:border-black/30 transition-all"
 
                   />
 
@@ -966,7 +966,7 @@ function HomePageContent() {
 
                     disabled={newsletterStatus === "loading"}
 
-                    className="px-6 py-3 bg-white text-black text-xs font-semibold uppercase tracking-[0.12em] disabled:opacity-50 hover:bg-white/90 transition-colors"
+                    className="px-6 py-3 bg-black text-white text-xs font-semibold uppercase tracking-[0.12em] disabled:opacity-50 hover:bg-black/85 transition-colors"
 
                   >
 
@@ -1024,13 +1024,13 @@ export default function HomePage() {
 
       fallback={
 
-        <div className="min-h-screen bg-black flex flex-col items-center justify-center gap-6">
+        <div className="min-h-screen bg-white flex flex-col items-center justify-center gap-6">
 
           <NomosXLogo variant="wordmark" size={20} className="opacity-40" />
 
-          <div className="relative w-32 h-px bg-white/10 overflow-hidden">
+          <div className="relative w-32 h-px bg-black/10 overflow-hidden">
 
-            <div className="absolute inset-y-0 w-1/3 bg-gradient-to-r from-transparent via-white/60 to-transparent animate-marquee" />
+            <div className="absolute inset-y-0 w-1/3 bg-gradient-to-r from-transparent via-black/60 to-transparent animate-marquee" />
 
           </div>
 

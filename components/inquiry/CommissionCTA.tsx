@@ -25,7 +25,7 @@ export function CommissionCTA() {
     <div className="mt-12 nx-public-surface p-6 sm:p-8">
       <div className="text-center mb-6">
         <p className={cn(nx.eyebrow, "mb-3")}>{t('CommissionCTA.eyebrow')}</p>
-        <h3 className="font-display text-xl sm:text-2xl font-semibold text-white mb-2">
+        <h3 className="font-display text-xl sm:text-2xl font-semibold text-black mb-2">
           {t('CommissionCTA.title')}
         </h3>
         <p className={cn(nx.body, "max-w-lg mx-auto")}>
@@ -38,9 +38,9 @@ export function CommissionCTA() {
           const price = getStudioXPrice(format.type);
           return (
             <div key={format.type} className="nx-public-surface p-3 text-center">
-              <div className="text-sm text-white/80 font-medium">{format.label}</div>
-              <div className="text-[10px] text-white/40 font-mono mt-1">{format.pages}</div>
-              <div className="text-base text-white font-bold font-mono mt-2">{price.display}</div>
+              <div className="text-sm text-black/80 font-medium">{format.label}</div>
+              <div className="text-[10px] text-black/40 font-mono mt-1">{format.pages}</div>
+              <div className="text-base text-black font-bold font-mono mt-2">{price.display}</div>
             </div>
           );
         })}
@@ -55,7 +55,7 @@ export function CommissionCTA() {
           {t('CommissionCTA.commissionStudy')}
           <ArrowRight size={14} className="ml-2" />
         </button>
-        <div className="flex items-center gap-2 text-[11px] text-white/35">
+        <div className="flex items-center gap-2 text-[11px] text-black/35">
           <Shield size={12} />
           <span>{t('CommissionCTA.guaranteeNote')}</span>
         </div>

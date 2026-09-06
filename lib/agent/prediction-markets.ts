@@ -41,7 +41,7 @@ async function fetchPolymarket(query: string): Promise<MarketPrediction[]> {
   try {
     // Polymarket Gamma API — search for relevant markets
     const url = `https://gamma-api.polymarket.com/markets?closed=false&limit=20&order=volume&ascending=false&tag=${encodeURIComponent(query.slice(0, 50))}`;
-    const response = await httpGet<any>(url, 'polymarket', { timeout: 10000 });
+    const response = await httpGet<any>(url, { timeout: 10000, rateLimiterKey: 'polymarket' });
 
     if (!response || !Array.isArray(response)) return [];
 
@@ -92,7 +92,7 @@ async function fetchMetaculus(query: string): Promise<MarketPrediction[]> {
   try {
     // Metaculus API v2 — search for relevant questions
     const url = `https://www.metaculus.com/api2/questions/?search=${encodeURIComponent(query.slice(0, 80))}&status=open&limit=10&order_by=-activity`;
-    const response = await httpGet<any>(url, 'metaculus', { timeout: 10000 });
+    const response = await httpGet<any>(url, { timeout: 10000, rateLimiterKey: 'metaculus' });
 
     if (!response || !Array.isArray(response.results ?? response)) return [];
 

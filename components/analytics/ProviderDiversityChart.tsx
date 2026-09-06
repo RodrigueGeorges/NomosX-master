@@ -31,19 +31,19 @@ export function ProviderDiversityChart({ data }: ProviderDiversityChartProps) {
 
   if (data.length === 0) {
     return (
-      <div className="border border-white/[0.08] bg-black/25 p-6 text-center">
-        <p className="text-xs text-white/50 font-mono">No provider data available.</p>
+      <div className="border border-black/[0.08] bg-black/25 p-6 text-center">
+        <p className="text-xs text-black/50 font-mono">No provider data available.</p>
       </div>
     );
   }
 
   return (
-    <div className="border border-white/[0.08] bg-black/25 p-5">
+    <div className="border border-black/[0.08] bg-black/25 p-5">
       <div className="flex items-center justify-between mb-4">
-        <p className="text-[10px] font-mono uppercase tracking-wider text-white/50">
+        <p className="text-[10px] font-mono uppercase tracking-wider text-black/50">
           Provider Diversity — {data.length} sources
         </p>
-        <p className="text-[10px] font-mono text-white/40">{total} total</p>
+        <p className="text-[10px] font-mono text-black/40">{total} total</p>
       </div>
       <div className="space-y-2">
         {data.map((d) => {
@@ -51,10 +51,10 @@ export function ProviderDiversityChart({ data }: ProviderDiversityChartProps) {
           const color = PROVIDER_COLORS[d.provider] || "#6366F1";
           return (
             <div key={d.provider} className="flex items-center gap-3">
-              <span className="w-24 shrink-0 text-[10px] font-mono uppercase tracking-wider text-white/50 truncate">
+              <span className="w-24 shrink-0 text-[10px] font-mono uppercase tracking-wider text-black/50 truncate">
                 {d.provider}
               </span>
-              <div className="flex-1 h-5 bg-white/[0.03] relative overflow-hidden">
+              <div className="flex-1 h-5 bg-black/[0.03] relative overflow-hidden">
                 <div
                   className="h-full transition-all duration-500"
                   style={{
@@ -63,12 +63,12 @@ export function ProviderDiversityChart({ data }: ProviderDiversityChartProps) {
                     opacity: 0.7,
                   }}
                 />
-                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-mono text-white/60">
+                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-mono text-black/60">
                   {d.count}
                 </span>
               </div>
               {d.qualityAvg > 0 && (
-                <span className="w-12 shrink-0 text-right text-[10px] font-mono text-white/40">
+                <span className="w-12 shrink-0 text-right text-[10px] font-mono text-black/40">
                   Q:{d.qualityAvg.toFixed(0)}
                 </span>
               )}

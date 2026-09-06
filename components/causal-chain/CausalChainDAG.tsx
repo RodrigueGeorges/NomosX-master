@@ -78,16 +78,16 @@ export function CausalChainDAG({ links }: CausalChainDAGProps) {
 
   if (sorted.length === 0) {
     return (
-      <div className="border border-white/[0.08] bg-black/25 p-8 text-center">
-        <p className="text-sm text-white/50 font-mono">No causal chain extracted for this brief.</p>
+      <div className="border border-black/[0.08] bg-black/25 p-8 text-center">
+        <p className="text-sm text-black/50 font-mono">No causal chain extracted for this brief.</p>
       </div>
     );
   }
 
   return (
     <div className="grid lg:grid-cols-[1fr_300px] gap-4">
-      <div className="relative border border-white/[0.08] bg-black/25 min-h-[400px]">
-        <div className="absolute top-3 left-3 text-[10px] font-mono uppercase tracking-wider text-white/40">
+      <div className="relative border border-black/[0.08] bg-black/25 min-h-[400px]">
+        <div className="absolute top-3 left-3 text-[10px] font-mono uppercase tracking-wider text-black/40">
           Causal Chain — {sorted.length} links
         </div>
         <svg viewBox="0 0 100 100" className="w-full h-[400px]" preserveAspectRatio="xMidYMid meet">
@@ -144,7 +144,7 @@ export function CausalChainDAG({ links }: CausalChainDAGProps) {
         </svg>
       </div>
 
-      <div className="border border-white/[0.08] bg-black/25 p-4 min-h-[400px]">
+      <div className="border border-black/[0.08] bg-black/25 p-4 min-h-[400px]">
         {selected ? (
           <div className="space-y-3">
             <div className="flex items-center gap-2">
@@ -152,34 +152,34 @@ export function CausalChainDAG({ links }: CausalChainDAGProps) {
                 className="w-3 h-3 rounded-full"
                 style={{ backgroundColor: selected.unsupported ? "#EF4444" : (STATUS_COLORS[selected.temporalStatus] || "#6366F1") }}
               />
-              <span className="text-[10px] font-mono uppercase tracking-wider text-white/50">
+              <span className="text-[10px] font-mono uppercase tracking-wider text-black/50">
                 {selected.unsupported ? "unsupported" : selected.temporalStatus}
               </span>
               {selected.sourceRef !== null && (
-                <span className="text-[10px] font-mono text-white/40">[SRC-{selected.sourceRef}]</span>
+                <span className="text-[10px] font-mono text-black/40">[SRC-{selected.sourceRef}]</span>
               )}
             </div>
             <div>
-              <p className="text-[10px] font-mono uppercase tracking-wider text-white/40 mb-1">Claim</p>
-              <p className="text-sm text-white leading-relaxed">{selected.claim}</p>
+              <p className="text-[10px] font-mono uppercase tracking-wider text-black/40 mb-1">Claim</p>
+              <p className="text-sm text-black leading-relaxed">{selected.claim}</p>
             </div>
             <div>
-              <p className="text-[10px] font-mono uppercase tracking-wider text-white/40 mb-1">Evidence</p>
-              <p className="text-xs text-white/60 leading-relaxed">{selected.evidence}</p>
+              <p className="text-[10px] font-mono uppercase tracking-wider text-black/40 mb-1">Evidence</p>
+              <p className="text-xs text-black/60 leading-relaxed">{selected.evidence}</p>
             </div>
             <div>
-              <p className="text-[10px] font-mono uppercase tracking-wider text-white/40 mb-1">Warrant</p>
-              <p className="text-xs text-white/60 leading-relaxed">{selected.warrant}</p>
+              <p className="text-[10px] font-mono uppercase tracking-wider text-black/40 mb-1">Warrant</p>
+              <p className="text-xs text-black/60 leading-relaxed">{selected.warrant}</p>
             </div>
             {selected.derivesFrom !== null && (
-              <p className="text-[10px] font-mono text-white/40 pt-2 border-t border-white/[0.06]">
+              <p className="text-[10px] font-mono text-black/40 pt-2 border-t border-black/[0.06]">
                 Derives from link #{selected.derivesFrom}
               </p>
             )}
           </div>
         ) : (
           <div className="flex items-center justify-center h-full">
-            <p className="text-xs text-white/40 font-mono text-center">
+            <p className="text-xs text-black/40 font-mono text-center">
               Click a node to inspect<br />the causal link
             </p>
           </div>

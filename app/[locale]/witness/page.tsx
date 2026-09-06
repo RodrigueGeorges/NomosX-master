@@ -151,7 +151,7 @@ export default function WitnessDashboardPage() {
           <button
             onClick={fetchData}
             disabled={loading}
-            className="flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition disabled:opacity-50"
+            className="flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg bg-black/5 hover:bg-black/10 border border-black/10 transition disabled:opacity-50"
           >
             <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
             Refresh
@@ -219,7 +219,7 @@ export default function WitnessDashboardPage() {
                             {anomalyTypeLabels[type] || type}
                           </span>
                           <div className="flex items-center gap-2">
-                            <div className="w-24 h-2 bg-white/5 rounded-full overflow-hidden">
+                            <div className="w-24 h-2 bg-black/5 rounded-full overflow-hidden">
                               <div
                                 className="h-full bg-orange-400/60 rounded-full"
                                 style={{ width: `${Math.min(100, (count / data.summary.totalAnomalies) * 100)}%` }}
@@ -234,7 +234,7 @@ export default function WitnessDashboardPage() {
 
                 {/* Severity breakdown */}
                 {Object.keys(data.anomalySeverityCounts).length > 0 && (
-                  <div className="mt-4 pt-4 border-t border-white/5">
+                  <div className="mt-4 pt-4 border-t border-black/5">
                     <div className="text-xs text-gray-500 mb-2">Par sévérité</div>
                     <div className="flex gap-2 flex-wrap">
                       {Object.entries(data.anomalySeverityCounts).map(([sev, count]) => (
@@ -268,7 +268,7 @@ export default function WitnessDashboardPage() {
                       ))}
                   </div>
                 )}
-                <div className="mt-4 pt-4 border-t border-white/5 flex gap-4 text-sm">
+                <div className="mt-4 pt-4 border-t border-black/5 flex gap-4 text-sm">
                   <div className="flex items-center gap-1.5">
                     <CheckCircle className="w-4 h-4 text-green-400" />
                     <span className="text-gray-300">{data.summary.approvedInterventions} approved</span>
@@ -288,7 +288,7 @@ export default function WitnessDashboardPage() {
               ) : (
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                   {Object.entries(data.stepAnomalyCounts).map(([step, count]) => (
-                    <div key={step} className="p-3 rounded-lg bg-white/5 border border-white/10">
+                    <div key={step} className="p-3 rounded-lg bg-black/5 border border-black/10">
                       <div className="text-xs text-gray-500 uppercase tracking-wide">{step}</div>
                       <div className="text-2xl font-bold text-orange-300 mt-1">{count}</div>
                     </div>
@@ -308,7 +308,7 @@ export default function WitnessDashboardPage() {
               ) : (
                 <div className="space-y-3">
                   {data.promptModifications.map((mod, i) => (
-                    <div key={i} className="p-3 rounded-lg bg-white/5 border border-white/10">
+                    <div key={i} className="p-3 rounded-lg bg-black/5 border border-black/10">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-sm font-medium text-purple-300">{mod.agentId}</span>
                         <span className="text-xs text-gray-500">
@@ -337,7 +337,7 @@ export default function WitnessDashboardPage() {
               ) : (
                 <div className="space-y-3">
                   {data.thresholdAdjustments.map((adj, i) => (
-                    <div key={i} className="p-3 rounded-lg bg-white/5 border border-white/10">
+                    <div key={i} className="p-3 rounded-lg bg-black/5 border border-black/10">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-sm font-medium text-green-300">{adj.thresholdName}</span>
                         <span className="text-xs text-gray-500">
@@ -363,7 +363,7 @@ export default function WitnessDashboardPage() {
               ) : (
                 <div className="space-y-2">
                   {data.recentAnomalies.map((a, i) => (
-                    <div key={i} className="flex items-start gap-3 p-2 rounded-lg hover:bg-white/5">
+                    <div key={i} className="flex items-start gap-3 p-2 rounded-lg hover:bg-black/5">
                       <span
                         className={cn(
                           "px-2 py-0.5 text-xs rounded border shrink-0",
@@ -393,7 +393,7 @@ export default function WitnessDashboardPage() {
               ) : (
                 <div className="space-y-2">
                   {data.recentInterventions.map((int, i) => (
-                    <div key={i} className="flex items-start gap-3 p-2 rounded-lg hover:bg-white/5">
+                    <div key={i} className="flex items-start gap-3 p-2 rounded-lg hover:bg-black/5">
                       {int.approved ? (
                         <CheckCircle className="w-4 h-4 text-green-400 shrink-0 mt-0.5" />
                       ) : (
@@ -432,7 +432,7 @@ export default function WitnessDashboardPage() {
               ) : (
                 <div className="space-y-2">
                   {data.recentLearnings.map((l, i) => (
-                    <div key={i} className="p-3 rounded-lg bg-white/5 border border-white/10">
+                    <div key={i} className="p-3 rounded-lg bg-black/5 border border-black/10">
                       <div className="flex items-center justify-between mb-1">
                         <span className="text-sm text-gray-300 truncate max-w-md">{l.query}</span>
                         <div className="flex items-center gap-2 shrink-0">
@@ -486,7 +486,7 @@ function SummaryCard({
   color: string;
 }) {
   return (
-    <div className="p-4 rounded-xl bg-white/5 border border-white/10">
+    <div className="p-4 rounded-xl bg-black/5 border border-black/10">
       <div className="flex items-center gap-2 mb-2">
         <span className={color}>{icon}</span>
         <span className="text-xs text-gray-500 uppercase tracking-wide">{label}</span>
@@ -509,7 +509,7 @@ function Panel({
   className?: string;
 }) {
   return (
-    <div className={cn("p-5 rounded-xl bg-white/5 border border-white/10", className)}>
+    <div className={cn("p-5 rounded-xl bg-black/5 border border-black/10", className)}>
       <div className="flex items-center gap-2 mb-4">
         <span className="text-gray-400">{icon}</span>
         <h3 className="text-sm font-medium text-gray-200">{title}</h3>

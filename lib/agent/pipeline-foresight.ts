@@ -20,6 +20,26 @@ export function parsePriorProbability(value: unknown): number | undefined {
   return undefined;
 }
 
+/**
+ * Round an array of probabilities (0-1) to integer percentages that sum to exactly 100.
+ * Uses the largest remainder method (Hamilton's method) to avoid 99% or 101% sums.
+ */
+export function roundPercentages(probs: number[]): number[] {
+  const total = probs.reduce((a, b) => a + b, 0);
+  if (total === 0) return probs.map(() => Math.floor(100 / probs.length));
+  const scaled = probs.map((p) => (p / total) * 100);
+  const floored = scaled.map((v) => Math.floor(v));
+  let remainder = 100 - floored.reduce((a, b) => a + b, 0);
+  // Distribute remaining percentage points to the largest fractional remainders
+  const fracs = scaled
+    .map((v, i) => ({ i, frac: v - Math.floor(v) }))
+    .sort((a, b) => b.frac - a.frac);
+  for (let k = 0; k < remainder; k++) {
+    floored[fracs[k % fracs.length].i]++;
+  }
+  return floored;
+}
+
 export function applySimulationToAnalysis(
   analysis: Record<string, unknown>,
   report: SimulationReport
@@ -29,15 +49,24 @@ export function applySimulationToAnalysis(
     return { ...analysis, _simulationReport: report, _foresightRun: report.output };
   }
 
+  // Pre-compute rounded percentages using largest remainder method so they sum to 100
+  const simScenarios = scenarios.map((s, i) =>
+    report.output.scenarios.find((o) => o.name === s.name) ?? report.output.scenarios[i]
+  );
+  const probs = simScenarios.map((sim) => sim?.empiricalProbability ?? 0);
+  const roundedPcts = roundPercentages(probs);
+
   const enrichedScenarios = scenarios.map((s, i) => {
-    const sim =
-      report.output.scenarios.find((o) => o.name === s.name) ?? report.output.scenarios[i];
+    const sim = simScenarios[i];
     if (!sim) return s;
     return {
       ...s,
-      probability: `${(sim.empiricalProbability * 100).toFixed(0)}%`,
+      probability: `${roundedPcts[i]}%`,
       empiricalProbability: sim.empiricalProbability,
       confidenceInterval: sim.confidenceInterval,
+      // Sync calibratedProbability with Monte Carlo result so the renderer
+      // doesn't show a stale Delphi value alongside the Monte Carlo probability
+      calibratedProbability: sim.empiricalProbability,
       trajectory: sim.trajectory,
       keyDrivers: sim.keyDrivers,
       blockers: sim.blockers,

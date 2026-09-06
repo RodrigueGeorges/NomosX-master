@@ -205,12 +205,19 @@ export function evaluatePublicationReadiness(publication: {
       : rule.minCitationCoverage;
 
   const failures: string[] = [];
+  const warnings: string[] = [];
 
   if ((publication.trustScore ?? 0) < rule.minTrustScore) {
     failures.push(`trustScore ${(publication.trustScore ?? 0)}/100 < ${rule.minTrustScore}`);
   }
   if ((publication.qualityScore ?? 0) < rule.minQualityScore) {
-    failures.push(`qualityScore ${(publication.qualityScore ?? 0)}/100 < ${rule.minQualityScore}`);
+    // Quality score is advisory when trust is sufficient — it incorporates critic score
+    // which can be overly harsh. Don't block publication on quality alone.
+    if ((publication.trustScore ?? 0) < rule.minTrustScore) {
+      failures.push(`qualityScore ${(publication.qualityScore ?? 0)}/100 < ${rule.minQualityScore}`);
+    } else {
+      warnings.push(`qualityScore ${(publication.qualityScore ?? 0)}/100 < ${rule.minQualityScore} (advisory — trust sufficient)`);
+    }
   }
   if ((publication.citationCoverage ?? 0) < adaptiveMinCitationCoverage) {
     failures.push(`citationCoverage ${Math.round((publication.citationCoverage ?? 0) * 100)}% < ${Math.round(adaptiveMinCitationCoverage * 100)}%`);
@@ -224,6 +231,7 @@ export function evaluatePublicationReadiness(publication: {
     rule,
     sourceCount,
     failures,
+    warnings,
   };
 }
 

@@ -12,21 +12,21 @@ export default async function PrivacyPage() {
 
           <p className="nx-eyebrow mb-3">{t('legal')}</p>
 
-          <h1 className="font-display text-4xl font-semibold text-white mb-3">{t('title')}</h1>
+          <h1 className="font-display text-4xl font-semibold text-black mb-3">{t('title')}</h1>
 
-          <p className="text-sm text-white/55 font-mono">{t('lastUpdated')}</p>
+          <p className="text-sm text-black/55 font-mono">{t('lastUpdated')}</p>
 
         </div>
 
 
 
-        <div className="space-y-8 text-white/80 leading-relaxed text-sm">
+        <div className="space-y-8 text-black/80 leading-relaxed text-sm">
 
 
 
           <section>
 
-            <h2 className="text-lg font-medium text-white mb-3">{t('s1Title')}</h2>
+            <h2 className="text-lg font-medium text-black mb-3">{t('s1Title')}</h2>
 
             <p>
 
@@ -40,9 +40,9 @@ export default async function PrivacyPage() {
 
           <section>
 
-            <h2 className="text-lg font-medium text-white mb-3">{t('s2Title')}</h2>
+            <h2 className="text-lg font-medium text-black mb-3">{t('s2Title')}</h2>
 
-            <ul className="space-y-2 list-disc list-inside text-white/70">
+            <ul className="space-y-2 list-disc list-inside text-black/70">
 
               <li>{t('s2Account')}</li>
 
@@ -62,9 +62,9 @@ export default async function PrivacyPage() {
 
           <section>
 
-            <h2 className="text-lg font-medium text-white mb-3">{t('s3Title')}</h2>
+            <h2 className="text-lg font-medium text-black mb-3">{t('s3Title')}</h2>
 
-            <ul className="space-y-2 list-disc list-inside text-white/70">
+            <ul className="space-y-2 list-disc list-inside text-black/70">
 
               <li>{t('s3Item1')}</li>
 
@@ -90,9 +90,9 @@ export default async function PrivacyPage() {
 
           <section>
 
-            <h2 className="text-lg font-medium text-white mb-3">{t('s4Title')}</h2>
+            <h2 className="text-lg font-medium text-black mb-3">{t('s4Title')}</h2>
 
-            <ul className="space-y-2 list-disc list-inside text-white/70">
+            <ul className="space-y-2 list-disc list-inside text-black/70">
 
               <li>{t('s4Contract')}</li>
 
@@ -108,7 +108,7 @@ export default async function PrivacyPage() {
 
           <section>
 
-            <h2 className="text-lg font-medium text-white mb-3">{t('s5Title')}</h2>
+            <h2 className="text-lg font-medium text-black mb-3">{t('s5Title')}</h2>
 
             <p>
 
@@ -122,9 +122,9 @@ export default async function PrivacyPage() {
 
           <section>
 
-            <h2 className="text-lg font-medium text-white mb-3">{t('s6Title')}</h2>
+            <h2 className="text-lg font-medium text-black mb-3">{t('s6Title')}</h2>
 
-            <ul className="space-y-2 list-disc list-inside text-white/70">
+            <ul className="space-y-2 list-disc list-inside text-black/70">
 
               <li>{t('s6Resend')}</li>
 
@@ -144,11 +144,11 @@ export default async function PrivacyPage() {
 
           <section>
 
-            <h2 className="text-lg font-medium text-white mb-3">{t('s7Title')}</h2>
+            <h2 className="text-lg font-medium text-black mb-3">{t('s7Title')}</h2>
 
             <p>{t('s7Intro')}</p>
 
-            <ul className="space-y-2 list-disc list-inside text-white/70 mt-2">
+            <ul className="space-y-2 list-disc list-inside text-black/70 mt-2">
 
               <li>{t('s7Item1')}</li>
 
@@ -176,7 +176,7 @@ export default async function PrivacyPage() {
 
           <section>
 
-            <h2 className="text-lg font-medium text-white mb-3">{t('s8Title')}</h2>
+            <h2 className="text-lg font-medium text-black mb-3">{t('s8Title')}</h2>
 
             <p>
 
@@ -190,7 +190,7 @@ export default async function PrivacyPage() {
 
           <section>
 
-            <h2 className="text-lg font-medium text-white mb-3">{t('s9Title')}</h2>
+            <h2 className="text-lg font-medium text-black mb-3">{t('s9Title')}</h2>
 
             <p>
 
@@ -204,7 +204,7 @@ export default async function PrivacyPage() {
 
           <section>
 
-            <h2 className="text-lg font-medium text-white mb-3">{t('s10Title')}</h2>
+            <h2 className="text-lg font-medium text-black mb-3">{t('s10Title')}</h2>
 
             <p>
 
@@ -218,11 +218,11 @@ export default async function PrivacyPage() {
 
 
 
-        <div className="mt-12 pt-8 border-t border-white/[0.08] flex gap-6 text-sm text-white/55">
+        <div className="mt-12 pt-8 border-t border-black/[0.08] flex gap-6 text-sm text-black/55">
 
-          <Link href="/terms" className="hover:text-white transition-colors">{t('termsLink')}</Link>
+          <Link href="/terms" className="hover:text-black transition-colors">{t('termsLink')}</Link>
 
-          <Link href="/" className="hover:text-white transition-colors">{t('backToNomosX')}</Link>
+          <Link href="/" className="hover:text-black transition-colors">{t('backToNomosX')}</Link>
 
         </div>
 

@@ -1,5 +1,5 @@
-/** Brand mark accent — white luminous — X glyph glows brighter than the wordmark. */
-export const LOGO_ACCENT = "#FFFFFF";
+/** Brand mark accent — dark luminous — X glyph glows on light background. */
+export const LOGO_ACCENT = "#0a0a0f";
 
 /** Public surfaces: monochrome SpaceX grammar, X glyph keeps luminous accent. */
 export const LOGO_MONO_DEFAULT = true;

@@ -83,15 +83,15 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
   };
 
   const primaryBtn =
-    "w-full p-4 bg-white text-black font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white/90";
-  const inputFocus = "bg-white/[0.03] border-white/10 focus:border-white/35 text-base h-12";
+    "w-full p-4 bg-black text-white font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed hover:bg-black/85";
+  const inputFocus = "bg-black/[0.03] border-black/10 focus:border-black/35 text-base h-12";
 
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
       <div className="p-8 sm:p-10 max-w-lg w-full relative overflow-hidden">
         <div className="absolute inset-0 pointer-events-none opacity-40">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-white/[0.03] blur-3xl" />
-          <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/[0.02] blur-3xl" />
+          <div className="absolute top-0 right-0 w-64 h-64 bg-black/[0.03] blur-3xl" />
+          <div className="absolute bottom-0 left-0 w-64 h-64 bg-black/[0.02] blur-3xl" />
         </div>
 
         <div className="relative mb-10 text-center">
@@ -99,7 +99,7 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
             <NomosXLogo variant="symbol" size={LOGO_AUTH_SYMBOL} />
           </div>
 
-          <div className="font-mono text-[10px] text-white/40 tracking-[0.25em] uppercase mb-4">
+          <div className="font-mono text-[10px] text-black/40 tracking-[0.25em] uppercase mb-4">
             {BRAND_SHORT}
           </div>
 
@@ -107,15 +107,15 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
             {t("Auth.startAnalysis")}
           </h2>
 
-          <p className="text-base text-white/50 leading-relaxed max-w-md mx-auto mb-6">
+          <p className="text-base text-black/50 leading-relaxed max-w-md mx-auto mb-6">
             {t("Auth.subtitle")}
           </p>
 
-          <div className="flex items-center justify-center gap-3 text-xs text-white/50 tracking-[0.15em] uppercase font-mono">
+          <div className="flex items-center justify-center gap-3 text-xs text-black/50 tracking-[0.15em] uppercase font-mono">
             <span>{BRAND_SOURCES_LABEL} Sources</span>
-            <div className="w-1 h-1 rounded-full bg-white/30" />
+            <div className="w-1 h-1 rounded-full bg-black/30" />
             <span>{t("Auth.autoPublished")}</span>
-            <div className="w-1 h-1 rounded-full bg-white/30" />
+            <div className="w-1 h-1 rounded-full bg-black/30" />
             <span>{t("Auth.freeToStart")}</span>
           </div>
         </div>
@@ -131,7 +131,7 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
             </button>
             <button
               onClick={() => { setIsSignup(true); setMode("email"); }}
-              className="w-full p-4 bg-white/[0.04] border border-white/[0.10] text-white/80 hover:text-white hover:border-white/25 hover:bg-white/[0.07] transition-all duration-300"
+              className="w-full p-4 bg-black/[0.04] border border-black/[0.10] text-black/80 hover:text-black hover:border-black/25 hover:bg-black/[0.07] transition-all duration-300"
             >
               {t("Auth.createAccountFree")}
             </button>
@@ -139,14 +139,14 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
         ) : (
           <form onSubmit={handleEmailAuth} className="relative space-y-6">
             {error && (
-              <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+              <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-sm">
                 {error}
               </div>
             )}
 
             {isSignup && (
               <div>
-                <label htmlFor="name" className="block text-sm font-medium mb-3 text-white/70">
+                <label htmlFor="name" className="block text-sm font-medium mb-3 text-black/70">
                   {t("Auth.nameOptional")}
                 </label>
                 <Input
@@ -161,7 +161,7 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
             )}
 
             <div>
-              <label htmlFor="email" className="block text-sm font-medium mb-3 text-white/70">
+              <label htmlFor="email" className="block text-sm font-medium mb-3 text-black/70">
                 {t("Auth.emailAddress")}
               </label>
               <div className="relative">
@@ -175,12 +175,12 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
                   autoFocus={!isSignup}
                   className={`${inputFocus} pl-11`}
                 />
-                <Mail size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/50" />
+                <Mail size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-black/50" />
               </div>
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium mb-3 text-white/70">
+              <label htmlFor="password" className="block text-sm font-medium mb-3 text-black/70">
                 {t("Auth.password")}
               </label>
               <Input
@@ -203,7 +203,7 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
               <button
                 type="button"
                 onClick={() => setMode("oauth")}
-                className="text-white/50 hover:text-white/80 transition-colors flex items-center gap-2"
+                className="text-black/50 hover:text-black/80 transition-colors flex items-center gap-2"
               >
                 <span>←</span>
                 <span>{t("Auth.back")}</span>
@@ -213,7 +213,7 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
                   <button
                     type="button"
                     onClick={() => { setMode("forgot"); setError(""); setForgotSent(false); }}
-                    className="text-white/40 hover:text-white/60 transition-colors"
+                    className="text-black/40 hover:text-black/60 transition-colors"
                   >
                     {t("Auth.forgotPassword")}
                   </button>
@@ -224,7 +224,7 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
                     setIsSignup(!isSignup);
                     setError("");
                   }}
-                  className="text-white/50 hover:text-white transition-colors"
+                  className="text-black/50 hover:text-black transition-colors"
                 >
                   {isSignup ? t("Auth.alreadyHaveAccount") : t("Auth.createAccountLink")}
                 </button>
@@ -237,21 +237,21 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
           <div className="relative space-y-6">
             {forgotSent ? (
               <div className="text-center py-4">
-                <div className="w-10 h-10 rounded-full bg-white/10 border border-white/30 flex items-center justify-center mx-auto mb-4">
-                  <span className="text-white text-sm">✓</span>
+                <div className="w-10 h-10 rounded-full bg-black/10 border border-black/30 flex items-center justify-center mx-auto mb-4">
+                  <span className="text-black text-sm">✓</span>
                 </div>
-                <p className="text-sm text-white/60 mb-1">{t("Auth.checkInbox")}</p>
-                <p className="text-xs text-white/50">{t("Auth.resetLinkSent")}</p>
+                <p className="text-sm text-black/60 mb-1">{t("Auth.checkInbox")}</p>
+                <p className="text-xs text-black/50">{t("Auth.resetLinkSent")}</p>
               </div>
             ) : (
               <>
                 {error && (
-                  <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+                  <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-sm">
                     {error}
                   </div>
                 )}
                 <div>
-                  <label htmlFor="reset-email" className="block text-sm font-medium mb-3 text-white/70">
+                  <label htmlFor="reset-email" className="block text-sm font-medium mb-3 text-black/70">
                     {t("Auth.emailAddress")}
                   </label>
                   <div className="relative">
@@ -263,9 +263,9 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
                       placeholder="you@company.com"
                       required
                       autoFocus
-                      className="w-full px-4 py-3 pl-11 bg-white/[0.03] border border-white/10 text-white placeholder-white/20 text-base focus:outline-none focus:border-white/35 transition-colors"
+                      className="w-full px-4 py-3 pl-11 bg-black/[0.03] border border-black/10 text-black placeholder-black/20 text-base focus:outline-none focus:border-black/35 transition-colors"
                     />
-                    <Mail size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/50" />
+                    <Mail size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-black/50" />
                   </div>
                 </div>
                 <button
@@ -302,7 +302,7 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
               <button
                 type="button"
                 onClick={() => { setMode("oauth"); setError(""); setForgotSent(false); }}
-                className="text-sm text-white/50 hover:text-white/80 transition-colors"
+                className="text-sm text-black/50 hover:text-black/80 transition-colors"
               >
                 {t("Auth.backToSignIn")}
               </button>
@@ -310,36 +310,36 @@ export default function AuthModal({ isOpen, onClose, initialQuestion, onSignupSu
           </div>
         )}
 
-        <div className="relative mt-8 pt-6 border-t border-white/[0.08]">
+        <div className="relative mt-8 pt-6 border-t border-black/[0.08]">
           <div className="flex items-center justify-center gap-4 mb-4">
-            <div className="flex items-center gap-1.5 text-xs text-white/40">
+            <div className="flex items-center gap-1.5 text-xs text-black/40">
               <div className="relative flex-shrink-0">
                 <div className="w-1.5 h-1.5 rounded-full bg-white" />
-                <div className="absolute top-0.5 left-0.5 w-0.5 h-0.5 rounded-full bg-white/60 animate-pulse" />
+                <div className="absolute top-0.5 left-0.5 w-0.5 h-0.5 rounded-full bg-black/60 animate-pulse" />
               </div>
               <span>{t("Auth.enterpriseSecurity")}</span>
             </div>
-            <div className="flex items-center gap-1.5 text-xs text-white/40">
+            <div className="flex items-center gap-1.5 text-xs text-black/40">
               <div className="relative flex-shrink-0">
-                <div className="w-1.5 h-1.5 rounded-full bg-white/60" />
-                <div className="absolute top-0.5 left-0.5 w-0.5 h-0.5 rounded-full bg-white/40 animate-pulse" />
+                <div className="w-1.5 h-1.5 rounded-full bg-black/60" />
+                <div className="absolute top-0.5 left-0.5 w-0.5 h-0.5 rounded-full bg-black/40 animate-pulse" />
               </div>
               <span>{t("Auth.noCreditCard")}</span>
             </div>
           </div>
 
-          <p className="text-xs text-white/50 text-center leading-relaxed">
+          <p className="text-xs text-black/50 text-center leading-relaxed">
             {t.rich("Auth.agreeTerms", {
-              terms: (chunks) => <a href="/terms" className="text-white/70 hover:text-white transition-colors">{chunks}</a>,
-              privacy: (chunks) => <a href="/privacy" className="text-white/45 hover:text-white transition-colors">{chunks}</a>
+              terms: (chunks) => <a href="/terms" className="text-black/70 hover:text-black transition-colors">{chunks}</a>,
+              privacy: (chunks) => <a href="/privacy" className="text-black/45 hover:text-black transition-colors">{chunks}</a>
             })}
           </p>
         </div>
 
         {loading && (
           <div className="relative mt-6 text-center">
-            <div className="inline-flex items-center gap-3 text-sm text-white/50">
-              <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+            <div className="inline-flex items-center gap-3 text-sm text-black/50">
+              <div className="w-4 h-4 border-2 border-black/20 border-t-white rounded-full animate-spin" />
               <span>{t("Auth.securingConnection")}</span>
             </div>
           </div>

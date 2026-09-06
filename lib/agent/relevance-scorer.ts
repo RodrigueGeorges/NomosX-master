@@ -108,12 +108,14 @@ function multiConceptCoverage(
 
   // Coverage ratio with penalty for single-cluster matches
   const ratio = matchedClusters / totalClusters;
-  // If only 1 of 3+ clusters matched, apply severe penalty
+  // If only 1 of 3+ clusters matched, apply moderate penalty
+  // (was 0.3 — too severe, crushed 97% of sources to near-zero,
+  //  making the relevance filter useless and skipping TS-SetRank)
   if (matchedClusters === 1 && totalClusters >= 3) {
-    return { coverage: ratio * 0.3, matchedClusters, totalClusters };
+    return { coverage: ratio * 0.6, matchedClusters, totalClusters };
   }
   if (matchedClusters === 1 && totalClusters === 2) {
-    return { coverage: ratio * 0.5, matchedClusters, totalClusters };
+    return { coverage: ratio * 0.75, matchedClusters, totalClusters };
   }
   return { coverage: ratio, matchedClusters, totalClusters };
 }
@@ -125,8 +127,8 @@ export function scoreRelevance(
   source: SourceForScoring,
   enhancedQuery: EnhancedQuery
 ): RelevanceScore {
-  const title = (source.title || "").toLowerCase();
-  const abstract = (source.abstract || "").toLowerCase();
+  const title = String(source.title || "").toLowerCase();
+  const abstract = String(source.abstract ?? "").toLowerCase();
   const fullText = `${title} ${abstract}`;
   const sourceTopics = (source.topics || []).map(t => String(t ?? '').toLowerCase());
 
@@ -193,6 +195,20 @@ export function scoreRelevance(
   // 5. Title keyword bonus: if ANY query keyword appears in title, significant boost
   const titleKeywordBonus = keywordsInTitle > 0 ? 0.3 : 0.0;
 
+  // 5b. Domain mismatch penalty — if source is from a medical/biological repository
+  // but the query is NOT about medicine/health/biology, apply a heavy penalty.
+  // This filters out medical papers (gonorrhea, autism, delirium, etc.) that match
+  // generic keywords like "supply chain" but are completely off-topic.
+  const MEDICAL_PROVIDERS = ['pubmed', 'biorxiv', 'medrxiv', 'europepmc', 'chemrxiv'];
+  const MEDICAL_TOPICS = ['medicine', 'health', 'medical', 'biology', 'biomedical',
+    'clinical', 'pharmacology', 'epidemiology', 'public health', 'neuroscience',
+    'genetics', 'immunology', 'oncology', 'cardiology', 'psychiatry'];
+  const sourceProvider = String(source.provider || '').toLowerCase();
+  const queryTopicsLower = enhancedQuery.topics.map(t => t.toLowerCase());
+  const isMedicalSource = MEDICAL_PROVIDERS.some(p => sourceProvider.includes(p));
+  const queryIsMedical = MEDICAL_TOPICS.some(mt => queryTopicsLower.some(qt => qt.includes(mt) || mt.includes(qt)));
+  const domainMismatch = isMedicalSource && !queryIsMedical ? 0.3 : 1.0;
+
   // Weighted overall score
   // Topic overlap is king — if keywords match, the source is relevant.
   // N-gram similarity is a weak signal (Jaccard on bigrams gives ~3-5% for most papers)
@@ -209,10 +225,11 @@ export function scoreRelevance(
   // Apply multi-concept multiplier — this is the key fix for source pollution.
   // A source about "governance institutions" that doesn't mention religion OR AI
   // will have conceptMultiplier ~0.3, dropping its score from ~0.5 to ~0.15.
-  const overall = baseScore * conceptMultiplier;
+  // Also apply domain mismatch penalty (e.g., medical source for geopolitics query).
+  const overall = baseScore * conceptMultiplier * domainMismatch;
 
   // Explanation for debugging
-  const explanation = `Topic: ${(topicOverlap * 100).toFixed(0)}% | Field: ${(fieldMatch * 100).toFixed(0)}% | Semantic: ${(semanticSimilarity * 100).toFixed(0)}% | Temporal: ${(temporalRelevance * 100).toFixed(0)}% | TitleBonus: ${(titleKeywordBonus * 100).toFixed(0)}% | Concepts: ${mcc.matchedClusters}/${mcc.totalClusters} (x${conceptMultiplier.toFixed(2)})`;
+  const explanation = `Topic: ${(topicOverlap * 100).toFixed(0)}% | Field: ${(fieldMatch * 100).toFixed(0)}% | Semantic: ${(semanticSimilarity * 100).toFixed(0)}% | Temporal: ${(temporalRelevance * 100).toFixed(0)}% | TitleBonus: ${(titleKeywordBonus * 100).toFixed(0)}% | Concepts: ${mcc.matchedClusters}/${mcc.totalClusters} (x${conceptMultiplier.toFixed(2)})${domainMismatch < 1 ? ' | DOMAIN MISMATCH (x' + domainMismatch + ')' : ''}`;
 
   return {
     overall: Math.min(1.0, overall),
@@ -288,9 +305,9 @@ export function logRelevanceScores(
     console.log(`   ${item.score.explanation}`);
   });
   
-  const belowThreshold = sources.filter(s => s.score.overall < 0.4).length;
+  const belowThreshold = sources.filter(s => s.score.overall < 0.10).length;
   if (belowThreshold > 0) {
-    console.log(`\n⚠️  ${belowThreshold} sources below 40% relevance (filtered out)`);
+    console.log(`\n⚠️  ${belowThreshold} sources below 10% relevance (filtered out)`);
   }
 }
 

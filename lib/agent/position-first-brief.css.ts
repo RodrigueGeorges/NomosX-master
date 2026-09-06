@@ -163,6 +163,67 @@ export const POSITION_FIRST_BRIEF_CSS = `
   .nx-block h2,
   .nx-block .nx-eyebrow { margin-bottom: 0.875rem; }
 
+  /* ── Narrative acts (4-act structure) ── */
+  .nx-act {
+    margin: 2.5rem 0;
+  }
+  .nx-act:first-of-type { margin-top: 1.75rem; }
+  .act-method-label {
+    font-family: var(--nx-font-mono);
+    font-size: 0.5625rem;
+    font-weight: 400;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--nx-text-tertiary);
+    margin: 0 0 0.5rem 0;
+    padding: 0;
+  }
+  /* CSS-level safety net: hide any <sup> citations that slipped into
+     data-no-cite protected zones (triple protection with JS + CSS) */
+  [data-no-cite] sup.cite { display: none !important; }
+  .act-title {
+    font-family: var(--nx-font-heading);
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+    color: var(--nx-text-primary);
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--nx-border-medium);
+    max-width: var(--nx-read-max-width);
+  }
+
+  /* ── In Brief (McKinsey-style opening summary) ── */
+  .in-brief {
+    background: rgba(240, 240, 250, 0.03) !important;
+    border: 1px solid var(--nx-border-medium) !important;
+    margin: 1.75rem 0 2.5rem !important;
+  }
+  .in-brief-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .in-brief-list li {
+    font-size: 1rem;
+    color: var(--nx-text-primary);
+    line-height: 1.6;
+    padding: 0.5rem 0 0.5rem 1.5rem;
+    position: relative;
+    border-bottom: 1px solid var(--nx-border-subtle);
+  }
+  .in-brief-list li:last-child { border-bottom: none; }
+  .in-brief-list li::before {
+    content: '→';
+    position: absolute;
+    left: 0;
+    top: 0.5rem;
+    color: var(--nx-text-tertiary);
+    font-family: var(--nx-font-mono);
+    font-size: 0.875rem;
+  }
+
   /* ── Methodology box ── */
   .methodology-box {
     background: var(--nx-bg-elevated) !important;
@@ -263,6 +324,141 @@ export const POSITION_FIRST_BRIEF_CSS = `
     padding: 0.125rem 0.5rem;
     border-radius: 0.25rem;
     border: 1px solid var(--nx-border-subtle);
+  }
+
+  /* ── Delphi foresight metrics ── */
+  .scenario-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.375rem 0.75rem;
+    margin-top: 0.375rem;
+    font-family: var(--nx-font-mono);
+    font-size: 0.625rem;
+    color: var(--nx-text-tertiary);
+  }
+  .scenario-meta span {
+    white-space: nowrap;
+  }
+  .scenario-drivers {
+    margin-top: 0.5rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.375rem;
+    align-items: center;
+  }
+  .driver-tag {
+    font-size: 0.6875rem;
+    color: rgba(80, 200, 120, 0.7);
+    background: rgba(80, 200, 120, 0.06);
+    padding: 0.125rem 0.5rem;
+    border-radius: 0.25rem;
+    border: 1px solid rgba(80, 200, 120, 0.15);
+  }
+  .blocker-tag {
+    font-size: 0.6875rem;
+    color: rgba(220, 100, 100, 0.7);
+    background: rgba(220, 100, 100, 0.06);
+    padding: 0.125rem 0.5rem;
+    border-radius: 0.25rem;
+    border: 1px solid rgba(220, 100, 100, 0.15);
+  }
+
+  /* ── PhD-level prospective blocks ── */
+  .scenario-narrative {
+    font-size: 1rem;
+    line-height: 1.7;
+    color: var(--nx-read-color);
+    margin: 0.75rem 0 1rem;
+    max-width: var(--nx-read-max-width);
+    font-style: italic;
+    border-left: 2px solid rgba(180, 180, 200, 0.15);
+    padding-left: 1rem;
+  }
+  .scenario-narrative p { margin-bottom: 0.75em; }
+  .scenario-narrative p:last-child { margin-bottom: 0; }
+
+  .scenario-tipping {
+    margin: 0.5rem 0;
+    font-size: 0.875rem;
+    color: rgba(255, 200, 100, 0.8);
+  }
+  .scenario-cross-impact {
+    margin: 0.5rem 0;
+    font-size: 0.875rem;
+    color: rgba(150, 180, 220, 0.7);
+  }
+  .scenario-uncertainty {
+    margin: 0.5rem 0 0.75rem;
+  }
+  .uncertainty-tag {
+    font-size: 0.6875rem;
+    color: rgba(200, 180, 100, 0.7);
+    background: rgba(200, 180, 100, 0.06);
+    padding: 0.125rem 0.5rem;
+    border-radius: 0.25rem;
+    border: 1px solid rgba(200, 180, 100, 0.15);
+    margin: 0 0.25rem 0.25rem 0;
+    display: inline-block;
+  }
+
+  /* ── Prospective Framework block ── */
+  .prospective-framework {
+    border: 1px solid rgba(180, 180, 200, 0.1);
+    border-radius: 0.5rem;
+    padding: 1.25rem 1.5rem;
+    margin: 1.5rem 0;
+    background: rgba(255, 255, 255, 0.015);
+  }
+  .prospective-framework .nx-eyebrow {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: rgba(180, 180, 220, 0.5);
+    margin-bottom: 0.75rem;
+  }
+  .pf-horizon, .pf-base-rate, .pf-fermi, .pf-cross-impact {
+    margin: 0.5rem 0;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: var(--nx-read-color);
+  }
+  .pf-horizon .chain-label, .pf-base-rate .chain-label, .pf-fermi .chain-label, .pf-cross-impact .chain-label {
+    color: rgba(180, 180, 220, 0.5);
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .pf-uncertainties {
+    margin: 0.75rem 0;
+  }
+  .pf-snow-leopards {
+    margin: 0.75rem 0;
+  }
+  .snow-leopard-tag {
+    font-size: 0.6875rem;
+    color: rgba(220, 180, 255, 0.7);
+    background: rgba(220, 180, 255, 0.06);
+    padding: 0.125rem 0.5rem;
+    border-radius: 0.25rem;
+    border: 1px solid rgba(220, 180, 255, 0.15);
+    margin: 0 0.25rem 0.25rem 0;
+    display: inline-block;
+  }
+  .pf-methodology {
+    margin-top: 1rem;
+    padding-top: 0.75rem;
+    border-top: 1px dashed rgba(180, 180, 200, 0.08);
+  }
+
+  /* ── Nomos Arc transitions ── */
+  .nx-act-transition {
+    letter-spacing: 0.02em;
+  }
+
+  /* ── Brief footer ── */
+  .nx-brief-footer {
+    letter-spacing: 0.05em;
   }
 
   /* ── Verdict / position block ── */

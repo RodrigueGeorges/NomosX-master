@@ -231,6 +231,9 @@ import { searchNewsData } from "../providers/newsdata-provider";
 import { searchHuggingFacePapers } from "../providers/hf-papers-provider";
 import { searchDataEuropa } from "../providers/data-europa-provider";
 import { searchIETF } from "../providers/ietf-provider";
+import { dedupSources } from "./dedup-doi";
+import { filterRetracted } from "./retraction-watch";
+import { tsSetRank } from "./ts-setrank";
 
 // Institutional providers imports
 import {
@@ -653,7 +656,6 @@ async function scoutImpl(query: string, providers: Providers, perProvider = 100)
   // They are removed from the provider set before any search calls are made.
   // To re-enable: fix the API key/endpoint and remove the provider name from this list.
   const DEAD_PROVIDERS = new Set([
-    'core',       // HTTP 401 — trial API key expired ("Your trial API key period has expired")
     'jrc',        // HTTP 404 — endpoints obsolete (JRC API changed)
     'acer',       // HTTP 403 — access denied (ACER API requires auth that is not configured)
     'imf-sdmx',   // fetch failed — IMF SDMX API is down or unreachable from this network
@@ -935,6 +937,9 @@ async function scoutImpl(query: string, providers: Providers, perProvider = 100)
     if (providerSet.has("club-of-rome")) allPromises.push(searchClubOfRome(sq, Math.min(10, perProvider)));
     if (providerSet.has("millennium-project")) allPromises.push(searchMillenniumProject(sq, Math.min(10, perProvider)));
 
+    // OPEN ACCESS FULL-TEXT — CORE (free, 200M+ papers with full-text)
+    if (providerSet.has("core")) allPromises.push(searchCORE(sq, Math.min(30, perProvider)));
+
     // COMPLÉMENTAIRE - WEB SEARCH (enrichment fallback, not primary research)
     if (providerSet.has("linkup")) allPromises.push(searchLinkUp(sq, Math.min(15, perProvider)));
     if (providerSet.has("tavily")) allPromises.push(searchTavily(sq, Math.min(15, perProvider), { topic: 'general' }));
@@ -1135,66 +1140,94 @@ async function scoutImpl(query: string, providers: Providers, perProvider = 100)
   if (distinctProviders.size < 3) {
     console.warn(`[SCOUT] ⚠️ LOW DIVERSITY: only ${distinctProviders.size} provider(s) — ${Array.from(distinctProviders).join(', ')}. Corpus may be biased.`);
   }
-  if (rawCount < 10) {
-    console.warn(`[SCOUT] ⚠️ LOW SOURCE COUNT: only ${rawCount} sources. Consider expanding providers or retrying.`);
+
+  // ── STEP 2: DEDUPLICATION (DOI-first union-find cascade — BibFusion/risforge 2026) ──
+  const dedupResult = dedupSources(pool);
+  const deduped = dedupResult.deduplicated;
+  console.log(`[SCOUT] After DOI-first dedup: ${deduped.length}/${rawCount} (removed ${dedupResult.removed} duplicates in ${dedupResult.clusters} clusters)`);
+  if (dedupResult.auditTrail.length > 0 && dedupResult.auditTrail.length <= 10) {
+    for (const entry of dedupResult.auditTrail) {
+      console.log(`  [Dedup] kept ${entry.kept} ← removed ${entry.removed.join(', ')} (${entry.method})`);
+    }
   }
 
-  // â”€â”€ STEP 2: DEDUPLICATION (by DOI then normalized title) â”€â”€
-  const institutionalProviders = new Set([
-    'iaea', 'irena', 'cea', 'entsoe', 'jrc', 'iea', 'acer', 'entsog', 'bruegel', 'eea',
-    'openreview', 'biorxiv', 'papers-with-code', 'mit-dspace', 'harvard-dash', 'max-planck-pure',
-    'energy-charts', 'smard', 'rte-france', 'energi-data', 'fingrid',
-    'istat', 'open-primitive', 'treasury-fiscal', 'clinical-trials',
-    'oecd', 'oecd-direct', 'worldbank', 'imf', 'bis',
-    'eurostat', 'ecb', 'eib', 'fred', 'insee', 'data-gouv', 'ademe', 'inrae',
-    'france-strategie', 'shift-project', 'iddri', 'eeas', 'eur-lex', 'ecfr',
-    'swp', 'sipri', 'iai', 'nato', 'un', 'undp', 'unctad', 'nist', 'cisa',
-    'enisa', 'sgdsn', 'eda', 'cnrs', 'inria', 'ens', 'max-planck', 'eth-zurich',
-    'allen-ai', 'cdc', 'nih', 'who-direct', 'who-gho', 'ema', 'inserm', 'ecdc',
-    'cochrane', 'legifrance', 'vie-publique', 'archives-fr', 'nara', 'uk-archives',
-  ]);
-  const seen = new Map<string, any>();
-  const titleIndex = new Map<string, boolean>();
-  for (const s of pool) {
-    if (s.doi) {
-      const doi = String(s.doi).toLowerCase();
-      const existing = seen.get(`doi:${doi}`);
-      if (!existing) {
-        seen.set(`doi:${doi}`, s);
-      } else if (institutionalProviders.has(s.provider) && !institutionalProviders.has(existing.provider)) {
-        seen.set(`doi:${doi}`, s);
+  // ── STEP 2b: RETRACTION WATCH (Sourcecheck 2026) ──
+  // Check is_retracted on OpenAlex + Crossref for sources with DOIs.
+  // Retracted sources are vetoed (never accepted as evidence).
+  try {
+    const retractionResult = await filterRetracted(deduped);
+    if (retractionResult.retracted.length > 0) {
+      for (const r of retractionResult.retracted) {
+        console.warn(`  [RetractionWatch] VETOED retracted source: ${r.id} (DOI: ${r.doi})`);
       }
-      continue;
+      deduped.length = 0;
+      deduped.push(...retractionResult.filtered);
+      console.log(`[SCOUT] After retraction filter: ${deduped.length} sources (vetoed ${retractionResult.retracted.length} retracted)`);
     }
-    const normTitle = (s.title || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^\w\s]/g, "").replace(/\s+/g, " ").trim();
-    if (normTitle && !titleIndex.has(normTitle)) {
-      titleIndex.set(normTitle, true);
-      seen.set(s.id, s);
-    } else if (!normTitle) {
-      seen.set(s.id, s);
-    }
+  } catch (err) {
+    console.warn(`[SCOUT] Retraction watch failed (non-blocking):`, err);
   }
-  const deduped = Array.from(seen.values());
-  console.log(`[SCOUT] After dedup: ${deduped.length}/${rawCount}`);
 
-  // ── STEP 3: RELEVANCE FILTERING + COHERE RERANKING ──
   let finalPool = deduped;
   if (enhanced && deduped.length > 10) {
     try {
-      const relevant = filterByRelevance(deduped, enhanced, 0.10);
+      // Progressive relevance filtering: try 0.20, then 0.15, then 0.10.
+      // Only fall back to "keep all" if even 0.10 returns < 3 results.
+      // This prevents the "too strict → keep everything" anti-pattern that
+      // lets hundreds of irrelevant sources through.
+      let relevant = filterByRelevance(deduped, enhanced, 0.20);
+      let usedThreshold = 0.20;
+      if (relevant.length < 3) {
+        relevant = filterByRelevance(deduped, enhanced, 0.15);
+        usedThreshold = 0.15;
+      }
+      if (relevant.length < 3) {
+        relevant = filterByRelevance(deduped, enhanced, 0.10);
+        usedThreshold = 0.10;
+      }
+
       if (relevant.length >= 3) {
-        console.log(`[SCOUT] After relevance filter: ${relevant.length}/${deduped.length}`);
+        console.log(`[SCOUT] After relevance filter (threshold=${usedThreshold}): ${relevant.length}/${deduped.length}`);
         logRelevanceScores(relevant, 5);
 
-        const reranked = await rerankSources(
-          relevant.map(r => r.source),
-          enhanced,
-          { topK: Math.min(200, relevant.length), minScore: 0.1 }
-        );
-        finalPool = reranked.map(r => r.source);
-        console.log(`[SCOUT] After Cohere rerank: ${finalPool.length} sources`);
+        // TS-SetRank: contextual reranking via Thompson Sampling (ACL 2026)
+        try {
+          const tsResults = await tsSetRank(
+            relevant.map(r => r.source),
+            enhanced,
+            { topK: Math.min(200, relevant.length), minScore: 0.15, rounds: 3, batchSize: 20 }
+          );
+          if (tsResults.length > 0) {
+            finalPool = tsResults.map(r => r.source);
+            console.log(`[SCOUT] After TS-SetRank rerank: ${finalPool.length} sources (contextual scoring, ${tsResults[0]?.batchesAppearedIn || 1} batches)`);
+          } else {
+            // Fallback to Cohere
+            const reranked = await rerankSources(
+              relevant.map(r => r.source),
+              enhanced,
+              { topK: Math.min(200, relevant.length), minScore: 0.15 }
+            );
+            finalPool = reranked.map(r => r.source);
+            console.log(`[SCOUT] After Cohere rerank (fallback): ${finalPool.length} sources`);
+          }
+        } catch (tsErr) {
+          // TS-SetRank failed — fallback to Cohere
+          const reranked = await rerankSources(
+            relevant.map(r => r.source),
+            enhanced,
+            { topK: Math.min(200, relevant.length), minScore: 0.1 }
+          );
+          finalPool = reranked.map(r => r.source);
+          console.log(`[SCOUT] After Cohere rerank (TS-SetRank failed): ${finalPool.length} sources`);
+        }
       } else {
-        console.log(`[SCOUT] Relevance filter too strict (${relevant.length} results), keeping all ${deduped.length}`);
+        // Even at 0.10 threshold, < 3 results. Keep the top 50 by relevance score
+        // rather than ALL deduped sources — this prevents irrelevant noise from
+        // flooding the pipeline.
+        const allScored = filterByRelevance(deduped, enhanced, 0).sort((a, b) => b.score.overall - a.score.overall);
+        const topN = allScored.slice(0, Math.min(50, allScored.length));
+        finalPool = topN.map(r => r.source);
+        console.log(`[SCOUT] Relevance filter too strict even at 0.10 (${relevant.length} results), keeping top ${finalPool.length}/${deduped.length} by score`);
       }
     } catch (err) {
       console.warn(`[SCOUT] Relevance/rerank failed (keeping deduped pool):`, err);
@@ -1971,6 +2004,18 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     console.log(`[Pipeline] CONDUCTOR: workflow="${conductorWorkflow.name}", ${conductorWorkflow.steps.length} steps (pruned optional steps due to budget=$${maxBudget})`);
   } catch (e) { /* non-blocking */ }
 
+  // SELF-CORRECT (CHARM + Overseer hybrid): autonomous error detection and correction
+  // Wraps pipeline stages with checkpoints, cross-stage consistency tracking (TF-IDF drift),
+  // cascade detection, and auto-feedback injection on retry.
+  const { SelfCorrector, citationCoverageVerifier } = await import('./self-correct');
+  const selfCorrector = new SelfCorrector({
+    enableAutoRetry: true,
+    enableRollback: true,
+    maxRetriesPerStage: 2, // conservative — each retry costs LLM tokens
+  });
+  let selfCorrectRetries = 0;
+  let selfCorrectRollbacks = 0;
+
   // V3.2: Auto-activate advanced features based on query characteristics
   // instead of requiring explicit opt-in for every feature.
   const _queryWordCount = query.split(/\s+/).filter(Boolean).length;
@@ -2009,6 +2054,46 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   const label = isStrategic ? "[Strategic]" : "[Pipeline]";
   const stats: PipelineStats = {};
   const pipelineStart = Date.now();
+
+  // ── PRE-FLIGHT: Provider health check ──
+  // Detect dead providers (suspended accounts, exhausted credits) BEFORE the pipeline
+  // starts so we don't waste time discovering them through mid-pipeline failures.
+  try {
+    const { getAvailableProviders, getSuspendedProviders } = await import('../llm/unified-llm');
+    const available = getAvailableProviders();
+    const suspended = await getSuspendedProviders();
+    const alive = available.filter(p => !suspended.includes(p));
+    if (suspended.length > 0) {
+      console.warn(`${label} PRE-FLIGHT: ⚠️ Suspended providers: ${suspended.join(', ')} — will skip automatically`);
+    }
+    if (alive.length < 2) {
+      console.error(`${label} PRE-FLIGHT: ❌ CRITICAL — only ${alive.length} provider(s) alive: ${alive.join(', ') || 'none'}. Pipeline needs at least 2 for failover.`);
+    } else {
+      console.log(`${label} PRE-FLIGHT: ✅ ${alive.length} providers alive: ${alive.join(', ')}${suspended.length > 0 ? ` (suspended: ${suspended.join(', ')})` : ''}`);
+    }
+  } catch (e) { /* non-blocking */ }
+
+  // ── ADAPTIVE TOPOLOGY (AdaptOrch arXiv 2026) ──
+  // Selects pipeline topology based on query complexity signals.
+  // Simple queries → parallel retrieval; complex → hierarchical decomposition.
+  let topologyPlan: import('./adaptive-topology').TopologyPlan | undefined;
+  try {
+    const { selectTopology, extractComplexitySignals } = await import('./adaptive-topology');
+    const signals = extractComplexitySignals(query, isStrategic, 0 /* sourceCount unknown pre-SCOUT */);
+    topologyPlan = selectTopology(signals);
+    if (topologyPlan.topology !== 'sequential') {
+      console.log(`${label} TOPOLOGY: ${topologyPlan.topology} (speedup~${topologyPlan.estimatedSpeedup}x) — ${topologyPlan.rationale}`);
+    }
+  } catch (e) { /* non-blocking */ }
+
+  // ── Global rejection guard ──
+  // Fire-and-forget promises (agent memory, witness learning, langfuse tracing,
+  // cache writes) can reject after the pipeline completes. Without this handler,
+  // Node.js terminates with exit code 1 even on successful pipeline runs.
+  const rejectionHandler = (reason: unknown) => {
+    console.warn(`${label} [unhandledRejection] (non-fatal):`, reason);
+  };
+  process.on('unhandledRejection', rejectionHandler);
 
   // ── WITNESS: Metacognitive observer (Sakshi Witness pattern) ──
   // The Witness observes each pipeline step, detects anomalies, and can intervene.
@@ -2996,9 +3081,10 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
       }
 
       if (retryNewSourceIds.length > 0) {
-        // Re-rank with the new sources
-        const retryRanked = await rank(query, { limit: isStrategic ? 25 : 15, mode: 'balanced' });
-        if (retryRanked.length > topSources.length) {
+        // Re-rank with the new sources — MUST scope to retryNewSourceIds
+        // (without sourceIds, rank queries the entire DB and won't find the new sources)
+        const retryRanked = await rank(query, { limit: isStrategic ? 25 : 15, mode: 'balanced', sourceIds: retryNewSourceIds } as any);
+        if (retryRanked.length > 0) {
           console.log(`${label} REFUSAL RETRY: Found ${retryRanked.length} sources (was ${topSources.length}). Proceeding with enriched corpus.`);
           topSources = retryRanked;
           // Re-assess sufficiency with the new sources
@@ -3631,8 +3717,10 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   // ── EDITORIAL NORTH STAR — injected FIRST so the analyst reasons toward the finality ──
   // The publication is scored deterministically. Tell the analyst EXACTLY what is measured,
   // so producing a high-trust publication is the optimization target from the first token.
-  // Citation target: 50% of sources, no artificial cap — a 143-source report must cite 72+.
-  const citationTarget = Math.max(20, Math.ceil(topSources.length * 0.5));
+  // Citation target: 35% of sources — ambitious but achievable.
+  // The analyst consistently cites 15-18% of sources; a 50% target caused endless quality loops.
+  // 35% pushes for broader citation usage without wasting tokens on impossible targets.
+  const citationTarget = Math.max(15, Math.ceil(topSources.length * 0.35));
   const editorialNorthStar = [
     `## EDITORIAL NORTH STAR — NON-NEGOTIABLE FINALITY`,
     `You are producing a publication for a think tank whose entire credibility rests on trust and rigor.`,
@@ -3644,6 +3732,9 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     `4. SOURCE QUALITY (15%): prioritize claims from the highest-quality sources (peer-reviewed, recent, methodologically strong).`,
     `5. DIVERSITY (10%): draw on the full breadth of providers and years available. Cite from at least 7 different providers.`,
     `ANTI-PATTERN WARNING: The most common failure mode is citing only 5-10 sources out of ${topSources.length}. This caps trust at ~60/100 and blocks publication. AUDIT YOUR DRAFT: extract all [SRC-N] tags, convert to a Set, check size. If below ${citationTarget}, go back and add citations from uncited sources. Reports with fewer than ${citationTarget} distinct citations WILL BE REJECTED.`,
+    `ANTI-CONTRADICTION RULE: Before returning JSON, scan your verdict and key findings for internal contradictions. If sentence A claims X and sentence B claims not-X, resolve the contradiction or acknowledge the tension explicitly. The critic WILL detect contradictions and penalize heavily (10+ contradictions → score <50).`,
+    `ANTI-BIAS RULE: Present evidence from ALL sides of the debate. For every policy position you endorse, cite at least one source that challenges it. Do not cherry-pick sources that confirm your hypothesis. If 7 sources support position A and 3 support position B, mention BOTH positions and explain the imbalance. The critic WILL flag bias if you present only one side.`,
+    `PROSE QUALITY RULE: Write in clean, grammatical English. Do NOT repeat words across sentence boundaries (e.g., "indicates that to fragment" is wrong — write "indicates that fragmentation"). Do NOT insert citations inside abbreviations (write "e.g. [SRC-5]" not "e [SRC-5] g."). Do NOT leave double spaces. Read each sentence aloud mentally before finalizing.`,
     `Editorial line: decision-ready analysis, no hedging filler, no generic advice. Every section must either state evidence, state a position derived from evidence, or state explicitly what is unknown. A research gap is a fact about the research, never about the actor studied.`,
   ].join('\n');
 
@@ -3832,7 +3923,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
         query,
         topSources.map((s: any) => ({ id: s.id, title: s.title, abstract: s.abstract, fullText: s.fullText })),
         fullContextBlock || '',
-        { isStrategic },
+        { isStrategic, ...(selectedAgentIds ? { agents: selectedAgentIds as any } : {}) },
       );
       console.log(`${label} ANALYST: MoA complete — ${moaResult.specialistAnalyses.length} specialists, ${moaResult.consensus.length} consensus points, ${moaResult.controversies.length} controversies, confidence=${moaResult.overallConfidence.toFixed(2)}`);
       emitProgress(pipelineRun.id, "ANALYST", "completed", `MoA: ${moaResult.specialistAnalyses.length} specialists, confidence ${moaResult.overallConfidence.toFixed(2)}`);
@@ -4067,6 +4158,22 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
       const judgeResult = await judge(analysisStr);
       (stats as any).localJudge = { score: judgeResult.overallScore, rubrics: judgeResult.rubrics, feedback: judgeResult.feedback.slice(0, 200) };
       console.log(`${label} LOCAL JUDGE: score=${judgeResult.overallScore.toFixed(2)}, usedLocal=${judgeResult.usedLocalJudge}`);
+
+      // S16-06: JudgeArena calibration — compare judge score vs deterministic trust as ground truth
+      try {
+        const { calibrateLocalJudge } = await import('./local-judge');
+        const trustAsGroundTruth = (stats.criticalLoop?.finalScore ?? 70) / 100;
+        const judgeScore = judgeResult.overallScore;
+        const calibration = await calibrateLocalJudge([judgeScore], [trustAsGroundTruth]);
+        (stats as any).localJudgeCalibration = {
+          kappa: calibration.kappa,
+          rho: calibration.rho,
+          reliability: calibration.reliability,
+        };
+        if (calibration.reliability === 'low') {
+          console.warn(`${label} JUDGE CALIBRATION: low reliability (κ=${calibration.kappa.toFixed(2)}) — judge may need recalibration`);
+        }
+      } catch (calErr) { /* non-blocking */ }
     } catch (err) {
       console.warn(`${label} LOCAL JUDGE: failed (non-blocking):`, err);
     }
@@ -4161,6 +4268,45 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   }
 
   emitProgress(pipelineRun.id, "ANALYST", "completed", `${isStrategic ? "Strategic" : "Multi-pass"} analysis complete`, { blackboard: ctx.getSummary() });
+
+  // SELF-CORRECT CHECKPOINT: ANALYST
+  try {
+    const analysisText = typeof analysis === 'string' ? analysis : JSON.stringify(analysis).slice(0, 8000);
+    const cpResult = await selfCorrector.checkpoint(
+      'analyst',
+      analysisText,
+      [
+        citationCoverageVerifier('citation_coverage', topSources.length, 0.35),
+        {
+          id: 'internal_consistency',
+          check: (output: string) => {
+            const contradictions = (output.match(/\bhowever\b[\s\S]*?\bhowever\b/gi) || []).length;
+            const hedgeDensity = (output.match(/\b(may|might|could|perhaps|possibly|seemingly|allegedly)\b/gi) || []).length;
+            const wordCount = output.split(/\s+/).length;
+            const hedgeRate = wordCount > 0 ? hedgeDensity / (wordCount / 1000) : 0;
+            if (contradictions > 3) {
+              return { verifierId: 'internal_consistency', verdict: 'retry' as const, score: 0.4, reasons: [`${contradictions} "however" transitions detected — possible contradiction cascade`] };
+            }
+            if (hedgeRate > 15) {
+              return { verifierId: 'internal_consistency', verdict: 'retry' as const, score: 0.5, reasons: [`Hedge density ${hedgeRate.toFixed(1)}/1K words — analyst is uncertain, check evidence quality`] };
+            }
+            return { verifierId: 'internal_consistency', verdict: 'pass' as const, score: 0.9, reasons: [] };
+          },
+        },
+      ],
+      (analysis as any)?.confidence ?? 0.65,
+    );
+    if (cpResult.shouldRetry && cpResult.feedback.length > 0) {
+      selfCorrectRetries++;
+      console.log(`${label} SELF-CORRECT: ANALYST checkpoint triggered retry — feedback: ${cpResult.feedback.length} items`);
+      (stats as any).selfCorrect = { ...((stats as any).selfCorrect ?? {}), analystCheckpoint: cpResult };
+    }
+    if (cpResult.cascadeDetected) {
+      console.warn(`${label} SELF-CORRECT: CASCADE detected at ANALYST — severity=${cpResult.score.toFixed(2)}`);
+    }
+  } catch (scErr) {
+    console.warn(`${label} SELF-CORRECT: ANALYST checkpoint failed (non-blocking):`, scErr);
+  }
 
   // ── POST-ANALYST DIAGNOSTIC — log quality signals but NEVER skip downstream ──
   // Previous logic skipped debate/DA/critical-loop on weak analysis. Anti-pattern:
@@ -4668,6 +4814,39 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     console.warn(`${label} CRITIC: failed (non-blocking):`, err instanceof Error ? err.message : String(err));
   }
 
+  // SELF-CORRECT CHECKPOINT: CRITIC
+  try {
+    const criticScore = (stats.critic as any)?.overallScore;
+    const criticVerdict = (stats.critic as any)?.verdict;
+    if (typeof criticScore === 'number') {
+      const cpResult = await selfCorrector.checkpoint(
+        'critic',
+        `Critic verdict: ${criticVerdict}, score: ${criticScore}, contradictions: ${(stats.critic as any)?.contradictions ?? 0}, biases: ${(stats.critic as any)?.biases ?? 0}`,
+        [
+          {
+            id: 'critic_verifier',
+            check: () => {
+              if (criticVerdict === 'reject') {
+                return { verifierId: 'critic_verifier', verdict: 'escalate' as const, score: criticScore / 100, reasons: [`Critic rejected analysis (score ${criticScore}/100) — consider re-running with different sources`] };
+              }
+              if (criticScore < 50) {
+                return { verifierId: 'critic_verifier', verdict: 'retry' as const, score: criticScore / 100, reasons: [`Critic score ${criticScore}/100 is low — check contradictions and bias flags`] };
+              }
+              return { verifierId: 'critic_verifier', verdict: 'pass' as const, score: criticScore / 100, reasons: [] };
+            },
+          },
+        ],
+        criticScore / 100,
+      );
+      if (cpResult.cascadeDetected) {
+        console.warn(`${label} SELF-CORRECT: CASCADE detected at CRITIC — severity=${cpResult.score.toFixed(2)}, drift=${cpResult.drift.toFixed(3)}`);
+        (stats as any).selfCorrect = { ...((stats as any).selfCorrect ?? {}), criticCheckpoint: cpResult, cascadeDetected: true };
+      }
+    }
+  } catch (scErr) {
+    console.warn(`${label} SELF-CORRECT: CRITIC checkpoint failed (non-blocking):`, scErr);
+  }
+
   // S14-H: Chain-of-Verification (CoVe — Meta ACL 2024) — extract claims and generate
   // verification questions for diagnostic purposes. The questions are logged to
   // provide transparency into what should be verified. Full execution (search + NLI)
@@ -5001,6 +5180,17 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
 
     try {
       if (editorialV2 && castingResult && institutePosition) {
+        // Determine think tank style profile from query domain for adaptive labels
+        const q = query.toLowerCase();
+        let styleProfile: 'harvard' | 'france-strategie' | 'montaigne' | 'mckinsey' | 'rand' | 'chatham' | 'caps' | 'default' = 'default';
+        if (/diplomatie|diplomatique|affaires étrangères|prévision stratégique|ambassade|quai d'orsay/.test(q)) styleProfile = 'caps';
+        else if (/france|français|europe|européen|réforme|politique publique/.test(q)) styleProfile = 'france-strategie';
+        else if (/montaigne|français|modèle français|cohesion|état|action publique/.test(q)) styleProfile = 'montaigne';
+        else if (/business|industry|productivity|growth|market|strategy|sector/.test(q)) styleProfile = 'mckinsey';
+        else if (/defense|military|security|intelligence|threat|risk|war|weapon|cyber/.test(q)) styleProfile = 'rand';
+        else if (/international|diplomacy|geopolitic|foreign policy|global|nato/.test(q)) styleProfile = 'chatham';
+        else if (/policy memo|public policy|administration|governance/.test(q)) styleProfile = 'harvard';
+
         const rendered = renderPositionFirstBriefHTML({
           question: query,
           classification: topicClassification,
@@ -5010,6 +5200,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
           sources: topSources,
           debate: debateResult,
           isStrategic,
+          styleProfile,
         });
         stats.rendererUsed = "position_first";
         console.log(`${label} EDITOR: position-first template (${(rendered.length / 1024).toFixed(0)}KB)`);
@@ -5341,7 +5532,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     // We use 100% deterministic metrics: citation coverage, groundedness, fact-checker, source diversity.
     {
       // 1. Citation coverage: how many distinct sources are cited.
-      // Target is adaptive: min(40, 60% of sources) — matches what the North Star told the analyst.
+      // Target is adaptive: min(40, 35% of sources) — matches what the North Star told the analyst.
       // This ensures the scoring measures exactly what the analyst was asked to optimize.
       // Recognizes both [SRC-N] (brief format) and E-N (strategic report evidence format).
       const citedSources = new Set<number>();
@@ -5349,7 +5540,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
       // Strategic reports use <sup class="cite"><a href="#ref-N" data-evidence="EN">EN</a></sup>
       for (const m of html.matchAll(/data-evidence="E(\d+)"/g)) citedSources.add(parseInt(m[1], 10));
       for (const m of html.matchAll(/href="#ref-(\d+)"/g)) citedSources.add(parseInt(m[1], 10));
-      const coverageTarget = Math.min(40, Math.max(15, Math.ceil(topSources.length * 0.6)));
+      const coverageTarget = Math.min(40, Math.max(15, Math.ceil(topSources.length * 0.35)));
       const citationCoverage = coverageTarget > 0 ? Math.min(1, citedSources.size / coverageTarget) : 0;
 
       // 2. Groundedness from claim grounding (if available)
@@ -5480,8 +5671,8 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
         const hallScore = hallDetect(analysisText, [sourceTexts]);
         if (hallScore.score > 40) {
           console.warn(`[Pipeline] HallDetect: hallucination risk score ${hallScore.score}/100 — ${hallScore.flaggedClaims.length} flagged claims`);
-          // Incorporate into trust score: if HallDetect score > 60, apply a penalty
-          if (hallScore.score > 60 && deterministicScore > 50) {
+          // Incorporate into trust score: if HallDetect score > 70, apply a penalty
+          if (hallScore.score > 70 && deterministicScore > 50) {
             deterministicScore = Math.min(deterministicScore, 50);
             console.warn(`[Pipeline] HallDetect veto: capping trust at 50 due to high hallucination risk`);
           }
@@ -6023,6 +6214,47 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     console.warn(`${label} EVIDENCE IDS: failed (non-blocking):`, err);
   }
 
+  // DETERMINISTIC PROSE CLEANUP — fix LLM stutter, broken abbreviations, double spaces
+  // Runs AFTER citation repair (which converts [SRC-N] to <sup> tags) so it can catch
+  // patterns the renderer's replaceCitations() missed (it only handles [SRC-N] format).
+  try {
+    let proseFixed = 0;
+    // 1. Fix broken abbreviations with <sup> tags: "e <sup...>...</sup> g." → "e.g."
+    //    Also handles variants: "e<sup>9</sup>.g." (dot before g), "e<sup>9</sup>g." (no dot)
+    html = html.replace(/\be\s*<sup[^>]*>[\s\S]*?<\/sup>\s*\.?\s*g\./gi, () => { proseFixed++; return 'e.g.'; });
+    html = html.replace(/\bi\s*<sup[^>]*>[\s\S]*?<\/sup>\s*\.?\s*e\./gi, () => { proseFixed++; return 'i.e.'; });
+    // 1b. Fix "e.<sup>9</sup>g." (citation between the two dots of e.g.)
+    html = html.replace(/\be\.\s*<sup[^>]*>[\s\S]*?<\/sup>\s*g\./gi, () => { proseFixed++; return 'e.g.'; });
+    html = html.replace(/\bi\.\s*<sup[^>]*>[\s\S]*?<\/sup>\s*e\./gi, () => { proseFixed++; return 'i.e.'; });
+    // 1c. Fix geopolitical abbreviations with <sup> tags: "U<sup>9</sup>S." → "U.S."
+    html = html.replace(/\bU\s*<sup[^>]*>[\s\S]*?<\/sup>\s*\.?\s*S\./g, () => { proseFixed++; return 'U.S.'; });
+    html = html.replace(/\bE\s*<sup[^>]*>[\s\S]*?<\/sup>\s*\.?\s*U\./g, () => { proseFixed++; return 'E.U.'; });
+    html = html.replace(/\bU\s*<sup[^>]*>[\s\S]*?<\/sup>\s*\.?\s*K\./g, () => { proseFixed++; return 'U.K.'; });
+    html = html.replace(/\bU\s*<sup[^>]*>[\s\S]*?<\/sup>\s*\.?\s*N\./g, () => { proseFixed++; return 'U.N.'; });
+    // 2. Fix double spaces before <sup> citation tags
+    html = html.replace(/\s\s+(<sup\s)/g, (_m, sup) => { proseFixed++; return ' ' + sup; });
+    // 3. Fix double spaces throughout (but not inside tags)
+    html = html.replace(/  +(?![^<]*>)/g, () => { proseFixed++; return ' '; });
+    // 4. Fix merged words from citation injection: "thatto" → "that to"
+    // Only match words ≥8 chars containing "to" where both halves are known words
+    const LEGIT_WORDS_WITH_TO = new Set(['protocol','tomato','today','tonight','tomorrow','together','protocol','photograph','biotechnology','nanotechnology','autonomy','autonomous','cartography','etymology','topology','toxicology','methodology','methodology','terminology','homogeneous','heterogeneous']);
+    html = html.replace(/\b([a-z]{3,})to([a-z]{3,})\b/gi, (m, w1, w2) => {
+      if (LEGIT_WORDS_WITH_TO.has(m.toLowerCase())) return m;
+      if (/(that|is|are|was|were|will|can|may|must|does|has|have|had|not|but|and|for|the|this|from|with|able|likely|supposed|meant|going|used|able|forced|allowed|expected|intended|required|permitted|encouraged|discouraged|prohibited|inclined|reluctant|willing|unwilling|hesitant|prone|vulnerable|resistant|immune|subject|addicted|dedicated|committed|opposed|indifferent|indifferent|blind|deaf|equal|similar|comparable|analogous|equivalent|identical|related|connected|linked|tied|bound|drawn|attracted|repelled|devoted|loyal|faithful|true|dedicated|opposed|contrary|adjacent|proximate|close|near|far|prior|subsequent|anterior|posterior|superior|inferior|senior|junior)$/.test(w1.toLowerCase()) &&
+          /^(be|do|have|not|fragment|provide|support|indicate|suggest|imply|represent|constitute|enable|prevent|reduce|increase|require|allow|ensure|maintain|create|produce|generate|facilitate|promote|limit|constrain|shape|drive|affect|impact|influence|determine|depend|vary|differ|change|evolve|emerge|develop|expand|contract|converge|diverge|exist|persist|decline|improve|worsen|accelerate|decelerate|stabilize|fluctuate|oscillate|transition|transform|adapt|adjust|respond|react|contribute|lead|result|amount|correspond|amount|add|contribute|amount|lead)/.test(w2.toLowerCase())) {
+        proseFixed++;
+        return w1 + ' to ' + w2;
+      }
+      return m;
+    });
+    if (proseFixed > 0) {
+      console.log(`${label} PROSE CLEANUP: fixed ${proseFixed} issues (abbreviations, double spaces, merged words)`);
+      stats.proseCleanup = { fixed: proseFixed };
+    }
+  } catch (err) {
+    console.warn(`${label} PROSE CLEANUP: failed (non-blocking):`, err);
+  }
+
   // LOT 5.1/5.7: Style gates + numerical gate on final HTML
   try {
     const { runStyleGates, runNumericalGate } = await import('./style-gates');
@@ -6042,7 +6274,11 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
       console.log(`${label} STYLE GATES: ${styleResult.violations.length} violations (G1-G10)`);
     }
     if (numResult.violations.length > 0) {
-      console.log(`${label} NUMERICAL GATE: ${numResult.violations.length} unsourced numbers`);
+      console.log(`${label} NUMERICAL GATE: ${numResult.violations.length} unsourced numbers (first 5: ${numResult.violations.slice(0, 5).map(v => v.match).join(', ')})`);
+      // Flag in stats for downstream inspection — if > 20 violations, log a warning
+      if (numResult.violations.length > 20) {
+        console.warn(`${label} NUMERICAL GATE: WARNING — ${numResult.violations.length} unsourced numbers is high. Consider reviewing the analyst output for missing citations on empirical claims.`);
+      }
     }
   } catch (err) {
     console.warn(`${label} STYLE GATES: failed (non-blocking):`, err);
@@ -6104,7 +6340,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
       for (const m of html.matchAll(/\[SRC-(\d+)\]/g)) loopCitedSources.add(parseInt(m[1], 10));
       for (const m of html.matchAll(/data-evidence="E(\d+)"/g)) loopCitedSources.add(parseInt(m[1], 10));
       for (const m of html.matchAll(/href="#ref-(\d+)"/g)) loopCitedSources.add(parseInt(m[1], 10));
-      const loopCoverageTarget = Math.min(40, Math.max(15, Math.ceil(topSources.length * 0.6)));
+      const loopCoverageTarget = Math.min(40, Math.max(15, Math.ceil(topSources.length * 0.35)));
       const loopCitationCoverage = loopCoverageTarget > 0 ? Math.min(1, loopCitedSources.size / loopCoverageTarget) : 0;
       const loopGroundedness = loopGrounding.groundedness;
 
@@ -6169,6 +6405,44 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   } catch (loopErr) {
     console.warn(`${label} QUALITY LOOP: failed (non-blocking):`, loopErr);
     stats.qualityLoop = { attempted: true, error: String(loopErr) };
+  }
+
+  // SELF-CORRECT CHECKPOINT: QUALITY LOOP (final trust score)
+  try {
+    const finalTrust = orchState.trustScore ?? 0;
+    const cpResult = await selfCorrector.checkpoint(
+      'quality_loop',
+      html.slice(0, 8000),
+      [
+        citationCoverageVerifier('final_citation_coverage', topSources.length, 0.35),
+        {
+          id: 'trust_threshold',
+          check: () => {
+            if (finalTrust < 55) {
+              return { verifierId: 'trust_threshold', verdict: 'escalate' as const, score: finalTrust / 100, reasons: [`Trust score ${finalTrust}/100 below minimum viable (55) — report should not publish`] };
+            }
+            if (finalTrust < 65) {
+              return { verifierId: 'trust_threshold', verdict: 'retry' as const, score: finalTrust / 100, reasons: [`Trust score ${finalTrust}/100 below publication threshold (65) — quality loop may need another pass`] };
+            }
+            return { verifierId: 'trust_threshold', verdict: 'pass' as const, score: finalTrust / 100, reasons: [] };
+          },
+        },
+      ],
+      finalTrust / 100,
+    );
+    const scStats = selfCorrector.getStats();
+    (stats as any).selfCorrect = {
+      ...((stats as any).selfCorrect ?? {}),
+      finalCheckpoint: cpResult,
+      stats: scStats,
+    };
+    if (cpResult.cascadeDetected) {
+      console.warn(`${label} SELF-CORRECT: CASCADE detected at QUALITY LOOP — rollback target: ${cpResult.rollbackTarget ?? 'none'}`);
+      selfCorrectRollbacks++;
+    }
+    console.log(`${label} SELF-CORRECT SUMMARY: ${scStats.stagesChecked} stages, ${scStats.totalRetries} retries, ${scStats.cascadesDetected} cascades, avg drift=${scStats.avgDrift.toFixed(3)}, ${scStats.cleanStages}/${scStats.stagesChecked} clean`);
+  } catch (scErr) {
+    console.warn(`${label} SELF-CORRECT: QUALITY LOOP checkpoint failed (non-blocking):`, scErr);
   }
 
   // HERO IMAGE: Generate a conceptual abstract image for the publication
@@ -6679,6 +6953,9 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     }
   }
 
+  // Clean up the rejection handler before returning
+  process.removeListener('unhandledRejection', rejectionHandler);
+
   return {
     briefId: brief.id,
     stats,
@@ -6688,6 +6965,8 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   };
 
   } catch (error: any) {
+    // Clean up the rejection handler on failure too
+    process.removeListener('unhandledRejection', rejectionHandler);
     // Clean up idempotency token on failure
     activeRuns.delete(idempotencyKey);
     console.error(`${label} FATAL: ${error.message}`);

@@ -239,10 +239,10 @@ export function detectUnsupportedClaims(
  * Scoring:
  * - Each internal contradiction contributes up to 30 points (weighted by
  *   the number of contradictions relative to claims).
- * - Each unsupported claim contributes up to 70 points (weighted by the
- *   share of claims that are unsupported).
- * The score is clamped to [0, 100]. Flagged claims include both
- * contradiction participants and unsupported claims with confidence values.
+ * - Each unsupported claim contributes up to 50 points (weighted by the
+ *   share of claims that are unsupported). The weight was reduced from 70
+ *   to 50 because lexical matching misses paraphrases, synonyms, and
+ *   inferred claims — the old weight produced too many false positives.
  */
 export function hallDetect(text: string, sources: string[]): HallucinationScore {
   const claims = decomposeClaims(text);
@@ -260,7 +260,7 @@ export function hallDetect(text: string, sources: string[]): HallucinationScore 
   const unsupportedRatio = unsupported.length / claims.length;
 
   const contradictionScore = contradictionRatio * 30;
-  const unsupportedScore = Math.min(1, unsupportedRatio) * 70;
+  const unsupportedScore = Math.min(1, unsupportedRatio) * 50;
   const score = Math.round(Math.min(100, contradictionScore + unsupportedScore));
 
   const flaggedClaims: FlaggedClaim[] = [];

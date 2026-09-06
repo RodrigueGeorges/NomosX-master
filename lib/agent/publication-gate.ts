@@ -241,6 +241,7 @@ export function evaluatePublicationGate(input: PublicationGateInput): Publicatio
   });
 
   const failedChecks = checks.filter((check) => !check.passed);
+  // quality_score is advisory when trust_score passes — don't treat as hard failure
   const hardFailures = failedChecks.filter((check) =>
     ["source_depth", "trust_score", "word_count", "researcher_signoff", "citation_coverage"].includes(check.checkType)
   );

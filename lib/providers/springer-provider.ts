@@ -49,7 +49,7 @@ export async function searchSpringer(query: string, limit = 20): Promise<any[]> 
         if (!isNaN(parsed.getTime())) year = parsed.getFullYear();
       }
 
-      const authors = (item.creators || []).map((c: any) => ({
+      const authors = (Array.isArray(item.creators) ? item.creators : []).map((c: any) => ({
         name: c.creator || c.name || '',
       })).filter((a: any) => a.name);
 
@@ -111,7 +111,7 @@ export async function searchSpringer(query: string, limit = 20): Promise<any[]> 
       doi: item.DOI || null,
       year: item.published?.dateParts?.[0]?.[0] || null,
       publishedDate: item.published?.dateParts?.[0]?.join('-') || '',
-      authors: (item.author || []).map((a: any) => ({ name: `${a.given || ''} ${a.family || ''}`.trim() })),
+      authors: (Array.isArray(item.author) ? item.author : []).map((a: any) => ({ name: `${a.given || ''} ${a.family || ''}`.trim() })),
       institutions: [item.publisher].filter(Boolean),
       citationCount: item['is-referenced-by-count'] || 0,
       qualityScore: 65,

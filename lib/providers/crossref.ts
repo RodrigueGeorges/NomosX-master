@@ -27,18 +27,18 @@ export async function searchCrossref(query: string, rows = 10): Promise<any[]> {
       url: it.URL ?? null,
       pdfUrl: null,
       oaStatus: null,
-      authors: (it.author || []).map((a: any) => ({
+      authors: (Array.isArray(it.author) ? it.author : []).map((a: any) => ({
         name: `${a.given || ""} ${a.family || ""}`.trim(),
         orcid: a.ORCID?.replace("http://orcid.org/", "").replace("https://orcid.org/", ""),
       })).filter((a: any) => a.name),
-      institutions: (it.author || [])
-        .flatMap((a: any) => (a.affiliation || []).map((aff: any) => ({ name: aff.name })))
+      institutions: (Array.isArray(it.author) ? it.author : [])
+        .flatMap((a: any) => (Array.isArray(a.affiliation) ? a.affiliation : []).map((aff: any) => ({ name: aff.name })))
         .filter((i: any) => i.name),
       topics: it.subject || [],
       jelCodes: [],
       citationCount: it["is-referenced-by-count"] ?? null,
       // Extract funder information for conflict-of-interest detection
-      funders: (it.funder || []).map((f: any) => ({
+      funders: (Array.isArray(it.funder) ? it.funder : []).map((f: any) => ({
         name: f.name || '',
         doi: f.DOI || null,
         award: f.award || null,

@@ -32,7 +32,7 @@ export function PublicPageShell({
   contentClassName,
 }: PublicPageShellProps) {
   return (
-    <div className={cn("min-h-screen bg-black text-text overflow-x-hidden relative", className)}>
+    <div className={cn("min-h-screen bg-white text-text overflow-x-hidden relative", className)}>
       {/* Atmospheric layers — subtle, cohesive, alive */}
       <GrainOverlay />
       <CursorGlow />

@@ -8,6 +8,7 @@ import {
 
 export interface ScenarioData {
   name: string;
+  description: string;
   probability: number; // 0-1
   confidenceInterval: [number, number]; // [lower, upper] 0-1
   baseRate: number;
@@ -84,7 +85,7 @@ export function ScenarioChart({ scenarios, convergenceScore, brierScoreEstimate 
         <button
           onClick={() => setView('probability')}
           className={`px-3 py-1.5 rounded-md font-mono uppercase tracking-wider transition-colors ${
-            view === 'probability' ? 'bg-white/10 text-white' : 'text-white/50 hover:text-white/70'
+            view === 'probability' ? 'bg-black/10 text-black' : 'text-black/50 hover:text-black/70'
           }`}
         >
           Probability + CI
@@ -92,7 +93,7 @@ export function ScenarioChart({ scenarios, convergenceScore, brierScoreEstimate 
         <button
           onClick={() => setView('comparison')}
           className={`px-3 py-1.5 rounded-md font-mono uppercase tracking-wider transition-colors ${
-            view === 'comparison' ? 'bg-white/10 text-white' : 'text-white/50 hover:text-white/70'
+            view === 'comparison' ? 'bg-black/10 text-black' : 'text-black/50 hover:text-black/70'
           }`}
         >
           Base Rate vs Expert vs Calibrated
@@ -100,7 +101,7 @@ export function ScenarioChart({ scenarios, convergenceScore, brierScoreEstimate 
         <button
           onClick={() => setView('sensitivity')}
           className={`px-3 py-1.5 rounded-md font-mono uppercase tracking-wider transition-colors ${
-            view === 'sensitivity' ? 'bg-white/10 text-white' : 'text-white/50 hover:text-white/70'
+            view === 'sensitivity' ? 'bg-black/10 text-black' : 'text-black/50 hover:text-black/70'
           }`}
         >
           Sensitivity
@@ -108,20 +109,20 @@ export function ScenarioChart({ scenarios, convergenceScore, brierScoreEstimate 
       </div>
 
       {/* Convergence + Brier score summary */}
-      <div className="flex gap-6 items-center text-xs text-white/60">
+      <div className="flex gap-6 items-center text-xs text-black/60">
         <div className="flex items-center gap-2">
-          <span className="font-mono uppercase tracking-wider text-white/40">Convergence</span>
+          <span className="font-mono uppercase tracking-wider text-black/40">Convergence</span>
           <span className={`font-bold ${convergenceScore > 0.7 ? 'text-green-400' : convergenceScore > 0.4 ? 'text-amber-400' : 'text-red-400'}`}>
             {Math.round(convergenceScore * 100)}%
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="font-mono uppercase tracking-wider text-white/40">Brier Est.</span>
-          <span className="font-bold text-white/80">{brierScoreEstimate.toFixed(3)}</span>
+          <span className="font-mono uppercase tracking-wider text-black/40">Brier Est.</span>
+          <span className="font-bold text-black/80">{brierScoreEstimate.toFixed(3)}</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="font-mono uppercase tracking-wider text-white/40">Scenarios</span>
-          <span className="font-bold text-white/80">{scenarios.length}</span>
+          <span className="font-mono uppercase tracking-wider text-black/40">Scenarios</span>
+          <span className="font-bold text-black/80">{scenarios.length}</span>
         </div>
       </div>
 
@@ -130,11 +131,11 @@ export function ScenarioChart({ scenarios, convergenceScore, brierScoreEstimate 
         <ResponsiveContainer width="100%" height="100%">
           {view === 'probability' ? (
             <ComposedChart data={probData} margin={{ top: 10, right: 20, bottom: 10, left: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(10,10,15,0.05)" />
               <XAxis
                 dataKey="name"
-                tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 11 }}
-                tickLine={{ stroke: 'rgba(255,255,255,0.1)' }}
+                tick={{ fill: 'rgba(10,10,15,0.5)', fontSize: 11 }}
+                tickLine={{ stroke: 'rgba(10,10,15,0.1)' }}
                 interval={0}
                 angle={-15}
                 textAnchor="end"
@@ -142,18 +143,18 @@ export function ScenarioChart({ scenarios, convergenceScore, brierScoreEstimate 
               />
               <YAxis
                 domain={[0, 100]}
-                tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 11 }}
-                tickLine={{ stroke: 'rgba(255,255,255,0.1)' }}
-                label={{ value: '%', angle: -90, position: 'insideLeft', fill: 'rgba(255,255,255,0.4)' }}
+                tick={{ fill: 'rgba(10,10,15,0.5)', fontSize: 11 }}
+                tickLine={{ stroke: 'rgba(10,10,15,0.1)' }}
+                label={{ value: '%', angle: -90, position: 'insideLeft', fill: 'rgba(10,10,15,0.4)' }}
               />
               <Tooltip
                 contentStyle={{
-                  background: 'rgba(15,15,15,0.95)',
-                  border: '1px solid rgba(255,255,255,0.1)',
+                  background: 'rgba(255,255,255,0.95)',
+                  border: '1px solid rgba(10,10,15,0.1)',
                   borderRadius: '8px',
                   fontSize: '12px',
                 }}
-                labelStyle={{ color: 'rgba(255,255,255,0.8)' }}
+                labelStyle={{ color: 'rgba(10,10,15,0.8)' }}
                 formatter={(value: any, name: any) => {
                   if (name === 'probability') return [`${value}%`, 'Probability'];
                   return [value, name];
@@ -171,17 +172,17 @@ export function ScenarioChart({ scenarios, convergenceScore, brierScoreEstimate 
                   dataKey="error"
                   width={4}
                   strokeWidth={1.5}
-                  stroke="rgba(255,255,255,0.4)"
+                  stroke="rgba(10,10,15,0.4)"
                 />
               </Bar>
             </ComposedChart>
           ) : view === 'comparison' ? (
             <BarChart data={comparisonData} margin={{ top: 10, right: 20, bottom: 10, left: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(10,10,15,0.05)" />
               <XAxis
                 dataKey="name"
-                tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 11 }}
-                tickLine={{ stroke: 'rgba(255,255,255,0.1)' }}
+                tick={{ fill: 'rgba(10,10,15,0.5)', fontSize: 11 }}
+                tickLine={{ stroke: 'rgba(10,10,15,0.1)' }}
                 interval={0}
                 angle={-15}
                 textAnchor="end"
@@ -189,30 +190,30 @@ export function ScenarioChart({ scenarios, convergenceScore, brierScoreEstimate 
               />
               <YAxis
                 domain={[0, 100]}
-                tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 11 }}
-                tickLine={{ stroke: 'rgba(255,255,255,0.1)' }}
+                tick={{ fill: 'rgba(10,10,15,0.5)', fontSize: 11 }}
+                tickLine={{ stroke: 'rgba(10,10,15,0.1)' }}
               />
               <Tooltip
                 contentStyle={{
-                  background: 'rgba(15,15,15,0.95)',
-                  border: '1px solid rgba(255,255,255,0.1)',
+                  background: 'rgba(255,255,255,0.95)',
+                  border: '1px solid rgba(10,10,15,0.1)',
                   borderRadius: '8px',
                   fontSize: '12px',
                 }}
                 formatter={(value: any) => [`${value}%`, '']}
               />
-              <Legend wrapperStyle={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)' }} />
+              <Legend wrapperStyle={{ fontSize: '11px', color: 'rgba(10,10,15,0.6)' }} />
               <Bar dataKey="Base Rate" fill="rgba(148, 163, 184, 0.6)" radius={[3, 3, 0, 0]} />
               <Bar dataKey="Expert Estimate" fill="rgba(251, 191, 36, 0.6)" radius={[3, 3, 0, 0]} />
               <Bar dataKey="Calibrated" fill="rgba(99, 102, 241, 0.8)" radius={[3, 3, 0, 0]} />
             </BarChart>
           ) : (
             <BarChart data={sensitivityData} margin={{ top: 10, right: 20, bottom: 10, left: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(10,10,15,0.05)" />
               <XAxis
                 dataKey="name"
-                tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 11 }}
-                tickLine={{ stroke: 'rgba(255,255,255,0.1)' }}
+                tick={{ fill: 'rgba(10,10,15,0.5)', fontSize: 11 }}
+                tickLine={{ stroke: 'rgba(10,10,15,0.1)' }}
                 interval={0}
                 angle={-15}
                 textAnchor="end"
@@ -220,14 +221,14 @@ export function ScenarioChart({ scenarios, convergenceScore, brierScoreEstimate 
               />
               <YAxis
                 domain={[0, 100]}
-                tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 11 }}
-                tickLine={{ stroke: 'rgba(255,255,255,0.1)' }}
-                label={{ value: 'Fragility', angle: -90, position: 'insideLeft', fill: 'rgba(255,255,255,0.4)' }}
+                tick={{ fill: 'rgba(10,10,15,0.5)', fontSize: 11 }}
+                tickLine={{ stroke: 'rgba(10,10,15,0.1)' }}
+                label={{ value: 'Fragility', angle: -90, position: 'insideLeft', fill: 'rgba(10,10,15,0.4)' }}
               />
               <Tooltip
                 contentStyle={{
-                  background: 'rgba(15,15,15,0.95)',
-                  border: '1px solid rgba(255,255,255,0.1)',
+                  background: 'rgba(255,255,255,0.95)',
+                  border: '1px solid rgba(10,10,15,0.1)',
                   borderRadius: '8px',
                   fontSize: '12px',
                 }}
@@ -241,14 +242,14 @@ export function ScenarioChart({ scenarios, convergenceScore, brierScoreEstimate 
 
       {/* Selected scenario detail */}
       {selected && (
-        <div className="border border-white/10 rounded-lg p-4 space-y-3 bg-white/[0.02]">
+        <div className="border border-black/10 rounded-lg p-4 space-y-3 bg-black/[0.02]">
           <div className="flex items-center justify-between">
-            <h4 className="text-sm font-semibold text-white">{selected.name}</h4>
-            <span className="text-xs font-mono text-white/40">
+            <h4 className="text-sm font-semibold text-black">{selected.name}</h4>
+            <span className="text-xs font-mono text-black/40">
               {(selected.probability * 100).toFixed(0)}% | CI: [{(selected.confidenceInterval[0] * 100).toFixed(0)}%, {(selected.confidenceInterval[1] * 100).toFixed(0)}%]
             </span>
           </div>
-          <p className="text-xs text-white/60">{selected.description}</p>
+          <p className="text-xs text-black/60">{selected.description}</p>
 
           {selected.keyDrivers.length > 0 && (
             <div>
@@ -281,7 +282,7 @@ export function ScenarioChart({ scenarios, convergenceScore, brierScoreEstimate 
               <span className="text-[10px] font-mono uppercase tracking-wider text-amber-400/60">Signals to Watch</span>
               <ul className="mt-1 space-y-0.5">
                 {selected.signals.map((s, i) => (
-                  <li key={i} className="text-[11px] text-white/50">→ {s}</li>
+                  <li key={i} className="text-[11px] text-black/50">→ {s}</li>
                 ))}
               </ul>
             </div>
@@ -291,7 +292,7 @@ export function ScenarioChart({ scenarios, convergenceScore, brierScoreEstimate 
 
       {/* Click hint */}
       {!selected && view === 'probability' && (
-        <p className="text-[10px] text-white/30 text-center font-mono uppercase tracking-wider">
+        <p className="text-[10px] text-black/30 text-center font-mono uppercase tracking-wider">
           Click a bar to see scenario details
         </p>
       )}

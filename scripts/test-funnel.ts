@@ -51,6 +51,7 @@ async function main() {
       maxPublications: 1,
       budgetUsd: 25,
       dryRun: false,
+      bypassCadence: true,
     });
 
     console.log('\n  ── DISPATCHER RESULT ──');

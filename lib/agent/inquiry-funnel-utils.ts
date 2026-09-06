@@ -107,7 +107,36 @@ export function extractPipelineScores(
   const citedQualityBoost = citationCoverage >= 0.80 && qualityScore < 78
     ? Math.min(12, Math.round((citationCoverage - 0.80) * 60)) // 80% → +0, 100% → +12
     : 0;
-  const adjustedQualityScore = Math.min(100, qualityScore + citedQualityBoost);
+  const sourceQualityScore = Math.min(100, qualityScore + citedQualityBoost);
+
+  // Analysis quality: blend critic score, structural editor, and devil's advocate
+  // These measure the QUALITY OF THE ANALYSIS ITSELF, not just the sources.
+  const criticScore =
+    (typeof (stats.critic as Record<string, unknown> | undefined)?.overallScore === "number"
+      ? Math.round((stats.critic as { overallScore: number }).overallScore)
+      : undefined);
+  const structuralScore =
+    (typeof (stats.structuralEditor as Record<string, unknown> | undefined)?.overallStructure === "number"
+      ? Math.round((stats.structuralEditor as { overallStructure: number }).overallStructure)
+      : undefined);
+  const daPublishScore =
+    (typeof da?.publishabilityScore === "number" ? Math.round(da.publishabilityScore) : undefined);
+
+  // Blend: 50% source quality + 10% critic + 25% structural + 15% DA
+  // Critic weight is low (10%) because critic already penalizes trust score via veto
+  // (up to -22%) and via 10% weight in trust composite. Giving it 25% here would
+  // triple-count critic severity. Structural editor and DA measure different dimensions.
+  const blendParts: { score: number; weight: number }[] = [
+    { score: sourceQualityScore, weight: 50 },
+  ];
+  if (criticScore != null) blendParts.push({ score: criticScore, weight: 10 });
+  if (structuralScore != null) blendParts.push({ score: structuralScore, weight: 25 });
+  if (daPublishScore != null) blendParts.push({ score: daPublishScore, weight: 15 });
+
+  const totalWeight = blendParts.reduce((sum, p) => sum + p.weight, 0);
+  const adjustedQualityScore = totalWeight > 0
+    ? Math.round(blendParts.reduce((sum, p) => sum + p.score * p.weight, 0) / totalWeight)
+    : sourceQualityScore;
 
   const criticalScore =
     (typeof critical?.finalScore === "number" ? Math.round(critical.finalScore) : undefined);
@@ -115,8 +144,7 @@ export function extractPipelineScores(
   // Blended trust score: critical loop (50%) + source quality (30%) + citation coverage (20%)
   // This prevents trust from being solely determined by LLM critics, which can be
   // overly harsh. Source quality and citation coverage are objective metrics.
-  const daScore =
-    (typeof da?.publishabilityScore === "number" ? Math.round(da.publishabilityScore) : undefined);
+  const daScore = daPublishScore;
 
   const editorialScore =
     (typeof (lineage.editorialArbiter as Record<string, unknown> | undefined)?.confidence === "number"

@@ -45,14 +45,14 @@ export function DomainMap({ className, limit, sectionIndex }: DomainMapProps) {
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-10">
           <div>
             <p className="nx-eyebrow mb-3">{t("DomainMap.eyebrow")}</p>
-            <h2 className="font-display text-2xl sm:text-3xl font-semibold text-white tracking-tight">
+            <h2 className="font-display text-2xl sm:text-3xl font-semibold text-black tracking-tight">
               {t("DomainMap.title")}
             </h2>
           </div>
           <button
             type="button"
             onClick={() => router.push("/archives")}
-            className="font-mono text-[11px] uppercase tracking-[0.16em] text-white/55 hover:text-white inline-flex items-center gap-2 w-fit transition-colors shrink-0"
+            className="font-mono text-[11px] uppercase tracking-[0.16em] text-black/55 hover:text-black inline-flex items-center gap-2 w-fit transition-colors shrink-0"
           >
             {t("DomainMap.browseAll")}
             <ArrowUpRight size={12} />
@@ -60,7 +60,7 @@ export function DomainMap({ className, limit, sectionIndex }: DomainMapProps) {
         </div>
 
         {/* Grid — clean, no keyword noise */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-white/[0.06] border border-white/[0.06]">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-black/[0.06] border border-black/[0.06]">
           {domains.map((d, i) => {
             const Icon = d.icon;
             const isHovered = hovered === i;
@@ -74,22 +74,22 @@ export function DomainMap({ className, limit, sectionIndex }: DomainMapProps) {
                 onBlur={() => setHovered(null)}
                 onClick={() => router.push(`/articles/topic/${d.slug}`)}
                 className={cn(
-                  "group relative bg-black p-5 sm:p-6 flex flex-col items-center justify-center min-h-[120px] transition-colors duration-300",
-                  isHovered ? "bg-white/[0.03]" : "bg-black"
+                  "group relative bg-white p-5 sm:p-6 flex flex-col items-center justify-center min-h-[120px] transition-colors duration-300",
+                  isHovered ? "bg-black/[0.03]" : "bg-white"
                 )}
                 aria-label={d.nameEn}
               >
                 <Icon
                   className={cn(
                     "w-5 h-5 mb-3 transition-colors duration-300",
-                    isHovered ? "text-white" : "text-white/40"
+                    isHovered ? "text-black" : "text-black/40"
                   )}
                   strokeWidth={1.25}
                 />
                 <span
                   className={cn(
                     "font-mono text-[10px] uppercase tracking-[0.12em] font-medium transition-colors text-center",
-                    isHovered ? "text-white" : "text-white/60"
+                    isHovered ? "text-black" : "text-black/60"
                   )}
                 >
                   {d.nameEn}
@@ -98,7 +98,7 @@ export function DomainMap({ className, limit, sectionIndex }: DomainMapProps) {
                 <span
                   className={cn(
                     "absolute top-3 right-3 w-1 h-1 rounded-full transition-opacity duration-300",
-                    isHovered ? "bg-white/80 opacity-100 nx-glow-dot" : "opacity-0"
+                    isHovered ? "bg-black/80 opacity-100 nx-glow-dot" : "opacity-0"
                   )}
                   aria-hidden="true"
                 />
@@ -108,7 +108,7 @@ export function DomainMap({ className, limit, sectionIndex }: DomainMapProps) {
         </div>
 
         {/* Footer — the cross-domain promise, one line */}
-        <p className="mt-6 font-mono text-[10px] uppercase tracking-[0.14em] text-white/35 text-center">
+        <p className="mt-6 font-mono text-[10px] uppercase tracking-[0.14em] text-black/35 text-center">
           {t("DomainMap.crossDomainNote")}
         </p>
       </div>

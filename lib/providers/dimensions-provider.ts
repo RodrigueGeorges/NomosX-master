@@ -55,14 +55,14 @@ export async function searchDimensions(query: string, limit = 20): Promise<any[]
         if (!isNaN(parsed.getTime())) year = parsed.getFullYear();
       }
 
-      const authors = (item.authors || []).map((a: any) => ({
+      const authors = (Array.isArray(item.authors) ? item.authors : []).map((a: any) => ({
         name: a.full_name || a.last_name
           ? `${a.first_name || ''} ${a.last_name || ''}`.trim()
           : (typeof a === 'string' ? a : ''),
       })).filter((a: any) => a.name);
 
       const institutions: string[] = [];
-      (item.authors || []).forEach((a: any) => {
+      (Array.isArray(item.authors) ? item.authors : []).forEach((a: any) => {
         if (a.affiliations) {
           a.affiliations.forEach((aff: any) => {
             if (aff.name && !institutions.includes(aff.name)) institutions.push(aff.name);

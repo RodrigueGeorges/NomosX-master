@@ -43,7 +43,7 @@ export function PersonaChat({ personas, question, publicationId }: PersonaChatPr
 
   if (!personas.length) {
     return (
-      <p className="text-sm text-white/40 font-mono">
+      <p className="text-sm text-black/40 font-mono">
         No stakeholder perspective available for this brief.
       </p>
     );
@@ -62,8 +62,8 @@ export function PersonaChat({ personas, question, publicationId }: PersonaChatPr
             }}
             className={`px-2.5 py-1 border text-[11px] font-mono transition-colors ${
               selectedId === p.id
-                ? "border-white/25 bg-white/10 text-white"
-                : "border-white/[0.08] text-white/45 hover:border-white/15"
+                ? "border-black/25 bg-black/10 text-black"
+                : "border-black/[0.08] text-black/45 hover:border-black/15"
             }`}
           >
             {p.archetype}
@@ -72,8 +72,8 @@ export function PersonaChat({ personas, question, publicationId }: PersonaChatPr
       </div>
 
       {persona && (
-        <div className="border border-white/[0.06] bg-black/20 p-3 text-[11px] text-white/45 font-mono">
-          <div className="flex items-center gap-2 text-white/50 mb-2">
+        <div className="border border-black/[0.06] bg-black/20 p-3 text-[11px] text-black/45 font-mono">
+          <div className="flex items-center gap-2 text-black/50 mb-2">
             <User size={12} />
             {persona.id}
           </div>
@@ -88,16 +88,16 @@ export function PersonaChat({ personas, question, publicationId }: PersonaChatPr
           onChange={(e) => setMessage(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleSend()}
           placeholder="Ask this stakeholder perspective…"
-          className="flex-1 border border-white/[0.08] bg-black/30 px-3 py-2 text-sm text-white/80 placeholder:text-white/45 focus:outline-none focus:border-white/40"
+          className="flex-1 border border-black/[0.08] bg-black/30 px-3 py-2 text-sm text-black/80 placeholder:text-black/45 focus:outline-none focus:border-black/40"
         />
         <button
           type="button"
           onClick={handleSend}
           disabled={loading || !message.trim()}
-          className="px-3 py-2 border border-white/25 bg-white/10 text-white disabled:opacity-40 hover:bg-white/15 transition-colors"
+          className="px-3 py-2 border border-black/25 bg-black/10 text-black disabled:opacity-40 hover:bg-black/15 transition-colors"
         >
           {loading ? (
-            <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+            <div className="w-4 h-4 border-2 border-black/20 border-t-white rounded-full animate-spin" />
           ) : (
             <Send size={16} />
           )}
@@ -105,7 +105,7 @@ export function PersonaChat({ personas, question, publicationId }: PersonaChatPr
       </div>
 
       {reply && (
-        <div className="nx-public-surface p-4 text-sm text-white/75 leading-relaxed">
+        <div className="nx-public-surface p-4 text-sm text-black/75 leading-relaxed">
           {reply}
         </div>
       )}

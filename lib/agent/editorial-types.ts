@@ -35,6 +35,39 @@ export interface ScenarioOutlook {
   description: string;
   signals?: string[];
   empiricalProbability?: number;
+  // Delphi foresight fields
+  confidenceInterval?: [number, number];
+  baseRate?: number;
+  calibratedProbability?: number;
+  sensitivityScore?: number;
+  keyDrivers?: string[];
+  blockers?: string[];
+  // PhD-level prospective fields
+  narrative?: string;        // 80-150 word narrative set in future tense
+  fermiEstimate?: number;    // Decomposed estimate from Fermi breakdown
+  expertEstimate?: number;   // Aggregated Delphi expert judgment
+  crossImpact?: string;      // Impact from other scenarios
+  expertRationales?: string[]; // Per-expert reasoning summaries
+  uncertaintyDrivers?: string[]; // What makes this scenario uncertain
+  tippingPoint?: string;     // What would tip probability dramatically
+}
+
+/** PhD-level prospective framework — the foresight architecture behind the scenarios */
+export interface ProspectiveFramework {
+  /** The base rate: historical reference class and analogue (Tetlock/GJP) */
+  baseRateContext?: string;
+  /** The Fermi decomposition: how the question breaks into sub-questions */
+  fermiDecomposition?: string;
+  /** Key uncertainties: what we don't know that matters */
+  keyUncertainties?: string[];
+  /** Cross-impact: how scenarios interact and constrain each other */
+  crossImpactSummary?: string;
+  /** The horizon: time frame and why it matters */
+  horizon?: string;
+  /** Methodology note: how we arrived at these probabilities (Delphi, Monte Carlo, etc.) */
+  methodologyNote?: string;
+  /** Snow leopards: underappreciated phenomena that could have outsized impact */
+  snowLeopards?: string[];
 }
 
 export interface InstitutePosition {
@@ -52,6 +85,17 @@ export interface InstitutePosition {
     longTerm?: string[];
     riskMitigation?: string[];
   };
+  /** 3-5 bullets capturing the essence of the analysis (McKinsey "In Brief" style) */
+  inBrief?: string[];
+  /** Action titles for the four narrative acts — complete sentences stating conclusions */
+  sectionTitles?: {
+    problem?: string;
+    evidence?: string;
+    futures?: string;
+    action?: string;
+  };
+  /** PhD-level prospective framework — the foresight architecture behind the scenarios */
+  prospectiveFramework?: ProspectiveFramework;
   costUsd: number;
 }
 
@@ -71,6 +115,8 @@ export interface PositionFirstBriefInput {
   }>;
   debate?: DebateResult | null;
   isStrategic?: boolean;
+  /** Think tank style profile — adapts labels and structure (e.g. 'montaigne' uses French labels) */
+  styleProfile?: 'harvard' | 'france-strategie' | 'montaigne' | 'mckinsey' | 'rand' | 'chatham' | 'caps' | 'default';
 }
 
 export function dimensionsFromClassification(tc: TopicClassification): EditorialDimension[] {

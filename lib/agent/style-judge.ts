@@ -71,6 +71,7 @@ function heuristicStyleScores(input: StyleOrchestratorInput, sources?: any[]): S
     mckinsey: 0.5,
     rand: 0.5,
     chatham: 0.5,
+    caps: 0.5,
   };
 
   // Domain keywords
@@ -86,6 +87,9 @@ function heuristicStyleScores(input: StyleOrchestratorInput, sources?: any[]): S
   }
   if (/international|diplomacy|geopolitic|foreign policy|global|un|nato/.test(d)) {
     signals.chatham += 0.3;
+  }
+  if (/diplomatie|diplomatique|affaires étrangères|prévision|prospective|ambassade|quai d'orsay/.test(d)) {
+    signals.caps += 0.3;
   }
   if (/harvard|policy memo|administration|governance|us government/.test(d)) {
     signals.harvard += 0.25;

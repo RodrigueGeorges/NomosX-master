@@ -22,6 +22,7 @@ export type ThinkTankStyle =
   | 'mckinsey'
   | 'rand'
   | 'chatham'
+  | 'caps'
   | 'default';
 
 export interface StyleProfile {
@@ -56,25 +57,33 @@ export interface StyleOrchestratorInput {
 export const PROFILES: Record<ThinkTankStyle, StyleProfile> = {
   default: {
     style: 'default',
-    name: 'NomosX Editorial',
-    audience: 'informed generalist',
-    tone: 'clear, precise, evidence-led',
+    name: 'NomosX — From Chaos to Nomos',
+    audience: 'decision-makers who need to be right and can prove it',
+    tone: 'confident but not dogmatic, literary but not decorative, committed but provisional',
     rules: [
-      'Lead with the bottom line (BLUF).',
-      'Use short, active-voice sentences.',
-      'Cite sources with [SRC-N] in-line.',
-      'Distinguish fact from interpretation.',
-      'Avoid filler adverbs (very, generally, moreover).',
+      'POSITIONS, NOT OPINIONS — state what NomosX believes and why. "We believe X" not "It could be argued that X".',
+      'Lead with the position. A reader who stops after the first paragraph knows what we think and why.',
+      'Use short, active-voice sentences mixed with longer subordinate clauses. Vary rhythm. Never two consecutive sentences of the same length.',
+      'Cite sources with [SRC-N] in-line. Every claim traceable. No exceptions.',
+      'Distinguish fact from interpretation — but commit to the interpretation.',
+      'Acknowledge uncertainty without hiding behind it: "We believe X, with confidence Y" not "X is true".',
+      'Write scenarios as narratives set in the future tense, not bullet-pointed possibilities.',
+      'Combat novlangue: no "leverage", "synergy", "paradigm shift", "game-changer", "value proposition", "deep dive".',
+      'Connect ideas across domains — the most consequential insights live at intersections.',
+      'End with a sentence that could stand alone as the entire position.',
     ],
     forbidden: [
       'Generic transitions ("It is important to note...", "In conclusion...").',
       'Staccato lists of one-line paragraphs.',
-      'Over-hedged doublespeak.',
+      'Over-hedged doublespeak ("It could perhaps be argued that...").',
       'Marketing or sales language.',
+      'Novlangue: "leverage" (as verb), "synergy", "paradigm shift", "game-changer", "value proposition", "deep dive", "double down", "move the needle".',
+      'Academic hedges that hide the position.',
+      'Passive voice that hides agency ("mistakes were made").',
     ],
-    structure: ['Bottom line upfront', 'Evidence', 'Implications', 'Recommendations'],
-    starterPhrases: ['The evidence points to...', 'Three factors matter most:', 'Our assessment is that...'],
-    closingPhrases: ['The priority for decision-makers is...', 'The risks of inaction include...'],
+    structure: ['The Position', 'The Question', 'The Evidence', 'Three Futures', 'The Decision'],
+    starterPhrases: ['We believe...', 'The evidence points to...', 'Three factors matter most:', 'Our position is...', 'The question is not whether X, but how X...'],
+    closingPhrases: ['We believe X, with confidence Y, because Z — and we will revise the moment the evidence turns.', 'The priority is clear:', 'The risks of inaction are not theoretical:'],
   },
 
   harvard: {
@@ -84,66 +93,111 @@ export const PROFILES: Record<ThinkTankStyle, StyleProfile> = {
     tone: 'concise, assertive, decision-oriented',
     rules: [
       'Open with a one-paragraph executive summary: problem, recommendation, why.',
+      'BLUF: audience should know what\'s wrong and what to do about it in the first paragraph.',
       'Use active voice and strong verbs.',
-      'Make every paragraph skimmable (bold key clause).',
-      'State trade-offs and fallback options explicitly.',
-      'Keep the memo to roughly 1-2 pages of equivalent density.',
+      'Make every paragraph skimmable: main idea in first 1-2 sentences, rest supports it.',
+      'State trade-offs and fallback options explicitly — "What if the preferred option fails?"',
+      'Present options with criteria for evaluation (not just a single recommendation).',
+      'Include explicit fallback positions: "If option A fails, the fallback is..."',
+      'Structure: problem (1/2 of memo) → solution (1/2 of memo).',
+      'Keep the memo to roughly 1-2 pages of equivalent density (~1000 words).',
+      'Assume reader has zero context. Avoid jargon and acronyms unless defined.',
     ],
     forbidden: [
       'Academic hedges ("it could be argued that...").',
       'Filler words: actually, generally, practically, very, therefore, moreover.',
       'Unnecessary acronyms without first definition.',
       'Wall-of-text paragraphs longer than 4 lines.',
+      'Burying the key idea in the middle of page 3.',
+      'Background sections that put the audience to sleep.',
     ],
-    structure: ['Summary / BLUF', 'Problem and context', 'Options and trade-offs', 'Recommendation', 'Next steps'],
-    starterPhrases: ['We recommend...', 'The core question is...', 'Three options present themselves:'],
-    closingPhrases: ['The next decision point is...', 'Absent action, the most likely outcome is...'],
+    structure: ['BLUF (Bottom Line Up Front)', 'Problem and context', 'Options and trade-offs', 'Recommendation', 'Fallback positions', 'Next steps'],
+    starterPhrases: ['We recommend...', 'The core question is...', 'Three options present themselves:', 'The budget problem facing...'],
+    closingPhrases: ['The next decision point is...', 'Absent action, the most likely outcome is...', 'If this approach fails, the fallback is...'],
   },
 
   'france-strategie': {
     style: 'france-strategie',
     name: 'France Stratégie — Note d\'analyse',
     audience: 'public-sector planner and political staff',
-    tone: 'expert, measured, institutional, methodologically transparent',
+    tone: 'expert, measured, institutional, methodologically transparent, impersonal',
     rules: [
       'Frame the issue as a public-policy question requiring evidence.',
-      'Make methodology and data limitations visible.',
+      'Make methodology and data limitations visible (use "encadrés" for methodology boxes).',
       'Present divergences of view before synthesising.',
       'Use numbers and named sources for every empirical claim.',
       'End with orientations or options, not a single prescriptive order.',
+      'USE IMPERSONAL VOICE: "il convient de", "il apparaît que", "il ressort de", "cette note", "les résultats montrent que". Avoid "nous" except in prefaces.',
+      'Open with data-driven context: "Depuis plus d\'une décennie...", "Un certain nombre d\'enquêtes..."',
+      'Use cautious qualifiers: "semble indiquer", "pourrait", "il apparaît".',
+      'Include a disclaimer: "Les opinions exprimées engagent leurs auteurs et n\'ont pas vocation à refléter la position du gouvernement."',
+      'Label scenarios as "scénario tendanciel" or "scénario à horizon 2035/2040".',
     ],
     forbidden: [
       'Overly journalistic or emotional language.',
       'Unsourced comparisons.',
       'Conclusory language that hides uncertainty.',
       'Partisan or campaign-style phrasing.',
+      'Direct imperative ("il faut") — use "il convient de" instead.',
+      'First person "nous" in analytical sections (reserved for prefaces).',
     ],
-    structure: ['Question posée', 'Constats', 'Éléments d\'analyse', 'Divergences', 'Orientations'],
-    starterPhrases: ['Cette note vise à...', 'L\'analyse repose sur...', 'Trois enseignements émergent :'],
-    closingPhrases: ['Ces éléments invitent à envisager...', 'Une concertation ultérieure permettra de...'],
+    structure: ['Synthèse', 'Question posée', 'Constats', 'Éléments d\'analyse', 'Divergences', 'Orientations'],
+    starterPhrases: ['Cette note vise à...', 'L\'analyse repose sur...', 'Il ressort de l\'inventaire :', 'Il convient de tirer parti de...'],
+    closingPhrases: ['Ces éléments invitent à envisager...', 'Une concertation ultérieure permettra de...', 'Des fortes incertitudes demeurent néanmoins.'],
   },
 
   montaigne: {
     style: 'montaigne',
     name: 'Institut Montaigne — Note d\'action',
     audience: 'French and European public and private leaders',
-    tone: 'independent, reformist, european, action-oriented',
+    tone: 'independent, reformist, european, action-oriented, direct',
     rules: [
       'Lead with a strong diagnostic of what is broken and why.',
       'Anchor France in European and international comparisons.',
-      'Propose concrete, sequenced reforms with named actors.',
+      'Propose concrete, sequenced reforms with named actors using "Objectif N → Proposition N" structure.',
       'Acknowledge political feasibility and social acceptability.',
       'Use a direct, non-academic but rigorous voice.',
+      'USE "NOUS" inclusively: "nous ne nous résignons pas", "notre pays", "notre modèle".',
+      'Use imperative language: "il faut", "il est impératif de", "il convient d\'accélérer".',
+      'Include a "Synthèse" at the beginning and a "Liste des propositions" at the end.',
+      'Recommendations must be "actionnables, chiffrées et mesurables" (actionable, quantified, measurable).',
+      'Use national framing: "notre pays", "la France", "notre modèle".',
     ],
     forbidden: [
       'Vague calls for "more Europe" without specifics.',
       'Pessimism without a path forward.',
       'Technocratic jargon with no translation.',
       'Ignoring implementation obstacles.',
+      'Cautious hedging — Montaigne is direct, not tentative.',
     ],
-    structure: ['Diagnostic', 'Enjeux', 'Propositions opérationnelles', 'Calendrier', 'Acteurs'],
-    starterPhrases: ['Le constat est simple :', 'Trois leviers permettent de...', 'L\'enjeu est de...'],
-    closingPhrases: ['La mise en œuvre repose sur...', 'Le risque d\'inaction est mesurable :'],
+    structure: ['Synthèse', 'Diagnostic', 'Enjeux', 'Objectifs → Propositions opérationnelles', 'Calendrier', 'Acteurs', 'Liste des propositions'],
+    starterPhrases: ['Le constat est simple :', 'Trois leviers permettent de...', 'L\'enjeu est de...', 'Il est impératif de...', 'Nous ne nous résignons pas à...'],
+    closingPhrases: ['La mise en œuvre repose sur...', 'Le risque d\'inaction est mesurable :', 'À cette passivité résignée, nous préférons un optimisme de combat.'],
+  },
+
+  caps: {
+    style: 'caps',
+    name: 'CAPS — Carnets du Centre d\'Analyse, de Prévision et de Stratégie',
+    audience: 'French Foreign Ministry decision-makers and diplomats',
+    tone: 'prospective, independent, anticipatory, "penser sans contraintes"',
+    rules: [
+      'Structure around three verbs: ANALYSER (understand), AGIR (act), ANTICIPER (anticipate).',
+      'Imagine "futurs possibles" rather than predictions.',
+      'Think "without constraints and without preconceptions" (penser sans contraintes et sans idées reçues).',
+      'Provide strategic recommendations to the Minister, not public advocacy.',
+      'Use diplomatic, formal but forward-looking language.',
+      'Include "Éclairage" and "Décryptage" sections for context.',
+      'Distinguish between analysis, action, and anticipation clearly.',
+    ],
+    forbidden: [
+      'Public advocacy or partisan positioning.',
+      'Predictions presented as certainties.',
+      'Overly academic tone — this is for practitioners.',
+      'Ignoring diplomatic sensitivities.',
+    ],
+    structure: ['Préface', 'Analyser', 'Agir', 'Anticiper', 'Varia'],
+    starterPhrases: ['L\'analyse conduit à...', 'Trois futurs possibles se dessinent...', 'La stratégie devrait viser...'],
+    closingPhrases: ['Ces éléments suggèrent que...', 'La marge de manœuvre dépendra de...'],
   },
 
   mckinsey: {
@@ -220,6 +274,7 @@ export const PROFILES: Record<ThinkTankStyle, StyleProfile> = {
 
 function styleFromDomain(domain?: string, question?: string): ThinkTankStyle {
   const d = (domain || question || '').toLowerCase();
+  if (/diplomatie|diplomatique|affaires étrangères|quai d'orsay|caps|prévision stratégique/.test(d)) return 'caps';
   if (/france|french|europe|eu |réforme|publique/.test(d)) return 'france-strategie';
   if (/montaigne|français|modèle français|cohesion|état|action publique/.test(d)) return 'montaigne';
   if (/mckinsey|business|sector|industry|productivity|growth|market|strategy/.test(d)) return 'mckinsey';
@@ -246,6 +301,7 @@ function pickSecondary(style: ThinkTankStyle): ThinkTankStyle | undefined {
     'mckinsey': 'harvard',
     'rand': 'chatham',
     'chatham': 'rand',
+    'caps': 'france-strategie',
     'default': undefined,
   };
   return pairs[style];

@@ -54,8 +54,8 @@ export async function searchGoogleBooks(query: string, limit = 15): Promise<any[
           isbn: doc.isbn?.[0] || null,
           year: doc.first_publish_year || null,
           publishedDate: null,
-          authors: (doc.author_name || []).map((name: string) => ({ name })),
-          institutions: (doc.publisher || []).slice(0, 2),
+          authors: (Array.isArray(doc.author_name) ? doc.author_name : []).map((name: string) => ({ name })),
+          institutions: (Array.isArray(doc.publisher) ? doc.publisher : []).slice(0, 2),
           citationCount: doc.edition_count || 0,
           qualityScore: 50,
           oaStatus: 'open',
@@ -83,7 +83,7 @@ export async function searchGoogleBooks(query: string, limit = 15): Promise<any[
         else if (/^\d{4}/.test(publishedDate)) year = parseInt(publishedDate.slice(0, 4));
       }
 
-      const authors = (info.authors || []).map((name: string) => ({ name })).filter((a: any) => a.name);
+      const authors = (Array.isArray(info.authors) ? info.authors : []).map((name: string) => ({ name })).filter((a: any) => a.name);
 
       const institutions: string[] = [];
       if (info.publisher) institutions.push(info.publisher);

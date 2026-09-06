@@ -815,7 +815,9 @@ export async function runDelphiForesight(
     finalEstimates[name] = prob;
   }
 
-  // ── Step 7: Extremizing + Platt scaling + normalization ──
+  // ── Step 7: Extremizing + normalization ──
+  // NOTE: Platt scaling was removed — it compounded with extremizing and produced
+  // extreme values (99%/0%/0%). Extremizing alone corrects for underconfidence.
   const extremized: Record<string, number> = {};
   for (const name of scenarioNames) {
     const vals = expertEstimatesByScenario[name];
@@ -829,19 +831,22 @@ export async function runDelphiForesight(
     extremized[name] = extremize(finalEstimates[name], vals.length, variance);
   }
 
-  // Platt scaling
-  const calibrated: Record<string, number> = {};
-  for (const name of scenarioNames) {
-    calibrated[name] = plattScale(extremized[name]);
-  }
-
-  // Normalize to sum to 1
-  const normalized = normalize(calibrated);
+  // Normalize to sum to 1 (extremized values are the final calibrated probabilities)
+  const normalized = normalize(extremized);
 
   // ── Step 8: Bootstrap confidence intervals ──
+  // CI is computed from raw expert estimates, then recentered on the final
+  // calibrated probability so the point estimate always falls within the CI.
   const confidenceIntervals: Record<string, [number, number]> = {};
   for (const name of scenarioNames) {
-    confidenceIntervals[name] = bootstrapCI(expertEstimatesByScenario[name], 1000);
+    const rawCI = bootstrapCI(expertEstimatesByScenario[name], 1000);
+    const finalProb = normalized[name];
+    const rawMid = (rawCI[0] + rawCI[1]) / 2;
+    const spread = (rawCI[1] - rawCI[0]) / 2;
+    // Recenter on final probability, preserve spread, clamp to [0, 1]
+    const lower = Math.max(0, finalProb - spread);
+    const upper = Math.min(1, finalProb + spread);
+    confidenceIntervals[name] = [lower, upper] as [number, number];
   }
 
   // ── Step 9: Key drivers & sensitivity analysis ──

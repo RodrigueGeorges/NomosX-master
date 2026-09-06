@@ -80,6 +80,8 @@ export async function enhancedRank(
     limit: finalOptions.limit
   });
 
+  console.log(`[ENHANCED RANK] sourceIds check: ${(finalOptions as any).sourceIds?.length ?? 0} ids provided, isScoped=${!!(finalOptions as any).sourceIds?.length}`);
+
   // Build enhanced WHERE clause
   // NOTE: requireAbstract is applied post-query to exempt news sources
   const whereConditions: any[] = [

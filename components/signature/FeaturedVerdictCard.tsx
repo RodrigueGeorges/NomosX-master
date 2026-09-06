@@ -40,7 +40,7 @@ function Sparkline({ points }: { points: number[] }) {
     .join(" ");
 
   return (
-    <svg width={w} height={h} className="opacity-70 text-white" aria-hidden>
+    <svg width={w} height={h} className="opacity-70 text-black" aria-hidden>
       <polyline
         points={coords}
         fill="none"
@@ -98,28 +98,28 @@ export function FeaturedVerdictCard({ data, className, animate = true }: Feature
       )}
     >
       <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
-        <div className="nx-scan-sweep bg-gradient-to-b from-transparent via-white/[0.06] to-transparent" />
+        <div className="nx-scan-sweep bg-gradient-to-b from-transparent via-black/[0.06] to-transparent" />
       </div>
       <div className="flex items-center gap-2 mb-3">
-        <span className="w-1.5 h-1.5 rounded-full bg-white/70 nx-glow-dot" />
+        <span className="w-1.5 h-1.5 rounded-full bg-black/70 nx-glow-dot" />
         <p className="nx-eyebrow" style={{ letterSpacing: "0.14em" }}>{t("FeaturedVerdict.institutePosition")}</p>
       </div>
 
-      <h2 className="font-display text-xl sm:text-2xl font-medium text-white leading-snug mb-3">
+      <h2 className="font-display text-xl sm:text-2xl font-medium text-black leading-snug mb-3">
         {data.question}
       </h2>
 
-      <p className="text-sm text-white/70 leading-relaxed mb-5">
-        <span className="text-white font-medium">{data.verdictPrefix}</span>
+      <p className="text-sm text-black/70 leading-relaxed mb-5">
+        <span className="text-black font-medium">{data.verdictPrefix}</span>
         {" — "}
         {data.verdictBody}
       </p>
 
-      <div className="grid grid-cols-2 gap-px bg-white/[0.08] mb-4">
-        <div className="bg-black p-4">
+      <div className="grid grid-cols-2 gap-px bg-black/[0.08] mb-4">
+        <div className="bg-white p-4">
           <p className="nx-eyebrow nx-eyebrow--dim mb-3" style={{ fontSize: "11px", letterSpacing: "0.1em" }}>{t("FeaturedVerdict.confidence")}</p>
           <div className="flex items-end justify-between gap-2 mb-3">
-            <p className="font-mono text-2xl font-light text-white tabular-nums">{data.confidence}</p>
+            <p className="font-mono text-2xl font-light text-black tabular-nums">{data.confidence}</p>
             <Sparkline points={sparkline} />
           </div>
           <div className="nx-meter-track">
@@ -129,19 +129,19 @@ export function FeaturedVerdictCard({ data, className, animate = true }: Feature
             />
           </div>
         </div>
-        <div className="bg-black p-4">
+        <div className="bg-white p-4">
           <p className="nx-eyebrow nx-eyebrow--dim mb-3" style={{ fontSize: "11px", letterSpacing: "0.1em" }}>{t("FeaturedVerdict.distribution")}</p>
-          <p className="font-mono text-base sm:text-lg text-white tabular-nums leading-tight">{data.simulation}</p>
+          <p className="font-mono text-base sm:text-lg text-black tabular-nums leading-tight">{data.simulation}</p>
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-4 mb-4 font-mono text-xs text-white/50">
+      <div className="flex flex-wrap items-center gap-4 mb-4 font-mono text-xs text-black/50">
         <span className="inline-flex items-center gap-1.5">
-          <BookOpen className="w-3.5 h-3.5 text-white/55" strokeWidth={1.25} />
+          <BookOpen className="w-3.5 h-3.5 text-black/55" strokeWidth={1.25} />
           {data.sources} {t("FeaturedVerdict.sources")}
         </span>
         <span className="inline-flex items-center gap-1.5">
-          <AlertTriangle className="w-3.5 h-3.5 text-white/55" strokeWidth={1.25} />
+          <AlertTriangle className="w-3.5 h-3.5 text-black/55" strokeWidth={1.25} />
           {data.objections} {t("FeaturedVerdict.dissents")}
         </span>
       </div>
@@ -152,7 +152,7 @@ export function FeaturedVerdictCard({ data, className, animate = true }: Feature
           {data.domains.map((d) => (
             <span
               key={d}
-              className="font-mono text-[10px] uppercase tracking-[0.1em] text-white/45 border border-white/[0.08] px-2 py-0.5"
+              className="font-mono text-[10px] uppercase tracking-[0.1em] text-black/45 border border-black/[0.08] px-2 py-0.5"
             >
               {d}
             </span>
@@ -160,7 +160,7 @@ export function FeaturedVerdictCard({ data, className, animate = true }: Feature
         </div>
       )}
 
-      <div className="flex justify-between pt-4 border-t border-white/[0.08] font-mono text-[11px] uppercase tracking-[0.1em] text-white/40">
+      <div className="flex justify-between pt-4 border-t border-black/[0.08] font-mono text-[11px] uppercase tracking-[0.1em] text-black/40">
         <span>Updated {data.updatedAt}</span>
         <span>{data.serialId}</span>
       </div>

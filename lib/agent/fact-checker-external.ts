@@ -53,7 +53,7 @@ async function searchClaimReview(claim: string): Promise<any | null> {
     }
 
     const url = `${GOOGLE_FACT_CHECK_API}?${params.toString()}`;
-    const response = await httpGet<any>(url, 'google-factcheck', { timeout: 10000 });
+    const response = await httpGet<any>(url, { timeout: 10000, rateLimiterKey: 'google-factcheck' });
     return response;
   } catch (err) {
     // Non-blocking — fact check API may be rate-limited or unavailable

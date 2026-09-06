@@ -43,7 +43,7 @@ export async function searchDataCite(query: string, limit = 20): Promise<any[]> 
         if (!isNaN(parsed.getTime())) year = parsed.getFullYear();
       }
 
-      const creators = attrs.creators || [];
+      const creators = Array.isArray(attrs.creators) ? attrs.creators : [];
       const authors = creators.map((c: any) => ({
         name: c.name || `${c.givenName || ''} ${c.familyName || ''}`.trim(),
       })).filter((a: any) => a.name);

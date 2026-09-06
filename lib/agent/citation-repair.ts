@@ -113,10 +113,24 @@ export function backfillCitationsFromAnalysis(
           const tagMatch = htmlSlice.search(/<\/p>|<br\s*\/?>|<\/li>/i);
           if (tagMatch >= 0) {
             const insertPos = searchStart + tagMatch;
-            // Verify we're not inside a <style> block
+            // Verify we're not inside a <style> block or a data-no-cite protected zone
             const beforeInsert = html.slice(Math.max(0, insertPos - 500), insertPos);
             if (/<style/i.test(beforeInsert) && !/<\/style>/i.test(beforeInsert)) {
               continue; // Skip — would insert inside CSS
+            }
+            // Check if we're inside a data-no-cite protected zone
+            // Count open/close tags with data-no-cite before this position
+            const noCiteOpens = (beforeInsert.match(/<(\w+)\b[^>]*\bdata-no-cite\b[^>]*>/gi) || []).length;
+            const noCiteCloses = (beforeInsert.match(/<\/(\w+)>/gi) || []).filter((closeTag, i) => {
+              // Check if the corresponding open tag had data-no-cite
+              // Simple heuristic: if there are more opens than closes, we're inside
+              return i >= 0;
+            }).length;
+            // Simpler: check if the nearest enclosing element has data-no-cite
+            const lastNoCiteOpen = beforeInsert.lastIndexOf('data-no-cite');
+            const lastCloseTag = beforeInsert.lastIndexOf('</');
+            if (lastNoCiteOpen > lastCloseTag) {
+              continue; // Skip — would inject inside a protected zone
             }
             const citations = missingHere.join('');
             html = html.slice(0, insertPos) + ' ' + citations + html.slice(insertPos);
@@ -258,13 +272,27 @@ export function injectCitationsBySourceMatch(
   const details: string[] = [];
   let injected = 0;
 
-  // Extract style/script blocks AND h1/title blocks (never inject citations into titles)
+  // ── PROTECTED ZONES SYSTEM ──
+  // Elements marked with data-no-cite are "narrative/editorial voice" —
+  // citations are NEVER injected into them. This is structural protection
+  // that replaces fragile regex post-processing.
+  //
+  // We extract these elements into skipBlocks BEFORE injection runs,
+  // then restore them after. The citation engine never sees their content.
   const skipBlocks: string[] = [];
   let workingHtml = html.replace(/<(style|script)\b[^>]*>[\s\S]*?<\/\1>/gi, (m) => {
     skipBlocks.push(m);
     return `\x00SKIP${skipBlocks.length - 1}\x00`;
   });
-  // Also skip <h1>...</h1> and <title>...</title> — never inject citations into titles
+  // Skip ALL elements with data-no-cite attribute (act-titles, eyebrows,
+  // through-line, transitions, method-labels, h1, brief-meta)
+  // Match self-closing and container elements with data-no-cite
+  workingHtml = workingHtml.replace(/<(\w+)\b[^>]*\bdata-no-cite\b[^>]*>[\s\S]*?<\/\1>/gi, (m) => {
+    skipBlocks.push(m);
+    return `\x00SKIP${skipBlocks.length - 1}\x00`;
+  });
+  // Also skip <h1>...</h1> and <title>...</title> (legacy protection —
+  // these should also have data-no-cite, but keep as safety net)
   workingHtml = workingHtml.replace(/<h1\b[^>]*>[\s\S]*?<\/h1>/gi, (m) => {
     skipBlocks.push(m);
     return `\x00SKIP${skipBlocks.length - 1}\x00`;
@@ -334,7 +362,28 @@ export function injectCitationsBySourceMatch(
           endIdx = nextIdx >= 0 ? nextIdx + 1 : -1;
         }
         if (endIdx >= 0 && endIdx < 200) {
-          const insertPos = matchIdx + pattern.length + endIdx;
+          let insertPos = matchIdx + pattern.length + endIdx;
+
+          // ── ABBREVIATION-SAFE INJECTION ──
+          // Before injecting, check if the insertion point is inside an abbreviation
+          // (e.g., "e.g.", "i.e.", "U.S.", "U.K.", "U.N.", "E.U.", "P.R.C.").
+          // If so, move the insertion point AFTER the complete abbreviation.
+          const around = workingHtml.slice(Math.max(0, insertPos - 3), insertPos + 5);
+          // Pattern: single letter + dot + citation point → "e." at insertPos means "e.g."
+          // Move insert past the "g." or "e." that follows
+          const abbrevMatch = around.match(/^([ei])\.\s*([ge])\./i);
+          if (abbrevMatch) {
+            // Insert after the full "e.g." or "i.e."
+            const abbrevEnd = around.indexOf(abbrevMatch[2] + '.') + 2;
+            insertPos += abbrevEnd - abbrevMatch[0].indexOf(abbrevMatch[1]);
+          }
+          // Check for geopolitical abbreviations: "U.S.", "E.U.", "U.K.", "U.N."
+          const geoMatch = around.match(/^([A-Z])\.\s*([A-Z])\./);
+          if (geoMatch) {
+            const abbrevEnd = around.indexOf(geoMatch[2] + '.') + 2;
+            insertPos += abbrevEnd - geoMatch[0].indexOf(geoMatch[1]);
+          }
+
           workingHtml = workingHtml.slice(0, insertPos) + ' ' + srcTag + workingHtml.slice(insertPos);
           injected++;
           injectionsForThisSource++;
@@ -379,9 +428,10 @@ export function injectCitationsByContentMatch(
     sourceTerms.push({ idx: i + 1, terms });
   }
 
-  // Split HTML into segments to find uncited text, skipping <style>/<script>/<h1>/<title> blocks
-  // Also skip <section class="references-section"> — never inject citations into reference titles
-  const skipBlockRe = /<(style|script|h1|title)\b[^>]*>[\s\S]*?<\/\1>|<section class="references-section">[\s\S]*?<\/section>/gi;
+  // Split HTML into segments to find uncited text, skipping protected zones.
+  // Protected zones: <style>/<script>/<h1>/<title>, references section, AND
+  // any element with data-no-cite (act-titles, eyebrows, through-line, transitions).
+  const skipBlockRe = /<(style|script|h1|title)\b[^>]*>[\s\S]*?<\/\1>|<section class="references-section">[\s\S]*?<\/section>|<(\w+)\b[^>]*\bdata-no-cite\b[^>]*>[\s\S]*?<\/\2>/gi;
   const skipRanges: Array<[number, number]> = [];
   let skipMatch: RegExpExecArray | null;
   while ((skipMatch = skipBlockRe.exec(html)) !== null) {

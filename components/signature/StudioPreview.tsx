@@ -37,20 +37,20 @@ export function StudioPreview({ onGetStarted, onLearnMore, className, sectionInd
         <div className="flex flex-col justify-center lg:pr-4">
           <div className="flex flex-wrap items-center gap-3 mb-4">
             <span className="nx-eyebrow">Nomos Engine</span>
-            <span className="font-mono text-[11px] uppercase tracking-[0.1em] text-white/60 px-2 py-0.5 border border-white/20">
+            <span className="font-mono text-[11px] uppercase tracking-[0.1em] text-black/60 px-2 py-0.5 border border-black/20">
               Pay per study
             </span>
           </div>
-          <h2 className="font-display text-2xl font-semibold text-white mb-3 tracking-tight">
+          <h2 className="font-display text-2xl font-semibold text-black mb-3 tracking-tight">
             Your question.<br />A study worth defending.
           </h2>
-          <p className="text-sm text-white/55 leading-relaxed mb-5 max-w-sm">
+          <p className="text-sm text-black/55 leading-relaxed mb-5 max-w-sm">
             Ask anything. Get back a verified, multi-scenario study — ready to brief, decide, or act on.
           </p>
           <button
             type="button"
             onClick={onLearnMore}
-            className="font-mono text-[11px] uppercase tracking-[0.16em] text-white/60 hover:text-white inline-flex items-center gap-2 w-fit transition-colors"
+            className="font-mono text-[11px] uppercase tracking-[0.16em] text-black/60 hover:text-black inline-flex items-center gap-2 w-fit transition-colors"
           >
             Learn more
             <ArrowRight size={12} />
@@ -62,11 +62,11 @@ export function StudioPreview({ onGetStarted, onLearnMore, className, sectionInd
             <p className="nx-eyebrow nx-eyebrow--dim mb-2" style={{ fontSize: "11px", letterSpacing: "0.16em" }}>
               01 · Define question
             </p>
-            <div className="border border-white/[0.08] bg-black px-4 py-3 min-h-[60px]">
-              <p className="text-sm text-white/40 italic">
+            <div className="border border-black/[0.08] bg-white px-4 py-3 min-h-[60px]">
+              <p className="text-sm text-black/40 italic">
                 What is the most probable trajectory for…
               </p>
-              <p className="font-mono text-[11px] text-white/50 mt-2 text-right">0 / 240</p>
+              <p className="font-mono text-[11px] text-black/50 mt-2 text-right">0 / 240</p>
             </div>
           </div>
 
@@ -85,8 +85,8 @@ export function StudioPreview({ onGetStarted, onLearnMore, className, sectionInd
                     className={cn(
                       "px-2.5 py-1 font-mono text-[11px] border transition-all duration-200 cursor-pointer",
                       selected
-                        ? "border-white/40 bg-white/[0.08] text-white/85"
-                        : "border-white/[0.1] text-white/45 hover:border-white/25 hover:text-white/70"
+                        ? "border-black/40 bg-black/[0.08] text-black/85"
+                        : "border-black/[0.1] text-black/45 hover:border-black/25 hover:text-black/70"
                     )}
                   >
                     {tag}
@@ -102,8 +102,8 @@ export function StudioPreview({ onGetStarted, onLearnMore, className, sectionInd
             </p>
             <ul className="space-y-2">
               {DELIVERABLES.map((item) => (
-                <li key={item} className="flex items-start gap-2 text-xs text-white/60">
-                  <Check className="w-3.5 h-3.5 text-white/70 flex-shrink-0 mt-0.5" strokeWidth={1.5} />
+                <li key={item} className="flex items-start gap-2 text-xs text-black/60">
+                  <Check className="w-3.5 h-3.5 text-black/70 flex-shrink-0 mt-0.5" strokeWidth={1.5} />
                   {item}
                 </li>
               ))}
@@ -111,8 +111,8 @@ export function StudioPreview({ onGetStarted, onLearnMore, className, sectionInd
           </div>
         </div>
 
-        <div className="nx-surface p-5 sm:p-6 flex flex-col justify-center" style={{ borderColor: "rgba(240,240,250,0.12)", background: "rgba(240,240,250,0.03)" }}>
-          <h3 className="font-display text-lg font-semibold text-white mb-2 leading-snug">
+        <div className="nx-surface p-5 sm:p-6 flex flex-col justify-center" style={{ borderColor: "rgba(10,10,15,0.10)", background: "rgba(10,10,15,0.02)" }}>
+          <h3 className="font-display text-lg font-semibold text-black mb-2 leading-snug">
             Commission a study
           </h3>
           <p className="nx-eyebrow nx-eyebrow--dim mb-6" style={{ fontSize: "11px" }}>
@@ -122,7 +122,7 @@ export function StudioPreview({ onGetStarted, onLearnMore, className, sectionInd
             type="button"
             onClick={onGetStarted}
             strength={0.12}
-            className="w-full py-3.5 bg-white text-black text-xs font-semibold uppercase tracking-[0.14em] hover:bg-white/90 transition-colors flex items-center justify-center gap-2 group"
+            className="w-full py-3.5 bg-black text-white text-xs font-semibold uppercase tracking-[0.14em] hover:bg-black/85 transition-colors flex items-center justify-center gap-2 group"
           >
             Start a study
             <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />

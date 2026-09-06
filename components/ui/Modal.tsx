@@ -64,18 +64,18 @@ export function Modal({
       {/* Modal */}
       <div 
         className={cn(
-          "relative w-full bg-black border border-white/[0.08] animate-spring-in",
+          "relative w-full bg-white border border-black/[0.08] animate-spring-in",
           sizes[size]
         )}
       >
         {/* Header */}
         {(title || showCloseButton) && (
-          <div className="flex items-center justify-between p-6 pb-4 border-b border-white/[0.08]">
-            {title && <h2 className="text-xl font-semibold text-white">{title}</h2>}
+          <div className="flex items-center justify-between p-6 pb-4 border-b border-black/[0.08]">
+            {title && <h2 className="text-xl font-semibold text-black">{title}</h2>}
             {showCloseButton && (
               <button
                 onClick={onClose}
-                className="p-2 hover:bg-white/[0.06] transition-colors text-white/60 hover:text-white"
+                className="p-2 hover:bg-black/[0.06] transition-colors text-black/60 hover:text-black"
                 aria-label="Close"
               >
                 <X size={20} />

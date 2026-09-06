@@ -36,12 +36,12 @@ interface PipelineStripProps {
 
 export function PipelineStrip({ className }: PipelineStripProps) {
   return (
-    <section className={cn("nx-section-divide relative px-6 sm:px-8 py-12 sm:py-14 bg-white/[0.01]", className)}>
+    <section className={cn("nx-section-divide relative px-6 sm:px-8 py-12 sm:py-14 bg-black/[0.01]", className)}>
       <div className="max-w-4xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <p className="nx-eyebrow">How it works</p>
-          <span className="inline-flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.1em] text-white/45">
-            <span className="w-1 h-1 rounded-full bg-white/70 nx-glow-dot" />
+          <span className="inline-flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.1em] text-black/45">
+            <span className="w-1 h-1 rounded-full bg-black/70 nx-glow-dot" />
             Live
           </span>
         </div>
@@ -49,21 +49,21 @@ export function PipelineStrip({ className }: PipelineStripProps) {
           {STEPS.map(({ step, label, icon: Icon, desc }, i) => (
             <div key={step} className="flex items-start flex-1 min-w-[80px]">
               <div className="nx-pipeline-step flex flex-col items-center text-center flex-1 group">
-                <div className="nx-pipeline-icon w-10 h-10 border border-white/[0.1] bg-white/[0.02] flex items-center justify-center mb-3 group-hover:border-white/30 group-hover:bg-white/[0.04] transition-all duration-300">
-                  <Icon className="w-4 h-4 text-white/45 group-hover:text-white/75 transition-colors duration-300" strokeWidth={1.25} />
+                <div className="nx-pipeline-icon w-10 h-10 border border-black/[0.1] bg-black/[0.02] flex items-center justify-center mb-3 group-hover:border-black/30 group-hover:bg-black/[0.04] transition-all duration-300">
+                  <Icon className="w-4 h-4 text-black/45 group-hover:text-black/75 transition-colors duration-300" strokeWidth={1.25} />
                 </div>
-                <span className="font-mono text-[10px] text-white/50 tabular-nums mb-0.5">{step}</span>
-                <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-white/75 font-medium">
+                <span className="font-mono text-[10px] text-black/50 tabular-nums mb-0.5">{step}</span>
+                <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-black/75 font-medium">
                   {label}
                 </span>
-                <span className="font-mono text-[10px] text-white/40 mt-2 leading-relaxed max-w-[110px]">
+                <span className="font-mono text-[10px] text-black/40 mt-2 leading-relaxed max-w-[110px]">
                   {desc}
                 </span>
               </div>
               {i < STEPS.length - 1 && (
                 <div className="hidden sm:flex flex-1 items-center justify-center mb-8 max-w-[48px]">
-                  <div className="w-full h-px bg-white/[0.08] relative">
-                    <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-1 h-1 rounded-full bg-white/25" />
+                  <div className="w-full h-px bg-black/[0.08] relative">
+                    <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-1 h-1 rounded-full bg-black/25" />
                   </div>
                 </div>
               )}

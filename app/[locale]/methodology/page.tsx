@@ -55,7 +55,7 @@ export default function MethodologyPage() {
             title={
               <>
                 {t("Methodology.title")}{" "}
-                <span className="text-white/70">{t("Methodology.titleAccent")}</span>
+                <span className="text-black/70">{t("Methodology.titleAccent")}</span>
               </>
             }
             description={t("Methodology.intro")}
@@ -72,9 +72,9 @@ export default function MethodologyPage() {
               const Icon = METHOD_ICONS[name];
               return (
                 <EtherealCard key={name}>
-                  <Icon className="w-5 h-5 text-white mb-3" strokeWidth={1.25} />
-                  <h3 className="font-mono text-sm uppercase tracking-[0.12em] text-white mb-2">{t(nameKey)}</h3>
-                  <p className="text-sm text-white/60 leading-relaxed">{t(descKey)}</p>
+                  <Icon className="w-5 h-5 text-black mb-3" strokeWidth={1.25} />
+                  <h3 className="font-mono text-sm uppercase tracking-[0.12em] text-black mb-2">{t(nameKey)}</h3>
+                  <p className="text-sm text-black/60 leading-relaxed">{t(descKey)}</p>
                 </EtherealCard>
               );
             })}
@@ -90,19 +90,19 @@ export default function MethodologyPage() {
           <ScrollReveal stagger className="grid sm:grid-cols-2 gap-4">
             {STANDARDS.map(({ icon: Icon, titleKey, textKey }) => (
               <div key={titleKey} className="flex gap-4 nx-surface nx-pillar p-5">
-                <Icon className="w-5 h-5 text-white shrink-0 mt-0.5" strokeWidth={1.25} />
+                <Icon className="w-5 h-5 text-black shrink-0 mt-0.5" strokeWidth={1.25} />
                 <div>
-                  <h3 className="text-sm font-medium text-white mb-1">{t(titleKey)}</h3>
-                  <p className="text-sm text-white/55 leading-relaxed">{t(textKey)}</p>
+                  <h3 className="text-sm font-medium text-black mb-1">{t(titleKey)}</h3>
+                  <p className="text-sm text-black/55 leading-relaxed">{t(textKey)}</p>
                 </div>
               </div>
             ))}
           </ScrollReveal>
         </PageSection>
 
-        <PageSection className="border-t border-white/[0.08] text-center pb-16" sectionIndex="04 / 04">
+        <PageSection className="border-t border-black/[0.08] text-center pb-16" sectionIndex="04 / 04">
           <ScrollReveal>
-            <p className="text-sm text-white/60 mb-6 max-w-lg mx-auto">{BRAND_TAGLINE}</p>
+            <p className="text-sm text-black/60 mb-6 max-w-lg mx-auto">{BRAND_TAGLINE}</p>
             <button type="button" onClick={() => router.push(PUBLIC_ROUTES.archives)} className="nx-public-btn-primary">
               {t("Methodology.exploreInquiries")}
             </button>

@@ -31,7 +31,7 @@ export async function searchHuggingFacePapers(query: string, limit = 20): Promis
       const arxivId = paper.id || paper.arxiv_id || '';
       const title = paper.title || 'Untitled';
       const abstract = paper.summary || paper.abstract || null;
-      const authors = (paper.authors || []).map((a: any) => ({
+      const authors = (Array.isArray(paper.authors) ? paper.authors : []).map((a: any) => ({
         name: typeof a === 'string' ? a : (a.name || a.full_name || ''),
       }));
       const publishedAt = paper.publishedAt || paper.published_at || null;

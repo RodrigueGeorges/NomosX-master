@@ -39,7 +39,7 @@ async function classifyWithNLI(
         verdict: 'entailment',
         confidence: 0.6,
         scores: { entailment: 0.6, neutral: 0.3, contradiction: 0.1 },
-        source: 'local-mdeberta',
+        source: 'local-nli',
       },
     };
   }

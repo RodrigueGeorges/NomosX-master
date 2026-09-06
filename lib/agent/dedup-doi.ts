@@ -170,7 +170,7 @@ function completenessScore(s: DedupSource): number {
 // ─── Non-destructive Merge ────────────────────────────────────────────────────
 
 function mergeSources<T extends DedupSource>(base: T, others: T[]): T {
-  const merged = { ...base };
+  const merged: Record<string, any> = { ...base };
   for (const other of others) {
     // Only fill missing fields — never overwrite existing ones
     if (!merged.abstract && other.abstract) merged.abstract = other.abstract;
@@ -187,12 +187,12 @@ function mergeSources<T extends DedupSource>(base: T, others: T[]): T {
     // Merge any other custom fields that base is missing
     for (const key of Object.keys(other)) {
       if (key === 'id' || key === 'title' || key === 'provider') continue;
-      if (merged[key] == null && other[key] != null) {
-        merged[key] = other[key];
+      if (merged[key] == null && (other as Record<string, any>)[key] != null) {
+        merged[key] = (other as Record<string, any>)[key];
       }
     }
   }
-  return merged;
+  return merged as T;
 }
 
 // ─── Main Deduplication Function ──────────────────────────────────────────────

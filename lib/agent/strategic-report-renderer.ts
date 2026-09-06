@@ -61,7 +61,16 @@ export function dedupeCitations(text: string): string {
 }
 
 const formatCitations = (text: string) => {
-  return esc(dedupeCitations(text)).replace(
+  const fixed = dedupeCitations(text)
+    // Fix broken abbreviations: move citation outside the abbreviation
+    .replace(/\be\s*\[SRC-(\d+)\]\s*g\./gi, 'e.g. [SRC-$1]')
+    .replace(/\bi\s*\[SRC-(\d+)\]\s*e\./gi, 'i.e. [SRC-$1]')
+    .replace(/\bU\s*\[SRC-(\d+)\]\s*S\./g, 'U.S. [SRC-$1]')
+    .replace(/\bE\s*\[SRC-(\d+)\]\s*U\./g, 'E.U. [SRC-$1]')
+    .replace(/\bU\s*\[SRC-(\d+)\]\s*K\./g, 'U.K. [SRC-$1]')
+    .replace(/\bU\s*\[SRC-(\d+)\]\s*N\./g, 'U.N. [SRC-$1]')
+    .replace(/\b([A-Z])\s*\[SRC-(\d+)\]\s*([A-Z]\.)/g, '$1$3 [SRC-$2]');
+  return esc(fixed).replace(
     /\[SRC-(\d+)\]/g,
     '<sup class="citation" data-src="$1">[$1]</sup>'
   );

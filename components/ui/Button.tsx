@@ -17,7 +17,7 @@ export function Button({
   disabled,
   ...props 
 }: ButtonProps) {
-  const base = "inline-flex items-center justify-center gap-2 font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-white/25 disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden group";
+  const base = "inline-flex items-center justify-center gap-2 font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-black/25 disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden group";
   
   const sizes = { 
     sm: "h-8 px-2.5 text-[10px] sm:h-9 sm:px-3 uppercase tracking-[0.12em]", 
@@ -26,14 +26,14 @@ export function Button({
   }[size];
   
   const variants = {
-    primary: "bg-white text-black hover:bg-white/90",
-    secondary: "bg-transparent text-white/80 border border-white/30 hover:border-white/60 hover:text-white",
-    ai: "bg-white text-black hover:bg-white/90",
-    ghost: "bg-transparent text-white/60 border border-white/15 hover:border-white/35 hover:text-white",
-    danger: "bg-red-600 text-white hover:bg-red-500",
-    success: "bg-white text-black hover:bg-white/90",
-    outline: "bg-transparent text-white/80 border border-white/30 hover:border-white/60 hover:text-white",
-    destructive: "bg-red-600 text-white hover:bg-red-500"
+    primary: "bg-black text-white hover:bg-black/85",
+    secondary: "bg-transparent text-black/80 border border-black/30 hover:border-black/60 hover:text-black",
+    ai: "bg-black text-white hover:bg-black/85",
+    ghost: "bg-transparent text-black/60 border border-black/15 hover:border-black/35 hover:text-black",
+    danger: "bg-red-600 text-black hover:bg-red-500",
+    success: "bg-black text-white hover:bg-black/85",
+    outline: "bg-transparent text-black/80 border border-black/30 hover:border-black/60 hover:text-black",
+    destructive: "bg-red-600 text-black hover:bg-red-500"
   }[variant];
   
   return (

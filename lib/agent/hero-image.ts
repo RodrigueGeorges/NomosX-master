@@ -1,15 +1,19 @@
 /**
- * NomosX Hero Image Generator — generates conceptual abstract images
+ * NomosX Hero Image Generator — generates symbolic illustrations
  * for publication heroes using GPT Image 1 (gpt-image-1).
  *
- * Design philosophy:
- * - Minimalist, dark, geometric — NomosX brand identity
- * - Conceptual: visual metaphor for the domain collision, not literal
+ * Design philosophy — "From Chaos to Nomos":
+ * - A single sculptural form emerging from darkness — the nomos
+ * - The surrounding void IS the chaos — felt, not shown literally
+ * - Light reveals the form; shadow preserves the chaos it emerged from
+ * - The motif is specific to the article's tension, not a generic symbol
+ * - Subtle, never didactic — the viewer feels the ordering, doesn't see a diagram
+ * - Minimalist, dark, monochrome — Villeneuve cinematic aesthetic
  * - No text in images (typography is for the HTML)
  * - Consistent style across all publications
  *
  * Provider: OpenAI gpt-image-1 (uses existing OPENAI_API_KEY).
- * Fallback: deterministic SVG geometric pattern (no network needed).
+ * Fallback: deterministic SVG (no network needed).
  */
 
 import { prisma } from '../db';
@@ -175,7 +179,23 @@ async function deriveVisualConcept(
       .map(s => `  - ${s}`)
       .join('\n');
 
-    const userContent = `You are a visual art director for a high-end think tank (NomosX). The art direction is FIXED: dark, cinematic, monochrome, Denis Villeneuve-style architectural scenes with volumetric lighting. You never change the art direction — your job is to identify the MOTIF (the central physical element) that goes inside the scene.
+    const userContent = `You are the visual art director for NomosX — the first AI think tank. Our DNA is "From Chaos to Nomos": we transform the chaos of fragmented information into ordered, source-verified positions.
+
+## THE NOMOSX VISUAL IDENTITY
+
+The art direction is FIXED and you never change it:
+- Dark, cinematic, monochrome — black stone, charcoal, silver luminance
+- Denis Villeneuve aesthetic (Dune, Blade Runner 2049): monumental, tactile, atmospheric
+- A single shaft of volumetric light cutting through darkness
+- No saturated colors, no warm tones, no neon
+
+The MOTIF — the central physical element — must embody our DNA through SUBTLETY, not literalness:
+- A single sculptural form, monumental, emerging from darkness
+- The surrounding void IS the chaos — felt, not shown literally
+- The form itself is the "nomos" — ordered, precise, intentional
+- Light reveals the form; shadow preserves the chaos it emerged from
+- NEVER split the image into "chaos side" and "order side" — that is didactic and cringe
+- The ordering is IMPLIED by the precision of the form against the void around it
 
 ## ARTICLE CONTEXT
 
@@ -201,52 +221,56 @@ Work through these steps mentally before writing your answer:
 
 STEP 1 — CORE TENSION: What is the single most important tension, contradiction, or mechanism in this article? Express it in one sentence.
 
-STEP 2 — PHYSICAL TRANSLATION: What physical object, architectural element, or sculptural form embodies that tension? The form must be:
-- A PHYSICAL OBJECT or ARCHITECTURAL ELEMENT (not a concept, not a symbol, not an analogy)
-- Something that VISUALLY COMMUNICATES the tension when you look at it — no caption needed
-- Specific enough that a reader who sees the image would think "yes, that's exactly what this article is about"
+STEP 2 — SCULPTURAL FORM: What single physical form embodies this tension? The form must be:
+- A SINGLE sculptural or architectural element — not a scene with multiple parts
+- Monumental in scale — something that feels load-bearing, structural, permanent
+- Physically specific — not "abstract shapes" or "geometric forms"
+- The form itself should carry the tension IN ITS PHYSICAL STATE (intact? fractured? mid-formation? compressed? suspended? leaning?)
 
-STEP 3 — THE METAPHOR TEST (critical): Imagine showing the image to someone who has NOT read the article. Ask them: "What do you think this article is about?" If they can guess the general topic or tension, the motif PASSES. If they say "I have no idea" or guess something completely unrelated, the motif FAILS — try again with a more visually obvious form.
+STEP 3 — THE METAPHOR TEST: Imagine showing the image to someone who has NOT read the article. Ask them: "What do you think this article is about?" If they can sense the general tension, the motif PASSES. If they say "I have no idea" or "it's just abstract art," the motif FAILS.
+
+STEP 4 — SUBTLETY CHECK: Is this didactic? Does it look like a diagram or infographic? Does it literally illustrate the concept (e.g., "fragments becoming a grid" for fragmentation)? If yes, REJECT IT. The best editorial illustrations embody the tension through a single object's physical state — the viewer FEELS the meaning, they don't decode it.
 
 ## EXAMPLES
 
-PASS the metaphor test:
-- Article: "explanation instability under perturbation"
-  Tension: explanations change when inputs are slightly perturbed, even though the model's prediction doesn't change
-  Motif: "a vast mirror wall in a dark hall, half its panels shattered and misaligned, each reflecting a different distorted version of the same single light source — the wall looks intact from afar but is fractured up close"
-  Why it passes: anyone seeing shattered, misaligned mirrors reflecting different versions of the same light would think "instability, distortion, things that look fine but aren't"
-
+PASS — subtle, sculptural, specific:
 - Article: "institutional collapse"
   Tension: a seemingly stable institution is mid-collapse, the failure point is visible
-  Motif: "a monumental stone archway mid-collapse, one keystone slipping out of place, dust and debris suspended in a single shaft of light"
-  Why it passes: anyone seeing a collapsing archway would think "collapse, structural failure"
+  Motif: "a monumental stone archway, intact from a distance but with a single keystone visibly slipping — dust suspended in the shaft of light catching it. The arch is perfect except for this one displacement. The viewer feels: something is failing, quietly, right now."
+  Why it passes: a single form, the tension is in its physical state (the slipping keystone), not a diagram
 
 - Article: "competing regulatory regimes"
-  Tension: two systems pressing against each other, neither dominant, stress at the boundary
-  Motif: "two vast geometric monoliths leaning against each other in frozen tension, a visible crack running between them where they meet"
-  Why it passes: two massive structures pressing against each other with a crack = "conflict, competition, stress"
+  Tension: two systems pressing against each other, stress at the boundary
+  Motif: "two vast geometric monoliths leaning against each other in frozen tension, a hairline crack visible where they meet. The forms are otherwise flawless. The crack catches the light."
+  Why it passes: the tension is in the relationship between two forms, not in a "before/after" split
 
-FAIL the metaphor test:
-- A sundial for "explanation instability" → FAIL: a sundial doesn't visually suggest instability. A reader would think "time" or "ancient instrument", not "fragile explanations"
-- A clock for "time pressure" → FAIL: too generic, too literal. Every article about deadlines would use a clock
-- A brain for "AI" → FAIL: cliché. Every AI article uses brains. No specificity
-- A balance scale for "trade-offs" → FAIL: overused, boring, no visual specificity
+- Article: "AI explanation instability"
+  Tension: explanations shift subtly when inputs change slightly
+  Motif: "a vast mirror wall, seemingly intact, but at its center the reflections are subtly misaligned — panels shifted by millimeters, each reflecting a slightly different version of the same light source. The wall looks perfect until you look closely."
+  Why it passes: a single form, the tension is in a subtle physical detail, not a literal illustration
+
+FAIL — too literal, didactic, cringe:
+- "Fragments on the left converging into a grid on the right" → FAIL: this is a diagram, not an illustration. It literally draws the concept. Cringe.
+- "A clock for time pressure" → FAIL: cliché, no subtlety
+- "A brain for AI" → FAIL: cliché
+- "Chaos on one side, order on the other" → FAIL: didactic split-screen. The viewer decodes it instead of feeling it.
 
 ## RULES
 
-1. The motif must be a PHYSICAL OBJECT or ARCHITECTURAL ELEMENT — not a concept, not a symbol, not an analogy
-2. The visual itself must communicate the tension — no intellectual leap, no caption needed
-3. It must pass the METAPHOR TEST (step 3 above)
-4. It must be specific to THIS article's actual findings — not a generic symbol
-5. It must fit naturally in a dark, cinematic, monochrome scene
-6. NO: human figures, text, UI elements, diagrams, clocks, sundials, brains, balance scales, globes, lightbulbs, gears, circuit boards, DNA helices, network graphs
-7. Describe the motif in 2-3 sentences. Include its physical state (intact? fractured? collapsing? frozen?) and how light interacts with it.
+1. ONE sculptural form — not a scene with multiple competing elements
+2. The tension lives IN the form's physical state — not in a layout or arrangement
+3. SUBTLE — the viewer feels the meaning, doesn't decode a diagram
+4. Specific to THIS article — not a generic symbol
+5. Monumental, tactile, cinematic — it feels physical, load-bearing
+6. NO: human figures, text, UI, diagrams, clocks, brains, lightbulbs, gears, circuit boards, DNA, globes, maps, network graphs, balance scales
+7. NO: split-screen, before/after, chaos-on-one-side/order-on-the-other — that is didactic
+8. Describe the form in 2-3 sentences. Include its physical state and how light interacts with it.
 
 Respond with ONLY the motif description. No preamble, no explanation, no step labels, no markdown.`;
 
     const res = await callLLM({
       messages: [
-        { role: 'system', content: 'You are a visual art director who specializes in editorial cover illustrations. You output only concrete physical motif descriptions that pass the metaphor test. No commentary, no explanation.' },
+        { role: 'system', content: 'You are the visual art director for NomosX, the first AI think tank. You specialize in editorial cover illustrations that embody the movement "From Chaos to Nomos" — disorder transforming into order. You output only concrete physical motif descriptions that pass the metaphor test and show the chaos→order transition. No commentary, no explanation.' },
         { role: 'user', content: userContent },
       ],
       task: 'reader_v3' as any, // cheap task, cacheable
@@ -372,29 +396,29 @@ function buildImagePrompt(
     .join(', ');
 
   const subjectBlock = visualConcept
-    ? `SUBJECT — the central motif, derived from the article's actual findings:
+    ? `SUBJECT — the central sculptural form, derived from the article's actual findings:
 ${visualConcept}
 
-This motif is the FOCAL POINT of the image. It sits at the center of the scene, monumental and sculptural. The reader should be able to look at this image and immediately sense what the article is about — the motif communicates the tension visually, without any caption.`
-    : `SUBJECT — derive a visual metaphor from the article title:
+This form is the FOCAL POINT of the image — a single monumental element emerging from darkness. The surrounding void is the chaos; the form is the nomos. Light reveals the form's surface and physical state. The viewer should FEEL the article's tension by looking at the form — not decode a diagram.`
+    : `SUBJECT — derive a sculptural form from the article title:
 "${title}"
-Translate the core tension in the title into a specific, dramatic physical form:
-- "Threshold" or "discontinuity" → a vast dark architectural space with a dramatic gateway or barrier, light streaming through a narrow opening creating a sharp divide
-- "Convergence" of domains → two massive structural forms merging or colliding in a dark void
-- "Vacuum" or "gap" → a void or absence within an otherwise dense, monumental structure
-- "Cost" or "impact" → force or pressure visibly acting on architectural or sculptural forms
-- "Ceiling" or "limit" → a vast overhead structure pressing down on forms below
-The motif must feel commissioned specifically for THIS article — not a stock illustration.`;
+A single monumental form that embodies the article's tension through its physical state:
+- "Threshold" → a vast stone aperture, one edge fractured, light cutting through the opening
+- "Convergence" → two geometric forms leaning together, a hairline crack at the junction
+- "Collapse" → a monumental arch with a single keystone visibly slipping
+- "Pressure" → a form compressed or bent under invisible force, material stress visible
+- "Void" → a dense structure with a precise absence at its center — the void is the subject
+The form must feel commissioned for THIS article — not a stock illustration.`;
 
   const compositionBlock = formatCompositionDirectives(publicationType);
 
-  return `Create a premium editorial cover image for a high-end think tank report. This is a hero image that will appear at the top of the article — it must communicate the article's core tension in a single glance.
+  return `Create a premium editorial cover image for NomosX — the first AI think tank. Our DNA is "From Chaos to Nomos": we transform fragmented information into ordered, defensible positions. This hero image must embody that act through a single sculptural form emerging from darkness.
 
 ARTICLE: "${title}"
 DOMAINS: ${contextTerms || 'strategic analysis and policy'}
 
 1. SCENE & BACKGROUND
-A vast, dark architectural space — monumental in scale, like the interior of a brutalist cathedral or an underground cavern hewn from black stone. Deep black background with subtle volumetric depth. The space feels physical, real, load-bearing — not a void, not a gradient, not a studio backdrop. Atmospheric particles suspended in the air catch the light.
+A vast, dark space — monumental in scale, like the interior of a brutalist cathedral or a cavern hewn from black stone. Deep black background with subtle volumetric depth. The space feels physical, real, load-bearing. Atmospheric particles suspended in the air catch the light. The darkness around the form is the chaos — felt, not shown literally. No split-screen, no "before/after" layout.
 
 2. ${subjectBlock}
 
@@ -402,19 +426,20 @@ A vast, dark architectural space — monumental in scale, like the interior of a
 
 4. LIGHTING & COLOR
 - Single shaft of volumetric light from one direction, cutting through the darkness
-- Light catches atmospheric particles, creating visible god-rays
-- The motif is lit by this shaft — half in light, half in shadow
+- Light catches atmospheric particles, creating subtle god-rays
+- The form is lit by this shaft — revealing its surface, its texture, its physical state
+- The unlit portions of the form remain in deep shadow — the chaos it emerged from
 - Monochrome palette: charcoal blacks (#0a0a0a), deep greys (#1a1a1a), soft silver-whites (#e0e0e8)
 - No saturated colors. No warm tones. No neon. No gradients. Pure monochrome with subtle silver luminance.
-- High contrast between the lit motif and the surrounding darkness
+- High contrast between the lit form and the surrounding darkness
 
 5. VISUAL TREATMENT
 - Photorealistic 3D render quality — like a matte painting for a Denis Villeneuve film (Dune, Blade Runner 2049)
 - Style references: The Atlantic editorial illustrations, Wired cover art, Apple keynote backdrops
-- Subtle depth of field — the motif is sharp, the far background slightly soft
+- Subtle depth of field — the form is sharp, the far background slightly soft
 - Tactile textures: cold stone, polished metal, rough concrete, reflective glass
 - Uniform rendering quality — no flat 2D elements mixed with 3D
-- Cinematic, premium, authoritative. This is not stock art — it is commissioned editorial illustration.
+- Cinematic, premium, authoritative. Subtle, not didactic. The viewer feels the meaning — they don't decode a diagram.
 
 6. CONSTRAINTS — DO NOT INCLUDE
 - No text, no letters, no numbers, no words anywhere in the image
@@ -423,14 +448,16 @@ A vast, dark architectural space — monumental in scale, like the interior of a
 - No clocks, no sundials, no brains, no lightbulbs, no gears, no circuit boards
 - No DNA helices, no network graphs, no globe, no maps
 - No saturated colors, no neon, no warm tones
-- No collage, no split-screen, no multi-panel layout
+- No collage, no split-screen, no multi-panel layout, no "before/after" arrangement
+- No literal illustrations of concepts (e.g., no "fragments becoming a grid" to show fragmentation)
 - No stock photo clichés, no generic "AI" or "technology" imagery
 - Output: single cohesive image, 16:9 widescreen, cinematic composition`;
 }
 
 /**
- * Generate a deterministic SVG geometric pattern as fallback.
- * Matches NomosX brand identity: black background, white/grey geometric lines.
+ * Generate a deterministic SVG illustration as fallback.
+ * A single geometric form — a partial arch or monolith — emerging from
+ * darkness, lit by a single shaft of light. Subtle, sculptural, not didactic.
  * No network required — always works.
  */
 function generateGeometricSVG(title: string, domain: string): string {
@@ -438,93 +465,99 @@ function generateGeometricSVG(title: string, domain: string): string {
   const rng = mulberry32(seed);
 
   const W = 1536, H = 1024;
+  const cx = W * 0.5;
+  const cy = H * 0.52;
+
   let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">`;
   svg += `<rect width="${W}" height="${H}" fill="#000000"/>`;
 
-  // Domain-specific geometric patterns
-  const isAI = domain.includes('ai') || domain.includes('tech') || domain.includes('digital');
-  const isEcon = domain.includes('econ') || domain.includes('finance') || domain.includes('trade');
-  const isPolicy = domain.includes('policy') || domain.includes('governance') || domain.includes('regul');
-  const isGeopol = domain.includes('geo') || domain.includes('security') || domain.includes('defense');
-
-  // Grid lines (architectural blueprint feel)
-  const gridSpacing = 64;
-  for (let x = 0; x <= W; x += gridSpacing) {
-    const opacity = 0.03 + rng() * 0.04;
-    svg += `<line x1="${x}" y1="0" x2="${x}" y2="${H}" stroke="rgba(240,240,250,${opacity.toFixed(3)})" stroke-width="0.5"/>`;
-  }
-  for (let y = 0; y <= H; y += gridSpacing) {
-    const opacity = 0.03 + rng() * 0.04;
-    svg += `<line x1="0" y1="${y}" x2="${W}" y2="${y}" stroke="rgba(240,240,250,${opacity.toFixed(3)})" stroke-width="0.5"/>`;
+  // ── Subtle background texture: faint atmospheric particles ──
+  for (let i = 0; i < 60; i++) {
+    const x = rng() * W;
+    const y = rng() * H;
+    const r = 0.5 + rng() * 1.2;
+    const op = 0.02 + rng() * 0.04;
+    svg += `<circle cx="${x.toFixed(0)}" cy="${y.toFixed(0)}" r="${r.toFixed(1)}" fill="rgba(240,240,250,${op.toFixed(3)})"/>`;
   }
 
-  // Domain-specific overlay
-  if (isAI) {
-    // Neural network nodes + connections
-    const nodes: Array<[number, number]> = [];
-    for (let i = 0; i < 24; i++) {
-      nodes.push([100 + rng() * (W - 200), 100 + rng() * (H - 200)]);
-    }
-    // Draw connections
-    for (let i = 0; i < nodes.length; i++) {
-      for (let j = i + 1; j < nodes.length; j++) {
-        const dist = Math.hypot(nodes[i][0] - nodes[j][0], nodes[i][1] - nodes[j][1]);
-        if (dist < 250) {
-          const op = (1 - dist / 250) * 0.12;
-          svg += `<line x1="${nodes[i][0].toFixed(0)}" y1="${nodes[i][1].toFixed(0)}" x2="${nodes[j][0].toFixed(0)}" y2="${nodes[j][1].toFixed(0)}" stroke="rgba(240,240,250,${op.toFixed(3)})" stroke-width="0.6"/>`;
-        }
-      }
-    }
-    // Draw nodes
-    for (const [nx, ny] of nodes) {
-      const r = 2 + rng() * 3;
-      svg += `<circle cx="${nx.toFixed(0)}" cy="${ny.toFixed(0)}" r="${r.toFixed(1)}" fill="rgba(240,240,250,${(0.15 + rng() * 0.25).toFixed(3)})"/>`;
-    }
-  } else if (isEcon) {
-    // Supply/demand curves + market flows
+  // ── The form: a partial arch or monolithic structure ──
+  // Determined by seed — some titles get an arch, others a monolith, others a column
+  const formType = seed % 3;
+
+  // Light comes from upper-right
+  const lightAngle = -25 * Math.PI / 180;
+
+  if (formType === 0) {
+    // ── ARCH: a monumental stone arch, one edge slightly fractured ──
+    const archW = 500;
+    const archH = 600;
+    const archRadius = archW / 2;
+    const archX = cx - archW / 2;
+    const archY = cy - archH / 2;
+    const archThickness = 60;
+
+    // Outer arch curve
+    const outerR = archRadius;
+    const innerR = archRadius - archThickness;
+    // Left pillar
+    svg += `<rect x="${archX.toFixed(0)}" y="${(archY + archRadius).toFixed(0)}" width="${archThickness}" height="${(archH - archRadius).toFixed(0)}" fill="rgba(240,240,250,0.04)" stroke="rgba(240,240,250,0.10)" stroke-width="1"/>`;
+    // Right pillar
+    svg += `<rect x="${(archX + archW - archThickness).toFixed(0)}" y="${(archY + archRadius).toFixed(0)}" width="${archThickness}" height="${(archH - archRadius).toFixed(0)}" fill="rgba(240,240,250,0.06)" stroke="rgba(240,240,250,0.14)" stroke-width="1"/>`;
+    // Arch curve (top)
+    svg += `<path d="M ${archX} ${(archY + archRadius).toFixed(0)} A ${outerR} ${outerR} 0 0 1 ${(archX + archW).toFixed(0)} ${(archY + archRadius).toFixed(0)} L ${(archX + archW - archThickness).toFixed(0)} ${(archY + archRadius).toFixed(0)} A ${innerR} ${innerR} 0 0 0 ${(archX + archThickness).toFixed(0)} ${(archY + archRadius).toFixed(0)} Z" fill="rgba(240,240,250,0.05)" stroke="rgba(240,240,250,0.12)" stroke-width="1"/>`;
+    // Subtle fracture on the left pillar (a hairline crack)
+    const crackY = archY + archRadius + 100 + rng() * 200;
+    svg += `<line x1="${(archX + archThickness * 0.5).toFixed(0)}" y1="${crackY.toFixed(0)}" x2="${(archX + archThickness * 0.3).toFixed(0)}" y2="${(crackY + 40).toFixed(0)}" stroke="rgba(240,240,250,0.08)" stroke-width="0.6"/>`;
+  } else if (formType === 1) {
+    // ── MONOLITH: a single tall rectangular form, slightly leaning ──
+    const monW = 280;
+    const monH = 700;
+    const lean = 3; // slight lean in degrees
+    const monX = cx - monW / 2;
+    const monY = cy - monH / 2;
+    const transform = `rotate(${lean} ${cx} ${cy})`;
+    svg += `<rect x="${monX.toFixed(0)}" y="${monY.toFixed(0)}" width="${monW}" height="${monH}" transform="${transform}" fill="rgba(240,240,250,0.05)" stroke="rgba(240,240,250,0.12)" stroke-width="1" rx="2"/>`;
+    // Subtle surface lines (material texture)
     for (let i = 0; i < 5; i++) {
-      const yBase = 200 + i * 150;
-      let path = `M 0 ${yBase}`;
-      for (let x = 0; x <= W; x += 20) {
-        const y = yBase + Math.sin((x + seed) * 0.008 + i) * 60 + rng() * 20;
-        path += ` L ${x} ${y.toFixed(0)}`;
-      }
-      svg += `<path d="${path}" stroke="rgba(240,240,250,${(0.06 + i * 0.02).toFixed(3)})" stroke-width="0.8" fill="none"/>`;
-    }
-  } else if (isPolicy || isGeopol) {
-    // Institutional frameworks — concentric rectangles + connecting lines
-    for (let i = 0; i < 6; i++) {
-      const cx = W / 2 + (rng() - 0.5) * 400;
-      const cy = H / 2 + (rng() - 0.5) * 300;
-      const w = 200 + rng() * 300;
-      const h = 150 + rng() * 200;
-      svg += `<rect x="${(cx - w/2).toFixed(0)}" y="${(cy - h/2).toFixed(0)}" width="${w.toFixed(0)}" height="${h.toFixed(0)}" stroke="rgba(240,240,250,${(0.05 + rng() * 0.08).toFixed(3)})" stroke-width="0.7" fill="none"/>`;
-    }
-    // Connecting lines between frameworks
-    for (let i = 0; i < 8; i++) {
-      const x1 = rng() * W, y1 = rng() * H;
-      const x2 = x1 + (rng() - 0.5) * 400;
-      const y2 = y1 + (rng() - 0.5) * 300;
-      svg += `<line x1="${x1.toFixed(0)}" y1="${y1.toFixed(0)}" x2="${x2.toFixed(0)}" y2="${y2.toFixed(0)}" stroke="rgba(240,240,250,${(0.04 + rng() * 0.06).toFixed(3)})" stroke-width="0.5" stroke-dasharray="4 8"/>`;
+      const ly = monY + 100 + i * 120 + rng() * 40;
+      svg += `<line x1="${(monX + 20).toFixed(0)}" y1="${ly.toFixed(0)}" x2="${(monX + monW - 20).toFixed(0)}" y2="${(ly + (rng() - 0.5) * 10).toFixed(0)}" transform="${transform}" stroke="rgba(240,240,250,0.04)" stroke-width="0.4"/>`;
     }
   } else {
-    // Default: abstract geometric shapes
-    for (let i = 0; i < 40; i++) {
-      const x = rng() * W, y = rng() * H;
-      const r = 20 + rng() * 80;
-      const op = 0.03 + rng() * 0.08;
-      svg += `<circle cx="${x.toFixed(0)}" cy="${y.toFixed(0)}" r="${r.toFixed(0)}" stroke="rgba(240,240,250,${op.toFixed(3)})" stroke-width="0.5" fill="none"/>`;
-    }
+    // ── APERTURE: a rectangular frame with light cutting through the opening ──
+    const apW = 400;
+    const apH = 560;
+    const apX = cx - apW / 2;
+    const apY = cy - apH / 2;
+    const frameThickness = 50;
+    // Frame
+    svg += `<rect x="${apX.toFixed(0)}" y="${apY.toFixed(0)}" width="${apW}" height="${apH}" fill="none" stroke="rgba(240,240,250,0.10)" stroke-width="${frameThickness}" stroke-linejoin="miter"/>`;
+    // Inner opening — slightly lighter (light coming through)
+    svg += `<rect x="${(apX + frameThickness / 2).toFixed(0)}" y="${(apY + frameThickness / 2).toFixed(0)}" width="${(apW - frameThickness).toFixed(0)}" height="${(apH - frameThickness).toFixed(0)}" fill="rgba(240,240,250,0.015)"/>`;
+    // One edge of the frame slightly fractured
+    const fracY = apY + 80 + rng() * 200;
+    svg += `<line x1="${apX.toFixed(0)}" y1="${fracY.toFixed(0)}" x2="${(apX - 8).toFixed(0)}" y2="${(fracY + 25).toFixed(0)}" stroke="rgba(240,240,250,0.06)" stroke-width="0.5"/>`;
   }
 
-  // Diagonal accent lines (cinematic feel)
-  for (let i = 0; i < 3; i++) {
-    const y = 200 + i * 300;
-    svg += `<line x1="0" y1="${y}" x2="${W}" y2="${y - 100}" stroke="rgba(240,240,250,${(0.04 + i * 0.02).toFixed(3)})" stroke-width="0.4"/>`;
-  }
+  // ── Light shaft: subtle diagonal volumetric light from upper-right ──
+  svg += `<defs>`;
+  svg += `<linearGradient id="lightShaft" x1="0.75" y1="0" x2="0.25" y2="1" gradientUnits="objectBoundingBox">`;
+  svg += `<stop offset="0%" stop-color="rgba(240,240,250,0.06)"/>`;
+  svg += `<stop offset="50%" stop-color="rgba(240,240,250,0.02)"/>`;
+  svg += `<stop offset="100%" stop-color="rgba(240,240,250,0)"/>`;
+  svg += `</linearGradient>`;
+  svg += `<radialGradient id="formGlow" cx="0.65" cy="0.35" r="0.5" gradientUnits="objectBoundingBox">`;
+  svg += `<stop offset="0%" stop-color="rgba(240,240,250,0.04)"/>`;
+  svg += `<stop offset="100%" stop-color="rgba(240,240,250,0)"/>`;
+  svg += `</radialGradient>`;
+  svg += `</defs>`;
+  // Light shaft as a subtle polygon
+  const shaftW = 600;
+  svg += `<polygon points="${W},${0} ${W},${H} ${(W - shaftW).toFixed(0)},${H} ${(W - shaftW - 200).toFixed(0)},${0}" fill="url(#lightShaft)" opacity="0.7"/>`;
+  // Glow on the form
+  svg += `<rect width="${W}" height="${H}" fill="url(#formGlow)"/>`;
 
-  // Bottom gradient fade
-  svg += `<defs><linearGradient id="fade" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#000000" stop-opacity="0"/><stop offset="100%" stop-color="#000000" stop-opacity="0.6"/></linearGradient></defs>`;
+  // ── Bottom gradient fade (cinematic) ──
+  svg += `<defs><linearGradient id="fade" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#000000" stop-opacity="0"/><stop offset="70%" stop-color="#000000" stop-opacity="0"/><stop offset="100%" stop-color="#000000" stop-opacity="0.4"/></linearGradient></defs>`;
   svg += `<rect width="${W}" height="${H}" fill="url(#fade)"/>`;
 
   svg += `</svg>`;

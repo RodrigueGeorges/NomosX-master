@@ -152,6 +152,20 @@ export function runNumericalGate(html: string, sourceCount: number): { violation
   // Remove <style>/<script> blocks entirely (CSS values are not statistics)
   normalized = normalized.replace(/<(style|script)\b[^>]*>[\s\S]*?<\/\1>/gi, ' ');
 
+  // Remove sections that contain calibrated/model-generated numbers, not empirical claims:
+  //   - Scenario sections (Delphi-calibrated probabilities like "30%", "90% CI: [21%, 21%]")
+  //   - Prospective framework (base rates, Fermi estimates)
+  //   - Methodology note (pipeline metrics like trust score, citation coverage)
+  //   - References section (DOIs, page numbers)
+  //   - Brief meta (date, reading time)
+  normalized = normalized.replace(/<section\b[^>]*class="[^"]*scenarios-block[^"]*"[^>]*>[\s\S]*?<\/section>/gi, ' ');
+  normalized = normalized.replace(/<section\b[^>]*class="[^"]*prospective-framework[^"]*"[^>]*>[\s\S]*?<\/section>/gi, ' ');
+  normalized = normalized.replace(/<section\b[^>]*class="[^"]*methodology-note[^"]*"[^>]*>[\s\S]*?<\/section>/gi, ' ');
+  normalized = normalized.replace(/<section\b[^>]*class="references-section"[^>]*>[\s\S]*?<\/section>/gi, ' ');
+  normalized = normalized.replace(/<div\b[^>]*class="brief-meta"[^>]*>[\s\S]*?<\/div>/gi, ' ');
+  normalized = normalized.replace(/<section\b[^>]*class="[^"]*trajectory[^"]*"[^>]*>[\s\S]*?<\/section>/gi, ' ');
+  normalized = normalized.replace(/<section\b[^>]*class="[^"]*what-to-watch[^"]*"[^>]*>[\s\S]*?<\/section>/gi, ' ');
+
   const text = normalized.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
 
   // Find all numbers that look like statistics (percentages, decimals, large numbers)
@@ -164,6 +178,10 @@ export function runNumericalGate(html: string, sourceCount: number): { violation
 
     // Skip years (1900-2099)
     if (/^\b(19\d{2}|20\d{2})\b$/.test(matchStr)) continue;
+
+    // Skip SDG numbers ("17 Sustainable Development Goals", "7 to 13 of the 17")
+    const context = text.slice(Math.max(0, pos - 80), pos + matchStr.length + 80);
+    if (/Sustainable Development Goals|SDGs?\b/i.test(context)) continue;
 
     // Check for [SRC-N] or [E-N] within 100 chars after AND before the number
     const after = text.slice(pos, pos + matchStr.length + 100);

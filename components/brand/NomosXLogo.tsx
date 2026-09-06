@@ -32,7 +32,7 @@ function FaviconX({ cx, cy, scale, accent }: {
   const strokeW = 2.4 * scale;
   const dotR = 2.5 * scale;
   return (
-    <g style={{ filter: `drop-shadow(0 0 4px rgba(255,255,255,0.6)) drop-shadow(0 0 2px rgba(255,255,255,0.4))` }}>
+    <g style={{ filter: `drop-shadow(0 0 4px rgba(0,0,0,0.25)) drop-shadow(0 0 2px rgba(0,0,0,0.15))` }}>
       <line x1={x1} y1={y1} x2={x2} y2={y2}
         stroke={accent} strokeWidth={strokeW} strokeLinecap="round" />
       <line x1={x2} y1={y1} x2={x1} y2={y2}
@@ -76,8 +76,8 @@ function Wordmark({ x, accent }: { x: number; accent?: string }) {
 function Mark({ node }: { node: string }) {
   return (
     <g transform={`translate(${V.pad},${V.symY}) scale(${V.symScale})`}>
-      <line x1="7" y1="7" x2="25" y2="25" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" style={{ filter: "drop-shadow(0 0 2px rgba(255,255,255,0.5))" }} />
-      <line x1="25" y1="7" x2="7" y2="25" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" style={{ filter: "drop-shadow(0 0 2px rgba(255,255,255,0.5))" }} />
+      <line x1="7" y1="7" x2="25" y2="25" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" style={{ filter: "drop-shadow(0 0 2px rgba(0,0,0,0.2))" }} />
+      <line x1="25" y1="7" x2="7" y2="25" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" style={{ filter: "drop-shadow(0 0 2px rgba(0,0,0,0.2))" }} />
       <circle cx="16" cy="16" r="2.6" fill={node} />
     </g>
   );
@@ -106,8 +106,8 @@ export function NomosXLogo({
     const s = symbolSvgSize(size);
     return (
       <svg {...common} width={s} height={s} viewBox="0 0 32 32">
-        <line x1="7" y1="7" x2="25" y2="25" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" style={{ filter: "drop-shadow(0 0 2px rgba(255,255,255,0.5))" }} />
-        <line x1="25" y1="7" x2="7" y2="25" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" style={{ filter: "drop-shadow(0 0 2px rgba(255,255,255,0.5))" }} />
+        <line x1="7" y1="7" x2="25" y2="25" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" style={{ filter: "drop-shadow(0 0 2px rgba(0,0,0,0.2))" }} />
+        <line x1="25" y1="7" x2="7" y2="25" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" style={{ filter: "drop-shadow(0 0 2px rgba(0,0,0,0.2))" }} />
         <circle cx="16" cy="16" r="2.6" fill={node} />
       </svg>
     );

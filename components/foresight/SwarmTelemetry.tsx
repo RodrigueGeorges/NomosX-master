@@ -30,18 +30,18 @@ export function SwarmTelemetry({ telemetry }: SwarmTelemetryProps) {
         return (
           <div
             key={item.label}
-            className="border border-white/[0.06] bg-black/20 p-3"
+            className="border border-black/[0.06] bg-black/20 p-3"
           >
-            <Icon size={14} className="text-white/40 mb-2" />
-            <div className="text-[9px] text-white/45 uppercase tracking-[0.14em] font-mono">
+            <Icon size={14} className="text-black/40 mb-2" />
+            <div className="text-[9px] text-black/45 uppercase tracking-[0.14em] font-mono">
               {item.label}
             </div>
-            <div className="text-sm font-semibold text-white/85 font-mono mt-0.5">{item.value}</div>
+            <div className="text-sm font-semibold text-black/85 font-mono mt-0.5">{item.value}</div>
           </div>
         );
       })}
 
-      <div className="col-span-2 lg:col-span-4 border border-white/[0.06] bg-black/20 p-3 flex flex-wrap gap-4 text-[11px] font-mono text-white/40">
+      <div className="col-span-2 lg:col-span-4 border border-black/[0.06] bg-black/20 p-3 flex flex-wrap gap-4 text-[11px] font-mono text-black/40">
         <span>
           Evidence graph: {telemetry.graphNodes} nodes · {telemetry.graphEdges} edges (
           {telemetry.graphMethod})

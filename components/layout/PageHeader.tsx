@@ -98,7 +98,7 @@ export function EtherealCard({
   return (
     <div
       className={cn(
-        "border border-white/[0.08] bg-white/[0.02] p-5 sm:p-6 transition-colors hover:border-white/15",
+        "border border-black/[0.08] bg-black/[0.02] p-5 sm:p-6 transition-colors hover:border-black/15",
         className
       )}
     >

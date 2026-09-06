@@ -102,7 +102,7 @@ export default function MoatDashboardPage() {
           <button
             onClick={fetchData}
             disabled={loading}
-            className="flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition disabled:opacity-50"
+            className="flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg bg-black/5 hover:bg-black/10 border border-black/10 transition disabled:opacity-50"
           >
             <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
             Refresh
@@ -143,7 +143,7 @@ export default function MoatDashboardPage() {
                       <div key={i} className="flex items-center justify-between">
                         <span className="text-sm text-gray-300">{f.feature}</span>
                         <div className="flex items-center gap-2">
-                          <div className="w-32 h-2 bg-white/5 rounded-full overflow-hidden">
+                          <div className="w-32 h-2 bg-black/5 rounded-full overflow-hidden">
                             <div
                               className={cn("h-full rounded-full", f.weight >= 0 ? "bg-blue-400/60" : "bg-red-400/60")}
                               style={{ width: `${Math.min(100, Math.abs(f.weight) * 100)}%` }}
@@ -156,7 +156,7 @@ export default function MoatDashboardPage() {
                       </div>
                     ))}
                   </div>
-                  <div className="flex gap-4 text-sm text-gray-500 pt-3 border-t border-white/5">
+                  <div className="flex gap-4 text-sm text-gray-500 pt-3 border-t border-black/5">
                     <span>Exemples d'entraînement : {data.prm.trainingExamples}</span>
                     {data.prm.avgReward !== null && (
                       <span>Récompense moyenne : {data.prm.avgReward.toFixed(3)}</span>
@@ -180,7 +180,7 @@ export default function MoatDashboardPage() {
                       <Metric label="Robustesse moyenne" value={data.selfPlay.avgRobustness !== null ? `${(data.selfPlay.avgRobustness * 100).toFixed(0)}%` : "—"} color="text-green-300" />
                     </div>
                     {Object.keys(data.selfPlay.weaknessCategories).length > 0 && (
-                      <div className="pt-3 border-t border-white/5">
+                      <div className="pt-3 border-t border-black/5">
                         <div className="text-xs text-gray-500 mb-2">Catégories de faiblesses trouvées</div>
                         <div className="flex gap-2 flex-wrap">
                           {Object.entries(data.selfPlay.weaknessCategories)
@@ -203,7 +203,7 @@ export default function MoatDashboardPage() {
                 ) : (
                   <div className="space-y-2">
                     {data.selfPlay.recentRounds.map((r, i) => (
-                      <div key={i} className="p-2 rounded-lg hover:bg-white/5">
+                      <div key={i} className="p-2 rounded-lg hover:bg-black/5">
                         <div className="text-sm text-gray-300 truncate">{r.query}</div>
                         <div className="flex gap-3 text-xs text-gray-500 mt-1">
                           <span>{r.attacks} attacks</span>
@@ -237,7 +237,7 @@ export default function MoatDashboardPage() {
                         <div key={agent} className="flex items-center justify-between">
                           <span className="text-sm text-gray-300">{agentLabels[agent] || agent}</span>
                           <div className="flex items-center gap-2">
-                            <div className="w-24 h-2 bg-white/5 rounded-full overflow-hidden">
+                            <div className="w-24 h-2 bg-black/5 rounded-full overflow-hidden">
                               <div
                                 className="h-full bg-purple-400/60 rounded-full"
                                 style={{ width: `${Math.min(100, (count / data.moa.totalRuns) * 100)}%` }}
@@ -250,7 +250,7 @@ export default function MoatDashboardPage() {
                   </div>
                 )}
                 {data.moa.latestWeights && (
-                  <div className="mt-4 pt-3 border-t border-white/5">
+                  <div className="mt-4 pt-3 border-t border-black/5">
                     <div className="text-xs text-gray-500 mb-2">Poids actuels des agents</div>
                     <div className="flex gap-2 flex-wrap">
                       {Object.entries(data.moa.latestWeights).map(([agent, info]) => (
@@ -269,7 +269,7 @@ export default function MoatDashboardPage() {
                 ) : (
                   <div className="space-y-2">
                     {data.moa.recentRuns.map((r, i) => (
-                      <div key={i} className="p-2 rounded-lg hover:bg-white/5">
+                      <div key={i} className="p-2 rounded-lg hover:bg-black/5">
                         <div className="text-sm text-gray-300 truncate">{r.query}</div>
                         <div className="flex gap-3 text-xs text-gray-500 mt-1">
                           <span>{r.agentCount} agents</span>
@@ -305,11 +305,11 @@ export default function MoatDashboardPage() {
                   </div>
 
                   {/* Domain breakdown */}
-                  <div className="pt-3 border-t border-white/5">
+                  <div className="pt-3 border-t border-black/5">
                     <div className="text-xs text-gray-500 mb-2">Domaines</div>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                       {data.worldModel.domains.map((d, i) => (
-                        <div key={i} className="p-2 rounded-lg bg-white/5 border border-white/10">
+                        <div key={i} className="p-2 rounded-lg bg-black/5 border border-black/10">
                           <div className="text-sm font-medium text-gray-200">{d.domain}</div>
                           <div className="flex gap-2 text-xs text-gray-500 mt-1">
                             <span>{d.concepts} concepts</span>
@@ -331,7 +331,7 @@ export default function MoatDashboardPage() {
               ) : (
                 <div className="space-y-2">
                   {data.worldModel.crossDomainLinks.map((link, i) => (
-                    <div key={i} className="flex items-start gap-3 p-2 rounded-lg hover:bg-white/5">
+                    <div key={i} className="flex items-start gap-3 p-2 rounded-lg hover:bg-black/5">
                       <Link2 className="w-4 h-4 text-green-400 shrink-0 mt-0.5" />
                       <div className="flex-1 min-w-0">
                         <div className="text-sm text-gray-300">
@@ -364,7 +364,7 @@ function SummaryCard({
   icon: React.ReactNode; label: string; value: string | number; sublabel?: string; color: string;
 }) {
   return (
-    <div className="p-4 rounded-xl bg-white/5 border border-white/10">
+    <div className="p-4 rounded-xl bg-black/5 border border-black/10">
       <div className="flex items-center gap-2 mb-2">
         <span className={color}>{icon}</span>
         <span className="text-xs text-gray-500 uppercase tracking-wide">{label}</span>
@@ -381,7 +381,7 @@ function Panel({
   title: string; icon: React.ReactNode; children: React.ReactNode; className?: string;
 }) {
   return (
-    <div className={cn("p-5 rounded-xl bg-white/5 border border-white/10", className)}>
+    <div className={cn("p-5 rounded-xl bg-black/5 border border-black/10", className)}>
       <div className="flex items-center gap-2 mb-4">
         <span className="text-gray-400">{icon}</span>
         <h3 className="text-sm font-medium text-gray-200">{title}</h3>
@@ -393,7 +393,7 @@ function Panel({
 
 function Metric({ label, value, color }: { label: string; value: string | number; color?: string }) {
   return (
-    <div className="p-3 rounded-lg bg-white/5 border border-white/10">
+    <div className="p-3 rounded-lg bg-black/5 border border-black/10">
       <div className="text-xs text-gray-500 uppercase tracking-wide">{label}</div>
       <div className={cn("text-xl font-bold mt-1", color || "text-gray-200")}>{value}</div>
     </div>

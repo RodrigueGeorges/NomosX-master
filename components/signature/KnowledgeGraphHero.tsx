@@ -26,7 +26,7 @@ export function KnowledgeGraphHero({ className }: KnowledgeGraphHeroProps) {
       <div
         className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(70%,520px)] aspect-square"
         style={{
-          background: "radial-gradient(circle, rgba(240,240,250,0.04) 0%, transparent 60%)",
+          background: "radial-gradient(circle, rgba(10,10,15,0.04) 0%, transparent 60%)",
         }}
       />
       <svg
@@ -57,7 +57,7 @@ export function KnowledgeGraphHero({ className }: KnowledgeGraphHeroProps) {
                   y1={p.y}
                   x2={center.x}
                   y2={center.y}
-                  stroke="rgba(240,240,250,0.04)"
+                  stroke="rgba(10,10,15,0.04)"
                   strokeWidth="0.1"
                 />
               ))}
@@ -68,7 +68,7 @@ export function KnowledgeGraphHero({ className }: KnowledgeGraphHeroProps) {
                   cx={p.x}
                   cy={p.y}
                   r={p.r}
-                  fill={`rgba(240,240,250,${p.o})`}
+                  fill={`rgba(10,10,15,${p.o})`}
                 />
               ))}
               {/* Breathing center */}
@@ -76,8 +76,8 @@ export function KnowledgeGraphHero({ className }: KnowledgeGraphHeroProps) {
                 cx={center.x}
                 cy={center.y}
                 r="2"
-                fill="rgba(240,240,250,0.05)"
-                stroke="rgba(240,240,250,0.35)"
+                fill="rgba(10,10,15,0.05)"
+                stroke="rgba(10,10,15,0.35)"
                 strokeWidth="0.12"
                 className="nx-kg-breath"
               />
@@ -86,7 +86,7 @@ export function KnowledgeGraphHero({ className }: KnowledgeGraphHeroProps) {
                 cy={center.y}
                 r="2"
                 fill="none"
-                stroke="rgba(240,240,250,0.15)"
+                stroke="rgba(10,10,15,0.15)"
                 strokeWidth="0.08"
                 className="nx-kg-emit"
               />

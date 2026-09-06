@@ -19,7 +19,7 @@ export async function searchBASE(query: string, hits = 20): Promise<any[]> {
         type: "academic",
         title: doc.dctitle || doc.title,
         abstract: doc.dcdescription || doc.description,
-        authors: doc.dccreator?.map((author: string) => ({ name: author, institution: null })) || [],
+        authors: Array.isArray(doc.dccreator) ? doc.dccreator.map((author: string) => ({ name: author, institution: null })) : [],
         journal: doc.dcpublisher || "Unknown",
         year: parseInt(doc.dcdate?.substring(0, 4)) || null,
         doi: doc.dcdentifier?.find((id: string) => id.includes('doi:'))?.replace('doi:', '') || null,

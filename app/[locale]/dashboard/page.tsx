@@ -122,7 +122,7 @@ export default function DashboardPage() {
     return (
       <PublicPageShell>
         <div className="flex items-center justify-center min-h-[60vh]">
-          <Loader2 className="w-6 h-6 animate-spin text-white/40" />
+          <Loader2 className="w-6 h-6 animate-spin text-black/40" />
         </div>
       </PublicPageShell>
     );
@@ -133,9 +133,9 @@ export default function DashboardPage() {
     return (
       <PublicPageShell>
         <div className="flex flex-col items-center justify-center min-h-[60vh] px-6">
-          <Lock className="w-10 h-10 text-white/30 mb-4" />
-          <h1 className="text-xl font-semibold text-white/80 mb-2">Accès restreint</h1>
-          <p className="text-sm text-white/50 text-center max-w-md">
+          <Lock className="w-10 h-10 text-black/30 mb-4" />
+          <h1 className="text-xl font-semibold text-black/80 mb-2">Accès restreint</h1>
+          <p className="text-sm text-black/50 text-center max-w-md">
             Cette page est réservée aux administrateurs. Connectez-vous avec un compte admin.
           </p>
         </div>
@@ -160,7 +160,7 @@ export default function DashboardPage() {
           <button
             onClick={refresh}
             disabled={loading}
-            className="flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition disabled:opacity-50"
+            className="flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg bg-black/5 hover:bg-black/10 border border-black/10 transition disabled:opacity-50"
           >
             <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
             Actualiser
@@ -215,13 +215,13 @@ export default function DashboardPage() {
 
             {/* Publications récentes */}
             <div className="mb-8">
-              <div className="text-xs font-mono uppercase tracking-[0.14em] text-white/40 mb-3">
+              <div className="text-xs font-mono uppercase tracking-[0.14em] text-black/40 mb-3">
                 Publications récentes
               </div>
               <div className="space-y-2">
                 {metrics?.recent.slice(0, 5).map((b, i) => (
-                  <div key={i} className="flex items-center gap-3 p-3 rounded-lg bg-white/5 border border-white/10">
-                    <FileText className="w-4 h-4 text-white/40 shrink-0" />
+                  <div key={i} className="flex items-center gap-3 p-3 rounded-lg bg-black/5 border border-black/10">
+                    <FileText className="w-4 h-4 text-black/40 shrink-0" />
                     <span className="text-sm text-gray-300 truncate flex-1">{b.question}</span>
                     <span className={cn(
                       "text-xs px-2 py-0.5 rounded shrink-0",
@@ -229,7 +229,7 @@ export default function DashboardPage() {
                     )}>
                       {b.kind}
                     </span>
-                    <span className="text-xs text-white/40 shrink-0">
+                    <span className="text-xs text-black/40 shrink-0">
                       {new Date(b.createdAt).toLocaleDateString("fr-FR")}
                     </span>
                   </div>
@@ -368,9 +368,9 @@ export default function DashboardPage() {
 function SectionTitle({ icon, title }: { icon: React.ReactNode; title: string }) {
   return (
     <div className="flex items-center gap-2 mb-4 mt-8 first:mt-0">
-      <span className="text-white/40">{icon}</span>
-      <h2 className="text-sm font-medium text-white/80 uppercase tracking-[0.14em] font-mono">{title}</h2>
-      <div className="flex-1 h-px bg-white/[0.08] ml-2" />
+      <span className="text-black/40">{icon}</span>
+      <h2 className="text-sm font-medium text-black/80 uppercase tracking-[0.14em] font-mono">{title}</h2>
+      <div className="flex-1 h-px bg-black/[0.08] ml-2" />
     </div>
   );
 }
@@ -381,7 +381,7 @@ function StatCard({
   icon: React.ReactNode; label: string; value: string | number; sublabel?: string; color: string;
 }) {
   return (
-    <div className="p-4 rounded-xl bg-white/5 border border-white/10">
+    <div className="p-4 rounded-xl bg-black/5 border border-black/10">
       <div className="flex items-center gap-2 mb-2">
         <span className={color}>{icon}</span>
         <span className="text-xs text-gray-500 uppercase tracking-wide">{label}</span>
@@ -396,14 +396,14 @@ function DashboardLink({ href, icon, label, description }: { href: string; icon:
   return (
     <a
       href={href}
-      className="flex items-center gap-4 p-4 rounded-xl bg-white/5 border border-white/10 hover:border-white/20 hover:bg-white/[0.08] transition-all group mb-8"
+      className="flex items-center gap-4 p-4 rounded-xl bg-black/5 border border-black/10 hover:border-black/20 hover:bg-black/[0.08] transition-all group mb-8"
     >
-      <span className="text-white/40 group-hover:text-white/80 transition-colors">{icon}</span>
+      <span className="text-black/40 group-hover:text-black/80 transition-colors">{icon}</span>
       <div className="flex-1">
-        <div className="text-sm font-medium text-white/80">{label}</div>
-        <div className="text-xs text-white/40 mt-0.5">{description}</div>
+        <div className="text-sm font-medium text-black/80">{label}</div>
+        <div className="text-xs text-black/40 mt-0.5">{description}</div>
       </div>
-      <ArrowRight className="w-4 h-4 text-white/30 group-hover:text-white/60 transition-colors" />
+      <ArrowRight className="w-4 h-4 text-black/30 group-hover:text-black/60 transition-colors" />
     </a>
   );
 }

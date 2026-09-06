@@ -42,7 +42,7 @@ export async function searchOSTI(query: string, limit = 20): Promise<any[]> {
         if (!isNaN(parsed.getTime())) year = parsed.getFullYear();
       }
 
-      const authors = (item.authors || []).map((a: any) => ({
+      const authors = (Array.isArray(item.authors) ? item.authors : []).map((a: any) => ({
         name: a.full_name || a.name || '',
       })).filter((a: any) => a.name);
 

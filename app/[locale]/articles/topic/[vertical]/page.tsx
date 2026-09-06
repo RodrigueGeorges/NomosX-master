@@ -87,10 +87,10 @@ export default function TopicPage() {
     return (
       <PublicPageShell currentPage="inquiries" onSignInClick={() => setShowAuthModal(true)}>
         <div className="max-w-5xl mx-auto px-6 py-24 text-center">
-          <p className="text-white/40 mb-4">Domain not found.</p>
+          <p className="text-black/40 mb-4">Domain not found.</p>
           <button
             onClick={() => router.push(PUBLIC_ROUTES.archives)}
-            className="text-white/60 hover:text-white text-sm transition-colors"
+            className="text-black/60 hover:text-black text-sm transition-colors"
           >
             ← Back to briefs
           </button>
@@ -116,7 +116,7 @@ export default function TopicPage() {
           <button
             type="button"
             onClick={() => router.push(PUBLIC_ROUTES.archives)}
-            className="flex items-center gap-2 text-white/40 hover:text-white transition-colors text-sm mb-8"
+            className="flex items-center gap-2 text-black/40 hover:text-black transition-colors text-sm mb-8"
           >
             <ArrowLeft size={14} />
             All briefs
@@ -130,12 +130,12 @@ export default function TopicPage() {
 
           {loading ? (
             <div className="flex items-center justify-center min-h-[400px]">
-              <div className="w-8 h-8 border border-white/20 border-t-white rounded-full animate-spin" />
+              <div className="w-8 h-8 border border-black/20 border-t-white rounded-full animate-spin" />
             </div>
           ) : articles.length === 0 ? (
             <div className="text-center py-20">
-              <BookOpen className="w-12 h-12 text-white/20 mx-auto mb-4" />
-              <p className="text-white/40">No publications in this domain yet.</p>
+              <BookOpen className="w-12 h-12 text-black/20 mx-auto mb-4" />
+              <p className="text-black/40">No publications in this domain yet.</p>
             </div>
           ) : (
             <>
@@ -158,7 +158,7 @@ export default function TopicPage() {
                   >
                     Previous
                   </button>
-                  <span className="font-mono text-sm text-white/50">
+                  <span className="font-mono text-sm text-black/50">
                     {page} / {totalPages}
                   </span>
                   <button

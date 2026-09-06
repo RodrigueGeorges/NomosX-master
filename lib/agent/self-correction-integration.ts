@@ -103,6 +103,7 @@ export async function selfCorrectReader(
   // Retry avec feedback
   const feedback = buildCorrectionFeedback(reflection);
   let currentReadings = readings;
+  let bestReaderScore = reflection.score;  // Version buffer: track best across retries
   let retries = 0;
   let totalCost = reflection.costUsd;
   const reflections: PhaseReflection[] = [reflection];
@@ -125,15 +126,22 @@ export async function selfCorrectReader(
       reflections.push(retriedReflection);
       totalCost += retriedReflection.costUsd;
 
-      if (retriedReflection.score > reflection.score) {
+      // Version buffer (CyberCorrect): keep the best version across all retries
+      if (retriedReflection.score > bestReaderScore) {
+        bestReaderScore = retriedReflection.score;
         currentReadings = retriedReadings;
-        console.log(`[SelfCorrection] READER retry ${retries}: ${reflection.score} → ${retriedReflection.score} (improved)`);
+        console.log(`[SelfCorrection] READER retry ${retries}: ${reflection.score} → ${retriedReflection.score} (new best)`);
       } else {
-        console.log(`[SelfCorrection] READER retry ${retries}: ${reflection.score} → ${retriedReflection.score} (no improvement, keeping original)`);
+        console.log(`[SelfCorrection] READER retry ${retries}: ${retriedReflection.score} ≤ best ${bestReaderScore} — keeping best (overshoot rollback)`);
+      }
+
+      // EIR/ECR: stop if retries are counterproductive
+      if (retries >= 2 && retriedReflection.score < reflection.score) {
+        console.log(`[SelfCorrection] READER EIR/ECR: retry degraded score — stopping`);
         break;
       }
 
-      if (retriedReflection.score >= 50) break;
+      if (bestReaderScore >= 50) break;
     } catch (err) {
       console.warn(`[SelfCorrection] READER retry ${retries} failed:`, err);
       break;
@@ -141,7 +149,7 @@ export async function selfCorrectReader(
   }
 
   const originalScore = reflections[0]?.score || 0;
-  const finalScore = reflections[reflections.length - 1]?.score || 0;
+  const finalScore = bestReaderScore;
 
   return {
     readings: currentReadings,
@@ -201,6 +209,7 @@ export async function selfCorrectAnalyst(
 
   const feedback = buildCorrectionFeedback(reflection);
   let currentAnalysis = analysis;
+  let bestAnalystScore = reflection.score;  // Version buffer: track best across retries
   let retries = 0;
   let totalCost = reflection.costUsd;
   const reflections: PhaseReflection[] = [reflection];
@@ -222,15 +231,22 @@ export async function selfCorrectAnalyst(
       reflections.push(retriedReflection);
       totalCost += retriedReflection.costUsd;
 
-      if (retriedReflection.score > reflection.score) {
+      // Version buffer (CyberCorrect): keep the best version across all retries
+      if (retriedReflection.score > bestAnalystScore) {
+        bestAnalystScore = retriedReflection.score;
         currentAnalysis = retriedAnalysis;
-        console.log(`[SelfCorrection] ANALYST retry ${retries}: ${reflection.score} → ${retriedReflection.score} (improved)`);
+        console.log(`[SelfCorrection] ANALYST retry ${retries}: ${reflection.score} → ${retriedReflection.score} (new best)`);
       } else {
-        console.log(`[SelfCorrection] ANALYST retry ${retries}: ${reflection.score} → ${retriedReflection.score} (no improvement, keeping original)`);
+        console.log(`[SelfCorrection] ANALYST retry ${retries}: ${retriedReflection.score} ≤ best ${bestAnalystScore} — keeping best (overshoot rollback)`);
+      }
+
+      // EIR/ECR: stop if retries are counterproductive
+      if (retries >= 2 && retriedReflection.score < reflection.score) {
+        console.log(`[SelfCorrection] ANALYST EIR/ECR: retry degraded score — stopping`);
         break;
       }
 
-      if (retriedReflection.score >= 50) break;
+      if (bestAnalystScore >= 50) break;
     } catch (err) {
       console.warn(`[SelfCorrection] ANALYST retry ${retries} failed:`, err);
       break;
@@ -238,7 +254,7 @@ export async function selfCorrectAnalyst(
   }
 
   const originalScore = reflections[0]?.score || 0;
-  const finalScore = reflections[reflections.length - 1]?.score || 0;
+  const finalScore = bestAnalystScore;
 
   return {
     analysis: currentAnalysis,

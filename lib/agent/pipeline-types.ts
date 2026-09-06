@@ -650,6 +650,43 @@ export interface PipelineStats {
     uncited: number;
   };
 
+  // Prose cleanup (deterministic post-repair fix for stutter, abbreviations, double spaces)
+  proseCleanup?: {
+    fixed: number;
+  };
+
+  // Self-correct (CHARM + Overseer + DISC + CyberCorrect + AgentDebugX + AgentRewind):
+  // cascade detection, cross-stage consistency, auto-retry, judgment gate, version buffer,
+  // EIR/ECR stability, root-cause attribution, rewind memory
+  selfCorrect?: {
+    analystCheckpoint?: any;
+    criticCheckpoint?: any;
+    finalCheckpoint?: any;
+    cascadeDetected?: boolean;
+    stats?: {
+      stagesChecked: number;
+      totalRetries: number;
+      cascadesDetected: number;
+      rollbacksPerformed: number;
+      avgDrift: number;
+      cleanStages: number;
+      // DISC judgment gate (arXiv 2606.21724)
+      judgmentGateBlocks?: number;
+      // EIR/ECR stability (Feedback Control arXiv 2026)
+      stabilityStops?: number;
+      // Root-cause attribution (AgentDebugX arXiv 2026)
+      rootCause?: { rootStage: string; propagationPath: string[]; rootCause: string; confidence: number } | null;
+      // Rewind memory (AgentRewind arXiv 2026)
+      rewindMemories?: number;
+    };
+    // Adaptive topology (AdaptOrch arXiv 2026)
+    topology?: {
+      type: 'sequential' | 'parallel' | 'hierarchical' | 'hybrid';
+      estimatedSpeedup: number;
+      rationale: string;
+    };
+  };
+
   // Step 14: Publisher
   brief?: {
     id: string;
@@ -823,11 +860,32 @@ export interface APACitation {
  * Format a source into APA 7th edition citation
  */
 export function formatAPA(source: any, index: number): APACitation {
-  // Extract authors
-  const authorList = source.authors
+  // Extract authors — try multiple paths since different providers store authors differently
+  let authorList = source.authors
     ?.map((sa: any) => sa.author?.name || sa.name || (typeof sa === 'string' ? sa : null))
     .filter(Boolean) || [];
-  
+
+  // Fallback 1: OpenAlex raw authorships (raw.authorships[].author.display_name)
+  if (authorList.length === 0 && source.raw?.authorships) {
+    authorList = source.raw.authorships
+      .map((a: any) => a.author?.display_name || a.author?.name)
+      .filter(Boolean);
+  }
+
+  // Fallback 2: Crossref raw authors (raw.author[].given + raw.author[].family)
+  if (authorList.length === 0 && source.raw?.author) {
+    authorList = source.raw.author
+      .map((a: any) => [a.given, a.family].filter(Boolean).join(' '))
+      .filter(Boolean);
+  }
+
+  // Fallback 3: OpenAlex raw authors as string array
+  if (authorList.length === 0 && source.raw?.authors && Array.isArray(source.raw.authors)) {
+    authorList = source.raw.authors
+      .map((a: any) => typeof a === 'string' ? a : (a?.name || a?.display_name))
+      .filter(Boolean);
+  }
+
   let authors: string;
   if (authorList.length === 0) {
     authors = ""; // No author — omit entirely instead of "Unknown Author"
@@ -843,8 +901,13 @@ export function formatAPA(source: any, index: number): APACitation {
     authors = `${formatted.join(", ")}, ... ${formatAuthorName(authorList[authorList.length - 1])}`;
   }
 
-  const year = source.year ? String(source.year) : "n.d.";
-  const title = source.title || "Untitled";
+  // Extract year — try multiple paths
+  const year = source.year
+    || source.raw?.publication_year
+    || (source.raw?.published?.['date-parts']?.[0]?.[0])
+    || (source.raw?.created?.['date-parts']?.[0]?.[0])
+    || "n.d.";
+  const title = source.title || source.raw?.title || "Untitled";
   
   // Determine source type for proper APA formatting
   const journalName = source.raw?.primary_location?.source?.display_name 

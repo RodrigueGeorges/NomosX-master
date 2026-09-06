@@ -62,7 +62,7 @@ export async function searchIETF(query: string, limit = 15): Promise<any[]> {
         doi: null,
         year: year && !isNaN(year) ? year : null,
         publishedDate: doc.time || null,
-        authors: (doc.authors || []).map((a: any) => ({
+        authors: (Array.isArray(doc.authors) ? doc.authors : []).map((a: any) => ({
           name: a?.person?.name || a?.name || '',
         })),
         institutions: ['IETF'],

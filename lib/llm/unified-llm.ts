@@ -1061,8 +1061,18 @@ async function callAnthropic(request: LLMRequest, model: string): Promise<LLMRes
   if (!content.trim() && !toolCalls?.length) {
     throw new Error(`anthropic/${model} returned empty content (out_tokens=${tokensOutput})`);
   }
-  if (request.jsonMode && !isParseableJson(content)) {
-    throw new Error(`anthropic/${model} returned non-parseable JSON (jsonMode=true) — triggering failover`);
+  if (request.jsonMode) {
+    let directlyParseable = false;
+    try { JSON.parse(content); directlyParseable = true; } catch { /* not directly parseable */ }
+    if (!directlyParseable) {
+      const repaired = attemptJsonRepair(content);
+      if (repaired) {
+        console.log(`🔧 anthropic/${model} JSON repaired in-place (len=${content.length}→${repaired.length})`);
+        content = repaired;
+      } else {
+        throw new Error(`anthropic/${model} returned non-parseable JSON (jsonMode=true) — triggering failover`);
+      }
+    }
   }
 
   return {
@@ -1161,6 +1171,73 @@ function isParseableJson(raw: string): boolean {
 }
 
 /**
+ * Attempt to repair slightly malformed JSON returned by an LLM.
+ * Strategies (in order):
+ *   1. Strip markdown fences (```json ... ```)
+ *   2. Extract the outermost { ... } or [ ... ] envelope
+ *   3. Remove trailing commas before closing brackets
+ *   4. Close unterminated strings and brackets
+ * Returns the repaired JSON string if successful, or null if unrepairable.
+ */
+function attemptJsonRepair(raw: string): string | null {
+  if (!raw || typeof raw !== "string") return null;
+
+  // If it already parses, return as-is
+  try { JSON.parse(raw); return raw; } catch { /* continue */ }
+
+  let s = raw.trim();
+  if (s.charCodeAt(0) === 0xfeff) s = s.slice(1);
+
+  // Strip markdown fences
+  s = s.replace(/^```(?:json|JSON)?\s*\n?/, "").replace(/\n?```\s*$/, "");
+
+  // Extract the outermost JSON envelope
+  const firstObj = s.indexOf("{");
+  const firstArr = s.indexOf("[");
+  const start = firstArr !== -1 && (firstObj === -1 || firstArr < firstObj) ? firstArr : firstObj;
+  const lastObj = s.lastIndexOf("}");
+  const lastArr = s.lastIndexOf("]");
+  const end = Math.max(lastObj, lastArr);
+  if (start === -1) return null;
+  // If no closing bracket found (truncated response), take everything from start to end of string
+  const bodyEnd = end > start ? end + 1 : s.length;
+  let body = s.slice(start, bodyEnd);
+
+  // Remove trailing commas before closing brackets
+  body = body.replace(/,\s*([}\]])/g, "$1");
+
+  // Try to parse after each repair step
+  try { JSON.parse(body); return body; } catch { /* continue */ }
+
+  // Close unterminated strings and brackets
+  let inString = false, escape = false, braces = 0, brackets = 0;
+  for (let i = 0; i < body.length; i++) {
+    const ch = body[i];
+    if (escape) { escape = false; continue; }
+    if (ch === "\\") { escape = true; continue; }
+    if (ch === '"') { inString = !inString; continue; }
+    if (inString) continue;
+    if (ch === "{") braces++; else if (ch === "}") braces--;
+    else if (ch === "[") brackets++; else if (ch === "]") brackets--;
+  }
+  if (inString) body += '"';
+  while (brackets-- > 0) body += "]";
+  while (braces-- > 0) body += "}";
+
+  try { JSON.parse(body); return body; } catch { /* continue */ }
+
+  // Last resort: try to fix common LLM JSON issues
+  // Remove control characters (newlines inside strings)
+  let cleaned = body.replace(/[\x00-\x1f]/g, (ch) => {
+    if (ch === '\n' || ch === '\r' || ch === '\t') return ch;
+    return '';
+  });
+  try { JSON.parse(cleaned); return cleaned; } catch { /* give up */ }
+
+  return null;
+}
+
+/**
  * Unified LLM call — task-based routing, cross-family fallback, per-provider
  * configurable timeouts, circuit breaker.
  *
@@ -1245,14 +1322,25 @@ export async function callLLM(request: LLMRequest): Promise<LLMResponse> {
       }
 
       // Robustness: when the caller asked for JSON, verify the payload is
-      // actually parseable (tolerant of fences/truncation). Reasoning models
-      // occasionally emit prose or hidden-thought text; failing over to the
-      // next provider is far better than returning unparseable content that
-      // forces every downstream agent into its degraded fallback.
-      if (request.jsonMode && !isParseableJson(response.content)) {
-        throw new Error(
-          `${provider}/${response.model} returned unparseable JSON (len=${response.content.length})`
-        );
+      // directly parseable by JSON.parse(). Reasoning models sometimes wrap
+      // JSON in markdown fences, truncate it, or emit prose. Try to repair
+      // in-place first — saves a costly cross-provider failover when the
+      // response is just slightly malformed.
+      if (request.jsonMode) {
+        let directlyParseable = false;
+        try { JSON.parse(response.content); directlyParseable = true; } catch { /* not directly parseable */ }
+
+        if (!directlyParseable) {
+          const repaired = attemptJsonRepair(response.content);
+          if (repaired) {
+            console.log(`🔧 ${provider}/${response.model} JSON repaired in-place (len=${response.content.length}→${repaired.length})`);
+            response.content = repaired;
+          } else {
+            throw new Error(
+              `${provider}/${response.model} returned unparseable JSON (len=${response.content.length})`
+            );
+          }
+        }
       }
 
       // F-B12: Per-call cost budget enforcement

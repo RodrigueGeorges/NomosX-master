@@ -416,11 +416,11 @@ export function AgenticCore({
 
         // Check for active pulse on this synapse
         let pulseBoost = 0;
-        let pulseR = 240, pulseG = 240, pulseB = 250;
+        let pulseR = 20, pulseG = 40, pulseB = 90;
         for (const p of pulses) {
           if (p.synapseIdx === synapses.indexOf(syn)) {
             pulseBoost = Math.max(pulseBoost, p.intensity * 0.15);
-            pulseR = 170; pulseG = 195; pulseB = 255;
+            pulseR = 40; pulseG = 80; pulseB = 160;
           }
         }
 
@@ -429,7 +429,7 @@ export function AgenticCore({
         if (hasHub && t > 0.3) {
           const grad = ctx.createLinearGradient(ax, ay, bx, by);
           const hubEnd = from.isHub ? 0 : 1;
-          grad.addColorStop(hubEnd, `rgba(200, 215, 255, ${opacity * 1.3})`);
+          grad.addColorStop(hubEnd, `rgba(60, 100, 180, ${opacity * 1.3})`);
           grad.addColorStop(0.5, `rgba(${pulseR}, ${pulseG}, ${pulseB}, ${opacity})`);
           grad.addColorStop(1 - hubEnd, `rgba(${pulseR}, ${pulseG}, ${pulseB}, ${opacity * 0.7})`);
           ctx.strokeStyle = grad;
@@ -492,8 +492,8 @@ export function AgenticCore({
             ctx.lineTo(p.trail[tr].x, p.trail[tr].y);
           }
           const trailGrad = ctx.createLinearGradient(p.trail[0].x, p.trail[0].y, px, py);
-          trailGrad.addColorStop(0, "rgba(170, 195, 255, 0)");
-          trailGrad.addColorStop(1, `rgba(170, 195, 255, ${liveIntensity * 0.15})`);
+          trailGrad.addColorStop(0, "rgba(40, 80, 160, 0)");
+          trailGrad.addColorStop(1, `rgba(40, 80, 160, ${liveIntensity * 0.15})`);
           ctx.strokeStyle = trailGrad;
           ctx.lineWidth = 0.8;
           ctx.stroke();
@@ -502,16 +502,16 @@ export function AgenticCore({
         // Pulse glow
         const glowR = 16;
         const grad = ctx.createRadialGradient(px, py, 0, px, py, glowR);
-        grad.addColorStop(0, `rgba(200, 220, 255, ${liveIntensity * 0.2})`);
-        grad.addColorStop(0.3, `rgba(170, 195, 255, ${liveIntensity * 0.08})`);
-        grad.addColorStop(1, "rgba(170, 195, 255, 0)");
+        grad.addColorStop(0, `rgba(60, 100, 180, ${liveIntensity * 0.2})`);
+        grad.addColorStop(0.3, `rgba(40, 80, 160, ${liveIntensity * 0.08})`);
+        grad.addColorStop(1, "rgba(40, 80, 160, 0)");
         ctx.fillStyle = grad;
         ctx.beginPath();
         ctx.arc(px, py, glowR, 0, Math.PI * 2);
         ctx.fill();
 
         // Pulse core
-        ctx.fillStyle = `rgba(230, 240, 255, ${liveIntensity * 0.35})`;
+        ctx.fillStyle = `rgba(30, 60, 120, ${liveIntensity * 0.35})`;
         ctx.beginPath();
         ctx.arc(px, py, 1.3, 0, Math.PI * 2);
         ctx.fill();
@@ -538,9 +538,9 @@ export function AgenticCore({
           if (s.y > height + 100) { streams.splice(k, 1); continue; }
 
           const grad = ctx.createLinearGradient(s.x, s.y - s.length, s.x, s.y);
-          grad.addColorStop(0, "rgba(170, 195, 255, 0)");
-          grad.addColorStop(0.7, `rgba(170, 195, 255, ${s.opacity})`);
-          grad.addColorStop(1, `rgba(200, 220, 255, ${s.opacity * 1.5})`);
+          grad.addColorStop(0, "rgba(40, 80, 160, 0)");
+          grad.addColorStop(0.7, `rgba(40, 80, 160, ${s.opacity})`);
+          grad.addColorStop(1, `rgba(60, 100, 180, ${s.opacity * 1.5})`);
           ctx.strokeStyle = grad;
           ctx.lineWidth = 0.8;
           ctx.beginPath();
@@ -548,7 +548,7 @@ export function AgenticCore({
           ctx.lineTo(s.x, s.y);
           ctx.stroke();
 
-          ctx.fillStyle = `rgba(200, 220, 255, ${s.opacity * 2})`;
+          ctx.fillStyle = `rgba(60, 100, 180, ${s.opacity * 2})`;
           ctx.beginPath();
           ctx.arc(s.x, s.y, 1, 0, Math.PI * 2);
           ctx.fill();
@@ -561,9 +561,9 @@ export function AgenticCore({
         const scanY = (scanRef.current % (height + 400)) - 200;
         if (scanY > -200 && scanY < height + 200) {
           const scanGrad = ctx.createLinearGradient(0, scanY - 60, 0, scanY + 60);
-          scanGrad.addColorStop(0, "rgba(170, 195, 255, 0)");
-          scanGrad.addColorStop(0.5, "rgba(170, 195, 255, 0.008)");
-          scanGrad.addColorStop(1, "rgba(170, 195, 255, 0)");
+          scanGrad.addColorStop(0, "rgba(40, 80, 160, 0)");
+          scanGrad.addColorStop(0.5, "rgba(40, 80, 160, 0.008)");
+          scanGrad.addColorStop(1, "rgba(40, 80, 160, 0)");
           ctx.fillStyle = scanGrad;
           ctx.fillRect(0, scanY - 60, width, 120);
         }
@@ -600,7 +600,7 @@ export function AgenticCore({
         if (n.fireFlash > 0.05) {
           const flashR = r * (n.isHub ? 8 : 6);
           const flash = ctx.createRadialGradient(x, y, 0, x, y, flashR);
-          const flashColor = n.isHub ? "210, 225, 255" : "190, 210, 255";
+          const flashColor = n.isHub ? "40, 80, 160" : "30, 60, 120";
           flash.addColorStop(0, `rgba(${flashColor}, ${n.fireFlash * 0.08})`);
           flash.addColorStop(0.3, `rgba(${flashColor}, ${n.fireFlash * 0.03})`);
           flash.addColorStop(1, `rgba(${flashColor}, 0)`);
@@ -613,9 +613,9 @@ export function AgenticCore({
         // Hub persistent glow
         if (n.isHub) {
           const hubGlow = ctx.createRadialGradient(x, y, 0, x, y, r * 3.5);
-          hubGlow.addColorStop(0, `rgba(200, 220, 255, 0.03)`);
-          hubGlow.addColorStop(0.5, `rgba(180, 200, 255, 0.01)`);
-          hubGlow.addColorStop(1, "rgba(180, 200, 255, 0)");
+          hubGlow.addColorStop(0, `rgba(60, 100, 180, 0.03)`);
+          hubGlow.addColorStop(0.5, `rgba(40, 80, 160, 0.01)`);
+          hubGlow.addColorStop(1, "rgba(40, 80, 160, 0)");
           ctx.fillStyle = hubGlow;
           ctx.beginPath();
           ctx.arc(x, y, r * 3.5, 0, Math.PI * 2);
@@ -625,12 +625,12 @@ export function AgenticCore({
         // Neuron core — color shifts cooler when potential is high
         const charge = n.potential / n.threshold;
         const nodeColor = n.isHub
-          ? `rgba(${220 - charge * 20}, ${235 - charge * 15}, 255, ${opacity})`
+          ? `rgba(${30 + charge * 20}, ${50 + charge * 30}, ${100 + charge * 40}, ${opacity})`
           : n.layer === 2
-            ? `rgba(${240 - charge * 30}, ${240 - charge * 20}, 250, ${opacity})`
+            ? `rgba(${20 + charge * 30}, ${40 + charge * 40}, ${90 + charge * 50}, ${opacity})`
             : n.layer === 1
-              ? `rgba(${220 - charge * 20}, ${225 - charge * 15}, 240, ${opacity})`
-              : `rgba(170, 175, 195, ${opacity})`;
+              ? `rgba(${30 + charge * 20}, ${45 + charge * 30}, ${80 + charge * 40}, ${opacity})`
+              : `rgba(50, 60, 90, ${opacity})`;
         ctx.fillStyle = nodeColor;
         ctx.beginPath();
         ctx.arc(x, y, r, 0, Math.PI * 2);
@@ -638,14 +638,14 @@ export function AgenticCore({
 
         // Rings for near + hub
         if ((n.layer === 2 || n.isHub) && opacity > 0.12) {
-          ctx.strokeStyle = `rgba(200, 220, 255, ${opacity * 0.25})`;
+          ctx.strokeStyle = `rgba(40, 80, 160, ${opacity * 0.25})`;
           ctx.lineWidth = 0.6;
           ctx.beginPath();
           ctx.arc(x, y, r + (n.isHub ? 4 : 2.5), 0, Math.PI * 2);
           ctx.stroke();
 
           if (n.isHub) {
-            ctx.strokeStyle = `rgba(180, 200, 255, ${opacity * 0.12})`;
+            ctx.strokeStyle = `rgba(30, 60, 120, ${opacity * 0.12})`;
             ctx.lineWidth = 0.4;
             ctx.beginPath();
             ctx.arc(x, y, r + 8, 0, Math.PI * 2);
@@ -657,9 +657,9 @@ export function AgenticCore({
       // ── Cursor halo ──
       if (mouse.active) {
         const haloGrad = ctx.createRadialGradient(mouse.x, mouse.y, 0, mouse.x, mouse.y, 200);
-        haloGrad.addColorStop(0, "rgba(170, 195, 255, 0.025)");
-        haloGrad.addColorStop(0.4, "rgba(170, 195, 255, 0.01)");
-        haloGrad.addColorStop(1, "rgba(170, 195, 255, 0)");
+        haloGrad.addColorStop(0, "rgba(40, 80, 160, 0.025)");
+        haloGrad.addColorStop(0.4, "rgba(40, 80, 160, 0.01)");
+        haloGrad.addColorStop(1, "rgba(40, 80, 160, 0)");
         ctx.fillStyle = haloGrad;
         ctx.beginPath();
         ctx.arc(mouse.x, mouse.y, 200, 0, Math.PI * 2);

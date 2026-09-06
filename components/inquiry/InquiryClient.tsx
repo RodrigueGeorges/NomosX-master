@@ -130,13 +130,13 @@ export function InquiryClient({
     <>
       <Script id="jsonld-inquiry" type="application/ld+json" strategy="afterInteractive" dangerouslySetInnerHTML={{ __html: JSON.stringify(inquiryJsonLd) }} />
       <PublicPageShell currentPage="inquiries" onSignInClick={() => setShowAuthModal(true)}>
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 border-b border-white/[0.08]">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 border-b border-black/[0.08]">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <button
                 type="button"
                 onClick={() => router.push(PUBLIC_ROUTES.archives)}
-                className="flex items-center gap-2 text-sm text-white/50 hover:text-white transition-colors"
+                className="flex items-center gap-2 text-sm text-black/50 hover:text-black transition-colors"
               >
                 <ArrowLeft size={16} />
                 {t('Inquiry.backToBriefs')}
@@ -146,7 +146,7 @@ export function InquiryClient({
             <button
               type="button"
               onClick={handleShare}
-              className="p-2 border border-white/[0.08] text-white/50 hover:border-white/25"
+              className="p-2 border border-black/[0.08] text-black/50 hover:border-black/25"
               title={t('Inquiry.share')}
               aria-label={t('Inquiry.shareReport')}
             >
@@ -156,7 +156,7 @@ export function InquiryClient({
               type="button"
               onClick={handleExport}
               disabled={exporting}
-              className="p-2 border border-white/[0.08] text-white/50 disabled:opacity-40"
+              className="p-2 border border-black/[0.08] text-black/50 disabled:opacity-40"
               title={t('Inquiry.exportHtml')}
               aria-label={t('Inquiry.exportHtmlAria')}
             >
@@ -170,7 +170,7 @@ export function InquiryClient({
               type="button"
               onClick={handleExportXlsx}
               disabled={exporting}
-              className="p-2 border border-white/[0.08] text-white/50 disabled:opacity-40 text-[10px] font-mono uppercase tracking-wide"
+              className="p-2 border border-black/[0.08] text-black/50 disabled:opacity-40 text-[10px] font-mono uppercase tracking-wide"
               title={t('Inquiry.exportXlsx')}
               aria-label={t('Inquiry.exportXlsxAria')}
             >
@@ -180,7 +180,7 @@ export function InquiryClient({
               type="button"
               onClick={handleExportPdf}
               disabled={exporting}
-              className="p-2 border border-white/[0.08] text-white/50 disabled:opacity-40"
+              className="p-2 border border-black/[0.08] text-black/50 disabled:opacity-40"
               title={t('Inquiry.exportPdf')}
               aria-label={t('Inquiry.exportPdfAria')}
             >
@@ -216,17 +216,17 @@ export function InquiryClient({
           <div className="max-w-3xl mx-auto">
             <div className="mb-8 nx-public-surface p-6 sm:p-8 overflow-hidden relative">
               <div className="flex items-center gap-3 mb-4 flex-wrap">
-                <span className="px-3 py-1 border border-white/40 bg-white/5 text-white text-xs font-medium font-mono uppercase tracking-wider">
+                <span className="px-3 py-1 border border-black/40 bg-black/5 text-black text-xs font-medium font-mono uppercase tracking-wider">
                   {format.label}
                 </span>
                 {format.pages && (
-                  <span className="text-white/40 text-xs font-mono">{format.pages}</span>
+                  <span className="text-black/40 text-xs font-mono">{format.pages}</span>
                 )}
                 {format.sourceDepth && (
-                  <span className="text-white/40 text-xs font-mono">{format.sourceDepth}</span>
+                  <span className="text-black/40 text-xs font-mono">{format.sourceDepth}</span>
                 )}
                 {format.access && (
-                  <span className="px-2 py-0.5 border border-white/20 text-white/50 text-[10px] font-mono uppercase tracking-wider">
+                  <span className="px-2 py-0.5 border border-black/20 text-black/50 text-[10px] font-mono uppercase tracking-wider">
                     {format.access}
                   </span>
                 )}
@@ -235,10 +235,10 @@ export function InquiryClient({
               <h1 className="font-display text-3xl md:text-4xl font-semibold text-text mb-4">{inquiry.title}</h1>
 
               {format.description && (
-                <p className="text-sm text-white/45 mb-4 leading-relaxed max-w-2xl">{format.description}</p>
+                <p className="text-sm text-black/45 mb-4 leading-relaxed max-w-2xl">{format.description}</p>
               )}
 
-              <div className="flex flex-wrap items-center gap-4 text-sm text-white/55 mb-6 font-mono">
+              <div className="flex flex-wrap items-center gap-4 text-sm text-black/55 mb-6 font-mono">
                 <span>{new Date(inquiry.publishedAt).toLocaleDateString()}</span>
                 <span>·</span>
                 <span>{t('Inquiry.minRead', { count: inquiry.readTime })}</span>
@@ -276,7 +276,7 @@ export function InquiryClient({
                 {inquiry.topics.map((topic) => (
                   <span
                     key={topic}
-                    className="flex items-center gap-1 px-3 py-1 border border-white/[0.12] text-white/65 text-xs"
+                    className="flex items-center gap-1 px-3 py-1 border border-black/[0.12] text-black/65 text-xs"
                   >
                     <Tag size={10} />
                     {topic}
@@ -290,7 +290,7 @@ export function InquiryClient({
             ) : (
               <div className={nx.prose}>
                 <div
-                  className="article-content text-white/80 leading-relaxed"
+                  className="article-content text-black/80 leading-relaxed"
                   dangerouslySetInnerHTML={{
                     __html: sanitizeHtml(extractLegacyArticleBody(inquiry.content)),
                   }}
@@ -322,7 +322,7 @@ export function InquiryClient({
             <CommissionCTA />
 
             {related.length > 0 && (
-              <div className="mt-16 pt-8 border-t border-white/[0.08]">
+              <div className="mt-16 pt-8 border-t border-black/[0.08]">
                 <h3 className="font-display text-lg font-semibold text-text mb-6">{t('Inquiry.relatedBriefs')}</h3>
                 <div className="grid sm:grid-cols-2 gap-4">
                   {related.map((item) => (
@@ -330,18 +330,18 @@ export function InquiryClient({
                       key={item.id}
                       type="button"
                       onClick={() => router.push(PUBLIC_ROUTES.inquiry(item.id))}
-                      className="w-full text-left nx-public-surface p-5 hover:border-white/20 transition-colors group"
+                      className="w-full text-left nx-public-surface p-5 hover:border-black/20 transition-colors group"
                     >
                       <div className="flex items-center gap-2 mb-2">
-                        <span className="text-xs text-white/55 uppercase tracking-wider font-mono">
+                        <span className="text-xs text-black/55 uppercase tracking-wider font-mono">
                           {inquiryTypeLabel(item.type)}
                         </span>
-                        <span className="text-xs text-white/50 font-mono">{item.readTime} {t('Inquiry.min')}</span>
+                        <span className="text-xs text-black/50 font-mono">{item.readTime} {t('Inquiry.min')}</span>
                       </div>
-                      <h4 className="text-sm font-medium text-white/90 mb-1 line-clamp-2 group-hover:text-white transition-colors">
+                      <h4 className="text-sm font-medium text-black/90 mb-1 line-clamp-2 group-hover:text-black transition-colors">
                         {item.title}
                       </h4>
-                      <p className="text-xs text-white/55 font-mono">
+                      <p className="text-xs text-black/55 font-mono">
                         {new Date(item.publishedAt).toLocaleDateString()}
                       </p>
                     </button>
@@ -364,9 +364,9 @@ export function InquiryNotFound() {
   return (
     <div className="min-h-screen bg-bg text-text flex items-center justify-center px-6">
       <div className="text-center max-w-sm">
-        <FileText className="w-12 h-12 text-white/20 mx-auto mb-4" />
+        <FileText className="w-12 h-12 text-black/20 mx-auto mb-4" />
         <h3 className="font-display text-xl font-semibold text-text mb-2">{t('Inquiry.notFoundTitle')}</h3>
-        <p className="text-sm text-white/40 mb-6">
+        <p className="text-sm text-black/40 mb-6">
           {t('Inquiry.notFoundDesc')}
         </p>
         <button

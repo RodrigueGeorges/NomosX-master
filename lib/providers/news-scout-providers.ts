@@ -112,9 +112,10 @@ export async function searchGDELTNews(query: string, limit = 30): Promise<ScoutN
     const url = `https://api.gdeltproject.org/api/v2/doc/doc?query=${encoded}&mode=ArtList&maxrecords=${Math.min(limit, 250)}&format=json&sort=DateDesc&timespan=14d`;
 
     // GDELT soft-rate-limits (~1 req / 5s) → fetchFromProvider handles rate limiting
+    // Reduced timeout (8s) and retries (1) — GDELT 429s frequently, failing fast saves 30+ seconds
     const text: string = await fetchFromProvider('gdelt-news', url, {
-      timeout: 15000,
-      retries: 2,
+      timeout: 8000,
+      retries: 1,
       responseType: 'text',
       headers: { 'User-Agent': 'NomosX Research Bot (+https://nomosx.com)' },
     });

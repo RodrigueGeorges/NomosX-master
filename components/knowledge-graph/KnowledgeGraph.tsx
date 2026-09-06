@@ -72,8 +72,8 @@ export function KnowledgeGraph({ data }: KnowledgeGraphProps) {
 
   if (data.nodes.length === 0) {
     return (
-      <div className="border border-white/[0.08] bg-black/25 p-8 text-center">
-        <p className="text-sm text-white/50 font-mono">No concepts extracted yet.</p>
+      <div className="border border-black/[0.08] bg-black/25 p-8 text-center">
+        <p className="text-sm text-black/50 font-mono">No concepts extracted yet.</p>
       </div>
     );
   }
@@ -87,8 +87,8 @@ export function KnowledgeGraph({ data }: KnowledgeGraphProps) {
           className={cn(
             "px-3 py-1 text-[10px] font-mono uppercase tracking-wider border transition-colors",
             filterType === null
-              ? "border-white/30 text-white bg-white/5"
-              : "border-white/[0.08] text-white/50 hover:border-white/20"
+              ? "border-black/30 text-black bg-black/5"
+              : "border-black/[0.08] text-black/50 hover:border-black/20"
           )}
         >
           All ({data.nodes.length})
@@ -103,8 +103,8 @@ export function KnowledgeGraph({ data }: KnowledgeGraphProps) {
               className={cn(
                 "px-3 py-1 text-[10px] font-mono uppercase tracking-wider border transition-colors flex items-center gap-1.5",
                 filterType === t
-                  ? "border-white/30 text-white bg-white/5"
-                  : "border-white/[0.08] text-white/50 hover:border-white/20"
+                  ? "border-black/30 text-black bg-black/5"
+                  : "border-black/[0.08] text-black/50 hover:border-black/20"
               )}
             >
               <span
@@ -118,7 +118,7 @@ export function KnowledgeGraph({ data }: KnowledgeGraphProps) {
       </div>
 
       <div className="grid lg:grid-cols-[1fr_280px] gap-4">
-        <div className="relative border border-white/[0.08] bg-black/25 min-h-[400px]">
+        <div className="relative border border-black/[0.08] bg-black/25 min-h-[400px]">
           <svg viewBox="0 0 100 100" className="w-full h-[400px]">
             {visibleEdges.map((edge) => {
               const from = positions.get(edge.source);
@@ -172,7 +172,7 @@ export function KnowledgeGraph({ data }: KnowledgeGraphProps) {
           </svg>
         </div>
 
-        <div className="border border-white/[0.08] bg-black/25 p-4 min-h-[400px]">
+        <div className="border border-black/[0.08] bg-black/25 p-4 min-h-[400px]">
           {selectedNode ? (
             <div className="space-y-3">
               <div className="flex items-center gap-2">
@@ -180,26 +180,26 @@ export function KnowledgeGraph({ data }: KnowledgeGraphProps) {
                   className="w-3 h-3 rounded-full"
                   style={{ backgroundColor: TYPE_COLORS[selectedNode.type] || "#888" }}
                 />
-                <span className="text-[10px] font-mono uppercase tracking-wider text-white/50">
+                <span className="text-[10px] font-mono uppercase tracking-wider text-black/50">
                   {selectedNode.type}
                 </span>
               </div>
-              <h3 className="text-sm font-medium text-white">{selectedNode.name}</h3>
-              <p className="text-xs text-white/60 leading-relaxed">{selectedNode.description}</p>
-              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-white/[0.08]">
+              <h3 className="text-sm font-medium text-black">{selectedNode.name}</h3>
+              <p className="text-xs text-black/60 leading-relaxed">{selectedNode.description}</p>
+              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-black/[0.08]">
                 <div>
-                  <p className="text-[10px] font-mono uppercase tracking-wider text-white/40">Confidence</p>
-                  <p className="text-sm font-mono text-white/80">{selectedNode.confidence}/100</p>
+                  <p className="text-[10px] font-mono uppercase tracking-wider text-black/40">Confidence</p>
+                  <p className="text-sm font-mono text-black/80">{selectedNode.confidence}/100</p>
                 </div>
                 <div>
-                  <p className="text-[10px] font-mono uppercase tracking-wider text-white/40">Occurrences</p>
-                  <p className="text-sm font-mono text-white/80">{selectedNode.occurrenceCount}</p>
+                  <p className="text-[10px] font-mono uppercase tracking-wider text-black/40">Occurrences</p>
+                  <p className="text-sm font-mono text-black/80">{selectedNode.occurrenceCount}</p>
                 </div>
               </div>
             </div>
           ) : (
             <div className="flex items-center justify-center h-full">
-              <p className="text-xs text-white/40 font-mono text-center">
+              <p className="text-xs text-black/40 font-mono text-center">
                 Click a node to inspect<br />the concept
               </p>
             </div>

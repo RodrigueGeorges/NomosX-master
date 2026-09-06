@@ -6,6 +6,7 @@
 import { callLLM } from '../llm/unified-llm';
 import { parseJson } from './json-utils';
 import { composeIntelligentStyleGuide } from './style-judge';
+import { NOMOS_EDITORIAL_MANIFESTO, NOMOS_WRITING_RULES } from './nomos-voice';
 import type { DebateResult } from './debate-agent';
 import type {
   CastingResult,
@@ -127,19 +128,56 @@ export async function editorialArbiter(input: ArbiterInput): Promise<InstitutePo
           role: 'system',
           content: `You are the editorial arbiter at NomosX — the institute's final decision voice. Voice: ${style.combinedVoice}.
 
+${NOMOS_EDITORIAL_MANIFESTO}
+
 ${evolvedInstructions}
 
 ADDITIONAL INSTRUCTIONS (apply strictly):
-1. PROBLEM FIRST, NOT TOPIC — open by defining the specific policy problem, not the general issue. (HKS rule: "The geopolitics of X are shifting" is an issue; "The U.S. lacks tools to protect Y" is a problem.)
-2. B.L.U.F. — in the first 100 words: the problem, the stakes, the finding, the recommended action.
-3. ANALYZE, DON'T JUST PRESENT — explain how the evidence supports the conclusion. Show reasoning, not assertion.
-4. CAREFUL CONCLUSIONS — draw conclusions the data can bear. Do not overstate or misrepresent. Distinguish correlation from causation.
-5. NUANCED BUT ACTIONABLE RECOMMENDATIONS — give a first choice, a fallback, and who should act. Acknowledge trade-offs and counter-arguments.
-6. ACTIVE, PRECISE LANGUAGE — "We recommend...", "The priority should be...", not "It has been suggested..." or "The literature indicates..."
-7. SCOPE IS WIDE — cover geopolitical, institutional, legal, social, technological, and economic dimensions where relevant; do not reduce everything to economics.
-8. EVERY CLAIM needs [SRC-N] citations. Use confidence score to express uncertainty, not hedging prose.
-9. CONCISION — one idea per sentence; cut "somewhat", "could perhaps", "might be considered".
-10. AUDIENCE-AWARE — assume a smart, busy reader with policy expertise but not deep subject-matter expertise. Avoid jargon and acronyms unless defined.`,
+
+TONE AND VOICE:
+1. WRITE LIKE AN ESSAY, NOT A REPORT — Use flowing prose with varied sentence rhythm. Mix short punchy sentences with longer subordinate clauses. Never write two consecutive sentences of the same length. This is an argument, not a form.
+2. NARRATIVE ARC — Structure your output as a story: the problem (why it matters now), the evidence (what we found), the futures (where this goes), the action (what to do). Each section should flow into the next with a transition, not a header break.
+3. LITERARY JUDGMENT — Make directional claims. "China's processing dominance will persist" is better than "China's processing dominance may continue." Commit to a position. Express uncertainty through confidence scores and explicit caveats, not through hedging prose.
+4. ACTIVE, PRECISE LANGUAGE — "We assess...", "The evidence shows...", "The priority is...", not "It has been suggested..." or "The literature indicates..."
+5. PROBLEM FIRST, NOT TOPIC — Open by defining the specific policy problem, not the general issue. "The U.S. lacks tools to protect its mineral supply chains" is a problem; "The geopolitics of critical minerals are shifting" is a topic.
+6. B.L.U.F. — In the first 100 words: the problem, the stakes, the finding, the recommended action.
+7. ANALYZE, DON'T JUST PRESENT — Explain how the evidence supports the conclusion. Show reasoning, not assertion.
+8. CAREFUL CONCLUSIONS — Draw conclusions the data can bear. Do not overstate. Distinguish correlation from causation.
+9. SCOPE IS WIDE — Cover geopolitical, institutional, legal, social, technological, and economic dimensions where relevant.
+10. EVERY CLAIM needs [SRC-N] citations. Use confidence score to express uncertainty, not hedging prose.
+11. AUDIENCE-AWARE — Assume a smart, busy reader with policy expertise but not deep subject-matter expertise.
+
+SCENARIO WRITING (critical):
+- Write each scenario as a NARRATIVE PARAGRAPH (80-150 words), not a factual summary.
+- Use the future tense and imaginative language: "By 2030,...", "Imagine a world where...", "The alliance has settled into..."
+- Tell the reader what LIVING IN that future looks like — the texture, not just the variables.
+- Do NOT write "This scenario involves..." or "In this scenario...". Write AS IF you are observing that future.
+- The scenario name should be evocative, not clinical: "Fragmented Stalemate" not "Scenario A".
+- Signals, drivers, and blockers are separate fields — do not repeat them in the description.
+
+IN BRIEF (new):
+- Provide 3-5 bullet points that capture the ESSENCE of the entire analysis.
+- A busy reader should understand the whole argument from these bullets alone.
+- Each bullet is a complete thought, not a label. "China controls 60-90% of midstream processing and will retain that grip through 2030" not "Chinese dominance".
+
+SECTION TITLES (new):
+- Each section title must be an ACTION TITLE — a complete sentence stating the conclusion, not a topic label.
+- "The mineral chokepoint no one can bypass" not "Supply Chain Analysis".
+- "Decoupling is a fantasy, fragmentation is the reality" not "Market Outlook".
+- These titles appear as section headers in the final report.
+
+STYLE-SPECIFIC RECOMMENDATIONS (apply based on the voice above):
+- If France Stratégie voice: Use impersonal "il convient de", "il ressort de". Label recommendations as "Orientations". Use cautious qualifiers.
+- If Institut Montaigne voice: Use "nous" inclusively. Use direct imperative "il faut", "il est impératif". Structure recommendations as "Objectif N → Proposition N". Make them "actionnables, chiffrées et mesurables".
+- If Harvard Kennedy School voice: Include explicit fallback positions ("If the preferred option fails, the fallback is..."). Present options with criteria, not just a single recommendation.
+- If CAPS voice: Structure around "Analyser / Agir / Anticiper". Present "futurs possibles" not predictions. Use diplomatic, forward-looking language.
+- If McKinsey voice: Lead every recommendation with a number. Use "so what" after each data point.
+- If RAND voice: Distinguish findings from conclusions from recommendations. Include limitations explicitly.
+- If Chatham House voice: Present options and trade-offs, not single prescriptions. Use "realistic ambition" framing.
+
+${NOMOS_WRITING_RULES}
+
+REMEMBER: The style profile above adapts the TONE. The NomosX DNA above defines the VOICE. The voice is constant; the tone adapts. Never let the style profile override the DNA — a France Stratégie report is still a NomosX report, just with an impersonal French register. A Harvard report is still a NomosX report, just with fallback positions. The DNA (positions not opinions, chaos to nomos, scenarios as narratives, anti-novlangue, skin in the game) is non-negotiable.`,
 
         },
         {
@@ -176,14 +214,45 @@ ${sourceList}
 Return JSON:
 {
   "headline": "Short collision headline (A × B style)",
-  "verdict": "Institute position — 150-300 words with [SRC-N] citations. State what NomosX believes and why.",
+  "inBrief": [
+    "3-5 bullets capturing the essence of the entire analysis — each a complete thought with a key finding",
+    "Second key point with a specific number or claim",
+    "Third key point about the trajectory or recommendation"
+  ],
+  "sectionTitles": {
+    "problem": "Action title for the problem section — a complete sentence stating the core tension",
+    "evidence": "Action title for the evidence section — what the data shows",
+    "futures": "Action title for the futures section — where this is heading",
+    "action": "Action title for the action section — what must be done"
+  },
+  "verdict": "Institute position — 200-400 words of flowing prose with [SRC-N] citations. State what NomosX believes and why. Write as an argumentative essay paragraph, not a list. Vary sentence length. Use transitions between ideas.",
   "confidence": 0-100,
+  "prospectiveFramework": {
+    "horizon": "The time frame and why it matters — e.g. 'We look to 2030 because three independent cycles (demographic, technological, geopolitical) converge within that window.'",
+    "baseRateContext": "Historical reference class and analogue. What happened in similar situations historically? Cite the base rate with [SRC-N].",
+    "fermiDecomposition": "How the question breaks into sub-questions, each estimated independently. Reduces anchoring bias.",
+    "keyUncertainties": ["what we don't know that matters", "second key uncertainty", "..."],
+    "crossImpactSummary": "How the scenarios interact and constrain each other. If scenario A happens, what happens to B?",
+    "snowLeopards": ["underappreciated phenomenon that could have outsized impact", "second snow leopard", "..."],
+    "methodologyNote": "Brief note on how probabilities were derived (Delphi, Monte Carlo, base rates, etc.) — 1-2 sentences, italic style."
+  },
   "scenarios": [
-    {"name": "...", "probability": "35%", "description": "...", "signals": ["..."]}
+    {
+      "name": "Evocative scenario name (not clinical)",
+      "probability": "35%",
+      "narrative": "80-150 word NARRATIVE paragraph imagining this future. Write in FUTURE TENSE, as if observing that world from inside it. 'By 2030, the alliance has settled into...' NOT 'This scenario involves...'",
+      "description": "Short factual description of the scenario (used if narrative is not available)",
+      "keyDrivers": ["what moves probability UP by 10+pp", "second driver"],
+      "blockers": ["what moves probability DOWN by 10+pp", "second blocker"],
+      "uncertaintyDrivers": ["what makes this scenario uncertain", "second uncertainty"],
+      "tippingPoint": "What would tip the probability dramatically — a specific, observable event or threshold",
+      "crossImpact": "How this scenario is affected by the other scenarios",
+      "signals": ["observable early warning indicator 1", "..."]
+    }
   ],
   "dominantScenario": "name of most likely scenario",
-  "objections": ["strongest counter-argument 1", "..."],
-  "whatChangesMind": ["falsifiable trigger 1", "..."],
+  "objections": ["strongest counter-argument, written as a prose paragraph (2-3 sentences each)", "..."],
+  "whatChangesMind": ["falsifiable trigger that would reverse our position", "..."],
   "recommendations": {
     "immediate": ["actionable recommendation for 0-3 months with [SRC-N]", "..."],
     "shortTerm": ["recommendation for 3-12 months", "..."],
@@ -193,8 +262,8 @@ Return JSON:
 }`,
         },
       ],
-      temperature: 0.2,
-      maxTokens: 4000,
+      temperature: 0.3,
+      maxTokens: 8000,
       jsonMode: true,
       enableCache: false,
       task: 'editorial_arbiter',
@@ -208,8 +277,26 @@ Return JSON:
       name: String(s.name ?? 'Scenario'),
       probability: String(s.probability ?? '—'),
       description: String(s.description ?? ''),
+      narrative: s.narrative ? String(s.narrative) : undefined,
       signals: Array.isArray(s.signals) ? s.signals.map(String) : undefined,
+      keyDrivers: Array.isArray(s.keyDrivers) ? s.keyDrivers.map(String) : undefined,
+      blockers: Array.isArray(s.blockers) ? s.blockers.map(String) : undefined,
+      uncertaintyDrivers: Array.isArray(s.uncertaintyDrivers) ? s.uncertaintyDrivers.map(String) : undefined,
+      tippingPoint: s.tippingPoint ? String(s.tippingPoint) : undefined,
+      crossImpact: s.crossImpact ? String(s.crossImpact) : undefined,
     }));
+
+    // ── Prospective Framework (PhD-level foresight architecture) ──
+    const pf = parsed.prospectiveFramework;
+    const prospectiveFramework = pf ? {
+      horizon: pf.horizon ? String(pf.horizon) : undefined,
+      baseRateContext: pf.baseRateContext ? String(pf.baseRateContext) : undefined,
+      fermiDecomposition: pf.fermiDecomposition ? String(pf.fermiDecomposition) : undefined,
+      keyUncertainties: Array.isArray(pf.keyUncertainties) ? pf.keyUncertainties.map(String) : undefined,
+      crossImpactSummary: pf.crossImpactSummary ? String(pf.crossImpactSummary) : undefined,
+      snowLeopards: Array.isArray(pf.snowLeopards) ? pf.snowLeopards.map(String) : undefined,
+      methodologyNote: pf.methodologyNote ? String(pf.methodologyNote) : undefined,
+    } : undefined;
 
     // ── Delphi foresight: multi-expert scenario calibration ──
     // Professional-grade forecasting: base rates + Fermi decomposition + 3-round Delphi
@@ -248,19 +335,26 @@ Return JSON:
           baseRateAnalysis: delphiResult.baseRateAnalysis,
         };
         // Apply calibrated probabilities with confidence intervals
-        for (const scenario of outScenarios) {
+        // Use largest remainder rounding so percentages sum to exactly 100
+        const delphiProbs = outScenarios.map(s =>
+          delphiResult.scenarios.find(d => d.name === s.name)?.calibratedProbability ?? 0
+        );
+        const { roundPercentages } = await import('./pipeline-foresight');
+        const roundedPcts = roundPercentages(delphiProbs);
+        for (let si = 0; si < outScenarios.length; si++) {
+          const scenario = outScenarios[si];
           const delphiScenario = delphiResult.scenarios.find(d => d.name === scenario.name);
           if (delphiScenario) {
-            const pct = (delphiScenario.calibratedProbability * 100).toFixed(0);
-            const ciLow = (delphiScenario.confidenceInterval[0] * 100).toFixed(0);
-            const ciHigh = (delphiScenario.confidenceInterval[1] * 100).toFixed(0);
-            scenario.probability = `${pct}%`;
+            scenario.probability = `${roundedPcts[si]}%`;
             scenario.empiricalProbability = delphiScenario.calibratedProbability;
-            // Enrich signals with Delphi-extracted signals + key drivers
-            const delphiSignals = [
-              ...delphiScenario.signals,
-              ...delphiScenario.keyDrivers.slice(0, 2).map(d => `Driver: ${d}`),
-            ];
+            scenario.confidenceInterval = delphiScenario.confidenceInterval;
+            scenario.baseRate = delphiScenario.baseRate;
+            scenario.calibratedProbability = delphiScenario.calibratedProbability;
+            scenario.sensitivityScore = delphiScenario.sensitivityScore;
+            scenario.keyDrivers = delphiScenario.keyDrivers;
+            scenario.blockers = delphiScenario.blockers;
+            // Enrich signals with Delphi-extracted signals
+            const delphiSignals = [...delphiScenario.signals];
             if (delphiSignals.length > 0) {
               scenario.signals = delphiSignals.slice(0, 5);
             }
@@ -287,6 +381,14 @@ Return JSON:
         longTerm: Array.isArray(parsed.recommendations.longTerm) ? parsed.recommendations.longTerm.map(String).slice(0, 5) : undefined,
         riskMitigation: Array.isArray(parsed.recommendations.riskMitigation) ? parsed.recommendations.riskMitigation.map(String).slice(0, 5) : undefined,
       } : undefined,
+      inBrief: Array.isArray(parsed.inBrief) ? parsed.inBrief.map(String).slice(0, 5) : undefined,
+      sectionTitles: parsed.sectionTitles ? {
+        problem: String(parsed.sectionTitles.problem ?? ''),
+        evidence: String(parsed.sectionTitles.evidence ?? ''),
+        futures: String(parsed.sectionTitles.futures ?? ''),
+        action: String(parsed.sectionTitles.action ?? ''),
+      } : undefined,
+      prospectiveFramework,
       costUsd: response.costUsd + delphiCostUsd,
     };
   } catch (err) {

@@ -8,11 +8,11 @@ export default async function TermsPage() {
     <LegalPageShell>
       <div className="mb-12">
         <p className="nx-eyebrow mb-3">{t('legal')}</p>
-        <h1 className="font-display text-4xl font-semibold text-white mb-3">{t('title')}</h1>
-        <p className="text-sm text-white/55 font-mono">{t('lastUpdated')}</p>
+        <h1 className="font-display text-4xl font-semibold text-black mb-3">{t('title')}</h1>
+        <p className="text-sm text-black/55 font-mono">{t('lastUpdated')}</p>
       </div>
 
-      <div className="space-y-8 text-white/80 leading-relaxed text-sm">
+      <div className="space-y-8 text-black/80 leading-relaxed text-sm">
         <section>
           <h2 className="text-lg font-medium text-text mb-3">{t('s1Title')}</h2>
           <p>{t('s1Body')}</p>
@@ -49,9 +49,9 @@ export default async function TermsPage() {
         </section>
       </div>
 
-      <div className="mt-12 pt-8 border-t border-white/[0.08] flex gap-6 text-sm text-white/55">
-        <Link href="/privacy" className="hover:text-white transition-colors">{t('privacyLink')}</Link>
-        <Link href="/" className="hover:text-white transition-colors">{t('backToNomosX')}</Link>
+      <div className="mt-12 pt-8 border-t border-black/[0.08] flex gap-6 text-sm text-black/55">
+        <Link href="/privacy" className="hover:text-black transition-colors">{t('privacyLink')}</Link>
+        <Link href="/" className="hover:text-black transition-colors">{t('backToNomosX')}</Link>
       </div>
     </LegalPageShell>
   );

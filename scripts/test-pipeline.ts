@@ -22,6 +22,12 @@ console.log(`  Query: "${query}"`);
 console.log(`  Format: ${format}`);
 console.log(`  Started: ${new Date().toISOString()}\n`);
 
+// Prevent fire-and-forget promise rejections (agent memory, witness learning, etc.)
+// from changing the exit code after the pipeline completes successfully.
+process.on('unhandledRejection', (reason) => {
+  console.warn('[unhandledRejection] (non-fatal):', reason);
+});
+
 async function main() {
   const { runPipeline } = await import('../lib/agent/pipeline-v2');
 
@@ -79,10 +85,31 @@ async function main() {
       const outPath = `scripts/output-${format}-${Date.now()}.html`;
       fs.writeFileSync(outPath, result.html, 'utf-8');
       console.log(`  HTML saved to: ${outPath}`);
+    } else if (result?.briefId) {
+      // Pipeline returned briefId but no HTML — fetch from DB
+      try {
+        const { PrismaClient } = await import('@prisma/client');
+        const prisma = new PrismaClient();
+        const brief = await prisma.brief.findUnique({
+          where: { id: result.briefId },
+          select: { html: true },
+        });
+        if (brief?.html) {
+          const fs = await import('fs');
+          const outPath = `scripts/output-${format}-${Date.now()}.html`;
+          fs.writeFileSync(outPath, brief.html, 'utf-8');
+          console.log(`  HTML saved from DB to: ${outPath} (${brief.html.length} chars)`);
+        }
+        await prisma.$disconnect();
+      } catch (dbErr) {
+        console.warn('  Could not fetch HTML from DB:', dbErr);
+      }
     }
 
     console.log('\n  ✅ Pipeline completed successfully\n');
-    process.exit(0);
+    process.exitCode = 0;
+    // Give pending fire-and-forget promises a chance to settle
+    setTimeout(() => process.exit(0), 2000);
   } catch (err: any) {
     const durationMs = Date.now() - start;
     console.error('\n  ❌ Pipeline FAILED\n');

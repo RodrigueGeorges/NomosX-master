@@ -61,14 +61,14 @@ export async function searchLens(query: string, limit = 20): Promise<any[]> {
       const publishedDate = item.date_published || item.year ? `${item.year}-01-01` : null;
       let year = item.year || new Date().getFullYear();
 
-      const authors = (item.authors || []).map((a: any) => ({
+      const authors = (Array.isArray(item.authors) ? item.authors : []).map((a: any) => ({
         name: a.name?.first || a.name?.last
           ? `${a.name.first || ''} ${a.name.last || ''}`.trim()
           : (typeof a.name === 'string' ? a.name : ''),
       })).filter((a: any) => a.name);
 
       const institutions: string[] = [];
-      (item.authors || []).forEach((a: any) => {
+      (Array.isArray(item.authors) ? item.authors : []).forEach((a: any) => {
         if (a.affiliations) {
           a.affiliations.forEach((aff: any) => {
             if (aff.name && !institutions.includes(aff.name)) institutions.push(aff.name);
