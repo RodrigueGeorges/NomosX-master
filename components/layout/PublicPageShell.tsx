@@ -6,8 +6,6 @@ import SiteFooter from "@/components/SiteFooter";
 import { EtherealBackground } from "@/components/signature";
 import { AgenticCore } from "@/components/signature";
 import { ScrollProgress } from "@/components/ui/ScrollProgress";
-import { CursorGlow } from "@/components/ui/CursorGlow";
-import { GrainOverlay } from "@/components/ui/GrainOverlay";
 import { cn } from "@/lib/utils";
 
 interface PublicPageShellProps {
@@ -32,14 +30,10 @@ export function PublicPageShell({
   contentClassName,
 }: PublicPageShellProps) {
   return (
-    <div className={cn("min-h-screen bg-white text-text overflow-x-hidden relative", className)}>
-      {/* Atmospheric layers — subtle, cohesive, alive */}
-      <GrainOverlay />
-      <CursorGlow />
-      <div className="nx-vignette" aria-hidden="true" />
+    <div className={cn("min-h-screen bg-white dark:bg-[#0a0a0f] text-text overflow-x-hidden relative", className)}>
       <ScrollProgress />
-      {/* Living convergence field — the signature atmosphere */}
-      <AgenticCore variant="atmosphere" />
+      <AgenticCore variant="atmosphere" neuronCount={18} linkDistance={300} />
+      <div className="fixed inset-0 pointer-events-none z-[1] nx-page-grid" aria-hidden="true" />
       {particles > 0 && <EtherealBackground particleCount={particles} radialGlow={false} />}
       <div className="relative z-10 flex flex-col min-h-screen" data-nx-main>
         <PublicNav

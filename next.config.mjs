@@ -8,6 +8,9 @@ const nextConfig = {
   poweredByHeader: false,
   serverExternalPackages: ['@prisma/client'],
   transpilePackages: [],
+  experimental: {
+    viewTransition: true,
+  },
   images: {
     formats: ['image/avif', 'image/webp'],
   },

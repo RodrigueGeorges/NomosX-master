@@ -3,6 +3,30 @@
 @tailwind utilities;
 
 /* ============================================================================
+   View Transitions — native browser page morphs (zero JS, compositor-only)
+   ============================================================================ */
+::view-transition-old(root) {
+  animation: 0.3s cubic-bezier(0.16, 1, 0.3, 1) both fade-out;
+}
+::view-transition-new(root) {
+  animation: 0.4s cubic-bezier(0.16, 1, 0.3, 1) both fade-in-vt;
+}
+@keyframes fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+@keyframes fade-in-vt {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none;
+  }
+}
+
+/* ============================================================================
    NomosX Design System — SpaceX-inspired agentic think tank aesthetic
    Pure black, bold typography, minimal chrome
    ============================================================================ */
@@ -2387,6 +2411,49 @@ article.nomosx-brief .brief-footer {
   .nx-aurora { animation: none; }
 }
 
+/* ── Ghost Char Field — faint Greek × binary grid backdrop ──────────── */
+/* Design DNA bridge: the chaotic field from the cinematic intro, now  */
+/* calm and ordered as a decorative backdrop.                           */
+
+.nx-ghost-field {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  pointer-events: none;
+  z-index: 0;
+  place-items: center;
+}
+
+.nx-ghost-char {
+  font-size: clamp(0.8rem, 1.6vw, 1.4rem);
+  color: rgba(10, 10, 15, 0.08);
+  user-select: none;
+  line-height: 1;
+}
+
+.nx-ghost-char--drift {
+  animation: nx-ghost-drift 8s ease-in-out infinite alternate;
+}
+
+@keyframes nx-ghost-drift {
+  0%   { transform: translateY(0)     rotate(0deg);  opacity: 0.08; }
+  50%  { transform: translateY(-4px)  rotate(2deg);  opacity: 0.12; }
+  100% { transform: translateY(2px)  rotate(-1deg); opacity: 0.06; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nx-ghost-char--drift { animation: none; }
+}
+
+/* ── Meander Divider — Greek key rule ───────────────────────────────── */
+
+.nx-meander-divider {
+  display: block;
+  width: 100%;
+  height: 8px;
+  opacity: 0.5;
+}
+
 /* ── 3b. Mesh gradient background — Linear/Stripe 2026 approach ──────── */
 /* Pure CSS, no canvas, no JS. 3 radial-gradients drifting on black.     */
 /* Under 1KB. The atmosphere — felt, not seen.                           */
@@ -2429,40 +2496,18 @@ article.nomosx-brief .brief-footer {
 .nx-mesh-bg-v2 {
   background-color: #ffffff;
   background-image:
-    /* Top-left deep cool glow — primary light source */
-    radial-gradient(ellipse 55% 45% at 12% 18%, rgba(200, 215, 240, 0.08) 0%, transparent 55%),
-    /* Bottom-right counterpoint — cooler, deeper */
-    radial-gradient(ellipse 50% 55% at 88% 78%, rgba(210, 225, 245, 0.06) 0%, transparent 50%),
-    /* Center stage — subtle lift where content sits */
-    radial-gradient(ellipse 65% 40% at 50% 42%, rgba(10, 10, 15, 0.012) 0%, transparent 60%),
-    /* Top center authority glow */
-    radial-gradient(ellipse 45% 30% at 50% 0%, rgba(180, 200, 255, 0.015) 0%, transparent 70%),
-    /* Bottom center ambient — grounds the composition */
-    radial-gradient(ellipse 50% 25% at 50% 100%, rgba(220, 230, 250, 0.05) 0%, transparent 65%),
-    /* Far-left edge accent — subtle vertical light */
-    radial-gradient(ellipse 15% 80% at 0% 50%, rgba(205, 220, 245, 0.03) 0%, transparent 60%);
-  background-size: 200% 200%, 220% 220%, 180% 180%, 160% 100%, 180% 120%, 100% 200%;
-  background-position: 0% 0%, 100% 100%, 50% 50%, 50% 0%, 50% 100%, 0% 50%;
+    radial-gradient(ellipse 60% 50% at 15% 20%, rgba(200, 215, 240, 0.04) 0%, transparent 55%),
+    radial-gradient(ellipse 55% 50% at 85% 80%, rgba(210, 225, 245, 0.03) 0%, transparent 50%);
+  background-size: 200% 200%, 220% 220%;
+  background-position: 0% 0%, 100% 100%;
   background-repeat: no-repeat;
-  animation: nx-mesh-drift-v2 60s ease-in-out infinite alternate;
 }
 
-@keyframes nx-mesh-drift-v2 {
-  0% {
-    background-position: 0% 0%, 100% 100%, 50% 50%, 50% 0%, 50% 100%, 0% 50%;
-  }
-  25% {
-    background-position: 15% 12%, 80% 88%, 55% 45%, 48% 2%, 52% 98%, 2% 48%;
-  }
-  50% {
-    background-position: 30% 22%, 70% 72%, 45% 55%, 52% -2%, 48% 102%, 5% 52%;
-  }
-  75% {
-    background-position: 20% 15%, 78% 82%, 52% 48%, 50% 1%, 51% 99%, 3% 50%;
-  }
-  100% {
-    background-position: 10% 8%, 88% 92%, 50% 50%, 50% 0%, 50% 100%, 0% 50%;
-  }
+.dark .nx-mesh-bg-v2 {
+  background-color: var(--nx-bg);
+  background-image:
+    radial-gradient(ellipse 60% 50% at 15% 20%, rgba(94, 106, 210, 0.03) 0%, transparent 55%),
+    radial-gradient(ellipse 55% 50% at 85% 80%, rgba(94, 106, 210, 0.02) 0%, transparent 50%);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -2954,6 +2999,32 @@ article.nomosx-brief .brief-footer {
   }
 }
 
+/* Rise effect — translateY from below */
+@keyframes nx-word-rise-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.nx-word-rise {
+  display: inline-block;
+  opacity: 0;
+  animation: nx-word-rise-reveal 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nx-word-rise {
+    opacity: 1;
+    animation: none;
+    transform: none;
+  }
+}
+
 /* ── H9. Unified card surface — one hover language for all cards ─────── */
 
 .nx-surface {
@@ -3079,16 +3150,15 @@ article.nomosx-brief .brief-footer {
   color: var(--nx-text-primary);
 }
 
-/* ── 17. Manifesto crawl — cinematic Star Wars-style intro ───────────── */
-/* On-brand: black field, white mono, grid + aurora. Not yellow. */
-
-/* ── 17b. Premium brand intro — 5s wordmark reveal (2026 best practices) ── */
+/* ── 17. "From Chaos to Nomos" — v7 cinematic intro (2026) ───────────── */
+/* DA: white bg, dark text, charter NomosX. Chaos→Order narrative. */
+/* Slower (15s), innovative: letters start chaotic, scan organizes them. */
 
 .nx-intro-overlay {
   position: fixed;
   inset: 0;
   z-index: 100;
-  background: #fff;
+  background: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3102,59 +3172,148 @@ article.nomosx-brief .brief-footer {
 }
 
 @keyframes nx-intro-exit {
-  0%   { opacity: 1; transform: scale(1); }
-  100% { opacity: 0; transform: scale(1.04); }
+  0%   { opacity: 1; }
+  100% { opacity: 0; }
 }
 
-/* Atmospheric layers — fade in on mount */
-.nx-intro-grid {
-  opacity: 0;
-  animation: nx-intro-bg-in 1.2s ease forwards;
-}
-
+/* Subtle aurora — matches landing page */
 .nx-intro-aurora {
-  opacity: 0;
-  animation: nx-intro-bg-in 1.8s ease 0.3s forwards;
-}
-
-@keyframes nx-intro-bg-in {
-  to { opacity: 1; }
-}
-
-/* Skip button */
-.nx-intro-skip {
   position: absolute;
-  top: 1.5rem;
-  right: 1.5rem;
-  z-index: 3;
-  display: inline-flex;
+  left: 50%;
+  bottom: -12rem;
+  transform: translateX(-50%);
+  width: 120%;
+  height: 32rem;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 40% 60% at 30% 100%, rgba(180, 200, 255, 0.04), transparent 60%),
+    radial-gradient(ellipse 35% 55% at 70% 100%, rgba(129, 140, 248, 0.03), transparent 60%),
+    radial-gradient(ellipse 50% 100% at 50% 100%, rgba(10, 10, 15, 0.02), transparent 65%);
+  border-radius: 50% 50% 0 0;
+  animation: nx-aurora 16s ease-in-out infinite;
+  filter: blur(3px);
+  z-index: 0;
+}
+
+/* ── Floating Greek × Binary char grid ─────────────────────────────── */
+
+.nx-intro-grid-container {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
   align-items: center;
-  gap: 0.4rem;
-  padding: 0.5rem 0.9rem;
-  font-family: var(--font-mono), ui-monospace, monospace;
-  font-size: 0.7rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: rgba(10, 10, 15, 0.4);
-  background: transparent;
-  border: 1px solid rgba(10, 10, 15, 0.1);
-  border-radius: 0;
-  cursor: pointer;
-  transition: color 0.3s ease, border-color 0.3s ease;
+  justify-content: center;
   opacity: 0;
-  animation: nx-intro-bg-in 0.6s ease 1s forwards;
+  transition: opacity 1.5s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.nx-intro-skip:hover,
-.nx-intro-skip:focus-visible {
-  color: rgba(10, 10, 15, 0.8);
-  border-color: rgba(10, 10, 15, 0.3);
-  outline: none;
+.nx-intro-grid-active {
+  opacity: 1;
 }
 
-/* ── Phase 1: Punchline reveal ─────────────────────────────────────────── */
+.nx-intro-grid-fading {
+  opacity: 0;
+  transition: opacity 1.5s ease;
+}
 
-.nx-intro-reveal {
+.nx-intro-grid {
+  display: grid;
+  grid-template-columns: repeat(16, 1fr);
+  grid-template-rows: repeat(10, 1fr);
+  width: 100%;
+  height: 100%;
+  max-width: 1000px;
+  max-height: 700px;
+  gap: 0;
+}
+
+.nx-intro-grid-char {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: clamp(0.875rem, 0.75rem + 0.8vw, 1.5rem);
+  font-weight: 400;
+  /* Chaotic initial state — set via CSS custom properties */
+  transform: rotate(var(--rot, 0deg)) translate(var(--ox, 0px), var(--oy, 0px));
+  will-change: transform, opacity;
+  /* Transition to organized state when scan passes */
+  transition:
+    transform 1.5s cubic-bezier(0.16, 1, 0.3, 1) var(--delay, 0s),
+    opacity 1.2s ease var(--delay, 0s);
+}
+
+/* Organized state — scan line has passed, letters snap to grid */
+.nx-intro-grid-char-organized {
+  transform: rotate(0deg) translate(0px, 0px) !important;
+  opacity: 0.12 !important;
+}
+
+/* ── Phase label (CHAOS) ────────────────────────────────────────────── */
+
+.nx-intro-phase-label {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: clamp(0.7rem, 0.65rem + 0.3vw, 0.9rem);
+  letter-spacing: 0.5em;
+  text-transform: uppercase;
+  color: rgba(10, 10, 15, 0.25);
+  margin: 0;
+  opacity: 0;
+  animation: nx-intro-fade-in 1.5s ease 1s forwards;
+}
+
+/* ── Scan line ──────────────────────────────────────────────────────── */
+
+.nx-intro-scan-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100%;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.nx-intro-scan-line {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  top: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(10, 10, 15, 0.4), transparent);
+  opacity: 0;
+  animation: nx-intro-scan-descend 4s cubic-bezier(0.4, 0, 0.6, 1) 0.5s forwards;
+}
+
+@keyframes nx-intro-scan-descend {
+  0%   { top: 0; opacity: 0; }
+  8%   { opacity: 1; }
+  92%  { opacity: 1; }
+  100% { top: 100%; opacity: 0; }
+}
+
+/* Scan glow — wider gradient following the line */
+.nx-intro-scan-glow {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  top: 0;
+  height: 60px;
+  background: linear-gradient(to bottom, rgba(10, 10, 15, 0.05), transparent);
+  opacity: 0;
+  animation: nx-intro-scan-glow-descend 4s cubic-bezier(0.4, 0, 0.6, 1) 0.5s forwards;
+}
+
+@keyframes nx-intro-scan-glow-descend {
+  0%   { top: 0; opacity: 0; }
+  8%   { opacity: 1; }
+  92%  { opacity: 1; }
+  100% { top: calc(100% - 60px); opacity: 0; }
+}
+
+/* ── Phase container — sequential, no overlapping ──────────────────── */
+
+.nx-intro-phase {
   position: absolute;
   inset: 0;
   display: flex;
@@ -3164,94 +3323,73 @@ article.nomosx-brief .brief-footer {
   text-align: center;
   padding: 0 2rem;
   opacity: 0;
-  transition: opacity 0.6s ease;
   z-index: 2;
+  transition: opacity 1s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
 }
 
-.nx-intro-reveal.nx-intro-active {
+.nx-intro-phase-active {
   opacity: 1;
 }
 
-.nx-intro-line {
-  font-family: var(--nx-font-heading);
-  font-weight: 600;
-  font-size: clamp(1.5rem, 1.25rem + 2vw, 3rem);
-  line-height: 1.1;
-  letter-spacing: -0.02em;
-  color: var(--nx-text-primary);
-  margin: 0;
-  opacity: 0;
-  transform: translateY(12px);
-  animation: nx-intro-line-in 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
+/* ── Manifesto text block — scan phase ──────────────────────────────── */
 
-.nx-intro-reveal.nx-intro-active .nx-intro-line:nth-child(1) { animation-delay: 0.2s; }
-.nx-intro-reveal.nx-intro-active .nx-intro-line:nth-child(2) { animation-delay: 0.5s; }
-.nx-intro-reveal.nx-intro-active .nx-intro-line:nth-child(4) { animation-delay: 1.1s; }
-
-@keyframes nx-intro-line-in {
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.nx-intro-line--accent {
+.nx-intro-text-block {
   position: relative;
-  display: inline-block;
-}
-
-.nx-intro-line--accent::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -0.1em;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, rgba(10, 10, 15, 0.4), transparent);
-  transform: scaleX(0);
-  animation: nx-intro-underline 1s ease 1.6s forwards;
-}
-
-@keyframes nx-intro-underline {
-  to { transform: scaleX(1); }
-}
-
-.nx-intro-divider {
-  width: 0;
-  height: 1px;
-  margin: 1.5rem auto;
-  background: rgba(10, 10, 15, 0.15);
-  animation: nx-intro-divider 0.6s ease 0.9s forwards;
-}
-
-@keyframes nx-intro-divider {
-  to { width: 3rem; }
-}
-
-/* ── Phase 2: Wordmark brand reveal ────────────────────────────────────── */
-
-.nx-intro-brand {
-  position: absolute;
-  inset: 0;
+  z-index: 4;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  text-align: center;
-  opacity: 0;
-  transform: scale(0.96);
-  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
-  z-index: 2;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding: 2.5rem 3.5rem;
+  border-radius: 2px;
+  max-width: 40rem;
 }
 
-.nx-intro-brand.nx-intro-active {
-  opacity: 1;
-  transform: scale(1);
+.nx-intro-manifesto {
+  font-family: var(--nx-font-heading);
+  font-weight: 500;
+  font-size: clamp(1rem, 0.85rem + 0.8vw, 1.5rem);
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+  color: var(--nx-text-primary);
+  margin: 0;
+  /* Clip-path reveal — wipes from left */
+  clip-path: inset(0 100% 0 0);
+  animation: nx-intro-clip-reveal 2s cubic-bezier(0.16, 1, 0.3, 1) 1s forwards;
 }
 
-.nx-intro-brand.nx-intro-brand-out {
-  opacity: 0;
-  transform: scale(1.08);
-  transition: opacity 0.8s ease, transform 0.8s ease;
+@keyframes nx-intro-clip-reveal {
+  to { clip-path: inset(0 0 0 0); }
 }
+
+/* ── Eyebrow — NOMOS phase ──────────────────────────────────────────── */
+
+.nx-intro-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: clamp(0.65rem, 0.6rem + 0.2vw, 0.8rem);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(10, 10, 15, 0.45);
+  margin-bottom: 1.5rem;
+  opacity: 0;
+  animation: nx-intro-fade-in 0.8s ease 0.3s forwards;
+}
+
+.nx-intro-eyebrow-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(10, 10, 15, 0.3);
+  display: inline-block;
+}
+
+/* ── Wordmark — bloom effect ────────────────────────────────────────── */
 
 .nx-intro-wordmark {
   font-family: var(--nx-font-heading);
@@ -3261,7 +3399,15 @@ article.nomosx-brief .brief-footer {
   line-height: 1;
   color: var(--nx-text-primary);
   margin: 0;
-  text-shadow: 0 0 60px rgba(10, 10, 15, 0.15);
+  animation: nx-intro-bloom 1.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  filter: blur(14px);
+  opacity: 0;
+}
+
+@keyframes nx-intro-bloom {
+  0%   { opacity: 0; filter: blur(14px); transform: scale(0.92); }
+  50%  { opacity: 1; filter: blur(3px); transform: scale(1.02); }
+  100% { opacity: 1; filter: blur(0); transform: scale(1); }
 }
 
 .nx-intro-x {
@@ -3276,29 +3422,82 @@ article.nomosx-brief .brief-footer {
   right: -0.05em;
   bottom: 0.05em;
   height: 3px;
-  background: linear-gradient(90deg, transparent, rgba(10, 10, 15, 0.6), transparent);
+  background: linear-gradient(90deg, transparent, rgba(10, 10, 15, 0.5), transparent);
+}
+
+/* Mini meander divider */
+.nx-intro-meander-mini {
+  width: 160px;
+  margin-top: 1.5rem;
+  opacity: 0;
+  animation: nx-intro-fade-in 0.8s ease 0.8s forwards;
+}
+
+.nx-intro-meander-mini path {
+  stroke-dasharray: 400;
+  stroke-dashoffset: 400;
+  animation: nx-intro-meander-draw 2s cubic-bezier(0.16, 1, 0.3, 1) 1s forwards;
+}
+
+@keyframes nx-intro-meander-draw {
+  to { stroke-dashoffset: 0; }
 }
 
 .nx-intro-tagline {
+  font-family: var(--nx-font-heading);
+  font-weight: 500;
+  font-size: clamp(1rem, 0.85rem + 0.5vw, 1.5rem);
+  letter-spacing: -0.01em;
+  color: var(--nx-text-primary);
+  margin-top: 1.2rem;
+  opacity: 0;
+  animation: nx-intro-fade-in 0.8s ease 1.2s forwards;
+}
+
+.nx-intro-subtitle {
   font-family: var(--font-mono), ui-monospace, monospace;
   font-size: clamp(0.7rem, 0.65rem + 0.3vw, 0.9rem);
-  letter-spacing: 0.38em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: rgba(10, 10, 15, 0.5);
-  margin-top: 1.5rem;
+  color: rgba(10, 10, 15, 0.45);
+  margin-top: 0.8rem;
   opacity: 0;
-  animation: nx-intro-tagline 0.8s ease 0.3s forwards;
+  animation: nx-intro-fade-in 0.8s ease 1.6s forwards;
 }
 
-.nx-intro-brand.nx-intro-active .nx-intro-tagline {
-  animation-play-state: running;
+/* ── Skip button ────────────────────────────────────────────────────── */
+
+.nx-intro-skip {
+  position: absolute;
+  top: 1.5rem;
+  right: 1.5rem;
+  z-index: 5;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.9rem;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(10, 10, 15, 0.35);
+  background: transparent;
+  border: 1px solid rgba(10, 10, 15, 0.1);
+  border-radius: 0;
+  cursor: pointer;
+  transition: color 0.3s ease, border-color 0.3s ease;
+  opacity: 0;
+  animation: nx-intro-fade-in 0.6s ease 1s forwards;
 }
 
-@keyframes nx-intro-tagline {
-  to { opacity: 1; }
+.nx-intro-skip:hover,
+.nx-intro-skip:focus-visible {
+  color: rgba(10, 10, 15, 0.7);
+  border-color: rgba(10, 10, 15, 0.3);
+  outline: none;
 }
 
-/* ── Progress bar — minimal line at bottom ──────────────────────────────── */
+/* ── Progress bar ──────────────────────────────────────────────────── */
 
 .nx-intro-progress {
   position: absolute;
@@ -3306,14 +3505,14 @@ article.nomosx-brief .brief-footer {
   left: 0;
   right: 0;
   height: 2px;
-  background: rgba(10, 10, 15, 0.05);
-  z-index: 3;
+  background: rgba(10, 10, 15, 0.04);
+  z-index: 5;
 }
 
 .nx-intro-progress-bar {
   height: 100%;
+  background: linear-gradient(90deg, rgba(10, 10, 15, 0.3), rgba(10, 10, 15, 0.15));
   width: 0;
-  background: linear-gradient(90deg, rgba(10, 10, 15, 0.3), rgba(10, 10, 15, 0.6));
   animation: nx-intro-progress linear forwards;
 }
 
@@ -3322,40 +3521,62 @@ article.nomosx-brief .brief-footer {
   to   { width: 100%; }
 }
 
-/* ── Mobile ─────────────────────────────────────────────────────────────── */
+/* ── Utilities ──────────────────────────────────────────────────────── */
+
+@keyframes nx-intro-fade-in {
+  to { opacity: 1; }
+}
+
+/* ── Mobile ─────────────────────────────────────────────────────────── */
 
 @media (max-width: 640px) {
-  .nx-intro-line {
-    font-size: clamp(1.25rem, 1rem + 3vw, 2rem);
+  .nx-intro-grid {
+    grid-template-columns: repeat(10, 1fr);
+    grid-template-rows: repeat(14, 1fr);
+    max-width: 100%;
+    max-height: 100%;
+  }
+  .nx-intro-grid-char {
+    font-size: clamp(0.75rem, 0.65rem + 0.8vw, 1.125rem);
+  }
+  .nx-intro-text-block {
+    padding: 1.5rem 2rem;
+  }
+  .nx-intro-manifesto {
+    font-size: clamp(0.85rem, 0.75rem + 0.8vw, 1.125rem);
   }
   .nx-intro-wordmark {
     font-size: clamp(2.5rem, 1.5rem + 8vw, 5rem);
   }
   .nx-intro-tagline {
-    font-size: 0.65rem;
-    letter-spacing: 0.28em;
+    font-size: clamp(0.85rem, 0.75rem + 0.5vw, 1.125rem);
   }
-  .nx-intro-divider {
-    margin: 1rem auto;
+  .nx-intro-subtitle {
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .nx-intro-line,
-  .nx-intro-divider,
+  .nx-intro-grid-char,
+  .nx-intro-scan-line,
+  .nx-intro-scan-glow,
+  .nx-intro-wordmark,
+  .nx-intro-meander-mini,
+  .nx-intro-meander-mini path,
   .nx-intro-tagline,
+  .nx-intro-subtitle,
+  .nx-intro-eyebrow,
+  .nx-intro-manifesto,
+  .nx-intro-phase-label,
   .nx-intro-progress-bar,
-  .nx-intro-grid,
-  .nx-intro-aurora,
   .nx-intro-skip {
     animation: none !important;
+    transition: none !important;
     opacity: 1 !important;
     transform: none !important;
-    width: auto !important;
-  }
-  .nx-intro-line--accent::after {
-    transform: scaleX(1) !important;
-    animation: none !important;
+    filter: none !important;
+    clip-path: none !important;
   }
 }
 
@@ -3464,3 +3685,430 @@ article.nomosx-brief .brief-footer {
 }
 
 /* (legacy crawl CSS removed — replaced by 17b premium brand intro above) */
+
+/* ===================================================================
+   PAGE GRID — consistent subtle grid across entire page (fixed)
+   =================================================================== */
+.nx-page-grid {
+  background-image:
+    linear-gradient(rgba(156, 163, 175, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(156, 163, 175, 0.07) 1px, transparent 1px);
+  background-size: 64px 64px;
+  -webkit-mask-image: linear-gradient(180deg, transparent 0%, black 4%, black 96%, transparent 100%);
+  mask-image: linear-gradient(180deg, transparent 0%, black 4%, black 96%, transparent 100%);
+}
+
+.dark .nx-page-grid {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nx-page-grid { animation: none; }
+}
+
+/* ===================================================================
+   DARK MODE — Linear-inspired 4-level surface elevation
+   Near-black canvas, luminance hierarchy (lighter = elevated)
+   =================================================================== */
+.dark {
+  color-scheme: dark;
+
+  /* ── Surface ladder (canvas → surface-4, each step lighter) ── */
+  --nx-bg: #0a0a0f;
+  --nx-bg-elevated: #111114;
+  --nx-bg-panel: #16161a;
+  --nx-text-hero: #f7f8f8;
+  --nx-text-primary: #f7f8f8;
+  --nx-text-secondary: rgba(247, 248, 248, 0.62);
+  --nx-text-tertiary: rgba(247, 248, 248, 0.40);
+  --nx-text-quaternary: rgba(247, 248, 248, 0.30);
+  --nx-border-subtle: rgba(255, 255, 255, 0.06);
+  --nx-border-medium: rgba(255, 255, 255, 0.12);
+  --nx-border-cta: rgba(255, 255, 255, 0.20);
+  --nx-cta-bg: rgba(255, 255, 255, 0.06);
+  --nx-radius-cta: 4px;
+
+  /* Typography stays the same fluid scale */
+  --nx-read-color: rgba(247, 248, 248, 0.78);
+
+  /* Legacy aliases */
+  --color-bg: var(--nx-bg);
+  --color-bg-elevated: var(--nx-bg-elevated);
+  --color-bg-panel: var(--nx-bg-panel);
+  --color-border: var(--nx-border-subtle);
+  --color-border-hover: var(--nx-border-medium);
+  --nx-text-1: var(--nx-text-primary);
+  --nx-text-2: var(--nx-text-secondary);
+  --nx-text-3: var(--nx-text-tertiary);
+  --color-text: var(--nx-text-primary);
+  --color-text-muted: var(--nx-text-secondary);
+  --color-text-dim: var(--nx-text-tertiary);
+
+  /* Monochrome authority — accent stays white-based */
+  --nx-accent: var(--nx-text-primary);
+  --nx-accent-hover: rgba(247, 248, 248, 0.85);
+  --nx-accent-dim: rgba(255, 255, 255, 0.06);
+  --color-primary: var(--nx-text-primary);
+  --color-primary-hover: var(--nx-accent-hover);
+  --color-accent: var(--nx-text-primary);
+  --color-accent-secondary: var(--nx-text-secondary);
+  --color-danger: #ef4444;
+  --color-glow: transparent;
+  --color-glow-strong: transparent;
+
+  /* Internal dashboard palette */
+  --dash-color-primary: #5e6ad2;
+  --dash-color-primary-hover: #7170ff;
+  --dash-color-glow: rgba(94, 106, 210, 0.12);
+
+  /* Shadows — flat borders only, no drop shadows on dark */
+  --nx-shadow-card: 0 0 0 1px var(--nx-border-subtle);
+  --nx-shadow-card-hover: 0 0 0 1px var(--nx-border-medium);
+  --nx-shadow-panel: none;
+}
+
+/* Dark mode surface overrides for existing utility classes */
+.dark .nx-surface,
+.dark .nx-card-palantir {
+  background: var(--nx-bg-elevated);
+  border-color: var(--nx-border-subtle);
+}
+
+.dark .nx-card-palantir:hover {
+  border-color: var(--nx-border-medium);
+  background: var(--nx-bg-panel);
+}
+
+.dark .nx-glass {
+  background: rgba(255, 255, 255, 0.02);
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+.dark .nx-card {
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+.dark .nx-card:hover {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.dark .nx-hud-panel {
+  background: var(--nx-bg-panel);
+  border-color: var(--nx-border-subtle);
+  box-shadow: none;
+}
+
+.dark .nx-hud-panel::before {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 32%);
+}
+
+.dark .nx-oracle-panel {
+  background: var(--nx-bg-elevated);
+}
+
+.dark .nx-ancient-topbar {
+  background: rgba(17, 17, 20, 0.96);
+  border-bottom-color: var(--nx-border-subtle);
+}
+
+.dark .nx-sigil {
+  border-color: rgba(255, 255, 255, 0.10);
+}
+
+.dark .nx-sigil::before {
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.dark .nx-sigil::after {
+  color: rgba(255, 255, 255, 0.14);
+}
+
+.dark .nx-hud-chip {
+  border-color: rgba(255, 255, 255, 0.10);
+}
+
+.dark .nx-codex-cell {
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+.dark .nx-codex-cell::after {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.dark .nx-marble {
+  background:
+    radial-gradient(circle at 18% 20%, rgba(255, 255, 255, 0.03), transparent 25%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.008));
+}
+
+.dark .nx-grid-bg {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+}
+
+.dark .nx-hex-grid {
+  background-image:
+    linear-gradient(30deg, rgba(255, 255, 255, 0.06) 1px, transparent 1px),
+    linear-gradient(-30deg, rgba(255, 255, 255, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+}
+
+.dark .nx-scanline-overlay {
+  background-image: linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+}
+
+.dark .nx-noise {
+  opacity: 0.35;
+}
+
+.dark .nx-radial-bg {
+  background: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(94, 106, 210, 0.08), transparent 70%);
+}
+
+/* Dark mode selection */
+.dark ::selection {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--nx-text-primary);
+}
+
+/* Dark mode scrollbar */
+.dark ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.08); }
+.dark ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.15); }
+
+/* Dark mode focus */
+.dark *:focus-visible {
+  outline: 1px solid rgba(255, 255, 255, 0.5);
+  outline-offset: 2px;
+}
+
+/* Dark mode atmospheric layers */
+.dark .nx-grid-bg {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 72px 72px;
+}
+
+.dark .nx-horizon-glow {
+  background: radial-gradient(ellipse 50% 100% at 50% 100%, rgba(255, 255, 255, 0.04) 0%, transparent 65%);
+}
+
+/* Dark mode spotlight + border-flow */
+.dark .nx-spotlight {
+  --nx-spotlight-color: rgba(255, 255, 255, 0.04);
+}
+
+.dark .nx-border-flow {
+  border-color: var(--nx-border-subtle);
+}
+
+/* Dark mode CTA buttons */
+.dark .nx-public-btn-primary,
+.dark .nx-spx-cta {
+  background: var(--nx-cta-bg);
+  color: var(--nx-text-primary);
+  border-color: var(--nx-border-cta);
+}
+
+.dark .nx-public-btn-primary:hover,
+.dark .nx-spx-cta:hover {
+  border-color: rgba(255, 255, 255, 0.40);
+  background: rgba(255, 255, 255, 0.10);
+}
+
+.dark .nx-public-btn-secondary {
+  border-color: var(--nx-border-medium);
+  color: var(--nx-text-secondary);
+}
+
+.dark .nx-public-btn-secondary:hover {
+  border-color: var(--nx-border-cta);
+  color: var(--nx-text-primary);
+}
+
+/* Dark mode public surface */
+.dark .nx-public-surface {
+  border-color: var(--nx-border-subtle);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+/* Dark mode gradient text */
+.dark .nx-gradient-text {
+  color: #ffffff;
+}
+
+.dark .nx-gradient-text-light {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.dark .text-gradient {
+  color: var(--nx-text-primary);
+}
+
+/* Dark mode greek ghost */
+.dark .nx-greek-ghost {
+  color: rgba(255, 255, 255, 0.03);
+}
+
+/* Dark mode divider */
+.dark .nx-divider,
+.dark .ai-line {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* Dark mode manifesto */
+.dark .nx-manifesto-line {
+  color: rgba(247, 248, 248, 0.30);
+}
+
+.dark .nx-manifesto-line--accent {
+  color: rgba(247, 248, 248, 0.85);
+}
+
+.dark .nx-manifesto-line--accent::after {
+  background: linear-gradient(90deg, transparent, rgba(247, 248, 248, 0.35), transparent);
+}
+
+.dark .nx-manifesto-cascade {
+  color: rgba(247, 248, 248, 0.55);
+}
+
+.dark .nx-manifesto-cascade:hover {
+  color: rgba(247, 248, 248, 0.85);
+}
+
+.dark .nx-manifesto-signoff::before {
+  background: linear-gradient(90deg, transparent, rgba(247, 248, 248, 0.4));
+}
+
+.dark .nx-manifesto-signoff::after {
+  background: linear-gradient(90deg, rgba(247, 248, 248, 0.4), transparent);
+}
+
+.dark .nx-manifesto-signoff-x::after {
+  background: linear-gradient(90deg, transparent, rgba(247, 248, 248, 0.5), transparent);
+}
+
+/* ===================================================================
+   SKELETON SHIMMER — Loading placeholders
+   =================================================================== */
+.nx-skeleton {
+  position: relative;
+  display: inline-block;
+  background-color: rgba(10, 10, 15, 0.06);
+  overflow: hidden;
+}
+
+.dark .nx-skeleton {
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
+.nx-skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.45) 50%,
+    transparent 100%
+  );
+  transform: translateX(-100%);
+  animation: nx-shimmer 1.4s ease-in-out infinite;
+  mix-blend-mode: overlay;
+}
+
+.dark .nx-skeleton::after {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.12) 50%,
+    transparent 100%
+  );
+  mix-blend-mode: screen;
+}
+
+@keyframes nx-shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nx-skeleton::after { animation: none; }
+}
+
+/* ===================================================================
+   VIEW TRANSITIONS — Native browser page transitions
+   =================================================================== */
+
+/* Default crossfade for the whole page */
+::view-transition-old(root) {
+  animation: nx-vt-fade-out 0.3s ease-in-out;
+}
+
+::view-transition-new(root) {
+  animation: nx-vt-fade-in 0.3s ease-in-out;
+}
+
+@keyframes nx-vt-fade-out {
+  from { opacity: 1; transform: scale(1); }
+  to { opacity: 0; transform: scale(0.98); }
+}
+
+@keyframes nx-vt-fade-in {
+  from { opacity: 0; transform: scale(1.02); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* Morph animation for named shared elements */
+::view-transition-group(*) {
+  animation-duration: 0.4s;
+  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Prevent layout shift during transitions */
+::view-transition {
+  pointer-events: none;
+}
+
+/* ===================================================================
+   CSS SCROLL-DRIVEN ANIMATIONS — Zero-JS reveal (progressive enhancement)
+   =================================================================== */
+@supports (animation-timeline: view()) {
+  @keyframes nx-scroll-reveal {
+    from { opacity: 0; transform: translateY(1.5rem); }
+    to { opacity: 1; transform: none; }
+  }
+
+  .nx-scroll-reveal {
+    animation: nx-scroll-reveal linear both;
+    animation-timeline: view();
+    animation-range: entry 0% entry 60%;
+  }
+
+  /* Stagger children */
+  @keyframes nx-scroll-reveal-stagger {
+    from { opacity: 0; transform: translateY(1rem); }
+    to { opacity: 1; transform: none; }
+  }
+
+  .nx-scroll-stagger > * {
+    animation: nx-scroll-reveal-stagger linear both;
+    animation-timeline: view();
+    animation-range: entry 0% entry 80%;
+  }
+}
+
+/* Fallback: if no scroll-timeline support, elements are visible */
+@supports not (animation-timeline: view()) {
+  .nx-scroll-reveal,
+  .nx-scroll-stagger > * {
+    opacity: 1;
+    transform: none;
+  }
+}

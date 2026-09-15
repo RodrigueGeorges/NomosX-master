@@ -710,5 +710,17 @@
     "redTeam": "Red team — contre-scénario steel-man",
     "noAdversarial": "Aucun défi adversarial enregistré.",
     "methodNote": "Note méthodologique : les probabilités affichées sont des pondérations de scénarios issues de simulations prospectives calibrées sur des sources académiques — non des prédictions. Toute décision doit croiser ce signal avec le corpus cité [SRC-N] et la dissension enregistrée."
+  },
+  "Pipeline": {
+    "howItWorks": "Comment ça marche",
+    "live": "Live",
+    "map": "Cartographier",
+    "mapDesc": "Cartographier, pas accumuler.",
+    "confront": "Confronter",
+    "confrontDesc": "Forcer la collision des domaines.",
+    "quantify": "Quantifier",
+    "quantifyDesc": "Le chaos devient scénario.",
+    "decide": "Décider",
+    "decideDesc": "Une position vérifiable."
   }
 }

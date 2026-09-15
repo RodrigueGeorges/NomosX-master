@@ -308,7 +308,10 @@ export async function runEvolutionCycle(
   for (const agentId of agentIds) {
     const fallback = getFallbackPrompt(agentId);
     try {
-      const result = await evolveAgentPrompt(agentId, fallback);
+      // S18: Use agentic evolution (ReASearch+OEO) as primary, fall back to scripted
+      const result = await evolveAgentPromptAgentic(agentId, fallback).catch(() =>
+        evolveAgentPrompt(agentId, fallback),
+      );
       if (result.improved) {
         console.log(`[SelfEvolver] ${agentId} improved by ${result.delta.toFixed(1)} points to v${result.newVersion!.version}`);
         // K13: Record successful evolution in MAGE
@@ -691,6 +694,247 @@ export async function runMAGEEvolutionCycle(
   recordMAGEPerformance(state, agentId, outcome.performance, taskType);
 
   console.log(`[MAGE] Evolution cycle: ${agentId}/${taskType} — success=${outcome.success}, quality=${outcome.quality.toFixed(2)}`);
+}
+
+// ============================================================================
+// S18: ReASearch + OEO — Agentic Self-Optimization
+// arXiv 2608.06714 (ReASearch) + arXiv 2608.09629 (OEO)
+// ============================================================================
+//
+// ReASearch: The agent internalizes the search optimization logic instead of
+// an outer-loop controller. The agent decides WHAT to optimize and HOW.
+//
+// OEO (Open-Ended Optimization): The model composes its own improvement
+// process. Instead of fixed mutation strategies, the agent proposes its own
+// optimization trajectory based on self-assessment.
+//
+// Together: the evolution process itself becomes agentic rather than scripted.
+// The agent chooses from 6 strategies, self-reflects on results, and adapts
+// its optimization approach over time.
+
+export type OptimizationStrategy =
+  | 'targeted_mutation'    // Fix a specific failure pattern
+  | 'expansion'            // Add instructions for uncovered scenarios
+  | 'compression'          // Remove redundancy to reduce prompt length
+  | 'restructuring'        // Reorganize for clarity
+  | 'example_injection'    // Add few-shot examples from past failures
+  | 'constraint_relaxation'; // Relax overly strict constraints
+
+export interface AgenticEvolutionState {
+  agentId: string;
+  iteration: number;
+  exploredStrategies: OptimizationStrategy[];
+  strategyPerformance: Record<OptimizationStrategy, { attempts: number; successes: number; avgDelta: number }>;
+  stagnationCount: number;
+  bestScore: number;
+}
+
+const STRATEGY_DESCRIPTIONS: Record<OptimizationStrategy, string> = {
+  targeted_mutation: 'Fix a specific failure pattern by modifying the relevant instruction',
+  expansion: 'Add new instructions for scenarios not covered by the current prompt',
+  compression: 'Remove redundant or verbose instructions to reduce prompt length and token cost',
+  restructuring: 'Reorganize the prompt structure for clarity and logical flow',
+  example_injection: 'Add few-shot examples from past failures to guide the model',
+  constraint_relaxation: 'Relax overly strict constraints that cause unnecessary failures',
+};
+
+const ALL_STRATEGIES: OptimizationStrategy[] = [
+  'targeted_mutation', 'expansion', 'compression', 'restructuring', 'example_injection', 'constraint_relaxation',
+];
+
+async function chooseOptimizationStrategy(
+  agentId: string,
+  currentPrompt: string,
+  signal: { lessons: string[]; avgTrust: number; failurePatterns: Record<string, number> },
+  state: AgenticEvolutionState,
+): Promise<OptimizationStrategy> {
+  const unexplored = ALL_STRATEGIES.filter(s => !state.exploredStrategies.includes(s));
+  if (unexplored.length > 0) {
+    return unexplored[0];
+  }
+
+  const topFailures = Object.entries(signal.failurePatterns)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3);
+  const promptLength = currentPrompt.length;
+  const hasFewShots = currentPrompt.toLowerCase().includes('example') || currentPrompt.toLowerCase().includes('e.g.');
+
+  const candidates: OptimizationStrategy[] = [];
+  if (topFailures.length > 0) candidates.push('targeted_mutation');
+  if (promptLength > 3000) candidates.push('compression');
+  if (promptLength < 1500) candidates.push('expansion');
+  if (!hasFewShots && signal.lessons.length > 3) candidates.push('example_injection');
+  if (state.stagnationCount > 2) candidates.push('restructuring');
+  candidates.push('constraint_relaxation');
+
+  const perfScores = candidates.map(s => {
+    const perf = state.strategyPerformance[s];
+    if (!perf || perf.attempts === 0) return { strategy: s, score: 0.5 };
+    const successRate = perf.successes / perf.attempts;
+    const explorationBonus = Math.sqrt(2 * Math.log(state.iteration + 1) / perf.attempts);
+    return { strategy: s, score: successRate + 0.3 * explorationBonus };
+  });
+  perfScores.sort((a, b) => b.score - a.score);
+  return perfScores[0].strategy;
+}
+
+async function executeStrategy(
+  strategy: OptimizationStrategy,
+  agentId: string,
+  currentPrompt: string,
+  signal: { lessons: string[]; avgTrust: number; failurePatterns: Record<string, number> },
+): Promise<{ prompt: string; rationale: string } | null> {
+  const failureText = Object.entries(signal.failurePatterns)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([k, v]) => `${k}: ${v}`)
+    .join('\n');
+
+  const strategyDesc = STRATEGY_DESCRIPTIONS[strategy];
+  const lessonsText = signal.lessons.slice(0, 10).map((l, i) => `${i + 1}. ${l}`).join('\n');
+
+  const response = await callLLM({
+    messages: [
+      {
+        role: 'system',
+        content: `You are an expert prompt engineer for an autonomous think-tank agent. You will apply a specific optimization strategy to improve the agent's system prompt. Return JSON only.`,
+      },
+      {
+        role: 'user',
+        content: `AGENT: ${agentId}
+
+OPTIMIZATION STRATEGY: ${strategy}
+DESCRIPTION: ${strategyDesc}
+
+CURRENT PROMPT (${currentPrompt.length} chars):
+${currentPrompt.slice(0, 4000)}
+
+PAST LESSONS:
+${lessonsText}
+
+FAILURE PATTERNS:
+${failureText}
+
+AVG TRUST: ${signal.avgTrust.toFixed(1)}/100
+
+TASK: Apply the "${strategy}" strategy to improve this prompt. Return JSON:
+{
+  "prompt": "complete rewritten system prompt",
+  "rationale": "what changed and why this strategy was effective"
+}
+
+Rules:
+- Apply ONLY the specified strategy
+- Do not remove core instructions
+- Keep the prompt under 3500 chars
+- Be specific about what you changed`,
+      },
+    ],
+    task: 'enrichment_reasoner',
+    temperature: 0.4,
+    maxTokens: 3000,
+    jsonMode: true,
+    enableCache: true,
+  });
+
+  const parsed = parseJson<{ prompt: string; rationale: string }>(response.content);
+  if (!parsed) return null;
+  return { prompt: parsed.prompt, rationale: parsed.rationale };
+}
+
+export async function evolveAgentPromptAgentic(
+  agentId: string,
+  currentPrompt: string,
+  config: Partial<EvolverConfig> = {},
+): Promise<EvolutionResult> {
+  const fullConfig: EvolverConfig = {
+    minRunsBeforeEvolve: 5,
+    lookbackRuns: 50,
+    minLessonSignal: 0.3,
+    maxMutationsPerRun: 1,
+    testCases: ['How do carbon border adjustments interact with AI supply chain automation?'],
+    ...config,
+  };
+
+  const signal = await collectEvolutionSignal(agentId, fullConfig.lookbackRuns);
+  const lessonSignal = signal.lessons.length / fullConfig.lookbackRuns;
+  if (lessonSignal < fullConfig.minLessonSignal || signal.lessons.length === 0) {
+    return { agentId, improved: false, delta: 0, costUsd: 0 };
+  }
+
+  const existing = await loadLatestFromDB(agentId);
+  const currentVersion: PromptVersion = existing || {
+    version: 1,
+    prompt: currentPrompt,
+    score: signal.avgTrust,
+    source: 'manual',
+    createdAt: new Date(),
+    lessons: [],
+  };
+
+  const state: AgenticEvolutionState = {
+    agentId,
+    iteration: existing?.version ?? 1,
+    exploredStrategies: [],
+    strategyPerformance: {} as Record<OptimizationStrategy, { attempts: number; successes: number; avgDelta: number }>,
+    stagnationCount: 0,
+    bestScore: currentVersion.score,
+  };
+
+  const strategy = await chooseOptimizationStrategy(agentId, currentVersion.prompt, signal, state);
+  const mutation = await executeStrategy(strategy, agentId, currentVersion.prompt, signal);
+  if (!mutation) {
+    return { agentId, improved: false, delta: 0, costUsd: 0 };
+  }
+
+  const [oldScore, newScore] = await Promise.all([
+    scorePromptVariant(agentId, currentVersion.prompt, fullConfig.testCases),
+    scorePromptVariant(agentId, mutation.prompt, fullConfig.testCases),
+  ]);
+
+  const costUsd = 0;
+  const improved = newScore > oldScore * 1.05;
+
+  if (!state.exploredStrategies.includes(strategy)) {
+    state.exploredStrategies.push(strategy);
+  }
+  const perf = state.strategyPerformance[strategy] || { attempts: 0, successes: 0, avgDelta: 0 };
+  perf.attempts++;
+  if (improved) perf.successes++;
+  perf.avgDelta = (perf.avgDelta * (perf.attempts - 1) + (newScore - oldScore)) / perf.attempts;
+  state.strategyPerformance[strategy] = perf;
+
+  if (improved) {
+    const newVersion: PromptVersion = {
+      version: currentVersion.version + 1,
+      prompt: mutation.prompt,
+      score: newScore,
+      source: 'evolved',
+      createdAt: new Date(),
+      lessons: signal.lessons.slice(0, 10),
+    };
+    await saveVersionToDB({ ...newVersion, agentId });
+    latestPromptCache[agentId] = newVersion;
+
+    console.log(`[SelfEvolver/ReASearch+OEO] ${agentId} improved via ${strategy}: +${(newScore - oldScore).toFixed(1)} points to v${newVersion.version}`);
+
+    return {
+      agentId,
+      improved: true,
+      newVersion,
+      previousBest: currentVersion,
+      delta: newScore - oldScore,
+      costUsd,
+    };
+  }
+
+  return {
+    agentId,
+    improved: false,
+    previousBest: currentVersion,
+    delta: newScore - oldScore,
+    costUsd,
+  };
 }
 
 // ============================================================================

@@ -95,27 +95,24 @@ async function findPublicationByBriefId(
   briefId: string
 ): Promise<{ id: string; publicId: string | null } | null> {
   try {
-    const match = await prisma.thinkTankPublication.findFirst({
-      where: {
-        criticalLoopResult: {
-          path: ["briefId"],
-          equals: briefId,
+    console.log(`[InquiryOrchestrator] Post-pipeline dedup check for brief=${briefId}...`);
+    const match = await withDbRetry(() =>
+      prisma.thinkTankPublication.findFirst({
+        where: {
+          criticalLoopResult: {
+            path: ["briefId"],
+            equals: briefId,
+          },
         },
-      },
-      select: { id: true, publicId: true },
-      orderBy: { createdAt: "desc" },
-    });
+        select: { id: true, publicId: true },
+        orderBy: { createdAt: "desc" },
+      })
+    );
+    console.log(`[InquiryOrchestrator] Dedup check complete: ${match ? `found ${match.id}` : 'no match'}`);
     return match;
-  } catch {
-    // Fallback: JSON path filter may fail if criticalLoopResult is null for old pubs
-    const fallback = await prisma.thinkTankPublication.findFirst({
-      where: {
-        criticalLoopResult: { string_contains: briefId },
-      },
-      select: { id: true, publicId: true },
-      orderBy: { createdAt: "desc" },
-    });
-    return fallback;
+  } catch (err) {
+    console.warn(`[InquiryOrchestrator] Dedup check failed (continuing):`, err instanceof Error ? err.message : String(err));
+    return null;
   }
 }
 
@@ -271,6 +268,7 @@ export async function runAndPublishInquiry(
   }
 
   const costUsd = getPipelineCostUsd(pipeline.stats);
+  console.log(`[InquiryOrchestrator] Post-pipeline: cost=$${costUsd.toFixed(4)} trust=${pipeline.trustScore} quality=${pipeline.qualityScore} words=${countWordsHtml(pipeline.html)} html=${pipeline.html.length} chars`);
 
   // 4a. Handle pipeline refusal (insufficient evidence)
   if (pipeline.refusal) {
@@ -364,6 +362,8 @@ export async function runAndPublishInquiry(
     domain: req.domain,
   });
 
+  console.log(`[InquiryOrchestrator] Gate: decision=${gate.decision} | Readiness: ok=${readiness.ok} | trust=${trustScore} quality=${qualityScore} coverage=${Math.round((citationCoverage || 0) * 100)}%`);
+
   const minTrust = req.minTrustScore ?? 65;
   // Adaptive trust: if enrichment reasoner found evidence sufficient (score ≥ 70),
   // lower trust threshold by 5 — emerging topics may have slightly lower trust
@@ -396,7 +396,8 @@ export async function runAndPublishInquiry(
   // Priority 2b: Trust in "moderate confidence" zone (55-64) + gate publish/revise → publish with warning
   // This prevents HELD on reports that are just under the threshold after the quality loop.
   // The warning is stored in metadata and surfaced to the reader.
-  else if (trustScore >= MIN_VIABLE_TRUST && trustScore < adaptiveMinTrust && gate.decision !== "hold") {
+  // But NEVER publish if quality < 40 — garbage regardless of trust.
+  else if (trustScore >= MIN_VIABLE_TRUST && trustScore < adaptiveMinTrust && gate.decision !== "hold" && qualityScore >= 40) {
     status = "published";
     console.log(`[InquiryOrchestrator] PUBLISH WITH WARNING: trust ${trustScore} in moderate zone [${MIN_VIABLE_TRUST}-${adaptiveMinTrust - 1}] — publishing with confidence warning`);
   }
@@ -413,7 +414,8 @@ export async function runAndPublishInquiry(
     status = "held";
   }
   // Priority 5b: Gate revise but trust ≥ MIN_VIABLE_TRUST → publish with warning (avoid HELD on moderate trust)
-  else if ((gate.decision === "revise" || !readiness.ok) && trustScore >= MIN_VIABLE_TRUST) {
+  // But NEVER publish if quality is below 40 — that's garbage regardless of trust
+  else if ((gate.decision === "revise" || !readiness.ok) && trustScore >= MIN_VIABLE_TRUST && qualityScore >= 40) {
     status = "published";
     console.log(`[InquiryOrchestrator] PUBLISH WITH WARNING: gate ${gate.decision}, trust ${trustScore} ≥ ${MIN_VIABLE_TRUST} — publishing with quality warning`);
   }
@@ -426,6 +428,7 @@ export async function runAndPublishInquiry(
   const dbStatus = resolveDbStatus(status);
 
   // 6. Persist (atomic: publication + brief link) — with DB retry for connection drops
+  console.log(`[InquiryOrchestrator] Persisting publication: status=${status} trust=${trustScore} quality=${qualityScore} dbStatus=${dbStatus}`);
   const publication = await withDbRetry(() =>
     prisma.$transaction(async (tx) => {
     const pub = await tx.thinkTankPublication.create({
@@ -490,7 +493,7 @@ export async function runAndPublishInquiry(
     }
 
     return pub;
-  })
+  }, { timeout: 30_000 })
 );
 
   console.log(

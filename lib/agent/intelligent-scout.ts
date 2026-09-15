@@ -706,7 +706,7 @@ export async function runIntelligentScout(
   const config: AdaptiveDepthConfig = {
     minSources: format === 'dossier' ? 30 : 15,
     maxSources: format === 'dossier' ? 300 : format === 'strategic' ? 200 : 100,
-    maxIterations: 3,
+    maxIterations: 2,
     sufficiencyThreshold: format === 'dossier' ? 60 : format === 'strategic' ? 40 : 20,
   };
 
@@ -814,11 +814,17 @@ export async function runIntelligentScout(
 
   console.log(`[IntelligentScout] Done: ${filtered.kept.length} sources, diversity=${Math.round(diversityScore * 100)}%, consensus=${Math.round(consensusScore * 100)}%, scenarioRichness=${Math.round(scenarioRichness * 100)}%, ${durationMs}ms`);
 
+  // Step 8: S18 — Retrieval-Grounded Voting (RGV)
+  // arXiv 2608.24024 — multi-round retrieval voting improves precision by ~5.4%
+  // Sources that appear across multiple retrieval rounds get higher vote scores.
+  // This re-ranks sources by cross-round consensus rather than single-shot relevance.
+  const votedSources = applyRetrievalGroundedVoting(filtered.kept, lenses);
+
   return {
     lenses: lensResults,
-    allSources: filtered.kept,
+    allSources: votedSources,
     totalSources: allSources.length,
-    uniqueSources: filtered.kept.length,
+    uniqueSources: votedSources.length,
     diversityScore,
     consensusScore,
     scenarioRichness,
@@ -827,4 +833,62 @@ export async function runIntelligentScout(
     adaptiveDepth: iteration,
     banditAllocation,
   };
+}
+
+// ============================================================================
+// S18: RGV — Retrieval-Grounded Voting
+// arXiv 2608.24024 (Aug 2026)
+// ============================================================================
+//
+// Multi-round retrieval voting: sources that appear across multiple retrieval
+// rounds (different lenses, different queries) get higher vote scores. This
+// re-ranks sources by cross-round consensus rather than single-shot relevance.
+//
+// Key insight: a source found by BOTH the "core" lens AND the "cross_domain"
+// lens is likely more fundamental than one found only by a single lens.
+// Similarly, a source found by multiple queries within the same lens is
+// more robust than one found by a single query.
+//
+// Effect: +5.4% accuracy on multi-turn search tasks (paper benchmark).
+
+export function applyRetrievalGroundedVoting(
+  sources: IntelligentScoutResult['allSources'],
+  lenses: SearchLens[],
+): IntelligentScoutResult['allSources'] {
+  if (sources.length === 0) return sources;
+
+  const lensTypes = new Set(lenses.map(l => l.type));
+  const voteMap = new Map<string, { source: typeof sources[0]; votes: number; lensCount: number }>();
+
+  for (const source of sources) {
+    const key = source.doi || source.id;
+    const existing = voteMap.get(key);
+    if (existing) {
+      existing.votes++;
+    } else {
+      voteMap.set(key, { source, votes: 1, lensCount: 0 });
+    }
+  }
+
+  const lensAppearances = new Map<string, Set<LensType>>();
+  for (const source of sources) {
+    const key = source.doi || source.id;
+    if (!lensAppearances.has(key)) lensAppearances.set(key, new Set());
+    lensAppearances.get(key)!.add(source.lensType);
+  }
+
+  for (const [key, entry] of voteMap) {
+    entry.lensCount = lensAppearances.get(key)?.size ?? 1;
+  }
+
+  const maxVotes = Math.max(...Array.from(voteMap.values()).map(v => v.votes), 1);
+  const maxLensCount = Math.max(...Array.from(voteMap.values()).map(v => v.lensCount), 1);
+
+  return Array.from(voteMap.values())
+    .map(({ source, votes, lensCount }) => ({
+      ...source,
+      relevanceScore: Math.min(1, (votes / maxVotes) * 0.5 + (lensCount / maxLensCount) * 0.5),
+      diversityScore: lensCount / lensTypes.size,
+    }))
+    .sort((a, b) => b.relevanceScore - a.relevanceScore);
 }

@@ -35,6 +35,8 @@ import { FALLBACK_FEATURED_VERDICT, isEmptyVerdict } from "@/lib/brand/featured-
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 import { ManifestoCrawl } from "@/components/brand/ManifestoCrawl";
+import { GhostCharField } from "@/components/brand/GhostCharField";
+import { MeanderDivider } from "@/components/brand/MeanderDivider";
 import { NomosXLogo } from "@/components/brand/NomosXLogo";
 
 import { PUBLIC_ROUTES } from "@/lib/public-urls";
@@ -352,9 +354,9 @@ function HomePageContent() {
 
           <section className="relative px-6 sm:px-8 min-h-[calc(100svh-3.5rem)] flex flex-col items-center justify-center py-16 sm:py-20 overflow-hidden">
 
-            <div className="nx-grid-bg-enhanced nx-grid-bg-animated" aria-hidden="true" />
-
             <div className="nx-aurora" aria-hidden="true" />
+
+            <GhostCharField cols={14} rows={7} seed={11} className="opacity-[0.06]" />
 
             <div className="relative max-w-4xl mx-auto text-center w-full">
 
@@ -542,9 +544,9 @@ function HomePageContent() {
 
           <section className="nx-section-divide relative px-6 sm:px-8 py-20 sm:py-28 overflow-hidden">
 
-            <span className="nx-section-index">{manifestoSectionNum} / {sectionTotal}</span>
+            <GhostCharField cols={10} rows={5} seed={23} drift={false} className="opacity-[0.04]" />
 
-            <div className="nx-grid-bg-enhanced opacity-30" aria-hidden="true" />
+            <span className="nx-section-index">{manifestoSectionNum} / {sectionTotal}</span>
 
             <div className="relative max-w-4xl mx-auto text-center">
 
@@ -562,7 +564,9 @@ function HomePageContent() {
                   {t("Home.manifestoLine2")}
                 </p>
 
-                <div className="nx-divider w-16 mx-auto my-8" />
+                <div className="w-40 mx-auto my-8 text-[var(--nx-accent,rgba(255,255,255,0.25))]">
+                  <MeanderDivider width={160} />
+                </div>
 
                 <p className="nx-manifesto-line nx-manifesto-line--accent">
                   {t("Home.manifestoLine3")}
@@ -1047,6 +1051,9 @@ export default function HomePage() {
   );
 
 }
+
+
+
 
 
 

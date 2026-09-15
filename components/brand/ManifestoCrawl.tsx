@@ -1,44 +1,41 @@
 "use client";
 
 /**
- * ManifestoCrawl — short premium brand reveal for the NomosX home.
+ * ManifestoCrawl v7 — "From Chaos to Nomos"
  *
- * Inspired by the best 2026 intros (Telha Clarke, Bisous, Vectr):
- *   - 5 seconds total (not 25)
- *   - Wordmark animation, not text crawl
- *   - One punchline, not a paragraph
- *   - Atmospheric background (grid + aurora), not black void
- *   - Smooth fade into the page, not a hard cut
+ * DA: white background, dark text, charter NomosX.
+ * Narrative: Greek letters + binary start chaotic, a scan line
+ * organizes them into structure, then they crystallize into NomosX.
  *
- * Phases:
- *   1. reveal  (0–2.5s)   — grid/aurora fade in, punchline types in
- *   2. brand   (2.5–4s)   — wordmark glows in with subtitle
- *   3. exit    (4–5s)     — everything lifts and fades, page emerges
+ * Phase 1 — CHAOS   (0-5s)    Letters scattered, drifting chaotically
+ * Phase 2 — SCAN   (5-10s)   Scan line descends, letters align, manifesto
+ * Phase 3 — NOMOS  (10-15s)  Wordmark bloom, meander, tagline + subtitle
+ * Phase 4 — EXIT   (15-16s)  Fade out
  *
- * Gating: prefers-reduced-motion, sessionStorage, low-end devices.
- * Skip: Esc / Enter / Space / click anywhere.
+ * Brand DNA:
+ *   Tagline:    "From Chaos to Nomos."
+ *   Subtitle:   "An AI think tank that publishes positions, not opinions."
+ *   Manifesto: "The world doesn't suffer from a lack of information.
+ *                It suffers from a lack of structure."
  */
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 
-type Phase = "reveal" | "brand" | "exit";
+type Phase = "chaos" | "scan" | "nomos" | "exit";
 
-const STORAGE_KEY = "nomosx:intro:seen";
-
-const REVEAL_MS = 2500;
-const BRAND_MS = 1500;
+const CHAOS_MS = 5000;
+const SCAN_MS = 5000;
+const NOMOS_MS = 5000;
 const EXIT_MS = 1000;
-const TOTAL_MS = REVEAL_MS + BRAND_MS;
-const SAFETY_MS = TOTAL_MS + 3000;
+const TOTAL_MS = CHAOS_MS + SCAN_MS + NOMOS_MS;
+const SAFETY_MS = TOTAL_MS + 5000;
+
+const GREEK_CHARS = "ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩαβγδεζηθικλμνξοπρστυφχψω";
+const BINARY_CHARS = "01";
 
 function shouldSkipAutoplay(): boolean {
   if (typeof window === "undefined") return true;
   if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return true;
-  try {
-    if (sessionStorage.getItem(STORAGE_KEY) === "1") return true;
-  } catch {
-    /* ignore */
-  }
   const nav = navigator as Navigator & {
     deviceMemory?: number;
     connection?: { saveData?: boolean; effectiveType?: string };
@@ -50,27 +47,133 @@ function shouldSkipAutoplay(): boolean {
   return false;
 }
 
+// ── Scramble text hook ──────────────────────────────────────────────
+const SCRAMBLE_CHARS = "ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩ0123456789@#$%&*<>{}[]/\\|";
+
+function useScrambleText(target: string, active: boolean, durationMs = 2000): string {
+  const [display, setDisplay] = useState(target);
+  const rafRef = useRef<number>(0);
+
+  useEffect(() => {
+    if (!active || typeof window === "undefined") {
+      setDisplay(target);
+      return;
+    }
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setDisplay(target);
+      return;
+    }
+
+    const chars = target.split("");
+    const resolveTimes = chars.map((_, i) => {
+      const base = (i / chars.length) * durationMs * 0.6;
+      const jitter = Math.random() * durationMs * 0.4;
+      return base + jitter;
+    });
+    const start = performance.now();
+
+    const tick = (now: number) => {
+      const elapsed = now - start;
+      let done = true;
+      const out = chars.map((ch, i) => {
+        if (ch === " " || ch === "." || ch === "'" || ch === "-" || ch === ",") return ch;
+        if (elapsed >= resolveTimes[i]) return ch;
+        done = false;
+        return SCRAMBLE_CHARS[Math.floor(Math.random() * SCRAMBLE_CHARS.length)];
+      });
+      setDisplay(out.join(""));
+      if (!done) {
+        rafRef.current = requestAnimationFrame(tick);
+      } else {
+        setDisplay(target);
+      }
+    };
+
+    rafRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [target, active, durationMs]);
+
+  return display;
+}
+
+// ── Floating char grid: Greek letters × binary ─────────────────────
+// Each char has a random initial chaotic offset/rotation.
+// When `organized` is true, chars animate to aligned grid position.
+function FloatingCharGrid({ organized }: { organized: boolean }) {
+  const cols = 16;
+  const rows = 10;
+  const cells: React.ReactNode[] = [];
+
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const isGreek = Math.random() > 0.4;
+      const pool = isGreek ? GREEK_CHARS : BINARY_CHARS;
+      const char = pool[Math.floor(Math.random() * pool.length)];
+
+      // Chaotic initial state
+      const rot = (Math.random() - 0.5) * 60; // -30 to +30 deg
+      const offsetX = (Math.random() - 0.5) * 20; // -10 to +10 px
+      const offsetY = (Math.random() - 0.5) * 20;
+      const delay = (r * 0.12).toFixed(2); // staggered by row
+      const driftDuration = (4 + Math.random() * 3).toFixed(1);
+      const baseOpacity = (0.03 + Math.random() * 0.05).toFixed(3);
+
+      cells.push(
+        <span
+          key={`${r}-${c}`}
+          className={`nx-intro-grid-char ${organized ? "nx-intro-grid-char-organized" : ""}`}
+          style={{
+            // CSS custom properties for chaos → order transition
+            ["--rot" as string]: `${rot}deg`,
+            ["--ox" as string]: `${offsetX}px`,
+            ["--oy" as string]: `${offsetY}px`,
+            ["--delay" as string]: `${delay}s`,
+            animationDelay: `${delay}s`,
+            animationDuration: `${driftDuration}s`,
+            opacity: parseFloat(baseOpacity),
+            color: isGreek ? "var(--nx-text-primary)" : "rgba(10, 10, 15, 0.5)",
+            fontFamily: isGreek
+              ? "var(--nx-font-heading)"
+              : "var(--font-mono), ui-monospace, monospace",
+          }}
+        >
+          {char}
+        </span>
+      );
+    }
+  }
+
+  return <div className="nx-intro-grid">{cells}</div>;
+}
+
+// ── Main component ──────────────────────────────────────────────────
 export function ManifestoCrawl({ onComplete }: { onComplete?: () => void }) {
-  const [phase, setPhase] = useState<Phase>("reveal");
+  const [phase, setPhase] = useState<Phase>("chaos");
   const [hidden, setHidden] = useState(false);
   const [shouldPlay, setShouldPlay] = useState(false);
+  const [gridKey, setGridKey] = useState(0);
   const timers = useRef<number[]>([]);
   const completedRef = useRef(false);
   const skipBtnRef = useRef<HTMLButtonElement>(null);
   const previousFocus = useRef<HTMLElement | null>(null);
 
-  const clearTimers = () => {
+  const manifestoText = useScrambleText(
+    "The world doesn't suffer from a lack of information. It suffers from a lack of structure.",
+    phase === "scan",
+    3000
+  );
+  const nomosText = useScrambleText("NOMOS", phase === "nomos", 1500);
+
+  const clearTimers = useCallback(() => {
     timers.current.forEach((t) => window.clearTimeout(t));
     timers.current = [];
-  };
+  }, []);
 
-  const finish = () => {
+  const finish = useCallback(() => {
     if (completedRef.current) return;
     completedRef.current = true;
     clearTimers();
 
-    // Restore body scroll and remove inert BEFORE hiding the overlay,
-    // so the page is interactive immediately when the overlay fades out.
     document.body.style.overflow = "";
     const mainContent = document.querySelector("[data-nx-main]") as HTMLElement | null;
     if (mainContent) mainContent.inert = false;
@@ -82,30 +185,16 @@ export function ManifestoCrawl({ onComplete }: { onComplete?: () => void }) {
       onComplete?.();
     }, EXIT_MS);
     timers.current.push(t);
-  };
+  }, [clearTimers, onComplete]);
 
-  useEffect(() => {
-    if (shouldSkipAutoplay()) {
-      setHidden(true);
-      completedRef.current = true;
-      // Safety: ensure body scroll and inert are not stuck from a previous run
-      document.body.style.overflow = "";
-      const main = document.querySelector("[data-nx-main]") as HTMLElement | null;
-      if (main) main.inert = false;
-      onComplete?.();
-      return;
-    }
-
+  const startSequence = useCallback(() => {
+    completedRef.current = false;
+    setPhase("chaos");
+    setHidden(false);
     setShouldPlay(true);
-
-    try {
-      sessionStorage.setItem(STORAGE_KEY, "1");
-    } catch {
-      /* ignore */
-    }
+    setGridKey((k) => k + 1);
 
     previousFocus.current = document.activeElement as HTMLElement | null;
-    const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
 
     const mainContent = document.querySelector("[data-nx-main]") as HTMLElement | null;
@@ -114,16 +203,42 @@ export function ManifestoCrawl({ onComplete }: { onComplete?: () => void }) {
     requestAnimationFrame(() => skipBtnRef.current?.focus());
 
     timers.current.push(
-      window.setTimeout(() => setPhase("brand"), REVEAL_MS),
+      window.setTimeout(() => setPhase("scan"), CHAOS_MS),
+      window.setTimeout(() => setPhase("nomos"), CHAOS_MS + SCAN_MS),
       window.setTimeout(finish, TOTAL_MS),
       window.setTimeout(finish, SAFETY_MS),
     );
+  }, [finish]);
+
+  useEffect(() => {
+    if (shouldSkipAutoplay()) {
+      setHidden(true);
+      completedRef.current = true;
+      document.body.style.overflow = "";
+      const main = document.querySelector("[data-nx-main]") as HTMLElement | null;
+      if (main) main.inert = false;
+      onComplete?.();
+      return;
+    }
+
+    startSequence();
 
     return () => {
       clearTimers();
-      document.body.style.overflow = prevOverflow;
+      document.body.style.overflow = "";
+      const mainContent = document.querySelector("[data-nx-main]") as HTMLElement | null;
       if (mainContent) mainContent.inert = false;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    const replay = () => {
+      clearTimers();
+      startSequence();
+    };
+    window.addEventListener("nomosx:replay-intro", replay);
+    return () => window.removeEventListener("nomosx:replay-intro", replay);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -142,9 +257,14 @@ export function ManifestoCrawl({ onComplete }: { onComplete?: () => void }) {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [hidden, shouldPlay]);
+  }, [hidden, shouldPlay, finish]);
 
   if (hidden || !shouldPlay) return null;
+
+  const showChaos = phase === "chaos";
+  const showScan = phase === "scan";
+  const showNomos = phase === "nomos" || phase === "exit";
+  const organized = showScan || showNomos;
 
   return (
     <div
@@ -154,9 +274,57 @@ export function ManifestoCrawl({ onComplete }: { onComplete?: () => void }) {
       aria-label="NomosX — intro"
       onClick={finish}
     >
-      <div className="nx-grid-bg-enhanced nx-intro-grid" aria-hidden="true" />
-      <div className="nx-aurora nx-intro-aurora" aria-hidden="true" />
+      {/* Subtle aurora — matches landing page */}
+      <div className="nx-intro-aurora" aria-hidden="true" />
 
+      {/* ── Floating Greek × Binary grid ────────────────────────────── */}
+      <div
+        key={gridKey}
+        className={`nx-intro-grid-container ${showChaos ? "nx-intro-grid-active" : ""} ${showNomos ? "nx-intro-grid-fading" : ""}`}
+        aria-hidden="true"
+      >
+        <FloatingCharGrid organized={organized} />
+      </div>
+
+      {/* ── Phase 1: CHAOS — scattered letters drift ─────────────────── */}
+      <div className={`nx-intro-phase ${showChaos ? "nx-intro-phase-active" : ""}`} aria-hidden="true">
+        <p className="nx-intro-phase-label">CHAOS</p>
+      </div>
+
+      {/* ── Phase 2: SCAN — scan line descends, letters align, manifesto ─ */}
+      <div className={`nx-intro-phase ${showScan ? "nx-intro-phase-active" : ""}`} aria-hidden="true">
+        <div className="nx-intro-scan-container">
+          <div className="nx-intro-scan-line" />
+          <div className="nx-intro-scan-glow" />
+        </div>
+        <div className="nx-intro-text-block">
+          <p className="nx-intro-manifesto">{manifestoText}</p>
+        </div>
+      </div>
+
+      {/* ── Phase 3: NOMOS — wordmark bloom + meander + tagline ────────── */}
+      <div className={`nx-intro-phase ${showNomos ? "nx-intro-phase-active" : ""}`} aria-hidden="true">
+        <span className="nx-intro-eyebrow">
+          <span className="nx-intro-eyebrow-dot" />
+          The first AI think tank, always on
+        </span>
+        <h2 className="nx-intro-wordmark">
+          {nomosText}<span className="nx-intro-x">X</span>
+        </h2>
+        {/* Greek meander divider */}
+        <svg className="nx-intro-meander-mini" viewBox="0 0 160 8" preserveAspectRatio="none" aria-hidden="true">
+          <path
+            d="M0,4 L20,4 L20,1 L8,1 L8,7 L32,7 L32,0 L44,0 L44,4 L60,4 L60,1 L72,1 L72,7 L96,7 L96,0 L108,0 L108,4 L124,4 L124,1 L136,1 L136,7 L160,7"
+            fill="none"
+            stroke="rgba(10,10,15,0.3)"
+            strokeWidth="1"
+          />
+        </svg>
+        <p className="nx-intro-tagline">From Chaos to Nomos.</p>
+        <p className="nx-intro-subtitle">An AI think tank that publishes positions, not opinions.</p>
+      </div>
+
+      {/* Skip button */}
       <button
         ref={skipBtnRef}
         type="button"
@@ -165,30 +333,12 @@ export function ManifestoCrawl({ onComplete }: { onComplete?: () => void }) {
           e.stopPropagation();
           finish();
         }}
-        aria-label="Skip intro and go to homepage"
+        aria-label="Skip intro"
       >
         Skip →
       </button>
 
-      {/* Phase 1: Punchline reveal */}
-      <div className={`nx-intro-reveal${phase === "reveal" ? " nx-intro-active" : ""}`} aria-hidden="true">
-        <p className="nx-intro-line">The world doesn&apos;t suffer</p>
-        <p className="nx-intro-line">from a lack of information.</p>
-        <div className="nx-intro-divider" />
-        <p className="nx-intro-line nx-intro-line--accent">
-          It suffers from a lack of structure.
-        </p>
-      </div>
-
-      {/* Phase 2: Wordmark brand reveal */}
-      <div className={`nx-intro-brand${phase === "brand" ? " nx-intro-active" : ""}${phase === "exit" ? " nx-intro-brand-out" : ""}`} aria-hidden="true">
-        <h2 className="nx-intro-wordmark">
-          Nomos<span className="nx-intro-x">X</span>
-        </h2>
-        <p className="nx-intro-tagline">From Chaos to Nomos</p>
-      </div>
-
-      {/* Progress indicator — minimal line at bottom */}
+      {/* Progress bar */}
       <div className="nx-intro-progress" aria-hidden="true">
         <div
           className="nx-intro-progress-bar"

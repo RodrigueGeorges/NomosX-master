@@ -15,11 +15,7 @@
  */
 
 import { prisma } from '@/lib/db';
-import OpenAI from 'openai';
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+import { callLLM } from '@/lib/llm/unified-llm';
 
 export interface TranslationResult {
   title: string;
@@ -160,19 +156,19 @@ Return the result as JSON:
 
 Return ONLY the JSON, no markdown fences, no commentary.`;
 
-  const response = await openai.chat.completions.create({
-    model: 'gpt-4-turbo-preview',
+  const response = await callLLM({
     messages: [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: userPrompt },
     ],
     temperature: 0.2,
-    max_tokens: 16000,
-    response_format: { type: 'json_object' },
+    jsonMode: true,
+    maxTokens: 16000,
+    task: 'translation',
   });
 
-  const content = response.choices[0]?.message?.content;
-  if (!content) throw new Error('Empty response from GPT');
+  const content = response.content;
+  if (!content) throw new Error('Empty response from LLM');
 
   const parsed = JSON.parse(content);
   return {

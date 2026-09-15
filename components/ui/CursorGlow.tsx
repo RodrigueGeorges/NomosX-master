@@ -23,6 +23,8 @@ export function CursorGlow() {
     let targetY = window.innerHeight / 2;
     let currentX = targetX;
     let currentY = targetY;
+    let velX = 0;
+    let velY = 0;
     let active = false;
 
     const onMove = (e: MouseEvent) => {
@@ -40,9 +42,13 @@ export function CursorGlow() {
     };
 
     const tick = () => {
-      // Smooth lerp for fluid trailing
-      currentX += (targetX - currentX) * 0.08;
-      currentY += (targetY - currentY) * 0.08;
+      // Spring physics for fluid trailing — stiffness=0.08, damping=0.82
+      const dx = targetX - currentX;
+      const dy = targetY - currentY;
+      velX = (velX + dx * 0.08) * 0.82;
+      velY = (velY + dy * 0.08) * 0.82;
+      currentX += velX;
+      currentY += velY;
       el.style.transform = `translate(${currentX}px, ${currentY}px) translate(-50%, -50%)`;
       raf = requestAnimationFrame(tick);
     };

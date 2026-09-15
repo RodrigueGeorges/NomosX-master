@@ -314,7 +314,12 @@ function repairHtmlWithGrounding(
   const details: string[] = [];
 
   // Find sentences that are unsupported or contradicted
-  const badClaims = claims.filter(c => c.verdict === 'unsupported' || c.verdict === 'contradicted');
+  // Also find uncited claims with quantitative content (numbers, percentages) — these are the most dangerous hallucinations
+  const badClaims = claims.filter(c =>
+    c.verdict === 'unsupported' ||
+    c.verdict === 'contradicted' ||
+    (c.verdict === 'uncited' && /\d+\s*%|\d{4,}|\$\s*\d|million|billion|trillion/i.test(c.text))
+  );
   if (badClaims.length === 0) {
     return { html, removedClaims: 0, details };
   }
@@ -322,45 +327,65 @@ function repairHtmlWithGrounding(
   // For each bad claim, find and neutralize the sentence in the HTML
   let workingHtml = html;
   for (const claim of badClaims) {
-    // Find the claim text in the HTML (strip tags for matching)
-    const claimClean = claim.text.slice(0, 40).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    if (claimClean.length < 15) continue;
+    // Use multiple search strategies for robust matching
+    // Strategy 1: Try with first 60 chars of claim text (longer than before)
+    // Strategy 2: Try with key words from the claim (longest distinctive words)
+    const claimText = claim.text.replace(/\s+/g, ' ').trim();
+    if (claimText.length < 15) continue;
 
-    // Try to find this text in the HTML
-    const regex = new RegExp(claimClean, 'i');
-    const match = regex.exec(workingHtml);
-    if (match && match.index !== undefined) {
-      // Find the sentence boundary around this match
-      const before = workingHtml.slice(Math.max(0, match.index - 200), match.index);
-      const after = workingHtml.slice(match.index + claimClean.length, match.index + claimClean.length + 300);
+    // Build search patterns from claim text — try multiple fragments
+    const fragments: string[] = [];
+    // First 60 chars
+    fragments.push(claimText.slice(0, 60));
+    // Also try a middle fragment and last 40 chars
+    if (claimText.length > 60) {
+      fragments.push(claimText.slice(Math.floor(claimText.length * 0.3), Math.floor(claimText.length * 0.3) + 50));
+      fragments.push(claimText.slice(-50));
+    }
 
-      // Find the end of the sentence
-      const endMatch = after.match(/[.!?]\s|<\/p>|<br\s*\/?>/i);
-      if (endMatch && endMatch.index !== undefined) {
-        const sentenceEnd = match.index + claimClean.length + endMatch.index + 1;
+    let matched = false;
+    for (const fragment of fragments) {
+      if (matched) break;
+      // Escape regex special chars and allow HTML tags between words
+      const escaped = fragment
+        .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+        .replace(/\s+/g, '\\s*');
+      if (escaped.length < 15) continue;
 
-        // Find the start of the sentence
-        const startMatch = before.match(/[.!?]\s|<p[^>]*>|<br\s*\/?>/gi);
-        let sentenceStart = match.index;
-        if (startMatch) {
-          // Find the last match
-          const lastStart = startMatch[startMatch.length - 1];
-          const lastStartIdx = before.lastIndexOf(lastStart);
-          if (lastStartIdx >= 0) {
-            sentenceStart = match.index - (before.length - lastStartIdx - lastStart.length);
+      // Also strip HTML tags from the search pattern to match across tags
+      const regex = new RegExp(escaped, 'i');
+      const match = regex.exec(workingHtml);
+      if (match && match.index !== undefined) {
+        // Find the sentence boundary around this match
+        const before = workingHtml.slice(Math.max(0, match.index - 300), match.index);
+        const after = workingHtml.slice(match.index + fragment.length, match.index + fragment.length + 400);
+
+        // Find the end of the sentence — look for </p>, <br>, or .!? followed by space/tag
+        const endMatch = after.match(/[.!?]\s|<\/p>|<br\s*\/?>|<\/li>|<\/h[1-6]>/i);
+        if (endMatch && endMatch.index !== undefined) {
+          const sentenceEnd = match.index + fragment.length + endMatch.index + (endMatch[0].length);
+
+          // Find the start of the sentence
+          const startMatch = before.match(/[.!?]\s|<p[^>]*>|<br\s*\/?>|<li[^>]*>|<h[1-6][^>]*>/gi);
+          let sentenceStart = match.index;
+          if (startMatch) {
+            const lastStart = startMatch[startMatch.length - 1];
+            const lastStartIdx = before.lastIndexOf(lastStart);
+            if (lastStartIdx >= 0) {
+              sentenceStart = match.index - (before.length - lastStartIdx - lastStart.length);
+            }
           }
-        }
 
-        if (mode === 'remove') {
-          // Remove the sentence entirely
-          workingHtml = workingHtml.slice(0, sentenceStart) + workingHtml.slice(sentenceEnd);
-          removedClaims++;
-          details.push(`Removed unsupported claim: "${claimClean}..."`);
-        } else {
-          // Keep the sentence but don't add visible [Non vérifié] tags — they break
-          // the reading experience. The claim grounding stats are logged separately.
-          removedClaims++;
-          details.push(`Flagged ${claim.verdict} claim: "${claimClean}..."`);
+          if (mode === 'remove') {
+            // Remove the sentence entirely
+            workingHtml = workingHtml.slice(0, sentenceStart) + workingHtml.slice(sentenceEnd);
+            removedClaims++;
+            details.push(`Removed ${claim.verdict} claim: "${fragment.slice(0, 40)}..."`);
+          } else {
+            removedClaims++;
+            details.push(`Flagged ${claim.verdict} claim: "${fragment.slice(0, 40)}..."`);
+          }
+          matched = true;
         }
       }
     }
@@ -446,7 +471,7 @@ export async function groundClaims(
   // Groundedness = of claims that cited a source, how many are supported?
   // Uncited claims are narrative prose, not failed grounding.
   const citedTotal = supported + partial + unsupported + contradicted;
-  const groundedness = citedTotal > 0 ? (supported + partial) / citedTotal : 0;
+  const groundedness = citedTotal > 0 ? (supported + partial * 0.5) / citedTotal : 0;
   // Citation rate = what fraction of factual claims have a citation at all
   const citationRate = total > 0 ? citedTotal / total : 0;
   const strictGroundedness = citedTotal > 0 ? Math.max(0, (supported - contradicted) / citedTotal) : 0;
@@ -598,7 +623,7 @@ export async function groundClaimsWithNLI(
   const contradicted = claims.filter(c => c.verdict === 'contradicted').length;
   const total = claims.length;
   const citedTotal = supported + partial + unsupported + contradicted;
-  const groundedness = citedTotal > 0 ? (supported + partial) / citedTotal : 0;
+  const groundedness = citedTotal > 0 ? (supported + partial * 0.5) / citedTotal : 0;
   const citationRate = total > 0 ? citedTotal / total : 0;
   const strictGroundedness = citedTotal > 0 ? Math.max(0, (supported - contradicted) / citedTotal) : 0;
 
@@ -625,4 +650,211 @@ export async function groundClaimsWithNLI(
     removedClaims: repair.removedClaims,
     details,
   };
+}
+
+// ============================================================================
+// S18: Agent-Enhanced Graph RAG — Graph-based claim verification
+// arXiv 2609.00761 (Sep 2026)
+// ============================================================================
+//
+// Builds a lightweight knowledge graph from source texts and verifies claims
+// against it using graph traversal. This catches hallucinations that lexical
+// matching misses: a claim may use different words but assert a relationship
+// that doesn't exist in the source graph.
+//
+// The graph is built deterministically (no LLM):
+// 1. Extract entity nodes from each source (capitalized phrases, numbers, dates)
+// 2. Extract relationship edges (co-occurrence within a sentence = edge)
+// 3. For each claim, check if its entities and relationships exist in the graph
+// 4. Claims with entities not in the graph or relationships not in the graph
+//    get a "graph_unsupported" flag
+//
+// This is complementary to lexical grounding: lexical catches copy-paste
+// hallucinations, graph catches semantic hallucinations.
+
+export interface GraphNode {
+  id: string;
+  text: string;
+  sourceIdx: number;
+  type: 'entity' | 'number' | 'date';
+}
+
+export interface GraphEdge {
+  from: string;
+  to: string;
+  sourceIdx: number;
+  coOccurrenceCount: number;
+}
+
+export interface SourceGraph {
+  nodes: Map<string, GraphNode>;
+  edges: Map<string, GraphEdge>;
+  nodeCount: number;
+  edgeCount: number;
+}
+
+function extractEntities(text: string, sourceIdx: number): GraphNode[] {
+  const nodes: GraphNode[] = [];
+  const seen = new Set<string>();
+
+  const entityMatches = text.match(/\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,3}\b/g) || [];
+  for (const match of entityMatches) {
+    const key = `${match.toLowerCase()}_${sourceIdx}`;
+    if (!seen.has(key) && match.length > 2) {
+      seen.add(key);
+      nodes.push({ id: key, text: match, sourceIdx, type: 'entity' });
+    }
+  }
+
+  const numberMatches = text.match(/\b\d+(?:\.\d+)?%?\b/g) || [];
+  for (const match of numberMatches) {
+    const key = `num_${match}_${sourceIdx}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      nodes.push({ id: key, text: match, sourceIdx, type: 'number' });
+    }
+  }
+
+  const dateMatches = text.match(/\b(?:19|20)\d{2}\b/g) || [];
+  for (const match of dateMatches) {
+    const key = `date_${match}_${sourceIdx}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      nodes.push({ id: key, text: match, sourceIdx, type: 'date' });
+    }
+  }
+
+  return nodes;
+}
+
+function extractEdges(text: string, nodes: GraphNode[], sourceIdx: number): GraphEdge[] {
+  const edges: GraphEdge[] = [];
+  const sentences = text.split(/[.!?]+/);
+
+  for (const sentence of sentences) {
+    const sentenceNodes = nodes.filter(n =>
+      n.sourceIdx === sourceIdx && sentence.includes(n.text)
+    );
+    for (let i = 0; i < sentenceNodes.length; i++) {
+      for (let j = i + 1; j < sentenceNodes.length; j++) {
+        edges.push({
+          from: sentenceNodes[i].id,
+          to: sentenceNodes[j].id,
+          sourceIdx,
+          coOccurrenceCount: 1,
+        });
+      }
+    }
+  }
+
+  return edges;
+}
+
+export function buildSourceGraph(sources: string[]): SourceGraph {
+  const nodes = new Map<string, GraphNode>();
+  const edges = new Map<string, GraphEdge>();
+
+  sources.forEach((text, sourceIdx) => {
+    const sourceNodes = extractEntities(text, sourceIdx);
+    for (const node of sourceNodes) {
+      nodes.set(node.id, node);
+    }
+
+    const sourceEdges = extractEdges(text, sourceNodes, sourceIdx);
+    for (const edge of sourceEdges) {
+      const key = `${edge.from}|${edge.to}`;
+      const existing = edges.get(key);
+      if (existing) {
+        existing.coOccurrenceCount++;
+      } else {
+        edges.set(key, edge);
+      }
+    }
+  });
+
+  return {
+    nodes,
+    edges,
+    nodeCount: nodes.size,
+    edgeCount: edges.size,
+  };
+}
+
+export interface GraphGroundingResult {
+  claimIdx: number;
+  claimText: string;
+  sourceIdx: number;
+  entitiesInGraph: number;
+  entitiesTotal: number;
+  relationshipsInGraph: number;
+  relationshipsTotal: number;
+  graphScore: number;
+  verdict: ClaimVerdict;
+}
+
+export function verifyClaimAgainstGraph(
+  claimText: string,
+  sourceIdx: number,
+  graph: SourceGraph,
+): GraphGroundingResult {
+  const claimEntities = extractEntities(claimText, sourceIdx);
+  const claimEdges = extractEdges(claimText, claimEntities, sourceIdx);
+
+  let entitiesInGraph = 0;
+  for (const entity of claimEntities) {
+    if (graph.nodes.has(entity.id)) entitiesInGraph++;
+  }
+
+  let relationshipsInGraph = 0;
+  for (const edge of claimEdges) {
+    const key = `${edge.from}|${edge.to}`;
+    const reverseKey = `${edge.to}|${edge.from}`;
+    if (graph.edges.has(key) || graph.edges.has(reverseKey)) {
+      relationshipsInGraph++;
+    }
+  }
+
+  const entityScore = claimEntities.length > 0 ? entitiesInGraph / claimEntities.length : 0.5;
+  const relationshipScore = claimEdges.length > 0 ? relationshipsInGraph / claimEdges.length : 0.5;
+  const graphScore = entityScore * 0.6 + relationshipScore * 0.4;
+
+  let verdict: ClaimVerdict;
+  if (graphScore >= 0.7) verdict = 'supported';
+  else if (graphScore >= 0.4) verdict = 'partial';
+  else verdict = 'unsupported';
+
+  return {
+    claimIdx: -1,
+    claimText,
+    sourceIdx,
+    entitiesInGraph,
+    entitiesTotal: claimEntities.length,
+    relationshipsInGraph,
+    relationshipsTotal: claimEdges.length,
+    graphScore,
+    verdict,
+  };
+}
+
+export function graphGroundClaims(
+  claims: AtomicClaim[],
+  sources: string[],
+): GraphGroundingResult[] {
+  if (sources.length === 0 || claims.length === 0) return [];
+
+  const graph = buildSourceGraph(sources);
+  const results: GraphGroundingResult[] = [];
+
+  for (let i = 0; i < claims.length; i++) {
+    const claim = claims[i];
+    if (claim.sourceRef === null || claim.sourceRef < 1 || claim.sourceRef > sources.length) {
+      continue;
+    }
+    const sourceIdx = claim.sourceRef - 1;
+    const result = verifyClaimAgainstGraph(claim.text, sourceIdx, graph);
+    result.claimIdx = i;
+    results.push(result);
+  }
+
+  return results;
 }

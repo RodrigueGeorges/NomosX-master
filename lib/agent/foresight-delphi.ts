@@ -118,6 +118,43 @@ const EXPERT_PERSONAS = [
 
 // ─── Utility Functions ──────────────────────────────────────────────────────
 
+function normalizeKey(s: string): string {
+  return s.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+}
+
+/**
+ * LLMs routinely drift on scenario keys ("Scenario A:" vs "scenario a", truncated
+ * names, numbering prefixes). Exact lookup silently discards the whole estimate
+ * and falls back to 1/N — wasting the call. Match exact → normalized → prefix/containment.
+ */
+export function remapToScenarioNames(
+  raw: Record<string, unknown> | undefined | null,
+  scenarioNames: string[],
+): Record<string, number> {
+  const out: Record<string, number> = {};
+  if (!raw || typeof raw !== 'object') return out;
+  const entries = Object.entries(raw);
+  const normEntries = entries.map(([k, v]) => [normalizeKey(k), v] as const);
+  for (const name of scenarioNames) {
+    let v: unknown = raw[name];
+    if (v == null) {
+      const nk = normalizeKey(name);
+      const hit =
+        normEntries.find(([k]) => k === nk) ??
+        normEntries.find(([k]) => k.length >= 6 && (nk.startsWith(k) || k.startsWith(nk))) ??
+        normEntries.find(([k]) => k.length >= 10 && (nk.includes(k) || k.includes(nk)));
+      v = hit?.[1];
+    }
+    if (typeof v === 'string') v = parseFloat(v.replace('%', ''));
+    if (typeof v === 'number' && !isNaN(v)) {
+      // Accept 0-100 percentages as well as 0-1 probabilities
+      if (v > 1 && v <= 100) v = v / 100;
+      out[name] = v as number;
+    }
+  }
+  return out;
+}
+
 export function partitionEvidence(evidence: string[], numExperts: number): ExpertInput[] {
   const sharedCount = Math.floor(evidence.length * 0.4);
   const shared = evidence.slice(0, sharedCount);
@@ -289,9 +326,10 @@ OUTPUT ONLY JSON.`,
   });
 
   const parsed = parseJson<any>(response.content);
+  const mapped = remapToScenarioNames(parsed?.baseRates, scenarioNames);
   const rates: Record<string, number> = {};
   for (const name of scenarioNames) {
-    const r = parsed?.baseRates?.[name];
+    const r = mapped[name];
     rates[name] = (typeof r === 'number' && r > 0 && r < 1) ? r : 1 / scenarioNames.length;
   }
   return {
@@ -347,9 +385,10 @@ OUTPUT ONLY JSON.`,
   });
 
   const parsed = parseJson<any>(response.content);
+  const mapped = remapToScenarioNames(parsed?.estimates, scenarioNames);
   const estimates: Record<string, number> = {};
   for (const name of scenarioNames) {
-    const e = parsed?.estimates?.[name];
+    const e = mapped[name];
     estimates[name] = (typeof e === 'number' && e > 0 && e < 1) ? e : 1 / scenarioNames.length;
   }
   return {
@@ -364,6 +403,8 @@ OUTPUT ONLY JSON.`,
 interface RoundResult {
   estimates: Record<string, number>[];
   rationales: string[];
+  /** Expert index (into `experts`) for each entry of `estimates`/`rationales` — kept aligned when some experts fail. */
+  expertIdx: number[];
   costUsd: number;
 }
 
@@ -376,10 +417,6 @@ async function delphiRound(
   previousRounds: RoundResult[],
   context: string
 ): Promise<RoundResult> {
-  const estimates: Record<string, number>[] = [];
-  const rationales: string[] = [];
-  let costUsd = 0;
-
   // Build mediator summary from previous rounds
   let mediatorSummary = '';
   if (roundNum > 1 && previousRounds.length > 0) {
@@ -396,7 +433,11 @@ async function delphiRound(
     }).join('\n');
   }
 
-  for (let i = 0; i < experts.length; i++) {
+  // Experts within a round are independent — fan out in parallel (5x wall-clock
+  // reduction per round). Partial failures are tolerated: a round proceeds with
+  // whichever experts answered, as long as at least one did.
+  const prev = previousRounds[previousRounds.length - 1];
+  const askExpert = async (i: number): Promise<{ i: number; estimates: Record<string, number>; rationale: string; costUsd: number } | null> => {
     const expert = experts[i];
     const persona = EXPERT_PERSONAS.find(p => p.role === expert.persona)!;
     const privateEvidence = expert.evidenceSubset.join('\n');
@@ -435,8 +476,8 @@ ${scenarioNames.map((n, i) => `${i + 1}. ${n}`).join('\n')}
 Return JSON: {"estimates": {"scenario_name": 0.XX, ...}, "rationale": "2-3 sentences: base rate → evidence adjustment → final estimate"}
 OUTPUT ONLY JSON.`;
     } else {
-      const othersRationales = previousRounds[previousRounds.length - 1].rationales
-        .filter((_, j) => j !== i).join('\n');
+      const othersRationales = prev.rationales
+        .filter((_, j) => prev.expertIdx[j] !== i).join('\n');
 
       systemPrompt = `You are a ${persona.lens} on a Delphi panel, ROUND ${roundNum}.
 The mediator has shared the group's estimates and other panelists' rationales.
@@ -469,27 +510,48 @@ Return JSON: {"estimates": {"scenario_name": 0.XX, ...}, "rationale": "Why you r
 OUTPUT ONLY JSON.`;
     }
 
-    const response = await callLLM({
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt },
-      ],
-      temperature: roundNum === 3 ? 0.1 : roundNum === 2 ? 0.2 : 0.3,
-      maxTokens: roundNum === 1 ? 800 : 600,
-      jsonMode: true,
-      task: roundNum === 1 ? 'delphi_round1' : 'delphi_round2',
-      enableCache: roundNum === 1,
-    });
-
-    costUsd += response.costUsd;
-    const parsed = parseJson<any>(response.content);
-    if (parsed?.estimates) {
-      estimates.push(parsed.estimates);
-      rationales.push(`[R${roundNum} ${persona.role}] ${parsed.rationale ?? ''}`);
+    try {
+      const response = await callLLM({
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+        temperature: roundNum === 3 ? 0.1 : roundNum === 2 ? 0.2 : 0.3,
+        maxTokens: roundNum === 1 ? 800 : 600,
+        jsonMode: true,
+        task: roundNum === 1 ? 'delphi_round1' : 'delphi_round2',
+        enableCache: roundNum === 1,
+      });
+      const parsed = parseJson<any>(response.content);
+      const mapped = remapToScenarioNames(parsed?.estimates, scenarioNames);
+      if (Object.keys(mapped).length === 0) return null;
+      return {
+        i,
+        estimates: mapped,
+        rationale: `[R${roundNum} ${persona.role}] ${parsed?.rationale ?? ''}`,
+        costUsd: response.costUsd,
+      };
+    } catch (err) {
+      console.warn(`[DELPHI] R${roundNum} expert ${persona.role} failed (non-blocking):`, (err as Error).message);
+      return null;
     }
+  };
+
+  const results = await Promise.all(experts.map((_, i) => askExpert(i)));
+
+  const estimates: Record<string, number>[] = [];
+  const rationales: string[] = [];
+  const expertIdx: number[] = [];
+  let costUsd = 0;
+  for (const r of results) {
+    if (!r) continue;
+    estimates.push(r.estimates);
+    rationales.push(r.rationale);
+    expertIdx.push(r.i);
+    costUsd += r.costUsd;
   }
 
-  return { estimates, rationales, costUsd };
+  return { estimates, rationales, expertIdx, costUsd };
 }
 
 // ─── Step 4: Cross-Impact Balance ───────────────────────────────────────────
@@ -527,7 +589,29 @@ OUTPUT ONLY JSON.`,
   });
 
   const parsed = parseJson<any>(response.content);
-  return { matrix: parsed?.matrix ?? {}, costUsd: response.costUsd };
+  // Re-key both axes onto canonical scenario names (LLM key drift otherwise
+  // makes the whole matrix unreachable downstream).
+  const rawMatrix = (parsed?.matrix && typeof parsed.matrix === 'object') ? parsed.matrix as Record<string, unknown> : {};
+  const rowLookup: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(rawMatrix)) rowLookup[k] = v;
+  const matrix: Record<string, Record<string, number>> = {};
+  for (const from of scenarioNames) {
+    const rowKeyMap = remapToScenarioNames(
+      Object.fromEntries(Object.keys(rowLookup).map(k => [k, 1])), [from],
+    );
+    const rowKey = Object.keys(rowKeyMap).length ? Object.keys(rowLookup).find(k => normalizeKey(k) === normalizeKey(from)) ?? Object.keys(rowLookup).find(k => remapToScenarioNames({ [k]: 1 }, [from])[from] != null) : undefined;
+    const row = rowKey ? rowLookup[rowKey] : rowLookup[from];
+    if (!row || typeof row !== 'object') continue;
+    const mapped: Record<string, number> = {};
+    for (const [k, v] of Object.entries(row as Record<string, unknown>)) {
+      const n = typeof v === 'string' ? parseFloat(v) : v;
+      if (typeof n !== 'number' || isNaN(n)) continue;
+      const target = scenarioNames.find(s => s === k) ?? scenarioNames.find(s => normalizeKey(s) === normalizeKey(k));
+      if (target && target !== from) mapped[target] = Math.max(-3, Math.min(3, n));
+    }
+    matrix[from] = mapped;
+  }
+  return { matrix, costUsd: response.costUsd };
 }
 
 // ─── Step 5: Key Drivers & Sensitivity Analysis ─────────────────────────────
@@ -587,9 +671,13 @@ OUTPUT ONLY JSON.`,
   });
 
   const parsed = parseJson<any>(response.content);
+  const rawScenarios = (parsed?.scenarios && typeof parsed.scenarios === 'object') ? parsed.scenarios as Record<string, any> : {};
   const result: Record<string, { drivers: string[]; blockers: string[]; signals: string[]; sensitivity: number }> = {};
   for (const name of scenarioNames) {
-    const s = parsed?.scenarios?.[name];
+    const key = Object.keys(rawScenarios).find(k => k === name)
+      ?? Object.keys(rawScenarios).find(k => normalizeKey(k) === normalizeKey(name))
+      ?? Object.keys(rawScenarios).find(k => remapToScenarioNames({ [k]: 1 }, [name])[name] != null);
+    const s = key ? rawScenarios[key] : undefined;
     result[name] = {
       drivers: Array.isArray(s?.drivers) ? s.drivers.map(String).slice(0, 5) : [],
       blockers: Array.isArray(s?.blockers) ? s.blockers.map(String).slice(0, 5) : [],
@@ -715,10 +803,26 @@ export async function runDelphiForesight(
     console.warn('[DELPHI] Prediction market fetch failed (non-blocking):', marketErr);
   }
 
-  // ── Step 1: Compute historical base rates ──
-  console.log('[DELPHI] Step 1: Computing base rates...');
-  const baseRateResult = await computeBaseRates(question, scenarioNames, scenarioDescriptions, context);
-  totalCost += baseRateResult.costUsd;
+  // ── Steps 1/2/5: base rates, Fermi decomposition and cross-impact are
+  // mutually independent — fan out (3 sequential calls → 1 wall-clock call).
+  console.log('[DELPHI] Steps 1-2 + CIB: base rates, Fermi decomposition, cross-impact (parallel)...');
+  const uniformCib = { matrix: {} as Record<string, Record<string, number>>, costUsd: 0 };
+  const [baseRateResult, fermiResult, cib] = await Promise.all([
+    computeBaseRates(question, scenarioNames, scenarioDescriptions, context),
+    fermiDecompose(question, scenarioNames, context).catch(err => {
+      console.warn('[DELPHI] Fermi decomposition failed (non-blocking):', (err as Error).message);
+      return {
+        estimates: Object.fromEntries(scenarioNames.map(n => [n, 1 / scenarioNames.length])),
+        decomposition: 'Decomposition not available.',
+        costUsd: 0,
+      };
+    }),
+    crossImpactAnalysis(scenarioNames, context).catch(err => {
+      console.warn('[DELPHI] Cross-impact analysis failed (non-blocking):', (err as Error).message);
+      return uniformCib;
+    }),
+  ]);
+  totalCost += baseRateResult.costUsd + fermiResult.costUsd + cib.costUsd;
   console.log(`[DELPHI] Base rates: ${scenarioNames.map(n => `${n}=${(baseRateResult.rates[n] * 100).toFixed(0)}%`).join(', ')}`);
 
   // Blend base rates with prediction market data if available
@@ -730,11 +834,6 @@ export async function runDelphiForesight(
     }
     console.log(`[DELPHI] Base rates blended with market data (volume=${totalVolume})`);
   }
-
-  // ── Step 2: Fermi decomposition ──
-  console.log('[DELPHI] Step 2: Fermi decomposition...');
-  const fermiResult = await fermiDecompose(question, scenarioNames, context);
-  totalCost += fermiResult.costUsd;
 
   // ── Step 3: Partition evidence for InfoDelphi asymmetry ──
   const numExperts = Math.min(5, Math.max(3, Math.floor(evidence.length / 3)));
@@ -756,11 +855,6 @@ export async function runDelphiForesight(
     console.log(`[DELPHI] Round ${round}: ${roundResult.estimates.length} expert estimates`);
   }
 
-  // ── Step 5: Cross-impact analysis ──
-  console.log('[DELPHI] Step 6: Cross-impact analysis...');
-  const cib = await crossImpactAnalysis(scenarioNames, context);
-  totalCost += cib.costUsd;
-
   // ── Step 6: Aggregate final estimates ──
   const finalRound = allRounds[allRounds.length - 1];
   const effectiveEstimates = finalRound.estimates.length > 0
@@ -773,6 +867,21 @@ export async function runDelphiForesight(
   const finalEstimates: Record<string, number> = {};
   const expertEstimatesByScenario: Record<string, number[]> = {};
   const expertWeightsByScenario: Record<string, number[]> = {};
+
+  // First pass: raw weighted expert estimates (needed to weight cross-impacts).
+  const rawExpertProb: Record<string, number> = {};
+  for (const name of scenarioNames) {
+    const vals: number[] = [];
+    const weights: number[] = [];
+    for (const e of weighted) {
+      const v = e[name];
+      if (v != null && typeof v === 'number' && !isNaN(v) && v > 0) {
+        vals.push(v);
+        weights.push((e['_weight'] as number) ?? 1);
+      }
+    }
+    rawExpertProb[name] = vals.length ? weightedGeometricMean(vals, weights) : 1 / scenarioNames.length;
+  }
 
   for (const name of scenarioNames) {
     const vals: number[] = [];
@@ -796,10 +905,22 @@ export async function runDelphiForesight(
     // Weighted geometric mean
     let prob = weightedGeometricMean(vals, weights);
 
-    // Cross-impact adjustment
-    const impacts = Object.values(cib.matrix[name] ?? {}).filter(v => v != null && typeof v === 'number');
-    if (impacts.length > 0) {
-      const avgImpact = impacts.reduce((a, b) => a + b, 0) / impacts.length;
+    // Cross-impact adjustment. matrix[from][to] = effect of `from` on `to`, so the
+    // pressure ON `name` is the COLUMN (incoming edges), each weighted by how
+    // likely its source scenario is. The previous row-based version measured how
+    // much `name` influenced others — the wrong direction.
+    let incoming = 0;
+    let incomingWeight = 0;
+    for (const from of scenarioNames) {
+      if (from === name) continue;
+      const effect = cib.matrix[from]?.[name];
+      if (typeof effect !== 'number' || isNaN(effect)) continue;
+      const w = rawExpertProb[from] ?? 0;
+      incoming += effect * w;
+      incomingWeight += w;
+    }
+    if (incomingWeight > 0) {
+      const avgImpact = incoming / incomingWeight; // in [-3, 3]
       prob *= (1 + avgImpact * 0.05);
     }
 
@@ -865,8 +986,11 @@ export async function runDelphiForesight(
     const vals = expertEstimatesByScenario[name];
     const expertMean = vals.length > 0 ? vals.reduce((a, b) => a + b, 0) / vals.length : 1 / scenarioNames.length;
 
-    // Collect per-scenario rationales
-    const scenarioRationales = allRationales.filter(r => r.includes(name) || r.length > 0).slice(-5);
+    // Per-scenario rationales: those that mention the scenario; fall back to the
+    // final round's rationales if none do. (Previous filter was always-true.)
+    const nk = normalizeKey(name);
+    const mentioning = allRationales.filter(r => normalizeKey(r).includes(nk));
+    const scenarioRationales = (mentioning.length ? mentioning : finalRound.rationales).slice(-5);
 
     return {
       name,

@@ -50,9 +50,9 @@ export interface ConsensusResult {
  * is what matters — not just different model sizes.
  */
 const CONSENSUS_PROVIDERS: Array<{ provider: LLMProvider; label: string }> = [
-  { provider: 'openai', label: 'openai/gpt-4o-mini' },
-  { provider: 'deepseek', label: 'deepseek/deepseek-v4-flash' },
-  { provider: 'glm', label: 'glm/glm-4-flash' },
+  { provider: 'openai', label: 'openai/gpt-5.6-luna' },
+  { provider: 'deepseek', label: 'deepseek/deepseek-flash' },
+  { provider: 'glm', label: 'glm/glm-5.3-flash' },
 ];
 
 const CONSENSUS_PROMPT = `You are a fact-checker. Verify this claim against the provided evidence.

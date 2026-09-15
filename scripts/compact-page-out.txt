@@ -1,0 +1,542 @@
+   1  "use client";
+   2  import React, { useEffect, useState, Suspense } from "react";
+   3  import { useSearchParams } from "next/navigation";
+   4  import { useTranslations } from "next-intl";
+   5  import { useRouter } from "@/i18n/navigation";
+   6  import AuthModal from "@/components/AuthModal";
+   7  import { PublicPageShell } from "@/components/layout/PublicPageShell";
+   8  import {
+   9  DomainMap,
+  10  FeaturedVerdictCard,
+  11  InquiryCard,
+  12  StudioPreview,
+  13  type FeaturedVerdictData,
+  14  type InquiryCardData,
+  15  type InquiryWatermark,
+  16  } from "@/components/signature";
+  17  import { FALLBACK_FEATURED_VERDICT, isEmptyVerdict } from "@/lib/brand/featured-verdict";
+  18  import { ErrorBoundary } from "@/components/ErrorBoundary";
+  19  import { ManifestoCrawl } from "@/components/brand/ManifestoCrawl";
+  20  import { NomosXLogo } from "@/components/brand/NomosXLogo";
+  21  import { PUBLIC_ROUTES } from "@/lib/public-urls";
+  22  import { ScrollReveal } from "@/components/ui/ScrollReveal";
+  23  import { ScrollProgress } from "@/components/ui/ScrollProgress";
+  24  import { StatCounter } from "@/components/ui/StatCounter";
+  25  import { WordReveal } from "@/components/ui/WordReveal";
+  26  import { MagneticButton } from "@/components/ui/MagneticButton";
+  27  import { ArrowRight } from "lucide-react";
+  28  type PublicBrief = {
+  29  id: string;
+  30  title: string;
+  31  summary: string;
+  32  type: string;
+  33  displayType?: string;
+  34  publishedAt: string;
+  35  readTime: number;
+  36  sources: number;
+  37  topics: string[];
+  38  trustScore?: number | null;
+  39  };
+  40  const WATERMARKS: InquiryWatermark[] = ["map", "chart", "globe"];
+  41  const DATA_SOURCES: { id: string; name: string; desc: string }[] = [
+  42  { id: "openalex", name: "OpenAlex", desc: "250M+ scholarly works" },
+  43  { id: "crossref", name: "Crossref", desc: "DOI registry" },
+  44  { id: "pubmed", name: "PubMed", desc: "biomedical literature" },
+  45  { id: "arxiv", name: "arXiv", desc: "preprints · physics & CS" },
+  46  { id: "ssrn", name: "SSRN", desc: "social science research" },
+  47  { id: "reuters", name: "Reuters", desc: "real-time wire" },
+  48  { id: "crunchbase", name: "Crunchbase", desc: "market intelligence" },
+  49  { id: "worldbank", name: "World Bank", desc: "open data" },
+  50  { id: "imf", name: "IMF", desc: "macroeconomic indicators" },
+  51  { id: "oecd", name: "OECD", desc: "policy statistics" },
+  52  { id: "nato", name: "NATO", desc: "strategic reports" },
+  53  { id: "rand", name: "RAND", desc: "defense analysis" },
+  54  { id: "brookings", name: "Brookings", desc: "policy research" },
+  55  { id: "cia-foia", name: "CIA FOIA", desc: "declassified archives" },
+  56  { id: "nara", name: "NARA", desc: "national archives" },
+  57  { id: "google-patents", name: "Google Patents", desc: "IP landscape" },
+  58  ];
+  59  function mapBriefToInquiry(b: PublicBrief, index: number): InquiryCardData {
+  60  return {
+  61  id: b.id,
+  62  slug: b.id,
+  63  title: b.title,
+  64  summary: b.summary,
+  65  domain: b.topics?.[0]?.toUpperCase() ?? "GENERAL",
+  66  watermark: WATERMARKS[index % WATERMARKS.length],
+  67  verdict: b.trustScore != null ? { value: `${b.trustScore}%`, label: "Confidence" } : undefined,
+  68  sourceCount: b.sources,
+  69  publishedAt: b.publishedAt,
+  70  readTime: b.readTime,
+  71  formatLabel: b.displayType,
+  72  };
+  73  }
+  74  function HomePageContent() {
+  75  const t = useTranslations();
+  76  const router = useRouter();
+  77  const searchParams = useSearchParams();
+  78  const [showAuthModal, setShowAuthModal] = useState(false);
+  79  const [authRedirect, setAuthRedirect] = useState<"dashboard" | "studio">("dashboard");
+  80  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  81  const [isLoading, setIsLoading] = useState(true);
+  82  const [latestInquiries, setLatestInquiries] = useState<InquiryCardData[]>([]);
+  83  const [featuredVerdict, setFeaturedVerdict] = useState<FeaturedVerdictData>(FALLBACK_FEATURED_VERDICT);
+  84  const [newsletterEmail, setNewsletterEmail] = useState("");
+  85  const [newsletterStatus, setNewsletterStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  86  const [newsletterMessage, setNewsletterMessage] = useState("");
+  87  const [trackRecord, setTrackRecord] = useState<{
+  88  total: number;
+  89  open: number;
+  90  resolved: number;
+  91  accuracyPct: number | null;
+  92  brierScore: number | null;
+  93  } | null>(null);
+  94  useEffect(() => {
+  95  fetch("/api/auth/me")
+  96  .then((r) => {
+  97  if (r.ok) setIsAuthenticated(true);
+  98  })
+  99  .catch(() => {})
+ 100  .finally(() => setIsLoading(false));
+ 101  fetch("/api/public/briefs?limit=3&featured=1")
+ 102  .then((r) => (r.ok ? r.json() : null))
+ 103  .then((d) => {
+ 104  if (d?.featuredVerdict) setFeaturedVerdict(d.featuredVerdict);
+ 105  if (d?.briefs?.length) {
+ 106  setLatestInquiries(d.briefs.map((b: PublicBrief, i: number) => mapBriefToInquiry(b, i)));
+ 107  }
+ 108  })
+ 109  .catch(() => {});
+ 110  fetch("/api/public/track-record")
+ 111  .then((r) => (r.ok ? r.json() : null))
+ 112  .then((d) => {
+ 113  if (d?.stats && d.stats.total > 0) setTrackRecord(d.stats);
+ 114  })
+ 115  .catch((err) => console.warn("[Home] Track record fetch failed (non-blocking):", err));
+ 116  if (searchParams.get("auth") === "required") setShowAuthModal(true);
+ 117  const nl = searchParams.get("newsletter");
+ 118  if (nl === "confirmed") {
+ 119  setNewsletterMessage("Subscription confirmed.");
+ 120  setNewsletterStatus("success");
+ 121  } else if (nl === "expired") setNewsletterStatus("error");
+ 122  }, [searchParams]);
+ 123  const openStudio = () => {
+ 124  setAuthRedirect("studio");
+ 125  setShowAuthModal(true);
+ 126  };
+ 127  const handleNewsletterSubmit = async (e: React.FormEvent) => {
+ 128  e.preventDefault();
+ 129  if (!newsletterEmail) return;
+ 130  setNewsletterStatus("loading");
+ 131  try {
+ 132  const res = await fetch("/api/newsletter/subscribe", {
+ 133  method: "POST",
+ 134  headers: { "Content-Type": "application/json" },
+ 135  body: JSON.stringify({ email: newsletterEmail }),
+ 136  });
+ 137  const data = await res.json();
+ 138  if (res.ok) {
+ 139  setNewsletterMessage(data.message || "Check your inbox.");
+ 140  setNewsletterStatus("success");
+ 141  } else {
+ 142  setNewsletterMessage(data.error || "Unable to subscribe.");
+ 143  setNewsletterStatus("error");
+ 144  }
+ 145  } catch {
+ 146  setNewsletterStatus("error");
+ 147  }
+ 148  };
+ 149  if (isLoading) {
+ 150  return (
+ 151  <div className="min-h-screen bg-white flex flex-col items-center justify-center gap-6">
+ 152  <NomosXLogo variant="wordmark" size={20} className="opacity-40" />
+ 153  <div className="relative w-32 h-px bg-black/10 overflow-hidden">
+ 154  <div className="absolute inset-y-0 w-1/3 bg-gradient-to-r from-transparent via-black/60 to-transparent animate-marquee" />
+ 155  </div>
+ 156  </div>
+ 157  );
+ 158  }
+ 159  const displayInquiries = latestInquiries;
+ 160  // Section order: 01 Hero · 02 Featured · 03 Briefs? · 04 Manifesto · 05 Domain · 06 Mission · 07 Studio · 08 Newsletter
+ 161  // Briefs section (03) is hidden when there are no briefs, so the denominator adjusts.
+ 162  const sectionCount = displayInquiries.length > 0 ? 8 : 7;
+ 163  const sectionTotal = String(sectionCount).padStart(2, "0");
+ 164  // Sections after the briefs block shift down by one when briefs are hidden
+ 165  const manifestoSectionNum = displayInquiries.length > 0 ? "04" : "03";
+ 166  const domainSectionNum = displayInquiries.length > 0 ? "05" : "04";
+ 167  const missionSectionNum = displayInquiries.length > 0 ? "06" : "05";
+ 168  const studioSectionNum = displayInquiries.length > 0 ? "07" : "06";
+ 169  const newsletterSectionNum = displayInquiries.length > 0 ? "08" : "07";
+ 170  return (
+ 171  <ErrorBoundary>
+ 172  <ManifestoCrawl />
+ 173  <PublicPageShell
+ 174  currentPage="home"
+ 175  onSignInClick={() => setShowAuthModal(true)}
+ 176  isAuthenticated={isAuthenticated}
+ 177  particles={0}
+ 178  >
+ 179  {/* Hero — SpaceX-style mission block */}
+ 180  <section className="relative px-6 sm:px-8 min-h-[calc(100svh-3.5rem)] flex flex-col items-center justify-center py-16 sm:py-20 overflow-hidden">
+ 181  <div className="nx-aurora" aria-hidden="true" />
+ 182  <div className="relative max-w-4xl mx-auto text-center w-full">
+ 183  <div className="flex items-center justify-center mb-10 animate-rise">
+ 184  <span className="nx-eyebrow">
+ 185  <NomosXLogo variant="symbol" size={12} className="nx-glow-x" />
+ 186  {t("Brand.positioning")}
+ 187  </span>
+ 188  </div>
+ 189  <h1 className="nx-spx-hero mb-8 max-w-4xl mx-auto">
+ 190  <WordReveal text={t("Brand.heroTitle")} baseDelay={300} stagger={140} />
+ 191  </h1>
+ 192  <p className="text-base sm:text-lg text-[var(--nx-text-secondary)] max-w-2xl mx-auto leading-[1.5] mb-6 animate-rise" style={{ animationDelay: "900ms" }}>
+ 193  {t("Brand.description")}
+ 194  </p>
+ 195  <div className="flex flex-wrap items-start justify-center gap-x-12 gap-y-6 mb-10 animate-rise">
+ 196  {([
+ 197  { end: 250, suffix: "M+", label: t("Home.sourcesIndexed") },
+ 198  { end: 115, suffix: "", label: t("Home.dataProviders") },
+ 199  { end: 100, suffix: "%", label: t("Home.claimsTraceable") },
+ 200  ] as const).map((stat, i) => (
+ 201  <div key={stat.label} className={`text-center animate-rise delay-${(i + 1) * 100}`} style={{ opacity: 0 }}>
+ 202  <p className="font-mono text-2xl sm:text-3xl font-light text-black tabular-nums leading-none mb-2">
+ 203  <StatCounter end={stat.end} suffix={stat.suffix} />
+ 204  </p>
+ 205  <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-black/50">
+ 206  {stat.label}
+ 207  </p>
+ 208  </div>
+ 209  ))}
+ 210  </div>
+ 211  <div className="flex flex-col sm:flex-row gap-4 justify-center animate-rise" style={{ animationDelay: "1100ms" }}>
+ 212  <MagneticButton
+ 213  type="button"
+ 214  onClick={() => router.push(PUBLIC_ROUTES.archives)}
+ 215  className="group nx-cta"
+ 216  >
+ 217  {t("Home.browseIntelligence")}
+ 218  <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
+ 219  </MagneticButton>
+ 220  <MagneticButton
+ 221  type="button"
+ 222  onClick={openStudio}
+ 223  className="group nx-cta-secondary"
+ 224  strength={0.18}
+ 225  >
+ 226  {t("Home.commissionBrief")}
+ 227  <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
+ 228  </MagneticButton>
+ 229  </div>
+ 230  </div>
+ 231  </section>
+ 232  {/* Featured verdict — proof first, philosophy later */}
+ 233  <section className="nx-section-divide relative px-6 sm:px-8 py-16 sm:py-20">
+ 234  <span className="nx-section-index">02 / {sectionTotal}</span>
+ 235  <div className="max-w-lg mx-auto">
+ 236  <ScrollReveal>
+ 237  <p className="nx-eyebrow mb-8 justify-center">{t("Home.featuredBrief")}</p>
+ 238  </ScrollReveal>
+ 239  <ScrollReveal delay={100}>
+ 240  {isEmptyVerdict(featuredVerdict) ? (
+ 241  <div className="nx-surface nx-border-flow relative p-6 sm:p-8 text-center">
+ 242  <span className="w-1.5 h-1.5 rounded-full bg-black/30 inline-block mb-4 nx-glow-dot" />
+ 243  <p className="font-display text-lg text-black/80 mb-2">{t("FeaturedVerdict.noPositionYet")}</p>
+ 244  <p className="text-sm text-black/45 leading-relaxed max-w-sm mx-auto">{t("FeaturedVerdict.noPositionDesc")}</p>
+ 245  </div>
+ 246  ) : (
+ 247  <FeaturedVerdictCard data={featuredVerdict} />
+ 248  )}
+ 249  </ScrollReveal>
+ 250  </div>
+ 251  </section>
+ 252  {/* Latest briefs — more proof, if available */}
+ 253  {displayInquiries.length > 0 && (
+ 254  <section className="nx-section-divide relative px-6 sm:px-8 py-16 sm:py-20">
+ 255  <span className="nx-section-index">03 / {sectionTotal}</span>
+ 256  <div className="max-w-6xl mx-auto">
+ 257  <ScrollReveal className="flex items-end justify-between gap-4 mb-12">
+ 258  <p className="nx-eyebrow">{t("Home.latestBriefs")}</p>
+ 259  <button
+ 260  type="button"
+ 261  onClick={() => router.push(PUBLIC_ROUTES.archives)}
+ 262  className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.12em] text-black/55 hover:text-black transition-colors"
+ 263  >
+ 264  {t("Home.fullArchive")}
+ 265  <ArrowRight size={14} />
+ 266  </button>
+ 267  </ScrollReveal>
+ 268  <ScrollReveal stagger className="grid md:grid-cols-3 gap-4">
+ 269  {displayInquiries.map((inquiry) => (
+ 270  <InquiryCard
+ 271  key={inquiry.id}
+ 272  inquiry={inquiry}
+ 273  />
+ 274  ))}
+ 275  </ScrollReveal>
+ 276  </div>
+ 277  </section>
+ 278  )}
+ 279  {/* Manifesto + pillars — the philosophy, now that they've seen the proof */}
+ 280  <section className="nx-section-divide relative px-6 sm:px-8 py-20 sm:py-28 overflow-hidden">
+ 281  <span className="nx-section-index">{manifestoSectionNum} / {sectionTotal}</span>
+ 282  <div className="relative max-w-4xl mx-auto text-center">
+ 283  <ScrollReveal>
+ 284  <p className="nx-eyebrow mb-10">{t("Home.thePrinciple")}</p>
+ 285  </ScrollReveal>
+ 286  <ScrollReveal stagger className="space-y-2">
+ 287  <p className="nx-manifesto-line">
+ 288  {t("Home.manifestoLine1")}
+ 289  </p>
+ 290  <p className="nx-manifesto-line">
+ 291  {t("Home.manifestoLine2")}
+ 292  </p>
+ 293  <div className="nx-divider w-16 mx-auto my-8" />
+ 294  <p className="nx-manifesto-line nx-manifesto-line--accent">
+ 295  {t("Home.manifestoLine3")}
+ 296  </p>
+ 297  </ScrollReveal>
+ 298  <ScrollReveal stagger delay={200} className="mt-12 space-y-1">
+ 299  <p className="nx-manifesto-cascade">
+ 300  {t("Home.manifestoCascade1")}
+ 301  </p>
+ 302  <p className="nx-manifesto-cascade">
+ 303  {t("Home.manifestoCascade2")}
+ 304  </p>
+ 305  <p className="nx-manifesto-cascade">
+ 306  {t("Home.manifestoCascade3")}
+ 307  </p>
+ 308  </ScrollReveal>
+ 309  <ScrollReveal delay={400}>
+ 310  <p className="nx-manifesto-signoff">
+ 311  {t("Home.manifestoSignoff")}<span className="nx-manifesto-signoff-x">X</span>
+ 312  </p>
+ 313  </ScrollReveal>
+ 314  </div>
+ 315  {/* Pillars merged into manifesto — what you get */}
+ 316  <div className="relative max-w-5xl mx-auto mt-16">
+ 317  <ScrollReveal>
+ 318  <p className="nx-eyebrow mb-6 text-center">{t("Home.sixPillars")}</p>
+ 319  </ScrollReveal>
+ 320  <ScrollReveal stagger className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+ 321  {[0, 1, 2, 3, 4, 5].map((i) => (
+ 322  <div key={i} className="nx-surface nx-pillar p-5">
+ 323  <p className="font-mono text-[11px] text-black/45 mb-3">0{i + 1}</p>
+ 324  <p className="text-sm text-black/70 leading-[1.5]">{t(`Brand.philosophyPillars.${i}`)}</p>
+ 325  </div>
+ 326  ))}
+ 327  </ScrollReveal>
+ 328  </div>
+ 329  </section>
+ 330  {/* Domain map — where we work (Harvard "Where we work" inspired) */}
+ 331  <DomainMap sectionIndex={`${domainSectionNum} / ${sectionTotal}`} />
+ 332  {/* Data sources ticker */}
+ 333  <div className="border-y border-black/[0.08] bg-black/[0.01]">
+ 334  <div className="flex items-stretch">
+ 335  <span className="shrink-0 flex items-center gap-2 px-5 py-3 border-r border-black/[0.08] font-mono text-[9px] uppercase tracking-[0.2em] text-black/55 bg-black/[0.03]">
+ 336  <span className="w-1 h-1 rounded-full bg-black/80 nx-glow-dot" />
+ 337  {t("Home.dataSources")}
+ 338  </span>
+ 339  <div className="nx-marquee-pause flex-1 overflow-hidden">
+ 340  <div className="flex whitespace-nowrap animate-marquee-slow py-3">
+ 341  {[...DATA_SOURCES, ...DATA_SOURCES].map((src, i) => (
+ 342  <span
+ 343  key={`${src.id}-${i}`}
+ 344  className="flex items-center font-mono text-[11px] uppercase tracking-[0.12em] text-black/40 px-5"
+ 345  >
+ 346  <span className="text-black/50 mr-2.5 text-[10px]">●</span>
+ 347  <span className="text-black/65">{src.name}</span>
+ 348  <span className="ml-2 text-black/45 normal-case tracking-normal text-[11px]">{src.desc}</span>
+ 349  </span>
+ 350  ))}
+ 351  </div>
+ 352  </div>
+ 353  </div>
+ 354  </div>
+ 355  {/* Mission statement */}
+ 356  <section className="nx-section-divide relative px-6 sm:px-8 py-16 sm:py-20">
+ 357  <span className="nx-section-index">{missionSectionNum} / {sectionTotal}</span>
+ 358  <div className="max-w-4xl mx-auto grid sm:grid-cols-2 gap-10 sm:gap-16">
+ 359  <ScrollReveal>
+ 360  <p className="nx-eyebrow mb-6">{t("Home.theChallenge")}</p>
+ 361  <p className="text-lg sm:text-xl text-[var(--nx-text-secondary)] leading-[1.55]">
+ 362  {t("Home.challengeText")}
+ 363  </p>
+ 364  </ScrollReveal>
+ 365  <ScrollReveal delay={120}>
+ 366  <p className="nx-eyebrow mb-6">{t("Home.ourAnswer")}</p>
+ 367  <p className="text-lg sm:text-xl text-[var(--nx-text-secondary)] leading-[1.55]">
+ 368  {t("Home.answerText")}
+ 369  </p>
+ 370  </ScrollReveal>
+ 371  </div>
+ 372  </section>
+ 373  {/* Social proof */}
+ 374  <section className="nx-section-divide relative px-6 sm:px-8 py-16 sm:py-20">
+ 375  <div className="max-w-4xl mx-auto text-center">
+ 376  <ScrollReveal>
+ 377  <p className="nx-eyebrow mb-10 justify-center">{t("Home.builtFor")}</p>
+ 378  </ScrollReveal>
+ 379  <ScrollReveal stagger className="grid sm:grid-cols-3 gap-8 sm:gap-12">
+ 380  <div className="text-center">
+ 381  <p className="font-mono text-3xl font-light text-black tabular-nums leading-none mb-3">
+ 382  <StatCounter end={19} suffix="" />
+ 383  </p>
+ 384  <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-black/50">
+ 385  {t("Home.pipelineStages")}
+ 386  </p>
+ 387  <p className="text-xs text-black/40 mt-2 leading-relaxed">
+ 388  {t("Home.pipelineStagesDesc")}
+ 389  </p>
+ 390  </div>
+ 391  <div className="text-center">
+ 392  <p className="font-mono text-3xl font-light text-black tabular-nums leading-none mb-3">
+ 393  <StatCounter end={6} suffix="" />
+ 394  </p>
+ 395  <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-black/50">
+ 396  {t("Home.adversarialReviews")}
+ 397  </p>
+ 398  <h2 className="manifesto-claim font-heading font-semibold text-black mb-2 leading-[1.08]">
+ 399  {t("manifesto.largePrincipleTitle")}
+ 400  <span className="x-blink-accent">.</span>
+ 401  </h2>
+ 402  <MeanderDivider width={180} className="mx-auto mt-7 text-black/25" />
+ 403  <p className="principle-sub font-heading font-normal text-black/60 max-w-2xl leading-[1.4] text-balance">
+ 404  {t("Home.adversarialReviewsDesc")}
+ 405  </p>
+ 406  </div>
+ 407  <div className="text-center">
+ 408  <p className="font-mono text-3xl font-light text-black tabular-nums leading-none mb-3">
+ 409  <StatCounter end={100} suffix="%" />
+ 410  </p>
+ 411  <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-black/50">
+ 412  {t("Home.sourceGrounded")}
+ 413  </p>
+ 414  <p className="text-xs text-black/40 mt-2 leading-relaxed">
+ 415  {t("Home.sourceGroundedDesc")}
+ 416  </p>
+ 417  </div>
+ 418  </ScrollReveal>
+ 419  </div>
+ 420  </section>
+ 421  {/* Track record — public accountability (always visible; pending state when no data) */}
+ 422  <section className="nx-section-divide relative px-6 sm:px-8 py-16 sm:py-20">
+ 423  <div className="max-w-4xl mx-auto text-center">
+ 424  <ScrollReveal>
+ 425  <p className="nx-eyebrow mb-4 justify-center">{t("Home.trackRecord")}</p>
+ 426  <h2 className="font-display text-lg sm:text-xl font-medium text-black mb-10 tracking-tight">
+ 427  {t("Home.trackRecordDesc")}
+ 428  </h2>
+ 429  </ScrollReveal>
+ 430  <ScrollReveal stagger className="grid grid-cols-2 sm:grid-cols-4 gap-8 sm:gap-10 mb-10">
+ 431  <div className="text-center">
+ 432  <p className="font-mono text-3xl font-light text-black tabular-nums leading-none mb-3">
+ 433  <StatCounter end={trackRecord?.total ?? 0} suffix="" />
+ 434  </p>
+ 435  <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-black/50">{t("Home.predictionsMade")}</p>
+ 436  </div>
+ 437  <div className="text-center">
+ 438  <p className="font-mono text-3xl font-light text-black tabular-nums leading-none mb-3">
+ 439  <StatCounter end={trackRecord?.open ?? 0} suffix="" />
+ 440  </p>
+ 441  <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-black/50">{t("Home.openPredictions")}</p>
+ 442  </div>
+ 443  <div className="text-center">
+ 444  <p className="font-mono text-3xl font-light text-black tabular-nums leading-none mb-3">
+ 445  {trackRecord?.accuracyPct != null ? (
+ 446  <StatCounter end={Math.round(trackRecord.accuracyPct)} suffix="%" />
+ 447  ) : (
+ 448  <span className="text-black/40 text-xl">{t("Home.pending")}</span>
+ 449  )}
+ 450  </p>
+ 451  <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-black/50">{t("Home.hitRate")}</p>
+ 452  </div>
+ 453  <div className="text-center">
+ 454  <p className="font-mono text-3xl font-light text-black tabular-nums leading-none mb-3">
+ 455  {trackRecord?.brierScore != null ? (
+ 456  <span>{trackRecord.brierScore}</span>
+ 457  ) : (
+ 458  <span className="text-black/40 text-xl">{t("Home.pending")}</span>
+ 459  )}
+ 460  </p>
+ 461  <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-black/50">{t("Home.brierScore")}</p>
+ 462  </div>
+ 463  </ScrollReveal>
+ 464  <ScrollReveal>
+ 465  <button
+ 466  type="button"
+ 467  onClick={() => router.push(PUBLIC_ROUTES.trackRecord)}
+ 468  className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.12em] text-black/55 hover:text-black transition-colors"
+ 469  >
+ 470  {t("Home.fullTrackRecord")}
+ 471  <ArrowRight size={14} />
+ 472  </button>
+ 473  </ScrollReveal>
+ 474  </div>
+ 475  </section>
+ 476  <StudioPreview
+ 477  onGetStarted={openStudio}
+ 478  onLearnMore={() => router.push(PUBLIC_ROUTES.pricing)}
+ 479  sectionIndex={`${studioSectionNum} / ${sectionTotal}`}
+ 480  />
+ 481  {/* Newsletter */}
+ 482  <section id="newsletter" className="nx-section-divide relative px-6 sm:px-8 py-16">
+ 483  <span className="nx-section-index">{newsletterSectionNum} / {sectionTotal}</span>
+ 484  <div className="max-w-md mx-auto text-center">
+ 485  <ScrollReveal>
+ 486  <h2 className="font-display text-lg sm:text-xl font-medium text-black mb-3 tracking-tight">{t("Home.intelligenceDispatch")}</h2>
+ 487  <p className="nx-eyebrow mb-8 justify-center">{t("Home.structureNotNoise")}</p>
+ 488  </ScrollReveal>
+ 489  {newsletterStatus === "success" ? (
+ 490  <p className="text-sm text-black/70">{newsletterMessage}</p>
+ 491  ) : (
+ 492  <form onSubmit={handleNewsletterSubmit} className="flex flex-col sm:flex-row gap-2">
+ 493  <input
+ 494  type="email"
+ 495  value={newsletterEmail}
+ 496  onChange={(e) => setNewsletterEmail(e.target.value)}
+ 497  placeholder="analyst@institution.org"
+ 498  required
+ 499  className="nx-input flex-1 px-4 py-3 bg-black/[0.02] border border-black/[0.12] text-sm text-black placeholder:text-black/40 focus:outline-none focus:border-black/30 transition-all"
+ 500  />
+ 501  <button
+ 502  type="submit"
+ 503  disabled={newsletterStatus === "loading"}
+ 504  className="px-6 py-3 bg-black text-white text-xs font-semibold uppercase tracking-[0.12em] disabled:opacity-50 hover:bg-black/85 transition-colors"
+ 505  >
+ 506  {t("Home.newsletterButton")}
+ 507  </button>
+ 508  </form>
+ 509  )}
+ 510  </div>
+ 511  </section>
+ 512  </PublicPageShell>
+ 513  {showAuthModal && (
+ 514  <AuthModal
+ 515  isOpen={showAuthModal}
+ 516  onClose={() => setShowAuthModal(false)}
+ 517  onSignupSuccess={() => {
+ 518  setIsAuthenticated(true);
+ 519  setShowAuthModal(false);
+ 520  router.push(authRedirect === "studio" ? PUBLIC_ROUTES.studio : "/archives");
+ 521  }}
+ 522  />
+ 523  )}
+ 524  </ErrorBoundary>
+ 525  );
+ 526  }
+ 527  export default function HomePage() {
+ 528  return (
+ 529  <Suspense
+ 530  fallback={
+ 531  <div className="min-h-screen bg-white flex flex-col items-center justify-center gap-6">
+ 532  <NomosXLogo variant="wordmark" size={20} className="opacity-40" />
+ 533  <div className="relative w-32 h-px bg-black/10 overflow-hidden">
+ 534  <div className="absolute inset-y-0 w-1/3 bg-gradient-to-r from-transparent via-black/60 to-transparent animate-marquee" />
+ 535  </div>
+ 536  </div>
+ 537  }
+ 538  >
+ 539  <HomePageContent />
+ 540  </Suspense>
+ 541  );
+ 542  }

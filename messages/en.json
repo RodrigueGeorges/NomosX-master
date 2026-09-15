@@ -710,5 +710,17 @@
     "redTeam": "Red team — steel-man counter-scenario",
     "noAdversarial": "No adversarial challenge recorded.",
     "methodNote": "Methodological note: displayed probabilities are scenario weightings from calibrated prospective runs on academic sources — not predictions. Any decision should cross-reference this signal with the cited corpus [SRC-N] and recorded dissent."
+  },
+  "Pipeline": {
+    "howItWorks": "How it works",
+    "live": "Live",
+    "map": "Map",
+    "mapDesc": "Map, don't accumulate.",
+    "confront": "Confront",
+    "confrontDesc": "Force cross-domain collision.",
+    "quantify": "Quantify",
+    "quantifyDesc": "Chaos becomes scenario.",
+    "decide": "Decide",
+    "decideDesc": "A verifiable position."
   }
 }

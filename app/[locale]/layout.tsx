@@ -8,6 +8,7 @@ import {notFound} from 'next/navigation';
 import {ToastContainer} from '@/components/ui/Toast';
 import {AuthProvider} from '@/hooks/useAuth';
 import {QueryProvider} from '@/components/providers/QueryProvider';
+import {ThemeProvider} from 'next-themes';
 
 import {routing, type AppLocale, LOCALES, DEFAULT_LOCALE} from '@/i18n/routing';
 
@@ -170,12 +171,14 @@ export default async function LocaleLayout({
           Skip to main content
         </a>
         <NextIntlClientProvider messages={messages}>
-          <QueryProvider>
-            <AuthProvider>
-              <div id="main-content">{children}</div>
-              <ToastContainer />
-            </AuthProvider>
-          </QueryProvider>
+          <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+            <QueryProvider>
+              <AuthProvider>
+                <div id="main-content">{children}</div>
+                <ToastContainer />
+              </AuthProvider>
+            </QueryProvider>
+          </ThemeProvider>
         </NextIntlClientProvider>
       </body>
     </html>

@@ -1,11 +1,12 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Menu, X, Globe, LayoutDashboard } from "lucide-react";
+import { Menu, X, Globe, LayoutDashboard, Play } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useTranslations } from "next-intl";
 import { NomosXLogo } from "@/components/brand/NomosXLogo";
 import { LOGO_NAV_CAP } from "@/lib/brand/logo-config";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { cn } from "@/lib/utils";
 import { Link, useRouter, usePathname } from "@/i18n/navigation";
 import { LOCALES, DEFAULT_LOCALE, type AppLocale } from "@/i18n/routing";
@@ -65,12 +66,12 @@ export default function PublicNav({ currentPage, onSignInClick, isAuthenticated 
   };
 
   return (
-    <nav className="sticky top-0 z-50 w-full border-b border-black/[0.08] bg-white/80 backdrop-blur-xl">
+    <nav className="sticky top-0 z-50 w-full border-b border-black/[0.08] dark:border-white/[0.06] bg-white/80 dark:bg-[#0a0a0f]/80 backdrop-blur-xl">
       <div className="max-w-6xl mx-auto px-5 sm:px-6 h-12 flex items-center justify-between">
         <button
           type="button"
           onClick={() => router.push("/")}
-          className="text-black hover:opacity-80 transition-opacity focus:outline-none focus-visible:ring-1 focus-visible:ring-black/40 rounded-sm"
+          className="text-black dark:text-white hover:opacity-80 transition-opacity focus:outline-none focus-visible:ring-1 focus-visible:ring-black/40 dark:focus-visible:ring-white/40 rounded-sm"
           aria-label={t("Nav.home")}
         >
           <NomosXLogo variant="wordmark" size={LOGO_NAV_CAP} />
@@ -85,13 +86,13 @@ export default function PublicNav({ currentPage, onSignInClick, isAuthenticated 
               className={cn(
                 "relative font-mono text-xs uppercase tracking-[0.1em] transition-colors py-1",
                 currentPage === link.page
-                  ? "text-black"
-                  : "text-black/55 hover:text-black"
+                  ? "text-black dark:text-white"
+                  : "text-black/55 dark:text-white/55 hover:text-black dark:hover:text-white"
               )}
             >
               {t(link.labelKey)}
               {currentPage === link.page && (
-                <span className="absolute -bottom-px left-0 right-0 h-px bg-gradient-to-r from-transparent via-black/60 to-transparent" />
+                <span className="absolute -bottom-px left-0 right-0 h-px bg-gradient-to-r from-transparent via-black/60 dark:via-white/60 to-transparent" />
               )}
             </button>
           ))}
@@ -99,7 +100,7 @@ export default function PublicNav({ currentPage, onSignInClick, isAuthenticated 
             <button
               type="button"
               onClick={() => router.push("/dashboard")}
-              className="flex items-center gap-1.5 font-mono text-xs uppercase tracking-[0.1em] text-black/55 hover:text-black transition-colors py-1"
+              className="flex items-center gap-1.5 font-mono text-xs uppercase tracking-[0.1em] text-black/55 dark:text-white/55 hover:text-black dark:hover:text-white transition-colors py-1"
             >
               <LayoutDashboard size={12} />
               {t("Nav.dashboard")}
@@ -108,12 +109,22 @@ export default function PublicNav({ currentPage, onSignInClick, isAuthenticated 
         </div>
 
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new CustomEvent("nomosx:replay-intro"))}
+            className="flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.14em] text-black/40 dark:text-white/40 hover:text-black dark:hover:text-white transition-colors"
+            aria-label="Replay intro"
+            title="Replay intro"
+          >
+            <Play size={12} />
+          </button>
+          <ThemeToggle className="hidden sm:flex" />
           {/* Language switcher */}
           <div className="relative hidden sm:block">
             <button
               type="button"
               onClick={() => setLangOpen(!langOpen)}
-              className="flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.14em] text-black/60 hover:text-black transition-colors"
+              className="flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.14em] text-black/60 dark:text-white/60 hover:text-black dark:hover:text-white transition-colors"
               aria-label={t("Nav.language")}
             >
               <Globe size={14} />
@@ -125,7 +136,7 @@ export default function PublicNav({ currentPage, onSignInClick, isAuthenticated 
                   initial={{ opacity: 0, y: -4 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -4 }}
-                  className="absolute right-0 top-full mt-1 border border-black/[0.08] bg-white/95 backdrop-blur-xl py-1 min-w-[120px] shadow-lg shadow-black/[0.04]"
+                  className="absolute right-0 top-full mt-1 border border-black/[0.08] dark:border-white/[0.08] bg-white/95 dark:bg-[#111114]/95 backdrop-blur-xl py-1 min-w-[120px] shadow-lg shadow-black/[0.04] dark:shadow-black/40"
                 >
                   {LOCALES.map((loc) => (
                     <button
@@ -135,8 +146,8 @@ export default function PublicNav({ currentPage, onSignInClick, isAuthenticated 
                       className={cn(
                         "block w-full text-left px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.14em] transition-colors",
                         currentLocale === loc
-                          ? "text-black"
-                          : "text-black/50 hover:text-black"
+                          ? "text-black dark:text-white"
+                          : "text-black/50 dark:text-white/50 hover:text-black dark:hover:text-white"
                       )}
                     >
                       {loc === "en" ? t("Nav.languageEn") : t("Nav.languageFr")}
@@ -151,7 +162,7 @@ export default function PublicNav({ currentPage, onSignInClick, isAuthenticated 
             <button
               type="button"
               onClick={() => router.push("/dashboard")}
-              className="hidden sm:block font-mono text-[11px] uppercase tracking-[0.14em] text-black/60 hover:text-black transition-colors"
+              className="hidden sm:block font-mono text-[11px] uppercase tracking-[0.14em] text-black/60 dark:text-white/60 hover:text-black dark:hover:text-white transition-colors"
             >
               {t("Nav.dashboard")}
             </button>
@@ -159,7 +170,7 @@ export default function PublicNav({ currentPage, onSignInClick, isAuthenticated 
             <button
               type="button"
               onClick={onSignInClick}
-              className="hidden sm:block px-4 py-2.5 border border-black/25 text-black/85 font-mono text-[11px] uppercase tracking-[0.14em] hover:border-black/50 hover:text-black hover:bg-black/[0.04] transition-all"
+              className="hidden sm:block px-4 py-2.5 border border-black/25 dark:border-white/20 text-black/85 dark:text-white/85 font-mono text-[11px] uppercase tracking-[0.14em] hover:border-black/50 dark:hover:border-white/40 hover:text-black dark:hover:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.04] transition-all"
             >
               {t("Nav.access")}
             </button>
@@ -168,7 +179,7 @@ export default function PublicNav({ currentPage, onSignInClick, isAuthenticated 
           <button
             type="button"
             onClick={() => setMobileOpen(!mobileOpen)}
-            className="md:hidden w-9 h-9 flex items-center justify-center text-black/60 hover:text-black"
+            className="md:hidden w-9 h-9 flex items-center justify-center text-black/60 dark:text-white/60 hover:text-black dark:hover:text-white"
             aria-label={t("Nav.toggleMenu")}
           >
             {mobileOpen ? <X size={18} /> : <Menu size={18} />}
@@ -182,7 +193,7 @@ export default function PublicNav({ currentPage, onSignInClick, isAuthenticated 
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            className="md:hidden overflow-hidden border-t border-black/[0.08] bg-white"
+            className="md:hidden overflow-hidden border-t border-black/[0.08] dark:border-white/[0.06] bg-white dark:bg-[#0a0a0f]"
           >
             <div className="px-5 py-5 flex flex-col gap-3">
               {NAV_LINKS.map((link) => (
@@ -195,7 +206,7 @@ export default function PublicNav({ currentPage, onSignInClick, isAuthenticated 
                   }}
                   className={cn(
                     "font-mono text-xs uppercase tracking-[0.16em] text-left",
-                    currentPage === link.page ? "text-black" : "text-black/60"
+                    currentPage === link.page ? "text-black dark:text-white" : "text-black/60 dark:text-white/60"
                   )}
                 >
                   {t(link.labelKey)}
@@ -209,7 +220,7 @@ export default function PublicNav({ currentPage, onSignInClick, isAuthenticated 
                     router.push("/dashboard");
                     setMobileOpen(false);
                   }}
-                  className="flex items-center gap-2 font-mono text-xs uppercase tracking-[0.16em] text-left text-black/60"
+                  className="flex items-center gap-2 font-mono text-xs uppercase tracking-[0.16em] text-left text-black/60 dark:text-white/60"
                 >
                   <LayoutDashboard size={14} />
                   {t("Nav.dashboard")}
@@ -217,7 +228,7 @@ export default function PublicNav({ currentPage, onSignInClick, isAuthenticated 
               )}
 
               {/* Mobile language switcher */}
-              <div className="flex gap-3 pt-2 border-t border-black/[0.06]">
+              <div className="flex gap-3 pt-2 border-t border-black/[0.06] dark:border-white/[0.06]">
                 {LOCALES.map((loc) => (
                   <button
                     key={loc}
@@ -225,7 +236,7 @@ export default function PublicNav({ currentPage, onSignInClick, isAuthenticated 
                     onClick={() => switchLocale(loc)}
                     className={cn(
                       "font-mono text-xs uppercase tracking-[0.14em]",
-                      currentLocale === loc ? "text-black" : "text-black/50"
+                      currentLocale === loc ? "text-black dark:text-white" : "text-black/50 dark:text-white/50"
                     )}
                   >
                     {loc === "en" ? t("Nav.languageEn") : t("Nav.languageFr")}
@@ -239,7 +250,7 @@ export default function PublicNav({ currentPage, onSignInClick, isAuthenticated 
                   onSignInClick();
                   setMobileOpen(false);
                 }}
-                className="mt-4 w-full py-3 border border-black/25 text-black font-mono text-[11px] uppercase tracking-[0.14em] hover:bg-black/[0.04] transition-colors"
+                className="mt-4 w-full py-3 border border-black/25 dark:border-white/20 text-black dark:text-white font-mono text-[11px] uppercase tracking-[0.14em] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] transition-colors"
               >
                 {t("Nav.access")}
               </button>

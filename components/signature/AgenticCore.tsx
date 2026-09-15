@@ -165,7 +165,7 @@ export function AgenticCore({
           refractory: 0,
           wobbleSeed: Math.random() * 100,
           wobblePhase: Math.random() * Math.PI * 2,
-          baseOpacity: 0.02 + Math.random() * 0.015,
+          baseOpacity: 0.012 + Math.random() * 0.008,
           connections: 0,
           fireFlash: 0,
         });
@@ -187,7 +187,7 @@ export function AgenticCore({
           refractory: 0,
           wobbleSeed: Math.random() * 100,
           wobblePhase: Math.random() * Math.PI * 2,
-          baseOpacity: 0.03 + Math.random() * 0.02,
+          baseOpacity: 0.018 + Math.random() * 0.012,
           connections: 0,
           fireFlash: 0,
         });
@@ -210,7 +210,7 @@ export function AgenticCore({
           refractory: 0,
           wobbleSeed: Math.random() * 100,
           wobblePhase: Math.random() * Math.PI * 2,
-          baseOpacity: isHub ? 0.08 + Math.random() * 0.025 : 0.045 + Math.random() * 0.02,
+          baseOpacity: isHub ? 0.04 + Math.random() * 0.015 : 0.025 + Math.random() * 0.012,
           connections: 0,
           fireFlash: 0,
         });
@@ -256,15 +256,6 @@ export function AgenticCore({
 
     const handleResize = () => { resize(); initNeurons(); };
     window.addEventListener("resize", handleResize);
-
-    const handleMouseMove = (e: MouseEvent) => {
-      mouseRef.current.x = e.clientX;
-      mouseRef.current.y = e.clientY;
-      mouseRef.current.active = true;
-    };
-    const handleMouseLeave = () => { mouseRef.current.active = false; };
-    window.addEventListener("mousemove", handleMouseMove);
-    window.addEventListener("mouseleave", handleMouseLeave);
 
     const handleScroll = () => { scrollRef.current = window.scrollY; };
     window.addEventListener("scroll", handleScroll, { passive: true });
@@ -352,17 +343,6 @@ export function AgenticCore({
             n.potential += 0.3 + Math.random() * 0.2;
           }
 
-          // Mouse injects current into nearby neurons
-          if (mouse.active) {
-            const nx = rx(n), ny = ry(n);
-            const mdx = nx - mouse.x, mdy = ny - mouse.y;
-            const mdist = Math.sqrt(mdx * mdx + mdy * mdy);
-            if (mdist < 150) {
-              const charge = (1 - mdist / 150) * 0.02;
-              n.potential += charge;
-            }
-          }
-
           // Fire!
           if (n.potential >= n.threshold) {
             fireNeuron(i, neurons, synapses, pulses, 0.75 + Math.random() * 0.25);
@@ -412,7 +392,7 @@ export function AgenticCore({
         const hasHub = from.isHub || to.isHub;
         const layerBoost = hasHub ? 1.4 : (from.layer === 2 || to.layer === 2 ? 1.2 : 1.0);
         // Strength modulates opacity — weak synapses are barely visible
-        const baseOpacity = t * t * 0.05 * layerBoost * (0.4 + syn.strength * 0.6);
+        const baseOpacity = t * t * 0.025 * layerBoost * (0.4 + syn.strength * 0.6);
 
         // Check for active pulse on this synapse
         let pulseBoost = 0;
@@ -493,17 +473,17 @@ export function AgenticCore({
           }
           const trailGrad = ctx.createLinearGradient(p.trail[0].x, p.trail[0].y, px, py);
           trailGrad.addColorStop(0, "rgba(40, 80, 160, 0)");
-          trailGrad.addColorStop(1, `rgba(40, 80, 160, ${liveIntensity * 0.15})`);
+          trailGrad.addColorStop(1, `rgba(40, 80, 160, ${liveIntensity * 0.08})`);
           ctx.strokeStyle = trailGrad;
           ctx.lineWidth = 0.8;
           ctx.stroke();
         }
 
         // Pulse glow
-        const glowR = 16;
+        const glowR = 10;
         const grad = ctx.createRadialGradient(px, py, 0, px, py, glowR);
-        grad.addColorStop(0, `rgba(60, 100, 180, ${liveIntensity * 0.2})`);
-        grad.addColorStop(0.3, `rgba(40, 80, 160, ${liveIntensity * 0.08})`);
+        grad.addColorStop(0, `rgba(60, 100, 180, ${liveIntensity * 0.1})`);
+        grad.addColorStop(0.3, `rgba(40, 80, 160, ${liveIntensity * 0.04})`);
         grad.addColorStop(1, "rgba(40, 80, 160, 0)");
         ctx.fillStyle = grad;
         ctx.beginPath();
@@ -511,62 +491,10 @@ export function AgenticCore({
         ctx.fill();
 
         // Pulse core
-        ctx.fillStyle = `rgba(30, 60, 120, ${liveIntensity * 0.35})`;
+        ctx.fillStyle = `rgba(30, 60, 120, ${liveIntensity * 0.18})`;
         ctx.beginPath();
         ctx.arc(px, py, 1.3, 0, Math.PI * 2);
         ctx.fill();
-      }
-
-      // ── Data streams ──
-      if (!reduceMotion) {
-        if (time - lastStreamRef.current > 3000 + Math.random() * 4000) {
-          lastStreamRef.current = time;
-          if (streams.length < 3) {
-            streams.push({
-              x: Math.random() * width,
-              y: -50,
-              vy: 0.3 + Math.random() * 0.4,
-              length: 80 + Math.random() * 120,
-              opacity: 0.02 + Math.random() * 0.015,
-            });
-          }
-        }
-
-        for (let k = streams.length - 1; k >= 0; k--) {
-          const s = streams[k];
-          s.y += s.vy;
-          if (s.y > height + 100) { streams.splice(k, 1); continue; }
-
-          const grad = ctx.createLinearGradient(s.x, s.y - s.length, s.x, s.y);
-          grad.addColorStop(0, "rgba(40, 80, 160, 0)");
-          grad.addColorStop(0.7, `rgba(40, 80, 160, ${s.opacity})`);
-          grad.addColorStop(1, `rgba(60, 100, 180, ${s.opacity * 1.5})`);
-          ctx.strokeStyle = grad;
-          ctx.lineWidth = 0.8;
-          ctx.beginPath();
-          ctx.moveTo(s.x, s.y - s.length);
-          ctx.lineTo(s.x, s.y);
-          ctx.stroke();
-
-          ctx.fillStyle = `rgba(60, 100, 180, ${s.opacity * 2})`;
-          ctx.beginPath();
-          ctx.arc(s.x, s.y, 1, 0, Math.PI * 2);
-          ctx.fill();
-        }
-      }
-
-      // ── Scan sweep ──
-      if (!reduceMotion) {
-        scanRef.current += 0.15;
-        const scanY = (scanRef.current % (height + 400)) - 200;
-        if (scanY > -200 && scanY < height + 200) {
-          const scanGrad = ctx.createLinearGradient(0, scanY - 60, 0, scanY + 60);
-          scanGrad.addColorStop(0, "rgba(40, 80, 160, 0)");
-          scanGrad.addColorStop(0.5, "rgba(40, 80, 160, 0.008)");
-          scanGrad.addColorStop(1, "rgba(40, 80, 160, 0)");
-          ctx.fillStyle = scanGrad;
-          ctx.fillRect(0, scanY - 60, width, 120);
-        }
       }
 
       // ── Draw neurons ──
@@ -584,41 +512,17 @@ export function AgenticCore({
         const connBoost = Math.min(n.connections * 0.004, 0.02);
         opacity += connBoost;
 
-        // Mouse proximity
-        if (mouse.active) {
-          const mdx = x - mouse.x, mdy = y - mouse.y;
-          const mdist = Math.sqrt(mdx * mdx + mdy * mdy);
-          const mouseRadius = 160;
-          if (mdist < mouseRadius) {
-            const mt = 1 - mdist / mouseRadius;
-            opacity += mt * 0.08;
-            r += mt * (n.isHub ? 1.2 : 0.8);
-          }
-        }
 
         // Fire flash glow — bright burst when neuron fires
         if (n.fireFlash > 0.05) {
-          const flashR = r * (n.isHub ? 8 : 6);
+          const flashR = r * 5;
           const flash = ctx.createRadialGradient(x, y, 0, x, y, flashR);
           const flashColor = n.isHub ? "40, 80, 160" : "30, 60, 120";
-          flash.addColorStop(0, `rgba(${flashColor}, ${n.fireFlash * 0.08})`);
-          flash.addColorStop(0.3, `rgba(${flashColor}, ${n.fireFlash * 0.03})`);
+          flash.addColorStop(0, `rgba(${flashColor}, ${n.fireFlash * 0.04})`);
           flash.addColorStop(1, `rgba(${flashColor}, 0)`);
           ctx.fillStyle = flash;
           ctx.beginPath();
           ctx.arc(x, y, flashR, 0, Math.PI * 2);
-          ctx.fill();
-        }
-
-        // Hub persistent glow
-        if (n.isHub) {
-          const hubGlow = ctx.createRadialGradient(x, y, 0, x, y, r * 3.5);
-          hubGlow.addColorStop(0, `rgba(60, 100, 180, 0.03)`);
-          hubGlow.addColorStop(0.5, `rgba(40, 80, 160, 0.01)`);
-          hubGlow.addColorStop(1, "rgba(40, 80, 160, 0)");
-          ctx.fillStyle = hubGlow;
-          ctx.beginPath();
-          ctx.arc(x, y, r * 3.5, 0, Math.PI * 2);
           ctx.fill();
         }
 
@@ -636,34 +540,6 @@ export function AgenticCore({
         ctx.arc(x, y, r, 0, Math.PI * 2);
         ctx.fill();
 
-        // Rings for near + hub
-        if ((n.layer === 2 || n.isHub) && opacity > 0.12) {
-          ctx.strokeStyle = `rgba(40, 80, 160, ${opacity * 0.25})`;
-          ctx.lineWidth = 0.6;
-          ctx.beginPath();
-          ctx.arc(x, y, r + (n.isHub ? 4 : 2.5), 0, Math.PI * 2);
-          ctx.stroke();
-
-          if (n.isHub) {
-            ctx.strokeStyle = `rgba(30, 60, 120, ${opacity * 0.12})`;
-            ctx.lineWidth = 0.4;
-            ctx.beginPath();
-            ctx.arc(x, y, r + 8, 0, Math.PI * 2);
-            ctx.stroke();
-          }
-        }
-      }
-
-      // ── Cursor halo ──
-      if (mouse.active) {
-        const haloGrad = ctx.createRadialGradient(mouse.x, mouse.y, 0, mouse.x, mouse.y, 200);
-        haloGrad.addColorStop(0, "rgba(40, 80, 160, 0.025)");
-        haloGrad.addColorStop(0.4, "rgba(40, 80, 160, 0.01)");
-        haloGrad.addColorStop(1, "rgba(40, 80, 160, 0)");
-        ctx.fillStyle = haloGrad;
-        ctx.beginPath();
-        ctx.arc(mouse.x, mouse.y, 200, 0, Math.PI * 2);
-        ctx.fill();
       }
 
       if (!reduceMotion) {
@@ -685,8 +561,6 @@ export function AgenticCore({
     return () => {
       cancelAnimationFrame(rafRef.current);
       window.removeEventListener("resize", handleResize);
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mouseleave", handleMouseLeave);
       window.removeEventListener("scroll", handleScroll);
       document.removeEventListener("visibilitychange", handleVisibility);
     };

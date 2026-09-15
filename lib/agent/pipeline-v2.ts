@@ -1831,7 +1831,7 @@ Return JSON: { "reformulations": ["alternative query 1", "alternative query 2"] 
     });
     const result = parseJson<{ reformulations?: string[] }>(response.content);
     if (result?.reformulations && Array.isArray(result.reformulations)) {
-      return result.reformulations.filter(q => typeof q === 'string' && q.length > 10).slice(0, 2);
+      return result.reformulations.filter(q => typeof q === 'string' && q.length > 10).slice(0, 1);
     }
     return [];
   } catch {
@@ -2030,8 +2030,12 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   // K1: LATS auto-activates for strategic depth + budget allows
   const useLATS = opts.useLATS ?? (isStrategic && useAgenticAnalyst && canAffordLATS);
 
-  const usePRM = opts.usePRM ?? false;
-  const useSelfPlay = opts.useSelfPlay ?? false;
+  // Auto-activate learning features for strategic reports (budget-guarded)
+  // PRM scores each reasoning step — learns which patterns lead to good outcomes
+  // Self-Play attacks the analysis to find weaknesses before publication
+  const canAffordLearning = (opts.maxBudgetUsd ?? (isStrategic ? 8 : 3)) > 3.0;
+  const usePRM = opts.usePRM ?? (isStrategic && canAffordLearning);
+  const useSelfPlay = opts.useSelfPlay ?? (isStrategic && canAffordLearning);
   const useAdaptiveRAG = opts.useAdaptiveRAG ?? false;
   const useSelfDiscover = opts.useSelfDiscover ?? false;
   const useBudgetForcing = opts.useBudgetForcing ?? false;
@@ -2047,7 +2051,9 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   const useRagasEval = opts.useRagasEval ?? false;
   const useADAS = opts.useADAS ?? false;
   const useDurableExecution = opts.useDurableExecution ?? false;
-  const useSelfEvolution = opts.useSelfEvolution ?? false;
+  // Self-Evolution: evolve agent prompts after each strategic run via GMPO + MAGE
+  // Cost: ~$0.05-0.10 (4 agents × 2 LLM calls each). Non-blocking, wrapped in try/catch.
+  const useSelfEvolution = opts.useSelfEvolution ?? (isStrategic && canAffordLearning);
   const isDossier = (opts as any).format === "dossier";
   const isMemo = (opts as any).format === "memo";
   const editorialV2 = isEditorialV2Enabled();
@@ -2247,9 +2253,29 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
         ctx.skipStep('devils-advocate');
         ctx.addFinding('BUDGET_GUARD', 'warning', `Budget at 80% — skipping optional steps (debate, meta, DA)`);
       }
+      // P2-FIX: Budget guard — hard-degrade at 100%, throw only at 2x runaway
       if (runningCostUsd > maxBudget) {
-        console.warn(`${label} BUDGET GUARD: $${runningCostUsd.toFixed(4)} exceeds max $${maxBudget} after ${stepName}`);
-        throw new Error(`Pipeline budget exceeded: $${runningCostUsd.toFixed(4)} > $${maxBudget} limit after ${stepName}`);
+        budgetDegraded = true; // Ensure degradation is active
+        console.warn(`${label} BUDGET GUARD: 100% threshold reached ($${runningCostUsd.toFixed(4)}/$${maxBudget}) — hard degrading`);
+        // Aggressively disable all remaining optional steps
+        runDebateStep = false;
+        runMetaAnalysisStep = false;
+        runDevilsAdvocateStep = false;
+        runEnhancedCouncilStep = false;
+        runDeliberationStep = false;
+        ctx.skipStep('debate');
+        ctx.skipStep('meta-analysis');
+        ctx.skipStep('devils-advocate');
+        ctx.skipStep('enhanced-council');
+        ctx.skipStep('deliberation');
+        ctx.addFinding('BUDGET_GUARD', 'warning', `Budget exceeded 100% — all remaining optional steps skipped`);
+
+        // If cost is more than 2x the budget, something is seriously wrong.
+        // This is a hard abort to prevent runaway costs.
+        if (runningCostUsd > maxBudget * 2) {
+          console.error(`${label} BUDGET GUARD: $${runningCostUsd.toFixed(4)} exceeds 2x max $${maxBudget} after ${stepName} — ABORTING`);
+          throw new Error(`Pipeline budget exceeded 2x limit: $${runningCostUsd.toFixed(4)} > $${maxBudget * 2} after ${stepName}`);
+        }
       }
     }
   }
@@ -2991,7 +3017,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
       ? Array.from(new Set([...providers, ...enrichmentAssessment.suggestedProviders])) as Providers
       : providers;
     const enrichmentResults = await Promise.allSettled(
-      enrichmentAssessment.enrichmentQueries.slice(0, 5).map(q => scout(q, enrichmentProviders, isStrategic ? 25 : 20))
+      enrichmentAssessment.enrichmentQueries.slice(0, 3).map(q => scout(q, enrichmentProviders, isStrategic ? 25 : 20))
     );
     let newSourceCount = 0;
     for (const r of enrichmentResults) {
@@ -4552,7 +4578,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     try {
       const gapProviders = gapReqs[0].providers as string[] || ['crossref', 'semanticscholar', 'europepmc'];
       const gapResults = await Promise.allSettled(
-        gapReqs.slice(0, 3).map(req => scout(req.query, gapProviders as Providers, req.minResults || 10))
+        gapReqs.slice(0, 2).map(req => scout(req.query, gapProviders as Providers, req.minResults || 10))
       );
       let gapNewCount = 0;
       for (const r of gapResults) {
@@ -5654,6 +5680,23 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
         deterministicScore = Math.min(deterministicScore, 45);
         console.log(`${label} TRUST: grounding veto — groundedness ${Math.round(groundedness * 100)}% too low, capping at 45`);
       }
+      // Strengthened grounding gate: if groundedness < 40%, cap at 55
+      if (groundedness > 0.15 && groundedness < 0.40) {
+        deterministicScore = Math.min(deterministicScore, 55);
+        console.log(`${label} TRUST: grounding warning — groundedness ${Math.round(groundedness * 100)}% below 40%, capping at 55`);
+      }
+
+      // Citation integrity veto: if NLI integrity < 70% after repair, cap at 55
+      if (nliIntegrity < 70) {
+        deterministicScore = Math.min(deterministicScore, 55);
+        console.log(`${label} TRUST: citation integrity veto — NLI integrity ${nliIntegrity}% < 70%, capping at 55`);
+      }
+
+      // Devil's Advocate veto: if DA returned MAJOR_REVISION with strength < 20, cap at 40
+      if ((stats as any).devilsAdvocateVeto) {
+        deterministicScore = Math.min(deterministicScore, 40);
+        console.log(`${label} TRUST: devil's advocate veto — analysis is fragile (MAJOR_REVISION, strength < 20), capping at 40`);
+      }
 
       // P2-J: Provider diversity veto — if < 3 distinct providers, cap at 60
       // A report citing 1 provider 50 times is not robust evidence.
@@ -5916,6 +5959,12 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
       addCost(daResult.costUsd, "DEVILS_ADVOCATE");
       console.log(`${label} DEVIL'S ADVOCATE: verdict=${daResult.verdict}, strength=${daResult.overallStrength}/100, fatal=${daResult.fatalChallenges?.length || 0}, major=${daResult.majorChallenges?.length || 0}`);
       emitProgress(pipelineRun.id, "DEVILS_ADVOCATE", "completed", `Verdict: ${daResult.verdict} (${daResult.overallStrength}/100)`);
+
+      // Devil's Advocate veto: if MAJOR_REVISION with strength < 20, cap trust at 40
+      if (daResult.verdict === 'major_revision' && daResult.overallStrength < 20) {
+        (stats as any).devilsAdvocateVeto = true;
+        console.warn(`${label} DEVIL'S ADVOCATE VETO: verdict=major_revision, strength=${daResult.overallStrength}/100 — analysis is fragile, trust will be capped at 40`);
+      }
     } catch (err) {
       console.warn(`${label} DEVIL'S ADVOCATE: failed (non-blocking):`, err);
       stats.devilsAdvocate = { error: String(err) };
@@ -5944,11 +5993,11 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     // CLAIM GROUNDING: deterministically verify each claim against its cited source (NLI, CPU-only)
     try {
       const { groundClaimsWithNLI } = await import('./claim-grounding');
-      const groundingResult = await groundClaimsWithNLI(html, topSources, { mode: 'flag', readings });
+      const groundingResult = await groundClaimsWithNLI(html, topSources, { mode: 'remove', readings });
       if (groundingResult.removedClaims > 0 || groundingResult.unsupported > 0) {
         html = groundingResult.html;
       }
-      console.log(`${label} CLAIM GROUNDING: ${groundingResult.supported} supported, ${groundingResult.partial} partial, ${groundingResult.unsupported} unsupported, ${groundingResult.uncited} uncited → groundedness ${Math.round(groundingResult.groundedness * 100)}%, ${groundingResult.removedClaims} flagged`);
+      console.log(`${label} CLAIM GROUNDING: ${groundingResult.supported} supported, ${groundingResult.partial} partial, ${groundingResult.unsupported} unsupported, ${groundingResult.uncited} uncited → groundedness ${Math.round(groundingResult.groundedness * 100)}%, ${groundingResult.removedClaims} removed`);
       stats.claimGrounding = {
         supported: groundingResult.supported,
         partial: groundingResult.partial,
@@ -5958,6 +6007,25 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
         groundedness: Math.round(groundingResult.groundedness * 100),
         flagged: groundingResult.removedClaims,
       };
+
+      // Fix 2: Re-run grounding after removal to get clean score (bad claims are now gone)
+      if (groundingResult.removedClaims > 0 && groundingResult.groundedness < 0.80) {
+        console.log(`${label} CLAIM GROUNDING: ${groundingResult.removedClaims} claims removed — re-running grounding on clean HTML`);
+        const reGrounding = await groundClaimsWithNLI(html, topSources, { mode: 'remove', readings });
+        if (reGrounding.groundedness > groundingResult.groundedness) {
+          html = reGrounding.html;
+          stats.claimGrounding = {
+            supported: reGrounding.supported,
+            partial: reGrounding.partial,
+            unsupported: reGrounding.unsupported,
+            uncited: reGrounding.uncited,
+            contradicted: reGrounding.contradicted,
+            groundedness: Math.round(reGrounding.groundedness * 100),
+            flagged: groundingResult.removedClaims + reGrounding.removedClaims,
+          };
+          console.log(`${label} CLAIM GROUNDING: re-grounding improved ${Math.round(groundingResult.groundedness * 100)}% → ${Math.round(reGrounding.groundedness * 100)}%`);
+        }
+      }
     } catch (groundErr) {
       console.warn(`${label} CLAIM GROUNDING: failed (non-blocking):`, groundErr);
     }
@@ -6115,6 +6183,24 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
 
     await runDevilsAdvocateBlock(buildAnalysisReviewText(analysis as Record<string, unknown>, query), false);
     html = await renderEditorHtml();
+
+    // Inject DA fatal challenges as visible warning if DA found fatal issues
+    const daStats = stats.devilsAdvocate as any;
+    if (daStats && !daStats.skipped && !daStats.error && daStats.fatalChallenges > 0) {
+      const daWarning = `<div style="background:#f8d7da;border:1px solid #dc3545;border-radius:8px;padding:12px 16px;margin:16px 0;font-size:0.9em;color:#721c24;">
+        <strong>⚠️ Adversarial Review Flagged ${daStats.fatalChallenges} Fatal Challenge${daStats.fatalChallenges > 1 ? 's' : ''}:</strong>
+        This analysis was assessed as ${daStats.verdict} by the Devil's Advocate (strength ${daStats.overallStrength}/100).
+        ${daStats.killShot ? `<br/><em>"${(daStats.killShot as string).replace(/</g, '<').replace(/>/g, '>').replace(/"/g, '"')}"</em>` : ''}
+        <br/>Review the full analysis with additional sources before relying on these findings for decision-making.
+      </div>`;
+      // Insert after the first <h1> or <article> tag
+      if (html.includes('<article')) {
+        html = html.replace(/(<article[^>]*>)/, `$1${daWarning}`);
+      } else if (html.includes('<h1')) {
+        html = html.replace(/(<\/h1>)/, `$1${daWarning}`);
+      }
+      console.log(`${label} DA WARNING: injected ${daStats.fatalChallenges} fatal challenge warning into HTML`);
+    }
     if (usePeerReview) {
       try {
         const review = await runPeerReview(html, topSources, { title: analysis.title });
@@ -6291,11 +6377,13 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   // Cost: $0 (deterministic, CPU-only). Only 1 retry to avoid infinite loops.
   try {
     const currentTrust = stats.criticalLoop?.finalScore ?? 0;
+    const currentGroundedness = stats.claimGrounding?.groundedness ?? 100;
     const PUBLISH_THRESHOLD = 65;
     const MIN_VIABLE_TRUST = 55;
+    const GROUNDEDNESS_THRESHOLD = 80;
 
-    if (currentTrust > 0 && currentTrust < PUBLISH_THRESHOLD) {
-      console.log(`${label} QUALITY LOOP: trust ${currentTrust} < ${PUBLISH_THRESHOLD} — retrying citation repair with aggressive settings`);
+    if (currentTrust > 0 && (currentTrust < PUBLISH_THRESHOLD || currentGroundedness < GROUNDEDNESS_THRESHOLD)) {
+      console.log(`${label} QUALITY LOOP: trust ${currentTrust} < ${PUBLISH_THRESHOLD} or groundedness ${currentGroundedness}% < ${GROUNDEDNESS_THRESHOLD}% — retrying citation repair with aggressive settings`);
 
       // Retry 1: More aggressive citation repair (inject citations for ANY claim matching a source)
       const { repairCitations } = await import('./citation-repair');
@@ -6320,7 +6408,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
 
       // Re-run claim grounding on repaired HTML (NLI-enhanced)
       const { groundClaimsWithNLI } = await import('./claim-grounding');
-      const loopGrounding = await groundClaimsWithNLI(html, topSources, { mode: 'flag', readings });
+      const loopGrounding = await groundClaimsWithNLI(html, topSources, { mode: 'remove', readings });
       if (loopGrounding.removedClaims > 0) {
         html = loopGrounding.html;
       }

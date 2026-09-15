@@ -194,6 +194,14 @@ export function renderPositionFirstBriefHTML(input: PositionFirstBriefInput): st
   const formatBadgeHtml = `<span class="format-badge" title="${esc(fmt.description)}">${esc(fmt.label)}</span>`;
   const metaLine = `${formatBadgeHtml} ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} · ${sources.length} sources · ${providers.length} providers · Confidence: ${position.confidence}/100`;
 
+  // Low-confidence warning banner (if confidence < 65)
+  const lowConfidenceWarning = (position.confidence != null && position.confidence < 65)
+    ? `<div style="background:#fff3cd;border:1px solid #ffc107;border-radius:8px;padding:12px 16px;margin:16px 0;font-size:0.9em;color:#856404;">
+        <strong>⚠️ Low confidence analysis:</strong> This report's confidence score is ${position.confidence}/100. 
+        Findings should be treated as preliminary and corroborated with additional sources before use in decision-making.
+      </div>`
+    : '';
+
   // ── Action titles (from arbiter, with fallbacks) ──
   // Strip citations from titles — they are narrative acts, not academic claims.
   const titles = position.sectionTitles ?? {};
@@ -513,6 +521,8 @@ export function renderPositionFirstBriefHTML(input: PositionFirstBriefInput): st
   <article class="nomosx-brief">
     <h1 data-no-cite>${esc(title)}</h1>
     <div class="brief-meta" data-no-cite>${esc(metaLine)}</div>
+
+    ${lowConfidenceWarning}
 
     ${inBriefHtml}
 

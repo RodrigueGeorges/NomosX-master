@@ -379,7 +379,7 @@ CITATION RULES (NON-NEGOTIABLE):
 - A dataPoint without [SRC-N] is NOT a data point — it is an opinion.
 - Do NOT extract numbers you cannot trace to a specific source.
 - If a source mentions a number, extract it WITH the [SRC-N] tag.
-- CITATION SPREAD: Extract dataPoints from as many different sources as possible. Aim to cite at least ${Math.ceil(sourceCount * 0.5)} distinct sources across all mechanisms. Do not over-rely on 3-4 sources — each source was selected for a reason. Go through sources systematically: [SRC-1], [SRC-2], ... and extract at least one dataPoint from each relevant source.
+- CITATION SPREAD: Extract dataPoints from as many different sources as possible. You MUST cite at least ${Math.ceil(sourceCount * 0.7)} distinct sources across all mechanisms. Do not over-rely on 3-4 sources — each source was selected for a reason. Go through sources systematically: [SRC-1], [SRC-2], ... and extract at least one dataPoint from each relevant source. Claims without [SRC-N] citations WILL BE DELETED from the final report.
 
 Return JSON:
 {

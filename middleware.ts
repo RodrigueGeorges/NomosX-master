@@ -6,7 +6,10 @@ import {routing} from './i18n/routing';
 // next-intl middleware — handles locale detection, prefixing (/fr) and the
 // NEXT_LOCALE cookie. Runs first, before CSRF / auth / security headers.
 // ----------------------------------------------------------------------------
-const intlMiddleware = createIntlMiddleware(routing);
+const intlMiddleware = createIntlMiddleware({
+  ...routing,
+  localeDetection: false,
+});
 
 // ----------------------------------------------------------------------------
 // Existing NomosX middleware logic (CSRF + auth guard + security headers)

@@ -873,7 +873,7 @@ export function formatAPA(source: any, index: number): APACitation {
   }
 
   // Fallback 2: Crossref raw authors (raw.author[].given + raw.author[].family)
-  if (authorList.length === 0 && source.raw?.author) {
+  if (authorList.length === 0 && source.raw?.author && Array.isArray(source.raw.author)) {
     authorList = source.raw.author
       .map((a: any) => [a.given, a.family].filter(Boolean).join(' '))
       .filter(Boolean);

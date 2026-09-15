@@ -12,7 +12,8 @@
  * - No text in images (typography is for the HTML)
  * - Consistent style across all publications
  *
- * Provider: OpenAI gpt-image-1 (uses existing OPENAI_API_KEY).
+ * Provider: OpenAI gpt-image-2 (state-of-the-art image generation, uses existing OPENAI_API_KEY).
+ * Visual concept: OpenAI gpt-6-astra (frontier reasoning for article analysis → motif derivation).
  * Fallback: deterministic SVG (no network needed).
  */
 
@@ -71,11 +72,11 @@ export async function generateHeroImage(
 
     if (OPENAI_API_KEY) {
       const data: any = await httpPost(IMAGE_ENDPOINT, {
-        model: 'gpt-image-1',
+        model: 'gpt-image-2',
         prompt,
         n: 1,
-        size: '1024x1024',
-        quality: 'medium',
+        size: '1536x1024',
+        quality: 'high',
       }, {
         timeout: 180000,
         retries: 1,
@@ -84,7 +85,7 @@ export async function generateHeroImage(
           'Authorization': `Bearer ${OPENAI_API_KEY}`,
         },
       }).catch((err: any) => {
-        console.warn(`[HERO IMAGE] gpt-image-1 error: ${err.message?.slice(0, 200)}`);
+        console.warn(`[HERO IMAGE] gpt-image-2 error: ${err.message?.slice(0, 200)}`);
         return null;
       });
 
@@ -100,15 +101,15 @@ export async function generateHeroImage(
           console.warn(`[HERO IMAGE] base64 too large (${(b64.length / 1024).toFixed(0)}KB chars) — using SVG fallback`);
         } else if (b64) {
           const imageUrl = `data:image/png;base64,${b64}`;
-          console.log(`[HERO IMAGE] ✅ Generated via gpt-image-1 (${(b64.length / 1024).toFixed(0)}KB, cost ~$0.02)`);
-          return { url: imageUrl, prompt, costUsd: 0.02, cached: false };
+          console.log(`[HERO IMAGE] ✅ Generated via gpt-image-2 (${(b64.length / 1024).toFixed(0)}KB, cost ~$0.04)`);
+          return { url: imageUrl, prompt, costUsd: 0.04, cached: false };
         } else if (url) {
-          console.log(`[HERO IMAGE] ✅ Generated via gpt-image-1 (URL, cost ~$0.02)`);
-          return { url, prompt, costUsd: 0.02, cached: false };
+          console.log(`[HERO IMAGE] ✅ Generated via gpt-image-2 (URL, cost ~$0.04)`);
+          return { url, prompt, costUsd: 0.04, cached: false };
         }
       }
     } else {
-      console.warn('[HERO IMAGE] No OPENAI_API_KEY — skipping gpt-image-1');
+      console.warn('[HERO IMAGE] No OPENAI_API_KEY — skipping gpt-image-2');
     }
 
     // Fallback: deterministic SVG geometric pattern (no network needed)
@@ -273,8 +274,10 @@ Respond with ONLY the motif description. No preamble, no explanation, no step la
         { role: 'system', content: 'You are the visual art director for NomosX, the first AI think tank. You specialize in editorial cover illustrations that embody the movement "From Chaos to Nomos" — disorder transforming into order. You output only concrete physical motif descriptions that pass the metaphor test and show the chaos→order transition. No commentary, no explanation.' },
         { role: 'user', content: userContent },
       ],
-      task: 'reader_v3' as any, // cheap task, cacheable
-      maxTokens: 120,
+      provider: 'openai',
+      model: 'gpt-6-astra',
+      task: 'reader_v3' as any, // task used for timeout fallback only
+      maxTokens: 200,
       temperature: 0.7,
       enableCache: true,
     });

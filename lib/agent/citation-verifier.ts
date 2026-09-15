@@ -1081,7 +1081,7 @@ export interface ActiveRepairConfig {
 
 export const DEFAULT_REPAIR_CONFIG: ActiveRepairConfig = {
   minIntegrity: 85,
-  maxIterations: 3,
+  maxIterations: 5,
   removeHallucinations: true,
   replaceMisattributed: true,
 };

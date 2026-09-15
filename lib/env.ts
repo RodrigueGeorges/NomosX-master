@@ -17,10 +17,10 @@ const envSchema = z.object({
   // LLM providers
   PRIMARY_LLM_PROVIDER: z.enum(["deepseek", "openai", "anthropic"]).optional().default("deepseek"),
   OPENAI_API_KEY: z.string().optional(),
-  OPENAI_MODEL: z.string().default("gpt-4o"),
+  OPENAI_MODEL: z.string().default("gpt-6-astra"),
   DEEPSEEK_API_KEY: z.string().optional(),
   DEEPSEEK_BASE_URL: z.string().url().optional().default("https://api.deepseek.com"),
-  DEEPSEEK_MODEL_FAST: z.string().optional().default("deepseek-v4-flash"),
+  DEEPSEEK_MODEL_FAST: z.string().optional().default("deepseek-flash"),
   DEEPSEEK_MODEL_REASONING: z.string().optional().default("deepseek-v4-pro"),
 
   // GLM-5.2 (z.ai) — OpenAI-compatible, 1M context, prefix caching ($0.26/M cached input)
@@ -64,6 +64,9 @@ const envSchema = z.object({
   // Kimi K3 (Moonshot AI) — OpenAI-compatible, 1M context, 128K output, $3/$15 per M
   MOONSHOT_API_KEY: z.string().optional(),
   MOONSHOT_BASE_URL: z.string().url().optional().default("https://api.moonshot.ai/v1"),
+
+  // Google Gemini 3.8 Flash — OpenAI-compatible endpoint, 1M context, $0.75/$3.75 per M
+  GOOGLE_API_KEY: z.string().optional(),
   
   // Qwen (Alibaba Cloud / DashScope / Together.ai — OpenAI-compatible)
   

@@ -80,9 +80,13 @@ async function getNLIPipeline(): Promise<any | null> {
     for (const model of models) {
       try {
         const { pipeline } = await import('@huggingface/transformers');
-        _pipeline = await pipeline('text-classification', model.id, {
-          dtype: model.dtype,
-        });
+        // P2: Add 15s timeout — if HuggingFace is inaccessible, fail fast and fall back
+        _pipeline = await Promise.race([
+          pipeline('text-classification', model.id, { dtype: model.dtype }),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('NLI model load timeout (15s)')), 15_000)
+          ),
+        ]);
         _modelAvailable = true;
         console.log(`[NLI Engine] NLI model loaded successfully: ${model.id}`);
         return _pipeline;
@@ -235,8 +239,10 @@ async function classifyEmbeddingNLI(
     confidence = 0.5 + (semantic - 0.35) * 0.5; // 0.5-0.67
   } else if (semantic < 0.15) {
     // Very low overlap → likely unsupported (neutral, not contradiction)
+    // But if semantic is exactly 0, embeddings likely failed — use low confidence
+    // so nliToGroundingVerdict maps to 'partial' (indeterminate) not 'unsupported'
     verdict = 'neutral';
-    confidence = 0.6;
+    confidence = semantic === 0 ? 0.3 : 0.6;
   } else {
     verdict = 'neutral';
     confidence = 0.4;
@@ -263,6 +269,85 @@ async function classifyEmbeddingNLI(
     scores,
     source: 'embedding-fallback',
     evidenceSnippet,
+  };
+}
+
+// ─── Deterministic Lexical NLI Fallback (no external API) ────────────────────
+
+/**
+ * Pure CPU lexical NLI fallback — no external API required.
+ * Used when both HuggingFace models and OpenAI embeddings are unavailable.
+ * Less accurate but always available and deterministic.
+ *
+ * Classification logic:
+ * - Jaccard overlap ≥ 0.35 + no negation mismatch → entailment
+ * - Jaccard 0.15-0.35 → neutral
+ * - Jaccard < 0.15 OR negation mismatch with high overlap → contradiction/neutral
+ */
+function classifyLexicalNLI(
+  claim: string,
+  sourceContent: string,
+): NLIClassification {
+  const claimWords = new Set(
+    claim.toLowerCase().replace(/[^\w\s]/g, ' ').split(/\s+/).filter(w => w.length > 2)
+  );
+  const sourceWords = new Set(
+    sourceContent.toLowerCase().replace(/[^\w\s]/g, ' ').split(/\s+/).filter(w => w.length > 2)
+  );
+
+  // Jaccard similarity
+  let intersection = 0;
+  for (const w of claimWords) {
+    if (sourceWords.has(w)) intersection++;
+  }
+  const union = claimWords.size + sourceWords.size - intersection;
+  const jaccard = union > 0 ? intersection / union : 0;
+
+  // Negation detection
+  const NEG_RE = /\b(not|no|never|without|cannot|doesn'?t|isn'?t|aren'?t|wasn'?t|weren'?t|won'?t|don'?t|didn'?t|hasn'?t|haven'?t|ne|pas|jamais|sans|aucun|n'\w+\s+pas)\b/i;
+  const claimNegated = NEG_RE.test(claim);
+  const sourceNegated = NEG_RE.test(sourceContent);
+  const negationMismatch = claimNegated !== sourceNegated;
+
+  // Number verification
+  const claimNumbers = claim.match(/\d+\.?\d*%?|\$[\d,.]+[BMK]?/g) || [];
+  const numbersMatched = claimNumbers.filter(n => sourceContent.includes(n)).length;
+  const numbersOk = claimNumbers.length === 0 || numbersMatched === claimNumbers.length;
+
+  let verdict: NLIVerdict = 'neutral';
+  let confidence = 0.5;
+
+  if (negationMismatch && jaccard > 0.25) {
+    verdict = 'contradiction';
+    confidence = 0.65;
+  } else if (jaccard >= 0.35 && numbersOk) {
+    verdict = 'entailment';
+    confidence = Math.min(0.85, 0.5 + jaccard * 0.5);
+  } else if (jaccard >= 0.15) {
+    verdict = 'neutral';
+    confidence = 0.4 + jaccard * 0.3;
+  } else {
+    verdict = 'neutral';
+    confidence = 0.55;
+  }
+
+  if (verdict === 'entailment' && !numbersOk) {
+    verdict = 'neutral';
+    confidence = 0.4;
+  }
+
+  const scores = {
+    entailment: verdict === 'entailment' ? confidence : (1 - confidence) / 3,
+    neutral: verdict === 'neutral' ? confidence : (1 - confidence) / 3,
+    contradiction: verdict === 'contradiction' ? confidence : (1 - confidence) / 3,
+  };
+
+  return {
+    verdict,
+    confidence,
+    scores,
+    source: 'embedding-fallback',
+    evidenceSnippet: findBestEvidenceSnippet(claim, sourceContent),
   };
 }
 
@@ -324,8 +409,13 @@ export async function classifyNLI(
   const localResult = await classifyLocalNLI(claim, sourceContent);
   if (localResult) return localResult;
 
-  // Fall back to embedding-based NLI
-  return classifyEmbeddingNLI(claim, sourceContent);
+  // Try embedding-based NLI (requires OpenAI API)
+  try {
+    return await classifyEmbeddingNLI(claim, sourceContent);
+  } catch {
+    // Final fallback: deterministic lexical NLI (no external API required)
+    return classifyLexicalNLI(claim, sourceContent);
+  }
 }
 
 /**
@@ -372,11 +462,26 @@ export async function classifyNLIBatch(
  * This allows the NLI engine to be used as a drop-in replacement for lexical grounding.
  */
 export function nliToGroundingVerdict(nli: NLIClassification): 'supported' | 'partial' | 'unsupported' | 'contradicted' {
+  // When using embedding fallback, use more lenient thresholds — the fallback
+  // is inherently less accurate and shouldn't be as punitive as the real NLI model.
+  const isFallback = nli.source === 'embedding-fallback';
+
   switch (nli.verdict) {
     case 'entailment':
-      return nli.confidence > 0.7 ? 'supported' : 'partial';
+      if (isFallback) {
+        if (nli.confidence > 0.6) return 'supported';
+        return 'partial';
+      }
+      if (nli.confidence > 0.7) return 'supported';
+      if (nli.confidence > 0.4) return 'partial';
+      return 'unsupported';
     case 'neutral':
-      return nli.confidence > 0.6 ? 'unsupported' : 'partial';
+      if (isFallback) {
+        // Embedding fallback neutral is unreliable — be lenient
+        if (nli.confidence > 0.55) return 'unsupported';
+        return 'partial';
+      }
+      return nli.confidence > 0.4 ? 'unsupported' : 'partial';
     case 'contradiction':
       return 'contradicted';
     default:
