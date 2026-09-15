@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { processStudioXOrder } from '@/lib/studiox/runner';
+import { verifyBearerToken } from '@/lib/security/timing-safe';
 
 export const maxDuration = 900;
 export const dynamic = 'force-dynamic';
@@ -12,9 +13,8 @@ export const dynamic = 'force-dynamic';
  */
 export async function POST(req: NextRequest) {
   const authHeader = req.headers.get('authorization');
-  const cronSecret = process.env.CRON_SECRET;
 
-  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+  if (!verifyBearerToken(authHeader, process.env.CRON_SECRET)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

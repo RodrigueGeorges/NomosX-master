@@ -1,4 +1,0 @@
-[dotenv@17.2.4] injecting env (24) from .env.local -- tip: 🔑 add access controls to secrets: https://dotenvx.com/ops
-(node:5452) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
-(Use `node --trace-deprecation ...` to show where the warning was created)
-[seed-verticals] created=5 existing=0

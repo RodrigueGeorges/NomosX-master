@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { runThinkTankCycle } from "@/lib/agent/think-tank-dispatcher";
+import { verifyBearerToken } from "@/lib/security/timing-safe";
 
 /**
  * POST /api/cron/generate-briefs
@@ -10,9 +11,8 @@ import { runThinkTankCycle } from "@/lib/agent/think-tank-dispatcher";
 export async function POST(req: NextRequest) {
   try {
     const authHeader = req.headers.get("authorization");
-    const cronSecret = process.env.CRON_SECRET;
 
-    if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+    if (!verifyBearerToken(authHeader, process.env.CRON_SECRET)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -75,9 +75,8 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   const authHeader = req.headers.get("authorization");
-  const cronSecret = process.env.CRON_SECRET;
 
-  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+  if (!verifyBearerToken(authHeader, process.env.CRON_SECRET)) {
     return NextResponse.json({ error: "Unauthorized - Admin only" }, { status: 401 });
   }
 

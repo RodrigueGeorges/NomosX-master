@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { drainStudioXOrders } from '@/lib/studiox/drain';
+import { verifyBearerToken } from '@/lib/security/timing-safe';
 
 export const dynamic = 'force-dynamic';
 
-const CRON_SECRET = process.env.CRON_SECRET;
-
 function authorize(req: NextRequest): boolean {
   const authHeader = req.headers.get('authorization');
-  return Boolean(CRON_SECRET && authHeader === `Bearer ${CRON_SECRET}`);
+  return verifyBearerToken(authHeader, process.env.CRON_SECRET);
 }
 
 /**

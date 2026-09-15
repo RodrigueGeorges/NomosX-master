@@ -1,3 +1,0 @@
-lib/agent/pipeline-v2.ts(4849,49): error TS2339: Property 'qualityScore' does not exist on type '{ iterations: number; finalScore: number; improvement: number; needsHumanReview: boolean; skipped?: boolean | undefined; skipReason?: string | undefined; loopRetried?: boolean | undefined; loopImprovement?: number | undefined; }'.
-lib/agent/reader-agent-v3.ts(654,3): error TS2304: Cannot find name 'memoryBlock'.
-lib/agent/reader-agent-v3.ts(654,22): error TS2304: Cannot find name 'memoryBlock'.

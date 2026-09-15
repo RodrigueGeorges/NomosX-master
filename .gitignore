@@ -45,3 +45,43 @@ scripts/archive/
 
 # debug artifacts
 theses-soutenues.json
+
+# build/test/dev output dumps (never track)
+tsc-*.txt
+tsc_*.txt
+jest-*.txt
+jest_*.txt
+build-session*.txt
+build_og*.txt
+dev_*.txt
+next-*.txt
+pipeline-*.txt
+pipeline-*.log
+full-pipeline-*.log
+features.txt
+tail.txt
+eslint-redirect.txt
+*-log.txt
+*-out.txt
+*-err.txt
+*-log-*.txt
+*-run-new.txt
+latest-text.txt
+*.bak-svg
+
+# generated HTML artifacts / sample outputs
+output-publication.html
+latest-publication*.html
+output/*.html
+scripts/output-*.html
+scripts/latest-publication.html
+scripts/compare-output/
+
+# database backups
+backup_pre_clean_slate/
+backup_*/
+
+# misc artifacts
+output/
+latest-publication-sample.html
+.eslintcache

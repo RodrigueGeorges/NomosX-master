@@ -33,6 +33,19 @@ const SAFETY_MS = TOTAL_MS + 5000;
 const GREEK_CHARS = "ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩαβγδεζηθικλμνξοπρστυφχψω";
 const BINARY_CHARS = "01";
 
+// Deterministic PRNG (mulberry32) — keeps the chaos grid render pure so the
+// React Compiler can memoize it, and avoids SSR/client hydration mismatches.
+function mulberry32(seed: number): () => number {
+  let a = seed >>> 0;
+  return () => {
+    a |= 0;
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
 function shouldSkipAutoplay(): boolean {
   if (typeof window === "undefined") return true;
   if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return true;
@@ -103,20 +116,21 @@ function FloatingCharGrid({ organized }: { organized: boolean }) {
   const cols = 16;
   const rows = 10;
   const cells: React.ReactNode[] = [];
+  const rand = mulberry32(0x4e4f4d4f); // "NOMO" seed — deterministic chaos
 
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
-      const isGreek = Math.random() > 0.4;
+      const isGreek = rand() > 0.4;
       const pool = isGreek ? GREEK_CHARS : BINARY_CHARS;
-      const char = pool[Math.floor(Math.random() * pool.length)];
+      const char = pool[Math.floor(rand() * pool.length)];
 
       // Chaotic initial state
-      const rot = (Math.random() - 0.5) * 60; // -30 to +30 deg
-      const offsetX = (Math.random() - 0.5) * 20; // -10 to +10 px
-      const offsetY = (Math.random() - 0.5) * 20;
+      const rot = (rand() - 0.5) * 60; // -30 to +30 deg
+      const offsetX = (rand() - 0.5) * 20; // -10 to +10 px
+      const offsetY = (rand() - 0.5) * 20;
       const delay = (r * 0.12).toFixed(2); // staggered by row
-      const driftDuration = (4 + Math.random() * 3).toFixed(1);
-      const baseOpacity = (0.03 + Math.random() * 0.05).toFixed(3);
+      const driftDuration = (4 + rand() * 3).toFixed(1);
+      const baseOpacity = (0.03 + rand() * 0.05).toFixed(3);
 
       cells.push(
         <span

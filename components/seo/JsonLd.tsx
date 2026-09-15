@@ -8,6 +8,7 @@ interface JsonLdProps {
 export function JsonLd({ data }: JsonLdProps) {
   return (
     <Script
+      id={`jsonld-${(data['@type'] as string) || 'data'}`}
       type="application/ld+json"
       strategy="afterInteractive"
       dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { postTweet, isTwitterConfigured } from "@/lib/twitter/client";
 import { generateTweet } from "@/lib/twitter/tweet-generator";
+import { verifyBearerToken } from "@/lib/security/timing-safe";
 
 /**
  * POST /api/cron/tweet-publications
@@ -26,8 +27,7 @@ const MAX_TWEETS_PER_RUN = 3;
 export async function POST(req: NextRequest) {
   // Verify cron secret
   const authHeader = req.headers.get("authorization");
-  const cronSecret = process.env.CRON_SECRET;
-  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+  if (!verifyBearerToken(authHeader, process.env.CRON_SECRET)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

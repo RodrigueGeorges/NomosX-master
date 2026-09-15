@@ -12,13 +12,13 @@ import { NextResponse } from 'next/server';
 import { runPredictionAuditor } from '@/lib/agent/prediction-auditor';
 import { updateSourceReputations } from '@/lib/agent/source-reputation-agent';
 import { prisma } from '@/lib/db';
+import { verifyBearerToken } from '@/lib/security/timing-safe';
 
 export const maxDuration = 300;
 
 export async function GET(request: Request) {
   const authHeader = request.headers.get('authorization');
-  const cronSecret = process.env.CRON_SECRET;
-  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+  if (!verifyBearerToken(authHeader, process.env.CRON_SECRET)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

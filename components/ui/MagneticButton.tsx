@@ -22,39 +22,17 @@ export function MagneticButton({
   ...props
 }: MagneticButtonProps) {
   const ref = useRef<HTMLButtonElement>(null);
-  const springRef = useRef({ x: 0, y: 0, vx: 0, vy: 0, tx: 0, ty: 0, raf: 0 });
+  const springRef = useRef({ x: 0, y: 0, vx: 0, vy: 0, tx: 0, ty: 0, raf: 0, tick: null as null | (() => void) });
 
   const reducedMotion = typeof window !== "undefined" &&
     window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  const tick = useCallback(() => {
+  const startTick = useCallback(() => {
     const s = springRef.current;
-    // Spring physics: stiffness=0.15, damping=0.65
-    const fx = (s.tx - s.x) * 0.15;
-    const fy = (s.ty - s.y) * 0.15;
-    s.vx = (s.vx + fx) * 0.65;
-    s.vy = (s.vy + fy) * 0.65;
-    s.x += s.vx;
-    s.y += s.vy;
-
-    const el = ref.current;
-    if (el) {
-      el.style.transform = `translate(${s.x.toFixed(2)}px, ${s.y.toFixed(2)}px)`;
-    }
-
-    // Continue if still moving
-    if (Math.abs(s.vx) > 0.01 || Math.abs(s.vy) > 0.01 || Math.abs(s.tx - s.x) > 0.1) {
-      s.raf = requestAnimationFrame(tick);
-    } else {
-      s.raf = 0;
+    if (s.raf === 0 && s.tick) {
+      s.raf = requestAnimationFrame(s.tick);
     }
   }, []);
-
-  const startTick = useCallback(() => {
-    if (springRef.current.raf === 0) {
-      springRef.current.raf = requestAnimationFrame(tick);
-    }
-  }, [tick]);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLButtonElement>) => {
     if (reducedMotion) return;
@@ -76,8 +54,30 @@ export function MagneticButton({
   };
 
   useEffect(() => {
+    const s = springRef.current;
+    s.tick = () => {
+      // Spring physics: stiffness=0.15, damping=0.65
+      const fx = (s.tx - s.x) * 0.15;
+      const fy = (s.ty - s.y) * 0.15;
+      s.vx = (s.vx + fx) * 0.65;
+      s.vy = (s.vy + fy) * 0.65;
+      s.x += s.vx;
+      s.y += s.vy;
+
+      const el = ref.current;
+      if (el) {
+        el.style.transform = `translate(${s.x.toFixed(2)}px, ${s.y.toFixed(2)}px)`;
+      }
+
+      // Continue if still moving
+      if (Math.abs(s.vx) > 0.01 || Math.abs(s.vy) > 0.01 || Math.abs(s.tx - s.x) > 0.1) {
+        s.raf = requestAnimationFrame(s.tick!);
+      } else {
+        s.raf = 0;
+      }
+    };
     return () => {
-      if (springRef.current.raf) cancelAnimationFrame(springRef.current.raf);
+      if (s.raf) cancelAnimationFrame(s.raf);
     };
   }, []);
 

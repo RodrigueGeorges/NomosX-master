@@ -157,7 +157,7 @@ export default function MoatDashboardPage() {
                     ))}
                   </div>
                   <div className="flex gap-4 text-sm text-gray-500 pt-3 border-t border-black/5">
-                    <span>Exemples d'entraînement : {data.prm.trainingExamples}</span>
+                    <span>Exemples d&apos;entraînement : {data.prm.trainingExamples}</span>
                     {data.prm.avgReward !== null && (
                       <span>Récompense moyenne : {data.prm.avgReward.toFixed(3)}</span>
                     )}

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { planEditorialAgenda } from '@/lib/agent/editorial-planner';
 import { prisma } from '@/lib/db';
+import { verifyBearerToken } from '@/lib/security/timing-safe';
 
 
 /**
@@ -22,9 +23,8 @@ import { prisma } from '@/lib/db';
 export async function POST(req: NextRequest) {
   try {
     const authHeader = req.headers.get("authorization");
-    const cronSecret = process.env.CRON_SECRET;
 
-    if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+    if (!verifyBearerToken(authHeader, process.env.CRON_SECRET)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 

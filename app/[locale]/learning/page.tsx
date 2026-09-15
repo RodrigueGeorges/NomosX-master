@@ -214,7 +214,7 @@ export default function LearningDashboardPage() {
                 ))}
                 {Object.keys(data.byAgent).length === 0 && (
                   <p className="text-slate-500 text-sm py-4 text-center">
-                    Aucune donnée d'apprentissage sur cette période. Lancez quelques analyses pour commencer.
+                    Aucune donnée d&apos;apprentissage sur cette période. Lancez quelques analyses pour commencer.
                   </p>
                 )}
               </div>
@@ -252,7 +252,7 @@ export default function LearningDashboardPage() {
                 ))}
                 {data.lessons.length === 0 && (
                   <p className="text-slate-500 text-sm py-4 text-center">
-                    Aucune leçon extraite pour l'instant.
+                    Aucune leçon extraite pour l&apos;instant.
                   </p>
                 )}
               </div>
@@ -284,7 +284,7 @@ export default function LearningDashboardPage() {
                 ))}
                 {data.selfCorrections.length === 0 && (
                   <p className="text-slate-500 text-sm py-4 text-center">
-                    Aucune self-correction déclenchée. Le système n'a pas eu besoin de se corriger sur cette période.
+                    Aucune self-correction déclenchée. Le système n&apos;a pas eu besoin de se corriger sur cette période.
                   </p>
                 )}
               </div>
@@ -313,7 +313,7 @@ export default function LearningDashboardPage() {
                 ))}
                 {data.corrections.length === 0 && (
                   <p className="text-slate-500 text-sm py-4 text-center">
-                    Aucune correction humaine enregistrée. Utilisez l'API <code className="text-slate-400 bg-slate-800 px-1 rounded">POST /api/feedback/learn</code> pour soumettre une correction.
+                    Aucune correction humaine enregistrée. Utilisez l&apos;API <code className="text-slate-400 bg-slate-800 px-1 rounded">POST /api/feedback/learn</code> pour soumettre une correction.
                   </p>
                 )}
               </div>

@@ -17,15 +17,14 @@ import { NextRequest,NextResponse } from 'next/server';
 import { runWeeklyNewsletter } from '@/lib/jobs/weekly-newsletter';
 import { sendBulkNewsletter } from '@/lib/email';
 import { prisma } from '@/lib/db';
+import { verifyBearerToken } from '@/lib/security/timing-safe';
 
 // Verify cron secret to prevent unauthorized access
-const CRON_SECRET = process.env.CRON_SECRET;
-
 export async function GET(req: NextRequest) {
   // Verify authorization
   const authHeader = req.headers.get("authorization");
-  
-  if (!CRON_SECRET || authHeader !== `Bearer ${CRON_SECRET}`) {
+
+  if (!verifyBearerToken(authHeader, process.env.CRON_SECRET)) {
     console.log("[Cron/Newsletter] Unauthorized request");
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

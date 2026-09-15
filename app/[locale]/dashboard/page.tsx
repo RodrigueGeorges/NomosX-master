@@ -155,7 +155,7 @@ export default function DashboardPage() {
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2 text-sm text-gray-400">
             <Activity className="w-4 h-4" />
-            <span>Pilotage de l'agent autonome — accès admin</span>
+            <span>Pilotage de l&apos;agent autonome — accès admin</span>
           </div>
           <button
             onClick={refresh}

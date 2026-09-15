@@ -1,5 +1,6 @@
 import { NextRequest,NextResponse } from 'next/server';
 import { refreshMacroSeries } from '@/lib/agent/macro-refresh';
+import { verifyBearerToken } from '@/lib/security/timing-safe';
 
 /**
  * POST /api/cron/macro-refresh
@@ -9,9 +10,8 @@ import { refreshMacroSeries } from '@/lib/agent/macro-refresh';
  */
 export async function POST(req: NextRequest) {
   const authHeader = req.headers.get("authorization");
-  const cronSecret = process.env.CRON_SECRET;
 
-  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+  if (!verifyBearerToken(authHeader, process.env.CRON_SECRET)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
