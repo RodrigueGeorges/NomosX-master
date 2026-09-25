@@ -71,10 +71,14 @@ async function getNLIPipeline(): Promise<any | null> {
 
   _pipelineLoading = (async () => {
     const models = [
-      // Primary: cross-encoder NLI DeBERTa-v3 — best for RAG citation verification
-      { id: 'cross-encoder/nli-deberta-v3-base', dtype: 'q8' as const },
-      // Fallback: mDeBERTa-v3 multilingual — if primary has access issues
-      { id: 'MoritzLaurer/mDeBERTa-v3-base-mnli-xli', dtype: 'q8' as const },
+      // Primary: Xenova ONNX export of NLI DeBERTa-v3 — transformers.js needs
+      // ONNX weights; upstream cross-encoder/* repos are PyTorch-only (their
+      // resolve URLs for onnx/model_quantized.onnx now 404).
+      { id: 'Xenova/nli-deberta-v3-base', dtype: 'q8' as const },
+      // Fallback 1: smaller/faster DeBERTa MNLI export (~117MB)
+      { id: 'Xenova/nli-deberta-v3-small', dtype: 'q8' as const },
+      // Fallback 2: MobileBERT MNLI — tiny, always available
+      { id: 'Xenova/mobilebert-uncased-mnli', dtype: 'q8' as const },
     ];
 
     for (const model of models) {
@@ -126,10 +130,11 @@ async function classifyLocalNLI(
   try {
     // NLI text-classification pipeline: input = premise + [SEP] + hypothesis
     // The model expects the format: "premise</s></s>hypothesis"
-    const result = await pipe({
-      text: premise,
-      text_pair: hypothesis,
-    });
+    // topk:null → all 3 label scores (real confidence margins, not just argmax)
+    const result = await pipe(
+      { text: premise, text_pair: hypothesis },
+      { topk: null as any },
+    );
 
     // Result is an array of scores for each label
     // Labels order: entailment, neutral, contradiction (model-dependent)

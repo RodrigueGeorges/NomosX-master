@@ -32,8 +32,11 @@ export async function searchWikisource(query: string, limit = 20): Promise<any[]
         });
         const url = `https://${lang}.wikisource.org/w/api.php?${params.toString()}`;
         const data: any = await fetchFromProvider('wikisource', url, {
-          timeout: 15000,
-          retries: 2,
+          // 8s + 1 retry — slow language subdomains (it/la/zh/ar regularly hit
+          // 25-59s) must not stall the whole scout. Parallel fan-out means the
+          // worst case is ~17s total, not per-language serial timeouts.
+          timeout: 8000,
+          retries: 1,
         });
 
         const hits = data?.query?.search || [];

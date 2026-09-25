@@ -46,10 +46,9 @@ const DIRECT_FEEDS: FeedConfig[] = [
   { url: 'https://www.gmfus.org/rss.xml', provider: 'gmf', issuer: 'German Marshall Fund', type: 'analysis', domain: 'transatlantic', direct: true },
   { url: 'https://www.aspeninstitute.org/feed/', provider: 'aspen', issuer: 'Aspen Institute', type: 'analysis', domain: 'policy', direct: true },
   { url: 'https://www.csis.org/rss.xml', provider: 'csis', issuer: 'CSIS (Strategic & International Studies)', type: 'analysis', domain: 'geopolitics', direct: true },
-  { url: 'https://www.hoover.org/rss.xml', provider: 'hoover', issuer: 'Hoover Institution', type: 'analysis', domain: 'policy', direct: true },
-  // Previously via Google News RSS (503 blocked) — now direct feeds
-  { url: 'https://carnegieendowment.org/feed', provider: 'carnegie', issuer: 'Carnegie Endowment', type: 'analysis', domain: 'geopolitics', direct: true },
-  { url: 'https://www.brookings.edu/feed/', provider: 'brookings', issuer: 'Brookings Institution', type: 'analysis', domain: 'policy', direct: true },
+  { url: 'https://www.hoover.org/feed', provider: 'hoover', issuer: 'Hoover Institution', type: 'analysis', domain: 'policy', direct: true },
+  // Brookings & Carnegie killed their RSS feeds (brookings.edu/feed → 302 to
+  // homepage, carnegieendowment.org/feed → HTML shell). Moved to GN_FEEDS below.
   { url: 'https://www.aei.org/feed/', provider: 'aei', issuer: 'American Enterprise Institute', type: 'analysis', domain: 'policy', direct: true },
 
   // European Think Tanks — direct RSS feeds (tested 2026-08-15)
@@ -67,6 +66,8 @@ const GN_FEEDS: FeedConfig[] = [
   { url: 'https://news.google.com/rss/search?q=site:cfr.org+OR+Council+Foreign+Relations&hl=en&gl=US&ceid=US:en', provider: 'cfr', issuer: 'Council on Foreign Relations', type: 'analysis', domain: 'foreign-policy', direct: false },
   { url: 'https://news.google.com/rss/search?q=site:rand.org+OR+RAND+Corporation&hl=en&gl=US&ceid=US:en', provider: 'rand', issuer: 'RAND Corporation', type: 'analysis', domain: 'policy', direct: false },
   { url: 'https://news.google.com/rss/search?q=site:cato.org+OR+Cato+Institute&hl=en&gl=US&ceid=US:en', provider: 'cato', issuer: 'Cato Institute', type: 'analysis', domain: 'policy', direct: false },
+  { url: 'https://news.google.com/rss/search?q=site:brookings.edu+OR+Brookings+Institution&hl=en&gl=US&ceid=US:en', provider: 'brookings', issuer: 'Brookings Institution', type: 'analysis', domain: 'policy', direct: false },
+  { url: 'https://news.google.com/rss/search?q=site:carnegieendowment.org+OR+Carnegie+Endowment&hl=en&gl=US&ceid=US:en', provider: 'carnegie', issuer: 'Carnegie Endowment', type: 'analysis', domain: 'geopolitics', direct: false },
   { url: 'https://news.google.com/rss/search?q=site:americanprogress.org+OR+Center+American+Progress&hl=en&gl=US&ceid=US:en', provider: 'cap', issuer: 'Center for American Progress', type: 'analysis', domain: 'policy', direct: false },
 
   // European Think Tanks (no direct RSS found)

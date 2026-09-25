@@ -6,6 +6,542 @@
 
 ---
 
+## Sprint 28 - Reliability Core: durable execution + artifact versioning + dead-code purge
+
+Addresses the root cause of the S27 live-run bugs (stale evaluator verdicts consumed after artifact mutation) and the 50min-crash-loses-everything failure mode. No new features — reliability of what exists.
+
+### P0-1 — Artifact versioning (`pipeline-v2.ts`)
+
+**The bug class**: `analysis` and `html` are mutable artifacts crossing ~30 stages. An evaluator (critic, DA, grounding) judges version N; a later stage mutates the artifact; the gate still consumes the stale verdict → false vetoes or false approvals. Fixed structurally, not per-site:
+
+- `analysisArtifactVersion` — incremented only at **substantive content replacement** (MoA aggregate, ReAct result, classic analyst, TTS candidate pick, self-correction, orchestrator re-analysis, gap-fill re-analysis, critic repair). NOT incremented for additive enrichment (`foresight.centralScenario`, `scenarios`, Monte-Carlo metadata).
+- `htmlArtifactVersion` — incremented only at **material rewrite adoption** (citation repair, fact-check repair, claim grounding removal, re-grounding, citation filter, think-tank pack, revision editor, aggressive quality-loop repair, loop grounding). NOT incremented for additive injections (`injectQuantSection`, methodology note, DA section, evidence-id reapply) or cosmetic prose fixes.
+- `tagEval(artifact, result)` — every evaluator result stored in `stats.*` carries `{ evaluatedArtifact, evaluatedArtifactVersion }`.
+- `collectStaleEvaluations()` — central collector; marks `.stale=true` on any evaluation whose tagged version ≠ current artifact version. Called inside the quality-loop veto-parity block (so a post-repair loop can't inflate trust on pre-repair verdicts) and once before stats persistence → `stats.evaluationFreshness = { analysisVersion, htmlVersion, stale[] }`.
+- Gate check `evaluation_freshness` — stale verdict-bearing evaluations block publication (hard check). Vetoes skip `.stale` results.
+
+### P0-2 — Durable execution cabled (`durable-execution.ts`, `pipeline-v2.ts`)
+
+`runDurableStep` existed but was never wired; also had two latent bugs: state keyed on `pipelineRun.id` (new per attempt → **never a real resume**) and `DURABLE_INIT` replay resetting `completed` → `running` (stale checkpoints reused across runs). Fixed:
+
+- `durableKeyFor(query)` — stable key = sha1(query) + format; resume works across process restarts.
+- INIT records start a new generation: `loadDurableState` resets steps on INIT; `initDurableRun` writes INIT only when no fresh `running` state exists (otherwise it IS a resume).
+- Payloads >512KB (e.g. `readings` full-text ~15-20MB) spill to `os.tmpdir()/nomosx-durable/` — `agentAuditLog.metadata` stays small; files cleaned on `markDurableComplete`.
+- Steps wired at value boundaries: `scout` (allSourceIds → skipScout seedIds path on resume), `reader` (`readerAgentV3`), `analyst` (ReAct + both multipass paths; **not** re-analysis calls — gap-fill/repair must recompute), `render` (`renderEditorHtml`).
+- Default ON for `isStrategic || memo || dossier` (`opts.useDurableExecution` to override).
+
+### P0-3 — Dead-code purge (113 files)
+
+`find-orphans.cjs` (repo root) — static import-graph scan: no importer anywhere in `src/lib/app/components/scripts/tests` → orphan. Iterated against false positives: extension-aware regex, test files as importers, root entry points, barrel exports, dynamic-import check (none found), provider-label strings excluded.
+
+Deleted: `lib/providers/extended-registry.mjs` (dead parallel registry — `registry-bridge.ts` is the live dispatch imported by pipeline-v2) + its 76-file provider subtree (all `*-provider.{js,mjs}` duplicates), 22 `lib/agent` stubs never wired (omega-verification, vmmao-orchestrator, phd-deliberation, triangular-judge…), orphaned UI components, `portable-server.js`, `domain-documents.ts`, `quota.ts`, `linkup-*` duplicates. All via `git rm` — recoverable. Post-purge rescan: 0 orphans in `lib/`/`components/`.
+
+### P1-4 — Run-regression harness (`scripts/eval-runs.ts`)
+
+`eval-golden.ts` re-scores stored HTML; `eval-runs.ts` replays persisted **stats** from the last N publications — deterministic, free, no LLM:
+
+- Metrics: publishRate, meanTrust, meanCostUsd, meanDurationMin, **costPerPublished** (the real KPI — a $0.68 run with 0 pubs = ∞), staleEvalRuns, veto distribution.
+- Regressions vs `evals/runs-baseline.json`: publishRate −10pts, meanTrust −5, any staleEvalRuns>0 (catches the S27 bug class retroactively), cost/duration +50%.
+- `npm run eval:runs [--limit=N]` / `eval:runs:update`. Results → `evals/results/runs-latest.json`.
+
+### P1-5 — A/B flag protocol (marginal value of steps)
+
+Every `useX` flag in `PipelineCoreOptions` is an A/B lever. Measurement protocol — **no paid runs needed**: replay on stored artifacts via `eval:golden` (quality metrics) + `eval:runs` (cost/latency/veto stats already persisted per step in `stats.*`).
+
+| Flag | Default | What it gates | Marginal-value check |
+|---|---|---|---|
+| `useMixtureOfAgents` | auto (complex/strategic) | MoA analyst path | golden panelScore delta vs multipass |
+| `useWorldModel` | auto (temporal queries) | WorldEvolver enrichment | foresight stats presence + panel |
+| ~~useLATS/useAgenticAnalyst~~ | — | **supprimés (P1-6)** | zéro caller, zéro run prod |
+| `usePRM` / `useSelfPlay` / `useSelfEvolution` | strategic+budget>$3 | step scorer / adversary / prompt evolution | runs cost delta vs publishRate |
+| `useWitness` | strategic+budget>$2 | witness attestations | stats.witness presence |
+| `useAgenticAnalyst` | off | ReAct analyst loop | opt-in; compare vs multipass |
+| `useThinkTankPack` | off | think-tank augmentation pack | htmlVersion bump + panel |
+| `usePeerReview` | off | peer-review eval | stats.peerReview |
+| `useOutputGuard/LocalJudge/Storm/TemporalMemory/RagasEval` | off | opt-in stubs | enable only with a golden-set metric to move |
+| `useDurableExecution` | on (strategic/memo/dossier) | checkpointing | reliability, not quality |
+
+**Rule going forward**: a flag-enabled step that can't move a `eval:golden` or `eval:runs` metric on replays is a deletion candidate, not a keep.
+
+### P2-7/P2-8 — Prediction watch + persistent signal bus
+
+The forecast loop is closed. Predictions were write-only memory; now the radar compares each cycle's topics against OPEN predictions' `whatWouldFalsify`/`resolutionCriteria` triggers.
+
+- `lib/agent/prediction-watch.ts` — deterministic trigger matching (distinctive-token overlap, threshold 0.40, zero LLM). A fired trigger creates a `PREDICTION_TRIGGER` Signal (priority 82 ≥ the 70 bar, deduped via `[PRED:<id>]` marker — a prediction fires once) and returns a dispatch item the dispatcher converts to an `UPDATE_NOTE` (`selectFormatFromSignal` → `publicationTypeToDepth` = surface).
+- Wired in `collectBreakingItems` post-radar — trigger items precede triaged items in the dispatch queue.
+- `PersistentSignalBus` in `signals.ts` — subclass persisting sync snapshots to `agentAuditLog` (same store as durable-execution, zero schema change). `rehydrateSignalBus(key)` restores open signals at cycle start. Two live consumers:
+  - `prediction-watch` posts `dossier_watch` signals per fired dossier (14-day decay) — dossiers under active watch get a small priority boost on subsequent firings.
+  - `pipeline-v2` swaps `ctx.signals` for a persistent bus keyed by `durableKey` when durable execution is on — coordination state survives a crash and rehydrates on resume, complementing step checkpoints.
+
+### P1-6 — Analyst fork eliminated
+
+`analystReAct` (`analyst-react.ts` + `lats/` subtree + `react-loop.ts` + `self-discover.ts`) deleted — gated behind `useAgenticAnalyst` which **no caller ever enabled** (verified: zero references outside pipeline-v2, zero production runs). Multipass is now the single analyst path. Dead flags removed with it: `useAgenticAnalyst`, `useLATS`, `useAdaptiveRAG`, `useSelfDiscover`, `useBudgetForcing`, `useMCP`, `bestOfN`, `useMetaController`, `useLangfuse`, `useADAS` (the last three were declared but consumed nowhere). Live flags remaining: `useMixtureOfAgents`, `useWorldModel`, `usePRM`, `useSelfPlay`, `useWitness`, `useOutputGuard`, `useLocalJudge`, `useStorm`, `useTemporalMemory`, `useThinkTankPack`, `usePeerReview`, `useRagasEval`, `useSelfEvolution`, `useDurableExecution`.
+
+Verified: `tsc` 0 errors · jest 24/24 suites — 278 tests · `next build` OK (74 routes) · orphan rescan clean.
+
+---
+
+## Sprint 27 - Bounded Escalation: revision → regeneration → candidate fallback
+
+The "agents keep working until the publication reaches the bar" requirement, implemented with the safeguards the agentic-loop literature mandates (optimal stopping, stagnation detection, anti-Goodhart). The funnel absorbs failure at the TOP (candidate pool), never by relaxing the gate.
+
+**Escalation ladder per candidate:**
+
+1. **Revision round** (Sprint 25): gate failures → signals → resolvers → re-gate.
+2. **Regeneration round** (once, bounded): if the gate still fails on *substance*, `runInquiryPipeline` re-runs on the **same corpus** (`seedSourceIds` from attempt 1 skip the scout — a rewrite, not a re-search) with `pipelineOptions.priorFailureFeedback` — gate reasons + DA kill shot + top challenges + panel must-fix findings serialized by `buildFailureFeedback` and injected into the analyst context block post-SARA (never compressed away) as mandatory corrections. The regenerated artifact is adopted **only if `attemptScore` strictly improves** (gate rank > passed-checks > trust+quality) — a worse or equal rewrite is discarded (`stats.regeneration.adopted=false`, audit trail).
+3. **Candidate fallback** (dispatcher): the cycle targets `maxExecutions` *publications*, not attempts. Preflight now validates up to `2× target` spare candidates; a held/failed item consumes an attempt slot (`maxAttempts = 2× target`) but NOT a publication slot — the loop falls through to the next pre-validated radar candidate.
+
+**Refusal conditions (`shouldRegenerate`)** — a rewrite cannot fix these, so no attempt is wasted:
+- `source_depth` failed → evidence-bound, topic replaced not rewritten
+- `trust_score < 40` → corpus cannot support the claims
+- pipeline refusal, budget-constrained, or elapsed >45min (dispatch-window guard)
+
+**Hard bounds:** 1 revision round + 1 regeneration per candidate, 2× attempts per cycle target, per-item 90min timeout, cumulative + global budget gates unchanged. The gate is never weakened under iteration pressure — every published artifact passed the identical checks.
+
+Tests: `revision-controller.test.ts` +9 (regen decision matrix, monotone witness, feedback serialization). Verified: `tsc` 0 · jest 22/22 suites — 260 tests.
+
+**Live-run finding (S27 validation)**: both candidates ended HELD on `trust=40` — DA veto `major_revision` at strength 18 capped trust BEFORE the signal sweep, and the sweep's resolved `substance_weak` objections never lifted the cap. REGEN was correctly skipped by the 45min dispatch-headroom guard both times (pipelines take ~50-58min). Fix: **DA re-check post-sweep** in pipeline-v2 — when `devilsAdvocateVeto` is set and the sweep resolved ≥1 substance signal, `runDevilsAdvocate` re-runs once on the corrected HTML (~$0.02). If the new verdict is no longer veto-worthy (`reject`, or `major_revision` with strength <20), the veto is lifted and `stats.devilsAdvocate` is replaced — the quality loop's trust recompute then reflects the corrected artifact. Audit trail in `stats.devilsAdvocateRecheck`. A still-fragile analysis keeps its cap — the re-check never relaxes the standard, it re-evaluates it.
+
+**Live-run finding (S27 second validation)**: run 2 exposed two more stale-evaluator paths, both fixed:
+
+1. **DA `reject` verdicts bypassed the re-check** — `devilsAdvocateVeto` is only set on `major_revision` (<20), but a `reject` verdict (0/100) fails the gate's `devils_advocate` check (`publishability ≥ 40`) the same way. The trigger is now `daGateFailing` = veto OR `verdict === 'reject'` OR `publishabilityScore < 40`, and `stats.devilsAdvocate` is replaced with the fresh verdict unconditionally — the gate must judge the adopted artifact, not the discarded one (the DA report is not rendered in HTML, so no stale display).
+2. **Memo pipeline timeout killed a productive run** — candidate 2 (petrostates) died at exactly 3900s mid critic-repair: `standard` depth → `memo` format inherited the 65min default while running the same heavy machinery as `deep` (Sprint 19 had already raised deep to 80min for this exact defect). `standard` now passes `timeoutMs: 4_800_000`, and `DISPATCH_TIMEOUT_MS` rose 90→100min to preserve the `dispatch > pipeline` invariant (dispatch race must never kill a run before its own cap).
+3. Same run: **critic + panel re-check post-repair** — when `CRITIC REPAIR`/`GapFillReAnalysis` adopts a re-analysis, `stats.critic` and `stats.criticPanel` are re-evaluated against it (was: verdict of the discarded text punished the corrected one). Not triggered when the monotone witness rejects the re-analysis — the original verdict remains the valid description.
+
+**Quality-by-default (upstream/midstream/downstream fixes)** — the recurring `critic score ≤8` pattern had a structural cause: the critic graded a *prospective* note with an *encyclopedic* rubric:
+
+- **Epistemic claim kinds** (critic-agent): decomposition now tags each claim `fact | inference | projection`. Facts still need literal source support; inferences/projections are graded on **derivability** — verdict `derived` = the cited source contains the evidentiary premise (it need not state the conclusion, since the conclusion is the product). `derived` counts as grounded. An inference with no premise in the corpus still fails — the bar moved to the *correct* position, not a lower one.
+- **Cross-temporal contradiction exclusion**: "X declines today" vs "X dominates by 2040" is a trajectory, not a contradiction — the detector now only flags conflicts within the same temporal scope.
+- **Genre-calibrated bias detection**: a position paper taking a stance is the product, not confirmation bias — flag only ignored counterevidence or source selection skew.
+- **Claim-binding preflight** (pipeline-v2, deterministic, $0): each causalChain link's key terms are checked against its cited source's text — a link whose claim shares <15% terms with the source is citation laundering (tag attached to a non-supporting source). Weak bindings → `stats.claimBinding` + `claim_unverifiable` signals for the repair machinery.
+- **Rubric injection** (analyst pass 3): the critic's exact grading standard is appended to the analyst prompt — write-to-the-bar instead of discover-the-bar.
+
+---
+
+## Sprint 26 - Collective Intelligence Substrate (signals + mission)
+
+Deep search 2026 (SBP stigmergic blackboard, G²CP graph-grounded comms, ACE evolving playbooks, AgentNet NeurIPS'25, Lattice learned routing) → the missing layer was not another agent but the **coordination substrate**: agents had detectors and hardcoded repair paths, but no shared goal and no general-purpose need/resolution medium.
+
+**`lib/agent/signals.ts` — SignalBus** (stigmergic, SBP-style):
+- `post(type, content, {intensity, ttlMs, payload})` — any agent emits a typed need without knowing who resolves it
+- Signals carry **intensity** (0-1) and **decay** (linear to 0 at `ttlMs` → status `expired`) — stale needs can't cause retry storms
+- `registerResolver(type, fn, {batch})` — per-signal or batch (one LLM call resolves N signals of a type)
+- `sweep({mission, metrics, maxResolutions})` — drains open signals at checkpoints, ordered by effectiveIntensity **+ 0.3 boost when the signal serves an unmet mission target** (goal-directed, not FIFO)
+- `resolveSignalsByType` — legacy consumers (gap-fill) close their signals after handling
+
+**Mission** (`ctx.setMission` at pipeline start): the single shared goal — `trust≥65, groundedness≥80, citationCoverage≥0.5, minSources, requireCentralScenario, quality≥60`. `missionDelta(metrics)` computes unmet targets → the sweep's priority boost. Every agent can now read "what does the collective still need?"
+
+**Emitters wired**: `requestSourceGap`→`coverage_gap` (back-compat: legacy queue still drives gap-fill, which now closes the signals), DA challenges→`substance_weak` (severity→intensity), style gates→`style_violation`, grounding leftovers→`claim_unverifiable`.
+
+**Post-render SIGNAL SWEEP** (pipeline-v2, pre-quality-loop): `substance_weak` batch resolver → revision-editor surgical edits on DA objections in the final HTML *before the gate sees them*. Bounded: maxResolutions 3, budget-gated.
+
+**revision-controller refactored to be signal-native**: gate failures → posted as signals (`scenario_invalid`, `citation_gap`, `substance_weak`, `style_violation`) → resolvers → sweep → integrity guards. Same repairs, but now **a new failure mode needs only a resolver registration, never a pipeline change**.
+
+Tests: `signal-bus.test.ts` (6 — intensity ordering, ttl decay/expire, batch resolution, mission boost, no-resolver safety, resolver-failure isolation). Verified: `tsc` 0 · jest 22/22 suites — 251 tests.
+
+---
+
+## Sprint 25 - Gate-Driven Self-Revision (the funnel becomes a loop)
+
+The publication gate used to be terminal: `revise`/`hold` persisted the artifact as-is. Now `inquiry-orchestrator` routes gate failures back to corrective agents via `revision-controller.ts` — one bounded revision round between gate evaluation and status decision, then gate + readiness are **re-evaluated** on the revised artifact. The gate is never weakened; the artifact is fixed.
+
+Repair ladder (ordered cheapest → most expensive):
+
+| Stage | Trigger | Repair | Cost |
+|---|---|---|---|
+| R0 | `central_scenario` check fails | Deterministic re-render of the block from the persisted `CentralScenarioDecision` via exported `renderCentralScenarioBlock` (same markup as the renderer — labels recovered from the existing block for locale fidelity, French detection fallback). Block missing entirely → inserted before verdict/`</article>`. Guard: re-parses complete AND normalizes equal to the decision, else reverted. | $0 |
+| R1 | `citation_coverage` fails | `repairCitations` backfill — kept only if citation count grew | $0 |
+| R2 | DA publishability <50 / fatal challenges / weak panel findings / quality <65 | `revision-editor.ts` — surgical `{find,replace}` edits addressing adversarial objections (qualify overclaims, add caveats, name counter-arguments). Same `applySurgicalEdits` contract as copy-editor (verbatim find, no tags, citation-preserving). Max 8 edits. | ~$0.005 |
+| R3 | residual style-gate violations | copy editor re-run | ~$0.005 |
+
+Integrity guards: citation count non-regressing, word count ≥80% of original, central-scenario block still parses complete — any failure reverts ALL repairs. LLM stages skipped when `stats.budgetConstrained`. Round persisted to `criticalLoopResult.revision` (actions, cost, gateBefore→gateAfter).
+
+Non-repairable at render level (stays held — honest): `source_depth`, `researcher_signoff`, `trust_score` floors. Those need re-scout/re-analysis, i.e. a new pipeline run — not a cosmetic pass.
+
+Tests: `revision-controller.test.ts` (5 — gutted-block repair, FR label preservation, missing-block insertion, non-repairable no-op, pass-through). Verified: `tsc` 0 · jest 21/21 suites — 245 tests.
+
+---
+
+## Sprint 24 - Editorial-Artifact Protection (grounding removal safety)
+
+**Bug found via live HELD publication**: `groundClaimsWithNLI(mode:'remove')` deleted sentences inside the `central-scenario` block — the horizon (`data-no-cite` editorial element) and the uncited scenario-probability tail (Delphi outputs, inherently non-citable) were stripped, leaving an orphan `<p>` and a rationale that diverged from the persisted `CentralScenarioDecision` → `central_scenario` hard-fail at the gate despite trust 78 / groundedness 100%.
+
+Three-layer fix in `claim-grounding.ts`:
+
+1. **Extraction**: `data-no-cite` elements are stripped from the sentence stream before claim decomposition — model estimates/scenario metadata are the institute's own apparatus, not source-groundable claims (enforces the documented Invariant-6 contract).
+2. **Removal**: `<section class="nx-block central-scenario">` is masked alongside style/script/head — the gate requires the scenario to render verbatim from the persisted decision, so sentence-level removal inside it can only break the gate.
+3. **Span guard**: removal skips any sentence span containing `data-no-cite` (belt-and-suspenders for inline marks outside masked sections).
+
+`repairHtmlWithGrounding` is now exported for tests. Regression: `__tests__/lib/agent/central-scenario-grounding.test.ts` — asserts the block survives removal while outside-block unsupported claims still get removed, and the protected block re-parses to a complete scenario matching the persisted decision.
+
+Verified: `tsc` 0 · jest 20/20 suites — 240 tests.
+
+---
+
+## Sprint 22 - Resilience & Deep-Research Layer (2026-09)
+
+Targets the measured weak points: SAFE dead when paid search exhausted, editorial 5/10, dependence on paid providers.
+
+### SearXNG — free metasearch floor (`lib/providers/searxng.ts`)
+
+- `searchSearxng(query, limit)` — rotating public instances (`searx.be`, `inetol`, `searxng.site`, `opnxng`) + `SEARXNG_URL` env for self-hosted (recommended — public instances bot-block `format=json`, verified live: all 5 return HTML/429).
+- **SAFE fallback** (`safe-verifier.ts`): when Tavily AND Exa both return empty for a claim query, one SearXNG call replaces the batch. Bounded (1 extra call per query, only on full failure), honest (empty stays empty — never fabricates support).
+- **Scout floor**: `searxng` in `DOMAIN_PROVIDERS` for ~60 domains + `ScoutProvider` union + dispatch — keeps web retrieval alive at zero cost.
+- Self-host: `docker run -p 8080:8080 searxng/searxng` with `search.formats: [html, json]` in settings.yml → set `SEARXNG_URL=http://localhost:8080`.
+
+### Data Commons (`stats-keys.ts::searchDataCommons`)
+
+Google's harmonized stats graph (WB+UN+Eurostat+national offices in one API). 9 variables (population, GDP, GDP growth, unemployment, median income, life expectancy, deaths, CO2, poverty) × 18 country mappings + `world`. v2 observation endpoint, latest values injected into abstracts as citable figures. **Key-gated**: `DATACOMMONS_API_KEY` (free at apikeys.datacommons.org) → returns `[]` without it.
+
+### Panel findings → repair loop (`pipeline-v2.ts`)
+
+CogWriter-style monitor→revise: critic-panel dimensions with `mustFix` or score ≤4 now feed their findings into `CRITIC REPAIR INSTRUCTIONS` (`panelWeakFindings`, max 6). Repair triggers on critic `repair` verdict OR panel veto with weak findings. Still bounded: `reAnalysisBudget`, citation-coverage regression check keeps original if repaired text loses citations.
+
+### Verified
+
+- `tsc --noEmit`: 0 errors · jest: 18/18, 231/231
+- SearXNG: public instances all bot-blocked (expected) — degrade to `[]` cleanly; needs `SEARXNG_URL` for real activation
+- `.env` additions: `SEARXNG_URL` (optional, self-host), `DATACOMMONS_API_KEY` (free key)
+
+### Live-run findings & fixes (run `funnel-run-s22e`)
+
+Full end-to-end run (64min, $0.68, topic: "Africa's economic integration vs geopolitical power structures") surfaced 4 real bugs — all fixed:
+
+| Bug | Root cause | Fix |
+|---|---|---|
+| **Pipeline killed at 65min timeout** | Single scout passes took **24min each** — `Promise.allSettled` waited on dead providers' full retry chains | `PROVIDER_CALL_DEADLINE_MS` (90s default, env-tunable) races every `trackProviderCall` against a deadline → passes now ~45-130s |
+| **IntelligentScout unbounded** | lens iterations had no wall-clock budget | `INTELLIGENT_SCOUT_BUDGET_MS` (8min) caps the loop — partial evidence > killed run |
+| **Editor-in-chief dropped all selections** | LLM returned topicIds that didn't match radar ids (`topics.find` silently failed → miscounted as "budget-cut") | `resolveTopic`: id → index → normalized-id/title fallback + warn log. Live: `2/3 selections had unresolvable topicIds` confirmed |
+| **Critic groundedness 23%** (artifact) | `runCritic` verified claims against `abstract.slice(0,2000)` only — analyst writes from **full-text** (17 PDFs, up to 400k chars), so page-40 claims were judged "unsupported" | `buildSourceExcerpt`: per-source claim-relevant excerpt from reader's `extractedText` (top-18 sentences by lexical overlap, doc order) fed to grounding LLM; `criticSources` now carries `fullText` |
+| Citation-precision false negatives | Claim citing [SRC-5] but supported by [SRC-12] was marked unsupported | **Cross-source rescue** (ALCE/RAGTruth pattern): unsupported claims re-verified in one batched LLM call against best-overlap alternate source (≤8 claims, overlap ≥0.35) |
+| semantic-scholar.js crash | OpenAlex error object → `.map` on undefined | Guarded: HTTP check + `Array.isArray` |
+| Preflight false rejection | `checkSemanticAlignment` judged 139 sources on the **first 10 titles** of an unsorted list | Stratified 20-title sample across the whole pool |
+
+Observed on the run: editorial dimension jumped **5→8/10** (craft prompt works); the autonomous loop fired end-to-end (critic reject → outline critic gap → +76 targeted sources → re-analysis → debate → arbiter). Publication still HELD (trust 40) — partly real grounding gap on a thin-corpus topic, partly the measurement artifacts now fixed. Next run should show groundedness recovery.
+
+### Provider-layer audit (systematic, post live-run)
+
+Cross-referenced all 197 ids in `DOMAIN_PROVIDERS` against the three dispatch layers (explicit `trackProviderCall` ~180 ids, `mega-*` feed subsets, `searchExtendedProviders`→`searchRegistry`). Findings + fixes:
+
+| Finding | Impact | Fix |
+|---|---|---|
+| **`extended-registry.mjs` is dead code** | 33 instantiated providers (csis, dgap, cepr, rsis, iiss…) imported nowhere — AND their backing `openalex-provider-factory.js` doesn't exist, so they'd crash on import | Real coverage restored via ROR filters in `searchRegistry` default case (below) |
+| **Slug-id mismatches hit generic OpenAlex fallback** | `iea---international-energy-agency`, `pwc-research-institute`, `deepmind-research`… each ran a *duplicate generic OpenAlex query* instead of the specialised provider | `PROVIDER_ALIASES` map — 16 slugs → canonical registry ids, resolved before the switch |
+| **Institution stubs silently dead** | csis/dgap/cepr/cgd/saiia/acet/johns-hopkins/vanguard/amazon/copenhagen-institute returned generic OpenAlex noise | `ROR_PROVIDERS` — live-resolved RORs via api.openalex.org (`authorships.institutions.ror:` filter), results retagged with the real provider id |
+| **Journal slugs unresolved** | `nature-medicine`, `jama---…`, `new-england-journal-of-medicine` → generic fallback | `SOURCE_PROVIDERS` — OpenAlex `primary_location.source.id:` filter (same pattern as nature.js), with real source ids (S203256638/S172573765/S62468778) |
+| Reader cascade stopped early | pdfUrl 403 → abstract; HTML rescue only if abstract <1200 chars → think-tank full reports never fetched | Full cascade: pdf → **Unpaywall alternate host** (doi) → landing HTML (widened: thin abstract OR failed PDF OR report-type provider, budget 30) → **Wayback snapshot** (cap 8) → abstract |
+| `ssrn`/`papers-with-code` still in DOMAIN_PROVIDERS | Harmless — filtered by DEAD_PROVIDERS at providerSet | No action needed |
+
+Not wired (no ROR, no registry case — remain on OpenAlex default, no regression): `rsis` (works attribute to NTU), `harvard-chan` (would match all Harvard), `partnership-on-ai`, `stanford-hai`, `berlin-policy-hub`, `asteres`, `idea-factory`, `lawzero`, `cis` (ambiguous match). Marginal — mostly covered by `mega-thinktanks` feeds anyway.
+
+**Single-point-of-failure — SOLVED via call-batching**: ~60% of providers funnel through OpenAlex, and each fired its own call per query variation (a domain mapping 15 OpenAlex-backed ids = 15 calls × 14 queries = 210 calls per pass — that's what produced the 429 storms). `searchExtendedProviders` now collapses this:
+
+- slug aliases resolved + deduped upstream (`iea---…` and `iea` no longer fire twice)
+- **1 batched call** for all institution-ROR providers (`authorships.institutions.ror:a|b|c` OR filter), results retagged by matching `institutions[].rorId` — provenance preserved
+- **1 batched call** for all journal source-id providers (`primary_location.source.id:S1|S2`), retagged via `raw.primary_location.source.id`
+- **1 shared call** for all unknown ids (was: N identical generic OpenAlex calls)
+
+A 15-id OpenAlex-backed domain list now costs ~4 calls instead of 15 — roughly **4× less OpenAlex pressure** per query variation. Combined with per-query dedup (below), the polite pool (10 req/s) is no longer saturated by fan-out structure.
+
+Independent-of-OpenAlex layer (corpus stays alive when OpenAlex trips): crossref, pubmed, europepmc, core, base, hal, doaj, datacite, dblp, arxiv, jstor, hathitrust, mega-feeds (Google News RSS), linkup, searxng.
+
+### 2026 SOTA comparison → implemented upgrades
+
+Deep-search over 2026 agentic advances (Tongyi DeepResearch/WebSailor/WebResearcher, OpenResearcher@EMNLP'26, Iris context-management, ScholarFlux orchestration, Loki check-worthiness). What we already had (Co-STORM, SAFE, bandit allocation, CARE) vs what was missing:
+
+| Pattern (source) | Implemented |
+|---|---|
+| **Local retrieval over corpus** (OpenResearcher: search/open/find against collected docs) | `buildSourceExcerpt` now embeds claims + full-text sentences via `embedBatchDetailed`, ranks by max cosine sim (lexical prefilter to 80 candidates bounds cost; lexical fallback when embedder down). Applies to per-source grounding AND cross-source rescue excerpts |
+| **Check-worthiness triage** (Loki) | SAFE budget (12 live calls) now ranks candidates: quantitative +3, causal +2, named-entity +1, forecast +1, contradicted +4 — was first-12-in-document order |
+| **Anti-saturation dedup** (ScholarFlux) | Query variations deduped (normalized) before provider fan-out — enhancer+diversification+perspective queries can collide; each duplicate cost a full ~20-provider fan-out |
+| Context management (ReSum/Iris) | Already: structured handoffs (blackboard, lens insights, mechanism tables) rather than raw history. `storeSourceChunks` persists chunks for later retrieval |
+
+Rejected after probing: **fatcat** (lookup API, no full-text search), **S2 bulk endpoint** (same unauthenticated pool — no separate budget without an API key), **RSIS/Harvard-Chan ROR** (not in OpenAlex / too broad).
+
+### Pre-run hardening (dry-run findings)
+
+A `--dry-run` ($0.0035, 204s) surfaced two residual weaknesses — both fixed:
+
+1. **Circuit breaker was 429-only and covered 4 providers** — `CB_THRESHOLDS` had openalex/semanticscholar/arxiv/google-books only, so `gdelt-news` retry-stormed ~150s in the radar phase without tripping (network timeouts + fetch-failures never counted). Now: thresholds for ~25 volatile providers (gdelt-news/independent, tavily, exa, linkup, crossref, jstor, core, base, pubmed, europepmc, gnews, newsapi, eventregistry, mediastack, thenewsapi, apitube, imf, worldbank, unhcr, internet-archive, hathitrust, searxng, datacommons) **plus** `recordNetFail` — a call exhausting retries on timeout/5xx/fetch-fail counts toward the breaker (trips at 2× the 429 threshold; client 4xx excluded — structural, not load).
+2. **LLM topicIds still partially unresolvable** (1/3 in dry-run) — prompt now asks for the integer `index` field, not the opaque `openalex:W…` id. `resolveTopic` already handles integers.
+3. **Reader timeout vs new cascade** — the extended extraction cascade (pdf→Unpaywall→HTML→Wayback) can reach ~115s; the 90s per-source timeout would have killed slow sources into `rule_based` (worse than abstract). Timeout → 120s default; Wayback skipped once >45s already spent.
+
+### Copy editor — the missing newsroom role (agent wiring audit)
+
+A systematic audit of the ~180 `lib/agent/*` files vs the live pipeline found the quality chain was detection-rich but **correction-poor at the prose layer**: style gates (G1-G10 AI tells) were logged and dropped; the panel's editorial reviewer could score 5/10 with zero consequence; `polishEditorial` existed but was opt-in and broken by design (prompt feeds *stripped* text, asks for HTML back → tag/citation loss, hence "fragile").
+
+- **`lib/agent/copy-editor.ts`** (new): surgical edit-list contract — the LLM returns `{find, replace, reason}` pairs, never full HTML. Each edit applies only after verification: `find` must be verbatim-present, `replace` must carry no raw tags and preserve every `[SRC-N]`/`[E-N]`/`data-evidence` token inside `find`, bounded sizes. Wired post-render after `runStyleGates`; triggers on violations OR editorial-panel findings (score < 7); re-runs the gates to measure improvement. ~$0.005, 1 call.
+- **Editorial floor in the trust gate**: panel `editorial ≤ 4/10` caps trust at 60 (below the 65 publish threshold) whether or not mustFix was flagged — a piece that reads badly cannot publish on factual merit alone.
+- Dead agents confirmed dead (audit-only, no pipeline path): `fact-checker-external`, `llm-verifier-continuous`, `harvard-council-enhanced` + `review-board`, `reference-publisher` + `omega-verification`. `nomos-voice`/`style-judge`/`style-orchestrator` are live — via `editorial-arbiter`.
+
+### Remaining research backlog (not implemented)
+
+- **STORM/Co-STORM** perspective-guided outlines — partially covered by `perspective-questions.ts`; full interview-style refinement not ported
+- **Loki/OpenFactVerification** claim decomposition pipeline — SAFE covers the verdict side; check-worthiness triage not ported
+- **SelfCheckGPT** consistency scoring — candidate for claims with zero external evidence
+- **WriteHERE/LOGIC** recursive section decomposition — current repair is whole-analysis; section-scoped revision is the next editorial lever
+
+## Sprint 19 - Expertise & Provider Depth Layer (2026-09)
+
+Sprint 19 activates the "200-PhD" knowledge layer: discipline providers wired for real, domain knowledge injected multi-domain, positioning agent on all formats.
+
+### Provider Wiring (orphans → live)
+
+16 discipline providers were implemented but never cabled into `searchRegistry` — `DOMAIN_EXTENDED_PROVIDERS` routed to them but they silently hit the OpenAlex default. Now wired in the switch + `getAvailableProviders()`:
+
+```
+sociology, psychology, history, geography, chemistry, biology,
+political-science, philpapers, persee, isidore, zbmath, eric,
+unodc, fao, dblp
+```
+
+Live-verified: Persée returns native French SHS docs; others use their OpenAlex discipline-filtered paths.
+
+### DOMAIN_PROVIDERS enrichment (topic-classifier.ts)
+
+Discipline providers injected per domain: social-sciences→sociology/psychology/isidore/persee/eric, humanities→philpapers/history/persee, quantitative→zbmath/dblp, law→unodc, health→biology, environment→geography/fao, cognitive-science→psychology, policy→political-science. The 4 deep-lens domains (anthropology, history, religious-studies, non-western-philosophy) now have provider maps.
+
+### Knowledge Bases — 22→26 domains
+
+`RESEARCHER_KBS` gained full PhD-level entries for **anthropology** (Geertz/Mauss/Scott — emic/etic, thick description), **history** (Braudel/Polanyi/Thompson — longue durée, path dependence, counterfactual probing), **religious-studies** (Durkheim/Schmitt/Taylor — secularization debate, political theology), **non-western-philosophy** (Confucius/Laozi/Kautilya/Ubuntu/Tianxia — comparative without flattening). Each: 5-6 keyConcepts, 3 frameworks with steps, 5-6 referencePapers, dataSources, methodology, qualityCriteria, standingQuestions, knownBiases.
+
+### Multi-domain injection (pipeline-v2.ts)
+
+`domainBlock` previously injected only `detectedDomain` — now injects primary domain **+ up to 3 casting dimensions** (each with concepts/frameworks/biases/canon). A "security" lens now carries history/anthropology knowledge when the classifier detects those dimensions.
+
+### Positioning Agent — all formats
+
+`buildPositioningBrief` no longer gated to `isStrategic` — runs on every format (~13s, ~$0.001 measured). The critic panel's 5th dimension (differentiation) activates whenever a brief exists.
+
+### Timeout fix
+
+Deep runs (BLACKBOARD gap-fill re-analysis + Delphi + arbiter) legitimately need >65min but inherited the brief cap — a deep run died post-arbiter at 3900s. `StrategicPipelineOptions.timeoutMs` added; `deep` depth now passes 80min.
+
+### Batch 5 — Sub-discipline expansion IV (62→74 domains)
+
+12 more sub-disciplines (same 8-layer pattern):
+
+```
+military-studies, futures-studies, economic-sociology, historical-sociology,
+environmental-economics, health-economics, legal-theory, postcolonial-studies,
+communication-studies, public-finance, political-anthropology, food-systems
+```
+
+Canon: Clausewitz/Schelling/Pape (military), Schwartz/Inayatullah/Tetlock (futures), Granovetter/Polanyi/Callon/Zelizer (econ soc), Tilly/Skocpol/Wallerstein (historical soc), Stern/Nordhaus/Ostrom (env econ), Arrow/Grossman (health econ), Hart/Dworkin/Fuller (legal theory), Said/Fanon/Spivak/Quijano (postcolonial), Herman-Chomsky/McLuhan/Habermas/Hall (comms), Musgrave/Mirrlees/Oates (public finance), Scott/Clastres/Graeber (political anthropology), Sen/Friedmann/Patel (food systems).
+
+### S21 — Critic × domain KB + schools of thought + domain lessons
+
+| Change | File | What it does |
+|--------|------|-------------|
+| **Domain checklist in critic** | `critic-panel.ts`, `pipeline-v2.ts` | `runCriticPanel(domain: detectedDomain)` — methodology reviewer now audits against the domain KB's `specialRequirements` + `knownBiases` (e.g. intelligence analysis must show ACH-style reasoning, archaeology must name the dating method). Critic checks METHOD, not just style. |
+| **Reading depth persisted** | `pipeline-v2.ts`, `pipeline-types.ts` | `stats.reader.depth {full_text, abstract, rule_based}` — groundedness trend is now measurable across runs. |
+| **Domain-scoped lessons** | `agent-memory.ts`, `pipeline-v2.ts` | Same-domain lessons get ×1.5 weight in MMR selection; analyst `buildMemoryInjection` call now passes `detectedDomain` (was `undefined`). |
+| **Schools of thought** | `schools-of-thought.ts` (new), `debate-agent.ts`, `pipeline-v2.ts` | `SCHOOLS_OF_THOUGHT` registry — 15 contested domains × 2-3 rival schools with keyClaims + standardCritique. Injected into debate Pass 1: steel-man must come from a REAL rival school, not an invented counter. |
+
+**Golden-set harness already exists** (`scripts/eval-golden.ts` + `evals/golden-set.json` 8 cases + baseline): runs real NLI grounding + critic panel, exits non-zero on regression. Validated live: `ground=99% panel=46` on stablecoin case. Note: panel editorial reviewer is sensitive to residual CSS in stored HTML — strip styles before scoring if comparing across formats.
+
+### S22 — Statistics & data layer (real numbers, not just documents)
+
+Audit answer: stats coverage existed but was shallow — `mega-stats` (~25 national stats offices) as RSS **release feeds** (headline numbers only), structured APIs limited to Eurostat/ECB/INSEE in the macro DB, quant-agent gated to energy + US fiscal. Now:
+
+| Addition | File | What it does |
+|---|---|---|
+| **World Bank data API** | `lib/providers/worldbank-data.ts` | `ingestWorldBankIndicators()` — 20 WDI indicators (GDP, inflation, unemployment, population, poverty, military %GDP, health/education spend, refugees, FDI, debt…) × 50 economies × 15y → macro DB via `refreshMacroSeries()`. `searchWorldBankData()` — doc-layer provider whose abstracts embed **live latest values** ("GDP growth: DE -0.3%, FR 0.9%, US 2.5% (2024)") → directly citable numbers. Free, no key. |
+| **UCDP** | `lib/providers/stats-data.ts` | `searchUCDP` — Uppsala conflict events API aggregated per country → fatalities + civilian deaths + active conflicts in abstract. **Needs `UCDP_API_KEY`** (free registration; v24 requires key) — returns [] gracefully without it. |
+| **ILOSTAT** | `lib/providers/stats-data.ts` | `searchILOSTAT` — keyword→indicator catalog (unemployment, informality, NEET, wages, strikes, migrant workers…) → dataset descriptors. No key. |
+| **OWID** | `lib/providers/stats-data.ts` | `searchOWID` — curated grapher slugs (CO2, democracy index, homicide, fertility, R&D…) → **fetches the public grapher CSV** and embeds latest values per major entity in the abstract ("CO2: China 12.3Gt, US 4.9Gt (2024)"). No key. Fallback: descriptor + CSV URL. |
+
+Dispatch: `worldbank-data`, `ucdp`, `ilostat`, `owid` added to provider union + `ALL_PROVIDERS` + `trackProviderCall` cases. DOMAIN_PROVIDERS wired into 20+ domains (economics, demography, labor, conflict/military/security→ucdp, health/epi→owid, dev/migration/finance→worldbank-data…).
+
+**Still missing (key-gated or heavy):** V-Dem (dataset download), Destatis GENESIS (registration), StatCan WDS (cumbersome — mega-stats feed covers releases). National offices beyond INSEE/ISTAT covered via `mega-stats` feeds + the providers below.
+
+### S22b — Key-gated + national stats APIs
+
+`lib/providers/stats-keys.ts` — 9 providers dispatched as `worldbank-data`-style sources:
+
+| Provider | Key | Live result |
+|---|---|---|
+| `ons-uk` | **none** | ✅ 5 datasets on "inflation unemployment" |
+| `ibge` | **none** | ✅ 6 aggregates (EN→PT keyword map — catalog is Portuguese) |
+| `us-bls` | `BLS_API_KEY` optional (keyless ~25 req/day) | ✅ 3 series with live values (unemployment, CPI, payrolls) |
+| `comtrade` | `COMTRADE_API_KEY` | ⚠️ without key → descriptors only (preview endpoint returns demo-scaled values — misleading, not used) |
+| `us-census` | `CENSUS_API_KEY` | keyless now redirects to "Missing Key" — key required |
+| `acled` | `ACLED_API_KEY` + `ACLED_EMAIL` | free academic registration |
+| `unhcr` | `UNHCR_API_KEY` | refugee/IDP per country |
+| `estat-jp` | `ESTAT_JP_APP_ID` | Japanese official stats catalog |
+| `kosis` | `KOSIS_API_KEY` | Korean statistics |
+
+All degrade to `[]` gracefully without keys — no pipeline breakage. DOMAIN_PROVIDERS wired into economics, finance, security, demography, IR, migration, conflict, political-economy, public-admin, labor, area-studies, development, public-finance, political-anthropology.
+
+### S23 — Quality gaps closed (adversarial coverage, critic hygiene, quant × stats)
+
+| Fix | File | Detail |
+|---|---|---|
+| **Devil's advocate ungated** | `pipeline-v2.ts` | Was `strategic`-only — same bias positioning had. Now runs on all formats when the LAS gate allows (mode: `'brief'`/`'strategic'` passed correctly). Briefs get the adversarial check too. |
+| **CSS residue → critic veto** | `critic-panel.ts` | Root cause of the golden-eval veto (99% grounding, panel 46): the tag-strip left `<style>`/`<script>` **content** as prose. Now strips those blocks entirely before scoring — any caller passing rendered HTML gets clean text. |
+| **Quant-agent × World Bank** | `quant-agent.ts` | `fetchWorldBankSeries` generic fetcher + country detection (18 country patterns → ISO3). Query keywords trigger real series: GDP growth, inflation, unemployment, gov debt, military %GDP, CO2 per capita — localized to the topic's country or WLD. Was energy+fiscal-US only. |
+| **Schools of thought 15→27** | `schools-of-thought.ts` | Added: technology (e/acc vs safety vs distribution), environment (ecomodernist/degrowth/polycentric), international-law (positivist/New Haven/TWAIL), military-studies (attritionist/manoeuvrist/tech), public-health, sociology, psychology, education, demography, economic-history, public-finance, political-anthropology, futures-studies. |
+| **Entity decoding in critic strip** | `critic-panel.ts` | `&#039;`/`&quot;`/`&amp;` decoded, not dropped — "China&#039;s" was reaching reviewers as literal entity noise. |
+| **Editorial craft directives** | `analyst-multipass.ts` | Pass-3 prompt gains: governing-thought-first per section, no-filler rule (cut sentences with no actor/number/mechanism), contentful transitions, prose rhythm. Targets the measured weakest dimension (editorial 5/10). |
+| **Structural editor ungated** | `pipeline-v2.ts` | `structuralEditorReview` (Pyramid Principle / SCR / governing-thought audit) now runs on all formats — <40 score injects restructuring feedback into render context. |
+
+**Golden-set baseline (first full run, 8/8 cases):** groundedness 98.2%, citations 95.1%, panel 55.9, zero vetoes, zero errors. CSS fix verified (stablecoin 46→64). Stored pubs keep their prose scores — editorial improvements only apply to NEW runs. SAFE non-functional during eval (Tavily 432 + Exa 402 exhausted → all claims "unverifiable", NLI local compense). held-cbam-trade panel=0 = post-strip text <200 chars (genuinely thin stored pub — honest verdict).
+
+**Remaining honest gaps:** full golden-set run never executed end-to-end; S20 HTML rescue + stats layer unproven on a live run; ~150 agent files exist but a substantial fraction are dormant (not quality-critical but tech debt); schools cover 27/74 domains; national stats beyond INSEE/ISTAT/ONS/BLS/Census stay feed-level.
+
+### Batch 4 — Sub-discipline expansion III (50→62 domains)
+
+12 more sub-disciplines (same 8-layer pattern):
+
+```
+neuroscience, data-science, economic-history, social-psychology,
+organizational-studies, science-policy, development-studies,
+comparative-politics, social-theory, philosophy-of-science,
+law-and-economics, intelligence-studies
+```
+
+Canon: Kandel/Friston (neuro), Breiman/Gebru/Chernozhukov (data science), Fogel/Pomeranz/AJR (econ history), Tajfel/Festinger/Haidt (social psych), DiMaggio-Powell/Perrow/Weick/Crozier (org studies), Stokes/Mazzucato/Gibbons (science policy), Sen/Escobar/Frank (development), Levitsky/Lijphart/Tilly (comparative), Bourdieu/Foucault/Giddens/Latour (social theory), Popper/Kuhn/Lakatos (phil of science), Coase/Posner/Ostrom/Calabresi (law & econ), Heuer/Jervis/Wohlstetter/Betts (intelligence studies).
+
+**Provider-id correction found during batch 4:** `semantic-scholar` (hyphenated) is NOT dispatched — real pipeline ids are `semanticscholar` and `semantic-scholar-graph`. Fixed in all new DOMAIN_PROVIDERS entries. Intelligence providers (`cia-foia`, `odni`, `uk-jic`, `global-intelligence`, `nato`) confirmed dispatched.
+
+### S20 — HTML full-text rescue (groundedness fix)
+
+**Problem:** `reader-agent-v3.getFullText()` only fetched HTML for `NEWS_PROVIDERS`. Think-tank reports, Persée/HAL galleries, institutional/government pubs — sources without DOI/pdfUrl — always fell back to thin abstracts → low groundedness → publications HELD.
+
+**Fix:** Landing-page rescue in `reader-agent-v3.ts`. Sources with `abstract < 1200 chars` + fetchable URL get one HTML extraction attempt (`fetchNewsArticleText`, already hardened: retries, JSON-LD, 200-char floor). Budget: `HTML_RESCUE_MAX = 20` per run, reset in `readerAgentV3()`. Chain is now: `pdfUrl → PDF url → news fetch → landing-page rescue → abstract`.
+
+| File | Change |
+|------|--------|
+| `lib/agent/reader-agent-v3.ts` | `HTML_RESCUE_MAX` budget + rescue branch in `getFullText` + `processSource` gate extended to thin-abstract sources |
+
+### Batch 3 — Sub-discipline expansion II (38→50 domains)
+
+12 more sub-disciplines added end-to-end (same 8-layer pattern: union ×2, registry profile, full KB, corpus shell, DOMAIN_PROVIDERS, vertical map, DOMAIN_EXPERTS card, EXPERT_PERSONAS prompt):
+
+```
+migration-studies, science-technology-studies, epistemology,
+international-law, conflict-studies, political-economy,
+public-administration, gender-studies, area-studies,
+labor-studies, ethics-of-technology, archaeology
+```
+
+Canon: Massey/de Haas/Castles (migration), Latour/Jasanoff/Winner (STS), Gettier/Fricker/Goldman (epistemology), VCLT/Henkin/Koskenniemi (international law), Fearon/Collier/Walter (conflict), Hall-Soskice/Polanyi/Acemoglu (political economy), Lipsky/Wilson/Herd-Moynihan (public admin), Crenshaw/Butler/Folbre (gender), Said/Anderson/Chakrabarty (area studies), Autor/Freeman-Medoff/Standing (labor), Nissenbaum/O'Neil/Floridi (tech ethics), Binford/Hodder/Tainter (archaeology).
+
+Provider ids verified against real dispatch (`trackProviderCall` or `activeMega`/`searchExtendedProviders`): used only live ids — `eur-lex`, `sipri`, `ecfr`, `swp`, `ajol`, `dialnet`, `riss`, `shodhganga`, `overton`, `mega-*`, `nber`, `repec`, `who-gho`, `undp`, `un`. No dead ids (cnas/ilo/lawzero/newamerica have no dispatch).
+
+**Test-state caveat found:** `councilManager.expertLoadBalance` is a shared singleton — selections in earlier tests pollute later ones (recency penalty). Fixed by `resetMetrics()` in `beforeEach` for the integration block. Applies to any test asserting specific domain selections.
+
+### Batch 2 — Sub-discipline expansion (26→38 domains)
+
+12 sub-disciplines added end-to-end (type union ×2, `RESEARCHER_REGISTRY` profiles, `RESEARCHER_KBS` full PhD-level entries, `MULTI_DOMAIN_CORPUS` entries, `DOMAIN_PROVIDERS` maps, `VERTICAL_RESEARCHER_MAP`, `DOMAIN_EXPERTS` analyst cards, `EXPERT_PERSONAS` prompts in phd-researcher.ts):
+
+```
+sociology, psychology, political-science, demography, criminology,
+education, philosophy, linguistics, media-studies,
+epidemiology, public-health, international-relations
+```
+
+Each KB carries real canon: Bourdieu/Durkheim/Granovetter (sociology), Kahneman/Tajfel + replication-awareness (psychology), Tsebelis/Levitsky (political-science), Malthus→second-transition (demography), Tyler/Sampson-Laub (criminology), Becker/Vygotsky/Hattie-caveats (education), Rawls/Hume/Gettier/Kripke (philosophy), Lakoff/Austin/Fairclough (linguistics), Habermas/Herman-Chomsky/Benkler (media-studies), Bradford Hill/Hernán-Robins (epidemiology), Marmot/Rose/commercial-determinants (public-health), Waltz/Keohane/Schelling/Wendt (IR).
+
+### Provider-id hygiene (audit findings)
+
+- Pipeline dispatch is explicit `trackProviderCall` — ids without a case fall through to `searchExtendedProviders` → `searchRegistry`. Think tanks (brookings/rand/cfr/chatham-house/iiss/wilson-center) resolve via that path OR the `mega-thinktanks`/`global-think-tanks` feed aggregates; new mappings use the aggregates (90+ institutes, native RSS).
+- `who`/`lancet`/`the-lancet`/`nature-medicine`/`nature`/`science`/`cell` are dead ids in the main pipeline — real ids are `who-gho`/`who-direct`; `pubmed`/`europepmc`/`nih`/`cdc`/`plos`/`biorxiv` cover health/science.
+- `ssrn` is in `DEAD_PROVIDERS` (HTTP 403 permanent — Elsevier blocks programmatic access); removed from the new mappings.
+- `getCorpusStats().totalDomains` was hardcoded `26` — now computed from `Object.keys(MULTI_DOMAIN_CORPUS).length` (38).
+
+### Verified
+
+- `tsc --noEmit`: 0 errors
+- jest: 18/18 suites, 231 tests (domain-experts test updated to 38)
+- Consistency: 38 domains in KBs / Registry / Corpus / DOMAIN_PROVIDERS — `buildKBInjection` returns 3.3-3.7k chars per new domain
+- Live: sociology/philpapers/persee/zbmath/political-science all return results through `searchRegistry`
+
+## Sprint 18 - Verification & Coverage Quality Layer (2026-08)
+
+Sprint 18 integrates 4 research-grade mechanisms (DeepMind SAFE, Co-STORM, CRAG, G-Eval) plus a golden-set eval harness — the measurement layer the stack was missing.
+
+### New Modules
+
+| Module | Source | Integration |
+|--------|--------|-------------|
+| `lib/agent/safe-verifier.ts` | **SAFE** (DeepMind, NeurIPS 2024) | Per-claim live-search verification: batched query gen → Tavily/Exa evidence → local NLI triage → **LLM arbitration** (NLI alone can't distinguish "source asserts X" from "source reports someone claims X" — debunk pages trigger entailment). Escalates unsupported/contradicted/quantitative-uncited claims inside `groundClaimsWithNLI` (max 12, ~$0.001 + search calls). Live-verified: rescued true claims, caught a planted hoax. |
+| `lib/agent/perspective-questions.ts` | **Co-STORM** (Stanford, EMNLP 2024) | Perspective-guided question asking: discovers 4 expert lenses (intl law, regional geopolitics, climate science…) then generates their search queries. Wired in `scoutImpl` AFTER diversification so guided queries always survive. Fixes the "outline critic finds missing dimensions too late" loop. ~$0.0002. |
+| `lib/agent/retrieval-gapfill.ts` | **CRAG** (corrective RAG) | CARE `missingConcepts` now trigger a bounded targeted re-search (Tavily+Exa+OpenAlex/Crossref) merged into finalPool BEFORE the analyst — was previously log-only. |
+| `lib/agent/critic-panel.ts` | **G-Eval rubric** | 4 parallel reviewers (methodology 30%, coverage 30%, epistemic 25%, editorial 15%), each scoring 1-10 with quoted findings + mustFix flag. Veto = documented repairable defect only (cap 55). Replaces opaque scalar rejections with auditable per-dimension verdicts. ~$0.0015. |
+| `scripts/eval-golden.ts` + `evals/` | Eval harness | Golden-set regression: runs cases (htmlFile or publicationId) through the real stack, aggregates groundedness/citations/panel score, fails on >5pt regression vs `evals/baseline.json`. `npm run eval:golden` / `--update`. |
+| `lib/agent/positioning-agent.ts` | Editorial positioning (gap taxonomy from research-gap-finder, verdict dims from AdversarialCI/warroom) | **Competitive differentiation**: builds a competitor corpus (think-tank providers + editorial domains via Tavily + OpenAlex/Crossref), LLM field-map (coverage/consensus/gaps/weak claims/strongest piece), then emits a `contextBlock` with 3-5 differentiation directives (cover gap / outdeep competitor / challenge weak claim). Strategic formats only; corpus <3 pieces → skipped. ~$0.001, ~13s. |
+
+### Wiring Points
+
+- `pipeline-v2.ts` scoutImpl: perspective queries added post-diversification (step 0.7); CARE gap-fill active at K10; critic panel runs after `runCritic` → `stats.criticPanel` → trust veto at 55 on mustFix.
+- `pipeline-v2.ts` post-SARA / pre-ANALYST: `buildPositioningBrief(query)` → `contextBlock` appended to `fullContextBlock` (all analyst paths: MoA, multipass, TTS, critic-repair, gap re-analysis) → `stats.positioning` persisted.
+- `critic-panel.ts`: optional `fieldContext` activates a 5th reviewer `differentiation` (weight 20%) — does the piece beat the field or just re-synthesize it? mustFix only on pure commodity content.
+- `claim-grounding.ts` `groundClaimsWithNLI`: step 3c SAFE escalation between NLI verdicts and aggregation.
+
+### Verified Live
+
+- Perspective queries on Greenland topic → UNCLOS / territorial purchase precedent / Greenlandic autonomy (exactly the dimensions the critic flagged missing).
+- SAFE: hoax claim `contradicted` (arbiter overrode NLI), true claims `supported`, 16s, $0.0002.
+- Critic panel on thin text: methodology=2 coverage=3 epistemic=5 editorial=4 → 34/100 VETO with reasons.
+- Positioning on Greenland topic: 9 competitor pieces → field map (6 covered dims, 5 gaps) → 4 directives (Tanbreez cost analysis, Greenlandic polling data, Arctic governance reform), 13s, $0.001.
+- Panel with fieldContext on commodity text: differentiation=3 → 27/100 VETO (findings name the missed dimensions + unchallenged weak claim).
+- tsc: 0 errors. jest: 17/17 suites, 224 tests.
+
+### Golden Set (populated)
+
+8 cases in `evals/golden-set.json` — 3 top-tier, 3 mid-tier, 2 HELD canaries. Baseline in `evals/baseline.json` (`npm run eval:golden` / `--update`). Panel is deliberately stricter than stored trust scores (rubric reviewers on raw text) — baseline captures the real distribution.
+
+### Research-provider audit + repairs
+
+| Provider | Status | Note |
+|---|---|---|
+| arXiv | ✅ live | `searchArxiv` works (export.arxiv.org API) |
+| HAL, CORE, OpenAlex, PhilPapers, RePEc, EuropePMC, ERIC, DBLP, DOAJ | ✅ live | CORE auto-falls back to keyless endpoint; PhilPapers/RePEc/ERIC/DBLP route through OpenAlex by design |
+| **OSF** (SocArXiv/PsyArXiv/EarthArXiv) | 🔧 repaired | `api.osf.io/v2/search/` deprecated (404) → rewired to SHARE `creativeworks/_search` (Elasticsearch query_string) + `type:preprint` OpenAlex fallback |
+| **SSRN** | 🔧 repaired | `api.ssrn.com` bot-protected (403) → OpenAlex `type:preprint` fallback keeps social-science working papers in corpus |
+| Semantic Scholar | ⚠️ transient | HTTP 429 rate-limit — needs API key or backoff tuning |
+
+### Positioning Agent — remaining work completed
+
+- `stats.positioning` now stores the full auditable brief (fieldCoverage, consensusClaims, gaps, weakClaims, directiveDetails) → persisted into `Publication.stats` via existing stats merge.
+- `eval-golden.ts` activates the panel's 5th `differentiation` dimension when the stored publication carries `stats.positioning`; aggregate + regression check (`< -1.5` on 1-10 scale) + `minDifferentiation` expectation per case.
+- `__tests__/lib/agent/positioning-agent.test.ts`: 7 edge cases (thin corpus→null, url dedup, <80-char abstracts filtered, valid-axis directive filtering, LLM failure→null, both providers down→null, zero-directive informational brief).
+
+### Format deep-search → DA prospective injected
+
+Best-practice research (Belfer/NIC, France Stratégie, RAND, Shell/OECD scenario planning, Economist/EIU): exec-summary front-loaded, **scenarios wired to decisions and signals** (the step where scenario planning "usually breaks down"), one sober signature accent, methodology transparency. Injected into `position-first-renderer.ts` + `position-first-brief.css.ts`:
+
+| Upgrade | Source | Data used |
+|---|---|---|
+| **Key Judgments** block (numbered, bottom-line verdict first) | NIC/Belfer | `position.inBrief` + `verdict` |
+| **2×2 uncertainty matrix** — visual quadrant grid, scenario chips auto-placed by pole matching on `axisPosition`, unplaced → legend | Shell scenario method | `prospectiveFramework.criticalUncertainties` + `scenario.axisPosition` |
+| **Signal monitor table** — "If you observe X → favors scenario Y" | Decision-grade intelligence | `scenario.signals` per non-wildcard scenario |
+| **Decision logic line** — hedging holds under every scenario; sequenced moves assume central outlook | Shell "robust vs contingent" | `recommendations.riskMitigation` presence |
+| **Colophon** — "How this analysis was produced" (pipeline signature: sources, providers, verification, no gap-filling) | France Stratégie transparency + brand | sources/providers counts |
+| **Action Priority Matrix** — recommendations as scannable table (# × horizon × action × type: central-path vs robust hedge), replaces prose blocks | Harvard M-RCBG 2025 (Trade-Climate Linkage report) | `recommendations.{immediate,shortTerm,longTerm,riskMitigation}` |
+| **Scenario comparison table** (from render audit) | RAND/McKinsey exhibits | prob/CI/sensitivity/drivers |
+
+All cells/tags carrying model estimates use `data-no-cite` (Invariant-6 sanitizer must skip them).
+
+### Render quality audit (paid-product bar)
+
+| Defect found in stored pubs | Fix |
+|---|---|
+| **Format badge escaped** — `&lt;span class="format-badge"&gt;` rendered as literal text in EVERY publication (`esc(metaLine)` escaping raw badge HTML) | Escape text part only; badge HTML raw. Verified in fresh render |
+| **`non établie` (French) inside English prose** — up to 29×/pub. Invariant 6 marker is intentional epistemic honesty, but a French token in EN output reads as a bug | Step 3b in `repairCitations`: detect doc language (French function-word density >6%), normalize `non établie` → `not established` for EN docs. Covers sanitizer + LLM-written tokens. `editor-in-chief` age label → `undated` |
+| **Zero data tables** in all audited pubs — no exhibit an analyst can scan | Scenario comparison table (name/prob/90% CI/sensitivity/top drivers, central row highlighted) injected in Act III — all cells `data-no-cite` so the Invariant-6 sanitizer skips model estimates |
+| Exa HTTP 402 retried every fan-out | Session-level disable on 401/402 (`markExaExhausted`, same pattern as OpenAlex key exhaustion) |
+| Minor, accepted | "missing N" = deliberate missing-reference marker (honest but cryptic); `<sup>` citations inside h2 headings (unusual but valid); no h3 subsections — analyst output structure, bigger change |
+
+### Fixes found via golden-set run
+
+- **Unclosed `<style>/<script>/<head>` repair** in `extractSentencesFromHtml` — a stored HELD publication had an unclosed `<style>` (LLM-generated malformed doc) that swallowed all prose → 0 extracted claims. Repair closes the block before the first prose tag.
+- **Reference-fragment filter** in `decomposeIntoClaims` — bibliography tails ("org/10.3390/... [9] Author, X.") were extracted as claims, inflating unsupported counts and consuming the 12-slot SAFE budget. Now filtered at decomposition (`isReferenceFragment`).
+- **CSS corruption root cause** — `rgba(240, 240, 250, non établie)` in stored HTML is an LLM generation artifact (model wrote the sanitizer's literal token inside CSS), NOT a sanitizer bug (`sanitizeUnsourcedNumbers` masks style blocks correctly; an unclosed style is masked to EOF).
+
+---
+
 ## Sprint 17 - Foresight & Scenario Calibration Layer (2026-08)
 
 Sprint 17 fixes a critical architectural bug in the foresight pipeline and introduces state-of-the-art multi-expert scenario calibration inspired by 2026 research.
@@ -2323,4 +2859,35 @@ await runPipeline(query, "strategic", {
 ### TypeScript
 
 All new modules compile: `npx tsc --noEmit` is green.
+
+### Offline funnel regression checks
+
+- Run `npx jest --runInBand --runTestsByPath __tests__/lib/agent/funnel-regressions.test.ts` for mocked publication, trust, repair-budget, numerical sanitation, and HTTP diagnostic checks. No live database or paid model calls are required.
+- `stats.criticalLoop.finalScore` is the terminal 0–100 trust score. Funnel extraction must preserve it, including critic/NLI vetoes, rather than re-blend it upward.
+- Publication holds, failed readiness, and rejected required sign-off remain blocking at persistence, even when advisory warning branches propose publication.
+- Simulation convergence and synthetic confidence intervals do not establish predictive calibration. Validate against resolved forecasts before claiming empirical calibration.
+
+### Central scenario publication contract
+
+- The editorial arbiter selects one exact scenario name, provides a cited `centralScenarioRationale`, implications, a horizon and observable revision triggers. `resolveCentralScenario` validates the choice; probability fallback alone is not publishable.
+- Monte Carlo is advisory for the central-scenario path: store disagreements and the simulation report without overwriting the editorial distribution. This supersedes the earlier Sprint 17 instruction to overwrite the displayed editorial probabilities.
+- Persist `institutePosition`, `centralScenario` and `centralScenarioRequired` in pipeline stats/brief lineage. The inquiry wrapper reuses completed simulations, preserves source index order, and clears its legacy simulation deadline timer. Register the central narrative, horizon and falsification triggers as a prediction with no invented numerical probability.
+- The publication gate checks both structured decision and final rendered central block. Missing narrative, rationale references, horizon, implications or revision triggers causes a hold. Alternatives remain secondary/collapsed.
+- Offline tests: `npx jest --runInBand --runTestsByPath __tests__/lib/agent/central-scenario.test.ts __tests__/lib/agent/central-scenario-pipeline.test.ts __tests__/lib/agent/funnel-regressions.test.ts`.
+- Infrastructure limitation: Netlify scheduled functions await the synchronous Next.js cron routes, which await the entire think-tank cycle. Local long-run success does not validate hosting time limits; long jobs require a durable worker or checkpointed execution. No hosting migration is performed by the central-scenario change.
+
+### Durable worker (job queue)
+
+- `lib/worker/durable-worker.ts` — atomic claim (PENDING or stale RUNNING lock), 2-min heartbeat lock renewal, retry with exponential backoff, `JobDeadLetter` on exhausted attempts.
+- `lib/worker/job-handlers.ts` — registers `THINK_TANK_CYCLE` → `runThinkTankCycle` and `STUDIOX_PIPELINE` → `processStudioXOrder`. Import only from the worker entrypoint (pulls the whole pipeline graph).
+- `lib/worker/think-tank-queue.ts` — `enqueueThinkTankCycle({mode})`: idempotent per ISO week (weekly) or 12h window (breaking); refuses to enqueue while a cycle holds a live lock.
+- Cron routes (`/api/cron/generate-briefs`, `/api/cron/auto-scan`) enqueue → 202 by default. `POST ?sync=1` or `THINK_TANK_INLINE=1` runs inline for local/manual use. `GET ?jobId=<id>` returns job status.
+- Run the worker: `npm run worker:pipeline` (loop) or `npm run worker:pipeline:once` (single pass). Needs `DATABASE_URL` + LLM/provider env — deploy on any always-on host; it does NOT run on Netlify (functions cap at 15 min vs 45–75 min cycles).
+- Offline tests: `npx jest --runInBand --runTestsByPath __tests__/lib/worker/durable-worker.test.ts`.
+
+### Monte Carlo calibration fix
+
+- `runMonteCarloCore` previously used winner-take-all argmax over a score that double-counted the prior (auto-derived assumptions were generated FROM the prior, then `prior*0.5` was added) — priors 40/30/20/10 collapsed to ~82/16/2/0 with no new evidence.
+- Now: per-run Dirichlet draw around priors (`priorConcentration`, default 8) × evidence weight → categorical winner sampling. Auto-derived assumptions contribute neutral evidence; only explicit assumptions and source-graph overlap differentiate. Verified: neutral evidence preserves priors; matching assumptions move probability toward the favored scenario.
+- Still true: convergence of win-frequencies is NOT predictive calibration — validate against resolved forecasts before claiming empirical accuracy.
 

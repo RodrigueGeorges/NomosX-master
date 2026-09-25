@@ -17,13 +17,21 @@ export interface ExaSearchOptions {
   excludeDomains?: string[];
 }
 
+// Session-level disable: HTTP 402 (payment required) / 401 (invalid key) mean
+// the Exa account is out of credits — every subsequent call will fail the same
+// way, so we short-circuit for the process lifetime instead of burning latency
+// and log noise on each scout fan-out. Same pattern as markOpenAlexKeyExhausted.
+let exaCreditsExhausted = false;
+export function markExaExhausted() { exaCreditsExhausted = true; }
+export function isExaExhausted() { return exaCreditsExhausted; }
+
 export async function searchExa(
   query: string,
   limit = 15,
   options?: ExaSearchOptions
 ): Promise<any[]> {
-  if (!EXA_API_KEY) {
-    console.log('[SCOUT] Exa: skipped (no EXA_API_KEY)');
+  if (!EXA_API_KEY || exaCreditsExhausted) {
+    if (!EXA_API_KEY) console.log('[SCOUT] Exa: skipped (no EXA_API_KEY)');
     return [];
   }
 
@@ -114,7 +122,13 @@ export async function searchExa(
       };
     });
   } catch (err: any) {
-    console.warn(`[SCOUT/Exa] Error: ${err.message}`);
+    const status = err?.status ?? err?.statusCode;
+    if (status === 402 || status === 401) {
+      exaCreditsExhausted = true;
+      console.warn(`[SCOUT/Exa] HTTP ${status} — credits/auth exhausted, Exa disabled for this session`);
+    } else {
+      console.warn(`[SCOUT/Exa] Error: ${err.message}`);
+    }
     return [];
   }
 }

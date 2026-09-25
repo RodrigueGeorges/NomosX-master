@@ -27,8 +27,10 @@ export async function searchGallica(query: string, limit = 20): Promise<any[]> {
       `&recordSchema=dc`;
 
     const xml: string = await fetchFromProvider('gallica', url, {
-      timeout: 20000,
-      retries: 3,
+      // gallica.bnf.fr is intermittently unreachable/406 — fail fast rather
+      // than burning 20s×3 retries per scout wave. Heritage hits are a bonus.
+      timeout: 8000,
+      retries: 1,
     });
 
     if (typeof xml !== 'string') return [];

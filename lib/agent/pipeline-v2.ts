@@ -27,11 +27,10 @@ import { extractAndStoreGaps, getRelevantGaps, markGapsFilled } from './gap-fill
 import { assessEvidenceSufficiency } from './enrichment-reasoner';
 import { guardOutput } from './output-guard';
 import { judge } from './local-judge';
-import { initDurableRun } from './durable-execution';
+import { initDurableRun, runDurableStep, durableKeyFor, markDurableComplete, durableResume, saveDurableStep } from './durable-execution';
 import { generateStormPerspectives } from './research-patterns';
 import { augmentThinkTankHtml, type PrimarySourceInput } from './think-tank-pack';
 import { selfCorrectReader, selfCorrectAnalyst, reAnalyzeAfterGapFill } from './self-correction-integration';
-import { analystReAct } from './analyst-react';
 import { createWitnessContext, buildObservation, buildLearningInjection, type WitnessContext } from './witness/integration';
 import { runMixtureOfAgents, loadAgentWeights, updateAgentWeights } from './moa/mixture-of-agents';
 import { buildWorldModelInjection, updateWorldModel } from './world-model/world-model';
@@ -47,7 +46,7 @@ import { extractFeatures, scoreStep, persistProcessStep, loadPRMModel, retrainPR
 import { recordSourceUsage } from './source-reputation-agent';
 import { emitProgress } from './pipeline-progress';
 import { selectSmartProviders } from './smart-provider-selector';
-import { getHealthyProviders } from './provider-health-tracker';
+import { getHealthyProviders, recordProviderCall } from './provider-health-tracker';
 import { searchExtendedProviders, getExtendedProvidersForDomain } from '../providers/registry-bridge';
 import { filterLowQualitySources } from '../providers/source-quality-filter';
 import { classifyTopic } from './topic-classifier';
@@ -76,7 +75,7 @@ import { renderPositionFirstBriefHTML } from './position-first-renderer';
 import { computeTrackRecordStats } from './track-record';
 
 import { editorialArbiter } from './editorial-arbiter';
-import type { CastingResult, InstitutePosition } from './editorial-types';
+import { resolveCentralScenario, type CastingResult, type InstitutePosition } from './editorial-types';
 import type { DebateResult } from './debate-agent';
 import { generatePrintHTML } from './pdf-export';
 import { registerPredictions } from './prediction-registration';
@@ -212,6 +211,14 @@ import { searchISIDORE } from "../providers/isidore";
 import { searchERIC } from "../providers/eric";
 import { searchFAO } from "../providers/fao";
 import { searchUNODC } from "../providers/unodc";
+import { searchWorldBankData } from "../providers/worldbank-data";
+import { searchUCDP, searchILOSTAT, searchOWID } from "../providers/stats-data";
+import {
+  searchComtrade, searchBLS, searchCensus, searchACLED,
+  searchUNHCR, searchEStatJP, searchKOSIS, searchONS, searchIBGE,
+  searchDataCommons,
+} from "../providers/stats-keys";
+import { searchSearxng } from "../providers/searxng";
 import { searchPhilPapers } from "../providers/philpapers";
 import { searchPersee } from "../providers/persee";
 import { searchOpenAIRE } from "../providers/openaire";
@@ -397,6 +404,13 @@ export type Providers = Array<
   | "fao"
   // Criminologie & Justice
   | "unodc"
+  // Live statistics APIs (real numbers, no key required)
+  | "worldbank-data" | "ucdp" | "ilostat" | "owid"
+  // Key-gated national/international stats (free registration)
+  | "comtrade" | "us-bls" | "us-census" | "acled" | "unhcr" | "estat-jp" | "kosis"
+  | "ons-uk" | "ibge" | "datacommons"
+  // Free metasearch floor (SearXNG — no key, self-hostable)
+  | "searxng"
   // Science ouverte européenne
   | "openaire"
   // Open science repository (CERN/Zenodo)
@@ -438,6 +452,9 @@ export type Providers = Array<
   | "hf-papers"
   // EU open data
   | "data-europa"
+  // Mega feed registries (domain-routed sub-sources)
+  | "mega-central-banks" | "mega-stats" | "mega-un" | "mega-eu" | "mega-press"
+  | "mega-thinktanks" | "mega-development" | "mega-academia" | "mega-civil-society"
   // Internet standards
   | "ietf"
 >;
@@ -469,6 +486,9 @@ export const ALL_PROVIDERS = [
   'consolidated-institutions',
   // V3.1: GLOBAL OMNISCIENCE LAYER — RSS-based providers covering 80+ organizations worldwide
   'global-intelligence', 'global-orgs', 'global-think-tanks', 'global-science',
+  // V3.2: MEGA FEED REGISTRY — 560+ sub-sources (domain-routed, max ~24 feeds/query)
+  'mega-central-banks', 'mega-stats', 'mega-un', 'mega-eu', 'mega-press',
+  'mega-thinktanks', 'mega-development', 'mega-academia', 'mega-civil-society',
   // Real-time News
   'gdelt-news', 'newsapi', 'mediastack', 'thenewsapi', 'gnews', 'eventregistry',
   // Independent Media — investigative journalism, heterodox voices, Global South
@@ -479,6 +499,10 @@ export const ALL_PROVIDERS = [
   'isidore', 'persee', 'philpapers',
   // Education, Agriculture, Criminology, Open Science
   'eric', 'fao', 'unodc', 'openaire', 'zenodo',
+  // Live statistics APIs
+  'worldbank-data', 'ucdp', 'ilostat', 'owid',
+  'comtrade', 'us-bls', 'us-census', 'acled', 'unhcr', 'estat-jp', 'kosis',
+  'ons-uk', 'ibge', 'datacommons', 'searxng',
   // Domain-specific academic providers
   'psychology', 'sociology', 'history', 'geography',
   'chemistry', 'biology', 'political-science', 'business',
@@ -582,6 +606,53 @@ export async function scout(query: string, providers: Providers, perProvider = 1
 }
 
 /**
+ * Wrap a provider search promise so its outcome feeds the provider health
+ * circuit breaker (recordProviderCall). 3 consecutive failures blacklist the
+ * provider for 30 min — dead endpoints stop wasting scout wall-clock time.
+ */
+/**
+ * Hard per-call deadline. Rate-limit queues + retries can stretch a single
+ * provider call to many minutes (observed: 24min scout passes when dead
+ * providers stack timeouts). Racing each call against a deadline bounds the
+ * whole fan-out: Promise.allSettled resolves once every promise has either
+ * completed or hit the deadline. The underlying request keeps running in the
+ * background but its result is discarded — acceptable vs. a killed pipeline.
+ */
+const PROVIDER_CALL_DEADLINE_MS = Number(process.env.PROVIDER_CALL_DEADLINE_MS ?? 90_000);
+
+function trackProviderCall<T extends any[]>(provider: string, promise: Promise<T>): Promise<T> {
+  const start = Date.now();
+  let settled = false;
+  const timed = promise.then(
+    (results) => {
+      if (settled) return results;
+      settled = true;
+      recordProviderCall({ provider, success: true, responseMs: Date.now() - start, resultCount: results.length });
+      return results;
+    },
+    (err: any) => {
+      if (settled) throw err;
+      settled = true;
+      recordProviderCall({ provider, success: false, responseMs: Date.now() - start, error: String(err?.message || err).slice(0, 120) });
+      throw err;
+    },
+  );
+  const deadline = new Promise<T>((resolve) => setTimeout(() => {
+    if (settled) return;
+    settled = true;
+    recordProviderCall({ provider, success: false, responseMs: Date.now() - start, error: `deadline ${PROVIDER_CALL_DEADLINE_MS / 1000}s exceeded` });
+    console.warn(`[SCOUT] ${provider}: call deadline ${PROVIDER_CALL_DEADLINE_MS / 1000}s exceeded — dropping results`);
+    resolve([] as unknown as T);
+  }, PROVIDER_CALL_DEADLINE_MS));
+  // Never reject: all call sites push into an array consumed LATER by
+  // Promise.allSettled — with awaits (dynamic imports) in between. An early
+  // rejection (e.g. circuit-breaker fail-fast) in that window is an unhandled
+  // rejection and kills the process. The failure is already recorded above;
+  // returning [] is identical to what allSettled did with rejected entries.
+  return Promise.race([timed, deadline]).catch(() => [] as unknown as T);
+}
+
+/**
  * SCOUT: Unified implementation with query enhancement + reranking
  *
  * Pipeline: Query Enhancement â†’ Multi-Query Search (58+ providers)
@@ -644,6 +715,38 @@ async function scoutImpl(query: string, providers: Providers, perProvider = 100)
     console.warn('[SCOUT] Query diversification failed (non-blocking):', err);
   }
 
+  // ── STEP 0.7: PERSPECTIVE-GUIDED QUESTIONS (Co-STORM, EMNLP 2024) ──
+  // Added AFTER diversification so expert-perspective queries are guaranteed
+  // to survive into the final query set — they target dimensions the generic
+  // enhancement/variations systematically miss (legal, historical, dissenting).
+  try {
+    const { generatePerspectiveQueries } = await import('./perspective-questions');
+    const pq = await generatePerspectiveQueries(query, 4);
+    if (pq.queries.length > 0) {
+      searchQueries = [...searchQueries, ...pq.queries].slice(0, 14);
+      console.log(`[SCOUT] Perspective-guided: +${pq.queries.length} queries from ${pq.perspectives.length} expert lenses (total ${searchQueries.length})`);
+    }
+  } catch (err) {
+    console.warn('[SCOUT] Perspective question generation failed (non-blocking):', err);
+  }
+
+  // Dedup query variations (normalized) — enhancer + diversification +
+  // perspective queries can emit near-identical strings; each duplicate costs
+  // a full provider fan-out. Anti-saturation: no redundant provider calls.
+  {
+    const before = searchQueries.length;
+    const seenQ = new Set<string>();
+    searchQueries = searchQueries.filter(q => {
+      const k = q.toLowerCase().replace(/[^\w\s]/g, ' ').replace(/\s+/g, ' ').trim();
+      if (seenQ.has(k)) return false;
+      seenQ.add(k);
+      return true;
+    });
+    if (searchQueries.length < before) {
+      console.log(`[SCOUT] Deduped query variations: ${before} → ${searchQueries.length}`);
+    }
+  }
+
   const pool: any[] = [];
   // Use routed providers if neural routing selected them; otherwise use the original set
   const routedProviders = (scoutImpl as any)._routedProviders as string[] | undefined;
@@ -659,6 +762,15 @@ async function scoutImpl(query: string, providers: Providers, perProvider = 100)
     'jrc',        // HTTP 404 — endpoints obsolete (JRC API changed)
     'acer',       // HTTP 403 — access denied (ACER API requires auth that is not configured)
     'imf-sdmx',   // fetch failed — IMF SDMX API is down or unreachable from this network
+    // Confirmed dead in 2026-09 live audit (scripts/audit-providers-live.ts):
+    'ssrn',       // HTTP 403 permanent — Elsevier blocks programmatic access
+    'osti',       // connection dead — osti.gov unreachable (curl 000)
+    'cyberleninka', // API endpoint exists but undocumented (GET 405 / POST 400)
+    'jstage',     // wrong endpoint — real J-STAGE API requires registration
+    'scielo',     // api.scielo.org dead, search.scielo.org returns 403
+    'elibrary-ru',// needs auth token; HTML scraping fallback broken
+    'apitube',    // HTTP 404 — endpoint gone + requires key
+    'papers-with-code', // domain now 302-redirects to huggingface.co/papers (PwC shut down by Meta, absorbed into HF — hf-papers covers it)
   ]);
   for (const dead of DEAD_PROVIDERS) {
     providerSet.delete(dead);
@@ -690,302 +802,336 @@ async function scoutImpl(query: string, providers: Providers, perProvider = 100)
   const allPromises: Promise<any[]>[] = [];
   for (const sq of searchQueries) {
     // ACADÉMIQUES
-    if (providerSet.has("openalex")) allPromises.push(searchOpenAlex(sq, perProvider));
-    if (providerSet.has("crossref")) allPromises.push(searchCrossref(sq, Math.min(50, perProvider)));
-    if (providerSet.has("semanticscholar")) allPromises.push(searchSemanticScholar(sq, Math.min(50, perProvider)));
-    if (providerSet.has("arxiv")) allPromises.push(searchArxiv(sq, Math.min(50, perProvider)));
-    if (providerSet.has("hal")) allPromises.push(searchHAL(sq, Math.min(50, perProvider)));
-    if (providerSet.has("pubmed")) allPromises.push(searchPubMed(sq, Math.min(50, perProvider)));
-    if (providerSet.has("base")) allPromises.push(searchBASE(sq, Math.min(50, perProvider)));
+    if (providerSet.has("openalex")) allPromises.push(trackProviderCall("openalex", searchOpenAlex(sq, perProvider)));
+    if (providerSet.has("crossref")) allPromises.push(trackProviderCall("crossref", searchCrossref(sq, Math.min(50, perProvider))));
+    if (providerSet.has("semanticscholar")) allPromises.push(trackProviderCall("semanticscholar", searchSemanticScholar(sq, Math.min(50, perProvider))));
+    if (providerSet.has("arxiv")) allPromises.push(trackProviderCall("arxiv", searchArxiv(sq, Math.min(50, perProvider))));
+    if (providerSet.has("hal")) allPromises.push(trackProviderCall("hal", searchHAL(sq, Math.min(50, perProvider))));
+    if (providerSet.has("pubmed")) allPromises.push(trackProviderCall("pubmed", searchPubMed(sq, Math.min(50, perProvider))));
+    if (providerSet.has("base")) allPromises.push(trackProviderCall("base", searchBASE(sq, Math.min(50, perProvider))));
 
     // ACADÉMIQUES — EXTENDED COVERAGE
-    if (providerSet.has("core")) allPromises.push(searchCORE(sq, Math.min(30, perProvider)));
-    if (providerSet.has("europepmc")) allPromises.push(searchEuropePMC(sq, Math.min(30, perProvider)));
-    if (providerSet.has("doaj")) allPromises.push(searchDOAJ(sq, Math.min(30, perProvider)));
-    if (providerSet.has("ssrn")) allPromises.push(searchSSRN(sq, Math.min(20, perProvider)));
-    if (providerSet.has("repec")) allPromises.push(searchRePEc(sq, Math.min(20, perProvider)));
-    if (providerSet.has("nber")) allPromises.push(searchNBER(sq, Math.min(20, perProvider)));
-    if (providerSet.has("who-gho")) allPromises.push(searchWHOGHO(sq, Math.min(20, perProvider)));
-    if (providerSet.has("semantic-scholar-graph")) allPromises.push(searchSemanticScholarGraph(sq, Math.min(25, perProvider)));
+    if (providerSet.has("core")) allPromises.push(trackProviderCall("core", searchCORE(sq, Math.min(30, perProvider))));
+    if (providerSet.has("europepmc")) allPromises.push(trackProviderCall("europepmc", searchEuropePMC(sq, Math.min(30, perProvider))));
+    if (providerSet.has("doaj")) allPromises.push(trackProviderCall("doaj", searchDOAJ(sq, Math.min(30, perProvider))));
+    if (providerSet.has("ssrn")) allPromises.push(trackProviderCall("ssrn", searchSSRN(sq, Math.min(20, perProvider))));
+    if (providerSet.has("repec")) allPromises.push(trackProviderCall("repec", searchRePEc(sq, Math.min(20, perProvider))));
+    if (providerSet.has("nber")) allPromises.push(trackProviderCall("nber", searchNBER(sq, Math.min(20, perProvider))));
+    if (providerSet.has("who-gho")) allPromises.push(trackProviderCall("who-gho", searchWHOGHO(sq, Math.min(20, perProvider))));
+    if (providerSet.has("semantic-scholar-graph")) allPromises.push(trackProviderCall("semantic-scholar-graph", searchSemanticScholarGraph(sq, Math.min(25, perProvider))));
 
     // CONSOLIDATED INSTITUTIONS (V3.1) — single OpenAlex request for all ROR-filtered institutions
     // Replaces 30+ individual OpenAlex calls with 1-2 batched calls
     if (providerSet.has("consolidated-institutions")) {
       const { searchConsolidatedInstitutions } = await import("../providers/institutional/consolidated-institutions");
-      allPromises.push(searchConsolidatedInstitutions(sq, ['economic', 'defense', 'french', 'health', 'tech', 'multilateral'], Math.min(30, perProvider)));
+      allPromises.push(trackProviderCall("consolidated-institutions", searchConsolidatedInstitutions(sq, ['economic', 'defense', 'french', 'health', 'tech', 'multilateral'], Math.min(30, perProvider))));
     }
 
     // V3.1: GLOBAL OMNISCIENCE LAYER — 4 consolidated RSS-based providers covering 80+ organizations
     // Intelligence, International Orgs, Think Tanks, Science & Tech
     if (providerSet.has("global-intelligence")) {
       const { searchGlobalIntelligence } = await import("../providers/institutional/intelligence/global-intelligence");
-      allPromises.push(searchGlobalIntelligence(sq, Math.min(20, perProvider)));
+      allPromises.push(trackProviderCall("global-intelligence", searchGlobalIntelligence(sq, Math.min(20, perProvider))));
     }
     if (providerSet.has("global-orgs")) {
       const { searchGlobalOrgs } = await import("../providers/institutional/international/global-orgs");
-      allPromises.push(searchGlobalOrgs(sq, Math.min(25, perProvider)));
+      allPromises.push(trackProviderCall("global-orgs", searchGlobalOrgs(sq, Math.min(25, perProvider))));
     }
     if (providerSet.has("global-think-tanks")) {
       const { searchGlobalThinkTanks } = await import("../providers/institutional/think-tanks/global-think-tanks");
-      allPromises.push(searchGlobalThinkTanks(sq, Math.min(25, perProvider)));
+      allPromises.push(trackProviderCall("global-think-tanks", searchGlobalThinkTanks(sq, Math.min(25, perProvider))));
     }
     if (providerSet.has("global-science")) {
       const { searchGlobalScience } = await import("../providers/institutional/science/global-science");
-      allPromises.push(searchGlobalScience(sq, Math.min(20, perProvider)));
+      allPromises.push(trackProviderCall("global-science", searchGlobalScience(sq, Math.min(20, perProvider))));
+    }
+
+    // V3.2: MEGA FEED REGISTRY — domain-routed subset search over 560+ sources.
+    // Each mega-* provider internally selects only the ~24 most relevant feeds.
+    {
+      const megaNames = [
+        "mega-central-banks", "mega-stats", "mega-un", "mega-eu", "mega-press",
+        "mega-thinktanks", "mega-development", "mega-academia", "mega-civil-society",
+      ] as const;
+      const activeMega = megaNames.filter(n => providerSet.has(n));
+      if (activeMega.length > 0) {
+        const { searchFeedSubset } = await import("../providers/feeds");
+        for (const n of activeMega) {
+          allPromises.push(trackProviderCall(n, searchFeedSubset(n, sq, Math.min(20, perProvider))));
+        }
+      }
     }
 
     // INSTITUTIONNELS - INTELLIGENCE (these use direct APIs, not OpenAlex)
-    if (providerSet.has("odni")) allPromises.push(searchODNI(sq, Math.min(10, perProvider)));
-    if (providerSet.has("cia-foia")) allPromises.push(searchCIAFOIA(sq, Math.min(10, perProvider)));
-    if (providerSet.has("nsa")) allPromises.push(searchNSA(sq, Math.min(10, perProvider)));
-    if (providerSet.has("uk-jic")) allPromises.push(searchUKJIC(sq, Math.min(10, perProvider)));
+    if (providerSet.has("odni")) allPromises.push(trackProviderCall("odni", searchODNI(sq, Math.min(10, perProvider))));
+    if (providerSet.has("cia-foia")) allPromises.push(trackProviderCall("cia-foia", searchCIAFOIA(sq, Math.min(10, perProvider))));
+    if (providerSet.has("nsa")) allPromises.push(trackProviderCall("nsa", searchNSA(sq, Math.min(10, perProvider))));
+    if (providerSet.has("uk-jic")) allPromises.push(trackProviderCall("uk-jic", searchUKJIC(sq, Math.min(10, perProvider))));
 
     // INSTITUTIONNELS - DÉFENSE (skip if consolidated is used)
-    if (providerSet.has("nato") && !providerSet.has("consolidated-institutions")) allPromises.push(searchNATO(sq, Math.min(15, perProvider)));
-    if (providerSet.has("eeas") && !providerSet.has("consolidated-institutions")) allPromises.push(searchEEAS(sq, Math.min(15, perProvider)));
-    if (providerSet.has("sgdsn") && !providerSet.has("consolidated-institutions")) allPromises.push(searchSGDSN(sq, Math.min(10, perProvider)));
-    if (providerSet.has("eda") && !providerSet.has("consolidated-institutions")) allPromises.push(searchEDA(sq, Math.min(10, perProvider)));
+    if (providerSet.has("nato") && !providerSet.has("consolidated-institutions")) allPromises.push(trackProviderCall("nato", searchNATO(sq, Math.min(15, perProvider))));
+    if (providerSet.has("eeas") && !providerSet.has("consolidated-institutions")) allPromises.push(trackProviderCall("eeas", searchEEAS(sq, Math.min(15, perProvider))));
+    if (providerSet.has("sgdsn") && !providerSet.has("consolidated-institutions")) allPromises.push(trackProviderCall("sgdsn", searchSGDSN(sq, Math.min(10, perProvider))));
+    if (providerSet.has("eda") && !providerSet.has("consolidated-institutions")) allPromises.push(trackProviderCall("eda", searchEDA(sq, Math.min(10, perProvider))));
 
     // INSTITUTIONNELS - ÉCONOMIE
-    if (providerSet.has("imf") && !providerSet.has("consolidated-institutions")) allPromises.push(searchIMF(sq, Math.min(15, perProvider)));
-    if (providerSet.has("worldbank") && !providerSet.has("consolidated-institutions")) allPromises.push(searchWorldBank(sq, Math.min(15, perProvider)));
-    if (providerSet.has("oecd") && !providerSet.has("consolidated-institutions")) allPromises.push(searchOECD(sq, Math.min(15, perProvider)));
-    if (providerSet.has("bis") && !providerSet.has("consolidated-institutions")) allPromises.push(searchBIS(sq, Math.min(15, perProvider)));
+    if (providerSet.has("imf") && !providerSet.has("consolidated-institutions")) allPromises.push(trackProviderCall("imf", searchIMF(sq, Math.min(15, perProvider))));
+    if (providerSet.has("worldbank") && !providerSet.has("consolidated-institutions")) allPromises.push(trackProviderCall("worldbank", searchWorldBank(sq, Math.min(15, perProvider))));
+    if (providerSet.has("oecd") && !providerSet.has("consolidated-institutions")) allPromises.push(trackProviderCall("oecd", searchOECD(sq, Math.min(15, perProvider))));
+    if (providerSet.has("bis") && !providerSet.has("consolidated-institutions")) allPromises.push(trackProviderCall("bis", searchBIS(sq, Math.min(15, perProvider))));
 
     // INSTITUTIONNELS - CYBER
-    if (providerSet.has("nist") && !providerSet.has("consolidated-institutions")) allPromises.push(searchNIST(sq, Math.min(10, perProvider)));
-    if (providerSet.has("cisa")) allPromises.push(searchCISA(sq, Math.min(15, perProvider)));
-    if (providerSet.has("enisa") && !providerSet.has("consolidated-institutions")) allPromises.push(searchENISA(sq, Math.min(10, perProvider)));
+    if (providerSet.has("nist") && !providerSet.has("consolidated-institutions")) allPromises.push(trackProviderCall("nist", searchNIST(sq, Math.min(10, perProvider))));
+    if (providerSet.has("cisa")) allPromises.push(trackProviderCall("cisa", searchCISA(sq, Math.min(15, perProvider))));
+    if (providerSet.has("enisa") && !providerSet.has("consolidated-institutions")) allPromises.push(trackProviderCall("enisa", searchENISA(sq, Math.min(10, perProvider))));
 
     // INSTITUTIONNELS - MULTILATÉRAL
-    if (providerSet.has("un") && !providerSet.has("consolidated-institutions")) allPromises.push(searchUN(sq, Math.min(15, perProvider)));
-    if (providerSet.has("undp") && !providerSet.has("consolidated-institutions")) allPromises.push(searchUNDP(sq, Math.min(15, perProvider)));
-    if (providerSet.has("unctad") && !providerSet.has("consolidated-institutions")) allPromises.push(searchUNCTAD(sq, Math.min(15, perProvider)));
+    if (providerSet.has("un") && !providerSet.has("consolidated-institutions")) allPromises.push(trackProviderCall("un", searchUN(sq, Math.min(15, perProvider))));
+    if (providerSet.has("undp") && !providerSet.has("consolidated-institutions")) allPromises.push(trackProviderCall("undp", searchUNDP(sq, Math.min(15, perProvider))));
+    if (providerSet.has("unctad") && !providerSet.has("consolidated-institutions")) allPromises.push(trackProviderCall("unctad", searchUNCTAD(sq, Math.min(15, perProvider))));
 
     // INSTITUTIONNELS - ARCHIVES
-    if (providerSet.has("nara")) allPromises.push(searchNARA(sq, Math.min(10, perProvider)));
-    if (providerSet.has("uk-archives")) allPromises.push(searchUKArchives(sq, Math.min(10, perProvider)));
-    if (providerSet.has("archives-fr")) allPromises.push(searchArchivesNationalesFR(sq, Math.min(10, perProvider)));
+    if (providerSet.has("nara")) allPromises.push(trackProviderCall("nara", searchNARA(sq, Math.min(10, perProvider))));
+    if (providerSet.has("uk-archives")) allPromises.push(trackProviderCall("uk-archives", searchUKArchives(sq, Math.min(10, perProvider))));
+    if (providerSet.has("archives-fr")) allPromises.push(trackProviderCall("archives-fr", searchArchivesNationalesFR(sq, Math.min(10, perProvider))));
 
     // INSTITUTIONNELS - ÉNERGIE & NUCLÉAIRE
-    if (providerSet.has("iaea") && !providerSet.has("consolidated-institutions")) allPromises.push(searchIAEA(sq, Math.min(15, perProvider)));
-    if (providerSet.has("irena") && !providerSet.has("consolidated-institutions")) allPromises.push(searchIRENA(sq, Math.min(15, perProvider)));
-    if (providerSet.has("cea") && !providerSet.has("consolidated-institutions")) allPromises.push(searchCEA(sq, Math.min(15, perProvider)));
-    if (providerSet.has("entsoe")) allPromises.push(searchENTSOE(sq, Math.min(15, perProvider)));
-    if (providerSet.has("jrc")) allPromises.push(searchJRC(sq, Math.min(15, perProvider)));
-    if (providerSet.has("iea")) allPromises.push(searchIEA(sq, Math.min(15, perProvider)));
-    if (providerSet.has("acer")) allPromises.push(searchACER(sq, Math.min(15, perProvider)));
-    if (providerSet.has("entsog")) allPromises.push(searchENTSOG(sq, Math.min(15, perProvider)));
-    if (providerSet.has("energy-charts")) allPromises.push(searchEnergyCharts(sq, Math.min(10, perProvider)));
-    if (providerSet.has("smard")) allPromises.push(searchSMARD(sq, Math.min(10, perProvider)));
-    if (providerSet.has("rte-france")) allPromises.push(searchRTEFrance(sq, Math.min(10, perProvider)));
-    if (providerSet.has("energi-data")) allPromises.push(searchEnergiDataService(sq, Math.min(10, perProvider)));
-    if (providerSet.has("fingrid")) allPromises.push(searchFingrid(sq, Math.min(10, perProvider)));
+    if (providerSet.has("iaea") && !providerSet.has("consolidated-institutions")) allPromises.push(trackProviderCall("iaea", searchIAEA(sq, Math.min(15, perProvider))));
+    if (providerSet.has("irena") && !providerSet.has("consolidated-institutions")) allPromises.push(trackProviderCall("irena", searchIRENA(sq, Math.min(15, perProvider))));
+    if (providerSet.has("cea") && !providerSet.has("consolidated-institutions")) allPromises.push(trackProviderCall("cea", searchCEA(sq, Math.min(15, perProvider))));
+    if (providerSet.has("entsoe")) allPromises.push(trackProviderCall("entsoe", searchENTSOE(sq, Math.min(15, perProvider))));
+    if (providerSet.has("jrc")) allPromises.push(trackProviderCall("jrc", searchJRC(sq, Math.min(15, perProvider))));
+    if (providerSet.has("iea")) allPromises.push(trackProviderCall("iea", searchIEA(sq, Math.min(15, perProvider))));
+    if (providerSet.has("acer")) allPromises.push(trackProviderCall("acer", searchACER(sq, Math.min(15, perProvider))));
+    if (providerSet.has("entsog")) allPromises.push(trackProviderCall("entsog", searchENTSOG(sq, Math.min(15, perProvider))));
+    if (providerSet.has("energy-charts")) allPromises.push(trackProviderCall("energy-charts", searchEnergyCharts(sq, Math.min(10, perProvider))));
+    if (providerSet.has("smard")) allPromises.push(trackProviderCall("smard", searchSMARD(sq, Math.min(10, perProvider))));
+    if (providerSet.has("rte-france")) allPromises.push(trackProviderCall("rte-france", searchRTEFrance(sq, Math.min(10, perProvider))));
+    if (providerSet.has("energi-data")) allPromises.push(trackProviderCall("energi-data", searchEnergiDataService(sq, Math.min(10, perProvider))));
+    if (providerSet.has("fingrid")) allPromises.push(trackProviderCall("fingrid", searchFingrid(sq, Math.min(10, perProvider))));
 
     // INSTITUTIONNELS - THINK TANKS
-    if (providerSet.has("bruegel") && !providerSet.has("consolidated-institutions")) allPromises.push(searchBruegel(sq, Math.min(15, perProvider)));
+    if (providerSet.has("bruegel") && !providerSet.has("consolidated-institutions")) allPromises.push(trackProviderCall("bruegel", searchBruegel(sq, Math.min(15, perProvider))));
 
     // INSTITUTIONNELS - ENVIRONMENTAL
-    if (providerSet.has("eea") && !providerSet.has("consolidated-institutions")) allPromises.push(searchEEA(sq, Math.min(15, perProvider)));
+    if (providerSet.has("eea") && !providerSet.has("consolidated-institutions")) allPromises.push(trackProviderCall("eea", searchEEA(sq, Math.min(15, perProvider))));
 
     // INSTITUTIONNELS - ACADEMIC INDEPENDENT APIs
-    if (providerSet.has("openreview")) allPromises.push(searchOpenReview(sq, Math.min(20, perProvider)));
-    if (providerSet.has("biorxiv")) allPromises.push(searchBioRxiv(sq, Math.min(20, perProvider)));
-    if (providerSet.has("papers-with-code")) allPromises.push(searchPapersWithCode(sq, Math.min(20, perProvider)));
-    if (providerSet.has("mit-dspace")) allPromises.push(searchMITDSpace(sq, Math.min(15, perProvider)));
-    if (providerSet.has("harvard-dash")) allPromises.push(searchHarvardDASH(sq, Math.min(15, perProvider)));
-    if (providerSet.has("max-planck-pure")) allPromises.push(searchMaxPlanckPuRe(sq, Math.min(15, perProvider)));
+    if (providerSet.has("openreview")) allPromises.push(trackProviderCall("openreview", searchOpenReview(sq, Math.min(20, perProvider))));
+    if (providerSet.has("biorxiv")) allPromises.push(trackProviderCall("biorxiv", searchBioRxiv(sq, Math.min(20, perProvider))));
+    if (providerSet.has("papers-with-code")) allPromises.push(trackProviderCall("papers-with-code", searchPapersWithCode(sq, Math.min(20, perProvider))));
+    if (providerSet.has("mit-dspace")) allPromises.push(trackProviderCall("mit-dspace", searchMITDSpace(sq, Math.min(15, perProvider))));
+    if (providerSet.has("harvard-dash")) allPromises.push(trackProviderCall("harvard-dash", searchHarvardDASH(sq, Math.min(15, perProvider))));
+    if (providerSet.has("max-planck-pure")) allPromises.push(trackProviderCall("max-planck-pure", searchMaxPlanckPuRe(sq, Math.min(15, perProvider))));
 
     // INSTITUTIONNELS - HEALTH EXTENDED V2
-    if (providerSet.has("clinical-trials")) allPromises.push(searchClinicalTrials(sq, Math.min(15, perProvider)));
+    if (providerSet.has("clinical-trials")) allPromises.push(trackProviderCall("clinical-trials", searchClinicalTrials(sq, Math.min(15, perProvider))));
 
     // INSTITUTIONNELS - GOVERNMENT OPEN DATA
-    if (providerSet.has("istat")) allPromises.push(searchISTAT(sq, Math.min(15, perProvider)));
-    if (providerSet.has("open-primitive")) allPromises.push(searchOpenPrimitive(sq, Math.min(15, perProvider)));
-    if (providerSet.has("treasury-fiscal")) allPromises.push(searchTreasuryFiscal(sq, Math.min(10, perProvider)));
+    if (providerSet.has("istat")) allPromises.push(trackProviderCall("istat", searchISTAT(sq, Math.min(15, perProvider))));
+    if (providerSet.has("open-primitive")) allPromises.push(trackProviderCall("open-primitive", searchOpenPrimitive(sq, Math.min(15, perProvider))));
+    if (providerSet.has("treasury-fiscal")) allPromises.push(trackProviderCall("treasury-fiscal", searchTreasuryFiscal(sq, Math.min(10, perProvider))));
 
     // INSTITUTIONNELS - ÉCONOMIE EXTENDED
-    if (providerSet.has("ecb") && !providerSet.has("consolidated-institutions")) allPromises.push(searchECB(sq, Math.min(15, perProvider)));
-    if (providerSet.has("eurostat") && !providerSet.has("consolidated-institutions")) allPromises.push(searchEurostat(sq, Math.min(15, perProvider)));
-    if (providerSet.has("fred") && !providerSet.has("consolidated-institutions")) allPromises.push(searchFRED(sq, Math.min(15, perProvider)));
-    if (providerSet.has("eib") && !providerSet.has("consolidated-institutions")) allPromises.push(searchEIB(sq, Math.min(15, perProvider)));
+    if (providerSet.has("ecb") && !providerSet.has("consolidated-institutions")) allPromises.push(trackProviderCall("ecb", searchECB(sq, Math.min(15, perProvider))));
+    if (providerSet.has("eurostat") && !providerSet.has("consolidated-institutions")) allPromises.push(trackProviderCall("eurostat", searchEurostat(sq, Math.min(15, perProvider))));
+    if (providerSet.has("fred") && !providerSet.has("consolidated-institutions")) allPromises.push(trackProviderCall("fred", searchFRED(sq, Math.min(15, perProvider))));
+    if (providerSet.has("eib") && !providerSet.has("consolidated-institutions")) allPromises.push(trackProviderCall("eib", searchEIB(sq, Math.min(15, perProvider))));
 
     // INSTITUTIONNELS - SANTÉ EXTENDED
-    if (providerSet.has("ema") && !providerSet.has("consolidated-institutions")) allPromises.push(searchEMA(sq, Math.min(15, perProvider)));
-    if (providerSet.has("inserm") && !providerSet.has("consolidated-institutions")) allPromises.push(searchINSERM(sq, Math.min(15, perProvider)));
-    if (providerSet.has("ecdc") && !providerSet.has("consolidated-institutions")) allPromises.push(searchECDC(sq, Math.min(15, perProvider)));
-    if (providerSet.has("cochrane") && !providerSet.has("consolidated-institutions")) allPromises.push(searchCochrane(sq, Math.min(15, perProvider)));
+    if (providerSet.has("ema") && !providerSet.has("consolidated-institutions")) allPromises.push(trackProviderCall("ema", searchEMA(sq, Math.min(15, perProvider))));
+    if (providerSet.has("inserm") && !providerSet.has("consolidated-institutions")) allPromises.push(trackProviderCall("inserm", searchINSERM(sq, Math.min(15, perProvider))));
+    if (providerSet.has("ecdc") && !providerSet.has("consolidated-institutions")) allPromises.push(trackProviderCall("ecdc", searchECDC(sq, Math.min(15, perProvider))));
+    if (providerSet.has("cochrane") && !providerSet.has("consolidated-institutions")) allPromises.push(trackProviderCall("cochrane", searchCochrane(sq, Math.min(15, perProvider))));
 
     // INSTITUTIONNELS - ENVIRONNEMENT
-    if (providerSet.has("inrae") && !providerSet.has("consolidated-institutions")) allPromises.push(searchINRAE(sq, Math.min(15, perProvider)));
-    if (providerSet.has("ademe") && !providerSet.has("consolidated-institutions")) allPromises.push(searchADEME(sq, Math.min(15, perProvider)));
+    if (providerSet.has("inrae") && !providerSet.has("consolidated-institutions")) allPromises.push(trackProviderCall("inrae", searchINRAE(sq, Math.min(15, perProvider))));
+    if (providerSet.has("ademe") && !providerSet.has("consolidated-institutions")) allPromises.push(trackProviderCall("ademe", searchADEME(sq, Math.min(15, perProvider))));
 
     // INSTITUTIONNELS - FRANÇAIS
-    if (providerSet.has("ens") && !providerSet.has("consolidated-institutions")) allPromises.push(searchENS(sq, Math.min(15, perProvider)));
-    if (providerSet.has("insee") && !providerSet.has("consolidated-institutions")) allPromises.push(searchINSEE(sq, Math.min(15, perProvider)));
-    if (providerSet.has("shift-project") && !providerSet.has("consolidated-institutions")) allPromises.push(searchShiftProject(sq, Math.min(15, perProvider)));
-    if (providerSet.has("data-gouv")) allPromises.push(searchDataGouv(sq, Math.min(15, perProvider)));
-    if (providerSet.has("france-strategie") && !providerSet.has("consolidated-institutions")) allPromises.push(searchFranceStrategie(sq, Math.min(15, perProvider)));
-    if (providerSet.has("cnrs") && !providerSet.has("consolidated-institutions")) allPromises.push(searchCNRS(sq, Math.min(15, perProvider)));
+    if (providerSet.has("ens") && !providerSet.has("consolidated-institutions")) allPromises.push(trackProviderCall("ens", searchENS(sq, Math.min(15, perProvider))));
+    if (providerSet.has("insee") && !providerSet.has("consolidated-institutions")) allPromises.push(trackProviderCall("insee", searchINSEE(sq, Math.min(15, perProvider))));
+    if (providerSet.has("shift-project") && !providerSet.has("consolidated-institutions")) allPromises.push(trackProviderCall("shift-project", searchShiftProject(sq, Math.min(15, perProvider))));
+    if (providerSet.has("data-gouv")) allPromises.push(trackProviderCall("data-gouv", searchDataGouv(sq, Math.min(15, perProvider))));
+    if (providerSet.has("france-strategie") && !providerSet.has("consolidated-institutions")) allPromises.push(trackProviderCall("france-strategie", searchFranceStrategie(sq, Math.min(15, perProvider))));
+    if (providerSet.has("cnrs") && !providerSet.has("consolidated-institutions")) allPromises.push(trackProviderCall("cnrs", searchCNRS(sq, Math.min(15, perProvider))));
 
     // INSTITUTIONNELS - TECH RESEARCH
-    if (providerSet.has("allen-ai") && !providerSet.has("consolidated-institutions")) allPromises.push(searchAllenAI(sq, Math.min(15, perProvider)));
-    if (providerSet.has("max-planck") && !providerSet.has("consolidated-institutions")) allPromises.push(searchMaxPlanck(sq, Math.min(15, perProvider)));
-    if (providerSet.has("eth-zurich") && !providerSet.has("consolidated-institutions")) allPromises.push(searchETHZurich(sq, Math.min(15, perProvider)));
-    if (providerSet.has("inria") && !providerSet.has("consolidated-institutions")) allPromises.push(searchINRIA(sq, Math.min(15, perProvider)));
+    if (providerSet.has("allen-ai") && !providerSet.has("consolidated-institutions")) allPromises.push(trackProviderCall("allen-ai", searchAllenAI(sq, Math.min(15, perProvider))));
+    if (providerSet.has("max-planck") && !providerSet.has("consolidated-institutions")) allPromises.push(trackProviderCall("max-planck", searchMaxPlanck(sq, Math.min(15, perProvider))));
+    if (providerSet.has("eth-zurich") && !providerSet.has("consolidated-institutions")) allPromises.push(trackProviderCall("eth-zurich", searchETHZurich(sq, Math.min(15, perProvider))));
+    if (providerSet.has("inria") && !providerSet.has("consolidated-institutions")) allPromises.push(trackProviderCall("inria", searchINRIA(sq, Math.min(15, perProvider))));
 
     // INSTITUTIONNELS - DROIT & GOUVERNANCE
-    if (providerSet.has("eur-lex")) allPromises.push(searchEURLex(sq, Math.min(15, perProvider)));
+    if (providerSet.has("eur-lex")) allPromises.push(trackProviderCall("eur-lex", searchEURLex(sq, Math.min(15, perProvider))));
 
     // THINK TANKS EUROPÉENS
-    if (providerSet.has("ecfr")) allPromises.push(searchECFR(sq, Math.min(15, perProvider)));
-    if (providerSet.has("swp") && !providerSet.has("consolidated-institutions")) allPromises.push(searchSWP(sq, Math.min(15, perProvider)));
-    if (providerSet.has("sipri") && !providerSet.has("consolidated-institutions")) allPromises.push(searchSIPRI(sq, Math.min(15, perProvider)));
-    if (providerSet.has("iai") && !providerSet.has("consolidated-institutions")) allPromises.push(searchIAI(sq, Math.min(15, perProvider)));
+    if (providerSet.has("ecfr")) allPromises.push(trackProviderCall("ecfr", searchECFR(sq, Math.min(15, perProvider))));
+    if (providerSet.has("swp") && !providerSet.has("consolidated-institutions")) allPromises.push(trackProviderCall("swp", searchSWP(sq, Math.min(15, perProvider))));
+    if (providerSet.has("sipri") && !providerSet.has("consolidated-institutions")) allPromises.push(trackProviderCall("sipri", searchSIPRI(sq, Math.min(15, perProvider))));
+    if (providerSet.has("iai") && !providerSet.has("consolidated-institutions")) allPromises.push(trackProviderCall("iai", searchIAI(sq, Math.min(15, perProvider))));
 
     // POLITIQUE FRANÇAISE & DROIT
-    if (providerSet.has("iddri") && !providerSet.has("consolidated-institutions")) allPromises.push(searchIDDRI(sq, Math.min(15, perProvider)));
-    if (providerSet.has("terra-nova") && !providerSet.has("consolidated-institutions")) allPromises.push(searchTerraNova(sq, Math.min(15, perProvider)));
-    if (providerSet.has("legifrance")) allPromises.push(searchLegifrance(sq, Math.min(15, perProvider)));
-    if (providerSet.has("vie-publique")) allPromises.push(searchViePublique(sq, Math.min(15, perProvider)));
+    if (providerSet.has("iddri") && !providerSet.has("consolidated-institutions")) allPromises.push(trackProviderCall("iddri", searchIDDRI(sq, Math.min(15, perProvider))));
+    if (providerSet.has("terra-nova") && !providerSet.has("consolidated-institutions")) allPromises.push(trackProviderCall("terra-nova", searchTerraNova(sq, Math.min(15, perProvider))));
+    if (providerSet.has("legifrance")) allPromises.push(trackProviderCall("legifrance", searchLegifrance(sq, Math.min(15, perProvider))));
+    if (providerSet.has("vie-publique")) allPromises.push(trackProviderCall("vie-publique", searchViePublique(sq, Math.min(15, perProvider))));
 
     // SANTÉ EXTENDED V2
-    if (providerSet.has("cdc") && !providerSet.has("consolidated-institutions")) allPromises.push(searchCDC(sq, Math.min(15, perProvider)));
-    if (providerSet.has("nih") && !providerSet.has("consolidated-institutions")) allPromises.push(searchNIH(sq, Math.min(15, perProvider)));
-    if (providerSet.has("who-direct") && !providerSet.has("consolidated-institutions")) allPromises.push(searchWHODirect(sq, Math.min(15, perProvider)));
+    if (providerSet.has("cdc") && !providerSet.has("consolidated-institutions")) allPromises.push(trackProviderCall("cdc", searchCDC(sq, Math.min(15, perProvider))));
+    if (providerSet.has("nih") && !providerSet.has("consolidated-institutions")) allPromises.push(trackProviderCall("nih", searchNIH(sq, Math.min(15, perProvider))));
+    if (providerSet.has("who-direct") && !providerSet.has("consolidated-institutions")) allPromises.push(trackProviderCall("who-direct", searchWHODirect(sq, Math.min(15, perProvider))));
 
     // ÉCONOMIE EXTENDED V2
-    if (providerSet.has("oecd-direct") && !providerSet.has("consolidated-institutions")) allPromises.push(searchOECDDirect(sq, Math.min(15, perProvider)));
+    if (providerSet.has("oecd-direct") && !providerSet.has("consolidated-institutions")) allPromises.push(trackProviderCall("oecd-direct", searchOECDDirect(sq, Math.min(15, perProvider))));
 
     // SCIENCES HUMAINES & SOCIALES
-    if (providerSet.has("isidore")) allPromises.push(searchISIDORE(sq, Math.min(20, perProvider)));
-    if (providerSet.has("persee")) allPromises.push(searchPersee(sq, Math.min(20, perProvider)));
-    if (providerSet.has("philpapers")) allPromises.push(searchPhilPapers(sq, Math.min(20, perProvider)));
+    if (providerSet.has("isidore")) allPromises.push(trackProviderCall("isidore", searchISIDORE(sq, Math.min(20, perProvider))));
+    if (providerSet.has("persee")) allPromises.push(trackProviderCall("persee", searchPersee(sq, Math.min(20, perProvider))));
+    if (providerSet.has("philpapers")) allPromises.push(trackProviderCall("philpapers", searchPhilPapers(sq, Math.min(20, perProvider))));
 
     // ÉDUCATION
-    if (providerSet.has("eric")) allPromises.push(searchERIC(sq, Math.min(20, perProvider)));
+    if (providerSet.has("eric")) allPromises.push(trackProviderCall("eric", searchERIC(sq, Math.min(20, perProvider))));
 
     // AGRICULTURE & ALIMENTATION
-    if (providerSet.has("fao")) allPromises.push(searchFAO(sq, Math.min(15, perProvider)));
+    if (providerSet.has("fao")) allPromises.push(trackProviderCall("fao", searchFAO(sq, Math.min(15, perProvider))));
 
     // CRIMINOLOGIE & JUSTICE
-    if (providerSet.has("unodc")) allPromises.push(searchUNODC(sq, Math.min(15, perProvider)));
+    if (providerSet.has("unodc")) allPromises.push(trackProviderCall("unodc", searchUNODC(sq, Math.min(15, perProvider))));
+    // Live statistics APIs — abstracts embed real figures
+    if (providerSet.has("worldbank-data")) allPromises.push(trackProviderCall("worldbank-data", searchWorldBankData(sq, Math.min(10, perProvider))));
+    if (providerSet.has("ucdp")) allPromises.push(trackProviderCall("ucdp", searchUCDP(sq, Math.min(10, perProvider))));
+    if (providerSet.has("ilostat")) allPromises.push(trackProviderCall("ilostat", searchILOSTAT(sq, Math.min(10, perProvider))));
+    if (providerSet.has("owid")) allPromises.push(trackProviderCall("owid", searchOWID(sq, Math.min(10, perProvider))));
+    // Key-gated stats (degrade to [] when env missing) + no-key national APIs
+    if (providerSet.has("comtrade")) allPromises.push(trackProviderCall("comtrade", searchComtrade(sq, Math.min(8, perProvider))));
+    if (providerSet.has("us-bls")) allPromises.push(trackProviderCall("us-bls", searchBLS(sq, Math.min(6, perProvider))));
+    if (providerSet.has("us-census")) allPromises.push(trackProviderCall("us-census", searchCensus(sq, Math.min(6, perProvider))));
+    if (providerSet.has("acled")) allPromises.push(trackProviderCall("acled", searchACLED(sq, Math.min(8, perProvider))));
+    if (providerSet.has("unhcr")) allPromises.push(trackProviderCall("unhcr", searchUNHCR(sq, Math.min(8, perProvider))));
+    if (providerSet.has("estat-jp")) allPromises.push(trackProviderCall("estat-jp", searchEStatJP(sq, Math.min(8, perProvider))));
+    if (providerSet.has("kosis")) allPromises.push(trackProviderCall("kosis", searchKOSIS(sq, Math.min(8, perProvider))));
+    if (providerSet.has("ons-uk")) allPromises.push(trackProviderCall("ons-uk", searchONS(sq, Math.min(8, perProvider))));
+    if (providerSet.has("ibge")) allPromises.push(trackProviderCall("ibge", searchIBGE(sq, Math.min(8, perProvider))));
+    if (providerSet.has("datacommons")) allPromises.push(trackProviderCall("datacommons", searchDataCommons(sq, Math.min(6, perProvider))));
+    // Free metasearch floor — keeps web retrieval alive when paid search is exhausted
+    if (providerSet.has("searxng")) allPromises.push(trackProviderCall("searxng", searchSearxng(sq, Math.min(8, perProvider))));
 
     // SCIENCE OUVERTE EUROPÉENNE
-    if (providerSet.has("openaire")) allPromises.push(searchOpenAIRE(sq, Math.min(20, perProvider)));
+    if (providerSet.has("openaire")) allPromises.push(trackProviderCall("openaire", searchOpenAIRE(sq, Math.min(20, perProvider))));
 
     // OPEN SCIENCE REPOSITORY (CERN/Zenodo)
-    if (providerSet.has("zenodo")) allPromises.push(searchZenodo(sq, Math.min(20, perProvider)));
+    if (providerSet.has("zenodo")) allPromises.push(trackProviderCall("zenodo", searchZenodo(sq, Math.min(20, perProvider))));
 
     // DOMAIN-SPECIFIC ACADEMIC PROVIDERS (S2 field-of-study + OpenAlex concept fallback)
-    if (providerSet.has("psychology")) allPromises.push(searchPsychology(sq, Math.min(15, perProvider)));
-    if (providerSet.has("sociology")) allPromises.push(searchSociology(sq, Math.min(15, perProvider)));
-    if (providerSet.has("history")) allPromises.push(searchHistory(sq, Math.min(15, perProvider)));
-    if (providerSet.has("geography")) allPromises.push(searchGeography(sq, Math.min(15, perProvider)));
-    if (providerSet.has("chemistry")) allPromises.push(searchChemistry(sq, Math.min(15, perProvider)));
-    if (providerSet.has("biology")) allPromises.push(searchBiology(sq, Math.min(15, perProvider)));
-    if (providerSet.has("political-science")) allPromises.push(searchPoliticalScience(sq, Math.min(15, perProvider)));
-    if (providerSet.has("business")) allPromises.push(searchBusiness(sq, Math.min(15, perProvider)));
+    if (providerSet.has("psychology")) allPromises.push(trackProviderCall("psychology", searchPsychology(sq, Math.min(15, perProvider))));
+    if (providerSet.has("sociology")) allPromises.push(trackProviderCall("sociology", searchSociology(sq, Math.min(15, perProvider))));
+    if (providerSet.has("history")) allPromises.push(trackProviderCall("history", searchHistory(sq, Math.min(15, perProvider))));
+    if (providerSet.has("geography")) allPromises.push(trackProviderCall("geography", searchGeography(sq, Math.min(15, perProvider))));
+    if (providerSet.has("chemistry")) allPromises.push(trackProviderCall("chemistry", searchChemistry(sq, Math.min(15, perProvider))));
+    if (providerSet.has("biology")) allPromises.push(trackProviderCall("biology", searchBiology(sq, Math.min(15, perProvider))));
+    if (providerSet.has("political-science")) allPromises.push(trackProviderCall("political-science", searchPoliticalScience(sq, Math.min(15, perProvider))));
+    if (providerSet.has("business")) allPromises.push(trackProviderCall("business", searchBusiness(sq, Math.min(15, perProvider))));
 
     // CS CONFERENCES & MATH (DBLP + zbMATH — dedicated APIs with S2/OpenAlex fallback)
-    if (providerSet.has("dblp")) allPromises.push(searchDBLP(sq, Math.min(20, perProvider)));
-    if (providerSet.has("zbmath")) allPromises.push(searchZbMath(sq, Math.min(20, perProvider)));
+    if (providerSet.has("dblp")) allPromises.push(trackProviderCall("dblp", searchDBLP(sq, Math.min(20, perProvider))));
+    if (providerSet.has("zbmath")) allPromises.push(trackProviderCall("zbmath", searchZbMath(sq, Math.min(20, perProvider))));
 
     // HERITAGE & HISTORICAL SOURCES (2026-08 expansion) — books, primary sources, cultural heritage
-    if (providerSet.has("gallica")) allPromises.push(searchGallica(sq, Math.min(20, perProvider)));
-    if (providerSet.has("europeana")) allPromises.push(searchEuropeana(sq, Math.min(20, perProvider)));
-    if (providerSet.has("gutenberg")) allPromises.push(searchGutenberg(sq, Math.min(20, perProvider)));
-    if (providerSet.has("dpla")) allPromises.push(searchDPLA(sq, Math.min(20, perProvider)));
-    if (providerSet.has("wikisource")) allPromises.push(searchWikisource(sq, Math.min(20, perProvider)));
+    if (providerSet.has("gallica")) allPromises.push(trackProviderCall("gallica", searchGallica(sq, Math.min(20, perProvider))));
+    if (providerSet.has("europeana")) allPromises.push(trackProviderCall("europeana", searchEuropeana(sq, Math.min(20, perProvider))));
+    if (providerSet.has("gutenberg")) allPromises.push(trackProviderCall("gutenberg", searchGutenberg(sq, Math.min(20, perProvider))));
+    if (providerSet.has("dpla")) allPromises.push(trackProviderCall("dpla", searchDPLA(sq, Math.min(20, perProvider))));
+    if (providerSet.has("wikisource")) allPromises.push(trackProviderCall("wikisource", searchWikisource(sq, Math.min(20, perProvider))));
 
     // GLOBAL SOUTH & REGIONAL (2026-08 expansion) — Africa, Iberia/LatAm, India, Korea
-    if (providerSet.has("ajol")) allPromises.push(searchAJOL(sq, Math.min(20, perProvider)));
-    if (providerSet.has("dialnet")) allPromises.push(searchDialnet(sq, Math.min(20, perProvider)));
-    if (providerSet.has("shodhganga")) allPromises.push(searchShodhganga(sq, Math.min(20, perProvider)));
-    if (providerSet.has("riss")) allPromises.push(searchRISS(sq, Math.min(20, perProvider)));
+    if (providerSet.has("ajol")) allPromises.push(trackProviderCall("ajol", searchAJOL(sq, Math.min(20, perProvider))));
+    if (providerSet.has("dialnet")) allPromises.push(trackProviderCall("dialnet", searchDialnet(sq, Math.min(20, perProvider))));
+    if (providerSet.has("shodhganga")) allPromises.push(trackProviderCall("shodhganga", searchShodhganga(sq, Math.min(20, perProvider))));
+    if (providerSet.has("riss")) allPromises.push(trackProviderCall("riss", searchRISS(sq, Math.min(20, perProvider))));
 
     // PREPRINTS & OPEN-SCIENCE DATA (2026-08 expansion) — chemRxiv, OSF, preprints.org, Dryad
-    if (providerSet.has("chemrxiv")) allPromises.push(searchChemRxiv(sq, Math.min(20, perProvider)));
-    if (providerSet.has("osf")) allPromises.push(searchOSF(sq, Math.min(20, perProvider)));
-    if (providerSet.has("preprints-org")) allPromises.push(searchPreprintsOrg(sq, Math.min(20, perProvider)));
-    if (providerSet.has("dryad")) allPromises.push(searchDryad(sq, Math.min(20, perProvider)));
+    if (providerSet.has("chemrxiv")) allPromises.push(trackProviderCall("chemrxiv", searchChemRxiv(sq, Math.min(20, perProvider))));
+    if (providerSet.has("osf")) allPromises.push(trackProviderCall("osf", searchOSF(sq, Math.min(20, perProvider))));
+    if (providerSet.has("preprints-org")) allPromises.push(trackProviderCall("preprints-org", searchPreprintsOrg(sq, Math.min(20, perProvider))));
+    if (providerSet.has("dryad")) allPromises.push(trackProviderCall("dryad", searchDryad(sq, Math.min(20, perProvider))));
 
     // ACADEMIC DATABASES — Large-scale scholarly indexes
-    if (providerSet.has("dimensions")) allPromises.push(searchDimensions(sq, Math.min(20, perProvider)));
-    if (providerSet.has("lens")) allPromises.push(searchLens(sq, Math.min(20, perProvider)));
-    if (providerSet.has("springer")) allPromises.push(searchSpringer(sq, Math.min(20, perProvider)));
-    if (providerSet.has("osti")) allPromises.push(searchOSTI(sq, Math.min(20, perProvider)));
-    if (providerSet.has("datacite")) allPromises.push(searchDataCite(sq, Math.min(15, perProvider)));
-    if (providerSet.has("google-books")) allPromises.push(searchGoogleBooks(sq, Math.min(15, perProvider)));
+    if (providerSet.has("dimensions")) allPromises.push(trackProviderCall("dimensions", searchDimensions(sq, Math.min(20, perProvider))));
+    if (providerSet.has("lens")) allPromises.push(trackProviderCall("lens", searchLens(sq, Math.min(20, perProvider))));
+    if (providerSet.has("springer")) allPromises.push(trackProviderCall("springer", searchSpringer(sq, Math.min(20, perProvider))));
+    if (providerSet.has("osti")) allPromises.push(trackProviderCall("osti", searchOSTI(sq, Math.min(20, perProvider))));
+    if (providerSet.has("datacite")) allPromises.push(trackProviderCall("datacite", searchDataCite(sq, Math.min(15, perProvider))));
+    if (providerSet.has("google-books")) allPromises.push(trackProviderCall("google-books", searchGoogleBooks(sq, Math.min(15, perProvider))));
 
     // OPEN-ACCESS FREE APIs (no key required)
-    if (providerSet.has("plos")) allPromises.push(searchPLOS(sq, Math.min(20, perProvider)));
-    if (providerSet.has("federal-register")) allPromises.push(searchFederalRegister(sq, Math.min(15, perProvider)));
-    if (providerSet.has("sec-edgar")) allPromises.push(searchSECEdgar(sq, Math.min(15, perProvider)));
-    if (providerSet.has("worldbank-docs")) allPromises.push(searchWorldBankDocs(sq, Math.min(15, perProvider)));
-    if (providerSet.has("cordis")) allPromises.push(searchCORDIS(sq, Math.min(15, perProvider)));
+    if (providerSet.has("plos")) allPromises.push(trackProviderCall("plos", searchPLOS(sq, Math.min(20, perProvider))));
+    if (providerSet.has("federal-register")) allPromises.push(trackProviderCall("federal-register", searchFederalRegister(sq, Math.min(15, perProvider))));
+    if (providerSet.has("sec-edgar")) allPromises.push(trackProviderCall("sec-edgar", searchSECEdgar(sq, Math.min(15, perProvider))));
+    if (providerSet.has("worldbank-docs")) allPromises.push(trackProviderCall("worldbank-docs", searchWorldBankDocs(sq, Math.min(15, perProvider))));
+    if (providerSet.has("cordis")) allPromises.push(trackProviderCall("cordis", searchCORDIS(sq, Math.min(15, perProvider))));
 
     // FOUNDATIONAL SOURCES — Books, reports, reference texts for prospective research
-    if (providerSet.has("ipcc")) allPromises.push(searchIPCC(sq, Math.min(15, perProvider)));
-    if (providerSet.has("internet-archive")) allPromises.push(searchInternetArchive(sq, Math.min(20, perProvider)));
-    if (providerSet.has("hathitrust")) allPromises.push(searchHathiTrust(sq, Math.min(15, perProvider)));
-    if (providerSet.has("open-library")) allPromises.push(searchOpenLibrary(sq, Math.min(15, perProvider)));
-    if (providerSet.has("jstor")) allPromises.push(searchJSTOR(sq, Math.min(15, perProvider)));
-    if (providerSet.has("unesco")) allPromises.push(searchUNESCO(sq, Math.min(15, perProvider)));
+    if (providerSet.has("ipcc")) allPromises.push(trackProviderCall("ipcc", searchIPCC(sq, Math.min(15, perProvider))));
+    if (providerSet.has("internet-archive")) allPromises.push(trackProviderCall("internet-archive", searchInternetArchive(sq, Math.min(20, perProvider))));
+    if (providerSet.has("hathitrust")) allPromises.push(trackProviderCall("hathitrust", searchHathiTrust(sq, Math.min(15, perProvider))));
+    if (providerSet.has("open-library")) allPromises.push(trackProviderCall("open-library", searchOpenLibrary(sq, Math.min(15, perProvider))));
+    if (providerSet.has("jstor")) allPromises.push(trackProviderCall("jstor", searchJSTOR(sq, Math.min(15, perProvider))));
+    if (providerSet.has("unesco")) allPromises.push(trackProviderCall("unesco", searchUNESCO(sq, Math.min(15, perProvider))));
 
     // FORESIGHT & PROSPECTIVE SOURCES — Strategic foresight organizations
-    if (providerSet.has("club-of-rome")) allPromises.push(searchClubOfRome(sq, Math.min(10, perProvider)));
-    if (providerSet.has("millennium-project")) allPromises.push(searchMillenniumProject(sq, Math.min(10, perProvider)));
+    if (providerSet.has("club-of-rome")) allPromises.push(trackProviderCall("club-of-rome", searchClubOfRome(sq, Math.min(10, perProvider))));
+    if (providerSet.has("millennium-project")) allPromises.push(trackProviderCall("millennium-project", searchMillenniumProject(sq, Math.min(10, perProvider))));
 
     // OPEN ACCESS FULL-TEXT — CORE (free, 200M+ papers with full-text)
-    if (providerSet.has("core")) allPromises.push(searchCORE(sq, Math.min(30, perProvider)));
+    if (providerSet.has("core")) allPromises.push(trackProviderCall("core", searchCORE(sq, Math.min(30, perProvider))));
 
     // COMPLÉMENTAIRE - WEB SEARCH (enrichment fallback, not primary research)
-    if (providerSet.has("linkup")) allPromises.push(searchLinkUp(sq, Math.min(15, perProvider)));
-    if (providerSet.has("tavily")) allPromises.push(searchTavily(sq, Math.min(15, perProvider), { topic: 'general' }));
-    if (providerSet.has("exa")) allPromises.push(searchExaPublications(sq, Math.min(20, perProvider)));
+    if (providerSet.has("linkup")) allPromises.push(trackProviderCall("linkup", searchLinkUp(sq, Math.min(15, perProvider))));
+    if (providerSet.has("tavily")) allPromises.push(trackProviderCall("tavily", searchTavily(sq, Math.min(15, perProvider), { topic: 'general' })));
+    if (providerSet.has("exa")) allPromises.push(trackProviderCall("exa", searchExaPublications(sq, Math.min(20, perProvider))));
 
     // REAL-TIME NEWS PROVIDERS
-    if (providerSet.has("gdelt-news")) allPromises.push(searchGDELTNews(sq, Math.min(30, perProvider)));
-    if (providerSet.has("newsapi")) allPromises.push(searchNewsAPI(sq, Math.min(30, perProvider)));
-    if (providerSet.has("mediastack")) allPromises.push(searchMediaStack(sq, Math.min(25, perProvider)));
-    if (providerSet.has("thenewsapi")) allPromises.push(searchTheNewsAPI(sq, Math.min(30, perProvider)));
-    if (providerSet.has("gnews")) allPromises.push(searchGNews(sq, Math.min(10, perProvider)));
-    if (providerSet.has("eventregistry")) allPromises.push(searchEventRegistry(sq, Math.min(25, perProvider)));
-    if (providerSet.has("apitube")) allPromises.push(searchAPITube(sq, Math.min(25, perProvider)));
+    if (providerSet.has("gdelt-news")) allPromises.push(trackProviderCall("gdelt-news", searchGDELTNews(sq, Math.min(30, perProvider))));
+    if (providerSet.has("newsapi")) allPromises.push(trackProviderCall("newsapi", searchNewsAPI(sq, Math.min(30, perProvider))));
+    if (providerSet.has("mediastack")) allPromises.push(trackProviderCall("mediastack", searchMediaStack(sq, Math.min(25, perProvider))));
+    if (providerSet.has("thenewsapi")) allPromises.push(trackProviderCall("thenewsapi", searchTheNewsAPI(sq, Math.min(30, perProvider))));
+    if (providerSet.has("gnews")) allPromises.push(trackProviderCall("gnews", searchGNews(sq, Math.min(10, perProvider))));
+    if (providerSet.has("eventregistry")) allPromises.push(trackProviderCall("eventregistry", searchEventRegistry(sq, Math.min(25, perProvider))));
+    if (providerSet.has("apitube")) allPromises.push(trackProviderCall("apitube", searchAPITube(sq, Math.min(25, perProvider))));
 
     // INDEPENDENT MEDIA — investigative journalism, heterodox voices, Global South, expert blogs
-    if (providerSet.has("independent-media")) allPromises.push(searchIndependentMedia(sq, Math.min(30, perProvider)));
-    if (providerSet.has("gdelt-independent")) allPromises.push(searchGDELTIndependent(sq, Math.min(20, perProvider)));
+    if (providerSet.has("independent-media")) allPromises.push(trackProviderCall("independent-media", searchIndependentMedia(sq, Math.min(30, perProvider))));
+    if (providerSet.has("gdelt-independent")) allPromises.push(trackProviderCall("gdelt-independent", searchGDELTIndependent(sq, Math.min(20, perProvider))));
 
     // GREY LITERATURE — Overton: 20M+ policy documents from governments, think tanks, IGOs worldwide
-    if (providerSet.has("overton")) allPromises.push(searchOverton(sq, Math.min(25, perProvider)));
+    if (providerSet.has("overton")) allPromises.push(trackProviderCall("overton", searchOverton(sq, Math.min(25, perProvider))));
 
     // FOREIGN ACADEMIC SOURCES — Non-Western databases for geographic coverage
     // China
-    if (providerSet.has("wanfang")) allPromises.push(searchWanfang(sq, Math.min(20, perProvider)));
+    if (providerSet.has("wanfang")) allPromises.push(trackProviderCall("wanfang", searchWanfang(sq, Math.min(20, perProvider))));
     // Russia
-    if (providerSet.has("cyberleninka")) allPromises.push(searchCyberLeninka(sq, Math.min(20, perProvider)));
-    if (providerSet.has("elibrary-ru")) allPromises.push(searchELibrary(sq, Math.min(20, perProvider)));
+    if (providerSet.has("cyberleninka")) allPromises.push(trackProviderCall("cyberleninka", searchCyberLeninka(sq, Math.min(20, perProvider))));
+    if (providerSet.has("elibrary-ru")) allPromises.push(trackProviderCall("elibrary-ru", searchELibrary(sq, Math.min(20, perProvider))));
     // Japan
-    if (providerSet.has("jstage")) allPromises.push(searchJStage(sq, Math.min(20, perProvider)));
+    if (providerSet.has("jstage")) allPromises.push(trackProviderCall("jstage", searchJStage(sq, Math.min(20, perProvider))));
     // Latin America / Africa / Iberian
-    if (providerSet.has("scielo")) allPromises.push(searchSciELO(sq, Math.min(20, perProvider)));
+    if (providerSet.has("scielo")) allPromises.push(trackProviderCall("scielo", searchSciELO(sq, Math.min(20, perProvider))));
 
     // CITATION GRAPH — OpenCitations (free, no key, 1.5B+ citations)
-    if (providerSet.has("opencitations")) allPromises.push(searchOpenCitations(sq, Math.min(20, perProvider)));
+    if (providerSet.has("opencitations")) allPromises.push(trackProviderCall("opencitations", searchOpenCitations(sq, Math.min(20, perProvider))));
 
     // NEWS — NewsData.io (free tier: 200 credits/day, 10 articles/credit)
-    if (providerSet.has("newsdata")) allPromises.push(searchNewsData(sq, Math.min(10, perProvider)));
+    if (providerSet.has("newsdata")) allPromises.push(trackProviderCall("newsdata", searchNewsData(sq, Math.min(10, perProvider))));
 
     // AI/ML PAPERS WITH CODE — HuggingFace Papers (free, no key, links to models/datasets)
-    if (providerSet.has("hf-papers")) allPromises.push(searchHuggingFacePapers(sq, Math.min(20, perProvider)));
+    if (providerSet.has("hf-papers")) allPromises.push(trackProviderCall("hf-papers", searchHuggingFacePapers(sq, Math.min(20, perProvider))));
 
     // EU OPEN DATA — data.europa.eu (free, no key, 1M+ government datasets)
-    if (providerSet.has("data-europa")) allPromises.push(searchDataEuropa(sq, Math.min(15, perProvider)));
+    if (providerSet.has("data-europa")) allPromises.push(trackProviderCall("data-europa", searchDataEuropa(sq, Math.min(15, perProvider))));
 
     // INTERNET STANDARDS — IETF Datatracker (free, no key, RFCs + internet-drafts)
-    if (providerSet.has("ietf")) allPromises.push(searchIETF(sq, Math.min(15, perProvider)));
+    if (providerSet.has("ietf")) allPromises.push(trackProviderCall("ietf", searchIETF(sq, Math.min(15, perProvider))));
 
     // THINK TANKS & POLICY LABS — catch-all for providers not explicitly routed above
     // (brookings, rand, cfr, iiss, chatham-house, cset, carnegie, cnas, newamerica, etc.)
@@ -1048,11 +1194,15 @@ async function scoutImpl(query: string, providers: Providers, perProvider = 100)
       // Internet standards
       "ietf",
     ]);
-    const unroutedProviders = (providers as string[]).filter(p => !EXPLICITLY_ROUTED.has(p));
+    const unroutedProviders = (providers as string[]).filter(p =>
+      !EXPLICITLY_ROUTED.has(p) && p !== 'no-routing' && p !== 'auto' && !DEAD_PROVIDERS.has(p)
+    );
     if (unroutedProviders.length > 0) {
       allPromises.push(
-        searchExtendedProviders(sq, { providers: unroutedProviders, limit: Math.min(20, perProvider) })
-          .then((results: any[]) => results.map((r: any) => ({ ...r, _fromExtended: true })))
+        trackProviderCall("extended-registry",
+          searchExtendedProviders(sq, { providers: unroutedProviders, limit: Math.min(20, perProvider) })
+            .then((results: any[]) => results.map((r: any) => ({ ...r, _fromExtended: true })))
+        )
       );
     }
   }
@@ -1260,9 +1410,20 @@ async function scoutImpl(query: string, providers: Providers, perProvider = 100)
         }
       }
 
-      // ACTIVE: Log missing concepts for the IntelligentScout to pick up in gap-fill
+      // ACTIVE: CRAG corrective retrieval — missing concepts trigger a bounded
+      // targeted re-search NOW (before the analyst), not a post-hoc log.
       if (careResult.recommendation === 'add_missing_concepts' && careResult.missingConcepts.length > 0) {
-        console.log(`[SCOUT K10] ⚠️ Missing concepts: ${careResult.missingConcepts.slice(0, 5).join(', ')} — IntelligentScout should gap-fill these`);
+        console.log(`[SCOUT K10] ⚠️ Missing concepts: ${careResult.missingConcepts.slice(0, 5).join(', ')} — running targeted gap-fill`);
+        try {
+          const { gapFillMissingConcepts } = await import('./retrieval-gapfill');
+          const gapResult = await gapFillMissingConcepts(query, careResult.missingConcepts, finalPool);
+          if (gapResult.added.length > 0) {
+            finalPool.push(...gapResult.added);
+            console.log(`[SCOUT K10] Gap-fill: +${gapResult.added.length} sources targeting ${gapResult.conceptsTargeted.join(', ')}`);
+          }
+        } catch (gfErr) {
+          console.warn('[SCOUT K10] Gap-fill failed (non-blocking):', gfErr);
+        }
       }
 
       // ACTIVE: Remove redundant sources if too many duplicates
@@ -1919,10 +2080,9 @@ export interface PipelineCoreOptions {
   quantDepth?: import("../quant/quant-bridge").QuantDepth;
   /** Optional structured costing exercise from StudioX orders */
   parametricInput?: import("../quant/types").ParametricCostInput;
-  /** Enable ReAct-style agentic ANALYST (default: false) */
-  useAgenticAnalyst?: boolean;
-  /** Use LLM-driven meta-controller (default: false) */
-  useMetaController?: boolean;
+  /** Regeneration loop: feedback from a rejected prior attempt injected into
+   * the analyst context as mandatory corrections. */
+  priorFailureFeedback?: string;
   /** Enable the Witness — metacognitive observer (default: false).
    * The Witness observes each pipeline step, detects anomalies, and can
    * intervene. It also learns across runs to improve prompts and thresholds. */
@@ -1935,14 +2095,7 @@ export interface PipelineCoreOptions {
   usePRM?: boolean;
   /** Enable adversarial self-play — finds weaknesses post-analysis (default: false) */
   useSelfPlay?: boolean;
-  /** Enable adaptive RAG — dynamic reflection tokens during retrieval (default: false) */
-  useAdaptiveRAG?: boolean;
-  /** Enable Self-Discover — composed reasoning structure per query (default: false) */
-  useSelfDiscover?: boolean;
-  /** Enable LATS — tree search reasoning for agentic analyst (default: false) */
-  useLATS?: boolean;
-  /** Enable budget forcing — s1-style test-time compute scaling (default: false) */
-  useBudgetForcing?: boolean;
+
   /** Enable output guardrails — structured output validation (default: false) */
   useOutputGuard?: boolean;
   /** Enable local judge — open-source Prometheus 2 / JudgeLM evaluation (default: false) */
@@ -1951,20 +2104,12 @@ export interface PipelineCoreOptions {
   useStorm?: boolean;
   /** Enable temporal memory — bi-temporal knowledge tracking (default: false) */
   useTemporalMemory?: boolean;
-  /** Enable Langfuse observability (default: false) */
-  useLangfuse?: boolean;
-  /** Enable MCP client — consume external Model Context Protocol servers (default: false) */
-  useMCP?: boolean;
-  /** Best-of-N for agentic analyst — generate N candidates and pick best (default: 1) */
-  bestOfN?: number;
   /** Enable Think Tank Quality Pack — recommendations, economics, editorial polish (default: false) */
   useThinkTankPack?: boolean;
   /** Enable Feynman-style peer review before editor (default: false) */
   usePeerReview?: boolean;
   /** Enable RAGAS-style RAG evaluation (default: false) */
   useRagasEval?: boolean;
-  /** Enable ADAS — automated agent design / search (default: false) */
-  useADAS?: boolean;
   /** Enable durable execution — lightweight snapshots for long runs (default: false) */
   useDurableExecution?: boolean;
   /** Optional primary data inputs — expert interviews, surveys, datasets, memos to enrich the brief */
@@ -1988,8 +2133,6 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   //   QUANT, FRAMING, HYPOTHESIS_JUDGE, FACT_CHECKER, CRITICAL_LOOP, DEVILS_ADVOCATE,
   //   KNOWLEDGE_GRAPH, STYLE_GATES, EVIDENCE_IDS, RESEARCH_GAPS
   const { isStrategic } = opts;
-  const useAgenticAnalyst = opts.useAgenticAnalyst ?? false;
-  const useMetaController = opts.useMetaController ?? false;
   const useWitness = opts.useWitness ?? (isStrategic && (opts.maxBudgetUsd ?? 5) > 2.0);
 
   // S16-05: Conductor (Microsoft 2026) — deterministic workflow orchestration
@@ -2021,14 +2164,11 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   const _queryWordCount = query.split(/\s+/).filter(Boolean).length;
   const hasTemporalIndicators = /\b(will|forecast|predict|project|by\s+20\d\d|future|trajectory|emerging|evolve|outlook)\b/i.test(query);
   const _isComplexAuto = _queryWordCount > 15 || isStrategic;
-  const canAffordLATS = (opts.maxBudgetUsd ?? 5) > 1.0;
 
   // K5/K7: MoA auto-activates for complex multi-domain queries
   const useMixtureOfAgents = opts.useMixtureOfAgents ?? _isComplexAuto;
   // K11: WorldEvolver auto-activates for temporal/predictive queries
   const useWorldModel = opts.useWorldModel ?? hasTemporalIndicators;
-  // K1: LATS auto-activates for strategic depth + budget allows
-  const useLATS = opts.useLATS ?? (isStrategic && useAgenticAnalyst && canAffordLATS);
 
   // Auto-activate learning features for strategic reports (budget-guarded)
   // PRM scores each reasoning step — learns which patterns lead to good outcomes
@@ -2036,21 +2176,16 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   const canAffordLearning = (opts.maxBudgetUsd ?? (isStrategic ? 8 : 3)) > 3.0;
   const usePRM = opts.usePRM ?? (isStrategic && canAffordLearning);
   const useSelfPlay = opts.useSelfPlay ?? (isStrategic && canAffordLearning);
-  const useAdaptiveRAG = opts.useAdaptiveRAG ?? false;
-  const useSelfDiscover = opts.useSelfDiscover ?? false;
-  const useBudgetForcing = opts.useBudgetForcing ?? false;
   const useOutputGuard = opts.useOutputGuard ?? false;
   const useLocalJudge = opts.useLocalJudge ?? false;
   const useStorm = opts.useStorm ?? false;
   const useTemporalMemory = opts.useTemporalMemory ?? false;
-  const useLangfuse = opts.useLangfuse ?? false;
-  const useMCP = opts.useMCP ?? false;
-  const bestOfN = Math.min(Math.max(1, opts.bestOfN ?? 1), 5);
   const useThinkTankPack = opts.useThinkTankPack ?? false;
   const usePeerReview = opts.usePeerReview ?? false;
   const useRagasEval = opts.useRagasEval ?? false;
-  const useADAS = opts.useADAS ?? false;
-  const useDurableExecution = opts.useDurableExecution ?? false;
+  // Durable execution ON for heavy formats by default — a 50-80min run killed
+  // by timeout/crash resumes at its last checkpoint instead of losing everything.
+  const useDurableExecution = opts.useDurableExecution ?? (isStrategic || (opts as any).format === 'memo' || (opts as any).format === 'dossier');
   // Self-Evolution: evolve agent prompts after each strategic run via GMPO + MAGE
   // Cost: ~$0.05-0.10 (4 agents × 2 LLM calls each). Non-blocking, wrapped in try/catch.
   const useSelfEvolution = opts.useSelfEvolution ?? (isStrategic && canAffordLearning);
@@ -2210,6 +2345,18 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   // Breaks silos: ANALYST can request targeted re-search, EDITOR sees gaps, etc.
   const ctx = new PipelineContext(query, isStrategic);
 
+  // ── MISSION: the single shared goal every agent reads (Sprint 26). ──
+  // Publication-grade targets — sweeps prioritize signals that close unmet
+  // targets, so collective effort is goal-directed rather than scripted.
+  ctx.setMission('Produce a publication-grade analysis that survives adversarial review', {
+    trust: 65,
+    groundedness: 80,
+    citationCoverage: 0.5,
+    minSources: isStrategic ? 20 : 12,
+    requireCentralScenario: true,
+    quality: 60,
+  });
+
   // ── IDEMPOTENCY GUARD (2026 best practice) ──
   // Prevent duplicate pipeline runs for the same query within a 2-hour window.
   // If cron overlaps or dispatcher retries, the second run is rejected.
@@ -2238,6 +2385,9 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   const maxBudget = opts.maxBudgetUsd ?? getPipelineMaxBudgetUsd(isStrategic, editorialV2);
   let runningCostUsd = 0;
   let budgetDegraded = false;
+  // Witness directive — metacognitive observer can cut optional phases mid-run.
+  // 'reduce_scope' skips self-play + devil's advocate; 'abort' also cuts debate/deliberation.
+  let witnessReducedScope = false;
   function addCost(amount: number | undefined, stepName: string) {
     if (typeof amount === "number" && amount > 0) {
       runningCostUsd += amount;
@@ -2323,6 +2473,21 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   }
   providers = healthyProviders.length >= 3 ? healthyProviders : providers; // fallback if too many blacklisted
 
+  // ── SKILL BANK: bias provider order toward configurations that previously
+  // produced trust ≥ 80 in this domain (procedural memory, FlowEvo pattern) ──
+  let provenSkill: import('./skill-bank').ProvenSkill | null = null;
+  try {
+    const { getProvenSkill, applySkillToProviders } = await import('./skill-bank');
+    const { detectDomain } = await import('./smart-provider-selector');
+    const skillDomain = detectDomain(query);
+    provenSkill = await getProvenSkill(skillDomain);
+    if (provenSkill) {
+      providers = applySkillToProviders(providers, provenSkill) as Providers;
+      console.log(`${label} SKILL BANK: proven config for '${skillDomain}' (${provenSkill.uses} uses, avg trust ${provenSkill.avgTrust.toFixed(0)}) — ${provenSkill.providers.length} providers prioritized`);
+      (stats as any).skillBank = { applied: true, domain: skillDomain, uses: provenSkill.uses, avgTrust: Math.round(provenSkill.avgTrust) };
+    }
+  } catch { /* non-blocking */ }
+
   // ── PRE-SCOUT COMPLEXITY ROUTING (Adaptive RAG, 2026 best practice) ──
   // Deterministic query complexity classification — no LLM call.
   // Adapts provider count and perProvider based on query complexity.
@@ -2333,7 +2498,10 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   const multiHopMarkers = /\b(and|while|whereas|although|despite|in addition|furthermore|moreover|both)\b/i.test(query);
   const conceptCount = queryWords.filter(w => w.length > 4 && !['what', 'which', 'where', 'when', 'while', 'their', 'there', 'these', 'those', 'about', 'would', 'could', 'should', 'between', 'through', 'during'].includes(w)).length;
   const queryComplexity = (comparisonMarkers ? 2 : 0) + (causalMarkers ? 1 : 0) + (multiHopMarkers ? 1 : 0) + (conceptCount > 8 ? 2 : conceptCount > 5 ? 1 : 0);
-  const isSimpleQuery = queryComplexity <= 1 && queryWords.length < 12;
+  // Simple = genuinely narrow: few content concepts AND no structural complexity.
+  // (Word count alone misclassifies short multi-domain questions like
+  // "Impact of AI regulation on European competitiveness" — 7 words, 5 concepts.)
+  const isSimpleQuery = queryComplexity <= 1 && conceptCount <= 3;
   const isComplexQuery = queryComplexity >= 4;
 
   let perProvider: number;
@@ -2357,13 +2525,32 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   });
 
   // ── DURABLE EXECUTION (Sprint 6) ──
-  if (useDurableExecution) {
+  // Stable key: resumes must find the same state across retries — keying on
+  // pipelineRun.id (fresh per attempt) would never resume. A crashed/timed-out
+  // run re-dispatched for the same query+format picks up at its last checkpoint.
+  const durableKey = useDurableExecution
+    ? durableKeyFor(query, (opts as any).format ?? (isStrategic ? 'strategic' : isMemo ? 'memo' : 'brief'))
+    : null;
+  if (durableKey) {
     try {
-      await initDurableRun(pipelineRun.id, query);
-      console.log(`${label} DURABLE EXECUTION: initialized for run ${pipelineRun.id}`);
+      await initDurableRun(durableKey, query);
+      console.log(`${label} DURABLE EXECUTION: initialized (${durableKey})`);
     } catch (err) {
       console.warn(`${label} DURABLE EXECUTION: init failed (non-blocking):`, err);
     }
+  }
+  const durable = <T>(step: string, fn: () => Promise<T>, costUsd = 0): Promise<T> =>
+    durableKey ? runDurableStep(durableKey, step, fn, { costUsd }) : fn();
+
+  // P2-8: with durable execution on, the signal bus persists to agentAuditLog
+  // so coordination state (unresolved needs) survives a crash and rehydrates
+  // on resume — a checkpoint restores step outputs, this restores the bus.
+  if (durableKey) {
+    try {
+      const { PersistentSignalBus, rehydrateSignalBus } = await import('./signals');
+      ctx.signals = (await rehydrateSignalBus(ctx, `pipeline:${durableKey}`))
+        ?? new PersistentSignalBus(ctx, `pipeline:${durableKey}`);
+    } catch { /* persistence is opportunistic — fall back to in-memory bus */ }
   }
 
   try {
@@ -2434,7 +2621,19 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   // STEP 1: SCOUT (with Orchestrator RE_SCOUT loop)
   emitProgress(pipelineRun.id, "SCOUT", "started", `Searching ${providers.length} providers...`);
   let allSourceIds: string[] = [];
+  // Function-scope copy of deep-planner nodes — `planResult` lives inside the
+  // else-block below, but the post-render process audit needs the nodes.
+  let planNodesForAudit: Array<{ subQuestion: string; status: string; sourceCount?: number }> = [];
   const seedIds = [...new Set((opts.seedSourceIds ?? []).filter(Boolean))];
+  // DURABLE RESUME: a crashed/timed-out run's scout checkpoint re-enters as
+  // seedIds — the existing skipScout path does the bookkeeping uniformly.
+  const scoutCkpt = durableKey
+    ? await durableResume<{ allSourceIds: string[] }>(durableKey, 'scout').catch(() => null)
+    : null;
+  if (scoutCkpt?.allSourceIds?.length) {
+    seedIds.push(...scoutCkpt.allSourceIds.filter(id => !seedIds.includes(id)));
+    console.log(`${label} DURABLE: scout checkpoint restored — ${scoutCkpt.allSourceIds.length} source ids (skipScout path)`);
+  }
   const minSeedSkip = opts.minSeedSourcesToSkipScout ?? 8;
   const skipScout = seedIds.length >= minSeedSkip;
 
@@ -2466,6 +2665,18 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     }
     if (planResult.plan.nodes.length > 1) {
       console.log(`${label} DEEP PLANNER: ${planResult.plan.nodes.length} sub-questions planned`);
+      // PLAN PREVIEW — expose the research plan to the UI before execution
+      // (Gemini collaborative-planning pattern). Consumers of the progress
+      // stream can render the intended investigation structure.
+      emitProgress(pipelineRun.id, "SCOUT", "started",
+        `Research plan: ${planResult.plan.nodes.length} investigation branches`, {
+        planPreview: planResult.plan.nodes.map((n: any) => ({
+          id: n.id,
+          subQuestion: n.subQuestion,
+          producers: n.producers,
+          dependsOn: n.parentIds,
+        })),
+      });
       const sortedNodes = topologicalSort(planResult.plan.nodes);
       const perNodeProvider = isStrategic ? Math.max(perProvider, 80) : perProvider;
 
@@ -2489,9 +2700,14 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
         // Use node-specific producers if available, otherwise fall back to global providers
         // Filter to known providers only — LLM may generate invalid names (e.g. 'area_studies')
         const validNodeProducers = node.producers.filter(p => KNOWN_PROVIDERS.has(p));
-        const nodeProviders = validNodeProducers.length >= 3
-          ? Array.from(new Set([...validNodeProducers.slice(0, 8), ...providers.slice(0, 4)])) as Providers
-          : providers;
+        // Sub-question scouts must be LEAN — inheriting the full provider set
+        // turned each DAG node into a 60-provider × 4-query fan-out (~2min each),
+        // blowing the pipeline timeout. A compact core set is enough for a
+        // targeted sub-question; breadth lives in the root scout.
+        const NODE_CORE_PROVIDERS = ["openalex", "crossref", "europepmc", "linkup", "tavily", "exa"] as const;
+        const nodeProviders = (validNodeProducers.length >= 3
+          ? Array.from(new Set([...validNodeProducers.slice(0, 8), ...NODE_CORE_PROVIDERS.slice(0, 4), 'no-routing']))
+          : Array.from(new Set([...validNodeProducers, ...NODE_CORE_PROVIDERS, 'no-routing']))) as unknown as Providers;
         const nodeResult = await scout(node.subQuestion, nodeProviders, perNodeProvider);
         const nodeSourceIds = Array.isArray(nodeResult) ? nodeResult.map(s => s.id) : (nodeResult.sourceIds || []);
         node.sourceIds = nodeSourceIds;
@@ -2521,7 +2737,44 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
         }
       }
       allSourceIds = [...new Set(allSourceIds)];
+
+      // ── DYNAMIC REPLANNING: if nodes failed or returned thin, generate
+      // follow-up sub-questions from execution findings and scout them. ──
+      const thinOrFailed = planResult.plan.nodes.filter(
+        (n: any) => n.status === 'failed' || (n.sourceCount ?? 0) < 5
+      );
+      if (thinOrFailed.length > 0 && !isBudgetConstrained()) {
+        try {
+          const { replanFromFindings } = await import('./deep-planner');
+          const replan = await replanFromFindings(query, planResult.plan.nodes, 3);
+          if (replan.nodes.length > 0) {
+            console.log(`${label} DEEP PLANNER REPLAN: ${replan.nodes.length} follow-up nodes for ${thinOrFailed.length} thin/failed`);
+            for (const node of replan.nodes) {
+              node.status = 'scouting';
+              const validP = node.producers.filter(p => KNOWN_PROVIDERS.has(p));
+              const nodeProviders = validP.length >= 3
+                ? Array.from(new Set([...validP.slice(0, 8), ...providers.slice(0, 4)])) as Providers
+                : providers;
+              const res = await scout(node.subQuestion, nodeProviders, isStrategic ? 30 : 25);
+              const ids = Array.isArray(res) ? res.map(s => s.id) : (res.sourceIds || []);
+              node.sourceIds = ids;
+              node.sourceCount = ids.length;
+              node.status = ids.length > 0 ? 'expanded' : 'failed';
+              allSourceIds.push(...ids);
+              planResult.plan.nodes.push(node);
+              console.log(`${label} DEEP PLANNER REPLAN: ${node.id} "${node.subQuestion.slice(0, 60)}" → ${ids.length} sources`);
+            }
+            allSourceIds = [...new Set(allSourceIds)];
+          }
+        } catch (err) {
+          console.warn(`${label} DEEP PLANNER REPLAN: failed (non-blocking):`, err);
+        }
+      }
+
       stats.deepPlanner = { nodes: planResult.plan.nodes.length, costUsd: planResult.costUsd };
+      planNodesForAudit = planResult.plan.nodes.map((n: any) => ({
+        subQuestion: n.subQuestion, status: n.status, sourceCount: n.sourceCount,
+      }));
     } else {
       // Single node — fall through to normal scout
       planResult = null;
@@ -2743,7 +2996,8 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   // Adds sources from 6 strategic lenses (core, contrarian, cross-domain, historical, weak signal, scenario)
   // Uses UCB1 bandit for budget allocation + adaptive search depth (AutoSearch pattern)
   // This is what makes NomosX a think tank, not a search engine: it finds dissent, analogues, and weak signals
-  try {
+  // (skipped on durable resume — the scout checkpoint already includes enrichment)
+  if (!scoutCkpt) try {
     const { runIntelligentScout } = await import('./intelligent-scout');
     const format = isStrategic ? 'strategic' : isDossier ? 'dossier' : isMemo ? 'memo' : 'brief';
     const domain = (opts as any).domain || 'general';
@@ -2780,6 +3034,35 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     console.log(`${label} INTELLIGENT SCOUT: +${addedCount} eclectic sources (${eclecticResult.uniqueSources} from ${eclecticResult.lenses.length} lenses, diversity=${Math.round(eclecticResult.diversityScore * 100)}%, scenarioRichness=${Math.round(eclecticResult.scenarioRichness * 100)}%)`);
     console.log(`${label} INTELLIGENT SCOUT lenses: ${eclecticResult.lenses.map(l => `${l.type}(${l.sources.length})`).join(', ')}`);
 
+    // ── LENS INSIGHTS → ANALYST CONTEXT ──
+    // Each lens produced a PhD-level mini-analysis. Inject them so the
+    // analyst sees the disciplinary readings, not just the raw sources.
+    if (eclecticResult.lensInsights && eclecticResult.lensInsights.length > 0) {
+      const tensionSection = eclecticResult.lensTensions && eclecticResult.lensTensions.length > 0
+        ? [
+            '',
+            '## INTER-LENS TENSIONS — GENUINE DISAGREEMENTS BETWEEN READINGS',
+            'These are real axes of debate between disciplinary perspectives. Do NOT flatten them into consensus — either arbitrate with evidence or present the disagreement as a finding itself.',
+            ...eclecticResult.lensTensions.map(t =>
+              `- ${t.between}: ${t.tension}\n  Weighting advice: ${t.resolution}`
+            ),
+          ].join('\n')
+        : '';
+      const insightsBlock = [
+        '## LENS INTELLIGENCE — DISCIPLINARY READINGS',
+        'Each analytical lens produced its own expert reading of the question. Use these as specialized perspectives — the ontological lens excavates assumptions, the dissident lens surfaces excluded voices, the historical lens names precedents. Integrate them; do not flatten them into consensus.',
+        '',
+        ...eclecticResult.lensInsights.map(i =>
+          `### ${i.lensType.toUpperCase().replace(/_/g, ' ')}\n${i.analysis}\nKey contribution: ${i.keyContribution}${i.knowledgeGaps.length > 0 ? `\nOpen gaps: ${i.knowledgeGaps.join('; ')}` : ''}`
+        ),
+        tensionSection,
+      ].join('\n');
+      // Store for injection into the analyst context block (assembled later)
+      (stats as any).lensInsightsBlock = insightsBlock;
+      (stats as any).lensTensions = eclecticResult.lensTensions?.length ?? 0;
+      console.log(`${label} LENS INTELLIGENCE: ${eclecticResult.lensInsights.length} disciplinary analyses${eclecticResult.lensTensions?.length ? `, ${eclecticResult.lensTensions.length} inter-lens tensions` : ''}`);
+    }
+
     stats.intelligentScout = {
       lenses: eclecticResult.lenses.map(l => ({ type: l.type, sources: l.sources.length, yield: l.yield })),
       totalSources: eclecticResult.totalSources,
@@ -2799,7 +3082,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   // Traverses the citation network to discover foundational papers (hubs)
   // and interdisciplinary connectors (bridges) that keyword search misses.
   // This is the Paper Circle (ACL 2026) pattern.
-  try {
+  if (!scoutCkpt) try {
     const { traverseCitationGraph } = await import('./citation-graph');
     // Get OpenAlex IDs for the top sources (by quality score)
     const topForGraph = await prisma.source.findMany({
@@ -2839,6 +3122,13 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     }
   } catch (err) {
     console.warn(`${label} CITATION GRAPH: failed (non-blocking):`, err instanceof Error ? err.message : String(err));
+  }
+
+  // DURABLE CHECKPOINT: allSourceIds is final (scout + re-scout + intelligent
+  // scout + citation graph all done). A resume re-enters via seedIds and skips
+  // the whole provider fan-out.
+  if (durableKey && allSourceIds.length > 0) {
+    saveDurableStep(durableKey, 'scout', { allSourceIds }).catch(() => {});
   }
 
   console.log(`${label} INDEX: ${allSourceIds.length} sources`);
@@ -3446,13 +3736,13 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     }
   } catch (err) { console.warn(`${label} AGENT MEMORY (READER): failed (non-blocking):`, err); }
   const [readings, framingSettled, quantSettled, quantBridgeSettled] = await Promise.all([
-    readerAgentV3(topSources, {
+    durable('reader', () => readerAgentV3(topSources, {
       enablePdf: true,
       maxConcurrency: 8,
       timeout: isStrategic ? 120000 : undefined,
       domain: detectedDomain,
       memoryBlock: readerMemoryBlock,
-    }),
+    })),
     // FRAMING: SUPPRESSED — hypotheses not consumed by analyst, $0.03/run saved
     Promise.resolve({ hypotheses: [] as any[], keyUnknowns: [] as string[], costUsd: 0 }),
     // QUANT: fetch real numbers from T1 primary-data providers
@@ -3481,7 +3771,13 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   if (quant.facts.length > 0) console.log(`${label} QUANT: ${quant.facts.length} machine-verified facts from ${quant.fetchedProviders.join(', ')}`);
   const fullTextCount = readings.filter(r => r.readingDepth === "full_text").length;
   const quantCount = readings.filter(r => r.quantitative.effectSizes.length > 0 || r.quantitative.sampleSizes.length > 0).length;
-  stats.reader = { count: readings.length, fullText: fullTextCount, withQuantData: quantCount };
+  // S20/B: full depth breakdown persisted for groundedness trend tracking
+  const depthBreakdown = {
+    full_text: fullTextCount,
+    abstract: readings.filter(r => r.readingDepth === "abstract").length,
+    rule_based: readings.filter(r => r.readingDepth === "rule_based").length,
+  };
+  stats.reader = { count: readings.length, fullText: fullTextCount, withQuantData: quantCount, depth: depthBreakdown };
   ctx.setReaderExtracts(readings);
   ctx.recordAgentTiming('READER', Date.now() - pipelineStart);
 
@@ -3503,6 +3799,24 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     }
   } catch (err) {
     // Non-blocking
+  }
+
+  // ── EVIDENCE BANK (WebWeaver/Perplexity pattern) ──
+  // Citations attach to extracted evidence AT READING TIME, not generation
+  // time. The analyst is constrained to banked claims; post-render we flag
+  // citations to sources that contributed no evidence (hallucination risk).
+  let evidenceBankBlock: string | undefined;
+  let evidenceBankRef: import('./evidence-bank').EvidenceBank | null = null;
+  try {
+    const { buildEvidenceBank, buildEvidenceBankBlock } = await import('./evidence-bank');
+    evidenceBankRef = buildEvidenceBank(readings, topSources);
+    if (evidenceBankRef.entries.length >= 8) {
+      evidenceBankBlock = buildEvidenceBankBlock(evidenceBankRef);
+      console.log(`${label} EVIDENCE BANK: ${evidenceBankRef.entries.length} entries across ${evidenceBankRef.perSource.size} sources`);
+    }
+    stats.evidenceBank = { entries: evidenceBankRef.entries.length, sourcesWithEvidence: evidenceBankRef.perSource.size };
+  } catch (err) {
+    console.warn(`${label} EVIDENCE BANK: build failed (non-blocking):`, err);
   }
 
   // Attach extractedText from READER V3 to topSources for claim grounding
@@ -3695,7 +4009,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   let memoryBlock: string | undefined;
   let synapseMemoryBlock: string | undefined;
   try {
-    const memInj = await buildMemoryInjection(agentId, undefined, { maxLessons: 5, lookbackDays: 90, topicQuery: query });
+    const memInj = await buildMemoryInjection(agentId, detectedDomain as DomainExpertise, { maxLessons: 5, lookbackDays: 90, topicQuery: query });
     if (memInj.topLessons.length > 0) {
       memoryBlock = memInj.promptBlock;
       stats.agentMemory = { lessons: memInj.topLessons.length, agentId };
@@ -3722,18 +4036,44 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     }
   } catch (e) { /* non-blocking */ }
   // Build domain context block (injected via contextBlock for both formats)
+  // Covers the primary domain AND the casting dimensions — a lens is only a
+  // persona until it carries the field's concepts, frameworks, biases, canon.
   let domainBlock = '';
-  const kb = RESEARCHER_KBS[detectedDomain as DomainExpertise];
-  const corpus = MULTI_DOMAIN_CORPUS[detectedDomain as DomainExpertise];
-  if (kb || corpus) {
-    const parts = [`Domain: ${detectedDomain.toUpperCase()}`];
+  const domainList: string[] = [detectedDomain];
+  for (const d of (topicClassification.dimensions ?? []).slice(0, 3)) {
+    const dom = String(d.domain ?? '');
+    if (dom && !domainList.includes(dom)) domainList.push(dom);
+  }
+  const domainParts: string[] = [];
+  for (const dom of domainList.slice(0, 4)) {
+    const kb = RESEARCHER_KBS[dom as DomainExpertise];
+    const corpus = MULTI_DOMAIN_CORPUS[dom as DomainExpertise];
+    if (!kb && !corpus) continue;
+    const parts = [`Domain: ${dom.toUpperCase()}${dom === detectedDomain ? ' (primary)' : ''}`];
     if (kb?.keyConcepts?.length) parts.push(`Core concepts: ${kb.keyConcepts.slice(0, 5).map((c: KeyConcept) => c.name).join(', ')}`);
     if (kb?.frameworks?.length) parts.push(`Frameworks: ${kb.frameworks.slice(0, 3).map((f: AnalyticalFramework) => f.name).join(', ')}`);
     if (kb?.knownBiases?.length) parts.push(`Known biases: ${kb.knownBiases.slice(0, 3).join('; ')}`);
-    if (kb?.referencePapers?.length) parts.push(`Foundational works (cite when relevant): ${kb.referencePapers.map(p => `${p.title} (${p.authors}, ${p.year})`).join('; ')}`);
+    if (kb?.referencePapers?.length) parts.push(`Foundational works (cite when relevant): ${kb.referencePapers.slice(0, 4).map(p => `${p.title} (${Array.isArray(p.authors) ? p.authors.join(', ') : p.authors}, ${p.year})`).join('; ')}`);
     if (corpus?.keyFrameworks?.length) parts.push(`Key frameworks: ${corpus.keyFrameworks.join(', ')}`);
     if (corpus?.seminalWorks?.length) parts.push(`Seminal works: ${corpus.seminalWorks.slice(0, 4).join('; ')}`);
-    domainBlock = parts.join('\n');
+    domainParts.push(parts.join('\n'));
+  }
+  domainBlock = domainParts.join('\n\n');
+
+  // ── FOUNDATIONAL CANON — interpretive frameworks from philosophy, sociology,
+  // history & strategy. Deterministic match on the query; injected so the
+  // analyst reasons with named frameworks, not just recent papers.
+  let canonBlock: string | undefined;
+  try {
+    const { matchCanon, buildCanonBlockFromMatches } = await import('./canon/canon-matcher');
+    const canonMatches = matchCanon(query, { topN: isStrategic || isDossier ? 8 : 5 });
+    canonBlock = buildCanonBlockFromMatches(canonMatches);
+    if (canonBlock) {
+      console.log(`${label} CANON: ${canonMatches.length} foundational frameworks injected (${canonMatches.map(m => m.entry.author.split(' ').pop()).join(', ')})`);
+      stats.canon = { matches: canonMatches.length, entries: canonMatches.map(m => `${m.entry.author}, ${m.entry.work}`) };
+    }
+  } catch (err) {
+    console.warn(`${label} CANON: failed (non-blocking):`, err instanceof Error ? err.message : String(err));
   }
 
   const strategicOptsBlock = isStrategic
@@ -3760,6 +4100,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     `ANTI-PATTERN WARNING: The most common failure mode is citing only 5-10 sources out of ${topSources.length}. This caps trust at ~60/100 and blocks publication. AUDIT YOUR DRAFT: extract all [SRC-N] tags, convert to a Set, check size. If below ${citationTarget}, go back and add citations from uncited sources. Reports with fewer than ${citationTarget} distinct citations WILL BE REJECTED.`,
     `ANTI-CONTRADICTION RULE: Before returning JSON, scan your verdict and key findings for internal contradictions. If sentence A claims X and sentence B claims not-X, resolve the contradiction or acknowledge the tension explicitly. The critic WILL detect contradictions and penalize heavily (10+ contradictions → score <50).`,
     `ANTI-BIAS RULE: Present evidence from ALL sides of the debate. For every policy position you endorse, cite at least one source that challenges it. Do not cherry-pick sources that confirm your hypothesis. If 7 sources support position A and 3 support position B, mention BOTH positions and explain the imbalance. The critic WILL flag bias if you present only one side.`,
+    `INTERPRETIVE DEPTH RULE: If INTERPRETIVE FRAMEWORKS are provided in context, you MUST engage at least 2 of them explicitly — name the author and work, apply its analytical lens to the evidence, and note where it clarifies or fails. A publication that ignores the canon reads as journalism, not analysis.`,
     `PROSE QUALITY RULE: Write in clean, grammatical English. Do NOT repeat words across sentence boundaries (e.g., "indicates that to fragment" is wrong — write "indicates that fragmentation"). Do NOT insert citations inside abbreviations (write "e.g. [SRC-5]" not "e [SRC-5] g."). Do NOT leave double spaces. Read each sentence aloud mentally before finalizing.`,
     `Editorial line: decision-ready analysis, no hedging filler, no generic advice. Every section must either state evidence, state a position derived from evidence, or state explicitly what is unknown. A research gap is a fact about the research, never about the actor studied.`,
   ].join('\n');
@@ -3869,6 +4210,9 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     conflictContextBlock,
     scenarioContextBlock,
     domainBlock || undefined,
+    canonBlock || undefined,
+    evidenceBankBlock || undefined,
+    (stats as any).lensInsightsBlock || undefined,
     innovatorBlock || undefined,
     strategicOptsBlock,
     episodicFormatted || undefined,
@@ -3895,7 +4239,57 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     }
   } catch (e) { /* non-blocking */ }
 
+  // ── PRIOR ATTEMPT FEEDBACK (regeneration loop): when the gate rejected a
+  // previous attempt, its reasons + adversarial findings are injected so the
+  // new analysis corrects the actual defects — best-of-N with memory, not a
+  // blind retry. Injected AFTER SARA compression so it is never dropped. ──
+  if (opts.priorFailureFeedback) {
+    fullContextBlock = [
+      fullContextBlock,
+      `\n## PRIOR ATTEMPT FAILED — REVIEWER FEEDBACK (mandatory corrections)\nA previous version of this analysis was rejected by the publication gate. The new analysis MUST fix these defects:\n${opts.priorFailureFeedback}\nDo not repeat the failed framing — address each point or explicitly explain why it cannot be addressed with the available evidence.`,
+    ].filter(Boolean).join('\n\n---\n\n');
+    console.log(`${label} REGENERATION: prior failure feedback injected (${opts.priorFailureFeedback.length} chars)`);
+  }
+
   let analysis: any;
+
+  // ── ARTIFACT VERSIONING (Sprint 28 / P0-1) ──
+  // The S27 bug class: an evaluation stays attached to an artifact that was
+  // silently replaced (DA verdict on pre-sweep HTML, critic verdict on
+  // pre-repair analysis). Counters bump ONLY on material content replacement —
+  // not on enrichment (attaching centralScenario/scenarios metadata post-eval
+  // doesn't invalidate what an evaluator judged) nor on cosmetic HTML fixes
+  // (e.g./i.e. normalization, badge injection). Each evaluation is tagged with
+  // the version it judged; collectStaleEvaluations() marks `.stale` on any
+  // verdict attached to a replaced artifact — vetoes skip stale evals and the
+  // publication gate sees them via stats.evaluationFreshness.
+  let analysisArtifactVersion = 0;
+  let htmlArtifactVersion = 0;
+  const bumpAnalysisArtifact = () => { analysisArtifactVersion++; };
+  const bumpHtmlArtifact = () => { htmlArtifactVersion++; };
+  const tagEval = <T extends Record<string, any>>(entry: T, artifact: 'analysis' | 'html'): T => {
+    (entry as any).evaluatedArtifact = artifact;
+    (entry as any).artifactVersion = artifact === 'analysis' ? analysisArtifactVersion : htmlArtifactVersion;
+    return entry;
+  };
+  const EVAL_STATS_KEYS = ['critic', 'criticPanel', 'devilsAdvocate', 'structuralEditor', 'claimGrounding', 'citationVerifier', 'factChecker', 'symbolicVerifier', 'peerReview'] as const;
+  const evalVersionMatches = (e: any): boolean =>
+    !e || typeof e !== 'object' || e.skipped || e.error ||
+    typeof e.artifactVersion !== 'number' ||
+    e.artifactVersion === (e.evaluatedArtifact === 'html' ? htmlArtifactVersion : analysisArtifactVersion);
+  const collectStaleEvaluations = (): string[] => {
+    const stale: string[] = [];
+    for (const key of EVAL_STATS_KEYS) {
+      const e = (stats as any)[key];
+      if (e && typeof e === 'object' && !e.skipped && !e.error && !evalVersionMatches(e)) {
+        e.stale = true;
+        e.staleReason = `evaluated ${e.evaluatedArtifact} v${e.artifactVersion}, artifact now at v${e.evaluatedArtifact === 'html' ? htmlArtifactVersion : analysisArtifactVersion}`;
+        stale.push(key);
+      }
+    }
+    return stale;
+  };
+
   // Context surgery (2026 best practice): pass slim readings to analyst — only extracted fields, not full abstracts
   const slimReadings = readings.map((r: any) => ({
     sourceId: r.sourceId,
@@ -3918,6 +4312,37 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
       `\n## EVIDENCE SUFFICIENCY WARNING\nOnly ${sourcesWithText}/${topSources.length} sources have extractable text. Many claims will be unverifiable. ACKNOWLEDGE evidence gaps explicitly in evidenceAssessment.gaps. Do NOT fabricate claims to fill gaps — use "non établie" for unsupported assertions.`,
     ].filter(Boolean).join('\n\n---\n\n');
   }
+
+  // ── POSITIONING AGENT: editorial differentiation vs the field ──
+  // Retrieve the competitor corpus (think tanks + editorial domains), map what
+  // the field covers/converges on/misses, and inject differentiation directives
+  // so the analysis BEATS existing publications rather than re-synthesizing
+  // consensus. Runs on every format — differentiation matters everywhere
+  // (~13s, ~$0.001 measured).
+  let positioningBrief: any = null;
+  try {
+      const { buildPositioningBrief } = await import('./positioning-agent');
+      positioningBrief = await buildPositioningBrief(query, { maxPieces: 10 });
+      if (positioningBrief) {
+        addCost(positioningBrief.costUsd, 'POSITIONING');
+        fullContextBlock = [fullContextBlock, positioningBrief.contextBlock].filter(Boolean).join('\n\n---\n\n');
+        stats.positioning = {
+          competitorsFound: positioningBrief.competitorsFound,
+          uncoveredDimensions: positioningBrief.uncoveredDimensions.length,
+          directives: positioningBrief.directives.length,
+          strongestPiece: positioningBrief.strongestPiece,
+          fieldCoverage: positioningBrief.fieldCoverage,
+          consensusClaims: positioningBrief.consensusClaims,
+          gaps: positioningBrief.uncoveredDimensions,
+          weakClaims: positioningBrief.weakClaims,
+          directiveDetails: positioningBrief.directives,
+          costUsd: positioningBrief.costUsd,
+          durationMs: positioningBrief.durationMs,
+        };
+      }
+    } catch (err) {
+      console.warn(`${label} POSITIONING: failed (non-blocking):`, err instanceof Error ? err.message : String(err));
+    }
 
   // ── ANALYST: ReAct mode (agentic) vs classic multipass ──
   // ReAct mode: the analyst can search, read, debate DURING reasoning
@@ -3978,6 +4403,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
           totalCostUsd: moaResult.totalCostUsd,
         },
       };
+      bumpAnalysisArtifact();
       addCost(moaResult.totalCostUsd, 'ANALYST MOA');
       (stats as any).moa = {
         agentCount: moaResult.specialistAnalyses.length,
@@ -3993,137 +4419,19 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     }
   }
 
-  if (useAgenticAnalyst && !analysis) {
-    console.log(`${label} ANALYST: ReAct mode (agentic) — analyst can search/read/debate during reasoning`);
-    emitProgress(pipelineRun.id, "ANALYST", "started", `Agentic ReAct analysis (depth: ${isStrategic ? "strategic" : "brief"})...`);
-    try {
-      const reactResult = await analystReAct(
-        query,
-        topSources,
-        slimReadings,
-        {
-          contextBlock: fullContextBlock,
-          domain: detectedDomain,
-          depth: isStrategic ? "strategic" : "brief",
-          maxSteps: isStrategic ? 12 : 8,
-          maxCostUsd: isStrategic ? 0.50 : 0.30,
-          label: `${label} AnalystReAct`,
-          runId: pipelineRun.id,
-          useSelfDiscover,
-          useBudgetForcing,
-          useAdaptiveRAG,
-          useLATS,
-          useMCP,
-          useOutputGuard,
-          bestOfN,
-        },
-        {
-          // Tool context: wire to existing pipeline functions
-          searchFn: async (q: string, providers?: string[]) => {
-            const scoutResult: any = await scout(q, (providers || ['openalex', 'crossref']) as any, 15);
-            const ids: string[] = scoutResult.sourceIds || [];
-            return {
-              sourceIds: ids,
-              titles: ids.map(() => q),
-            };
-          },
-          readFn: async (sourceIndex: number) => {
-            const src: any = topSources[sourceIndex - 1];
-            if (!src) return null;
-            return {
-              title: src.title || src.rawTitle || 'Untitled',
-              abstract: src.abstract || '',
-              fullText: src.fullText,
-            };
-          },
-          debateFn: async (topic: string, sourceIndices: number[]) => {
-            try {
-              const devilsAdvocateMod: any = await import('./devils-advocate');
-              const debateSources = sourceIndices.map(i => topSources[i - 1]).filter(Boolean) as any[];
-              const fn = devilsAdvocateMod.runDevilsAdvocate || devilsAdvocateMod.devilsAdvocate;
-              const result: any = fn ? await fn(topic, debateSources, query) : { pro: '', con: '', synthesis: '' };
-              return {
-                pro: result.pro || '',
-                con: result.con || '',
-                synthesis: result.synthesis || '',
-              };
-            } catch {
-              return { pro: '', con: '', synthesis: 'Debate unavailable' };
-            }
-          },
-          kgFn: async (concept: string) => {
-            try {
-              const kgMod: any = await import('./knowledge-graph');
-              const fn = kgMod.queryKnowledgeGraph || kgMod.buildKnowledgeGraph;
-              const result: any = fn ? await fn(concept) : { connections: [], bridges: [] };
-              // S16-07: PathMind (AAAI 2026) — multi-hop KG path reasoning
-              try {
-                if (kgMod.reasonWithPathMind && result.connections?.length > 0) {
-                  const startNode = concept;
-                  const targetNode = result.connections[0]?.label || result.connections[0]?.id || '';
-                  if (targetNode) {
-                    const adjacency = new Map<string, Array<{ node: string; relation: string; weight: number }>>();
-                    for (const c of result.connections.slice(0, 10)) {
-                      adjacency.set(startNode, [...(adjacency.get(startNode) || []), { node: c.label || c.id || String(c), relation: 'related', weight: 0.5 }]);
-                    }
-                    const pathResult = kgMod.reasonWithPathMind(startNode, targetNode, adjacency);
-                    if (pathResult.reasoningChain) {
-                      return {
-                        connections: (result.connections || []).map((c: any) => c.label || c.id || String(c)),
-                        bridges: (result.bridges || []).map((b: any) => b.label || b.id || String(b)),
-                        reasoningChain: pathResult.reasoningChain,
-                      };
-                    }
-                  }
-                }
-              } catch { /* non-blocking */ }
-              return {
-                connections: (result.connections || []).map((c: any) => c.label || c.id || String(c)),
-                bridges: (result.bridges || []).map((b: any) => b.label || b.id || String(b)),
-              };
-            } catch {
-              return { connections: [], bridges: [] };
-            }
-          },
-        },
-      );
-      analysis = reactResult.analysis;
-      stats.analyst = {
-        hasDebate: !!analysis.causalChain?.length,
-        passes: reactResult.trace.steps.length,
-        costUsd: reactResult.costUsd,
-        depth: isStrategic ? "strategic" : "brief",
-        agentic: true,
-        reactSteps: reactResult.trace.steps.length,
-        reactStopReason: reactResult.trace.stopReason,
-        discoveredSources: reactResult.discoveredSourceIds.length,
-      };
-      addCost(reactResult.costUsd, `ANALYST ReAct (${isStrategic ? 'strategic' : 'brief'})`);
-      ctx.setAnalystOutput(analysis);
-      ctx.recordAgentTiming('ANALYST', Date.now() - pipelineStart);
-      emitProgress(pipelineRun.id, "ANALYST", "completed", `Agentic analysis complete (${reactResult.trace.steps.length} steps, ${reactResult.discoveredSourceIds.length} new sources found)`, { blackboard: ctx.getSummary() });
-    } catch (err) {
-      console.warn(`${label} ANALYST ReAct failed, falling back to classic multipass:`, err);
-      analysis = await analystMultipass(query, topSources, slimReadings, {
-        contextBlock: fullContextBlock,
-        domain: detectedDomain,
-        depth: isStrategic ? "strategic" : "brief",
-      });
-    }
-  } else {
-    analysis = await analystMultipass(query, topSources, slimReadings, {
-      contextBlock: fullContextBlock,
-      domain: detectedDomain,
-      depth: isStrategic ? "strategic" : "brief",
-    });
-  }
+  analysis = await durable('analyst', () => analystMultipass(query, topSources, slimReadings, {
+    contextBlock: fullContextBlock,
+    domain: detectedDomain,
+    depth: isStrategic ? "strategic" : "brief",
+  }));
+  bumpAnalysisArtifact();
 
   // S14-G: Test-Time Scaling (ICLR 2026 — Zeng et al.)
   // For strategic queries with sufficient budget, generate a second candidate
   // and pick the one with better citation coverage. This is a simplified version
   // of the asymmetric verification pattern: generate N candidates (cheap, parallel),
   // verify deterministically (citation count), select the best.
-  if (isStrategic && runningCostUsd < (opts.maxBudgetUsd ?? 5) * 0.4 && !useAgenticAnalyst) {
+  if (isStrategic && runningCostUsd < (opts.maxBudgetUsd ?? 5) * 0.4) {
     try {
       console.log(`${label} TEST-TIME SCALING: generating second candidate for comparison...`);
       const candidate2 = await analystMultipass(query, topSources, slimReadings, {
@@ -4139,6 +4447,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
       if (citeCount2 > citeCount1 || (citeCount2 === citeCount1 && len2 > len1 * 1.1)) {
         console.log(`${label} TEST-TIME SCALING: candidate 2 selected (cites: ${citeCount2} vs ${citeCount1}, len: ${len2} vs ${len1})`);
         analysis = candidate2;
+        bumpAnalysisArtifact();
       } else {
         console.log(`${label} TEST-TIME SCALING: candidate 1 kept (cites: ${citeCount1} vs ${citeCount2}, len: ${len1} vs ${len2})`);
       }
@@ -4222,10 +4531,25 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
         },
         errors: [],
       }, pipelineStart));
-      // Run meta-loop to check overall health
+      // Run meta-loop to check overall health — Witness is an actuator, not just
+      // an observer: 'abort'/'reduce_scope' cut optional downstream phases.
       const metaResult = await witnessCtx.metaLoop();
-      if (metaResult.recommendation === 'abort') {
-        console.warn(`${label} WITNESS: ABORT recommended — ${metaResult.reason}`);
+      if (metaResult.recommendation !== 'continue') {
+        console.warn(`${label} WITNESS: ${metaResult.recommendation.toUpperCase()} — ${metaResult.reason}`);
+        (stats as any).witnessDirective = { recommendation: metaResult.recommendation, reason: metaResult.reason };
+        ctx.addFinding('WITNESS', 'warning', `${metaResult.recommendation}: ${metaResult.reason}`);
+        if (metaResult.recommendation === 'reduce_scope' || metaResult.recommendation === 'abort') {
+          witnessReducedScope = true;
+          runDevilsAdvocateStep = false;
+          ctx.skipStep('devils-advocate');
+          if (metaResult.recommendation === 'abort') {
+            runDebateStep = false;
+            runDeliberationStep = false;
+            ctx.skipStep('debate');
+            ctx.skipStep('deliberation');
+          }
+          console.log(`${label} WITNESS: ${metaResult.recommendation} applied — optional phases cut (self-play, DA${metaResult.recommendation === 'abort' ? ', debate, deliberation' : ''})`);
+        }
       }
     } catch (err) {
       console.warn(`${label} WITNESS: analyst observation failed:`, err);
@@ -4238,7 +4562,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   stats.selfReflection = { skipped: true, reason: 'suppressed — redundant with 3-pass analyst' };
 
   // ── SELF-PLAY: Adversarial testing — attack the analysis to find weaknesses ──
-  if (useSelfPlay && analysis) {
+  if (useSelfPlay && analysis && !witnessReducedScope) {
     try {
       const analysisText = typeof analysis === 'string' ? analysis :
         (analysis.summary || '') + '\n' + (analysis.consensus || '') + '\n' + (analysis.debate?.synthesis || '');
@@ -4436,6 +4760,11 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   stats.orchestrator = stats.orchestrator || { decisions: [] };
   stats.orchestrator.decisions.push(analystDecision);
 
+  // Re-analysis budget: a single full 3-pass analyst run costs ~7min/$0.5 on
+  // reasoning models — cap total re-analyses (self-correct + orchestrator +
+  // gap-fill) so repair loops cannot stack into a pipeline timeout.
+  let reAnalysisBudget = isStrategic ? 2 : 1;
+
   // ── SELF-CORRECTION: ANALYST — assess quality, retry if low (Reflexion pattern) ──
   try {
     const analysisStr = typeof analysis === 'string' ? analysis : JSON.stringify(analysis);
@@ -4447,7 +4776,12 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
       citationCount: analysisCitations,
       maxRetries: 1,
       retryFn: async (feedback: string) => {
-        // Re-run analyst with feedback injected
+        // Re-run analyst with feedback injected — subject to run budget
+        if (reAnalysisBudget <= 0) {
+          console.log(`${label} SELF-CORRECTION (ANALYST): retry skipped — re-analysis budget exhausted`);
+          return analysis;
+        }
+        reAnalysisBudget--;
         const reAnalysis = await analystMultipass(query, topSources, slimReadings, {
           contextBlock: fullContextBlock + '\n\n' + feedback,
           domain: detectedDomain,
@@ -4462,6 +4796,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
       addCost(scResult.stats.costUsd, 'SELF-CORRECTION (ANALYST)');
       if (scResult.stats.improved) {
         analysis = scResult.analysis;
+        bumpAnalysisArtifact();
         ctx.setAnalystOutput(analysis);
         console.log(`${label} SELF-CORRECTION (ANALYST): ${scResult.stats.originalScore} → ${scResult.stats.finalScore} after ${scResult.stats.retries} retry`);
       }
@@ -4486,7 +4821,8 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   }
 
   // ── ORCHESTRATOR ACTION: RE_ANALYZE — was logged but never acted upon. NOW ACTED. ──
-  if (analystDecision.action === "RE_ANALYZE" && orchState.iteration < orchState.maxIterations) {
+  if (analystDecision.action === "RE_ANALYZE" && orchState.iteration < orchState.maxIterations && reAnalysisBudget > 0) {
+    reAnalysisBudget--;
     console.log(`${label} ORCHESTRATOR: RE_ANALYZE — ${analystDecision.reason}`);
     emitProgress(pipelineRun.id, "ANALYST", "started", `Re-analyzing with strengthened requirements...`);
     try {
@@ -4502,6 +4838,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
       const origCitations = new Set((origStr.match(/\[SRC-\d+\]/g) || []).map((m: string) => m)).size;
       if (reCitations > origCitations) {
         analysis = reAnalysis;
+        bumpAnalysisArtifact();
         ctx.setAnalystOutput(analysis);
         addCost(typeof reAnalysis._meta?.totalCostUsd === "number" ? reAnalysis._meta.totalCostUsd : 0, 'RE_ANALYZE');
         console.log(`${label} RE_ANALYZE: improved citations ${origCitations} → ${reCitations}`);
@@ -4518,17 +4855,40 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     }
   }
 
-  // ── STEP 5c: GAP-AWARE EVIDENCE APPEND — log citation gaps for diagnostics ──
-  // Note: We only analyze and log gaps here. The actual gap-filling SCOUT happens
-  // pre-analysis (step 4d) using prior-run gaps. Running another SCOUT + re-rank
-  // here is wasteful since the analysis is already generated with the original sources.
+  // ── STEP 5c: GAP-AWARE EVIDENCE APPEND — detect citation gaps, feed the
+  // BLACKBOARD gap-fill loop below (scout → re-rank → re-analyze). ──
   try {
-    const { analyzeCitationGaps } = await import('./gap-aware-append');
+    const { analyzeCitationGaps, generateGapQueries } = await import('./gap-aware-append');
     const gaps = await analyzeCitationGaps(analysis as Record<string, unknown>, topSources.length);
     if (gaps.length > 0) {
       console.log(`${label} GAP ANALYSIS: ${gaps.length} sections with low citation coverage`);
       gaps.forEach(g => console.log(`  - ${g.section}: ${Math.round(g.coverage * 100)}% (${g.citationCount}/${g.sentenceCount})`));
       stats.gapAnalysis = { gapsFound: gaps.length, queriesGenerated: 0, newSources: 0 };
+
+      // AUTONOMY: convert coverage gaps into targeted re-search requests.
+      // Previously these were only logged — now they feed the gap-fill loop.
+      if (!isBudgetConstrained() && orchState.iteration < orchState.maxIterations) {
+        try {
+          const gapQueries = await generateGapQueries(query, gaps.slice(0, 3));
+          let queued = 0;
+          for (const gq of gapQueries.slice(0, 3)) {
+            if (gq && gq.length > 10) {
+              ctx.requestSourceGap(
+                gq.slice(0, 300),
+                `Citation gap in analysis (${gaps.map(g => g.section).join(', ')})`,
+                'GAP_ANALYSIS',
+                ['crossref', 'semanticscholar', 'openalex', 'europepmc', 'internet-archive', 'jstor'],
+                10,
+              );
+              queued++;
+            }
+          }
+          stats.gapAnalysis.queriesGenerated = queued;
+          if (queued > 0) {
+            console.log(`${label} GAP ANALYSIS: ${queued} targeted re-search queries queued for gap-fill`);
+          }
+        } catch { /* non-blocking — gap queries are best-effort */ }
+      }
     } else {
       console.log(`${label} GAP ANALYSIS: all sections have adequate citation coverage`);
     }
@@ -4568,13 +4928,17 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     console.warn(`${label} RESEARCH GAPS: classification failed (non-blocking):`, err);
   }
 
-  // ── BLACKBOARD: Process ANALYST→SCOUT gap requests ──
-  // The ANALYST identified specific evidence gaps and requested targeted re-search.
-  // We run a focused SCOUT on those gaps and merge new sources before rendering.
-  if (ctx.hasGapRequests()) {
+  // ── BLACKBOARD: gap-request consumer, extracted as a reusable function ──
+  // Any agent (ANALYST, CRITIC, OUTLINE-CRITIC, GAP_ANALYSIS) can push
+  // evidence requests onto the blackboard via ctx.requestSourceGap(); this
+  // consumer scouts them, re-ranks the pool, and re-analyzes. Called at its
+  // original post-analyst position AND again after the critic/outline-critic
+  // so late-stage agents have the same actuator.
+  const processGapRequests = async (origin: string): Promise<void> => {
+    if (!ctx.hasGapRequests()) return;
     const gapReqs = ctx.getPendingGapRequests();
-    console.log(`${label} BLACKBOARD: processing ${gapReqs.length} gap requests from ANALYST`);
-    emitProgress(pipelineRun.id, "GAP_FILL", "started", `Filling ${gapReqs.length} evidence gaps identified by ANALYST...`);
+    console.log(`${label} BLACKBOARD: processing ${gapReqs.length} gap requests from ${origin}`);
+    emitProgress(pipelineRun.id, "GAP_FILL", "started", `Filling ${gapReqs.length} evidence gaps identified by ${origin}...`);
     try {
       const gapProviders = gapReqs[0].providers as string[] || ['crossref', 'semanticscholar', 'europepmc'];
       const gapResults = await Promise.allSettled(
@@ -4590,7 +4954,8 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
         }
       }
       if (gapNewCount > 0) {
-        console.log(`${label} BLACKBOARD: +${gapNewCount} sources from ANALYST gap requests — re-ranking`);
+        if (stats.gapAnalysis) stats.gapAnalysis.newSources = (stats.gapAnalysis.newSources ?? 0) + gapNewCount;
+        console.log(`${label} BLACKBOARD: +${gapNewCount} sources from ${origin} gap requests — re-ranking`);
         const gapRankOpts = { ...rankOpts, sourceIds: allSourceIds, limit: (rankOpts.limit ?? 12) + 3 };
         const gapEnriched = await rank(query, gapRankOpts);
         if (gapEnriched.length >= topSources.length) {
@@ -4601,14 +4966,17 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
           }
           console.log(`${label} BLACKBOARD: sources enriched from gap requests → ${topSources.length} total`);
         }
-        ctx.addFinding('BLACKBOARD', 'insight', `Filled ${gapReqs.length} gaps with ${gapNewCount} new sources`);
+        ctx.addFinding('BLACKBOARD', 'insight', `Filled ${gapReqs.length} gaps with ${gapNewCount} new sources (${origin})`);
 
         // ── CRITICAL FIX: Re-execute ANALYST with gap-filled sources ──
         // Before this fix, the ANALYST identified gaps, SCOUT filled them,
         // but the ANALYST was NEVER re-run with the new sources. Only the HTML
         // renderer benefited. This is like a researcher asking for documents,
         // receiving them, but continuing to write without reading them.
-        if (gapEnriched.length > 0) {
+        // BUDGET: each re-analysis is a full 3-pass (~7min on reasoning models).
+        // Cap total re-analyses per run — brief runs get 1, strategic 2.
+        if (gapEnriched.length > 0 && reAnalysisBudget > 0) {
+          reAnalysisBudget--;
           emitProgress(pipelineRun.id, "GAP_FILL", "started", `Re-analyzing with ${gapEnriched.length} enriched sources...`);
           const gapReReadings = readings.map((r: any) => ({
             sourceId: r.sourceId,
@@ -4628,6 +4996,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
           );
           if (reResult.reAnalyzed) {
             analysis = reResult.analysis;
+            bumpAnalysisArtifact();
             ctx.setAnalystOutput(analysis);
             stats.gapFillReAnalysis = {
               triggered: true,
@@ -4642,12 +5011,19 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
         }
       }
       ctx.clearGapRequests();
+      // Close the corresponding coverage_gap signals — the legacy queue and
+      // the signal bus carry the same need; resolving one resolves both.
+      ctx.signals.resolveSignalsByType('coverage_gap', 'SCOUT', `gap fill from ${origin}: +${gapNewCount} sources`);
       emitProgress(pipelineRun.id, "GAP_FILL", "completed", `Gap fill: +${gapNewCount} sources`);
     } catch (err) {
       console.warn(`${label} BLACKBOARD: gap fill failed (non-blocking):`, err);
       ctx.clearGapRequests();
+      ctx.signals.resolveSignalsByType('coverage_gap', 'SCOUT', `gap fill attempted (${origin})`);
     }
-  }
+  };
+
+  // Original consumption point — ANALYST + GAP_ANALYSIS requests
+  await processGapRequests('ANALYST');
 
   // ── POST-ANALYST ENRICHMENT CHECKPOINT ──
   // If the analysis revealed critical evidence gaps (NOT_REACHED type),
@@ -4712,24 +5088,24 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     }
   }
 
-  // ── STEP 6a: STRUCTURAL EDITOR (strategic only) ──
+  // ── STEP 6a: STRUCTURAL EDITOR (all formats since S23) ──
   // Reviews narrative structure (Pyramid Principle, SCR, governing thoughts)
-  // BEFORE rendering to HTML. Assessment only — does not rewrite.
-  // For briefs: skipped (3-pass analyst handles structure adequately).
+  // BEFORE rendering to HTML. Assessment only — does not rewrite. Cheap
+  // (~1 LLM call); briefs benefit from the <40 feedback injection too.
   stats.harvardCouncil = { skipped: true };
   stats.deliberation = { skipped: true };
-  if (isStrategic) {
+  {
     try {
       const { structuralEditorReview } = await import('./structural-editor');
       const structuralResult = await structuralEditorReview(analysis, query);
-      stats.structuralEditor = {
+      stats.structuralEditor = tagEval({
         overallStructure: structuralResult.overallStructure,
         narrativeArcValid: structuralResult.narrativeArcValid,
         sectionsWithIssues: structuralResult.sectionReviews?.filter(s => s.issues?.length > 0).length || 0,
         logicalGaps: structuralResult.logicalGaps?.length || 0,
         suggestions: structuralResult.restructuringSuggestions?.length || 0,
         costUsd: structuralResult.costUsd,
-      };
+      }, 'analysis');
       addCost(structuralResult.costUsd, 'STRUCTURAL_EDITOR');
       console.log(`${label} STRUCTURAL EDITOR: structure=${structuralResult.overallStructure}/100, arc=${structuralResult.narrativeArcValid}, ${structuralResult.logicalGaps?.length || 0} gaps, ${structuralResult.sectionReviews?.filter(s => s.issues?.length > 0).length || 0} sections with issues`);
 
@@ -4743,8 +5119,6 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
       console.warn(`${label} STRUCTURAL EDITOR: failed (non-blocking):`, err);
       stats.structuralEditor = { error: String(err) };
     }
-  } else {
-    stats.structuralEditor = { skipped: true, reason: 'brief format — analyst multipass handles structure' };
   }
 
   // â”€â”€ STEP 7: CITATION GUARD â”€â”€
@@ -4754,6 +5128,59 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   if (!guard.ok) {
     console.warn(`${label} Citation guard warning: ${guard.usedCount} citations, ${guard.invalid.length} invalid, ${guard.invalidModels.length} invalid model refs (non-fatal, proceeding with degraded quality)`);
     stats.citationGuardDegraded = true;
+  }
+
+  // ── STEP 7a: CLAIM-BINDING PREFLIGHT (deterministic, no LLM) ──
+  // Citation laundering: the analyst can attach [SRC-N] to a claim the source
+  // never supports. The critic catches it at $0.01 — this catches it for free:
+  // a claim whose key terms are absent from the cited source's text is bound
+  // to nothing. Weak bindings are surfaced as claim_unverifiable signals so
+  // the repair machinery can act on them before render.
+  try {
+    const analysisObj: any = typeof analysis === 'string' ? JSON.parse(analysis) : analysis;
+    const chain: any[] = analysisObj?.causalChain ?? [];
+    const readingsByIdPre = new Map<string, any>(
+      (Array.isArray(readings) ? readings : []).map((r: any) => [r.sourceId, r])
+    );
+    let boundCount = 0, weakCount = 0;
+    const weakLinks: { id: number; overlap: number }[] = [];
+    for (const link of chain) {
+      const srcRef = typeof link?.sourceRef === 'string'
+        ? parseInt(String(link.sourceRef).replace(/\D/g, ''), 10)
+        : (typeof link?.sourceRef === 'number' ? link.sourceRef : null);
+      if (!srcRef || srcRef < 1 || srcRef > topSources.length) continue;
+      const src = topSources[srcRef - 1];
+      const srcText = `${src?.title || ''} ${src?.abstract || ''} ${readingsByIdPre.get(src?.id)?.extractedText || ''}`.toLowerCase();
+      if (srcText.length < 100) continue; // can't verify against empty source
+      const claimText = `${link?.claim || ''} ${link?.evidence || ''}`.toLowerCase();
+      const claimTerms = new Set(
+        claimText.replace(/[^\w\s]/g, ' ').split(/\s+/).filter((w: string) => w.length > 4)
+      );
+      if (claimTerms.size === 0) continue;
+      const srcWords = new Set(srcText.replace(/[^\w\s]/g, ' ').split(/\s+/));
+      let hits = 0;
+      for (const t of claimTerms) if (srcWords.has(t)) hits++;
+      const overlap = hits / claimTerms.size;
+      boundCount++;
+      if (overlap < 0.15) {
+        weakCount++;
+        weakLinks.push({ id: link.id ?? boundCount, overlap: Math.round(overlap * 100) });
+      }
+    }
+    stats.claimBinding = { links: boundCount, weak: weakCount };
+    if (weakCount > 0) {
+      console.warn(`${label} CLAIM BINDING: ${weakCount}/${boundCount} causal-chain links cite sources that don't cover their claim (laundering risk) — links: ${weakLinks.map(w => `#${w.id}@${w.overlap}%`).join(', ')}`);
+      ctx.postSignal('claim_unverifiable', `${weakCount} causal-chain links have weak claim-source binding: ${weakLinks.map(w => `link #${w.id}`).join(', ')}`, {
+        postedBy: 'CLAIM_BINDING',
+        intensity: Math.min(0.95, 0.4 + weakCount * 0.15),
+        ttlMs: 60 * 60 * 1000,
+        payload: { weakLinks },
+      });
+    } else if (boundCount > 0) {
+      console.log(`${label} CLAIM BINDING: ${boundCount} links verified against cited sources (all bound)`);
+    }
+  } catch (bindErr) {
+    console.warn(`${label} CLAIM BINDING: check failed (non-blocking):`, bindErr);
   }
 
   // ── STEP 7b: CRITIC AGENT — Multi-stage verification ──
@@ -4790,17 +5217,25 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     // from ~100% (v3) to ~0-67% (after integrations).
     let analysisText = JSON.stringify(criticFiltered);
     analysisText = analysisText.replace(/\[E(\d+)\]/g, '[SRC-$1]');
+    // Attach reader-extracted full text so the critic verifies claims against
+    // what the analyst actually read — not just the abstract. Without this,
+    // claims synthesized from PDF page 40 are judged "unsupported" and
+    // groundedness collapses (~23% observed → HELD on a well-sourced run).
+    const readingsById = new Map<string, any>(
+      (Array.isArray(readings) ? readings : []).map((r: any) => [r.sourceId, r])
+    );
     const criticSources = topSources.map((s: any, i: number) => ({
       index: i + 1,
       title: s.title || '',
       abstract: s.abstract || '',
+      fullText: readingsById.get(s.id)?.extractedText || null,
       provider: s.provider || '',
       year: s.year || undefined,
     }));
 
     const criticResult = await runCritic(analysisText, criticSources, { skipBias: false, skipContradictions: false });
     savedCriticResult = criticResult;
-    stats.critic = {
+    stats.critic = tagEval({
       verdict: criticResult.verdict,
       overallScore: criticResult.overallScore,
       groundedness: criticResult.groundedness,
@@ -4811,7 +5246,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
       stageResults: criticResult.stageResults,
       costUsd: criticResult.costUsd,
       durationMs: criticResult.durationMs,
-    };
+    }, 'analysis');
 
     console.log(`${label} CRITIC: verdict=${criticResult.verdict}, score=${criticResult.overallScore}, groundedness=${Math.round(criticResult.groundedness * 100)}%, ${criticResult.contradictions.length} contradictions, ${criticResult.biases.length} biases`);
 
@@ -4839,6 +5274,248 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   } catch (err) {
     console.warn(`${label} CRITIC: failed (non-blocking):`, err instanceof Error ? err.message : String(err));
   }
+
+  // ── CRITIC PANEL (G-Eval rubric, 4 dimensions) — complements the scalar
+  // critic score with per-dimension verdicts: methodology / coverage /
+  // epistemic calibration / editorial. A veto fires only when a reviewer
+  // documents a REPAIRABLE severe defect — replacing opaque low-score caps. ──
+  let savedPanelResult: any = null;
+  try {
+    const { runCriticPanel } = await import('./critic-panel');
+    const panelText = typeof analysis === 'string' ? analysis : JSON.stringify(analysis);
+    const panelResult = await runCriticPanel(panelText, query, {
+      domain: detectedDomain, // S21: domain checklist (qualityCriteria + biases) injected into methodology reviewer
+      fieldContext: positioningBrief ? {
+        fieldCoverage: positioningBrief.fieldCoverage,
+        uncoveredDimensions: positioningBrief.uncoveredDimensions,
+        weakClaims: positioningBrief.weakClaims,
+        strongestPiece: positioningBrief.strongestPiece,
+      } : undefined,
+    });
+    addCost(panelResult.costUsd, 'CRITIC_PANEL');
+    savedPanelResult = panelResult;
+    stats.criticPanel = tagEval({
+      overallScore: panelResult.overallScore,
+      dimensions: panelResult.dimensions.map(d => ({
+        dimension: d.dimension, score: d.score,
+        findings: d.findings.slice(0, 4), mustFix: d.mustFix,
+      })),
+      veto: panelResult.veto,
+      vetoReasons: panelResult.vetoReasons,
+      costUsd: panelResult.costUsd,
+      durationMs: panelResult.durationMs,
+    }, 'analysis');
+  } catch (err) {
+    console.warn(`${label} CRITIC PANEL: failed (non-blocking):`, err instanceof Error ? err.message : String(err));
+  }
+
+  // ── ORCHESTRATOR ACTION: CRITIC REPAIR — instructions were generated but never
+  // consumed. NOW ACTED: a single targeted re-analysis with the repair instructions
+  // injected, kept only if it doesn't degrade citation coverage.
+  // S23+: the critic PANEL's mustFix/weak findings are folded into the repair
+  // block — methodology/coverage/editorial defects trigger revision too, not
+  // just claim-level failures (CogWriter-style monitor→revise loop). ──
+  const panelWeakFindings = savedPanelResult
+    ? savedPanelResult.dimensions
+        .filter((d: any) => d.mustFix || d.score <= 4)
+        .flatMap((d: any) => d.findings.slice(0, 3).map((f: string) => `[${d.dimension}] ${f}`))
+        .slice(0, 6)
+    : [];
+  const repairTrigger = savedCriticResult?.verdict === 'repair' && savedCriticResult.repairInstructions &&
+    savedCriticResult.overallScore < 65;
+  const panelTrigger = savedPanelResult?.veto === true && panelWeakFindings.length > 0;
+  if ((repairTrigger || panelTrigger) && !isBudgetConstrained() &&
+      orchState.iteration < orchState.maxIterations && reAnalysisBudget > 0) {
+    reAnalysisBudget--;
+    try {
+      const panelBlock = panelWeakFindings.length > 0
+        ? '\n\n## EDITORIAL PANEL FINDINGS (must fix)\nThe review panel documented these defects:\n' +
+          panelWeakFindings.map((f: string) => `- ${f}`).join('\n')
+        : '';
+      const instructions = (savedCriticResult?.repairInstructions || '') + panelBlock;
+      console.log(`${label} CRITIC REPAIR: re-running ANALYST (critic=${savedCriticResult?.overallScore ?? 'n/a'}/100, panelFindings=${panelWeakFindings.length})`);
+      emitProgress(pipelineRun.id, "ANALYST", "started", `Repairing analysis per critic instructions...`);
+      const repaired = await analystMultipass(query, topSources, slimReadings, {
+        contextBlock: fullContextBlock + '\n\n## CRITIC REPAIR INSTRUCTIONS (mandatory)\nThe critic identified defects in the previous analysis that MUST be fixed:\n' + instructions,
+        domain: detectedDomain,
+        depth: isStrategic ? "strategic" : "brief",
+      });
+      const repStr = typeof repaired === 'string' ? repaired : JSON.stringify(repaired);
+      const repCitations = new Set((repStr.match(/\[SRC-\d+\]/g) || []).map((m: string) => m)).size;
+      const origStr = typeof analysis === 'string' ? analysis : JSON.stringify(analysis);
+      const origCitations = new Set((origStr.match(/\[SRC-\d+\]/g) || []).map((m: string) => m)).size;
+      // Repair targets defects, not citation count — accept if coverage didn't regress
+      if (repCitations >= origCitations) {
+        analysis = repaired;
+        bumpAnalysisArtifact();
+        ctx.setAnalystOutput(analysis);
+        orchState.iteration++;
+        stats.orchestrator = stats.orchestrator ?? { decisions: [] };
+        stats.orchestrator.criticRepairApplied = true;
+        addCost(typeof repaired._meta?.totalCostUsd === "number" ? repaired._meta.totalCostUsd : 0, 'CRITIC_REPAIR');
+        console.log(`${label} CRITIC REPAIR: re-analysis applied (citations ${origCitations} → ${repCitations})`);
+
+        // CRITIC + PANEL RE-CHECK: the verdicts above describe the ORIGINAL,
+        // defective analysis. Now that the repaired text was adopted, those
+        // verdicts are stale — the trust vetoes (critic reject cap, panel
+        // findings) would punish defects that no longer exist. Re-run both
+        // evaluators once on the repaired analysis; their fresh verdicts
+        // unconditionally replace the stale ones (honest: the artifact being
+        // published is the repaired text — if the repair regressed, the worse
+        // verdict is the truthful one).
+        try {
+          const repText = typeof repaired === 'string' ? repaired : JSON.stringify(repaired);
+          const recheckReadingsById = new Map<string, any>(
+            (Array.isArray(readings) ? readings : []).map((r: any) => [r.sourceId, r])
+          );
+          const recheckSources = topSources.map((s: any, i: number) => ({
+            index: i + 1,
+            title: s.title || '',
+            abstract: s.abstract || '',
+            fullText: recheckReadingsById.get(s.id)?.extractedText || null,
+            provider: s.provider || '',
+            year: s.year || undefined,
+          }));
+          const { runCritic: recheckCritic } = await import('./critic-agent');
+          const criticRecheck = await recheckCritic(repText, recheckSources, { skipBias: false, skipContradictions: false });
+          addCost(criticRecheck.costUsd, 'CRITIC_RECHECK');
+          console.log(`${label} CRITIC RE-CHECK: ${savedCriticResult?.overallScore ?? '?'}→${criticRecheck.overallScore}/100 (${savedCriticResult?.verdict ?? '?'}→${criticRecheck.verdict})`);
+          savedCriticResult = criticRecheck;
+          stats.critic = tagEval({
+            verdict: criticRecheck.verdict,
+            overallScore: criticRecheck.overallScore,
+            groundedness: criticRecheck.groundedness,
+            claimsCount: criticRecheck.claims.length,
+            contradictions: criticRecheck.contradictions.length,
+            biases: criticRecheck.biases.length,
+            citationIssues: criticRecheck.citationIssues.length,
+            stageResults: criticRecheck.stageResults,
+            costUsd: criticRecheck.costUsd,
+            durationMs: criticRecheck.durationMs,
+          }, 'analysis');
+          (stats as any).criticRecheckedPostRepair = true;
+        } catch (rcErr) {
+          console.warn(`${label} CRITIC RE-CHECK failed (non-blocking):`, rcErr);
+        }
+        try {
+          const { runCriticPanel: recheckPanel } = await import('./critic-panel');
+          const repPanelText = typeof repaired === 'string' ? repaired : JSON.stringify(repaired);
+          const panelRecheck = await recheckPanel(repPanelText, query, { domain: detectedDomain });
+          addCost(panelRecheck.costUsd ?? 0, 'CRITIC_PANEL_RECHECK');
+          if (panelRecheck && typeof panelRecheck.overallScore === 'number') {
+            console.log(`${label} PANEL RE-CHECK: ${savedPanelResult?.overallScore ?? '?'}→${panelRecheck.overallScore}/100 (veto: ${panelRecheck.veto})`);
+            savedPanelResult = panelRecheck;
+            stats.criticPanel = tagEval({
+              overallScore: panelRecheck.overallScore,
+              dimensions: panelRecheck.dimensions,
+              veto: panelRecheck.veto,
+              vetoReasons: panelRecheck.vetoReasons,
+              costUsd: panelRecheck.costUsd,
+              durationMs: panelRecheck.durationMs ?? 0,
+            }, 'analysis');
+          }
+        } catch (rpErr) {
+          console.warn(`${label} PANEL RE-CHECK failed (non-blocking):`, rpErr);
+        }
+      } else {
+        console.log(`${label} CRITIC REPAIR: retry lost citations (${origCitations} → ${repCitations}) — keeping original`);
+      }
+      emitProgress(pipelineRun.id, "ANALYST", "completed", `Critic repair complete`);
+    } catch (err) {
+      console.warn(`${label} CRITIC REPAIR: failed (non-blocking):`, err);
+    }
+  }
+
+  // ── CRITIC EVIDENCE TOOL (item 7): when the critic flags unsupported
+  // claims, convert them into targeted evidence requests on the blackboard.
+  // This gives the critic a real actuator — it can pull evidence, not just
+  // complain about its absence. Consumed by processGapRequests below. ──
+  if (savedCriticResult && !isBudgetConstrained() && orchState.iteration < orchState.maxIterations) {
+    try {
+      const unsupportedClaims = (savedCriticResult.claims || [])
+        .filter((c: any) => c.verdict === 'unsupported')
+        .slice(0, 3);
+      const citationIssues = (savedCriticResult.citationIssues || [])
+        .filter((i: any) => i.issue === 'missing' || i.issue === 'vague')
+        .slice(0, 2);
+      const evidenceTargets = [...unsupportedClaims.map((c: any) => c.text || ''),
+                               ...citationIssues.map((i: any) => i.explanation || '')]
+        .filter((t: string) => typeof t === 'string' && t.length > 20)
+        .slice(0, 3);
+      if (evidenceTargets.length > 0) {
+        const { generateGapQueries } = await import('./gap-aware-append');
+        const syntheticGaps = evidenceTargets.map((t: string) => ({
+          section: 'unsupported_claim',
+          coverage: 0,
+          citationCount: 0,
+          sentenceCount: 1,
+          suggestedQuery: t.slice(0, 200),
+        }));
+        const queries = await generateGapQueries(query, syntheticGaps as any);
+        let pushed = 0;
+        for (const q of (queries || []).slice(0, 3)) {
+          if (q && q.length > 10) {
+            ctx.requestSourceGap(
+              q.slice(0, 300),
+              `Critic flagged unsupported claim: ${evidenceTargets[pushed]?.slice(0, 80) ?? 'evidence gap'}`,
+              'CRITIC',
+              ['openalex', 'crossref', 'semanticscholar', 'ssrn', 'linkup', 'jstor'],
+              10,
+            );
+            pushed++;
+          }
+        }
+        if (pushed > 0) {
+          console.log(`${label} CRITIC EVIDENCE TOOL: ${pushed} targeted evidence requests queued from unsupported claims`);
+          stats.criticEvidenceRequests = pushed;
+        }
+      }
+    } catch (err) {
+      console.warn(`${label} CRITIC EVIDENCE TOOL: failed (non-blocking):`, err);
+    }
+  }
+
+  // ── OUTLINE CRITIC (WebWeaver ICLR 2026): critique the analysis STRUCTURE
+  // before rendering. The claim-level critic asks "are these claims true?";
+  // the outline critic asks "did we investigate the right dimensions?".
+  // Missing dimensions become targeted retrieval requests on the blackboard. ──
+  if (!isBudgetConstrained() && orchState.iteration < orchState.maxIterations) {
+    try {
+      const { critiqueOutline } = await import('./outline-critic');
+      const outlineResult = await critiqueOutline(query, analysis, topSources.length);
+      if (outlineResult) {
+        addCost(outlineResult.costUsd, 'OUTLINE_CRITIC');
+        stats.outlineCritic = {
+          coverageScore: outlineResult.coverageScore,
+          missingDimensions: outlineResult.missingDimensions,
+          weakSections: outlineResult.weakSections,
+          queriesEmitted: outlineResult.targetedQueries.length,
+          rationale: outlineResult.rationale,
+        };
+        console.log(`${label} OUTLINE CRITIC: coverage ${outlineResult.coverageScore}/100 — ${outlineResult.missingDimensions.length} missing dimensions, ${outlineResult.targetedQueries.length} queries`);
+
+        // Low structural coverage → push targeted retrieval requests
+        if (outlineResult.coverageScore < 70 && outlineResult.targetedQueries.length > 0) {
+          for (const q of outlineResult.targetedQueries.slice(0, 3)) {
+            ctx.requestSourceGap(
+              q.slice(0, 300),
+              `Missing dimension: ${outlineResult.missingDimensions[0] ?? 'structural coverage gap'}`,
+              'OUTLINE_CRITIC',
+              ['openalex', 'crossref', 'semanticscholar', 'ssrn', 'jstor', 'internet-archive', 'linkup'],
+              12,
+            );
+          }
+          ctx.addFinding('OUTLINE_CRITIC', 'gap',
+            `Structural coverage ${outlineResult.coverageScore}/100 — missing: ${outlineResult.missingDimensions.slice(0, 3).join('; ')}`);
+        }
+      }
+    } catch (err) {
+      console.warn(`${label} OUTLINE CRITIC: failed (non-blocking):`, err);
+    }
+  }
+
+  // Second consumption round — critic evidence requests + outline-critic queries
+  await processGapRequests('CRITIC/OUTLINE');
 
   // SELF-CORRECT CHECKPOINT: CRITIC
   try {
@@ -5303,15 +5980,15 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
       const symbolicResult = verifySymbolically(html);
       if (symbolicResult.failed > 0) {
         console.log(`${label} SYMBOLIC VERIFY: ${symbolicResult.passed} passed, ${symbolicResult.failed} failed (score ${symbolicResult.score}%)`);
-        stats.symbolicVerifier = {
+        stats.symbolicVerifier = tagEval({
           score: symbolicResult.score,
           passed: symbolicResult.passed,
           failed: symbolicResult.failed,
           flagged: symbolicResult.flagged.length,
-        };
+        }, 'html');
       } else if (symbolicResult.passed > 0) {
         console.log(`${label} SYMBOLIC VERIFY: ${symbolicResult.passed} checks passed, 0 failed`);
-        stats.symbolicVerifier = { score: 100, passed: symbolicResult.passed, failed: 0, flagged: 0 };
+        stats.symbolicVerifier = tagEval({ score: 100, passed: symbolicResult.passed, failed: 0, flagged: 0 }, 'html');
       }
     } catch (symErr) {
       console.warn(`${label} SYMBOLIC VERIFY: failed (non-blocking):`, symErr);
@@ -5326,11 +6003,11 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
         maxClaims: 80,
         readings,
       });
-      stats.citationVerifier = {
+      stats.citationVerifier = tagEval({
         integrity: verification.overallIntegrity,
         supported: verification.supported,
         flagged: verification.flaggedClaims.length,
-      };
+      }, 'html');
       console.log(`${label} CITATION VERIFIER: NLI integrity ${verification.overallIntegrity}% (${verification.flaggedClaims.length} flagged)`);
 
       // ── ACTIVE REPAIR LOOP — runs FIRST, before the slow LLM deep-check ──
@@ -5372,13 +6049,15 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
           // trust score calculation.
           if (repairResult.html !== html) {
             html = repairResult.html;
+            bumpHtmlArtifact();
           }
           // Always update integrity — the repair loop re-verifies internally
-          stats.citationVerifier = {
+          // (re-verified post-repair html → tagged with the bumped version)
+          stats.citationVerifier = tagEval({
             integrity: repairResult.integrityAfter,
             supported: stats.citationVerifier?.supported ?? 0,
             flagged: Math.max(0, (stats.citationVerifier?.flagged ?? 0) - repairResult.citationsReplaced - repairResult.hallucinationsRemoved),
-          };
+          }, 'html');
           stats.activeRepair = {
             iterations: repairResult.iterations,
             citationsReplaced: repairResult.citationsReplaced,
@@ -5409,11 +6088,11 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
           const llmVerification = await verifyCitations(html, topSources, { maxConcurrency: 8, maxClaims: 30, producerFamily, readings });
           // Use LLM result if it found fewer issues (NLI is more aggressive)
           if (llmVerification.overallIntegrity > postRepairIntegrity) {
-            stats.citationVerifier = {
+            stats.citationVerifier = tagEval({
               integrity: llmVerification.overallIntegrity,
               supported: llmVerification.supported,
               flagged: llmVerification.flaggedClaims.length,
-            };
+            }, 'html');
             console.log(`${label} CITATION VERIFIER: LLM corrected integrity to ${llmVerification.overallIntegrity}%`);
           }
         } catch (llmErr) {
@@ -5426,11 +6105,11 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
       console.warn(`${label} CITATION VERIFIER: NLI failed, falling back to LLM:`, err);
       try {
         const verification = await verifyCitations(html, topSources, { maxConcurrency: 8, maxClaims: 50, producerFamily, readings });
-        stats.citationVerifier = {
+        stats.citationVerifier = tagEval({
           integrity: verification.overallIntegrity,
           supported: verification.supported,
           flagged: verification.flaggedClaims.length,
-        };
+        }, 'html');
         console.log(`${label} CITATION VERIFIER: LLM integrity ${verification.overallIntegrity}%`);
       } catch (llmErr) {
         console.warn(`${label} CITATION VERIFIER: LLM also failed (non-blocking):`, llmErr);
@@ -5440,13 +6119,13 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     try {
       const { factChecker } = await import('./fact-checker');
       const factResult = await factChecker(html, topSources, producerFamily, readings);
-      stats.factChecker = {
+      stats.factChecker = tagEval({
         totalClaims: factResult.totalClaims,
         verified: factResult.verified,
         majorIssues: factResult.majorIssues,
         fatalIssues: factResult.fatalIssues,
         integrityScore: factResult.integrityScore,
-      };
+      }, 'html');
       console.log(`${label} FACT-CHECKER: ${factResult.totalClaims} claims, ${factResult.verified} verified, ${factResult.majorIssues} major, ${factResult.fatalIssues} fatal → integrity ${factResult.integrityScore}%`);
       if (factResult.fatalIssues > 0) {
         console.error(`${label} FACT-CHECKER: ${factResult.fatalIssues} FATAL numerical discrepancies detected — sanitizing HTML`);
@@ -5457,6 +6136,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
           const factRepair = repairCitations(html, analysis as Record<string, unknown>, topSources);
           if (factRepair.numbersSanitized > 0) {
             html = factRepair.html;
+            bumpHtmlArtifact();
             console.log(`${label} FACT-CHECKER REPAIR: sanitized ${factRepair.numbersSanitized} suspicious numbers`);
           }
         } catch (repairErr) {
@@ -5550,6 +6230,95 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
       console.log(`${label} SOURCE CHECK: ${sourceCheckResult.verifiedCount} verified, ${sourceCheckResult.retractedCount} retracted, ${sourceCheckResult.notFoundCount} not found, ${sourceCheckResult.claimAbsentCount} claim absent → integrity ${sourceCheckResult.integrityScore}%`);
     } catch (err) {
       console.warn(`${label} SOURCE CHECK: failed (non-blocking):`, err);
+    }
+
+    // ── URL HEALTH (urlhealth pattern, arXiv 2604.03173) ──
+    // 3-13% of citation URLs from deep-research agents are hallucinated or
+    // dead. Probe only the URLs actually cited (bounded ≤25), rescue dead
+    // ones via Wayback. Non-blocking, deterministic-ish cost.
+    try {
+      const { checkCitedUrlHealth } = await import('./url-health');
+      const { extractCitationNumbers } = await import('./evidence-ledger');
+      const citedNums = extractCitationNumbers(html);
+      if (citedNums.length > 0) {
+        const urlHealth = await checkCitedUrlHealth(citedNums, topSources);
+        stats.urlHealth = {
+          checked: urlHealth.checked,
+          alive: urlHealth.alive,
+          dead: urlHealth.dead,
+          waybackRescued: urlHealth.waybackRescued,
+          unrecoverable: urlHealth.unrecoverable.length,
+        };
+        if (urlHealth.unrecoverable.length > 0) {
+          ctx.addFinding('URL_HEALTH', 'warning',
+            `${urlHealth.unrecoverable.length} cited URL(s) unresolvable and not archived — possible hallucinated or rotten citations`);
+          console.warn(`${label} URL HEALTH: ${urlHealth.alive}/${urlHealth.checked} alive, ${urlHealth.waybackRescued} rescued via archive, ${urlHealth.unrecoverable.length} UNRECOVERABLE`);
+        } else {
+          console.log(`${label} URL HEALTH: ${urlHealth.alive}/${urlHealth.checked} alive${urlHealth.waybackRescued ? `, ${urlHealth.waybackRescued} rescued` : ''}`);
+        }
+      }
+    } catch (err) {
+      console.warn(`${label} URL HEALTH: failed (non-blocking):`, err);
+    }
+
+    // ── EVIDENCE BANK VALIDATION — citations must point at sources that
+    // contributed extracted evidence. Citing a source with zero banked
+    // claims = citing metadata the model never read = hallucination risk. ──
+    if (evidenceBankRef && evidenceBankRef.entries.length > 0) {
+      try {
+        const { validateCitationsAgainstBank } = await import('./evidence-bank');
+        const { extractCitationNumbers } = await import('./evidence-ledger');
+        const bankCheck = validateCitationsAgainstBank(extractCitationNumbers(html), evidenceBankRef);
+        stats.evidenceBankValidation = {
+          citedCount: bankCheck.citedCount,
+          bankedCount: bankCheck.bankedCount,
+          unbankedCitations: bankCheck.unbankedCitations,
+          utilizationPct: bankCheck.utilizationPct,
+          risk: bankCheck.risk,
+        };
+        if (bankCheck.risk === 'high') {
+          ctx.addFinding('EVIDENCE_BANK', 'warning',
+            `${bankCheck.unbankedCitations.length}/${bankCheck.citedCount} citations point to sources with no extracted evidence — likely citing metadata, not content`);
+          console.warn(`${label} EVIDENCE BANK: HIGH RISK — ${bankCheck.unbankedCitations.length} citations to unextracted sources [${bankCheck.unbankedCitations.join(',')}]`);
+        } else if (bankCheck.unbankedCitations.length > 0) {
+          console.log(`${label} EVIDENCE BANK: ${bankCheck.unbankedCitations.length} citations to unextracted sources (risk ${bankCheck.risk}), utilization ${bankCheck.utilizationPct}%`);
+        } else {
+          console.log(`${label} EVIDENCE BANK: all citations banked, utilization ${bankCheck.utilizationPct}%`);
+        }
+      } catch (err) {
+        console.warn(`${label} EVIDENCE BANK: validation failed (non-blocking):`, err);
+      }
+    }
+
+    // ── PROCESS AUDIT (PING taxonomy, arXiv 2601.22984) ──
+    // Hallucinations originate in intermediate steps, not just the final
+    // text: intent drift in planning, propagation loss (researched but
+    // dropped sub-questions), noise (retrieved but never used evidence).
+    try {
+      const { auditProcessTrace } = await import('./process-audit');
+      const { extractCitationNumbers } = await import('./evidence-ledger');
+      const audit = auditProcessTrace({
+        question: query,
+        planNodes: planNodesForAudit,
+        analysis,
+        citedSourceIndices: extractCitationNumbers(html),
+        totalTopSources: topSources.length,
+      });
+      stats.processAudit = {
+        score: audit.score,
+        intentMisaligned: audit.intent.misalignedNodes.length,
+        propagationDropped: audit.propagation.unaddressedNodes.length,
+        unusedSourcePct: audit.noise.unusedPct,
+      };
+      if (audit.score < 70) {
+        ctx.addFinding('PROCESS_AUDIT', 'warning',
+          `Trajectory audit ${audit.score}/100 — intent drift: ${audit.intent.misalignedNodes.length}, dropped sub-questions: ${audit.propagation.unaddressedNodes.length}, unused sources: ${audit.noise.unusedPct}%`);
+        console.warn(`${label} PROCESS AUDIT: score ${audit.score}/100 — ${audit.propagation.unaddressedNodes.length} researched sub-questions never addressed, ${audit.noise.unusedPct}% sources unused`);
+      } else {
+        console.log(`${label} PROCESS AUDIT: ${audit.score}/100 (intent ✓, propagation ✓, noise ${audit.noise.unusedPct}%)`);
+      }
+    } catch (err) {
+      console.warn(`${label} PROCESS AUDIT: failed (non-blocking):`, err);
     }
 
     // ── DETERMINISTIC TRUST SCORING — replaces Critical Loop V2 ──
@@ -5663,6 +6432,24 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
         console.log(`${label} TRUST: critic penalty — critic score ${criticScore}/100, applying ${penaltyPct}% penalty → ${deterministicScore}`);
       }
 
+      // Critic Panel veto — rubric reviewers documented a REPAIRABLE severe
+      // defect (mustFix). More surgical than the scalar veto: the reason is
+      // logged and persisted, and the cap only blocks publication (55 < 65).
+      if ((stats.criticPanel as any)?.veto) {
+        deterministicScore = Math.min(deterministicScore, 55);
+        console.log(`${label} TRUST: critic panel veto — ${(stats.criticPanel as any).vetoReasons?.join('; ')}, capping at 55`);
+      }
+      // Editorial floor — a piece the panel scored ≤4/10 on editorial quality is
+      // unpublishable for a premium outlet even if every factual gate passed.
+      // Cap at 60 (below the 65 publish threshold): same convention as the
+      // mustFix veto (score ≤ 4), applied whether or not mustFix was flagged.
+      const editorialScore = ((stats.criticPanel as any)?.dimensions ?? [])
+        .find((d: any) => d.dimension === 'editorial')?.score;
+      if (typeof editorialScore === 'number' && editorialScore > 0 && editorialScore <= 4) {
+        deterministicScore = Math.min(deterministicScore, 60);
+        console.log(`${label} TRUST: editorial floor — panel editorial ${editorialScore}/10 ≤ 4, capping at 60`);
+      }
+
       // Retraction veto: if any source is retracted, cap trust at 50
       if ((stats.sourceCheck as any)?.retracted > 0) {
         deterministicScore = Math.min(deterministicScore, 50);
@@ -5709,7 +6496,16 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
       // S16-03: HallDetect (arXiv 2026) — lightweight reference-free hallucination detection
       try {
         const { hallDetect } = await import('./hall-detect');
-        const analysisText = html || (typeof analysis === 'string' ? analysis : JSON.stringify(analysis));
+        // Strip markup first — decomposeClaims on raw HTML produces thousands of
+        // garbage "claims" from CSS/nav/boilerplate (was: 554 flagged, score 71).
+        const stripTags = (h: string) => h
+          .replace(/<script\b[^>]*>[\s\S]*?(<\/script>|(?=<\/head>)|(?=<body\b)|$)/gi, ' ')
+          .replace(/<style\b[^>]*>[\s\S]*?(<\/style>|(?=<\/head>)|(?=<body\b)|$)/gi, ' ')
+          .replace(/<head\b[^>]*>[\s\S]*?(<\/head>|(?=<body\b)|$)/gi, ' ')
+          .replace(/<[^>]+>/g, ' ')
+          .replace(/&[a-z]+;/gi, ' ')
+          .replace(/\s+/g, ' ');
+        const analysisText = stripTags(html || (typeof analysis === 'string' ? analysis : JSON.stringify(analysis)));
         const sourceTexts = (topSources || []).map((s: any) => `${s.title || ''} ${s.abstract || ''}`).join(' ');
         const hallScore = hallDetect(analysisText, [sourceTexts]);
         if (hallScore.score > 40) {
@@ -5724,6 +6520,21 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
       } catch (e) { /* non-blocking */ }
 
       deterministicScore = Math.min(100, Math.max(0, deterministicScore));
+
+      // ── ABSTENTION PATH: trust < 30 → honest "insufficient evidence" verdict ──
+      // A think tank that publishes weak analysis loses credibility. Below this
+      // threshold the publication is marked as evidence-insufficient rather than
+      // presented as a confident finding.
+      const ABSTENTION_THRESHOLD = 30;
+      if (deterministicScore < ABSTENTION_THRESHOLD) {
+        console.warn(`${label} ABSTENTION: trust ${deterministicScore} < ${ABSTENTION_THRESHOLD} — marking publication as evidence-insufficient`);
+        (stats as any).abstention = {
+          triggered: true,
+          score: deterministicScore,
+          reason: 'Insufficient evidence base: grounding, citation coverage, or source quality below the Institute\'s minimum threshold for a confident position.',
+        };
+        ctx.addFinding('TRUST', 'warning', `Abstention threshold reached (score ${deterministicScore}) — publication flagged as evidence-insufficient`);
+      }
 
       stats.criticalLoop = {
         iterations: 0,
@@ -5832,6 +6643,23 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
         } else {
           html = html + methodologyHtml;
         }
+
+        // ── ABSTENTION BANNER — visible honesty signal at the top of the article ──
+        if ((stats as any).abstention?.triggered) {
+          const abstentionHtml = `
+<section class="nx-block abstention-notice" style="border:1px solid rgba(251,113,133,0.35);border-left:3px solid #FB7185;border-radius:6px;background:rgba(251,113,133,0.06);padding:18px 22px;margin:24px 0;">
+  <p class="nx-eyebrow" style="letter-spacing:0.08em;text-transform:uppercase;font-size:0.6rem;margin:0 0 8px;color:#FB7185;font-weight:600;">Evidence-insufficient analysis</p>
+  <p style="margin:0;font-size:0.82rem;line-height:1.7;color:rgba(240,240,250,0.8);">The Institute could not establish a confident position on this question. The available evidence base is too thin, contradictory, or weakly sourced to support a reliable assessment. The analysis below reflects the best available evidence but should be treated as exploratory rather than conclusive.</p>
+</section>`;
+          // Insert right after the opening <article...> tag, or prepend
+          const articleOpen = html.match(/<article[^>]*>/);
+          if (articleOpen) {
+            html = html.replace(articleOpen[0], articleOpen[0] + abstentionHtml);
+          } else {
+            html = abstentionHtml + html;
+          }
+          console.log(`${label} ABSTENTION BANNER: injected at top of article`);
+        }
         stats.methodologyNote = { injected: true, corpusSize: topSources.length, providers: providerList.length, citedDistinct: citedSources.size };
         console.log(`${label} METHODOLOGY NOTE: injected (${topSources.length} sources, ${providerList.length} providers, ${citedSources.size} cited)`);
       } catch (methodErr) {
@@ -5846,6 +6674,16 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     recordDecision(orchState, criticalDecision);
     stats.orchestrator = stats.orchestrator ?? { decisions: [] };
     stats.orchestrator.decisions.push(criticalDecision);
+
+    // ── ORCHESTRATOR ACTION: DEBATE — was recorded but never executed. NOW ACTED. ──
+    // Trust below threshold → force the adversarial debate even if the tier flag
+    // disabled it, unless the budget guard already cut it (money wins).
+    if (criticalDecision.action === "DEBATE" && !runDebateStep && !budgetDegraded) {
+      console.log(`${label} ORCHESTRATOR: DEBATE triggered — trust ${orchState.trustScore} below threshold, enabling adversarial debate`);
+      runDebateStep = true;
+      stats.orchestrator.debateForcedByOrchestrator = true;
+      ctx.addFinding('ORCHESTRATOR', 'recommendation', `DEBATE forced by low trust score (${orchState.trustScore})`);
+    }
   };
 
   const runDebateMetaBlock = async (debateHtmlContext?: string) => {
@@ -5859,7 +6697,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     emitProgress(pipelineRun.id, "DEBATE", "started", "Running debate...");
     console.log(`${label} DEBATE: running (meta-analysis suppressed)`);
     const [debateSettled] = await Promise.allSettled([
-      import('./debate-agent').then(m => m.debateAgent(query, topSources, readings, debateHtmlContext)),
+      import('./debate-agent').then(m => m.debateAgent(query, topSources, readings, debateHtmlContext, { domain: detectedDomain })),
     ]);
 
     if (debateSettled.status === "fulfilled") {
@@ -5888,7 +6726,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
         console.log(`${label} DEBATE: steel-man strength ${steelManScore} < 50 — re-running with adversarial boost`);
         try {
           const [retrySettled] = await Promise.allSettled([
-            import('./debate-agent').then(m => m.debateAgent(query, topSources, readings, debateHtmlContext + '\n\nADVERSARIAL BOOST: The previous steel-man was too weak. Generate a MUCH stronger counter-position. Attack every assumption. Find the weakest link in the dominant thesis.')),
+            import('./debate-agent').then(m => m.debateAgent(query, topSources, readings, debateHtmlContext + '\n\nADVERSARIAL BOOST: The previous steel-man was too weak. Generate a MUCH stronger counter-position. Attack every assumption. Find the weakest link in the dominant thesis.', { domain: detectedDomain })),
           ]);
           if (retrySettled.status === "fulfilled") {
             const retryDebate = retrySettled.value;
@@ -5923,14 +6761,14 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   };
 
   const runDevilsAdvocateBlock = async (contentForReview: string, _allowHtmlRevision: boolean) => {
-    // DEVIL'S ADVOCATE — strategic reports only.
-    // For briefs: skipped (deterministic gates + 3-pass analyst suffice).
-    // For strategic: runs as ADVISORY epistemic challenge — identifies fatal challenges,
-    // kill shots, and future vulnerabilities. Does NOT modify trust score (which is
-    // deterministic). Challenges are appended as an advisory section to the HTML.
-    if (!isStrategic || !runDevilsAdvocateStep) {
-      stats.devilsAdvocate = { skipped: true, reason: !isStrategic ? 'brief format' : 'disabled by LAS gate' };
-      console.log(`${label} DEVIL'S ADVOCATE: skipped (${!isStrategic ? 'brief' : 'LAS gate'})`);
+    // DEVIL'S ADVOCATE — all formats (like positioning since S21).
+    // Runs as ADVISORY epistemic challenge — identifies fatal challenges,
+    // kill shots, and future vulnerabilities. Does NOT modify trust score
+    // (deterministic) except the documented veto below. Briefs need the
+    // adversarial check too: a short piece can still carry a killable claim.
+    if (!runDevilsAdvocateStep) {
+      stats.devilsAdvocate = { skipped: true, reason: 'disabled by LAS gate' };
+      console.log(`${label} DEVIL'S ADVOCATE: skipped (LAS gate)`);
       return;
     }
     emitProgress(pipelineRun.id, "DEVILS_ADVOCATE", "started", "Adversarial epistemic challenge...");
@@ -5941,23 +6779,40 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
         contentForReview,
         topSources.map((s: any) => ({ title: s.title, provider: s.provider, year: s.year })),
         {
-          mode: 'strategic',
+          mode: isStrategic ? 'strategic' : 'brief',
           domain: detectedDomain,
           debateContext,
         },
       );
-      stats.devilsAdvocate = {
+      stats.devilsAdvocate = tagEval({
         verdict: daResult.verdict,
         overallStrength: daResult.overallStrength,
         publishabilityScore: daResult.publishabilityScore,
         fatalChallenges: daResult.fatalChallenges?.length || 0,
         majorChallenges: daResult.majorChallenges?.length || 0,
-        killShot: daResult.killShot?.slice(0, 200) || '',
+        killShot: daResult.killShot?.slice(0, 400) || '',
+        // Keep the actual challenge texts — the adversarial review is rendered
+        // as an editorial section, not just a counter in stats.
+        topChallenges: [...(daResult.fatalChallenges || []), ...(daResult.majorChallenges || [])]
+          .slice(0, 3)
+          .map((c: any) => ({ type: c.challengeType || c.type || 'challenge', text: String(c.challenge || c.text || '').slice(0, 300) })),
+        vulnerabilityTexts: (daResult.futureVulnerabilities || []).slice(0, 3).map((v: any) => String(v).slice(0, 200)),
         futureVulnerabilities: daResult.futureVulnerabilities?.length || 0,
         costUsd: daResult.costUsd,
-      };
+      }, 'analysis');
       addCost(daResult.costUsd, "DEVILS_ADVOCATE");
       console.log(`${label} DEVIL'S ADVOCATE: verdict=${daResult.verdict}, strength=${daResult.overallStrength}/100, fatal=${daResult.fatalChallenges?.length || 0}, major=${daResult.majorChallenges?.length || 0}`);
+
+      // Emit adversarial objections as signals — resolvers (revision editor)
+      // sense them at the post-render sweep, no hardcoded wiring needed.
+      for (const c of [...(daResult.fatalChallenges || []), ...(daResult.majorChallenges || [])].slice(0, 4)) {
+        ctx.postSignal('substance_weak', String(c.challenge || '').slice(0, 300), {
+          postedBy: 'DEVILS_ADVOCATE',
+          intensity: c.severity === 'fatal' ? 0.95 : 0.7,
+          ttlMs: 60 * 60 * 1000,
+          payload: { type: c.challengeType, requiredAction: c.requiredAction, suggestedRevision: c.suggestedRevision },
+        });
+      }
       emitProgress(pipelineRun.id, "DEVILS_ADVOCATE", "completed", `Verdict: ${daResult.verdict} (${daResult.overallStrength}/100)`);
 
       // Devil's Advocate veto: if MAJOR_REVISION with strength < 20, cap trust at 40
@@ -5980,6 +6835,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
       const repairResult = repairCitations(html, analysis as Record<string, unknown>, topSources);
       if (repairResult.citationsBackfilled + repairResult.citationsInjected + repairResult.numbersSanitized > 0) {
         html = repairResult.html;
+        bumpHtmlArtifact();
         console.log(`${label} CITATION REPAIR: +${repairResult.citationsBackfilled} backfilled, +${repairResult.citationsInjected} injected, ${repairResult.numbersSanitized} numbers sanitized`);
         stats.citationRepair = {
           backfilled: repairResult.citationsBackfilled,
@@ -5996,9 +6852,26 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
       const groundingResult = await groundClaimsWithNLI(html, topSources, { mode: 'remove', readings });
       if (groundingResult.removedClaims > 0 || groundingResult.unsupported > 0) {
         html = groundingResult.html;
+        bumpHtmlArtifact();
       }
       console.log(`${label} CLAIM GROUNDING: ${groundingResult.supported} supported, ${groundingResult.partial} partial, ${groundingResult.unsupported} unsupported, ${groundingResult.uncited} uncited → groundedness ${Math.round(groundingResult.groundedness * 100)}%, ${groundingResult.removedClaims} removed`);
-      stats.claimGrounding = {
+      // Emit unverifiable claims as signals — collective awareness that
+      // evidence is missing (resolvable by re-search at sweep checkpoints).
+      if (groundingResult.unsupported > 0 || groundingResult.contradicted > 0) {
+        ctx.postSignal('claim_unverifiable',
+          `${groundingResult.unsupported} unsupported + ${groundingResult.contradicted} contradicted claims survived removal`,
+          {
+            postedBy: 'CLAIM_GROUNDING',
+            intensity: Math.min(1, 0.4 + (groundingResult.unsupported + groundingResult.contradicted) * 0.05),
+            ttlMs: 30 * 60 * 1000,
+            payload: {
+              unsupported: groundingResult.unsupported,
+              contradicted: groundingResult.contradicted,
+              claims: (groundingResult.claims ?? []).filter((c: any) => c.verdict === 'unsupported' || c.verdict === 'contradicted').slice(0, 5).map((c: any) => String(c.text ?? '').slice(0, 200)),
+            },
+          });
+      }
+      stats.claimGrounding = tagEval({
         supported: groundingResult.supported,
         partial: groundingResult.partial,
         unsupported: groundingResult.unsupported,
@@ -6006,7 +6879,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
         contradicted: groundingResult.contradicted,
         groundedness: Math.round(groundingResult.groundedness * 100),
         flagged: groundingResult.removedClaims,
-      };
+      }, 'html');
 
       // Fix 2: Re-run grounding after removal to get clean score (bad claims are now gone)
       if (groundingResult.removedClaims > 0 && groundingResult.groundedness < 0.80) {
@@ -6014,7 +6887,8 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
         const reGrounding = await groundClaimsWithNLI(html, topSources, { mode: 'remove', readings });
         if (reGrounding.groundedness > groundingResult.groundedness) {
           html = reGrounding.html;
-          stats.claimGrounding = {
+          bumpHtmlArtifact();
+          stats.claimGrounding = tagEval({
             supported: reGrounding.supported,
             partial: reGrounding.partial,
             unsupported: reGrounding.unsupported,
@@ -6022,7 +6896,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
             contradicted: reGrounding.contradicted,
             groundedness: Math.round(reGrounding.groundedness * 100),
             flagged: groundingResult.removedClaims + reGrounding.removedClaims,
-          };
+          }, 'html');
           console.log(`${label} CLAIM GROUNDING: re-grounding improved ${Math.round(groundingResult.groundedness * 100)}% → ${Math.round(reGrounding.groundedness * 100)}%`);
         }
       }
@@ -6047,6 +6921,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
       const filterResult = applyCitationFilter(html);
       if (filterResult.backtrackedClaims > 0 || filterResult.removedSentences > 0) {
         html = filterResult.filteredHtml;
+        bumpHtmlArtifact();
         console.log(`${label} CITATION FILTER: +${filterResult.backtrackedClaims} backtracked, -${filterResult.removedSentences} removed, coverage ${filterResult.citationCoverageBefore * 100 | 0}%→${filterResult.citationCoverageAfter * 100 | 0}%`);
       }
       stats.citationFilter = {
@@ -6076,7 +6951,27 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     // LOT 4.8 / T4: Inflection check on extracted mechanisms (dated, thresholded, attested)
     try {
       const { inflectionCheck } = await import('./chain-probability');
-      const allMechanisms = readings.flatMap((r: any) => r.mechanisms || []);
+      // Topic gate — drop mechanisms unrelated to this query (off-topic PDFs or
+      // reader hallucinations can inject foreign mechanisms, e.g. a Tamil-identity
+      // mechanism appearing in a fintech brief).
+      const STOP = new Set(['this','that','with','from','which','their','have','been','were','will','would','could','should','into','over','under','between','through','about','against','such','these','those','than','then','them','they','what','when','where','while','also','more','most','other','some','only','very','each','both']);
+      const vocab = new Set(
+        `${query} ${(topSources || []).map((s: any) => s.title || '').join(' ')}`
+          .toLowerCase().split(/[^a-zà-ÿ0-9]+/)
+          .filter(w => w.length >= 4 && !STOP.has(w))
+      );
+      const allMechanismsRaw = readings.flatMap((r: any) => (r.mechanisms || []).map((m: any) => ({ m, sourceId: r.sourceId })));
+      const droppedMechanisms: string[] = [];
+      const allMechanisms = allMechanismsRaw.filter(({ m, sourceId }: any) => {
+        const text = String(m.description || '').toLowerCase();
+        const words = text.split(/[^a-zà-ÿ0-9]+/).filter((w: string) => w.length >= 4);
+        if (words.some((w: string) => vocab.has(w))) return true;
+        droppedMechanisms.push(`${sourceId}: "${text.slice(0, 80)}"`);
+        return false;
+      }).map(({ m }: any) => m);
+      if (droppedMechanisms.length > 0) {
+        console.warn(`${label} INFLECTION CHECK: dropped ${droppedMechanisms.length} off-topic mechanisms — ${droppedMechanisms.slice(0, 3).join(' | ')}`);
+      }
       if (allMechanisms.length >= 5) {
         const inflection = inflectionCheck(allMechanisms);
         if (inflection.warning) {
@@ -6153,18 +7048,8 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
           analysis = foresight.analysis as typeof analysis;
           // Enrich institutePosition scenarios with empirical probabilities
           const simScenarios = foresight.report.output.scenarios;
-          institutePosition = {
-            ...institutePosition,
-            scenarios: institutePosition.scenarios.map((s, i) => {
-              const sim = simScenarios.find(o => o.name === s.name) ?? simScenarios[i];
-              if (!sim) return s;
-              return {
-                ...s,
-                probability: `${(sim.empiricalProbability * 100).toFixed(0)}%`,
-                empiricalProbability: sim.empiricalProbability,
-              };
-            }),
-          };
+          stats.centralScenario = resolveCentralScenario(institutePosition, simScenarios);
+          analysis = { ...analysis, scenarios: institutePosition.scenarios } as typeof analysis;
           stats.foresight = {
             scenarios: foresight.report.output.scenarios.length,
             monteCarloRuns: foresight.report.output.monteCarloRuns,
@@ -6181,35 +7066,52 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
       }
     }
 
+    stats.centralScenarioRequired = true;
+    if (institutePosition) {
+      stats.centralScenario ??= resolveCentralScenario(institutePosition);
+      stats.institutePosition = institutePosition;
+      analysis = { ...analysis, centralScenario: stats.centralScenario, scenarios: institutePosition.scenarios } as typeof analysis;
+      console.log(`${label} CENTRAL SCENARIO: ${stats.centralScenario?.name ?? 'missing — publication hold required'}; simulation disagreement=${stats.centralScenario?.simulationDisagrees ?? false}`);
+    }
     await runDevilsAdvocateBlock(buildAnalysisReviewText(analysis as Record<string, unknown>, query), false);
-    html = await renderEditorHtml();
+    html = await durable('render', () => renderEditorHtml());
+    bumpHtmlArtifact();
 
-    // Inject DA fatal challenges as visible warning if DA found fatal issues
+    // Render the adversarial review as an editorial section — a publication
+    // that shows its own strongest objection reads as rigorous, not fragile.
     const daStats = stats.devilsAdvocate as any;
-    if (daStats && !daStats.skipped && !daStats.error && daStats.fatalChallenges > 0) {
-      const daWarning = `<div style="background:#f8d7da;border:1px solid #dc3545;border-radius:8px;padding:12px 16px;margin:16px 0;font-size:0.9em;color:#721c24;">
-        <strong>⚠️ Adversarial Review Flagged ${daStats.fatalChallenges} Fatal Challenge${daStats.fatalChallenges > 1 ? 's' : ''}:</strong>
-        This analysis was assessed as ${daStats.verdict} by the Devil's Advocate (strength ${daStats.overallStrength}/100).
-        ${daStats.killShot ? `<br/><em>"${(daStats.killShot as string).replace(/</g, '<').replace(/>/g, '>').replace(/"/g, '"')}"</em>` : ''}
-        <br/>Review the full analysis with additional sources before relying on these findings for decision-making.
-      </div>`;
-      // Insert after the first <h1> or <article> tag
-      if (html.includes('<article')) {
-        html = html.replace(/(<article[^>]*>)/, `$1${daWarning}`);
-      } else if (html.includes('<h1')) {
-        html = html.replace(/(<\/h1>)/, `$1${daWarning}`);
+    if (daStats && !daStats.skipped && !daStats.error && (daStats.fatalChallenges > 0 || daStats.majorChallenges > 0)) {
+      const esc = (s: string) => s.replace(/</g, '<').replace(/>/g, '>').replace(/"/g, '"');
+      const challenges = (daStats.topChallenges || []) as { type: string; text: string }[];
+      const vulnerabilities = (daStats.vulnerabilityTexts || []) as string[];
+      const severityLabel = daStats.fatalChallenges > 0 ? 'Adversarial review — dissenting opinion' : 'Adversarial review';
+      const daSection = `
+<section class="nx-block nx-adversarial-review" data-no-cite="true">
+  <div class="pf-axes-title">${severityLabel}</div>
+  <p class="da-verdict-line">Verdict: <strong>${esc(String(daStats.verdict || 'publish').replace(/_/g, ' '))}</strong> · analytical strength ${daStats.overallStrength ?? '—'}/100</p>
+  ${daStats.killShot ? `<p class="da-killshot"><em>“${esc(daStats.killShot)}”</em></p>` : ''}
+  ${challenges.length > 0 ? `<ul class="da-challenges">${challenges.map(c => `<li><span class="da-challenge-type">${esc(c.type)}</span> ${esc(c.text)}</li>`).join('')}</ul>` : ''}
+  ${vulnerabilities.length > 0 ? `<p class="da-vuln"><strong>Where this analysis could age badly:</strong> ${vulnerabilities.map(esc).join(' · ')}</p>` : ''}
+</section>`;
+      // Anchor before references, else before </article>, else append
+      if (html.includes('references-section')) {
+        html = html.replace(/<section class="references-section"/, `${daSection}\n<section class="references-section"`);
+      } else if (html.includes('</article>')) {
+        html = html.replace('</article>', `${daSection}</article>`);
+      } else {
+        html += daSection;
       }
-      console.log(`${label} DA WARNING: injected ${daStats.fatalChallenges} fatal challenge warning into HTML`);
+      console.log(`${label} DA SECTION: rendered adversarial review (fatal=${daStats.fatalChallenges}, major=${daStats.majorChallenges})`);
     }
     if (usePeerReview) {
       try {
         const review = await runPeerReview(html, topSources, { title: analysis.title });
-        (stats as any).peerReview = {
+        (stats as any).peerReview = tagEval({
           score: review.overallScore,
           recommendation: review.recommendation,
           critical: review.issues.filter(i => i.severity === 'critical').length,
           major: review.issues.filter(i => i.severity === 'major').length,
-        };
+        }, 'html');
         addCost(review.costUsd, 'PEER REVIEW');
         console.log(`${label} PEER REVIEW: score=${review.overallScore}, rec=${review.recommendation}, critical=${(stats as any).peerReview.critical}, major=${(stats as any).peerReview.major}`);
       } catch (err) {
@@ -6221,12 +7123,13 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
         const pack = await augmentThinkTankHtml(html, query, topSources, {
           domain: detectedDomain,
           primaryData: opts.primaryData,
-          scenarioModeling: opts.scenarioModeling ?? true,
+          scenarioModeling: !institutePosition && (opts.scenarioModeling ?? true),
           maxScenarios: opts.maxScenarios,
           stressTest: opts.stressTest ?? true,
           policyCouncil: opts.policyCouncil ?? true,
         });
         html = pack.html;
+        bumpHtmlArtifact();
         addCost(pack.costUsd, 'THINK TANK PACK');
         (stats as any).thinkTankPack = pack.stats;
         console.log(`${label} THINK TANK PACK: applied (cost=$${pack.costUsd.toFixed(4)})`);
@@ -6242,16 +7145,17 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     //   await runDevilsAdvocateBlock(html, true);
     // }
   } else {
-    html = await renderEditorHtml();
+    html = await durable('render', () => renderEditorHtml());
+    bumpHtmlArtifact();
     if (usePeerReview) {
       try {
         const review = await runPeerReview(html, topSources, { title: analysis.title });
-        (stats as any).peerReview = {
+        (stats as any).peerReview = tagEval({
           score: review.overallScore,
           recommendation: review.recommendation,
           critical: review.issues.filter(i => i.severity === 'critical').length,
           major: review.issues.filter(i => i.severity === 'major').length,
-        };
+        }, 'html');
         addCost(review.costUsd, 'PEER REVIEW');
         console.log(`${label} PEER REVIEW: score=${review.overallScore}, rec=${review.recommendation}, critical=${(stats as any).peerReview.critical}, major=${(stats as any).peerReview.major}`);
       } catch (err) {
@@ -6263,12 +7167,13 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
         const pack = await augmentThinkTankHtml(html, query, topSources, {
           domain: detectedDomain,
           primaryData: opts.primaryData,
-          scenarioModeling: opts.scenarioModeling ?? true,
+          scenarioModeling: !institutePosition && (opts.scenarioModeling ?? true),
           maxScenarios: opts.maxScenarios,
           stressTest: opts.stressTest ?? true,
           policyCouncil: opts.policyCouncil ?? true,
         });
         html = pack.html;
+        bumpHtmlArtifact();
         addCost(pack.costUsd, 'THINK TANK PACK');
         (stats as any).thinkTankPack = pack.stats;
         console.log(`${label} THINK TANK PACK: applied (cost=$${pack.costUsd.toFixed(4)})`);
@@ -6358,6 +7263,41 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     };
     if (styleResult.violations.length > 0) {
       console.log(`${label} STYLE GATES: ${styleResult.violations.length} violations (G1-G10)`);
+      // Emit as signals — resolvable at sweep checkpoints, not just inline.
+      for (const v of styleResult.violations.slice(0, 10)) {
+        ctx.postSignal('style_violation', `${v.gate}: "${v.match}" → ${v.suggestion}`, {
+          postedBy: 'STYLE_GATES', intensity: 0.4, ttlMs: 20 * 60 * 1000,
+          payload: { gate: v.gate, match: v.match, suggestion: v.suggestion },
+        });
+      }
+    }
+
+    // ── COPY EDITOR — the missing newsroom role: detection existed (style gates,
+    // editorial panel reviewer) but nothing FIXED the prose. Surgical edit-list
+    // contract: LLM returns {find, replace} pairs, applied only after verbatim +
+    // citation-preservation verification (see copy-editor.ts). Triggers on style
+    // violations OR a weak editorial panel score with concrete findings.
+    const editorialFindings = ((stats.criticPanel as any)?.dimensions ?? [])
+      .filter((d: any) => d.dimension === 'editorial' && d.score < 7)
+      .flatMap((d: any) => (d.findings ?? []).slice(0, 3));
+    if ((styleResult.violations.length > 0 || editorialFindings.length > 0) && !isBudgetConstrained()) {
+      try {
+        const { copyEditHtml } = await import('./copy-editor');
+        const ce = await copyEditHtml(html, { violations: styleResult.violations, editorialFindings });
+        addCost(ce.costUsd, 'COPY_EDITOR');
+        if (ce.applied > 0) {
+          html = ce.html;
+          const after = runStyleGates(html);
+          console.log(`${label} COPY EDITOR: ${ce.applied} edits applied (${ce.skipped} rejected) → violations ${styleResult.violations.length} → ${after.violations.length}`);
+          stats.copyEditor = { applied: ce.applied, skipped: ce.skipped, violationsBefore: styleResult.violations.length, violationsAfter: after.violations.length, costUsd: ce.costUsd };
+          stats.styleGates.violations = after.violations.length;
+          stats.styleGates.passed = after.passed;
+        } else {
+          stats.copyEditor = { applied: 0, skipped: ce.skipped, costUsd: ce.costUsd };
+        }
+      } catch (ceErr) {
+        console.warn(`${label} COPY EDITOR: failed (non-blocking):`, ceErr);
+      }
     }
     if (numResult.violations.length > 0) {
       console.log(`${label} NUMERICAL GATE: ${numResult.violations.length} unsourced numbers (first 5: ${numResult.violations.slice(0, 5).map(v => v.match).join(', ')})`);
@@ -6368,6 +7308,111 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     }
   } catch (err) {
     console.warn(`${label} STYLE GATES: failed (non-blocking):`, err);
+  }
+
+  // ── SIGNAL SWEEP (post-render): the collective deliberation checkpoint. ──
+  // Signals posted during the run (DA objections → substance_weak, grounding
+  // gaps → claim_unverifiable, style → style_violation) are drained in
+  // mission-priority order to their resolvers. substance_weak is resolved by
+  // the revision editor — surgical edits that address adversarial objections
+  // in the final HTML BEFORE the gate ever sees them.
+  let sweepResolvedSubstance = false;
+  try {
+    if (!isBudgetConstrained()) {
+      ctx.signals.registerResolver('substance_weak', async (sigs: import('./signals').AgentSignal[]) => {
+        const daStats = stats.devilsAdvocate as any;
+        const { reviseForFindings } = await import('./revision-editor');
+        const weakFindings = ((stats.criticPanel as any)?.dimensions ?? [])
+          .filter((d: any) => d.mustFix || d.score <= 4)
+          .flatMap((d: any) => (d.findings ?? []).slice(0, 3).map((f: string) => `[${d.dimension}] ${f}`));
+        const rev = await reviseForFindings(html, {
+          gateReasons: [],
+          daChallenges: sigs.map((s: import('./signals').AgentSignal) => ({ type: String(s.payload?.type ?? 'challenge'), text: s.content })),
+          killShot: daStats?.killShot,
+          weakFindings,
+        });
+        addCost(rev.costUsd, 'REVISION_EDITOR');
+        if (rev.applied > 0) { html = rev.html; bumpHtmlArtifact(); return { resolved: true, note: `${rev.applied} edit(s) — ${rev.skipped} rejected` }; }
+        return { resolved: false, note: `0 edits applied (${rev.skipped} rejected)` };
+      }, { batch: true });
+
+      const sweep = await ctx.signals.sweep({
+        mission: ctx.mission,
+        metrics: {
+          trust: stats.criticalLoop?.finalScore ?? 0,
+          groundedness: stats.claimGrounding?.groundedness ?? 100,
+          citationCoverage: 0,
+          sourceCount: topSources.length,
+          qualityScore: 0,
+          centralScenarioOk: true,
+        },
+        maxResolutions: 3,
+      });
+      if (sweep.resolved > 0 || sweep.failed > 0) {
+        sweepResolvedSubstance = sweep.results.some(
+          r => r.signal.type === 'substance_weak' && r.res.resolved
+        );
+        (stats as Record<string, unknown>).signalSweep = { resolved: sweep.resolved, failed: sweep.failed, remaining: sweep.remaining };
+        console.log(`${label} SIGNAL SWEEP: ${sweep.resolved} resolved, ${sweep.failed} failed, ${sweep.remaining} open — ${sweep.results.map(r => `${r.signal.type}=${r.res.resolved ? 'ok' : 'no'}`).join(', ')}`);
+      }
+    }
+  } catch (sweepErr) {
+    console.warn(`${label} SIGNAL SWEEP: failed (non-blocking):`, sweepErr);
+  }
+
+  // ── DA RE-CHECK (post-sweep): if the devil's advocate failed the analysis
+  // (veto, reject verdict, or a publishability score below the gate's 40
+  // threshold) and the sweep's revision editor resolved its substance_weak
+  // objections in the HTML, the verdict must be re-evaluated on the CORRECTED
+  // artifact — otherwise the gate and the trust cap punish defects that no
+  // longer exist and the correction loop is cosmetic. One re-check (~$0.02),
+  // skipped when budget-constrained. The fresh verdict replaces the stored one
+  // either way: it describes the adopted artifact, which is what the gate must
+  // judge. ──
+  try {
+    const daStats = stats.devilsAdvocate as Record<string, unknown> | undefined;
+    const daGateFailing = (stats as any).devilsAdvocateVeto === true
+      || daStats?.verdict === 'reject'
+      || (typeof daStats?.publishabilityScore === 'number' && daStats.publishabilityScore < 40);
+    if (daGateFailing && sweepResolvedSubstance && !isBudgetConstrained()) {
+      const { runDevilsAdvocate } = await import('./devils-advocate');
+      const recheck = await runDevilsAdvocate(
+        query,
+        html,
+        topSources.map((s: any) => ({ title: s.title, provider: s.provider, year: s.year })),
+        { mode: isStrategic ? 'strategic' : 'brief', domain: detectedDomain, debateContext },
+      );
+      addCost(recheck.costUsd, 'DEVILS_ADVOCATE_RECHECK');
+      const recheckFatal = recheck.fatalChallenges?.length ?? 0;
+      const stillVetoWorthy = recheck.verdict === 'reject'
+        || (recheck.verdict === 'major_revision' && recheck.overallStrength < 20);
+      console.log(`${label} DA RE-CHECK: strength ${daStats?.overallStrength ?? '?'}→${recheck.overallStrength}/100, fatal ${daStats?.fatalChallenges ?? '?'}→${recheckFatal} — veto ${stillVetoWorthy ? 'STANDS' : 'LIFTED'}`);
+      (stats as any).devilsAdvocateRecheck = {
+        verdict: recheck.verdict,
+        overallStrength: recheck.overallStrength,
+        publishabilityScore: recheck.publishabilityScore,
+        fatalChallenges: recheckFatal,
+        vetoLifted: !stillVetoWorthy && (stats as any).devilsAdvocateVeto === true,
+        costUsd: recheck.costUsd,
+      };
+      (stats as any).devilsAdvocateVeto = stillVetoWorthy;
+      stats.devilsAdvocate = tagEval({
+        verdict: recheck.verdict,
+        overallStrength: recheck.overallStrength,
+        publishabilityScore: recheck.publishabilityScore,
+        fatalChallenges: recheckFatal,
+        majorChallenges: recheck.majorChallenges?.length ?? 0,
+        killShot: recheck.killShot?.slice(0, 400) ?? '',
+        topChallenges: [...(recheck.fatalChallenges || []), ...(recheck.majorChallenges || [])]
+          .slice(0, 3)
+          .map((c: any) => ({ type: c.challengeType || c.type || 'challenge', text: String(c.challenge || c.text || '').slice(0, 300) })),
+        vulnerabilityTexts: (recheck.futureVulnerabilities || []).slice(0, 3).map((v: any) => String(v).slice(0, 200)),
+        futureVulnerabilities: recheck.futureVulnerabilities?.length || 0,
+        costUsd: recheck.costUsd,
+      }, 'html');
+    }
+  } catch (recheckErr) {
+    console.warn(`${label} DA RE-CHECK failed (non-blocking):`, recheckErr);
   }
 
   // ── POST-RENDER QUALITY LOOP (Karpathy Loop pattern, inspired by Cortis) ──
@@ -6390,6 +7435,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
       const aggressiveRepair = repairCitations(html, analysis as Record<string, unknown>, topSources);
       if (aggressiveRepair.citationsBackfilled + aggressiveRepair.citationsInjected > 0) {
         html = aggressiveRepair.html;
+        bumpHtmlArtifact();
         console.log(`${label} QUALITY LOOP: aggressive citation repair +${aggressiveRepair.citationsBackfilled} backfilled, +${aggressiveRepair.citationsInjected} injected`);
         // Update stats
         if (stats.citationRepair) {
@@ -6411,9 +7457,10 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
       const loopGrounding = await groundClaimsWithNLI(html, topSources, { mode: 'remove', readings });
       if (loopGrounding.removedClaims > 0) {
         html = loopGrounding.html;
+        bumpHtmlArtifact();
       }
       console.log(`${label} QUALITY LOOP: re-grounding → ${loopGrounding.supported} supported, ${loopGrounding.unsupported} unsupported → groundedness ${Math.round(loopGrounding.groundedness * 100)}%`);
-      stats.claimGrounding = {
+      stats.claimGrounding = tagEval({
         supported: loopGrounding.supported,
         partial: loopGrounding.partial,
         unsupported: loopGrounding.unsupported,
@@ -6421,7 +7468,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
         contradicted: loopGrounding.contradicted,
         groundedness: Math.round(loopGrounding.groundedness * 100),
         flagged: loopGrounding.removedClaims,
-      };
+      }, 'html');
 
       // Re-calculate trust score with new grounding + coverage
       const loopCitedSources = new Set<number>();
@@ -6455,6 +7502,54 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
       // Grounding veto
       if (loopGroundedness < 0.15) {
         loopTrustScore = Math.min(loopTrustScore, 45);
+      }
+      if (loopGroundedness >= 0.15 && loopGroundedness < 0.40) {
+        loopTrustScore = Math.min(loopTrustScore, 55);
+      }
+
+      // ── VETO PARITY — the loop must not bypass the deterministic vetoes ──
+      // Without this, the quality loop inflated 45→75 while the critic veto
+      // had capped at 50 (confidence-inflation cascade flagged by SelfCorrect).
+      // P0-1: vetoes only apply to evaluations attached to the CURRENT artifact
+      // — a verdict on a replaced artifact (post-sweep/loop mutations) is invalid.
+      collectStaleEvaluations();
+      const loopCriticScore = stats.critic?.stale ? null : (stats.critic?.overallScore ?? null);
+      const loopCriticVerdict = stats.critic?.stale ? null : (stats.critic?.verdict ?? null);
+      const loopSymbolicScore = stats.symbolicVerifier?.score ?? 100;
+      const loopSymbolicFailed = stats.symbolicVerifier?.failed ?? 0;
+      const loopProviderDiversity = new Set(topSources.map((s: any) => s.provider)).size;
+
+      if (loopSymbolicFailed > 0 && loopSymbolicScore < 70) {
+        loopTrustScore = Math.min(loopTrustScore, 55);
+        console.log(`${label} QUALITY LOOP: symbolic veto reapplied (cap 55)`);
+      }
+      if (loopCriticVerdict === 'reject') {
+        loopTrustScore = Math.min(loopTrustScore, 50);
+        console.log(`${label} QUALITY LOOP: critic reject veto reapplied (cap 50)`);
+      }
+      if (loopCriticScore !== null && loopCriticScore < 10) {
+        loopTrustScore = Math.min(loopTrustScore, 40);
+      } else if (loopCriticScore !== null && loopCriticScore < 25) {
+        loopTrustScore = Math.min(loopTrustScore, 55);
+      } else if (loopCriticScore !== null && loopCriticScore < 60) {
+        const penaltyPct = Math.round((60 - loopCriticScore) * 0.37);
+        loopTrustScore = Math.round(loopTrustScore * (100 - penaltyPct) / 100);
+      }
+      if ((stats.sourceCheck as any)?.retracted > 0) {
+        loopTrustScore = Math.min(loopTrustScore, 50);
+      }
+      if (loopNliIntegrity < 70) {
+        loopTrustScore = Math.min(loopTrustScore, 55);
+      }
+      if ((stats as any).devilsAdvocateVeto && !(stats.devilsAdvocate as any)?.stale) {
+        loopTrustScore = Math.min(loopTrustScore, 40);
+      }
+      if (loopProviderDiversity < 3) {
+        loopTrustScore = Math.min(loopTrustScore, 60);
+      }
+      const loopHallScore = (stats as any).hallDetect?.score ?? 0;
+      if (loopHallScore > 70) {
+        loopTrustScore = Math.min(loopTrustScore, 50);
       }
       loopTrustScore = Math.min(100, Math.max(0, loopTrustScore));
 
@@ -6590,6 +7685,21 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     // Keep tab (0x09), LF (0x0A), CR (0x0D) as they are valid in JSON strings
     return str.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
   };
+  // Foundational KB sources have synthetic ids (never persisted as rows).
+  // Keep their metadata in lineage so readers can hydrate them and preserve
+  // [SRC-N] ordering for the whole brief.sources array.
+  if (foundationalSources.length > 0) {
+    (stats as Record<string, unknown>).foundationalSources = foundationalSources.map((fs) => ({
+      id: fs.id,
+      title: fs.title,
+      authors: fs.authors,
+      year: fs.year,
+      doi: fs.doi,
+      url: fs.url,
+      provider: fs.provider,
+      qualityScore: fs.qualityScore,
+    }));
+  }
   const safeHtml = sanitizeForJson(html);
   let safeStats: any;
   try {
@@ -6767,6 +7877,23 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     // Non-blocking
   }
 
+  // ── EVALUATION FRESHNESS ASSERT (P0-1) ──
+  // Every tagged evaluation is checked against the artifact version it judged.
+  // A stale verdict (attached to a replaced artifact — the S27 bug class) is
+  // marked `.stale` in stats so the gate cannot silently consume it.
+  const staleEvals = collectStaleEvaluations();
+  stats.evaluationFreshness = {
+    stale: staleEvals,
+    verdictStale: staleEvals.filter(k => k === 'critic' || k === 'criticPanel' || k === 'devilsAdvocate'),
+    analysisArtifactVersion,
+    htmlArtifactVersion,
+  };
+  if (staleEvals.length > 0) {
+    console.error(`${label} EVAL FRESHNESS: ${staleEvals.length} stale evaluation(s) detected — ${staleEvals.join(', ')} judged a replaced artifact (analysis v${analysisArtifactVersion}, html v${htmlArtifactVersion})`);
+  } else {
+    console.log(`${label} EVAL FRESHNESS: all evaluations match current artifacts (analysis v${analysisArtifactVersion}, html v${htmlArtifactVersion})`);
+  }
+
   // Finalize PipelineRun
   const totalCost = runningCostUsd;
   stats.totalCostUsd = totalCost;
@@ -6788,6 +7915,11 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
       steps: JSON.parse(JSON.stringify({ ...stats, orchestrator: { ...stats.orchestrator, decisions: orchState.decisions } })),
     },
   });
+
+  // DURABLE: run reached a verdict (publish or held) — seal checkpoints so a
+  // later run of the same query+format starts fresh. A killed/timed-out run
+  // never reaches this line, so its checkpoints stay open for resume.
+  if (durableKey) markDurableComplete(durableKey).catch(() => {});
 
   // ── LEARNING LOOP: Record performance + extract lessons (closes the feedback loop) ──
   // This is the WRITE side of agent memory — without this, agents never learn.
@@ -6887,14 +8019,32 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
         failureModes: finalTrustScore < 60 ? ['overconfident' as any] : [],
       },
       detectedDomain as DomainExpertise,
-    ).then(({ lessons }) => {
+    ).then(({ lessons, structured }) => {
       if (lessons && lessons.length > 0) {
         console.log(`${label} LEARNING LOOP: extracted ${lessons.length} lessons from this run`);
         for (const lesson of lessons.slice(0, 3)) {
-          storeLesson(agentId, lesson, pipelineRun.id, detectedDomain as DomainExpertise, 1.0).catch(() => {});
+          const meta = structured?.find(s => s.lesson === lesson);
+          storeLesson(agentId, lesson, pipelineRun.id, detectedDomain as DomainExpertise, 1.0,
+            meta ? { trigger: meta.trigger, procedure: meta.procedure } : undefined).catch(() => {});
         }
       }
     }).catch((err) => console.warn(`${label} LEARNING LOOP: extractLessons failed:`, err));
+  }
+
+  // ── SKILL BANK: record the winning configuration when trust is high ──
+  // Procedural memory: domain → (providers + lens types) that produced trust ≥ 80.
+  if (finalTrustScore >= 80) {
+    try {
+      const { recordSkill } = await import('./skill-bank');
+      recordSkill({
+        domain: detectedDomain as string,
+        providers: [...new Set(topSources.map((s: any) => String(s.provider)))],
+        lensTypes: (stats as any).intelligentScout?.lenses?.map((l: any) => l.type) ?? [],
+        trustScore: finalTrustScore,
+        runId: pipelineRun.id,
+      }).catch(() => {});
+      console.log(`${label} SKILL BANK: recorded winning config (trust=${finalTrustScore}, domain=${detectedDomain})`);
+    } catch { /* non-blocking */ }
   }
 
   // S14-C: Lesson verification (LUCID 2026) — periodically verify accumulated lessons
@@ -7109,6 +8259,8 @@ export interface StrategicPipelineOptions {
   providers?: Providers;
   perProvider?: number;
   rankOptions?: RankOptions;
+  /** Hard pipeline timeout in ms. Default: 75min strategic/dossier, 65min brief/memo. */
+  timeoutMs?: number;
   focusAreas?: string[];
   targetAudience?: string;
   urgencyContext?: string;
@@ -7126,16 +8278,14 @@ export interface StrategicPipelineOptions {
   quantDepth?: import("../quant/quant-bridge").QuantDepth;
   /** Structured costing exercise (StudioX orders with chiffrage indicatif) */
   parametricInput?: import("../quant/types").ParametricCostInput;
-  /** Enable ReAct-style agentic ANALYST (searches/reads/debates during reasoning).
-   * Default: false (uses classic multipass). Set true for agentic mode. */
-  useAgenticAnalyst?: boolean;
-  /** Use LLM-driven meta-controller instead of deterministic orchestrator rules.
-   * Default: false. Set true for adaptive orchestration. */
-  useMetaController?: boolean;
   /** Enable the Witness — metacognitive observer that detects anomalies,
    * can intervene during runs, and learns across runs to improve prompts
    * and thresholds. Default: false. */
   useWitness?: boolean;
+  /** Regeneration loop: feedback from a rejected prior attempt (gate reasons +
+   * adversarial findings). Injected into the analyst context as mandatory
+   * corrections. Set by the orchestrator's escalation loop. */
+  priorFailureFeedback?: string;
   /** Enable Mixture of Agents — multiple specialist analysts collaborate.
    * The aggregator synthesizes their perspectives into a unified analysis.
    * Default: false. */
@@ -7151,17 +8301,10 @@ export interface StrategicPipelineOptions {
    * its own output to find weaknesses and extracts lessons for future runs.
    * Default: false. */
   useSelfPlay?: boolean;
-  useAdaptiveRAG?: boolean;
-  useSelfDiscover?: boolean;
-  useLATS?: boolean;
-  useBudgetForcing?: boolean;
   useOutputGuard?: boolean;
   useLocalJudge?: boolean;
   useStorm?: boolean;
   useTemporalMemory?: boolean;
-  useLangfuse?: boolean;
-  useMCP?: boolean;
-  useADAS?: boolean;
   useDurableExecution?: boolean;
   /** Enable Think Tank Quality Pack — recommendations, economics, editorial polish (default: false) */
   useThinkTankPack?: boolean;
@@ -7207,6 +8350,7 @@ export async function runStrategicPipeline(
     minSeedSourcesToSkipScout: options.minSeedSourcesToSkipScout,
     quantDepth: options.quantDepth,
     parametricInput: options.parametricInput,
+    priorFailureFeedback: options.priorFailureFeedback,
   });
 }
 
@@ -7264,7 +8408,7 @@ export async function runPipeline(
   const isDossier = format === "dossier";
   const isMemo = format === "memo";
   const isStrategic = format === "strategic" || isDossier;
-  const timeoutMs = isStrategic ? 4_500_000 : 2_400_000; // 75min strategic, 40min brief/memo (was 25min — active repair needs more time)
+  const timeoutMs = options.timeoutMs ?? (isStrategic ? 4_500_000 : 3_900_000); // 75min strategic, 65min brief/memo — critic-repair re-analysis + deep-planner node scouts need headroom
 
   // DOSSIER = extended strategic report — wider corpus and more ranked sources
   // so a €699 dossier produces a materially deeper deliverable than a strategic report.
@@ -7296,24 +8440,16 @@ export async function runPipeline(
         minSeedSourcesToSkipScout: options.minSeedSourcesToSkipScout,
         quantDepth: options.quantDepth,
         parametricInput: options.parametricInput,
-        useAgenticAnalyst: options.useAgenticAnalyst,
-        useMetaController: options.useMetaController,
         useWitness: options.useWitness,
+        priorFailureFeedback: options.priorFailureFeedback,
         useMixtureOfAgents: options.useMixtureOfAgents,
         useWorldModel: options.useWorldModel,
         usePRM: options.usePRM,
         useSelfPlay: options.useSelfPlay,
-        useAdaptiveRAG: options.useAdaptiveRAG,
-        useSelfDiscover: options.useSelfDiscover,
-        useLATS: options.useLATS,
-        useBudgetForcing: options.useBudgetForcing,
         useOutputGuard: options.useOutputGuard,
         useLocalJudge: options.useLocalJudge,
         useStorm: options.useStorm,
         useTemporalMemory: options.useTemporalMemory,
-        useLangfuse: options.useLangfuse,
-        useMCP: options.useMCP,
-        useADAS: options.useADAS,
         useDurableExecution: options.useDurableExecution,
         useThinkTankPack: options.useThinkTankPack,
         usePeerReview: options.usePeerReview,

@@ -106,8 +106,12 @@ function multiConceptCoverage(
     if (matched) matchedClusters++;
   }
 
-  // Coverage ratio with penalty for single-cluster matches
-  const ratio = matchedClusters / totalClusters;
+  // Coverage ratio — denominator capped at 4: enhanced queries routinely
+  // produce 6-10 keyword clusters, so raw matched/total crushed every score
+  // (a strong source matching 4/9 concepts got x0.44 → filtered at 0.20).
+  // Matching 4+ distinct concepts is comprehensive coverage.
+  const effectiveTotal = Math.min(totalClusters, 4);
+  const ratio = Math.min(1.0, matchedClusters / effectiveTotal);
   // If only 1 of 3+ clusters matched, apply moderate penalty
   // (was 0.3 — too severe, crushed 97% of sources to near-zero,
   //  making the relevance filter useless and skipping TS-SetRank)

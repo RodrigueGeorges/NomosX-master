@@ -11,7 +11,8 @@ export function normalizeTopicKey(text: string): string {
 }
 
 export function countWordsHtml(html: string): number {
-  const text = html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+  const text = html.replace(/<(style|script|head)\b[^>]*>[\s\S]*?(?:<\/\1>|$)/gi, " ")
+    .replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
   return text ? text.split(" ").filter(Boolean).length : 0;
 }
 
@@ -176,6 +177,10 @@ export function extractPipelineScores(
     trustScore = editorialScore;
   } else {
     trustScore = scaleScore(brief?.trustScore ?? null) ?? 70;
+  }
+
+  if (criticalScore != null && Number.isFinite(criticalScore)) {
+    trustScore = Math.max(0, Math.min(100, criticalScore));
   }
 
   return { trustScore, qualityScore: adjustedQualityScore, citationCoverage };

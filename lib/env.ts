@@ -20,12 +20,17 @@ const envSchema = z.object({
   OPENAI_MODEL: z.string().default("gpt-6-astra"),
   DEEPSEEK_API_KEY: z.string().optional(),
   DEEPSEEK_BASE_URL: z.string().url().optional().default("https://api.deepseek.com"),
-  DEEPSEEK_MODEL_FAST: z.string().optional().default("deepseek-flash"),
-  DEEPSEEK_MODEL_REASONING: z.string().optional().default("deepseek-v4-pro"),
+  // Real model codes on api.deepseek.com: deepseek-chat (V3.x, fast) and
+  // deepseek-reasoner (R1). The previous defaults (deepseek-flash/v4-pro)
+  // do not exist on the public API.
+  DEEPSEEK_MODEL_FAST: z.string().optional().default("deepseek-chat"),
+  DEEPSEEK_MODEL_REASONING: z.string().optional().default("deepseek-reasoner"),
 
-  // GLM-5.2 (z.ai) — OpenAI-compatible, 1M context, prefix caching ($0.26/M cached input)
+  // GLM-4.5/4.6 family (z.ai) — OpenAI-compatible, verified live 2026-09.
   GLM_API_KEY: z.string().optional(),
   GLM_BASE_URL: z.string().url().optional().default("https://api.z.ai/api/paas/v4"),
+  GLM_MODEL: z.string().optional().default("glm-4.5"),
+  GLM_MODEL_FAST: z.string().optional().default("glm-4.5-air"),
   
   // Academic APIs (optional keys, have fallback URLs)
   OPENALEX_API: z.string().url().optional().default("https://api.openalex.org/works"),
@@ -64,6 +69,7 @@ const envSchema = z.object({
   // Kimi K3 (Moonshot AI) — OpenAI-compatible, 1M context, 128K output, $3/$15 per M
   MOONSHOT_API_KEY: z.string().optional(),
   MOONSHOT_BASE_URL: z.string().url().optional().default("https://api.moonshot.ai/v1"),
+  KIMI_MODEL: z.string().optional().default("kimi-k3"),
 
   // Google Gemini 3.8 Flash — OpenAI-compatible endpoint, 1M context, $0.75/$3.75 per M
   GOOGLE_API_KEY: z.string().optional(),
@@ -117,6 +123,18 @@ const envSchema = z.object({
 
   // Real-time economic data
   FRED_API_KEY: z.string().optional(), // Free at https://fred.stlouisfed.org/docs/api/api_key.html
+  UCDP_API_KEY: z.string().optional(), // Free registration at https://ucdpapi.pcr.uu.se/
+  // ── National/international statistics APIs (all free) ──
+  COMTRADE_API_KEY: z.string().optional(),  // https://comtradedeveloper.un.org/ (free tier)
+  BLS_API_KEY: z.string().optional(),       // https://www.bls.gov/developers/ (free)
+  CENSUS_API_KEY: z.string().optional(),    // https://api.census.gov/data/key_signup.html (free)
+  ACLED_API_KEY: z.string().optional(),     // https://acleddata.com/register/ (free academic)
+  ACLED_EMAIL: z.string().optional(),       // ACLED registered email
+  UNHCR_API_KEY: z.string().optional(),     // https://api.unhcr.org/ (free)
+  ESTAT_JP_APP_ID: z.string().optional(),   // https://www.e-stat.go.jp/api/ (free)
+  KOSIS_API_KEY: z.string().optional(),     // https://kosis.kr/openapi/ (free)
+  DATACOMMONS_API_KEY: z.string().optional(), // https://apikeys.datacommons.org/ (free)
+  SEARXNG_URL: z.string().optional(),        // self-hosted instance (e.g. http://localhost:8080) — public fallback otherwise
 
   // News Intelligence (live event monitoring)
   NEWSAPI_KEY: z.string().optional(),

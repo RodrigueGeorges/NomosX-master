@@ -705,6 +705,16 @@ PROSE STRUCTURE RULE (Chatham House / RUSI / ECFR standard — NON-NEGOTIABLE):
 - REQUIRED: Write in the INSTITUTIONAL VOICE — "This analysis proposes..." /
   "The evidence indicates..." / "The central finding is that..." — never "I think"
   or "we feel" or "it seems to me"
+- REQUIRED: EDITORIAL CRAFT (a demanding editor scores this):
+  • GOVERNING THOUGHT FIRST: every section opens with the single claim it
+    argues — evidence follows the claim, never precedes it (Pyramid Principle)
+  • NO FILLER: delete any sentence that could apply to any topic
+    ("the situation is complex", "stakeholders must cooperate"). If a sentence
+    has no specific actor, number, mechanism, or named concept — cut it
+  • TRANSITIONS carry content: name what the previous section established and
+    what this one adds ("Having established X, the binding constraint is now Y")
+  • PROSE RHYTHM: one idea per sentence; vary length; active voice for
+    mechanisms, hedged voice only for genuinely uncertain claims
 - REQUIRED: CAUSAL PRUDENCE — distinguish between:
   • ASSOCIATION (what the data shows) — use "is associated with", "correlates with", "tends to coincide with"
   • MECHANISM (what the literature proposes) — use "appears to transmit through", "may operate via"
@@ -844,7 +854,14 @@ CITATION RULES (NON-NEGOTIABLE):
 - future_extrapolation claims cite the present_fact or active_mechanism they derive from, not new sources.
 - CITATION DIVERSITY (HARD REQUIREMENT): You have ${sourceCount} sources. You MUST cite at least ${Math.ceil(sourceCount * 0.5)} different [SRC-N] sources across the analysis. Do not cluster on 3-4 sources — spread citations across the full source base.
 - CRITICAL ENFORCEMENT: Before outputting JSON, extract all [SRC-N] tags from your draft, convert to a Set, and check the size. If below ${Math.ceil(sourceCount * 0.5)}, you MUST go back and add citations from uncited sources to relevant claims. Reports with fewer than ${Math.ceil(sourceCount * 0.5)} distinct citations WILL BE REJECTED and discarded.
-- CITATION SPREADING STRATEGY: Group your sources by theme (e.g., sources 1-20 for mechanisms, 21-40 for stakeholders, 41-60 for outcomes, etc.). Ensure each theme section cites from its relevant source group. This guarantees broad coverage.`;
+- CITATION SPREADING STRATEGY: Group your sources by theme (e.g., sources 1-20 for mechanisms, 21-40 for stakeholders, 41-60 for outcomes, etc.). Ensure each theme section cites from its relevant source group. This guarantees broad coverage.
+
+HOW THIS WILL BE GRADED (the critic's exact rubric):
+- Every claim is extracted atomically and verified against its cited source's text. A [SRC-N] tag whose source does not contain the claim's premise is fabrication — worse than no citation.
+- Facts must be literally stated or entailed by the source.
+- Inferences (your causal-chain conclusions — the product of this analysis) are graded on DERIVABILITY: the cited source must contain the premise you build on. Do not cite a source for a conclusion it doesn't evidence.
+- Present-fact and projected-future claims must be temporally consistent — a claim that "X is declining" and "X will dominate" is a trajectory, but a claim that "X is declining" and "X is not declining" at the same horizon is a contradiction that will be penalized severely.
+- Unsupported causal leaps, missing warrants, and numerical claims that diverge from the source's figures are each penalized.`;
 
   const userPrompt = `RESEARCH QUESTION: "${question}"
 ${domainContext || ''}

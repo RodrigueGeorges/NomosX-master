@@ -6,10 +6,16 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { getSession } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 
 export async function GET(_req: NextRequest) {
   try {
+    const session = await getSession();
+    if (!session?.id) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
     const lookbackDays = 30;
     const since = new Date(Date.now() - lookbackDays * 24 * 60 * 60 * 1000);
 
@@ -155,7 +161,7 @@ export async function GET(_req: NextRequest) {
   } catch (error: any) {
     console.error('[Witness Dashboard API] Error:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch Witness metrics', details: error.message },
+      { error: 'Failed to fetch Witness metrics' },
       { status: 500 },
     );
   }

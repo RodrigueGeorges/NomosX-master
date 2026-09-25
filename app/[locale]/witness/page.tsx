@@ -124,7 +124,7 @@ export default function WitnessDashboardPage() {
       const json = await res.json();
       setData(json);
     } catch (e: any) {
-      setError(e.message || "Failed to load Witness data");
+      setError("Échec du chargement des données Witness");
     } finally {
       setLoading(false);
     }

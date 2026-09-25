@@ -98,6 +98,14 @@ const DATA_SOURCES: { id: string; name: string; desc: string }[] = [
   { id: "cia-foia", name: "CIA FOIA", desc: "declassified archives" },
   { id: "nara", name: "NARA", desc: "national archives" },
   { id: "google-patents", name: "Google Patents", desc: "IP landscape" },
+  { id: "ecb", name: "ECB", desc: "monetary policy" },
+  { id: "wto", name: "WTO", desc: "trade & disputes" },
+  { id: "guardian", name: "The Guardian", desc: "global press" },
+  { id: "unsc", name: "UN Security Council", desc: "resolutions & press" },
+  { id: "reliefweb", name: "ReliefWeb", desc: "humanitarian alerts" },
+  { id: "lemonde", name: "Le Monde", desc: "French press" },
+  { id: "kyivindependent", name: "Kyiv Independent", desc: "war reporting" },
+  { id: "lowy", name: "Lowy Institute", desc: "Asia-Pacific analysis" },
 ];
 
 
@@ -390,7 +398,7 @@ function HomePageContent() {
 
                   { end: 250, suffix: "M+", label: t("Home.sourcesIndexed") },
 
-                  { end: 115, suffix: "", label: t("Home.dataProviders") },
+                  { end: 850, suffix: "+", label: t("Home.dataProviders") },
 
                   { end: 100, suffix: "%", label: t("Home.claimsTraceable") },
 

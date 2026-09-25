@@ -324,7 +324,7 @@ export async function sendTrialExpiryReminder(to: string, name: string | null, d
     
     <p style="font-size: 14px; color: #a1a1aa; margin: 0 0 24px; line-height: 1.6;">
       Hi ${displayName}, your 30-day free trial of NomosX will expire in ${daysRemaining} ${daysRemaining === 1 ? 'day' : 'days'}.
-      Continue commissioning StudioX research mandates by upgrading to a paid plan. Public publications remain open.
+      Continue commissioning Nomos Engine research mandates by upgrading to a paid plan. Public publications remain open.
     </p>
     
     <div style="background:${EMAIL.surface};border:1px solid ${EMAIL.border};padding:20px;margin-bottom:24px;">
@@ -332,7 +332,7 @@ export async function sendTrialExpiryReminder(to: string, name: string | null, d
         What happens if you don't upgrade?
       </h3>
       <ul style="font-size: 14px; color: #a1a1aa; margin: 0; padding-left: 20px; line-height: 1.6;">
-        <li style="margin-bottom: 8px;">You'll lose access to commission new StudioX mandates</li>
+        <li style="margin-bottom: 8px;">You'll lose access to commission new Nomos Engine mandates</li>
         <li style="margin-bottom: 8px;">Public publications remain readable</li>
         <li style="margin-bottom: 8px;">Weekly publication limit drops to 0</li>
         <li>You'll still receive the weekly intelligence dispatch</li>
@@ -421,7 +421,7 @@ export async function sendTrialExpired(to: string, name: string | null): Promise
     
     <p style="font-size: 14px; color: #a1a1aa; margin: 0 0 24px; line-height: 1.6;">
       Hi ${displayName}, your 30-day free trial of NomosX has expired. 
-      Your access to commission StudioX research mandates has been paused.
+      Your access to commission Nomos Engine research mandates has been paused.
     </p>
     
     <div style="background:${EMAIL.surface};border:1px solid ${EMAIL.border};padding:20px;margin-bottom:24px;">
@@ -461,7 +461,7 @@ export async function sendTrialExpired(to: string, name: string | null): Promise
 }
 
 /**
- * Commissioned publication ready notification — sent when a StudioX output is complete.
+ * Commissioned publication ready notification — sent when a Nomos Engine output is complete.
  */
 export async function sendBriefReadyNotification(
   to: string,

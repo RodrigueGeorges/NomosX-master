@@ -110,8 +110,36 @@ const CB_REDIS_TTL_SEC = 300; // 5 min TTL — longer than any cooldown
 const CB_THRESHOLDS: Record<string, { max429s: number; cooldownMs: number }> = {
   'openalex': { max429s: 3, cooldownMs: 10_000 },      // 3× 429 → skip for 10s (polite pool recovers fast)
   'semanticscholar': { max429s: 1, cooldownMs: 120_000 }, // 1× 429 → skip for 2min (S2 is aggressive)
+  'semantic-scholar-graph': { max429s: 1, cooldownMs: 120_000 },
   'arxiv': { max429s: 2, cooldownMs: 15_000 },          // 2× 429 → skip for 15s
   'google-books': { max429s: 1, cooldownMs: 60_000 },   // 1× 429 → skip for 60s
+  // ── V4.1: the dry-run showed gdelt-news retry-storming for 150s without ever
+  // tripping — it had no threshold. Breakers for every provider observed
+  // rate-limiting in live runs, plus the rest of the metered/volatile set.
+  'gdelt-news': { max429s: 2, cooldownMs: 45_000 },
+  'gdelt-independent': { max429s: 2, cooldownMs: 45_000 },
+  'tavily': { max429s: 2, cooldownMs: 60_000 },
+  'exa': { max429s: 1, cooldownMs: 120_000 },           // 402/432 = quota dead for the session anyway
+  'linkup': { max429s: 2, cooldownMs: 60_000 },
+  'crossref': { max429s: 3, cooldownMs: 30_000 },
+  'jstor': { max429s: 2, cooldownMs: 60_000 },
+  'core': { max429s: 2, cooldownMs: 60_000 },
+  'base': { max429s: 3, cooldownMs: 30_000 },
+  'pubmed': { max429s: 3, cooldownMs: 30_000 },
+  'europepmc': { max429s: 3, cooldownMs: 30_000 },
+  'gnews': { max429s: 1, cooldownMs: 60_000 },
+  'newsapi': { max429s: 2, cooldownMs: 60_000 },
+  'eventregistry': { max429s: 2, cooldownMs: 60_000 },
+  'mediastack': { max429s: 2, cooldownMs: 60_000 },
+  'thenewsapi': { max429s: 2, cooldownMs: 60_000 },
+  'apitube': { max429s: 2, cooldownMs: 60_000 },
+  'imf': { max429s: 2, cooldownMs: 60_000 },
+  'worldbank': { max429s: 3, cooldownMs: 30_000 },
+  'unhcr': { max429s: 2, cooldownMs: 60_000 },
+  'internet-archive': { max429s: 2, cooldownMs: 45_000 },
+  'hathitrust': { max429s: 2, cooldownMs: 60_000 },
+  'searxng': { max429s: 1, cooldownMs: 30_000 },        // rotates instances anyway; trip fast
+  'datacommons': { max429s: 2, cooldownMs: 60_000 },
 };
 
 /**
@@ -203,6 +231,34 @@ async function record429(provider: string): Promise<void> {
     cb.trippedAt = Date.now();
     cb.totalTrips++;
     console.warn(`[CIRCUIT BREAKER] ${provider} tripped after ${cb.consecutive429s}× 429 — skipping for ${cb.cooldownMs / 1000}s`);
+  }
+
+  await saveCBState(provider, cb);
+}
+
+/**
+ * V4.2: Network-failure circuit breaking — timeouts, DNS failures and 5xx
+ * never hit record429, so a dead host could retry-storm indefinitely (gdelt
+ * burned ~150s of a dry-run this way). One exhausted call = one failure tick;
+ * trips at max429s×2 consecutive dead calls (more tolerant than rate limits —
+ * a single timeout is common, a dead provider fails every call).
+ */
+async function recordNetFail(provider: string): Promise<void> {
+  const threshold = CB_THRESHOLDS[provider];
+  if (!threshold) return;
+
+  const existing = circuitBreakers.get(provider);
+  const cb: CircuitBreakerState = existing ?? {
+    consecutive429s: 0, tripped: false, trippedAt: 0, cooldownMs: threshold.cooldownMs, totalTrips: 0
+  };
+
+  cb.consecutive429s++;
+  const netThreshold = threshold.max429s * 2;
+  if (cb.consecutive429s >= netThreshold && !cb.tripped) {
+    cb.tripped = true;
+    cb.trippedAt = Date.now();
+    cb.totalTrips++;
+    console.warn(`[CIRCUIT BREAKER] ${provider} tripped after ${cb.consecutive429s} consecutive dead calls — skipping for ${cb.cooldownMs / 1000}s`);
   }
 
   await saveCBState(provider, cb);
@@ -397,7 +453,7 @@ async function fetchWithTimeout(
   } catch (error: any) {
     clearTimeout(timeoutId);
     if (error.name === "AbortError") {
-      throw new HttpError(`Request timeout after ${timeoutMs}ms`, undefined, url);
+      throw new HttpError(`Request timeout after ${timeoutMs}ms`);
     }
     throw error;
   }
@@ -494,9 +550,16 @@ export async function httpGet<T = any>(
                 const cap = url.includes('openalex.org') ? 30000 : 120000;
                 retryAfterMs = Math.min((parsed - Date.now() / 1000) * 1000, cap);
               } else {
-                const cap = url.includes('openalex.org') ? 30000 : 120000;
+                const cap = url.includes('openalex.org') ? 15000 : 120000;
                 retryAfterMs = Math.min(parsed * 1000, cap);
               }
+            }
+            // A provider asking us to wait >20s is effectively down for scout
+            // purposes — fail fast instead of stalling the whole fan-out
+            // (Wikisource ~59-60s, OpenAlex ~30s — honoring them per-request
+            // burns minutes across hundreds of calls).
+            if (retryAfterMs > 20000) {
+              throw new HttpError(`HTTP 429 ${response.statusText} (Retry-After ${Math.round(retryAfterMs / 1000)}s exceeds cap)`, 429, text.slice(0, 500));
             }
             // SemanticScholar: no Retry-After = rate-limited → fail-fast, don't waste retries
             if (url.includes('semanticscholar.org') && !retryAfterRaw) {
@@ -537,7 +600,7 @@ export async function httpGet<T = any>(
             backoff = Math.max(backoff, retryAfterMs, minCooldown);
           }
           if (env.NODE_ENV === "development") {
-            console.warn(`[HTTP] Retry ${attempt + 1}/${retries} after ${backoff}ms: ${url}`);
+            console.warn(`[HTTP] Retry ${attempt + 1}/${retries} after ${backoff}ms: ${rateLimiterKey ?? 'request'}`);
           }
           await sleep(backoff);
           continue;
@@ -580,6 +643,18 @@ export async function httpGet<T = any>(
         await sleep(backoff);
         continue;
       }
+    }
+  }
+
+  // V4.2: A call that exhausted retries on network errors/5xx counts toward the
+  // breaker. Client errors (4xx ≠ 429) are structural — they don't indicate an
+  // overloaded host and are rethrown earlier without reaching here.
+  if (rateLimiterKey && lastError) {
+    const isClientError = lastError instanceof HttpError &&
+      typeof lastError.status === 'number' &&
+      lastError.status >= 400 && lastError.status < 500;
+    if (!isClientError) {
+      await recordNetFail(rateLimiterKey).catch(() => {});
     }
   }
 
@@ -693,6 +768,15 @@ export async function httpPost<T = any>(
         await sleep(backoff);
         continue;
       }
+    }
+  }
+
+  if (rateLimiterKey && lastError) {
+    const isClientError = lastError instanceof HttpError &&
+      typeof lastError.status === 'number' &&
+      lastError.status >= 400 && lastError.status < 500;
+    if (!isClientError) {
+      await recordNetFail(rateLimiterKey).catch(() => {});
     }
   }
 

@@ -100,8 +100,10 @@ const GATES: GateDef[] = [
 export function runStyleGates(html: string): { violations: StyleViolation[]; passed: boolean } {
   const violations: StyleViolation[] = [];
 
-  // Strip HTML tags for text analysis
-  const text = html.replace(/<[^>]+>/g, ' ');
+  // Strip <style>/<script> blocks then HTML tags for text analysis
+  const text = html
+    .replace(/<(style|script)\b[^>]*>[\s\S]*?(<\/\1>|(?=<\/head>)|(?=<body\b)|$)/gi, ' ')
+    .replace(/<[^>]+>/g, ' ');
 
   for (const gate of GATES) {
     const matches = text.matchAll(gate.pattern);
@@ -150,7 +152,7 @@ export function runNumericalGate(html: string, sourceCount: number): { violation
   normalized = normalized.replace(/<a href="#ref-(\d+)"[^>]*>[^<]*<\/a>/g, ' [SRC-$1] ');
 
   // Remove <style>/<script> blocks entirely (CSS values are not statistics)
-  normalized = normalized.replace(/<(style|script)\b[^>]*>[\s\S]*?<\/\1>/gi, ' ');
+  normalized = normalized.replace(/<(style|script)\b[^>]*>[\s\S]*?(<\/\1>|(?=<\/head>)|(?=<body\b)|$)/gi, ' ');
 
   // Remove sections that contain calibrated/model-generated numbers, not empirical claims:
   //   - Scenario sections (Delphi-calibrated probabilities like "30%", "90% CI: [21%, 21%]")

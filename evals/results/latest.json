@@ -1,0 +1,21 @@
+{
+  "groundedness": 0.9895287958115183,
+  "citationRate": 0.8883720930232558,
+  "panelScore": 64,
+  "differentiation": null,
+  "errors": 0,
+  "evaluatedAt": "2026-09-24T10:59:16.989Z",
+  "cases": [
+    {
+      "id": "mid-stablecoin",
+      "groundedness": 0.9895287958115183,
+      "citationRate": 0.8883720930232558,
+      "panelScore": 64,
+      "panelVeto": false,
+      "differentiation": null,
+      "safeSupported": 0,
+      "safeContradicted": 0,
+      "durationMs": 49692
+    }
+  ]
+}

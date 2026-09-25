@@ -59,13 +59,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   try {
     const articles = await prisma.thinkTankPublication.findMany({
       where: publicPublicationWhere(),
-      select: { id: true, publishedAt: true },
+      select: { id: true, publicId: true, publishedAt: true },
       orderBy: { publishedAt: 'desc' },
       take: 500,
     });
 
     for (const article of articles) {
-      const path = `/inquiry/${article.id}`;
+      // SEO: prefer the slug (publicId) over the cuid — keyword-bearing URLs rank.
+      const path = `/inquiry/${article.publicId ?? article.id}`;
       for (const locale of LOCALES) {
         const alternates: Record<string, string> = {};
         for (const altLocale of LOCALES) {

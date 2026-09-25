@@ -249,14 +249,14 @@ export default function DashboardPage() {
               />
               <StatCard
                 icon={<Zap className="w-5 h-5" />}
-                label="Runs Self-Play"
+                label="Sessions Self-Play"
                 value={moatSummary?.selfPlayRounds ?? "—"}
                 sublabel="Tests adversariaux"
                 color="text-red-300"
               />
               <StatCard
                 icon={<Users className="w-5 h-5" />}
-                label="Runs MoA"
+                label="Analyses MoA"
                 value={moatSummary?.moaRuns ?? "—"}
                 sublabel="Mixture of Agents"
                 color="text-purple-300"
@@ -343,7 +343,7 @@ export default function DashboardPage() {
               />
               <StatCard
                 icon={<Brain className="w-5 h-5" />}
-                label="Runs Deep Planner"
+                label="Analyses Deep Planner"
                 value={metrics?.aggregated.deepPlanner.runs ?? "—"}
                 sublabel="Planification hiérarchique"
                 color="text-purple-300"
@@ -352,7 +352,7 @@ export default function DashboardPage() {
                 icon={<Activity className="w-5 h-5" />}
                 label="Nœuds moyens"
                 value={metrics?.aggregated.deepPlanner.avgNodes ?? "—"}
-                sublabel="Par run Deep Planner"
+                sublabel="Par analyse Deep Planner"
                 color="text-purple-300"
               />
             </div>

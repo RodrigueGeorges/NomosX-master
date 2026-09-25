@@ -10,11 +10,16 @@
 import { fetchFromProvider } from '../http-client';
 import { env } from '../env';
 
+// Session-level flag: once the configured key is known-dead (expired trial),
+// skip the authenticated path entirely — no point burning a request + noisy
+// error log on every query variation.
+let coreKeyDead = false;
+
 export async function searchCORE(query: string, limit = 30): Promise<any[]> {
   const apiKey = env.CORE_API_KEY;
 
   // With API key: use authenticated endpoint (higher rate limits)
-  if (apiKey) {
+  if (apiKey && !coreKeyDead) {
     const url = `https://api.core.ac.uk/v3/search/works?q=${encodeURIComponent(query)}&pageSize=${limit}&apiKey=${apiKey}`;
 
     try {
@@ -44,7 +49,12 @@ export async function searchCORE(query: string, limit = 30): Promise<any[]> {
         raw: item
       }));
     } catch (error: any) {
-      console.error('CORE search failed:', error);
+      if (error?.status === 401 || error?.status === 403) {
+        coreKeyDead = true;
+        console.warn('[CORE] API key rejected (401/403) — switching to keyless endpoint for this session');
+      } else {
+        console.error('CORE search failed:', error?.message || error);
+      }
     }
   }
 

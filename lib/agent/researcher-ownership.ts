@@ -708,7 +708,971 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
       "Decolonial philosophy and the critique of Western universalism"
     ],
     costThreshold: 15.0
-  }
+  },
+
+  // ── SUB-DISCIPLINE LENSES (Sprint 19 — PhD-level granularity) ──
+
+  "sociology": {
+    id: "sociology",
+    name: "Dr. Léa Moreau",
+    title: "Sociologist — Institutions, Stratification & Collective Action",
+    institution: "EHESS / Centre de Sociologie",
+    domains: ["sociology"],
+    keywords: ["social class", "stratification", "institution", "habitus", "field", "social capital", "collective action", "social movements", "norms", "socialization", "network", "segmentation", "mobility", "anomie", "solidarity"],
+    providers: ["sociology", "isidore", "persee", "openalex", "ssrn", "hal", "core"],
+    publicationCadence: "weekly",
+    minQualityThreshold: 70,
+    maxBriefPerRun: 2,
+    preferredFormats: ["brief", "strategic"],
+    focusAreas: [
+      "Institutional change and field dynamics (Bourdieu, DiMaggio)",
+      "Stratification, inequality and social reproduction",
+      "Collective action and social movements"
+    ],
+    costThreshold: 12.0
+  },
+
+  "psychology": {
+    id: "psychology",
+    name: "Dr. Naomi Feld",
+    title: "Psychologist — Cognitive Biases, Behavior & Decision Science",
+    institution: "University of Cambridge / Department of Psychology",
+    domains: ["psychology"],
+    keywords: ["cognitive bias", "heuristic", "decision making", "behavior", "motivation", "identity", "group dynamics", "polarization", "persuasion", "emotion", "cognition", "nudge", "prospect theory", "social identity"],
+    providers: ["psychology", "pubmed", "semanticscholar", "openalex", "crossref", "core"],
+    publicationCadence: "weekly",
+    minQualityThreshold: 70,
+    maxBriefPerRun: 2,
+    preferredFormats: ["brief", "strategic"],
+    focusAreas: [
+      "Judgment and decision-making under uncertainty",
+      "Group dynamics, identity and polarization",
+      "Behavioral mechanisms in policy and persuasion"
+    ],
+    costThreshold: 12.0
+  },
+
+  "political-science": {
+    id: "political-science",
+    name: "Dr. Marcus Hale",
+    title: "Political Scientist — Regimes, Parties & Comparative Politics",
+    institution: "Oxford / Department of Politics and IR",
+    domains: ["political-science"],
+    keywords: ["democracy", "authoritarianism", "regime", "elections", "parties", "populism", "polarization", "state capacity", "veto players", "coalition", "legitimacy", "democratic backsliding", "federalism"],
+    providers: ["political-science", "openalex", "ssrn", "crossref", "isidore", "persee", "brookings", "rand"],
+    publicationCadence: "weekly",
+    minQualityThreshold: 70,
+    maxBriefPerRun: 2,
+    preferredFormats: ["brief", "strategic"],
+    focusAreas: [
+      "Democratic backsliding and regime transitions",
+      "Party systems, populism and polarization",
+      "Institutional design and veto-player analysis"
+    ],
+    costThreshold: 12.0
+  },
+
+  "demography": {
+    id: "demography",
+    name: "Dr. Ingrid Halvorsen",
+    title: "Demographer — Population Structure, Fertility & Migration",
+    institution: "INED / Institut National d'Études Démographiques",
+    domains: ["demography"],
+    keywords: ["fertility", "mortality", "migration", "aging", "population structure", "cohort", "demographic transition", "dependency ratio", "life expectancy", "urbanization", "population momentum", "replacement level"],
+    providers: ["openalex", "crossref", "worldbank", "un", "undp", "isidore", "persee", "core"],
+    publicationCadence: "monthly",
+    minQualityThreshold: 70,
+    maxBriefPerRun: 1,
+    preferredFormats: ["brief", "strategic"],
+    focusAreas: [
+      "Fertility decline and the second demographic transition",
+      "Population aging and dependency ratios",
+      "Migration systems and diaspora dynamics"
+    ],
+    costThreshold: 12.0
+  },
+
+  "criminology": {
+    id: "criminology",
+    name: "Dr. Rafael Ortega",
+    title: "Criminologist — Crime Patterns, Policing & Penal Systems",
+    institution: "University of Maryland / Criminology",
+    domains: ["criminology"],
+    keywords: ["crime", "policing", "incarceration", "recidivism", "deterrence", "organized crime", "violence", "penal system", "routine activities", "hot spots", "labeling", "restorative justice"],
+    providers: ["unodc", "openalex", "ssrn", "crossref", "core", "doaj"],
+    publicationCadence: "monthly",
+    minQualityThreshold: 70,
+    maxBriefPerRun: 1,
+    preferredFormats: ["brief", "strategic"],
+    focusAreas: [
+      "Crime concentration and place-based analysis",
+      "Deterrence, legitimacy and procedural justice",
+      "Organized crime markets and illicit networks"
+    ],
+    costThreshold: 12.0
+  },
+
+  "education": {
+    id: "education",
+    name: "Dr. Priya Raman",
+    title: "Education Researcher — Learning Sciences & Education Systems",
+    institution: "UCL Institute of Education",
+    domains: ["education"],
+    keywords: ["education", "learning", "curriculum", "pedagogy", "achievement gap", "literacy", "school system", "higher education", "skills", "cognitive development", "educational inequality", "PISA"],
+    providers: ["eric", "openalex", "crossref", "isidore", "oecd", "worldbank", "core"],
+    publicationCadence: "monthly",
+    minQualityThreshold: 70,
+    maxBriefPerRun: 1,
+    preferredFormats: ["brief", "strategic"],
+    focusAreas: [
+      "Achievement gaps and educational inequality",
+      "Evidence-based pedagogy and learning science",
+      "Education systems and human capital formation"
+    ],
+    costThreshold: 10.0
+  },
+
+  "philosophy": {
+    id: "philosophy",
+    name: "Dr. Élise Fontaine",
+    title: "Philosopher — Ethics, Epistemology & Political Philosophy",
+    institution: "ENS Paris / Département de Philosophie",
+    domains: ["philosophy"],
+    keywords: ["ethics", "epistemology", "justice", "normativity", "utilitarianism", "deontology", "virtue ethics", "contractualism", "truth", "knowledge", "consciousness", "free will", "political philosophy", "metaethics"],
+    providers: ["philpapers", "isidore", "openalex", "crossref", "persee", "core"],
+    publicationCadence: "monthly",
+    minQualityThreshold: 72,
+    maxBriefPerRun: 1,
+    preferredFormats: ["brief", "strategic"],
+    focusAreas: [
+      "Normative frameworks for policy and technology",
+      "Epistemic norms — what counts as justified belief",
+      "Justice theories applied to institutions"
+    ],
+    costThreshold: 12.0
+  },
+
+  "linguistics": {
+    id: "linguistics",
+    name: "Dr. Yuki Tanaka",
+    title: "Linguist — Semantics, Discourse & Language Policy",
+    institution: "MIT / Linguistics",
+    domains: ["linguistics"],
+    keywords: ["semantics", "pragmatics", "discourse", "framing", "language policy", "multilingualism", "metaphor", "speech acts", "narrative", "translation", "sociolinguistics", "language ideology"],
+    providers: ["openalex", "crossref", "isidore", "persee", "core", "semanticscholar"],
+    publicationCadence: "monthly",
+    minQualityThreshold: 70,
+    maxBriefPerRun: 1,
+    preferredFormats: ["brief"],
+    focusAreas: [
+      "Framing and discourse in political communication",
+      "Language policy and linguistic diversity",
+      "Metaphor and narrative in public reasoning"
+    ],
+    costThreshold: 10.0
+  },
+
+  "media-studies": {
+    id: "media-studies",
+    name: "Dr. Carla Jimenez",
+    title: "Media & Communication Scholar — Platforms, Disinformation & Public Sphere",
+    institution: "LSE / Media and Communications",
+    domains: ["media-studies"],
+    keywords: ["media", "platform", "disinformation", "public sphere", "propaganda", "attention economy", "algorithmic curation", "journalism", "echo chamber", "framing", "media ownership", "influence operations"],
+    providers: ["openalex", "crossref", "ssrn", "isidore", "core", "eventregistry", "gdelt-news"],
+    publicationCadence: "weekly",
+    minQualityThreshold: 70,
+    maxBriefPerRun: 1,
+    preferredFormats: ["brief", "strategic"],
+    focusAreas: [
+      "Platform power and the restructuring of the public sphere",
+      "Disinformation ecosystems and influence operations",
+      "Media ownership, capture and trust"
+    ],
+    costThreshold: 10.0
+  },
+
+  "epidemiology": {
+    id: "epidemiology",
+    name: "Dr. Sofia Lindqvist",
+    title: "Epidemiologist — Disease Dynamics & Population Health Methods",
+    institution: "Karolinska Institutet",
+    domains: ["epidemiology"],
+    keywords: ["epidemic", "incidence", "prevalence", "R0", "transmission", "outbreak", "cohort study", "case-control", "confounding", "surveillance", "vaccine effectiveness", "herd immunity", "contact tracing"],
+    providers: ["pubmed", "europepmc", "openalex", "crossref", "who", "cdc", "the-lancet", "nature-medicine"],
+    publicationCadence: "weekly",
+    minQualityThreshold: 72,
+    maxBriefPerRun: 1,
+    preferredFormats: ["brief", "strategic"],
+    focusAreas: [
+      "Transmission dynamics and outbreak trajectories",
+      "Causal inference in observational health data",
+      "Surveillance systems and early warning"
+    ],
+    costThreshold: 12.0
+  },
+
+  "public-health": {
+    id: "public-health",
+    name: "Dr. Kwame Asante",
+    title: "Public Health Expert — Health Systems & Population Interventions",
+    institution: "Johns Hopkins Bloomberg School of Public Health",
+    domains: ["public-health"],
+    keywords: ["public health", "health system", "prevention", "health equity", "social determinants", "universal coverage", "health policy", "screening", "primary care", "health promotion", "mortality burden"],
+    providers: ["pubmed", "europepmc", "openalex", "who", "worldbank", "the-lancet", "crossref"],
+    publicationCadence: "weekly",
+    minQualityThreshold: 70,
+    maxBriefPerRun: 1,
+    preferredFormats: ["brief", "strategic"],
+    focusAreas: [
+      "Social determinants and health equity",
+      "Health system capacity and universal coverage",
+      "Prevention economics and intervention evaluation"
+    ],
+    costThreshold: 12.0
+  },
+
+  "international-relations": {
+    id: "international-relations",
+    name: "Dr. Viktor Andersson",
+    title: "IR Scholar — Grand Strategy, Alliances & World Order",
+    institution: "Princeton / School of Public and International Affairs",
+    domains: ["international-relations"],
+    keywords: ["international relations", "balance of power", "alliance", "hegemony", "deterrence", "security dilemma", "world order", "multipolarity", "soft power", "interdependence", "regime theory", "grand strategy"],
+    providers: ["openalex", "crossref", "ssrn", "cfr", "chatham-house", "iiss", "rand", "carnegie", "isidore"],
+    publicationCadence: "weekly",
+    minQualityThreshold: 72,
+    maxBriefPerRun: 2,
+    preferredFormats: ["brief", "strategic"],
+    focusAreas: [
+      "Balance of power and polarity transitions",
+      "Alliance formation, credibility and extended deterrence",
+      "International order theory — liberal, realist, constructivist"
+    ],
+    costThreshold: 12.0
+  },
+
+  // ── SUB-DISCIPLINE LENSES II (Sprint 19 batch 3 — toward 50 domains) ──
+
+  "migration-studies": {
+    id: "migration-studies",
+    name: "Dr. Amara Diallo",
+    title: "Migration & Mobility Analyst — Flows, Borders & Integration",
+    institution: "University of Amsterdam / IMISCOE",
+    domains: ["migration-studies"],
+    keywords: ["migration", "immigration", "emigration", "diaspora", "remittances", "asylum", "refugee", "border", "integration", "transnationalism", "brain drain", "labor mobility", "deportation", "statelessness"],
+    providers: ["openalex", "crossref", "isidore", "persee", "sociology", "worldbank", "undp", "oecd", "mega-stats", "core"],
+    publicationCadence: "weekly",
+    minQualityThreshold: 70,
+    maxBriefPerRun: 2,
+    preferredFormats: ["brief", "strategic"],
+    focusAreas: [
+      "Migration systems and flow dynamics (push-pull, networks, feedback)",
+      "Border regimes, asylum systems and mobility governance",
+      "Integration outcomes and transnationalism"
+    ],
+    costThreshold: 12.0
+  },
+
+  "science-technology-studies": {
+    id: "science-technology-studies",
+    name: "Dr. Hannah Lindgren",
+    title: "STS Analyst — Science, Technology & Society",
+    institution: "Cornell / Department of Science & Technology Studies",
+    domains: ["science-technology-studies"],
+    keywords: ["science studies", "technology", "innovation", "sociotechnical", "actor-network", "laboratory", "expertise", "controversy", "standardization", "infrastructure", "scientific practice", "knowledge production"],
+    providers: ["openalex", "crossref", "isidore", "philpapers", "core", "hal", "arxiv"],
+    publicationCadence: "weekly",
+    minQualityThreshold: 70,
+    maxBriefPerRun: 2,
+    preferredFormats: ["brief", "strategic"],
+    focusAreas: [
+      "How scientific facts and technical artifacts are constructed (SCOT, ANT)",
+      "Co-production of science and social order",
+      "Expertise, controversy and the politics of knowledge"
+    ],
+    costThreshold: 12.0
+  },
+
+  "epistemology": {
+    id: "epistemology",
+    name: "Dr. Simon Ashworth",
+    title: "Epistemologist — Knowledge, Justification & Truth",
+    institution: "University of St Andrews / Arché",
+    domains: ["epistemology"],
+    keywords: ["knowledge", "justification", "truth", "belief", "epistemic", "skepticism", "testimony", "disagreement", "evidence", "rationality", "epistemic injustice", "relativism", "certainty"],
+    providers: ["philpapers", "isidore", "persee", "openalex", "crossref", "core", "hal"],
+    publicationCadence: "monthly",
+    minQualityThreshold: 70,
+    maxBriefPerRun: 1,
+    preferredFormats: ["brief", "strategic"],
+    focusAreas: [
+      "Analysis of knowledge — Gettier, reliabilism, virtue epistemology",
+      "Social epistemology: testimony, disagreement, epistemic injustice",
+      "Epistemic norms in public reasoning and expertise"
+    ],
+    costThreshold: 10.0
+  },
+
+  "international-law": {
+    id: "international-law",
+    name: "Dr. Claudia Reyes",
+    title: "International Law Analyst — Treaties, Courts & State Responsibility",
+    institution: "Graduate Institute Geneva / International Law",
+    domains: ["international-law"],
+    keywords: ["international law", "treaty", "customary law", "ICJ", "ICC", "human rights law", "humanitarian law", "jus cogens", "state responsibility", "sovereignty", "sanctions", "law of the sea", "WTO law"],
+    providers: ["openalex", "crossref", "isidore", "persee", "eur-lex", "overton", "un", "mega-eu", "core"],
+    publicationCadence: "weekly",
+    minQualityThreshold: 72,
+    maxBriefPerRun: 2,
+    preferredFormats: ["brief", "strategic"],
+    focusAreas: [
+      "Treaty interpretation and customary international law",
+      "International courts, tribunals and enforcement gaps",
+      "Sanctions, use of force and accountability mechanisms"
+    ],
+    costThreshold: 12.0
+  },
+
+  "conflict-studies": {
+    id: "conflict-studies",
+    name: "Dr. Tomas Lindberg",
+    title: "Peace & Conflict Analyst — War Dynamics, Bargaining & Resolution",
+    institution: "Uppsala University / Peace and Conflict Research",
+    domains: ["conflict-studies"],
+    keywords: ["conflict", "war", "civil war", "insurgency", "peacebuilding", "ceasefire", "mediation", "political violence", "terrorism", "rebellion", "peace process", "atrocity", "coups", "armed group"],
+    providers: ["openalex", "crossref", "political-science", "isidore", "sipri", "ecfr", "swp", "mega-thinktanks", "global-think-tanks", "eventregistry"],
+    publicationCadence: "weekly",
+    minQualityThreshold: 70,
+    maxBriefPerRun: 2,
+    preferredFormats: ["brief", "strategic"],
+    focusAreas: [
+      "Onset, duration and termination of armed conflict (bargaining model)",
+      "Greed vs grievance, opportunity structures for rebellion",
+      "Peace processes, mediation and post-conflict institutions"
+    ],
+    costThreshold: 12.0
+  },
+
+  "political-economy": {
+    id: "political-economy",
+    name: "Dr. Marisa Conti",
+    title: "Political Economy Analyst — Capitalism, States & Distribution",
+    institution: "LSE / Political Economy",
+    domains: ["political-economy"],
+    keywords: ["political economy", "capitalism", "varieties of capitalism", "distribution", "rent-seeking", "elite", "state capacity", "extraction", "globalization", "inequality", "growth model", "welfare state"],
+    providers: ["openalex", "crossref", "sociology", "nber", "repec", "worldbank", "imf", "oecd", "bis", "core"],
+    publicationCadence: "weekly",
+    minQualityThreshold: 72,
+    maxBriefPerRun: 2,
+    preferredFormats: ["brief", "strategic"],
+    focusAreas: [
+      "Varieties of capitalism and growth-model analysis",
+      "State-market relations, extraction and elite bargains",
+      "Globalization, trade politics and distributional conflict"
+    ],
+    costThreshold: 12.0
+  },
+
+  "public-administration": {
+    id: "public-administration",
+    name: "Dr. Oliver Grant",
+    title: "Public Administration Analyst — Bureaucracy, Governance & Delivery",
+    institution: "Sciences Po / School of Public Affairs",
+    domains: ["public-administration"],
+    keywords: ["public administration", "bureaucracy", "civil service", "governance", "public sector", "policy implementation", "state capacity", "public management", "street-level", "regulation", "administrative burden"],
+    providers: ["openalex", "crossref", "political-science", "isidore", "oecd", "worldbank", "overton", "mega-eu", "core"],
+    publicationCadence: "monthly",
+    minQualityThreshold: 68,
+    maxBriefPerRun: 1,
+    preferredFormats: ["brief"],
+    focusAreas: [
+      "Bureaucratic behavior and street-level implementation",
+      "New Public Management reforms and their pathologies",
+      "State capacity, administrative burden and delivery"
+    ],
+    costThreshold: 10.0
+  },
+
+  "gender-studies": {
+    id: "gender-studies",
+    name: "Dr. Fatima Hassan",
+    title: "Gender & Intersectionality Analyst",
+    institution: "Rutgers / Department of Women's and Gender Studies",
+    domains: ["gender-studies"],
+    keywords: ["gender", "feminism", "intersectionality", "patriarchy", "care economy", "gender gap", "masculinity", "reproductive rights", "gender equality", "sexual division of labor", "representation"],
+    providers: ["openalex", "crossref", "sociology", "isidore", "persee", "core", "doaj", "plos"],
+    publicationCadence: "monthly",
+    minQualityThreshold: 68,
+    maxBriefPerRun: 1,
+    preferredFormats: ["brief", "strategic"],
+    focusAreas: [
+      "Intersectionality — gender × race × class compounding",
+      "Care economy, unpaid work and the sexual division of labor",
+      "Gender gaps in representation, labor markets and institutions"
+    ],
+    costThreshold: 10.0
+  },
+
+  "area-studies": {
+    id: "area-studies",
+    name: "Dr. Zainab Al-Rashid",
+    title: "Area Studies Analyst — Regional Deep Knowledge",
+    institution: "SOAS University of London / Area Studies",
+    domains: ["area-studies"],
+    keywords: ["area studies", "regional studies", "middle east", "africa", "asia", "latin america", "postcolonial", "local knowledge", "regional politics", "language", "cultural context"],
+    providers: ["openalex", "crossref", "history", "isidore", "persee", "ajol", "dialnet", "riss", "shodhganga"],
+    publicationCadence: "monthly",
+    minQualityThreshold: 68,
+    maxBriefPerRun: 2,
+    preferredFormats: ["brief", "strategic"],
+    focusAreas: [
+      "Regional political economy and cultural context",
+      "Local-language sources and indigenous knowledge systems",
+      "Postcolonial critique of universalist framings"
+    ],
+    costThreshold: 10.0
+  },
+
+  "labor-studies": {
+    id: "labor-studies",
+    name: "Dr. Henrik Johansson",
+    title: "Labor & Work Analyst — Employment, Unions & Skills",
+    institution: "University of Manchester / Work & Equalities Institute",
+    domains: ["labor-studies"],
+    keywords: ["labor market", "employment", "unemployment", "wages", "unions", "collective bargaining", "precarity", "gig economy", "skills", "automation", "working conditions", "industrial relations"],
+    providers: ["openalex", "crossref", "sociology", "nber", "repec", "oecd", "worldbank", "core"],
+    publicationCadence: "monthly",
+    minQualityThreshold: 68,
+    maxBriefPerRun: 1,
+    preferredFormats: ["brief"],
+    focusAreas: [
+      "Labor market segmentation and insider-outsider dynamics",
+      "Union decline, collective bargaining and wage effects",
+      "Automation, skills and task-content of work"
+    ],
+    costThreshold: 10.0
+  },
+
+  "ethics-of-technology": {
+    id: "ethics-of-technology",
+    name: "Dr. Rhea Kapoor",
+    title: "Technology Ethics Analyst — AI, Platforms & Responsible Innovation",
+    institution: "Oxford Internet Institute",
+    domains: ["ethics-of-technology"],
+    keywords: ["AI ethics", "algorithmic bias", "platform governance", "surveillance", "privacy", "autonomous systems", "dual-use", "responsible innovation", "value alignment", "digital rights", "data ethics"],
+    providers: ["philpapers", "openalex", "crossref", "arxiv", "isidore", "hf-papers", "openreview"],
+    publicationCadence: "weekly",
+    minQualityThreshold: 70,
+    maxBriefPerRun: 2,
+    preferredFormats: ["brief", "strategic"],
+    focusAreas: [
+      "Algorithmic fairness, accountability and transparency",
+      "Value-sensitive design and responsible innovation",
+      "Dual-use assessment and governance gaps"
+    ],
+    costThreshold: 12.0
+  },
+
+  "archaeology": {
+    id: "archaeology",
+    name: "Dr. Petros Andreadis",
+    title: "Archaeology Analyst — Material Culture & Deep Time",
+    institution: "UCL / Institute of Archaeology",
+    domains: ["archaeology"],
+    keywords: ["archaeology", "excavation", "material culture", "ancient", "prehistory", "artifact", "collapse", "civilization", "heritage", "dating", "settlement", "deep time"],
+    providers: ["openalex", "crossref", "isidore", "persee", "hal", "core", "openaire", "zenodo"],
+    publicationCadence: "monthly",
+    minQualityThreshold: 65,
+    maxBriefPerRun: 1,
+    preferredFormats: ["brief"],
+    focusAreas: [
+      "Collapse and transformation of past societies (Tainter, Diamond-critique)",
+      "Material culture as evidence for social structure",
+      "Deep-time perspectives on contemporary challenges"
+    ],
+    costThreshold: 8.0
+  },
+
+  "neuroscience": {
+    id: "neuroscience",
+    name: "Dr. Lena Vogt",
+    title: "Neuroscience Analyst — Brain, Mind & Behavior",
+    institution: "Max Planck / Cognitive Neuroscience",
+    domains: ["neuroscience"],
+    keywords: ["neuroscience", "brain", "neural", "cognition", "consciousness", "fmri", "neuron", "cortex", "neuroimaging", "mental health", "neurological"],
+    providers: ["pubmed", "europepmc", "biorxiv", "openalex", "semantic-scholar", "plos", "nih", "core"],
+    publicationCadence: "monthly",
+    minQualityThreshold: 70,
+    maxBriefPerRun: 1,
+    preferredFormats: ["brief"],
+    focusAreas: [
+      "Brain-behavior claims and their evidential limits (reverse inference problem)",
+      "Neurotechnology, BCIs and their societal implications",
+      "Replication and methodology crises in neuroimaging"
+    ],
+    costThreshold: 10.0
+  },
+
+  "data-science": {
+    id: "data-science",
+    name: "Dr. Kenji Nakamura",
+    title: "Data Science Analyst — ML Systems & Methodology",
+    institution: "ETH Zurich / Data Science",
+    domains: ["data-science"],
+    keywords: ["data science", "machine learning", "model", "dataset", "benchmark", "algorithm", "prediction", "mlops", "feature", "training data", "statistical learning"],
+    providers: ["dblp", "arxiv", "openreview", "semantic-scholar", "hf-papers", "papers-with-code", "openalex", "core"],
+    publicationCadence: "weekly",
+    minQualityThreshold: 65,
+    maxBriefPerRun: 2,
+    preferredFormats: ["brief", "strategic"],
+    focusAreas: [
+      "Benchmark validity and leaderboard-driven overclaiming",
+      "Causal ML vs correlational prediction — what the model actually learned",
+      "Data provenance, drift and deployment failure modes"
+    ],
+    costThreshold: 10.0
+  },
+
+  "economic-history": {
+    id: "economic-history",
+    name: "Dr. Ingrid Halvorsen",
+    title: "Economic History Analyst — Growth, Institutions & Deep Time",
+    institution: "LSE / Economic History",
+    domains: ["economic-history"],
+    keywords: ["economic history", "cliometrics", "great divergence", "industrial revolution", "historical growth", "persistence", "colonial legacy", "serfdom", "mercantilism", "gold standard", "depression"],
+    providers: ["nber", "repec", "openalex", "crossref", "history", "persee", "core", "worldbank"],
+    publicationCadence: "monthly",
+    minQualityThreshold: 65,
+    maxBriefPerRun: 1,
+    preferredFormats: ["brief"],
+    focusAreas: [
+      "Historical roots of present-day development gaps",
+      "Great Divergence and industrialization debates",
+      "What past crises (gold standard, depressions) teach about current policy"
+    ],
+    costThreshold: 8.0
+  },
+
+  "social-psychology": {
+    id: "social-psychology",
+    name: "Dr. Naomi Berger",
+    title: "Social Psychology Analyst — Groups, Identity & Influence",
+    institution: "University of Amsterdam / Social Psychology",
+    domains: ["social-psychology"],
+    keywords: ["social psychology", "identity", "prejudice", "conformity", "group dynamics", "persuasion", "attitude", "polarization", "stereotype", "obedience", "intergroup"],
+    providers: ["psychology", "openalex", "semantic-scholar", "crossref", "eric", "core"],
+    publicationCadence: "monthly",
+    minQualityThreshold: 65,
+    maxBriefPerRun: 1,
+    preferredFormats: ["brief"],
+    focusAreas: [
+      "Polarization and intergroup conflict mechanisms",
+      "Replication-crisis literacies — which classic findings survived",
+      "Persuasion, propaganda and resistance to influence"
+    ],
+    costThreshold: 8.0
+  },
+
+  "organizational-studies": {
+    id: "organizational-studies",
+    name: "Dr. Marcus Thorne",
+    title: "Organizational Studies Analyst — Bureaucracies & Institutions",
+    institution: "Stanford / Organizational Behavior",
+    domains: ["organizational-studies"],
+    keywords: ["organization", "bureaucracy", "institutional theory", "management", "firm", "corporate culture", "organizational change", "governance structure", "decision-making", "hierarchy"],
+    providers: ["openalex", "crossref", "sociology", "repec", "nber", "core", "mega-thinktanks"],
+    publicationCadence: "monthly",
+    minQualityThreshold: 65,
+    maxBriefPerRun: 1,
+    preferredFormats: ["brief"],
+    focusAreas: [
+      "Why organizations fail to adapt (isomorphism, inertia, garbage-can decisions)",
+      "High-reliability organizing and failure forensics (Challenger, Deepwater)",
+      "Institutional decay and reform feasibility"
+    ],
+    costThreshold: 8.0
+  },
+
+  "science-policy": {
+    id: "science-policy",
+    name: "Dr. Aurora Lindqvist",
+    title: "Science Policy Analyst — Research Systems & Innovation",
+    institution: "SPRU Sussex / Science Policy",
+    domains: ["science-policy"],
+    keywords: ["science policy", "research funding", "innovation policy", "r&d", "peer review", "research evaluation", "open science", "scientometrics", "university", "mission-oriented"],
+    providers: ["global-science", "oecd", "openalex", "overton", "crossref", "core", "mega-thinktanks"],
+    publicationCadence: "monthly",
+    minQualityThreshold: 65,
+    maxBriefPerRun: 1,
+    preferredFormats: ["brief"],
+    focusAreas: [
+      "Research funding allocation and its distortions",
+      "Metrics-driven science and evaluation gaming (Goodhart)",
+      "Mission-oriented vs curiosity-driven research debates"
+    ],
+    costThreshold: 8.0
+  },
+
+  "development-studies": {
+    id: "development-studies",
+    name: "Dr. Amara Osei",
+    title: "Development Studies Analyst — Poverty, Aid & Transformation",
+    institution: "SOAS / Development Studies",
+    domains: ["development-studies"],
+    keywords: ["development", "poverty", "aid", "global south", "capability", "dependency", "inequality", "rct", "structural transformation", "informal economy", "decolonization"],
+    providers: ["worldbank", "undp", "oecd", "openalex", "repec", "ajol", "dialnet", "core", "unctad"],
+    publicationCadence: "weekly",
+    minQualityThreshold: 65,
+    maxBriefPerRun: 2,
+    preferredFormats: ["brief", "strategic"],
+    focusAreas: [
+      "Aid effectiveness and the RCT-vs-structure debate",
+      "Dependency, unequal exchange and post-development critiques",
+      "Informal economies and what GDP misses in the global South"
+    ],
+    costThreshold: 10.0
+  },
+
+  "comparative-politics": {
+    id: "comparative-politics",
+    name: "Dr. Tomasz Wojcik",
+    title: "Comparative Politics Analyst — Regimes & Institutions",
+    institution: "Sciences Po / Comparative Politics",
+    domains: ["comparative-politics"],
+    keywords: ["regime", "democratization", "authoritarianism", "electoral system", "party system", "state capacity", "constitutional", "comparative politics", "presidentialism", "hybrid regime"],
+    providers: ["political-science", "openalex", "crossref", "overton", "core", "mega-thinktanks", "gdelt-news"],
+    publicationCadence: "weekly",
+    minQualityThreshold: 65,
+    maxBriefPerRun: 2,
+    preferredFormats: ["brief", "strategic"],
+    focusAreas: [
+      "Democratic backsliding and authoritarian resilience",
+      "Electoral and institutional design effects",
+      "State capacity as the hidden variable in policy outcomes"
+    ],
+    costThreshold: 10.0
+  },
+
+  "social-theory": {
+    id: "social-theory",
+    name: "Dr. Camille Deschamps",
+    title: "Social Theory Analyst — Power, Structure & Modernity",
+    institution: "EHESS Paris / Social Theory",
+    domains: ["social-theory"],
+    keywords: ["social theory", "habitus", "field theory", "critical theory", "modernity", "power", "structuration", "capital", "agency", "social ontology", "bourdieu", "foucault"],
+    providers: ["isidore", "persee", "sociology", "philpapers", "openalex", "hal", "core"],
+    publicationCadence: "monthly",
+    minQualityThreshold: 65,
+    maxBriefPerRun: 1,
+    preferredFormats: ["brief"],
+    focusAreas: [
+      "Structure-agency dynamics in contemporary transformations",
+      "Power beyond coercion — symbolic, epistemic, algorithmic",
+      "Applying grand theory (Bourdieu, Foucault, Luhmann) to current events"
+    ],
+    costThreshold: 8.0
+  },
+
+  "philosophy-of-science": {
+    id: "philosophy-of-science",
+    name: "Dr. Elias Brandt",
+    title: "Philosophy of Science Analyst — Evidence & Method",
+    institution: "University of Pittsburgh / HPS",
+    domains: ["philosophy-of-science"],
+    keywords: ["philosophy of science", "epistemology of science", "falsification", "paradigm", "scientific realism", "methodology", "underdetermination", "replication", "evidence", "models"],
+    providers: ["philpapers", "openalex", "crossref", "isidore", "core", "arxiv"],
+    publicationCadence: "monthly",
+    minQualityThreshold: 65,
+    maxBriefPerRun: 1,
+    preferredFormats: ["brief"],
+    focusAreas: [
+      "What counts as evidence — and what a model can never tell you",
+      "Replication crises through a HPS lens",
+      "Scientific consensus: how it forms and when it fails"
+    ],
+    costThreshold: 8.0
+  },
+
+  "law-and-economics": {
+    id: "law-and-economics",
+    name: "Dr. Sofia Rinaldi",
+    title: "Law & Economics Analyst — Rules, Incentives & Institutions",
+    institution: "University of Chicago / Law & Economics",
+    domains: ["law-and-economics"],
+    keywords: ["law and economics", "transaction costs", "property rights", "liability", "regulation", "antitrust", "contract", "coase", "institutional economics", "legal origins", "tort"],
+    providers: ["nber", "repec", "eur-lex", "openalex", "crossref", "core", "mega-thinktanks"],
+    publicationCadence: "monthly",
+    minQualityThreshold: 65,
+    maxBriefPerRun: 1,
+    preferredFormats: ["brief"],
+    focusAreas: [
+      "How legal rules price behavior — incentives hidden in doctrine",
+      "Antitrust and market power in the platform era",
+      "Institutional design: when law creates markets vs when it distorts them"
+    ],
+    costThreshold: 8.0
+  },
+
+  "intelligence-studies": {
+    id: "intelligence-studies",
+    name: "Dr. James Callahan",
+    title: "Intelligence Studies Analyst — Warning, Surprise & Statecraft",
+    institution: "King's College London / War Studies",
+    domains: ["intelligence-studies"],
+    keywords: ["intelligence", "espionage", "surveillance", "warning", "strategic surprise", "covert action", "declassified", "threat assessment", "signals intelligence", "analysis tradecraft"],
+    providers: ["cia-foia", "odni", "uk-jic", "global-intelligence", "nato", "sipri", "openalex", "crossref", "core"],
+    publicationCadence: "monthly",
+    minQualityThreshold: 70,
+    maxBriefPerRun: 1,
+    preferredFormats: ["brief", "strategic"],
+    focusAreas: [
+      "Intelligence failure forensics (Pearl Harbor, 9/11, Iraq WMD)",
+      "Analytic tradecraft — ACH, structured techniques, politicization",
+      "Declassified records as a corrective to official narratives"
+    ],
+    costThreshold: 10.0
+  },
+
+  "military-studies": {
+    id: "military-studies",
+    name: "Dr. Viktor Brandt",
+    title: "Military Studies Analyst — Strategy, Deterrence & Warfare",
+    institution: "King's College London / War Studies",
+    domains: ["military-studies"],
+    keywords: ["military", "warfare", "deterrence", "strategy", "defense", "armed forces", "war", "escalation", "operations", "logistics", "combat"],
+    providers: ["sipri", "nato", "cia-foia", "odni", "uk-jic", "global-intelligence", "openalex", "crossref", "core"],
+    publicationCadence: "weekly",
+    minQualityThreshold: 70,
+    maxBriefPerRun: 2,
+    preferredFormats: ["brief", "strategic"],
+    focusAreas: [
+      "Deterrence credibility and escalation dynamics",
+      "Warfare transformation — drones, precision, attrition economics",
+      "Civil-military relations and defense-industrial capacity"
+    ],
+    costThreshold: 12.0
+  },
+
+  "futures-studies": {
+    id: "futures-studies",
+    name: "Dr. Yuki Tanaka-Delacroix",
+    title: "Futures Studies Analyst — Scenarios & Foresight Method",
+    institution: "UNESCO / Futures Literacy",
+    domains: ["futures-studies"],
+    keywords: ["foresight", "futures", "scenario", "horizon scanning", "weak signals", "wild cards", "long-term", "anticipation", "futures literacy", "trends"],
+    providers: ["openalex", "crossref", "isidore", "core", "overton", "mega-thinktanks", "linkup"],
+    publicationCadence: "monthly",
+    minQualityThreshold: 65,
+    maxBriefPerRun: 1,
+    preferredFormats: ["strategic"],
+    focusAreas: [
+      "Scenario method rigor — plausibility vs preference",
+      "Weak-signal detection and wild-card integration",
+      "Foresight evaluation — which methods actually predict better"
+    ],
+    costThreshold: 8.0
+  },
+
+  "economic-sociology": {
+    id: "economic-sociology",
+    name: "Dr. Helena Weiss",
+    title: "Economic Sociology Analyst — Markets as Social Structures",
+    institution: "MPIfG Cologne / Economic Sociology",
+    domains: ["economic-sociology"],
+    keywords: ["economic sociology", "embeddedness", "markets", "networks", "trust", "performativity", "moral economy", "commodification", "social capital", "gift economy"],
+    providers: ["sociology", "openalex", "crossref", "repec", "nber", "core", "isidore"],
+    publicationCadence: "monthly",
+    minQualityThreshold: 65,
+    maxBriefPerRun: 1,
+    preferredFormats: ["brief"],
+    focusAreas: [
+      "Markets as social constructions — networks, trust, legitimacy",
+      "Performativity — when economic models create the economy",
+      "Commodification limits — what money cannot buy without corruption"
+    ],
+    costThreshold: 8.0
+  },
+
+  "historical-sociology": {
+    id: "historical-sociology",
+    name: "Dr. Robert Ashworth",
+    title: "Historical Sociology Analyst — States, Revolutions & Longue Durée",
+    institution: "Northwestern / Historical Sociology",
+    domains: ["historical-sociology"],
+    keywords: ["historical sociology", "state formation", "revolution", "social movements", "longue durée", "contentious politics", "empire", "modernity", "comparative history"],
+    providers: ["sociology", "history", "openalex", "crossref", "isidore", "persee", "core"],
+    publicationCadence: "monthly",
+    minQualityThreshold: 65,
+    maxBriefPerRun: 1,
+    preferredFormats: ["brief"],
+    focusAreas: [
+      "State formation and decay — war-making as state-making",
+      "Revolutionary processes — Skocpol's structural conditions",
+      "Long-run patterns in contention and mobilization"
+    ],
+    costThreshold: 8.0
+  },
+
+  "environmental-economics": {
+    id: "environmental-economics",
+    name: "Dr. Greta Lindholm",
+    title: "Environmental Economics Analyst — Pricing, Commons & Climate Policy",
+    institution: "LSE / Environmental Economics",
+    domains: ["environmental-economics"],
+    keywords: ["carbon pricing", "externalities", "natural capital", "climate economics", "cap and trade", "carbon tax", "ecosystem services", "discount rate", "green transition", "emissions"],
+    providers: ["openalex", "crossref", "repec", "nber", "oecd", "worldbank", "eea", "core"],
+    publicationCadence: "weekly",
+    minQualityThreshold: 65,
+    maxBriefPerRun: 2,
+    preferredFormats: ["brief", "strategic"],
+    focusAreas: [
+      "Carbon pricing design and political feasibility",
+      "Natural capital valuation — uses and abuses",
+      "Discount-rate choices and intergenerational ethics"
+    ],
+    costThreshold: 10.0
+  },
+
+  "health-economics": {
+    id: "health-economics",
+    name: "Dr. Fatima Al-Rashid",
+    title: "Health Economics Analyst — Systems, Pricing & Access",
+    institution: "LSE / Health Policy",
+    domains: ["health-economics"],
+    keywords: ["health economics", "healthcare", "pharma", "health insurance", "qaly", "health system", "drug pricing", "medical costs", "universal coverage", "health policy"],
+    providers: ["pubmed", "europepmc", "who-gho", "nih", "openalex", "repec", "nber", "oecd", "core"],
+    publicationCadence: "monthly",
+    minQualityThreshold: 65,
+    maxBriefPerRun: 1,
+    preferredFormats: ["brief"],
+    focusAreas: [
+      "Health system design — insurance models and access tradeoffs",
+      "Pharma pricing, patents and innovation incentives",
+      "Cost-effectiveness logic and its ethical limits"
+    ],
+    costThreshold: 10.0
+  },
+
+  "legal-theory": {
+    id: "legal-theory",
+    name: "Dr. Anton Bergmann",
+    title: "Legal Theory Analyst — Jurisprudence & Legal Reasoning",
+    institution: "Oxford / Jurisprudence",
+    domains: ["legal-theory"],
+    keywords: ["jurisprudence", "legal theory", "positivism", "natural law", "legal realism", "constitutional theory", "rule of law", "legal interpretation", "hohfeld", "normativity"],
+    providers: ["philpapers", "openalex", "crossref", "eur-lex", "core", "isidore"],
+    publicationCadence: "monthly",
+    minQualityThreshold: 65,
+    maxBriefPerRun: 1,
+    preferredFormats: ["brief"],
+    focusAreas: [
+      "What law is — positivism vs natural law vs interpretivism in live cases",
+      "Rule of law erosion — formal vs substantive standards",
+      "Legal reasoning under uncertainty — interpretation as politics"
+    ],
+    costThreshold: 8.0
+  },
+
+  "postcolonial-studies": {
+    id: "postcolonial-studies",
+    name: "Dr. Leila Haddad",
+    title: "Postcolonial Studies Analyst — Empire, Coloniality & Representation",
+    institution: "SOAS / Postcolonial Studies",
+    domains: ["postcolonial-studies"],
+    keywords: ["postcolonial", "colonialism", "decolonization", "orientalism", "subaltern", "empire", "coloniality", "imperialism", "race", "representation"],
+    providers: ["isidore", "persee", "openalex", "crossref", "sociology", "ajol", "dialnet", "core"],
+    publicationCadence: "monthly",
+    minQualityThreshold: 65,
+    maxBriefPerRun: 1,
+    preferredFormats: ["brief"],
+    focusAreas: [
+      "Coloniality persisting after empire — power without formal rule",
+      "Representation politics — who speaks for whom in global discourse",
+      "Decolonization of knowledge and institutions"
+    ],
+    costThreshold: 8.0
+  },
+
+  "communication-studies": {
+    id: "communication-studies",
+    name: "Dr. Paul Verhoeven",
+    title: "Communication Studies Analyst — Media, Propaganda & Public Sphere",
+    institution: "University of Amsterdam / Media Studies",
+    domains: ["communication-studies"],
+    keywords: ["media", "propaganda", "public sphere", "framing", "agenda-setting", "journalism", "misinformation", "platform", "communication", "broadcasting"],
+    providers: ["openalex", "crossref", "sociology", "isidore", "core", "gdelt-news", "linkup"],
+    publicationCadence: "weekly",
+    minQualityThreshold: 65,
+    maxBriefPerRun: 2,
+    preferredFormats: ["brief"],
+    focusAreas: [
+      "Propaganda models in the platform era",
+      "Agenda-setting and framing effects on public opinion",
+      "Public sphere fragmentation and its democratic costs"
+    ],
+    costThreshold: 8.0
+  },
+
+  "public-finance": {
+    id: "public-finance",
+    name: "Dr. Catherine Moreau",
+    title: "Public Finance Analyst — Taxation, Debt & Fiscal Federalism",
+    institution: "Paris School of Economics",
+    domains: ["public-finance"],
+    keywords: ["taxation", "fiscal policy", "public debt", "budget", "tax incidence", "fiscal federalism", "austerity", "public spending", "optimal tax", "fiscal rules"],
+    providers: ["nber", "repec", "oecd", "worldbank", "imf", "openalex", "crossref", "core", "insee", "eurostat"],
+    publicationCadence: "weekly",
+    minQualityThreshold: 65,
+    maxBriefPerRun: 2,
+    preferredFormats: ["brief"],
+    focusAreas: [
+      "Tax incidence — who really pays",
+      "Debt sustainability thresholds and fiscal rules",
+      "Fiscal federalism — who taxes, who spends, who is accountable"
+    ],
+    costThreshold: 10.0
+  },
+
+  "political-anthropology": {
+    id: "political-anthropology",
+    name: "Dr. David Graeber-Lindt",
+    title: "Political Anthropology Analyst — State, Resistance & Everyday Politics",
+    institution: "LSE / Anthropology",
+    domains: ["political-anthropology"],
+    keywords: ["political anthropology", "state formation", "resistance", "anarchism", "indigenous politics", "everyday politics", "zomia", "statelessness", "power", "legibility"],
+    providers: ["isidore", "persee", "openalex", "crossref", "sociology", "ajol", "core"],
+    publicationCadence: "monthly",
+    minQualityThreshold: 65,
+    maxBriefPerRun: 1,
+    preferredFormats: ["brief"],
+    focusAreas: [
+      "How states see — legibility, simplification and their failures",
+      "Everyday resistance and non-compliance as politics",
+      "Non-state political orders — past and present"
+    ],
+    costThreshold: 8.0
+  },
+
+  "food-systems": {
+    id: "food-systems",
+    name: "Dr. Amina Diallo",
+    title: "Food Systems Analyst — Agriculture, Hunger & Agri-food Power",
+    institution: "Wageningen / Agrifood Systems",
+    domains: ["food-systems"],
+    keywords: ["food", "agriculture", "hunger", "famine", "food security", "agri-food", "farming", "nutrition", "food sovereignty", "supply chain", "land use"],
+    providers: ["fao", "worldbank", "openalex", "crossref", "oecd", "unctad", "ajol", "core", "gdelt-news"],
+    publicationCadence: "monthly",
+    minQualityThreshold: 65,
+    maxBriefPerRun: 1,
+    preferredFormats: ["brief", "strategic"],
+    focusAreas: [
+      "Food regimes and the political economy of hunger",
+      "Famine is political — Sen's entitlement approach applied",
+      "Agri-food corporate power and supply chain fragility"
+    ],
+    costThreshold: 10.0
+  },
 };
 
 // ============================================================================
@@ -716,17 +1680,17 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 // ============================================================================
 
 export const VERTICAL_RESEARCHER_MAP: Record<string, DomainExpertise[]> = {
-  "climate-energy":          ["environment", "energy-advanced"],
-  "macro-finance":           ["economics", "finance", "risk-analysis"],
-  "geopolitics":             ["geopolitics", "security"],
-  "tech-innovation":         ["technology", "digital-society", "computational-social-science"],
-  "social-policy":           ["policy", "social-sciences", "behavioral-economics"],
-  "health-bioethics":        ["health", "bioethics"],
-  "law-regulation":          ["law"],
-  "cognitive-behavioral":    ["cognitive-science", "behavioral-economics"],
-  "development-global":      ["development-economics", "urban-studies"],
-  "complexity-quantitative": ["complexity-science", "quantitative", "risk-analysis"],
-  "humanities-ethics":       ["humanities"],
+  "climate-energy":          ["environment", "energy-advanced", "environmental-economics"],
+  "macro-finance":           ["economics", "finance", "risk-analysis", "political-economy", "economic-history", "law-and-economics", "public-finance", "economic-sociology"],
+  "geopolitics":             ["geopolitics", "security", "international-relations", "conflict-studies", "international-law", "area-studies", "intelligence-studies", "comparative-politics", "military-studies"],
+  "tech-innovation":         ["technology", "digital-society", "computational-social-science", "media-studies", "science-technology-studies", "ethics-of-technology", "data-science", "science-policy", "communication-studies", "futures-studies"],
+  "social-policy":           ["policy", "social-sciences", "behavioral-economics", "sociology", "demography", "education", "political-science", "migration-studies", "gender-studies", "public-administration", "labor-studies", "social-psychology", "organizational-studies", "social-theory", "public-finance", "communication-studies"],
+  "health-bioethics":        ["health", "bioethics", "epidemiology", "public-health", "neuroscience", "health-economics"],
+  "law-regulation":          ["law", "criminology", "international-law", "law-and-economics", "legal-theory"],
+  "cognitive-behavioral":    ["cognitive-science", "behavioral-economics", "psychology", "neuroscience", "social-psychology"],
+  "development-global":      ["development-economics", "urban-studies", "migration-studies", "development-studies", "postcolonial-studies", "food-systems"],
+  "complexity-quantitative": ["complexity-science", "quantitative", "risk-analysis", "data-science", "futures-studies"],
+  "humanities-ethics":       ["humanities", "philosophy", "epistemology", "linguistics", "anthropology", "history", "religious-studies", "non-western-philosophy", "archaeology", "economic-history", "philosophy-of-science", "social-theory", "historical-sociology", "political-anthropology", "postcolonial-studies", "legal-theory", "economic-sociology"],
 };
 
 /**

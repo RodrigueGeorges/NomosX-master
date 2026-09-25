@@ -14,6 +14,8 @@
  * augmentation layer that makes the pipeline more agentic and less siloed.
  */
 
+import { SignalBus, type Mission, type MissionTargets, type SignalType, type AgentSignal } from './signals';
+
 export interface PipelineFinding {
   agent: string;
   timestamp: number;
@@ -55,10 +57,19 @@ export interface PipelineBlackboard {
   // Metrics
   startTime: number;
   agentTimings: Record<string, number>;
+
+  // Mission — the single shared goal every agent reads (Sprint 26)
+  mission?: Mission;
 }
 
 export class PipelineContext {
   private bb: PipelineBlackboard;
+  /** Stigmergic signal bus — agents post needs, resolvers sense and resolve
+   *  them at sweep checkpoints. This IS the collective layer: any agent can
+   *  emit a need without knowing who will answer it. */
+  /** Mutable: pipeline-v2 swaps in a PersistentSignalBus when durable
+   *  execution is enabled, so open needs survive a crash + resume. */
+  signals: SignalBus<PipelineContext> = new SignalBus<PipelineContext>(this);
 
   constructor(query: string, isStrategic: boolean) {
     this.bb = {
@@ -152,7 +163,33 @@ export class PipelineContext {
       providers,
       minResults,
     });
+    // Also emit as a typed signal — any registered resolver can sense it at
+    // the next sweep, not just the hardcoded gap-fill step.
+    this.signals.post('coverage_gap', reason, {
+      postedBy: requestedBy,
+      intensity: 0.7,
+      ttlMs: 45 * 60 * 1000,
+      payload: { query, providers, minResults },
+    });
     console.log(`[BLACKBOARD] Source gap requested by ${requestedBy}: "${query.slice(0, 80)}..." — ${reason}`);
+  }
+
+  // ── Mission — the single shared goal (Sprint 26) ──
+  setMission(goal: string, targets: MissionTargets) {
+    this.bb.mission = { goal, targets };
+  }
+
+  get mission(): Mission | undefined {
+    return this.bb.mission;
+  }
+
+  /** Emit a typed need onto the signal bus. */
+  postSignal(
+    type: SignalType,
+    content: string,
+    opts: { postedBy: string; intensity?: number; ttlMs?: number; payload?: Record<string, unknown> },
+  ): AgentSignal {
+    return this.signals.post(type, content, opts);
   }
 
   getPendingGapRequests(): SourceGapRequest[] {
@@ -182,6 +219,8 @@ export class PipelineContext {
       skippedSteps: [...this.bb.skipSteps],
       agentTimings: this.bb.agentTimings,
       totalDurationMs: Date.now() - this.bb.startTime,
+      mission: this.bb.mission,
+      signals: this.signals.getSummary(),
     };
   }
 }

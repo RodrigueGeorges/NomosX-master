@@ -77,6 +77,33 @@ function extractSentencesFromHtml(html: string): { text: string; raw: string; st
   // Normalize [E-N] evidence IDs to [SRC-N] (strategic reports use E-N format)
   normalized = normalized.replace(/\[E(\d+)\]/g, '[SRC-$1]');
 
+  // Repair unclosed <style>/<script>/<head> blocks found in some stored
+  // publications: an unclosed <style> swallows all prose (extraction = 0).
+  // Close the block right before the first prose tag so stripping works.
+  normalized = normalized.replace(
+    /<(style|script)\b[^>]*>(?![\s\S]*<\/\1>)([\s\S]*?)(?=<(?:p|h[1-6]|section|article|body|div)\b)/gi,
+    '<$1>$2</$1>',
+  );
+  normalized = normalized.replace(
+    /<head\b[^>]*>(?![\s\S]*<\/head>)([\s\S]*?)(?=<(?:p|h[1-6]|section|article|body|div)\b)/gi,
+    '<head>$1</head>',
+  );
+
+  // Strip non-prose blocks first — CSS/JS/head content produces garbage
+  // "sentences" (rgba alphas, hex colors) that pollute claim extraction and
+  // can trigger destructive removals inside markup.
+  normalized = normalized
+    .replace(/<(style|script|head)\b[^>]*>[\s\S]*?(<\/\1>|(?=<body\b)|(?=<article\b)|$)/gi, ' ');
+
+  // data-no-cite elements are the institute's own editorial apparatus (model
+  // estimates, scenario metadata, horizon/confidence spans) — they are not
+  // source-groundable claims and must never enter claim extraction. A live
+  // run was HELD because grounding deleted the central-scenario horizon.
+  normalized = normalized.replace(
+    /<([a-z][a-z0-9-]*)\b[^>]*\bdata-no-cite\b[^>]*>[\s\S]*?<\/\1>/gi,
+    ' '
+  );
+
   // Strip HTML tags to get text content, keeping [SRC-N] markers
   const text = normalized.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
 
@@ -105,12 +132,36 @@ function extractSentencesFromHtml(html: string): { text: string; raw: string; st
  * We keep it simple: each sentence with a [SRC-N] is one atomic claim.
  * (Full decomposition with pronoun resolution would need an LLM — we stay deterministic.)
  */
+/**
+ * Reference-list fragment detection — bibliography tails like
+ * "org/10.3390/bdcc8040042 [9] (2024)" or "respol.2023.104765 [2] Swiderska, K."
+ * are extraction noise, not claims: they contain years/numbers (factual
+ * markers) but assert nothing. Verified waste in production: they consumed
+ * the SAFE verification budget and inflated the unsupported count.
+ */
+function isReferenceFragment(text: string): boolean {
+  const s = text.trim();
+  return /^(org|doi|www|https?)[\/:.]/i.test(s) ||           // "org/10.3390/..."
+         /^[a-z]{2,25}\.\d{4}\./i.test(s) ||                 // "respol.2023.104765"
+         /^[a-z]{2,10}\.\d{5,}/i.test(s) ||                  // "pwat.0000602", "pone.0330032", "thesis.83336"
+         /^v\d+i\d+\.\d+/i.test(s) ||                        // "v14i4.6328"
+         /^[a-z]{2,4}\/(?:handle|project|portal|detail|page|projects|converis)\//i.test(s) || // "edu/handle/1721.1/163428"
+         /^id=[\w%]/i.test(s) ||                             // "id=10.1371%2Fjournal"
+         /^\[\d+\]\s*[A-ZÀ-Þ]/.test(s) ||                    // "[9] Author, X."
+         /^\d{1,3}\s+[A-ZÀ-Þ][a-zà-ÿ-]+,\s*[A-Z]\./.test(s) || // "9 Author, X."
+         /^et al\.?[\s,]/i.test(s) ||
+         (/\bdoi\b|10\.\d{4,9}\//i.test(s) && s.length < 120);
+}
+
 function decomposeIntoClaims(
   sentences: { text: string; raw: string; startIdx: number }[],
 ): AtomicClaim[] {
   const claims: AtomicClaim[] = [];
 
   sentences.forEach((sent, idx) => {
+    // Skip reference-list fragments — not claims, just citation metadata
+    if (isReferenceFragment(sent.text)) return;
+
     // Find [SRC-N] references in the sentence
     const srcMatches = [...sent.text.matchAll(/\[SRC-(\d+)\]/g)];
 
@@ -305,7 +356,7 @@ function extractBigrams(text: string): Set<string> {
  * (to preserve paragraph structure).
  */
 
-function repairHtmlWithGrounding(
+export function repairHtmlWithGrounding(
   html: string,
   claims: AtomicClaim[],
   mode: 'remove' | 'flag' = 'flag',
@@ -324,8 +375,25 @@ function repairHtmlWithGrounding(
     return { html, removedClaims: 0, details };
   }
 
-  // For each bad claim, find and neutralize the sentence in the HTML
-  let workingHtml = html;
+  // Mask non-prose regions (<style>, <script>, <head>, references) so claim
+  // fragments can never match inside CSS/markup and sentence-boundary
+  // detection can't delete structural tags like </style> or </head>.
+  const maskedBlocks: string[] = [];
+  const maskRe = /<(style|script|head)\b[^>]*>[\s\S]*?(<\/\1>|(?=<body\b)|(?=<article\b)|$)/gi;
+  let workingHtml = html.replace(maskRe, (m) => {
+    maskedBlocks.push(m);
+    return `\x00MASK${maskedBlocks.length - 1}\x00`;
+  });
+  // Editorial-decision blocks are the institute's own position, not source
+  // claims — the publication gate requires the central scenario to render
+  // verbatim from the persisted decision, so sentence-level removal inside it
+  // can only break the gate, never improve grounding.
+  workingHtml = workingHtml.replace(
+    /<section\b[^>]*class="[^"]*\bcentral-scenario\b[^"]*"[^>]*>[\s\S]*?<\/section>/gi,
+    (m) => { maskedBlocks.push(m); return `\x00MASK${maskedBlocks.length - 1}\x00`; }
+  );
+  const unmask = (s: string) => s.replace(/\x00MASK(\d+)\x00/g, (_, i) => maskedBlocks[parseInt(i, 10)]);
+
   for (const claim of badClaims) {
     // Use multiple search strategies for robust matching
     // Strategy 1: Try with first 60 chars of claim text (longer than before)
@@ -376,8 +444,12 @@ function repairHtmlWithGrounding(
             }
           }
 
-          if (mode === 'remove') {
-            // Remove the sentence entirely
+          const span = sentenceEnd - sentenceStart;
+          const spanText = workingHtml.slice(sentenceStart, sentenceEnd);
+          // Safety: never remove spans that cross masked blocks, structural
+          // boundaries, data-no-cite editorial elements, or are implausibly
+          // long for a single sentence.
+          if (mode === 'remove' && span <= 2000 && !/\x00MASK|data-no-cite|<\/?(section|article|header|footer|nav|figure|table)\b/i.test(spanText)) {
             workingHtml = workingHtml.slice(0, sentenceStart) + workingHtml.slice(sentenceEnd);
             removedClaims++;
             details.push(`Removed ${claim.verdict} claim: "${fragment.slice(0, 40)}..."`);
@@ -391,7 +463,7 @@ function repairHtmlWithGrounding(
     }
   }
 
-  return { html: workingHtml, removedClaims, details };
+  return { html: unmask(workingHtml), removedClaims, details };
 }
 
 // ─── MAIN ENTRY POINT ───────────────────────────────────────────────────────
@@ -573,7 +645,7 @@ export async function groundClaimsWithNLI(
     const source = sources[claim.sourceRef! - 1];
     const reading = readings.find((r: any) => r.sourceId === (source as any).id);
     const sourceText = reading
-      ? [reading.claims?.join(' '), reading.results?.join(' '), reading.methods?.join(' ')].filter(Boolean).join(' ').slice(0, 3000)
+      ? [reading.claims?.join(' '), reading.results?.join(' '), reading.methods?.join(' '), (reading.extractedText || '').slice(0, 2000)].filter(Boolean).join(' ').slice(0, 4000)
       : [source.title || '', source.abstract || '', (source.fullText || '').slice(0, 5000)].join(' ');
     return { claim: claim.text, sourceContent: sourceText, claimRef: claim };
   });
@@ -612,6 +684,67 @@ export async function groundClaimsWithNLI(
     if (claim.sourceRef !== null && (claim.sourceRef < 1 || claim.sourceRef > sources.length)) {
       claim.verdict = 'unsupported';
       claim.score = 0;
+    }
+  }
+
+  // Step 3c: SAFE escalation (DeepMind SAFE, NeurIPS 2024) — claims that
+  // stored-source grounding could not confirm are verified against LIVE web
+  // search. A claim unsupported by its thin abstract may be provable against
+  // fresh evidence; a claim contradicted everywhere is genuinely dangerous.
+  // Bounded: 12 claims max, ~$0.001 + metered search calls.
+  // Check-worthiness triage (Loki-style): rank candidates by factual value —
+  // quantitative/causal/named-entity claims are worth a live call; vague prose
+  // is not. First-12-in-document order wasted budget on filler.
+  const checkWorthiness = (text: string): number => {
+    let score = 0;
+    if (/\d+\s*%|\$\s*\d|\d{4,}|million|billion|trillion/i.test(text)) score += 3; // quantitative
+    if (/\b(caused?|driv(?:es|en|ing)|led to|result(?:s|ed)? in|increase[ds]?|reduce[ds]?|decline[ds]?)\b/i.test(text)) score += 2; // causal
+    if (/\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)+\b/.test(text)) score += 1; // named entities
+    if (/\b(will|would|could)\b.*\b(by|in)\s+(?:19|20)\d{2}\b/i.test(text)) score += 1; // forecast
+    return score;
+  };
+  const safeCandidates = claims.filter(c =>
+    c.verdict === 'unsupported' ||
+    c.verdict === 'contradicted' ||
+    (c.verdict === 'uncited' && checkWorthiness(c.text) >= 3)
+  )
+    .map(c => ({ c, w: checkWorthiness(c.text) + (c.verdict === 'contradicted' ? 4 : 0) }))
+    .sort((a, b) => b.w - a.w)
+    .slice(0, 12)
+    .map(x => x.c);
+
+  if (safeCandidates.length > 0) {
+    try {
+      const { verifyClaimsWithLiveSearch } = await import('./safe-verifier');
+      const safeReport = await verifyClaimsWithLiveSearch(
+        safeCandidates.map(c => c.text),
+        { maxClaims: 12, timeoutMs: 100_000 },
+      );
+      let rescued = 0;
+      for (let i = 0; i < safeCandidates.length && i < safeReport.results.length; i++) {
+        const claim = safeCandidates[i];
+        const safe = safeReport.results[i];
+        if (!safe) continue;
+        if (safe.verdict === 'supported' && claim.verdict !== 'contradicted') {
+          // Live evidence confirms the claim — upgrade conservatively to
+          // 'supported' only on high-confidence entailment, else 'partial'.
+          claim.verdict = safe.confidence >= 0.75 ? 'supported' : 'partial';
+          claim.evidenceSnippet = `SAFE: ${safe.evidenceUrls[0] || safe.evidenceSnippet || 'live search'}`;
+          claim.score = Math.max(claim.score, safe.confidence);
+          rescued++;
+        } else if (safe.verdict === 'contradicted') {
+          // Fresh evidence contradicts the claim — this overrides everything.
+          claim.verdict = 'contradicted';
+          claim.evidenceSnippet = `SAFE contradicted: ${safe.evidenceUrls[0] || ''}`;
+        }
+        // 'unverifiable' leaves the original verdict untouched.
+      }
+      if (rescued > 0 || safeReport.contradicted > 0) {
+        console.log(`[CLAIM GROUNDING NLI] SAFE: ${rescued} claims rescued by live evidence, ${safeReport.contradicted} contradicted by live evidence (precision ${Math.round(safeReport.precision * 100)}%)`);
+      }
+      details.push(`SAFE: ${safeReport.supported} live-supported, ${safeReport.contradicted} live-contradicted, ${safeReport.unverifiable} unverifiable`);
+    } catch (err) {
+      console.warn('[CLAIM GROUNDING NLI] SAFE escalation failed (non-blocking):', String(err).slice(0, 120));
     }
   }
 

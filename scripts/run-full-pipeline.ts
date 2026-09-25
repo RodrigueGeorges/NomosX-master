@@ -28,6 +28,7 @@ const args = process.argv.slice(2);
 const mode = (args.find(a => a.startsWith('--mode='))?.slice(7) ?? 'breaking') as 'breaking' | 'weekly';
 const dryRun = args.includes('--dry-run');
 const maxPublications = parseInt(args.find(a => a.startsWith('--max='))?.slice(6) ?? '1', 10);
+const budgetUsd = parseFloat(args.find(a => a.startsWith('--budget='))?.slice(9) ?? (mode === 'breaking' ? '5.0' : '10.0'));
 
 async function main() {
   console.log('╔════════════════════════════════════════════════════════════════════╗');
@@ -48,7 +49,7 @@ async function main() {
     mode,
     dryRun,
     maxPublications,
-    budgetUsd: mode === 'breaking' ? 5.0 : 10.0,
+    budgetUsd,
     bypassCadence: true, // Force publication even if weekly slots are full
   });
 

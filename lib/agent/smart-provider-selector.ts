@@ -96,7 +96,12 @@ export type Provider =
   // V3.3: EU open data (free, no key)
   | "data-europa"
   // V3.3: Internet standards (free, no key)
-  | "ietf";
+  | "ietf"
+  // Foundational Sources — books, reports, reference texts
+  | "ipcc" | "internet-archive" | "hathitrust" | "open-library" | "jstor" | "unesco"
+  // TIER 8: Mega feed registries (domain-routed, 560+ sub-sources)
+  | "mega-central-banks" | "mega-stats" | "mega-un" | "mega-eu" | "mega-press"
+  | "mega-thinktanks" | "mega-development" | "mega-academia" | "mega-civil-society";
 
 export interface SmartSelection {
   providers: Provider[];
@@ -105,6 +110,28 @@ export interface SmartSelection {
   estimatedTime: string;
   estimatedSources: number;
 }
+
+/**
+ * Foundational & heritage providers — classic texts, academic books, primary
+ * sources (JSTOR, Gutenberg, PhilPapers, Gallica, Persée…). Appended to
+ * interpretive domains so analyses can draw on the canon, not just recent
+ * papers.
+ */
+const HERITAGE_PROVIDERS: Provider[] = [
+  "jstor", "internet-archive", "hathitrust", "open-library", "gutenberg",
+  "philpapers", "persee", "isidore", "gallica", "wikisource", "google-books",
+];
+
+/**
+ * Domains where interpretive depth (philosophy, sociology, history) materially
+ * improves the analysis. Pure STEM domains keep their tighter provider set.
+ */
+const HERITAGE_DOMAINS = new Set([
+  "geopolitics", "economics", "finance", "politics", "law", "technology", "ai",
+  "defense", "security", "intelligence", "energy", "energy_technology",
+  "climate", "environment", "european_policy", "foreign_policy", "cyber",
+  "france", "africa", "latin_america", "asia", "statistics",
+]);
 
 /**
  * Domain → Multi-Provider Strategy (Tiered with A+ Relevance Filtering)
@@ -367,19 +394,66 @@ async function loadProviderPerformance(domain: string): Promise<Map<string, numb
  * Intelligently selects providers and quantities.
  * P2-L: Now async — boosts providers with strong historical performance.
  */
+// Mega feed registry subsets per domain (V3.2 — 560+ sources under the hood,
+// each subset internally picks only the ~24 most relevant feeds per query).
+const MEGA_DOMAIN_MAP: Record<string, Provider[]> = {
+  economics: ["mega-central-banks", "mega-stats", "mega-thinktanks", "mega-academia", "mega-press"],
+  finance: ["mega-central-banks", "mega-stats", "mega-thinktanks", "mega-academia", "mega-press"],
+  statistics: ["mega-stats", "mega-central-banks", "mega-eu", "mega-un"],
+  health: ["mega-un", "mega-stats", "mega-press", "mega-civil-society"],
+  medical: ["mega-un", "mega-stats", "mega-press", "mega-civil-society"],
+  climate: ["mega-eu", "mega-un", "mega-development", "mega-academia", "mega-press"],
+  environment: ["mega-eu", "mega-un", "mega-development", "mega-academia", "mega-press"],
+  energy: ["mega-eu", "mega-un", "mega-central-banks", "mega-press", "mega-academia"],
+  energy_technology: ["mega-eu", "mega-academia", "mega-press", "mega-un"],
+  technology: ["mega-academia", "mega-press", "mega-eu"],
+  ai: ["mega-academia", "mega-press", "mega-eu"],
+  computer_science: ["mega-academia", "mega-press"],
+  physics: ["mega-academia", "mega-press"],
+  mathematics: ["mega-academia", "mega-press"],
+  chemistry: ["mega-academia", "mega-press"],
+  politics: ["mega-eu", "mega-un", "mega-thinktanks", "mega-press", "mega-civil-society"],
+  law: ["mega-eu", "mega-un", "mega-thinktanks", "mega-press", "mega-civil-society"],
+  geopolitics: ["mega-eu", "mega-un", "mega-thinktanks", "mega-press", "mega-civil-society"],
+  foreign_policy: ["mega-eu", "mega-un", "mega-thinktanks", "mega-press", "mega-civil-society"],
+  european_policy: ["mega-eu", "mega-un", "mega-thinktanks", "mega-press", "mega-stats"],
+  intelligence: ["mega-thinktanks", "mega-civil-society", "mega-press", "mega-un"],
+  security: ["mega-thinktanks", "mega-civil-society", "mega-press", "mega-un"],
+  defense: ["mega-thinktanks", "mega-civil-society", "mega-press", "mega-eu"],
+  cyber: ["mega-press", "mega-eu", "mega-civil-society", "mega-academia"],
+  social_sciences: ["mega-academia", "mega-civil-society", "mega-press", "mega-stats"],
+  humanities: ["mega-academia", "mega-civil-society", "mega-press"],
+  history: ["mega-academia", "mega-press", "mega-civil-society"],
+  africa: ["mega-press", "mega-development", "mega-un", "mega-thinktanks", "mega-stats"],
+  latin_america: ["mega-press", "mega-development", "mega-un", "mega-thinktanks"],
+  asia: ["mega-press", "mega-thinktanks", "mega-un", "mega-stats", "mega-development"],
+  france: ["mega-eu", "mega-stats", "mega-press", "mega-thinktanks", "mega-academia"],
+  default: ["mega-press", "mega-thinktanks", "mega-un", "mega-stats", "mega-academia"],
+};
+
 export async function selectSmartProviders(question: string): Promise<SmartSelection> {
   // Use comprehensive domain detection (20 domains) for accurate provider selection
   const domain = detectDomain(question);
   console.log(`[SmartProvider] Detected domain: ${domain}`);
-  
-  const baseProviders = DOMAIN_PROVIDER_MAP[domain] || DOMAIN_PROVIDER_MAP.default;
-  
+
+  const domainBase = DOMAIN_PROVIDER_MAP[domain] || DOMAIN_PROVIDER_MAP.default;
+  const megaSubsets = MEGA_DOMAIN_MAP[domain] || MEGA_DOMAIN_MAP.default;
+  const baseProviders = [...domainBase, ...megaSubsets];
+
   // A+ LEVEL: Apply domain-specific filtering to prevent topic drift
   const filteredProviders = filterProvidersByDomain(baseProviders, domain);
 
+  // Interpretive depth: analytical domains also query foundational/heritage
+  // providers (books, classic texts, primary sources) so analyses can draw on
+  // philosophy, sociology, and history — not just recent papers. Without this,
+  // a geopolitics or economics query never touches JSTOR/Gutenberg/PhilPapers.
+  const withHeritage = HERITAGE_DOMAINS.has(domain)
+    ? [...filteredProviders, ...HERITAGE_PROVIDERS.filter(p => !filteredProviders.includes(p))]
+    : filteredProviders;
+
   // P2-L: Load historical performance and reorder providers
   const perfMap = await loadProviderPerformance(domain);
-  const providers = [...filteredProviders].sort((a, b) => {
+  const providers = [...withHeritage].sort((a, b) => {
     const scoreA = perfMap.get(a) || 50;
     const scoreB = perfMap.get(b) || 50;
     return scoreB - scoreA;

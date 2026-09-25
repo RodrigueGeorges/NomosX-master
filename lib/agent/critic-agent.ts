@@ -32,7 +32,11 @@ export interface AtomicClaim {
   text: string;
   citationTag?: string; // [SRC-N]
   sourceIndex?: number;
-  verdict: 'supported' | 'partially_supported' | 'unsupported' | 'contradicted' | 'unverifiable';
+  // Epistemic kind — a prospective note's causal-chain claims are warranted
+  // inferences, not source-asserted facts. Facts need literal support;
+  // inferences/projections need a DERIVABLE premise in the cited source.
+  kind?: 'fact' | 'inference' | 'projection';
+  verdict: 'supported' | 'partially_supported' | 'derived' | 'unsupported' | 'contradicted' | 'unverifiable';
   evidence?: string;
   reasoning?: string;
   confidence: number; // 0-1
@@ -78,7 +82,7 @@ export interface CriticResult {
   durationMs: number;
   stageResults: {
     decomposition: { claimsExtracted: number };
-    grounding: { supported: number; partial: number; unsupported: number; contradicted: number; unverifiable: number };
+    grounding: { supported: number; derived: number; partial: number; unsupported: number; contradicted: number; unverifiable: number };
     contradictions: { pairsFound: number; severeCount: number };
     bias: { flagsRaised: number; highSeverity: number };
     citations: { issuesFound: number };
@@ -89,12 +93,17 @@ export interface CriticResult {
 
 const DECOMPOSITION_PROMPT = `You are a fact-checker at a Tier-1 think tank. Your task is to decompose a research analysis into atomic claims.
 
-An atomic claim is a single, self-contained factual statement that can be verified independently.
+An atomic claim is a single, self-contained statement. Tag each claim's epistemic kind:
+
+- "fact": a verifiable assertion about present or past reality — data, events, stated positions. Needs literal source support.
+- "inference": a conclusion the analysis DRAWS from evidence — causal links, implications, "this means that". Verified by derivability: the cited source must contain the premise.
+- "projection": a claim about a projected or conditional future — scenarios, trajectories, "by 2030", "would", "could". Verified by whether a sourced present fact or mechanism grounds it.
 
 For each claim, extract:
 - The claim text (decontextualized so it's self-contained)
 - The citation tag if present (e.g. [SRC-3])
 - The source index (the number in [SRC-N])
+- kind: fact | inference | projection
 
 ANALYSIS TO DECOMPOSE:
 {analysis}
@@ -106,13 +115,14 @@ Return JSON:
       "id": "claim_1",
       "text": "Carbon taxes reduce emissions by 10-20% in European countries",
       "citationTag": "[SRC-3]",
-      "sourceIndex": 3
+      "sourceIndex": 3,
+      "kind": "fact"
     }
   ]
 }
 
 Rules:
-- Extract ALL factual claims (not opinions or hedged statements)
+- Extract ALL verifiable claims — facts AND the analysis's conclusions/inferences/projections (they are the product being graded)
 - Decontextualize each claim (it should be understandable without the surrounding text)
 - Preserve the citation tag exactly as written
 - If a claim has no citation, set citationTag to null and sourceIndex to null
@@ -133,7 +143,7 @@ export async function decomposeAnalysis(analysis: string): Promise<{ claims: Ato
       enableCache: true,
     });
 
-    const result = parseJson<{ claims: Array<{ id: string; text: string; citationTag?: string; sourceIndex?: number }> }>(response.content);
+    const result = parseJson<{ claims: Array<{ id: string; text: string; citationTag?: string; sourceIndex?: number; kind?: string }> }>(response.content);
 
     if (result?.claims && Array.isArray(result.claims)) {
       const claims: AtomicClaim[] = result.claims.map(c => ({
@@ -141,6 +151,7 @@ export async function decomposeAnalysis(analysis: string): Promise<{ claims: Ato
         text: c.text,
         citationTag: c.citationTag,
         sourceIndex: c.sourceIndex,
+        kind: c.kind === 'inference' || c.kind === 'projection' ? c.kind : 'fact',
         verdict: 'unverifiable',
         confidence: 0,
       }));
@@ -181,9 +192,16 @@ Sources may come from diverse origin types: academic papers, intelligence report
 - AI lab: expect benchmarks, model evaluations, may overstate capabilities
 - News: expect reported facts, named sources, may lack verification
 
+Each claim carries a "kind" that sets the verification standard:
+
+- kind=fact → "supported" requires the source literally states the datum.
+- kind=inference → the source need NOT state the conclusion. Verdict "derived" if the source contains the evidentiary premise from which the conclusion follows (the data, mechanism, or finding the analysis builds on). "unsupported" if the source does not even provide that premise.
+- kind=projection → "derived" if a sourced present fact or mechanism grounds the projection; "unsupported" if the premise is absent; "unverifiable" if the claim is pure speculation with no citation.
+
 For each claim, determine if it is:
-- "supported": The source clearly supports this claim
+- "supported": The source clearly supports this claim (facts only)
 - "partially_supported": The source partially supports the claim (some aspects confirmed, others not addressed)
+- "derived": The claim is an inference/projection and the source provides its evidentiary premise
 - "unsupported": The source does not support this claim (but doesn't contradict it)
 - "contradicted": The source directly contradicts this claim
 - "unverifiable": The claim cannot be verified from the cited source (e.g. no citation, or source doesn't address this topic)
@@ -207,9 +225,94 @@ Return JSON:
   ]
 }`;
 
+/**
+ * Extract claim-relevant excerpts from a source's full text.
+ * The reader extracts up to 400k chars per PDF — we can't send all of it to
+ * the grounding LLM. Instead we score each full-text sentence by lexical
+ * overlap with the claims being verified and keep the top ones.
+ * This fixes the groundedness collapse: claims written from page 40 of a PDF
+ * were judged "unsupported" because the critic only saw the abstract.
+ */
+function lexicalRankSentences(
+  sentences: string[],
+  claims: AtomicClaim[],
+): Array<{ s: string; i: number; score: number }> {
+  const claimTerms = new Set<string>();
+  for (const c of claims) {
+    for (const w of c.text.toLowerCase().replace(/[^\w\s]/g, ' ').split(/\s+/)) {
+      if (w.length > 3) claimTerms.add(w);
+    }
+  }
+  return sentences.map((s, i) => {
+    const words = new Set(s.toLowerCase().replace(/[^\w\s]/g, ' ').split(/\s+/));
+    let hits = 0;
+    for (const t of claimTerms) if (words.has(t)) hits++;
+    return { s, i, score: hits };
+  });
+}
+
+/**
+ * Claim-relevant excerpt from a source (abstract + full text).
+ * Semantic retrieval when the embedder is live (OpenResearcher-style local
+ * retrieval over extracted text) — lexical overlap as deterministic fallback.
+ */
+async function buildSourceExcerpt(
+  abstract: string,
+  fullText: string | undefined,
+  claims: AtomicClaim[],
+  maxChars = 3500,
+): Promise<string> {
+  if (!fullText || fullText.length < 200) return abstract;
+  const sentences = fullText
+    .split(/(?<=[.!?])\s+/)
+    .map(s => s.trim())
+    .filter(s => s.length > 30 && s.length < 600);
+
+  let top: Array<{ s: string; i: number }> = [];
+  let semanticUsed = false;
+  try {
+    const { embedBatchDetailed, cosineSimilarity } = await import('./semantic-engine');
+    // Lexical prefilter bounds the embed batch on long extracts.
+    const candidates = sentences.length > 80
+      ? lexicalRankSentences(sentences, claims).filter(x => x.score > 0)
+          .sort((a, b) => b.score - a.score).slice(0, 80)
+      : sentences.map((s, i) => ({ s, i }));
+    if (candidates.length > 0) {
+      const texts = [...claims.map(c => c.text), ...candidates.map(c => c.s)];
+      const { embeddings, model } = await embedBatchDetailed(texts);
+      if (model !== 'none') {
+        const claimEmbs = embeddings.slice(0, claims.length);
+        const sentEmbs = embeddings.slice(claims.length);
+        top = sentEmbs
+          .map((e, i) => ({ s: candidates[i].s, i: candidates[i].i,
+            score: Math.max(...claimEmbs.map(ce => cosineSimilarity(e, ce))) }))
+          .filter(x => x.score > 0.3)
+          .sort((a, b) => b.score - a.score)
+          .slice(0, 18)
+          .sort((a, b) => a.i - b.i);
+        semanticUsed = top.length > 0;
+      }
+    }
+  } catch { /* embedder down → lexical */ }
+
+  if (!semanticUsed) {
+    top = lexicalRankSentences(sentences, claims)
+      .filter(x => x.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 18)
+      .sort((a, b) => a.i - b.i);
+  }
+
+  const excerpt = top.map(x => x.s).join(' ').slice(0, maxChars);
+  // Abstract first (orientation), then the evidence-bearing excerpt
+  return excerpt.length > 200
+    ? `${abstract}\n\n--- FULL-TEXT EXCERPTS ---\n${excerpt}`
+    : abstract;
+}
+
 export async function groundClaims(
   claims: AtomicClaim[],
-  sources: Array<{ index: number; title: string; abstract: string }>,
+  sources: Array<{ index: number; title: string; abstract: string; fullText?: string | null }>,
 ): Promise<{ claims: AtomicClaim[]; costUsd: number }> {
   // Group claims by source for efficiency
   const claimsBySource = new Map<number, AtomicClaim[]>();
@@ -238,8 +341,13 @@ export async function groundClaims(
       continue;
     }
 
-    const claimsJson = JSON.stringify(sourceClaims.map(c => ({ id: c.id, text: c.text })));
-    const sourcesJson = JSON.stringify([{ index: sourceIdx, title: source.title, abstract: source.abstract.slice(0, 2000) }]);
+    const claimsJson = JSON.stringify(sourceClaims.map(c => ({ id: c.id, text: c.text, kind: c.kind ?? 'fact' })));
+    const evidence = await buildSourceExcerpt(
+      (source.abstract || '').slice(0, 1200),
+      source.fullText || undefined,
+      sourceClaims,
+    );
+    const sourcesJson = JSON.stringify([{ index: sourceIdx, title: source.title, abstract: evidence }]);
 
     try {
       const response = await callLLM({
@@ -279,6 +387,78 @@ export async function groundClaims(
     }
   }
 
+  // ── Cross-source rescue (ALCE/RAGTruth pattern) ──
+  // A claim citing [SRC-5] may actually be supported by [SRC-12] — a wrong
+  // citation is not missing evidence. For each unsupported claim, find the
+  // corpus source whose text has the highest lexical overlap and re-verify
+  // against it in ONE batched call. Bounded: max 8 claims rescued.
+  const unsupported = updatedClaims.filter(c => c.verdict === 'unsupported' || c.verdict === 'unverifiable');
+  if (unsupported.length > 0 && unsupported.length <= 12) {
+    try {
+      const rescueCandidates: Array<{ claim: AtomicClaim; altIdx: number; excerpt: string }> = [];
+      for (const claim of unsupported.slice(0, 8)) {
+        const claimWords = new Set(claim.text.toLowerCase().replace(/[^\w\s]/g, ' ').split(/\s+/).filter((w: string) => w.length > 3));
+        let bestIdx = -1; let bestScore = 0;
+        for (const s of sources) {
+          if (s.index === claim.sourceIndex) continue; // already failed against this one
+          const corpus = `${s.title || ''} ${s.abstract || ''} ${(s.fullText || '').slice(0, 8000)}`.toLowerCase();
+          const words = new Set(corpus.replace(/[^\w\s]/g, ' ').split(/\s+/));
+          let hits = 0;
+          for (const w of claimWords) if (words.has(w)) hits++;
+          const score = claimWords.size > 0 ? hits / claimWords.size : 0;
+          if (score > bestScore) { bestScore = score; bestIdx = s.index; }
+        }
+        if (bestIdx >= 0 && bestScore >= 0.35) {
+          const alt = sources.find(s => s.index === bestIdx)!;
+          rescueCandidates.push({
+            claim,
+            altIdx: bestIdx,
+            excerpt: await buildSourceExcerpt((alt.abstract || '').slice(0, 800), alt.fullText || undefined, [claim], 2000),
+          });
+        }
+      }
+      if (rescueCandidates.length > 0) {
+        const rescueJson = rescueCandidates.map(r => ({
+          claimId: r.claim.id,
+          claimText: r.claim.text,
+          sourceIndex: r.altIdx,
+          excerpt: r.excerpt,
+        }));
+        const rescueRes = await callLLM({
+          messages: [{
+            role: 'user',
+            content: `You are a fact-checker. For each claim below, an alternative source excerpt is provided (the claim's original citation pointed elsewhere — this is a re-verification against the BEST-matching source in the corpus). Judge whether THIS excerpt supports the claim.\n\nReturn JSON: { "results": [{ "claimId": "...", "verdict": "supported|partially_supported|unsupported|contradicted", "confidence": 0.0-1.0, "evidence": "..." }] }\n\n${JSON.stringify(rescueJson)}`,
+          }],
+          temperature: 0.1,
+          jsonMode: true,
+          maxTokens: 2000,
+          task: 'reader_v3',
+          enableCache: true,
+        });
+        totalCost += typeof rescueRes.costUsd === 'number' ? rescueRes.costUsd : 0;
+        const rescueParsed = parseJson<{ results: Array<{ claimId: string; verdict: string; confidence: number; evidence?: string }> }>(rescueRes.content);
+        let rescued = 0;
+        if (rescueParsed?.results) {
+          for (const r of rescueParsed.results) {
+            const idx = updatedClaims.findIndex(c => c.id === r.claimId);
+            if (idx >= 0 && (r.verdict === 'supported' || r.verdict === 'partially_supported')) {
+              updatedClaims[idx] = {
+                ...updatedClaims[idx],
+                verdict: r.verdict as AtomicClaim['verdict'],
+                confidence: r.confidence,
+                reasoning: `Cross-source rescue (alt source): ${r.evidence || r.verdict}`,
+              };
+              rescued++;
+            }
+          }
+        }
+        if (rescued > 0) console.log(`[Critic] Cross-source rescue: ${rescued}/${rescueCandidates.length} claims re-verified against alternate sources`);
+      }
+    } catch (err) {
+      console.warn('[Critic] Cross-source rescue failed (non-blocking):', String(err).slice(0, 80));
+    }
+  }
+
   // Mark claims without citations as unverifiable
   for (let i = 0; i < updatedClaims.length; i++) {
     if (updatedClaims[i].sourceIndex === undefined || updatedClaims[i].sourceIndex === null) {
@@ -315,7 +495,9 @@ Return JSON:
 Rules:
 - Only report genuine contradictions (not just different perspectives)
 - severity: "minor" (nuance difference), "moderate" (factual disagreement), "severe" (direct contradiction)
-- If no contradictions, return empty array`;
+- If no contradictions, return empty array
+
+CRITICAL — temporal scope: a claim about the PRESENT state and a claim about a PROJECTED future are NOT contradictions. "Petrostates depend on oil today" and "petrostates may be diversified economies by 2040" describe a trajectory — the entire point of prospective analysis. Only flag claims that conflict within the SAME temporal scope (both present-fact, or the same horizon).`
 
 export async function detectContradictions(claims: AtomicClaim[]): Promise<{ contradictions: ContradictionPair[]; costUsd: number }> {
   if (claims.length < 2) return { contradictions: [], costUsd: 0 };
@@ -369,6 +551,8 @@ CLAIMS:
 
 SOURCES:
 {sources}
+
+CRITICAL — genre calibration: this is a POSITION paper. The analysis taking a stance and arguing for it is the product, not a bias. Do NOT flag "confirmation" bias merely because claims are consistent with the thesis — flag it only if the analysis ignores corpus evidence that contradicts its claims, or systematically cites only supporting sources when contrarian sources exist in the pool. A projection about the future is not "temporal bias" — only flag temporal if the SOURCE selection is skewed (all old OR all recent when history matters).
 
 Return JSON:
 {
@@ -539,7 +723,7 @@ export async function generateRepairInstructions(
  */
 export async function runCritic(
   analysisText: string,
-  sources: Array<{ index: number; title: string; abstract: string; provider: string; year?: number }>,
+  sources: Array<{ index: number; title: string; abstract: string; provider: string; year?: number; fullText?: string | null }>,
   options?: { skipBias?: boolean; skipContradictions?: boolean },
 ): Promise<CriticResult> {
   const startTime = Date.now();
@@ -559,11 +743,12 @@ export async function runCritic(
   const groundingStats = {
     supported: groundedClaims.filter(c => c.verdict === 'supported').length,
     partial: groundedClaims.filter(c => c.verdict === 'partially_supported').length,
+    derived: groundedClaims.filter(c => c.verdict === 'derived').length,
     unsupported: groundedClaims.filter(c => c.verdict === 'unsupported').length,
     contradicted: groundedClaims.filter(c => c.verdict === 'contradicted').length,
     unverifiable: groundedClaims.filter(c => c.verdict === 'unverifiable').length,
   };
-  console.log(`[Critic] Grounding: ${groundingStats.supported} supported, ${groundingStats.partial} partial, ${groundingStats.unsupported} unsupported, ${groundingStats.contradicted} contradicted, ${groundingStats.unverifiable} unverifiable`);
+  console.log(`[Critic] Grounding: ${groundingStats.supported} supported, ${groundingStats.derived} derived, ${groundingStats.partial} partial, ${groundingStats.unsupported} unsupported, ${groundingStats.contradicted} contradicted, ${groundingStats.unverifiable} unverifiable`);
 
   // Stage 3: Detect contradictions
   let contradictions: ContradictionPair[] = [];
@@ -597,7 +782,7 @@ export async function runCritic(
   const preprintDoiPattern = /preprints\.org|arxiv\.org|biorxiv\.org|10\.1101\/|10\.48550\/|preprints-/i;
   let preprintOnlyClaims = 0;
   for (const claim of groundedClaims) {
-    if (claim.verdict === 'supported' || claim.verdict === 'partially_supported') {
+    if (claim.verdict === 'supported' || claim.verdict === 'partially_supported' || claim.verdict === 'derived') {
       const source = sources.find(s => s.index === claim.sourceIndex);
       if (source) {
         const isPreprint = preprintProviders.has(source.provider?.toLowerCase() || '') ||
@@ -607,7 +792,7 @@ export async function runCritic(
           // Check if this claim has any non-preprint source supporting it
           const hasPeerReviewedSupport = groundedClaims.some(c =>
             c.id !== claim.id && c.text === claim.text &&
-            (c.verdict === 'supported' || c.verdict === 'partially_supported') &&
+            (c.verdict === 'supported' || c.verdict === 'partially_supported' || c.verdict === 'derived') &&
             !preprintProviders.has(sources.find(s => s.index === c.sourceIndex)?.provider?.toLowerCase() || '')
           );
           if (!hasPeerReviewedSupport) {
@@ -630,7 +815,7 @@ export async function runCritic(
   const noveltyKeywords = ['novel', 'first', 'unprecedented', 'challenge', 'contrary', 'reconsider', 'paradigm', 'breakthrough', 'emerging', 'new evidence'];
   let noveltyClaimCount = 0;
   for (const claim of groundedClaims) {
-    if (claim.verdict === 'supported' || claim.verdict === 'partially_supported') {
+    if (claim.verdict === 'supported' || claim.verdict === 'partially_supported' || claim.verdict === 'derived') {
       const claimText = claim.text.toLowerCase();
       if (noveltyKeywords.some(kw => claimText.includes(kw))) {
         noveltyClaimCount++;
@@ -644,7 +829,10 @@ export async function runCritic(
 
   // Compute overall score
   const totalClaims = groundedClaims.length;
-  const supportedCount = groundingStats.supported + groundingStats.partial * 0.5;
+  // 'derived' counts as grounded: an inference/projection is verified by the
+  // presence of its evidentiary premise in the cited source, not by the
+  // source literally asserting the conclusion.
+  const supportedCount = groundingStats.supported + groundingStats.derived + groundingStats.partial * 0.5;
   const groundedness = totalClaims > 0 ? supportedCount / totalClaims : 0;
   // NomosX: Reduced severe contradiction penalty from 15→10 — productive disagreements should not be over-penalized
   const contradictionPenalty = contradictions.reduce((sum, c) => sum + (c.severity === 'severe' ? 10 : c.severity === 'moderate' ? 6 : 2), 0);

@@ -76,7 +76,24 @@ export type DomainExpertise =
   | "behavioral-economics" | "urban-studies" | "development-economics" 
   | "computational-social-science" | "bioethics" | "complexity-science" | "risk-analysis"
   // NEW DEEP-DOMAIN LENS (added for ontological depth)
-  | "anthropology" | "history" | "religious-studies" | "non-western-philosophy";
+  | "anthropology" | "history" | "religious-studies" | "non-western-philosophy"
+  // SUB-DISCIPLINE LENSES (Sprint 19 — PhD-level granularity)
+  | "sociology" | "psychology" | "political-science" | "demography"
+  | "criminology" | "education" | "philosophy" | "linguistics"
+  | "media-studies" | "epidemiology" | "public-health" | "international-relations"
+  // SUB-DISCIPLINE LENSES II (Sprint 19 batch 3 — toward 50 domains)
+  | "migration-studies" | "science-technology-studies" | "epistemology"
+  | "international-law" | "conflict-studies" | "political-economy"
+  | "public-administration" | "gender-studies" | "area-studies"
+  | "labor-studies" | "ethics-of-technology" | "archaeology"
+  | "neuroscience" | "data-science" | "economic-history" | "social-psychology"
+  | "organizational-studies" | "science-policy" | "development-studies"
+  | "comparative-politics" | "social-theory" | "philosophy-of-science"
+  | "law-and-economics" | "intelligence-studies"
+  | "military-studies" | "futures-studies" | "economic-sociology"
+  | "historical-sociology" | "environmental-economics" | "health-economics"
+  | "legal-theory" | "postcolonial-studies" | "communication-studies"
+  | "public-finance" | "political-anthropology" | "food-systems";
 
 // ============================================================================
 // MULTI-DOMAIN CORPUS - 760+ Documents
@@ -818,6 +835,251 @@ export const MULTI_DOMAIN_CORPUS: Record<DomainExpertise, DomainCorpus> = {
       { id: "nwp-004", title: "Mulamadhyamakakarika (Fundamental Verses on the Middle Way)", authors: ["Nagarjuna"], year: 150, domain: "non-western-philosophy", subDomain: "buddhist-philosophy", type: "reference", abstract: "Foundational text of Madhyamaka philosophy — emptiness (sunyata), dependent origination, and the two truths. All phenomena are empty of inherent existence.", keyConcepts: ["sunyata", "dependent origination", "two truths", "middle way", "reductio ad absurdum"], methodology: "Logical analysis, reductio, dialectical reasoning", citations: 25000, qualityScore: 95, relevanceScore: 92, content: "Nagarjuna demonstrates that all phenomena are empty of inherent existence (svabhava) through a rigorous logical analysis of dependent origination.", metadata: { publisher: "Various", pages: 150, language: "Sanskrit", accessibility: "public" } },
       { id: "nwp-005", title: "Ubuntu: An African Philosophy of Personhood", authors: ["Mogobe Ramose"], year: 1999, domain: "non-western-philosophy", subDomain: "african-philosophy", type: "textbook", abstract: "Ubuntu as a philosophy of personhood — 'I am because we are' — the individual exists only through community, challenging Western individualism.", keyConcepts: ["ubuntu", "umuntu", "communal personhood", "relational ontology", "African humanism"], methodology: "Philosophical anthropology, hermeneutic analysis, African philosophy", citations: 8500, qualityScore: 92, relevanceScore: 94, content: "Ramose presents Ubuntu as a complete philosophical system that grounds ethics, politics, and law in the relational nature of human existence.", metadata: { publisher: "Pretoria University Press", pages: 280, language: "English", accessibility: "premium" } },
     ] as KnowledgeDocument[]
+  },
+
+  // ── SUB-DISCIPLINE LENSES (Sprint 19) — slim corpus shells; live retrieval via
+  // discipline providers (philpapers, sociology, eric, pubmed…) carries the depth ──
+  "sociology": {
+    domain: "sociology", documents: [], totalDocuments: 0, avgQualityScore: 85, lastUpdated: new Date(),
+    keyFrameworks: ["Field Theory (Bourdieu)", "Institutional Isomorphism", "Social Capital", "Collective Action Frames", "Network Analysis"],
+    seminalWorks: ["Bourdieu's Distinction", "Durkheim's Suicide", "Weber's Economy and Society", "Coleman's Foundations of Social Theory", "Putnam's Bowling Alone"]
+  },
+  "psychology": {
+    domain: "psychology", documents: [], totalDocuments: 0, avgQualityScore: 85, lastUpdated: new Date(),
+    keyFrameworks: ["Prospect Theory", "Social Identity Theory", "Dual-Process (System 1/2)", "Cognitive Dissonance", "Heuristics & Biases"],
+    seminalWorks: ["Kahneman & Tversky's Judgment under Uncertainty", "Festinger's Cognitive Dissonance", "Tajfel & Turner's Social Identity", "Mischel's Marshmallow work (with replication caveats)"]
+  },
+  "political-science": {
+    domain: "political-science", documents: [], totalDocuments: 0, avgQualityScore: 85, lastUpdated: new Date(),
+    keyFrameworks: ["Veto Players (Tsebelis)", "Medial Voter Theorem", "Polity/Regime Typologies", "Coalition Theory", "Political Opportunity Structures"],
+    seminalWorks: ["Linz & Stepan's Problems of Democratic Transition", "Levitsky & Ziblatt's How Democracies Die", "Olson's Logic of Collective Action", "Lijphart's Patterns of Democracy"]
+  },
+  "demography": {
+    domain: "demography", documents: [], totalDocuments: 0, avgQualityScore: 85, lastUpdated: new Date(),
+    keyFrameworks: ["Demographic Transition Model", "Cohort-Component Projection", "Dependency Ratios", "Population Momentum", "Second Demographic Transition"],
+    seminalWorks: ["Malthus's Essay on Population", "Notestein's transition theory", "Lesthaeghe's Second Demographic Transition", "Lee & Mason's National Transfer Accounts"]
+  },
+  "criminology": {
+    domain: "criminology", documents: [], totalDocuments: 0, avgQualityScore: 85, lastUpdated: new Date(),
+    keyFrameworks: ["Routine Activities Theory", "Hot Spots Policing", "Broken Windows (contested)", "Procedural Justice", "Deterrence Theory"],
+    seminalWorks: ["Becker's Crime and Punishment (economics of crime)", "Sampson & Laub's life-course criminology", "Tyler's Why People Obey the Law", "Sherman's hot spots experiments"]
+  },
+  "education": {
+    domain: "education", documents: [], totalDocuments: 0, avgQualityScore: 85, lastUpdated: new Date(),
+    keyFrameworks: ["Human Capital Theory", "Value-Added Modeling", "Zone of Proximal Development", "Cognitive Load Theory", "Education Production Function"],
+    seminalWorks: ["Becker's Human Capital", "Vygotsky's Mind in Society", "Hanushek's education production literature", "Hattie's Visible Learning"]
+  },
+  "philosophy": {
+    domain: "philosophy", documents: [], totalDocuments: 0, avgQualityScore: 85, lastUpdated: new Date(),
+    keyFrameworks: ["Reflective Equilibrium", "Veil of Ignorance", "Thought Experiments", "Conceptual Analysis", "Normative Ethical Triad (consequentialism/deontology/virtue)"],
+    seminalWorks: ["Rawls' Theory of Justice", "Kant's Groundwork", "Mill's Utilitarianism", "Gettier's Is Justified True Belief Knowledge", "Kripke's Naming and Necessity"]
+  },
+  "linguistics": {
+    domain: "linguistics", documents: [], totalDocuments: 0, avgQualityScore: 85, lastUpdated: new Date(),
+    keyFrameworks: ["Frame Semantics (Fillmore/Lakoff)", "Speech Act Theory", "Gricean Maxims", "Critical Discourse Analysis", "Conceptual Metaphor Theory"],
+    seminalWorks: ["Lakoff's Don't Think of an Elephant", "Austin's How to Do Things with Words", "Grice's Logic and Conversation", "Fairclough's Critical Discourse Analysis"]
+  },
+  "media-studies": {
+    domain: "media-studies", documents: [], totalDocuments: 0, avgQualityScore: 85, lastUpdated: new Date(),
+    keyFrameworks: ["Agenda Setting", "Framing Analysis", "Networked Public Sphere", "Attention Economy", "Platformization"],
+    seminalWorks: ["Habermas's Structural Transformation of the Public Sphere", "McCombs & Shaw's agenda-setting", "Hall's Encoding/Decoding", "Benkler's Wealth of Networks"]
+  },
+  "epidemiology": {
+    domain: "epidemiology", documents: [], totalDocuments: 0, avgQualityScore: 85, lastUpdated: new Date(),
+    keyFrameworks: ["Bradford Hill Criteria", "SIR/SEIR Compartmental Models", "Causal Inference (DAGs)", "Effect Modification", "Surveillance Bias Analysis"],
+    seminalWorks: ["Snow's cholera investigation (methodological canon)", "Bradford Hill's criteria", "Rothman's Modern Epidemiology", "Hernán & Robins' Causal Inference"]
+  },
+  "public-health": {
+    domain: "public-health", documents: [], totalDocuments: 0, avgQualityScore: 85, lastUpdated: new Date(),
+    keyFrameworks: ["Social Determinants of Health", "Health Impact Assessment", "Ecological Model of Health", "Cost-Effectiveness (DALY/QALY)", "Health in All Policies"],
+    seminalWorks: ["Marmot's Status Syndrome", "Rose's Strategy of Preventive Medicine", "Wilkinson & Pickett's Spirit Level", "Ottawa Charter"]
+  },
+  "international-relations": {
+    domain: "international-relations", documents: [], totalDocuments: 0, avgQualityScore: 85, lastUpdated: new Date(),
+    keyFrameworks: ["Balance of Power", "Security Dilemma", "Complex Interdependence", "Regime Theory", "English School International Society"],
+    seminalWorks: ["Waltz's Theory of International Politics", "Keohane's After Hegemony", "Wendt's Social Theory of International Politics", "Schelling's Strategy of Conflict"]
+  },
+
+  // ── SUB-DISCIPLINE LENSES II (Sprint 19 batch 3) — 50-domain coverage ──
+  "migration-studies": {
+    domain: "migration-studies", documents: [], totalDocuments: 0, avgQualityScore: 85, lastUpdated: new Date(),
+    keyFrameworks: ["Push-Pull & Neoclassical Models", "New Economics of Labor Migration", "Transnationalism", "Migration Systems Theory", "Mobilities Paradigm"],
+    seminalWorks: ["Massey et al.'s Worlds in Motion", "Castles & Miller's Age of Migration", "Sassen's Mobility of Labor and Capital", "Portes' transnational communities"]
+  },
+  "science-technology-studies": {
+    domain: "science-technology-studies", documents: [], totalDocuments: 0, avgQualityScore: 85, lastUpdated: new Date(),
+    keyFrameworks: ["Social Construction of Technology (SCOT)", "Actor-Network Theory", "Co-production", "Boundary Objects", "Technological Frames"],
+    seminalWorks: ["Latour's Laboratory Life", "Bijker & Pinch's SCOT", "Jasanoff's States of Knowledge", "Winner's Do Artifacts Have Politics?"]
+  },
+  "epistemology": {
+    domain: "epistemology", documents: [], totalDocuments: 0, avgQualityScore: 85, lastUpdated: new Date(),
+    keyFrameworks: ["Justified True Belief & Gettier", "Reliabilism", "Virtue Epistemology", "Social Epistemology", "Standpoint Epistemology"],
+    seminalWorks: ["Plato's Theaetetus", "Gettier's counterexamples", "Goldman's Epistemology and Cognition", "Fricker's Epistemic Injustice", "Kuhn's paradigms"]
+  },
+  "international-law": {
+    domain: "international-law", documents: [], totalDocuments: 0, avgQualityScore: 85, lastUpdated: new Date(),
+    keyFrameworks: ["Treaty Interpretation (VCLT)", "Customary International Law", "State Responsibility", "Jus Cogens", "Compliance vs Enforcement"],
+    seminalWorks: ["Hart's Concept of Law (applied internationally)", "Henkin's How Nations Behave", "Koskenniemi's From Apology to Utopia", "UN Charter & Vienna Convention"]
+  },
+  "conflict-studies": {
+    domain: "conflict-studies", documents: [], totalDocuments: 0, avgQualityScore: 85, lastUpdated: new Date(),
+    keyFrameworks: ["Greed vs Grievance", "Bargaining Model of War", "Ethnic Security Dilemma", "Conflict Trap", "Peacebuilding & Statebuilding"],
+    seminalWorks: ["Fearon & Laitin's insurgency model", "Collier's Bottom Billion conflict trap", "Galtung's violence typology", "UCDP/PRIO conflict datasets canon"]
+  },
+  "political-economy": {
+    domain: "political-economy", documents: [], totalDocuments: 0, avgQualityScore: 85, lastUpdated: new Date(),
+    keyFrameworks: ["Varieties of Capitalism", "Open Economy Politics", "Regulation Theory", "Dependency & World-Systems", "Institutional Political Economy"],
+    seminalWorks: ["Hall & Soskice's Varieties of Capitalism", "Polanyi's Great Transformation", "Wallerstein's World-Systems", "Acemoglu & Robinson's Why Nations Fail"]
+  },
+  "public-administration": {
+    domain: "public-administration", documents: [], totalDocuments: 0, avgQualityScore: 85, lastUpdated: new Date(),
+    keyFrameworks: ["New Public Management", "Street-Level Bureaucracy", "Bureaucratic Politics Model", "Governance Networks", "Administrative Burden"],
+    seminalWorks: ["Weber's bureaucracy ideal-type", "Wilson's Bureaucracy", "Lipsky's Street-Level Bureaucracy", "Osborne & Gaebler's Reinventing Government"]
+  },
+  "gender-studies": {
+    domain: "gender-studies", documents: [], totalDocuments: 0, avgQualityScore: 85, lastUpdated: new Date(),
+    keyFrameworks: ["Intersectionality", "Gender as Social Structure", "Performativity", "Care Economy", "Feminist Epistemology"],
+    seminalWorks: ["de Beauvoir's Second Sex", "Butler's Gender Trouble", "Crenshaw's intersectionality", "Folbre's care economy"]
+  },
+  "area-studies": {
+    domain: "area-studies", documents: [], totalDocuments: 0, avgQualityScore: 85, lastUpdated: new Date(),
+    keyFrameworks: ["Regional Knowledge Systems", "Comparative Area Studies", "Postcolonial Critique", "Local Language Sources Priority", "Context-First Analysis"],
+    seminalWorks: ["Said's Orientalism (the field's methodological warning)", "Chakrabarty's Provincializing Europe", "Scott's Seeing Like a State (applied)", "Anderson's Imagined Communities"]
+  },
+  "labor-studies": {
+    domain: "labor-studies", documents: [], totalDocuments: 0, avgQualityScore: 85, lastUpdated: new Date(),
+    keyFrameworks: ["Labor Market Segmentation", "Insider-Outsider Theory", "Skill-Biased Technical Change", "Collective Bargaining Models", "Precariat Analysis"],
+    seminalWorks: ["Becker's Human Capital (labor application)", "Freeman & Medoff's What Do Unions Do?", "Standing's Precariat", "Autor's task-content of work"]
+  },
+  "ethics-of-technology": {
+    domain: "ethics-of-technology", documents: [], totalDocuments: 0, avgQualityScore: 85, lastUpdated: new Date(),
+    keyFrameworks: ["Value-Sensitive Design", "Ethics of Care for AI", "Algorithmic Fairness Frameworks", "Responsible Innovation (RRI)", "Dual-Use Assessment"],
+    seminalWorks: ["Floridi's Ethics of Information", "Nissenbaum's Contextual Integrity", "O'Neil's Weapons of Math Destruction", "Wiener's Human Use of Human Beings"]
+  },
+  "archaeology": {
+    domain: "archaeology", documents: [], totalDocuments: 0, avgQualityScore: 85, lastUpdated: new Date(),
+    keyFrameworks: ["Processual Archaeology", "Post-Processual/Interpretive", "Material Culture Studies", "Deep Time & Collapse Analysis", "Landscape Archaeology"],
+    seminalWorks: ["Binford's New Archaeology", "Hodder's interpretive turn", "Tainter's Collapse of Complex Societies", "Diamond's Guns Germs and Steel (contested)"]
+  },
+  "neuroscience": {
+    domain: "neuroscience", documents: [], totalDocuments: 0, avgQualityScore: 85, lastUpdated: new Date(),
+    keyFrameworks: ["Levels of Analysis (Marr)", "Predictive Processing", "Network Neuroscience", "Embodied/Enactive Cognition", "Critical Neuroscience"],
+    seminalWorks: ["Kandel's Principles of Neural Science", "Friston's free-energy principle", "Hubel & Wiesel's visual cortex work", "Crick & Koch's consciousness framework"]
+  },
+  "data-science": {
+    domain: "data-science", documents: [], totalDocuments: 0, avgQualityScore: 85, lastUpdated: new Date(),
+    keyFrameworks: ["Bias-Variance Tradeoff", "CRISP-DM", "Causal ML (Double ML, CUPED)", "MLOps & Data Drift", "Benchmark Critique"],
+    seminalWorks: ["Breiman's Two Cultures", "Pearl's causality ladder", "Domingos' A Few Useful Things to Know about ML", "Gebru et al. Datasheets for Datasets"]
+  },
+  "economic-history": {
+    domain: "economic-history", documents: [], totalDocuments: 0, avgQualityScore: 85, lastUpdated: new Date(),
+    keyFrameworks: ["Cliometrics", "New Institutional Economic History", "Great Divergence Debate", "Persistence Studies", "Historical GDP Reconstruction"],
+    seminalWorks: ["Fogel & North cliometrics", "Pomeranz's Great Divergence", "Acemoglu-Johnson-Robinson colonial origins", "Kuznets' historical growth accounts"]
+  },
+  "social-psychology": {
+    domain: "social-psychology", documents: [], totalDocuments: 0, avgQualityScore: 85, lastUpdated: new Date(),
+    keyFrameworks: ["Social Identity Theory", "System Justification", "Cognitive Dissonance", "Realistic Conflict Theory", "Replication-Crisis Reforms"],
+    seminalWorks: ["Tajfel & Turner's social identity theory", "Festinger's dissonance", "Milgram/Zimbardo (contested)", "Haidt's moral foundations"]
+  },
+  "organizational-studies": {
+    domain: "organizational-studies", documents: [], totalDocuments: 0, avgQualityScore: 85, lastUpdated: new Date(),
+    keyFrameworks: ["Institutional Isomorphism (DiMaggio-Powell)", "Garbage-Can Model", "High-Reliability Organizations", "Bureaucratic Dysfunction", "Organizational Sensemaking (Weick)"],
+    seminalWorks: ["March & Simon's Organizations", "Crozier's Bureaucratic Phenomenon", "Weick's sensemaking", "Meyer's institutionalized myths"]
+  },
+  "science-policy": {
+    domain: "science-policy", documents: [], totalDocuments: 0, avgQualityScore: 85, lastUpdated: new Date(),
+    keyFrameworks: ["Linear Model Critique", "Mode 2 Knowledge Production", "Post-Normal Science", "Research Evaluation & Metrics", "Mission-Oriented Innovation"],
+    seminalWorks: ["Bush's Science: The Endless Frontier", "Gibbons' Mode 2", "Funtowicz & Ravetz post-normal science", "Mazzucato's Entrepreneurial State"]
+  },
+  "development-studies": {
+    domain: "development-studies", documents: [], totalDocuments: 0, avgQualityScore: 85, lastUpdated: new Date(),
+    keyFrameworks: ["Capability Approach", "Dependency & World-Systems", "Post-Development Critique", "Randomized Evaluation Debate", "Structural Transformation"],
+    seminalWorks: ["Sen's Development as Freedom", "Escobar's Encountering Development", "Frank's dependency theory", "Banerjee-Duflo RCT turn (critiqued)"]
+  },
+  "comparative-politics": {
+    domain: "comparative-politics", documents: [], totalDocuments: 0, avgQualityScore: 85, lastUpdated: new Date(),
+    keyFrameworks: ["Varieties of Democracy", "Regime Change & Democratization Waves", "Electoral Systems (Duverger)", "State Capacity", "Contentious Politics"],
+    seminalWorks: ["Linz presidentialism critique", "Huntington's Third Wave (contested)", "Lijphart's Patterns of Democracy", "Tilly's state-making"]
+  },
+  "social-theory": {
+    domain: "social-theory", documents: [], totalDocuments: 0, avgQualityScore: 85, lastUpdated: new Date(),
+    keyFrameworks: ["Structure-Agency (Giddens/Bourdieu)", "Critical Theory", "Systems Theory (Luhmann)", "Actor-Network Theory", "Field Theory"],
+    seminalWorks: ["Bourdieu's habitus/field/capital", "Giddens' structuration", "Habermas' communicative action", "Latour's ANT"]
+  },
+  "philosophy-of-science": {
+    domain: "philosophy-of-science", documents: [], totalDocuments: 0, avgQualityScore: 85, lastUpdated: new Date(),
+    keyFrameworks: ["Falsificationism", "Paradigms & Revolutions", "Underdetermination (Duhem-Quine)", "Scientific Realism vs Instrumentalism", "Social Epistemology of Science"],
+    seminalWorks: ["Popper's Logic of Scientific Discovery", "Kuhn's Structure of Scientific Revolutions", "Lakatos' research programmes", "Feyerabend's Against Method"]
+  },
+  "law-and-economics": {
+    domain: "law-and-economics", documents: [], totalDocuments: 0, avgQualityScore: 85, lastUpdated: new Date(),
+    keyFrameworks: ["Coase Theorem & Transaction Costs", "Efficient Breach", "Behavioral Law & Economics", "Legal Origins Theory", "Institutional Analysis (Ostrom/Williamson)"],
+    seminalWorks: ["Coase's Problem of Social Cost", "Posner's Economic Analysis of Law", "Calabresi's liability rules", "Ostrom's Governing the Commons"]
+  },
+  "intelligence-studies": {
+    domain: "intelligence-studies", documents: [], totalDocuments: 0, avgQualityScore: 85, lastUpdated: new Date(),
+    keyFrameworks: ["Intelligence Cycle Critique", "Analysis of Competing Hypotheses (Heuer)", "Strategic Surprise & Warning", "Covert Action Assessment", "Declassification as Source"],
+    seminalWorks: ["Heuer's Psychology of Intelligence Analysis", "Jervis' Why Intelligence Fails", "Wohlstetter's Pearl Harbor", "Betts' intelligence-policy gap"]
+  },
+  "military-studies": {
+    domain: "military-studies", documents: [], totalDocuments: 0, avgQualityScore: 85, lastUpdated: new Date(),
+    keyFrameworks: ["Clausewitzian Trinity", "Deterrence & Escalation Ladders", "OODA Loop", "Revolution in Military Affairs", "Hybrid/Grey-Zone Warfare"],
+    seminalWorks: ["Clausewitz's On War", "Schelling's Arms and Influence", "Mearsheimer on conventional deterrence", "Pape's Bombing to Win"]
+  },
+  "futures-studies": {
+    domain: "futures-studies", documents: [], totalDocuments: 0, avgQualityScore: 85, lastUpdated: new Date(),
+    keyFrameworks: ["Scenario Planning (Shell school)", "Causal Layered Analysis", "Futures Triangle", "Weak Signals & Wild Cards", "Normative vs Exploratory Futures"],
+    seminalWorks: ["Schwartz's Art of the Long View", "Inayatullah's CLA", "Dator's four futures", "Tetlock's Superforecasting"]
+  },
+  "economic-sociology": {
+    domain: "economic-sociology", documents: [], totalDocuments: 0, avgQualityScore: 85, lastUpdated: new Date(),
+    keyFrameworks: ["Embeddedness (Granovetter)", "Social Structure of Markets", "Performativity of Economics", "Moral Economy", "Field Theory of Markets (Fligstein)"],
+    seminalWorks: ["Granovetter's embeddedness", "Polanyi's Great Transformation", "Callon's performativity", "Zelizer's social meaning of money"]
+  },
+  "historical-sociology": {
+    domain: "historical-sociology", documents: [], totalDocuments: 0, avgQualityScore: 85, lastUpdated: new Date(),
+    keyFrameworks: ["State Formation (Tilly)", "Revolutions (Skocpol)", "World-Systems (Wallerstein)", "Comparative-Historical Method", "Critical Junctures"],
+    seminalWorks: ["Skocpol's States and Social Revolutions", "Tilly's Coercion Capital European States", "Wallerstein's Modern World-System", "Moore's Social Origins"]
+  },
+  "environmental-economics": {
+    domain: "environmental-economics", documents: [], totalDocuments: 0, avgQualityScore: 85, lastUpdated: new Date(),
+    keyFrameworks: ["Pigouvian Pricing & Carbon Taxes", "Natural Capital & Ecosystem Services", "Discount Rate Debates (Stern-Nordhaus)", "Environmental Kuznets Curve", "Cap-and-Trade Design"],
+    seminalWorks: ["Stern Review", "Nordhaus DICE", "Pigou's externalities", "Ostrom commons governance"]
+  },
+  "health-economics": {
+    domain: "health-economics", documents: [], totalDocuments: 0, avgQualityScore: 85, lastUpdated: new Date(),
+    keyFrameworks: ["QALY/Cost-Effectiveness", "Health System Typology", "Pharma Pricing & Innovation", "Moral Hazard in Insurance", "Social Determinants of Health"],
+    seminalWorks: ["Arrow's uncertainty and welfare", "Grossman health capital model", "Fuchs' health economics canon", "Cutler on cost-quality tradeoffs"]
+  },
+  "legal-theory": {
+    domain: "legal-theory", documents: [], totalDocuments: 0, avgQualityScore: 85, lastUpdated: new Date(),
+    keyFrameworks: ["Legal Positivism (Hart/Kelsen)", "Natural Law", "Legal Realism", "Critical Legal Studies", "Interpretivism (Dworkin)"],
+    seminalWorks: ["Hart's Concept of Law", "Kelsen's Pure Theory", "Dworkin's Law's Empire", "Fuller's Morality of Law"]
+  },
+  "postcolonial-studies": {
+    domain: "postcolonial-studies", documents: [], totalDocuments: 0, avgQualityScore: 85, lastUpdated: new Date(),
+    keyFrameworks: ["Orientalism", "Subaltern Studies", "Coloniality of Power (Quijano)", "Decoloniality", "Hybridity (Bhabha)"],
+    seminalWorks: ["Said's Orientalism", "Fanon's Wretched of the Earth", "Spivak's Can the Subaltern Speak", "Quijano's coloniality"]
+  },
+  "communication-studies": {
+    domain: "communication-studies", documents: [], totalDocuments: 0, avgQualityScore: 85, lastUpdated: new Date(),
+    keyFrameworks: ["Propaganda Model (Herman-Chomsky)", "Medium Theory (McLuhan)", "Agenda-Setting", "Framing & Priming", "Public Sphere (Habermas)"],
+    seminalWorks: ["Herman & Chomsky's Manufacturing Consent", "McLuhan's Understanding Media", "Habermas' Structural Transformation", "Hall's encoding/decoding"]
+  },
+  "public-finance": {
+    domain: "public-finance", documents: [], totalDocuments: 0, avgQualityScore: 85, lastUpdated: new Date(),
+    keyFrameworks: ["Optimal Taxation (Mirrlees)", "Fiscal Federalism (Oates)", "Debt Sustainability", "Tax Incidence", "Public Goods & Externalities"],
+    seminalWorks: ["Musgrave's Theory of Public Finance", "Mirrlees optimal tax", "Oates fiscal federalism", "Piketty-Saez inequality taxation"]
+  },
+  "political-anthropology": {
+    domain: "political-anthropology", documents: [], totalDocuments: 0, avgQualityScore: 85, lastUpdated: new Date(),
+    keyFrameworks: ["State Formation Critique (Scott)", "Anarchist Anthropology (Graeber)", "Societies Against the State (Clastres)", "Seeing Like a State", "Everyday Resistance"],
+    seminalWorks: ["Scott's Seeing Like a State", "Scott's Art of Not Being Governed", "Clastres' Society Against the State", "Graeber's Debt"]
+  },
+  "food-systems": {
+    domain: "food-systems", documents: [], totalDocuments: 0, avgQualityScore: 85, lastUpdated: new Date(),
+    keyFrameworks: ["Food Security Pillars", "Food Regime Theory (Friedmann-McMichael)", "Food Sovereignty (La Via Campesina)", "Value Chain Analysis", "Agri-food Political Economy"],
+    seminalWorks: ["Friedmann's food regimes", "Sen's Poverty and Famines", "Patel's Stuffed and Starved", "FAO SOFA reports"]
   }
 };
 
@@ -961,7 +1223,7 @@ export class MultiDomainKnowledgeBase {
     const avgQuality = allStats.reduce((sum, corpus) => sum + corpus.avgQualityScore, 0) / allStats.length;
     
     return {
-      totalDomains: 26,
+      totalDomains: allStats.length,
       totalDocuments: totalDocs,
       avgQualityScore: avgQuality,
       domains: allStats.map(corpus => ({

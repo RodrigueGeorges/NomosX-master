@@ -50,7 +50,7 @@ export function SwarmTelemetry({ telemetry }: SwarmTelemetryProps) {
           Sources: {telemetry.sourceCount} · quality {telemetry.sourceQualityAvg.toFixed(0)}/100
         </span>
         <span>MC converged: {telemetry.monteCarloConverged ? "yes" : "no"}</span>
-        {telemetry.totalCostUsd != null && <span>Run cost: ${telemetry.totalCostUsd.toFixed(2)}</span>}
+        {telemetry.totalCostUsd != null && <span>Coût : ${telemetry.totalCostUsd.toFixed(2)}</span>}
       </div>
     </div>
   );

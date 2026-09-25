@@ -110,7 +110,7 @@ const FRED_SERIES: Record<string, { name: string; unit: string; category: Indica
   'DHHNGSP':    { name: 'Henry Hub Natural Gas Price', unit: 'USD/MMBtu', category: 'energy' },
 
   // ── Commodities (cross-domain) ──
-  'GOLDAMGBD228NLBM': { name: 'Gold Price (London Fix)', unit: 'USD/oz', category: 'commodity' },
+  'PALLFNFINDEXM': { name: 'Palladium Price (IMF)', unit: 'USD/oz', category: 'commodity' }, // GOLDAMGBD228NLBM discontinued by FRED in 2020
   'DEXCHUS':    { name: 'USD/CNY Exchange Rate', unit: 'CNY per USD', category: 'currency' },
 
   // ── Housing & Urban (Dr. Rodriguez) ──
@@ -123,7 +123,7 @@ const FRED_SERIES: Record<string, { name: string; unit: string; category: Indica
 
   // ── Employment Deep (Dr. Vasquez, Dr. González) ──
   'JTSJOL':     { name: 'US Job Openings (JOLTS)', unit: 'thousands', category: 'employment' },
-  'LNS11300000': { name: 'US Labor Force Participation Rate', unit: '%', category: 'employment' },
+  'CIVPART':    { name: 'US Labor Force Participation Rate', unit: '%', category: 'employment' }, // LNS11300000 returns 400 — CIVPART is the canonical alias
   'A067RP1A027NBEA': { name: 'US Personal Savings Rate', unit: '%', category: 'behavioral' },
 };
 
@@ -255,28 +255,26 @@ interface WHOOutbreak {
 
 async function fetchWHOOutbreaks(): Promise<RealTimeIndicator[]> {
   try {
-    // WHO Disease Outbreak News RSS feed (parsed as XML)
-    const url = 'https://www.who.int/feeds/entity/don/en/rss.xml';
-    const xml: any = await fetchFromProvider('who', url, { timeout: 10000, retries: 2, responseType: 'text' });
-    if (!xml) return [];
+    // WHO Disease Outbreak News — the RSS feeds were removed when who.int was
+    // rebuilt (all /feeds/entity/* and /rss-feeds/* paths now 404). The live
+    // endpoint is the JSON API behind the DON page.
+    const url = 'https://www.who.int/api/emergencies/diseaseoutbreaknews?$top=10&$orderby=PublicationDate desc&$format=json';
+    const data: any = await fetchFromProvider('who', url, { timeout: 10000, retries: 1 });
+    if (!data) return [];
 
+    const rawItems: any[] = Array.isArray(data) ? data : (data.value || data.items || []);
     const items: WHOOutbreak[] = [];
-
-    const itemRegex = /<item>([\s\S]*?)<\/item>/g;
-    let match;
-    while ((match = itemRegex.exec(xml)) !== null && items.length < 5) {
-      const entry = match[1];
-      const title = extractXmlTag(entry, 'title');
-      const pubDate = extractXmlTag(entry, 'pubDate');
-      const link = extractXmlTag(entry, 'link');
-      if (title) {
-        items.push({
-          name: title,
-          country: title.split(' – ').pop()?.trim() || 'Global',
-          date: pubDate || null,
-          url: link || '',
-        });
-      }
+    for (const it of rawItems.slice(0, 10)) {
+      const title = it.OverrideTitle || it.Title || it.title;
+      if (!title) continue;
+      items.push({
+        name: String(title),
+        country: String(title).split(' – ').pop()?.trim() || 'Global',
+        date: it.PublicationDate || it.PublicationDateAndTime || null,
+        url: it.ItemDefaultUrl
+          ? `https://www.who.int/emergencies/disease-outbreak-news/item/${it.ItemDefaultUrl.replace(/^\/+/, '')}`
+          : '',
+      });
     }
 
     if (items.length === 0) return [];
@@ -454,45 +452,38 @@ async function fetchFederalRegister(): Promise<RealTimeIndicator[]> {
 
 async function fetchAIMLTrends(): Promise<RealTimeIndicator[]> {
   try {
-    // Trending papers on Papers With Code (last 7 days)
-    const url = 'https://paperswithcode.com/api/v1/papers/?ordering=-proceeding&items_per_page=1';
-    const data: any = await fetchFromProvider('paperswithcode', url, { timeout: 10000, retries: 2 });
-    if (!data) return [];
+    // Hugging Face daily papers API (paperswithcode.com was shut down by Meta —
+    // domain now redirects to huggingface.co/papers).
+    const url = 'https://huggingface.co/api/daily_papers';
+    const data: any = await fetchFromProvider('hf-daily-papers', url, { timeout: 10000, retries: 1 });
+    if (!Array.isArray(data) || data.length === 0) return [];
 
-    const totalPapers = data.count || 0;
+    const weekAgo = Date.now() - 7 * 86400000;
+    const recent = data.filter((p: any) => new Date(p.publishedAt || p.paper?.publishedAt || 0).getTime() > weekAgo);
+    const totalUpvotes = data.reduce((s: number, p: any) => s + (p.paper?.upvotes || p.upvotes || 0), 0);
 
-    const indicators: RealTimeIndicator[] = [];
-
-    indicators.push({
-      provider: 'paperswithcode',
-      code: 'PWC_TOTAL_PAPERS',
-      name: 'Papers With Code — Total Indexed Papers',
-      value: totalPapers,
-      unit: 'papers',
-      timestamp: new Date(),
-      category: 'ai_ml',
-    });
-
-    // Also try to get trending methods
-    try {
-      const methodsUrl = 'https://paperswithcode.com/api/v1/methods/?ordering=-paper_count&items_per_page=1';
-      const methodsData: any = await fetchFromProvider('paperswithcode', methodsUrl, { timeout: 8000, retries: 2 });
-      if (methodsData) {
-        indicators.push({
-          provider: 'paperswithcode',
-          code: 'PWC_TOTAL_METHODS',
-          name: 'Papers With Code — Total ML Methods',
-          value: methodsData.count || 0,
-          unit: 'methods',
-          timestamp: new Date(),
-          category: 'ai_ml',
-        });
-      }
-    } catch { /* non-blocking */ }
-
-    return indicators;
+    return [
+      {
+        provider: 'hf-papers',
+        code: 'HF_DAILY_PAPERS_7D',
+        name: 'Hugging Face — Daily Papers (7d)',
+        value: recent.length || data.length,
+        unit: 'papers',
+        timestamp: new Date(),
+        category: 'ai_ml',
+      },
+      {
+        provider: 'hf-papers',
+        code: 'HF_TRENDING_UPVOTES',
+        name: 'Hugging Face — Trending Paper Upvotes',
+        value: totalUpvotes,
+        unit: 'upvotes',
+        timestamp: new Date(),
+        category: 'ai_ml',
+      },
+    ];
   } catch (err: any) {
-    console.warn(`[REALTIME] Papers With Code failed: ${err.message}`);
+    console.warn(`[REALTIME] HF Papers failed: ${err.message}`);
     return [];
   }
 }

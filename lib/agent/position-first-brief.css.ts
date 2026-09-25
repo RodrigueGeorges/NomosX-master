@@ -302,6 +302,234 @@ export const POSITION_FIRST_BRIEF_CSS = `
     line-height: var(--nx-read-lh);
   }
 
+  /* ── Scenario comparison table (the exhibit) ── */
+  .scenario-table-wrap {
+    margin: 1.25rem 0;
+    overflow-x: auto;
+  }
+  .scenario-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8125rem;
+  }
+  .scenario-table th {
+    font-family: var(--nx-font-mono);
+    font-size: 0.625rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--nx-text-tertiary);
+    text-align: left;
+    padding: 0.375rem 0.625rem;
+    border-bottom: 1px solid var(--nx-border-subtle);
+  }
+  .scenario-table td {
+    padding: 0.5rem 0.625rem;
+    border-bottom: 1px solid var(--nx-border-subtle);
+    color: var(--nx-text-secondary);
+    vertical-align: top;
+  }
+  .scenario-table td:first-child {
+    font-family: var(--nx-font-heading);
+    font-weight: 500;
+    color: var(--nx-text-primary);
+  }
+  .scenario-table tr.scenario-central-row td {
+    background: rgba(240, 240, 250, 0.04);
+  }
+  .scenario-table tr:last-child td { border-bottom: none; }
+
+  /* ── Key Judgments (NIC/Belfer exec summary) ── */
+  .key-judgments .bottom-line {
+    font-size: 1.05em;
+    font-weight: 500;
+    color: var(--nx-text-primary);
+    line-height: 1.5;
+    margin: 0.375rem 0 0.75rem;
+  }
+  .key-judgments-list {
+    margin: 0;
+    padding-left: 1.25rem;
+    counter-reset: judgment;
+    list-style: none;
+  }
+  .key-judgments-list li {
+    counter-increment: judgment;
+    position: relative;
+    padding-left: 1.75rem;
+    margin-bottom: 0.5rem;
+    font-size: var(--nx-read-size);
+    line-height: var(--nx-read-lh);
+    color: var(--nx-read-color);
+  }
+  .key-judgments-list li::before {
+    content: counter(judgment);
+    position: absolute;
+    left: 0;
+    top: 0.1em;
+    font-family: var(--nx-font-mono);
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--nx-text-tertiary);
+    border: 1px solid var(--nx-border-subtle);
+    border-radius: 50%;
+    width: 1.25rem;
+    height: 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* ── 2×2 uncertainty matrix (Shell-style exhibit) ── */
+  .pf-matrix {
+    margin: 1.25rem 0;
+  }
+  .pf-matrix-y-label,
+  .pf-matrix-x-label {
+    font-family: var(--nx-font-mono);
+    font-size: 0.6875rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--nx-text-tertiary);
+    text-align: center;
+    margin: 0.375rem 0;
+  }
+  .pf-matrix-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: var(--nx-border-subtle);
+    border: 1px solid var(--nx-border-subtle);
+  }
+  .pf-matrix-cell {
+    background: var(--nx-bg, #0a0a0f);
+    min-height: 5rem;
+    padding: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+  }
+  .pf-matrix-cell-label {
+    font-family: var(--nx-font-mono);
+    font-size: 0.625rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--nx-text-tertiary);
+  }
+  .pf-matrix-scenario {
+    font-family: var(--nx-font-heading);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--nx-text-primary);
+    padding: 0.125rem 0.5rem;
+    border: 1px solid var(--nx-border-subtle);
+    border-radius: 2px;
+    width: fit-content;
+  }
+  .pf-matrix-legend {
+    font-size: 0.8125rem;
+    color: var(--nx-text-tertiary);
+    font-style: italic;
+    margin-top: 0.5rem;
+  }
+
+  /* ── Signal monitor table (decision-grade) ── */
+  .signal-monitor-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8125rem;
+    margin: 0.5rem 0 1rem;
+  }
+  .signal-monitor-table th {
+    font-family: var(--nx-font-mono);
+    font-size: 0.625rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--nx-text-tertiary);
+    text-align: left;
+    padding: 0.375rem 0.625rem;
+    border-bottom: 1px solid var(--nx-border-subtle);
+  }
+  .signal-monitor-table td {
+    padding: 0.5rem 0.625rem;
+    border-bottom: 1px solid var(--nx-border-subtle);
+    color: var(--nx-text-secondary);
+    vertical-align: top;
+  }
+  .signal-monitor-table tr:last-child td { border-bottom: none; }
+  .signal-monitor-table .signal-favors {
+    font-family: var(--nx-font-heading);
+    font-weight: 500;
+    color: var(--nx-text-primary);
+    white-space: nowrap;
+  }
+
+  /* ── Action Priority Matrix (Harvard M-RCBG exhibit) ── */
+  .action-matrix {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8125rem;
+    margin: 0.5rem 0;
+  }
+  .action-matrix th {
+    font-family: var(--nx-font-mono);
+    font-size: 0.625rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--nx-text-tertiary);
+    text-align: left;
+    padding: 0.375rem 0.625rem;
+    border-bottom: 1px solid var(--nx-border-subtle);
+  }
+  .action-matrix td {
+    padding: 0.5rem 0.625rem;
+    border-bottom: 1px solid var(--nx-border-subtle);
+    color: var(--nx-text-secondary);
+    vertical-align: top;
+  }
+  .action-matrix tr:last-child td { border-bottom: none; }
+  .action-matrix .action-num {
+    font-family: var(--nx-font-mono);
+    font-size: 0.75rem;
+    color: var(--nx-text-tertiary);
+    width: 2rem;
+  }
+  .action-matrix .action-horizon {
+    font-family: var(--nx-font-mono);
+    font-size: 0.6875rem;
+    color: var(--nx-text-tertiary);
+    white-space: nowrap;
+  }
+  .action-matrix .action-type {
+    font-family: var(--nx-font-mono);
+    font-size: 0.6875rem;
+    white-space: nowrap;
+  }
+  .action-matrix .action-type-hedge { color: rgba(140, 200, 140, 0.85); }
+  .action-matrix .action-type-central { color: var(--nx-text-tertiary); }
+
+  /* ── Decision logic + colophon ── */
+  .decision-logic {
+    font-size: 0.875rem;
+    font-style: italic;
+    color: var(--nx-text-tertiary);
+    border-left: 2px solid var(--nx-border-subtle);
+    padding-left: 0.75rem;
+    margin: 0.75rem 0 1.25rem;
+  }
+  .colophon {
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--nx-border-subtle);
+  }
+  .colophon-text {
+    font-size: 0.8125rem;
+    color: var(--nx-text-tertiary);
+    line-height: 1.6;
+  }
+
   /* ── Scenario signals ── */
   .scenario-signals {
     margin-top: 0.5rem;
@@ -449,6 +677,130 @@ export const POSITION_FIRST_BRIEF_CSS = `
     margin-top: 1rem;
     padding-top: 0.75rem;
     border-top: 1px dashed rgba(180, 180, 200, 0.08);
+  }
+
+  /* ── The Lede (Economist standfirst) ── */
+  .nx-lede {
+    font-family: var(--nx-font-heading);
+    font-size: 1.125rem;
+    line-height: 1.55;
+    color: var(--nx-text-primary);
+    margin: 1.25rem 0 1.5rem;
+    padding-left: 1rem;
+    border-left: 3px solid var(--nx-accent, #8b7ff0);
+    font-weight: 500;
+  }
+
+  /* ── Scenario matrix (Shell method) ── */
+  .pf-predetermined {
+    margin: 0.875rem 0;
+    padding: 0.75rem 1rem;
+    background: rgba(139, 127, 240, 0.05);
+    border-left: 2px solid rgba(139, 127, 240, 0.4);
+    border-radius: 0 6px 6px 0;
+  }
+  .pf-predetermined-title, .pf-axes-title {
+    font-family: var(--nx-font-mono);
+    font-size: 0.6875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: rgba(180, 180, 220, 0.6);
+    margin-bottom: 0.5rem;
+  }
+  .pf-predetermined-list {
+    margin: 0;
+    padding-left: 1.125rem;
+    font-size: 0.875rem;
+    line-height: 1.55;
+    color: var(--nx-read-color);
+  }
+  .pf-predetermined-list li { margin-bottom: 0.25rem; }
+  .pf-axes { margin: 0.875rem 0; }
+  .pf-axis {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    margin-bottom: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    border: 1px dashed var(--nx-border-subtle);
+    border-radius: 6px;
+  }
+  .pf-axis-name {
+    font-weight: 600;
+    font-size: 0.8125rem;
+    color: var(--nx-text-primary);
+  }
+  .pf-axis-poles {
+    font-size: 0.8125rem;
+    color: var(--nx-text-secondary);
+  }
+  .pf-axis-sep {
+    color: var(--nx-accent, #8b7ff0);
+    margin: 0 0.375rem;
+  }
+  .scenario-axis {
+    font-size: 0.75rem;
+    color: var(--nx-text-tertiary);
+    margin-bottom: 0.375rem;
+  }
+  .signature-moment {
+    font-size: 0.9375rem;
+    color: var(--nx-text-secondary);
+    margin-bottom: 0.625rem;
+    padding-left: 0.75rem;
+    border-left: 2px solid var(--nx-accent, #8b7ff0);
+  }
+  .scenario-wildcard {
+    border-top-color: rgba(220, 180, 255, 0.3);
+    background: linear-gradient(90deg, rgba(220, 180, 255, 0.03), transparent 60%);
+  }
+  .scenario-wildcard .scenario-name { color: rgba(220, 180, 255, 0.85); }
+
+  /* ── Adversarial review (published dissent) ── */
+  .nx-adversarial-review {
+    margin: 1.5rem 0;
+    padding: 1rem 1.25rem;
+    border: 1px solid rgba(220, 120, 120, 0.25);
+    border-left: 3px solid rgba(220, 120, 120, 0.6);
+    border-radius: 0 8px 8px 0;
+    background: rgba(220, 120, 120, 0.04);
+  }
+  .da-verdict-line {
+    font-size: 0.8125rem;
+    color: var(--nx-text-secondary);
+    margin: 0 0 0.5rem;
+  }
+  .da-killshot {
+    font-family: var(--nx-font-heading);
+    font-size: 1rem;
+    line-height: 1.5;
+    color: var(--nx-text-primary);
+    margin: 0.625rem 0;
+    padding-left: 0.875rem;
+    border-left: 2px solid rgba(220, 120, 120, 0.5);
+  }
+  .da-challenges {
+    margin: 0.5rem 0;
+    padding-left: 1.125rem;
+    font-size: 0.875rem;
+    line-height: 1.55;
+    color: var(--nx-read-color);
+  }
+  .da-challenges li { margin-bottom: 0.375rem; }
+  .da-challenge-type {
+    font-family: var(--nx-font-mono);
+    font-size: 0.6875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: rgba(220, 140, 140, 0.8);
+    margin-right: 0.375rem;
+  }
+  .da-vuln {
+    font-size: 0.8125rem;
+    color: var(--nx-text-secondary);
+    margin: 0.5rem 0 0;
+    padding-top: 0.5rem;
+    border-top: 1px dashed rgba(220, 120, 120, 0.2);
   }
 
   /* ── Nomos Arc transitions ── */

@@ -59,6 +59,23 @@ import { searchNewamerica } from './think_tanks/new-america';
 import { searchIiss } from './think_tanks/iiss';
 import { searchAspen } from './think_tanks/aspen-institute';
 
+// Discipline providers — PhD-level domain sources (were implemented but orphaned)
+import { searchSociology } from './sociology';
+import { searchPsychology } from './psychology';
+import { searchHistory } from './history';
+import { searchGeography } from './geography';
+import { searchChemistry } from './chemistry';
+import { searchBiology } from './biology';
+import { searchPoliticalScience } from './political-science';
+import { searchPhilPapers } from './philpapers';
+import { searchPersee } from './persee';
+import { searchISIDORE } from './isidore';
+import { searchZbMath } from './zbmath';
+import { searchERIC } from './eric';
+import { searchUNODC } from './unodc';
+import { searchFAO } from './fao';
+import { searchDBLP } from './dblp';
+
 // Government providers
 import { searchNasa } from './government/nasa';
 import { searchNoaa } from './government/noaa';
@@ -141,6 +158,61 @@ export interface RegistrySearchOptions {
   sortOrder?: 'asc' | 'desc';
 }
 
+// ── ID RESOLUTION LAYER ────────────────────────────────────────────────────
+// DOMAIN_PROVIDERS carries display-slug ids (`iea---international-energy-agency`)
+// while this registry uses canonical ids (`iea`). Unknown ids previously fell
+// through to a generic OpenAlex search — duplicating OpenAlex and silently
+// losing the specialised provider. Aliases resolve slugs to real cases.
+
+const PROVIDER_ALIASES: Record<string, string> = {
+  'iea---international-energy-agency': 'iea',
+  'irena---international-renewable-energy-agency': 'irena',
+  'pnas---proceedings-of-national-academy-of-sciences': 'pnas',
+  'the-lancet': 'lancet',
+  'pwc-research-institute': 'pwc',
+  'ey-research': 'ey',
+  'kpmg-thought-leadership': 'kpmg',
+  'bain---company-insights': 'bain',
+  'accenture-research': 'accenture',
+  'deepmind-research': 'deepmind',
+  'google-ai-research': 'google-ai',
+  'microsoft-research': 'microsoft-research',
+  'openai-research': 'openai-research',
+  'world-bank-research---development': 'worldbank',
+  'undp-research': 'undp',
+  'amazon-science': 'amazon',
+  'energy-futures-initiative': 'iea',
+  'rmi---rocky-mountain-institute': 'iea',
+};
+
+// Institution providers resurrected via OpenAlex ROR filter — these had dead
+// factory stubs (openalex-provider-factory.js, deleted) so their ids silently
+// hit the generic OpenAlex fallback. RORs resolved live via api.openalex.org.
+const ROR_PROVIDERS: Record<string, string> = {
+  'csis': '04my2jj52',                                          // CSIS — 1.9k works
+  'dgap': '049xxah85',                                          // German Council on Foreign Relations
+  'cepr': '04jzmdh37',                                          // CEPR — 28.8k works
+  'johns-hopkins': '00za53h95',                                 // Johns Hopkins
+  'cgd': '0068yvd12',                                           // Center for Global Development
+  'center-for-global-development': '0068yvd12',
+  'acet': '01hr83286',                                          // African Center for Economic Transformation
+  'acet---african-center-for-economic-transformation': '01hr83286',
+  'saiia': '02bxpm650',                                         // South African Institute of Intl Affairs
+  'saiia---south-african-institute-of-international-affairs': '02bxpm650',
+  'amazon': '04mv4n011',
+  'copenhagen-institute': '034cagk98',                          // Copenhagen Inst. for Futures Studies
+  'vanguard': '032kzxf45',                                      // Vanguard Group
+};
+
+// Journal providers via OpenAlex source-id filter (same pattern as nature.js).
+const SOURCE_PROVIDERS: Record<string, string> = {
+  'nature-medicine': 'S203256638',
+  'jama': 'S172573765',
+  'jama---journal-of-american-medical-association': 'S172573765',
+  'new-england-journal-of-medicine': 'S62468778',
+  'nejm': 'S62468778',
+};
+
 // Fonction principale de recherche
 export async function searchRegistry(
   provider: string,
@@ -157,9 +229,11 @@ export async function searchRegistry(
   } = options;
 
   let results: RegistrySearchResult[] = [];
+  const requestedProvider = provider.toLowerCase();
+  const resolvedProvider = PROVIDER_ALIASES[requestedProvider] ?? requestedProvider;
 
   try {
-    switch (provider.toLowerCase()) {
+    switch (resolvedProvider) {
       // ACADEMIC APIS - Real implementations
       case 'openalex':
         results = await searchOpenAlex(query, limit);
@@ -637,11 +711,76 @@ export async function searchRegistry(
         results = await searchOpenAlex(`${query} OECD policy report`, limit, { filter: 'authorships.institutions.ror:https://ror.org/05n14r570' });
         break;
 
-      // Fallback to OpenAlex for unknown providers
-      default:
+      // ── DISCIPLINE PROVIDERS — PhD-level domain sources ──
+      // Native APIs with their own fallbacks; previously orphaned (reachable via
+      // DOMAIN_EXTENDED_PROVIDERS but hitting the OpenAlex default case).
+      case 'sociology':
+        results = await searchSociology(query, limit);
+        break;
+      case 'psychology':
+        results = await searchPsychology(query, limit);
+        break;
+      case 'history':
+        results = await searchHistory(query, limit);
+        break;
+      case 'geography':
+        results = await searchGeography(query, limit);
+        break;
+      case 'chemistry':
+        results = await searchChemistry(query, limit);
+        break;
+      case 'biology':
+        results = await searchBiology(query, limit);
+        break;
+      case 'political-science':
+        results = await searchPoliticalScience(query, limit);
+        break;
+      case 'philpapers':
+        results = await searchPhilPapers(query, limit);
+        break;
+      case 'persee':
+        results = await searchPersee(query, limit);
+        break;
+      case 'isidore':
+        results = await searchISIDORE(query, limit);
+        break;
+      case 'zbmath':
+        results = await searchZbMath(query, limit);
+        break;
+      case 'eric':
+        results = await searchERIC(query, limit);
+        break;
+      case 'unodc':
+        results = await searchUNODC(query, limit);
+        break;
+      case 'fao':
+        results = await searchFAO(query, limit);
+        break;
+      case 'dblp':
+        results = await searchDBLP(query, limit);
+        break;
+
+      // Fallback chain for unrouted ids: ROR institution filter → journal
+      // source filter → generic OpenAlex (last resort, tagged honestly).
+      default: {
+        const ror = ROR_PROVIDERS[resolvedProvider];
+        if (ror) {
+          results = (await searchOpenAlex(query, limit, {
+            filter: `authorships.institutions.ror:${ror}`,
+          })).map((r: any) => ({ ...r, provider: resolvedProvider }));
+          break;
+        }
+        const sourceId = SOURCE_PROVIDERS[resolvedProvider];
+        if (sourceId) {
+          results = (await searchOpenAlex(query, limit, {
+            filter: `primary_location.source.id:https://openalex.org/${sourceId}`,
+          })).map((r: any) => ({ ...r, provider: resolvedProvider }));
+          break;
+        }
         console.warn(`Unknown provider: ${provider}, falling back to OpenAlex`);
         results = await searchOpenAlex(query, limit);
         break;
+      }
     }
   } catch (error) {
     console.error(`Error searching ${provider}:`, error);
@@ -746,21 +885,79 @@ export function getAvailableProviders(): string[] {
     'figshare', 'zenodo', 'mendeley', 'researchgate', 'academia-edu', 'dataverse',
     
     // Patents
-    'google-patents', 'uspto', 'epo', 'wipo'
+    'google-patents', 'uspto', 'epo', 'wipo',
+
+    // Discipline providers — PhD-level domain sources
+    'sociology', 'psychology', 'history', 'geography', 'chemistry', 'biology',
+    'political-science', 'philpapers', 'persee', 'isidore', 'zbmath', 'eric',
+    'unodc', 'fao', 'dblp'
   ];
 }
 
-// Extended provider search — iterates through each requested provider individually
+// Extended provider search — batches OpenAlex-backed providers to cut API
+// pressure (anti-saturation). A domain can map 15+ OpenAlex-funneled ids; firing
+// each separately is what tripped the 429 storms. Here they collapse into:
+//   1 call per genuinely-distinct provider (real registry cases)
+//   1 batched call for ALL institution-ROR providers (OR filter)
+//   1 batched call for ALL journal source-id providers (OR filter)
+//   1 shared generic call for ALL unknown ids (was: N identical OpenAlex calls)
 export async function searchExtendedProviders(query: string, options: any = {}) {
-  const providers: string[] = options.providers || [];
-  if (providers.length === 0) return [];
+  const rawProviders: string[] = options.providers || [];
+  if (rawProviders.length === 0) return [];
 
   const limit = options.limit || 10;
   const allResults: RegistrySearchResult[] = [];
 
-  const results = await Promise.allSettled(
-    providers.map(p => searchRegistry(p, query, { limit, ...options }))
-  );
+  // Resolve slug aliases then dedupe — `iea---…` and `iea` must not fire twice.
+  const resolved = [...new Set(
+    rawProviders.map(p => PROVIDER_ALIASES[p.toLowerCase()] ?? p.toLowerCase())
+  )];
+
+  const rorProviders = resolved.filter(p => ROR_PROVIDERS[p]);
+  const srcProviders = resolved.filter(p => SOURCE_PROVIDERS[p]);
+  const rest = resolved.filter(p => !ROR_PROVIDERS[p] && !SOURCE_PROVIDERS[p]);
+  const known = new Set(getAvailableProviders());
+  const knownRest = rest.filter(p => known.has(p));
+  const unknownCount = rest.length - knownRest.length;
+
+  const tasks: Array<Promise<RegistrySearchResult[]>> =
+    knownRest.map(p => searchRegistry(p, query, { limit, ...options }).catch(() => []));
+
+  // Batched institution-ROR call — OpenAlex OR filter, results retagged to the
+  // institution whose ROR actually appears in the work's authorships.
+  if (rorProviders.length > 0) {
+    const rorToProvider = new Map(rorProviders.map(p => [ROR_PROVIDERS[p], p]));
+    tasks.push(
+      searchOpenAlex(query, Math.max(limit, limit * rorProviders.length), {
+        filter: `authorships.institutions.ror:${rorProviders.map(p => `https://ror.org/${ROR_PROVIDERS[p]}`).join('|')}`,
+      }).then(rs => rs.map((r: any) => {
+        const hit = (r.institutions ?? [])
+          .map((i: any) => i.rorId)
+          .find((id: string | undefined) => id && rorToProvider.has(id));
+        return { ...r, provider: hit ? rorToProvider.get(hit)! : 'openalex' };
+      })).catch(() => []),
+    );
+  }
+
+  // Batched journal-source call — same OR pattern on source ids.
+  if (srcProviders.length > 0) {
+    const srcToProvider = new Map(srcProviders.map(p => [SOURCE_PROVIDERS[p], p]));
+    tasks.push(
+      searchOpenAlex(query, Math.max(limit, limit * srcProviders.length), {
+        filter: `primary_location.source.id:${srcProviders.map(p => `https://openalex.org/${SOURCE_PROVIDERS[p]}`).join('|')}`,
+      }).then(rs => rs.map((r: any) => {
+        const sid = r.raw?.primary_location?.source?.id?.split('/').pop();
+        return { ...r, provider: sid && srcToProvider.has(sid) ? srcToProvider.get(sid)! : 'openalex' };
+      })).catch(() => []),
+    );
+  }
+
+  // Unknown ids share ONE generic OpenAlex call (previously N identical calls).
+  if (unknownCount > 0) {
+    tasks.push(searchOpenAlex(query, limit).catch(() => [] as RegistrySearchResult[]));
+  }
+
+  const results = await Promise.allSettled(tasks);
 
   for (const r of results) {
     if (r.status === 'fulfilled' && Array.isArray(r.value)) {

@@ -30,12 +30,18 @@ const config = {
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'mjs', 'cjs', 'json', 'node'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
+    // next-intl ships ESM-only dist files; stub the middleware factory in tests.
+    '^next-intl/middleware$': '<rootDir>/__tests__/__mocks__/next-intl-middleware.js',
+    '^next-intl/routing$': '<rootDir>/__tests__/__mocks__/next-intl-routing.js',
   },
   testMatch: [
     '**/__tests__/**/*.(test|spec).[jt]s?(x)',
     '**/?(*.)+(test|spec).[jt]s?(x)',
   ],
   testPathIgnorePatterns: ['/node_modules/', '/.next/', ...integrationTestPatterns],
+  // next-intl ships ESM-only .js entrypoints — transform them so middleware
+  // tests can import the middleware chain.
+  transformIgnorePatterns: ['node_modules[\\\\/](?!next-intl[\\\\/])'],
   collectCoverageFrom: [
     'lib/**/*.{js,jsx,ts,tsx}',
     'components/**/*.{js,jsx,ts,tsx}',

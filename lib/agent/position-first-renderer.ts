@@ -19,8 +19,8 @@
  */
 
 import { formatAPA, renderAPAHtml } from './pipeline-types';
-import type { PositionFirstBriefInput } from './editorial-types';
-import { collisionLabel, dimensionsFromClassification } from './editorial-types';
+import type { PositionFirstBriefInput, CentralScenarioDecision } from './editorial-types';
+import { collisionLabel, dimensionsFromClassification, resolveCentralScenario } from './editorial-types';
 import { POSITION_FIRST_BRIEF_CSS } from './position-first-brief.css';
 import { dedupeCitations } from './strategic-report-renderer';
 import { getPublicationFormat } from '../publication-formats';
@@ -116,6 +116,41 @@ function renderAsProse(items: string[], sourceCount?: number): string {
 
 const CSS = `<style>${POSITION_FIRST_BRIEF_CSS}</style>`;
 
+export interface CentralScenarioLabels {
+  title: string; why: string; horizon: string; implications: string; revision: string; confidence: string;
+}
+
+/**
+ * Render the single central-scenario block. Shared by the renderer and the
+ * revision controller — the gate requires the block to match the persisted
+ * decision verbatim, so both paths must emit identical markup.
+ */
+export function renderCentralScenarioBlock(
+  central: CentralScenarioDecision,
+  opts: { sourceCount?: number; french?: boolean; labels?: CentralScenarioLabels } = {},
+): string {
+  const sourceCount = opts.sourceCount;
+  const labels: CentralScenarioLabels = opts.labels ?? (opts.french
+    ? { title: 'Notre scénario central', why: 'Pourquoi nous le retenons', horizon: 'Horizon', implications: 'Conséquences', revision: 'Ce qui nous ferait changer d’avis', confidence: 'Confiance éditoriale' }
+    : { title: 'Our central scenario', why: 'Why we select it', horizon: 'Horizon', implications: 'Implications', revision: 'What would change our view', confidence: 'Editorial confidence' });
+  const confidenceLabel = opts.french
+    ? ({ high: 'élevée', medium: 'modérée', low: 'faible' }[central.confidence] ?? central.confidence)
+    : central.confidence;
+  return `<section class="nx-block central-scenario">
+    <p class="nx-eyebrow" data-no-cite>${esc(labels.title)}</p>
+    <h3 class="central-name">${esc(central.name)}</h3>
+    <p>${esc(labels.horizon)}: <span class="central-horizon" data-no-cite>${esc(central.horizon)}</span></p>
+    <p>${esc(labels.confidence)}: <span class="central-confidence" data-no-cite>${esc(confidenceLabel)}</span></p>
+    <div class="central-description">${renderParagraphs(central.description, sourceCount)}</div>
+    <h4>${esc(labels.why)}</h4>
+    <div class="central-rationale">${renderParagraphs(central.rationale, sourceCount)}</div>
+    <h4>${esc(labels.implications)}</h4>
+    <ul class="central-implications">${central.implications.map(s => `<li>${replaceCitations(esc(s), sourceCount)}</li>`).join('')}</ul>
+    <h4>${esc(labels.revision)}</h4>
+    <ul class="central-revision">${central.revisionTriggers.map(s => `<li>${replaceCitations(esc(s), sourceCount)}</li>`).join('')}</ul>
+  </section>`;
+}
+
 export function renderPositionFirstBriefHTML(input: PositionFirstBriefInput): string {
   const { question, classification, casting, position, analysis, sources, isStrategic } = input;
   const dimensions = dimensionsFromClassification(classification);
@@ -192,7 +227,9 @@ export function renderPositionFirstBriefHTML(input: PositionFirstBriefInput): st
   const publicationType = isStrategic ? 'STRATEGIC_REPORT' : 'ARTICLE';
   const fmt = getPublicationFormat(publicationType);
   const formatBadgeHtml = `<span class="format-badge" title="${esc(fmt.description)}">${esc(fmt.label)}</span>`;
-  const metaLine = `${formatBadgeHtml} ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} · ${sources.length} sources · ${providers.length} providers · Confidence: ${position.confidence}/100`;
+  // metaLine mixes raw badge HTML with metadata text — escape the text part
+  // only; escaping the whole line renders the badge as literal &lt;span&gt; text.
+  const metaLine = `${formatBadgeHtml} ${esc(`${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} · ${sources.length} sources · ${providers.length} providers · Confidence: ${position.confidence}/100`)}`;
 
   // Low-confidence warning banner (if confidence < 65)
   const lowConfidenceWarning = (position.confidence != null && position.confidence < 65)
@@ -210,12 +247,14 @@ export function renderPositionFirstBriefHTML(input: PositionFirstBriefInput): st
   const futuresTitle = stripCitations(titles.futures || 'What comes next');
   const actionTitle = stripCitations(titles.action || 'What should be done');
 
-  // ── In Brief (McKinsey-style 3-5 bullets at the top) ──
+  // ── Key Judgments (NIC/Belfer exec-summary: bottom line + numbered judgments) ──
   const inBrief = position.inBrief ?? [];
+  const topVerdict = String(analysis.verdict || position.verdict || '');
   const inBriefHtml = inBrief.length > 0
-    ? `<section class="nx-block in-brief">
+    ? `<section class="nx-block in-brief key-judgments">
   <p class="nx-eyebrow">${esc(L.inBrief)}</p>
-  <ul class="in-brief-list">${inBrief.map((b) => `<li>${replaceCitations(esc(b), sources.length)}</li>`).join('')}</ul>
+  ${topVerdict ? `<p class="bottom-line">${replaceCitations(esc(topVerdict), sources.length)}</p>` : ''}
+  <ol class="key-judgments-list">${inBrief.map((b) => `<li>${replaceCitations(esc(b), sources.length)}</li>`).join('')}</ol>
 </section>`
     : '';
 
@@ -227,28 +266,23 @@ export function renderPositionFirstBriefHTML(input: PositionFirstBriefInput): st
   const riskMitigation = Array.isArray(recommendations?.riskMitigation) ? (recommendations!.riskMitigation as string[]) : [];
 
   const hasRecs = immediateRecs.length > 0 || shortTermRecs.length > 0 || longTermRecs.length > 0 || riskMitigation.length > 0;
+
+  // ── Action Priority Matrix (Harvard M-RCBG exhibit) ──
+  // Recommendations as a scannable matrix instead of prose blocks: priority
+  // sequence × horizon × move type (central-path vs all-scenario hedge).
+  const actionRows: { horizon: string; action: string; moveType: string }[] = [
+    ...immediateRecs.map(a => ({ horizon: 'Now · 0–3 mo', action: a, moveType: 'central-path' })),
+    ...shortTermRecs.map(a => ({ horizon: '3–12 mo', action: a, moveType: 'central-path' })),
+    ...longTermRecs.map(a => ({ horizon: '1–5 yr', action: a, moveType: 'central-path' })),
+    ...riskMitigation.map(a => ({ horizon: 'All futures', action: a, moveType: 'robust hedge' })),
+  ];
+  const actionMatrixHtml = actionRows.length > 0
+    ? `<table class="action-matrix"><thead><tr><th data-no-cite>#</th><th data-no-cite>Horizon</th><th data-no-cite>Action</th><th data-no-cite>Type</th></tr></thead><tbody>${actionRows.map((r, i) => `<tr><td data-no-cite class="action-num">${i + 1}</td><td data-no-cite class="action-horizon">${esc(r.horizon)}</td><td>${replaceCitations(esc(r.action), sources.length)}</td><td data-no-cite class="action-type action-type-${r.moveType === 'robust hedge' ? 'hedge' : 'central'}">${esc(r.moveType)}</td></tr>`).join('')}</tbody></table>`
+    : '';
+
   const recommendationsHtml = hasRecs ? `
 <section class="nx-block recommendations">
-  ${immediateRecs.length > 0 ? `
-  <div style="margin:12px 0;">
-    <p style="font-weight:600;color:var(--text,#222);margin-bottom:4px;">Immediate (0–3 months)</p>
-    ${renderAsProse(immediateRecs, sources.length)}
-  </div>` : ''}
-  ${shortTermRecs.length > 0 ? `
-  <div style="margin:12px 0;">
-    <p style="font-weight:600;color:var(--text,#222);margin-bottom:4px;">Short-term (3–12 months)</p>
-    ${renderAsProse(shortTermRecs, sources.length)}
-  </div>` : ''}
-  ${longTermRecs.length > 0 ? `
-  <div style="margin:12px 0;">
-    <p style="font-weight:600;color:var(--text,#222);margin-bottom:4px;">Long-term (1–5 years)</p>
-    ${renderAsProse(longTermRecs, sources.length)}
-  </div>` : ''}
-  ${riskMitigation.length > 0 ? `
-  <div style="margin:12px 0;">
-    <p style="font-weight:600;color:#c0392b;margin-bottom:4px;">Risk mitigation</p>
-    ${renderAsProse(riskMitigation, sources.length)}
-  </div>` : ''}
+  ${actionMatrixHtml}
 </section>` : '';
 
   // ── Team (compact, integrated into Act I) ──
@@ -264,7 +298,14 @@ export function renderPositionFirstBriefHTML(input: PositionFirstBriefInput): st
     .join('');
 
   // ── Scenarios (narrative format — Act III) ──
+  const central = resolveCentralScenario(position);
+  const french = ['montaigne', 'france-strategie', 'caps'].includes(style);
+  const centralLabels = french
+    ? { title: 'Notre scénario central', why: 'Pourquoi nous le retenons', horizon: 'Horizon', implications: 'Conséquences', revision: 'Ce qui nous ferait changer d’avis', confidence: 'Confiance éditoriale', alternatives: 'Alternatives et risques étudiés' }
+    : { title: 'Our central scenario', why: 'Why we select it', horizon: 'Horizon', implications: 'Implications', revision: 'What would change our view', confidence: 'Editorial confidence', alternatives: 'Alternatives and risks considered' };
+  const centralHtml = central ? renderCentralScenarioBlock(central, { sourceCount: sources.length, french, labels: centralLabels }) : '';
   const scenariosHtml = position.scenarios
+    .filter(s => s.name !== central?.name)
     .map(
       (s) => {
         const signalsHtml = s.signals && s.signals.length > 0
@@ -280,7 +321,7 @@ export function renderPositionFirstBriefHTML(input: PositionFirstBriefInput): st
           metaParts.push(`<span>Base rate: ${Math.round(s.baseRate * 100)}%</span>`);
         }
         if (typeof s.calibratedProbability === 'number') {
-          metaParts.push(`<span>Calibrated: ${Math.round(s.calibratedProbability * 100)}%</span>`);
+          metaParts.push(`<span>Delphi estimate: ${Math.round(s.calibratedProbability * 100)}%</span>`);
         }
         if (typeof s.sensitivityScore === 'number') {
           const label = s.sensitivityScore < 0.3 ? 'robust' : s.sensitivityScore < 0.6 ? 'moderate' : 'fragile';
@@ -299,7 +340,7 @@ export function renderPositionFirstBriefHTML(input: PositionFirstBriefInput): st
 
         // PhD-level: narrative set in future tense (preferred over description)
         const narrativeHtml = s.narrative
-          ? `<div class="scenario-narrative">${renderParagraphs(s.narrative, sources.length)}</div>`
+          ? `<div class="scenario-narrative">${s.signatureMoment ? `<p class="signature-moment" data-no-cite><em>${esc(s.signatureMoment)}</em></p>` : ''}${renderParagraphs(s.narrative, sources.length)}</div>`
           : '';
 
         // PhD-level: tipping point
@@ -318,11 +359,12 @@ export function renderPositionFirstBriefHTML(input: PositionFirstBriefInput): st
           : '';
 
         return `
-    <div class="scenario-row">
+    <div class="scenario-row${s.isWildcard ? ' scenario-wildcard' : ''}">
       <div class="scenario-head">
-        <span class="scenario-name">${esc(s.name)}${position.dominantScenario === s.name ? ' · central' : ''}</span>
-        <span class="scenario-prob">${esc(s.probability)}</span>
+        <span class="scenario-name">${esc(s.name)}${position.dominantScenario === s.name ? ' · central' : ''}${s.isWildcard ? ' · wildcard' : ''}</span>
+        <span class="scenario-prob" data-no-cite>${esc(s.probability)}</span>
       </div>
+      ${s.axisPosition ? `<div class="scenario-axis" data-no-cite><span class="signal-label">Matrix position:</span> ${esc(s.axisPosition)}</div>` : ''}
       ${narrativeHtml || `<div class="scenario-desc">${replaceCitations(esc(s.description), sources.length)}</div>`}
       ${metaHtml}
       ${driversHtml}
@@ -338,10 +380,57 @@ export function renderPositionFirstBriefHTML(input: PositionFirstBriefInput): st
 
   // ── Prospective Framework (PhD-level foresight architecture) ──
   const pf = position.prospectiveFramework;
+  const predeterminedHtml = pf?.predeterminedElements && pf.predeterminedElements.length > 0
+    ? `<div class="pf-predetermined"><p class="pf-predetermined-title" data-no-cite>Already written — true in every future</p><ul class="pf-predetermined-list">${pf.predeterminedElements.map(e => `<li>${renderParagraphs(e, sources.length)}</li>`).join('')}</ul></div>`
+    : '';
+  const axesHtml = pf?.criticalUncertainties && pf.criticalUncertainties.length >= 2
+    ? `<div class="pf-axes"><p class="pf-axes-title" data-no-cite>The two uncertainties that decide everything</p>${pf.criticalUncertainties.slice(0, 2).map(u => `<div class="pf-axis"><span class="pf-axis-name">${esc(u.name)}</span><span class="pf-axis-poles">${esc(u.poleA)} <span class="pf-axis-sep">⟷</span> ${esc(u.poleB)}</span></div>`).join('')}</div>`
+    : '';
+
+  // ── 2×2 uncertainty matrix (Shell-style signature exhibit) ──
+  // X = criticalUncertainties[0] (poleA left / poleB right)
+  // Y = criticalUncertainties[1] (poleA top / poleB bottom)
+  // Scenarios are placed in a quadrant when their axisPosition text matches
+  // a pole keyword on both axes; unplaceable scenarios go to the legend.
+  let matrixHtml = '';
+  if (pf?.criticalUncertainties && pf.criticalUncertainties.length >= 2 && position.scenarios?.length) {
+    const [ux, uy] = pf.criticalUncertainties;
+    const lc = (s: string) => String(s || '').toLowerCase();
+    const matchPole = (axisPos: string, u: { poleA: string; poleB: string }): 'A' | 'B' | null => {
+      const hasA = u.poleA && axisPos.includes(lc(u.poleA));
+      const hasB = u.poleB && axisPos.includes(lc(u.poleB));
+      if (hasA && !hasB) return 'A';
+      if (hasB && !hasA) return 'B';
+      return null;
+    };
+    const quadrants: Record<string, string[]> = { AA: [], AB: [], BA: [], BB: [] };
+    const unplaced: string[] = [];
+    for (const s of position.scenarios) {
+      const axisPos = lc(s.axisPosition || '');
+      const x = matchPole(axisPos, ux);
+      const y = matchPole(axisPos, uy);
+      if (x && y) quadrants[`${x}${y}`].push(s.name);
+      else unplaced.push(s.name);
+    }
+    const cell = (key: string, xPole: string, yPole: string) =>
+      `<div class="pf-matrix-cell"><span class="pf-matrix-cell-label">${esc(xPole)} × ${esc(yPole)}</span>${quadrants[key].map(n => `<span class="pf-matrix-scenario">${esc(n)}</span>`).join('')}</div>`;
+    matrixHtml = `<div class="pf-matrix" data-no-cite>
+  <div class="pf-matrix-y-label">${esc(uy.name)}: <span>${esc(uy.poleA)}</span> ↑ / <span>${esc(uy.poleB)}</span> ↓</div>
+  <div class="pf-matrix-grid">
+    ${cell('AA', ux.poleA, uy.poleA)}${cell('BA', ux.poleB, uy.poleA)}
+    ${cell('AB', ux.poleA, uy.poleB)}${cell('BB', ux.poleB, uy.poleB)}
+  </div>
+  <div class="pf-matrix-x-label">${esc(ux.name)}: <span>${esc(ux.poleA)}</span> ← → <span>${esc(ux.poleB)}</span></div>
+  ${unplaced.length ? `<p class="pf-matrix-legend">Scenarios (position indicated in text): ${unplaced.map(esc).join(' · ')}</p>` : ''}
+</div>`;
+  }
   const prospectiveFrameworkHtml = pf ? `
     <section class="nx-block prospective-framework">
       <p class="nx-eyebrow">The Foresight Framework</p>
       ${pf.horizon ? `<p class="pf-horizon"><span class="chain-label">Horizon:</span> ${renderParagraphs(pf.horizon, sources.length)}</p>` : ''}
+      ${predeterminedHtml}
+      ${axesHtml}
+      ${matrixHtml}
       ${pf.baseRateContext ? `<p class="pf-base-rate"><span class="chain-label">Base rate context:</span> ${renderParagraphs(pf.baseRateContext, sources.length)}</p>` : ''}
       ${pf.fermiDecomposition ? `<p class="pf-fermi"><span class="chain-label">Fermi decomposition:</span> ${renderParagraphs(pf.fermiDecomposition, sources.length)}</p>` : ''}
       ${pf.keyUncertainties && pf.keyUncertainties.length > 0
@@ -400,8 +489,9 @@ export function renderPositionFirstBriefHTML(input: PositionFirstBriefInput): st
   const watchSignalsHtml = whatToWatch && Array.isArray(whatToWatch.signals) && whatToWatch.signals.length > 0
     ? `<div class="scenario-signals" style="margin-top:0.5rem">${whatToWatch.signals.map((s: string) => `<span class="signal-tag">${replaceCitations(esc(s), sources.length)}</span>`).join('')}</div>`
     : '';
-  const watchChangeMindHtml = whatToWatch?.whatWouldChangeMind
-    ? `<p class="change-mind" style="margin-top:0.75rem"><span class="chain-label">What would change our mind:</span> ${renderParagraphs(String(whatToWatch.whatWouldChangeMind), sources.length)}</p>`
+  const revisionTriggers = central?.revisionTriggers.length ? central.revisionTriggers.join(' ') : whatToWatch?.whatWouldChangeMind;
+  const watchChangeMindHtml = revisionTriggers
+    ? `<p class="change-mind" style="margin-top:0.75rem"><span class="chain-label">What would change our mind:</span> ${replaceCitations(esc(String(revisionTriggers)), sources.length)}</p>`
     : '';
   const watchHorizonHtml = whatToWatch?.horizonCheck
     ? `<p class="horizon" style="margin-top:0.5rem"><span class="chain-label">Revisit by:</span> ${replaceCitations(esc(String(whatToWatch.horizonCheck)), sources.length)}</p>`
@@ -480,7 +570,35 @@ export function renderPositionFirstBriefHTML(input: PositionFirstBriefInput): st
   }
 
   // 2. The Scenarios (narrative format)
-  actIIIParts.push(`<section class="nx-block scenarios-block"><p class="nx-eyebrow" data-no-cite>${esc(L.threeFutures)}</p>${scenariosHtml || '<p class="scenario-desc">Scenario distribution pending further evidence.</p>'}</section>`);
+  actIIIParts.unshift(centralHtml);
+
+  // 2b. Scenario comparison table — the exhibit an analyst scans first
+  // (probability, CI, sensitivity, drivers). All cells carry data-no-cite:
+  // probabilities/CIs are model estimates and scenario names may contain
+  // numbers — the Invariant-6 sanitizer must not touch them.
+  if (Array.isArray(position.scenarios) && position.scenarios.length > 1) {
+    const parseProb = (p: unknown): number | null => {
+      const m = String(p ?? '').match(/(\d+(?:\.\d+)?)/);
+      return m ? parseFloat(m[1]) : null;
+    };
+    const tableRows = [...position.scenarios]
+      .sort((a, b) => (parseProb(b.probability) ?? 0) - (parseProb(a.probability) ?? 0))
+      .map((s) => {
+        const prob = parseProb(s.probability);
+        const ci = Array.isArray(s.confidenceInterval)
+          ? `${Math.round(s.confidenceInterval[0] * 100)}–${Math.round(s.confidenceInterval[1] * 100)}%`
+          : '—';
+        const sens = typeof s.sensitivityScore === 'number'
+          ? (s.sensitivityScore < 0.3 ? 'robust' : s.sensitivityScore < 0.6 ? 'moderate' : 'fragile')
+          : '—';
+        const isCentralRow = s.name === central?.name || position.dominantScenario === s.name;
+        return `<tr${isCentralRow ? ' class="scenario-central-row"' : ''}><td data-no-cite>${esc(s.name)}${isCentralRow ? ' · central' : ''}${s.isWildcard ? ' · wildcard' : ''}</td><td data-no-cite>${prob !== null ? `${prob}%` : esc(String(s.probability))}</td><td data-no-cite>${ci}</td><td data-no-cite>${sens}</td><td data-no-cite>${(s.keyDrivers || []).slice(0, 2).map((d: string) => esc(d)).join('; ') || '—'}</td></tr>`;
+      })
+      .join('');
+    actIIIParts.push(`<section class="nx-block scenario-table-wrap"><table class="scenario-table"><thead><tr><th data-no-cite>Scenario</th><th data-no-cite>Prob.</th><th data-no-cite>90% CI</th><th data-no-cite>Sensitivity</th><th data-no-cite>Key drivers</th></tr></thead><tbody>${tableRows}</tbody></table></section>`);
+  }
+
+  if (scenariosHtml) actIIIParts.push(`<section class="nx-block scenarios-block"><details><summary data-no-cite>${esc(centralLabels.alternatives)}</summary>${scenariosHtml}</details></section>`);
 
   // 3. The Trajectory (where things are heading)
   if (trajectoryHtml) {
@@ -493,18 +611,34 @@ export function renderPositionFirstBriefHTML(input: PositionFirstBriefInput): st
   }
 
   // 5. Signals to Watch (early warning indicators)
-  if (watchSignalsHtml || watchChangeMindHtml || watchHorizonHtml) {
-    actIIIParts.push(`<section class="nx-block what-to-watch"><p class="nx-eyebrow" data-no-cite>${esc(L.watchFor)}</p>${watchSignalsHtml}${watchChangeMindHtml}${watchHorizonHtml}</section>`);
+  // Decision-grade monitor: each early-warning signal wired to the scenario it
+  // favors — the step where scenario planning usually breaks down is unwired
+  // signals, so we render the mapping explicitly.
+  const signalRows = (position.scenarios || [])
+    .filter(s => !s.isWildcard && Array.isArray(s.signals) && s.signals.length > 0)
+    .flatMap(s => s.signals!.slice(0, 3).map(sig => ({ signal: sig, favors: s.name })))
+    .slice(0, 8);
+  const signalMonitorHtml = signalRows.length > 0
+    ? `<table class="signal-monitor-table"><thead><tr><th data-no-cite>If you observe</th><th data-no-cite>It favors</th></tr></thead><tbody>${signalRows.map(r => `<tr><td>${replaceCitations(esc(r.signal), sources.length)}</td><td data-no-cite class="signal-favors">${esc(r.favors)}</td></tr>`).join('')}</tbody></table>`
+    : '';
+  if (watchSignalsHtml || watchChangeMindHtml || watchHorizonHtml || signalMonitorHtml) {
+    actIIIParts.push(`<section class="nx-block what-to-watch"><p class="nx-eyebrow" data-no-cite>${esc(L.watchFor)}</p>${signalMonitorHtml}${watchSignalsHtml}${watchChangeMindHtml}${watchHorizonHtml}</section>`);
   }
   const actIII = `<section class="nx-act" data-act="3" data-prospective="true"><p class="act-method-label" data-no-cite>Quantify</p>${actIIIParts.join('\n')}</section>`;
 
   // Nomos Arc transition: Act III → Act IV
-  const transitionIIItoIV = `<p class="nx-act-transition" data-no-cite style="text-align:center;font-style:italic;color:var(--muted);margin:1.5em 0;font-size:0.95em;">Three futures, one decision.</p>`;
+  const transitionIIItoIV = `<p class="nx-act-transition" data-no-cite style="text-align:center;font-style:italic;color:var(--muted);margin:1.5em 0;font-size:0.95em;">${french ? 'Un scénario central, une décision à prendre.' : 'One central outlook, a decision to make.'}</p>`;
 
   // ── ACT IV: THE DECISION (Decide) ──
   const actIVParts: string[] = [];
   actIVParts.push(`<h2 class="act-title" data-no-cite>${esc(actionTitle)}</h2>`);
   if (recommendationsHtml) actIVParts.push(recommendationsHtml);
+  // Decision logic (Shell discipline): hedge rows hold under EVERY scenario;
+  // the sequenced moves assume the central outlook — readers must know which
+  // is which, or scenarios stay decorative.
+  if (hasRecs && riskMitigation.length > 0) {
+    actIVParts.push(`<p class="decision-logic" data-no-cite>Hedging actions hold under every scenario in this analysis; the sequenced moves above assume the central outlook and should be revisited if the early-warning signals favor an alternative.</p>`);
+  }
   if (position.objections.length > 0) actIVParts.push(`<section class="nx-block objections"><p class="nx-eyebrow" data-no-cite>${esc(L.counterArg)}</p>${renderAsProse(position.objections, sources.length)}</section>`);
   if (position.whatChangesMind.length > 0) actIVParts.push(`<section class="nx-block trace"><p class="nx-eyebrow" data-no-cite>${esc(L.changeMind)}</p>${renderAsProse(position.whatChangesMind, sources.length)}</section>`);
   const actIV = `<section class="nx-act" data-act="4"><p class="act-method-label" data-no-cite>Decide</p>${actIVParts.join('\n')}</section>`;
@@ -520,7 +654,9 @@ export function renderPositionFirstBriefHTML(input: PositionFirstBriefInput): st
 <body>
   <article class="nomosx-brief">
     <h1 data-no-cite>${esc(title)}</h1>
-    <div class="brief-meta" data-no-cite>${esc(metaLine)}</div>
+    <div class="brief-meta" data-no-cite>${metaLine}</div>
+
+    ${position.lede ? `<p class="nx-lede" data-no-cite>${esc(position.lede)}</p>` : ''}
 
     ${lowConfidenceWarning}
 
@@ -536,6 +672,11 @@ export function renderPositionFirstBriefHTML(input: PositionFirstBriefInput): st
     <section class="references-section">
       <h2>Sources</h2>
       ${apaCitations.map((c) => renderAPAHtml(c)).join('\n')}
+    </section>
+
+    <section class="nx-block colophon" data-no-cite>
+      <p class="nx-eyebrow">How this analysis was produced</p>
+      <p class="colophon-text">This report was generated by the NomosX research pipeline: ${sources.length} sources across ${providers.length} providers, adversarial review, live claim verification, and Delphi-calibrated scenario probabilities. Claims marked "not established" indicate evidence we could not source — we do not fill gaps.</p>
     </section>
 
     <footer class="nx-brief-footer" style="margin-top:3rem;padding-top:1.5rem;border-top:1px solid var(--border);text-align:center;font-size:0.85em;color:var(--muted);">

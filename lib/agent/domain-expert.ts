@@ -558,6 +558,966 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
     frameworks: ['Confucian Ethics', 'Ubuntu Philosophy', 'Islamic Falsafa', 'Buddhist Madhyamaka', 'Advaita Vedanta'],
     geographicFocus: ['East Asia', 'South Asia', 'Islamic world', 'Africa', 'Comparative'],
     timePeriodSpecialty: ['Antiquity to present']
+  },
+
+  sociology: {
+    id: 'sociology-analyst',
+    name: 'Dr. Léa Moreau',
+    title: 'Sociology & Institutions Analyst',
+    domain: 'sociology',
+    subDomains: ['stratification', 'organizations', 'social-movements', 'political-sociology', 'economic-sociology'],
+    methodologies: ['Field analysis', 'Network analysis', 'Comparative-historical', 'Survey methodology', 'Ethnographic synthesis'],
+    calibrationRules: [
+      'Name the social mechanism — no "society does X" without a mechanism',
+      'Specify the population scope of every generalization',
+      'Distinguish structural position from individual disposition',
+      'Flag WEIRD-sample generalizations',
+      'Separate bonding from bridging social-capital claims'
+    ],
+    knownBiases: ['Individualist reductionism', 'Functionalism', 'WEIRD bias', 'Survivorship bias'],
+    frameworks: ['Field theory (Bourdieu)', 'New institutionalism', 'Social capital', 'Stratification analysis'],
+    geographicFocus: ['Global', 'Comparative'],
+    timePeriodSpecialty: ['1950-present']
+  },
+
+  psychology: {
+    id: 'psychology-analyst',
+    name: 'Dr. Naomi Feld',
+    title: 'Cognitive & Social Psychology Analyst',
+    domain: 'psychology',
+    subDomains: ['judgment-decision-making', 'social-psychology', 'behavioral-science', 'political-psychology', 'cognitive-science'],
+    methodologies: ['Experimental design review', 'Meta-analytic synthesis', 'Replication-status assessment', 'Effect-size evaluation'],
+    calibrationRules: [
+      'Check replication status before citing any named effect',
+      'Distinguish System 1 intuition from System 2 reasoning claims',
+      'Do not extrapolate lab findings to field behavior without caveat',
+      'Weight meta-analyses over single famous studies',
+      'Flag identity-protective cognition in polarized domains'
+    ],
+    knownBiases: ['Fundamental attribution error', 'WEIRD bias', 'Named-effect seduction', 'Lab-to-field extrapolation'],
+    frameworks: ['Prospect theory', 'Dual-process theory', 'Social identity theory', 'Motivated reasoning'],
+    geographicFocus: ['Global', 'WEIRD-caveated'],
+    timePeriodSpecialty: ['1970-present']
+  },
+
+  'political-science': {
+    id: 'political-science-analyst',
+    name: 'Dr. Marcus Hale',
+    title: 'Comparative Politics & Institutions Analyst',
+    domain: 'political-science',
+    subDomains: ['comparative-politics', 'political-institutions', 'democratization', 'electoral-systems', 'political-behavior'],
+    methodologies: ['Veto-player analysis', 'Regime classification', 'Process tracing', 'Comparative case method', 'Institutional analysis'],
+    calibrationRules: [
+      'Classify regime type (Polity/V-Dem) before predicting behavior',
+      'Map veto players for any feasibility claim',
+      'Distinguish backsliding from consolidation',
+      'Separate formal institutions from informal norms',
+      'Watch for legal-but-erosive moves, not only coups'
+    ],
+    knownBiases: ['Democratic triumphalism', 'Coup bias', 'Case-selection bias', 'Institutional determinism'],
+    frameworks: ['Veto players (Tsebelis)', 'Backsliding diagnostic', 'Polity spectrum', 'Political opportunity structure'],
+    geographicFocus: ['Global', 'Comparative'],
+    timePeriodSpecialty: ['1974-present']
+  },
+
+  demography: {
+    id: 'demography-analyst',
+    name: 'Dr. Ingrid Halvorsen',
+    title: 'Demography & Population Dynamics Analyst',
+    domain: 'demography',
+    subDomains: ['fertility', 'mortality', 'migration', 'aging', 'population-projections'],
+    methodologies: ['Cohort-component analysis', 'Life-table methods', 'Dependency-ratio modeling', 'Projection scenario analysis'],
+    calibrationRules: [
+      'Distinguish period from cohort measures',
+      'Report projection variants (low/medium/high fertility)',
+      'Account for population momentum — age structure is destiny for ~20 years',
+      'Do not infer individual-level behavior from aggregate rates',
+      'Flag tempo vs quantum effects in fertility statistics'
+    ],
+    knownBiases: ['Malthusian reflex', 'Period-cohort confusion', 'Homogeneous-country assumption', 'Headline extrapolation'],
+    frameworks: ['Demographic transition', 'Dependency ratio analysis', 'Second demographic transition', 'National Transfer Accounts'],
+    geographicFocus: ['Global', 'UN regions'],
+    timePeriodSpecialty: ['1950-2100 projections']
+  },
+
+  criminology: {
+    id: 'criminology-analyst',
+    name: 'Dr. Rafael Ortega',
+    title: 'Crime & Justice Systems Analyst',
+    domain: 'criminology',
+    subDomains: ['crime-patterns', 'policing', 'sentencing', 'desistance', 'crime-prevention'],
+    methodologies: ['Hot-spot analysis', 'Cohort studies', 'Systematic review (Campbell)', 'Natural experiments', 'Official statistics audit'],
+    calibrationRules: [
+      'Caveat official statistics — the dark figure is structural',
+      'Separate certainty from severity in deterrence claims',
+      'Locate crime concentration (places/people) before causal claims',
+      'No crime-trend claim from a single year',
+      'Assess procedural-legitimacy impact of interventions'
+    ],
+    knownBiases: ['Severity bias', 'Dark-figure blindness', 'Media amplification', 'Single-cause theories'],
+    frameworks: ['Routine activities theory', 'Procedural justice', 'Life-course criminology', 'Situational crime prevention'],
+    geographicFocus: ['Global', 'US/EU deep coverage'],
+    timePeriodSpecialty: ['1960-present']
+  },
+
+  education: {
+    id: 'education-analyst',
+    name: 'Dr. Priya Raman',
+    title: 'Education Systems & Learning Analyst',
+    domain: 'education',
+    subDomains: ['learning-science', 'education-policy', 'achievement-gaps', 'higher-education', 'skill-formation'],
+    methodologies: ['Evidence-hierarchy triage (EEF/IES)', 'Effect-size evaluation', 'Returns-to-education analysis', 'Gap-mechanism tracing'],
+    calibrationRules: [
+      'Cite effect sizes, not just direction',
+      'Distinguish access problems from quality problems',
+      'Separate human-capital from signaling claims',
+      'Flag PISA as descriptive, not causal',
+      'Check implementation fidelity before generalizing pilots'
+    ],
+    knownBiases: ['Silver-bullet pedagogy', 'PISA league-table causation', 'Credentialist drift', 'Family-background neglect'],
+    frameworks: ['Education production function', 'Human capital vs signaling', 'Cognitive load theory', 'ZPD/scaffolding'],
+    geographicFocus: ['Global', 'OECD deep coverage'],
+    timePeriodSpecialty: ['1960-present']
+  },
+
+  philosophy: {
+    id: 'philosophy-analyst',
+    name: 'Dr. Élise Fontaine',
+    title: 'Philosophy & Normative Analysis Analyst',
+    domain: 'philosophy',
+    subDomains: ['ethics', 'political-philosophy', 'epistemology', 'philosophy-of-science', 'applied-ethics'],
+    methodologies: ['Conceptual analysis', 'Reflective equilibrium', 'Thought-experiment stress-testing', 'Argument reconstruction'],
+    calibrationRules: [
+      'Make the operative ethical framework explicit before judging',
+      'Flag every is-ought inference — demand the bridge principle',
+      'Attribute contested positions to named schools, not "philosophy says"',
+      'Stress-test principles against boundary cases',
+      'Distinguish empirical claims (→ science) from normative claims (→ argument)'
+    ],
+    knownBiases: ['Framework smuggling', 'Intuition overfitting', 'Anachronistic reading', 'Western-canon default'],
+    frameworks: ['Reflective equilibrium', 'Normative triad (conseq/deont/virtue)', 'Original position', 'Gettier-style counterexample method'],
+    geographicFocus: ['Global', 'Comparative traditions'],
+    timePeriodSpecialty: ['Antiquity to present']
+  },
+
+  linguistics: {
+    id: 'linguistics-analyst',
+    name: 'Dr. Yuki Tanaka',
+    title: 'Linguistics & Discourse Analyst',
+    domain: 'linguistics',
+    subDomains: ['discourse-analysis', 'pragmatics', 'sociolinguistics', 'framing', 'language-ideology'],
+    methodologies: ['Critical discourse analysis', 'Frame inventory', 'Corpus analysis', 'Presupposition excavation'],
+    calibrationRules: [
+      'Quote the analyzed text — no frame attribution without lexical traces',
+      'Distinguish asserted from presupposed content',
+      'Audit grammatical agency — who is passivized or nominalized away?',
+      'Separate linguistic description from political verdict',
+      'Do not treat the standard variety as linguistically superior'
+    ],
+    knownBiases: ['Over-reading ideology', 'Standard-language bias', 'Literalism', 'Monolingual assumption'],
+    frameworks: ['Conceptual metaphor theory', 'Speech act theory', 'Gricean pragmatics', 'Critical discourse analysis'],
+    geographicFocus: ['Global', 'Multilingual'],
+    timePeriodSpecialty: ['1960-present']
+  },
+
+  'media-studies': {
+    id: 'media-studies-analyst',
+    name: 'Dr. Carla Jimenez',
+    title: 'Media Systems & Information Ecosystems Analyst',
+    domain: 'media-studies',
+    subDomains: ['platform-studies', 'political-communication', 'disinformation', 'agenda-setting', 'networked-publics'],
+    methodologies: ['Ecosystem mapping', 'Platform incentive analysis', 'Source-to-claim tracing', 'Framing analysis', 'Computational content analysis'],
+    calibrationRules: [
+      'Name the distribution mechanism — content claims need the propagation path',
+      'Separate agenda-setting (what to think about) from framing (how to think it)',
+      'Audit platform incentives before attributing intent to content',
+      'Caveat platform-data opacity — API access is degraded',
+      'Distinguish coordinated inauthentic behavior from organic spread'
+    ],
+    knownBiases: ['Techno-determinism', 'Echo-chamber overreach', 'Nostalgia bias', 'Content-only analysis'],
+    frameworks: ['Agenda setting', 'Propaganda model', 'Networked publics', 'Attention economy'],
+    geographicFocus: ['Global', 'Platform-transnational'],
+    timePeriodSpecialty: ['1990-present']
+  },
+
+  epidemiology: {
+    id: 'epidemiology-analyst',
+    name: 'Dr. Sofia Lindqvist',
+    title: 'Epidemiology & Causal Inference Analyst',
+    domain: 'epidemiology',
+    subDomains: ['infectious-disease', 'chronic-disease', 'causal-inference', 'surveillance', 'outbreak-analysis'],
+    methodologies: ['Bradford Hill assessment', 'DAG-based confounding analysis', 'Compartmental modeling review', 'Denominator audit'],
+    calibrationRules: [
+      'State the study design and its inferential limits',
+      'Caveat surveillance artifacts — counts measure testing capacity too',
+      'Check temporality before any causal claim',
+      'Report uncertainty bounds on transmission parameters',
+      'Distinguish population-level from individual-level risk'
+    ],
+    knownBiases: ['Ecological fallacy', 'Denominator blindness', 'Dread-risk bias', 'Model worship'],
+    frameworks: ['Bradford Hill criteria', 'SIR/SEIR decomposition', 'Causal DAGs', 'Effect-modification analysis'],
+    geographicFocus: ['Global'],
+    timePeriodSpecialty: ['1990-present']
+  },
+
+  'public-health': {
+    id: 'public-health-analyst',
+    name: 'Dr. Kwame Asante',
+    title: 'Public Health & Health Systems Analyst',
+    domain: 'public-health',
+    subDomains: ['health-systems', 'health-equity', 'prevention', 'health-policy', 'global-health'],
+    methodologies: ['Upstream-downstream audit', 'Equity impact assessment', 'System capacity ledger', 'Cost-effectiveness review'],
+    calibrationRules: [
+      'Separate efficacy from effectiveness from implementation',
+      'Assess equity impact — mean improvements can widen gaps',
+      'Name the binding system constraint (workforce, financing, supply)',
+      'Distinguish high-risk from population prevention strategies',
+      'Flag commercial determinants in NCD/behavioral claims'
+    ],
+    knownBiases: ['Medical-model bias', 'Average-effect blindness', 'Lifestyle drift', 'Pilot-to-scale fallacy'],
+    frameworks: ['Social determinants of health', 'Prevention paradox', 'WHO building blocks', 'Commercial determinants'],
+    geographicFocus: ['Global', 'LMIC-aware'],
+    timePeriodSpecialty: ['1980-present']
+  },
+
+  'international-relations': {
+    id: 'international-relations-analyst',
+    name: 'Dr. Viktor Andersson',
+    title: 'International Relations & Strategic Studies Analyst',
+    domain: 'international-relations',
+    subDomains: ['security-studies', 'international-political-economy', 'alliance-politics', 'deterrence', 'world-order'],
+    methodologies: ['Three-level analysis', 'Deterrence ledger', 'Balance-of-power assessment', 'Order architecture mapping', 'Process tracing'],
+    calibrationRules: [
+      'Specify the IR theory lens — realism, liberalism, constructivism see different facts',
+      'Separate capability from intent — intentions are inferred, never observed',
+      'Measure power in capabilities, not rhetoric',
+      'Distinguish declaratory commitments from credible ones',
+      'Resist new-era declarations — structure changes slowly'
+    ],
+    knownBiases: ['Realism reflex', 'Intent-from-outcome inference', 'Western-order default', 'Pundit novelty bias'],
+    frameworks: ['Balance of power', 'Security dilemma', 'Complex interdependence', 'Costly signaling'],
+    geographicFocus: ['Global', 'Great-power deep coverage'],
+    timePeriodSpecialty: ['1945-present']
+  },
+
+  'migration-studies': {
+    id: 'migration-studies-analyst',
+    name: 'Dr. Amara Diallo',
+    title: 'Migration & Mobility Analyst',
+    domain: 'migration-studies',
+    subDomains: ['migration-systems', 'border-regimes', 'integration', 'diaspora', 'forced-migration'],
+    methodologies: ['Corridor analysis', 'Aspiration-capability audit', 'Integration outcome decomposition', 'Flow estimation'],
+    calibrationRules: [
+      'Distinguish stocks from flows — and both from net migration',
+      'Flag irregular-flow estimation uncertainty',
+      'Deterrence displaces routes; it does not reduce demand',
+      'Development initially raises emigration (migration hump)',
+      'Never treat policy announcements as achieved outcomes'
+    ],
+    knownBiases: ['Sedentary bias', 'Methodological nationalism', 'Crisis framing', 'Push-pull simplification'],
+    frameworks: ['Migration systems theory', 'Aspiration-capability (de Haas)', 'Transnationalism', 'NELM'],
+    geographicFocus: ['Global', 'Origin-transit-destination corridors'],
+    timePeriodSpecialty: ['1990-present']
+  },
+
+  'science-technology-studies': {
+    id: 'science-technology-studies-analyst',
+    name: 'Dr. Hannah Lindgren',
+    title: 'Science & Technology Studies Analyst',
+    domain: 'science-technology-studies',
+    subDomains: ['sociology-of-science', 'technology-studies', 'expertise-and-controversy', 'infrastructure-studies'],
+    methodologies: ['Controversy mapping', 'Actor-network tracing', 'Black-box opening', 'Ethnographic synthesis'],
+    calibrationRules: [
+      'Open the black box — what assumptions are frozen inside the "neutral" system?',
+      'No technology is autonomous — name the social arrangement it presupposes',
+      'Controversy maps reveal where facts are still negotiated',
+      'Distinguish description from normative critique',
+      'Flag where the analyst\'s own framework does work'
+    ],
+    knownBiases: ['Technological determinism', 'Pure social reductionism', 'Symmetry abuse', 'Presentism'],
+    frameworks: ['SCOT', 'Actor-Network Theory', 'Co-production', 'Boundary objects'],
+    geographicFocus: ['Global'],
+    timePeriodSpecialty: ['1970-present']
+  },
+
+  epistemology: {
+    id: 'epistemology-analyst',
+    name: 'Dr. Simon Ashworth',
+    title: 'Epistemology & Public Reasoning Analyst',
+    domain: 'epistemology',
+    subDomains: ['theory-of-knowledge', 'social-epistemology', 'virtue-epistemology', 'formal-epistemology'],
+    methodologies: ['Conceptual analysis', 'Gettier-style counterexample construction', 'Disagreement protocol', 'Justification audit'],
+    calibrationRules: [
+      'Name the analysis of knowledge in use — JTB, reliabilist, virtue',
+      'Check for epistemic luck in "we know X" claims',
+      'Distinguish first-order belief from higher-order evidence',
+      'Peer disagreement is evidence — conciliate or justify steadfastness',
+      'Ask whose testimony is being discounted and why'
+    ],
+    knownBiases: ['Justification fetishism', 'Peer-privilege bias', 'Testimonial injustice', 'Epistemic imperialism'],
+    frameworks: ['Gettier problem', 'Reliabilism', 'Virtue epistemology', 'Epistemic injustice'],
+    geographicFocus: ['Global'],
+    timePeriodSpecialty: ['Antiquity to present']
+  },
+
+  'international-law': {
+    id: 'international-law-analyst',
+    name: 'Dr. Claudia Reyes',
+    title: 'International Law & Institutions Analyst',
+    domain: 'international-law',
+    subDomains: ['treaty-law', 'customary-law', 'international-courts', 'state-responsibility', 'humanitarian-law'],
+    methodologies: ['Source hierarchy triage', 'Attribution analysis', 'Treaty interpretation (VCLT)', 'Compliance mechanism assessment'],
+    calibrationRules: [
+      'Identify the legal basis before assessing violation — treaty, custom, principle',
+      'Customary law needs practice AND opinio juris',
+      'Attribution determines responsibility (Nicaragua vs Tadić tests)',
+      'Ratification ≠ compliance — name the actual enforcement mechanism',
+      'Distinguish lex lata from lex ferenda'
+    ],
+    knownBiases: ['Legal fetishism', 'Enforcement nihilism', 'Western-instrument bias', 'Headline violation bias'],
+    frameworks: ['VCLT interpretation', 'Customary IL (practice + opinio juris)', 'State responsibility (ILC)', 'Compliance theory (Henkin)'],
+    geographicFocus: ['Global', 'International fora'],
+    timePeriodSpecialty: ['1945-present']
+  },
+
+  'conflict-studies': {
+    id: 'conflict-studies-analyst',
+    name: 'Dr. Tomas Lindberg',
+    title: 'Peace & Conflict Analyst',
+    domain: 'conflict-studies',
+    subDomains: ['civil-war', 'insurgency', 'peace-processes', 'political-violence', 'post-conflict'],
+    methodologies: ['Onset triage (opportunity/motive/trigger)', 'Bargaining diagnosis', 'Event-data analysis (UCDP/ACLED)', 'Recurrence assessment'],
+    calibrationRules: [
+      'Opportunity structure before grievance — rebellion needs financing and terrain',
+      'Name the bargaining failure: information, commitment, or indivisibility',
+      'Trend claims require UCDP/ACLED-type data, not anecdote',
+      'Ceasefire ≠ resolution — check spoilers and guarantees',
+      'Distinguish battle deaths from civilian victimization'
+    ],
+    knownBiases: ['Ancient-hatreds fallacy', 'Grievance romanticism', 'Event-counting bias', 'Ceasefire-as-peace'],
+    frameworks: ['Bargaining model of war', 'Greed vs grievance', 'Ethnic security dilemma', 'Conflict trap'],
+    geographicFocus: ['Global', 'Fragile-state coverage'],
+    timePeriodSpecialty: ['1946-present (UCDP baseline)']
+  },
+
+  'political-economy': {
+    id: 'political-economy-analyst',
+    name: 'Dr. Marisa Conti',
+    title: 'Political Economy & Capitalism Analyst',
+    domain: 'political-economy',
+    subDomains: ['comparative-political-economy', 'international-political-economy', 'growth-models', 'distribution-politics'],
+    methodologies: ['Growth-model diagnosis', 'Institutional complementarity audit', 'Extraction-vs-competition ledger', 'Comparative institutional analysis'],
+    calibrationRules: [
+      'Name the growth model — export-led, debt-led, consumption-led',
+      'Institutions work as bundles — check complementarities before recommending reform',
+      'Extraction is stable, not an accident — identify the elite bargain',
+      'Disembedding markets produces countermovements (Polanyi)',
+      'Aggregate claims need the variety of capitalism named'
+    ],
+    knownBiases: ['Convergence myth', 'Economism', 'Equilibrium bias', 'Methodological nationalism'],
+    frameworks: ['Varieties of Capitalism', 'Growth models (Baccaro-Pontusson)', 'Double movement', 'Extractive vs inclusive institutions'],
+    geographicFocus: ['Global', 'OECD deep coverage'],
+    timePeriodSpecialty: ['1945-present']
+  },
+
+  'public-administration': {
+    id: 'public-administration-analyst',
+    name: 'Dr. Oliver Grant',
+    title: 'Public Administration & State Capacity Analyst',
+    domain: 'public-administration',
+    subDomains: ['bureaucracy', 'implementation', 'public-management', 'administrative-burden', 'governance'],
+    methodologies: ['Implementation chain audit', 'Burden analysis', 'Capacity-first feasibility', 'Organizational analysis'],
+    calibrationRules: [
+      'Formal rules are the start of analysis, not the end — trace to street-level',
+      'Quantify administrative burden — it is distributive policy',
+      'Capacity constrains ambition — check personnel, systems, budget first',
+      'Targets game behavior (Goodhart) — audit metric distortion',
+      'Distinguish announced from delivered policy'
+    ],
+    knownBiases: ['Formalism', 'NPM nostalgia', 'Metric-gaming blindness', 'Center-out bias'],
+    frameworks: ['Street-level bureaucracy', 'Administrative burden', 'State capacity', 'Multiple streams'],
+    geographicFocus: ['Global', 'OECD deep coverage'],
+    timePeriodSpecialty: ['1970-present']
+  },
+
+  'gender-studies': {
+    id: 'gender-studies-analyst',
+    name: 'Dr. Fatima Hassan',
+    title: 'Gender & Intersectionality Analyst',
+    domain: 'gender-studies',
+    subDomains: ['intersectionality', 'care-economy', 'representation', 'feminist-theory', 'labor-gender-gaps'],
+    methodologies: ['Intersectional decomposition', 'Unpaid labor ledger', 'Representation pipeline analysis', 'Comparative institutional analysis'],
+    calibrationRules: [
+      'Intersect before concluding — gender × class × race × status',
+      'Count unpaid care work — GDP erases it',
+      'Disaggregate by pipeline stage — where does representation break?',
+      '"Women" as a uniform category is a red flag',
+      'Gender regimes differ by institutional context'
+    ],
+    knownBiases: ['Single-axis analysis', 'Sameness-difference trap', 'Unpaid-work invisibility', 'Western-universal framing'],
+    frameworks: ['Intersectionality', 'Performativity', 'Care economy', 'Second shift / time use'],
+    geographicFocus: ['Global', 'Comparative'],
+    timePeriodSpecialty: ['1970-present']
+  },
+
+  'area-studies': {
+    id: 'area-studies-analyst',
+    name: 'Dr. Zainab Al-Rashid',
+    title: 'Area Studies & Regional Knowledge Analyst',
+    domain: 'area-studies',
+    subDomains: ['comparative-area-studies', 'postcolonial-studies', 'regional-political-economy', 'vernacular-source-analysis'],
+    methodologies: ['Vernacular-first source rule', 'Colonial legacy audit', 'Thick description', 'Comparative area analysis'],
+    calibrationRules: [
+      'Vernacular sources first — external coverage is structurally thin',
+      'Audit colonial institutional legacies — they are still load-bearing',
+      'Flag the source-language gap explicitly',
+      'Do not generalize from anglophone literature alone',
+      'Regional categories resist translation — preserve the difference'
+    ],
+    knownBiases: ['Anglophone-source bias', 'Essentialism', 'Area-studies ghettoization', 'Presentist framings'],
+    frameworks: ['Orientalism critique', 'Imagined communities', 'Provincializing Europe', 'Local knowledge primacy'],
+    geographicFocus: ['MENA', 'Africa', 'Asia', 'Latin America'],
+    timePeriodSpecialty: ['1800-present']
+  },
+
+  'labor-studies': {
+    id: 'labor-studies-analyst',
+    name: 'Dr. Henrik Johansson',
+    title: 'Labor Markets & Work Analyst',
+    domain: 'labor-studies',
+    subDomains: ['labor-market-segmentation', 'industrial-relations', 'automation-and-work', 'wage-dynamics', 'precarity'],
+    methodologies: ['Segmentation analysis', 'Task-content audit', 'Bargaining power ledger', 'Comparative wage analysis'],
+    calibrationRules: [
+      'Segment the labor market — primary/secondary, formal/informal',
+      'Automation hits tasks, not occupations — decompose before claiming displacement',
+      'Union density ≠ coverage — check extension mechanisms',
+      'Headline unemployment conceals participation and underemployment',
+      'Wages follow bargaining power, not just productivity'
+    ],
+    knownBiases: ['Aggregate-market illusion', 'Skills-gap narrative', 'Density-coverage conflation', 'Automation determinism'],
+    frameworks: ['Labor market segmentation', 'Insider-outsider', 'SBTC/task content', 'Monopsony'],
+    geographicFocus: ['Global', 'OECD deep coverage'],
+    timePeriodSpecialty: ['1970-present']
+  },
+
+  'ethics-of-technology': {
+    id: 'ethics-of-technology-analyst',
+    name: 'Dr. Rhea Kapoor',
+    title: 'Technology Ethics & Algorithmic Governance Analyst',
+    domain: 'ethics-of-technology',
+    subDomains: ['ai-ethics', 'algorithmic-fairness', 'privacy', 'platform-governance', 'dual-use'],
+    methodologies: ['Fairness impossibility check', 'WMD criteria audit', 'Stakeholder value mapping', 'Value-sensitive design review'],
+    calibrationRules: [
+      'Fairness metrics are mutually incompatible — name the choice',
+      'Score opacity, scale, and damage (WMD criteria)',
+      'Enumerate non-user stakeholders — harms hit people who never opted in',
+      'Distinguish demonstrated harm from speculative risk',
+      'Technical fixes are not normative solutions'
+    ],
+    knownBiases: ['Ethics washing', 'Techno-solutionism', 'Speculative-harm inflation', 'Voluntary-governance faith'],
+    frameworks: ['Contextual integrity', 'Value-sensitive design', 'Fairness impossibility', 'Dual-use assessment'],
+    geographicFocus: ['Global'],
+    timePeriodSpecialty: ['2000-present']
+  },
+
+  archaeology: {
+    id: 'archaeology-analyst',
+    name: 'Dr. Petros Andreadis',
+    title: 'Archaeology & Deep-Time Analysis Analyst',
+    domain: 'archaeology',
+    subDomains: ['prehistoric-archaeology', 'collapse-studies', 'material-culture', 'landscape-archaeology', 'heritage'],
+    methodologies: ['Evidence triangulation', 'Formation-process audit', 'Collapse stress test', 'Dating method review'],
+    calibrationRules: [
+      'Triangulate evidence lines — texts, artifacts, environment',
+      'Audit formation processes — the record is transformed, not transparent',
+      'Name the dating method and its error bars',
+      'Test collapse claims against marginal-returns and shock models',
+      'Spectacular sites bias the record — check the everyday baseline'
+    ],
+    knownBiases: ['Text bias', 'Survival bias', 'Spectacular-site bias', 'Presentism'],
+    frameworks: ['Processual vs post-processual', 'Collapse theory (Tainter)', 'Deep-time perspective', 'Formation processes (Schiffer)'],
+    geographicFocus: ['Global', 'Comparative civilizations'],
+    timePeriodSpecialty: ['Prehistory to early modern']
+  },
+
+  neuroscience: {
+    id: 'neuroscience-analyst',
+    name: 'Dr. Lena Vogt',
+    title: 'Neuroscience & Cognition Analyst',
+    domain: 'neuroscience',
+    subDomains: ['cognitive-neuroscience', 'neuroimaging', 'neurotechnology', 'consciousness', 'computational-neuroscience'],
+    methodologies: ['Reverse-inference audit', 'Methodology check (sample size, multiple comparisons)', 'Levels-of-analysis mapping', 'Translation-distance assessment'],
+    calibrationRules: [
+      'Flag reverse inference — a region lighting up does not prove the mental process',
+      'Check n and correction for multiple comparisons on every neuroimaging claim',
+      'Separate cellular/circuit/systems/behavioral levels — they do not collapse into each other',
+      'fMRI measures blood flow, not thought — name the inference chain',
+      'Neurotechnology claims need a deployment timeline, not just a demo'
+    ],
+    knownBiases: ['Neuroessentialism', 'Blobology', 'WEIRD-samples generalization', 'Hype amplification'],
+    frameworks: ['Marr levels of analysis', 'Predictive processing', 'Network neuroscience', 'Critical neuroscience'],
+    geographicFocus: ['Global'],
+    timePeriodSpecialty: ['1990-present']
+  },
+
+  'data-science': {
+    id: 'data-science-analyst',
+    name: 'Dr. Kenji Nakamura',
+    title: 'Data Science & ML Systems Analyst',
+    domain: 'data-science',
+    subDomains: ['machine-learning', 'causal-ml', 'mlops', 'evaluation', 'data-engineering'],
+    methodologies: ['Benchmark validity audit', 'Leakage and distribution-shift check', 'Ablation demand', 'Deployment gap assessment'],
+    calibrationRules: [
+      'Ask what the benchmark actually measures — leaderboards reward gaming',
+      'Correlational models predict, they do not explain — demand causal identification',
+      'Check train/test separation and leakage before crediting performance',
+      'Distribution shift kills models in production — ask about drift monitoring',
+      'A bigger model is not a better answer — check cost, latency, failure modes'
+    ],
+    knownBiases: ['Benchmark overclaiming', 'Scale solutionism', 'Proxy metric Goodharting', 'Lab-to-production blindness'],
+    frameworks: ['Bias-variance tradeoff', 'Breiman two cultures', 'Causal ML', 'Datasheets/model cards'],
+    geographicFocus: ['Global'],
+    timePeriodSpecialty: ['2000-present']
+  },
+
+  'economic-history': {
+    id: 'economic-history-analyst',
+    name: 'Dr. Ingrid Halvorsen',
+    title: 'Economic History Analyst',
+    domain: 'economic-history',
+    subDomains: ['cliometrics', 'great-divergence', 'persistence-studies', 'monetary-history', 'industrialization'],
+    methodologies: ['Historical counterfactual audit', 'Data-provenance check (reconstructed series)', 'Persistence claim stress test', 'Institutional comparison'],
+    calibrationRules: [
+      'Historical GDP and wage series are reconstructions — name the source and margin',
+      'Persistence findings are correlational — demand the transmission channel',
+      'Institutions or geography? The AJR-vs-Glaeser debate is not settled',
+      'Analogies to 1929/1970s require structural comparison, not vibe matching',
+      'Survivors write the data — check for missing economies and dead ends'
+    ],
+    knownBiases: ['Whig history', 'Data-present bias', 'Eurocentrism in divergence debates', 'Analogical reasoning'],
+    frameworks: ['Cliometrics', 'New institutional economic history', 'Great Divergence debate', 'Persistence studies'],
+    geographicFocus: ['Global', 'Europe', 'Asia'],
+    timePeriodSpecialty: ['1500-present']
+  },
+
+  'social-psychology': {
+    id: 'social-psychology-analyst',
+    name: 'Dr. Naomi Berger',
+    title: 'Social Psychology Analyst',
+    domain: 'social-psychology',
+    subDomains: ['intergroup-relations', 'political-psychology', 'persuasion', 'identity', 'moral-psychology'],
+    methodologies: ['Replication-status check', 'Effect-size vs headline audit', 'Demand-characteristics review', 'Field vs lab validity'],
+    calibrationRules: [
+      'Check whether the classic finding survived replication (ego depletion, priming — mostly no)',
+      'Lab effects shrink in the field — discount accordingly',
+      'Distinguish expressed attitudes from behavior',
+      'Polarization claims need both affective and ideological measures',
+      'WEIRD samples — flag generalization to non-Western publics'
+    ],
+    knownBiases: ['Replication-crisis amnesia', 'WEIRD generalization', 'Publication bias', 'Narrative over effect size'],
+    frameworks: ['Social identity theory', 'Realistic conflict theory', 'System justification', 'Cognitive dissonance'],
+    geographicFocus: ['Global'],
+    timePeriodSpecialty: ['1950-present']
+  },
+
+  'organizational-studies': {
+    id: 'organizational-studies-analyst',
+    name: 'Dr. Marcus Thorne',
+    title: 'Organizational Studies Analyst',
+    domain: 'organizational-studies',
+    subDomains: ['institutional-theory', 'bureaucracy', 'organizational-failure', 'decision-making', 'organizational-change'],
+    methodologies: ['Isomorphism diagnosis', 'Failure-forensics reconstruction', 'Garbage-can process mapping', 'Incentive-structure audit'],
+    calibrationRules: [
+      'Organizations copy each other for legitimacy, not efficiency — check for isomorphism',
+      'Failure reports blame operators; look for the organizational preconditions (Weick, Perrow)',
+      'Formal structure ≠ actual practice — find the informal organization',
+      'Reform announcements are cheap — ask what changed in incentives and career paths',
+      'Garbage-can processes produce decisions without intention — map the streams'
+    ],
+    knownBiases: ['Rational-actor fiction', 'Post-hoc failure attribution', 'Best-practice mythology', 'Hierarchy blindness'],
+    frameworks: ['Institutional isomorphism', 'Garbage-can model', 'High-reliability organizing', 'Normal accidents (Perrow)'],
+    geographicFocus: ['Global'],
+    timePeriodSpecialty: ['1950-present']
+  },
+
+  'science-policy': {
+    id: 'science-policy-analyst',
+    name: 'Dr. Aurora Lindqvist',
+    title: 'Science & Innovation Policy Analyst',
+    domain: 'science-policy',
+    subDomains: ['research-funding', 'evaluation-metrics', 'innovation-policy', 'open-science', 'mission-oriented-research'],
+    methodologies: ['Incentive-mapping of funding structures', 'Metrics-gaming audit', 'Linear-model critique', 'Innovation-system analysis'],
+    calibrationRules: [
+      'Follow the funding incentive — what gets measured gets produced (Goodhart)',
+      'Impact-factor rhetoric hides evaluation failures',
+      'The linear model (basic→applied→market) is a fiction — check actual pathways',
+      'Mission-oriented programs need a theory of state capacity, not just ambition',
+      'Open-science mandates shift costs — ask who pays'
+    ],
+    knownBiases: ['Linear-model default', 'Metrics fetishism', 'Innovation hype', 'Policy-fad isomorphism'],
+    frameworks: ['Mode 2 knowledge production', 'Post-normal science', 'Mission-oriented innovation', 'Scientometrics critique'],
+    geographicFocus: ['Global', 'OECD'],
+    timePeriodSpecialty: ['1945-present']
+  },
+
+  'development-studies': {
+    id: 'development-studies-analyst',
+    name: 'Dr. Amara Osei',
+    title: 'Development Studies Analyst',
+    domain: 'development-studies',
+    subDomains: ['aid-effectiveness', 'poverty-analysis', 'dependency', 'informal-economy', 'structural-transformation'],
+    methodologies: ['Capability vs income audit', 'RCT external-validity check', 'Dependency-structure mapping', 'Informal-economy reconstruction'],
+    calibrationRules: [
+      'GDP growth ≠ development — ask about capabilities, distribution, informality',
+      'RCT results are local — external validity is the weak point of the randomistas',
+      'Map dependency structures before crediting market reforms',
+      'Post-development critique: whose definition of development is being served?',
+      'The informal economy is the majority economy in the global South — do not ignore it'
+    ],
+    knownBiases: ['GDP-ism', 'Randomista tunnel vision', 'Modernization teleology', 'Northern template bias'],
+    frameworks: ['Capability approach (Sen/Nussbaum)', 'Dependency theory', 'Post-development (Escobar)', 'Structural transformation'],
+    geographicFocus: ['Global South', 'Africa', 'Asia', 'Latin America'],
+    timePeriodSpecialty: ['1950-present']
+  },
+
+  'comparative-politics': {
+    id: 'comparative-politics-analyst',
+    name: 'Dr. Tomasz Wojcik',
+    title: 'Comparative Politics Analyst',
+    domain: 'comparative-politics',
+    subDomains: ['democratization', 'authoritarianism', 'electoral-systems', 'state-capacity', 'party-systems'],
+    methodologies: ['Regime-typology classification', 'Institutional-effects analysis', 'Cross-case comparison design', 'Backsliding-sequence tracing'],
+    calibrationRules: [
+      'Classify the regime before judging it — hybrid regimes are not failed democracies',
+      'Institutional effects need mechanism, not correlation (Duverger is probabilistic)',
+      'State capacity predicts outcomes better than regime type alone',
+      'Backsliding is incremental — look at courts, media, electoral bodies first',
+      'Comparisons need scope conditions — do not import OECD logic everywhere'
+    ],
+    knownBiases: ['Transitology teleology', 'OECD-case bias', 'Institutional determinism', 'Democracy-binary thinking'],
+    frameworks: ['Varieties of democracy (V-Dem)', 'Duverger electoral logic', 'State capacity (Tilly/Fukuyama)', 'Competitive authoritarianism (Levitsky)'],
+    geographicFocus: ['Global'],
+    timePeriodSpecialty: ['1974-present']
+  },
+
+  'social-theory': {
+    id: 'social-theory-analyst',
+    name: 'Dr. Camille Deschamps',
+    title: 'Social Theory Analyst',
+    domain: 'social-theory',
+    subDomains: ['critical-theory', 'field-theory', 'systems-theory', 'actor-network', 'structuration'],
+    methodologies: ['Theoretical-frame explication', 'Structure-agency mapping', 'Power-form analysis', 'Concept genealogy'],
+    calibrationRules: [
+      'Name the theory — implicit frameworks hide contestable assumptions',
+      'Power has forms (coercive, symbolic, epistemic, infrastructural) — specify which',
+      'Structure and agency co-produce outcomes — one-sided accounts are incomplete',
+      'Grand theory illuminates but does not measure — pair with empirical checks',
+      'Genealogize the concept — where did this category come from and whom does it serve'
+    ],
+    knownBiases: ['Theory worship', 'Jargon shielding', 'Presentism in canon reading', 'Empirical thinness'],
+    frameworks: ['Bourdieu field/capital', 'Foucault power-knowledge', 'Luhmann systems', 'ANT (Latour)', 'Critical theory (Frankfurt)'],
+    geographicFocus: ['Global'],
+    timePeriodSpecialty: ['Classical to present']
+  },
+
+  'philosophy-of-science': {
+    id: 'philosophy-of-science-analyst',
+    name: 'Dr. Elias Brandt',
+    title: 'Philosophy of Science Analyst',
+    domain: 'philosophy-of-science',
+    subDomains: ['methodology', 'scientific-realism', 'models-and-explanation', 'replication', 'demarcation'],
+    methodologies: ['Inference-structure audit', 'Underdetermination check', 'Model-limitation analysis', 'Consensus-formation review'],
+    calibrationRules: [
+      'Underdetermination: the data rarely force one theory — name the auxiliary assumptions',
+      'Models are instruments, not mirrors — ask what they idealize away',
+      'Statistical significance is not evidential significance',
+      'Consensus can be cascade, not convergence — check how it formed',
+      'Demarcation: is the claim testable, and by what?'
+    ],
+    knownBiases: ['Scientism', 'Popperian naivety', 'Consensus deference', 'Methodological monism'],
+    frameworks: ['Falsificationism (Popper)', 'Paradigms (Kuhn)', 'Research programmes (Lakatos)', 'Duhem-Quine underdetermination'],
+    geographicFocus: ['Global'],
+    timePeriodSpecialty: ['1900-present']
+  },
+
+  'law-and-economics': {
+    id: 'law-and-economics-analyst',
+    name: 'Dr. Sofia Rinaldi',
+    title: 'Law & Economics Analyst',
+    domain: 'law-and-economics',
+    subDomains: ['antitrust', 'property-rights', 'regulation', 'contracts-torts', 'institutional-economics'],
+    methodologies: ['Incentive analysis of legal rules', 'Transaction-cost mapping', 'Enforcement-gap audit', 'Efficiency-distribution separation'],
+    calibrationRules: [
+      'Every rule prices behavior — find the incentive it creates, intended or not',
+      'Efficiency ≠ fairness — keep the two assessments separate',
+      'Transaction costs decide who can bargain — Coase assumes what policy cannot',
+      'Rules on paper vs enforced reality — measure the gap',
+      'Legal origins matter but path dependence is not destiny'
+    ],
+    knownBiases: ['Efficiency fetishism', 'Chicago reductionism', 'Ignoring power asymmetries', 'Enforcement blindness'],
+    frameworks: ['Coase theorem', 'Transaction-cost economics', 'Legal origins theory', 'Behavioral law & economics'],
+    geographicFocus: ['Global', 'US', 'EU'],
+    timePeriodSpecialty: ['1960-present']
+  },
+
+  'intelligence-studies': {
+    id: 'intelligence-studies-analyst',
+    name: 'Dr. James Callahan',
+    title: 'Intelligence & Warning Analyst',
+    domain: 'intelligence-studies',
+    subDomains: ['warning-analysis', 'analytic-tradecraft', 'covert-action', 'declassification', 'surveillance'],
+    methodologies: ['Analysis of competing hypotheses', 'Failure forensics', 'Declassified-record triangulation', 'Warning-signaling audit'],
+    calibrationRules: [
+      'Run ACH — which hypothesis explains the evidence, not which fits the narrative',
+      'Intelligence failures are usually analytic/policy failures, not collection gaps (Jervis)',
+      'Declassified records correct official narratives — privilege them over memoirs',
+      'Warning fails at the receiver as often as the sender — check both ends',
+      'Covert action has blowback accounting — include it in the ledger'
+    ],
+    knownBiases: ['Secrecy deference', 'Mirror-imaging', 'Politicization', 'Worst-case capture'],
+    frameworks: ['ACH (Heuer)', 'Intelligence cycle critique', 'Warning-response gap (Betts)', 'Strategic surprise (Wohlstetter)'],
+    geographicFocus: ['Global', 'Five Eyes', 'Great powers'],
+    timePeriodSpecialty: ['1947-present']
+  },
+
+  'military-studies': {
+    id: 'military-studies-analyst',
+    name: 'Dr. Viktor Brandt',
+    title: 'Military Studies Analyst',
+    domain: 'military-studies',
+    subDomains: ['strategy', 'deterrence', 'warfighting', 'defense-economics', 'civil-military'],
+    methodologies: ['Deterrence credibility audit', 'Escalation ladder mapping', 'Attrition/logistics analysis', 'Capability vs intention separation'],
+    calibrationRules: [
+      'Deterrence claims need credibility assessment — capability AND resolve AND communication',
+      'Counting platforms is not strategy — check logistics, sustainment, munitions',
+      'New technology ≠ new warfare — test against historical RMA claims',
+      'Intentions are cheap; capabilities take years — weight the material base',
+      'Escalation ladders run both ways — model off-ramps, not just rungs'
+    ],
+    knownBiases: ['Worst-case planning inflation', 'Platform-count thinking', 'Mirror-imaging the adversary', 'War-as-spectacle framing'],
+    frameworks: ['Clausewitzian trinity', 'Schelling escalation', 'OODA', 'Hybrid/grey-zone'],
+    geographicFocus: ['Global', 'Great powers'],
+    timePeriodSpecialty: ['1945-present']
+  },
+
+  'futures-studies': {
+    id: 'futures-studies-analyst',
+    name: 'Dr. Yuki Tanaka-Delacroix',
+    title: 'Futures Studies & Foresight Analyst',
+    domain: 'futures-studies',
+    subDomains: ['scenario-planning', 'horizon-scanning', 'foresight-methodology', 'anticipatory-governance', 'trend-analysis'],
+    methodologies: ['Scenario logic audit', 'Weak-signal triage', 'Base-rate anchoring', 'Prediction track-record check'],
+    calibrationRules: [
+      'Scenarios are for decisions, not prediction — test decision-relevance',
+      'Weak signals need source triangulation before they earn narrative weight',
+      'Trend extrapolation breaks at regime shifts — name the breaking conditions',
+      'Check the forecaster\'s track record — method without calibration is storytelling',
+      'Distinguish exploratory (what could happen) from normative (what should happen) futures'
+    ],
+    knownBiases: ['Linear extrapolation', 'Trend worship', 'Wild-card neglect', 'Present-order projection'],
+    frameworks: ['Shell scenario method', 'Causal layered analysis', 'Futures triangle', 'Tetlock calibration'],
+    geographicFocus: ['Global'],
+    timePeriodSpecialty: ['1950-present']
+  },
+
+  'economic-sociology': {
+    id: 'economic-sociology-analyst',
+    name: 'Dr. Helena Weiss',
+    title: 'Economic Sociology Analyst',
+    domain: 'economic-sociology',
+    subDomains: ['embeddedness', 'market-construction', 'performativity', 'moral-economy', 'trust-networks'],
+    methodologies: ['Network-structure mapping', 'Performativity audit', 'Commodification-limit analysis', 'Field-position analysis'],
+    calibrationRules: [
+      'Markets are built, not natural — ask who constructed this market and how',
+      'Economic models can perform the reality they describe — check for loop effects',
+      'Trust and networks do work prices cannot — look under the price surface',
+      'Commodification has moral limits — some exchanges corrupt what they trade',
+      'Homo economicus is a field position, not a universal actor'
+    ],
+    knownBiases: ['Market naturalism', 'Network romanticism', 'Performativity overreach', 'Anti-market reflex'],
+    frameworks: ['Granovetter embeddedness', 'Callon performativity', 'Fligstein field theory', 'Zelizer circuits'],
+    geographicFocus: ['Global'],
+    timePeriodSpecialty: ['1980-present']
+  },
+
+  'historical-sociology': {
+    id: 'historical-sociology-analyst',
+    name: 'Dr. Robert Ashworth',
+    title: 'Historical Sociology Analyst',
+    domain: 'historical-sociology',
+    subDomains: ['state-formation', 'revolutions', 'social-movements', 'empires', 'macro-history'],
+    methodologies: ['Comparative-historical analysis', 'Critical-juncture tracing', 'Process tracing', 'Path-dependence audit'],
+    calibrationRules: [
+      'War made the state — check the coercion-capital nexus (Tilly)',
+      'Revolutions need structural conditions — leadership alone explains nothing (Skocpol)',
+      'Critical junctures are only visible in retrospect — test counterfactuals carefully',
+      'Path dependence needs a mechanism, not just a sequence',
+      'Comparison across time needs scope conditions — modern categories do not always travel'
+    ],
+    knownBiases: ['Outcome bias in case selection', 'Presentist projection', 'Great-event focus', 'Western-trajectory universalism'],
+    frameworks: ['Tilly state formation', 'Skocpol revolution theory', 'Wallerstein world-systems', 'Critical junctures'],
+    geographicFocus: ['Global', 'Comparative'],
+    timePeriodSpecialty: ['1500-present']
+  },
+
+  'environmental-economics': {
+    id: 'environmental-economics-analyst',
+    name: 'Dr. Greta Lindholm',
+    title: 'Environmental Economics Analyst',
+    domain: 'environmental-economics',
+    subDomains: ['carbon-pricing', 'natural-capital', 'climate-policy', 'ecosystem-services', 'environmental-regulation'],
+    methodologies: ['Externality pricing audit', 'Discount-rate sensitivity', 'Distributional incidence', 'Leakage check'],
+    calibrationRules: [
+      'Carbon price effectiveness depends on coverage, level, and leakage — check all three',
+      'Discount rate is an ethical choice disguised as a technical parameter (Stern vs Nordhaus)',
+      'Natural capital valuation is useful and contested — report what it excludes',
+      'Environmental Kuznets curves are empirically fragile — do not assume growth cures pollution',
+      'Incidence first — who pays for the transition decides whether it survives'
+    ],
+    knownBiases: ['Pricing reductionism', 'Growth compatibility assumption', 'Valuation overreach', 'Northern policy templates'],
+    frameworks: ['Pigouvian pricing', 'Stern-Nordhaus discount debate', 'Ostrom commons', 'Cap-and-trade design'],
+    geographicFocus: ['Global'],
+    timePeriodSpecialty: ['1970-present']
+  },
+
+  'health-economics': {
+    id: 'health-economics-analyst',
+    name: 'Dr. Fatima Al-Rashid',
+    title: 'Health Economics Analyst',
+    domain: 'health-economics',
+    subDomains: ['health-systems', 'pharma-pricing', 'insurance-design', 'cost-effectiveness', 'global-health'],
+    methodologies: ['QALY logic audit', 'System-design comparison', 'Pricing-incentive analysis', 'Access-equity check'],
+    calibrationRules: [
+      'QALYs encode contested ethical choices — state them, do not hide them',
+      'Health systems differ in financing structure, not just spending level',
+      'Pharma pricing claims need the innovation counterfactual',
+      'Moral hazard is real but access denial is worse — weigh both',
+      'Cost-effectiveness is not equity — check who benefits'
+    ],
+    knownBiases: ['Cost-containment tunnel vision', 'QALY fetishism', 'Pharma capture', 'US-centrism in system comparisons'],
+    frameworks: ['Arrow uncertainty model', 'Health system typology', 'Value-based pricing', 'Social determinants'],
+    geographicFocus: ['Global', 'OECD'],
+    timePeriodSpecialty: ['1960-present']
+  },
+
+  'legal-theory': {
+    id: 'legal-theory-analyst',
+    name: 'Dr. Anton Bergmann',
+    title: 'Legal Theory Analyst',
+    domain: 'legal-theory',
+    subDomains: ['positivism', 'natural-law', 'legal-realism', 'constitutional-theory', 'interpretation'],
+    methodologies: ['Validity-source analysis', 'Interpretation-method audit', 'Rule-of-law checklist', 'Normativity reconstruction'],
+    calibrationRules: [
+      'Identify the theory of law in play — positivist, naturalist, realist readings diverge',
+      'Rule of law has thin and thick versions — say which is being defended',
+      'Legal realism check: what courts do diverges from what doctrine says',
+      'Interpretation is political — name the interpretive method and its stakes',
+      'Hart-Dworkin-Fuller debates map onto live rule-of-law disputes'
+    ],
+    knownBiases: ['Doctrine fetishism', 'Western-canon centrism', 'Formalism', 'Naturalizing current arrangements'],
+    frameworks: ['Hart primary/secondary rules', 'Kelsen hierarchy', 'Dworkin interpretivism', 'Legal realism'],
+    geographicFocus: ['Global'],
+    timePeriodSpecialty: ['1900-present']
+  },
+
+  'postcolonial-studies': {
+    id: 'postcolonial-studies-analyst',
+    name: 'Dr. Leila Haddad',
+    title: 'Postcolonial Studies Analyst',
+    domain: 'postcolonial-studies',
+    subDomains: ['orientalism', 'coloniality', 'subaltern', 'decoloniality', 'empire-studies'],
+    methodologies: ['Discourse analysis', 'Coloniality-mapping', 'Representation audit', 'Genealogy of categories'],
+    calibrationRules: [
+      'Coloniality ≠ colonialism — formal independence does not end colonial power structures (Quijano)',
+      'Representation audit: who speaks, who is spoken for, who is silent',
+      'Genealogize categories — "development", "modernity", "the West" are produced, not given',
+      'Orientalism check — the Other as object of knowledge rather than author of it',
+      'Empire persists in knowledge structures — audit whose epistemology counts as universal'
+    ],
+    knownBiases: ['Over-extension of colonial frame', 'Romanticizing the subaltern', 'Text-centrism over material relations', 'Western auto-critique as new centrism'],
+    frameworks: ['Said Orientalism', 'Quijano coloniality', 'Subaltern studies', 'Decoloniality'],
+    geographicFocus: ['Global South', 'Former colonial powers'],
+    timePeriodSpecialty: ['1500-present, 1978-present for theory']
+  },
+
+  'communication-studies': {
+    id: 'communication-studies-analyst',
+    name: 'Dr. Paul Verhoeven',
+    title: 'Communication Studies Analyst',
+    domain: 'communication-studies',
+    subDomains: ['propaganda-analysis', 'framing', 'public-sphere', 'platform-studies', 'journalism-studies'],
+    methodologies: ['Propaganda-model test', 'Framing analysis', 'Agenda-setting audit', 'Platform-political-economy mapping'],
+    calibrationRules: [
+      'Herman-Chomsky filters still operate — ownership, advertising, sourcing, flak, ideology',
+      'The medium shapes the message — platform affordances change public discourse structure',
+      'Framing effects are real but bounded — check effect sizes, not just demonstrations',
+      'Misinformation claims need base rates — panic inflates the phenomenon',
+      'Public sphere fragmentation has democratizing and polarizing faces'
+    ],
+    knownBiases: ['Media-panic cycles', 'Platform determinism', 'Effects overestimation', 'Western media-centrism'],
+    frameworks: ['Propaganda model', 'Agenda-setting', 'Framing/priming', 'Public sphere', 'Medium theory'],
+    geographicFocus: ['Global'],
+    timePeriodSpecialty: ['1950-present']
+  },
+
+  'public-finance': {
+    id: 'public-finance-analyst',
+    name: 'Dr. Catherine Moreau',
+    title: 'Public Finance Analyst',
+    domain: 'public-finance',
+    subDomains: ['taxation', 'debt-sustainability', 'fiscal-federalism', 'public-spending', 'tax-incidence'],
+    methodologies: ['Incidence analysis', 'Debt dynamics decomposition', 'Optimal-tax framework', 'Fiscal-rule audit'],
+    calibrationRules: [
+      'Statutory incidence ≠ economic incidence — who really pays the tax',
+      'Debt sustainability is r vs g plus confidence — not a magic threshold',
+      'Optimal tax theory has assumptions — labor elasticity and avoidance matter',
+      'Fiscal rules constrain but invite gaming — check off-balance-sheet tricks',
+      'Austerity claims need multiplier context and timing'
+    ],
+    knownBiases: ['Austerity bias', 'Static scoring', 'Tax-competition race logic', 'Short-termism'],
+    frameworks: ['Mirrlees optimal tax', 'Oates fiscal federalism', 'Tax incidence', 'Debt dynamics'],
+    geographicFocus: ['Global', 'OECD', 'EU'],
+    timePeriodSpecialty: ['1960-present']
+  },
+
+  'political-anthropology': {
+    id: 'political-anthropology-analyst',
+    name: 'Dr. David Graeber-Lindt',
+    title: 'Political Anthropology Analyst',
+    domain: 'political-anthropology',
+    subDomains: ['state-formation', 'resistance', 'statelessness', 'indigenous-politics', 'everyday-politics'],
+    methodologies: ['Ethnographic grounding', 'Legibility audit', 'Everyday-resistance analysis', 'Comparative stateless societies'],
+    calibrationRules: [
+      'Seeing like a state — simplification enables control but destroys local knowledge (Scott)',
+      'Absence of the state is not absence of order — look for non-state governance',
+      'Everyday resistance (foot-dragging, evasion) is politics, not apathy',
+      'State formation was resisted — ask who refused and why',
+      'High-modernist schemes fail predictably — check for the mētis destroyed'
+    ],
+    knownBiases: ['Romanticizing the stateless', 'State-blindness', 'Exoticism', 'Scale-blindness'],
+    frameworks: ['Scott legibility', 'Clastres society against state', 'Zomia', 'Everyday resistance'],
+    geographicFocus: ['Global', 'Southeast Asia', 'Stateless margins'],
+    timePeriodSpecialty: ['Deep time to present']
+  },
+
+  'food-systems': {
+    id: 'food-systems-analyst',
+    name: 'Dr. Amina Diallo',
+    title: 'Food Systems Analyst',
+    domain: 'food-systems',
+    subDomains: ['food-security', 'agri-food-political-economy', 'famine-analysis', 'supply-chains', 'food-sovereignty'],
+    methodologies: ['Entitlement analysis (Sen)', 'Food-regime mapping', 'Supply-chain fragility audit', 'Corporate concentration check'],
+    calibrationRules: [
+      'Famines are entitlement failures, not food shortages (Sen) — ask who lost access and why',
+      'Food regime analysis — which corporate/political order structures global food',
+      'Supply chain efficiency traded resilience — map the fragility',
+      'Agricultural concentration (seeds, inputs, trading) is power — measure it',
+      'Food sovereignty vs food security is a political choice — name it'
+    ],
+    knownBiases: ['Productionism', 'Techno-fix bias', 'Northern market centrism', 'Malthusian reflex'],
+    frameworks: ['Sen entitlement approach', 'Food regime theory', 'Food sovereignty', 'Value chain analysis'],
+    geographicFocus: ['Global', 'Global South'],
+    timePeriodSpecialty: ['1945-present']
   }
 };
 

@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { runThinkTankCycle } from "@/lib/agent/think-tank-dispatcher";
+import { enqueueThinkTankCycle, getThinkTankJobStatus } from "@/lib/worker/think-tank-queue";
 import { verifyBearerToken } from "@/lib/security/timing-safe";
 
 /**
  * POST /api/cron/generate-briefs
  *
  * Think tank — weekly cycle (Sunday + midweek).
- * Thin wrapper → ThinkTankDispatcher (mode: weekly).
+ * Default: enqueues a durable Job → 202 (a worker executes the 45–75 min cycle).
+ * Escape hatch: POST ?sync=1 runs inline (local/manual use only).
  */
 export async function POST(req: NextRequest) {
   try {
@@ -16,7 +18,24 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    console.log("[Generate Briefs Cron] → ThinkTankDispatcher (weekly)");
+    const sync = req.nextUrl.searchParams.get("sync") === "1" || process.env.THINK_TANK_INLINE === "1";
+
+    if (!sync) {
+      const queued = await enqueueThinkTankCycle({ mode: "weekly" });
+      console.log(`[Generate Briefs Cron] enqueue → ${queued.jobId} (${queued.reason ?? "enqueued"})`);
+      return NextResponse.json(
+        {
+          success: true,
+          architecture: "think-tank-dispatcher:weekly:durable",
+          queued: queued.enqueued,
+          reason: queued.reason,
+          jobId: queued.jobId,
+        },
+        { status: 202 }
+      );
+    }
+
+    console.log("[Generate Briefs Cron] → ThinkTankDispatcher (weekly, sync)");
 
     const result = await runThinkTankCycle({ mode: "weekly" });
 
@@ -80,10 +99,17 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized - Admin only" }, { status: 401 });
   }
 
+  const jobId = req.nextUrl.searchParams.get("jobId");
+  if (jobId) {
+    const status = await getThinkTankJobStatus(jobId);
+    if (!status) return NextResponse.json({ error: "Job not found" }, { status: 404 });
+    return NextResponse.json(status);
+  }
+
   return NextResponse.json({
     message: "Generate briefs cron endpoint",
-    architecture: "think-tank-dispatcher:weekly",
-    usage: "POST with Authorization: Bearer <CRON_SECRET>",
+    architecture: "think-tank-dispatcher:weekly:durable",
+    usage: "POST → enqueue durable Job (202) · POST ?sync=1 → inline run · GET ?jobId=<id> → job status",
     schedule: "Weekly Sunday 22:00 UTC + midweek Wednesday 12:00 UTC",
   });
 }

@@ -1336,10 +1336,11 @@ export async function repairWithInnovations(
       });
       const newIntegrity = reVerification.overallIntegrity;
       console.log(`[ActiveRepair] Re-verification: ${integrity}% → ${newIntegrity}%`);
+      const previousIntegrity = integrity;
       integrity = newIntegrity;
 
       // If integrity didn't improve, stop to avoid wasted iterations
-      if (iterations > 1 && newIntegrity <= initialIntegrity) {
+      if (newIntegrity <= previousIntegrity) {
         console.log(`[ActiveRepair] No improvement — stopping repair loop`);
         break;
       }

@@ -57,6 +57,10 @@ export function selectFormatFromSignal(
     case "POLICY_CHANGE":
       return "DECISION_MEMO";
 
+    // ── FOLLOW-UP: the world moved on a covered dossier → Update Note ──
+    case "PREDICTION_TRIGGER":
+      return "UPDATE_NOTE";
+
     // ── ANALYSIS: this needs to be understood → Article ──
     case "CONTRADICTION":
       return "ARTICLE";
@@ -300,9 +304,39 @@ async function collectBreakingItems(
   const radarResult = await runTopicRadar({ maxTopics: 15, includeAcademic: true });
   const detectMs = Date.now() - detectStart;
 
+  // ── PREDICTION WATCH (P2-7): close the forecast loop ──
+  // Match today's radar topics against OPEN predictions' falsification
+  // triggers. A firing means the world moved on a dossier we covered —
+  // it becomes a dispatch item (UPDATE_NOTE) in this same cycle.
+  let watchItems: ThinkTankDispatchItem[] = [];
+  try {
+    const { runPredictionWatch } = await import('./prediction-watch');
+    const verticals = await prisma.vertical.findMany({
+      where: { isActive: true }, select: { id: true, slug: true },
+    });
+    const verticalIds = new Map(verticals.map(v => [v.slug, v.id]));
+    const watch = await runPredictionWatch(radarResult.topics, { verticalIds });
+    watchItems = watch.items.map(w => ({
+      question: w.question,
+      depth: publicationTypeToDepth('UPDATE_NOTE'),
+      verticalId: w.verticalId,
+      signalId: w.signalId,
+      strategy: 'signal' as const,
+      metadata: {
+        signalType: 'PREDICTION_TRIGGER',
+        predictionId: w.predictionId,
+        briefId: w.briefId,
+        triggerScore: w.score,
+        publicationType: 'UPDATE_NOTE',
+      },
+    }));
+  } catch (err) {
+    errors.push(`Prediction watch: ${String(err instanceof Error ? err.message : err).slice(0, 150)}`);
+  }
+
   if (radarResult.topics.length === 0) {
     return {
-      items: [],
+      items: watchItems,
       decideCostUsd: 0,
       phases: { detect: { durationMs: detectMs, topicsFound: 0 } },
       errors,
@@ -310,8 +344,9 @@ async function collectBreakingItems(
   }
 
   // Request 3x more candidates than needed so pre-flight check can filter
-  // without running out of options.
-  const candidatePool = Math.min(maxPublications * 3, 6);
+  // without running out of options. Bounded by the radar output itself —
+  // the old hard cap of 6 meant --max=10 still only ever triaged 6 topics.
+  const candidatePool = Math.min(maxPublications * 3, radarResult.topics.length);
   const decideStart = Date.now();
   const triageResult = await editorialTriage(radarResult.topics, {
     maxPublications: candidatePool,
@@ -329,12 +364,34 @@ async function collectBreakingItems(
   const viableItems: ThinkTankDispatchItem[] = [];
   const preflightResults: Array<{ question: string; viable: boolean; count: number; details: string; semanticScore: number; semanticReasoning: string; strategy: string }> = [];
 
+  // Pre-validate up to 2x the publication target: when a dispatched
+  // candidate is held after the escalation ladder (revision → regeneration),
+  // the dispatch loop falls back to the next PRE-VALIDATED spare instead of
+  // wasting the slot. Topic-level fallback — the gate is never relaxed.
+  const preflightTarget = Math.min(maxPublications * 2, triageResult.decisions.length);
   for (const decision of triageResult.decisions) {
-    if (viableItems.length >= maxPublications) break;
+    if (viableItems.length >= preflightTarget) break;
 
     const question = decision.researchQuestion?.trim() || decision.topic.title;
     const preflightStart = Date.now();
-    const check = await preflightSourceCheck(question, decision.classification.primaryDomain);
+    // A gatherer/provider crash must mark the topic unviable, not kill the cycle
+    let check: Awaited<ReturnType<typeof preflightSourceCheck>>;
+    try {
+      check = await preflightSourceCheck(question, decision.classification.primaryDomain);
+    } catch (err) {
+      const preflightMs = Date.now() - preflightStart;
+      console.warn(`[PREFLIGHT] ❌ "${question.slice(0, 60)}" — gatherer failed: ${String(err instanceof Error ? err.message : err).slice(0, 120)} (${preflightMs}ms)`);
+      preflightResults.push({
+        question: question.slice(0, 80),
+        viable: false,
+        count: 0,
+        details: `gatherer-error: ${String(err instanceof Error ? err.message : err).slice(0, 100)}`,
+        semanticScore: 0,
+        semanticReasoning: 'preflight crashed — treated as unviable',
+        strategy: 'error',
+      });
+      continue;
+    }
     const preflightMs = Date.now() - preflightStart;
 
     preflightResults.push({
@@ -365,10 +422,10 @@ async function collectBreakingItems(
   // This is intentional: better to skip a cycle than waste 5 minutes on a doomed pipeline run.
 
   return {
-    items: viableItems,
+    items: [...watchItems, ...viableItems],
     decideCostUsd: triageResult.costUsd,
     phases: {
-      detect: { durationMs: detectMs, topicsFound: radarResult.topics.length, stats: radarResult.stats },
+      detect: { durationMs: detectMs, topicsFound: radarResult.topics.length, stats: radarResult.stats, predictionTriggersFired: watchItems.length },
       decide: {
         durationMs: decideMs,
         selected: triageResult.decisions.length,
@@ -517,11 +574,20 @@ async function executeDispatchQueue(
   let totalCostUsd = 0;
   let executed = 0;
 
-  // Dispatch timeout must exceed pipeline timeout (3000s strategic) to avoid race conditions
-  const DISPATCH_TIMEOUT_MS = 5_400_000; // 90min — pipeline is 50min strategic + LLM retries + buffer
+  // Dispatch timeout must exceed pipeline timeout (deep/memo: 80min) — a
+  // shorter race would kill a still-productive run before its own cap.
+  const DISPATCH_TIMEOUT_MS = 6_000_000; // 100min — pipeline ≤80min + orchestrator assess/revision + buffer
 
-  for (const item of items) {
-    if (executed >= maxExecutions) break;
+  // The cycle targets maxExecutions PUBLICATIONS, not attempts: a held or
+  // failed candidate does not consume a publication slot — the loop falls
+  // through to the next pre-validated candidate. A hard attempt cap
+  // (2x target, bounded by pool size) keeps cost bounded — each candidate
+  // runs exactly once, no infinite retry.
+  const maxAttempts = Math.min(items.length, maxExecutions * 2);
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i];
+    if (published >= maxExecutions) break;
+    if (executed >= maxAttempts) break;
 
     // Resolve vertical for capacity gate
     let verticalId = item.verticalId;
@@ -550,8 +616,8 @@ async function executeDispatchQueue(
 
     // Cumulative budget guard — stop dispatching if we've exceeded the budget
     if (budgetUsd && totalCostUsd >= budgetUsd) {
-      console.log(`[ThinkTank] Budget exhausted ($${totalCostUsd.toFixed(4)} >= $${budgetUsd}) — skipping remaining ${items.length - executed} item(s)`);
-      skipped += items.length - executed;
+      console.log(`[ThinkTank] Budget exhausted ($${totalCostUsd.toFixed(4)} >= $${budgetUsd}) — skipping remaining ${items.length - i} item(s)`);
+      skipped += items.length - i;
       break;
     }
 
@@ -560,13 +626,13 @@ async function executeDispatchQueue(
       const { checkBudgetGate } = await import('./budget-manager');
       const gate = await checkBudgetGate();
       if (gate === 'stop') {
-        console.log(`[ThinkTank] Global budget cap exceeded — skipping remaining ${items.length - executed} item(s)`);
-        skipped += items.length - executed;
+        console.log(`[ThinkTank] Global budget cap exceeded — skipping remaining ${items.length - i} item(s)`);
+        skipped += items.length - i;
         break;
       }
       if (gate === 'throttle' && executed >= 1) {
         console.log(`[ThinkTank] Budget critical — throttling (1 dispatch max this cycle)`);
-        skipped += items.length - executed;
+        skipped += items.length - i;
         break;
       }
     } catch (budgetErr) {
@@ -578,6 +644,7 @@ async function executeDispatchQueue(
     const nicheDomains = ['cognitive-science', 'bioethics', 'complexity-science', 'urban-studies', 'development-economics'];
     const isNiche = item.domain && nicheDomains.includes(item.domain);
     const adaptiveTrust = isNiche ? 55 : 60;
+    let dispatchTimer: ReturnType<typeof setTimeout> | undefined;
     const result = await Promise.race([
       runAndPublishInquiry({
         question: item.question,
@@ -592,10 +659,10 @@ async function executeDispatchQueue(
         minTrustScore: adaptiveTrust,
         metadata: { strategy: item.strategy, ...item.metadata },
       }),
-      new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error(`runAndPublishInquiry timed out (${DISPATCH_TIMEOUT_MS / 1000}s)`)), DISPATCH_TIMEOUT_MS)
-      ),
-    ]).catch((err: unknown) => {
+      new Promise<never>((_, reject) => {
+        dispatchTimer = setTimeout(() => reject(new Error(`runAndPublishInquiry timed out (${DISPATCH_TIMEOUT_MS / 1000}s)`)), DISPATCH_TIMEOUT_MS);
+      }),
+    ]).finally(() => { if (dispatchTimer) clearTimeout(dispatchTimer); }).catch((err: unknown) => {
       const message = err instanceof Error ? err.message : String(err);
       console.error(`[ThinkTank] Dispatch item timed out or failed: ${message}`);
       return {
@@ -663,7 +730,7 @@ async function executeDispatchQueue(
     }
 
     // Throttle between heavy pipeline runs
-    if (executed < items.length) {
+    if (i < items.length - 1) {
       await new Promise((r) => setTimeout(r, 2000));
     }
   }

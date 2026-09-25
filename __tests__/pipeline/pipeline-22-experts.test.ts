@@ -176,7 +176,7 @@ describe('Pipeline with 22 Experts', () => {
     
     test('Council metrics update correctly', async () => {
       const initialMetrics = councilManager.getCouncilMetrics();
-      expect(initialMetrics.totalExperts).toBe(22);
+      expect(initialMetrics.totalExperts).toBe(74);
       
       // Simulate expert execution
       const expertId = 'economics-analyst';

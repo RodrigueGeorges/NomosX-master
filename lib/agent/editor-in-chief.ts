@@ -87,13 +87,27 @@ export async function editorialTriage(
 
   // Step 2b: DETERMINISTIC DOMAIN DIVERSITY — ensure multi-domain coverage
   // The LLM may over-cluster on one domain. This filter guarantees variety.
+  // Resolve topicId → topic robustly: the LLM may return the index, an
+  // invented id, or a slightly mangled one. Silent lookup failures were
+  // previously counted as "budget-cut" and dropped whole selections.
+  const resolveTopic = (topicId: string): RadarTopic | undefined => {
+    const direct = topics.find(t => t.id === topicId);
+    if (direct) return direct;
+    const asIndex = Number(topicId);
+    if (Number.isInteger(asIndex) && topics[asIndex]) return topics[asIndex];
+    const normalized = String(topicId).toLowerCase().replace(/[^a-z0-9]/g, '');
+    return topics.find(t => t.id.toLowerCase().replace(/[^a-z0-9]/g, '') === normalized
+      || t.title.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 60) === normalized.slice(0, 60));
+  };
+
   const seenVerticals = new Set<string>();
   const diverseSelected: TriageSelection[] = [];
   const droppedForDiversity: TriageSelection[] = [];
+  let unresolvedCount = 0;
 
   for (const selected of triageResult.selected) {
-    const topic = topics.find(t => t.id === selected.topicId);
-    if (!topic) continue;
+    const topic = resolveTopic(selected.topicId);
+    if (!topic) { unresolvedCount++; continue; }
     const vertical = topic.vertical || 'unknown';
 
     if (maxPubs > 1 && seenVerticals.has(vertical)) {
@@ -118,13 +132,17 @@ export async function editorialTriage(
     console.log(`[EDITOR-IN-CHIEF] Domain diversity filter: ${droppedForDiversity.length} topics dropped (same vertical), ${diverseSelected.length} kept across ${seenVerticals.size} verticals`);
   }
 
+  if (unresolvedCount > 0) {
+    console.warn(`[EDITOR-IN-CHIEF] ${unresolvedCount}/${triageResult.selected.length} selections had unresolvable topicIds — LLM returned ids not matching radar topics`);
+  }
+
   // Step 3: For selected topics, run full classification to get researchers + providers
   const decisions: EditorialDecision[] = [];
   let totalCost = triageResult.costUsd;
   let remainingBudget = budgetUsd;
 
   for (const selected of diverseSelected) {
-    const topic = topics.find(t => t.id === selected.topicId);
+    const topic = resolveTopic(selected.topicId);
     if (!topic) continue;
 
     // Full classification
@@ -293,7 +311,9 @@ Rules:
 - INNOVATION: Where possible, frame the question in a way that CHALLENGES the conventional framing. Don't just ask "What is the impact of X?" — ask "Who benefits from framing this as an X problem?" or "What assumptions are hidden in the dominant discourse on X?" or "How does X connect to the deeper question of Y?"
 - CROSS-DOMAIN: Where possible, frame the question to invite cross-domain insights. Don't just ask an economics question — ask how economics, anthropology, and philosophy intersect on this issue.
 
-Return JSON: { "selections": [{ "topicId": "...", "action": "publish_signal|publish_memo|publish_brief|publish_strategic|monitor|skip", "reasoning": "one sentence", "priority": 0-100, "researchQuestion": "analytical question reformulated from the headline", "intellectualAmbition": 0-100, "contrarianSignal": 0-100 }] }`
+TOPIC REFERENCE: each topic has an "index" field (integer 0-${Math.min(15, topics.length) - 1}). Return THAT integer as "topicId" — do not copy the opaque "id" string, do not invent ids.
+
+Return JSON: { "selections": [{ "topicId": <integer index>, "action": "publish_signal|publish_memo|publish_brief|publish_strategic|monitor|skip", "reasoning": "one sentence", "priority": 0-100, "researchQuestion": "analytical question reformulated from the headline", "intellectualAmbition": 0-100, "contrarianSignal": 0-100 }] }`
         },
         {
           role: 'user',
@@ -370,7 +390,7 @@ async function getRecentPublicationTitles(): Promise<string[]> {
 }
 
 function getAgeLabel(date: Date | null): string {
-  if (!date) return 'non établie';
+  if (!date) return 'undated';
   const hours = (Date.now() - date.getTime()) / (1000 * 60 * 60);
   if (hours < 1) return 'just now';
   if (hours < 6) return `${Math.round(hours)}h ago`;

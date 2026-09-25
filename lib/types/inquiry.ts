@@ -196,6 +196,7 @@ export interface Inquiry {
   status: InquiryStatus;
 
   verdict: ProbabilisticVerdict;
+  centralScenario?: import('../agent/editorial-types').CentralScenarioDecision;
 
   /** Ordered sections — presence depends on depth */
   sections: InquirySection[];

@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { runThinkTankCycle, getThinkTankStatus } from "@/lib/agent/think-tank-dispatcher";
+import { enqueueThinkTankCycle } from "@/lib/worker/think-tank-queue";
 import { verifyBearerToken } from "@/lib/security/timing-safe";
 
 /**
  * POST /api/cron/auto-scan
  *
  * Think tank — breaking cycle (2×/day).
- * Thin wrapper → ThinkTankDispatcher (mode: breaking).
+ * Default: enqueues a durable Job → 202 (worker executes the long pipeline).
+ * Escape hatch: POST ?sync=1 runs inline (local/manual use only).
  */
 export async function POST(req: NextRequest) {
   const startTime = Date.now();
@@ -18,7 +20,25 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    console.log("[AUTO-SCAN] → ThinkTankDispatcher (breaking)");
+    const sync = req.nextUrl.searchParams.get("sync") === "1" || process.env.THINK_TANK_INLINE === "1";
+
+    if (!sync) {
+      const queued = await enqueueThinkTankCycle({ mode: "breaking" });
+      console.log(`[AUTO-SCAN] enqueue → ${queued.jobId} (${queued.reason ?? "enqueued"})`);
+      return NextResponse.json(
+        {
+          success: true,
+          architecture: "think-tank-dispatcher:breaking:durable",
+          queued: queued.enqueued,
+          reason: queued.reason,
+          jobId: queued.jobId,
+          durationMs: Date.now() - startTime,
+        },
+        { status: 202 }
+      );
+    }
+
+    console.log("[AUTO-SCAN] → ThinkTankDispatcher (breaking, sync)");
 
     const result = await runThinkTankCycle({ mode: "breaking" });
 

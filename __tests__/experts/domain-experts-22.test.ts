@@ -1,5 +1,5 @@
 /**
- * Tests for 22 Domain Experts System
+ * Tests for Domain Experts System (38 domains after Sprint 19 expansion)
  * 
  * Validates expert selection, knowledge base, and council management
  */
@@ -8,10 +8,10 @@ import { DOMAIN_EXPERTS, DomainExpertise } from '@/lib/agent/domain-expert';
 import { knowledgeBase } from '@/lib/knowledge/multi-domain-corpus';
 import { councilManager } from '@/lib/council/council-manager';
 
-describe('22 Domain Experts System', () => {
+describe('Domain Experts System', () => {
 
   describe('Expert Registry', () => {
-    test('All 26 experts properly defined', () => {
+    test('All 74 experts properly defined', () => {
       const domains: DomainExpertise[] = [
         'economics', 'technology', 'policy', 'health', 'security',
         'law', 'environment', 'quantitative', 'finance',
@@ -19,10 +19,17 @@ describe('22 Domain Experts System', () => {
         'cognitive-science', 'digital-society',
         'behavioral-economics', 'urban-studies', 'development-economics',
         'computational-social-science', 'bioethics', 'complexity-science', 'risk-analysis',
-        'anthropology', 'history', 'religious-studies', 'non-western-philosophy'
+        'anthropology', 'history', 'religious-studies', 'non-western-philosophy',
+        'sociology', 'psychology', 'political-science', 'demography', 'criminology',
+        'education', 'philosophy', 'linguistics', 'media-studies',
+        'epidemiology', 'public-health', 'international-relations',
+        'migration-studies', 'science-technology-studies', 'epistemology',
+        'international-law', 'conflict-studies', 'political-economy',
+        'public-administration', 'gender-studies', 'area-studies',
+        'labor-studies', 'ethics-of-technology', 'archaeology'
       ];
 
-      expect(Object.keys(DOMAIN_EXPERTS)).toHaveLength(26);
+      expect(Object.keys(DOMAIN_EXPERTS)).toHaveLength(74);
       
       domains.forEach(domain => {
         expect(DOMAIN_EXPERTS[domain]).toBeDefined();
@@ -69,9 +76,9 @@ describe('22 Domain Experts System', () => {
   });
   
   describe('Knowledge Base Integration', () => {
-    test('Knowledge base has all 26 domains', async () => {
+    test('Knowledge base has all 74 domains', async () => {
       const stats = knowledgeBase.getCorpusStats();
-      expect(stats.totalDomains).toBe(26);
+      expect(stats.totalDomains).toBe(74);
 
       const domains: DomainExpertise[] = [
         'economics', 'technology', 'policy', 'health', 'security',
@@ -88,6 +95,23 @@ describe('22 Domain Experts System', () => {
         expect(domainStats).toBeDefined();
         expect(domainStats.totalDocuments).toBeGreaterThan(0);
         expect(domainStats.avgQualityScore).toBeGreaterThan(70);
+      });
+
+      // Sprint 19 sub-discipline domains — seeded corpus (frameworks + seminal works, docs grow over time)
+      const newDomains: DomainExpertise[] = [
+        'sociology', 'psychology', 'political-science', 'demography', 'criminology',
+        'education', 'philosophy', 'linguistics', 'media-studies',
+        'epidemiology', 'public-health', 'international-relations',
+        'migration-studies', 'science-technology-studies', 'epistemology',
+        'international-law', 'conflict-studies', 'political-economy',
+        'public-administration', 'gender-studies', 'area-studies',
+        'labor-studies', 'ethics-of-technology', 'archaeology'
+      ];
+      newDomains.forEach(domain => {
+        const domainStats = knowledgeBase.getCorpusStats(domain);
+        expect(domainStats).toBeDefined();
+        expect(domainStats.keyFrameworks).toBeGreaterThan(0);
+        expect(domainStats.seminalWorks).toBeGreaterThan(0);
       });
     });
     
@@ -197,7 +221,7 @@ describe('22 Domain Experts System', () => {
       
       // Check load distribution
       const metrics = councilManager.getCouncilMetrics();
-      expect(metrics.totalExperts).toBe(26);
+      expect(metrics.totalExperts).toBe(74);
       expect(metrics.avgLoad).toBeLessThan(5); // Should distribute load
     });
     
@@ -219,6 +243,10 @@ describe('22 Domain Experts System', () => {
   });
   
   describe('Integration Tests', () => {
+    // expertLoadBalance is shared mutable state — reset so selections don't
+    // carry recency penalties / load from earlier tests in this suite.
+    beforeEach(() => councilManager.resetMetrics());
+
     test('End-to-end expert selection with knowledge base', async () => {
       const query = {
         question: 'How does machine learning impact financial markets?',

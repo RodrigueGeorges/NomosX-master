@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db';
 import { ingestEurostatIndicators } from '@/lib/providers/eurostat';
 import { ingestECBIndicators } from '@/lib/providers/ecb';
 import { ingestINSEEIndicators } from '@/lib/providers/insee';
+import { ingestWorldBankIndicators } from '@/lib/providers/worldbank-data';
 
 export type MacroRefreshResult = {
   providers: Record<
@@ -55,6 +56,7 @@ export async function refreshMacroSeries(): Promise<MacroRefreshResult> {
     eurostat: { series: 0, points: 0, errors: [] },
     ecb: { series: 0, points: 0, errors: [] },
     insee: { series: 0, points: 0, errors: [] },
+    worldbank: { series: 0, points: 0, errors: [] },
   };
 
   // EUROSTAT
@@ -115,6 +117,26 @@ export async function refreshMacroSeries(): Promise<MacroRefreshResult> {
     }
   } catch (e: any) {
     providers.insee.errors.push(e?.message || String(e));
+  }
+
+  // WORLD BANK — WDI indicators × ~50 economies, last 15 years
+  try {
+    const series = await ingestWorldBankIndicators();
+    providers.worldbank.series = series.length;
+
+    for (const s of series) {
+      const r = await upsertSeriesAndPoints({
+        provider: s.provider,
+        code: s.code,
+        name: s.name,
+        unit: s.unit,
+        frequency: s.frequency,
+        points: s.points,
+      });
+      providers.worldbank.points += r.pointsUpserted;
+    }
+  } catch (e: any) {
+    providers.worldbank.errors.push(e?.message || String(e));
   }
 
   const totalSeries = Object.values(providers).reduce((sum, p) => sum + p.series, 0);

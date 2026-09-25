@@ -1,17 +1,21 @@
 /**
  * Unified LLM Service — Phase 0 re-cabled (01/07/2026)
  *
- * Five providers (DeepSeek, GLM-5.2/z.ai, OpenAI, Anthropic, Kimi K3/Moonshot):
+ * Six providers (DeepSeek, GLM-5.3/z.ai, OpenAI, Anthropic, Kimi K3/Moonshot, Google):
  * - Task→model assignment table (single source of truth, see TASK_ASSIGNMENT)
- * - Cross-family fallback: DeepSeek ↔ Kimi primary pair, GLM/OpenAI/Anthropic fallback
+ * - Cross-family fallback: Kimi K3 ↔ GPT-6-Astra flagship pair, DeepSeek/GLM/Google fallback
  * - Per-provider configurable timeouts (GLM needs ≥120s for 30-90s first-token latency)
  * - Opposite-family rule for fact_check / citation_verification (anti blind-spot)
- * - Circuit breaker per provider
- * - Kimi K3: temperature=1 enforced, thinking_budget=0 for JSON tasks
+ * - Circuit breaker per provider (2 tiers: 60s cooldown, 24h auto-suspend)
+ * - Kimi K3: temperature=1 enforced, reasoning_effort low/high per task class
  * - Anthropic Opus 5 / Sonnet 5: temperature parameter omitted (API requirement)
  *
- * 2026-07 upgrade: Kimi K3 (Index 57, 1M ctx, 128K output) for heavy reasoning,
- * Claude Sonnet 5 for verification, DeepSeek Flash for fast tasks.
+ * Flagship orchestration (2026-08): Kimi K3 = analytical brain (strategic_analyst,
+ * analyst_brief, elenchus, harvard_council, stress_test, primary_data_synthesis,
+ * auto_revision). GPT-6-Astra = pen & judge (editorial_arbiter, meta_analysis,
+ * structural_editor, fact_check, citation_verification). DeepSeek Flash =
+ * fast utility + bulk reading. GLM-5.3 = extraction/translation + fallback.
+ * Pre-suspension configurable via LLM_PRE_SUSPENDED env (default: anthropic).
  */
 
 import OpenAI from 'openai';
@@ -128,22 +132,26 @@ const FAMILY_PROVIDER: Record<LLMFamily, LLMProvider> = {
  * stops publication.
  */
 const CROSS_FAMILY_FALLBACK: Record<LLMFamily, LLMFamily[]> = {
-  deepseek: ["glm", "openai", "google"],
-  glm: ["deepseek", "openai", "google"],
-  openai: ["deepseek", "glm", "google"],
-  anthropic: ["openai", "deepseek", "glm"],
-  kimi: ["deepseek", "glm", "openai"],
-  google: ["deepseek", "openai", "glm"],
+  deepseek: ["openai", "kimi", "glm"],
+  glm: ["openai", "kimi", "deepseek"],
+  openai: ["kimi", "deepseek", "glm"],
+  anthropic: ["openai", "kimi", "deepseek"],
+  kimi: ["openai", "deepseek", "glm"],
+  // google: removed — no GOOGLE_API_KEY configured; entry kept for type completeness
+  google: ["kimi", "glm"],
 };
 
 /** Opposite family for the fact_check / citation_verification independence rule. */
+// While only Kimi + GLM are funded, they audit each other — that preserves the
+// cross-family independence invariant. Restore kimi↔openai pairing when the
+// OpenAI account is topped up.
 const OPPOSITE_FAMILY: Record<LLMFamily, LLMFamily> = {
   deepseek: "kimi",
-  glm: "deepseek",
-  openai: "deepseek",
+  glm: "kimi",
+  openai: "kimi",
   anthropic: "kimi",
-  kimi: "anthropic",
-  google: "deepseek",
+  kimi: "glm",
+  google: "kimi",
 };
 
 // ============================================================================
@@ -182,30 +190,41 @@ const PROVIDER_MIN_TIMEOUT_MS: Record<LLMProvider, number> = {
   google: 30_000,
 };
 
-const TASK_ASSIGNMENT: Record<LLMTask, TaskAssignment> = {
-  // Fast / cheap / frequent — DeepSeek Flash (Causal-Encoder-Decoder, beats Kimi K3 on coding)
-  query_enhancement:      { provider: "deepseek", model: "deepseek-flash", timeoutMs: 30_000 },
-  topic_classification:   { provider: "deepseek", model: "deepseek-flash", timeoutMs: 30_000 },
-  casting:                { provider: "deepseek", model: "deepseek-flash", timeoutMs: 30_000 },
-  editor_in_chief:        { provider: "deepseek", model: "deepseek-flash", timeoutMs: 60_000 },
-  swarm_persona:          { provider: "deepseek", model: "deepseek-flash", timeoutMs: 30_000 },
+/** Resolved once at module load — KIMI_MODEL env override (default kimi-k3). */
+const KIMI_MODEL = env.KIMI_MODEL || "kimi-k3";
 
-  // Extraction / verification — reassigned from Anthropic (suspended) to OpenAI gpt-4o
-  // for frontier reasoning precision. Opposite-family rule still applies at runtime.
+/** Fast/cheap utility model — glm-4.5-air ($0.20/$1.10 per Mtok, ~15× cheaper
+ *  than the kimi-k3 fallback it replaces while OpenAI is out of credits). */
+const GLM_FAST = "glm-4.5-air";
+const OPENAI_FAST = "gpt-5.6-luna";
+
+const TASK_ASSIGNMENT: Record<LLMTask, TaskAssignment> = {
+  // Fast / cheap / frequent — glm-4.5-air (OpenAI credits exhausted 2026-09,
+  // DeepSeek 402. GLM is the live budget workhorse; fallback chain → kimi.)
+  query_enhancement:      { provider: "glm", model: GLM_FAST, timeoutMs: 30_000 },
+  topic_classification:   { provider: "glm", model: GLM_FAST, timeoutMs: 30_000 },
+  casting:                { provider: "glm", model: GLM_FAST, timeoutMs: 30_000 },
+  editor_in_chief:        { provider: "glm", model: GLM_FAST, timeoutMs: 60_000 },
+  swarm_persona:          { provider: "glm", model: GLM_FAST, timeoutMs: 30_000 },
+
+  // Extraction / verification — OpenAI gpt-6-astra for frontier reasoning precision.
+  // Opposite-family rule applies at runtime: kimi-produced text → glm verifies,
+  // glm-produced text → kimi verifies while OpenAI is down (each flagship audits the other).
   fact_check:             { provider: "openai", model: "gpt-6-astra", timeoutMs: 60_000 },
   citation_verification:  { provider: "openai", model: "gpt-6-astra", timeoutMs: 60_000 },
 
-  // Heavy INPUT + OUTPUT — DeepSeek Flash (10x cheaper than Kimi,
-  // sufficient for abstract/PDF reading). GLM-5.2 as fallback for long contexts.
-  reader_v3:              { provider: "deepseek", model: "deepseek-flash", timeoutMs: 300_000 },
-  strategic_analyst:      { provider: "deepseek", model: "deepseek-flash", timeoutMs: 600_000 },
-  harvard_council:        { provider: "deepseek", model: "deepseek-flash", timeoutMs: 300_000 },
-  elenchus:               { provider: "deepseek", model: "deepseek-flash", timeoutMs: 300_000 },
+  // Heavy INPUT + OUTPUT — Kimi K3 is the analytical brain (1M ctx, 128K output,
+  // frontier reasoning). reader_v3 (bulk reading) runs on cheap GLM — the
+  // fallback chain routes to Kimi when GLM can't handle it (ctx or timeout).
+  reader_v3:              { provider: "glm", model: GLM_FAST, timeoutMs: 300_000 },
+  strategic_analyst:      { provider: "kimi", model: KIMI_MODEL, timeoutMs: 600_000 },
+  harvard_council:        { provider: "kimi", model: KIMI_MODEL, timeoutMs: 300_000 },
+  elenchus:               { provider: "kimi", model: KIMI_MODEL, timeoutMs: 300_000 },
 
-  // Heavy structured-JSON OUTPUT — DeepSeek Flash as primary (Kimi K3 suspended).
-  // DeepSeek Flash is faster and cheaper, with GLM-5.2 as fallback for long outputs.
-  analyst_brief:          { provider: "deepseek", model: "deepseek-flash", timeoutMs: 300_000 },
-  auto_revision:          { provider: "deepseek", model: "deepseek-flash", timeoutMs: 300_000 },
+  // Heavy structured-JSON OUTPUT — Kimi K3 (its original role): 128K output
+  // headroom for long structured briefs, reasoning_effort=high on reasoning tasks.
+  analyst_brief:          { provider: "kimi", model: KIMI_MODEL, timeoutMs: 300_000 },
+  auto_revision:          { provider: "kimi", model: KIMI_MODEL, timeoutMs: 300_000 },
   // Editorial arbiter upgraded to gpt-6-astra for frontier reasoning in scenario synthesis
   editorial_arbiter:      { provider: "openai", model: "gpt-6-astra", timeoutMs: 300_000 },
 
@@ -214,36 +233,37 @@ const TASK_ASSIGNMENT: Record<LLMTask, TaskAssignment> = {
   meta_analysis:          { provider: "openai", model: "gpt-6-astra", timeoutMs: 90_000 },
   structural_editor:      { provider: "openai", model: "gpt-6-astra", timeoutMs: 60_000 },
 
-  // Conversational
-  studiox:                { provider: "deepseek", model: "deepseek-flash", timeoutMs: 60_000 },
-  enrichment_reasoner:    { provider: "deepseek", model: "deepseek-flash", timeoutMs: 30_000 },
-  preflight_semantic_check: { provider: "deepseek", model: "deepseek-flash", timeoutMs: 15_000 },
-  query_reformulation:    { provider: "deepseek", model: "deepseek-flash", timeoutMs: 15_000 },
+  // Conversational / utility — GLM fast tier
+  studiox:                { provider: "glm", model: GLM_FAST, timeoutMs: 60_000 },
+  enrichment_reasoner:    { provider: "glm", model: GLM_FAST, timeoutMs: 30_000 },
+  preflight_semantic_check: { provider: "glm", model: GLM_FAST, timeoutMs: 30_000 },
+  query_reformulation:    { provider: "glm", model: GLM_FAST, timeoutMs: 30_000 },
 
-  // Primary data synthesis — reassigned from Kimi (suspended) to DeepSeek Flash
-  primary_data_synthesis: { provider: "deepseek", model: "deepseek-flash", timeoutMs: 300_000 },
-  // Policy stress test — reassigned from Kimi (suspended) to DeepSeek Flash
-  stress_test: { provider: "deepseek", model: "deepseek-flash", timeoutMs: 300_000 },
+  // Primary data synthesis — back on Kimi K3 (frontier reasoning for expert
+  // interviews / survey synthesis)
+  primary_data_synthesis: { provider: "kimi", model: KIMI_MODEL, timeoutMs: 300_000 },
+  // Policy stress test — back on Kimi K3 (multi-archetype risk review)
+  stress_test: { provider: "kimi", model: KIMI_MODEL, timeoutMs: 300_000 },
 
   // Legacy aliases — never read directly (normalizeTask() redirects before lookup),
   // kept so LLMTask stays a superset and TS doesn't complain about missing keys.
-  classification:         { provider: "deepseek", model: "deepseek-flash", timeoutMs: 30_000 },
-  extraction:             { provider: "glm", model: "glm-5.3", timeoutMs: 120_000 },
-  citation:               { provider: "deepseek", model: "deepseek-flash", timeoutMs: 60_000 },
-  analysis:               { provider: "deepseek", model: "deepseek-flash", timeoutMs: 120_000 },
-  strategic_analysis:     { provider: "glm", model: "glm-5.3", timeoutMs: 180_000 },
-  critique:               { provider: "glm", model: "glm-5.3", timeoutMs: 120_000 },
-  rewrite:                { provider: "deepseek", model: "deepseek-flash", timeoutMs: 120_000 },
-  reflection:             { provider: "deepseek", model: "deepseek-flash", timeoutMs: 30_000 },
+  classification:         { provider: "glm", model: GLM_FAST, timeoutMs: 30_000 },
+  extraction:             { provider: "glm", model: GLM_FAST, timeoutMs: 120_000 },
+  citation:               { provider: "glm", model: GLM_FAST, timeoutMs: 60_000 },
+  analysis:               { provider: "glm", model: GLM_FAST, timeoutMs: 120_000 },
+  strategic_analysis:     { provider: "kimi", model: KIMI_MODEL, timeoutMs: 300_000 },
+  critique:               { provider: "kimi", model: KIMI_MODEL, timeoutMs: 120_000 },
+  rewrite:                { provider: "glm", model: GLM_FAST, timeoutMs: 120_000 },
+  reflection:             { provider: "glm", model: GLM_FAST, timeoutMs: 30_000 },
   // V3.2: New tasks for 2026 innovations
-  verbal_rerank:          { provider: "deepseek", model: "deepseek-flash", timeoutMs: 30_000 },
-  reflective_rag:         { provider: "deepseek", model: "deepseek-flash", timeoutMs: 30_000 },
-  cite_audit:             { provider: "deepseek", model: "deepseek-flash", timeoutMs: 30_000 },
+  verbal_rerank:          { provider: "glm", model: GLM_FAST, timeoutMs: 30_000 },
+  reflective_rag:         { provider: "glm", model: GLM_FAST, timeoutMs: 30_000 },
+  cite_audit:             { provider: "glm", model: GLM_FAST, timeoutMs: 30_000 },
   // Sprint 17: Delphi foresight — fast reasoning for multi-expert elicitation
-  delphi_round1:          { provider: "deepseek", model: "deepseek-flash", timeoutMs: 30_000 },
-  delphi_round2:          { provider: "deepseek", model: "deepseek-flash", timeoutMs: 30_000 },
-  cross_impact:           { provider: "deepseek", model: "deepseek-flash", timeoutMs: 30_000 },
-  translation:            { provider: "glm", model: "glm-5.3", timeoutMs: 120_000 },
+  delphi_round1:          { provider: "glm", model: GLM_FAST, timeoutMs: 30_000 },
+  delphi_round2:          { provider: "glm", model: GLM_FAST, timeoutMs: 30_000 },
+  cross_impact:           { provider: "glm", model: GLM_FAST, timeoutMs: 30_000 },
+  translation:            { provider: "glm", model: GLM_FAST, timeoutMs: 120_000 },
 };
 
 /**
@@ -280,23 +300,27 @@ const MODEL_CONFIG: Record<string, Record<string, {
     "deepseek-reasoner": { contextWindow: 128000, costPer1kInput: 0.00028, costPer1kOutput: 0.00042 },
   },
   glm: {
-    "glm-5.2": {
-      contextWindow: 1000000,
-      costPer1kInput: 0.00140,
-      costPer1kOutput: 0.00440,
-      costPer1kCachedInput: 0.00026,
+    // z.ai GLM-4.5/4.6 family — verified against the account 2026-09
+    // (glm-5.x model codes returned 400 "Unknown Model").
+    "glm-4.6": {
+      contextWindow: 200000,
+      costPer1kInput: 0.0006,
+      costPer1kOutput: 0.0022,
     },
-    "glm-5.3": {
-      contextWindow: 1000000,
-      costPer1kInput: 0.00140,
-      costPer1kOutput: 0.00440,
-      costPer1kCachedInput: 0.00026,
+    "glm-4.5": {
+      contextWindow: 128000,
+      costPer1kInput: 0.0006,
+      costPer1kOutput: 0.0022,
     },
-    "glm-5.3-flash": {
-      contextWindow: 1000000,
-      costPer1kInput: 0.00015,
-      costPer1kOutput: 0.00050,
-      costPer1kCachedInput: 0.00003,
+    "glm-4.5-air": {
+      contextWindow: 128000,
+      costPer1kInput: 0.0002,
+      costPer1kOutput: 0.0011,
+    },
+    "glm-4.5-flash": {
+      contextWindow: 128000,
+      costPer1kInput: 0.0,
+      costPer1kOutput: 0.0,
     },
   },
   openai: {
@@ -393,8 +417,16 @@ interface CBState { failures: number; lastFailure: number; open: boolean; suspen
 const cbMemory: Record<string, CBState> = {}; // in-process fallback
 
 // P2: Pre-suspend providers with known account issues (balance/credit exhausted)
-// This prevents wasted calls and timeouts before the circuit breaker would naturally trip
-const SUSPENDED_PROVIDERS = new Set<string>(['kimi', 'anthropic']);
+// This prevents wasted calls and timeouts before the circuit breaker would naturally trip.
+// Configurable via LLM_PRE_SUSPENDED (comma-separated). Defaults to accounts
+// with confirmed dead credit or no key configured (anthropic, deepseek 402,
+// google — no GOOGLE_API_KEY). glm-4.5/4.6 is live on z.ai as of 2026-09.
+const SUSPENDED_PROVIDERS = new Set<string>(
+  (process.env.LLM_PRE_SUSPENDED ?? 'anthropic,deepseek,google')
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean),
+);
 const SUSPENDED_UNTIL = Date.now() + CIRCUIT_BREAKER_SUSPEND_MS;
 for (const p of SUSPENDED_PROVIDERS) {
   cbMemory[p] = { failures: CIRCUIT_BREAKER_SUSPEND_THRESHOLD, lastFailure: Date.now(), open: true, suspended: true, suspendedUntil: SUSPENDED_UNTIL };
@@ -500,6 +532,23 @@ async function recordProviderFailure(provider: string, error?: Error): Promise<v
   const cb = await getCBState(provider);
   const next: CBState = { failures: cb.failures + 1, lastFailure: Date.now(), open: cb.open, suspended: cb.suspended, suspendedUntil: cb.suspendedUntil };
 
+  // Systemic account errors (402 insufficient balance, suspended account, bad key)
+  // suspend IMMEDIATELY — no point spending 4 more failures to learn the account is dead.
+  if (error && isSystemicAccountError(error)) {
+    next.suspended = true;
+    next.suspendedUntil = Date.now() + CIRCUIT_BREAKER_SUSPEND_MS;
+    next.open = true;
+    console.warn(`🔌 Provider ${provider}: SUSPENDED for 24h (account error: ${error.message?.slice(0, 80)})`);
+    try {
+      const { simpleRedisManager } = await import('../agent/redis-simple');
+      if (simpleRedisManager.isRedisConnected()) {
+        await simpleRedisManager.setWithTTL(CB_KEY(provider), next, CB_SUSPEND_TTL);
+      }
+    } catch { /* Redis unavailable */ }
+    cbMemory[provider] = next;
+    return;
+  }
+
   // Tier 2: Auto-suspend after 5 consecutive failures (24h)
   if (next.failures >= CIRCUIT_BREAKER_SUSPEND_THRESHOLD) {
     next.suspended = true;
@@ -544,10 +593,26 @@ function isDeterministicError(error: Error): boolean {
  * skip this provider entirely instead of wasting time on a dead account.
  * Examples: suspended account, insufficient balance, invalid API key.
  */
-function isSystemicAccountError(error: Error): boolean {
+function isSystemicAccountError(error: any): boolean {
+  // OpenAI SDK surfaces quota exhaustion as error.code="credit_balance_exhausted"
+  // / error.type="insufficient_quota" — check structured fields first so a dead
+  // account suspends instantly instead of burning retries on every call.
+  const code = String(error?.code ?? error?.error?.code ?? "").toLowerCase();
+  const type = String(error?.type ?? error?.error?.type ?? "").toLowerCase();
+  if (
+    code.includes("insufficient_quota") ||
+    code.includes("credit_balance") ||
+    code.includes("billing_hard_limit") ||
+    type.includes("insufficient_quota")
+  ) {
+    return true;
+  }
   const msg = (error.message || "").toLowerCase();
   return msg.includes("suspended") ||
     msg.includes("insufficient balance") ||
+    msg.includes("insufficient_quota") ||
+    msg.includes("credit_balance_exhausted") ||
+    msg.includes("no credits remaining") ||
     msg.includes("credit balance is too low") ||
     msg.includes("credit balance too low") ||
     msg.includes("authentication") ||
@@ -703,13 +768,13 @@ function resolveModelForTask(provider: LLMProvider, task: LLMTask): string {
     case "deepseek":
       return isFast ? env.DEEPSEEK_MODEL_FAST : env.DEEPSEEK_MODEL_REASONING;
     case "glm":
-      return isFast ? "glm-5.3-flash" : "glm-5.3";
+      return isFast ? (env.GLM_MODEL_FAST || "glm-4.5-air") : (env.GLM_MODEL || "glm-4.5");
     case "openai":
       return isFast ? "gpt-5.6-luna" : (env.OPENAI_MODEL || "gpt-6-astra");
     case "anthropic":
       return isFast ? "claude-sonnet-5" : "claude-opus-5";
     case "kimi":
-      return "kimi-k3";
+      return env.KIMI_MODEL || "kimi-k3";
     case "google":
       return "gemini-3.8-flash";
   }
@@ -859,22 +924,34 @@ async function callOpenAICompatible(
     }
   }
 
+  const normalizedTask = normalizeTask(request.task);
+  const isReasoningTask = REASONING_TASKS.has(normalizedTask);
+  // Thinking is only enabled for reasoning tasks in non-JSON mode (see per-provider blocks below).
+  const thinkingEnabled = isReasoningTask && !request.jsonMode;
+
   // Provider-specific maxTokens adjustments:
-  // - GLM: reasoning model, doubles token budget (reasoning_content consumes tokens)
+  // - GLM: thinking enabled → double budget (reasoning_content consumes tokens);
+  //   disabled → no extra budget needed
   // - Kimi: reasoning_effort=low still uses some tokens, enforce min 2000
   // - DeepSeek: thinking disabled for fast tasks but enabled for reasoning, double budget
   // - OpenAI: use requested value as-is
   let effectiveMaxTokens = request.maxTokens ?? 4000;
   if (provider === "glm") {
-    effectiveMaxTokens = Math.max(effectiveMaxTokens * 2, 8000);
+    effectiveMaxTokens = thinkingEnabled
+      ? Math.max(effectiveMaxTokens * 2, 8000)
+      : Math.max(effectiveMaxTokens, 1000);
   }
   if (provider === "kimi") {
     effectiveMaxTokens = Math.max(effectiveMaxTokens, 2000);
   }
-  const normalizedTask = normalizeTask(request.task);
-  const isReasoningTask = REASONING_TASKS.has(normalizedTask);
-  // Thinking is only enabled for reasoning tasks in non-JSON mode (see per-provider blocks below).
-  const thinkingEnabled = isReasoningTask && !request.jsonMode;
+  // Luna (and other reasoning-fast OpenAI models) return EMPTY content when the
+  // token budget is exhausted by JSON structure — a truncated partial response
+  // is never returned. reader_v3 call sites pass maxTokens 1600-3000 which is
+  // not enough for multi-claim JSON extractions. Floor at 6000 — 4000 still
+  // triggered finish_reason=length → ~80s kimi fallback per call.
+  if (provider === "openai" && normalizedTask === "reader_v3") {
+    effectiveMaxTokens = Math.max(effectiveMaxTokens, 6000);
+  }
   if (provider === "deepseek") {
     // Only reserve extra budget for reasoning_content when thinking is actually on.
     effectiveMaxTokens = thinkingEnabled ? Math.max(effectiveMaxTokens * 2, 2000) : Math.max(effectiveMaxTokens, 2000);
@@ -885,16 +962,19 @@ async function callOpenAICompatible(
   // Per docs: temperature, top_p, n are fixed — do NOT pass them explicitly.
   const kimiExtraBody: Record<string, unknown> = {};
   if (provider === "kimi") {
-    kimiExtraBody.reasoning_effort = isReasoningTask ? "high" : "low";
+    // thinkingEnabled (not isReasoningTask): in jsonMode the budget must go to
+    // the JSON answer, not reasoning_content — otherwise content comes back empty.
+    kimiExtraBody.reasoning_effort = thinkingEnabled ? "high" : "low";
   }
 
-  // GLM-5.3 thinking control: GLM-5.3 always thinks and cannot be disabled.
-  // For fast/JSON tasks, use reasoning_effort "low" to minimize token waste.
-  // For reasoning tasks, use "high".
+  // GLM-4.5/4.6 thinking control: thinking CAN be disabled — do it for
+  // fast/JSON tasks, otherwise the model burns the whole budget on
+  // reasoning_content and returns empty content (verified live: a 60-token
+  // classification call timed out at 120s). reasoning_effort is NOT a z.ai
+  // parameter — do not send it.
   const glmExtraBody: Record<string, unknown> = {};
   if (provider === "glm") {
-    glmExtraBody.thinking = { type: "enabled" };
-    glmExtraBody.reasoning_effort = thinkingEnabled ? "high" : "low";
+    glmExtraBody.thinking = { type: thinkingEnabled ? "enabled" : "disabled" };
   }
 
   // Temperature handling per provider:
@@ -1354,7 +1434,11 @@ export async function callLLM(request: LLMRequest): Promise<LLMResponse> {
   // Build fallback chain: primary provider, then cross-family order, deduped,
   // skipping providers with no client configured or an open circuit.
   const orderedProviders: LLMProvider[] = [];
-  if (!await isCircuitOpen(primaryProvider)) orderedProviders.push(primaryProvider);
+  // Skip a primary with no configured client (e.g. MOONSHOT_API_KEY missing in
+  // this env) — go straight to fallbacks instead of wasting a throw.
+  if (getClientForProvider(primaryProvider) && !await isCircuitOpen(primaryProvider)) {
+    orderedProviders.push(primaryProvider);
+  }
   for (const family of CROSS_FAMILY_FALLBACK[primaryFamily]) {
     const p = FAMILY_PROVIDER[family];
     if (!orderedProviders.includes(p) && getClientForProvider(p) && !await isCircuitOpen(p)) {
@@ -1772,7 +1856,7 @@ export async function checkLLMHealth(): Promise<Record<LLMProvider, boolean>> {
     const client = getGLMClient();
     if (client) {
       await client.chat.completions.create({
-        model: "glm-5.3",
+        model: env.GLM_MODEL || "glm-4.5",
         max_tokens: 1,
         messages: [{ role: "user", content: "ping" }],
       });
@@ -1813,7 +1897,7 @@ export async function checkLLMHealth(): Promise<Record<LLMProvider, boolean>> {
     const client = getKimiClient();
     if (client) {
       await client.chat.completions.create({
-        model: "kimi-k3",
+        model: KIMI_MODEL,
         max_tokens: 1,
         messages: [{ role: "user", content: "ping" }],
       } as any);

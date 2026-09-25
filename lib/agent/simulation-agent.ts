@@ -79,6 +79,12 @@ export interface MonteCarloConfig {
   runs: number;
   seed?: number;
   tolerance?: number;
+  /**
+   * Dirichlet concentration applied to priors (total alpha). Higher = tighter
+   * around priors. Default 8 gives meaningful uncertainty propagation without
+   * flattening priors to uniform.
+   */
+  priorConcentration?: number;
 }
 
 export interface ConvergenceResult {
@@ -402,21 +408,61 @@ function defaultParameters(scenarios: SimulationScenarioSpec[]): Record<string, 
   return params;
 }
 
-function scoreScenario(
+/**
+ * Marsaglia–Tsang gamma sampler (shape ≥ 1) with the α+1 trick for shape < 1.
+ * Used to draw Dirichlet-distributed prior vectors inside Monte Carlo runs.
+ */
+function sampleGamma(shape: number, rand: () => number): number {
+  if (shape <= 0) return 1e-9;
+  if (shape < 1) {
+    return sampleGamma(shape + 1, rand) * Math.pow(Math.max(rand(), 1e-9), 1 / shape);
+  }
+  const d = shape - 1 / 3;
+  const c = 1 / Math.sqrt(9 * d);
+  for (let i = 0; i < 100; i++) {
+    // Standard normal via Box–Muller
+    const u1 = Math.max(rand(), 1e-9);
+    const u2 = rand();
+    const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+    const v = 1 + c * z;
+    if (v <= 0) continue;
+    const v3 = v * v * v;
+    const u = Math.max(rand(), 1e-9);
+    if (Math.log(u) < 0.5 * z * z + d - d * v3 + d * Math.log(v3)) {
+      return d * v3;
+    }
+  }
+  return d; // fallback: mean of the gamma
+}
+
+/**
+ * Evidence multiplier for one scenario in one Monte Carlo run.
+ *
+ * IMPORTANT: when a scenario carries no explicit assumptions, `inferAssumptions`
+ * fabricates them FROM the prior — so the mismatch term would just re-encode
+ * the prior (double-counting, which caused probability collapse to ~100/0).
+ * Auto-derived assumptions therefore contribute neutral evidence; only real
+ * source overlap (sourceBoost) differentiates such scenarios.
+ */
+function scenarioEvidenceWeight(
   scenario: SimulationScenarioSpec,
   parameters: Record<string, number>,
   sourceBoost: number,
-  rand: () => number
+  rand: () => number,
+  paramUncertainty: number
 ): number {
-  const assumptions = inferAssumptions(scenario, parameters);
+  const boostFactor = 1 + Math.max(0, sourceBoost) * 0.15;
+  const hasExplicitAssumptions = Object.keys(scenario.assumptions ?? {}).length > 0;
+  if (!hasExplicitAssumptions) return boostFactor;
+
+  const assumptions = scenario.assumptions;
   const keys = Object.keys(parameters).length ? Object.keys(parameters) : Object.keys(assumptions);
-  let score = sourceBoost * 0.15;
+  let mismatch = 0;
   for (const key of keys) {
-    const base = parameters[key] ?? assumptions[key] ?? 0.5;
-    score -= Math.abs(base + (rand() - 0.5) * 0.18 - (assumptions[key] ?? base));
+    const perturbed = (parameters[key] ?? assumptions[key] ?? 0.5) + (rand() - 0.5) * paramUncertainty;
+    mismatch += Math.abs(perturbed - (assumptions[key] ?? perturbed));
   }
-  score += (scenario.priorProbability ?? 0) * 0.5;
-  return score;
+  return Math.exp(-mismatch) * boostFactor;
 }
 
 function runMonteCarloCore(
@@ -432,6 +478,16 @@ function runMonteCarloCore(
     (sourceGraph ?? []).map((g) => [g.scenario, g.overlapScore])
   );
 
+  const priorConcentration = Math.max(0.5, config.priorConcentration ?? 8);
+  const uniformPrior = 1 / Math.max(1, scenarios.length);
+  const alphas = scenarios.map(
+    (s) => Math.max(0.05, (s.priorProbability ?? uniformPrior) * priorConcentration)
+  );
+  const paramUncertainty = Math.min(
+    0.5,
+    Math.max(0.05, parameters.uncertainty ?? 0.3)
+  );
+
   let runsUsed = 0;
   let converged = false;
   let prevProbs: Record<string, number> = {};
@@ -440,17 +496,32 @@ function runMonteCarloCore(
   while (runsUsed < runs && !converged) {
     const batchEnd = Math.min(runsUsed + batchSize, runs);
     for (let r = runsUsed; r < batchEnd; r++) {
-      let bestName = scenarios[0].name;
-      let bestScore = -Infinity;
-      for (const scenario of scenarios) {
-        const boost = boostByScenario.get(scenario.name) ?? 0;
-        const score = scoreScenario(scenario, parameters, boost, rand);
-        if (score > bestScore) {
-          bestScore = score;
-          bestName = scenario.name;
-        }
+      // 1. Dirichlet draw around priors — propagates prior uncertainty instead
+      //    of treating the prior as a deterministic score term.
+      let gammaSum = 0;
+      const thetas = alphas.map((a) => {
+        const g = sampleGamma(a, rand);
+        gammaSum += g;
+        return g;
+      });
+
+      // 2. Weight = perturbed prior × evidence; sample winner categorically.
+      let weightSum = 0;
+      const weights = scenarios.map((s, i) => {
+        const theta = thetas[i] / (gammaSum || 1);
+        const boost = boostByScenario.get(s.name) ?? 0;
+        const w = theta * scenarioEvidenceWeight(s, parameters, boost, rand, paramUncertainty);
+        weightSum += w;
+        return w;
+      });
+
+      let draw = rand() * (weightSum || 1);
+      let winner = scenarios[scenarios.length - 1].name;
+      for (let i = 0; i < scenarios.length; i++) {
+        draw -= weights[i];
+        if (draw <= 0) { winner = scenarios[i].name; break; }
       }
-      wins[bestName] = (wins[bestName] ?? 0) + 1;
+      wins[winner] = (wins[winner] ?? 0) + 1;
     }
     runsUsed = batchEnd;
     const probs: Record<string, number> = {};

@@ -8,6 +8,7 @@
  */
 
 import { fetchFromProvider } from '../http-client';
+import { searchOpenAlex } from './openalex';
 
 export async function searchSSRN(query: string, limit = 20): Promise<any[]> {
   // SSRN doesn't have a public REST API — use their search page JSON endpoint
@@ -69,9 +70,27 @@ export async function searchSSRN(query: string, limit = 20): Promise<any[]> {
       });
 
     console.log(`[SSRN] ${papers.length}/${results.length} with abstracts`);
-    return papers;
+    if (papers.length > 0) return papers;
   } catch (error: any) {
     console.error(`[SSRN] Search failed: ${error.message}`);
+  }
+
+  // Fallback: api.ssrn.com is bot-protected (403). SSRN working papers are
+  // indexed in OpenAlex — route through it so social-science working papers
+  // keep reaching the corpus even when the direct endpoint blocks us.
+  try {
+    const results = await searchOpenAlex(query, Math.min(limit, 25), {
+      filter: 'type:preprint',
+    });
+    console.log(`[SSRN] OpenAlex fallback found ${results.length} working papers`);
+    return results.map((r: any) => ({
+      ...r,
+      id: `ssrn:${String(r.id).replace('https://openalex.org/', '')}`,
+      provider: 'ssrn',
+      type: 'working_paper',
+    }));
+  } catch (error: any) {
+    console.error(`[SSRN] OpenAlex fallback failed: ${error.message}`);
     return [];
   }
 }

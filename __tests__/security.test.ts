@@ -1,14 +1,17 @@
 import { NextRequest } from 'next/server';
 import { middleware } from '../middleware';
 
-// Mock NextResponse
-jest.mock('next/server', () => ({
-  NextRequest: jest.fn(),
-  NextResponse: {
-    json: jest.fn().mockReturnValue({ status: 200 }),
-    next: jest.fn().mockReturnValue({ headers: new Map() }),
-  },
-}));
+// Mock NextResponse — must be a real (callable) class-like function because
+// middleware.ts uses `intlResponse instanceof NextResponse`.
+jest.mock('next/server', () => {
+  function NextResponse(this: { headers: Map<string, string> }) {
+    this.headers = new Map();
+  }
+  NextResponse.json = jest.fn().mockReturnValue({ status: 200 });
+  NextResponse.next = jest.fn(() => new (NextResponse as any)());
+  NextResponse.redirect = jest.fn(() => new (NextResponse as any)());
+  return { NextRequest: jest.fn(), NextResponse };
+});
 
 describe('Security Middleware', () => {
   let mockRequest: Partial<NextRequest>;
@@ -76,15 +79,15 @@ describe('Security Middleware', () => {
   });
 
   describe('Security Headers', () => {
-    it('should set security headers for all requests', () => {
+    it('should set security headers for all requests', async () => {
       mockRequest.method = 'GET';
       mockRequest.nextUrl = { pathname: '/test' };
-      
+
       const { NextResponse } = require('next/server');
-      const mockNextResponse = { headers: new Map() };
+      const mockNextResponse = new NextResponse();
       NextResponse.next.mockReturnValue(mockNextResponse);
-      
-      middleware(mockRequest as NextRequest);
+
+      await middleware(mockRequest as NextRequest);
       
       expect(mockNextResponse.headers.get('X-Frame-Options')).toBe('DENY');
       expect(mockNextResponse.headers.get('X-Content-Type-Options')).toBe('nosniff');
@@ -94,15 +97,15 @@ describe('Security Middleware', () => {
       expect(mockNextResponse.headers.get('Permissions-Policy')).toContain('camera=()');
     });
 
-    it('should set CSP header for pages only', () => {
+    it('should set CSP header for pages only', async () => {
       mockRequest.method = 'GET';
       mockRequest.nextUrl = { pathname: '/test' };
-      
+
       const { NextResponse } = require('next/server');
-      const mockNextResponse = { headers: new Map() };
+      const mockNextResponse = new NextResponse();
       NextResponse.next.mockReturnValue(mockNextResponse);
-      
-      middleware(mockRequest as NextRequest);
+
+      await middleware(mockRequest as NextRequest);
       
       const csp = mockNextResponse.headers.get('Content-Security-Policy');
       expect(csp).toContain("default-src 'self'");
@@ -110,15 +113,15 @@ describe('Security Middleware', () => {
       expect(csp).toContain("script-src 'self' 'unsafe-inline'");
     });
 
-    it('should not set CSP header for API routes', () => {
+    it('should not set CSP header for API routes', async () => {
       mockRequest.method = 'GET';
       mockRequest.nextUrl = { pathname: '/api/test' };
-      
+
       const { NextResponse } = require('next/server');
-      const mockNextResponse = { headers: new Map() };
+      const mockNextResponse = new NextResponse();
       NextResponse.next.mockReturnValue(mockNextResponse);
-      
-      middleware(mockRequest as NextRequest);
+
+      await middleware(mockRequest as NextRequest);
       
       // Header was never set, so Map.get returns undefined (not null).
       expect(mockNextResponse.headers.get('Content-Security-Policy')).toBeUndefined();

@@ -484,6 +484,16 @@ const PROVIDER_REGISTRY: { name: string; keywords: string[]; priority: number }[
   { name: 'cochrane', keywords: ['medical', 'systematic review', 'evidence', 'clinical', 'trial', 'health'], priority: 7 },
   { name: 'mit-dspace', keywords: ['mit', 'research', 'thesis', 'engineering', 'ai', 'technology'], priority: 5 },
   { name: 'harvard-dash', keywords: ['harvard', 'research', 'academic', 'business', 'law', 'science'], priority: 5 },
+  // Tier 9: Mega feed registries (each wraps 40-160 sub-sources, internally domain-routed)
+  { name: 'mega-central-banks', keywords: ['monetary', 'central bank', 'interest rate', 'inflation', 'banking', 'monetary policy', 'ecb', 'fed', 'macro', 'fx', 'currency'], priority: 6 },
+  { name: 'mega-stats', keywords: ['statistics', 'data', 'demographics', 'census', 'indicator', 'employment', 'population', 'survey'], priority: 5 },
+  { name: 'mega-un', keywords: ['un', 'united nations', 'treaty', 'humanitarian', 'development', 'migration', 'refugee', 'climate negotiation', 'human rights'], priority: 6 },
+  { name: 'mega-eu', keywords: ['eu', 'europe', 'brussels', 'european', 'regulation', 'directive', 'gdpr', 'eurozone'], priority: 6 },
+  { name: 'mega-press', keywords: ['news', 'current events', 'breaking', 'politics', 'election', 'crisis', 'war', 'economy', 'markets', 'latest'], priority: 6 },
+  { name: 'mega-thinktanks', keywords: ['think tank', 'policy', 'geopolitics', 'analysis', 'strategy', 'foreign policy', 'security', 'defense'], priority: 6 },
+  { name: 'mega-development', keywords: ['development', 'poverty', 'aid', 'humanitarian', 'africa', 'latam', 'asia', 'global south'], priority: 5 },
+  { name: 'mega-academia', keywords: ['university', 'academic', 'research', 'education', 'business school', 'knowledge'], priority: 4 },
+  { name: 'mega-civil-society', keywords: ['ngo', 'human rights', 'corruption', 'transparency', 'watchdog', 'investigation', 'democracy', 'civil society'], priority: 5 },
 ];
 
 /**

@@ -122,6 +122,26 @@ export async function editorialArbiter(input: ArbiterInput): Promise<InstitutePo
     const { getLatestPrompt } = await import('./self-evolver');
     const evolvedInstructions = await getLatestPrompt('editorial_arbiter', style.promptBlock);
 
+    // ── SCENARIO ARCHITECT (Shell method) — design the uncertainty matrix
+    // BEFORE prose. Separating structure from writing is what prevents the
+    // classic failure: three shades of the same future. ──
+    let architectBlock = '';
+    let architectCost = 0;
+    let architectResult: import('./scenario-architect').ScenarioArchitecture | null = null;
+    try {
+      const { architectScenarioMatrix, architectureToPromptBlock } = await import('./scenario-architect');
+      architectResult = await architectScenarioMatrix(
+        input.question,
+        String(input.analysis.verdict ?? input.analysis.summary ?? input.analysis.executiveSummary ?? ''),
+        input.sources.map(s => s.title ?? '').filter(Boolean),
+      );
+      if (architectResult) {
+        architectBlock = architectureToPromptBlock(architectResult);
+        architectCost = architectResult.costUsd;
+        console.log(`[EDITORIAL ARBITER] Scenario architecture: ${architectResult.skeletons.length} slots, axes "${architectResult.criticalUncertainties[0].name}" × "${architectResult.criticalUncertainties[1].name}"`);
+      }
+    } catch { /* non-blocking — arbiter generates free-form scenarios */ }
+
     const response = await callLLM({
       messages: [
         {
@@ -208,12 +228,15 @@ Confidence in dominant: ${input.debate?.confidenceInDominant ?? 'n/a'}
 SCENARIOS:
 ${scenarioBlock}
 
+${architectBlock}
+
 SOURCES:
 ${sourceList}
 
 Return JSON:
 {
   "headline": "Short collision headline (A × B style)",
+  "lede": "The opening sentence or short paragraph of the piece — ONE striking concrete detail, scene, or number that makes a busy reader stop. Economist discipline: the first sentence must earn the second. Not a summary, not a topic announcement — a hook grounded in the evidence.",
   "inBrief": [
     "3-5 bullets capturing the essence of the entire analysis — each a complete thought with a key finding",
     "Second key point with a specific number or claim",
@@ -231,6 +254,8 @@ Return JSON:
     "horizon": "The time frame and why it matters — e.g. 'We look to 2030 because three independent cycles (demographic, technological, geopolitical) converge within that window.'",
     "baseRateContext": "Historical reference class and analogue. What happened in similar situations historically? Cite the base rate with [SRC-N].",
     "fermiDecomposition": "How the question breaks into sub-questions, each estimated independently. Reduces anchoring bias.",
+    "predeterminedElements": ["what is already certain in every scenario — locked-in facts (demographics, signed treaties, deployed capital). If an architecture was provided, carry these over verbatim or sharpen them", "..."],
+    "criticalUncertainties": [{"name": "axis name", "poleA": "one extreme", "poleB": "opposite extreme"}, {"name": "axis name", "poleA": "...", "poleB": "..."}],
     "keyUncertainties": ["what we don't know that matters", "second key uncertainty", "..."],
     "crossImpactSummary": "How the scenarios interact and constrain each other. If scenario A happens, what happens to B?",
     "snowLeopards": ["underappreciated phenomenon that could have outsized impact", "second snow leopard", "..."],
@@ -240,6 +265,9 @@ Return JSON:
     {
       "name": "Evocative scenario name (not clinical)",
       "probability": "35%",
+      "axisPosition": "Position on the uncertainty matrix, e.g. 'Axis1-poleA × Axis2-poleB' — required if an architecture was provided",
+      "signatureMoment": "One vivid concrete scene from INSIDE this future — a headline, a meeting room, a number on a screen. Max 2 sentences. This is what makes the scenario memorable.",
+      "isWildcard": false,
       "narrative": "80-150 word NARRATIVE paragraph imagining this future. Write in FUTURE TENSE, as if observing that world from inside it. 'By 2030, the alliance has settled into...' NOT 'This scenario involves...'",
       "description": "Short factual description of the scenario (used if narrative is not available)",
       "keyDrivers": ["what moves probability UP by 10+pp", "second driver"],
@@ -250,7 +278,9 @@ Return JSON:
       "signals": ["observable early warning indicator 1", "..."]
     }
   ],
-  "dominantScenario": "name of most likely scenario",
+  "dominantScenario": "EXACT name of ONE scenario above: NomosX's central editorial forecast, selected on evidence rather than simulation rank alone",
+  "centralScenarioRationale": "Explain why this scenario is our central forecast rather than the strongest alternative, with directly supporting [SRC-N] citations. Distinguish observations from inference. Required.",
+  "centralScenarioImplications": ["Concrete consequence of this central forecast for decision-makers", "Second consequence"],
   "objections": ["strongest counter-argument, written as a prose paragraph (2-3 sentences each)", "..."],
   "whatChangesMind": ["falsifiable trigger that would reverse our position", "..."],
   "recommendations": {
@@ -284,18 +314,45 @@ Return JSON:
       uncertaintyDrivers: Array.isArray(s.uncertaintyDrivers) ? s.uncertaintyDrivers.map(String) : undefined,
       tippingPoint: s.tippingPoint ? String(s.tippingPoint) : undefined,
       crossImpact: s.crossImpact ? String(s.crossImpact) : undefined,
+      axisPosition: s.axisPosition ? String(s.axisPosition) : undefined,
+      signatureMoment: s.signatureMoment ? String(s.signatureMoment) : undefined,
+      isWildcard: s.isWildcard === true ? true : undefined,
     }));
+
+    // Fill in axis positions from the architect skeletons when the arbiter
+    // omitted them — keeps the matrix structure visible even on lazy output.
+    if (architectResult) {
+      for (const s of outScenarios) {
+        if (!s.axisPosition) {
+          const skel = architectResult.skeletons.find(k =>
+            k.name.toLowerCase() === s.name.toLowerCase() ||
+            s.name.toLowerCase().includes(k.name.toLowerCase().slice(0, 12))
+          );
+          if (skel) {
+            s.axisPosition = skel.axisPosition;
+            if (skel.isWildcard) s.isWildcard = true;
+          }
+        }
+      }
+    }
 
     // ── Prospective Framework (PhD-level foresight architecture) ──
     const pf = parsed.prospectiveFramework;
-    const prospectiveFramework = pf ? {
-      horizon: pf.horizon ? String(pf.horizon) : undefined,
-      baseRateContext: pf.baseRateContext ? String(pf.baseRateContext) : undefined,
-      fermiDecomposition: pf.fermiDecomposition ? String(pf.fermiDecomposition) : undefined,
-      keyUncertainties: Array.isArray(pf.keyUncertainties) ? pf.keyUncertainties.map(String) : undefined,
-      crossImpactSummary: pf.crossImpactSummary ? String(pf.crossImpactSummary) : undefined,
-      snowLeopards: Array.isArray(pf.snowLeopards) ? pf.snowLeopards.map(String) : undefined,
-      methodologyNote: pf.methodologyNote ? String(pf.methodologyNote) : undefined,
+    const prospectiveFramework = (pf || architectResult) ? {
+      horizon: pf?.horizon ? String(pf.horizon) : undefined,
+      baseRateContext: pf?.baseRateContext ? String(pf.baseRateContext) : undefined,
+      fermiDecomposition: pf?.fermiDecomposition ? String(pf.fermiDecomposition) : undefined,
+      // Architect values are the fallback — the matrix is the source of truth
+      predeterminedElements: (Array.isArray(pf?.predeterminedElements) && pf.predeterminedElements.length > 0
+        ? pf.predeterminedElements.map(String)
+        : architectResult?.predeterminedElements),
+      criticalUncertainties: (Array.isArray(pf?.criticalUncertainties) && pf.criticalUncertainties.length >= 2
+        ? pf.criticalUncertainties.slice(0, 2).map((u: any) => ({ name: String(u.name ?? ''), poleA: String(u.poleA ?? ''), poleB: String(u.poleB ?? '') }))
+        : architectResult?.criticalUncertainties),
+      keyUncertainties: Array.isArray(pf?.keyUncertainties) ? pf.keyUncertainties.map(String) : undefined,
+      crossImpactSummary: pf?.crossImpactSummary ? String(pf.crossImpactSummary) : undefined,
+      snowLeopards: Array.isArray(pf?.snowLeopards) ? pf.snowLeopards.map(String) : undefined,
+      methodologyNote: pf?.methodologyNote ? String(pf.methodologyNote) : undefined,
     } : undefined;
 
     // ── Delphi foresight: multi-expert scenario calibration ──
@@ -368,11 +425,14 @@ Return JSON:
 
     return {
       headline: String(parsed.headline || fallback.headline),
+      lede: parsed.lede ? String(parsed.lede).slice(0, 600) : undefined,
       verdict: String(parsed.verdict || fallback.verdict),
       confidence: conf,
       confidenceLabel: confidenceLabel(conf),
       scenarios: outScenarios.length ? outScenarios : fallback.scenarios,
-      dominantScenario: parsed.dominantScenario ? String(parsed.dominantScenario) : outScenarios[0]?.name,
+      dominantScenario: parsed.dominantScenario ? String(parsed.dominantScenario) : undefined,
+      centralScenarioRationale: typeof parsed.centralScenarioRationale === 'string' ? parsed.centralScenarioRationale : undefined,
+      centralScenarioImplications: Array.isArray(parsed.centralScenarioImplications) ? parsed.centralScenarioImplications.map(String).slice(0, 5) : undefined,
       objections: (parsed.objections ?? []).map(String).slice(0, 5),
       whatChangesMind: (parsed.whatChangesMind ?? []).map(String).slice(0, 5),
       recommendations: parsed.recommendations ? {
@@ -389,7 +449,7 @@ Return JSON:
         action: String(parsed.sectionTitles.action ?? ''),
       } : undefined,
       prospectiveFramework,
-      costUsd: response.costUsd + delphiCostUsd,
+      costUsd: response.costUsd + delphiCostUsd + architectCost,
     };
   } catch (err) {
     console.warn('[EDITORIAL ARBITER] failed, using fallback position:', err);

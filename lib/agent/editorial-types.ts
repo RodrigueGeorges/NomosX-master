@@ -50,6 +50,10 @@ export interface ScenarioOutlook {
   expertRationales?: string[]; // Per-expert reasoning summaries
   uncertaintyDrivers?: string[]; // What makes this scenario uncertain
   tippingPoint?: string;     // What would tip probability dramatically
+  // Shell-method fields (scenario-architect)
+  axisPosition?: string;     // Position on the critical-uncertainty matrix
+  signatureMoment?: string;  // Vivid vignette from inside this future
+  isWildcard?: boolean;      // Surprising-but-plausible outlier scenario
 }
 
 /** PhD-level prospective framework — the foresight architecture behind the scenarios */
@@ -68,15 +72,23 @@ export interface ProspectiveFramework {
   methodologyNote?: string;
   /** Snow leopards: underappreciated phenomena that could have outsized impact */
   snowLeopards?: string[];
+  /** Predetermined elements — certainties true in EVERY scenario (Shell: "it has rained in the mountains") */
+  predeterminedElements?: string[];
+  /** The two critical uncertainties structuring the scenario matrix */
+  criticalUncertainties?: Array<{ name: string; poleA: string; poleB: string }>;
 }
 
 export interface InstitutePosition {
   headline: string;
+  /** The lede — one striking opening (Economist discipline: the first sentence earns the second) */
+  lede?: string;
   verdict: string;
   confidence: number;
   confidenceLabel: 'high' | 'medium' | 'low';
   scenarios: ScenarioOutlook[];
   dominantScenario?: string;
+  centralScenarioRationale?: string;
+  centralScenarioImplications?: string[];
   objections: string[];
   whatChangesMind: string[];
   recommendations?: {
@@ -97,6 +109,69 @@ export interface InstitutePosition {
   /** PhD-level prospective framework — the foresight architecture behind the scenarios */
   prospectiveFramework?: ProspectiveFramework;
   costUsd: number;
+}
+
+export interface CentralScenarioDecision {
+  name: string;
+  description: string;
+  rationale: string;
+  horizon: string;
+  implications: string[];
+  revisionTriggers: string[];
+  confidence: InstitutePosition['confidenceLabel'];
+  selectedBy: 'editorial' | 'probability_fallback';
+  simulationLeader?: string;
+  simulationDisagrees: boolean;
+}
+
+export function resolveCentralScenario(
+  position: InstitutePosition,
+  simulation: Array<{ name: string; empiricalProbability: number }> = [],
+): CentralScenarioDecision | undefined {
+  const names = position.scenarios.map(s => s.name.trim().toLowerCase());
+  if (names.some(name => !name) || new Set(names).size !== names.length) return undefined;
+  const requested = position.dominantScenario?.trim().toLowerCase();
+  const editorial = position.scenarios.find(s => s.name.trim().toLowerCase() === requested);
+  const probability = (s: ScenarioOutlook): number => {
+    if (typeof s.calibratedProbability === 'number' && Number.isFinite(s.calibratedProbability)
+      && s.calibratedProbability >= 0 && s.calibratedProbability <= 1) return s.calibratedProbability;
+    const match = s.probability.trim().match(/^(\d+(?:\.\d+)?)\s*%$/);
+    return match && Number(match[1]) <= 100 ? Number(match[1]) / 100 : -1;
+  };
+  const candidates = position.scenarios.filter(s => !s.isWildcard && probability(s) >= 0)
+    .sort((a, b) => probability(b) - probability(a));
+  const selected = editorial ?? candidates[0];
+  if (!selected) return undefined;
+  const simulated = simulation.filter(s => names.includes(s.name.trim().toLowerCase())
+    && Number.isFinite(s.empiricalProbability) && s.empiricalProbability >= 0 && s.empiricalProbability <= 1)
+    .sort((a, b) => b.empiricalProbability - a.empiricalProbability)[0];
+  return {
+    name: selected.name,
+    description: selected.narrative?.trim() || selected.description.trim(),
+    rationale: editorial ? position.centralScenarioRationale?.trim() ?? '' : '',
+    horizon: position.prospectiveFramework?.horizon?.trim() ?? '',
+    implications: editorial ? (position.centralScenarioImplications ?? []).filter(s => s.trim()) : [],
+    revisionTriggers: position.whatChangesMind.filter(s => s.trim()),
+    confidence: position.confidenceLabel,
+    selectedBy: editorial ? 'editorial' : 'probability_fallback',
+    simulationLeader: simulated?.name,
+    simulationDisagrees: !!simulated && simulated.name.trim().toLowerCase() !== selected.name.trim().toLowerCase(),
+  };
+}
+
+export function centralScenarioIssues(decision: CentralScenarioDecision | undefined, sourceCount: number): string[] {
+  if (!decision) return ['No unique central scenario selected'];
+  const issues: string[] = [];
+  if (!decision.name.trim() || !decision.description.trim()) issues.push('Missing central scenario narrative');
+  if (decision.selectedBy !== 'editorial') issues.push('Central scenario requires an explicit editorial choice');
+  const refs = [...decision.rationale.matchAll(/\[SRC-(\d+)\]/g)].map(m => Number(m[1]));
+  if (!decision.rationale.trim() || refs.length === 0 || refs.some(n => n < 1 || n > sourceCount)) {
+    issues.push('Central scenario requires a rationale with valid source references');
+  }
+  if (!decision.horizon.trim()) issues.push('Missing forecast horizon');
+  if (!decision.implications.some(s => s.trim())) issues.push('Missing central scenario implications');
+  if (!decision.revisionTriggers.some(s => s.trim())) issues.push('Missing observable revision triggers');
+  return issues;
 }
 
 export interface PositionFirstBriefInput {

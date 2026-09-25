@@ -175,7 +175,7 @@ export function sanitizeUnsourcedNumbers(html: string): { html: string; sanitize
 
   // Step 1: Extract and mask <style>/<script> blocks
   const skipBlocks: string[] = [];
-  let working = html.replace(/<(style|script)\b[^>]*>[\s\S]*?<\/\1>/gi, (m) => {
+  let working = html.replace(/<(style|script)\b[^>]*>[\s\S]*?(<\/\1>|(?=<\/head>)|(?=<body\b)|$)/gi, (m) => {
     skipBlocks.push(m);
     return `\x00SKIP${skipBlocks.length - 1}\x00`;
   });
@@ -238,6 +238,14 @@ export function sanitizeUnsourcedNumbers(html: string): { html: string; sanitize
       // (these are pipeline metrics like trust score, citation coverage, etc.)
       const methodologyCtx = working.slice(Math.max(0, absPos - 1000), absPos);
       if (/class="nx-block methodology-note"|Méthodologie|TRUST|nx-eyebrow/.test(methodologyCtx)) {
+        return match;
+      }
+
+      // Don't sanitize model-derived estimates: data-no-cite zones and
+      // scenario-prob spans (Delphi-calibrated probabilities are internal
+      // estimates, not empirical claims requiring a source)
+      const openTag = ctxBefore.match(/<([a-zA-Z][^>]*)>$/)?.[1] || '';
+      if (/\bdata-no-cite\b/.test(openTag) || /class="[^"]*\bscenario-prob\b/.test(openTag)) {
         return match;
       }
 
@@ -697,6 +705,24 @@ export function repairCitations(
   workingHtml = sanitization.html;
   totalSanitized = sanitization.sanitized;
   allDetails.push(...sanitization.details);
+
+  // Step 3b: Language-normalize the "non établie" marker. Invariant 6 is
+  // intentional epistemic honesty — but the FRENCH token inside an ENGLISH
+  // publication reads as a rendering bug to paying readers. Detect document
+  // language from prose and localize the marker (covers both the sanitizer's
+  // output above and tokens the LLM wrote itself per prompt instructions).
+  {
+    const visibleText = workingHtml
+      .replace(/<(style|script)\b[\s\S]*?(<\/\1>|$)/gi, ' ')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/&[a-z]+;/g, ' ');
+    const words = visibleText.split(/\s+/).filter(w => w.length > 1);
+    const frenchWords = words.filter(w => /^(le|la|les|des|une|est|dans|pour|avec|qui|sur|nous|leur|être|sont|cette|ces|aux|par|entre|selon|dont|aussi|mais|comme|plus|très|sans|sous|vers|après|avant|pendant|depuis|jusqu|lors|ainsi|alors|donc|car|ni|ou|et|de|du|en|au|un|il|elle|on|ce|se|sa|son|ses)$/i.test(w)).length;
+    const isFrench = words.length > 0 && frenchWords / words.length > 0.06;
+    if (!isFrench) {
+      workingHtml = workingHtml.replace(/non établie/g, 'not established');
+    }
+  }
 
   // Step 4: Convert injected [SRC-N] to <sup> tags if the renderer already uses <sup> format.
   // The strategic report renderer converts [SRC-N] to <sup class="cite"><a href="#ref-N">N</a></sup>.

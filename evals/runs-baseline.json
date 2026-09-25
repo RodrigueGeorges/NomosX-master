@@ -1,0 +1,14 @@
+{
+  "runCount": 50,
+  "completionRate": 0.62,
+  "pubCount": 32,
+  "publishRate": 0.65625,
+  "meanTrust": 69.375,
+  "meanCostUsd": 0.31987091740000007,
+  "meanDurationMin": 28.936392666666674,
+  "costPerPublished": 0.7615974223809525,
+  "staleEvalRuns": 0,
+  "staleEvalTotal": 0,
+  "vetoCounts": {},
+  "evaluatedAt": "2026-09-25T17:46:05.942Z"
+}

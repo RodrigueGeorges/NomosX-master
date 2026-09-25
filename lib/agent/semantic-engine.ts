@@ -26,6 +26,11 @@ import type { SourceForScoring, RelevanceScore } from './relevance-scorer';
 // ============================================================================
 
 const EMBEDDING_MODEL = "text-embedding-3-small";
+// Cohere embed-v4.0 also emits 1536 dims — a true drop-in fallback when the
+// OpenAI account is down. Vectors from different models are NOT comparable,
+// so every embedding is tagged via Source.embeddingModel and searches only
+// compare vectors produced by the same backend.
+const COHERE_EMBED_MODEL = "embed-v4.0";
 const EMBEDDING_DIMS = 1536;
 const BATCH_SIZE = 100; // OpenAI supports up to 2048 inputs per call
 const MAX_INPUT_TOKENS = 8191; // Model limit per input
@@ -33,16 +38,59 @@ const MAX_CONCURRENT_BATCHES = 5; // Parallel API calls (5 × 100 = 500 texts in
 const DB_UPDATE_CHUNK = 50; // DB transaction chunk size (avoid huge transactions)
 
 let openaiClient: OpenAI | null = null;
+let openaiEmbeddingDead = false; // flipped after first quota/auth failure — skip retries for the process lifetime
 
 function getClient(): OpenAI | null {
   const key = process.env.OPENAI_API_KEY;
-  if (!key || key.startsWith('sk-place') || key.length < 20) {
+  if (!key || key.startsWith('sk-place') || key.length < 20 || openaiEmbeddingDead) {
     return null;
   }
   if (!openaiClient) {
     openaiClient = new OpenAI({ apiKey: key });
   }
   return openaiClient;
+}
+
+function markOpenAIEmbeddingDead(err: any): void {
+  const code = String(err?.code ?? err?.error?.code ?? "").toLowerCase();
+  const msg = String(err?.message ?? err ?? "").toLowerCase();
+  if (
+    err?.status === 401 ||
+    code.includes("insufficient_quota") ||
+    code.includes("credit_balance") ||
+    msg.includes("no credits remaining") ||
+    msg.includes("insufficient_quota") ||
+    msg.includes("invalid api key")
+  ) {
+    if (!openaiEmbeddingDead) {
+      console.warn('[SemanticEngine] OpenAI embeddings disabled for this process (account error) — Cohere fallback active.');
+    }
+    openaiEmbeddingDead = true;
+  }
+}
+
+/**
+ * Cohere embed-v4.0 fallback (COHERE_API_KEY). Returns 1536-dim vectors.
+ * inputType: 'search_document' for stored sources, 'search_query' for queries.
+ */
+async function cohereEmbed(texts: string[], inputType: "search_document" | "search_query"): Promise<number[][] | null> {
+  const key = process.env.COHERE_API_KEY;
+  if (!key || key.length < 10) return null;
+  const res = await fetch("https://api.cohere.com/v2/embed", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: COHERE_EMBED_MODEL,
+      input_type: inputType,
+      embedding_types: ["float"],
+      texts,
+    }),
+  });
+  if (!res.ok) {
+    throw new Error(`Cohere embed HTTP ${res.status}: ${(await res.text()).slice(0, 120)}`);
+  }
+  const j = await res.json();
+  return j?.embeddings?.float ?? null;
 }
 
 function zeroVector(): number[] {
@@ -55,41 +103,71 @@ function zeroVector(): number[] {
 
 /**
  * Embed a single text string. Returns 1536-dim float array.
+ * Falls back to Cohere embed-v4.0 when OpenAI is unavailable.
  */
 export async function embedText(text: string): Promise<number[]> {
+  return (await embedTextDetailed(text)).embedding;
+}
+
+/**
+ * Detailed variant — also reports which backend produced the vector so
+ * callers can tag Source.embeddingModel and keep comparisons model-consistent.
+ */
+export async function embedTextDetailed(
+  text: string,
+  inputType: "search_document" | "search_query" = "search_document",
+): Promise<{ embedding: number[]; model: string }> {
   if (!text || text.trim().length === 0) {
-    return new Array(EMBEDDING_DIMS).fill(0);
+    return { embedding: new Array(EMBEDDING_DIMS).fill(0), model: "none" };
   }
 
   // Truncate to ~30k chars (~8k tokens) to stay within model limits
   const truncated = text.slice(0, 30000);
 
   const client = getClient();
-  if (!client) {
-    console.warn('[SemanticEngine] OpenAI API key not configured — returning zero vector. Semantic search will be degraded.');
-    return zeroVector();
+  if (client) {
+    try {
+      const response = await client.embeddings.create({
+        model: EMBEDDING_MODEL,
+        input: truncated,
+        dimensions: EMBEDDING_DIMS,
+      });
+      return { embedding: response.data[0].embedding, model: EMBEDDING_MODEL };
+    } catch (err: any) {
+      markOpenAIEmbeddingDead(err);
+      // fall through to Cohere
+    }
   }
-  const response = await client.embeddings.create({
-    model: EMBEDDING_MODEL,
-    input: truncated,
-    dimensions: EMBEDDING_DIMS,
-  });
 
-  return response.data[0].embedding;
+  try {
+    const cohere = await cohereEmbed([truncated], inputType);
+    if (cohere?.[0]?.length === EMBEDDING_DIMS) {
+      return { embedding: cohere[0], model: COHERE_EMBED_MODEL };
+    }
+  } catch (err) {
+    console.warn('[SemanticEngine] Cohere embed fallback failed:', err instanceof Error ? err.message : err);
+  }
+
+  console.warn('[SemanticEngine] No embedding backend available — returning zero vector. Semantic search will be degraded.');
+  return { embedding: zeroVector(), model: "none" };
 }
 
 /**
  * Embed multiple texts in a single API call (much cheaper).
  * Returns array of embeddings in same order as inputs.
+ * Falls back to Cohere embed-v4.0 per-batch when OpenAI fails.
  */
 export async function embedBatch(texts: string[]): Promise<number[][]> {
-  if (texts.length === 0) return [];
+  return (await embedBatchDetailed(texts)).embeddings;
+}
+
+export async function embedBatchDetailed(
+  texts: string[],
+  inputType: "search_document" | "search_query" = "search_document",
+): Promise<{ embeddings: number[][]; model: string }> {
+  if (texts.length === 0) return { embeddings: [], model: "none" };
 
   const client = getClient();
-  if (!client) {
-    console.warn('[SemanticEngine] OpenAI API key not configured — returning zero vectors. Semantic search will be degraded.');
-    return texts.map(() => zeroVector());
-  }
 
   // Split into batches of BATCH_SIZE
   const batches: Array<{ index: number; texts: string[] }> = [];
@@ -102,19 +180,31 @@ export async function embedBatch(texts: string[]): Promise<number[][]> {
   }
 
   // Process batches with controlled concurrency (MAX_CONCURRENT_BATCHES parallel)
-  const allResults: Array<{ startIndex: number; embeddings: number[][] }> = [];
+  const allResults: Array<{ startIndex: number; embeddings: number[][]; model: string }> = [];
   for (let i = 0; i < batches.length; i += MAX_CONCURRENT_BATCHES) {
     const wave = batches.slice(i, i + MAX_CONCURRENT_BATCHES);
     const waveResults = await Promise.allSettled(
       wave.map(async (batch) => {
-        const response = await client.embeddings.create({
-          model: EMBEDDING_MODEL,
-          input: batch.texts,
-          dimensions: EMBEDDING_DIMS,
-        });
-        // Sort by index to maintain order
-        const sorted = response.data.sort((a, b) => a.index - b.index);
-        return { startIndex: batch.index, embeddings: sorted.map(d => d.embedding) };
+        if (client) {
+          try {
+            const response = await client.embeddings.create({
+              model: EMBEDDING_MODEL,
+              input: batch.texts,
+              dimensions: EMBEDDING_DIMS,
+            });
+            // Sort by index to maintain order
+            const sorted = response.data.sort((a, b) => a.index - b.index);
+            return { startIndex: batch.index, embeddings: sorted.map(d => d.embedding), model: EMBEDDING_MODEL };
+          } catch (err) {
+            markOpenAIEmbeddingDead(err);
+          }
+        }
+        // Cohere fallback — 96 texts max per call, our batches are already ≤100
+        const cohere = await cohereEmbed(batch.texts, inputType);
+        if (!cohere || cohere.length !== batch.texts.length) {
+          throw new Error('Cohere embed returned no/mismatched vectors');
+        }
+        return { startIndex: batch.index, embeddings: cohere, model: COHERE_EMBED_MODEL };
       }),
     );
 
@@ -129,6 +219,7 @@ export async function embedBatch(texts: string[]): Promise<number[][]> {
         allResults.push({
           startIndex: failedBatch.index,
           embeddings: failedBatch.texts.map(() => new Array(EMBEDDING_DIMS).fill(0)),
+          model: "none",
         });
       }
     }
@@ -137,11 +228,14 @@ export async function embedBatch(texts: string[]): Promise<number[][]> {
   // Reassemble in order
   allResults.sort((a, b) => a.startIndex - b.startIndex);
   const results: number[][] = [];
+  const models = new Set<string>();
   for (const r of allResults) {
     results.push(...r.embeddings);
+    if (r.model !== "none") models.add(r.model);
   }
+  const model = models.size === 1 ? [...models][0] : models.size > 1 ? "mixed" : "none";
 
-  return results;
+  return { embeddings: results, model };
 }
 
 // ============================================================================
@@ -187,19 +281,20 @@ export async function embedSource(sourceId: string): Promise<void> {
 
   if (!source) return;
 
-  // Skip if already embedded with current model
-  if (source.embeddings.length === EMBEDDING_DIMS && source.embeddingModel === EMBEDDING_MODEL) {
+  // Skip if already embedded with the backend we'd use right now.
+  const expectedModel = getClient() ? EMBEDDING_MODEL : COHERE_EMBED_MODEL;
+  if (source.embeddings.length === EMBEDDING_DIMS && source.embeddingModel === expectedModel) {
     return;
   }
 
   const text = `${source.title}\n\n${source.abstract || ""}`.trim();
-  const embedding = await embedText(text);
+  const { embedding, model } = await embedTextDetailed(text);
 
   await prisma.source.update({
     where: { id: sourceId },
     data: {
       embeddings: embedding,
-      embeddingModel: EMBEDDING_MODEL,
+      embeddingModel: model,
     },
   });
 
@@ -229,9 +324,10 @@ export async function embedSourcesBatch(sourceIds: string[]): Promise<{ embedded
     allSources.push(...sources);
   }
 
-  // Filter out already-embedded sources
+  // Filter out sources already embedded with the backend we'd use right now
+  const expectedModel = getClient() ? EMBEDDING_MODEL : COHERE_EMBED_MODEL;
   const needsEmbedding = allSources.filter(
-    s => s.embeddings.length !== EMBEDDING_DIMS || s.embeddingModel !== EMBEDDING_MODEL
+    s => s.embeddings.length !== EMBEDDING_DIMS || s.embeddingModel !== expectedModel
   );
 
   if (needsEmbedding.length === 0) {
@@ -241,7 +337,7 @@ export async function embedSourcesBatch(sourceIds: string[]): Promise<{ embedded
   console.log(`[SemanticEngine] Embedding ${needsEmbedding.length} sources (${allSources.length - needsEmbedding.length} already done)...`);
 
   const texts = needsEmbedding.map(s => `${s.title}\n\n${s.abstract || ""}`.trim());
-  const embeddings = await embedBatch(texts);
+  const { embeddings, model: embedModel } = await embedBatchDetailed(texts);
 
   let embedded = 0;
   let failed = 0;
@@ -261,7 +357,7 @@ export async function embedSourcesBatch(sourceIds: string[]): Promise<{ embedded
       chunkUpdates.push(
         prisma.source.update({
           where: { id: source.id },
-          data: { embeddings: embedding, embeddingModel: EMBEDDING_MODEL },
+          data: { embeddings: embedding, embeddingModel: embedModel === "mixed" ? "none" : embedModel },
         }),
       );
     }
@@ -335,13 +431,20 @@ export async function semanticSearch(
 ): Promise<Array<{ sourceId: string; similarity: number; title: string }>> {
   const { limit = 20, minSimilarity = 0.3, sourceIds, minQuality, providers } = options;
 
-  const queryEmbedding = await embedText(query);
+  const { embedding: queryEmbedding, model: queryModel } = await embedTextDetailed(query, "search_query");
+  // A zero vector matches nothing meaningfully — bail out early.
+  if (queryModel === "none") return [];
   const vectorLiteral = `[${queryEmbedding.join(",")}]`;
 
   // Try pgvector native SQL first (uses HNSW index — O(log n))
   try {
     type VecRow = { id: string; title: string; similarity: number };
-    const extraFilters: string[] = [`s.embedding IS NOT NULL`];
+    // Only compare vectors produced by the same embedding backend —
+    // cross-model cosine similarity is meaningless.
+    const extraFilters: string[] = [
+      `s.embedding IS NOT NULL`,
+      `s."embeddingModel" = '${queryModel.replace(/'/g, "''")}'`,
+    ];
     if (minQuality) extraFilters.push(`s."qualityScore" >= ${minQuality}`);
     if (providers && providers.length > 0) {
       const list = providers.map(p => `'${p.replace(/'/g, "''")}'`).join(",");
@@ -376,8 +479,8 @@ export async function semanticSearch(
     console.warn(`[SemanticEngine] pgvector search failed, falling back to in-memory:`, err instanceof Error ? err.message : String(err));
   }
 
-  // In-memory fallback (Float[] JSON column)
-  const where: any = { embeddings: { isEmpty: false } };
+  // In-memory fallback (Float[] JSON column) — same-model vectors only
+  const where: any = { embeddings: { isEmpty: false }, embeddingModel: queryModel };
   if (sourceIds) where.id = { in: sourceIds };
   if (minQuality) where.qualityScore = { gte: minQuality };
   if (providers) where.provider = { in: providers };

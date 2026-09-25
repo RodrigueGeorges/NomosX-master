@@ -966,3 +966,50 @@ export async function optimizeAgentPrompt(
   );
   return result;
 }
+
+/**
+ * Run GMPO optimization for a single agent end-to-end: load its current prompt,
+ * optimize against representative test cases, persist the improved version.
+ * Returns null if there's not enough signal or no improvement.
+ */
+export async function runGMPOForAgent(
+  agentId: string,
+  fallbackPrompt: string,
+  testCases: string[],
+): Promise<{ improved: boolean; newVersion?: PromptVersion; improvementScore: number; costUsd: number }> {
+  const currentPrompt = await getLatestPrompt(agentId, fallbackPrompt);
+
+  // Representative input/output pair for evaluation
+  const input = testCases[0] || 'Summarize the key drivers of the topic.';
+  const output = 'A rigorous, well-cited analytical response.';
+
+  // evaluateFn: score the candidate prompt on the test input via LLM judge
+  const evaluateFn = async (prompt: string, inp: string) => {
+    const score = await scorePromptVariant(agentId, prompt, [inp]);
+    return { quality: score / 100, cost: 0.002 };
+  };
+
+  const result = await optimizeAgentPrompt(currentPrompt, input, output, evaluateFn);
+
+  if (result.improvementScore <= 0) {
+    return { improved: false, improvementScore: 0, costUsd: result.costUsd };
+  }
+
+  // Persist the optimized prompt as a new version
+  const existing = await loadLatestFromDB(agentId);
+  const nextVersion = (existing?.version ?? 0) + 1;
+  const newVersion: PromptVersion & { agentId: string } = {
+    agentId,
+    version: nextVersion,
+    prompt: result.optimizedPrompt,
+    score: Math.round(result.improvementScore * 100),
+    source: 'evolved',
+    createdAt: new Date(),
+    lessons: [`GMPO optimization: +${(result.improvementScore * 100).toFixed(0)}pts quality`],
+  };
+  await saveVersionToDB(newVersion);
+  latestPromptCache[agentId] = newVersion;
+
+  console.log(`[SelfEvolver] GMPO: ${agentId} prompt v${nextVersion} saved (+${(result.improvementScore * 100).toFixed(0)}pts)`);
+  return { improved: true, newVersion, improvementScore: result.improvementScore, costUsd: result.costUsd };
+}

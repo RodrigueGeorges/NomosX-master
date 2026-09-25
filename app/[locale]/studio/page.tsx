@@ -525,7 +525,7 @@ export default function StudioPage() {
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
           <Loader2 size={36} className={cn("mx-auto mb-4 animate-spin", nx.icon)} />
-          <p className="text-black/50 font-mono text-[11px] uppercase tracking-[0.14em]">Loading Engine</p>
+          <p className="text-black/50 font-mono text-[11px] uppercase tracking-[0.14em]">Chargement du moteur</p>
         </div>
       </div>
     }>

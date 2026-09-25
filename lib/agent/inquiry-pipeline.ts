@@ -68,15 +68,20 @@ function depthToPipelineFormat(
       base = { format: "brief", options: { perProvider: 15 } };
       break;
     case "standard":
-      // Decision Memo — moderate depth, brief pipeline with memo rendering
-      base = { format: "memo", options: { perProvider: 30 } };
+      // Decision Memo — moderate depth, brief pipeline with memo rendering.
+      // Same heavy machinery as deep (BLACKBOARD re-analysis, arbiter, Delphi,
+      // sweep) — a memo run died mid critic-repair at the 65min default cap.
+      base = { format: "memo", options: { perProvider: 30, timeoutMs: 4_800_000 } };
       break;
     case "deep":
-      // Article — deeper brief pipeline (NOT strategic), more sources
+      // Article — deeper brief pipeline (NOT strategic), more sources.
+      // Runs the full heavy machinery (BLACKBOARD gap-fill re-analysis, Delphi,
+      // arbiter) — needs the strategic-scale timeout, not the 65min brief cap.
       base = {
         format: "brief",
         options: {
           perProvider: 50,
+          timeoutMs: 4_800_000, // 80min — a deep run timed out at 65min post-arbiter
           rankOptions: { requireAbstract: false, minQuality: 0 },
         },
       };
@@ -120,31 +125,34 @@ async function maybeRunSimulation(
   lineage: Record<string, unknown>;
   report?: SimulationReport;
 }> {
-  if (skipSimulation) {
-    return { analysis, lineage };
+  const cachedReport = analysis._simulationReport as SimulationReport | undefined;
+  let report = cachedReport;
+  if (!report?.output) {
+    if (skipSimulation || lineage.centralScenarioRequired === true || analysis._foresightRun) return { analysis, lineage };
+    const isStrategic = depth === "strategic";
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const foresight = await Promise.race([
+      runPipelineForesight({
+        question,
+        analysis,
+        domain,
+        sourceIds,
+        isStrategic,
+        depth,
+        seedSourceIds: lineage.seedSourceIds as string[] | undefined,
+      }),
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error("Foresight simulation timed out (600s)")), 600_000);
+      }),
+    ]).finally(() => { if (timer) clearTimeout(timer); });
+
+    if (foresight.skipped || !foresight.report) {
+      return { analysis: foresight.analysis, lineage };
+    }
+    report = foresight.report;
+    analysis = foresight.analysis;
   }
 
-  const isStrategic = depth === "strategic";
-  const foresight = await Promise.race([
-    runPipelineForesight({
-      question,
-      analysis,
-      domain,
-      sourceIds,
-      isStrategic,
-      depth,
-      seedSourceIds: lineage.seedSourceIds as string[] | undefined,
-    }),
-    new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error("Foresight simulation timed out (600s)")), 600_000)
-    ),
-  ]);
-
-  if (foresight.skipped || !foresight.report) {
-    return { analysis: foresight.analysis, lineage };
-  }
-
-  const report = foresight.report;
   const enrichedLineage = {
     ...lineage,
     simulation: report.output,
@@ -164,10 +172,12 @@ async function maybeRunSimulation(
     },
   };
 
-  return { analysis: foresight.analysis, lineage: enrichedLineage, report };
+  return { analysis, lineage: enrichedLineage, report: cachedReport ? undefined : report };
 }
 
 function extractVerdict(analysis: Record<string, unknown>, depth: InquiryDepth): ProbabilisticVerdict {
+  const central = analysis.centralScenario as Inquiry['centralScenario'];
+  if (central?.name) return { value: central.name, label: 'Central scenario', rationale: central.rationale, direction: 'neutral' };
   const verdict = analysis.verdict as Record<string, unknown> | undefined;
   if (verdict) {
     return {
@@ -509,11 +519,45 @@ export async function runInquiryPipeline(
     include: { authors: { include: { author: true } } },
   });
 
+  // [SRC-N] indices map to positions in brief.sources — never filter or the
+  // citation numbering shifts. Foundational KB sources carry synthetic ids
+  // (foundational:domain:N) and are hydrated from lineage; any other missing
+  // row gets a placeholder at the same index.
+  const foundationalById = new Map(
+    ((lineage.foundationalSources as Array<Record<string, unknown>> | undefined) ?? []).map(
+      (f) => [String(f.id), f]
+    )
+  );
+  const recordById = new Map(sourceRecords.map((s) => [s.id, s]));
+  const missingIds = brief.sources.filter(
+    (id) => !recordById.has(id) && !foundationalById.has(id)
+  );
+  if (missingIds.length) {
+    console.warn(
+      `[Inquiry] ${missingIds.length}/${brief.sources.length} brief source ids lack a persisted row — rendering placeholders to preserve [SRC-N] order:`,
+      missingIds.slice(0, 10)
+    );
+  }
   const mappedSources = mapSources(
-    sourceRecords.map((s) => ({
-      ...s,
-      authors: s.authors.map((sa) => sa.author.name),
-    })) as unknown as Array<Record<string, unknown>>
+    brief.sources.map((id) => {
+      const s = recordById.get(id);
+      if (s) {
+        return {
+          ...s,
+          authors: s.authors.map((sa) => sa.author.name),
+        } as unknown as Record<string, unknown>;
+      }
+      const fs = foundationalById.get(id);
+      if (fs) return fs;
+      return {
+        id,
+        title: "Source unavailable",
+        authors: [],
+        url: null,
+        provider: "unknown",
+        missing: true,
+      } as unknown as Record<string, unknown>;
+    })
   );
 
   const { trustScore, qualityScore } = extractScores(brief, stats, lineage);
@@ -533,6 +577,7 @@ export async function runInquiryPipeline(
     depth,
     status: "reviewing" as InquiryStatus,
     verdict: extractVerdict(analysis, depth),
+    centralScenario: stats.centralScenario as Inquiry['centralScenario'],
     sections: buildSections(analysis, depth),
     sources: mappedSources,
     readTime: Math.max(3, Math.round(html.length / 2500)),

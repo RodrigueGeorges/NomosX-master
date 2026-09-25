@@ -75,7 +75,7 @@ export default function MoatDashboardPage() {
       const json = await res.json();
       setData(json);
     } catch (e: any) {
-      setError(e.message || "Failed to load moat data");
+      setError("Échec du chargement des données moat");
     } finally {
       setLoading(false);
     }
@@ -105,7 +105,7 @@ export default function MoatDashboardPage() {
             className="flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg bg-black/5 hover:bg-black/10 border border-black/10 transition disabled:opacity-50"
           >
             <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
-            Refresh
+            Actualiser
           </button>
         </div>
 
@@ -118,7 +118,7 @@ export default function MoatDashboardPage() {
         {loading && !data && (
           <div className="flex items-center justify-center py-20 text-gray-400">
             <RefreshCw className="w-6 h-6 animate-spin mr-2" />
-            Loading moat data...
+            Chargement des données moat…
           </div>
         )}
 
@@ -127,15 +127,15 @@ export default function MoatDashboardPage() {
             {/* Summary Cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
               <SummaryCard icon={<Brain className="w-5 h-5" />} label="Exemples PRM" value={data.summary.prmTrainingExamples} sublabel={`${data.summary.prmSteps} étapes scorées`} color="text-blue-300" />
-              <SummaryCard icon={<Swords className="w-5 h-5" />} label="Runs Self-Play" value={data.summary.selfPlayRounds} sublabel={`${data.selfPlay.succeededAttacks} faiblesses trouvées`} color="text-red-300" />
-              <SummaryCard icon={<Users className="w-5 h-5" />} label="Runs MoA" value={data.summary.moaRuns} sublabel={data.moa.avgConfidence !== null ? `${(data.moa.avgConfidence * 100).toFixed(0)}% confiance moyenne` : ""} color="text-purple-300" />
+              <SummaryCard icon={<Swords className="w-5 h-5" />} label="Sessions Self-Play" value={data.summary.selfPlayRounds} sublabel={`${data.selfPlay.succeededAttacks} faiblesses trouvées`} color="text-red-300" />
+              <SummaryCard icon={<Users className="w-5 h-5" />} label="Analyses MoA" value={data.summary.moaRuns} sublabel={data.moa.avgConfidence !== null ? `${(data.moa.avgConfidence * 100).toFixed(0)}% confiance moyenne` : ""} color="text-purple-300" />
               <SummaryCard icon={<Globe className="w-5 h-5" />} label="Domaines World Model" value={data.summary.worldModelDomains} sublabel={`${data.summary.crossDomainLinks} liens inter-domaines`} color="text-green-300" />
             </div>
 
             {/* PRM Section */}
             <Panel title="Process Reward Model — Poids des features appris" icon={<Brain className="w-4 h-4" />} className="mb-8">
               {data.prm.topFeatures.length === 0 ? (
-                <EmptyState text="Aucun modèle PRM entraîné — lancez avec usePRM:true pour collecter des données" />
+                <EmptyState text="Aucun modèle de vérification entraîné — les données s'accumuleront au fil des publications" />
               ) : (
                 <>
                   <div className="space-y-2 mb-4">
@@ -170,7 +170,7 @@ export default function MoatDashboardPage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
               <Panel title="Self-Play adversarial — Découverte de faiblesses" icon={<Swords className="w-4 h-4" />}>
                 {data.selfPlay.totalRounds === 0 ? (
-                  <EmptyState text="Aucun run self-play — lancez avec useSelfPlay:true" />
+                  <EmptyState text="Aucune session self-play — les données s'accumuleront au fil des analyses" />
                 ) : (
                   <>
                     <div className="grid grid-cols-2 gap-3 mb-4">
@@ -197,25 +197,25 @@ export default function MoatDashboardPage() {
                 )}
               </Panel>
 
-              <Panel title="Self-Play — Runs récents" icon={<TrendingUp className="w-4 h-4" />}>
+              <Panel title="Self-Play — Sessions récentes" icon={<TrendingUp className="w-4 h-4" />}>
                 {data.selfPlay.recentRounds.length === 0 ? (
-                  <EmptyState text="Aucun run récent" />
+                  <EmptyState text="Aucune session récente" />
                 ) : (
                   <div className="space-y-2">
                     {data.selfPlay.recentRounds.map((r, i) => (
                       <div key={i} className="p-2 rounded-lg hover:bg-black/5">
                         <div className="text-sm text-gray-300 truncate">{r.query}</div>
                         <div className="flex gap-3 text-xs text-gray-500 mt-1">
-                          <span>{r.attacks} attacks</span>
-                          <span className="text-red-400">{r.succeeded} succeeded</span>
+                          <span>{r.attacks} attaques</span>
+                          <span className="text-red-400">{r.succeeded} réussies</span>
                           <span className={cn(
                             "font-medium",
                             r.robustness >= 0.7 ? "text-green-400" :
                             r.robustness >= 0.5 ? "text-yellow-400" : "text-red-400"
                           )}>
-                            {Math.round(r.robustness * 100)}% robust
+                            {Math.round(r.robustness * 100)}% robuste
                           </span>
-                          <span>{r.lessons} lessons</span>
+                          <span>{r.lessons} leçons</span>
                         </div>
                       </div>
                     ))}
@@ -228,7 +228,7 @@ export default function MoatDashboardPage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
               <Panel title="Mixture of Agents — Utilisation des spécialistes" icon={<Users className="w-4 h-4" />}>
                 {Object.keys(data.moa.agentUsage).length === 0 ? (
-                  <EmptyState text="Aucun run MoA — lancez avec useMixtureOfAgents:true" />
+                  <EmptyState text="Aucune analyse multi-agents — les données s'accumuleront au fil des analyses" />
                 ) : (
                   <div className="space-y-2">
                     {Object.entries(data.moa.agentUsage)
@@ -263,9 +263,9 @@ export default function MoatDashboardPage() {
                 )}
               </Panel>
 
-              <Panel title="MoA — Runs récents" icon={<TrendingUp className="w-4 h-4" />}>
+              <Panel title="MoA — Analyses récentes" icon={<TrendingUp className="w-4 h-4" />}>
                 {data.moa.recentRuns.length === 0 ? (
-                  <EmptyState text="Aucun run MoA récent" />
+                  <EmptyState text="Aucune analyse MoA récente" />
                 ) : (
                   <div className="space-y-2">
                     {data.moa.recentRuns.map((r, i) => (
@@ -274,7 +274,7 @@ export default function MoatDashboardPage() {
                         <div className="flex gap-3 text-xs text-gray-500 mt-1">
                           <span>{r.agentCount} agents</span>
                           <span className="text-green-400">{r.consensus} consensus</span>
-                          <span className="text-yellow-400">{r.controversies} controversies</span>
+                          <span className="text-yellow-400">{r.controversies} controverses</span>
                           <span className={cn(
                             "font-medium",
                             r.confidence >= 0.7 ? "text-green-400" :
@@ -293,7 +293,7 @@ export default function MoatDashboardPage() {
             {/* World Model Section */}
             <Panel title="World Model — Connaissance persistante" icon={<Globe className="w-4 h-4" />} className="mb-8">
               {data.worldModel.domainCount === 0 ? (
-                <EmptyState text="Aucune donnée World Model — lancez avec useWorldModel:true" />
+                <EmptyState text="Aucune donnée de modèle du monde — les données s'accumuleront au fil des analyses" />
               ) : (
                 <>
                   <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
@@ -314,7 +314,7 @@ export default function MoatDashboardPage() {
                           <div className="flex gap-2 text-xs text-gray-500 mt-1">
                             <span>{d.concepts} concepts</span>
                             <span>{d.positions} pos</span>
-                            <span>{d.runCount} runs</span>
+                            <span>{d.runCount} analyses</span>
                           </div>
                         </div>
                       ))}

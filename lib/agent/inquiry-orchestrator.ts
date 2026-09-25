@@ -298,69 +298,205 @@ export async function runAndPublishInquiry(
     }
   }
 
-  // 5. Scores & gate
-  const { trustScore, qualityScore, citationCoverage } = extractPipelineScores(
-    pipeline.stats,
-    pipeline.lineage,
-    { trustScore: pipeline.trustScore, qualityScore: pipeline.qualityScore }
-  );
-  const wordCount = countWordsHtml(pipeline.html);
-  const sourceIds = pipeline.inquiry.sources.map((s) => s.id);
-  const pubType = depthToPublicationType(depth, pipeline.format);
-  const formatKey = pipeline.format === "strategic" ? "strategic" : "brief";
+  // 5. Scores & gate — packaged into `assess` so the bounded regeneration
+  // round can re-run the identical evaluation (scores → sign-off → gate →
+  // revision round) on a regenerated artifact.
+  const assess = async (p: InquiryPipelineResult) => {
+    const scores = extractPipelineScores(
+      p.stats,
+      p.lineage,
+      { trustScore: p.trustScore, qualityScore: p.qualityScore }
+    );
+    let aHtml = p.html;
+    let aWordCount = countWordsHtml(aHtml);
+    const aSourceIds = p.inquiry.sources.map((s) => s.id);
+    const aPubType = depthToPublicationType(depth, p.format);
 
-  const da = (pipeline.lineage.devilsAdvocate ?? pipeline.stats.devilsAdvocate) as
-    | Record<string, unknown>
-    | undefined;
-  const daVerdict = da?.verdict as string | undefined;
-  const fatalChallenges = (da?.fatalChallenges as number) ?? 0;
+    const aDa = (p.lineage.devilsAdvocate ?? p.stats.devilsAdvocate) as
+      | Record<string, unknown>
+      | undefined;
+    const aFatal = (aDa?.fatalChallenges as number) ?? 0;
 
-  let signOff: SignOffResult | undefined;
-  if (req.requireResearcherSignOff) {
+    let aSignOff: SignOffResult | undefined;
+    if (req.requireResearcherSignOff) {
+      try {
+        aSignOff = await requestResearcherSignOff(question, aHtml, scores.trustScore);
+      } catch (err: unknown) {
+        console.warn(`[InquiryOrchestrator] Sign-off failed:`, err);
+        aSignOff = {
+          approved: false,
+          decision: "revise",
+          researcherName: "auto",
+          domain: "technology",
+          confidence: 0,
+          comments: ["Sign-off unavailable — held for manual review"],
+          timestamp: new Date(),
+          trustScore: scores.trustScore,
+        };
+      }
+    }
+
+    const aTri = (p.stats.triangularJudge as Record<string, unknown> | undefined)?.verdict === 'override_da'
+      || (p.stats.triangularJudge as Record<string, unknown> | undefined)?.verdict === 'downgrade';
+
+    const gi = {
+      format: aPubType,
+      sourceIds: aSourceIds,
+      trustScore: scores.trustScore,
+      qualityScore: scores.qualityScore,
+      citationCoverage: scores.citationCoverage || undefined,
+      devilsAdvocateScore: aDa?.publishabilityScore as number | undefined,
+      fatalChallenges: aFatal,
+      researcherDecision: aSignOff?.decision,
+      triangularOverride: aTri,
+      domain: req.domain,
+      dbClaims: p.readerClaims,
+      centralScenario: p.stats.centralScenario as import('./editorial-types').CentralScenarioDecision | undefined,
+      requireCentralScenario: p.stats.centralScenarioRequired === true || p.stats.editorialV2 === true,
+      // P0-1: verdict evals attached to a replaced artifact version are invalid
+      // — the gate hard-fails rather than publish on a stale verdict.
+      staleEvaluations: (p.stats.evaluationFreshness as { verdictStale?: string[] } | undefined)?.verdictStale ?? [],
+    };
+
+    let g = evaluatePublicationGate({ ...gi, html: aHtml });
+    let r = evaluatePublicationReadiness({
+      type: aPubType,
+      trustScore: scores.trustScore,
+      qualityScore: scores.qualityScore,
+      citationCoverage: scores.citationCoverage,
+      wordCount: aWordCount,
+      sourceIds: aSourceIds,
+      domain: req.domain,
+    });
+
+    // ── REVISION ROUND: a gate failure is routed back to corrective agents
+    // instead of ending the run. The controller repairs what it can
+    // (deterministic scenario re-render, citation backfill, surgical content
+    // edits on DA objections, copy-edit on style violations), then the gate
+    // and readiness are re-evaluated on the revised artifact. Bounded. ──
+    if (g.decision !== "publish" || !r.ok) {
+      try {
+        const { reviseForGate } = await import('./revision-controller');
+        const revision = await reviseForGate({
+          html: aHtml,
+          gate: g,
+          centralScenario: gi.centralScenario,
+          requireCentralScenario: gi.requireCentralScenario,
+          sourceCount: aSourceIds.length,
+          analysis: p.lineage.analysis as Record<string, unknown> | undefined,
+          sources: p.inquiry.sources as { title: string; authors?: { author?: { name?: string } }[]; provider?: string }[],
+          devilsAdvocate: aDa,
+          criticPanel: p.stats.criticPanel as { dimensions?: { dimension: string; score: number; findings: string[]; mustFix: boolean }[] } | undefined,
+          budgetConstrained: (p.stats.budgetConstrained as boolean | undefined) === true,
+        });
+        if (revision.changed) {
+          const gateBefore = g.decision;
+          aHtml = revision.html;
+          aWordCount = countWordsHtml(aHtml);
+          g = evaluatePublicationGate({ ...gi, html: aHtml });
+          r = evaluatePublicationReadiness({
+            type: aPubType, trustScore: scores.trustScore, qualityScore: scores.qualityScore,
+            citationCoverage: scores.citationCoverage, wordCount: aWordCount, sourceIds: aSourceIds, domain: req.domain,
+          });
+          (p.stats as Record<string, unknown>).revision = {
+            actions: revision.actions, costUsd: revision.costUsd,
+            gateBefore, gateAfter: g.decision,
+          };
+          console.log(`[InquiryOrchestrator] REVISION: ${revision.actions.length} action(s), $${revision.costUsd.toFixed(4)} — gate ${gateBefore} → ${g.decision} | ${revision.actions.join(' | ')}`);
+        }
+      } catch (revErr) {
+        console.warn(`[InquiryOrchestrator] Revision round failed (non-blocking):`, revErr);
+      }
+    }
+
+    return {
+      scores, html: aHtml, wordCount: aWordCount, sourceIds: aSourceIds,
+      pubType: aPubType, da: aDa, fatalChallenges: aFatal, signOff: aSignOff,
+      triangularOverride: aTri, gate: g, readiness: r,
+    };
+  };
+
+  let assessment = await assess(pipeline);
+
+  // ── REGENERATION ROUND (once, bounded): if the gate still fails on
+  // substance — weak analysis, adversarial objections, unreadable prose —
+  // rather than on missing evidence, re-run the pipeline on the SAME corpus
+  // (seedSourceIds skip the scout) with the gate's findings injected as
+  // mandatory analyst corrections. The regenerated artifact is adopted only
+  // if it strictly beats the original (stagnation detection — a worse or
+  // equal rewrite is discarded). Evidence-bound failures (source_depth,
+  // refusal, trust<40) are NOT regenerated: no rewrite can fix a thin
+  // corpus — the dispatcher falls back to the next radar candidate. ──
+  if (assessment.gate.decision !== "publish" || !assessment.readiness.ok) {
     try {
-      signOff = await requestResearcherSignOff(question, pipeline.html, trustScore);
-    } catch (err: unknown) {
-      console.warn(`[InquiryOrchestrator] Sign-off failed:`, err);
-      signOff = {
-        approved: false,
-        decision: "revise",
-        researcherName: "auto",
-        domain: "technology",
-        confidence: 0,
-        comments: ["Sign-off unavailable — held for manual review"],
-        timestamp: new Date(),
-        trustScore,
-      };
+      const { shouldRegenerate, buildFailureFeedback, attemptScore } = await import('./revision-controller');
+      const regen = shouldRegenerate({
+        gate: assessment.gate,
+        refusal: !!pipeline.refusal,
+        budgetConstrained: (pipeline.stats.budgetConstrained as boolean | undefined) === true,
+        devilsAdvocate: assessment.da as { publishabilityScore?: number; fatalChallenges?: number; verdict?: string } | undefined,
+        qualityScore: assessment.scores.qualityScore,
+        trustScore: assessment.scores.trustScore,
+      });
+      // Time guard: a regeneration is a second analyst+render pass — skip if
+      // the dispatch window (~90min) cannot accommodate it.
+      const elapsedMs = Date.now() - started;
+      if (regen.regenerate && elapsedMs > 45 * 60 * 1000) {
+        console.log(`[InquiryOrchestrator] REGEN skipped: ${Math.round(elapsedMs / 60000)}min elapsed — no dispatch headroom`);
+      } else if (regen.regenerate) {
+        const feedback = buildFailureFeedback({
+          gate: assessment.gate,
+          devilsAdvocate: assessment.da as { verdict?: string; publishabilityScore?: number; topChallenges?: { type: string; text: string }[]; killShot?: string } | undefined,
+          criticPanel: pipeline.stats.criticPanel as { dimensions?: { dimension: string; score: number; findings: string[]; mustFix: boolean }[] } | undefined,
+        });
+        console.log(`[InquiryOrchestrator] REGEN (${regen.reason}) — re-running analysis on same corpus with ${feedback.length}-char feedback`);
+        const regenPipeline = await runInquiryPipeline({
+          question,
+          depth,
+          domain: req.domain,
+          pipelineOptions: { ...mergePipelineOptions(req), priorFailureFeedback: feedback },
+          seedSourceIds: assessment.sourceIds.length >= 8 ? assessment.sourceIds : seedSourceIds,
+        });
+        if (!regenPipeline.refusal && regenPipeline.html) {
+          const reAssessed = await assess(regenPipeline);
+          const before = attemptScore({ gate: assessment.gate, trustScore: assessment.scores.trustScore, qualityScore: assessment.scores.qualityScore });
+          const after = attemptScore({ gate: reAssessed.gate, trustScore: reAssessed.scores.trustScore, qualityScore: reAssessed.scores.qualityScore });
+          if (after > before) {
+            console.log(`[InquiryOrchestrator] REGEN adopted: attempt ${before} → ${after} (gate ${assessment.gate.decision} → ${reAssessed.gate.decision})`);
+            (regenPipeline.stats as Record<string, unknown>).regeneration = {
+              adopted: true, scoreBefore: before, scoreAfter: after, reason: regen.reason,
+            };
+            pipeline = regenPipeline;
+            assessment = reAssessed;
+          } else {
+            console.log(`[InquiryOrchestrator] REGEN discarded: attempt ${before} → ${after} — stagnation/regression, original kept`);
+            (pipeline.stats as Record<string, unknown>).regeneration = {
+              adopted: false, scoreBefore: before, scoreAfter: after, reason: regen.reason,
+            };
+          }
+        } else {
+          console.warn(`[InquiryOrchestrator] REGEN produced no artifact (${regenPipeline.refusalReason ?? 'empty'}) — original kept`);
+        }
+      }
+    } catch (regenErr) {
+      console.warn(`[InquiryOrchestrator] Regeneration round failed (non-blocking):`, regenErr);
     }
   }
 
-  const triangularOverride = (pipeline.stats.triangularJudge as Record<string, unknown> | undefined)?.verdict === 'override_da'
-    || (pipeline.stats.triangularJudge as Record<string, unknown> | undefined)?.verdict === 'downgrade';
-
-  const gate = evaluatePublicationGate({
-    format: pubType,
-    html: pipeline.html,
-    sourceIds,
-    trustScore,
-    qualityScore,
-    citationCoverage: citationCoverage || undefined,
-    devilsAdvocateScore: da?.publishabilityScore as number | undefined,
-    fatalChallenges,
-    researcherDecision: signOff?.decision,
-    triangularOverride,
-    domain: req.domain,
-    dbClaims: pipeline.readerClaims,
-  });
-
-  const readiness = evaluatePublicationReadiness({
-    type: pubType,
-    trustScore,
-    qualityScore,
-    citationCoverage,
-    wordCount,
-    sourceIds,
-    domain: req.domain,
-  });
+  // Unpack the final assessment for the status logic below.
+  const { trustScore, qualityScore, citationCoverage } = assessment.scores;
+  const html = assessment.html;
+  const wordCount = assessment.wordCount;
+  const sourceIds = assessment.sourceIds;
+  const pubType = assessment.pubType;
+  const formatKey = pipeline.format === "strategic" ? "strategic" : "brief";
+  const da = assessment.da;
+  const daVerdict = da?.verdict as string | undefined;
+  const fatalChallenges = assessment.fatalChallenges;
+  const signOff = assessment.signOff;
+  const triangularOverride = assessment.triangularOverride;
+  const gate = assessment.gate;
+  const readiness = assessment.readiness;
 
   console.log(`[InquiryOrchestrator] Gate: decision=${gate.decision} | Readiness: ok=${readiness.ok} | trust=${trustScore} quality=${qualityScore} coverage=${Math.round((citationCoverage || 0) * 100)}%`);
 
@@ -424,6 +560,12 @@ export async function runAndPublishInquiry(
     status = "draft";
   }
 
+  if (signOff && !signOff.approved) {
+    status = "draft";
+  } else if (gate.decision === "hold" || !readiness.ok) {
+    status = "held";
+  }
+
   const publicId = pipeline.inquiry.slug;
   const dbStatus = resolveDbStatus(status);
 
@@ -437,7 +579,7 @@ export async function runAndPublishInquiry(
         signalId: req.signalId,
         type: pubType,
         title: pipeline.inquiry.title,
-        html: pipeline.html,
+        html,
         wordCount,
         trustScore,
         qualityScore,
@@ -450,6 +592,7 @@ export async function runAndPublishInquiry(
         publishedAt: status === "published" ? new Date() : null,
         publicId: status === "published" ? publicId : undefined,
         criticalLoopResult: {
+          ...req.metadata,
           architecture: "inquiry-orchestrator-v1",
           source: req.source,
           briefId: pipeline.briefId,
@@ -461,13 +604,17 @@ export async function runAndPublishInquiry(
           reviewRequired: status === "review",
           publicationGate: gate,
           publicationReadiness: readiness,
+          centralScenario: pipeline.stats.centralScenario,
+          centralScenarioRequired: pipeline.stats.centralScenarioRequired,
           devilsAdvocateVerdict: daVerdict,
           // Moderate confidence warning — published with lower trust score
-          confidenceWarning: trustScore >= 55 && trustScore < adaptiveMinTrust
+          confidenceWarning: status === "published" && trustScore >= 55 && trustScore < adaptiveMinTrust
             ? { level: "moderate", trustScore, threshold: adaptiveMinTrust, message: "Moderate confidence — published with quality warning" }
             : undefined,
           // Quality loop result — post-render retry that boosted trust score
           qualityLoop: (pipeline.stats as any)?.qualityLoop,
+          // Revision round — gate-driven self-repair actions + gate transition
+          revision: (pipeline.stats as any)?.revision,
           signOff: signOff
             ? {
                 researcher: signOff.researcherName,
@@ -480,7 +627,6 @@ export async function runAndPublishInquiry(
           question: pipeline.inquiry.question,
           ...buildForesightPersistPayload(pipeline.lineage, pipeline.inquiry),
           foresightRun: (pipeline.lineage as Record<string, unknown>).foresightRun,
-          ...req.metadata,
         } as unknown as Prisma.InputJsonValue,
       },
     });

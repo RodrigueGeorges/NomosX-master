@@ -74,6 +74,17 @@ export interface LensResult {
 export interface IntelligentScoutResult {
   lenses: LensResult[];
   allSources: LensResult['sources'];
+  /** Per-lens PhD-level mini-analyses — the lens's own disciplinary reading */
+  lensInsights?: Array<{
+    lensType: LensType;
+    analysis: string;
+    keyContribution: string;
+    knowledgeGaps: string[];
+    recommendedCanon: string[];
+  }>;
+  /** Genuine disagreements detected between lens readings — injected into the
+   *  analyst context so synthesis preserves debate instead of flattening it */
+  lensTensions?: Array<{ between: string; tension: string; resolution: string }>;
   totalSources: number;
   uniqueSources: number;
   diversityScore: number; // 0-1, how diverse the pool is
@@ -438,6 +449,7 @@ export interface AdaptiveDepthConfig {
   maxSources: number; // Maximum sources to collect (default: 200)
   maxIterations: number; // Maximum search iterations (default: 3)
   sufficiencyThreshold: number; // Stop when this many high-quality sources found (default: 30)
+  requiredLenses?: LensType[]; // Lenses that must have coverage before stopping (default: core, contrarian, scenario)
 }
 
 /**
@@ -464,11 +476,14 @@ export function assessSufficiency(
     return { sufficient: false, reason: `Only ${totalSources} sources (need ${config.minSources})`, gaps: [] };
   }
 
+  const required = config.requiredLenses ?? ['core', 'contrarian', 'scenario'];
+
   // Check sufficiency threshold
   if (totalSources >= config.sufficiencyThreshold) {
     // Also check diversity
-    if (!lensCoverage.has('contrarian')) gaps.push('contrarian');
-    if (!lensCoverage.has('scenario')) gaps.push('scenario');
+    for (const req of required) {
+      if (!lensCoverage.has(req)) gaps.push(req);
+    }
     if (!lensCoverage.has('cross_domain')) gaps.push('cross_domain');
 
     if (gaps.length === 0) {
@@ -478,7 +493,7 @@ export function assessSufficiency(
   }
 
   // Check lens diversity
-  const requiredLenses: LensType[] = ['core', 'contrarian', 'scenario'];
+  const requiredLenses: LensType[] = required;
   for (const req of requiredLenses) {
     if (!lensCoverage.has(req)) gaps.push(req);
   }
@@ -584,6 +599,14 @@ export function classifyAuthority(source: {
     return 'peer_reviewed';
   }
 
+  // Foundational & heritage sources — academic book archives and curated
+  // libraries (JSTOR, HathiTrust, university presses, national libraries).
+  // Books are vetted scholarship: peer_reviewed tier, not 'unknown'.
+  const heritageProviders = ['jstor', 'hathitrust', 'open-library', 'gutenberg', 'gallica', 'europeana', 'dpla', 'wikisource', 'internet-archive', 'persee', 'isidore', 'philpapers'];
+  if (heritageProviders.some(p => provider.includes(p))) {
+    return 'peer_reviewed';
+  }
+
   // Preprint indicators
   const preprintProviders = ['arxiv', 'biorxiv', 'openreview', 'ssrn', 'nber', 'repec'];
   if (preprintProviders.some(p => provider.includes(p))) {
@@ -634,6 +657,15 @@ export function authorityScore(authority: SourceAuthority): number {
  * - Abstract: must have an abstract of at least 50 chars (for semantic search)
  * - Deduplication: remove duplicates by DOI or normalized title
  */
+/** Lenses whose value IS old/foundational material — exempt from the recency filter. */
+const INTERPRETIVE_LENSES = new Set<LensType>([
+  'historical',
+  'ontological',
+  'cross_domain',
+  'provocative',
+  'dissident',
+]);
+
 export function preFilterSources(
   sources: IntelligentScoutResult['allSources'],
   options?: { minAuthority?: SourceAuthority; minYear?: number; minAbstractLength?: number },
@@ -667,8 +699,10 @@ export function preFilterSources(
     // Abstract filter
     if ((source.abstract || '').length < minAbstractLength) { reasons.no_abstract = (reasons.no_abstract || 0) + 1; continue; }
 
-    // Year filter (except for historical lens which needs older sources)
-    if (source.lensType !== 'historical' && source.year && source.year < minYear) {
+    // Year filter — interpretive lenses legitimately surface foundational
+    // texts (Kant, Tocqueville, Weber, Polanyi): exempt them all, not just
+    // 'historical', or the canon gets silently dropped.
+    if (!INTERPRETIVE_LENSES.has(source.lensType) && source.year && source.year < minYear) {
       reasons.too_old = (reasons.too_old || 0) + 1; continue;
     }
 
@@ -708,11 +742,27 @@ export async function runIntelligentScout(
     maxSources: format === 'dossier' ? 300 : format === 'strategic' ? 200 : 100,
     maxIterations: 2,
     sufficiencyThreshold: format === 'dossier' ? 60 : format === 'strategic' ? 40 : 20,
+    // Strategic/dossier formats must reach the depth lenses — ontological and
+    // historical coverage are what make the output a think-tank piece rather
+    // than a literature review.
+    requiredLenses: format === 'dossier' || format === 'strategic'
+      ? ['core', 'contrarian', 'scenario', 'historical', 'ontological']
+      : ['core', 'contrarian', 'scenario'],
   };
 
   // Step 1: Generate search lenses
   const { lenses, costUsd: lensCost } = await generateSearchLenses(question, domain, format);
   console.log(`[IntelligentScout] Generated ${lenses.length} lenses: ${lenses.map(l => `${l.type}(${l.queries.length}q)`).join(', ')}`);
+
+  // Every lens must get at least one pull — with maxIterations=2 only ~2 of 9
+  // lenses ever ran, so ontological/provocative/dissident depth never executed.
+  // lenses.length + 2 lets the bandit also re-pull its highest-yield lens.
+  // Memo/brief is capped lower — 11 lens waves × provider fan-out was the main
+  // driver of 55min timeouts; required lenses (core/contrarian/scenario) run first.
+  config.maxIterations = Math.min(
+    lenses.length + 2,
+    format === 'dossier' ? 14 : format === 'strategic' ? 11 : 6
+  );
 
   // Step 2: Initialize bandit
   const bandit = new LensBandit(lenses);
@@ -721,9 +771,17 @@ export async function runIntelligentScout(
   const allSources: IntelligentScoutResult['allSources'] = [];
   let totalCost = lensCost;
   let iteration = 0;
+  // Wall-clock budget: a single scout pass can balloon to 20+ min when dead
+  // providers stack timeouts × retries × query variations. Cap the whole
+  // adaptive loop — partial evidence beats a killed pipeline.
+  const SCOUT_WALL_BUDGET_MS = Number(process.env.INTELLIGENT_SCOUT_BUDGET_MS ?? 8 * 60 * 1000);
 
   while (iteration < config.maxIterations) {
     iteration++;
+    if (Date.now() - startTime > SCOUT_WALL_BUDGET_MS) {
+      console.warn(`[IntelligentScout] Wall-clock budget ${SCOUT_WALL_BUDGET_MS / 60000}min exhausted at iteration ${iteration} — stopping with ${allSources.length} sources`);
+      break;
+    }
     const lensType = bandit.selectNextLens();
     if (!lensType) break;
 
@@ -735,6 +793,7 @@ export async function runIntelligentScout(
     const lensSources: IntelligentScoutResult['allSources'] = [];
 
     for (const query of lens.queries) {
+      if (Date.now() - startTime > SCOUT_WALL_BUDGET_MS) break;
       try {
         const results = await searchFn(query, lens.providers, perProvider);
         for (const r of results) {
@@ -792,6 +851,80 @@ export async function runIntelligentScout(
   const filtered = preFilterSources(uniqueSources);
   console.log(`[IntelligentScout] Pre-filter: ${uniqueSources.length} → ${filtered.kept.length} (dropped ${filtered.dropped}: ${JSON.stringify(filtered.reasons)})`);
 
+  // ── LENS AGENTS (strategic/dossier only) ──────────────────────────────
+  // Each lens gets a PhD-level intelligence pass: analyze its own sources,
+  // self-assess knowledge sufficiency, and emit fetch queries when thin.
+  let lensInsights: IntelligentScoutResult['lensInsights'] = [];
+  let lensTensions: IntelligentScoutResult['lensTensions'] = [];
+  if (format === 'strategic' || format === 'dossier') {
+    try {
+      const { runLensAgent, lensFetchProviders, checkLensTensions } = await import('./lenses/lens-agent');
+      const agentResults = await Promise.all(
+        lenses.map(async (lens) => {
+          const lensSources = filtered.kept.filter(s => s.lensType === lens.type);
+          return runLensAgent(lens, question, lensSources);
+        })
+      );
+
+      const selfFetchSources: typeof allSources = [];
+      for (const insight of agentResults) {
+        if (!insight) continue;
+        lensInsights.push({
+          lensType: insight.lensType,
+          analysis: insight.analysis,
+          keyContribution: insight.keyContribution,
+          knowledgeGaps: insight.knowledgeGaps,
+          recommendedCanon: insight.recommendedCanon,
+        });
+        totalCost += insight.costUsd;
+
+        // Self-fetch: lens deemed its knowledge insufficient → run its queries
+        // on ITS OWN preferred providers (PhD profile), not the plan's.
+        if (insight.fetchQueries.length > 0) {
+          const own = lensFetchProviders(insight.lensType);
+          const lens = lenses.find(l => l.type === insight.lensType);
+          const fetchProviders = own.length > 0 ? own : (lens?.providers ?? []);
+          for (const fq of insight.fetchQueries.slice(0, 2)) {
+            try {
+              const fetched = await searchFn(fq, fetchProviders, 10);
+              for (const r of fetched) {
+                selfFetchSources.push({ ...r, lensType: insight.lensType, relevanceScore: 0.5, diversityScore: 0 });
+              }
+            } catch { /* non-blocking */ }
+          }
+        }
+      }
+
+      // Merge self-fetch results into the pool (dedup + filter again)
+      if (selfFetchSources.length > 0) {
+        const refiltered = preFilterSources(
+          selfFetchSources.filter(s => !uniqueIds.has(s.id))
+        );
+        filtered.kept.push(...refiltered.kept);
+        for (const s of refiltered.kept) uniqueIds.add(s.id);
+        console.log(`[IntelligentScout] Lens agents: ${agentResults.filter(Boolean).length} analyses, +${refiltered.kept.length} self-fetched sources`);
+      } else {
+        console.log(`[IntelligentScout] Lens agents: ${agentResults.filter(Boolean).length} analyses, no self-fetch needed`);
+      }
+
+      // ── INTER-LENS TENSIONS — the supervisor-merge failure mode is
+      // injecting worker outputs verbatim without checking coherence.
+      // Lenses SHOULD disagree; the analyst must see the axes of debate. ──
+      if (lensInsights.length >= 2) {
+        const tensionResult = await checkLensTensions(question, lensInsights);
+        if (tensionResult) {
+          lensTensions = tensionResult.tensions;
+          totalCost += tensionResult.costUsd;
+          if (lensTensions.length > 0) {
+            console.log(`[IntelligentScout] Lens tensions detected: ${lensTensions.map(t => t.between).join(' | ')}`);
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('[IntelligentScout] Lens agents failed (non-blocking):', String(err).slice(0, 100));
+    }
+  }
+
   // Step 6: Compute scores
   const diversityScore = computeDiversityScore(filtered.kept);
   const consensusScore = computeConsensusScore(filtered.kept);
@@ -823,6 +956,8 @@ export async function runIntelligentScout(
   return {
     lenses: lensResults,
     allSources: votedSources,
+    lensInsights,
+    lensTensions,
     totalSources: allSources.length,
     uniqueSources: votedSources.length,
     diversityScore,

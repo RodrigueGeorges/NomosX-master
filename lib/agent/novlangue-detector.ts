@@ -86,20 +86,23 @@ const EUPHEMISMS: Array<{ term: string; trueName: string; category: NovlangueMat
  * Bureaucratic jargon patterns — phrases that obscure accountability
  * behind passive voice or institutional abstraction.
  */
+// NOTE: every pattern MUST carry the `g` flag — exec() in a `while` loop only
+// advances lastIndex when `g` is set; without it the scan loops forever on the
+// first match (production pipeline freeze).
 const BUREAUCRATIC_PATTERNS: Array<{ regex: RegExp; trueName: string }> = [
-  { regex: /\bmistakes were made\b/i, trueName: "we made mistakes (passive voice hides accountability)" },
-  { regex: /\bit has been decided\b/i, trueName: "we decided (passive voice hides who decided)" },
-  { regex: /\bconcerns have been raised\b/i, trueName: "someone raised concerns (passive voice hides who)" },
-  { regex: /\baction will be taken\b/i, trueName: "we will act (passive voice hides who acts)" },
-  { regex: /\bmeasures are being considered\b/i, trueName: "we are considering measures (passive voice)" },
-  { regex: /\bthe situation is being monitored\b/i, trueName: "we are watching (passive voice implies inaction)" },
-  { regex: /\bappropriate steps will be taken\b/i, trueName: "we will do something (vague, no accountability)" },
-  { regex: /\bstakeholder engagement\b/i, trueName: "lobbying / consultation (vague)" },
-  { regex: /\bsynergy\b/i, trueName: "cost-cutting / merger (meaningless corporate jargon)" },
-  { regex: /\bbest practices\b/i, trueName: "conformity to convention (often unexamined)" },
-  { regex: /\bvalue proposition\b/i, trueName: "sales pitch (corporate jargon)" },
-  { regex: /\bparadigm shift\b/i, trueName: "change (inflated jargon)" },
-  { regex: /\bthought leadership\b/i, trueName: "self-promotion (meaningless)" },
+  { regex: /\bmistakes were made\b/gi, trueName: "we made mistakes (passive voice hides accountability)" },
+  { regex: /\bit has been decided\b/gi, trueName: "we decided (passive voice hides who decided)" },
+  { regex: /\bconcerns have been raised\b/gi, trueName: "someone raised concerns (passive voice hides who)" },
+  { regex: /\baction will be taken\b/gi, trueName: "we will act (passive voice hides who acts)" },
+  { regex: /\bmeasures are being considered\b/gi, trueName: "we are considering measures (passive voice)" },
+  { regex: /\bthe situation is being monitored\b/gi, trueName: "we are watching (passive voice implies inaction)" },
+  { regex: /\bappropriate steps will be taken\b/gi, trueName: "we will do something (vague, no accountability)" },
+  { regex: /\bstakeholder engagement\b/gi, trueName: "lobbying / consultation (vague)" },
+  { regex: /\bsynergy\b/gi, trueName: "cost-cutting / merger (meaningless corporate jargon)" },
+  { regex: /\bbest practices\b/gi, trueName: "conformity to convention (often unexamined)" },
+  { regex: /\bvalue proposition\b/gi, trueName: "sales pitch (corporate jargon)" },
+  { regex: /\bparadigm shift\b/gi, trueName: "change (inflated jargon)" },
+  { regex: /\bthought leadership\b/gi, trueName: "self-promotion (meaningless)" },
 ];
 
 /**
@@ -135,6 +138,7 @@ export function detectNovlangue(html: string): NovlangueDetectionResult {
 
   // Scan for bureaucratic patterns
   for (const { regex, trueName } of BUREAUCRATIC_PATTERNS) {
+    regex.lastIndex = 0;
     let match: RegExpExecArray | null;
     while ((match = regex.exec(text)) !== null) {
       // Avoid duplicate matches at same offset

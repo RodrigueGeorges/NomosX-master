@@ -20,6 +20,7 @@ import { prisma } from '../db';
 import axios from 'axios';
 import { RESEARCHER_KBS, type DomainExpertise } from './researcher-kb/index';
 import { MULTI_DOMAIN_CORPUS } from '../knowledge/multi-domain-corpus';
+import { unpaywallByDoi } from '../providers/unpaywall';
 
 // ============================================================================
 // TYPES
@@ -479,13 +480,56 @@ async function fetchNewsArticleText(url: string, timeout = 20000): Promise<strin
 
 const NEWS_PROVIDERS = ['gdelt-news', 'newsapi', 'mediastack', 'thenewsapi', 'gnews', 'eventregistry', 'linkup'];
 
+// S20: HTML full-text rescue — sources without DOI/pdfUrl whose landing pages
+// often carry full text or a substantive executive summary (think-tank reports,
+// Persée/HAL galleries, institutional & government publications, NGO/IGO docs).
+// Bounded per run to cap added latency.
+const HTML_RESCUE_MAX = 30;
+let htmlRescueBudget = HTML_RESCUE_MAX;
+
+// Wayback rescue — dead/blocked URLs retried against archive.org snapshots.
+// archive.org is slow; hard cap per run.
+const WAYBACK_RESCUE_MAX = 8;
+let waybackRescueBudget = WAYBACK_RESCUE_MAX;
+
+// Providers whose landing pages ARE the publication (HTML reports, not PDFs) —
+// rescue fires regardless of abstract length for these.
+const REPORT_PROVIDERS = new Set([
+  'brookings-institution', 'csis', 'chatham-house', 'carnegie-endowment',
+  'council-foreign-relations', 'bruegel', 'iiss', 'ecfr', 'swp', 'dgap',
+  'cgd', 'iddri', 'france-strategie', 'terra-nova', 'club-of-rome',
+  'millennium-project', 'berlin-policy-hub', 'iai', 'iss-africa',
+  'global-think-tanks', 'consolidated-institutions', 'rand', 'nber',
+  'cepr', 'oecd', 'oecd-direct', 'undp', 'un', 'unesco', 'unctad',
+  'worldbank-docs', 'imf', 'ecb', 'bis', 'eib', 'iea', 'irena',
+  'sipri', 'nato', 'eda', 'sgdsn', 'vie-publique', 'uk-jic', 'odni',
+]);
+
+async function waybackSnapshotUrl(url: string): Promise<string | null> {
+  try {
+    const res = await axios.get(
+      `https://archive.org/wayback/available?url=${encodeURIComponent(url)}`,
+      { timeout: 6000 },
+    );
+    return res.data?.archived_snapshots?.closest?.url ?? null;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Try to get full text from a source.
- * Priority: pdfUrl → url (if PDF) → news article (if news provider) → abstract
+ * Cascade: pdfUrl → url (if PDF) → news article → Unpaywall alternate (doi)
+ *         → landing-page HTML rescue (thin abstract / failed PDF / report provider)
+ *         → Wayback snapshot → abstract
  */
 async function getFullText(source: any): Promise<{ text: string; depth: "full_text" | "abstract" }> {
+  const startedAt = Date.now();
+  let pdfAttempted = false;
+
   // Try PDF URL first
   if (source.pdfUrl) {
+    pdfAttempted = true;
     const pdfText = await extractPdfText(source.pdfUrl);
     if (pdfText && pdfText.length > 500) {
       return { text: pdfText, depth: "full_text" };
@@ -494,6 +538,7 @@ async function getFullText(source: any): Promise<{ text: string; depth: "full_te
 
   // Try main URL if it looks like a PDF
   if (source.url && (source.url.endsWith('.pdf') || source.contentFormat === 'pdf')) {
+    pdfAttempted = true;
     const pdfText = await extractPdfText(source.url);
     if (pdfText && pdfText.length > 500) {
       return { text: pdfText, depth: "full_text" };
@@ -505,6 +550,51 @@ async function getFullText(source: any): Promise<{ text: string; depth: "full_te
     const articleText = await fetchNewsArticleText(source.url);
     if (articleText && articleText.length > 300) {
       return { text: articleText, depth: "full_text" };
+    }
+  }
+
+  // Unpaywall alternate location — scout enriches with the best OA location, but
+  // that URL may itself 403 (publisher bot-block) or the scout pass may have
+  // missed it. A second lookup costs ~1s and often surfaces a different host.
+  if (source.doi) {
+    try {
+      const up = await unpaywallByDoi(source.doi);
+      const altUrl = up?.pdfUrl;
+      if (altUrl && altUrl !== source.pdfUrl) {
+        const pdfText = await extractPdfText(altUrl);
+        if (pdfText && pdfText.length > 500) {
+          return { text: pdfText, depth: "full_text" };
+        }
+      }
+    } catch { /* non-blocking */ }
+  }
+
+  // Landing-page rescue — widened trigger: thin/missing abstract, a failed PDF
+  // attempt (paywalled/blocked — the HTML page often still carries the
+  // abstract + key findings), or a report-type provider whose landing page IS
+  // the full text. Budgeted per run.
+  const abstractLen = (source.abstract || '').length;
+  const isReportProvider = REPORT_PROVIDERS.has(source.provider || '');
+  if (source.url && /^https?:\/\//.test(source.url) && htmlRescueBudget > 0 &&
+      (abstractLen < 1200 || pdfAttempted || isReportProvider)) {
+    htmlRescueBudget--;
+    const pageText = await fetchNewsArticleText(source.url);
+    if (pageText && pageText.length > 500) {
+      return { text: pageText, depth: "full_text" };
+    }
+
+    // Wayback rescue — origin dead/blocked, try the archived snapshot.
+    // Skip when the cascade already burned >45s — the 120s per-source timeout
+    // would kill a slow source into rule_based, which is worse than abstract.
+    if (waybackRescueBudget > 0 && Date.now() - startedAt < 45_000) {
+      waybackRescueBudget--;
+      const snapshotUrl = await waybackSnapshotUrl(source.url);
+      if (snapshotUrl) {
+        const archivedText = await fetchNewsArticleText(snapshotUrl);
+        if (archivedText && archivedText.length > 500) {
+          return { text: archivedText, depth: "full_text" };
+        }
+      }
     }
   }
 
@@ -999,8 +1089,10 @@ export async function readerAgentV3(
 ): Promise<ReadingResultV3[]> {
   assertPermission(AgentRole.READER, "write:claims");
 
-  const { enablePdf = true, maxConcurrency = 5, timeout = 90000, domain, memoryBlock } = options;
+  const { enablePdf = true, maxConcurrency = 5, timeout = 120_000, domain, memoryBlock } = options;
   _currentDomain = domain;
+  htmlRescueBudget = HTML_RESCUE_MAX; // S20: reset per-run rescue budget
+  waybackRescueBudget = WAYBACK_RESCUE_MAX;
   if (domain) console.log(`[Reader V3] Domain-aware mode: ${domain}`);
   if (memoryBlock) console.log(`[Reader V3] Memory injection: ${memoryBlock.length} chars`);
 
@@ -1071,8 +1163,10 @@ async function processSource(source: any, enablePdf: boolean, memoryBlock?: stri
     const result = await getFullText(source);
     text = result.text;
     depth = result.depth;
-  } else if (source.url && NEWS_PROVIDERS.includes(source.provider || '')) {
-    // News sources: always try web fetch even if PDF is disabled
+  } else if (source.url && (NEWS_PROVIDERS.includes(source.provider || '') || (source.abstract || '').length < 1200)) {
+    // News sources: always try web fetch even if PDF is disabled.
+    // S20: non-news sources with a thin/missing abstract also get a shot —
+    // getFullText routes them through the bounded landing-page rescue.
     const result = await getFullText(source);
     text = result.text;
     depth = result.depth;

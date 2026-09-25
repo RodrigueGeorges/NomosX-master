@@ -18,6 +18,7 @@
 import { callLLM } from '../llm/unified-llm';
 import { parseJson } from './json-utils';
 import { AgentRole, assertPermission } from '../governance/index';
+import { buildSchoolsBlock } from './schools-of-thought';
 
 // ============================================================================
 // TYPES
@@ -71,7 +72,8 @@ export async function debateAgent(
   question: string,
   sources: any[],
   readings?: any[],
-  analysisText?: string
+  analysisText?: string,
+  options?: { domain?: string }
 ): Promise<DebateResult> {
   assertPermission(AgentRole.ANALYST, "write:analysis");
 
@@ -106,6 +108,7 @@ ${analysisText ? `EXISTING ANALYSIS (first 3000 chars):\n${analysisText.slice(0,
 ${sourceContext}
 
 TASK: Identify the dominant thesis emerging from these sources, then construct the STRONGEST possible counter-argument.
+${buildSchoolsBlock(options?.domain)}
 
 Rules:
 1. The counter-argument must be the STEEL MAN — the strongest version an intelligent opponent would make

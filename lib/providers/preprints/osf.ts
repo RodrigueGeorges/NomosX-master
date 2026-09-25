@@ -11,69 +11,92 @@
  * environnement" en préprints. Aucune clé requise pour la recherche publique.
  */
 
-import { fetchFromProvider } from '../../http-client';
+import { fetchFromProvider, httpPost } from '../../http-client';
+import { searchOpenAlex } from '../openalex';
 
-const OSF_SEARCH = 'https://api.osf.io/v2/search/';
+// api.osf.io/v2/search/ was deprecated (404). SHARE indexes all OSF-hosted
+// preprints (SocArXiv, PsyArXiv, EarthArXiv…) via an Elasticsearch endpoint.
+const SHARE_SEARCH = 'https://share.osf.io/api/v2/search/creativeworks/_search';
 
 export async function searchOSF(query: string, limit = 20): Promise<any[]> {
   try {
-    const params = new URLSearchParams({
-      q: query,
-      page_size: String(Math.min(limit, 50)),
-    });
-    const url = `${OSF_SEARCH}?${params.toString()}`;
-
-    const data: any = await fetchFromProvider('osf', url, {
+    const data: any = await httpPost(SHARE_SEARCH, {
+      query: { query_string: { query, default_field: '*' } },
+      size: Math.min(limit, 50),
+      from: 0,
+    }, {
       timeout: 20000,
-      retries: 3,
+      retries: 2,
+      rateLimiterKey: 'osf',
     });
 
-    const items = data?.data || [];
-    const results = items
-      .map((d: any) => {
-        const attrs = d.attributes || {};
-        const title = attrs.title || attrs.resource_title || 'OSF preprint';
-        const abstract = attrs.description || attrs.abstract || attrs.resource_abstract || null;
-        const year = attrs.date_created ? parseInt(String(attrs.date_created).slice(0, 4)) : null;
-        const authors = (attrs.authors || []).map((a: any) => ({
-          name: a.name || `${a.given_name || ''} ${a.family_name || ''}`.trim(),
-        }));
-        const subjects = attrs.subjects || attrs.tags || [];
-        const providerName = attrs.provider || attrs.affiliated_institutions?.[0]?.name || 'OSF';
+    const hits = data?.hits?.hits || [];
+    const results = hits
+      .map((h: any) => {
+        const s = h._source || {};
+        const title = s.title || null;
+        const abstract = s.description || s.abstract || null;
+        const dateStr = s.date_published || s.date_created || s.date_updated || null;
+        const year = dateStr ? parseInt(String(dateStr).slice(0, 4)) : null;
+        const authors = (s.contributors || s.creators || [])
+          .map((c: any) => ({ name: c.name || c.cited_name || null }))
+          .filter((a: any) => a.name);
+        const sources = (s.sources || []).filter(Boolean);
+        const providerName = sources.find((p: string) => p !== 'OSF') || 'OSF';
+        const identifiers = s.identifiers || [];
+        const doi = identifiers.find((i: string) => String(i).includes('doi.org')) || s.doi || null;
+        const url = identifiers.find((i: string) => String(i).startsWith('http') && !String(i).includes('doi.org'))
+          || identifiers[0] || (s.id ? `https://osf.io/${s.id}` : null);
 
         return {
-          id: `osf:${d.id}`,
+          id: `osf:${h._id || s.id}`,
           provider: 'osf',
           type: 'preprint',
           title,
-          abstract: abstract ? abstract.slice(0, 3000) : null,
+          abstract: abstract ? String(abstract).slice(0, 3000) : null,
           year,
-          publishedDate: attrs.date_created || null,
+          publishedDate: dateStr,
           authors,
           institutions: [providerName],
-          doi: attrs.doi || attrs.identifier || null,
-          url: attrs.url || `https://osf.io/${d.id}`,
-          pdfUrl: attrs.primary_file?.links?.download || null,
+          doi,
+          url,
+          pdfUrl: null,
           oaStatus: 'open',
           citationCount: null,
           contentLength: abstract?.length || 0,
-          hasFullText: !!attrs.primary_file,
+          hasFullText: true,
           contentQuality: (abstract?.length || 0) >= 500 ? 'good' : 'acceptable',
           issuer: providerName,
           issuerType: 'preprint-server',
           classification: 'preprint',
           language: 'en',
           documentType: 'preprint',
-          topics: Array.isArray(subjects) ? subjects.slice(0, 8) : ['preprint'],
-          raw: attrs,
+          topics: (s.tags || s.subjects || []).slice(0, 8),
+          raw: s,
         };
       })
       .filter((r: any) => r.title);
 
-    console.log(`[OSF] Found ${results.length} preprints`);
-    return results;
+    console.log(`[OSF] Found ${results.length} preprints (SHARE)`);
+    if (results.length > 0) return results;
   } catch (error: any) {
-    console.error(`[OSF] Search failed: ${error.message}`);
+    console.error(`[OSF] SHARE search failed: ${error.message}`);
+  }
+
+  // Fallback: OSF/SocArXiv/PsyArXiv preprints are partially indexed in OpenAlex
+  try {
+    const results = await searchOpenAlex(query, Math.min(limit, 25), {
+      filter: 'type:preprint',
+    });
+    console.log(`[OSF] OpenAlex fallback found ${results.length} preprints`);
+    return results.map((r: any) => ({
+      ...r,
+      id: `osf:${String(r.id).replace('https://openalex.org/', '')}`,
+      provider: 'osf',
+      type: 'preprint',
+    }));
+  } catch (error: any) {
+    console.error(`[OSF] OpenAlex fallback failed: ${error.message}`);
     return [];
   }
 }

@@ -48,6 +48,10 @@ export async function trendAnalyzer(
     verticalSlug?: string;
     lookbackMonths?: number;
     minSources?: number;
+    /** When set, trend signals must lexically overlap one of these terms to be
+     *  stored — prevents unrelated provider tags ("Mice", "Uganda") from
+     *  polluting the knowledge graph during query-scoped runs. */
+    queryTerms?: string[];
   }
 ): Promise<TrendAnalysisOutput> {
   assertPermission(AgentRole.READER, "write:claims");
@@ -116,8 +120,26 @@ export async function trendAnalyzer(
   
   console.log(`[TREND_ANALYZER] Detected ${trends.length} trend breaks`);
   
-  // Store significant trends as signals
-  for (const trend of trends.filter(t => t.confidence >= 70)) {
+  // Query-relevance gate for signal storage: a trend only enters the KG if its
+  // topic shares a significant word with the query (or no query was given).
+  const qTerms = (options?.queryTerms || [])
+    .map(t => t.toLowerCase().replace(/[^a-zà-ÿ0-9 -]/g, ''))
+    .filter(t => t.length > 3);
+  const isQueryRelevant = (trend: TrendBreak) => {
+    if (qTerms.length === 0) return true;
+    const hay = `${trend.topic} ${trend.description}`.toLowerCase();
+    return qTerms.some(qt => hay.includes(qt));
+  };
+  const storable = trends.filter(isQueryRelevant);
+  if (qTerms.length > 0 && storable.length < trends.length) {
+    console.log(`[TREND_ANALYZER] ${trends.length - storable.length} trends dropped (no query relevance)`);
+  }
+
+  // Store significant trends as signals — cap at top 10 to avoid signal spam
+  for (const trend of storable
+    .filter(t => t.confidence >= 70)
+    .sort((a, b) => b.confidence - a.confidence)
+    .slice(0, 10)) {
     await createTrendSignal(trend, options?.verticalSlug);
   }
   
@@ -211,11 +233,14 @@ async function analyzeTopicEmergence(sources: any[]): Promise<TrendBreak[]> {
   const topicsFirst = countTopics(firstHalf);
   const topicsSecond = countTopics(secondHalf);
   
-  // Find emerging topics (appear much more in second half)
-  for (const [topic, countSecond] of topicsSecond) {
+  // Find emerging topics (appear much more in second half).
+  // Require >= 5 sources: with large corpora, countSecond=3 lets random
+  // provider tags ("Mice", "rice production") become "trend breaks".
+  const sorted = [...topicsSecond.entries()].sort((a, b) => b[1] - a[1]).slice(0, 20);
+  for (const [topic, countSecond] of sorted) {
     const countFirst = topicsFirst.get(topic) || 0;
-    
-    if (countSecond >= 3 && countFirst <= 1) {
+
+    if (countSecond >= 5 && countFirst <= 1) {
       // New topic emergence
       trends.push({
         topic,
@@ -241,11 +266,18 @@ async function analyzeTopicEmergence(sources: any[]): Promise<TrendBreak[]> {
   return trends;
 }
 
+/** Provider classification codes and junk tags that must never become trends. */
+const JUNK_TOPIC = /^(\d+\.[\d.]|[a-z]{2,5}\.[A-Z]{2}|primary-source$)/i;
+
 function countTopics(sources: any[]): Map<string, number> {
   const counts = new Map<string, number>();
   for (const source of sources) {
     for (const topic of source.topics || []) {
-      counts.set(topic, (counts.get(topic) || 0) + 1);
+      const t = String(topic).trim();
+      // Skip arXiv/HAL classification codes ("1.info.info-cy", "eess.AS",
+      // "2.sdv.bbm.gtp"), empty tags, and over-long raw strings.
+      if (t.length < 4 || t.length > 60 || JUNK_TOPIC.test(t)) continue;
+      counts.set(t, (counts.get(t) || 0) + 1);
     }
   }
   return counts;

@@ -20,6 +20,7 @@
 import { prisma } from '../db';
 import type { AnalysisOutput, CausalLink } from './analyst-multipass';
 import type { ConfidenceTier, PruningResult } from './pruning-gates';
+import type { CentralScenarioDecision } from './editorial-types';
 
 interface ExtractedPrediction {
   claim: string;
@@ -72,6 +73,18 @@ export function extractPredictions(
   pruningResult?: PruningResult
 ): ExtractedPrediction[] {
   const predictions: ExtractedPrediction[] = [];
+  const central = (analysis as AnalysisOutput & { centralScenario?: CentralScenarioDecision }).centralScenario;
+  if (central?.selectedBy === 'editorial' && central.description.trim() && central.horizon.trim() && central.revisionTriggers.length) {
+    predictions.push({
+      claim: `${central.name}: ${central.description}`,
+      horizon: central.horizon,
+      probability: null,
+      confidence: central.confidence === 'high' ? 'SUPPORTED' : central.confidence === 'medium' ? 'EMERGING' : 'SPECULATIVE',
+      resolutionCriteria: `By ${central.horizon}: ${central.description}`,
+      whatWouldFalsify: central.revisionTriggers.join('; '),
+      sourceRefs: [...new Set([...central.rationale.matchAll(/\[SRC-(\d+)\]/g)].map(m => Number(m[1])).filter(n => n > 0))],
+    });
+  }
   const tiers = pruningResult?.confidenceTiers ?? new Map<number, ConfidenceTier>();
   const conviction = (analysis as any).convictionLevel as "firm" | "tempered" | "causal_only" | undefined;
 

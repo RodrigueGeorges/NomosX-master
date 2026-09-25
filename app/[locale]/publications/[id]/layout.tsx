@@ -26,7 +26,9 @@ export async function generateMetadata(
 
     const title = `${pub.title} | NomosX`;
     const description = pub.description || `A position by NomosX — ${typeLabel.toLowerCase()}.`;
-    const url = `${APP_URL}/publications/${id}`;
+    // Canonical must point at the real article route — /publications/[id] 308-redirects
+    // to /inquiry/[slug]; self-referencing canonicals on a redirect are ignored anyway.
+    const url = `${APP_URL}/inquiry/${id}`;
 
     return {
       title,

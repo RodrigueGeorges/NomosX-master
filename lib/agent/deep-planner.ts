@@ -194,6 +194,93 @@ Constraints:
 }
 
 // ============================================================================
+// DYNAMIC REPLANNING — generate follow-up nodes from execution findings
+// ============================================================================
+
+/**
+ * After the initial DAG executes, examine what was learned (node yields,
+ * failures, thin coverage) and propose NEW sub-questions that the original
+ * plan missed. This turns the planner from a fixed DAG into a feedback loop.
+ *
+ * @param rootQuestion - The original research question
+ * @param executedNodes - Nodes after scouting (with sourceCount/status)
+ * @param maxNewNodes - Cap on new nodes (default 3)
+ * @returns New nodes to append to the plan, or empty array
+ */
+export async function replanFromFindings(
+  rootQuestion: string,
+  executedNodes: ResearchNode[],
+  maxNewNodes: number = 3,
+): Promise<{ nodes: ResearchNode[]; costUsd: number; error?: string }> {
+  // Only replan when there's a signal: failures or very thin nodes
+  const thinNodes = executedNodes.filter(n => (n.sourceCount ?? 0) < 5);
+  const failedNodes = executedNodes.filter(n => n.status === 'failed');
+  const coveredVariables = executedNodes
+    .filter(n => (n.sourceCount ?? 0) >= 5)
+    .map(n => n.resultVariable);
+
+  if (thinNodes.length === 0 && failedNodes.length === 0) {
+    return { nodes: [], costUsd: 0 };
+  }
+
+  const nodeSummary = executedNodes.map(n =>
+    `- "${n.subQuestion}" [${n.status}, ${n.sourceCount ?? 0} sources, variable: ${n.resultVariable}]`
+  ).join('\n');
+
+  try {
+    const response = await callLLM({
+      messages: [
+        {
+          role: 'system',
+          content: `You are a research strategist reviewing a partially-executed research plan. Some sub-questions returned insufficient evidence. Propose NEW follow-up sub-questions that fill the gaps — different angles, adjacent mechanisms, or alternative framings likely to yield sources. Do NOT repeat failed questions verbatim. Return JSON only.`,
+        },
+        {
+          role: 'user',
+          content: `RESEARCH QUESTION: "${rootQuestion}"
+
+EXECUTED PLAN:
+${nodeSummary}
+
+COVERED VARIABLES: ${coveredVariables.join(', ') || 'none'}
+THIN/FAILED NODES: ${[...thinNodes, ...failedNodes].map(n => n.subQuestion).join(' | ')}
+
+Generate up to ${maxNewNodes} NEW sub-questions targeting the uncovered areas. Return:
+{"nodes": [{"subQuestion": "...", "resultVariable": "...", "producers": ["openalex","crossref"]}]}`,
+        },
+      ],
+      temperature: 0.3,
+      maxTokens: 1200,
+      jsonMode: true,
+      task: 'query_enhancement',
+    });
+
+    const parsed = parseJson(response.content) as { nodes?: any[] };
+    if (!parsed?.nodes || !Array.isArray(parsed.nodes)) {
+      return { nodes: [], costUsd: 0, error: 'no nodes returned' };
+    }
+
+    const existingIds = new Set(executedNodes.map(n => n.id));
+    let nextIdx = executedNodes.length + 1;
+    const newNodes: ResearchNode[] = parsed.nodes
+      .slice(0, maxNewNodes)
+      .map((n: any) => ({
+        id: `r${nextIdx++}`,
+        subQuestion: String(n.subQuestion || '').trim(),
+        // Replan nodes depend on the nodes that failed/thin — they refine them
+        parentIds: thinNodes.slice(0, 1).map(t => t.id),
+        producers: Array.isArray(n.producers) ? n.producers.filter((p: any) => typeof p === 'string') : [],
+        resultVariable: String(n.resultVariable || 'followup').trim(),
+        status: 'pending' as const,
+      }))
+      .filter(n => n.subQuestion.length > 10 && !existingIds.has(n.id));
+
+    return { nodes: newNodes, costUsd: 0 };
+  } catch (err: any) {
+    return { nodes: [], costUsd: 0, error: err.message };
+  }
+}
+
+// ============================================================================
 // DAG UTILITIES
 // ============================================================================
 

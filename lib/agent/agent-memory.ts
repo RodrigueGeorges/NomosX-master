@@ -70,6 +70,10 @@ export interface AgentLesson {
   agentId: string;
   domain?: DomainExpertise;
   lesson: string;
+  /** WHEN this lesson applies — the condition that triggers it (procedural memory) */
+  trigger?: string;
+  /** WHAT to do — the actionable procedure, not just the insight */
+  procedure?: string;
   learnedFrom: string;       // runId
   weight: number;            // 0-1: how important this lesson is
   appliedCount: number;      // How many times this lesson has been injected
@@ -168,10 +172,10 @@ export async function extractLessons(
     humanComment?: string;
   },
   domain?: DomainExpertise
-): Promise<{ lessons: string[]; costUsd: number }> {
+): Promise<{ lessons: string[]; structured: Array<{ lesson: string; trigger?: string; procedure?: string }>; costUsd: number }> {
   if (feedbackOrEval.trustScore >= 80 && feedbackOrEval.failureModes.length === 0) {
     // High quality — extract positive lessons (what worked)
-    return { lessons: [`High-quality analysis achieved on "${question.slice(0, 80)}..." — approach was effective`], costUsd: 0 };
+    return { lessons: [`High-quality analysis achieved on "${question.slice(0, 80)}..." — approach was effective`], structured: [], costUsd: 0 };
   }
 
   const result = await callLLM({
@@ -194,20 +198,28 @@ AGENT OUTPUT EXCERPT:
 ${agentOutput.slice(0, 1000)}
 
 Extract 2-4 specific lessons this agent should apply in future analyses. Focus on what went wrong and how to fix it.
-Return JSON: { "lessons": ["lesson 1", "lesson 2", ...] }`,
+Each lesson must be a PROCEDURE: a trigger condition + an actionable rule — not just an observation.
+Return JSON: { "lessons": [{ "lesson": "the insight", "trigger": "when this applies (e.g. 'when sources are mostly preprints')", "procedure": "what to do differently" }] }
+If you cannot structure a lesson, still include it with only "lesson" filled.`,
       },
     ],
     temperature: 0.2,
-    maxTokens: 400,
+    maxTokens: 600,
     jsonMode: true,
     task: 'topic_classification',
   });
 
   try {
     const parsed = parseJson<any>(result.content);
-    return { lessons: parsed?.lessons || [], costUsd: result.costUsd };
+    const raw: any[] = parsed?.lessons || [];
+    // Normalize: accept both plain strings and structured {lesson,trigger,procedure}
+    const structured = raw.map((l: any) => typeof l === 'string' ? l : (l?.lesson || '')).filter(Boolean);
+    const detailed = raw
+      .filter((l: any) => typeof l === 'object' && l?.lesson)
+      .map((l: any) => ({ lesson: String(l.lesson), trigger: l.trigger ? String(l.trigger) : undefined, procedure: l.procedure ? String(l.procedure) : undefined }));
+    return { lessons: structured, structured: detailed, costUsd: result.costUsd };
   } catch {
-    return { lessons: [], costUsd: result.costUsd };
+    return { lessons: [], structured: [], costUsd: result.costUsd };
   }
 }
 
@@ -403,6 +415,8 @@ export async function buildMemoryInjection(
           agentId,
           domain: m.domain,
           lesson: m.lesson,
+          trigger: m.trigger,
+          procedure: m.procedure,
           learnedFrom: m.runId || (isHumanCorrection ? 'human-correction' : ""),
           weight,
           appliedCount: m.appliedCount || 0,
@@ -413,6 +427,15 @@ export async function buildMemoryInjection(
       } catch { return null; }
     })
     .filter(Boolean) as AgentLesson[];
+
+  // ── DOMAIN PRIORITY — lessons learned in the SAME domain carry expert
+  // experience; boost their weight so they outrank generic lessons while the
+  // thematic filter still guards against cross-topic contamination.
+  if (domain) {
+    for (const l of lessons) {
+      if (l.domain === domain) l.weight = Math.min(1.0, l.weight * 1.5);
+    }
+  }
 
   // ── THEMATIC RELEVANCE FILTER (anti-contamination) ──
   // When a topicQuery is provided, filter lessons by embedding similarity.
@@ -541,7 +564,11 @@ function buildPromptBlock(
   if (lessons.length > 0) {
     lines.push(`\n📚 LESSONS FROM YOUR PAST ANALYSES:`);
     for (const lesson of lessons) {
-      lines.push(`- ${lesson.lesson}`);
+      if (lesson.trigger && lesson.procedure) {
+        lines.push(`- WHEN ${lesson.trigger} → ${lesson.procedure} (${lesson.lesson})`);
+      } else {
+        lines.push(`- ${lesson.lesson}`);
+      }
     }
   }
 
@@ -579,7 +606,8 @@ export async function storeLesson(
   lesson: string,
   runId: string,
   domain?: DomainExpertise,
-  weight: number = 0.7
+  weight: number = 0.7,
+  structured?: { trigger?: string; procedure?: string }
 ): Promise<void> {
   try {
     // ── Memory Evolution: check for similar existing lessons ──
@@ -641,6 +669,8 @@ export async function storeLesson(
         resource: runId,
         metadata: JSON.stringify({
           lesson,
+          trigger: structured?.trigger,
+          procedure: structured?.procedure,
           domain,
           runId,
           weight,
@@ -787,7 +817,7 @@ export async function recordLearningCycle(params: {
   // 4. Extract new lessons (only if there were issues)
   if (failureModes.length > 0 || trustScore < 80) {
     try {
-      const { lessons, costUsd: extractCost } = await extractLessons(
+      const { lessons, structured, costUsd: extractCost } = await extractLessons(
         agentId, question, agentOutputExcerpt,
         { trustScore, qualityScore, failureModes },
         domain
@@ -796,7 +826,9 @@ export async function recordLearningCycle(params: {
 
       // 5. Store lessons
       for (const lesson of lessons) {
-        await storeLesson(agentId, lesson, runId, domain, 0.7);
+        const meta = structured?.find(s => s.lesson === lesson);
+        await storeLesson(agentId, lesson, runId, domain, 0.7,
+          meta ? { trigger: meta.trigger, procedure: meta.procedure } : undefined);
       }
 
       return { lessonsStored: lessons.length, costUsd };

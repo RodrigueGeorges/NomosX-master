@@ -9,7 +9,21 @@
 // PIPELINE STATS — replaces `stats: any`
 // ============================================================================
 
+// P0-1 artifact versioning: every evaluation entry is tagged with the artifact
+// channel it judged (analysis | html) and the artifact version at eval time.
+// `stale` is set by collectStaleEvaluations() when the artifact was replaced
+// after the eval ran — a stale verdict must never reach the publication gate.
+export interface EvalVersionTag {
+  evaluatedArtifact?: 'analysis' | 'html';
+  artifactVersion?: number;
+  stale?: boolean;
+  staleReason?: string;
+}
+
 export interface PipelineStats {
+  institutePosition?: import('./editorial-types').InstitutePosition;
+  centralScenario?: import('./editorial-types').CentralScenarioDecision;
+  centralScenarioRequired?: boolean;
   // Step 0: Context Primer
   contextPrimer?: {
     knownConcepts: number;
@@ -72,14 +86,52 @@ export interface PipelineStats {
     citationIssues: number;
     stageResults: {
       decomposition: { claimsExtracted: number };
-      grounding: { supported: number; partial: number; unsupported: number; contradicted: number; unverifiable: number };
+      grounding: { supported: number; derived: number; partial: number; unsupported: number; contradicted: number; unverifiable: number };
       contradictions: { pairsFound: number; severeCount: number };
       bias: { flagsRaised: number; highSeverity: number };
       citations: { issuesFound: number };
     };
     costUsd: number;
     durationMs: number;
+  } & EvalVersionTag;
+
+  // Deterministic claim→source binding preflight (pre-critic): counts causal-
+  // chain links whose cited source text shares <15% terms with the claim —
+  // i.e. citation laundering risk, surfaced as claim_unverifiable signals.
+  claimBinding?: {
+    links: number;
+    weak: number;
   };
+
+  // Positioning Agent: editorial differentiation vs competitor corpus
+  positioning?: {
+    competitorsFound: number;
+    uncoveredDimensions: number;
+    directives: number;
+    strongestPiece: string | null;
+    fieldCoverage?: string[];
+    consensusClaims?: string[];
+    gaps?: string[];
+    weakClaims?: string[];
+    directiveDetails?: { axis: string; directive: string }[];
+    costUsd: number;
+    durationMs: number;
+  };
+
+  // Critic Panel (G-Eval rubric): 4-dimension independent review
+  criticPanel?: {
+    overallScore: number;
+    dimensions: Array<{
+      dimension: string;
+      score: number;
+      findings: string[];
+      mustFix: boolean;
+    }>;
+    veto: boolean;
+    vetoReasons: string[];
+    costUsd: number;
+    durationMs: number;
+  } & EvalVersionTag;
 
   // Reflective RAG: Self-evaluation after each phase
   reflection?: {
@@ -132,6 +184,15 @@ export interface PipelineStats {
     violations: number;
     passed: boolean;
     details?: Array<{ match: string; suggestion: string }>;
+  };
+
+  // Copy editor: surgical LLM find/replace pass on style-gate violations
+  copyEditor?: {
+    applied: number;
+    skipped: number;
+    violationsBefore?: number;
+    violationsAfter?: number;
+    costUsd: number;
   };
 
   // LOT 7.1: Predictions registered for retrospective audit
@@ -217,6 +278,7 @@ export interface PipelineStats {
     count: number;
     fullText: number;
     withQuantData: number;
+    depth?: { full_text: number; abstract: number; rule_based: number };
   };
 
   // Step 5b: Agent Memory
@@ -331,7 +393,7 @@ export interface PipelineStats {
     skipped?: boolean;
     reason?: string;
     error?: string;
-  };
+  } & EvalVersionTag;
 
   // Step 6b: Harvard Council
   harvardCouncil?: {
@@ -396,7 +458,7 @@ export interface PipelineStats {
     supported: number;
     flagged: number;
     costUsd?: number;
-  };
+  } & EvalVersionTag;
 
   // Step 8b: Active Repair Loop (CiteGuard + FRANQ driven correction)
   activeRepair?: {
@@ -430,6 +492,12 @@ export interface PipelineStats {
     pairsChecked: number;
   };
 
+  // Foundational Canon — interpretive frameworks injected into analyst context
+  canon?: {
+    matches: number;
+    entries: string[];
+  };
+
   // Step 9b: Fact-Checker
   factChecker?: {
     totalClaims?: number;
@@ -438,7 +506,7 @@ export interface PipelineStats {
     fatalIssues?: number;
     integrityScore?: number;
     error?: string;
-  };
+  } & EvalVersionTag;
   factCheckerFatalFlagged?: boolean;
 
   // Step 9c: Originality Check (plagiarism / close paraphrasing detection)
@@ -544,6 +612,8 @@ export interface PipelineStats {
     fatalChallenges?: number;
     majorChallenges?: number;
     killShot?: string;
+    topChallenges?: { type: string; text: string }[];
+    vulnerabilityTexts?: string[];
     futureVulnerabilities?: number;
     vsInstitutions?: string;
     institutionScores?: {
@@ -558,7 +628,7 @@ export interface PipelineStats {
     skipped?: boolean;
     reason?: string;
     error?: string;
-  };
+  } & EvalVersionTag;
 
   // Step 5c: Gap-Aware Evidence Append
   gapAnalysis?: {
@@ -591,7 +661,7 @@ export interface PipelineStats {
     contradicted: number;
     groundedness: number;
     flagged: number;
-  };
+  } & EvalVersionTag;
 
   // Step 8e: Post-critical-loop repair (fixes rewrite-introduced issues)
   postLoopRepair?: {
@@ -703,6 +773,10 @@ export interface PipelineStats {
     /** RE_ANALYZE action was triggered (re-run analyst with stronger requirements) */
     reAnalyzeTriggered?: boolean;
     reAnalyzeCitationDelta?: number;
+    /** DEBATE action was triggered by low trust score (orchestrator-forced, not tier flag) */
+    debateForcedByOrchestrator?: boolean;
+    /** CRITIC repair instructions drove a targeted analyst re-run */
+    criticRepairApplied?: boolean;
   };
 
   // Self-correction layer (Reflexion pattern)
@@ -737,6 +811,48 @@ export interface PipelineStats {
     citationDelta: number;
   };
 
+  // Evidence bank (WebWeaver pattern — claims banked at reading time)
+  evidenceBank?: {
+    entries: number;
+    sourcesWithEvidence: number;
+  };
+  evidenceBankValidation?: {
+    citedCount: number;
+    bankedCount: number;
+    unbankedCitations: number[];
+    utilizationPct: number;
+    risk: 'low' | 'medium' | 'high';
+  };
+
+  // URL health (urlhealth pattern — cited URLs must resolve)
+  urlHealth?: {
+    checked: number;
+    alive: number;
+    dead: number;
+    waybackRescued: number;
+    unrecoverable: number;
+  };
+
+  // Process audit (PING taxonomy — intent/propagation/noise in trajectory)
+  processAudit?: {
+    score: number;
+    intentMisaligned: number;
+    propagationDropped: number;
+    unusedSourcePct: number;
+  };
+
+  // Outline critic (WebWeaver — structural coverage critique pre-render)
+  outlineCritic?: {
+    coverageScore: number;
+    missingDimensions: string[];
+    weakSections: string[];
+    queriesEmitted: number;
+    rationale: string;
+  };
+
+  // Critic evidence tool — unsupported claims → targeted retrieval requests
+  criticEvidenceRequests?: number;
+
   // Post-analyst quality gate (diagnostic only — no agents skipped)
   qualityGate?: {
     skipped: string[];
@@ -762,6 +878,17 @@ export interface PipelineStats {
     passed: number;
     failed: number;
     flagged: number;
+  } & EvalVersionTag;
+
+  // P0-1: Evaluation freshness audit — written by the freshness assert right
+  // before stats are persisted. `verdictStale` lists gate-load-bearing evals
+  // (critic/criticPanel/devilsAdvocate) whose verdict describes a replaced
+  // artifact version; the publication gate hard-fails on those.
+  evaluationFreshness?: {
+    stale: string[];
+    verdictStale: string[];
+    analysisArtifactVersion: number;
+    htmlArtifactVersion: number;
   };
 
   // S14-G: Test-Time Scaling (ICLR 2026) — parallel candidate generation + verification

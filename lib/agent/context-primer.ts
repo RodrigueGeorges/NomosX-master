@@ -95,15 +95,20 @@ export async function primeContext(
   let activeControversies: string[] = [];
   let trendBreaks: string[] = [];
   let kgCost = 0;
+  // Hoisted out of the try block — step 4 reuses it; previously the const was
+  // block-scoped so `typeof realTimePulseResult !== 'undefined'` was always
+  // false and the pulse was fetched TWICE (~36s each).
+  let realTimePulseResult: RealTimePulse | null = null;
 
   try {
     // P1-F: Run KG query, longitudinal insights, trend analyzer, AND real-time data in parallel
-    const [kgResult, insights, trendResult, realTimePulseResult] = await Promise.all([
+    const [kgResult, insights, trendResult, rtPulse] = await Promise.all([
       queryKnowledgeGraph(query, { limit: maxConcepts, minSimilarity: 0.5 }),
       getLongitudinalInsights({ minOccurrences: 2, limit: 10 }),
-      trendAnalyzer({ lookbackMonths: 6, minSources: 5 }).catch(() => ({ trends: [] })),
+      trendAnalyzer({ lookbackMonths: 6, minSources: 5, queryTerms: query.split(/\s+/) }).catch(() => ({ trends: [] })),
       fetchRealTimePulse().catch(() => null),
     ]);
+    realTimePulseResult = rtPulse;
 
     knownConcepts = kgResult.concepts.map(c => ({
       name: c.name,
@@ -275,12 +280,8 @@ export async function primeContext(
     revisitReasons.push("First analysis on this topic — no prior institutional coverage");
   }
 
-  // ── STEP 4: Fetch real-time pulse (if not already fetched in step 1) ──
-  let realTimePulse: RealTimePulse | null = null;
-  try {
-    // @ts-ignore — realTimePulseResult may exist from step 1
-    realTimePulse = typeof realTimePulseResult !== 'undefined' ? realTimePulseResult : await fetchRealTimePulse().catch(() => null);
-  } catch { /* non-blocking */ }
+  // ── STEP 4: Reuse real-time pulse fetched in step 1 (no double fetch) ──
+  const realTimePulse: RealTimePulse | null = realTimePulseResult;
 
   // ── STEP 5: Build context block for ANALYST injection ──
   let contextBlock = buildContextBlock({

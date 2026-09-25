@@ -95,9 +95,25 @@ export function EditorialInquiryBody({ data, className }: EditorialInquiryBodyPr
         </Block>
       )}
 
+      {data.centralScenario && (
+        <Block className="border-l-2 border-l-black pl-5">
+          <Eyebrow>Our central scenario</Eyebrow>
+          <h2 className="text-xl font-semibold mb-3">{data.centralScenario.name}</h2>
+          <p className="text-xs text-black/60 mb-4">Horizon: {data.centralScenario.horizon} · Editorial confidence: {data.centralScenario.confidence}</p>
+          <p className="leading-relaxed mb-4">{data.centralScenario.description}</p>
+          <h3 className="font-medium mb-2">Why we select it</h3>
+          <div className="text-sm leading-relaxed mb-4" dangerouslySetInnerHTML={{ __html: sanitizeHtml(data.centralScenario.rationaleHtml) }} />
+          <h3 className="font-medium mb-2">Implications</h3>
+          <ul className="list-disc pl-5 mb-4 text-sm space-y-2">{data.centralScenario.implications.map((s, i) => <li key={i}>{s}</li>)}</ul>
+          <h3 className="font-medium mb-2">What would change our view</h3>
+          <ul className="list-disc pl-5 text-sm space-y-2">{data.centralScenario.revisionTriggers.map((s, i) => <li key={i}>{s}</li>)}</ul>
+        </Block>
+      )}
+
       {data.scenarios.length > 0 && (
         <Block>
-          <Eyebrow>Probable futures</Eyebrow>
+          <details>
+          <summary className="cursor-pointer font-medium mb-3">{data.centralScenario ? 'Alternatives and risks considered' : 'Scenario analysis'}</summary>
           <div className="space-y-3">
             {data.scenarios.map((s) => (
               <div
@@ -112,7 +128,7 @@ export function EditorialInquiryBody({ data, className }: EditorialInquiryBodyPr
                     {s.name}
                     {s.isBase && (
                       <span className="ml-2 font-mono text-[10px] uppercase tracking-wider text-black/40">
-                        base
+                        central
                       </span>
                     )}
                   </span>
@@ -122,6 +138,7 @@ export function EditorialInquiryBody({ data, className }: EditorialInquiryBodyPr
               </div>
             ))}
           </div>
+          </details>
         </Block>
       )}
 

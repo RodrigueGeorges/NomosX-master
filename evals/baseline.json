@@ -1,0 +1,89 @@
+{
+  "groundedness": 0.9848027854935001,
+  "citationRate": 0.9116655412429828,
+  "panelScore": 44.625,
+  "errors": 0,
+  "evaluatedAt": "2026-09-23T17:45:33.674Z",
+  "cases": [
+    {
+      "id": "top-ai-gov-standards",
+      "groundedness": 0.9710144927536232,
+      "citationRate": 0.965034965034965,
+      "panelScore": 42,
+      "panelVeto": true,
+      "safeSupported": 0,
+      "safeContradicted": 0,
+      "durationMs": 156386
+    },
+    {
+      "id": "top-ai-gov-fragmentation",
+      "groundedness": 0.9809885931558935,
+      "citationRate": 0.9359430604982206,
+      "panelScore": 51,
+      "panelVeto": true,
+      "safeSupported": 0,
+      "safeContradicted": 0,
+      "durationMs": 165661
+    },
+    {
+      "id": "top-trust-institutions",
+      "groundedness": 0.9790209790209791,
+      "citationRate": 0.9050632911392406,
+      "panelScore": 44,
+      "panelVeto": true,
+      "safeSupported": 0,
+      "safeContradicted": 0,
+      "durationMs": 76526
+    },
+    {
+      "id": "mid-stablecoin",
+      "groundedness": 0.9948717948717949,
+      "citationRate": 0.826271186440678,
+      "panelScore": 47,
+      "panelVeto": true,
+      "safeSupported": 0,
+      "safeContradicted": 0,
+      "durationMs": 74604
+    },
+    {
+      "id": "mid-uschina-summitry",
+      "groundedness": 0.993421052631579,
+      "citationRate": 0.95,
+      "panelScore": 45,
+      "panelVeto": true,
+      "safeSupported": 0,
+      "safeContradicted": 0,
+      "durationMs": 57627
+    },
+    {
+      "id": "mid-viticulture-climate",
+      "groundedness": 0.9975669099756691,
+      "citationRate": 0.9513888888888888,
+      "panelScore": 49,
+      "panelVeto": true,
+      "safeSupported": 0,
+      "safeContradicted": 0,
+      "durationMs": 58614
+    },
+    {
+      "id": "held-greenland",
+      "groundedness": 0.9615384615384616,
+      "citationRate": 0.9701492537313433,
+      "panelScore": 42,
+      "panelVeto": true,
+      "safeSupported": 0,
+      "safeContradicted": 0,
+      "durationMs": 111572
+    },
+    {
+      "id": "held-cbam-trade",
+      "groundedness": 1,
+      "citationRate": 0.7894736842105263,
+      "panelScore": 37,
+      "panelVeto": true,
+      "safeSupported": 0,
+      "safeContradicted": 0,
+      "durationMs": 95386
+    }
+  ]
+}

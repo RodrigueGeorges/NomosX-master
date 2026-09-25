@@ -43,6 +43,9 @@
  */
 
 import { prisma } from '../db';
+import { promises as fs } from 'fs';
+import * as path from 'path';
+import * as os from 'os';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -88,14 +91,26 @@ export async function runDurableStep<T>(
   runId: string,
   step: string,
   fn: () => Promise<T>,
-  options: { costUsd?: number } = {},
+  options: { costUsd?: number; resumeWindowMs?: number } = {},
 ): Promise<T> {
   const state = await loadDurableState(runId);
 
-  // Step already completed? Return cached output.
-  if (state?.completedSteps.includes(step)) {
-    console.log(`[Durable] Step ${step} already completed for ${runId} — returning cached output`);
-    return state.stepOutputs[step] as T;
+  // Step already completed in a still-open run? Return cached output.
+  // Staleness guard: a completed run or a checkpoint older than the resume
+  // window must not poison a new execution — reruns of the same query a week
+  // later must re-scout fresh sources.
+  const resumeWindow = options.resumeWindowMs ?? 12 * 60 * 60 * 1000; // 12h
+  const isFresh = state && state.status === 'running'
+    && (Date.now() - state.updatedAt) < resumeWindow;
+  if (isFresh && state.completedSteps.includes(step)) {
+    const cached = await resolveStepOutput(state.stepOutputs[step]);
+    if (cached !== undefined) {
+      console.log(`[Durable] Step ${step} already completed for ${runId} — returning cached output`);
+      return cached as T;
+    }
+    // Checkpoint record exists but its payload is gone (tmp file purged) —
+    // treat as a cache miss and re-execute below.
+    console.warn(`[Durable] Step ${step} checkpoint payload missing for ${runId} — re-executing`);
   }
 
   // Execute the step
@@ -111,6 +126,44 @@ export async function runDurableStep<T>(
   await persistStep(runId, step, output, options.costUsd || 0);
 
   return output;
+}
+
+/**
+ * Peek at a checkpointed step output without executing anything.
+ * For code paths that can't be wrapped in a closure (imperative blocks
+ * mutating outer scope) — guard them: `const ckpt = await durableResume(...);
+ * if (!ckpt) { ...block...; await persistStep via durable() } else { rehydrate }`.
+ */
+export async function durableResume<T>(runId: string, step: string, resumeWindowMs = 12 * 60 * 60 * 1000): Promise<T | null> {
+  const state = await loadDurableState(runId);
+  const fresh = state && state.status === 'running' && (Date.now() - state.updatedAt) < resumeWindowMs;
+  if (fresh && state.completedSteps.includes(step)) {
+    return (await resolveStepOutput(state.stepOutputs[step])) ?? null;
+  }
+  return null;
+}
+
+/**
+ * Mark a durable run as completed — its checkpoints stop being resumed.
+ * Without this, every re-run of the same query would replay stale outputs.
+ */
+export async function markDurableComplete(runId: string): Promise<void> {
+  try {
+    await prisma.agentAuditLog.create({
+      data: {
+        action: 'DURABLE_COMPLETE',
+        agent: 'durable_execution',
+        resource: runId,
+        metadata: JSON.stringify({ completedAt: Date.now() }),
+        timestamp: new Date(),
+      },
+    });
+    // Drop file-backed checkpoints — the run is sealed, they can no longer
+    // be resumed, and reader payloads can run ~20MB in tmpdir.
+    await fs.rm(path.join(CHECKPOINT_DIR, runId.replace(/[^a-zA-Z0-9_-]/g, '_')), { recursive: true, force: true });
+  } catch (err) {
+    console.warn('[Durable] markComplete failed:', err);
+  }
 }
 
 // ─── State Management ───────────────────────────────────────────────────────
@@ -140,14 +193,27 @@ async function loadDurableState(runId: string): Promise<DurableExecutionState | 
       const metadata = record.metadata || '{}';
       if (record.action === 'DURABLE_INIT') {
         const data = JSON.parse(metadata);
+        // Each INIT opens a new generation: a run that completed/failed/staled
+        // and is re-attempted must not see the previous attempt's step outputs.
         state.query = data.query;
         state.createdAt = data.createdAt;
         state.status = data.status;
+        state.completedSteps = [];
+        state.stepOutputs = {};
+        state.totalCostUsd = 0;
+        state.updatedAt = data.createdAt;
       } else if (record.action === 'DURABLE_STEP') {
         const data = JSON.parse(metadata);
         state.completedSteps.push(data.step);
-        state.stepOutputs[data.step] = data.output;
+        // Large payloads are stored on disk — the audit row keeps only a ref.
+        // Store the marker lazily so a state load does not re-parse a ~20MB
+        // file on every runDurableStep call.
+        state.stepOutputs[data.step] = data.fileRef ? { __checkpointFile: data.fileRef } : data.output;
         state.totalCostUsd += data.costUsd;
+        state.updatedAt = data.completedAt;
+      } else if (record.action === 'DURABLE_COMPLETE') {
+        const data = JSON.parse(metadata);
+        state.status = 'completed';
         state.updatedAt = data.completedAt;
       }
     }
@@ -160,8 +226,50 @@ async function loadDurableState(runId: string): Promise<DurableExecutionState | 
   }
 }
 
+const FILE_THRESHOLD_BYTES = 512 * 1024; // >512KB payloads go to disk (readings carry ~MBs of full text)
+const CHECKPOINT_DIR = path.join(os.tmpdir(), 'nomosx-durable');
+
+async function writeCheckpointFile(runId: string, step: string, output: any): Promise<string> {
+  const dir = path.join(CHECKPOINT_DIR, runId.replace(/[^a-zA-Z0-9_-]/g, '_'));
+  await fs.mkdir(dir, { recursive: true });
+  const file = path.join(dir, `${step.replace(/[^a-zA-Z0-9_-]/g, '_')}.json`);
+  await fs.writeFile(file, JSON.stringify(output), 'utf8');
+  return file;
+}
+
+async function readCheckpointFile(file: string): Promise<any> {
+  try {
+    return JSON.parse(await fs.readFile(file, 'utf8'));
+  } catch {
+    return undefined; // checkpoint file gone (tmp cleaned) — resume degrades to re-run
+  }
+}
+
+/** Resolve a step output — inline value or lazy file-backed marker. */
+async function resolveStepOutput(output: any): Promise<any> {
+  if (output && typeof output === 'object' && typeof output.__checkpointFile === 'string') {
+    return readCheckpointFile(output.__checkpointFile);
+  }
+  return output;
+}
+
+/** Persist a step output computed outside a runDurableStep closure. */
+export async function saveDurableStep(runId: string, step: string, output: any, costUsd = 0): Promise<void> {
+  await persistStep(runId, step, output, costUsd);
+}
+
 async function persistStep(runId: string, step: string, output: any, costUsd: number): Promise<void> {
   try {
+    const serialized = JSON.stringify(output);
+    const tooBig = serialized.length > FILE_THRESHOLD_BYTES;
+    let fileRef: string | undefined;
+    if (tooBig) {
+      try {
+        fileRef = await writeCheckpointFile(runId, step, output);
+      } catch (fileErr) {
+        console.warn('[Durable] File checkpoint failed, keeping inline payload:', fileErr);
+      }
+    }
     await prisma.agentAuditLog.create({
       data: {
         action: 'DURABLE_STEP',
@@ -169,7 +277,8 @@ async function persistStep(runId: string, step: string, output: any, costUsd: nu
         resource: runId,
         metadata: JSON.stringify({
           step,
-          output,
+          output: fileRef ? undefined : output,
+          fileRef,
           costUsd,
           completedAt: Date.now(),
         }),
@@ -181,11 +290,30 @@ async function persistStep(runId: string, step: string, output: any, costUsd: nu
   }
 }
 
+/**
+ * Stable durable key — resumes must find the SAME state across retries.
+ * Keying on pipelineRun.id never resumes (fresh id per attempt); keying on
+ * the normalized query+format means a timed-out/failed run restarted by the
+ * dispatcher or the next cron cycle picks up where it crashed.
+ */
+export function durableKeyFor(query: string, format: string): string {
+  const normalized = query.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 80);
+  return `durable:${format}:${normalized}`;
+}
+
 export async function initDurableRun(
   runId: string,
   query: string,
+  resumeWindowMs = 12 * 60 * 60 * 1000,
 ): Promise<void> {
   try {
+    // Resume attempt: a 'running' state inside the window means the previous
+    // attempt crashed — keep its checkpoints and skip writing a new INIT
+    // (a new INIT would open a fresh generation and discard them).
+    const existing = await loadDurableState(runId);
+    if (existing && existing.status === 'running' && (Date.now() - existing.updatedAt) < resumeWindowMs) {
+      return;
+    }
     await prisma.agentAuditLog.create({
       data: {
         action: 'DURABLE_INIT',

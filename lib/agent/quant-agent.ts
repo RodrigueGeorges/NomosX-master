@@ -235,6 +235,53 @@ async function fetchEnergiDataCO2(): Promise<QuantSeries | null> {
   } catch { return null; }
 }
 
+async function fetchWorldBankSeries(
+  indicator: string, label: string, unit: string, countryCode: string,
+): Promise<QuantSeries | null> {
+  try {
+    const data: any = await fetchFromProvider(
+      'worldbank-data',
+      `https://api.worldbank.org/v2/country/${countryCode}/indicator/${indicator}?format=json&per_page=20&date=2005:2025`,
+      { timeout: 12000, retries: 1, headers: { 'User-Agent': USER_AGENT, 'Accept': 'application/json' } },
+    );
+    const rows: any[] = Array.isArray(data) ? data[1] || [] : [];
+    const points = rows
+      .filter((r: any) => r.value != null)
+      .map((r: any) => ({ t: `${r.date}-01-01`, v: Number(r.value) }))
+      .sort((a, b) => a.t.localeCompare(b.t));
+    if (points.length === 0) return null;
+    return {
+      label: `${label} (${COUNTRY_NAMES[countryCode] || countryCode})`,
+      unit,
+      provider: 'worldbank-data',
+      sourceId: `worldbank-data:${indicator}:${countryCode}`,
+      points,
+      ...computeStats(points),
+    };
+  } catch { return null; }
+}
+
+const COUNTRY_NAMES: Record<string, string> = {
+  WLD: 'World', EUU: 'EU', USA: 'US', CHN: 'China', JPN: 'Japan', DEU: 'Germany',
+  GBR: 'UK', FRA: 'France', IND: 'India', ITA: 'Italy', BRA: 'Brazil', CAN: 'Canada',
+  RUS: 'Russia', KOR: 'S. Korea', ESP: 'Spain', MEX: 'Mexico', TUR: 'Turkey',
+  SAU: 'Saudi Arabia', UKR: 'Ukraine', ISR: 'Israel', IDN: 'Indonesia',
+};
+
+const COUNTRY_PATTERNS: Array<[RegExp, string]> = [
+  [/\b(united states|usa|u\.s\.|america)\b/i, 'USA'],
+  [/\bchina|chinese\b/i, 'CHN'], [/\bjapan|japanese\b/i, 'JPN'],
+  [/\bgermany|german\b/i, 'DEU'], [/\bfrance|french\b/i, 'FRA'],
+  [/\b(uk|britain|british|united kingdom)\b/i, 'GBR'], [/\bindia|indian\b/i, 'IND'],
+  [/\bitaly|italian\b/i, 'ITA'], [/\bbrazil|brazilian\b/i, 'BRA'],
+  [/\bcanada|canadian\b/i, 'CAN'], [/\brussia|russian\b/i, 'RUS'],
+  [/\bkorea|korean\b/i, 'KOR'], [/\bspain|spanish\b/i, 'ESP'],
+  [/\bmexico|mexican\b/i, 'MEX'], [/\bturkey|turkish\b/i, 'TUR'],
+  [/\b(saudi|arabia)\b/i, 'SAU'], [/\bukraine|ukrainian\b/i, 'UKR'],
+  [/\bisrael|israeli\b/i, 'ISR'], [/\bindonesia|indonesian\b/i, 'IDN'],
+  [/\b(eu|europe|european union|eurozone)\b/i, 'EUU'],
+];
+
 // ============================================================================
 // DOMAIN → FETCHER MAPPING
 // ============================================================================
@@ -249,6 +296,14 @@ function selectFetchers(query: string, sources: any[]): Fetcher[] {
   const isEnergy = /\b(energy|electricity|power|grid|datacenter|data center|nuclear|renewable|solar|wind|gas)\b/.test(q);
   const isFiscal = /\b(debt|fiscal|treasury|budget|deficit|spending|tax|bond|yield|interest rate|monetary|banking|finance|leverage|systemic|credit|central bank|fed|ecb|basel)\b/.test(q);
   const isClimate = /\b(co2|carbon|emission|climate)\b/.test(q);
+  const isMacro = /\b(gdp|growth|economy|recession|recovery|macroeconomic|pib|croissance)\b/i.test(q);
+  const isInflation = /\b(inflation|prices|cpi|cost of living|prix)\b/i.test(q);
+  const isLabor = /\b(unemployment|employment|labor market|jobs|chômage)\b/i.test(q);
+  const isConflict = /\b(conflict|war|violence|security|sahel|terroris)\b/i.test(q);
+
+  // Country detection → World Bank series localized to the topic
+  const detected = COUNTRY_PATTERNS.find(([re]) => re.test(query));
+  const cc = detected?.[1] || 'WLD';
 
   // Energy data only if explicitly energy-related AND not a finance report
   if (isEnergy && !isFiscal) {
@@ -268,6 +323,26 @@ function selectFetchers(query: string, sources: any[]): Fetcher[] {
     if (providersInSources.has('energi-data')) {
       fetchers.push(fetchEnergiDataCO2);
     }
+    // Global CO2 trajectory as context (OWID-style, via WB CO2 indicator)
+    fetchers.push(() => fetchWorldBankSeries('EN.GHG.CO2.PC.CE.AR5', 'CO2 emissions per capita', 't CO2e/person', cc));
+  }
+
+  // World Bank macro series — real country/world numbers for macro topics
+  if (isMacro) {
+    fetchers.push(() => fetchWorldBankSeries('NY.GDP.MKTP.KD.ZG', 'GDP growth, annual', '%', cc));
+    if (cc !== 'WLD') fetchers.push(() => fetchWorldBankSeries('NY.GDP.MKTP.KD.ZG', 'GDP growth, annual', '%', 'WLD'));
+  }
+  if (isInflation) {
+    fetchers.push(() => fetchWorldBankSeries('FP.CPI.TOTL.ZG', 'Inflation, consumer prices', '%', cc));
+  }
+  if (isLabor) {
+    fetchers.push(() => fetchWorldBankSeries('SL.UEM.TOTL.ZS', 'Unemployment rate', '% of labor force', cc));
+  }
+  if (isFiscal) {
+    fetchers.push(() => fetchWorldBankSeries('GC.DOD.TOTL.GD.ZS', 'Central government debt', '% of GDP', cc));
+  }
+  if (isConflict) {
+    fetchers.push(() => fetchWorldBankSeries('MS.MIL.XPND.GD.ZS', 'Military expenditure', '% of GDP', cc));
   }
 
   return fetchers;

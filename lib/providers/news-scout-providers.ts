@@ -120,8 +120,7 @@ export async function searchGDELTNews(query: string, limit = 30): Promise<ScoutN
       headers: { 'User-Agent': 'NomosX Research Bot (+https://nomosx.com)' },
     });
     if (!text) {
-      console.warn(`[SCOUT/GDELT] No response`);
-      return [];
+      throw new Error('GDELT returned empty response');
     }
 
     // GDELT returns plain text errors ("One or more errors...") instead of JSON
@@ -129,8 +128,7 @@ export async function searchGDELTNews(query: string, limit = 30): Promise<ScoutN
     try {
       data = JSON.parse(text);
     } catch {
-      console.warn(`[SCOUT/GDELT] Non-JSON response: ${text.slice(0, 120)}`);
-      return [];
+      throw new Error(`GDELT non-JSON response: ${text.slice(0, 80)}`);
     }
     const articles: any[] = data?.articles || [];
 
@@ -160,8 +158,11 @@ export async function searchGDELTNews(query: string, limit = 30): Promise<ScoutN
       };
     });
   } catch (e: any) {
+    // Rethrow so trackProviderCall records a real failure — swallowing errors
+    // here made the provider health circuit breaker see phantom successes and
+    // GDELT kept burning 8s timeouts on every query variation.
     console.warn(`[SCOUT/GDELT] Error: ${e.message}`);
-    return [];
+    throw e;
   }
 }
 

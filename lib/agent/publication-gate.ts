@@ -1,6 +1,9 @@
 import { buildEvidenceLedger, extractCitationNumbers } from "./evidence-ledger";
 import { getPublicationQualityRule, getAdaptiveMinSourceCount } from "@/lib/publication-visibility";
 import { detectNovlangue } from "./novlangue-detector";
+import { centralScenarioIssues, type CentralScenarioDecision } from './editorial-types';
+import { parseEditorialInquiry } from '@/lib/brand/inquiry-html-parse';
+import { isPositionFirstBrief } from './brief-html-extract';
 
 export type PublicationGateDecision = "publish" | "revise" | "hold";
 
@@ -19,6 +22,8 @@ export interface PublicationGateInput {
   format?: "brief" | "memo" | "strategic" | "signal" | string;
   html: string;
   sourceIds: string[];
+  centralScenario?: CentralScenarioDecision;
+  requireCentralScenario?: boolean;
   trustScore?: number;
   qualityScore?: number;
   citationCoverage?: number;
@@ -32,6 +37,9 @@ export interface PublicationGateInput {
   domain?: string | null;
   /** Structured claims from READER agent (Claim table). When provided, used instead of HTML heuristics. */
   dbClaims?: Array<{ text: string; sourceRef?: number | null; evidenceCount?: number }>;
+  /** P0-1: names of verdict-bearing evaluations tagged stale (attached to a
+   * replaced artifact version) — the gate must not consume them. */
+  staleEvaluations?: string[];
 }
 
 export interface PublicationGateCheck {
@@ -240,11 +248,50 @@ export function evaluatePublicationGate(input: PublicationGateInput): Publicatio
       : `${novlangue.count} novlangue pattern(s) detected (${novlangue.density.toFixed(1)}/1000 words): ${novlangue.matches.slice(0, 3).map((m) => `"${m.term}" → ${m.trueName}`).join("; ")}${novlangue.count > 3 ? "..." : ""}`,
   });
 
+  if (input.requireCentralScenario || input.centralScenario || isPositionFirstBrief(input.html)) {
+    const issues = centralScenarioIssues(input.centralScenario, sourceCount);
+    const rendered = parseEditorialInquiry(input.html)?.centralScenario;
+    const blocks = input.html.match(/<section\b[^>]*class="nx-block central-scenario"[^>]*>[\s\S]*?<\/section>/gi) ?? [];
+    if (blocks.length !== 1 || !rendered?.name || !rendered.description || !rendered.rationale
+      || !rendered.horizon || !rendered.confidence || !rendered.implications.length || !rendered.revisionTriggers.length) {
+      issues.push('Final HTML must contain exactly one complete central scenario');
+    }
+    if (rendered && input.centralScenario) {
+      const normalize = (text: string) => text.replace(/\[(?:SRC|E)-\d+\]/g, '').replace(/\s+/g, ' ').trim();
+      const decision = input.centralScenario;
+      const pairs = [
+        [rendered.name, decision.name], [rendered.description, decision.description],
+        [rendered.rationale, decision.rationale], [rendered.horizon, decision.horizon],
+        [rendered.implications.join(' '), decision.implications.join(' ')],
+        [rendered.revisionTriggers.join(' '), decision.revisionTriggers.join(' ')],
+      ];
+      if (pairs.some(([actual, expected]) => normalize(actual) !== normalize(expected))) {
+        issues.push('Rendered central scenario differs from the persisted decision');
+      }
+    }
+    const rationale = blocks[0]?.match(/<div class="central-rationale"[^>]*>([\s\S]*?)<\/div>/i)?.[1] ?? '';
+    const refs = extractCitationNumbers(rationale);
+    if (!refs.length || refs.some(n => n < 1 || n > sourceCount)) issues.push('Central rationale lost its evidence references during rendering');
+    checks.push({ checkType: 'central_scenario', passed: issues.length === 0, details: issues.join('; ') || 'Central scenario complete and consistent with final HTML' });
+  }
+
+  // P0-1: Evaluation freshness — a verdict-bearing evaluation (critic,
+  // criticPanel, devilsAdvocate) attached to a replaced artifact version is
+  // invalid: the gate must not consume a verdict that describes other content.
+  const staleEvals = input.staleEvaluations ?? [];
+  checks.push({
+    checkType: "evaluation_freshness",
+    passed: staleEvals.length === 0,
+    details: staleEvals.length === 0
+      ? "All verdict evaluations match the current artifact version"
+      : `Stale verdict evaluation(s) attached to a replaced artifact: ${staleEvals.join(", ")}`,
+  });
+
   const failedChecks = checks.filter((check) => !check.passed);
   // quality_score is advisory when trust_score passes AND quality ≥ 40 — don't treat as hard failure
   // But quality < 40 is always a hard failure (prevents publishing garbage with good trust)
   const hardFailures = failedChecks.filter((check) =>
-    ["source_depth", "trust_score", "word_count", "researcher_signoff", "citation_coverage"].includes(check.checkType)
+    ["source_depth", "trust_score", "word_count", "researcher_signoff", "citation_coverage", "central_scenario", "evaluation_freshness"].includes(check.checkType)
     || (check.checkType === "quality_score" && typeof check.score === "number" && check.score < 40)
   );
   const decision: PublicationGateDecision = failedChecks.length === 0

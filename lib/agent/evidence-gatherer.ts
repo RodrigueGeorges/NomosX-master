@@ -71,7 +71,16 @@ async function checkSemanticAlignment(
   }
   try {
     const { callLLM } = await import('../llm/unified-llm');
-    const titlesList = sourceTitles.slice(0, 10).map((t, i) => `[${i + 1}] ${t}`).join('\n');
+    // Stratified sample: judge 20 titles spread evenly across the pool, not
+    // just the first 10 — the list is unordered (direct hits first, then
+    // sub-angle results), so the head can be all-generic while relevant
+    // sources sit deeper. A 139-source pool was once rejected at 0% because
+    // only its generic head was sampled.
+    const SAMPLE = 20;
+    const sampled = sourceTitles.length <= SAMPLE
+      ? sourceTitles
+      : Array.from({ length: SAMPLE }, (_, i) => sourceTitles[Math.floor(i * sourceTitles.length / SAMPLE)]);
+    const titlesList = sampled.map((t, i) => `[${i + 1}] ${t}`).join('\n');
     const response = await callLLM({
       messages: [
         {
@@ -86,7 +95,7 @@ ${titlesList}
 Return JSON:
 {
   "relevantCount": <number genuinely relevant>,
-  "totalCount": ${Math.min(sourceTitles.length, 10)},
+  "totalCount": ${sampled.length},
   "reasoning": "1 sentence",
   "misalignedTopics": ["what the sources are actually about, if misaligned"]
 }`,
@@ -240,11 +249,21 @@ async function searchAcrossProviders(
   const domain = options?.domain;
 
   // ── Layer 1: Academic providers (always) ──
+  // Every pushed promise MUST carry an immediate .catch: more awaits happen
+  // before Promise.allSettled below (dynamic imports, registry bridge), so a
+  // provider that rejects early (e.g. circuit-breaker fail-fast) would be an
+  // unhandled rejection and kill the process. The catch converts to [] —
+  // allSettled skips empty results identically to rejected entries.
+  const guarded = (p: Promise<any[]>, label: string): Promise<any[]> =>
+    p.catch((err: any) => {
+      console.warn(`[GATHER] ${label}: ${String(err?.message || err).slice(0, 120)}`);
+      return [] as any[];
+    });
   const academicPromises: Promise<any[]>[] = [
-    withTimeout(searchOpenAlex(query, limit), GATHER_TIMEOUT_MS, 'openalex'),
-    withTimeout(searchCrossref(query, limit), GATHER_TIMEOUT_MS, 'crossref'),
-    withTimeout(searchSemanticScholar(query, limit), GATHER_TIMEOUT_MS, 's2'),
-    withTimeout(searchArxiv(query, limit), GATHER_TIMEOUT_MS, 'arxiv'),
+    guarded(withTimeout(searchOpenAlex(query, limit), GATHER_TIMEOUT_MS, 'openalex'), 'openalex'),
+    guarded(withTimeout(searchCrossref(query, limit), GATHER_TIMEOUT_MS, 'crossref'), 'crossref'),
+    guarded(withTimeout(searchSemanticScholar(query, limit), GATHER_TIMEOUT_MS, 's2'), 'semantic-scholar'),
+    guarded(withTimeout(searchArxiv(query, limit), GATHER_TIMEOUT_MS, 'arxiv'), 'arxiv'),
   ];
   const academicLabels = ['openalex', 'crossref', 'semantic-scholar', 'arxiv'];
 
@@ -252,12 +271,12 @@ async function searchAcrossProviders(
   if (includeWeb) {
     try {
       const { searchTavily } = await import('../providers/tavily-provider');
-      academicPromises.push(withTimeout(searchTavily(query, Math.floor(limit / 2), { topic: 'general' }), GATHER_TIMEOUT_MS, 'tavily'));
+      academicPromises.push(guarded(withTimeout(searchTavily(query, Math.floor(limit / 2), { topic: 'general' }), GATHER_TIMEOUT_MS, 'tavily'), 'tavily'));
       academicLabels.push('tavily');
     } catch { /* Tavily not available */ }
     try {
       const { searchExaPublications } = await import('../providers/exa-provider');
-      academicPromises.push(withTimeout(searchExaPublications(query, Math.floor(limit / 2)), GATHER_TIMEOUT_MS, 'exa'));
+      academicPromises.push(guarded(withTimeout(searchExaPublications(query, Math.floor(limit / 2)), GATHER_TIMEOUT_MS, 'exa'), 'exa'));
       academicLabels.push('exa');
     } catch { /* Exa not available */ }
   }
@@ -266,7 +285,7 @@ async function searchAcrossProviders(
   if (includeWeb) {
     try {
       const { searchGDELTNews } = await import('../providers/news-scout-providers');
-      academicPromises.push(withTimeout(searchGDELTNews(query, Math.floor(limit / 2)), GATHER_TIMEOUT_MS, 'gdelt-news'));
+      academicPromises.push(guarded(withTimeout(searchGDELTNews(query, Math.floor(limit / 2)), GATHER_TIMEOUT_MS, 'gdelt-news'), 'gdelt-news'));
       academicLabels.push('gdelt-news');
     } catch { /* GDELT not available */ }
   }
@@ -370,7 +389,7 @@ export async function gatherEvidence(
 
   // If direct search is sufficient and aligned → done
   // Viability = enough sources AND enough relevant ones (absolute count, not just fraction)
-  const directRelevantCount = Math.round(semantic.score * Math.min(directDeduped.length, 10));
+  const directRelevantCount = Math.round(semantic.score * Math.min(directDeduped.length, 20));
   const directViable = directDeduped.length >= MIN_SOURCES_FOR_VIABLE &&
     (semantic.score >= SEMANTIC_FRACTION_THRESHOLD || directRelevantCount >= MIN_RELEVANT_SOURCES);
 
@@ -444,7 +463,7 @@ export async function gatherEvidence(
   costUsd += 0.0002;
 
   // Viability = enough sources AND enough relevant ones (absolute count)
-  const combinedRelevantCount = Math.round(reassessment.score * Math.min(allSources.length, 10));
+  const combinedRelevantCount = Math.round(reassessment.score * Math.min(allSources.length, 20));
   // Extrapolate: if 30% of a 10-title sample is relevant, and we have 100 sources,
   // that's ~30 relevant sources — more than enough
   const extrapolatedRelevant = reassessment.score * allSources.length;

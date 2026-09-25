@@ -33,6 +33,44 @@ export function BreadcrumbJsonLd({ items }: { items: Array<{ name: string; url: 
   );
 }
 
+export function ArticleJsonLd({
+  title,
+  description,
+  url,
+  publishedAt,
+  wordCount,
+  imageUrl,
+}: {
+  title: string;
+  description: string;
+  url: string;
+  publishedAt?: string;
+  wordCount?: number;
+  imageUrl?: string;
+}) {
+  return (
+    <JsonLd
+      data={{
+        '@context': 'https://schema.org',
+        '@type': 'Article',
+        headline: title.slice(0, 110),
+        description,
+        url,
+        ...(publishedAt ? { datePublished: publishedAt, dateModified: publishedAt } : {}),
+        ...(wordCount ? { wordCount } : {}),
+        ...(imageUrl ? { image: [imageUrl] } : {}),
+        author: { '@type': 'Organization', name: 'NomosX', url: 'https://nomosx.com' },
+        publisher: {
+          '@type': 'Organization',
+          name: 'NomosX',
+          url: 'https://nomosx.com',
+        },
+        isAccessibleForFree: true,
+      }}
+    />
+  );
+}
+
 export function FaqJsonLd({ items }: { items: Array<{ q: string; a: string }> }) {
   return (
     <JsonLd

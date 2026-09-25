@@ -240,21 +240,20 @@ export async function searchGDELTIndependent(query: string, limit = 20): Promise
     const url = `https://api.gdeltproject.org/api/v2/doc/doc?query=${encoded}%20domain:${encodeURIComponent(domainFilter)}&mode=ArtList&maxrecords=${Math.min(limit, 250)}&format=json&sort=DateDesc&timespan=30d`;
 
     const text: string = await fetchFromProvider('gdelt', url, {
-      timeout: 15000,
-      retries: 2,
+      timeout: 8000,
+      retries: 1,
       headers: { 'User-Agent': 'NomosX Research Bot (+https://nomosx.com)' },
       responseType: 'text',
     });
     if (!text) {
-      console.warn(`[SCOUT/GDELT-Independent] No data returned`);
-      return [];
+      throw new Error('GDELT-independent returned empty response');
     }
 
     let data: any;
     try {
       data = JSON.parse(text);
     } catch {
-      return [];
+      throw new Error('GDELT-independent non-JSON response');
     }
 
     const articles = data.articles || [];
@@ -281,9 +280,10 @@ export async function searchGDELTIndependent(query: string, limit = 20): Promise
 
     return results;
   } catch (err: any) {
-    if (err.name === 'TimeoutError' || err.name === 'AbortError') return [];
+    // Rethrow — swallowing failures made the health circuit breaker blind
+    // (provider looked healthy while timing out on every call).
     console.warn(`[SCOUT/GDELT-Independent] Error: ${err.message?.slice(0, 100)}`);
-    return [];
+    throw err;
   }
 }
 

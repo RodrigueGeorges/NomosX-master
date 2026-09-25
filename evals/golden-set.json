@@ -1,0 +1,70 @@
+{
+  "version": 2,
+  "description": "Golden set for pipeline quality regression. Stratified sample: top-tier published, mid-tier, and HELD canaries (must score low — a sudden high score on a HELD case signals an inflated metric). Expectations are floors, not targets; the baseline captures real values.",
+  "cases": [
+    {
+      "id": "top-ai-gov-standards",
+      "title": "AI Governance Global Standards National Implementation",
+      "topic": "AI governance global standards and national implementation: regulatory divergence",
+      "publicationId": "cmt451ae50a0eti84s60dlrvk",
+      "tier": "top",
+      "expectations": { "minGroundedness": 0.55, "minPanelScore": 60 }
+    },
+    {
+      "id": "top-ai-gov-fragmentation",
+      "title": "AI Governance Fragmentation and Regulatory Autonomy",
+      "topic": "AI governance fragmentation and regulatory autonomy: strategic implications",
+      "publicationId": "cmt49g8pl044pzoc8b7lu9d30",
+      "tier": "top",
+      "expectations": { "minGroundedness": 0.55, "minPanelScore": 60 }
+    },
+    {
+      "id": "top-trust-institutions",
+      "title": "Meaning, Trust, and Institutional Quality",
+      "topic": "Cognitive foundations of institutional resilience: meaning, trust, and institutional quality",
+      "publicationId": "cmt4kepee018vt49h42x6b8jo",
+      "tier": "top",
+      "expectations": { "minGroundedness": 0.55, "minPanelScore": 60 }
+    },
+    {
+      "id": "mid-stablecoin",
+      "title": "Stablecoin Regulation and Cross-Border Payments",
+      "topic": "Stablecoin regulation and cross-border payments: fragmentation risks and policy",
+      "publicationId": "cmt7oxytj032k6sj15s93f1n6",
+      "tier": "mid",
+      "expectations": { "minGroundedness": 0.4, "minPanelScore": 45 }
+    },
+    {
+      "id": "mid-uschina-summitry",
+      "title": "Transactional Summitry and US-China Crisis Management",
+      "topic": "Transactional summitry and US-China crisis management: eroding foundations",
+      "publicationId": "cmubm3f8m01joy6hyifdjz1m9",
+      "tier": "mid",
+      "expectations": { "minGroundedness": 0.4, "minPanelScore": 45 }
+    },
+    {
+      "id": "mid-viticulture-climate",
+      "title": "Climate Change and Viticulture Phenology",
+      "topic": "Climate change and viticulture: geographic shifts, genetic adaptation, structural pathways",
+      "publicationId": "cmsugtkmx02si5otnsdp86z35",
+      "tier": "mid",
+      "expectations": { "minGroundedness": 0.4, "minPanelScore": 45 }
+    },
+    {
+      "id": "held-greenland",
+      "title": "Greenland Acquisition Pressure and Territorial Sovereignty",
+      "topic": "Strategic acquisition of Greenland by the United States: Arctic sovereignty, geopolitics, and resource competition",
+      "publicationId": "cmuebz4ln018gesplq36xq121",
+      "tier": "held-canary",
+      "expectations": { "minGroundedness": 0.0, "minPanelScore": 0 }
+    },
+    {
+      "id": "held-cbam-trade",
+      "title": "CBAM 2026 Financial Phase and Uneven AI Adoption",
+      "topic": "CBAM 2026 financial phase and uneven AI adoption: trade reconfiguration",
+      "publicationId": "cmtymdp26019v3stksivgex9n",
+      "tier": "held-canary",
+      "expectations": { "minGroundedness": 0.0, "minPanelScore": 0 }
+    }
+  ]
+}

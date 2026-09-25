@@ -20,7 +20,26 @@ export type DomainExpertise =
   | "behavioral-economics" | "urban-studies" | "bioethics" | "complexity-science"
   | "computational-social-science" | "development-economics" | "risk-analysis"
   // NEW DEEP-DOMAIN LENS (added for ontological depth)
-  | "anthropology" | "history" | "religious-studies" | "non-western-philosophy";
+  | "anthropology" | "history" | "religious-studies" | "non-western-philosophy"
+  // SUB-DISCIPLINE LENSES (Sprint 19 — PhD-level granularity)
+  | "sociology" | "psychology" | "political-science" | "demography"
+  | "criminology" | "education" | "philosophy" | "linguistics"
+  | "media-studies" | "epidemiology" | "public-health" | "international-relations"
+  // SUB-DISCIPLINE LENSES II (Sprint 19 batch 3 — toward 50 domains)
+  | "migration-studies" | "science-technology-studies" | "epistemology"
+  | "international-law" | "conflict-studies" | "political-economy"
+  | "public-administration" | "gender-studies" | "area-studies"
+  | "labor-studies" | "ethics-of-technology" | "archaeology"
+  // SUB-DISCIPLINE LENSES III (Sprint 19 batch 4 — toward 62 domains)
+  | "neuroscience" | "data-science" | "economic-history" | "social-psychology"
+  | "organizational-studies" | "science-policy" | "development-studies"
+  | "comparative-politics" | "social-theory" | "philosophy-of-science"
+  | "law-and-economics" | "intelligence-studies"
+  // SUB-DISCIPLINE LENSES IV (Sprint 19 batch 5 — toward 74 domains)
+  | "military-studies" | "futures-studies" | "economic-sociology"
+  | "historical-sociology" | "environmental-economics" | "health-economics"
+  | "legal-theory" | "postcolonial-studies" | "communication-studies"
+  | "public-finance" | "political-anthropology" | "food-systems";
 
 // ============================================================================
 // EXPERT ANALYSIS - Unified interface

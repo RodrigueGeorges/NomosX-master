@@ -17,7 +17,7 @@
 import { httpGet } from '../http-client';
 
 export interface MarketPrediction {
-  source: 'polymarket' | 'metaculus';
+  source: 'polymarket' | 'metaculus' | 'manifold';
   question: string;
   marketQuestion: string;
   probability: number; // 0-1
@@ -37,7 +37,12 @@ export interface MarketDataResult {
  * Fetch from Polymarket public API.
  * No API key required — uses public CLOB API.
  */
+// Session-level dead-source flags — Metaculus is Cloudflare-blocked (403) and
+// Polymarket unreachable from some networks; skip retries once proven dead.
+const deadMarketSources = new Set<string>();
+
 async function fetchPolymarket(query: string): Promise<MarketPrediction[]> {
+  if (deadMarketSources.has('polymarket')) return [];
   try {
     // Polymarket Gamma API — search for relevant markets
     const url = `https://gamma-api.polymarket.com/markets?closed=false&limit=20&order=volume&ascending=false&tag=${encodeURIComponent(query.slice(0, 50))}`;
@@ -79,7 +84,8 @@ async function fetchPolymarket(query: string): Promise<MarketPrediction[]> {
 
     return predictions;
   } catch (err) {
-    console.warn('[PredictionMarkets] Polymarket fetch failed:', err instanceof Error ? err.message : String(err));
+    deadMarketSources.add('polymarket');
+    console.warn('[PredictionMarkets] Polymarket fetch failed (dead for session):', err instanceof Error ? err.message : String(err));
     return [];
   }
 }
@@ -89,6 +95,7 @@ async function fetchPolymarket(query: string): Promise<MarketPrediction[]> {
  * No API key required — uses public API v2.
  */
 async function fetchMetaculus(query: string): Promise<MarketPrediction[]> {
+  if (deadMarketSources.has('metaculus')) return [];
   try {
     // Metaculus API v2 — search for relevant questions
     const url = `https://www.metaculus.com/api2/questions/?search=${encodeURIComponent(query.slice(0, 80))}&status=open&limit=10&order_by=-activity`;
@@ -128,7 +135,44 @@ async function fetchMetaculus(query: string): Promise<MarketPrediction[]> {
 
     return predictions;
   } catch (err) {
-    console.warn('[PredictionMarkets] Metaculus fetch failed:', err instanceof Error ? err.message : String(err));
+    deadMarketSources.add('metaculus');
+    console.warn('[PredictionMarkets] Metaculus fetch failed (dead for session):', err instanceof Error ? err.message : String(err));
+    return [];
+  }
+}
+
+/**
+ * Fetch from Manifold Markets public API (manifold.markets).
+ * No API key required. Used as fallback since Metaculus is Cloudflare-blocked
+ * and Polymarket is unreachable from some networks.
+ */
+async function fetchManifold(query: string): Promise<MarketPrediction[]> {
+  try {
+    const url = `https://api.manifold.markets/v0/search-markets?term=${encodeURIComponent(query.slice(0, 80))}&limit=15&filter=open&sort=liquidity`;
+    const response = await httpGet<any>(url, { timeout: 10000, rateLimiterKey: 'manifold' });
+    if (!Array.isArray(response)) return [];
+
+    const predictions: MarketPrediction[] = [];
+    for (const m of response.slice(0, 10)) {
+      // Binary markets expose `probability`; skip non-binary/closed
+      const probability = typeof m.probability === 'number' ? m.probability : NaN;
+      if (isNaN(probability) || probability < 0 || probability > 1) continue;
+      if (m.isResolved === true) continue;
+
+      predictions.push({
+        source: 'manifold',
+        question: query,
+        marketQuestion: m.question ?? '',
+        probability,
+        volume: m.volume ?? m.totalLiquidity ?? 0,
+        endDate: m.closeTime ? new Date(m.closeTime).toISOString() : undefined,
+        url: m.url,
+        relevanceScore: 0.5,
+      });
+    }
+    return predictions;
+  } catch (err) {
+    console.warn('[PredictionMarkets] Manifold fetch failed:', err instanceof Error ? err.message : String(err));
     return [];
   }
 }
@@ -157,23 +201,24 @@ export async function fetchPredictionMarketData(
   question: string,
   scenarioNames?: string[]
 ): Promise<MarketDataResult> {
-  // Fetch from both sources in parallel
-  const [polymarket, metaculus] = await Promise.all([
+  // Fetch from all sources in parallel
+  const [polymarket, metaculus, manifold] = await Promise.all([
     fetchPolymarket(question),
     fetchMetaculus(question),
+    fetchManifold(question),
   ]);
 
-  let allPredictions = [...polymarket, ...metaculus];
+  let allPredictions = [...polymarket, ...metaculus, ...manifold];
 
   // If we have scenario names, also search for each scenario
   if (scenarioNames && scenarioNames.length > 0) {
     const scenarioResults = await Promise.all(
       scenarioNames.slice(0, 5).map(name =>
-        Promise.all([fetchPolymarket(name), fetchMetaculus(name)])
+        Promise.all([fetchPolymarket(name), fetchMetaculus(name), fetchManifold(name)])
       )
     );
-    for (const [poly, meta] of scenarioResults) {
-      allPredictions.push(...poly, ...meta);
+    for (const [poly, meta, mani] of scenarioResults) {
+      allPredictions.push(...poly, ...meta, ...mani);
     }
   }
 
