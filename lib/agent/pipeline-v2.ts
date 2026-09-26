@@ -5950,8 +5950,15 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
       analysis = { ...analysis, centralScenario: stats.centralScenario, scenarios: institutePosition.scenarios } as typeof analysis;
       console.log(`${label} CENTRAL SCENARIO: ${stats.centralScenario?.name ?? 'missing — publication hold required'}; simulation disagreement=${stats.centralScenario?.simulationDisagrees ?? false}`);
     }
-    await runDevilsAdvocateBlock(debateAdvocateDeps, runDevilsAdvocateStep, buildAnalysisReviewText(analysis as Record<string, unknown>, query), debateContext);
-    html = await durable('render', () => renderEditorHtml());
+    // DA and render are independent: the render reads stats.critic/scout/analyst/
+    // trust, never stats.devilsAdvocate — the DA verdict is rendered as an
+    // editorial section AFTER the render. Running them concurrently removes
+    // the DA's wall-time from the critical path (~15-30s per run).
+    const [, renderedHtml] = await Promise.all([
+      runDevilsAdvocateBlock(debateAdvocateDeps, runDevilsAdvocateStep, buildAnalysisReviewText(analysis as Record<string, unknown>, query), debateContext),
+      durable('render', () => renderEditorHtml()),
+    ]);
+    html = renderedHtml;
     bumpHtmlArtifact();
 
     // Render the adversarial review as an editorial section — a publication
@@ -6242,117 +6249,137 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   });
   stats.brief = { id: brief.id, ...(estimatedPages && { estimatedPages }) };
 
-  // T10: Register predictions in the Prediction table for retrospective auditing
-  try {
-    const pruningResult = (analysis as any)?._meta?.pruning;
-    const predResult = await registerPredictions(brief.id, analysis as any, pruningResult);
-    stats.predictions = { registered: predResult.registered } as any;
-    if (predResult.registered > 0) {
-      console.log(`${label} PREDICTIONS: registered ${predResult.registered} predictions for brief ${brief.id}`);
-    }
-  } catch (err) {
-    console.warn(`${label} PREDICTIONS: registration failed (non-blocking):`, err);
-  }
+  // ── POST-PUBLISH WRITES — independent persistence, run in parallel ──
+  // All six only need `brief.id` (created above), write distinct stats keys,
+  // keep their own try/catch, and are awaited before the final pipelineRun
+  // update which persists the stats bag. The KG extraction is an LLM call —
+  // running it concurrently with the DB writes removes its wall-time.
+  await Promise.allSettled([
 
-  // F-B17: Persist causal chain to DB for retrospective auditing and visualization
-  try {
-    const chain = (analysis as any)?.causalChain;
-    if (Array.isArray(chain) && chain.length > 0) {
-      const values = chain.map((link: any, i: number) => {
-        const claim = String(link.claim || "").replace(/'/g, "''").slice(0, 5000);
-        const evidence = String(link.evidence || "").replace(/'/g, "''").slice(0, 5000);
-        const warrant = String(link.warrant || "").replace(/'/g, "''").slice(0, 5000);
-        const temporalStatus = String(link.temporalStatus || "established").replace(/'/g, "''");
-        // derivesFrom and sourceRef are Int? columns — use NULL or the integer value.
-        // link.id is a STRING (e.g., "src-1") and must NOT be used as linkIndex (Int column).
-        // Use the array index i as the linkIndex instead.
-        const derivesFrom = (typeof link.derivesFrom === 'number' && !isNaN(link.derivesFrom)) ? link.derivesFrom : 'NULL';
-        const sourceRef = (typeof link.sourceRef === 'number' && !isNaN(link.sourceRef)) ? link.sourceRef : 'NULL';
-        const unsupported = Boolean(link.unsupported);
-        const linkIndex = i;
-        // CRITICAL: The "id" column has @default(cuid()) but raw SQL INSERT does NOT
-        // trigger Prisma defaults. We must generate the cuid explicitly.
-        // Using crypto.randomUUID() as a safe alternative to cuid().
-        const id = crypto.randomUUID().replace(/-/g, '').slice(0, 24);
-        return `('${id}', '${brief.id.replace(/'/g, "''")}', ${linkIndex}, '${claim}', '${evidence}', '${warrant}', '${temporalStatus}', ${derivesFrom}, ${sourceRef}, ${unsupported})`;
-      });
-      // NOTE: "createdAt" has @default(now()) in the schema — do NOT include it in the INSERT.
-      // The "id" column also has @default(cuid()) but raw SQL doesn't trigger it, so we generate it.
-      await prisma.$executeRawUnsafe(
-        `INSERT INTO "CausalLink" ("id", "briefId", "linkIndex", "claim", "evidence", "warrant", "temporalStatus", "derivesFrom", "sourceRef", "unsupported") VALUES ${values.join(", ")}`
-      );
-      console.log(`${label} CAUSAL LINKS: persisted ${chain.length} links for brief ${brief.id}`);
-    }
-  } catch (err) {
-    console.warn(`${label} CAUSAL LINKS: persistence failed (non-blocking):`, err);
-  }
+    // T10: Register predictions in the Prediction table for retrospective auditing
+    (async () => {
+      try {
+        const pruningResult = (analysis as any)?._meta?.pruning;
+        const predResult = await registerPredictions(brief.id, analysis as any, pruningResult);
+        stats.predictions = { registered: predResult.registered } as any;
+        if (predResult.registered > 0) {
+          console.log(`${label} PREDICTIONS: registered ${predResult.registered} predictions for brief ${brief.id}`);
+        }
+      } catch (err) {
+        console.warn(`${label} PREDICTIONS: registration failed (non-blocking):`, err);
+      }
+    })(),
 
-  // â”€â”€ STEP 15: KNOWLEDGE GRAPH (post-publish concept extraction) â”€â”€
-  console.log(`${label} KNOWLEDGE GRAPH: extracting concepts`);
-  try {
-    const kg = await extractAndStoreConcepts(brief.id, query, html, topSources.map((s: any) => s.id), useTemporalMemory);
-    stats.knowledgeGraph = { entities: kg.concepts.length, relations: kg.relations.length, clusters: 0, bridges: 0, costUsd: kg.costUsd };
-    console.log(`${label} KNOWLEDGE GRAPH: ${kg.concepts.length} concepts, ${kg.relations.length} relations`);
-  } catch (err) {
-    console.warn(`${label} KNOWLEDGE GRAPH: failed (non-blocking):`, err);
-  }
+    // F-B17: Persist causal chain to DB for retrospective auditing and visualization
+    (async () => {
+      try {
+        const chain = (analysis as any)?.causalChain;
+        if (Array.isArray(chain) && chain.length > 0) {
+          const values = chain.map((link: any, i: number) => {
+            const claim = String(link.claim || "").replace(/'/g, "''").slice(0, 5000);
+            const evidence = String(link.evidence || "").replace(/'/g, "''").slice(0, 5000);
+            const warrant = String(link.warrant || "").replace(/'/g, "''").slice(0, 5000);
+            const temporalStatus = String(link.temporalStatus || "established").replace(/'/g, "''");
+            // derivesFrom and sourceRef are Int? columns — use NULL or the integer value.
+            // link.id is a STRING (e.g., "src-1") and must NOT be used as linkIndex (Int column).
+            // Use the array index i as the linkIndex instead.
+            const derivesFrom = (typeof link.derivesFrom === 'number' && !isNaN(link.derivesFrom)) ? link.derivesFrom : 'NULL';
+            const sourceRef = (typeof link.sourceRef === 'number' && !isNaN(link.sourceRef)) ? link.sourceRef : 'NULL';
+            const unsupported = Boolean(link.unsupported);
+            const linkIndex = i;
+            // CRITICAL: The "id" column has @default(cuid()) but raw SQL INSERT does NOT
+            // trigger Prisma defaults. We must generate the cuid explicitly.
+            // Using crypto.randomUUID() as a safe alternative to cuid().
+            const id = crypto.randomUUID().replace(/-/g, '').slice(0, 24);
+            return `('${id}', '${brief.id.replace(/'/g, "''")}', ${linkIndex}, '${claim}', '${evidence}', '${warrant}', '${temporalStatus}', ${derivesFrom}, ${sourceRef}, ${unsupported})`;
+          });
+          // NOTE: "createdAt" has @default(now()) in the schema — do NOT include it in the INSERT.
+          // The "id" column also has @default(cuid()) but raw SQL doesn't trigger it, so we generate it.
+          await prisma.$executeRawUnsafe(
+            `INSERT INTO "CausalLink" ("id", "briefId", "linkIndex", "claim", "evidence", "warrant", "temporalStatus", "derivesFrom", "sourceRef", "unsupported") VALUES ${values.join(", ")}`
+          );
+          console.log(`${label} CAUSAL LINKS: persisted ${chain.length} links for brief ${brief.id}`);
+        }
+      } catch (err) {
+        console.warn(`${label} CAUSAL LINKS: persistence failed (non-blocking):`, err);
+      }
+    })(),
 
-  // STEP 16: GAP FILLER — extract knowledge gaps from this analysis for future runs
-  try {
-    const gapResult = await extractAndStoreGaps(query, html, detectedDomain, pipelineRun.id, topSources.length);
-    if (gapResult.gaps.length > 0) {
-      console.log(`${label} GAP FILLER: identified ${gapResult.gaps.length} knowledge gaps for future runs`);
-    }
-    // Mark prior gaps that were relevant as filled
-    await markGapsFilled(pipelineRun.id, detectedDomain, topSources.length);
-  } catch (err) {
-    console.warn(`${label} GAP FILLER: extraction failed (non-blocking):`, err);
-  }
+    // ── STEP 15: KNOWLEDGE GRAPH (post-publish concept extraction) ──
+    (async () => {
+      console.log(`${label} KNOWLEDGE GRAPH: extracting concepts`);
+      try {
+        const kg = await extractAndStoreConcepts(brief.id, query, html, topSources.map((s: any) => s.id), useTemporalMemory);
+        stats.knowledgeGraph = { entities: kg.concepts.length, relations: kg.relations.length, clusters: 0, bridges: 0, costUsd: kg.costUsd };
+        console.log(`${label} KNOWLEDGE GRAPH: ${kg.concepts.length} concepts, ${kg.relations.length} relations`);
+      } catch (err) {
+        console.warn(`${label} KNOWLEDGE GRAPH: failed (non-blocking):`, err);
+      }
+    })(),
 
-  // STEP 16b: EPISODIC MEMORY STORAGE (V3.1) — store this run for future learning
-  try {
-    const { storeEpisode } = await import('./episodic-memory');
-    await storeEpisode({
-      query,
-      researchQuestion: query,
-      sourceCount: topSources.length,
-      providerDiversity: new Set(topSources.map((s: any) => s.provider)).size,
-      criticScore: stats.critic?.overallScore ?? null,
-      criticVerdict: stats.critic?.verdict ?? null,
-      keyFindings: [],
-      mistakes: episodicContext?.filter((e: any) => e.episode.criticScore && e.episode.criticScore < 40).map((e: any) => e.lesson) ?? [],
-      successes: episodicContext?.filter((e: any) => e.episode.criticScore && e.episode.criticScore >= 75).map((e: any) => e.lesson) ?? [],
-      domains: [detectedDomain || 'general'],
-      durationMs: Date.now() - pipelineStart,
-      costUsd: runningCostUsd,
-      briefId: brief.id,
-    });
-    console.log(`${label} EPISODIC MEMORY: episode stored for brief ${brief.id}`);
-  } catch (err) {
-    console.warn(`${label} EPISODIC MEMORY: storage failed (non-blocking):`, err);
-  }
+    // STEP 16: GAP FILLER — extract knowledge gaps from this analysis for future runs
+    (async () => {
+      try {
+        const gapResult = await extractAndStoreGaps(query, html, detectedDomain, pipelineRun.id, topSources.length);
+        if (gapResult.gaps.length > 0) {
+          console.log(`${label} GAP FILLER: identified ${gapResult.gaps.length} knowledge gaps for future runs`);
+        }
+        // Mark prior gaps that were relevant as filled
+        await markGapsFilled(pipelineRun.id, detectedDomain, topSources.length);
+      } catch (err) {
+        console.warn(`${label} GAP FILLER: extraction failed (non-blocking):`, err);
+      }
+    })(),
 
-  // STEP 16c: PREDICTION TRACKER (V3.1) — store SCATTER hypotheses for calibration
-  if (savedScatterResult?.hypotheses?.length > 0) {
-    try {
-      const { storePredictionsFromHypotheses } = await import('./prediction-tracker');
-      await storePredictionsFromHypotheses(
-        brief.id,
-        query,
-        savedScatterResult.hypotheses.map((h: any) => ({
-          name: h.category || h.name || 'scenario',
-          description: h.statement || h.hypothesis || h.description || '',
-          probability: h.probability || 0.5,
-          horizon: '5-10 years',
-          secondOrderEffects: h.secondOrderEffects,
-        })),
-        detectedDomain || 'general',
-      );
-      console.log(`${label} PREDICTION TRACKER: stored ${savedScatterResult.hypotheses.length} hypotheses`);
-    } catch (err) {
-      console.warn(`${label} PREDICTION TRACKER: storage failed (non-blocking):`, err);
-    }
-  }
+    // STEP 16b: EPISODIC MEMORY STORAGE (V3.1) — store this run for future learning
+    (async () => {
+      try {
+        const { storeEpisode } = await import('./episodic-memory');
+        await storeEpisode({
+          query,
+          researchQuestion: query,
+          sourceCount: topSources.length,
+          providerDiversity: new Set(topSources.map((s: any) => s.provider)).size,
+          criticScore: stats.critic?.overallScore ?? null,
+          criticVerdict: stats.critic?.verdict ?? null,
+          keyFindings: [],
+          mistakes: episodicContext?.filter((e: any) => e.episode.criticScore && e.episode.criticScore < 40).map((e: any) => e.lesson) ?? [],
+          successes: episodicContext?.filter((e: any) => e.episode.criticScore && e.episode.criticScore >= 75).map((e: any) => e.lesson) ?? [],
+          domains: [detectedDomain || 'general'],
+          durationMs: Date.now() - pipelineStart,
+          costUsd: runningCostUsd,
+          briefId: brief.id,
+        });
+        console.log(`${label} EPISODIC MEMORY: episode stored for brief ${brief.id}`);
+      } catch (err) {
+        console.warn(`${label} EPISODIC MEMORY: storage failed (non-blocking):`, err);
+      }
+    })(),
+
+    // STEP 16c: PREDICTION TRACKER (V3.1) — store SCATTER hypotheses for calibration
+    (async () => {
+      if (savedScatterResult?.hypotheses?.length > 0) {
+        try {
+          const { storePredictionsFromHypotheses } = await import('./prediction-tracker');
+          await storePredictionsFromHypotheses(
+            brief.id,
+            query,
+            savedScatterResult.hypotheses.map((h: any) => ({
+              name: h.category || h.name || 'scenario',
+              description: h.statement || h.hypothesis || h.description || '',
+              probability: h.probability || 0.5,
+              horizon: '5-10 years',
+              secondOrderEffects: h.secondOrderEffects,
+            })),
+            detectedDomain || 'general',
+          );
+          console.log(`${label} PREDICTION TRACKER: stored ${savedScatterResult.hypotheses.length} hypotheses`);
+        } catch (err) {
+          console.warn(`${label} PREDICTION TRACKER: storage failed (non-blocking):`, err);
+        }
+      }
+    })(),
+  ]);
 
   // STEP 17: PREDICTION AUDITOR — retrospectively check past predictions against new evidence
   // Runs asynchronously (non-blocking) to avoid slowing down the pipeline
@@ -6600,51 +6627,106 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   // Clean up idempotency token on success
   activeRuns.delete(idempotencyKey);
 
-  // ── WITNESS: Finalize — extract cross-run learnings ──
-  if (witnessCtx) {
-    try {
-      const witnessResult = await witnessCtx.finalize(query);
-      console.log(`${label} WITNESS: run complete — health=${witnessResult.healthScore}/100, anomalies=${witnessResult.totalAnomalies}, interventions=${witnessResult.totalInterventions}, quality=${witnessResult.qualityScore}/100${witnessResult.recommendsChanges ? ' (changes recommended for future runs)' : ''}`);
-      (stats as any).witness = witnessResult;
-    } catch (err) {
-      console.warn(`${label} WITNESS: finalize failed:`, err);
-    }
-  }
+  // ── POST-RUN LEARNING WRITES — flag-gated, independent, run in parallel ──
+  // witness.finalize / worldModel / PRM retrain / RAGAS / selfEvolution only
+  // need the finished artifacts; each keeps its own try/catch and writes a
+  // distinct stats key. The MOA weight update stays AFTER the barrier: it
+  // reads stats.witness.qualityScore as its quality signal.
+  await Promise.allSettled([
 
-  // ── WORLD MODEL: Update with findings from this run ──
-  if (useWorldModel && analysis) {
-    try {
-      const analysisText = typeof analysis === 'string' ? analysis :
-        (analysis.summary || '') + '\n' + (analysis.consensus || '') + '\n' + (analysis.debate?.synthesis || '');
-      // Identify domains from the query
-      const domains = worldModelControversies.length > 0 ? ['general'] : ['general'];
-      await updateWorldModel(query, analysisText, topSources.map((s: any) => ({
-        id: s.id, title: s.title, abstract: s.abstract, provider: s.provider,
-      })), domains);
-      console.log(`${label} WORLD_MODEL: updated with findings from this run`);
-    } catch (err) {
-      console.warn(`${label} WORLD_MODEL: update failed:`, err);
-    }
-  }
-
-  // ── PRM: Retrain periodically (every 10 runs) ──
-  if (usePRM) {
-    try {
-      // Check if we should retrain (simple heuristic: retrain if model is old or has enough new data)
-      const shouldRetrain = !prmModel || prmModel.trainingExamples < 100;
-      if (shouldRetrain) {
-        console.log(`${label} PRM: retraining model...`);
-        const newModel = await retrainPRM();
-        if (newModel) {
-          console.log(`${label} PRM: model retrained (${newModel.trainingExamples} examples)`);
-        }
+    // ── WITNESS: Finalize — extract cross-run learnings ──
+    (async () => {
+      if (!witnessCtx) return;
+      try {
+        const witnessResult = await witnessCtx.finalize(query);
+        console.log(`${label} WITNESS: run complete — health=${witnessResult.healthScore}/100, anomalies=${witnessResult.totalAnomalies}, interventions=${witnessResult.totalInterventions}, quality=${witnessResult.qualityScore}/100${witnessResult.recommendsChanges ? ' (changes recommended for future runs)' : ''}`);
+        (stats as any).witness = witnessResult;
+      } catch (err) {
+        console.warn(`${label} WITNESS: finalize failed:`, err);
       }
-    } catch (err) {
-      console.warn(`${label} PRM: retrain failed:`, err);
-    }
-  }
+    })(),
+
+    // ── WORLD MODEL: Update with findings from this run ──
+    (async () => {
+      if (!(useWorldModel && analysis)) return;
+      try {
+        const analysisText = typeof analysis === 'string' ? analysis :
+          (analysis.summary || '') + '\n' + (analysis.consensus || '') + '\n' + (analysis.debate?.synthesis || '');
+        // Identify domains from the query
+        const domains = worldModelControversies.length > 0 ? ['general'] : ['general'];
+        await updateWorldModel(query, analysisText, topSources.map((s: any) => ({
+          id: s.id, title: s.title, abstract: s.abstract, provider: s.provider,
+        })), domains);
+        console.log(`${label} WORLD_MODEL: updated with findings from this run`);
+      } catch (err) {
+        console.warn(`${label} WORLD_MODEL: update failed:`, err);
+      }
+    })(),
+
+    // ── PRM: Retrain periodically (every 10 runs) ──
+    (async () => {
+      if (!usePRM) return;
+      try {
+        // Check if we should retrain (simple heuristic: retrain if model is old or has enough new data)
+        const shouldRetrain = !prmModel || prmModel.trainingExamples < 100;
+        if (shouldRetrain) {
+          console.log(`${label} PRM: retraining model...`);
+          const newModel = await retrainPRM();
+          if (newModel) {
+            console.log(`${label} PRM: model retrained (${newModel.trainingExamples} examples)`);
+          }
+        }
+      } catch (err) {
+        console.warn(`${label} PRM: retrain failed:`, err);
+      }
+    })(),
+
+    // ── RAGAS EVAL: 2026 RAG quality metrics ──
+    (async () => {
+      if (!useRagasEval) return;
+      try {
+        const ragas = await evaluateBriefRAG(query, html, topSources);
+        (stats as any).ragas = {
+          overall: ragas.metrics.overall,
+          faithfulness: ragas.metrics.faithfulness,
+          answerRelevancy: ragas.metrics.answerRelevancy,
+          contextPrecision: ragas.metrics.contextPrecision,
+          contextRecall: ragas.metrics.contextRecall,
+          explanation: ragas.explanation,
+        };
+        addCost(ragas.costUsd, 'RAGAS EVAL');
+        console.log(`${label} RAGAS EVAL: overall=${ragas.metrics.overall}%, faithfulness=${ragas.metrics.faithfulness}%, relevancy=${ragas.metrics.answerRelevancy}%`);
+      } catch (err) {
+        console.warn(`${label} RAGAS EVAL: failed (non-blocking):`, err);
+      }
+    })(),
+
+    // ── SELF-EVOLUTION: prompt evolution for key agents (non-blocking) ──
+    (async () => {
+      if (!useSelfEvolution) return;
+      try {
+        const fallbackFor = (id: string) => `[${id}] default system prompt — to be evolved from lessons`;
+        const evolutionResults = await runEvolutionCycle(
+          ['editorial_arbiter', 'analyst_brief', 'local_judge', 'citation_verifier'],
+          fallbackFor,
+        );
+        (stats as any).selfEvolution = evolutionResults.filter(r => r.improved).map(r => ({
+          agentId: r.agentId,
+          version: r.newVersion?.version,
+          delta: r.delta,
+        }));
+        const improved = evolutionResults.filter(r => r.improved).length;
+        if (improved > 0) {
+          console.log(`${label} SELF-EVOLUTION: ${improved} prompt(s) improved`);
+        }
+      } catch (err) {
+        console.warn(`${label} SELF-EVOLUTION: failed (non-blocking):`, err);
+      }
+    })(),
+  ]);
 
   // ── MOA: Update agent weights based on this run ──
+  // AFTER the barrier — reads stats.witness.qualityScore as its quality signal.
   if (useMixtureOfAgents && (stats as any).moa) {
     try {
       const moaResult = (analysis as any)?._meta?.moaResult;
@@ -6660,25 +6742,6 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     }
   }
 
-  // ── RAGAS EVAL: 2026 RAG quality metrics ──
-  if (useRagasEval) {
-    try {
-      const ragas = await evaluateBriefRAG(query, html, topSources);
-      (stats as any).ragas = {
-        overall: ragas.metrics.overall,
-        faithfulness: ragas.metrics.faithfulness,
-        answerRelevancy: ragas.metrics.answerRelevancy,
-        contextPrecision: ragas.metrics.contextPrecision,
-        contextRecall: ragas.metrics.contextRecall,
-        explanation: ragas.explanation,
-      };
-      addCost(ragas.costUsd, 'RAGAS EVAL');
-      console.log(`${label} RAGAS EVAL: overall=${ragas.metrics.overall}%, faithfulness=${ragas.metrics.faithfulness}%, relevancy=${ragas.metrics.answerRelevancy}%`);
-    } catch (err) {
-      console.warn(`${label} RAGAS EVAL: failed (non-blocking):`, err);
-    }
-  }
-
   // Build structured claims from READER extracts for publication gate (dbClaims path)
   const sourceIdToIndex = new Map<string, number>();
   topSources.forEach((s: any, i: number) => sourceIdToIndex.set(s.id, i + 1));
@@ -6688,28 +6751,6 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
       text: claim,
       sourceRef: sourceIdToIndex.get(r.sourceId) ?? null,
     })));
-
-  // ── SELF-EVOLUTION: prompt evolution for key agents (non-blocking) ──
-  if (useSelfEvolution) {
-    try {
-      const fallbackFor = (id: string) => `[${id}] default system prompt — to be evolved from lessons`;
-      const evolutionResults = await runEvolutionCycle(
-        ['editorial_arbiter', 'analyst_brief', 'local_judge', 'citation_verifier'],
-        fallbackFor,
-      );
-      (stats as any).selfEvolution = evolutionResults.filter(r => r.improved).map(r => ({
-        agentId: r.agentId,
-        version: r.newVersion?.version,
-        delta: r.delta,
-      }));
-      const improved = evolutionResults.filter(r => r.improved).length;
-      if (improved > 0) {
-        console.log(`${label} SELF-EVOLUTION: ${improved} prompt(s) improved`);
-      }
-    } catch (err) {
-      console.warn(`${label} SELF-EVOLUTION: failed (non-blocking):`, err);
-    }
-  }
 
   // Clean up the rejection handler before returning
   process.removeListener('unhandledRejection', rejectionHandler);
