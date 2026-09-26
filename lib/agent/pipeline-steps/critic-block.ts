@@ -11,9 +11,11 @@
  */
 
 import type { PipelineStep } from '../pipeline-progress';
+import type { GapFillState } from './gap-fill';
 
 export interface CriticBlockDeps {
-  analysis: any;
+  /** Shared mutable state — analysis/reAnalysisBudget mutations flow back to the caller. */
+  state: GapFillState;
   topSources: any[];
   readings: any[];
   slimReadings: any[];
@@ -26,7 +28,6 @@ export interface CriticBlockDeps {
   isStrategic: boolean;
   isBudgetConstrained: () => boolean;
   orchState: { iteration: number; maxIterations: number };
-  reAnalysisBudget: number;
   analystMultipass: (query: string, sources: any[], readings: any[], opts?: any) => Promise<any>;
   bumpAnalysisArtifact: () => void;
   tagEval: <T extends Record<string, any>>(entry: T, artifact: 'analysis' | 'html') => T;
@@ -55,8 +56,8 @@ export async function runCriticBlock(deps: CriticBlockDeps): Promise<CriticBlock
     orchState, analystMultipass, bumpAnalysisArtifact, tagEval, addCost,
     emitProgress, pipelineRunId, ctx, selfCorrector, processGapRequests,
   } = deps;
-  let analysis = deps.analysis;
-  let reAnalysisBudget = deps.reAnalysisBudget;
+  let analysis = deps.state.analysis;
+  let reAnalysisBudget = deps.state.reAnalysisBudget;
 
   // ── STEP 7b: CRITIC AGENT — Multi-stage verification ──
   // Decomposes analysis into atomic claims, grounds each against sources,
@@ -202,6 +203,7 @@ export async function runCriticBlock(deps: CriticBlockDeps): Promise<CriticBlock
   if ((repairTrigger || panelTrigger) && !isBudgetConstrained() &&
       orchState.iteration < orchState.maxIterations && reAnalysisBudget > 0) {
     reAnalysisBudget--;
+    deps.state.reAnalysisBudget = reAnalysisBudget;
     try {
       const panelBlock = panelWeakFindings.length > 0
         ? '\n\n## EDITORIAL PANEL FINDINGS (must fix)\nThe review panel documented these defects:\n' +
@@ -222,6 +224,7 @@ export async function runCriticBlock(deps: CriticBlockDeps): Promise<CriticBlock
       // Repair targets defects, not citation count — accept if coverage didn't regress
       if (repCitations >= origCitations) {
         analysis = repaired;
+        deps.state.analysis = analysis;
         bumpAnalysisArtifact();
         ctx.setAnalystOutput(analysis);
         orchState.iteration++;
@@ -389,8 +392,12 @@ export async function runCriticBlock(deps: CriticBlockDeps): Promise<CriticBlock
     }
   }
 
-  // Second consumption round — critic evidence requests + outline-critic queries
+  // Second consumption round — critic evidence requests + outline-critic queries.
+  // The processor mutates the shared state (re-analysis, budget, source pool) —
+  // refresh the local copies so CoVe and the return value see the current artifact.
   await processGapRequests('CRITIC/OUTLINE');
+  analysis = deps.state.analysis;
+  reAnalysisBudget = deps.state.reAnalysisBudget;
 
   // SELF-CORRECT CHECKPOINT: CRITIC
   try {
