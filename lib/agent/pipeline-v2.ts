@@ -53,7 +53,6 @@ import { isEditorialV2Enabled, getPipelineMaxBudgetUsd } from './editorial-confi
 import { buildAnalysisReviewText } from './analysis-review-text';
 import { runPeerReview, renderPeerReviewInjection } from './peer-reviewer';
 import { evaluateBriefRAG } from './ragas-eval';
-import { runPipelineForesight } from './pipeline-foresight';
 import { RESEARCHER_KBS, type KeyConcept, type AnalyticalFramework, type DomainExpertise } from './researcher-kb/index';
 import { MULTI_DOMAIN_CORPUS } from '../knowledge/multi-domain-corpus';
 import {
@@ -73,7 +72,6 @@ import { renderProfessionalBriefHTML, renderProfessionalStrategicHTML } from './
 import { renderPositionFirstBriefHTML } from './position-first-renderer';
 import { computeTrackRecordStats } from './track-record';
 
-import { editorialArbiter } from './editorial-arbiter';
 import { resolveCentralScenario, type CastingResult, type InstitutePosition } from './editorial-types';
 import type { DebateResult } from './debate-agent';
 import { runDebateMetaBlock, runDevilsAdvocateBlock, type DebateAdvocateDeps } from './pipeline-steps/debate-advocate';
@@ -5870,77 +5868,21 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     // LOT 7.1: Predictions are registered after brief creation (need briefId for Prediction model)
     // See T10 implementation below — registerPredictions() is called after prisma.brief.create()
 
-    if (castingResult) {
-      emitProgress(pipelineRun.id, 'ARBITER', 'started', 'Formulating institute position...');
-      institutePosition = await editorialArbiter({
-        question: query,
-        classification: topicClassification,
-        casting: castingResult,
-        analysis: analysis as Record<string, unknown>,
-        sources: topSources,
-        debate: debateResult,
+    // Arbiter + foresight extracted to pipeline-steps/arbiter-foresight.ts.
+    // Ordering is load-bearing: arbiter generates scenarios, then Monte Carlo
+    // refines probabilities. Both outputs are reassigned by the caller.
+    {
+      const { runArbiterForesight } = await import('./pipeline-steps/arbiter-foresight');
+      const arbiterOut = await runArbiterForesight({
+        query, topicClassification, castingResult,
+        analysis: analysis as Record<string, any>,
+        topSources, debateResult, stats: stats as Record<string, any>,
+        label, detectedDomain, isStrategic,
+        seedSourceIds: opts.seedSourceIds,
+        pipelineRunId: pipelineRun.id, addCost,
       });
-      stats.editorialArbiter = {
-        confidence: institutePosition.confidence,
-        confidenceLabel: institutePosition.confidenceLabel,
-        scenariosCount: institutePosition.scenarios.length,
-        costUsd: institutePosition.costUsd,
-      };
-      addCost(institutePosition.costUsd, 'EDITORIAL ARBITER');
-      emitProgress(pipelineRun.id, 'ARBITER', 'completed', `Position: ${institutePosition.confidence}/100 confidence`);
-      console.log(`${label} ARBITER: confidence=${institutePosition.confidence}, scenarios=${institutePosition.scenarios.length}`);
-
-      // ── FORESIGHT (Monte Carlo + swarm) — runs AFTER arbiter creates scenarios ──
-      // Bug fix: previously foresight ran before arbiter → 0 scenarios → always skipped.
-      // Now arbiter generates scenarios first, then foresight refines probabilities with MC simulation.
-      const arbiterScenarios = institutePosition.scenarios;
-      if (!arbiterScenarios || arbiterScenarios.length < 2) {
-        stats.foresight = { skipped: true, reason: `only ${arbiterScenarios?.length ?? 0} scenarios from arbiter — Monte Carlo needs ≥ 2` };
-        console.log(`${label} FORESIGHT: skipped (only ${arbiterScenarios?.length ?? 0} scenarios from arbiter)`);
-      } else if (topSources.length < 10) {
-        stats.foresight = { skipped: true, reason: `insufficient evidence (${topSources.length} sources) — Monte Carlo needs ≥ 10 for reliable probabilities` };
-        console.log(`${label} FORESIGHT: skipped (only ${topSources.length} sources — insufficient for reliable Monte Carlo)`);
-      } else {
-        emitProgress(pipelineRun.id, "FORESIGHT", "started", "Monte Carlo scenario distribution...");
-        // Build a synthetic analysis object with arbiter scenarios for foresight
-        const analysisForForesight = {
-          ...(analysis as Record<string, unknown>),
-          scenarios: arbiterScenarios.map(s => ({
-            name: s.name,
-            description: s.description,
-            probability: s.probability,
-            signals: s.signals,
-          })),
-        };
-        const foresight = await runPipelineForesight({
-          question: query,
-          analysis: analysisForForesight,
-          domain: detectedDomain,
-          sourceIds: topSources.map((s: any) => s.id),
-          isStrategic,
-          depth: isStrategic ? 'strategic' : 'standard',
-          seedSourceIds: opts.seedSourceIds,
-        });
-        if (!foresight.skipped && foresight.report) {
-          analysis = foresight.analysis as typeof analysis;
-          // Enrich institutePosition scenarios with empirical probabilities
-          const simScenarios = foresight.report.output.scenarios;
-          stats.centralScenario = resolveCentralScenario(institutePosition, simScenarios);
-          analysis = { ...analysis, scenarios: institutePosition.scenarios } as typeof analysis;
-          stats.foresight = {
-            scenarios: foresight.report.output.scenarios.length,
-            monteCarloRuns: foresight.report.output.monteCarloRuns,
-            converged: foresight.report.output.monteCarloConverged,
-            costUsd: foresight.costUsd,
-          };
-          addCost(foresight.costUsd, "FORESIGHT");
-          emitProgress(pipelineRun.id, "FORESIGHT", "completed", `MC: ${foresight.report.output.scenarios.length} scenarios, ${foresight.report.output.monteCarloRuns} runs`);
-          console.log(`${label} FORESIGHT: ${foresight.report.output.scenarios.length} scenarios, ${foresight.report.output.monteCarloRuns} MC runs, converged=${foresight.report.output.monteCarloConverged}`);
-        } else {
-          stats.foresight = { skipped: true, reason: foresight.reason };
-          console.log(`${label} FORESIGHT: skipped (${foresight.reason})`);
-        }
-      }
+      institutePosition = arbiterOut.institutePosition;
+      analysis = arbiterOut.analysis as typeof analysis;
     }
 
     stats.centralScenarioRequired = true;
