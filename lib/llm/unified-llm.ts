@@ -150,14 +150,19 @@ const CROSS_FAMILY_FALLBACK: Record<LLMFamily, LLMFamily[]> = {
 // While only Kimi + GLM are funded, they audit each other — that preserves the
 // cross-family independence invariant. Restore kimi↔openai pairing when the
 // OpenAI account is topped up.
+// Verifier preferred = google (Gemini 3.8 Flash — best groundedness/$). When
+// Google has no key the rule falls through to TASK_ASSIGNMENT and the cross-
+// family chain still lands on a different family than the producer — except
+// kimi→glm, which must stay GLM-first so kimi-produced text never verifies
+// itself when the chain's first live provider is kimi.
 const OPPOSITE_FAMILY: Record<LLMFamily, LLMFamily> = {
-  deepseek: "kimi",
-  glm: "kimi",
-  openai: "kimi",
-  anthropic: "kimi",
+  deepseek: "google",
+  glm: "google",
+  openai: "google",
+  anthropic: "google",
   kimi: "glm",
   google: "kimi",
-  freepool: "kimi",
+  freepool: "google",
 };
 
 // ============================================================================
@@ -204,7 +209,11 @@ const KIMI_MODEL = env.KIMI_MODEL || "kimi-k3";
 /** Fast/cheap utility model — glm-4.5-air ($0.20/$1.10 per Mtok, ~15× cheaper
  *  than the kimi-k3 fallback it replaces while OpenAI is out of credits). */
 const GLM_FAST = "glm-4.5-air";
-const OPENAI_FAST = "gpt-5.6-luna";
+const OPENAI_FAST = "gpt-6-luna";
+/** Frontier mid-tier — score 81.3 vs Kimi K3's 78.5 at ~2/3 the price ($2/$10
+ *  vs $3/$15). Assigned primary for the analytical roles; falls back to Kimi
+ *  while the OpenAI account is unfunded. */
+const OPENAI_REASONING = "gpt-6-sol";
 
 const TASK_ASSIGNMENT: Record<LLMTask, TaskAssignment> = {
   // Fast / cheap / frequent — glm-4.5-air (OpenAI credits exhausted 2026-09,
@@ -215,31 +224,32 @@ const TASK_ASSIGNMENT: Record<LLMTask, TaskAssignment> = {
   editor_in_chief:        { provider: "glm", model: GLM_FAST, timeoutMs: 60_000 },
   swarm_persona:          { provider: "glm", model: GLM_FAST, timeoutMs: 30_000 },
 
-  // Extraction / verification — OpenAI gpt-6-astra for frontier reasoning precision.
-  // Opposite-family rule applies at runtime: kimi-produced text → glm verifies,
-  // glm-produced text → kimi verifies while OpenAI is down (each flagship audits the other).
-  fact_check:             { provider: "openai", model: "gpt-6-astra", timeoutMs: 60_000 },
-  citation_verification:  { provider: "openai", model: "gpt-6-astra", timeoutMs: 60_000 },
+  // Extraction / verification — Gemini 3.8 Flash: best measured groundedness
+  // (AA-Omniscience 21, vs 3 for Sonnet 5), 332 tok/s, $0.75/$3.75 — 13×
+  // cheaper than gpt-6-astra for the exact job. Needs GOOGLE_API_KEY; without
+  // it the opposite-family rule still routes kimi↔glm verification.
+  fact_check:             { provider: "google", model: "gemini-3.8-flash", timeoutMs: 60_000 },
+  citation_verification:  { provider: "google", model: "gemini-3.8-flash", timeoutMs: 60_000 },
 
   // Heavy INPUT + OUTPUT — Kimi K3 is the analytical brain (1M ctx, 128K output,
   // frontier reasoning). reader_v3 (bulk reading) runs on cheap GLM — the
   // fallback chain routes to Kimi when GLM can't handle it (ctx or timeout).
   reader_v3:              { provider: "glm", model: GLM_FAST, timeoutMs: 300_000 },
-  strategic_analyst:      { provider: "kimi", model: KIMI_MODEL, timeoutMs: 600_000 },
-  harvard_council:        { provider: "kimi", model: KIMI_MODEL, timeoutMs: 300_000 },
-  elenchus:               { provider: "kimi", model: KIMI_MODEL, timeoutMs: 300_000 },
+  strategic_analyst:      { provider: "openai", model: OPENAI_REASONING, timeoutMs: 600_000 },
+  harvard_council:        { provider: "openai", model: OPENAI_REASONING, timeoutMs: 300_000 },
+  elenchus:               { provider: "openai", model: OPENAI_REASONING, timeoutMs: 300_000 },
 
   // Heavy structured-JSON OUTPUT — Kimi K3 (its original role): 128K output
   // headroom for long structured briefs, reasoning_effort=high on reasoning tasks.
-  analyst_brief:          { provider: "kimi", model: KIMI_MODEL, timeoutMs: 300_000 },
-  auto_revision:          { provider: "kimi", model: KIMI_MODEL, timeoutMs: 300_000 },
+  analyst_brief:          { provider: "openai", model: OPENAI_REASONING, timeoutMs: 300_000 },
+  auto_revision:          { provider: "openai", model: OPENAI_REASONING, timeoutMs: 300_000 },
   // Editorial arbiter upgraded to gpt-6-astra for frontier reasoning in scenario synthesis
   editorial_arbiter:      { provider: "openai", model: "gpt-6-astra", timeoutMs: 300_000 },
 
-  // Verification / analysis — upgraded to OpenAI gpt-6-astra (Anthropic suspended)
-  // gpt-6-astra: frontier reasoning, 1M context
-  meta_analysis:          { provider: "openai", model: "gpt-6-astra", timeoutMs: 90_000 },
-  structural_editor:      { provider: "openai", model: "gpt-6-astra", timeoutMs: 60_000 },
+  // Precision / structure — gpt-6-sol: frontier-enough for these tasks at
+  // 5× lower cost than astra (kept only for the editorial arbiter apex).
+  meta_analysis:          { provider: "openai", model: OPENAI_REASONING, timeoutMs: 90_000 },
+  structural_editor:      { provider: "openai", model: OPENAI_REASONING, timeoutMs: 60_000 },
 
   // Conversational / utility — GLM fast tier
   studiox:                { provider: "glm", model: GLM_FAST, timeoutMs: 60_000 },
@@ -249,9 +259,9 @@ const TASK_ASSIGNMENT: Record<LLMTask, TaskAssignment> = {
 
   // Primary data synthesis — back on Kimi K3 (frontier reasoning for expert
   // interviews / survey synthesis)
-  primary_data_synthesis: { provider: "kimi", model: KIMI_MODEL, timeoutMs: 300_000 },
-  // Policy stress test — back on Kimi K3 (multi-archetype risk review)
-  stress_test: { provider: "kimi", model: KIMI_MODEL, timeoutMs: 300_000 },
+  primary_data_synthesis: { provider: "openai", model: OPENAI_REASONING, timeoutMs: 300_000 },
+  // Policy stress test — multi-archetype risk review on the frontier mid-tier
+  stress_test: { provider: "openai", model: OPENAI_REASONING, timeoutMs: 300_000 },
 
   // Legacy aliases — never read directly (normalizeTask() redirects before lookup),
   // kept so LLMTask stays a superset and TS doesn't complain about missing keys.
@@ -259,8 +269,8 @@ const TASK_ASSIGNMENT: Record<LLMTask, TaskAssignment> = {
   extraction:             { provider: "glm", model: GLM_FAST, timeoutMs: 120_000 },
   citation:               { provider: "glm", model: GLM_FAST, timeoutMs: 60_000 },
   analysis:               { provider: "glm", model: GLM_FAST, timeoutMs: 120_000 },
-  strategic_analysis:     { provider: "kimi", model: KIMI_MODEL, timeoutMs: 300_000 },
-  critique:               { provider: "kimi", model: KIMI_MODEL, timeoutMs: 120_000 },
+  strategic_analysis:     { provider: "openai", model: OPENAI_REASONING, timeoutMs: 300_000 },
+  critique:               { provider: "openai", model: OPENAI_REASONING, timeoutMs: 120_000 },
   rewrite:                { provider: "glm", model: GLM_FAST, timeoutMs: 120_000 },
   reflection:             { provider: "glm", model: GLM_FAST, timeoutMs: 30_000 },
   // V3.2: New tasks for 2026 innovations
@@ -336,13 +346,17 @@ const MODEL_CONFIG: Record<string, Record<string, {
     "gpt-4o-mini": { contextWindow: 128000, costPer1kInput: 0.00015, costPer1kOutput: 0.0006 },
     "gpt-4-turbo": { contextWindow: 128000, costPer1kInput: 0.01, costPer1kOutput: 0.03 },
     "gpt-5.6-luna": { contextWindow: 256000, costPer1kInput: 0.0003, costPer1kOutput: 0.0015 },
+    "gpt-6-luna": { contextWindow: 1100000, costPer1kInput: 0.0001, costPer1kOutput: 0.0005 },
+    "gpt-6-sol": { contextWindow: 872000, costPer1kInput: 0.002, costPer1kOutput: 0.01, costPer1kCachedInput: 0.0002 },
     "gpt-6-astra": { contextWindow: 1000000, costPer1kInput: 0.01, costPer1kOutput: 0.05 },
   },
   google: {
     "gemini-3.8-flash": { contextWindow: 1000000, costPer1kInput: 0.00075, costPer1kOutput: 0.00375 },
+    "gemini-3.5-flash-lite": { contextWindow: 1000000, costPer1kInput: 0.0003, costPer1kOutput: 0.0025 },
   },
   anthropic: {
-    "claude-sonnet-5": { contextWindow: 1000000, costPer1kInput: 0.002, costPer1kOutput: 0.010 },
+    "claude-sonnet-5": { contextWindow: 1000000, costPer1kInput: 0.002, costPer1kOutput: 0.010, costPer1kCachedInput: 0.0002 },
+    "claude-opus-5.5": { contextWindow: 1000000, costPer1kInput: 0.004, costPer1kOutput: 0.02, costPer1kCachedInput: 0.0002 },
     "claude-opus-5": { contextWindow: 1000000, costPer1kInput: 0.005, costPer1kOutput: 0.025 },
   },
   kimi: {
@@ -893,11 +907,11 @@ function resolveModelForTask(provider: LLMProvider, task: LLMTask): string {
     case "deepseek":
       return isFast ? env.DEEPSEEK_MODEL_FAST : env.DEEPSEEK_MODEL_REASONING;
     case "glm":
-      return isFast ? (env.GLM_MODEL_FAST || "glm-4.5-air") : (env.GLM_MODEL || "glm-4.5");
+      return isFast ? (env.GLM_MODEL_FAST || "glm-4.5-air") : (env.GLM_MODEL || "glm-4.6");
     case "openai":
-      return isFast ? "gpt-5.6-luna" : (env.OPENAI_MODEL || "gpt-6-astra");
+      return isFast ? "gpt-6-luna" : (env.OPENAI_MODEL || "gpt-6-sol");
     case "anthropic":
-      return isFast ? "claude-sonnet-5" : "claude-opus-5";
+      return isFast ? "claude-sonnet-5" : "claude-opus-5.5";
     case "kimi":
       return env.KIMI_MODEL || "kimi-k3";
     case "google":
