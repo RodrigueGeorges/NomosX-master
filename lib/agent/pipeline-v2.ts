@@ -2161,12 +2161,13 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
 
   // V3.2: Auto-activate advanced features based on query characteristics
   // instead of requiring explicit opt-in for every feature.
-  const _queryWordCount = query.split(/\s+/).filter(Boolean).length;
   const hasTemporalIndicators = /\b(will|forecast|predict|project|by\s+20\d\d|future|trajectory|emerging|evolve|outlook)\b/i.test(query);
-  const _isComplexAuto = _queryWordCount > 15 || isStrategic;
 
-  // K5/K7: MoA auto-activates for complex multi-domain queries
-  const useMixtureOfAgents = opts.useMixtureOfAgents ?? _isComplexAuto;
+  // K5/K7: MoA is opt-in ONLY. It previously auto-activated on complex/strategic
+  // queries but its output was unconditionally overwritten by the multipass
+  // call below (the `!analysis` guard was lost) — pure dead spend. Opted-in
+  // MoA now actually produces the analysis; default stays multipass.
+  const useMixtureOfAgents = opts.useMixtureOfAgents ?? false;
   // K11: WorldEvolver auto-activates for temporal/predictive queries
   const useWorldModel = opts.useWorldModel ?? hasTemporalIndicators;
 
@@ -3155,12 +3156,14 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     }
   }
 
-  analysis = await durable('analyst', () => analystMultipass(query, topSources, slimReadings, {
-    contextBlock: fullContextBlock,
-    domain: detectedDomain,
-    depth: isStrategic ? "strategic" : "brief",
-  }));
-  bumpAnalysisArtifact();
+  if (!analysis) {
+    analysis = await durable('analyst', () => analystMultipass(query, topSources, slimReadings, {
+      contextBlock: fullContextBlock,
+      domain: detectedDomain,
+      depth: isStrategic ? "strategic" : "brief",
+    }));
+    bumpAnalysisArtifact();
+  }
 
   // S14-G: Test-Time Scaling (ICLR 2026 — Zeng et al.)
   // For strategic queries with sufficient budget, generate a second candidate
