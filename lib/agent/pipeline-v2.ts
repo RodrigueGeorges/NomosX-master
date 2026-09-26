@@ -192,45 +192,58 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     }
   } catch { /* use static thresholds */ }
 
-  // â”€â”€ STEP 0: CONTEXT PRIMER â€” Inject institutional memory + trend breaks â”€â”€
-  console.log(`${label} CONTEXT PRIMER: loading institutional memory`);
+  // ── STEP 0: CONTEXT PRIMER + EPISODIC MEMORY — launched concurrently ──
+  // Neither is consumed until classification-gates / analyst-context, while
+  // SCOUT + enrichment (~60-120s) run between launch and barrier — the
+  // primer's real-time pulse fetch (~36-46s) is fully hidden behind scout.
   let primedContext: Awaited<ReturnType<typeof primeContext>> | null = null;
-  try {
-    primedContext = await primeContext(query, {
-      maxConcepts: isStrategic ? 20 : 15,
-      maxPriorBriefs: isStrategic ? 8 : 5,
-    });
+  console.log(`${label} CONTEXT PRIMER: loading institutional memory`);
+  const primedP = primeContext(query, {
+    maxConcepts: isStrategic ? 20 : 15,
+    maxPriorBriefs: isStrategic ? 8 : 5,
+  }).then((pc) => {
     orchState.contextPrimed = true;
-    orchState.knownConceptCount = primedContext.knownConcepts.length;
-    orchState.priorBriefCount = primedContext.priorBriefs.length;
+    orchState.knownConceptCount = pc.knownConcepts.length;
+    orchState.priorBriefCount = pc.priorBriefs.length;
     stats.contextPrimer = {
-      knownConcepts: primedContext.knownConcepts.length,
-      priorBriefs: primedContext.priorBriefs.length,
-      emergingTrends: primedContext.emergingTrends.length,
-      trendBreaks: primedContext.trendBreaks?.length ?? 0,
-      coverageGap: Boolean(primedContext.coverageGap),
-      durationMs: primedContext.durationMs,
+      knownConcepts: pc.knownConcepts.length,
+      priorBriefs: pc.priorBriefs.length,
+      emergingTrends: pc.emergingTrends.length,
+      trendBreaks: pc.trendBreaks?.length ?? 0,
+      coverageGap: Boolean(pc.coverageGap),
+      durationMs: pc.durationMs,
     };
-    console.log(`${label} CONTEXT PRIMER: ${primedContext.knownConcepts.length} concepts, ${primedContext.priorBriefs.length} prior briefs, ${primedContext.trendBreaks?.length ?? 0} trend breaks`);
-  } catch (err) {
+    console.log(`${label} CONTEXT PRIMER: ${pc.knownConcepts.length} concepts, ${pc.priorBriefs.length} prior briefs, ${pc.trendBreaks?.length ?? 0} trend breaks`);
+    return pc;
+  }).catch((err) => {
     console.error(`${label} CONTEXT PRIMER: FAILED — pipeline continues without institutional memory:`, err);
     stats.contextPrimer = { error: String(err) } as any;
-  }
+    return null;
+  });
 
   // ── EPISODIC MEMORY RETRIEVAL (V3.1) — learn from past pipeline runs ──
   let episodicContext: any[] = [];
   let episodicFormatted: string | null = null;
-  try {
-    const { retrieveEpisodes, formatEpisodeContext, buildEpisodeContextBlock } = await import('./episodic-memory');
-    episodicContext = await retrieveEpisodes(query, { limit: isStrategic ? 8 : 5, minSimilarity: 0.55 });
-    if (episodicContext.length > 0) {
-      console.log(`${label} EPISODIC MEMORY: retrieved ${episodicContext.length} relevant past runs`);
-      const ctxBlock = buildEpisodeContextBlock(episodicContext);
-      episodicFormatted = formatEpisodeContext(ctxBlock);
+  const episodicP = (async () => {
+    try {
+      const { retrieveEpisodes, formatEpisodeContext, buildEpisodeContextBlock } = await import('./episodic-memory');
+      const episodes = await retrieveEpisodes(query, { limit: isStrategic ? 8 : 5, minSimilarity: 0.55 });
+      let formatted: string | null = null;
+      if (episodes.length > 0) {
+        console.log(`${label} EPISODIC MEMORY: retrieved ${episodes.length} relevant past runs`);
+        const ctxBlock = buildEpisodeContextBlock(episodes);
+        formatted = formatEpisodeContext(ctxBlock);
+      }
+      // Telemetry for the A/B protocol — episodic retrieval previously ran
+      // every run but wrote no stats key, making its value unmeasurable.
+      (stats as Record<string, any>).episodicMemory = { retrieved: episodes.length, injected: Boolean(formatted) };
+      return { episodes, formatted };
+    } catch (err) {
+      console.warn(`${label} EPISODIC MEMORY: retrieval failed (non-blocking):`, err);
+      (stats as Record<string, any>).episodicMemory = { retrieved: 0, injected: false, error: String(err) };
+      return { episodes: [] as any[], formatted: null };
     }
-  } catch (err) {
-    console.warn(`${label} EPISODIC MEMORY: retrieval failed (non-blocking):`, err);
-  }
+  })();
 
   // -- STEP 1: SCOUT — extracted to pipeline-steps/scout-block.ts --
   const scoutOut = await runScoutBlock({
@@ -304,6 +317,15 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   flags.runDeliberationStep = gates.runDeliberationStep;
   flags.runDebateStep = gates.runDebateStep;
   flags.runDevilsAdvocateStep = gates.runDevilsAdvocateStep;
+
+  // Barrier: context primer + episodic memory (launched pre-scout) must
+  // resolve here — first consumers are reader-block and analyst-context.
+  {
+    const [primed, episodic] = await Promise.all([primedP, episodicP]);
+    primedContext = primed;
+    episodicContext = episodic.episodes;
+    episodicFormatted = episodic.formatted;
+  }
 
   // -- STEP 5: READER V3 + FRAMING + QUANT + enrichment (extracted) --
   const readerBlk = await runReaderBlock({

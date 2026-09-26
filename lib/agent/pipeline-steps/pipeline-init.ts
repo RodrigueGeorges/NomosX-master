@@ -152,7 +152,6 @@ export async function runPipelineInit(query: string, opts: PipelineCoreOptions) 
   // The Witness observes each pipeline step, detects anomalies, and can intervene.
   // It also learns across runs to improve prompts and thresholds.
   let witnessCtx: WitnessContext | null = null;
-  let witnessLearningInjection = '';
   if (useWitness) {
     const budgetCap = isStrategic ? 8.0 : 3.0;
     witnessCtx = createWitnessContext(
@@ -167,39 +166,84 @@ export async function runPipelineInit(query: string, opts: PipelineCoreOptions) 
       },
     );
     console.log(`${label} WITNESS: metacognitive observer activated (budget cap: $${budgetCap})`);
-
-    // Inject past learnings into the pipeline context (stored for later injection)
-    try {
-      witnessLearningInjection = await buildLearningInjection();
-      if (witnessLearningInjection) {
-        console.log(`${label} WITNESS: prepared past learnings for injection (${witnessLearningInjection.length} chars)`);
-      }
-    } catch (err) {
-      console.warn(`${label} WITNESS: failed to inject learnings:`, err);
-    }
   }
 
-  // ── WORLD MODEL: Persistent cross-run knowledge accumulation ──
-  // The World Model accumulates knowledge across runs. Before a run, it injects
-  // prior knowledge. After a run, it extracts and persists new findings.
+  // ── MEMORY/MODEL LOADS — parallel barrier ──
+  // Witness learnings, world model, PRM, self-play lessons and MoA weights are
+  // independent reads gated by distinct flags — one barrier instead of five
+  // sequential awaits (~1-3s saved per run on cold DB/remote stores).
+  let witnessLearningInjection = '';
   let worldModelInjection = '';
   let worldModelReliableSources: string[] = [];
   let worldModelControversies: string[] = [];
-  if (useWorldModel) {
-    try {
-      const wmResult = await buildWorldModelInjection(query);
-      if (wmResult.contextBlock) {
-        worldModelInjection = wmResult.contextBlock;
-        worldModelReliableSources = wmResult.reliableSourceIds;
-        worldModelControversies = wmResult.knownControversies;
-        console.log(`${label} WORLD_MODEL: injected prior knowledge (${worldModelInjection.length} chars, ${worldModelReliableSources.length} reliable sources, ${worldModelControversies.length} known controversies)`);
-      } else {
-        console.log(`${label} WORLD_MODEL: no prior knowledge found for this query`);
+  let prmModel: PRMModel | null = null;
+  let selfPlayInjection = '';
+  await Promise.all([
+    // WITNESS: inject past learnings (stored for later injection)
+    useWitness ? (async () => {
+      try {
+        witnessLearningInjection = await buildLearningInjection();
+        if (witnessLearningInjection) {
+          console.log(`${label} WITNESS: prepared past learnings for injection (${witnessLearningInjection.length} chars)`);
+        }
+      } catch (err) {
+        console.warn(`${label} WITNESS: failed to inject learnings:`, err);
       }
-    } catch (err) {
-      console.warn(`${label} WORLD_MODEL: failed to query:`, err);
-    }
-  }
+    })() : Promise.resolve(),
+
+    // WORLD MODEL: inject prior cross-run knowledge
+    useWorldModel ? (async () => {
+      try {
+        const wmResult = await buildWorldModelInjection(query);
+        if (wmResult.contextBlock) {
+          worldModelInjection = wmResult.contextBlock;
+          worldModelReliableSources = wmResult.reliableSourceIds;
+          worldModelControversies = wmResult.knownControversies;
+          console.log(`${label} WORLD_MODEL: injected prior knowledge (${worldModelInjection.length} chars, ${worldModelReliableSources.length} reliable sources, ${worldModelControversies.length} known controversies)`);
+        } else {
+          console.log(`${label} WORLD_MODEL: no prior knowledge found for this query`);
+        }
+      } catch (err) {
+        console.warn(`${label} WORLD_MODEL: failed to query:`, err);
+      }
+    })() : Promise.resolve(),
+
+    // PRM: load trained step-scoring model
+    usePRM ? (async () => {
+      try {
+        prmModel = await loadPRMModel();
+        if (prmModel) {
+          console.log(`${label} PRM: loaded model (${prmModel.trainingExamples} training examples, avg reward ${prmModel.avgReward.toFixed(3)})`);
+        } else {
+          console.log(`${label} PRM: no trained model yet — will collect data for future training`);
+        }
+      } catch (err) {
+        console.warn(`${label} PRM: failed to load model:`, err);
+      }
+    })() : Promise.resolve(),
+
+    // SELF-PLAY: adversarial lessons for injection
+    useSelfPlay ? (async () => {
+      try {
+        selfPlayInjection = await buildSelfPlayInjection();
+        if (selfPlayInjection) {
+          console.log(`${label} SELF_PLAY: injected ${selfPlayInjection.length} chars of adversarial lessons`);
+        }
+      } catch (err) {
+        console.warn(`${label} SELF_PLAY: failed to load lessons:`, err);
+      }
+    })() : Promise.resolve(),
+
+    // MOA: agent weights
+    useMixtureOfAgents ? (async () => {
+      try {
+        await loadAgentWeights();
+        console.log(`${label} MOA: agent weights loaded`);
+      } catch (err) {
+        console.warn(`${label} MOA: failed to load weights:`, err);
+      }
+    })() : Promise.resolve(),
+  ]);
 
   // K11: WorldEvolver — self-evolving world model injection
   // Injects high-confidence predictions and learned rules from past episodes
@@ -213,44 +257,6 @@ export async function runPipelineInit(query: string, opts: PipelineCoreOptions) 
     }
   } catch (err) {
     console.warn(`${label} WORLD_EVOLVER: failed to build injection:`, err);
-  }
-
-  // ── PRM: Process Reward Model — scores reasoning steps ──
-  let prmModel: PRMModel | null = null;
-  if (usePRM) {
-    try {
-      prmModel = await loadPRMModel();
-      if (prmModel) {
-        console.log(`${label} PRM: loaded model (${prmModel.trainingExamples} training examples, avg reward ${prmModel.avgReward.toFixed(3)})`);
-      } else {
-        console.log(`${label} PRM: no trained model yet — will collect data for future training`);
-      }
-    } catch (err) {
-      console.warn(`${label} PRM: failed to load model:`, err);
-    }
-  }
-
-  // ── SELF-PLAY: Prepare adversarial lessons for injection ──
-  let selfPlayInjection = '';
-  if (useSelfPlay) {
-    try {
-      selfPlayInjection = await buildSelfPlayInjection();
-      if (selfPlayInjection) {
-        console.log(`${label} SELF_PLAY: injected ${selfPlayInjection.length} chars of adversarial lessons`);
-      }
-    } catch (err) {
-      console.warn(`${label} SELF_PLAY: failed to load lessons:`, err);
-    }
-  }
-
-  // ── MOA: Load agent weights ──
-  if (useMixtureOfAgents) {
-    try {
-      await loadAgentWeights();
-      console.log(`${label} MOA: agent weights loaded`);
-    } catch (err) {
-      console.warn(`${label} MOA: failed to load weights:`, err);
-    }
   }
 
   // ── BLACKBOARD: Shared context across all agents (2026 pattern) ──
