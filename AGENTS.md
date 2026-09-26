@@ -43,6 +43,7 @@ Deleted: `lib/providers/extended-registry.mjs` (dead parallel registry — `regi
 - Metrics: publishRate, meanTrust, meanCostUsd, meanDurationMin, **costPerPublished** (the real KPI — a $0.68 run with 0 pubs = ∞), staleEvalRuns, veto distribution.
 - Regressions vs `evals/runs-baseline.json`: publishRate −10pts, meanTrust −5, any `stalePublished`>0 — a PUBLISHED piece carrying a stale verdict eval (`verdictStale` ∩ PUBLISHED; non-verdict stale detections are reported as `staleEvalRuns` but never gate-bearing, so they are transparency, not regression), cost/duration +50%.
 - `npm run eval:runs [--limit=N]` / `eval:runs:update`. Results → `evals/results/runs-latest.json`.
+- `npm run eval:steps [-- --limit=N]` — per-step marginal-value cohort report (`scripts/analyze-step-value.ts`): for every flag-gated step, fires vs outcomes (publishRate/trust/cost), `DELETE?`/`REVIEW` recommendations per the P1/5 rule. First 34-run readout: `prm`, `peerReview`, `thinkTankPack`, `ragas` never fired → deletion candidates; `witness` fires but produces no interventions; `moa` dead spend already fixed (opt-in).
 
 ### P1/5 — A/B flag protocol (marginal value of steps)
 
