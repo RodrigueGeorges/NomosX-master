@@ -114,6 +114,18 @@
 .animate-marquee { animation: marquee 30s linear infinite; }
 .animate-marquee-slow { animation: marquee 50s linear infinite; }
 
+@keyframes marquee-reverse {
+  0%   { transform: translateX(-50%); }
+  100% { transform: translateX(0); }
+}
+.animate-marquee-reverse { animation: marquee-reverse 60s linear infinite; }
+
+/* Reading room — soft edge fade so names dissolve instead of clipping */
+.nx-reading-room-fade {
+  mask-image: linear-gradient(90deg, transparent 0%, black 12%, black 88%, transparent 100%);
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, black 12%, black 88%, transparent 100%);
+}
+
 @keyframes reveal-up {
   from { opacity: 0; transform: translateY(28px); }
   to   { opacity: 1; transform: translateY(0); }
@@ -365,6 +377,7 @@ body {
   .nx-grid-bg-animated,
   .animate-marquee,
   .animate-marquee-slow,
+  .animate-marquee-reverse,
   .animate-scanline,
   .nx-scan-sweep,
   .animate-float,
@@ -2733,7 +2746,9 @@ article.nomosx-brief .brief-footer {
 
 /* ── 12. Marquee pause on hover ──────────────────────────────────────── */
 
-.nx-marquee-pause:hover .animate-marquee-slow {
+.nx-marquee-pause:hover .animate-marquee-slow,
+.nx-marquee-pause:hover .animate-marquee,
+.nx-marquee-pause:hover .animate-marquee-reverse {
   animation-play-state: paused;
 }
 
@@ -2990,6 +3005,86 @@ article.nomosx-brief .brief-footer {
   animation: nx-word-reveal 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+
+
+/* Interactive "NOMOS" in the hero tagline — click replays the manifesto.
+   Letter-roll: every ~4s the word turns over in a left-to-right wave —
+   Latin rolls out upward, ΝΟΜΟΣ rolls in from below — holds, rolls back.
+   On hover the roll plays in full. The word is a door. */
+.nx-nomos-word {
+  position: relative;
+  appearance: none;
+  -webkit-appearance: none;
+  font: inherit;
+  font-feature-settings: inherit;
+  letter-spacing: inherit;
+  text-transform: none;
+  color: inherit;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+}
+
+.nx-nomos-letter {
+  position: relative;
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: bottom;
+}
+
+.nx-nomos-latin {
+  display: inline-block;
+  transition:
+    transform 0.55s cubic-bezier(0.76, 0, 0.24, 1),
+    opacity 0.3s ease;
+  transition-delay: var(--d);
+  will-change: transform;
+}
+
+.nx-nomos-greek {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transform: translateY(115%);
+  transition:
+    transform 0.55s cubic-bezier(0.76, 0, 0.24, 1),
+    opacity 0.3s ease;
+  transition-delay: var(--d);
+  will-change: transform;
+}
+
+.nx-nomos-word:hover .nx-nomos-latin,
+.nx-nomos-word:focus-visible .nx-nomos-latin,
+.nx-nomos-word.nx-nomos-rolling .nx-nomos-latin {
+  opacity: 0;
+  transform: translateY(-115%);
+}
+
+.nx-nomos-word:hover .nx-nomos-greek,
+.nx-nomos-word:focus-visible .nx-nomos-greek,
+.nx-nomos-word.nx-nomos-rolling .nx-nomos-greek {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.nx-nomos-word:focus-visible {
+  outline: 1px solid color-mix(in srgb, currentColor 40%, transparent);
+  outline-offset: 6px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nx-nomos-greek,
+  .nx-nomos-latin {
+    transition: none;
+    transition-delay: 0ms;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .nx-word {
     opacity: 1;
@@ -3022,6 +3117,69 @@ article.nomosx-brief .brief-footer {
     opacity: 1;
     animation: none;
     transform: none;
+  }
+}
+
+/* ── Council strip — the deliberation visualized as convergence ────── */
+
+.nx-council {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 46px;
+  padding: 0 0.25rem;
+}
+
+.nx-council-seat {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 9999px;
+  cursor: default;
+}
+
+.nx-council-seat:focus-visible {
+  outline: 1px solid color-mix(in srgb, var(--seat) 60%, transparent);
+  outline-offset: 2px;
+}
+
+.nx-council-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  background: var(--seat);
+  opacity: 0;
+  transform: translate(var(--ox), var(--oy)) rotate(var(--rot)) scale(0.35);
+  transition:
+    transform 0.9s cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 0.6s ease;
+  transition-delay: var(--d);
+}
+
+/* dissenting seats — hollow ring, the voice that pushed back */
+.nx-council-seat[data-dissent="1"] .nx-council-dot {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--seat);
+}
+
+.nx-verdict-assembled .nx-council-dot {
+  opacity: 1;
+  transform: translate(0, 0) rotate(0) scale(1);
+}
+
+.nx-verdict-assembled .nx-council-seat:hover .nx-council-dot,
+.nx-verdict-assembled .nx-council-seat:focus-visible .nx-council-dot {
+  transform: translate(0, 0) rotate(0) scale(1.7);
+  transition-delay: 0ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nx-council-dot {
+    opacity: 1;
+    transform: none;
+    transition: none;
   }
 }
 

@@ -139,7 +139,12 @@ function applySecurityAndAuth(request: NextRequest, response: NextResponse): Nex
   if (!isApi) {
     const csp = [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline'",  // unsafe-inline needed for Next.js runtime chunks + JSON-LD
+      // unsafe-inline needed for Next.js runtime chunks + JSON-LD;
+      // unsafe-eval is dev-only: React/Turbopack require eval() to hydrate
+      // (production React never calls eval — keep the policy tight there).
+      process.env.NODE_ENV === "development"
+        ? "script-src 'self' 'unsafe-inline' 'unsafe-eval'"
+        : "script-src 'self' 'unsafe-inline'",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' data: https://fonts.gstatic.com",
       "img-src 'self' data: https: blob:",
@@ -164,6 +169,6 @@ export const config = {
   // routes to handle locale prefixing; the rest (CSRF, headers) applies to
   // API routes too.
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|favicon.svg|favicon.ico|robots.txt|sitemap.xml|feed.xml).*)',
+    '/((?!_next/static|_next/image|favicon.ico|favicon.svg|favicon.ico|robots.txt|sitemap.xml|feed.xml|brand/|providers/).*)',
   ],
 };

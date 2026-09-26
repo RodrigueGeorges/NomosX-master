@@ -7,6 +7,8 @@ const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   serverExternalPackages: ['@prisma/client'],
+  // Dev preview proxies reach the server from 127.0.0.1 — allow dev assets.
+  allowedDevOrigins: ['127.0.0.1', 'localhost'],
   transpilePackages: [],
   experimental: {
     viewTransition: true,

@@ -25,6 +25,9 @@
     "description": "Un think tank IA autonome qui publie des positions vérifiées par les sources — pas des opinions. 250M+ sources cartographiées, chaque affirmation traçable, chaque scénario stress-testé.",
     "ogDescription": "Du Chaos au Nomos. Un think tank IA qui publie des positions vérifiées par les sources, pas des opinions.",
     "heroTitle": "From Chaos to Nomos.",
+    "heroTitlePrefix": "From Chaos to",
+    "heroNomos": "Nomos.",
+    "heroNomosHint": "Qu'est-ce que le Nomos ? — rejouer le manifeste",
     "heroSubtitle": "Un think tank IA qui publie des positions, pas des opinions.",
     "heroDetail": "250M+ sources · raisonnement multi-scénarios · positions vérifiées",
     "manifesto": "Le monde ne souffre pas d'un manque d'information. Il souffre d'un manque de structure.\n\nLe savoir sans ordre produit du bruit. L'ordre sans vérification produit de l'opinion. La vérification sans scénarios produit du recul rétrospectif. Nous lions les trois.\n\nC'est NomosX.",
@@ -79,7 +82,7 @@
     "openStudio": "Ouvrir l'Engine",
     "sourcesIndexed": "Sources indexées",
     "dataProviders": "Fournisseurs de données",
-    "claimsTraceable": "Affirmations traçables",
+    "specialistResearchers": "Chercheurs IA",
     "browseIntelligence": "Voir les preuves",
     "commissionBrief": "Poser une question",
     "thePrinciple": "Le principe",
@@ -153,7 +156,31 @@
     "noPositionYet": "Aucune position publiée",
     "noPositionDesc": "L'institut tourne. La première position apparaîtra ici avec sources, scénarios et dissensions.",
     "updated": "Mise à jour",
-    "pending": "En attente"
+    "pending": "En attente",
+    "deliberationLine": "Neuf traditions réunies · {count, plural, =0 {aucune dissidence} one {# dissidence enregistrée} other {# dissidences enregistrées}} — la position a tenu",
+    "futuresWeighed": "confrontée à {count, plural, one {# futur} other {# futurs}}",
+    "councilAria": "Le conseil — neuf chercheurs IA",
+    "readPosition": "Lire la position"
+  },
+  "ReadingRoom": {
+    "eyebrow": "La salle de lecture",
+    "line": "Agences de presse, canon académique, archives déclassifiées — lus en continu.",
+    "footnote": "850+ fournisseurs indexés · chaque citation traçable à sa source"
+  },
+  "LensPrism": {
+    "eyebrow": "Le conseil",
+    "title": "Chaque question, réfractée.",
+    "subtitle": "Un conseil de vingt-deux chercheurs IA spécialistes lit chaque question à travers neuf traditions intellectuelles — histoire, économie, philosophie, prospective. C'est dans la tension de leurs lectures que la position se forme.",
+    "meetLenses": "Découvrir le conseil"
+  },
+  "InstitutePulse": {
+    "eyebrow": "En ce moment",
+    "readingLine": "Lecture de {count} sources — « {title} »",
+    "line0": "Lecture de 214 sources sur les chokepoints de semiconducteurs…",
+    "line1": "Stress-test de trois futurs pour la navigation arctique…",
+    "line2": "Remise en cause de sa propre position sur les pétro-États…",
+    "line3": "Pesée d'une dissension de l'Historien…",
+    "line4": "Résolution d'une prédiction faite il y a six mois…"
   },
   "DomainMap": {
     "eyebrow": "Où nous travaillons",
@@ -331,7 +358,7 @@
     "fullPipeline": "Pipeline complet · distribution · prêt à publier",
     "getStarted": "Commencer",
     "sourcesIndexed": "Sources indexées",
-    "domainLenses": "Lentilles domaines",
+    "domainLenses": "Chercheurs IA",
     "methodStages": "Étapes méthode",
     "dataProviders": "Fournisseurs de données",
     "questions": "Questions",
@@ -585,16 +612,16 @@
     "somethingWrong": "Une erreur s'est produite."
   },
   "Researchers": {
-    "eyebrow": "Modèles de raisonnement",
-    "title": "{count} lentilles par domaine",
-    "description": "Modèles analytiques transversaux — pas des personas. Chaque lentille cartographie les preuves, conteste les hypothèses et alimente la position finale.",
+    "eyebrow": "Le conseil",
+    "title": "{count} chercheurs IA",
+    "description": "Des chercheurs IA spécialistes — chacun lié à une discipline, avec sa méthode et ses angles morts connus. Chaque question est lue par plusieurs d'entre eux ; leur désaccord fait l'analyse.",
     "all": "Toutes",
     "core": "Principal",
     "advanced": "Avancées",
     "specialized": "Spécialisées",
     "allDomains": "Tous les domaines",
-    "lensesCount": "{count} lentilles",
-    "lensTitle": "Lentille {domain}",
+    "lensesCount": "{count} chercheurs",
+    "lensTitle": "Chercheur {domain}",
     "frameworks": "Cadres",
     "briefsIn": "Briefs en {domain}",
     "alwaysPublishing": "Publication continue",

@@ -1,22 +1,25 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { AlertTriangle, BookOpen } from "lucide-react";
+import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
+import { THINKING_LENSES } from "@/lib/brand/thinking-lenses";
+import { StatCounter } from "@/components/ui/StatCounter";
 
 export interface FeaturedVerdictData {
   question: string;
   verdictPrefix: string;
   verdictBody: string;
   confidence: string;
-  simulation: string;
+  scenarios: number;
   sources: number;
   objections: number;
   updatedAt: string;
   serialId: string;
-  sparkline?: number[];
   domains?: string[];
+  href?: string;
 }
 
 interface FeaturedVerdictCardProps {
@@ -25,45 +28,35 @@ interface FeaturedVerdictCardProps {
   animate?: boolean;
 }
 
-function Sparkline({ points }: { points: number[] }) {
-  const w = 80;
-  const h = 28;
-  const max = Math.max(...points, 1);
-  const min = Math.min(...points, 0);
-  const range = max - min || 1;
-  const coords = points
-    .map((p, i) => {
-      const x = (i / Math.max(points.length - 1, 1)) * w;
-      const y = h - ((p - min) / range) * (h - 4) - 2;
-      return `${x},${y}`;
-    })
-    .join(" ");
+/** Deterministic scatter — each council seat starts displaced, then converges. */
+const SEAT_SCATTER: { x: number; y: number; r: number }[] = [
+  { x: -52, y: -20, r: -14 },
+  { x: 34, y: 18, r: 10 },
+  { x: -18, y: 26, r: -8 },
+  { x: 48, y: -14, r: 16 },
+  { x: -30, y: -26, r: 6 },
+  { x: 12, y: 24, r: -18 },
+  { x: -44, y: 10, r: 12 },
+  { x: 40, y: -24, r: -6 },
+  { x: -10, y: -18, r: 20 },
+];
 
-  return (
-    <svg width={w} height={h} className="opacity-70 text-black" aria-hidden>
-      <polyline
-        points={coords}
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
+/** Seats rendered as hollow rings when the position survived dissents. */
+const DISSENT_SEAT_ORDER = [1, 5, 8, 3, 0, 6, 2, 7, 4];
 
 export function FeaturedVerdictCard({ data, className, animate = true }: FeaturedVerdictCardProps) {
   const t = useTranslations();
   const [mounted, setMounted] = useState(!animate);
-  const [meterWidth, setMeterWidth] = useState(0);
+  const [hoveredSeat, setHoveredSeat] = useState<number | null>(null);
   const cardRef = useRef<HTMLElement>(null);
-  const sparkline = data.sparkline ?? [52, 58, 61, 68, 72, 74, 73, 74];
 
-  // Parse the numeric confidence for the meter (e.g. "74%" -> 74)
   const confidenceNum = Math.min(
     100,
     Math.max(0, parseInt(data.confidence.replace(/[^0-9]/g, ""), 10) || 0)
+  );
+
+  const dissentSeats = new Set(
+    DISSENT_SEAT_ORDER.slice(0, Math.min(data.objections, THINKING_LENSES.length))
   );
 
   useEffect(() => {
@@ -71,12 +64,6 @@ export function FeaturedVerdictCard({ data, className, animate = true }: Feature
     const t = setTimeout(() => setMounted(true), 80);
     return () => clearTimeout(t);
   }, [animate]);
-
-  useEffect(() => {
-    if (!mounted) return;
-    const t = setTimeout(() => setMeterWidth(confidenceNum), 200);
-    return () => clearTimeout(t);
-  }, [mounted, confidenceNum]);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLElement>) => {
     const el = cardRef.current;
@@ -86,84 +73,149 @@ export function FeaturedVerdictCard({ data, className, animate = true }: Feature
     el.style.setProperty("--nx-my", `${e.clientY - rect.top}px`);
   };
 
+  const deliberationLine = t("FeaturedVerdict.deliberationLine", { count: data.objections });
+  const futuresLine =
+    data.scenarios > 0
+      ? t("FeaturedVerdict.futuresWeighed", { count: data.scenarios })
+      : null;
+
+  const hovered = hoveredSeat != null ? THINKING_LENSES[hoveredSeat] : null;
+  const domainsLine = data.domains?.length ? ` · ${data.domains.slice(0, 3).join(" · ")}` : "";
+
+  const body = (
+    <>
+      {/* Top row — dossier ref */}
+      <div className="flex items-baseline justify-between gap-4 mb-7">
+        <p className="nx-eyebrow" style={{ letterSpacing: "0.14em" }}>
+          {t("FeaturedVerdict.institutePosition")} · {data.updatedAt}
+        </p>
+        <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-black/30">
+          Ref. {data.serialId}
+        </p>
+      </div>
+
+      {/* The question — headline */}
+      <h2 className="font-display text-[1.6rem] sm:text-[1.95rem] font-medium leading-[1.16] tracking-[-0.01em] text-black mb-6">
+        {data.question}
+      </h2>
+
+      {/* The deliberation — nine seats converge from scatter to order */}
+      <div className="mb-6">
+        <div
+          className="nx-council"
+          role="img"
+          aria-label={t("FeaturedVerdict.councilAria")}
+        >
+          {THINKING_LENSES.map((lens, i) => {
+            const s = SEAT_SCATTER[i % SEAT_SCATTER.length];
+            const dissent = dissentSeats.has(i);
+            return (
+              <span
+                key={lens.id}
+                className="nx-council-seat"
+                data-dissent={dissent ? "1" : undefined}
+                onMouseEnter={() => setHoveredSeat(i)}
+                onMouseLeave={() => setHoveredSeat(null)}
+                onFocus={() => setHoveredSeat(i)}
+                onBlur={() => setHoveredSeat(null)}
+                tabIndex={0}
+              >
+                <span
+                  className="nx-council-dot"
+                  style={{
+                    ["--seat" as string]: lens.colorHex,
+                    ["--ox" as string]: `${s.x}px`,
+                    ["--oy" as string]: `${s.y}px`,
+                    ["--rot" as string]: `${s.r}deg`,
+                    ["--d" as string]: `${350 + i * 90}ms`,
+                  }}
+                />
+              </span>
+            );
+          })}
+        </div>
+        <div className="relative mt-3 h-[2.4em]">
+          <p
+            className={cn(
+              "font-mono text-[11px] tracking-[0.03em] text-black/45 leading-snug transition-opacity duration-300",
+              hovered ? "opacity-0" : "opacity-100"
+            )}
+          >
+            {deliberationLine}
+          </p>
+          <p
+            aria-hidden={!hovered}
+            className={cn(
+              "absolute inset-0 font-mono text-[11px] tracking-[0.03em] leading-snug transition-opacity duration-300",
+              hovered ? "opacity-100" : "opacity-0"
+            )}
+            style={hovered ? { color: hovered.colorHex } : undefined}
+          >
+            {hovered ? `${hovered.name} — ${hovered.signatureQuestion}` : "\u00A0"}
+          </p>
+        </div>
+      </div>
+
+      {/* The position — lede */}
+      {data.verdictBody && (
+        <p className="font-display text-[15px] sm:text-base leading-relaxed text-black/70 mb-7">
+          {data.verdictPrefix && (
+            <>
+              <span className="text-black font-medium">{data.verdictPrefix}</span>
+              {" — "}
+            </>
+          )}
+          {data.verdictBody}
+        </p>
+      )}
+
+      {/* Conviction — the number as object, not a widget */}
+      <div className="flex items-end gap-5 py-5 border-t border-black/[0.08] mb-5">
+        <p className="font-display text-[3.4rem] leading-[0.82] font-light tabular-nums text-black">
+          <StatCounter end={confidenceNum} />
+          <span className="text-[1.35rem] text-black/35">%</span>
+        </p>
+        <div className="pb-1">
+          <p className="nx-eyebrow nx-eyebrow--dim mb-1.5" style={{ fontSize: "11px" }}>
+            {t("FeaturedVerdict.confidence")}
+          </p>
+          {futuresLine && (
+            <p className="text-[12px] text-black/50 leading-snug">{futuresLine}</p>
+          )}
+        </div>
+      </div>
+
+      {/* Footer — provenance + action */}
+      <div className="flex items-center justify-between gap-4 font-mono text-[11px] uppercase tracking-[0.1em] text-black/40">
+        <span className="truncate">
+          {data.sources} {t("FeaturedVerdict.sources")}
+          {domainsLine}
+        </span>
+        <span className="inline-flex items-center gap-1.5 text-black/60 shrink-0 group-hover:text-black transition-colors">
+          {t("FeaturedVerdict.readPosition")}
+          <ArrowRight size={12} className="transition-transform duration-300 group-hover:translate-x-0.5" />
+        </span>
+      </div>
+    </>
+  );
+
   return (
     <article
       ref={cardRef}
       onMouseMove={handleMouseMove}
       className={cn(
-        "nx-spotlight nx-surface nx-border-flow relative",
-        "p-5 sm:p-6 transition-all duration-700",
-        mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2",
+        "nx-spotlight nx-surface nx-border-flow relative group transition-all duration-700",
+        mounted ? "nx-verdict-assembled opacity-100 translate-y-0" : "opacity-0 translate-y-2",
         className
       )}
     >
-      <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
-        <div className="nx-scan-sweep bg-gradient-to-b from-transparent via-black/[0.06] to-transparent" />
-      </div>
-      <div className="flex items-center gap-2 mb-3">
-        <span className="w-1.5 h-1.5 rounded-full bg-black/70 nx-glow-dot" />
-        <p className="nx-eyebrow" style={{ letterSpacing: "0.14em" }}>{t("FeaturedVerdict.institutePosition")}</p>
-      </div>
-
-      <h2 className="font-display text-xl sm:text-2xl font-medium text-black leading-snug mb-3">
-        {data.question}
-      </h2>
-
-      <p className="text-sm text-black/70 leading-relaxed mb-5">
-        <span className="text-black font-medium">{data.verdictPrefix}</span>
-        {" — "}
-        {data.verdictBody}
-      </p>
-
-      <div className="grid grid-cols-2 gap-px bg-black/[0.08] mb-4">
-        <div className="bg-white p-4">
-          <p className="nx-eyebrow nx-eyebrow--dim mb-3" style={{ fontSize: "11px", letterSpacing: "0.1em" }}>{t("FeaturedVerdict.confidence")}</p>
-          <div className="flex items-end justify-between gap-2 mb-3">
-            <p className="font-mono text-2xl font-light text-black tabular-nums">{data.confidence}</p>
-            <Sparkline points={sparkline} />
-          </div>
-          <div className="nx-meter-track">
-            <div
-              className="nx-meter-fill"
-              style={{ width: `${meterWidth}%`, transition: "width 1.2s cubic-bezier(0.16, 1, 0.3, 1)" }}
-            />
-          </div>
-        </div>
-        <div className="bg-white p-4">
-          <p className="nx-eyebrow nx-eyebrow--dim mb-3" style={{ fontSize: "11px", letterSpacing: "0.1em" }}>{t("FeaturedVerdict.distribution")}</p>
-          <p className="font-mono text-base sm:text-lg text-black tabular-nums leading-tight">{data.simulation}</p>
-        </div>
-      </div>
-
-      <div className="flex flex-wrap items-center gap-4 mb-4 font-mono text-xs text-black/50">
-        <span className="inline-flex items-center gap-1.5">
-          <BookOpen className="w-3.5 h-3.5 text-black/55" strokeWidth={1.25} />
-          {data.sources} {t("FeaturedVerdict.sources")}
-        </span>
-        <span className="inline-flex items-center gap-1.5">
-          <AlertTriangle className="w-3.5 h-3.5 text-black/55" strokeWidth={1.25} />
-          {data.objections} {t("FeaturedVerdict.dissents")}
-        </span>
-      </div>
-
-      {/* Domain tags — cross-domain proof */}
-      {data.domains && data.domains.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 mb-4">
-          {data.domains.map((d) => (
-            <span
-              key={d}
-              className="font-mono text-[10px] uppercase tracking-[0.1em] text-black/45 border border-black/[0.08] px-2 py-0.5"
-            >
-              {d}
-            </span>
-          ))}
-        </div>
+      {data.href ? (
+        <Link href={data.href} className="block p-6 sm:p-8 focus:outline-none">
+          {body}
+        </Link>
+      ) : (
+        <div className="p-6 sm:p-8">{body}</div>
       )}
-
-      <div className="flex justify-between pt-4 border-t border-black/[0.08] font-mono text-[11px] uppercase tracking-[0.1em] text-black/40">
-        <span>Updated {data.updatedAt}</span>
-        <span>{data.serialId}</span>
-      </div>
     </article>
   );
 }

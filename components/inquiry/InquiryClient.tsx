@@ -21,6 +21,7 @@ import { nx } from "@/lib/brand/public-ui";
 import { inquiryUrl, PUBLIC_ROUTES } from "@/lib/public-urls";
 import { EditorialInquiryBody } from "@/components/inquiry/EditorialInquiryBody";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
+import { CoverArt } from "@/components/signature/InquiryCard";
 import { extractLegacyArticleBody, parseEditorialInquiry } from "@/lib/brand/inquiry-html-parse";
 import type { InquiryData, RelatedInquiryData } from "@/lib/queries/public-inquiry";
 
@@ -215,6 +216,12 @@ export function InquiryClient({
         <PageSection className="py-8">
           <div className="max-w-3xl mx-auto">
             <div className="mb-8 nx-public-surface p-6 sm:p-8 overflow-hidden relative">
+              {/* The signature frontispiece — the same generative cover as
+                  the piece's archive card, opened full-width. Every
+                  publication carries the same visual signature. */}
+              <div className="relative h-28 sm:h-40 -mx-6 sm:-mx-8 -mt-6 sm:-mt-8 mb-6 overflow-hidden" aria-hidden="true">
+                <CoverArt id={inquiry.id} domain={inquiry.domain} featured />
+              </div>
               <div className="flex items-center gap-3 mb-4 flex-wrap">
                 <span className="px-3 py-1 border border-black/40 bg-black/5 text-black text-xs font-medium font-mono uppercase tracking-wider">
                   {format.label}

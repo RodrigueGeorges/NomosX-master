@@ -156,10 +156,12 @@ export function ArchivesClient({ initialBriefs }: { initialBriefs: BriefLike[] }
                 {t("Archives.briefsCount", { count: filtered.length, current: page + 1, total: totalPages })}
               </p>
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-                {pageItems.map((inquiry) => (
+                {pageItems.map((inquiry, i) => (
                   <InquiryCard
                     key={inquiry.id}
                     inquiry={inquiry}
+                    featured={page === 0 && i === 0}
+                    className={page === 0 && i === 0 ? "md:col-span-2 lg:col-span-2" : undefined}
                   />
                 ))}
               </div>

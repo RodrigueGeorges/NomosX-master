@@ -34,14 +34,13 @@ function extractObjectionCount(html: string): number {
   return (section[1].match(/<li/gi) || []).length;
 }
 
-function extractSimulationLabel(html: string, meta: Record<string, unknown>): string {
+function extractScenarioCount(html: string, meta: Record<string, unknown>): number {
   const rows = (html.match(/class="scenario-row"/g) || []).length;
   const sim = meta.simulation as { scenarios?: unknown[] } | undefined;
   const scenarioCount = sim?.scenarios?.length ?? rows;
-  if (scenarioCount > 0) return `${scenarioCount} trajectories`;
+  if (scenarioCount > 0) return scenarioCount;
   const foresight = meta.foresight as { monteCarloRuns?: number } | undefined;
-  if (foresight?.monteCarloRuns) return `${foresight.monteCarloRuns} runs`;
-  return "Probable futures";
+  return foresight?.monteCarloRuns ? 1 : 0;
 }
 
 function splitVerdict(teaser: string): { prefix: string; body: string } {
@@ -82,11 +81,10 @@ function formatSerialId(id: string, publishedAt?: Date | string | null): string 
   return `NX-${yyyy}-${mm}${dd}-${tail}`;
 }
 
-function sparklineFromConfidence(confidence: string): number[] {
-  const n = parseInt(confidence, 10);
-  if (Number.isNaN(n)) return [52, 58, 61, 68, 72, 74, 73, 74];
-  const base = Math.max(20, n - 12);
-  return [base, base + 4, base + 7, base + 10, base + 12, n, n - 1, n];
+
+
+function normalizeForCompare(s: string): string {
+  return s.toLowerCase().replace(/[^a-z0-9 ]/g, "").replace(/\s+/g, " ").trim();
 }
 
 /** Map latest publication → homepage FeaturedVerdictCard data. */
@@ -98,11 +96,24 @@ export function buildFeaturedVerdict(brief: FeaturedBriefSource): FeaturedVerdic
   const instituteVerdict = rawHtml ? extractInstituteVerdict(rawHtml) : "";
   const summary = rawHtml ? extractBriefSummary(rawHtml) : "";
   const teaser = instituteVerdict || summary || brief.title;
-  const { prefix, body } = splitVerdict(teaser);
+  let { prefix, body } = splitVerdict(teaser);
 
   const question =
     (rawHtml && isPositionFirstBrief(rawHtml) ? extractDetectedSubject(rawHtml) : "") ||
     brief.title;
+
+  // Dedup guard — never let the lede restate the headline.
+  const nq = normalizeForCompare(question);
+  const nb = normalizeForCompare(body);
+  if (nq.length > 24 && nb && (nb === nq || nb.startsWith(nq.slice(0, 40)) || nq.startsWith(nb.slice(0, 40)))) {
+    const alt = normalizeForCompare(summary) !== nb ? summary : "";
+    if (alt) {
+      body = alt;
+    } else {
+      prefix = "";
+      body = "";
+    }
+  }
 
   const confidence = rawHtml ? extractConfidence(rawHtml, brief.trustScore) : `${brief.trustScore ?? "—"}%`;
 
@@ -111,13 +122,13 @@ export function buildFeaturedVerdict(brief: FeaturedBriefSource): FeaturedVerdic
     verdictPrefix: prefix,
     verdictBody: body,
     confidence,
-    simulation: rawHtml ? extractSimulationLabel(rawHtml, meta) : "Probable futures",
+    scenarios: rawHtml ? extractScenarioCount(rawHtml, meta) : 0,
     sources: brief.sourceIds?.length ?? 0,
     objections: rawHtml ? extractObjectionCount(rawHtml) : 0,
     updatedAt: formatUpdatedAt(brief.publishedAt),
     serialId: formatSerialId(brief.id, brief.publishedAt),
-    sparkline: sparklineFromConfidence(confidence),
     domains: brief.domains ?? [],
+    href: `/inquiry/${brief.id}`,
   };
 }
 
@@ -126,12 +137,11 @@ export const FALLBACK_FEATURED_VERDICT: FeaturedVerdictData = {
   verdictPrefix: "",
   verdictBody: "",
   confidence: "—",
-  simulation: "—",
+  scenarios: 0,
   sources: 0,
   objections: 0,
   updatedAt: "—",
   serialId: "—",
-  sparkline: [],
   domains: [],
 };
 

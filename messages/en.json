@@ -25,6 +25,9 @@
     "description": "An autonomous AI think tank that publishes source-verified positions — not opinions. 250M+ sources mapped, every claim traceable, every scenario stress-tested.",
     "ogDescription": "From Chaos to Nomos. An AI think tank that publishes source-verified positions, not opinions.",
     "heroTitle": "From Chaos to Nomos.",
+    "heroTitlePrefix": "From Chaos to",
+    "heroNomos": "Nomos.",
+    "heroNomosHint": "What is Nomos? — replay the manifesto",
     "heroSubtitle": "An AI think tank that publishes positions, not opinions.",
     "heroDetail": "250M+ sources · multi-scenario reasoning · verified positions",
     "manifesto": "The world doesn't suffer from a lack of information. It suffers from a lack of structure.\n\nKnowledge without order creates noise. Order without verification creates opinion. Verification without scenarios creates hindsight. We bind all three.\n\nThat is NomosX.",
@@ -79,7 +82,7 @@
     "openStudio": "Open Engine",
     "sourcesIndexed": "Sources indexed",
     "dataProviders": "Data providers",
-    "claimsTraceable": "Claims traceable",
+    "specialistResearchers": "AI researchers",
     "browseIntelligence": "See the evidence",
     "commissionBrief": "Pose a question",
     "thePrinciple": "The principle",
@@ -153,7 +156,31 @@
     "noPositionYet": "No position published yet",
     "noPositionDesc": "The institute is running. The first position will appear here with full sources, scenarios, and dissents.",
     "updated": "Updated",
-    "pending": "Pending"
+    "pending": "Pending",
+    "deliberationLine": "Nine traditions convened · {count, plural, =0 {no dissent} one {# dissent} other {# dissents}} registered — the position held",
+    "futuresWeighed": "weighed across {count, plural, one {# future} other {# futures}}",
+    "councilAria": "The council — nine AI researchers",
+    "readPosition": "Read the position"
+  },
+  "ReadingRoom": {
+    "eyebrow": "The reading room",
+    "line": "Wire services, scholarly canon, declassified archives — read continuously.",
+    "footnote": "850+ providers indexed · every citation traceable to its origin"
+  },
+  "LensPrism": {
+    "eyebrow": "The council",
+    "title": "Every question, refracted.",
+    "subtitle": "A council of twenty-two specialist AI researchers reads every question through nine intellectual traditions — history, economics, philosophy, foresight. The tension between their readings is where the position forms.",
+    "meetLenses": "Meet the council"
+  },
+  "InstitutePulse": {
+    "eyebrow": "Now",
+    "readingLine": "Reading {count} sources — “{title}”",
+    "line0": "Reading 214 sources on semiconductor chokepoints…",
+    "line1": "Stress-testing three futures for Arctic shipping…",
+    "line2": "Challenging its own position on petrostates…",
+    "line3": "Weighing a dissent from the Historian…",
+    "line4": "Resolving a prediction made six months ago…"
   },
   "DomainMap": {
     "eyebrow": "Where we work",
@@ -331,7 +358,7 @@
     "fullPipeline": "Full pipeline · distribution · publication-ready",
     "getStarted": "Get started",
     "sourcesIndexed": "Sources indexed",
-    "domainLenses": "Domain lenses",
+    "domainLenses": "AI researchers",
     "methodStages": "Method stages",
     "dataProviders": "Data providers",
     "questions": "Questions",
@@ -585,16 +612,16 @@
     "somethingWrong": "Something went wrong."
   },
   "Researchers": {
-    "eyebrow": "Reasoning models",
-    "title": "{count} domain lenses",
-    "description": "Cross-domain analytical models — not personas. Each lens maps evidence, challenges assumptions, and feeds the final position.",
+    "eyebrow": "The council",
+    "title": "{count} AI researchers",
+    "description": "Specialist AI researchers — each bound to a discipline, each with its own method and known blind spots. Every question is read by several of them; their disagreement is the analysis.",
     "all": "All",
     "core": "Core",
     "advanced": "Advanced",
     "specialized": "Specialized",
     "allDomains": "All domains",
-    "lensesCount": "{count} lenses",
-    "lensTitle": "{domain} lens",
+    "lensesCount": "{count} researchers",
+    "lensTitle": "{domain} researcher",
     "frameworks": "Frameworks",
     "briefsIn": "Briefs in {domain}",
     "alwaysPublishing": "Always publishing",

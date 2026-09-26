@@ -20,6 +20,12 @@ import {
 
   InquiryCard,
 
+  InstitutePulse,
+
+  LensPrism,
+
+  ReadingRoom,
+
   StudioPreview,
 
   type FeaturedVerdictData,
@@ -31,6 +37,7 @@ import {
 } from "@/components/signature";
 
 import { FALLBACK_FEATURED_VERDICT, isEmptyVerdict } from "@/lib/brand/featured-verdict";
+
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
@@ -78,35 +85,6 @@ type PublicBrief = {
 
 
 const WATERMARKS: InquiryWatermark[] = ["map", "chart", "globe"];
-
-
-
-const DATA_SOURCES: { id: string; name: string; desc: string }[] = [
-  { id: "openalex", name: "OpenAlex", desc: "250M+ scholarly works" },
-  { id: "crossref", name: "Crossref", desc: "DOI registry" },
-  { id: "pubmed", name: "PubMed", desc: "biomedical literature" },
-  { id: "arxiv", name: "arXiv", desc: "preprints · physics & CS" },
-  { id: "ssrn", name: "SSRN", desc: "social science research" },
-  { id: "reuters", name: "Reuters", desc: "real-time wire" },
-  { id: "crunchbase", name: "Crunchbase", desc: "market intelligence" },
-  { id: "worldbank", name: "World Bank", desc: "open data" },
-  { id: "imf", name: "IMF", desc: "macroeconomic indicators" },
-  { id: "oecd", name: "OECD", desc: "policy statistics" },
-  { id: "nato", name: "NATO", desc: "strategic reports" },
-  { id: "rand", name: "RAND", desc: "defense analysis" },
-  { id: "brookings", name: "Brookings", desc: "policy research" },
-  { id: "cia-foia", name: "CIA FOIA", desc: "declassified archives" },
-  { id: "nara", name: "NARA", desc: "national archives" },
-  { id: "google-patents", name: "Google Patents", desc: "IP landscape" },
-  { id: "ecb", name: "ECB", desc: "monetary policy" },
-  { id: "wto", name: "WTO", desc: "trade & disputes" },
-  { id: "guardian", name: "The Guardian", desc: "global press" },
-  { id: "unsc", name: "UN Security Council", desc: "resolutions & press" },
-  { id: "reliefweb", name: "ReliefWeb", desc: "humanitarian alerts" },
-  { id: "lemonde", name: "Le Monde", desc: "French press" },
-  { id: "kyivindependent", name: "Kyiv Independent", desc: "war reporting" },
-  { id: "lowy", name: "Lowy Institute", desc: "Asia-Pacific analysis" },
-];
 
 
 
@@ -197,7 +175,7 @@ function HomePageContent() {
 
 
 
-    fetch("/api/public/briefs?limit=3&featured=1")
+    fetch("/api/public/briefs?limit=4&featured=1")
 
       .then((r) => (r.ok ? r.json() : null))
 
@@ -327,16 +305,26 @@ function HomePageContent() {
 
   const displayInquiries = latestInquiries;
 
-  // Section order: 01 Hero · 02 Featured · 03 Briefs? · 04 Manifesto · 05 Domain · 06 Mission · 07 Studio · 08 Newsletter
-  // Briefs section (03) is hidden when there are no briefs, so the denominator adjusts.
-  const sectionCount = displayInquiries.length > 0 ? 8 : 7;
+  // Ambient proof of life — real activity lines derived from the latest briefs
+  const pulseItems = displayInquiries.map((i) =>
+    t("InstitutePulse.readingLine", {
+      count: i.sourceCount,
+      title: i.title.length > 72 ? `${i.title.slice(0, 72)}…` : i.title,
+    })
+  );
+
+  // Section order: 01 Hero · 02 Featured · [ReadingRoom] · 03 Briefs? · 04 Prism ·
+  // 05 Manifesto · 06 Domain · 07 Mission · [Track record] · 08 Studio · 09 Newsletter
+  // Briefs is hidden when empty, so the denominator adjusts.
+  const hasBriefs = displayInquiries.length > 0;
+  const sectionCount = hasBriefs ? 9 : 8;
   const sectionTotal = String(sectionCount).padStart(2, "0");
-  // Sections after the briefs block shift down by one when briefs are hidden
-  const manifestoSectionNum = displayInquiries.length > 0 ? "04" : "03";
-  const domainSectionNum = displayInquiries.length > 0 ? "05" : "04";
-  const missionSectionNum = displayInquiries.length > 0 ? "06" : "05";
-  const studioSectionNum = displayInquiries.length > 0 ? "07" : "06";
-  const newsletterSectionNum = displayInquiries.length > 0 ? "08" : "07";
+  const prismSectionNum = hasBriefs ? "04" : "03";
+  const manifestoSectionNum = hasBriefs ? "05" : "04";
+  const domainSectionNum = hasBriefs ? "06" : "05";
+  const missionSectionNum = hasBriefs ? "07" : "06";
+  const studioSectionNum = hasBriefs ? "08" : "07";
+  const newsletterSectionNum = hasBriefs ? "09" : "08";
 
 
 
@@ -366,6 +354,8 @@ function HomePageContent() {
 
             <GhostCharField cols={14} rows={7} seed={11} className="opacity-[0.06]" />
 
+
+
             <div className="relative max-w-4xl mx-auto text-center w-full">
 
               <div className="flex items-center justify-center mb-10 animate-rise">
@@ -382,7 +372,9 @@ function HomePageContent() {
 
               <h1 className="nx-spx-hero mb-8 max-w-4xl mx-auto">
 
-                <WordReveal text={t("Brand.heroTitle")} baseDelay={300} stagger={140} />
+                <WordReveal text={t("Brand.heroTitlePrefix")} baseDelay={300} stagger={140} />{" "}
+
+                <WordReveal text={t("Brand.heroNomos")} baseDelay={720} stagger={140} />
 
               </h1>
 
@@ -400,7 +392,7 @@ function HomePageContent() {
 
                   { end: 850, suffix: "+", label: t("Home.dataProviders") },
 
-                  { end: 100, suffix: "%", label: t("Home.claimsTraceable") },
+                  { end: 22, suffix: "", label: t("Home.specialistResearchers") },
 
                 ] as const).map((stat, i) => (
 
@@ -462,6 +454,14 @@ function HomePageContent() {
 
               </div>
 
+              {/* Ambient proof of life — the institute is working, right now */}
+
+              <div className="mt-12 animate-rise" style={{ animationDelay: "1400ms" }}>
+
+                <InstitutePulse items={pulseItems} />
+
+              </div>
+
             </div>
 
           </section>
@@ -493,6 +493,10 @@ function HomePageContent() {
             </div>
 
           </section>
+
+          {/* The reading room — sources as credibility, not a spec sheet */}
+
+          <ReadingRoom />
 
           {/* Latest briefs — more proof, if available */}
 
@@ -526,15 +530,19 @@ function HomePageContent() {
 
               </ScrollReveal>
 
-              <ScrollReveal stagger className="grid md:grid-cols-3 gap-4">
+              <ScrollReveal stagger className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
 
-                {displayInquiries.map((inquiry) => (
+                {displayInquiries.map((inquiry, i) => (
 
                   <InquiryCard
 
                     key={inquiry.id}
 
                     inquiry={inquiry}
+
+                    featured={i === 0}
+
+                    className={i === 0 ? "md:col-span-2 lg:col-span-3" : undefined}
 
                   />
 
@@ -547,6 +555,13 @@ function HomePageContent() {
           </section>
 
           )}
+
+          {/* The prism — one question, nine intellectual traditions */}
+
+          <LensPrism
+            question={isEmptyVerdict(featuredVerdict) ? undefined : featuredVerdict.question}
+            sectionIndex={`${prismSectionNum} / ${sectionTotal}`}
+          />
 
           {/* Manifesto + pillars — the philosophy, now that they've seen the proof */}
 
@@ -638,52 +653,6 @@ function HomePageContent() {
 
           <DomainMap sectionIndex={`${domainSectionNum} / ${sectionTotal}`} />
 
-          {/* Data sources ticker */}
-
-          <div className="border-y border-black/[0.08] bg-black/[0.01]">
-
-            <div className="flex items-stretch">
-
-              <span className="shrink-0 flex items-center gap-2 px-5 py-3 border-r border-black/[0.08] font-mono text-[9px] uppercase tracking-[0.2em] text-black/55 bg-black/[0.03]">
-
-                <span className="w-1 h-1 rounded-full bg-black/80 nx-glow-dot" />
-
-                {t("Home.dataSources")}
-
-              </span>
-
-              <div className="nx-marquee-pause flex-1 overflow-hidden">
-
-                <div className="flex whitespace-nowrap animate-marquee-slow py-3">
-
-                  {[...DATA_SOURCES, ...DATA_SOURCES].map((src, i) => (
-
-                    <span
-
-                      key={`${src.id}-${i}`}
-
-                      className="flex items-center font-mono text-[11px] uppercase tracking-[0.12em] text-black/40 px-5"
-
-                    >
-
-                      <span className="text-black/50 mr-2.5 text-[10px]">●</span>
-
-                      <span className="text-black/65">{src.name}</span>
-
-                      <span className="ml-2 text-black/45 normal-case tracking-normal text-[11px]">{src.desc}</span>
-
-                    </span>
-
-                  ))}
-
-                </div>
-
-              </div>
-
-            </div>
-
-          </div>
-
           {/* Mission statement */}
 
           <section className="nx-section-divide relative px-6 sm:px-8 py-16 sm:py-20">
@@ -719,94 +688,6 @@ function HomePageContent() {
             </div>
 
           </section>
-
-          {/* Social proof */}
-
-          <section className="nx-section-divide relative px-6 sm:px-8 py-16 sm:py-20">
-
-            <div className="max-w-4xl mx-auto text-center">
-
-              <ScrollReveal>
-
-                <p className="nx-eyebrow mb-10 justify-center">{t("Home.builtFor")}</p>
-
-              </ScrollReveal>
-
-              <ScrollReveal stagger className="grid sm:grid-cols-3 gap-8 sm:gap-12">
-
-                <div className="text-center">
-
-                  <p className="font-mono text-3xl font-light text-black tabular-nums leading-none mb-3">
-
-                    <StatCounter end={19} suffix="" />
-
-                  </p>
-
-                  <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-black/50">
-
-                    {t("Home.pipelineStages")}
-
-                  </p>
-
-                  <p className="text-xs text-black/40 mt-2 leading-relaxed">
-
-                    {t("Home.pipelineStagesDesc")}
-
-                  </p>
-
-                </div>
-
-                <div className="text-center">
-
-                  <p className="font-mono text-3xl font-light text-black tabular-nums leading-none mb-3">
-
-                    <StatCounter end={6} suffix="" />
-
-                  </p>
-
-                  <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-black/50">
-
-                    {t("Home.adversarialReviews")}
-
-                  </p>
-
-                  <p className="text-xs text-black/40 mt-2 leading-relaxed">
-
-                    {t("Home.adversarialReviewsDesc")}
-
-                  </p>
-
-                </div>
-
-                <div className="text-center">
-
-                  <p className="font-mono text-3xl font-light text-black tabular-nums leading-none mb-3">
-
-                    <StatCounter end={100} suffix="%" />
-
-                  </p>
-
-                  <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-black/50">
-
-                    {t("Home.sourceGrounded")}
-
-                  </p>
-
-                  <p className="text-xs text-black/40 mt-2 leading-relaxed">
-
-                    {t("Home.sourceGroundedDesc")}
-
-                  </p>
-
-                </div>
-
-              </ScrollReveal>
-
-            </div>
-
-          </section>
-
-
 
           {/* Track record — public accountability (always visible; pending state when no data) */}
 
