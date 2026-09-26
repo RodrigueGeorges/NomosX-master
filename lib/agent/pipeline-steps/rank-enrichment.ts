@@ -13,7 +13,8 @@
 import { rankSourcesByQuality } from '../source-quality';
 import { assessEvidenceSufficiency } from '../enrichment-reasoner';
 import type { PipelineStep } from '../pipeline-progress';
-import type { Providers, RankOptions } from '../pipeline-v2';
+import type { Providers } from './provider-lists';
+import type { RankOptions } from '../pipeline-v2';
 
 export interface RankEnrichmentDeps {
   query: string;

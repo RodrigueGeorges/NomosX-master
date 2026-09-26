@@ -18,7 +18,7 @@ import { searchOSTI } from '../../providers/osti-provider';
 import { searchDataCite } from '../../providers/datacite-provider';
 import { embedSourcesBatch } from '../semantic-engine';
 import { deduplicateSources } from '../index-agent';
-import type { Providers } from '../pipeline-v2';
+import type { Providers } from './provider-lists';
 
 export interface ScoutEnrichmentIndexDeps {
   allSourceIds: string[];
