@@ -28,7 +28,7 @@ import { guardOutput } from './output-guard';
 import { judge } from './local-judge';
 import { initDurableRun, runDurableStep, durableKeyFor, markDurableComplete, durableResume, saveDurableStep } from './durable-execution';
 import { generateStormPerspectives } from './research-patterns';
-import { augmentThinkTankHtml, type PrimarySourceInput } from './think-tank-pack';
+import type { PrimarySourceInput } from './think-tank-pack';
 import { selfCorrectReader, selfCorrectAnalyst, reAnalyzeAfterGapFill } from './self-correction-integration';
 import { createWitnessContext, buildObservation, buildLearningInjection, type WitnessContext } from './witness/integration';
 import { runMixtureOfAgents, loadAgentWeights, updateAgentWeights } from './moa/mixture-of-agents';
@@ -51,7 +51,7 @@ import { filterLowQualitySources } from '../providers/source-quality-filter';
 import { classifyTopic } from './topic-classifier';
 import { isEditorialV2Enabled, getPipelineMaxBudgetUsd } from './editorial-config';
 import { buildAnalysisReviewText } from './analysis-review-text';
-import { runPeerReview, renderPeerReviewInjection } from './peer-reviewer';
+import { injectAdversarialSection, runPeerReviewAndPack } from './pipeline-steps/post-render-extras';
 import { evaluateBriefRAG } from './ragas-eval';
 import { RESEARCHER_KBS, type KeyConcept, type AnalyticalFramework, type DomainExpertise } from './researcher-kb/index';
 import { MULTI_DOMAIN_CORPUS } from '../knowledge/multi-domain-corpus';
@@ -5903,66 +5903,23 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     html = renderedHtml;
     bumpHtmlArtifact();
 
-    // Render the adversarial review as an editorial section — a publication
-    // that shows its own strongest objection reads as rigorous, not fragile.
-    const daStats = stats.devilsAdvocate as any;
-    if (daStats && !daStats.skipped && !daStats.error && (daStats.fatalChallenges > 0 || daStats.majorChallenges > 0)) {
-      const esc = (s: string) => s.replace(/</g, '<').replace(/>/g, '>').replace(/"/g, '"');
-      const challenges = (daStats.topChallenges || []) as { type: string; text: string }[];
-      const vulnerabilities = (daStats.vulnerabilityTexts || []) as string[];
-      const severityLabel = daStats.fatalChallenges > 0 ? 'Adversarial review — dissenting opinion' : 'Adversarial review';
-      const daSection = `
-<section class="nx-block nx-adversarial-review" data-no-cite="true">
-  <div class="pf-axes-title">${severityLabel}</div>
-  <p class="da-verdict-line">Verdict: <strong>${esc(String(daStats.verdict || 'publish').replace(/_/g, ' '))}</strong> · analytical strength ${daStats.overallStrength ?? '—'}/100</p>
-  ${daStats.killShot ? `<p class="da-killshot"><em>“${esc(daStats.killShot)}”</em></p>` : ''}
-  ${challenges.length > 0 ? `<ul class="da-challenges">${challenges.map(c => `<li><span class="da-challenge-type">${esc(c.type)}</span> ${esc(c.text)}</li>`).join('')}</ul>` : ''}
-  ${vulnerabilities.length > 0 ? `<p class="da-vuln"><strong>Where this analysis could age badly:</strong> ${vulnerabilities.map(esc).join(' · ')}</p>` : ''}
-</section>`;
-      // Anchor before references, else before </article>, else append
-      if (html.includes('references-section')) {
-        html = html.replace(/<section class="references-section"/, `${daSection}\n<section class="references-section"`);
-      } else if (html.includes('</article>')) {
-        html = html.replace('</article>', `${daSection}</article>`);
-      } else {
-        html += daSection;
-      }
-      console.log(`${label} DA SECTION: rendered adversarial review (fatal=${daStats.fatalChallenges}, major=${daStats.majorChallenges})`);
-    }
-    if (usePeerReview) {
-      try {
-        const review = await runPeerReview(html, topSources, { title: analysis.title });
-        (stats as any).peerReview = tagEval({
-          score: review.overallScore,
-          recommendation: review.recommendation,
-          critical: review.issues.filter(i => i.severity === 'critical').length,
-          major: review.issues.filter(i => i.severity === 'major').length,
-        }, 'html');
-        addCost(review.costUsd, 'PEER REVIEW');
-        console.log(`${label} PEER REVIEW: score=${review.overallScore}, rec=${review.recommendation}, critical=${(stats as any).peerReview.critical}, major=${(stats as any).peerReview.major}`);
-      } catch (err) {
-        console.warn(`${label} PEER REVIEW: failed (non-blocking):`, err);
-      }
-    }
-    if (useThinkTankPack) {
-      try {
-        const pack = await augmentThinkTankHtml(html, query, topSources, {
-          domain: detectedDomain,
-          primaryData: opts.primaryData,
-          scenarioModeling: !institutePosition && (opts.scenarioModeling ?? true),
-          maxScenarios: opts.maxScenarios,
-          stressTest: opts.stressTest ?? true,
-          policyCouncil: opts.policyCouncil ?? true,
-        });
-        html = pack.html;
-        bumpHtmlArtifact();
-        addCost(pack.costUsd, 'THINK TANK PACK');
-        (stats as any).thinkTankPack = pack.stats;
-        console.log(`${label} THINK TANK PACK: applied (cost=$${pack.costUsd.toFixed(4)})`);
-      } catch (err) {
-        console.warn(`${label} THINK TANK PACK: failed (non-blocking):`, err);
-      }
-    }
+    // DA section + peer review + think-tank pack extracted to
+    // pipeline-steps/post-render-extras.ts (peer review ∥ pack — same input
+    // html, only the pack mutates).
+    html = injectAdversarialSection(html, stats.devilsAdvocate as any, label);
+    html = await runPeerReviewAndPack({
+      html, query, topSources, analysisTitle: analysis.title,
+      stats: stats as Record<string, any>, label, detectedDomain,
+      institutePosition, usePeerReview, useThinkTankPack,
+      packOpts: {
+        primaryData: opts.primaryData,
+        scenarioModeling: opts.scenarioModeling,
+        maxScenarios: opts.maxScenarios,
+        stressTest: opts.stressTest,
+        policyCouncil: opts.policyCouncil,
+      },
+      addCost, tagEval, bumpHtmlArtifact,
+    });
     await runPostRenderCitationAndGrounding();
     // V2: second DA pass on rendered HTML — DISABLED to save ~10min of LLM time
     // The first DA pass already appends fatal challenges as advisory section.
@@ -5973,40 +5930,19 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   } else {
     html = await durable('render', () => renderEditorHtml());
     bumpHtmlArtifact();
-    if (usePeerReview) {
-      try {
-        const review = await runPeerReview(html, topSources, { title: analysis.title });
-        (stats as any).peerReview = tagEval({
-          score: review.overallScore,
-          recommendation: review.recommendation,
-          critical: review.issues.filter(i => i.severity === 'critical').length,
-          major: review.issues.filter(i => i.severity === 'major').length,
-        }, 'html');
-        addCost(review.costUsd, 'PEER REVIEW');
-        console.log(`${label} PEER REVIEW: score=${review.overallScore}, rec=${review.recommendation}, critical=${(stats as any).peerReview.critical}, major=${(stats as any).peerReview.major}`);
-      } catch (err) {
-        console.warn(`${label} PEER REVIEW: failed (non-blocking):`, err);
-      }
-    }
-    if (useThinkTankPack) {
-      try {
-        const pack = await augmentThinkTankHtml(html, query, topSources, {
-          domain: detectedDomain,
-          primaryData: opts.primaryData,
-          scenarioModeling: !institutePosition && (opts.scenarioModeling ?? true),
-          maxScenarios: opts.maxScenarios,
-          stressTest: opts.stressTest ?? true,
-          policyCouncil: opts.policyCouncil ?? true,
-        });
-        html = pack.html;
-        bumpHtmlArtifact();
-        addCost(pack.costUsd, 'THINK TANK PACK');
-        (stats as any).thinkTankPack = pack.stats;
-        console.log(`${label} THINK TANK PACK: applied (cost=$${pack.costUsd.toFixed(4)})`);
-      } catch (err) {
-        console.warn(`${label} THINK TANK PACK: failed (non-blocking):`, err);
-      }
-    }
+    html = await runPeerReviewAndPack({
+      html, query, topSources, analysisTitle: analysis.title,
+      stats: stats as Record<string, any>, label, detectedDomain,
+      institutePosition, usePeerReview, useThinkTankPack,
+      packOpts: {
+        primaryData: opts.primaryData,
+        scenarioModeling: opts.scenarioModeling,
+        maxScenarios: opts.maxScenarios,
+        stressTest: opts.stressTest,
+        policyCouncil: opts.policyCouncil,
+      },
+      addCost, tagEval, bumpHtmlArtifact,
+    });
     await runPostRenderCitationAndGrounding();
     // Debate + meta-analysis reactivated
     applyDebateOutcome(await runDebateMetaBlock(debateAdvocateDeps, runDebateStep, buildAnalysisReviewText(analysis as Record<string, unknown>, query)));
