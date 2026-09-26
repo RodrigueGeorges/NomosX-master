@@ -77,6 +77,7 @@ import { computeTrackRecordStats } from './track-record';
 import { editorialArbiter } from './editorial-arbiter';
 import { resolveCentralScenario, type CastingResult, type InstitutePosition } from './editorial-types';
 import type { DebateResult } from './debate-agent';
+import { runDebateMetaBlock, runDevilsAdvocateBlock, type DebateAdvocateDeps } from './pipeline-steps/debate-advocate';
 import { generatePrintHTML } from './pdf-export';
 import { registerPredictions } from './prediction-registration';
 
@@ -6464,144 +6465,17 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     }
   };
 
-  const runDebateMetaBlock = async (debateHtmlContext?: string) => {
-    // META-ANALYSIS + CHAIN PROBABILITY: SUPPRESSED — unreliable stats on heterogeneous sources, $0.05/run saved
-    stats.metaAnalysis = { skipped: true, reason: 'suppressed — heterogeneous non-clinical sources' };
-    if (!runDebateStep) {
-      console.log(`${label} DEBATE: skipped (tier=standard)`);
-      stats.debate = { skipped: true };
-      return;
-    }
-    emitProgress(pipelineRun.id, "DEBATE", "started", "Running debate...");
-    console.log(`${label} DEBATE: running (meta-analysis suppressed)`);
-    const [debateSettled] = await Promise.allSettled([
-      import('./debate-agent').then(m => m.debateAgent(query, topSources, readings, debateHtmlContext, { domain: detectedDomain })),
-    ]);
-
-    if (debateSettled.status === "fulfilled") {
-      const debate = debateSettled.value;
-      debateResult = debate;
-      debateContext = [
-        `Debate dominant thesis: ${debate.dominantThesis}`,
-        `Counter-position: ${debate.position2?.label || "N/A"}`,
-        `Confidence in dominant: ${debate.confidenceInDominant}/100`,
-        `Steel-man already addressed: ${debate.synthesis?.slice(0, 200) || "N/A"}`,
-      ].join("\n");
-      stats.debate = {
-        confidenceInDominant: debate.confidenceInDominant,
-        steelManStrength: String(debate.debateQuality.steelManStrength),
-        nuances: debate.nuances?.length ?? 0,
-        costUsd: debate.costUsd,
-      };
-      console.log(`${label} DEBATE: confidence=${debate.confidenceInDominant}%, steel-man=${debate.debateQuality.steelManStrength}`);
-      addCost(debate.costUsd, "DEBATE");
-
-      // P1-F: Debate quality gate (D3 EACL 2026 pattern)
-      // If steel-man strength < 50, the adversarial testing was weak.
-      // Re-run with a more aggressive prompt to get a stronger counter-position.
-      const steelManScore = Number(debate.debateQuality.steelManStrength) || 0;
-      if (steelManScore < 50) {
-        console.log(`${label} DEBATE: steel-man strength ${steelManScore} < 50 — re-running with adversarial boost`);
-        try {
-          const [retrySettled] = await Promise.allSettled([
-            import('./debate-agent').then(m => m.debateAgent(query, topSources, readings, debateHtmlContext + '\n\nADVERSARIAL BOOST: The previous steel-man was too weak. Generate a MUCH stronger counter-position. Attack every assumption. Find the weakest link in the dominant thesis.', { domain: detectedDomain })),
-          ]);
-          if (retrySettled.status === "fulfilled") {
-            const retryDebate = retrySettled.value;
-            const retrySteelMan = Number(retryDebate.debateQuality.steelManStrength) || 0;
-            if (retrySteelMan > steelManScore) {
-              console.log(`${label} DEBATE: retry improved steel-man ${steelManScore} → ${retrySteelMan}, accepting retry`);
-              debateResult = retryDebate;
-              debateContext = [
-                `Debate dominant thesis: ${retryDebate.dominantThesis}`,
-                `Counter-position: ${retryDebate.position2?.label || "N/A"}`,
-                `Confidence in dominant: ${retryDebate.confidenceInDominant}/100`,
-                `Steel-man already addressed: ${retryDebate.synthesis?.slice(0, 200) || "N/A"}`,
-              ].join("\n");
-              stats.debate = {
-                confidenceInDominant: retryDebate.confidenceInDominant,
-                steelManStrength: String(retryDebate.debateQuality.steelManStrength),
-                nuances: retryDebate.nuances?.length ?? 0,
-                costUsd: debate.costUsd + retryDebate.costUsd,
-              };
-              addCost(retryDebate.costUsd, "DEBATE_RETRY");
-            } else {
-              console.log(`${label} DEBATE: retry did not improve steel-man (${retrySteelMan} ≤ ${steelManScore}), keeping original`);
-            }
-          }
-        } catch (retryErr) {
-          console.warn(`${label} DEBATE: retry failed (non-blocking):`, retryErr);
-        }
-      }
-    } else {
-      console.warn(`${label} DEBATE: failed (non-blocking):`, debateSettled.reason);
-    }
+  // Debate + Devil's Advocate — extracted to pipeline-steps/debate-advocate.ts.
+  // `debateResult`/`debateContext` stay owned here (arbiter + render read them
+  // at call time); the flags are passed as call-time snapshots since the
+  // budget guard, LAS gate, and orchestrator all mutate them upstream.
+  const debateAdvocateDeps: DebateAdvocateDeps = {
+    query, topSources, readings, detectedDomain, isStrategic, label,
+    stats: stats as Record<string, any>, pipelineRunId: pipelineRun.id,
+    pipelineCtx: ctx, addCost, tagEval,
   };
-
-  const runDevilsAdvocateBlock = async (contentForReview: string, _allowHtmlRevision: boolean) => {
-    // DEVIL'S ADVOCATE — all formats (like positioning since S21).
-    // Runs as ADVISORY epistemic challenge — identifies fatal challenges,
-    // kill shots, and future vulnerabilities. Does NOT modify trust score
-    // (deterministic) except the documented veto below. Briefs need the
-    // adversarial check too: a short piece can still carry a killable claim.
-    if (!runDevilsAdvocateStep) {
-      stats.devilsAdvocate = { skipped: true, reason: 'disabled by LAS gate' };
-      console.log(`${label} DEVIL'S ADVOCATE: skipped (LAS gate)`);
-      return;
-    }
-    emitProgress(pipelineRun.id, "DEVILS_ADVOCATE", "started", "Adversarial epistemic challenge...");
-    try {
-      const { runDevilsAdvocate } = await import('./devils-advocate');
-      const daResult = await runDevilsAdvocate(
-        query,
-        contentForReview,
-        topSources.map((s: any) => ({ title: s.title, provider: s.provider, year: s.year })),
-        {
-          mode: isStrategic ? 'strategic' : 'brief',
-          domain: detectedDomain,
-          debateContext,
-        },
-      );
-      stats.devilsAdvocate = tagEval({
-        verdict: daResult.verdict,
-        overallStrength: daResult.overallStrength,
-        publishabilityScore: daResult.publishabilityScore,
-        fatalChallenges: daResult.fatalChallenges?.length || 0,
-        majorChallenges: daResult.majorChallenges?.length || 0,
-        killShot: daResult.killShot?.slice(0, 400) || '',
-        // Keep the actual challenge texts — the adversarial review is rendered
-        // as an editorial section, not just a counter in stats.
-        topChallenges: [...(daResult.fatalChallenges || []), ...(daResult.majorChallenges || [])]
-          .slice(0, 3)
-          .map((c: any) => ({ type: c.challengeType || c.type || 'challenge', text: String(c.challenge || c.text || '').slice(0, 300) })),
-        vulnerabilityTexts: (daResult.futureVulnerabilities || []).slice(0, 3).map((v: any) => String(v).slice(0, 200)),
-        futureVulnerabilities: daResult.futureVulnerabilities?.length || 0,
-        costUsd: daResult.costUsd,
-      }, 'analysis');
-      addCost(daResult.costUsd, "DEVILS_ADVOCATE");
-      console.log(`${label} DEVIL'S ADVOCATE: verdict=${daResult.verdict}, strength=${daResult.overallStrength}/100, fatal=${daResult.fatalChallenges?.length || 0}, major=${daResult.majorChallenges?.length || 0}`);
-
-      // Emit adversarial objections as signals — resolvers (revision editor)
-      // sense them at the post-render sweep, no hardcoded wiring needed.
-      for (const c of [...(daResult.fatalChallenges || []), ...(daResult.majorChallenges || [])].slice(0, 4)) {
-        ctx.postSignal('substance_weak', String(c.challenge || '').slice(0, 300), {
-          postedBy: 'DEVILS_ADVOCATE',
-          intensity: c.severity === 'fatal' ? 0.95 : 0.7,
-          ttlMs: 60 * 60 * 1000,
-          payload: { type: c.challengeType, requiredAction: c.requiredAction, suggestedRevision: c.suggestedRevision },
-        });
-      }
-      emitProgress(pipelineRun.id, "DEVILS_ADVOCATE", "completed", `Verdict: ${daResult.verdict} (${daResult.overallStrength}/100)`);
-
-      // Devil's Advocate veto: if MAJOR_REVISION with strength < 20, cap trust at 40
-      if (daResult.verdict === 'major_revision' && daResult.overallStrength < 20) {
-        (stats as any).devilsAdvocateVeto = true;
-        console.warn(`${label} DEVIL'S ADVOCATE VETO: verdict=major_revision, strength=${daResult.overallStrength}/100 — analysis is fragile, trust will be capped at 40`);
-      }
-    } catch (err) {
-      console.warn(`${label} DEVIL'S ADVOCATE: failed (non-blocking):`, err);
-      stats.devilsAdvocate = { error: String(err) };
-    }
+  const applyDebateOutcome = (out: import('./pipeline-steps/debate-advocate').DebateOutcome) => {
+    if (out.debateResult) { debateResult = out.debateResult; debateContext = out.debateContext; }
   };
 
   // ── SHARED POST-RENDER QUALITY GATES ──
@@ -6724,7 +6598,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     stats.foresight = { skipped: true, reason: 'pending — will run after editorial arbiter creates scenarios' };
 
     // Debate + meta-analysis reactivated — multi-perspective dialectical analysis
-    await runDebateMetaBlock(buildAnalysisReviewText(analysis as Record<string, unknown>, query));
+    applyDebateOutcome(await runDebateMetaBlock(debateAdvocateDeps, runDebateStep, buildAnalysisReviewText(analysis as Record<string, unknown>, query)));
 
     // LOT 4.8 / T4: Inflection check on extracted mechanisms (dated, thresholded, attested)
     try {
@@ -6851,7 +6725,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
       analysis = { ...analysis, centralScenario: stats.centralScenario, scenarios: institutePosition.scenarios } as typeof analysis;
       console.log(`${label} CENTRAL SCENARIO: ${stats.centralScenario?.name ?? 'missing — publication hold required'}; simulation disagreement=${stats.centralScenario?.simulationDisagrees ?? false}`);
     }
-    await runDevilsAdvocateBlock(buildAnalysisReviewText(analysis as Record<string, unknown>, query), false);
+    await runDevilsAdvocateBlock(debateAdvocateDeps, runDevilsAdvocateStep, buildAnalysisReviewText(analysis as Record<string, unknown>, query), debateContext);
     html = await durable('render', () => renderEditorHtml());
     bumpHtmlArtifact();
 
@@ -6961,8 +6835,8 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     }
     await runPostRenderCitationAndGrounding();
     // Debate + meta-analysis reactivated
-    await runDebateMetaBlock(buildAnalysisReviewText(analysis as Record<string, unknown>, query));
-    await runDevilsAdvocateBlock(html, true);
+    applyDebateOutcome(await runDebateMetaBlock(debateAdvocateDeps, runDebateStep, buildAnalysisReviewText(analysis as Record<string, unknown>, query)));
+    await runDevilsAdvocateBlock(debateAdvocateDeps, runDevilsAdvocateStep, html, debateContext);
   }
 
   stats.analysis = analysis;
