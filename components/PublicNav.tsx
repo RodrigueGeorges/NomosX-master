@@ -12,6 +12,7 @@ import { Link, useRouter, usePathname } from "@/i18n/navigation";
 import { LOCALES, DEFAULT_LOCALE, type AppLocale } from "@/i18n/routing";
 
 export type PublicNavPage =
+  | "dossiers"
   | "home"
   | "inquiries"
   | "research"
@@ -29,6 +30,7 @@ interface PublicNavProps {
 
 const NAV_LINKS: { labelKey: string; page: PublicNavPage; href: string }[] = [
   { labelKey: "Nav.briefs", page: "inquiries", href: "/archives" },
+  { labelKey: "Nav.dossiers", page: "dossiers", href: "/dossiers" },
   { labelKey: "Nav.domains", page: "research", href: "/researchers" },
   { labelKey: "Nav.studio", page: "studio", href: "/studio" },
   { labelKey: "Nav.about", page: "about", href: "/about" },
