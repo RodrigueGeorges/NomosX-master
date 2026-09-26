@@ -1,14 +1,17 @@
 {
   "runCount": 50,
   "completionRate": 0.62,
-  "pubCount": 32,
-  "publishRate": 0.65625,
-  "meanTrust": 69.375,
-  "meanCostUsd": 0.31987091740000007,
-  "meanDurationMin": 28.936392666666674,
-  "costPerPublished": 0.7615974223809525,
-  "staleEvalRuns": 0,
-  "staleEvalTotal": 0,
-  "vetoCounts": {},
-  "evaluatedAt": "2026-09-25T17:46:05.942Z"
+  "pubCount": 34,
+  "publishRate": 0.6176470588235294,
+  "meanTrust": 67.6470588235294,
+  "meanCostUsd": 0.3218633998,
+  "meanDurationMin": 29.045074666666675,
+  "costPerPublished": 0.7663414280952381,
+  "staleEvalRuns": 2,
+  "stalePublished": 0,
+  "staleEvalTotal": 4,
+  "vetoCounts": {
+    "criticPanel": 1
+  },
+  "evaluatedAt": "2026-09-26T10:45:46.843Z"
 }

@@ -1,7 +1,7 @@
 /**
  * NomosX Pipeline Progress Streaming
  * 
- * P2-9: EventEmitter-based progress tracking for pipeline execution.
+ * P2/9: EventEmitter-based progress tracking for pipeline execution.
  * Enables SSE streaming of step-by-step updates to the client.
  */
 

@@ -1,5 +1,5 @@
 /**
- * PREDICTION WATCH — closes the forecast loop (P2-7).
+ * PREDICTION WATCH — closes the forecast loop (P2/7).
  *
  * Predictions are registered OPEN with `whatWouldFalsify` / `resolutionCriteria`
  * triggers (prediction-registration.ts). Until now nothing compared today's
@@ -155,7 +155,7 @@ export async function runPredictionWatch(
   });
   if (!defaultVertical) return { items: [], fired: 0, scanned: predictions.length };
 
-  // P2-8: cross-cycle dossier memory — dossiers under active watch carry a
+  // P2/8: cross-cycle dossier memory — dossiers under active watch carry a
   // decaying intensity; recently-fired dossiers get a small priority boost
   // because follow-through on a triggered forecast decays over days, not weeks.
   let watchBus: PersistentSignalBus<null> | null = null;

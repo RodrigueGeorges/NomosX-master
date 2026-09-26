@@ -2053,6 +2053,10 @@ export const DEFAULT_ACADEMIC_PROVIDERS: Providers = [
 
 export interface PipelineCoreOptions {
   isStrategic: boolean;
+  /** Publication format — drives durable-execution activation (memo/dossier/strategic)
+   *  and durable-key derivation. Passed through by runPipeline; was silently
+   *  undefined when only read via (opts as any). */
+  format?: string;
   providers?: Providers;
   perProvider?: number;
   rankOptions?: RankOptions;
@@ -2185,12 +2189,12 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   const useRagasEval = opts.useRagasEval ?? false;
   // Durable execution ON for heavy formats by default — a 50-80min run killed
   // by timeout/crash resumes at its last checkpoint instead of losing everything.
-  const useDurableExecution = opts.useDurableExecution ?? (isStrategic || (opts as any).format === 'memo' || (opts as any).format === 'dossier');
+  const useDurableExecution = opts.useDurableExecution ?? (isStrategic || opts.format === 'memo' || opts.format === 'dossier');
   // Self-Evolution: evolve agent prompts after each strategic run via GMPO + MAGE
   // Cost: ~$0.05-0.10 (4 agents × 2 LLM calls each). Non-blocking, wrapped in try/catch.
   const useSelfEvolution = opts.useSelfEvolution ?? (isStrategic && canAffordLearning);
-  const isDossier = (opts as any).format === "dossier";
-  const isMemo = (opts as any).format === "memo";
+  const isDossier = opts.format === "dossier";
+  const isMemo = opts.format === "memo";
   const editorialV2 = isEditorialV2Enabled();
   const label = isStrategic ? "[Strategic]" : "[Pipeline]";
   const stats: PipelineStats = {};
@@ -2207,12 +2211,23 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     if (suspended.length > 0) {
       console.warn(`${label} PRE-FLIGHT: ⚠️ Suspended providers: ${suspended.join(', ')} — will skip automatically`);
     }
+    if (alive.length === 0) {
+      // Hard stop: with zero LLMs alive every LLM stage will fail or emit
+      // degraded output, yet SCOUT still burns paid search calls (Tavily/Exa).
+      // Throwing here marks the run FAILED without spending a cent on retrieval.
+      const abort = new Error(`${label} PRE-FLIGHT ABORT: 0 LLM providers alive — refusing to burn retrieval budget on a run that cannot produce analysis. Resume when a provider is healthy (or configure a freepool key: GROQ_API_KEY/CEREBRAS_API_KEY/…).`);
+      abort.name = 'PreflightAbortError';
+      throw abort;
+    }
     if (alive.length < 2) {
-      console.error(`${label} PRE-FLIGHT: ❌ CRITICAL — only ${alive.length} provider(s) alive: ${alive.join(', ') || 'none'}. Pipeline needs at least 2 for failover.`);
+      console.error(`${label} PRE-FLIGHT: ⚠️ DEGRADED — only ${alive.length} provider(s) alive: ${alive.join(', ')}. No failover headroom; continuing with reduced redundancy.`);
     } else {
       console.log(`${label} PRE-FLIGHT: ✅ ${alive.length} providers alive: ${alive.join(', ')}${suspended.length > 0 ? ` (suspended: ${suspended.join(', ')})` : ''}`);
     }
-  } catch (e) { /* non-blocking */ }
+  } catch (e) {
+    if ((e as Error).name === 'PreflightAbortError') throw e;
+    /* non-blocking */
+  }
 
   // ── ADAPTIVE TOPOLOGY (AdaptOrch arXiv 2026) ──
   // Selects pipeline topology based on query complexity signals.
@@ -2529,7 +2544,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   // pipelineRun.id (fresh per attempt) would never resume. A crashed/timed-out
   // run re-dispatched for the same query+format picks up at its last checkpoint.
   const durableKey = useDurableExecution
-    ? durableKeyFor(query, (opts as any).format ?? (isStrategic ? 'strategic' : isMemo ? 'memo' : 'brief'))
+    ? durableKeyFor(query, opts.format ?? (isStrategic ? 'strategic' : isMemo ? 'memo' : 'brief'))
     : null;
   if (durableKey) {
     try {
@@ -2542,7 +2557,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   const durable = <T>(step: string, fn: () => Promise<T>, costUsd = 0): Promise<T> =>
     durableKey ? runDurableStep(durableKey, step, fn, { costUsd }) : fn();
 
-  // P2-8: with durable execution on, the signal bus persists to agentAuditLog
+  // P2/8: with durable execution on, the signal bus persists to agentAuditLog
   // so coordination state (unresolved needs) survives a crash and rehydrates
   // on resume — a checkpoint restores step outputs, this restores the bus.
   if (durableKey) {
@@ -2565,7 +2580,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     console.log(`${"â•".repeat(60)}\n`);
   }
 
-  // P2-9: Emit progress events for SSE streaming
+  // P2/9: Emit progress events for SSE streaming
   emitProgress(pipelineRun.id, "INIT", "started", "Initializing pipeline...");
 
   // Initialize Orchestrator state (with calibrated thresholds from AgentMemory)
@@ -4253,7 +4268,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
 
   let analysis: any;
 
-  // ── ARTIFACT VERSIONING (Sprint 28 / P0-1) ──
+  // ── ARTIFACT VERSIONING (Sprint 28 / P0/1) ──
   // The S27 bug class: an evaluation stays attached to an artifact that was
   // silently replaced (DA verdict on pre-sweep HTML, critic verdict on
   // pre-repair analysis). Counters bump ONLY on material content replacement —
@@ -6148,178 +6163,196 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
       stats.factChecker = { error: String(err) };
     }
 
-    // ── ORIGINALITY CHECK — detect close paraphrasing / plagiarism ──
-    try {
-      const { checkOriginality } = await import('./originality-check');
-      const analysisSections: Record<string, string> = {};
-      for (const [key, value] of Object.entries(analysis as Record<string, unknown>)) {
-        if (typeof value === "string" && value.length > 50) {
-          analysisSections[key] = value;
-        }
-      }
-      const originality = checkOriginality(analysisSections, topSources);
-      stats.originalityCheck = {
-        originalityScore: originality.originalityScore,
-        flaggedSections: originality.flaggedSections.length,
-        averageOverlap: originality.averageOverlap,
-      };
-      if (originality.flaggedSections.length > 0) {
-        console.warn(`${label} ORIGINALITY: ${originality.flaggedSections.length} sections flagged for high source overlap (avg ${(originality.averageOverlap * 100).toFixed(1)}%)`);
-      } else {
-        console.log(`${label} ORIGINALITY: OK (score ${(originality.originalityScore * 100).toFixed(0)}%, avg overlap ${(originality.averageOverlap * 100).toFixed(1)}%)`);
-      }
-    } catch (err) {
-      console.warn(`${label} ORIGINALITY: failed (non-blocking):`, err);
-    }
+    // ── INDEPENDENT EVALUATORS — run in parallel ──
+    // Each block is a pure reader of the (post-repair) html: no mutation of
+    // html/analysis, a distinct stats key, no reads of sibling results. The
+    // trust calc below consumes ALL of their stats — it runs after allSettled.
+    await Promise.allSettled([
 
-    // ── BIAS DETECTION — systematic corpus bias check (incl. funding COI) ──
-    try {
-      const { detectBiases } = await import('./bias-detector');
-      // Extract funders from raw metadata for conflict-of-interest detection
-      const sourcesWithFunders = topSources.map((s: any) => ({
-        ...s,
-        funders: s.funders || (s.raw?.funder as Array<{ name: string; DOI?: string; award?: string }> | undefined)?.map((f: any) => ({ name: f.name || '', doi: f.DOI || null, award: f.award || null })).filter((f: any) => f.name) || [],
-      }));
-      const biasReport = detectBiases(sourcesWithFunders, html);
-      stats.biasDetection = {
-        biasCount: biasReport.biases.length,
-        overallBiasRisk: biasReport.overallBiasRisk,
-        sourceDiversityScore: biasReport.sourceDiversityScore,
-        biasTypes: biasReport.biases.map((b) => b.biasType),
-      };
-      if (biasReport.biases.length > 0) {
-        console.warn(`${label} BIAS DETECTOR: ${biasReport.biases.length} biases detected (risk ${(biasReport.overallBiasRisk * 100).toFixed(0)}%): ${biasReport.biases.map((b) => `${b.biasType}(${b.severity})`).join(", ")}`);
-      } else {
-        console.log(`${label} BIAS DETECTOR: OK (diversity score ${(biasReport.sourceDiversityScore * 100).toFixed(0)}%)`);
-      }
-    } catch (err) {
-      console.warn(`${label} BIAS DETECTOR: failed (non-blocking):`, err);
-    }
-
-    // ── SOURCE CHECK (sourcecheck pattern) — retraction detection + claim presence ──
-    // Resolves each cited source via OpenAlex/Crossref, checks for retraction,
-    // and verifies the claim text appears in the source. Free, deterministic.
-    try {
-      const { checkSourcesBatch } = await import('./sourcecheck');
-      // Check top sources for retraction (limit to top 20 to control API calls)
-      const sourcesToCheck = topSources.slice(0, 20).map((s: any) => ({
-        id: s.id,
-        title: s.title || '',
-        doi: s.doi || null,
-        abstract: s.abstract || null,
-        fullText: s.fullText || null,
-      }));
-      const sourceCheckResult = await checkSourcesBatch(sourcesToCheck);
-      stats.sourceCheck = {
-        checked: sourceCheckResult.results.length,
-        retracted: sourceCheckResult.retractedCount,
-        verified: sourceCheckResult.verifiedCount,
-        notFound: sourceCheckResult.notFoundCount,
-        claimAbsent: sourceCheckResult.claimAbsentCount,
-        integrityScore: sourceCheckResult.integrityScore,
-      };
-      if (sourceCheckResult.retractedCount > 0) {
-        console.warn(`${label} SOURCE CHECK: ${sourceCheckResult.retractedCount} RETRACTED sources detected!`);
-        // Flag retracted sources in HTML — add a warning badge
-        for (const r of sourceCheckResult.results) {
-          if (r.verdict === 'retracted') {
-            console.warn(`${label} SOURCE CHECK: RETRACTED — "${r.sourceTitle.slice(0, 60)}..." (DOI: ${r.doi})`);
+      // ── ORIGINALITY CHECK — detect close paraphrasing / plagiarism ──
+      (async () => {
+        try {
+          const { checkOriginality } = await import('./originality-check');
+          const analysisSections: Record<string, string> = {};
+          for (const [key, value] of Object.entries(analysis as Record<string, unknown>)) {
+            if (typeof value === "string" && value.length > 50) {
+              analysisSections[key] = value;
+            }
           }
+          const originality = checkOriginality(analysisSections, topSources);
+          stats.originalityCheck = {
+            originalityScore: originality.originalityScore,
+            flaggedSections: originality.flaggedSections.length,
+            averageOverlap: originality.averageOverlap,
+          };
+          if (originality.flaggedSections.length > 0) {
+            console.warn(`${label} ORIGINALITY: ${originality.flaggedSections.length} sections flagged for high source overlap (avg ${(originality.averageOverlap * 100).toFixed(1)}%)`);
+          } else {
+            console.log(`${label} ORIGINALITY: OK (score ${(originality.originalityScore * 100).toFixed(0)}%, avg overlap ${(originality.averageOverlap * 100).toFixed(1)}%)`);
+          }
+        } catch (err) {
+          console.warn(`${label} ORIGINALITY: failed (non-blocking):`, err);
         }
-      }
-      console.log(`${label} SOURCE CHECK: ${sourceCheckResult.verifiedCount} verified, ${sourceCheckResult.retractedCount} retracted, ${sourceCheckResult.notFoundCount} not found, ${sourceCheckResult.claimAbsentCount} claim absent → integrity ${sourceCheckResult.integrityScore}%`);
-    } catch (err) {
-      console.warn(`${label} SOURCE CHECK: failed (non-blocking):`, err);
-    }
+      })(),
 
-    // ── URL HEALTH (urlhealth pattern, arXiv 2604.03173) ──
-    // 3-13% of citation URLs from deep-research agents are hallucinated or
-    // dead. Probe only the URLs actually cited (bounded ≤25), rescue dead
-    // ones via Wayback. Non-blocking, deterministic-ish cost.
-    try {
-      const { checkCitedUrlHealth } = await import('./url-health');
-      const { extractCitationNumbers } = await import('./evidence-ledger');
-      const citedNums = extractCitationNumbers(html);
-      if (citedNums.length > 0) {
-        const urlHealth = await checkCitedUrlHealth(citedNums, topSources);
-        stats.urlHealth = {
-          checked: urlHealth.checked,
-          alive: urlHealth.alive,
-          dead: urlHealth.dead,
-          waybackRescued: urlHealth.waybackRescued,
-          unrecoverable: urlHealth.unrecoverable.length,
-        };
-        if (urlHealth.unrecoverable.length > 0) {
-          ctx.addFinding('URL_HEALTH', 'warning',
-            `${urlHealth.unrecoverable.length} cited URL(s) unresolvable and not archived — possible hallucinated or rotten citations`);
-          console.warn(`${label} URL HEALTH: ${urlHealth.alive}/${urlHealth.checked} alive, ${urlHealth.waybackRescued} rescued via archive, ${urlHealth.unrecoverable.length} UNRECOVERABLE`);
-        } else {
-          console.log(`${label} URL HEALTH: ${urlHealth.alive}/${urlHealth.checked} alive${urlHealth.waybackRescued ? `, ${urlHealth.waybackRescued} rescued` : ''}`);
+      // ── BIAS DETECTION — systematic corpus bias check (incl. funding COI) ──
+      (async () => {
+        try {
+          const { detectBiases } = await import('./bias-detector');
+          // Extract funders from raw metadata for conflict-of-interest detection
+          const sourcesWithFunders = topSources.map((s: any) => ({
+            ...s,
+            funders: s.funders || (s.raw?.funder as Array<{ name: string; DOI?: string; award?: string }> | undefined)?.map((f: any) => ({ name: f.name || '', doi: f.DOI || null, award: f.award || null })).filter((f: any) => f.name) || [],
+          }));
+          const biasReport = detectBiases(sourcesWithFunders, html);
+          stats.biasDetection = {
+            biasCount: biasReport.biases.length,
+            overallBiasRisk: biasReport.overallBiasRisk,
+            sourceDiversityScore: biasReport.sourceDiversityScore,
+            biasTypes: biasReport.biases.map((b) => b.biasType),
+          };
+          if (biasReport.biases.length > 0) {
+            console.warn(`${label} BIAS DETECTOR: ${biasReport.biases.length} biases detected (risk ${(biasReport.overallBiasRisk * 100).toFixed(0)}%): ${biasReport.biases.map((b) => `${b.biasType}(${b.severity})`).join(", ")}`);
+          } else {
+            console.log(`${label} BIAS DETECTOR: OK (diversity score ${(biasReport.sourceDiversityScore * 100).toFixed(0)}%)`);
+          }
+        } catch (err) {
+          console.warn(`${label} BIAS DETECTOR: failed (non-blocking):`, err);
         }
-      }
-    } catch (err) {
-      console.warn(`${label} URL HEALTH: failed (non-blocking):`, err);
-    }
+      })(),
 
-    // ── EVIDENCE BANK VALIDATION — citations must point at sources that
-    // contributed extracted evidence. Citing a source with zero banked
-    // claims = citing metadata the model never read = hallucination risk. ──
-    if (evidenceBankRef && evidenceBankRef.entries.length > 0) {
-      try {
-        const { validateCitationsAgainstBank } = await import('./evidence-bank');
-        const { extractCitationNumbers } = await import('./evidence-ledger');
-        const bankCheck = validateCitationsAgainstBank(extractCitationNumbers(html), evidenceBankRef);
-        stats.evidenceBankValidation = {
-          citedCount: bankCheck.citedCount,
-          bankedCount: bankCheck.bankedCount,
-          unbankedCitations: bankCheck.unbankedCitations,
-          utilizationPct: bankCheck.utilizationPct,
-          risk: bankCheck.risk,
-        };
-        if (bankCheck.risk === 'high') {
-          ctx.addFinding('EVIDENCE_BANK', 'warning',
-            `${bankCheck.unbankedCitations.length}/${bankCheck.citedCount} citations point to sources with no extracted evidence — likely citing metadata, not content`);
-          console.warn(`${label} EVIDENCE BANK: HIGH RISK — ${bankCheck.unbankedCitations.length} citations to unextracted sources [${bankCheck.unbankedCitations.join(',')}]`);
-        } else if (bankCheck.unbankedCitations.length > 0) {
-          console.log(`${label} EVIDENCE BANK: ${bankCheck.unbankedCitations.length} citations to unextracted sources (risk ${bankCheck.risk}), utilization ${bankCheck.utilizationPct}%`);
-        } else {
-          console.log(`${label} EVIDENCE BANK: all citations banked, utilization ${bankCheck.utilizationPct}%`);
+      // ── SOURCE CHECK (sourcecheck pattern) — retraction detection + claim presence ──
+      // Resolves each cited source via OpenAlex/Crossref, checks for retraction,
+      // and verifies the claim text appears in the source. Free, deterministic.
+      (async () => {
+        try {
+          const { checkSourcesBatch } = await import('./sourcecheck');
+          // Check top sources for retraction (limit to top 20 to control API calls)
+          const sourcesToCheck = topSources.slice(0, 20).map((s: any) => ({
+            id: s.id,
+            title: s.title || '',
+            doi: s.doi || null,
+            abstract: s.abstract || null,
+            fullText: s.fullText || null,
+          }));
+          const sourceCheckResult = await checkSourcesBatch(sourcesToCheck);
+          stats.sourceCheck = {
+            checked: sourceCheckResult.results.length,
+            retracted: sourceCheckResult.retractedCount,
+            verified: sourceCheckResult.verifiedCount,
+            notFound: sourceCheckResult.notFoundCount,
+            claimAbsent: sourceCheckResult.claimAbsentCount,
+            integrityScore: sourceCheckResult.integrityScore,
+          };
+          if (sourceCheckResult.retractedCount > 0) {
+            console.warn(`${label} SOURCE CHECK: ${sourceCheckResult.retractedCount} RETRACTED sources detected!`);
+            // Flag retracted sources in HTML — add a warning badge
+            for (const r of sourceCheckResult.results) {
+              if (r.verdict === 'retracted') {
+                console.warn(`${label} SOURCE CHECK: RETRACTED — "${r.sourceTitle.slice(0, 60)}..." (DOI: ${r.doi})`);
+              }
+            }
+          }
+          console.log(`${label} SOURCE CHECK: ${sourceCheckResult.verifiedCount} verified, ${sourceCheckResult.retractedCount} retracted, ${sourceCheckResult.notFoundCount} not found, ${sourceCheckResult.claimAbsentCount} claim absent → integrity ${sourceCheckResult.integrityScore}%`);
+        } catch (err) {
+          console.warn(`${label} SOURCE CHECK: failed (non-blocking):`, err);
         }
-      } catch (err) {
-        console.warn(`${label} EVIDENCE BANK: validation failed (non-blocking):`, err);
-      }
-    }
+      })(),
 
-    // ── PROCESS AUDIT (PING taxonomy, arXiv 2601.22984) ──
-    // Hallucinations originate in intermediate steps, not just the final
-    // text: intent drift in planning, propagation loss (researched but
-    // dropped sub-questions), noise (retrieved but never used evidence).
-    try {
-      const { auditProcessTrace } = await import('./process-audit');
-      const { extractCitationNumbers } = await import('./evidence-ledger');
-      const audit = auditProcessTrace({
-        question: query,
-        planNodes: planNodesForAudit,
-        analysis,
-        citedSourceIndices: extractCitationNumbers(html),
-        totalTopSources: topSources.length,
-      });
-      stats.processAudit = {
-        score: audit.score,
-        intentMisaligned: audit.intent.misalignedNodes.length,
-        propagationDropped: audit.propagation.unaddressedNodes.length,
-        unusedSourcePct: audit.noise.unusedPct,
-      };
-      if (audit.score < 70) {
-        ctx.addFinding('PROCESS_AUDIT', 'warning',
-          `Trajectory audit ${audit.score}/100 — intent drift: ${audit.intent.misalignedNodes.length}, dropped sub-questions: ${audit.propagation.unaddressedNodes.length}, unused sources: ${audit.noise.unusedPct}%`);
-        console.warn(`${label} PROCESS AUDIT: score ${audit.score}/100 — ${audit.propagation.unaddressedNodes.length} researched sub-questions never addressed, ${audit.noise.unusedPct}% sources unused`);
-      } else {
-        console.log(`${label} PROCESS AUDIT: ${audit.score}/100 (intent ✓, propagation ✓, noise ${audit.noise.unusedPct}%)`);
-      }
-    } catch (err) {
-      console.warn(`${label} PROCESS AUDIT: failed (non-blocking):`, err);
-    }
+      // ── URL HEALTH (urlhealth pattern, arXiv 2604.03173) ──
+      // 3-13% of citation URLs from deep-research agents are hallucinated or
+      // dead. Probe only the URLs actually cited (bounded ≤25), rescue dead
+      // ones via Wayback. Non-blocking, deterministic-ish cost.
+      (async () => {
+        try {
+          const { checkCitedUrlHealth } = await import('./url-health');
+          const { extractCitationNumbers } = await import('./evidence-ledger');
+          const citedNums = extractCitationNumbers(html);
+          if (citedNums.length > 0) {
+            const urlHealth = await checkCitedUrlHealth(citedNums, topSources);
+            stats.urlHealth = {
+              checked: urlHealth.checked,
+              alive: urlHealth.alive,
+              dead: urlHealth.dead,
+              waybackRescued: urlHealth.waybackRescued,
+              unrecoverable: urlHealth.unrecoverable.length,
+            };
+            if (urlHealth.unrecoverable.length > 0) {
+              ctx.addFinding('URL_HEALTH', 'warning',
+                `${urlHealth.unrecoverable.length} cited URL(s) unresolvable and not archived — possible hallucinated or rotten citations`);
+              console.warn(`${label} URL HEALTH: ${urlHealth.alive}/${urlHealth.checked} alive, ${urlHealth.waybackRescued} rescued via archive, ${urlHealth.unrecoverable.length} UNRECOVERABLE`);
+            } else {
+              console.log(`${label} URL HEALTH: ${urlHealth.alive}/${urlHealth.checked} alive${urlHealth.waybackRescued ? `, ${urlHealth.waybackRescued} rescued` : ''}`);
+            }
+          }
+        } catch (err) {
+          console.warn(`${label} URL HEALTH: failed (non-blocking):`, err);
+        }
+      })(),
+
+      // ── EVIDENCE BANK VALIDATION — citations must point at sources that
+      // contributed extracted evidence. Citing a source with zero banked
+      // claims = citing metadata the model never read = hallucination risk. ──
+      (async () => {
+        if (!(evidenceBankRef && evidenceBankRef.entries.length > 0)) return;
+        try {
+          const { validateCitationsAgainstBank } = await import('./evidence-bank');
+          const { extractCitationNumbers } = await import('./evidence-ledger');
+          const bankCheck = validateCitationsAgainstBank(extractCitationNumbers(html), evidenceBankRef);
+          stats.evidenceBankValidation = {
+            citedCount: bankCheck.citedCount,
+            bankedCount: bankCheck.bankedCount,
+            unbankedCitations: bankCheck.unbankedCitations,
+            utilizationPct: bankCheck.utilizationPct,
+            risk: bankCheck.risk,
+          };
+          if (bankCheck.risk === 'high') {
+            ctx.addFinding('EVIDENCE_BANK', 'warning',
+              `${bankCheck.unbankedCitations.length}/${bankCheck.citedCount} citations point to sources with no extracted evidence — likely citing metadata, not content`);
+            console.warn(`${label} EVIDENCE BANK: HIGH RISK — ${bankCheck.unbankedCitations.length} citations to unextracted sources [${bankCheck.unbankedCitations.join(',')}]`);
+          } else if (bankCheck.unbankedCitations.length > 0) {
+            console.log(`${label} EVIDENCE BANK: ${bankCheck.unbankedCitations.length} citations to unextracted sources (risk ${bankCheck.risk}), utilization ${bankCheck.utilizationPct}%`);
+          } else {
+            console.log(`${label} EVIDENCE BANK: all citations banked, utilization ${bankCheck.utilizationPct}%`);
+          }
+        } catch (err) {
+          console.warn(`${label} EVIDENCE BANK: validation failed (non-blocking):`, err);
+        }
+      })(),
+
+      // ── PROCESS AUDIT (PING taxonomy, arXiv 2601.22984) ──
+      // Hallucinations originate in intermediate steps, not just the final
+      // text: intent drift in planning, propagation loss (researched but
+      // dropped sub-questions), noise (retrieved but never used evidence).
+      (async () => {
+        try {
+          const { auditProcessTrace } = await import('./process-audit');
+          const { extractCitationNumbers } = await import('./evidence-ledger');
+          const audit = auditProcessTrace({
+            question: query,
+            planNodes: planNodesForAudit,
+            analysis,
+            citedSourceIndices: extractCitationNumbers(html),
+            totalTopSources: topSources.length,
+          });
+          stats.processAudit = {
+            score: audit.score,
+            intentMisaligned: audit.intent.misalignedNodes.length,
+            propagationDropped: audit.propagation.unaddressedNodes.length,
+            unusedSourcePct: audit.noise.unusedPct,
+          };
+          if (audit.score < 70) {
+            ctx.addFinding('PROCESS_AUDIT', 'warning',
+              `Trajectory audit ${audit.score}/100 — intent drift: ${audit.intent.misalignedNodes.length}, dropped sub-questions: ${audit.propagation.unaddressedNodes.length}, unused sources: ${audit.noise.unusedPct}%`);
+            console.warn(`${label} PROCESS AUDIT: score ${audit.score}/100 — ${audit.propagation.unaddressedNodes.length} researched sub-questions never addressed, ${audit.noise.unusedPct}% sources unused`);
+          } else {
+            console.log(`${label} PROCESS AUDIT: ${audit.score}/100 (intent ✓, propagation ✓, noise ${audit.noise.unusedPct}%)`);
+          }
+        } catch (err) {
+          console.warn(`${label} PROCESS AUDIT: failed (non-blocking):`, err);
+        }
+      })(),
+    ]);
 
     // ── DETERMINISTIC TRUST SCORING — replaces Critical Loop V2 ──
     // LLM judges have calibration drift, position bias, and see truncated drafts (FlowVerify 2026).
@@ -7415,260 +7448,39 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     console.warn(`${label} DA RE-CHECK failed (non-blocking):`, recheckErr);
   }
 
-  // ── POST-RENDER QUALITY LOOP (Karpathy Loop pattern, inspired by Cortis) ──
-  // If trust score is below publication threshold after all quality gates,
-  // retry citation repair + claim grounding with more aggressive settings.
-  // This prevents HELD on reports that are just under the threshold (trust 55-64).
-  // Cost: $0 (deterministic, CPU-only). Only 1 retry to avoid infinite loops.
-  try {
-    const currentTrust = stats.criticalLoop?.finalScore ?? 0;
-    const currentGroundedness = stats.claimGrounding?.groundedness ?? 100;
-    const PUBLISH_THRESHOLD = 65;
-    const MIN_VIABLE_TRUST = 55;
-    const GROUNDEDNESS_THRESHOLD = 80;
-
-    if (currentTrust > 0 && (currentTrust < PUBLISH_THRESHOLD || currentGroundedness < GROUNDEDNESS_THRESHOLD)) {
-      console.log(`${label} QUALITY LOOP: trust ${currentTrust} < ${PUBLISH_THRESHOLD} or groundedness ${currentGroundedness}% < ${GROUNDEDNESS_THRESHOLD}% — retrying citation repair with aggressive settings`);
-
-      // Retry 1: More aggressive citation repair (inject citations for ANY claim matching a source)
-      const { repairCitations } = await import('./citation-repair');
-      const aggressiveRepair = repairCitations(html, analysis as Record<string, unknown>, topSources);
-      if (aggressiveRepair.citationsBackfilled + aggressiveRepair.citationsInjected > 0) {
-        html = aggressiveRepair.html;
-        bumpHtmlArtifact();
-        console.log(`${label} QUALITY LOOP: aggressive citation repair +${aggressiveRepair.citationsBackfilled} backfilled, +${aggressiveRepair.citationsInjected} injected`);
-        // Update stats
-        if (stats.citationRepair) {
-          (stats.citationRepair as any).loopBackfilled = aggressiveRepair.citationsBackfilled;
-          (stats.citationRepair as any).loopInjected = aggressiveRepair.citationsInjected;
-        }
-        // Re-apply evidence IDs to the newly injected citations so they get data-evidence="EN"
-        // (repairCitations produces <sup> without data-evidence; replaceSrcWithEvidenceIds adds it)
-        try {
-          const { replaceSrcWithEvidenceIds } = await import('./evidence-registry');
-          html = replaceSrcWithEvidenceIds(html, evidenceRegistry);
-        } catch (eErr) {
-          console.warn(`${label} QUALITY LOOP: evidence ID re-application failed (non-blocking):`, eErr);
-        }
-      }
-
-      // Re-run claim grounding on repaired HTML (NLI-enhanced)
-      const { groundClaimsWithNLI } = await import('./claim-grounding');
-      const loopGrounding = await groundClaimsWithNLI(html, topSources, { mode: 'remove', readings });
-      if (loopGrounding.removedClaims > 0) {
-        html = loopGrounding.html;
-        bumpHtmlArtifact();
-      }
-      console.log(`${label} QUALITY LOOP: re-grounding → ${loopGrounding.supported} supported, ${loopGrounding.unsupported} unsupported → groundedness ${Math.round(loopGrounding.groundedness * 100)}%`);
-      stats.claimGrounding = tagEval({
-        supported: loopGrounding.supported,
-        partial: loopGrounding.partial,
-        unsupported: loopGrounding.unsupported,
-        uncited: loopGrounding.uncited,
-        contradicted: loopGrounding.contradicted,
-        groundedness: Math.round(loopGrounding.groundedness * 100),
-        flagged: loopGrounding.removedClaims,
-      }, 'html');
-
-      // Re-calculate trust score with new grounding + coverage
-      const loopCitedSources = new Set<number>();
-      for (const m of html.matchAll(/\[SRC-(\d+)\]/g)) loopCitedSources.add(parseInt(m[1], 10));
-      for (const m of html.matchAll(/data-evidence="E(\d+)"/g)) loopCitedSources.add(parseInt(m[1], 10));
-      for (const m of html.matchAll(/href="#ref-(\d+)"/g)) loopCitedSources.add(parseInt(m[1], 10));
-      const loopCoverageTarget = Math.min(40, Math.max(15, Math.ceil(topSources.length * 0.35)));
-      const loopCitationCoverage = loopCoverageTarget > 0 ? Math.min(1, loopCitedSources.size / loopCoverageTarget) : 0;
-      const loopGroundedness = loopGrounding.groundedness;
-
-      const loopFactIntegrity = (stats.factChecker as any)?.integrityScore ?? 80;
-      const loopNliIntegrity = stats.citationVerifier?.integrity ?? 80;
-      const loopDiversityScore = Math.min(100, new Set(topSources.map((s: any) => s.provider)).size * 15);
-      const loopAvgQuality = topSources.length > 0
-        ? topSources.reduce((sum: number, s: any) => sum + (s.qualityScore || 0), 0) / topSources.length
-        : 50;
-
-      let loopTrustScore = Math.round(
-        loopCitationCoverage * 25 +
-        loopGroundedness * 20 +
-        (loopFactIntegrity / 100) * 15 +
-        (loopNliIntegrity / 100) * 15 +
-        (loopDiversityScore / 100) * 10 +
-        (loopAvgQuality / 100) * 15
-      );
-
-      // Quality floor
-      if (loopAvgQuality > 80 && loopCitationCoverage > 0.60) {
-        loopTrustScore = Math.max(loopTrustScore, 60);
-      }
-      // Grounding veto
-      if (loopGroundedness < 0.15) {
-        loopTrustScore = Math.min(loopTrustScore, 45);
-      }
-      if (loopGroundedness >= 0.15 && loopGroundedness < 0.40) {
-        loopTrustScore = Math.min(loopTrustScore, 55);
-      }
-
-      // ── VETO PARITY — the loop must not bypass the deterministic vetoes ──
-      // Without this, the quality loop inflated 45→75 while the critic veto
-      // had capped at 50 (confidence-inflation cascade flagged by SelfCorrect).
-      // P0-1: vetoes only apply to evaluations attached to the CURRENT artifact
-      // — a verdict on a replaced artifact (post-sweep/loop mutations) is invalid.
-      collectStaleEvaluations();
-      const loopCriticScore = stats.critic?.stale ? null : (stats.critic?.overallScore ?? null);
-      const loopCriticVerdict = stats.critic?.stale ? null : (stats.critic?.verdict ?? null);
-      const loopSymbolicScore = stats.symbolicVerifier?.score ?? 100;
-      const loopSymbolicFailed = stats.symbolicVerifier?.failed ?? 0;
-      const loopProviderDiversity = new Set(topSources.map((s: any) => s.provider)).size;
-
-      if (loopSymbolicFailed > 0 && loopSymbolicScore < 70) {
-        loopTrustScore = Math.min(loopTrustScore, 55);
-        console.log(`${label} QUALITY LOOP: symbolic veto reapplied (cap 55)`);
-      }
-      if (loopCriticVerdict === 'reject') {
-        loopTrustScore = Math.min(loopTrustScore, 50);
-        console.log(`${label} QUALITY LOOP: critic reject veto reapplied (cap 50)`);
-      }
-      if (loopCriticScore !== null && loopCriticScore < 10) {
-        loopTrustScore = Math.min(loopTrustScore, 40);
-      } else if (loopCriticScore !== null && loopCriticScore < 25) {
-        loopTrustScore = Math.min(loopTrustScore, 55);
-      } else if (loopCriticScore !== null && loopCriticScore < 60) {
-        const penaltyPct = Math.round((60 - loopCriticScore) * 0.37);
-        loopTrustScore = Math.round(loopTrustScore * (100 - penaltyPct) / 100);
-      }
-      if ((stats.sourceCheck as any)?.retracted > 0) {
-        loopTrustScore = Math.min(loopTrustScore, 50);
-      }
-      if (loopNliIntegrity < 70) {
-        loopTrustScore = Math.min(loopTrustScore, 55);
-      }
-      if ((stats as any).devilsAdvocateVeto && !(stats.devilsAdvocate as any)?.stale) {
-        loopTrustScore = Math.min(loopTrustScore, 40);
-      }
-      if (loopProviderDiversity < 3) {
-        loopTrustScore = Math.min(loopTrustScore, 60);
-      }
-      const loopHallScore = (stats as any).hallDetect?.score ?? 0;
-      if (loopHallScore > 70) {
-        loopTrustScore = Math.min(loopTrustScore, 50);
-      }
-      loopTrustScore = Math.min(100, Math.max(0, loopTrustScore));
-
-      const trustImprovement = loopTrustScore - currentTrust;
-      console.log(`${label} QUALITY LOOP: trust ${currentTrust} → ${loopTrustScore} (+${trustImprovement}) — coverage ${Math.round(loopCitationCoverage * 100)}%, groundedness ${Math.round(loopGroundedness * 100)}%`);
-
-      // Update trust score in stats
-      stats.criticalLoop = {
-        ...(stats.criticalLoop as any),
-        finalScore: loopTrustScore,
-        needsHumanReview: loopTrustScore < MIN_VIABLE_TRUST,
-        loopRetried: true,
-        loopImprovement: trustImprovement,
-      };
-      orchState.trustScore = loopTrustScore;
-
-      // Re-inject methodology note with updated trust score
-      if (html.includes('Indice de confiance :')) {
-        html = html.replace(
-          /Indice de confiance : <strong>\d+\/100<\/strong>/,
-          `Indice de confiance : <strong>${loopTrustScore}/100</strong>`
-        );
-      }
-
-      stats.qualityLoop = {
-        attempted: true,
-        trustBefore: currentTrust,
-        trustAfter: loopTrustScore,
-        improvement: trustImprovement,
-        citationsBackfilled: aggressiveRepair.citationsBackfilled,
-        citationsInjected: aggressiveRepair.citationsInjected,
-      };
-    } else {
-      stats.qualityLoop = { attempted: false, reason: `trust ${currentTrust} ≥ ${PUBLISH_THRESHOLD}` };
-    }
-  } catch (loopErr) {
-    console.warn(`${label} QUALITY LOOP: failed (non-blocking):`, loopErr);
-    stats.qualityLoop = { attempted: true, error: String(loopErr) };
-  }
-
-  // SELF-CORRECT CHECKPOINT: QUALITY LOOP (final trust score)
-  try {
-    const finalTrust = orchState.trustScore ?? 0;
-    const cpResult = await selfCorrector.checkpoint(
-      'quality_loop',
-      html.slice(0, 8000),
-      [
-        citationCoverageVerifier('final_citation_coverage', topSources.length, 0.35),
-        {
-          id: 'trust_threshold',
-          check: () => {
-            if (finalTrust < 55) {
-              return { verifierId: 'trust_threshold', verdict: 'escalate' as const, score: finalTrust / 100, reasons: [`Trust score ${finalTrust}/100 below minimum viable (55) — report should not publish`] };
-            }
-            if (finalTrust < 65) {
-              return { verifierId: 'trust_threshold', verdict: 'retry' as const, score: finalTrust / 100, reasons: [`Trust score ${finalTrust}/100 below publication threshold (65) — quality loop may need another pass`] };
-            }
-            return { verifierId: 'trust_threshold', verdict: 'pass' as const, score: finalTrust / 100, reasons: [] };
-          },
-        },
-      ],
-      finalTrust / 100,
-    );
-    const scStats = selfCorrector.getStats();
-    (stats as any).selfCorrect = {
-      ...((stats as any).selfCorrect ?? {}),
-      finalCheckpoint: cpResult,
-      stats: scStats,
+  // ── POST-RENDER TAIL STEPS (extracted to lib/agent/pipeline-steps/) ──
+  // Quality loop → self-correct checkpoint → hero image. Each step mutates a
+  // shared context (html/stats/orchState); the orchestrator reads it back.
+  {
+    const { runPostRenderQualityLoop } = await import('./pipeline-steps/quality-loop');
+    const { runFinalSelfCorrectCheckpoint } = await import('./pipeline-steps/self-correct-checkpoint');
+    const { runHeroImageStep } = await import('./pipeline-steps/hero-image-step');
+    const tailCtx: import('./pipeline-steps/types').TailStepContext = {
+      html,
+      analysis: analysis as Record<string, any>,
+      topSources,
+      readings,
+      stats: stats as Record<string, any>,
+      orchState,
+      evidenceRegistry,
+      label,
+      query,
+      topicClassification,
+      detectedDomain,
+      isStrategic,
+      isMemo,
+      isDossier,
+      selfCorrector,
+      bumpHtmlArtifact,
+      tagEval,
+      collectStaleEvaluations,
+      selfCorrectRollbacks: 0,
     };
-    if (cpResult.cascadeDetected) {
-      console.warn(`${label} SELF-CORRECT: CASCADE detected at QUALITY LOOP — rollback target: ${cpResult.rollbackTarget ?? 'none'}`);
-      selfCorrectRollbacks++;
-    }
-    console.log(`${label} SELF-CORRECT SUMMARY: ${scStats.stagesChecked} stages, ${scStats.totalRetries} retries, ${scStats.cascadesDetected} cascades, avg drift=${scStats.avgDrift.toFixed(3)}, ${scStats.cleanStages}/${scStats.stagesChecked} clean`);
-  } catch (scErr) {
-    console.warn(`${label} SELF-CORRECT: QUALITY LOOP checkpoint failed (non-blocking):`, scErr);
-  }
-
-  // HERO IMAGE: Generate a conceptual abstract image for the publication
-  try {
-    const { generateHeroImage } = await import('./hero-image');
-    const collisionLbl = topicClassification?.dimensions?.length
-      ? topicClassification.dimensions.map((d: any) => d.label).join(' × ')
-      : topicClassification?.primaryDomain || detectedDomain || '';
-    const heroResult = await generateHeroImage(
-      String(analysis.title || query),
-      collisionLbl,
-      topicClassification?.primaryDomain || detectedDomain || '',
-      {
-        throughLine: (analysis as any).throughLine || undefined,
-        keyFindings: (analysis as any).keyFindings || undefined,
-        summary: (analysis as any).summary || undefined,
-        sectionTitles: extractSectionTitles(html),
-        publicationType: isStrategic ? 'STRATEGIC_REPORT' : isMemo ? 'DECISION_MEMO' : isDossier ? 'STRATEGIC_REPORT' : 'ARTICLE',
-      },
-    );
-    if (heroResult) {
-      const heroHtml = `<figure class="hero-image" style="margin:0 0 32px 0;width:100%;overflow:hidden;border:1px solid rgba(240,240,250,0.08);border-radius:4px;">
-        <img src="${heroResult.url}" alt="${String(analysis.title || query).replace(/"/g, '&quot;')}" style="width:100%;height:auto;display:block;object-fit:cover;" />
-      </figure>`;
-      // Insert after brand header + title + meta (after the first .brief-meta or .report-meta closing div)
-      if (html.includes('class="brief-meta"')) {
-        html = html.replace(/(class="brief-meta"[^>]*>[\s\S]*?<\/div>)/, `$1\n${heroHtml}`);
-      } else if (html.includes('class="report-meta"')) {
-        html = html.replace(/(class="report-meta"[^>]*>[\s\S]*?<\/div>)/, `$1\n${heroHtml}`);
-      } else if (html.includes('<article')) {
-        html = html.replace(/(<article[^>]*>)/, `$1\n${heroHtml}`);
-      } else if (html.includes('<div class="nomosx-brief"')) {
-        html = html.replace(/(<div class="nomosx-brief[^"]*">)/, `$1\n${heroHtml}`);
-      } else {
-        html = heroHtml + html;
-      }
-      stats.heroImage = { generated: true, costUsd: heroResult.costUsd };
-      console.log(`${label} HERO IMAGE: generated and injected into HTML`);
-    } else {
-      stats.heroImage = { generated: false, costUsd: 0 };
-    }
-  } catch (heroErr) {
-    console.warn(`${label} HERO IMAGE: failed (non-blocking):`, heroErr);
+    await runPostRenderQualityLoop(tailCtx);
+    await runFinalSelfCorrectCheckpoint(tailCtx);
+    await runHeroImageStep(tailCtx);
+    html = tailCtx.html;
+    selfCorrectRollbacks += tailCtx.selfCorrectRollbacks;
   }
 
   // ── STEP 14: PUBLISHER ──
@@ -7877,7 +7689,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     // Non-blocking
   }
 
-  // ── EVALUATION FRESHNESS ASSERT (P0-1) ──
+  // ── EVALUATION FRESHNESS ASSERT (P0/1) ──
   // Every tagged evaluation is checked against the artifact version it judged.
   // A stale verdict (attached to a replaced artifact — the S27 bug class) is
   // marked `.stale` in stats so the gate cannot silently consume it.
@@ -8359,20 +8171,6 @@ export async function runStrategicPipeline(
  * Default: 120s for briefs, 300s for strategic reports
  */
 
-/**
- * Extract section titles (<h2>, <h3>) from rendered HTML for hero image context.
- */
-function extractSectionTitles(html: string): string[] {
-  const titles: string[] = [];
-  const re = /<h[23][^>]*>([^<]+)<\/h[23]>/g;
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(html)) !== null) {
-    const t = m[1].replace(/&amp;/g, '&').replace(/&quot;/g, '"').trim();
-    if (t && t.length > 2 && t.length < 120) titles.push(t);
-  }
-  return titles.slice(0, 10);
-}
-
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
@@ -8424,6 +8222,7 @@ export async function runPipeline(
     return await withTimeout(
       runPipelineCore(query, {
         isStrategic,
+        format,
         providers: options.providers,
         perProvider,
         rankOptions,

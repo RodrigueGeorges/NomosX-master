@@ -73,6 +73,15 @@ const envSchema = z.object({
 
   // Google Gemini 3.8 Flash — OpenAI-compatible endpoint, 1M context, $0.75/$3.75 per M
   GOOGLE_API_KEY: z.string().optional(),
+
+  // Free-tier LLM safety net ("freepool" provider) — all optional, all
+  // OpenAI-compatible. Activated only as LAST-resort fallback when paid
+  // providers are suspended/exhausted. Dormant when no key is set.
+  GROQ_API_KEY: z.string().optional(),          // 30 RPM / 14.4K req-day, no card
+  CEREBRAS_API_KEY: z.string().optional(),      // ~30 RPM / 1M tokens-day, no card
+  NVIDIA_API_KEY: z.string().optional(),        // build.nvidia.com ~40 RPM free
+  OPENROUTER_API_KEY: z.string().optional(),    // :free models ~50 req-day
+  MISTRAL_API_KEY: z.string().optional(),       // Experiment tier 1B tokens/month
   
   // Qwen (Alibaba Cloud / DashScope / Together.ai — OpenAI-compatible)
   

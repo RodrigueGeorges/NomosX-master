@@ -728,6 +728,9 @@ const PROVIDER_CAPABILITIES: Record<string, LLMCapability[]> = {
   kimi: ['tool_calling', 'structured_output', 'long_context'],
   openai: ['tool_calling', 'structured_output', 'vision', 'long_context', 'streaming'],
   anthropic: ['tool_calling', 'structured_output', 'vision', 'long_context', 'streaming'],
+  // Free-tier safety net — JSON output + tools on Groq/NIM; context is
+  // endpoint-dependent (Cerebras free tier caps at 8K) so no 'long_context'.
+  freepool: ['tool_calling', 'structured_output'],
 };
 
 /**

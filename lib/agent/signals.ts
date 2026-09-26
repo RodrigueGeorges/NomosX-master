@@ -298,7 +298,7 @@ export class SignalBus<T = unknown> {
 }
 
 // ============================================================================
-// PERSISTENT BUS (P2-8) — signals survive across cycles.
+// PERSISTENT BUS (P2/8) — signals survive across cycles.
 //
 // The in-memory bus dies with the run; dossier tracking needs needs that
 // outlive it. Persistence mirrors the durable-execution pattern: mutations

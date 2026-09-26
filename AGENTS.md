@@ -10,7 +10,7 @@
 
 Addresses the root cause of the S27 live-run bugs (stale evaluator verdicts consumed after artifact mutation) and the 50min-crash-loses-everything failure mode. No new features — reliability of what exists.
 
-### P0-1 — Artifact versioning (`pipeline-v2.ts`)
+### P0/1 — Artifact versioning (`pipeline-v2.ts`)
 
 **The bug class**: `analysis` and `html` are mutable artifacts crossing ~30 stages. An evaluator (critic, DA, grounding) judges version N; a later stage mutates the artifact; the gate still consumes the stale verdict → false vetoes or false approvals. Fixed structurally, not per-site:
 
@@ -20,7 +20,7 @@ Addresses the root cause of the S27 live-run bugs (stale evaluator verdicts cons
 - `collectStaleEvaluations()` — central collector; marks `.stale=true` on any evaluation whose tagged version ≠ current artifact version. Called inside the quality-loop veto-parity block (so a post-repair loop can't inflate trust on pre-repair verdicts) and once before stats persistence → `stats.evaluationFreshness = { analysisVersion, htmlVersion, stale[] }`.
 - Gate check `evaluation_freshness` — stale verdict-bearing evaluations block publication (hard check). Vetoes skip `.stale` results.
 
-### P0-2 — Durable execution cabled (`durable-execution.ts`, `pipeline-v2.ts`)
+### P0/2 — Durable execution cabled (`durable-execution.ts`, `pipeline-v2.ts`)
 
 `runDurableStep` existed but was never wired; also had two latent bugs: state keyed on `pipelineRun.id` (new per attempt → **never a real resume**) and `DURABLE_INIT` replay resetting `completed` → `running` (stale checkpoints reused across runs). Fixed:
 
@@ -30,21 +30,21 @@ Addresses the root cause of the S27 live-run bugs (stale evaluator verdicts cons
 - Steps wired at value boundaries: `scout` (allSourceIds → skipScout seedIds path on resume), `reader` (`readerAgentV3`), `analyst` (ReAct + both multipass paths; **not** re-analysis calls — gap-fill/repair must recompute), `render` (`renderEditorHtml`).
 - Default ON for `isStrategic || memo || dossier` (`opts.useDurableExecution` to override).
 
-### P0-3 — Dead-code purge (113 files)
+### P0/3 — Dead-code purge (113 files)
 
 `find-orphans.cjs` (repo root) — static import-graph scan: no importer anywhere in `src/lib/app/components/scripts/tests` → orphan. Iterated against false positives: extension-aware regex, test files as importers, root entry points, barrel exports, dynamic-import check (none found), provider-label strings excluded.
 
 Deleted: `lib/providers/extended-registry.mjs` (dead parallel registry — `registry-bridge.ts` is the live dispatch imported by pipeline-v2) + its 76-file provider subtree (all `*-provider.{js,mjs}` duplicates), 22 `lib/agent` stubs never wired (omega-verification, vmmao-orchestrator, phd-deliberation, triangular-judge…), orphaned UI components, `portable-server.js`, `domain-documents.ts`, `quota.ts`, `linkup-*` duplicates. All via `git rm` — recoverable. Post-purge rescan: 0 orphans in `lib/`/`components/`.
 
-### P1-4 — Run-regression harness (`scripts/eval-runs.ts`)
+### P1/4 — Run-regression harness (`scripts/eval-runs.ts`)
 
 `eval-golden.ts` re-scores stored HTML; `eval-runs.ts` replays persisted **stats** from the last N publications — deterministic, free, no LLM:
 
 - Metrics: publishRate, meanTrust, meanCostUsd, meanDurationMin, **costPerPublished** (the real KPI — a $0.68 run with 0 pubs = ∞), staleEvalRuns, veto distribution.
-- Regressions vs `evals/runs-baseline.json`: publishRate −10pts, meanTrust −5, any staleEvalRuns>0 (catches the S27 bug class retroactively), cost/duration +50%.
+- Regressions vs `evals/runs-baseline.json`: publishRate −10pts, meanTrust −5, any `stalePublished`>0 — a PUBLISHED piece carrying a stale verdict eval (`verdictStale` ∩ PUBLISHED; non-verdict stale detections are reported as `staleEvalRuns` but never gate-bearing, so they are transparency, not regression), cost/duration +50%.
 - `npm run eval:runs [--limit=N]` / `eval:runs:update`. Results → `evals/results/runs-latest.json`.
 
-### P1-5 — A/B flag protocol (marginal value of steps)
+### P1/5 — A/B flag protocol (marginal value of steps)
 
 Every `useX` flag in `PipelineCoreOptions` is an A/B lever. Measurement protocol — **no paid runs needed**: replay on stored artifacts via `eval:golden` (quality metrics) + `eval:runs` (cost/latency/veto stats already persisted per step in `stats.*`).
 
@@ -52,7 +52,7 @@ Every `useX` flag in `PipelineCoreOptions` is an A/B lever. Measurement protocol
 |---|---|---|---|
 | `useMixtureOfAgents` | auto (complex/strategic) | MoA analyst path | golden panelScore delta vs multipass |
 | `useWorldModel` | auto (temporal queries) | WorldEvolver enrichment | foresight stats presence + panel |
-| ~~useLATS/useAgenticAnalyst~~ | — | **supprimés (P1-6)** | zéro caller, zéro run prod |
+| ~~useLATS/useAgenticAnalyst~~ | — | **supprimés (P1/6)** | zéro caller, zéro run prod |
 | `usePRM` / `useSelfPlay` / `useSelfEvolution` | strategic+budget>$3 | step scorer / adversary / prompt evolution | runs cost delta vs publishRate |
 | `useWitness` | strategic+budget>$2 | witness attestations | stats.witness presence |
 | `useAgenticAnalyst` | off | ReAct analyst loop | opt-in; compare vs multipass |
@@ -63,7 +63,7 @@ Every `useX` flag in `PipelineCoreOptions` is an A/B lever. Measurement protocol
 
 **Rule going forward**: a flag-enabled step that can't move a `eval:golden` or `eval:runs` metric on replays is a deletion candidate, not a keep.
 
-### P2-7/P2-8 — Prediction watch + persistent signal bus
+### P2/7/P2/8 — Prediction watch + persistent signal bus
 
 The forecast loop is closed. Predictions were write-only memory; now the radar compares each cycle's topics against OPEN predictions' `whatWouldFalsify`/`resolutionCriteria` triggers.
 
@@ -73,11 +73,22 @@ The forecast loop is closed. Predictions were write-only memory; now the radar c
   - `prediction-watch` posts `dossier_watch` signals per fired dossier (14-day decay) — dossiers under active watch get a small priority boost on subsequent firings.
   - `pipeline-v2` swaps `ctx.signals` for a persistent bus keyed by `durableKey` when durable execution is on — coordination state survives a crash and rehydrates on resume, complementing step checkpoints.
 
-### P1-6 — Analyst fork eliminated
+### P1/6 — Analyst fork eliminated
 
 `analystReAct` (`analyst-react.ts` + `lats/` subtree + `react-loop.ts` + `self-discover.ts`) deleted — gated behind `useAgenticAnalyst` which **no caller ever enabled** (verified: zero references outside pipeline-v2, zero production runs). Multipass is now the single analyst path. Dead flags removed with it: `useAgenticAnalyst`, `useLATS`, `useAdaptiveRAG`, `useSelfDiscover`, `useBudgetForcing`, `useMCP`, `bestOfN`, `useMetaController`, `useLangfuse`, `useADAS` (the last three were declared but consumed nowhere). Live flags remaining: `useMixtureOfAgents`, `useWorldModel`, `usePRM`, `useSelfPlay`, `useWitness`, `useOutputGuard`, `useLocalJudge`, `useStorm`, `useTemporalMemory`, `useThinkTankPack`, `usePeerReview`, `useRagasEval`, `useSelfEvolution`, `useDurableExecution`.
 
 Verified: `tsc` 0 errors · jest 24/24 suites — 278 tests · `next build` OK (74 routes) · orphan rescan clean.
+
+### Sprint 28b — Provider resilience (live-run findings)
+
+The validation run exposed the real bottleneck: all paid LLM providers suspended mid-run (GLM credit exhaustion → OpenAI 429 → …) → 0 alive → the pipeline still burned paid retrieval on a doomed candidate, and memo/dossier durable execution never activated (`opts.format` was never propagated to `runPipelineCore`).
+
+- **`format` propagation fixed** — `PipelineCoreOptions.format` typed + forwarded by `runPipeline()`; durable execution now truly ON for memo/dossier.
+- **`freepool` provider** (`unified-llm.ts`) — a 7th LLM family acting as free-tier last resort. Internally cascades Groq → Cerebras → NVIDIA NIM → OpenRouter `:free` → Mistral (all OpenAI-compatible). Dormant without keys (`GROQ_API_KEY`/`CEREBRAS_API_KEY`/`NVIDIA_API_KEY`/`OPENROUTER_API_KEY`/`MISTRAL_API_KEY`), appended LAST in every `CROSS_FAMILY_FALLBACK` chain, $0 cost, per-endpoint free-tier context ceilings honored (Cerebras 8K skip). Capabilities: `structured_output`, `tool_calling`.
+- **Pre-flight hard abort** — `alive === 0` now throws `PreflightAbortError` (escapes the non-blocking catch) BEFORE the scout burns paid search calls. `alive === 1` downgraded to a DEGRADED warning — a single freepool endpoint can still complete a run.
+- `eval:runs` metric fixed: `stalePublished` (PUBLISHED/CORRECTED/RETRACTED carrying a stale **verdict** eval) is the regression; `staleDetected` on held pieces is transparency.
+
+Tests: `__tests__/lib/llm/freepool.test.ts` +6 (dormancy, activation, cascade order, context-skip, $0 cost, exhaustion). Verified: `tsc` 0 · jest 25/25 suites — 284 tests.
 
 ---
 

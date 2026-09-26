@@ -9,7 +9,7 @@
 // PIPELINE STATS — replaces `stats: any`
 // ============================================================================
 
-// P0-1 artifact versioning: every evaluation entry is tagged with the artifact
+// P0/1 artifact versioning: every evaluation entry is tagged with the artifact
 // channel it judged (analysis | html) and the artifact version at eval time.
 // `stale` is set by collectStaleEvaluations() when the artifact was replaced
 // after the eval ran — a stale verdict must never reach the publication gate.
@@ -880,7 +880,7 @@ export interface PipelineStats {
     flagged: number;
   } & EvalVersionTag;
 
-  // P0-1: Evaluation freshness audit — written by the freshness assert right
+  // P0/1: Evaluation freshness audit — written by the freshness assert right
   // before stats are persisted. `verdictStale` lists gate-load-bearing evals
   // (critic/criticPanel/devilsAdvocate) whose verdict describes a replaced
   // artifact version; the publication gate hard-fails on those.

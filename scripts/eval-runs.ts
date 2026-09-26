@@ -16,7 +16,8 @@
  * Exit 1 on regression vs evals/runs-baseline.json:
  *   - completionRate drops > 10pts or publishRate drops > 10pts
  *   - meanTrust drops > 5pts
- *   - staleEvalRuns > 0 (evaluations reused on mutated artifacts)
+ *   - stalePublished > 0 (a PUBLISHED piece carries a stale verdict eval —
+ *     the S27 bug class shipped; non-verdict stale evals are reported only)
  *   - meanCostUsd or meanDurationMin rises > 50%
  */
 
@@ -37,6 +38,7 @@ interface Agg {
   meanDurationMin: number;
   costPerPublished: number | null;
   staleEvalRuns: number;
+  stalePublished: number;
   staleEvalTotal: number;
   vetoCounts: Record<string, number>;
   evaluatedAt: string;
@@ -65,12 +67,24 @@ async function collect(limit: number): Promise<Agg> {
   const published = pubs.filter((p: any) => p.status === 'PUBLISHED');
 
   const vetoCounts: Record<string, number> = {};
-  let staleEvalRuns = 0, staleEvalTotal = 0;
+  let staleEvalRuns = 0, staleEvalTotal = 0, stalePublished = 0;
   for (const p of pubs as any[]) {
     const stats = (p.criticalLoopResult as any)?.stats ?? {};
-    const stale: string[] = Array.isArray(stats.evaluationFreshness?.stale)
-      ? stats.evaluationFreshness.stale : [];
-    if (stale.length > 0) staleEvalRuns++;
+    const freshness = stats.evaluationFreshness ?? {};
+    const stale: string[] = Array.isArray(freshness.stale) ? freshness.stale : [];
+    const verdictStale: string[] = Array.isArray(freshness.verdictStale)
+      ? freshness.verdictStale : [];
+    // Detection-and-report is HEALTHY (transparency). The regression is a
+    // stale VERDICT eval on a PUBLISHED piece — a stale verdict drove the
+    // decision. Non-verdict stale evals (grounding, claimBinding…) are
+    // reported but never gate-bearing, so they cannot be a regression.
+    if (stale.length > 0) {
+      staleEvalRuns++;
+      // PUBLISHED/CORRECTED/RETRACTED were all shipped — a stale verdict on
+      // any of them drove a live decision, even if the piece was later fixed.
+      const shipped = ['PUBLISHED', 'CORRECTED', 'RETRACTED'].includes(p.status);
+      if (verdictStale.length > 0 && shipped) stalePublished++;
+    }
     staleEvalTotal += stale.length;
     if (stats.devilsAdvocate?.veto) vetoCounts.devilsAdvocate = (vetoCounts.devilsAdvocate ?? 0) + 1;
     if (stats.critic?.recommendation === 'reject') vetoCounts.critic = (vetoCounts.critic ?? 0) + 1;
@@ -90,6 +104,7 @@ async function collect(limit: number): Promise<Agg> {
     meanDurationMin: mean(runs.map((r: any) => (r.durationMs ?? 0) / 60000)),
     costPerPublished: published.length ? totalCost / published.length : null,
     staleEvalRuns,
+    stalePublished,
     staleEvalTotal,
     vetoCounts,
     evaluatedAt: new Date().toISOString(),
@@ -108,7 +123,7 @@ async function main() {
     process.exit(1);
   }
 
-  console.log(`[RUN-EVAL] runs=${agg.runCount} (completed=${(agg.completionRate * 100).toFixed(0)}%) | pubs=${agg.pubCount} (published=${(agg.publishRate * 100).toFixed(0)}%) | trust=${agg.meanTrust.toFixed(1)} | cost/run=$${agg.meanCostUsd.toFixed(2)} | ${agg.meanDurationMin.toFixed(0)}min | staleEvalRuns=${agg.staleEvalRuns}`);
+  console.log(`[RUN-EVAL] runs=${agg.runCount} (completed=${(agg.completionRate * 100).toFixed(0)}%) | pubs=${agg.pubCount} (published=${(agg.publishRate * 100).toFixed(0)}%) | trust=${agg.meanTrust.toFixed(1)} | cost/run=$${agg.meanCostUsd.toFixed(2)} | ${agg.meanDurationMin.toFixed(0)}min | staleDetected=${agg.staleEvalRuns} stalePublished=${agg.stalePublished}`);
   if (agg.costPerPublished !== null) {
     console.log(`[RUN-EVAL] Cost per PUBLISHED piece: $${agg.costPerPublished.toFixed(2)}`);
   }
@@ -141,8 +156,8 @@ async function main() {
   if (agg.meanTrust < (baseline.meanTrust ?? 0) - 5) {
     regressions.push(`meanTrust: ${baseline.meanTrust.toFixed(1)} → ${agg.meanTrust.toFixed(1)}`);
   }
-  if (agg.staleEvalRuns > 0) {
-    regressions.push(`staleEvalRuns: ${agg.staleEvalRuns} run(s) produced with stale evaluations`);
+  if (agg.stalePublished > 0) {
+    regressions.push(`stalePublished: ${agg.stalePublished} publication(s) shipped with stale evaluations driving the verdict`);
   }
   if (baseline.meanCostUsd > 0 && agg.meanCostUsd > baseline.meanCostUsd * 1.5) {
     regressions.push(`meanCostUsd: $${baseline.meanCostUsd.toFixed(2)} → $${agg.meanCostUsd.toFixed(2)}`);

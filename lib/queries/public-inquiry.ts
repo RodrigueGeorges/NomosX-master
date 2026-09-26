@@ -73,6 +73,8 @@ export interface InquiryData {
   readTime: number;
   sources: number;
   topics: string[];
+  domain: string;
+  heroImageUrl: string | null;
   trustScore: number | null;
 }
 
@@ -101,6 +103,8 @@ export async function fetchInquiryData(slug: string, locale: string = 'en'): Pro
         sourceIds: true,
         trustScore: true,
         language: true,
+        heroImageUrl: true,
+        vertical: { select: { name: true, slug: true, color: true } },
       },
     });
 
@@ -155,6 +159,8 @@ export async function fetchInquiryData(slug: string, locale: string = 'en'): Pro
         readTime: Math.max(1, Math.ceil(article.wordCount / 200)),
         sources: article.sourceIds?.length || 0,
         topics: extractTopics(articleTitle || ''),
+        domain: article.vertical?.name ?? article.vertical?.slug ?? 'general',
+        heroImageUrl: article.heroImageUrl ?? null,
         trustScore: article.trustScore,
       },
       related: relatedArticles.map((r) => ({

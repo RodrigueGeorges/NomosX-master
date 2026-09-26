@@ -37,7 +37,7 @@ export interface PublicationGateInput {
   domain?: string | null;
   /** Structured claims from READER agent (Claim table). When provided, used instead of HTML heuristics. */
   dbClaims?: Array<{ text: string; sourceRef?: number | null; evidenceCount?: number }>;
-  /** P0-1: names of verdict-bearing evaluations tagged stale (attached to a
+  /** P0/1: names of verdict-bearing evaluations tagged stale (attached to a
    * replaced artifact version) — the gate must not consume them. */
   staleEvaluations?: string[];
 }
@@ -275,7 +275,7 @@ export function evaluatePublicationGate(input: PublicationGateInput): Publicatio
     checks.push({ checkType: 'central_scenario', passed: issues.length === 0, details: issues.join('; ') || 'Central scenario complete and consistent with final HTML' });
   }
 
-  // P0-1: Evaluation freshness — a verdict-bearing evaluation (critic,
+  // P0/1: Evaluation freshness — a verdict-bearing evaluation (critic,
   // criticPanel, devilsAdvocate) attached to a replaced artifact version is
   // invalid: the gate must not consume a verdict that describes other content.
   const staleEvals = input.staleEvaluations ?? [];

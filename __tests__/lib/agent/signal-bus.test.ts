@@ -73,7 +73,7 @@ describe('SignalBus — stigmergic coordination', () => {
   });
 });
 
-// ─── PersistentSignalBus (P2-8) — signals survive across cycles ──────────────
+// ─── PersistentSignalBus (P2/8) — signals survive across cycles ──────────────
 
 describe('PersistentSignalBus — cross-cycle memory', () => {
   const auditRows: Array<any> = [];

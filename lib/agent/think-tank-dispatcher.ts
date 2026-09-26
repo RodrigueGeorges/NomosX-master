@@ -304,7 +304,7 @@ async function collectBreakingItems(
   const radarResult = await runTopicRadar({ maxTopics: 15, includeAcademic: true });
   const detectMs = Date.now() - detectStart;
 
-  // ── PREDICTION WATCH (P2-7): close the forecast loop ──
+  // ── PREDICTION WATCH (P2/7): close the forecast loop ──
   // Match today's radar topics against OPEN predictions' falsification
   // triggers. A firing means the world moved on a dossier we covered —
   // it becomes a dispatch item (UPDATE_NOTE) in this same cycle.

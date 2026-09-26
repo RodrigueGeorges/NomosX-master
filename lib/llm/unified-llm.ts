@@ -37,8 +37,8 @@ import { filterByCapability, type LLMCapability } from '../agent/radar-innovatio
  * indirection is intentional: it lets us later group e.g. multiple GLM-compatible
  * providers under one family without touching call sites.
  */
-export type LLMFamily = "deepseek" | "glm" | "openai" | "anthropic" | "kimi" | "google";
-export type LLMProvider = "deepseek" | "glm" | "openai" | "anthropic" | "kimi" | "google";
+export type LLMFamily = "deepseek" | "glm" | "openai" | "anthropic" | "kimi" | "google" | "freepool";
+export type LLMProvider = "deepseek" | "glm" | "openai" | "anthropic" | "kimi" | "google" | "freepool";
 
 export type LLMTask =
   // Fast / cheap / frequent — DeepSeek-flash
@@ -115,6 +115,7 @@ const PROVIDER_FAMILY: Record<LLMProvider, LLMFamily> = {
   anthropic: "anthropic",
   kimi: "kimi",
   google: "google",
+  freepool: "freepool",
 };
 
 const FAMILY_PROVIDER: Record<LLMFamily, LLMProvider> = {
@@ -124,6 +125,7 @@ const FAMILY_PROVIDER: Record<LLMFamily, LLMProvider> = {
   anthropic: "anthropic",
   kimi: "kimi",
   google: "google",
+  freepool: "freepool",
 };
 
 /**
@@ -131,14 +133,17 @@ const FAMILY_PROVIDER: Record<LLMFamily, LLMProvider> = {
  * families); GLM/OpenAI/Anthropic are fallback so a single vendor outage never
  * stops publication.
  */
+// "freepool" is appended LAST in every chain: the free-tier safety net only
+// engages once every paid provider is suspended or exhausted.
 const CROSS_FAMILY_FALLBACK: Record<LLMFamily, LLMFamily[]> = {
-  deepseek: ["openai", "kimi", "glm"],
-  glm: ["openai", "kimi", "deepseek"],
-  openai: ["kimi", "deepseek", "glm"],
-  anthropic: ["openai", "kimi", "deepseek"],
-  kimi: ["openai", "deepseek", "glm"],
+  deepseek: ["openai", "kimi", "glm", "freepool"],
+  glm: ["openai", "kimi", "deepseek", "freepool"],
+  openai: ["kimi", "deepseek", "glm", "freepool"],
+  anthropic: ["openai", "kimi", "deepseek", "freepool"],
+  kimi: ["openai", "deepseek", "glm", "freepool"],
   // google: removed — no GOOGLE_API_KEY configured; entry kept for type completeness
-  google: ["kimi", "glm"],
+  google: ["kimi", "glm", "freepool"],
+  freepool: ["kimi", "glm", "openai"],
 };
 
 /** Opposite family for the fact_check / citation_verification independence rule. */
@@ -152,6 +157,7 @@ const OPPOSITE_FAMILY: Record<LLMFamily, LLMFamily> = {
   anthropic: "kimi",
   kimi: "glm",
   google: "kimi",
+  freepool: "kimi",
 };
 
 // ============================================================================
@@ -178,6 +184,7 @@ const PROVIDER_DEFAULT_TIMEOUT_MS: Record<LLMProvider, number> = {
   anthropic: 90_000,
   kimi: 300_000,
   google: 60_000,
+  freepool: 90_000,
 };
 
 /** Hard floor per provider — never go below this even if a task requests less. */
@@ -188,6 +195,7 @@ const PROVIDER_MIN_TIMEOUT_MS: Record<LLMProvider, number> = {
   anthropic: 30_000,
   kimi: 120_000,
   google: 30_000,
+  freepool: 30_000,
 };
 
 /** Resolved once at module load — KIMI_MODEL env override (default kimi-k3). */
@@ -701,6 +709,117 @@ function getGoogleClient(): OpenAI | null {
   return googleClient;
 }
 
+// ============================================================================
+// FREEPOOL — free-tier last-resort safety net
+// ============================================================================
+// A single provider facade that internally cascades across free-tier
+// OpenAI-compatible endpoints (Groq → Cerebras → NVIDIA NIM → OpenRouter :free
+// → Mistral). It is dormant until at least one key is configured, and only
+// reached once every paid provider is suspended — it is appended LAST in every
+// CROSS_FAMILY_FALLBACK chain. Cost is $0; quality is degraded vs flagships
+// but infinitely better than a dead pipeline.
+
+interface FreepoolEndpoint {
+  name: string;
+  apiKey: string;
+  baseURL: string;
+  /** Model for fast/utility tasks. */
+  fastModel: string;
+  /** Model for reasoning/heavy tasks. */
+  reasoningModel: string;
+  /** Free-tier context ceiling — skip the endpoint when the request exceeds it. */
+  maxContextTokens?: number;
+}
+
+const FREEPOOL_ENDPOINTS: Array<Omit<FreepoolEndpoint, "apiKey"> & { envKey: keyof typeof env }> = [
+  { name: "groq",       envKey: "GROQ_API_KEY",       baseURL: "https://api.groq.com/openai/v1",          fastModel: "llama-3.1-8b-instant",                    reasoningModel: "llama-3.3-70b-versatile" },
+  { name: "cerebras",   envKey: "CEREBRAS_API_KEY",   baseURL: "https://api.cerebras.ai/v1",              fastModel: "llama-3.3-70b",                         reasoningModel: "llama-3.3-70b", maxContextTokens: 8_000 },
+  { name: "nvidia",     envKey: "NVIDIA_API_KEY",     baseURL: "https://integrate.api.nvidia.com/v1",     fastModel: "meta/llama-3.1-8b-instruct",              reasoningModel: "meta/llama-3.3-70b-instruct" },
+  { name: "openrouter", envKey: "OPENROUTER_API_KEY", baseURL: "https://openrouter.ai/api/v1",            fastModel: "meta-llama/llama-3.3-70b-instruct:free",  reasoningModel: "meta-llama/llama-3.3-70b-instruct:free" },
+  { name: "mistral",    envKey: "MISTRAL_API_KEY",    baseURL: "https://api.mistral.ai/v1",               fastModel: "mistral-small-latest",                    reasoningModel: "mistral-small-latest" },
+];
+
+function getFreepoolEndpoints(): FreepoolEndpoint[] {
+  const endpoints: FreepoolEndpoint[] = [];
+  for (const e of FREEPOOL_ENDPOINTS) {
+    const apiKey = env[e.envKey] as string | undefined;
+    if (apiKey) {
+      const { envKey: _omit, ...rest } = e;
+      endpoints.push({ ...rest, apiKey });
+    }
+  }
+  return endpoints;
+}
+
+const freepoolClients = new Map<string, OpenAI>();
+
+function getFreepoolClient(endpoint: FreepoolEndpoint): OpenAI {
+  let client = freepoolClients.get(endpoint.name);
+  if (!client) {
+    client = new OpenAI({ apiKey: endpoint.apiKey, baseURL: endpoint.baseURL });
+    freepoolClients.set(endpoint.name, client);
+  }
+  return client;
+}
+
+/**
+ * Estimate prompt size in tokens (chars/4 heuristic — no tokenizer dep).
+ * Used to skip freepool endpoints whose free-tier context can't hold the call.
+ */
+function estimatePromptTokens(request: LLMRequest): number {
+  let chars = 0;
+  for (const m of request.messages) chars += (m.content?.length ?? 0);
+  return Math.ceil(chars / 4);
+}
+
+async function callFreepool(request: LLMRequest, signal?: AbortSignal): Promise<LLMResponse> {
+  const endpoints = getFreepoolEndpoints();
+  if (endpoints.length === 0) throw new Error("freepool: no free-tier key configured");
+
+  const task = normalizeTask(request.task);
+  const isFast = FAST_TASKS.has(task);
+  const promptTokens = estimatePromptTokens(request);
+  let lastError: Error | null = null;
+
+  for (const ep of endpoints) {
+    if (ep.maxContextTokens && promptTokens > ep.maxContextTokens) continue;
+    const model = isFast ? ep.fastModel : ep.reasoningModel;
+    try {
+      const client = getFreepoolClient(ep);
+      const completion = await client.chat.completions.create(
+        {
+          model,
+          messages: request.messages as any,
+          temperature: request.temperature ?? 0.2,
+          max_tokens: Math.max(request.maxTokens ?? 4000, 1000),
+          ...(request.jsonMode ? { response_format: { type: "json_object" } } : {}),
+          ...(request.tools?.length ? { tools: request.tools as any } : {}),
+        },
+        signal ? { signal } : {},
+      );
+      const content = completion.choices?.[0]?.message?.content ?? "";
+      if (!content) throw new Error(`freepool/${ep.name} returned empty content`);
+      const tokensInput = completion.usage?.prompt_tokens ?? promptTokens;
+      const tokensOutput = completion.usage?.completion_tokens ?? 0;
+      console.log(`   ↳ freepool via ${ep.name}/${model}`);
+      return {
+        content,
+        model: `${ep.name}/${model}`,
+        provider: "freepool",
+        family: "freepool",
+        tokensInput,
+        tokensOutput,
+        costUsd: 0,
+        cached: false,
+      };
+    } catch (err) {
+      lastError = err as Error;
+      console.error(`   ↳ freepool/${ep.name} failed: ${(err as Error).message}`);
+    }
+  }
+  throw lastError ?? new Error("freepool: all free-tier endpoints failed");
+}
+
 function getClientForProvider(provider: LLMProvider): OpenAI | Anthropic | null {
   switch (provider) {
     case "deepseek": return getDeepSeekClient();
@@ -709,6 +828,12 @@ function getClientForProvider(provider: LLMProvider): OpenAI | Anthropic | null 
     case "anthropic": return getAnthropicClient();
     case "kimi": return getKimiClient();
     case "google": return getGoogleClient();
+    // Sentinel: the provider is "configured" when ≥1 free key exists. The real
+    // per-endpoint clients are created lazily inside callFreepool.
+    case "freepool": {
+      const [first] = getFreepoolEndpoints();
+      return first ? getFreepoolClient(first) : null;
+    }
   }
 }
 
@@ -777,6 +902,10 @@ function resolveModelForTask(provider: LLMProvider, task: LLMTask): string {
       return env.KIMI_MODEL || "kimi-k3";
     case "google":
       return "gemini-3.8-flash";
+    case "freepool":
+      // The concrete model is chosen per-endpoint inside callFreepool —
+      // "auto" only feeds the cache key and logs.
+      return "auto";
   }
 }
 
@@ -1484,6 +1613,12 @@ export async function callLLM(request: LLMRequest): Promise<LLMResponse> {
           timeoutMs,
           `Anthropic/${fallbackModel}`,
         );
+      } else if (provider === "freepool") {
+        response = await withTimeout(
+          (signal) => callFreepool(request, signal),
+          timeoutMs,
+          `freepool`,
+        );
       } else {
         const client = getClientForProvider(provider) as OpenAI | null;
         if (!client) throw new Error(`${provider} client not configured`);
@@ -1759,6 +1894,14 @@ export async function streamLLM(
   const task = normalizeTask(request.task);
   let provider = resolvePrimaryProvider(request);
 
+  // Freepool endpoints are used non-streaming — emulate the stream with a
+  // single chunk so callers still get their content.
+  if (provider === "freepool") {
+    const response = await callLLM(request);
+    onChunk(response.content);
+    return response;
+  }
+
   if (provider === "anthropic") {
     provider = getOpenAIClient() ? "openai" : (getDeepSeekClient() ? "deepseek" : provider);
   }
@@ -1827,6 +1970,7 @@ export function getAvailableProviders(): LLMProvider[] {
   if (getAnthropicClient()) providers.push("anthropic");
   if (getKimiClient()) providers.push("kimi");
   if (getGoogleClient()) providers.push("google");
+  if (getFreepoolEndpoints().length > 0) providers.push("freepool");
   return providers;
 }
 
@@ -1834,7 +1978,7 @@ export function getAvailableProviders(): LLMProvider[] {
  * Health check for all five providers.
  */
 export async function checkLLMHealth(): Promise<Record<LLMProvider, boolean>> {
-  const health: Record<LLMProvider, boolean> = { deepseek: false, glm: false, openai: false, anthropic: false, kimi: false, google: false };
+  const health: Record<LLMProvider, boolean> = { deepseek: false, glm: false, openai: false, anthropic: false, kimi: false, google: false, freepool: false };
 
   // Test DeepSeek
   try {
@@ -1921,7 +2065,24 @@ export async function checkLLMHealth(): Promise<Record<LLMProvider, boolean>> {
   } catch (err) {
     console.error("Google health check failed:", err);
   }
-  
+
+  // Test freepool — ping the first configured free-tier endpoint only
+  // (a full cascade ping would burn free quota on every health check).
+  try {
+    const [first] = getFreepoolEndpoints();
+    if (first) {
+      const client = getFreepoolClient(first);
+      await client.chat.completions.create({
+        model: first.fastModel,
+        max_tokens: 1,
+        messages: [{ role: "user", content: "ping" }],
+      });
+      health.freepool = true;
+    }
+  } catch (err) {
+    console.error("Freepool health check failed:", err);
+  }
+
   return health;
 }
 

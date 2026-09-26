@@ -353,7 +353,7 @@ export async function runAndPublishInquiry(
       dbClaims: p.readerClaims,
       centralScenario: p.stats.centralScenario as import('./editorial-types').CentralScenarioDecision | undefined,
       requireCentralScenario: p.stats.centralScenarioRequired === true || p.stats.editorialV2 === true,
-      // P0-1: verdict evals attached to a replaced artifact version are invalid
+      // P0/1: verdict evals attached to a replaced artifact version are invalid
       // — the gate hard-fails rather than publish on a stale verdict.
       staleEvaluations: (p.stats.evaluationFreshness as { verdictStale?: string[] } | undefined)?.verdictStale ?? [],
     };
