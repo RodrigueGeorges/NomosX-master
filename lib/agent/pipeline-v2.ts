@@ -73,6 +73,7 @@ import { resolveCentralScenario, type CastingResult, type InstitutePosition } fr
 import type { DebateResult } from './debate-agent';
 import { runDebateMetaBlock, runDevilsAdvocateBlock, type DebateAdvocateDeps } from './pipeline-steps/debate-advocate';
 import { runPostRenderCitationAndGrounding as runCitationGroundingStep } from './pipeline-steps/citation-grounding';
+import { runReaderBlock } from './pipeline-steps/reader-block';
 
 function hashQuery(query: string, providers: string[]): string {
   const str = `${query}|${providers.join(",")}`;
@@ -3151,284 +3152,23 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     ctx.addFinding('LAS_GATE', 'insight', `Pool: ${poolSize} sources from ${providerDiversity} providers — debate=${runDebateStep}, meta=${runMetaAnalysisStep}, DA=${runDevilsAdvocateStep}`);
   }
 
-  // ── STEP 5: READER V3 + FRAMING + QUANT (parallel) ──
-  emitProgress(pipelineRun.id, "READER", "started", `Deep extraction from ${topSources.length} sources...`);
-  console.log(`${label} READER V3: deep extraction from ${topSources.length} sources (domain: ${detectedDomain})`);
-  // -- STEP 5a: AGENT MEMORY INJECTION for READER --
-  let readerMemoryBlock: string | undefined;
-  try {
-    const readerMemInj = await buildMemoryInjection("reader", detectedDomain as DomainExpertise, { maxLessons: 3, lookbackDays: 90, topicQuery: query });
-    if (readerMemInj.topLessons.length > 0) {
-      readerMemoryBlock = readerMemInj.promptBlock;
-      console.log(`${label} AGENT MEMORY (READER): ${readerMemInj.topLessons.length} lessons injected`);
-    }
-  } catch (err) { console.warn(`${label} AGENT MEMORY (READER): failed (non-blocking):`, err); }
-  const [readings, framingSettled, quantSettled, quantBridgeSettled] = await Promise.all([
-    durable('reader', () => readerAgentV3(topSources, {
-      enablePdf: true,
-      maxConcurrency: 8,
-      timeout: isStrategic ? 120000 : undefined,
-      domain: detectedDomain,
-      memoryBlock: readerMemoryBlock,
-    })),
-    // FRAMING: SUPPRESSED — hypotheses not consumed by analyst, $0.03/run saved
-    Promise.resolve({ hypotheses: [] as any[], keyUnknowns: [] as string[], costUsd: 0 }),
-    // QUANT: fetch real numbers from T1 primary-data providers
-    import('./quant-agent').then(m => m.quantAgent(query, topSources)).catch((err) => {
-      console.warn(`${label} QUANT: failed (non-blocking):`, err);
-      return { series: [], facts: [], evidenceBlock: '', chartData: [], fetchedProviders: [], durationMs: 0 };
-    }),
-    // QUANT BRIDGE: deterministic model layer (parametric costing + FIGARO IO multipliers)
-    import('../quant/quant-bridge').then(m => m.runQuantBridge(query, {
-      depth: opts.quantDepth ?? (isStrategic ? 'io' : 'none'),
-      parametricInput: opts.parametricInput,
-    })).catch((err) => {
-      console.warn(`${label} QUANT BRIDGE: failed (non-blocking):`, err);
-      return { models: [] as any[], evidenceBlock: '', usedModels: [] as any[], durationMs: 0 };
-    }),
-  ]);
-  const framing = framingSettled;
-  const quant = quantSettled;
-  const quantBridge = quantBridgeSettled;
-  stats.quantBridge = { models: quantBridge.models.length, kinds: quantBridge.usedModels, durationMs: quantBridge.durationMs };
-  if (quantBridge.models.length > 0) console.log(`${label} QUANT BRIDGE: ${quantBridge.models.length} deterministic model(s) [${quantBridge.usedModels.join(', ')}]`);
-  addCost(framing.costUsd, 'FRAMING');
-  stats.framing = { hypotheses: framing.hypotheses.length, keyUnknowns: framing.keyUnknowns.length, costUsd: framing.costUsd };
-  stats.quant = { series: quant.series.length, facts: quant.facts.length, providers: quant.fetchedProviders, durationMs: quant.durationMs };
-  if (framing.hypotheses.length > 0) console.log(`${label} FRAMING: ${framing.hypotheses.length} hypotheses pre-registered`);
-  if (quant.facts.length > 0) console.log(`${label} QUANT: ${quant.facts.length} machine-verified facts from ${quant.fetchedProviders.join(', ')}`);
-  const fullTextCount = readings.filter(r => r.readingDepth === "full_text").length;
-  const quantCount = readings.filter(r => r.quantitative.effectSizes.length > 0 || r.quantitative.sampleSizes.length > 0).length;
-  // S20/B: full depth breakdown persisted for groundedness trend tracking
-  const depthBreakdown = {
-    full_text: fullTextCount,
-    abstract: readings.filter(r => r.readingDepth === "abstract").length,
-    rule_based: readings.filter(r => r.readingDepth === "rule_based").length,
-  };
-  stats.reader = { count: readings.length, fullText: fullTextCount, withQuantData: quantCount, depth: depthBreakdown };
-  ctx.setReaderExtracts(readings);
-  ctx.recordAgentTiming('READER', Date.now() - pipelineStart);
-
-  // ── CONTEXT COMPRESSION: Compress readings for downstream agents ──
-  // IterResearch pattern: compress intermediate findings to fit context window
-  try {
-    const { compressReadings } = await import('./knowledge-infrastructure');
-    const readingsForCompression = readings.slice(0, 30).map(r => ({
-      sourceId: r.sourceId,
-      claims: r.claims || [],
-      methods: r.methods || [],
-      results: r.results || [],
-      limitations: r.limitations || [],
-    }));
-    if (readingsForCompression.length > 10) {
-      const { compressed, costUsd: compressCost } = await compressReadings(readingsForCompression);
-      stats.contextCompression = { originalSize: readingsForCompression.length, compressedSize: compressed.split(/\s+/).length, costUsd: compressCost };
-      console.log(`${label} CONTEXT COMPRESSION: ${readingsForCompression.length} readings → ${compressed.split(/\s+/).length} words`);
-    }
-  } catch (err) {
-    // Non-blocking
-  }
-
-  // ── EVIDENCE BANK (WebWeaver/Perplexity pattern) ──
-  // Citations attach to extracted evidence AT READING TIME, not generation
-  // time. The analyst is constrained to banked claims; post-render we flag
-  // citations to sources that contributed no evidence (hallucination risk).
-  let evidenceBankBlock: string | undefined;
-  let evidenceBankRef: import('./evidence-bank').EvidenceBank | null = null;
-  try {
-    const { buildEvidenceBank, buildEvidenceBankBlock } = await import('./evidence-bank');
-    evidenceBankRef = buildEvidenceBank(readings, topSources);
-    if (evidenceBankRef.entries.length >= 8) {
-      evidenceBankBlock = buildEvidenceBankBlock(evidenceBankRef);
-      console.log(`${label} EVIDENCE BANK: ${evidenceBankRef.entries.length} entries across ${evidenceBankRef.perSource.size} sources`);
-    }
-    stats.evidenceBank = { entries: evidenceBankRef.entries.length, sourcesWithEvidence: evidenceBankRef.perSource.size };
-  } catch (err) {
-    console.warn(`${label} EVIDENCE BANK: build failed (non-blocking):`, err);
-  }
-
-  // Attach extractedText from READER V3 to topSources for claim grounding
-  const readingByText = new Map(readings.map(r => [r.sourceId, r]));
-  for (const src of topSources) {
-    const r = readingByText.get((src as any).id);
-    if (r?.extractedText) {
-      (src as any).fullText = r.extractedText;
-    }
-  }
-
-  orchState.sourcesWithAbstract = readings.filter(r =>
-    r.claims.length > 0 || r.methods.length > 0 || r.results.length > 0 ||
-    (r.extractedText && r.extractedText.length > 100) ||
-    r.readingDepth === "abstract" || r.readingDepth === "full_text"
-  ).length;
-  orchState.sourcesWithFullText = fullTextCount;
-  const readerDecision = assessAfterReader(orchState);
-  recordDecision(orchState, readerDecision);
-  stats.orchestrator = stats.orchestrator || { decisions: [] };
-  stats.orchestrator.decisions.push(readerDecision);
-
-  // ── SELF-CORRECTION: READER — assess quality, retry if low (Reflexion pattern) ──
-  try {
-    const readerSCInput = readings.map((r: any) => ({
-      sourceId: r.sourceId,
-      claims: r.claims || [],
-      confidence: r.confidence || 'medium',
-    }));
-    const scResult = await selfCorrectReader({
-      query,
-      readings: readerSCInput,
-      maxRetries: 1,
-      retryFn: async (feedback: string) => {
-        // Re-run reader with feedback injected via memoryBlock
-        const { readerAgentV3 } = await import('./reader-agent-v3');
-        const reRead = await readerAgentV3(topSources, { memoryBlock: feedback, domain: detectedDomain });
-        return reRead.map((r: any) => ({
-          sourceId: r.sourceId,
-          claims: r.claims || [],
-          confidence: r.confidence || 'medium',
-        }));
-      },
-    });
-    if (scResult.stats.triggered) {
-      stats.selfCorrection = stats.selfCorrection || {};
-      (stats.selfCorrection as any).reader = scResult.stats;
-      addCost(scResult.stats.costUsd, 'SELF-CORRECTION (READER)');
-      if (scResult.stats.improved) {
-        // Replace readings with improved version
-        const improvedReadings = scResult.readings;
-        // Map back to full reading objects by sourceId
-        for (const imp of improvedReadings) {
-          const idx = readings.findIndex((r: any) => r.sourceId === imp.sourceId);
-          if (idx >= 0 && imp.claims.length > readings[idx].claims.length) {
-            readings[idx].claims = imp.claims;
-          }
-        }
-        console.log(`${label} SELF-CORRECTION (READER): ${scResult.stats.originalScore} → ${scResult.stats.finalScore} after ${scResult.stats.retries} retry`);
-      }
-      // Log to AgentAuditLog for dashboard visibility
-      prisma.agentAuditLog.create({
-        data: {
-          agent: 'reader',
-          action: 'SELF_CORRECTION',
-          metadata: JSON.stringify({
-            phase: 'reader',
-            originalScore: scResult.stats.originalScore,
-            finalScore: scResult.stats.finalScore,
-            retries: scResult.stats.retries,
-            improved: scResult.stats.improved,
-            issues: scResult.stats.issues.slice(0, 3),
-          }),
-        },
-      }).catch(() => {}); // non-blocking
-    }
-  } catch (err) {
-    console.warn(`${label} SELF-CORRECTION (READER): failed (non-blocking):`, err);
-  }
-
-  // ── ORCHESTRATOR ACTION: DEEPEN — was logged but never acted upon. NOW ACTED. ──
-  if (readerDecision.action === "DEEPEN" && orchState.iteration < orchState.maxIterations) {
-    console.log(`${label} ORCHESTRATOR: DEEPEN — ${readerDecision.reason}`);
-    emitProgress(pipelineRun.id, "READER", "started", `Deepening: extracting full-text for low-abstract sources...`);
-    try {
-      const sourcesNeedingFullText = topSources.filter((s: any) =>
-        !s.abstract || s.abstract.length < 100
-      ).slice(0, 8);
-      let deepenedCount = 0;
-      for (const source of sourcesNeedingFullText) {
-        try {
-          // Try to fetch full-text via available providers
-          if ((source as any).doi || (source as any).url) {
-            const { extractPDFText } = await import('../providers/pdf-extractor');
-            const pdfUrl = (source as any).url || ((source as any).doi ? `https://doi.org/${(source as any).doi}` : null);
-            if (pdfUrl) {
-              const result = await extractPDFText(pdfUrl, { maxPages: 20, timeout: 30000 });
-              if (result.success && result.text && result.text.length > 500) {
-                (source as any).fullText = result.text;
-                (source as any).abstract = (source as any).abstract || result.text.slice(0, 500);
-                deepenedCount++;
-              }
-            }
-          }
-        } catch (e) {
-          // Non-blocking: continue with other sources
-        }
-      }
-      if (deepenedCount > 0) {
-        console.log(`${label} DEEPEN: extracted full-text for ${deepenedCount}/${sourcesNeedingFullText.length} sources`);
-        // Re-run reader on deepened sources
-        const { readerAgentV3 } = await import('./reader-agent-v3');
-        const deepenedReadings = await readerAgentV3(topSources);
-        // Merge: keep the better reading per source
-        for (const dr of deepenedReadings) {
-          const idx = readings.findIndex((r: any) => r.sourceId === dr.sourceId);
-          if (idx < 0 || (dr.claims?.length > (readings[idx]?.claims?.length || 0))) {
-            if (idx >= 0) readings[idx] = dr;
-          }
-        }
-        orchState.sourcesWithFullText = readings.filter((r: any) => r.readingDepth === "full_text").length;
-        stats.orchestrator.deepenTriggered = true;
-        stats.orchestrator.deepenedCount = deepenedCount;
-      }
-      orchState.iteration++;
-      emitProgress(pipelineRun.id, "READER", "completed", `Deepened ${deepenedCount} sources`);
-    } catch (err) {
-      console.warn(`${label} DEEPEN: failed (non-blocking):`, err);
-    }
-  }
-
-  // ── STEP 5b-2: HYPOTHESIS JUDGE — verdict per pre-registered hypothesis ──
-  let hypothesisVerdictBlock = '';
-  if (framing.hypotheses.length > 0) {
-    try {
-      const { hypothesisJudge } = await import('./hypothesis-engine');
-      const judge = await hypothesisJudge(framing.hypotheses, topSources, readings, quant.evidenceBlock || undefined);
-      addCost(judge.costUsd, 'HYPOTHESIS JUDGE');
-      hypothesisVerdictBlock = judge.verdictBlock;
-      stats.hypothesisJudge = {
-        verdicts: judge.verdicts.map(v => ({ id: v.id, verdict: v.verdict, confidence: v.confidence })),
-        costUsd: judge.costUsd,
-      };
-    } catch (err) {
-      console.warn(`${label} HYPOTHESIS JUDGE: failed (non-blocking):`, err);
-    }
-  }
-
-  // DPP SYNTHESIS (V3.1)
-  let dppContextBlock: string | null = null;
-  try {
-    if (readings.length > 8) {
-      const { extractAtomicKeyPoints, selectDiverseKeyPoints, formatKeyPointsForAnalyst } = await import("./dpp-synthesis");
-      const keyPoints = await extractAtomicKeyPoints(readings.map((r: any, i: number) => ({ sourceId: r.sourceId, sourceIndex: i, claims: r.claims || [], methods: r.methods || [], results: r.results || [], limitations: r.limitations || [], title: topSources[i]?.title, abstract: topSources[i]?.abstract || undefined })));
-      const selection = selectDiverseKeyPoints(keyPoints, 20, 0.5);
-      dppContextBlock = formatKeyPointsForAnalyst(selection);
-      if (dppContextBlock) { console.log(`${label} DPP SYNTHESIS: ${selection.selectedPoints.length}/${keyPoints.length} points (diversity=${Math.round(selection.diversityScore * 100)}%)`); stats.dppSynthesis = { totalPoints: keyPoints.length, selectedPoints: selection.selectedPoints.length, diversityScore: selection.diversityScore, coverageScore: selection.coverageScore } as any; }
-    }
-  } catch (err) { console.warn(`${label} DPP SYNTHESIS: failed (non-blocking):`, err); }
-
-  // ADAPTIVE RAG (V3.1)
-  try {
-    const { assessRetrievalSufficiency } = await import("./adaptive-rag");
-    const assessment = await assessRetrievalSufficiency({ researchQuestion: query, sources: topSources.map((s: any) => ({ title: s.title, abstract: s.abstract || "", provider: s.provider, year: s.year })), readings: readings.map((r: any) => ({ sourceId: r.sourceId, claims: r.claims, confidence: r.confidence })) });
-    stats.adaptiveRag = { sufficient: assessment.sufficient, confidence: assessment.confidence, gaps: assessment.gaps } as any;
-    if (!assessment.sufficient) console.log(`${label} ADAPTIVE RAG: insufficient (${assessment.confidence}%): ${assessment.gaps.join("; ")}`);
-    else console.log(`${label} ADAPTIVE RAG: sufficient (${assessment.confidence}%)`);
-  } catch (err) { console.warn(`${label} ADAPTIVE RAG: failed (non-blocking):`, err); }
-
-  // ROUND-TABLE DELIBERATION (V3.1) for controversial topics
-  let roundTableBlock: string | null = null;
-  if (isStrategic && runDeliberationStep) {
-    try {
-      const isControversial = ((primedContext?.activeControversies?.length ?? 0) > 0) || (readings.some((r: any) => r.claimClassifications?.some((c: any) => c.type === "controversial")));
-      if (isControversial) {
-        const { deliberate } = await import("./round-table");
-        const dr = await deliberate(query, topSources.slice(0, 5).map((s: any) => ({ title: s.title, abstract: s.abstract || "" })), { rounds: 2, participants: 3 });
-        stats.roundTable = { consensus: dr.consensus, participants: dr.participants.length, rounds: dr.rounds.length } as any;
-        console.log(`${label} ROUND-TABLE: consensus=${dr.consensus}, ${dr.participants.length}p, ${dr.rounds.length}r`);
-        if (dr.synthesis) roundTableBlock = `## ROUND-TABLE DELIBERATION\nConsensus: ${dr.consensus.toUpperCase()}\n\n${dr.synthesis}`;
-      }
-    } catch (err) { console.warn(`${label} ROUND-TABLE: failed (non-blocking):`, err); }
-  }
-
+  // -- STEP 5: READER V3 + FRAMING + QUANT + enrichment (extracted) --
+  const readerBlk = await runReaderBlock({
+    topSources, query, detectedDomain, isStrategic, runDeliberationStep,
+    primedContext, stats, label, pipelineStart, pipelineRunId: pipelineRun.id,
+    durable, emitProgress, addCost, ctx, orchState, assessAfterReader, recordDecision,
+    quantDepth: opts.quantDepth, parametricInput: opts.parametricInput,
+  });
+  const readings = readerBlk.readings;
+  const framing = readerBlk.framing;
+  const quant = readerBlk.quant;
+  const quantBridge = readerBlk.quantBridge;
+  const readerMemoryBlock = readerBlk.readerMemoryBlock;
+  const evidenceBankBlock = readerBlk.evidenceBankBlock;
+  const evidenceBankRef = readerBlk.evidenceBankRef;
+  const hypothesisVerdictBlock = readerBlk.hypothesisVerdictBlock;
+  const dppContextBlock = readerBlk.dppContextBlock;
+  const roundTableBlock = readerBlk.roundTableBlock;
   // STEP 6: ANALYSTSTEP 6: ANALYST (brief = V3 multi-pass, strategic = Strategic Analyst) â”€â”€
   emitProgress(pipelineRun.id, "ANALYST", "started", `${isStrategic ? "Strategic-depth multi-pass analysis" : "Multi-pass analysis"}...`);
   console.log(`${label} ANALYST: V3 multi-pass (depth: ${isStrategic ? 'strategic' : 'brief'})`);
