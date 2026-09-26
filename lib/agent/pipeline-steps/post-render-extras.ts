@@ -43,6 +43,78 @@ export function injectAdversarialSection(html: string, daStats: any, label: stri
   return out;
 }
 
+/**
+ * EVIDENCE IDS + PROSE CLEANUP — P3.8 stable [E-N] ids then deterministic
+ * prose fixes (broken abbreviations, double spaces, merged words). Runs
+ * AFTER citation repair so it catches patterns the renderer's
+ * replaceCitations() missed. Additive/derived transformations on the same
+ * artifact the gates already judged — no html bump.
+ */
+export async function applyEvidenceIdsAndProseCleanup(
+  html: string,
+  evidenceRegistry: any,
+  stats: Record<string, any>,
+  label: string,
+): Promise<string> {
+  // P3.8: Apply stable evidence IDs — convert [SRC-N] to [E-N] in final HTML
+  try {
+    const { replaceSrcWithEvidenceIds, getCitationStats } = await import('../evidence-registry');
+    html = replaceSrcWithEvidenceIds(html, evidenceRegistry);
+    const citStats = getCitationStats(evidenceRegistry);
+    stats.evidenceRegistry = {
+      total: citStats.totalEvidence,
+      cited: citStats.citedEvidence,
+      uncited: citStats.uncitedEvidence,
+    };
+    console.log(`${label} EVIDENCE IDS: ${citStats.citedEvidence}/${citStats.totalEvidence} cited, ${citStats.uncitedEvidence} uncited`);
+  } catch (err) {
+    console.warn(`${label} EVIDENCE IDS: failed (non-blocking):`, err);
+  }
+
+  // DETERMINISTIC PROSE CLEANUP — fix LLM stutter, broken abbreviations, double spaces
+  // Runs AFTER citation repair (which converts [SRC-N] to <sup> tags) so it can catch
+  // patterns the renderer's replaceCitations() missed (it only handles [SRC-N] format).
+  try {
+    let proseFixed = 0;
+    // 1. Fix broken abbreviations with <sup> tags: "e <sup...>...</sup> g." → "e.g."
+    //    Also handles variants: "e<sup>9</sup>.g." (dot before g), "e<sup>9</sup>g." (no dot)
+    html = html.replace(/\be\s*<sup[^>]*>[\s\S]*?<\/sup>\s*\.?\s*g\./gi, () => { proseFixed++; return 'e.g.'; });
+    html = html.replace(/\bi\s*<sup[^>]*>[\s\S]*?<\/sup>\s*\.?\s*e\./gi, () => { proseFixed++; return 'i.e.'; });
+    // 1b. Fix "e.<sup>9</sup>g." (citation between the two dots of e.g.)
+    html = html.replace(/\be\.\s*<sup[^>]*>[\s\S]*?<\/sup>\s*g\./gi, () => { proseFixed++; return 'e.g.'; });
+    html = html.replace(/\bi\.\s*<sup[^>]*>[\s\S]*?<\/sup>\s*e\./gi, () => { proseFixed++; return 'i.e.'; });
+    // 1c. Fix geopolitical abbreviations with <sup> tags: "U<sup>9</sup>S." → "U.S."
+    html = html.replace(/\bU\s*<sup[^>]*>[\s\S]*?<\/sup>\s*\.?\s*S\./g, () => { proseFixed++; return 'U.S.'; });
+    html = html.replace(/\bE\s*<sup[^>]*>[\s\S]*?<\/sup>\s*\.?\s*U\./g, () => { proseFixed++; return 'E.U.'; });
+    html = html.replace(/\bU\s*<sup[^>]*>[\s\S]*?<\/sup>\s*\.?\s*K\./g, () => { proseFixed++; return 'U.K.'; });
+    html = html.replace(/\bU\s*<sup[^>]*>[\s\S]*?<\/sup>\s*\.?\s*N\./g, () => { proseFixed++; return 'U.N.'; });
+    // 2. Fix double spaces before <sup> citation tags
+    html = html.replace(/\s\s+(<sup\s)/g, (_m, sup) => { proseFixed++; return ' ' + sup; });
+    // 3. Fix double spaces throughout (but not inside tags)
+    html = html.replace(/  +(?![^<]*>)/g, () => { proseFixed++; return ' '; });
+    // 4. Fix merged words from citation injection: "thatto" → "that to"
+    // Only match words ≥8 chars containing "to" where both halves are known words
+    const LEGIT_WORDS_WITH_TO = new Set(['protocol','tomato','today','tonight','tomorrow','together','protocol','photograph','biotechnology','nanotechnology','autonomy','autonomous','cartography','etymology','topology','toxicology','methodology','methodology','terminology','homogeneous','heterogeneous']);
+    html = html.replace(/\b([a-z]{3,})to([a-z]{3,})\b/gi, (m, w1, w2) => {
+      if (LEGIT_WORDS_WITH_TO.has(m.toLowerCase())) return m;
+      if (/(that|is|are|was|were|will|can|may|must|does|has|have|had|not|but|and|for|the|this|from|with|able|likely|supposed|meant|going|used|able|forced|allowed|expected|intended|required|permitted|encouraged|discouraged|prohibited|inclined|reluctant|willing|unwilling|hesitant|prone|vulnerable|resistant|immune|subject|addicted|dedicated|committed|opposed|indifferent|indifferent|blind|deaf|equal|similar|comparable|analogous|equivalent|identical|related|connected|linked|tied|bound|drawn|attracted|repelled|devoted|loyal|faithful|true|dedicated|opposed|contrary|adjacent|proximate|close|near|far|prior|subsequent|anterior|posterior|superior|inferior|senior|junior)$/.test(w1.toLowerCase()) &&
+          /^(be|do|have|not|fragment|provide|support|indicate|suggest|imply|represent|constitute|enable|prevent|reduce|increase|require|allow|ensure|maintain|create|produce|generate|facilitate|promote|limit|constrain|shape|drive|affect|impact|influence|determine|depend|vary|differ|change|evolve|emerge|develop|expand|contract|converge|diverge|exist|persist|decline|improve|worsen|accelerate|decelerate|stabilize|fluctuate|oscillate|transition|transform|adapt|adjust|respond|react|contribute|lead|result|amount|correspond|amount|add|contribute|amount|lead)/.test(w2.toLowerCase())) {
+        proseFixed++;
+        return w1 + ' to ' + w2;
+      }
+      return m;
+    });
+    if (proseFixed > 0) {
+      console.log(`${label} PROSE CLEANUP: fixed ${proseFixed} issues (abbreviations, double spaces, merged words)`);
+      stats.proseCleanup = { fixed: proseFixed };
+    }
+  } catch (err) {
+    console.warn(`${label} PROSE CLEANUP: failed (non-blocking):`, err);
+  }
+
+  return html;
+}
+
 export interface PeerReviewPackDeps {
   html: string;
   query: string;
