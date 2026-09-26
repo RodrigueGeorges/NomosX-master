@@ -48,7 +48,7 @@ import { filterLowQualitySources } from '../providers/source-quality-filter';
 import { classifyTopic } from './topic-classifier';
 import { isEditorialV2Enabled, getPipelineMaxBudgetUsd } from './editorial-config';
 import { buildAnalysisReviewText } from './analysis-review-text';
-import { injectAdversarialSection, runPeerReviewAndPack } from './pipeline-steps/post-render-extras';
+import { injectAdversarialSection, runPeerReviewAndPack, applyEvidenceIdsAndProseCleanup } from './pipeline-steps/post-render-extras';
 import { runPersistenceTail } from './pipeline-steps/persistence-tail';
 import { RESEARCHER_KBS, type KeyConcept, type AnalyticalFramework, type DomainExpertise } from './researcher-kb/index';
 import { MULTI_DOMAIN_CORPUS } from '../knowledge/multi-domain-corpus';
@@ -2938,227 +2938,20 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   } // end if (flat scout fallback)
   } // end scout else branch
 
-  // ── FINAL FALLBACK: if still critically low on sources, do a direct web search ──
-  if (allSourceIds.length < 5) {
-    console.log(`${label} WEB FALLBACK: only ${allSourceIds.length} sources — searching web for raw question`);
-    try {
-      const webResults = await searchLinkUp(query, 20);
-      if (webResults.length > 0) {
-        const webSourceIds = webResults.map((s: any) => s.id);
-        allSourceIds.push(...webSourceIds);
-        console.log(`${label} WEB FALLBACK: linkup returned ${webResults.length} web sources`);
-      }
-      // Try Tavily for AI-optimised web search (both general + news)
-      const tavilyResults = await searchTavily(query, 20, { topic: 'general' });
-      if (tavilyResults.length > 0) {
-        const tavilySourceIds = tavilyResults.map((s: any) => s.id);
-        allSourceIds.push(...tavilySourceIds);
-        console.log(`${label} WEB FALLBACK: tavily returned ${tavilyResults.length} web sources`);
-      }
-      const tavilyNewsResults = await searchTavilyNews(query, 10);
-      if (tavilyNewsResults.length > 0) {
-        const tavilyNewsIds = tavilyNewsResults.map((s: any) => s.id);
-        allSourceIds.push(...tavilyNewsIds);
-        console.log(`${label} WEB FALLBACK: tavily news returned ${tavilyNewsResults.length} news sources`);
-      }
-      // Try Exa for semantic publication search
-      const exaResults = await searchExaPublications(query, 20);
-      if (exaResults.length > 0) {
-        const exaSourceIds = exaResults.map((s: any) => s.id);
-        allSourceIds.push(...exaSourceIds);
-        console.log(`${label} WEB FALLBACK: exa returned ${exaResults.length} publication sources`);
-      }
-      // Also try GDELT for news coverage
-      const { searchGDELTNews } = await import("../providers/news-scout-providers");
-      const newsResults = await searchGDELTNews(query, 20);
-      if (newsResults.length > 0) {
-        const newsSourceIds = newsResults.map((s: any) => s.id);
-        allSourceIds.push(...newsSourceIds);
-        console.log(`${label} WEB FALLBACK: gdelt returned ${newsResults.length} news sources`);
-      }
-      // Try APITube for enriched news
-      const apitubeResults = await searchAPITube(query, 20);
-      if (apitubeResults.length > 0) {
-        const apitubeSourceIds = apitubeResults.map((s: any) => s.id);
-        allSourceIds.push(...apitubeSourceIds);
-        console.log(`${label} WEB FALLBACK: apitube returned ${apitubeResults.length} news sources`);
-      }
-      // Try open-API academic providers (no key required)
-      const ostiResults = await searchOSTI(query, 20);
-      if (ostiResults.length > 0) {
-        const ostiIds = ostiResults.map((s: any) => s.id);
-        allSourceIds.push(...ostiIds);
-        console.log(`${label} WEB FALLBACK: osti returned ${ostiResults.length} sources`);
-      }
-      const dataciteResults = await searchDataCite(query, 15);
-      if (dataciteResults.length > 0) {
-        const dataciteIds = dataciteResults.map((s: any) => s.id);
-        allSourceIds.push(...dataciteIds);
-        console.log(`${label} WEB FALLBACK: datacite returned ${dataciteResults.length} sources`);
-      }
-    } catch (err) {
-      console.warn(`${label} WEB FALLBACK: failed (non-blocking):`, err);
-    }
-  }
-
-  // ── INTELLIGENT SCOUT: Multi-lens eclectic enrichment ──
-  // Adds sources from 6 strategic lenses (core, contrarian, cross-domain, historical, weak signal, scenario)
-  // Uses UCB1 bandit for budget allocation + adaptive search depth (AutoSearch pattern)
-  // This is what makes NomosX a think tank, not a search engine: it finds dissent, analogues, and weak signals
-  // (skipped on durable resume — the scout checkpoint already includes enrichment)
-  if (!scoutCkpt) try {
-    const { runIntelligentScout } = await import('./intelligent-scout');
-    const format = isStrategic ? 'strategic' : isDossier ? 'dossier' : isMemo ? 'memo' : 'brief';
-    const domain = (opts as any).domain || 'general';
-
-    // Wrapper: delegate to existing scout() and return normalized sources
-    const intelligentSearchFn = async (q: string, provs: string[], perProv: number) => {
-      const result = await scout(q, provs as Providers, perProv);
-      const sourceIds = Array.isArray(result) ? result.map(s => s.id) : (result.sourceIds || []);
-      if (sourceIds.length === 0) return [];
-      // Fetch source details from DB
-      const sources = await prisma.source.findMany({
-        where: { id: { in: sourceIds } },
-        select: { id: true, title: true, abstract: true, provider: true, year: true, doi: true, citationCount: true, qualityScore: true, noveltyScore: true },
-      });
-      return sources.map(s => ({
-        id: s.id,
-        title: s.title,
-        abstract: s.abstract,
-        provider: s.provider,
-        year: s.year,
-        doi: s.doi,
-        citationCount: s.citationCount,
-        qualityScore: s.qualityScore ?? undefined,
-        noveltyScore: s.noveltyScore ?? undefined,
-      }));
-    };
-
-    const eclecticResult = await runIntelligentScout(query, domain, format, intelligentSearchFn);
-    const eclecticIds = eclecticResult.allSources.map(s => s.id);
-    const beforeCount = allSourceIds.length;
-    allSourceIds = [...new Set([...allSourceIds, ...eclecticIds])];
-    const addedCount = allSourceIds.length - beforeCount;
-
-    console.log(`${label} INTELLIGENT SCOUT: +${addedCount} eclectic sources (${eclecticResult.uniqueSources} from ${eclecticResult.lenses.length} lenses, diversity=${Math.round(eclecticResult.diversityScore * 100)}%, scenarioRichness=${Math.round(eclecticResult.scenarioRichness * 100)}%)`);
-    console.log(`${label} INTELLIGENT SCOUT lenses: ${eclecticResult.lenses.map(l => `${l.type}(${l.sources.length})`).join(', ')}`);
-
-    // ── LENS INSIGHTS → ANALYST CONTEXT ──
-    // Each lens produced a PhD-level mini-analysis. Inject them so the
-    // analyst sees the disciplinary readings, not just the raw sources.
-    if (eclecticResult.lensInsights && eclecticResult.lensInsights.length > 0) {
-      const tensionSection = eclecticResult.lensTensions && eclecticResult.lensTensions.length > 0
-        ? [
-            '',
-            '## INTER-LENS TENSIONS — GENUINE DISAGREEMENTS BETWEEN READINGS',
-            'These are real axes of debate between disciplinary perspectives. Do NOT flatten them into consensus — either arbitrate with evidence or present the disagreement as a finding itself.',
-            ...eclecticResult.lensTensions.map(t =>
-              `- ${t.between}: ${t.tension}\n  Weighting advice: ${t.resolution}`
-            ),
-          ].join('\n')
-        : '';
-      const insightsBlock = [
-        '## LENS INTELLIGENCE — DISCIPLINARY READINGS',
-        'Each analytical lens produced its own expert reading of the question. Use these as specialized perspectives — the ontological lens excavates assumptions, the dissident lens surfaces excluded voices, the historical lens names precedents. Integrate them; do not flatten them into consensus.',
-        '',
-        ...eclecticResult.lensInsights.map(i =>
-          `### ${i.lensType.toUpperCase().replace(/_/g, ' ')}\n${i.analysis}\nKey contribution: ${i.keyContribution}${i.knowledgeGaps.length > 0 ? `\nOpen gaps: ${i.knowledgeGaps.join('; ')}` : ''}`
-        ),
-        tensionSection,
-      ].join('\n');
-      // Store for injection into the analyst context block (assembled later)
-      (stats as any).lensInsightsBlock = insightsBlock;
-      (stats as any).lensTensions = eclecticResult.lensTensions?.length ?? 0;
-      console.log(`${label} LENS INTELLIGENCE: ${eclecticResult.lensInsights.length} disciplinary analyses${eclecticResult.lensTensions?.length ? `, ${eclecticResult.lensTensions.length} inter-lens tensions` : ''}`);
-    }
-
-    stats.intelligentScout = {
-      lenses: eclecticResult.lenses.map(l => ({ type: l.type, sources: l.sources.length, yield: l.yield })),
-      totalSources: eclecticResult.totalSources,
-      uniqueSources: eclecticResult.uniqueSources,
-      diversityScore: eclecticResult.diversityScore,
-      consensusScore: eclecticResult.consensusScore,
-      scenarioRichness: eclecticResult.scenarioRichness,
-      adaptiveDepth: eclecticResult.adaptiveDepth,
-      costUsd: eclecticResult.costUsd,
-      durationMs: eclecticResult.durationMs,
-    };
-  } catch (err) {
-    console.warn(`${label} INTELLIGENT SCOUT: failed (non-blocking, continuing with existing sources):`, err instanceof Error ? err.message : String(err));
-  }
-
-  // ── CITATION GRAPH TRAVERSAL: Find hub + bridge papers ──
-  // Traverses the citation network to discover foundational papers (hubs)
-  // and interdisciplinary connectors (bridges) that keyword search misses.
-  // This is the Paper Circle (ACL 2026) pattern.
-  if (!scoutCkpt) try {
-    const { traverseCitationGraph } = await import('./citation-graph');
-    // Get OpenAlex IDs for the top sources (by quality score)
-    const topForGraph = await prisma.source.findMany({
-      where: { id: { in: allSourceIds.slice(0, 50) } },
-      select: { id: true, title: true, doi: true, raw: true, provider: true },
-      take: 30,
+  // ── WEB FALLBACK → INTELLIGENT SCOUT → CITATION GRAPH → INDEX/EMBED/DEDUP ──
+  // Extracted to pipeline-steps/scout-enrichment-index.ts; web-fallback
+  // providers run concurrently (id lists merged in deterministic order).
+  {
+    const { runScoutEnrichmentAndIndex } = await import('./pipeline-steps/scout-enrichment-index');
+    allSourceIds = await runScoutEnrichmentAndIndex({
+      allSourceIds, query, label,
+      stats: stats as Record<string, any>,
+      scoutCkpt: !!scoutCkpt,
+      format: isStrategic ? 'strategic' : isDossier ? 'dossier' : isMemo ? 'memo' : 'brief',
+      domain: (opts as any).domain || 'general',
+      scout, durableKey, saveDurableStep, index,
     });
-
-    const graphSources = topForGraph.map(s => {
-      // Extract OpenAlex ID from raw data or source ID
-      const raw = s.raw as any;
-      const openalexId = s.id.startsWith('openalex:') ? s.id.replace('openalex:', '') : raw?.id?.replace('https://openalex.org/', '');
-      return {
-        sourceId: s.id,
-        openalexId: openalexId || undefined,
-        title: s.title,
-        doi: s.doi,
-      };
-    }).filter(s => s.openalexId);
-
-    if (graphSources.length >= 5) {
-      const graphResult = await traverseCitationGraph(graphSources);
-      const beforeGraph = allSourceIds.length;
-      allSourceIds = [...new Set([...allSourceIds, ...graphResult.newSourceIds])];
-      const addedByGraph = allSourceIds.length - beforeGraph;
-
-      console.log(`${label} CITATION GRAPH: +${addedByGraph} sources (${graphResult.hubs.length} hubs, ${graphResult.bridges.length} bridges, ${graphResult.clusters.length} clusters)`);
-
-      stats.citationGraph = {
-        hubs: graphResult.hubs.length,
-        bridges: graphResult.bridges.length,
-        clusters: graphResult.clusters.length,
-        newSources: addedByGraph,
-        totalNodes: graphResult.totalNodes,
-        totalEdges: graphResult.totalEdges,
-      };
-    }
-  } catch (err) {
-    console.warn(`${label} CITATION GRAPH: failed (non-blocking):`, err instanceof Error ? err.message : String(err));
   }
-
-  // DURABLE CHECKPOINT: allSourceIds is final (scout + re-scout + intelligent
-  // scout + citation graph all done). A resume re-enters via seedIds and skips
-  // the whole provider fan-out.
-  if (durableKey && allSourceIds.length > 0) {
-    saveDurableStep(durableKey, 'scout', { allSourceIds }).catch(() => {});
-  }
-
-  console.log(`${label} INDEX: ${allSourceIds.length} sources`);
-  const indexResult = await index(allSourceIds);
-  stats.index = indexResult;
-
-  // â”€â”€ STEP 2b: EMBED (semantic vectors) â”€â”€
-  console.log(`${label} EMBED: generating semantic vectors...`);
-  try {
-    const embedResult = await embedSourcesBatch(allSourceIds);
-    stats.embed = embedResult;
-    console.log(`${label} EMBED: ${embedResult.embedded} new, ${embedResult.skipped} cached`);
-  } catch (err) {
-    console.warn(`${label} EMBED: failed (non-blocking):`, err);
-    stats.embed = { error: String(err) } as any;
-  }
-
-  // â”€â”€ STEP 3: DEDUPLICATE â”€â”€
-  console.log(`${label} DEDUPLICATE`);
-  const dedupeResult = await deduplicateSources();
-  stats.dedupe = dedupeResult;
 
   // ── STEP 4: RANK (scoped to current SCOUT sourceIds) ──
   // Adaptive diversity: relax constraints when source pool is small (niche/emerging topics)
@@ -5419,61 +5212,8 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   stats.analysis = analysis;
   stats.editorialV2 = editorialV2;
 
-  // P3.8: Apply stable evidence IDs — convert [SRC-N] to [E-N] in final HTML
-  try {
-    const { replaceSrcWithEvidenceIds, getCitationStats } = await import('./evidence-registry');
-    html = replaceSrcWithEvidenceIds(html, evidenceRegistry);
-    const citStats = getCitationStats(evidenceRegistry);
-    stats.evidenceRegistry = {
-      total: citStats.totalEvidence,
-      cited: citStats.citedEvidence,
-      uncited: citStats.uncitedEvidence,
-    };
-    console.log(`${label} EVIDENCE IDS: ${citStats.citedEvidence}/${citStats.totalEvidence} cited, ${citStats.uncitedEvidence} uncited`);
-  } catch (err) {
-    console.warn(`${label} EVIDENCE IDS: failed (non-blocking):`, err);
-  }
-
-  // DETERMINISTIC PROSE CLEANUP — fix LLM stutter, broken abbreviations, double spaces
-  // Runs AFTER citation repair (which converts [SRC-N] to <sup> tags) so it can catch
-  // patterns the renderer's replaceCitations() missed (it only handles [SRC-N] format).
-  try {
-    let proseFixed = 0;
-    // 1. Fix broken abbreviations with <sup> tags: "e <sup...>...</sup> g." → "e.g."
-    //    Also handles variants: "e<sup>9</sup>.g." (dot before g), "e<sup>9</sup>g." (no dot)
-    html = html.replace(/\be\s*<sup[^>]*>[\s\S]*?<\/sup>\s*\.?\s*g\./gi, () => { proseFixed++; return 'e.g.'; });
-    html = html.replace(/\bi\s*<sup[^>]*>[\s\S]*?<\/sup>\s*\.?\s*e\./gi, () => { proseFixed++; return 'i.e.'; });
-    // 1b. Fix "e.<sup>9</sup>g." (citation between the two dots of e.g.)
-    html = html.replace(/\be\.\s*<sup[^>]*>[\s\S]*?<\/sup>\s*g\./gi, () => { proseFixed++; return 'e.g.'; });
-    html = html.replace(/\bi\.\s*<sup[^>]*>[\s\S]*?<\/sup>\s*e\./gi, () => { proseFixed++; return 'i.e.'; });
-    // 1c. Fix geopolitical abbreviations with <sup> tags: "U<sup>9</sup>S." → "U.S."
-    html = html.replace(/\bU\s*<sup[^>]*>[\s\S]*?<\/sup>\s*\.?\s*S\./g, () => { proseFixed++; return 'U.S.'; });
-    html = html.replace(/\bE\s*<sup[^>]*>[\s\S]*?<\/sup>\s*\.?\s*U\./g, () => { proseFixed++; return 'E.U.'; });
-    html = html.replace(/\bU\s*<sup[^>]*>[\s\S]*?<\/sup>\s*\.?\s*K\./g, () => { proseFixed++; return 'U.K.'; });
-    html = html.replace(/\bU\s*<sup[^>]*>[\s\S]*?<\/sup>\s*\.?\s*N\./g, () => { proseFixed++; return 'U.N.'; });
-    // 2. Fix double spaces before <sup> citation tags
-    html = html.replace(/\s\s+(<sup\s)/g, (_m, sup) => { proseFixed++; return ' ' + sup; });
-    // 3. Fix double spaces throughout (but not inside tags)
-    html = html.replace(/  +(?![^<]*>)/g, () => { proseFixed++; return ' '; });
-    // 4. Fix merged words from citation injection: "thatto" → "that to"
-    // Only match words ≥8 chars containing "to" where both halves are known words
-    const LEGIT_WORDS_WITH_TO = new Set(['protocol','tomato','today','tonight','tomorrow','together','protocol','photograph','biotechnology','nanotechnology','autonomy','autonomous','cartography','etymology','topology','toxicology','methodology','methodology','terminology','homogeneous','heterogeneous']);
-    html = html.replace(/\b([a-z]{3,})to([a-z]{3,})\b/gi, (m, w1, w2) => {
-      if (LEGIT_WORDS_WITH_TO.has(m.toLowerCase())) return m;
-      if (/(that|is|are|was|were|will|can|may|must|does|has|have|had|not|but|and|for|the|this|from|with|able|likely|supposed|meant|going|used|able|forced|allowed|expected|intended|required|permitted|encouraged|discouraged|prohibited|inclined|reluctant|willing|unwilling|hesitant|prone|vulnerable|resistant|immune|subject|addicted|dedicated|committed|opposed|indifferent|indifferent|blind|deaf|equal|similar|comparable|analogous|equivalent|identical|related|connected|linked|tied|bound|drawn|attracted|repelled|devoted|loyal|faithful|true|dedicated|opposed|contrary|adjacent|proximate|close|near|far|prior|subsequent|anterior|posterior|superior|inferior|senior|junior)$/.test(w1.toLowerCase()) &&
-          /^(be|do|have|not|fragment|provide|support|indicate|suggest|imply|represent|constitute|enable|prevent|reduce|increase|require|allow|ensure|maintain|create|produce|generate|facilitate|promote|limit|constrain|shape|drive|affect|impact|influence|determine|depend|vary|differ|change|evolve|emerge|develop|expand|contract|converge|diverge|exist|persist|decline|improve|worsen|accelerate|decelerate|stabilize|fluctuate|oscillate|transition|transform|adapt|adjust|respond|react|contribute|lead|result|amount|correspond|amount|add|contribute|amount|lead)/.test(w2.toLowerCase())) {
-        proseFixed++;
-        return w1 + ' to ' + w2;
-      }
-      return m;
-    });
-    if (proseFixed > 0) {
-      console.log(`${label} PROSE CLEANUP: fixed ${proseFixed} issues (abbreviations, double spaces, merged words)`);
-      stats.proseCleanup = { fixed: proseFixed };
-    }
-  } catch (err) {
-    console.warn(`${label} PROSE CLEANUP: failed (non-blocking):`, err);
-  }
+  // P3.8 + prose cleanup — extracted to pipeline-steps/post-render-extras.ts
+  html = await applyEvidenceIdsAndProseCleanup(html, evidenceRegistry, stats as Record<string, any>, label);
 
   // ── STYLE GATES → SIGNAL SWEEP → DA RE-CHECK (extracted to
   //    pipeline-steps/style-sweep-recheck.ts — one coupled unit) ──
