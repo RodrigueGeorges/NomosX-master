@@ -90,6 +90,18 @@ The validation run exposed the real bottleneck: all paid LLM providers suspended
 
 Tests: `__tests__/lib/llm/freepool.test.ts` +6 (dormancy, activation, cascade order, context-skip, $0 cost, exhaustion). Verified: `tsc` 0 · jest 25/25 suites — 284 tests.
 
+### Sprint 28c — pipeline-steps extraction + parallel evaluators
+
+Started decomposing the `pipeline-v2.ts` god-file using a shared-context contract — the pattern for all future extractions:
+
+- **`lib/agent/pipeline-steps/`** — each step is a module taking a typed context (`TailStepContext` in `types.ts` for post-render steps, `RenderEditorContext` for render). The orchestrator builds the context once; steps mutate it in place (`ctx.html`, `ctx.stats`, `ctx.orchState`) and the caller reads back what it owns. No return-soup.
+- Extracted: `quality-loop.ts`, `self-correct-checkpoint.ts`, `hero-image-step.ts` (post-render tail), `post-hoc-injection.ts` (evidence tiers / adversarial transparency / multi-lens convergence), `render-editor.ts` (EDITOR closure + `mapProspectiveToRenderFormat`; legacy `renderBriefHTML` stays exported in pipeline-v2 and is injected via `renderBriefFallback` — no circular import), `style-sweep-recheck.ts` (style gates → copy editor → numerical gate → signal sweep → DA re-check — kept as ONE step because the coupling is the semantics: gates post the signals the sweep drains, the sweep mutates html, the DA re-check re-judges the corrected artifact; splitting would re-open the stale-evaluator window).
+- **Extraction rules**: (1) copy block verbatim, prefix closure vars with the context object; (2) keep `await import()` lazy-loading and non-blocking try/catch semantics; (3) artifact versioning calls (`bumpHtmlArtifact`, `tagEval`, `collectStaleEvaluations`) pass through as context functions — a step NEVER defines its own; (4) one extraction = one commit, `tsc`+jest green between each.
+- **Parallel evaluators**: the six post-render readers (originality, bias, sourcecheck, url-health, evidence-bank, process-audit) run via `Promise.allSettled` — pure readers of post-repair html, distinct stats keys. The trust calc consumes all their outputs and stays after the barrier. Saves the wall-time of the two IO-bound checks (~30-60s/run).
+- Residual purge: `budget-forcing`, `tool-registry`, `mcp/` subtree, `fresco-field` (orphaned by the analyst-fork removal).
+
+Verified: `tsc` 0 · jest 25/25 — 284 tests.
+
 ---
 
 ## Sprint 27 - Bounded Escalation: revision → regeneration → candidate fallback

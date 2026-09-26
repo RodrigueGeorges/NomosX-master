@@ -38,4 +38,11 @@ export interface TailStepContext {
   collectStaleEvaluations: () => string[];
   /** Incremented by the self-correct step when a cascade fires. */
   selfCorrectRollbacks: number;
+
+  // ── Extended fields (style-sweep-recheck step) ──
+  /** Live PipelineContext — steps post/respond to signals through it. */
+  pipelineCtx?: any;
+  isBudgetConstrained?: () => boolean;
+  addCost?: (usd: number | undefined, label: string) => void;
+  debateContext?: string;
 }

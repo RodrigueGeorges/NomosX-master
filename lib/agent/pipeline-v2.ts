@@ -5681,94 +5681,20 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     console.warn(`${label} KNOWLEDGE GRAPH: failed (non-blocking):`, err instanceof Error ? err.message : String(err));
   }
 
-  // ── POST-HOC DATA INJECTION: Evidence Tiers + Adversarial Transparency + Multi-Lens Convergence ──
-  // These fields are computed/injected AFTER the analyst and critic run, then attached
-  // to the analysis object so the renderer can display them.
-  if (isStrategic && analysis && typeof analysis === 'object') {
-    try {
-      // 1. Evidence Tiers — classify sources into 5 tiers
-      const { computeEvidenceTiers, summarizeEvidenceTiers } = await import('./evidence-tiering');
-      const tiers = computeEvidenceTiers(topSources);
-      analysis._evidenceTiers = tiers;
-      console.log(`${label} EVIDENCE TIERS: ${summarizeEvidenceTiers(tiers)}`);
-    } catch (err) {
-      console.warn(`${label} EVIDENCE TIERS: failed (non-blocking):`, err instanceof Error ? err.message : String(err));
-    }
-
-    // 2. Adversarial Transparency — inject Critic objections
-    if (savedCriticResult) {
-      try {
-        const objections = (savedCriticResult.contradictions || []).map((c: any) => ({
-          claim: c.claim || c.text || '',
-          objection: c.contradiction || c.reason || c.explanation || '',
-          severity: c.severity || 'medium',
-          resolved: false,
-        }));
-        // Also add biases as objections
-        const biasObjections = (savedCriticResult.biases || []).map((b: any) => ({
-          claim: b.claim || b.description || '',
-          objection: b.bias || b.type || b.explanation || 'Bias detected',
-          severity: b.severity || 'medium',
-          resolved: false,
-        }));
-        // stageResults is an object (not array) — extract preprint penalties from grounding stage if present
-        const stageResults = savedCriticResult.stageResults || {};
-        const groundingStage = stageResults.grounding || {};
-        const preprintDowngrades = (groundingStage.preprintPenalties || []).map((pp: any) => ({
-          claim: pp.claim || '',
-          sources: pp.sources || [],
-          reason: pp.reason || 'Claim supported primarily by non-peer-reviewed preprint',
-        }));
-        analysis._adversarialTransparency = {
-          criticScore: savedCriticResult.overallScore || 0,
-          criticObjections: [...objections, ...biasObjections],
-          preprintDowngrades,
-        };
-        console.log(`${label} ADVERSARIAL TRANSPARENCY: ${objections.length + biasObjections.length} objections, ${preprintDowngrades.length} preprint downgrades injected`);
-      } catch (err) {
-        console.warn(`${label} ADVERSARIAL TRANSPARENCY: failed (non-blocking):`, err instanceof Error ? err.message : String(err));
-      }
-    }
-
-    // 3. Multi-Lens Convergence Map — inject CANA/SCATTER convergence
-    if (savedCanaResult || savedScatterResult) {
-      try {
-        const canaMechanisms = (savedCanaResult?.mechanisms || []).slice(0, 6).map((m: any) =>
-          m.mechanism || m.description || JSON.stringify(m).slice(0, 200)
-        );
-        const scatterHypotheses = (savedScatterResult?.hypotheses || []).slice(0, 6).map((h: any) =>
-          h.hypothesis || h.scenario || h.description || JSON.stringify(h).slice(0, 200)
-        );
-        // Convergence: themes that appear in both CANA mechanisms and SCATTER hypotheses
-        const canaText = canaMechanisms.join(' ').toLowerCase();
-        const scatterText = scatterHypotheses.join(' ').toLowerCase();
-        const convergencePoints: string[] = [];
-        const divergencePoints: string[] = [];
-
-        // Simple keyword-based convergence detection
-        const keyConcepts = ['governance', 'religion', 'ethics', 'bias', 'pluralism', 'dignity', 'regulation', 'framework'];
-        for (const concept of keyConcepts) {
-          const inCana = canaText.includes(concept);
-          const inScatter = scatterText.includes(concept);
-          if (inCana && inScatter) {
-            convergencePoints.push(`Both CANA and SCATTER identify "${concept}" as a central mechanism — this increases robustness of findings related to ${concept}.`);
-          } else if (inCana || inScatter) {
-            divergencePoints.push(`Only ${inCana ? 'CANA' : 'SCATTER'} identifies "${concept}" — this indicates genuine uncertainty about the role of ${concept}.`);
-          }
-        }
-
-        analysis._multiLensConvergence = {
-          canaMechanisms,
-          scatterHypotheses,
-          weakSignals: [], // populated from weak_signal lens if available
-          convergencePoints,
-          divergencePoints,
-        };
-        console.log(`${label} MULTI-LENS CONVERGENCE: ${convergencePoints.length} convergence, ${divergencePoints.length} divergence points`);
-      } catch (err) {
-        console.warn(`${label} MULTI-LENS CONVERGENCE: failed (non-blocking):`, err instanceof Error ? err.message : String(err));
-      }
-    }
+  // ── POST-HOC DATA INJECTION (extracted to pipeline-steps/post-hoc-injection.ts) ──
+  // Evidence Tiers + Adversarial Transparency + Multi-Lens Convergence,
+  // computed post-analyst/critic and attached to the analysis object.
+  {
+    const { runPostHocInjection } = await import('./pipeline-steps/post-hoc-injection');
+    await runPostHocInjection({
+      isStrategic,
+      analysis: analysis as Record<string, any> | undefined,
+      topSources,
+      criticResult: savedCriticResult,
+      canaResult: savedCanaResult,
+      scatterResult: savedScatterResult,
+      label,
+    });
   }
 
   let html = '';
@@ -5776,206 +5702,25 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   let debateResult: DebateResult | undefined;
   let institutePosition: InstitutePosition | undefined;
 
-  // Map ProspectiveNote (analyst-multipass output) → fields expected by renderProfessionalStrategicHTML
-  function mapProspectiveToRenderFormat(analysis: any): any {
-    // Already has strategic-format fields (from strategic-analyst-agent) — no mapping needed
-    if (analysis.executiveSummary || analysis.literatureOverview) return analysis;
-
-    const causalChainText = Array.isArray(analysis.causalChain)
-      ? analysis.causalChain.map((link: any) =>
-          `**${link.claim || ''}**\nEvidence: ${link.evidence || ''}\nWarrant: ${link.warrant || ''}`
-        ).join('\n\n')
-      : '';
-
-    const rejectedAltText = Array.isArray(analysis.rejectedAlternatives)
-      ? analysis.rejectedAlternatives.map((alt: any) =>
-          `**${alt.scenario || ''}** — ${alt.whyRejected || ''} (Residual risk: ${alt.residualRisk || ''})`
-        ).join('\n\n')
-      : '';
-
-    const signalsText = analysis.whatToWatch?.signals?.length
-      ? analysis.whatToWatch.signals.map((s: string) => `• ${s}`).join('\n')
-      : '';
-
-    const evidenceGapsText = analysis.evidenceAssessment?.gaps?.length
-      ? analysis.evidenceAssessment.gaps.map((g: string) => `• ${g}`).join('\n')
-      : '';
-
-    const strongestLinksText = analysis.evidenceAssessment?.strongestLinks?.length
-      ? analysis.evidenceAssessment.strongestLinks.map((s: string) => `• ${s}`).join('\n')
-      : '';
-
-    return {
-      ...analysis,
-      // Map ProspectiveNote fields to renderer-expected fields
-      executiveSummary: analysis.verdict || '',
-      literatureOverview: analysis.anchoringBasis || '',
-      theoreticalFrameworks: '',
-      methodologicalApproaches: causalChainText,
-      consensus: analysis.throughLine || '',
-      controversies: rejectedAltText,
-      emergingTrends: analysis.trajectory?.state || '',
-      // Map causalChain → causalArchitecture for the Causal Architecture section
-      causalArchitecture: Array.isArray(analysis.causalChain)
-        ? analysis.causalChain.map((link: any) => ({
-            claim: link.claim || '',
-            chain: `Evidence: ${link.evidence || ''} → Warrant: ${link.warrant || ''} → Status: ${link.temporalStatus || ''}`,
-            confidence: link.temporalStatus === 'present_fact' ? 'high' : link.temporalStatus === 'active_mechanism' ? 'medium' : 'low',
-            epistemicLevel: link.temporalStatus === 'present_fact' ? 'demonstrated' : link.temporalStatus === 'active_mechanism' ? 'suggested' : 'projected',
-            counterfactual: `If ${link.evidence?.slice(0, 100) || 'this evidence'} were not observed, the causal chain would break at this link.`,
-            alternativeExplanation: `An alternative explanation is that this observation is driven by confounding factors not captured in the source data.`,
-            sources: link.sourceRef ? [`[SRC-${link.sourceRef}]`] : (link.sources || []),
-          }))
-        : [],
-      // Themes from causal chain — group by domain if available
-      themes: Array.isArray(analysis.causalChain)
-        ? analysis.causalChain.map((link: any) => ({
-            name: `Causal Link ${link.id}`,
-            description: link.claim,
-            evidence: link.evidence,
-            sources: link.sourceRef ? `[SRC-${link.sourceRef}]` : '',
-          }))
-        : [],
-      // Scenarios from trajectory + rejected alternatives
-      scenarios: [
-        ...(analysis.trajectory?.state ? [{
-          name: 'Projected Trajectory',
-          probability: '',
-          description: analysis.trajectory.state,
-          implications: analysis.trajectory.assumptions || '',
-        }] : []),
-        ...(Array.isArray(analysis.rejectedAlternatives) ? analysis.rejectedAlternatives.map((alt: any) => ({
-          name: alt.scenario || 'Alternative Scenario',
-          probability: '',
-          description: alt.whyRejected || '',
-          implications: alt.residualRisk || '',
-        })) : []),
-      ],
-      // Evidence quality from evidenceAssessment
-      evidenceQuality: {
-        overallScore: 0,
-        methodology: strongestLinksText,
-        gaps: evidenceGapsText,
-      },
-      // Recommendations from whatToWatch
-      recommendations: {
-        immediate: analysis.whatToWatch?.signals || [],
-        shortTerm: [],
-        longTerm: [],
-        riskMitigation: evidenceGapsText ? evidenceGapsText.split('\n') : [],
-      },
-      // Implementation from trajectory assumptions
-      implementation: {
-        timeline: analysis.trajectory?.horizon || '',
-        resources: analysis.trajectory?.assumptions || '',
-        obstacles: analysis.evidenceAssessment?.gaps || [],
-      },
-      conclusion: analysis.verdict || '',
-      openQuestions: evidenceGapsText,
-      whatChangesMind: analysis.whatToWatch?.whatWouldChangeMind || '',
-      // Preserve keyFindings (already in both formats)
-      keyFindings: analysis.keyFindings || [],
-      // Preserve title
-      title: analysis.title || '',
-      // Pass through urgency/confidence if present
-      urgencyLevel: analysis.urgencyLevel,
-      confidenceLevel: analysis.convictionLevel === 'firm' ? 'high' : analysis.convictionLevel === 'tempered' ? 'medium' : 'low',
-    };
-  }
-
+  // EDITOR step — extracted to pipeline-steps/render-editor.ts.
+  // debateResult is read at call time (assigned between here and the render call).
   const renderEditorHtml = async (): Promise<string> => {
-    console.log(`${label} EDITOR: render professional HTML`);
-
-    // S14-F: EDITORIAL quality gate — check analysis quality before rendering
-    // If the critic rejected the analysis or citation coverage is very low,
-    // log a quality warning. The rendering still proceeds (the trust score
-    // will cap the publication), but we add a visible quality disclaimer.
-    const preRenderCriticVerdict = stats.critic?.verdict;
-    const preRenderCriticScore = stats.critic?.overallScore;
-    if (preRenderCriticVerdict === 'reject' || (preRenderCriticScore !== null && preRenderCriticScore !== undefined && preRenderCriticScore < 25)) {
-      console.warn(`${label} EDITORIAL GATE: ⚠️ Low quality analysis (critic=${preRenderCriticVerdict}, score=${preRenderCriticScore}) — rendering with quality disclaimer`);
-    }
-
-    try {
-      if (editorialV2 && castingResult && institutePosition) {
-        // Determine think tank style profile from query domain for adaptive labels
-        const q = query.toLowerCase();
-        let styleProfile: 'harvard' | 'france-strategie' | 'montaigne' | 'mckinsey' | 'rand' | 'chatham' | 'caps' | 'default' = 'default';
-        if (/diplomatie|diplomatique|affaires étrangères|prévision stratégique|ambassade|quai d'orsay/.test(q)) styleProfile = 'caps';
-        else if (/france|français|europe|européen|réforme|politique publique/.test(q)) styleProfile = 'france-strategie';
-        else if (/montaigne|français|modèle français|cohesion|état|action publique/.test(q)) styleProfile = 'montaigne';
-        else if (/business|industry|productivity|growth|market|strategy|sector/.test(q)) styleProfile = 'mckinsey';
-        else if (/defense|military|security|intelligence|threat|risk|war|weapon|cyber/.test(q)) styleProfile = 'rand';
-        else if (/international|diplomacy|geopolitic|foreign policy|global|nato/.test(q)) styleProfile = 'chatham';
-        else if (/policy memo|public policy|administration|governance/.test(q)) styleProfile = 'harvard';
-
-        const rendered = renderPositionFirstBriefHTML({
-          question: query,
-          classification: topicClassification,
-          casting: castingResult,
-          position: institutePosition,
-          analysis: analysis as Record<string, unknown>,
-          sources: topSources,
-          debate: debateResult,
-          isStrategic,
-          styleProfile,
-        });
-        stats.rendererUsed = "position_first";
-        console.log(`${label} EDITOR: position-first template (${(rendered.length / 1024).toFixed(0)}KB)`);
-        return rendered;
-      }
-      console.warn(`${label} RENDERER: position-first NOT used — editorialV2=${editorialV2}, casting=${!!castingResult}, arbiter=${!!institutePosition} — falling back to ${isStrategic ? 'strategic' : 'brief'} template`);
-      const renderAnalysis = isStrategic ? mapProspectiveToRenderFormat(analysis) : analysis;
-
-      // Backfill missing analytical fields (tailRisks, outsideIn, _redTeam, timeline, achMatrix)
-      // The analyst multipass doesn't produce these fields — a focused second-pass LLM call generates them.
-      if (isStrategic) {
-        await backfillMissingAnalyticalFields(renderAnalysis, query, topSources);
-      }
-      // Build protocol metadata for transparency section (RAND 2022 standard)
-      const protocolMeta = isStrategic ? {
-        query,
-        providers: stats.scout?.providers || [],
-        sourcesFound: stats.scout?.found || 0,
-        sourcesRetained: topSources.length,
-        minQuality: 70,
-        recentOnly: false,
-        maxPerProvider: 4,
-        llmFamily: analysis._producerFamily || 'unknown',
-        llmModel: stats.analyst?.model || 'unknown',
-        generationDate: new Date().toISOString(),
-        pipelineVersion: 'v2',
-        trustScore: stats.trustScore,
-        citationCount: stats.citationRepair?.injected,
-        claimCount: stats.claimGrounding ? (stats.claimGrounding.supported + stats.claimGrounding.partial + stats.claimGrounding.unsupported + stats.claimGrounding.uncited + stats.claimGrounding.contradicted) : undefined,
-        groundedness: stats.claimGrounding?.groundedness,
-      } : undefined;
-      const rendered = isStrategic
-        ? renderProfessionalStrategicHTML(renderAnalysis, topSources, protocolMeta, await computeTrackRecordStats(), isStrategic ? 'STRATEGIC_REPORT' : isMemo ? 'DECISION_MEMO' : 'ARTICLE')
-        : renderProfessionalBriefHTML(analysis, topSources, isMemo ? 'DECISION_MEMO' : 'ARTICLE');
-      stats.rendererUsed = isStrategic ? "professional_strategic" : "professional_brief";
-      console.log(`${label} EDITOR: ${isStrategic ? 'strategic' : 'brief'} template rendered (${(rendered.length / 1024).toFixed(0)}KB)`);
-      return rendered;
-    } catch (editorErr) {
-      console.warn(`${label} EDITOR: professional template failed, using legacy:`, editorErr);
-      stats.rendererUsed = isStrategic ? "legacy_strategic" : "legacy_brief";
-      // Fetch contradictions from DB to surface in the report (non-blocking)
-      let contradictionsForRender: Array<{ claim1: string; claim2: string; contradictionType: string; confidence: number; explanation: string }> = [];
-      if (isStrategic && topSources.length > 0) {
-        try {
-          const dbContradictions = await prisma.contradiction.findMany({
-            where: { sourceId1: { in: topSources.map(s => s.id) } },
-            select: { claim1: true, claim2: true, contradictionType: true, confidence: true, explanation: true },
-            take: 10,
-            orderBy: { confidence: "desc" },
-          });
-          contradictionsForRender = dbContradictions;
-        } catch { /* non-blocking */ }
-      }
-      return isStrategic
-        ? renderStrategicReportHTML(analysis, topSources, contradictionsForRender)
-        : renderBriefHTML(analysis, topSources);
-    }
+    const { runRenderEditorStep } = await import('./pipeline-steps/render-editor');
+    return runRenderEditorStep({
+      label,
+      query,
+      isStrategic,
+      isMemo,
+      editorialV2,
+      topicClassification,
+      castingResult,
+      institutePosition,
+      analysis: analysis as Record<string, any>,
+      topSources,
+      debateResult,
+      stats: stats as Record<string, any>,
+      renderBriefFallback: renderBriefHTML,
+    });
   };
 
   const runPostRenderQualityGates = async () => {
@@ -7279,173 +7024,37 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     console.warn(`${label} PROSE CLEANUP: failed (non-blocking):`, err);
   }
 
-  // LOT 5.1/5.7: Style gates + numerical gate on final HTML
-  try {
-    const { runStyleGates, runNumericalGate } = await import('./style-gates');
-    const styleResult = runStyleGates(html);
-    const numResult = runNumericalGate(html, topSources.length);
-    stats.styleGates = {
-      violations: styleResult.violations.length,
-      passed: styleResult.passed,
-      gateDetails: styleResult.violations.slice(0, 10).map(v => ({ gate: v.gate, match: v.match, suggestion: v.suggestion })),
+  // ── STYLE GATES → SIGNAL SWEEP → DA RE-CHECK (extracted to
+  //    pipeline-steps/style-sweep-recheck.ts — one coupled unit) ──
+  {
+    const { runStyleSweepRecheck } = await import('./pipeline-steps/style-sweep-recheck');
+    const reviewCtx: import('./pipeline-steps/types').TailStepContext = {
+      html,
+      analysis: analysis as Record<string, any>,
+      topSources,
+      readings,
+      stats: stats as Record<string, any>,
+      orchState,
+      evidenceRegistry,
+      label,
+      query,
+      topicClassification,
+      detectedDomain,
+      isStrategic,
+      isMemo,
+      isDossier,
+      selfCorrector,
+      bumpHtmlArtifact,
+      tagEval,
+      collectStaleEvaluations,
+      selfCorrectRollbacks: 0,
+      pipelineCtx: ctx,
+      isBudgetConstrained,
+      addCost,
+      debateContext,
     };
-    stats.numericalGate = {
-      violations: numResult.violations.length,
-      passed: numResult.passed,
-      details: numResult.violations.slice(0, 10).map(v => ({ match: v.match, suggestion: v.suggestion })),
-    };
-    if (styleResult.violations.length > 0) {
-      console.log(`${label} STYLE GATES: ${styleResult.violations.length} violations (G1-G10)`);
-      // Emit as signals — resolvable at sweep checkpoints, not just inline.
-      for (const v of styleResult.violations.slice(0, 10)) {
-        ctx.postSignal('style_violation', `${v.gate}: "${v.match}" → ${v.suggestion}`, {
-          postedBy: 'STYLE_GATES', intensity: 0.4, ttlMs: 20 * 60 * 1000,
-          payload: { gate: v.gate, match: v.match, suggestion: v.suggestion },
-        });
-      }
-    }
-
-    // ── COPY EDITOR — the missing newsroom role: detection existed (style gates,
-    // editorial panel reviewer) but nothing FIXED the prose. Surgical edit-list
-    // contract: LLM returns {find, replace} pairs, applied only after verbatim +
-    // citation-preservation verification (see copy-editor.ts). Triggers on style
-    // violations OR a weak editorial panel score with concrete findings.
-    const editorialFindings = ((stats.criticPanel as any)?.dimensions ?? [])
-      .filter((d: any) => d.dimension === 'editorial' && d.score < 7)
-      .flatMap((d: any) => (d.findings ?? []).slice(0, 3));
-    if ((styleResult.violations.length > 0 || editorialFindings.length > 0) && !isBudgetConstrained()) {
-      try {
-        const { copyEditHtml } = await import('./copy-editor');
-        const ce = await copyEditHtml(html, { violations: styleResult.violations, editorialFindings });
-        addCost(ce.costUsd, 'COPY_EDITOR');
-        if (ce.applied > 0) {
-          html = ce.html;
-          const after = runStyleGates(html);
-          console.log(`${label} COPY EDITOR: ${ce.applied} edits applied (${ce.skipped} rejected) → violations ${styleResult.violations.length} → ${after.violations.length}`);
-          stats.copyEditor = { applied: ce.applied, skipped: ce.skipped, violationsBefore: styleResult.violations.length, violationsAfter: after.violations.length, costUsd: ce.costUsd };
-          stats.styleGates.violations = after.violations.length;
-          stats.styleGates.passed = after.passed;
-        } else {
-          stats.copyEditor = { applied: 0, skipped: ce.skipped, costUsd: ce.costUsd };
-        }
-      } catch (ceErr) {
-        console.warn(`${label} COPY EDITOR: failed (non-blocking):`, ceErr);
-      }
-    }
-    if (numResult.violations.length > 0) {
-      console.log(`${label} NUMERICAL GATE: ${numResult.violations.length} unsourced numbers (first 5: ${numResult.violations.slice(0, 5).map(v => v.match).join(', ')})`);
-      // Flag in stats for downstream inspection — if > 20 violations, log a warning
-      if (numResult.violations.length > 20) {
-        console.warn(`${label} NUMERICAL GATE: WARNING — ${numResult.violations.length} unsourced numbers is high. Consider reviewing the analyst output for missing citations on empirical claims.`);
-      }
-    }
-  } catch (err) {
-    console.warn(`${label} STYLE GATES: failed (non-blocking):`, err);
-  }
-
-  // ── SIGNAL SWEEP (post-render): the collective deliberation checkpoint. ──
-  // Signals posted during the run (DA objections → substance_weak, grounding
-  // gaps → claim_unverifiable, style → style_violation) are drained in
-  // mission-priority order to their resolvers. substance_weak is resolved by
-  // the revision editor — surgical edits that address adversarial objections
-  // in the final HTML BEFORE the gate ever sees them.
-  let sweepResolvedSubstance = false;
-  try {
-    if (!isBudgetConstrained()) {
-      ctx.signals.registerResolver('substance_weak', async (sigs: import('./signals').AgentSignal[]) => {
-        const daStats = stats.devilsAdvocate as any;
-        const { reviseForFindings } = await import('./revision-editor');
-        const weakFindings = ((stats.criticPanel as any)?.dimensions ?? [])
-          .filter((d: any) => d.mustFix || d.score <= 4)
-          .flatMap((d: any) => (d.findings ?? []).slice(0, 3).map((f: string) => `[${d.dimension}] ${f}`));
-        const rev = await reviseForFindings(html, {
-          gateReasons: [],
-          daChallenges: sigs.map((s: import('./signals').AgentSignal) => ({ type: String(s.payload?.type ?? 'challenge'), text: s.content })),
-          killShot: daStats?.killShot,
-          weakFindings,
-        });
-        addCost(rev.costUsd, 'REVISION_EDITOR');
-        if (rev.applied > 0) { html = rev.html; bumpHtmlArtifact(); return { resolved: true, note: `${rev.applied} edit(s) — ${rev.skipped} rejected` }; }
-        return { resolved: false, note: `0 edits applied (${rev.skipped} rejected)` };
-      }, { batch: true });
-
-      const sweep = await ctx.signals.sweep({
-        mission: ctx.mission,
-        metrics: {
-          trust: stats.criticalLoop?.finalScore ?? 0,
-          groundedness: stats.claimGrounding?.groundedness ?? 100,
-          citationCoverage: 0,
-          sourceCount: topSources.length,
-          qualityScore: 0,
-          centralScenarioOk: true,
-        },
-        maxResolutions: 3,
-      });
-      if (sweep.resolved > 0 || sweep.failed > 0) {
-        sweepResolvedSubstance = sweep.results.some(
-          r => r.signal.type === 'substance_weak' && r.res.resolved
-        );
-        (stats as Record<string, unknown>).signalSweep = { resolved: sweep.resolved, failed: sweep.failed, remaining: sweep.remaining };
-        console.log(`${label} SIGNAL SWEEP: ${sweep.resolved} resolved, ${sweep.failed} failed, ${sweep.remaining} open — ${sweep.results.map(r => `${r.signal.type}=${r.res.resolved ? 'ok' : 'no'}`).join(', ')}`);
-      }
-    }
-  } catch (sweepErr) {
-    console.warn(`${label} SIGNAL SWEEP: failed (non-blocking):`, sweepErr);
-  }
-
-  // ── DA RE-CHECK (post-sweep): if the devil's advocate failed the analysis
-  // (veto, reject verdict, or a publishability score below the gate's 40
-  // threshold) and the sweep's revision editor resolved its substance_weak
-  // objections in the HTML, the verdict must be re-evaluated on the CORRECTED
-  // artifact — otherwise the gate and the trust cap punish defects that no
-  // longer exist and the correction loop is cosmetic. One re-check (~$0.02),
-  // skipped when budget-constrained. The fresh verdict replaces the stored one
-  // either way: it describes the adopted artifact, which is what the gate must
-  // judge. ──
-  try {
-    const daStats = stats.devilsAdvocate as Record<string, unknown> | undefined;
-    const daGateFailing = (stats as any).devilsAdvocateVeto === true
-      || daStats?.verdict === 'reject'
-      || (typeof daStats?.publishabilityScore === 'number' && daStats.publishabilityScore < 40);
-    if (daGateFailing && sweepResolvedSubstance && !isBudgetConstrained()) {
-      const { runDevilsAdvocate } = await import('./devils-advocate');
-      const recheck = await runDevilsAdvocate(
-        query,
-        html,
-        topSources.map((s: any) => ({ title: s.title, provider: s.provider, year: s.year })),
-        { mode: isStrategic ? 'strategic' : 'brief', domain: detectedDomain, debateContext },
-      );
-      addCost(recheck.costUsd, 'DEVILS_ADVOCATE_RECHECK');
-      const recheckFatal = recheck.fatalChallenges?.length ?? 0;
-      const stillVetoWorthy = recheck.verdict === 'reject'
-        || (recheck.verdict === 'major_revision' && recheck.overallStrength < 20);
-      console.log(`${label} DA RE-CHECK: strength ${daStats?.overallStrength ?? '?'}→${recheck.overallStrength}/100, fatal ${daStats?.fatalChallenges ?? '?'}→${recheckFatal} — veto ${stillVetoWorthy ? 'STANDS' : 'LIFTED'}`);
-      (stats as any).devilsAdvocateRecheck = {
-        verdict: recheck.verdict,
-        overallStrength: recheck.overallStrength,
-        publishabilityScore: recheck.publishabilityScore,
-        fatalChallenges: recheckFatal,
-        vetoLifted: !stillVetoWorthy && (stats as any).devilsAdvocateVeto === true,
-        costUsd: recheck.costUsd,
-      };
-      (stats as any).devilsAdvocateVeto = stillVetoWorthy;
-      stats.devilsAdvocate = tagEval({
-        verdict: recheck.verdict,
-        overallStrength: recheck.overallStrength,
-        publishabilityScore: recheck.publishabilityScore,
-        fatalChallenges: recheckFatal,
-        majorChallenges: recheck.majorChallenges?.length ?? 0,
-        killShot: recheck.killShot?.slice(0, 400) ?? '',
-        topChallenges: [...(recheck.fatalChallenges || []), ...(recheck.majorChallenges || [])]
-          .slice(0, 3)
-          .map((c: any) => ({ type: c.challengeType || c.type || 'challenge', text: String(c.challenge || c.text || '').slice(0, 300) })),
-        vulnerabilityTexts: (recheck.futureVulnerabilities || []).slice(0, 3).map((v: any) => String(v).slice(0, 200)),
-        futureVulnerabilities: recheck.futureVulnerabilities?.length || 0,
-        costUsd: recheck.costUsd,
-      }, 'html');
-    }
-  } catch (recheckErr) {
-    console.warn(`${label} DA RE-CHECK failed (non-blocking):`, recheckErr);
+    await runStyleSweepRecheck(reviewCtx);
+    html = reviewCtx.html;
   }
 
   // ── POST-RENDER TAIL STEPS (extracted to lib/agent/pipeline-steps/) ──
