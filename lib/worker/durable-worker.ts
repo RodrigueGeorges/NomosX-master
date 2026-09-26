@@ -223,7 +223,17 @@ export async function runWorkerLoop(options: WorkerOptions = {}): Promise<number
   );
 
   let processed = 0;
+  let lastSweep = 0;
   for (;;) {
+    // Stale-run sweep: pipelineRuns still RUNNING long after their last write
+    // were orphaned by a killed process (serverless timeout, crash). They
+    // would otherwise read as "running" forever — mark them FAILED so the
+    // funnel metrics and the dossier/watch layer see the truth.
+    if (Date.now() - lastSweep > SWEEP_INTERVAL_MS) {
+      lastSweep = Date.now();
+      await sweepStalePipelineRuns(workerId);
+    }
+
     let job: ClaimedJob | null = null;
     try {
       job = await claimNextJob(workerId, lockMs);
@@ -255,4 +265,25 @@ export async function runWorkerLoop(options: WorkerOptions = {}): Promise<number
 
 function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
+}
+
+// ─── Stale pipeline-run sweep ───────────────────────────────────────────────
+
+const SWEEP_INTERVAL_MS = 10 * 60 * 1000; // every 10 min
+/** A RUNNING pipelineRun that hasn't written for this long is dead. */
+const STALE_RUN_MS = 45 * 60 * 1000;
+
+async function sweepStalePipelineRuns(workerId: string): Promise<void> {
+  try {
+    const cutoff = new Date(Date.now() - STALE_RUN_MS);
+    const stale = await prisma.pipelineRun.updateMany({
+      where: { status: 'RUNNING', updatedAt: { lt: cutoff } },
+      data: { status: 'FAILED', finishedAt: new Date() },
+    });
+    if (stale.count > 0) {
+      console.log(`[Worker ${workerId}] swept ${stale.count} stale RUNNING pipeline run(s) → FAILED`);
+    }
+  } catch (err) {
+    console.warn(`[Worker ${workerId}] stale-run sweep failed (non-blocking):`, err instanceof Error ? err.message : err);
+  }
 }

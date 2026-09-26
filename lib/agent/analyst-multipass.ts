@@ -258,6 +258,64 @@ function detectLanguage(question: string): string {
 }
 
 // ============================================================================
+// SHARED PREFIX-CACHE LAYOUT
+// ============================================================================
+// All three analyst passes use ONE identical system prompt and a user prompt
+// that begins with the SAME byte-identical corpus prefix (question + domain
+// context + SOURCES). Provider-side prefix caching (OpenAI automatic ≥1K tok,
+// Kimi cached-input billing, z.ai prefix cache) then serves passes 2-3's huge
+// corpus input at ~1/10 price. Pass-specific instructions live verbatim in
+// the MISSION section appended AFTER the shared prefix — no instruction lost.
+const ANALYST_SYSTEM_PROMPT = `You are NomosX Analyst executing one pass of a 3-pass analysis protocol:
+  Pass 1 — Friction Mapping: extract mechanisms, collisions, and the data landscape from the source corpus.
+  Pass 2 — Stress Test: try to break every mechanism and collision under hostile scrutiny.
+  Pass 3 — Prospective Synthesis: build the causal chain and take a position.
+
+${NOMOS_EDITORIAL_LINE_SHORT}
+
+NOMOSX EDITORIAL DNA:
+You are agnostic — even anarchistic. You are not afraid to shock, to draw
+ambitious correlations that others dismiss. You detect the underlying
+bullshit that conventional analysis papers over. You are revolutionary in
+the best sense: you reason like Einstein, Marie Curie, Hobbes, the greatest
+inventors, philosophers, economists, and scientists. Your goal is to be
+brilliant with every publication — to produce work worthy of a Pulitzer,
+a Fields Medal, a Nobel Prize. You dig deeper, reason harder, and see
+connections that specialists trapped in their silos cannot.
+
+ANTI-NOVLANGUE RULE (Pillar 6 — non-negotiable):
+You NEVER use euphemisms that mask violence or obscure accountability.
+"Collateral damage" → "civilian deaths". "Optimization" → "layoffs".
+"Enhanced interrogation" → "torture". "Responsible moderation" → "censorship".
+"Reform" → name the actual policy change. "Modernization" → name what changes.
+If a source uses a euphemism, you quote it WITH BRACKETS and immediately
+provide the true name: "the report cites 'collateral damage' [i.e., civilian
+deaths]". Precision of language is the first defense against tyranny of
+thought. Name the thing by its true name. Always.
+
+NomosX does not inventory sources. It isolates the strongest cross-domain
+causal chain and extrapolates its trajectory toward a dated future.
+
+PROTOCOL:
+- The user message contains the RESEARCH QUESTION, optional domain context,
+  the SOURCES corpus numbered [SRC-1] through [SRC-N], any intermediate
+  results from earlier passes, and YOUR MISSION for this specific pass.
+- Execute the mission's output schema exactly. Output ONLY the JSON object
+  it specifies — no markdown fences, no prose outside JSON.
+- Every extracted fact and dataPoint must cite its source via [SRC-N].
+  Uncited content is deleted downstream.`;
+
+/** Byte-identical shared prefix across all three passes — do NOT vary the
+ *  text between calls or the provider prefix cache misses. */
+function corpusPrefix(question: string, ctx: string, domainContext?: string): string {
+  return `RESEARCH QUESTION: "${question}"
+${domainContext || ''}
+
+SOURCES:
+${ctx}`;
+}
+
+// ============================================================================
 // PASS 1: FRICTION MAPPING
 // ============================================================================
 
@@ -270,7 +328,7 @@ async function pass1FrictionMapping(
 ): Promise<{ map: FrictionMap; tokens: number; cost: number }> {
   console.log(`[Analyst V3] PASS 1/3: Friction Mapping (${sourceCount} sources, depth: ${depth ?? 'brief'})...`);
 
-  const systemPrompt = `You are NomosX Analyst — Pass 1 of 3: FRICTION MAPPING.
+  const missionPrompt = `You are NomosX Analyst — Pass 1 of 3: FRICTION MAPPING.
 
 ${NOMOS_EDITORIAL_LINE_SHORT}
 
@@ -421,15 +479,14 @@ DEPTH: STRATEGIC REPORT MODE.
 ` : ""}
 Select what SERVES the argument — do not exhaustively dump everything.`;
 
-  const userPrompt = `RESEARCH QUESTION: "${question}"
-${domainContext || ''}
+  const userPrompt = `${corpusPrefix(question, ctx, domainContext)}
 
-SOURCES:
-${ctx}`;
+=== YOUR MISSION FOR THIS CALL — PASS 1 of 3 ===
+${missionPrompt}`;
 
   const response = await callLLM({
     messages: [
-      { role: "system", content: systemPrompt },
+      { role: "system", content: ANALYST_SYSTEM_PROMPT },
       { role: "user", content: userPrompt },
     ],
     temperature: 0.1,
@@ -470,7 +527,7 @@ async function pass2StressTest(
     .map(c => `COLLISION: ${c.domainA} × ${c.domainB} — ${c.friction} — Surprise: ${c.surpriseFactor}`)
     .join("\n");
 
-  const systemPrompt = `You are NomosX Analyst — Pass 2 of 3: STRESS TEST.
+  const missionPrompt = `You are NomosX Analyst — Pass 2 of 3: STRESS TEST.
 
 ${NOMOS_EDITORIAL_LINE_SHORT}
 
@@ -558,8 +615,7 @@ OUTPUT LIMITS:
 - Keep reasoning fields under 50 words each.
 - Output ONLY the JSON object — no markdown, no prose.`;
 
-  const userPrompt = `RESEARCH QUESTION: "${question}"
-${domainContext || ''}
+  const userPrompt = `${corpusPrefix(question, ctx, domainContext)}
 
 PASS 1 RESULTS: FRICTION MAP
 MECHANISMS:
@@ -575,11 +631,14 @@ PROJECTIONS IN LITERATURE:
 ${frictionMap.dataLandscape?.projectionsInLiterature?.slice(0, 5).join("\n") || "None"}
 
 DATA POINTS (for verification):
-${(frictionMap.dataLandscape?.quantitativeFindings || []).slice(0, 15).join("\n") || "None"}`;
+${(frictionMap.dataLandscape?.quantitativeFindings || []).slice(0, 15).join("\n") || "None"}
+
+=== YOUR MISSION FOR THIS CALL — PASS 2 of 3 ===
+${missionPrompt}`;
 
   const response = await callLLM({
     messages: [
-      { role: "system", content: systemPrompt },
+      { role: "system", content: ANALYST_SYSTEM_PROMPT },
       { role: "user", content: userPrompt },
     ],
     temperature: 0.15,
@@ -640,7 +699,7 @@ async function pass3ProspectiveSynthesis(
   Surprise verified: ${c.surpriseVerified} — ${c.surpriseReasoning}`)
     .join("\n\n");
 
-  const systemPrompt = `You are NomosX Analyst — Pass 3 of 3: PROSPECTIVE SYNTHESIS.
+  const missionPrompt = `You are NomosX Analyst — Pass 3 of 3: PROSPECTIVE SYNTHESIS.
 
 You have mapped the mechanisms (Pass 1) and stress-tested them (Pass 2).
 Now you build the argument and take a position.
@@ -863,8 +922,7 @@ HOW THIS WILL BE GRADED (the critic's exact rubric):
 - Present-fact and projected-future claims must be temporally consistent — a claim that "X is declining" and "X will dominate" is a trajectory, but a claim that "X is declining" and "X is not declining" at the same horizon is a contradiction that will be penalized severely.
 - Unsupported causal leaps, missing warrants, and numerical claims that diverge from the source's figures are each penalized.`;
 
-  const userPrompt = `RESEARCH QUESTION: "${question}"
-${domainContext || ''}
+  const userPrompt = `${corpusPrefix(question, ctx, domainContext)}
 
 PASS 1 RESULTS: FRICTION MAP
 ${mechanismBrief}
@@ -881,8 +939,8 @@ ${collisionBrief || "None assessed"}
 SURVIVING MECHANISMS: ${(stressTestMap.survivingMechanisms ?? []).join(", ") || "none"}
 STRONGEST CHAIN: ${stressTestMap.strongestChain?.projectedFuture || "not identified"}
 
-RAW SOURCES (for citation verification):
-${ctx}
+=== YOUR MISSION FOR THIS CALL — PASS 3 of 3 ===
+${missionPrompt}
 
 YOUR MISSION:
 Using the structured intelligence from Passes 1-2, produce the prospective note.
@@ -891,7 +949,7 @@ Build the causal chain from the surviving mechanisms. Take ONE position.`;
 
   const response = await callLLM({
     messages: [
-      { role: "system", content: systemPrompt },
+      { role: "system", content: ANALYST_SYSTEM_PROMPT },
       { role: "user", content: userPrompt },
     ],
     temperature: 0.2,
