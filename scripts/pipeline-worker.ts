@@ -15,6 +15,8 @@
  *   --poll-ms=N       idle poll interval (default 10000)
  *   --max-jobs=N      exit after N jobs
  *   --worker-id=ID    override worker identity
+ *   --health-port=N   serve /health + /metrics on 0.0.0.0:N (Railway/Fly/VPS
+ *                     healthchecks; also honors the PORT env var when set)
  */
 
 import { runWorkerLoop } from '../lib/worker/durable-worker';
@@ -32,6 +34,25 @@ async function main() {
   const pollMs = Number(arg('poll-ms') ?? 10_000);
   const maxJobs = Number(arg('max-jobs') ?? 0);
   const workerId = arg('worker-id');
+
+  // Optional liveness endpoint — always-on platforms (Railway, Fly, Render,
+  // a VM behind systemd) probe a port to know the loop is alive. The worker
+  // is functional without it; this only affects platform health reporting.
+  const healthPort = Number(arg('health-port') ?? process.env.PORT ?? 0);
+  if (healthPort > 0) {
+    const startedAt = Date.now();
+    const { createServer } = await import('http');
+    createServer((req, res) => {
+      if (req.url === '/health' || req.url === '/') {
+        res.writeHead(200, { 'content-type': 'application/json' });
+        res.end(JSON.stringify({ ok: true, workerId: workerId ?? null, uptimeSec: Math.round((Date.now() - startedAt) / 1000) }));
+      } else {
+        res.writeHead(404); res.end();
+      }
+    }).listen(healthPort, '0.0.0.0', () => {
+      console.log(`[pipeline-worker] health endpoint on :${healthPort}`);
+    });
+  }
 
   const processed = await runWorkerLoop({ workerId, pollMs, maxJobs, once });
   process.exit(processed >= 0 ? 0 : 1);
