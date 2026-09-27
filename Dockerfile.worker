@@ -25,8 +25,10 @@ ENV NODE_ENV=production \
 # react 18 / @react-three peer conflict.
 COPY .npmrc package.json yarn.lock* package-lock.json* pnpm-lock.yaml* ./
 COPY prisma ./prisma
+# NODE_ENV=production above would make npm ci skip devDeps — but postinstall
+# needs the prisma CLI and the CMD needs tsx (both devDeps) → force --include=dev.
 RUN if [ -f yarn.lock ]; then yarn; \
-    elif [ -f package-lock.json ]; then npm ci; \
+    elif [ -f package-lock.json ]; then npm ci --include=dev; \
     elif [ -f pnpm-lock.yaml ]; then corepack enable pnpm && pnpm i; \
     else echo "Lockfile not found." && exit 1; fi
 
