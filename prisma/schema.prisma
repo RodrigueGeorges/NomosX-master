@@ -918,7 +918,8 @@ model Job {
   priority Int    @default(5)
 
   // Retry logic
-  attempts   Int     @default(0)
+  attempts   Int     @default(0) // real attempts: PENDING claims only — the retry budget
+  reclaims   Int     @default(0) // lock-expiry reclaims (crashed workers) — bounded by the worker, not by maxRetries
   maxRetries Int     @default(3)
   lastError  String? @db.Text
   errorStack String? @db.Text

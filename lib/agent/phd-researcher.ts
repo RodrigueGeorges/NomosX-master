@@ -1805,15 +1805,20 @@ export async function runExpertAnalysis(
   }
 
   try {
-    const [memory, profile] = await Promise.all([
+    const { getPlaybookBlock } = await import('./playbook');
+    const [memory, profile, playbookBlock] = await Promise.all([
       buildMemoryInjection(`phd:${domain}`, domain, { maxLessons: 4, lookbackDays: 90, topicQuery: question }),
       buildResearcherProfile(domain, question, 180),
+      getPlaybookBlock(`council:${domain}`),
     ]);
     if (memory.promptBlock) {
       enrichedSystemPrompt = `${enrichedSystemPrompt}\n\n${memory.promptBlock}`;
     }
     if (profile.identityBlock) {
       enrichedSystemPrompt = `${enrichedSystemPrompt}\n\n${profile.identityBlock}`;
+    }
+    if (playbookBlock) {
+      enrichedSystemPrompt = `${enrichedSystemPrompt}${playbookBlock}`;
     }
   } catch (err) {
     console.warn(`[PhD COUNCIL] Memory/KB injection failed for ${domain} (non-blocking):`, err);

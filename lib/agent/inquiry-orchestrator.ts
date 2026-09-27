@@ -669,6 +669,36 @@ export async function runAndPublishInquiry(
     });
   }
 
+  // ── ACE PLAYBOOK CURATION (non-blocking, fire-and-forget) ──
+  // The run's outcome is now known — distill durable lessons into each
+  // council role's evolving playbook (injected into runExpertAnalysis prompts)
+  // and upvote the advice that held on a published run. Gate diagnoses give
+  // typed failure material; revision actions record what repair worked.
+  void (async () => {
+    try {
+      const { curatePlaybook } = await import('./playbook');
+      const { detectRelevantExperts } = await import('./phd-researcher');
+      const domains = detectRelevantExperts(question).slice(0, 6);
+      const lessons = [
+        ...(gate.diagnoses ?? []).map((d) => d.fix),
+        ...(((pipeline.stats as Record<string, unknown>).revision as { actions?: string[] } | undefined)?.actions ?? []),
+      ];
+      const failurePatterns: Record<string, number> = {};
+      for (const c of gate.checks ?? []) {
+        if (!c.passed) failurePatterns[c.checkType] = (failurePatterns[c.checkType] ?? 0) + 1;
+      }
+      const outcome = status === "published" ? "published" : "held";
+      for (const domain of domains) {
+        const r = await curatePlaybook(`council:${domain}`, { lessons, failurePatterns, outcome });
+        if (r.added > 0 || r.upvoted > 0) {
+          console.log(`[PLAYBOOK] council:${domain} — +${r.added} bullet(s), ${r.upvoted} upvote(s)`);
+        }
+      }
+    } catch (err) {
+      console.warn(`[PLAYBOOK] curation failed (non-blocking):`, err);
+    }
+  })();
+
   return {
     status,
     inquiry: {

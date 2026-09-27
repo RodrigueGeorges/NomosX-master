@@ -136,15 +136,28 @@ export async function getPlaybookBlock(
 export async function curatePlaybook(
   role: string,
   signal: { lessons: string[]; failurePatterns: Record<string, number>; outcome: "published" | "held" | "failed" },
-): Promise<{ added: number }> {
+): Promise<{ added: number; upvoted: number }> {
+  const existing = await getPlaybook(role);
+  let upvoted = 0;
+
+  // Reflection: a published run is evidence the injected slice's advice held —
+  // upvote the top bullets (the ones the prompt actually carried). Ranking is
+  // relative, so consistently-validated advice rises over runs.
+  if (signal.outcome === "published") {
+    for (const b of existing.slice(0, MAX_BULLETS_IN_PROMPT)) {
+      await recordPlaybookDelta(role, b.text, "upvote", `outcome:${signal.outcome}`);
+      upvoted++;
+    }
+  }
+
   const fresh = signal.lessons.slice(0, 8);
   const topFailures = Object.entries(signal.failurePatterns)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 4)
     .map(([k, v]) => `${k} ×${v}`);
-  if (fresh.length === 0 && topFailures.length === 0) return { added: 0 };
+  if (fresh.length === 0 && topFailures.length === 0) return { added: 0, upvoted };
 
-  const existing = (await getPlaybook(role)).map((b) => b.text);
+  const existingTexts = existing.map((b) => b.text);
   try {
     const res = await callLLM({
       messages: [
@@ -155,7 +168,7 @@ export async function curatePlaybook(
         },
         {
           role: "user",
-          content: `RUN OUTCOME: ${signal.outcome}\nLESSONS:\n${fresh.join("\n") || "(none)"}\nFAILURE PATTERNS:\n${topFailures.join("\n") || "(none)"}\n\nEXISTING PLAYBOOK:\n${existing.join("\n") || "(empty)"}`,
+          content: `RUN OUTCOME: ${signal.outcome}\nLESSONS:\n${fresh.join("\n") || "(none)"}\nFAILURE PATTERNS:\n${topFailures.join("\n") || "(none)"}\n\nEXISTING PLAYBOOK:\n${existingTexts.join("\n") || "(empty)"}`,
         },
       ],
       temperature: 0.2,
@@ -171,9 +184,9 @@ export async function curatePlaybook(
     for (const b of bullets) {
       await recordPlaybookDelta(role, b.trim(), "add", `curate:${signal.outcome}`);
     }
-    return { added: bullets.length };
+    return { added: bullets.length, upvoted };
   } catch (err) {
     console.warn(`[PLAYBOOK] curate failed for ${role} (non-blocking):`, err);
-    return { added: 0 };
+    return { added: 0, upvoted };
   }
 }

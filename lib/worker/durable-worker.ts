@@ -29,6 +29,9 @@ export interface ClaimedJob {
   payload: unknown;
   correlationId: string;
   attempts: number;
+  /** Lock-expiry reclaims — a crashed worker's job resumed by another worker.
+   *  Separate from `attempts` (the retry budget): a reclaim is not a failure. */
+  reclaims: number;
   maxRetries: number;
   /** Mid-run progress written by the handler — also the resume state after a
    * reclaim (e.g. the think-tank dispatch list + done keys survive a crash). */
@@ -63,6 +66,10 @@ const DEFAULT_LOCK_MS = 15 * 60 * 1000; // 15 min, renewed by heartbeat
 const HEARTBEAT_MS = 120_000; // 2 min
 const DEFAULT_POLL_MS = 10_000;
 const MAX_BACKOFF_MS = 30 * 60 * 1000;
+/** A job that outlives this many worker locks is poison (it kills every worker
+ *  that touches it) — dead-letter instead of reclaiming forever. Generous:
+ *  infra flakiness (OOM fix churn, redeploys) legitimately costs ~10 reclaims. */
+const MAX_RECLAIMS = 12;
 
 function backoffMs(attempts: number): number {
   return Math.min(MAX_BACKOFF_MS, 60_000 * 2 ** Math.max(0, attempts - 1));
@@ -93,6 +100,44 @@ export async function claimNextJob(
   });
   if (!candidate) return null;
 
+  // A RUNNING claim is a lock-expiry reclaim (the previous worker died mid-job),
+  // not a fresh attempt — it consumes `reclaims`, not the retry budget.
+  const isReclaim = candidate.status === 'RUNNING';
+
+  // Poison-job guard: a job that keeps outliving every worker's lock loops
+  // forever and starves the queue — bound the reclaims, then dead-letter.
+  if (isReclaim && candidate.reclaims >= MAX_RECLAIMS) {
+    console.error(
+      `[Worker ${workerId}] dead-lettering ${candidate.type} ${candidate.id}: reclaims exhausted (${candidate.reclaims}/${MAX_RECLAIMS})`
+    );
+    await prisma.job.update({
+      where: { id: candidate.id },
+      data: {
+        status: 'FAILED',
+        finishedAt: now,
+        lockedBy: null,
+        lockedUntil: null,
+        lastError: `Job outlived ${candidate.reclaims} worker locks — likely poison`,
+        movedToDeadLetter: true,
+        deadLetterReason: `reclaims_exhausted:${candidate.reclaims}/${MAX_RECLAIMS}`,
+      },
+    }).catch((e) => console.warn(`[Worker ${workerId}] poison dead-letter update failed:`, e));
+    await prisma.jobDeadLetter
+      .create({
+        data: {
+          originalJobId: candidate.id,
+          type: candidate.type,
+          payload: candidate.payload as object,
+          correlationId: candidate.correlationId,
+          failureReason: `Job outlived ${candidate.reclaims} worker locks — likely poison`,
+          attempts: candidate.attempts,
+          lastAttemptAt: now,
+        },
+      })
+      .catch((e) => console.warn('[Worker] dead-letter write failed:', e));
+    return null;
+  }
+
   const claimed = await prisma.job.updateMany({
     where: {
       id: candidate.id,
@@ -106,7 +151,7 @@ export async function claimNextJob(
       lockedBy: workerId,
       lockedUntil: new Date(now.getTime() + lockMs),
       startedAt: candidate.startedAt ?? now,
-      attempts: { increment: 1 },
+      ...(isReclaim ? { reclaims: { increment: 1 } } : { attempts: { increment: 1 } }),
     },
   });
   if (claimed.count === 0) return null;
@@ -119,6 +164,7 @@ export async function claimNextJob(
     payload: fresh.payload,
     correlationId: fresh.correlationId,
     attempts: fresh.attempts,
+    reclaims: fresh.reclaims,
     maxRetries: fresh.maxRetries,
     result: fresh.result ?? undefined,
   };
@@ -267,7 +313,7 @@ export async function runWorkerLoop(options: WorkerOptions = {}): Promise<number
     }
 
     console.log(
-      `[Worker ${workerId}] claimed ${job.type} ${job.id} (attempt ${job.attempts}/${job.maxRetries})`
+      `[Worker ${workerId}] claimed ${job.type} ${job.id} (attempt ${job.attempts}/${job.maxRetries}, reclaim ${job.reclaims}/${MAX_RECLAIMS})`
     );
     const outcome = await executeJob(job, workerId, lockMs);
     processed++;
