@@ -11,9 +11,11 @@
 # so this image installs the full dependency tree (build stays lean —
 # no Next.js compile step is needed for the worker).
 
-FROM node:20-alpine
+# Debian slim, not Alpine: Prisma 5.22 query engine needs glibc + OpenSSL 3
+# (linux-musl engine fails with missing libssl.so.1.1 on node:*-alpine).
+FROM node:20-bookworm-slim
 
-RUN apk add --no-cache libc6-compat
+RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 
 ENV NODE_ENV=production \
