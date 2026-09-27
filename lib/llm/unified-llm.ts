@@ -746,7 +746,7 @@ interface FreepoolEndpoint {
 }
 
 const FREEPOOL_ENDPOINTS: Array<Omit<FreepoolEndpoint, "apiKey"> & { envKey: keyof typeof env }> = [
-  { name: "groq",       envKey: "GROQ_API_KEY",       baseURL: "https://api.groq.com/openai/v1",          fastModel: "llama-3.1-8b-instant",                    reasoningModel: "llama-3.3-70b-versatile" },
+  { name: "groq",       envKey: "GROQ_API_KEY",       baseURL: "https://api.groq.com/openai/v1",          fastModel: "openai/gpt-oss-20b",                      reasoningModel: "openai/gpt-oss-120b" },
   { name: "cerebras",   envKey: "CEREBRAS_API_KEY",   baseURL: "https://api.cerebras.ai/v1",              fastModel: "llama-3.3-70b",                         reasoningModel: "llama-3.3-70b", maxContextTokens: 8_000 },
   { name: "nvidia",     envKey: "NVIDIA_API_KEY",     baseURL: "https://integrate.api.nvidia.com/v1",     fastModel: "meta/llama-3.1-8b-instruct",              reasoningModel: "meta/llama-3.3-70b-instruct" },
   { name: "openrouter", envKey: "OPENROUTER_API_KEY", baseURL: "https://openrouter.ai/api/v1",            fastModel: "meta-llama/llama-3.3-70b-instruct:free",  reasoningModel: "meta-llama/llama-3.3-70b-instruct:free" },

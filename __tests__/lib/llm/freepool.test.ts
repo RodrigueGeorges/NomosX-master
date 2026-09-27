@@ -94,7 +94,7 @@ describe("freepool safety net", () => {
     expect(res.content).toBe("hello from freepool");
     // Fast task → groq's fast model first
     expect(COMPLETIONS).toHaveBeenCalledTimes(1);
-    expect(COMPLETIONS.mock.calls[0][0].model).toBe("llama-3.1-8b-instant");
+    expect(COMPLETIONS.mock.calls[0][0].model).toBe("openai/gpt-oss-20b");
   });
 
   it("falls through to the next endpoint on failure", async () => {
