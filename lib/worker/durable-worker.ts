@@ -30,6 +30,9 @@ export interface ClaimedJob {
   correlationId: string;
   attempts: number;
   maxRetries: number;
+  /** Mid-run progress written by the handler — also the resume state after a
+   * reclaim (e.g. the think-tank dispatch list + done keys survive a crash). */
+  result?: unknown;
 }
 
 export type JobHandler = (payload: unknown, job: ClaimedJob) => Promise<unknown>;
@@ -117,7 +120,21 @@ export async function claimNextJob(
     correlationId: fresh.correlationId,
     attempts: fresh.attempts,
     maxRetries: fresh.maxRetries,
+    result: fresh.result ?? undefined,
   };
+}
+
+/**
+ * Persist mid-run progress on the Job row (`result` field). On a crash the
+ * next worker's claim sees this state in `job.result` — a handler that stores
+ * its dispatch list + done keys here resumes mid-cycle instead of restarting.
+ * Overwritten by the final result at completion — while RUNNING it reads as
+ * live progress (observability bonus).
+ */
+export async function saveJobProgress(jobId: string, progress: unknown): Promise<void> {
+  await prisma.job
+    .update({ where: { id: jobId }, data: { result: progress as object } })
+    .catch((err) => console.warn(`[Worker] progress write failed for ${jobId}:`, err));
 }
 
 // ─── Execution ──────────────────────────────────────────────────────────────

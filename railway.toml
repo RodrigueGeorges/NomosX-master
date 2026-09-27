@@ -24,4 +24,7 @@
   restartPolicyType = "ON_FAILURE"
   restartPolicyMaxRetries = 5
   healthcheckPath = "/health"
-  healthcheckTimeout = 10
+  # Long GC pauses / event-loop stalls during multi-GB corpus phases can
+  # freeze the in-process health server for tens of seconds — 10s caused a
+  # restart→reclaim→re-scout loop. 60s absorbs the stalls.
+  healthcheckTimeout = 60

@@ -93,6 +93,21 @@ export interface ThinkTankDispatchItem {
   metadata?: Record<string, unknown>;
 }
 
+/** Serializable cycle checkpoint — stored on the Job row between items. */
+export interface ThinkTankCycleProgress {
+  items: ThinkTankDispatchItem[];
+  doneKeys: string[];
+  counts: {
+    published: number;
+    held: number;
+    skipped: number;
+    failed: number;
+    totalCostUsd: number;
+    topics: string[];
+  };
+  updatedAt: string;
+}
+
 export interface ThinkTankCycleOptions {
   mode: ThinkTankCycleMode;
   /** Override slot cap (breaking defaults to 2, weekly to remaining cadence) */
@@ -101,6 +116,13 @@ export interface ThinkTankCycleOptions {
   dryRun?: boolean;
   /** Bypass weekly cadence check — force publication even if slots are full */
   bypassCadence?: boolean;
+  /** Resume state from a crashed/reclaimed attempt — the stored dispatch list
+   * is reused verbatim (no radar re-run) and already-finished items are
+   * skipped. Written by the durable worker via onProgress. */
+  resume?: ThinkTankCycleProgress;
+  /** Called after collection and after each item completes — the caller
+   * persists it on the Job row so a reclaim resumes mid-cycle. */
+  onProgress?: (progress: ThinkTankCycleProgress) => Promise<void> | void;
 }
 
 export interface ThinkTankDispatchOutcome {
@@ -546,12 +568,38 @@ async function collectWeeklyItems(
 
 // ─── Dispatch queue ────────────────────────────────────────────
 
+/** Stable per-item identity across worker restarts. */
+function dispatchItemKey(item: ThinkTankDispatchItem): string {
+  return item.signalId ?? item.question;
+}
+
+interface DispatchDurable {
+  /** Item keys already finished by a previous attempt — skipped on resume. */
+  doneKeys: Set<string>;
+  /** Prior-attempt counters — publications already out count toward the
+   * cap, attempts already spent count toward maxAttempts. */
+  seedCounts: {
+    published: number;
+    held: number;
+    skipped: number;
+    failed: number;
+    totalCostUsd: number;
+    topics: string[];
+  };
+  /** Fired after each item finishes — caller persists the checkpoint. */
+  onItemDone: (key: string, counts: {
+    published: number; held: number; skipped: number; failed: number;
+    totalCostUsd: number; topics: string[];
+  }) => Promise<void> | void;
+}
+
 async function executeDispatchQueue(
   items: ThinkTankDispatchItem[],
   cadence: CadenceState,
   maxExecutions: number,
   dryRun: boolean,
-  budgetUsd?: number
+  budgetUsd?: number,
+  durable?: DispatchDurable
 ): Promise<{
   outcomes: ThinkTankDispatchOutcome[];
   published: number;
@@ -565,14 +613,16 @@ async function executeDispatchQueue(
 }> {
   const outcomes: ThinkTankDispatchOutcome[] = [];
   const errors: string[] = [];
-  const topics: string[] = [];
+  const topics: string[] = [...(durable?.seedCounts.topics ?? [])];
   const verticalPubCounts = new Map(cadence.verticalPubCounts);
-  let published = 0;
-  let held = 0;
-  let skipped = 0;
-  let failed = 0;
-  let totalCostUsd = 0;
-  let executed = 0;
+  let published = durable?.seedCounts.published ?? 0;
+  let held = durable?.seedCounts.held ?? 0;
+  let skipped = durable?.seedCounts.skipped ?? 0;
+  let failed = durable?.seedCounts.failed ?? 0;
+  let totalCostUsd = durable?.seedCounts.totalCostUsd ?? 0;
+  // Attempts already consumed by prior crashed attempts count toward the cap —
+  // an item is never re-run after finishing, regardless of restart count.
+  let executed = durable?.doneKeys.size ?? 0;
 
   // Dispatch timeout must exceed pipeline timeout (deep/memo: 80min) — a
   // shorter race would kill a still-productive run before its own cap.
@@ -588,6 +638,8 @@ async function executeDispatchQueue(
     const item = items[i];
     if (published >= maxExecutions) break;
     if (executed >= maxAttempts) break;
+    // Durable resume — item already finished by a previous (crashed) attempt.
+    if (durable?.doneKeys.has(dispatchItemKey(item))) continue;
 
     // Resolve vertical for capacity gate
     let verticalId = item.verticalId;
@@ -729,6 +781,15 @@ async function executeDispatchQueue(
       }
     }
 
+    // Durable checkpoint — the item is permanently done, record it so a
+    // crash/reclaim resumes at the next item instead of re-dispatching.
+    if (durable) {
+      durable.doneKeys.add(dispatchItemKey(item));
+      await durable.onItemDone(dispatchItemKey(item), {
+        published, held, skipped, failed, totalCostUsd, topics,
+      });
+    }
+
     // Throttle between heavy pipeline runs
     if (i < items.length - 1) {
       await new Promise((r) => setTimeout(r, 2000));
@@ -765,7 +826,23 @@ export async function runThinkTankCycle(
   let phases: Record<string, unknown> | undefined;
   let maxExecutions: number;
 
-  if (options.mode === "breaking") {
+  // Durable resume — a reclaimed job carries its dispatch list; skip the
+  // radar/collection phases entirely and resume at the first unfinished item.
+  const resume = options.resume;
+  if (resume && resume.items.length > 0) {
+    items = resume.items;
+    maxExecutions = options.maxPublications ?? (options.mode === "breaking" ? DEFAULT_BREAKING_MAX : cadence.remainingSlots);
+    if (!options.bypassCadence && options.mode === "breaking") {
+      maxExecutions = Math.min(maxExecutions, cadence.remainingSlots);
+    }
+    console.log(
+      `[ThinkTank] Resuming cycle mode=${options.mode} — ${items.length} stored item(s), ${resume.doneKeys.length} already done`
+    );
+    if (maxExecutions <= 0) {
+      console.log("[ThinkTank] No slots left on resume — closing cycle");
+      return emptyResult(options.mode, cadence, started);
+    }
+  } else if (options.mode === "breaking") {
     maxExecutions = options.maxPublications ?? DEFAULT_BREAKING_MAX;
     const collected = await collectBreakingItems(
       maxExecutions,
@@ -802,9 +879,35 @@ export async function runThinkTankCycle(
 
   console.log(`[ThinkTank] Dispatching ${items.length} item(s), max execute=${maxExecutions}`);
 
+  // Durable cycle state — items list + done keys persisted on the Job row so
+  // a crashed worker's reclaim resumes mid-dispatch instead of re-running
+  // the radar and re-dispatching finished items.
+  const doneKeys = new Set<string>(resume?.doneKeys ?? []);
+  const writeProgress = async (counts: ThinkTankCycleProgress["counts"]) => {
+    await options.onProgress?.({
+      items,
+      doneKeys: [...doneKeys],
+      counts,
+      updatedAt: new Date().toISOString(),
+    });
+  };
+  await writeProgress(resume?.counts ?? {
+    published: 0, held: 0, skipped: 0, failed: 0, totalCostUsd: 0, topics: [],
+  });
+
   const delegateStart = Date.now();
   const dispatchBudgetUsd = options.budgetUsd ?? (options.mode === "breaking" ? DEFAULT_BREAKING_BUDGET_USD : undefined);
-  const dispatch = await executeDispatchQueue(items, cadence, maxExecutions, !!options.dryRun, dispatchBudgetUsd);
+  const dispatch = await executeDispatchQueue(items, cadence, maxExecutions, !!options.dryRun, dispatchBudgetUsd,
+    options.onProgress
+      ? {
+          doneKeys,
+          seedCounts: resume?.counts ?? {
+            published: 0, held: 0, skipped: 0, failed: 0, totalCostUsd: 0, topics: [],
+          },
+          onItemDone: async (_key, counts) => writeProgress(counts),
+        }
+      : undefined
+  );
   const delegateMs = Date.now() - delegateStart;
 
   if (phases) {
