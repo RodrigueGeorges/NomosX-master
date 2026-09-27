@@ -21,7 +21,9 @@ ENV NODE_ENV=production \
 
 # Prisma schema must land BEFORE install: postinstall runs `prisma generate`
 # against it, and npm ci fails without the schema file.
-COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* ./
+# .npmrc carries legacy-peer-deps=true — required or npm ci fails on the
+# react 18 / @react-three peer conflict.
+COPY .npmrc package.json yarn.lock* package-lock.json* pnpm-lock.yaml* ./
 COPY prisma ./prisma
 RUN if [ -f yarn.lock ]; then yarn; \
     elif [ -f package-lock.json ]; then npm ci; \
