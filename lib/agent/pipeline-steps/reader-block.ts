@@ -84,7 +84,7 @@ export async function runReaderBlock(deps: ReaderBlockDeps): Promise<ReaderBlock
   const [readings, framingSettled, quantSettled, quantBridgeSettled] = await Promise.all([
     durable('reader', async () => (await import('../reader-agent-v3')).readerAgentV3(topSources, {
       enablePdf: true,
-      maxConcurrency: 8,
+      maxConcurrency: 4,
       timeout: isStrategic ? 120000 : undefined,
       domain: detectedDomain,
       memoryBlock: readerMemoryBlock,
