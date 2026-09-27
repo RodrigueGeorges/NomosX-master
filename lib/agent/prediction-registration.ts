@@ -21,6 +21,7 @@ import { prisma } from '../db';
 import type { AnalysisOutput, CausalLink } from './analyst-multipass';
 import type { ConfidenceTier, PruningResult } from './pruning-gates';
 import type { CentralScenarioDecision } from './editorial-types';
+import { evidenceLikelihoodUpdate } from './leap-aggregation';
 
 interface ExtractedPrediction {
   claim: string;
@@ -172,13 +173,35 @@ function buildResolutionCriteria(link: CausalLink, analysis: AnalysisOutput): st
 export async function registerPredictions(
   briefId: string,
   analysis: AnalysisOutput,
-  pruningResult?: PruningResult
+  pruningResult?: PruningResult,
+  /** Source list in [SRC-N] order — enables LEAP evidence-likelihood updates. */
+  sources?: { qualityScore?: number | null }[],
 ): Promise<{ registered: number; errors: string[] }> {
   const errors: string[] = [];
   let registered = 0;
 
   try {
     const predictions = extractPredictions(analysis, pruningResult);
+
+    // LEAP (arXiv 2609.01337): instead of trusting the monolithic tier-mapped
+    // probability alone, fold the claim's cited sources into the prior via
+    // per-evidence likelihood updates in log-odds space. Fully deterministic,
+    // and each source's contribution stays auditable in the audit log below.
+    const leapDetails: { claim: string; prior: number; posterior: number }[] = [];
+    if (sources?.length) {
+      for (const pred of predictions) {
+        if (pred.probability == null || pred.sourceRefs.length === 0) continue;
+        const support = pred.sourceRefs
+          .map((ref) => ({ ref, qualityScore: sources[ref - 1]?.qualityScore }))
+          .filter((s) => s.ref >= 1 && s.ref <= sources.length);
+        if (support.length === 0) continue;
+        const upd = evidenceLikelihoodUpdate(pred.probability, support);
+        if (upd.posterior !== upd.prior) {
+          leapDetails.push({ claim: pred.claim.slice(0, 120), prior: upd.prior, posterior: upd.posterior });
+          pred.probability = upd.posterior;
+        }
+      }
+    }
 
     if (predictions.length === 0) {
       console.log('[PREDICTIONS] No testable predictions extracted from analysis');
@@ -235,6 +258,7 @@ export async function registerPredictions(
             timeframe: p.horizon,
             confidence: p.confidence,
           })),
+          leap: leapDetails.length ? leapDetails : undefined,
         }) as any,
       },
     }).catch(() => {});

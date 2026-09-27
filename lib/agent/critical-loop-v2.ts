@@ -20,6 +20,8 @@ import { callLLM } from '../llm/unified-llm';
 import type { LLMFamily } from '../llm/unified-llm';
 import { detectNovlangue } from './novlangue-detector';
 import { parseJson } from './json-utils';
+import { partitionEvidence } from './evidence-partition';
+import { aggregateIndependentScores } from './confidence-aggregation';
 import Sentry from '@sentry/nextjs';
 import { loadCalibratedThresholds } from './orchestrator';
 import {
@@ -41,6 +43,11 @@ interface CriticalLoopV2Input {
   publishThreshold?: number;
   producerFamily?: LLMFamily;
   extraContext?: string;
+  /** InfoDelphi (arXiv 2607.01661): partition the corpus into shared + private
+   *  slices so each critic holds exclusive evidence — decorrelates panel
+   *  errors instead of herding on identical input. Default: on for ≥8
+   *  sources, auto-degenerates below that. */
+  privateEvidence?: boolean;
 }
 
 interface CriticalLoopV2Result extends CriticalLoopResult {
@@ -56,6 +63,8 @@ interface CriticalLoopV2Result extends CriticalLoopResult {
   finalHtml: string;
   improvementDelta: number;
   totalCostUsd: number;
+  /** Audit trail of the confidence-weighted aggregation per iteration. */
+  aggregation?: { iteration: number; weights: number[]; dispersion: number; confWeighted: boolean }[];
 }
 
 // ============================================================================
@@ -66,10 +75,14 @@ async function methodologyJudge(
   sources: any[],
   readings?: any[],
   draftHtml?: string,
-): Promise<MethodologyJudgment & { costUsd: number }> {
+): Promise<MethodologyJudgment & { costUsd: number; confidence?: number }> {
   const sourceContext = sources.map((s, i) => {
     const reading = readings?.[i];
-    return `[SRC-${i + 1}] ${s.title}
+    // _srcIndex carries the original [SRC-N] number when the critic sees an
+    // information-asymmetric subset (privateEvidence) — citations must still
+    // resolve against the draft's numbering.
+    const srcN = s._srcIndex ?? i + 1;
+    return `[SRC-${srcN}] ${s.title}
 Provider: ${s.provider} | Year: ${s.year || "N/A"} | Quality: ${s.qualityScore || 0}/100 | Citations: ${s.citationCount || 0}
 Methods: ${reading?.methods?.join("; ") || "Not extracted"}
 Limitations: ${reading?.limitations?.join("; ") || "Not stated"}`;
@@ -115,6 +128,7 @@ Return JSON:
   },
   "concerns": ["specific methodological concern with [SRC-N] reference"],
   "recommendations": ["specific actionable fix for the draft"],
+  "confidence": 0-100 (your calibrated confidence in THIS verdict — how sure are you your score is right, given the evidence you were shown?),
   "passThreshold": true/false (score >= 60)
 }`
     }],
@@ -136,6 +150,7 @@ Return JSON:
     breakdown: result.breakdown || { studyDesign: 50, sampleSize: 50, statisticalRigor: 50, replicability: 50, biasRisk: 50 },
     concerns: result.concerns || [],
     recommendations: result.recommendations || [],
+    confidence: typeof result.confidence === 'number' ? Math.min(100, Math.max(0, result.confidence)) : undefined,
     passThreshold: (result.overallScore || 50) >= 60,
     costUsd: response.costUsd,
   };
@@ -144,10 +159,16 @@ Return JSON:
 async function adversarialReviewer(
   draftHtml: string,
   sources: any[],
-  extraContext?: string
-): Promise<AdversarialReview & { costUsd: number }> {
+  extraContext?: string,
+  privateEvidence?: string,
+): Promise<AdversarialReview & { costUsd: number; confidence?: number }> {
   const contextBlock = extraContext
     ? `\n\nCROSS-AGENT FINDINGS (from upstream agents — use to focus your review):\n${extraContext}\n`
+    : '';
+  // InfoDelphi: this critic alone saw these sources — it is the only reviewer
+  // positioned to challenge the draft on this evidence.
+  const privateBlock = privateEvidence
+    ? `\n\nPRIVATE EVIDENCE (exclusive to your review — no other critic saw these sources; your unique job is to check whether the draft survives them):\n${privateEvidence}\n`
     : '';
   const response = await callLLM({
     messages: [{
@@ -157,7 +178,7 @@ async function adversarialReviewer(
 DRAFT (full text):
 ${draftHtml.length > 24000 ? draftHtml.slice(0, 12000) + '\n\n[...MIDDLE SECTION OMITTED FOR BREVITY...]\n\n' + draftHtml.slice(-12000) : draftHtml}
 
-NUMBER OF SOURCES: ${sources.length}${contextBlock}
+NUMBER OF SOURCES: ${sources.length}${contextBlock}${privateBlock}
 
 Evaluate the analysis on:
 1. Counter-arguments: Find the strongest counter-arguments to major claims
@@ -188,6 +209,7 @@ Return JSON:
   "blindSpots": ["perspectives not considered"],
   "steelManVersion": "strongest version of opposing view",
   "recommendations": ["specific rewrite instructions"],
+  "confidence": 0-100 (your calibrated confidence in THIS verdict — how sure are you your score is right, given the evidence you were shown?),
   "passThreshold": true/false (score >= 55)
 }`
     }],
@@ -210,6 +232,7 @@ Return JSON:
     blindSpots: result.blindSpots || [],
     steelManVersion: result.steelManVersion || "",
     recommendations: result.recommendations || [],
+    confidence: typeof result.confidence === 'number' ? Math.min(100, Math.max(0, result.confidence)) : undefined,
     passThreshold: (result.overallScore || 60) >= 55,
     costUsd: response.costUsd,
   };
@@ -217,7 +240,7 @@ Return JSON:
 
 async function decisionCalibrator(
   draftHtml: string
-): Promise<CalibrationAssessment & { costUsd: number }> {
+): Promise<CalibrationAssessment & { costUsd: number; confidence?: number }> {
   const response = await callLLM({
     messages: [{
       role: "user",
@@ -258,6 +281,7 @@ Return JSON:
     "overHedged": ["claims too cautious"],
     "underHedged": ["claims needing more caution"]
   },
+  "confidence": 0-100 (your calibrated confidence in THIS verdict — how sure are you your score is right?),
   "passThreshold": true/false (score >= 50)
 }`
     }],
@@ -279,6 +303,7 @@ Return JSON:
     claimAssessments: result.claimAssessments || [],
     uncertaintyQuantification: result.uncertaintyQuantification || { adequate: true, missing: [], recommendations: [] },
     hedgingQuality: result.hedgingQuality || { score: 60, overHedged: [], underHedged: [] },
+    confidence: typeof result.confidence === 'number' ? Math.min(100, Math.max(0, result.confidence)) : undefined,
     passThreshold: (result.overallScore || 60) >= 50,
     costUsd: response.costUsd,
   };
@@ -412,25 +437,61 @@ export async function runCriticalLoopV2(
 
   console.log(`[CriticalLoop V2] Starting iterative review (max ${maxIterations} iterations, threshold ${publishThreshold})...`);
 
+  // ── InfoDelphi (arXiv 2607.01661): designed information asymmetry ──
+  // Partition the corpus ONCE (deterministic — a critic's private slice is
+  // stable across iterations). Methodology gets slice 0, adversarial slice 1.
+  // The calibrator judges hedging on the draft itself — no sources needed.
+  // [SRC-N] numbering is preserved via `_srcIndex` so citations still resolve.
+  const usePartition = input.privateEvidence !== false && input.sources.length >= 8;
+  const partition = usePartition
+    ? partitionEvidence(input.sources.map((_, i) => i), 3, { minSources: 8 })
+    : null;
+  const criticSources = (k: number) =>
+    partition ? partition.forParticipant(k).map((i) => ({ ...input.sources[i], _srcIndex: i + 1 })) : input.sources;
+  const criticReadings = (k: number) =>
+    input.readings && partition ? partition.forParticipant(k).map((i) => input.readings![i]) : input.readings;
+  const privateNote = (k: number) =>
+    partition && partition.privates[k]?.length
+      ? partition.privates[k]
+          .map((i) => { const s = input.sources[i]; return `[SRC-${i + 1}] ${s.title} (${s.provider}, ${s.year || 'n.d.'})${s.abstract ? ` — ${String(s.abstract).slice(0, 180)}` : ''}`; })
+          .join('\n')
+      : undefined;
+  if (partition && !partition.degenerate) {
+    console.log(`[CriticalLoop V2] InfoDelphi partition: ${partition.shared.length} shared + private slices [${partition.privates.map((p) => p.length).join('/')}]`);
+  }
+  const aggregationLog: { iteration: number; weights: number[]; dispersion: number; confWeighted: boolean }[] = [];
+
   for (let iteration = 1; iteration <= maxIterations; iteration++) {
     console.log(`[CriticalLoop V2] ─── Iteration ${iteration}/${maxIterations} ───`);
 
-    // Run all 3 critics in parallel
+    // Run all 3 critics in parallel — each on its own evidence view
     const [methodology, adversarial, calibration] = await Promise.all([
-      methodologyJudge(input.sources, input.readings, currentHtml),
-      adversarialReviewer(currentHtml, input.sources, input.extraContext),
+      methodologyJudge(criticSources(0), criticReadings(0), currentHtml),
+      adversarialReviewer(currentHtml, input.sources, input.extraContext, privateNote(1)),
       decisionCalibrator(currentHtml),
     ]);
 
     const iterationCost = methodology.costUsd + adversarial.costUsd + calibration.costUsd;
     totalCost += iterationCost;
 
-    // Compute composite score
-    let compositeScore = Math.round(
-      methodology.overallScore * 0.35 +
-      adversarial.overallScore * 0.35 +
-      calibration.overallScore * 0.30
+    // Confidence-weighted independent aggregation (KalshiBench oracle study):
+    // judges score INDEPENDENTLY on partitioned evidence, then a deterministic
+    // combiner merges — no deliberation stage where a confidently-wrong judge
+    // can flip correct ones. Falls back to the legacy fixed weights when no
+    // judge reports usable confidence.
+    const agg = aggregateIndependentScores(
+      [
+        { score: methodology.overallScore, confidence: (methodology as any).confidence },
+        { score: adversarial.overallScore, confidence: (adversarial as any).confidence },
+        { score: calibration.overallScore, confidence: (calibration as any).confidence },
+      ],
+      [0.35, 0.35, 0.30],
     );
+    let compositeScore = agg.composite;
+    aggregationLog.push({ iteration, weights: agg.weights.map((w) => Math.round(w * 100) / 100), dispersion: agg.dispersion, confWeighted: !agg.fellBackToFixed });
+    if (!agg.fellBackToFixed) {
+      console.log(`[CriticalLoop V2] Weighted aggregation: weights=[${agg.weights.map((w) => w.toFixed(2)).join('/')}], dispersion=${agg.dispersion}`);
+    }
 
     // DETERMINISTIC ADJUSTMENTS (no LLM — based on measurable facts)
 
@@ -584,5 +645,6 @@ export async function runCriticalLoopV2(
     finalHtml: best.html,
     improvementDelta,
     totalCostUsd: totalCost,
+    aggregation: aggregationLog,
   };
 }

@@ -364,6 +364,13 @@ export function buildFailureFeedback(args: {
   const parts: string[] = [`Gate decision: ${args.gate.decision}. Failed checks:`];
   for (const r of args.gate.reasons.slice(0, 8)) parts.push(`- ${r}`);
 
+  // SEVA-style typed diagnoses — each failure carries its actionable fix.
+  const diagnoses = (args.gate as { diagnoses?: { code: string; severity: string; checkType: string; fix: string }[] }).diagnoses;
+  if (diagnoses?.length) {
+    parts.push('Typed failure diagnoses (mandatory corrections):');
+    for (const d of diagnoses.slice(0, 8)) parts.push(`- [${d.code}/${d.severity}] ${d.fix}`);
+  }
+
   const da = args.devilsAdvocate;
   if (da) {
     if (typeof da.publishabilityScore === 'number') parts.push(`Devil's advocate publishability: ${da.publishabilityScore}/100.`);

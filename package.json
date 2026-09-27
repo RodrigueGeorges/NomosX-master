@@ -54,6 +54,8 @@
     "eval:golden:update": "tsx --env-file=.env.local scripts/eval-golden.ts --update",
     "eval:runs": "tsx --env-file=.env.local scripts/eval-runs.ts",
     "eval:runs:update": "tsx --env-file=.env.local scripts/eval-runs.ts --update",
+    "eval:gepa": "tsx --env-file=.env.local scripts/eval-gepa.ts",
+    "eval:gepa:llm": "tsx --env-file=.env.local scripts/eval-gepa.ts --llm",
     "foresight:backfill": "tsx scripts/backfill-foresight-metadata.ts",
     "foresight:backfill:dry": "tsx scripts/backfill-foresight-metadata.ts --dry-run",
     "audit:institutional": "tsx scripts/institutional-quality-audit.ts",

@@ -4,6 +4,7 @@ import { detectNovlangue } from "./novlangue-detector";
 import { centralScenarioIssues, type CentralScenarioDecision } from './editorial-types';
 import { parseEditorialInquiry } from '@/lib/brand/inquiry-html-parse';
 import { isPositionFirstBrief } from './brief-html-extract';
+import { diagnoseGateResult, type GateDiagnosis } from './gate-diagnosis';
 
 export type PublicationGateDecision = "publish" | "revise" | "hold";
 
@@ -54,6 +55,11 @@ export interface PublicationGateResult {
   checks: PublicationGateCheck[];
   reasons: string[];
   warnings: string[];
+  /** SEVA-style typed diagnoses for every failed check — category, severity,
+   *  stable code, actionable fix. Deterministic; consumed by the escalation
+   *  feedback (buildFailureFeedback) and the run-regression harness. Optional:
+   *  consumers building gate-like results by hand needn't fabricate it. */
+  diagnoses?: GateDiagnosis[];
   metrics: {
     sourceCount: number;
     trustScore: number;
@@ -303,6 +309,7 @@ export function evaluatePublicationGate(input: PublicationGateInput): Publicatio
   return {
     decision,
     checks,
+    diagnoses: diagnoseGateResult(checks),
     reasons: failedChecks.map((check) => `${check.checkType}: ${check.details}`),
     warnings: checks
       .filter((check) => check.passed && typeof check.score === "number" && check.score < 80)
