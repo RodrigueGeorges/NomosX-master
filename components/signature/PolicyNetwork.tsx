@@ -60,7 +60,7 @@ export function PolicyNetwork({ className }: PolicyNetworkProps) {
               x={n.x}
               y={n.y + (n.center ? 6 : 5)}
               textAnchor="middle"
-              className="fill-white/[0.22]"
+              className="fill-white/[0.22] dark:fill-black/[0.22]"
               style={{ fontSize: n.center ? "2.8px" : "2.4px", fontFamily: "var(--font-mono), monospace" }}
             >
               {n.label.toUpperCase()}

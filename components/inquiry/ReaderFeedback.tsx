@@ -53,15 +53,15 @@ export function ReaderFeedback({ publicationId }: { publicationId: string }) {
   }
 
   return (
-    <div className="mt-16 pt-8 border-t border-black/[0.08]">
+    <div className="mt-16 pt-8 border-t border-black/[0.08] dark:border-white/[0.08]">
       <div className="flex items-center justify-between">
-        <h3 className="font-display text-sm font-semibold text-black/70 uppercase tracking-wider">
+        <h3 className="font-display text-sm font-semibold text-black/70 dark:text-white/70 uppercase tracking-wider">
           {t('ReaderFeedback.title')}
         </h3>
         <button
           type="button"
           onClick={() => setOpen(!open)}
-          className="text-xs text-black/50 hover:text-black/80 transition-colors flex items-center gap-1.5"
+          className="text-xs text-black/50 dark:text-white/50 hover:text-black/80 dark:hover:text-white/80 transition-colors flex items-center gap-1.5"
           aria-label="Toggle reader feedback form"
         >
           <Flag size={14} />
@@ -83,8 +83,8 @@ export function ReaderFeedback({ publicationId }: { publicationId: string }) {
                   onClick={() => setMode("error")}
                   className={`px-3 py-1.5 text-xs font-mono uppercase tracking-wide border transition-colors ${
                     mode === "error"
-                      ? "border-black/25 text-black/90 bg-black/5"
-                      : "border-black/[0.08] text-black/50 hover:text-black/70"
+                      ? "border-black/25 dark:border-white/25 text-black/90 dark:text-white/90 bg-black/5 dark:bg-white/5"
+                      : "border-black/[0.08] dark:border-white/[0.08] text-black/50 dark:text-white/50 hover:text-black/70 dark:hover:text-white/70"
                   }`}
                 >
                   {t('ReaderFeedback.reportError')}
@@ -94,8 +94,8 @@ export function ReaderFeedback({ publicationId }: { publicationId: string }) {
                   onClick={() => setMode("rating")}
                   className={`px-3 py-1.5 text-xs font-mono uppercase tracking-wide border transition-colors ${
                     mode === "rating"
-                      ? "border-black/25 text-black/90 bg-black/5"
-                      : "border-black/[0.08] text-black/50 hover:text-black/70"
+                      ? "border-black/25 dark:border-white/25 text-black/90 dark:text-white/90 bg-black/5 dark:bg-white/5"
+                      : "border-black/[0.08] dark:border-white/[0.08] text-black/50 dark:text-white/50 hover:text-black/70 dark:hover:text-white/70"
                   }`}
                 >
                   {t('ReaderFeedback.rate')}
@@ -108,12 +108,12 @@ export function ReaderFeedback({ publicationId }: { publicationId: string }) {
                   onChange={(e) => setMessage(e.target.value)}
                   placeholder={t('ReaderFeedback.errorPlaceholder')}
                   rows={4}
-                  className="w-full bg-black/30 border border-black/[0.08] text-black/80 text-sm p-3 focus:border-black/25 focus:outline-none resize-none"
+                  className="w-full bg-black/30 dark:bg-white/30 border border-black/[0.08] dark:border-white/[0.08] text-black/80 dark:text-white/80 text-sm p-3 focus:border-black/25 dark:focus:border-white/25 focus:outline-none resize-none"
                   aria-label="Error report message"
                 />
               ) : (
                 <div className="flex items-center gap-2 py-2">
-                  <span className="text-sm text-black/60 mr-2">{t('ReaderFeedback.yourRating')}</span>
+                  <span className="text-sm text-black/60 dark:text-white/60 mr-2">{t('ReaderFeedback.yourRating')}</span>
                   {[1, 2, 3, 4, 5].map((n) => (
                     <button
                       key={n}
@@ -129,7 +129,7 @@ export function ReaderFeedback({ publicationId }: { publicationId: string }) {
                         className={
                           n <= (hover || rating)
                             ? "fill-amber-400 text-amber-400"
-                            : "text-black/20"
+                            : "text-black/20 dark:text-white/20"
                         }
                       />
                     </button>
@@ -152,7 +152,7 @@ export function ReaderFeedback({ publicationId }: { publicationId: string }) {
                     (mode === "error" && message.trim().length < 5) ||
                     (mode === "rating" && rating === 0)
                   }
-                  className="px-4 py-2 text-xs font-mono uppercase tracking-wide border border-black/20 text-black/80 hover:bg-black/5 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  className="px-4 py-2 text-xs font-mono uppercase tracking-wide border border-black/20 dark:border-white/20 text-black/80 dark:text-white/80 hover:bg-black/5 dark:hover:bg-white/5 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 >
                   {submitting ? t('ReaderFeedback.submitting') : t('ReaderFeedback.submit')}
                 </button>

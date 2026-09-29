@@ -1,14 +1,19 @@
 /**
  * NomosX Hero Image Generator — generates symbolic illustrations
- * for publication heroes using GPT Image 1 (gpt-image-1).
+ * for publication heroes using GPT Image 2.
  *
- * Design philosophy — "From Chaos to Nomos":
- * - A single sculptural form emerging from darkness — the nomos
- * - The surrounding void IS the chaos — felt, not shown literally
- * - Light reveals the form; shadow preserves the chaos it emerged from
- * - The motif is specific to the article's tension, not a generic symbol
- * - Subtle, never didactic — the viewer feels the ordering, doesn't see a diagram
- * - Minimalist, dark, monochrome — Villeneuve cinematic aesthetic
+ * Design philosophy — "From Chaos to Nomos", expressed as GREEK FRESCO × AI:
+ * - Each publication gets a mythic figure or tableau — gods, draped beings,
+ *   mythological scenes — rendered like a rediscovered ancient fresco:
+ *   mineral pigments, weathered plaster, visible craquelure
+ * - The ancient scene is fused with machine intelligence: fine luminous
+ *   filaments woven into drapery, glowing seams, faint geometric overlays
+ * - The fresco pigment palette carries real color — lapis blue, terracotta,
+ *   cinnabar, verdigris, gold leaf — emerging from a deep obsidian ground
+ * - The myth is chosen for the article's actual tension (Icarus for overreach,
+ *   Atlas for structural burden, the Labyrinth for complexity, the Oracle for
+ *   prediction…) — not a generic symbol
+ * - Stylized fresco figures, never photorealistic people; subtle, not didactic
  * - No text in images (typography is for the HTML)
  * - Consistent style across all publications
  *
@@ -77,6 +82,8 @@ export async function generateHeroImage(
         n: 1,
         size: '1536x1024',
         quality: 'high',
+        output_format: 'webp',
+        output_compression: 85,
       }, {
         timeout: 180000,
         retries: 1,
@@ -93,14 +100,13 @@ export async function generateHeroImage(
         const b64 = data.data?.[0]?.b64_json;
         const url = data.data?.[0]?.url;
         // Size guard: if base64 > 2MB (~2.67M chars), use SVG fallback instead.
-        // Increased from 500KB to 2MB — gpt-image-1 typically produces 1-1.5MB PNGs
-        // which are acceptable for a hero image. The HTML is already 200KB+ so
-        // a 1.5MB image is a reasonable proportion. Rejected 1524KB images before.
+        // WebP output (output_format: 'webp', compression 85) keeps typical
+        // heroes at ~200-500KB — far under the cap; the guard stays as backstop.
         const MAX_B64_CHARS = 2_670_000; // ~2MB decoded
         if (b64 && b64.length > MAX_B64_CHARS) {
           console.warn(`[HERO IMAGE] base64 too large (${(b64.length / 1024).toFixed(0)}KB chars) — using SVG fallback`);
         } else if (b64) {
-          const imageUrl = `data:image/png;base64,${b64}`;
+          const imageUrl = `data:image/webp;base64,${b64}`;
           console.log(`[HERO IMAGE] ✅ Generated via gpt-image-2 (${(b64.length / 1024).toFixed(0)}KB, cost ~$0.04)`);
           return { url: imageUrl, prompt, costUsd: 0.04, cached: false };
         } else if (url) {
@@ -184,19 +190,18 @@ async function deriveVisualConcept(
 
 ## THE NOMOSX VISUAL IDENTITY
 
-The art direction is FIXED and you never change it:
-- Dark, cinematic, monochrome — black stone, charcoal, silver luminance
-- Denis Villeneuve aesthetic (Dune, Blade Runner 2049): monumental, tactile, atmospheric
-- A single shaft of volumetric light cutting through darkness
-- No saturated colors, no warm tones, no neon
+The art direction is FIXED and you never change it — GREEK EPIC FRESCO × ARTIFICIAL INTELLIGENCE:
+- Every image looks like a rediscovered ancient fresco: mineral pigments on weathered plaster — lapis blue, terracotta, cinnabar red, verdigris, gold leaf — emerging from a deep obsidian-black ground
+- The mythic scene is fused with machine intelligence: fine luminous filaments (pale gold, steel-blue) woven into drapery and figures, glowing seams tracing the plaster's cracks, faint sacred-geometry overlays
+- Cinematic and monumental — the fresco fills the frame like a temple wall lit by a single shaft of light
+- Stylized fresco figures — Greek gods, draped beings, mythic creatures — in profile or frontal like vase-painting and Pompeian frescoes. NEVER photorealistic people
+- NEVER a literal scene of modern technology — the AI is felt through light, geometry, and precision inside the ancient image
 
-The MOTIF — the central physical element — must embody our DNA through SUBTLETY, not literalness:
-- A single sculptural form, monumental, emerging from darkness
-- The surrounding void IS the chaos — felt, not shown literally
-- The form itself is the "nomos" — ordered, precise, intentional
-- Light reveals the form; shadow preserves the chaos it emerged from
-- NEVER split the image into "chaos side" and "order side" — that is didactic and cringe
-- The ordering is IMPLIED by the precision of the form against the void around it
+The MOTIF — the central mythic element — must embody the article's tension through SUBTLETY:
+- Pick ONE myth, figure, or sacred object whose essence mirrors the article's core tension
+- The myth is the metaphor — the viewer who knows the myth feels the article's stakes
+- The figure/scene carries the tension IN ITS POSE OR STATE — strained, suspended, mid-transformation, bearing weight, poised at a threshold
+- NEVER literal illustration of the article's subject — mythic resonance, not a diagram
 
 ## ARTICLE CONTEXT
 
@@ -220,58 +225,53 @@ ${sectionsBlock || '(not provided)'}
 
 Work through these steps mentally before writing your answer:
 
-STEP 1 — CORE TENSION: What is the single most important tension, contradiction, or mechanism in this article? Express it in one sentence.
+STEP 1 — CORE TENSION: What is the single most important tension, contradiction, or mechanism in this article? One sentence.
 
-STEP 2 — SCULPTURAL FORM: What single physical form embodies this tension? The form must be:
-- A SINGLE sculptural or architectural element — not a scene with multiple parts
-- Monumental in scale — something that feels load-bearing, structural, permanent
-- Physically specific — not "abstract shapes" or "geometric forms"
-- The form itself should carry the tension IN ITS PHYSICAL STATE (intact? fractured? mid-formation? compressed? suspended? leaning?)
+STEP 2 — THE MYTH: Which Greek myth, god, or sacred image embodies this tension? Candidates include but are not limited to: Icarus (overreach), Atlas (structural burden), Prometheus (dangerous gift of fire/technology), Sisyphus (futile cycles), the Labyrinth and Ariadne's thread (complexity and navigation), the Oracle of Delphi (prediction and ambiguity), Nemesis (retribution), Themis (judgment, law), Hydra (multiplying threats), Theseus's ship (identity through change), Ouroboros (self-consuming systems), Chronos (time devouring), Cassandra (warnings ignored), Pandora (irreversible release), the Moirai cutting thread (irreversible decision), Hephaestus's forge (building power), Janus-like doubled faces (two-faced institutions), Odysseus bound to the mast (self-binding against temptation).
 
-STEP 3 — THE METAPHOR TEST: Imagine showing the image to someone who has NOT read the article. Ask them: "What do you think this article is about?" If they can sense the general tension, the motif PASSES. If they say "I have no idea" or "it's just abstract art," the motif FAILS.
+STEP 3 — THE FUSION: How does machine intelligence inhabit this fresco? Luminous filaments replacing hair or drapery threads, a glowing seam along a crack, gold-leaf circuitry following a figure's gesture, sacred geometry faintly overlaid. Keep it woven INTO the ancient surface — not pasted on top.
 
-STEP 4 — SUBTLETY CHECK: Is this didactic? Does it look like a diagram or infographic? Does it literally illustrate the concept (e.g., "fragments becoming a grid" for fragmentation)? If yes, REJECT IT. The best editorial illustrations embody the tension through a single object's physical state — the viewer FEELS the meaning, they don't decode it.
+STEP 4 — THE METAPHOR TEST: Someone who has NOT read the article sees this fresco. Can they feel the general tension from the myth alone? If the myth's connection to the article is too obscure, pick a clearer myth.
 
 ## EXAMPLES
 
-PASS — subtle, sculptural, specific:
+PASS — mythic, specific, felt:
 - Article: "institutional collapse"
-  Tension: a seemingly stable institution is mid-collapse, the failure point is visible
-  Motif: "a monumental stone archway, intact from a distance but with a single keystone visibly slipping — dust suspended in the shaft of light catching it. The arch is perfect except for this one displacement. The viewer feels: something is failing, quietly, right now."
-  Why it passes: a single form, the tension is in its physical state (the slipping keystone), not a diagram
+  Motif: "The fresco shows Atlas under a cracked celestial sphere — but the sphere is made of interlocking luminous geometric panels, one visibly slipping. His drapery is woven with faint steel-blue filaments. The gold-leaf seams along the sphere's cracks glow brighter at the failing joint. Craquelure radiates from the point of failure."
+  Why it passes: Atlas = structural burden; the slipping panel and glowing crack carry the collapse — myth, not diagram
 
 - Article: "competing regulatory regimes"
-  Tension: two systems pressing against each other, stress at the boundary
-  Motif: "two vast geometric monoliths leaning against each other in frozen tension, a hairline crack visible where they meet. The forms are otherwise flawless. The crack catches the light."
-  Why it passes: the tension is in the relationship between two forms, not in a "before/after" split
+  Motif: "Two enthroned gods face each other across a broken frieze — one rendered in lapis and cool filaments, the other in terracotta and gold — their drapery woven with luminous threads that fray and spark where they almost touch at the broken center."
+  Why it passes: two divine orders in frozen confrontation, tension at the boundary — felt through color and fraying light
 
-- Article: "AI explanation instability"
-  Tension: explanations shift subtly when inputs change slightly
-  Motif: "a vast mirror wall, seemingly intact, but at its center the reflections are subtly misaligned — panels shifted by millimeters, each reflecting a slightly different version of the same light source. The wall looks perfect until you look closely."
-  Why it passes: a single form, the tension is in a subtle physical detail, not a literal illustration
+- Article: "AI prediction systems"
+  Motif: "The Oracle of Delphi as a veiled fresco figure on a tripod — but the vapor rising beneath her resolves into fine luminous geometric spirals, and her silhouette is half pigment, half woven light-filaments. Around her, gold-leaf constellations."
+  Why it passes: the Oracle IS prediction; the luminous vapor is machine intelligence — the fusion is the subject
 
 FAIL — too literal, didactic, cringe:
-- "Fragments on the left converging into a grid on the right" → FAIL: this is a diagram, not an illustration. It literally draws the concept. Cringe.
-- "A clock for time pressure" → FAIL: cliché, no subtlety
-- "A brain for AI" → FAIL: cliché
-- "Chaos on one side, order on the other" → FAIL: didactic split-screen. The viewer decodes it instead of feeling it.
+- "A robot in a toga" → FAIL: a modern robot pasted into antiquity — kitsch, not fresco
+- "A god literally holding a smartphone" → FAIL: anachronism played for laughs, didactic
+- "Zeus throwing lightning at a data center" → FAIL: literal subject illustration
+- "Chaos monsters on the left, ordered gods on the right" → FAIL: split-screen diagram
 
 ## RULES
 
-1. ONE sculptural form — not a scene with multiple competing elements
-2. The tension lives IN the form's physical state — not in a layout or arrangement
-3. SUBTLE — the viewer feels the meaning, doesn't decode a diagram
-4. Specific to THIS article — not a generic symbol
-5. Monumental, tactile, cinematic — it feels physical, load-bearing
-6. NO: human figures, text, UI, diagrams, clocks, brains, lightbulbs, gears, circuit boards, DNA, globes, maps, network graphs, balance scales
-7. NO: split-screen, before/after, chaos-on-one-side/order-on-the-other — that is didactic
-8. Describe the form in 2-3 sentences. Include its physical state and how light interacts with it.
+1. ONE mythic figure or tableau — a single focal myth, not a crowded pantheon
+2. The tension lives IN the myth's essence and the figure's state — not in a layout
+3. SUBTLE — felt resonance, not a decoded diagram
+4. Specific to THIS article — the myth is chosen for the core tension, not randomly
+5. Fresco texture always: mineral pigments, craquelure, worn plaster on obsidian ground
+6. The AI fusion = luminous filaments, glowing seams, sacred geometry — NEVER literal modern tech objects
+7. Figures allowed and encouraged — but fresco-stylized (profile, draped, symbolic), never photorealistic people
+8. NO: text, letters, UI, diagrams, clocks, brains, lightbulbs, gears, literal circuit boards, maps, charts
+9. NO: split-screen, before/after, chaos-on-one-side/order-on-the-other
+10. Describe the scene in 2-3 sentences: the myth, the figure's state/pose, and how the luminous machine fusion inhabits it.
 
 Respond with ONLY the motif description. No preamble, no explanation, no step labels, no markdown.`;
 
     const res = await callLLM({
       messages: [
-        { role: 'system', content: 'You are the visual art director for NomosX, the first AI think tank. You specialize in editorial cover illustrations that embody the movement "From Chaos to Nomos" — disorder transforming into order. You output only concrete physical motif descriptions that pass the metaphor test and show the chaos→order transition. No commentary, no explanation.' },
+        { role: 'system', content: 'You are the visual art director for NomosX, the first AI think tank. You specialize in editorial cover illustrations in the NomosX style — ancient Greek fresco (gods, myths, mineral pigments, craquelure) fused with machine intelligence (luminous filaments, glowing seams, sacred geometry). You choose the ONE myth that embodies the article\'s core tension and describe how machine light inhabits it. You output only concrete motif descriptions. No commentary, no explanation.' },
         { role: 'user', content: userContent },
       ],
       provider: 'openai',
@@ -297,7 +297,7 @@ Respond with ONLY the motif description. No preamble, no explanation, no step la
         concept = lastSentences;
       }
     }
-    if (concept.length < 20 || concept.length > 600) {
+    if (concept.length < 20 || concept.length > 900) {
       console.warn(`[HERO IMAGE] LLM motif length ${concept.length} — rejecting (too ${concept.length < 20 ? 'short' : 'long'})`);
       return null;
     }
@@ -321,29 +321,29 @@ function formatCompositionDirectives(publicationType?: string): string {
   switch (publicationType) {
     case 'SUMMARY_BRIEF':
       return `COMPOSITION (Signal Brief — short alert format):
-- Minimalist: a SINGLE striking focal element dominating the frame
-- Tight, focused composition with strong negative space around the motif
-- Sense of urgency or alert — a sharp edge, a sudden fracture, a single point of light breaking through
+- Minimalist: a SINGLE mythic figure dominating the fresco — one gesture, one instant
+- Tight, focused composition with strong obsidian negative space around the figure
+- Sense of urgency or alert — the figure caught mid-action, a luminous filament flaring
 - No clutter — the eye goes immediately to the one element that matters`;
     case 'DECISION_MEMO':
       return `COMPOSITION (Decision Memo — structured decision format):
-- Clear, structured geometry — two or three distinct forms in deliberate arrangement
-- A sense of threshold or choice: a doorway, a fork, a pivot point, a balance
-- The composition should feel like a decision about to be made — tension held in balance
-- Architectural clarity, not ambiguity`;
+- A poised, frontal tableau — one figure held at a moment of choice or judgment
+- A sense of threshold: the figure poised between two states, a scale or balance in gold-leaf light
+- The composition should feel like a decision about to be rendered — tension held in balance
+- Hieratic clarity, not ambiguity`;
     case 'STRATEGIC_REPORT':
       return `COMPOSITION (Strategic Report — comprehensive strategic format):
-- Monumental scale: a vast, complex architectural space with multiple layers and depth
-- Sense of comprehensive scope — multiple structures, terraces, or levels visible
-- The motif is embedded within a larger system, not isolated
-- Epic, sweeping composition with deep perspective and layered depth`;
+- Monumental fresco scale: a vast wall with layered depth — the main figure foregrounded, secondary echoes fading into the plaster behind
+- Sense of epic scope — the mythic scene embedded in a larger temple-space of pigment and darkness
+- The motif is the anchor, but the weathered fresco surface extends beyond it
+- Epic, sweeping composition with layered depth`;
     case 'ARTICLE':
     default:
       return `COMPOSITION (Article — long-form analytical format):
-- Layered composition with narrative depth — two or three elements in tension or dialogue
-- Balanced but not symmetrical — the eye moves through the scene discovering detail
-- The motif is the anchor but the surrounding space tells part of the story too
-- Cinematic mid-shot framing with intentional negative space`;
+- Layered fresco composition — a central mythic figure with supporting elements fading into the plaster
+- Balanced but not symmetrical — the eye moves across the wall discovering detail in pigment and light
+- The motif is the anchor but the weathered surface tells part of the story too
+- Cinematic framing with intentional obsidian negative space`;
   }
 }
 
@@ -399,61 +399,61 @@ function buildImagePrompt(
     .join(', ');
 
   const subjectBlock = visualConcept
-    ? `SUBJECT — the central sculptural form, derived from the article's actual findings:
+    ? `SUBJECT — the mythic figure or tableau, derived from the article's actual findings:
 ${visualConcept}
 
-This form is the FOCAL POINT of the image — a single monumental element emerging from darkness. The surrounding void is the chaos; the form is the nomos. Light reveals the form's surface and physical state. The viewer should FEEL the article's tension by looking at the form — not decode a diagram.`
-    : `SUBJECT — derive a sculptural form from the article title:
+This mythic scene is the FOCAL POINT of the image — a single tableau emerging from the obsidian ground. The surrounding darkness is the chaos; the ordered mythic figure is the nomos. The viewer should FEEL the article's tension through the myth — not decode a diagram.`
+    : `SUBJECT — choose a Greek mythic figure or tableau that embodies the article title:
 "${title}"
-A single monumental form that embodies the article's tension through its physical state:
-- "Threshold" → a vast stone aperture, one edge fractured, light cutting through the opening
-- "Convergence" → two geometric forms leaning together, a hairline crack at the junction
-- "Collapse" → a monumental arch with a single keystone visibly slipping
-- "Pressure" → a form compressed or bent under invisible force, material stress visible
-- "Void" → a dense structure with a precise absence at its center — the void is the subject
-The form must feel commissioned for THIS article — not a stock illustration.`;
+A single mythic image rendered as a rediscovered fresco:
+- "Overreach/hubris" → Icarus mid-fall, wings dissolving into luminous filaments
+- "Burden/structural weight" → Atlas straining under a cracked celestial sphere of glowing geometric panels
+- "Dangerous gift/technology" → Prometheus offering fire that burns as woven gold-and-blue filaments
+- "Foresight/prediction" → the veiled Oracle on her tripod, vapor resolving into luminous spirals
+- "Complexity/navigation" → Ariadne's glowing thread winding through a dark labyrinth
+- "Irreversible release" → Pandora's vessel opened, luminous mist escaping in geometric spirals
+- "Judgment/law" → Themis's profile, her scale traced in gold-leaf light
+The myth must feel commissioned for THIS article — not a generic classical scene.`;
 
   const compositionBlock = formatCompositionDirectives(publicationType);
 
-  return `Create a premium editorial cover image for NomosX — the first AI think tank. Our DNA is "From Chaos to Nomos": we transform fragmented information into ordered, defensible positions. This hero image must embody that act through a single sculptural form emerging from darkness.
+  return `Create a premium editorial cover image for NomosX — the first AI think tank. Our DNA is "From Chaos to Nomos": we transform fragmented information into ordered, defensible positions. Our visual identity is GREEK EPIC FRESCO × ARTIFICIAL INTELLIGENCE — mythic figures rendered as rediscovered ancient frescoes, inhabited by luminous machine light.
 
 ARTICLE: "${title}"
 DOMAINS: ${contextTerms || 'strategic analysis and policy'}
 
 1. SCENE & BACKGROUND
-A vast, dark space — monumental in scale, like the interior of a brutalist cathedral or a cavern hewn from black stone. Deep black background with subtle volumetric depth. The space feels physical, real, load-bearing. Atmospheric particles suspended in the air catch the light. The darkness around the form is the chaos — felt, not shown literally. No split-screen, no "before/after" layout.
+A vast wall of ancient plaster emerging from deep obsidian-black darkness — monumental in scale, like a temple interior or a frescoed chamber rediscovered in shadow. The fresco surface is weathered: mineral pigments, visible craquelure, worn edges where plaster has flaked to reveal darkness beneath. Faint sacred-geometry lines (circles, meridians, meander fragments) are etched into the ground, barely visible. Atmospheric dust catches the light. The darkness around the scene is the chaos — felt, not shown literally. No split-screen, no "before/after" layout.
 
 2. ${subjectBlock}
 
 3. ${compositionBlock}
 
 4. LIGHTING & COLOR
-- Single shaft of volumetric light from one direction, cutting through the darkness
-- Light catches atmospheric particles, creating subtle god-rays
-- The form is lit by this shaft — revealing its surface, its texture, its physical state
-- The unlit portions of the form remain in deep shadow — the chaos it emerged from
-- Monochrome palette: charcoal blacks (#0a0a0a), deep greys (#1a1a1a), soft silver-whites (#e0e0e8)
-- No saturated colors. No warm tones. No neon. No gradients. Pure monochrome with subtle silver luminance.
-- High contrast between the lit form and the surrounding darkness
+- A single shaft of light raking across the fresco surface — revealing pigment texture, craquelure, and the luminous machine elements
+- Fresco pigment palette on obsidian ground: lapis blue (#26418F), terracotta (#B65438), cinnabar red, verdigris (#4F8577), ochre, bone white — weathered, matte, mineral
+- Machine intelligence expressed as LIGHT: fine luminous filaments in pale gold (#C9A24B) and steel-blue (#7FB2D9) woven into drapery, hair, or tracing the plaster's cracks like kintsugi seams
+- The luminous elements are woven INTO the fresco surface — they belong to the ancient image, not pasted on top
+- High contrast between the lit fresco scene and the surrounding obsidian void
 
 5. VISUAL TREATMENT
-- Photorealistic 3D render quality — like a matte painting for a Denis Villeneuve film (Dune, Blade Runner 2049)
-- Style references: The Atlantic editorial illustrations, Wired cover art, Apple keynote backdrops
-- Subtle depth of field — the form is sharp, the far background slightly soft
-- Tactile textures: cold stone, polished metal, rough concrete, reflective glass
-- Uniform rendering quality — no flat 2D elements mixed with 3D
+- Fresco painting technique elevated to cinematic epic — Pompeian wall painting, Minoan fresco, Attic vase-figure elegance — rendered with monumental cinematic lighting
+- Stylized figures: draped gods, mythic beings, profile or frontal like ancient wall painting — NEVER photorealistic people
+- Style references: a lost fresco photographed by torchlight in a temple vault; The Atlantic editorial gravitas; museum-grade epic
+- Matte mineral texture everywhere — pigments, plaster grain, craquelure; the luminous filaments are the only "digital" note
+- The machine elements glow softly — like light trapped inside the plaster — never neon, never sci-fi chrome
 - Cinematic, premium, authoritative. Subtle, not didactic. The viewer feels the meaning — they don't decode a diagram.
 
 6. CONSTRAINTS — DO NOT INCLUDE
 - No text, no letters, no numbers, no words anywhere in the image
-- No human figures, no faces, no silhouettes of people
+- No photorealistic humans — figures must be fresco-stylized (painted, symbolic, like ancient wall art)
+- No modern technology objects: no robots, no smartphones, no computers, no literal circuit boards, no server racks
 - No logos, no UI elements, no diagrams, no charts, no infographics
-- No clocks, no sundials, no brains, no lightbulbs, no gears, no circuit boards
-- No DNA helices, no network graphs, no globe, no maps
-- No saturated colors, no neon, no warm tones
+- No clocks, no brains, no lightbulbs, no gears, no DNA helices, no globes, no maps, no network graphs
+- No neon palette, no cyberpunk chrome, no holograms
 - No collage, no split-screen, no multi-panel layout, no "before/after" arrangement
-- No literal illustrations of concepts (e.g., no "fragments becoming a grid" to show fragmentation)
-- No stock photo clichés, no generic "AI" or "technology" imagery
+- No literal illustrations of the article's modern subject — mythic resonance only
+- No stock photo clichés, no generic "AI" imagery
 - Output: single cohesive image, 16:9 widescreen, cinematic composition`;
 }
 
@@ -480,7 +480,7 @@ function generateGeometricSVG(title: string, domain: string): string {
     const y = rng() * H;
     const r = 0.5 + rng() * 1.2;
     const op = 0.02 + rng() * 0.04;
-    svg += `<circle cx="${x.toFixed(0)}" cy="${y.toFixed(0)}" r="${r.toFixed(1)}" fill="rgba(240,240,250,${op.toFixed(3)})"/>`;
+    svg += `<circle cx="${x.toFixed(0)}" cy="${y.toFixed(0)}" r="${r.toFixed(1)}" fill="rgba(201,162,75,${op.toFixed(3)})"/>`;
   }
 
   // ── The form: a partial arch or monolithic structure ──
@@ -503,14 +503,14 @@ function generateGeometricSVG(title: string, domain: string): string {
     const outerR = archRadius;
     const innerR = archRadius - archThickness;
     // Left pillar
-    svg += `<rect x="${archX.toFixed(0)}" y="${(archY + archRadius).toFixed(0)}" width="${archThickness}" height="${(archH - archRadius).toFixed(0)}" fill="rgba(240,240,250,0.04)" stroke="rgba(240,240,250,0.10)" stroke-width="1"/>`;
+    svg += `<rect x="${archX.toFixed(0)}" y="${(archY + archRadius).toFixed(0)}" width="${archThickness}" height="${(archH - archRadius).toFixed(0)}" fill="rgba(201,162,75,0.04)" stroke="rgba(201,162,75,0.10)" stroke-width="1"/>`;
     // Right pillar
-    svg += `<rect x="${(archX + archW - archThickness).toFixed(0)}" y="${(archY + archRadius).toFixed(0)}" width="${archThickness}" height="${(archH - archRadius).toFixed(0)}" fill="rgba(240,240,250,0.06)" stroke="rgba(240,240,250,0.14)" stroke-width="1"/>`;
+    svg += `<rect x="${(archX + archW - archThickness).toFixed(0)}" y="${(archY + archRadius).toFixed(0)}" width="${archThickness}" height="${(archH - archRadius).toFixed(0)}" fill="rgba(201,162,75,0.06)" stroke="rgba(201,162,75,0.14)" stroke-width="1"/>`;
     // Arch curve (top)
-    svg += `<path d="M ${archX} ${(archY + archRadius).toFixed(0)} A ${outerR} ${outerR} 0 0 1 ${(archX + archW).toFixed(0)} ${(archY + archRadius).toFixed(0)} L ${(archX + archW - archThickness).toFixed(0)} ${(archY + archRadius).toFixed(0)} A ${innerR} ${innerR} 0 0 0 ${(archX + archThickness).toFixed(0)} ${(archY + archRadius).toFixed(0)} Z" fill="rgba(240,240,250,0.05)" stroke="rgba(240,240,250,0.12)" stroke-width="1"/>`;
+    svg += `<path d="M ${archX} ${(archY + archRadius).toFixed(0)} A ${outerR} ${outerR} 0 0 1 ${(archX + archW).toFixed(0)} ${(archY + archRadius).toFixed(0)} L ${(archX + archW - archThickness).toFixed(0)} ${(archY + archRadius).toFixed(0)} A ${innerR} ${innerR} 0 0 0 ${(archX + archThickness).toFixed(0)} ${(archY + archRadius).toFixed(0)} Z" fill="rgba(201,162,75,0.05)" stroke="rgba(201,162,75,0.12)" stroke-width="1"/>`;
     // Subtle fracture on the left pillar (a hairline crack)
     const crackY = archY + archRadius + 100 + rng() * 200;
-    svg += `<line x1="${(archX + archThickness * 0.5).toFixed(0)}" y1="${crackY.toFixed(0)}" x2="${(archX + archThickness * 0.3).toFixed(0)}" y2="${(crackY + 40).toFixed(0)}" stroke="rgba(240,240,250,0.08)" stroke-width="0.6"/>`;
+    svg += `<line x1="${(archX + archThickness * 0.5).toFixed(0)}" y1="${crackY.toFixed(0)}" x2="${(archX + archThickness * 0.3).toFixed(0)}" y2="${(crackY + 40).toFixed(0)}" stroke="rgba(201,162,75,0.08)" stroke-width="0.6"/>`;
   } else if (formType === 1) {
     // ── MONOLITH: a single tall rectangular form, slightly leaning ──
     const monW = 280;
@@ -519,11 +519,11 @@ function generateGeometricSVG(title: string, domain: string): string {
     const monX = cx - monW / 2;
     const monY = cy - monH / 2;
     const transform = `rotate(${lean} ${cx} ${cy})`;
-    svg += `<rect x="${monX.toFixed(0)}" y="${monY.toFixed(0)}" width="${monW}" height="${monH}" transform="${transform}" fill="rgba(240,240,250,0.05)" stroke="rgba(240,240,250,0.12)" stroke-width="1" rx="2"/>`;
+    svg += `<rect x="${monX.toFixed(0)}" y="${monY.toFixed(0)}" width="${monW}" height="${monH}" transform="${transform}" fill="rgba(201,162,75,0.05)" stroke="rgba(201,162,75,0.12)" stroke-width="1" rx="2"/>`;
     // Subtle surface lines (material texture)
     for (let i = 0; i < 5; i++) {
       const ly = monY + 100 + i * 120 + rng() * 40;
-      svg += `<line x1="${(monX + 20).toFixed(0)}" y1="${ly.toFixed(0)}" x2="${(monX + monW - 20).toFixed(0)}" y2="${(ly + (rng() - 0.5) * 10).toFixed(0)}" transform="${transform}" stroke="rgba(240,240,250,0.04)" stroke-width="0.4"/>`;
+      svg += `<line x1="${(monX + 20).toFixed(0)}" y1="${ly.toFixed(0)}" x2="${(monX + monW - 20).toFixed(0)}" y2="${(ly + (rng() - 0.5) * 10).toFixed(0)}" transform="${transform}" stroke="rgba(201,162,75,0.04)" stroke-width="0.4"/>`;
     }
   } else {
     // ── APERTURE: a rectangular frame with light cutting through the opening ──
@@ -533,24 +533,24 @@ function generateGeometricSVG(title: string, domain: string): string {
     const apY = cy - apH / 2;
     const frameThickness = 50;
     // Frame
-    svg += `<rect x="${apX.toFixed(0)}" y="${apY.toFixed(0)}" width="${apW}" height="${apH}" fill="none" stroke="rgba(240,240,250,0.10)" stroke-width="${frameThickness}" stroke-linejoin="miter"/>`;
+    svg += `<rect x="${apX.toFixed(0)}" y="${apY.toFixed(0)}" width="${apW}" height="${apH}" fill="none" stroke="rgba(201,162,75,0.10)" stroke-width="${frameThickness}" stroke-linejoin="miter"/>`;
     // Inner opening — slightly lighter (light coming through)
-    svg += `<rect x="${(apX + frameThickness / 2).toFixed(0)}" y="${(apY + frameThickness / 2).toFixed(0)}" width="${(apW - frameThickness).toFixed(0)}" height="${(apH - frameThickness).toFixed(0)}" fill="rgba(240,240,250,0.015)"/>`;
+    svg += `<rect x="${(apX + frameThickness / 2).toFixed(0)}" y="${(apY + frameThickness / 2).toFixed(0)}" width="${(apW - frameThickness).toFixed(0)}" height="${(apH - frameThickness).toFixed(0)}" fill="rgba(201,162,75,0.015)"/>`;
     // One edge of the frame slightly fractured
     const fracY = apY + 80 + rng() * 200;
-    svg += `<line x1="${apX.toFixed(0)}" y1="${fracY.toFixed(0)}" x2="${(apX - 8).toFixed(0)}" y2="${(fracY + 25).toFixed(0)}" stroke="rgba(240,240,250,0.06)" stroke-width="0.5"/>`;
+    svg += `<line x1="${apX.toFixed(0)}" y1="${fracY.toFixed(0)}" x2="${(apX - 8).toFixed(0)}" y2="${(fracY + 25).toFixed(0)}" stroke="rgba(201,162,75,0.06)" stroke-width="0.5"/>`;
   }
 
   // ── Light shaft: subtle diagonal volumetric light from upper-right ──
   svg += `<defs>`;
   svg += `<linearGradient id="lightShaft" x1="0.75" y1="0" x2="0.25" y2="1" gradientUnits="objectBoundingBox">`;
-  svg += `<stop offset="0%" stop-color="rgba(240,240,250,0.06)"/>`;
-  svg += `<stop offset="50%" stop-color="rgba(240,240,250,0.02)"/>`;
-  svg += `<stop offset="100%" stop-color="rgba(240,240,250,0)"/>`;
+  svg += `<stop offset="0%" stop-color="rgba(201,162,75,0.06)"/>`;
+  svg += `<stop offset="50%" stop-color="rgba(201,162,75,0.02)"/>`;
+  svg += `<stop offset="100%" stop-color="rgba(201,162,75,0)"/>`;
   svg += `</linearGradient>`;
   svg += `<radialGradient id="formGlow" cx="0.65" cy="0.35" r="0.5" gradientUnits="objectBoundingBox">`;
-  svg += `<stop offset="0%" stop-color="rgba(240,240,250,0.04)"/>`;
-  svg += `<stop offset="100%" stop-color="rgba(240,240,250,0)"/>`;
+  svg += `<stop offset="0%" stop-color="rgba(201,162,75,0.04)"/>`;
+  svg += `<stop offset="100%" stop-color="rgba(201,162,75,0)"/>`;
   svg += `</radialGradient>`;
   svg += `</defs>`;
   // Light shaft as a subtle polygon

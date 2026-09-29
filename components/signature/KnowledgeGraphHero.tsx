@@ -94,21 +94,7 @@ export function KnowledgeGraphHero({ className }: KnowledgeGraphHeroProps) {
           );
         })()}
       </svg>
-      <style jsx global>{`
-        @keyframes nx-kg-breath {
-          0%, 100% { stroke-opacity: 0.35; r: 2; }
-          50% { stroke-opacity: 0.6; r: 2.5; }
-        }
-        .nx-kg-breath { animation: nx-kg-breath 4s ease-in-out infinite; }
-        @keyframes nx-kg-emit {
-          0% { r: 2; stroke-opacity: 0.15; }
-          100% { r: 12; stroke-opacity: 0; }
-        }
-        .nx-kg-emit { animation: nx-kg-emit 6s ease-out infinite; }
-        @media (prefers-reduced-motion: reduce) {
-          .nx-kg-breath, .nx-kg-emit { animation: none; }
-        }
-      `}</style>
+      <style jsx global>{`@keyframes nx-kg-breath { 0%, 100% stroke-opacity: 0.35; r: 2; } 50% 0.6; 2.5; .nx-kg-breath animation: 4s ease-in-out infinite; nx-kg-emit 0% 0.15; 12; 0; .nx-kg-emit 6s ease-out @media (prefers-reduced-motion: reduce) .nx-kg-breath, none;`}</style>
     </div>
   );
 }

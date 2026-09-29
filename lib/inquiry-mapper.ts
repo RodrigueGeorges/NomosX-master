@@ -15,6 +15,8 @@ export type BriefLike = {
   trustScore?: number | null;
   displayType?: string;
   hasForesight?: boolean;
+  /** Per-publication commissioned artwork (generated hero image). */
+  heroImageUrl?: string | null;
 };
 
 export function inferInquiryDepth(type: string): InquiryDepth {
@@ -37,6 +39,7 @@ export function mapBriefToInquiryCard(b: BriefLike, index = 0): InquiryCardData 
     title: b.title,
     summary: b.summary,
     domain: (b.topics?.[0] ?? b.displayType?.replace(/_/g, " ") ?? "General").toUpperCase(),
+    topics: b.topics,
     watermark: WATERMARKS[index % WATERMARKS.length],
     verdict:
       b.trustScore != null
@@ -47,6 +50,7 @@ export function mapBriefToInquiryCard(b: BriefLike, index = 0): InquiryCardData 
     readTime: b.readTime,
     hasForesight: b.hasForesight,
     formatLabel: b.displayType,
+    heroImageUrl: b.heroImageUrl ?? null,
   };
 }
 

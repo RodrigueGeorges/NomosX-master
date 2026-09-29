@@ -206,7 +206,7 @@ export function PublicationActions({ publicationId, publicationTitle }: Publicat
   }
 
   return (
-    <div className="mt-8 pt-6 border-t border-black/[0.08]">
+    <div className="mt-8 pt-6 border-t border-black/[0.08] dark:border-white/[0.08]">
       {/* Action bar */}
       <div className="flex items-center gap-1 sm:gap-2">
         {/* Like */}
@@ -217,7 +217,7 @@ export function PublicationActions({ publicationId, publicationTitle }: Publicat
           className={`group flex items-center gap-2 px-3 py-2 text-sm transition-all border ${
             reaction === "LIKE"
               ? "text-emerald-400 border-emerald-500/30 bg-emerald-500/[0.06]"
-              : "text-black/50 border-black/[0.08] hover:text-black/80 hover:border-black/20"
+              : "text-black/50 dark:text-white/50 border-black/[0.08] dark:border-white/[0.08] hover:text-black/80 dark:hover:text-white/80 hover:border-black/20 dark:hover:border-white/20"
           }`}
           aria-label={t('PublicationActions.like')}
           aria-pressed={reaction === "LIKE"}
@@ -234,7 +234,7 @@ export function PublicationActions({ publicationId, publicationTitle }: Publicat
           className={`group flex items-center gap-2 px-3 py-2 text-sm transition-all border ${
             reaction === "DISLIKE"
               ? "text-rose-400 border-rose-500/30 bg-rose-500/[0.06]"
-              : "text-black/50 border-black/[0.08] hover:text-black/80 hover:border-black/20"
+              : "text-black/50 dark:text-white/50 border-black/[0.08] dark:border-white/[0.08] hover:text-black/80 dark:hover:text-white/80 hover:border-black/20 dark:hover:border-white/20"
           }`}
           aria-label={t('PublicationActions.dislike')}
           aria-pressed={reaction === "DISLIKE"}
@@ -249,8 +249,8 @@ export function PublicationActions({ publicationId, publicationTitle }: Publicat
           onClick={() => setShowComments((s) => !s)}
           className={`flex items-center gap-2 px-3 py-2 text-sm transition-all border ${
             showComments
-              ? "text-black/80 border-black/20"
-              : "text-black/50 border-black/[0.08] hover:text-black/80 hover:border-black/20"
+              ? "text-black/80 dark:text-white/80 border-black/20 dark:border-white/20"
+              : "text-black/50 dark:text-white/50 border-black/[0.08] dark:border-white/[0.08] hover:text-black/80 dark:hover:text-white/80 hover:border-black/20 dark:hover:border-white/20"
           }`}
           aria-label={t('PublicationActions.comments')}
           aria-expanded={showComments}
@@ -266,7 +266,7 @@ export function PublicationActions({ publicationId, publicationTitle }: Publicat
           className={`flex items-center gap-2 px-3 py-2 text-sm transition-all border ${
             shared
               ? "text-cyan-400 border-cyan-500/30 bg-cyan-500/[0.06]"
-              : "text-black/50 border-black/[0.08] hover:text-black/80 hover:border-black/20"
+              : "text-black/50 dark:text-white/50 border-black/[0.08] dark:border-white/[0.08] hover:text-black/80 dark:hover:text-white/80 hover:border-black/20 dark:hover:border-white/20"
           }`}
           aria-label={t('PublicationActions.share')}
         >
@@ -308,29 +308,29 @@ export function PublicationActions({ publicationId, publicationTitle }: Publicat
                 placeholder={t('PublicationActions.addCommentPlaceholder')}
                 rows={2}
                 maxLength={2000}
-                className="flex-1 px-3 py-2 text-sm bg-black/[0.03] border border-black/[0.08] text-black/90 placeholder:text-black/30 focus:outline-none focus:border-black/20 resize-none"
+                className="flex-1 px-3 py-2 text-sm bg-black/[0.03] dark:bg-white/[0.03] border border-black/[0.08] dark:border-white/[0.08] text-black/90 dark:text-white/90 placeholder:text-black/30 dark:placeholder:text-white/30 focus:outline-none focus:border-black/20 dark:focus:border-white/20 resize-none"
               />
               <button
                 type="button"
                 onClick={postComment}
                 disabled={!commentText.trim() || postingComment}
-                className="self-end px-3 py-2 text-sm border border-black/20 text-black/80 hover:bg-black/[0.04] disabled:opacity-30 disabled:cursor-not-allowed"
+                className="self-end px-3 py-2 text-sm border border-black/20 dark:border-white/20 text-black/80 dark:text-white/80 hover:bg-black/[0.04] dark:hover:bg-white/[0.04] disabled:opacity-30 disabled:cursor-not-allowed"
                 aria-label={t('PublicationActions.postComment')}
               >
                 <Send size={16} />
               </button>
             </div>
           ) : (
-            <div className="px-3 py-3 border border-black/[0.06] bg-black/[0.02] text-xs text-black/40 text-center">
-              <a href="/auth" className="underline text-black/60 hover:text-black/80">{t('PublicationActions.signIn')}</a> {t('PublicationActions.signInToJoin')}
+            <div className="px-3 py-3 border border-black/[0.06] dark:border-white/[0.06] bg-black/[0.02] dark:bg-white/[0.02] text-xs text-black/40 dark:text-white/40 text-center">
+              <a href="/auth" className="underline text-black/60 dark:text-white/60 hover:text-black/80 dark:hover:text-white/80">{t('PublicationActions.signIn')}</a> {t('PublicationActions.signInToJoin')}
             </div>
           )}
 
           {/* Comments list */}
           {loadingComments ? (
-            <div className="text-xs text-black/30 text-center py-4">{t('PublicationActions.loadingComments')}</div>
+            <div className="text-xs text-black/30 dark:text-white/30 text-center py-4">{t('PublicationActions.loadingComments')}</div>
           ) : comments.length === 0 ? (
-            <div className="text-xs text-black/30 text-center py-4">
+            <div className="text-xs text-black/30 dark:text-white/30 text-center py-4">
               {t('PublicationActions.noComments')}
             </div>
           ) : (
@@ -338,14 +338,14 @@ export function PublicationActions({ publicationId, publicationTitle }: Publicat
               {comments.map((c) => (
                 <div
                   key={c.id}
-                  className="px-3 py-3 border border-black/[0.06] bg-black/[0.02]"
+                  className="px-3 py-3 border border-black/[0.06] dark:border-white/[0.06] bg-black/[0.02] dark:bg-white/[0.02]"
                 >
                   <div className="flex items-center justify-between gap-2 mb-1.5">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-medium text-black/70">
+                      <span className="text-xs font-medium text-black/70 dark:text-white/70">
                         {c.author}
                       </span>
-                      <span className="text-[10px] text-black/30 font-mono">
+                      <span className="text-[10px] text-black/30 dark:text-white/30 font-mono">
                         {new Date(c.createdAt).toLocaleDateString(undefined, {
                           year: "numeric",
                           month: "short",
@@ -357,14 +357,14 @@ export function PublicationActions({ publicationId, publicationTitle }: Publicat
                       <button
                         type="button"
                         onClick={() => deleteComment(c.id)}
-                        className="text-black/20 hover:text-rose-400 transition-colors"
+                        className="text-black/20 dark:text-white/20 hover:text-rose-400 transition-colors"
                         aria-label={t('PublicationActions.deleteComment')}
                       >
                         <Trash2 size={13} />
                       </button>
                     )}
                   </div>
-                  <p className="text-sm text-black/70 leading-relaxed whitespace-pre-wrap">
+                  <p className="text-sm text-black/70 dark:text-white/70 leading-relaxed whitespace-pre-wrap">
                     {c.content}
                   </p>
                 </div>

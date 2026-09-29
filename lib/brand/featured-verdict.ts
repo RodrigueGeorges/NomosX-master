@@ -5,6 +5,8 @@ import {
   extractInstituteVerdict,
   isPositionFirstBrief,
 } from "@/lib/agent/brief-html-extract";
+import { RESEARCHERS, getResearcherForDomain } from "@/lib/researchers";
+import { resolveDomainKey } from "@/lib/brand/god-fields";
 
 export interface FeaturedBriefSource {
   id: string;
@@ -117,6 +119,15 @@ export function buildFeaturedVerdict(brief: FeaturedBriefSource): FeaturedVerdic
 
   const confidence = rawHtml ? extractConfidence(rawHtml, brief.trustScore) : `${brief.trustScore ?? "—"}%`;
 
+  // Desk attribution — same rule as the inquiry byline: the signing desk
+  // when the pipeline recorded one, else the desk owning the domain.
+  const signedBy = typeof meta.signOff === "object" && meta.signOff !== null
+    ? (meta.signOff as { researcher?: string }).researcher
+    : undefined;
+  const signed = signedBy ? RESEARCHERS.find((x) => x.name === signedBy) : undefined;
+  const domainKey = resolveDomainKey(typeof meta.domain === "string" ? meta.domain : undefined);
+  const owner = signed ?? (domainKey ? getResearcherForDomain(domainKey) : undefined);
+
   return {
     question,
     verdictPrefix: prefix,
@@ -128,6 +139,7 @@ export function buildFeaturedVerdict(brief: FeaturedBriefSource): FeaturedVerdic
     updatedAt: formatUpdatedAt(brief.publishedAt),
     serialId: formatSerialId(brief.id, brief.publishedAt),
     domains: brief.domains ?? [],
+    desk: owner ? { id: owner.id, name: owner.name, signed: Boolean(signedBy) } : undefined,
     href: `/inquiry/${brief.id}`,
   };
 }

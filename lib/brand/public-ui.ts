@@ -34,5 +34,5 @@ export const nx = {
   spinner: "border-2 border-white/20 border-t-white rounded-full animate-spin",
 
   prose:
-    "prose prose-invert prose-lg max-w-none prose-headings:font-display prose-headings:font-medium prose-headings:text-white prose-p:text-white/70 prose-li:text-white/65 prose-a:text-white/80 prose-a:underline hover:prose-a:text-white prose-strong:text-white prose-blockquote:border-white/20 prose-code:text-white/90 prose-code:bg-white/10 prose-code:px-1",
+    "prose prose-neutral dark:prose-invert prose-lg max-w-none prose-headings:font-display prose-headings:font-medium prose-headings:text-black dark:prose-headings:text-white prose-p:text-black/75 dark:prose-p:text-white/70 prose-li:text-black/70 dark:prose-li:text-white/65 prose-a:text-black/85 dark:prose-a:text-white/80 prose-a:underline hover:prose-a:text-black dark:hover:prose-a:text-white prose-strong:text-black dark:prose-strong:text-white prose-blockquote:border-black/20 dark:prose-blockquote:border-white/20 prose-code:text-black/90 dark:prose-code:text-white/90 prose-code:bg-black/[0.06] dark:prose-code:bg-white/10 prose-code:px-1",
 } as const;

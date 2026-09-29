@@ -28,7 +28,7 @@ export function SharedBriefClient({ brief }: SharedBriefClientProps) {
   return (
     <PublicPageShell particles={0}>
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
-        <div className="flex items-center justify-between mb-10 pb-6 border-b border-black/[0.08]">
+        <div className="flex items-center justify-between mb-10 pb-6 border-b border-black/[0.08] dark:border-white/[0.08]">
           <span className={nx.eyebrow}>Shared brief</span>
           <Link href="/?auth=required" className={cn(nx.btnPrimary, "px-5 py-2.5")}>
             Get access
@@ -37,21 +37,21 @@ export function SharedBriefClient({ brief }: SharedBriefClientProps) {
 
         <div className="mb-8">
           <div className="flex flex-wrap items-center gap-2 mb-4">
-            <span className="px-3 py-1 border border-black/20 bg-black/[0.04] font-mono text-[10px] uppercase tracking-[0.14em] text-black/70">
+            <span className="px-3 py-1 border border-black/20 dark:border-white/20 bg-black/[0.04] dark:bg-white/[0.04] font-mono text-[10px] uppercase tracking-[0.14em] text-black/70 dark:text-white/70">
               {format.label}
             </span>
             {brief.trustScore != null && (
-              <span className="px-2.5 py-1 border border-black/15 bg-black/[0.04] font-mono text-[10px] text-black/60 uppercase tracking-wider">
+              <span className="px-2.5 py-1 border border-black/15 dark:border-white/15 bg-black/[0.04] dark:bg-white/[0.04] font-mono text-[10px] text-black/60 dark:text-white/60 uppercase tracking-wider">
                 Confidence {brief.trustScore}
               </span>
             )}
           </div>
           {brief.title && (
-            <h1 className="font-display text-2xl sm:text-3xl font-semibold text-black mb-3 leading-snug">
+            <h1 className="font-display text-2xl sm:text-3xl font-semibold text-black dark:text-white mb-3 leading-snug">
               {brief.title}
             </h1>
           )}
-          <p className="text-sm text-black/50 flex flex-wrap gap-3 font-mono">
+          <p className="text-sm text-black/50 dark:text-white/50 flex flex-wrap gap-3 font-mono">
             {brief.publishedAt && (
               <span>
                 {new Date(brief.publishedAt).toLocaleDateString("en-GB", {

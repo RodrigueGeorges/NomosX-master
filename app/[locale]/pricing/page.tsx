@@ -113,7 +113,7 @@ export default function PricingPage() {
               title={
                 <>
                   {t("Pricing.title")}{" "}
-                  <span className="text-black">{t("Pricing.titleAccent")}</span>
+                  <span className="text-black dark:text-white">{t("Pricing.titleAccent")}</span>
                 </>
               }
               description={t("Pricing.description")}
@@ -130,25 +130,25 @@ export default function PricingPage() {
 
               >
 
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-20 h-px bg-black/60" />
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-20 h-px bg-black/60 dark:bg-white/60" />
 
-                <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-black/55 mb-4">
+                <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-black/55 dark:text-white/55 mb-4">
                   {t("Pricing.reader")}
                 </p>
 
                 <div className="flex items-baseline gap-2 mb-2">
                   <span className="font-mono text-4xl font-light text-text">{t("Pricing.free")}</span>
-                  <span className="text-sm text-black/50">{t("Pricing.forever")}</span>
+                  <span className="text-sm text-black/50 dark:text-white/50">{t("Pricing.forever")}</span>
                 </div>
 
-                <p className="text-sm text-black/60 mb-8">
+                <p className="text-sm text-black/60 dark:text-white/60 mb-8">
                   {t("Pricing.readerDesc")}
                 </p>
 
                 <ul className="space-y-3 mb-9">
                   {READER_FEATURES.map((key) => (
-                    <li key={key} className="flex items-start gap-3 text-sm text-black/70">
-                      <Check className="w-4 h-4 text-black flex-shrink-0 mt-0.5" strokeWidth={1.5} />
+                    <li key={key} className="flex items-start gap-3 text-sm text-black/70 dark:text-white/70">
+                      <Check className="w-4 h-4 text-black dark:text-white flex-shrink-0 mt-0.5" strokeWidth={1.5} />
                       {t(key)}
                     </li>
                   ))}
@@ -157,7 +157,7 @@ export default function PricingPage() {
                 <button
                   type="button"
                   onClick={openFreeAuth}
-                  className="w-full py-3.5 border border-black/30 text-black text-sm font-medium hover:border-black/60 hover:text-black transition-colors"
+                  className="w-full py-3.5 border border-black/30 dark:border-white/30 text-black dark:text-white text-sm font-medium hover:border-black/60 dark:hover:border-white/60 hover:text-black dark:hover:text-white transition-colors"
                 >
                   {t("Pricing.startReading")}
                 </button>
@@ -168,19 +168,19 @@ export default function PricingPage() {
 
               <div
 
-                className="relative p-6 sm:p-7 nx-surface border-black/20"
+                className="relative p-6 sm:p-7 nx-surface border-black/20 dark:border-white/20"
 
               >
 
                 <div className="absolute -top-3 left-8">
 
-                  <span className="px-3 py-1 bg-white text-black text-[11px] font-mono font-semibold tracking-[0.14em] uppercase">
+                  <span className="px-3 py-1 bg-white dark:bg-black text-black dark:text-white text-[11px] font-mono font-semibold tracking-[0.14em] uppercase">
                     {t("Pricing.payPerStudy")}
                   </span>
 
                 </div>
 
-                <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-black/50 mb-4 mt-2">
+                <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-black/50 dark:text-white/50 mb-4 mt-2">
                   {t("StudioPage.eyebrow")}
 
                 </p>
@@ -192,11 +192,11 @@ export default function PricingPage() {
 
                   </span>
 
-                  <span className="text-sm text-black/50">{t("Pricing.perStudy")}</span>
+                  <span className="text-sm text-black/50 dark:text-white/50">{t("Pricing.perStudy")}</span>
 
                 </div>
 
-                <p className="text-sm text-black/60 mb-8">
+                <p className="text-sm text-black/60 dark:text-white/60 mb-8">
 
                   {t("Pricing.studioDesc")}
 
@@ -206,9 +206,9 @@ export default function PricingPage() {
 
                   {STUDIO_FEATURES.map((key) => (
 
-                    <li key={key} className="flex items-start gap-3 text-sm text-black/75">
+                    <li key={key} className="flex items-start gap-3 text-sm text-black/75 dark:text-white/75">
 
-                      <Check className="w-4 h-4 text-black flex-shrink-0 mt-0.5" strokeWidth={1.5} />
+                      <Check className="w-4 h-4 text-black dark:text-white flex-shrink-0 mt-0.5" strokeWidth={1.5} />
 
                       {t(key)}
 
@@ -247,7 +247,7 @@ export default function PricingPage() {
                 <h2 className="font-display text-xl sm:text-2xl font-semibold text-text mb-2">
                   {t("Pricing.payPerStudyNoSub")}
                 </h2>
-                <p className="text-sm text-black/55 max-w-lg mx-auto">
+                <p className="text-sm text-black/55 dark:text-white/55 max-w-lg mx-auto">
                   {t("Pricing.formatsDesc")}
                 </p>
               </div>
@@ -259,12 +259,12 @@ export default function PricingPage() {
                   const descKey = format.type === "SUMMARY_BRIEF" ? "Formats.signalBriefDesc" : format.type === "DECISION_MEMO" ? "Formats.decisionMemoDesc" : format.type === "ARTICLE" ? "Formats.articleDesc" : "Formats.strategicReportDesc";
                   return (
                     <div key={format.type} className="nx-surface p-5 flex flex-col">
-                      <div className="text-sm text-black font-semibold mb-1">{t(labelKey)}</div>
-                      <div className="text-[10px] font-mono uppercase tracking-[0.12em] text-black/40 mb-3">{t(pagesKey)}</div>
-                      <p className="text-xs text-black/55 leading-relaxed mb-4 flex-1">{t(descKey)}</p>
-                      <div className="border-t border-black/[0.08] pt-3">
+                      <div className="text-sm text-black dark:text-white font-semibold mb-1">{t(labelKey)}</div>
+                      <div className="text-[10px] font-mono uppercase tracking-[0.12em] text-black/40 dark:text-white/40 mb-3">{t(pagesKey)}</div>
+                      <p className="text-xs text-black/55 dark:text-white/55 leading-relaxed mb-4 flex-1">{t(descKey)}</p>
+                      <div className="border-t border-black/[0.08] dark:border-white/[0.08] pt-3">
                         <div className="text-2xl font-display font-semibold text-text">{price.display}</div>
-                        <div className="text-[10px] text-black/35 uppercase tracking-wide mt-0.5">{t("Pricing.perStudyShort")}</div>
+                        <div className="text-[10px] text-black/35 dark:text-white/35 uppercase tracking-wide mt-0.5">{t("Pricing.perStudyShort")}</div>
                       </div>
                     </div>
                   );
@@ -279,7 +279,7 @@ export default function PricingPage() {
                   {t("Pricing.commissionStudy")}
                   <ArrowRight size={14} className="ml-2" />
                 </button>
-                <p className="mt-3 text-[11px] text-black/35">
+                <p className="mt-3 text-[11px] text-black/35 dark:text-white/35">
                   {t("Pricing.moneyBackNote")}
                 </p>
               </div>
@@ -287,35 +287,35 @@ export default function PricingPage() {
 
             <section className="mb-16 nx-surface overflow-hidden">
 
-              <div className="p-6 sm:p-8 border-b border-black/[0.08]">
+              <div className="p-6 sm:p-8 border-b border-black/[0.08] dark:border-white/[0.08]">
 
                 <div className="flex flex-wrap items-center gap-3 mb-4">
 
-                  <Sparkles className="w-4 h-4 text-black/50" />
+                  <Sparkles className="w-4 h-4 text-black/50 dark:text-white/50" />
 
                   <h2 className="font-display text-xl font-semibold text-text">
                     {t("StudioPage.eyebrow")}
                   </h2>
 
-                  <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-black/55 px-2 py-0.5 border border-black/20">
+                  <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-black/55 dark:text-white/55 px-2 py-0.5 border border-black/20 dark:border-white/20">
                     {t("Pricing.interfacePreview")}
                   </span>
 
                 </div>
 
-                <p className="text-sm text-black/60 max-w-xl">
+                <p className="text-sm text-black/60 dark:text-white/60 max-w-xl">
                   {t("Pricing.engineDesc")}
                 </p>
 
               </div>
 
-              <div className="grid sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-white/[0.08]">
+              <div className="grid sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-white/[0.08] dark:divide-black/[0.08]">
 
                 {STUDIO_STEPS.map((step, i) => (
 
                   <div key={step.labelKey} className="p-5 sm:p-6">
 
-                    <span className="font-mono text-[11px] text-black/55">
+                    <span className="font-mono text-[11px] text-black/55 dark:text-white/55">
 
                       {String(i + 1).padStart(2, "0")}
 
@@ -323,7 +323,7 @@ export default function PricingPage() {
 
                     <p className="text-sm font-medium text-text mt-2 mb-1">{t(step.labelKey)}</p>
 
-                    <p className="font-mono text-[11px] text-black/50">{t(step.detailKey)}</p>
+                    <p className="font-mono text-[11px] text-black/50 dark:text-white/50">{t(step.detailKey)}</p>
 
                   </div>
 
@@ -331,7 +331,7 @@ export default function PricingPage() {
 
               </div>
 
-              <div className="p-6 sm:p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-6 border-t border-black/[0.08]">
+              <div className="p-6 sm:p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-6 border-t border-black/[0.08] dark:border-white/[0.08]">
 
                 <div>
 
@@ -339,7 +339,7 @@ export default function PricingPage() {
                     {t("Pricing.commissionCustom")}
                   </h3>
 
-                  <p className="text-sm text-black/55">{t("Pricing.fullPipeline")}</p>
+                  <p className="text-sm text-black/55 dark:text-white/55">{t("Pricing.fullPipeline")}</p>
 
                 </div>
 
@@ -382,11 +382,11 @@ export default function PricingPage() {
 
                 >
 
-                  <Icon className="w-4 h-4 text-black/55 mx-auto mb-3" strokeWidth={1.25} />
+                  <Icon className="w-4 h-4 text-black/55 dark:text-white/55 mx-auto mb-3" strokeWidth={1.25} />
 
                   <div className="font-mono text-2xl font-light text-text tabular-nums">{value}</div>
 
-                  <div className="font-mono text-[11px] text-black/50 mt-1 uppercase tracking-[0.12em]">
+                  <div className="font-mono text-[11px] text-black/50 dark:text-white/50 mt-1 uppercase tracking-[0.12em]">
 
                     {label}
 
@@ -402,7 +402,7 @@ export default function PricingPage() {
 
             <div className="mb-16">
 
-              <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-black/55 text-center mb-8">
+              <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-black/55 dark:text-white/55 text-center mb-8">
                 {t("Pricing.questions")}
               </p>
 
@@ -416,7 +416,7 @@ export default function PricingPage() {
 
                     className={cn(
                       "nx-surface overflow-hidden transition-colors",
-                      openFaq === i && "border-black/20"
+                      openFaq === i && "border-black/20 dark:border-white/20"
                     )}
 
                   >
@@ -439,9 +439,9 @@ export default function PricingPage() {
 
                         className={cn(
 
-                          "text-black/50 flex-shrink-0 transition-transform",
+                          "text-black/50 dark:text-white/50 flex-shrink-0 transition-transform",
 
-                          openFaq === i && "rotate-180 text-black"
+                          openFaq === i && "rotate-180 text-black dark:text-white"
 
                         )}
 
@@ -465,7 +465,7 @@ export default function PricingPage() {
 
                         >
 
-                          <p className="text-sm text-black/60 leading-relaxed px-6 pb-5">{t(item.aKey)}</p>
+                          <p className="text-sm text-black/60 dark:text-white/60 leading-relaxed px-6 pb-5">{t(item.aKey)}</p>
 
                         </motion.div>
 
@@ -487,7 +487,7 @@ export default function PricingPage() {
 
               <h2 className="font-display text-xl sm:text-2xl font-semibold mb-4">
                 {t("Pricing.fromChaosOpen")}{" "}
-                <span className="text-black/70">{t("Pricing.openByDefault")}</span>
+                <span className="text-black/70 dark:text-white/70">{t("Pricing.openByDefault")}</span>
               </h2>
 
               <div className="flex flex-col sm:flex-row gap-3 justify-center mt-8">
@@ -498,7 +498,7 @@ export default function PricingPage() {
 
                   onClick={openFreeAuth}
 
-                  className="px-7 py-3.5 border border-black/30 text-sm text-black hover:text-black hover:border-black/60"
+                  className="px-7 py-3.5 border border-black/30 dark:border-white/30 text-sm text-black dark:text-white hover:text-black dark:hover:text-white hover:border-black/60 dark:hover:border-white/60"
 
                 >
 

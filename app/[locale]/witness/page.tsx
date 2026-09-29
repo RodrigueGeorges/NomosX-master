@@ -151,7 +151,7 @@ export default function WitnessDashboardPage() {
           <button
             onClick={fetchData}
             disabled={loading}
-            className="flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg bg-black/5 hover:bg-black/10 border border-black/10 transition disabled:opacity-50"
+            className="flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 border border-black/10 dark:border-white/10 transition disabled:opacity-50"
           >
             <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
             Refresh
@@ -219,7 +219,7 @@ export default function WitnessDashboardPage() {
                             {anomalyTypeLabels[type] || type}
                           </span>
                           <div className="flex items-center gap-2">
-                            <div className="w-24 h-2 bg-black/5 rounded-full overflow-hidden">
+                            <div className="w-24 h-2 bg-black/5 dark:bg-white/5 rounded-full overflow-hidden">
                               <div
                                 className="h-full bg-orange-400/60 rounded-full"
                                 style={{ width: `${Math.min(100, (count / data.summary.totalAnomalies) * 100)}%` }}
@@ -234,7 +234,7 @@ export default function WitnessDashboardPage() {
 
                 {/* Severity breakdown */}
                 {Object.keys(data.anomalySeverityCounts).length > 0 && (
-                  <div className="mt-4 pt-4 border-t border-black/5">
+                  <div className="mt-4 pt-4 border-t border-black/5 dark:border-white/5">
                     <div className="text-xs text-gray-500 mb-2">Par sévérité</div>
                     <div className="flex gap-2 flex-wrap">
                       {Object.entries(data.anomalySeverityCounts).map(([sev, count]) => (
@@ -268,7 +268,7 @@ export default function WitnessDashboardPage() {
                       ))}
                   </div>
                 )}
-                <div className="mt-4 pt-4 border-t border-black/5 flex gap-4 text-sm">
+                <div className="mt-4 pt-4 border-t border-black/5 dark:border-white/5 flex gap-4 text-sm">
                   <div className="flex items-center gap-1.5">
                     <CheckCircle className="w-4 h-4 text-green-400" />
                     <span className="text-gray-300">{data.summary.approvedInterventions} approved</span>

@@ -20,12 +20,12 @@ export default function StudioError({
   }, [error]);
 
   return (
-    <div className="min-h-[60vh] bg-white flex items-center justify-center px-4">
+    <div className="min-h-[60vh] bg-white dark:bg-black flex items-center justify-center px-4">
       <div className="text-center max-w-md">
         <div className="w-12 h-12 nx-public-surface flex items-center justify-center mx-auto mb-4">
-          <span className="text-black/70 text-lg font-mono">!</span>
+          <span className="text-black/70 dark:text-white/70 text-lg font-mono">!</span>
         </div>
-        <h2 className="font-display text-xl font-semibold text-black mb-2">Studio Error</h2>
+        <h2 className="font-display text-xl font-semibold text-black dark:text-white mb-2">Studio Error</h2>
         <p className={cn(nx.body, "mb-6")}>Something went wrong in the Studio. Please try again.</p>
         <div className="flex gap-3 justify-center">
           <button type="button" onClick={() => reset()} className={cn(nx.btnPrimary, "group")}>

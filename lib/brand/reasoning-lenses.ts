@@ -1,13 +1,20 @@
 /**
- * Public reasoning lenses — domain analytical models (no personas).
- * Derived from internal researcher registry; front exposes lenses only.
+ * Public reasoning lenses — domain analytical models backed by named
+ * NomosX desk identities (Greek canon, never fabricated human credentials).
+ * Derived from the canonical registry in lib/researchers.ts.
  */
 
-import { RESEARCHERS } from "@/lib/researchers";
+import { RESEARCHERS, getDeskName } from "@/lib/researchers";
 
 export interface ReasoningLens {
   id: string;
   domain: string;
+  /** Canonical desk identity, e.g. "Dr. Oikonomia (Οἰκονομία)" */
+  deskName: string;
+  /** Researcher title, e.g. "Senior Economist" */
+  title: string;
+  /** Greek monogram for avatars, e.g. "ΟΟ" */
+  initials: string;
   focus: string;
   approach: string;
   frameworks: string[];
@@ -27,6 +34,9 @@ export function getReasoningLenses(): ReasoningLens[] {
     lenses.push({
       id: r.id,
       domain: r.domain,
+      deskName: getDeskName(r.id),
+      title: r.title,
+      initials: r.initials,
       focus: r.specialty,
       approach:
         r.analyticalSignature ??

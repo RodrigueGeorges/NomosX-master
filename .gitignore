@@ -85,3 +85,7 @@ backup_*/
 output/
 latest-publication-sample.html
 .eslintcache
+
+# Python cache
+__pycache__/
+*.pyc

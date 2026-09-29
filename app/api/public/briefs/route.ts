@@ -103,6 +103,7 @@ export async function GET(req: NextRequest) {
               trustScore: true,
               qualityScore: true,
               criticalLoopResult: true,
+              heroImageUrl: true,
             },
           });
         } catch (dbError: any) {
@@ -206,6 +207,7 @@ export async function GET(req: NextRequest) {
             trustScore: brief.trustScore ?? null,
             qualityScore: brief.qualityScore ?? null,
             hasForesight,
+            heroImageUrl: brief.heroImageUrl ?? null,
           };
         });
 

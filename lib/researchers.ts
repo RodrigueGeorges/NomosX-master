@@ -50,7 +50,7 @@ export const RESEARCHERS: Researcher[] = [
     id: "economics",
     name: "Dr. Oikonomia (Οἰκονομία)",
     title: "Senior Economist",
-    institution: "Harvard Kennedy School",
+    institution: "NomosX Institute",
     domain: "Economics",
     specialty: "Econometrics & Policy Economics",
     initials: "ΟΟ",
@@ -90,7 +90,7 @@ export const RESEARCHERS: Researcher[] = [
     id: "technology",
     name: "Dr. Techne (Τέχνη)",
     title: "Computer Scientist",
-    institution: "Stanford / DeepMind",
+    institution: "NomosX Institute",
     domain: "Technology",
     specialty: "AI/ML & Digital Systems",
     initials: "ΤΤ",
@@ -130,7 +130,7 @@ export const RESEARCHERS: Researcher[] = [
     id: "policy",
     name: "Dr. Politeia (Πολιτεία)",
     title: "Political Scientist",
-    institution: "Oxford / Brookings",
+    institution: "NomosX Institute",
     domain: "Policy",
     specialty: "Public Policy & Governance",
     initials: "ΠΠ",
@@ -170,7 +170,7 @@ export const RESEARCHERS: Researcher[] = [
     id: "health",
     name: "Dr. Hygeia (Ὑγίεια)",
     title: "Epidemiologist",
-    institution: "Johns Hopkins / WHO",
+    institution: "NomosX Institute",
     domain: "Health",
     specialty: "Epidemiology & Public Health",
     initials: "ΗΗ",
@@ -210,7 +210,7 @@ export const RESEARCHERS: Researcher[] = [
     id: "security",
     name: "Dr. Aegis (Αἰγίς)",
     title: "Security Analyst",
-    institution: "Georgetown / RAND",
+    institution: "NomosX Institute",
     domain: "Security",
     specialty: "Strategic Security & Intelligence",
     initials: "ΑΑ",
@@ -250,7 +250,7 @@ export const RESEARCHERS: Researcher[] = [
     id: "law",
     name: "Dr. Nomos (Νόμος)",
     title: "Legal Scholar",
-    institution: "Yale Law / ICJ",
+    institution: "NomosX Institute",
     domain: "Law",
     specialty: "International Law & Regulation",
     initials: "ΝΝ",
@@ -290,7 +290,7 @@ export const RESEARCHERS: Researcher[] = [
     id: "environment",
     name: "Dr. Gaia (Γαία)",
     title: "Climate Scientist",
-    institution: "ETH Zurich / IPCC",
+    institution: "NomosX Institute",
     domain: "Environment",
     specialty: "Climate Science & Energy Transition",
     initials: "ΓΓ",
@@ -330,7 +330,7 @@ export const RESEARCHERS: Researcher[] = [
     id: "quantitative",
     name: "Dr. Metron (Μέτρον)",
     title: "Statistician",
-    institution: "MIT / Nature Methods",
+    institution: "NomosX Institute",
     domain: "Quantitative",
     specialty: "Statistics & Causal Inference",
     initials: "ΜΜ",
@@ -370,7 +370,7 @@ export const RESEARCHERS: Researcher[] = [
     id: "finance",
     name: "Dr. Chrematistikos (Χρηματιστικός)",
     title: "Financial Economist",
-    institution: "LSE / BlackRock",
+    institution: "NomosX Institute",
     domain: "Finance & Markets",
     specialty: "Asset Pricing & Market Microstructure",
     initials: "ΧΧ",
@@ -412,7 +412,7 @@ export const RESEARCHERS: Researcher[] = [
     id: "social-sciences",
     name: "Dr. Koinonia (Κοινωνία)",
     title: "Sociologist",
-    institution: "UC Berkeley / Institute for Social Research",
+    institution: "NomosX Institute",
     domain: "Social Sciences",
     specialty: "Social Behavior & Cultural Dynamics",
     initials: "ΚΚ",
@@ -452,7 +452,7 @@ export const RESEARCHERS: Researcher[] = [
     id: "humanities",
     name: "Dr. Logos (Λόγος)",
     title: "Philosopher",
-    institution: "Sorbonne / Collège de France",
+    institution: "NomosX Institute",
     domain: "Humanities",
     specialty: "Ethics & AI Governance",
     initials: "ΛΛ",
@@ -492,7 +492,7 @@ export const RESEARCHERS: Researcher[] = [
     id: "energy-advanced",
     name: "Dr. Energeia (Ἐνέργεια)",
     title: "Energy Engineer",
-    institution: "Imperial College / IRENA",
+    institution: "NomosX Institute",
     domain: "Energy Systems",
     specialty: "Renewable Energy & Grid Integration",
     initials: "ΕΕ",
@@ -532,7 +532,7 @@ export const RESEARCHERS: Researcher[] = [
     id: "geopolitics",
     name: "Dr. Polis (Πόλις)",
     title: "International Relations Expert",
-    institution: "Geneva Graduate Institute / UN",
+    institution: "NomosX Institute",
     domain: "Geopolitics",
     specialty: "Great Power Relations & Multilateralism",
     initials: "ΠΠ",
@@ -572,7 +572,7 @@ export const RESEARCHERS: Researcher[] = [
     id: "cognitive-science",
     name: "Dr. Noesis (Νόησις)",
     title: "Cognitive Neuroscientist",
-    institution: "UCL / Max Planck Institute",
+    institution: "NomosX Institute",
     domain: "Cognitive Science",
     specialty: "Decision-Making & Behavioral Economics",
     initials: "ΝΝ",
@@ -612,7 +612,7 @@ export const RESEARCHERS: Researcher[] = [
     id: "digital-society",
     name: "Dr. Digi (Δίγι)",
     title: "Digital Sociologist",
-    institution: "MIT Media Lab / Oxford Internet Institute",
+    institution: "NomosX Institute",
     domain: "Digital Society",
     specialty: "Social Impact of Technology & Digital Transformation",
     initials: "ΔΔ",
@@ -654,7 +654,7 @@ export const RESEARCHERS: Researcher[] = [
     id: "behavioral-economics",
     name: "Dr. Thymos (Θυμός)",
     title: "Behavioral Economist",
-    institution: "University of Chicago / NBER",
+    institution: "NomosX Institute",
     domain: "Behavioral Economics",
     specialty: "Choice Architecture & Nudge Theory",
     initials: "ΘΘ",
@@ -694,7 +694,7 @@ export const RESEARCHERS: Researcher[] = [
     id: "urban-studies",
     name: "Dr. Asty (Ἄστυ)",
     title: "Urban Planner",
-    institution: "MIT / Lincoln Institute",
+    institution: "NomosX Institute",
     domain: "Urban Studies",
     specialty: "Smart Cities & Sustainable Urban Development",
     initials: "ΑΑ",
@@ -734,7 +734,7 @@ export const RESEARCHERS: Researcher[] = [
     id: "development-economics",
     name: "Dr. Auxesis (Αὔξησις)",
     title: "Development Economist",
-    institution: "World Bank / Princeton",
+    institution: "NomosX Institute",
     domain: "Development Economics",
     specialty: "Poverty Alleviation & Economic Development",
     initials: "ΑΑ",
@@ -774,7 +774,7 @@ export const RESEARCHERS: Researcher[] = [
     id: "computational-social-science",
     name: "Dr. Syntaxis (Σύνταξις)",
     title: "Computational Social Scientist",
-    institution: "Carnegie Mellon / Santa Fe Institute",
+    institution: "NomosX Institute",
     domain: "Computational Social Science",
     specialty: "Network Analysis & Social Computing",
     initials: "ΣΣ",
@@ -814,7 +814,7 @@ export const RESEARCHERS: Researcher[] = [
     id: "bioethics",
     name: "Dr. Bios (Βίος)",
     title: "Bioethicist",
-    institution: "Johns Hopkins / Hastings Center",
+    institution: "NomosX Institute",
     domain: "Bioethics",
     specialty: "Medical Ethics & Biotechnology Policy",
     initials: "ΒΒ",
@@ -854,7 +854,7 @@ export const RESEARCHERS: Researcher[] = [
     id: "complexity-science",
     name: "Dr. Chaos (Χάος)",
     title: "Complexity Scientist",
-    institution: "Santa Fe Institute / Oxford",
+    institution: "NomosX Institute",
     domain: "Complexity Science",
     specialty: "Complex Systems & Emergent Phenomena",
     initials: "ΧΧ",
@@ -894,7 +894,7 @@ export const RESEARCHERS: Researcher[] = [
     id: "risk-analysis",
     name: "Dr. Kyvernon (Κύβερνον)",
     title: "Risk Analyst",
-    institution: "Wharton / Federal Reserve",
+    institution: "NomosX Institute",
     domain: "Risk Analysis",
     specialty: "Financial Risk & Systemic Risk Modeling",
     initials: "ΚΚ",
@@ -932,9 +932,99 @@ export const RESEARCHERS: Researcher[] = [
   },
 ];
 
+// === SUB-LENS IDENTITIES ===
+// The 22 Council members above carry named Greek identities. The remaining
+// domain lenses get a desk name in the same register — NomosX canon.
+// Never fabricated human names or real-institution credentials.
+export const SUB_LENS_IDENTITIES: Record<string, string> = {
+  anthropology: "Dr. Anthropos (Ἄνθρωπος)",
+  history: "Dr. Historia (Ἱστορία)",
+  "religious-studies": "Dr. Threskeia (Θρησκεία)",
+  "non-western-philosophy": "Dr. Gnosis (Γνῶσις)",
+  sociology: "Dr. Demos (Δῆμος)",
+  psychology: "Dr. Psyche (Ψυχή)",
+  "political-science": "Dr. Kratos (Κράτος)",
+  demography: "Dr. Plethysmos (Πληθυσμός)",
+  criminology: "Dr. Dike (Δίκη)",
+  education: "Dr. Paideia (Παιδεία)",
+  philosophy: "Dr. Sophia (Σοφία)",
+  linguistics: "Dr. Glossa (Γλῶσσα)",
+  "media-studies": "Dr. Angelia (Ἀγγελία)",
+  epidemiology: "Dr. Nosos (Νόσος)",
+  "public-health": "Dr. Prophylaxis (Προφύλαξις)",
+  "international-relations": "Dr. Oikumene (Οἰκουμένη)",
+  "migration-studies": "Dr. Metanastes (Μετανάστης)",
+  "science-technology-studies": "Dr. Mechanē (Μηχανή)",
+  epistemology: "Dr. Episteme (Ἐπιστήμη)",
+  "international-law": "Dr. Dikaion (Δίκαιον)",
+  "conflict-studies": "Dr. Polemos (Πόλεμος)",
+  "political-economy": "Dr. Ploutos (Πλοῦτος)",
+  "public-administration": "Dr. Diokesis (Διοίκησις)",
+  "gender-studies": "Dr. Isotes (Ἰσότης)",
+  "area-studies": "Dr. Chora (Χώρα)",
+  "labor-studies": "Dr. Ergon (Ἔργον)",
+  "ethics-of-technology": "Dr. Arete (Ἀρετή)",
+  archaeology: "Dr. Archaia (Ἀρχαία)",
+  neuroscience: "Dr. Enkephalos (Ἐγκέφαλος)",
+  "data-science": "Dr. Dedomena (Δεδομένα)",
+  "economic-history": "Dr. Mnemosyne (Μνημοσύνη)",
+  "social-psychology": "Dr. Homilia (Ὁμιλία)",
+  "organizational-studies": "Dr. Taxis (Τάξις)",
+  "science-policy": "Dr. Prometheus (Προμηθεύς)",
+  "development-studies": "Dr. Anaptyxis (Ἀνάπτυξις)",
+  "comparative-politics": "Dr. Synkrisis (Σύγκρισις)",
+  "social-theory": "Dr. Praxis (Πρᾶξις)",
+  "philosophy-of-science": "Dr. Theoria (Θεωρία)",
+  "law-and-economics": "Dr. Nomisma (Νόμισμα)",
+  "intelligence-studies": "Dr. Phronesis (Φρόνησις)",
+  "military-studies": "Dr. Ares (Ἄρης)",
+  "futures-studies": "Dr. Mellon (Μέλλον)",
+  "economic-sociology": "Dr. Agora (Ἀγορά)",
+  "historical-sociology": "Dr. Chronos (Χρόνος)",
+  "environmental-economics": "Dr. Oikos (Οἶκος)",
+  "health-economics": "Dr. Therapeia (Θεραπεία)",
+  "legal-theory": "Dr. Themis (Θέμις)",
+  "postcolonial-studies": "Dr. Eleutheria (Ἐλευθερία)",
+  "communication-studies": "Dr. Rhema (Ῥῆμα)",
+  "public-finance": "Dr. Tamias (Ταμίας)",
+  "political-anthropology": "Dr. Ethnos (Ἔθνος)",
+  "food-systems": "Dr. Sitos (Σῖτος)",
+};
+
 /** Get a researcher by domain ID */
 export function getResearcher(domainId: string): Researcher | undefined {
   return RESEARCHERS.find(r => r.id === domainId);
+}
+
+/** Canonical identity for any domain expert — Council member or sub-lens desk. */
+export function getDeskName(domainId: string): string {
+  return getResearcher(domainId)?.name ?? SUB_LENS_IDENTITIES[domainId] ?? domainId;
+}
+
+/**
+ * Public DOMAINS key (lib/brand/domains.ts) → owning council desk id.
+ * Used for byline attribution and desk↔publication linking.
+ */
+export const DESK_FOR_DOMAIN: Record<string, string> = {
+  technology: "technology",
+  economics: "economics",
+  governance: "policy",
+  geopolitics: "geopolitics",
+  climate: "environment",
+  health: "health",
+  finance: "finance",
+  security: "security",
+};
+
+/** Owning desk for a public domain key — e.g. "climate" → Dr. Gaia. */
+export function getResearcherForDomain(domainKey: string): Researcher | undefined {
+  const id = DESK_FOR_DOMAIN[domainKey];
+  return id ? getResearcher(id) : undefined;
+}
+
+/** Public DOMAINS key owning a desk, or undefined when the desk has no public domain feed. */
+export function getDomainForDesk(deskId: string): string | undefined {
+  return Object.keys(DESK_FOR_DOMAIN).find((k) => DESK_FOR_DOMAIN[k] === deskId);
 }
 
 /** Get the lead researcher for a topic based on keyword matching */

@@ -123,87 +123,15 @@ function sanitizeHtmlServer(html: string): string {
 }
 
 /**
- * Sanitize HTML string by parsing and re-serializing with allowlist.
+ * Sanitize HTML string via the deterministic allowlist sanitizer.
  * Removes <script>, <iframe>, <object>, <embed>, <form>, event handlers, javascript: URLs.
+ *
+ * IMPORTANT: a single implementation must run on BOTH server and client.
+ * A previous version branched on `typeof window` (regex on server, DOMParser /
+ * Sanitizer API on client) — the two serializers produced different output
+ * (attribute order, style stripping), which caused React hydration mismatches
+ * on every dangerouslySetInnerHTML fragment.
  */
 export function sanitizeHtml(html: string): string {
-  if (typeof window === 'undefined') return sanitizeHtmlServer(html);
-
-  // Try native Sanitizer API first (Chrome 105+, Firefox 128+)
-  if ('Sanitizer' in window) {
-    try {
-      const sanitizer = new Sanitizer({
-        allowElements: [...ALLOWED_TAGS],
-        allowAttributes: Object.fromEntries(
-          [...ALLOWED_TAGS].map(tag => [tag, [...(TAG_ATTR_ALLOWLIST[tag] || ALLOWED_ATTRS)]])
-        ),
-        dropElements: ['script','iframe','object','embed','applet','form','input','textarea','select','button','style','link','meta','base'],
-      });
-      const div = document.createElement('div');
-      div.setHTML(html, { sanitizer });
-      return div.innerHTML;
-    } catch {
-      // Fall through to manual approach
-    }
-  }
-
-  // Manual fallback: parse → walk → re-serialize
-  const doc = new DOMParser().parseFromString(html, 'text/html');
-  const body = doc.body;
-
-  // Remove dangerous elements entirely
-  const dangerousSelectors = ['script','iframe','object','embed','applet','form','style','link','meta','base','input','textarea','select','button'];
-  dangerousSelectors.forEach(sel => {
-    body.querySelectorAll(sel).forEach(el => el.remove());
-  });
-
-  // Walk all elements and filter tags + attributes
-  const walk = (node: Node) => {
-    if (node.nodeType === Node.ELEMENT_NODE) {
-      const el = node as HTMLElement;
-      const tag = el.tagName.toLowerCase();
-
-      if (!ALLOWED_TAGS.has(tag)) {
-        // Replace with its children
-        const parent = el.parentNode;
-        if (parent) {
-          while (el.firstChild) parent.insertBefore(el.firstChild, el);
-          parent.removeChild(el);
-        }
-        return; // Don't recurse into removed element
-      }
-
-      // Filter attributes
-      const allowedForTag = TAG_ATTR_ALLOWLIST[tag] || ALLOWED_ATTRS;
-      const attrsToRemove: string[] = [];
-      for (let i = 0; i < el.attributes.length; i++) {
-        const attr = el.attributes[i];
-        const name = attr.name.toLowerCase();
-
-        // Remove event handlers (on*) and javascript: URLs
-        if (name.startsWith('on') || !allowedForTag.has(name)) {
-          attrsToRemove.push(attr.name);
-        }
-        if (name === 'href' && attr.value.trim().toLowerCase().startsWith('javascript:')) {
-          attrsToRemove.push(attr.name);
-        }
-        if (name === 'src' && attr.value.trim().toLowerCase().startsWith('javascript:')) {
-          attrsToRemove.push(attr.name);
-        }
-      }
-      attrsToRemove.forEach(a => el.removeAttribute(a));
-
-      // Add rel=noopener to links
-      if (tag === 'a' && el.getAttribute('target') === '_blank') {
-        el.setAttribute('rel', 'noopener noreferrer');
-      }
-    }
-
-    // Recurse (use a copy of childNodes since we may modify)
-    const children = Array.from(node.childNodes);
-    children.forEach(walk);
-  };
-
-  walk(body);
-  return body.innerHTML;
+  return sanitizeHtmlServer(html);
 }

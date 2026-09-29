@@ -33,7 +33,7 @@ export function ScenarioSparkline({ series, className }: SparklineProps) {
         stroke="currentColor"
         strokeWidth="1.5"
         points={points}
-        className="text-black"
+        className="text-black dark:text-white"
       />
     </svg>
   );

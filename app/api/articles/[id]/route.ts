@@ -102,7 +102,7 @@ export async function GET(
 
         // Fetch the article
         const article = await prisma.thinkTankPublication.findFirst({
-          where: publicPublicationWhere({ id: idValidation.data.id }),
+          where: publicPublicationWhere({ OR: [{ id: idValidation.data.id }, { publicId: idValidation.data.id }] }),
           select: {
             id: true,
             title: true,
@@ -112,6 +112,8 @@ export async function GET(
             wordCount: true,
             sourceIds: true,
             trustScore: true,
+            heroImageUrl: true,
+            vertical: { select: { slug: true, name: true, nameEn: true } },
           }
         });
 
@@ -120,6 +122,22 @@ export async function GET(
             { error: 'Article not found' },
             { status: 404 }
           );
+        }
+
+        // ?lite=1 — metadata only (used by opengraph-image routes): skips the
+        // multi-MB html payload and the related-articles query.
+        if (searchParams.get('lite') === '1') {
+          return NextResponse.json({
+            article: {
+              id: article.id,
+              title: article.title,
+              type: article.type,
+              publishedAt: article.publishedAt?.toISOString() || new Date().toISOString(),
+              heroImageUrl: article.heroImageUrl ?? null,
+              verticalSlug: article.vertical?.slug ?? null,
+              domain: article.vertical?.nameEn || article.vertical?.name || null,
+            },
+          });
         }
 
         const rawHtml = (article.html || '').replace(/^```html?\s*/i, '').replace(/\s*```\s*$/, '').trim();
@@ -155,6 +173,9 @@ export async function GET(
           sources: article.sourceIds?.length || 0,
           topics: extractTopics(article.title || ''),
           trustScore: article.trustScore,
+          heroImageUrl: article.heroImageUrl ?? null,
+          verticalSlug: article.vertical?.slug ?? null,
+          domain: article.vertical?.nameEn || article.vertical?.name || null,
         };
 
         const transformedRelated = relatedArticles.map(related => ({

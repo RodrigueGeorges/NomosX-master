@@ -33,25 +33,25 @@ import { fetchFromProvider } from '../http-client';
 // ============================================================================
 
 export type IndicatorCategory =
-  // Economics & Finance (Dr. Vasquez, Dr. Roberts)
+  // Economics & Finance (Dr. Oikonomia, Dr. Chrematistikos)
   | 'interest_rate' | 'inflation' | 'employment' | 'market' | 'currency' | 'commodity' | 'growth' | 'trade'
-  // Health & Biotech (Dr. Lindström, Dr. Martin)
+  // Health & Biotech (Dr. Hygeia, Dr. Bios)
   | 'health' | 'disease_outbreak' | 'biotech'
-  // Climate & Environment (Dr. Tanaka)
+  // Climate & Environment (Dr. Gaia)
   | 'climate' | 'environment'
-  // Energy (Dr. Al-Rashid)
+  // Energy (Dr. Energeia)
   | 'energy'
-  // Security & Geopolitics (Dr. Webb, Dr. Petrov)
+  // Security & Geopolitics (Dr. Aegis, Dr. Polis)
   | 'security' | 'geopolitics' | 'disaster' | 'cybersecurity'
-  // Law & Regulation (Dr. Moreau)
+  // Law & Regulation (Dr. Nomos)
   | 'regulation' | 'legislation'
-  // Technology & AI (Dr. Chen)
+  // Technology & AI (Dr. Techne)
   | 'technology' | 'ai_ml'
-  // Development & Demographics (Dr. González, Dr. Rodriguez)
+  // Development & Demographics (Dr. Koinonia, Dr. Asty)
   | 'development' | 'demographics' | 'urbanization'
-  // Digital Society (Dr. Osei)
+  // Digital Society (Dr. Digi)
   | 'digital_society'
-  // Behavioral & Cognitive (Dr. Kim, Dr. Chang)
+  // Behavioral & Cognitive (Dr. Thymos, Dr. Noesis)
   | 'behavioral';
 
 export interface RealTimeIndicator {
@@ -90,7 +90,7 @@ export interface MarketAlert {
 const FRED_BASE = 'https://api.stlouisfed.org/fred/series/observations';
 
 const FRED_SERIES: Record<string, { name: string; unit: string; category: IndicatorCategory }> = {
-  // ── Economics & Finance (Dr. Vasquez, Dr. Roberts, Dr. Kim) ──
+  // ── Economics & Finance (Dr. Oikonomia, Dr. Chrematistikos, Dr. Thymos) ──
   'FEDFUNDS':   { name: 'Fed Funds Rate', unit: '%', category: 'interest_rate' },
   'DGS10':      { name: 'US 10-Year Treasury Yield', unit: '%', category: 'interest_rate' },
   'DGS2':       { name: 'US 2-Year Treasury Yield', unit: '%', category: 'interest_rate' },
@@ -103,7 +103,7 @@ const FRED_SERIES: Record<string, { name: string; unit: string; category: Indica
   'UMCSENT':    { name: 'US Consumer Sentiment (Michigan)', unit: 'index', category: 'behavioral' },
   'BOPGSTB':    { name: 'US Trade Balance', unit: 'millions USD', category: 'trade' },
 
-  // ── Energy (Dr. Al-Rashid) ──
+  // ── Energy (Dr. Energeia) ──
   'DCOILWTICO': { name: 'WTI Crude Oil Price', unit: 'USD/barrel', category: 'energy' },
   'DCOILBRENTEU': { name: 'Brent Crude Oil Price', unit: 'USD/barrel', category: 'energy' },
   'GASREGW':    { name: 'US Regular Gas Price', unit: 'USD/gallon', category: 'energy' },
@@ -113,15 +113,15 @@ const FRED_SERIES: Record<string, { name: string; unit: string; category: Indica
   'PALLFNFINDEXM': { name: 'Palladium Price (IMF)', unit: 'USD/oz', category: 'commodity' }, // GOLDAMGBD228NLBM discontinued by FRED in 2020
   'DEXCHUS':    { name: 'USD/CNY Exchange Rate', unit: 'CNY per USD', category: 'currency' },
 
-  // ── Housing & Urban (Dr. Rodriguez) ──
+  // ── Housing & Urban (Dr. Asty) ──
   'CSUSHPINSA': { name: 'Case-Shiller US Home Price Index', unit: 'index', category: 'urbanization' },
   'HOUST':      { name: 'US Housing Starts', unit: 'thousands', category: 'urbanization' },
   'MORTGAGE30US': { name: 'US 30-Year Fixed Mortgage Rate', unit: '%', category: 'urbanization' },
 
-  // ── Health (Dr. Lindström) ──
+  // ── Health (Dr. Hygeia) ──
   'HLTHSCPCHCSA': { name: 'US Health Services CPI', unit: 'index', category: 'health' },
 
-  // ── Employment Deep (Dr. Vasquez, Dr. González) ──
+  // ── Employment Deep (Dr. Oikonomia, Dr. Koinonia) ──
   'JTSJOL':     { name: 'US Job Openings (JOLTS)', unit: 'thousands', category: 'employment' },
   'CIVPART':    { name: 'US Labor Force Participation Rate', unit: '%', category: 'employment' }, // LNS11300000 returns 400 — CIVPART is the canonical alias
   'A067RP1A027NBEA': { name: 'US Personal Savings Rate', unit: '%', category: 'behavioral' },
@@ -180,33 +180,33 @@ async function fetchFREDSeries(seriesId: string, fredApiKey?: string): Promise<R
 // ============================================================================
 
 const WORLDBANK_INDICATORS: Record<string, { name: string; unit: string; category: IndicatorCategory }> = {
-  // ── Economics (Dr. Vasquez) ──
+  // ── Economics (Dr. Oikonomia) ──
   'NY.GDP.MKTP.KD.ZG': { name: 'World GDP Growth', unit: '%', category: 'growth' },
   'FP.CPI.TOTL.ZG':    { name: 'Global Inflation Rate', unit: '%', category: 'inflation' },
   'NE.TRD.GNFS.ZS':    { name: 'Trade (% of GDP)', unit: '%', category: 'trade' },
   'GC.DOD.TOTL.GD.ZS':  { name: 'Government Debt (% of GDP)', unit: '%', category: 'growth' },
 
-  // ── Health (Dr. Lindström, Dr. Martin) ──
+  // ── Health (Dr. Hygeia, Dr. Bios) ──
   'SH.XPD.CHEX.GD.ZS': { name: 'Health Expenditure (% of GDP)', unit: '%', category: 'health' },
   'SP.DYN.LE00.IN':     { name: 'Life Expectancy at Birth', unit: 'years', category: 'health' },
   'SH.IMM.IDPT':        { name: 'DPT Immunization Coverage', unit: '%', category: 'health' },
 
-  // ── Demographics (Dr. González, Dr. Rodriguez) ──
+  // ── Demographics (Dr. Koinonia, Dr. Asty) ──
   'SP.POP.GROW':        { name: 'World Population Growth', unit: '%', category: 'demographics' },
   'SP.URB.TOTL.IN.ZS':  { name: 'Urban Population (% of total)', unit: '%', category: 'urbanization' },
   'SP.DYN.TFRT.IN':     { name: 'Fertility Rate (births/woman)', unit: 'births', category: 'demographics' },
   'SM.POP.NETM':        { name: 'Net Migration', unit: 'people', category: 'demographics' },
 
-  // ── Development (Dr. Okafor) ──
+  // ── Development (Dr. Politeia) ──
   'SI.POV.DDAY':        { name: 'Poverty Headcount ($2.15/day)', unit: '%', category: 'development' },
   'SE.ADT.LITR.ZS':     { name: 'Adult Literacy Rate', unit: '%', category: 'development' },
 
-  // ── Environment (Dr. Tanaka) ──
+  // ── Environment (Dr. Gaia) ──
   'EN.ATM.CO2E.PC':     { name: 'CO2 Emissions Per Capita', unit: 'metric tons', category: 'climate' },
   'EG.USE.PCAP.KG.OE':  { name: 'Energy Use Per Capita', unit: 'kg oil equiv.', category: 'energy' },
   'EG.FEC.RNEW.ZS':     { name: 'Renewable Energy (% of total)', unit: '%', category: 'energy' },
 
-  // ── Digital Society (Dr. Osei) ──
+  // ── Digital Society (Dr. Digi) ──
   'IT.NET.USER.ZS':     { name: 'Internet Users (% of population)', unit: '%', category: 'digital_society' },
 };
 
@@ -243,7 +243,7 @@ async function fetchWorldBankIndicator(indicatorCode: string): Promise<RealTimeI
 }
 
 // ============================================================================
-// WHO DISEASE OUTBREAK NEWS — Free, no key (Health: Dr. Lindström, Dr. Martin)
+// WHO DISEASE OUTBREAK NEWS — Free, no key (Health: Dr. Hygeia, Dr. Bios)
 // ============================================================================
 
 interface WHOOutbreak {
@@ -302,7 +302,7 @@ function extractXmlTag(xml: string, tag: string): string | null {
 }
 
 // ============================================================================
-// USGS EARTHQUAKE API — Free, no key (Security: Dr. Webb, Dr. Petrov)
+// USGS EARTHQUAKE API — Free, no key (Security: Dr. Aegis, Dr. Polis)
 // ============================================================================
 
 async function fetchUSGSEarthquakes(): Promise<RealTimeIndicator[]> {
@@ -350,7 +350,7 @@ async function fetchUSGSEarthquakes(): Promise<RealTimeIndicator[]> {
 }
 
 // ============================================================================
-// OPEN-METEO CLIMATE API — Free, no key (Climate: Dr. Tanaka)
+// OPEN-METEO CLIMATE API — Free, no key (Climate: Dr. Gaia)
 // ============================================================================
 
 async function fetchGlobalClimateData(): Promise<RealTimeIndicator[]> {
@@ -396,7 +396,7 @@ async function fetchGlobalClimateData(): Promise<RealTimeIndicator[]> {
 }
 
 // ============================================================================
-// FEDERAL REGISTER API — Free, no key (Law: Dr. Moreau)
+// FEDERAL REGISTER API — Free, no key (Law: Dr. Nomos)
 // ============================================================================
 
 async function fetchFederalRegister(): Promise<RealTimeIndicator[]> {
@@ -447,7 +447,7 @@ async function fetchFederalRegister(): Promise<RealTimeIndicator[]> {
 }
 
 // ============================================================================
-// PAPERS WITH CODE API — Free, no key (Technology: Dr. Chen)
+// PAPERS WITH CODE API — Free, no key (Technology: Dr. Techne)
 // ============================================================================
 
 async function fetchAIMLTrends(): Promise<RealTimeIndicator[]> {
@@ -489,7 +489,7 @@ async function fetchAIMLTrends(): Promise<RealTimeIndicator[]> {
 }
 
 // ============================================================================
-// EUR-LEX SPARQL API — Free, no key (Law: Dr. Moreau)
+// EUR-LEX SPARQL API — Free, no key (Law: Dr. Nomos)
 // ============================================================================
 
 async function fetchEURLexRegulations(): Promise<RealTimeIndicator[]> {
@@ -555,7 +555,7 @@ async function fetchEURLexRSS(): Promise<RealTimeIndicator[]> {
 }
 
 // ============================================================================
-// NVD (NIST) CYBERSECURITY VULNERABILITIES — Free, no key (Digital: Dr. Osei, Dr. Webb)
+// NVD (NIST) CYBERSECURITY VULNERABILITIES — Free, no key (Digital: Dr. Digi, Dr. Aegis)
 // ============================================================================
 
 async function fetchNVDVulnerabilities(): Promise<RealTimeIndicator[]> {
@@ -610,7 +610,7 @@ async function fetchNVDVulnerabilities(): Promise<RealTimeIndicator[]> {
 }
 
 // ============================================================================
-// GDELT PROJECT — Free, no key (Geopolitics: Dr. Webb, Dr. Petrov)
+// GDELT PROJECT — Free, no key (Geopolitics: Dr. Aegis, Dr. Polis)
 // ============================================================================
 
 async function fetchGDELTConflicts(): Promise<RealTimeIndicator[]> {
@@ -679,7 +679,7 @@ async function fetchGDELTConflicts(): Promise<RealTimeIndicator[]> {
 }
 
 // ============================================================================
-// NASA GISS — Global Temperature Anomaly (Climate: Dr. Tanaka)
+// NASA GISS — Global Temperature Anomaly (Climate: Dr. Gaia)
 // ============================================================================
 
 async function fetchNASAGISSTemperature(): Promise<RealTimeIndicator[]> {
@@ -726,7 +726,7 @@ async function fetchNASAGISSTemperature(): Promise<RealTimeIndicator[]> {
 }
 
 // ============================================================================
-// STOCK MARKET INDICES — Free via marketstack/ECB (Finance: Dr. Roberts)
+// STOCK MARKET INDICES — Free via marketstack/ECB (Finance: Dr. Chrematistikos)
 // ============================================================================
 
 async function fetchStockIndices(): Promise<RealTimeIndicator[]> {
@@ -1072,29 +1072,29 @@ export async function fetchRealTimePulse(): Promise<RealTimePulse> {
     wbResults, whoResults, usgsResults, climateResults, fedRegResults, aiResults,
     eurLexResults, nvdResults, gdeltResults, gissResults, ecbResults,
   ] = await Promise.allSettled([
-    // World Bank — Development, Health, Demographics (Dr. Okafor, Dr. González, Dr. Rodriguez)
+    // World Bank — Development, Health, Demographics (Dr. Politeia, Dr. Koinonia, Dr. Asty)
     Promise.allSettled(
       Object.keys(WORLDBANK_INDICATORS).map(code => fetchWorldBankIndicator(code))
     ),
-    // WHO Disease Outbreaks (Dr. Lindström, Dr. Martin)
+    // WHO Disease Outbreaks (Dr. Hygeia, Dr. Bios)
     fetchWHOOutbreaks(),
-    // USGS Earthquakes (Dr. Webb, Dr. Petrov)
+    // USGS Earthquakes (Dr. Aegis, Dr. Polis)
     fetchUSGSEarthquakes(),
-    // Open-Meteo Climate (Dr. Tanaka)
+    // Open-Meteo Climate (Dr. Gaia)
     fetchGlobalClimateData(),
-    // Federal Register — US Law & Regulation (Dr. Moreau)
+    // Federal Register — US Law & Regulation (Dr. Nomos)
     fetchFederalRegister(),
-    // Papers With Code — AI/ML trends (Dr. Chen)
+    // Papers With Code — AI/ML trends (Dr. Techne)
     fetchAIMLTrends(),
-    // EUR-Lex — EU Law & Regulation (Dr. Moreau)
+    // EUR-Lex — EU Law & Regulation (Dr. Nomos)
     fetchEURLexRegulations(),
-    // NVD/NIST — Cybersecurity vulnerabilities (Dr. Osei, Dr. Webb)
+    // NVD/NIST — Cybersecurity vulnerabilities (Dr. Digi, Dr. Aegis)
     fetchNVDVulnerabilities(),
-    // GDELT — Global conflict monitoring (Dr. Webb, Dr. Petrov)
+    // GDELT — Global conflict monitoring (Dr. Aegis, Dr. Polis)
     fetchGDELTConflicts(),
-    // NASA GISS — Global temperature anomaly (Dr. Tanaka)
+    // NASA GISS — Global temperature anomaly (Dr. Gaia)
     fetchNASAGISSTemperature(),
-    // ECB — European macro data & exchange rates (Dr. Roberts, Dr. Vasquez)
+    // ECB — European macro data & exchange rates (Dr. Chrematistikos, Dr. Oikonomia)
     fetchStockIndices(),
   ]);
 

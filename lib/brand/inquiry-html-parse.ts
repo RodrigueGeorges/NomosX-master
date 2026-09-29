@@ -42,6 +42,8 @@ export interface EditorialScenario {
 }
 
 export interface ParsedEditorialInquiry {
+  /** Editorial dek — the nx-lede paragraph (or through-line fallback). */
+  lede: string;
   collision: string;
   detectedReason: string;
   urgency: string;
@@ -116,6 +118,12 @@ function parseParagraphItems(sectionHtml: string): string[] {
 export function parseEditorialInquiry(html: string): ParsedEditorialInquiry | null {
   const raw = (html || "").replace(/^```html?\s*/i, "").replace(/\s*```\s*$/, "").trim();
   if (!raw || !isPositionFirstBrief(raw)) return null;
+
+  // ── Lede / dek (p.nx-lede, fallback p.through-line) ────────────────────
+  const lede = stripHtml(
+    matchInner(raw, /<p class="nx-lede"[^>]*>([\s\S]*?)<\/p>/i)
+    || matchInner(raw, /<p class="through-line"[^>]*>([\s\S]*?)<\/p>/i)
+  );
 
   // ── Detected subject (nx-block detected-subject-block) ─────────────────
   const detectedBlock = extractBlock(raw, "detected-subject-block");
@@ -243,6 +251,7 @@ export function parseEditorialInquiry(html: string): ParsedEditorialInquiry | nu
 
   return {
     centralScenario,
+    lede,
     collision: collisionLines[0] ?? "",
     detectedReason: collisionLines[1] ?? collisionLines[0] ?? "",
     urgency,

@@ -9,48 +9,36 @@ import { PageHeader, PageSection } from "@/components/layout/PageHeader";
 import { InquiryCard } from "@/components/signature";
 import { mapBriefToInquiryCard, type BriefLike } from "@/lib/inquiry-mapper";
 import { PUBLIC_ROUTES } from "@/lib/public-urls";
+import { getVerticalBySlug } from "@/lib/think-tank/verticals";
+import { godFieldFor } from "@/lib/brand/god-fields";
+import { DomainCover } from "@/components/signature/DomainCover";
+import { useLocale } from "next-intl";
 
-const VERTICALS: Record<
-  string,
-  { name: string; icon: string; description: string; keyword: string }
-> = {
-  "eu-policy": {
-    name: "EU Policy",
-    icon: "🇪🇺",
-    description: "EU regulations, directives, and institutional policy shifts.",
-    keyword: "European",
-  },
-  "climate-industry": {
-    name: "Climate & Industry",
-    icon: "🌍",
-    description: "Energy transition, decarbonization, carbon pricing mechanisms.",
-    keyword: "climate",
-  },
-  "ai-labor": {
-    name: "AI & Labor",
-    icon: "🤖",
-    description: "AI impact on employment, automation, and future skills.",
-    keyword: "artificial intelligence",
-  },
-  geopolitics: {
-    name: "Geopolitics",
-    icon: "🌐",
-    description: "International relations, security, diplomacy.",
-    keyword: "geopolitics",
-  },
-  "finance-regulation": {
-    name: "Finance & Regulation",
-    icon: "💹",
-    description: "Financial markets, banking regulation, crypto-assets.",
-    keyword: "finance",
-  },
+// Search keywords per vertical slug — display names/descriptions come from
+// the shared think-tank vertical registry (lib/think-tank/verticals).
+const VERTICAL_KEYWORDS: Record<string, string> = {
+  "eu-policy": "European",
+  "climate-industry": "climate",
+  "ai-labor": "artificial intelligence",
+  geopolitics: "geopolitics",
+  "finance-regulation": "finance",
 };
 
 export default function TopicPage() {
   const params = useParams();
   const router = useRouter();
   const slug = params.vertical as string;
-  const vertical = VERTICALS[slug];
+  const locale = useLocale();
+  const def = getVerticalBySlug(slug);
+  const keyword = VERTICAL_KEYWORDS[slug];
+  const vertical = def
+    ? {
+        name: locale === "fr" ? def.name : def.nameEn,
+        icon: def.icon,
+        description: def.description,
+        keyword: keyword ?? def.nameEn,
+      }
+    : null;
 
   const [articles, setArticles] = useState<BriefLike[]>([]);
   const [loading, setLoading] = useState(true);
@@ -87,10 +75,10 @@ export default function TopicPage() {
     return (
       <PublicPageShell currentPage="inquiries" onSignInClick={() => setShowAuthModal(true)}>
         <div className="max-w-5xl mx-auto px-6 py-24 text-center">
-          <p className="text-black/40 mb-4">Domain not found.</p>
+          <p className="text-black/40 dark:text-white/40 mb-4">Domain not found.</p>
           <button
             onClick={() => router.push(PUBLIC_ROUTES.archives)}
-            className="text-black/60 hover:text-black text-sm transition-colors"
+            className="text-black/60 dark:text-white/60 hover:text-black dark:hover:text-white text-sm transition-colors"
           >
             ← Back to briefs
           </button>
@@ -116,11 +104,21 @@ export default function TopicPage() {
           <button
             type="button"
             onClick={() => router.push(PUBLIC_ROUTES.archives)}
-            className="flex items-center gap-2 text-black/40 hover:text-black transition-colors text-sm mb-8"
+            className="flex items-center gap-2 text-black/40 dark:text-white/40 hover:text-black dark:hover:text-white transition-colors text-sm mb-8"
           >
             <ArrowLeft size={14} />
             All briefs
           </button>
+
+          {/* Domain frontispiece — the domain figure in Greek glyphs */}
+          {(() => {
+            if (!godFieldFor(slug)) return null;
+            return (
+              <div className="relative mb-6 h-44 sm:h-56 overflow-hidden border border-black/[0.08] dark:border-white/[0.08]">
+                <DomainCover domain={slug} animated className="opacity-95" />
+              </div>
+            );
+          })()}
 
           <PageHeader
             eyebrow={`${vertical.icon} Domain`}
@@ -130,12 +128,12 @@ export default function TopicPage() {
 
           {loading ? (
             <div className="flex items-center justify-center min-h-[400px]">
-              <div className="w-8 h-8 border border-black/20 border-t-white rounded-full animate-spin" />
+              <div className="w-8 h-8 border border-black/20 border-t-black dark:border-t-white rounded-full animate-spin" />
             </div>
           ) : articles.length === 0 ? (
             <div className="text-center py-20">
-              <BookOpen className="w-12 h-12 text-black/20 mx-auto mb-4" />
-              <p className="text-black/40">No publications in this domain yet.</p>
+              <BookOpen className="w-12 h-12 text-black/20 dark:text-white/20 mx-auto mb-4" />
+              <p className="text-black/40 dark:text-white/40">No publications in this domain yet.</p>
             </div>
           ) : (
             <>
@@ -158,7 +156,7 @@ export default function TopicPage() {
                   >
                     Previous
                   </button>
-                  <span className="font-mono text-sm text-black/50">
+                  <span className="font-mono text-sm text-black/50 dark:text-white/50">
                     {page} / {totalPages}
                   </span>
                   <button

@@ -57,25 +57,25 @@ export function Modal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
       <div 
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm backdrop-blur-animate"
+        className="absolute inset-0 bg-black/60 dark:bg-white/60 backdrop-blur-sm backdrop-blur-animate"
         onClick={onClose}
       />
       
       {/* Modal */}
       <div 
         className={cn(
-          "relative w-full bg-white border border-black/[0.08] animate-spring-in",
+          "relative w-full bg-white dark:bg-black border border-black/[0.08] dark:border-white/[0.08] animate-spring-in",
           sizes[size]
         )}
       >
         {/* Header */}
         {(title || showCloseButton) && (
-          <div className="flex items-center justify-between p-6 pb-4 border-b border-black/[0.08]">
-            {title && <h2 className="text-xl font-semibold text-black">{title}</h2>}
+          <div className="flex items-center justify-between p-6 pb-4 border-b border-black/[0.08] dark:border-white/[0.08]">
+            {title && <h2 className="text-xl font-semibold text-black dark:text-white">{title}</h2>}
             {showCloseButton && (
               <button
                 onClick={onClose}
-                className="p-2 hover:bg-black/[0.06] transition-colors text-black/60 hover:text-black"
+                className="p-2 hover:bg-black/[0.06] dark:hover:bg-white/[0.06] transition-colors text-black/60 dark:text-white/60 hover:text-black dark:hover:text-white"
                 aria-label="Close"
               >
                 <X size={20} />

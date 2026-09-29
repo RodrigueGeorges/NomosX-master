@@ -55,7 +55,7 @@ function checkCsrf(request: NextRequest): boolean {
 
 // Route prefixes that are NOT locale-prefixed and should bypass i18n entirely.
 // API routes, Next.js internals, and static assets are excluded via the matcher.
-const NON_LOCALE_PREFIXES = ['/api', '/_next', '/favicon', '/robots', '/sitemap'];
+const NON_LOCALE_PREFIXES = ['/api', '/_next', '/favicon', '/robots', '/sitemap', '/figures'];
 
 function isNonLocaleRoute(pathname: string): boolean {
   return NON_LOCALE_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + '/'));
@@ -169,6 +169,6 @@ export const config = {
   // routes to handle locale prefixing; the rest (CSRF, headers) applies to
   // API routes too.
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|favicon.svg|favicon.ico|robots.txt|sitemap.xml|feed.xml|brand/|providers/).*)',
+    '/((?!_next/static|_next/image|favicon.ico|favicon.svg|favicon.ico|robots.txt|sitemap.xml|feed.xml|brand/|providers/|figures/).*)',
   ],
 };

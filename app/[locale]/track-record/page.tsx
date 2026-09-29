@@ -142,7 +142,7 @@ export default function TrackRecordPage() {
           {!loading && error && (
             <div className="text-center py-16" role="alert">
               <AlertCircle size={32} className="mx-auto mb-4 text-amber-400" />
-              <p className="text-sm text-black/70 mb-6">{error}</p>
+              <p className="text-sm text-black/70 dark:text-white/70 mb-6">{error}</p>
               <button
                 type="button"
                 onClick={() => fetchData(page)}
@@ -165,22 +165,22 @@ export default function TrackRecordPage() {
                     { label: t("TrackRecord.brierScore"), value: stats.brierScore !== null ? String(stats.brierScore) : "pending" },
                   ].map((s) => (
                     <div key={s.label} className="nx-surface p-4 text-center">
-                      <p className="font-mono text-2xl font-light text-black tabular-nums mb-2">{s.value}</p>
-                      <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-black/50">{s.label}</p>
+                      <p className="font-mono text-2xl font-light text-black dark:text-white tabular-nums mb-2">{s.value}</p>
+                      <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-black/50 dark:text-white/50">{s.label}</p>
                     </div>
                   ))}
                 </section>
               </ScrollReveal>
 
               <ScrollReveal>
-                <p className="text-xs text-black/40 text-center mb-12 max-w-2xl mx-auto leading-relaxed">
+                <p className="text-xs text-black/40 dark:text-white/40 text-center mb-12 max-w-2xl mx-auto leading-relaxed">
                   {t("TrackRecord.hitRateNote", { expired: stats.expired, superseded: stats.superseded, quantifiedResolved: stats.quantifiedResolved })}
                 </p>
               </ScrollReveal>
 
               {stats.total === 0 && (
                 <div className="text-center py-12">
-                  <p className="text-sm text-black/60 mb-6">
+                  <p className="text-sm text-black/60 dark:text-white/60 mb-6">
                     {t("TrackRecord.noPredictions")}
                   </p>
                   <button
@@ -213,12 +213,12 @@ export default function TrackRecordPage() {
                           <XCircle size={16} className="mt-0.5 shrink-0 text-rose-400" aria-label={t("TrackRecord.refuted")} />
                         )}
                         <div className="min-w-0">
-                          <p className="text-sm text-black/85 leading-relaxed">{p.claim}</p>
-                          <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.12em] text-black/45">
+                          <p className="text-sm text-black/85 dark:text-white/85 leading-relaxed">{p.claim}</p>
+                          <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.12em] text-black/45 dark:text-white/45">
                             {p.status} · horizon {p.horizon} · called {pct(p.probability)} · made {new Date(p.createdAt).toISOString().slice(0, 10)}
                             {p.resolvedAt ? ` · resolved ${new Date(p.resolvedAt).toISOString().slice(0, 10)}` : ""}
                           </p>
-                          {p.outcome && <p className="mt-2 text-xs text-black/55 leading-relaxed">{t("TrackRecord.whatHappened", { outcome: p.outcome })}</p>}
+                          {p.outcome && <p className="mt-2 text-xs text-black/55 dark:text-white/55 leading-relaxed">{t("TrackRecord.whatHappened", { outcome: p.outcome })}</p>}
                         </div>
                       </div>
                     </article>
@@ -247,14 +247,14 @@ export default function TrackRecordPage() {
                   {data!.openPredictions.map((p) => (
                     <article key={p.id} className="nx-surface p-4">
                       <div className="flex items-start gap-3">
-                        <Clock size={16} className="mt-0.5 shrink-0 text-black/40" aria-label={t("TrackRecord.open")} />
+                        <Clock size={16} className="mt-0.5 shrink-0 text-black/40 dark:text-white/40" aria-label={t("TrackRecord.open")} />
                         <div className="min-w-0">
-                          <p className="text-sm text-black/85 leading-relaxed">{p.claim}</p>
-                          <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.12em] text-black/45">
+                          <p className="text-sm text-black/85 dark:text-white/85 leading-relaxed">{p.claim}</p>
+                          <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.12em] text-black/45 dark:text-white/45">
                             OPEN · horizon {p.horizon} · confidence {p.confidence.toLowerCase()} · called {pct(p.probability)} · made {new Date(p.createdAt).toISOString().slice(0, 10)}
                           </p>
                           {p.resolutionCriteria && (
-                            <p className="mt-2 text-xs text-black/55 leading-relaxed">{t("TrackRecord.resolvesWhen", { criteria: p.resolutionCriteria })}</p>
+                            <p className="mt-2 text-xs text-black/55 dark:text-white/55 leading-relaxed">{t("TrackRecord.resolvesWhen", { criteria: p.resolutionCriteria })}</p>
                           )}
                         </div>
                       </div>
@@ -302,20 +302,20 @@ function PaginationControls({
         type="button"
         onClick={() => onPage(Math.max(1, current - 1))}
         disabled={current <= 1}
-        className="flex items-center gap-1 font-mono text-[11px] uppercase tracking-[0.12em] text-black/55 hover:text-black disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+        className="flex items-center gap-1 font-mono text-[11px] uppercase tracking-[0.12em] text-black/55 dark:text-white/55 hover:text-black dark:hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
         aria-label="Previous page"
       >
         <ChevronLeft size={14} />
         {t("TrackRecord.prev")}
       </button>
-      <span className="font-mono text-[11px] text-black/45" aria-live="polite">
+      <span className="font-mono text-[11px] text-black/45 dark:text-white/45" aria-live="polite">
         {t("TrackRecord.pageOf", { current, total })}
       </span>
       <button
         type="button"
         onClick={() => onPage(Math.min(total, current + 1))}
         disabled={current >= total}
-        className="flex items-center gap-1 font-mono text-[11px] uppercase tracking-[0.12em] text-black/55 hover:text-black disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+        className="flex items-center gap-1 font-mono text-[11px] uppercase tracking-[0.12em] text-black/55 dark:text-white/55 hover:text-black dark:hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
         aria-label="Next page"
       >
         {t("TrackRecord.next")}

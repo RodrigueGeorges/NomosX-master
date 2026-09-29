@@ -28,6 +28,7 @@ export async function fetchPublicBriefs(limit = 48): Promise<BriefLike[]> {
         trustScore: true,
         qualityScore: true,
         criticalLoopResult: true,
+        heroImageUrl: true,
       },
     });
 
@@ -78,6 +79,7 @@ export async function fetchPublicBriefs(limit = 48): Promise<BriefLike[]> {
         trustScore: brief.trustScore ?? null,
         displayType: format.label,
         hasForesight,
+        heroImageUrl: brief.heroImageUrl ?? null,
       } as BriefLike;
     });
   } catch (error: any) {

@@ -62,8 +62,8 @@ function ResetPasswordContent() {
         <div className={`${cardClass} text-center`}>
           <NomosXLogo variant="symbol" size={LOGO_AUTH_SYMBOL} className="justify-center mb-8" />
           <h1 className="font-display text-2xl font-semibold text-text mb-3">{t('ResetPassword.invalidLink')}</h1>
-          <p className="text-sm text-black/55 mb-6">{t('ResetPassword.invalidLinkDesc')}</p>
-          <button onClick={() => router.push('/')} className="text-sm text-black/60 hover:text-black transition-colors">
+          <p className="text-sm text-black/55 dark:text-white/55 mb-6">{t('ResetPassword.invalidLinkDesc')}</p>
+          <button onClick={() => router.push('/')} className="text-sm text-black/60 dark:text-white/60 hover:text-black dark:hover:text-white transition-colors">
             {t('ResetPassword.backToHome')}
           </button>
         </div>
@@ -76,11 +76,11 @@ function ResetPasswordContent() {
       <PublicPageShell showFooter={false} particles={0} contentClassName="flex items-center justify-center px-6">
         <div className={`${cardClass} text-center`}>
           <NomosXLogo variant="symbol" size={LOGO_AUTH_SYMBOL} className="justify-center mb-8" />
-          <div className="w-12 h-12 bg-black/10 border border-black/30 flex items-center justify-center mx-auto mb-6">
-            <CheckCircle size={24} className="text-black" />
+          <div className="w-12 h-12 bg-black/10 dark:bg-white/10 border border-black/30 dark:border-white/30 flex items-center justify-center mx-auto mb-6">
+            <CheckCircle size={24} className="text-black dark:text-white" />
           </div>
           <h1 className="font-display text-2xl font-semibold text-text mb-3">{t('ResetPassword.passwordReset')}</h1>
-          <p className="text-sm text-black/55 mb-6">{t('ResetPassword.passwordResetSuccess')}</p>
+          <p className="text-sm text-black/55 dark:text-white/55 mb-6">{t('ResetPassword.passwordResetSuccess')}</p>
           <button
             onClick={() => router.push('/?auth=required')}
             className="nx-public-btn-primary px-6 py-3 text-[11px]"
@@ -100,7 +100,7 @@ function ResetPasswordContent() {
         </div>
 
         <h1 className="font-display text-2xl font-semibold text-text text-center mb-2">{t('ResetPassword.chooseNewPassword')}</h1>
-        <p className="text-sm text-black/55 text-center mb-8">{t('ResetPassword.enterNewPassword')}</p>
+        <p className="text-sm text-black/55 dark:text-white/55 text-center mb-8">{t('ResetPassword.enterNewPassword')}</p>
 
         <form onSubmit={handleSubmit} className="space-y-5">
           {error && (
@@ -110,7 +110,7 @@ function ResetPasswordContent() {
           )}
 
           <div>
-            <label htmlFor="password" className="block text-sm font-medium mb-2 text-black/70">{t('ResetPassword.newPassword')}</label>
+            <label htmlFor="password" className="block text-sm font-medium mb-2 text-black/70 dark:text-white/70">{t('ResetPassword.newPassword')}</label>
             <input
               id="password"
               type="password"
@@ -119,12 +119,12 @@ function ResetPasswordContent() {
               placeholder={t('ResetPassword.passwordPlaceholder')}
               required
               minLength={8}
-              className="w-full px-4 py-3 bg-black/[0.04] border border-black/[0.12] text-black placeholder-black/20 text-sm focus:outline-none focus:border-black/50 transition-colors"
+              className="w-full px-4 py-3 bg-black/[0.04] dark:bg-white/[0.04] border border-black/[0.12] dark:border-white/[0.12] text-black dark:text-white placeholder-black/20 dark:placeholder-white/20 text-sm focus:outline-none focus:border-black/50 dark:focus:border-white/50 transition-colors"
             />
           </div>
 
           <div>
-            <label htmlFor="confirm" className="block text-sm font-medium mb-2 text-black/70">{t('ResetPassword.confirmPassword')}</label>
+            <label htmlFor="confirm" className="block text-sm font-medium mb-2 text-black/70 dark:text-white/70">{t('ResetPassword.confirmPassword')}</label>
             <input
               id="confirm"
               type="password"
@@ -133,7 +133,7 @@ function ResetPasswordContent() {
               placeholder={t('ResetPassword.confirmPlaceholder')}
               required
               minLength={8}
-              className="w-full px-4 py-3 bg-black/[0.04] border border-black/[0.12] text-black placeholder-black/20 text-sm focus:outline-none focus:border-black/50 transition-colors"
+              className="w-full px-4 py-3 bg-black/[0.04] dark:bg-white/[0.04] border border-black/[0.12] dark:border-white/[0.12] text-black dark:text-white placeholder-black/20 dark:placeholder-white/20 text-sm focus:outline-none focus:border-black/50 dark:focus:border-white/50 transition-colors"
             />
           </div>
 
@@ -147,7 +147,7 @@ function ResetPasswordContent() {
         </form>
 
         <div className="mt-6 text-center">
-          <button onClick={() => router.push('/')} className="text-sm text-black/50 hover:text-black/60 transition-colors flex items-center gap-1.5 mx-auto">
+          <button onClick={() => router.push('/')} className="text-sm text-black/50 dark:text-white/50 hover:text-black/60 dark:hover:text-white/60 transition-colors flex items-center gap-1.5 mx-auto">
             <ArrowLeft size={14} />
             {t('ResetPassword.backToHome')}
           </button>
@@ -161,8 +161,8 @@ export default function ResetPasswordPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-white flex items-center justify-center">
-          <div className="w-8 h-8 border border-black/40 border-t-white rounded-full animate-spin" />
+        <div className="min-h-screen bg-white dark:bg-black flex items-center justify-center">
+          <div className="w-8 h-8 border border-black/40 border-t-white dark:border-t-black rounded-full animate-spin" />
         </div>
       }
     >

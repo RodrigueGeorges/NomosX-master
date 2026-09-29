@@ -14,7 +14,7 @@ interface ForesightGraphMiniProps {
 export function ForesightGraphMini({ nodes }: ForesightGraphMiniProps) {
   if (!nodes?.length) {
     return (
-      <p className="text-xs text-black/50 font-mono">GraphRAG non disponible pour ce brief.</p>
+      <p className="text-xs text-black/50 dark:text-white/50 font-mono">GraphRAG non disponible pour ce brief.</p>
     );
   }
 
@@ -22,8 +22,8 @@ export function ForesightGraphMini({ nodes }: ForesightGraphMiniProps) {
   const center = display[0];
 
   return (
-    <div className="relative border border-black/[0.08] bg-black/25 p-4 min-h-[200px]">
-      <div className="text-[10px] font-mono uppercase tracking-wider text-black/50 mb-3">
+    <div className="relative border border-black/[0.08] dark:border-white/[0.08] bg-black/25 dark:bg-white/25 p-4 min-h-[200px]">
+      <div className="text-[10px] font-mono uppercase tracking-wider text-black/50 dark:text-white/50 mb-3">
         GraphRAG — {nodes.length} entités
       </div>
       <svg viewBox="0 0 100 100" className="w-full h-48 opacity-80">
@@ -49,7 +49,7 @@ export function ForesightGraphMini({ nodes }: ForesightGraphMiniProps) {
                 x={cx}
                 y={cy + 5}
                 textAnchor="middle"
-                className="fill-white/30"
+                className="fill-white/30 dark:fill-black/30"
                 style={{ fontSize: "2.5px", fontFamily: "monospace" }}
               >
                 {n.label.slice(0, 12).toUpperCase()}
@@ -59,7 +59,7 @@ export function ForesightGraphMini({ nodes }: ForesightGraphMiniProps) {
         })}
       </svg>
       {center && (
-        <div className="mt-2 text-[10px] font-mono text-black/40 truncate">
+        <div className="mt-2 text-[10px] font-mono text-black/40 dark:text-white/40 truncate">
           Hub: {center.label}
         </div>
       )}

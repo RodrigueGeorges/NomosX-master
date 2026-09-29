@@ -95,7 +95,7 @@ export function ArchivesClient({ initialBriefs }: { initialBriefs: BriefLike[] }
 
           <div className="flex flex-col lg:flex-row gap-4 mb-6">
             <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-black/45" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-black/45 dark:text-white/45" />
               <input
                 type="search"
                 value={search}
@@ -141,8 +141,8 @@ export function ArchivesClient({ initialBriefs }: { initialBriefs: BriefLike[] }
                   "px-3 py-1 font-mono text-[11px] uppercase tracking-[0.1em]",
                   domainFilter.toLowerCase() === d.toLowerCase() ||
                     (d === "all" && domainFilter === "all")
-                    ? "bg-black/10 text-black border border-black/40"
-                    : "text-black/50 border border-transparent"
+                    ? "bg-black/10 dark:bg-white/10 text-black dark:text-white border border-black/40 dark:border-white/40"
+                    : "text-black/50 dark:text-white/50 border border-transparent"
                 )}
               >
                 {d === "all" ? t("Archives.allDomains") : d}
@@ -152,7 +152,7 @@ export function ArchivesClient({ initialBriefs }: { initialBriefs: BriefLike[] }
 
           {pageItems.length > 0 ? (
             <>
-              <p className="font-mono text-[11px] text-black/50 mb-4">
+              <p className="font-mono text-[11px] text-black/50 dark:text-white/50 mb-4">
                 {t("Archives.briefsCount", { count: filtered.length, current: page + 1, total: totalPages })}
               </p>
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
@@ -171,18 +171,18 @@ export function ArchivesClient({ initialBriefs }: { initialBriefs: BriefLike[] }
                     type="button"
                     disabled={page === 0}
                     onClick={() => setPage((p) => p - 1)}
-                    className="p-2 border border-black/[0.08] disabled:opacity-30"
+                    className="p-2 border border-black/[0.08] dark:border-white/[0.08] disabled:opacity-30"
                   >
                     <ChevronLeft size={16} />
                   </button>
-                  <span className="font-mono text-xs text-black/55">
+                  <span className="font-mono text-xs text-black/55 dark:text-white/55">
                     {page + 1} / {totalPages}
                   </span>
                   <button
                     type="button"
                     disabled={page >= totalPages - 1}
                     onClick={() => setPage((p) => p + 1)}
-                    className="p-2 border border-black/[0.08] disabled:opacity-30"
+                    className="p-2 border border-black/[0.08] dark:border-white/[0.08] disabled:opacity-30"
                   >
                     <ChevronRight size={16} />
                   </button>
@@ -191,15 +191,15 @@ export function ArchivesClient({ initialBriefs }: { initialBriefs: BriefLike[] }
             </>
           ) : (
             <div className="nx-public-surface p-12 text-center max-w-lg mx-auto">
-              <div className="w-10 h-10 mx-auto mb-6 border border-black/[0.08] flex items-center justify-center">
-                <FileText className="w-5 h-5 text-black/30" strokeWidth={1.25} />
+              <div className="w-10 h-10 mx-auto mb-6 border border-black/[0.08] dark:border-white/[0.08] flex items-center justify-center">
+                <FileText className="w-5 h-5 text-black/30 dark:text-white/30" strokeWidth={1.25} />
               </div>
               <h3 className="font-display text-lg font-semibold text-text mb-3">
                 {search || depthFilter !== "all" || domainFilter !== "all"
                   ? t("Archives.noMatchTitle")
                   : t("Archives.emptyTitle")}
               </h3>
-              <p className="text-sm text-black/50 leading-relaxed mb-8 max-w-sm mx-auto">
+              <p className="text-sm text-black/50 dark:text-white/50 leading-relaxed mb-8 max-w-sm mx-auto">
                 {search || depthFilter !== "all" || domainFilter !== "all"
                   ? t("Archives.noMatchDesc")
                   : t("Archives.emptyDesc")}

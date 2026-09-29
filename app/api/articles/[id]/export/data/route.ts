@@ -5,6 +5,9 @@ import { withRateLimit, rateLimitConfigs, commonSchemas } from '@/lib/validation
 import { publicPublicationWhere } from '@/lib/publication-visibility';
 import { getPublicationFormat } from '@/lib/publication-formats';
 import { buildReportWorkbook, buildSourcesCSV, type ReportExportData, type ExportPrediction } from '@/lib/export/report-workbook';
+import { domainCoverCredit } from '@/lib/brand/domain-figures';
+import { extractTopics } from '@/lib/queries/public-inquiry';
+import { inquiryUrl } from '@/lib/public-urls';
 
 /**
  * GET /api/articles/[id]/export/data?format=xlsx|csv
@@ -44,6 +47,7 @@ export async function GET(
           select: {
             id: true, title: true, type: true, publishedAt: true, sourceIds: true,
             trustScore: true, html: true, draftId: true,
+            vertical: { select: { slug: true, name: true } },
           },
         });
         if (!article) {
@@ -105,6 +109,12 @@ export async function GET(
         const byId = new Map(sources.map((s) => [s.id, s]));
         const ordered = article.sourceIds.map((sid) => byId.get(sid)).filter((s): s is NonNullable<typeof s> => !!s);
 
+        const topics = extractTopics(article.title || '');
+        const coverMeta =
+          domainCoverCredit(article.vertical?.slug ?? article.vertical?.name) ??
+          topics.map((t) => domainCoverCredit(t)).find(Boolean);
+        const year = article.publishedAt ? new Date(article.publishedAt).getFullYear() : new Date().getFullYear();
+
         const data: ReportExportData = {
           id: article.id,
           title: article.title,
@@ -116,6 +126,8 @@ export async function GET(
           sources: ordered,
           claims,
           predictions,
+          coverCredit: coverMeta ? `${coverMeta.title} — ${coverMeta.credit}` : null,
+          citation: `NomosX Research Desk. (${year}). ${article.title}. NomosX. ${inquiryUrl(article.id, true)}`,
         };
 
         const safeName = article.title.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').toLowerCase().slice(0, 60);

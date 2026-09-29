@@ -16,8 +16,8 @@ import { getStudioXPrice } from '@/lib/studiox-pricing';
 import { nx } from '@/lib/brand/public-ui';
 import { cn } from '@/lib/utils';
 
-const OPTION_SELECTED = "border-black/40 bg-black/10";
-const OPTION_DEFAULT = "border-black/[0.08] bg-black/20 hover:border-black/[0.12]";
+const OPTION_SELECTED = "border-black/40 dark:border-white/40 bg-black/10 dark:bg-white/10";
+const OPTION_DEFAULT = "border-black/[0.08] dark:border-white/[0.08] bg-black/20 dark:bg-white/20 hover:border-black/[0.12] dark:hover:border-white/[0.12]";
 
 const EXAMPLE_QUESTIONS = [
   "StudioPage.exampleQ1",
@@ -195,7 +195,7 @@ function StudioPageContent() {
   const selectedFormatMeta = PUBLICATION_FORMATS.find((f) => f.type === selectedFormat);
 
   if (!sessionChecked) return (
-    <div className="min-h-screen bg-white flex items-center justify-center">
+    <div className="min-h-screen bg-white dark:bg-black flex items-center justify-center">
       <div className={cn("w-8 h-8", nx.spinner)} />
     </div>
   );
@@ -203,7 +203,7 @@ function StudioPageContent() {
   if (!sessionChecked) return (
     <PublicPageShell currentPage="studio" onSignInClick={() => setShowAuthModal(true)}>
       <PageSection className="flex items-center justify-center min-h-[50vh]">
-        <Loader2 className={cn("w-6 h-6 animate-spin text-black/40")} />
+        <Loader2 className={cn("w-6 h-6 animate-spin text-black/40 dark:text-white/40")} />
       </PageSection>
     </PublicPageShell>
   );
@@ -226,18 +226,18 @@ function StudioPageContent() {
             </div>
           )}
           {orderStatus === 'verifying' && (
-            <div className="mb-6 flex items-center gap-3 nx-public-surface px-4 py-3 text-sm text-black/70">
+            <div className="mb-6 flex items-center gap-3 nx-public-surface px-4 py-3 text-sm text-black/70 dark:text-white/70">
               <Loader2 size={16} className={cn("flex-shrink-0 animate-spin", nx.icon)} />
               {t('StudioPage.verifyingPayment')}
             </div>
           )}
           {orderStatus === 'running' && (
-            <div className="mb-6 flex items-center gap-3 nx-public-surface px-4 py-3 text-sm text-black/70">
+            <div className="mb-6 flex items-center gap-3 nx-public-surface px-4 py-3 text-sm text-black/70 dark:text-white/70">
               <Loader2 size={16} className={cn("flex-shrink-0 animate-spin", nx.icon)} />
               <div>
                 <div>{t('StudioPage.pipelineRunning')}</div>
                 {progressMessage && (
-                  <div className="text-xs text-black/55 mt-1">
+                  <div className="text-xs text-black/55 dark:text-white/55 mt-1">
                     {progressMessage}
                     {typeof progressPct === 'number' && progressPct >= 0 ? ` (${progressPct}%)` : ''}
                   </div>
@@ -246,7 +246,7 @@ function StudioPageContent() {
             </div>
           )}
           {orderStatus === 'done' && (
-            <div className="mb-6 flex items-center gap-3 border border-black/20 bg-black/5 px-4 py-3 text-sm text-black">
+            <div className="mb-6 flex items-center gap-3 border border-black/20 dark:border-white/20 bg-black/5 dark:bg-white/5 px-4 py-3 text-sm text-black dark:text-white">
               <CheckCircle size={16} className="flex-shrink-0" />
               {t('StudioPage.studyComplete')}
             </div>
@@ -271,7 +271,7 @@ function StudioPageContent() {
                 <div className="p-6 sm:p-8">
                   <div className="text-center mb-6">
                     <div className={cn(nx.eyebrow, "mb-3")}>{t('StudioPage.yourQuestion')}</div>
-                    <h2 className="font-display text-xl sm:text-2xl font-semibold text-black mb-2">
+                    <h2 className="font-display text-xl sm:text-2xl font-semibold text-black dark:text-white mb-2">
                       {t('StudioPage.whatNeedToKnow')}
                     </h2>
                     <p className={cn(nx.body, "max-w-lg mx-auto")}>
@@ -303,7 +303,7 @@ function StudioPageContent() {
                           type="button"
                           onClick={() => setQuestion(t(qKey))}
                           className={cn(
-                            "w-full text-left border px-4 py-3 transition-all text-sm text-black/60 hover:text-black/90",
+                            "w-full text-left border px-4 py-3 transition-all text-sm text-black/60 dark:text-white/60 hover:text-black/90 dark:hover:text-white/90",
                             OPTION_DEFAULT
                           )}
                         >
@@ -325,7 +325,7 @@ function StudioPageContent() {
                     </Button>
                     <a
                       href="/pricing"
-                      className="text-[11px] font-mono uppercase tracking-[0.14em] text-black/30 hover:text-black/55 transition-colors"
+                      className="text-[11px] font-mono uppercase tracking-[0.14em] text-black/30 dark:text-white/30 hover:text-black/55 dark:hover:text-white/55 transition-colors"
                     >
                       {t('StudioPage.seePricing')}
                     </a>
@@ -343,8 +343,8 @@ function StudioPageContent() {
                   return (
                     <div key={item.label} className="nx-public-surface p-4 text-center">
                       <Icon size={16} className={cn(nx.icon, "mx-auto mb-3")} />
-                      <div className="text-sm text-black/80 font-medium">{item.label}</div>
-                      <div className="text-[11px] text-black/45 mt-0.5">{item.value}</div>
+                      <div className="text-sm text-black/80 dark:text-white/80 font-medium">{item.label}</div>
+                      <div className="text-[11px] text-black/45 dark:text-white/45 mt-0.5">{item.value}</div>
                     </div>
                   );
                 })}
@@ -367,7 +367,7 @@ function StudioPageContent() {
               {/* Question recap */}
               <div className="nx-public-surface p-5 mb-6">
                 <div className={cn(nx.label, "mb-2")}>{t('StudioPage.yourQuestionLabel')}</div>
-                <p className="text-sm text-black/85 leading-relaxed">{question}</p>
+                <p className="text-sm text-black/85 dark:text-white/85 leading-relaxed">{question}</p>
               </div>
 
               {/* Format selection */}
@@ -375,7 +375,7 @@ function StudioPageContent() {
                 <div className="flex items-center justify-between mb-4">
                   <div>
                     <div className={cn(nx.eyebrow, "mb-1")}>{t('StudioPage.chooseFormat')}</div>
-                    <h3 className="text-base text-black font-semibold">{t('StudioPage.formatsAngles')}</h3>
+                    <h3 className="text-base text-black dark:text-white font-semibold">{t('StudioPage.formatsAngles')}</h3>
                   </div>
                 </div>
                 <div className="space-y-3">
@@ -399,19 +399,19 @@ function StudioPageContent() {
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex-1">
                             <div className="flex items-center gap-3 mb-1">
-                              <div className="text-base text-black font-semibold">{t(labelKey)}</div>
-                              <span className="text-[10px] font-mono uppercase tracking-[0.12em] text-black/40">
+                              <div className="text-base text-black dark:text-white font-semibold">{t(labelKey)}</div>
+                              <span className="text-[10px] font-mono uppercase tracking-[0.12em] text-black/40 dark:text-white/40">
                                 {t(pagesKey)}
                               </span>
                             </div>
-                            <p className="text-sm text-black/55 leading-relaxed">{t(descKey)}</p>
-                            <div className="mt-2 text-[11px] text-black/40 font-mono">
+                            <p className="text-sm text-black/55 dark:text-white/55 leading-relaxed">{t(descKey)}</p>
+                            <div className="mt-2 text-[11px] text-black/40 dark:text-white/40 font-mono">
                               {t(depthKey)}
                             </div>
                           </div>
                           <div className="text-right shrink-0">
-                            <div className="text-lg text-black font-bold font-mono">{price.display}</div>
-                            <div className="text-[10px] text-black/35 uppercase tracking-wide">{t('Pricing.perStudyShort')}</div>
+                            <div className="text-lg text-black dark:text-white font-bold font-mono">{price.display}</div>
+                            <div className="text-[10px] text-black/35 dark:text-white/35 uppercase tracking-wide">{t('Pricing.perStudyShort')}</div>
                           </div>
                         </div>
                       </button>
@@ -422,9 +422,9 @@ function StudioPageContent() {
 
               {/* Money-back guarantee */}
               <div className="nx-public-surface p-4 mb-6 flex items-center gap-3">
-                <Shield size={18} className="text-black/60 shrink-0" />
-                <p className="text-xs text-black/55 leading-relaxed">
-                  <span className="text-black/80 font-medium">{t('StudioPage.moneyBackGuarantee')}</span> {t('StudioPage.moneyBackDesc')}
+                <Shield size={18} className="text-black/60 dark:text-white/60 shrink-0" />
+                <p className="text-xs text-black/55 dark:text-white/55 leading-relaxed">
+                  <span className="text-black/80 dark:text-white/80 font-medium">{t('StudioPage.moneyBackGuarantee')}</span> {t('StudioPage.moneyBackDesc')}
                 </p>
               </div>
 
@@ -432,7 +432,7 @@ function StudioPageContent() {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 nx-public-surface p-5">
                 <div>
                   <div className={cn(nx.label, "mb-1")}>{t('StudioPage.selected')}</div>
-                  <div className="text-sm text-black font-medium">
+                  <div className="text-sm text-black dark:text-white font-medium">
                     {selectedFormatMeta ? t(selectedFormatMeta.type === "SUMMARY_BRIEF" ? "Formats.signalBrief" : selectedFormatMeta.type === "DECISION_MEMO" ? "Formats.decisionMemo" : selectedFormatMeta.type === "ARTICLE" ? "Formats.article" : "Formats.strategicReport") : ""} · {selectedFormatMeta ? t(selectedFormatMeta.type === "SUMMARY_BRIEF" ? "Formats.signalBriefPages" : selectedFormatMeta.type === "DECISION_MEMO" ? "Formats.decisionMemoPages" : selectedFormatMeta.type === "ARTICLE" ? "Formats.articlePages" : "Formats.strategicReportPages") : ""}
                   </div>
                 </div>
@@ -460,7 +460,7 @@ function StudioPageContent() {
                 </Button>
               </div>
 
-              <p className="mt-4 text-center text-[10px] text-black/35">
+              <p className="mt-4 text-center text-[10px] text-black/35 dark:text-white/35">
                 {t('StudioPage.onePaymentNote')}
               </p>
             </div>
@@ -472,20 +472,20 @@ function StudioPageContent() {
               <div className="p-5">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-8 h-8 nx-public-surface flex items-center justify-center">
-                    <FileText size={20} className="text-black/80" />
+                    <FileText size={20} className="text-black/80 dark:text-white/80" />
                   </div>
-                  <h2 className="text-lg font-semibold text-black">{t('StudioPage.yourStudy')}</h2>
+                  <h2 className="text-lg font-semibold text-black dark:text-white">{t('StudioPage.yourStudy')}</h2>
                 </div>
                 {/^\s*<(?:!doctype|html|div|section|article|h[1-6]|p|main)/i.test(result) ? (
                   <iframe
                     title={t('StudioPage.researchResult')}
                     srcDoc={result}
-                    className="w-full border border-black/10 bg-white"
+                    className="w-full border border-black/10 dark:border-white/10 bg-white dark:bg-black"
                     style={{ height: '80vh' }}
                     sandbox="allow-same-origin"
                   />
                 ) : (
-                  <div className="prose prose-invert prose-sm max-w-none text-black/80 whitespace-pre-wrap">
+                  <div className="prose prose-invert prose-sm max-w-none text-black/80 dark:text-white/80 whitespace-pre-wrap">
                     {result}
                   </div>
                 )}
@@ -496,11 +496,11 @@ function StudioPageContent() {
           {/* ── EMPTY STATE (only if no result, no order, no step) ─────── */}
           {!result && !loading && orderStatus === 'idle' && step === 'prompt' && !question && !cancelled && (
             <div className="text-center py-10 mt-4">
-              <div className="w-16 h-16 bg-black/[0.02] flex items-center justify-center mx-auto mb-6">
-                <Layers size={32} className="text-black/20" />
+              <div className="w-16 h-16 bg-black/[0.02] dark:bg-white/[0.02] flex items-center justify-center mx-auto mb-6">
+                <Layers size={32} className="text-black/20 dark:text-white/20" />
               </div>
-              <h3 className="text-xl font-semibold text-black mb-2">{t('StudioPage.readyWhenYouAre')}</h3>
-              <p className="text-black/40 max-w-md mx-auto">
+              <h3 className="text-xl font-semibold text-black dark:text-white mb-2">{t('StudioPage.readyWhenYouAre')}</h3>
+              <p className="text-black/40 dark:text-white/40 max-w-md mx-auto">
                 {t('StudioPage.typeQuestionAbove')}
               </p>
             </div>
@@ -522,10 +522,10 @@ function StudioPageContent() {
 export default function StudioPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-white flex items-center justify-center">
+      <div className="min-h-screen bg-white dark:bg-black flex items-center justify-center">
         <div className="text-center">
           <Loader2 size={36} className={cn("mx-auto mb-4 animate-spin", nx.icon)} />
-          <p className="text-black/50 font-mono text-[11px] uppercase tracking-[0.14em]">Chargement du moteur</p>
+          <p className="text-black/50 dark:text-white/50 font-mono text-[11px] uppercase tracking-[0.14em]">Chargement du moteur</p>
         </div>
       </div>
     }>

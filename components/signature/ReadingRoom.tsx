@@ -49,13 +49,13 @@ function MarqueeRow({ items, reverse = false, duration }: { items: SourceEntry[]
       >
         {[...items, ...items].map((s, i) => (
           <span key={`${s.name}-${i}`} className="flex items-baseline px-6 sm:px-8">
-            <span className="font-display text-xl sm:text-2xl font-light text-black/75 tracking-tight">
+            <span className="font-display text-xl sm:text-2xl font-light text-black/75 dark:text-white/75 tracking-tight">
               {s.name}
             </span>
-            <span className="ml-3 font-mono text-[9px] uppercase tracking-[0.2em] text-black/30">
+            <span className="ml-3 font-mono text-[9px] uppercase tracking-[0.2em] text-black/30 dark:text-white/30">
               {s.cat}
             </span>
-            <span className="ml-12 text-black/[0.12] text-xs select-none" aria-hidden>◆</span>
+            <span className="ml-12 text-black/[0.12] dark:text-white/[0.12] text-xs select-none" aria-hidden>◆</span>
           </span>
         ))}
       </div>
@@ -71,7 +71,7 @@ export function ReadingRoom({ className }: { className?: string }) {
       <div className="px-6 sm:px-8">
         <div className="max-w-4xl mx-auto text-center mb-10">
           <p className="nx-eyebrow mb-4 justify-center">{t("eyebrow")}</p>
-          <p className="font-display text-lg sm:text-xl font-light text-black/70 leading-relaxed">
+          <p className="font-display text-lg sm:text-xl font-light text-black/70 dark:text-white/70 leading-relaxed">
             {t("line")}
           </p>
         </div>
@@ -80,7 +80,7 @@ export function ReadingRoom({ className }: { className?: string }) {
         <MarqueeRow items={ROW_A} duration="70s" />
         <MarqueeRow items={ROW_B} reverse duration="85s" />
       </div>
-      <p className="text-center font-mono text-[10px] uppercase tracking-[0.2em] text-black/35 mt-8 px-6">
+      <p className="text-center font-mono text-[10px] uppercase tracking-[0.2em] text-black/35 dark:text-white/35 mt-8 px-6">
         {t("footnote")}
       </p>
     </section>

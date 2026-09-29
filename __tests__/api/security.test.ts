@@ -325,6 +325,8 @@ describe('Comprehensive Auth Coverage', () => {
       'app/api/articles/[id]/feedback/route.ts',
       // Public view counter — fire-and-forget increment, no auth needed
       'app/api/articles/[id]/view/route.ts',
+      // Public article media — serves embedded images of PUBLISHED pieces only (publicPublicationWhere)
+      'app/api/articles/[id]/media/[n]/route.ts',
     ]);
 
     const apiDir = path.join(process.cwd(), 'app', 'api');

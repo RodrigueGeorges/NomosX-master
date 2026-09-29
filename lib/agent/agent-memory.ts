@@ -13,7 +13,7 @@
  * 4. PROMPT INJECTOR — builds a "what I've learned" block for each agent
  *
  * This makes each PhD researcher a genuine intellectual entity:
- * Dr. Vasquez remembers that her econometric critiques on climate papers
+ * Dr. Oikonomia remembers that her econometric critiques on climate papers
  * were rated low quality → she now applies stricter identification checks.
  */
 

@@ -87,7 +87,7 @@ export function EtherealBackground({
       {particles.map((p) => (
         <div
           key={p.id}
-          className="absolute rounded-full bg-black"
+          className="absolute rounded-full bg-black dark:bg-white"
           style={{
             left: `${p.x}%`,
             top: `${p.y}%`,

@@ -6,6 +6,20 @@
 
 ---
 
+## Desk Identity Unification (post-S28)
+
+All expert agents now carry a single canonical NomosX identity — the Greek canon names — replacing the previous drift of three parallel naming systems.
+
+- **Single source of truth**: `lib/researchers.ts` — `RESEARCHERS` (22 Council identities: Dr. Oikonomia, Dr. Nomos, Dr. Aegis, Dr. Gaia…) + `SUB_LENS_IDENTITIES` (52 sub-discipline desks: Dr. Demos, Dr. Psyche, Dr. Ares, Dr. Mellon…) + `getDeskName(domain)` resolver (Council → sub-lens → domain fallback).
+- **Unified consumers**: `EXPERT_PERSONAS` (phd-researcher.ts), `DOMAIN_EXPERTS` (domain-expert.ts), `RESEARCHER_REGISTRY` (researcher-ownership.ts), `RESEARCHER_KBS` (researcher-kb) all carry the canonical names. `expertName` propagates them into council/review-board reports.
+- **Fabricated credentials removed**: no more invented humans ("Dr. Elena Vasquez") or real-institution claims (MIT, Harvard, RAND, WHO). `institution` is now `"NomosX Institute"` everywhere; fake `hIndex`/`publications`/`citationCount` metrics dropped from `RESEARCHERS`. Persona prompts open with `You are <desk name>, the <specialty> desk of NomosX — an autonomous research institute.` and keep their analytical framework/calibration sections unchanged.
+- **Public surface unchanged**: briefs still expose reasoning lenses (casting-agent, reasoning-lenses), not personas — the identity layer is for internal memory continuity + future council/track-record surfaces.
+- Migration script (one-off, kept for audit): `scripts/unify-desks.cjs`.
+
+Verified: `tsc` 0 errors · jest 25/25 — 284 tests.
+
+---
+
 ## Sprint 28 - Reliability Core: durable execution + artifact versioning + dead-code purge
 
 Addresses the root cause of the S27 live-run bugs (stale evaluator verdicts consumed after artifact mutation) and the 50min-crash-loses-everything failure mode. No new features — reliability of what exists.

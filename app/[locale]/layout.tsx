@@ -157,7 +157,7 @@ export default async function LocaleLayout({
       className={`${barlow.variable} ${barlowCondensed.variable} ${jetbrainsMono.variable}`}
       suppressHydrationWarning
     >
-      <body className="font-primary">
+      <body className="font-primary" suppressHydrationWarning>
         <Script
           id="jsonld-organization"
           type="application/ld+json"
@@ -166,12 +166,12 @@ export default async function LocaleLayout({
         />
         <a
           href="#main-content"
-          className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[9999] focus:px-4 focus:py-2 focus:bg-white focus:text-black focus:text-sm focus:font-mono focus:uppercase focus:tracking-wider"
+          className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[9999] focus:px-4 focus:py-2 focus:bg-white dark:focus:bg-black focus:text-black dark:focus:text-white focus:text-sm focus:font-mono focus:uppercase focus:tracking-wider"
         >
           Skip to main content
         </a>
         <NextIntlClientProvider messages={messages}>
-          <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+          <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
             <QueryProvider>
               <AuthProvider>
                 <div id="main-content">{children}</div>

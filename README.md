@@ -88,14 +88,14 @@ SYNTHESIS DIRECTOR → Final integrated analysis
 Analyse **9 perspectives expertes** automatiquement :
 
 ```
-� Dr. Elena Vasquez (MIT PhD) → Econometrics & Policy Economics
-🤖 Dr. James Chen (Stanford PhD) → AI/ML & Digital Systems  
-🏛️ Dr. Amara Okafor (Oxford PhD) → Public Policy & Governance
-🏥 Dr. Sarah Lindström (Johns Hopkins PhD) → Epidemiology & Public Health
-🔒 Dr. Marcus Webb (Georgetown PhD) → Strategic Security & Intelligence
-⚖️ Dr. Isabelle Moreau (Yale Law PhD) → International Law & Regulatory Frameworks
-🌍 Dr. Kenji Tanaka (ETH Zurich PhD) → Climate Science & Environmental Systems
-📈 Dr. Priya Sharma (Harvard Stats PhD) → Quantitative Methods & Causal Inference
+📊 Dr. Oikonomia (Οἰκονομία) → Econometrics & Policy Economics
+🤖 Dr. Techne (Τέχνη) → AI/ML & Digital Systems  
+🏛️ Dr. Politeia (Πολιτεία) → Public Policy & Governance
+🏥 Dr. Hygeia (Ὑγίεια) → Epidemiology & Public Health
+🔒 Dr. Aegis (Αἰγίς) → Strategic Security & Intelligence
+⚖️ Dr. Nomos (Νόμος) → International Law & Regulatory Frameworks
+🌍 Dr. Gaia (Γαία) → Climate Science & Environmental Systems
+📈 Dr. Metron (Μέτρον) → Quantitative Methods & Causal Inference
 
 + Evidence Grader (Oxford CEBM) + Adversarial Review Board + Synthesis Director
 ```

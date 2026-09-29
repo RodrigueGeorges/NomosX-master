@@ -75,10 +75,10 @@ export function LensPrism({
           <div>
             <ScrollReveal>
               <p className="nx-eyebrow mb-6">{t("eyebrow")}</p>
-              <h2 className="font-display text-2xl sm:text-3xl font-medium text-black tracking-tight leading-tight mb-4">
+              <h2 className="font-display text-2xl sm:text-3xl font-medium text-black dark:text-white tracking-tight leading-tight mb-4">
                 {t("title")}
               </h2>
-              <p className="text-sm sm:text-base text-black/55 leading-relaxed mb-8 max-w-md">
+              <p className="text-sm sm:text-base text-black/55 dark:text-white/55 leading-relaxed mb-8 max-w-md">
                 {t("subtitle")}
               </p>
             </ScrollReveal>
@@ -87,14 +87,14 @@ export function LensPrism({
               <div className="flex items-center gap-6">
                 <PrismGlyph />
                 {question && (
-                  <p className="font-display text-sm sm:text-base italic text-black/60 leading-snug max-w-[220px]">
+                  <p className="font-display text-sm sm:text-base italic text-black/60 dark:text-white/60 leading-snug max-w-[220px]">
                     “{question}”
                   </p>
                 )}
               </div>
               <Link
                 href="/researchers"
-                className="inline-flex items-center gap-2 mt-8 font-mono text-[11px] uppercase tracking-[0.14em] text-black/55 hover:text-black transition-colors"
+                className="inline-flex items-center gap-2 mt-8 font-mono text-[11px] uppercase tracking-[0.14em] text-black/55 dark:text-white/55 hover:text-black dark:hover:text-white transition-colors"
               >
                 {t("meetLenses")}
                 <ArrowRight size={13} />
@@ -113,10 +113,10 @@ export function LensPrism({
                 <p className="font-mono text-[10px] uppercase tracking-[0.16em] mb-2" style={{ color: lens.colorHex }}>
                   {lens.name}
                 </p>
-                <p className="text-xs text-black/65 leading-relaxed mb-2">
+                <p className="text-xs text-black/65 dark:text-white/65 leading-relaxed mb-2">
                   {lens.epithet}
                 </p>
-                <p className="text-[11px] italic text-black/40 leading-snug opacity-0 max-h-0 overflow-hidden group-hover:opacity-100 group-hover:max-h-16 transition-all duration-500">
+                <p className="text-[11px] italic text-black/40 dark:text-white/40 leading-snug opacity-0 max-h-0 overflow-hidden group-hover:opacity-100 group-hover:max-h-16 transition-all duration-500">
                   “{lens.signatureQuestion}”
                 </p>
               </div>

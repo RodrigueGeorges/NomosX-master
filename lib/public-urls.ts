@@ -11,7 +11,14 @@ export const PUBLIC_ROUTES = {
   methodology: "/methodology",
   pricing: "/pricing",
   trackRecord: "/track-record",
+  desk: "/desk",
+  corrections: "/corrections",
 } as const;
+
+/** Absolute public URL for a site-relative path (og images, canonical links). */
+export function absoluteUrl(path: string): string {
+  return `${BASE}${path.startsWith("/") ? path : `/${path}`}`;
+}
 
 export function inquiryUrl(slug: string, absolute = false): string {
   const path = PUBLIC_ROUTES.inquiry(slug);

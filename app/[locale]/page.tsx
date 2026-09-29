@@ -14,6 +14,8 @@ import { PublicPageShell } from "@/components/layout/PublicPageShell";
 
 import {
 
+  CouncilRoster,
+
   DomainMap,
 
   FeaturedVerdictCard,
@@ -80,6 +82,8 @@ type PublicBrief = {
 
   trustScore?: number | null;
 
+  heroImageUrl?: string | null;
+
 };
 
 
@@ -113,6 +117,8 @@ function mapBriefToInquiry(b: PublicBrief, index: number): InquiryCardData {
     readTime: b.readTime,
 
     formatLabel: b.displayType,
+
+    heroImageUrl: b.heroImageUrl ?? null,
 
   };
 
@@ -285,13 +291,13 @@ function HomePageContent() {
 
     return (
 
-      <div className="min-h-screen bg-white flex flex-col items-center justify-center gap-6">
+      <div className="min-h-screen bg-white dark:bg-black flex flex-col items-center justify-center gap-6">
 
         <NomosXLogo variant="wordmark" size={20} className="opacity-40" />
 
-        <div className="relative w-32 h-px bg-black/10 overflow-hidden">
+        <div className="relative w-32 h-px bg-black/10 dark:bg-white/10 overflow-hidden">
 
-          <div className="absolute inset-y-0 w-1/3 bg-gradient-to-r from-transparent via-black/60 to-transparent animate-marquee" />
+          <div className="absolute inset-y-0 w-1/3 bg-gradient-to-r from-transparent via-black/60 dark:via-white/60 to-transparent animate-marquee" />
 
         </div>
 
@@ -314,17 +320,18 @@ function HomePageContent() {
   );
 
   // Section order: 01 Hero · 02 Featured · [ReadingRoom] · 03 Briefs? · 04 Prism ·
-  // 05 Manifesto · 06 Domain · 07 Mission · [Track record] · 08 Studio · 09 Newsletter
+  // 05 Council · 06 Manifesto · 07 Domain · 08 Mission · [Track record] · 09 Studio · 10 Newsletter
   // Briefs is hidden when empty, so the denominator adjusts.
   const hasBriefs = displayInquiries.length > 0;
-  const sectionCount = hasBriefs ? 9 : 8;
+  const sectionCount = hasBriefs ? 10 : 9;
   const sectionTotal = String(sectionCount).padStart(2, "0");
   const prismSectionNum = hasBriefs ? "04" : "03";
-  const manifestoSectionNum = hasBriefs ? "05" : "04";
-  const domainSectionNum = hasBriefs ? "06" : "05";
-  const missionSectionNum = hasBriefs ? "07" : "06";
-  const studioSectionNum = hasBriefs ? "08" : "07";
-  const newsletterSectionNum = hasBriefs ? "09" : "08";
+  const councilSectionNum = hasBriefs ? "05" : "04";
+  const manifestoSectionNum = hasBriefs ? "06" : "05";
+  const domainSectionNum = hasBriefs ? "07" : "06";
+  const missionSectionNum = hasBriefs ? "08" : "07";
+  const studioSectionNum = hasBriefs ? "09" : "08";
+  const newsletterSectionNum = hasBriefs ? "10" : "09";
 
 
 
@@ -398,13 +405,13 @@ function HomePageContent() {
 
                   <div key={stat.label} className={`text-center animate-rise delay-${(i + 1) * 100}`} style={{ opacity: 0 }}>
 
-                    <p className="font-mono text-2xl sm:text-3xl font-light text-black tabular-nums leading-none mb-2">
+                    <p className="font-mono text-2xl sm:text-3xl font-light text-black dark:text-white tabular-nums leading-none mb-2">
 
                       <StatCounter end={stat.end} suffix={stat.suffix} />
 
                     </p>
 
-                    <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-black/50">
+                    <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-black/50 dark:text-white/50">
 
                       {stat.label}
 
@@ -481,9 +488,9 @@ function HomePageContent() {
               <ScrollReveal delay={100}>
                 {isEmptyVerdict(featuredVerdict) ? (
                   <div className="nx-surface nx-border-flow relative p-6 sm:p-8 text-center">
-                    <span className="w-1.5 h-1.5 rounded-full bg-black/30 inline-block mb-4 nx-glow-dot" />
-                    <p className="font-display text-lg text-black/80 mb-2">{t("FeaturedVerdict.noPositionYet")}</p>
-                    <p className="text-sm text-black/45 leading-relaxed max-w-sm mx-auto">{t("FeaturedVerdict.noPositionDesc")}</p>
+                    <span className="w-1.5 h-1.5 rounded-full bg-black/30 dark:bg-white/30 inline-block mb-4 nx-glow-dot" />
+                    <p className="font-display text-lg text-black/80 dark:text-white/80 mb-2">{t("FeaturedVerdict.noPositionYet")}</p>
+                    <p className="text-sm text-black/45 dark:text-white/45 leading-relaxed max-w-sm mx-auto">{t("FeaturedVerdict.noPositionDesc")}</p>
                   </div>
                 ) : (
                   <FeaturedVerdictCard data={featuredVerdict} />
@@ -518,7 +525,7 @@ function HomePageContent() {
 
                   onClick={() => router.push(PUBLIC_ROUTES.archives)}
 
-                  className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.12em] text-black/55 hover:text-black transition-colors"
+                  className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.12em] text-black/55 dark:text-white/55 hover:text-black dark:hover:text-white transition-colors"
 
                 >
 
@@ -562,6 +569,9 @@ function HomePageContent() {
             question={isEmptyVerdict(featuredVerdict) ? undefined : featuredVerdict.question}
             sectionIndex={`${prismSectionNum} / ${sectionTotal}`}
           />
+
+          {/* The council — the named desks behind the lenses, personified */}
+          <CouncilRoster sectionIndex={`${councilSectionNum} / ${sectionTotal}`} />
 
           {/* Manifesto + pillars — the philosophy, now that they've seen the proof */}
 
@@ -635,9 +645,9 @@ function HomePageContent() {
 
                   <div key={i} className="nx-surface nx-pillar p-5">
 
-                    <p className="font-mono text-[11px] text-black/45 mb-3">0{i + 1}</p>
+                    <p className="font-mono text-[11px] text-black/45 dark:text-white/45 mb-3">0{i + 1}</p>
 
-                    <p className="text-sm text-black/70 leading-[1.5]">{t(`Brand.philosophyPillars.${i}`)}</p>
+                    <p className="text-sm text-black/70 dark:text-white/70 leading-[1.5]">{t(`Brand.philosophyPillars.${i}`)}</p>
 
                   </div>
 
@@ -699,7 +709,7 @@ function HomePageContent() {
 
                 <p className="nx-eyebrow mb-4 justify-center">{t("Home.trackRecord")}</p>
 
-                <h2 className="font-display text-lg sm:text-xl font-medium text-black mb-10 tracking-tight">
+                <h2 className="font-display text-lg sm:text-xl font-medium text-black dark:text-white mb-10 tracking-tight">
 
                   {t("Home.trackRecordDesc")}
 
@@ -711,31 +721,31 @@ function HomePageContent() {
 
                 <div className="text-center">
 
-                  <p className="font-mono text-3xl font-light text-black tabular-nums leading-none mb-3">
+                  <p className="font-mono text-3xl font-light text-black dark:text-white tabular-nums leading-none mb-3">
 
                     <StatCounter end={trackRecord?.total ?? 0} suffix="" />
 
                   </p>
 
-                  <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-black/50">{t("Home.predictionsMade")}</p>
+                  <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-black/50 dark:text-white/50">{t("Home.predictionsMade")}</p>
 
                 </div>
 
                 <div className="text-center">
 
-                  <p className="font-mono text-3xl font-light text-black tabular-nums leading-none mb-3">
+                  <p className="font-mono text-3xl font-light text-black dark:text-white tabular-nums leading-none mb-3">
 
                     <StatCounter end={trackRecord?.open ?? 0} suffix="" />
 
                   </p>
 
-                  <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-black/50">{t("Home.openPredictions")}</p>
+                  <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-black/50 dark:text-white/50">{t("Home.openPredictions")}</p>
 
                 </div>
 
                 <div className="text-center">
 
-                  <p className="font-mono text-3xl font-light text-black tabular-nums leading-none mb-3">
+                  <p className="font-mono text-3xl font-light text-black dark:text-white tabular-nums leading-none mb-3">
 
                     {trackRecord?.accuracyPct != null ? (
 
@@ -743,19 +753,19 @@ function HomePageContent() {
 
                     ) : (
 
-                      <span className="text-black/40 text-xl">{t("Home.pending")}</span>
+                      <span className="text-black/40 dark:text-white/40 text-xl">{t("Home.pending")}</span>
 
                     )}
 
                   </p>
 
-                  <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-black/50">{t("Home.hitRate")}</p>
+                  <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-black/50 dark:text-white/50">{t("Home.hitRate")}</p>
 
                 </div>
 
                 <div className="text-center">
 
-                  <p className="font-mono text-3xl font-light text-black tabular-nums leading-none mb-3">
+                  <p className="font-mono text-3xl font-light text-black dark:text-white tabular-nums leading-none mb-3">
 
                     {trackRecord?.brierScore != null ? (
 
@@ -763,13 +773,13 @@ function HomePageContent() {
 
                     ) : (
 
-                      <span className="text-black/40 text-xl">{t("Home.pending")}</span>
+                      <span className="text-black/40 dark:text-white/40 text-xl">{t("Home.pending")}</span>
 
                     )}
 
                   </p>
 
-                  <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-black/50">{t("Home.brierScore")}</p>
+                  <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-black/50 dark:text-white/50">{t("Home.brierScore")}</p>
 
                 </div>
 
@@ -783,7 +793,7 @@ function HomePageContent() {
 
                   onClick={() => router.push(PUBLIC_ROUTES.trackRecord)}
 
-                  className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.12em] text-black/55 hover:text-black transition-colors"
+                  className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.12em] text-black/55 dark:text-white/55 hover:text-black dark:hover:text-white transition-colors"
 
                 >
 
@@ -823,7 +833,7 @@ function HomePageContent() {
 
               <ScrollReveal>
 
-                <h2 className="font-display text-lg sm:text-xl font-medium text-black mb-3 tracking-tight">{t("Home.intelligenceDispatch")}</h2>
+                <h2 className="font-display text-lg sm:text-xl font-medium text-black dark:text-white mb-3 tracking-tight">{t("Home.intelligenceDispatch")}</h2>
 
                 <p className="nx-eyebrow mb-8 justify-center">{t("Home.structureNotNoise")}</p>
 
@@ -831,7 +841,7 @@ function HomePageContent() {
 
               {newsletterStatus === "success" ? (
 
-                <p className="text-sm text-black/70">{newsletterMessage}</p>
+                <p className="text-sm text-black/70 dark:text-white/70">{newsletterMessage}</p>
 
               ) : (
 
@@ -849,7 +859,7 @@ function HomePageContent() {
 
                     required
 
-                    className="nx-input flex-1 px-4 py-3 bg-black/[0.02] border border-black/[0.12] text-sm text-black placeholder:text-black/40 focus:outline-none focus:border-black/30 transition-all"
+                    className="nx-input flex-1 px-4 py-3 bg-black/[0.02] dark:bg-white/[0.02] border border-black/[0.12] dark:border-white/[0.12] text-sm text-black dark:text-white placeholder:text-black/40 dark:placeholder:text-white/40 focus:outline-none focus:border-black/30 dark:focus:border-white/30 transition-all"
 
                   />
 
@@ -859,7 +869,7 @@ function HomePageContent() {
 
                     disabled={newsletterStatus === "loading"}
 
-                    className="px-6 py-3 bg-black text-white text-xs font-semibold uppercase tracking-[0.12em] disabled:opacity-50 hover:bg-black/85 transition-colors"
+                    className="px-6 py-3 bg-black dark:bg-white text-white dark:text-black text-xs font-semibold uppercase tracking-[0.12em] disabled:opacity-50 hover:bg-black/85 dark:hover:bg-white/85 transition-colors"
 
                   >
 
@@ -917,13 +927,13 @@ export default function HomePage() {
 
       fallback={
 
-        <div className="min-h-screen bg-white flex flex-col items-center justify-center gap-6">
+        <div className="min-h-screen bg-white dark:bg-black flex flex-col items-center justify-center gap-6">
 
           <NomosXLogo variant="wordmark" size={20} className="opacity-40" />
 
-          <div className="relative w-32 h-px bg-black/10 overflow-hidden">
+          <div className="relative w-32 h-px bg-black/10 dark:bg-white/10 overflow-hidden">
 
-            <div className="absolute inset-y-0 w-1/3 bg-gradient-to-r from-transparent via-black/60 to-transparent animate-marquee" />
+            <div className="absolute inset-y-0 w-1/3 bg-gradient-to-r from-transparent via-black/60 dark:via-white/60 to-transparent animate-marquee" />
 
           </div>
 

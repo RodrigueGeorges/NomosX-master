@@ -4270,3 +4270,34 @@ article.nomosx-brief .brief-footer {
     transform: none;
   }
 }
+
+/* ===================================================================
+   PRINT — institutional publication output
+   =================================================================== */
+@media print {
+  nav, footer, header[role="banner"] { display: none !important; }
+  body { background: #fff !important; color: #000 !important; }
+  .nx-public-surface { background: #fff !important; border-color: #ddd !important; }
+  section { break-inside: avoid-page; }
+  img { max-width: 100% !important; }
+  a[href^="#"] { text-decoration: none; color: inherit; }
+}
+
+/* ── Plate moiré — engraved-plate interference drift ───────────────────
+   A second copy of the contour plate drifts a few px; the iso-lines
+   interfere and the field breathes. Pure CSS, reduced-motion safe. */
+
+@keyframes nx-plate-drift {
+  0%, 100% { transform: translate(0, 0) scale(1.012); }
+  33%      { transform: translate(5px, -3px) scale(1.014); }
+  66%      { transform: translate(-4px, 4px) scale(1.012); }
+}
+
+.nx-plate-moire {
+  animation: nx-plate-drift 16s ease-in-out infinite;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nx-plate-moire { animation: none; }
+}

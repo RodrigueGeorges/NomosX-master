@@ -17,19 +17,19 @@ const { prisma } = require('../lib/db');
 const mockPhDLedIntelligence = {
   runPhDLedIntelligence: async (verticalSlug) => {
     console.log(`\n🎓 PHD-LED INTELLIGENCE - ${verticalSlug}`);
-    console.log(`   Lead Expert: Dr. Kenji Tanaka (MIT Climate Lab)`);
+    console.log(`   Lead Expert: Dr. Gaia (NomosX Climate Desk)`);
     console.log(`   Strategic Vision: "Transform climate policy through breakthrough research"`);
     
     return {
       verticalSlug,
       leadExpert: {
         id: 'climate-industry',
-        name: 'Dr. Kenji Tanaka',
+        name: 'Dr. Gaia',
         domain: 'climate-industry',
-        institution: 'MIT Climate Lab',
+        institution: 'NomosX Institute',
         strategicVision: 'Transform climate policy through breakthrough research on carbon capture economics and renewable integration',
         researchPriorities: ['Carbon capture economics', 'Renewable integration', 'Climate policy impact'],
-        competitiveFocus: ['Stanford Climate Lab', 'Oxford Environmental Change Institute', 'IPCC Working Groups'],
+        competitiveFocus: ['NomosX Climate Peer Bench', 'NomosX Environment Peer Bench', 'NomosX Foresight Bench'],
         currentFocusAreas: [
           {
             id: 'focus_1',
@@ -119,7 +119,7 @@ const mockPhDLedIntelligence = {
           status: 'ACTIVE',
           team: [
             {
-              name: 'Dr. Kenji Tanaka',
+              name: 'Dr. Gaia',
               domain: 'climate-industry',
               role: 'Lead Researcher',
               responsibilities: ['Economic modeling', 'Policy analysis', 'Publication']
@@ -242,7 +242,7 @@ const mockOmegaVerification = {
           status: 'PASSED',
           confidence: 95,
           findings: 'All sources are highly credible academic and institutional sources',
-          evidence: ['MIT Climate Lab', 'IPCC Reports', 'Peer-reviewed journals'],
+          evidence: ['NomosX Institute', 'IPCC Reports', 'Peer-reviewed journals'],
           recommendations: ['Continue monitoring MIT publications'],
           verifier: 'source-verification-ai',
           duration: 2000
@@ -282,7 +282,7 @@ const mockOmegaVerification = {
           status: 'PASSED',
           confidence: 96,
           findings: 'PhD council consensus: 96% confidence in analysis',
-          evidence: ['Dr. Kenji Tanaka: 98% confidence', 'Dr. Elena Vasquez: 94% confidence'],
+          evidence: ['Dr. Kenji Tanaka: 98% confidence', 'Dr. Oikonomia: 94% confidence'],
           recommendations: ['Proceed to immediate publication'],
           verifier: 'phd-council-3-experts',
           duration: 4000
@@ -345,7 +345,7 @@ const mockReferencePublisher = {
           timestamp: new Date(),
           changes: ['Initial publication'],
           reason: 'MIT DAC breakthrough analysis',
-          author: 'Dr. Kenji Tanaka',
+          author: 'Dr. Gaia',
           verificationRequired: false
         }
       ],
@@ -412,7 +412,7 @@ async function testCompleteArchitecture() {
       targetId: intelligenceOutput.id,
       targetType: 'INTELLIGENCE_OUTPUT',
       content: intelligenceOutput.content,
-      sources: ['MIT Climate Lab', 'IPCC Reports'],
+      sources: ['NomosX Institute', 'IPCC Reports'],
       urgency: 'IMMEDIATE',
       requiredLayers: ['SOURCE_CHECK', 'FACT_CHECK', 'DATA_VERIFICATION', 'CONTEXT_ANALYSIS', 'EXPERT_VALIDATION']
     });

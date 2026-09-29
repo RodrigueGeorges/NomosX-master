@@ -19,6 +19,8 @@ export interface FeaturedVerdictData {
   updatedAt: string;
   serialId: string;
   domains?: string[];
+  /** Owning desk — resolved from the brief's sign-off or domain. */
+  desk?: { id: string; name: string; signed: boolean };
   href?: string;
 }
 
@@ -89,13 +91,13 @@ export function FeaturedVerdictCard({ data, className, animate = true }: Feature
         <p className="nx-eyebrow" style={{ letterSpacing: "0.14em" }}>
           {t("FeaturedVerdict.institutePosition")} · {data.updatedAt}
         </p>
-        <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-black/30">
+        <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-black/30 dark:text-white/30">
           Ref. {data.serialId}
         </p>
       </div>
 
       {/* The question — headline */}
-      <h2 className="font-display text-[1.6rem] sm:text-[1.95rem] font-medium leading-[1.16] tracking-[-0.01em] text-black mb-6">
+      <h2 className="font-display text-[1.6rem] sm:text-[1.95rem] font-medium leading-[1.16] tracking-[-0.01em] text-black dark:text-white mb-6">
         {data.question}
       </h2>
 
@@ -137,7 +139,7 @@ export function FeaturedVerdictCard({ data, className, animate = true }: Feature
         <div className="relative mt-3 h-[2.4em]">
           <p
             className={cn(
-              "font-mono text-[11px] tracking-[0.03em] text-black/45 leading-snug transition-opacity duration-300",
+              "font-mono text-[11px] tracking-[0.03em] text-black/45 dark:text-white/45 leading-snug transition-opacity duration-300",
               hovered ? "opacity-0" : "opacity-100"
             )}
           >
@@ -158,10 +160,10 @@ export function FeaturedVerdictCard({ data, className, animate = true }: Feature
 
       {/* The position — lede */}
       {data.verdictBody && (
-        <p className="font-display text-[15px] sm:text-base leading-relaxed text-black/70 mb-7">
+        <p className="font-display text-[15px] sm:text-base leading-relaxed text-black/70 dark:text-white/70 mb-7">
           {data.verdictPrefix && (
             <>
-              <span className="text-black font-medium">{data.verdictPrefix}</span>
+              <span className="text-black dark:text-white font-medium">{data.verdictPrefix}</span>
               {" — "}
             </>
           )}
@@ -170,28 +172,36 @@ export function FeaturedVerdictCard({ data, className, animate = true }: Feature
       )}
 
       {/* Conviction — the number as object, not a widget */}
-      <div className="flex items-end gap-5 py-5 border-t border-black/[0.08] mb-5">
-        <p className="font-display text-[3.4rem] leading-[0.82] font-light tabular-nums text-black">
+      <div className="flex items-end gap-5 py-5 border-t border-black/[0.08] dark:border-white/[0.08] mb-5">
+        <p className="font-display text-[3.4rem] leading-[0.82] font-light tabular-nums text-black dark:text-white">
           <StatCounter end={confidenceNum} />
-          <span className="text-[1.35rem] text-black/35">%</span>
+          <span className="text-[1.35rem] text-black/35 dark:text-white/35">%</span>
         </p>
         <div className="pb-1">
           <p className="nx-eyebrow nx-eyebrow--dim mb-1.5" style={{ fontSize: "11px" }}>
             {t("FeaturedVerdict.confidence")}
           </p>
           {futuresLine && (
-            <p className="text-[12px] text-black/50 leading-snug">{futuresLine}</p>
+            <p className="text-[12px] text-black/50 dark:text-white/50 leading-snug">{futuresLine}</p>
           )}
         </div>
       </div>
 
       {/* Footer — provenance + action */}
-      <div className="flex items-center justify-between gap-4 font-mono text-[11px] uppercase tracking-[0.1em] text-black/40">
+      <div className="flex items-center justify-between gap-4 font-mono text-[11px] uppercase tracking-[0.1em] text-black/40 dark:text-white/40">
         <span className="truncate">
           {data.sources} {t("FeaturedVerdict.sources")}
           {domainsLine}
+          {data.desk && (
+            <>
+              {" · "}
+              {data.desk.signed
+                ? t("FeaturedVerdict.signedBy", { name: data.desk.name })
+                : t("FeaturedVerdict.desk", { name: data.desk.name })}
+            </>
+          )}
         </span>
-        <span className="inline-flex items-center gap-1.5 text-black/60 shrink-0 group-hover:text-black transition-colors">
+        <span className="inline-flex items-center gap-1.5 text-black/60 dark:text-white/60 shrink-0 group-hover:text-black dark:group-hover:text-white transition-colors">
           {t("FeaturedVerdict.readPosition")}
           <ArrowRight size={12} className="transition-transform duration-300 group-hover:translate-x-0.5" />
         </span>

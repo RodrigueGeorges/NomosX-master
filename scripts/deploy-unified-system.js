@@ -99,9 +99,9 @@ async function deployUnifiedSystem() {
     
     console.log('5. Setting up PhD expert leadership...');
     await new Promise(resolve => setTimeout(resolve, 500));
-    console.log('   ✅ Dr. Kenji Tanaka (Climate) - PROACTIVE mode');
-    console.log('   ✅ Dr. Marcus Webb (Finance) - PROACTIVE mode');
-    console.log('   ✅ Dr. Elena Vasquez (AI Ethics) - PROACTIVE mode');
+    console.log('   ✅ Dr. Gaia (Climate) - PROACTIVE mode');
+    console.log('   ✅ Dr. Chrematistikos (Finance) - PROACTIVE mode');
+    console.log('   ✅ Dr. Logos (AI Ethics) - PROACTIVE mode');
     
     console.log('6. Activating real-time monitoring...');
     await new Promise(resolve => setTimeout(resolve, 500));
@@ -130,7 +130,7 @@ async function deployUnifiedSystem() {
       
       phdLeadership: {
         enabled: true,
-        leadExpert: 'Dr. Kenji Tanaka (MIT Climate Lab)',
+        leadExpert: 'Dr. Gaia (NomosX Climate Desk)',
         proactivityScore: 95,
         innovationScore: 92,
         initiatives: 1

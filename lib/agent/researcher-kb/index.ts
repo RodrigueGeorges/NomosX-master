@@ -125,7 +125,7 @@ export interface QualityCriteria {
 export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
   policy: {
     domain: 'policy',
-    researcherName: 'Dr. Amara Okafor',
+    researcherName: 'Dr. Politeia (Πολιτεία)',
     keyConcepts: [
       { name: 'Policy Cycle', definition: 'Agenda setting → Formulation → Adoption → Implementation → Evaluation — each stage has different actors, incentives, and failure modes', importance: 'foundational', relatedConcepts: ['policy window', 'incrementalism', 'punctuated equilibrium'] },
       { name: 'Institutional Design', definition: 'How rules, norms, and enforcement mechanisms shape collective outcomes — Ostrom\'s 8 design principles', importance: 'foundational', relatedConcepts: ['common pool resources', 'polycentric governance', 'institutional fit'] },
@@ -185,7 +185,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   economics: {
     domain: 'economics',
-    researcherName: 'Dr. Elena Vasquez',
+    researcherName: 'Dr. Oikonomia (Οἰκονομία)',
     keyConcepts: [
       { name: 'Causal Inference', definition: 'Methods to establish cause-effect from observational data (IV, DiD, RDD, synthetic control)', importance: 'foundational', relatedConcepts: ['endogeneity', 'selection bias', 'natural experiments'] },
       { name: 'General Equilibrium', definition: 'Economy-wide effects that partial models miss — spillovers, feedback loops, second-order effects', importance: 'foundational', relatedConcepts: ['partial equilibrium', 'DSGE', 'CGE models'] },
@@ -243,7 +243,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   technology: {
     domain: 'technology',
-    researcherName: 'Dr. James Chen',
+    researcherName: 'Dr. Techne (Τέχνη)',
     keyConcepts: [
       { name: 'Scaling Laws', definition: 'Predictable performance improvement with more data/compute/parameters (Chinchilla, Kaplan)', importance: 'foundational', relatedConcepts: ['compute-optimal training', 'emergent abilities', 'bitter lesson'] },
       { name: 'AI Alignment', definition: 'Ensuring AI systems pursue intended goals — RLHF, constitutional AI, interpretability', importance: 'foundational', relatedConcepts: ['reward hacking', 'mesa-optimization', 'corrigibility'] },
@@ -302,7 +302,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   health: {
     domain: 'health',
-    researcherName: 'Dr. Sarah Lindström',
+    researcherName: 'Dr. Hygeia (Ὑγίεια)',
     keyConcepts: [
       { name: 'Bradford Hill Criteria', definition: '9 criteria for causal inference in epidemiology: strength, consistency, specificity, temporality, gradient, plausibility, coherence, experiment, analogy', importance: 'foundational', relatedConcepts: ['causation vs correlation', 'confounding', 'effect modification'] },
       { name: 'Number Needed to Treat (NNT)', definition: 'Number of patients needed to treat to prevent one adverse outcome — converts relative risk to clinical significance', importance: 'foundational', relatedConcepts: ['absolute risk reduction', 'relative risk', 'clinical significance'] },
@@ -358,7 +358,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   security: {
     domain: 'security',
-    researcherName: 'Dr. Marcus Webb',
+    researcherName: 'Dr. Aegis (Αἰγίς)',
     keyConcepts: [
       { name: 'Escalation Dynamics', definition: 'How conflicts escalate through action-reaction cycles, miscalculation, and commitment traps', importance: 'foundational', relatedConcepts: ['deterrence', 'brinkmanship', 'security dilemma'] },
       { name: 'Hybrid Warfare', definition: 'Blend of conventional military, cyber, information operations, and economic pressure below threshold of conventional war', importance: 'advanced', relatedConcepts: ['gray zone', 'information warfare', 'proxy conflict'] },
@@ -417,7 +417,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   law: {
     domain: 'law',
-    researcherName: 'Dr. Isabelle Moreau',
+    researcherName: 'Dr. Nomos (Νόμος)',
     keyConcepts: [
       { name: 'Proportionality Analysis', definition: 'Three-step test: legitimate aim, necessity, proportionality stricto sensu — the core balancing test in constitutional and human rights law', importance: 'foundational', relatedConcepts: ['margin of appreciation', 'judicial review', 'fundamental rights'] },
       { name: 'Regulatory Sandboxes', definition: 'Controlled environments for testing innovative products under relaxed regulations — key to AI, fintech, and biotech governance', importance: 'emerging', relatedConcepts: ['innovation principle', 'precautionary principle', 'regulatory agility'] },
@@ -477,7 +477,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   environment: {
     domain: 'environment',
-    researcherName: 'Dr. Kenji Tanaka',
+    researcherName: 'Dr. Gaia (Γαία)',
     keyConcepts: [
       { name: 'Planetary Boundaries', definition: '9 Earth system processes with quantified safe operating spaces — 6 of 9 already transgressed (Rockström/Steffen 2023)', importance: 'foundational', relatedConcepts: ['tipping points', 'safe operating space', 'Anthropocene'] },
       { name: 'Jevons Paradox', definition: 'Efficiency improvements can increase total resource use rather than decrease it — critical for evaluating green growth claims', importance: 'advanced', relatedConcepts: ['rebound effect', 'decoupling', 'dematerialization'] },
@@ -539,7 +539,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   geopolitics: {
     domain: 'geopolitics',
-    researcherName: 'Dr. Sergei Petrov',
+    researcherName: 'Dr. Polis (Πόλις)',
     keyConcepts: [
       { name: 'Thucydides Trap', definition: 'Structural stress when a rising power threatens a ruling power — 12 of 16 historical cases led to war (Allison 2017)', importance: 'foundational', relatedConcepts: ['power transition theory', 'security dilemma', 'hegemonic stability'] },
       { name: 'Multipolarity', definition: 'International system with multiple great powers — less stable than bipolarity per neorealism, emerging post-2020', importance: 'foundational', relatedConcepts: ['balance of power', 'concert of powers', 'regional hegemony'] },
@@ -592,7 +592,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   finance: {
     domain: 'finance',
-    researcherName: 'Dr. Michael Roberts',
+    researcherName: 'Dr. Chrematistikos (Χρηματιστικός)',
     keyConcepts: [
       { name: 'Systemic Risk', definition: 'Risk of cascading failures across the financial system — contagion, too-big-to-fail, interconnectedness', importance: 'foundational', relatedConcepts: ['counterparty risk', 'liquidity spirals', 'fire sales'] },
       { name: 'Market Microstructure', definition: 'How exchange mechanisms affect price formation — order flow, bid-ask spreads, information asymmetry', importance: 'advanced', relatedConcepts: ['high-frequency trading', 'dark pools', 'market making'] },
@@ -645,7 +645,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   quantitative: {
     domain: 'quantitative',
-    researcherName: 'Dr. Priya Sharma',
+    researcherName: 'Dr. Metron (Μέτρον)',
     keyConcepts: [
       { name: 'Rubin Causal Model', definition: 'Potential outcomes framework — treatment effect = Y(1) - Y(0), fundamental problem of causal inference', importance: 'foundational', relatedConcepts: ['SUTVA', 'ignorability', 'positivity'] },
       { name: 'DAG Reasoning', definition: 'Directed acyclic graphs for encoding causal assumptions and identifying adjustment sets (Pearl)', importance: 'foundational', relatedConcepts: ['d-separation', 'backdoor criterion', 'front-door criterion'] },
@@ -702,7 +702,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   'social-sciences': {
     domain: 'social-sciences',
-    researcherName: 'Dr. María González',
+    researcherName: 'Dr. Koinonia (Κοινωνία)',
     keyConcepts: [
       { name: 'Social Stratification', definition: 'Hierarchical arrangement of individuals in society based on wealth, power, and prestige, shaping life chances and mobility.' },
       { name: 'Intersectionality', definition: 'Framework analyzing how race, class, gender, sexuality, and other identities intersect to create unique experiences of privilege and oppression (Crenshaw 1989).' },
@@ -752,7 +752,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   humanities: {
     domain: 'humanities',
-    researcherName: 'Dr. Thomas Weber',
+    researcherName: 'Dr. Logos (Λόγος)',
     keyConcepts: [
       { name: 'Rawlsian Justice', definition: 'Justice as fairness — principles chosen behind a veil of ignorance: equal basic liberties and difference principle (Rawls 1971).' },
       { name: 'Precautionary Principle', definition: 'When an activity raises threats of harm, precautionary measures should be taken even if causal relationships are not fully established.' },
@@ -801,7 +801,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   'energy-advanced': {
     domain: 'energy-advanced',
-    researcherName: 'Dr. Fatima Al-Rashid',
+    researcherName: 'Dr. Energeia (Ἐνέργεια)',
     keyConcepts: [
       { name: 'Levelized Cost of Energy (LCOE)', definition: 'Total lifecycle cost of energy generation per unit of electricity, enabling comparison across technologies (solar, wind, nuclear, gas).' },
       { name: 'Grid Flexibility', definition: 'Power system\'s ability to accommodate variability and uncertainty from renewable generation through storage, demand response, and interconnection.' },
@@ -851,7 +851,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   'digital-society': {
     domain: 'digital-society',
-    researcherName: 'Dr. Kwame Osei',
+    researcherName: 'Dr. Digi (Δίγι)',
     keyConcepts: [
       { name: 'Platform Capitalism', definition: 'Economic model where digital platforms extract value from network effects, data, and algorithmic intermediation (Srnicek 2017).' },
       { name: 'Algorithmic Governance', definition: 'Use of algorithms to regulate behavior, allocate resources, and make decisions traditionally made by humans or institutions.' },
@@ -901,7 +901,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   'cognitive-science': {
     domain: 'cognitive-science',
-    researcherName: 'Dr. Lisa Chang',
+    researcherName: 'Dr. Noesis (Νόησις)',
     keyConcepts: [
       { name: 'Dual-Process Theory', definition: 'System 1 (fast, automatic, heuristic) vs System 2 (slow, deliberate, analytical) thinking — explains biases and rationality (Kahneman 2011).' },
       { name: 'Bounded Rationality', definition: 'Humans optimize within cognitive constraints — satisficing rather than maximizing (Simon 1955).' },
@@ -951,7 +951,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   'behavioral-economics': {
     domain: 'behavioral-economics',
-    researcherName: 'Dr. Rachel Kim',
+    researcherName: 'Dr. Thymos (Θυμός)',
     keyConcepts: [
       { name: 'Prospect Theory', definition: 'Decision-making framework where losses loom larger than gains, probability weighting is nonlinear, and reference points matter (Kahneman & Tversky 1979).' },
       { name: 'Nudge Theory', definition: 'Choice architecture can steer behavior without restricting options — defaults, framing, social norms (Thaler & Sunstein 2008).' },
@@ -1005,7 +1005,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   'urban-studies': {
     domain: 'urban-studies',
-    researcherName: 'Dr. Carlos Rodriguez',
+    researcherName: 'Dr. Asty (Ἄστυ)',
     keyConcepts: [
       { name: 'Urban Metabolism', definition: 'Cities as systems consuming resources (energy, water, materials) and producing outputs (waste, emissions) — framework for sustainable urban planning.' },
       { name: 'Transit-Oriented Development', definition: 'Urban design concentrating mixed-use development around public transit stations to reduce car dependency and sprawl.' },
@@ -1055,7 +1055,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   bioethics: {
     domain: 'bioethics',
-    researcherName: 'Dr. Sophie Martin',
+    researcherName: 'Dr. Bios (Βίος)',
     keyConcepts: [
       { name: 'Principlism', definition: 'Four principles of biomedical ethics: autonomy, beneficence, non-maleficence, justice — the dominant framework in clinical and research ethics (Beauchamp & Childress).' },
       { name: 'Informed Consent', definition: 'Ethical and legal requirement that individuals voluntarily agree to medical treatment or research participation based on adequate understanding.' },
@@ -1105,7 +1105,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   'complexity-science': {
     domain: 'complexity-science',
-    researcherName: 'Dr. Michael Zhang',
+    researcherName: 'Dr. Chaos (Χάος)',
     keyConcepts: [
       { name: 'Emergence', definition: 'Macro-level patterns arising from micro-level interactions that cannot be predicted from individual components alone — the hallmark of complex systems.' },
       { name: 'Tipping Points', definition: 'Critical thresholds where small changes trigger large, potentially irreversible shifts in system behavior — relevant to climate, finance, and social systems.' },
@@ -1155,7 +1155,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   'computational-social-science': {
     domain: 'computational-social-science',
-    researcherName: 'Dr. David Liu',
+    researcherName: 'Dr. Syntaxis (Σύνταξις)',
     keyConcepts: [
       { name: 'Digital Trace Data', definition: 'Behavioral data generated as byproduct of digital interactions — social media posts, web browsing, mobile location — enabling large-scale social analysis.' },
       { name: 'Natural Language Processing for Social Science', definition: 'Using NLP (topic models, sentiment analysis, word embeddings) to analyze large text corpora for social patterns.' },
@@ -1205,7 +1205,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   'development-economics': {
     domain: 'development-economics',
-    researcherName: 'Dr. Amina Diallo',
+    researcherName: 'Dr. Auxesis (Αὔξησις)',
     keyConcepts: [
       { name: 'Randomized Controlled Trials (RCTs)', definition: 'Gold standard for evaluating development interventions — random assignment to treatment/control groups to estimate causal impact (Banerjee & Duflo).' },
       { name: 'Structural Transformation', definition: 'Economy-wide shift from agriculture to industry to services — the classic development pathway, now questioned in age of premature deindustrialization.' },
@@ -1256,7 +1256,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   'risk-analysis': {
     domain: 'risk-analysis',
-    researcherName: 'Dr. Anika Johansson',
+    researcherName: 'Dr. Kyvernon (Κύβερνον)',
     keyConcepts: [
       { name: 'Value at Risk (VaR)', definition: 'Maximum expected loss at a given confidence level over a given time period — standard risk measure, but fails to capture tail risk.' },
       { name: 'Systemic Risk', definition: 'Risk that failure of one entity triggers cascading failures across an interconnected system — too-big-to-fail, contagion, fire sales.' },
@@ -1309,7 +1309,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   anthropology: {
     domain: 'anthropology',
-    researcherName: 'Dr. Amara Diallo',
+    researcherName: 'Dr. Anthropos (Ἄνθρωπος)',
     keyConcepts: [
       { name: 'Cultural Relativism', definition: 'Understanding practices within their own cultural logic before judging them — Boas\'s foundational counter to ethnocentric ranking', importance: 'foundational', relatedConcepts: ['ethnocentrism', 'emic/etic', 'cultural particularism'] },
       { name: 'Thick Description', definition: 'Geertz\'s method — description that captures context and meaning, not just behavior; a wink vs a twitch', importance: 'foundational', relatedConcepts: ['interpretive anthropology', 'semiotics', 'fieldwork'] },
@@ -1362,7 +1362,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   history: {
     domain: 'history',
-    researcherName: 'Dr. Henri Lefort',
+    researcherName: 'Dr. Historia (Ἱστορία)',
     keyConcepts: [
       { name: 'Longue Durée', definition: 'Braudel — history moves at three speeds: geographical/structural time, conjunctural time, event time. Events are foam on deeper currents', importance: 'foundational', relatedConcepts: ['Braudel', 'Annales school', 'structural time', 'conjuncture'] },
       { name: 'Path Dependence', definition: 'Early institutional choices constrain later options — contingency matters, small events lock in large structures', importance: 'foundational', relatedConcepts: ['critical junctures', 'lock-in', 'increasing returns'] },
@@ -1415,7 +1415,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   "religious-studies": {
     domain: 'religious-studies',
-    researcherName: 'Dr. Sophia Chen',
+    researcherName: 'Dr. Threskeia (Θρησκεία)',
     keyConcepts: [
       { name: 'Secularization Debate', definition: 'The contested thesis that modernization erodes religion — largely falsified outside Western Europe; "desecularization" (Berger\'s reversal) is the live position', importance: 'foundational', relatedConcepts: ['desecularization', 'post-secular', 'multiple modernities'] },
       { name: 'Political Theology', definition: 'How theological concepts migrate into political form — Schmitt: "all significant concepts of the modern theory of the state are secularized theological concepts"', importance: 'foundational', relatedConcepts: ['sovereignty', 'exception', 'messianism'] },
@@ -1468,7 +1468,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   "non-western-philosophy": {
     domain: 'non-western-philosophy',
-    researcherName: 'Dr. Kenji Watanabe',
+    researcherName: 'Dr. Gnosis (Γνῶσις)',
     keyConcepts: [
       { name: 'Confucian Order Ethics', definition: 'Order through ritual propriety (li), role ethics, and relational hierarchy — governance by exemplary virtue rather than law alone', importance: 'foundational', relatedConcepts: ['ren', 'li', 'junzi', 'harmony'] },
       { name: 'Daoist Wu-Wei', definition: 'Action through non-forcing — effective governance works with the grain of things; the strategic logic of indirect action', importance: 'foundational', relatedConcepts: ['wu-wei', 'ziran', 'strategic minimalism'] },
@@ -1525,7 +1525,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   sociology: {
     domain: 'sociology',
-    researcherName: 'Dr. Léa Moreau',
+    researcherName: 'Dr. Demos (Δῆμος)',
     keyConcepts: [
       { name: 'Field & Habitus', definition: 'Bourdieu — social life as fields of struggle where positions and dispositions (habitus) interact; capital (economic, cultural, social, symbolic) is the currency', importance: 'foundational', relatedConcepts: ['capital forms', 'doxa', 'symbolic violence'] },
       { name: 'Institutional Isomorphism', definition: 'DiMaggio & Powell — organizations in a field converge through coercive, mimetic, and normative pressures, not efficiency', importance: 'foundational', relatedConcepts: ['new institutionalism', 'organizational fields'] },
@@ -1575,7 +1575,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   psychology: {
     domain: 'psychology',
-    researcherName: 'Dr. Naomi Feld',
+    researcherName: 'Dr. Psyche (Ψυχή)',
     keyConcepts: [
       { name: 'Prospect Theory', definition: 'Kahneman & Tversky — losses loom ~2× larger than gains; reference-dependent valuation, not expected utility', importance: 'foundational', relatedConcepts: ['loss aversion', 'framing effects', 'reference point'] },
       { name: 'Dual-Process Cognition', definition: 'System 1 (fast, associative, automatic) vs System 2 (slow, deliberate) — most judgment is System 1 with System 2 rationalizing', importance: 'foundational', relatedConcepts: ['heuristics', 'automaticity', 'cognitive ease'] },
@@ -1625,7 +1625,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   "political-science": {
     domain: 'political-science',
-    researcherName: 'Dr. Marcus Hale',
+    researcherName: 'Dr. Kratos (Κράτος)',
     keyConcepts: [
       { name: 'Veto Players', definition: 'Tsebelis — policy stability is a function of the number and ideological distance of actors who can block change', importance: 'foundational', relatedConcepts: ['institutional players', 'partisan players', 'policy gridlock'] },
       { name: 'Democratic Backsliding', definition: 'Regime erosion by elected incumbents via legal means — courts packed, media bought, elections tilted; coups are the exception, not the rule', importance: 'foundational', relatedConcepts: ['executive aggrandizement', 'competitive authoritarianism', 'institutional forbearance'] },
@@ -1675,7 +1675,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   demography: {
     domain: 'demography',
-    researcherName: 'Dr. Ingrid Halvorsen',
+    researcherName: 'Dr. Plethysmos (Πληθυσμός)',
     keyConcepts: [
       { name: 'Demographic Transition', definition: 'Mortality falls first, fertility follows with a lag — the boom window between them reshapes economies and polities', importance: 'foundational', relatedConcepts: ['fertility transition', 'mortality decline', 'population boom'] },
       { name: 'Dependency Ratio', definition: 'Non-working (young + old) per working-age population — the fiscal and care burden math of every pension and health system', importance: 'foundational', relatedConcepts: ['aging', 'support ratio', 'fiscal sustainability'] },
@@ -1724,7 +1724,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   criminology: {
     domain: 'criminology',
-    researcherName: 'Dr. Rafael Ortega',
+    researcherName: 'Dr. Dike (Δίκη)',
     keyConcepts: [
       { name: 'Routine Activities Theory', definition: 'Cohen & Felson — crime requires a motivated offender, a suitable target, and the absence of a capable guardian; opportunities, not just dispositions', importance: 'foundational', relatedConcepts: ['situational crime prevention', 'guardianship'] },
       { name: 'Crime Concentration', definition: 'Crime clusters tightly in places (hot spots ~5% of addresses produce ~50% of calls) and in people (cohort studies: ~6% of a cohort)', importance: 'foundational', relatedConcepts: ['hot spots', 'crime and place', 'power few'] },
@@ -1773,7 +1773,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   education: {
     domain: 'education',
-    researcherName: 'Dr. Priya Raman',
+    researcherName: 'Dr. Paideia (Παιδεία)',
     keyConcepts: [
       { name: 'Achievement Gap Mechanics', definition: 'Gaps open early and compound — summer learning loss, preschool access, and within-school tracking are the proximate mechanisms', importance: 'foundational', relatedConcepts: ['summer slide', 'tracking', 'early childhood'] },
       { name: 'Human Capital vs Signaling', definition: 'Does education build skills (Becker) or signal ability (Spence)? The answer changes what interventions are worth funding', importance: 'foundational', relatedConcepts: ['sheepskin effects', 'returns to education'] },
@@ -1822,7 +1822,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   philosophy: {
     domain: 'philosophy',
-    researcherName: 'Dr. Élise Fontaine',
+    researcherName: 'Dr. Sophia (Σοφία)',
     keyConcepts: [
       { name: 'Reflective Equilibrium', definition: 'Rawls/Goodman — justify moral claims by moving back and forth between intuitions and principles until they cohere; not deduction from self-evident axioms', importance: 'foundational', relatedConcepts: ['coherence', 'considered judgments', 'justification'] },
       { name: 'The Normative Triad', definition: 'Consequentialism (outcomes), deontology (duties/constraints), virtue ethics (character) — most normative disputes reduce to which framework is doing the work', importance: 'foundational', relatedConcepts: ['utility', 'dignity', 'flourishing'] },
@@ -1872,7 +1872,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   linguistics: {
     domain: 'linguistics',
-    researcherName: 'Dr. Yuki Tanaka',
+    researcherName: 'Dr. Glossa (Γλῶσσα)',
     keyConcepts: [
       { name: 'Framing & Metaphor', definition: 'Lakoff — frames are cognitive structures; metaphorical thinking is constitutive, not decorative ("argument IS war")', importance: 'foundational', relatedConcepts: ['conceptual metaphor', 'frame semantics', 'moral framing'] },
       { name: 'Speech Acts', definition: 'Austin/Searle — utterances DO things (promise, order, declare); meaning exceeds literal content', importance: 'foundational', relatedConcepts: ['performatives', 'illocution', 'felicity conditions'] },
@@ -1921,7 +1921,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   "media-studies": {
     domain: 'media-studies',
-    researcherName: 'Dr. Carla Jimenez',
+    researcherName: 'Dr. Angelia (Ἀγγελία)',
     keyConcepts: [
       { name: 'Agenda Setting & Framing', definition: 'Media don\'t tell us what to think but what to think about (McCombs/Shaw) and how to think it (Entman) — two distinct effects', importance: 'foundational', relatedConcepts: ['priming', 'second-level agenda setting', 'attribute salience'] },
       { name: 'Public Sphere', definition: 'Habermas — the arena where private persons assemble to form public opinion; its structural transformation tracks media ownership and platform logic', importance: 'foundational', relatedConcepts: ['deliberation', 'communicative action', 'refeudalization'] },
@@ -1971,7 +1971,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   epidemiology: {
     domain: 'epidemiology',
-    researcherName: 'Dr. Sofia Lindqvist',
+    researcherName: 'Dr. Nosos (Νόσος)',
     keyConcepts: [
       { name: 'Bradford Hill Criteria', definition: 'Nine considerations (strength, consistency, temporality, dose-response…) for inferring causation from observational data — never a checklist verdict', importance: 'foundational', relatedConcepts: ['causal inference', 'temporality', 'dose-response'] },
       { name: 'Compartmental Models', definition: 'SIR/SEIR — transmission dynamics as flows between states; R0 is context-dependent, not a constant of the pathogen', importance: 'foundational', relatedConcepts: ['R0', 'effective reproduction number', 'herd immunity threshold'] },
@@ -2020,7 +2020,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   "public-health": {
     domain: 'public-health',
-    researcherName: 'Dr. Kwame Asante',
+    researcherName: 'Dr. Prophylaxis (Προφύλαξις)',
     keyConcepts: [
       { name: 'Social Determinants of Health', definition: 'Marmot — health follows the social gradient at every level; healthcare explains a minority of population health', importance: 'foundational', relatedConcepts: ['health gradient', 'health equity', 'upstream causes'] },
       { name: 'Prevention Paradox', definition: 'Rose — a measure that brings large benefits to the community may offer little to each individual; shifting the whole curve beats treating the tail', importance: 'foundational', relatedConcepts: ['population strategy', 'high-risk strategy'] },
@@ -2069,7 +2069,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   "international-relations": {
     domain: 'international-relations',
-    researcherName: 'Dr. Viktor Andersson',
+    researcherName: 'Dr. Oikumene (Οἰκουμένη)',
     keyConcepts: [
       { name: 'Balance of Power', definition: 'Waltz — states balance against capability (not intentions); bipolar, multipolar, unipolar systems have distinct stability logics', importance: 'foundational', relatedConcepts: ['polarity', 'balancing/bandwagoning', 'structural realism'] },
       { name: 'Security Dilemma', definition: 'Herz/Jervis — defensive measures by one state read as offensive by others; spiral dynamics without aggressor intent', importance: 'foundational', relatedConcepts: ['spiral model', 'arms racing', 'offense-defense balance'] },
@@ -2121,7 +2121,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   "migration-studies": {
     domain: 'migration-studies',
-    researcherName: 'Dr. Amara Diallo',
+    researcherName: 'Dr. Metanastes (Μετανάστης)',
     keyConcepts: [
       { name: 'Migration Systems', definition: 'Flows are structured systems with feedback loops — networks, remittances, diasporas; not atomized individual decisions', importance: 'foundational', relatedConcepts: ['network effects', 'cumulative causation', 'diaspora'] },
       { name: 'New Economics of Labor Migration', definition: 'Stark — migration is a household risk-diversification strategy, not just individual wage-maximization', importance: 'foundational', relatedConcepts: ['household strategy', 'remittances', 'risk diversification'] },
@@ -2170,7 +2170,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   "science-technology-studies": {
     domain: 'science-technology-studies',
-    researcherName: 'Dr. Hannah Lindgren',
+    researcherName: 'Dr. Mechanē (Μηχανή)',
     keyConcepts: [
       { name: 'Social Construction of Technology (SCOT)', definition: 'Pinch & Bijker — artifacts are shaped by relevant social groups and interpretive flexibility; closure stabilizes meaning', importance: 'foundational', relatedConcepts: ['interpretive flexibility', 'closure', 'relevant social groups'] },
       { name: 'Actor-Network Theory', definition: 'Latour/Callon/Law — agency is distributed across human and nonhuman actants; networks, not essences, produce outcomes', importance: 'foundational', relatedConcepts: ['actants', 'translation', 'enrollment', 'black-boxing'] },
@@ -2219,7 +2219,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   epistemology: {
     domain: 'epistemology',
-    researcherName: 'Dr. Simon Ashworth',
+    researcherName: 'Dr. Episteme (Ἐπιστήμη)',
     keyConcepts: [
       { name: 'Gettier Problem', definition: 'Justified true belief can be true by luck — knowledge needs something more (reliability, virtue, safety)', importance: 'foundational', relatedConcepts: ['epistemic luck', 'safety condition', 'JTB analysis'] },
       { name: 'Reliabilism vs Internalism', definition: 'Is justification about accessible reasons (internalist) or reliable belief-forming processes (externalist/reliabilist)?', importance: 'foundational', relatedConcepts: ['internalism', 'externalism', 'process reliability'] },
@@ -2268,7 +2268,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   "international-law": {
     domain: 'international-law',
-    researcherName: 'Dr. Claudia Reyes',
+    researcherName: 'Dr. Dikaion (Δίκαιον)',
     keyConcepts: [
       { name: 'Treaty Interpretation (VCLT 31-33)', definition: 'Ordinary meaning in context + object and purpose — not literalism, not pure purpose; the operative method of treaty law', importance: 'foundational', relatedConcepts: ['VCLT', 'object and purpose', 'subsequent practice'] },
       { name: 'Customary International Law', definition: 'State practice + opinio juris — binding even without treaty; proving it requires both elements, not one', importance: 'foundational', relatedConcepts: ['opinio juris', 'persistent objector', 'state practice'] },
@@ -2317,7 +2317,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   "conflict-studies": {
     domain: 'conflict-studies',
-    researcherName: 'Dr. Tomas Lindberg',
+    researcherName: 'Dr. Polemos (Πόλεμος)',
     keyConcepts: [
       { name: 'Bargaining Model of War', definition: 'Fearon — war is bargaining failure: private information, commitment problems, and issue indivisibilities make war ex post inefficient', importance: 'foundational', relatedConcepts: ['commitment problem', 'private information', 'issue indivisibility'] },
       { name: 'Greed vs Grievance', definition: 'Collier vs Fearon-Laitin — rebellion needs opportunity structure (finance, terrain, weak state) more than grievance; the debate that structured the field', importance: 'foundational', relatedConcepts: ['opportunity', 'lootable resources', 'state capacity'] },
@@ -2366,7 +2366,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   "political-economy": {
     domain: 'political-economy',
-    researcherName: 'Dr. Marisa Conti',
+    researcherName: 'Dr. Ploutos (Πλοῦτος)',
     keyConcepts: [
       { name: 'Varieties of Capitalism', definition: 'Hall & Soskice — liberal vs coordinated market economies have distinct institutional complementarities; there is no single "efficient" capitalism', importance: 'foundational', relatedConcepts: ['institutional complementarity', 'LME/CME', 'comparative advantage of institutions'] },
       { name: 'Embedded Liberalism', definition: 'Ruggie — postwar order traded openness for domestic stability; dismantling that bargain explains the backlash', importance: 'foundational', relatedConcepts: ['compromise of embedded liberalism', 'double movement'] },
@@ -2415,7 +2415,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   "public-administration": {
     domain: 'public-administration',
-    researcherName: 'Dr. Oliver Grant',
+    researcherName: 'Dr. Diokesis (Διοίκησις)',
     keyConcepts: [
       { name: 'Street-Level Bureaucracy', definition: 'Lipsky — frontline workers (teachers, police, caseworkers) effectively make policy through discretion; formal rules ≠ delivered policy', importance: 'foundational', relatedConcepts: ['discretion', 'implementation gap', 'coping mechanisms'] },
       { name: 'New Public Management', definition: 'Market-inspired reforms — targets, competition, privatization — delivered efficiency gains and metric-gaming pathologies in equal measure', importance: 'foundational', relatedConcepts: ['targets', 'contracting out', 'performance management'] },
@@ -2464,7 +2464,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   "gender-studies": {
     domain: 'gender-studies',
-    researcherName: 'Dr. Fatima Hassan',
+    researcherName: 'Dr. Isotes (Ἰσότης)',
     keyConcepts: [
       { name: 'Intersectionality', definition: 'Crenshaw — gender, race, and class interact as systems, not additive categories; the unit of analysis is the intersection', importance: 'foundational', relatedConcepts: ['interlocking oppression', 'matrix of domination', 'single-axis analysis'] },
       { name: 'Gender Performativity', definition: 'Butler — gender is constituted through repeated stylized performance, not expression of inner essence; norms produce what they claim to describe', importance: 'foundational', relatedConcepts: ['performativity', 'heterosexual matrix', 'norms'] },
@@ -2513,7 +2513,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   "area-studies": {
     domain: 'area-studies',
-    researcherName: 'Dr. Zainab Al-Rashid',
+    researcherName: 'Dr. Chora (Χώρα)',
     keyConcepts: [
       { name: 'Local Knowledge Primacy', definition: 'Geertz — thick description requires insider categories; external frameworks applied without translation produce systematic misreading', importance: 'foundational', relatedConcepts: ['thick description', 'emic/etic', 'verstehen'] },
       { name: 'Postcolonial Critique', definition: 'Said/Spivak/Chakrabarty — scholarship on "the rest" was written from colonial positions; categories carry that history', importance: 'foundational', relatedConcepts: ['orientalism', 'subaltern', 'provincializing Europe'] },
@@ -2562,7 +2562,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   "labor-studies": {
     domain: 'labor-studies',
-    researcherName: 'Dr. Henrik Johansson',
+    researcherName: 'Dr. Ergon (Ἔργον)',
     keyConcepts: [
       { name: 'Labor Market Segmentation', definition: 'Doeringer & Piore — primary (good jobs) vs secondary (bad jobs) segments with limited mobility between them; not a single market', importance: 'foundational', relatedConcepts: ['dual labor market', 'insider-outsider', 'job quality'] },
       { name: 'Skill-Biased Technical Change', definition: 'Autor — technology complements high-skill work and substitutes routine middle-skill work; polarization, not uniform displacement', importance: 'foundational', relatedConcepts: ['job polarization', 'routine-biased', 'task content'] },
@@ -2611,7 +2611,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   "ethics-of-technology": {
     domain: 'ethics-of-technology',
-    researcherName: 'Dr. Rhea Kapoor',
+    researcherName: 'Dr. Arete (Ἀρετή)',
     keyConcepts: [
       { name: 'Contextual Integrity', definition: 'Nissenbaum — privacy is appropriate information flow within social contexts, not secrecy; violations are context-relative', importance: 'foundational', relatedConcepts: ['informational norms', 'context-relative expectations'] },
       { name: 'Value-Sensitive Design', definition: 'Friedman — values are built into artifacts at design time; ethics is a design input, not a compliance afterthought', importance: 'foundational', relatedConcepts: ['design for values', 'stakeholder analysis', 'value tension'] },
@@ -2660,7 +2660,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   archaeology: {
     domain: 'archaeology',
-    researcherName: 'Dr. Petros Andreadis',
+    researcherName: 'Dr. Archaia (Ἀρχαία)',
     keyConcepts: [
       { name: 'Processual vs Post-Processual', definition: 'Binford vs Hodder — science (systems, adaptation, testable hypotheses) vs interpretation (agency, meaning, ideology); the discipline\'s defining split', importance: 'foundational', relatedConcepts: ['new archaeology', 'interpretive archaeology', 'middle-range theory'] },
       { name: 'Material Culture as Evidence', definition: 'Objects encode social relations — style, distribution, and deposition reveal structure that texts miss', importance: 'foundational', relatedConcepts: ['context', 'provenance', 'chaîne opératoire'] },
@@ -2709,7 +2709,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   neuroscience: {
     domain: 'neuroscience',
-    researcherName: 'Dr. Lena Vogt',
+    researcherName: 'Dr. Enkephalos (Ἐγκέφαλος)',
     keyConcepts: [
       { name: 'Reverse Inference Problem', definition: 'A brain region activating during task X does not prove task X recruits that region — regions are pluripotent; the inference must run the other way with Bayesian care', importance: 'foundational', relatedConcepts: ['fmri', 'functional specialization', 'bayesian inference'] },
       { name: 'Levels of Analysis (Marr)', definition: 'Computational (what), algorithmic (how), implementational (whereby) — claims at one level do not translate to another without bridging theory', importance: 'foundational', relatedConcepts: ['reductionism', 'emergence', 'explanation'] },
@@ -2758,7 +2758,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   'data-science': {
     domain: 'data-science',
-    researcherName: 'Dr. Kenji Nakamura',
+    researcherName: 'Dr. Dedomena (Δεδομένα)',
     keyConcepts: [
       { name: 'Benchmark Gaming', definition: 'Leaderboards reward overfitting to the test set — SOTA claims on static benchmarks are worth little (Gebru, Datasheets)', importance: 'foundational', relatedConcepts: ['sota-chasing', 'test-set contamination', 'leaderboard dynamics'] },
       { name: 'Prediction vs Explanation', definition: 'Breiman\'s two cultures — predictive accuracy and causal/explanatory validity are different goals requiring different methods', importance: 'foundational', relatedConcepts: ['causal inference', 'interpretability', 'two cultures'] },
@@ -2807,7 +2807,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   'economic-history': {
     domain: 'economic-history',
-    researcherName: 'Dr. Ingrid Halvorsen',
+    researcherName: 'Dr. Mnemosyne (Μνημοσύνη)',
     keyConcepts: [
       { name: 'Cliometrics', definition: 'Quantitative methods applied to history — counterfactuals and data reconstruction (Fogel, North); powerful but hostage to data quality', importance: 'foundational', relatedConcepts: ['counterfactual', 'historical national accounts', 'new economic history'] },
       { name: 'Great Divergence Debate', definition: 'Why did Northwest Europe industrialize first? Pomeranz (coal, colonies, contingencies) vs institutionalists vs culturalists — unresolved', importance: 'foundational', relatedConcepts: ['industrial revolution', 'pomeranz', 'california school'] },
@@ -2856,7 +2856,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   'social-psychology': {
     domain: 'social-psychology',
-    researcherName: 'Dr. Naomi Berger',
+    researcherName: 'Dr. Homilia (Ὁμιλία)',
     keyConcepts: [
       { name: 'Social Identity Theory', definition: 'Tajfel & Turner — mere categorization into groups produces ingroup favoritism; identity is relational, not fixed', importance: 'foundational', relatedConcepts: ['minimal group paradigm', 'ingroup bias', 'self-categorization'] },
       { name: 'Replication Crisis Literacy', definition: 'Priming, ego depletion, power posing, Stanford prison (demand characteristics) — much of the classic canon did not survive; knowing what did is the expertise', importance: 'foundational', relatedConcepts: ['replication', 'publication bias', 'p-hacking'] },
@@ -2905,7 +2905,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   'organizational-studies': {
     domain: 'organizational-studies',
-    researcherName: 'Dr. Marcus Thorne',
+    researcherName: 'Dr. Taxis (Τάξις)',
     keyConcepts: [
       { name: 'Institutional Isomorphism', definition: 'DiMaggio & Powell — organizations become similar through coercive, mimetic, and normative pressures; similarity signals legitimacy, not efficiency', importance: 'foundational', relatedConcepts: ['legitimacy', 'field', 'rationalized myths'] },
       { name: 'Garbage-Can Model', definition: 'Cohen-March-Olsen — decisions emerge when problems, solutions, participants, and choice opportunities collide; not intentional optimization', importance: 'foundational', relatedConcepts: ['organized anarchy', 'decision streams', 'ambiguity'] },
@@ -2954,7 +2954,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   'science-policy': {
     domain: 'science-policy',
-    researcherName: 'Dr. Aurora Lindqvist',
+    researcherName: 'Dr. Prometheus (Προμηθεύς)',
     keyConcepts: [
       { name: 'Linear Model Critique', definition: 'Basic→applied→market is a postwar fiction (Stokes) — innovation is networked, feedback-laden, and demand-pulled', importance: 'foundational', relatedConcepts: ['pasteur quadrant', 'innovation systems', 'mode 2'] },
       { name: 'Metrics Gaming', definition: 'Impact factors, h-index, rankings — Goodhart: every measure becomes a target and breaks; evaluation shapes what science gets done', importance: 'foundational', relatedConcepts: ['goodhart law', 'bibliometrics', 'evaluation regime'] },
@@ -3003,7 +3003,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   'development-studies': {
     domain: 'development-studies',
-    researcherName: 'Dr. Amara Osei',
+    researcherName: 'Dr. Anaptyxis (Ἀνάπτυξις)',
     keyConcepts: [
       { name: 'Capability Approach', definition: 'Sen/Nussbaum — development is expanding real freedoms, not raising GDP; income is a means, functionings and capabilities are the end', importance: 'foundational', relatedConcepts: ['functionings', 'human development', 'multidimensional poverty'] },
       { name: 'Dependency & Unequal Exchange', definition: 'Frank, Wallerstein, Emmanuel — the South\'s underdevelopment is produced by its integration into the Northern system, not by isolation from it', importance: 'foundational', relatedConcepts: ['core-periphery', 'world-systems', 'terms of trade'] },
@@ -3052,7 +3052,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   'comparative-politics': {
     domain: 'comparative-politics',
-    researcherName: 'Dr. Tomasz Wojcik',
+    researcherName: 'Dr. Synkrisis (Σύγκρισις)',
     keyConcepts: [
       { name: 'Democratic Backsliding', definition: 'Incremental erosion — courts captured, media pressured, electoral bodies politicized; coups are rare, slow degradation is the modern mode (Bermeo)', importance: 'foundational', relatedConcepts: ['executive aggrandizement', 'democratic erosion', 'levitsky-ziblatt'] },
       { name: 'Competitive Authoritarianism', definition: 'Levitsky & Way — regimes holding elections but tilting the field; neither democracy nor full authoritarianism', importance: 'foundational', relatedConcepts: ['hybrid regime', 'electoral authoritarianism', 'level playing field'] },
@@ -3101,7 +3101,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   'social-theory': {
     domain: 'social-theory',
-    researcherName: 'Dr. Camille Deschamps',
+    researcherName: 'Dr. Praxis (Πρᾶξις)',
     keyConcepts: [
       { name: 'Field, Habitus, Capital', definition: 'Bourdieu — social life as positional games (fields), embodied dispositions (habitus), convertible resources (economic/cultural/social/symbolic capital)', importance: 'foundational', relatedConcepts: ['symbolic violence', 'distinction', 'doxa'] },
       { name: 'Power-Knowledge', definition: 'Foucault — power produces knowledge and knowledge exercises power; disciplines constitute subjects rather than merely repressing them', importance: 'foundational', relatedConcepts: ['governmentality', 'biopolitics', 'discipline'] },
@@ -3150,7 +3150,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   'philosophy-of-science': {
     domain: 'philosophy-of-science',
-    researcherName: 'Dr. Elias Brandt',
+    researcherName: 'Dr. Theoria (Θεωρία)',
     keyConcepts: [
       { name: 'Underdetermination (Duhem-Quine)', definition: 'Data underdetermine theory — any result can be saved by adjusting auxiliaries; "the evidence proves X" always hides assumptions', importance: 'foundational', relatedConcepts: ['auxiliary hypotheses', 'holism', 'theory-ladenness'] },
       { name: 'Falsificationism and its Limits', definition: 'Popper — science advances by refutation, not confirmation; but real science does not abandon theories at the first anomaly (Lakatos)', importance: 'foundational', relatedConcepts: ['popper', 'demarcation', 'corroboration'] },
@@ -3199,7 +3199,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   'law-and-economics': {
     domain: 'law-and-economics',
-    researcherName: 'Dr. Sofia Rinaldi',
+    researcherName: 'Dr. Nomisma (Νόμισμα)',
     keyConcepts: [
       { name: 'Coase Theorem', definition: 'With zero transaction costs, allocation is efficient regardless of initial rights — but transaction costs are never zero, so institutions do the real work', importance: 'foundational', relatedConcepts: ['transaction costs', 'property rights', 'bargaining'] },
       { name: 'Efficient Breach and Liability Rules', definition: 'Calabresi-Melamed property vs liability rules; Posner — breach can be efficient when performance costs exceed gains; contested for ignoring distribution', importance: 'advanced', relatedConcepts: ['calabresi', 'contract remedies', 'incentives'] },
@@ -3248,7 +3248,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   'intelligence-studies': {
     domain: 'intelligence-studies',
-    researcherName: 'Dr. James Callahan',
+    researcherName: 'Dr. Phronesis (Φρόνησις)',
     keyConcepts: [
       { name: 'Analysis of Competing Hypotheses', definition: 'Heuer — evaluate evidence against ALL hypotheses, not the favored one; diagnosticity of evidence over quantity', importance: 'foundational', relatedConcepts: ['ach', 'diagnostic evidence', 'structured analytic techniques'] },
       { name: 'Intelligence Failure Typology', definition: 'Jervis/Betts — failures are usually analytic or policy-reception failures, not collection gaps; warning exists but is not heard', importance: 'foundational', relatedConcepts: ['warning-response gap', 'politicization', 'strategic surprise'] },
@@ -3297,7 +3297,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   'military-studies': {
     domain: 'military-studies',
-    researcherName: 'Dr. Viktor Brandt',
+    researcherName: 'Dr. Ares (Ἄρης)',
     keyConcepts: [
       { name: 'Clausewitzian Trinity', definition: 'War as interplay of passion (people), chance (army), reason (government) — friction and politics dominate any purely military reading', importance: 'foundational', relatedConcepts: ['friction', 'war as politics', 'center of gravity'] },
       { name: 'Deterrence Credibility', definition: 'Deterrence = capability × resolve × communication; a failure in any one collapses the whole (Schelling)', importance: 'foundational', relatedConcepts: ['compellence', 'escalation', 'signaling'] },
@@ -3346,7 +3346,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   'futures-studies': {
     domain: 'futures-studies',
-    researcherName: 'Dr. Yuki Tanaka-Delacroix',
+    researcherName: 'Dr. Mellon (Μέλλον)',
     keyConcepts: [
       { name: 'Scenario Planning', definition: 'Shell method — multiple plausible futures built on critical uncertainties; for decision robustness, not prediction', importance: 'foundational', relatedConcepts: ['critical uncertainties', 'predetermined elements', 'scenario logic'] },
       { name: 'Weak Signals & Wild Cards', definition: 'Early low-visibility indicators vs high-impact low-probability events — both get systematically underweighted', importance: 'foundational', relatedConcepts: ['horizon scanning', 'black swan', 'discontinuity'] },
@@ -3395,7 +3395,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   'economic-sociology': {
     domain: 'economic-sociology',
-    researcherName: 'Dr. Helena Weiss',
+    researcherName: 'Dr. Agora (Ἀγορά)',
     keyConcepts: [
       { name: 'Embeddedness', definition: 'Granovetter 1985 — economic action is embedded in social networks; both under- and over-socialized accounts fail', importance: 'foundational', relatedConcepts: ['networks', 'trust', 'social structure of markets'] },
       { name: 'Performativity', definition: 'Callon/MacKenzie — economics does not describe an economy, it performs one; models shape the markets they model (Black-Scholes)', importance: 'foundational', relatedConcepts: ['barnesian performativity', 'models as engines', 'counterperformativity'] },
@@ -3444,7 +3444,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   'historical-sociology': {
     domain: 'historical-sociology',
-    researcherName: 'Dr. Robert Ashworth',
+    researcherName: 'Dr. Chronos (Χρόνος)',
     keyConcepts: [
       { name: 'War Made the State', definition: 'Tilly — extraction + coercion + capital accumulation produced national states; states are protection rackets that won', importance: 'foundational', relatedConcepts: ['coercion-capital', 'state formation', 'bellicist theory'] },
       { name: 'Social Revolutions', definition: 'Skocpol — revolutions need state breakdown + international pressure + peasant autonomy; leaders ride structures they do not create', importance: 'foundational', relatedConcepts: ['structural conditions', 'state breakdown', 'class structure'] },
@@ -3493,7 +3493,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   'environmental-economics': {
     domain: 'environmental-economics',
-    researcherName: 'Dr. Greta Lindholm',
+    researcherName: 'Dr. Oikos (Οἶκος)',
     keyConcepts: [
       { name: 'Externality Pricing', definition: 'Pigou — internalize external costs via tax; carbon pricing works when coverage is broad, level material, leakage controlled', importance: 'foundational', relatedConcepts: ['carbon tax', 'pigouvian', 'internalization'] },
       { name: 'Stern-Nordhaus Discount Debate', definition: 'The discount rate decides whether climate action is urgent (Stern ~1.4%) or gradual (Nordhaus ~4-5%) — an ethical parameter disguised as technical', importance: 'foundational', relatedConcepts: ['discount rate', 'intergenerational ethics', 'social cost of carbon'] },
@@ -3542,7 +3542,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   'health-economics': {
     domain: 'health-economics',
-    researcherName: 'Dr. Fatima Al-Rashid',
+    researcherName: 'Dr. Therapeia (Θεραπεία)',
     keyConcepts: [
       { name: 'QALY & Cost-Effectiveness', definition: 'Quality-adjusted life years organize health spending decisions — ethically loaded: age, disability, and equity weights are contested', importance: 'foundational', relatedConcepts: ['qaly', 'cost-effectiveness threshold', 'nice'] },
       { name: 'Health System Typology', definition: 'Bismarck (insurance), Beveridge (national service), NHI hybrids — financing structure predicts outcomes better than spending level', importance: 'foundational', relatedConcepts: ['bismarck', 'beveridge', 'universal coverage'] },
@@ -3591,7 +3591,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   'legal-theory': {
     domain: 'legal-theory',
-    researcherName: 'Dr. Anton Bergmann',
+    researcherName: 'Dr. Themis (Θέμις)',
     keyConcepts: [
       { name: 'Positivism vs Natural Law', definition: 'Hart/Kelsen — law as social fact (rules of recognition) vs Fuller/Finnis — law tied to moral minimums; the frame decides what counts as law at all', importance: 'foundational', relatedConcepts: ['rule of recognition', 'internal morality of law', 'validity'] },
       { name: 'Legal Realism', definition: 'Holmes/Llewellyn — law is what courts do, not what texts say; doctrine underdetermines outcomes', importance: 'foundational', relatedConcepts: ['judicial behavior', 'indeterminacy', 'pragmatism'] },
@@ -3640,7 +3640,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   'postcolonial-studies': {
     domain: 'postcolonial-studies',
-    researcherName: 'Dr. Leila Haddad',
+    researcherName: 'Dr. Eleutheria (Ἐλευθερία)',
     keyConcepts: [
       { name: 'Orientalism', definition: 'Said — the "Orient" is a Western construction serving power; the Other as object of knowledge, never author of it', importance: 'foundational', relatedConcepts: ['representation', 'othering', 'discourse'] },
       { name: 'Coloniality of Power', definition: 'Quijano — colonialism ended but coloniality persists: racial hierarchy, labor control, epistemic authority outlive empire', importance: 'foundational', relatedConcepts: ['coloniality', 'modernity/coloniality', 'mignolo'] },
@@ -3689,7 +3689,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   'communication-studies': {
     domain: 'communication-studies',
-    researcherName: 'Dr. Paul Verhoeven',
+    researcherName: 'Dr. Rhema (Ῥῆμα)',
     keyConcepts: [
       { name: 'Propaganda Model', definition: 'Herman & Chomsky — five filters (ownership, advertising, sourcing, flak, ideology) shape news without conspiracy; structural, not intentional', importance: 'foundational', relatedConcepts: ['manufacturing consent', 'filters', 'structural bias'] },
       { name: 'Agenda-Setting & Framing', definition: 'Media tells us what to think about (agenda) and how to think about it (framing) — real but bounded effects', importance: 'foundational', relatedConcepts: ['agenda-setting', 'framing', 'priming'] },
@@ -3738,7 +3738,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   'public-finance': {
     domain: 'public-finance',
-    researcherName: 'Dr. Catherine Moreau',
+    researcherName: 'Dr. Tamias (Ταμίας)',
     keyConcepts: [
       { name: 'Tax Incidence', definition: 'Statutory payer ≠ economic bearer — elasticities decide who really pays (corporate tax partly on workers, VAT on consumers)', importance: 'foundational', relatedConcepts: ['incidence', 'elasticity', 'shifting'] },
       { name: 'Debt Dynamics', definition: 'r vs g plus primary balance — debt sustainability is arithmetic + confidence, not a fixed threshold (Reinhart-Rogoff lesson)', importance: 'foundational', relatedConcepts: ['r<g', 'primary balance', 'debt spiral'] },
@@ -3787,7 +3787,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   'political-anthropology': {
     domain: 'political-anthropology',
-    researcherName: 'Dr. David Graeber-Lindt',
+    researcherName: 'Dr. Ethnos (Ἔθνος)',
     keyConcepts: [
       { name: 'Seeing Like a State', definition: 'Scott — states render societies legible to control them; simplification destroys local knowledge (mētis) and produces disasters when pushed hard', importance: 'foundational', relatedConcepts: ['legibility', 'high modernism', 'metis'] },
       { name: 'Societies Against the State', definition: 'Clastres — many societies have mechanisms to PREVENT state formation; statelessness is often a political achievement, not a failure', importance: 'foundational', relatedConcepts: ['statelessness', 'power without coercion', 'primitive societies'] },
@@ -3836,7 +3836,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   'food-systems': {
     domain: 'food-systems',
-    researcherName: 'Dr. Amina Diallo',
+    researcherName: 'Dr. Sitos (Σῖτος)',
     keyConcepts: [
       { name: 'Entitlement Approach', definition: 'Sen — famines are entitlement failures, not food availability failures; people starve because they lose access, not because food vanishes', importance: 'foundational', relatedConcepts: ['famine', 'entitlements', 'exchange failure'] },
       { name: 'Food Regime Theory', definition: 'Friedmann & McMichael — successive global food orders (colonial, postwar, corporate) structure who eats what', importance: 'foundational', relatedConcepts: ['food regimes', 'corporate food regime', 'wto agriculture'] },

@@ -4,6 +4,7 @@ import typography from '@tailwindcss/typography';
  * NomosX Design System — SpaceX grammar (public) + internal palette via CSS vars
  */
 export default {
+  darkMode: 'class',
   content: ["./app/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}"],
   theme: {
     extend: {

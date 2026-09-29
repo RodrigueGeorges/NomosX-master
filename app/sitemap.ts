@@ -22,6 +22,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticPaths = [
     '/',
     '/archives',
+    '/topics',
     '/track-record',
     '/about',
     '/methodology',
@@ -30,6 +31,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     '/studio',
     '/privacy',
     '/terms',
+    '/corrections',
+    '/desk',
   ];
 
   // Static pages — one entry per locale with hreflang alternates

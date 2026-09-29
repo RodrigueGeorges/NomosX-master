@@ -179,11 +179,11 @@ export default function LearningDashboardPage() {
             </div>
 
             {/* By agent */}
-            <div className="rounded-xl border border-black/10 bg-black/5 p-6">
+            <div className="rounded-xl border border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5 p-6">
               <h2 className="text-lg font-semibold text-gray-200 mb-4">Apprentissage par agent</h2>
               <div className="space-y-3">
                 {Object.entries(data.byAgent).map(([agent, stats]) => (
-                  <div key={agent} className="flex items-center justify-between p-3 rounded-lg bg-black/5">
+                  <div key={agent} className="flex items-center justify-between p-3 rounded-lg bg-black/5 dark:bg-white/5">
                     <div className="flex items-center gap-3">
                       <span className="text-sm font-medium text-gray-300 capitalize">{agent}</span>
                     </div>
@@ -221,11 +221,11 @@ export default function LearningDashboardPage() {
             </div>
 
             {/* Lessons list */}
-            <div className="rounded-xl border border-black/10 bg-black/5 p-6">
+            <div className="rounded-xl border border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5 p-6">
               <h2 className="text-lg font-semibold text-gray-200 mb-4">Leçons récentes</h2>
               <div className="space-y-3">
                 {data.lessons.map((lesson) => (
-                  <div key={lesson.id} className="p-4 rounded-lg bg-black/5 border border-black/10">
+                  <div key={lesson.id} className="p-4 rounded-lg bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10">
                     <div className="flex items-start justify-between gap-4 mb-2">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-xs font-medium text-gray-400 capitalize">{lesson.agent}</span>
@@ -259,11 +259,11 @@ export default function LearningDashboardPage() {
             </div>
 
             {/* Auto-corrections */}
-            <div className="rounded-xl border border-black/10 bg-black/5 p-6">
+            <div className="rounded-xl border border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5 p-6">
               <h2 className="text-lg font-semibold text-gray-200 mb-4">Auto-corrections récentes</h2>
               <div className="space-y-2">
                 {data.selfCorrections.map((sc) => (
-                  <div key={sc.id} className="flex items-center gap-4 p-3 rounded-lg bg-black/5">
+                  <div key={sc.id} className="flex items-center gap-4 p-3 rounded-lg bg-black/5 dark:bg-white/5">
                     {sc.improved ? (
                       <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0" />
                     ) : (
@@ -291,11 +291,11 @@ export default function LearningDashboardPage() {
             </div>
 
             {/* Human corrections */}
-            <div className="rounded-xl border border-black/10 bg-black/5 p-6">
+            <div className="rounded-xl border border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5 p-6">
               <h2 className="text-lg font-semibold text-gray-200 mb-4">Corrections humaines récentes</h2>
               <div className="space-y-2">
                 {data.corrections.map((c) => (
-                  <div key={c.id} className="flex items-center gap-4 p-3 rounded-lg bg-black/5">
+                  <div key={c.id} className="flex items-center gap-4 p-3 rounded-lg bg-black/5 dark:bg-white/5">
                     <Lightbulb className="w-5 h-5 text-purple-400 flex-shrink-0" />
                     <div className="flex-1">
                       <div className="text-sm text-gray-300">
@@ -313,7 +313,7 @@ export default function LearningDashboardPage() {
                 ))}
                 {data.corrections.length === 0 && (
                   <p className="text-gray-500 text-sm py-4 text-center">
-                    Aucune correction humaine enregistrée. Utilisez l&apos;API <code className="text-gray-400 bg-black/5 px-1 rounded">POST /api/feedback/learn</code> pour soumettre une correction.
+                    Aucune correction humaine enregistrée. Utilisez l&apos;API <code className="text-gray-400 bg-black/5 dark:bg-white/5 px-1 rounded">POST /api/feedback/learn</code> pour soumettre une correction.
                   </p>
                 )}
               </div>

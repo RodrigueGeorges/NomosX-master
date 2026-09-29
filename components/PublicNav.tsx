@@ -9,7 +9,7 @@ import { LOGO_NAV_CAP } from "@/lib/brand/logo-config";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { cn } from "@/lib/utils";
 import { Link, useRouter, usePathname } from "@/i18n/navigation";
-import { LOCALES, DEFAULT_LOCALE, type AppLocale } from "@/i18n/routing";
+import { LOCALES, LOCALE_NAMES, NON_DEFAULT_LOCALES, DEFAULT_LOCALE, type AppLocale } from "@/i18n/routing";
 
 export type PublicNavPage =
   | "dossiers"
@@ -20,7 +20,8 @@ export type PublicNavPage =
   | "about"
   | "articles"
   | "methodology"
-  | "pricing";
+  | "pricing"
+  | "desk";
 
 interface PublicNavProps {
   currentPage?: PublicNavPage;
@@ -30,6 +31,8 @@ interface PublicNavProps {
 
 const NAV_LINKS: { labelKey: string; page: PublicNavPage; href: string }[] = [
   { labelKey: "Nav.briefs", page: "inquiries", href: "/archives" },
+  { labelKey: "Nav.desk", page: "desk", href: "/desk" },
+  { labelKey: "Nav.policyAreas", page: "articles", href: "/topics" },
   { labelKey: "Nav.dossiers", page: "dossiers", href: "/dossiers" },
   { labelKey: "Nav.domains", page: "research", href: "/researchers" },
   { labelKey: "Nav.studio", page: "studio", href: "/studio" },
@@ -57,8 +60,11 @@ export default function PublicNav({ currentPage, onSignInClick, isAuthenticated 
       .catch(() => {});
   }, [isAuthenticated]);
 
-  // Detect current locale from pathname (/fr/... → fr, else en)
-  const currentLocale: AppLocale = pathname.startsWith("/fr") ? "fr" : "en";
+  // Detect current locale from pathname (/<locale>/... → that locale, else en)
+  const currentLocale: AppLocale =
+    (NON_DEFAULT_LOCALES.find(
+      (l) => pathname === `/${l}` || pathname.startsWith(`/${l}/`)
+    ) as AppLocale | undefined) ?? DEFAULT_LOCALE;
 
   const switchLocale = (locale: AppLocale) => {
     // For default locale (en), no prefix. For fr, add /fr prefix.
@@ -120,7 +126,7 @@ export default function PublicNav({ currentPage, onSignInClick, isAuthenticated 
           >
             <Play size={12} />
           </button>
-          <ThemeToggle className="hidden sm:flex" />
+          <ThemeToggle />
           {/* Language switcher */}
           <div className="relative hidden sm:block">
             <button
@@ -138,7 +144,7 @@ export default function PublicNav({ currentPage, onSignInClick, isAuthenticated 
                   initial={{ opacity: 0, y: -4 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -4 }}
-                  className="absolute right-0 top-full mt-1 border border-black/[0.08] dark:border-white/[0.08] bg-white/95 dark:bg-[#111114]/95 backdrop-blur-xl py-1 min-w-[120px] shadow-lg shadow-black/[0.04] dark:shadow-black/40"
+                  className="absolute right-0 top-full mt-1 border border-black/[0.08] dark:border-white/[0.08] bg-white/95 dark:bg-[#111114]/95 backdrop-blur-xl py-1 min-w-[140px] max-h-[70vh] overflow-y-auto shadow-lg shadow-black/[0.04] dark:shadow-black/40"
                 >
                   {LOCALES.map((loc) => (
                     <button
@@ -146,13 +152,13 @@ export default function PublicNav({ currentPage, onSignInClick, isAuthenticated 
                       type="button"
                       onClick={() => switchLocale(loc)}
                       className={cn(
-                        "block w-full text-left px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.14em] transition-colors",
+                        "block w-full text-left px-3 py-1.5 font-mono text-[11px] tracking-[0.08em] transition-colors",
                         currentLocale === loc
                           ? "text-black dark:text-white"
                           : "text-black/50 dark:text-white/50 hover:text-black dark:hover:text-white"
                       )}
                     >
-                      {loc === "en" ? t("Nav.languageEn") : t("Nav.languageFr")}
+                      {LOCALE_NAMES[loc] ?? loc}
                     </button>
                   ))}
                 </motion.div>
@@ -230,18 +236,18 @@ export default function PublicNav({ currentPage, onSignInClick, isAuthenticated 
               )}
 
               {/* Mobile language switcher */}
-              <div className="flex gap-3 pt-2 border-t border-black/[0.06] dark:border-white/[0.06]">
+              <div className="flex flex-wrap gap-x-3 gap-y-2 pt-2 border-t border-black/[0.06] dark:border-white/[0.06]">
                 {LOCALES.map((loc) => (
                   <button
                     key={loc}
                     type="button"
                     onClick={() => switchLocale(loc)}
                     className={cn(
-                      "font-mono text-xs uppercase tracking-[0.14em]",
+                      "font-mono text-xs tracking-[0.08em]",
                       currentLocale === loc ? "text-black dark:text-white" : "text-black/50 dark:text-white/50"
                     )}
                   >
-                    {loc === "en" ? t("Nav.languageEn") : t("Nav.languageFr")}
+                    {LOCALE_NAMES[loc] ?? loc}
                   </button>
                 ))}
               </div>

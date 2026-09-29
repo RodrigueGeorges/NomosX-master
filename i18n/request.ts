@@ -19,8 +19,18 @@ export default getRequestConfig(async ({requestLocale}) => {
     ? requested
     : routing.defaultLocale;
 
-  return {
-    locale,
-    messages: (await import(`../messages/${locale}.json`)).default,
-  };
+  const en = (await import('../messages/en.json')).default;
+  let messages = en;
+  if (locale !== 'en') {
+    try {
+      const localized = (await import(`../messages/${locale}.json`)).default;
+      // Shallow-merge: a namespace absent from the locale file falls back
+      // to English rather than crashing the whole page.
+      messages = { ...en, ...localized };
+    } catch {
+      // File not generated yet — English chrome, translated article bodies.
+    }
+  }
+
+  return { locale, messages };
 });

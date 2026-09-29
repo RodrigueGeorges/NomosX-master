@@ -6,7 +6,7 @@
  * the ability to evolve their views based on new evidence.
  *
  * This is what makes NomosX publications genuinely superior:
- * Dr. Vasquez has published 23 analyses. She predicted in March that carbon
+ * Dr. Oikonomia has published 23 analyses. She predicted in March that carbon
  * taxes would underperform in high-inequality contexts. New evidence confirms
  * this. She now cites her own prior work and updates her position.
  *
@@ -282,6 +282,113 @@ export async function buildResearcherProfile(
 
   profile.identityBlock = buildIdentityBlock(profile, currentTopic);
   return profile;
+}
+
+/**
+ * Public track record for a desk — cheap stats for the /researchers/[id] page.
+ * No embeddings, no LLM: pure audit-log counts. Returns null on DB failure
+ * so a stats outage never takes a public page down.
+ */
+export interface ResearcherPositionRecord {
+  topic: string;
+  stance: string;
+  confidence: number;
+  date: string;
+}
+
+export interface ResearcherPredictionRecord {
+  claim: string;
+  probability: number | null;
+  timeframe: string;
+  resolved: boolean;
+  outcome: string | null;
+  date: string;
+}
+
+export interface ResearcherTrackRecord {
+  analyses: number;
+  predictionsTotal: number;
+  predictionsResolved: number;
+  predictionsCorrect: number;
+  predictionsOpen: number;
+  accuracy: number | null;      // null when nothing resolved yet
+  avgConfidence: number | null; // null when no positions yet
+  positions: ResearcherPositionRecord[];
+  predictions: ResearcherPredictionRecord[];
+}
+
+export async function getResearcherTrackRecord(expertId: string): Promise<ResearcherTrackRecord | null> {
+  try {
+    const agentKey = `researcher:${expertId}`;
+    const [positionRows, predictionRows] = await Promise.all([
+      prisma.agentAuditLog.findMany({
+        where: { agent: agentKey, action: "POSITION_STORED" },
+        orderBy: { timestamp: "desc" },
+        take: 100,
+        select: { metadata: true, timestamp: true },
+      }),
+      prisma.agentAuditLog.findMany({
+        where: { agent: agentKey, action: "PREDICTION_STORED" },
+        orderBy: { timestamp: "desc" },
+        take: 200,
+        select: { metadata: true, timestamp: true },
+      }),
+    ]);
+
+    let resolved = 0, correct = 0, open = 0;
+    const predictions: ResearcherPredictionRecord[] = [];
+    for (const p of predictionRows) {
+      try {
+        const m = JSON.parse(p.metadata || "{}");
+        if (m.resolved) {
+          resolved++;
+          if (m.outcome === "correct" || m.outcome === "partial") correct++;
+        } else open++;
+        if (m.prediction && predictions.length < 12) {
+          predictions.push({
+            claim: m.prediction,
+            probability: typeof m.probability === "number" ? m.probability : null,
+            timeframe: m.timeframe || "",
+            resolved: !!m.resolved,
+            outcome: m.outcome ?? null,
+            date: (m.createdAt || p.timestamp || "").toString().slice(0, 10),
+          });
+        }
+      } catch { /* malformed row — skip */ }
+    }
+
+    let confidenceSum = 0, confidenceN = 0;
+    const positions: ResearcherPositionRecord[] = [];
+    for (const r of positionRows) {
+      try {
+        const m = JSON.parse(r.metadata || "{}");
+        if (typeof m.confidence === "number") { confidenceSum += m.confidence; confidenceN++; }
+        if (m.topic && m.stance && positions.length < 8) {
+          positions.push({
+            topic: m.topic,
+            stance: m.stance,
+            confidence: typeof m.confidence === "number" ? m.confidence : 50,
+            date: (m.createdAt || r.timestamp || "").toString().slice(0, 10),
+          });
+        }
+      } catch { /* skip */ }
+    }
+
+    return {
+      analyses: positionRows.length,
+      predictionsTotal: predictionRows.length,
+      predictionsResolved: resolved,
+      predictionsCorrect: correct,
+      predictionsOpen: open,
+      accuracy: resolved > 0 ? correct / resolved : null,
+      avgConfidence: confidenceN > 0 ? Math.round(confidenceSum / confidenceN) : null,
+      positions,
+      predictions,
+    };
+  } catch (err) {
+    console.warn("[RESEARCHER IDENTITY] track record read failed:", err);
+    return null;
+  }
 }
 
 // ============================================================================

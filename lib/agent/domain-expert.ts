@@ -71,7 +71,7 @@ interface Prediction {
 export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
   economics: {
     id: 'economics-analyst',
-    name: 'Dr. Elena Vasquez',
+    name: 'Dr. Oikonomia (Οἰκονομία)',
     title: 'Economics & Policy Analyst',
     domain: 'economics',
     subDomains: ['econometrics', 'monetary-policy', 'labor-economics', 'trade-economics', 'development-economics'],
@@ -91,7 +91,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
   
   technology: {
     id: 'technology-analyst',
-    name: 'Dr. James Chen',
+    name: 'Dr. Techne (Τέχνη)',
     title: 'AI & Digital Systems Analyst',
     domain: 'technology',
     subDomains: ['artificial-intelligence', 'machine-learning', 'cybersecurity', 'distributed-systems', 'computational-complexity', 'digital-transformation'],
@@ -110,7 +110,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
   
   policy: {
     id: 'policy-analyst',
-    name: 'Dr. Amara Okafor',
+    name: 'Dr. Politeia (Πολιτεία)',
     title: 'Public Policy & Governance Analyst',
     domain: 'policy',
     subDomains: ['public-policy', 'governance', 'regulatory-frameworks', 'international-relations', 'institutional-design'],
@@ -129,7 +129,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
   
   health: {
     id: 'health-analyst',
-    name: 'Dr. Sarah Lindström',
+    name: 'Dr. Hygeia (Ὑγίεια)',
     title: 'Health & Epidemiology Analyst',
     domain: 'health',
     subDomains: ['epidemiology', 'public-health', 'clinical-research', 'health-policy', 'biostatistics'],
@@ -148,7 +148,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
   
   security: {
     id: 'security-analyst',
-    name: 'Dr. Marcus Webb',
+    name: 'Dr. Aegis (Αἰγίς)',
     title: 'Security & Defense Analyst',
     domain: 'security',
     subDomains: ['strategic-security', 'intelligence', 'military-analysis', 'cybersecurity', 'terrorism'],
@@ -167,7 +167,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
   
   law: {
     id: 'law-analyst',
-    name: 'Dr. Isabelle Moreau',
+    name: 'Dr. Nomos (Νόμος)',
     title: 'Legal & Regulatory Analyst',
     domain: 'law',
     subDomains: ['international-law', 'regulatory-frameworks', 'governance', 'compliance', 'legal-theory', 'human-rights'],
@@ -186,7 +186,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
   
   environment: {
     id: 'environment-analyst',
-    name: 'Dr. Kenji Tanaka',
+    name: 'Dr. Gaia (Γαία)',
     title: 'Environmental & Climate Analyst',
     domain: 'environment',
     subDomains: ['climate-science', 'climate-change', 'environmental-policy', 'sustainability', 'renewable-energy', 'ecosystems'],
@@ -205,7 +205,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
   
   quantitative: {
     id: 'quantitative-analyst',
-    name: 'Dr. Priya Sharma',
+    name: 'Dr. Metron (Μέτρον)',
     title: 'Quantitative Methods Analyst',
     domain: 'quantitative',
     subDomains: ['statistics', 'econometrics', 'machine-learning', 'causal-inference', 'research-methods'],
@@ -224,7 +224,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
   
   finance: {
     id: 'finance-analyst',
-    name: 'Dr. Michael Chen',
+    name: 'Dr. Chrematistikos (Χρηματιστικός)',
     title: 'Finance & Investment Analyst',
     domain: 'finance',
     subDomains: ['financial-markets', 'investment-analysis', 'risk-management', 'corporate-finance', 'fintech'],
@@ -243,7 +243,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
   
   'social-sciences': {
     id: 'social-sciences-analyst',
-    name: 'Dr. Maria Rodriguez',
+    name: 'Dr. Koinonia (Κοινωνία)',
     title: 'Social Sciences Analyst',
     domain: 'social-sciences',
     subDomains: ['sociology', 'anthropology', 'social-psychology', 'demography', 'social-mobility'],
@@ -262,7 +262,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
   
   humanities: {
     id: 'humanities-analyst',
-    name: 'Dr. Thomas Anderson',
+    name: 'Dr. Logos (Λόγος)',
     title: 'Humanities & Ethics Analyst',
     domain: 'humanities',
     subDomains: ['philosophy', 'ethics', 'history', 'literature', 'cultural-studies'],
@@ -281,7 +281,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
   
   'energy-advanced': {
     id: 'energy-advanced-analyst',
-    name: 'Dr. Lisa Wang',
+    name: 'Dr. Energeia (Ἐνέργεια)',
     title: 'Energy Systems Analyst',
     domain: 'energy-advanced',
     subDomains: ['renewable-energy', 'energy-systems', 'energy-policy', 'energy-security', 'grid-management', 'energy-economics'],
@@ -300,7 +300,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
   
   geopolitics: {
     id: 'geopolitics-analyst',
-    name: 'Dr. James Mitchell',
+    name: 'Dr. Polis (Πόλις)',
     title: 'Geopolitics & International Relations Analyst',
     domain: 'geopolitics',
     subDomains: ['international-relations', 'geopolitics', 'foreign-policy', 'trade-policy', 'security-studies'],
@@ -319,7 +319,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
   
   'cognitive-science': {
     id: 'cognitive-science-analyst',
-    name: 'Dr. Emma Thompson',
+    name: 'Dr. Noesis (Νόησις)',
     title: 'Cognitive Science & Decision Analyst',
     domain: 'cognitive-science',
     subDomains: ['cognitive-psychology', 'decision-theory', 'behavioral-economics', 'neuroscience', 'human-factors'],
@@ -338,7 +338,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
   
   'digital-society': {
     id: 'digital-society-analyst',
-    name: 'Dr. Alex Kumar',
+    name: 'Dr. Digi (Δίγι)',
     title: 'Digital Society & Technology Analyst',
     domain: 'digital-society',
     subDomains: ['digital-transformation', 'social-media', 'digital-rights', 'platform-economics', 'online-behavior'],
@@ -357,7 +357,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
   
   'behavioral-economics': {
     id: 'behavioral-economics-analyst',
-    name: 'Dr. Rachel Green',
+    name: 'Dr. Thymos (Θυμός)',
     title: 'Behavioral Economics Analyst',
     domain: 'behavioral-economics',
     subDomains: ['behavioral-economics', 'decision-making', 'nudge-theory', 'experimental-economics', 'public-policy'],
@@ -376,7 +376,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
   
   'urban-studies': {
     id: 'urban-studies-analyst',
-    name: 'Dr. Carlos Martinez',
+    name: 'Dr. Asty (Ἄστυ)',
     title: 'Urban Studies & Planning Analyst',
     domain: 'urban-studies',
     subDomains: ['urban-planning', 'housing', 'transportation', 'urban-economics', 'sustainability'],
@@ -395,7 +395,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
 
   'computational-social-science': {
     id: 'computational-social-science-analyst',
-    name: 'Dr. David Kim',
+    name: 'Dr. Syntaxis (Σύνταξις)',
     title: 'Computational Social Science Analyst',
     domain: 'computational-social-science',
     subDomains: ['social-computing', 'network-analysis', 'big-data', 'agent-based-modeling', 'digital-trace-analysis'],
@@ -414,7 +414,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
   
   bioethics: {
     id: 'bioethics-analyst',
-    name: 'Dr. Susan Lee',
+    name: 'Dr. Bios (Βίος)',
     title: 'Bioethics & Medical Ethics Analyst',
     domain: 'bioethics',
     subDomains: ['bioethics', 'medical-ethics', 'research-ethics', 'genetic-ethics', 'end-of-life-care'],
@@ -433,7 +433,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
   
   'complexity-science': {
     id: 'complexity-science-analyst',
-    name: 'Dr. Robert Chang',
+    name: 'Dr. Chaos (Χάος)',
     title: 'Complexity Science Analyst',
     domain: 'complexity-science',
     subDomains: ['complex-systems', 'emergence', 'network-theory', 'chaos-theory', 'self-organization'],
@@ -452,7 +452,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
 
   'development-economics': {
     id: 'development-economics-analyst',
-    name: 'Dr. Amina Diallo',
+    name: 'Dr. Auxesis (Αὔξησις)',
     title: 'Development Economics Analyst',
     domain: 'development-economics',
     subDomains: ['poverty-alleviation', 'microfinance', 'institutional-economics', 'aid-effectiveness', 'human-capital'],
@@ -471,7 +471,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
 
   'risk-analysis': {
     id: 'risk-analysis-analyst',
-    name: 'Dr. Anika Johansson',
+    name: 'Dr. Kyvernon (Κύβερνον)',
     title: 'Risk Analysis & Uncertainty Modeling Analyst',
     domain: 'risk-analysis',
     subDomains: ['systemic-risk', 'financial-risk', 'operational-risk', 'catastrophe-modeling', 'scenario-planning'],
@@ -489,7 +489,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
   },
   'anthropology': {
     id: 'anthropology-analyst',
-    name: 'Dr. Amara Diallo',
+    name: 'Dr. Anthropos (Ἄνθρωπος)',
     title: 'Anthropology & Cultural Analysis Analyst',
     domain: 'anthropology',
     subDomains: ['cultural-anthropology', 'structural-anthropology', 'ontological-anthropology', 'science-studies', 'multi-species-ethnography'],
@@ -507,7 +507,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
   },
   'history': {
     id: 'history-analyst',
-    name: 'Dr. Henri Lefort',
+    name: 'Dr. Historia (Ἱστορία)',
     title: 'History & Historical Analysis Analyst',
     domain: 'history',
     subDomains: ['annales-school', 'intellectual-history', 'postcolonial-history', 'conceptual-history', 'contemporary-history'],
@@ -525,7 +525,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
   },
   'religious-studies': {
     id: 'religious-studies-analyst',
-    name: 'Dr. Sophia Chen',
+    name: 'Dr. Threskeia (Θρησκεία)',
     title: 'Religious Studies & Political Theology Analyst',
     domain: 'religious-studies',
     subDomains: ['sociology-of-religion', 'anthropology-of-religion', 'political-theology', 'phenomenology-of-religion', 'comparative-theology'],
@@ -543,7 +543,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
   },
   'non-western-philosophy': {
     id: 'non-western-philosophy-analyst',
-    name: 'Dr. Kenji Watanabe',
+    name: 'Dr. Gnosis (Γνῶσις)',
     title: 'Non-Western Philosophy & Comparative Thought Analyst',
     domain: 'non-western-philosophy',
     subDomains: ['confucian-ethics', 'islamic-philosophy', 'buddhist-philosophy', 'african-philosophy', 'advaita-vedanta'],
@@ -562,7 +562,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
 
   sociology: {
     id: 'sociology-analyst',
-    name: 'Dr. Léa Moreau',
+    name: 'Dr. Demos (Δῆμος)',
     title: 'Sociology & Institutions Analyst',
     domain: 'sociology',
     subDomains: ['stratification', 'organizations', 'social-movements', 'political-sociology', 'economic-sociology'],
@@ -582,7 +582,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
 
   psychology: {
     id: 'psychology-analyst',
-    name: 'Dr. Naomi Feld',
+    name: 'Dr. Psyche (Ψυχή)',
     title: 'Cognitive & Social Psychology Analyst',
     domain: 'psychology',
     subDomains: ['judgment-decision-making', 'social-psychology', 'behavioral-science', 'political-psychology', 'cognitive-science'],
@@ -602,7 +602,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
 
   'political-science': {
     id: 'political-science-analyst',
-    name: 'Dr. Marcus Hale',
+    name: 'Dr. Kratos (Κράτος)',
     title: 'Comparative Politics & Institutions Analyst',
     domain: 'political-science',
     subDomains: ['comparative-politics', 'political-institutions', 'democratization', 'electoral-systems', 'political-behavior'],
@@ -622,7 +622,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
 
   demography: {
     id: 'demography-analyst',
-    name: 'Dr. Ingrid Halvorsen',
+    name: 'Dr. Plethysmos (Πληθυσμός)',
     title: 'Demography & Population Dynamics Analyst',
     domain: 'demography',
     subDomains: ['fertility', 'mortality', 'migration', 'aging', 'population-projections'],
@@ -642,7 +642,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
 
   criminology: {
     id: 'criminology-analyst',
-    name: 'Dr. Rafael Ortega',
+    name: 'Dr. Dike (Δίκη)',
     title: 'Crime & Justice Systems Analyst',
     domain: 'criminology',
     subDomains: ['crime-patterns', 'policing', 'sentencing', 'desistance', 'crime-prevention'],
@@ -662,7 +662,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
 
   education: {
     id: 'education-analyst',
-    name: 'Dr. Priya Raman',
+    name: 'Dr. Paideia (Παιδεία)',
     title: 'Education Systems & Learning Analyst',
     domain: 'education',
     subDomains: ['learning-science', 'education-policy', 'achievement-gaps', 'higher-education', 'skill-formation'],
@@ -682,7 +682,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
 
   philosophy: {
     id: 'philosophy-analyst',
-    name: 'Dr. Élise Fontaine',
+    name: 'Dr. Sophia (Σοφία)',
     title: 'Philosophy & Normative Analysis Analyst',
     domain: 'philosophy',
     subDomains: ['ethics', 'political-philosophy', 'epistemology', 'philosophy-of-science', 'applied-ethics'],
@@ -702,7 +702,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
 
   linguistics: {
     id: 'linguistics-analyst',
-    name: 'Dr. Yuki Tanaka',
+    name: 'Dr. Glossa (Γλῶσσα)',
     title: 'Linguistics & Discourse Analyst',
     domain: 'linguistics',
     subDomains: ['discourse-analysis', 'pragmatics', 'sociolinguistics', 'framing', 'language-ideology'],
@@ -722,7 +722,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
 
   'media-studies': {
     id: 'media-studies-analyst',
-    name: 'Dr. Carla Jimenez',
+    name: 'Dr. Angelia (Ἀγγελία)',
     title: 'Media Systems & Information Ecosystems Analyst',
     domain: 'media-studies',
     subDomains: ['platform-studies', 'political-communication', 'disinformation', 'agenda-setting', 'networked-publics'],
@@ -742,7 +742,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
 
   epidemiology: {
     id: 'epidemiology-analyst',
-    name: 'Dr. Sofia Lindqvist',
+    name: 'Dr. Nosos (Νόσος)',
     title: 'Epidemiology & Causal Inference Analyst',
     domain: 'epidemiology',
     subDomains: ['infectious-disease', 'chronic-disease', 'causal-inference', 'surveillance', 'outbreak-analysis'],
@@ -762,7 +762,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
 
   'public-health': {
     id: 'public-health-analyst',
-    name: 'Dr. Kwame Asante',
+    name: 'Dr. Prophylaxis (Προφύλαξις)',
     title: 'Public Health & Health Systems Analyst',
     domain: 'public-health',
     subDomains: ['health-systems', 'health-equity', 'prevention', 'health-policy', 'global-health'],
@@ -782,7 +782,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
 
   'international-relations': {
     id: 'international-relations-analyst',
-    name: 'Dr. Viktor Andersson',
+    name: 'Dr. Oikumene (Οἰκουμένη)',
     title: 'International Relations & Strategic Studies Analyst',
     domain: 'international-relations',
     subDomains: ['security-studies', 'international-political-economy', 'alliance-politics', 'deterrence', 'world-order'],
@@ -802,7 +802,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
 
   'migration-studies': {
     id: 'migration-studies-analyst',
-    name: 'Dr. Amara Diallo',
+    name: 'Dr. Metanastes (Μετανάστης)',
     title: 'Migration & Mobility Analyst',
     domain: 'migration-studies',
     subDomains: ['migration-systems', 'border-regimes', 'integration', 'diaspora', 'forced-migration'],
@@ -822,7 +822,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
 
   'science-technology-studies': {
     id: 'science-technology-studies-analyst',
-    name: 'Dr. Hannah Lindgren',
+    name: 'Dr. Mechanē (Μηχανή)',
     title: 'Science & Technology Studies Analyst',
     domain: 'science-technology-studies',
     subDomains: ['sociology-of-science', 'technology-studies', 'expertise-and-controversy', 'infrastructure-studies'],
@@ -842,7 +842,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
 
   epistemology: {
     id: 'epistemology-analyst',
-    name: 'Dr. Simon Ashworth',
+    name: 'Dr. Episteme (Ἐπιστήμη)',
     title: 'Epistemology & Public Reasoning Analyst',
     domain: 'epistemology',
     subDomains: ['theory-of-knowledge', 'social-epistemology', 'virtue-epistemology', 'formal-epistemology'],
@@ -862,7 +862,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
 
   'international-law': {
     id: 'international-law-analyst',
-    name: 'Dr. Claudia Reyes',
+    name: 'Dr. Dikaion (Δίκαιον)',
     title: 'International Law & Institutions Analyst',
     domain: 'international-law',
     subDomains: ['treaty-law', 'customary-law', 'international-courts', 'state-responsibility', 'humanitarian-law'],
@@ -882,7 +882,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
 
   'conflict-studies': {
     id: 'conflict-studies-analyst',
-    name: 'Dr. Tomas Lindberg',
+    name: 'Dr. Polemos (Πόλεμος)',
     title: 'Peace & Conflict Analyst',
     domain: 'conflict-studies',
     subDomains: ['civil-war', 'insurgency', 'peace-processes', 'political-violence', 'post-conflict'],
@@ -902,7 +902,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
 
   'political-economy': {
     id: 'political-economy-analyst',
-    name: 'Dr. Marisa Conti',
+    name: 'Dr. Ploutos (Πλοῦτος)',
     title: 'Political Economy & Capitalism Analyst',
     domain: 'political-economy',
     subDomains: ['comparative-political-economy', 'international-political-economy', 'growth-models', 'distribution-politics'],
@@ -922,7 +922,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
 
   'public-administration': {
     id: 'public-administration-analyst',
-    name: 'Dr. Oliver Grant',
+    name: 'Dr. Diokesis (Διοίκησις)',
     title: 'Public Administration & State Capacity Analyst',
     domain: 'public-administration',
     subDomains: ['bureaucracy', 'implementation', 'public-management', 'administrative-burden', 'governance'],
@@ -942,7 +942,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
 
   'gender-studies': {
     id: 'gender-studies-analyst',
-    name: 'Dr. Fatima Hassan',
+    name: 'Dr. Isotes (Ἰσότης)',
     title: 'Gender & Intersectionality Analyst',
     domain: 'gender-studies',
     subDomains: ['intersectionality', 'care-economy', 'representation', 'feminist-theory', 'labor-gender-gaps'],
@@ -962,7 +962,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
 
   'area-studies': {
     id: 'area-studies-analyst',
-    name: 'Dr. Zainab Al-Rashid',
+    name: 'Dr. Chora (Χώρα)',
     title: 'Area Studies & Regional Knowledge Analyst',
     domain: 'area-studies',
     subDomains: ['comparative-area-studies', 'postcolonial-studies', 'regional-political-economy', 'vernacular-source-analysis'],
@@ -982,7 +982,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
 
   'labor-studies': {
     id: 'labor-studies-analyst',
-    name: 'Dr. Henrik Johansson',
+    name: 'Dr. Ergon (Ἔργον)',
     title: 'Labor Markets & Work Analyst',
     domain: 'labor-studies',
     subDomains: ['labor-market-segmentation', 'industrial-relations', 'automation-and-work', 'wage-dynamics', 'precarity'],
@@ -1002,7 +1002,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
 
   'ethics-of-technology': {
     id: 'ethics-of-technology-analyst',
-    name: 'Dr. Rhea Kapoor',
+    name: 'Dr. Arete (Ἀρετή)',
     title: 'Technology Ethics & Algorithmic Governance Analyst',
     domain: 'ethics-of-technology',
     subDomains: ['ai-ethics', 'algorithmic-fairness', 'privacy', 'platform-governance', 'dual-use'],
@@ -1022,7 +1022,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
 
   archaeology: {
     id: 'archaeology-analyst',
-    name: 'Dr. Petros Andreadis',
+    name: 'Dr. Archaia (Ἀρχαία)',
     title: 'Archaeology & Deep-Time Analysis Analyst',
     domain: 'archaeology',
     subDomains: ['prehistoric-archaeology', 'collapse-studies', 'material-culture', 'landscape-archaeology', 'heritage'],
@@ -1042,7 +1042,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
 
   neuroscience: {
     id: 'neuroscience-analyst',
-    name: 'Dr. Lena Vogt',
+    name: 'Dr. Enkephalos (Ἐγκέφαλος)',
     title: 'Neuroscience & Cognition Analyst',
     domain: 'neuroscience',
     subDomains: ['cognitive-neuroscience', 'neuroimaging', 'neurotechnology', 'consciousness', 'computational-neuroscience'],
@@ -1062,7 +1062,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
 
   'data-science': {
     id: 'data-science-analyst',
-    name: 'Dr. Kenji Nakamura',
+    name: 'Dr. Dedomena (Δεδομένα)',
     title: 'Data Science & ML Systems Analyst',
     domain: 'data-science',
     subDomains: ['machine-learning', 'causal-ml', 'mlops', 'evaluation', 'data-engineering'],
@@ -1082,7 +1082,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
 
   'economic-history': {
     id: 'economic-history-analyst',
-    name: 'Dr. Ingrid Halvorsen',
+    name: 'Dr. Mnemosyne (Μνημοσύνη)',
     title: 'Economic History Analyst',
     domain: 'economic-history',
     subDomains: ['cliometrics', 'great-divergence', 'persistence-studies', 'monetary-history', 'industrialization'],
@@ -1102,7 +1102,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
 
   'social-psychology': {
     id: 'social-psychology-analyst',
-    name: 'Dr. Naomi Berger',
+    name: 'Dr. Homilia (Ὁμιλία)',
     title: 'Social Psychology Analyst',
     domain: 'social-psychology',
     subDomains: ['intergroup-relations', 'political-psychology', 'persuasion', 'identity', 'moral-psychology'],
@@ -1122,7 +1122,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
 
   'organizational-studies': {
     id: 'organizational-studies-analyst',
-    name: 'Dr. Marcus Thorne',
+    name: 'Dr. Taxis (Τάξις)',
     title: 'Organizational Studies Analyst',
     domain: 'organizational-studies',
     subDomains: ['institutional-theory', 'bureaucracy', 'organizational-failure', 'decision-making', 'organizational-change'],
@@ -1142,7 +1142,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
 
   'science-policy': {
     id: 'science-policy-analyst',
-    name: 'Dr. Aurora Lindqvist',
+    name: 'Dr. Prometheus (Προμηθεύς)',
     title: 'Science & Innovation Policy Analyst',
     domain: 'science-policy',
     subDomains: ['research-funding', 'evaluation-metrics', 'innovation-policy', 'open-science', 'mission-oriented-research'],
@@ -1162,7 +1162,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
 
   'development-studies': {
     id: 'development-studies-analyst',
-    name: 'Dr. Amara Osei',
+    name: 'Dr. Anaptyxis (Ἀνάπτυξις)',
     title: 'Development Studies Analyst',
     domain: 'development-studies',
     subDomains: ['aid-effectiveness', 'poverty-analysis', 'dependency', 'informal-economy', 'structural-transformation'],
@@ -1182,7 +1182,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
 
   'comparative-politics': {
     id: 'comparative-politics-analyst',
-    name: 'Dr. Tomasz Wojcik',
+    name: 'Dr. Synkrisis (Σύγκρισις)',
     title: 'Comparative Politics Analyst',
     domain: 'comparative-politics',
     subDomains: ['democratization', 'authoritarianism', 'electoral-systems', 'state-capacity', 'party-systems'],
@@ -1202,7 +1202,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
 
   'social-theory': {
     id: 'social-theory-analyst',
-    name: 'Dr. Camille Deschamps',
+    name: 'Dr. Praxis (Πρᾶξις)',
     title: 'Social Theory Analyst',
     domain: 'social-theory',
     subDomains: ['critical-theory', 'field-theory', 'systems-theory', 'actor-network', 'structuration'],
@@ -1222,7 +1222,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
 
   'philosophy-of-science': {
     id: 'philosophy-of-science-analyst',
-    name: 'Dr. Elias Brandt',
+    name: 'Dr. Theoria (Θεωρία)',
     title: 'Philosophy of Science Analyst',
     domain: 'philosophy-of-science',
     subDomains: ['methodology', 'scientific-realism', 'models-and-explanation', 'replication', 'demarcation'],
@@ -1242,7 +1242,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
 
   'law-and-economics': {
     id: 'law-and-economics-analyst',
-    name: 'Dr. Sofia Rinaldi',
+    name: 'Dr. Nomisma (Νόμισμα)',
     title: 'Law & Economics Analyst',
     domain: 'law-and-economics',
     subDomains: ['antitrust', 'property-rights', 'regulation', 'contracts-torts', 'institutional-economics'],
@@ -1262,7 +1262,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
 
   'intelligence-studies': {
     id: 'intelligence-studies-analyst',
-    name: 'Dr. James Callahan',
+    name: 'Dr. Phronesis (Φρόνησις)',
     title: 'Intelligence & Warning Analyst',
     domain: 'intelligence-studies',
     subDomains: ['warning-analysis', 'analytic-tradecraft', 'covert-action', 'declassification', 'surveillance'],
@@ -1282,7 +1282,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
 
   'military-studies': {
     id: 'military-studies-analyst',
-    name: 'Dr. Viktor Brandt',
+    name: 'Dr. Ares (Ἄρης)',
     title: 'Military Studies Analyst',
     domain: 'military-studies',
     subDomains: ['strategy', 'deterrence', 'warfighting', 'defense-economics', 'civil-military'],
@@ -1302,7 +1302,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
 
   'futures-studies': {
     id: 'futures-studies-analyst',
-    name: 'Dr. Yuki Tanaka-Delacroix',
+    name: 'Dr. Mellon (Μέλλον)',
     title: 'Futures Studies & Foresight Analyst',
     domain: 'futures-studies',
     subDomains: ['scenario-planning', 'horizon-scanning', 'foresight-methodology', 'anticipatory-governance', 'trend-analysis'],
@@ -1322,7 +1322,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
 
   'economic-sociology': {
     id: 'economic-sociology-analyst',
-    name: 'Dr. Helena Weiss',
+    name: 'Dr. Agora (Ἀγορά)',
     title: 'Economic Sociology Analyst',
     domain: 'economic-sociology',
     subDomains: ['embeddedness', 'market-construction', 'performativity', 'moral-economy', 'trust-networks'],
@@ -1342,7 +1342,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
 
   'historical-sociology': {
     id: 'historical-sociology-analyst',
-    name: 'Dr. Robert Ashworth',
+    name: 'Dr. Chronos (Χρόνος)',
     title: 'Historical Sociology Analyst',
     domain: 'historical-sociology',
     subDomains: ['state-formation', 'revolutions', 'social-movements', 'empires', 'macro-history'],
@@ -1362,7 +1362,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
 
   'environmental-economics': {
     id: 'environmental-economics-analyst',
-    name: 'Dr. Greta Lindholm',
+    name: 'Dr. Oikos (Οἶκος)',
     title: 'Environmental Economics Analyst',
     domain: 'environmental-economics',
     subDomains: ['carbon-pricing', 'natural-capital', 'climate-policy', 'ecosystem-services', 'environmental-regulation'],
@@ -1382,7 +1382,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
 
   'health-economics': {
     id: 'health-economics-analyst',
-    name: 'Dr. Fatima Al-Rashid',
+    name: 'Dr. Therapeia (Θεραπεία)',
     title: 'Health Economics Analyst',
     domain: 'health-economics',
     subDomains: ['health-systems', 'pharma-pricing', 'insurance-design', 'cost-effectiveness', 'global-health'],
@@ -1402,7 +1402,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
 
   'legal-theory': {
     id: 'legal-theory-analyst',
-    name: 'Dr. Anton Bergmann',
+    name: 'Dr. Themis (Θέμις)',
     title: 'Legal Theory Analyst',
     domain: 'legal-theory',
     subDomains: ['positivism', 'natural-law', 'legal-realism', 'constitutional-theory', 'interpretation'],
@@ -1422,7 +1422,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
 
   'postcolonial-studies': {
     id: 'postcolonial-studies-analyst',
-    name: 'Dr. Leila Haddad',
+    name: 'Dr. Eleutheria (Ἐλευθερία)',
     title: 'Postcolonial Studies Analyst',
     domain: 'postcolonial-studies',
     subDomains: ['orientalism', 'coloniality', 'subaltern', 'decoloniality', 'empire-studies'],
@@ -1442,7 +1442,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
 
   'communication-studies': {
     id: 'communication-studies-analyst',
-    name: 'Dr. Paul Verhoeven',
+    name: 'Dr. Rhema (Ῥῆμα)',
     title: 'Communication Studies Analyst',
     domain: 'communication-studies',
     subDomains: ['propaganda-analysis', 'framing', 'public-sphere', 'platform-studies', 'journalism-studies'],
@@ -1462,7 +1462,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
 
   'public-finance': {
     id: 'public-finance-analyst',
-    name: 'Dr. Catherine Moreau',
+    name: 'Dr. Tamias (Ταμίας)',
     title: 'Public Finance Analyst',
     domain: 'public-finance',
     subDomains: ['taxation', 'debt-sustainability', 'fiscal-federalism', 'public-spending', 'tax-incidence'],
@@ -1482,7 +1482,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
 
   'political-anthropology': {
     id: 'political-anthropology-analyst',
-    name: 'Dr. David Graeber-Lindt',
+    name: 'Dr. Ethnos (Ἔθνος)',
     title: 'Political Anthropology Analyst',
     domain: 'political-anthropology',
     subDomains: ['state-formation', 'resistance', 'statelessness', 'indigenous-politics', 'everyday-politics'],
@@ -1502,7 +1502,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
 
   'food-systems': {
     id: 'food-systems-analyst',
-    name: 'Dr. Amina Diallo',
+    name: 'Dr. Sitos (Σῖτος)',
     title: 'Food Systems Analyst',
     domain: 'food-systems',
     subDomains: ['food-security', 'agri-food-political-economy', 'famine-analysis', 'supply-chains', 'food-sovereignty'],

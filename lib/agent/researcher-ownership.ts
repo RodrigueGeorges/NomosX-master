@@ -20,7 +20,7 @@
 import { DomainExpertise, AutoPublisherLineage } from './types';
 import { callLLM } from '../llm/unified-llm';
 import { parseJson } from './json-utils';
-import { getResearcher } from '../researchers';
+import { getResearcher, getDeskName } from '../researchers';
 
 // ============================================================================
 // RESEARCHER REGISTRY - Domain Ownership Mapping
@@ -33,7 +33,7 @@ import { getResearcher } from '../researchers';
 
 /** Get the UI-facing researcher name from the unified registry in lib/researchers.ts */
 export function getResearcherUIName(domain: DomainExpertise): string {
-  return getResearcher(domain)?.name ?? domain;
+  return getDeskName(domain);
 }
 
 /** Get the UI-facing researcher title from the unified registry */
@@ -43,7 +43,7 @@ export function getResearcherUITitle(domain: DomainExpertise): string {
 
 /** Get the UI-facing researcher institution from the unified registry */
 export function getResearcherUIInstitution(domain: DomainExpertise): string {
-  return getResearcher(domain)?.institution ?? '';
+  return getResearcher(domain)?.institution ?? 'NomosX Institute';
 }
 
 export interface ResearcherProfile {
@@ -66,9 +66,9 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
   // CORE 9 DOMAINS
   "economics": {
     id: "economics",
-    name: "Dr. Elena Vasquez",
+    name: "Dr. Oikonomia (Οἰκονομία)",
     title: "Economic Policy Analyst & Behavioral Economics Expert",
-    institution: "MIT / Department of Economics",
+    institution: "NomosX Institute",
     domains: ["economics"],
     keywords: [
       "macroeconomics", "microeconomics", "monetary policy", "fiscal policy", "behavioral economics",
@@ -91,9 +91,9 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "technology": {
     id: "technology",
-    name: "Dr. James Chen",
+    name: "Dr. Techne (Τέχνη)",
     title: "AI Research Scientist & Technology Policy Expert",
-    institution: "Stanford / Computer Science Department",
+    institution: "NomosX Institute",
     domains: ["technology"],
     keywords: [
       "artificial intelligence", "machine learning", "deep learning", "neural networks", "natural language",
@@ -116,9 +116,9 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "policy": {
     id: "policy",
-    name: "Dr. Amara Okafor",
+    name: "Dr. Politeia (Πολιτεία)",
     title: "Public Policy Expert & Governance Analyst",
-    institution: "Harvard Kennedy School",
+    institution: "NomosX Institute",
     domains: ["policy"],
     keywords: [
       "public policy", "governance", "regulation", "administration", "policy analysis", "implementation",
@@ -141,9 +141,9 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "health": {
     id: "health",
-    name: "Dr. Sarah Lindström",
+    name: "Dr. Hygeia (Ὑγίεια)",
     title: "Epidemiologist & Public Health Research Expert",
-    institution: "Johns Hopkins / School of Public Health",
+    institution: "NomosX Institute",
     domains: ["health"],
     keywords: [
       "epidemiology", "public health", "disease", "pandemic", "vaccination", "healthcare", "medicine",
@@ -166,9 +166,9 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "security": {
     id: "security",
-    name: "Dr. Marcus Webb",
+    name: "Dr. Aegis (Αἰγίς)",
     title: "Security Studies Expert & Defense Analyst",
-    institution: "King's College London / Department of War Studies",
+    institution: "NomosX Institute",
     domains: ["security"],
     keywords: [
       "security", "defense", "military", "cybersecurity", "terrorism", "conflict", "warfare", "intelligence",
@@ -191,9 +191,9 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "law": {
     id: "law",
-    name: "Dr. Isabelle Moreau",
+    name: "Dr. Nomos (Νόμος)",
     title: "Legal Scholar & Regulatory Expert",
-    institution: "Yale Law School",
+    institution: "NomosX Institute",
     domains: ["law"],
     keywords: [
       "law", "legal", "regulation", "legislation", "jurisprudence", "constitutional law", "administrative law",
@@ -216,9 +216,9 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "environment": {
     id: "environment",
-    name: "Dr. Kenji Tanaka",
+    name: "Dr. Gaia (Γαία)",
     title: "Environmental Scientist & Climate Policy Expert",
-    institution: "UC Berkeley / Energy and Resources Group",
+    institution: "NomosX Institute",
     domains: ["environment"],
     keywords: [
       "environment", "climate", "sustainability", "green", "renewable energy", "carbon", "emissions", "pollution",
@@ -241,9 +241,9 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "quantitative": {
     id: "quantitative",
-    name: "Dr. Priya Sharma",
+    name: "Dr. Metron (Μέτρον)",
     title: "Quantitative Methods Expert & Statistical Analyst",
-    institution: "University of Cambridge / Department of Statistics",
+    institution: "NomosX Institute",
     domains: ["quantitative"],
     keywords: [
       "statistics", "quantitative", "methods", "analysis", "data", "modeling", "regression", "econometrics",
@@ -266,9 +266,9 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "finance": {
     id: "finance",
-    name: "Dr. Michael Roberts",
+    name: "Dr. Chrematistikos (Χρηματιστικός)",
     title: "Financial Markets & Investment Expert",
-    institution: "Wharton School / University of Pennsylvania",
+    institution: "NomosX Institute",
     domains: ["finance"],
     keywords: [
       "finance", "financial", "markets", "banking", "investment", "portfolio", "risk", "derivatives", "asset pricing",
@@ -292,9 +292,9 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
   // ADVANCED 6 DOMAINS
   "social-sciences": {
     id: "social-sciences",
-    name: "Dr. María González",
+    name: "Dr. Koinonia (Κοινωνία)",
     title: "Sociologist & Social Dynamics Expert",
-    institution: "UC Berkeley / Institute for Social Research",
+    institution: "NomosX Institute",
     domains: ["social-sciences"],
     keywords: [
       "social", "sociology", "anthropology", "psychology", "political science", "social research", "qualitative",
@@ -317,9 +317,9 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "humanities": {
     id: "humanities",
-    name: "Dr. Thomas Weber",
+    name: "Dr. Logos (Λόγος)",
     title: "Philosopher & Ethics Expert",
-    institution: "Sorbonne / Collège de France",
+    institution: "NomosX Institute",
     domains: ["humanities"],
     keywords: [
       "humanities", "culture", "history", "philosophy", "literature", "arts", "cultural studies", "humanistic",
@@ -342,9 +342,9 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "energy-advanced": {
     id: "energy-advanced",
-    name: "Dr. Fatima Al-Rashid",
+    name: "Dr. Energeia (Ἐνέργεια)",
     title: "Energy Systems & Grid Integration Expert",
-    institution: "Imperial College London / Energy Futures Lab",
+    institution: "NomosX Institute",
     domains: ["energy-advanced"],
     keywords: [
       "energy", "power", "electricity", "grid", "storage", "nuclear", "hydrogen", "solar", "wind", "geothermal",
@@ -367,9 +367,9 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "geopolitics": {
     id: "geopolitics",
-    name: "Dr. Sergei Petrov",
+    name: "Dr. Polis (Πόλις)",
     title: "International Relations & Geopolitics Expert",
-    institution: "Geneva Graduate Institute / European Council on Foreign Relations",
+    institution: "NomosX Institute",
     domains: ["geopolitics"],
     keywords: [
       "geopolitics", "international", "relations", "foreign policy", "diplomacy", "global", "world order", "power",
@@ -392,9 +392,9 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "digital-society": {
     id: "digital-society",
-    name: "Dr. Kwame Osei",
+    name: "Dr. Digi (Δίγι)",
     title: "Digital Sociologist & Technology Impact Expert",
-    institution: "MIT Media Lab / Oxford Internet Institute",
+    institution: "NomosX Institute",
     domains: ["digital-society"],
     keywords: [
       "digital", "society", "internet", "social media", "online", "digital transformation", "digital divide",
@@ -417,9 +417,9 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "cognitive-science": {
     id: "cognitive-science",
-    name: "Dr. Lisa Chang",
+    name: "Dr. Noesis (Νόησις)",
     title: "Cognitive Neuroscientist & Decision Science Expert",
-    institution: "UCL / Max Planck Institute for Human Development",
+    institution: "NomosX Institute",
     domains: ["cognitive-science"],
     keywords: [
       "cognitive", "psychology", "neuroscience", "decision making", "behavior", "cognition", "brain", "mind",
@@ -443,9 +443,9 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
   // SPECIALIZED DOMAINS
   "behavioral-economics": {
     id: "behavioral-economics",
-    name: "Dr. Rachel Kim",
+    name: "Dr. Thymos (Θυμός)",
     title: "Behavioral Economist & Choice Architecture Expert",
-    institution: "University of Chicago / NBER / ideas42",
+    institution: "NomosX Institute",
     domains: ["behavioral-economics"],
     keywords: [
       "behavioral", "economics", "psychology", "decision", "bias", "heuristics", "nudge", "prospect theory",
@@ -468,9 +468,9 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "urban-studies": {
     id: "urban-studies",
-    name: "Dr. Carlos Rodriguez",
+    name: "Dr. Asty (Ἄστυ)",
     title: "Urban Planner & Smart Cities Expert",
-    institution: "MIT / Lincoln Institute of Land Policy",
+    institution: "NomosX Institute",
     domains: ["urban-studies"],
     keywords: [
       "urban", "city", "planning", "urbanization", "metropolitan", "infrastructure", "housing", "transportation",
@@ -493,9 +493,9 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "bioethics": {
     id: "bioethics",
-    name: "Dr. Sophie Martin",
+    name: "Dr. Bios (Βίος)",
     title: "Bioethicist & Medical Ethics Expert",
-    institution: "Johns Hopkins / Hastings Center",
+    institution: "NomosX Institute",
     domains: ["bioethics"],
     keywords: [
       "bioethics", "ethics", "medical", "biomedical", "research ethics", "clinical ethics", "genetics", "genomics",
@@ -518,9 +518,9 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "complexity-science": {
     id: "complexity-science",
-    name: "Dr. Michael Zhang",
+    name: "Dr. Chaos (Χάος)",
     title: "Complexity Scientist & Complex Systems Expert",
-    institution: "Oxford / Santa Fe Institute",
+    institution: "NomosX Institute",
     domains: ["complexity-science"],
     keywords: [
       "complexity", "complex systems", "emergence", "nonlinear", "dynamics", "chaos", "fractals", "network theory",
@@ -543,9 +543,9 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "computational-social-science": {
     id: "computational-social-science",
-    name: "Dr. David Liu",
+    name: "Dr. Syntaxis (Σύνταξις)",
     title: "Computational Social Scientist & Network Analysis Expert",
-    institution: "Carnegie Mellon / Santa Fe Institute / Microsoft Research",
+    institution: "NomosX Institute",
     domains: ["computational-social-science"],
     keywords: [
       "computational", "social", "network", "big data", "social media", "agent based", "simulation", "modeling",
@@ -568,9 +568,9 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "development-economics": {
     id: "development-economics",
-    name: "Dr. Amina Diallo",
+    name: "Dr. Auxesis (Αὔξησις)",
     title: "Development Economist & Global South Expert",
-    institution: "London School of Economics / J-PAL / UNDP",
+    institution: "NomosX Institute",
     domains: ["development-economics"],
     keywords: [
       "development", "poverty", "emerging markets", "foreign aid", "microfinance", "institutional economics",
@@ -594,9 +594,9 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "risk-analysis": {
     id: "risk-analysis",
-    name: "Dr. Anika Johansson",
+    name: "Dr. Kyvernon (Κύβερνον)",
     title: "Risk Analyst & Uncertainty Modeling Expert",
-    institution: "London School of Economics / Swiss Re / BIS",
+    institution: "NomosX Institute",
     domains: ["risk-analysis"],
     keywords: [
       "risk", "uncertainty", "probability", "systemic risk", "financial risk", "operational risk",
@@ -619,9 +619,9 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
   },
   "anthropology": {
     id: "anthropology",
-    name: "Dr. Amara Diallo",
+    name: "Dr. Anthropos (Ἄνθρωπος)",
     title: "Anthropology & Cultural Analysis Expert",
-    institution: "EHESS Paris",
+    institution: "NomosX Institute",
     domains: ["anthropology"],
     keywords: [
       "anthropology", "ethnography", "culture", "ritual", "myth", "symbol",
@@ -642,9 +642,9 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
   },
   "history": {
     id: "history",
-    name: "Dr. Henri Lefort",
+    name: "Dr. Historia (Ἱστορία)",
     title: "History & Historical Analysis Expert",
-    institution: "Sorbonne",
+    institution: "NomosX Institute",
     domains: ["history"],
     keywords: [
       "history", "historical", "longue durée", "annales", "archival",
@@ -665,9 +665,9 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
   },
   "religious-studies": {
     id: "religious-studies",
-    name: "Dr. Sophia Chen",
+    name: "Dr. Threskeia (Θρησκεία)",
     title: "Religious Studies & Political Theology Expert",
-    institution: "Harvard Divinity School",
+    institution: "NomosX Institute",
     domains: ["religious-studies"],
     keywords: [
       "religion", "religious", "theology", "sacred", "secular", "spiritual",
@@ -688,9 +688,9 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
   },
   "non-western-philosophy": {
     id: "non-western-philosophy",
-    name: "Dr. Kenji Watanabe",
+    name: "Dr. Gnosis (Γνῶσις)",
     title: "Non-Western Philosophy & Comparative Thought Expert",
-    institution: "University of Tokyo",
+    institution: "NomosX Institute",
     domains: ["non-western-philosophy"],
     keywords: [
       "confucian", "buddhist", "islamic philosophy", "falsafa", "ubuntu",
@@ -714,9 +714,9 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "sociology": {
     id: "sociology",
-    name: "Dr. Léa Moreau",
+    name: "Dr. Demos (Δῆμος)",
     title: "Sociologist — Institutions, Stratification & Collective Action",
-    institution: "EHESS / Centre de Sociologie",
+    institution: "NomosX Institute",
     domains: ["sociology"],
     keywords: ["social class", "stratification", "institution", "habitus", "field", "social capital", "collective action", "social movements", "norms", "socialization", "network", "segmentation", "mobility", "anomie", "solidarity"],
     providers: ["sociology", "isidore", "persee", "openalex", "ssrn", "hal", "core"],
@@ -734,9 +734,9 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "psychology": {
     id: "psychology",
-    name: "Dr. Naomi Feld",
+    name: "Dr. Psyche (Ψυχή)",
     title: "Psychologist — Cognitive Biases, Behavior & Decision Science",
-    institution: "University of Cambridge / Department of Psychology",
+    institution: "NomosX Institute",
     domains: ["psychology"],
     keywords: ["cognitive bias", "heuristic", "decision making", "behavior", "motivation", "identity", "group dynamics", "polarization", "persuasion", "emotion", "cognition", "nudge", "prospect theory", "social identity"],
     providers: ["psychology", "pubmed", "semanticscholar", "openalex", "crossref", "core"],
@@ -754,9 +754,9 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "political-science": {
     id: "political-science",
-    name: "Dr. Marcus Hale",
+    name: "Dr. Kratos (Κράτος)",
     title: "Political Scientist — Regimes, Parties & Comparative Politics",
-    institution: "Oxford / Department of Politics and IR",
+    institution: "NomosX Institute",
     domains: ["political-science"],
     keywords: ["democracy", "authoritarianism", "regime", "elections", "parties", "populism", "polarization", "state capacity", "veto players", "coalition", "legitimacy", "democratic backsliding", "federalism"],
     providers: ["political-science", "openalex", "ssrn", "crossref", "isidore", "persee", "brookings", "rand"],
@@ -774,9 +774,9 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "demography": {
     id: "demography",
-    name: "Dr. Ingrid Halvorsen",
+    name: "Dr. Plethysmos (Πληθυσμός)",
     title: "Demographer — Population Structure, Fertility & Migration",
-    institution: "INED / Institut National d'Études Démographiques",
+    institution: "NomosX Institute",
     domains: ["demography"],
     keywords: ["fertility", "mortality", "migration", "aging", "population structure", "cohort", "demographic transition", "dependency ratio", "life expectancy", "urbanization", "population momentum", "replacement level"],
     providers: ["openalex", "crossref", "worldbank", "un", "undp", "isidore", "persee", "core"],
@@ -794,9 +794,9 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "criminology": {
     id: "criminology",
-    name: "Dr. Rafael Ortega",
+    name: "Dr. Dike (Δίκη)",
     title: "Criminologist — Crime Patterns, Policing & Penal Systems",
-    institution: "University of Maryland / Criminology",
+    institution: "NomosX Institute",
     domains: ["criminology"],
     keywords: ["crime", "policing", "incarceration", "recidivism", "deterrence", "organized crime", "violence", "penal system", "routine activities", "hot spots", "labeling", "restorative justice"],
     providers: ["unodc", "openalex", "ssrn", "crossref", "core", "doaj"],
@@ -814,9 +814,9 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "education": {
     id: "education",
-    name: "Dr. Priya Raman",
+    name: "Dr. Paideia (Παιδεία)",
     title: "Education Researcher — Learning Sciences & Education Systems",
-    institution: "UCL Institute of Education",
+    institution: "NomosX Institute",
     domains: ["education"],
     keywords: ["education", "learning", "curriculum", "pedagogy", "achievement gap", "literacy", "school system", "higher education", "skills", "cognitive development", "educational inequality", "PISA"],
     providers: ["eric", "openalex", "crossref", "isidore", "oecd", "worldbank", "core"],
@@ -834,9 +834,9 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "philosophy": {
     id: "philosophy",
-    name: "Dr. Élise Fontaine",
+    name: "Dr. Sophia (Σοφία)",
     title: "Philosopher — Ethics, Epistemology & Political Philosophy",
-    institution: "ENS Paris / Département de Philosophie",
+    institution: "NomosX Institute",
     domains: ["philosophy"],
     keywords: ["ethics", "epistemology", "justice", "normativity", "utilitarianism", "deontology", "virtue ethics", "contractualism", "truth", "knowledge", "consciousness", "free will", "political philosophy", "metaethics"],
     providers: ["philpapers", "isidore", "openalex", "crossref", "persee", "core"],
@@ -854,9 +854,9 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "linguistics": {
     id: "linguistics",
-    name: "Dr. Yuki Tanaka",
+    name: "Dr. Glossa (Γλῶσσα)",
     title: "Linguist — Semantics, Discourse & Language Policy",
-    institution: "MIT / Linguistics",
+    institution: "NomosX Institute",
     domains: ["linguistics"],
     keywords: ["semantics", "pragmatics", "discourse", "framing", "language policy", "multilingualism", "metaphor", "speech acts", "narrative", "translation", "sociolinguistics", "language ideology"],
     providers: ["openalex", "crossref", "isidore", "persee", "core", "semanticscholar"],
@@ -874,9 +874,9 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "media-studies": {
     id: "media-studies",
-    name: "Dr. Carla Jimenez",
+    name: "Dr. Angelia (Ἀγγελία)",
     title: "Media & Communication Scholar — Platforms, Disinformation & Public Sphere",
-    institution: "LSE / Media and Communications",
+    institution: "NomosX Institute",
     domains: ["media-studies"],
     keywords: ["media", "platform", "disinformation", "public sphere", "propaganda", "attention economy", "algorithmic curation", "journalism", "echo chamber", "framing", "media ownership", "influence operations"],
     providers: ["openalex", "crossref", "ssrn", "isidore", "core", "eventregistry", "gdelt-news"],
@@ -894,9 +894,9 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "epidemiology": {
     id: "epidemiology",
-    name: "Dr. Sofia Lindqvist",
+    name: "Dr. Nosos (Νόσος)",
     title: "Epidemiologist — Disease Dynamics & Population Health Methods",
-    institution: "Karolinska Institutet",
+    institution: "NomosX Institute",
     domains: ["epidemiology"],
     keywords: ["epidemic", "incidence", "prevalence", "R0", "transmission", "outbreak", "cohort study", "case-control", "confounding", "surveillance", "vaccine effectiveness", "herd immunity", "contact tracing"],
     providers: ["pubmed", "europepmc", "openalex", "crossref", "who", "cdc", "the-lancet", "nature-medicine"],
@@ -914,9 +914,9 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "public-health": {
     id: "public-health",
-    name: "Dr. Kwame Asante",
+    name: "Dr. Prophylaxis (Προφύλαξις)",
     title: "Public Health Expert — Health Systems & Population Interventions",
-    institution: "Johns Hopkins Bloomberg School of Public Health",
+    institution: "NomosX Institute",
     domains: ["public-health"],
     keywords: ["public health", "health system", "prevention", "health equity", "social determinants", "universal coverage", "health policy", "screening", "primary care", "health promotion", "mortality burden"],
     providers: ["pubmed", "europepmc", "openalex", "who", "worldbank", "the-lancet", "crossref"],
@@ -934,9 +934,9 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "international-relations": {
     id: "international-relations",
-    name: "Dr. Viktor Andersson",
+    name: "Dr. Oikumene (Οἰκουμένη)",
     title: "IR Scholar — Grand Strategy, Alliances & World Order",
-    institution: "Princeton / School of Public and International Affairs",
+    institution: "NomosX Institute",
     domains: ["international-relations"],
     keywords: ["international relations", "balance of power", "alliance", "hegemony", "deterrence", "security dilemma", "world order", "multipolarity", "soft power", "interdependence", "regime theory", "grand strategy"],
     providers: ["openalex", "crossref", "ssrn", "cfr", "chatham-house", "iiss", "rand", "carnegie", "isidore"],
@@ -956,9 +956,9 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "migration-studies": {
     id: "migration-studies",
-    name: "Dr. Amara Diallo",
+    name: "Dr. Metanastes (Μετανάστης)",
     title: "Migration & Mobility Analyst — Flows, Borders & Integration",
-    institution: "University of Amsterdam / IMISCOE",
+    institution: "NomosX Institute",
     domains: ["migration-studies"],
     keywords: ["migration", "immigration", "emigration", "diaspora", "remittances", "asylum", "refugee", "border", "integration", "transnationalism", "brain drain", "labor mobility", "deportation", "statelessness"],
     providers: ["openalex", "crossref", "isidore", "persee", "sociology", "worldbank", "undp", "oecd", "mega-stats", "core"],
@@ -976,9 +976,9 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "science-technology-studies": {
     id: "science-technology-studies",
-    name: "Dr. Hannah Lindgren",
+    name: "Dr. Mechanē (Μηχανή)",
     title: "STS Analyst — Science, Technology & Society",
-    institution: "Cornell / Department of Science & Technology Studies",
+    institution: "NomosX Institute",
     domains: ["science-technology-studies"],
     keywords: ["science studies", "technology", "innovation", "sociotechnical", "actor-network", "laboratory", "expertise", "controversy", "standardization", "infrastructure", "scientific practice", "knowledge production"],
     providers: ["openalex", "crossref", "isidore", "philpapers", "core", "hal", "arxiv"],
@@ -996,9 +996,9 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "epistemology": {
     id: "epistemology",
-    name: "Dr. Simon Ashworth",
+    name: "Dr. Episteme (Ἐπιστήμη)",
     title: "Epistemologist — Knowledge, Justification & Truth",
-    institution: "University of St Andrews / Arché",
+    institution: "NomosX Institute",
     domains: ["epistemology"],
     keywords: ["knowledge", "justification", "truth", "belief", "epistemic", "skepticism", "testimony", "disagreement", "evidence", "rationality", "epistemic injustice", "relativism", "certainty"],
     providers: ["philpapers", "isidore", "persee", "openalex", "crossref", "core", "hal"],
@@ -1016,9 +1016,9 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "international-law": {
     id: "international-law",
-    name: "Dr. Claudia Reyes",
+    name: "Dr. Dikaion (Δίκαιον)",
     title: "International Law Analyst — Treaties, Courts & State Responsibility",
-    institution: "Graduate Institute Geneva / International Law",
+    institution: "NomosX Institute",
     domains: ["international-law"],
     keywords: ["international law", "treaty", "customary law", "ICJ", "ICC", "human rights law", "humanitarian law", "jus cogens", "state responsibility", "sovereignty", "sanctions", "law of the sea", "WTO law"],
     providers: ["openalex", "crossref", "isidore", "persee", "eur-lex", "overton", "un", "mega-eu", "core"],
@@ -1036,9 +1036,9 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "conflict-studies": {
     id: "conflict-studies",
-    name: "Dr. Tomas Lindberg",
+    name: "Dr. Polemos (Πόλεμος)",
     title: "Peace & Conflict Analyst — War Dynamics, Bargaining & Resolution",
-    institution: "Uppsala University / Peace and Conflict Research",
+    institution: "NomosX Institute",
     domains: ["conflict-studies"],
     keywords: ["conflict", "war", "civil war", "insurgency", "peacebuilding", "ceasefire", "mediation", "political violence", "terrorism", "rebellion", "peace process", "atrocity", "coups", "armed group"],
     providers: ["openalex", "crossref", "political-science", "isidore", "sipri", "ecfr", "swp", "mega-thinktanks", "global-think-tanks", "eventregistry"],
@@ -1056,9 +1056,9 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "political-economy": {
     id: "political-economy",
-    name: "Dr. Marisa Conti",
+    name: "Dr. Ploutos (Πλοῦτος)",
     title: "Political Economy Analyst — Capitalism, States & Distribution",
-    institution: "LSE / Political Economy",
+    institution: "NomosX Institute",
     domains: ["political-economy"],
     keywords: ["political economy", "capitalism", "varieties of capitalism", "distribution", "rent-seeking", "elite", "state capacity", "extraction", "globalization", "inequality", "growth model", "welfare state"],
     providers: ["openalex", "crossref", "sociology", "nber", "repec", "worldbank", "imf", "oecd", "bis", "core"],
@@ -1076,9 +1076,9 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "public-administration": {
     id: "public-administration",
-    name: "Dr. Oliver Grant",
+    name: "Dr. Diokesis (Διοίκησις)",
     title: "Public Administration Analyst — Bureaucracy, Governance & Delivery",
-    institution: "Sciences Po / School of Public Affairs",
+    institution: "NomosX Institute",
     domains: ["public-administration"],
     keywords: ["public administration", "bureaucracy", "civil service", "governance", "public sector", "policy implementation", "state capacity", "public management", "street-level", "regulation", "administrative burden"],
     providers: ["openalex", "crossref", "political-science", "isidore", "oecd", "worldbank", "overton", "mega-eu", "core"],
@@ -1096,9 +1096,9 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "gender-studies": {
     id: "gender-studies",
-    name: "Dr. Fatima Hassan",
+    name: "Dr. Isotes (Ἰσότης)",
     title: "Gender & Intersectionality Analyst",
-    institution: "Rutgers / Department of Women's and Gender Studies",
+    institution: "NomosX Institute",
     domains: ["gender-studies"],
     keywords: ["gender", "feminism", "intersectionality", "patriarchy", "care economy", "gender gap", "masculinity", "reproductive rights", "gender equality", "sexual division of labor", "representation"],
     providers: ["openalex", "crossref", "sociology", "isidore", "persee", "core", "doaj", "plos"],
@@ -1116,9 +1116,9 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "area-studies": {
     id: "area-studies",
-    name: "Dr. Zainab Al-Rashid",
+    name: "Dr. Chora (Χώρα)",
     title: "Area Studies Analyst — Regional Deep Knowledge",
-    institution: "SOAS University of London / Area Studies",
+    institution: "NomosX Institute",
     domains: ["area-studies"],
     keywords: ["area studies", "regional studies", "middle east", "africa", "asia", "latin america", "postcolonial", "local knowledge", "regional politics", "language", "cultural context"],
     providers: ["openalex", "crossref", "history", "isidore", "persee", "ajol", "dialnet", "riss", "shodhganga"],
@@ -1136,9 +1136,9 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "labor-studies": {
     id: "labor-studies",
-    name: "Dr. Henrik Johansson",
+    name: "Dr. Ergon (Ἔργον)",
     title: "Labor & Work Analyst — Employment, Unions & Skills",
-    institution: "University of Manchester / Work & Equalities Institute",
+    institution: "NomosX Institute",
     domains: ["labor-studies"],
     keywords: ["labor market", "employment", "unemployment", "wages", "unions", "collective bargaining", "precarity", "gig economy", "skills", "automation", "working conditions", "industrial relations"],
     providers: ["openalex", "crossref", "sociology", "nber", "repec", "oecd", "worldbank", "core"],
@@ -1156,9 +1156,9 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "ethics-of-technology": {
     id: "ethics-of-technology",
-    name: "Dr. Rhea Kapoor",
+    name: "Dr. Arete (Ἀρετή)",
     title: "Technology Ethics Analyst — AI, Platforms & Responsible Innovation",
-    institution: "Oxford Internet Institute",
+    institution: "NomosX Institute",
     domains: ["ethics-of-technology"],
     keywords: ["AI ethics", "algorithmic bias", "platform governance", "surveillance", "privacy", "autonomous systems", "dual-use", "responsible innovation", "value alignment", "digital rights", "data ethics"],
     providers: ["philpapers", "openalex", "crossref", "arxiv", "isidore", "hf-papers", "openreview"],
@@ -1176,9 +1176,9 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "archaeology": {
     id: "archaeology",
-    name: "Dr. Petros Andreadis",
+    name: "Dr. Archaia (Ἀρχαία)",
     title: "Archaeology Analyst — Material Culture & Deep Time",
-    institution: "UCL / Institute of Archaeology",
+    institution: "NomosX Institute",
     domains: ["archaeology"],
     keywords: ["archaeology", "excavation", "material culture", "ancient", "prehistory", "artifact", "collapse", "civilization", "heritage", "dating", "settlement", "deep time"],
     providers: ["openalex", "crossref", "isidore", "persee", "hal", "core", "openaire", "zenodo"],
@@ -1196,9 +1196,9 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "neuroscience": {
     id: "neuroscience",
-    name: "Dr. Lena Vogt",
+    name: "Dr. Enkephalos (Ἐγκέφαλος)",
     title: "Neuroscience Analyst — Brain, Mind & Behavior",
-    institution: "Max Planck / Cognitive Neuroscience",
+    institution: "NomosX Institute",
     domains: ["neuroscience"],
     keywords: ["neuroscience", "brain", "neural", "cognition", "consciousness", "fmri", "neuron", "cortex", "neuroimaging", "mental health", "neurological"],
     providers: ["pubmed", "europepmc", "biorxiv", "openalex", "semantic-scholar", "plos", "nih", "core"],
@@ -1216,9 +1216,9 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "data-science": {
     id: "data-science",
-    name: "Dr. Kenji Nakamura",
+    name: "Dr. Dedomena (Δεδομένα)",
     title: "Data Science Analyst — ML Systems & Methodology",
-    institution: "ETH Zurich / Data Science",
+    institution: "NomosX Institute",
     domains: ["data-science"],
     keywords: ["data science", "machine learning", "model", "dataset", "benchmark", "algorithm", "prediction", "mlops", "feature", "training data", "statistical learning"],
     providers: ["dblp", "arxiv", "openreview", "semantic-scholar", "hf-papers", "papers-with-code", "openalex", "core"],
@@ -1236,9 +1236,9 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "economic-history": {
     id: "economic-history",
-    name: "Dr. Ingrid Halvorsen",
+    name: "Dr. Mnemosyne (Μνημοσύνη)",
     title: "Economic History Analyst — Growth, Institutions & Deep Time",
-    institution: "LSE / Economic History",
+    institution: "NomosX Institute",
     domains: ["economic-history"],
     keywords: ["economic history", "cliometrics", "great divergence", "industrial revolution", "historical growth", "persistence", "colonial legacy", "serfdom", "mercantilism", "gold standard", "depression"],
     providers: ["nber", "repec", "openalex", "crossref", "history", "persee", "core", "worldbank"],
@@ -1256,9 +1256,9 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "social-psychology": {
     id: "social-psychology",
-    name: "Dr. Naomi Berger",
+    name: "Dr. Homilia (Ὁμιλία)",
     title: "Social Psychology Analyst — Groups, Identity & Influence",
-    institution: "University of Amsterdam / Social Psychology",
+    institution: "NomosX Institute",
     domains: ["social-psychology"],
     keywords: ["social psychology", "identity", "prejudice", "conformity", "group dynamics", "persuasion", "attitude", "polarization", "stereotype", "obedience", "intergroup"],
     providers: ["psychology", "openalex", "semantic-scholar", "crossref", "eric", "core"],
@@ -1276,9 +1276,9 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "organizational-studies": {
     id: "organizational-studies",
-    name: "Dr. Marcus Thorne",
+    name: "Dr. Taxis (Τάξις)",
     title: "Organizational Studies Analyst — Bureaucracies & Institutions",
-    institution: "Stanford / Organizational Behavior",
+    institution: "NomosX Institute",
     domains: ["organizational-studies"],
     keywords: ["organization", "bureaucracy", "institutional theory", "management", "firm", "corporate culture", "organizational change", "governance structure", "decision-making", "hierarchy"],
     providers: ["openalex", "crossref", "sociology", "repec", "nber", "core", "mega-thinktanks"],
@@ -1296,9 +1296,9 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "science-policy": {
     id: "science-policy",
-    name: "Dr. Aurora Lindqvist",
+    name: "Dr. Prometheus (Προμηθεύς)",
     title: "Science Policy Analyst — Research Systems & Innovation",
-    institution: "SPRU Sussex / Science Policy",
+    institution: "NomosX Institute",
     domains: ["science-policy"],
     keywords: ["science policy", "research funding", "innovation policy", "r&d", "peer review", "research evaluation", "open science", "scientometrics", "university", "mission-oriented"],
     providers: ["global-science", "oecd", "openalex", "overton", "crossref", "core", "mega-thinktanks"],
@@ -1316,9 +1316,9 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "development-studies": {
     id: "development-studies",
-    name: "Dr. Amara Osei",
+    name: "Dr. Anaptyxis (Ἀνάπτυξις)",
     title: "Development Studies Analyst — Poverty, Aid & Transformation",
-    institution: "SOAS / Development Studies",
+    institution: "NomosX Institute",
     domains: ["development-studies"],
     keywords: ["development", "poverty", "aid", "global south", "capability", "dependency", "inequality", "rct", "structural transformation", "informal economy", "decolonization"],
     providers: ["worldbank", "undp", "oecd", "openalex", "repec", "ajol", "dialnet", "core", "unctad"],
@@ -1336,9 +1336,9 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "comparative-politics": {
     id: "comparative-politics",
-    name: "Dr. Tomasz Wojcik",
+    name: "Dr. Synkrisis (Σύγκρισις)",
     title: "Comparative Politics Analyst — Regimes & Institutions",
-    institution: "Sciences Po / Comparative Politics",
+    institution: "NomosX Institute",
     domains: ["comparative-politics"],
     keywords: ["regime", "democratization", "authoritarianism", "electoral system", "party system", "state capacity", "constitutional", "comparative politics", "presidentialism", "hybrid regime"],
     providers: ["political-science", "openalex", "crossref", "overton", "core", "mega-thinktanks", "gdelt-news"],
@@ -1356,9 +1356,9 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "social-theory": {
     id: "social-theory",
-    name: "Dr. Camille Deschamps",
+    name: "Dr. Praxis (Πρᾶξις)",
     title: "Social Theory Analyst — Power, Structure & Modernity",
-    institution: "EHESS Paris / Social Theory",
+    institution: "NomosX Institute",
     domains: ["social-theory"],
     keywords: ["social theory", "habitus", "field theory", "critical theory", "modernity", "power", "structuration", "capital", "agency", "social ontology", "bourdieu", "foucault"],
     providers: ["isidore", "persee", "sociology", "philpapers", "openalex", "hal", "core"],
@@ -1376,9 +1376,9 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "philosophy-of-science": {
     id: "philosophy-of-science",
-    name: "Dr. Elias Brandt",
+    name: "Dr. Theoria (Θεωρία)",
     title: "Philosophy of Science Analyst — Evidence & Method",
-    institution: "University of Pittsburgh / HPS",
+    institution: "NomosX Institute",
     domains: ["philosophy-of-science"],
     keywords: ["philosophy of science", "epistemology of science", "falsification", "paradigm", "scientific realism", "methodology", "underdetermination", "replication", "evidence", "models"],
     providers: ["philpapers", "openalex", "crossref", "isidore", "core", "arxiv"],
@@ -1396,9 +1396,9 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "law-and-economics": {
     id: "law-and-economics",
-    name: "Dr. Sofia Rinaldi",
+    name: "Dr. Nomisma (Νόμισμα)",
     title: "Law & Economics Analyst — Rules, Incentives & Institutions",
-    institution: "University of Chicago / Law & Economics",
+    institution: "NomosX Institute",
     domains: ["law-and-economics"],
     keywords: ["law and economics", "transaction costs", "property rights", "liability", "regulation", "antitrust", "contract", "coase", "institutional economics", "legal origins", "tort"],
     providers: ["nber", "repec", "eur-lex", "openalex", "crossref", "core", "mega-thinktanks"],
@@ -1416,9 +1416,9 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "intelligence-studies": {
     id: "intelligence-studies",
-    name: "Dr. James Callahan",
+    name: "Dr. Phronesis (Φρόνησις)",
     title: "Intelligence Studies Analyst — Warning, Surprise & Statecraft",
-    institution: "King's College London / War Studies",
+    institution: "NomosX Institute",
     domains: ["intelligence-studies"],
     keywords: ["intelligence", "espionage", "surveillance", "warning", "strategic surprise", "covert action", "declassified", "threat assessment", "signals intelligence", "analysis tradecraft"],
     providers: ["cia-foia", "odni", "uk-jic", "global-intelligence", "nato", "sipri", "openalex", "crossref", "core"],
@@ -1436,9 +1436,9 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "military-studies": {
     id: "military-studies",
-    name: "Dr. Viktor Brandt",
+    name: "Dr. Ares (Ἄρης)",
     title: "Military Studies Analyst — Strategy, Deterrence & Warfare",
-    institution: "King's College London / War Studies",
+    institution: "NomosX Institute",
     domains: ["military-studies"],
     keywords: ["military", "warfare", "deterrence", "strategy", "defense", "armed forces", "war", "escalation", "operations", "logistics", "combat"],
     providers: ["sipri", "nato", "cia-foia", "odni", "uk-jic", "global-intelligence", "openalex", "crossref", "core"],
@@ -1456,9 +1456,9 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "futures-studies": {
     id: "futures-studies",
-    name: "Dr. Yuki Tanaka-Delacroix",
+    name: "Dr. Mellon (Μέλλον)",
     title: "Futures Studies Analyst — Scenarios & Foresight Method",
-    institution: "UNESCO / Futures Literacy",
+    institution: "NomosX Institute",
     domains: ["futures-studies"],
     keywords: ["foresight", "futures", "scenario", "horizon scanning", "weak signals", "wild cards", "long-term", "anticipation", "futures literacy", "trends"],
     providers: ["openalex", "crossref", "isidore", "core", "overton", "mega-thinktanks", "linkup"],
@@ -1476,9 +1476,9 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "economic-sociology": {
     id: "economic-sociology",
-    name: "Dr. Helena Weiss",
+    name: "Dr. Agora (Ἀγορά)",
     title: "Economic Sociology Analyst — Markets as Social Structures",
-    institution: "MPIfG Cologne / Economic Sociology",
+    institution: "NomosX Institute",
     domains: ["economic-sociology"],
     keywords: ["economic sociology", "embeddedness", "markets", "networks", "trust", "performativity", "moral economy", "commodification", "social capital", "gift economy"],
     providers: ["sociology", "openalex", "crossref", "repec", "nber", "core", "isidore"],
@@ -1496,9 +1496,9 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "historical-sociology": {
     id: "historical-sociology",
-    name: "Dr. Robert Ashworth",
+    name: "Dr. Chronos (Χρόνος)",
     title: "Historical Sociology Analyst — States, Revolutions & Longue Durée",
-    institution: "Northwestern / Historical Sociology",
+    institution: "NomosX Institute",
     domains: ["historical-sociology"],
     keywords: ["historical sociology", "state formation", "revolution", "social movements", "longue durée", "contentious politics", "empire", "modernity", "comparative history"],
     providers: ["sociology", "history", "openalex", "crossref", "isidore", "persee", "core"],
@@ -1516,9 +1516,9 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "environmental-economics": {
     id: "environmental-economics",
-    name: "Dr. Greta Lindholm",
+    name: "Dr. Oikos (Οἶκος)",
     title: "Environmental Economics Analyst — Pricing, Commons & Climate Policy",
-    institution: "LSE / Environmental Economics",
+    institution: "NomosX Institute",
     domains: ["environmental-economics"],
     keywords: ["carbon pricing", "externalities", "natural capital", "climate economics", "cap and trade", "carbon tax", "ecosystem services", "discount rate", "green transition", "emissions"],
     providers: ["openalex", "crossref", "repec", "nber", "oecd", "worldbank", "eea", "core"],
@@ -1536,9 +1536,9 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "health-economics": {
     id: "health-economics",
-    name: "Dr. Fatima Al-Rashid",
+    name: "Dr. Therapeia (Θεραπεία)",
     title: "Health Economics Analyst — Systems, Pricing & Access",
-    institution: "LSE / Health Policy",
+    institution: "NomosX Institute",
     domains: ["health-economics"],
     keywords: ["health economics", "healthcare", "pharma", "health insurance", "qaly", "health system", "drug pricing", "medical costs", "universal coverage", "health policy"],
     providers: ["pubmed", "europepmc", "who-gho", "nih", "openalex", "repec", "nber", "oecd", "core"],
@@ -1556,9 +1556,9 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "legal-theory": {
     id: "legal-theory",
-    name: "Dr. Anton Bergmann",
+    name: "Dr. Themis (Θέμις)",
     title: "Legal Theory Analyst — Jurisprudence & Legal Reasoning",
-    institution: "Oxford / Jurisprudence",
+    institution: "NomosX Institute",
     domains: ["legal-theory"],
     keywords: ["jurisprudence", "legal theory", "positivism", "natural law", "legal realism", "constitutional theory", "rule of law", "legal interpretation", "hohfeld", "normativity"],
     providers: ["philpapers", "openalex", "crossref", "eur-lex", "core", "isidore"],
@@ -1576,9 +1576,9 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "postcolonial-studies": {
     id: "postcolonial-studies",
-    name: "Dr. Leila Haddad",
+    name: "Dr. Eleutheria (Ἐλευθερία)",
     title: "Postcolonial Studies Analyst — Empire, Coloniality & Representation",
-    institution: "SOAS / Postcolonial Studies",
+    institution: "NomosX Institute",
     domains: ["postcolonial-studies"],
     keywords: ["postcolonial", "colonialism", "decolonization", "orientalism", "subaltern", "empire", "coloniality", "imperialism", "race", "representation"],
     providers: ["isidore", "persee", "openalex", "crossref", "sociology", "ajol", "dialnet", "core"],
@@ -1596,9 +1596,9 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "communication-studies": {
     id: "communication-studies",
-    name: "Dr. Paul Verhoeven",
+    name: "Dr. Rhema (Ῥῆμα)",
     title: "Communication Studies Analyst — Media, Propaganda & Public Sphere",
-    institution: "University of Amsterdam / Media Studies",
+    institution: "NomosX Institute",
     domains: ["communication-studies"],
     keywords: ["media", "propaganda", "public sphere", "framing", "agenda-setting", "journalism", "misinformation", "platform", "communication", "broadcasting"],
     providers: ["openalex", "crossref", "sociology", "isidore", "core", "gdelt-news", "linkup"],
@@ -1616,9 +1616,9 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "public-finance": {
     id: "public-finance",
-    name: "Dr. Catherine Moreau",
+    name: "Dr. Tamias (Ταμίας)",
     title: "Public Finance Analyst — Taxation, Debt & Fiscal Federalism",
-    institution: "Paris School of Economics",
+    institution: "NomosX Institute",
     domains: ["public-finance"],
     keywords: ["taxation", "fiscal policy", "public debt", "budget", "tax incidence", "fiscal federalism", "austerity", "public spending", "optimal tax", "fiscal rules"],
     providers: ["nber", "repec", "oecd", "worldbank", "imf", "openalex", "crossref", "core", "insee", "eurostat"],
@@ -1636,9 +1636,9 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "political-anthropology": {
     id: "political-anthropology",
-    name: "Dr. David Graeber-Lindt",
+    name: "Dr. Ethnos (Ἔθνος)",
     title: "Political Anthropology Analyst — State, Resistance & Everyday Politics",
-    institution: "LSE / Anthropology",
+    institution: "NomosX Institute",
     domains: ["political-anthropology"],
     keywords: ["political anthropology", "state formation", "resistance", "anarchism", "indigenous politics", "everyday politics", "zomia", "statelessness", "power", "legibility"],
     providers: ["isidore", "persee", "openalex", "crossref", "sociology", "ajol", "core"],
@@ -1656,9 +1656,9 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "food-systems": {
     id: "food-systems",
-    name: "Dr. Amina Diallo",
+    name: "Dr. Sitos (Σῖτος)",
     title: "Food Systems Analyst — Agriculture, Hunger & Agri-food Power",
-    institution: "Wageningen / Agrifood Systems",
+    institution: "NomosX Institute",
     domains: ["food-systems"],
     keywords: ["food", "agriculture", "hunger", "famine", "food security", "agri-food", "farming", "nutrition", "food sovereignty", "supply chain", "land use"],
     providers: ["fao", "worldbank", "openalex", "crossref", "oecd", "unctad", "ajol", "core", "gdelt-news"],

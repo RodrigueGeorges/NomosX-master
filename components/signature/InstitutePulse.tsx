@@ -49,14 +49,14 @@ export function InstitutePulse({
   return (
     <p
       className={cn(
-        "inline-flex items-baseline gap-3 font-display text-sm sm:text-base italic text-black/50 transition-opacity duration-500",
+        "inline-flex items-baseline gap-3 font-display text-sm sm:text-base italic text-black/50 dark:text-white/50 transition-opacity duration-500",
         visible ? "opacity-100" : "opacity-0",
         className
       )}
       aria-live="polite"
     >
-      <span className="not-italic inline-flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.2em] text-black/40">
-        <span className="w-1 h-1 rounded-full bg-black/60 nx-glow-dot" />
+      <span className="not-italic inline-flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.2em] text-black/40 dark:text-white/40">
+        <span className="w-1 h-1 rounded-full bg-black/60 dark:bg-white/60 nx-glow-dot" />
         {t("eyebrow")}
       </span>
       <span key={idx}>{lines[idx] ?? ""}</span>

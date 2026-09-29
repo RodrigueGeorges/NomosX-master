@@ -14,6 +14,8 @@ import { prisma } from '@/lib/db';
 import { publicPublicationWhere } from '@/lib/publication-visibility';
 import { sendBulkNewsletter } from '@/lib/email';
 import { inquiryUrl } from '@/lib/public-urls';
+import { domainFigureUrl } from '@/lib/brand/domain-figures';
+import { extractTopics } from '@/lib/queries/public-inquiry';
 import { EMAIL_BRAND as E, emailTrustColor } from '@/lib/brand/email-brand';
 import { emailLogoHeaderHtml } from '@/lib/brand/logo-inline';
 import { BRAND_EMAIL_FOOTER, BRAND_EMAIL_TAGLINE } from '@/lib/brand/public-copy';
@@ -23,9 +25,26 @@ const UTM = 'utm_source=email&utm_medium=newsletter&utm_campaign=weekly';
 
 type UserTier = 'FREE' | 'ANALYST' | 'RESEARCHER';
 
+interface NewsletterBrief {
+  id: string;
+  title: string;
+  summary: string;
+  sourceCount: number;
+  trustScore?: number;
+  publicId?: string;
+  /** Absolute URL of the domain mythological cover — the DA in the inbox. */
+  coverUrl?: string;
+}
+
+/** Cover image block for email (table-safe, absolute URL). */
+function coverImg(coverUrl: string | undefined, alt: string): string {
+  if (!coverUrl) return '';
+  return `<img src="${coverUrl}" alt="${alt.replace(/"/g, '&quot;')}" width="544" style="display:block;width:100%;max-width:544px;height:auto;border:0;margin:0 0 14px;" />`;
+}
+
 // ─── Brief card renderers by tier ────────────────────────────────────────────
 
-function renderBriefFree(brief: { id: string; title: string; summary: string; publicId?: string }, index: number, total: number): string {
+function renderBriefFree(brief: NewsletterBrief, index: number, total: number): string {
   const hook = brief.summary.slice(0, 120).replace(/\s\S+$/, '') + '…';
   const briefUrl = `${inquiryUrl(brief.publicId || brief.id, true)}?${UTM}`;
 
@@ -36,6 +55,7 @@ function renderBriefFree(brief: { id: string; title: string; summary: string; pu
           <p style="${E.eyebrow}margin:0 0 8px;">
             Brief ${index + 1} of ${total}
           </p>
+          ${coverImg(brief.coverUrl, brief.title)}
           <h2 style="font-size:17px;font-weight:400;color:#f4f4f5;margin:0 0 10px;line-height:1.4;">
             ${brief.title}
           </h2>
@@ -55,7 +75,7 @@ function renderBriefFree(brief: { id: string; title: string; summary: string; pu
     </table>`;
 }
 
-function renderBriefAnalyst(brief: { id: string; title: string; summary: string; sourceCount: number; publicId?: string }, index: number, total: number): string {
+function renderBriefAnalyst(brief: NewsletterBrief, index: number, total: number): string {
   const summary = brief.summary.length > 600 ? brief.summary.slice(0, 600).replace(/\s\S+$/, '') + '…' : brief.summary;
   const briefUrl = `${inquiryUrl(brief.publicId || brief.id, true)}?${UTM}`;
 
@@ -66,6 +86,7 @@ function renderBriefAnalyst(brief: { id: string; title: string; summary: string;
           <p style="${E.eyebrow}margin:0 0 8px;">
             Brief ${index + 1} of ${total}
           </p>
+          ${coverImg(brief.coverUrl, brief.title)}
           <h2 style="font-size:17px;font-weight:400;color:#f4f4f5;margin:0 0 10px;line-height:1.4;">
             ${brief.title}
           </h2>
@@ -89,7 +110,7 @@ function renderBriefAnalyst(brief: { id: string; title: string; summary: string;
     </table>`;
 }
 
-function renderBriefResearcher(brief: { id: string; title: string; summary: string; sourceCount: number; trustScore?: number; publicId?: string }, index: number, total: number): string {
+function renderBriefResearcher(brief: NewsletterBrief, index: number, total: number): string {
   const briefUrl = `${inquiryUrl(brief.publicId || brief.id, true)}?${UTM}`;
   const trustColor = emailTrustColor(brief.trustScore || 0);
 
@@ -111,6 +132,7 @@ function renderBriefResearcher(brief: { id: string; title: string; summary: stri
               </td>` : ''}
             </tr>
           </table>
+          ${coverImg(brief.coverUrl, brief.title)}
           <h2 style="font-size:17px;font-weight:400;color:#f4f4f5;margin:0 0 10px;line-height:1.4;">
             ${brief.title}
           </h2>
@@ -138,14 +160,7 @@ function renderBriefResearcher(brief: { id: string; title: string; summary: stri
 
 function generateNewsletterHTML(
   edition: { number: number; date: string },
-  briefs: Array<{
-    id: string;
-    title: string;
-    summary: string;
-    sourceCount: number;
-    trustScore?: number;
-    publicId?: string;
-  }>,
+  briefs: NewsletterBrief[],
   tier: UserTier = 'FREE',
   subscriberEmail: string = '{{email}}'
 ): string {
@@ -276,17 +291,25 @@ async function getWeeklyBriefs() {
       publicId: true,
       sourceIds: true,
       trustScore: true,
+      vertical: { select: { slug: true, name: true } },
     },
   });
 
-  return publications.map(pub => ({
-    id: pub.id,
-    title: pub.title,
-    summary: extractSummary(pub.html),
-    sourceCount: pub.sourceIds.length,
-    trustScore: pub.trustScore ?? undefined,
-    publicId: pub.publicId || undefined,
-  }));
+  return publications.map(pub => {
+    const topics = extractTopics(pub.title || '');
+    const coverRel =
+      domainFigureUrl(pub.vertical?.slug ?? pub.vertical?.name) ??
+      topics.map((t) => domainFigureUrl(t)).find(Boolean);
+    return {
+      id: pub.id,
+      title: pub.title,
+      summary: extractSummary(pub.html),
+      sourceCount: pub.sourceIds.length,
+      trustScore: pub.trustScore ?? undefined,
+      publicId: pub.publicId || undefined,
+      coverUrl: coverRel ? `${APP_URL}${coverRel}` : undefined,
+    } satisfies NewsletterBrief;
+  });
 }
 
 // Extract summary from HTML content — tries executive-summary section, then key-findings, then first paragraph

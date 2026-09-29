@@ -12,6 +12,7 @@ export { PipelineStrip } from "./PipelineStrip";
 export { StudioPreview } from "./StudioPreview";
 export { ReadingRoom } from "./ReadingRoom";
 export { LensPrism } from "./LensPrism";
+export { CouncilRoster } from "./CouncilRoster";
 export { InstitutePulse } from "./InstitutePulse";
 export { NomosWord } from "./NomosWord";
-export { GodField } from "./GodField";
+export { DomainCover } from "./DomainCover";
