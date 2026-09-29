@@ -1551,7 +1551,33 @@ function attemptJsonRepair(raw: string): string | null {
  * each other FIRST; OpenAI/Anthropic are last resort so a single vendor
  * outage never halts publication.
  */
+/** Identical in-flight requests share one provider round-trip (see callLLM). */
+const IN_FLIGHT_LLM = new Map<string, Promise<LLMResponse>>();
+
+/**
+ * In-flight request coalescing on top of the persistent Redis cache:
+ * two concurrent calls with identical (messages, params, task) bill twice on
+ * a cache miss — the second caller now awaits the first's promise instead.
+ * Tool-calling turns are excluded (stateful, like the cache rule below).
+ */
 export async function callLLM(request: LLMRequest): Promise<LLMResponse> {
+  const cacheable = request.enableCache !== false && !request.tools?.length;
+  if (!cacheable) return callLLMCore(request);
+  const cacheKey = buildCacheKey(request);
+  const inFlight = IN_FLIGHT_LLM.get(cacheKey);
+  if (inFlight) {
+    console.log(`[LLM] coalesced in-flight duplicate [${request.task ?? request.model ?? "call"}]`);
+    const shared = await inFlight;
+    return { ...shared, cached: true };
+  }
+  const run = callLLMCore(request).finally(() => {
+    if (IN_FLIGHT_LLM.get(cacheKey) === run) IN_FLIGHT_LLM.delete(cacheKey);
+  });
+  IN_FLIGHT_LLM.set(cacheKey, run);
+  return run;
+}
+
+async function callLLMCore(request: LLMRequest): Promise<LLMResponse> {
   const startTime = Date.now();
   const task = normalizeTask(request.task);
   const primaryProvider = resolvePrimaryProvider(request);

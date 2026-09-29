@@ -634,12 +634,37 @@ async function executeDispatchQueue(
   // (2x target, bounded by pool size) keeps cost bounded — each candidate
   // runs exactly once, no infinite retry.
   const maxAttempts = Math.min(items.length, maxExecutions * 2);
-  for (let i = 0; i < items.length; i++) {
-    const item = items[i];
-    if (published >= maxExecutions) break;
-    if (executed >= maxAttempts) break;
-    // Durable resume — item already finished by a previous (crashed) attempt.
-    if (durable?.doneKeys.has(dispatchItemKey(item))) continue;
+  // Speculative inter-item pipelining (PASTE pattern, arXiv 2603.18897):
+  // stages are sequential INSIDE one pipeline, but item N+1's retrieval/LLM
+  // work doesn't depend on item N's post-render tail — running K items
+  // concurrently overlaps those phases instead of serializing the cycle.
+  // THINK_TANK_DISPATCH_CONCURRENCY: default 2, hard cap 3 (each pipeline
+  // holds a multi-MB corpus; the worker heap is sized for ~2 runs). Set 1
+  // to restore fully sequential dispatch.
+  const concurrency = Math.max(
+    1,
+    Math.min(parseInt(process.env.THINK_TANK_DISPATCH_CONCURRENCY ?? "2", 10) || 2, 3),
+  );
+  if (concurrency > 1) {
+    console.log(`[ThinkTank] Dispatch concurrency=${concurrency} — up to ${concurrency} pipelines in flight`);
+  }
+  let nextIdx = 0;
+  let stopAll = false;
+  // Checkpoint writes serialize on a tail promise: concurrent onItemDone
+  // calls each snapshot the shared doneKeys set — chaining prevents a
+  // last-write-wins race from dropping a completed key.
+  let checkpointTail: Promise<void> = Promise.resolve();
+  const runWorker = async () => {
+    while (!stopAll) {
+      // Pull-gate races can overshoot the publication target by at most
+      // (concurrency - 1): the gate is a target and every publication still
+      // passed the full quality checks.
+      if (published >= maxExecutions || executed >= maxAttempts) return;
+      const i = nextIdx++;
+      if (i >= items.length) return;
+      const item = items[i];
+      // Durable resume — item already finished by a previous (crashed) attempt.
+      if (durable?.doneKeys.has(dispatchItemKey(item))) continue;
 
     // Resolve vertical for capacity gate
     let verticalId = item.verticalId;
@@ -670,7 +695,8 @@ async function executeDispatchQueue(
     if (budgetUsd && totalCostUsd >= budgetUsd) {
       console.log(`[ThinkTank] Budget exhausted ($${totalCostUsd.toFixed(4)} >= $${budgetUsd}) — skipping remaining ${items.length - i} item(s)`);
       skipped += items.length - i;
-      break;
+      stopAll = true;
+      return;
     }
 
     // Global budget gate — check monthly/daily caps before each dispatch
@@ -680,12 +706,14 @@ async function executeDispatchQueue(
       if (gate === 'stop') {
         console.log(`[ThinkTank] Global budget cap exceeded — skipping remaining ${items.length - i} item(s)`);
         skipped += items.length - i;
-        break;
+        stopAll = true;
+        return;
       }
       if (gate === 'throttle' && executed >= 1) {
         console.log(`[ThinkTank] Budget critical — throttling (1 dispatch max this cycle)`);
         skipped += items.length - i;
-        break;
+        stopAll = true;
+        return;
       }
     } catch (budgetErr) {
       // Non-blocking — don't fail the cycle if budget check fails
@@ -696,6 +724,9 @@ async function executeDispatchQueue(
     const nicheDomains = ['cognitive-science', 'bioethics', 'complexity-science', 'urban-studies', 'development-economics'];
     const isNiche = item.domain && nicheDomains.includes(item.domain);
     const adaptiveTrust = isNiche ? 55 : 60;
+    // Attempt consumed at launch — the item will actually run now (all skip
+    // checks passed); under concurrency this keeps the pull-gate accurate.
+    executed++;
     let dispatchTimer: ReturnType<typeof setTimeout> | undefined;
     const result = await Promise.race([
       runAndPublishInquiry({
@@ -730,7 +761,6 @@ async function executeDispatchQueue(
 
     outcomes.push({ item, result });
     totalCostUsd += result.costUsd;
-    executed++;
 
     // Record spend to global budget tracker
     if (result.costUsd > 0) {
@@ -783,18 +813,30 @@ async function executeDispatchQueue(
 
     // Durable checkpoint — the item is permanently done, record it so a
     // crash/reclaim resumes at the next item instead of re-dispatching.
+    // Writes chain on checkpointTail so concurrent completions can't
+    // overwrite each other's doneKeys snapshot.
     if (durable) {
       durable.doneKeys.add(dispatchItemKey(item));
-      await durable.onItemDone(dispatchItemKey(item), {
-        published, held, skipped, failed, totalCostUsd, topics,
-      });
+      const key = dispatchItemKey(item);
+      checkpointTail = checkpointTail.then(() =>
+        Promise.resolve(
+          durable.onItemDone(key, {
+            published, held, skipped, failed, totalCostUsd, topics,
+          }),
+        ).catch(() => undefined),
+      );
+      await checkpointTail;
     }
 
-    // Throttle between heavy pipeline runs
-    if (i < items.length - 1) {
+    // Throttle between heavy pipeline runs (sequential mode only — workers
+    // already stagger naturally under concurrency)
+    if (concurrency === 1 && i < items.length - 1) {
       await new Promise((r) => setTimeout(r, 2000));
     }
-  }
+    }
+  };
+
+  await Promise.all(Array.from({ length: concurrency }, () => runWorker()));
 
   return { outcomes, published, held, skipped, failed, totalCostUsd, topics, errors, verticalPubCounts };
 }
