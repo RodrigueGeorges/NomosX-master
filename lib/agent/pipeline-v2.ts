@@ -156,7 +156,28 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   // ── INIT — extracted to pipeline-steps/pipeline-init.ts ──
   // Mutable flow state lives in flags/cost/selfCorrect holders so init
   // closures (addCost budget guard) and the body share the same fields.
-  const init = await runPipelineInit(query, opts);
+  // Init may have already created the PipelineRun row — a throw here must
+  // still mark it FAILED with the error, otherwise the row stays RUNNING
+  // until the sweep and every failure lands as steps:[] / error:null.
+  let init: Awaited<ReturnType<typeof runPipelineInit>>;
+  try {
+    init = await runPipelineInit(query, opts);
+  } catch (initErr: any) {
+    try {
+      const orphan = await prisma.pipelineRun.findFirst({
+        where: { question: query, status: "RUNNING" },
+        orderBy: { createdAt: "desc" },
+        select: { id: true },
+      });
+      if (orphan) {
+        await prisma.pipelineRun.update({
+          where: { id: orphan.id },
+          data: { status: "FAILED", finishedAt: new Date(), error: `INIT: ${String(initErr?.message ?? initErr).slice(0, 500)}` },
+        });
+      }
+    } catch { /* best-effort failure bookkeeping */ }
+    throw initErr;
+  }
   const {
     isStrategic, useWitness, useMixtureOfAgents, useWorldModel, usePRM, useSelfPlay,
     useOutputGuard, useLocalJudge, useStorm, useTemporalMemory, useThinkTankPack,
@@ -903,6 +924,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
         status: "FAILED",
         finishedAt: new Date(),
         durationMs: Date.now() - pipelineStart,
+        error: String(error.message ?? error).slice(0, 500),
         steps: JSON.parse(JSON.stringify({ ...stats, error: error.message })),
       },
     }).catch(() => {});

@@ -155,17 +155,11 @@ Now process the user query.`;
     };
   } catch (error: any) {
     console.error(`[QueryEnhancer] Failed: ${error.message}`);
-    
-    // Fallback: return original query
-    return {
-      original: query,
-      language,
-      translated: query,
-      enhanced: query,
-      variations: [],
-      keywords: [],
-      topics: [],
-    };
+    // LLM enhancement failed (e.g. free-tier JSON errors) — fall back to
+    // keyword extraction so downstream relevance scoring still has signal.
+    // Returning keywords:[] scored every source ~0 and collapsed the filter
+    // into a degenerate top-50.
+    return createFallbackEnhancement(query, language);
   }
 }
 

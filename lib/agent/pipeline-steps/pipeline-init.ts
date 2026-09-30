@@ -457,7 +457,11 @@ export async function runPipelineInit(query: string, opts: PipelineCoreOptions) 
   // Stable key: resumes must find the same state across retries — keying on
   // pipelineRun.id (fresh per attempt) would never resume. A crashed/timed-out
   // run re-dispatched for the same query+format picks up at its last checkpoint.
-  const durableKey = useDurableExecution
+  // `let` not const: a failed init downgrades the run to non-durable instead
+  // of killing it — a PipelineRun row was just created and a throw here left
+  // the run RUNNING-with-no-steps until the sweep failed it (observed live:
+  // memo runs dying at 0.0min with steps:[] and error:null).
+  let durableKey = useDurableExecution
     ? durableKeyFor(query, opts.format ?? (isStrategic ? 'strategic' : isMemo ? 'memo' : 'brief'))
     : null;
   if (durableKey) {
@@ -465,8 +469,8 @@ export async function runPipelineInit(query: string, opts: PipelineCoreOptions) 
       await initDurableRun(durableKey, query);
       console.log(`${label} DURABLE EXECUTION: initialized (${durableKey})`);
     } catch (err) {
-      console.warn(`${label} DURABLE EXECUTION: init failed (non-blocking):`, err);
-      throw err;
+      console.warn(`${label} DURABLE EXECUTION: init failed — continuing WITHOUT checkpointing:`, err);
+      durableKey = null;
     }
   }
   const durable = <T>(step: string, fn: () => Promise<T>, costUsd = 0): Promise<T> =>
