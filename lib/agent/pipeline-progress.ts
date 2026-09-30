@@ -100,6 +100,29 @@ globalEmitter.setMaxListeners(50);
 type ProgressPersistenceHook = (event: PipelineProgressEvent) => void | Promise<void>;
 let persistenceHook: ProgressPersistenceHook | null = null;
 
+// Liveness heartbeat: progress events are in-process only (EventEmitter), so a
+// running pipeline otherwise never writes to pipelineRun — updatedAt stays
+// frozen at creation and the worker's 45min stale-run sweeper marks LIVE runs
+// FAILED. Touch updatedAt at most once a minute per run to keep it honest.
+const RUN_TOUCH_MS = 60_000;
+const lastRunTouch = new Map<string, number>();
+function touchRunLiveness(runId: string): void {
+  const now = Date.now();
+  const last = lastRunTouch.get(runId);
+  if (last !== undefined && now - last < RUN_TOUCH_MS) return;
+  lastRunTouch.set(runId, now);
+  if (lastRunTouch.size > 256) {
+    const cutoff = now - 2 * 60 * 60 * 1000;
+    for (const [id, t] of lastRunTouch) if (t < cutoff) lastRunTouch.delete(id);
+  }
+  // Lazy import keeps prisma out of any bundle that only streams SSE events.
+  void import('../db')
+    .then(({ prisma }) =>
+      prisma.pipelineRun.update({ where: { id: runId }, data: { finishedAt: null } })
+    )
+    .catch(() => undefined); // ad-hoc/non-DB run ids — heartbeat is best-effort
+}
+
 /** Optional hook to persist progress (e.g. StudioXOrder updates during async runs). */
 export function setProgressPersistenceHook(hook: ProgressPersistenceHook | null): void {
   persistenceHook = hook;
@@ -127,6 +150,8 @@ export function emitProgress(
   };
 
   globalEmitter.emit(`progress:${runId}`, event);
+  if (step === "COMPLETE" || step === "ERROR") lastRunTouch.delete(runId);
+  else touchRunLiveness(runId);
   if (persistenceHook) {
     void Promise.resolve(persistenceHook(event)).catch((err) => {
       console.warn('[PipelineProgress] persistence hook error:', err);

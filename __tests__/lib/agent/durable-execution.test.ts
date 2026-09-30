@@ -4,7 +4,6 @@
  * Prisma agentAuditLog is mocked as an in-memory store; no DB required.
  */
 
-import { promises as fs } from 'fs';
 import {
   initDurableRun,
   runDurableStep,
@@ -29,6 +28,20 @@ jest.mock('@/lib/db', () => ({
           .filter(r => r.agent === where.agent && r.resource === where.resource)
           .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
       ),
+      findFirst: jest.fn(async ({ where }: any) =>
+        auditRows
+          .filter(r => r.agent === where.agent && (!where.action || r.action === where.action) && r.resource === where.resource)
+          .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())[0] ?? null
+      ),
+      deleteMany: jest.fn(async ({ where }: any) => {
+        const match = (r: any) =>
+          r.agent === where.agent &&
+          (!where.action || r.action === where.action) &&
+          (where.resource?.startsWith ? r.resource.startsWith(where.resource.startsWith) : r.resource === where.resource);
+        const removed = auditRows.filter(match).length;
+        for (let i = auditRows.length - 1; i >= 0; i--) if (match(auditRows[i])) auditRows.splice(i, 1);
+        return { count: removed };
+      }),
     },
   },
 }));
@@ -78,29 +91,32 @@ describe('runDurableStep', () => {
     expect(restored).toEqual({ ids: ['a', 'b'] });
   });
 
-  test('file fallback: >512KB payloads go to disk and reload transparently', async () => {
+  test('blob fallback: >512KB payloads go to a DB blob row and reload transparently', async () => {
     const runId = durableKeyFor('big payload', 'brief');
     await initDurableRun(runId, 'big payload');
     await runDurableStep(runId, 'reader', async () => STEP_BIG);
 
-    // The audit row must NOT contain the blob inline
+    // The step row must NOT contain the payload inline — it references a blob row
     const stepRow = auditRows.find(r => r.action === 'DURABLE_STEP');
     const meta = JSON.parse(stepRow!.metadata);
-    expect(meta.fileRef).toBeTruthy();
+    expect(meta.fileRef).toMatch(/^blob:/);
     expect(meta.output).toBeUndefined();
-    expect(await fs.stat(meta.fileRef)).toBeTruthy();
+    const blobRow = auditRows.find(r => r.action === 'DURABLE_STEP_BLOB' && r.resource === `${runId}::reader`);
+    expect(blobRow).toBeTruthy();
+    expect(JSON.parse(blobRow!.metadata)).toEqual(STEP_BIG);
 
-    // And it still resolves to the full payload
+    // And it still resolves to the full payload — survives a process restart
     const cached = await runDurableStep(runId, 'reader', jest.fn());
     expect(cached).toEqual(STEP_BIG);
   });
 
-  test('missing checkpoint file → cache miss → re-executes', async () => {
+  test('missing checkpoint blob → cache miss → re-executes', async () => {
     const runId = durableKeyFor('purged tmp', 'brief');
     await initDurableRun(runId, 'purged tmp');
     await runDurableStep(runId, 'reader', async () => STEP_BIG);
-    const meta = JSON.parse(auditRows.find(r => r.action === 'DURABLE_STEP')!.metadata);
-    await fs.rm(meta.fileRef, { force: true });
+    for (let i = auditRows.length - 1; i >= 0; i--) {
+      if (auditRows[i].action === 'DURABLE_STEP_BLOB') auditRows.splice(i, 1);
+    }
 
     const fn = jest.fn(async () => ({ value: 'recomputed' }));
     const result = await runDurableStep(runId, 'reader', fn);

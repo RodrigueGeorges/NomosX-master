@@ -158,9 +158,12 @@ export async function markDurableComplete(runId: string): Promise<void> {
         timestamp: new Date(),
       },
     });
-    // Drop file-backed checkpoints — the run is sealed, they can no longer
-    // be resumed, and reader payloads can run ~20MB in tmpdir.
+    // Drop file- and blob-backed checkpoints — the run is sealed, they can no
+    // longer be resumed, and reader payloads run ~20MB apiece.
     await fs.rm(path.join(CHECKPOINT_DIR, runId.replace(/[^a-zA-Z0-9_-]/g, '_')), { recursive: true, force: true });
+    await prisma.agentAuditLog
+      .deleteMany({ where: { agent: 'durable_execution', action: 'DURABLE_STEP_BLOB', resource: { startsWith: `${runId}::` } } })
+      .catch(() => undefined);
   } catch (err) {
     console.warn('[Durable] markComplete failed:', err);
   }
@@ -226,8 +229,39 @@ async function loadDurableState(runId: string): Promise<DurableExecutionState | 
   }
 }
 
-const FILE_THRESHOLD_BYTES = 512 * 1024; // >512KB payloads go to disk (readings carry ~MBs of full text)
+const FILE_THRESHOLD_BYTES = 512 * 1024; // >512KB payloads spill out of the step row (readings carry ~MBs of full text)
 const CHECKPOINT_DIR = path.join(os.tmpdir(), 'nomosx-durable');
+// Large payloads are stored in a dedicated audit row (`blob:` resource) — NOT
+// in tmpdir. os.tmpdir() is wiped on every container restart, which is exactly
+// the failure mode checkpoints exist to survive; the audit table is durable.
+const BLOB_PREFIX = 'blob:';
+const blobResourceFor = (runId: string, step: string) => `${runId}::${step}`;
+
+async function writeCheckpointBlob(runId: string, step: string, serialized: string): Promise<string> {
+  await prisma.agentAuditLog.create({
+    data: {
+      action: 'DURABLE_STEP_BLOB',
+      agent: 'durable_execution',
+      resource: blobResourceFor(runId, step),
+      metadata: serialized,
+      timestamp: new Date(),
+    },
+  });
+  return `${BLOB_PREFIX}${blobResourceFor(runId, step)}`;
+}
+
+async function readCheckpointBlob(resource: string): Promise<any> {
+  try {
+    const row = await prisma.agentAuditLog.findFirst({
+      where: { agent: 'durable_execution', action: 'DURABLE_STEP_BLOB', resource },
+      orderBy: { timestamp: 'desc' },
+      select: { metadata: true },
+    });
+    return row?.metadata ? JSON.parse(row.metadata) : undefined;
+  } catch {
+    return undefined;
+  }
+}
 
 async function writeCheckpointFile(runId: string, step: string, output: any): Promise<string> {
   const dir = path.join(CHECKPOINT_DIR, runId.replace(/[^a-zA-Z0-9_-]/g, '_'));
@@ -245,10 +279,12 @@ async function readCheckpointFile(file: string): Promise<any> {
   }
 }
 
-/** Resolve a step output — inline value or lazy file-backed marker. */
+/** Resolve a step output — inline value, lazy blob-backed, or legacy file-backed marker. */
 async function resolveStepOutput(output: any): Promise<any> {
   if (output && typeof output === 'object' && typeof output.__checkpointFile === 'string') {
-    return readCheckpointFile(output.__checkpointFile);
+    const ref: string = output.__checkpointFile;
+    if (ref.startsWith(BLOB_PREFIX)) return readCheckpointBlob(ref.slice(BLOB_PREFIX.length));
+    return readCheckpointFile(ref);
   }
   return output;
 }
@@ -265,9 +301,14 @@ async function persistStep(runId: string, step: string, output: any, costUsd: nu
     let fileRef: string | undefined;
     if (tooBig) {
       try {
-        fileRef = await writeCheckpointFile(runId, step, output);
-      } catch (fileErr) {
-        console.warn('[Durable] File checkpoint failed, keeping inline payload:', fileErr);
+        fileRef = await writeCheckpointBlob(runId, step, serialized);
+      } catch (blobErr) {
+        console.warn('[Durable] Blob checkpoint failed, falling back to tmpdir file:', blobErr);
+        try {
+          fileRef = await writeCheckpointFile(runId, step, output);
+        } catch (fileErr) {
+          console.warn('[Durable] File checkpoint failed, keeping inline payload:', fileErr);
+        }
       }
     }
     await prisma.agentAuditLog.create({

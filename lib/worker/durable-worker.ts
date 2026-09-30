@@ -198,6 +198,14 @@ function startHeartbeat(jobId: string, workerId: string, lockMs: number): NodeJS
   return timer;
 }
 
+let activeJob: { id: string; workerId: string } | null = null;
+
+/** The job currently executing in this process — used by SIGTERM handlers to
+ *  release the lock early so a replacement worker can reclaim instantly. */
+export function getActiveJob(): { id: string; workerId: string } | null {
+  return activeJob;
+}
+
 export async function executeJob(
   job: ClaimedJob,
   workerId: string,
@@ -205,6 +213,7 @@ export async function executeJob(
 ): Promise<'completed' | 'retried' | 'dead'> {
   const handler = handlers.get(job.type);
   const heartbeat = startHeartbeat(job.id, workerId, lockMs);
+  activeJob = { id: job.id, workerId };
 
   try {
     if (!handler) throw new Error(`No handler registered for job type "${job.type}"`);
@@ -270,6 +279,7 @@ export async function executeJob(
     return 'dead';
   } finally {
     clearInterval(heartbeat);
+    activeJob = null;
   }
 }
 
@@ -294,6 +304,10 @@ export async function runWorkerLoop(options: WorkerOptions = {}): Promise<number
     // funnel metrics and the dossier/watch layer see the truth.
     if (Date.now() - lastSweep > SWEEP_INTERVAL_MS) {
       lastSweep = Date.now();
+      const mem = process.memoryUsage();
+      console.log(
+        `[Worker ${workerId}] mem rss=${Math.round(mem.rss / 1e6)}MB heap=${Math.round(mem.heapUsed / 1e6)}/${Math.round(mem.heapTotal / 1e6)}MB activeJob=${activeJob?.id ?? 'none'}`
+      );
       await sweepStalePipelineRuns(workerId);
     }
 
