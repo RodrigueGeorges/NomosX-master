@@ -131,6 +131,9 @@ export interface ProspectiveNote {
     totalCostUsd: number;
     producerFamily?: import('../llm/unified-llm').LLMFamily;
     pruning?: PruningResult;
+    /** Set when the analyst produced a failure stub instead of a real analysis. */
+    failed?: boolean;
+    error?: string;
   };
 }
 
@@ -1450,8 +1453,8 @@ export async function analystAgentV3(
 
     return {
       title: "Analysis Failed",
-      throughLine: `Error: ${error.message}`,
-      verdict: `Error: ${error.message}`,
+      throughLine: "Analysis unavailable — generation failed.",
+      verdict: "Analysis unavailable — generation failed.",
       convictionLevel: "causal_only",
       anchoringBasis: "",
       causalChain: [],
@@ -1461,6 +1464,8 @@ export async function analystAgentV3(
       evidenceAssessment: { strongestLinks: [], weakestLink: "", gaps: [], sourceDiversity: "" },
       keyFindings: [],
       _meta: {
+        failed: true,
+        error: String(error?.message ?? error).slice(0, 500),
         passes: 0,
         frictionMap: { mechanisms: [], collisions: [], dataLandscape: { totalDataPoints: 0, quantitativeFindings: [], activeDynamics: [], projectionsInLiterature: [] } },
         stressTestMap: { mechanismAssessments: [], collisionAssessments: [], survivingMechanisms: [], strongestChain: { presentFactIds: [], mechanismIds: [], projectedFuture: '' } },

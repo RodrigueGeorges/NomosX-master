@@ -141,7 +141,7 @@ export async function runAnalystExecution(deps: AnalystRunDeps): Promise<Analyst
   // and pick the one with better citation coverage. This is a simplified version
   // of the asymmetric verification pattern: generate N candidates (cheap, parallel),
   // verify deterministically (citation count), select the best.
-  if (isStrategic && runningCostUsd < (maxBudgetUsd ?? 5) * 0.4) {
+  if (isStrategic && runningCostUsd < (maxBudgetUsd ?? 5) * 0.4 && !analysis?._meta?.failed) {
     try {
       console.log(`${label} TEST-TIME SCALING: generating second candidate for comparison...`);
       const candidate2 = await analystMultipass(query, topSources, slimReadings, {

@@ -442,6 +442,35 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   analysis = analystOut.analysis;
   const analystCostUsd = analystOut.analystCostUsd;
 
+  // Analysis generation failed outright (e.g. all LLM providers down) — the
+  // downstream render/editorial/regen chain cannot produce a publishable
+  // artifact from a stub, so refuse here instead of burning the cycle.
+  if ((analysis as any)?._meta?.failed) {
+    const reason = `analysis_generation_failed: ${String((analysis as any)._meta?.error ?? 'unknown').slice(0, 200)}`;
+    console.warn(`${label} REFUSAL: ${reason}`);
+    stats.structuredRefusal = {
+      reason,
+      sourceCount: topSources.length,
+      required: 0,
+      missing: ['llm_analysis'],
+    };
+    stats.totalCostUsd = cost.runningCostUsd;
+    emitProgress(pipelineRun.id, "ANALYST", "failed", `Refused: ${reason}`);
+    activeRuns.delete(idempotencyKey);
+    process.removeListener('unhandledRejection', rejectionHandler);
+    await prisma.pipelineRun.update({
+      where: { id: pipelineRun.id },
+      data: {
+        status: "FAILED",
+        finishedAt: new Date(),
+        durationMs: Date.now() - pipelineStart,
+        error: reason.slice(0, 500),
+        steps: JSON.parse(JSON.stringify({ ...stats, error: reason })),
+      },
+    }).catch(() => {});
+    return { briefId: undefined, pipelineRun, stats, html: '', analysis: { refusal: stats.structuredRefusal } as any };
+  }
+
   // -- POST-ANALYST CHECKS — extracted to pipeline-steps/post-analyst-checks.ts --
   const checks = await runPostAnalystChecks({
     analysis, query, topSources, slimReadings, fullContextBlock, detectedDomain,
