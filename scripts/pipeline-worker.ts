@@ -73,6 +73,25 @@ async function main() {
   installShutdownHandlers();
   registerAllJobHandlers();
 
+  // Startup resource probe — we cannot see container kills (SIGKILL logs
+  // nothing), so log the actual memory ceiling and Node's view of the world.
+  // v8.getHeapStatistics().heap_size_limit is what Node will die trying to
+  // exceed; cgroup memory.max is what the KERNEL will SIGKILL us at.
+  try {
+    const { promises: fs } = await import('fs');
+    const v8 = await import('v8');
+    const os = await import('os');
+    const cgroupLimit = await fs.readFile('/sys/fs/cgroup/memory.max', 'utf8')
+      .then((s) => s.trim())
+      .catch(() => fs.readFile('/sys/fs/cgroup/memory/memory.limit_in_bytes', 'utf8').then((s) => s.trim()))
+      .catch(() => 'unreadable');
+    console.log(
+      `[pipeline-worker] resources — cgroup_mem_max=${cgroupLimit} ` +
+      `heap_limit=${Math.round(v8.getHeapStatistics().heap_size_limit / 1e6)}MB ` +
+      `totalmem=${Math.round(os.totalmem() / 1e6)}MB cpus=${os.cpus().length}`
+    );
+  } catch { /* probe is best-effort */ }
+
   const once = process.argv.includes('--once');
   const pollMs = Number(arg('poll-ms') ?? 10_000);
   const maxJobs = Number(arg('max-jobs') ?? 0);

@@ -18,6 +18,7 @@ import Sentry from '@sentry/nextjs';
 import { AgentRole, assertPermission } from '../governance/index';
 import { prisma } from '../db';
 import axios from 'axios';
+import pLimit from 'p-limit';
 import { RESEARCHER_KBS, type DomainExpertise } from './researcher-kb/index';
 import { MULTI_DOMAIN_CORPUS } from '../knowledge/multi-domain-corpus';
 import { unpaywallByDoi } from '../providers/unpaywall';
@@ -317,7 +318,19 @@ function buildQuantitativeDescriptor(sourceType: string): string {
  * Old: single attempt, 15s timeout → permanent fallback on network blips.
  * New: 2 retries with 2s/4s backoff + jitter, 30s timeout for large papers.
  */
+// pdf-parse inflates a downloaded PDF ~10× in RAM (buffer + parsed page tree).
+// At reader concurrency 5, five simultaneous parses on 20MB PDFs peak ~1GB —
+// enough to tip a container over its cgroup limit. Cap the download size
+// (research papers are typically 1-5MB; larger documents fall back to the
+// abstract) and bound simultaneous parses process-wide.
+const PDF_MAX_BYTES = 8 * 1024 * 1024;
+const pdfParseLimiter = pLimit(2);
+
 async function extractPdfText(url: string, timeout = 30000): Promise<string | null> {
+  return pdfParseLimiter(() => extractPdfTextInner(url, timeout));
+}
+
+async function extractPdfTextInner(url: string, timeout = 30000): Promise<string | null> {
   const MAX_RETRIES = 2;
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     try {
@@ -325,7 +338,7 @@ async function extractPdfText(url: string, timeout = 30000): Promise<string | nu
       const response = await axios.get(url, {
         responseType: 'arraybuffer',
         timeout,
-        maxContentLength: 20 * 1024 * 1024, // 20MB max
+        maxContentLength: PDF_MAX_BYTES,
         headers: {
           'User-Agent': 'NomosX/3.0 (Academic Research Platform; mailto:contact@nomosx.com)',
         },

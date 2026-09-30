@@ -198,6 +198,27 @@ function startHeartbeat(jobId: string, workerId: string, lockMs: number): NodeJS
         data: { lockedUntil: new Date(Date.now() + lockMs) },
       })
       .catch((err) => console.warn(`[Worker] heartbeat failed for ${jobId}:`, err));
+    // Durable telemetry — Railway drops log lines under bursts (the scout
+    // fan-out emits hundreds/sec), so a memory curve written to the DB is the
+    // only post-mortem that survives a silent SIGKILL. Tiny rows, ~25/run.
+    prisma.agentAuditLog
+      .create({
+        data: {
+          action: 'WORKER_MEM',
+          agent: 'durable_worker',
+          resource: jobId,
+          metadata: JSON.stringify({
+            workerId,
+            rssMb: Math.round(mem.rss / 1e6),
+            heapUsedMb: Math.round(mem.heapUsed / 1e6),
+            heapTotalMb: Math.round(mem.heapTotal / 1e6),
+            externalMb: Math.round((mem.external ?? 0) / 1e6),
+            t: Date.now(),
+          }),
+          timestamp: new Date(),
+        },
+      })
+      .catch(() => undefined);
   }, HEARTBEAT_MS);
   if (typeof timer.unref === 'function') timer.unref();
   return timer;
