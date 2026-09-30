@@ -89,7 +89,7 @@ test('per-upstream budget stops real requests once the cap is reached', async ()
   fetchMock.mockImplementation(async () => new Response('{"ok":true}'));
   const controller = new AbortController();
   const results = await withExecutionSignal(controller.signal, () =>
-    Promise.allSettled(Array.from({ length: 210 }, (_, i) =>
+    Promise.allSettled(Array.from({ length: 410 }, (_, i) =>
       httpGet(`https://api.test-upstream.test/x?p=${i}`, { retries: 0, rateLimiterKey: 'test-upstream' }),
     )),
   );
@@ -97,16 +97,16 @@ test('per-upstream budget stops real requests once the cap is reached', async ()
   const blocked = results.filter(r =>
     r.status === 'rejected' && /budget exhausted/i.test(String(r.reason?.message)),
   );
-  expect(ok).toHaveLength(200);
+  expect(ok).toHaveLength(400);
   expect(blocked).toHaveLength(10);
-  expect(fetchMock).toHaveBeenCalledTimes(200);
+  expect(fetchMock).toHaveBeenCalledTimes(400);
 });
 
 test('a new execution scope gets a fresh upstream budget', async () => {
   fetchMock.mockImplementation(async () => new Response('{"ok":true}'));
   const first = new AbortController();
   await withExecutionSignal(first.signal, () =>
-    Promise.allSettled(Array.from({ length: 205 }, (_, i) =>
+    Promise.allSettled(Array.from({ length: 405 }, (_, i) =>
       httpGet(`https://api.test-upstream.test/x?a=${i}`, { retries: 0, rateLimiterKey: 'test-upstream' }),
     )),
   );

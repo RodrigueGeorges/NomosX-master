@@ -34,12 +34,15 @@ const HTTP_MAX_RESPONSE_BYTES = 8 * 1024 * 1024;
 // 30+ institutional providers all consume the 'openalex' budget.
 // Env overrides: HTTP_BUDGET_OPENALEX, HTTP_BUDGET_CROSSREF, ...
 // HTTP_MAX_REQUESTS_PER_EXECUTION bounds TOTAL requests (any host) per job.
-const HTTP_BUDGET_DEFAULT = Number(process.env.HTTP_BUDGET_DEFAULT ?? 200);
-const HTTP_MAX_REQUESTS_PER_EXECUTION = Number(process.env.HTTP_MAX_REQUESTS_PER_EXECUTION ?? 1500);
+const HTTP_BUDGET_DEFAULT = Number(process.env.HTTP_BUDGET_DEFAULT ?? 400);
+const HTTP_MAX_REQUESTS_PER_EXECUTION = Number(process.env.HTTP_MAX_REQUESTS_PER_EXECUTION ?? 8000);
 const HTTP_BUDGET_OVERRIDES: Record<string, number> = {
-  openalex: Number(process.env.HTTP_BUDGET_OPENALEX ?? 150),
-  semanticscholar: Number(process.env.HTTP_BUDGET_SEMANTICSCHOLAR ?? 120),
-  crossref: Number(process.env.HTTP_BUDGET_CROSSREF ?? 120),
+  // OpenAlex proxies ~8 institutional providers (ROR lookups) × ~12 query
+  // variations × retries — a single scout legitimately needs several hundred.
+  // Free polite-pool API; the 5-concurrency limiter already throttles courtesy.
+  openalex: Number(process.env.HTTP_BUDGET_OPENALEX ?? 800),
+  semanticscholar: Number(process.env.HTTP_BUDGET_SEMANTICSCHOLAR ?? 300),
+  crossref: Number(process.env.HTTP_BUDGET_CROSSREF ?? 300),
 };
 
 function requestBudgetFor(key: string): number {
