@@ -2,7 +2,7 @@ jest.mock('@/lib/env', () => ({ env: { NODE_ENV: 'test' } }));
 jest.mock('@/lib/agent/redis-simple', () => ({ simpleRedisManager: { isRedisConnected: () => false } }));
 
 import { httpGet, getHttpInflightStats } from '@/lib/http-client';
-import { withExecutionSignal, getExecutionBudgetUsage } from '@/lib/worker/execution-scope';
+import { withExecutionSignal, withExecutionScope, getExecutionBudgetUsage } from '@/lib/worker/execution-scope';
 
 const originalFetch = global.fetch;
 const fetchMock = jest.fn();
@@ -117,6 +117,25 @@ test('a new execution scope gets a fresh upstream budget', async () => {
     )),
   );
   expect(results.every(r => r.status === 'fulfilled')).toBe(true);
+});
+
+test('sibling scopes each get a fresh upstream cap but share the job-root bound', async () => {
+  fetchMock.mockImplementation(async () => new Response('{"ok":true}'));
+  const job = new AbortController();
+  const perNode = await withExecutionSignal(job.signal, async () => {
+    const tally: number[] = [];
+    for (let n = 0; n < 6; n++) {
+      const results = await withExecutionScope(`node-${n}`, () =>
+        Promise.allSettled(Array.from({ length: 400 }, (_, i) =>
+          httpGet(`https://api.test-upstream.test/y?n=${n}&i=${i}`, { retries: 0, rateLimiterKey: 'test-upstream' }),
+        )),
+      );
+      tally.push(results.filter(r => r.status === 'fulfilled').length);
+    }
+    return tally;
+  });
+  // scope cap 400/node; root cap 4×400=1600 → nodes 0-3 pass fully, 4-5 denied
+  expect(perNode).toEqual([400, 400, 400, 400, 0, 0]);
 });
 
 test('retries consume real budget — a 4-attempt call counts 4 wire requests', async () => {

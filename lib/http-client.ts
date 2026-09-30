@@ -9,7 +9,7 @@
 
 import { env } from './env';
 import pLimit from 'p-limit';
-import { getExecutionSignal, consumeExecutionBudget } from './worker/execution-scope';
+import { getExecutionSignal, consumeExecutionBudget, consumeRootBudget } from './worker/execution-scope';
 
 // ================================
 // GLOBAL IN-FLIGHT BOUND
@@ -45,20 +45,42 @@ const HTTP_BUDGET_OVERRIDES: Record<string, number> = {
   crossref: Number(process.env.HTTP_BUDGET_CROSSREF ?? 300),
 };
 
+// ── Root (job-level) bounds ────────────────────────────────────────────────
+// Deep-planner nodes / reader sources run in CHILD execution scopes with fresh
+// per-scope ledgers — without a root bound, N scopes could burn N× the caps.
+// Every request charges BOTH its scope ledger (fairness between nodes) and the
+// root ledger (runaway bound). Defaults: root = 4× scope per upstream.
+const HTTP_MAX_REQUESTS_PER_JOB = Number(process.env.HTTP_MAX_REQUESTS_PER_JOB ?? 16000);
+const HTTP_ROOT_BUDGET_MULTIPLIER = Number(process.env.HTTP_ROOT_BUDGET_MULTIPLIER ?? 4);
+const HTTP_ROOT_BUDGET_OVERRIDES: Record<string, number> = {
+  openalex: Number(process.env.HTTP_ROOT_BUDGET_OPENALEX ?? 3200),
+  semanticscholar: Number(process.env.HTTP_ROOT_BUDGET_SEMANTICSCHOLAR ?? 1200),
+  crossref: Number(process.env.HTTP_ROOT_BUDGET_CROSSREF ?? 1200),
+};
+
 function requestBudgetFor(key: string): number {
   return HTTP_BUDGET_OVERRIDES[key] ?? HTTP_BUDGET_DEFAULT;
 }
 
+function rootBudgetFor(key: string): number {
+  return HTTP_ROOT_BUDGET_OVERRIDES[key] ?? Math.ceil(requestBudgetFor(key) * HTTP_ROOT_BUDGET_MULTIPLIER);
+}
+
+function budgetExhausted(message: string): never {
+  const err = new HttpError(message, 0);
+  err.code = 'HTTP_BUDGET_EXHAUSTED';
+  throw err;
+}
+
 function consumeHttpBudget(rateLimiterKey?: string): void {
-  if (!consumeExecutionBudget('http:all', HTTP_MAX_REQUESTS_PER_EXECUTION)) {
-    const err = new HttpError('HTTP request budget exhausted for this execution', 0);
-    err.code = 'HTTP_BUDGET_EXHAUSTED';
-    throw err;
+  if (!consumeExecutionBudget('http:all', HTTP_MAX_REQUESTS_PER_EXECUTION)
+    || !consumeRootBudget('root:http:all', HTTP_MAX_REQUESTS_PER_JOB)) {
+    budgetExhausted('HTTP request budget exhausted for this execution');
   }
-  if (rateLimiterKey && !consumeExecutionBudget(`http:${rateLimiterKey}`, requestBudgetFor(rateLimiterKey))) {
-    const err = new HttpError(`Request budget exhausted for upstream ${rateLimiterKey}`, 0);
-    err.code = 'HTTP_BUDGET_EXHAUSTED';
-    throw err;
+  if (rateLimiterKey
+    && (!consumeExecutionBudget(`http:${rateLimiterKey}`, requestBudgetFor(rateLimiterKey))
+      || !consumeRootBudget(`root:http:${rateLimiterKey}`, rootBudgetFor(rateLimiterKey)))) {
+    budgetExhausted(`Request budget exhausted for upstream ${rateLimiterKey}`);
   }
 }
 

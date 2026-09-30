@@ -2,6 +2,26 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 
 const executionSignal = new AsyncLocalStorage<AbortSignal>();
 
+// Parent chain for nested scopes — a child scope (withExecutionDeadline /
+// withExecutionScope) derives a new signal via AbortSignal.any(); recording
+// the parent lets budget consumption charge the JOB-root ledger as a global
+// safety bound while the child ledger enforces per-scope fairness.
+const scopeParents = new WeakMap<AbortSignal, AbortSignal>();
+
+function recordParent(child: AbortSignal, parent: AbortSignal | undefined): void {
+  if (parent && parent !== child) scopeParents.set(child, parent);
+}
+
+function rootSignalOf(signal: AbortSignal | undefined): AbortSignal | undefined {
+  let s = signal;
+  for (let depth = 0; s && depth < 20; depth++) {
+    const p = scopeParents.get(s);
+    if (!p) return s;
+    s = p;
+  }
+  return s;
+}
+
 export function getExecutionSignal(): AbortSignal | undefined {
   return executionSignal.getStore();
 }
@@ -11,8 +31,35 @@ export function assertExecutionActive(): void {
 }
 
 export function withExecutionSignal<T>(signal: AbortSignal, fn: () => Promise<T>): Promise<T> {
+  recordParent(signal, getExecutionSignal());
   signal.throwIfAborted();
   return executionSignal.run(signal, fn);
+}
+
+/**
+ * Child execution scope without a deadline — used to give a unit of work
+ * (e.g. one deep-planner scout node) its own fresh budget ledger so it can
+ * neither starve nor be starved by sibling nodes. Consumption still charges
+ * the job-root ledger via consumeRootBudget, so the global runaway bound is
+ * preserved. Aborts when the parent aborts or when the scope closes.
+ */
+export async function withExecutionScope<T>(label: string, fn: () => Promise<T>): Promise<T> {
+  const controller = new AbortController();
+  const parent = getExecutionSignal();
+  const signal = parent ? AbortSignal.any([parent, controller.signal]) : controller.signal;
+  recordParent(signal, parent);
+  signal.throwIfAborted();
+  let onAbort: () => void = () => {};
+  const cancelled = new Promise<never>((_, reject) => {
+    onAbort = () => reject(signal.reason);
+    signal.addEventListener('abort', onAbort, { once: true });
+  });
+  try {
+    return await executionSignal.run(signal, () => Promise.race([fn(), cancelled]));
+  } finally {
+    signal.removeEventListener('abort', onAbort);
+    controller.abort(new Error(`${label} scope closed`));
+  }
 }
 
 export async function withExecutionDeadline<T>(ms: number, label: string, fn: () => Promise<T>): Promise<T> {
@@ -20,6 +67,7 @@ export async function withExecutionDeadline<T>(ms: number, label: string, fn: ()
   const controller = new AbortController();
   const parent = getExecutionSignal();
   const signal = parent ? AbortSignal.any([parent, controller.signal]) : controller.signal;
+  recordParent(signal, parent);
   signal.throwIfAborted();
   let onAbort: () => void = () => {};
   const cancelled = new Promise<never>((_, reject) => {
@@ -46,23 +94,43 @@ const scopedLedgers = new WeakMap<AbortSignal, Map<string, number>>();
 const globalLedger = new Map<string, number>();
 let globalLedgerResetAt = Date.now() + 3_600_000;
 
-export function consumeExecutionBudget(key: string, limit: number): boolean {
-  const signal = getExecutionSignal();
-  let ledger: Map<string, number>;
+function ledgerFor(signal: AbortSignal | undefined): Map<string, number> {
   if (signal) {
-    ledger = scopedLedgers.get(signal) ?? new Map();
-    scopedLedgers.set(signal, ledger);
-  } else {
-    if (Date.now() > globalLedgerResetAt) {
-      globalLedger.clear();
-      globalLedgerResetAt = Date.now() + 3_600_000;
+    let ledger = scopedLedgers.get(signal);
+    if (!ledger) {
+      ledger = new Map();
+      scopedLedgers.set(signal, ledger);
     }
-    ledger = globalLedger;
+    return ledger;
   }
+  if (Date.now() > globalLedgerResetAt) {
+    globalLedger.clear();
+    globalLedgerResetAt = Date.now() + 3_600_000;
+  }
+  return globalLedger;
+}
+
+function consumeIn(ledger: Map<string, number>, key: string, limit: number): boolean {
   const used = ledger.get(key) ?? 0;
   if (used >= limit) return false;
   ledger.set(key, used + 1);
   return true;
+}
+
+export function consumeExecutionBudget(key: string, limit: number): boolean {
+  return consumeIn(ledgerFor(getExecutionSignal()), key, limit);
+}
+
+/**
+ * Charges the ROOT scope's ledger — the job-level safety bound that applies
+ * no matter how deeply nested the current scope is. Child scopes get fresh
+ * local ledgers (fairness between sibling nodes); this counter is what keeps
+ * a job from turning N fresh node budgets into N× the intended total. Keys
+ * are namespaced by the caller (e.g. 'root:http:openalex') so a root-scope
+ * caller isn't double-charged against its own scope counter.
+ */
+export function consumeRootBudget(key: string, limit: number): boolean {
+  return consumeIn(ledgerFor(rootSignalOf(getExecutionSignal())), key, limit);
 }
 
 /** Peek at a scope's consumption — telemetry only, never mutates. */

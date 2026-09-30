@@ -13,6 +13,7 @@ import { generateStormPerspectives } from '../research-patterns';
 import { generateExpandedTerms } from '../orchestrator';
 import { buildObservation, type WitnessContext } from '../witness/integration';
 import { durableResume } from '../durable-execution';
+import { withExecutionScope } from '../../worker/execution-scope';
 import type { PipelineStep } from '../pipeline-progress';
 
 async function generateQueryReformulations(query: string): Promise<string[]> {
@@ -205,7 +206,11 @@ export async function runScoutBlock(deps: ScoutBlockDeps): Promise<ScoutBlockRes
         const nodeProviders = (validNodeProducers.length >= 3
           ? Array.from(new Set([...validNodeProducers.slice(0, 8), ...NODE_CORE_PROVIDERS.slice(0, 4), 'no-routing']))
           : Array.from(new Set([...validNodeProducers, ...NODE_CORE_PROVIDERS, 'no-routing']))) as any;
-        const nodeResult = await scout(node.subQuestion, nodeProviders, perNodeProvider);
+        // Per-node execution scope: fresh budget ledger so one greedy node
+        // cannot starve its siblings — the job-root ledger still bounds the
+        // total across all nodes.
+        const nodeResult = await withExecutionScope(`dp-node:${node.id}`, () =>
+          scout(node.subQuestion, nodeProviders, perNodeProvider));
         const nodeSourceIds = Array.isArray(nodeResult) ? nodeResult.map(s => s.id) : (nodeResult.sourceIds || []);
         node.sourceIds = nodeSourceIds;
         node.sourceCount = nodeSourceIds.length;
@@ -222,7 +227,8 @@ export async function runScoutBlock(deps: ScoutBlockDeps): Promise<ScoutBlockRes
             const contextTerms = parentNodes.map((n: any) => n.subQuestion.split(' ').slice(0, 3).join(' ')).join(' ');
             if (contextTerms) {
               const expandedQuery = `${node.subQuestion} ${contextTerms}`;
-              const expandResult = await scout(expandedQuery, providers, 25);
+              const expandResult = await withExecutionScope(`dp-expand:${node.id}`, () =>
+                scout(expandedQuery, providers, 25));
               const expandIds = Array.isArray(expandResult) ? expandResult.map(s => s.id) : (expandResult.sourceIds || []);
               allSourceIds.push(...expandIds);
               node.sourceIds = [...new Set([...(node.sourceIds || []), ...expandIds])];
@@ -252,7 +258,8 @@ export async function runScoutBlock(deps: ScoutBlockDeps): Promise<ScoutBlockRes
               const nodeProviders = validP.length >= 3
                 ? Array.from(new Set([...validP.slice(0, 8), ...providers.slice(0, 4)])) as any
                 : providers;
-              const res = await scout(node.subQuestion, nodeProviders, isStrategic ? 30 : 25);
+              const res = await withExecutionScope(`dp-replan:${node.id}`, () =>
+                scout(node.subQuestion, nodeProviders, isStrategic ? 30 : 25));
               const ids = Array.isArray(res) ? res.map(s => s.id) : (res.sourceIds || []);
               node.sourceIds = ids;
               node.sourceCount = ids.length;
