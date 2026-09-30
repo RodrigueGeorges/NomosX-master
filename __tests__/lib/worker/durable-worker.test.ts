@@ -17,6 +17,10 @@ jest.mock('@/lib/db', () => ({
       updateMany: jest.fn(),
     },
     jobDeadLetter: { create: jest.fn() },
+    pipelineRun: {
+      findMany: jest.fn().mockResolvedValue([]),
+      updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+    },
   },
 }));
 
@@ -96,7 +100,7 @@ describe('claimNextJob', () => {
 
   test('dead-letters a poison job at the reclaim cap instead of reclaiming', async () => {
     mocked.findFirst.mockResolvedValue(
-      jobRow({ status: 'RUNNING', lockedUntil: new Date(0), reclaims: 12 })
+      jobRow({ status: 'RUNNING', lockedUntil: new Date(0), reclaims: 24 })
     );
     mocked.update.mockResolvedValue({} as never);
     mocked.deadLetter.mockResolvedValue({} as never);
@@ -117,37 +121,54 @@ describe('claimNextJob', () => {
 describe('executeJob', () => {
   test('completes and clears the lock', async () => {
     registerJobHandler('T_OK', async () => ({ ok: true }));
-    mocked.update.mockResolvedValue({} as never);
+    mocked.updateMany.mockResolvedValue({ count: 1 } as never);
     const out = await executeJob({ id: 'j1', type: 'T_OK', payload: {}, correlationId: 'c', attempts: 1, reclaims: 0, maxRetries: 2 }, 'w1');
     expect(out).toBe('completed');
-    expect(mocked.update).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ status: 'COMPLETED', lockedBy: null, lockedUntil: null }) })
+    expect(mocked.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ id: 'j1', status: 'RUNNING', lockedBy: 'w1' }),
+        data: expect.objectContaining({ status: 'COMPLETED', lockedBy: null, lockedUntil: null }),
+      })
+    );
+  });
+
+  test('does not resurrect a job cancelled mid-run', async () => {
+    registerJobHandler('T_OK', async () => ({ ok: true }));
+    // Job was CANCELLED/reclaimed while the handler ran → guard matches 0 rows
+    mocked.updateMany.mockResolvedValue({ count: 0 } as never);
+    const out = await executeJob({ id: 'j1', type: 'T_OK', payload: {}, correlationId: 'c', attempts: 1, reclaims: 0, maxRetries: 2 }, 'w1');
+    expect(out).toBe('completed');
+    expect(mocked.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: expect.objectContaining({ status: 'RUNNING', lockedBy: 'w1' }) })
     );
   });
 
   test('retries with backoff while attempts remain', async () => {
     registerJobHandler('T_FAIL', async () => { throw new Error('boom'); });
-    mocked.update.mockResolvedValue({} as never);
+    mocked.updateMany.mockResolvedValue({ count: 1 } as never);
     const out = await executeJob({ id: 'j1', type: 'T_FAIL', payload: {}, correlationId: 'c', attempts: 1, reclaims: 0, maxRetries: 2 }, 'w1');
     expect(out).toBe('retried');
-    const data = mocked.update.mock.calls[0][0]?.data as Record<string, unknown>;
+    const data = mocked.updateMany.mock.calls[0][0]?.data as Record<string, unknown>;
     expect(data.status).toBe('PENDING');
     expect(data.scheduledFor).toBeInstanceOf(Date);
     expect(data.lastError).toBe('boom');
   });
 
   test('dead-letters when attempts exhausted', async () => {
-    mocked.update.mockResolvedValue({} as never);
+    mocked.updateMany.mockResolvedValue({ count: 1 } as never);
     mocked.deadLetter.mockResolvedValue({} as never);
     const out = await executeJob({ id: 'j1', type: 'T_FAIL', payload: { p: 1 }, correlationId: 'c1', attempts: 2, reclaims: 0, maxRetries: 2 }, 'w1');
     expect(out).toBe('dead');
+    expect(mocked.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ status: 'FAILED', movedToDeadLetter: true }) })
+    );
     expect(mocked.deadLetter).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ originalJobId: 'j1', type: 'T_FAIL', failureReason: 'boom' }) })
     );
   });
 
   test('missing handler fails the job', async () => {
-    mocked.update.mockResolvedValue({} as never);
+    mocked.updateMany.mockResolvedValue({ count: 1 } as never);
     mocked.deadLetter.mockResolvedValue({} as never);
     const out = await executeJob({ id: 'j1', type: 'T_UNKNOWN', payload: {}, correlationId: 'c', attempts: 3, reclaims: 0, maxRetries: 3 }, 'w1');
     expect(out).toBe('dead');

@@ -221,9 +221,11 @@ export async function runReaderBlock(deps: ReaderBlockDeps): Promise<ReaderBlock
       readings: readerSCInput,
       maxRetries: 1,
       retryFn: async (feedback: string) => {
-        // Re-run reader with feedback injected via memoryBlock
+        // Re-run reader with feedback injected via memoryBlock (durable: this
+        // is a full corpus re-read — checkpoint it like the primary pass)
         const { readerAgentV3 } = await import('../reader-agent-v3');
-        const reRead = await readerAgentV3(topSources, { memoryBlock: feedback, domain: detectedDomain });
+        const reRead = await durable('reader:selfcorrect', () =>
+          readerAgentV3(topSources, { memoryBlock: feedback, domain: detectedDomain }));
         return reRead.map((r: any) => ({
           sourceId: r.sourceId,
           claims: r.claims || [],
@@ -297,9 +299,9 @@ export async function runReaderBlock(deps: ReaderBlockDeps): Promise<ReaderBlock
       }
       if (deepenedCount > 0) {
         console.log(`${label} DEEPEN: extracted full-text for ${deepenedCount}/${sourcesNeedingFullText.length} sources`);
-        // Re-run reader on deepened sources
+        // Re-run reader on deepened sources (durable: full re-read)
         const { readerAgentV3 } = await import('../reader-agent-v3');
-        const deepenedReadings = await readerAgentV3(topSources);
+        const deepenedReadings = await durable('reader:deepen', () => readerAgentV3(topSources));
         // Merge: keep the better reading per source
         for (const dr of deepenedReadings) {
           const idx = readings.findIndex((r: any) => r.sourceId === dr.sourceId);

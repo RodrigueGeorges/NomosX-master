@@ -223,8 +223,10 @@ export async function executeJob(
   try {
     if (!handler) throw new Error(`No handler registered for job type "${job.type}"`);
     const result = await handler(job.payload, job);
-    await prisma.job.update({
-      where: { id: job.id },
+    // Guard on our own lock: if the job was cancelled or reclaimed while the
+    // handler ran, don't resurrect it as COMPLETED.
+    await prisma.job.updateMany({
+      where: { id: job.id, status: 'RUNNING', lockedBy: workerId },
       data: {
         status: 'COMPLETED',
         result: result === undefined ? undefined : (result as object),
@@ -240,8 +242,8 @@ export async function executeJob(
     const willRetry = job.attempts < job.maxRetries;
 
     if (willRetry) {
-      await prisma.job.update({
-        where: { id: job.id },
+      await prisma.job.updateMany({
+        where: { id: job.id, status: 'RUNNING', lockedBy: workerId },
         data: {
           status: 'PENDING',
           scheduledFor: new Date(Date.now() + backoffMs(job.attempts)),
@@ -254,8 +256,8 @@ export async function executeJob(
       return 'retried';
     }
 
-    await prisma.job.update({
-      where: { id: job.id },
+    await prisma.job.updateMany({
+      where: { id: job.id, status: 'RUNNING', lockedBy: workerId },
       data: {
         status: 'FAILED',
         finishedAt: new Date(),
