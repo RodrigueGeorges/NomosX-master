@@ -128,6 +128,10 @@ export async function runAnalystExecution(deps: AnalystRunDeps): Promise<Analyst
       contextBlock: fullContextBlock,
       domain: detectedDomain,
       depth: isStrategic ? "strategic" : "brief",
+      // Per-pass checkpoints inside the multipass: the 'analyst' outer step
+      // still caches the final result; inner passes bound the loss window to
+      // ~1 pass instead of the whole 3-pass run when the worker dies mid-way.
+      durableStep: durable,
     }));
     bumpAnalysisArtifact();
   }

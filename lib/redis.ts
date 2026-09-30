@@ -53,19 +53,17 @@ if (process.env.NODE_ENV !== "production") {
 
 // Graceful shutdown - disconnect on exit
 if (redis && typeof window === 'undefined') {
-  process.on('SIGINT', async () => {
+  const gracefulShutdown = async (sig: 'SIGINT' | 'SIGTERM') => {
     if (redis && redis.status === 'ready') {
       await redis.quit();
     }
+    // If another handler owns shutdown (e.g. the pipeline worker releases the
+    // job lock before exiting), let it decide when the process exits.
+    if (process.listenerCount(sig) > 1) return;
     process.exit(0);
-  });
-  
-  process.on('SIGTERM', async () => {
-    if (redis && redis.status === 'ready') {
-      await redis.quit();
-    }
-    process.exit(0);
-  });
+  };
+  process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+  process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 }
 
 // Helper functions for caching

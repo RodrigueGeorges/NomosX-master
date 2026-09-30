@@ -81,14 +81,38 @@ export async function runReaderBlock(deps: ReaderBlockDeps): Promise<ReaderBlock
       console.log(`${label} AGENT MEMORY (READER): ${readerMemInj.topLessons.length} lessons injected`);
     }
   } catch (err) { console.warn(`${label} AGENT MEMORY (READER): failed (non-blocking):`, err); }
+  // READER runs in durable batches: the phase is the longest single step
+  // (fetch + pdf-parse + LLM extract per source), and a crash mid-reader used
+  // to lose everything back to the scout checkpoint. Each batch persists its
+  // own checkpoint — a reclaim resumes at the first unfinished batch instead
+  // of re-fetching the whole corpus, so repeated kills still converge.
+  const READER_BATCH = 10;
+  const readInBatches = async () => {
+    const { readerAgentV3 } = await import('../reader-agent-v3');
+    const merged: any[] = [];
+    for (let b = 0; b < topSources.length; b += READER_BATCH) {
+      const batchIdx = b / READER_BATCH;
+      const slice = topSources.slice(b, b + READER_BATCH);
+      const part = await durable(`reader:b${batchIdx}`, () =>
+        readerAgentV3(slice, {
+          enablePdf: true,
+          maxConcurrency: 4,
+          timeout: isStrategic ? 120000 : undefined,
+          domain: detectedDomain,
+          memoryBlock: readerMemoryBlock,
+        })
+      );
+      if (Array.isArray(part)) merged.push(...part);
+      emitProgress(
+        pipelineRunId, "READER", "started",
+        `Batch ${batchIdx + 1}/${Math.ceil(topSources.length / READER_BATCH)} — ${merged.length}/${topSources.length} sources extracted`
+      );
+    }
+    return merged;
+  };
+
   const [readings, framingSettled, quantSettled, quantBridgeSettled] = await Promise.all([
-    durable('reader', async () => (await import('../reader-agent-v3')).readerAgentV3(topSources, {
-      enablePdf: true,
-      maxConcurrency: 4,
-      timeout: isStrategic ? 120000 : undefined,
-      domain: detectedDomain,
-      memoryBlock: readerMemoryBlock,
-    })),
+    readInBatches(),
     // FRAMING: SUPPRESSED — hypotheses not consumed by analyst, $0.03/run saved
     Promise.resolve({ hypotheses: [] as any[], keyUnknowns: [] as string[], costUsd: 0 }),
     // QUANT: fetch real numbers from T1 primary-data providers

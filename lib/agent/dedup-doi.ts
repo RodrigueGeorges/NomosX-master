@@ -245,8 +245,18 @@ export function dedupSources<T extends DedupSource>(sources: T[]): DedupResult<T
   }
 
   // ── Tier 3: Fuzzy title similarity ≥90% + year validation ────────────────
-  for (let i = 0; i < n; i++) {
+  // O(n²) pairwise Jaccard: at n≈1600 that is ~1.3M synchronous comparisons —
+  // a multi-second CPU burst that can stall the worker's event loop past the
+  // platform healthcheck window. Budget it: past the deadline, surviving pairs
+  // stay unmerged (a few missed dupes beats a killed container).
+  const fuzzyDeadline = Date.now() + 8000;
+  let fuzzyTimedOut = false;
+  for (let i = 0; i < n && !fuzzyTimedOut; i++) {
     for (let j = i + 1; j < n; j++) {
+      if ((i & 63) === 0 && j === i + 1 && Date.now() > fuzzyDeadline) {
+        fuzzyTimedOut = true;
+        break;
+      }
       if (uf.find(i) === uf.find(j)) continue; // already matched
       const sim = jaccardSimilarity(normTitles[i], normTitles[j]);
       if (sim >= 0.90) {

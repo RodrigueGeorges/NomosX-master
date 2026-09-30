@@ -1187,7 +1187,14 @@ export async function analystAgentV3(
   question: string,
   sources: any[],
   readings?: any[],
-  options?: { contextBlock?: string; domain?: string; depth?: "brief" | "strategic" }
+  options?: {
+    contextBlock?: string;
+    domain?: string;
+    depth?: "brief" | "strategic";
+    /** Per-pass durable checkpointing — a kill mid-multipass resumes at the
+     *  last completed pass instead of re-running all three LLM passes. */
+    durableStep?: <T>(name: string, fn: () => Promise<T>, costUsd?: number) => Promise<T>;
+  }
 ): Promise<MultiPassAnalysis> {
   assertPermission(AgentRole.ANALYST, "write:analysis");
 
@@ -1208,9 +1215,11 @@ export async function analystAgentV3(
     if (options?.domain) console.log(`[Analyst V3] Domain-aware mode: ${options.domain}`);
 
     const depth = options?.depth ?? "brief";
+    const dstep = <T>(name: string, fn: () => Promise<T>): Promise<T> =>
+      options?.durableStep ? options.durableStep(name, fn) : fn();
 
     // PASS 1: Friction Mapping
-    const p1 = await pass1FrictionMapping(question, ctx, sources.length, domainContext, depth);
+    const p1 = await dstep('analyst:p1', () => pass1FrictionMapping(question, ctx, sources.length, domainContext, depth));
 
     // INTER-PASS VALIDATION: Ground-truth check on Pass 1 output
     const validatedMap = validateFrictionMap(p1.map, sources.length);
@@ -1221,7 +1230,7 @@ export async function analystAgentV3(
     // PASS 2: Stress Test (uses validated Pass 1 output)
     let p2: { map: StressTestMap; tokens: number; cost: number };
     try {
-      p2 = await pass2StressTest(question, ctx, validatedMap.map, domainContext);
+      p2 = await dstep('analyst:p2', () => pass2StressTest(question, ctx, validatedMap.map, domainContext));
     } catch (pass2Err) {
       console.warn(`[Analyst V3] PASS 2 failed, continuing with empty stress test map:`, pass2Err);
       p2 = {
@@ -1274,7 +1283,7 @@ export async function analystAgentV3(
       };
     } else {
       // PASS 3: Prospective Synthesis (uses Pass 1 + Pass 2 outputs)
-      p3 = await pass3ProspectiveSynthesis(question, ctx, p1.map, p2.map, sources.length, avgQuality, lang, domainContext, depth);
+      p3 = await dstep('analyst:p3', () => pass3ProspectiveSynthesis(question, ctx, p1.map, p2.map, sources.length, avgQuality, lang, domainContext, depth));
     }
 
     // CITATION SANITIZATION: Strip all out-of-range [SRC-N] from analysis JSON.

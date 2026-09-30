@@ -67,9 +67,10 @@ const HEARTBEAT_MS = 120_000; // 2 min
 const DEFAULT_POLL_MS = 10_000;
 const MAX_BACKOFF_MS = 30 * 60 * 1000;
 /** A job that outlives this many worker locks is poison (it kills every worker
- *  that touches it) — dead-letter instead of reclaiming forever. Generous:
- *  infra flakiness (OOM fix churn, redeploys) legitimately costs ~10 reclaims. */
-const MAX_RECLAIMS = 12;
+ *  that touches it) — dead-letter instead of reclaiming forever. Sized for a
+ *  crash-loop environment: kills every ~15min through a ~4h cycle legitimately
+ *  cost ~16 reclaims; sub-step checkpoints let a converging job still finish. */
+const MAX_RECLAIMS = 24;
 
 function backoffMs(attempts: number): number {
   return Math.min(MAX_BACKOFF_MS, 60_000 * 2 ** Math.max(0, attempts - 1));
