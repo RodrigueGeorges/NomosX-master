@@ -58,6 +58,15 @@ function installShutdownHandlers(): void {
   };
   process.on('SIGTERM', () => onSignal('SIGTERM'));
   process.on('SIGINT', () => onSignal('SIGINT'));
+
+  // Crash diagnostics — a silent killer (unhandled rejection, uncaught throw)
+  // was invisible in the last post-mortem; log it before the process dies.
+  process.on('unhandledRejection', (reason) => {
+    console.error('[pipeline-worker] UNHANDLED_REJECTION:', reason);
+  });
+  process.on('uncaughtException', (err) => {
+    console.error('[pipeline-worker] UNCAUGHT_EXCEPTION:', err);
+  });
 }
 
 async function main() {

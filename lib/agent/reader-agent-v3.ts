@@ -412,7 +412,16 @@ async function fetchNewsArticleText(url: string, timeout = 20000): Promise<strin
         return null;
       }
 
+      const declaredLen = Number(res.headers.get('content-length') ?? 0);
+      if (declaredLen > 15 * 1024 * 1024) {
+        console.warn(`[Reader V3] Skipping oversized page (${Math.round(declaredLen / 1e6)}MB) ${url.slice(0, 80)}`);
+        return null;
+      }
       const html = await res.text();
+      if (html.length > 15 * 1024 * 1024) {
+        console.warn(`[Reader V3] Skipping oversized page body (${Math.round(html.length / 1e6)}MB) ${url.slice(0, 80)}`);
+        return null;
+      }
       if (html.length < 500) return null;
 
       // Extract text from common article content patterns

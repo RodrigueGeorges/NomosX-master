@@ -187,6 +187,10 @@ export async function saveJobProgress(jobId: string, progress: unknown): Promise
 
 function startHeartbeat(jobId: string, workerId: string, lockMs: number): NodeJS.Timeout {
   const timer = setInterval(() => {
+    const mem = process.memoryUsage();
+    console.log(
+      `[Worker ${workerId}] heartbeat job=${jobId.slice(-10)} rss=${Math.round(mem.rss / 1e6)}MB heap=${Math.round(mem.heapUsed / 1e6)}/${Math.round(mem.heapTotal / 1e6)}MB`
+    );
     prisma.job
       .updateMany({
         where: { id: jobId, lockedBy: workerId, status: 'RUNNING' },
@@ -306,7 +310,7 @@ export async function runWorkerLoop(options: WorkerOptions = {}): Promise<number
       lastSweep = Date.now();
       const mem = process.memoryUsage();
       console.log(
-        `[Worker ${workerId}] mem rss=${Math.round(mem.rss / 1e6)}MB heap=${Math.round(mem.heapUsed / 1e6)}/${Math.round(mem.heapTotal / 1e6)}MB activeJob=${activeJob?.id ?? 'none'}`
+        `[Worker ${workerId}] sweep mem rss=${Math.round(mem.rss / 1e6)}MB heap=${Math.round(mem.heapUsed / 1e6)}/${Math.round(mem.heapTotal / 1e6)}MB activeJob=${activeJob?.id ?? 'none'}`
       );
       await sweepStalePipelineRuns(workerId);
     }
