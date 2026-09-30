@@ -43,15 +43,16 @@ COPY next.config.* ./
 EXPOSE 3001
 ENV PORT=3001
 
-# Bound the V8 heap FAR below Node's default. The container's cgroup limit is
-# ~1GB (probed: memory.max=999997440) while Node's default heap ceiling is
-# ~6.4GB — the kernel SIGKILLs at ~950MB, silently, mid-phase. 448MB leaves
-# ~500MB for non-heap RSS: axios/pdf-parse buffers, sockets, Prisma engine,
-# OpenSSL, thread stacks. Override via Railway env NODE_OPTIONS after
-# checking WORKER_MEM telemetry against the real cgroup limit.
-ENV NODE_OPTIONS="--max-old-space-size=448"
+# Bound the V8 heap below the cgroup limit. The current container probes
+# cgroup_mem_max≈8GB; 1536MB of old-space leaves ample RSS headroom for
+# axios/pdf-parse buffers, sockets, Prisma engine, OpenSSL, thread stacks.
+# Keep this ONLY in NODE_OPTIONS — never in CMD: a command-line flag silently
+# overrides the env var, which is how the earlier 448MB cap survived every
+# Railway env bump and OOMed the REGEN phase. Override via Railway env
+# NODE_OPTIONS after checking WORKER_MEM telemetry against the real cgroup.
+ENV NODE_OPTIONS="--max-old-space-size=1536"
 
 # node --import tsx: node IS PID 1 — SIGTERM/SIGINT reach our handlers
 # directly. npx/npm spawn `sh -c` grandchildren and swallow signals, which
 # silently disabled the graceful-shutdown lock release.
-CMD ["node", "--max-old-space-size=448", "--import", "tsx", "scripts/pipeline-worker.ts", "--health-port=3001"]
+CMD ["node", "--import", "tsx", "scripts/pipeline-worker.ts", "--health-port=3001"]
