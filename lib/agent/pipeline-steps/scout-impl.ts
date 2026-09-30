@@ -378,6 +378,25 @@ export async function scoutImpl(query: string, providers: Providers, perProvider
     providerSet.delete(dead);
   }
 
+  // ROR BATCHING — collapse pure OpenAlex-ROR institutional wrappers (~30
+  // providers) into ONE batched OpenAlex call per query variation. Previously
+  // each fired individually per query, which exhausted the per-execution
+  // upstream budget mid-scout and starved later planner nodes. Results are
+  // retagged to the provider whose ROR matched. Providers already covered by
+  // an active consolidated-institutions call are excluded from the batch.
+  const { isRorBatchedProvider, searchRorBatch } = await import("../../providers/institutional/ror-batch");
+  const { getConsolidatedProviderNames } = await import("../../providers/institutional/consolidated-institutions");
+  const coveredByConsolidated = new Set(
+    providerSet.has("consolidated-institutions") ? getConsolidatedProviderNames() : []
+  );
+  const rorBatched = [...providerSet].filter(
+    (p): p is string => typeof p === "string" && isRorBatchedProvider(p) && !coveredByConsolidated.has(p)
+  );
+  for (const p of rorBatched) providerSet.delete(p);
+  if (rorBatched.length > 0) {
+    console.log(`[SCOUT] ROR-batching ${rorBatched.length} institutional providers: ${rorBatched.join(', ')}`);
+  }
+
   // â”€â”€ STEP 1: MULTI-QUERY PARALLEL SEARCH (58+ providers) â”€â”€
   // Theses handled separately due to HAL bridge enrichment
   let thesesResults: any[] = [];
@@ -427,6 +446,11 @@ export async function scoutImpl(query: string, providers: Providers, perProvider
     if (providerSet.has("consolidated-institutions")) {
       const { searchConsolidatedInstitutions } = await import("../../providers/institutional/consolidated-institutions");
       allPromises.push(trackProviderCall("consolidated-institutions", searchConsolidatedInstitutions(sq, ['economic', 'defense', 'french', 'health', 'tech', 'multilateral'], Math.min(30, perProvider))));
+    }
+    // ROR-BATCHED individual providers — same OR-filter trick applied to the
+    // individually-routed institutional providers (see providerSet surgery above)
+    if (rorBatched.length > 0) {
+      allPromises.push(trackProviderCall("ror-batch", searchRorBatch(sq, rorBatched, Math.min(30, perProvider))));
     }
 
     // V3.1: GLOBAL OMNISCIENCE LAYER — 4 consolidated RSS-based providers covering 80+ organizations
