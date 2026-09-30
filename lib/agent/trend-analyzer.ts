@@ -401,7 +401,24 @@ async function createTrendSignal(trend: TrendBreak, verticalSlug?: string): Prom
     console.warn(`[TREND_ANALYZER] No vertical found, skipping signal creation`);
     return;
   }
-  
+
+  // Dedup: the same break condition persists across cycles — without this a
+  // held/failed signal is re-created every cycle and re-dispatched forever
+  // (observed live: "Trend Break: Publication Volume" firing every ~15min).
+  const dedupWindow = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
+  const existing = await prisma.signal.findFirst({
+    where: {
+      signalType: "TREND_BREAK",
+      title: `Trend Break: ${trend.topic}`,
+      createdAt: { gte: dedupWindow },
+    },
+    select: { id: true, status: true },
+  }).catch(() => null);
+  if (existing) {
+    console.log(`[TREND_ANALYZER] TREND_BREAK "${trend.topic}" already signaled (${existing.status}) — skipping duplicate`);
+    return;
+  }
+
   await prisma.signal.create({
     data: {
       verticalId,

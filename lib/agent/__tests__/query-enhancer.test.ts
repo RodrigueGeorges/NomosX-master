@@ -56,14 +56,17 @@ describe("QueryEnhancer", () => {
       expect(result.enhanced).toContain("carbon pricing");
     });
 
-    it("should fallback on LLM error", async () => {
+    it("should fallback to deterministic keywords on LLM error", async () => {
       mockCallLLM.mockRejectedValue(new Error("OpenAI API error"));
 
       const result = await enhanceQuery("test query");
 
       expect(result.original).toBe("test query");
       expect(result.enhanced).toBe("test query");
-      expect(result.variations).toEqual([]);
+      // Fallback must still extract usable keywords — empty keywords collapsed
+      // the relevance scorer to ~0 and produced the observed "0 results even at
+      // 0.10" live failure.
+      expect(result.keywords.length).toBeGreaterThan(0);
     });
   });
 

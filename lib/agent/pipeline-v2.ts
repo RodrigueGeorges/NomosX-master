@@ -316,7 +316,19 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     evidenceRegistry = rankOut.evidenceRegistry;
     rankOpts = rankOut.rankOpts;
     if (rankOut.refused) {
+      const reason = `refusal: ${stats.structuredRefusal?.reason ?? 'insufficient_evidence'}`;
       activeRuns.delete(idempotencyKey);
+      process.removeListener('unhandledRejection', rejectionHandler);
+      await prisma.pipelineRun.update({
+        where: { id: pipelineRun.id },
+        data: {
+          status: "FAILED",
+          finishedAt: new Date(),
+          durationMs: Date.now() - pipelineStart,
+          error: reason.slice(0, 500),
+          steps: JSON.parse(JSON.stringify({ ...stats, error: reason })),
+        },
+      }).catch(() => {});
       return { briefId: undefined, pipelineRun, stats, html: '', analysis: { refusal: stats.structuredRefusal } as any };
     }
   }
