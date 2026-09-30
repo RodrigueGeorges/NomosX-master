@@ -8,6 +8,23 @@
  */
 
 import { env } from './env';
+import pLimit from 'p-limit';
+
+// ================================
+// GLOBAL IN-FLIGHT BOUND
+// ================================
+
+// The scout fan-out pushes ~300 provider calls through a single
+// Promise.allSettled with no backpressure — every socket, TLS handshake and
+// response buffer lands at once. That burst correlates with container kills.
+// A process-wide semaphore bounds simultaneous in-flight requests while
+// keeping the queue order-agnostic (all callers share one pool).
+const HTTP_MAX_INFLIGHT = Math.max(4, Number(process.env.HTTP_MAX_INFLIGHT ?? 24));
+const httpInflight = pLimit(HTTP_MAX_INFLIGHT);
+
+export function getHttpInflightStats() {
+  return { active: httpInflight.activeCount, pending: httpInflight.pendingCount, cap: HTTP_MAX_INFLIGHT };
+}
 
 // ================================
 // TYPES
@@ -463,6 +480,13 @@ export async function httpGet<T = any>(
   url: string,
   options: HttpOptions = {}
 ): Promise<T> {
+  return httpInflight(() => httpGetImpl<T>(url, options));
+}
+
+async function httpGetImpl<T = any>(
+  url: string,
+  options: HttpOptions = {}
+): Promise<T> {
   const {
     timeout = 30000,
     retries = 3,
@@ -662,6 +686,14 @@ export async function httpGet<T = any>(
 }
 
 export async function httpPost<T = any>(
+  url: string,
+  body: any,
+  options: HttpOptions = {}
+): Promise<T> {
+  return httpInflight(() => httpPostImpl<T>(url, body, options));
+}
+
+async function httpPostImpl<T = any>(
   url: string,
   body: any,
   options: HttpOptions = {}

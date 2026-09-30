@@ -138,7 +138,13 @@ export async function runScoutBlock(deps: ScoutBlockDeps): Promise<ScoutBlockRes
     stats.scout = { found: seedIds.length, upserted: 0, sourceIds: seedIds, skipped: true };
     orchState.sourcesFound = seedIds.length;
     orchState.providerDiversity = new Set(seedIds.map((id) => id.split(":")[0])).size;
-    const seedScoutDecision = assessAfterScout(orchState);
+    // Seeds from a durable checkpoint carry no quality score — assessing
+    // against avgQuality=0 fabricates a RE_SCOUT decision on every resume.
+    // Quality is judged downstream on read sources, not on seed ids.
+    const seedScoutDecision = {
+      action: "PROCEED" as const,
+      reason: `Seed/checkpoint sources restored (${seedIds.length} ids) — scout quality assessment deferred to reader`,
+    };
     recordDecision(orchState, seedScoutDecision);
     stats.orchestrator = { decisions: [seedScoutDecision] };
     emitProgress(pipelineRunId, "SCOUT", "completed", `Seed sources: ${seedIds.length} (scout skipped)`);
