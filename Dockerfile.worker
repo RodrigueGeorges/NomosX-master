@@ -43,12 +43,13 @@ COPY next.config.* ./
 EXPOSE 3001
 ENV PORT=3001
 
-# Bound the V8 heap. Without a ceiling, Node grows RSS until the kernel
-# SIGKILLs at the cgroup limit — silent, no logs, mid-phase — which is the
-# exact crash signature observed in production. A bounded heap makes V8 GC
-# under pressure instead of dying. Override via Railway env NODE_OPTIONS if
-# the service plan allows more.
-ENV NODE_OPTIONS="--max-old-space-size=3072"
+# Bound the V8 heap FAR below Node's default. The container's cgroup limit is
+# ~1GB (probed: memory.max=999997440) while Node's default heap ceiling is
+# ~6.4GB — the kernel SIGKILLs at ~950MB, silently, mid-phase. 448MB leaves
+# ~500MB for non-heap RSS: axios/pdf-parse buffers, sockets, Prisma engine,
+# OpenSSL, thread stacks. Override via Railway env NODE_OPTIONS after
+# checking WORKER_MEM telemetry against the real cgroup limit.
+ENV NODE_OPTIONS="--max-old-space-size=448"
 
 # node --import tsx: node IS PID 1 — SIGTERM/SIGINT reach our handlers
 # directly. npx/npm spawn `sh -c` grandchildren and swallow signals, which
