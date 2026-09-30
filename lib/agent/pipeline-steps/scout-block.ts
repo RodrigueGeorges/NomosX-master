@@ -193,16 +193,18 @@ export async function runScoutBlock(deps: ScoutBlockDeps): Promise<ScoutBlockRes
         "consolidated-institutions", "global-intelligence", "global-orgs", "global-think-tanks", "global-science",
       ]);
 
+      // Sub-question scouts must be LEAN — inheriting the full provider set
+      // turned each DAG node into a 60-provider × 4-query fan-out (~2min each),
+      // blowing the pipeline timeout. A compact core set is enough for a
+      // targeted sub-question; breadth lives in the root scout. Hoisted so the
+      // expansion and replan paths share the same constraint.
+      const NODE_CORE_PROVIDERS = ["openalex", "crossref", "europepmc", "linkup", "tavily", "exa"] as const;
+
       for (const node of sortedNodes) {
         node.status = 'scouting';
         // Use node-specific producers if available, otherwise fall back to global providers
         // Filter to known providers only — LLM may generate invalid names (e.g. 'area_studies')
         const validNodeProducers = node.producers.filter(p => KNOWN_PROVIDERS.has(p));
-        // Sub-question scouts must be LEAN — inheriting the full provider set
-        // turned each DAG node into a 60-provider × 4-query fan-out (~2min each),
-        // blowing the pipeline timeout. A compact core set is enough for a
-        // targeted sub-question; breadth lives in the root scout.
-        const NODE_CORE_PROVIDERS = ["openalex", "crossref", "europepmc", "linkup", "tavily", "exa"] as const;
         const nodeProviders = (validNodeProducers.length >= 3
           ? Array.from(new Set([...validNodeProducers.slice(0, 8), ...NODE_CORE_PROVIDERS.slice(0, 4), 'no-routing']))
           : Array.from(new Set([...validNodeProducers, ...NODE_CORE_PROVIDERS, 'no-routing']))) as any;
@@ -227,8 +229,11 @@ export async function runScoutBlock(deps: ScoutBlockDeps): Promise<ScoutBlockRes
             const contextTerms = parentNodes.map((n: any) => n.subQuestion.split(' ').slice(0, 3).join(' ')).join(' ');
             if (contextTerms) {
               const expandedQuery = `${node.subQuestion} ${contextTerms}`;
+              // Lean set — expansion is a targeted retry, not a second full
+              // sweep. Passing the full `providers` list burned the shared
+              // root budget (139 providers × 12 queries observed live).
               const expandResult = await withExecutionScope(`dp-expand:${node.id}`, () =>
-                scout(expandedQuery, providers, 25));
+                scout(expandedQuery, nodeProviders, 25));
               const expandIds = Array.isArray(expandResult) ? expandResult.map(s => s.id) : (expandResult.sourceIds || []);
               allSourceIds.push(...expandIds);
               node.sourceIds = [...new Set([...(node.sourceIds || []), ...expandIds])];
@@ -256,8 +261,8 @@ export async function runScoutBlock(deps: ScoutBlockDeps): Promise<ScoutBlockRes
               node.status = 'scouting';
               const validP = node.producers.filter(p => KNOWN_PROVIDERS.has(p));
               const nodeProviders = validP.length >= 3
-                ? Array.from(new Set([...validP.slice(0, 8), ...providers.slice(0, 4)])) as any
-                : providers;
+                ? Array.from(new Set([...validP.slice(0, 8), ...providers.slice(0, 4), 'no-routing'])) as any
+                : Array.from(new Set([...validP, ...NODE_CORE_PROVIDERS, 'no-routing'])) as any;
               const res = await withExecutionScope(`dp-replan:${node.id}`, () =>
                 scout(node.subQuestion, nodeProviders, isStrategic ? 30 : 25));
               const ids = Array.isArray(res) ? res.map(s => s.id) : (res.sourceIds || []);
