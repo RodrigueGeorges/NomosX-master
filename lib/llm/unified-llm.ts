@@ -556,6 +556,26 @@ async function recordProviderFailure(provider: string, error?: Error): Promise<v
   const cb = await getCBState(provider);
   const next: CBState = { failures: cb.failures + 1, lastFailure: Date.now(), open: cb.open, suspended: cb.suspended, suspendedUntil: cb.suspendedUntil };
 
+  // Daily-quota 429s (e.g. Groq "tokens per day" free tier) are NOT dead
+  // providers — the quota resets within minutes/hours. Suspend only for the
+  // retry window the error advertises instead of escalating to the 24h
+  // tier-2 ban, which previously killed the only free LLM for a whole day.
+  const quotaMs = dailyQuotaResetMs(error);
+  if (quotaMs !== null) {
+    next.suspended = true;
+    next.suspendedUntil = Date.now() + quotaMs;
+    next.open = true;
+    console.warn(`🔌 Provider ${provider}: daily quota exhausted — suspending ${Math.round(quotaMs / 60000)}min (quota resets, not a dead account)`);
+    try {
+      const { simpleRedisManager } = await import('../agent/redis-simple');
+      if (simpleRedisManager.isRedisConnected()) {
+        await simpleRedisManager.setWithTTL(CB_KEY(provider), next, Math.ceil(quotaMs / 1000));
+      }
+    } catch { /* Redis unavailable */ }
+    cbMemory[provider] = next;
+    return;
+  }
+
   // Systemic account errors (402 insufficient balance, suspended account, bad key)
   // suspend IMMEDIATELY — no point spending 4 more failures to learn the account is dead.
   if (error && isSystemicAccountError(error)) {
@@ -603,6 +623,24 @@ async function recordProviderFailure(provider: string, error?: Error): Promise<v
  * is unnecessary (these are per-call issues, not provider-wide outages).
  * Examples: unparseable JSON, empty content, finish_reason=length.
  */
+/**
+ * Daily-quota rate limits (free tiers: Groq TPD, OpenRouter daily caps, …)
+ * return 429 but resolve on quota reset — suspend only for the advertised
+ * retry window, never the 24h tier-2 path. Returns ms until reset, or null.
+ */
+function dailyQuotaResetMs(error: any): number | null {
+  const msg = String(error?.message ?? "").toLowerCase();
+  if (!/429|rate limit/.test(msg)) return null;
+  if (!(msg.includes("per day") || msg.includes("tpd") || msg.includes("daily"))) return null;
+  // Groq embeds the reset window: "Please try again in 6m41.76s"
+  const m = /try again in\s+(?:(\d+)h)?\s*(?:(\d+)m)?\s*(?:(\d+(?:\.\d+)?)s)?/i.exec(error?.message ?? "");
+  if (m && (m[1] || m[2] || m[3])) {
+    const ms = (Number(m[1] ?? 0) * 3600 + Number(m[2] ?? 0) * 60 + Number(m[3] ?? 0)) * 1000;
+    if (ms > 0) return Math.min(ms + 60_000, 2 * 3_600_000); // hint + 1min buffer, cap 2h
+  }
+  return 30 * 60_000; // no parseable hint — modest 30min suspension
+}
+
 function isDeterministicError(error: Error): boolean {
   const msg = (error.message || "").toLowerCase();
   return msg.includes("unparseable json") ||
