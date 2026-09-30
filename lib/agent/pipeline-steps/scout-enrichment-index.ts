@@ -198,8 +198,8 @@ export async function runScoutEnrichmentAndIndex(deps: ScoutEnrichmentIndexDeps)
   // DURABLE CHECKPOINT: allSourceIds is final (scout + re-scout + intelligent
   // scout + citation graph all done). A resume re-enters via seedIds and skips
   // the whole provider fan-out.
-  if (durableKey && allSourceIds.length > 0) {
-    saveDurableStep(durableKey, 'scout', { allSourceIds }).catch(() => {});
+  if (durableKey && !scoutCkpt && allSourceIds.length > 0) {
+    await saveDurableStep(durableKey, 'scout', { allSourceIds });
   }
 
   console.log(`${label} INDEX: ${allSourceIds.length} sources`);

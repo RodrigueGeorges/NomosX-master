@@ -4,13 +4,14 @@
  */
 
 import { LinkupClient } from 'linkup-sdk';
+import { isFreeRun } from '../free-run';
 
 const LINKUP_API_KEY = process.env.LINKUP_API_KEY || "";
 
 // ===== SCOUT-COMPATIBLE SEARCH FUNCTION =====
 export async function searchLinkUp(query: string, limit = 15): Promise<any[]> {
-  if (!LINKUP_API_KEY) {
-    console.log('[SCOUT] LinkUp: skipped (no LINKUP_API_KEY)');
+  if (isFreeRun() || !LINKUP_API_KEY) {
+    console.log(`[SCOUT] LinkUp: skipped (${isFreeRun() ? 'FREE RUN' : 'no LINKUP_API_KEY'})`);
     return [];
   }
 

@@ -19,6 +19,7 @@ import type { Providers } from './provider-lists';
 import { selectSmartProviders } from '../smart-provider-selector';
 import { getHealthyProviders } from '../provider-health-tracker';
 import { initDurableRun, runDurableStep, durableKeyFor } from '../durable-execution';
+import { isFreeRun, filterFreeRunProviders } from '../../free-run';
 import { createWitnessContext, buildLearningInjection, type WitnessContext } from '../witness/integration';
 import { buildWorldModelInjection, createWorldEvolver, buildWorldEvolverInjection, type WorldEvolverState } from '../world-model/world-model';
 import { loadPRMModel, type PRMModel } from '../prm/process-reward-model';
@@ -392,6 +393,15 @@ export async function runPipelineInit(query: string, opts: PipelineCoreOptions) 
   }
   providers = healthyProviders.length >= 3 ? healthyProviders : providers; // fallback if too many blacklisted
 
+  // Zero-cost rehearsal: drop every provider that meters paid API credits.
+  // Free public endpoints (OpenAlex, Crossref, feeds, institutional open data)
+  // still exercise the full fan-out, checkpointing and reclaim machinery.
+  if (isFreeRun()) {
+    const before = providers.length;
+    providers = filterFreeRunProviders(providers);
+    console.log(`${label} FREE RUN: ${before - providers.length} paid providers dropped, ${providers.length} free remain`);
+  }
+
   // ── SKILL BANK: bias provider order toward configurations that previously
   // produced trust ≥ 80 in this domain (procedural memory, FlowEvo pattern) ──
   let provenSkill: import('../skill-bank').ProvenSkill | null = null;
@@ -456,6 +466,7 @@ export async function runPipelineInit(query: string, opts: PipelineCoreOptions) 
       console.log(`${label} DURABLE EXECUTION: initialized (${durableKey})`);
     } catch (err) {
       console.warn(`${label} DURABLE EXECUTION: init failed (non-blocking):`, err);
+      throw err;
     }
   }
   const durable = <T>(step: string, fn: () => Promise<T>, costUsd = 0): Promise<T> =>

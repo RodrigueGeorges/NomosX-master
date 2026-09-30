@@ -1,4 +1,5 @@
 import { fetchFromProvider, httpPost } from '../http-client';
+import { isFreeRun } from '../free-run';
 
 /**
  * NomosX News SCOUT Providers
@@ -176,6 +177,7 @@ export async function searchGDELTNews(query: string, limit = 30): Promise<ScoutN
  * Free tier: 100 requests/day, 100 articles/request.
  */
 export async function searchNewsAPI(query: string, limit = 30): Promise<ScoutNewsResult[]> {
+  if (isFreeRun()) return [];
   const apiKey = process.env.NEWSAPI_KEY;
   if (!apiKey) {
     console.log('[SCOUT/NewsAPI] No NEWSAPI_KEY set, skipping');
@@ -231,6 +233,7 @@ export async function searchNewsAPI(query: string, limit = 30): Promise<ScoutNew
  * Free tier: 500 requests/month, 25 results/request.
  */
 export async function searchMediaStack(query: string, limit = 25): Promise<ScoutNewsResult[]> {
+  if (isFreeRun()) return [];
   const apiKey = process.env.MEDIASTACK_KEY;
   if (!apiKey) {
     console.log('[SCOUT/MediaStack] No MEDIASTACK_KEY set, skipping');
@@ -287,6 +290,7 @@ export async function searchMediaStack(query: string, limit = 25): Promise<Scout
  * Free tier: 3 requests/day (use sparingly), 3 results/request.
  */
 export async function searchTheNewsAPI(query: string, limit = 30): Promise<ScoutNewsResult[]> {
+  if (isFreeRun()) return [];
   const apiKey = process.env.THENEWSAPI_KEY;
   if (!apiKey) {
     console.log('[SCOUT/TheNewsAPI] No THENEWSAPI_KEY set, skipping');
@@ -342,6 +346,7 @@ export async function searchTheNewsAPI(query: string, limit = 30): Promise<Scout
  * Free tier: 100 requests/day, 10 articles/request.
  */
 export async function searchGNews(query: string, limit = 10): Promise<ScoutNewsResult[]> {
+  if (isFreeRun()) return [];
   const apiKey = process.env.GNEWS_KEY;
   if (!apiKey) {
     console.log('[SCOUT/GNews] No GNEWS_KEY set, skipping');
@@ -397,6 +402,7 @@ export async function searchGNews(query: string, limit = 10): Promise<ScoutNewsR
  * Free tier: 2000 tokens/month.
  */
 export async function searchEventRegistry(query: string, limit = 25): Promise<ScoutNewsResult[]> {
+  if (isFreeRun()) return [];
   const apiKey = process.env.EVENTREGISTRY_KEY;
   if (!apiKey) {
     console.log('[SCOUT/EventRegistry] No EVENTREGISTRY_KEY set, skipping');

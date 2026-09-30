@@ -13,6 +13,8 @@ import {
   durableKeyFor,
 } from '@/lib/agent/durable-execution';
 
+import { prisma } from '@/lib/db';
+
 // In-memory audit log rows, shared across the mocked prisma client.
 const auditRows: Array<{ action: string; agent: string; resource: string; metadata: string; timestamp: Date }> = [];
 
@@ -23,11 +25,20 @@ jest.mock('@/lib/db', () => ({
         auditRows.push({ ...data, timestamp: data.timestamp ?? new Date() });
         return data;
       }),
-      findMany: jest.fn(async ({ where }: any) =>
-        auditRows
-          .filter(r => r.agent === where.agent && r.resource === where.resource)
-          .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
-      ),
+      findMany: jest.fn(async ({ where }: any) => {
+        const matchResource = (r: any, cond: any) =>
+          typeof cond === 'object' && cond !== null && 'startsWith' in cond
+            ? r.resource.startsWith(cond.startsWith)
+            : r.resource === cond;
+        return auditRows
+          .filter(r => {
+            if (r.agent !== where.agent) return false;
+            if (where.action?.in ? !where.action.in.includes(r.action) : (where.action && r.action !== where.action)) return false;
+            if (where.OR) return where.OR.some((c: any) => matchResource(r, c.resource));
+            return matchResource(r, where.resource);
+          })
+          .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+      }),
       findFirst: jest.fn(async ({ where }: any) =>
         auditRows
           .filter(r => r.agent === where.agent && (!where.action || r.action === where.action) && r.resource === where.resource)
@@ -37,7 +48,9 @@ jest.mock('@/lib/db', () => ({
         const match = (r: any) =>
           r.agent === where.agent &&
           (!where.action || r.action === where.action) &&
-          (where.resource?.startsWith ? r.resource.startsWith(where.resource.startsWith) : r.resource === where.resource);
+          (typeof where.resource === 'object' && where.resource !== null && 'startsWith' in where.resource
+            ? r.resource.startsWith(where.resource.startsWith)
+            : r.resource === where.resource);
         const removed = auditRows.filter(match).length;
         for (let i = auditRows.length - 1; i >= 0; i--) if (match(auditRows[i])) auditRows.splice(i, 1);
         return { count: removed };
@@ -110,7 +123,7 @@ describe('runDurableStep', () => {
     expect(cached).toEqual(STEP_BIG);
   });
 
-  test('missing checkpoint blob → cache miss → re-executes', async () => {
+  test('missing checkpoint blob stops instead of silently buying the step again', async () => {
     const runId = durableKeyFor('purged tmp', 'brief');
     await initDurableRun(runId, 'purged tmp');
     await runDurableStep(runId, 'reader', async () => STEP_BIG);
@@ -119,9 +132,8 @@ describe('runDurableStep', () => {
     }
 
     const fn = jest.fn(async () => ({ value: 'recomputed' }));
-    const result = await runDurableStep(runId, 'reader', fn);
-    expect(fn).toHaveBeenCalledTimes(1);
-    expect(result).toEqual({ value: 'recomputed' });
+    await expect(runDurableStep(runId, 'reader', fn)).rejects.toThrow();
+    expect(fn).not.toHaveBeenCalled();
   });
 
   test('stale checkpoint (>resume window) is not reused', async () => {
@@ -172,6 +184,47 @@ describe('runDurableStep', () => {
     await saveDurableStep(runId, 'scout', { allSourceIds: ['x', 'y', 'z'] });
     const ckpt = await durableResume<{ allSourceIds: string[] }>(runId, 'scout');
     expect(ckpt?.allSourceIds).toEqual(['x', 'y', 'z']);
+  });
+
+  test('checkpoint lookup failure cannot trigger a paid recomputation', async () => {
+    jest.mocked(prisma.agentAuditLog.findMany).mockRejectedValueOnce(new Error('db unavailable'));
+    const fn = jest.fn(async () => STEP_SMALL);
+    await expect(runDurableStep('lookup-failed', 'reader', fn)).rejects.toThrow();
+    expect(fn).not.toHaveBeenCalled();
+  });
+
+  test('checkpoint write failure is not reported as a successful step', async () => {
+    jest.mocked(prisma.agentAuditLog.create).mockRejectedValueOnce(new Error('db unavailable'));
+    await expect(saveDurableStep('write-failed', 'reader', STEP_SMALL)).rejects.toThrow();
+  });
+
+  test('blob persistence failure cannot downgrade to ephemeral disk', async () => {
+    jest.mocked(prisma.agentAuditLog.create).mockRejectedValueOnce(new Error('db unavailable'));
+    await expect(saveDurableStep('blob-failed', 'reader', STEP_BIG)).rejects.toThrow();
+    expect(auditRows).toHaveLength(0);
+  });
+
+  test('checkpoint writes never return the large metadata payload to the client', async () => {
+    await saveDurableStep('egress-test', 'reader', STEP_BIG);
+    for (const [args] of jest.mocked(prisma.agentAuditLog.create).mock.calls) {
+      expect(args.select).toEqual({ id: true });
+    }
+  });
+
+  test('re-persisting a step replaces the row — reclaim loops cannot stack duplicates', async () => {
+    const runId = durableKeyFor('dedup', 'strategic');
+    await initDurableRun(runId, 'dedup');
+    for (let i = 0; i < 5; i++) {
+      await saveDurableStep(runId, 'scout', { allSourceIds: [`s${i}`] });
+    }
+    await saveDurableStep(runId, 'reader', STEP_BIG);
+    await saveDurableStep(runId, 'reader', STEP_BIG);
+    const stepRows = auditRows.filter(r => r.action === 'DURABLE_STEP');
+    const blobRows = auditRows.filter(r => r.action === 'DURABLE_STEP_BLOB');
+    expect(stepRows).toHaveLength(2); // scout + reader, not 5 + 2
+    expect(blobRows).toHaveLength(1); // re-persisted blob replaced
+    const ckpt = await durableResume<{ allSourceIds: string[] }>(runId, 'scout');
+    expect(ckpt?.allSourceIds).toEqual(['s4']); // latest wins
   });
 
   test('step failure does not persist — retry re-executes', async () => {

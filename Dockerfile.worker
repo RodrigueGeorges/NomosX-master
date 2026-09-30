@@ -13,7 +13,7 @@
 
 # Debian slim, not Alpine: Prisma 5.22 query engine needs glibc + OpenSSL 3
 # (linux-musl engine fails with missing libssl.so.1.1 on node:*-alpine).
-FROM node:20-bookworm-slim
+FROM node:22-bookworm-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
@@ -54,4 +54,4 @@ ENV NODE_OPTIONS="--max-old-space-size=448"
 # node --import tsx: node IS PID 1 — SIGTERM/SIGINT reach our handlers
 # directly. npx/npm spawn `sh -c` grandchildren and swallow signals, which
 # silently disabled the graceful-shutdown lock release.
-CMD ["node", "--import", "tsx", "scripts/pipeline-worker.ts", "--health-port=3001"]
+CMD ["node", "--max-old-space-size=448", "--import", "tsx", "scripts/pipeline-worker.ts", "--health-port=3001"]

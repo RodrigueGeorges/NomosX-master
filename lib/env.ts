@@ -84,7 +84,11 @@ const envSchema = z.object({
   MISTRAL_API_KEY: z.string().optional(),       // Experiment tier 1B tokens/month
   
   // Qwen (Alibaba Cloud / DashScope / Together.ai — OpenAI-compatible)
-  
+
+  // Zero-cost rehearsal mode — freepool LLMs only, paid scout providers and
+  // metered embeddings skipped, maxPublications clamped to 1. See free-run.ts.
+  NOMOSX_FREE_RUN: z.string().optional(),
+
   // Admin
   ADMIN_KEY: z.string().optional(),
   

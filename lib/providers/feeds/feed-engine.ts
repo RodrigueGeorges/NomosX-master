@@ -10,6 +10,8 @@
  */
 
 import Parser from 'rss-parser';
+import { httpGet } from '../../http-client';
+import { assertExecutionActive } from '../../worker/execution-scope';
 
 const parser = new Parser({ timeout: 9000 } as any);
 
@@ -37,13 +39,6 @@ const CONCURRENCY = 14;
 const GN_BREAKER_THRESHOLD = 3;
 let gnConsecutiveFails = 0;
 let gnCircuitOpenUntil = 0; // epoch ms
-
-function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
-  return Promise.race([
-    p,
-    new Promise<T>((_, rej) => setTimeout(() => rej(new Error('feed-timeout')), ms)),
-  ]);
-}
 
 /** Score how relevant a feed is for a query (0 = skip). */
 function scoreFeed(feed: FeedSource, queryLower: string, terms: string[], domainHint?: string): number {
@@ -114,7 +109,13 @@ export async function searchFeedSet(
               url = feed.url.replace(/&hl=en/, `+${q}&hl=en`);
             }
           }
-          const parsed = await withTimeout(parser.parseURL(url), FEED_TIMEOUT_MS);
+          assertExecutionActive();
+          const xml = await httpGet<string>(url, {
+            responseType: 'text',
+            timeout: FEED_TIMEOUT_MS,
+            retries: 1,
+          });
+          const parsed = await parser.parseString(xml);
           if (!feed.direct) gnConsecutiveFails = 0;
           return (parsed.items || [])
             .filter((item: any) => {

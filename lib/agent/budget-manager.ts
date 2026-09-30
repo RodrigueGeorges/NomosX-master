@@ -95,7 +95,7 @@ export async function getBudgetStatus(): Promise<BudgetStatus> {
       },
       select: { metricValue: true, dimensions: true },
     }),
-  ]).catch(() => [[], []] as any);
+  ]);
 
   const dailySpent = (dailyMetrics as any[]).reduce((sum, m) => sum + (m.metricValue ?? 0), 0);
   const monthlySpent = (monthlyMetrics as any[]).reduce((sum, m) => sum + (m.metricValue ?? 0), 0);
@@ -152,7 +152,14 @@ export async function getBudgetStatus(): Promise<BudgetStatus> {
  * Returns: 'proceed' | 'throttle' | 'stop'
  */
 export async function checkBudgetGate(): Promise<'proceed' | 'throttle' | 'stop'> {
-  const status = await getBudgetStatus();
+  if (![MONTHLY_BUDGET_USD, DAILY_BUDGET_USD].every(cap => Number.isFinite(cap) && cap >= 0)) return 'stop';
+  let status: BudgetStatus;
+  try {
+    status = await getBudgetStatus();
+  } catch {
+    console.error('[BUDGET] Ledger unavailable — STOPPING');
+    return 'stop';
+  }
 
   if (status.isMonthlyExceeded) {
     console.warn(`[BUDGET] Monthly budget exceeded: $${status.monthlySpent.toFixed(2)} / $${status.monthlyCap.toFixed(2)} — STOPPING`);

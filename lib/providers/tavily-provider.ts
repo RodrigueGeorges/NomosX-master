@@ -8,6 +8,7 @@
  */
 
 import { httpPost } from '../http-client';
+import { isFreeRun } from '../free-run';
 
 const TAVILY_API_KEY = process.env.TAVILY_API_KEY || "";
 const TAVILY_ENDPOINT = "https://api.tavily.com/search";
@@ -30,8 +31,8 @@ export async function searchTavily(
   limit = 15,
   options?: TavilySearchOptions
 ): Promise<any[]> {
-  if (!TAVILY_API_KEY) {
-    console.log('[SCOUT] Tavily: skipped (no TAVILY_API_KEY)');
+  if (isFreeRun() || !TAVILY_API_KEY) {
+    console.log(`[SCOUT] Tavily: skipped (${isFreeRun() ? 'FREE RUN' : 'no TAVILY_API_KEY'})`);
     return [];
   }
 

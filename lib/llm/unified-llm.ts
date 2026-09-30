@@ -21,6 +21,8 @@
 import OpenAI from 'openai';
 import Anthropic from '@anthropic-ai/sdk';
 import crypto from 'crypto';
+import { assertExecutionActive, getExecutionSignal, withExecutionDeadline } from '../worker/execution-scope';
+import { isFreeRun } from '../free-run';
 import { env } from '../env';
 import { getCachedLLMResponse,cacheLLMResponse } from '../cache/redis-cache';
 import Sentry from '@sentry/nextjs';
@@ -1388,10 +1390,11 @@ function buildCacheKey(request: LLMRequest): string {
     return `fallback_${request.task || request.model || 'unknown'}_${request.temperature || 0.2}`;
   }
   
-  for (const msg of request.messages) {
-    hash.update(msg.role);
-    hash.update(msg.content);
-  }
+  hash.update(JSON.stringify(request.messages));
+  hash.update(JSON.stringify([
+    request.provider ?? null, request.model ?? null, request.producerFamily ?? null,
+    request.maxCostUsd ?? null,
+  ]));
   hash.update(String(request.temperature ?? 0.2));
   hash.update(String(request.jsonMode ?? false));
   hash.update(String(request.maxTokens ?? 4000));
@@ -1414,19 +1417,7 @@ async function withTimeout<T>(
   ms: number,
   label: string,
 ): Promise<T> {
-  const controller = new AbortController();
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  const deadline = new Promise<never>((_, reject) => {
-    timer = setTimeout(() => {
-      controller.abort();
-      reject(new Error(`${label} timed out after ${ms}ms`));
-    }, ms);
-  });
-  try {
-    return await Promise.race([factory(controller.signal), deadline]);
-  } finally {
-    if (timer) clearTimeout(timer);
-  }
+  return withExecutionDeadline(ms, label, () => factory(getExecutionSignal()!));
 }
 
 /**
@@ -1551,8 +1542,13 @@ function attemptJsonRepair(raw: string): string | null {
  * each other FIRST; OpenAI/Anthropic are last resort so a single vendor
  * outage never halts publication.
  */
-/** Identical in-flight requests share one provider round-trip (see callLLM). */
+/** Identical in-flight requests share one provider round-trip (see callLLM).
+ *  Scoped callers coalesce only within their own AbortSignal — two jobs with
+ *  different leases must never share a request either can't abort. */
 const IN_FLIGHT_LLM = new Map<string, Promise<LLMResponse>>();
+const SCOPED_IN_FLIGHT_LLM = new WeakMap<AbortSignal, Map<string, Promise<LLMResponse>>>();
+
+export class LLMCostLimitError extends Error {}
 
 /**
  * In-flight request coalescing on top of the persistent Redis cache:
@@ -1561,19 +1557,29 @@ const IN_FLIGHT_LLM = new Map<string, Promise<LLMResponse>>();
  * Tool-calling turns are excluded (stateful, like the cache rule below).
  */
 export async function callLLM(request: LLMRequest): Promise<LLMResponse> {
+  assertExecutionActive();
+  if (request.maxCostUsd !== undefined && (!Number.isFinite(request.maxCostUsd) || request.maxCostUsd <= 0)) {
+    throw new LLMCostLimitError('Invalid per-call cost cap');
+  }
   const cacheable = request.enableCache !== false && !request.tools?.length;
   if (!cacheable) return callLLMCore(request);
   const cacheKey = buildCacheKey(request);
-  const inFlight = IN_FLIGHT_LLM.get(cacheKey);
+  const signal = getExecutionSignal();
+  let map = IN_FLIGHT_LLM;
+  if (signal) {
+    map = SCOPED_IN_FLIGHT_LLM.get(signal) ?? new Map();
+    SCOPED_IN_FLIGHT_LLM.set(signal, map);
+  }
+  const inFlight = map.get(cacheKey);
   if (inFlight) {
     console.log(`[LLM] coalesced in-flight duplicate [${request.task ?? request.model ?? "call"}]`);
     const shared = await inFlight;
     return { ...shared, cached: true };
   }
   const run = callLLMCore(request).finally(() => {
-    if (IN_FLIGHT_LLM.get(cacheKey) === run) IN_FLIGHT_LLM.delete(cacheKey);
+    if (map.get(cacheKey) === run) map.delete(cacheKey);
   });
-  IN_FLIGHT_LLM.set(cacheKey, run);
+  map.set(cacheKey, run);
   return run;
 }
 
@@ -1603,19 +1609,29 @@ async function callLLMCore(request: LLMRequest): Promise<LLMResponse> {
   // Build fallback chain: primary provider, then cross-family order, deduped,
   // skipping providers with no client configured or an open circuit.
   const orderedProviders: LLMProvider[] = [];
-  // Skip a primary with no configured client (e.g. MOONSHOT_API_KEY missing in
-  // this env) — go straight to fallbacks instead of wasting a throw.
-  if (getClientForProvider(primaryProvider) && !await isCircuitOpen(primaryProvider)) {
-    orderedProviders.push(primaryProvider);
-  }
-  for (const family of CROSS_FAMILY_FALLBACK[primaryFamily]) {
-    const p = FAMILY_PROVIDER[family];
-    if (!orderedProviders.includes(p) && getClientForProvider(p) && !await isCircuitOpen(p)) {
-      orderedProviders.push(p);
+  if (isFreeRun()) {
+    // Zero-cost rehearsal: every call routes to the free-tier cascade.
+    // Fail closed — no free key configured must NOT silently fall back to a
+    // paid provider.
+    if (!getClientForProvider('freepool')) {
+      throw new Error('NOMOSX_FREE_RUN is set but no free-tier LLM key is configured (GROQ_API_KEY/CEREBRAS_API_KEY/NVIDIA_API_KEY/OPENROUTER_API_KEY/MISTRAL_API_KEY)');
     }
+    orderedProviders.push('freepool');
+  } else {
+    // Skip a primary with no configured client (e.g. MOONSHOT_API_KEY missing
+    // in this env) — go straight to fallbacks instead of wasting a throw.
+    if (getClientForProvider(primaryProvider) && !await isCircuitOpen(primaryProvider)) {
+      orderedProviders.push(primaryProvider);
+    }
+    for (const family of CROSS_FAMILY_FALLBACK[primaryFamily]) {
+      const p = FAMILY_PROVIDER[family];
+      if (!orderedProviders.includes(p) && getClientForProvider(p) && !await isCircuitOpen(p)) {
+        orderedProviders.push(p);
+      }
+    }
+    // If all circuits open, still try primary (half-open retry)
+    if (orderedProviders.length === 0) orderedProviders.push(primaryProvider);
   }
-  // If all circuits open, still try primary (half-open retry)
-  if (orderedProviders.length === 0) orderedProviders.push(primaryProvider);
 
   // ── J: CAPABILITY-AWARE FAILOVER (DVARA pattern) ──
   // Filter the fallback chain by what the request actually needs.
@@ -1642,6 +1658,7 @@ async function callLLMCore(request: LLMRequest): Promise<LLMResponse> {
   let lastError: Error | null = null;
 
   for (const provider of orderedProviders) {
+    assertExecutionActive();
     const fallbackModel = resolveModelForTask(provider, task);
     const timeoutMs = getCallTimeout(provider, task);
 
@@ -1692,8 +1709,8 @@ async function callLLMCore(request: LLMRequest): Promise<LLMResponse> {
       }
 
       // F-B12: Per-call cost budget enforcement
-      if (request.maxCostUsd && response.costUsd > request.maxCostUsd) {
-        throw new Error(
+      if (request.maxCostUsd !== undefined && response.costUsd > request.maxCostUsd) {
+        throw new LLMCostLimitError(
           `${provider}/${response.model} exceeded per-call cost cap: $${response.costUsd.toFixed(4)} > $${request.maxCostUsd} (in=${response.tokensInput}, out=${response.tokensOutput})`
         );
       }
@@ -1718,6 +1735,8 @@ async function callLLMCore(request: LLMRequest): Promise<LLMResponse> {
 
       return response;
     } catch (error) {
+      assertExecutionActive();
+      if (error instanceof LLMCostLimitError) throw error;
       lastError = error as Error;
       await recordProviderFailure(provider, error as Error);
       console.error(`❌ ${provider} failed for task "${task}": ${(error as Error).message}`);
@@ -1934,6 +1953,14 @@ export async function streamLLM(
   const task = normalizeTask(request.task);
   let provider = resolvePrimaryProvider(request);
 
+  // Zero-cost rehearsal: never open a paid stream — emulate via the freepool
+  // cascade with a single chunk.
+  if (isFreeRun()) {
+    const response = await callLLM(request);
+    onChunk(response.content);
+    return response;
+  }
+
   // Freepool endpoints are used non-streaming — emulate the stream with a
   // single chunk so callers still get their content.
   if (provider === "freepool") {
@@ -2019,6 +2046,26 @@ export function getAvailableProviders(): LLMProvider[] {
  */
 export async function checkLLMHealth(): Promise<Record<LLMProvider, boolean>> {
   const health: Record<LLMProvider, boolean> = { deepseek: false, glm: false, openai: false, anthropic: false, kimi: false, google: false, freepool: false };
+
+  // Zero-cost rehearsal: a health check is still a billed call on paid
+  // providers — only ping the free tier.
+  if (isFreeRun()) {
+    try {
+      const [first] = getFreepoolEndpoints();
+      if (first) {
+        const client = getFreepoolClient(first);
+        await client.chat.completions.create({
+          model: first.fastModel,
+          max_tokens: 1,
+          messages: [{ role: "user", content: "ping" }],
+        });
+        health.freepool = true;
+      }
+    } catch (err) {
+      console.error("Freepool health check failed:", err);
+    }
+    return health;
+  }
 
   // Test DeepSeek
   try {

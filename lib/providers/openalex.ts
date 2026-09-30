@@ -47,7 +47,8 @@ async function checkOpenAlexKeyExhausted(): Promise<void> {
   openAlexKeyChecked = true;
   try {
     const testUrl = `https://api.openalex.org/works?search=test&per-page=1&api_key=${env.OPENALEX_API_KEY}`;
-    const resp = await fetch(testUrl);
+    const resp = await fetch(testUrl, { signal: AbortSignal.timeout(5000) });
+    await resp.body?.cancel();
     if (resp.status === 429) {
       const remaining = resp.headers.get('x-ratelimit-remaining');
       if (remaining === '0') {
@@ -72,7 +73,7 @@ export function markOpenAlexKeyExhausted(): void {
 }
 
 // Check synchronously at module load (fire and forget)
-checkOpenAlexKeyExhausted();
+export { checkOpenAlexKeyExhausted };
 
 export async function searchOpenAlex(query: string, perPage = 25, options?: { filter?: string; group_by?: string }): Promise<any[]> {
   const base = env.OPENALEX_API;

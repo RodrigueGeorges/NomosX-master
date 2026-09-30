@@ -15,6 +15,8 @@
  */
 
 import OpenAI from 'openai';
+import { assertExecutionActive, getExecutionSignal } from '../worker/execution-scope';
+import { isFreeRun } from '../free-run';
 import { prisma } from '../db';
 import { getCachedLLMResponse, cacheLLMResponse } from '../cache/redis-cache';
 import Sentry from '@sentry/nextjs';
@@ -76,8 +78,12 @@ function markOpenAIEmbeddingDead(err: any): void {
 async function cohereEmbed(texts: string[], inputType: "search_document" | "search_query"): Promise<number[][] | null> {
   const key = process.env.COHERE_API_KEY;
   if (!key || key.length < 10) return null;
+  assertExecutionActive();
+  const parent = getExecutionSignal();
+  const timeout = AbortSignal.timeout(30000);
   const res = await fetch("https://api.cohere.com/v2/embed", {
     method: "POST",
+    signal: parent ? AbortSignal.any([parent, timeout]) : timeout,
     headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
     body: JSON.stringify({
       model: COHERE_EMBED_MODEL,
@@ -120,6 +126,7 @@ export async function embedTextDetailed(
   if (!text || text.trim().length === 0) {
     return { embedding: new Array(EMBEDDING_DIMS).fill(0), model: "none" };
   }
+  if (isFreeRun()) return { embedding: zeroVector(), model: "none" };
 
   // Truncate to ~30k chars (~8k tokens) to stay within model limits
   const truncated = text.slice(0, 30000);
@@ -127,11 +134,12 @@ export async function embedTextDetailed(
   const client = getClient();
   if (client) {
     try {
+      assertExecutionActive();
       const response = await client.embeddings.create({
         model: EMBEDDING_MODEL,
         input: truncated,
         dimensions: EMBEDDING_DIMS,
-      });
+      }, { signal: getExecutionSignal(), timeout: 30000, maxRetries: 0 });
       return { embedding: response.data[0].embedding, model: EMBEDDING_MODEL };
     } catch (err: any) {
       markOpenAIEmbeddingDead(err);
@@ -166,6 +174,7 @@ export async function embedBatchDetailed(
   inputType: "search_document" | "search_query" = "search_document",
 ): Promise<{ embeddings: number[][]; model: string }> {
   if (texts.length === 0) return { embeddings: [], model: "none" };
+  if (isFreeRun()) return { embeddings: texts.map(() => zeroVector()), model: "none" };
 
   const client = getClient();
 
@@ -187,11 +196,12 @@ export async function embedBatchDetailed(
       wave.map(async (batch) => {
         if (client) {
           try {
+            assertExecutionActive();
             const response = await client.embeddings.create({
               model: EMBEDDING_MODEL,
               input: batch.texts,
               dimensions: EMBEDDING_DIMS,
-            });
+            }, { signal: getExecutionSignal(), timeout: 30000, maxRetries: 0 });
             // Sort by index to maintain order
             const sorted = response.data.sort((a, b) => a.index - b.index);
             return { startIndex: batch.index, embeddings: sorted.map(d => d.embedding), model: EMBEDDING_MODEL };
@@ -312,6 +322,12 @@ export async function embedSource(sourceId: string): Promise<void> {
  * Returns count of newly embedded sources.
  */
 export async function embedSourcesBatch(sourceIds: string[]): Promise<{ embedded: number; skipped: number; failed: number }> {
+  // Zero-cost rehearsal: skip embeddings entirely — no OpenAI/Cohere spend and
+  // no pointless DB reads. Ranking degrades to keyword-based for the rehearsal.
+  if (isFreeRun()) {
+    console.log(`[SemanticEngine] FREE RUN — skipping embeddings for ${sourceIds.length} sources`);
+    return { embedded: 0, skipped: sourceIds.length, failed: 0 };
+  }
   // Query sources in chunks to avoid loading 4000 rows at once
   const CHUNK_QUERY = 500;
   let allSources: Array<{ id: string; title: string; abstract: string | null; embeddings: number[]; embeddingModel: string | null }> = [];

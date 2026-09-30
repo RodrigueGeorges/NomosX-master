@@ -9,13 +9,14 @@
  */
 
 import { httpPost } from '../http-client';
+import { isFreeRun } from '../free-run';
 
 const DIMENSIONS_API_KEY = process.env.DIMENSIONS_API_KEY || "";
 const DIMENSIONS_ENDPOINT = "https://app.dimensions.ai/api/dsl";
 
 export async function searchDimensions(query: string, limit = 20): Promise<any[]> {
-  if (!DIMENSIONS_API_KEY) {
-    console.log('[SCOUT] Dimensions: skipped (no DIMENSIONS_API_KEY)');
+  if (isFreeRun() || !DIMENSIONS_API_KEY) {
+    console.log(`[SCOUT] Dimensions: skipped (${isFreeRun() ? 'FREE RUN' : 'no DIMENSIONS_API_KEY'})`);
     return [];
   }
 

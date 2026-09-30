@@ -14,10 +14,12 @@
  */
 
 import { fetchFromProvider } from '../http-client';
+import { isFreeRun } from '../free-run';
 
 const NEWSDATA_ENDPOINT = 'https://newsdata.io/api/1/news';
 
 export async function searchNewsData(query: string, limit = 10): Promise<any[]> {
+  if (isFreeRun()) return [];
   const apiKey = process.env.NEWSDATA_API_KEY;
   if (!apiKey) {
     return [];

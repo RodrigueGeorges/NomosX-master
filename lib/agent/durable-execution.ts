@@ -110,7 +110,7 @@ export async function runDurableStep<T>(
     }
     // Checkpoint record exists but its payload is gone (tmp file purged) —
     // treat as a cache miss and re-execute below.
-    console.warn(`[Durable] Step ${step} checkpoint payload missing for ${runId} — re-executing`);
+    throw new Error(`Durable checkpoint payload missing for ${runId}/${step}; refusing automatic replay`);
   }
 
   // Execute the step
@@ -150,6 +150,7 @@ export async function durableResume<T>(runId: string, step: string, resumeWindow
 export async function markDurableComplete(runId: string): Promise<void> {
   try {
     await prisma.agentAuditLog.create({
+      select: { id: true },
       data: {
         action: 'DURABLE_COMPLETE',
         agent: 'durable_execution',
@@ -174,8 +175,13 @@ export async function markDurableComplete(runId: string): Promise<void> {
 async function loadDurableState(runId: string): Promise<DurableExecutionState | null> {
   try {
     const records = await prisma.agentAuditLog.findMany({
-      where: { agent: 'durable_execution', resource: runId },
-      orderBy: { timestamp: 'asc' },
+      where: {
+        agent: 'durable_execution',
+        action: { in: ['DURABLE_INIT', 'DURABLE_STEP', 'DURABLE_COMPLETE'] },
+        OR: [{ resource: runId }, { resource: { startsWith: `${runId}::` } }],
+      },
+      orderBy: [{ timestamp: 'asc' }, { id: 'asc' }],
+      select: { action: true, metadata: true },
     });
 
     if (records.length === 0) return null;
@@ -225,7 +231,7 @@ async function loadDurableState(runId: string): Promise<DurableExecutionState | 
     return state;
   } catch (err) {
     console.warn('[Durable] Load state failed:', err);
-    return null;
+    throw err;
   }
 }
 
@@ -238,16 +244,23 @@ const BLOB_PREFIX = 'blob:';
 const blobResourceFor = (runId: string, step: string) => `${runId}::${step}`;
 
 async function writeCheckpointBlob(runId: string, step: string, serialized: string): Promise<string> {
+  const resource = blobResourceFor(runId, step);
+  // One blob per (run, step) — re-persisting after a reclaim replaces the old
+  // row instead of accumulating ~MB duplicates per attempt on Neon.
+  await prisma.agentAuditLog.deleteMany({
+    where: { agent: 'durable_execution', action: 'DURABLE_STEP_BLOB', resource },
+  });
   await prisma.agentAuditLog.create({
+      select: { id: true },
     data: {
       action: 'DURABLE_STEP_BLOB',
       agent: 'durable_execution',
-      resource: blobResourceFor(runId, step),
+      resource,
       metadata: serialized,
       timestamp: new Date(),
     },
   });
-  return `${BLOB_PREFIX}${blobResourceFor(runId, step)}`;
+  return `${BLOB_PREFIX}${resource}`;
 }
 
 async function readCheckpointBlob(resource: string): Promise<any> {
@@ -263,14 +276,6 @@ async function readCheckpointBlob(resource: string): Promise<any> {
   }
 }
 
-async function writeCheckpointFile(runId: string, step: string, output: any): Promise<string> {
-  const dir = path.join(CHECKPOINT_DIR, runId.replace(/[^a-zA-Z0-9_-]/g, '_'));
-  await fs.mkdir(dir, { recursive: true });
-  const file = path.join(dir, `${step.replace(/[^a-zA-Z0-9_-]/g, '_')}.json`);
-  await fs.writeFile(file, JSON.stringify(output), 'utf8');
-  return file;
-}
-
 async function readCheckpointFile(file: string): Promise<any> {
   try {
     return JSON.parse(await fs.readFile(file, 'utf8'));
@@ -283,8 +288,11 @@ async function readCheckpointFile(file: string): Promise<any> {
 async function resolveStepOutput(output: any): Promise<any> {
   if (output && typeof output === 'object' && typeof output.__checkpointFile === 'string') {
     const ref: string = output.__checkpointFile;
-    if (ref.startsWith(BLOB_PREFIX)) return readCheckpointBlob(ref.slice(BLOB_PREFIX.length));
-    return readCheckpointFile(ref);
+    const value = ref.startsWith(BLOB_PREFIX)
+      ? await readCheckpointBlob(ref.slice(BLOB_PREFIX.length))
+      : await readCheckpointFile(ref);
+    if (value === undefined) throw new Error('Durable checkpoint payload unavailable; refusing automatic replay');
+    return value;
   }
   return output;
 }
@@ -297,25 +305,22 @@ export async function saveDurableStep(runId: string, step: string, output: any, 
 async function persistStep(runId: string, step: string, output: any, costUsd: number): Promise<void> {
   try {
     const serialized = JSON.stringify(output);
-    const tooBig = serialized.length > FILE_THRESHOLD_BYTES;
-    let fileRef: string | undefined;
-    if (tooBig) {
-      try {
-        fileRef = await writeCheckpointBlob(runId, step, serialized);
-      } catch (blobErr) {
-        console.warn('[Durable] Blob checkpoint failed, falling back to tmpdir file:', blobErr);
-        try {
-          fileRef = await writeCheckpointFile(runId, step, output);
-        } catch (fileErr) {
-          console.warn('[Durable] File checkpoint failed, keeping inline payload:', fileErr);
-        }
-      }
-    }
+    if (serialized === undefined) throw new Error('Checkpoint output is not JSON serializable');
+    const tooBig = Buffer.byteLength(serialized, 'utf8') > FILE_THRESHOLD_BYTES;
+    const fileRef = tooBig ? await writeCheckpointBlob(runId, step, serialized) : undefined;
+    // Step rows are keyed per (run, step): a re-persisted step replaces its
+    // previous row so reclaim loops can't stack duplicate checkpoints.
+    // A crash between delete and create degrades to a recompute — safe.
+    const stepResource = blobResourceFor(runId, step);
+    await prisma.agentAuditLog.deleteMany({
+      where: { agent: 'durable_execution', action: 'DURABLE_STEP', resource: stepResource },
+    });
     await prisma.agentAuditLog.create({
+      select: { id: true },
       data: {
         action: 'DURABLE_STEP',
         agent: 'durable_execution',
-        resource: runId,
+        resource: stepResource,
         metadata: JSON.stringify({
           step,
           output: fileRef ? undefined : output,
@@ -328,6 +333,7 @@ async function persistStep(runId: string, step: string, output: any, costUsd: nu
     });
   } catch (err) {
     console.warn('[Durable] Persist step failed:', err);
+    throw err;
   }
 }
 
@@ -356,6 +362,7 @@ export async function initDurableRun(
       return;
     }
     await prisma.agentAuditLog.create({
+      select: { id: true },
       data: {
         action: 'DURABLE_INIT',
         agent: 'durable_execution',
@@ -370,6 +377,7 @@ export async function initDurableRun(
     });
   } catch (err) {
     console.warn('[Durable] Init failed:', err);
+    throw err;
   }
 }
 

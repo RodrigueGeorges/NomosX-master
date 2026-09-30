@@ -20,6 +20,8 @@
  */
 
 import { prisma } from '@/lib/db';
+import { isThinkTankEnabled, THINK_TANK_JOB_TYPE } from './think-tank-queue';
+import { assertExecutionActive, withExecutionSignal } from './execution-scope';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -36,6 +38,7 @@ export interface ClaimedJob {
   /** Mid-run progress written by the handler — also the resume state after a
    * reclaim (e.g. the think-tank dispatch list + done keys survive a crash). */
   result?: unknown;
+  workerId?: string;
 }
 
 export type JobHandler = (payload: unknown, job: ClaimedJob) => Promise<unknown>;
@@ -70,7 +73,10 @@ const MAX_BACKOFF_MS = 30 * 60 * 1000;
  *  that touches it) — dead-letter instead of reclaiming forever. Sized for a
  *  crash-loop environment: kills every ~15min through a ~4h cycle legitimately
  *  cost ~16 reclaims; sub-step checkpoints let a converging job still finish. */
-const MAX_RECLAIMS = 24;
+const MAX_RECLAIMS = Number(process.env.NOMOSX_MAX_RECLAIMS ?? 1);
+if (!Number.isInteger(MAX_RECLAIMS) || MAX_RECLAIMS < 0 || MAX_RECLAIMS > 3) {
+  throw new Error('NOMOSX_MAX_RECLAIMS must be an integer between 0 and 3');
+}
 
 function backoffMs(attempts: number): number {
   return Math.min(MAX_BACKOFF_MS, 60_000 * 2 ** Math.max(0, attempts - 1));
@@ -92,6 +98,7 @@ export async function claimNextJob(
   const candidate = await prisma.job.findFirst({
     where: {
       movedToDeadLetter: false,
+      ...(!isThinkTankEnabled() ? { type: { not: THINK_TANK_JOB_TYPE } } : {}),
       OR: [
         { status: 'PENDING', scheduledFor: { lte: now } },
         { status: 'RUNNING', lockedUntil: { lt: now } },
@@ -111,8 +118,8 @@ export async function claimNextJob(
     console.error(
       `[Worker ${workerId}] dead-lettering ${candidate.type} ${candidate.id}: reclaims exhausted (${candidate.reclaims}/${MAX_RECLAIMS})`
     );
-    await prisma.job.update({
-      where: { id: candidate.id },
+    const stopped = await prisma.job.updateMany({
+      where: { id: candidate.id, status: 'RUNNING', lockedBy: candidate.lockedBy, lockedUntil: { lt: now }, reclaims: candidate.reclaims },
       data: {
         status: 'FAILED',
         finishedAt: now,
@@ -122,7 +129,8 @@ export async function claimNextJob(
         movedToDeadLetter: true,
         deadLetterReason: `reclaims_exhausted:${candidate.reclaims}/${MAX_RECLAIMS}`,
       },
-    }).catch((e) => console.warn(`[Worker ${workerId}] poison dead-letter update failed:`, e));
+    });
+    if (stopped.count !== 1) return null;
     await prisma.jobDeadLetter
       .create({
         data: {
@@ -178,26 +186,45 @@ export async function claimNextJob(
  * Overwritten by the final result at completion — while RUNNING it reads as
  * live progress (observability bonus).
  */
-export async function saveJobProgress(jobId: string, progress: unknown): Promise<void> {
-  await prisma.job
-    .update({ where: { id: jobId }, data: { result: progress as object } })
-    .catch((err) => console.warn(`[Worker] progress write failed for ${jobId}:`, err));
+export async function saveJobProgress(jobId: string, progress: unknown, workerId: string): Promise<void> {
+  assertExecutionActive();
+  const updated = await prisma.job.updateMany({
+    where: { id: jobId, status: 'RUNNING', lockedBy: workerId, lockedUntil: { gt: new Date() } },
+    data: { result: progress as object },
+  });
+  if (updated.count !== 1) throw new Error('Job progress rejected: execution lease lost');
 }
 
 // ─── Execution ──────────────────────────────────────────────────────────────
 
-function startHeartbeat(jobId: string, workerId: string, lockMs: number): NodeJS.Timeout {
-  const timer = setInterval(() => {
+function startHeartbeat(jobId: string, workerId: string, lockMs: number, controller: AbortController): () => void {
+  let busy = false;
+  let expiry = setTimeout(() => controller.abort(new Error('Job lease expired')), lockMs);
+  expiry.unref();
+  const timer = setInterval(async () => {
+    if (busy || controller.signal.aborted) return;
+    busy = true;
     const mem = process.memoryUsage();
     console.log(
       `[Worker ${workerId}] heartbeat job=${jobId.slice(-10)} rss=${Math.round(mem.rss / 1e6)}MB heap=${Math.round(mem.heapUsed / 1e6)}/${Math.round(mem.heapTotal / 1e6)}MB`
     );
-    prisma.job
-      .updateMany({
-        where: { id: jobId, lockedBy: workerId, status: 'RUNNING' },
+    try {
+      const renewed = await prisma.job.updateMany({
+        where: { id: jobId, lockedBy: workerId, status: 'RUNNING', lockedUntil: { gt: new Date() } },
         data: { lockedUntil: new Date(Date.now() + lockMs) },
-      })
-      .catch((err) => console.warn(`[Worker] heartbeat failed for ${jobId}:`, err));
+      });
+      if (renewed.count !== 1) throw new Error('Job execution lease lost');
+      if (controller.signal.aborted) return;
+      clearTimeout(expiry);
+      expiry = setTimeout(() => controller.abort(new Error('Job lease expired')), lockMs);
+      expiry.unref();
+    } catch (err) {
+      controller.abort(err);
+      console.warn(`[Worker] heartbeat failed for ${jobId}:`, err);
+      return;
+    } finally {
+      busy = false;
+    }
     // Durable telemetry — Railway drops log lines under bursts (the scout
     // fan-out emits hundreds/sec), so a memory curve written to the DB is the
     // only post-mortem that survives a silent SIGKILL. Tiny rows, ~25/run.
@@ -221,10 +248,22 @@ function startHeartbeat(jobId: string, workerId: string, lockMs: number): NodeJS
       .catch(() => undefined);
   }, HEARTBEAT_MS);
   if (typeof timer.unref === 'function') timer.unref();
-  return timer;
+  return () => { clearInterval(timer); clearTimeout(expiry); };
 }
 
 let activeJob: { id: string; workerId: string } | null = null;
+let activeController: AbortController | null = null;
+
+export function assertWorkerMemoryLimits(heapLimitBytes: number, cgroupLimit: string): void {
+  const limit = Number(cgroupLimit);
+  if (!Number.isFinite(limit) || limit <= 0 || !Number.isFinite(heapLimitBytes) || heapLimitBytes <= 0 || heapLimitBytes > limit * 0.65) {
+    throw new Error('Worker memory configuration is unsafe or unknown; refusing to claim jobs');
+  }
+}
+
+export function cancelActiveJob(reason = 'Worker shutting down'): void {
+  activeController?.abort(new Error(reason));
+}
 
 /** The job currently executing in this process — used by SIGTERM handlers to
  *  release the lock early so a replacement worker can reclaim instantly. */
@@ -236,18 +275,21 @@ export async function executeJob(
   job: ClaimedJob,
   workerId: string,
   lockMs = DEFAULT_LOCK_MS
-): Promise<'completed' | 'retried' | 'dead'> {
+): Promise<'completed' | 'retried' | 'dead' | 'lost'> {
   const handler = handlers.get(job.type);
-  const heartbeat = startHeartbeat(job.id, workerId, lockMs);
+  const controller = new AbortController();
+  const stopHeartbeat = startHeartbeat(job.id, workerId, lockMs, controller);
   activeJob = { id: job.id, workerId };
+  activeController = controller;
 
   try {
     if (!handler) throw new Error(`No handler registered for job type "${job.type}"`);
-    const result = await handler(job.payload, job);
+    const result = await withExecutionSignal(controller.signal, () => handler(job.payload, { ...job, workerId }));
+    controller.signal.throwIfAborted();
     // Guard on our own lock: if the job was cancelled or reclaimed while the
     // handler ran, don't resurrect it as COMPLETED.
-    await prisma.job.updateMany({
-      where: { id: job.id, status: 'RUNNING', lockedBy: workerId },
+    const updated = await prisma.job.updateMany({
+      where: { id: job.id, status: 'RUNNING', lockedBy: workerId, lockedUntil: { gt: new Date() } },
       data: {
         status: 'COMPLETED',
         result: result === undefined ? undefined : (result as object),
@@ -256,15 +298,16 @@ export async function executeJob(
         lockedUntil: null,
       },
     });
-    return 'completed';
+    return updated.count === 1 ? 'completed' : 'lost';
   } catch (err) {
+    if (controller.signal.aborted) return 'lost';
     const message = err instanceof Error ? err.message : String(err);
     const stack = err instanceof Error ? err.stack : undefined;
     const willRetry = job.attempts < job.maxRetries;
 
     if (willRetry) {
-      await prisma.job.updateMany({
-        where: { id: job.id, status: 'RUNNING', lockedBy: workerId },
+      const updated = await prisma.job.updateMany({
+        where: { id: job.id, status: 'RUNNING', lockedBy: workerId, lockedUntil: { gt: new Date() } },
         data: {
           status: 'PENDING',
           scheduledFor: new Date(Date.now() + backoffMs(job.attempts)),
@@ -274,11 +317,11 @@ export async function executeJob(
           errorStack: stack,
         },
       });
-      return 'retried';
+      return updated.count === 1 ? 'retried' : 'lost';
     }
 
-    await prisma.job.updateMany({
-      where: { id: job.id, status: 'RUNNING', lockedBy: workerId },
+    const updated = await prisma.job.updateMany({
+      where: { id: job.id, status: 'RUNNING', lockedBy: workerId, lockedUntil: { gt: new Date() } },
       data: {
         status: 'FAILED',
         finishedAt: new Date(),
@@ -290,6 +333,7 @@ export async function executeJob(
         deadLetterReason: `attempts_exhausted:${job.attempts}/${job.maxRetries}`,
       },
     });
+    if (updated.count !== 1) return 'lost';
     await prisma.jobDeadLetter
       .create({
         data: {
@@ -306,8 +350,10 @@ export async function executeJob(
       .catch((e) => console.warn('[Worker] dead-letter write failed:', e));
     return 'dead';
   } finally {
-    clearInterval(heartbeat);
+    stopHeartbeat();
+    controller.abort(new Error('Job execution scope closed'));
     activeJob = null;
+    activeController = null;
   }
 }
 

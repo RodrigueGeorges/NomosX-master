@@ -119,7 +119,7 @@ export async function runScoutBlock(deps: ScoutBlockDeps): Promise<ScoutBlockRes
   // DURABLE RESUME: a crashed/timed-out run's scout checkpoint re-enters as
   // seedIds — the existing skipScout path does the bookkeeping uniformly.
   const scoutCkpt = durableKey
-    ? await durableResume<{ allSourceIds: string[] }>(durableKey, 'scout').catch(() => null)
+    ? await durableResume<{ allSourceIds: string[] }>(durableKey, 'scout')
     : null;
   if (scoutCkpt?.allSourceIds?.length) {
     seedIds.push(...scoutCkpt.allSourceIds.filter(id => !seedIds.includes(id)));

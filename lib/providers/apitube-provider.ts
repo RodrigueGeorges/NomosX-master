@@ -6,13 +6,14 @@
  */
 
 import { fetchFromProvider } from '../http-client';
+import { isFreeRun } from '../free-run';
 
 const APITUBE_API_KEY = process.env.APITUBE_API_KEY || "";
 const APITUBE_ENDPOINT = "https://api.apitube.io/v1/news/articles";
 
 export async function searchAPITube(query: string, limit = 20): Promise<any[]> {
-  if (!APITUBE_API_KEY) {
-    console.log('[SCOUT] APITube: skipped (no APITUBE_API_KEY)');
+  if (isFreeRun() || !APITUBE_API_KEY) {
+    console.log(`[SCOUT] APITube: skipped (${isFreeRun() ? 'FREE RUN' : 'no APITUBE_API_KEY'})`);
     return [];
   }
 

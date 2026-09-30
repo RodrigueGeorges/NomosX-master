@@ -41,7 +41,7 @@ const config = {
   testPathIgnorePatterns: ['/node_modules/', '/.next/', ...integrationTestPatterns],
   // next-intl ships ESM-only .js entrypoints — transform them so middleware
   // tests can import the middleware chain.
-  transformIgnorePatterns: ['node_modules[\\\\/](?!next-intl[\\\\/])'],
+  transformIgnorePatterns: ['node_modules[\\\\/](?!(?:next-intl|p-limit|yocto-queue)[\\\\/])'],
   collectCoverageFrom: [
     'lib/**/*.{js,jsx,ts,tsx}',
     'components/**/*.{js,jsx,ts,tsx}',
@@ -61,4 +61,7 @@ const config = {
   },
 }
 
-export default createJestConfig(config)
+export default async () => ({
+  ...(await createJestConfig(config)()),
+  transformIgnorePatterns: config.transformIgnorePatterns,
+})

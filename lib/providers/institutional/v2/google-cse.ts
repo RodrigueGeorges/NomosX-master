@@ -9,6 +9,7 @@
  */
 
 import axios from 'axios';
+import { isFreeRun } from '../../../free-run';
 
 const GOOGLE_CSE_BASE = 'https://www.googleapis.com/customsearch/v1';
 
@@ -30,8 +31,8 @@ export async function searchViaGoogleCSE(
     cx: process.env.GOOGLE_CSE_CX || ''
   }
 ) {
-  if (!config.apiKey || !config.cx) {
-    console.warn('[Google CSE] API key or CX missing, skipping');
+  if (isFreeRun() || !config.apiKey || !config.cx) {
+    if (!isFreeRun()) console.warn('[Google CSE] API key or CX missing, skipping');
     return [];
   }
   

@@ -9,6 +9,7 @@
 
 import { env } from './env';
 import pLimit from 'p-limit';
+import { getExecutionSignal, consumeExecutionBudget } from './worker/execution-scope';
 
 // ================================
 // GLOBAL IN-FLIGHT BOUND
@@ -19,8 +20,44 @@ import pLimit from 'p-limit';
 // response buffer lands at once. That burst correlates with container kills.
 // A process-wide semaphore bounds simultaneous in-flight requests while
 // keeping the queue order-agnostic (all callers share one pool).
-const HTTP_MAX_INFLIGHT = Math.max(4, Number(process.env.HTTP_MAX_INFLIGHT ?? 24));
+const HTTP_MAX_INFLIGHT = Number(process.env.HTTP_MAX_INFLIGHT ?? 24);
+if (!Number.isInteger(HTTP_MAX_INFLIGHT) || HTTP_MAX_INFLIGHT < 1 || HTTP_MAX_INFLIGHT > 32) {
+  throw new Error('HTTP_MAX_INFLIGHT must be an integer between 1 and 32');
+}
 const httpInflight = pLimit(HTTP_MAX_INFLIGHT);
+const HTTP_MAX_RESPONSE_BYTES = 8 * 1024 * 1024;
+
+// ── Per-execution request budgets ─────────────────────────────────────────
+// Concurrency caps bound the burst; these bound the VOLUME. A job can never
+// issue more real HTTP attempts than these ceilings — retries included.
+// Keyed by upstream host (the unit quota is billed on), not provider label:
+// 30+ institutional providers all consume the 'openalex' budget.
+// Env overrides: HTTP_BUDGET_OPENALEX, HTTP_BUDGET_CROSSREF, ...
+// HTTP_MAX_REQUESTS_PER_EXECUTION bounds TOTAL requests (any host) per job.
+const HTTP_BUDGET_DEFAULT = Number(process.env.HTTP_BUDGET_DEFAULT ?? 200);
+const HTTP_MAX_REQUESTS_PER_EXECUTION = Number(process.env.HTTP_MAX_REQUESTS_PER_EXECUTION ?? 1500);
+const HTTP_BUDGET_OVERRIDES: Record<string, number> = {
+  openalex: Number(process.env.HTTP_BUDGET_OPENALEX ?? 150),
+  semanticscholar: Number(process.env.HTTP_BUDGET_SEMANTICSCHOLAR ?? 120),
+  crossref: Number(process.env.HTTP_BUDGET_CROSSREF ?? 120),
+};
+
+function requestBudgetFor(key: string): number {
+  return HTTP_BUDGET_OVERRIDES[key] ?? HTTP_BUDGET_DEFAULT;
+}
+
+function consumeHttpBudget(rateLimiterKey?: string): void {
+  if (!consumeExecutionBudget('http:all', HTTP_MAX_REQUESTS_PER_EXECUTION)) {
+    const err = new HttpError('HTTP request budget exhausted for this execution', 0);
+    err.code = 'HTTP_BUDGET_EXHAUSTED';
+    throw err;
+  }
+  if (rateLimiterKey && !consumeExecutionBudget(`http:${rateLimiterKey}`, requestBudgetFor(rateLimiterKey))) {
+    const err = new HttpError(`Request budget exhausted for upstream ${rateLimiterKey}`, 0);
+    err.code = 'HTTP_BUDGET_EXHAUSTED';
+    throw err;
+  }
+}
 
 export function getHttpInflightStats() {
   return { active: httpInflight.activeCount, pending: httpInflight.pendingCount, cap: HTTP_MAX_INFLIGHT };
@@ -31,6 +68,7 @@ export function getHttpInflightStats() {
 // ================================
 
 export interface HttpOptions {
+  signal?: AbortSignal;
   timeout?: number; // ms
   retries?: number;
   retryDelay?: number; // ms
@@ -430,6 +468,7 @@ setRateLimiter("posthog", { requestsPerSecond: 10, burstSize: 20 }); // PostHog 
 // ================================
 
 export class HttpError extends Error {
+  public code?: string;
   constructor(
     message: string,
     public status?: number,
@@ -452,6 +491,42 @@ function withJitter(delay: number): number {
   return Math.round(delay * (0.75 + Math.random() * 0.5));
 }
 
+export async function readBoundedText(
+  response: Response,
+  maxBytes = HTTP_MAX_RESPONSE_BYTES,
+  signal?: AbortSignal,
+): Promise<string> {
+  if (!Number.isSafeInteger(maxBytes) || maxBytes < 1) throw new Error('Invalid response byte limit');
+  if (Number(response.headers.get('content-length')) > maxBytes) {
+    void response.body?.cancel().catch(() => undefined);
+    throw new HttpError('Response exceeds byte limit', 413);
+  }
+  if (!response.body) return '';
+  const reader = response.body.getReader();
+  const abort = () => { void reader.cancel().catch(() => undefined); };
+  signal?.addEventListener('abort', abort, { once: true });
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  try {
+    signal?.throwIfAborted();
+    for (;;) {
+      const { done, value } = await reader.read();
+      signal?.throwIfAborted();
+      if (done) break;
+      size += value.byteLength;
+      if (size > maxBytes || chunks.length >= 8192) throw new HttpError('Response exceeds byte or chunk limit', 413);
+      chunks.push(value);
+    }
+    return Buffer.concat(chunks, size).toString('utf8');
+  } catch (error) {
+    void reader.cancel().catch(() => undefined);
+    throw error;
+  } finally {
+    signal?.removeEventListener('abort', abort);
+    reader.releaseLock();
+  }
+}
+
 async function fetchWithTimeout(
   url: string,
   init: RequestInit,
@@ -459,20 +534,22 @@ async function fetchWithTimeout(
 ): Promise<Response> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-
+  const signal = init.signal ? AbortSignal.any([controller.signal, init.signal]) : controller.signal;
   try {
-    const response = await fetch(url, {
-      ...init,
-      signal: controller.signal,
+    signal.throwIfAborted();
+    const response = await fetch(url, { ...init, signal });
+    const text = await readBoundedText(response, HTTP_MAX_RESPONSE_BYTES, signal);
+    const noBody = [204, 205, 304].includes(response.status);
+    return new Response(noBody ? null : text, {
+      status: response.status, statusText: response.statusText, headers: response.headers,
     });
-    clearTimeout(timeoutId);
-    return response;
   } catch (error: any) {
-    clearTimeout(timeoutId);
-    if (error.name === "AbortError") {
+    if (controller.signal.aborted || (error.name === 'AbortError' && !init.signal?.aborted)) {
       throw new HttpError(`Request timeout after ${timeoutMs}ms`);
     }
     throw error;
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
 
@@ -480,7 +557,13 @@ export async function httpGet<T = any>(
   url: string,
   options: HttpOptions = {}
 ): Promise<T> {
-  return httpInflight(() => httpGetImpl<T>(url, options));
+  const parent = getExecutionSignal();
+  const signal = parent && options.signal ? AbortSignal.any([parent, options.signal]) : parent ?? options.signal;
+  signal?.throwIfAborted();
+  return httpInflight(() => {
+    signal?.throwIfAborted();
+    return httpGetImpl<T>(url, { ...options, signal });
+  });
 }
 
 async function httpGetImpl<T = any>(
@@ -532,12 +615,15 @@ async function httpGetImpl<T = any>(
         'CIRCUIT_BREAKER_TRIPPED'
       );
     }
+    // Every real attempt consumes budget — retries can't evade the cap.
+    consumeHttpBudget(rateLimiterKey);
     if (attempt > 0) await acquireLimiter(); // Re-acquire on retry
     try {
       const response = await fetchWithTimeout(
         url,
         {
           method: "GET",
+          signal: options.signal,
           headers: {
             Accept: "application/json",
             "User-Agent": "NomosX/1.0 (Academic Research Tool)",
@@ -653,6 +739,7 @@ async function httpGetImpl<T = any>(
       }
       return data as T;
     } catch (error: any) {
+      options.signal?.throwIfAborted();
       lastError = error;
 
       if (error instanceof HttpError && error.status && error.status < 500) {
@@ -690,7 +777,13 @@ export async function httpPost<T = any>(
   body: any,
   options: HttpOptions = {}
 ): Promise<T> {
-  return httpInflight(() => httpPostImpl<T>(url, body, options));
+  const parent = getExecutionSignal();
+  const signal = parent && options.signal ? AbortSignal.any([parent, options.signal]) : parent ?? options.signal;
+  signal?.throwIfAborted();
+  return httpInflight(() => {
+    signal?.throwIfAborted();
+    return httpPostImpl<T>(url, body, { ...options, signal });
+  });
 }
 
 async function httpPostImpl<T = any>(
@@ -722,12 +815,14 @@ async function httpPostImpl<T = any>(
   let lastError: Error | null = null;
 
   for (let attempt = 0; attempt <= retries; attempt++) {
+    consumeHttpBudget(rateLimiterKey);
     if (attempt > 0) await acquireLimiter();
     try {
       const response = await fetchWithTimeout(
         url,
         {
           method: "POST",
+          signal: options.signal,
           headers: {
             Accept: "application/json",
             "Content-Type": "application/json",
@@ -789,6 +884,7 @@ async function httpPostImpl<T = any>(
 
       return data as T;
     } catch (error: any) {
+      options.signal?.throwIfAborted();
       lastError = error;
 
       if (error instanceof HttpError && error.status && error.status < 500) {

@@ -2934,3 +2934,18 @@ All new modules compile: `npx tsc --noEmit` is green.
 - Now: per-run Dirichlet draw around priors (`priorConcentration`, default 8) × evidence weight → categorical winner sampling. Auto-derived assumptions contribute neutral evidence; only explicit assumptions and source-graph overlap differentiate. Verified: neutral evidence preserves priors; matching assumptions move probability toward the favored scenario.
 - Still true: convergence of win-frequencies is NOT predictive calibration — validate against resolved forecasts before claiming empirical accuracy.
 
+
+### Cost-safety & containment (crash-loop audit)
+
+Production crash-loop root cause (verified via probe): Railway cgroup ~954MB vs Node heap ceiling 6.4GB → SIGKILL mid-phase → reclaim re-billed all non-checkpointed work.
+
+- `lib/worker/execution-scope.ts` — AsyncLocalStorage execution scope: `withExecutionSignal`/`withExecutionDeadline` propagate abort through handlers; `assertExecutionActive()` throws on lost lease; `consumeExecutionBudget(key, limit)` counts spend per scope (fresh ledger per job attempt; unscoped callers share an hourly-resetting global ledger).
+- `lib/http-client.ts` — global `pLimit` in-flight cap (`HTTP_MAX_INFLIGHT`, default 24), 8MB response cap covering chunked bodies, timeout covers body read, per-upstream attempt budgets (`HTTP_BUDGET_OPENALEX`=150, `HTTP_BUDGET_SEMANTICSCHOLAR`/`HTTP_BUDGET_CROSSREF`=120, `HTTP_BUDGET_DEFAULT`=200) + `HTTP_MAX_REQUESTS_PER_EXECUTION`=1500. Budget exhaustion throws non-retryable `HttpError(code=HTTP_BUDGET_EXHAUSTED)`.
+- `lib/worker/think-tank-queue.ts` — strict zod payload (mode/maxPublications/budgetUsd only); failed/cancelled/dead-lettered jobs return `requires_manual_review`, never auto-reset.
+- `lib/agent/durable-execution.ts` — step rows keyed `runId::step` with delete-before-create (no duplicate stacking across reclaims); >512KB payloads go to `DURABLE_STEP_BLOB` rows (never tmpdir — wiped on restart); missing payload or failed persist → throw (no silent paid replay); `markDurableComplete` purges blobs.
+- `lib/llm/unified-llm.ts` — per-scope in-flight coalescing (WeakMap keyed on the execution signal); `callLLM` asserts active scope; provider calls get the signal via `withExecutionDeadline` → real SDK abort.
+- `lib/worker/durable-worker.ts` — `assertWorkerMemoryLimits(heap, cgroup)` at boot: refuses jobs if heap ceiling >65% of cgroup or unknown. `emitProgress` touches `pipelineRun.updatedAt` (sweeper no longer kills live runs). Completion/retry writes guarded by `updateMany` on (id, RUNNING, lockedBy, unexpired lock) — a cancelled job cannot be resurrected to COMPLETED.
+- `Dockerfile.worker` — `node:22-bookworm-slim` (matches engines >=22.12), `NODE_OPTIONS=--max-old-space-size=448` + same flag on CMD; `node --import tsx` = PID 1 (npm/npx wrappers swallowed SIGTERM).
+- `lib/providers/feeds/feed-engine.ts` — feeds fetch via `httpGet` (semaphore + budget + abort) instead of `parser.parseURL`.
+- Env knobs: `HTTP_MAX_INFLIGHT`, `HTTP_BUDGET_<UPSTREAM>`, `HTTP_MAX_REQUESTS_PER_EXECUTION`, `NODE_OPTIONS`.
+- Verified offline: 31 suites / 354 tests. NOT verified locally: real Railway cgroup behavior (no Docker), live 429/credit exhaustion, Neon bandwidth under real checkpoint sizes — confirm via boot probe + WORKER_MEM telemetry on next deploy.

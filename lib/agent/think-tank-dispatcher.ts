@@ -13,6 +13,9 @@
  */
 
 import { prisma } from "@/lib/db";
+import { isThinkTankEnabled } from '@/lib/worker/think-tank-queue';
+import { assertExecutionActive, withExecutionDeadline } from '@/lib/worker/execution-scope';
+import { isFreeRun } from '@/lib/free-run';
 import { runAndPublishInquiry, type InquiryPublishResult } from "./inquiry-orchestrator";
 import { publicationTypeToDepth } from "./inquiry-funnel-utils";
 import { runTopicRadar } from "./topic-radar";
@@ -717,6 +720,9 @@ async function executeDispatchQueue(
       }
     } catch (budgetErr) {
       // Non-blocking — don't fail the cycle if budget check fails
+      errors.push('Budget verification unavailable — remaining dispatches stopped');
+      stopAll = true;
+      return;
     }
 
     // Adaptive trust: signals already pre-validated by radar/editorial — lower threshold
@@ -727,8 +733,8 @@ async function executeDispatchQueue(
     // Attempt consumed at launch — the item will actually run now (all skip
     // checks passed); under concurrency this keeps the pull-gate accurate.
     executed++;
-    let dispatchTimer: ReturnType<typeof setTimeout> | undefined;
-    const result = await Promise.race([
+    assertExecutionActive();
+    const result = await withExecutionDeadline(DISPATCH_TIMEOUT_MS, 'runAndPublishInquiry', () =>
       runAndPublishInquiry({
         question: item.question,
         depth: item.depth,
@@ -742,10 +748,8 @@ async function executeDispatchQueue(
         minTrustScore: adaptiveTrust,
         metadata: { strategy: item.strategy, ...item.metadata },
       }),
-      new Promise<never>((_, reject) => {
-        dispatchTimer = setTimeout(() => reject(new Error(`runAndPublishInquiry timed out (${DISPATCH_TIMEOUT_MS / 1000}s)`)), DISPATCH_TIMEOUT_MS);
-      }),
-    ]).finally(() => { if (dispatchTimer) clearTimeout(dispatchTimer); }).catch((err: unknown) => {
+    ).catch((err: unknown) => {
+      assertExecutionActive();
       const message = err instanceof Error ? err.message : String(err);
       console.error(`[ThinkTank] Dispatch item timed out or failed: ${message}`);
       return {
@@ -823,7 +827,7 @@ async function executeDispatchQueue(
           durable.onItemDone(key, {
             published, held, skipped, failed, totalCostUsd, topics,
           }),
-        ).catch(() => undefined),
+        ),
       );
       await checkpointTail;
     }
@@ -850,6 +854,9 @@ async function executeDispatchQueue(
 export async function runThinkTankCycle(
   options: ThinkTankCycleOptions
 ): Promise<ThinkTankCycleResult> {
+  if (!isThinkTankEnabled()) throw new Error('Autonomous execution is disabled');
+  const { checkBudgetGate } = await import('./budget-manager');
+  if (await checkBudgetGate() === 'stop') throw new Error('Think-tank budget unavailable or exhausted');
   const started = Date.now();
   const cadence = await getCadenceState();
   const errors: string[] = [];
@@ -917,6 +924,13 @@ export async function runThinkTankCycle(
       decideCostUsd,
       errors,
     };
+  }
+
+  // Zero-cost rehearsal: one publication is enough to exercise every gate,
+  // checkpoint and dispatch path — no reason to process the whole queue.
+  if (isFreeRun() && maxExecutions > 1) {
+    console.log(`[ThinkTank] FREE RUN — clamping maxExecutions ${maxExecutions} → 1`);
+    maxExecutions = 1;
   }
 
   console.log(`[ThinkTank] Dispatching ${items.length} item(s), max execute=${maxExecutions}`);

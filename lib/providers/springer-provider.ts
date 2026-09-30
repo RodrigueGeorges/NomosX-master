@@ -8,14 +8,17 @@
  */
 
 import { fetchFromProvider } from '../http-client';
+import { isFreeRun } from '../free-run';
 import { searchOpenAlex } from './openalex';
 
 const SPRINGER_API_KEY = process.env.SPRINGER_API_KEY || "";
 const SPRINGER_ENDPOINT = "https://api.springernature.com/metadata/json";
 
 export async function searchSpringer(query: string, limit = 20): Promise<any[]> {
-  // If we have an API key, use the direct Springer API
-  if (SPRINGER_API_KEY) {
+  // If we have an API key, use the direct Springer API — except in FREE RUN,
+  // where the key-gated path is off-limits and the OpenAlex fallback (free)
+  // below still exercises this provider's code path.
+  if (SPRINGER_API_KEY && !isFreeRun()) {
     try {
       const params = new URLSearchParams({
         q: query,

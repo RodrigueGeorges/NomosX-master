@@ -6,9 +6,20 @@
 
 import { prisma } from '@/lib/db';
 import { Prisma } from '@prisma/client';
+import { z } from 'zod';
 import type { ThinkTankCycleMode } from '@/lib/agent/think-tank-dispatcher';
 
 export const THINK_TANK_JOB_TYPE = 'THINK_TANK_CYCLE';
+
+export function isThinkTankEnabled(): boolean {
+  return process.env.NOMOSX_AUTONOMOUS_ENABLED === '1';
+}
+
+export const thinkTankCyclePayloadSchema = z.object({
+  mode: z.enum(['weekly', 'breaking']).default('weekly'),
+  maxPublications: z.number().int().positive().optional(),
+  budgetUsd: z.number().finite().positive().optional(),
+}).strict();
 
 export interface EnqueueResult {
   enqueued: boolean;
@@ -37,12 +48,20 @@ function idempotencyKeyFor(mode: ThinkTankCycleMode): string {
 export async function enqueueThinkTankCycle(options: {
   mode: ThinkTankCycleMode;
   maxPublications?: number;
+  budgetUsd?: number;
   idempotencyKey?: string;
   priority?: number;
 }): Promise<EnqueueResult> {
+  if (!isThinkTankEnabled()) return { enqueued: false, jobId: '', reason: 'autonomy_disabled' };
+  const payload = thinkTankCyclePayloadSchema.parse({
+    mode: options.mode, maxPublications: options.maxPublications, budgetUsd: options.budgetUsd,
+  });
   const key = options.idempotencyKey ?? idempotencyKeyFor(options.mode);
 
   const existing = await prisma.job.findUnique({ where: { idempotencyKey: key } });
+  if (existing && (['CANCELLED', 'FAILED'].includes(existing.status) || existing.movedToDeadLetter)) {
+    return { enqueued: false, jobId: existing.id, reason: 'requires_manual_review' };
+  }
   if (existing && ['PENDING', 'RUNNING'].includes(existing.status)) {
     return { enqueued: false, jobId: existing.id, reason: 'already_queued' };
   }
@@ -56,7 +75,7 @@ export async function enqueueThinkTankCycle(options: {
       where: { id: existing.id },
       data: {
         status: 'PENDING',
-        payload: { mode: options.mode, maxPublications: options.maxPublications },
+        payload,
         attempts: 0,
         lastError: null,
         result: Prisma.JsonNull,
@@ -86,7 +105,7 @@ export async function enqueueThinkTankCycle(options: {
   const job = await prisma.job.create({
     data: {
       type: THINK_TANK_JOB_TYPE,
-      payload: { mode: options.mode, maxPublications: options.maxPublications },
+      payload,
       correlationId: key,
       idempotencyKey: key,
       priority: options.priority ?? 7,

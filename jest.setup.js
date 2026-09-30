@@ -1,6 +1,14 @@
 import '@testing-library/jest-dom'
 import { TextEncoder, TextDecoder } from 'util'
 
+if (process.env.NOMOSX_TEST_OFFLINE === '1') {
+  const blocked = () => { throw new Error('Network disabled during offline tests') }
+  require('net').Socket.prototype.connect = blocked
+  require('tls').connect = blocked
+  global.fetch = blocked
+  process.env.DATABASE_URL = 'postgresql://test:test@127.0.0.1:1/offline'
+}
+
 // --- Polyfills for the jsdom test environment ---------------------------------
 // jsdom does not expose Node's Web Fetch API or text codecs, which the OpenAI SDK
 // and other libraries require at import time.

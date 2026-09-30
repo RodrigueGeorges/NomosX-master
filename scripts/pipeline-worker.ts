@@ -19,8 +19,7 @@
  *                     healthchecks; also honors the PORT env var when set)
  */
 
-import { runWorkerLoop, getActiveJob } from '../lib/worker/durable-worker';
-import { registerAllJobHandlers } from '../lib/worker/job-handlers';
+import { runWorkerLoop, getActiveJob, cancelActiveJob, assertWorkerMemoryLimits } from '../lib/worker/durable-worker';
 import { prisma } from '../lib/db';
 
 function arg(name: string): string | undefined {
@@ -34,6 +33,7 @@ function arg(name: string): string | undefined {
 // SIGKILL logs nothing; a SIGTERM we can catch).
 function installShutdownHandlers(): void {
   const onSignal = (sig: string) => {
+    cancelActiveJob(sig);
     const mem = process.memoryUsage();
     const job = getActiveJob();
     console.log(
@@ -63,15 +63,18 @@ function installShutdownHandlers(): void {
   // was invisible in the last post-mortem; log it before the process dies.
   process.on('unhandledRejection', (reason) => {
     console.error('[pipeline-worker] UNHANDLED_REJECTION:', reason);
+    cancelActiveJob('Unhandled rejection');
+    process.exit(1);
   });
   process.on('uncaughtException', (err) => {
     console.error('[pipeline-worker] UNCAUGHT_EXCEPTION:', err);
+    cancelActiveJob('Uncaught exception');
+    process.exit(1);
   });
 }
 
 async function main() {
   installShutdownHandlers();
-  registerAllJobHandlers();
 
   // Startup resource probe — we cannot see container kills (SIGKILL logs
   // nothing), so log the actual memory ceiling and Node's view of the world.
@@ -90,7 +93,12 @@ async function main() {
       `heap_limit=${Math.round(v8.getHeapStatistics().heap_size_limit / 1e6)}MB ` +
       `totalmem=${Math.round(os.totalmem() / 1e6)}MB cpus=${os.cpus().length}`
     );
-  } catch { /* probe is best-effort */ }
+    if (process.platform === 'linux' && process.env.NODE_ENV === 'production') {
+      assertWorkerMemoryLimits(v8.getHeapStatistics().heap_size_limit, cgroupLimit);
+    }
+  } catch (err) { /* probe is best-effort */
+    if (process.platform === 'linux' && process.env.NODE_ENV === 'production') throw err;
+  }
 
   const once = process.argv.includes('--once');
   const pollMs = Number(arg('poll-ms') ?? 10_000);
@@ -116,6 +124,8 @@ async function main() {
     });
   }
 
+  const { registerAllJobHandlers } = await import('../lib/worker/job-handlers');
+  registerAllJobHandlers();
   const processed = await runWorkerLoop({ workerId, pollMs, maxJobs, once });
   process.exit(processed >= 0 ? 0 : 1);
 }

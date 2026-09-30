@@ -5,8 +5,8 @@
  */
 
 import { registerJobHandler, saveJobProgress } from './durable-worker';
-import { runThinkTankCycle, type ThinkTankCycleMode, type ThinkTankCycleProgress } from '@/lib/agent/think-tank-dispatcher';
-import { THINK_TANK_JOB_TYPE } from './think-tank-queue';
+import { runThinkTankCycle, type ThinkTankCycleProgress } from '@/lib/agent/think-tank-dispatcher';
+import { THINK_TANK_JOB_TYPE, thinkTankCyclePayloadSchema, isThinkTankEnabled } from './think-tank-queue';
 import { STUDIOX_JOB_TYPE } from '@/lib/studiox/enqueue';
 
 let registered = false;
@@ -16,7 +16,8 @@ export function registerAllJobHandlers(): void {
   registered = true;
 
   registerJobHandler(THINK_TANK_JOB_TYPE, async (payload, job) => {
-    const p = (payload ?? {}) as { mode?: ThinkTankCycleMode; maxPublications?: number };
+    if (!isThinkTankEnabled()) throw new Error('Autonomous execution is disabled');
+    const p = thinkTankCyclePayloadSchema.parse(payload);
     // Reclaimed job → resume mid-cycle: the stored dispatch list is reused
     // (no radar re-run) and finished items are skipped.
     const progress = (job.result ?? undefined) as ThinkTankCycleProgress | undefined;
@@ -26,8 +27,12 @@ export function registerAllJobHandlers(): void {
     const result = await runThinkTankCycle({
       mode: p.mode ?? 'weekly',
       maxPublications: p.maxPublications,
+      budgetUsd: p.budgetUsd,
       resume,
-      onProgress: (state) => saveJobProgress(job.id, state),
+      onProgress: (state) => {
+        if (!job.workerId) throw new Error('Job progress requires an execution lease');
+        return saveJobProgress(job.id, state, job.workerId);
+      }
     });
     // Keep the stored result compact — full detail lives in PipelineRun rows.
     return {

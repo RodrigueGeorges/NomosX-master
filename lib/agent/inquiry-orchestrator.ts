@@ -12,6 +12,7 @@
 
 import type { Prisma } from "@prisma/client";
 import { prisma, withDbRetry } from "@/lib/db";
+import { assertExecutionActive } from '@/lib/worker/execution-scope';
 import {
   runInquiryPipeline,
   type InquiryPipelineResult,
@@ -573,6 +574,7 @@ export async function runAndPublishInquiry(
   console.log(`[InquiryOrchestrator] Persisting publication: status=${status} trust=${trustScore} quality=${qualityScore} dbStatus=${dbStatus}`);
   const publication = await withDbRetry(() =>
     prisma.$transaction(async (tx) => {
+    assertExecutionActive();
     const pub = await tx.thinkTankPublication.create({
       data: {
         verticalId: vertical.id,

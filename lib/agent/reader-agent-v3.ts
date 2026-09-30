@@ -18,6 +18,8 @@ import Sentry from '@sentry/nextjs';
 import { AgentRole, assertPermission } from '../governance/index';
 import { prisma } from '../db';
 import axios from 'axios';
+import { readBoundedText } from '../http-client';
+import { assertExecutionActive, getExecutionSignal, withExecutionDeadline } from '../worker/execution-scope';
 import pLimit from 'p-limit';
 import { RESEARCHER_KBS, type DomainExpertise } from './researcher-kb/index';
 import { MULTI_DOMAIN_CORPUS } from '../knowledge/multi-domain-corpus';
@@ -335,7 +337,9 @@ async function extractPdfTextInner(url: string, timeout = 30000): Promise<string
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     try {
       // Download PDF
+      assertExecutionActive();
       const response = await axios.get(url, {
+        signal: getExecutionSignal(),
         responseType: 'arraybuffer',
         timeout,
         maxContentLength: PDF_MAX_BYTES,
@@ -346,11 +350,11 @@ async function extractPdfTextInner(url: string, timeout = 30000): Promise<string
 
       // Use dynamic import for pdf-parse (new API: PDFParse class)
       const { PDFParse } = await import('pdf-parse');
-      const parser = new PDFParse({ data: Buffer.from(response.data) });
-      const data = await parser.getText();
-      let numPages = 0;
-      try { const info = await parser.getInfo(); numPages = info.total; } catch (err) { console.warn('[Reader V3] PDF getInfo failed:', err); }
-      try { await parser.destroy(); } catch (err) { console.warn('[Reader V3] PDF destroy failed:', err); }
+      const parser = new PDFParse({ data: new Uint8Array(response.data.buffer, response.data.byteOffset, response.data.byteLength) });
+      const data = await parser.getText().finally(async () => {
+        try { await parser.destroy(); } catch (err) { console.warn('[Reader V3] PDF destroy failed:', err); }
+      });
+      const numPages = data.total;
 
       const text = data?.text || '';
       if (text.trim().length < 100) {
@@ -399,8 +403,11 @@ async function fetchNewsArticleText(url: string, timeout = 20000): Promise<strin
   const MAX_RETRIES = 2;
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     try {
+      assertExecutionActive();
+      const parent = getExecutionSignal();
+      const signal = parent ? AbortSignal.any([parent, AbortSignal.timeout(timeout)]) : AbortSignal.timeout(timeout);
       const res = await fetch(url, {
-        signal: AbortSignal.timeout(timeout),
+        signal,
         headers: {
           'User-Agent': 'Mozilla/5.0 (compatible; NomosXBot/1.0; +https://nomosx.com)',
           'Accept': 'text/html,application/xhtml+xml',
@@ -425,16 +432,7 @@ async function fetchNewsArticleText(url: string, timeout = 20000): Promise<strin
         return null;
       }
 
-      const declaredLen = Number(res.headers.get('content-length') ?? 0);
-      if (declaredLen > 15 * 1024 * 1024) {
-        console.warn(`[Reader V3] Skipping oversized page (${Math.round(declaredLen / 1e6)}MB) ${url.slice(0, 80)}`);
-        return null;
-      }
-      const html = await res.text();
-      if (html.length > 15 * 1024 * 1024) {
-        console.warn(`[Reader V3] Skipping oversized page body (${Math.round(html.length / 1e6)}MB) ${url.slice(0, 80)}`);
-        return null;
-      }
+      const html = await readBoundedText(res, 8 * 1024 * 1024, signal);
       if (html.length < 500) return null;
 
       // Extract text from common article content patterns
@@ -531,7 +529,7 @@ async function waybackSnapshotUrl(url: string): Promise<string | null> {
   try {
     const res = await axios.get(
       `https://archive.org/wayback/available?url=${encodeURIComponent(url)}`,
-      { timeout: 6000 },
+      { timeout: 6000, signal: getExecutionSignal(), maxContentLength: 1024 * 1024 },
     );
     return res.data?.archived_snapshots?.closest?.url ?? null;
   } catch {
@@ -1133,15 +1131,11 @@ export async function readerAgentV3(
     const batchResults = await Promise.allSettled(
       batch.map(async (source) => {
         // Wrap in timeout
-        return Promise.race([
-          processSource(source, enablePdf, memoryBlock),
-          new Promise<ReadingResultV3>((_, reject) =>
-            setTimeout(() => reject(new Error('Reader V3 timeout')), timeout)
-          ),
-        ]);
+        return withExecutionDeadline(timeout, 'Reader V3', () => processSource(source, enablePdf, memoryBlock));
       })
     );
 
+    assertExecutionActive();
     batchResults.forEach((result, idx) => {
       if (result.status === 'fulfilled') {
         results.push(result.value);
