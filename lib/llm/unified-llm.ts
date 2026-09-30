@@ -435,7 +435,10 @@ const CIRCUIT_BREAKER_RESET_MS = 60000;   // 1 min cooldown (tier 1)
 const CIRCUIT_BREAKER_SUSPEND_MS = 86400000; // 24h suspension (tier 2)
 const CB_REDIS_TTL = 120;                 // Redis TTL in seconds (2x reset window)
 const CB_SUSPEND_TTL = 86400;             // 24h TTL for suspended providers
-const CB_KEY = (p: string) => `nomosx:cb:llm:${p}`;
+// v2: namespace bump flushes stale suspensions persisted by the old logic
+// (e.g. a daily-quota 429 banning freepool for 24h — Redis TTL survives
+// redeploys). Pre-suspended providers re-seed below on boot.
+const CB_KEY = (p: string) => `nomosx:cb:llm:v2:${p}`;
 
 interface CBState { failures: number; lastFailure: number; open: boolean; suspended?: boolean; suspendedUntil?: number }
 const cbMemory: Record<string, CBState> = {}; // in-process fallback
