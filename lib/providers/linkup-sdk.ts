@@ -8,10 +8,14 @@ import { isFreeRun } from '../free-run';
 
 const LINKUP_API_KEY = process.env.LINKUP_API_KEY || "";
 
+// Session latch: an "insufficient funds" response is terminal for the cycle —
+// retrying just spams a billed-but-empty wallet on every query variation.
+let linkupFundsExhausted = false;
+
 // ===== SCOUT-COMPATIBLE SEARCH FUNCTION =====
 export async function searchLinkUp(query: string, limit = 15): Promise<any[]> {
-  if (isFreeRun() || !LINKUP_API_KEY) {
-    console.log(`[SCOUT] LinkUp: skipped (${isFreeRun() ? 'FREE RUN' : 'no LINKUP_API_KEY'})`);
+  if (isFreeRun() || !LINKUP_API_KEY || linkupFundsExhausted) {
+    if (!linkupFundsExhausted) console.log(`[SCOUT] LinkUp: skipped (${isFreeRun() ? 'FREE RUN' : 'no LINKUP_API_KEY'})`);
     return [];
   }
 
@@ -87,7 +91,13 @@ export async function searchLinkUp(query: string, limit = 15): Promise<any[]> {
       };
     });
   } catch (err: any) {
-    console.warn(`[SCOUT] LinkUp search failed: ${err.message}`);
+    const msg = err?.message ?? '';
+    if (/enough funds|insufficient|remaining funds|402/.test(msg)) {
+      linkupFundsExhausted = true;
+      console.warn(`[SCOUT] LinkUp: funds exhausted — disabled for this session`);
+    } else {
+      console.warn(`[SCOUT] LinkUp search failed: ${msg}`);
+    }
     return [];
   }
 }

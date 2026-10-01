@@ -158,6 +158,9 @@ async function fetchDataflows(): Promise<any[]> {
     return arr;
   } catch (err: any) {
     console.warn(`[IMF-SDMX] Dataflow fetch failed: ${err?.message || String(err)}`);
+    // Negative-cache the failure (10min): a dead IMF endpoint used to be
+    // retried on every call — 45s + 2 retries × every scout query.
+    dataflowCache = { fetchedAt: Date.now() - DATAFLOW_CACHE_TTL_MS + 10 * 60_000, flows: [] };
     return [];
   }
 }
