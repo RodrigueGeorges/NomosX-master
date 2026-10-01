@@ -73,7 +73,7 @@ const MAX_BACKOFF_MS = 30 * 60 * 1000;
  *  that touches it) — dead-letter instead of reclaiming forever. Sized for a
  *  crash-loop environment: kills every ~15min through a ~4h cycle legitimately
  *  cost ~16 reclaims; sub-step checkpoints let a converging job still finish. */
-const MAX_RECLAIMS = Number(process.env.NOMOSX_MAX_RECLAIMS ?? 1);
+const MAX_RECLAIMS = Number(process.env.NOMOSX_MAX_RECLAIMS ?? 2);
 if (!Number.isInteger(MAX_RECLAIMS) || MAX_RECLAIMS < 0 || MAX_RECLAIMS > 3) {
   throw new Error('NOMOSX_MAX_RECLAIMS must be an integer between 0 and 3');
 }
@@ -111,10 +111,15 @@ export async function claimNextJob(
   // A RUNNING claim is a lock-expiry reclaim (the previous worker died mid-job),
   // not a fresh attempt — it consumes `reclaims`, not the retry budget.
   const isReclaim = candidate.status === 'RUNNING';
+  // A worker that released its lock on SIGTERM writes the 'graceful_shutdown'
+  // marker into lastError — an operator deploy is not a poison event. Graceful
+  // reclaims don't consume the reclaims budget; the marker is cleared on claim
+  // so a subsequent REAL crash still counts against it.
+  const isGracefulReclaim = isReclaim && candidate.lastError === 'graceful_shutdown';
 
   // Poison-job guard: a job that keeps outliving every worker's lock loops
   // forever and starves the queue — bound the reclaims, then dead-letter.
-  if (isReclaim && candidate.reclaims >= MAX_RECLAIMS) {
+  if (isReclaim && !isGracefulReclaim && candidate.reclaims >= MAX_RECLAIMS) {
     console.error(
       `[Worker ${workerId}] dead-lettering ${candidate.type} ${candidate.id}: reclaims exhausted (${candidate.reclaims}/${MAX_RECLAIMS})`
     );
@@ -160,7 +165,11 @@ export async function claimNextJob(
       lockedBy: workerId,
       lockedUntil: new Date(now.getTime() + lockMs),
       startedAt: candidate.startedAt ?? now,
-      ...(isReclaim ? { reclaims: { increment: 1 } } : { attempts: { increment: 1 } }),
+      ...(isReclaim
+        ? isGracefulReclaim
+          ? { lastError: null } // graceful release — free reclaim, consume the marker
+          : { reclaims: { increment: 1 } }
+        : { attempts: { increment: 1 } }),
     },
   });
   if (claimed.count === 0) return null;

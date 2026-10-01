@@ -44,7 +44,10 @@ function installShutdownHandlers(): void {
         if (job) {
           await prisma.job.updateMany({
             where: { id: job.id, status: 'RUNNING', lockedBy: job.workerId },
-            data: { lockedUntil: new Date() },
+            // 'graceful_shutdown' marker: the next worker treats this reclaim
+            // as a deploy (free) rather than a crash (consumes the poison-job
+            // reclaims budget). Cleared on claim.
+            data: { lockedUntil: new Date(), lastError: 'graceful_shutdown' },
           });
         }
       } catch {

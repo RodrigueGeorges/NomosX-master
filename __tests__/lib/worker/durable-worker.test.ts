@@ -113,7 +113,7 @@ describe('claimNextJob', () => {
 
   test('dead-letters a poison job at the reclaim cap instead of reclaiming', async () => {
     mocked.findFirst.mockResolvedValue(
-      jobRow({ status: 'RUNNING', lockedUntil: new Date(0), reclaims: 1 })
+      jobRow({ status: 'RUNNING', lockedUntil: new Date(0), reclaims: 2 })
     );
     mocked.updateMany.mockResolvedValue({ count: 1 });
     mocked.deadLetter.mockResolvedValue({} as never);
@@ -128,6 +128,26 @@ describe('claimNextJob', () => {
     expect(mocked.deadLetter).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ originalJobId: 'j1' }) })
     );
+  });
+
+  test('graceful_shutdown reclaim is free and consumes the marker', async () => {
+    // A SIGTERM'd worker (deploy) releases the lock with lastError =
+    // 'graceful_shutdown'. The reclaim must NOT consume the poison-job
+    // reclaims budget — even past the cap — and the marker is cleared so a
+    // subsequent real crash counts normally.
+    mocked.findFirst.mockResolvedValue(
+      jobRow({ status: 'RUNNING', lockedUntil: new Date(0), reclaims: 5, lastError: 'graceful_shutdown' })
+    );
+    mocked.updateMany.mockResolvedValue({ count: 1 } as never);
+    mocked.findUnique.mockResolvedValue(
+      jobRow({ status: 'RUNNING', reclaims: 5, lockedBy: 'w1', lastError: null })
+    );
+    const job = await claimNextJob('w1');
+    expect(job?.id).toBe('j1');
+    const data = mocked.updateMany.mock.calls[0][0]?.data as Record<string, unknown>;
+    expect(data.reclaims).toBeUndefined();
+    expect(data.lastError).toBeNull();
+    expect(mocked.deadLetter).not.toHaveBeenCalled();
   });
 });
 
