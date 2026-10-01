@@ -191,7 +191,10 @@ const PROVIDER_DEFAULT_TIMEOUT_MS: Record<LLMProvider, number> = {
   anthropic: 90_000,
   kimi: 300_000,
   google: 60_000,
-  freepool: 90_000,
+  // Freepool tries several free-tier endpoints inside one call — reasoning
+  // models on OpenRouter routinely need >90s, so the cascade window has to
+  // outlast a slow endpoint instead of aborting it at the boundary.
+  freepool: 240_000,
 };
 
 /** Hard floor per provider — never go below this even if a task requests less. */
