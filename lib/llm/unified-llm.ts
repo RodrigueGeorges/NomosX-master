@@ -793,13 +793,19 @@ interface FreepoolEndpoint {
    *  thinking before answering — without it, low max_tokens requests truncate
    *  mid-reasoning and return empty/thinking content (observed live). */
   tokenHeadroom?: number;
+  /** Ordered fallback model IDs handed to the endpoint in a single request
+   *  (OpenRouter `models` array): the gateway itself falls through on
+   *  rate-limit/downtime/moderation errors, so a dead pinned model doesn't
+   *  burn a whole endpoint attempt. */
+  modelFallbacks?: string[];
 }
 
 const FREEPOOL_ENDPOINTS: Array<Omit<FreepoolEndpoint, "apiKey"> & { envKey: keyof typeof env }> = [
   { name: "groq",       envKey: "GROQ_API_KEY",       baseURL: "https://api.groq.com/openai/v1",          fastModel: "openai/gpt-oss-20b",                      reasoningModel: "openai/gpt-oss-120b" },
   { name: "cerebras",   envKey: "CEREBRAS_API_KEY",   baseURL: "https://api.cerebras.ai/v1",              fastModel: "llama-3.3-70b",                         reasoningModel: "llama-3.3-70b", maxContextTokens: 8_000 },
   { name: "nvidia",     envKey: "NVIDIA_API_KEY",     baseURL: "https://integrate.api.nvidia.com/v1",     fastModel: "meta/llama-3.1-8b-instruct",              reasoningModel: "meta/llama-3.3-70b-instruct" },
-  { name: "openrouter", envKey: "OPENROUTER_API_KEY", baseURL: "https://openrouter.ai/api/v1",            fastModel: "nvidia/nemotron-3.5-lightning:free",    reasoningModel: "nvidia/nemotron-3.5-lightning:free", tokenHeadroom: 1500 },
+  { name: "openrouter", envKey: "OPENROUTER_API_KEY", baseURL: "https://openrouter.ai/api/v1",            fastModel: "nvidia/nemotron-3.5-lightning:free",    reasoningModel: "nvidia/nemotron-3.5-lightning:free", tokenHeadroom: 1500,
+    modelFallbacks: ["nvidia/nemotron-3-super-120b-a12b:free", "nvidia/nemotron-3-ultra-550b-a11b:free", "liquid/lfm-2.5-2.6b:free", "openrouter/free"] },
   { name: "mistral",    envKey: "MISTRAL_API_KEY",    baseURL: "https://api.mistral.ai/v1",               fastModel: "mistral-small-latest",                    reasoningModel: "mistral-small-latest" },
 ];
 
@@ -816,6 +822,35 @@ function getFreepoolEndpoints(): FreepoolEndpoint[] {
 }
 
 const freepoolClients = new Map<string, OpenAI>();
+
+/**
+ * Per-endpoint cooldowns: a quota-dead endpoint (Groq TPD, OpenRouter
+ * free-models-per-day) used to be retried on EVERY call — wasted latency,
+ * 429 spam, and circuit-breaker failure accumulation on the whole freepool
+ * family. After a quota error the endpoint is skipped until its reset:
+ *  - "try again in Xm Ys" hints → now + hint (+30s slack)
+ *  - OpenRouter "free-models-per-day" → next UTC midnight (daily reset)
+ *  - other 429s without a hint → 5min conservative cooldown
+ * Non-quota errors (timeouts, 5xx, empty content) do NOT cool the endpoint —
+ * they may be transient and the next call can legitimately retry it.
+ */
+const ENDPOINT_COOLDOWNS = new Map<string, number>();
+
+function endpointCooldownMs(err: Error): number | null {
+  const msg = err.message ?? "";
+  const is429 = /429|rate.?limit|tokens per day|requests per day|TPD|RPD|quota|free-models-per-day/i.test(msg);
+  if (!is429) return null;
+  const minSec = msg.match(/try again in\s+(\d+)m(?:\s*([\d.]+)s)?/i);
+  if (minSec) return (parseInt(minSec[1], 10) * 60 + Math.ceil(parseFloat(minSec[2] ?? "0"))) * 1000 + 30_000;
+  const secOnly = msg.match(/try again in\s+([\d.]+)s/i);
+  if (secOnly) return Math.ceil(parseFloat(secOnly[1])) * 1000 + 30_000;
+  if (/free-models-per-day|per.?day|daily/i.test(msg)) {
+    const now = new Date();
+    const midnightUtc = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1);
+    return Math.max(60_000, midnightUtc - Date.now());
+  }
+  return 5 * 60_000;
+}
 
 function getFreepoolClient(endpoint: FreepoolEndpoint): OpenAI {
   let client = freepoolClients.get(endpoint.name);
@@ -844,9 +879,15 @@ async function callFreepool(request: LLMRequest, signal?: AbortSignal): Promise<
   const isFast = FAST_TASKS.has(task);
   const promptTokens = estimatePromptTokens(request);
   let lastError: Error | null = null;
+  const cooledNames: string[] = [];
 
   for (const ep of endpoints) {
     if (ep.maxContextTokens && promptTokens > ep.maxContextTokens) continue;
+    const cooledUntil = ENDPOINT_COOLDOWNS.get(ep.name) ?? 0;
+    if (Date.now() < cooledUntil) {
+      cooledNames.push(`${ep.name}(+${Math.round((cooledUntil - Date.now()) / 60000)}m)`);
+      continue;
+    }
     const model = isFast ? ep.fastModel : ep.reasoningModel;
     try {
       const client = getFreepoolClient(ep);
@@ -858,7 +899,8 @@ async function callFreepool(request: LLMRequest, signal?: AbortSignal): Promise<
           max_tokens: Math.max(request.maxTokens ?? 4000, 1000) + (ep.tokenHeadroom ?? 0),
           ...(request.jsonMode ? { response_format: { type: "json_object" } } : {}),
           ...(request.tools?.length ? { tools: request.tools as any } : {}),
-        },
+          ...(ep.modelFallbacks?.length ? { models: [model, ...ep.modelFallbacks] } : {}),
+        } as any,
         signal ? { signal } : {},
       );
       const content = completion.choices?.[0]?.message?.content ?? "";
@@ -878,8 +920,16 @@ async function callFreepool(request: LLMRequest, signal?: AbortSignal): Promise<
       };
     } catch (err) {
       lastError = err as Error;
+      const cd = endpointCooldownMs(err as Error);
+      if (cd) {
+        ENDPOINT_COOLDOWNS.set(ep.name, Date.now() + cd);
+        console.log(`   ↳ freepool/${ep.name} quota-dead — cooling ${Math.round(cd / 60000)}min`);
+      }
       console.error(`   ↳ freepool/${ep.name} failed: ${(err as Error).message}`);
     }
+  }
+  if (!lastError && cooledNames.length) {
+    throw new Error(`freepool: all endpoints quota-cooled (${cooledNames.join(", ")})`);
   }
   throw lastError ?? new Error("freepool: all free-tier endpoints failed");
 }
@@ -2087,6 +2137,18 @@ export function getAvailableProviders(): LLMProvider[] {
   if (getGoogleClient()) providers.push("google");
   if (getFreepoolEndpoints().length > 0) providers.push("freepool");
   return providers;
+}
+
+/**
+ * Freepool endpoints that are configured AND not quota-cooled. The preflight
+ * uses this so a run doesn't burn its retrieval budget when every free lane
+ * is known-dead until its daily/TPD reset.
+ */
+export function getFreepoolAliveEndpoints(): string[] {
+  const now = Date.now();
+  return getFreepoolEndpoints()
+    .filter(ep => (ENDPOINT_COOLDOWNS.get(ep.name) ?? 0) <= now)
+    .map(ep => ep.name);
 }
 
 /**

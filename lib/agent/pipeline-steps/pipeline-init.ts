@@ -102,10 +102,17 @@ export async function runPipelineInit(query: string, opts: PipelineCoreOptions) 
   // Detect dead providers (suspended accounts, exhausted credits) BEFORE the pipeline
   // starts so we don't waste time discovering them through mid-pipeline failures.
   try {
-    const { getAvailableProviders, getSuspendedProviders } = await import('../../llm/unified-llm');
+    const { getAvailableProviders, getSuspendedProviders, getFreepoolAliveEndpoints } = await import('../../llm/unified-llm');
     const available = getAvailableProviders();
     const suspended = await getSuspendedProviders();
     const alive = available.filter(p => !suspended.includes(p));
+    // Free-run refinement: "freepool" alive only counts if a configured endpoint
+    // isn't quota-cooled — otherwise the scout burns retrieval budget for an
+    // analyst that is guaranteed to refuse.
+    const freeAlive = getFreepoolAliveEndpoints();
+    if (alive.length === 1 && alive[0] === 'freepool' && freeAlive.length === 0) {
+      alive.length = 0;
+    }
     if (suspended.length > 0) {
       console.warn(`${label} PRE-FLIGHT: ⚠️ Suspended providers: ${suspended.join(', ')} — will skip automatically`);
     }

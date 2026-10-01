@@ -97,7 +97,7 @@ export async function runReaderBlock(deps: ReaderBlockDeps): Promise<ReaderBlock
         readerAgentV3(slice, {
           enablePdf: true,
           maxConcurrency: 4,
-          timeout: isStrategic ? 120000 : undefined,
+          timeout: isStrategic ? 180000 : undefined,
           domain: detectedDomain,
           memoryBlock: readerMemoryBlock,
         })
