@@ -936,6 +936,18 @@ export async function runThinkTankCycle(
   const cadence = await getCadenceState();
   const errors: string[] = [];
 
+  // Hygiene sweep — signals older than the 7d dispatch window can never be
+  // picked (collector filters detectedAt >= 7d) and radar dedup only looks
+  // back 48-72h. Without this, NEW signals accumulate forever (23K rows/68MB
+  // observed on prod, a dominant share of the Neon 512MB budget).
+  try {
+    const expired = await prisma.signal.updateMany({
+      where: { status: "NEW", detectedAt: { lt: new Date(Date.now() - 7 * 86400000) } },
+      data: { status: "EXPIRED" },
+    });
+    if (expired.count > 0) console.log(`[ThinkTank] Expired ${expired.count} stale signal(s) (>7d)`);
+  } catch { /* hygiene only — never block the cycle */ }
+
   console.log(
     `[ThinkTank] Cycle mode=${options.mode} cadence=${cadence.remainingSlots}/${cadence.weeklyMax} dryRun=${!!options.dryRun}`
   );

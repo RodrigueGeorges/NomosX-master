@@ -4,6 +4,7 @@
  * Extracted from pipeline-v2.ts (Sprint 28c) — the public `scout()` wrapper
  * (governance assert + Redis cache) stays in pipeline-v2 and calls this.
  */
+import { Prisma } from '@prisma/client';
 import { prisma } from '../../db';
 import { clamp } from '../../text';
 import { scoreSource } from '../../score';
@@ -252,6 +253,31 @@ function trackProviderCall<T extends any[]>(provider: string, promise: Promise<T
   // rejection and kills the process. The failure is already recorded above;
   // returning [] is identical to what allSettled did with rejected entries.
   return Promise.race([timed, deadline]).catch(() => [] as unknown as T);
+}
+
+/**
+ * Persist only the `raw` keys consumers actually read (fallback extraction,
+ * trust evaluation, author/institution parsing). The full provider payload
+ * was the dominant source of DB growth (Neon 512MB cap hit at ~35K rows).
+ */
+const RAW_KEEP_KEYS = new Set([
+  'authors', 'author', 'authorships', 'institutions', 'title', 'published',
+  'publication_year', 'primary_location', 'journal_name', 'container_title',
+  'funder', 'created', 'id', 'abstract', 'length', 'doi', 'url', 'is_oa',
+  'open_access', 'type', 'language', 'cited_by_count', 'issn', 'publisher',
+]);
+
+function slimSourceRaw(s: any): Prisma.InputJsonValue {
+  const src = (s.raw ?? {}) as Record<string, unknown>;
+  const raw: Record<string, unknown> = {};
+  for (const k of RAW_KEEP_KEYS) {
+    if (src[k] !== undefined) raw[k] = src[k];
+  }
+  raw.authors = s.authors || src.authors || [];
+  raw.institutions = s.institutions || src.institutions || [];
+  // Hard cap — a runaway provider payload must never dominate a row again
+  const json = JSON.stringify(raw);
+  return (json.length <= 16_384 ? raw : { truncated: true }) as Prisma.InputJsonValue;
 }
 
 /**
@@ -1143,11 +1169,7 @@ export async function scoutImpl(query: string, providers: Providers, perProvider
           jelCodes: (s.jelCodes ?? []).map(String).filter(Boolean),
           citationCount: s.citationCount ?? null,
           qualityScore,
-          raw: {
-            ...(s.raw ?? {}),
-            authors: s.authors || (s.raw as any)?.authors || [],
-            institutions: s.institutions || (s.raw as any)?.institutions || [],
-          },
+          raw: slimSourceRaw(s),
         },
       };
     }));

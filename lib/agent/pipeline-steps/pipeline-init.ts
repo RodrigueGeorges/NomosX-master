@@ -134,6 +134,26 @@ export async function runPipelineInit(query: string, opts: PipelineCoreOptions) 
     /* non-blocking */
   }
 
+  // ── PRE-FLIGHT: Persistence probe ──
+  // A paid run that cannot persist is pure waste: the S30 prod run burned $0.80
+  // of retrieval before Neon returned 53100 (project size cap) on every write.
+  // Probe-write a throwaway metric row BEFORE the scout spends on providers.
+  try {
+    const probe = await prisma.systemMetric.create({
+      data: { metricName: 'preflight_persistence_probe', metricValue: 1, periodStart: new Date(), periodEnd: new Date() },
+    });
+    await prisma.systemMetric.delete({ where: { id: probe.id } }).catch(() => undefined);
+  } catch (e: any) {
+    const msg = String(e?.message ?? e);
+    if (msg.includes('53100') || msg.includes('size limit')) {
+      const abort = new Error(`${label} PRE-FLIGHT ABORT: database cannot persist (Neon size cap) — refusing to burn retrieval budget. Free space or upgrade the plan first.`);
+      abort.name = 'PreflightAbortError';
+      throw abort;
+    }
+    // Other DB errors (transient connectivity) — let the pipeline surface them
+    console.warn(`${label} PRE-FLIGHT: persistence probe failed non-fatally: ${msg.slice(0, 120)}`);
+  }
+
   // ── ADAPTIVE TOPOLOGY (AdaptOrch arXiv 2026) ──
   // Selects pipeline topology based on query complexity signals.
   // Simple queries → parallel retrieval; complex → hierarchical decomposition.
