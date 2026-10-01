@@ -202,16 +202,35 @@ function buildDomainAnalystContext(domain?: string): string {
 // CONTEXT BUILDER
 // ============================================================================
 
-function buildSourceContext(sources: any[], readings?: any[]): string {
+function buildSourceContext(sources: any[], readings?: any[]): { ctx: string; groundedCount: number; groundedIndices: Set<number> } {
   // Adaptive tiered context: top sources get full treatment, rest get compact.
   // Tier scales with corpus size — 25% of sources get full context (min 20, max 40).
   // This ensures deep analysis of the best sources whether we have 40 or 200.
   const FULL_TIER = Math.max(20, Math.min(40, Math.ceil(sources.length * 0.25)));
   const COMPACT_ABSTRACT = 500; // Non-full-tier sources: abstract truncated to 500 chars
 
-  return sources
+  const readingById = new Map<string, any>();
+  for (const r of readings ?? []) {
+    if (r?.sourceId) readingById.set(r.sourceId, r);
+  }
+  // Grounded = the source carries real extracted content (reader extraction
+  // or fetched full text). Abstract-only sources may be cited for context
+  // but never for specific facts/numbers — citing metadata is hallucination.
+  const isGrounded = (s: any, reading: any): boolean =>
+    Boolean(reading && reading.confidence !== 'low') || (s.fullText || "").length > 200;
+  // Full-tier slots go to grounded sources first (rank order), then the
+  // best-ranked ungrounded sources fill remaining slots for context depth.
+  const groundedOrder = sources
+    .map((s, i) => ({ i, grounded: isGrounded(s, readingById.get(s.id)) }))
+    .sort((a, b) => Number(b.grounded) - Number(a.grounded) || a.i - b.i);
+  const fullTierIdx = new Set(groundedOrder.slice(0, FULL_TIER).map(e => e.i));
+  const groundedCount = groundedOrder.filter(e => e.grounded).length;
+  const groundedIndices = new Set(groundedOrder.filter(e => e.grounded).map(e => e.i + 1));
+
+  const ctx = sources
     .map((s: any, i: number) => {
-      const reading = readings?.find((r: any) => r.sourceId === s.id) ?? readings?.[i];
+      const reading = readingById.get(s.id);
+      const grounded = isGrounded(s, reading);
       const authors = (s.authors || [])
         .slice(0, 3)
         .map((a: any) => {
@@ -221,12 +240,12 @@ function buildSourceContext(sources: any[], readings?: any[]): string {
         })
         .filter((n: any): n is string => n !== null && n.length > 0) || [];
 
-      const isFullTier = i < FULL_TIER;
+      const isFullTier = fullTierIdx.has(i);
       const abstract = (s.abstract || "").slice(0, isFullTier ? 3000 : COMPACT_ABSTRACT);
       const fullText = isFullTier ? (s.fullText || "").slice(0, 4000) : "";
 
       // Build context: full tier gets everything, compact tier gets title + abstract only
-      let context = `[SRC-${i + 1}] ${s.provider.toUpperCase()} | Quality: ${s.qualityScore || 0}/100 | Citations: ${s.citationCount || 0}
+      let context = `[SRC-${i + 1}] ${s.provider.toUpperCase()} | Quality: ${s.qualityScore || 0}/100 | Citations: ${s.citationCount || 0} | EXTRACTION: ${grounded ? "GROUNDED (full-text/reader — citable for facts)" : "ABSTRACT-ONLY (metadata — context only, do NOT cite for specific facts/numbers)"}
 Title: ${s.title}
 Authors: ${authors.join(", ") || "N/A"}
 Year: ${s.year || "N/A"}`;
@@ -254,6 +273,8 @@ KEY TEXT EXCERPT: ${fullText}`;
       return context;
     })
     .join("\n\n");
+
+  return { ctx, groundedCount, groundedIndices };
 }
 
 function detectLanguage(question: string): string {
@@ -326,10 +347,11 @@ async function pass1FrictionMapping(
   question: string,
   ctx: string,
   sourceCount: number,
+  groundedCount: number,
   domainContext?: string,
   depth?: "brief" | "strategic"
 ): Promise<{ map: FrictionMap; tokens: number; cost: number }> {
-  console.log(`[Analyst V3] PASS 1/3: Friction Mapping (${sourceCount} sources, depth: ${depth ?? 'brief'})...`);
+  console.log(`[Analyst V3] PASS 1/3: Friction Mapping (${sourceCount} sources, ${groundedCount} grounded, depth: ${depth ?? 'brief'})...`);
 
   const missionPrompt = `You are NomosX Analyst — Pass 1 of 3: FRICTION MAPPING.
 
@@ -436,11 +458,13 @@ they materially affect the evidence weight.
 
 CITATION RULES (NON-NEGOTIABLE):
 - You have EXACTLY ${sourceCount} sources, numbered [SRC-1] through [SRC-${sourceCount}]. Do NOT cite [SRC-${sourceCount + 1}] or higher.
-- Every dataPoint MUST end with [SRC-N] referencing the source it came from.
+- GROUNDING TIER: ${groundedCount} of your sources are marked EXTRACTION: GROUNDED — the reader extracted their full content. The rest are marked ABSTRACT-ONLY: only their title and a short abstract were read.
+- HARD RULE: Every factual claim, number, mechanism, or dataPoint MUST cite a GROUNDED source. NEVER cite an ABSTRACT-ONLY source for a specific fact or figure — you have not read its content, so you cannot know it supports the claim. ABSTRACT-ONLY sources exist for context and thematic scope only.
+- Every dataPoint MUST end with [SRC-N] referencing the GROUNDED source it came from.
 - A dataPoint without [SRC-N] is NOT a data point — it is an opinion.
-- Do NOT extract numbers you cannot trace to a specific source.
+- Do NOT extract numbers you cannot trace to a specific source's extracted text.
 - If a source mentions a number, extract it WITH the [SRC-N] tag.
-- CITATION SPREAD: Extract dataPoints from as many different sources as possible. You MUST cite at least ${Math.ceil(sourceCount * 0.7)} distinct sources across all mechanisms. Do not over-rely on 3-4 sources — each source was selected for a reason. Go through sources systematically: [SRC-1], [SRC-2], ... and extract at least one dataPoint from each relevant source. Claims without [SRC-N] citations WILL BE DELETED from the final report.
+- CITATION SPREAD: Extract dataPoints from as many different GROUNDED sources as possible. You MUST cite at least ${Math.max(3, Math.ceil(groundedCount * 0.7))} distinct sources across all mechanisms. Do not over-rely on 3-4 sources — each grounded source was extracted for a reason. Go through them systematically and extract at least one dataPoint from each relevant one. Claims without [SRC-N] citations WILL BE DELETED from the final report.
 
 Return JSON:
 {
@@ -672,6 +696,7 @@ async function pass3ProspectiveSynthesis(
   frictionMap: FrictionMap,
   stressTestMap: StressTestMap,
   sourceCount: number,
+  groundedCount: number,
   avgQuality: number,
   lang: string,
   domainContext?: string,
@@ -908,15 +933,16 @@ CITATION RULES (NON-NEGOTIABLE):
 - You have EXACTLY ${sourceCount} sources, numbered [SRC-1] through [SRC-${sourceCount}].
 - Any citation with N > ${sourceCount} or N < 1 is INVALID and will be DELETED by the system.
 - Do NOT use [SRC-${sourceCount + 1}] or higher — they do not exist. This is the #1 cause of rejected reports.
-- Every factual claim, number, or data point MUST have a [SRC-N] citation where 1 ≤ N ≤ ${sourceCount}.
-- The "evidence" field of every causalChain link MUST contain at least one [SRC-N].
+- GROUNDING TIER: ${groundedCount} of your sources are marked EXTRACTION: GROUNDED (reader-extracted or full-text). Sources marked ABSTRACT-ONLY provided only title + short abstract — NEVER cite them for a specific fact, figure, mechanism, or evidence field. Citing a source whose content you have not read is fabrication.
+- Every factual claim, number, or data point MUST have a [SRC-N] citation pointing at a GROUNDED source.
+- The "evidence" field of every causalChain link MUST contain at least one [SRC-N] citation to a GROUNDED source.
 - The "verdict" field MUST cite [SRC-N] for every factual anchor.
 - The "keyFindings" array: each finding MUST include [SRC-N].
 - A claim without [SRC-N] is not evidence — it is opinion. The Devil's Advocate will reject uncited claims.
 - future_extrapolation claims cite the present_fact or active_mechanism they derive from, not new sources.
-- CITATION DIVERSITY (HARD REQUIREMENT): You have ${sourceCount} sources. You MUST cite at least ${Math.ceil(sourceCount * 0.5)} different [SRC-N] sources across the analysis. Do not cluster on 3-4 sources — spread citations across the full source base.
-- CRITICAL ENFORCEMENT: Before outputting JSON, extract all [SRC-N] tags from your draft, convert to a Set, and check the size. If below ${Math.ceil(sourceCount * 0.5)}, you MUST go back and add citations from uncited sources to relevant claims. Reports with fewer than ${Math.ceil(sourceCount * 0.5)} distinct citations WILL BE REJECTED and discarded.
-- CITATION SPREADING STRATEGY: Group your sources by theme (e.g., sources 1-20 for mechanisms, 21-40 for stakeholders, 41-60 for outcomes, etc.). Ensure each theme section cites from its relevant source group. This guarantees broad coverage.
+- CITATION DIVERSITY (HARD REQUIREMENT): ${groundedCount} sources are grounded and citable for facts. You MUST cite at least ${Math.max(3, Math.ceil(groundedCount * 0.5))} different [SRC-N] sources across the analysis. Do not cluster on 3-4 sources — spread citations across the grounded base.
+- CRITICAL ENFORCEMENT: Before outputting JSON, extract all [SRC-N] tags from your draft, convert to a Set, and check the size. If below ${Math.max(3, Math.ceil(groundedCount * 0.5))}, you MUST go back and add citations from uncited GROUNDED sources to relevant claims. Reports with fewer than ${Math.max(3, Math.ceil(groundedCount * 0.5))} distinct citations WILL BE REJECTED and discarded.
+- CITATION SPREADING STRATEGY: Group your grounded sources by theme (e.g., first third for mechanisms, middle for stakeholders, last for outcomes). Ensure each theme section cites from its relevant source group. This guarantees broad coverage.
 
 HOW THIS WILL BE GRADED (the critic's exact rubric):
 - Every claim is extracted atomically and verified against its cited source's text. A [SRC-N] tag whose source does not contain the claim's premise is fabrication — worse than no citation.
@@ -987,10 +1013,12 @@ Build the causal chain from the surviving mechanisms. Take ONE position.`;
  */
 function validateFrictionMap(
   map: FrictionMap,
-  sourceCount: number
+  sourceCount: number,
+  groundedIndices?: Set<number>
 ): { map: FrictionMap; removedMechanisms: number; details: string } {
   const srcPattern = /\[SRC-(\d+)\]/g;
   let removedMechanisms = 0;
+  let strippedUngrounded = 0;
   const removedIds: string[] = [];
 
   function filterValidRefs(refs: string[]): string[] {
@@ -999,7 +1027,14 @@ function validateFrictionMap(
       if (matches.length === 0) return true;
       return matches.every(m => {
         const n = parseInt(m[1], 10);
-        return n >= 1 && n <= sourceCount;
+        if (n < 1 || n > sourceCount) return false;
+        // A citation to a source the reader never extracted is citing
+        // metadata — treat it as invalid so it never reaches the draft.
+        if (groundedIndices && !groundedIndices.has(n)) {
+          strippedUngrounded++;
+          return false;
+        }
+        return true;
       });
     });
   }
@@ -1030,10 +1065,14 @@ function validateFrictionMap(
     }
   }
 
+  const details = [
+    ...(removedIds.length > 0 ? [`removed: ${removedIds.join(', ')}`] : []),
+    ...(strippedUngrounded > 0 ? [`stripped ${strippedUngrounded} citations to unextracted sources`] : []),
+  ];
   return {
     map: { ...map, mechanisms: validatedMechanisms },
     removedMechanisms,
-    details: removedIds.length > 0 ? removedIds.join(', ') : 'none',
+    details: details.length > 0 ? details.join('; ') : 'none',
   };
 }
 
@@ -1073,16 +1112,22 @@ function validateCausalChain(
  */
 function sanitizeAnalysisCitations(
   analysis: AnalysisOutput,
-  sourceCount: number
+  sourceCount: number,
+  groundedIndices?: Set<number>
 ): AnalysisOutput {
   const srcPattern = /\[SRC-(\d+)\]/g;
   let totalRemoved = 0;
+  let ungroundedRemoved = 0;
 
   function sanitizeString(s: string): string {
     if (typeof s !== 'string') return s;
     const result = s.replace(srcPattern, (match, n) => {
       const num = parseInt(n, 10);
       if (num >= 1 && num <= sourceCount) {
+        if (groundedIndices && !groundedIndices.has(num)) {
+          ungroundedRemoved++;
+          return '';
+        }
         return match; // Keep valid citation
       }
       totalRemoved++;
@@ -1116,8 +1161,8 @@ function sanitizeAnalysisCitations(
 
   const sanitized = sanitizeObject(analysis) as AnalysisOutput;
 
-  if (totalRemoved > 0) {
-    console.warn(`[Analyst V3] CITATION SANITIZATION: removed ${totalRemoved} out-of-range [SRC-N] citations (source count: ${sourceCount})`);
+  if (totalRemoved > 0 || ungroundedRemoved > 0) {
+    console.warn(`[Analyst V3] CITATION SANITIZATION: removed ${totalRemoved} out-of-range + ${ungroundedRemoved} unextracted-source [SRC-N] citations (source count: ${sourceCount}, grounded: ${groundedIndices?.size ?? sourceCount})`);
   }
 
   return sanitized;
@@ -1204,7 +1249,11 @@ export async function analystAgentV3(
   const startTime = Date.now();
   const avgQuality = Math.round(sources.reduce((sum, s) => sum + (s.qualityScore || 0), 0) / Math.max(sources.length, 1));
   const lang = detectLanguage(question);
-  let ctx = buildSourceContext(sources, readings);
+  const { ctx: builtCtx, groundedCount, groundedIndices } = buildSourceContext(sources, readings);
+  let ctx = builtCtx;
+  if (groundedCount < sources.length) {
+    console.log(`[Analyst V3] GROUNDING: ${groundedCount}/${sources.length} sources carry extracted content — factual citations restricted to grounded tier`);
+  }
 
   if (options?.contextBlock) {
     ctx = `${options.contextBlock}\n\n${ctx}`;
@@ -1222,11 +1271,11 @@ export async function analystAgentV3(
       options?.durableStep ? options.durableStep(name, fn) : fn();
 
     // PASS 1: Friction Mapping
-    const p1 = await dstep('analyst:p1', () => pass1FrictionMapping(question, ctx, sources.length, domainContext, depth));
+    const p1 = await dstep('analyst:p1', () => pass1FrictionMapping(question, ctx, sources.length, groundedCount, domainContext, depth));
 
     // INTER-PASS VALIDATION: Ground-truth check on Pass 1 output
-    const validatedMap = validateFrictionMap(p1.map, sources.length);
-    if (validatedMap.removedMechanisms > 0) {
+    const validatedMap = validateFrictionMap(p1.map, sources.length, groundedIndices);
+    if (validatedMap.removedMechanisms > 0 || validatedMap.details !== 'none') {
       console.warn(`[Analyst V3] VALIDATION: removed ${validatedMap.removedMechanisms} mechanisms with invalid citations (${validatedMap.details})`);
     }
 
@@ -1286,19 +1335,19 @@ export async function analystAgentV3(
       };
     } else {
       // PASS 3: Prospective Synthesis (uses Pass 1 + Pass 2 outputs)
-      p3 = await dstep('analyst:p3', () => pass3ProspectiveSynthesis(question, ctx, p1.map, p2.map, sources.length, avgQuality, lang, domainContext, depth));
+      p3 = await dstep('analyst:p3', () => pass3ProspectiveSynthesis(question, ctx, p1.map, p2.map, sources.length, groundedCount, avgQuality, lang, domainContext, depth));
     }
 
     // CITATION SANITIZATION: Strip all out-of-range [SRC-N] from analysis JSON.
     // The LLM (deepseek-v4-flash) hallucinates citations beyond the source count.
     // This is deterministic — no LLM in the loop.
-    const sanitizedAnalysis = sanitizeAnalysisCitations(p3.analysis, sources.length);
+    const sanitizedAnalysis = sanitizeAnalysisCitations(p3.analysis, sources.length, groundedIndices);
 
     // CITATION COVERAGE AUDIT: log how many distinct sources were cited.
     // V3.2: Lowered target from 50% to 35% — DeepSeek-v4-flash realistically cites
     // 30-40% of sources. The rest is handled by deterministic citation injection
     // downstream (citation-repair module). 50% was unreachable and caused noise.
-    const minDistinctCitations = Math.ceil(sources.length * 0.35);
+    const minDistinctCitations = Math.max(3, Math.ceil(groundedCount * 0.35));
     function countDistinctCitations(obj: any): Set<number> {
       const distinct = new Set<number>();
       function walk(o: any) {
@@ -1318,9 +1367,9 @@ export async function analystAgentV3(
     }
     const citedCount = countDistinctCitations(sanitizedAnalysis).size;
     if (citedCount < minDistinctCitations) {
-      console.warn(`[Analyst V3] CITATION COVERAGE LOW: ${citedCount}/${sources.length} distinct sources cited (target: ${minDistinctCitations}). Deterministic citation injection will run downstream.`);
+      console.warn(`[Analyst V3] CITATION COVERAGE LOW: ${citedCount}/${groundedCount} grounded sources cited (target: ${minDistinctCitations}). Deterministic citation injection will run downstream.`);
     }
-    console.log(`[Analyst V3] CITATION COVERAGE: ${citedCount}/${sources.length} distinct sources cited`);
+    console.log(`[Analyst V3] CITATION COVERAGE: ${citedCount}/${groundedCount} grounded sources cited (${sources.length} total in corpus)`);
 
     // PRUNING GATES: Deterministic post-generation quality assurance.
     // Gates PRUNE, never BLOCK. Invalid content is removed before render.

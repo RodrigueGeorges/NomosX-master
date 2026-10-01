@@ -150,21 +150,30 @@ export async function buildAnalystContext(deps: AnalystContextDeps): Promise<Ana
   // ── EDITORIAL NORTH STAR — injected FIRST so the analyst reasons toward the finality ──
   // The publication is scored deterministically. Tell the analyst EXACTLY what is measured,
   // so producing a high-trust publication is the optimization target from the first token.
-  // Citation target: 35% of sources — ambitious but achievable.
+  // Citation target: 35% of GROUNDED sources — ambitious but achievable.
   // The analyst consistently cites 15-18% of sources; a 50% target caused endless quality loops.
   // 35% pushes for broader citation usage without wasting tokens on impossible targets.
-  const citationTarget = Math.max(15, Math.ceil(topSources.length * 0.35));
+  // Grounded = reader-extracted or full-text — citations to abstract-only
+  // sources cite unread metadata and are stripped deterministically.
+  const groundedIds = new Set(
+    (readings ?? []).filter((r: any) => r?.sourceId && r.confidence !== 'low').map((r: any) => r.sourceId)
+  );
+  const groundedCount = topSources.filter((s: any) =>
+    groundedIds.has(s.id) || (s.fullText || '').length > 200
+  ).length;
+  const citableBase = Math.max(groundedCount, 1);
+  const citationTarget = Math.max(10, Math.ceil(citableBase * 0.35));
   const editorialNorthStar = [
     `## EDITORIAL NORTH STAR — NON-NEGOTIABLE FINALITY`,
     `You are producing a publication for a think tank whose entire credibility rests on trust and rigor.`,
-    `You have ${topSources.length} pertinent sources selected by quality and relevance. Use them.`,
+    `You have ${topSources.length} sources — ${groundedCount} are marked EXTRACTION: GROUNDED (reader extracted their content). Factual claims and numbers may ONLY cite grounded sources; abstract-only sources are context.`,
     `The final publication is scored DETERMINISTICALLY on these exact criteria:`,
-    `1. CITATION COVERAGE (25%): cite at least ${citationTarget} DISTINCT sources with [SRC-N] tags. This is ${Math.round(citationTarget / topSources.length * 100)}% of your evidence base. MANDATORY: Before returning JSON, count your distinct [SRC-N] citations. If below ${citationTarget}, add citations from uncited sources to relevant claims. Do NOT cluster on 5-10 sources — spread across the full evidence base. Every source was selected for a reason — cite it at least once.`,
+    `1. CITATION COVERAGE (25%): cite at least ${citationTarget} DISTINCT grounded sources with [SRC-N] tags. MANDATORY: Before returning JSON, count your distinct [SRC-N] citations pointing at GROUNDED sources. If below ${citationTarget}, add citations from uncited grounded sources to relevant claims. Do NOT cluster on 5-10 sources — spread across the full grounded evidence base.`,
     `2. GROUNDEDNESS (20%): every factual claim must be directly supported by the cited source's actual content. If a source doesn't say it, don't claim it. Unsourced claims are penalized heavily.`,
     `3. NUMERICAL INTEGRITY (30%): every number, percentage, or statistic MUST come from a cited source. An unsourced number is a fatal defect. If no source provides the number, write "non établie".`,
     `4. SOURCE QUALITY (15%): prioritize claims from the highest-quality sources (peer-reviewed, recent, methodologically strong).`,
     `5. DIVERSITY (10%): draw on the full breadth of providers and years available. Cite from at least 7 different providers.`,
-    `ANTI-PATTERN WARNING: The most common failure mode is citing only 5-10 sources out of ${topSources.length}. This caps trust at ~60/100 and blocks publication. AUDIT YOUR DRAFT: extract all [SRC-N] tags, convert to a Set, check size. If below ${citationTarget}, go back and add citations from uncited sources. Reports with fewer than ${citationTarget} distinct citations WILL BE REJECTED.`,
+    `ANTI-PATTERN WARNING: The most common failure mode is citing only 5-10 sources, or citing sources you have not read (EXTRACTION: ABSTRACT-ONLY). Both cap trust below the publication bar. AUDIT YOUR DRAFT: extract all [SRC-N] tags, convert to a Set, check size and that each cited source is marked GROUNDED. If below ${citationTarget}, go back and add citations from uncited GROUNDED sources. Reports citing sources outside the grounded set have those citations STRIPPED by the system — the claims then fail grounding checks.`,
     `ANTI-CONTRADICTION RULE: Before returning JSON, scan your verdict and key findings for internal contradictions. If sentence A claims X and sentence B claims not-X, resolve the contradiction or acknowledge the tension explicitly. The critic WILL detect contradictions and penalize heavily (10+ contradictions → score <50).`,
     `ANTI-BIAS RULE: Present evidence from ALL sides of the debate. For every policy position you endorse, cite at least one source that challenges it. Do not cherry-pick sources that confirm your hypothesis. If 7 sources support position A and 3 support position B, mention BOTH positions and explain the imbalance. The critic WILL flag bias if you present only one side.`,
     `INTERPRETIVE DEPTH RULE: If INTERPRETIVE FRAMEWORKS are provided in context, you MUST engage at least 2 of them explicitly — name the author and work, apply its analytical lens to the evidence, and note where it clarifies or fails. A publication that ignores the canon reads as journalism, not analysis.`,

@@ -41,7 +41,7 @@ export interface BankValidation {
 }
 
 const MAX_ENTRIES_PER_SOURCE = 4;
-const MAX_BANK_ENTRIES = 60;
+const MAX_BANK_ENTRIES = 120;
 
 /**
  * Build the evidence bank from reader extracts + ranked sources.
@@ -110,7 +110,7 @@ export function buildEvidenceBankBlock(bank: EvidenceBank): string {
       lines.push(`- (${e.kind}${e.confidence === 'low' ? ', low-conf' : ''}) ${e.text}`);
     }
   }
-  return lines.join('\n').slice(0, 5000);
+  return lines.join('\n').slice(0, 9000);
 }
 
 /**
