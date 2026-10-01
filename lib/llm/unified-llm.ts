@@ -786,13 +786,17 @@ interface FreepoolEndpoint {
   reasoningModel: string;
   /** Free-tier context ceiling — skip the endpoint when the request exceeds it. */
   maxContextTokens?: number;
+  /** Extra max_tokens headroom for reasoning models that burn output tokens on
+   *  thinking before answering — without it, low max_tokens requests truncate
+   *  mid-reasoning and return empty/thinking content (observed live). */
+  tokenHeadroom?: number;
 }
 
 const FREEPOOL_ENDPOINTS: Array<Omit<FreepoolEndpoint, "apiKey"> & { envKey: keyof typeof env }> = [
   { name: "groq",       envKey: "GROQ_API_KEY",       baseURL: "https://api.groq.com/openai/v1",          fastModel: "openai/gpt-oss-20b",                      reasoningModel: "openai/gpt-oss-120b" },
   { name: "cerebras",   envKey: "CEREBRAS_API_KEY",   baseURL: "https://api.cerebras.ai/v1",              fastModel: "llama-3.3-70b",                         reasoningModel: "llama-3.3-70b", maxContextTokens: 8_000 },
   { name: "nvidia",     envKey: "NVIDIA_API_KEY",     baseURL: "https://integrate.api.nvidia.com/v1",     fastModel: "meta/llama-3.1-8b-instruct",              reasoningModel: "meta/llama-3.3-70b-instruct" },
-  { name: "openrouter", envKey: "OPENROUTER_API_KEY", baseURL: "https://openrouter.ai/api/v1",            fastModel: "liquid/lfm-2.5-2.6b:free",              reasoningModel: "nvidia/nemotron-3.5-lightning:free" },
+  { name: "openrouter", envKey: "OPENROUTER_API_KEY", baseURL: "https://openrouter.ai/api/v1",            fastModel: "nvidia/nemotron-3.5-lightning:free",    reasoningModel: "nvidia/nemotron-3.5-lightning:free", tokenHeadroom: 1500 },
   { name: "mistral",    envKey: "MISTRAL_API_KEY",    baseURL: "https://api.mistral.ai/v1",               fastModel: "mistral-small-latest",                    reasoningModel: "mistral-small-latest" },
 ];
 
@@ -848,7 +852,7 @@ async function callFreepool(request: LLMRequest, signal?: AbortSignal): Promise<
           model,
           messages: request.messages as any,
           temperature: request.temperature ?? 0.2,
-          max_tokens: Math.max(request.maxTokens ?? 4000, 1000),
+          max_tokens: Math.max(request.maxTokens ?? 4000, 1000) + (ep.tokenHeadroom ?? 0),
           ...(request.jsonMode ? { response_format: { type: "json_object" } } : {}),
           ...(request.tools?.length ? { tools: request.tools as any } : {}),
         },
