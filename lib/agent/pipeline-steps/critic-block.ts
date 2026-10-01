@@ -210,13 +210,68 @@ export async function runCriticBlock(deps: CriticBlockDeps): Promise<CriticBlock
           panelWeakFindings.map((f: string) => `- ${f}`).join('\n')
         : '';
       const instructions = (savedCriticResult?.repairInstructions || '') + panelBlock;
-      console.log(`${label} CRITIC REPAIR: re-running ANALYST (critic=${savedCriticResult?.overallScore ?? 'n/a'}/100, panelFindings=${panelWeakFindings.length})`);
-      emitProgress(pipelineRunId, "ANALYST", "started", `Repairing analysis per critic instructions...`);
-      const repaired = await analystMultipass(query, topSources, slimReadings, {
-        contextBlock: fullContextBlock + '\n\n## CRITIC REPAIR INSTRUCTIONS (mandatory)\nThe critic identified defects in the previous analysis that MUST be fixed:\n' + instructions,
-        domain: detectedDomain,
-        depth: isStrategic ? "strategic" : "brief",
-      });
+
+      // SURGICAL REPAIR first (single auto_revision call, ~4× cheaper than a
+      // full 3-pass re-analysis): patch the analysis JSON against the critic's
+      // instructions + the grounded evidence list. The critic targets specific
+      // claims — a full rewrite is waste; a surgical patch preserves the parts
+      // that scored well. Falls back to full re-analysis if the patch fails.
+      let repaired: any = null;
+      let surgicalAttempted = false;
+      try {
+        const targetClaims: string[] = savedCriticResult?.repairTargetClaims ?? [];
+        surgicalAttempted = Array.isArray(instructions) ? false : instructions.length < 6000;
+        if (surgicalAttempted) {
+          const { callLLM } = await import('../../llm/unified-llm');
+          const { parseJson } = await import('../json-utils');
+          const readingById = new Map<string, any>((readings ?? []).map((r: any) => [r.sourceId, r]));
+          const groundedBlock = topSources
+            .map((s: any, i: number) => ({ s, i: i + 1, r: readingById.get(s.id) }))
+            .filter(({ s, r }: any) => (r && r.confidence !== 'low') || (s.fullText || '').length > 200)
+            .map(({ s, i, r }: any) => {
+              const ev = [r?.claims, r?.results].flat().filter(Boolean).slice(0, 3).join(' | ');
+              return `[SRC-${i}] ${s.title || 'untitled'}${ev ? `\n  EVIDENCE: ${String(ev).slice(0, 500)}` : ''}`;
+            })
+            .join('\n');
+          const rep = await callLLM({
+            messages: [
+              {
+                role: 'system',
+                content: 'You are a surgical revision editor. You receive an analysis JSON, a list of critic-mandated defects, and the banked evidence per [SRC-N]. Output the COMPLETE corrected JSON — identical schema, every field present. Change ONLY what the instructions require; preserve everything else verbatim. Facts/numbers may only cite GROUNDED sources listed below.',
+              },
+              {
+                role: 'user',
+                content: `RESEARCH QUESTION: "${query}"\n\n## DEFECTS TO FIX (mandatory)\n${instructions}\n${targetClaims.length ? `\nTargeted claims: ${targetClaims.join(', ')}\n` : ''}\n## GROUNDED EVIDENCE (only these [SRC-N] are citable for facts)\n${groundedBlock.slice(0, 12000)}\n\n## CURRENT ANALYSIS JSON\n${JSON.stringify(analysis).slice(0, 40000)}`,
+              },
+            ],
+            temperature: 0.2,
+            jsonMode: true,
+            maxTokens: isStrategic ? 16000 : 8000,
+            enableCache: true,
+            task: 'auto_revision',
+          });
+          addCost(rep.costUsd, 'CRITIC_REPAIR_SURGICAL');
+          repaired = parseJson<any>(rep.content);
+          if (repaired) {
+            console.log(`${label} CRITIC REPAIR: surgical patch produced ($${rep.costUsd?.toFixed(4) ?? '?'})`);
+          }
+        }
+      } catch (surgErr) {
+        console.warn(`${label} CRITIC REPAIR: surgical patch failed, falling back to full re-analysis:`, surgErr);
+        repaired = null;
+      }
+
+      if (!repaired) {
+        console.log(`${label} CRITIC REPAIR: re-running ANALYST (critic=${savedCriticResult?.overallScore ?? 'n/a'}/100, panelFindings=${panelWeakFindings.length})`);
+        emitProgress(pipelineRunId, "ANALYST", "started", `Repairing analysis per critic instructions...`);
+        repaired = await analystMultipass(query, topSources, slimReadings, {
+          contextBlock: fullContextBlock + '\n\n## CRITIC REPAIR INSTRUCTIONS (mandatory)\nThe critic identified defects in the previous analysis that MUST be fixed:\n' + instructions,
+          domain: detectedDomain,
+          depth: isStrategic ? "strategic" : "brief",
+        });
+      } else {
+        emitProgress(pipelineRunId, "ANALYST", "started", `Surgical repair applied per critic instructions...`);
+      }
       const repStr = typeof repaired === 'string' ? repaired : JSON.stringify(repaired);
       const repCitations = new Set((repStr.match(/\[SRC-\d+\]/g) || []).map((m: string) => m)).size;
       const origStr = typeof analysis === 'string' ? analysis : JSON.stringify(analysis);
