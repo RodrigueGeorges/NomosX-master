@@ -378,6 +378,20 @@ export async function scoutImpl(query: string, providers: Providers, perProvider
     providerSet.delete(dead);
   }
 
+  // Health-tracker filter: blacklisted providers (3+ consecutive failures,
+  // e.g. arxiv/worldbank/core hitting their 90s deadlines) must be skipped at
+  // scheduling time — previously they were still called every query variation,
+  // each burning a full deadline slot in the parallel pool.
+  const { isProviderHealthy } = await import('../provider-health-tracker');
+  const unhealthy: string[] = [];
+  for (const p of providerSet) {
+    if (typeof p === 'string' && !isProviderHealthy(p)) unhealthy.push(p);
+  }
+  for (const p of unhealthy) providerSet.delete(p);
+  if (unhealthy.length) {
+    console.log(`[SCOUT] Skipping ${unhealthy.length} blacklisted providers: ${unhealthy.join(', ')}`);
+  }
+
   // ROR BATCHING — collapse pure OpenAlex-ROR institutional wrappers (~30
   // providers) into ONE batched OpenAlex call per query variation. Previously
   // each fired individually per query, which exhausted the per-execution
