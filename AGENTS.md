@@ -6,6 +6,59 @@
 
 ---
 
+## Sprint 30 — Spend discipline + Temporal Cloud orchestration
+
+Post-mortem of a live $3.91 / 2-HELD breaking run: 45% of LLM spend was
+`analyst_brief` (30K tok/call), ~$0.27-0.60 per terminal item was spent on the
+editorial tail AFTER an unrecoverable verdict, and both candidates burned
+concurrently for a single target slot.
+
+**Terminal-reject early exit** (`pipeline-v2.ts`): critic `verdict='reject'` +
+`overallScore < 20` is unrecoverable — critic repair only fires on `'repair'`
+verdicts and regen is decided in the orchestrator. The pipeline now renders once
+(admin-facing HELD artifact) then goes straight to persistence, skipping
+post-critic enrichment, debate, arbiter/foresight, DA, style sweep, quality
+loop and hero image. Marked in `stats.terminalReject`.
+
+**Sequential spare dispatch** (`think-tank-dispatcher.ts`): default
+`THINK_TANK_DISPATCH_CONCURRENCY` is now `1` — a spare candidate pays only when
+the head item failed (in-flight work is never cancelled, so every concurrent
+launch was guaranteed spend even on success). `=2..3` restores PASTE pipelining
+for speed-over-spend runs.
+
+**Depth-scaled analyst context** (`analyst-multipass.ts`): reader extractions
+now render for EVERY grounded source — a compact-tier source flagged GROUNDED
+whose extractions were hidden was manufacturing misattribution. Raw bulk is
+depth-scaled (brief: abstract 1500/excerpt 2500 chars, full-tier floor 10;
+strategic unchanged: 3000/4000, floor 20) → ~40% smaller analyst prompts at
+brief depth with MORE grounded sources carrying their actual evidence.
+
+**OpenAlex auth fallback** (`providers/openalex.ts`): a rejected `OPENALEX_API_KEY`
+returns 401/403, not 429 — the polite-pool fallback only watched 429, so every
+call (plus ~30 piggybacking institutional providers) died for the session.
+Auth rejections now flip to `mailto` for the session and retry once after the
+concurrency slot is released (retry-in-catch could deadlock a 5-slot auth
+failure wave).
+
+**Temporal Cloud** (`lib/temporal/`, `scripts/temporal-worker.ts`): opt-in
+orchestration for think-tank cycles. `enqueueThinkTankCycle` prefers a Temporal
+workflow (workflowId = idempotency key, `USE_EXISTING` conflict policy — a
+reuse policy is rejected by the server when combined with it) and falls back to
+the PG Job row on any start failure. The Railway `pipeline-worker` polls the
+`nomosx-pipeline` task queue **in-process** when `TEMPORAL_ENABLED=1` — one
+service, both queues. API-key auth = `tls:true` + top-level `apiKey` (namespace-
+scoped keys; account-scoped keys fail JWT verification). Heartbeats carry the
+`ThinkTankCycleProgress` checkpoint into activity retry → same resume
+semantics as the PG worker. Validated live: dry-run cycle end-to-end.
+
+Env: `TEMPORAL_ENABLED=1`, `TEMPORAL_ADDRESS=<ns>.tmprl.cloud:7233`,
+`TEMPORAL_NAMESPACE`, `TEMPORAL_API_KEY` (or `TEMPORAL_TLS_CERT`/`_KEY`),
+`TEMPORAL_TASK_QUEUE` (default `nomosx-pipeline`).
+
+Verified: `tsc` 0 · jest 5/5 reserve-dispatch · live Temporal dry-run.
+
+---
+
 ## Sprint 29 — Validated publication reserve
 
 Decouples production from cadence. Previously each dispatch slot ran a pipeline
