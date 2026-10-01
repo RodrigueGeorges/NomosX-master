@@ -42,6 +42,7 @@
  * actuelle : snapshots + resume + idempotence, sans ajouter de dépendance externe.
  */
 
+import { createHash } from 'node:crypto';
 import { prisma } from '../db';
 import { promises as fs } from 'fs';
 import * as path from 'path';
@@ -344,8 +345,9 @@ async function persistStep(runId: string, step: string, output: any, costUsd: nu
  * dispatcher or the next cron cycle picks up where it crashed.
  */
 export function durableKeyFor(query: string, format: string): string {
-  const normalized = query.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 80);
-  return `durable:${format}:${normalized}`;
+  const normalized = query.normalize('NFKC').toLowerCase().trim().replace(/[?!]+$/u, '').replace(/\s+/gu, ' ').trim();
+  const digest = createHash('sha256').update(JSON.stringify([format, normalized])).digest('hex');
+  return `durable:${format}:v2:${digest}`;
 }
 
 export async function initDurableRun(

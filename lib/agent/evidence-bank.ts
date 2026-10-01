@@ -74,14 +74,22 @@ export function buildEvidenceBank(
     perSource.set(sourceIndex, (perSource.get(sourceIndex) ?? 0) + 1);
   };
 
-  for (const r of readings) {
-    const idx = sourceIndexById.get(r.sourceId);
-    if (!idx) continue;
-    const conf = r.confidence || 'medium';
-    for (const c of (r.claims || []).slice(0, 3)) push(idx, r.sourceId, 'claim', c, conf);
-    for (const res of (r.results || []).slice(0, 2)) push(idx, r.sourceId, 'result', res, conf);
-    for (const m of (r.methods || []).slice(0, 1)) push(idx, r.sourceId, 'method', m, conf);
-    for (const l of (r.limitations || []).slice(0, 1)) push(idx, r.sourceId, 'limitation', l, conf);
+  const queues = readings.map(r => ({
+    reading: r,
+    candidates: [
+      ...(r.results || []).slice(0, 1).map(text => ({ kind: 'result' as const, text })),
+      ...(r.limitations || []).slice(0, 1).map(text => ({ kind: 'limitation' as const, text })),
+      ...(r.claims || []).slice(0, 3).map(text => ({ kind: 'claim' as const, text })),
+      ...(r.methods || []).slice(0, 1).map(text => ({ kind: 'method' as const, text })),
+      ...(r.results || []).slice(1, 2).map(text => ({ kind: 'result' as const, text })),
+    ].filter(e => typeof e.text === 'string' && e.text.replace(/\s+/g, ' ').trim().length >= 25),
+  }));
+  for (let round = 0; round < MAX_ENTRIES_PER_SOURCE; round++) {
+    for (const { reading: r, candidates } of queues) {
+      const idx = sourceIndexById.get(r.sourceId);
+      const entry = candidates[round];
+      if (idx && entry) push(idx, r.sourceId, entry.kind, entry.text, r.confidence || 'medium');
+    }
   }
 
   return { entries, perSource };
@@ -94,8 +102,8 @@ export function buildEvidenceBank(
 export function buildEvidenceBankBlock(bank: EvidenceBank): string {
   if (bank.entries.length === 0) return '';
   const lines: string[] = [
-    '## EVIDENCE BANK — VERIFIED EXTRACTED CLAIMS',
-    'The reader extracted the following claims from each source. EVERY factual assertion you make must trace to one of these entries (or to source metadata). Do NOT attribute to a source a claim that is not banked below — if you need a claim that is missing, say the evidence is absent rather than fabricating support.',
+    '## EVIDENCE BANK — READER EXTRACTS (NOT INDEPENDENT VERIFICATION)',
+    'These entries are reader extractions, not proof that every claim is correct. Trace factual assertions to the supplied evidence, preserve limitations, and distinguish extracted findings from inferences. Missing entries may reflect the context budget, not missing research. Never invent support.',
     '',
   ];
   const bySource = new Map<number, EvidenceEntry[]>();
@@ -104,13 +112,17 @@ export function buildEvidenceBankBlock(bank: EvidenceBank): string {
     arr.push(e);
     bySource.set(e.sourceIndex, arr);
   }
-  for (const [srcIdx, entries] of [...bySource.entries()].sort((a, b) => a[0] - b[0])) {
-    lines.push(`### [SRC-${srcIdx}]`);
-    for (const e of entries) {
-      lines.push(`- (${e.kind}${e.confidence === 'low' ? ', low-conf' : ''}) ${e.text}`);
+  let block = lines.join('\n') + '\n';
+  const groups = [...bySource.entries()].sort((a, b) => a[0] - b[0]);
+  for (let round = 0; round < MAX_ENTRIES_PER_SOURCE; round++) {
+    for (const [srcIdx, entries] of groups) {
+      const e = entries[round];
+      if (!e) continue;
+      const line = `- (${e.id}) [SRC-${srcIdx}] (${e.kind}${e.confidence === 'low' ? ', low-conf' : ''}) ${e.text}\n`;
+      if (block.length + line.length <= 9000) block += line;
     }
   }
-  return lines.join('\n').slice(0, 9000);
+  return block;
 }
 
 /**

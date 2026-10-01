@@ -10,6 +10,7 @@
  * post-hoc injection).
  */
 
+import { applyAnalysisRepair, criticReviewText, repairImproves } from '../analysis-repair';
 import type { PipelineStep } from '../pipeline-progress';
 import type { GapFillState } from './gap-fill';
 
@@ -91,7 +92,7 @@ export async function runCriticBlock(deps: CriticBlockDeps): Promise<CriticBlock
     // If the analysis uses [E-N] (from replaceSrcWithEvidenceIds), the critic can't
     // match claims to sources → all claims become "unverifiable" → groundedness collapses
     // from ~100% (v3) to ~0-67% (after integrations).
-    let analysisText = JSON.stringify(criticFiltered);
+    let analysisText = criticReviewText(criticFiltered);
     analysisText = analysisText.replace(/\[E(\d+)\]/g, '[SRC-$1]');
     // Attach reader-extracted full text so the critic verifies claims against
     // what the analyst actually read — not just the abstract. Without this,
@@ -110,6 +111,7 @@ export async function runCriticBlock(deps: CriticBlockDeps): Promise<CriticBlock
     }));
 
     const criticResult = await runCritic(analysisText, criticSources, { skipBias: false, skipContradictions: false });
+    addCost(criticResult.costUsd, 'CRITIC');
     savedCriticResult = criticResult;
     stats.critic = tagEval({
       verdict: criticResult.verdict,
@@ -220,38 +222,46 @@ export async function runCriticBlock(deps: CriticBlockDeps): Promise<CriticBlock
       let surgicalAttempted = false;
       try {
         const targetClaims: string[] = savedCriticResult?.repairTargetClaims ?? [];
-        surgicalAttempted = Array.isArray(instructions) ? false : instructions.length < 6000;
+        surgicalAttempted = typeof analysis === 'object' && analysis !== null && instructions.length < 6000 && JSON.stringify(analysis).length <= 40000;
         if (surgicalAttempted) {
           const { callLLM } = await import('../../llm/unified-llm');
           const { parseJson } = await import('../json-utils');
           const readingById = new Map<string, any>((readings ?? []).map((r: any) => [r.sourceId, r]));
+          const availableIndices = new Set<number>();
+          let evidenceChars = 0;
           const groundedBlock = topSources
             .map((s: any, i: number) => ({ s, i: i + 1, r: readingById.get(s.id) }))
             .filter(({ s, r }: any) => (r && r.confidence !== 'low') || (s.fullText || '').length > 200)
             .map(({ s, i, r }: any) => {
-              const ev = [r?.claims, r?.results].flat().filter(Boolean).slice(0, 3).join(' | ');
-              return `[SRC-${i}] ${s.title || 'untitled'}${ev ? `\n  EVIDENCE: ${String(ev).slice(0, 500)}` : ''}`;
+              const ev = [r?.claims, r?.results, r?.limitations].flat().filter(v => typeof v === 'string' && v.trim()).slice(0, 4).join(' | ')
+                || s.fullText || '';
+              if (!ev) return '';
+              const entry = `[SRC-${i}] ${s.title || 'untitled'}\n  EVIDENCE: ${String(ev).slice(0, 700)}\n`;
+              if (evidenceChars + entry.length > 12000) return '';
+              evidenceChars += entry.length;
+              availableIndices.add(i);
+              return entry;
             })
             .join('\n');
           const rep = await callLLM({
             messages: [
               {
                 role: 'system',
-                content: 'You are a surgical revision editor. You receive an analysis JSON, a list of critic-mandated defects, and the banked evidence per [SRC-N]. Output the COMPLETE corrected JSON — identical schema, every field present. Change ONLY what the instructions require; preserve everything else verbatim. Facts/numbers may only cite GROUNDED sources listed below.',
+                content: 'You are a surgical revision editor. Return ONLY {"patches":[{"path":["keyFindings",0],"before":"exact existing string","after":"corrected string"}]}. Return at most 24 replacements of existing string fields. Editable roots: title, throughLine, anchoringBasis, causalChain, keyFindings, trajectory, rejectedAlternatives, whatToWatch, evidenceAssessment. Never edit IDs, numeric fields, sourceRef, or metadata. Fix only the stated defects. Every citation in replacement text must refer to supplied evidence and actually support the claim. Do not regenerate the document.',
               },
               {
                 role: 'user',
-                content: `RESEARCH QUESTION: "${query}"\n\n## DEFECTS TO FIX (mandatory)\n${instructions}\n${targetClaims.length ? `\nTargeted claims: ${targetClaims.join(', ')}\n` : ''}\n## GROUNDED EVIDENCE (only these [SRC-N] are citable for facts)\n${groundedBlock.slice(0, 12000)}\n\n## CURRENT ANALYSIS JSON\n${JSON.stringify(analysis).slice(0, 40000)}`,
+                content: `RESEARCH QUESTION: "${query}"\n\n## DEFECTS TO FIX (mandatory)\n${instructions}\n${targetClaims.length ? `\nTargeted claims: ${targetClaims.join(', ')}\n` : ''}\n## GROUNDED EVIDENCE (only these [SRC-N] are citable for facts)\n${groundedBlock}\n\n## CURRENT ANALYSIS JSON\n${JSON.stringify(analysis)}`,
               },
             ],
             temperature: 0.2,
             jsonMode: true,
-            maxTokens: isStrategic ? 16000 : 8000,
+            maxTokens: 4000,
             enableCache: true,
             task: 'auto_revision',
           });
           addCost(rep.costUsd, 'CRITIC_REPAIR_SURGICAL');
-          repaired = parseJson<any>(rep.content);
+          repaired = applyAnalysisRepair(analysis, parseJson<unknown>(rep.content), availableIndices);
           if (repaired) {
             console.log(`${label} CRITIC REPAIR: surgical patch produced ($${rep.costUsd?.toFixed(4) ?? '?'})`);
           }
@@ -269,15 +279,42 @@ export async function runCriticBlock(deps: CriticBlockDeps): Promise<CriticBlock
           domain: detectedDomain,
           depth: isStrategic ? "strategic" : "brief",
         });
+        addCost(typeof repaired._meta?.totalCostUsd === 'number' ? repaired._meta.totalCostUsd : 0, 'CRITIC_REPAIR');
       } else {
         emitProgress(pipelineRunId, "ANALYST", "started", `Surgical repair applied per critic instructions...`);
       }
+      if (!repaired || typeof repaired !== 'object' || Array.isArray(repaired) || repaired._meta?.failed) {
+        throw new Error('Invalid repair candidate');
+      }
+      const { runCritic: reviewCandidate } = await import('../critic-agent');
+      const { runCriticPanel: reviewCandidatePanel } = await import('../critic-panel');
+      const candidateReadings = new Map<string, any>(readings.map((r: any) => [r.sourceId, r]));
+      const candidateCritic = await reviewCandidate(criticReviewText(repaired), topSources.map((s: any, i: number) => ({
+        index: i + 1, title: s.title || '', abstract: s.abstract || '',
+        fullText: candidateReadings.get(s.id)?.extractedText || null,
+        provider: s.provider || '', year: s.year || undefined,
+      })), { skipBias: false, skipContradictions: false });
+      addCost(candidateCritic.costUsd, 'CRITIC_RECHECK');
+      const candidatePanel = await reviewCandidatePanel(JSON.stringify(repaired), query, {
+        domain: detectedDomain,
+        fieldContext: positioningBrief ? {
+          fieldCoverage: positioningBrief.fieldCoverage,
+          uncoveredDimensions: positioningBrief.uncoveredDimensions,
+          weakClaims: positioningBrief.weakClaims,
+          strongestPiece: positioningBrief.strongestPiece,
+        } : undefined,
+      });
+      addCost(candidatePanel.costUsd, 'CRITIC_PANEL_RECHECK');
+      const improves = savedCriticResult && savedPanelResult && repairImproves(savedCriticResult, candidateCritic)
+        && !candidatePanel.veto && candidatePanel.overallScore >= savedPanelResult.overallScore;
+      stats.criticRepairCandidate = { adopted: !!improves, score: candidateCritic.overallScore, panelScore: candidatePanel.overallScore };
+      if (!improves) throw new Error('Repair did not improve independently verified quality; original retained');
       const repStr = typeof repaired === 'string' ? repaired : JSON.stringify(repaired);
       const repCitations = new Set((repStr.match(/\[SRC-\d+\]/g) || []).map((m: string) => m)).size;
       const origStr = typeof analysis === 'string' ? analysis : JSON.stringify(analysis);
       const origCitations = new Set((origStr.match(/\[SRC-\d+\]/g) || []).map((m: string) => m)).size;
       // Repair targets defects, not citation count — accept if coverage didn't regress
-      if (repCitations >= origCitations) {
+      if (improves) {
         analysis = repaired;
         deps.state.analysis = analysis;
         bumpAnalysisArtifact();
@@ -285,7 +322,7 @@ export async function runCriticBlock(deps: CriticBlockDeps): Promise<CriticBlock
         orchState.iteration++;
         stats.orchestrator = stats.orchestrator ?? { decisions: [] };
         stats.orchestrator.criticRepairApplied = true;
-        addCost(typeof repaired._meta?.totalCostUsd === "number" ? repaired._meta.totalCostUsd : 0, 'CRITIC_REPAIR');
+        stats.orchestrator.criticRepairVerifiedBeforeAdoption = true;
         console.log(`${label} CRITIC REPAIR: re-analysis applied (citations ${origCitations} → ${repCitations})`);
 
         // CRITIC + PANEL RE-CHECK: the verdicts above describe the ORIGINAL,
@@ -310,8 +347,7 @@ export async function runCriticBlock(deps: CriticBlockDeps): Promise<CriticBlock
             year: s.year || undefined,
           }));
           const { runCritic: recheckCritic } = await import('../critic-agent');
-          const criticRecheck = await recheckCritic(repText, recheckSources, { skipBias: false, skipContradictions: false });
-          addCost(criticRecheck.costUsd, 'CRITIC_RECHECK');
+          const criticRecheck = candidateCritic;
           console.log(`${label} CRITIC RE-CHECK: ${savedCriticResult?.overallScore ?? '?'}→${criticRecheck.overallScore}/100 (${savedCriticResult?.verdict ?? '?'}→${criticRecheck.verdict})`);
           savedCriticResult = criticRecheck;
           stats.critic = tagEval({
@@ -333,8 +369,7 @@ export async function runCriticBlock(deps: CriticBlockDeps): Promise<CriticBlock
         try {
           const { runCriticPanel: recheckPanel } = await import('../critic-panel');
           const repPanelText = typeof repaired === 'string' ? repaired : JSON.stringify(repaired);
-          const panelRecheck = await recheckPanel(repPanelText, query, { domain: detectedDomain });
-          addCost(panelRecheck.costUsd ?? 0, 'CRITIC_PANEL_RECHECK');
+          const panelRecheck = candidatePanel;
           if (panelRecheck && typeof panelRecheck.overallScore === 'number') {
             console.log(`${label} PANEL RE-CHECK: ${savedPanelResult?.overallScore ?? '?'}→${panelRecheck.overallScore}/100 (veto: ${panelRecheck.veto})`);
             savedPanelResult = panelRecheck;

@@ -11,6 +11,7 @@
  */
 
 import type { Prisma } from "@prisma/client";
+import { certifyForReserve, releaseReservedPublication } from './publication-reserve';
 import { prisma, withDbRetry } from "@/lib/db";
 import { assertExecutionActive } from '@/lib/worker/execution-scope';
 import {
@@ -43,6 +44,7 @@ export type InquiryPublishSource =
 
 export type InquiryPublishStatus =
   | "published"
+  | "ready"
   | "held"
   | "draft"
   | "review"
@@ -52,6 +54,8 @@ export type InquiryPublishStatus =
 
 export interface InquiryPublishRequest {
   question: string;
+  delivery?: 'immediate' | 'reserve';
+  releaseFromReserve?: { slotKey: string; publicationId?: string };
   depth?: InquiryDepth;
   domain?: string;
   verticalId?: string;
@@ -78,6 +82,9 @@ export interface InquiryPublishResult {
   briefId?: string;
   publicationId?: string;
   publicId?: string;
+  /** Signal the published artifact is attached to — a reserve release may
+   * serve a publication owned by a DIFFERENT signal than the dispatch item. */
+  signalId?: string | null;
   trustScore: number;
   qualityScore: number;
   wordCount: number;
@@ -125,7 +132,7 @@ async function findRecentDuplicateTitle(question: string, withinHours = 168): Pr
   const recent = await prisma.thinkTankPublication.findMany({
     where: {
       createdAt: { gte: since },
-      status: { in: ["PUBLISHED", "HELD", "DRAFT"] },
+      status: { in: ["PUBLISHED", "HELD", "DRAFT", "READY"] },
     },
     select: { id: true, title: true },
     orderBy: { createdAt: "desc" },
@@ -168,6 +175,7 @@ function mergePipelineOptions(req: InquiryPublishRequest): StrategicPipelineOpti
 }
 
 function resolveDbStatus(status: InquiryPublishStatus): string {
+  if (status === "ready") return "READY";
   if (status === "published") return "PUBLISHED";
   if (status === "draft") return "DRAFT";
   return "HELD";
@@ -198,6 +206,19 @@ export async function runAndPublishInquiry(
   const started = Date.now();
   const depth = req.depth ?? "standard";
   const question = req.question.trim();
+
+  if (req.releaseFromReserve) {
+    if (req.dryRun) return { ...failResult(started, 'Reserve release dry run'), status: 'skipped_dry_run' };
+    const released = await releaseReservedPublication({ ...req.releaseFromReserve, question: question || undefined, verticalId: req.verticalId });
+    if (!released) return failResult(started, 'No fresh validated publication available in reserve');
+    const p = released.publication;
+    return {
+      status: released.alreadyReleased ? 'skipped_duplicate' : 'published',
+      publicationId: p.id, publicId: p.publicId ?? undefined, signalId: p.signalId,
+      trustScore: p.trustScore, qualityScore: p.qualityScore, wordCount: p.wordCount,
+      costUsd: 0, durationMs: Date.now() - started, readinessOk: true,
+    };
+  }
 
   if (question.length < 10) {
     return failResult(started, "Question too short (min 10 chars)");
@@ -268,13 +289,13 @@ export async function runAndPublishInquiry(
     return failResult(started, message);
   }
 
-  const costUsd = getPipelineCostUsd(pipeline.stats);
+  let costUsd = getPipelineCostUsd(pipeline.stats);
   console.log(`[InquiryOrchestrator] Post-pipeline: cost=$${costUsd.toFixed(4)} trust=${pipeline.trustScore} quality=${pipeline.qualityScore} words=${countWordsHtml(pipeline.html)} html=${pipeline.html.length} chars`);
 
   // 4a. Handle pipeline refusal (insufficient evidence)
   if (pipeline.refusal) {
     console.warn(`[InquiryOrchestrator] Pipeline refused: ${pipeline.refusalReason}`);
-    return failResult(started, pipeline.refusalReason || 'Pipeline refused: evidence insufficient');
+    return failResult(started, pipeline.refusalReason || 'Pipeline refused: evidence insufficient', { costUsd });
   }
 
   // 4. Post-pipeline dedup by briefId (skip if pipeline refused)
@@ -390,6 +411,7 @@ export async function runAndPublishInquiry(
           criticPanel: p.stats.criticPanel as { dimensions?: { dimension: string; score: number; findings: string[]; mustFix: boolean }[] } | undefined,
           budgetConstrained: (p.stats.budgetConstrained as boolean | undefined) === true,
         });
+        costUsd += revision.costUsd;
         if (revision.changed) {
           const gateBefore = g.decision;
           aHtml = revision.html;
@@ -413,7 +435,7 @@ export async function runAndPublishInquiry(
     return {
       scores, html: aHtml, wordCount: aWordCount, sourceIds: aSourceIds,
       pubType: aPubType, da: aDa, fatalChallenges: aFatal, signOff: aSignOff,
-      triangularOverride: aTri, gate: g, readiness: r,
+      triangularOverride: aTri, gate: g, readiness: r, gateInput: { ...gi, html: aHtml },
     };
   };
 
@@ -458,6 +480,7 @@ export async function runAndPublishInquiry(
           pipelineOptions: { ...mergePipelineOptions(req), priorFailureFeedback: feedback },
           seedSourceIds: assessment.sourceIds.length >= 8 ? assessment.sourceIds : seedSourceIds,
         });
+        costUsd += getPipelineCostUsd(regenPipeline.stats);
         if (!regenPipeline.refusal && regenPipeline.html) {
           const reAssessed = await assess(regenPipeline);
           const before = attemptScore({ gate: assessment.gate, trustScore: assessment.scores.trustScore, qualityScore: assessment.scores.qualityScore });
@@ -568,6 +591,23 @@ export async function runAndPublishInquiry(
   }
 
   const publicId = pipeline.inquiry.slug;
+  let reserve: ReturnType<typeof certifyForReserve> | undefined;
+  if (req.delivery === 'reserve' && status === 'published') {
+    // Certify the artifact the gate+readiness actually evaluated — the
+    // revision round may have replaced pipeline.html, and assessment.gateInput
+    // binds the exact evaluated html, so a revised publishable artifact is
+    // certifiable too.
+    try {
+      reserve = certifyForReserve({
+        title: pipeline.inquiry.title, html, type: pubType, sourceIds, trustScore, qualityScore,
+        citationCoverage: gate.metrics.citationCoverage,
+      }, assessment.gateInput, { publicId, briefId: pipeline.briefId! });
+      status = 'ready';
+    } catch (reserveErr) {
+      console.warn('[InquiryOrchestrator] Reserve certification failed — holding:', reserveErr);
+      status = 'held';
+    }
+  }
   const dbStatus = resolveDbStatus(status);
 
   // 6. Persist (atomic: publication + brief link) — with DB retry for connection drops
@@ -596,6 +636,8 @@ export async function runAndPublishInquiry(
         criticalLoopResult: {
           ...req.metadata,
           architecture: "inquiry-orchestrator-v1",
+          reserve,
+          productionCostUsd: costUsd,
           source: req.source,
           briefId: pipeline.briefId,
           pipelineRunId: pipeline.pipelineRunId,
@@ -711,6 +753,7 @@ export async function runAndPublishInquiry(
     briefId: pipeline.briefId!,
     publicationId: publication.id,
     publicId: publication.publicId ?? undefined,
+    signalId: publication.signalId,
     trustScore,
     qualityScore,
     wordCount,

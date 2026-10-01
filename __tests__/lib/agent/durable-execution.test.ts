@@ -68,6 +68,16 @@ const STEP_SMALL = { value: 'hello' };
 const STEP_BIG = { blob: 'x'.repeat(600 * 1024) }; // >512KB → file fallback
 
 describe('durableKeyFor', () => {
+  test('distinguishes questions beyond a shared 80-character prefix', () => {
+    const prefix = 'A detailed research question about international energy security and infrastructure '.repeat(2);
+    expect(durableKeyFor(`${prefix}France`, 'brief')).not.toBe(durableKeyFor(`${prefix}Japan`, 'brief'));
+  });
+
+  test('preserves non-Latin query identity', () => {
+    expect(durableKeyFor('能源安全', 'brief')).not.toBe(durableKeyFor('人工智能', 'brief'));
+    expect(durableKeyFor('café', 'brief')).toBe(durableKeyFor('cafe\u0301', 'brief'));
+  });
+
   test('is stable across calls and normalizes the query', () => {
     const a = durableKeyFor('Will AI Governance FRAGMENT?!', 'strategic');
     const b = durableKeyFor('will ai governance fragment', 'strategic');

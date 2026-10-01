@@ -12,6 +12,7 @@
  * Crons are thin HTTP wrappers; all logic lives here.
  */
 
+import { createHash } from "node:crypto";
 import { prisma } from "@/lib/db";
 import { isThinkTankEnabled } from '@/lib/worker/think-tank-queue';
 import { assertExecutionActive, withExecutionDeadline } from '@/lib/worker/execution-scope';
@@ -730,38 +731,104 @@ async function executeDispatchQueue(
     const nicheDomains = ['cognitive-science', 'bioethics', 'complexity-science', 'urban-studies', 'development-economics'];
     const isNiche = item.domain && nicheDomains.includes(item.domain);
     const adaptiveTrust = isNiche ? 55 : 60;
-    // Attempt consumed at launch — the item will actually run now (all skip
-    // checks passed); under concurrency this keeps the pull-gate accurate.
-    executed++;
-    assertExecutionActive();
-    const result = await withExecutionDeadline(DISPATCH_TIMEOUT_MS, 'runAndPublishInquiry', () =>
-      runAndPublishInquiry({
-        question: item.question,
-        depth: item.depth,
-        domain: item.domain,
-        verticalId: item.verticalId,
-        verticalSlug: item.verticalSlug,
-        signalId: item.signalId,
-        source,
-        dryRun,
-        requireResearcherSignOff: item.requireResearcherSignOff,
-        minTrustScore: adaptiveTrust,
-        metadata: { strategy: item.strategy, ...item.metadata },
-      }),
-    ).catch((err: unknown) => {
+
+    // ── Reserve-first dispatch ─────────────────────────────────
+    // Validated artifacts land in a reserve (READY, unpublished) and slots
+    // consume them. Order per slot:
+    //   0. Topic-matched release — a certified artifact on this question
+    //      already exists → publish it for $0 (idempotent via slotKey).
+    //   1. Full pipeline with delivery:'reserve' — a validated artifact is
+    //      certified into the reserve instead of publishing directly.
+    //   2. Immediate release of that artifact into this slot.
+    //   3. On hold/failure — drain ANY fresh validated stock: the cycle's
+    //      publication slot is filled by another ready dossier while this
+    //      item's signal stays open for a later attempt.
+    // The slot key is stable per item across worker reclaims — a retry sees
+    // the prior release (skipped_duplicate) instead of double-publishing.
+    const slotKey = `slot:${item.signalId ?? createHash('sha1').update(item.question).digest('hex')}`;
+    const release = (publicationId?: string, matchTopic = true) =>
+      withExecutionDeadline(DISPATCH_TIMEOUT_MS, 'releaseFromReserve', () =>
+        runAndPublishInquiry({
+          question: matchTopic ? item.question : '',
+          verticalId,
+          releaseFromReserve: { slotKey, publicationId },
+          source,
+          dryRun,
+          metadata: { strategy: item.strategy, reserveRelease: true },
+        }),
+      ).catch((err: unknown) => {
+        assertExecutionActive();
+        const message = err instanceof Error ? err.message : String(err);
+        console.error(`[ThinkTank] Reserve release failed: ${message}`);
+        return {
+          status: "failed" as const,
+          trustScore: 0, qualityScore: 0, wordCount: 0, costUsd: 0,
+          durationMs: 0, error: message,
+        };
+      });
+
+    let topicMatched = false;
+    let result = await release();
+    if (result.status === 'published') {
+      topicMatched = true;
+      console.log(`[ThinkTank] Slot filled from reserve: ${result.publicationId} (topic-matched, $0)`);
+    }
+
+    if (result.status === 'failed' || result.status === 'skipped_dry_run') {
+      // No usable stock for this topic — produce one. Attempt consumed at
+      // launch (all skip checks passed); under concurrency this keeps the
+      // pull-gate accurate. A $0 reserve release never consumes an attempt.
+      executed++;
       assertExecutionActive();
-      const message = err instanceof Error ? err.message : String(err);
-      console.error(`[ThinkTank] Dispatch item timed out or failed: ${message}`);
-      return {
-        status: "failed" as const,
-        trustScore: 0,
-        qualityScore: 0,
-        wordCount: 0,
-        costUsd: 0,
-        durationMs: DISPATCH_TIMEOUT_MS,
-        error: message,
-      };
-    });
+      result = await withExecutionDeadline(DISPATCH_TIMEOUT_MS, 'runAndPublishInquiry', () =>
+        runAndPublishInquiry({
+          question: item.question,
+          depth: item.depth,
+          domain: item.domain,
+          verticalId: item.verticalId,
+          verticalSlug: item.verticalSlug,
+          signalId: item.signalId,
+          source,
+          dryRun,
+          delivery: 'reserve',
+          requireResearcherSignOff: item.requireResearcherSignOff,
+          minTrustScore: adaptiveTrust,
+          metadata: { strategy: item.strategy, ...item.metadata },
+        }),
+      ).catch((err: unknown) => {
+        assertExecutionActive();
+        const message = err instanceof Error ? err.message : String(err);
+        console.error(`[ThinkTank] Dispatch item timed out or failed: ${message}`);
+        return {
+          status: "failed" as const,
+          trustScore: 0,
+          qualityScore: 0,
+          wordCount: 0,
+          costUsd: 0,
+          durationMs: DISPATCH_TIMEOUT_MS,
+          error: message,
+        };
+      });
+
+      // Freshly certified → release it into this slot (topic-faithful).
+      if (result.status === 'ready' && result.publicationId) {
+        const rel = await release(result.publicationId);
+        if (rel.status === 'published') { result = rel; topicMatched = true; }
+        else if (rel.status !== 'failed') result = rel;
+      }
+
+      // Cadence guarantee — the slot still publishes if ANY fresh validated
+      // artifact is in reserve, even on another topic. This item's signal is
+      // NOT resolved by a cross-topic release (checked via result.signalId).
+      if (result.status === 'held' || result.status === 'failed' ||
+          result.status === 'draft' || result.status === 'review' || result.status === 'ready') {
+        const drained = await release(undefined, false);
+        if (drained.status === 'published') {
+          console.log(`[ThinkTank] Slot filled from reserve: ${drained.publicationId} (cross-topic drain — item signal stays open)`);
+          result = drained;
+        }
+      }
+    }
 
     outcomes.push({ item, result });
     totalCostUsd += result.costUsd;
@@ -779,7 +846,11 @@ async function executeDispatchQueue(
       if (verticalId) {
         verticalPubCounts.set(verticalId, (verticalPubCounts.get(verticalId) || 0) + 1);
       }
-      if (item.signalId) {
+      // Resolve the item's signal only when the published artifact actually
+      // covers it: the publication carries this signalId, or the release was
+      // explicitly topic-matched to this item's question. A cross-topic
+      // reserve drain fills the slot but leaves the signal open.
+      if (item.signalId && (result.signalId === item.signalId || topicMatched)) {
         await prisma.signal
           .update({ where: { id: item.signalId }, data: { status: "PUBLISHED" } })
           .catch(() => undefined);
