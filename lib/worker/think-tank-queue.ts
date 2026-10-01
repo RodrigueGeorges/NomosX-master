@@ -58,6 +58,26 @@ export async function enqueueThinkTankCycle(options: {
   });
   const key = options.idempotencyKey ?? idempotencyKeyFor(options.mode);
 
+  // Temporal path (opt-in): the cycle becomes a durable workflow — the
+  // workflowId IS the idempotency key, heartbeats carry the mid-cycle
+  // checkpoint. Falls back to the PG job row when Temporal is not
+  // configured or the start call fails (degraded, never silently lost).
+  try {
+    const { getTemporalConfig } = await import('@/lib/temporal/config');
+    if (getTemporalConfig().enabled) {
+      const { getTemporalClient } = await import('@/lib/temporal/client');
+      const client = await getTemporalClient();
+      const started = await client.startCycle(payload, key);
+      return {
+        enqueued: !started.alreadyRunning,
+        jobId: started.workflowId,
+        reason: started.alreadyRunning ? 'already_queued' : undefined,
+      };
+    }
+  } catch (err) {
+    console.warn('[ThinkTankQueue] Temporal start failed — falling back to PG job row:', err);
+  }
+
   const existing = await prisma.job.findUnique({ where: { idempotencyKey: key } });
   if (existing && (['CANCELLED', 'FAILED'].includes(existing.status) || existing.movedToDeadLetter)) {
     return { enqueued: false, jobId: existing.id, reason: 'requires_manual_review' };
