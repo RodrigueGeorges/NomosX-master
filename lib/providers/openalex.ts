@@ -49,6 +49,11 @@ async function checkOpenAlexKeyExhausted(): Promise<void> {
     const testUrl = `https://api.openalex.org/works?search=test&per-page=1&api_key=${env.OPENALEX_API_KEY}`;
     const resp = await fetch(testUrl, { signal: AbortSignal.timeout(5000) });
     await resp.body?.cancel();
+    if (resp.status === 401 || resp.status === 403) {
+      openAlexKeyExhausted = true;
+      console.warn(`[OpenAlex] API key rejected (HTTP ${resp.status}) — falling back to polite pool (mailto)`);
+      return;
+    }
     if (resp.status === 429) {
       const remaining = resp.headers.get('x-ratelimit-remaining');
       if (remaining === '0') {
@@ -72,10 +77,18 @@ export function markOpenAlexKeyExhausted(): void {
   }
 }
 
+/** True when the provider rejected our api_key — the polite pool is the fix,
+ * not a retry with the same credential. */
+function isAuthRejection(error: unknown): boolean {
+  return env.OPENALEX_API_KEY !== undefined && !openAlexKeyExhausted &&
+    /HTTP (401|403)\b/i.test(error instanceof Error ? error.message : String(error));
+}
+
 // Check synchronously at module load (fire and forget)
 export { checkOpenAlexKeyExhausted };
 
 export async function searchOpenAlex(query: string, perPage = 25, options?: { filter?: string; group_by?: string }): Promise<any[]> {
+  let retryWithPolitePool = false;
   const base = env.OPENALEX_API;
   let url = `${base}?search=${encodeURIComponent(query)}&per-page=${perPage}`;
   
@@ -132,11 +145,14 @@ export async function searchOpenAlex(query: string, perPage = 25, options?: { fi
     console.log(`[OpenAlex] Found ${results.length} works for "${query.slice(0, 50)}"`);
     return results;
   } catch (error: any) {
-    console.error(`[OpenAlex] Search failed: ${error.message}`);
-    return [];
+    if (isAuthRejection(error)) { markOpenAlexKeyExhausted(); retryWithPolitePool = true; }
+    else console.error(`[OpenAlex] Search failed: ${error.message}`);
   } finally {
     releaseOpenAlexSlot();
   }
+  // Retry AFTER releasing the concurrency slot — a recursive retry inside the
+  // catch can deadlock when every in-flight request fails on auth at once.
+  return retryWithPolitePool ? searchOpenAlex(query, perPage, options) : [];
 }
 
 /**
@@ -145,6 +161,7 @@ export async function searchOpenAlex(query: string, perPage = 25, options?: { fi
  * If 3-10 relevant concepts are found, they can be used for targeted searches.
  */
 export async function getOpenAlexConceptGroups(query: string): Promise<{ conceptId: string; conceptName: string; count: number }[]> {
+  let retryWithPolitePool = false;
   const base = env.OPENALEX_API;
   let url = `${base}?search=${encodeURIComponent(query)}&per-page=200&group_by=concepts.id`;
 
@@ -168,11 +185,12 @@ export async function getOpenAlexConceptGroups(query: string): Promise<{ concept
     console.log(`[OpenAlex] group_by=concepts.id: ${result.length} relevant concepts for "${query.slice(0, 50)}"`);
     return result;
   } catch (error: any) {
-    console.warn(`[OpenAlex] group_by failed (non-blocking): ${error.message}`);
-    return [];
+    if (isAuthRejection(error)) { markOpenAlexKeyExhausted(); retryWithPolitePool = true; }
+    else console.warn(`[OpenAlex] group_by failed (non-blocking): ${error.message}`);
   } finally {
     releaseOpenAlexSlot();
   }
+  return retryWithPolitePool ? getOpenAlexConceptGroups(query) : [];
 }
 
 /**
@@ -191,6 +209,7 @@ export async function searchOpenAlexSemantic(
   perPage = 25,
   options?: { filter?: string; minCitations?: number }
 ): Promise<any[]> {
+  let retryWithPolitePool = false;
   const base = env.OPENALEX_API;
 
   // V3.2: Use semantic search endpoint (search_filter with semantic matching)
@@ -251,12 +270,15 @@ export async function searchOpenAlexSemantic(
     console.log(`[OpenAlex-Semantic] Found ${results.length} works for "${query.slice(0, 50)}" (semantic search)`);
     return results;
   } catch (error: any) {
-    console.warn(`[OpenAlex-Semantic] Semantic search failed, falling back to keyword: ${error.message}`);
-    // Fallback to regular keyword search
-    return searchOpenAlex(query, perPage, { filter: options?.filter });
+    if (isAuthRejection(error)) { markOpenAlexKeyExhausted(); retryWithPolitePool = true; }
+    else console.warn(`[OpenAlex-Semantic] Semantic search failed, falling back to keyword: ${error.message}`);
   } finally {
     releaseOpenAlexSlot();
   }
+  // Keyword fallback after the slot is released (avoids the retry-deadlock);
+  // an auth rejection already flipped the next call to the polite pool.
+  void retryWithPolitePool;
+  return searchOpenAlex(query, perPage, { filter: options?.filter });
 }
 
 /**
@@ -267,6 +289,7 @@ export async function searchOpenAlexSemantic(
  */
 export async function batchFetchByDoi(dois: string[]): Promise<any[]> {
   if (dois.length === 0) return [];
+  let retryWithPolitePool = false;
 
   const base = env.OPENALEX_API;
   // OpenAlex supports filter=doi:doi1|doi2|doi3 for batch lookup
@@ -293,9 +316,10 @@ export async function batchFetchByDoi(dois: string[]): Promise<any[]> {
     console.log(`[OpenAlex-Batch] Verified ${results.length}/${dois.length} DOIs`);
     return results;
   } catch (error: any) {
-    console.warn(`[OpenAlex-Batch] Batch fetch failed: ${error.message}`);
-    return [];
+    if (isAuthRejection(error)) { markOpenAlexKeyExhausted(); retryWithPolitePool = true; }
+    else console.warn(`[OpenAlex-Batch] Batch fetch failed: ${error.message}`);
   } finally {
     releaseOpenAlexSlot();
   }
+  return retryWithPolitePool ? batchFetchByDoi(dois) : [];
 }
