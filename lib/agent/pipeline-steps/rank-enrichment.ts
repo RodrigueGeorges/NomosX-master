@@ -162,6 +162,65 @@ export async function runRankAndEnrichment(deps: RankEnrichmentDeps): Promise<Ra
       console.log(`${label} DOMAIN FILTER: removed ${before - topSources.length} off-topic sources (${[...offTopicProviders].join(', ')})`);
     }
   }
+
+  // ── SEMANTIC RELEVANCE SCREEN — LLM topical-fit pass before the reader ──
+  // Keyword-overlap ranking lets semantically drifted sources through (a live
+  // run measured 5.9% relevant under the critic's keyword check). One cheap
+  // batch call scores each candidate 0-3; off-topic sources are dropped
+  // BEFORE they consume a reader extraction slot — saves tokens AND lifts
+  // corpus precision (the Elicit pattern: screen before extract).
+  if (topSources.length > 25) {
+    try {
+      const { callLLM } = await import('../../llm/unified-llm');
+      const { parseJson } = await import('../json-utils');
+      const screened = topSources.slice(0, 60);
+      const listing = screened
+        .map((s: any, i: number) => `${i}: ${(s.title || 'untitled').slice(0, 120)} — ${(s.abstract || '').replace(/\s+/g, ' ').slice(0, 160)}`)
+        .join('\n');
+      const rel = await callLLM({
+        messages: [
+          { role: 'system', content: 'You are a research librarian. Score topical relevance precisely. Output JSON only.' },
+          {
+            role: 'user',
+            content: `RESEARCH QUESTION: "${query}"\n\nScore each numbered source:\n0 = off-topic (does not inform the question)\n1 = tangential (related domain, no usable evidence)\n2 = relevant\n3 = core evidence\nReturn {"scores":{"0":2,"1":0,...}} covering every index 0-${screened.length - 1}.\n\n${listing}`,
+          },
+        ],
+        temperature: 0,
+        jsonMode: true,
+        maxTokens: 1200,
+        enableCache: true,
+        task: 'topic_classification',
+      });
+      addCost(rel.costUsd, 'RELEVANCE_SCREEN');
+      const parsed = parseJson<{ scores?: Record<string, number> }>(rel.content);
+      if (parsed?.scores && Object.keys(parsed.scores).length > 0) {
+        const floor = Math.min(15, topSources.length);
+        const dropIdx = new Set<number>();
+        screened.forEach((_s: any, i: number) => {
+          if (Number(parsed.scores?.[String(i)]) === 0) dropIdx.add(i);
+        });
+        // Safety floor: if dropping every 0 would leave too few sources,
+        // restore the best-ranked ones (lowest index = highest composite).
+        const mustRestore = Math.max(0, floor - (topSources.length - dropIdx.size));
+        if (mustRestore > 0) {
+          for (const i of [...dropIdx].sort((a, b) => a - b).slice(0, mustRestore)) dropIdx.delete(i);
+        }
+        if (dropIdx.size > 0) {
+          const before = topSources.length;
+          topSources = topSources.filter((_s: any, i: number) => !dropIdx.has(i));
+          stats.relevanceScreen = { screened: screened.length, dropped: dropIdx.size, restoredAtFloor: mustRestore, costUsd: rel.costUsd };
+          console.log(`${label} RELEVANCE SCREEN: dropped ${dropIdx.size} off-topic sources${mustRestore > 0 ? ` (${mustRestore} kept at floor)` : ''} — ${topSources.length} proceed to reader`);
+          ctx.addFinding('RANK', 'insight', `Semantic relevance screen removed ${dropIdx.size}/${screened.length} off-topic candidates before extraction`);
+        } else {
+          stats.relevanceScreen = { screened: screened.length, dropped: 0, costUsd: rel.costUsd };
+          console.log(`${label} RELEVANCE SCREEN: all ${screened.length} screened candidates topically relevant`);
+        }
+      }
+    } catch (err) {
+      console.warn(`${label} RELEVANCE SCREEN: failed (non-blocking):`, err);
+    }
+  }
+
   ctx.setRankedSources(topSources.map((s: any) => s.id));
   ctx.recordAgentTiming('RANK', Date.now() - pipelineStart);
   // Record rank stats for qualityScore extraction (extractPipelineScores reads rank.avgQuality)
