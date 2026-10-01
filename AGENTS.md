@@ -2949,3 +2949,11 @@ Production crash-loop root cause (verified via probe): Railway cgroup ~954MB vs 
 - `lib/providers/feeds/feed-engine.ts` — feeds fetch via `httpGet` (semaphore + budget + abort) instead of `parser.parseURL`.
 - Env knobs: `HTTP_MAX_INFLIGHT`, `HTTP_BUDGET_<UPSTREAM>`, `HTTP_MAX_REQUESTS_PER_EXECUTION`, `NODE_OPTIONS`.
 - Verified offline: 31 suites / 354 tests. NOT verified locally: real Railway cgroup behavior (no Docker), live 429/credit exhaustion, Neon bandwidth under real checkpoint sizes — confirm via boot probe + WORKER_MEM telemetry on next deploy.
+
+### Free-tier LLM operations (verified live)
+
+- Freepool cascade order: groq → cerebras → nvidia → openrouter → mistral (only endpoints with keys are active). `OPENROUTER_API_KEY` is configured on Railway; the only `:free` models verified working on this account are `nvidia/nemotron-3.5-lightning:free` (reasoning model — needs `tokenHeadroom` on the endpoint or low max_tokens returns the thinking trace as content) and `liquid/lfm-2.5-2.6b:free` (unreliable — output sometimes lands in `reasoning` with empty `content`). `meta-llama/llama-3.3-70b-instruct:free` is gone from the free catalog (404); gemma/qwen `:free` entries returned provider errors on this account.
+- `PROVIDER_DEFAULT_TIMEOUT_MS.freepool = 240s` — the cascade window must outlast a slow reasoning endpoint; 90s aborted openrouter calls at the boundary.
+- Daily-quota 429s (Groq TPD 200k) suspend the provider for the parsed retry window only (~minutes), not 24h. Circuit-breaker keys are namespaced (`CB v2`) — bump the namespace to flush stale suspensions when Redis is unreachable.
+- Early-refusal contract: a multipass failure returns `_meta.failed` and `pipeline-v2` refuses immediately (`analysis_generation_failed`) — no render/editorial/regen burn on a stub, and raw provider errors never reach artifact text. Rank-level refusal marks the PipelineRun FAILED with the refusal reason; without that update the row stays RUNNING until the 45min sweep → `error:null` zombie runs.
+- `trend-analyzer` dedups TREND_BREAK signals on (type+title) within the 14-day TTL — the same break condition otherwise re-dispatched a doomed memo every ~15min.
