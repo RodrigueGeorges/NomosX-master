@@ -24,6 +24,11 @@ export interface ArbiterInput {
   analysis: Record<string, unknown>;
   sources: Array<{ title?: string; provider?: string; year?: number | null }>;
   debate?: DebateResult | null;
+  /** When false, the arbiter runs on the mid-tier reasoning model instead of
+   *  the apex model — used when upstream quality signals (critic score,
+   *  groundedness) indicate the artifact is unlikely to pass the gates, so
+   *  the premium scenario-writing spend would be wasted on a held piece. */
+  premium?: boolean;
 }
 
 function confidenceLabel(score: number): 'high' | 'medium' | 'low' {
@@ -296,7 +301,7 @@ Return JSON:
       maxTokens: 8000,
       jsonMode: true,
       enableCache: false,
-      task: 'editorial_arbiter',
+      task: input.premium === false ? 'strategic_analyst' : 'editorial_arbiter',
     });
 
     const parsed = parseJson<any>(response.content);

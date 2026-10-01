@@ -762,6 +762,15 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     // refines probabilities. Both outputs are reassigned by the caller.
     {
       const { runArbiterForesight } = await import('./pipeline-steps/arbiter-foresight');
+      // Cost gate: when the critic already predicts a held artifact (low score,
+      // weak groundedness, reject verdict), the apex arbiter model is spent on
+      // a piece that won't publish — degrade to mid-tier for this run.
+      const criticScore = (stats.critic as any)?.overallScore;
+      const criticGroundedness = (stats.critic as any)?.groundedness;
+      const arbiterDegraded =
+        (typeof criticScore === 'number' && criticScore < 50) ||
+        (stats.critic as any)?.verdict === 'reject' ||
+        (typeof criticGroundedness === 'number' && criticGroundedness < 0.6);
       const arbiterOut = await runArbiterForesight({
         query, topicClassification, castingResult,
         analysis: analysis as Record<string, any>,
@@ -769,6 +778,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
         label, detectedDomain, isStrategic,
         seedSourceIds: opts.seedSourceIds,
         pipelineRunId: pipelineRun.id, addCost,
+        degraded: arbiterDegraded,
       });
       institutePosition = arbiterOut.institutePosition;
       analysis = arbiterOut.analysis as typeof analysis;

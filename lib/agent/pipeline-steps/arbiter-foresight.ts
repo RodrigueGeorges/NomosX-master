@@ -30,6 +30,11 @@ export interface ArbiterForesightDeps {
   seedSourceIds?: string[];
   pipelineRunId: string;
   addCost: (usd: number | undefined, step: string) => void;
+  /** True when upstream quality signals (critic score, groundedness) predict
+   *  a held artifact — the arbiter drops from the apex model to mid-tier so
+   *  premium scenario-writing tokens aren't spent on a piece that won't
+   *  publish. */
+  degraded?: boolean;
 }
 
 export interface ArbiterForesightOutcome {
@@ -43,6 +48,9 @@ export async function runArbiterForesight(deps: ArbiterForesightDeps): Promise<A
   let institutePosition: InstitutePosition | undefined;
 
   if (castingResult) {
+    if (deps.degraded) {
+      console.log(`${label} ARBITER: degraded mode — weak upstream quality signals, running on mid-tier model`);
+    }
     emitProgress(pipelineRunId, 'ARBITER', 'started', 'Formulating institute position...');
     institutePosition = await editorialArbiter({
       question: query,
@@ -51,6 +59,7 @@ export async function runArbiterForesight(deps: ArbiterForesightDeps): Promise<A
       analysis,
       sources: topSources,
       debate: debateResult,
+      premium: !deps.degraded,
     });
     stats.editorialArbiter = {
       confidence: institutePosition.confidence,
