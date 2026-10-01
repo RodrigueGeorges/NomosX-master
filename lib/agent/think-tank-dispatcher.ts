@@ -638,16 +638,15 @@ export async function executeDispatchQueue(
   // (2x target, bounded by pool size) keeps cost bounded — each candidate
   // runs exactly once, no infinite retry.
   const maxAttempts = Math.min(items.length, maxExecutions * 2);
-  // Speculative inter-item pipelining (PASTE pattern, arXiv 2603.18897):
-  // stages are sequential INSIDE one pipeline, but item N+1's retrieval/LLM
-  // work doesn't depend on item N's post-render tail — running K items
-  // concurrently overlaps those phases instead of serializing the cycle.
-  // THINK_TANK_DISPATCH_CONCURRENCY: default 2, hard cap 3 (each pipeline
-  // holds a multi-MB corpus; the worker heap is sized for ~2 runs). Set 1
-  // to restore fully sequential dispatch.
+  // Sequential-by-default dispatch: a spare candidate only pays when the head
+  // item actually failed (published >= maxExecutions stops the loop before the
+  // spare launches). Speculative pipelining (PASTE pattern, arXiv 2603.18897)
+  // is still available via THINK_TANK_DISPATCH_CONCURRENCY=2..3 for speed-over-
+  // spend runs — in-flight items are never cancelled, so every concurrent
+  // launch is a guaranteed spend even when the head item publishes.
   const concurrency = Math.max(
     1,
-    Math.min(parseInt(process.env.THINK_TANK_DISPATCH_CONCURRENCY ?? "2", 10) || 2, 3),
+    Math.min(parseInt(process.env.THINK_TANK_DISPATCH_CONCURRENCY ?? "1", 10) || 1, 3),
   );
   if (concurrency > 1) {
     console.log(`[ThinkTank] Dispatch concurrency=${concurrency} — up to ${concurrency} pipelines in flight`);

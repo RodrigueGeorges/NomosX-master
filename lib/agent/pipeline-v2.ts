@@ -553,6 +553,24 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     savedCriticResult = criticOut.savedCriticResult;
   }
 
+  // ── TERMINAL-REJECT EARLY EXIT ──
+  // A critic reject with a very low score is unrecoverable by the editorial
+  // tail: no code path downstream can rewrite the analysis (critic repair only
+  // triggers on 'repair' verdicts, regen is decided in the orchestrator). Every
+  // stage after this point — debate, arbiter, DA, quality loop, hero image —
+  // spends ~$0.27-0.60 and ~10min on an artifact that will persist as HELD
+  // regardless. Render once for the admin-facing artifact, then go straight to
+  // persistence (institutional memory still wants the record).
+  const criticVerdictEarly = (stats.critic as any)?.verdict;
+  const criticScoreEarly = (stats.critic as any)?.overallScore;
+  const terminalReject =
+    criticVerdictEarly === 'reject' &&
+    typeof criticScoreEarly === 'number' && criticScoreEarly < 20;
+  if (terminalReject) {
+    console.warn(`${label} TERMINAL REJECT: critic verdict=reject score=${criticScoreEarly} — skipping editorial tail (debate/arbiter/DA/quality-loop/hero)`);
+    (stats as any).terminalReject = { verdict: criticVerdictEarly, score: criticScoreEarly, skippedStages: ['postCriticEnrichment', 'debate', 'arbiterForesight', 'devilsAdvocate', 'peerReviewAndPack', 'styleSweep', 'qualityLoop', 'heroImage'] };
+  }
+
   // ── STEP 7d: SCENARIO ENGINE — MOVED to pre-analyst (Step 6) for context injection ──
   // CANA + SCATTER now run BEFORE the analyst so their outputs enrich the analysis.
   // Stats are already recorded in the pre-analyst step above.
@@ -560,7 +578,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   // ── STEP 7c/7d/7e: POST-CRITIC ENRICHMENT — extracted to
   //    pipeline-steps/post-critic-enrichment.ts. Reflection + cross-model
   //    consensus + inter-paper KG are pure readers → run concurrently. ──
-  {
+  if (!terminalReject) {
     const { runPostCriticEnrichment } = await import('./pipeline-steps/post-critic-enrichment');
     await runPostCriticEnrichment({
       analysis, topSources, stats: stats as Record<string, any>,
@@ -701,7 +719,12 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     await runPostRenderQualityGates();
   };
 
-  if (editorialV2) {
+  if (terminalReject) {
+    // Minimal held artifact: one render pass so the publication row carries
+    // inspectable HTML, none of the paid editorial machinery.
+    html = await durable('render', () => renderEditorHtml());
+    bumpHtmlArtifact();
+  } else if (editorialV2) {
     console.log(`${label} EDITORIAL V2: foresight → debate → devil's advocate → editor → quality gates`);
 
     // NOTE: Foresight (Monte Carlo) now runs AFTER editorial arbiter, which creates the scenarios.
@@ -856,7 +879,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
 
   // ── STYLE GATES → SIGNAL SWEEP → DA RE-CHECK (extracted to
   //    pipeline-steps/style-sweep-recheck.ts — one coupled unit) ──
-  {
+  if (!terminalReject) {
     const { runStyleSweepRecheck } = await import('./pipeline-steps/style-sweep-recheck');
     const reviewCtx: import('./pipeline-steps/types').TailStepContext = {
       html,
@@ -890,7 +913,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   // ── POST-RENDER TAIL STEPS (extracted to lib/agent/pipeline-steps/) ──
   // Quality loop → self-correct checkpoint → hero image. Each step mutates a
   // shared context (html/stats/orchState); the orchestrator reads it back.
-  {
+  if (!terminalReject) {
     const { runPostRenderQualityLoop } = await import('./pipeline-steps/quality-loop');
     const { runFinalSelfCorrectCheckpoint } = await import('./pipeline-steps/self-correct-checkpoint');
     const { runHeroImageStep } = await import('./pipeline-steps/hero-image-step');

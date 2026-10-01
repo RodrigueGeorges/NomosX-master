@@ -202,12 +202,19 @@ function buildDomainAnalystContext(domain?: string): string {
 // CONTEXT BUILDER
 // ============================================================================
 
-function buildSourceContext(sources: any[], readings?: any[]): { ctx: string; groundedCount: number; groundedIndices: Set<number> } {
+function buildSourceContext(sources: any[], readings?: any[], depth: 'brief' | 'strategic' = 'brief'): { ctx: string; groundedCount: number; groundedIndices: Set<number> } {
   // Adaptive tiered context: top sources get full treatment, rest get compact.
-  // Tier scales with corpus size — 25% of sources get full context (min 20, max 40).
-  // This ensures deep analysis of the best sources whether we have 40 or 200.
-  const FULL_TIER = Math.max(20, Math.min(40, Math.ceil(sources.length * 0.25)));
+  // Tier scales with corpus size — 25% of sources get full context. The brief
+  // floor is lower than strategic: reader extractions carry the citable
+  // substance for EVERY grounded source (not just full-tier), so the raw
+  // abstract/excerpt bulk only needs to cover the strongest documents.
+  const isStrategic = depth === 'strategic';
+  const FULL_TIER = isStrategic
+    ? Math.max(20, Math.min(40, Math.ceil(sources.length * 0.25)))
+    : Math.max(10, Math.min(20, Math.ceil(sources.length * 0.25)));
   const COMPACT_ABSTRACT = 500; // Non-full-tier sources: abstract truncated to 500 chars
+  const FULL_ABSTRACT = isStrategic ? 3000 : 1500;
+  const FULL_EXCERPT = isStrategic ? 4000 : 2500;
 
   const readingById = new Map<string, any>();
   for (const r of readings ?? []) {
@@ -241,8 +248,8 @@ function buildSourceContext(sources: any[], readings?: any[]): { ctx: string; gr
         .filter((n: any): n is string => n !== null && n.length > 0) || [];
 
       const isFullTier = fullTierIdx.has(i);
-      const abstract = (s.abstract || "").slice(0, isFullTier ? 3000 : COMPACT_ABSTRACT);
-      const fullText = isFullTier ? (s.fullText || "").slice(0, 4000) : "";
+      const abstract = (s.abstract || "").slice(0, isFullTier ? FULL_ABSTRACT : COMPACT_ABSTRACT);
+      const fullText = isFullTier ? (s.fullText || "").slice(0, FULL_EXCERPT) : "";
 
       // Build context: full tier gets everything, compact tier gets title + abstract only
       let context = `[SRC-${i + 1}] ${s.provider.toUpperCase()} | Quality: ${s.qualityScore || 0}/100 | Citations: ${s.citationCount || 0} | EXTRACTION: ${grounded ? "GROUNDED (full-text/reader — citable for facts)" : "ABSTRACT-ONLY (metadata — context only, do NOT cite for specific facts/numbers)"}
@@ -250,7 +257,11 @@ Title: ${s.title}
 Authors: ${authors.join(", ") || "N/A"}
 Year: ${s.year || "N/A"}`;
 
-      if (isFullTier && reading && reading.confidence !== 'low') {
+      // Reader extractions are the citable substance — a grounded compact-tier
+      // source whose extractions are hidden gets cited anyway (its flag says
+      // GROUNDED), which manufactures misattribution. Render them for every
+      // grounded source; the raw abstract/excerpt is what tiers on cost.
+      if (reading && reading.confidence !== 'low') {
         context += `
 READER EXTRACTIONS:
   CLAIMS: ${reading.claims?.join(" | ") || "None"}
@@ -1249,7 +1260,7 @@ export async function analystAgentV3(
   const startTime = Date.now();
   const avgQuality = Math.round(sources.reduce((sum, s) => sum + (s.qualityScore || 0), 0) / Math.max(sources.length, 1));
   const lang = detectLanguage(question);
-  const { ctx: builtCtx, groundedCount, groundedIndices } = buildSourceContext(sources, readings);
+  const { ctx: builtCtx, groundedCount, groundedIndices } = buildSourceContext(sources, readings, options?.depth);
   let ctx = builtCtx;
   if (groundedCount < sources.length) {
     console.log(`[Analyst V3] GROUNDING: ${groundedCount}/${sources.length} sources carry extracted content — factual citations restricted to grounded tier`);
