@@ -731,7 +731,7 @@ function getGLMClient(): OpenAI | null {
   if (!glmClient) {
     glmClient = new OpenAI({
       apiKey: env.GLM_API_KEY,
-      baseURL: env.GLM_BASE_URL || 'https://api.z.ai/v1',
+      baseURL: env.GLM_BASE_URL || 'https://api.z.ai/api/paas/v4',
     });
   }
   return glmClient;
