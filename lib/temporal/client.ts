@@ -16,11 +16,12 @@ async function buildClient(): Promise<TemporalClientHandle> {
   const cfg = getTemporalConfig();
   if (!cfg.enabled) throw new Error('Temporal is not configured (TEMPORAL_ENABLED/ADDRESS/NAMESPACE/auth)');
 
-  const { Connection, Client, WorkflowIdReusePolicy, WorkflowIdConflictPolicy } = await import('@temporalio/client');
+  const { Connection, Client, WorkflowIdConflictPolicy } = await import('@temporalio/client');
   const { NativeConnection } = await import('@temporalio/worker');
 
+  // API-key auth rides on the default TLS channel; mTLS needs the cert pair.
   const tls = cfg.apiKey
-    ? { apiKey: cfg.apiKey }
+    ? true
     : cfg.tlsCert && cfg.tlsKey
       ? { clientCertPair: { crt: Buffer.from(cfg.tlsCert, 'base64'), key: Buffer.from(cfg.tlsKey, 'base64') } }
       : undefined;
@@ -43,7 +44,6 @@ async function buildClient(): Promise<TemporalClientHandle> {
           args: [input],
           // Idempotency is the workflowId itself: a second dispatch for the
           // same slot reuses the running execution instead of duplicating it.
-          workflowIdReusePolicy: WorkflowIdReusePolicy.TERMINATE_IF_RUNNING,
           workflowIdConflictPolicy: WorkflowIdConflictPolicy.USE_EXISTING,
         });
         return { workflowId, alreadyRunning: false };

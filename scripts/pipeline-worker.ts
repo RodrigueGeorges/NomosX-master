@@ -129,6 +129,18 @@ async function main() {
 
   const { registerAllJobHandlers } = await import('../lib/worker/job-handlers');
   registerAllJobHandlers();
+
+  // Temporal orchestration (opt-in): when TEMPORAL_ENABLED=1, poll the Cloud
+  // task queue in-process alongside the PG job loop — each claims its own
+  // queue, no double execution. Signal management stays with this process's
+  // handlers; a Temporal failure is logged but never kills the PG loop.
+  if (process.env.TEMPORAL_ENABLED === '1') {
+    void import('../lib/temporal/worker')
+      .then((m) => m.startTemporalWorker({ manageSignals: false }))
+      .then((handle) => handle.done)
+      .catch((err) => console.error('[pipeline-worker] temporal worker exited:', err));
+  }
+
   const processed = await runWorkerLoop({ workerId, pollMs, maxJobs, once });
   process.exit(processed >= 0 ? 0 : 1);
 }
