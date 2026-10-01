@@ -461,10 +461,11 @@ export async function runAndPublishInquiry(
         qualityScore: assessment.scores.qualityScore,
         trustScore: assessment.scores.trustScore,
       });
-      // Time guard: a regeneration is a second analyst+render pass — skip if
-      // the dispatch window (~90min) cannot accommodate it.
+      // Time guard: a seeded regeneration skips the scout (the slowest phase)
+      // and rides the reader cache — it needs ~20-25min, not a full pipeline
+      // run. Only skip when the ~90min item window genuinely cannot fit it.
       const elapsedMs = Date.now() - started;
-      if (regen.regenerate && elapsedMs > 45 * 60 * 1000) {
+      if (regen.regenerate && elapsedMs > 65 * 60 * 1000) {
         console.log(`[InquiryOrchestrator] REGEN skipped: ${Math.round(elapsedMs / 60000)}min elapsed — no dispatch headroom`);
       } else if (regen.regenerate) {
         const feedback = buildFailureFeedback({

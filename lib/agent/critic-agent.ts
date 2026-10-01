@@ -32,6 +32,9 @@ export interface AtomicClaim {
   text: string;
   citationTag?: string; // [SRC-N]
   sourceIndex?: number;
+  /** All cited indices for multi-cited claims ([SRC-22][SRC-16][SRC-9] → [22,16,9]).
+   *  sourceIndex is the primary; grounding verifies against the union excerpt. */
+  sourceIndices?: number[];
   // Epistemic kind — a prospective note's causal-chain claims are warranted
   // inferences, not source-asserted facts. Facts need literal support;
   // inferences/projections need a DERIVABLE premise in the cited source.
@@ -151,17 +154,22 @@ export async function decomposeAnalysis(analysis: string): Promise<{ claims: Ato
         // ("[SRC-7]") but leaves sourceIndex null — parse it instead of
         // letting the claim fall through to "unverifiable" (19/31 observed
         // on a live run, collapsing groundedness to ~39% on real evidence).
-        let sourceIndex = c.sourceIndex;
-        const tag = c.citationTag || (c.text.match(/\[(?:SRC|E)-(\d+)\]/)?.[0]);
-        if ((sourceIndex === undefined || sourceIndex === null) && tag) {
-          const m = tag.match(/\d+/);
-          if (m) sourceIndex = parseInt(m[0], 10);
-        }
+        // Multi-cited claims ([SRC-22][SRC-16][SRC-9] — 138 groups observed)
+        // carry every index so grounding can verify against the union.
+        const allTags = [
+          ...(c.citationTag ? [c.citationTag] : []),
+          ...(c.text.match(/\[(?:SRC|E)-?\d+\]/g) ?? []),
+        ];
+        const sourceIndices = [...new Set(
+          allTags.map(t => parseInt(t.match(/\d+/)![0], 10)).filter(Number.isFinite),
+        )];
+        const sourceIndex = c.sourceIndex ?? sourceIndices[0];
         return {
           id: c.id,
           text: c.text,
-          citationTag: c.citationTag ?? tag,
+          citationTag: c.citationTag ?? allTags[0],
           sourceIndex,
+          sourceIndices: sourceIndices.length > 1 ? sourceIndices : undefined,
           kind: c.kind === 'inference' || c.kind === 'projection' ? c.kind : 'fact',
           verdict: 'unverifiable',
           confidence: 0,
@@ -359,7 +367,29 @@ export async function groundClaims(
       source.fullText || undefined,
       sourceClaims,
     );
-    const sourcesJson = JSON.stringify([{ index: sourceIdx, title: source.title, abstract: evidence }]);
+    const sourceEntries: Array<{ index: number; title: string; abstract: string }> = [
+      { index: sourceIdx, title: source.title, abstract: evidence },
+    ];
+    // Multi-cited claims ([SRC-22][SRC-16][SRC-9]) — attach the OTHER cited
+    // sources' excerpts so a claim spread across sources isn't judged
+    // "unverifiable" against only the primary one.
+    const extraIdx = new Set<number>();
+    for (const c of sourceClaims) {
+      for (const ix of c.sourceIndices ?? []) {
+        if (ix !== sourceIdx) extraIdx.add(ix);
+      }
+    }
+    for (const ix of [...extraIdx].slice(0, 3)) {
+      const alt = sources.find(s => s.index === ix);
+      if (!alt) continue;
+      const altClaims = sourceClaims.filter(c => c.sourceIndices?.includes(ix));
+      sourceEntries.push({
+        index: ix,
+        title: alt.title,
+        abstract: await buildSourceExcerpt((alt.abstract || '').slice(0, 800), alt.fullText || undefined, altClaims, 1500),
+      });
+    }
+    const sourcesJson = JSON.stringify(sourceEntries);
 
     try {
       const response = await callLLM({
@@ -630,13 +660,16 @@ export function validateCitations(
 
   for (const claim of claims) {
     if (!claim.citationTag) {
-      // Check if the claim is factual and should have a citation
-      if (claim.verdict !== 'unverifiable' && /\d+%|\$\d|\d{4}|\d{3,}/.test(claim.text)) {
+      // A claim marked unverifiable BECAUSE it has no citation is exactly the
+      // case to flag — don't skip it, that's where the defect lives.
+      if (/\d+%|\$\d|\d{4}|\d{3,}/.test(claim.text) || claim.verdict === 'unverifiable') {
         issues.push({
           claimId: claim.id,
           tag: 'none',
           issue: 'missing',
-          explanation: 'Factual claim with numbers/statistics has no citation',
+          explanation: claim.verdict === 'unverifiable'
+            ? 'Claim carries no citation — cannot be verified'
+            : 'Factual claim with numbers/statistics has no citation',
         });
       }
       continue;
@@ -853,7 +886,21 @@ export async function runCritic(
   // presence of its evidentiary premise in the cited source, not by the
   // source literally asserting the conclusion.
   const supportedCount = groundingStats.supported + groundingStats.derived + groundingStats.partial * 0.5;
-  const groundedness = totalClaims > 0 ? supportedCount / totalClaims : 0;
+  // Groundedness measures "of the claims we could verify, how many held up".
+  // Claims that were never verifiable-by-design — no citation at all — belong
+  // to citation coverage (flagged as citationIssues), not grounding. Keeping
+  // them in the denominator double-punishes: each uncited claim silently sank
+  // groundedness AND escaped the citation-issue ledger (observed: 19/31
+  // unverifiable → 39% groundedness on a corpus that actually supported the
+  // cited claims). Claims unverifiable for a REAL reason (cited source not
+  // found / LLM could not verify) stay in the denominator.
+  const uncitedClaims = groundedClaims.filter(c =>
+    c.verdict === 'unverifiable' && (c.sourceIndex == null));
+  const verifiableTotal = totalClaims - uncitedClaims.length;
+  const groundedness = totalClaims > 0 ? supportedCount / Math.max(1, verifiableTotal) : 0;
+  if (uncitedClaims.length > 0) {
+    console.log(`[Critic] ${uncitedClaims.length}/${totalClaims} claims carry no citation — excluded from groundedness, flagged as citation issues`);
+  }
   // NomosX: Reduced severe contradiction penalty from 15→10 — productive disagreements should not be over-penalized
   const contradictionPenalty = contradictions.reduce((sum, c) => sum + (c.severity === 'severe' ? 10 : c.severity === 'moderate' ? 6 : 2), 0);
   // NomosX: Bias penalty is now PROPORTIONAL to the number of claims.

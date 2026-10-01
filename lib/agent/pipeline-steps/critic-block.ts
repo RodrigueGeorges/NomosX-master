@@ -401,7 +401,11 @@ export async function runCriticBlock(deps: CriticBlockDeps): Promise<CriticBlock
   if (savedCriticResult && !isBudgetConstrained() && orchState.iteration < orchState.maxIterations) {
     try {
       const unsupportedClaims = (savedCriticResult.claims || [])
-        .filter((c: any) => c.verdict === 'unsupported')
+        // Evidence requests target genuine evidence gaps: unsupported claims
+        // AND cited-but-unverifiable ones (the cited source didn't address the
+        // claim). Uncited claims are a discipline issue, not an evidence gap.
+        .filter((c: any) => c.verdict === 'unsupported' ||
+          (c.verdict === 'unverifiable' && c.sourceIndex != null))
         .slice(0, 3);
       const citationIssues = (savedCriticResult.citationIssues || [])
         .filter((i: any) => i.issue === 'missing' || i.issue === 'vague')

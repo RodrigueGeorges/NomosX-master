@@ -946,6 +946,13 @@ export async function runThinkTankCycle(
       data: { status: "EXPIRED" },
     });
     if (expired.count > 0) console.log(`[ThinkTank] Expired ${expired.count} stale signal(s) (>7d)`);
+    // Telemetry retention: SystemMetric grows unbounded (55K rows/22MB in
+    // weeks — the worker writes per poll). 7 days covers any dashboarding
+    // horizon; aggregates live in publications/briefs, not raw metrics.
+    const pruned = await prisma.systemMetric.deleteMany({
+      where: { timestamp: { lt: new Date(Date.now() - 7 * 86400000) } },
+    });
+    if (pruned.count > 0) console.log(`[ThinkTank] Pruned ${pruned.count} telemetry row(s) (>7d)`);
   } catch { /* hygiene only — never block the cycle */ }
 
   console.log(
