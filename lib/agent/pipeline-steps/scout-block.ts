@@ -200,11 +200,18 @@ export async function runScoutBlock(deps: ScoutBlockDeps): Promise<ScoutBlockRes
       // expansion and replan paths share the same constraint.
       const NODE_CORE_PROVIDERS = ["openalex", "crossref", "europepmc", "linkup", "tavily", "exa"] as const;
 
-      for (const node of sortedNodes) {
+      // Node scouts run through a bounded pool: the DAG's parentIds only feed
+      // the expansion-query context below — scout() itself never reads parent
+      // results — so serial execution just stacked 5× ~3min of wall-clock for
+      // no dependency reason. Concurrency 3 keeps rate limiters and heap in
+      // bounds (root budget ledger still caps the aggregate spend).
+      const NODE_CONCURRENCY = 3;
+      const nodeQueue = [...sortedNodes];
+      const scoutNode = async (node: any) => {
         node.status = 'scouting';
         // Use node-specific producers if available, otherwise fall back to global providers
         // Filter to known providers only — LLM may generate invalid names (e.g. 'area_studies')
-        const validNodeProducers = node.producers.filter(p => KNOWN_PROVIDERS.has(p));
+        const validNodeProducers = node.producers.filter((p: string) => KNOWN_PROVIDERS.has(p));
         const nodeProviders = (validNodeProducers.length >= 3
           ? Array.from(new Set([...validNodeProducers.slice(0, 8), ...NODE_CORE_PROVIDERS.slice(0, 4), 'no-routing']))
           : Array.from(new Set([...validNodeProducers, ...NODE_CORE_PROVIDERS, 'no-routing']))) as any;
@@ -213,36 +220,46 @@ export async function runScoutBlock(deps: ScoutBlockDeps): Promise<ScoutBlockRes
         // total across all nodes.
         const nodeResult = await withExecutionScope(`dp-node:${node.id}`, () =>
           scout(node.subQuestion, nodeProviders, perNodeProvider));
-        const nodeSourceIds = Array.isArray(nodeResult) ? nodeResult.map(s => s.id) : (nodeResult.sourceIds || []);
+        const nodeSourceIds = Array.isArray(nodeResult) ? nodeResult.map((s: any) => s.id) : (nodeResult.sourceIds || []);
         node.sourceIds = nodeSourceIds;
         node.sourceCount = nodeSourceIds.length;
         node.status = nodeSourceIds.length > 0 ? 'done' : 'failed';
         allSourceIds.push(...nodeSourceIds);
         console.log(`${label} DEEP PLANNER: node ${node.id} "${node.subQuestion.slice(0, 60)}" → ${nodeSourceIds.length} sources`);
-
-        // LOT 2.3: DAG mutable — if < 5 sources, try expanded search with parent context
-        if (nodeSourceIds.length < 5) {
-          const ancestorIds = getAncestorSourceIds(node.id, planResult.plan.nodes);
-          if (ancestorIds.length > 0) {
-            // Inject parent context as additional search terms
-            const parentNodes = planResult.plan.nodes.filter((n: any) => node.parentIds.includes(n.id));
-            const contextTerms = parentNodes.map((n: any) => n.subQuestion.split(' ').slice(0, 3).join(' ')).join(' ');
-            if (contextTerms) {
-              const expandedQuery = `${node.subQuestion} ${contextTerms}`;
-              // Lean set — expansion is a targeted retry, not a second full
-              // sweep. Passing the full `providers` list burned the shared
-              // root budget (139 providers × 12 queries observed live).
-              const expandResult = await withExecutionScope(`dp-expand:${node.id}`, () =>
-                scout(expandedQuery, nodeProviders, 25));
-              const expandIds = Array.isArray(expandResult) ? expandResult.map(s => s.id) : (expandResult.sourceIds || []);
-              allSourceIds.push(...expandIds);
-              node.sourceIds = [...new Set([...(node.sourceIds || []), ...expandIds])];
-              node.sourceCount = node.sourceIds.length;
-              node.status = 'expanded';
-              console.log(`${label} DEEP PLANNER: node ${node.id} expanded → +${expandIds.length} sources`);
-            }
-          }
+      };
+      await Promise.all(Array.from({ length: Math.min(NODE_CONCURRENCY, nodeQueue.length) }, async () => {
+        while (nodeQueue.length) {
+          const node = nodeQueue.shift()!;
+          await scoutNode(node);
         }
+      }));
+
+      // LOT 2.3: DAG mutable — thin nodes get an expanded retry enriched with
+      // parent context. Runs as a second pass AFTER the pool so ancestor
+      // sourceIds are populated (parallel scouts race parent completion).
+      for (const node of sortedNodes) {
+        if ((node.sourceCount ?? 0) >= 5) continue;
+        const ancestorIds = getAncestorSourceIds(node.id, planResult.plan.nodes);
+        if (ancestorIds.length === 0) continue;
+        const parentNodes = planResult.plan.nodes.filter((n: any) => node.parentIds.includes(n.id));
+        const contextTerms = parentNodes.map((n: any) => n.subQuestion.split(' ').slice(0, 3).join(' ')).join(' ');
+        if (!contextTerms) continue;
+        const expandedQuery = `${node.subQuestion} ${contextTerms}`;
+        const validNodeProducers = node.producers.filter((p: string) => KNOWN_PROVIDERS.has(p));
+        const nodeProviders = (validNodeProducers.length >= 3
+          ? Array.from(new Set([...validNodeProducers.slice(0, 8), ...NODE_CORE_PROVIDERS.slice(0, 4), 'no-routing']))
+          : Array.from(new Set([...validNodeProducers, ...NODE_CORE_PROVIDERS, 'no-routing']))) as any;
+        // Lean set — expansion is a targeted retry, not a second full
+        // sweep. Passing the full `providers` list burned the shared
+        // root budget (139 providers × 12 queries observed live).
+        const expandResult = await withExecutionScope(`dp-expand:${node.id}`, () =>
+          scout(expandedQuery, nodeProviders, 25));
+        const expandIds = Array.isArray(expandResult) ? expandResult.map((s: any) => s.id) : (expandResult.sourceIds || []);
+        allSourceIds.push(...expandIds);
+        node.sourceIds = [...new Set([...(node.sourceIds || []), ...expandIds])];
+        node.sourceCount = node.sourceIds.length;
+        node.status = 'expanded';
+        console.log(`${label} DEEP PLANNER: node ${node.id} expanded → +${expandIds.length} sources`);
       }
       allSourceIds = [...new Set(allSourceIds)];
 
