@@ -13,6 +13,7 @@
  */
 
 import { prisma } from '../db';
+import { cacheHelpers } from '../redis';
 
 // ============================================================================
 // TYPES
@@ -51,6 +52,51 @@ const BLACKLIST_THRESHOLD = 3;       // failures before blacklist
 const BLACKLIST_DURATION_MS = 30 * 60 * 1000; // 30 minutes
 const DEGRADED_THRESHOLD = 0.5;     // < 50% success rate = degraded
 
+// ── Redis mirror — the circuit-breaker map is process-local; without a
+// mirror, every worker redeploy loses all blacklists and dead providers get
+// re-probed from scratch (wasted 90s deadline slots on every restart). ──
+const BREAKER_KEY = 'nomosx:provider-health:v1';
+let lastPersistAt = 0;
+
+function persistBreakerState(): void {
+  const now = Date.now();
+  if (now - lastPersistAt < 10_000) return; // throttle — called per provider call
+  lastPersistAt = now;
+  const snapshot: Record<string, { cf: number; bu: number | null; lc: number }> = {};
+  for (const [provider, s] of circuitBreakers) {
+    snapshot[provider] = {
+      cf: s.consecutiveFailures,
+      bu: s.blacklistedUntil ? s.blacklistedUntil.getTime() : null,
+      lc: s.lastCheck.getTime(),
+    };
+  }
+  cacheHelpers.set(BREAKER_KEY, snapshot, 24 * 3600).catch(() => {});
+}
+
+async function hydrateBreakerState(): Promise<void> {
+  try {
+    const snapshot = await cacheHelpers.get<Record<string, { cf: number; bu: number | null; lc: number }>>(BREAKER_KEY);
+    if (!snapshot) return;
+    let restored = 0;
+    for (const [provider, s] of Object.entries(snapshot)) {
+      const local = circuitBreakers.get(provider);
+      if (local && local.lastCheck.getTime() >= s.lc) continue; // local is fresher
+      circuitBreakers.set(provider, {
+        consecutiveFailures: s.cf,
+        blacklistedUntil: s.bu ? new Date(s.bu) : null,
+        lastCheck: new Date(s.lc),
+      });
+      restored++;
+    }
+    const blacklisted = [...circuitBreakers.values()].filter(s => s.blacklistedUntil && s.blacklistedUntil > new Date()).length;
+    if (restored > 0) console.log(`[PROVIDER HEALTH] Hydrated ${restored} breaker state(s) from Redis (${blacklisted} still blacklisted)`);
+  } catch { /* Redis down → in-memory only */ }
+}
+
+// Hydrate once at module load — scout scheduling reads the map synchronously
+// later, so an early fire-and-forget hydrate covers the first fan-out.
+void hydrateBreakerState();
+
 // ============================================================================
 // CORE FUNCTIONS
 // ============================================================================
@@ -80,6 +126,9 @@ export function recordProviderCall(result: ProviderCallResult): void {
   state.lastCheck = new Date();
   circuitBreakers.set(result.provider, state);
 
+  // Mirror to Redis so the breaker survives redeploys (throttled internally)
+  persistBreakerState();
+
   // Persist to DB asynchronously (non-blocking)
   persistProviderCall(result, state).catch(() => {});
 }
@@ -101,6 +150,8 @@ export function isProviderHealthy(provider: string): boolean {
     state.consecutiveFailures = 0;
     state.blacklistedUntil = null;
     circuitBreakers.set(provider, state);
+    lastPersistAt = 0; // state changed — force mirror refresh
+    persistBreakerState();
     console.log(`[PROVIDER HEALTH] ✅ ${provider} auto-recovered from blacklist`);
   }
 
@@ -183,6 +234,8 @@ export async function getProviderHealthReport(): Promise<ProviderHealth[]> {
  */
 export function resetProvider(provider: string): void {
   circuitBreakers.delete(provider);
+  lastPersistAt = 0; // force the next persist write
+  persistBreakerState();
   console.log(`[PROVIDER HEALTH] 🔄 ${provider} circuit breaker manually reset`);
 }
 
