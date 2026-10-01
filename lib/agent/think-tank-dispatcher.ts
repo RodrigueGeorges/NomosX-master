@@ -597,7 +597,7 @@ interface DispatchDurable {
   }) => Promise<void> | void;
 }
 
-async function executeDispatchQueue(
+export async function executeDispatchQueue(
   items: ThinkTankDispatchItem[],
   cadence: CadenceState,
   maxExecutions: number,
@@ -768,6 +768,7 @@ async function executeDispatchQueue(
       });
 
     let topicMatched = false;
+    let pipelineCostUsd = 0;
     let result = await release();
     if (result.status === 'published') {
       topicMatched = true;
@@ -809,6 +810,9 @@ async function executeDispatchQueue(
           error: message,
         };
       });
+      // The release result below replaces `result` — bank the pipeline's spend
+      // now or the cycle's cost accounting would report a $0 run.
+      pipelineCostUsd += result.costUsd;
 
       // Freshly certified → release it into this slot (topic-faithful).
       if (result.status === 'ready' && result.publicationId) {
@@ -831,12 +835,13 @@ async function executeDispatchQueue(
     }
 
     outcomes.push({ item, result });
-    totalCostUsd += result.costUsd;
+    totalCostUsd += result.costUsd + pipelineCostUsd;
 
     // Record spend to global budget tracker
-    if (result.costUsd > 0) {
+    const spentUsd = result.costUsd + pipelineCostUsd;
+    if (spentUsd > 0) {
       import('./budget-manager')
-        .then(({ recordSpend }) => recordSpend(result.costUsd, 'pipeline', item.question.slice(0, 60)))
+        .then(({ recordSpend }) => recordSpend(spentUsd, 'pipeline', item.question.slice(0, 60)))
         .catch(() => {});
     }
 

@@ -6,6 +6,50 @@
 
 ---
 
+## Sprint 29 — Validated publication reserve
+
+Decouples production from cadence. Previously each dispatch slot ran a pipeline
+that either published or died with it (HELD = wasted slot). Now a validated
+artifact lands in the **reserve** (`status='READY'`, `publishedAt=null`,
+`publicId=null`) carrying a `ReserveCertificate` in `criticalLoopResult.reserve`
+— artifact hash (canonical JSON, sha256), gate input, 6h expiry, publicId +
+briefId identity.
+
+**`lib/agent/publication-reserve.ts`** — `certifyForReserve` re-runs the full
+gate + readiness on the evaluated artifact (revised html included — the
+certificate binds `gateInput.html`, so `html === pipeline.html` reference checks
+are wrong); throws if anything fails. `releaseReservedPublication` runs in a
+serializable tx: idempotent by `slotKey`, revalidates the certificate, checks
+source-version stability (`source.updatedAt > validatedAt` → skip), 7-day
+title/publicId/briefId duplicate guard, atomic `READY→PUBLISHED` claim with an
+optimistic lock on `status+updatedAt`, brief+signal updated in the same tx.
+
+**Dispatcher slot flow** (`think-tank-dispatcher.ts`, `executeDispatchQueue` —
+exported for tests):
+
+```
+0. topic-matched release (question filter) → publish for $0, no attempt spent
+1. pipeline with delivery:'reserve' → certify → READY
+2. immediate release of that artifact (publicationId-forced, still matched)
+3. on held/failed — cross-topic drain (question='') fills the slot from ANY
+   fresh validated stock; the item's signal stays OPEN
+```
+
+`slotKey = slot:<signalId|sha1(question)>` — stable across worker reclaims; a
+retry sees `skipped_duplicate`, never double-publishes. Signal resolution rule:
+`item.signalId` marked PUBLISHED only when the artifact carries its signalId
+or the release was topic-matched. Pipeline spend is banked before the release
+result replaces `result` — a $0 release never hides production cost.
+
+`publicPublicationWhere` requires `status:'PUBLISHED'` + `publishedAt` — READY
+artifacts never leak to public surfaces.
+
+Tests: `publication-reserve.test.ts` +5 (certify/validate/tamper/expiry/key-
+order), `reserve-dispatch.test.ts` +5 (matched fill, produce→release, cross-
+topic drain signal semantics, empty-reserve hold, reclaim idempotency).
+
+---
+
 ## Desk Identity Unification (post-S28)
 
 All expert agents now carry a single canonical NomosX identity — the Greek canon names — replacing the previous drift of three parallel naming systems.
