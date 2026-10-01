@@ -146,15 +146,27 @@ export async function decomposeAnalysis(analysis: string): Promise<{ claims: Ato
     const result = parseJson<{ claims: Array<{ id: string; text: string; citationTag?: string; sourceIndex?: number; kind?: string }> }>(response.content);
 
     if (result?.claims && Array.isArray(result.claims)) {
-      const claims: AtomicClaim[] = result.claims.map(c => ({
-        id: c.id,
-        text: c.text,
-        citationTag: c.citationTag,
-        sourceIndex: c.sourceIndex,
-        kind: c.kind === 'inference' || c.kind === 'projection' ? c.kind : 'fact',
-        verdict: 'unverifiable',
-        confidence: 0,
-      }));
+      const claims: AtomicClaim[] = result.claims.map(c => {
+        // Deterministic recovery: the LLM often extracts citationTag
+        // ("[SRC-7]") but leaves sourceIndex null — parse it instead of
+        // letting the claim fall through to "unverifiable" (19/31 observed
+        // on a live run, collapsing groundedness to ~39% on real evidence).
+        let sourceIndex = c.sourceIndex;
+        const tag = c.citationTag || (c.text.match(/\[(?:SRC|E)-(\d+)\]/)?.[0]);
+        if ((sourceIndex === undefined || sourceIndex === null) && tag) {
+          const m = tag.match(/\d+/);
+          if (m) sourceIndex = parseInt(m[0], 10);
+        }
+        return {
+          id: c.id,
+          text: c.text,
+          citationTag: c.citationTag ?? tag,
+          sourceIndex,
+          kind: c.kind === 'inference' || c.kind === 'projection' ? c.kind : 'fact',
+          verdict: 'unverifiable',
+          confidence: 0,
+        };
+      });
       return { claims, costUsd: typeof response.costUsd === 'number' ? response.costUsd : 0 };
     }
   } catch (err) {
@@ -391,12 +403,17 @@ export async function groundClaims(
   // A claim citing [SRC-5] may actually be supported by [SRC-12] — a wrong
   // citation is not missing evidence. For each unsupported claim, find the
   // corpus source whose text has the highest lexical overlap and re-verify
-  // against it in ONE batched call. Bounded: max 8 claims rescued.
+  // against it in batched calls. Prioritize claims that DO carry a citation
+  // (wrong-source misses) over uncited ones; cap total rescue work at 16
+  // claims in 2 batches — the old `length <= 12` gate silently disabled all
+  // rescue precisely when grounding went badly (>12 failures → zero rescue).
   const unsupported = updatedClaims.filter(c => c.verdict === 'unsupported' || c.verdict === 'unverifiable');
-  if (unsupported.length > 0 && unsupported.length <= 12) {
+  if (unsupported.length > 0) {
     try {
+      const prioritized = [...unsupported].sort((a, b) =>
+        (b.sourceIndex != null ? 1 : 0) - (a.sourceIndex != null ? 1 : 0));
       const rescueCandidates: Array<{ claim: AtomicClaim; altIdx: number; excerpt: string }> = [];
-      for (const claim of unsupported.slice(0, 8)) {
+      for (const claim of prioritized.slice(0, 16)) {
         const claimWords = new Set(claim.text.toLowerCase().replace(/[^\w\s]/g, ' ').split(/\s+/).filter((w: string) => w.length > 3));
         let bestIdx = -1; let bestScore = 0;
         for (const s of sources) {
@@ -417,8 +434,12 @@ export async function groundClaims(
           });
         }
       }
-      if (rescueCandidates.length > 0) {
-        const rescueJson = rescueCandidates.map(r => ({
+      let rescued = 0;
+      // Batch in groups of 8 — a single 2000-token response truncates on
+      // larger sets, silently dropping verdicts.
+      for (let off = 0; off < rescueCandidates.length; off += 8) {
+        const batch = rescueCandidates.slice(off, off + 8);
+        const rescueJson = batch.map(r => ({
           claimId: r.claim.id,
           claimText: r.claim.text,
           sourceIndex: r.altIdx,
@@ -437,7 +458,6 @@ export async function groundClaims(
         });
         totalCost += typeof rescueRes.costUsd === 'number' ? rescueRes.costUsd : 0;
         const rescueParsed = parseJson<{ results: Array<{ claimId: string; verdict: string; confidence: number; evidence?: string }> }>(rescueRes.content);
-        let rescued = 0;
         if (rescueParsed?.results) {
           for (const r of rescueParsed.results) {
             const idx = updatedClaims.findIndex(c => c.id === r.claimId);
@@ -452,8 +472,8 @@ export async function groundClaims(
             }
           }
         }
-        if (rescued > 0) console.log(`[Critic] Cross-source rescue: ${rescued}/${rescueCandidates.length} claims re-verified against alternate sources`);
       }
+      if (rescued > 0) console.log(`[Critic] Cross-source rescue: ${rescued}/${rescueCandidates.length} claims re-verified against alternate sources`);
     } catch (err) {
       console.warn('[Critic] Cross-source rescue failed (non-blocking):', String(err).slice(0, 80));
     }
