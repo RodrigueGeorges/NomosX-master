@@ -109,6 +109,11 @@ export interface PipelineCoreOptions {
   /** Regeneration loop: feedback from a rejected prior attempt injected into
    * the analyst context as mandatory corrections. */
   priorFailureFeedback?: string;
+  /** Regeneration loop: readings extracted by the prior attempt — the reader
+   * reuses them for sources it already extracted and only reads NEW sources
+   * (e.g. gap-fill additions). Skipping a full re-read saves ~5-8min and the
+   * embedding/extraction spend that pushed regens past their 25min cap. */
+  priorReadings?: unknown[];
   /** Enable the Witness — metacognitive observer (default: false).
    * The Witness observes each pipeline step, detects anomalies, and can
    * intervene. It also learns across runs to improve prompts and thresholds. */
@@ -376,6 +381,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     primedContext, stats, label, pipelineStart, pipelineRunId: pipelineRun.id,
     durable, emitProgress, addCost, ctx, orchState, assessAfterReader, recordDecision,
     quantDepth: opts.quantDepth, parametricInput: opts.parametricInput,
+    priorReadings: opts.priorReadings,
   });
   const readings = readerBlk.readings;
   const framing = readerBlk.framing;
@@ -1100,6 +1106,9 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     pipelineRunId: pipelineRun.id,
     format: (isStrategic ? "strategic" : isMemo ? "memo" : "brief") as ReportFormat,
     readerClaims,
+    // Readings are returned so a bounded regeneration can reuse the evidence
+    // base instead of re-fetching + re-extracting the whole corpus.
+    readings,
   };
 
   } catch (error: any) {
@@ -1187,6 +1196,9 @@ export interface StrategicPipelineOptions {
    * adversarial findings). Injected into the analyst context as mandatory
    * corrections. Set by the orchestrator's escalation loop. */
   priorFailureFeedback?: string;
+  /** Regeneration loop: readings extracted by the prior attempt — the reader
+   * reuses them; only new sources are fetched. */
+  priorReadings?: unknown[];
   /** Enable Mixture of Agents — multiple specialist analysts collaborate.
    * The aggregator synthesizes their perspectives into a unified analysis.
    * Default: false. */
@@ -1252,6 +1264,7 @@ export async function runStrategicPipeline(
     quantDepth: options.quantDepth,
     parametricInput: options.parametricInput,
     priorFailureFeedback: options.priorFailureFeedback,
+    priorReadings: options.priorReadings,
   });
 }
 
@@ -1330,6 +1343,7 @@ export async function runPipeline(
         parametricInput: options.parametricInput,
         useWitness: options.useWitness,
         priorFailureFeedback: options.priorFailureFeedback,
+        priorReadings: options.priorReadings,
         useMixtureOfAgents: options.useMixtureOfAgents,
         useWorldModel: options.useWorldModel,
         usePRM: options.usePRM,

@@ -46,6 +46,9 @@ export interface ReaderBlockDeps {
   recordDecision: (state: any, decision: any) => void;
   quantDepth: 'none' | 'parametric' | 'io' | 'full' | undefined;
   parametricInput: any;
+  /** Regeneration path: readings from the prior attempt — reused for sources
+   * already extracted; only sources without a prior reading are fetched. */
+  priorReadings?: unknown[];
 }
 
 export interface ReaderBlockResult {
@@ -87,13 +90,30 @@ export async function runReaderBlock(deps: ReaderBlockDeps): Promise<ReaderBlock
   // own checkpoint — a reclaim resumes at the first unfinished batch instead
   // of re-fetching the whole corpus, so repeated kills still converge.
   const READER_BATCH = 10;
+  // Regeneration reuse: readings extracted by the prior attempt carry the same
+  // evidence — re-fetching + re-extracting them is pure waste (~5-8min and the
+  // embedding spend that pushed regens past their 25min child-scope cap). Only
+  // sources lacking a prior reading (e.g. gap-fill additions) are extracted.
+  const priorById = new Map<string, any>(
+    (deps.priorReadings ?? [])
+      .map((r: any) => [r?.sourceId, r] as const)
+      .filter(([k]) => typeof k === 'string' && k.length > 0)
+  );
+  const priorReadingsBySourceId = priorById;
+  const sourcesToRead = topSources.filter((s: any) => !priorById.has(s.id));
+  if (priorById.size > 0) {
+    console.log(`${label} READER V3: reusing ${topSources.length - sourcesToRead.length}/${topSources.length} prior readings — extracting ${sourcesToRead.length} new source(s) only`);
+  }
   const readInBatches = async () => {
     const { readerAgentV3 } = await import('../reader-agent-v3');
-    const merged: any[] = [];
-    for (let b = 0; b < topSources.length; b += READER_BATCH) {
+    const fresh: any[] = [];
+    for (let b = 0; b < sourcesToRead.length; b += READER_BATCH) {
       const batchIdx = b / READER_BATCH;
-      const slice = topSources.slice(b, b + READER_BATCH);
-      const part = await durable(`reader:b${batchIdx}`, () =>
+      const slice = sourcesToRead.slice(b, b + READER_BATCH);
+      // Batch names carry a corpus fingerprint: with priorReadings reuse the
+      // batch contents differ from the attempt-1 layout, and a bare positional
+      // key would replay the wrong checkpoint on durable resume.
+      const part = await durable(`reader:b${batchIdx}:${String(slice[0]?.id ?? 'x').slice(-6)}`, () =>
         readerAgentV3(slice, {
           enablePdf: true,
           maxConcurrency: 4,
@@ -102,12 +122,19 @@ export async function runReaderBlock(deps: ReaderBlockDeps): Promise<ReaderBlock
           memoryBlock: readerMemoryBlock,
         })
       );
-      if (Array.isArray(part)) merged.push(...part);
+      if (Array.isArray(part)) fresh.push(...part);
       emitProgress(
         pipelineRunId, "READER", "started",
-        `Batch ${batchIdx + 1}/${Math.ceil(topSources.length / READER_BATCH)} — ${merged.length}/${topSources.length} sources extracted`
+        `Batch ${batchIdx + 1}/${Math.ceil(sourcesToRead.length / READER_BATCH)} — ${fresh.length}/${sourcesToRead.length} new sources extracted`
       );
     }
+    // Merge in topSources order: reused readings first-match by sourceId, fresh
+    // extractions appended for sources that had none.
+    const freshById = new Map<string, any>(fresh.map((r: any) => [r.sourceId, r]));
+    const merged = topSources.map((s: any) => priorReadingsBySourceId.get(s.id) ?? freshById.get(s.id)).filter(Boolean);
+    // Fresh extractions keyed differently (defensive — reader should always
+    // set sourceId, but fall back to appending any unaccounted readings).
+    for (const r of fresh) if (!merged.includes(r)) merged.push(r);
     return merged;
   };
 

@@ -589,7 +589,16 @@ export async function runAndPublishInquiry(
             question,
             depth,
             domain: req.domain,
-            pipelineOptions: { ...mergePipelineOptions(req), priorFailureFeedback: feedback },
+            pipelineOptions: {
+              ...mergePipelineOptions(req),
+              priorFailureFeedback: feedback,
+              // The regen REWRITES the analysis — durable checkpoints would
+              // replay attempt-1's 'analyst' step and produce the identical
+              // artifact. priorReadings covers the expensive reader reuse
+              // explicitly instead.
+              useDurableExecution: false,
+              priorReadings: (pipeline as any).readings,
+            },
             seedSourceIds: assessment.sourceIds.length >= 8 ? assessment.sourceIds : seedSourceIds,
           })
         );
