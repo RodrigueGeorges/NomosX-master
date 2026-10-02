@@ -334,6 +334,39 @@ export async function groundClaims(
   claims: AtomicClaim[],
   sources: Array<{ index: number; title: string; abstract: string; fullText?: string | null }>,
 ): Promise<{ claims: AtomicClaim[]; costUsd: number }> {
+  // ── Pre-grounding auto-attach ──
+  // A claim the analyst asserted without a citation is not automatically
+  // unverifiable — the corpus may already hold the supporting source. Attach
+  // it provisionally (higher bar than the rescue's 0.35 — nothing vouches
+  // for the claim yet) and let the grounding JUDGE decide. Unattachable
+  // claims still land as 'unverifiable'.
+  const uncited = claims.filter(c => c.sourceIndex == null);
+  let autoAttached = 0;
+  if (uncited.length > 0 && sources.length > 0) {
+    const sourceWordSets = sources.map(s => ({
+      index: s.index,
+      words: new Set(`${s.title || ''} ${s.abstract || ''} ${(s.fullText || '').slice(0, 8000)}`.toLowerCase().replace(/[^\w\s]/g, ' ').split(/\s+/).filter(Boolean)),
+    }));
+    for (const claim of uncited) {
+      const claimWords = new Set(claim.text.toLowerCase().replace(/[^\w\s]/g, ' ').split(/\s+/).filter((w: string) => w.length > 3));
+      if (claimWords.size === 0) continue;
+      let bestIdx = -1; let bestScore = 0;
+      for (const sw of sourceWordSets) {
+        let hits = 0;
+        for (const w of claimWords) if (sw.words.has(w)) hits++;
+        const score = hits / claimWords.size;
+        if (score > bestScore) { bestScore = score; bestIdx = sw.index; }
+      }
+      if (bestIdx >= 0 && bestScore >= 0.5) {
+        claim.sourceIndex = bestIdx;
+        autoAttached++;
+      }
+    }
+    if (autoAttached > 0) {
+      console.log(`[Critic] Auto-attached ${autoAttached}/${uncited.length} uncited claims to best-matching sources (provisional — grounding still judges)`);
+    }
+  }
+
   // Group claims by source for efficiency
   const claimsBySource = new Map<number, AtomicClaim[]>();
   for (const claim of claims) {
@@ -910,14 +943,27 @@ export async function runCritic(
   const biasPenaltyRaw = biases.reduce((sum, b) => sum + (b.severity === 'high' ? 8 : b.severity === 'medium' ? 4 : 1.5), 0);
   const biasPenaltyCap = Math.max(8, totalClaims * 0.25); // Cap at 25% of claim count
   const biasPenalty = Math.min(biasPenaltyRaw, biasPenaltyCap);
-  const citationPenalty = citationIssues.length * 2;
+  // Rate-based citation penalty — 19 issues out of 58 claims is a ~33%
+  // defect rate, not a −38 flat hit. Scales with the defect RATE so the
+  // penalty is immune to how many claims decomposition happens to emit.
+  const citationPenalty = Math.round((citationIssues.length / Math.max(1, totalClaims)) * 60);
   const overallScore = Math.max(0, Math.min(100, Math.round(groundedness * 100 - contradictionPenalty - biasPenalty - citationPenalty - preprintPenalty + noveltyBonus)));
 
-  // Determine verdict
+  // Determine verdict — by defect COMPOSITION, not just the scalar score.
+  // 'reject' is reserved for evidence-level failure: claims asserting what
+  // sources refute or don't support, severe contradictions, high-severity
+  // bias, or collapsed grounding. A high-groundedness analysis dragged under
+  // 40 by citation-tag gaps and moderate tensions is REPAIRABLE — the
+  // surgical patch exists precisely for that defect class and costs ~40×
+  // less than the re-analysis a premature 'reject' triggers.
+  const severeContradictions = contradictions.filter(c => c.severity === 'severe').length;
+  const highBiases = biases.filter(b => b.severity === 'high').length;
+  const fatalRate = totalClaims > 0 ? (groundingStats.unsupported + groundingStats.contradicted) / totalClaims : 0;
+  const repairableComposition = groundedness >= 0.65 && fatalRate <= 0.12 && severeContradictions === 0 && highBiases === 0;
   let verdict: CriticVerdict;
-  if (overallScore >= 75 && contradictions.filter(c => c.severity === 'severe').length === 0 && biases.filter(b => b.severity === 'high').length === 0) {
+  if (overallScore >= 75 && severeContradictions === 0 && highBiases === 0) {
     verdict = 'accept';
-  } else if (overallScore >= 40) {
+  } else if (overallScore >= 40 || repairableComposition) {
     verdict = 'repair';
   } else {
     verdict = 'reject';

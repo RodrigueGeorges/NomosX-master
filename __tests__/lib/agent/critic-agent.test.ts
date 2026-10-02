@@ -70,6 +70,67 @@ describe('validateCitations — uncited claims are flagged, not hidden', () => {
   });
 });
 
+describe('runCritic — auto-attach + composition verdict', () => {
+  it('auto-attaches an uncited claim to a lexically-matching source and grounds it', async () => {
+    mockedLLM.mockResolvedValueOnce({
+      content: JSON.stringify({ claims: [
+        { id: 'c1', text: 'Malaysia renegotiated the East Coast Rail Link debt', citationTag: null, sourceIndex: null, kind: 'fact' },
+        { id: 'c2', text: 'Iran adapted via regional trade networks', citationTag: '[SRC-2]', kind: 'fact' },
+      ] }),
+      costUsd: 0.001,
+    } as any);
+    // Grounding batches — whichever source the claims land on, support them
+    mockedLLM.mockImplementation(async () => ({
+      content: JSON.stringify({ results: [
+        { id: 'c1', verdict: 'supported', confidence: 0.9 },
+        { id: 'c2', verdict: 'supported', confidence: 0.9 },
+      ] }),
+      costUsd: 0.001,
+    } as any));
+    const result = await runCritic('text', SOURCES, { skipBias: true, skipContradictions: true });
+    // c1 auto-attached to SRC-1 → verified, counted in groundedness
+    expect(result.groundedness).toBe(1);
+    expect(result.claims.find(c => c.id === 'c1')?.verdict).toBe('supported');
+  });
+
+  it('returns repair (not reject) when score<40 but defects are repairable composition', async () => {
+    // 20 claims: 5 cited+supported (groundedness 1.0), 15 uncited gibberish
+    // (no lexical match → stay unverifiable → 15 'missing' issues → penalty 45).
+    // Plus 3 moderate contradiction pairs (−18) → score ~37 → was 'reject',
+    // now 'repair' (groundedness 1.0, fatalRate 0, no severe, no high bias).
+    const claims = [
+      ...Array.from({ length: 5 }, (_, i) => ({ id: `v${i}`, text: `Malaysia renegotiated rail debt ${i}`, citationTag: '[SRC-1]', kind: 'fact' })),
+      ...Array.from({ length: 15 }, (_, i) => ({ id: `u${i}`, text: `zqxwv flibberty unreleased factorization ${i}`, citationTag: null, sourceIndex: null, kind: 'fact' })),
+    ];
+    mockedLLM.mockResolvedValueOnce({ content: JSON.stringify({ claims }), costUsd: 0.001 } as any);
+    // Route all subsequent calls by prompt content (order: grounding → rescue → contradictions → repair)
+    mockedLLM.mockImplementation(async (args: any) => {
+      const c: string = args.messages?.[0]?.content ?? '';
+      if (c.includes('BEST-matching source')) {
+        return { content: JSON.stringify({ results: [] }), costUsd: 0.001 } as any; // rescue: none
+      }
+      if (c.includes('Identify contradictions')) {
+        return { content: JSON.stringify({ contradictions: [
+          { claim1Id: 'v0', claim2Id: 'v1', claim1Text: 'a', claim2Text: 'b', explanation: 'x', severity: 'moderate' },
+          { claim1Id: 'v1', claim2Id: 'v2', claim1Text: 'a', claim2Text: 'b', explanation: 'x', severity: 'moderate' },
+          { claim1Id: 'v2', claim2Id: 'v3', claim1Text: 'a', claim2Text: 'b', explanation: 'x', severity: 'moderate' },
+        ] }), costUsd: 0.001 } as any;
+      }
+      if (c.includes('REPAIR') || c.includes('repair')) {
+        return { content: JSON.stringify({ repairInstructions: 'fix citations', repairTargetClaims: [] }), costUsd: 0.001 } as any;
+      }
+      // grounding batch — support every claim id in the payload
+      const ids = [...c.matchAll(/"id":\s*"([^"]+)"/g)].map(m => m[1]);
+      return { content: JSON.stringify({ results: ids.map(id => ({ id, verdict: 'supported', confidence: 0.9 })) }), costUsd: 0.001 } as any;
+    });
+
+    const result = await runCritic('text', SOURCES, { skipBias: true, skipContradictions: false });
+    expect(result.overallScore).toBeLessThan(40);
+    expect(result.groundedness).toBe(1);
+    expect(result.verdict).toBe('repair'); // composition-based, not score-band
+  });
+});
+
 describe('runCritic — groundedness denominator excludes never-cited claims', () => {
   it('uncited claims surface as citation issues, not grounding misses', async () => {
     // Call 1: decomposition — 2 cited claims + 1 uncited

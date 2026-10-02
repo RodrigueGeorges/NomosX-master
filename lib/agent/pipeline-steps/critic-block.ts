@@ -35,6 +35,9 @@ export interface CriticBlockDeps {
   addCost: (usd: number | undefined, step: string) => void;
   emitProgress: (runId: string, step: PipelineStep, status: 'completed' | 'started' | 'failed' | 'skipped', message: string, metadata?: Record<string, any>) => void;
   pipelineRunId: string;
+  /** Pipeline wall-clock start — repair rounds are skipped when starting one
+   *  would push the tail (render/evals/persist) past the format timeout. */
+  pipelineStart?: number;
   ctx: {
     setAnalystOutput: (a: any) => void;
     requestSourceGap: (query: string, reason: string, origin: string, providers: string[], limit: number) => void;
@@ -55,7 +58,7 @@ export async function runCriticBlock(deps: CriticBlockDeps): Promise<CriticBlock
     topSources, readings, slimReadings, stats, label, query, detectedDomain,
     positioningBrief, fullContextBlock, isStrategic, isBudgetConstrained,
     orchState, analystMultipass, bumpAnalysisArtifact, tagEval, addCost,
-    emitProgress, pipelineRunId, ctx, selfCorrector, processGapRequests,
+    emitProgress, pipelineRunId, pipelineStart, ctx, selfCorrector, processGapRequests,
   } = deps;
   let analysis = deps.state.analysis;
   let reAnalysisBudget = deps.state.reAnalysisBudget;
@@ -202,7 +205,17 @@ export async function runCriticBlock(deps: CriticBlockDeps): Promise<CriticBlock
   const repairTrigger = savedCriticResult?.verdict === 'repair' && savedCriticResult.repairInstructions &&
     savedCriticResult.overallScore < 65;
   const panelTrigger = savedPanelResult?.veto === true && panelWeakFindings.length > 0;
-  if ((repairTrigger || panelTrigger) && !isBudgetConstrained() &&
+  // Wall-clock guard: a repair round (patch + critic/panel recheck, or a full
+  // re-analysis) takes 3-12min. Starting one with <~15min of headroom before
+  // the format timeout would sacrifice the render+eval+persist tail.
+  const elapsedMs = pipelineStart ? Date.now() - pipelineStart : 0;
+  const repairHeadroomMs = Number(process.env.CRITIC_REPAIR_HEADROOM_MS ?? 900_000);
+  const enoughTime = !pipelineStart || (Date.now() + repairHeadroomMs) <
+    (pipelineStart + (isStrategic ? 4_500_000 : 3_900_000));
+  if (!enoughTime && (repairTrigger || panelTrigger)) {
+    console.log(`${label} CRITIC REPAIR: skipped — ${Math.round(elapsedMs / 60000)}min elapsed, repair would overrun the timeout tail`);
+  }
+  if ((repairTrigger || panelTrigger) && enoughTime && !isBudgetConstrained() &&
       orchState.iteration < orchState.maxIterations && reAnalysisBudget > 0) {
     reAnalysisBudget--;
     deps.state.reAnalysisBudget = reAnalysisBudget;

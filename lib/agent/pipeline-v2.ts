@@ -591,7 +591,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
       positioningBrief, fullContextBlock, isStrategic, isBudgetConstrained,
       orchState,
       analystMultipass, bumpAnalysisArtifact, tagEval, addCost,
-      emitProgress, pipelineRunId: pipelineRun.id, ctx, selfCorrector,
+      emitProgress, pipelineRunId: pipelineRun.id, pipelineStart, ctx, selfCorrector,
       processGapRequests,
     });
     analysis = criticOut.analysis;
