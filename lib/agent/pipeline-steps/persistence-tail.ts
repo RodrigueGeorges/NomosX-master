@@ -10,7 +10,7 @@
  * CSS-selector fix mutates it before persistence.
  */
 
-import { prisma } from '../../db';
+import { prisma, withDbRetry } from '../../db';
 import { extractAndStoreConcepts } from '../knowledge-graph';
 import { extractAndStoreGaps, markGapsFilled } from '../gap-filler';
 import { recordSourceUsage } from '../source-reputation-agent';
@@ -111,18 +111,20 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
     // Fallback: strip complex nested objects that may cause circular refs
     safeStats = { error: 'stats serialization failed', keys: Object.keys(stats) };
   }
-  const brief = await prisma.brief.create({
-    data: {
-      kind: isStrategic ? "strategic" : "brief",
-      question: query,
-      html: safeHtml,
-      sources: topSources.map((s: any) => s.id),
-      pipelineRunId: pipelineRun.id,
-      lineage: safeStats as any,
-      publicId: null,
-      trustScore: (orchState.trustScore ?? 0) / 100,
-    },
-  });
+  const brief = await withDbRetry(() =>
+    prisma.brief.create({
+      data: {
+        kind: isStrategic ? "strategic" : "brief",
+        question: query,
+        html: safeHtml,
+        sources: topSources.map((s: any) => s.id),
+        pipelineRunId: pipelineRun.id,
+        lineage: safeStats as any,
+        publicId: null,
+        trustScore: (orchState.trustScore ?? 0) / 100,
+      },
+    })
+  );
   stats.brief = { id: brief.id, ...(estimatedPages && { estimatedPages }) };
 
   // ── POST-PUBLISH WRITES — independent persistence, run in parallel ──
@@ -324,20 +326,26 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
 
   const durationMs = Date.now() - pipelineStart;
   emitProgress(pipelineRun.id, "COMPLETE", "completed", `Pipeline complete in ${(durationMs / 1000).toFixed(1)}s`, { costUsd: totalCost, durationMs, blackboard: ctx.getSummary() });
-  await prisma.pipelineRun.update({
-    where: { id: pipelineRun.id },
-    data: {
-      status: "COMPLETED",
-      finishedAt: new Date(),
-      durationMs,
-      totalCostUsd: totalCost,
-      sourcesFound: stats.scout?.found || 0,
-      sourcesRanked: stats.rank?.count || 0,
-      sourcesUsed: topSources.length,
-      trustScore: stats.criticalLoop?.finalScore ?? null,
-      steps: JSON.parse(JSON.stringify({ ...stats, orchestrator: { ...stats.orchestrator, decisions: orchState.decisions } })),
-    },
-  });
+  // Retry transient failures, but never throw past this point: the brief is
+  // already committed — a dropped run-status write must not orphan it.
+  await withDbRetry(() =>
+    prisma.pipelineRun.update({
+      where: { id: pipelineRun.id },
+      data: {
+        status: "COMPLETED",
+        finishedAt: new Date(),
+        durationMs,
+        totalCostUsd: totalCost,
+        sourcesFound: stats.scout?.found || 0,
+        sourcesRanked: stats.rank?.count || 0,
+        sourcesUsed: topSources.length,
+        trustScore: stats.criticalLoop?.finalScore ?? null,
+        steps: JSON.parse(JSON.stringify({ ...stats, orchestrator: { ...stats.orchestrator, decisions: orchState.decisions } })),
+      },
+    })
+  ).catch((err) =>
+    console.warn(`${label} PERSISTENCE: pipelineRun COMPLETED update failed (non-blocking — brief ${stats.brief?.id} is safe):`, err)
+  );
 
   // DURABLE: run reached a verdict (publish or held) — seal checkpoints so a
   // later run of the same query+format starts fresh. A killed/timed-out run
