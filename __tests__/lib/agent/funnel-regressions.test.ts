@@ -101,7 +101,7 @@ describe('HTTP diagnostic safety', () => {
   });
   it('does not attach query credentials to timeout errors', async () => {
     jest.spyOn(globalThis, 'fetch').mockRejectedValue(Object.assign(new Error('aborted'), { name: 'AbortError' }));
-    await expect(httpGet('https://example.test/?api_key=test-secret', { retries: 0 }))
+    await expect(httpGet('https://example.test/?api_key=test-secret', { retries: 0, cache: false }))
       .rejects.toMatchObject({ message: 'Request timeout after 30000ms', response: undefined });
   });
 });

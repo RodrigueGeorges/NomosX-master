@@ -110,6 +110,7 @@ export interface HttpOptions {
   rateLimit?: RateLimitConfig;
   rateLimiterKey?: string; // Key into global rate limiter registry — re-acquires on retry
   responseType?: "json" | "text"; // Type de réponse attendue
+  cache?: boolean; // default true for httpGet — set false for freshness-critical calls
 }
 
 export interface RateLimitConfig {
@@ -592,6 +593,21 @@ async function fetchWithTimeout(
   }
 }
 
+// Short-TTL GET cache + in-flight dedupe. The scout fans out per query
+// variation and multiple waves/nodes re-issue byte-identical provider
+// queries (observed: 12× the same OpenAlex search in one run). Responses
+// are shared by promise so concurrent duplicates join the same request.
+// Keyed on url + responseType + headers (auth-bearing calls stay distinct).
+const GET_CACHE_TTL_MS = 10 * 60 * 1000;
+const GET_CACHE_MAX = 4000;
+interface GetCacheEntry { promise: Promise<any>; expires: number }
+const getCache = new Map<string, GetCacheEntry>();
+let getCacheHits = 0;
+
+export function getHttpCacheStats() {
+  return { entries: getCache.size, hits: getCacheHits };
+}
+
 export async function httpGet<T = any>(
   url: string,
   options: HttpOptions = {}
@@ -599,10 +615,39 @@ export async function httpGet<T = any>(
   const parent = getExecutionSignal();
   const signal = parent && options.signal ? AbortSignal.any([parent, options.signal]) : parent ?? options.signal;
   signal?.throwIfAborted();
-  return httpInflight(() => {
+
+  const cacheable = options.cache !== false && process.env.HTTP_GET_CACHE !== "0";
+  const key = cacheable
+    ? `${url}|${options.responseType ?? "json"}|${JSON.stringify(options.headers ?? {})}`
+    : "";
+  if (cacheable) {
+    const hit = getCache.get(key);
+    if (hit && hit.expires > Date.now()) {
+      getCacheHits++;
+      // Clone on hit: callers receive a private copy — a mutating consumer
+      // must not corrupt the shared cached payload for later callers.
+      return hit.promise.then(v =>
+        (v !== null && typeof v === "object" ? structuredClone(v) : v) as T
+      );
+    }
+    getCache.delete(key);
+  }
+
+  const promise = httpInflight(() => {
     signal?.throwIfAborted();
     return httpGetImpl<T>(url, { ...options, signal });
   });
+
+  if (cacheable) {
+    if (getCache.size >= GET_CACHE_MAX) getCache.clear();
+    // Store a clone so the first caller's mutations can't corrupt the cache.
+    const stored = promise.then(v =>
+      v !== null && typeof v === "object" ? structuredClone(v) : v
+    );
+    getCache.set(key, { promise: stored, expires: Date.now() + GET_CACHE_TTL_MS });
+    stored.catch(() => getCache.delete(key)); // don't cache failures
+  }
+  return promise;
 }
 
 async function httpGetImpl<T = any>(

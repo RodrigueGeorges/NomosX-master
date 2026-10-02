@@ -150,3 +150,38 @@ test('retries consume real budget — a 4-attempt call counts 4 wire requests', 
   expect(usage).toBe(4);
   expect(fetchMock).toHaveBeenCalledTimes(4);
 });
+
+test('identical GETs within TTL share one wire request (run-scoped dedupe)', async () => {
+  fetchMock.mockImplementation(async () => new Response('{"ok":true}'));
+  const url = 'https://api.dedupe.test/search?q=artificial+intelligence';
+  const [a, b, c] = await Promise.all([
+    httpGet(url, { retries: 0 }),
+    httpGet(url, { retries: 0 }),
+    httpGet(url, { retries: 0 }),
+  ]);
+  expect(fetchMock).toHaveBeenCalledTimes(1);
+  expect(a).toEqual({ ok: true });
+  // sequential hit — still deduped
+  await httpGet(url, { retries: 0 });
+  expect(fetchMock).toHaveBeenCalledTimes(1);
+  // mutations by one caller must not corrupt the shared payload
+  (a as any).ok = false;
+  const d = await httpGet(url, { retries: 0 });
+  expect(d).toEqual({ ok: true });
+  // cache:false bypasses
+  await httpGet(url, { retries: 0, cache: false });
+  expect(fetchMock).toHaveBeenCalledTimes(2);
+});
+
+test('failed GETs are not cached — a retry re-issues the wire request', async () => {
+  let calls = 0;
+  fetchMock.mockImplementation(async () => {
+    calls++;
+    return calls === 1 ? new Response('boom', { status: 500 }) : new Response('{"ok":1}');
+  });
+  const url = 'https://api.dedupe.test/flaky';
+  await httpGet(url, { retries: 0 }).catch(() => {});
+  const res = await httpGet(url, { retries: 0 });
+  expect(calls).toBe(2);
+  expect(res).toEqual({ ok: 1 });
+});
