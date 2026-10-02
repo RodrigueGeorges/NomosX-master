@@ -387,6 +387,42 @@ export async function runPostAnalystChecks(deps: PostAnalystChecksDeps): Promise
   let reAnalysisBudget = isStrategic ? 2 : 1;
 
   // ── SELF-CORRECTION: ANALYST — assess quality, retry if low (Reflexion pattern) ──
+  // Deterministic trigger first: the LLM reflection may miss citation-spread
+  // deficits (observed on prod: 11/38 sources cited → coverage 29% < 35%,
+  // propagated through critic → quality-loop had to inject 269 citations
+  // post-hoc). A <35% spread forces exactly one budgeted retry.
+  try {
+    const analysisStrPre = typeof analysis === 'string' ? analysis : JSON.stringify(analysis);
+    const uniqueCited = new Set((analysisStrPre.match(/\[SRC-(\d+)\]/g) || [])).size;
+    const spread = topSources.length > 0 ? uniqueCited / topSources.length : 1;
+    if (spread < 0.35 && reAnalysisBudget > 0 && selfCorrectRetries < 2) {
+      reAnalysisBudget--;
+      selfCorrectRetries++;
+      console.log(`${label} SELF-CORRECTION (ANALYST): citation spread ${(spread * 100).toFixed(0)}% < 35% (${uniqueCited}/${topSources.length} sources) — forced retry`);
+      const retried = await analystMultipass(query, topSources, slimReadings, {
+        contextBlock: (fullContextBlock ?? '') +
+          `\n\n## MANDATORY CORRECTION — CITATION SPREAD\nYour previous analysis cited only ${uniqueCited}/${topSources.length} sources (required ≥35%). Re-write citing AT LEAST ${Math.ceil(topSources.length * 0.4)} DISTINCT [SRC-N] sources. Every grounded source was extracted for a reason — go through them systematically. Claims without [SRC-N] citations WILL BE DELETED.`,
+        domain: detectedDomain,
+        depth: isStrategic ? "strategic" : "brief",
+      });
+      const retriedStr = typeof retried === 'string' ? retried : JSON.stringify(retried);
+      const retriedCited = new Set((retriedStr.match(/\[SRC-(\d+)\]/g) || [])).size;
+      const retriedSpread = topSources.length > 0 ? retriedCited / topSources.length : 0;
+      if (retried && typeof retried === 'object' && retriedSpread > spread && !(retried as any)?._meta?.failed) {
+        analysis = retried;
+        bumpAnalysisArtifact();
+        ctx.setAnalystOutput(analysis);
+        stats.citationSpreadRetry = { before: spread, after: retriedSpread, adopted: true };
+        console.log(`${label} SELF-CORRECTION (ANALYST): spread ${(spread * 100).toFixed(0)}% → ${(retriedSpread * 100).toFixed(0)}% — adopted`);
+      } else {
+        stats.citationSpreadRetry = { before: spread, after: retriedSpread, adopted: false };
+        console.log(`${label} SELF-CORRECTION (ANALYST): retry did not improve spread — original kept`);
+      }
+    }
+  } catch (spreadErr) {
+    console.warn(`${label} SELF-CORRECTION (ANALYST): spread retry failed (non-blocking):`, spreadErr);
+  }
+
   try {
     const analysisStr = typeof analysis === 'string' ? analysis : JSON.stringify(analysis);
     const analysisCitations = new Set((analysisStr.match(/\[SRC-\d+\]/g) || []).map((m: string) => m)).size;

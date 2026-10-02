@@ -71,9 +71,26 @@ export function backfillCitationsFromAnalysis(
   const textFields = ['verdict', 'summary', 'consensus', 'evidence', 'implications',
     'risks', 'open_questions', 'what_changes_mind', 'anchoringBasis', 'throughLine'];
 
+  // Multipass substance lives in structured fields (frictionMap.mechanisms[],
+  // causalChain[], keyFindings[], dataLandscape). Snippet-matching is the
+  // guard — JSON text that never appears verbatim in the HTML simply won't
+  // match, so serializing them is safe and only restores analyst-authored
+  // citations the renderer dropped.
+  const extraStructured = ['frictionMap', 'causalChain', 'keyFindings',
+    'dataLandscape', 'whatToWatch', 'rejectedAlternatives', 'scenarios'];
+  const candidateTexts: string[] = [];
   for (const field of textFields) {
     const val = analysis[field];
-    if (typeof val !== 'string') continue;
+    if (typeof val === 'string') candidateTexts.push(val);
+  }
+  for (const field of extraStructured) {
+    const val = analysis[field];
+    if (val != null && typeof val !== 'string') {
+      candidateTexts.push(JSON.stringify(val));
+    }
+  }
+
+  for (const val of candidateTexts) {
 
     // Find sentences with missing citations.
     // CRITICAL: Don't split on '.' between digits (decimal points like "0.5").

@@ -164,7 +164,7 @@ Output ONLY the JSON object — no markdown, no prose.`;
 // SECTION INVENTORY BUILDER
 // ============================================================================
 
-function buildSectionInventory(analysis: any): string {
+export function buildSectionInventory(analysis: any): string {
   const sections: string[] = [];
 
   const fields = [
@@ -224,6 +224,40 @@ function buildSectionInventory(analysis: any): string {
         sections.push(`── ${field.label} (structured) ──\n${JSON.stringify(content, null, 2).slice(0, 500)}`);
       }
     }
+  }
+
+  // Multipass analyst shape — the fields above assume the legacy/strategic
+  // schema (summary/consensus/implications). The multipass analyst emits
+  // throughLine/verdict/causalChain/keyFindings/frictionMap instead: without
+  // them the inventory is near-empty and every review scores ~25-35/100
+  // "no narrative arc" (observed on both prod HELD runs).
+  const multipassFields = [
+    { key: 'throughLine', label: 'Through Line (governing thought)' },
+    { key: 'verdict', label: 'Verdict' },
+    { key: 'anchoringBasis', label: 'Anchoring Basis' },
+    { key: 'causalChain', label: 'Causal Chain' },
+    { key: 'evidenceAssessment', label: 'Evidence Assessment' },
+    { key: 'trajectory', label: 'Trajectory' },
+    { key: 'rejectedAlternatives', label: 'Rejected Alternatives' },
+    { key: 'whatToWatch', label: 'What To Watch' },
+  ];
+  for (const field of multipassFields) {
+    const content = analysis[field.key];
+    if (!content) continue;
+    if (typeof content === 'string' && content.trim().length > 0) {
+      const hasCitations = /\[SRC-\d+\]/.test(content);
+      sections.push(`── ${field.label} (${content.split(/\s+/).length} words, citations: ${hasCitations}) ──\n${content.slice(0, 500)}${content.length > 500 ? '...' : ''}`);
+    } else if (Array.isArray(content)) {
+      sections.push(`── ${field.label} (${content.length} items) ──\n${JSON.stringify(content.slice(0, 3)).slice(0, 500)}`);
+    } else if (typeof content === 'object') {
+      sections.push(`── ${field.label} (structured) ──\n${JSON.stringify(content, null, 2).slice(0, 500)}`);
+    }
+  }
+  const fm = analysis.frictionMap;
+  if (fm && typeof fm === 'object') {
+    const mechCount = Array.isArray(fm.mechanisms) ? fm.mechanisms.length : 0;
+    const collCount = Array.isArray(fm.collisions) ? fm.collisions.length : 0;
+    sections.push(`── Friction Map (${mechCount} mechanisms, ${collCount} collisions) ──\n${JSON.stringify((fm.mechanisms ?? []).slice(0, 4)).slice(0, 600)}`);
   }
 
   return sections.join('\n\n');
