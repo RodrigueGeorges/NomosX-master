@@ -710,6 +710,30 @@ export async function runAndPublishInquiry(
     status = "held";
   }
 
+  // Infra-vs-evidence attribution: a retrieval-related hold during a provider
+  // outage is a retryable infrastructure event, not a verdict on the topic.
+  // Postmortems and eval:runs must distinguish the two — without this, every
+  // degraded-provider cycle reads as "no evidence exists".
+  if (status !== "published") {
+    try {
+      const { getProviderHealthReport } = await import("./provider-health-tracker");
+      const health = await getProviderHealthReport();
+      const down = health.filter(h => h.status === "blacklisted" || h.consecutiveFailures >= 3);
+      const depthFailed = gate.checks.some(c => c.checkType === "source_depth" && !c.passed);
+      (pipeline.stats as Record<string, unknown>).providerHealthAtGate = {
+        providersTotal: health.length,
+        providersDown: down.length,
+        downList: down.map(h => h.provider),
+        holdCause: depthFailed && down.length >= Math.max(3, Math.ceil(health.length * 0.3))
+          ? "infrastructure" : depthFailed ? "evidence" : "quality",
+        capturedAt: new Date().toISOString(),
+      };
+      if (depthFailed && down.length > 0) {
+        console.log(`[InquiryOrchestrator] HOLD attribution: source_depth failed with ${down.length}/${health.length} providers down → ${(pipeline.stats as any).providerHealthAtGate.holdCause}`);
+      }
+    } catch { /* non-blocking telemetry */ }
+  }
+
   const publicId = pipeline.inquiry.slug;
   let reserve: ReturnType<typeof certifyForReserve> | undefined;
   if (req.delivery === 'reserve' && status === 'published') {
