@@ -50,6 +50,12 @@ export async function runPreCriticGates(deps: PreCriticGatesDeps): Promise<PreCr
         sectionsWithIssues: structuralResult.sectionReviews?.filter((s: any) => s.issues?.length > 0).length || 0,
         logicalGaps: structuralResult.logicalGaps?.length || 0,
         suggestions: structuralResult.restructuringSuggestions?.length || 0,
+        // Actionable text for the surgical-repair path (counts alone cannot fix anything)
+        topSuggestions: structuralResult.restructuringSuggestions?.slice(0, 3) ?? [],
+        topGaps: structuralResult.logicalGaps?.slice(0, 3) ?? [],
+        topSectionIssues: structuralResult.sectionReviews
+          ?.flatMap((s: any) => (s.issues ?? []).slice(0, 2).map((i: string) => `${s.sectionName}: ${i}`))
+          .slice(0, 5) ?? [],
         costUsd: structuralResult.costUsd,
       }, 'analysis');
       addCost(structuralResult.costUsd, 'STRUCTURAL_EDITOR');

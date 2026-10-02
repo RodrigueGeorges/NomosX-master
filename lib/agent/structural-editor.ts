@@ -167,6 +167,13 @@ Output ONLY the JSON object — no markdown, no prose.`;
 export function buildSectionInventory(analysis: any): string {
   const sections: string[] = [];
 
+  // The review must SEE the governing thought (section opening) and the
+  // "so what" (section ending) to grade pyramid flow. Blind truncation at
+  // 500 chars showed the judge ~16% of a 700-word verdict → systematic
+  // mid-60s scores on well-structured analyses. Head+tail fixes that.
+  const headTail = (s: string): string =>
+    s.length <= 1600 ? s : `${s.slice(0, 1000)}\n[...${s.length - 1500} chars elided...]\n${s.slice(-500)}`;
+
   const fields = [
     { key: 'title', label: 'Title' },
     { key: 'summary', label: 'Executive Summary' },
@@ -184,7 +191,7 @@ export function buildSectionInventory(analysis: any): string {
     if (content && (typeof content === 'string') && content.trim().length > 0) {
       const wordCount = content.split(/\s+/).length;
       const hasCitations = /\[SRC-\d+\]/.test(content);
-      sections.push(`── ${field.label} (${wordCount} words, citations: ${hasCitations}) ──\n${content.slice(0, 500)}${content.length > 500 ? '...' : ''}`);
+      sections.push(`── ${field.label} (${wordCount} words, citations: ${hasCitations}) ──\n${headTail(content)}`);
     }
   }
 
@@ -246,7 +253,7 @@ export function buildSectionInventory(analysis: any): string {
     if (!content) continue;
     if (typeof content === 'string' && content.trim().length > 0) {
       const hasCitations = /\[SRC-\d+\]/.test(content);
-      sections.push(`── ${field.label} (${content.split(/\s+/).length} words, citations: ${hasCitations}) ──\n${content.slice(0, 500)}${content.length > 500 ? '...' : ''}`);
+      sections.push(`── ${field.label} (${content.split(/\s+/).length} words, citations: ${hasCitations}) ──\n${headTail(content)}`);
     } else if (Array.isArray(content)) {
       sections.push(`── ${field.label} (${content.length} items) ──\n${JSON.stringify(content.slice(0, 3)).slice(0, 500)}`);
     } else if (typeof content === 'object') {

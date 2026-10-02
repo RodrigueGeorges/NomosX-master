@@ -225,7 +225,19 @@ export async function runCriticBlock(deps: CriticBlockDeps): Promise<CriticBlock
         ? '\n\n## EDITORIAL PANEL FINDINGS (must fix)\nThe review panel documented these defects:\n' +
           panelWeakFindings.map((f: string) => `- ${f}`).join('\n')
         : '';
-      const instructions = (savedCriticResult?.repairInstructions || '') + panelBlock;
+      // Fold structural-editor findings into the same surgical repair — it
+      // edits exactly the fields the structural rubric grades (causalChain,
+      // throughLine, verdict framing). Zero extra calls; moderate scores
+      // (<70) now get actionable fixes instead of silently persisting.
+      const se = (stats as any).structuralEditor;
+      const structuralBlock = (typeof se?.overallStructure === 'number' && se.overallStructure < 70 &&
+        ((se.topSuggestions?.length ?? 0) > 0 || (se.topSectionIssues?.length ?? 0) > 0))
+        ? '\n\n## STRUCTURAL EDITOR FINDINGS (narrative defects to fix)\n' +
+          (se.topSectionIssues ?? []).map((i: string) => `- ${i}`).join('\n') +
+          ((se.topSuggestions?.length ?? 0) > 0 ? '\nSuggested fixes:\n' + se.topSuggestions.map((s: string) => `- ${s}`).join('\n') : '') +
+          ((se.topGaps?.length ?? 0) > 0 ? '\nLogical gaps:\n' + se.topGaps.map((g: string) => `- ${g}`).join('\n') : '')
+        : '';
+      const instructions = (savedCriticResult?.repairInstructions || '') + panelBlock + structuralBlock;
 
       // SURGICAL REPAIR first (single auto_revision call, ~4× cheaper than a
       // full 3-pass re-analysis): patch the analysis JSON against the critic's
