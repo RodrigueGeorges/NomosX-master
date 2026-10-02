@@ -920,8 +920,26 @@ export async function searchExtendedProviders(query: string, options: any = {}) 
   const knownRest = rest.filter(p => known.has(p));
   const unknownCount = rest.length - knownRest.length;
 
+  // Per-provider health: the umbrella call records health under the
+  // "extended-registry" label, so a dead endpoint (persistent timeout)
+  // retried forever — observed: OpenReview/bioRxiv burning a 15s timeout
+  // on every query variation of every scout wave. Track each provider.
+  const { isProviderHealthy, recordProviderCall } = await import('../agent/provider-health-tracker');
+  const healthyRest = knownRest.filter(p => isProviderHealthy(p));
+
   const tasks: Array<Promise<RegistrySearchResult[]>> =
-    knownRest.map(p => searchRegistry(p, query, { limit, ...options }).catch(() => []));
+    healthyRest.map(p => {
+      const start = Date.now();
+      return searchRegistry(p, query, { limit, ...options })
+        .then(rs => {
+          recordProviderCall({ provider: p, success: true, responseMs: Date.now() - start, resultCount: rs.length });
+          return rs;
+        })
+        .catch(err => {
+          recordProviderCall({ provider: p, success: false, responseMs: Date.now() - start, error: String(err?.message || err).slice(0, 120) });
+          return [] as RegistrySearchResult[];
+        });
+    });
 
   // Batched institution-ROR call — OpenAlex OR filter, results retagged to the
   // institution whose ROR actually appears in the work's authorships.

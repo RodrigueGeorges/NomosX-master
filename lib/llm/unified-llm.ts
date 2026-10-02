@@ -637,13 +637,19 @@ async function recordProviderFailure(provider: string, error?: Error): Promise<v
 function dailyQuotaResetMs(error: any): number | null {
   const msg = String(error?.message ?? "").toLowerCase();
   if (!/429|rate limit/.test(msg)) return null;
-  if (!(msg.includes("per day") || msg.includes("tpd") || msg.includes("daily"))) return null;
-  // Groq embeds the reset window: "Please try again in 6m41.76s"
+  // Groq embeds the reset window: "Please try again in 6m41.76s" — honor it
+  // for ANY 429. Per-minute limits (TPM/RPM) resolve in seconds; counting
+  // them as consecutive failures escalated a 46-way parallel reader fan-out
+  // into a 24h freepool ban and killed the whole free run.
   const m = /try again in\s+(?:(\d+)h)?\s*(?:(\d+)m)?\s*(?:(\d+(?:\.\d+)?)s)?/i.exec(error?.message ?? "");
   if (m && (m[1] || m[2] || m[3])) {
     const ms = (Number(m[1] ?? 0) * 3600 + Number(m[2] ?? 0) * 60 + Number(m[3] ?? 0)) * 1000;
     if (ms > 0) return Math.min(ms + 60_000, 2 * 3_600_000); // hint + 1min buffer, cap 2h
   }
+  if (msg.includes("per minute") || msg.includes("tpm") || msg.includes("rpm")) {
+    return 60_000; // per-minute window without parseable hint
+  }
+  if (!(msg.includes("per day") || msg.includes("tpd") || msg.includes("daily"))) return null;
   return 30 * 60_000; // no parseable hint — modest 30min suspension
 }
 
@@ -871,7 +877,22 @@ function estimatePromptTokens(request: LLMRequest): number {
   return Math.ceil(chars / 4);
 }
 
+// Free-tier endpoints have small TPM windows (Groq free: 8K TPM). Unbounded
+// fan-outs (46 parallel reader extractions) guarantee 429 storms that used
+// to escalate into the 24h provider ban. Serialize freepool calls so the
+// aggregate request rate stays under the minute quota.
+let freepoolChain: Promise<unknown> = Promise.resolve();
+function enqueueFreepool<T>(fn: () => Promise<T>): Promise<T> {
+  const run = freepoolChain.then(fn);
+  freepoolChain = run.then(() => {}, () => {});
+  return run;
+}
+
 async function callFreepool(request: LLMRequest, signal?: AbortSignal): Promise<LLMResponse> {
+  return enqueueFreepool(() => callFreepoolInner(request, signal));
+}
+
+async function callFreepoolInner(request: LLMRequest, signal?: AbortSignal): Promise<LLMResponse> {
   const endpoints = getFreepoolEndpoints();
   if (endpoints.length === 0) throw new Error("freepool: no free-tier key configured");
 

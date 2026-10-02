@@ -16,6 +16,7 @@ import type { PipelineStep } from '../pipeline-progress';
 import type { DomainExpertise } from '../researcher-kb/index';
 import type { EvidenceBank } from '../evidence-bank';
 import { buildMemoryInjection } from '../agent-memory';
+import { isFreeRun } from '../../free-run';
 
 export interface ReaderBlockDeps {
   topSources: any[];
@@ -116,7 +117,10 @@ export async function runReaderBlock(deps: ReaderBlockDeps): Promise<ReaderBlock
       const part = await durable(`reader:b${batchIdx}:${String(slice[0]?.id ?? 'x').slice(-6)}`, () =>
         readerAgentV3(slice, {
           enablePdf: true,
-          maxConcurrency: 4,
+          // Free runs route every call through one freepool endpoint (Groq
+          // free tier: ~8K TPM). 4-5 concurrent ~3K-token extractions
+          // guaranteed a 429 storm — pace at 2 so requests stay under quota.
+          maxConcurrency: isFreeRun() ? 2 : 4,
           timeout: isStrategic ? 180000 : undefined,
           domain: detectedDomain,
           memoryBlock: readerMemoryBlock,
