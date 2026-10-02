@@ -300,6 +300,15 @@ export async function scoutImpl(
 ) {
   const startTime = Date.now();
 
+  // Lean mode (deep-planner node scouts): the planner already decomposed the
+  // topic — the node query IS the targeted sub-angle, so we skip the
+  // perspective-question fan-out and cap variations. Root scouts keep full
+  // breadth. Cuts lean-scout request volume ~50-60% (each extra query costs
+  // a full provider fan-out).
+  const lean = opts?.skipCorrective === true;
+  const MAX_VARIATIONS = lean ? 2 : 3;
+  const MAX_SEARCH_QUERIES = lean ? 6 : 14;
+
   // ── STEP 0: QUERY ENHANCEMENT (LLM-powered) ──
   let enhanced: EnhancedQuery | null = null;
   let searchQueries = [query];
@@ -307,7 +316,7 @@ export async function scoutImpl(
     enhanced = await enhanceQuery(query);
     if (enhanced?.variations?.length) {
       // A+ LEVEL: Increase to 3 variations for comprehensive coverage
-      searchQueries = [enhanced.enhanced, ...enhanced.variations.slice(0, 3)].filter(Boolean);
+      searchQueries = [enhanced.enhanced, ...enhanced.variations.slice(0, MAX_VARIATIONS)].filter(Boolean);
       console.log(`[SCOUT] Query enhanced: "${enhanced.enhanced}" (+${searchQueries.length - 1} variations)`);
     }
   } catch (err) {
@@ -359,11 +368,12 @@ export async function scoutImpl(
   // Added AFTER diversification so expert-perspective queries are guaranteed
   // to survive into the final query set — they target dimensions the generic
   // enhancement/variations systematically miss (legal, historical, dissenting).
-  try {
+  // Skipped in lean mode: the node query is already one planner perspective.
+  if (!lean) try {
     const { generatePerspectiveQueries } = await import('../perspective-questions');
     const pq = await generatePerspectiveQueries(query, 4);
     if (pq.queries.length > 0) {
-      searchQueries = [...searchQueries, ...pq.queries].slice(0, 14);
+      searchQueries = [...searchQueries, ...pq.queries].slice(0, MAX_SEARCH_QUERIES);
       console.log(`[SCOUT] Perspective-guided: +${pq.queries.length} queries from ${pq.perspectives.length} expert lenses (total ${searchQueries.length})`);
     }
   } catch (err) {
@@ -384,6 +394,9 @@ export async function scoutImpl(
     });
     if (searchQueries.length < before) {
       console.log(`[SCOUT] Deduped query variations: ${before} → ${searchQueries.length}`);
+    }
+    if (searchQueries.length > MAX_SEARCH_QUERIES) {
+      searchQueries = searchQueries.slice(0, MAX_SEARCH_QUERIES);
     }
   }
 
