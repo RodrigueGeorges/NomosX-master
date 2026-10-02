@@ -30,6 +30,17 @@ export function assertExecutionActive(): void {
   getExecutionSignal()?.throwIfAborted();
 }
 
+/**
+ * Runs fn with NO execution signal — detaches a unit of work from the
+ * abortable scope. Reserved for critical durability writes (artifact commit):
+ * the dispatch deadline exists to stop PAID work (LLM/HTTP), not to roll back
+ * an already-evaluated artifact mid-transaction — that was the S32 bug class
+ * (held artifact lost → counted failed). Do not use for research work.
+ */
+export function withExecutionDetached<T>(fn: () => Promise<T>): Promise<T> {
+  return executionSignal.run(undefined as unknown as AbortSignal, fn);
+}
+
 export function withExecutionSignal<T>(signal: AbortSignal, fn: () => Promise<T>): Promise<T> {
   recordParent(signal, getExecutionSignal());
   signal.throwIfAborted();

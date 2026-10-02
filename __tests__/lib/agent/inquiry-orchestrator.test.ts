@@ -77,6 +77,7 @@ jest.mock('@/lib/agent/revision-controller', () => {
 
 import { runAndPublishInquiry } from '@/lib/agent/inquiry-orchestrator';
 import { prisma } from '@/lib/db';
+import { withExecutionSignal } from '@/lib/worker/execution-scope';
 
 const words = (n: number) => Array(n).fill('evidence').join(' ');
 const WORDS_3200 = `<p>${words(3200)}</p>`;
@@ -225,6 +226,24 @@ describe('runAndPublishInquiry — full funnel', () => {
       jest.useRealTimers();
     }
   }, 60_000);
+
+  it('dispatch deadline firing mid-flow must not roll back the artifact commit (S32)', async () => {
+    // The pipeline resolves, then the dispatch scope aborts — every step after
+    // the artifact is complete (assess, gate, regen, persist) runs under an
+    // aborted signal. The commit is detached: the HELD row is still written.
+    const controller = new AbortController();
+    mockRunPipeline.mockImplementation(async () => {
+      const p = makePipelineResult(makeStats(), 'a');
+      controller.abort(new Error('dispatch deadline fired'));
+      return p;
+    });
+
+    const result = await withExecutionSignal(controller.signal, () => runAndPublishInquiry(REQ));
+    expect(result.status).toBe('held');
+    expect(mockTxPubCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ status: 'HELD' }) })
+    );
+  });
 
   it('clean artifact → gate publish → persisted PUBLISHED, no regen', async () => {
     mockRunPipeline.mockResolvedValueOnce(makePipelineResult(makeStats({

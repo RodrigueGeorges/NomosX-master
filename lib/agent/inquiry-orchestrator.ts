@@ -13,7 +13,7 @@
 import type { Prisma } from "@prisma/client";
 import { certifyForReserve, releaseReservedPublication } from './publication-reserve';
 import { prisma, withDbRetry } from "@/lib/db";
-import { assertExecutionActive, withExecutionDeadline } from '@/lib/worker/execution-scope';
+import { assertExecutionActive, withExecutionDeadline, withExecutionDetached } from '@/lib/worker/execution-scope';
 import {
   runInquiryPipeline,
   type InquiryPipelineResult,
@@ -732,7 +732,11 @@ export async function runAndPublishInquiry(
 
   // 6. Persist (atomic: publication + brief link) — with DB retry for connection drops
   console.log(`[InquiryOrchestrator] Persisting publication: status=${status} trust=${trustScore} quality=${qualityScore} dbStatus=${dbStatus}`);
-  const publication = await withDbRetry(() =>
+  // Detached scope: the dispatch deadline exists to stop paid research work,
+  // not to roll back an evaluated artifact mid-commit (S32: a deadline firing
+  // during this tx turned a completed HELD into 'failed' and lost the row).
+  const publication = await withExecutionDetached(() =>
+    withDbRetry(() =>
     prisma.$transaction(async (tx) => {
     assertExecutionActive();
     const pub = await tx.thinkTankPublication.create({
@@ -804,7 +808,8 @@ export async function runAndPublishInquiry(
 
     return pub;
   }, { timeout: 30_000 })
-);
+    )
+  );
 
   console.log(
     `[InquiryOrchestrator] ${status.toUpperCase()} pub=${publication.id} brief=${pipeline.briefId} trust=${trustScore}`
