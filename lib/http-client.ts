@@ -319,7 +319,11 @@ async function record429(provider: string): Promise<void> {
     cb.tripped = true;
     cb.trippedAt = Date.now();
     cb.totalTrips++;
-    console.warn(`[CIRCUIT BREAKER] ${provider} tripped after ${cb.consecutive429s}× 429 — skipping for ${cb.cooldownMs / 1000}s`);
+    // Escalating cooldown: a provider that keeps failing after cooldown is
+    // quota-dead, not rate-limited — probing every 2min forever just burns
+    // requests. ×2 per repeat trip, capped at 8× the base cooldown.
+    cb.cooldownMs = threshold.cooldownMs * Math.min(2 ** (cb.totalTrips - 1), 8);
+    console.warn(`[CIRCUIT BREAKER] ${provider} tripped after ${cb.consecutive429s}× 429 — skipping for ${cb.cooldownMs / 1000}s (trip #${cb.totalTrips})`);
   }
 
   await saveCBState(provider, cb);
@@ -347,7 +351,8 @@ async function recordNetFail(provider: string): Promise<void> {
     cb.tripped = true;
     cb.trippedAt = Date.now();
     cb.totalTrips++;
-    console.warn(`[CIRCUIT BREAKER] ${provider} tripped after ${cb.consecutive429s} consecutive dead calls — skipping for ${cb.cooldownMs / 1000}s`);
+    cb.cooldownMs = threshold.cooldownMs * Math.min(2 ** (cb.totalTrips - 1), 8);
+    console.warn(`[CIRCUIT BREAKER] ${provider} tripped after ${cb.consecutive429s} consecutive dead calls — skipping for ${cb.cooldownMs / 1000}s (trip #${cb.totalTrips})`);
   }
 
   await saveCBState(provider, cb);
