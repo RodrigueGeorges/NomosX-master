@@ -931,7 +931,7 @@ async function callFreepoolInner(request: LLMRequest, signal?: AbortSignal): Pro
         // the model can produce parseable JSON text without the constraint.
         // Retry once without response_format; the caller's parse-repair layer
         // handles the raw JSON content.
-        if (request.jsonMode && /failed to validate json/i.test((firstErr as Error)?.message ?? '')) {
+        if (request.jsonMode && /failed to (validate|generate) json/i.test((firstErr as Error)?.message ?? '')) {
           console.warn(`   ↳ freepool/${ep.name}: server-side JSON validation failed — retrying without response_format`);
           completion = await client.chat.completions.create(callParams(false), signal ? { signal } : {});
         } else {
