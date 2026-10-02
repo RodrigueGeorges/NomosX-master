@@ -123,13 +123,21 @@ export function createGapRequestProcessor(deps: GapFillDeps) {
             limitations: r.limitations || [],
             confidence: r.confidence || 'medium',
           }));
+          // Critic/panel/structural defects documented before the gap-fill are
+          // folded into the re-analysis context — one enriched pass integrates
+          // the new evidence AND fixes the flagged defects (vs two passes).
+          const repairCtx = typeof (stats as any).repairInstructionsComposed === 'string' &&
+              (stats as any).repairInstructionsComposed.length > 0
+            ? '\n\n## CRITIC REPAIR INSTRUCTIONS (mandatory)\nThe critic and review panel identified defects in the previous analysis that MUST be fixed in this pass:\n' +
+              (stats as any).repairInstructionsComposed
+            : '';
           const reResult = await reAnalyzeAfterGapFill(
             query,
             state.analysis,
             topSources,
             gapReReadings,
             analystMultipass,
-            { contextBlock: fullContextBlock, domain: detectedDomain, depth: isStrategic ? "strategic" : "brief" }
+            { contextBlock: (fullContextBlock || '') + repairCtx, domain: detectedDomain, depth: isStrategic ? "strategic" : "brief" }
           );
           if (reResult.reAnalyzed) {
             state.analysis = reResult.analysis;

@@ -206,6 +206,41 @@ export async function runCriticBlock(deps: CriticBlockDeps): Promise<CriticBlock
   const repairTrigger = savedCriticResult?.verdict === 'repair' && savedCriticResult.repairInstructions &&
     savedCriticResult.overallScore < 65;
   const panelTrigger = savedPanelResult?.veto === true && panelWeakFindings.length > 0;
+
+  // Compose repair instructions UNCONDITIONALLY (pure string assembly) so the
+  // gap-fill re-analysis below can reuse them even when the same-corpus repair
+  // is deferred — one enriched re-analysis beats two passes on stale evidence.
+  const panelBlockPre = panelWeakFindings.length > 0
+    ? '\n\n## EDITORIAL PANEL FINDINGS (must fix)\nThe review panel documented these defects:\n' +
+      panelWeakFindings.map((f: string) => `- ${f}`).join('\n')
+    : '';
+  const seEarly = (stats as any).structuralEditor;
+  const structuralBlockPre = (typeof seEarly?.overallStructure === 'number' && seEarly.overallStructure < 70 &&
+    ((seEarly.topSuggestions?.length ?? 0) > 0 || (seEarly.topSectionIssues?.length ?? 0) > 0))
+    ? '\n\n## STRUCTURAL EDITOR FINDINGS (narrative defects to fix)\n' +
+      (seEarly.topSectionIssues ?? []).map((i: string) => `- ${i}`).join('\n') +
+      ((seEarly.topSuggestions?.length ?? 0) > 0 ? '\nSuggested fixes:\n' + seEarly.topSuggestions.map((s: string) => `- ${s}`).join('\n') : '') +
+      ((seEarly.topGaps?.length ?? 0) > 0 ? '\nLogical gaps:\n' + seEarly.topGaps.map((g: string) => `- ${g}`).join('\n') : '')
+    : '';
+  const composedInstructions = (savedCriticResult?.repairInstructions || '') + panelBlockPre + structuralBlockPre;
+  if (composedInstructions.trim().length > 0) {
+    (stats as any).repairInstructionsComposed = composedInstructions;
+  }
+
+  // Evidence-bound defects cannot be fixed by rewriting the SAME corpus — the
+  // missing evidence must be scouted first (gap requests are pushed below and
+  // consumed by processGapRequests). Spending the single reAnalysisBudget on a
+  // same-corpus rewrite here starves exactly the pass that can fix it.
+  const coverageVeto = savedPanelResult?.veto === true &&
+    (savedPanelResult.dimensions ?? []).some((d: any) => d.dimension === 'coverage' && (d.mustFix || d.score <= 4));
+  const unsupportedMass = (savedCriticResult?.claims ?? [])
+    .filter((c: any) => c.verdict === 'unsupported' || c.verdict === 'unverifiable').length;
+  const evidenceBound = coverageVeto || unsupportedMass >= 3;
+  const sameCorpusRepair = (repairTrigger || panelTrigger) && !evidenceBound;
+  if ((repairTrigger || panelTrigger) && evidenceBound) {
+    console.log(`${label} CRITIC REPAIR: deferred — defects are evidence-bound (coverageVeto=${coverageVeto}, unsupported=${unsupportedMass}) → gap-fill scout first, one re-analysis on enriched corpus`);
+  }
+
   // Wall-clock guard: a repair round (patch + critic/panel recheck, or a full
   // re-analysis) takes 3-12min. Starting one with <~15min of headroom before
   // the format timeout would sacrifice the render+eval+persist tail.
@@ -213,31 +248,15 @@ export async function runCriticBlock(deps: CriticBlockDeps): Promise<CriticBlock
   const repairHeadroomMs = Number(process.env.CRITIC_REPAIR_HEADROOM_MS ?? 900_000);
   const enoughTime = !pipelineStart || (Date.now() + repairHeadroomMs) <
     (pipelineStart + (isStrategic ? 4_500_000 : 3_900_000));
-  if (!enoughTime && (repairTrigger || panelTrigger)) {
+  if (!enoughTime && sameCorpusRepair) {
     console.log(`${label} CRITIC REPAIR: skipped — ${Math.round(elapsedMs / 60000)}min elapsed, repair would overrun the timeout tail`);
   }
-  if ((repairTrigger || panelTrigger) && enoughTime && !isBudgetConstrained() &&
+  if (sameCorpusRepair && enoughTime && !isBudgetConstrained() &&
       orchState.iteration < orchState.maxIterations && reAnalysisBudget > 0) {
     reAnalysisBudget--;
     deps.state.reAnalysisBudget = reAnalysisBudget;
     try {
-      const panelBlock = panelWeakFindings.length > 0
-        ? '\n\n## EDITORIAL PANEL FINDINGS (must fix)\nThe review panel documented these defects:\n' +
-          panelWeakFindings.map((f: string) => `- ${f}`).join('\n')
-        : '';
-      // Fold structural-editor findings into the same surgical repair — it
-      // edits exactly the fields the structural rubric grades (causalChain,
-      // throughLine, verdict framing). Zero extra calls; moderate scores
-      // (<70) now get actionable fixes instead of silently persisting.
-      const se = (stats as any).structuralEditor;
-      const structuralBlock = (typeof se?.overallStructure === 'number' && se.overallStructure < 70 &&
-        ((se.topSuggestions?.length ?? 0) > 0 || (se.topSectionIssues?.length ?? 0) > 0))
-        ? '\n\n## STRUCTURAL EDITOR FINDINGS (narrative defects to fix)\n' +
-          (se.topSectionIssues ?? []).map((i: string) => `- ${i}`).join('\n') +
-          ((se.topSuggestions?.length ?? 0) > 0 ? '\nSuggested fixes:\n' + se.topSuggestions.map((s: string) => `- ${s}`).join('\n') : '') +
-          ((se.topGaps?.length ?? 0) > 0 ? '\nLogical gaps:\n' + se.topGaps.map((g: string) => `- ${g}`).join('\n') : '')
-        : '';
-      const instructions = (savedCriticResult?.repairInstructions || '') + panelBlock + structuralBlock;
+      const instructions = composedInstructions;
 
       // SURGICAL REPAIR first (single auto_revision call, ~4× cheaper than a
       // full 3-pass re-analysis): patch the analysis JSON against the critic's
@@ -248,7 +267,7 @@ export async function runCriticBlock(deps: CriticBlockDeps): Promise<CriticBlock
       let surgicalAttempted = false;
       try {
         const targetClaims: string[] = savedCriticResult?.repairTargetClaims ?? [];
-        surgicalAttempted = typeof analysis === 'object' && analysis !== null && instructions.length < 6000 && JSON.stringify(analysis).length <= 40000;
+        surgicalAttempted = typeof analysis === 'object' && analysis !== null && instructions.length < 6000 && JSON.stringify(analysis).length <= 90000;
         if (surgicalAttempted) {
           const { callLLM } = await import('../../llm/unified-llm');
           const { parseJson } = await import('../json-utils');
