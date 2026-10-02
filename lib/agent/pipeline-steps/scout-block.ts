@@ -234,10 +234,20 @@ export async function runScoutBlock(deps: ScoutBlockDeps): Promise<ScoutBlockRes
         }
       }));
 
+      // Wall-clock bound for the deep-planner tail (expansion + replan).
+      // Unbounded sequential re-scouts pushed items past the 65min pipeline
+      // cap — the S31 run spent ~30min in node waves and timed out during
+      // the post-publish tail. Past this budget, the corpus is what it is.
+      const DP_TAIL_BUDGET_MS = Number(process.env.DEEP_PLANNER_TAIL_BUDGET_MS ?? 8 * 60_000);
+
       // LOT 2.3: DAG mutable — thin nodes get an expanded retry enriched with
       // parent context. Runs as a second pass AFTER the pool so ancestor
       // sourceIds are populated (parallel scouts race parent completion).
       for (const node of sortedNodes) {
+        if (Date.now() - scoutStart > DP_TAIL_BUDGET_MS) {
+          console.log(`${label} DEEP PLANNER: tail budget exhausted — stopping expansion (${Math.round((Date.now() - scoutStart) / 60000)}min elapsed)`);
+          break;
+        }
         if ((node.sourceCount ?? 0) >= 5) continue;
         const ancestorIds = getAncestorSourceIds(node.id, planResult.plan.nodes);
         if (ancestorIds.length === 0) continue;
@@ -268,7 +278,7 @@ export async function runScoutBlock(deps: ScoutBlockDeps): Promise<ScoutBlockRes
       const thinOrFailed = planResult.plan.nodes.filter(
         (n: any) => n.status === 'failed' || (n.sourceCount ?? 0) < 5
       );
-      if (thinOrFailed.length > 0 && !isBudgetConstrained()) {
+      if (thinOrFailed.length > 0 && !isBudgetConstrained() && Date.now() - scoutStart <= DP_TAIL_BUDGET_MS) {
         try {
           const { replanFromFindings } = await import('../deep-planner');
           const replan = await replanFromFindings(query, planResult.plan.nodes, 3);

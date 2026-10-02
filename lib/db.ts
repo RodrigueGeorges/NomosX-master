@@ -65,8 +65,16 @@ export async function withDbRetry<T>(
         msg.includes('Connection terminated') ||
         msg.includes("Can't reach database server") ||
         msg.includes('Timed out fetching a new connection');
-      if (!isConnectionError || attempt === maxRetries - 1) throw err;
-      console.warn(`[DB] Connection error (attempt ${attempt + 1}/${maxRetries}), retrying in ${baseDelayMs * (attempt + 1)}ms: ${msg}`);
+      // Deadlock (40P01) and serialization failure (40001) are transient by
+      // definition — the loser transaction must retry, not die. Parallel
+      // scout batch-writes deadlock on shared source/signal rows otherwise.
+      const isTransientConflict =
+        msg.includes('40P01') ||
+        msg.includes('40001') ||
+        msg.includes('deadlock detected') ||
+        msg.includes('could not serialize access');
+      if ((!isConnectionError && !isTransientConflict) || attempt === maxRetries - 1) throw err;
+      console.warn(`[DB] ${isTransientConflict ? 'Transient conflict' : 'Connection error'} (attempt ${attempt + 1}/${maxRetries}), retrying in ${baseDelayMs * (attempt + 1)}ms: ${msg.slice(0, 200)}`);
       try {
         await prisma.$connect();
       } catch {
