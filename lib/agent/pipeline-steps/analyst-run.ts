@@ -123,9 +123,51 @@ export async function runAnalystExecution(deps: AnalystRunDeps): Promise<Analyst
     }
   }
 
+  // ── DOMAIN EXPERT LENS ──
+  // The 22-expert registry (methodologies, calibration rules, known biases,
+  // frameworks + KB/memory injection) existed but was NEVER wired into the
+  // live pipeline — runHarvardCouncilStep is dead config and stats.harvardCouncil
+  // is hardcoded skipped. One bounded lead-expert pass reviews the corpus
+  // BEFORE the analyst: its causal mechanisms, confounders and blind spots
+  // become expert priors the 3 passes must engage (adopt or explicitly rebut).
+  let effectiveContext = fullContextBlock || '';
+  if (!maxBudgetUsd || runningCostUsd < maxBudgetUsd * 0.6) {
+    try {
+      const { detectRelevantExperts, runExpertAnalysis } = await import('../phd-researcher');
+      const [leadDomain] = detectRelevantExperts(query, { maxExperts: 1, strategic: isStrategic });
+      if (leadDomain) {
+        const sourceContext = topSources
+          .map((s: any, i: number) => `[SRC-${i + 1}] ${s.title || 'untitled'} — ${String(s.abstract || s.fullText || '').slice(0, 280)}`)
+          .join('\n');
+        const expert = await runExpertAnalysis(leadDomain, query, sourceContext, topSources.length, pipelineRunId);
+        addCost(expert.costUsd, 'DOMAIN_EXPERT');
+        (stats as any).domainExpert = {
+          domain: leadDomain,
+          confidence: expert.confidence,
+          keyFindings: expert.keyFindings?.length ?? 0,
+          blindSpots: expert.blind_spots?.length ?? 0,
+          costUsd: expert.costUsd,
+          durationMs: expert.durationMs,
+        };
+        effectiveContext += `\n\n## DOMAIN EXPERT PRE-ANALYSIS (${leadDomain})\n` +
+          `A domain specialist reviewed this corpus before you. Treat the following as expert priors — adopt what survives your scrutiny, explicitly rebut what the evidence contradicts:\n` +
+          `- Key findings: ${(expert.keyFindings ?? []).slice(0, 6).join('; ') || 'none'}\n` +
+          `- Causal mechanisms identified: ${(expert.causal_mechanisms ?? []).slice(0, 6).join('; ') || 'none'}\n` +
+          `- Confounders to control: ${(expert.confounders ?? []).slice(0, 5).join('; ') || 'none'}\n` +
+          `- Blind spots flagged: ${(expert.blind_spots ?? []).slice(0, 5).join('; ') || 'none'}\n` +
+          `- Evidence quality: level ${expert.evidence_quality?.overallLevel ?? '?'}/5, bias risk ${expert.evidence_quality?.biasRisk ?? '?'}${expert.evidence_quality?.weaknesses?.length ? ` — weaknesses: ${expert.evidence_quality.weaknesses.slice(0, 3).join('; ')}` : ''}\n` +
+          (expert.dissent ? `- Expert dissent: ${expert.dissent}\n` : '');
+        (stats as any).domainExpertLens = effectiveContext.slice((fullContextBlock || '').length);
+        console.log(`${label} DOMAIN EXPERT: ${leadDomain} lens injected (confidence ${expert.confidence}, ${expert.keyFindings?.length ?? 0} findings, $${expert.costUsd?.toFixed(4) ?? '?'})`);
+      }
+    } catch (expertErr) {
+      console.warn(`${label} DOMAIN EXPERT: failed (non-blocking):`, expertErr instanceof Error ? expertErr.message : expertErr);
+    }
+  }
+
   if (!analysis) {
     analysis = await durable('analyst', () => analystMultipass(query, topSources, slimReadings, {
-      contextBlock: fullContextBlock,
+      contextBlock: effectiveContext || undefined,
       domain: detectedDomain,
       depth: isStrategic ? "strategic" : "brief",
       // Per-pass checkpoints inside the multipass: the 'analyst' outer step
@@ -145,7 +187,7 @@ export async function runAnalystExecution(deps: AnalystRunDeps): Promise<Analyst
     try {
       console.log(`${label} TEST-TIME SCALING: generating second candidate for comparison...`);
       const candidate2 = await analystMultipass(query, topSources, slimReadings, {
-        contextBlock: fullContextBlock,
+        contextBlock: effectiveContext || undefined,
         domain: detectedDomain,
         depth: "strategic",
       });

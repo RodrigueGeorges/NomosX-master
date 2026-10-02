@@ -319,8 +319,9 @@ export async function runCriticBlock(deps: CriticBlockDeps): Promise<CriticBlock
       if (!repaired) {
         console.log(`${label} CRITIC REPAIR: re-running ANALYST (critic=${savedCriticResult?.overallScore ?? 'n/a'}/100, panelFindings=${panelWeakFindings.length})`);
         emitProgress(pipelineRunId, "ANALYST", "started", `Repairing analysis per critic instructions...`);
+        const expertLens = typeof (stats as any).domainExpertLens === 'string' ? (stats as any).domainExpertLens : '';
         repaired = await analystMultipass(query, topSources, slimReadings, {
-          contextBlock: fullContextBlock + '\n\n## CRITIC REPAIR INSTRUCTIONS (mandatory)\nThe critic identified defects in the previous analysis that MUST be fixed:\n' + instructions,
+          contextBlock: (fullContextBlock || '') + expertLens + '\n\n## CRITIC REPAIR INSTRUCTIONS (mandatory)\nThe critic identified defects in the previous analysis that MUST be fixed:\n' + instructions,
           domain: detectedDomain,
           depth: isStrategic ? "strategic" : "brief",
         });

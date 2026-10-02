@@ -131,13 +131,14 @@ export function createGapRequestProcessor(deps: GapFillDeps) {
             ? '\n\n## CRITIC REPAIR INSTRUCTIONS (mandatory)\nThe critic and review panel identified defects in the previous analysis that MUST be fixed in this pass:\n' +
               (stats as any).repairInstructionsComposed
             : '';
+          const expertLens = typeof (stats as any).domainExpertLens === 'string' ? (stats as any).domainExpertLens : '';
           const reResult = await reAnalyzeAfterGapFill(
             query,
             state.analysis,
             topSources,
             gapReReadings,
             analystMultipass,
-            { contextBlock: (fullContextBlock || '') + repairCtx, domain: detectedDomain, depth: isStrategic ? "strategic" : "brief" }
+            { contextBlock: (fullContextBlock || '') + expertLens + repairCtx, domain: detectedDomain, depth: isStrategic ? "strategic" : "brief" }
           );
           if (reResult.reAnalyzed) {
             state.analysis = reResult.analysis;
