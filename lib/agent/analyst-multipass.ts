@@ -209,12 +209,17 @@ function buildSourceContext(sources: any[], readings?: any[], depth: 'brief' | '
   // substance for EVERY grounded source (not just full-tier), so the raw
   // abstract/excerpt bulk only needs to cover the strongest documents.
   const isStrategic = depth === 'strategic';
-  const FULL_TIER = isStrategic
+  // Free-run: every call routes through free-tier endpoints with ~8K-token
+  // request caps (Groq 413 on the full corpus context). Shrink to the top
+  // sources only — this validates orchestration, not final quality.
+  const freeRun = process.env.NOMOSX_FREE_RUN === '1' || process.env.NOMOSX_FREE_RUN === 'true';
+  if (freeRun) sources = sources.slice(0, 10);
+  const FULL_TIER = freeRun ? 3 : isStrategic
     ? Math.max(20, Math.min(40, Math.ceil(sources.length * 0.25)))
     : Math.max(10, Math.min(20, Math.ceil(sources.length * 0.25)));
-  const COMPACT_ABSTRACT = 500; // Non-full-tier sources: abstract truncated to 500 chars
-  const FULL_ABSTRACT = isStrategic ? 3000 : 1500;
-  const FULL_EXCERPT = isStrategic ? 4000 : 2500;
+  const COMPACT_ABSTRACT = freeRun ? 200 : 500; // Non-full-tier sources: abstract truncated to 500 chars
+  const FULL_ABSTRACT = freeRun ? 500 : isStrategic ? 3000 : 1500;
+  const FULL_EXCERPT = freeRun ? 800 : isStrategic ? 4000 : 2500;
 
   const readingById = new Map<string, any>();
   for (const r of readings ?? []) {
@@ -1285,8 +1290,12 @@ export async function analystAgentV3(
   }
 
   if (options?.contextBlock) {
-    ctx = `${options.contextBlock}\n\n${ctx}`;
-    console.log(`[Analyst V3] Institutional memory injected (${options.contextBlock.length} chars)`);
+    // Free-run request caps (~8K tokens/req on free tiers) can't carry a
+    // 25K-char memory block on top of the source context — truncate.
+    const freeRun = process.env.NOMOSX_FREE_RUN === '1' || process.env.NOMOSX_FREE_RUN === 'true';
+    const contextBlock = freeRun ? options.contextBlock.slice(0, 3000) : options.contextBlock;
+    ctx = `${contextBlock}\n\n${ctx}`;
+    console.log(`[Analyst V3] Institutional memory injected (${contextBlock.length} chars)`);
   }
 
   console.log(`[Analyst V3] Starting 3-pass prospective analysis: ${sources.length} sources, avg quality ${avgQuality}/100`);

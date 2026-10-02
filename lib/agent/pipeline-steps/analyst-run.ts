@@ -8,6 +8,7 @@
  */
 
 import { runMixtureOfAgents } from '../moa/mixture-of-agents';
+import { isFreeRun } from '../../free-run';
 import type { PipelineStep } from '../pipeline-progress';
 
 export interface AnalystRunDeps {
@@ -138,7 +139,8 @@ export async function runAnalystExecution(deps: AnalystRunDeps): Promise<Analyst
       // briefs get the single lead domain — bounded cost per format.
       const expertDomains = detectRelevantExperts(query, { maxExperts: isStrategic ? 2 : 1, strategic: isStrategic });
       if (expertDomains.length > 0) {
-        const sourceContext = topSources
+        const expertSources = isFreeRun() ? topSources.slice(0, 10) : topSources;
+        const sourceContext = expertSources
           .map((s: any, i: number) => `[SRC-${i + 1}] ${s.title || 'untitled'} — ${String(s.abstract || s.fullText || '').slice(0, 280)}`)
           .join('\n');
         const expertResults = await Promise.allSettled(
