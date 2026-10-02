@@ -134,31 +134,42 @@ export async function runAnalystExecution(deps: AnalystRunDeps): Promise<Analyst
   if (!maxBudgetUsd || runningCostUsd < maxBudgetUsd * 0.6) {
     try {
       const { detectRelevantExperts, runExpertAnalysis } = await import('../phd-researcher');
-      const [leadDomain] = detectRelevantExperts(query, { maxExperts: 1, strategic: isStrategic });
-      if (leadDomain) {
+      // Strategic reports get two expert lenses (Co-STORM perspective coverage);
+      // briefs get the single lead domain — bounded cost per format.
+      const expertDomains = detectRelevantExperts(query, { maxExperts: isStrategic ? 2 : 1, strategic: isStrategic });
+      if (expertDomains.length > 0) {
         const sourceContext = topSources
           .map((s: any, i: number) => `[SRC-${i + 1}] ${s.title || 'untitled'} — ${String(s.abstract || s.fullText || '').slice(0, 280)}`)
           .join('\n');
-        const expert = await runExpertAnalysis(leadDomain, query, sourceContext, topSources.length, pipelineRunId);
-        addCost(expert.costUsd, 'DOMAIN_EXPERT');
-        (stats as any).domainExpert = {
-          domain: leadDomain,
-          confidence: expert.confidence,
-          keyFindings: expert.keyFindings?.length ?? 0,
-          blindSpots: expert.blind_spots?.length ?? 0,
-          costUsd: expert.costUsd,
-          durationMs: expert.durationMs,
-        };
-        effectiveContext += `\n\n## DOMAIN EXPERT PRE-ANALYSIS (${leadDomain})\n` +
-          `A domain specialist reviewed this corpus before you. Treat the following as expert priors — adopt what survives your scrutiny, explicitly rebut what the evidence contradicts:\n` +
-          `- Key findings: ${(expert.keyFindings ?? []).slice(0, 6).join('; ') || 'none'}\n` +
-          `- Causal mechanisms identified: ${(expert.causal_mechanisms ?? []).slice(0, 6).join('; ') || 'none'}\n` +
-          `- Confounders to control: ${(expert.confounders ?? []).slice(0, 5).join('; ') || 'none'}\n` +
-          `- Blind spots flagged: ${(expert.blind_spots ?? []).slice(0, 5).join('; ') || 'none'}\n` +
-          `- Evidence quality: level ${expert.evidence_quality?.overallLevel ?? '?'}/5, bias risk ${expert.evidence_quality?.biasRisk ?? '?'}${expert.evidence_quality?.weaknesses?.length ? ` — weaknesses: ${expert.evidence_quality.weaknesses.slice(0, 3).join('; ')}` : ''}\n` +
-          (expert.dissent ? `- Expert dissent: ${expert.dissent}\n` : '');
-        (stats as any).domainExpertLens = effectiveContext.slice((fullContextBlock || '').length);
-        console.log(`${label} DOMAIN EXPERT: ${leadDomain} lens injected (confidence ${expert.confidence}, ${expert.keyFindings?.length ?? 0} findings, $${expert.costUsd?.toFixed(4) ?? '?'})`);
+        const expertResults = await Promise.allSettled(
+          expertDomains.map(d => runExpertAnalysis(d, query, sourceContext, topSources.length, pipelineRunId))
+        );
+        for (const [idx, r] of expertResults.entries()) {
+          if (r.status !== 'fulfilled') continue;
+          const expert = r.value;
+          const leadDomain = expertDomains[idx];
+          addCost(expert.costUsd, 'DOMAIN_EXPERT');
+          (stats as any).domainExpert = {
+            domains: expertDomains,
+            confidence: expert.confidence,
+            keyFindings: expert.keyFindings?.length ?? 0,
+            blindSpots: expert.blind_spots?.length ?? 0,
+            costUsd: ((stats as any).domainExpert?.costUsd ?? 0) + (expert.costUsd ?? 0),
+            durationMs: expert.durationMs,
+          };
+          effectiveContext += `\n\n## DOMAIN EXPERT PRE-ANALYSIS (${leadDomain})\n` +
+            `A domain specialist reviewed this corpus before you. Treat the following as expert priors — adopt what survives your scrutiny, explicitly rebut what the evidence contradicts:\n` +
+            `- Key findings: ${(expert.keyFindings ?? []).slice(0, 6).join('; ') || 'none'}\n` +
+            `- Causal mechanisms identified: ${(expert.causal_mechanisms ?? []).slice(0, 6).join('; ') || 'none'}\n` +
+            `- Confounders to control: ${(expert.confounders ?? []).slice(0, 5).join('; ') || 'none'}\n` +
+            `- Blind spots flagged: ${(expert.blind_spots ?? []).slice(0, 5).join('; ') || 'none'}\n` +
+            `- Evidence quality: level ${expert.evidence_quality?.overallLevel ?? '?'}/5, bias risk ${expert.evidence_quality?.biasRisk ?? '?'}${expert.evidence_quality?.weaknesses?.length ? ` — weaknesses: ${expert.evidence_quality.weaknesses.slice(0, 3).join('; ')}` : ''}\n` +
+            (expert.dissent ? `- Expert dissent: ${expert.dissent}\n` : '');
+          console.log(`${label} DOMAIN EXPERT: ${leadDomain} lens injected (confidence ${expert.confidence}, ${expert.keyFindings?.length ?? 0} findings, $${expert.costUsd?.toFixed(4) ?? '?'})`);
+        }
+        if (effectiveContext.length > (fullContextBlock || '').length) {
+          (stats as any).domainExpertLens = effectiveContext.slice((fullContextBlock || '').length);
+        }
       }
     } catch (expertErr) {
       console.warn(`${label} DOMAIN EXPERT: failed (non-blocking):`, expertErr instanceof Error ? expertErr.message : expertErr);
