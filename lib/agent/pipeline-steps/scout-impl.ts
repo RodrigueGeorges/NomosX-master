@@ -267,6 +267,12 @@ const RAW_KEEP_KEYS = new Set([
   'open_access', 'type', 'language', 'cited_by_count', 'issn', 'publisher',
 ]);
 
+// Postgres UTF8/jsonb cannot store NUL bytes (\x00 / \u0000) — provider
+// payloads occasionally carry them (PDF-derived metadata) and Prisma fails
+// the whole row with error 22021.
+const pgText = (v: unknown): unknown =>
+  typeof v === 'string' ? v.replace(/\u0000/g, '') : v;
+
 function slimSourceRaw(s: any): Prisma.InputJsonValue {
   const src = (s.raw ?? {}) as Record<string, unknown>;
   const raw: Record<string, unknown> = {};
@@ -275,9 +281,10 @@ function slimSourceRaw(s: any): Prisma.InputJsonValue {
   }
   raw.authors = s.authors || src.authors || [];
   raw.institutions = s.institutions || src.institutions || [];
-  // Hard cap — a runaway provider payload must never dominate a row again
-  const json = JSON.stringify(raw);
-  return (json.length <= 16_384 ? raw : { truncated: true }) as Prisma.InputJsonValue;
+  // Hard cap — a runaway provider payload must never dominate a row again.
+  // NUL bytes are stripped at the serialized level so nested strings are covered.
+  const json = JSON.stringify(raw).replace(/\\u0000/gi, '');
+  return (json.length <= 16_384 ? JSON.parse(json) : { truncated: true }) as Prisma.InputJsonValue;
 }
 
 /**
@@ -1158,15 +1165,15 @@ export async function scoutImpl(query: string, providers: Providers, perProvider
         data: {
           provider: s.provider,
           type: s.type || "paper",
-          title: s.title || "",
-          abstract: s.abstract ? clamp(String(s.abstract), 8000) : null,
+          title: (pgText(s.title) as string) || "",
+          abstract: s.abstract ? clamp(String(pgText(s.abstract)), 8000) : null,
           year: s.year ?? null,
-          doi: s.doi ?? null,
-          url: s.url ?? null,
-          pdfUrl: s.pdfUrl ?? null,
-          oaStatus: s.oaStatus ?? null,
-          topics: (s.topics ?? []).map(String).filter(Boolean),
-          jelCodes: (s.jelCodes ?? []).map(String).filter(Boolean),
+          doi: (pgText(s.doi) as string | null) ?? null,
+          url: (pgText(s.url) as string | null) ?? null,
+          pdfUrl: (pgText(s.pdfUrl) as string | null) ?? null,
+          oaStatus: (pgText(s.oaStatus) as string | null) ?? null,
+          topics: (s.topics ?? []).map((t: unknown) => String(pgText(t))).filter(Boolean),
+          jelCodes: (s.jelCodes ?? []).map((t: unknown) => String(pgText(t))).filter(Boolean),
           citationCount: s.citationCount ?? null,
           qualityScore,
           raw: slimSourceRaw(s),

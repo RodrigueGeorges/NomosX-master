@@ -1219,7 +1219,9 @@ export async function storeSourceChunks(
 
   let stored = 0;
   for (const chunk of chunks) {
-    const contentHash = crypto.createHash('sha256').update(chunk.content).digest('hex');
+    // Postgres UTF8 cannot store NUL bytes — PDF-derived text carries them.
+    const content = chunk.content.replace(/\u0000/g, '');
+    const contentHash = crypto.createHash('sha256').update(content).digest('hex');
 
     try {
       await prisma.sourceChunk.upsert({
@@ -1227,13 +1229,13 @@ export async function storeSourceChunks(
         create: {
           sourceId,
           chunkIndex: chunk.index,
-          content: chunk.content,
+          content,
           contentHash,
-          tokenCount: Math.ceil(chunk.content.length / 4),
+          tokenCount: Math.ceil(content.length / 4),
         },
         update: {
-          content: chunk.content,
-          tokenCount: Math.ceil(chunk.content.length / 4),
+          content,
+          tokenCount: Math.ceil(content.length / 4),
         },
       });
       stored++;
