@@ -266,6 +266,13 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     }
   })();
 
+  // Phase-timing rollup: wall-clock at each major boundary, persisted into
+  // stats.phaseTimings so postmortems get a phase breakdown without reading
+  // 5k lines of log. Values are cumulative ms since pipelineStart.
+  const phaseMarks: Record<string, number> = {};
+  const phaseMark = (name: string) => { phaseMarks[name] = Date.now() - pipelineStart; };
+  (stats as any).phaseTimings = phaseMarks;
+
   // -- STEP 1: SCOUT — extracted to pipeline-steps/scout-block.ts --
   const scoutOut = await runScoutBlock({
     query, providers, perProvider, isStrategic, useStorm,
@@ -280,6 +287,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   let allSourceIds = scoutOut.allSourceIds;
   const planNodesForAudit = scoutOut.planNodesForAudit;
   const scoutCkpt = scoutOut.scoutCkptRestored;
+  phaseMark('scout');
 
   // ── WEB FALLBACK → INTELLIGENT SCOUT → CITATION GRAPH → INDEX/EMBED/DEDUP ──
   // Extracted to pipeline-steps/scout-enrichment-index.ts; web-fallback
@@ -294,6 +302,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
       domain: (opts as any).domain || 'general',
       scout, durableKey, saveDurableStep, index,
     });
+    phaseMark('indexEnrich');
   }
 
   // ── STEP 4: RANK + ENRICHMENT — extracted to pipeline-steps/rank-enrichment.ts ──
@@ -350,6 +359,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   flags.runDeliberationStep = gates.runDeliberationStep;
   flags.runDebateStep = gates.runDebateStep;
   flags.runDevilsAdvocateStep = gates.runDevilsAdvocateStep;
+  phaseMark('rankGates');
 
   // Barrier: context primer + episodic memory (launched pre-scout) must
   // resolve here — first consumers are reader-block and analyst-context.
@@ -377,6 +387,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   const hypothesisVerdictBlock = readerBlk.hypothesisVerdictBlock;
   const dppContextBlock = readerBlk.dppContextBlock;
   const roundTableBlock = readerBlk.roundTableBlock;
+  phaseMark('reader');
   // STEP 6: ANALYSTSTEP 6: ANALYST (brief = V3 multi-pass, strategic = Strategic Analyst) â”€â”€
   emitProgress(pipelineRun.id, "ANALYST", "started", `${isStrategic ? "Strategic-depth multi-pass analysis" : "Multi-pass analysis"}...`);
   console.log(`${label} ANALYST: V3 multi-pass (depth: ${isStrategic ? 'strategic' : 'brief'})`);
@@ -500,6 +511,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   });
   analysis = analystOut.analysis;
   const analystCostUsd = analystOut.analystCostUsd;
+  phaseMark('analyst');
 
   // Analysis generation failed outright (e.g. all LLM providers down) — the
   // downstream render/editorial/regen chain cannot produce a publishable
@@ -598,6 +610,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     allSourceIds = gapFillState.allSourceIds;
     reAnalysisBudget = criticOut.reAnalysisBudget;
     savedCriticResult = criticOut.savedCriticResult;
+    phaseMark('critic');
   }
 
   // ── TERMINAL-REJECT EARLY EXIT ──
@@ -923,6 +936,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
 
   // P3.8 + prose cleanup — extracted to pipeline-steps/post-render-extras.ts
   html = await applyEvidenceIdsAndProseCleanup(html, evidenceRegistry, stats as Record<string, any>, label);
+  phaseMark('render');
 
   // ── STYLE GATES → SIGNAL SWEEP → DA RE-CHECK (extracted to
   //    pipeline-steps/style-sweep-recheck.ts — one coupled unit) ──
@@ -990,6 +1004,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     await runHeroImageStep(tailCtx);
     html = tailCtx.html;
     selfCorrect.rollbacks += tailCtx.selfCorrectRollbacks;
+    phaseMark('qualityTail');
   }
 
   // ── STEP 14-17 + POST-RUN LEARNING — extracted to pipeline-steps/persistence-tail.ts ──
@@ -1007,6 +1022,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     useRagasEval, useSelfEvolution, useMixtureOfAgents, addCost,
   });
   html = tail.html;
+  phaseMark('persisted');
 
   // Clean up idempotency token on success
   activeRuns.delete(idempotencyKey);
