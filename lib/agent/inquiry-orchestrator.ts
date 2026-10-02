@@ -13,7 +13,7 @@
 import type { Prisma } from "@prisma/client";
 import { certifyForReserve, releaseReservedPublication } from './publication-reserve';
 import { prisma, withDbRetry } from "@/lib/db";
-import { assertExecutionActive } from '@/lib/worker/execution-scope';
+import { assertExecutionActive, withExecutionDeadline } from '@/lib/worker/execution-scope';
 import {
   runInquiryPipeline,
   type InquiryPipelineResult,
@@ -577,13 +577,22 @@ export async function runAndPublishInquiry(
           criticPanel: pipeline.stats.criticPanel as { dimensions?: { dimension: string; score: number; findings: string[]; mustFix: boolean }[] } | undefined,
         });
         console.log(`[InquiryOrchestrator] REGEN (${regen.reason}) — re-running analysis on same corpus with ${feedback.length}-char feedback`);
-        const regenPipeline = await runInquiryPipeline({
-          question,
-          depth,
-          domain: req.domain,
-          pipelineOptions: { ...mergePipelineOptions(req), priorFailureFeedback: feedback },
-          seedSourceIds: assessment.sourceIds.length >= 8 ? assessment.sourceIds : seedSourceIds,
-        });
+        // Bounded child scope: an unbounded regen can consume the dispatch
+        // deadline entirely (its internal gap-fill scouts + re-analysis ran
+        // ~40min in the S32 live run) and leave zero headroom for the
+        // gate+persist of the ORIGINAL artifact — a held item was then lost
+        // mid-transaction. The regen is capped at 25min; on expiry the abort
+        // unwinds only the child scope and the original result persists.
+        const regenBudgetMs = Math.min(25 * 60 * 1000, Math.max(8 * 60_000, 95 * 60_000 - elapsedMs));
+        const regenPipeline = await withExecutionDeadline(regenBudgetMs, 'regen', () =>
+          runInquiryPipeline({
+            question,
+            depth,
+            domain: req.domain,
+            pipelineOptions: { ...mergePipelineOptions(req), priorFailureFeedback: feedback },
+            seedSourceIds: assessment.sourceIds.length >= 8 ? assessment.sourceIds : seedSourceIds,
+          })
+        );
         costUsd += getPipelineCostUsd(regenPipeline.stats);
         if (!regenPipeline.refusal && regenPipeline.html) {
           const reAssessed = await assess(regenPipeline);
