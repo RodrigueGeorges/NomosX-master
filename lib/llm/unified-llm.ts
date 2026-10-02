@@ -891,18 +891,32 @@ async function callFreepool(request: LLMRequest, signal?: AbortSignal): Promise<
     const model = isFast ? ep.fastModel : ep.reasoningModel;
     try {
       const client = getFreepoolClient(ep);
-      const completion = await client.chat.completions.create(
-        {
-          model,
-          messages: request.messages as any,
-          temperature: request.temperature ?? 0.2,
-          max_tokens: Math.max(request.maxTokens ?? 4000, 1000) + (ep.tokenHeadroom ?? 0),
-          ...(request.jsonMode ? { response_format: { type: "json_object" } } : {}),
-          ...(request.tools?.length ? { tools: request.tools as any } : {}),
-          ...(ep.modelFallbacks?.length ? { models: [model, ...ep.modelFallbacks] } : {}),
-        } as any,
-        signal ? { signal } : {},
-      );
+      const callParams = (jsonMode: boolean) => ({
+        model,
+        messages: request.messages as any,
+        temperature: request.temperature ?? 0.2,
+        max_tokens: Math.max(request.maxTokens ?? 4000, 1000) + (ep.tokenHeadroom ?? 0),
+        ...(jsonMode ? { response_format: { type: "json_object" } } : {}),
+        ...(request.tools?.length ? { tools: request.tools as any } : {}),
+        ...(ep.modelFallbacks?.length ? { models: [model, ...ep.modelFallbacks] } : {}),
+      }) as any;
+      let completion;
+      try {
+        completion = await client.chat.completions.create(callParams(!!request.jsonMode), signal ? { signal } : {});
+      } catch (firstErr) {
+        // Groq (and some OpenAI-compatible free tiers) validate JSON-mode
+        // OUTPUT server-side: when the model emits non-JSON the API returns
+        // HTTP 400 "Failed to validate JSON" — the call is wasted even though
+        // the model can produce parseable JSON text without the constraint.
+        // Retry once without response_format; the caller's parse-repair layer
+        // handles the raw JSON content.
+        if (request.jsonMode && /failed to validate json/i.test((firstErr as Error)?.message ?? '')) {
+          console.warn(`   ↳ freepool/${ep.name}: server-side JSON validation failed — retrying without response_format`);
+          completion = await client.chat.completions.create(callParams(false), signal ? { signal } : {});
+        } else {
+          throw firstErr;
+        }
+      }
       const content = completion.choices?.[0]?.message?.content ?? "";
       if (!content) throw new Error(`freepool/${ep.name} returned empty content`);
       const tokensInput = completion.usage?.prompt_tokens ?? promptTokens;
