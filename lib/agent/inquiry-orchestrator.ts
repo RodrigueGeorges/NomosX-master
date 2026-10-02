@@ -200,6 +200,79 @@ function failResult(
 
 // ─── Main funnel ─────────────────────────────────────────────
 
+/**
+ * Recover a pipeline result from persisted state after a runPipeline timeout.
+ * The timeout rejects the promise but does not cancel the in-flight work —
+ * the publisher may still save the brief seconds later, with complete
+ * evaluator stats in PipelineRun.steps. Poll briefly for that artifact;
+ * refuse to salvage if no verdict-bearing evaluator ran (nothing to trust).
+ */
+async function salvageTimedOutPipeline(
+  question: string,
+  started: number,
+  depth: InquiryDepth,
+): Promise<InquiryPipelineResult | null> {
+  const deadline = Date.now() + 90_000;
+  while (Date.now() < deadline) {
+    try {
+      const brief = await prisma.brief.findFirst({
+        where: { question, createdAt: { gte: new Date(started - 60_000) }, html: { not: "" } },
+        orderBy: { createdAt: "desc" },
+      });
+      if (brief?.pipelineRunId) {
+        const run = await prisma.pipelineRun.findUnique({ where: { id: brief.pipelineRunId } });
+        const stats = (run?.steps as Record<string, unknown> | null) ?? {};
+        const lineage = (brief.lineage as Record<string, unknown> | null) ?? stats;
+        // Require at least one verdict-bearing evaluation — salvaging an
+        // artifact nobody judged would bypass the very gates this fixes.
+        if (stats.devilsAdvocate || stats.critic) {
+          const sourceIds = (brief.sources as string[] | null) ?? [];
+          const sourceRows = sourceIds.length
+            ? await prisma.source.findMany({
+                where: { id: { in: sourceIds } },
+                select: { id: true, title: true, provider: true, authors: { include: { author: true } } },
+              })
+            : [];
+          const scores = extractPipelineScores(stats, lineage, {
+            trustScore: brief.trustScore ?? null,
+            qualityScore: brief.qualityScore ?? null,
+          });
+          const inquiry = {
+            id: brief.id,
+            slug: brief.publicId ?? `salvage-${brief.id}`,
+            title: String((lineage.analysis as { title?: unknown } | undefined)?.title ?? question),
+            question,
+            depth,
+            status: "reviewing",
+            sections: [],
+            sources: sourceRows.map((s) => ({ id: s.id, title: s.title ?? "", provider: s.provider ?? "", authors: s.authors })),
+            publishedAt: brief.createdAt,
+            updatedAt: brief.updatedAt,
+          } as unknown as Inquiry;
+          return {
+            inquiry,
+            briefId: brief.id,
+            pipelineRunId: brief.pipelineRunId ?? undefined,
+            html: brief.html ?? "",
+            stats: { ...stats, salvagedAfterTimeout: true },
+            lineage,
+            trustScore: scores.trustScore,
+            qualityScore: scores.qualityScore,
+            // depth→format mirrors depthToPipelineFormat: standard runs the
+            // memo pipeline, deep/strategic map to brief/strategic.
+            format: depth === "strategic" ? "strategic" : depth === "standard" ? "memo" : "brief",
+            readerClaims: undefined,
+          };
+        }
+      }
+    } catch {
+      // transient DB error — keep polling until deadline
+    }
+    await new Promise((r) => setTimeout(r, 7500));
+  }
+  return null;
+}
+
 export async function runAndPublishInquiry(
   req: InquiryPublishRequest
 ): Promise<InquiryPublishResult> {
@@ -286,7 +359,23 @@ export async function runAndPublishInquiry(
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     console.error(`[InquiryOrchestrator] Pipeline failed:`, message);
-    return failResult(started, message);
+    // Timeout-after-publish salvage: the per-format cap can fire while the
+    // non-critical tail (knowledge graph, learning loop, hero image) still
+    // runs — but the brief + full evaluator stats may already be persisted.
+    // Discarding that artifact burns the whole spend; instead, recover the
+    // persisted brief and run the identical gate on it. Only timeouts are
+    // salvageable — a real pipeline failure produces no trustworthy artifact.
+    if (message.includes("timed out")) {
+      const salvaged = await salvageTimedOutPipeline(question, started, depth);
+      if (salvaged) {
+        console.log(`[InquiryOrchestrator] SALVAGE: brief ${salvaged.briefId} persisted before/around timeout — running gate on persisted artifact`);
+        pipeline = salvaged;
+      } else {
+        return failResult(started, message);
+      }
+    } else {
+      return failResult(started, message);
+    }
   }
 
   let costUsd = getPipelineCostUsd(pipeline.stats);

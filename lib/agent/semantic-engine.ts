@@ -80,23 +80,36 @@ async function cohereEmbed(texts: string[], inputType: "search_document" | "sear
   if (!key || key.length < 10) return null;
   assertExecutionActive();
   const parent = getExecutionSignal();
-  const timeout = AbortSignal.timeout(30000);
-  const res = await fetch("https://api.cohere.com/v2/embed", {
-    method: "POST",
-    signal: parent ? AbortSignal.any([parent, timeout]) : timeout,
-    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: COHERE_EMBED_MODEL,
-      input_type: inputType,
-      embedding_types: ["float"],
-      texts,
-    }),
-  });
-  if (!res.ok) {
-    throw new Error(`Cohere embed HTTP ${res.status}: ${(await res.text()).slice(0, 120)}`);
+
+  // Cohere /v2/embed caps at 96 texts per request — BATCH_SIZE (100) is
+  // tuned for OpenAI's 2048 limit, so fallback batches must be sub-chunked
+  // here or every Cohere call dies with HTTP 400 (observed live: batch at
+  // offset 100 rejected with "total number of texts must be at most 96").
+  const COHERE_MAX_TEXTS = 96;
+  const out: number[][] = [];
+  for (let i = 0; i < texts.length; i += COHERE_MAX_TEXTS) {
+    const chunk = texts.slice(i, i + COHERE_MAX_TEXTS);
+    const timeout = AbortSignal.timeout(30000);
+    const res = await fetch("https://api.cohere.com/v2/embed", {
+      method: "POST",
+      signal: parent ? AbortSignal.any([parent, timeout]) : timeout,
+      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: COHERE_EMBED_MODEL,
+        input_type: inputType,
+        embedding_types: ["float"],
+        texts: chunk,
+      }),
+    });
+    if (!res.ok) {
+      throw new Error(`Cohere embed HTTP ${res.status}: ${(await res.text()).slice(0, 120)}`);
+    }
+    const j = await res.json();
+    const vecs = j?.embeddings?.float;
+    if (!Array.isArray(vecs) || vecs.length !== chunk.length) return null;
+    out.push(...vecs);
   }
-  const j = await res.json();
-  return j?.embeddings?.float ?? null;
+  return out;
 }
 
 function zeroVector(): number[] {
