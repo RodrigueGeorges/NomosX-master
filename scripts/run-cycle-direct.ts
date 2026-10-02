@@ -3,6 +3,17 @@
 import { runThinkTankCycle } from '../lib/agent/think-tank-dispatcher';
 import { prisma } from '../lib/db';
 
+// Undici emits stray socket-level 'error' events (UND_ERR_SOCKET / stream
+// close races) that bypass request-level rejection — swallow ONLY those.
+process.on('uncaughtException', (err: NodeJS.ErrnoException) => {
+  if (err.code === 'UND_ERR_SOCKET' || err.code === 'UND_ERR_STREAM') {
+    console.warn('[guard] swallowed undici socket error:', err.message);
+    return;
+  }
+  console.error('CYCLE FATAL (uncaught):', err);
+  process.exit(1);
+});
+
 async function main() {
   const result = await runThinkTankCycle({
     mode: 'breaking',

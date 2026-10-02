@@ -9,7 +9,16 @@
 
 import { env } from './env';
 import pLimit from 'p-limit';
+import { Agent, setGlobalDispatcher } from 'undici';
 import { getExecutionSignal, consumeExecutionBudget, consumeRootBudget } from './worker/execution-scope';
+
+// Force HTTP/1.1 process-wide. Undici's HTTP/2 path has a known bug where a
+// remote close emits an unhandled 'error' on the internal ClientHttp2Stream
+// (UND_ERR_SOCKET) — it bypasses request-level promise rejection and crashes
+// the whole process mid-run. HTTP/1.1 keeps the same fetch surface, loses
+// nothing we use (no request multiplexing matters here), and removes the
+// entire failure class.
+setGlobalDispatcher(new Agent({ allowH2: false }));
 
 // ================================
 // GLOBAL IN-FLIGHT BOUND
