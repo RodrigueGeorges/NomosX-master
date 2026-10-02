@@ -212,7 +212,12 @@ async function salvageTimedOutPipeline(
   started: number,
   depth: InquiryDepth,
 ): Promise<InquiryPipelineResult | null> {
-  const deadline = Date.now() + 90_000;
+  // The timeout rejects the AWAIT, not the pipeline — the run keeps executing
+  // its tail (DA, publisher save) in the background and only persists the
+  // brief + stats minutes later. A 90s poll misses it every time; poll until
+  // the run row is finished or a brief with verdict-bearing evals appears,
+  // up to 10 minutes.
+  const deadline = Date.now() + 600_000;
   while (Date.now() < deadline) {
     try {
       const brief = await prisma.brief.findFirst({
@@ -222,6 +227,15 @@ async function salvageTimedOutPipeline(
       if (brief?.pipelineRunId) {
         const run = await prisma.pipelineRun.findUnique({ where: { id: brief.pipelineRunId } });
         const stats = (run?.steps as Record<string, unknown> | null) ?? {};
+        const runFinished = !!run?.finishedAt;
+        const hasVerdictEvals = !!(stats.devilsAdvocate || stats.critic);
+        if (!runFinished || !hasVerdictEvals) {
+          // Pipeline tail still running — keep polling rather than judging an
+          // artifact whose evaluators haven't reported yet.
+          console.log(`[InquiryOrchestrator] SALVAGE: brief found but run not finished/unevaluated — waiting (finished=${runFinished}, evals=${hasVerdictEvals})`);
+          await new Promise((r) => setTimeout(r, 15_000));
+          continue;
+        }
         const lineage = (brief.lineage as Record<string, unknown> | null) ?? stats;
         // Require at least one verdict-bearing evaluation — salvaging an
         // artifact nobody judged would bypass the very gates this fixes.
