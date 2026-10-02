@@ -692,6 +692,17 @@ export interface PipelineStats {
     costUsd: number;
   };
 
+  // Corpus viability pre-gate (Sprint 31) — deterministic abort before analyst
+  // spend when reader extractions can't support a publishable artifact.
+  viability?: {
+    substantiveReadings: number;
+    sourcesWithExtractableText: number;
+    textCoverage: number;
+    minViableReadings: number;
+    minTextCoverage: number;
+    passed: boolean;
+  };
+
   // Structured refusal (P3.9)
   structuredRefusal?: {
     reason: string;

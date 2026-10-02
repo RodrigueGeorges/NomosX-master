@@ -546,6 +546,13 @@ export async function runAndPublishInquiry(
   // Minimum viable trust — below this, quality is genuinely insufficient
   const MIN_VIABLE_TRUST = 55;
 
+  // Sprint 31: publication is conditional on the system being SURE, not on
+  // cadence. The default is strict — a piece only publishes when the gate is
+  // clean (publish) or wants revision but every metric is strong (revise +
+  // trust ≥ min+5). Moderate-trust publish-with-warning paths (P2b/P5b) are
+  // opt-in via NOMOSX_ALLOW_MODERATE_PUBLISH=1 — silence beats marginal copy.
+  const allowModeratePublish = process.env.NOMOSX_ALLOW_MODERATE_PUBLISH === "1";
+
   // Priority 1: Gate says publish + readiness OK + trust sufficient → publish
   if (gate.decision === "publish" && readiness.ok && trustScore >= adaptiveMinTrust) {
     status = "published";
@@ -558,7 +565,7 @@ export async function runAndPublishInquiry(
   // This prevents HELD on reports that are just under the threshold after the quality loop.
   // The warning is stored in metadata and surfaced to the reader.
   // But NEVER publish if quality < 40 — garbage regardless of trust.
-  else if (trustScore >= MIN_VIABLE_TRUST && trustScore < adaptiveMinTrust && gate.decision !== "hold" && qualityScore >= 40) {
+  else if (allowModeratePublish && trustScore >= MIN_VIABLE_TRUST && trustScore < adaptiveMinTrust && gate.decision !== "hold" && qualityScore >= 40) {
     status = "published";
     console.log(`[InquiryOrchestrator] PUBLISH WITH WARNING: trust ${trustScore} in moderate zone [${MIN_VIABLE_TRUST}-${adaptiveMinTrust - 1}] — publishing with confidence warning`);
   }
@@ -576,7 +583,7 @@ export async function runAndPublishInquiry(
   }
   // Priority 5b: Gate revise but trust ≥ MIN_VIABLE_TRUST → publish with warning (avoid HELD on moderate trust)
   // But NEVER publish if quality is below 40 — that's garbage regardless of trust
-  else if ((gate.decision === "revise" || !readiness.ok) && trustScore >= MIN_VIABLE_TRUST && qualityScore >= 40) {
+  else if (allowModeratePublish && gate.decision === "revise" && trustScore >= MIN_VIABLE_TRUST && qualityScore >= 40) {
     status = "published";
     console.log(`[InquiryOrchestrator] PUBLISH WITH WARNING: gate ${gate.decision}, trust ${trustScore} ≥ ${MIN_VIABLE_TRUST} — publishing with quality warning`);
   }

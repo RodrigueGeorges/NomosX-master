@@ -67,6 +67,23 @@ string fields; multipass substance (`frictionMap`, `causalChain`,
 Injection stays restore-only: it matches analyst-authored sentence snippets
 in the HTML — never fabricates claim↔source associations.
 
+**Publication = certainty, not cadence** — the dispatcher's weekly slots were
+already a ceiling, but two orchestrator paths published pieces the gate had
+flagged: trust 55-64 "moderate zone" (P2b) and gate=`revise` + trust≥55
+(P5b), both at quality≥40. Publishing now requires a clean `publish` verdict
+OR `revise` with trust ≥ min+5 (`inquiry-orchestrator.ts`); everything else
+falls to held/draft. `NOMOSX_ALLOW_MODERATE_PUBLISH=1` restores the legacy
+moderate-zone publishes.
+
+**Corpus viability pre-gate** (`pipeline-v2.ts`, `stats.viability`) — before
+the analyst runs (~$0.10/call + downstream), a deterministic check counts
+substantive reader extractions (claims/results/methods) and extractable-text
+coverage. Below `VIABILITY_MIN_READINGS` (8 brief / 15 strategic) or
+`VIABILITY_MIN_TEXT_COVERAGE` (0.25) → structured refusal
+(`corpus_insufficient`), PipelineRun FAILED, dispatcher falls through to the
+next candidate. Both S30 HELD items paid the analyst on corpora this check
+would have condemned.
+
 Tests: `analysis-review-text.test.ts` +8 (string/JSON/multipass/empty-shape,
 legacy+multipass inventory, non-trivial inventory on real payload shape).
 Verified: `tsc` 0 · jest 20/20 suites — 183 tests.

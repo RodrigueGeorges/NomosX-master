@@ -404,6 +404,53 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   const savedScatterResult = analystCtx.savedScatterResult;
   const slimReadings = analystCtx.slimReadings;
 
+  // ── CORPUS VIABILITY PRE-GATE ──
+  // Deterministic abort BEFORE the analyst (~$0.10/call + downstream burn).
+  // Both S30 HELD items paid the full analyst+editorial chain on corpora a
+  // cheap metric could have condemned: viability = substantive reader
+  // extractions (claims/results/methods) AND extractable-text coverage.
+  // A corpus that fails here cannot produce a publishable artifact — refuse
+  // and let the dispatcher fall through to the next candidate.
+  const substantiveReadings = slimReadings.filter(
+    (r: any) => ((r.claims?.length ?? 0) + (r.results?.length ?? 0) + (r.methods?.length ?? 0)) > 0
+  ).length;
+  const sourcesWithExtractableText = topSources.filter(
+    (s: any) => (s.abstract && s.abstract.length > 100) || (s.fullText && s.fullText.length > 200)
+  ).length;
+  const textCoverageRatio = topSources.length > 0 ? sourcesWithExtractableText / topSources.length : 0;
+  const minViableReadings = Number(process.env.VIABILITY_MIN_READINGS ?? (isStrategic ? 15 : 8));
+  const minTextCoverage = Number(process.env.VIABILITY_MIN_TEXT_COVERAGE ?? 0.25);
+  const corpusViable = substantiveReadings >= minViableReadings && textCoverageRatio >= minTextCoverage;
+  stats.viability = {
+    substantiveReadings, sourcesWithExtractableText, textCoverage: Math.round(textCoverageRatio * 100) / 100,
+    minViableReadings, minTextCoverage, passed: corpusViable,
+  };
+  if (!corpusViable) {
+    const reason = `corpus_insufficient: ${substantiveReadings} substantive readings (need ${minViableReadings}), ${Math.round(textCoverageRatio * 100)}% extractable text (need ${Math.round(minTextCoverage * 100)}%)`;
+    console.warn(`${label} REFUSAL: ${reason} — refusing before analyst spend`);
+    stats.structuredRefusal = {
+      reason,
+      sourceCount: topSources.length,
+      required: minViableReadings,
+      missing: ['reader_extractions'],
+    };
+    stats.totalCostUsd = cost.runningCostUsd;
+    emitProgress(pipelineRun.id, "ANALYST", "failed", `Refused: ${reason}`);
+    activeRuns.delete(idempotencyKey);
+    process.removeListener('unhandledRejection', rejectionHandler);
+    await prisma.pipelineRun.update({
+      where: { id: pipelineRun.id },
+      data: {
+        status: "FAILED",
+        finishedAt: new Date(),
+        durationMs: Date.now() - pipelineStart,
+        error: reason.slice(0, 500),
+        steps: JSON.parse(JSON.stringify({ ...stats, error: reason })),
+      },
+    }).catch(() => {});
+    return { briefId: undefined, pipelineRun, stats, html: '', analysis: { refusal: stats.structuredRefusal } as any };
+  }
+
   let analysis: any;
 
   // ── ARTIFACT VERSIONING (Sprint 28 / P0/1) ──
