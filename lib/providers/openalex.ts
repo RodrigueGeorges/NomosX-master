@@ -194,15 +194,11 @@ export async function getOpenAlexConceptGroups(query: string): Promise<{ concept
 }
 
 /**
- * V3.2: OpenAlex Semantic Search (2026 feature)
- *
- * OpenAlex launched semantic search in 2026 — embeddings-based retrieval
- * that understands query semantics better than keyword search.
- *
- * This function uses the new `search_filter` parameter with semantic matching.
- * Falls back to keyword search if semantic search is not available.
- *
- * Based on: OpenAlex 2026 release — semantic embeddings, PDF hosting, bulk CLI
+ * OpenAlex search with optional filters (min citations, field filter).
+ * Historically attempted a `search_type=semantic` parameter that OpenAlex
+ * does not support — it returned HTTP 400 on every call. Now plain keyword
+ * search; callers wanting semantic ranking should rerank embeddings
+ * client-side (the pipeline already does via Cohere/embeddings).
  */
 export async function searchOpenAlexSemantic(
   query: string,
@@ -212,9 +208,11 @@ export async function searchOpenAlexSemantic(
   let retryWithPolitePool = false;
   const base = env.OPENALEX_API;
 
-  // V3.2: Use semantic search endpoint (search_filter with semantic matching)
-  // The new endpoint uses embeddings to find semantically similar works
-  let url = `${base}?search=${encodeURIComponent(query)}&per-page=${perPage}&search_type=semantic`;
+  // NOTE: `search_type=semantic` was removed — it is not a real OpenAlex
+  // parameter and every call returned HTTP 400 before falling back to
+  // keyword (doubling requests and flooding logs). This function now queries
+  // directly with the standard endpoint.
+  let url = `${base}?search=${encodeURIComponent(query)}&per-page=${perPage}`;
 
   if (options?.filter) {
     url += `&filter=${encodeURIComponent(options.filter)}`;

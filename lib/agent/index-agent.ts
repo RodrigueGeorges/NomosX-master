@@ -62,32 +62,45 @@ async function enrichAuthorsBatch(
   }
   
   console.log(`[Index] Enriching ${needsOrcid.length} authors in ${Math.ceil(needsOrcid.length / BATCH_SIZE)} batches`);
-  
+
+  let budgetExhaustedLogged = false;
+
   for (let i = 0; i < needsOrcid.length; i += BATCH_SIZE) {
     const batch = needsOrcid.slice(i, i + BATCH_SIZE);
-    
+
     // Process batch in PARALLEL instead of sequential
-    const promises = batch.map(a => 
+    const promises = batch.map(a =>
       Promise.race([
         getORCIDById(a.orcid!),
-        new Promise((_, reject) => 
+        new Promise((_, reject) =>
           setTimeout(() => reject(new Error('ORCID lookup timeout')), 3000)
         )
       ])
         .catch((err) => {
+          if (err.code === 'HTTP_BUDGET_EXHAUSTED' || /budget exhausted/i.test(err.message ?? '')) {
+            // One log line per run — the remaining batches would all fail identically.
+            if (!budgetExhaustedLogged) {
+              budgetExhaustedLogged = true;
+              console.warn('[Index] ORCID request budget exhausted — skipping remaining author enrichment');
+            }
+            return { exhausted: true };
+          }
           console.warn(`[Index] ORCID failed for ${a.orcid}: ${err.message}`);
           return null;
         })
     );
-    
+
     const resolved = await Promise.all(promises);
-    
+
+    let exhausted = false;
     resolved.forEach((data: any, idx: number) => {
+      if (data?.exhausted) { exhausted = true; return; }
       if (data && batch[idx].orcid) {
         results.set(batch[idx].orcid, data);
       }
     });
-    
+    if (exhausted) break;
+
     const completed = Math.min(i + BATCH_SIZE, needsOrcid.length);
     console.log(`[Index] Batch complete: ${completed}/${needsOrcid.length}`);
   }

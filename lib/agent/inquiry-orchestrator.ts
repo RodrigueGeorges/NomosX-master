@@ -816,12 +816,17 @@ export async function runAndPublishInquiry(
 
   const foresightPayload = buildForesightPersistPayload(pipeline.lineage, pipeline.inquiry);
   if (foresightPayload.foresight || pipeline.lineage.foresightRun) {
+    // Audit enrichment only — a deadline firing here must NOT discard the
+    // persisted publication above (post-persist failure counted the item
+    // "failed" even though the pub row was already committed).
     await persistForesightRun({
       publicationId: publication.id,
       briefId: pipeline.briefId!,
       lineage: pipeline.lineage as Record<string, unknown>,
       bundle: foresightPayload.foresight as ForesightBundle | undefined,
-    });
+    }).catch((err) =>
+      console.warn('[InquiryOrchestrator] Foresight persist failed (non-blocking):', err)
+    );
   }
 
   // ── ACE PLAYBOOK CURATION (non-blocking, fire-and-forget) ──
