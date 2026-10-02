@@ -559,6 +559,12 @@ async function recordProviderFailure(provider: string, error?: Error): Promise<v
   if (error && isDeterministicError(error)) {
     return;
   }
+  // "all endpoints quota-cooled (+Nm)" is per-endpoint rate pacing, not
+  // provider health — counting it as a failure used to escalate a 3-minute
+  // TPM cool into a 24h provider ban within a single reader fan-out.
+  if (error && /quota-cooled/i.test(error.message ?? "")) {
+    return;
+  }
   const cb = await getCBState(provider);
   const next: CBState = { failures: cb.failures + 1, lastFailure: Date.now(), open: cb.open, suspended: cb.suspended, suspendedUntil: cb.suspendedUntil };
 
@@ -879,9 +885,24 @@ function estimatePromptTokens(request: LLMRequest): number {
 
 // Free-tier endpoints have small TPM windows (Groq free: 8K TPM). Unbounded
 // fan-outs (46 parallel reader extractions) guarantee 429 storms that used
-// to escalate into the 24h provider ban. Serialize freepool calls so the
-// aggregate request rate stays under the minute quota.
+// to escalate into the 24h provider ban. Serialize freepool calls AND pace
+// them on a rolling 60s token budget — sequential-but-bursty calls still
+// exceed TPM when each burns ~4K tokens in 3s.
+const FREEPOOL_TPM_BUDGET = 6500; // leave headroom under the 8K limit
+const freepoolWindow: Array<{ t: number; tokens: number }> = [];
 let freepoolChain: Promise<unknown> = Promise.resolve();
+async function paceFreepool(estimatedTokens: number): Promise<void> {
+  const now = Date.now();
+  while (freepoolWindow.length && now - freepoolWindow[0].t > 60_000) freepoolWindow.shift();
+  const used = freepoolWindow.reduce((s, e) => s + e.tokens, 0);
+  const over = used + estimatedTokens - FREEPOOL_TPM_BUDGET;
+  if (over > 0 && freepoolWindow.length) {
+    const waitMs = Math.max(0, 60_000 - (now - freepoolWindow[0].t)) + 250;
+    if (waitMs > 500) console.log(`   ↳ freepool TPM pacing: waiting ${Math.round(waitMs / 1000)}s (window ${used}+${estimatedTokens} tok)`);
+    await new Promise(r => setTimeout(r, waitMs));
+  }
+  freepoolWindow.push({ t: Date.now(), tokens: estimatedTokens });
+}
 function enqueueFreepool<T>(fn: () => Promise<T>): Promise<T> {
   const run = freepoolChain.then(fn);
   freepoolChain = run.then(() => {}, () => {});
@@ -899,6 +920,7 @@ async function callFreepoolInner(request: LLMRequest, signal?: AbortSignal): Pro
   const task = normalizeTask(request.task);
   const isFast = FAST_TASKS.has(task);
   const promptTokens = estimatePromptTokens(request);
+  await paceFreepool(promptTokens + (request.maxTokens ?? 1500));
   let lastError: Error | null = null;
   const cooledNames: string[] = [];
 
@@ -1880,6 +1902,30 @@ async function callLLMCore(request: LLMRequest): Promise<LLMResponse> {
       });
 
       continue;
+    }
+  }
+
+  // All providers failed — but if the last failure is only free-tier quota
+  // pacing with a short cooldown ("quota-cooled (groq(+3m))"), waiting the
+  // window out is far cheaper than failing the task (a failed analyst call
+  // = a lost pipeline item). One wait+retry, bounded to 5min.
+  const coolMatch = /quota-cooled[^)]*\+(\d+)m/.exec(lastError?.message ?? "");
+  if (coolMatch && Number(coolMatch[1]) <= 5 && orderedProviders.includes("freepool")) {
+    const waitMin = Number(coolMatch[1]) + 1;
+    console.warn(`[LLM] ${task}: free-tier quota cooling — waiting ${waitMin}min then one retry`);
+    await new Promise(resolve => setTimeout(resolve, waitMin * 60_000));
+    assertExecutionActive();
+    try {
+      const response = await withTimeout(
+        (signal) => callFreepool(request, signal),
+        getCallTimeout("freepool", task),
+        `freepool`,
+      );
+      await recordProviderSuccess("freepool");
+      console.log(`✅ freepool [${task}] quota-window retry succeeded | $${response.costUsd.toFixed(4)}`);
+      return response;
+    } catch (retryErr) {
+      lastError = retryErr as Error;
     }
   }
 
