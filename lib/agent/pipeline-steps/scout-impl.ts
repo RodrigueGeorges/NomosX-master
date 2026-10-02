@@ -292,7 +292,12 @@ function slimSourceRaw(s: any): Prisma.InputJsonValue {
  *
  * Pipeline: Query Enhancement â†’ Multi-Query Search (58+ providers)
  */
-export async function scoutImpl(query: string, providers: Providers, perProvider = 100) {
+export async function scoutImpl(
+  query: string,
+  providers: Providers,
+  perProvider = 100,
+  opts?: { skipCorrective?: boolean },
+) {
   const startTime = Date.now();
 
   // ── STEP 0: QUERY ENHANCEMENT (LLM-powered) ──
@@ -1066,8 +1071,11 @@ export async function scoutImpl(query: string, providers: Providers, perProvider
   }
 
   // K10: CARE — Context-Aware Retriever Evaluation
-  // Evaluate retriever quality for multi-hop queries
-  if (enhanced && finalPool.length > 0) {
+  // Evaluate retriever quality for multi-hop queries. Skipped on lean node
+  // scouts (deep-planner sub-questions): a targeted node query is not meant
+  // to cover the full concept map — running CARE+gap-fill per node stacked
+  // ~1-2min of extra provider calls per node and duplicated the root's job.
+  if (!opts?.skipCorrective && enhanced && finalPool.length > 0) {
     try {
       const careResult = evaluateWithCARE(finalPool as any, enhanced);
       console.log(`[SCOUT K10] CARE: overall=${(careResult.overall * 100).toFixed(0)}%, individual=${(careResult.individualRelevance * 100).toFixed(0)}%, combinedCoverage=${(careResult.combinedCoverage * 100).toFixed(0)}%, multiHop=${(careResult.multiHopPotential * 100).toFixed(0)}%, diversity=${(careResult.coverageDiversity * 100).toFixed(0)}%`);

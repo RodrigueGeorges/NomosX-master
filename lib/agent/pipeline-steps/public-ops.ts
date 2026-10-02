@@ -96,7 +96,12 @@ export async function getCacheStatus(): Promise<{
  * Performance: 30s â†’ <200ms on cache hit
  * Cost savings: $100/day â†’ $50/day
  */
-export async function scout(query: string, providers: Providers, perProvider = 100) {
+export async function scout(
+  query: string,
+  providers: Providers,
+  perProvider = 100,
+  opts?: { skipCorrective?: boolean },
+) {
   // Governance: Assert SCOUT permissions
   assertPermission(AgentRole.SCOUT, "write:sources");
   
@@ -110,7 +115,7 @@ export async function scout(query: string, providers: Providers, perProvider = 1
   
   // Cache miss - run SCOUT normally
   console.log(`[SCOUT] Cache MISS for "${query}", running providers...`);
-  const result = await scoutImpl(query, providers, perProvider);
+  const result = await scoutImpl(query, providers, perProvider, opts);
   
   // Store in cache (async, don't await to not block response)
   SimpleCacheUtils.cacheScoutQuery(query, providers as string[], result.sourceIds || []).catch((err: any) => {

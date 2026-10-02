@@ -74,7 +74,7 @@ export interface ScoutBlockDeps {
   minSeedSourcesToSkipScout: number | undefined;
   domain: string | undefined;
   durableKey: string | null;
-  scout: (query: string, providers: any, perProvider?: number) => Promise<any>;
+  scout: (query: string, providers: any, perProvider?: number, opts?: { skipCorrective?: boolean }) => Promise<any>;
   stats: Record<string, any>;
   label: string;
   pipelineRunId: string;
@@ -175,7 +175,10 @@ export async function runScoutBlock(deps: ScoutBlockDeps): Promise<ScoutBlockRes
           dependsOn: n.parentIds,
         })),
       });
-      const sortedNodes = topologicalSort(planResult.plan.nodes);
+      // Immutable capture — closures inside worker pools lose narrowing on
+      // the mutable `planResult` outer variable.
+      const plan = planResult.plan;
+      const sortedNodes = topologicalSort(plan.nodes);
       const perNodeProvider = isStrategic ? Math.max(perProvider, 80) : perProvider;
 
       // Known providers set — used to filter Deep Planner LLM output
@@ -205,7 +208,7 @@ export async function runScoutBlock(deps: ScoutBlockDeps): Promise<ScoutBlockRes
       // results — so serial execution just stacked 5× ~3min of wall-clock for
       // no dependency reason. Concurrency 3 keeps rate limiters and heap in
       // bounds (root budget ledger still caps the aggregate spend).
-      const NODE_CONCURRENCY = 3;
+      const NODE_CONCURRENCY = Number(process.env.DEEP_PLANNER_NODE_CONCURRENCY ?? 5);
       const nodeQueue = [...sortedNodes];
       const scoutNode = async (node: any) => {
         node.status = 'scouting';
@@ -217,9 +220,11 @@ export async function runScoutBlock(deps: ScoutBlockDeps): Promise<ScoutBlockRes
           : Array.from(new Set([...validNodeProducers, ...NODE_CORE_PROVIDERS, 'no-routing']))) as any;
         // Per-node execution scope: fresh budget ledger so one greedy node
         // cannot starve its siblings — the job-root ledger still bounds the
-        // total across all nodes.
+        // total across all nodes. skipCorrective: CARE/gap-fill belongs to
+        // the aggregated root corpus, not each targeted sub-question —
+        // running it per node stacked ~1-2min of provider calls per node.
         const nodeResult = await withExecutionScope(`dp-node:${node.id}`, () =>
-          scout(node.subQuestion, nodeProviders, perNodeProvider));
+          scout(node.subQuestion, nodeProviders, perNodeProvider, { skipCorrective: true }));
         const nodeSourceIds = Array.isArray(nodeResult) ? nodeResult.map((s: any) => s.id) : (nodeResult.sourceIds || []);
         node.sourceIds = nodeSourceIds;
         node.sourceCount = nodeSourceIds.length;
@@ -242,64 +247,76 @@ export async function runScoutBlock(deps: ScoutBlockDeps): Promise<ScoutBlockRes
 
       // LOT 2.3: DAG mutable — thin nodes get an expanded retry enriched with
       // parent context. Runs as a second pass AFTER the pool so ancestor
-      // sourceIds are populated (parallel scouts race parent completion).
-      for (const node of sortedNodes) {
-        if (Date.now() - scoutStart > DP_TAIL_BUDGET_MS) {
-          console.log(`${label} DEEP PLANNER: tail budget exhausted — stopping expansion (${Math.round((Date.now() - scoutStart) / 60000)}min elapsed)`);
-          break;
-        }
-        if ((node.sourceCount ?? 0) >= 5) continue;
-        const ancestorIds = getAncestorSourceIds(node.id, planResult.plan.nodes);
-        if (ancestorIds.length === 0) continue;
-        const parentNodes = planResult.plan.nodes.filter((n: any) => node.parentIds.includes(n.id));
-        const contextTerms = parentNodes.map((n: any) => n.subQuestion.split(' ').slice(0, 3).join(' ')).join(' ');
-        if (!contextTerms) continue;
-        const expandedQuery = `${node.subQuestion} ${contextTerms}`;
-        const validNodeProducers = node.producers.filter((p: string) => KNOWN_PROVIDERS.has(p));
-        const nodeProviders = (validNodeProducers.length >= 3
-          ? Array.from(new Set([...validNodeProducers.slice(0, 8), ...NODE_CORE_PROVIDERS.slice(0, 4), 'no-routing']))
-          : Array.from(new Set([...validNodeProducers, ...NODE_CORE_PROVIDERS, 'no-routing']))) as any;
-        // Lean set — expansion is a targeted retry, not a second full
-        // sweep. Passing the full `providers` list burned the shared
-        // root budget (139 providers × 12 queries observed live).
-        const expandResult = await withExecutionScope(`dp-expand:${node.id}`, () =>
-          scout(expandedQuery, nodeProviders, 25));
-        const expandIds = Array.isArray(expandResult) ? expandResult.map((s: any) => s.id) : (expandResult.sourceIds || []);
-        allSourceIds.push(...expandIds);
-        node.sourceIds = [...new Set([...(node.sourceIds || []), ...expandIds])];
-        node.sourceCount = node.sourceIds.length;
-        node.status = 'expanded';
-        console.log(`${label} DEEP PLANNER: node ${node.id} expanded → +${expandIds.length} sources`);
+      // sourceIds are populated. Retries are independent — run them through
+      // the same bounded pool instead of a serial loop (was ~1min × N nodes).
+      if (Date.now() - scoutStart > DP_TAIL_BUDGET_MS) {
+        console.log(`${label} DEEP PLANNER: tail budget exhausted — skipping expansion (${Math.round((Date.now() - scoutStart) / 60000)}min elapsed)`);
+      } else {
+        const expandQueue = sortedNodes.filter((node: any) =>
+          (node.sourceCount ?? 0) < 5 &&
+          getAncestorSourceIds(node.id, plan.nodes).length > 0 &&
+          node.parentIds.some((pid: string) => plan.nodes.some((n: any) => n.id === pid)));
+        await Promise.all(Array.from({ length: Math.min(NODE_CONCURRENCY, Math.max(1, expandQueue.length)) }, async () => {
+          while (expandQueue.length) {
+            if (Date.now() - scoutStart > DP_TAIL_BUDGET_MS) break;
+            const node = expandQueue.shift()!;
+            const ancestorIds = getAncestorSourceIds(node.id, plan.nodes);
+            const parentNodes = plan.nodes.filter((n: any) => node.parentIds.includes(n.id));
+            const contextTerms = parentNodes.map((n: any) => n.subQuestion.split(' ').slice(0, 3).join(' ')).join(' ');
+            if (!contextTerms) continue;
+            const expandedQuery = `${node.subQuestion} ${contextTerms}`;
+            const validNodeProducers = node.producers.filter((p: string) => KNOWN_PROVIDERS.has(p));
+            const nodeProviders = (validNodeProducers.length >= 3
+              ? Array.from(new Set([...validNodeProducers.slice(0, 8), ...NODE_CORE_PROVIDERS.slice(0, 4), 'no-routing']))
+              : Array.from(new Set([...validNodeProducers, ...NODE_CORE_PROVIDERS, 'no-routing']))) as any;
+            // Lean set — expansion is a targeted retry, not a second full
+            // sweep. Passing the full `providers` list burned the shared
+            // root budget (139 providers × 12 queries observed live).
+            const expandResult = await withExecutionScope(`dp-expand:${node.id}`, () =>
+              scout(expandedQuery, nodeProviders, 25, { skipCorrective: true }));
+            const expandIds = Array.isArray(expandResult) ? expandResult.map((s: any) => s.id) : (expandResult.sourceIds || []);
+            allSourceIds.push(...expandIds);
+            node.sourceIds = [...new Set([...(node.sourceIds || []), ...expandIds])];
+            node.sourceCount = node.sourceIds.length;
+            node.status = 'expanded';
+            console.log(`${label} DEEP PLANNER: node ${node.id} expanded → +${expandIds.length} sources`);
+          }
+        }));
       }
       allSourceIds = [...new Set(allSourceIds)];
 
       // ── DYNAMIC REPLANNING: if nodes failed or returned thin, generate
       // follow-up sub-questions from execution findings and scout them. ──
-      const thinOrFailed = planResult.plan.nodes.filter(
+      const thinOrFailed = plan.nodes.filter(
         (n: any) => n.status === 'failed' || (n.sourceCount ?? 0) < 5
       );
       if (thinOrFailed.length > 0 && !isBudgetConstrained() && Date.now() - scoutStart <= DP_TAIL_BUDGET_MS) {
         try {
           const { replanFromFindings } = await import('../deep-planner');
-          const replan = await replanFromFindings(query, planResult.plan.nodes, 3);
+          const replan = await replanFromFindings(query, plan.nodes, 3);
           if (replan.nodes.length > 0) {
             console.log(`${label} DEEP PLANNER REPLAN: ${replan.nodes.length} follow-up nodes for ${thinOrFailed.length} thin/failed`);
-            for (const node of replan.nodes) {
-              node.status = 'scouting';
-              const validP = node.producers.filter(p => KNOWN_PROVIDERS.has(p));
-              const nodeProviders = validP.length >= 3
-                ? Array.from(new Set([...validP.slice(0, 8), ...providers.slice(0, 4), 'no-routing'])) as any
-                : Array.from(new Set([...validP, ...NODE_CORE_PROVIDERS, 'no-routing'])) as any;
-              const res = await withExecutionScope(`dp-replan:${node.id}`, () =>
-                scout(node.subQuestion, nodeProviders, isStrategic ? 30 : 25));
-              const ids = Array.isArray(res) ? res.map(s => s.id) : (res.sourceIds || []);
-              node.sourceIds = ids;
-              node.sourceCount = ids.length;
-              node.status = ids.length > 0 ? 'expanded' : 'failed';
-              allSourceIds.push(...ids);
-              planResult.plan.nodes.push(node);
-              console.log(`${label} DEEP PLANNER REPLAN: ${node.id} "${node.subQuestion.slice(0, 60)}" → ${ids.length} sources`);
-            }
+            const replanQueue = [...replan.nodes];
+            await Promise.all(Array.from({ length: Math.min(NODE_CONCURRENCY, replanQueue.length) }, async () => {
+              while (replanQueue.length) {
+                if (Date.now() - scoutStart > DP_TAIL_BUDGET_MS) break;
+                const node = replanQueue.shift()!;
+                node.status = 'scouting';
+                const validP = node.producers.filter((p: string) => KNOWN_PROVIDERS.has(p));
+                const nodeProviders = validP.length >= 3
+                  ? Array.from(new Set([...validP.slice(0, 8), ...providers.slice(0, 4), 'no-routing'])) as any
+                  : Array.from(new Set([...validP, ...NODE_CORE_PROVIDERS, 'no-routing'])) as any;
+                const res = await withExecutionScope(`dp-replan:${node.id}`, () =>
+                  scout(node.subQuestion, nodeProviders, isStrategic ? 30 : 25, { skipCorrective: true }));
+                const ids = Array.isArray(res) ? res.map((s: any) => s.id) : (res.sourceIds || []);
+                node.sourceIds = ids;
+                node.sourceCount = ids.length;
+                node.status = ids.length > 0 ? 'expanded' : 'failed';
+                allSourceIds.push(...ids);
+                plan.nodes.push(node);
+                console.log(`${label} DEEP PLANNER REPLAN: ${node.id} "${node.subQuestion.slice(0, 60)}" → ${ids.length} sources`);
+              }
+            }));
             allSourceIds = [...new Set(allSourceIds)];
           }
         } catch (err) {
@@ -307,8 +324,8 @@ export async function runScoutBlock(deps: ScoutBlockDeps): Promise<ScoutBlockRes
         }
       }
 
-      stats.deepPlanner = { nodes: planResult.plan.nodes.length, costUsd: planResult.costUsd };
-      planNodesForAudit = planResult.plan.nodes.map((n: any) => ({
+      stats.deepPlanner = { nodes: plan.nodes.length, costUsd: planResult.costUsd };
+      planNodesForAudit = plan.nodes.map((n: any) => ({
         subQuestion: n.subQuestion, status: n.status, sourceCount: n.sourceCount,
       }));
     } else {

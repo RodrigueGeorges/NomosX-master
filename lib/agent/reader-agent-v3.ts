@@ -1120,31 +1120,28 @@ export async function readerAgentV3(
 
   const results: ReadingResultV3[] = [];
 
-  // Process in batches for concurrency control
-  for (let i = 0; i < sources.length; i += maxConcurrency) {
-    const batch = sources.slice(i, i + maxConcurrency);
-    const batchNum = Math.floor(i / maxConcurrency) + 1;
-    const totalBatches = Math.ceil(sources.length / maxConcurrency);
-
-    console.log(`[Reader V3] Batch ${batchNum}/${totalBatches} (${batch.length} sources)`);
-
-    const batchResults = await Promise.allSettled(
-      batch.map(async (source) => {
+  // Rolling worker pool — workers pull the next source as soon as they free
+  // up. The old fixed-batch scheme stalled every batch on its slowest member
+  // (one 120s-timeout PDF blocked 4 idle slots).
+  const queue = [...sources];
+  let completed = 0;
+  const total = sources.length;
+  await Promise.all(Array.from({ length: Math.min(maxConcurrency, queue.length) }, async () => {
+    while (queue.length) {
+      const source = queue.shift()!;
+      try {
         // Wrap in timeout
-        return withExecutionDeadline(timeout, 'Reader V3', () => processSource(source, enablePdf, memoryBlock));
-      })
-    );
-
-    assertExecutionActive();
-    batchResults.forEach((result, idx) => {
-      if (result.status === 'fulfilled') {
-        results.push(result.value);
-      } else {
-        console.warn(`[Reader V3] Failed: ${batch[idx].id} — ${result.reason?.message || 'Unknown error'}`);
-        results.push(ruleBasedExtractionV3(batch[idx]));
+        const value = await withExecutionDeadline(timeout, 'Reader V3', () => processSource(source, enablePdf, memoryBlock));
+        results.push(value);
+      } catch (err: any) {
+        console.warn(`[Reader V3] Failed: ${source.id} — ${err?.message || 'Unknown error'}`);
+        results.push(ruleBasedExtractionV3(source));
       }
-    });
-  }
+      completed++;
+      if (completed % 10 === 0) console.log(`[Reader V3] ${completed}/${total} sources processed`);
+      assertExecutionActive();
+    }
+  }));
 
   // Stats
   const fullText = results.filter(r => r.readingDepth === 'full_text').length;
