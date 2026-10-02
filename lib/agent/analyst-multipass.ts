@@ -871,6 +871,24 @@ EVIDENCE-FIRST METHODOLOGY (CRITICAL FOR QUALITY):
   a near-verbatim quote or close paraphrase from the cited source, not a
   summary in your own words. This is what makes the chain grounded.
 
+CONTESTED EVIDENCE PROTOCOL (RAND/Brookings practice — NON-NEGOTIABLE):
+- When the corpus DISAGREES on a fact or mechanism (Pass 2 collisions, or
+  sources asserting mutually exclusive things), do NOT assert both sides
+  flatly and do NOT silently drop one. Present the divergence explicitly:
+  "Sources diverge on X: [SRC-a] reports A, while [SRC-b] reports B — the
+  difference likely reflects [methodology/scope/timeframe]."
+- A contested finding presented as explicit tension is STRONGER analysis
+  than a false consensus. Downstream evaluation rewards explicit
+  disagreement framing and penalizes flat mutually-exclusive assertions.
+- NEVER place two mutually-exclusive claims as both-asserted links in the
+  causalChain. If the evidence genuinely splits, either select the
+  better-grounded side for the chain and name the dissent in
+  evidenceAssessment.sourceDiversity, or write the link's claim as
+  explicitly contested ("the record is divided on whether...").
+- If Pass 2 marked a mechanism as broken/fragile, it CANNOT enter the
+  causalChain as asserted — it belongs in rejectedAlternatives or
+  evidenceAssessment.gaps.
+
 EPISTEMIC HUMILITY RULES (to survive Devil's Advocate):
 - In the "evidenceAssessment.gaps" field, explicitly acknowledge what you
   DON'T know — missing data, untested assumptions, regional blind spots.

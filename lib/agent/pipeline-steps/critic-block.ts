@@ -122,6 +122,7 @@ export async function runCriticBlock(deps: CriticBlockDeps): Promise<CriticBlock
       groundedness: criticResult.groundedness,
       claimsCount: criticResult.claims.length,
       contradictions: criticResult.contradictions.length,
+      contestedFindings: criticResult.contestedFindings?.length ?? 0,
       biases: criticResult.biases.length,
       citationIssues: criticResult.citationIssues.length,
       stageResults: criticResult.stageResults,
@@ -129,7 +130,7 @@ export async function runCriticBlock(deps: CriticBlockDeps): Promise<CriticBlock
       durationMs: criticResult.durationMs,
     }, 'analysis');
 
-    console.log(`${label} CRITIC: verdict=${criticResult.verdict}, score=${criticResult.overallScore}, groundedness=${Math.round(criticResult.groundedness * 100)}%, ${criticResult.contradictions.length} contradictions, ${criticResult.biases.length} biases`);
+    console.log(`${label} CRITIC: verdict=${criticResult.verdict}, score=${criticResult.overallScore}, groundedness=${Math.round(criticResult.groundedness * 100)}%, ${criticResult.contradictions.length} contradictions, ${criticResult.contestedFindings?.length ?? 0} contested, ${criticResult.biases.length} biases`);
 
     // If critic says repair, inject repair instructions into the analysis context
     if (criticResult.verdict === 'repair' && criticResult.repairInstructions) {

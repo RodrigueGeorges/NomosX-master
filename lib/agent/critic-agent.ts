@@ -75,6 +75,10 @@ export interface CriticResult {
   verdict: CriticVerdict;
   claims: AtomicClaim[];
   contradictions: ContradictionPair[];
+  /** Contradiction pairs where BOTH claims are grounded in DIFFERENT sources —
+   * the corpus itself disagrees. These are contested findings to present as
+   * explicit tension (Consensus-meter style), not internal inconsistencies. */
+  contestedFindings: ContradictionPair[];
   biases: BiasFlag[];
   citationIssues: CitationIssue[];
   overallScore: number; // 0-100
@@ -86,7 +90,7 @@ export interface CriticResult {
   stageResults: {
     decomposition: { claimsExtracted: number };
     grounding: { supported: number; derived: number; partial: number; unsupported: number; contradicted: number; unverifiable: number };
-    contradictions: { pairsFound: number; severeCount: number };
+    contradictions: { pairsFound: number; severeCount: number; contestedCount: number };
     bias: { flagsRaised: number; highSeverity: number };
     citations: { issuesFound: number };
   };
@@ -747,7 +751,8 @@ ISSUES FOUND:
 DETAILS:
 {details}
 
-Generate repair instructions that the ANALYST agent can follow to fix the analysis:
+Generate repair instructions that the ANALYST agent can follow to fix the analysis.
+IMPORTANT — contestedFindings (when present) are NOT internal contradictions: the corpus itself disagrees. Instruct the analyst to present BOTH positions explicitly with their citations and hedge the synthesis ("sources diverge on X: [SRC-a] reports A, [SRC-b] reports B") — never to silently delete one side.
 
 Return JSON:
 {
@@ -844,6 +849,31 @@ export async function runCritic(
     contradictions = conts;
     totalCost += contCost;
     console.log(`[Critic] Found ${contradictions.length} contradictions (${contradictions.filter(c => c.severity === 'severe').length} severe)`);
+  }
+
+  // Contested-finding reclassification (Consensus-meter insight): when BOTH
+  // sides of a contradiction pair are grounded in DIFFERENT sources, the
+  // corpus itself disagrees — that is a contested finding the analysis should
+  // present as explicit tension, not an internal-consistency defect. These
+  // pairs leave the contradiction penalty ledger and enter repair details
+  // with reframing guidance instead.
+  const GROUNDED_VERDICTS = new Set(['supported', 'partially_supported', 'derived']);
+  const contestedFindings: ContradictionPair[] = [];
+  if (contradictions.length > 0) {
+    const claimById = new Map(groundedClaims.map(c => [c.id, c]));
+    contradictions = contradictions.filter(pair => {
+      const c1 = claimById.get(pair.claim1Id);
+      const c2 = claimById.get(pair.claim2Id);
+      const bothGrounded =
+        c1 && c2 &&
+        GROUNDED_VERDICTS.has(c1.verdict) && GROUNDED_VERDICTS.has(c2.verdict) &&
+        c1.sourceIndex != null && c2.sourceIndex != null && c1.sourceIndex !== c2.sourceIndex;
+      if (bothGrounded) { contestedFindings.push(pair); return false; }
+      return true;
+    });
+    if (contestedFindings.length > 0) {
+      console.log(`[Critic] ${contestedFindings.length} contradiction pair(s) reclassified as contested findings (both sides grounded in different sources)`);
+    }
   }
 
   // Stage 4: Detect bias
@@ -977,6 +1007,7 @@ export async function runCritic(
       unsupportedClaims: groundedClaims.filter(c => c.verdict === 'unsupported').map(c => ({ id: c.id, text: c.text, reasoning: c.reasoning })),
       contradictedClaims: groundedClaims.filter(c => c.verdict === 'contradicted').map(c => ({ id: c.id, text: c.text, evidence: c.evidence })),
       contradictions: contradictions.map(c => ({ claim1: c.claim1Text, claim2: c.claim2Text, explanation: c.explanation })),
+      contestedFindings: contestedFindings.map(c => ({ claim1: c.claim1Text, claim2: c.claim2Text, explanation: c.explanation, guidance: 'Corpus disagreement — present both positions with citations, hedge the synthesis' })),
       biases: biases.map(b => ({ type: b.type, description: b.description, mitigation: b.mitigation })),
       citationIssues: citationIssues.map(i => ({ claim: i.claimId, issue: i.issue, explanation: i.explanation })),
     }, null, 2);
@@ -1001,6 +1032,7 @@ export async function runCritic(
     verdict,
     claims: groundedClaims,
     contradictions,
+    contestedFindings,
     biases,
     citationIssues,
     overallScore,
@@ -1012,7 +1044,7 @@ export async function runCritic(
     stageResults: {
       decomposition: { claimsExtracted: groundedClaims.length },
       grounding: groundingStats,
-      contradictions: { pairsFound: contradictions.length, severeCount: contradictions.filter(c => c.severity === 'severe').length },
+      contradictions: { pairsFound: contradictions.length, severeCount: contradictions.filter(c => c.severity === 'severe').length, contestedCount: contestedFindings.length },
       bias: { flagsRaised: biases.length, highSeverity: biases.filter(b => b.severity === 'high').length },
       citations: { issuesFound: citationIssues.length },
     },

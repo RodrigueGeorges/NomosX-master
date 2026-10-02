@@ -131,6 +131,65 @@ describe('runCritic — auto-attach + composition verdict', () => {
   });
 });
 
+describe('runCritic — contested findings (corpus disagreement ≠ internal inconsistency)', () => {
+  it('reclassifies a contradiction whose both sides are grounded in DIFFERENT sources', async () => {
+    mockedLLM.mockResolvedValueOnce({
+      content: JSON.stringify({ claims: [
+        { id: 'c1', text: 'Malaysia renegotiated rail debt', citationTag: '[SRC-1]', kind: 'fact' },
+        { id: 'c2', text: 'Iran adapted via regional trade', citationTag: '[SRC-2]', kind: 'fact' },
+      ] }),
+      costUsd: 0.001,
+    } as any);
+    mockedLLM.mockImplementation(async (args: any) => {
+      const c: string = args.messages?.[0]?.content ?? '';
+      if (c.includes('BEST-matching source')) {
+        return { content: JSON.stringify({ results: [] }), costUsd: 0.001 } as any;
+      }
+      if (c.includes('Identify contradictions')) {
+        return { content: JSON.stringify({ contradictions: [
+          { claim1Id: 'c1', claim2Id: 'c2', claim1Text: 'X rose', claim2Text: 'X fell', explanation: 'opposite directions', severity: 'moderate' },
+        ] }), costUsd: 0.001 } as any;
+      }
+      const ids = [...c.matchAll(/"id":\s*"([^"]+)"/g)].map(m => m[1]);
+      return { content: JSON.stringify({ results: ids.map(id => ({ id, verdict: 'supported', confidence: 0.9 })) }), costUsd: 0.001 } as any;
+    });
+
+    const result = await runCritic('text', SOURCES, { skipBias: true });
+    // Both sides grounded in different sources → contested finding, no
+    // contradiction penalty applied.
+    expect(result.contestedFindings).toHaveLength(1);
+    expect(result.contradictions).toHaveLength(0);
+    expect(result.stageResults.contradictions.contestedCount).toBe(1);
+  });
+
+  it('keeps a contradiction when both sides cite the SAME source (internal inconsistency)', async () => {
+    mockedLLM.mockResolvedValueOnce({
+      content: JSON.stringify({ claims: [
+        { id: 'c1', text: 'Malaysia renegotiated rail debt up', citationTag: '[SRC-1]', kind: 'fact' },
+        { id: 'c2', text: 'Malaysia renegotiated rail debt down', citationTag: '[SRC-1]', kind: 'fact' },
+      ] }),
+      costUsd: 0.001,
+    } as any);
+    mockedLLM.mockImplementation(async (args: any) => {
+      const c: string = args.messages?.[0]?.content ?? '';
+      if (c.includes('BEST-matching source')) {
+        return { content: JSON.stringify({ results: [] }), costUsd: 0.001 } as any;
+      }
+      if (c.includes('Identify contradictions')) {
+        return { content: JSON.stringify({ contradictions: [
+          { claim1Id: 'c1', claim2Id: 'c2', claim1Text: 'X rose', claim2Text: 'X fell', explanation: 'opposite directions', severity: 'moderate' },
+        ] }), costUsd: 0.001 } as any;
+      }
+      const ids = [...c.matchAll(/"id":\s*"([^"]+)"/g)].map(m => m[1]);
+      return { content: JSON.stringify({ results: ids.map(id => ({ id, verdict: 'supported', confidence: 0.9 })) }), costUsd: 0.001 } as any;
+    });
+
+    const result = await runCritic('text', SOURCES, { skipBias: true });
+    expect(result.contestedFindings).toHaveLength(0);
+    expect(result.contradictions).toHaveLength(1);
+  });
+});
+
 describe('runCritic — groundedness denominator excludes never-cited claims', () => {
   it('uncited claims surface as citation issues, not grounding misses', async () => {
     // Call 1: decomposition — 2 cited claims + 1 uncited
