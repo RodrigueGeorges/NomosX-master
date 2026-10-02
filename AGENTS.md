@@ -6,6 +6,73 @@
 
 ---
 
+## Sprint 31 — Evaluator-input forensics (the quality=45 root cause)
+
+Post-mortem of the second validation run (2 HELD): the artefacts were
+citation-dense (522 `[SRC-N]` on a real corpus) yet every adversarial judge
+scored them near-zero. Forensic replay of persisted stats showed the failure
+was **evaluator inputs**, not the analysis: the composite
+`qualityScore = 50% sources + 10% critic + 25% structuralEditor + 15% DA`
+collapsed because all three non-source terms were fed empty inputs.
+
+**Critic groundedness collapse (39% on a strong corpus)** —
+`lib/agent/critic-agent.ts`:
+- Claim decomposition extracted `citationTag` ("[SRC-7]") but left
+  `sourceIndex` null → claims skipped grounding entirely and counted as
+  `unverifiable` in the denominator. `sourceIndex` is now recovered
+  deterministically from the tag (zero LLM).
+- Multi-cited claims (`[SRC-22][SRC-16][SRC-9]` — 138 groups observed) were
+  verified against a single source. `sourceIndices[]` now verifies against
+  the union of cited excerpts.
+- Cross-source rescue **self-disabled** when >12 claims failed — exactly the
+  mass-failure case. Now batched by 8, capped at 16, cited claims first.
+- Never-cited claims poisoned the groundedness denominator AND were skipped
+  by `validateCitations` (the `unverifiable` guard) — penalized but
+  undiagnosed. They are now excluded from groundedness and surfaced as
+  `citationIssues` (missing citations), matching `claim-grounding.ts`
+  semantics.
+- Critic evidence tool (`critic-block.ts`) targeted only `unsupported`
+  claims — cited-but-unverifiable claims (the real evidence holes) now feed
+  it too.
+
+**Devil's Advocate judged nothing** — `buildAnalysisReviewText` cast the
+analysis to `Record`; a string payload produced a review containing ONLY the
+question ("substantive analysis is omitted" kill shot, `major_revision`
+veto). Now: string analyses are included verbatim, JSON strings are parsed,
+arrays of objects serialize via JSON (was `"[object Object]"`), multipass
+substance fields are pushed (frictionMap.mechanisms/collisions/
+dataLandscape, quantitativeFindings, activeDynamics,
+projectionsInLiterature), and an unrecognized object shape falls back to
+full serialization — a reviewer can never again see a question-only bundle.
+
+**Structural editor scored an empty inventory** — `buildSectionInventory`
+expected legacy fields (`summary`/`consensus`/`implications`); the multipass
+analyst emits `throughLine`/`verdict`/`causalChain`/`keyFindings`/
+`frictionMap` → near-empty inventory → `narrativeArcValid:false`,
+overallStructure ~25-35 on both HELD items. The inventory now covers the
+multipass schema (exported for testing).
+
+**Self-correction actuation** — `post-analyst-checks.ts`: the analyst
+checkpoint detected citation spread 29% < 35% (11/38 sources) but only
+logged `shouldRetry`. A deterministic trigger now fires: spread <35% forces
+one budgeted `analystMultipass` retry (`reAnalysisBudget`,
+`selfCorrectRetries < 2`) with an explicit "cite ≥N distinct [SRC-N]"
+correction block; the retry is adopted only if measured spread strictly
+improves. This prevents the observed failure mode where the quality loop
+later injected 269 post-hoc citations to compensate.
+
+**Citation backfill scope** — `citation-repair.ts` scanned only top-level
+string fields; multipass substance (`frictionMap`, `causalChain`,
+`keyFindings`, `dataLandscape`…) is now serialized and scanned too.
+Injection stays restore-only: it matches analyst-authored sentence snippets
+in the HTML — never fabricates claim↔source associations.
+
+Tests: `analysis-review-text.test.ts` +8 (string/JSON/multipass/empty-shape,
+legacy+multipass inventory, non-trivial inventory on real payload shape).
+Verified: `tsc` 0 · jest 20/20 suites — 183 tests.
+
+---
+
 ## Sprint 30 — Spend discipline + Temporal Cloud orchestration
 
 Post-mortem of a live $3.91 / 2-HELD breaking run: 45% of LLM spend was
