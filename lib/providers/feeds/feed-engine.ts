@@ -40,6 +40,35 @@ const GN_BREAKER_THRESHOLD = 3;
 let gnConsecutiveFails = 0;
 let gnCircuitOpenUntil = 0; // epoch ms
 
+// Per-host circuit breaker for direct feeds: an institutional feed that times
+// out burns FEED_TIMEOUT_MS × retries on EVERY scout wave (dozens per cycle).
+// After 2 consecutive failures the host is skipped for 15 minutes.
+const HOST_BREAKER_THRESHOLD = 2;
+const HOST_COOLDOWN_MS = 15 * 60_000;
+const hostConsecutiveFails = new Map<string, number>();
+const hostOpenUntil = new Map<string, number>();
+
+function hostKey(url: string): string {
+  try { return new URL(url).hostname; } catch { return url.slice(0, 40); }
+}
+
+function hostCircuitOpen(url: string): boolean {
+  const until = hostOpenUntil.get(hostKey(url));
+  return until !== undefined && Date.now() < until;
+}
+
+function recordHostResult(url: string, ok: boolean): void {
+  const key = hostKey(url);
+  if (ok) { hostConsecutiveFails.delete(key); return; }
+  const fails = (hostConsecutiveFails.get(key) ?? 0) + 1;
+  hostConsecutiveFails.set(key, fails);
+  if (fails >= HOST_BREAKER_THRESHOLD) {
+    hostOpenUntil.set(key, Date.now() + HOST_COOLDOWN_MS);
+    hostConsecutiveFails.delete(key);
+    console.warn(`[FEED-ENGINE] Host circuit open: ${key} (≥${HOST_BREAKER_THRESHOLD} fails) — skipping for ${HOST_COOLDOWN_MS / 60000}min`);
+  }
+}
+
 /** Score how relevant a feed is for a query (0 = skip). */
 function scoreFeed(feed: FeedSource, queryLower: string, terms: string[], domainHint?: string): number {
   let score = 0;
@@ -108,6 +137,8 @@ export async function searchFeedSet(
               const q = encodeURIComponent(queryTerms.slice(0, 4).join(' '));
               url = feed.url.replace(/&hl=en/, `+${q}&hl=en`);
             }
+          } else if (hostCircuitOpen(feed.url)) {
+            return []; // dead host — cooldown active
           }
           assertExecutionActive();
           const xml = await httpGet<string>(url, {
@@ -117,6 +148,7 @@ export async function searchFeedSet(
           });
           const parsed = await parser.parseString(xml);
           if (!feed.direct) gnConsecutiveFails = 0;
+          else recordHostResult(feed.url, true);
           return (parsed.items || [])
             .filter((item: any) => {
               if (!feed.direct) return true;
@@ -159,6 +191,8 @@ export async function searchFeedSet(
               gnCircuitOpenUntil = Date.now() + 10 * 60_000; // 10 min cooldown
               console.warn(`[FEED-ENGINE] Google News circuit open (≥${GN_BREAKER_THRESHOLD} fails) — skipping GN feeds for 10min`);
             }
+          } else {
+            recordHostResult(feed.url, false);
           }
           return [];
         }
