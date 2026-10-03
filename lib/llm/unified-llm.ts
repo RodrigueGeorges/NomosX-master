@@ -867,7 +867,10 @@ function endpointCooldownMs(err: Error): number | null {
 function getFreepoolClient(endpoint: FreepoolEndpoint): OpenAI {
   let client = freepoolClients.get(endpoint.name);
   if (!client) {
-    client = new OpenAI({ apiKey: endpoint.apiKey, baseURL: endpoint.baseURL });
+    // Native fetch: the SDK's default fetch stack fails to reach
+    // integrate.api.nvidia.com on some networks (APIConnectionError while
+    // raw fetch succeeds) — verified live 2026-10.
+    client = new OpenAI({ apiKey: endpoint.apiKey, baseURL: endpoint.baseURL, fetch: globalThis.fetch as any });
     freepoolClients.set(endpoint.name, client);
   }
   return client;
