@@ -121,7 +121,9 @@ export async function runReaderBlock(deps: ReaderBlockDeps): Promise<ReaderBlock
           // free tier: ~8K TPM). 4-5 concurrent ~3K-token extractions
           // guaranteed a 429 storm — pace at 2 so requests stay under quota.
           maxConcurrency: isFreeRun() ? 2 : 4,
-          timeout: isStrategic ? 180000 : undefined,
+          // Free runs queue behind TPM pacing — a 120s per-source timeout
+          // aborts extractions mid-queue, burning the LLM call AND the slot.
+          timeout: isFreeRun() ? 300000 : isStrategic ? 180000 : undefined,
           domain: detectedDomain,
           memoryBlock: readerMemoryBlock,
         })
