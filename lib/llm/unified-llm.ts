@@ -889,19 +889,29 @@ function estimatePromptTokens(request: LLMRequest): number {
 // them on a rolling 60s token budget — sequential-but-bursty calls still
 // exceed TPM when each burns ~4K tokens in 3s.
 const FREEPOOL_TPM_BUDGET = 6500; // leave headroom under the 8K limit
-const freepoolWindow: Array<{ t: number; tokens: number }> = [];
+// Entries are pushed with the pre-call estimate, then corrected to actual
+// usage on completion — estimates (prompt + max_tokens) overshoot real
+// consumption ~2x on short completions and halve free-tier throughput.
+const freepoolWindow: Array<{ t: number; est: number; actual?: number }> = [];
 let freepoolChain: Promise<unknown> = Promise.resolve();
 async function paceFreepool(estimatedTokens: number): Promise<void> {
   const now = Date.now();
   while (freepoolWindow.length && now - freepoolWindow[0].t > 60_000) freepoolWindow.shift();
-  const used = freepoolWindow.reduce((s, e) => s + e.tokens, 0);
+  const used = freepoolWindow.reduce((s, e) => s + (e.actual ?? e.est), 0);
   const over = used + estimatedTokens - FREEPOOL_TPM_BUDGET;
   if (over > 0 && freepoolWindow.length) {
     const waitMs = Math.max(0, 60_000 - (now - freepoolWindow[0].t)) + 250;
     if (waitMs > 500) console.log(`   ↳ freepool TPM pacing: waiting ${Math.round(waitMs / 1000)}s (window ${used}+${estimatedTokens} tok)`);
     await new Promise(r => setTimeout(r, waitMs));
   }
-  freepoolWindow.push({ t: Date.now(), tokens: estimatedTokens });
+  freepoolWindow.push({ t: Date.now(), est: estimatedTokens });
+}
+export function recordFreepoolUsage(tokens: number): void {
+  // Correct the most recent uncorrected entry — calls are serialized, so it
+  // is always this call's own entry.
+  for (let i = freepoolWindow.length - 1; i >= 0; i--) {
+    if (freepoolWindow[i].actual === undefined) { freepoolWindow[i].actual = tokens; return; }
+  }
 }
 function enqueueFreepool<T>(fn: () => Promise<T>): Promise<T> {
   const run = freepoolChain.then(fn);
@@ -964,6 +974,7 @@ async function callFreepoolInner(request: LLMRequest, signal?: AbortSignal): Pro
       if (!content) throw new Error(`freepool/${ep.name} returned empty content`);
       const tokensInput = completion.usage?.prompt_tokens ?? promptTokens;
       const tokensOutput = completion.usage?.completion_tokens ?? 0;
+      recordFreepoolUsage(tokensInput + tokensOutput);
       console.log(`   ↳ freepool via ${ep.name}/${model}`);
       return {
         content,

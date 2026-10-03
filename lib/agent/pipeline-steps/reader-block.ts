@@ -101,7 +101,11 @@ export async function runReaderBlock(deps: ReaderBlockDeps): Promise<ReaderBlock
       .filter(([k]) => typeof k === 'string' && k.length > 0)
   );
   const priorReadingsBySourceId = priorById;
-  const sourcesToRead = topSources.filter((s: any) => !priorById.has(s.id));
+  // Free-run: the analyst only sees the top-10 corpus under free-tier request
+  // caps — deep-reading 45 sources burns the daily TPM budget for context the
+  // analyst never receives. Read the top-15 (small buffer vs the 10 shown).
+  const readCap = isFreeRun() ? topSources.slice(0, 15) : topSources;
+  const sourcesToRead = readCap.filter((s: any) => !priorById.has(s.id));
   if (priorById.size > 0) {
     console.log(`${label} READER V3: reusing ${topSources.length - sourcesToRead.length}/${topSources.length} prior readings — extracting ${sourcesToRead.length} new source(s) only`);
   }
