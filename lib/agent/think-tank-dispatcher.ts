@@ -630,7 +630,11 @@ export async function executeDispatchQueue(
 
   // Dispatch timeout must exceed pipeline timeout (deep/memo: 80min) — a
   // shorter race would kill a still-productive run before its own cap.
-  const DISPATCH_TIMEOUT_MS = 6_000_000; // 100min — pipeline ≤80min + orchestrator assess/revision + buffer
+  // Free runs are ~2-3x slower: serialized freepool calls + TPM pacing waits
+  // + slow free endpoints (~90s/call). A 100min cap cuts the pipeline
+  // mid-analyst before the gate can judge anything.
+  const freeRun = process.env.NOMOSX_FREE_RUN === '1' || process.env.NOMOSX_FREE_RUN === 'true';
+  const DISPATCH_TIMEOUT_MS = freeRun ? 14_400_000 : 6_000_000; // free: 240min | paid: 100min (pipeline ≤80min + orchestrator + buffer)
 
   // The cycle targets maxExecutions PUBLICATIONS, not attempts: a held or
   // failed candidate does not consume a publication slot — the loop falls

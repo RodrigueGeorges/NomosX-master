@@ -1308,7 +1308,10 @@ export async function runPipeline(
   const isDossier = format === "dossier";
   const isMemo = format === "memo";
   const isStrategic = format === "strategic" || isDossier;
-  const timeoutMs = options.timeoutMs ?? (isStrategic ? 4_500_000 : 3_900_000); // 75min strategic, 65min brief/memo — critic-repair re-analysis + deep-planner node scouts need headroom
+  // Free runs: serialized freepool + TPM pacing + ~90s/call free endpoints
+  // make every phase ~2-3x slower — the 65/75min caps abort mid-analyst.
+  const freeRun = process.env.NOMOSX_FREE_RUN === '1' || process.env.NOMOSX_FREE_RUN === 'true';
+  const timeoutMs = options.timeoutMs ?? (freeRun ? 10_800_000 : isStrategic ? 4_500_000 : 3_900_000); // free: 180min | 75min strategic, 65min brief/memo — critic-repair re-analysis + deep-planner node scouts need headroom
 
   // DOSSIER = extended strategic report — wider corpus and more ranked sources
   // so a €699 dossier produces a materially deeper deliverable than a strategic report.
