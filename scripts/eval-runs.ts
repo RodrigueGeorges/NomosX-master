@@ -56,7 +56,7 @@ async function collect(limit: number): Promise<Agg> {
   const runs = await prisma.pipelineRun.findMany({
     orderBy: { createdAt: 'desc' },
     take: limit,
-    select: { status: true, totalCostUsd: true, durationMs: true, trustScore: true },
+    select: { status: true, totalCostUsd: true, durationMs: true, trustScore: true, error: true },
   });
 
   // ── Publication outcomes + stored pipeline stats ──
@@ -107,8 +107,14 @@ async function collect(limit: number): Promise<Agg> {
     if (stats.outlineCriticEarly?.coverageScore !== undefined) bump('outlineCriticEarly');
     if (stats.regeneration?.triggered || stats.regeneration?.attempted) bump('regeneration');
     if (stats.regeneration?.adopted === true) bump('regenAdopted');
-    if (stats.viability?.passed === false) bump('viabilityRefusal');
   }
+
+  // Viability refusals live on PipelineRun (pre-brief — no publication row):
+  // the corpus pre-gate persists status FAILED + error 'corpus_insufficient'.
+  const viabilityRefusals = runs.filter(
+    (r: any) => r.status === 'FAILED' && typeof r.error === 'string' && r.error.startsWith('corpus_insufficient')
+  ).length;
+  if (viabilityRefusals > 0) repairActivity.viabilityRefusal = viabilityRefusals;
 
   const totalCost = runs.reduce((a: number, r: any) => a + (r.totalCostUsd ?? 0), 0);
 
