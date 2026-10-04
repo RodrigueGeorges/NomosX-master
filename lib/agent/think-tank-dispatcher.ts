@@ -1016,11 +1016,28 @@ export async function executeDispatchQueue(
       }
     } else if (result.status === "skipped_duplicate") {
       skipped++;
-      // Duplicate means topic already published — mark signal as handled
+      // Duplicate = terminal, NOT held — the topic is already covered by a
+      // published artifact, so there is nothing to repair. HELD would put the
+      // signal back into the retry pool, where it would pay a full pipeline
+      // run to produce a real duplicate (retries bypass dedup). REJECTED
+      // exits the pool; the REJECT decision keeps the audit trail.
       if (item.signalId) {
         await prisma.signal
-          .update({ where: { id: item.signalId }, data: { status: "HELD" } })
+          .update({ where: { id: item.signalId }, data: { status: "REJECTED" } })
           .catch(() => undefined);
+        try {
+          const vId = item.verticalId
+            ?? (await prisma.signal.findUnique({ where: { id: item.signalId }, select: { verticalId: true } }))?.verticalId;
+          if (vId) await prisma.editorialDecision.create({
+            data: {
+              signalId: item.signalId,
+              verticalId: vId,
+              decision: 'REJECT',
+              reasons: [`duplicate of ${result.duplicateOf ?? 'existing publication'} — topic already covered`],
+              checks: { terminal: 'duplicate' },
+            },
+          });
+        } catch { /* non-blocking */ }
       }
     } else if (result.status === "skipped_dry_run") {
       skipped++;

@@ -168,6 +168,21 @@ describe('held diagnostic persistence', () => {
     }));
   });
 
+  it('skipped_duplicate marks the signal REJECTED — a covered topic is terminal, not a retryable obligation', async () => {
+    // HELD would re-enter the retry pool: the signal has no HOLD decisions,
+    // so it would pay a full pipeline run (dedup bypassed on retries) to
+    // produce a real duplicate. REJECTED exits the pool.
+    run
+      .mockResolvedValueOnce(RESERVE_MISS)
+      .mockResolvedValueOnce(result({ status: 'skipped_duplicate', duplicateOf: 'pub-existing' }));
+
+    const out = await executeDispatchQueue([item], cadence, 1, false);
+    expect(out.skipped).toBe(1);
+    expect(sigUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: 'sig-x' }, data: { status: 'REJECTED' } })
+    );
+  });
+
   it('a successful retry resolves the signal to PUBLISHED', async () => {
     const retryItem: ThinkTankDispatchItem = {
       question: 'Held question', depth: 'standard', signalId: 'sig-y',
