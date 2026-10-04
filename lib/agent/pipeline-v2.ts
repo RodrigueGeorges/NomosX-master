@@ -45,7 +45,7 @@ import { runPostRenderCitationAndGrounding as runCitationGroundingStep } from '.
 import { runReaderBlock } from './pipeline-steps/reader-block';
 import { runClassificationGates } from './pipeline-steps/classification-gates';
 import { createGapRequestProcessor, runGapFillStage, type GapFillDeps, type GapFillState } from './pipeline-steps/gap-fill';
-import { buildAnalystContext } from './pipeline-steps/analyst-context';
+import { buildAnalystContext, buildRequiredCoverageBlock } from './pipeline-steps/analyst-context';
 import { runPostAnalystChecks } from './pipeline-steps/post-analyst-checks';
 import { runAnalystExecution } from './pipeline-steps/analyst-run';
 import { runScoutBlock } from './pipeline-steps/scout-block';
@@ -435,16 +435,13 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   // the analysis could silently narrow the question (observed: a "broader
   // patterns" question answered mono-country → DA fatal). The branches ARE
   // the scope contract — inject them as mandatory coverage before the
-  // analyst writes a word.
+  // analyst writes a word. (buildRequiredCoverageBlock — tested)
   const requiredBranches = planNodesForAudit
     .filter(n => n.subQuestion && n.status !== 'failed')
     .map(n => n.subQuestion);
-  if (requiredBranches.length > 1) {
-    fullContextBlock = (fullContextBlock || '') +
-      `\n\n## REQUIRED COVERAGE (research plan)\n` +
-      `The research plan decomposed the question into ${requiredBranches.length} investigation branches. ` +
-      `Your analysis MUST address EVERY branch that the sources support — a branch silently dropped is a coverage hole the reviewers will flag as fatal:\n` +
-      requiredBranches.map((b, i) => `${i + 1}. ${b}`).join('\n');
+  const coverageBlock = buildRequiredCoverageBlock(planNodesForAudit);
+  if (coverageBlock) {
+    fullContextBlock = (fullContextBlock || '') + coverageBlock;
   }
   const positioningBrief = analystCtx.positioningBrief;
   const savedCanaResult = analystCtx.savedCanaResult;
@@ -953,12 +950,45 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
       // enriched corpus. Writing a better argument over the same evidence
       // base is the symptom fix; retrieving the missing evidence is the cure.
       try {
-        const challengeQueries = [
+        const challengeTexts = [
           ...((daPre.topChallenges as Array<{ text?: string }> | undefined) ?? []),
         ]
           .map(c => String(c?.text ?? '').trim())
           .filter(t => t.length > 20)
           .slice(0, 3);
+        // A 300-char prose objection is a terrible search query — academic
+        // retrieval needs distilled topic terms. One cheap call converts the
+        // challenges into queries (same pattern as generateGapQueries for
+        // citation gaps); on failure the raw texts still get scouted.
+        let challengeQueries = challengeTexts;
+        try {
+          const { callLLM } = await import('../llm/unified-llm');
+          const { parseJson } = await import('./json-utils');
+          const qResp = await callLLM({
+            messages: [{
+              role: 'user',
+              content: `An adversarial reviewer found these fatal evidence gaps in a research analysis. Convert EACH gap into a focused academic search query (max ~12 words, topical terms only — no prose, no "the analysis fails to").
+
+RESEARCH QUESTION: "${query}"
+
+EVIDENCE GAPS:
+${challengeTexts.map((t, i) => `${i + 1}. ${t.slice(0, 300)}`).join('\n')}
+
+Return JSON: {"queries": ["...", "..."]} — one query per gap, same order.`,
+            }],
+            temperature: 0.2,
+            jsonMode: true,
+            maxTokens: 400,
+            task: 'topic_classification',
+          });
+          addCost(qResp.costUsd, 'DA_MISSION_QUERY_DISTILL');
+          const parsed = parseJson<{ queries?: string[] }>(qResp.content);
+          const distilled = (parsed?.queries ?? [])
+            .map(q => String(q ?? '').trim())
+            .filter(q => q.length > 10)
+            .slice(0, 3);
+          if (distilled.length > 0) challengeQueries = distilled;
+        } catch { /* fall through to raw challenge texts */ }
         if (challengeQueries.length > 0) {
           for (const q of challengeQueries) {
             ctx.requestSourceGap(

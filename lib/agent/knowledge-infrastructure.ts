@@ -333,22 +333,29 @@ export function recordGuideline(topic: string, guideline: string, rationale: str
   persistEntry(GUIDE_ACTION, entry.id, entry);
 }
 
+/** Distinctive-token overlap — same approach as prediction-watch triggers.
+ * Substring matching on a 20-char prefix fails on paraphrases ("EU battery
+ * policy" vs "How do batteries reshape the grid?"); overlap ≥2 distinctive
+ * tokens catches the same topic reworded. */
+function topicOverlap(a: string, b: string): boolean {
+  const tokens = (s: string) => new Set(s.toLowerCase().split(/\W+/).filter(t => t.length > 4));
+  const aT = tokens(a), bT = tokens(b);
+  let shared = 0;
+  for (const t of aT) if (bT.has(t)) shared++;
+  return shared >= 2;
+}
+
 export async function getRelevantExperience(topic: string, phase: string): Promise<ExperienceEntry[]> {
   await ensureBankHydrated();
   return experienceBank.filter(e => {
     if (e.phase !== phase) return false;
-    // Simple topic matching (in production, use embeddings)
-    return e.topic.toLowerCase().includes(topic.toLowerCase().slice(0, 20)) ||
-           topic.toLowerCase().includes(e.topic.toLowerCase().slice(0, 20));
+    return topicOverlap(e.topic, topic);
   }).slice(-5); // Most recent 5
 }
 
 export async function getRelevantGuidelines(topic: string): Promise<GuidelineEntry[]> {
   await ensureBankHydrated();
-  return guidelineBank.filter(g => {
-    return g.topic.toLowerCase().includes(topic.toLowerCase().slice(0, 20)) ||
-           topic.toLowerCase().includes(g.topic.toLowerCase().slice(0, 20));
-  }).slice(-3);
+  return guidelineBank.filter(g => topicOverlap(g.topic, topic)).slice(-3);
 }
 
 /**

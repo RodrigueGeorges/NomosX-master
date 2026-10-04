@@ -157,11 +157,21 @@ export async function runRankAndEnrichment(deps: RankEnrichmentDeps): Promise<Ra
       const MIN_KEEP = 20;
       const before = topSources.length;
       const kept: any[] = [];
+      // Provider-singleton guard: a low-quality source that is the ONLY
+      // representative of its provider still carries diversity — dropping it
+      // would shrink providerDiversity (a trust term) and hand the critic a
+      // confirmation-bias finding. Keep singletons regardless of score.
+      const providerCounts = new Map<string, number>();
+      for (const s of topSources) {
+        const p = String(s.provider ?? 'unknown');
+        providerCounts.set(p, (providerCounts.get(p) ?? 0) + 1);
+      }
       let droppedTail = 0;
       for (const s of topSources) {
         const effectiveQ = (s.qualityScore || 0) > 0 ? s.qualityScore : ((s as any).sourceQuality?.overall ?? 0);
         const canDrop = topSources.length - droppedTail > MIN_KEEP;
-        if (canDrop && effectiveQ > 0 && effectiveQ < QUALITY_TAIL_FLOOR) {
+        const isProviderSingleton = (providerCounts.get(String(s.provider ?? 'unknown')) ?? 0) <= 1;
+        if (canDrop && !isProviderSingleton && effectiveQ > 0 && effectiveQ < QUALITY_TAIL_FLOOR) {
           droppedTail++;
           continue;
         }

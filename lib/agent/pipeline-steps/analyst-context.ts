@@ -52,6 +52,27 @@ export interface AnalystContextDeps {
   };
 }
 
+/**
+ * REQUIRED COVERAGE — the deep planner decomposed this question into
+ * investigation branches for the scout, but the analyst never saw them: the
+ * analysis could silently narrow the question (observed: a "broader
+ * patterns" question answered mono-country → DA fatal). The branches ARE
+ * the scope contract — inject them as mandatory coverage.
+ * Pure function — deterministic, unit-tested.
+ */
+export function buildRequiredCoverageBlock(
+  planNodes: Array<{ subQuestion?: string; status?: string }>,
+): string {
+  const branches = planNodes
+    .filter(n => n.subQuestion && n.status !== 'failed')
+    .map(n => n.subQuestion as string);
+  if (branches.length <= 1) return '';
+  return `\n\n## REQUIRED COVERAGE (research plan)\n` +
+    `The research plan decomposed the question into ${branches.length} investigation branches. ` +
+    `Your analysis MUST address EVERY branch that the sources support — a branch silently dropped is a coverage hole the reviewers will flag as fatal:\n` +
+    branches.map((b, i) => `${i + 1}. ${b}`).join('\n');
+}
+
 export interface AnalystContextResult {
   memoryBlock: string | undefined;
   fullContextBlock: string | undefined;

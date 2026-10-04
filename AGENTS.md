@@ -6,6 +6,82 @@
 
 ---
 
+## Sprint 33 — Recoverable HELD + closed learning loop + systematic score levers
+
+Addresses the remaining structural ceiling: a HELD signal was a terminal
+state, the experience bank was write-only and volatile, and several score
+terms were computed but never consumed. All changes keep the publication
+gate identical — the system now *repairs* toward the bar instead of
+recording failure.
+
+**HELD is no longer terminal** (`think-tank-dispatcher.ts`,
+`inquiry-orchestrator.ts`):
+
+- `collectHeldRetryItems()` — HELD signals past a 20h cooldown
+  (`HELD_RETRY_COOLDOWN_MS`) re-enter the dispatch pool in BOTH breaking and
+  weekly modes (runs before the empty-radar early return — a quiet radar day
+  is exactly when cycle capacity should discharge obligations). Bounds:
+  `priorityScore ≥ 55`, ≤2 retries per signal (HOLD-decision count IS the
+  budget — no schema migration), ≤1 retry item per cycle.
+- `persistHeldDiagnostic()` — held AND failed outcomes write an
+  `EditorialDecision` (decision `HOLD`) carrying `checks.failureFeedback`
+  (gate reasons + DA kill shot + top challenges), `diagnoses`, scores. A
+  failed run that left no record would retry forever — the decision count
+  doubles as the spend bound.
+- Retry dispatch passes `skipDuplicateCheck: true` (the prior HELD artifact
+  would otherwise dedup-block the repair) and
+  `pipelineOptions.priorFailureFeedback` → the analyst sees the diagnosis as
+  mandatory corrections. `signal.sourceIds` are NOT re-seeded on retries —
+  ≥8 seeds skip the scout, which would rerun on the exact corpus that
+  failed; a retry scouts fresh.
+
+**DA evidence mission** (`pipeline-v2.ts`): a fatal adversarial challenge
+like "no comparative evidence for X" is evidence-bound — prose cannot fix
+it. Challenges are distilled into academic search queries (one cheap
+`topic_classification` call; raw text as fallback) and posted as
+`DEVILS_ADVOCATE` source-gap requests → gap-fill retrieves across 7
+providers → re-analysis → DA re-judged BEFORE deciding whether a rewrite is
+still needed. Retrieval resolving the objection skips the rewrite spend.
+
+**Learning loop closed** (`knowledge-infrastructure.ts`,
+`analyst-context.ts`, `persistence-tail.ts`): the experience bank was
+in-memory + write-only (zero callers of `getRelevant*`). Now: every
+recorded experience/guideline is mirrored to `agentAuditLog`
+(agent `experience_bank` — same durable store as durable-execution), the
+bank lazily rehydrates per process, `getRelevantGuidelines` is injected
+into the analyst context (post-SARA, never compressed away), and
+`extractExperience` receives the real failure signals (DA verdict/kill
+shot, critic findings, outline coverage, rank quality) instead of a thin
+stats slice. Topic matching upgraded to distinctive-token overlap (≥2
+tokens, same approach as prediction-watch).
+
+**Score-lever pass** (`rank-enrichment.ts`, `evaluators-trust.ts`,
+`quality-loop.ts`, `persistence-tail.ts`, `analyst-context.ts`):
+
+- `sourceQuality.overall` backfill — the richer quality score (authority/
+  recency/richness/diversity) was computed then discarded; ~2.1k sources
+  with `qualityScore=0` averaged in as literal zeros. Fallback applied in
+  every pool average + cited-source quality + analyst display.
+- Quality tail-trim — abundant raw pools (>25) drop sub-40 tail sources to
+  a ≥20 floor: they dragged the 50% blend term, handed the critic weak
+  targets, and burned reader budget. **Provider-singleton guard**: a weak
+  source that is the ONLY representative of its provider is kept — dropping
+  it shrinks `providerDiversity` (a trust term) and feeds the critic a
+  confirmation-bias finding. Fixed-corpus regen is exempt.
+- `REQUIRED COVERAGE` block (`buildRequiredCoverageBlock`, tested): the
+  deep-planner branches now reach the analyst as mandatory scope
+  requirements AND the outline critics' `requiredDimensions` — the
+  mono-country DA fatal was the analyst never seeing the decomposition.
+- TTS candidate selection by real coverage (`outline critic` on each
+  candidate, ~$0.01) instead of citation count — a verbose-but-narrow
+  analysis was beating wider-coverage drafts.
+
+Regression tests: `held-retry.test.ts` +5, `required-coverage.test.ts` +3,
+`fixed-corpus.test.ts` +1 (provider-singleton). Suite: 48+ suites / 470+
+tests.
+
+---
+
 ## Sprint 32 — Full-stack reliability audit (CTO repasse before paid validation)
 
 Offline audit of every path that turned live runs into avoidable HELD/failed

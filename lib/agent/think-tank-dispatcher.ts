@@ -328,6 +328,67 @@ async function preflightSourceCheck(researchQuestion: string, domain?: string): 
   };
 }
 
+/**
+ * HELD RETRY — a held signal is a pending obligation, not a verdict.
+ * Signals the gate held get re-dispatched after a cooldown, carrying the
+ * persisted failure diagnosis as priorFailureFeedback — the retry corrects
+ * the actual defect (missing evidence dimension, unsupported projection,
+ * structural gap) instead of repeating the same analysis. Bounded:
+ *   • cooldown 20h between attempts (fresh evidence may exist)
+ *   • retry budget = HOLD decision count on the signal (max 2 retries)
+ *   • `maxItems` caps per-cycle spend — retries never starve fresh work
+ * Shared by breaking AND weekly collection — a held obligation drains in
+ * whichever mode runs next.
+ */
+async function collectHeldRetryItems(maxItems = 1): Promise<{ items: ThinkTankDispatchItem[]; errors: string[] }> {
+  const items: ThinkTankDispatchItem[] = [];
+  const errors: string[] = [];
+  try {
+    const HELD_RETRY_COOLDOWN_MS = Number(process.env.HELD_RETRY_COOLDOWN_MS ?? 20 * 3600_000);
+    const HELD_MAX_RETRIES = 2;
+    const heldSignals = await prisma.signal.findMany({
+      where: {
+        status: "HELD",
+        updatedAt: { lt: new Date(Date.now() - HELD_RETRY_COOLDOWN_MS) },
+        priorityScore: { gte: 55 }, // only signals worth a second spend
+      },
+      orderBy: { priorityScore: "desc" },
+      take: 5,
+      select: { id: true, title: true, verticalId: true, signalType: true, priorityScore: true },
+    });
+    for (const sig of heldSignals) {
+      if (items.length >= maxItems) break;
+      const priorHolds = await prisma.editorialDecision.count({
+        where: { signalId: sig.id, decision: "HOLD" },
+      });
+      if (priorHolds > HELD_MAX_RETRIES) continue;
+      const lastHold = await prisma.editorialDecision.findFirst({
+        where: { signalId: sig.id, decision: "HOLD" },
+        orderBy: { createdAt: "desc" },
+        select: { checks: true, reasons: true },
+      });
+      const checks = (lastHold?.checks ?? {}) as Record<string, unknown>;
+      const feedback = typeof checks.failureFeedback === "string" && checks.failureFeedback.length > 10
+        ? checks.failureFeedback
+        : (lastHold?.reasons ?? []).join("\n");
+      console.log(`[ThinkTank] HELD RETRY: "${sig.title.slice(0, 60)}" — attempt ${priorHolds + 1} (feedback ${feedback.length}ch)`);
+      items.push({
+        question: sig.title,
+        depth: publicationTypeToDepth(selectFormatFromSignal(sig.signalType, sig.priorityScore)),
+        verticalId: sig.verticalId,
+        signalId: sig.id,
+        strategy: "signal",
+        retryAttempt: priorHolds + 1,
+        priorFailureFeedback: feedback || undefined,
+        metadata: { signalType: sig.signalType, priorityScore: sig.priorityScore, heldRetry: true },
+      });
+    }
+  } catch (err) {
+    errors.push(`Held-retry collection: ${String(err instanceof Error ? err.message : err).slice(0, 150)}`);
+  }
+  return { items, errors };
+}
+
 async function collectBreakingItems(
   maxPublications: number,
   budgetUsd: number
@@ -368,60 +429,11 @@ async function collectBreakingItems(
     errors.push(`Prediction watch: ${String(err instanceof Error ? err.message : err).slice(0, 150)}`);
   }
 
-  // ── HELD RETRY — a held signal is a pending obligation, not a verdict ──
-  // Signals the gate held get re-dispatched after a cooldown, carrying the
-  // persisted failure diagnosis as priorFailureFeedback — the retry corrects
-  // the actual defect (missing evidence dimension, unsupported projection,
-  // structural gap) instead of repeating the same analysis. Bounded:
-  //   • cooldown 20h between attempts (fresh evidence may exist)
-  //   • retry budget = HOLD decision count on the signal (max 2 retries)
-  //   • at most one retry item per cycle — retries never starve fresh work
-  // Runs BEFORE the empty-radar early return: a quiet radar day is exactly
-  // when cycle capacity should go to discharging held obligations.
-  let heldRetryItems: ThinkTankDispatchItem[] = [];
-  try {
-    const HELD_RETRY_COOLDOWN_MS = Number(process.env.HELD_RETRY_COOLDOWN_MS ?? 20 * 3600_000);
-    const HELD_MAX_RETRIES = 2;
-    const heldSignals = await prisma.signal.findMany({
-      where: {
-        status: "HELD",
-        updatedAt: { lt: new Date(Date.now() - HELD_RETRY_COOLDOWN_MS) },
-        priorityScore: { gte: 55 }, // only signals worth a second spend
-      },
-      orderBy: { priorityScore: "desc" },
-      take: 5,
-      select: { id: true, title: true, verticalId: true, signalType: true, priorityScore: true },
-    });
-    for (const sig of heldSignals) {
-      if (heldRetryItems.length >= 1) break; // 1 retry slot per cycle
-      const priorHolds = await prisma.editorialDecision.count({
-        where: { signalId: sig.id, decision: "HOLD" },
-      });
-      if (priorHolds > HELD_MAX_RETRIES) continue;
-      const lastHold = await prisma.editorialDecision.findFirst({
-        where: { signalId: sig.id, decision: "HOLD" },
-        orderBy: { createdAt: "desc" },
-        select: { checks: true, reasons: true },
-      });
-      const checks = (lastHold?.checks ?? {}) as Record<string, unknown>;
-      const feedback = typeof checks.failureFeedback === "string" && checks.failureFeedback.length > 10
-        ? checks.failureFeedback
-        : (lastHold?.reasons ?? []).join("\n");
-      console.log(`[ThinkTank] HELD RETRY: "${sig.title.slice(0, 60)}" — attempt ${priorHolds + 1} (feedback ${feedback.length}ch)`);
-      heldRetryItems.push({
-        question: sig.title,
-        depth: publicationTypeToDepth(selectFormatFromSignal(sig.signalType, sig.priorityScore)),
-        verticalId: sig.verticalId,
-        signalId: sig.id,
-        strategy: "signal",
-        retryAttempt: priorHolds + 1,
-        priorFailureFeedback: feedback || undefined,
-        metadata: { signalType: sig.signalType, priorityScore: sig.priorityScore, heldRetry: true },
-      });
-    }
-  } catch (err) {
-    errors.push(`Held-retry collection: ${String(err instanceof Error ? err.message : err).slice(0, 150)}`);
-  }
+  // ── HELD RETRY — before the empty-radar early return: a quiet radar day
+  // is exactly when cycle capacity should go to discharging held obligations.
+  const heldRetry = await collectHeldRetryItems(1);
+  const heldRetryItems = heldRetry.items;
+  errors.push(...heldRetry.errors);
 
   if (radarResult.topics.length === 0) {
     return {
@@ -583,6 +595,12 @@ async function collectWeeklyItems(
   } catch (err: unknown) {
     errors.push(`Editorial plan: ${err instanceof Error ? err.message : String(err)}`);
   }
+
+  // Strategy 1.5: HELD retry — discharge held obligations before spending
+  // remaining slots on new signals (same bounded collection as breaking mode)
+  const heldRetry = await collectHeldRetryItems(1);
+  items.push(...heldRetry.items);
+  errors.push(...heldRetry.errors);
 
   // Strategy 2: high-priority signals (fill remaining slots)
   const signalSlots = remainingSlots - items.length;

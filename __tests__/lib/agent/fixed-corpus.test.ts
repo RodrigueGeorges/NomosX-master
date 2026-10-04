@@ -91,6 +91,33 @@ it('trims the low-quality tail on abundant raw pools but keeps ≥20 sources', a
   expect(stats.qualityTailTrim).toMatchObject({ dropped: 10, floor: 40 });
 });
 
+it('keeps a low-quality source when it is the sole representative of its provider', async () => {
+  // Provider diversity is a trust term — a weak source that is the ONLY one
+  // from its provider still carries contrarian/minority evidence. Dropping
+  // it would shrink providerDiversity and hand the critic a confirmation-
+  // bias finding. The trim must spare provider singletons.
+  const ranked = [
+    ...Array.from({ length: 29 }, (_, i) => ({
+      id: `s${i}`, title: `Source ${i}`, provider: 'mainstream',
+      qualityScore: i < 20 ? 75 : 30, compositeScore: 80 - i,
+    })),
+    { id: 'lone', title: 'Lone dissenting source', provider: 'niche-journal', qualityScore: 25, compositeScore: 60 },
+  ];
+  const deps = {
+    query: 'Research question', allSourceIds: ranked.map(s => s.id), isStrategic: false, stats: {}, providers: [], label: 'Test',
+    pipelineStart: Date.now(), runningCostUsd: 0, pipelineRunId: 'run', skipRetrieval: false,
+    rank: jest.fn(async () => ranked),
+    scout: jest.fn(), emitProgress: jest.fn(), addCost: jest.fn(),
+    ctx: { setRankedSources: jest.fn(), recordAgentTiming: jest.fn(), getSummary: jest.fn(), addFinding: jest.fn() },
+    orchState: { sourcesFound: 0, avgQualityScore: 0 },
+  } as RankEnrichmentDeps;
+  jest.mocked(assessEvidenceSufficiency).mockResolvedValue({ verdict: 'proceed', sufficiencyScore: 80, gaps: [], enrichmentQueries: [], costUsd: 0 } as never);
+  const result = await runRankAndEnrichment(deps);
+  // 9 mainstream tail sources dropped; the niche-journal singleton survives
+  expect(result.topSources.some((s: any) => s.id === 'lone')).toBe(true);
+  expect(result.topSources).toHaveLength(21); // 20 mainstream + 1 singleton
+});
+
 it('does not trim a pool at the abundance boundary (≤25 sources)', async () => {
   const ranked = Array.from({ length: 25 }, (_, i) => ({
     id: `s${i}`, title: `Source ${i}`, provider: 'test',
