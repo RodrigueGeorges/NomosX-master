@@ -361,6 +361,12 @@ export function buildFailureFeedback(args: {
     killShot?: string;
   };
   criticPanel?: { dimensions?: { dimension: string; score: number; findings: string[]; mustFix: boolean }[] };
+  structuralEditor?: {
+    overallStructure?: number;
+    topSuggestions?: string[];
+    topSectionIssues?: string[];
+    topGaps?: string[];
+  };
 }): string {
   const parts: string[] = [`Gate decision: ${args.gate.decision}. Failed checks:`];
   for (const r of args.gate.reasons.slice(0, 8)) parts.push(`- ${r}`);
@@ -385,6 +391,21 @@ export function buildFailureFeedback(args: {
   if (mustFix.length) {
     parts.push('Critic panel must-fix findings:');
     for (const f of mustFix.slice(0, 6)) parts.push(`- ${f}`);
+  }
+
+  // Structural editor findings (25% of the quality blend) — the regen must
+  // rewrite with the narrative defects fixed, not just the gate's checklist.
+  const se = args.structuralEditor;
+  if (se && typeof se.overallStructure === 'number' && se.overallStructure < 75) {
+    const seFindings = [
+      ...(se.topSectionIssues ?? []).slice(0, 3),
+      ...(se.topSuggestions ?? []).slice(0, 2),
+      ...(se.topGaps ?? []).slice(0, 2),
+    ];
+    if (seFindings.length) {
+      parts.push(`Structural editor findings (narrative scored ${se.overallStructure}/100 — fix in rewrite):`);
+      for (const f of seFindings.slice(0, 6)) parts.push(`- ${f}`);
+    }
   }
 
   return parts.join('\n').slice(0, 3000);

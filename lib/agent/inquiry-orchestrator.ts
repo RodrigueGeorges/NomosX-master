@@ -605,6 +605,7 @@ export async function runAndPublishInquiry(
           gate: assessment.gate,
           devilsAdvocate: assessment.da as { verdict?: string; publishabilityScore?: number; topChallenges?: { type: string; text: string }[]; killShot?: string } | undefined,
           criticPanel: pipeline.stats.criticPanel as { dimensions?: { dimension: string; score: number; findings: string[]; mustFix: boolean }[] } | undefined,
+          structuralEditor: pipeline.stats.structuralEditor as { overallStructure?: number; topSuggestions?: string[]; topSectionIssues?: string[]; topGaps?: string[] } | undefined,
         });
         console.log(`[InquiryOrchestrator] REGEN (${regen.reason}) — re-running analysis on same corpus with ${feedback.length}-char feedback`);
         // Bounded child scope: an unbounded regen can consume the dispatch

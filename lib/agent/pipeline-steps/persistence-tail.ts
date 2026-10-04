@@ -277,19 +277,30 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
   // Extract actually-cited source IDs from [E-N] evidence IDs and <sup> tags in HTML
   // (replaceSrcWithEvidenceIds has already converted [SRC-N] → [E-N] / <sup data-evidence="EN">)
   // Fallback: if conversion failed, also check for remaining [SRC-N] patterns
-  const citedIndices = Array.from(new Set([
-    ...Array.from(html.matchAll(/\[E(\d+)\]/g)).map(m => parseInt(m[1], 10) - 1),
-    ...Array.from(html.matchAll(/\[SRC-(\d+)\]/g)).map(m => parseInt(m[1], 10) - 1),
-    ...Array.from(html.matchAll(/data-evidence="E(\d+)"/g)).map(m => parseInt(m[1], 10) - 1),
-    ...Array.from(html.matchAll(/href="#ref-(\d+)"/g)).map(m => parseInt(m[1], 10) - 1),
-  ])).filter(i => i >= 0 && i < topSources.length);
+  const citeFreq = new Map<number, number>();
+  const countRef = (m: RegExpMatchArray) => {
+    const i = parseInt(m[1], 10) - 1;
+    citeFreq.set(i, (citeFreq.get(i) ?? 0) + 1);
+  };
+  for (const m of html.matchAll(/\[E(\d+)\]/g)) countRef(m);
+  for (const m of html.matchAll(/\[SRC-(\d+)\]/g)) countRef(m);
+  for (const m of html.matchAll(/data-evidence="E(\d+)"/g)) countRef(m);
+  for (const m of html.matchAll(/href="#ref-(\d+)"/g)) countRef(m);
+  const citedIndices = Array.from(citeFreq.keys()).filter(i => i >= 0 && i < topSources.length);
   const citedSourceIds = citedIndices.map(i => (topSources[i] as any).id);
   // The sources actually cited in the artifact are a better quality proxy than
-  // the ranked-pool average (which is diluted by the long tail). Persisted for
-  // extractPipelineScores — see citedSourceQuality below.
+  // the ranked-pool average (which is diluted by the long tail). Weight by
+  // citation FREQUENCY: a source referenced five times carries the report's
+  // argument; a once-mentioned tail source does not contribute equally.
+  // Persisted for extractPipelineScores — see citedSourceQuality below.
   if (citedIndices.length >= 4) {
-    const citedAvg = citedIndices.reduce((sum, i) => sum + ((topSources[i] as any).qualityScore || 0), 0) / citedIndices.length;
-    stats.citedSourceQuality = { cited: citedIndices.length, avgQuality: Math.round(citedAvg) };
+    let weighted = 0, totalWeight = 0;
+    for (const i of citedIndices) {
+      const w = citeFreq.get(i) ?? 1;
+      weighted += ((topSources[i] as any).qualityScore || 0) * w;
+      totalWeight += w;
+    }
+    stats.citedSourceQuality = { cited: citedIndices.length, avgQuality: Math.round(weighted / Math.max(1, totalWeight)) };
   }
   recordSourceUsage(
     topSources.map((s: any) => s.id),

@@ -87,7 +87,6 @@ export async function runStyleSweepRecheck(ctx: TailStepContext): Promise<void> 
   // mission-priority order to their resolvers. substance_weak is resolved by
   // the revision editor — surgical edits that address adversarial objections
   // in the final HTML BEFORE the gate ever sees them.
-  let sweepResolvedSubstance = false;
   try {
     if (!isBudgetConstrained()) {
       pipelineCtx.signals.registerResolver('substance_weak', async (sigs: AgentSignal[]) => {
@@ -96,6 +95,16 @@ export async function runStyleSweepRecheck(ctx: TailStepContext): Promise<void> 
         const weakFindings = ((stats.criticPanel as any)?.dimensions ?? [])
           .filter((d: any) => d.mustFix || d.score <= 4)
           .flatMap((d: any) => (d.findings ?? []).slice(0, 3).map((f: string) => `[${d.dimension}] ${f}`));
+        // Structural editor findings are narrative defects the revision editor
+        // can fix in the HTML (governing thought missing, broken arc, logical
+        // gap) — they were previously stored but never acted on.
+        const se = stats.structuralEditor as any;
+        if (typeof se?.overallStructure === 'number' && se.overallStructure < 75) {
+          weakFindings.push(
+            ...(se.topSectionIssues ?? []).slice(0, 3).map((i: string) => `[structure] ${i}`),
+            ...(se.topSuggestions ?? []).slice(0, 2).map((s: string) => `[structure] ${s}`),
+          );
+        }
         const rev = await reviseForFindings(ctx.html, {
           gateReasons: [],
           daChallenges: sigs.map((s: AgentSignal) => ({ type: String(s.payload?.type ?? 'challenge'), text: s.content })),
@@ -120,9 +129,6 @@ export async function runStyleSweepRecheck(ctx: TailStepContext): Promise<void> 
         maxResolutions: 3,
       });
       if (sweep.resolved > 0 || sweep.failed > 0) {
-        sweepResolvedSubstance = sweep.results.some(
-          (r: { signal: AgentSignal; res: { resolved: boolean } }) => r.signal.type === 'substance_weak' && r.res.resolved
-        );
         (stats as Record<string, unknown>).signalSweep = { resolved: sweep.resolved, failed: sweep.failed, remaining: sweep.remaining };
         console.log(`${label} SIGNAL SWEEP: ${sweep.resolved} resolved, ${sweep.failed} failed, ${sweep.remaining} open — ${sweep.results.map((r: { signal: AgentSignal; res: { resolved: boolean } }) => `${r.signal.type}=${r.res.resolved ? 'ok' : 'no'}`).join(', ')}`);
       }
@@ -133,19 +139,21 @@ export async function runStyleSweepRecheck(ctx: TailStepContext): Promise<void> 
 
   // ── DA RE-CHECK (post-sweep): if the devil's advocate failed the analysis
   // (veto, reject verdict, or a publishability score below the gate's 40
-  // threshold) and the sweep's revision editor resolved its substance_weak
-  // objections in the HTML, the verdict must be re-evaluated on the CORRECTED
-  // artifact — otherwise the gate and the trust cap punish defects that no
-  // longer exist and the correction loop is cosmetic. One re-check (~$0.02),
-  // skipped when budget-constrained. The fresh verdict replaces the stored one
-  // either way: it describes the adopted artifact, which is what the gate must
-  // judge. ──
+  // threshold), the verdict must be re-evaluated on the artifact the gate will
+  // actually judge — the post-repair HTML. The first verdict was rendered on
+  // the ANALYSIS; citation repair, grounding, copy edits and the substance
+  // sweep all mutated the artifact since. Gating the re-check on the sweep
+  // having resolved a substance_weak signal left veto scores 18-38 frozen on
+  // artifacts the OTHER repairs had already corrected (quality capped ~62-68,
+  // observed on every HELD run). One re-check (~$0.02), skipped when
+  // budget-constrained. The fresh verdict replaces the stored one either way:
+  // it describes the adopted artifact, which is what the gate must judge. ──
   try {
     const daStats = stats.devilsAdvocate as Record<string, unknown> | undefined;
     const daGateFailing = (stats as any).devilsAdvocateVeto === true
       || daStats?.verdict === 'reject'
       || (typeof daStats?.publishabilityScore === 'number' && daStats.publishabilityScore < 40);
-    if (daGateFailing && sweepResolvedSubstance && !isBudgetConstrained()) {
+    if (daGateFailing && !isBudgetConstrained()) {
       const { runDevilsAdvocate } = await import('../devils-advocate');
       const recheck = await runDevilsAdvocate(
         query,

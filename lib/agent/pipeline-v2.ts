@@ -631,6 +631,24 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     allSourceIds = gapFillState.allSourceIds;
     reAnalysisBudget = criticOut.reAnalysisBudget;
     savedCriticResult = criticOut.savedCriticResult;
+    // STALE-EVALUATOR RE-SCORE: any analysis mutation after the verdicts ran
+    // (critic repair adoption, post-critic gap-fill re-analysis) leaves
+    // verdict-bearing evals attached to a replaced artifact — they'd go stale
+    // and evaluation_freshness hard-fails the run regardless of quality.
+    // Re-judge each stale analysis-tagged evaluator ONCE on the adopted
+    // analysis (~$0.05 total): the gate then sees verdicts on the artifact
+    // actually being rendered, not a replaced draft.
+    try {
+      const { rescoreStaleAnalysisEvals } = await import('./pipeline-steps/eval-rescore');
+      await rescoreStaleAnalysisEvals({
+        stats, analysis, analysisArtifactVersion, query, detectedDomain,
+        positioningBrief, topSources, readings, label,
+        isBudgetConstrained, addCost, tagEval,
+        onCriticRescored: r => { savedCriticResult = r; },
+      });
+    } catch (rescoreErr) {
+      console.warn(`${label} EVAL RE-SCORE failed (non-blocking):`, rescoreErr);
+    }
     phaseMark('critic');
   }
 
@@ -949,7 +967,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     await runPostRenderCitationAndGrounding();
     // Debate + meta-analysis reactivated
     applyDebateOutcome(await runDebateMetaBlock(debateAdvocateDeps, flags.runDebateStep, buildAnalysisReviewText(analysis as Record<string, unknown>, query)));
-    await runDevilsAdvocateBlock(debateAdvocateDeps, flags.runDevilsAdvocateStep, html, debateContext);
+    await runDevilsAdvocateBlock(debateAdvocateDeps, flags.runDevilsAdvocateStep, html, debateContext, 'html');
   }
 
   stats.analysis = analysis;

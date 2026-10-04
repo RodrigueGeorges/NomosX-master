@@ -401,7 +401,7 @@ export async function runPostAnalystChecks(deps: PostAnalystChecksDeps): Promise
       console.log(`${label} SELF-CORRECTION (ANALYST): citation spread ${(spread * 100).toFixed(0)}% < 35% (${uniqueCited}/${topSources.length} sources) — forced retry`);
       const retried = await analystMultipass(query, topSources, slimReadings, {
         contextBlock: (fullContextBlock ?? '') +
-          `\n\n## MANDATORY CORRECTION — CITATION SPREAD\nYour previous analysis cited only ${uniqueCited}/${topSources.length} sources (required ≥35%). Re-write citing AT LEAST ${Math.ceil(topSources.length * 0.4)} DISTINCT [SRC-N] sources. Every grounded source was extracted for a reason — go through them systematically. Claims without [SRC-N] citations WILL BE DELETED.`,
+          `\n\n## MANDATORY CORRECTION — CITATION SPREAD\nYour previous analysis cited only ${uniqueCited}/${topSources.length} sources (required ≥35%). Re-write citing AT LEAST ${Math.ceil(topSources.length * 0.4)} DISTINCT [SRC-N] sources. Prioritize the strongest sources when choosing what to cite — peer-reviewed and primary evidence over commentary; your report must rest on its best evidence. Every grounded source was extracted for a reason — go through them systematically. Claims without [SRC-N] citations WILL BE DELETED.`,
         domain: detectedDomain,
         depth: isStrategic ? "strategic" : "brief",
       });

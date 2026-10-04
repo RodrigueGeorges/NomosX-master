@@ -115,6 +115,11 @@ export async function runDevilsAdvocateBlock(
   runDevilsAdvocate: boolean,
   contentForReview: string,
   debateContext?: string,
+  /** Which artifact the content actually is — the staleness tracker compares
+   * the verdict against THAT artifact's version. Pass 'html' when the DA is
+   * judging rendered HTML: post-verdict repairs (quality loop, grounding)
+   * then correctly stale the verdict instead of leaving it frozen-fresh. */
+  artifact: 'analysis' | 'html' = 'analysis',
 ): Promise<void> {
   const { stats, label, query, topSources, detectedDomain, isStrategic, pipelineRunId, pipelineCtx, addCost, tagEval } = deps;
   // DEVIL'S ADVOCATE — all formats (like positioning since S21).
@@ -156,7 +161,7 @@ export async function runDevilsAdvocateBlock(
       vulnerabilityTexts: (daResult.futureVulnerabilities || []).slice(0, 3).map((v: any) => String(v).slice(0, 200)),
       futureVulnerabilities: daResult.futureVulnerabilities?.length || 0,
       costUsd: daResult.costUsd,
-    }, 'analysis');
+    }, artifact);
     addCost(daResult.costUsd, "DEVILS_ADVOCATE");
     console.log(`${label} DEVIL'S ADVOCATE: verdict=${daResult.verdict}, strength=${daResult.overallStrength}/100, fatal=${daResult.fatalChallenges?.length || 0}, major=${daResult.majorChallenges?.length || 0}`);
 
