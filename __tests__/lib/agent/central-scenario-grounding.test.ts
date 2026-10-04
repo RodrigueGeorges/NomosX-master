@@ -68,3 +68,41 @@ it('protected block still parses to a complete central scenario matching the dec
   const normalize = (t: string) => t.replace(/\[(?:SRC|E)-\d+\]/g, '').replace(/\s+/g, ' ').trim();
   expect(normalize(rendered!.rationale)).toBe(normalize(central.rationale));
 });
+
+/**
+ * Paid-run autopsy regression: every field of the rendered central-scenario
+ * block mismatched the persisted decision on WHITESPACE ALONE — citation
+ * <sup> markup hugs punctuation in rendered HTML ("step<sup>…</sup>." →
+ * stripped → "step ." vs decision "step.") and evidence ids render as [E41]
+ * (no dash) which the old regex never stripped. The check requires citations
+ * in the rationale, so the cites themselves broke the equality check → a
+ * guaranteed central_scenario hold on every position-first brief.
+ */
+it('gate normalize ignores citation whitespace artifacts and bare [E41] markers', async () => {
+  const { evaluatePublicationGate } = await import('@/lib/agent/publication-gate');
+  const decision: CentralScenarioDecision = {
+    ...central,
+    // Decision text carries compact [SRC-N] refs hugging punctuation.
+    rationale: 'Coordination fails because enforcement asymmetry rewards defection[SRC-8]. Licensing diverges[SRC-7].',
+    horizon: 'We look to 2030 because cycles lag deployment[SRC-4].',
+  };
+  const html = `<article>
+  <p class="nx-eyebrow">Institute position</p>
+  <section class="nx-block central-scenario">
+    <h3 class="central-name">${central.name}</h3>
+    <p>Horizon: <span class="central-horizon">We look to 2030 because cycles lag deployment [E4].</span></p>
+    <p>Editorial confidence: <span class="central-confidence">high</span></p>
+    <div class="central-description"><p>Export controls fragment into rival standards blocs.</p></div>
+    <div class="central-rationale"><p>Coordination fails because enforcement asymmetry rewards defection <sup class="cite"><a href="#ref-8" data-evidence="E8">8</a></sup>. Licensing diverges <sup class="cite"><a href="#ref-7" data-evidence="E7">7</a></sup>.</p></div>
+    <ul class="central-implications"><li>Insurers reprice frontier compute by 2028</li></ul>
+    <ul class="central-revision"><li>A bilateral licensing treaty</li></ul>
+  </section>
+  </article>`;
+  const result = evaluatePublicationGate({
+    format: 'brief', html,
+    sourceIds: Array.from({ length: 10 }, (_, i) => `s${i}`),
+    centralScenario: decision, requireCentralScenario: true,
+  });
+  const cs = result.checks.find(c => c.checkType === 'central_scenario');
+  expect(cs?.passed).toBe(true);
+});

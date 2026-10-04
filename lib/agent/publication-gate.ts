@@ -263,7 +263,21 @@ export function evaluatePublicationGate(input: PublicationGateInput): Publicatio
       issues.push('Final HTML must contain exactly one complete central scenario');
     }
     if (rendered && input.centralScenario) {
-      const normalize = (text: string) => text.replace(/\[(?:SRC|E)-\d+\]/g, '').replace(/\s+/g, ' ').trim();
+      // Citation <sup> markup sits between a word and its punctuation in the
+      // rendered HTML; stripping it leaves "word ." while the decision keeps
+      // "word." — collapse space-before-punctuation and unify typographic
+      // quotes so evidence-cited rationales don't self-fail the equality check
+      // (observed live: every field mismatched purely on citation-removal
+      // whitespace, a guaranteed central_scenario hold on position-first briefs).
+      const normalize = (text: string) => text
+        // Evidence markers render as [E41] (no dash) while source refs use
+        // [SRC-41] (dash) — strip BOTH forms.
+        .replace(/\[(?:SRC-?|E-?)\d+\]/g, '')
+        .replace(/[\u2018\u2019\u02BC]/g, "'")
+        .replace(/[\u201C\u201D]/g, '"')
+        .replace(/\s+([.,;:!?])/g, '$1')
+        .replace(/\s+/g, ' ')
+        .trim();
       const decision = input.centralScenario;
       const pairs = [
         [rendered.name, decision.name], [rendered.description, decision.description],
