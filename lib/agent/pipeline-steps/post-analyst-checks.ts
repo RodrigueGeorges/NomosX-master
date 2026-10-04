@@ -477,6 +477,77 @@ export async function runPostAnalystChecks(deps: PostAnalystChecksDeps): Promise
     console.warn(`${label} SELF-CORRECTION (ANALYST): failed (non-blocking):`, err);
   }
 
+  // ── EARLY OUTLINE CRITIQUE — dimension coverage BEFORE the critic/render
+  // chain. The post-critic outline check discovers missing dimensions too
+  // late: its gap requests find no new sources (academic budgets exhausted)
+  // and the DA then kills the artifact on the same defects — observed live:
+  // a single-country analysis answering a "broader patterns" question took
+  // 3 fatal challenges. Run it here, while re-analysis is still cheap:
+  // coverage < 70 with missing dimensions triggers ONE bounded re-analysis
+  // with the dimensions as mandatory requirements — a coverage defect is a
+  // writing defect first; the corpus often already holds the material.
+  // Targeted queries still post as evidence gaps for the post-analyst
+  // gap-fill stage (which CAN retrieve, unlike the regen path). ──
+  try {
+    const { critiqueOutline } = await import('../outline-critic');
+    const early = await critiqueOutline(query, analysis, topSources.length);
+    if (early) {
+      addCost(early.costUsd, 'OUTLINE_CRITIC_EARLY');
+      stats.outlineCriticEarly = {
+        coverageScore: early.coverageScore,
+        missingDimensions: early.missingDimensions,
+        weakSections: early.weakSections,
+        queriesEmitted: early.targetedQueries.length,
+      };
+      console.log(`${label} OUTLINE CRITIC (early): coverage ${early.coverageScore}/100 — ${early.missingDimensions.length} missing dimensions`);
+
+      // Retrieval hints stay valuable downstream — the post-analyst
+      // gap-fill stage can still pull comparative/complementary evidence.
+      if (early.coverageScore < 70 && early.targetedQueries.length > 0) {
+        for (const q of early.targetedQueries.slice(0, 3)) {
+          ctx.requestSourceGap(
+            q.slice(0, 300),
+            `Missing dimension: ${early.missingDimensions[0] ?? 'structural coverage gap'}`,
+            'OUTLINE_CRITIC',
+            ['openalex', 'crossref', 'semanticscholar', 'ssrn', 'jstor', 'internet-archive', 'linkup'],
+            12,
+          );
+        }
+      }
+
+      // Coverage defect → one bounded re-analysis with the missing
+      // dimensions as mandatory requirements. Adopted only if the recheck
+      // scores higher — same improvement-gate as every re-analysis path.
+      if (early.coverageScore < 70 && early.missingDimensions.length > 0
+        && reAnalysisBudget > 0 && stats.budgetConstrained !== true) {
+        reAnalysisBudget--;
+        const dimBlock = `\n\n## MANDATORY CORRECTION — MISSING DIMENSIONS\nYour analysis covered only ${early.coverageScore}/100 of the question's required dimensions. The following dimensions are MISSING and MUST be covered with [SRC-N] evidence from the corpus:\n${early.missingDimensions.slice(0, 4).map(d => `- ${d}`).join('\n')}${(early.weakSections ?? []).slice(0, 3).map(s => `\n- Weak section: ${s}`).join('')}\nAn analysis that does not answer the question AS ASKED fails adversarial review regardless of prose quality.`;
+        const reanalyzed = await analystMultipass(query, topSources, slimReadings, {
+          contextBlock: (fullContextBlock ?? '') + dimBlock,
+          domain: detectedDomain,
+          depth: isStrategic ? "strategic" : "brief",
+        });
+        if (reanalyzed && typeof reanalyzed === 'object' && !(reanalyzed as any)?._meta?.failed) {
+          const recheck = await critiqueOutline(query, reanalyzed, topSources.length);
+          addCost(recheck?.costUsd, 'OUTLINE_CRITIC_RECHECK');
+          const improved = (recheck?.coverageScore ?? early.coverageScore) > early.coverageScore;
+          stats.outlineCriticEarly.adopted = improved;
+          stats.outlineCriticEarly.recheckCoverage = recheck?.coverageScore;
+          if (improved) {
+            analysis = reanalyzed;
+            bumpAnalysisArtifact();
+            ctx.setAnalystOutput(analysis);
+            console.log(`${label} OUTLINE CRITIC (early): coverage ${early.coverageScore}→${recheck?.coverageScore}/100 — rewrite adopted`);
+          } else {
+            console.log(`${label} OUTLINE CRITIC (early): rewrite did not improve coverage (${recheck?.coverageScore ?? '?'}) — original kept`);
+          }
+        }
+      }
+    }
+  } catch (ocErr) {
+    console.warn(`${label} OUTLINE CRITIC (early): failed (non-blocking):`, ocErr);
+  }
+
   return {
     analysis, reAnalysisBudget, analystDecision,
     witnessReducedScope, runDevilsAdvocateStep, runDebateStep,
