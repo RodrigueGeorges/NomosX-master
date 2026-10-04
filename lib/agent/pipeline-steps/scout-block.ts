@@ -97,7 +97,7 @@ export interface ScoutBlockDeps {
 
 export interface ScoutBlockResult {
   allSourceIds: string[];
-  planNodesForAudit: Array<{ subQuestion: string; status: string; sourceCount?: number }>;
+  planNodesForAudit: Array<{ subQuestion: string; status: string; sourceCount?: number; sourceIds?: string[] }>;
   /** True when a durable scout checkpoint was restored into seedIds. */
   scoutCkptRestored: boolean;
 }
@@ -115,7 +115,7 @@ export async function runScoutBlock(deps: ScoutBlockDeps): Promise<ScoutBlockRes
   let allSourceIds: string[] = [];
   // Function-scope copy of deep-planner nodes — `planResult` lives inside the
   // else-block below, but the post-render process audit needs the nodes.
-  let planNodesForAudit: Array<{ subQuestion: string; status: string; sourceCount?: number }> = [];
+  let planNodesForAudit: Array<{ subQuestion: string; status: string; sourceCount?: number; sourceIds?: string[] }> = [];
   const seedIds = [...new Set((deps.seedSourceIds ?? []).filter(Boolean))];
   // DURABLE RESUME: a crashed/timed-out run's scout checkpoint re-enters as
   // seedIds — the existing skipScout path does the bookkeeping uniformly.
@@ -327,6 +327,10 @@ export async function runScoutBlock(deps: ScoutBlockDeps): Promise<ScoutBlockRes
       stats.deepPlanner = { nodes: plan.nodes.length, costUsd: planResult.costUsd };
       planNodesForAudit = plan.nodes.map((n: any) => ({
         subQuestion: n.subQuestion, status: n.status, sourceCount: n.sourceCount,
+        // Branch→source attribution survives the audit projection so the
+        // post-rank branch-coverage evaluator can count how much of each
+        // branch's evidence actually made the ranked pool.
+        sourceIds: (n.sourceIds ?? []).slice(0, 60),
       }));
     } else {
       // Single node — fall through to normal scout

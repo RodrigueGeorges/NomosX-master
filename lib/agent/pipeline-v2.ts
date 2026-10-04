@@ -380,6 +380,28 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   flags.runDevilsAdvocateStep = gates.runDevilsAdvocateStep;
   phaseMark('rankGates');
 
+  // ── BRANCH EVIDENCE COVERAGE (deterministic, zero LLM) ──
+  // CRAG-style per-branch retrieval evaluation: an aggregate pool can look
+  // rich while a required plan branch has near-zero ranked evidence — the
+  // analyst then writes unsupported claims on that branch (S33 live failure:
+  // 56 ranked sources overall, individual branches at 0-2 → critic reject).
+  // Thin branches emit targeted blackboard gap requests (drained by the
+  // gap-fill stage post-analyst) and are annotated in the REQUIRED COVERAGE
+  // block so the analyst hedges instead of fabricating.
+  const { auditBranchCoverage, evidenceNotesFor } = await import('./pipeline-steps/branch-coverage');
+  const branchCoverage = auditBranchCoverage(planNodesForAudit, topSources);
+  if (branchCoverage.entries.length > 0) {
+    stats.branchCoverage = {
+      strong: branchCoverage.strong, weak: branchCoverage.weak, unsupported: branchCoverage.unsupported,
+      perBranch: branchCoverage.entries.map(e => ({ branch: e.subQuestion.slice(0, 80), rankedSources: e.rankedSources, verdict: e.verdict })),
+    };
+    console.log(`${label} BRANCH COVERAGE: ${branchCoverage.strong} strong, ${branchCoverage.weak} weak, ${branchCoverage.unsupported} unsupported`);
+    // The blackboard drains ≤2 requests per pass — send the weakest first.
+    for (const e of branchCoverage.entries.filter(e => e.verdict !== 'strong').slice(0, 2)) {
+      ctx.requestSourceGap(e.subQuestion, `thin_branch_evidence: ${e.rankedSources} ranked sources`, 'SCOUT-BRANCH', undefined, 8);
+    }
+  }
+
   // Barrier: context primer + episodic memory (launched pre-scout) must
   // resolve here — first consumers are reader-block and analyst-context.
   {
@@ -439,7 +461,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   const requiredBranches = planNodesForAudit
     .filter(n => n.subQuestion && n.status !== 'failed')
     .map(n => n.subQuestion);
-  const coverageBlock = buildRequiredCoverageBlock(planNodesForAudit);
+  const coverageBlock = buildRequiredCoverageBlock(planNodesForAudit, evidenceNotesFor(branchCoverage));
   if (coverageBlock) {
     fullContextBlock = (fullContextBlock || '') + coverageBlock;
   }
@@ -587,6 +609,21 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     requiredDimensions: requiredBranches,
   });
   analysis = checks.analysis;
+  // ── BRANCH CITATION AUDIT (deterministic) — did the analysis actually use
+  // each branch's evidence? A plan branch cited 0× is the hard counterpart
+  // of the outline critic's missing dimensions; its gap request is drained
+  // by the gap-fill stage immediately below (earliest possible retrieval).
+  if (branchCoverage.entries.length > 0) {
+    const { auditBranchCitations } = await import('./pipeline-steps/branch-coverage');
+    const citAudit = auditBranchCitations(planNodesForAudit, topSources, analysis);
+    if (citAudit.uncited.length > 0) {
+      stats.branchCitations = { cited: citAudit.cited.length, uncited: citAudit.uncited.map(q => q.slice(0, 80)) };
+      console.log(`${label} BRANCH CITATIONS: ${citAudit.uncited.length}/${branchCoverage.entries.length} branches uncited — targeted gap requests queued`);
+      for (const q of citAudit.uncited.slice(0, 2)) {
+        ctx.requestSourceGap(q, 'branch_uncited_in_analysis', 'COVERAGE-AUDIT', undefined, 8);
+      }
+    }
+  }
   let reAnalysisBudget = checks.reAnalysisBudget;
   const analystDecision = checks.analystDecision;
   flags.witnessReducedScope = checks.witnessReducedScope;

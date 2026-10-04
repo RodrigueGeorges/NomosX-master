@@ -52,6 +52,20 @@ export interface PipelineStats {
     costUsd: number;
   };
 
+  // Branch evidence coverage — deterministic per-branch evaluator
+  // (pipeline-steps/branch-coverage.ts): how much of each plan branch's
+  // scout evidence survived ranking, and which branches the analysis cited.
+  branchCoverage?: {
+    strong: number;
+    weak: number;
+    unsupported: number;
+    perBranch: Array<{ branch: string; rankedSources: number; verdict: string }>;
+  };
+  branchCitations?: {
+    cited: number;
+    uncited: string[];
+  };
+
   // Intelligent Scout: Multi-lens eclectic enrichment
   intelligentScout?: {
     lenses: Array<{ type: string; sources: number; yield: number }>;

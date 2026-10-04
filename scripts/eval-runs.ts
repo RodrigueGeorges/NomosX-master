@@ -107,6 +107,9 @@ async function collect(limit: number): Promise<Agg> {
     if (stats.outlineCriticEarly?.coverageScore !== undefined) bump('outlineCriticEarly');
     if (stats.regeneration?.triggered || stats.regeneration?.attempted) bump('regeneration');
     if (stats.regeneration?.adopted === true) bump('regenAdopted');
+    if (stats.branchCoverage?.unsupported > 0) bump('branchUnsupported');
+    if (stats.branchCitations?.uncited?.length > 0) bump('branchUncited');
+    if (stats.gapFillReAnalysis?.rejectedByRescore) bump('gapFillVetoed');
   }
 
   // Viability refusals live on PipelineRun (pre-brief — no publication row):

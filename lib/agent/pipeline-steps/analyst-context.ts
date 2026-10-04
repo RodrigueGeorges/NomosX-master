@@ -62,6 +62,10 @@ export interface AnalystContextDeps {
  */
 export function buildRequiredCoverageBlock(
   planNodes: Array<{ subQuestion?: string; status?: string }>,
+  /** Per-branch evidence annotations (subQuestion → suffix) from the
+   * branch-coverage evaluator — the analyst is told where it may assert vs
+   * where it must hedge, upfront instead of at critic time. */
+  evidenceNotes?: Map<string, string>,
 ): string {
   const branches = planNodes
     .filter(n => n.subQuestion && n.status !== 'failed')
@@ -70,7 +74,7 @@ export function buildRequiredCoverageBlock(
   return `\n\n## REQUIRED COVERAGE (research plan)\n` +
     `The research plan decomposed the question into ${branches.length} investigation branches. ` +
     `Your analysis MUST address EVERY branch that the sources support — a branch silently dropped is a coverage hole the reviewers will flag as fatal:\n` +
-    branches.map((b, i) => `${i + 1}. ${b}`).join('\n');
+    branches.map((b, i) => `${i + 1}. ${b}${evidenceNotes?.get(b) ?? ''}`).join('\n');
 }
 
 export interface AnalystContextResult {

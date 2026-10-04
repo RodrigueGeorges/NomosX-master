@@ -24,7 +24,7 @@ export interface EvaluatorsTrustDeps {
   query: string;
   briefId: string;
   evidenceBankRef: EvidenceBank | null;
-  planNodesForAudit: Array<{ subQuestion: string; status: string; sourceCount?: number }>;
+  planNodesForAudit: Array<{ subQuestion: string; status: string; sourceCount?: number; sourceIds?: string[] }>;
   /** Live PipelineContext — evaluators/abstention record findings. */
   pipelineCtx: { addFinding: (...args: any[]) => void };
 }
