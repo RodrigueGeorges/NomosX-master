@@ -30,12 +30,14 @@ jest.mock('@/lib/agent/budget-manager', () => ({
 }));
 jest.mock('@/lib/db', () => ({
   prisma: {
-    vertical: { findUnique: jest.fn(), findMany: jest.fn().mockResolvedValue([]) },
+    vertical: { findUnique: jest.fn(), findFirst: jest.fn().mockResolvedValue(null), findMany: jest.fn().mockResolvedValue([]) },
     signal: {
       update: jest.fn().mockResolvedValue({}),
       updateMany: jest.fn().mockResolvedValue({ count: 0 }),
       findMany: jest.fn().mockResolvedValue([]),
       findUnique: jest.fn().mockResolvedValue(null),
+      findFirst: jest.fn().mockResolvedValue(null),
+      create: jest.fn().mockResolvedValue({ id: 'sig-new' }),
     },
     editorialDecision: {
       count: jest.fn().mockResolvedValue(0),
@@ -181,6 +183,52 @@ describe('held diagnostic persistence', () => {
     expect(sigUpdate).toHaveBeenCalledWith(
       expect.objectContaining({ where: { id: 'sig-x' }, data: { status: 'REJECTED' } })
     );
+  });
+
+  it('backs a signal-less radar item with a Signal row so its HELD outcome becomes retryable', async () => {
+    // S33 live-run regression: a HELD radar item left no Signal row and no
+    // EditorialDecision — the retry loop could never re-collect it.
+    jest.mocked(prisma.vertical.findFirst).mockResolvedValue({ id: 'v-geo' } as never);
+    jest.mocked(prisma.signal.findFirst).mockResolvedValue(null);
+    const sigCreate = jest.mocked(prisma.signal.create);
+    const item: ThinkTankDispatchItem = {
+      question: 'Radar question', depth: 'deep', verticalSlug: 'geopolitics', strategy: 'breaking',
+    };
+    run
+      .mockResolvedValueOnce(RESERVE_MISS)
+      .mockResolvedValueOnce(result({
+        status: 'held', trustScore: 40, qualityScore: 50,
+        gate: { decision: 'HOLD', reasons: ['critic: reject'] },
+      }));
+
+    const out = await executeDispatchQueue([item], cadence, 1, false);
+
+    expect(out.held).toBe(1);
+    expect(sigCreate).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ title: 'Radar question', status: 'NEW', verticalId: 'v-geo' }),
+    }));
+    expect(sigUpdate).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: 'sig-new' }, data: { status: 'HELD' },
+    }));
+    expect(decCreate).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ signalId: 'sig-new', decision: 'HOLD' }),
+    }));
+  });
+
+  it('relinks to a live signal on the same title instead of duplicating it', async () => {
+    jest.mocked(prisma.signal.findFirst).mockResolvedValue({ id: 'sig-live' } as never);
+    const sigCreate = jest.mocked(prisma.signal.create);
+    const item: ThinkTankDispatchItem = {
+      question: 'Duplicate-title question', depth: 'deep', strategy: 'breaking',
+    };
+    run
+      .mockResolvedValueOnce(RESERVE_MISS)
+      .mockResolvedValueOnce(result({ status: 'held', trustScore: 40, qualityScore: 50 }));
+
+    await executeDispatchQueue([item], cadence, 1, false);
+
+    expect(sigCreate).not.toHaveBeenCalled();
+    expect(item.signalId).toBe('sig-live');
   });
 
   it('a successful retry resolves the signal to PUBLISHED', async () => {

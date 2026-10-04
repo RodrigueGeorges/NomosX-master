@@ -63,6 +63,44 @@ it('appends sources only with the adopted analysis and its new readings', async 
   expect(deps.ctx.signals.resolveSignalsByType).not.toHaveBeenCalled();
 });
 
+it('vetoes a re-analysis that rescored materially worse than the critic-judged original', async () => {
+  // Live-run regression: a +6-citation candidate adopted on citation count
+  // alone rescored 16 vs the original's 44 — terminal-rejecting a repairable
+  // artifact. The critic floor must refuse the swap; the enriched pool stays.
+  const deps = setup({
+    stats: { critic: { overallScore: 44, verdict: 'repair' } },
+    criticScoreFn: jest.fn().mockResolvedValue({ score: 16, verdict: 'reject', costUsd: 0.01 }),
+  });
+  jest.mocked(reAnalyzeAfterGapFill).mockResolvedValue({ analysis: { verdict: 'Worse but more cited [SRC-1] [SRC-3]' }, reAnalyzed: true, improvementDelta: 6, costUsd: 0.2 });
+  await createGapRequestProcessor(deps)('CRITIC');
+  expect(deps.state.analysis).toEqual({ verdict: 'Original [SRC-1]' });
+  expect(deps.bumpAnalysisArtifact).not.toHaveBeenCalled();
+  expect(deps.topSources.map(s => s.id)).toEqual(['a', 'b', 'c']);
+  expect(deps.addCost).toHaveBeenCalledWith(0.01, 'GAPFILL_RESCORE');
+  expect(deps.stats.gapFillReAnalysis).toMatchObject({ triggered: false, rejectedByRescore: true, criticRescore: 16, criticPrior: 44 });
+});
+
+it('adopts a re-analysis whose critic rescore does not regress beyond the floor', async () => {
+  const deps = setup({
+    stats: { critic: { overallScore: 44, verdict: 'repair' } },
+    criticScoreFn: jest.fn().mockResolvedValue({ score: 47, verdict: 'repair', costUsd: 0.01 }),
+  });
+  jest.mocked(reAnalyzeAfterGapFill).mockResolvedValue({ analysis: { verdict: 'Improved [SRC-1] [SRC-3]' }, reAnalyzed: true, improvementDelta: 6, costUsd: 0.2 });
+  await createGapRequestProcessor(deps)('CRITIC');
+  expect(deps.state.analysis).toEqual({ verdict: 'Improved [SRC-1] [SRC-3]' });
+  expect(deps.bumpAnalysisArtifact).toHaveBeenCalledTimes(1);
+  expect(deps.stats.gapFillReAnalysis).toMatchObject({ triggered: true, criticRescore: 47, criticPrior: 44 });
+});
+
+it('adopts without a rescore when no prior critic verdict exists', async () => {
+  const criticScoreFn = jest.fn();
+  const deps = setup({ stats: {}, criticScoreFn });
+  jest.mocked(reAnalyzeAfterGapFill).mockResolvedValue({ analysis: { verdict: 'Improved [SRC-1] [SRC-3]' }, reAnalyzed: true, improvementDelta: 1, costUsd: 0.2 });
+  await createGapRequestProcessor(deps)('CRITIC');
+  expect(criticScoreFn).not.toHaveBeenCalled();
+  expect(deps.state.analysis).toEqual({ verdict: 'Improved [SRC-1] [SRC-3]' });
+});
+
 it('does not spend retrieval budget when there is no analysis budget to use it', async () => {
   const deps = setup();
   deps.state.reAnalysisBudget = 0;

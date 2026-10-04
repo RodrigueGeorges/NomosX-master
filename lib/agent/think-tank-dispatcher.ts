@@ -722,6 +722,67 @@ async function persistHeldDiagnostic(
   }
 }
 
+/**
+ * Back every dispatched item with a Signal row. Radar/triage items have no
+ * signalId — without one, the completion block cannot write the lifecycle
+ * transition (HELD/PUBLISHED/REJECTED) nor persist the hold diagnostic, so a
+ * held radar item was permanently dead: no retry, no learning. Reuses a live
+ * signal on the same title (<30d, NEW/HELD) before creating a new row —
+ * HELD signals are exactly what the retry loop relinks to.
+ * Non-blocking by design — an unbacked item dispatches normally, it is just
+ * not retryable (same as before this mechanism existed).
+ */
+async function ensureSignalForItem(
+  item: ThinkTankDispatchItem,
+  resolvedVerticalId?: string,
+): Promise<void> {
+  if (item.signalId) return;
+  try {
+    const verticalId = item.verticalId ?? resolvedVerticalId
+      ?? (item.verticalSlug
+        ? (await prisma.vertical.findUnique({ where: { slug: item.verticalSlug }, select: { id: true } }))?.id
+        : undefined)
+      ?? (await prisma.vertical.findFirst({ where: { isActive: true }, select: { id: true } }))?.id;
+    if (!verticalId) return;
+    // Propagate the resolved vertical — the pipeline call and the hold
+    // diagnostic both read item.verticalId, not the worker-local variable.
+    item.verticalId = item.verticalId ?? verticalId;
+    const title = item.question.slice(0, 500);
+    const existing = await prisma.signal.findFirst({
+      where: {
+        title,
+        status: { in: ['NEW', 'HELD'] },
+        detectedAt: { gte: new Date(Date.now() - 30 * 86400_000) },
+      },
+      select: { id: true },
+    });
+    if (existing) { item.signalId = existing.id; return; }
+    const meta = item.metadata ?? {};
+    const priority = Math.max(55, Math.round(
+      Number(meta.priority ?? meta.radarScore ?? meta.confidence ?? 60) || 60,
+    ));
+    const sig = await prisma.signal.create({
+      data: {
+        verticalId,
+        signalType: String(meta.signalType ?? 'TREND_BREAK'),
+        title,
+        summary: item.question,
+        noveltyScore: 60,
+        impactScore: 60,
+        confidenceScore: 60,
+        urgencyScore: Math.min(100, Number(meta.urgency) || 55),
+        priorityScore: priority,
+        status: 'NEW',
+        sourceIds: [],
+      },
+      select: { id: true },
+    });
+    item.signalId = sig.id;
+  } catch {
+    // Non-blocking — an unbacked item just isn't lifecycle-tracked.
+  }
+}
+
 interface DispatchDurable {
   /** Item keys already finished by a previous attempt — skipped on resume. */
   doneKeys: Set<string>;
@@ -815,8 +876,12 @@ export async function executeDispatchQueue(
       const i = nextIdx++;
       if (i >= items.length) return;
       const item = items[i];
+      // Capture the durable key BEFORE ensureSignalForItem can assign a
+      // signalId mid-flight — otherwise the done-check key (question) and the
+      // completion key (signalId) diverge and a crash-resume re-dispatches.
+      const itemKey = dispatchItemKey(item);
       // Durable resume — item already finished by a previous (crashed) attempt.
-      if (durable?.doneKeys.has(dispatchItemKey(item))) continue;
+      if (durable?.doneKeys.has(itemKey)) continue;
 
     // Resolve vertical for capacity gate
     let verticalId = item.verticalId;
@@ -879,6 +944,15 @@ export async function executeDispatchQueue(
     const nicheDomains = ['cognitive-science', 'bioethics', 'complexity-science', 'urban-studies', 'development-economics'];
     const isNiche = item.domain && nicheDomains.includes(item.domain);
     const adaptiveTrust = isNiche ? 55 : 60;
+
+    // Signal backing — placed AFTER every skip guard (capacity, cumulative
+    // and global budget) so a stopped item never leaves an orphan NEW signal.
+    // The completion block keys every lifecycle transition (HELD diagnostic,
+    // PUBLISHED resolution, REJECTED duplicate) on item.signalId. Radar items
+    // carry none; without this a held item produced no Signal row and no
+    // EditorialDecision — the retry loop could never re-collect it (proven by
+    // the S33 live run: HELD pub persisted, zero signal, zero decision).
+    await ensureSignalForItem(item, verticalId);
 
     // ── Reserve-first dispatch ─────────────────────────────────
     // Validated artifacts land in a reserve (READY, unpublished) and slots
@@ -1081,11 +1155,10 @@ export async function executeDispatchQueue(
     // Writes chain on checkpointTail so concurrent completions can't
     // overwrite each other's doneKeys snapshot.
     if (durable) {
-      durable.doneKeys.add(dispatchItemKey(item));
-      const key = dispatchItemKey(item);
+      durable.doneKeys.add(itemKey);
       checkpointTail = checkpointTail.then(() =>
         Promise.resolve(
-          durable.onItemDone(key, {
+          durable.onItemDone(itemKey, {
             published, held, skipped, failed, totalCostUsd, topics,
           }),
         ),

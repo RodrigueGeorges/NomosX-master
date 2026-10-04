@@ -48,6 +48,12 @@ export interface GapFillDeps {
    * are still drained/resolved so late-stage agents don't stall. */
   skipRetrieval?: boolean;
   bumpAnalysisArtifact: () => void;
+  /** Optional pre-adoption witness: scores a candidate re-analysis with the
+   * same critic pipeline used post-hoc. When a prior critic score exists and
+   * the candidate regresses materially, the swap is refused — citations alone
+   * proved to be a Goodhart-prone witness (a +6-citation candidate once
+   * rescored 16 vs a 44-scored original). */
+  criticScoreFn?: (candidateAnalysis: any) => Promise<{ score: number; verdict: string; costUsd?: number } | null>;
   analystMultipass: (query: string, topSources: any[], readings: any[], opts: any) => Promise<any>;
   rank: (query: string, opts: any) => Promise<any[]>;
   scout: (query: string, providers: any, limit?: number) => Promise<any>;
@@ -157,18 +163,45 @@ export function createGapRequestProcessor(deps: GapFillDeps) {
           assertExecutionActive();
           addCost(reResult.costUsd, 'GAP-FILL RE-ANALYSIS');
           if (reResult.reAnalyzed) {
+            // Enriched sources are appended regardless of the adoption
+            // outcome: [SRC-N] indices 1..N stay valid, and downstream stages
+            // (render, DA) still benefit from the retrieved evidence.
             topSources.push(...additions);
             readings.push(...fresh);
             deps.slimReadings.push(...gapReReadings.filter(r => fresh.some(f => f.sourceId === r.sourceId)));
-            state.analysis = reResult.analysis;
-            bumpAnalysisArtifact();
-            ctx.setAnalystOutput(state.analysis);
-            stats.gapFillReAnalysis = {
-              triggered: true,
-              citationDelta: reResult.improvementDelta,
-            };
-            console.log(`${label} GAP-FILL RE-ANALYSIS: analysis updated (+${reResult.improvementDelta} citations)`);
-            emitProgress(pipelineRunId, "GAP_FILL", "completed", `Re-analysis: +${reResult.improvementDelta} citations`);
+            // Pre-adoption witness: citation delta alone is Goodhart-prone —
+            // when a critic already scored the current analysis, a candidate
+            // that rescored materially lower must not replace it.
+            const priorCriticScore = typeof stats.critic?.overallScore === 'number' ? stats.critic.overallScore : null;
+            let candidateScore: number | null = null;
+            let adopt = true;
+            if (priorCriticScore != null && deps.criticScoreFn && !deps.isBudgetConstrained()) {
+              const rescore = await deps.criticScoreFn(reResult.analysis);
+              if (rescore) {
+                addCost(rescore.costUsd, 'GAPFILL_RESCORE');
+                candidateScore = rescore.score;
+                adopt = rescore.score >= priorCriticScore - 5;
+              }
+            }
+            if (adopt) {
+              state.analysis = reResult.analysis;
+              bumpAnalysisArtifact();
+              ctx.setAnalystOutput(state.analysis);
+              stats.gapFillReAnalysis = {
+                triggered: true,
+                citationDelta: reResult.improvementDelta,
+                ...(candidateScore != null ? { criticRescore: candidateScore, criticPrior: priorCriticScore } : {}),
+              };
+              console.log(`${label} GAP-FILL RE-ANALYSIS: analysis updated (+${reResult.improvementDelta} citations)`);
+              emitProgress(pipelineRunId, "GAP_FILL", "completed", `Re-analysis: +${reResult.improvementDelta} citations`);
+            } else {
+              stats.gapFillReAnalysis = {
+                triggered: false, citationDelta: reResult.improvementDelta,
+                rejectedByRescore: true, criticRescore: candidateScore, criticPrior: priorCriticScore,
+              };
+              console.log(`${label} GAP-FILL RE-ANALYSIS: candidate rejected by critic rescore (${candidateScore} < prior ${priorCriticScore}-5) — original kept, enriched pool retained`);
+              emitProgress(pipelineRunId, "GAP_FILL", "completed", `Re-analysis candidate rejected by critic rescore`);
+            }
           } else {
             stats.gapFillReAnalysis = { triggered: false, citationDelta: 0 };
           }
@@ -217,7 +250,19 @@ export async function runGapFillStage(deps: GapFillDeps): Promise<void> {
       const reCitations = new Set((reStr.match(/\[SRC-\d+\]/g) || []).map((m: string) => m)).size;
       const origStr = typeof state.analysis === 'string' ? state.analysis : JSON.stringify(state.analysis);
       const origCitations = new Set((origStr.match(/\[SRC-\d+\]/g) || []).map((m: string) => m)).size;
-      if (reCitations > origCitations) {
+      let adopt = reCitations > origCitations;
+      // Same pre-adoption witness as the blackboard path — a prior critic
+      // score floors the swap when the candidate rescored materially worse.
+      const priorCriticScore = typeof stats.critic?.overallScore === 'number' ? stats.critic.overallScore : null;
+      if (adopt && priorCriticScore != null && deps.criticScoreFn && !isBudgetConstrained()) {
+        const rescore = await deps.criticScoreFn(reAnalysis);
+        if (rescore) {
+          addCost(rescore.costUsd, 'GAPFILL_RESCORE');
+          adopt = rescore.score >= priorCriticScore - 5;
+          if (!adopt) console.log(`${label} RE_ANALYZE: candidate rejected by critic rescore (${rescore.score} < prior ${priorCriticScore}-5)`);
+        }
+      }
+      if (adopt) {
         state.analysis = reAnalysis;
         bumpAnalysisArtifact();
         ctx.setAnalystOutput(state.analysis);

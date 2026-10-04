@@ -33,7 +33,7 @@ export interface EvalRescoreDeps {
   onCriticRescored?: (result: any) => void;
 }
 
-const SPECULATIVE_OR_META_KEYS = new Set([
+export const SPECULATIVE_OR_META_KEYS = new Set([
   '_meta', '_deliberationContext', '_harvardCouncil',
   'rejectedAlternatives', 'whatToWatch', 'trajectory',
   'evidenceAssessment', 'convictionLevel',

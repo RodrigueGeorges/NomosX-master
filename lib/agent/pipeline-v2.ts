@@ -606,6 +606,33 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     analystDecision, orchState, emitProgress, addCost, isBudgetConstrained,
     bumpAnalysisArtifact, analystMultipass, rank, scout, ctx,
     skipRetrieval: opts.skipGapFillRetrieval === true,
+    // Pre-adoption witness — scores a candidate re-analysis with the same
+    // critic preprocessing as eval-rescore so a citation-richer but
+    // quality-poorer candidate cannot replace a better-scored analysis.
+    criticScoreFn: async (candidateAnalysis: any) => {
+      try {
+        const { runCritic } = await import('./critic-agent');
+        const { criticReviewText } = await import('./analysis-repair');
+        const { SPECULATIVE_OR_META_KEYS } = await import('./pipeline-steps/eval-rescore');
+        const obj = typeof candidateAnalysis === 'string' ? JSON.parse(candidateAnalysis) : { ...candidateAnalysis };
+        const filtered: Record<string, unknown> = {};
+        for (const [k, v] of Object.entries(obj)) {
+          if (!SPECULATIVE_OR_META_KEYS.has(k)) filtered[k] = v;
+        }
+        const text = criticReviewText(filtered).replace(/\[E(\d+)\]/g, '[SRC-$1]');
+        const readingsById = new Map<string, any>(readings.map((r: any) => [r.sourceId, r]));
+        const srcs = topSources.map((s: any, i: number) => ({
+          index: i + 1, title: s.title || '', abstract: s.abstract || '',
+          fullText: readingsById.get(s.id)?.extractedText || null,
+          provider: s.provider || '', year: s.year || undefined,
+        }));
+        const r = await runCritic(text, srcs, { skipBias: false, skipContradictions: false });
+        return { score: r.overallScore, verdict: r.verdict, costUsd: r.costUsd };
+      } catch (e) {
+        console.warn(`${label} GAPFILL_RESCORE failed (non-blocking):`, e);
+        return null;
+      }
+    },
   };
   const processGapRequests = createGapRequestProcessor(gapFillDeps);
   await runGapFillStage(gapFillDeps);
