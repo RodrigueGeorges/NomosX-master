@@ -181,6 +181,47 @@ describe('runAndPublishInquiry — full funnel', () => {
     );
   });
 
+  it('regen timeout after brief persist → salvages the winning artifact instead of discarding it', async () => {
+    // Paid-run finding: the regen persisted a brief (trust=86/quality=80) then
+    // died in the non-critical tail at the 25min cap — the orchestrator
+    // discarded it and persisted the worse attempt-1 as HELD.
+    mockRunPipeline
+      .mockResolvedValueOnce(makePipelineResult(makeStats(), 'a'))
+      .mockRejectedValueOnce(new Error('regen timed out after 1500000ms'));
+    // The regen brief + its run row with verdict evals are already durable.
+    const regenStats = makeStats({
+      critic: { overallScore: 80, verdict: 'publish' },
+      rank: { avgQuality: 72 },
+      structuralEditor: { overallStructure: 76 },
+      devilsAdvocate: { publishabilityScore: 100, verdict: 'publish', fatalChallenges: 0, topChallenges: [] },
+      criticalLoop: { finalScore: 85 },
+      centralScenarioRequired: false,
+    });
+    (prisma.brief.findFirst as jest.Mock).mockResolvedValue({
+      id: 'brief-regen', pipelineRunId: 'run-regen',
+      trustScore: 86, qualityScore: 80,
+      sources: Array.from({ length: 20 }, (_, i) => `sr-${i}`),
+      lineage: regenStats, html: WORDS_3200,
+      publicId: 'regen-slug', createdAt: new Date(), updatedAt: new Date(),
+    });
+    (prisma.pipelineRun.findUnique as jest.Mock).mockResolvedValue({
+      finishedAt: new Date(), steps: regenStats,
+    });
+    (prisma.source.findMany as jest.Mock).mockResolvedValue(
+      Array.from({ length: 20 }, (_, i) => ({ id: `sr-${i}`, title: `S${i}`, provider: 'openalex', authors: [] }))
+    );
+
+    const result = await runAndPublishInquiry(REQ);
+
+    // The salvaged regen artifact is assessed and adopted — the publication
+    // reflects the BETTER artifact, not the timed-out orchestration.
+    expect(result.status).toBe('published');
+    expect(result.briefId).toBe('brief-regen');
+    expect(mockTxPubCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ status: 'PUBLISHED' }) })
+    );
+  });
+
   it('pipeline timeout: salvages persisted brief, gates it, persists HELD — no regen on evidence-bound failure', async () => {
     mockRunPipeline.mockRejectedValue(new Error('runPipeline(brief) timed out after 3900000s'));
     (prisma.brief.findFirst as jest.Mock).mockResolvedValue({

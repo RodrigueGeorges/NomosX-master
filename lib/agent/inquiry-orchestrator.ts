@@ -211,13 +211,14 @@ async function salvageTimedOutPipeline(
   question: string,
   started: number,
   depth: InquiryDepth,
+  maxWaitMs = 600_000,
 ): Promise<InquiryPipelineResult | null> {
   // The timeout rejects the AWAIT, not the pipeline — the run keeps executing
   // its tail (DA, publisher save) in the background and only persists the
   // brief + stats minutes later. A 90s poll misses it every time; poll until
   // the run row is finished or a brief with verdict-bearing evals appears,
-  // up to 10 minutes.
-  const deadline = Date.now() + 600_000;
+  // up to `maxWaitMs` (10min default for main pipelines, shorter for regen).
+  const deadline = Date.now() + maxWaitMs;
   while (Date.now() < deadline) {
     try {
       const brief = await prisma.brief.findFirst({
@@ -584,30 +585,48 @@ export async function runAndPublishInquiry(
         // mid-transaction. The regen is capped at 25min; on expiry the abort
         // unwinds only the child scope and the original result persists.
         const regenBudgetMs = Math.min(25 * 60 * 1000, Math.max(8 * 60_000, 95 * 60_000 - elapsedMs));
-        const regenPipeline = await withExecutionDeadline(regenBudgetMs, 'regen', () =>
-          runInquiryPipeline({
-            question,
-            depth,
-            domain: req.domain,
-            pipelineOptions: {
-              ...mergePipelineOptions(req),
-              priorFailureFeedback: feedback,
-              // The regen REWRITES the analysis — durable checkpoints would
-              // replay attempt-1's 'analyst' step and produce the identical
-              // artifact. priorReadings covers the expensive reader reuse
-              // explicitly instead.
-              useDurableExecution: false,
-              priorReadings: (pipeline as any).readings,
-              // Rewrite on a FIXED corpus — gap-fill scouts would add sources,
-              // force re-reads, and blow the bounded regen window (observed:
-              // regen died mid-reader at the 25min cap).
-              skipGapFillRetrieval: true,
-            },
-            seedSourceIds: assessment.sourceIds.length >= 8 ? assessment.sourceIds : seedSourceIds,
-          })
-        );
-        costUsd += getPipelineCostUsd(regenPipeline.stats);
-        if (!regenPipeline.refusal && regenPipeline.html) {
+        const regenStarted = Date.now();
+        let regenPipeline: Awaited<ReturnType<typeof runInquiryPipeline>> | null = null;
+        try {
+          regenPipeline = await withExecutionDeadline(regenBudgetMs, 'regen', () =>
+            runInquiryPipeline({
+              question,
+              depth,
+              domain: req.domain,
+              pipelineOptions: {
+                ...mergePipelineOptions(req),
+                priorFailureFeedback: feedback,
+                // The regen REWRITES the analysis — durable checkpoints would
+                // replay attempt-1's 'analyst' step and produce the identical
+                // artifact. priorReadings covers the expensive reader reuse
+                // explicitly instead.
+                useDurableExecution: false,
+                priorReadings: (pipeline as any).readings,
+                // Rewrite on a FIXED corpus — gap-fill scouts would add sources,
+                // force re-reads, and blow the bounded regen window (observed:
+                // regen died mid-reader at the 25min cap).
+                skipGapFillRetrieval: true,
+              },
+              seedSourceIds: assessment.sourceIds.length >= 8 ? assessment.sourceIds : seedSourceIds,
+            })
+          );
+        } catch (regenErr) {
+          // The regen persists its brief + evaluator stats before the
+          // non-critical tail (embeddings, KG, enrichment lookups) — observed
+          // live: a regen wrote trust=86/quality=80 then died in the tail,
+          // and the orchestrator discarded a publishable artifact. Salvage
+          // the persisted regen brief exactly like a main-pipeline timeout.
+          if (String(regenErr).includes('timed out')) {
+            console.warn(`[InquiryOrchestrator] REGEN timed out — attempting salvage of persisted regen brief`);
+            regenPipeline = await salvageTimedOutPipeline(question, regenStarted, depth, 180_000).catch(() => null);
+            if (regenPipeline) console.log(`[InquiryOrchestrator] REGEN salvaged: brief ${regenPipeline.briefId} recovered (trust=${regenPipeline.trustScore} quality=${regenPipeline.qualityScore})`);
+          }
+          if (!regenPipeline) {
+            console.warn(`[InquiryOrchestrator] Regeneration round failed (non-blocking):`, regenErr);
+          }
+        }
+        costUsd += regenPipeline ? getPipelineCostUsd(regenPipeline.stats) : 0;
+        if (regenPipeline && !regenPipeline.refusal && regenPipeline.html) {
           const reAssessed = await assess(regenPipeline);
           const before = attemptScore({ gate: assessment.gate, trustScore: assessment.scores.trustScore, qualityScore: assessment.scores.qualityScore });
           const after = attemptScore({ gate: reAssessed.gate, trustScore: reAssessed.scores.trustScore, qualityScore: reAssessed.scores.qualityScore });
@@ -624,7 +643,7 @@ export async function runAndPublishInquiry(
               adopted: false, scoreBefore: before, scoreAfter: after, reason: regen.reason,
             };
           }
-        } else {
+        } else if (regenPipeline) {
           console.warn(`[InquiryOrchestrator] REGEN produced no artifact (${regenPipeline.refusalReason ?? 'empty'}) — original kept`);
         }
       }
