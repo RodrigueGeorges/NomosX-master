@@ -282,6 +282,13 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
     ...Array.from(html.matchAll(/href="#ref-(\d+)"/g)).map(m => parseInt(m[1], 10) - 1),
   ])).filter(i => i >= 0 && i < topSources.length);
   const citedSourceIds = citedIndices.map(i => (topSources[i] as any).id);
+  // The sources actually cited in the artifact are a better quality proxy than
+  // the ranked-pool average (which is diluted by the long tail). Persisted for
+  // extractPipelineScores — see citedSourceQuality below.
+  if (citedIndices.length >= 4) {
+    const citedAvg = citedIndices.reduce((sum, i) => sum + ((topSources[i] as any).qualityScore || 0), 0) / citedIndices.length;
+    stats.citedSourceQuality = { cited: citedIndices.length, avgQuality: Math.round(citedAvg) };
+  }
   recordSourceUsage(
     topSources.map((s: any) => s.id),
     stats.criticalLoop?.finalScore ?? 0,

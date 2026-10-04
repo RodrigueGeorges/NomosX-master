@@ -41,6 +41,9 @@ export interface GapFillDeps {
   emitProgress: (runId: string, step: PipelineStep, status: 'completed' | 'started' | 'failed' | 'skipped', message: string, metadata?: Record<string, any>) => void;
   addCost: (usd: number | undefined, step: string) => void;
   isBudgetConstrained: () => boolean;
+  /** Regen mode: the corpus is fixed — never scout new sources. Gap requests
+   * are still drained/resolved so late-stage agents don't stall. */
+  skipRetrieval?: boolean;
   bumpAnalysisArtifact: () => void;
   analystMultipass: (query: string, topSources: any[], readings: any[], opts: any) => Promise<any>;
   rank: (query: string, opts: any) => Promise<any[]>;
@@ -73,6 +76,16 @@ export function createGapRequestProcessor(deps: GapFillDeps) {
 
   return async function processGapRequests(origin: string): Promise<void> {
     if (!ctx.hasGapRequests()) return;
+    if (deps.skipRetrieval) {
+      // Fixed-corpus regen: drain the requests and resolve their signals —
+      // scouting new sources would invalidate priorReadings and blow the
+      // bounded regen window.
+      const drained = ctx.getPendingGapRequests().length;
+      ctx.clearGapRequests();
+      ctx.signals.resolveSignalsByType('coverage_gap', 'SCOUT', `gap fill skipped — fixed-corpus regen (${origin})`);
+      console.log(`${label} BLACKBOARD: ${drained} gap requests from ${origin} skipped (fixed-corpus regen)`);
+      return;
+    }
     const gapReqs = ctx.getPendingGapRequests();
     console.log(`${label} BLACKBOARD: processing ${gapReqs.length} gap requests from ${origin}`);
     emitProgress(pipelineRunId, "GAP_FILL", "started", `Filling ${gapReqs.length} evidence gaps identified by ${origin}...`);
@@ -178,7 +191,7 @@ export async function runGapFillStage(deps: GapFillDeps): Promise<void> {
   const {
     state, query, topSources, slimReadings, detectedDomain, isStrategic,
     providers, rankOpts, stats, label, pipelineRunId, analystDecision, orchState,
-    fullContextBlock,
+    fullContextBlock, skipRetrieval,
     emitProgress, addCost, isBudgetConstrained, bumpAnalysisArtifact,
     analystMultipass, rank, scout, ctx,
   } = deps;
@@ -230,7 +243,8 @@ export async function runGapFillStage(deps: GapFillDeps): Promise<void> {
 
       // AUTONOMY: convert coverage gaps into targeted re-search requests.
       // Previously these were only logged — now they feed the gap-fill loop.
-      if (!isBudgetConstrained() && orchState.iteration < orchState.maxIterations) {
+      // Skipped in fixed-corpus regen — the requests could never be scouted.
+      if (!skipRetrieval && !isBudgetConstrained() && orchState.iteration < orchState.maxIterations) {
         try {
           const gapQueries = await generateGapQueries(query, gaps.slice(0, 3));
           let queued = 0;
@@ -302,7 +316,7 @@ export async function runGapFillStage(deps: GapFillDeps): Promise<void> {
   if (stats.researchGaps && Array.isArray(stats.researchGaps)) {
     const criticalGaps = (stats.researchGaps as Array<{ type: string; description: string }>)
       .filter(g => g.type === 'NOT_REACHED');
-    if (criticalGaps.length > 0 && topSources.length < (isStrategic ? 20 : 12)) {
+    if (criticalGaps.length > 0 && !skipRetrieval && topSources.length < (isStrategic ? 20 : 12)) {
       console.log(`${label} POST-ANALYST ENRICHMENT: ${criticalGaps.length} critical gaps — attempting targeted search`);
       try {
         // Generate targeted queries from gap descriptions + original query

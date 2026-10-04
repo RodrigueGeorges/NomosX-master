@@ -114,6 +114,9 @@ export interface PipelineCoreOptions {
    * (e.g. gap-fill additions). Skipping a full re-read saves ~5-8min and the
    * embedding/extraction spend that pushed regens past their 25min cap. */
   priorReadings?: unknown[];
+  /** Regeneration loop: the corpus is fixed — gap-fill/post-analyst scouts
+   * would mutate it, force re-reads, and blow the bounded regen window. */
+  skipGapFillRetrieval?: boolean;
   /** Enable the Witness — metacognitive observer (default: false).
    * The Witness observes each pipeline step, detects anomalies, and can
    * intervene. It also learns across runs to improve prompts and thresholds. */
@@ -577,6 +580,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     stats: stats as Record<string, any>, label, pipelineRunId: pipelineRun.id,
     analystDecision, orchState, emitProgress, addCost, isBudgetConstrained,
     bumpAnalysisArtifact, analystMultipass, rank, scout, ctx,
+    skipRetrieval: opts.skipGapFillRetrieval === true,
   };
   const processGapRequests = createGapRequestProcessor(gapFillDeps);
   await runGapFillStage(gapFillDeps);
@@ -1199,6 +1203,11 @@ export interface StrategicPipelineOptions {
   /** Regeneration loop: readings extracted by the prior attempt — the reader
    * reuses them; only new sources are fetched. */
   priorReadings?: unknown[];
+  /** Regeneration loop: the corpus is fixed (seedSourceIds + priorReadings).
+   * Gap-fill scouts/post-analyst enrichment would mutate the corpus, force
+   * re-reads of new sources, and burn the bounded regen window — the rewrite
+   * must analyze the SAME evidence base. Set by the orchestrator's regen. */
+  skipGapFillRetrieval?: boolean;
   /** Enable Mixture of Agents — multiple specialist analysts collaborate.
    * The aggregator synthesizes their perspectives into a unified analysis.
    * Default: false. */
@@ -1265,6 +1274,7 @@ export async function runStrategicPipeline(
     parametricInput: options.parametricInput,
     priorFailureFeedback: options.priorFailureFeedback,
     priorReadings: options.priorReadings,
+    skipGapFillRetrieval: options.skipGapFillRetrieval,
   });
 }
 
@@ -1347,6 +1357,7 @@ export async function runPipeline(
         useWitness: options.useWitness,
         priorFailureFeedback: options.priorFailureFeedback,
         priorReadings: options.priorReadings,
+        skipGapFillRetrieval: options.skipGapFillRetrieval,
         useMixtureOfAgents: options.useMixtureOfAgents,
         useWorldModel: options.useWorldModel,
         usePRM: options.usePRM,

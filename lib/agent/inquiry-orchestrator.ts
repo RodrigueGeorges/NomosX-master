@@ -598,6 +598,10 @@ export async function runAndPublishInquiry(
               // explicitly instead.
               useDurableExecution: false,
               priorReadings: (pipeline as any).readings,
+              // Rewrite on a FIXED corpus — gap-fill scouts would add sources,
+              // force re-reads, and blow the bounded regen window (observed:
+              // regen died mid-reader at the 25min cap).
+              skipGapFillRetrieval: true,
             },
             seedSourceIds: assessment.sourceIds.length >= 8 ? assessment.sourceIds : seedSourceIds,
           })

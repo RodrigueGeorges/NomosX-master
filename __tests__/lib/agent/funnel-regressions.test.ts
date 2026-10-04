@@ -54,6 +54,38 @@ describe('trust propagation', () => {
   });
 });
 
+describe('cited-source quality proxy', () => {
+  it('prefers citedSourceQuality.avgQuality over the diluted ranked-pool average', () => {
+    // Pool avg 54 (long tail) but the 12 sources actually cited average 86 —
+    // the artifact's real evidence base. Quality blend must use the cited avg.
+    const stats = {
+      rank: { avgQuality: 54 },
+      citedSourceQuality: { cited: 12, avgQuality: 86 },
+      citationFilter: { coverageAfter: 96 },
+      critic: { overallScore: 71 },
+      structuralEditor: { overallStructure: 76 },
+    };
+    const scores = extractPipelineScores(stats, { devilsAdvocate: { publishabilityScore: 100 } }, null);
+    // cited avg 86 (≥78 → no coverage boost); blend = 86*.5 + 71*.1 + 76*.25 + 100*.15 = 84.1 → 84
+    expect(scores.qualityScore).toBe(84);
+  });
+  it('falls back to rank.avgQuality when too few sources are cited', () => {
+    const stats = {
+      rank: { avgQuality: 54 },
+      citedSourceQuality: { cited: 2, avgQuality: 95 },
+      citationFilter: { coverageAfter: 96 },
+    };
+    const scores = extractPipelineScores(stats, {}, null);
+    // falls back: 54 + boost 10 = 64 as sole component
+    expect(scores.qualityScore).toBe(64);
+  });
+  it('falls back to rank.avgQuality when citedSourceQuality is absent', () => {
+    const stats = { rank: { avgQuality: 60 }, citationFilter: { coverageAfter: 50 } };
+    const scores = extractPipelineScores(stats, {}, null);
+    expect(scores.qualityScore).toBe(60);
+  });
+});
+
 describe('publication vetoes', () => {
   it.each([
     ['hold', false, false, 62, 'held'],

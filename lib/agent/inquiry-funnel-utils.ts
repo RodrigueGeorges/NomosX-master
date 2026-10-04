@@ -94,7 +94,13 @@ export function extractPipelineScores(
       ? nliIntegrity / 100
       : 0;
 
+  // Source quality for the blend: prefer the average of sources actually
+  // CITED in the artifact (persisted by persistence-tail) over the ranked-pool
+  // average — the pool is diluted by the long tail of ranked-but-unused
+  // sources, which under-scores reports resting on their strongest evidence.
+  const citedQ = stats.citedSourceQuality as { cited?: number; avgQuality?: number } | undefined;
   const qualityScore =
+    (typeof citedQ?.avgQuality === "number" && (citedQ.cited ?? 0) >= 4 ? Math.round(citedQ.avgQuality) : undefined) ??
     (typeof rank?.avgQuality === "number" ? Math.round(rank.avgQuality) : undefined) ??
     scaleScore(brief?.qualityScore ?? null) ?? 70;
 
