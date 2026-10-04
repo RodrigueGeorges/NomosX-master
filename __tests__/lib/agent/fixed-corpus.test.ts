@@ -42,6 +42,32 @@ it.each(['enrich', 'refuse'] as const)('does not re-scout a fixed corpus on an e
   expect(result.allSourceIds).toEqual(['a']);
 });
 
+it.each([true, false])('fixed-corpus rank keeps the full seeded corpus (skipRetrieval=%s)', async skipRetrieval => {
+  // Regen seeds are the attempt-1 curated topSources — the pertinence cut is
+  // designed for raw scout pools. Re-applying it to a seeded corpus shrank a
+  // 49-source corpus to 25 (live run) and the rewrite scored worse (critic
+  // 68→26). Fixed-corpus mode must keep every seed.
+  const ranked = Array.from({ length: 30 }, (_, i) => ({
+    id: `s${i}`, title: `Source ${i}`, provider: 'test',
+    qualityScore: 70, compositeScore: i === 0 ? 100 : 40, // tail below the 55% bar
+  }));
+  const deps = {
+    query: 'Research question', allSourceIds: ranked.map(s => s.id), isStrategic: false, stats: {}, providers: [], label: 'Test',
+    pipelineStart: Date.now(), runningCostUsd: 0, pipelineRunId: 'run', skipRetrieval,
+    rank: jest.fn(async () => ranked),
+    scout: jest.fn(), emitProgress: jest.fn(), addCost: jest.fn(),
+    ctx: { setRankedSources: jest.fn(), recordAgentTiming: jest.fn(), getSummary: jest.fn(), addFinding: jest.fn() },
+    orchState: { sourcesFound: 0, avgQualityScore: 0 },
+  } as RankEnrichmentDeps;
+  jest.mocked(assessEvidenceSufficiency).mockResolvedValue({ verdict: 'proceed', sufficiencyScore: 80, gaps: [], enrichmentQueries: [], costUsd: 0 } as never);
+  const result = await runRankAndEnrichment(deps);
+  if (skipRetrieval) {
+    expect(result.topSources).toHaveLength(30); // full curated corpus preserved
+  } else {
+    expect(result.topSources.length).toBeLessThan(30); // pertinence cut applies to raw pools
+  }
+});
+
 it('keeps prior-gap context without executing supplementary scouts in fixed-corpus mode', async () => {
   const deps = {
     query: 'Research question', allSourceIds: ['a'], topSources: [{ id: 'a', provider: 'test' }], providers: [],

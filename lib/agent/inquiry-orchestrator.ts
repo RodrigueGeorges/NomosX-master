@@ -612,9 +612,11 @@ export async function runAndPublishInquiry(
         // deadline entirely (its internal gap-fill scouts + re-analysis ran
         // ~40min in the S32 live run) and leave zero headroom for the
         // gate+persist of the ORIGINAL artifact — a held item was then lost
-        // mid-transaction. The regen is capped at 25min; on expiry the abort
-        // unwinds only the child scope and the original result persists.
-        const regenBudgetMs = Math.min(25 * 60 * 1000, Math.max(8 * 60_000, 95 * 60_000 - elapsedMs));
+        // mid-transaction. The regen is capped at 35min: the S33 live run
+        // showed 25min dies mid-DA (council + Delphi + render + evals ≈
+        // 30-35min on paid models); on expiry the abort unwinds only the
+        // child scope and the original result persists, with salvage.
+        const regenBudgetMs = Math.min(35 * 60 * 1000, Math.max(8 * 60_000, 95 * 60_000 - elapsedMs));
         const regenStarted = Date.now();
         const regenExecutionId = randomUUID();
         let regenPipeline: Awaited<ReturnType<typeof runInquiryPipeline>> | null = null;

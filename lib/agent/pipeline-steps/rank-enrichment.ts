@@ -100,7 +100,10 @@ export async function runRankAndEnrichment(deps: RankEnrichmentDeps): Promise<Ra
   // The system's role: take ALL sources that are genuinely pertinent, drop the rest.
   // Deterministic: relative quality bar + elbow detection on the score distribution.
   let topSources = rankedCandidates;
-  if (rankedCandidates.length > 0) {
+  // Fixed-corpus mode (regen): the seeds are ALREADY the curated topSources of
+  // the prior attempt — re-applying the pertinence cut silently shrinks the
+  // rewrite's evidence base (observed: 49 seeds → 25 kept → regen critic 68→26).
+  if (!deps.skipRetrieval && rankedCandidates.length > 0) {
     const scores = rankedCandidates.map((s: any) => s.compositeScore ?? 0);
     const topScore = scores[0];
     // Quality bar: a source is pertinent if it holds at least 55% of the best score
@@ -170,7 +173,8 @@ export async function runRankAndEnrichment(deps: RankEnrichmentDeps): Promise<Ra
   // batch call scores each candidate 0-3; off-topic sources are dropped
   // BEFORE they consume a reader extraction slot — saves tokens AND lifts
   // corpus precision (the Elicit pattern: screen before extract).
-  if (topSources.length > 25) {
+  // Skipped in fixed-corpus mode: seeds were screened during the original run.
+  if (!deps.skipRetrieval && topSources.length > 25) {
     try {
       const { callLLM } = await import('../../llm/unified-llm');
       const { parseJson } = await import('../json-utils');

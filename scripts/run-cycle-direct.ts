@@ -18,7 +18,7 @@ async function main() {
   const result = await runThinkTankCycle({
     mode: 'breaking',
     maxPublications: 1,
-    budgetUsd: 3,
+    budgetUsd: 1.5,
     onProgress: (p) => {
       console.log(`[CYCLE] progress items=${p.items.length} done=${p.doneKeys.length} counts=${JSON.stringify(p.counts)}`);
     },
