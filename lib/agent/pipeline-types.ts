@@ -606,6 +606,7 @@ export interface PipelineStats {
 
   // Step 13: Devil's Advocate
   devilsAdvocate?: {
+    evaluationComplete?: boolean;
     verdict?: string;
     overallStrength?: number;
     publishabilityScore?: number;

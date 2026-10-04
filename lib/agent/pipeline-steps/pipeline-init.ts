@@ -477,7 +477,7 @@ export async function runPipelineInit(query: string, opts: PipelineCoreOptions) 
 
   // Create PipelineRun for persistent lineage tracking
   const pipelineRun = await prisma.pipelineRun.create({
-    data: { question: query, format: isStrategic ? "strategic" : isMemo ? "memo" : "brief", status: "RUNNING" },
+    data: { id: opts.executionId, question: query, format: isStrategic ? "strategic" : isMemo ? "memo" : "brief", status: "RUNNING" },
   });
 
   // ── DURABLE EXECUTION (Sprint 6) ──

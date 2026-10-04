@@ -318,6 +318,7 @@ export function shouldRegenerate(args: {
   if (args.budgetConstrained) return { regenerate: false, reason: 'budget constrained' };
 
   const failed = new Set(gate.checks.filter(c => !c.passed).map(c => c.checkType));
+  if (failed.has('evaluation_availability')) return { regenerate: false, reason: 'required evaluation unavailable — retry evaluation, not analysis' };
 
   // Corpus too thin — regeneration reuses the same seed corpus, so it cannot
   // add sources. This is a topic-level failure, not a writing failure.

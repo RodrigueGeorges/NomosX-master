@@ -6,6 +6,85 @@
 
 ---
 
+## Sprint 32 — Full-stack reliability audit (CTO repasse before paid validation)
+
+Offline audit of every path that turned live runs into avoidable HELD/failed
+outcomes or silent spend. All defects reproduced with deterministic tests
+first; no paid run was used for discovery. Suite: 44 suites / ~450 tests.
+
+**Fail-closed Devil's Advocate** (`devils-advocate.ts`,
+`debate-advocate.ts`, `style-sweep-recheck.ts`) — failed/malformed/cancelled
+review lanes previously produced `verdict:'publish', publishabilityScore:100`
+(empty challenges read as a clean review). Now `evaluationComplete:false` is
+carried into stats, the gate's `evaluation_availability` check hard-fails, and
+a failed DA blocks rather than scores 100.
+
+**Cost accounting — three leak paths closed**
+(`think-tank-dispatcher.ts`, `pipeline-v2.ts`, `inquiry-orchestrator.ts`):
+- Reserve-first dispatch added `result.costUsd + pipelineCostUsd` while
+  `pipelineCostUsd` already contained it → held items billed ~2×.
+- `runPipelineCore`'s FATAL catch persisted stats without refreshing
+  `totalCostUsd`; a thrown pipeline reached the orchestrator as `costUsd:0`.
+  The catch now stamps `stats.totalCostUsd` AND attaches `error.costUsd`;
+  the orchestrator banks it (and, on timeout, reads it back from the
+  persisted PipelineRun row once the unwinding core has finished writing).
+- Same treatment for the regen child scope (`regenFailedSpend`).
+
+**Cancellation and identity** (`pipeline-v2.ts`, `execution-scope.ts`) —
+`executionId` (== PipelineRun.id) threads end-to-end; orphan cleanup and
+salvage target the exact run instead of "latest RUNNING on this question"
+(could mark the wrong run FAILED or salvage a stale artifact). `withTimeout`
+was replaced by `withExecutionDeadline` — the old version rejected the await
+while the work kept running AND could never abort its LLM/HTTP calls.
+`assertExecutionActive()` fires at init and every `phaseMark`, so an aborted
+run can't continue through to persistence.
+
+**Reader/corpus reuse on regen** (`inquiry-pipeline.ts`,
+`inquiry-orchestrator.ts`, `reader-block.ts`) — `InquiryPipelineResult` now
+carries `readings`; the orchestrator passes them as `priorReadings` so a
+bounded regen reuses extractions instead of re-reading the whole corpus
+(observed: regen died mid-reader at the 25min cap). Durable execution is
+disabled inside regen — a checkpoint replay would return attempt-1's
+analysis verbatim; `priorReadings` covers the expensive reuse explicitly.
+
+**Evidence-gap honesty** (`gap-fill.ts`) — `skipRetrieval` (fixed-corpus
+regen) no longer resolves `coverage_gap` signals when zero new evidence was
+added; signals stay open and the gate sees the real state.
+
+**Central-scenario normalization** (`revision-controller.ts`) — the gate
+compares the persisted decision against the rendered block; renderer
+citation markup (`<sup class="cite">` before punctuation → `"step ."`) and
+`[E41]`-style evidence ids broke the equality check on EVERY position-first
+brief → guaranteed `central_scenario` hold. `normalize()` now strips both
+citation shapes plus whitespace/punctuation artifacts.
+
+**HTTP layer** (`http-client.ts`) — 10-min GET cache + in-flight dedupe
+(12× identical OpenAlex query observed per run), clone-on-store/clone-on-hit
+against caller mutation, failures never cached, `cache:false` opt-out for
+freshness-critical calls, and per-value 1MB ceiling so 4000×8MB worst case
+can't OOM a small container.
+
+**Timeout semantics to remember** — `withExecutionDeadline` rejects the
+await via `Promise.race` while `fn()` unwinds in the background: the thrown
+error is the deadline's (no `costUsd` attached) and the core's own FATAL
+catch is where persisted steps land. Any code that races a pipeline must
+read cost/artifact state back from the PipelineRun row, not the error.
+
+**Salvage contract** (`inquiry-orchestrator.ts`) — `salvageTimedOutPipeline`
+polls (up to 10min main / 3min regen) for a brief keyed `pipelineRunId =
+executionId` AND requires the run row finished with verdict-bearing evals
+before gating the persisted artifact — an unevaluated brief is never
+salvaged. Regen timeout now uses the same path (observed: trust=86/quality=80
+artifact discarded → wrongly persisted HELD).
+
+Invariants re-verified by test: source order `[SRC-N]` stable across
+gap-fill/persist; stale verdict evals (`evaluation_freshness.verdictStale`)
+hard-block publication; evidence-bound failures never trigger regen;
+adopted regen must strictly improve `attemptScore`; reserve release is
+idempotent via `slotKey` and never double-bills.
+
+---
+
 ## Sprint 31 — Evaluator-input forensics (the quality=45 root cause)
 
 Post-mortem of the second validation run (2 HELD): the artefacts were

@@ -168,6 +168,7 @@ export async function runStyleSweepRecheck(ctx: TailStepContext): Promise<void> 
       };
       (stats as any).devilsAdvocateVeto = stillVetoWorthy;
       stats.devilsAdvocate = ctx.tagEval({
+        evaluationComplete: recheck.evaluationComplete,
         verdict: recheck.verdict,
         overallStrength: recheck.overallStrength,
         publishabilityScore: recheck.publishabilityScore,

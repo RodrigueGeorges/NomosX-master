@@ -26,6 +26,7 @@ export interface RankEnrichmentDeps {
   label: string;
   pipelineStart: number;
   runningCostUsd: number;
+  skipRetrieval?: boolean;
   pipelineRunId: string;
   rank: (query: string, opts: any) => Promise<any[]>;
   scout: (q: string, provs: Providers, perProv: number) => Promise<any>;
@@ -265,6 +266,18 @@ export async function runRankAndEnrichment(deps: RankEnrichmentDeps): Promise<Ra
     allSourceIds.length,
   );
   addCost(enrichmentAssessment.costUsd, 'ENRICHMENT_REASONER');
+
+  if (deps.skipRetrieval) {
+    stats.enrichmentReasoner = {
+      ...enrichmentAssessment, newSourcesAdded: 0, retrievalSkipped: true,
+    };
+    if (enrichmentAssessment.verdict === 'refuse') {
+      stats.structuredRefusal = { reason: 'insufficient_evidence', sourceCount: topSources.length, missing: enrichmentAssessment.gaps };
+      return { refused: true, topSources, allSourceIds, evidenceRegistry: null, rankOpts };
+    }
+    const { createEvidenceRegistry } = await import('../evidence-registry');
+    return { refused: false, topSources, allSourceIds, evidenceRegistry: createEvidenceRegistry(topSources), rankOpts };
+  }
 
   if (enrichmentAssessment.verdict === 'enrich' && enrichmentAssessment.enrichmentQueries.length > 0) {
     console.log(`${label} ENRICHMENT: ${enrichmentAssessment.gaps.length} gaps identified — searching with ${enrichmentAssessment.enrichmentQueries.length} targeted queries`);

@@ -11,6 +11,9 @@
 
 import { reAnalyzeAfterGapFill } from '../self-correction-integration';
 import type { PipelineStep } from '../pipeline-progress';
+import { assertExecutionActive } from '../../worker/execution-scope';
+import { readerAgentV3 } from '../reader-agent-v3';
+import { isFreeRun } from '../../free-run';
 
 export interface GapFillState {
   analysis: any;
@@ -75,15 +78,15 @@ export function createGapRequestProcessor(deps: GapFillDeps) {
   } = deps;
 
   return async function processGapRequests(origin: string): Promise<void> {
+    assertExecutionActive();
     if (!ctx.hasGapRequests()) return;
-    if (deps.skipRetrieval) {
+    if (deps.skipRetrieval || state.reAnalysisBudget <= 0 || deps.isBudgetConstrained()) {
       // Fixed-corpus regen: drain the requests and resolve their signals —
       // scouting new sources would invalidate priorReadings and blow the
       // bounded regen window.
       const drained = ctx.getPendingGapRequests().length;
-      ctx.clearGapRequests();
-      ctx.signals.resolveSignalsByType('coverage_gap', 'SCOUT', `gap fill skipped — fixed-corpus regen (${origin})`);
-      console.log(`${label} BLACKBOARD: ${drained} gap requests from ${origin} skipped (fixed-corpus regen)`);
+      stats.deferredGapRequests = { count: drained, origin, reason: deps.skipRetrieval ? 'fixed_corpus' : 'budget_exhausted' };
+      console.log(`${label} BLACKBOARD: ${drained} gap requests from ${origin} deferred (${stats.deferredGapRequests.reason})`);
       return;
     }
     const gapReqs = ctx.getPendingGapRequests();
@@ -107,16 +110,11 @@ export function createGapRequestProcessor(deps: GapFillDeps) {
         if (stats.gapAnalysis) stats.gapAnalysis.newSources = (stats.gapAnalysis.newSources ?? 0) + gapNewCount;
         console.log(`${label} BLACKBOARD: +${gapNewCount} sources from ${origin} gap requests — re-ranking`);
         const gapRankOpts = { ...rankOpts, sourceIds: state.allSourceIds, limit: (rankOpts.limit ?? 12) + 3 };
-        const gapEnriched = await rank(query, gapRankOpts);
-        if (gapEnriched.length >= topSources.length) {
-          topSources.length = 0;
-          topSources.push(...gapEnriched);
-          for (let i = 0; i < topSources.length; i++) {
-            (topSources[i] as any).loadBearing = i < 3;
-          }
-          console.log(`${label} BLACKBOARD: sources enriched from gap requests → ${topSources.length} total`);
-        }
-        ctx.addFinding('BLACKBOARD', 'insight', `Filled ${gapReqs.length} gaps with ${gapNewCount} new sources (${origin})`);
+        const ranked = await rank(query, gapRankOpts);
+        const sourceIds = new Set(topSources.map(s => s.id));
+        const additions = ranked.filter(s => !sourceIds.has(s.id) && !!sourceIds.add(s.id));
+        const gapEnriched = [...topSources, ...additions];
+        ctx.addFinding('BLACKBOARD', 'insight', `Retrieved ${gapNewCount} candidate sources for ${gapReqs.length} gaps (${origin}); reassessment required`);
 
         // ── CRITICAL FIX: Re-execute ANALYST with gap-filled sources ──
         // Before this fix, the ANALYST identified gaps, SCOUT filled them,
@@ -125,10 +123,13 @@ export function createGapRequestProcessor(deps: GapFillDeps) {
         // receiving them, but continuing to write without reading them.
         // BUDGET: each re-analysis is a full 3-pass (~7min on reasoning models).
         // Cap total re-analyses per run — brief runs get 1, strategic 2.
-        if (gapEnriched.length > 0 && state.reAnalysisBudget > 0) {
+        if (additions.length > 0 && state.reAnalysisBudget > 0) {
           state.reAnalysisBudget--;
+          assertExecutionActive();
+          const fresh = await readerAgentV3(additions, { domain: detectedDomain, maxConcurrency: isFreeRun() ? 2 : 4 });
+          assertExecutionActive();
           emitProgress(pipelineRunId, "GAP_FILL", "started", `Re-analyzing with ${gapEnriched.length} enriched sources...`);
-          const gapReReadings = readings.map((r: any) => ({
+          const gapReReadings = [...readings, ...fresh].map((r: any) => ({
             sourceId: r.sourceId,
             claims: r.claims || [],
             methods: r.methods || [],
@@ -148,12 +149,17 @@ export function createGapRequestProcessor(deps: GapFillDeps) {
           const reResult = await reAnalyzeAfterGapFill(
             query,
             state.analysis,
-            topSources,
+            gapEnriched,
             gapReReadings,
             analystMultipass,
             { contextBlock: (fullContextBlock || '') + expertLens + repairCtx, domain: detectedDomain, depth: isStrategic ? "strategic" : "brief" }
           );
+          assertExecutionActive();
+          addCost(reResult.costUsd, 'GAP-FILL RE-ANALYSIS');
           if (reResult.reAnalyzed) {
+            topSources.push(...additions);
+            readings.push(...fresh);
+            deps.slimReadings.push(...gapReReadings.filter(r => fresh.some(f => f.sourceId === r.sourceId)));
             state.analysis = reResult.analysis;
             bumpAnalysisArtifact();
             ctx.setAnalystOutput(state.analysis);
@@ -161,7 +167,6 @@ export function createGapRequestProcessor(deps: GapFillDeps) {
               triggered: true,
               citationDelta: reResult.improvementDelta,
             };
-            addCost(typeof state.analysis._meta?.totalCostUsd === "number" ? state.analysis._meta.totalCostUsd : 0, 'GAP-FILL RE-ANALYSIS');
             console.log(`${label} GAP-FILL RE-ANALYSIS: analysis updated (+${reResult.improvementDelta} citations)`);
             emitProgress(pipelineRunId, "GAP_FILL", "completed", `Re-analysis: +${reResult.improvementDelta} citations`);
           } else {
@@ -172,12 +177,12 @@ export function createGapRequestProcessor(deps: GapFillDeps) {
       ctx.clearGapRequests();
       // Close the corresponding coverage_gap signals — the legacy queue and
       // the signal bus carry the same need; resolving one resolves both.
-      ctx.signals.resolveSignalsByType('coverage_gap', 'SCOUT', `gap fill from ${origin}: +${gapNewCount} sources`);
+      stats.gapRetrieval = { origin, newSources: gapNewCount, requiresReassessment: true };
       emitProgress(pipelineRunId, "GAP_FILL", "completed", `Gap fill: +${gapNewCount} sources`);
     } catch (err) {
+      assertExecutionActive();
       console.warn(`${label} BLACKBOARD: gap fill failed (non-blocking):`, err);
-      ctx.clearGapRequests();
-      ctx.signals.resolveSignalsByType('coverage_gap', 'SCOUT', `gap fill attempted (${origin})`);
+      stats.gapRetrieval = { origin, failed: true, requiresReassessment: true };
     }
   };
 }

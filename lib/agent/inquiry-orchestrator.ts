@@ -11,9 +11,10 @@
  */
 
 import type { Prisma } from "@prisma/client";
+import { randomUUID } from 'node:crypto';
 import { certifyForReserve, releaseReservedPublication } from './publication-reserve';
 import { prisma, withDbRetry } from "@/lib/db";
-import { assertExecutionActive, withExecutionDeadline, withExecutionDetached } from '@/lib/worker/execution-scope';
+import { assertExecutionActive, getExecutionSignal, withExecutionDeadline, withExecutionDetached } from '@/lib/worker/execution-scope';
 import {
   runInquiryPipeline,
   type InquiryPipelineResult,
@@ -212,17 +213,20 @@ async function salvageTimedOutPipeline(
   started: number,
   depth: InquiryDepth,
   maxWaitMs = 600_000,
+  executionId?: string,
 ): Promise<InquiryPipelineResult | null> {
   // The timeout rejects the AWAIT, not the pipeline — the run keeps executing
   // its tail (DA, publisher save) in the background and only persists the
   // brief + stats minutes later. A 90s poll misses it every time; poll until
   // the run row is finished or a brief with verdict-bearing evals appears,
   // up to `maxWaitMs` (10min default for main pipelines, shorter for regen).
+  if (!executionId) return null;
   const deadline = Date.now() + maxWaitMs;
   while (Date.now() < deadline) {
+    if (getExecutionSignal()?.aborted) return null;
     try {
       const brief = await prisma.brief.findFirst({
-        where: { question, createdAt: { gte: new Date(started - 60_000) }, html: { not: "" } },
+        where: { question, pipelineRunId: executionId, createdAt: { gte: new Date(started) }, html: { not: "" } },
         orderBy: { createdAt: "desc" },
       });
       if (brief?.pipelineRunId) {
@@ -260,7 +264,10 @@ async function salvageTimedOutPipeline(
             depth,
             status: "reviewing",
             sections: [],
-            sources: sourceRows.map((s) => ({ id: s.id, title: s.title ?? "", provider: s.provider ?? "", authors: s.authors })),
+            sources: sourceIds.map(id => {
+              const s = sourceRows.find(row => row.id === id);
+              return { id, title: s?.title ?? 'Source unavailable', provider: s?.provider ?? 'unknown', authors: s?.authors ?? [] };
+            }),
             publishedAt: brief.createdAt,
             updatedAt: brief.updatedAt,
           } as unknown as Inquiry;
@@ -354,6 +361,7 @@ export async function runAndPublishInquiry(
 
   // 3. Pipeline
   let pipeline: InquiryPipelineResult;
+  const executionId = randomUUID();
   let seedSourceIds = req.seedSourceIds;
   if (!seedSourceIds?.length && req.signalId) {
     const signal = await prisma.signal.findUnique({
@@ -368,7 +376,7 @@ export async function runAndPublishInquiry(
       question,
       depth,
       domain: req.domain,
-      pipelineOptions: mergePipelineOptions(req),
+      pipelineOptions: { ...mergePipelineOptions(req), executionId },
       seedSourceIds,
     });
   } catch (err: unknown) {
@@ -380,16 +388,30 @@ export async function runAndPublishInquiry(
     // Discarding that artifact burns the whole spend; instead, recover the
     // persisted brief and run the identical gate on it. Only timeouts are
     // salvageable — a real pipeline failure produces no trustworthy artifact.
+    // Spend incurred before the failure is attached by runPipelineCore —
+    // bank it in the result or a crashed pipeline reports $0 to the budget.
+    let spentUsd = typeof (err as any)?.costUsd === 'number' ? (err as any).costUsd : 0;
     if (message.includes("timed out")) {
-      const salvaged = await salvageTimedOutPipeline(question, started, depth);
+      const salvaged = await salvageTimedOutPipeline(question, started, depth, 600_000, executionId);
       if (salvaged) {
         console.log(`[InquiryOrchestrator] SALVAGE: brief ${salvaged.briefId} persisted before/around timeout — running gate on persisted artifact`);
         pipeline = salvaged;
       } else {
-        return failResult(started, message);
+        // The deadline error carries no cost — the core's FATAL catch may
+        // still have persisted stats.totalCostUsd while unwinding (by now the
+        // salvage poll has given it ample time to finish writing).
+        if (spentUsd <= 0) {
+          spentUsd = await prisma.pipelineRun.findUnique({ where: { id: executionId }, select: { steps: true } })
+            .then(r => {
+              const t = (r?.steps as Record<string, unknown> | null)?.totalCostUsd;
+              return typeof t === 'number' ? t : 0;
+            })
+            .catch(() => 0);
+        }
+        return failResult(started, message, spentUsd > 0 ? { costUsd: spentUsd } : undefined);
       }
     } else {
-      return failResult(started, message);
+      return failResult(started, message, spentUsd > 0 ? { costUsd: spentUsd } : undefined);
     }
   }
 
@@ -482,6 +504,10 @@ export async function runAndPublishInquiry(
       // P0/1: verdict evals attached to a replaced artifact version are invalid
       // — the gate hard-fails rather than publish on a stale verdict.
       staleEvaluations: (p.stats.evaluationFreshness as { verdictStale?: string[] } | undefined)?.verdictStale ?? [],
+      failedEvaluations: ['critic', 'criticPanel', 'devilsAdvocate', 'structuralEditor'].filter(key => {
+        const evaluation = p.stats[key] as Record<string, unknown> | undefined;
+        return !!evaluation?.error || evaluation?.evaluationComplete === false || (key === 'devilsAdvocate' && evaluation?.skipped === true);
+      }),
     };
 
     let g = evaluatePublicationGate({ ...gi, html: aHtml });
@@ -500,7 +526,7 @@ export async function runAndPublishInquiry(
     // (deterministic scenario re-render, citation backfill, surgical content
     // edits on DA objections, copy-edit on style violations), then the gate
     // and readiness are re-evaluated on the revised artifact. Bounded. ──
-    if (g.decision !== "publish" || !r.ok) {
+    if ((g.decision !== "publish" || !r.ok) && gi.failedEvaluations.length === 0) {
       try {
         const { reviseForGate } = await import('./revision-controller');
         const revision = await reviseForGate({
@@ -520,6 +546,9 @@ export async function runAndPublishInquiry(
           const gateBefore = g.decision;
           aHtml = revision.html;
           aWordCount = countWordsHtml(aHtml);
+          if (revision.actions.some(action => action.startsWith('substance_weak: resolved'))) {
+            gi.staleEvaluations = [...new Set([...gi.staleEvaluations, 'devilsAdvocate'])];
+          }
           g = evaluatePublicationGate({ ...gi, html: aHtml });
           r = evaluatePublicationReadiness({
             type: aPubType, trustScore: scores.trustScore, qualityScore: scores.qualityScore,
@@ -586,7 +615,9 @@ export async function runAndPublishInquiry(
         // unwinds only the child scope and the original result persists.
         const regenBudgetMs = Math.min(25 * 60 * 1000, Math.max(8 * 60_000, 95 * 60_000 - elapsedMs));
         const regenStarted = Date.now();
+        const regenExecutionId = randomUUID();
         let regenPipeline: Awaited<ReturnType<typeof runInquiryPipeline>> | null = null;
+        let regenFailedSpend = 0;
         try {
           regenPipeline = await withExecutionDeadline(regenBudgetMs, 'regen', () =>
             runInquiryPipeline({
@@ -595,13 +626,14 @@ export async function runAndPublishInquiry(
               domain: req.domain,
               pipelineOptions: {
                 ...mergePipelineOptions(req),
+                executionId: regenExecutionId,
                 priorFailureFeedback: feedback,
                 // The regen REWRITES the analysis — durable checkpoints would
                 // replay attempt-1's 'analyst' step and produce the identical
                 // artifact. priorReadings covers the expensive reader reuse
                 // explicitly instead.
                 useDurableExecution: false,
-                priorReadings: (pipeline as any).readings,
+                priorReadings: pipeline.readings,
                 // Rewrite on a FIXED corpus — gap-fill scouts would add sources,
                 // force re-reads, and blow the bounded regen window (observed:
                 // regen died mid-reader at the 25min cap).
@@ -611,6 +643,8 @@ export async function runAndPublishInquiry(
             })
           );
         } catch (regenErr) {
+          // Spend incurred before the throw is attached by runPipelineCore.
+          if (typeof (regenErr as any)?.costUsd === 'number') regenFailedSpend = (regenErr as any).costUsd;
           // The regen persists its brief + evaluator stats before the
           // non-critical tail (embeddings, KG, enrichment lookups) — observed
           // live: a regen wrote trust=86/quality=80 then died in the tail,
@@ -618,14 +652,26 @@ export async function runAndPublishInquiry(
           // the persisted regen brief exactly like a main-pipeline timeout.
           if (String(regenErr).includes('timed out')) {
             console.warn(`[InquiryOrchestrator] REGEN timed out — attempting salvage of persisted regen brief`);
-            regenPipeline = await salvageTimedOutPipeline(question, regenStarted, depth, 180_000).catch(() => null);
+            regenPipeline = await salvageTimedOutPipeline(question, regenStarted, depth, 180_000, regenExecutionId).catch(() => null);
             if (regenPipeline) console.log(`[InquiryOrchestrator] REGEN salvaged: brief ${regenPipeline.briefId} recovered (trust=${regenPipeline.trustScore} quality=${regenPipeline.qualityScore})`);
+            // Deadline errors carry no attached cost — recover the spend the
+            // unwinding core persisted into the regen's PipelineRun steps.
+            if (!regenPipeline && regenFailedSpend <= 0) {
+              regenFailedSpend = await prisma.pipelineRun.findUnique({ where: { id: regenExecutionId }, select: { steps: true } })
+                .then(r => {
+                  const t = (r?.steps as Record<string, unknown> | null)?.totalCostUsd;
+                  return typeof t === 'number' ? t : 0;
+                })
+                .catch(() => 0);
+            }
           }
           if (!regenPipeline) {
             console.warn(`[InquiryOrchestrator] Regeneration round failed (non-blocking):`, regenErr);
           }
         }
-        costUsd += regenPipeline ? getPipelineCostUsd(regenPipeline.stats) : 0;
+        // Bank regen spend even when it produced no artifact — runPipelineCore
+        // attaches the incurred cost to the thrown error.
+        costUsd += regenPipeline ? getPipelineCostUsd(regenPipeline.stats) : regenFailedSpend;
         if (regenPipeline && !regenPipeline.refusal && regenPipeline.html) {
           const reAssessed = await assess(regenPipeline);
           const before = attemptScore({ gate: assessment.gate, trustScore: assessment.scores.trustScore, qualityScore: assessment.scores.qualityScore });

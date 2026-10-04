@@ -27,6 +27,7 @@ export interface ScoutEnrichmentIndexDeps {
   stats: Record<string, any>;
   /** true when resuming from a durable scout checkpoint — enrichment skipped */
   scoutCkpt: boolean;
+  skipRetrieval?: boolean;
   format: 'strategic' | 'dossier' | 'memo' | 'brief';
   domain: string;
   scout: (q: string, provs: Providers, perProv: number) => Promise<any>;
@@ -38,6 +39,10 @@ export interface ScoutEnrichmentIndexDeps {
 export async function runScoutEnrichmentAndIndex(deps: ScoutEnrichmentIndexDeps): Promise<string[]> {
   const { query, label, stats, scoutCkpt, format, domain, scout, durableKey, saveDurableStep, index } = deps;
   let allSourceIds = deps.allSourceIds;
+  if (deps.skipRetrieval) {
+    stats.fixedCorpus = { sourceCount: allSourceIds.length, enrichmentSkipped: true };
+    return allSourceIds;
+  }
 
   // ── FINAL FALLBACK: if still critically low on sources, do a direct web search ──
   if (allSourceIds.length < 5) {

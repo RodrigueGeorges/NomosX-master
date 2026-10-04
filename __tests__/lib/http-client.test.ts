@@ -173,6 +173,17 @@ test('identical GETs within TTL share one wire request (run-scoped dedupe)', asy
   expect(fetchMock).toHaveBeenCalledTimes(2);
 });
 
+test('oversized responses self-evict — a repeat call re-issues the wire request', async () => {
+  const big = 'x'.repeat(1.5 * 1024 * 1024);
+  fetchMock.mockImplementation(async () => new Response(`{"d":"${big}"}`));
+  const url = 'https://api.dedupe.test/oversized';
+  await httpGet(url, { retries: 0 });
+  // Allow the async size-check eviction to run.
+  await new Promise(r => setImmediate(r));
+  await httpGet(url, { retries: 0 });
+  expect(fetchMock).toHaveBeenCalledTimes(2);
+});
+
 test('failed GETs are not cached — a retry re-issues the wire request', async () => {
   let calls = 0;
   fetchMock.mockImplementation(async () => {

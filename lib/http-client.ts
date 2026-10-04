@@ -600,6 +600,9 @@ async function fetchWithTimeout(
 // Keyed on url + responseType + headers (auth-bearing calls stay distinct).
 const GET_CACHE_TTL_MS = 10 * 60 * 1000;
 const GET_CACHE_MAX = 4000;
+// Per-value ceiling: 4000 × 8MB responses could OOM a small container.
+// Provider JSON is typically <500KB; anything larger isn't worth retaining.
+const GET_CACHE_MAX_VALUE_BYTES = 1024 * 1024;
 interface GetCacheEntry { promise: Promise<any>; expires: number }
 const getCache = new Map<string, GetCacheEntry>();
 let getCacheHits = 0;
@@ -645,6 +648,12 @@ export async function httpGet<T = any>(
       v !== null && typeof v === "object" ? structuredClone(v) : v
     );
     getCache.set(key, { promise: stored, expires: Date.now() + GET_CACHE_TTL_MS });
+    // Self-evict oversized payloads once resolved — one stringify per unique
+    // URL is cheap against the wire call it replaces.
+    stored.then(v => {
+      const size = typeof v === "string" ? v.length : JSON.stringify(v)?.length ?? 0;
+      if (size > GET_CACHE_MAX_VALUE_BYTES) getCache.delete(key);
+    }).catch(() => {});
     stored.catch(() => getCache.delete(key)); // don't cache failures
   }
   return promise;

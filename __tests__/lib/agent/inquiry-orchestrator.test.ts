@@ -217,6 +217,12 @@ describe('runAndPublishInquiry — full funnel', () => {
     // reflects the BETTER artifact, not the timed-out orchestration.
     expect(result.status).toBe('published');
     expect(result.briefId).toBe('brief-regen');
+    const regenOptions = mockRunPipeline.mock.calls[1][0].pipelineOptions;
+    expect(regenOptions.executionId).toBeTruthy();
+    expect(regenOptions.executionId).not.toBe(mockRunPipeline.mock.calls[0][0].pipelineOptions.executionId);
+    expect(prisma.brief.findFirst).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ pipelineRunId: regenOptions.executionId }),
+    }));
     expect(mockTxPubCreate).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ status: 'PUBLISHED' }) })
     );
@@ -268,6 +274,37 @@ describe('runAndPublishInquiry — full funnel', () => {
     }
   }, 60_000);
 
+  it('pipeline failure banks the spend attached to the thrown error', async () => {
+    // runPipelineCore attaches cost.runningCostUsd to its FATAL error — a
+    // crashed pipeline must still report its spend to the cycle budget.
+    const err = new Error('provider cascade exhausted');
+    (err as unknown as { costUsd: number }).costUsd = 0.87;
+    mockRunPipeline.mockRejectedValue(err);
+    const result = await runAndPublishInquiry(REQ);
+    expect(result.status).toBe('failed');
+    expect(result.costUsd).toBe(0.87);
+    expect(mockTxPubCreate).not.toHaveBeenCalled();
+  });
+
+  it('pipeline timeout with no brief recovers spend persisted in PipelineRun.steps', async () => {
+    // The deadline error carries no cost — the unwinding core wrote
+    // stats.totalCostUsd into the run row; recover it for budget accounting.
+    mockRunPipeline.mockRejectedValue(new Error('runPipeline(brief) timed out after 3900000s'));
+    (prisma.pipelineRun.findUnique as jest.Mock).mockResolvedValue({
+      finishedAt: new Date(), steps: { totalCostUsd: 1.23 },
+    });
+    jest.useFakeTimers();
+    try {
+      const promise = runAndPublishInquiry(REQ);
+      await jest.runAllTimersAsync();
+      const result = await promise;
+      expect(result.status).toBe('failed');
+      expect(result.costUsd).toBe(1.23);
+    } finally {
+      jest.useRealTimers();
+    }
+  }, 60_000);
+
   it('dispatch deadline firing mid-flow must not roll back the artifact commit (S32)', async () => {
     // The pipeline resolves, then the dispatch scope aborts — every step after
     // the artifact is complete (assess, gate, regen, persist) runs under an
@@ -284,6 +321,19 @@ describe('runAndPublishInquiry — full funnel', () => {
     expect(mockTxPubCreate).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ status: 'HELD' }) })
     );
+  });
+
+  it.each([{ error: 'provider unavailable' }, { evaluationComplete: false }, { skipped: true }])('holds an unavailable adversarial review without paying for regeneration: %j', async failure => {
+    mockRunPipeline.mockResolvedValueOnce(makePipelineResult(makeStats({
+      critic: { overallScore: 90, verdict: 'publish' }, rank: { avgQuality: 90 },
+      structuralEditor: { overallStructure: 90 }, criticalLoop: { finalScore: 90 },
+      devilsAdvocate: { publishabilityScore: 100, verdict: 'publish', ...failure },
+      centralScenarioRequired: false,
+    }), 'a'));
+    const result = await runAndPublishInquiry(REQ);
+    expect(result.status).toBe('held');
+    expect(mockRunPipeline).toHaveBeenCalledTimes(1);
+    expect(result.gate?.checks).toContainEqual(expect.objectContaining({ checkType: 'evaluation_availability', passed: false }));
   });
 
   it('clean artifact → gate publish → persisted PUBLISHED, no regen', async () => {

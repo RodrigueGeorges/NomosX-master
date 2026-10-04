@@ -56,11 +56,32 @@ it('preserves the central decision and source order through persistence without 
   expect(jest.getTimerCount()).toBe(0);
 });
 
+it('passes reader extractions through the inquiry wrapper for regeneration reuse', async () => {
+  const { stats } = setup(true);
+  const readings = [{ sourceId: 's1', claims: ['Observed result'], results: ['Measured effect'] }];
+  jest.mocked(runPipeline).mockResolvedValueOnce({ briefId: 'brief', pipelineRunId: 'run', stats, readings } as unknown as Awaited<ReturnType<typeof runPipeline>>);
+  const result = await runInquiryPipeline({ question: 'What happens next in this field?' });
+  expect((result as unknown as { readings: unknown[] }).readings).toBe(readings);
+});
+
 it('does not silently retry a simulation skipped by the central-scenario pipeline', async () => {
   setup(true);
   await runInquiryPipeline({ question: 'What happens next in this field?', depth: 'standard' });
   expect(runPipelineForesight).not.toHaveBeenCalled();
   expect(jest.getTimerCount()).toBe(0);
+});
+
+it('keeps the free-mode deadline instead of overriding it with the paid depth default', async () => {
+  setup(true);
+  const previous = process.env.NOMOSX_FREE_RUN;
+  process.env.NOMOSX_FREE_RUN = '1';
+  try {
+    await runInquiryPipeline({ question: 'What happens next in this field?', depth: 'standard' });
+    expect(runPipeline).toHaveBeenCalledWith(expect.any(String), 'memo', expect.objectContaining({ timeoutMs: 10_800_000 }));
+  } finally {
+    if (previous === undefined) delete process.env.NOMOSX_FREE_RUN;
+    else process.env.NOMOSX_FREE_RUN = previous;
+  }
 });
 
 it('clears the deadline timer after a legacy simulation returns', async () => {

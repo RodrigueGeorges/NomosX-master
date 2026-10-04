@@ -31,6 +31,7 @@ export interface ClassificationGatesDeps {
   enableEnhancedCouncil: boolean | undefined;
   useThinkTankPack: boolean;
   editorialV2: boolean;
+  skipRetrieval?: boolean;
   runMetaAnalysisStep: boolean;
   runDeliberationStep: boolean;
   runDebateStep: boolean;
@@ -170,7 +171,7 @@ export async function runClassificationGates(deps: ClassificationGatesDeps): Pro
   }
 
   // STEP 4d: GAP FILLER SCOUT — run supplementary searches for prior knowledge gaps
-  if (gapQueries.length > 0) {
+  if (gapQueries.length > 0 && !deps.skipRetrieval) {
     try {
       const gapResult = await scout(gapQueries.join(' OR '), providers.slice(0, 3), 10);
       const gapSourceIds = Array.isArray(gapResult) ? gapResult.map((s: any) => s.id) : (gapResult.sourceIds || []);

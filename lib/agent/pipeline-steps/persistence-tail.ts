@@ -11,6 +11,7 @@
  */
 
 import { prisma, withDbRetry } from '../../db';
+import { assertExecutionActive } from '../../worker/execution-scope';
 import { extractAndStoreConcepts } from '../knowledge-graph';
 import { extractAndStoreGaps, markGapsFilled } from '../gap-filler';
 import { recordSourceUsage } from '../source-reputation-agent';
@@ -63,6 +64,7 @@ export interface PersistenceTailDeps {
 }
 
 export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ briefId: string; html: string }> {
+  assertExecutionActive();
   const {
     label, isStrategic, query, stats, topSources, analysis, detectedDomain,
     foundationalSources, pipelineRun, orchState, episodicContext, pipelineStart,

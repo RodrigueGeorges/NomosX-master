@@ -150,6 +150,15 @@ describe('shouldRegenerate', () => {
     expect(res.reason).toContain('source_depth');
   });
 
+  it('does not pay for a rewrite when the evaluator is unavailable', () => {
+    const res = shouldRegenerate({
+      gate: gate([{ checkType: 'evaluation_availability', passed: false }]),
+      qualityScore: 50, trustScore: 70,
+    });
+    expect(res.regenerate).toBe(false);
+    expect(res.reason).toContain('evaluation unavailable');
+  });
+
   it('refuses deep-evidence failure (trust < 40)', () => {
     const g = gate([{ checkType: 'trust_score', passed: false }]);
     g.metrics.trustScore = 30;

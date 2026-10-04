@@ -113,6 +113,7 @@ describe('reserve-first dispatch', () => {
     const out = await executeDispatchQueue([item], cadence, 1, false);
     expect(out.published).toBe(0);
     expect(out.held).toBe(1);
+    expect(out.totalCostUsd).toBeCloseTo(0.4);
   });
 
   it('treats an already-released slot as idempotent skip — reclaim safety', async () => {

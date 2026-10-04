@@ -9,6 +9,7 @@
 import type { Prisma } from "@prisma/client";
 import { runPipeline, type StrategicPipelineOptions } from "./pipeline-v2";
 import { prisma } from "@/lib/db";
+import { isFreeRun } from '../free-run';
 import { type SimulationReport } from "./simulation-agent";
 import { runPipelineForesight } from "./pipeline-foresight";
 import { extractPipelineScores } from "./inquiry-funnel-utils";
@@ -52,6 +53,7 @@ export interface InquiryPipelineResult {
   refusal?: boolean;
   refusalReason?: string;
   readerClaims?: Array<{ text: string; sourceRef?: number | null }>;
+  readings?: unknown[];
 }
 
 // ─── Depth → pipeline format ─────────────────────────────────
@@ -71,7 +73,7 @@ function depthToPipelineFormat(
       // Decision Memo — moderate depth, brief pipeline with memo rendering.
       // Same heavy machinery as deep (BLACKBOARD re-analysis, arbiter, Delphi,
       // sweep) — a memo run died mid critic-repair at the 65min default cap.
-      base = { format: "memo", options: { perProvider: 30, timeoutMs: 4_800_000 } };
+      base = { format: "memo", options: { perProvider: 30, timeoutMs: isFreeRun() ? 10_800_000 : 4_800_000 } };
       break;
     case "deep":
       // Article — deeper brief pipeline (NOT strategic), more sources.
@@ -81,7 +83,7 @@ function depthToPipelineFormat(
         format: "brief",
         options: {
           perProvider: 50,
-          timeoutMs: 4_800_000, // 80min — a deep run timed out at 65min post-arbiter
+          timeoutMs: isFreeRun() ? 10_800_000 : 4_800_000, // 80min — a deep run timed out at 65min post-arbiter
           rankOptions: { requireAbstract: false, minQuality: 0 },
         },
       };
@@ -626,6 +628,7 @@ export async function runInquiryPipeline(
     qualityScore,
     format,
     readerClaims: (result as any).readerClaims,
+    readings: 'readings' in result ? result.readings : undefined,
   };
 }
 

@@ -771,8 +771,8 @@ export async function executeDispatchQueue(
       });
 
     let topicMatched = false;
-    let pipelineCostUsd = 0;
     let result = await release();
+    let pipelineCostUsd = result.costUsd;
     if (result.status === 'published') {
       topicMatched = true;
       console.log(`[ThinkTank] Slot filled from reserve: ${result.publicationId} (topic-matched, $0)`);
@@ -820,6 +820,7 @@ export async function executeDispatchQueue(
       // Freshly certified → release it into this slot (topic-faithful).
       if (result.status === 'ready' && result.publicationId) {
         const rel = await release(result.publicationId);
+        pipelineCostUsd += rel.costUsd;
         if (rel.status === 'published') { result = rel; topicMatched = true; }
         else if (rel.status !== 'failed') result = rel;
       }
@@ -830,6 +831,7 @@ export async function executeDispatchQueue(
       if (result.status === 'held' || result.status === 'failed' ||
           result.status === 'draft' || result.status === 'review' || result.status === 'ready') {
         const drained = await release(undefined, false);
+        pipelineCostUsd += drained.costUsd;
         if (drained.status === 'published') {
           console.log(`[ThinkTank] Slot filled from reserve: ${drained.publicationId} (cross-topic drain — item signal stays open)`);
           result = drained;
@@ -838,10 +840,10 @@ export async function executeDispatchQueue(
     }
 
     outcomes.push({ item, result });
-    totalCostUsd += result.costUsd + pipelineCostUsd;
+    totalCostUsd += pipelineCostUsd;
 
     // Record spend to global budget tracker
-    const spentUsd = result.costUsd + pipelineCostUsd;
+    const spentUsd = pipelineCostUsd;
     if (spentUsd > 0) {
       import('./budget-manager')
         .then(({ recordSpend }) => recordSpend(spentUsd, 'pipeline', item.question.slice(0, 60)))

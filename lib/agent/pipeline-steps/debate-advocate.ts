@@ -142,6 +142,7 @@ export async function runDevilsAdvocateBlock(
     );
     stats.devilsAdvocate = tagEval({
       verdict: daResult.verdict,
+      evaluationComplete: daResult.evaluationComplete,
       overallStrength: daResult.overallStrength,
       publishabilityScore: daResult.publishabilityScore,
       fatalChallenges: daResult.fatalChallenges?.length || 0,

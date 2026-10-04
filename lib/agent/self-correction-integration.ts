@@ -19,6 +19,7 @@
 import { reflectAndRetry, assessPhaseQuality, buildCorrectionFeedback } from './self-correction';
 import type { SelfCorrectionResult, PhaseReflection } from './self-correction';
 import type { PipelinePhase } from './cross-model-consensus';
+import { assertExecutionActive } from '../worker/execution-scope';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -289,7 +290,8 @@ export async function reAnalyzeAfterGapFill(
   readings: any[],
   analystFn: (query: string, sources: any[], readings: any[], options: any) => Promise<any>,
   options: { contextBlock?: string; domain?: string; depth?: 'brief' | 'strategic' }
-): Promise<{ analysis: any; reAnalyzed: boolean; improvementDelta: number }> {
+): Promise<{ analysis: any; reAnalyzed: boolean; improvementDelta: number; costUsd?: number }> {
+  assertExecutionActive();
   const originalStr = typeof originalAnalysis === 'string' ? originalAnalysis : JSON.stringify(originalAnalysis);
   const originalCitations = new Set((originalStr.match(/\[SRC-\d+\]/g) || []).map((m: string) => m)).size;
   const originalLength = originalStr.length;
@@ -302,6 +304,9 @@ export async function reAnalyzeAfterGapFill(
       contextBlock: (options.contextBlock || '') + '\n\n## GAP-FILL UPDATE\nNew sources were added to fill evidence gaps. Integrate them with [SRC-N] citations where relevant.',
     });
 
+    assertExecutionActive();
+    const costUsd = Number.isFinite(reAnalysis?._meta?.totalCostUsd) ? Math.max(0, reAnalysis._meta.totalCostUsd) : 0;
+    if (reAnalysis?._meta?.failed) return { analysis: originalAnalysis, reAnalyzed: false, improvementDelta: 0, costUsd };
     const reStr = typeof reAnalysis === 'string' ? reAnalysis : JSON.stringify(reAnalysis);
     const reCitations = new Set((reStr.match(/\[SRC-\d+\]/g) || []).map((m: string) => m)).size;
     const reLength = reStr.length;
@@ -316,6 +321,7 @@ export async function reAnalyzeAfterGapFill(
         analysis: reAnalysis,
         reAnalyzed: true,
         improvementDelta: citationDelta,
+        costUsd,
       };
     } else {
       console.log(`[GapFillReAnalysis] No improvement: ${originalCitations} → ${reCitations} citations, length ratio ${lengthRatio.toFixed(2)} — keeping original`);
@@ -323,9 +329,11 @@ export async function reAnalyzeAfterGapFill(
         analysis: originalAnalysis,
         reAnalyzed: false,
         improvementDelta: 0,
+        costUsd,
       };
     }
   } catch (err) {
+    assertExecutionActive();
     console.warn(`[GapFillReAnalysis] Failed, keeping original:`, err);
     return {
       analysis: originalAnalysis,

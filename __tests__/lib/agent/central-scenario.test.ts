@@ -27,6 +27,16 @@ const input = {
   sources: [{ id: 'source-1', title: 'Observed implementation', provider: 'test', year: 2024 }],
 } as unknown as PositionFirstBriefInput;
 
+it('holds when a required evaluator is unavailable despite high aggregate scores', () => {
+  const result = evaluatePublicationGate({
+    html: '<p>Verified evidence [SRC-1].</p>', sourceIds: Array.from({ length: 20 }, (_, i) => `s${i}`),
+    trustScore: 95, qualityScore: 95, devilsAdvocateScore: 100,
+    failedEvaluations: ['devilsAdvocate'],
+  });
+  expect(result.checks).toContainEqual(expect.objectContaining({ checkType: 'evaluation_availability', passed: false }));
+  expect(result.decision).toBe('hold');
+});
+
 function check(html: string, central = resolveCentralScenario(position)) {
   return evaluatePublicationGate({ html, sourceIds: ['source-1'], centralScenario: central, requireCentralScenario: true });
 }

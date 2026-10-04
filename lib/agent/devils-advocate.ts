@@ -21,6 +21,23 @@
 
 import { callLLM } from '../llm/unified-llm';
 import { parseJson } from './json-utils';
+import { z } from 'zod';
+import { assertExecutionActive } from '../worker/execution-scope';
+
+const challengeSchema = z.object({
+  claim: z.string(), sourceSection: z.string(), challengeType: z.string(),
+  challenge: z.string().min(1), severity: z.enum(['fatal', 'major', 'moderate', 'minor']),
+  counterEvidence: z.array(z.string()), alternativeExplanation: z.string(),
+  requiredAction: z.enum(['revise', 'defend', 'qualify', 'remove']),
+  suggestedRevision: z.string().optional(),
+});
+const epistemicSchema = z.object({
+  challenges: z.array(challengeSchema), killShot: z.string(), strengths: z.array(z.string()),
+});
+const strategicSchema = z.object({
+  challenges: z.array(challengeSchema), killShot: z.string(), hostileReview: z.string(),
+  futureVulnerabilities: z.array(z.string()),
+});
 
 // ============================================================================
 // TYPES
@@ -65,6 +82,7 @@ export type ChallengeType =
   | "cascade_extrapolation";   // Future extrapolation derives from another future extrapolation
 
 export interface AdvocateReport {
+  evaluationComplete?: boolean;
   // Overall verdict
   verdict: "publish" | "revise" | "major_revision" | "reject";
   overallStrength: number;     // 0-100: how strong is the analysis?
@@ -131,6 +149,7 @@ export async function runDevilsAdvocate(
     debateContext?: string; // P0-C: Steel-man context from Debate Agent
   } = {}
 ): Promise<AdvocateReport> {
+  assertExecutionActive();
   const start = Date.now();
   const { mode = "brief", targetAudience = "senior policymakers and executives", domain = "general", debateContext } = options;
 
@@ -142,6 +161,7 @@ export async function runDevilsAdvocate(
     runStrategicChallenge(question, analysisContent, targetAudience, mode),
     runInstitutionBenchmark(question, analysisContent, domain),
   ]);
+  assertExecutionActive();
 
   // Parse results
   const epistemic = epistemicResult.status === "fulfilled" ? epistemicResult.value : null;
@@ -159,12 +179,13 @@ export async function runDevilsAdvocate(
   const minorChallenges = allChallenges.filter(c => c.severity === "moderate" || c.severity === "minor");
 
   // Compute verdict — fatal challenges are absolute vetos: 1+ fatal = no publish
+  const evaluationComplete = epistemic?.evaluationComplete === true && strategic?.evaluationComplete === true;
   const verdict: AdvocateReport["verdict"] =
-    fatalChallenges.length >= 3 ? "reject" :
+    !evaluationComplete || fatalChallenges.length >= 3 ? "reject" :
     fatalChallenges.length >= 1 ? "major_revision" :
     majorChallenges.length >= 5 ? "revise" : "publish";
 
-  const overallStrength = Math.max(0, 100 - (fatalChallenges.length * 20) - (majorChallenges.length * 8) - (minorChallenges.length * 2));
+  const overallStrength = evaluationComplete ? Math.max(0, 100 - (fatalChallenges.length * 20) - (majorChallenges.length * 8) - (minorChallenges.length * 2)) : 0;
   const publishabilityScore = overallStrength;
 
   const totalCost = (epistemic?.costUsd || 0) + (strategic?.costUsd || 0) + (benchmark?.costUsd || 0);
@@ -173,6 +194,7 @@ export async function runDevilsAdvocate(
   console.log(`[DEVIL'S ADVOCATE] Verdict: ${verdict.toUpperCase()} | Strength: ${overallStrength}/100 | Fatal: ${fatalChallenges.length} | Major: ${majorChallenges.length}`);
 
   return {
+    evaluationComplete,
     verdict,
     overallStrength,
     publishabilityScore,
@@ -180,11 +202,11 @@ export async function runDevilsAdvocate(
     majorChallenges,
     minorChallenges,
     vsInstitutionBenchmark: benchmark?.comparison || defaultBenchmark(),
-    killShot: epistemic?.killShot || strategic?.killShot || "No fatal flaw identified",
+    killShot: epistemic?.killShot || strategic?.killShot || (evaluationComplete ? "No fatal flaw identified" : "Adversarial evaluation unavailable"),
     hostileExpertReview: strategic?.hostileReview || "",
     futureVulnerabilities: strategic?.futureVulnerabilities || [],
     strengths: epistemic?.strengths || [],
-    recommendation: buildRecommendation(verdict, fatalChallenges, majorChallenges),
+    recommendation: evaluationComplete ? buildRecommendation(verdict, fatalChallenges, majorChallenges) : 'HOLD: adversarial evaluation incomplete; no publication clearance.',
     costUsd: totalCost,
     durationMs,
   };
@@ -200,6 +222,7 @@ async function runEpistemicChallenge(
   sources: Array<{ title: string; provider: string; year?: number }>,
   debateContext?: string
 ): Promise<{
+  evaluationComplete: boolean;
   challenges: AdvocateChallenge[];
   killShot: string;
   strengths: string[];
@@ -275,10 +298,10 @@ Return JSON:
   });
 
   try {
-    const parsed = parseJson<any>(result.content);
-    if (!parsed) throw new SyntaxError('Devils advocate v1: failed to parse LLM JSON');
+    const parsed = epistemicSchema.parse(parseJson<unknown>(result.content));
     return {
-      challenges: (parsed.challenges || []).map((c: any) => ({
+      evaluationComplete: true,
+      challenges: parsed.challenges.map((c) => ({
         claim: c.claim || "",
         sourceSection: c.sourceSection || "unknown",
         challengeType: c.challengeType || "overstated_conclusion",
@@ -294,7 +317,7 @@ Return JSON:
       costUsd: result.costUsd,
     };
   } catch {
-    return { challenges: [], killShot: "", strengths: [], costUsd: result.costUsd };
+    return { evaluationComplete: false, challenges: [], killShot: "", strengths: [], costUsd: result.costUsd };
   }
 }
 
@@ -308,6 +331,7 @@ async function runStrategicChallenge(
   targetAudience: string,
   mode: "brief" | "strategic"
 ): Promise<{
+  evaluationComplete: boolean;
   challenges: AdvocateChallenge[];
   killShot: string;
   hostileReview: string;
@@ -364,10 +388,10 @@ Return JSON:
   });
 
   try {
-    const parsed = parseJson<any>(result.content);
-    if (!parsed) throw new SyntaxError('Devils advocate v1: failed to parse LLM JSON');
+    const parsed = strategicSchema.parse(parseJson<unknown>(result.content));
     return {
-      challenges: (parsed.challenges || []).map((c: any) => ({
+      evaluationComplete: true,
+      challenges: parsed.challenges.map((c) => ({
         claim: c.claim || "",
         sourceSection: c.sourceSection || "unknown",
         challengeType: c.challengeType || "implementation_gap",
@@ -384,7 +408,7 @@ Return JSON:
       costUsd: result.costUsd,
     };
   } catch {
-    return { challenges: [], killShot: "", hostileReview: "", futureVulnerabilities: [], costUsd: result.costUsd };
+    return { evaluationComplete: false, challenges: [], killShot: "", hostileReview: "", futureVulnerabilities: [], costUsd: result.costUsd };
   }
 }
 

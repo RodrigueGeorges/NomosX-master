@@ -4,6 +4,8 @@
  */
 
 import {  prisma  } from '../db';
+import { randomUUID } from 'node:crypto';
+import { assertExecutionActive, withExecutionDeadline } from '../worker/execution-scope';
 import { BRAND_BRIEF_FOOTER, BRAND_MANIFESTO } from '@/lib/brand/public-copy';
 import { analystAgentV3 as analystMultipass } from './analyst-multipass';
 import { primeContext } from './context-primer';
@@ -74,6 +76,7 @@ export type { RankOptions, DataLineage } from './pipeline-steps/public-ops';
 // ———————————————————————————————————————————————————————————————————————————————————
 
 export interface PipelineCoreOptions {
+  executionId?: string;
   isStrategic: boolean;
   /** Publication format — drives durable-execution activation (memo/dossier/strategic)
    *  and durable-key derivation. Passed through by runPipeline; was silently
@@ -161,6 +164,8 @@ export interface PipelineCoreOptions {
 }
 
 async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
+  assertExecutionActive();
+  opts = { ...opts, executionId: opts.executionId ?? randomUUID() };
   // ── INIT — extracted to pipeline-steps/pipeline-init.ts ──
   // Mutable flow state lives in flags/cost/selfCorrect holders so init
   // closures (addCost budget guard) and the body share the same fields.
@@ -173,7 +178,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   } catch (initErr: any) {
     try {
       const orphan = await prisma.pipelineRun.findFirst({
-        where: { question: query, status: "RUNNING" },
+        where: { id: opts.executionId, status: "RUNNING" },
         orderBy: { createdAt: "desc" },
         select: { id: true },
       });
@@ -278,7 +283,10 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   // stats.phaseTimings so postmortems get a phase breakdown without reading
   // 5k lines of log. Values are cumulative ms since pipelineStart.
   const phaseMarks: Record<string, number> = {};
-  const phaseMark = (name: string) => { phaseMarks[name] = Date.now() - pipelineStart; };
+  const phaseMark = (name: string) => {
+    assertExecutionActive();
+    phaseMarks[name] = Date.now() - pipelineStart;
+  };
   (stats as any).phaseTimings = phaseMarks;
 
   // -- STEP 1: SCOUT — extracted to pipeline-steps/scout-block.ts --
@@ -306,6 +314,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
       allSourceIds, query, label,
       stats: stats as Record<string, any>,
       scoutCkpt: !!scoutCkpt,
+      skipRetrieval: opts.skipGapFillRetrieval,
       format: isStrategic ? 'strategic' : isDossier ? 'dossier' : isMemo ? 'memo' : 'brief',
       domain: (opts as any).domain || 'general',
       scout, durableKey, saveDurableStep, index,
@@ -324,6 +333,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     const rankOut = await runRankAndEnrichment({
       query, allSourceIds, isStrategic,
       rankOptions: opts.rankOptions,
+      skipRetrieval: opts.skipGapFillRetrieval,
       providers, stats: stats as Record<string, any>, label, pipelineStart,
       runningCostUsd: cost.runningCostUsd, pipelineRunId: pipelineRun.id,
       rank, scout, emitProgress, addCost, ctx, orchState,
@@ -354,6 +364,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     query, topSources, allSourceIds, providers, scout, stats, label,
     isStrategic, enableEnhancedCouncil: opts.enableEnhancedCouncil,
     useThinkTankPack, editorialV2,
+    skipRetrieval: opts.skipGapFillRetrieval,
     runMetaAnalysisStep: flags.runMetaAnalysisStep, runDeliberationStep: flags.runDeliberationStep, runDebateStep: flags.runDebateStep, runDevilsAdvocateStep: flags.runDevilsAdvocateStep,
     ctx,
   });
@@ -1050,6 +1061,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
           costUsd: recheck.costUsd,
         };
         stats.devilsAdvocate = tagEval({
+          evaluationComplete: recheck.evaluationComplete,
           verdict: recheck.verdict,
           overallStrength: recheck.overallStrength,
           publishabilityScore: recheck.publishabilityScore,
@@ -1122,6 +1134,11 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     activeRuns.delete(idempotencyKey);
     console.error(`${label} FATAL: ${error.message}`);
     emitProgress(pipelineRun.id, "ERROR", "failed", error.message);
+    // Spend already incurred must survive the failure: persist it in steps
+    // (salvage/reconciliation reads it) and attach it to the error so the
+    // orchestrator can bank it instead of reporting a $0 run.
+    stats.totalCostUsd = cost.runningCostUsd;
+    if ((error as any).costUsd === undefined) (error as any).costUsd = cost.runningCostUsd;
     await prisma.pipelineRun.update({
       where: { id: pipelineRun.id },
       data: {
@@ -1170,6 +1187,7 @@ export async function runFullPipeline(
 export type ReportFormat = "brief" | "memo" | "strategic" | "dossier";
 
 export interface StrategicPipelineOptions {
+  executionId?: string;
   providers?: Providers;
   perProvider?: number;
   rankOptions?: RankOptions;
@@ -1257,6 +1275,7 @@ export async function runStrategicPipeline(
   options: StrategicPipelineOptions = {}
 ) {
   return runPipelineCore(query, {
+    executionId: options.executionId,
     isStrategic: true,
     providers: options.providers,
     perProvider: options.perProvider,
@@ -1283,16 +1302,8 @@ export async function runStrategicPipeline(
  * Default: 120s for briefs, 300s for strategic reports
  */
 
-function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
-  return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => {
-      reject(new Error(`[Pipeline] ${label} timed out after ${timeoutMs / 1000}s`));
-    }, timeoutMs);
-
-    promise
-      .then(result => { clearTimeout(timer); resolve(result); })
-      .catch(err => { clearTimeout(timer); reject(err); });
-  });
+function withTimeout<T>(work: () => Promise<T>, timeoutMs: number, label: string): Promise<T> {
+  return withExecutionDeadline(timeoutMs, label, work);
 }
 
 /**
@@ -1332,10 +1343,12 @@ export async function runPipeline(
   const memoPerProvider = isMemo ? 30 : undefined;
   const perProvider = options.perProvider ?? memoPerProvider ?? (isDossier ? 120 : undefined);
   const rankOptions = { ...dossierRankOptions, ...options.rankOptions };
+  const executionId = options.executionId ?? randomUUID();
 
   try {
     return await withTimeout(
-      runPipelineCore(query, {
+      () => runPipelineCore(query, {
+        executionId,
         isStrategic,
         format,
         providers: options.providers,
@@ -1387,7 +1400,7 @@ export async function runPipeline(
       console.error(`[Pipeline] Timeout cleanup: marking RUNNING runs as FAILED for query "${query.slice(0, 60)}"`);
       try {
         const timedOutRun = await prisma.pipelineRun.findFirst({
-          where: { question: query, status: "RUNNING" },
+          where: { id: executionId, status: "RUNNING" },
           orderBy: { createdAt: "desc" },
           select: { id: true },
         });
