@@ -346,10 +346,14 @@ async function collectHeldRetryItems(maxItems = 1): Promise<{ items: ThinkTankDi
   try {
     const HELD_RETRY_COOLDOWN_MS = Number(process.env.HELD_RETRY_COOLDOWN_MS ?? 20 * 3600_000);
     const HELD_MAX_RETRIES = 2;
+    // Zombie guard: a signal detected >30d ago is stale — retrying a
+    // month-old topic burns a run on yesterday's news.
+    const HELD_MAX_AGE_MS = 30 * 86400_000;
     const heldSignals = await prisma.signal.findMany({
       where: {
         status: "HELD",
         updatedAt: { lt: new Date(Date.now() - HELD_RETRY_COOLDOWN_MS) },
+        detectedAt: { gte: new Date(Date.now() - HELD_MAX_AGE_MS) },
         priorityScore: { gte: 55 }, // only signals worth a second spend
       },
       orderBy: { priorityScore: "desc" },
