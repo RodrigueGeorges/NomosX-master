@@ -41,6 +41,11 @@ interface Agg {
   stalePublished: number;
   staleEvalTotal: number;
   vetoCounts: Record<string, number>;
+  /** How often each repair mechanism fired across runs — the observability
+   * for the S33 machinery (rescore, DA missions, gap re-analysis, regen,
+   * tail-trim, early outline). A mechanism that never fires is dead code;
+   * one that fires but never changes outcomes is a cost sink. */
+  repairActivity: Record<string, number>;
   evaluatedAt: string;
 }
 
@@ -67,6 +72,8 @@ async function collect(limit: number): Promise<Agg> {
   const published = pubs.filter((p: any) => p.status === 'PUBLISHED');
 
   const vetoCounts: Record<string, number> = {};
+  const repairActivity: Record<string, number> = {};
+  const bump = (key: string) => { repairActivity[key] = (repairActivity[key] ?? 0) + 1; };
   let staleEvalRuns = 0, staleEvalTotal = 0, stalePublished = 0;
   for (const p of pubs as any[]) {
     const stats = (p.criticalLoopResult as any)?.stats ?? {};
@@ -90,6 +97,17 @@ async function collect(limit: number): Promise<Agg> {
     if (stats.critic?.recommendation === 'reject') vetoCounts.critic = (vetoCounts.critic ?? 0) + 1;
     if (stats.criticPanel?.veto) vetoCounts.criticPanel = (vetoCounts.criticPanel ?? 0) + 1;
     if (stats.symbolicVerifier?.veto) vetoCounts.symbolicVerifier = (vetoCounts.symbolicVerifier ?? 0) + 1;
+
+    // ── Repair-mechanism activity (S33) — count firing, not success ──
+    if (stats.critic?.rescoredPostMutation || stats.criticPanel?.rescoredPostMutation || stats.structuralEditor?.rescoredPostMutation) bump('evalRescored');
+    if (stats.devilsAdvocateRecheck) bump('daRecheck');
+    if (stats.gapFillReAnalysis?.triggered) bump('gapFillReAnalysis');
+    if (stats.gapRetrieval?.newSources > 0) bump('gapSourcesRetrieved');
+    if (stats.qualityTailTrim?.dropped > 0) bump('qualityTailTrim');
+    if (stats.outlineCriticEarly?.coverageScore !== undefined) bump('outlineCriticEarly');
+    if (stats.regeneration?.triggered || stats.regeneration?.attempted) bump('regeneration');
+    if (stats.regeneration?.adopted === true) bump('regenAdopted');
+    if (stats.viability?.passed === false) bump('viabilityRefusal');
   }
 
   const totalCost = runs.reduce((a: number, r: any) => a + (r.totalCostUsd ?? 0), 0);
@@ -107,6 +125,7 @@ async function collect(limit: number): Promise<Agg> {
     stalePublished,
     staleEvalTotal,
     vetoCounts,
+    repairActivity,
     evaluatedAt: new Date().toISOString(),
   };
 }
@@ -129,6 +148,9 @@ async function main() {
   }
   if (Object.keys(agg.vetoCounts).length) {
     console.log(`[RUN-EVAL] Vetoes: ${Object.entries(agg.vetoCounts).map(([k, v]) => `${k}=${v}`).join(' ')}`);
+  }
+  if (Object.keys(agg.repairActivity).length) {
+    console.log(`[RUN-EVAL] Repair activity: ${Object.entries(agg.repairActivity).map(([k, v]) => `${k}=${v}`).join(' ')}`);
   }
 
   mkdirSync(RESULTS_DIR, { recursive: true });
