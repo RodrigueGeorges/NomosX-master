@@ -11,9 +11,13 @@
  *
  * Deadlines mirror runPipeline's withTimeout defaults — keep in sync with
  * the timeoutMs computation in pipeline-v2.ts (free: 180min, strategic:
- * 75min, brief/memo: 65min). options.timeoutMs overrides are not visible
- * here; the constants are the common-case bound.
+ * 75min, brief/memo: 65min). When the caller IS inside an execution scope,
+ * getExecutionDeadlineAt() reports the real (possibly tighter) bound —
+ * regen child pipelines run on a 35min scope, memo on 80min, custom
+ * options.timeoutMs on whatever was passed; the scope value always wins.
  */
+
+import { getExecutionDeadlineAt } from '../../worker/execution-scope';
 
 const STRATEGIC_DEADLINE_MS = 4_500_000;
 const BRIEF_DEADLINE_MS = 3_900_000;
@@ -25,9 +29,13 @@ function deadlineBudgetMs(isStrategic: boolean): number {
   return isStrategic ? STRATEGIC_DEADLINE_MS : BRIEF_DEADLINE_MS;
 }
 
-/** Absolute deadline (epoch ms) for the current run, or +Infinity when no
- * pipelineStart is available (detached callers, tests). */
+/** Absolute deadline (epoch ms) for the current run: the enclosing
+ * execution scope's real deadline when present, else pipelineStart plus
+ * the format budget — or +Infinity when neither exists (detached
+ * callers, tests). */
 export function runDeadlineAt(pipelineStart: number | undefined, isStrategic: boolean): number {
+  const scoped = getExecutionDeadlineAt();
+  if (scoped !== undefined) return scoped;
   if (!pipelineStart) return Number.POSITIVE_INFINITY;
   return pipelineStart + deadlineBudgetMs(isStrategic);
 }

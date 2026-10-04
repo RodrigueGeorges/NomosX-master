@@ -1,4 +1,4 @@
-import { assertExecutionActive, consumeExecutionBudget, consumeRootBudget, getExecutionSignal, withExecutionDeadline, withExecutionScope, withExecutionSignal } from '@/lib/worker/execution-scope';
+import { assertExecutionActive, consumeExecutionBudget, consumeRootBudget, getExecutionDeadlineAt, getExecutionSignal, withExecutionDeadline, withExecutionScope, withExecutionSignal } from '@/lib/worker/execution-scope';
 
 test('a deadline blocks detached work even after its owner stopped awaiting it', async () => {
   let finish!: () => void;
@@ -16,6 +16,27 @@ test('a deadline blocks detached work even after its owner stopped awaiting it',
   finish();
   await rejection;
   expect(paidWork).not.toHaveBeenCalled();
+});
+
+test('getExecutionDeadlineAt reports the tightest ancestor deadline', async () => {
+  // S35 regression: a regen child creates its own format-sized inner
+  // deadline (65min) inside a tighter outer scope (35min) — headroom
+  // guards must read the MIN, not the nearest scope.
+  const before = Date.now();
+  await withExecutionDeadline(2_100_000, 'regen', async () => {
+    const outer = getExecutionDeadlineAt();
+    expect(outer).toBeGreaterThanOrEqual(before + 2_100_000);
+    expect(outer).toBeLessThanOrEqual(Date.now() + 2_100_000);
+    // Inner scope with a LOOSER deadline — the regen bound must still win.
+    await withExecutionDeadline(3_900_000, 'inner-pipeline', async () => {
+      expect(getExecutionDeadlineAt()).toBe(outer);
+    });
+    // A plain child scope (no deadline) inherits the ancestor bound.
+    await withExecutionScope('node', async () => {
+      expect(getExecutionDeadlineAt()).toBe(outer);
+    });
+  });
+  expect(getExecutionDeadlineAt()).toBeUndefined();
 });
 
 test('parent cancellation aborts a nested deadline', async () => {

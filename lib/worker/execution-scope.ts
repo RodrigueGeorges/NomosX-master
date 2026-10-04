@@ -26,6 +26,31 @@ export function getExecutionSignal(): AbortSignal | undefined {
   return executionSignal.getStore();
 }
 
+// Absolute deadline (epoch ms) per deadline-scope signal. withExecutionScope
+// derives child signals without deadlines — consumers walk the parent chain.
+const scopeDeadlines = new WeakMap<AbortSignal, number>();
+
+/**
+ * Effective wall-clock deadline for the current execution: the MINIMUM of
+ * every deadline in the scope ancestry — an abort on any ancestor kills the
+ * work, so the tightest bound is the real one. This is what headroom guards
+ * must compare against: a regen child pipeline creates its own format-sized
+ * inner deadline (65min) while the enclosing regen scope is tighter (35min)
+ * — reading only the inner scope would authorise work that can never finish
+ * (S35: an outline rewrite approved on the inner clock burned the regen's
+ * last minutes and a trust-76 PROCEED artifact died before persist).
+ */
+export function getExecutionDeadlineAt(): number | undefined {
+  let s = getExecutionSignal();
+  let min: number | undefined;
+  for (let depth = 0; s && depth < 20; depth++) {
+    const d = scopeDeadlines.get(s);
+    if (d !== undefined && (min === undefined || d < min)) min = d;
+    s = scopeParents.get(s);
+  }
+  return min;
+}
+
 export function assertExecutionActive(): void {
   getExecutionSignal()?.throwIfAborted();
 }
@@ -79,6 +104,7 @@ export async function withExecutionDeadline<T>(ms: number, label: string, fn: ()
   const parent = getExecutionSignal();
   const signal = parent ? AbortSignal.any([parent, controller.signal]) : controller.signal;
   recordParent(signal, parent);
+  scopeDeadlines.set(signal, Date.now() + ms);
   signal.throwIfAborted();
   let onAbort: () => void = () => {};
   const cancelled = new Promise<never>((_, reject) => {

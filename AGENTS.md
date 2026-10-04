@@ -19,10 +19,14 @@ topical relevance was ~12%.
 **Run-time headroom guards** (`pipeline-steps/time-budget.ts` + call sites)
 — a step that cannot finish before the pipeline deadline is pure waste:
 better to keep the current artifact and let critic/DA/render/gate run on
-it. `hasRunHeadroom(pipelineStart, isStrategic, headroomMs)` mirrors
-runPipeline's timeout budget (free: 180min, strategic: 75min, brief: 65min);
-no `pipelineStart` → always true (tests, detached callers). Applied to every
-expensive escalation:
+it. `hasRunHeadroom(pipelineStart, isStrategic, headroomMs)` reads the
+**real** deadline via `getExecutionDeadlineAt()` — the min of every
+deadline in the execution-scope ancestry (S35 finding: a regen child's
+65min inner clock authorised an outline rewrite that burned its 35min
+regen window; a trust-76 PROCEED artifact died before persist). Format
+budgets (free: 180min, strategic: 75min, brief: 65min) are the fallback
+when no scope deadline exists; no `pipelineStart` → always true (tests,
+detached callers). Applied to every expensive escalation:
 
 - **TTS second candidate** (`analyst-run.ts`) — skipped when <25min
   (`TTS_HEADROOM_MS`) remain; `stats.testTimeScaling.skippedReason`.
