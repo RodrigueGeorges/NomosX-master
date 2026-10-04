@@ -930,14 +930,71 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
       analysis = { ...analysis, centralScenario: stats.centralScenario, scenarios: institutePosition.scenarios } as typeof analysis;
       console.log(`${label} CENTRAL SCENARIO: ${stats.centralScenario?.name ?? 'missing — publication hold required'}; simulation disagreement=${stats.centralScenario?.simulationDisagrees ?? false}`);
     }
-    // DA and render are independent: the render reads stats.critic/scout/analyst/
-    // trust, never stats.devilsAdvocate — the DA verdict is rendered as an
-    // editorial section AFTER the render. Running them concurrently removes
-    // the DA's wall-time from the critical path (~15-30s per run).
-    const [, renderedHtml] = await Promise.all([
-      runDevilsAdvocateBlock(debateAdvocateDeps, flags.runDevilsAdvocateStep, buildAnalysisReviewText(analysis as Record<string, unknown>, query), debateContext),
-      durable('render', () => renderEditorHtml()),
-    ]);
+    // ── PRE-RENDER ADVERSARIAL GATE ──
+    // The DA judges the analysis BEFORE the render. A gate-failing verdict
+    // (reject / veto / publishability <40) means the render below would
+    // produce an artifact already condemned — burn ~$0.40 of tail spend on
+    // a piece that cannot publish. Instead: ONE bounded rewrite with the
+    // kill shot as mandatory correction, re-judged by the DA, adopted only
+    // if publishability strictly improves. The render then runs once, on a
+    // defensible artifact.
+    await runDevilsAdvocateBlock(debateAdvocateDeps, flags.runDevilsAdvocateStep, buildAnalysisReviewText(analysis as Record<string, unknown>, query), debateContext);
+    const daPre = stats.devilsAdvocate as Record<string, unknown> | undefined;
+    const daPreFails = !!daPre && !daPre.error && !daPre.skipped && (
+      daPre.verdict === 'reject'
+      || (daPre.verdict === 'major_revision' && (daPre.overallStrength as number) < 20)
+      || ((daPre.publishabilityScore as number) ?? 100) < 40
+    );
+    if (daPreFails && reAnalysisBudget > 0 && !isBudgetConstrained()) {
+      reAnalysisBudget--;
+      try {
+        const killShotBlock = `\n\n## ADVERSARIAL REPAIR — FATAL CHALLENGES TO RESOLVE\nThe adversarial reviewer found your analysis structurally indefensible (${daPre.verdict}, publishability ${daPre.publishabilityScore}/100). Your rewrite MUST resolve every challenge below — a rewrite that ignores them fails again:\n${(daPre.topChallenges as Array<{ text?: string }> ?? []).slice(0, 3).map((c, i) => `${i + 1}. ${String(c?.text ?? '').slice(0, 280)}`).join('\n')}\nKill shot: ${String(daPre.killShot ?? '').slice(0, 300)}`;
+        const rewrite = await analystMultipass(query, topSources, slimReadings, {
+          contextBlock: (fullContextBlock || '') + killShotBlock,
+          domain: detectedDomain,
+          depth: isStrategic ? "strategic" : "brief",
+        });
+        if (rewrite && typeof rewrite === 'object' && !(rewrite as any)?._meta?.failed) {
+          const { runDevilsAdvocate } = await import('./devils-advocate');
+          const reJudge = await runDevilsAdvocate(
+            query,
+            buildAnalysisReviewText(rewrite as unknown as Record<string, unknown>, query),
+            topSources.map((s: any) => ({ title: s.title, provider: s.provider, year: s.year })),
+            { mode: isStrategic ? 'strategic' : 'brief', domain: detectedDomain, debateContext },
+          );
+          addCost(reJudge.costUsd, 'DEVILS_ADVOCATE_REWRITE_RECHECK');
+          const improved = (reJudge.publishabilityScore ?? 0) > ((daPre.publishabilityScore as number) ?? 0);
+          (stats as any).devilsAdvocatePreRenderRepair = {
+            triggered: true, adopted: improved,
+            beforePublishability: daPre.publishabilityScore, afterPublishability: reJudge.publishabilityScore,
+          };
+          if (improved) {
+            analysis = rewrite;
+            bumpAnalysisArtifact();
+            ctx.setAnalystOutput(analysis);
+            stats.devilsAdvocate = tagEval({
+              verdict: reJudge.verdict, overallStrength: reJudge.overallStrength,
+              publishabilityScore: reJudge.publishabilityScore,
+              fatalChallenges: reJudge.fatalChallenges?.length ?? 0,
+              majorChallenges: reJudge.majorChallenges?.length ?? 0,
+              killShot: reJudge.killShot?.slice(0, 400) ?? '',
+              topChallenges: [...(reJudge.fatalChallenges || []), ...(reJudge.majorChallenges || [])]
+                .slice(0, 3).map((c: any) => ({ type: c.challengeType || c.type || 'challenge', text: String(c.challenge || c.text || '').slice(0, 300) })),
+              costUsd: reJudge.costUsd,
+            }, 'analysis');
+            (stats as any).devilsAdvocateVeto = reJudge.verdict === 'reject'
+              || (reJudge.verdict === 'major_revision' && reJudge.overallStrength < 20);
+            console.log(`${label} DA PRE-RENDER REPAIR: publishability ${daPre.publishabilityScore}→${reJudge.publishabilityScore}/100 — rewrite adopted`);
+          } else {
+            console.log(`${label} DA PRE-RENDER REPAIR: rewrite not better (${reJudge.publishabilityScore}) — original kept`);
+          }
+        }
+      } catch (preErr) {
+        console.warn(`${label} DA PRE-RENDER REPAIR failed (non-blocking):`, preErr);
+      }
+    }
+
+    const renderedHtml = await durable('render', () => renderEditorHtml());
     html = renderedHtml;
     bumpHtmlArtifact();
 

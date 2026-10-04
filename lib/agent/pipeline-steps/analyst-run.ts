@@ -204,19 +204,43 @@ export async function runAnalystExecution(deps: AnalystRunDeps): Promise<Analyst
         domain: detectedDomain,
         depth: "strategic",
       });
+      // Candidate selection by structural coverage — the outline critic scores
+      // how much of the question's required dimensions each analysis actually
+      // covers (~$0.005/candidate). Citation count is a weak proxy: a verbose
+      // narrower analysis out-cites a better one while missing whole branches
+      // (the failure mode the DA later kills on).
+      let cover1: number | null = null;
+      let cover2: number | null = null;
+      try {
+        const { critiqueOutline } = await import('../outline-critic');
+        const [o1, o2] = await Promise.all([
+          critiqueOutline(query, analysis, topSources.length),
+          critiqueOutline(query, candidate2, topSources.length),
+        ]);
+        cover1 = o1?.coverageScore ?? null;
+        cover2 = o2?.coverageScore ?? null;
+        addCost((o1?.costUsd ?? 0) + (o2?.costUsd ?? 0), 'TTS_OUTLINE_SCORING');
+      } catch { /* fall back to citation proxy */ }
       const citeCount1 = Array.from((analysis as any).html?.matchAll(/\[SRC-\d+\]/g) ?? []).length;
       const citeCount2 = Array.from((candidate2 as any).html?.matchAll(/\[SRC-\d+\]/g) ?? []).length;
       const len1 = (analysis as any).html?.length ?? 0;
       const len2 = (candidate2 as any).html?.length ?? 0;
-      // Pick the better candidate: prefer more citations, then longer analysis
-      if (citeCount2 > citeCount1 || (citeCount2 === citeCount1 && len2 > len1 * 1.1)) {
-        console.log(`${label} TEST-TIME SCALING: candidate 2 selected (cites: ${citeCount2} vs ${citeCount1}, len: ${len2} vs ${len1})`);
+      // Prefer real coverage when both scored; citation count fallback otherwise.
+      const c2Wins = (cover1 !== null && cover2 !== null)
+        ? cover2 > cover1
+        : (citeCount2 > citeCount1 || (citeCount2 === citeCount1 && len2 > len1 * 1.1));
+      if (c2Wins) {
+        console.log(`${label} TEST-TIME SCALING: candidate 2 selected (coverage: ${cover2 ?? '?'} vs ${cover1 ?? '?'}, cites: ${citeCount2} vs ${citeCount1})`);
         analysis = candidate2;
         bumpAnalysisArtifact();
       } else {
-        console.log(`${label} TEST-TIME SCALING: candidate 1 kept (cites: ${citeCount1} vs ${citeCount2}, len: ${len1} vs ${len2})`);
+        console.log(`${label} TEST-TIME SCALING: candidate 1 kept (coverage: ${cover1 ?? '?'} vs ${cover2 ?? '?'}, cites: ${citeCount1} vs ${citeCount2})`);
       }
-      stats.testTimeScaling = { activated: true, candidatesCompared: 2, winnerCitations: Math.max(citeCount1, citeCount2) };
+      stats.testTimeScaling = {
+        activated: true, candidatesCompared: 2,
+        coverageScores: cover1 !== null || cover2 !== null ? { c1: cover1, c2: cover2 } : undefined,
+        winnerCitations: Math.max(citeCount1, citeCount2),
+      };
     } catch (ttsErr) {
       console.warn(`${label} TEST-TIME SCALING: failed (non-blocking):`, ttsErr instanceof Error ? ttsErr.message : String(ttsErr));
     }
