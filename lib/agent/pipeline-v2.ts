@@ -430,6 +430,22 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   });
   const memoryBlock = analystCtx.memoryBlock;
   let fullContextBlock = analystCtx.fullContextBlock;
+  // REQUIRED COVERAGE — the deep planner decomposed this question into
+  // investigation branches for the scout, but the analyst never saw them:
+  // the analysis could silently narrow the question (observed: a "broader
+  // patterns" question answered mono-country → DA fatal). The branches ARE
+  // the scope contract — inject them as mandatory coverage before the
+  // analyst writes a word.
+  const requiredBranches = planNodesForAudit
+    .filter(n => n.subQuestion && n.status !== 'failed')
+    .map(n => n.subQuestion);
+  if (requiredBranches.length > 1) {
+    fullContextBlock = (fullContextBlock || '') +
+      `\n\n## REQUIRED COVERAGE (research plan)\n` +
+      `The research plan decomposed the question into ${requiredBranches.length} investigation branches. ` +
+      `Your analysis MUST address EVERY branch that the sources support — a branch silently dropped is a coverage hole the reviewers will flag as fatal:\n` +
+      requiredBranches.map((b, i) => `${i + 1}. ${b}`).join('\n');
+  }
   const positioningBrief = analystCtx.positioningBrief;
   const savedCanaResult = analystCtx.savedCanaResult;
   const savedScatterResult = analystCtx.savedScatterResult;
@@ -571,6 +587,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     witnessReducedScope: flags.witnessReducedScope, runDevilsAdvocateStep: flags.runDevilsAdvocateStep, runDebateStep: flags.runDebateStep, runDeliberationStep: flags.runDeliberationStep,
     selfCorrector, selfCorrectRetries: selfCorrect.retries, analystMultipass, bumpAnalysisArtifact,
     validateTopicConsistency, assessAfterAnalyst, recordDecision, orchState, ctx,
+    requiredDimensions: requiredBranches,
   });
   analysis = checks.analysis;
   let reAnalysisBudget = checks.reAnalysisBudget;
@@ -625,7 +642,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
       orchState,
       analystMultipass, bumpAnalysisArtifact, tagEval, addCost,
       emitProgress, pipelineRunId: pipelineRun.id, pipelineStart, ctx, selfCorrector,
-      processGapRequests,
+      processGapRequests, requiredDimensions: requiredBranches,
     });
     analysis = criticOut.analysis;
     allSourceIds = gapFillState.allSourceIds;

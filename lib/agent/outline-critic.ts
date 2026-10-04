@@ -39,7 +39,7 @@ ANALYSIS STRUCTURE (sections + opening of each):
 {OUTLINE}
 
 EVIDENCE BASE: {NSOURCES} sources available.
-
+{REQUIRED_DIMS}
 TASK — evaluate structural coverage:
 1. Which dimensions of the question does the analysis fail to address? (e.g. a question about "causes AND consequences" where only causes are analyzed)
 2. Which sections exist but are thin relative to their importance?
@@ -95,14 +95,23 @@ export async function critiqueOutline(
   question: string,
   analysis: unknown,
   sourceCount: number,
+  requiredDimensions?: string[],
 ): Promise<OutlineCritique | null> {
   const outline = summarizeStructure(analysis);
   if (outline.length < 100) return null;
 
+  // When the deep planner's decomposition is available, the coverage check is
+  // anchored on the plan's branches — deterministic scope contract, not the
+  // LLM's guess at what the question requires.
+  const requiredBlock = requiredDimensions && requiredDimensions.length > 0
+    ? `\nREQUIRED DIMENSIONS (from the research plan — each MUST be addressed):\n${requiredDimensions.map((d, i) => `${i + 1}. ${d}`).join('\n')}\n`
+    : '';
+
   const prompt = OUTLINE_CRITIC_PROMPT
     .replace('{QUESTION}', question.slice(0, 500))
     .replace('{OUTLINE}', outline.slice(0, 4500))
-    .replace('{NSOURCES}', String(sourceCount));
+    .replace('{NSOURCES}', String(sourceCount))
+    .replace('{REQUIRED_DIMS}', requiredBlock);
 
   try {
     const response = await callLLM({

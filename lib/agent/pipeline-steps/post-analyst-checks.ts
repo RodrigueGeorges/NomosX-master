@@ -51,6 +51,7 @@ export interface PostAnalystChecksDeps {
   assessAfterAnalyst: (state: any) => any;
   recordDecision: (state: any, decision: any) => void;
   orchState: Record<string, any>;
+  requiredDimensions?: string[];
   ctx: {
     addFinding: (agent: string, type: 'gap' | 'warning' | 'insight' | 'recommendation', content: string, metadata?: Record<string, unknown>) => void;
     requestSourceGap: (query: string, reason: string, agent: string, providers?: string[], minResults?: number) => void;
@@ -80,6 +81,7 @@ export async function runPostAnalystChecks(deps: PostAnalystChecksDeps): Promise
     bumpAnalysisArtifact, validateTopicConsistency, assessAfterAnalyst,
     recordDecision, orchState, ctx,
   } = deps;
+  const requiredDimensions = deps.requiredDimensions;
   let analysis = deps.analysis;
   let witnessReducedScope = deps.witnessReducedScope;
   let runDevilsAdvocateStep = deps.runDevilsAdvocateStep;
@@ -490,7 +492,7 @@ export async function runPostAnalystChecks(deps: PostAnalystChecksDeps): Promise
   // gap-fill stage (which CAN retrieve, unlike the regen path). ──
   try {
     const { critiqueOutline } = await import('../outline-critic');
-    const early = await critiqueOutline(query, analysis, topSources.length);
+    const early = await critiqueOutline(query, analysis, topSources.length, requiredDimensions);
     if (early) {
       addCost(early.costUsd, 'OUTLINE_CRITIC_EARLY');
       stats.outlineCriticEarly = {
@@ -528,7 +530,7 @@ export async function runPostAnalystChecks(deps: PostAnalystChecksDeps): Promise
           depth: isStrategic ? "strategic" : "brief",
         });
         if (reanalyzed && typeof reanalyzed === 'object' && !(reanalyzed as any)?._meta?.failed) {
-          const recheck = await critiqueOutline(query, reanalyzed, topSources.length);
+          const recheck = await critiqueOutline(query, reanalyzed, topSources.length, requiredDimensions);
           addCost(recheck?.costUsd, 'OUTLINE_CRITIC_RECHECK');
           const improved = (recheck?.coverageScore ?? early.coverageScore) > early.coverageScore;
           stats.outlineCriticEarly.adopted = improved;

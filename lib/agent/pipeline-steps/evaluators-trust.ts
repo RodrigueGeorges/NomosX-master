@@ -263,9 +263,10 @@ export async function runEvaluatorsAndTrust(deps: EvaluatorsTrustDeps): Promise<
     const providerDiversity = new Set(topSources.map((s: any) => s.provider)).size;
     const diversityScore = Math.min(100, providerDiversity * 15); // 7 providers = 105 → capped 100
 
-    // 5. Source quality: average quality score
+    // 5. Source quality: average quality score — fall back to the richer
+    // source-quality score when the provider score is missing (unscored ≠ 0).
     const avgQuality = topSources.length > 0
-      ? topSources.reduce((sum: number, s: any) => sum + (s.qualityScore || 0), 0) / topSources.length
+      ? topSources.reduce((sum: number, s: any) => sum + ((s.qualityScore || 0) > 0 ? s.qualityScore : (s.sourceQuality?.overall || 0)), 0) / topSources.length
       : 50;
 
     // 6. Citation verifier integrity (NLI) — default 80 when not run

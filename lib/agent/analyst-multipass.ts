@@ -257,7 +257,8 @@ function buildSourceContext(sources: any[], readings?: any[], depth: 'brief' | '
       const fullText = isFullTier ? (s.fullText || "").slice(0, FULL_EXCERPT) : "";
 
       // Build context: full tier gets everything, compact tier gets title + abstract only
-      let context = `[SRC-${i + 1}] ${s.provider.toUpperCase()} | Quality: ${s.qualityScore || 0}/100 | Citations: ${s.citationCount || 0} | EXTRACTION: ${grounded ? "GROUNDED (full-text/reader — citable for facts)" : "ABSTRACT-ONLY (metadata — context only, do NOT cite for specific facts/numbers)"}
+      const displayQuality = (s.qualityScore || 0) > 0 ? s.qualityScore : ((s as any).sourceQuality?.overall || 0);
+      let context = `[SRC-${i + 1}] ${s.provider.toUpperCase()} | Quality: ${displayQuality}/100 | Citations: ${s.citationCount || 0} | EXTRACTION: ${grounded ? "GROUNDED (full-text/reader — citable for facts)" : "ABSTRACT-ONLY (metadata — context only, do NOT cite for specific facts/numbers)"}
 Title: ${s.title}
 Authors: ${authors.join(", ") || "N/A"}
 Year: ${s.year || "N/A"}`;
@@ -496,6 +497,7 @@ CITATION RULES (NON-NEGOTIABLE):
 - Do NOT extract numbers you cannot trace to a specific source's extracted text.
 - If a source mentions a number, extract it WITH the [SRC-N] tag.
 - CITATION SPREAD: Extract dataPoints from as many different GROUNDED sources as possible. You MUST cite at least ${Math.max(3, Math.ceil(groundedCount * 0.7))} distinct sources across all mechanisms. Do not over-rely on 3-4 sources — each grounded source was extracted for a reason. Go through them systematically and extract at least one dataPoint from each relevant one. Claims without [SRC-N] citations WILL BE DELETED from the final report.
+- CITATION QUALITY: Each source shows its Quality score. When several GROUNDED sources support the same claim, anchor the citation to the HIGHEST-Quality one — load-bearing claims must rest on your strongest evidence, not the weakest source that happens to mention it. Reserve low-Quality sources (<40/100) for context or corroboration, never as sole support for a key mechanism.
 
 Return JSON:
 {

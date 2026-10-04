@@ -297,7 +297,10 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
     let weighted = 0, totalWeight = 0;
     for (const i of citedIndices) {
       const w = citeFreq.get(i) ?? 1;
-      weighted += ((topSources[i] as any).qualityScore || 0) * w;
+      const s = topSources[i] as any;
+      // Fall back to the richer source-quality score when the provider score
+      // is missing — an unscored source should not count as a 0-quality one.
+      weighted += ((s.qualityScore || 0) > 0 ? s.qualityScore : (s.sourceQuality?.overall || 0)) * w;
       totalWeight += w;
     }
     stats.citedSourceQuality = { cited: citedIndices.length, avgQuality: Math.round(weighted / Math.max(1, totalWeight)) };

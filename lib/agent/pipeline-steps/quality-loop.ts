@@ -76,7 +76,7 @@ export async function runPostRenderQualityLoop(ctx: TailStepContext): Promise<vo
       const loopNliIntegrity = stats.citationVerifier?.integrity ?? 80;
       const loopDiversityScore = Math.min(100, new Set(topSources.map((s: any) => s.provider)).size * 15);
       const loopAvgQuality = topSources.length > 0
-        ? topSources.reduce((sum: number, s: any) => sum + (s.qualityScore || 0), 0) / topSources.length
+        ? topSources.reduce((sum: number, s: any) => sum + ((s.qualityScore || 0) > 0 ? s.qualityScore : (s.sourceQuality?.overall || 0)), 0) / topSources.length
         : 50;
 
       let loopTrustScore = Math.round(

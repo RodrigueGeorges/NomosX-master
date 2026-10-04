@@ -45,6 +45,7 @@ export interface CriticBlockDeps {
   };
   selfCorrector: any;
   processGapRequests: (origin: string) => Promise<void>;
+  requiredDimensions?: string[];
 }
 
 export interface CriticBlockResult {
@@ -500,7 +501,7 @@ export async function runCriticBlock(deps: CriticBlockDeps): Promise<CriticBlock
   if (!isBudgetConstrained() && orchState.iteration < orchState.maxIterations) {
     try {
       const { critiqueOutline } = await import('../outline-critic');
-      const outlineResult = await critiqueOutline(query, analysis, topSources.length);
+      const outlineResult = await critiqueOutline(query, analysis, topSources.length, deps.requiredDimensions);
       if (outlineResult) {
         addCost(outlineResult.costUsd, 'OUTLINE_CRITIC');
         stats.outlineCritic = {

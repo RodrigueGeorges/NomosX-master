@@ -68,6 +68,65 @@ it.each([true, false])('fixed-corpus rank keeps the full seeded corpus (skipRetr
   }
 });
 
+it('trims the low-quality tail on abundant raw pools but keeps ≥20 sources', async () => {
+  // 30 candidates, 10 of them low-quality — the tail drags the pool average
+  // (50% of the quality blend) and hands the critic weak-evidence targets.
+  const ranked = Array.from({ length: 30 }, (_, i) => ({
+    id: `s${i}`, title: `Source ${i}`, provider: 'test',
+    qualityScore: i < 20 ? 75 : 30, compositeScore: 80 - i,
+  }));
+  const stats: any = {};
+  const deps = {
+    query: 'Research question', allSourceIds: ranked.map(s => s.id), isStrategic: false, stats, providers: [], label: 'Test',
+    pipelineStart: Date.now(), runningCostUsd: 0, pipelineRunId: 'run', skipRetrieval: false,
+    rank: jest.fn(async () => ranked),
+    scout: jest.fn(), emitProgress: jest.fn(), addCost: jest.fn(),
+    ctx: { setRankedSources: jest.fn(), recordAgentTiming: jest.fn(), getSummary: jest.fn(), addFinding: jest.fn() },
+    orchState: { sourcesFound: 0, avgQualityScore: 0 },
+  } as RankEnrichmentDeps;
+  jest.mocked(assessEvidenceSufficiency).mockResolvedValue({ verdict: 'proceed', sufficiencyScore: 80, gaps: [], enrichmentQueries: [], costUsd: 0 } as never);
+  const result = await runRankAndEnrichment(deps);
+  expect(result.topSources).toHaveLength(20);
+  expect(result.topSources.every((s: any) => s.qualityScore >= 40)).toBe(true);
+  expect(stats.qualityTailTrim).toMatchObject({ dropped: 10, floor: 40 });
+});
+
+it('does not trim a pool at the abundance boundary (≤25 sources)', async () => {
+  const ranked = Array.from({ length: 25 }, (_, i) => ({
+    id: `s${i}`, title: `Source ${i}`, provider: 'test',
+    qualityScore: i < 5 ? 30 : 70, compositeScore: 80 - i,
+  }));
+  const deps = {
+    query: 'Research question', allSourceIds: ranked.map(s => s.id), isStrategic: false, stats: {}, providers: [], label: 'Test',
+    pipelineStart: Date.now(), runningCostUsd: 0, pipelineRunId: 'run', skipRetrieval: false,
+    rank: jest.fn(async () => ranked),
+    scout: jest.fn(), emitProgress: jest.fn(), addCost: jest.fn(),
+    ctx: { setRankedSources: jest.fn(), recordAgentTiming: jest.fn(), getSummary: jest.fn(), addFinding: jest.fn() },
+    orchState: { sourcesFound: 0, avgQualityScore: 0 },
+  } as RankEnrichmentDeps;
+  jest.mocked(assessEvidenceSufficiency).mockResolvedValue({ verdict: 'proceed', sufficiencyScore: 80, gaps: [], enrichmentQueries: [], costUsd: 0 } as never);
+  const result = await runRankAndEnrichment(deps);
+  expect(result.topSources).toHaveLength(25);
+});
+
+it('does not trim the tail in fixed-corpus mode (curated seeds are not a raw pool)', async () => {
+  const ranked = Array.from({ length: 30 }, (_, i) => ({
+    id: `s${i}`, title: `Source ${i}`, provider: 'test',
+    qualityScore: i < 20 ? 75 : 30, compositeScore: 80 - i,
+  }));
+  const deps = {
+    query: 'Research question', allSourceIds: ranked.map(s => s.id), isStrategic: false, stats: {}, providers: [], label: 'Test',
+    pipelineStart: Date.now(), runningCostUsd: 0, pipelineRunId: 'run', skipRetrieval: true,
+    rank: jest.fn(async () => ranked),
+    scout: jest.fn(), emitProgress: jest.fn(), addCost: jest.fn(),
+    ctx: { setRankedSources: jest.fn(), recordAgentTiming: jest.fn(), getSummary: jest.fn(), addFinding: jest.fn() },
+    orchState: { sourcesFound: 0, avgQualityScore: 0 },
+  } as RankEnrichmentDeps;
+  jest.mocked(assessEvidenceSufficiency).mockResolvedValue({ verdict: 'proceed', sufficiencyScore: 80, gaps: [], enrichmentQueries: [], costUsd: 0 } as never);
+  const result = await runRankAndEnrichment(deps);
+  expect(result.topSources).toHaveLength(30);
+});
+
 it('keeps prior-gap context without executing supplementary scouts in fixed-corpus mode', async () => {
   const deps = {
     query: 'Research question', allSourceIds: ['a'], topSources: [{ id: 'a', provider: 'test' }], providers: [],

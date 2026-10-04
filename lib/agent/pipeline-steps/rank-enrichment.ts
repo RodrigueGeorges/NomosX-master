@@ -133,12 +133,45 @@ export async function runRankAndEnrichment(deps: RankEnrichmentDeps): Promise<Ra
         if (match) {
           (match as any).sourceQuality = qs.score;
           (match as any).compositeScore = ((match as any).compositeScore ?? 0) * 0.6 + qs.score.overall * 0.4;
+          // Backfill: sources whose provider score is missing/zero otherwise
+          // average into every pool metric as 0 (the 50% blend term reads
+          // s.qualityScore everywhere) despite a richer score existing here.
+          if (!match.qualityScore) (match as any).qualityScore = qs.score.overall;
         }
       }
       topSources.sort((a: any, b: any) => (b.compositeScore ?? 0) - (a.compositeScore ?? 0));
       console.log(`${label} SOURCE QUALITY: re-ranked ${topSources.length} by composite (relevance 60% + quality 40%)`);
     } catch (err) {
       console.warn(`${label} SOURCE QUALITY: re-rank failed (non-blocking):`, err);
+    }
+
+    // ── QUALITY TAIL TRIM — drop the low-quality tail on abundant corpora ──
+    // The pertinence cut filters on RELEVANCE, not quality — a 49-source pool
+    // keeps a long tail of <40-quality sources that (a) drags the pool average
+    // (50% of the quality blend), (b) hands the critic weak-evidence targets,
+    // and (c) burns reader extraction budget. Sources are composite-sorted, so
+    // the tail is the least relevant anyway — trimming it is pure gain when
+    // the corpus is abundant. Floors: keep ≥20, never drop above floor 40.
+    if (topSources.length > 25) {
+      const QUALITY_TAIL_FLOOR = 40;
+      const MIN_KEEP = 20;
+      const before = topSources.length;
+      const kept: any[] = [];
+      let droppedTail = 0;
+      for (const s of topSources) {
+        const effectiveQ = (s.qualityScore || 0) > 0 ? s.qualityScore : ((s as any).sourceQuality?.overall ?? 0);
+        const canDrop = topSources.length - droppedTail > MIN_KEEP;
+        if (canDrop && effectiveQ > 0 && effectiveQ < QUALITY_TAIL_FLOOR) {
+          droppedTail++;
+          continue;
+        }
+        kept.push(s);
+      }
+      if (droppedTail > 0) {
+        topSources = kept;
+        stats.qualityTailTrim = { dropped: droppedTail, floor: QUALITY_TAIL_FLOOR, before, after: topSources.length };
+        console.log(`${label} QUALITY TAIL TRIM: dropped ${droppedTail} sources <${QUALITY_TAIL_FLOOR}/100 quality — ${topSources.length} remain (avg improves)`);
+      }
     }
   }
 
@@ -230,7 +263,7 @@ export async function runRankAndEnrichment(deps: RankEnrichmentDeps): Promise<Ra
   ctx.recordAgentTiming('RANK', Date.now() - pipelineStart);
   // Record rank stats for qualityScore extraction (extractPipelineScores reads rank.avgQuality)
   const rankAvgQuality = topSources.length > 0
-    ? topSources.reduce((sum: number, s: any) => sum + (s.qualityScore || 0), 0) / topSources.length
+    ? topSources.reduce((sum: number, s: any) => sum + ((s.qualityScore || 0) > 0 ? s.qualityScore : (s.sourceQuality?.overall || 0)), 0) / topSources.length
     : 0;
   stats.rank = { count: topSources.length, avgQuality: Math.round(rankAvgQuality) };
   emitProgress(pipelineRunId, "RANK", "completed", `Ranked ${topSources.length} sources (avgQuality ${Math.round(rankAvgQuality)})`, { blackboard: ctx.getSummary() });
@@ -522,7 +555,7 @@ export async function runRankAndEnrichment(deps: RankEnrichmentDeps): Promise<Ra
   }
   orchState.sourcesFound = topSources.length;
   orchState.avgQualityScore = topSources.length > 0
-    ? Math.round(topSources.reduce((sum: number, s: any) => sum + (s.qualityScore || 0), 0) / topSources.length)
+    ? Math.round(topSources.reduce((sum: number, s: any) => sum + ((s.qualityScore || 0) > 0 ? s.qualityScore : (s.sourceQuality?.overall || 0)), 0) / topSources.length)
     : 0;
   stats.rank = { count: topSources.length, avgQuality: orchState.avgQualityScore };
 
