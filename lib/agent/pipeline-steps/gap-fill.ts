@@ -14,6 +14,7 @@ import type { PipelineStep } from '../pipeline-progress';
 import { assertExecutionActive } from '../../worker/execution-scope';
 import { readerAgentV3 } from '../reader-agent-v3';
 import { isFreeRun } from '../../free-run';
+import { hasRunHeadroom, remainingRunMs } from './time-budget';
 
 export interface GapFillState {
   analysis: any;
@@ -35,6 +36,7 @@ export interface GapFillDeps {
   stats: Record<string, any>;
   label: string;
   pipelineRunId: string;
+  pipelineStart?: number;
   analystDecision: any;
   orchState: {
     iteration: number;
@@ -86,13 +88,24 @@ export function createGapRequestProcessor(deps: GapFillDeps) {
   return async function processGapRequests(origin: string): Promise<void> {
     assertExecutionActive();
     if (!ctx.hasGapRequests()) return;
-    if (deps.skipRetrieval || state.reAnalysisBudget <= 0 || deps.isBudgetConstrained()) {
+    // Wall-clock guard: gap-fill only pays off when the enriched corpus can
+    // feed a re-analysis (~10min) — new sources never reach the analyst or
+    // the render corpus without one (topSources only mutates inside the
+    // reAnalyzed block). Scouting inside the deadline tail is pure waste
+    // (S34 timeout finding), so requests defer exactly like a budget stop.
+    const reHeadroomMs = Number(process.env.GAPFILL_REANALYSIS_HEADROOM_MS ?? 1_800_000);
+    const reHasTime = hasRunHeadroom(deps.pipelineStart, isStrategic, reHeadroomMs);
+    if (deps.skipRetrieval || state.reAnalysisBudget <= 0 || deps.isBudgetConstrained() || !reHasTime) {
       // Fixed-corpus regen: drain the requests and resolve their signals —
       // scouting new sources would invalidate priorReadings and blow the
       // bounded regen window.
       const drained = ctx.getPendingGapRequests().length;
-      stats.deferredGapRequests = { count: drained, origin, reason: deps.skipRetrieval ? 'fixed_corpus' : 'budget_exhausted' };
-      console.log(`${label} BLACKBOARD: ${drained} gap requests from ${origin} deferred (${stats.deferredGapRequests.reason})`);
+      const reason = deps.skipRetrieval ? 'fixed_corpus'
+        : !reHasTime ? 'insufficient_headroom'
+        : state.reAnalysisBudget <= 0 ? 'reanalysis_budget_exhausted'
+        : 'budget_exhausted';
+      stats.deferredGapRequests = { count: drained, origin, reason };
+      console.log(`${label} BLACKBOARD: ${drained} gap requests from ${origin} deferred (${reason})`);
       return;
     }
     const gapReqs = ctx.getPendingGapRequests();
@@ -235,7 +248,14 @@ export async function runGapFillStage(deps: GapFillDeps): Promise<void> {
   } = deps;
 
   // ── ORCHESTRATOR ACTION: RE_ANALYZE — was logged but never acted upon. NOW ACTED. ──
-  if (analystDecision.action === "RE_ANALYZE" && orchState.iteration < orchState.maxIterations && state.reAnalysisBudget > 0) {
+  // Same wall-clock guard as the blackboard re-analysis: a 3-pass started
+  // inside the deadline tail never reaches the evaluators.
+  const orchHeadroomMs = Number(process.env.GAPFILL_REANALYSIS_HEADROOM_MS ?? 1_800_000);
+  const orchHasTime = hasRunHeadroom(deps.pipelineStart, isStrategic, orchHeadroomMs);
+  if (analystDecision.action === "RE_ANALYZE" && !orchHasTime) {
+    console.log(`${label} ORCHESTRATOR: RE_ANALYZE skipped — ${Math.round(remainingRunMs(deps.pipelineStart, isStrategic) / 60000)}min left, re-analysis would overrun the deadline tail`);
+  }
+  if (analystDecision.action === "RE_ANALYZE" && orchHasTime && orchState.iteration < orchState.maxIterations && state.reAnalysisBudget > 0) {
     state.reAnalysisBudget--;
     console.log(`${label} ORCHESTRATOR: RE_ANALYZE — ${analystDecision.reason}`);
     emitProgress(pipelineRunId, "ANALYST", "started", `Re-analyzing with strengthened requirements...`);

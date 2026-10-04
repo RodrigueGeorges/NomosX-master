@@ -107,4 +107,17 @@ it('does not spend retrieval budget when there is no analysis budget to use it',
   await createGapRequestProcessor(deps)('CRITIC');
   expect(deps.scout).not.toHaveBeenCalled();
   expect(deps.topSources.map(s => s.id)).toEqual(['a', 'b']);
+  expect(deps.stats.deferredGapRequests).toMatchObject({ reason: 'reanalysis_budget_exhausted' });
+});
+
+it('defers gap requests inside the deadline tail — a re-analysis could never land', async () => {
+  // S34 regression: TTS + a late gap-fill re-analysis stacked past the 75min
+  // deadline and the run died mid-pass. Inside the tail the requests drain
+  // without scouting — the sources could never reach the analyst anyway.
+  const deps = setup({ pipelineStart: Date.now() - 60 * 60_000, isStrategic: true });
+  await createGapRequestProcessor(deps)('CRITIC');
+  expect(deps.scout).not.toHaveBeenCalled();
+  expect(reAnalyzeAfterGapFill).not.toHaveBeenCalled();
+  expect(deps.stats.deferredGapRequests).toMatchObject({ reason: 'insufficient_headroom' });
+  expect(deps.topSources.map(s => s.id)).toEqual(['a', 'b']);
 });

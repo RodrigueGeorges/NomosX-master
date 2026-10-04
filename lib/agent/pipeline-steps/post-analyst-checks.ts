@@ -16,6 +16,7 @@ import { buildObservation, type WitnessContext } from '../witness/integration';
 import { runSelfPlayRound } from '../self-play/adversarial';
 import { extractFeatures, scoreStep, persistProcessStep, type ProcessStep, type PRMModel } from '../prm/process-reward-model';
 import { selfCorrectAnalyst } from '../self-correction-integration';
+import { hasRunHeadroom, remainingRunMs } from './time-budget';
 import type { PipelineStep } from '../pipeline-progress';
 
 export interface PostAnalystChecksDeps {
@@ -520,7 +521,16 @@ export async function runPostAnalystChecks(deps: PostAnalystChecksDeps): Promise
       // Coverage defect → one bounded re-analysis with the missing
       // dimensions as mandatory requirements. Adopted only if the recheck
       // scores higher — same improvement-gate as every re-analysis path.
-      if (early.coverageScore < 70 && early.missingDimensions.length > 0
+      // Wall-clock guard: this is a full 3-pass (~10min). Inside the
+      // deadline tail it dies before critic/DA/render — keep the
+      // coverage-flawed artifact and let the evaluators judge it (S34:
+      // this exact rewrite consumed the last 15min of a 75min run).
+      const ocHeadroomMs = Number(process.env.OUTLINE_REWRITE_HEADROOM_MS ?? 1_800_000);
+      const ocHasTime = hasRunHeadroom(pipelineStart, isStrategic, ocHeadroomMs);
+      if (early.coverageScore < 70 && early.missingDimensions.length > 0 && !ocHasTime) {
+        console.log(`${label} OUTLINE CRITIC (early): rewrite skipped — ${Math.round(remainingRunMs(pipelineStart, isStrategic) / 60000)}min left, re-analysis would overrun the deadline tail`);
+      }
+      if (early.coverageScore < 70 && early.missingDimensions.length > 0 && ocHasTime
         && reAnalysisBudget > 0 && stats.budgetConstrained !== true) {
         reAnalysisBudget--;
         const dimBlock = `\n\n## MANDATORY CORRECTION — MISSING DIMENSIONS\nYour analysis covered only ${early.coverageScore}/100 of the question's required dimensions. The following dimensions are MISSING and MUST be covered with [SRC-N] evidence from the corpus:\n${early.missingDimensions.slice(0, 4).map(d => `- ${d}`).join('\n')}${(early.weakSections ?? []).slice(0, 3).map(s => `\n- Weak section: ${s}`).join('')}\nAn analysis that does not answer the question AS ASKED fails adversarial review regardless of prose quality.`;

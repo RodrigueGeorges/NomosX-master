@@ -14,6 +14,7 @@ import { generateExpandedTerms } from '../orchestrator';
 import { buildObservation, type WitnessContext } from '../witness/integration';
 import { durableResume } from '../durable-execution';
 import { withExecutionScope } from '../../worker/execution-scope';
+import { hasRunHeadroom, remainingRunMs } from './time-budget';
 import type { PipelineStep } from '../pipeline-progress';
 
 async function generateQueryReformulations(query: string): Promise<string[]> {
@@ -209,7 +210,15 @@ export async function runScoutBlock(deps: ScoutBlockDeps): Promise<ScoutBlockRes
       // no dependency reason. Concurrency 3 keeps rate limiters and heap in
       // bounds (root budget ledger still caps the aggregate spend).
       const NODE_CONCURRENCY = Number(process.env.DEEP_PLANNER_NODE_CONCURRENCY ?? 5);
+      // Wall-clock floor: each node scout costs ~1-3min of provider calls.
+      // Starting nodes inside the deadline tail starves reader+analyst+
+      // critic/DA/render — the S34 run spent ~35min in scout waves and died
+      // mid-analyst-pass-3. The floor leaves room for the whole downstream
+      // pipeline; unscouted nodes are simply absent branches (the coverage
+      // audit flags them, which is honest under time pressure).
+      const NODE_FLOOR_MS = Number(process.env.SCOUT_NODE_FLOOR_MS ?? 2_400_000);
       const nodeQueue = [...sortedNodes];
+      let nodesCutForTime = 0;
       const scoutNode = async (node: any) => {
         node.status = 'scouting';
         // Use node-specific producers if available, otherwise fall back to global providers
@@ -234,10 +243,19 @@ export async function runScoutBlock(deps: ScoutBlockDeps): Promise<ScoutBlockRes
       };
       await Promise.all(Array.from({ length: Math.min(NODE_CONCURRENCY, nodeQueue.length) }, async () => {
         while (nodeQueue.length) {
+          if (!hasRunHeadroom(pipelineStart, isStrategic, NODE_FLOOR_MS)) {
+            nodesCutForTime += nodeQueue.length;
+            nodeQueue.length = 0;
+            break;
+          }
           const node = nodeQueue.shift()!;
           await scoutNode(node);
         }
       }));
+      if (nodesCutForTime > 0) {
+        stats.deepPlannerNodeCutoff = nodesCutForTime;
+        console.log(`${label} DEEP PLANNER: node pool stopped — ${Math.round(remainingRunMs(pipelineStart, isStrategic) / 60000)}min left, ${nodesCutForTime} node(s) unscouted`);
+      }
 
       // Wall-clock bound for the deep-planner tail (expansion + replan).
       // Unbounded sequential re-scouts pushed items past the 65min pipeline

@@ -66,6 +66,17 @@ export interface PipelineStats {
     uncited: string[];
   };
 
+  // Corpus cap — the shared source pool is trimmed to ANALYST_CORPUS_CAP
+  // post-rank (branch-bound and provider-singleton sources protected) so
+  // analyst/critic prompts don't scale linearly with scout volume.
+  corpusCap?: {
+    before: number;
+    after: number;
+    cap: number;
+    protectedBranch: number;
+    protectedSingleton: number;
+  };
+
   // Intelligent Scout: Multi-lens eclectic enrichment
   intelligentScout?: {
     lenses: Array<{ type: string; sources: number; yield: number }>;

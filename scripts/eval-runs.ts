@@ -110,6 +110,12 @@ async function collect(limit: number): Promise<Agg> {
     if (stats.branchCoverage?.unsupported > 0) bump('branchUnsupported');
     if (stats.branchCitations?.uncited?.length > 0) bump('branchUncited');
     if (stats.gapFillReAnalysis?.rejectedByRescore) bump('gapFillVetoed');
+    // ── Deadline-aware escalation (S34): headroom guards firing means a run
+    // was rescued from a timeout death — the artifact reached the gate. ──
+    if (stats.testTimeScaling?.skippedReason === 'insufficient_headroom') bump('ttsSkippedHeadroom');
+    if (stats.deferredGapRequests?.reason === 'insufficient_headroom') bump('gapFillSkippedHeadroom');
+    if (stats.deepPlannerNodeCutoff > 0) bump('scoutNodeCutoff');
+    if (stats.corpusCap?.before > stats.corpusCap?.after) bump('corpusCapTrimmed');
   }
 
   // Viability refusals live on PipelineRun (pre-brief — no publication row):

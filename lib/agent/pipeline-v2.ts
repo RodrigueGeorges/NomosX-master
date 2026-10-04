@@ -6,6 +6,7 @@
 import {  prisma  } from '../db';
 import { randomUUID } from 'node:crypto';
 import { assertExecutionActive, withExecutionDeadline } from '../worker/execution-scope';
+import { hasRunHeadroom, remainingRunMs } from './pipeline-steps/time-budget';
 import { BRAND_BRIEF_FOOTER, BRAND_MANIFESTO } from '@/lib/brand/public-copy';
 import { analystAgentV3 as analystMultipass } from './analyst-multipass';
 import { primeContext } from './context-primer';
@@ -402,6 +403,32 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     }
   }
 
+  // CORPUS CAP (S34 live-run finding): the analyst prompt scales ~linearly
+  // with sources — 100 sources ≈ 73k input tokens ≈ $0.32/pass ×3 passes ×N
+  // candidates, and the S34 run measured only 12% topical relevance in the
+  // tail of the pool. Capping the shared corpus at ANALYST_CORPUS_CAP keeps
+  // the best-ranked evidence while cutting every downstream analyst/critic
+  // call ~40%. Two protections: a planner-bound branch source and a
+  // provider singleton can never be cut — the cap saves tokens, it must not
+  // destroy branch coverage or diversity. allSourceIds keeps the full pool
+  // so gap-fill re-ranks still see everything.
+  const corpusCap = Number(process.env.ANALYST_CORPUS_CAP ?? (isStrategic ? 60 : 45));
+  if (corpusCap > 0 && topSources.length > corpusCap) {
+    const branchBound = new Set(planNodesForAudit.flatMap(n => n.sourceIds ?? []));
+    const providerCount = new Map<string, number>();
+    for (const s of topSources) providerCount.set(s.provider || 'unknown', (providerCount.get(s.provider || 'unknown') ?? 0) + 1);
+    const capped = topSources.filter((s, i) =>
+      i < corpusCap || branchBound.has(s.id) || (providerCount.get(s.provider || 'unknown') ?? 0) === 1
+    );
+    stats.corpusCap = {
+      before: topSources.length, after: capped.length, cap: corpusCap,
+      protectedBranch: capped.filter(s => branchBound.has(s.id)).length,
+      protectedSingleton: capped.filter(s => !branchBound.has(s.id) && (providerCount.get(s.provider || 'unknown') ?? 0) === 1).length,
+    };
+    topSources = capped;
+    console.log(`${label} CORPUS CAP: ${stats.corpusCap.before} → ${stats.corpusCap.after} sources (branch-bound and provider-singleton protected)`);
+  }
+
   // Barrier: context primer + episodic memory (launched pre-scout) must
   // resolve here — first consumers are reader-block and analyst-context.
   {
@@ -640,6 +667,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     state: gapFillState, query, topSources, readings, slimReadings,
     detectedDomain, isStrategic, fullContextBlock, providers, rankOpts,
     stats: stats as Record<string, any>, label, pipelineRunId: pipelineRun.id,
+    pipelineStart,
     analystDecision, orchState, emitProgress, addCost, isBudgetConstrained,
     bumpAnalysisArtifact, analystMultipass, rank, scout, ctx,
     skipRetrieval: opts.skipGapFillRetrieval === true,
@@ -1111,7 +1139,15 @@ Return JSON: {"queries": ["...", "..."]} — one query per gap, same order.`,
       || (daPre.verdict === 'major_revision' && (daPre.overallStrength as number) < 20)
       || ((daPre.publishabilityScore as number) ?? 100) < 40
     );
-    if (daStillFails && reAnalysisBudget > 0 && !isBudgetConstrained()) {
+    // Same wall-clock guard as gap-fill/TTS: a 3-pass adversarial rewrite
+    // (~10min) launched inside the deadline tail never reaches the gate —
+    // the fatal verdict then stands instead of killing the whole run.
+    const daRewriteHeadroomMs = Number(process.env.DA_REWRITE_HEADROOM_MS ?? 1_800_000);
+    const daRewriteHasTime = hasRunHeadroom(pipelineStart, isStrategic, daRewriteHeadroomMs);
+    if (daStillFails && !daRewriteHasTime) {
+      console.log(`${label} DA PRE-RENDER REPAIR: skipped — ${Math.round(remainingRunMs(pipelineStart, isStrategic) / 60000)}min left, rewrite would overrun the deadline tail`);
+    }
+    if (daStillFails && daRewriteHasTime && reAnalysisBudget > 0 && !isBudgetConstrained()) {
       reAnalysisBudget--;
       try {
         const killShotBlock = `\n\n## ADVERSARIAL REPAIR — FATAL CHALLENGES TO RESOLVE\nThe adversarial reviewer found your analysis structurally indefensible (${daPre.verdict}, publishability ${daPre.publishabilityScore}/100). Your rewrite MUST resolve every challenge below — a rewrite that ignores them fails again:\n${(daPre.topChallenges as Array<{ text?: string }> ?? []).slice(0, 3).map((c, i) => `${i + 1}. ${String(c?.text ?? '').slice(0, 280)}`).join('\n')}\nKill shot: ${String(daPre.killShot ?? '').slice(0, 300)}`;

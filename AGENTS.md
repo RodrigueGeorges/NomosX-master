@@ -6,6 +6,74 @@
 
 ---
 
+## Sprint 34 — Deadline-aware escalation + corpus cap + branch evidence binding
+
+External-stack study (Jina node-DeepResearch, LangChain open_deep_research,
+GPT Researcher, CRAG) applied to the S34 live-run defects. Two live findings
+drove this sprint: (1) a TTS candidate + an outline-critic re-analysis
+stacked ~20min of analyst passes past the 75min deadline — the run died
+mid-pass-3 with zero artifact judged; (2) the aggregated pool looked rich
+(100 sources) while 3/7 plan branches had 0–1 ranked sources and measured
+topical relevance was ~12%.
+
+**Run-time headroom guards** (`pipeline-steps/time-budget.ts` + call sites)
+— a step that cannot finish before the pipeline deadline is pure waste:
+better to keep the current artifact and let critic/DA/render/gate run on
+it. `hasRunHeadroom(pipelineStart, isStrategic, headroomMs)` mirrors
+runPipeline's timeout budget (free: 180min, strategic: 75min, brief: 65min);
+no `pipelineStart` → always true (tests, detached callers). Applied to every
+expensive escalation:
+
+- **TTS second candidate** (`analyst-run.ts`) — skipped when <25min
+  (`TTS_HEADROOM_MS`) remain; `stats.testTimeScaling.skippedReason`.
+- **Gap-fill re-analysis** (`gap-fill.ts`) — gap requests now *defer*
+  (drained, no scout) when <30min (`GAPFILL_REANALYSIS_HEADROOM_MS`) remain:
+  new sources can never reach the analyst or render corpus without a
+  re-analysis, so scouting in the tail is wasted provider spend. Reason
+  surfaced as `stats.deferredGapRequests.reason = 'insufficient_headroom'`.
+- **Orchestrator RE_ANALYZE** — same guard, same threshold.
+- **DA pre-render rewrite** (`pipeline-v2.ts`) — skipped when <30min
+  (`DA_REWRITE_HEADROOM_MS`) remain; the fatal verdict stands rather than
+  the whole run dying mid-rewrite.
+- **Critic repair** — migrated from its inline deadline math to the shared
+  helper (identical semantics, plus the free-run 180min bound it lacked).
+
+**Corpus cap** (`pipeline-v2.ts`, post-rank/pre-reader) — the analyst prompt
+scales ~linearly with sources (100 sources ≈ 73k input tokens ≈ $0.32/pass
+×3 passes ×N candidates). `ANALYST_CORPUS_CAP` (default 60 strategic / 45
+brief) trims the shared `topSources` pool by rank order with two
+protections: a planner-bound branch source and a provider singleton can
+never be cut. `allSourceIds` keeps the full pool so gap-fill re-ranks still
+see everything; reader extraction cost drops proportionally.
+`stats.corpusCap` records before/after/protected counts.
+
+**Branch evidence binding** (`pipeline-steps/branch-coverage.ts`,
+`scout-block.ts`, `analyst-context.ts`) — CRAG-style per-branch retrieval
+evaluation and GPT-Researcher-style citation binding, deterministic, zero
+LLM:
+
+- `planNodesForAudit` now preserves `sourceIds` through the audit
+  projection (was silently dropped → branch attribution unreachable
+  downstream).
+- `auditBranchCoverage` (post-rank): each plan branch is scored on how much
+  of ITS scout evidence survived ranking — strong ≥4 / weak 1–3 /
+  unsupported 0 ranked sources. Weak/unsupported branches emit targeted
+  blackboard gap requests (drained by the existing processor). A rich
+  aggregate pool can no longer mask starved branches.
+- `annotateCoverageWithEvidence` → per-branch evidence status injected into
+  the analyst's REQUIRED COVERAGE block — the analyst knows upfront which
+  branches it may assert vs. must hedge.
+- `auditBranchCitations` (post-analyst): `[SRC-N]` markers remapped to
+  branches via `sourceIds`; a branch cited 0× emits a `COVERAGE-AUDIT` gap
+  request drained by the next gap-fill pass.
+- Observability: `stats.branchCoverage`, `stats.branchCitations`,
+  `stats.corpusCap` + eval-runs repair metrics.
+
+Tests: `time-budget.test.ts` +4, `gap-fill.test.ts` +2 (headroom defer +
+reason), `branch-coverage.test.ts` +9. Suite: 50+ suites / 490+ tests.
+
+---
+
 ## Sprint 33 — Recoverable HELD + closed learning loop + systematic score levers
 
 Addresses the remaining structural ceiling: a HELD signal was a terminal

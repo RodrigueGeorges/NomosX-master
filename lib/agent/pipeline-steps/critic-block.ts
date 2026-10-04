@@ -13,6 +13,7 @@
 import { applyAnalysisRepair, criticReviewText, repairImproves } from '../analysis-repair';
 import type { PipelineStep } from '../pipeline-progress';
 import type { GapFillState } from './gap-fill';
+import { hasRunHeadroom } from './time-budget';
 
 export interface CriticBlockDeps {
   /** Shared mutable state — analysis/reAnalysisBudget mutations flow back to the caller. */
@@ -247,8 +248,7 @@ export async function runCriticBlock(deps: CriticBlockDeps): Promise<CriticBlock
   // the format timeout would sacrifice the render+eval+persist tail.
   const elapsedMs = pipelineStart ? Date.now() - pipelineStart : 0;
   const repairHeadroomMs = Number(process.env.CRITIC_REPAIR_HEADROOM_MS ?? 900_000);
-  const enoughTime = !pipelineStart || (Date.now() + repairHeadroomMs) <
-    (pipelineStart + (isStrategic ? 4_500_000 : 3_900_000));
+  const enoughTime = hasRunHeadroom(pipelineStart, isStrategic, repairHeadroomMs);
   if (!enoughTime && sameCorpusRepair) {
     console.log(`${label} CRITIC REPAIR: skipped — ${Math.round(elapsedMs / 60000)}min elapsed, repair would overrun the timeout tail`);
   }

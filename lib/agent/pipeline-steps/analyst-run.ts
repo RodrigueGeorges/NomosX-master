@@ -9,6 +9,7 @@
 
 import { runMixtureOfAgents } from '../moa/mixture-of-agents';
 import { isFreeRun } from '../../free-run';
+import { hasRunHeadroom, remainingRunMs } from './time-budget';
 import type { PipelineStep } from '../pipeline-progress';
 
 export interface AnalystRunDeps {
@@ -196,7 +197,16 @@ export async function runAnalystExecution(deps: AnalystRunDeps): Promise<Analyst
   // and pick the one with better citation coverage. This is a simplified version
   // of the asymmetric verification pattern: generate N candidates (cheap, parallel),
   // verify deterministically (citation count), select the best.
-  if (isStrategic && runningCostUsd < (maxBudgetUsd ?? 5) * 0.4 && !analysis?._meta?.failed) {
+  // Wall-clock guard: a second candidate is a full 3-pass (~7-10min). Without
+  // ~25min of headroom the run dies before the critic/DA/render tail — an
+  // unjudged extra candidate is pure waste (S34 timeout finding).
+  const ttsHeadroomMs = Number(process.env.TTS_HEADROOM_MS ?? 1_500_000);
+  const ttsHasTime = hasRunHeadroom(pipelineStart, isStrategic, ttsHeadroomMs);
+  if (isStrategic && !ttsHasTime) {
+    stats.testTimeScaling = { activated: false, skippedReason: 'insufficient_headroom' };
+    console.log(`${label} TEST-TIME SCALING: skipped — ${Math.round(remainingRunMs(pipelineStart, isStrategic) / 60000)}min left, second candidate would overrun the deadline tail`);
+  }
+  if (isStrategic && ttsHasTime && runningCostUsd < (maxBudgetUsd ?? 5) * 0.4 && !analysis?._meta?.failed) {
     try {
       console.log(`${label} TEST-TIME SCALING: generating second candidate for comparison...`);
       const candidate2 = await analystMultipass(query, topSources, slimReadings, {
