@@ -363,7 +363,12 @@ export async function runAndPublishInquiry(
   let pipeline: InquiryPipelineResult;
   const executionId = randomUUID();
   let seedSourceIds = req.seedSourceIds;
-  if (!seedSourceIds?.length && req.signalId) {
+  // HELD-retry: do NOT seed from the signal — ≥8 seeds skip the scout
+  // entirely, which would rerun on the exact corpus that already failed.
+  // A retry must scout fresh: new evidence may exist after the cooldown, and
+  // the priorFailureFeedback targets what the analysis must do differently.
+  const isHeldRetry = req.metadata?.heldRetry === true;
+  if (!seedSourceIds?.length && req.signalId && !isHeldRetry) {
     const signal = await prisma.signal.findUnique({
       where: { id: req.signalId },
       select: { sourceIds: true },

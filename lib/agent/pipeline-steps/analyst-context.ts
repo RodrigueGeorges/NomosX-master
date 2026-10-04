@@ -327,6 +327,25 @@ export async function buildAnalystContext(deps: AnalystContextDeps): Promise<Ana
     console.log(`${label} REGENERATION: prior failure feedback injected (${priorFailureFeedback.length} chars)`);
   }
 
+  // ── LEARNED GUIDELINES (experience bank): every completed run extracts
+  // reusable patterns — inject the relevant ones so the analysis benefits
+  // from what prior runs learned instead of re-discovering failure modes.
+  // Injected AFTER SARA compression so it is never dropped. ──
+  try {
+    const { getRelevantGuidelines } = await import('../knowledge-infrastructure');
+    const guidelines = await getRelevantGuidelines(query);
+    if (guidelines.length > 0) {
+      const block = guidelines
+        .map(g => `- ${g.guideline} (rationale: ${g.rationale})`)
+        .join('\n');
+      fullContextBlock = [
+        fullContextBlock,
+        `\n## LEARNED GUIDELINES (from prior runs on related topics)\nThe system has learned these rules from previous analyses. Apply them where relevant:\n${block}`,
+      ].filter(Boolean).join('\n\n---\n\n');
+      console.log(`${label} EXPERIENCE BANK: ${guidelines.length} learned guideline(s) injected`);
+    }
+  } catch { /* non-blocking — the bank is advisory */ }
+
   // Context surgery (2026 best practice): pass slim readings to analyst — only extracted fields, not full abstracts
   const slimReadings = readings.map((r: any) => ({
     sourceId: r.sourceId,

@@ -312,12 +312,25 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
   ).catch(() => {});
 
   // ── EXPERIENCE BANK: Extract reusable experience from this run ──
+  // The meta-learner must see WHY the run was weak — the gate verdict lives
+  // downstream in the orchestrator, but the adversarial + critic + structural
+  // stats here carry the actual failure causes. A thin slice produces
+  // useless guidelines.
   try {
     const { extractExperience } = await import('../knowledge-infrastructure');
+    const da = stats.devilsAdvocate as Record<string, any> | undefined;
     extractExperience(query.slice(0, 100), query, {
       scout: stats.scout ? { found: (stats.scout as any).found || 0 } : null,
       intelligentScout: stats.intelligentScout ? { diversityScore: stats.intelligentScout.diversityScore, scenarioRichness: stats.intelligentScout.scenarioRichness } : null,
-      critic: stats.critic ? { verdict: stats.critic.verdict, score: stats.critic.overallScore } : null,
+      critic: stats.critic ? { verdict: stats.critic.verdict, score: stats.critic.overallScore, topFindings: (stats.critic as any).findings?.slice?.(0, 3) } : null,
+      criticPanel: stats.criticPanel ? { score: (stats.criticPanel as any).overallScore } : null,
+      devilsAdvocate: da ? {
+        verdict: da.verdict, publishability: da.publishabilityScore,
+        killShot: da.killShot, challenges: da.stats?.totalChallenges,
+      } : null,
+      structuralEditor: stats.structuralEditor ? { score: (stats.structuralEditor as any).overallScore } : null,
+      outlineCritic: stats.outlineCritic ? { coverage: (stats.outlineCritic as any).coverageScore, missing: (stats.outlineCritic as any).missingDimensions?.slice?.(0, 4) } : null,
+      rank: stats.rank ? { avgQuality: (stats.rank as any).avgQuality, kept: (stats.rank as any).kept } : null,
       trustScore: stats.criticalLoop?.finalScore ?? null,
     }).catch(() => {}); // Fire and forget — don't block pipeline
     console.log(`${label} EXPERIENCE BANK: extraction queued`);

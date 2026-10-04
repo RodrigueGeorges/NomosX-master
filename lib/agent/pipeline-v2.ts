@@ -945,7 +945,79 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
       || (daPre.verdict === 'major_revision' && (daPre.overallStrength as number) < 20)
       || ((daPre.publishabilityScore as number) ?? 100) < 40
     );
-    if (daPreFails && reAnalysisBudget > 0 && !isBudgetConstrained()) {
+    if (daPreFails && !isBudgetConstrained()) {
+      // A fatal challenge like "no comparative evidence for X" is EVIDENCE-
+      // BOUND — no rewrite can invent the missing sources. First convert the
+      // adversary's challenges into retrieval missions: post them as source
+      // gap requests and let the gap-fill processor fetch + re-analyze on the
+      // enriched corpus. Writing a better argument over the same evidence
+      // base is the symptom fix; retrieving the missing evidence is the cure.
+      try {
+        const challengeQueries = [
+          ...((daPre.topChallenges as Array<{ text?: string }> | undefined) ?? []),
+        ]
+          .map(c => String(c?.text ?? '').trim())
+          .filter(t => t.length > 20)
+          .slice(0, 3);
+        if (challengeQueries.length > 0) {
+          for (const q of challengeQueries) {
+            ctx.requestSourceGap(
+              q.slice(0, 300),
+              `Adversarial fatal challenge: ${String(daPre.killShot ?? daPre.verdict).slice(0, 150)}`,
+              'DEVILS_ADVOCATE',
+              ['openalex', 'crossref', 'semanticscholar', 'ssrn', 'jstor', 'internet-archive', 'linkup'],
+              12,
+            );
+          }
+          console.log(`${label} DA EVIDENCE MISSION: ${challengeQueries.length} retrieval queries from adversarial challenges`);
+          await processGapRequests('DEVILS_ADVOCATE');
+          analysis = gapFillState.analysis;
+          reAnalysisBudget = gapFillState.reAnalysisBudget;
+          // If the gap-fill adopted a re-analysis, the DA verdict is on a stale
+          // artifact — re-judge before deciding whether a rewrite is still
+          // needed. Retrieved evidence may have resolved the challenge.
+          if ((stats as any).gapFillReAnalysis?.triggered) {
+            try {
+              const { runDevilsAdvocate } = await import('./devils-advocate');
+              const reJudge = await runDevilsAdvocate(
+                query,
+                buildAnalysisReviewText(analysis as unknown as Record<string, unknown>, query),
+                topSources.map((s: any) => ({ title: s.title, provider: s.provider, year: s.year })),
+                { mode: isStrategic ? 'strategic' : 'brief', domain: detectedDomain, debateContext },
+              );
+              addCost(reJudge.costUsd, 'DEVILS_ADVOCATE_POST_MISSION');
+              stats.devilsAdvocate = tagEval({
+                verdict: reJudge.verdict, overallStrength: reJudge.overallStrength,
+                publishabilityScore: reJudge.publishabilityScore,
+                fatalChallenges: reJudge.fatalChallenges?.length ?? 0,
+                majorChallenges: reJudge.majorChallenges?.length ?? 0,
+                killShot: reJudge.killShot?.slice(0, 400) ?? '',
+                topChallenges: [...(reJudge.fatalChallenges || []), ...(reJudge.majorChallenges || [])]
+                  .slice(0, 3).map((c: any) => ({ type: c.challengeType || c.type || 'challenge', text: String(c.challenge || c.text || '').slice(0, 300) })),
+                costUsd: reJudge.costUsd,
+              }, 'analysis');
+              (stats as any).devilsAdvocateVeto = reJudge.verdict === 'reject'
+                || (reJudge.verdict === 'major_revision' && reJudge.overallStrength < 20);
+              Object.assign(daPre, { publishabilityScore: reJudge.publishabilityScore, verdict: reJudge.verdict, overallStrength: reJudge.overallStrength });
+              console.log(`${label} DA POST-MISSION RECHECK: publishability ${reJudge.publishabilityScore}/100 (veto ${(stats as any).devilsAdvocateVeto ? 'stands' : 'lifted'})`);
+            } catch (judgeErr) {
+              console.warn(`${label} DA POST-MISSION RECHECK failed (non-blocking):`, judgeErr);
+            }
+          }
+        }
+      } catch (missionErr) {
+        console.warn(`${label} DA EVIDENCE MISSION failed (non-blocking):`, missionErr);
+      }
+    }
+    // Re-evaluate post-mission: the gap-fill re-judge may have lifted the
+    // verdict (evidence resolved the challenge) — rewrite only if the
+    // refreshed verdict still fails the gate.
+    const daStillFails = !!daPre && !daPre.error && !daPre.skipped && (
+      daPre.verdict === 'reject'
+      || (daPre.verdict === 'major_revision' && (daPre.overallStrength as number) < 20)
+      || ((daPre.publishabilityScore as number) ?? 100) < 40
+    );
+    if (daStillFails && reAnalysisBudget > 0 && !isBudgetConstrained()) {
       reAnalysisBudget--;
       try {
         const killShotBlock = `\n\n## ADVERSARIAL REPAIR — FATAL CHALLENGES TO RESOLVE\nThe adversarial reviewer found your analysis structurally indefensible (${daPre.verdict}, publishability ${daPre.publishabilityScore}/100). Your rewrite MUST resolve every challenge below — a rewrite that ignores them fails again:\n${(daPre.topChallenges as Array<{ text?: string }> ?? []).slice(0, 3).map((c, i) => `${i + 1}. ${String(c?.text ?? '').slice(0, 280)}`).join('\n')}\nKill shot: ${String(daPre.killShot ?? '').slice(0, 300)}`;

@@ -95,6 +95,14 @@ export interface ThinkTankDispatchItem {
   requireResearcherSignOff?: boolean;
   strategy: ThinkTankStrategy;
   metadata?: Record<string, unknown>;
+  /** Retry number for a HELD-signal retry (1 = first retry) — also marks the
+   * item as needing the duplicate-title bypass (the prior artifact was HELD,
+   * never published, so dedup must not block the retry). */
+  retryAttempt?: number;
+  /** Serialized diagnosis of the prior failed attempt (gate reasons + DA kill
+   * shot + diagnoses) — injected into the pipeline as priorFailureFeedback so
+   * the retry corrects the actual defect instead of repeating it. */
+  priorFailureFeedback?: string;
 }
 
 /** Serializable cycle checkpoint — stored on the Job row between items. */
@@ -360,9 +368,64 @@ async function collectBreakingItems(
     errors.push(`Prediction watch: ${String(err instanceof Error ? err.message : err).slice(0, 150)}`);
   }
 
+  // ── HELD RETRY — a held signal is a pending obligation, not a verdict ──
+  // Signals the gate held get re-dispatched after a cooldown, carrying the
+  // persisted failure diagnosis as priorFailureFeedback — the retry corrects
+  // the actual defect (missing evidence dimension, unsupported projection,
+  // structural gap) instead of repeating the same analysis. Bounded:
+  //   • cooldown 20h between attempts (fresh evidence may exist)
+  //   • retry budget = HOLD decision count on the signal (max 2 retries)
+  //   • at most one retry item per cycle — retries never starve fresh work
+  // Runs BEFORE the empty-radar early return: a quiet radar day is exactly
+  // when cycle capacity should go to discharging held obligations.
+  let heldRetryItems: ThinkTankDispatchItem[] = [];
+  try {
+    const HELD_RETRY_COOLDOWN_MS = Number(process.env.HELD_RETRY_COOLDOWN_MS ?? 20 * 3600_000);
+    const HELD_MAX_RETRIES = 2;
+    const heldSignals = await prisma.signal.findMany({
+      where: {
+        status: "HELD",
+        updatedAt: { lt: new Date(Date.now() - HELD_RETRY_COOLDOWN_MS) },
+        priorityScore: { gte: 55 }, // only signals worth a second spend
+      },
+      orderBy: { priorityScore: "desc" },
+      take: 5,
+      select: { id: true, title: true, verticalId: true, signalType: true, priorityScore: true },
+    });
+    for (const sig of heldSignals) {
+      if (heldRetryItems.length >= 1) break; // 1 retry slot per cycle
+      const priorHolds = await prisma.editorialDecision.count({
+        where: { signalId: sig.id, decision: "HOLD" },
+      });
+      if (priorHolds > HELD_MAX_RETRIES) continue;
+      const lastHold = await prisma.editorialDecision.findFirst({
+        where: { signalId: sig.id, decision: "HOLD" },
+        orderBy: { createdAt: "desc" },
+        select: { checks: true, reasons: true },
+      });
+      const checks = (lastHold?.checks ?? {}) as Record<string, unknown>;
+      const feedback = typeof checks.failureFeedback === "string" && checks.failureFeedback.length > 10
+        ? checks.failureFeedback
+        : (lastHold?.reasons ?? []).join("\n");
+      console.log(`[ThinkTank] HELD RETRY: "${sig.title.slice(0, 60)}" — attempt ${priorHolds + 1} (feedback ${feedback.length}ch)`);
+      heldRetryItems.push({
+        question: sig.title,
+        depth: publicationTypeToDepth(selectFormatFromSignal(sig.signalType, sig.priorityScore)),
+        verticalId: sig.verticalId,
+        signalId: sig.id,
+        strategy: "signal",
+        retryAttempt: priorHolds + 1,
+        priorFailureFeedback: feedback || undefined,
+        metadata: { signalType: sig.signalType, priorityScore: sig.priorityScore, heldRetry: true },
+      });
+    }
+  } catch (err) {
+    errors.push(`Held-retry collection: ${String(err instanceof Error ? err.message : err).slice(0, 150)}`);
+  }
+
   if (radarResult.topics.length === 0) {
     return {
-      items: watchItems,
+      items: [...watchItems, ...heldRetryItems],
       decideCostUsd: 0,
       phases: { detect: { durationMs: detectMs, topicsFound: 0 } },
       errors,
@@ -448,7 +511,7 @@ async function collectBreakingItems(
   // This is intentional: better to skip a cycle than waste 5 minutes on a doomed pipeline run.
 
   return {
-    items: [...watchItems, ...viableItems],
+    items: [...watchItems, ...heldRetryItems, ...viableItems],
     decideCostUsd: triageResult.costUsd,
     phases: {
       detect: { durationMs: detectMs, topicsFound: radarResult.topics.length, stats: radarResult.stats, predictionTriggersFired: watchItems.length },
@@ -575,6 +638,66 @@ async function collectWeeklyItems(
 /** Stable per-item identity across worker restarts. */
 function dispatchItemKey(item: ThinkTankDispatchItem): string {
   return item.signalId ?? item.question;
+}
+
+/**
+ * Persist WHY a signal was held as an EditorialDecision. This is the
+ * institutional memory the held-retry loop reads back: the next attempt
+ * injects `checks.failureFeedback` as priorFailureFeedback so the pipeline
+ * corrects the diagnosed defect instead of repeating it blind. The count of
+ * HOLD decisions on the signal doubles as the retry budget.
+ * Non-blocking by design — a persist failure must never fail the dispatch.
+ */
+async function persistHeldDiagnostic(
+  item: ThinkTankDispatchItem,
+  result: {
+    error?: string;
+    trustScore?: number;
+    qualityScore?: number;
+    gate?: { reasons?: string[]; decision?: string; diagnoses?: unknown[] };
+    pipeline?: { stats?: Record<string, unknown> };
+  },
+): Promise<void> {
+  try {
+    const gate = result.gate;
+    const reasons = [
+      ...(gate?.reasons ?? []).slice(0, 8),
+      ...(result.error ? [`pipeline error: ${result.error.slice(0, 200)}`] : []),
+    ];
+    const daStats = result.pipeline?.stats?.devilsAdvocate as
+      | { killShot?: string; topChallenges?: Array<{ type?: string; text?: string }> }
+      | undefined;
+    if (daStats?.killShot) reasons.push(`DA kill shot: ${String(daStats.killShot).slice(0, 300)}`);
+    for (const c of (daStats?.topChallenges ?? []).slice(0, 3)) {
+      reasons.push(`[${c.type ?? 'challenge'}] ${String(c.text ?? '').slice(0, 200)}`);
+    }
+    const verticalId = item.verticalId
+      ?? await prisma.signal
+        .findUnique({ where: { id: item.signalId! }, select: { verticalId: true } })
+        .then(s => s?.verticalId)
+        .catch(() => undefined);
+    if (!verticalId) return; // cannot satisfy the FK — log-and-skip
+    await prisma.editorialDecision.create({
+      data: {
+        signalId: item.signalId!,
+        verticalId,
+        decision: 'HOLD',
+        reasons,
+        checks: {
+          failureFeedback: reasons.slice(0, 10).join('\n'),
+          qualityScore: result.qualityScore,
+          trustScore: result.trustScore,
+          gateDecision: gate?.decision,
+          diagnoses: (gate?.diagnoses ?? []) as import('@prisma/client').Prisma.InputJsonValue,
+          retriedAttempt: item.retryAttempt ?? 0,
+        },
+        trustScore: Math.round(result.trustScore ?? 0),
+        qualityScore: Math.round(result.qualityScore ?? 0),
+      },
+    });
+  } catch (err) {
+    console.warn(`[ThinkTank] HOLD diagnostic persist failed (non-blocking): ${String(err instanceof Error ? err.message : err).slice(0, 150)}`);
+  }
 }
 
 interface DispatchDurable {
@@ -797,6 +920,14 @@ export async function executeDispatchQueue(
           delivery: 'reserve',
           requireResearcherSignOff: item.requireResearcherSignOff,
           minTrustScore: adaptiveTrust,
+          // HELD-retry: the prior attempt produced a HELD publication with the
+          // same normalized title — dedup would skip the retry as a duplicate.
+          // The held artifact was never published; bypass both title and
+          // briefId dedup so the corrected analysis gets evaluated.
+          skipDuplicateCheck: item.retryAttempt != null,
+          pipelineOptions: item.priorFailureFeedback
+            ? { priorFailureFeedback: item.priorFailureFeedback }
+            : undefined,
           metadata: { strategy: item.strategy, ...item.metadata },
         }),
       ).catch((err: unknown) => {
@@ -879,20 +1010,30 @@ export async function executeDispatchQueue(
     } else if (result.status === "failed") {
       failed++;
       errors.push(`"${item.question.slice(0, 40)}": ${result.error ?? "unknown"}`);
-      // Mark signal as HELD so it doesn't get infinitely retried
+      // A crash-failed signal is also held — and the HOLD decision MUST be
+      // persisted here too: the held-retry collection bounds retries by the
+      // count of HOLD decisions. A failure that leaves no decision would be
+      // retried forever (count never increments → budget never consumed).
       if (item.signalId) {
         await prisma.signal
           .update({ where: { id: item.signalId }, data: { status: "HELD" } })
           .catch(() => undefined);
+        await persistHeldDiagnostic(item, result);
       }
     } else {
       held++;
       topics.push(item.question);
-      // Mark signal as HELD — pipeline ran but publication gate held it
+      // HELD is NOT terminal — the signal re-enters the dispatch pool after a
+      // cooldown (see collectBreakingItems held-retry pass). Persist WHY it
+      // held as an EditorialDecision: the retry injects it as
+      // priorFailureFeedback — the next attempt corrects the diagnosed defect
+      // instead of repeating it blind. The HOLD-decision count on the signal
+      // doubles as the retry budget — no schema migration needed.
       if (item.signalId) {
         await prisma.signal
           .update({ where: { id: item.signalId }, data: { status: "HELD" } })
           .catch(() => undefined);
+        await persistHeldDiagnostic(item, result);
       }
     }
 

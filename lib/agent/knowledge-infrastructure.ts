@@ -232,10 +232,66 @@ export interface GuidelineEntry {
   timestamp: number;
 }
 
-// In-memory experience bank (in production, this would be persisted to DB)
+// In-memory experience bank — the fast path. Every write is mirrored to
+// agentAuditLog (same durable store as durable-execution and the persistent
+// signal bus) so the bank survives process restarts and is shared across
+// workers: a crash no longer erases what the system learned.
 const experienceBank: ExperienceEntry[] = [];
 const guidelineBank: GuidelineEntry[] = [];
 const MAX_BANK_SIZE = 200;
+const AUDIT_AGENT = 'experience_bank';
+const EXP_ACTION = 'EXPERIENCE_RECORD';
+const GUIDE_ACTION = 'GUIDELINE_RECORD';
+let rehydration: Promise<void> | null = null;
+
+function persistEntry(action: string, id: string, entry: unknown): void {
+  import('../db').then(({ prisma }) =>
+    prisma.agentAuditLog.create({
+      select: { id: true },
+      data: {
+        agent: AUDIT_AGENT,
+        action,
+        resource: id,
+        metadata: JSON.stringify(entry),
+        timestamp: new Date(),
+      },
+    }),
+  ).then(() => undefined).catch(() => undefined); // fire-and-forget — never block the pipeline
+}
+
+/**
+ * Load persisted entries into the in-memory banks once per process. Entries
+ * already in memory (same id) are skipped — a restart rehydrates instead of
+ * duplicating. Lazy + guarded so concurrent callers share one DB read.
+ */
+async function ensureBankHydrated(): Promise<void> {
+  if (!rehydration) {
+    rehydration = (async () => {
+      const { prisma } = await import('../db');
+      const rows = await prisma.agentAuditLog.findMany({
+        where: { agent: AUDIT_AGENT, action: { in: [EXP_ACTION, GUIDE_ACTION] } },
+        orderBy: { timestamp: 'desc' },
+        take: MAX_BANK_SIZE * 2,
+        select: { action: true, metadata: true },
+      });
+      const expIds = new Set(experienceBank.map(e => e.id));
+      const guideIds = new Set(guidelineBank.map(g => g.id));
+      for (const row of rows.reverse()) {
+        try {
+          const entry = JSON.parse(row.metadata || '{}');
+          if (row.action === EXP_ACTION && entry.id && !expIds.has(entry.id)) {
+            experienceBank.push(entry); expIds.add(entry.id);
+          } else if (row.action === GUIDE_ACTION && entry.id && !guideIds.has(entry.id)) {
+            guidelineBank.push(entry); guideIds.add(entry.id);
+          }
+        } catch { /* skip malformed row */ }
+      }
+      if (experienceBank.length > MAX_BANK_SIZE) experienceBank.splice(0, experienceBank.length - MAX_BANK_SIZE);
+      if (guidelineBank.length > MAX_BANK_SIZE) guidelineBank.splice(0, guidelineBank.length - MAX_BANK_SIZE);
+    })().catch(() => undefined);
+  }
+  return rehydration;
+}
 
 export function recordExperience(
   topic: string,
@@ -245,7 +301,7 @@ export function recordExperience(
   pattern: string,
   successMetric?: number,
 ): void {
-  experienceBank.push({
+  const entry: ExperienceEntry = {
     id: `exp_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
     topic,
     question,
@@ -254,26 +310,31 @@ export function recordExperience(
     pattern,
     successMetric,
     timestamp: Date.now(),
-  });
+  };
+  experienceBank.push(entry);
   if (experienceBank.length > MAX_BANK_SIZE) {
     experienceBank.splice(0, experienceBank.length - MAX_BANK_SIZE);
   }
+  persistEntry(EXP_ACTION, entry.id, entry);
 }
 
 export function recordGuideline(topic: string, guideline: string, rationale: string): void {
-  guidelineBank.push({
+  const entry: GuidelineEntry = {
     id: `guide_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
     topic,
     guideline,
     rationale,
     timestamp: Date.now(),
-  });
+  };
+  guidelineBank.push(entry);
   if (guidelineBank.length > MAX_BANK_SIZE) {
     guidelineBank.splice(0, guidelineBank.length - MAX_BANK_SIZE);
   }
+  persistEntry(GUIDE_ACTION, entry.id, entry);
 }
 
-export function getRelevantExperience(topic: string, phase: string): ExperienceEntry[] {
+export async function getRelevantExperience(topic: string, phase: string): Promise<ExperienceEntry[]> {
+  await ensureBankHydrated();
   return experienceBank.filter(e => {
     if (e.phase !== phase) return false;
     // Simple topic matching (in production, use embeddings)
@@ -282,7 +343,8 @@ export function getRelevantExperience(topic: string, phase: string): ExperienceE
   }).slice(-5); // Most recent 5
 }
 
-export function getRelevantGuidelines(topic: string): GuidelineEntry[] {
+export async function getRelevantGuidelines(topic: string): Promise<GuidelineEntry[]> {
+  await ensureBankHydrated();
   return guidelineBank.filter(g => {
     return g.topic.toLowerCase().includes(topic.toLowerCase().slice(0, 20)) ||
            topic.toLowerCase().includes(g.topic.toLowerCase().slice(0, 20));
