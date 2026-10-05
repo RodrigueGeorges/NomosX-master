@@ -566,6 +566,7 @@ export async function runAndPublishInquiry(
           sources: p.inquiry.sources as { title: string; authors?: { author?: { name?: string } }[]; provider?: string }[],
           devilsAdvocate: aDa,
           criticPanel: p.stats.criticPanel as { dimensions?: { dimension: string; score: number; findings: string[]; mustFix: boolean }[] } | undefined,
+          trustComponents: (p.stats.criticalLoop as { components?: Record<string, number | null> } | undefined)?.components as import('./revision-controller').RevisionInput['trustComponents'],
           budgetConstrained: (p.stats.budgetConstrained as boolean | undefined) === true,
         });
         costUsd += revision.costUsd;

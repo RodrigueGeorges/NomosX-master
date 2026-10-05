@@ -150,9 +150,16 @@ export async function runStyleSweepRecheck(ctx: TailStepContext): Promise<void> 
   // it describes the adopted artifact, which is what the gate must judge. ──
   try {
     const daStats = stats.devilsAdvocate as Record<string, unknown> | undefined;
+    // Re-check also fires when the evaluator itself fell (error/incomplete/
+    // skipped) — evaluation_availability hard-fails the gate on those, and
+    // a transient provider outage is the classic recoverable case. The
+    // budget guard below still bounds the spend.
     const daGateFailing = (stats as any).devilsAdvocateVeto === true
       || daStats?.verdict === 'reject'
-      || (typeof daStats?.publishabilityScore === 'number' && daStats.publishabilityScore < 40);
+      || (typeof daStats?.publishabilityScore === 'number' && daStats.publishabilityScore < 40)
+      || daStats?.error !== undefined
+      || daStats?.evaluationComplete === false
+      || daStats?.skipped === true;
     if (daGateFailing && !isBudgetConstrained()) {
       const { runDevilsAdvocate } = await import('../devils-advocate');
       const recheck = await runDevilsAdvocate(

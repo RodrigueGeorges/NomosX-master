@@ -447,6 +447,14 @@ export async function runEvaluatorsAndTrust(deps: EvaluatorsTrustDeps): Promise<
       skipped: false,
       mode: 'deterministic',
       skipReason: undefined,
+      // Component decomposition persisted so a trust_score gate failure can
+      // be routed to the specialist resolver for the WEAK component
+      // (revision-controller reads this — the gate is a router, not a verdict).
+      components: {
+        citationCoverage, groundedness, factIntegrity, nliIntegrity,
+        sourceCheckIntegrity, diversity: diversityScore, avgQuality,
+        criticScore,
+      },
     };
 
     console.log(`${label} DETERMINISTIC TRUST: ${deterministicScore}/100 — coverage=${Math.round(citationCoverage * 100)}%, groundedness=${Math.round(groundedness * 100)}%, factCheck=${factIntegrity}%, nli=${nliIntegrity}%, sourceCheck=${sourceCheckIntegrity}%, diversity=${diversityScore}, avgQuality=${Math.round(avgQuality)}`);

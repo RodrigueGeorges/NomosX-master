@@ -9,7 +9,7 @@
  * of quality. The rescore re-judges each stale eval once on the adopted
  * analysis so the gate sees verdicts on the artifact actually rendered.
  */
-import { rescoreStaleAnalysisEvals, staleAnalysisEvalKeys } from '@/lib/agent/pipeline-steps/eval-rescore';
+import { rescoreStaleAnalysisEvals, staleAnalysisEvalKeys, failedAnalysisEvalKeys } from '@/lib/agent/pipeline-steps/eval-rescore';
 import { runCritic } from '@/lib/agent/critic-agent';
 import { runCriticPanel } from '@/lib/agent/critic-panel';
 import { structuralEditorReview } from '@/lib/agent/structural-editor';
@@ -65,6 +65,22 @@ describe('staleAnalysisEvalKeys', () => {
       criticPanel: { skipped: true, artifactVersion: 1 },
     };
     expect(staleAnalysisEvalKeys(stats, 2)).toEqual([]);
+  });
+});
+
+describe('failedAnalysisEvalKeys — errored evaluators route back to the agent', () => {
+  it('flags evaluators that crashed or returned incomplete', () => {
+    const stats = {
+      critic: { error: 'provider down' },
+      criticPanel: { evaluationComplete: false, artifactVersion: 2 },
+      structuralEditor: { overallStructure: 70, artifactVersion: 2 }, // healthy
+      devilsAdvocate: { error: 'timeout' },                          // html-tagged — not rescored here
+    };
+    expect(failedAnalysisEvalKeys(stats)).toEqual(['critic', 'criticPanel']);
+  });
+
+  it('does NOT flag deliberate skips — a budget skip is not a failure', () => {
+    expect(failedAnalysisEvalKeys({ criticPanel: { skipped: true } })).toEqual([]);
   });
 });
 
@@ -152,5 +168,46 @@ describe('rescoreStaleAnalysisEvals', () => {
     mockedCritic.mockRejectedValue(new Error('provider down'));
     await rescoreStaleAnalysisEvals(d);
     expect(d.stats.critic.artifactVersion).toBe(1); // untouched → still stale → gate fails closed
+  });
+
+  it('re-invokes an evaluator that crashed — transient failure routed back to the agent', async () => {
+    const d = deps();
+    d.stats = {
+      critic: { error: 'provider down' },        // errored, no version — evaluation_availability fails
+      criticPanel: { overallScore: 65, artifactVersion: CURRENT_VERSION },
+    };
+    mockedCritic.mockResolvedValue({
+      verdict: 'approve', overallScore: 74, groundedness: 0.85,
+      claims: [{}], contradictions: [], contestedFindings: [], biases: [],
+      citationIssues: [], stageResults: [], costUsd: 0.02, durationMs: 40,
+    } as any);
+    await rescoreStaleAnalysisEvals(d);
+    expect(mockedCritic).toHaveBeenCalledTimes(1);
+    expect(d.stats.critic.overallScore).toBe(74);
+    expect(d.stats.critic.error).toBeUndefined();          // failure entry replaced by a live verdict
+    expect(d.stats.critic.artifactVersion).toBe(CURRENT_VERSION);
+    expect(mockedPanel).not.toHaveBeenCalled();            // healthy eval untouched
+  });
+
+  it('handles stale + errored in one pass without double-spending', async () => {
+    const d = deps();
+    d.stats = {
+      critic: { overallScore: 40, artifactVersion: 1 },    // stale
+      criticPanel: { error: 'timeout' },                   // errored
+      structuralEditor: { overallStructure: 70, artifactVersion: CURRENT_VERSION },
+    };
+    mockedCritic.mockResolvedValue({
+      verdict: 'approve', overallScore: 70, groundedness: 0.8,
+      claims: [], contradictions: [], biases: [], citationIssues: [],
+      stageResults: [], costUsd: 0.02, durationMs: 40,
+    } as any);
+    mockedPanel.mockResolvedValue({
+      overallScore: 68, veto: false, vetoReasons: [],
+      dimensions: [], costUsd: 0.02, durationMs: 50,
+    } as any);
+    await rescoreStaleAnalysisEvals(d);
+    expect(mockedCritic).toHaveBeenCalledTimes(1);
+    expect(mockedPanel).toHaveBeenCalledTimes(1);
+    expect(mockedStructural).not.toHaveBeenCalled();
   });
 });

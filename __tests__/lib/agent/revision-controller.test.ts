@@ -128,6 +128,71 @@ it('leaves the block untouched when the check passed', async () => {
   expect(res.changed).toBe(false);
 });
 
+// ── Gate-as-router coverage: every failed check posts a signal to the
+// specialist resolver (S37). Asserting the action trail proves the signal
+// was routed — resolvers may still fail (e.g. budget), routing is the point.
+
+it('routes claim_citation_density failures to the citation resolver', async () => {
+  const res = await reviseForGate({
+    html: GUTTED_HTML,
+    gate: gate([{ checkType: 'claim_citation_density', passed: false }]),
+    centralScenario: central,
+    sourceCount: 18,
+    analysis: { keyFindings: [] },
+    sources: [{ title: 'A source', provider: 'openalex' }],
+    budgetConstrained: true,
+  });
+  expect(res.actions.some(a => a.startsWith('citation_gap'))).toBe(true);
+});
+
+it('routes trust_score failures to the weak-component resolver (decomposition)', async () => {
+  const res = await reviseForGate({
+    html: GUTTED_HTML,
+    gate: gate([{ checkType: 'trust_score', passed: false }]),
+    centralScenario: central,
+    sourceCount: 18,
+    trustComponents: { citationCoverage: 0.4, criticScore: 55, groundedness: 0.9 },
+    budgetConstrained: true,
+  });
+  // citationCoverage 0.4 < 0.6 → routed to the citation specialist, not a blind retry
+  expect(res.actions.some(a => a.startsWith('citation_gap'))).toBe(true);
+});
+
+it('routes trust_score failures with weak critic/groundedness to substance revision', async () => {
+  const res = await reviseForGate({
+    html: GUTTED_HTML,
+    gate: gate([{ checkType: 'trust_score', passed: false }]),
+    centralScenario: central,
+    sourceCount: 18,
+    trustComponents: { citationCoverage: 0.95, criticScore: 30, groundedness: 0.9 },
+    budgetConstrained: true, // resolver declines on budget — routing is what we assert
+  });
+  expect(res.actions.some(a => a.startsWith('substance_weak'))).toBe(true);
+});
+
+it('routes word_count failures to the substance resolver with an expansion directive', async () => {
+  const res = await reviseForGate({
+    html: GUTTED_HTML,
+    gate: gate([{ checkType: 'word_count', passed: false }]),
+    centralScenario: central,
+    sourceCount: 18,
+    budgetConstrained: true,
+  });
+  expect(res.actions.some(a => a.startsWith('substance_weak'))).toBe(true);
+});
+
+it('routes novlangue terms into the copy-editor style_violation batch', async () => {
+  const euphemized = GUTTED_HTML + '<p>Stakeholder engagement on the modernization agenda continued.</p>';
+  const res = await reviseForGate({
+    html: euphemized,
+    gate: gate([{ checkType: 'novlangue_density', passed: false }]),
+    centralScenario: central,
+    sourceCount: 18,
+    budgetConstrained: true,
+  });
+  expect(res.actions.some(a => a.startsWith('style_violation'))).toBe(true);
+});
+
 // ── Regeneration helpers (escalation ladder after revision) ──
 
 import { shouldRegenerate, attemptScore, buildFailureFeedback } from '@/lib/agent/revision-controller';

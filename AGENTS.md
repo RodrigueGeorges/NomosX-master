@@ -6,6 +6,31 @@
 
 ---
 
+## Sprint 37 — The gate is a router: every check failure maps to a specialist agent
+
+The revision-controller already posted gate failures as signals resolved by
+specialists — but half the check types had no resolver, so their HELDs were
+terminal by omission. Full routing matrix now:
+
+| Failed check | Routed to |
+|---|---|
+| `central_scenario` | deterministic re-render from persisted decision |
+| `citation_coverage` + `claim_citation_density` | citation backfill |
+| `trust_score` | **decomposed** — `stats.criticalLoop.components` (now persisted: coverage/groundedness/fact/nli/sourcecheck/diversity/avgQuality/critic) tells WHICH component dragged the composite; coverage < 0.6 → `citation_gap`, critic < 40 or groundedness < 0.65 → `substance_weak` with the named component in the directive |
+| `word_count` | `substance_weak` — expansion directive (deepen evidence discussion, not padding) |
+| `novlangue_density` | flagged terms posted into the copy-editor's `style_violation` batch with true-name hints (true-names are semantic explanations — the LLM reformulates, no naive string replace) |
+| `quality_score` / `devils_advocate` / `fatal_challenges` | `substance_weak` → revision editor (unchanged) |
+| `evaluation_freshness` | eval-rescore re-judges stale verdict evals on the live artifact (existing) |
+| `evaluation_availability` | **NEW** — `failedAnalysisEvalKeys`: an evaluator that crashed or returned incomplete is re-invoked once on the live artifact (transient provider outage is the classic recoverable case). `skipped` stays untouched — a deliberate skip is not a failure. DA re-check trigger extended to `error`/`evaluationComplete===false`/`skipped` |
+| `source_depth` | evidence-bound → dispatcher falls to the next pre-validated candidate (the funnel absorbs at the top, unchanged) |
+| `researcher_signoff` | draft/manual — process veto, unchanged |
+
+Tests: eval-rescore +5 (errored-eval routing, stale+errored single pass,
+skip non-failure), revision-controller +4 (density→citation, trust
+decomposition→citation/substance, word_count→substance, novlangue→style
+batch — verified style gates produce zero violations on the fixture so the
+signal provenance is unambiguous). 51 suites / 509 tests.
+
 ## Sprint 36b — Calibrated publication tier: the moderate band publishes, labeled
 
 The mandate audit confirmed the pipeline is already position-first

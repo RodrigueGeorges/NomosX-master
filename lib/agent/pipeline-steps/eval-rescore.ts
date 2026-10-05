@@ -50,6 +50,18 @@ export function staleAnalysisEvalKeys(stats: Record<string, any>, currentVersion
   });
 }
 
+/** Evals that crashed or returned incomplete — a transient provider failure
+ *  hard-fails `evaluation_availability` regardless of artifact quality. The
+ *  gate is a router: a fallen evaluator is re-invoked once on the live
+ *  artifact. (`skipped` is excluded — a deliberate skip is not a failure.) */
+export function failedAnalysisEvalKeys(stats: Record<string, any>): string[] {
+  return RESCORABLE_KEYS.filter(k => {
+    const e = stats[k];
+    return e && typeof e === 'object' && !e.skipped
+      && (e.error || e.evaluationComplete === false);
+  });
+}
+
 export async function rescoreStaleAnalysisEvals(deps: EvalRescoreDeps): Promise<void> {
   const {
     stats, analysis, analysisArtifactVersion, query, detectedDomain,
@@ -58,9 +70,14 @@ export async function rescoreStaleAnalysisEvals(deps: EvalRescoreDeps): Promise<
   } = deps;
 
   const staleKeys = staleAnalysisEvalKeys(stats, analysisArtifactVersion);
-  if (staleKeys.length === 0 || isBudgetConstrained()) return;
+  const failedKeys = failedAnalysisEvalKeys(stats);
+  const keys = [...new Set([...staleKeys, ...failedKeys])];
+  if (keys.length === 0 || isBudgetConstrained()) return;
 
-  console.log(`${label} EVAL RE-SCORE: ${staleKeys.join(', ')} judged a replaced analysis (v${analysisArtifactVersion}) — re-scoring once`);
+  console.log(`${label} EVAL RE-SCORE: ${[
+    staleKeys.length ? `stale(${staleKeys.join(',')})` : null,
+    failedKeys.length ? `errored(${failedKeys.join(',')})` : null,
+  ].filter(Boolean).join(' + ')} — re-judging once on the live artifact (v${analysisArtifactVersion})`);
 
   const readingsById = new Map<string, any>(
     (Array.isArray(readings) ? readings : []).map((r: any) => [r.sourceId, r])
@@ -80,7 +97,7 @@ export async function rescoreStaleAnalysisEvals(deps: EvalRescoreDeps): Promise<
     strongestPiece: positioningBrief.strongestPiece,
   } : undefined;
 
-  for (const key of staleKeys) {
+  for (const key of keys) {
     try {
       if (key === 'critic') {
         const { runCritic } = await import('../critic-agent');

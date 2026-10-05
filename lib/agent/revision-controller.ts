@@ -28,6 +28,7 @@ import { runStyleGates } from './style-gates';
 import { copyEditHtml } from './copy-editor';
 import { reviseForFindings } from './revision-editor';
 import { SignalBus, type AgentSignal, type Mission } from './signals';
+import { detectNovlangue } from './novlangue-detector';
 import type { PublicationGateResult } from './publication-gate';
 import type { CentralScenarioDecision } from './editorial-types';
 
@@ -39,6 +40,14 @@ export interface RevisionInput {
   sourceCount: number;
   analysis?: Record<string, unknown>;
   sources?: { title: string; authors?: { author?: { name?: string } }[]; provider?: string }[];
+  /** Trust decomposition — which components dragged the composite down.
+   *  Lets the router post the signal matching the WEAK component instead of
+   *  a blind generic retry. */
+  trustComponents?: {
+    citationCoverage?: number; groundedness?: number; factIntegrity?: number;
+    nliIntegrity?: number; sourceCheckIntegrity?: number; diversity?: number;
+    criticScore?: number | null;
+  };
   devilsAdvocate?: {
     publishabilityScore?: number;
     fatalChallenges?: number;
@@ -161,10 +170,59 @@ export async function reviseForGate(input: RevisionInput): Promise<RevisionResul
       postedBy: 'GATE', intensity: 1.0, ttlMs: 30 * 60 * 1000,
     });
   }
-  if (failed.has('citation_coverage')) {
+  if (failed.has('citation_coverage') || failed.has('claim_citation_density')) {
     bus.post('citation_gap', 'Citation coverage below gate threshold', {
       postedBy: 'GATE', intensity: 0.8, ttlMs: 30 * 60 * 1000,
     });
+  }
+
+  // trust_score failure decomposes — the composite tells us WHICH component
+  // is weak, and each weak component has a specialist resolver. The gate is
+  // a router, not a verdict.
+  if (failed.has('trust_score') && input.trustComponents) {
+    const tc = input.trustComponents;
+    if ((tc.citationCoverage ?? 1) < 0.6) {
+      bus.post('citation_gap', `Trust decomposition: citation coverage ${Math.round((tc.citationCoverage ?? 0) * 100)}% is the weak component`, {
+        postedBy: 'TRUST_ROUTER', intensity: 0.8, ttlMs: 30 * 60 * 1000,
+      });
+    }
+    if ((tc.criticScore ?? 100) < 40 || (tc.groundedness ?? 1) < 0.65) {
+      bus.post('substance_weak', `Trust decomposition: ${(tc.criticScore ?? 100) < 40 ? `critic ${tc.criticScore}/100` : `groundedness ${Math.round((tc.groundedness ?? 0) * 100)}%`} is the weak component — strengthen or adjudicate`, {
+        postedBy: 'TRUST_ROUTER', intensity: 0.85, ttlMs: 30 * 60 * 1000,
+        payload: {
+          gateReasons: input.gate.reasons,
+          weakFindings: [`Composite trust below bar: weakest components are ${[
+            (tc.criticScore ?? 100) < 40 ? `critic(${tc.criticScore})` : null,
+            (tc.groundedness ?? 1) < 0.65 ? `groundedness(${Math.round((tc.groundedness ?? 0) * 100)}%)` : null,
+          ].filter(Boolean).join(', ')} — repair or explicitly adjudicate the contested points`],
+        },
+      });
+    }
+  }
+
+  // word_count failure → the piece is too thin. Route to the substance
+  // resolver with an expansion directive rather than holding the artifact.
+  if (failed.has('word_count')) {
+    bus.post('substance_weak', 'Piece below minimum length — expand thin sections with deeper evidence discussion, not padding', {
+      postedBy: 'GATE', intensity: 0.6, ttlMs: 30 * 60 * 1000,
+      payload: {
+        gateReasons: input.gate.reasons,
+        weakFindings: [`Expand under-developed sections: the piece is below its minimum length — deepen evidence discussion and implications rather than padding`],
+      },
+    });
+  }
+
+  // novlangue_density → route the flagged terms into the copy-editor's
+  // style_violation batch. The true-name table is a semantic explanation,
+  // not a drop-in string — the LLM editor reformulates the sentence.
+  if (failed.has('novlangue_density')) {
+    const novlangue = detectNovlangue(ctx.html);
+    for (const m of novlangue.matches.slice(0, 8)) {
+      bus.post('style_violation', `novlangue: "${m.term}" → ${m.trueName}`, {
+        postedBy: 'NOVLANGUE_GATE', intensity: 0.5, ttlMs: 30 * 60 * 1000,
+        payload: { gate: 'novlangue', match: m.term, suggestion: `replace with plain language (${m.trueName})` },
+      });
+    }
   }
 
   // Substance needs: DA challenges + weak panel findings + quality gate.
