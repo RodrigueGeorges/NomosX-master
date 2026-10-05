@@ -26,6 +26,7 @@ import {
   depthToPublicationType,
   extractPipelineScores,
   getPipelineCostUsd,
+  isModerateTierEligible,
 } from "./inquiry-funnel-utils";
 import { evaluatePublicationGate, type PublicationGateResult } from "./publication-gate";
 import { evaluatePublicationReadiness } from "@/lib/publication-visibility";
@@ -173,6 +174,27 @@ function mergePipelineOptions(req: InquiryPublishRequest): StrategicPipelineOpti
     providers: req.providers ?? req.pipelineOptions?.providers,
     perProvider: req.perProvider ?? req.pipelineOptions?.perProvider,
   };
+}
+
+/**
+ * Render the calibration badge into the artifact itself. The moderate tier
+ * publishes a defended position on a thinner evidence base — the reader must
+ * see that on the page, not just in publication metadata. Injected right
+ * after <body> when present, prepended otherwise. `data-no-cite` keeps it
+ * out of citation extraction.
+ */
+function injectModerateConfidenceBanner(html: string, trustScore: number, threshold: number): string {
+  const banner =
+    `<div class="nx-confidence-notice" data-no-cite style="background:#fff3cd;border:1px solid #ffc107;border-radius:8px;padding:12px 16px;margin:16px 0;font-size:0.9em;color:#856404;">` +
+    `<strong>Preliminary assessment — moderate confidence.</strong> ` +
+    `The evidence supports a defended position, but the composite confidence (${trustScore}/100) sits below our ${threshold}-point publication bar. ` +
+    `The analysis is calibrated accordingly; treat magnitude and timing claims as provisional.</div>`;
+  const bodyMatch = /<body[^>]*>/i.exec(html);
+  if (bodyMatch) {
+    const at = bodyMatch.index + bodyMatch[0].length;
+    return html.slice(0, at) + banner + html.slice(at);
+  }
+  return banner + html;
 }
 
 function resolveDbStatus(status: InquiryPublishStatus): string {
@@ -708,7 +730,7 @@ export async function runAndPublishInquiry(
 
   // Unpack the final assessment for the status logic below.
   const { trustScore, qualityScore, citationCoverage } = assessment.scores;
-  const html = assessment.html;
+  let html = assessment.html;
   const wordCount = assessment.wordCount;
   const sourceIds = assessment.sourceIds;
   const pubType = assessment.pubType;
@@ -744,12 +766,19 @@ export async function runAndPublishInquiry(
   // Minimum viable trust — below this, quality is genuinely insufficient
   const MIN_VIABLE_TRUST = 55;
 
-  // Sprint 31: publication is conditional on the system being SURE, not on
-  // cadence. The default is strict — a piece only publishes when the gate is
-  // clean (publish) or wants revision but every metric is strong (revise +
-  // trust ≥ min+5). Moderate-trust publish-with-warning paths (P2b/P5b) are
-  // opt-in via NOMOSX_ALLOW_MODERATE_PUBLISH=1 — silence beats marginal copy.
-  const allowModeratePublish = process.env.NOMOSX_ALLOW_MODERATE_PUBLISH === "1";
+  // Sprint 31 + S36: publication is conditional on the artifact being
+  // DEFENSIBLE, not on hitting the composite bar. The default is still
+  // strict for the main tiers, but a gate 'hold' whose ONLY failure is the
+  // trust_score band publishes as a labeled preliminary assessment —
+  // silence on a viable corpus is a wasted run, and a calibrated position
+  // is a legitimate think-tank genre. Opt-out via
+  // NOMOSX_ALLOW_MODERATE_PUBLISH=0. The validated reserve stays strict:
+  // certifyForReserve re-evaluates the clean gate and rejects these anyway.
+  const allowModeratePublish = process.env.NOMOSX_ALLOW_MODERATE_PUBLISH !== "0";
+  const moderateTier = allowModeratePublish && effectiveDaVerdict !== "reject" && isModerateTierEligible({
+    gate, readiness, trustScore, qualityScore, adaptiveMinTrust,
+    minViableTrust: MIN_VIABLE_TRUST,
+  });
 
   // Priority 1: Gate says publish + readiness OK + trust sufficient → publish
   if (gate.decision === "publish" && readiness.ok && trustScore >= adaptiveMinTrust) {
@@ -759,13 +788,14 @@ export async function runAndPublishInquiry(
   else if (gate.decision === "revise" && readiness.ok && trustScore >= adaptiveMinTrust + 5) {
     status = "published";
   }
-  // Priority 2b: Trust in "moderate confidence" zone (55-64) + gate publish/revise → publish with warning
-  // This prevents HELD on reports that are just under the threshold after the quality loop.
-  // The warning is stored in metadata and surfaced to the reader.
-  // But NEVER publish if quality < 40 — garbage regardless of trust.
-  else if (allowModeratePublish && trustScore >= MIN_VIABLE_TRUST && trustScore < adaptiveMinTrust && gate.decision !== "hold" && qualityScore >= 40) {
+  // Priority 2b — CALIBRATED TIER: gate 'hold' whose ONLY failure is the
+  // trust band → publish as labeled preliminary assessment. The prior
+  // version of this branch required gate.decision !== 'hold', which could
+  // never fire: trust < 65 hard-fails the trust_score check → always 'hold'
+  // (dead code). The tier now inspects the failed checks directly.
+  else if (moderateTier) {
     status = "published";
-    console.log(`[InquiryOrchestrator] PUBLISH WITH WARNING: trust ${trustScore} in moderate zone [${MIN_VIABLE_TRUST}-${adaptiveMinTrust - 1}] — publishing with confidence warning`);
+    console.log(`[InquiryOrchestrator] PRELIMINARY ASSESSMENT published: trust ${trustScore} in moderate zone [${MIN_VIABLE_TRUST}-${adaptiveMinTrust - 1}] — every integrity check passed, sole failure is the composite trust bar`);
   }
   // Priority 3: DA reject with low trust → review (DA concern validated by weak metrics)
   else if (effectiveDaVerdict === "reject" && trustScore < adaptiveMinTrust + 5) {
@@ -779,12 +809,6 @@ export async function runAndPublishInquiry(
   else if ((gate.decision === "revise" || !readiness.ok) && trustScore < MIN_VIABLE_TRUST) {
     status = "held";
   }
-  // Priority 5b: Gate revise but trust ≥ MIN_VIABLE_TRUST → publish with warning (avoid HELD on moderate trust)
-  // But NEVER publish if quality is below 40 — that's garbage regardless of trust
-  else if (allowModeratePublish && gate.decision === "revise" && trustScore >= MIN_VIABLE_TRUST && qualityScore >= 40) {
-    status = "published";
-    console.log(`[InquiryOrchestrator] PUBLISH WITH WARNING: gate ${gate.decision}, trust ${trustScore} ≥ ${MIN_VIABLE_TRUST} — publishing with quality warning`);
-  }
   // Priority 6: Trust too low → draft
   else if (trustScore < MIN_VIABLE_TRUST) {
     status = "draft";
@@ -792,8 +816,14 @@ export async function runAndPublishInquiry(
 
   if (signOff && !signOff.approved) {
     status = "draft";
-  } else if (gate.decision === "hold" || !readiness.ok) {
+  } else if ((gate.decision === "hold" || !readiness.ok) && !moderateTier) {
     status = "held";
+  }
+
+  // Render the calibration badge into the artifact itself — the reader must
+  // see the confidence tier on the page, not just in metadata.
+  if (status === "published" && moderateTier) {
+    html = injectModerateConfidenceBanner(html, trustScore, adaptiveMinTrust);
   }
 
   // Infra-vs-evidence attribution: a retrieval-related hold during a provider
@@ -822,7 +852,10 @@ export async function runAndPublishInquiry(
 
   const publicId = pipeline.inquiry.slug;
   let reserve: ReturnType<typeof certifyForReserve> | undefined;
-  if (req.delivery === 'reserve' && status === 'published') {
+  // Moderate-tier artifacts publish directly — the reserve is the validated
+  // tier and its certificate re-evaluates the strict gate, which a
+  // trust-band piece cannot pass.
+  if (req.delivery === 'reserve' && status === 'published' && !moderateTier) {
     // Certify the artifact the gate+readiness actually evaluated — the
     // revision round may have replaced pipeline.html, and assessment.gateInput
     // binds the exact evaluated html, so a revised publishable artifact is

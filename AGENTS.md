@@ -6,6 +6,47 @@
 
 ---
 
+## Sprint 36b — Calibrated publication tier: the moderate band publishes, labeled
+
+The mandate audit confirmed the pipeline is already position-first
+(`verdict` is a required analyst field, hedging is deterministically
+stripped, `central_scenario` is a hard gate check) — so HELD never meant
+"no position produced", only "position judged insufficiently defensible".
+The residual avoidable HELD was the **moderate band**: a viable corpus, an
+argued position, every integrity check green — killed solely by the
+composite trust bar (55–64). Worse, the intended escape hatch was dead
+code: P2b/P5b required `gate.decision !== 'hold'`, but trust < 65
+hard-fails the `trust_score` check, so the decision could only ever be
+'hold'.
+
+**`isModerateTierEligible`** (`inquiry-funnel-utils.ts`) — a hold is
+converted to a labeled publication iff: gate decision is `hold`; the
+`trust_score` check actually failed; every OTHER failed check is a
+score-band artifact (quality_score ≥40 is advisory-soft); all readiness
+failures are confined to trustScore/qualityScore (coverage/word-count
+failures are evidence density — they stay held); trust ∈ [55, minTrust);
+quality ≥ 40; DA verdict ≠ reject.
+
+**Render** — `injectModerateConfidenceBanner` puts the tier ON the page:
+"Preliminary assessment — moderate confidence" with the composite score and
+the publication bar. `data-no-cite` keeps it out of citation extraction.
+The `confidenceWarning` publication metadata covers the same band.
+
+**Reserve stays strict** — moderate-tier artifacts publish directly and
+never enter the validated reserve (`certifyForReserve` re-evaluates the
+clean gate and would reject them; the certification path is skipped for the
+tier).
+
+**Floors unchanged**: corpus viability refusal before analyst spend;
+unresolvable severe contradictions; trust < 55; quality < 40; any real
+integrity-check failure (source_depth, citation coverage, density, scenario,
+freshness, sign-off, fatal challenges) still holds.
+
+Default ON — `NOMOSX_ALLOW_MODERATE_PUBLISH=0` opts out.
+
+Tests: funnel-regressions +4 (tier matrix + orchestrator end-to-end:
+trust-62 hold → PUBLISHED with rendered badge). 51 suites / 500 tests.
+
 ## Sprint 36 — Adjudication mandate: contested material is resolved into positions
 
 The S35 live cycle produced two legitimate HELDs whose shared root cause was

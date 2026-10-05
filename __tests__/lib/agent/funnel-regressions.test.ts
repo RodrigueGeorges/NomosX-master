@@ -1,4 +1,4 @@
-import { extractPipelineScores, countWordsHtml } from '@/lib/agent/inquiry-funnel-utils';
+import { extractPipelineScores, countWordsHtml, isModerateTierEligible } from '@/lib/agent/inquiry-funnel-utils';
 import { runAndPublishInquiry } from '@/lib/agent/inquiry-orchestrator';
 import { runInquiryPipeline } from '@/lib/agent/inquiry-pipeline';
 import { evaluatePublicationGate } from '@/lib/agent/publication-gate';
@@ -107,6 +107,67 @@ describe('publication vetoes', () => {
     expect(result.status).toBe(expected);
     expect(prisma.thinkTankPublication.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ status: expected.toUpperCase() }) }));
     if (expected !== 'published') expect(prisma.brief.update).not.toHaveBeenCalled();
+  });
+});
+
+describe('moderate-confidence calibrated tier', () => {
+  const holdOnTrustOnly = {
+    decision: 'hold',
+    checks: [
+      { checkType: 'source_depth', passed: true, score: 30 },
+      { checkType: 'trust_score', passed: false, score: 62 },
+      { checkType: 'citation_coverage', passed: true, score: 80 },
+      { checkType: 'evaluation_freshness', passed: true },
+    ],
+  };
+  it('is eligible when trust_score is the sole gate failure in the moderate band', () => {
+    expect(isModerateTierEligible({
+      gate: holdOnTrustOnly, readiness: { ok: false, failures: ['trustScore 62/100 < 65'] },
+      trustScore: 62, qualityScore: 55, adaptiveMinTrust: 65,
+    })).toBe(true);
+  });
+  it('is NOT eligible when an integrity check also failed (citation coverage)', () => {
+    expect(isModerateTierEligible({
+      gate: { decision: 'hold', checks: [
+        ...holdOnTrustOnly.checks.slice(0, 2),
+        { checkType: 'citation_coverage', passed: false, score: 20 },
+      ] },
+      readiness: { ok: false, failures: ['trustScore 62/100 < 65', 'citationCoverage 20% < 50%'] },
+      trustScore: 62, qualityScore: 55, adaptiveMinTrust: 65,
+    })).toBe(false);
+  });
+  it('is NOT eligible below the viable floor or above the bar', () => {
+    expect(isModerateTierEligible({
+      gate: holdOnTrustOnly, readiness: { ok: false, failures: ['trustScore 40/100 < 65'] },
+      trustScore: 40, qualityScore: 55, adaptiveMinTrust: 65,
+    })).toBe(false);
+    expect(isModerateTierEligible({
+      gate: holdOnTrustOnly, readiness: { ok: true, failures: [] },
+      trustScore: 80, qualityScore: 90, adaptiveMinTrust: 65,
+    })).toBe(false);
+  });
+
+  it('orchestrator publishes a moderate-band piece with a rendered calibration badge', async () => {
+    jest.mocked(runInquiryPipeline).mockResolvedValue({
+      briefId: 'brief', html: '<html><body><article><p>Verified article</p></article></body></html>', format: 'brief',
+      trustScore: 62, qualityScore: 55,
+      stats: { criticalLoop: { finalScore: 62 }, rank: { avgQuality: 90 }, citationFilter: { coverageAfter: 100 } },
+      lineage: {}, inquiry: { id: 'brief', slug: 'test', title: 'Test', question: 'Test question', sources: [] },
+    } as unknown as Awaited<ReturnType<typeof runInquiryPipeline>>);
+    jest.mocked(evaluatePublicationGate).mockReturnValue({
+      decision: 'hold',
+      checks: holdOnTrustOnly.checks,
+      metrics: { citationCoverage: 0.8 },
+      reasons: [], warnings: [],
+    } as unknown as ReturnType<typeof evaluatePublicationGate>);
+    jest.mocked(evaluatePublicationReadiness).mockReturnValue({
+      ok: false, failures: ['trustScore 62/100 < 65'], warnings: [],
+    } as unknown as ReturnType<typeof evaluatePublicationReadiness>);
+    const result = await runAndPublishInquiry({ question: 'A sufficiently detailed question', source: 'manual', verticalId: 'vertical', skipDuplicateCheck: true });
+    expect(result.status).toBe('published');
+    expect(prisma.thinkTankPublication.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ status: 'PUBLISHED', html: expect.stringContaining('Preliminary assessment') }),
+    }));
   });
 });
 

@@ -54,6 +54,57 @@ export interface PipelineScores {
 }
 
 /**
+ * Moderate-confidence calibrated tier.
+ *
+ * The mandate is an argued position, not silence: when every integrity check
+ * passes (sources, citations, scenario, adversarial, freshness) and the ONLY
+ * gate failure is the composite trust bar sitting in the moderate band, the
+ * piece publishes as a labeled preliminary assessment — the calibration badge
+ * is rendered inside the HTML, not buried in metadata.
+ *
+ * What stays a hard floor: evidence absence (source_depth, citation_coverage,
+ * claim density), a broken scenario, stale/missing evaluations, researcher
+ * sign-off, quality < 40 — those hold regardless. The tier only absorbs the
+ * single case where the artifact is honest and defensible but thin.
+ */
+export function isModerateTierEligible(input: {
+  gate: {
+    decision?: string;
+    checks?: Array<{ checkType: string; passed: boolean; score?: number }>;
+  };
+  readiness: { ok?: boolean; failures?: string[] };
+  trustScore: number;
+  qualityScore: number;
+  adaptiveMinTrust: number;
+  minViableTrust?: number;
+}): boolean {
+  const minViable = input.minViableTrust ?? 55;
+  if (input.trustScore < minViable || input.trustScore >= input.adaptiveMinTrust) return false;
+  if (input.qualityScore < 40) return false;
+  // The trust band only applies when the gate held — a clean 'publish' or a
+  // 'revise' is already handled by the normal tiers.
+  if (input.gate.decision !== 'hold') return false;
+  // The hold must actually come FROM the trust bar — a 'hold' with no failed
+  // trust_score check is an inconsistent state; stay held.
+  const checks = input.gate.checks ?? [];
+  if (!checks.some(c => c.checkType === 'trust_score' && !c.passed)) return false;
+  // Every other failed gate check must be a score-band failure, not an
+  // integrity failure: quality_score is allowed while it stays ≥40 (the
+  // gate treats ≥40 as advisory-soft). Anything else failing is real.
+  const failedNonTrust = checks.filter(c =>
+    !c.passed &&
+    c.checkType !== 'trust_score' &&
+    !(c.checkType === 'quality_score' && typeof c.score === 'number' && c.score >= 40)
+  );
+  if (failedNonTrust.length > 0) return false;
+  // Readiness failures confined to the score band are the tier's raison
+  // d'être; coverage/word-count failures are evidence-density — stay held.
+  const substantive = (input.readiness.failures ?? [])
+    .filter(f => !f.startsWith('trustScore') && !f.startsWith('qualityScore'));
+  return substantive.length === 0;
+}
+
+/**
  * Unified score extraction from pipeline stats + brief row.
  * Priority: Critical Loop (composite incl. adversarial) → Devil's Advocate → editorial arbiter → brief.trustScore
  *
