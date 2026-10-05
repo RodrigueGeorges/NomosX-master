@@ -293,7 +293,7 @@ export async function runCriticBlock(deps: CriticBlockDeps): Promise<CriticBlock
             messages: [
               {
                 role: 'system',
-                content: 'You are a surgical revision editor. Return ONLY {"patches":[{"path":["keyFindings",0],"before":"exact existing string","after":"corrected string"}]}. Return at most 24 replacements of existing string fields. Editable roots: title, throughLine, anchoringBasis, causalChain, keyFindings, trajectory, rejectedAlternatives, whatToWatch, evidenceAssessment. Never edit IDs, numeric fields, sourceRef, or metadata. Fix only the stated defects. Every citation in replacement text must refer to supplied evidence and actually support the claim. Do not regenerate the document.',
+                content: 'You are a surgical revision editor. Return ONLY {"patches":[{"path":["keyFindings",0],"before":"exact existing string","after":"corrected string"}]}. Return at most 24 replacements of existing string fields. Editable roots: title, throughLine, anchoringBasis, causalChain, keyFindings, trajectory, rejectedAlternatives, whatToWatch, evidenceAssessment. Never edit IDs, numeric fields, sourceRef, or metadata. Fix only the stated defects. When a defect is a contradiction, ADJUDICATE: keep the better-grounded claim as the position and demote the losing claim to explicitly cited dissent — never silently delete one side. Every citation in replacement text must refer to supplied evidence and actually support the claim. Do not regenerate the document.',
               },
               {
                 role: 'user',

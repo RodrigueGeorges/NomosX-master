@@ -129,6 +129,71 @@ describe('runCritic — auto-attach + composition verdict', () => {
     expect(result.groundedness).toBe(1);
     expect(result.verdict).toBe('repair'); // composition-based, not score-band
   });
+
+  it('returns repair (not reject) when a SEVERE contradiction is adjudicable — one side grounded', async () => {
+    // Same shape as the live bio-governance HELD: high groundedness, a severe
+    // contradiction where the grounded side can become the position. The
+    // mandate is to adjudicate — 'repair' triggers the surgical patch, not
+    // the terminal 'reject' path. Both claims cite the SAME source so the
+    // pair stays a contradiction (not a contestedFinding).
+    const claims = [
+      ...Array.from({ length: 5 }, (_, i) => ({ id: `v${i}`, text: `Malaysia renegotiated rail debt ${i}`, citationTag: '[SRC-1]', kind: 'fact' })),
+      ...Array.from({ length: 15 }, (_, i) => ({ id: `u${i}`, text: `zqxwv flibberty unreleased factorization ${i}`, citationTag: null, sourceIndex: null, kind: 'fact' })),
+    ];
+    mockedLLM.mockResolvedValueOnce({ content: JSON.stringify({ claims }), costUsd: 0.001 } as any);
+    mockedLLM.mockImplementation(async (args: any) => {
+      const c: string = args.messages?.[0]?.content ?? '';
+      if (c.includes('BEST-matching source')) {
+        return { content: JSON.stringify({ results: [] }), costUsd: 0.001 } as any;
+      }
+      if (c.includes('Identify contradictions')) {
+        return { content: JSON.stringify({ contradictions: [
+          { claim1Id: 'v0', claim2Id: 'v1', claim1Text: 'X rose', claim2Text: 'X fell', explanation: 'direct opposition', severity: 'severe' },
+          { claim1Id: 'v2', claim2Id: 'v3', claim1Text: 'Y rose', claim2Text: 'Y fell', explanation: 'direct opposition', severity: 'severe' },
+        ] }), costUsd: 0.001 } as any;
+      }
+      if (c.includes('REPAIR') || c.includes('repair')) {
+        return { content: JSON.stringify({ repairInstructions: 'adjudicate', repairTargetClaims: [] }), costUsd: 0.001 } as any;
+      }
+      const ids = [...c.matchAll(/"id":\s*"([^"]+)"/g)].map(m => m[1]);
+      return { content: JSON.stringify({ results: ids.map(id => ({ id, verdict: 'supported', confidence: 0.9 })) }), costUsd: 0.001 } as any;
+    });
+
+    const result = await runCritic('text', SOURCES, { skipBias: true, skipContradictions: false });
+    expect(result.overallScore).toBeLessThan(40);
+    expect(result.verdict).toBe('repair'); // adjudicable severe → position-taking repair
+  });
+
+  it('returns reject when a SEVERE contradiction is unresolvable — neither side grounded', async () => {
+    // Two uncited gibberish claims in direct severe opposition: no evidence
+    // for either side → floating incoherence → reject stays honest.
+    const claims = [
+      ...Array.from({ length: 5 }, (_, i) => ({ id: `v${i}`, text: `Malaysia renegotiated rail debt ${i}`, citationTag: '[SRC-1]', kind: 'fact' })),
+      ...Array.from({ length: 15 }, (_, i) => ({ id: `u${i}`, text: `zqxwv flibberty unreleased factorization ${i}`, citationTag: null, sourceIndex: null, kind: 'fact' })),
+    ];
+    mockedLLM.mockResolvedValueOnce({ content: JSON.stringify({ claims }), costUsd: 0.001 } as any);
+    mockedLLM.mockImplementation(async (args: any) => {
+      const c: string = args.messages?.[0]?.content ?? '';
+      if (c.includes('BEST-matching source')) {
+        return { content: JSON.stringify({ results: [] }), costUsd: 0.001 } as any;
+      }
+      if (c.includes('Identify contradictions')) {
+        return { content: JSON.stringify({ contradictions: [
+          { claim1Id: 'u0', claim2Id: 'u1', claim1Text: 'gib A', claim2Text: 'gib not-A', explanation: 'direct opposition', severity: 'severe' },
+          { claim1Id: 'u2', claim2Id: 'u3', claim1Text: 'gib B', claim2Text: 'gib not-B', explanation: 'direct opposition', severity: 'severe' },
+        ] }), costUsd: 0.001 } as any;
+      }
+      if (c.includes('REPAIR') || c.includes('repair')) {
+        return { content: JSON.stringify({ repairInstructions: 'fix', repairTargetClaims: [] }), costUsd: 0.001 } as any;
+      }
+      const ids = [...c.matchAll(/"id":\s*"([^"]+)"/g)].map(m => m[1]);
+      return { content: JSON.stringify({ results: ids.map(id => ({ id, verdict: 'supported', confidence: 0.9 })) }), costUsd: 0.001 } as any;
+    });
+
+    const result = await runCritic('text', SOURCES, { skipBias: true, skipContradictions: false });
+    expect(result.overallScore).toBeLessThan(40);
+    expect(result.verdict).toBe('reject'); // unresolvable severe stays fatal
+  });
 });
 
 describe('runCritic — contested findings (corpus disagreement ≠ internal inconsistency)', () => {

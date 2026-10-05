@@ -6,6 +6,50 @@
 
 ---
 
+## Sprint 36 — Adjudication mandate: contested material is resolved into positions
+
+The S35 live cycle produced two legitimate HELDs whose shared root cause was
+editorial, not infrastructural: high-groundedness analyses (91%) rejected on
+internal contradictions. A think-tank publication is *supposed* to take
+positions on contested material — treating every contradiction as a fatal
+defect both misreads the mandate and manufactures avoidable HELDs.
+
+**Detector** (`critic-agent.ts` `CONTRADICTION_PROMPT`) — adjudicated
+tensions are explicitly excluded: "the evidence favors X, though sources
+report Y" / "we assess A despite reports of B" is a stance, not an
+inconsistency. Only pairs the text asserts as simultaneously-true fact
+without acknowledgment or resolution are flagged. Attributed positions
+("source Z maintains P") never contradict the analysis's own assessment.
+
+**Verdict composition** — a `severe` contradiction is now *adjudicable* (→
+`repair`, not `reject`) when at least one side is grounded in the corpus:
+the repair keeps the better-supported claim as the position and demotes the
+losing claim to explicitly cited dissent. Only *unresolvable* severe pairs
+(neither side grounded — floating incoherence) remain fatal.
+`repairableComposition` therefore reads `unresolvableSevere === 0` instead
+of `severeContradictions === 0`. The `accept` band still requires zero
+severe pairs — an accepted piece carries no unresolved severe tension.
+Gate unchanged: a `repair` verdict that fails its recheck still reaches the
+trust caps by score; the change converts avoidable terminal rejects into
+position-taking repair attempts.
+
+**Repair guidance** — contested-finding and contradiction guidance in
+`generateRepairInstructions` now instructs adjudication ("state which the
+weight of evidence supports and why — source quality, recency, methodology,
+consensus breadth") rather than hedge-and-present. The surgical patch
+editor received the same mandate.
+
+**Analyst prompt** — `ADJUDICATION RULE` replaces `ANTI-CONTRADICTION RULE`
+in the editorial north star: conflicting evidence is expected; the analyst
+must (1) state the contested point, (2) weigh the evidence, (3) commit —
+"we assess X because…", (4) cite the dissent. Never assert mutually
+exclusive facts; never report disagreement without a verdict.
+
+Tests: critic-agent +2 (adjudicable severe → repair; unresolvable severe →
+reject). 51 suites / 496 tests, tsc clean.
+
+---
+
 ## Sprint 34 — Deadline-aware escalation + corpus cap + branch evidence binding
 
 External-stack study (Jina node-DeepResearch, LangChain open_deep_research,

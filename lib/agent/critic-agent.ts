@@ -584,7 +584,9 @@ Rules:
 - severity: "minor" (nuance difference), "moderate" (factual disagreement), "severe" (direct contradiction)
 - If no contradictions, return empty array
 
-CRITICAL — temporal scope: a claim about the PRESENT state and a claim about a PROJECTED future are NOT contradictions. "Petrostates depend on oil today" and "petrostates may be diversified economies by 2040" describe a trajectory — the entire point of prospective analysis. Only flag claims that conflict within the SAME temporal scope (both present-fact, or the same horizon).`
+CRITICAL — temporal scope: a claim about the PRESENT state and a claim about a PROJECTED future are NOT contradictions. "Petrostates depend on oil today" and "petrostates may be diversified economies by 2040" describe a trajectory — the entire point of prospective analysis. Only flag claims that conflict within the SAME temporal scope (both present-fact, or the same horizon).
+
+CRITICAL — adjudicated tensions are NOT contradictions: when the analysis commits to a position while acknowledging the competing claim ("the evidence favors X, though sources report Y", "we assess A despite reports of B", "while Z argues P, the weight of evidence supports not-P"), the pair is a legitimate analytical stance — the mandate of a think-tank piece is to take positions on contested material. Only flag pairs where the text asserts BOTH claims as established fact without acknowledging or resolving the tension. A claim describing what a source or actor argues ("source Z maintains P") likewise does not contradict the analysis's own assessment of not-P.`
 
 export async function detectContradictions(claims: AtomicClaim[]): Promise<{ contradictions: ContradictionPair[]; costUsd: number }> {
   if (claims.length < 2) return { contradictions: [], costUsd: 0 };
@@ -752,7 +754,9 @@ DETAILS:
 {details}
 
 Generate repair instructions that the ANALYST agent can follow to fix the analysis.
-IMPORTANT — contestedFindings (when present) are NOT internal contradictions: the corpus itself disagrees. Instruct the analyst to present BOTH positions explicitly with their citations and hedge the synthesis ("sources diverge on X: [SRC-a] reports A, [SRC-b] reports B") — never to silently delete one side.
+IMPORTANT — contestedFindings (when present) are NOT internal contradictions: the corpus itself disagrees. Instruct the analyst to present BOTH positions explicitly with their citations AND then adjudicate — state which position the weight of evidence supports and why (source quality, recency, methodology, consensus breadth). The synthesis must take a position, not merely hedge ("sources diverge on X: [SRC-a] reports A, [SRC-b] reports B; we assess B is better supported because…") — never to silently delete one side.
+
+IMPORTANT — unresolved contradictions: for each pair, instruct the analyst to keep the claim supported by the grounded evidence as the analytical position and demote the losing claim to explicitly cited dissent. The piece must commit to a position on contested material; leaving both claims asserted as fact is the defect, not the disagreement itself.
 
 Return JSON:
 {
@@ -859,8 +863,8 @@ export async function runCritic(
   // with reframing guidance instead.
   const GROUNDED_VERDICTS = new Set(['supported', 'partially_supported', 'derived']);
   const contestedFindings: ContradictionPair[] = [];
+  const claimById = new Map(groundedClaims.map(c => [c.id, c]));
   if (contradictions.length > 0) {
-    const claimById = new Map(groundedClaims.map(c => [c.id, c]));
     contradictions = contradictions.filter(pair => {
       const c1 = claimById.get(pair.claim1Id);
       const c2 = claimById.get(pair.claim2Id);
@@ -986,10 +990,28 @@ export async function runCritic(
   // 40 by citation-tag gaps and moderate tensions is REPAIRABLE — the
   // surgical patch exists precisely for that defect class and costs ~40×
   // less than the re-analysis a premature 'reject' triggers.
-  const severeContradictions = contradictions.filter(c => c.severity === 'severe').length;
+  const severePairs = contradictions.filter(c => c.severity === 'severe');
+  const severeContradictions = severePairs.length;
   const highBiases = biases.filter(b => b.severity === 'high').length;
   const fatalRate = totalClaims > 0 ? (groundingStats.unsupported + groundingStats.contradicted) / totalClaims : 0;
-  const repairableComposition = groundedness >= 0.65 && fatalRate <= 0.12 && severeContradictions === 0 && highBiases === 0;
+  // NomosX adjudication mandate: a severe contradiction is REPAIRABLE (not
+  // fatal) when at least one side is grounded in the corpus — the repair can
+  // take the position the evidence supports and demote the losing claim to
+  // cited dissent ("sources X report Y, but the weight of evidence favors
+  // not-Y"). A think-tank piece is SUPPOSED to take positions on contested
+  // material; contradictions only become unresolvable when NEITHER side has
+  // any evidence (floating incoherence) — that stays fatal.
+  const unresolvableSevere = severePairs.filter(pair => {
+    const c1 = claimById.get(pair.claim1Id);
+    const c2 = claimById.get(pair.claim2Id);
+    const g1 = c1 != null && GROUNDED_VERDICTS.has(c1.verdict);
+    const g2 = c2 != null && GROUNDED_VERDICTS.has(c2.verdict);
+    return !g1 && !g2;
+  }).length;
+  if (severeContradictions > 0) {
+    console.log(`[Critic] ${severeContradictions} severe contradiction(s): ${severeContradictions - unresolvableSevere} adjudicable (≥1 side grounded), ${unresolvableSevere} unresolvable`);
+  }
+  const repairableComposition = groundedness >= 0.65 && fatalRate <= 0.12 && unresolvableSevere === 0 && highBiases === 0;
   let verdict: CriticVerdict;
   if (overallScore >= 75 && severeContradictions === 0 && highBiases === 0) {
     verdict = 'accept';
@@ -1006,8 +1028,8 @@ export async function runCritic(
     const details = JSON.stringify({
       unsupportedClaims: groundedClaims.filter(c => c.verdict === 'unsupported').map(c => ({ id: c.id, text: c.text, reasoning: c.reasoning })),
       contradictedClaims: groundedClaims.filter(c => c.verdict === 'contradicted').map(c => ({ id: c.id, text: c.text, evidence: c.evidence })),
-      contradictions: contradictions.map(c => ({ claim1: c.claim1Text, claim2: c.claim2Text, explanation: c.explanation })),
-      contestedFindings: contestedFindings.map(c => ({ claim1: c.claim1Text, claim2: c.claim2Text, explanation: c.explanation, guidance: 'Corpus disagreement — present both positions with citations, hedge the synthesis' })),
+      contradictions: contradictions.map(c => ({ claim1: c.claim1Text, claim2: c.claim2Text, explanation: c.explanation, guidance: 'Unresolved contradiction — ADJUDICATE: keep the claim the grounded evidence supports as the position, rewrite the losing claim as explicitly cited dissent ("sources report Y [SRC-n], but we assess X because…"). Never silently delete one side and never leave both asserted as fact.' })),
+      contestedFindings: contestedFindings.map(c => ({ claim1: c.claim1Text, claim2: c.claim2Text, explanation: c.explanation, guidance: 'Corpus disagreement — present both positions with citations, then TAKE A POSITION: state which the weight of evidence favors and why (source quality, recency, methodology). A think tank commits; it does not merely hedge.' })),
       biases: biases.map(b => ({ type: b.type, description: b.description, mitigation: b.mitigation })),
       citationIssues: citationIssues.map(i => ({ claim: i.claimId, issue: i.issue, explanation: i.explanation })),
     }, null, 2);
