@@ -28,6 +28,25 @@ it('axios rejects work resumed inside an aborted scope before reaching the adapt
   expect(adapter).not.toHaveBeenCalled();
 });
 
+it('fetch rejects inside an aborted scope without touching unscoped calls', async () => {
+  const parent = new AbortController();
+  await withExecutionSignal(parent.signal, async () => {
+    parent.abort(new Error('lease lost'));
+    // Both signatures: URL string and Request object — the scope signal must
+    // throw synchronously before any socket opens (undici resolves data: URLs
+    // offline, so the unscoped pass-through below proves it is untouched).
+    expect(() => fetch('data:text/plain,x')).toThrow('lease lost');
+    expect(() => fetch(new Request('data:text/plain,x'))).toThrow('lease lost');
+  });
+  // Outside any scope the wrapper is a pass-through: the call reaches the
+  // underlying fetch — which resolves offline, or fails with the offline-test
+  // stub's OWN error (not a scope/lease error). Either proves non-interference.
+  let outcome: string;
+  try { await fetch('data:text/plain,x'); outcome = 'resolved'; }
+  catch (e) { outcome = String((e as Error)?.message ?? e); }
+  expect(outcome).toMatch(/resolved|Network disabled/);
+});
+
 it('enforces elapsed deadlines even before the timer callback runs', async () => {
   const now = Date.now();
   const clock = jest.spyOn(Date, 'now').mockReturnValue(now);

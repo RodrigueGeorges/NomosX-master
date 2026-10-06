@@ -21,7 +21,10 @@ observed driving scout+index+DB writes for ~17h post-mortem. Now
 queries, reader batches, ORCID batches, foresight ticks, index/embed/dedupe
 transitions), a global axios request-interceptor injects the execution
 signal into the ~50 providers + PDF reader that bypassed http-client (via
-`createRequire` so it binds the CJS instance too), and `global-science`
+`createRequire` so it binds the CJS instance too), a `globalThis.fetch`
+wrapper does the same for the ~23 fetch-based providers/agent modules —
+unscoped calls (Next routes, scripts) pass through untouched — and
+`global-science`
 re-asserts after `Promise.allSettled` — allSettled absorbs callback
 rejections, so an abort must be re-thrown at the boundary or cancellation
 collapses into `[]`.

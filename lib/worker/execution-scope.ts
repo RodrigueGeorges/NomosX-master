@@ -244,3 +244,29 @@ try {
   const axiosInstance = axiosModule?.default ?? axiosModule;
   bindAxiosExecution(axiosInstance);
 } catch { /* axios absent in this bundle — scoped callers all use http-client */ }
+
+// ── Global fetch guard ──────────────────────────────────────────────────────
+// ~23 providers/agent modules use bare fetch (undici) — same zombie class as
+// axios: requests kept running after their scope died. Wrap globalThis.fetch
+// once: calls INSIDE an execution scope get the scope's signal merged into
+// init.signal (pre-aborted scopes reject before any socket opens); calls with
+// no active scope (Next routes, scripts) pass through untouched.
+{
+  const nativeFetch = globalThis.fetch;
+  if (typeof nativeFetch === 'function' && !(nativeFetch as { __executionScoped?: boolean }).__executionScoped) {
+    const scopedFetch: typeof fetch = (input: any, init?: any) => {
+      const signal = getExecutionSignal();
+      if (!signal) return nativeFetch(input, init);
+      signal.throwIfAborted();
+      const caller: AbortSignal | undefined = init?.signal
+        ?? (typeof Request !== 'undefined' && input instanceof Request ? input.signal : undefined);
+      const merged = caller ? AbortSignal.any([signal, caller]) : signal;
+      if (typeof Request !== 'undefined' && input instanceof Request) {
+        return nativeFetch(new Request(input, { signal: merged }), init);
+      }
+      return nativeFetch(input, { ...init, signal: merged });
+    };
+    (scopedFetch as { __executionScoped?: boolean }).__executionScoped = true;
+    globalThis.fetch = scopedFetch;
+  }
+}
