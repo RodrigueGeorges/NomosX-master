@@ -83,6 +83,18 @@ breaker suspensions persist with the suspension TTL (were written with the
 through the bounded cancellable `httpGet`; 10min per-feed failure cooldown
 (a dead Google News endpoint was burning ~30 × 15s per run).
 
+**Live-validation catch** (`http-client.ts`) — the free rehearsal run
+exposed a real regression introduced in this sprint: `setGlobalDispatcher(
+new Agent({allowH2:false}))` bridged npm-undici-7's Agent into Node's
+internal undici fetch via the legacy dispatcher symbol — cross-version
+dispatch rejects POSTs carrying an explicit `content-length`
+("invalid content-length header" → OpenAI SDK "Connection error"), which
+killed every freepool LLM call and auto-suspended the provider. Removed:
+the default dispatcher is already HTTP/1.1 (h2 is opt-in), so the guard
+had never protected anything. Also covered: bare `fetch` now merges the
+execution signal via `init.signal` (Request inputs rebuilt with `duplex`
+preserved — undici does not inherit it).
+
 **Build** (`next.config.mjs`) — `@temporalio/*` added to
 `serverExternalPackages`: the worker ships a webpack/swc workflow bundler
 with native deps that Turbopack traced through dynamic imports, breaking

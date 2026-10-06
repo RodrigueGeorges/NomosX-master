@@ -9,16 +9,15 @@
 
 import { env } from './env';
 import pLimit from 'p-limit';
-import { Agent, setGlobalDispatcher } from 'undici';
 import { getExecutionSignal, consumeExecutionBudget, consumeRootBudget } from './worker/execution-scope';
 
-// Force HTTP/1.1 process-wide. Undici's HTTP/2 path has a known bug where a
-// remote close emits an unhandled 'error' on the internal ClientHttp2Stream
-// (UND_ERR_SOCKET) — it bypasses request-level promise rejection and crashes
-// the whole process mid-run. HTTP/1.1 keeps the same fetch surface, loses
-// nothing we use (no request multiplexing matters here), and removes the
-// entire failure class.
-setGlobalDispatcher(new Agent({ allowH2: false }));
+// NOTE: do NOT install a custom global dispatcher (e.g. setGlobalDispatcher(
+// new Agent({allowH2:false}))). The npm undici Agent bridges into Node's
+// INTERNAL undici fetch via the legacy dispatcher symbol — a cross-version
+// dispatch that rejects POSTs carrying an explicit content-length
+// ("invalid content-length header" → OpenAI SDK "Connection error" against
+// Groq/NVIDIA, observed live). The default dispatcher is already HTTP/1.1
+// (allowH2 is opt-in), so the guard removed nothing anyway.
 
 // ================================
 // GLOBAL IN-FLIGHT BOUND

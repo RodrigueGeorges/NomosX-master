@@ -262,9 +262,16 @@ try {
         ?? (typeof Request !== 'undefined' && input instanceof Request ? input.signal : undefined);
       const merged = caller ? AbortSignal.any([signal, caller]) : signal;
       if (typeof Request !== 'undefined' && input instanceof Request) {
-        return nativeFetch(new Request(input, { signal: merged }), init);
+        // Rebuild preserving `duplex` — undici does NOT inherit it from the
+        // input Request and streamed SDK bodies die with a bare "fetch
+        // failed" (observed: OpenAI SDK → Groq/NVIDIA under the custom
+        // global dispatcher).
+        const init2 = { ...(init ?? {}), signal: merged } as RequestInit & { duplex?: 'half' };
+        const inputDuplex = (input as Request & { duplex?: 'half' }).duplex;
+        if (inputDuplex) init2.duplex = inputDuplex;
+        return nativeFetch(new Request(input, init2));
       }
-      return nativeFetch(input, { ...init, signal: merged });
+      return nativeFetch(input, { ...(init ?? {}), signal: merged });
     };
     (scopedFetch as { __executionScoped?: boolean }).__executionScoped = true;
     globalThis.fetch = scopedFetch;
