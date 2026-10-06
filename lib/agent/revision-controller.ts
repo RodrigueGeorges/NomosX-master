@@ -138,14 +138,27 @@ function repairCentralScenario(
     else next = html + '\n' + block;
   }
 
-  // Guard: the repaired block must re-parse complete AND match the decision.
+  // Guard: the repaired block must re-parse complete AND match the decision
+  // on EVERY field the gate compares — the previous name+rationale-only guard
+  // could report a successful repair while the gate still hard-failed on
+  // description/horizon/implications/triggers drift.
   const rendered = parseEditorialInquiry(next)?.centralScenario;
-  const normalize = (t: string) => t.replace(/\[(?:SRC|E)-\d+\]/g, '').replace(/\s+/g, ' ').trim();
+  const normalize = (t: string) => t
+    .replace(/\[(?:SRC-?|E-?)\d+\]/g, '')
+    .replace(/[‘’ʼ]/g, "'")
+    .replace(/[“”]/g, '"')
+    .replace(/\s+([.,;:!?])/g, '$1')
+    .replace(/\s+/g, ' ')
+    .trim();
   const ok = !!rendered?.name && !!rendered.description && !!rendered.rationale
     && !!rendered.horizon && !!rendered.confidence
     && rendered.implications.length > 0 && rendered.revisionTriggers.length > 0
     && normalize(rendered.name) === normalize(central.name)
-    && normalize(rendered.rationale) === normalize(central.rationale);
+    && normalize(rendered.description) === normalize(central.description)
+    && normalize(rendered.rationale) === normalize(central.rationale)
+    && normalize(rendered.horizon) === normalize(central.horizon)
+    && normalize(rendered.implications.join(' ')) === normalize(central.implications.join(' '))
+    && normalize(rendered.revisionTriggers.join(' ')) === normalize(central.revisionTriggers.join(' '));
   return ok ? { html: next, changed: next !== html } : { html, changed: false };
 }
 
@@ -357,6 +370,12 @@ export async function reviseForGate(input: RevisionInput): Promise<RevisionResul
  *  evidence itself is the problem; the topic needs replacement, not edits. */
 const EVIDENCE_BOUND_CHECKS = new Set(['source_depth']);
 
+/** Checks a same-corpus rewrite cannot fix because the artifact re-renders
+ *  identically — central_scenario is a render-vs-decision consistency check
+ *  owned by the deterministic re-render resolver. Observed live: both paid
+ *  items burned a full ~25–35min regen on a pure render-drift failure. */
+const RENDER_BOUND_CHECKS = new Set(['central_scenario', 'evaluation_freshness']);
+
 export interface RegenDecision {
   regenerate: boolean;
   reason: string;
@@ -388,12 +407,20 @@ export function shouldRegenerate(args: {
     return { regenerate: false, reason: `trust ${gate.metrics.trustScore} < 40 — corpus cannot support claims` };
   }
 
-  const substance = failed.size > 0
+  const actionable = [...failed].filter(c => !RENDER_BOUND_CHECKS.has(c));
+  const substance = actionable.length > 0
     || (args.devilsAdvocate?.fatalChallenges ?? 0) > 0
     || (args.devilsAdvocate?.publishabilityScore ?? 100) < 50
     || args.qualityScore < 65;
-  if (!substance) return { regenerate: false, reason: 'no actionable substance failure' };
-  return { regenerate: true, reason: `substance failure: ${[...failed].join(',') || 'readiness'}` };
+  if (!substance) {
+    return {
+      regenerate: false,
+      reason: failed.size > 0
+        ? `only render-bound failure(s): ${[...failed].join(',')} — deterministic resolvers own these`
+        : 'no actionable substance failure',
+    };
+  }
+  return { regenerate: true, reason: `substance failure: ${actionable.join(',') || 'readiness'}` };
 }
 
 /** Monotone witness for the escalation loop: a regenerated artifact is

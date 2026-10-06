@@ -152,6 +152,23 @@ describe('claimNextJob', () => {
 });
 
 describe('executeJob', () => {
+  test('does not finalize a resumed handler after local lease expiry before timers fire', async () => {
+    const now = Date.now();
+    const clock = jest.spyOn(Date, 'now').mockReturnValue(now);
+    registerJobHandler('T_RESUME', async () => {
+      clock.mockReturnValue(now + 1001);
+      return { ok: true };
+    });
+    mocked.updateMany.mockResolvedValue({ count: 1 });
+    try {
+      const out = await executeJob({ id: 'j1', type: 'T_RESUME', payload: {}, correlationId: 'c', attempts: 1, reclaims: 0, maxRetries: 1 }, 'w1', 1000);
+      expect(out).toBe('lost');
+      expect(mocked.updateMany).not.toHaveBeenCalled();
+      expect(mocked.deadLetter).not.toHaveBeenCalled();
+    } finally {
+      clock.mockRestore();
+    }
+  });
   test('completes and clears the lock', async () => {
     registerJobHandler('T_OK', async () => ({ ok: true }));
     mocked.updateMany.mockResolvedValue({ count: 1 } as never);

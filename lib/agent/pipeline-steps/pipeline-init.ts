@@ -11,6 +11,7 @@
  * orchestrator body read/write the SAME fields.
  */
 import { prisma } from '../../db';
+import { recordExecutionCost } from '../../worker/execution-scope';
 import { isEditorialV2Enabled, getPipelineMaxBudgetUsd } from '../editorial-config';
 import { PipelineContext } from '../pipeline-context';
 import { activeRuns } from './public-ops';
@@ -336,7 +337,8 @@ export async function runPipelineInit(query: string, opts: PipelineCoreOptions) 
   // Witness directive — metacognitive observer can cut optional phases mid-run.
   // 'reduce_scope' skips self-play + devil's advocate; 'abort' also cuts debate/deliberation.
   function addCost(amount: number | undefined, stepName: string) {
-    if (typeof amount === "number" && amount > 0) {
+    if (typeof amount === "number" && Number.isFinite(amount) && amount > 0) {
+      recordExecutionCost(amount);
       cost.runningCostUsd += amount;
       // Cost-aware early exit: at 80% budget, degrade gracefully
       if (!cost.budgetDegraded && cost.runningCostUsd > maxBudget * 0.8) {

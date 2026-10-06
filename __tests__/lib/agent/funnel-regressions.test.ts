@@ -43,6 +43,13 @@ beforeEach(() => {
 afterEach(() => jest.restoreAllMocks());
 
 describe('trust propagation', () => {
+  it.each([{ skipped: true }, { error: 'unavailable' }, { evaluationComplete: false }])('excludes invalid DA scores from all blends: %j', flags => {
+    const stats = { rank: { avgQuality: 60 }, citationFilter: { coverageAfter: 50 } };
+    const baseline = extractPipelineScores(stats, {}, { trustScore: 62, qualityScore: 60 });
+    const invalid = { publishabilityScore: 100, verdict: 'publish', ...flags };
+    expect(extractPipelineScores({ ...stats, devilsAdvocate: invalid }, {}, { trustScore: 62, qualityScore: 60 })).toEqual(baseline);
+    expect(extractPipelineScores(stats, { devilsAdvocate: invalid }, { trustScore: 62, qualityScore: 60 })).toEqual(baseline);
+  });
   it.each([0, 1, 40, 50, 55, 65, 90])('preserves terminal trust %s across repeated extraction', (score) => {
     const stats = { criticalLoop: { finalScore: score }, rank: { avgQuality: 90 }, citationFilter: { coverageAfter: 100 } };
     const first = extractPipelineScores(stats, {}, { trustScore: score, qualityScore: 90 });
@@ -65,7 +72,7 @@ describe('cited-source quality proxy', () => {
       critic: { overallScore: 71 },
       structuralEditor: { overallStructure: 76 },
     };
-    const scores = extractPipelineScores(stats, { devilsAdvocate: { publishabilityScore: 100 } }, null);
+    const scores = extractPipelineScores(stats, { devilsAdvocate: { publishabilityScore: 100, verdict: 'publish', evaluationComplete: true } }, null);
     // cited avg 86 (≥78 → no coverage boost); blend = 86*.5 + 71*.1 + 76*.25 + 100*.15 = 84.1 → 84
     expect(scores.qualityScore).toBe(84);
   });
@@ -206,5 +213,17 @@ describe('numerical sanitation', () => {
   });
   it('still removes unsourced empirical numbers', () => {
     expect(sanitizeUnsourcedNumbers('<p>Measured growth was 42%.</p>').sanitized).toBe(1);
+  });
+  it('localizes the replacement marker — no French text in English artifacts', () => {
+    const en = sanitizeUnsourcedNumbers('<p>Measured growth was 42% across the sector.</p>').html;
+    expect(en).toContain('not established');
+    expect(en).not.toContain('non établie');
+    // French artifact keeps the French marker. Pad with enough French content
+    // words to cross the 6% detection threshold.
+    const fr = sanitizeUnsourcedNumbers(
+      '<p>La croissance mesurée dans le secteur était de 42% selon les données, et la tendance que nous observons dans ces résultats confirme que cette progression est réelle pour les acteurs sur le terrain.</p>',
+    ).html;
+    expect(fr).toContain('non établie');
+    expect(fr).not.toContain('not established');
   });
 });

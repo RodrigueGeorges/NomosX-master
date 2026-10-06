@@ -131,6 +131,12 @@ export function resolveCentralScenario(
   const names = position.scenarios.map(s => s.name.trim().toLowerCase());
   if (names.some(name => !name) || new Set(names).size !== names.length) return undefined;
   const requested = position.dominantScenario?.trim().toLowerCase();
+  // Deliberately exact-after-normalization: a partial or extended label that
+  // could match several scenarios ("Stagflation trap" vs "…in Europe" /
+  // "…worldwide", or "Not Central") must NOT be promoted to an explicit
+  // editorial choice — it degrades to probability_fallback, which the gate
+  // flags as "requires an explicit editorial choice" rather than silently
+  // endorsing the arbiter's guess.
   const editorial = position.scenarios.find(s => s.name.trim().toLowerCase() === requested);
   const probability = (s: ScenarioOutlook): number => {
     if (typeof s.calibratedProbability === 'number' && Number.isFinite(s.calibratedProbability)

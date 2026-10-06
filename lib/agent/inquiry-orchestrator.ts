@@ -14,7 +14,7 @@ import type { Prisma } from "@prisma/client";
 import { randomUUID } from 'node:crypto';
 import { certifyForReserve, releaseReservedPublication } from './publication-reserve';
 import { prisma, withDbRetry } from "@/lib/db";
-import { assertExecutionActive, getExecutionSignal, withExecutionDeadline, withExecutionDetached } from '@/lib/worker/execution-scope';
+import { assertExecutionActive, getExecutionDeadlineAt, getExecutionSignal, withExecutionDeadline, withExecutionDetached } from '@/lib/worker/execution-scope';
 import {
   runInquiryPipeline,
   type InquiryPipelineResult,
@@ -25,6 +25,7 @@ import {
   countWordsHtml,
   depthToPublicationType,
   extractPipelineScores,
+  getCompletedAdversarialEvaluation,
   getPipelineCostUsd,
   isModerateTierEligible,
 } from "./inquiry-funnel-utils";
@@ -383,7 +384,9 @@ export async function runAndPublishInquiry(
 
   // 3. Pipeline
   let pipeline: InquiryPipelineResult;
-  const executionId = randomUUID();
+  // A caller-supplied executionId (dispatcher) wins so the outer scope can
+  // reconcile spend from PipelineRun.steps when it kills this call mid-flight.
+  const executionId = req.pipelineOptions?.executionId ?? randomUUID();
   let seedSourceIds = req.seedSourceIds;
   // HELD-retry: do NOT seed from the signal — ≥8 seeds skip the scout
   // entirely, which would rerun on the exact corpus that already failed.
@@ -487,9 +490,10 @@ export async function runAndPublishInquiry(
     const aSourceIds = p.inquiry.sources.map((s) => s.id);
     const aPubType = depthToPublicationType(depth, p.format);
 
-    const aDa = (p.lineage.devilsAdvocate ?? p.stats.devilsAdvocate) as
-      | Record<string, unknown>
-      | undefined;
+    const rawDa = (p.stats.devilsAdvocate ?? p.lineage.devilsAdvocate) as Record<string, unknown> | undefined;
+    const aDa = getCompletedAdversarialEvaluation(p.stats, p.lineage);
+    const optionalDa = req.pipelineOptions?.enableDevilsAdvocate === false
+      && (!rawDa || (rawDa.skipped === true && !rawDa.error && rawDa.evaluationComplete !== false));
     const aFatal = (aDa?.fatalChallenges as number) ?? 0;
 
     let aSignOff: SignOffResult | undefined;
@@ -531,9 +535,15 @@ export async function runAndPublishInquiry(
       // P0/1: verdict evals attached to a replaced artifact version are invalid
       // — the gate hard-fails rather than publish on a stale verdict.
       staleEvaluations: (p.stats.evaluationFreshness as { verdictStale?: string[] } | undefined)?.verdictStale ?? [],
+      // A deliberate skip (LAS pool-too-thin, budget guard, free-tier option)
+      // is NOT a failed evaluation — counting it hard-failed every run that
+      // hit the 80% DA budget guard with `evaluation_availability`, turning a
+      // resource decision into a guaranteed hold. Only error/incomplete
+      // verdicts are failures (S37 doctrine).
       failedEvaluations: ['critic', 'criticPanel', 'devilsAdvocate', 'structuralEditor'].filter(key => {
-        const evaluation = p.stats[key] as Record<string, unknown> | undefined;
-        return !!evaluation?.error || evaluation?.evaluationComplete === false || (key === 'devilsAdvocate' && evaluation?.skipped === true);
+        if (key === 'devilsAdvocate') return !aDa && !optionalDa;
+        const evaluation = (p.stats[key] ?? p.lineage[key]) as Record<string, unknown> | undefined;
+        return !!evaluation?.error || evaluation?.evaluationComplete === false;
       }),
     };
 
@@ -623,11 +633,18 @@ export async function runAndPublishInquiry(
         trustScore: assessment.scores.trustScore,
       });
       // Time guard: a seeded regeneration skips the scout (the slowest phase)
-      // and rides the reader cache — it needs ~20-25min, not a full pipeline
-      // run. Only skip when the ~90min item window genuinely cannot fit it.
+      // and rides the reader cache — it still needs ~25-35min for council +
+      // Delphi + render + evals. Judge feasibility against the REAL parent
+      // deadline, not a static elapsed threshold: a regen launched with less
+      // headroom reliably dies mid-eval and wastes its whole spend.
       const elapsedMs = Date.now() - started;
-      if (regen.regenerate && elapsedMs > 65 * 60 * 1000) {
-        console.log(`[InquiryOrchestrator] REGEN skipped: ${Math.round(elapsedMs / 60000)}min elapsed — no dispatch headroom`);
+      const parentDeadlineEarly = getExecutionDeadlineAt();
+      const parentHeadroomMs = parentDeadlineEarly
+        ? parentDeadlineEarly - Date.now()
+        : 95 * 60_000 - elapsedMs;
+      const MIN_REGEN_WINDOW_MS = 40 * 60 * 1000;
+      if (regen.regenerate && parentHeadroomMs < MIN_REGEN_WINDOW_MS) {
+        console.log(`[InquiryOrchestrator] REGEN skipped: ${Math.round(parentHeadroomMs / 60000)}min parent headroom — needs ~40min (regen ≤35min + persist tail)`);
       } else if (regen.regenerate) {
         const feedback = buildFailureFeedback({
           gate: assessment.gate,
@@ -644,7 +661,12 @@ export async function runAndPublishInquiry(
         // showed 25min dies mid-DA (council + Delphi + render + evals ≈
         // 30-35min on paid models); on expiry the abort unwinds only the
         // child scope and the original result persists, with salvage.
-        const regenBudgetMs = Math.min(35 * 60 * 1000, Math.max(8 * 60_000, 95 * 60_000 - elapsedMs));
+        // Derive the cap from the REAL parent deadline (the dispatch scope),
+        // not a hardcoded 95min envelope — the observed 25min expiry came from
+        // exactly this mismatch: the formula authorised a regen the actual
+        // parent scope could not host. Reserve 5min for the gate+persist tail
+        // of the ORIGINAL artifact after the regen returns.
+        const regenBudgetMs = Math.min(35 * 60 * 1000, Math.max(8 * 60_000, parentHeadroomMs - 5 * 60_000));
         const regenStarted = Date.now();
         const regenExecutionId = randomUUID();
         let regenPipeline: Awaited<ReturnType<typeof runInquiryPipeline>> | null = null;

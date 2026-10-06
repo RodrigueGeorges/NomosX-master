@@ -1,6 +1,9 @@
 import { runRankAndEnrichment, type RankEnrichmentDeps } from '@/lib/agent/pipeline-steps/rank-enrichment';
 import { runScoutEnrichmentAndIndex, type ScoutEnrichmentIndexDeps } from '@/lib/agent/pipeline-steps/scout-enrichment-index';
 import { assessEvidenceSufficiency } from '@/lib/agent/enrichment-reasoner';
+import { withExecutionSignal } from '@/lib/worker/execution-scope';
+import { embedSourcesBatch } from '@/lib/agent/semantic-engine';
+import { deduplicateSources } from '@/lib/agent/index-agent';
 import { runClassificationGates, type ClassificationGatesDeps } from '@/lib/agent/pipeline-steps/classification-gates';
 
 jest.mock('@/lib/db', () => ({ prisma: {} }));
@@ -18,6 +21,25 @@ beforeEach(() => {
   jest.spyOn(console, 'warn').mockImplementation(() => {});
 });
 afterEach(() => jest.restoreAllMocks());
+
+it.each(['index', 'embed'])('does not advance to another enrichment phase after cancellation during %s', async phase => {
+  const controller = new AbortController();
+  const deps = {
+    allSourceIds: ['a', 'b', 'c', 'd', 'e'], stats: {}, scoutCkpt: true, label: 'Test',
+    index: jest.fn(async () => {
+      if (phase === 'index') controller.abort(new Error('lease lost'));
+      return {};
+    }),
+  } as unknown as ScoutEnrichmentIndexDeps;
+  jest.mocked(embedSourcesBatch).mockImplementationOnce(async () => {
+    controller.abort(new Error('lease lost'));
+    return { embedded: 0, skipped: 0 } as never;
+  });
+  await expect(withExecutionSignal(controller.signal, () => runScoutEnrichmentAndIndex(deps))).rejects.toThrow('lease lost');
+  if (phase === 'index') expect(embedSourcesBatch).not.toHaveBeenCalled();
+  expect(deduplicateSources).not.toHaveBeenCalled();
+  jest.mocked(embedSourcesBatch).mockReset();
+});
 
 it('skips upstream enrichment and reindexing for a fixed corpus', async () => {
   const deps = { allSourceIds: ['a'], stats: {}, scout: jest.fn(), index: jest.fn(), skipRetrieval: true } as unknown as ScoutEnrichmentIndexDeps;

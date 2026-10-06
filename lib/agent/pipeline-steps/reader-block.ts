@@ -11,6 +11,7 @@
  */
 
 import { prisma } from '../../db';
+import { assertExecutionActive } from '../../worker/execution-scope';
 import { selfCorrectReader } from '../self-correction-integration';
 import type { PipelineStep } from '../pipeline-progress';
 import type { DomainExpertise } from '../researcher-kb/index';
@@ -113,6 +114,9 @@ export async function runReaderBlock(deps: ReaderBlockDeps): Promise<ReaderBlock
     const { readerAgentV3 } = await import('../reader-agent-v3');
     const fresh: any[] = [];
     for (let b = 0; b < sourcesToRead.length; b += READER_BATCH) {
+      // Dead scope → stop extracting: a timed-out run was observed marching
+      // through every remaining batch before unwinding.
+      assertExecutionActive();
       const batchIdx = b / READER_BATCH;
       const slice = sourcesToRead.slice(b, b + READER_BATCH);
       // Batch names carry a corpus fingerprint: with priorReadings reuse the

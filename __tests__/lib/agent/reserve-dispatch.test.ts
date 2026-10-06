@@ -8,6 +8,8 @@
 import { executeDispatchQueue, type ThinkTankDispatchItem, type CadenceState } from '@/lib/agent/think-tank-dispatcher';
 import { runAndPublishInquiry } from '@/lib/agent/inquiry-orchestrator';
 import { prisma } from '@/lib/db';
+import { recordSpend } from '@/lib/agent/budget-manager';
+import { recordExecutionCost } from '@/lib/worker/execution-scope';
 
 jest.mock('@/lib/agent/inquiry-orchestrator', () => ({
   runAndPublishInquiry: jest.fn(),
@@ -46,9 +48,59 @@ function result(over: Record<string, unknown>) {
 
 const RESERVE_MISS = result({ status: 'failed', error: 'No fresh validated publication available in reserve' });
 
-beforeEach(() => jest.clearAllMocks());
+beforeEach(() => {
+  jest.clearAllMocks();
+  run.mockReset();
+  jest.mocked(recordSpend).mockReset().mockResolvedValue(undefined);
+});
 
 describe('reserve-first dispatch', () => {
+  it('does not finish or checkpoint an item before its spend write completes', async () => {
+    let finish!: () => void;
+    const write = new Promise<void>(resolve => { finish = resolve; });
+    jest.mocked(recordSpend).mockReturnValueOnce(write);
+    run.mockResolvedValueOnce(RESERVE_MISS)
+      .mockResolvedValueOnce(result({ status: 'held', costUsd: 0.4 }))
+      .mockResolvedValueOnce(RESERVE_MISS);
+    let completed = false;
+    const pending = executeDispatchQueue([item], cadence, 1, false).then(out => { completed = true; return out; });
+    try {
+      await new Promise(resolve => setTimeout(resolve, 30));
+      expect(recordSpend).toHaveBeenCalled();
+      expect(completed).toBe(false);
+    } finally {
+      finish();
+      await pending;
+    }
+  });
+
+  it('stops dispatching when the spend write fails', async () => {
+    jest.mocked(recordSpend).mockRejectedValueOnce(new Error('ledger write unavailable'));
+    run.mockResolvedValueOnce(RESERVE_MISS)
+      .mockResolvedValueOnce(result({ status: 'held', costUsd: 0.4 }))
+      .mockResolvedValueOnce(RESERVE_MISS);
+    await expect(executeDispatchQueue([item, { ...item, signalId: 'sig-2' }], cadence, 2, false))
+      .rejects.toThrow('ledger write unavailable');
+    expect(run).toHaveBeenCalledTimes(3);
+  });
+
+  it('banks reported work when the dispatch deadline expires before database persistence', async () => {
+    const now = Date.now();
+    const clock = jest.spyOn(Date, 'now').mockReturnValue(now);
+    run.mockResolvedValueOnce(RESERVE_MISS).mockImplementationOnce(async () => {
+      recordExecutionCost(0.7);
+      clock.mockReturnValue(now + 300 * 60_000);
+      return result({ status: 'held', costUsd: 0 });
+    }).mockResolvedValueOnce(RESERVE_MISS);
+    try {
+      const out = await executeDispatchQueue([item], cadence, 1, false);
+      expect(out.failed).toBe(1);
+      expect(out.totalCostUsd).toBeCloseTo(0.7);
+      expect(recordSpend).toHaveBeenCalledWith(0.7, 'pipeline', expect.any(String));
+    } finally {
+      clock.mockRestore();
+    }
+  });
   it('fills the slot from a topic-matched certified artifact for $0 — no pipeline run', async () => {
     run.mockResolvedValueOnce(result({
       status: 'published', publicationId: 'pub-1', signalId: 'sig-1',

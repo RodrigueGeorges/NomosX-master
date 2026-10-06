@@ -34,6 +34,7 @@
  */
 
 import { callLLM } from '../llm/unified-llm';
+import { assertExecutionActive } from '../worker/execution-scope';
 import { parseJson } from './json-utils';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -778,6 +779,7 @@ export async function runIntelligentScout(
 
   while (iteration < config.maxIterations) {
     iteration++;
+    assertExecutionActive();
     if (Date.now() - startTime > SCOUT_WALL_BUDGET_MS) {
       console.warn(`[IntelligentScout] Wall-clock budget ${SCOUT_WALL_BUDGET_MS / 60000}min exhausted at iteration ${iteration} — stopping with ${allSources.length} sources`);
       break;
@@ -793,6 +795,7 @@ export async function runIntelligentScout(
     const lensSources: IntelligentScoutResult['allSources'] = [];
 
     for (const query of lens.queries) {
+      assertExecutionActive();
       if (Date.now() - startTime > SCOUT_WALL_BUDGET_MS) break;
       try {
         const results = await searchFn(query, lens.providers, perProvider);

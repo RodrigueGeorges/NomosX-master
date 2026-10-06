@@ -170,7 +170,8 @@ export function backfillCitationsFromAnalysis(
 // ─── 2. NUMBER SANITIZATION ─────────────────────────────────────────────────
 /**
  * Scan HTML for statistical numbers without [SRC-N] within 100 chars.
- * Replace unsourced numbers with "non établie" (Invariant 6).
+ * Replace unsourced numbers with a language-matched marker ("non établie" /
+ * "not established") — Invariant 6.
  *
  * This is deterministic — no LLM. It prevents the analyst's hallucinated
  * numbers from reaching the reader.
@@ -178,6 +179,14 @@ export function backfillCitationsFromAnalysis(
 export function sanitizeUnsourcedNumbers(html: string): { html: string; sanitized: number; details: string[] } {
   const details: string[] = [];
   let sanitized = 0;
+
+  // Replacement text must match the artifact's language — the hardcoded
+  // French "non établie" was observed injected into English publications
+  // (paid run: 9 + 15 sanitizations on an English brief).
+  const plainText = html.replace(/<[^>]+>/g, ' ').slice(0, 20000);
+  const frenchWords = plainText.match(/\b(le|la|les|des|une|dans|pour|avec|nous|notre|que|qui|est|sont|cette|ces|aux|par|sur|entre|selon)\b/gi) ?? [];
+  const wordTotal = plainText.split(/\s+/).filter(Boolean).length;
+  const replacement = wordTotal > 0 && frenchWords.length / wordTotal > 0.06 ? 'non établie' : 'not established';
 
   // Pattern: numbers that look like statistics
   // - Percentages: 92%, 92.7%
@@ -268,7 +277,7 @@ export function sanitizeUnsourcedNumbers(html: string): { html: string; sanitize
 
       sanitized++;
       details.push(`Sanitized unsourced number: "${match}"`);
-      return 'non établie';
+      return replacement;
     });
 
     return `>${fixedText}<`;

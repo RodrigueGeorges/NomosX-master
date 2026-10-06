@@ -1,4 +1,6 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
+import { createRequire } from 'node:module';
+import axios, { type AxiosStatic } from 'axios';
 
 const executionSignal = new AsyncLocalStorage<AbortSignal>();
 
@@ -23,12 +25,29 @@ function rootSignalOf(signal: AbortSignal | undefined): AbortSignal | undefined 
 }
 
 export function getExecutionSignal(): AbortSignal | undefined {
-  return executionSignal.getStore();
+  const signal = executionSignal.getStore();
+  for (let current = signal, depth = 0; current && depth < 20; current = scopeParents.get(current), depth++) {
+    const deadline = scopeDeadlines.get(current);
+    if (!current.aborted && deadline !== undefined && Date.now() >= deadline) {
+      const owner = deadlineOwners.get(current);
+      owner?.controller.abort(owner.error);
+    }
+  }
+  return signal;
 }
 
 // Absolute deadline (epoch ms) per deadline-scope signal. withExecutionScope
 // derives child signals without deadlines — consumers walk the parent chain.
 const scopeDeadlines = new WeakMap<AbortSignal, number>();
+const deadlineOwners = new WeakMap<AbortSignal, { controller: AbortController; error: Error }>();
+const executionCosts = new WeakMap<AbortSignal, number>();
+
+export function recordExecutionCost(amountUsd: number): void {
+  if (!Number.isFinite(amountUsd) || amountUsd <= 0) return;
+  for (let signal = executionSignal.getStore(), depth = 0; signal && depth < 20; signal = scopeParents.get(signal), depth++) {
+    executionCosts.set(signal, (executionCosts.get(signal) ?? 0) + amountUsd);
+  }
+}
 
 /**
  * Effective wall-clock deadline for the current execution: the MINIMUM of
@@ -67,9 +86,11 @@ export function withExecutionDetached<T>(fn: () => Promise<T>): Promise<T> {
 }
 
 export function withExecutionSignal<T>(signal: AbortSignal, fn: () => Promise<T>): Promise<T> {
-  recordParent(signal, getExecutionSignal());
-  signal.throwIfAborted();
-  return executionSignal.run(signal, fn);
+  const parent = getExecutionSignal();
+  const effective = parent && parent !== signal ? AbortSignal.any([parent, signal]) : signal;
+  recordParent(effective, parent);
+  effective.throwIfAborted();
+  return executionSignal.run(effective, fn);
 }
 
 /**
@@ -105,15 +126,30 @@ export async function withExecutionDeadline<T>(ms: number, label: string, fn: ()
   const signal = parent ? AbortSignal.any([parent, controller.signal]) : controller.signal;
   recordParent(signal, parent);
   scopeDeadlines.set(signal, Date.now() + ms);
+  const timeoutError = new Error(`${label} timed out after ${ms}ms`);
+  deadlineOwners.set(signal, { controller, error: timeoutError });
   signal.throwIfAborted();
   let onAbort: () => void = () => {};
   const cancelled = new Promise<never>((_, reject) => {
     onAbort = () => reject(signal.reason);
     signal.addEventListener('abort', onAbort, { once: true });
   });
-  const timer = setTimeout(() => controller.abort(new Error(`${label} timed out after ${ms}ms`)), ms);
+  const timer = setTimeout(() => controller.abort(timeoutError), ms);
   try {
-    return await withExecutionSignal(signal, () => Promise.race([fn(), cancelled]));
+    return await executionSignal.run(signal, async () => {
+      const result = await Promise.race([fn(), cancelled]);
+      assertExecutionActive();
+      return result;
+    });
+  } catch (err) {
+    const costUsd = executionCosts.get(signal) ?? 0;
+    if (costUsd > 0 && err instanceof Error) {
+      const reported = (err as Error & { costUsd?: number }).costUsd;
+      throw Object.assign(new Error(err.message, { cause: err }), err, {
+        costUsd: Math.max(costUsd, Number.isFinite(reported) ? reported! : 0),
+      });
+    }
+    throw err;
   } finally {
     clearTimeout(timer);
     signal.removeEventListener('abort', onAbort);
@@ -176,3 +212,35 @@ export function getExecutionBudgetUsage(key: string): number {
   const ledger = signal ? scopedLedgers.get(signal) : globalLedger;
   return ledger?.get(key) ?? 0;
 }
+
+// ── Axios execution guard ─────────────────────────────────────────────────
+// ~50 institutional providers + the PDF reader call axios directly, bypassing
+// http-client — they kept issuing real HTTP requests long after their scope
+// was aborted (observed live: a dead 'regen' scope's scout + index kept
+// hitting providers and writing to the DB for hours). All axios calls in this
+// codebase use the DEFAULT instance, so a single request interceptor here
+// (this module is loaded by every pipeline path via http-client/unified-llm)
+// aborts the request before it leaves the process and cancels in-flight ones.
+const guardedAxios = new WeakSet<object>();
+function bindAxiosExecution(instance: AxiosStatic): void {
+  if (!instance?.interceptors?.request || guardedAxios.has(instance)) return;
+  guardedAxios.add(instance);
+  instance.interceptors.request.use(config => {
+    const signal = getExecutionSignal();
+    signal?.throwIfAborted();
+    if (signal) config.signal = config.signal
+      ? AbortSignal.any([signal, config.signal as AbortSignal])
+      : signal;
+    return config;
+  });
+}
+bindAxiosExecution(axios);
+
+try {
+  // createRequire works under tsx/ESM and Next bundles alike — a bare
+  // `require` is undefined in true ESM and the guard would silently no-op.
+  const nodeRequire = createRequire(import.meta.url);
+  const axiosModule = nodeRequire('axios');
+  const axiosInstance = axiosModule?.default ?? axiosModule;
+  bindAxiosExecution(axiosInstance);
+} catch { /* axios absent in this bundle — scoped callers all use http-client */ }

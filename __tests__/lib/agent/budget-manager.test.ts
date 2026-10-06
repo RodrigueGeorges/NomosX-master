@@ -1,7 +1,17 @@
-import { checkBudgetGate, getBudgetStatus } from '@/lib/agent/budget-manager';
+import { checkBudgetGate, getBudgetStatus, recordSpend } from '@/lib/agent/budget-manager';
 import { prisma } from '@/lib/db';
 
-jest.mock('@/lib/db', () => ({ prisma: { systemMetric: { findMany: jest.fn() } } }));
+jest.mock('@/lib/db', () => ({ prisma: { systemMetric: { findMany: jest.fn(), create: jest.fn() } } }));
+
+test('a failed spend write is observable to the dispatcher', async () => {
+  jest.mocked(prisma.systemMetric.create).mockRejectedValue(new Error('ledger write unavailable'));
+  await expect(recordSpend(0.4, 'pipeline', 'run-1')).rejects.toThrow('ledger write unavailable');
+});
+
+test.each([NaN, Infinity, -1])('rejects invalid spend %s before writing', async cost => {
+  await expect(recordSpend(cost, 'pipeline', 'run-1')).rejects.toThrow('Invalid spend');
+  expect(prisma.systemMetric.create).not.toHaveBeenCalled();
+});
 
 beforeEach(() => jest.resetAllMocks());
 

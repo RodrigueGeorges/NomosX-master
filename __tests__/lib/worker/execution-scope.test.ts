@@ -1,4 +1,95 @@
-import { assertExecutionActive, consumeExecutionBudget, consumeRootBudget, getExecutionDeadlineAt, getExecutionSignal, withExecutionDeadline, withExecutionScope, withExecutionSignal } from '@/lib/worker/execution-scope';
+import axios from 'axios';
+import { assertExecutionActive, consumeExecutionBudget, consumeRootBudget, getExecutionDeadlineAt, getExecutionSignal, recordExecutionCost, withExecutionDeadline, withExecutionScope, withExecutionSignal } from '@/lib/worker/execution-scope';
+
+it.each([false, true])('axios observes parent cancellation with an existing signal=%s', async existing => {
+  const parent = new AbortController();
+  const local = new AbortController();
+  let requestSignal: AbortSignal | undefined;
+  await withExecutionSignal(parent.signal, () => axios.get('https://example.test/offline', {
+    signal: existing ? local.signal : undefined,
+    adapter: async config => {
+      requestSignal = config.signal as AbortSignal;
+      return { data: null, status: 200, statusText: 'OK', headers: {}, config };
+    },
+  }));
+  parent.abort(new Error('lease lost'));
+  expect(requestSignal?.aborted).toBe(true);
+  expect(requestSignal?.reason.message).toBe('lease lost');
+  expect(local.signal.aborted).toBe(false);
+});
+
+it('axios rejects work resumed inside an aborted scope before reaching the adapter', async () => {
+  const parent = new AbortController();
+  const adapter = jest.fn();
+  await withExecutionSignal(parent.signal, async () => {
+    parent.abort(new Error('cancelled before request'));
+    await expect(axios.get('https://example.test/offline', { adapter })).rejects.toThrow();
+  });
+  expect(adapter).not.toHaveBeenCalled();
+});
+
+it('enforces elapsed deadlines even before the timer callback runs', async () => {
+  const now = Date.now();
+  const clock = jest.spyOn(Date, 'now').mockReturnValue(now);
+  try {
+    await expect(withExecutionDeadline(100, 'resume', async () => {
+      clock.mockReturnValue(now + 101);
+      assertExecutionActive();
+    })).rejects.toThrow('timed out');
+  } finally {
+    clock.mockRestore();
+  }
+});
+
+it('a manually supplied child signal cannot escape parent cancellation', async () => {
+  const parent = new AbortController();
+  const child = new AbortController();
+  await withExecutionSignal(parent.signal, () => withExecutionSignal(child.signal, async () => {
+    parent.abort(new Error('parent cancelled'));
+    expect(() => assertExecutionActive()).toThrow('parent cancelled');
+  }));
+});
+
+it('cancels an in-flight axios request without aborting the request owner', async () => {
+  const parent = new AbortController();
+  const local = new AbortController();
+  const pending = withExecutionSignal(parent.signal, () => axios.get('https://example.test/offline', {
+    signal: local.signal,
+    adapter: config => new Promise((_, reject) => {
+      config.signal!.addEventListener!('abort', () => reject(new Error('adapter cancelled')));
+      parent.abort(new Error('lease lost'));
+    }),
+  }));
+  await expect(pending).rejects.toThrow();
+  expect(local.signal.aborted).toBe(false);
+});
+
+it('preserves request-local cancellation without aborting the parent', async () => {
+  const parent = new AbortController();
+  const local = new AbortController();
+  const pending = withExecutionSignal(parent.signal, () => axios.get('https://example.test/offline', {
+    signal: local.signal,
+    adapter: config => new Promise((_, reject) => {
+      config.signal!.addEventListener!('abort', () => reject(new Error('adapter cancelled')));
+      local.abort();
+    }),
+  }));
+  await expect(pending).rejects.toThrow();
+  expect(parent.signal.aborted).toBe(false);
+});
+
+it('retains costs from completed and timed-out children without double-counting', async () => {
+  const work = withExecutionDeadline(30, 'dispatch', async () => {
+    await withExecutionDeadline(1000, 'initial', async () => recordExecutionCost(0.4));
+    return withExecutionDeadline(1000, 'regen', async () => {
+      recordExecutionCost(0.3);
+      return new Promise<never>(() => {});
+    });
+  });
+  await expect(work).rejects.toMatchObject({ costUsd: 0.7 });
+  await expect(withExecutionDeadline(10, 'sibling', async () => new Promise<never>(() => {})))
+    .rejects.not.toHaveProperty('costUsd');
+});
 
 test('a deadline blocks detached work even after its owner stopped awaiting it', async () => {
   let finish!: () => void;

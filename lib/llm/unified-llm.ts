@@ -478,7 +478,11 @@ async function setCBState(provider: string, state: CBState): Promise<void> {
   try {
     const { simpleRedisManager } = await import('../agent/redis-simple');
     if (simpleRedisManager.isRedisConnected()) {
-      await simpleRedisManager.setWithTTL(CB_KEY(provider), state, CB_REDIS_TTL);
+      // A 24h suspension written with the 120s reset-window TTL evaporates
+      // after 2min in Redis — the provider auto-"recovers" while still dead.
+      await simpleRedisManager.setWithTTL(
+        CB_KEY(provider), state, state.suspended ? CB_SUSPEND_TTL : CB_REDIS_TTL,
+      );
     }
   } catch { /* Redis unavailable — in-memory only */ }
 }

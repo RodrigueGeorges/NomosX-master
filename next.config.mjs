@@ -6,7 +6,18 @@ const withNextIntl = createNextIntlPlugin('./i18n/request.ts');
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
-  serverExternalPackages: ['@prisma/client'],
+  // Temporal must never be bundled: @temporalio/worker ships a webpack/swc
+  // workflow bundler with native deps — Turbopack tracing it breaks the build
+  // (missing loader-utils) even though every import is dynamic and the code
+  // only runs in the in-process worker, never in route handlers.
+  serverExternalPackages: [
+    '@prisma/client',
+    '@temporalio/activity',
+    '@temporalio/client',
+    '@temporalio/common',
+    '@temporalio/worker',
+    '@temporalio/workflow',
+  ],
   // Dev preview proxies reach the server from 127.0.0.1 — allow dev assets.
   allowedDevOrigins: ['127.0.0.1', 'localhost'],
   transpilePackages: [],

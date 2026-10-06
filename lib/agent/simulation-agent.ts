@@ -7,6 +7,7 @@
 
 import type { InquiryDepth } from "@/lib/types/inquiry";
 import { callLLM } from "@/lib/llm/unified-llm";
+import { assertExecutionActive } from "@/lib/worker/execution-scope";
 import { parseJson } from "./json-utils";
 import { getForesightConfig } from "@/lib/foresight/config";
 import { buildForesightGraph, graphScenarioBoost, type ForesightGraph } from "./foresight-graph";
@@ -915,6 +916,9 @@ async function runForesightSwarmSimulation(
   let stableTicks = 0;
 
   for (let t = 1; t <= profile.ticks; t++) {
+    // A dead scope must not keep simulating — the tick loop was observed
+    // emitting fallback spam for the whole tail of an aborted regen.
+    assertExecutionActive();
     if (options.injected && t === (options.injected.atTick ?? Math.ceil(profile.ticks / 2))) {
       for (const p of personas) {
         for (const k of Object.keys(p.positions)) {

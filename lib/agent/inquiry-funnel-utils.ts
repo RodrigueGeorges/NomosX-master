@@ -47,6 +47,18 @@ export function depthToPublicationType(
   return "ARTICLE";
 }
 
+export function getCompletedAdversarialEvaluation(
+  stats: Record<string, unknown>,
+  lineage: Record<string, unknown>,
+): Record<string, unknown> | undefined {
+  const evaluation = (stats.devilsAdvocate ?? lineage.devilsAdvocate) as Record<string, unknown> | undefined;
+  if (!evaluation || evaluation.skipped || evaluation.error || evaluation.evaluationComplete === false) return undefined;
+  const score = evaluation.publishabilityScore;
+  if (typeof score !== 'number' || !Number.isFinite(score) || score < 0 || score > 100) return undefined;
+  if (!['publish', 'revise', 'major_revision', 'reject'].includes(String(evaluation.verdict))) return undefined;
+  return evaluation;
+}
+
 export interface PipelineScores {
   trustScore: number;
   qualityScore: number;
@@ -120,7 +132,7 @@ export function extractPipelineScores(
   lineage: Record<string, unknown>,
   brief?: { trustScore: number | null; qualityScore: number | null }
 ): PipelineScores {
-  const da = (lineage.devilsAdvocate ?? stats.devilsAdvocate) as Record<string, unknown> | undefined;
+  const da = getCompletedAdversarialEvaluation(stats, lineage);
   const cv = stats.citationVerifier as Record<string, unknown> | undefined;
   const cf = stats.citationFilter as Record<string, unknown> | undefined;
   const critical = stats.criticalLoop as Record<string, unknown> | undefined;

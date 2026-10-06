@@ -206,11 +206,30 @@ export async function saveJobProgress(jobId: string, progress: unknown, workerId
 
 // ─── Execution ──────────────────────────────────────────────────────────────
 
-function startHeartbeat(jobId: string, workerId: string, lockMs: number, controller: AbortController): () => void {
+function startHeartbeat(jobId: string, workerId: string, lockMs: number, controller: AbortController): { stop: () => void; assertLeaseActive: () => void } {
   let busy = false;
+  let lastTick = Date.now();
+  let leaseExpiresAt = lastTick + lockMs;
+  const assertLeaseActive = () => {
+    if (Date.now() >= leaseExpiresAt) controller.abort(new Error('Job lease expired'));
+    controller.signal.throwIfAborted();
+  };
   let expiry = setTimeout(() => controller.abort(new Error('Job lease expired')), lockMs);
   expiry.unref();
   const timer = setInterval(async () => {
+    // Suspend/resume detection: after a machine sleep every wall-clock
+    // deadline fires at once and the run's durations become meaningless
+    // (observed live: a 19.4h cycle with a 17.3h scout phase). Log loudly so
+    // post-mortems can separate sleep corruption from real slowness.
+    const tickGap = Date.now() - lastTick;
+    lastTick = Date.now();
+    if (tickGap > HEARTBEAT_MS * 3) {
+      console.error(
+        `[Worker ${workerId}] HEARTBEAT GAP ${Math.round(tickGap / 60000)}min — probable host suspend; ` +
+        `all wall-clock deadlines fired simultaneously, run timings are unreliable`
+      );
+    }
+    if (Date.now() >= leaseExpiresAt) controller.abort(new Error('Job lease expired'));
     if (busy || controller.signal.aborted) return;
     busy = true;
     const mem = process.memoryUsage();
@@ -218,14 +237,17 @@ function startHeartbeat(jobId: string, workerId: string, lockMs: number, control
       `[Worker ${workerId}] heartbeat job=${jobId.slice(-10)} rss=${Math.round(mem.rss / 1e6)}MB heap=${Math.round(mem.heapUsed / 1e6)}/${Math.round(mem.heapTotal / 1e6)}MB`
     );
     try {
+      const renewedUntil = Date.now() + lockMs;
       const renewed = await prisma.job.updateMany({
         where: { id: jobId, lockedBy: workerId, status: 'RUNNING', lockedUntil: { gt: new Date() } },
-        data: { lockedUntil: new Date(Date.now() + lockMs) },
+        data: { lockedUntil: new Date(renewedUntil) },
       });
       if (renewed.count !== 1) throw new Error('Job execution lease lost');
-      if (controller.signal.aborted) return;
+      assertLeaseActive();
+      leaseExpiresAt = renewedUntil;
+      assertLeaseActive();
       clearTimeout(expiry);
-      expiry = setTimeout(() => controller.abort(new Error('Job lease expired')), lockMs);
+      expiry = setTimeout(() => controller.abort(new Error('Job lease expired')), Math.max(0, leaseExpiresAt - Date.now()));
       expiry.unref();
     } catch (err) {
       controller.abort(err);
@@ -257,7 +279,7 @@ function startHeartbeat(jobId: string, workerId: string, lockMs: number, control
       .catch(() => undefined);
   }, HEARTBEAT_MS);
   if (typeof timer.unref === 'function') timer.unref();
-  return () => { clearInterval(timer); clearTimeout(expiry); };
+  return { stop: () => { clearInterval(timer); clearTimeout(expiry); }, assertLeaseActive };
 }
 
 let activeJob: { id: string; workerId: string } | null = null;
@@ -287,14 +309,14 @@ export async function executeJob(
 ): Promise<'completed' | 'retried' | 'dead' | 'lost'> {
   const handler = handlers.get(job.type);
   const controller = new AbortController();
-  const stopHeartbeat = startHeartbeat(job.id, workerId, lockMs, controller);
+  const { stop: stopHeartbeat, assertLeaseActive } = startHeartbeat(job.id, workerId, lockMs, controller);
   activeJob = { id: job.id, workerId };
   activeController = controller;
 
   try {
     if (!handler) throw new Error(`No handler registered for job type "${job.type}"`);
     const result = await withExecutionSignal(controller.signal, () => handler(job.payload, { ...job, workerId }));
-    controller.signal.throwIfAborted();
+    assertLeaseActive();
     // Guard on our own lock: if the job was cancelled or reclaimed while the
     // handler ran, don't resurrect it as COMPLETED.
     const updated = await prisma.job.updateMany({
@@ -309,7 +331,7 @@ export async function executeJob(
     });
     return updated.count === 1 ? 'completed' : 'lost';
   } catch (err) {
-    if (controller.signal.aborted) return 'lost';
+    try { assertLeaseActive(); } catch { return 'lost'; }
     const message = err instanceof Error ? err.message : String(err);
     const stack = err instanceof Error ? err.stack : undefined;
     const willRetry = job.attempts < job.maxRetries;

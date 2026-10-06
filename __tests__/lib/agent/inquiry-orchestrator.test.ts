@@ -77,7 +77,7 @@ jest.mock('@/lib/agent/revision-controller', () => {
 
 import { runAndPublishInquiry } from '@/lib/agent/inquiry-orchestrator';
 import { prisma } from '@/lib/db';
-import { withExecutionSignal } from '@/lib/worker/execution-scope';
+import { withExecutionDeadline, withExecutionSignal } from '@/lib/worker/execution-scope';
 
 const words = (n: number) => Array(n).fill('evidence').join(' ');
 const WORDS_3200 = `<p>${words(3200)}</p>`;
@@ -134,6 +134,13 @@ beforeEach(() => {
 });
 
 describe('runAndPublishInquiry — full funnel', () => {
+  it('preserves the original artifact instead of regenerating without parent headroom', async () => {
+    mockRunPipeline.mockResolvedValueOnce(makePipelineResult(makeStats(), 'a'));
+    const result = await withExecutionDeadline(39 * 60_000, 'short-dispatch', () => runAndPublishInquiry(REQ));
+    expect(result.status).toBe('held');
+    expect(mockRunPipeline).toHaveBeenCalledTimes(1);
+    expect(mockTxPubCreate).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ status: 'HELD' }) }));
+  });
   it('S32 repro: gate hold → regen runs worse → original HELD still persists', async () => {
     mockRunPipeline
       .mockResolvedValueOnce(makePipelineResult(makeStats(), 'a'))
@@ -323,7 +330,7 @@ describe('runAndPublishInquiry — full funnel', () => {
     );
   });
 
-  it.each([{ error: 'provider unavailable' }, { evaluationComplete: false }, { skipped: true }])('holds an unavailable adversarial review without paying for regeneration: %j', async failure => {
+  it.each([{ error: 'provider unavailable' }, { evaluationComplete: false }])('holds an unavailable adversarial review without paying for regeneration: %j', async failure => {
     mockRunPipeline.mockResolvedValueOnce(makePipelineResult(makeStats({
       critic: { overallScore: 90, verdict: 'publish' }, rank: { avgQuality: 90 },
       structuralEditor: { overallStructure: 90 }, criticalLoop: { finalScore: 90 },
@@ -334,6 +341,54 @@ describe('runAndPublishInquiry — full funnel', () => {
     expect(result.status).toBe('held');
     expect(mockRunPipeline).toHaveBeenCalledTimes(1);
     expect(result.gate?.checks).toContainEqual(expect.objectContaining({ checkType: 'evaluation_availability', passed: false }));
+  });
+
+  it('an explicitly optional skipped review contributes neither a score nor a verdict', async () => {
+    // Deliberate skips (LAS thin pool, 80% budget guard, free-tier option)
+    // must not hard-fail evaluation_availability — previously every run that
+    // hit the DA budget guard was structurally condemned to HELD.
+    mockRunPipeline.mockResolvedValueOnce(makePipelineResult(makeStats({
+      critic: { overallScore: 90, verdict: 'publish' }, rank: { avgQuality: 90 },
+      structuralEditor: { overallStructure: 90 }, criticalLoop: { finalScore: 90 },
+      devilsAdvocate: { reason: 'disabled by LAS gate', skipped: true },
+      centralScenarioRequired: false,
+    }), 'a'));
+    const result = await runAndPublishInquiry({ ...REQ, pipelineOptions: { enableDevilsAdvocate: false } });
+    expect(mockRunPipeline).toHaveBeenCalledTimes(1);
+    expect(['published', 'ready']).toContain(result.status);
+    expect(result.gate?.checks ?? []).not.toContainEqual(expect.objectContaining({ checkType: 'evaluation_availability', passed: false }));
+    expect(result.gate?.checks ?? []).not.toContainEqual(expect.objectContaining({ checkType: 'devils_advocate' }));
+  });
+
+  it.each([
+    { skipped: true, reason: 'disabled by LAS gate' },
+    { skipped: true, publishabilityScore: 100, verdict: 'publish' },
+    { publishabilityScore: NaN, verdict: 'publish' },
+    { publishabilityScore: 100 },
+    undefined,
+  ])('holds when the required adversarial review has no valid verdict: %j', async devilsAdvocate => {
+    mockRunPipeline.mockResolvedValueOnce(makePipelineResult(makeStats({
+      critic: { overallScore: 90, verdict: 'publish' }, rank: { avgQuality: 90 },
+      structuralEditor: { overallStructure: 90 }, criticalLoop: { finalScore: 90 },
+      devilsAdvocate, centralScenarioRequired: false,
+    }), 'a'));
+    const result = await runAndPublishInquiry(REQ);
+    expect(result.status).toBe('held');
+    expect(mockRunPipeline).toHaveBeenCalledTimes(1);
+    expect(result.gate?.checks).toContainEqual(expect.objectContaining({ checkType: 'evaluation_availability', passed: false }));
+  });
+
+  it('does not let an old lineage verdict hide the current failed review', async () => {
+    const pipeline = makePipelineResult(makeStats({
+      critic: { overallScore: 90, verdict: 'publish' }, rank: { avgQuality: 90 },
+      structuralEditor: { overallStructure: 90 }, criticalLoop: { finalScore: 90 },
+      devilsAdvocate: { evaluationComplete: false }, centralScenarioRequired: false,
+    }));
+    pipeline.lineage = { ...pipeline.stats, devilsAdvocate: { publishabilityScore: 100, verdict: 'publish' } };
+    mockRunPipeline.mockResolvedValueOnce(pipeline);
+    const result = await runAndPublishInquiry(REQ);
+    expect(result.status).toBe('held');
+    expect(result.gate?.checks ?? []).not.toContainEqual(expect.objectContaining({ checkType: 'devils_advocate', score: 100 }));
   });
 
   it('clean artifact → gate publish → persisted PUBLISHED, no regen', async () => {

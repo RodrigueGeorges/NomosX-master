@@ -12,10 +12,10 @@
  * Crons are thin HTTP wrappers; all logic lives here.
  */
 
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { prisma } from "@/lib/db";
 import { isThinkTankEnabled } from '@/lib/worker/think-tank-queue';
-import { assertExecutionActive, withExecutionDeadline } from '@/lib/worker/execution-scope';
+import { assertExecutionActive, getExecutionSignal, withExecutionDeadline } from '@/lib/worker/execution-scope';
 import { isFreeRun } from '@/lib/free-run';
 import { runAndPublishInquiry, type InquiryPublishResult } from "./inquiry-orchestrator";
 import { publicationTypeToDepth } from "./inquiry-funnel-utils";
@@ -834,13 +834,15 @@ export async function executeDispatchQueue(
   // an item is never re-run after finishing, regardless of restart count.
   let executed = durable?.doneKeys.size ?? 0;
 
-  // Dispatch timeout must exceed pipeline timeout (deep/memo: 80min) — a
-  // shorter race would kill a still-productive run before its own cap.
+  // Dispatch timeout must exceed the WHOLE pipeline envelope, not just the
+  // main pass: pipeline (65–75min) + regeneration (≤35min) + gate/revision/
+  // persist tail. The old 100min cap fired while a healthy regen was still
+  // running — the item was counted failed AND the detached persist landed a
+  // HELD publication anyway, leaving contradictory state.
   // Free runs are ~2-3x slower: serialized freepool calls + TPM pacing waits
-  // + slow free endpoints (~90s/call). A 100min cap cuts the pipeline
-  // mid-analyst before the gate can judge anything.
+  // + slow free endpoints (~90s/call).
   const freeRun = process.env.NOMOSX_FREE_RUN === '1' || process.env.NOMOSX_FREE_RUN === 'true';
-  const DISPATCH_TIMEOUT_MS = freeRun ? 14_400_000 : 6_000_000; // free: 240min | paid: 100min (pipeline ≤80min + orchestrator + buffer)
+  const DISPATCH_TIMEOUT_MS = freeRun ? 15_600_000 : 7_800_000; // free: 260min | paid: 130min (pipeline ≤75 + regen ≤35 + tail ~15 + buffer)
 
   // The cycle targets maxExecutions PUBLICATIONS, not attempts: a held or
   // failed candidate does not consume a publication slot — the loop falls
@@ -1003,6 +1005,11 @@ export async function executeDispatchQueue(
       // pull-gate accurate. A $0 reserve release never consumes an attempt.
       executed++;
       assertExecutionActive();
+      // Pre-generate the pipeline executionId: when the dispatch timeout
+      // fires, the inner pipeline keeps unwinding as a zombie and its FATAL
+      // catch eventually persists steps.totalCostUsd — the id lets the catch
+      // below recover the real spend instead of reporting $0 to the budget.
+      const itemExecutionId = randomUUID();
       result = await withExecutionDeadline(DISPATCH_TIMEOUT_MS, 'runAndPublishInquiry', () =>
         runAndPublishInquiry({
           question: item.question,
@@ -1021,21 +1028,42 @@ export async function executeDispatchQueue(
           // The held artifact was never published; bypass both title and
           // briefId dedup so the corrected analysis gets evaluated.
           skipDuplicateCheck: item.retryAttempt != null,
-          pipelineOptions: item.priorFailureFeedback
-            ? { priorFailureFeedback: item.priorFailureFeedback }
-            : undefined,
+          pipelineOptions: {
+            ...(item.priorFailureFeedback
+              ? { priorFailureFeedback: item.priorFailureFeedback }
+              : {}),
+            executionId: itemExecutionId,
+          },
           metadata: { strategy: item.strategy, ...item.metadata },
         }),
-      ).catch((err: unknown) => {
-        assertExecutionActive();
+      ).catch(async (err: unknown) => {
         const message = err instanceof Error ? err.message : String(err);
         console.error(`[ThinkTank] Dispatch item timed out or failed: ${message}`);
+        // Recover spend from the PipelineRun row — the zombie's catch writes
+        // steps.totalCostUsd while unwinding; give it a moment, then read.
+        let costUsd = typeof (err as any)?.costUsd === 'number' && Number.isFinite((err as any).costUsd)
+          ? Math.max(0, (err as any).costUsd) : 0;
+        if (/timed out/i.test(message) || getExecutionSignal()?.aborted) stopAll = true;
+        if (costUsd <= 0) {
+          try {
+            costUsd = await prisma.pipelineRun.findUnique({
+              where: { id: itemExecutionId },
+              select: { steps: true },
+            }).then(r => {
+              const t = (r?.steps as Record<string, unknown> | null)?.totalCostUsd;
+              return typeof t === 'number' ? t : 0;
+            });
+          } catch { /* best-effort — never mask the real failure */ }
+          if (costUsd <= 0) {
+            console.warn(`[ThinkTank] Could not recover spend for timed-out run ${itemExecutionId} — cycle cost may be under-counted`);
+          }
+        }
         return {
           status: "failed" as const,
           trustScore: 0,
           qualityScore: 0,
           wordCount: 0,
-          costUsd: 0,
+          costUsd,
           durationMs: DISPATCH_TIMEOUT_MS,
           error: message,
         };
@@ -1055,8 +1083,8 @@ export async function executeDispatchQueue(
       // Cadence guarantee — the slot still publishes if ANY fresh validated
       // artifact is in reserve, even on another topic. This item's signal is
       // NOT resolved by a cross-topic release (checked via result.signalId).
-      if (result.status === 'held' || result.status === 'failed' ||
-          result.status === 'draft' || result.status === 'review' || result.status === 'ready') {
+      if (!stopAll && (result.status === 'held' || result.status === 'failed' ||
+          result.status === 'draft' || result.status === 'review' || result.status === 'ready')) {
         const drained = await release(undefined, false);
         pipelineCostUsd += drained.costUsd;
         if (drained.status === 'published') {
@@ -1072,10 +1100,15 @@ export async function executeDispatchQueue(
     // Record spend to global budget tracker
     const spentUsd = pipelineCostUsd;
     if (spentUsd > 0) {
-      import('./budget-manager')
-        .then(({ recordSpend }) => recordSpend(spentUsd, 'pipeline', item.question.slice(0, 60)))
-        .catch(() => {});
+      const { recordSpend } = await import('./budget-manager');
+      try {
+        await recordSpend(spentUsd, 'pipeline', item.question.slice(0, 60));
+      } catch (err) {
+        stopAll = true;
+        throw err;
+      }
     }
+    assertExecutionActive();
 
     if (result.status === "published") {
       published++;

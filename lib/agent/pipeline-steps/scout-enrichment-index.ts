@@ -10,6 +10,7 @@
  */
 
 import { prisma } from '../../db';
+import { assertExecutionActive } from '../../worker/execution-scope';
 import { searchLinkUp } from '../../providers/linkup-sdk';
 import { searchTavily, searchTavilyNews } from '../../providers/tavily-provider';
 import { searchExaPublications } from '../../providers/exa-provider';
@@ -37,6 +38,7 @@ export interface ScoutEnrichmentIndexDeps {
 }
 
 export async function runScoutEnrichmentAndIndex(deps: ScoutEnrichmentIndexDeps): Promise<string[]> {
+  assertExecutionActive();
   const { query, label, stats, scoutCkpt, format, domain, scout, durableKey, saveDurableStep, index } = deps;
   let allSourceIds = deps.allSourceIds;
   if (deps.skipRetrieval) {
@@ -75,6 +77,7 @@ export async function runScoutEnrichmentAndIndex(deps: ScoutEnrichmentIndexDeps)
   // Uses UCB1 bandit for budget allocation + adaptive search depth (AutoSearch pattern)
   // This is what makes NomosX a think tank, not a search engine: it finds dissent, analogues, and weak signals
   // (skipped on durable resume — the scout checkpoint already includes enrichment)
+  assertExecutionActive();
   if (!scoutCkpt) try {
     const { runIntelligentScout } = await import('../intelligent-scout');
 
@@ -158,6 +161,7 @@ export async function runScoutEnrichmentAndIndex(deps: ScoutEnrichmentIndexDeps)
   // Traverses the citation network to discover foundational papers (hubs)
   // and interdisciplinary connectors (bridges) that keyword search misses.
   // This is the Paper Circle (ACL 2026) pattern.
+  assertExecutionActive();
   if (!scoutCkpt) try {
     const { traverseCitationGraph } = await import('../citation-graph');
     // Get OpenAlex IDs for the top sources (by quality score)
@@ -203,12 +207,15 @@ export async function runScoutEnrichmentAndIndex(deps: ScoutEnrichmentIndexDeps)
   // DURABLE CHECKPOINT: allSourceIds is final (scout + re-scout + intelligent
   // scout + citation graph all done). A resume re-enters via seedIds and skips
   // the whole provider fan-out.
+  assertExecutionActive();
   if (durableKey && !scoutCkpt && allSourceIds.length > 0) {
     await saveDurableStep(durableKey, 'scout', { allSourceIds });
   }
 
   console.log(`${label} INDEX: ${allSourceIds.length} sources`);
+  assertExecutionActive();
   const indexResult = await index(allSourceIds);
+  assertExecutionActive();
   stats.index = indexResult;
 
   // ── STEP 2b: EMBED (semantic vectors) ──
@@ -224,7 +231,9 @@ export async function runScoutEnrichmentAndIndex(deps: ScoutEnrichmentIndexDeps)
 
   // ── STEP 3: DEDUPLICATE ──
   console.log(`${label} DEDUPLICATE`);
+  assertExecutionActive();
   const dedupeResult = await deduplicateSources();
+  assertExecutionActive();
   stats.dedupe = dedupeResult;
 
   return allSourceIds;

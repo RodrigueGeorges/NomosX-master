@@ -6,6 +6,94 @@
 
 ---
 
+## Sprint 38 — Reliability repasse: cancellation actually cancels, spend survives timeouts
+
+Deep audit of the paid-run logs (19.4h cycle, $1.73, 0 published) plus the
+worker log: the pipeline's failures were orchestration bugs, not quality
+ceilings. All defects reproduced with deterministic tests first.
+
+**Zombie pipelines killed** (`execution-scope.ts`, `intelligent-scout.ts`,
+`index-agent.ts`, `reader-block.ts`, `simulation-agent.ts`,
+`scout-enrichment-index.ts`, `global-science.ts`) — `withExecutionDeadline`
+rejected the await but `fn()` kept running: a dead `regen` scope was
+observed driving scout+index+DB writes for ~17h post-mortem. Now
+`assertExecutionActive()` gates every hot loop (scout iterations, lens
+queries, reader batches, ORCID batches, foresight ticks, index/embed/dedupe
+transitions), a global axios request-interceptor injects the execution
+signal into the ~50 providers + PDF reader that bypassed http-client (via
+`createRequire` so it binds the CJS instance too), and `global-science`
+re-asserts after `Promise.allSettled` — allSettled absorbs callback
+rejections, so an abort must be re-thrown at the boundary or cancellation
+collapses into `[]`.
+
+**Nested deadlines aligned** (`think-tank-dispatcher.ts`,
+`inquiry-orchestrator.ts`) — DISPATCH_TIMEOUT paid 100→130min, free
+240→260min (pipeline ≤75 + regen ≤35 + persist tail). The regen window is
+derived from the REAL parent deadline via `getExecutionDeadlineAt()`
+(min over the scope ancestry) instead of a hardcoded `95min − elapsed`;
+regen refused when parent headroom < 40min.
+
+**Spend survives failure** (`pipeline-init.ts`, `execution-scope.ts`,
+`budget-manager.ts`, `think-tank-dispatcher.ts`) — `recordExecutionCost()`
+accumulates per-scope; `withExecutionDeadline` attaches `costUsd` to
+timeout errors; the dispatcher pre-generates the pipeline `executionId`
+and recovers `PipelineRun.steps.totalCostUsd` in its catch instead of
+reporting $0; a timed-out/aborted item sets `stopAll` (no reserve drain on
+a contradictory state); `recordSpend` failures now warn AND propagate —
+the dispatcher awaits the write before completing the item and stops the
+cycle on failure rather than spending blind.
+
+**Lease expiry is synchronous** (`durable-worker.ts`) — a resumed handler
+could finalize COMPLETED after its lock died in DB (fake-timer test
+reproduced it). `startHeartbeat` returns `assertLeaseActive()` checked
+before finalize and in the catch path; heartbeat gap > 3× interval logs
+`HEARTBEAT GAP` — host-suspend corruption (the 19.4h cycle) is now
+identifiable in post-mortems.
+
+**DA skip doctrine enforced** (`inquiry-funnel-utils.ts`,
+`inquiry-orchestrator.ts`) — `getCompletedAdversarialEvaluation()` returns
+an evaluation only when it actually ran: skipped/error/incomplete/bad
+verdict/invalid score all yield undefined. `skipped === true` is excluded
+from `failedEvaluations` when DA is optional (`enableDevilsAdvocate:false`),
+but a REQUIRED evaluation that produced nothing still hard-fails
+`evaluation_availability` — the S37 rule "a deliberate skip is not a
+failure" never meant "a missing evaluation is a pass".
+
+**Render-bound failures don't buy regen** (`revision-controller.ts`) —
+`central_scenario` and `evaluation_freshness` are owned by deterministic
+resolvers; `shouldRegenerate` treats them as non-actionable (both paid
+items burned a ~25–35min regen on pure render drift). `repairCentralScenario`
+now validates all 6 gate-compared fields, not just name+rationale.
+
+**`resolveCentralScenario` is strict** (`editorial-types.ts`) — exact
+normalized matching only: a partial or extended dominant label that could
+match several scenarios degrades to `probability_fallback` ("requires an
+explicit editorial choice") rather than silently endorsing a guess.
+
+**Locale-aware sanitization** (`citation-repair.ts`) — the unsourced-number
+marker follows the artifact language (`non établie` / `not established`)
+instead of hardcoded French inside English publications.
+
+**Provider hygiene** (`unified-llm.ts`, `global-science.ts`) — 24h circuit-
+breaker suspensions persist with the suspension TTL (were written with the
+120s reset-window TTL → auto-"recovered" while dead); RSS transport routed
+through the bounded cancellable `httpGet`; 10min per-feed failure cooldown
+(a dead Google News endpoint was burning ~30 × 15s per run).
+
+**Build** (`next.config.mjs`) — `@temporalio/*` added to
+`serverExternalPackages`: the worker ships a webpack/swc workflow bundler
+with native deps that Turbopack traced through dynamic imports, breaking
+`next build` on missing `loader-utils`.
+
+Tests: `global-science` +3 (transport, cancellation-after-allSettled,
+cooldown), `fixed-corpus` (cancel during index/embed), `durable-worker`
+(expired lease → lost), `budget-manager`/`reserve-dispatch` (spend-write
+ordering + failure propagation), `central-scenario` (ambiguous labels →
+fallback), `funnel-regressions` (locale marker). Suite: 52 / 543, tsc
+clean, `next build` green.
+
+---
+
 ## Sprint 37 — The gate is a router: every check failure maps to a specialist agent
 
 The revision-controller already posted gate failures as signals resolved by

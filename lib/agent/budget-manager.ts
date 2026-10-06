@@ -51,7 +51,8 @@ export async function recordSpend(
   provider: string,
   runId?: string
 ): Promise<void> {
-  if (amountUsd <= 0) return;
+  if (!Number.isFinite(amountUsd) || amountUsd < 0) throw new Error('Invalid spend amount');
+  if (amountUsd === 0) return;
   const now = new Date();
   await prisma.systemMetric.create({
     data: {
@@ -66,8 +67,11 @@ export async function recordSpend(
         timestamp: now.toISOString(),
       },
     },
-  }).catch(() => {
-    // Non-blocking — don't fail the pipeline if budget tracking fails
+  }).catch((err) => {
+    // Non-blocking — but never silent: an unwritten spend row means the
+    // budget gate under-counts and the cycle can over-spend.
+    console.warn(`[Budget] recordSpend failed (${provider} $${amountUsd.toFixed(4)}):`, err?.message ?? err);
+    throw err;
   });
 }
 

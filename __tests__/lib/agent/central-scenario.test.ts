@@ -42,6 +42,23 @@ function check(html: string, central = resolveCentralScenario(position)) {
 }
 
 describe('central scenario selection', () => {
+  it('does not infer an editorial choice from ambiguous partial names', () => {
+    const scenarios = [
+      { name: 'Stagflation trap in Europe', probability: '40%', description: 'Europe' },
+      { name: 'Stagflation trap worldwide', probability: '60%', description: 'World' },
+    ];
+    for (const ordered of [scenarios, [...scenarios].reverse()]) {
+      const central = resolveCentralScenario({ ...position, scenarios: ordered, dominantScenario: 'Stagflation trap' });
+      expect(central?.selectedBy).toBe('probability_fallback');
+      expect(central?.rationale).toBe('');
+      expect(centralScenarioIssues(central, 1)).toContain('Central scenario requires an explicit editorial choice');
+    }
+  });
+
+  it('does not treat a negated or extended scenario label as an explicit choice', () => {
+    const central = resolveCentralScenario({ ...position, dominantScenario: 'Not Central' });
+    expect(central?.selectedBy).toBe('probability_fallback');
+  });
   it('preserves the evidence-based editorial choice when simulation disagrees', () => {
     const central = resolveCentralScenario(position, [{ name: 'Alternative', empiricalProbability: 1 }, { name: 'Central', empiricalProbability: 0 }]);
     expect(central?.name).toBe('Central');

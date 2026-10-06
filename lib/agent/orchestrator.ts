@@ -385,7 +385,10 @@ export function createPipelineState(
  * Record a decision in the pipeline state.
  */
 export function recordDecision(state: PipelineState, decision: OrchestratorDecision): PipelineState {
-  console.log(`[ORCHESTRATOR] Decision: ${decision.action} — ${decision.reason}`);
+  // PROCEED means "continue to the next pipeline step" — NOT publishable.
+  // The publication gate is the only publish verdict; label this clearly so
+  // operators don't read a mid-pipeline proceed as a publication decision.
+  console.log(`[ORCHESTRATOR] Step decision (not publish verdict): ${decision.action} — ${decision.reason}`);
   return {
     ...state,
     iteration: decision.action !== "PROCEED" ? state.iteration + 1 : state.iteration,

@@ -4,6 +4,7 @@
  */
 
 import { prisma } from '../db';
+import { assertExecutionActive } from '../worker/execution-scope';
 import { env } from '../env';
 import { searchROR } from '../providers/ror';
 import { getORCIDById } from '../providers/orcid';
@@ -66,6 +67,7 @@ async function enrichAuthorsBatch(
   let budgetExhaustedLogged = false;
 
   for (let i = 0; i < needsOrcid.length; i += BATCH_SIZE) {
+    assertExecutionActive();
     const batch = needsOrcid.slice(i, i + BATCH_SIZE);
 
     // Process batch in PARALLEL instead of sequential
