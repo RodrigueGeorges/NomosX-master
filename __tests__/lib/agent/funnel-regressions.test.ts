@@ -214,6 +214,17 @@ describe('numerical sanitation', () => {
   it('still removes unsourced empirical numbers', () => {
     expect(sanitizeUnsourcedNumbers('<p>Measured growth was 42%.</p>').sanitized).toBe(1);
   });
+  it('never touches the central-scenario block — verbatim gate fidelity (S38 paid-run regression)', () => {
+    const scenario = '<section class="nx-block central-scenario"><div class="central-rationale"><p>That is why our confidence is 68%, not 85%.</p></div></section>';
+    const html = `<p>Unrelated claim grew 42% last year.</p>${scenario}`;
+    const out = sanitizeUnsourcedNumbers(html);
+    // Body numbers still sanitized…
+    expect(out.sanitized).toBe(1);
+    expect(out.html).toContain('not established');
+    // …but the decision block is byte-identical — the gate compares it verbatim.
+    expect(out.html).toContain(scenario);
+    expect(out.html).not.toContain('not not established');
+  });
   it('localizes the replacement marker — no French text in English artifacts', () => {
     const en = sanitizeUnsourcedNumbers('<p>Measured growth was 42% across the sector.</p>').html;
     expect(en).toContain('not established');

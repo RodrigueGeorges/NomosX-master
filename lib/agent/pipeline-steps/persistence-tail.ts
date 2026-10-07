@@ -11,7 +11,7 @@
  */
 
 import { prisma, withDbRetry } from '../../db';
-import { assertExecutionActive } from '../../worker/execution-scope';
+import { assertExecutionActive, withExecutionDetached } from '../../worker/execution-scope';
 import { extractAndStoreConcepts } from '../knowledge-graph';
 import { extractAndStoreGaps, markGapsFilled } from '../gap-filler';
 import { recordSourceUsage } from '../source-reputation-agent';
@@ -319,7 +319,10 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
   try {
     const { extractExperience } = await import('../knowledge-infrastructure');
     const da = stats.devilsAdvocate as Record<string, any> | undefined;
-    extractExperience(query.slice(0, 100), query, {
+    // Learning-loop enrichment is a durability write, not research work: the
+    // pipeline scope may already be closed by the time this tail runs — detach
+    // or the calls die with 'scope closed' and the loop silently stays dead.
+    withExecutionDetached(() => extractExperience(query.slice(0, 100), query, {
       scout: stats.scout ? { found: (stats.scout as any).found || 0 } : null,
       intelligentScout: stats.intelligentScout ? { diversityScore: stats.intelligentScout.diversityScore, scenarioRichness: stats.intelligentScout.scenarioRichness } : null,
       critic: stats.critic ? { verdict: stats.critic.verdict, score: stats.critic.overallScore, topFindings: (stats.critic as any).findings?.slice?.(0, 3) } : null,
@@ -332,7 +335,7 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
       outlineCritic: stats.outlineCritic ? { coverage: (stats.outlineCritic as any).coverageScore, missing: (stats.outlineCritic as any).missingDimensions?.slice?.(0, 4) } : null,
       rank: stats.rank ? { avgQuality: (stats.rank as any).avgQuality, kept: (stats.rank as any).kept } : null,
       trustScore: stats.criticalLoop?.finalScore ?? null,
-    }).catch(() => {}); // Fire and forget — don't block pipeline
+    })).catch(() => {}); // Fire and forget — don't block pipeline
     console.log(`${label} EXPERIENCE BANK: extraction queued`);
   } catch {
     // Non-blocking
@@ -402,7 +405,7 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
       ])).length / topSources.length
     : 0;
   const appliedLessonTexts = memoryBlock ? [memoryBlock] : [];
-  recordLearningCycle({
+  withExecutionDetached(() => recordLearningCycle({
     agentId: isStrategic ? "strategic-analyst" : "analyst",
     runId: pipelineRun.id,
     question: query,
@@ -417,10 +420,10 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
     sourceDiversity: new Set(topSources.map((s: any) => s.provider)).size,
     agentOutputExcerpt: html.slice(0, 2000),
     appliedLessonTexts,
-  }).catch((err) => console.warn(`${label} LEARNING LOOP: failed (non-blocking):`, err));
+  })).catch((err) => console.warn(`${label} LEARNING LOOP: failed (non-blocking):`, err));
   // Also record for READER agent
   if (readings.length > 0) {
-    recordLearningCycle({
+    withExecutionDetached(() => recordLearningCycle({
       agentId: "reader",
       runId: pipelineRun.id,
       question: query,
@@ -435,13 +438,15 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
       sourceDiversity: new Set(topSources.map((s: any) => s.provider)).size,
       agentOutputExcerpt: JSON.stringify(readings.slice(0, 3)).slice(0, 1000),
       appliedLessonTexts: readerMemoryBlock ? [readerMemoryBlock] : [],
-    }).catch(() => {});
+    })).catch(() => {});
   }
 
   // S14-B: Close the learning loop — record performance + extract lessons
   // These were imported but never called, leaving the learning loop open.
-  // Now: (1) record performance for calibration, (2) extract lessons from this run
-  recordAgentPerformance({
+  // Now: (1) record performance for calibration, (2) extract lessons from this run.
+  // These record calls are fire-and-forget durability writes — detach them or
+  // they die with 'scope closed' when the tail outlives the pipeline scope.
+  withExecutionDetached(() => recordAgentPerformance({
     agentId: isStrategic ? "strategic-analyst" : "analyst",
     domain: detectedDomain as DomainExpertise,
     runId: pipelineRun.id,
@@ -454,10 +459,10 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
     findingsCount: (analysis as any)?.keyFindings?.length || 0,
     failureModes: [],
     lessonsLearned: [],
-  }).catch((err) => console.warn(`${label} LEARNING LOOP: recordAgentPerformance failed:`, err));
+  })).catch((err) => console.warn(`${label} LEARNING LOOP: recordAgentPerformance failed:`, err));
 
   if (readings.length > 0) {
-    recordAgentPerformance({
+    withExecutionDetached(() => recordAgentPerformance({
       agentId: "reader",
       domain: detectedDomain as DomainExpertise,
       runId: pipelineRun.id,
@@ -470,13 +475,13 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
       findingsCount: readings.length,
       failureModes: [],
       lessonsLearned: [],
-    }).catch(() => {});
+    })).catch(() => {});
   }
 
   // Extract lessons from this run if quality was low (learning opportunity)
   if (finalTrustScore < 75 && html.length > 1000) {
     const agentId = isStrategic ? "strategic-analyst" : "analyst";
-    extractLessons(
+    withExecutionDetached(() => extractLessons(
       agentId,
       query,
       html.slice(0, 4000),
@@ -486,7 +491,7 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
         failureModes: finalTrustScore < 60 ? ['overconfident' as any] : [],
       },
       detectedDomain as DomainExpertise,
-    ).then(({ lessons, structured }) => {
+    )).then(({ lessons, structured }) => {
       if (lessons && lessons.length > 0) {
         console.log(`${label} LEARNING LOOP: extracted ${lessons.length} lessons from this run`);
         for (const lesson of lessons.slice(0, 3)) {

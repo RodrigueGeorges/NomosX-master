@@ -6,6 +6,59 @@
 
 ---
 
+## Sprint 38b — Live free + paid validation: what the real runs proved and broke
+
+A free-run (`run-s38-validation2/3.log`) and a paid cycle
+(`run-s39-paid.log`, $2.46, 2h34) validated the S38 hardening end-to-end —
+and surfaced four defects only a real run could produce.
+
+**Paid-run outcome**: job `cmux62mpg…` → `completed` cleanly. Item 1
+(strategic) hit the 75min deadline *inside* the fact-checker LLM pass — 31
+ambiguous claims, run died with zero artifact (deadline enforcement worked;
+the step simply had no headroom guard). Item 2 (brief, "jet drones")
+persisted **HELD** trust=78 quality=73 on two blocking checks:
+`devils_advocate` 34/100 (legit kill shot — sources don't support the
+central claim) and `central_scenario`.
+
+**Defects fixed:**
+
+- `citation-repair.ts` — `sanitizeUnsourcedNumbers` was rewriting the
+  arbiter's own numbers inside the `central-scenario` block, which the gate
+  compares VERBATIM against the persisted decision. "68%, not 85%" became
+  "not established, not not established" → guaranteed `central_scenario`
+  hold. The block is now masked like `<style>/<script>`; regression test in
+  `funnel-regressions.test.ts`.
+- `persistence-tail.ts` + `inquiry-orchestrator.ts` — the learning loop
+  (`extractExperience`, `extractLessons`, `recordLearningCycle` ×2,
+  `recordAgentPerformance` ×2, `curatePlaybook`) all died with
+  "scope closed" once S38 abort propagation landed: they are fire-and-forget
+  durability writes launched after the pipeline scope closes. Wrapped in
+  `withExecutionDetached` — their original effective semantics.
+- `url-health.ts` — probes merged with a dead execution signal all abort
+  instantly → false "0/25 alive, 25 UNRECOVERABLE" on the timed-out run.
+  `assertExecutionActive()` per batch now fails the check cleanly instead
+  of persisting a bogus metric.
+- `fact-checker.ts` — LLM batch pass + UFO now gated on run headroom
+  (`FACTCHECK_LLM_HEADROOM_MS`, default 10min): degrade to
+  deterministic-only instead of starting work that cannot finish.
+
+**Live-validated**: lease reclaim after Postgres outage (RUNNING-expired →
+new worker resumed and completed), corpus-viability refusal (`14<15
+substantive readings` → refused *before* analyst spend), freepool fix
+(groq/nvidia at $0), paid chain glm/kimi/deepseek (~2-5s/call vs 60-150s
+free), DA evidence-mission gap requests deferred under fixed_corpus, DA
+pre-render repair skipped on headroom.
+
+**Provider ledger** (this machine, 2026-10-07): openai = no credits,
+anthropic = balance too low, google = empty content →
+`LLM_PRE_SUSPENDED=anthropic,openai,google`; alive: glm, kimi, deepseek,
+freepool.
+
+Tests: funnel-regressions +1 (30/30), inquiry-orchestrator 19/19, tsc +
+eslint clean under Node 22.
+
+---
+
 ## Sprint 38 — Reliability repasse: cancellation actually cancels, spend survives timeouts
 
 Deep audit of the paid-run logs (19.4h cycle, $1.73, 0 published) plus the

@@ -1015,7 +1015,9 @@ export async function runAndPublishInquiry(
   // and upvote the advice that held on a published run. Gate diagnoses give
   // typed failure material; revision actions record what repair worked.
   void (async () => {
-    try {
+    // Fire-and-forget by design — the dispatch scope can legally close right
+    // after persist, so run detached or curation dies with 'scope closed'.
+    await withExecutionDetached(async () => { try {
       const { curatePlaybook } = await import('./playbook');
       const { detectRelevantExperts } = await import('./phd-researcher');
       const domains = detectRelevantExperts(question).slice(0, 6);
@@ -1036,7 +1038,7 @@ export async function runAndPublishInquiry(
       }
     } catch (err) {
       console.warn(`[PLAYBOOK] curation failed (non-blocking):`, err);
-    }
+    } });
   })();
 
   return {

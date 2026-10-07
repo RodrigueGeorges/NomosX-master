@@ -19,6 +19,7 @@
 import { callLLM } from '../llm/unified-llm';
 import { parseJson } from './json-utils';
 import { stripHtmlForEvidence } from './evidence-ledger';
+import { getExecutionDeadlineAt } from '../worker/execution-scope';
 
 // ============================================================================
 // TYPES
@@ -334,14 +335,40 @@ export async function factChecker(
   const allResults: FactCheckResult[] = [...verifiedResults];
   let totalCost = 0;
 
-  for (let i = 0; i < ambiguousClaims.length; i += 20) {
-    const batch = ambiguousClaims.slice(i, i + 20);
-    const batchResults = await factCheckBatch(batch, sources, producerFamily, readings);
-    allResults.push(...batchResults);
+  // S38: headroom guard — a run that reaches fact-check at the deadline edge
+  // died mid-batch in the paid validation run (strategic hit 75min during the
+  // LLM pass, zero artifact persisted). Degrade to deterministic-only rather
+  // than start work that cannot finish: ambiguous claims stay unverified
+  // (severity minor) so the integrity score still reflects what was checked.
+  const fcDeadlineAt = getExecutionDeadlineAt();
+  const fcHeadroomMs = Number(process.env.FACTCHECK_LLM_HEADROOM_MS ?? 600_000);
+  const llmWindowOk = fcDeadlineAt === undefined || (fcDeadlineAt - Date.now()) >= fcHeadroomMs;
+  if (!llmWindowOk && ambiguousClaims.length > 0) {
+    console.warn(`[FACT-CHECKER] LLM batch skipped — ${Math.max(0, Math.round((fcDeadlineAt - Date.now()) / 1000))}s left < ${Math.round(fcHeadroomMs / 1000)}s headroom; ${ambiguousClaims.length} claims stay deterministic-only`);
+    for (const c of ambiguousClaims) {
+      allResults.push({
+        claim: c.claim,
+        number: c.number,
+        sourceRef: c.sourceRef,
+        verified: false,
+        sourceSays: "Not verified — insufficient run headroom for LLM pass",
+        discrepancy: "Verification skipped — deadline headroom",
+        severity: "minor" as const,
+        fix: "Manual verification required",
+      });
+    }
+  } else {
+    for (let i = 0; i < ambiguousClaims.length; i += 20) {
+      const batch = ambiguousClaims.slice(i, i + 20);
+      const batchResults = await factCheckBatch(batch, sources, producerFamily, readings);
+      allResults.push(...batchResults);
+    }
   }
 
   // S16-04: UFO multi-source fact-checking (AAAI 2026)
-  try {
+  if (!llmWindowOk) {
+    console.warn('[FACT-CHECKER] UFO pass skipped — insufficient run headroom');
+  } else try {
     const { batchFactCheck, DEFAULT_UFO_CONFIG } = await import('./ufo-factcheck');
     // For each claim, select the best sources and verify
     if (claims && claims.length > 0) {

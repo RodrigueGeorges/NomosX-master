@@ -206,6 +206,17 @@ export function sanitizeUnsourcedNumbers(html: string): { html: string; sanitize
     return `\x00SKIP${skipBlocks.length - 1}\x00`;
   });
 
+  // The central-scenario block must render the persisted editorial decision
+  // VERBATIM — the publication gate compares each field for equality, and the
+  // arbiter's own numbers (e.g. "confidence is 68%, not 85%") are authored
+  // content, not source claims. Sanitizing them rewrites the decision ("not
+  // established, not not established" — observed on the S38 paid run) and
+  // guarantees a central_scenario hold. Mask the whole block like <style>.
+  working = working.replace(/<section\b[^>]*class="[^"]*nx-block central-scenario[^"]*"[^>]*>[\s\S]*?<\/section>/gi, (m) => {
+    skipBlocks.push(m);
+    return `\x00SKIP${skipBlocks.length - 1}\x00`;
+  });
+
   // Step 2: Find all text nodes (content between > and <) and process numbers
   // We use a regex that matches text between tags: >text<
   // The position in `working` gives us the full HTML context for citation checks

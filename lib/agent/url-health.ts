@@ -10,6 +10,8 @@
  * pool — so the cost is bounded (~≤25 URLs).
  */
 
+import { assertExecutionActive } from '../worker/execution-scope';
+
 export interface UrlHealthResult {
   checked: number;
   alive: number;
@@ -89,8 +91,12 @@ export async function checkCitedUrlHealth(
     durationMs: 0,
   };
 
-  // Bounded-concurrency probe
+  // Bounded-concurrency probe. Abort early when the execution scope is dead:
+  // probes merged with an aborted signal all return 'dead' instantly, which
+  // would otherwise persist a false "0/N alive — all unrecoverable" metric
+  // (observed in the S38 paid run after the pipeline deadline fired).
   for (let i = 0; i < urls.length; i += CONCURRENCY) {
+    assertExecutionActive();
     const batch = urls.slice(i, i + CONCURRENCY);
     const probes = await Promise.all(batch.map(u => probeUrl(u.url)));
     const deadUrls = batch.filter((_, j) => probes[j] === 'dead').map(u => u.url);
