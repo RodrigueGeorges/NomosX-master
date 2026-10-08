@@ -363,16 +363,30 @@ export async function runReaderBlock(deps: ReaderBlockDeps): Promise<ReaderBlock
 
   // ── STEP 5b-2: HYPOTHESIS JUDGE — verdict per pre-registered hypothesis ──
   let hypothesisVerdictBlock = '';
+  let boundThesis: import('../hypothesis-engine').HypothesisVerdict | undefined;
   if (framing.hypotheses.length > 0) {
     try {
       const { hypothesisJudge } = await import('../hypothesis-engine');
       const judge = await hypothesisJudge(framing.hypotheses, topSources, readings, quant.evidenceBlock || undefined);
       addCost(judge.costUsd, 'HYPOTHESIS JUDGE');
       hypothesisVerdictBlock = judge.verdictBlock;
+      boundThesis = judge.boundThesis;
       stats.hypothesisJudge = {
         verdicts: judge.verdicts.map(v => ({ id: v.id, verdict: v.verdict, confidence: v.confidence })),
         costUsd: judge.costUsd,
       };
+      // Source-first thesis contract: the central claim is chosen FROM the
+      // corpus (best-supported hypothesis), not asserted before evidence.
+      // Downstream (post-analyst) verifies the written verdict stays inside it.
+      if (boundThesis) {
+        stats.thesisBinding = {
+          id: boundThesis.id,
+          statement: boundThesis.statement,
+          verdict: boundThesis.verdict,
+          confidence: boundThesis.confidence,
+          supportingSources: boundThesis.supportingEvidence.length,
+        };
+      }
     } catch (err) {
       console.warn(`${label} HYPOTHESIS JUDGE: failed (non-blocking):`, err);
     }

@@ -636,6 +636,26 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     requiredDimensions: requiredBranches,
   });
   analysis = checks.analysis;
+  // ── THESIS BINDING adherence — the central claim was contracted FROM the
+  // corpus upstream (best-supported judged hypothesis). A verdict that
+  // exceeds it is speculation-as-thesis: exactly what the DA later kills.
+  // One cheap check; non-adherence is recorded and surfaced to the gate
+  // diagnostics without blocking (the critic/DA layers judge substance).
+  if ((stats as any).thesisBinding?.statement && typeof (analysis as any)?.verdict === 'string' && (analysis as any).verdict.trim().length >= 20) {
+    try {
+      const { checkThesisAdherence } = await import('./hypothesis-engine');
+      const adh = await checkThesisAdherence(String((analysis as any).verdict), (stats as any).thesisBinding.statement);
+      addCost(adh.costUsd, 'THESIS BINDING');
+      (stats as any).thesisBinding.adhered = adh.adhered;
+      (stats as any).thesisBinding.adherenceReason = adh.reason.slice(0, 200);
+      if (adh.adhered) {
+        console.log(`${label} THESIS BINDING: verdict within bound hypothesis "${(stats as any).thesisBinding.id}"`);
+      } else {
+        console.warn(`${label} THESIS BINDING: verdict exceeds bound hypothesis — ${adh.reason}`);
+        ctx?.addFinding?.('THESIS_BINDING', 'warning', `Analyst verdict exceeds bound thesis: ${adh.reason.slice(0, 200)}`);
+      }
+    } catch { /* non-blocking */ }
+  }
   // ── BRANCH CITATION AUDIT (deterministic) — did the analysis actually use
   // each branch's evidence? A plan branch cited 0× is the hard counterpart
   // of the outline critic's missing dimensions; its gap request is drained

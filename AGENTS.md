@@ -6,6 +6,57 @@
 
 ---
 
+## Sprint 39 — Source-first thesis binding: the central claim is contracted FROM the corpus
+
+Live paid-run forensic: the jet-drone item was HELD because the DA's kill shot
+was real — "none of the 20 sources supports the central jet/AI thesis". The
+pipeline order was already sources→readings→analysis, but the analyst's
+`verdict` was never *bound* to what the corpus actually supports: NLI
+verified each claim citation individually (100% integrity) while the
+aggregated central thesis escaped all evidence checks. Gap requests from
+analyst/critic/DA were deferred (headroom, then fixed corpus), and the
+evidence-bound DA failure triggered a same-corpus rewrite that could never
+succeed by construction.
+
+**Bound thesis selection** (`hypothesis-engine.ts` `hypothesisJudge`) — the
+judge now returns `boundThesis`: the hypothesis ranked highest by verdict
+weight (supported 2 / partially 1 / else 0) × confidence, requiring ≥1
+direct supporting source. This is the user's mandated flow — radar →
+sources → thesis formed from readings → experts/scenarios elaborate.
+Pre-registration stays (hypotheses framed before reading prevent post-hoc
+rationalization), but the *selection* is now evidence-driven, and the
+verdictBlock gains a mandatory `THESIS BINDING` section: the analyst's
+`verdict` field must implement the bound hypothesis or a strictly narrower
+formulation — bolder claims are labelled secondary scenarios, never the
+central thesis.
+
+**Adherence gate** (`checkThesisAdherence`, called post-analyst in
+`pipeline-v2.ts`) — one cheap `elenchus` call verifies `analysis.verdict`
+stays within the bound statement. Non-adherence is recorded in
+`stats.thesisBinding.adhered` + reason + a `THESIS_BINDING` blackboard
+warning — observability-first (critic/DA still judge substance); the data
+will show how often analysts over-reach before deciding whether
+non-adherence should hard-block or trigger verdict narrowing.
+
+**Evidence-bound failure routing** (`revision-controller.ts`,
+commit `b9bebe1`) — DA `major_revision`/`reject` verdicts whose top
+challenges are `non_evidence`/`cascade_extrapolation`-dominant are
+classified non-regenerable: the candidate falls and the 20h HELD-retry
+scouts a *fresh* corpus — the only path that adds sources. Reasoning-bound
+challenges (missing stakeholders etc.) still regenerate.
+
+Design note — retrieval stays broad and topic-led (not thesis-led) to avoid
+motivated retrieval; the binding constrains *selection*, not *collection*.
+When no hypothesis gains support, `boundThesis` is absent — the analyst is
+unbound and downstream gates (DA + evidence-bound routing) remain the
+backstop.
+
+Tests: `thesis-binding.test.ts` +6 (binding picks best-supported not most
+ambitious, directive emitted, no-support → unbound, adherence accept/reject,
+LLM-failure degrades open). Focused suites: 77/77, tsc clean.
+
+---
+
 ## Sprint 38b — Live free + paid validation: what the real runs proved and broke
 
 A free-run (`run-s38-validation2/3.log`) and a paid cycle
