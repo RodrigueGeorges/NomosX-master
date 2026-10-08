@@ -628,7 +628,7 @@ export async function runAndPublishInquiry(
         gate: assessment.gate,
         refusal: !!pipeline.refusal,
         budgetConstrained: (pipeline.stats.budgetConstrained as boolean | undefined) === true,
-        devilsAdvocate: assessment.da as { publishabilityScore?: number; fatalChallenges?: number; verdict?: string } | undefined,
+        devilsAdvocate: assessment.da as { publishabilityScore?: number; fatalChallenges?: number; verdict?: string; topChallenges?: { type: string; text: string }[] } | undefined,
         qualityScore: assessment.scores.qualityScore,
         trustScore: assessment.scores.trustScore,
       });

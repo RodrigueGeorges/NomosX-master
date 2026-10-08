@@ -369,6 +369,12 @@ export async function reviseForGate(input: RevisionInput): Promise<RevisionResul
 /** Check types a rewrite on the same corpus can never fix — the corpus or
  *  evidence itself is the problem; the topic needs replacement, not edits. */
 const EVIDENCE_BOUND_CHECKS = new Set(['source_depth']);
+/** DA challenge types that only NEW retrieval can repair — a rewrite on the
+ * same corpus can at best rephrase the unsupported claim. `missing_warrant`
+ * stays excluded: a warrant can sometimes be made explicit from existing
+ * sources. `non_evidence` (no source support) and `cascade_extrapolation`
+ * (speculation stacked on speculation) are the hard evidence-bound ones. */
+const EVIDENCE_BOUND_CHALLENGE_TYPES = new Set(['non_evidence', 'cascade_extrapolation']);
 
 /** Checks a same-corpus rewrite cannot fix because the artifact re-renders
  *  identically — central_scenario is a render-vs-decision consistency check
@@ -385,7 +391,7 @@ export function shouldRegenerate(args: {
   gate: PublicationGateResult;
   refusal?: boolean;
   budgetConstrained?: boolean;
-  devilsAdvocate?: { publishabilityScore?: number; fatalChallenges?: number; verdict?: string };
+  devilsAdvocate?: { publishabilityScore?: number; fatalChallenges?: number; verdict?: string; topChallenges?: { type: string; text: string }[] };
   qualityScore: number;
   trustScore: number;
 }): RegenDecision {
@@ -396,6 +402,23 @@ export function shouldRegenerate(args: {
 
   const failed = new Set(gate.checks.filter(c => !c.passed).map(c => c.checkType));
   if (failed.has('evaluation_availability')) return { regenerate: false, reason: 'required evaluation unavailable — retry evaluation, not analysis' };
+
+  // A DA verdict whose top challenges are evidence-type cannot be repaired by
+  // rewriting on the SAME frozen corpus — gap-fill retrieval is disabled on
+  // regen (skipGapFillRetrieval) by design, so the identical unsupported
+  // thesis is guaranteed to come back. Observed on the S38b paid run: DA kill
+  // shot "none of the 20 sources support the central claim" → regen on the
+  // same 44 seeds → same failure → HELD. Evidence-bound failures fall back to
+  // the next candidate / fresh-scout retry, same as source_depth.
+  const daTypes = (args.devilsAdvocate?.topChallenges ?? []).map(c => c.type);
+  const evidenceTypes = daTypes.filter(t => EVIDENCE_BOUND_CHALLENGE_TYPES.has(t)).length;
+  if (
+    ['major_revision', 'reject'].includes(args.devilsAdvocate?.verdict ?? '')
+    && daTypes.length > 0
+    && evidenceTypes >= Math.ceil(daTypes.length / 2)
+  ) {
+    return { regenerate: false, reason: `DA verdict is evidence-bound (${evidenceTypes}/${daTypes.length} evidence-type challenges) — regen on fixed corpus cannot add sources; replace candidate` };
+  }
 
   // Corpus too thin — regeneration reuses the same seed corpus, so it cannot
   // add sources. This is a topic-level failure, not a writing failure.

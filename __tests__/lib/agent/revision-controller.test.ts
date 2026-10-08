@@ -255,6 +255,38 @@ describe('shouldRegenerate', () => {
     });
     expect(res.regenerate).toBe(true);
   });
+
+  it('refuses a regen whose DA kill shot is evidence-bound — same corpus cannot fix missing sources (S38b paid-run defect)', () => {
+    const res = shouldRegenerate({
+      gate: gate([{ checkType: 'devils_advocate', passed: false }]),
+      devilsAdvocate: {
+        verdict: 'reject', publishabilityScore: 0, fatalChallenges: 0,
+        topChallenges: [
+          { type: 'non_evidence', text: 'none of the 20 sources directly support the central claim' },
+          { type: 'missing_warrant', text: 'adaptation-speed claim lacks a mechanism' },
+          { type: 'non_evidence', text: 'jet-drone thesis unsupported by corpus' },
+        ],
+      },
+      qualityScore: 73, trustScore: 78,
+    });
+    expect(res.regenerate).toBe(false);
+    expect(res.reason).toContain('evidence-bound');
+  });
+
+  it('still regenerates when DA challenges are reasoning-bound, not evidence-bound', () => {
+    const res = shouldRegenerate({
+      gate: gate([{ checkType: 'devils_advocate', passed: false }]),
+      devilsAdvocate: {
+        verdict: 'major_revision', publishabilityScore: 35, fatalChallenges: 1,
+        topChallenges: [
+          { type: 'missing_stakeholder', text: 'no affected-party analysis' },
+          { type: 'overstated_conclusion', text: 'claim exceeds warrant' },
+        ],
+      },
+      qualityScore: 60, trustScore: 72,
+    });
+    expect(res.regenerate).toBe(true);
+  });
 });
 
 describe('attemptScore — monotone witness', () => {
