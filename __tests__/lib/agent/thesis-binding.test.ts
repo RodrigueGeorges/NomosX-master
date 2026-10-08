@@ -8,6 +8,7 @@
  */
 import { callLLM } from '@/lib/llm/unified-llm';
 import { hypothesisJudge, checkThesisAdherence } from '@/lib/agent/hypothesis-engine';
+import { withExecutionSignal } from '@/lib/worker/execution-scope';
 import type { Hypothesis } from '@/lib/agent/hypothesis-engine';
 
 jest.mock('@/lib/llm/unified-llm', () => ({ callLLM: jest.fn() }));
@@ -82,5 +83,27 @@ describe('checkThesisAdherence', () => {
     const adh = await checkThesisAdherence('anything', HYPOTHESES[1].statement);
     expect(adh.adhered).toBe(true);
     expect(adh.reason).toBe('check unavailable');
+  });
+
+  it('propagates a scope abort instead of returning "adhered" — cancelled work must die', async () => {
+    const controller = new AbortController();
+    mockedLLM.mockImplementationOnce(async () => {
+      controller.abort();
+      throw new Error('fetch aborted');
+    });
+    await expect(
+      withExecutionSignal(controller.signal, () => checkThesisAdherence('anything', HYPOTHESES[1].statement)),
+    ).rejects.toThrow();
+  });
+
+  it('propagates a scope abort in hypothesisJudge instead of degrading to unbound', async () => {
+    const controller = new AbortController();
+    mockedLLM.mockImplementationOnce(async () => {
+      controller.abort();
+      throw new Error('fetch aborted');
+    });
+    await expect(
+      withExecutionSignal(controller.signal, () => hypothesisJudge(HYPOTHESES, SOURCES)),
+    ).rejects.toThrow();
   });
 });
