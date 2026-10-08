@@ -654,7 +654,12 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
         console.warn(`${label} THESIS BINDING: verdict exceeds bound hypothesis — ${adh.reason}`);
         ctx?.addFinding?.('THESIS_BINDING', 'warning', `Analyst verdict exceeds bound thesis: ${adh.reason.slice(0, 200)}`);
       }
-    } catch { /* non-blocking */ }
+    } catch {
+      // Non-blocking — but never swallow a scope abort: if the error came
+      // from a dead/cancelled execution scope it must propagate (S38
+      // cancellation contract), not surface as a benign check failure.
+      assertExecutionActive();
+    }
   }
   // ── BRANCH CITATION AUDIT (deterministic) — did the analysis actually use
   // each branch's evidence? A plan branch cited 0× is the hard counterpart

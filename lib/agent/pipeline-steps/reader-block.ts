@@ -388,6 +388,10 @@ export async function runReaderBlock(deps: ReaderBlockDeps): Promise<ReaderBlock
         };
       }
     } catch (err) {
+      // Cancelled scope must propagate — a dead run degrading to "unbound
+      // analyst" is a silent-failure class, not a recoverable judge error.
+      const { assertExecutionActive } = await import('../../worker/execution-scope');
+      assertExecutionActive();
       console.warn(`${label} HYPOTHESIS JUDGE: failed (non-blocking):`, err);
     }
   }

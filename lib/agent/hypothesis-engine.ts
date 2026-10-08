@@ -17,6 +17,7 @@
 
 import { callLLM } from '../llm/unified-llm';
 import { parseJson } from './json-utils';
+import { assertExecutionActive } from '../worker/execution-scope';
 
 // ============================================================================
 // TYPES
@@ -236,6 +237,7 @@ Return JSON:
     console.log(`[HYPOTHESIS JUDGE] Verdicts: ${summary}${boundThesis ? ` | bound: ${boundThesis.id} (${boundThesis.supportingEvidence.length} sources)` : ''}`);
     return { verdicts, verdictBlock, boundThesis, costUsd: response.costUsd ?? 0 };
   } catch (err: any) {
+    assertExecutionActive(); // cancelled scope must abort, not degrade to "unbound"
     console.warn(`[HYPOTHESIS JUDGE] Failed (non-blocking): ${err.message}`);
     return { verdicts: [], verdictBlock: '', costUsd: 0 };
   }
@@ -274,6 +276,8 @@ export async function checkThesisAdherence(
       costUsd: response.costUsd ?? 0,
     };
   } catch (err: any) {
+    // A dead scope must abort the run, not masquerade as "adhered".
+    assertExecutionActive();
     console.warn(`[THESIS BINDING] adherence check failed (non-blocking): ${err.message}`);
     return { adhered: true, reason: 'check unavailable', costUsd: 0 };
   }
