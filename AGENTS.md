@@ -24,11 +24,18 @@ weight (supported 2 / partially 1 / else 0) × confidence, requiring ≥1
 direct supporting source. This is the user's mandated flow — radar →
 sources → thesis formed from readings → experts/scenarios elaborate.
 Pre-registration stays (hypotheses framed before reading prevent post-hoc
-rationalization), but the *selection* is now evidence-driven, and the
-verdictBlock gains a mandatory `THESIS BINDING` section: the analyst's
-`verdict` field must implement the bound hypothesis or a strictly narrower
-formulation — bolder claims are labelled secondary scenarios, never the
-central thesis.
+rationalization), but the *selection* is now evidence-driven.
+
+**Single-injection binding** (`analyst-context.ts`) — the mandatory
+`THESIS BINDING` block is emitted exactly once, reconstructed from
+`stats.thesisBinding` AFTER SARA compression (same pattern as
+priorFailureFeedback/learned guidelines): `saraCompress` has no section
+protection, so a binding inside the compressible verdict block could be
+dropped on strategic runs — silently restoring the failure mode it exists
+to kill — and when uncompressed it would have been duplicated on every
+analyst pass. The analyst's `verdict` field must implement the bound
+hypothesis or a strictly narrower formulation; bolder claims are labelled
+secondary scenarios, never the central thesis.
 
 **Adherence gate** (`checkThesisAdherence`, called post-analyst in
 `pipeline-v2.ts`) — one cheap `elenchus` call verifies `analysis.verdict`

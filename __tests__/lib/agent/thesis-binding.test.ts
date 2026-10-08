@@ -42,12 +42,15 @@ describe('hypothesisJudge — bound thesis selection (source-first)', () => {
     expect(judge.boundThesis?.supportingEvidence.length).toBeGreaterThanOrEqual(1);
   });
 
-  it('emits a mandatory THESIS BINDING directive in the verdict block', async () => {
+  it('keeps the binding OUT of the compressible verdict block — single injection is post-SARA', async () => {
     mockedLLM.mockResolvedValueOnce({ content: JSON.stringify(JUDGE_RESPONSE), costUsd: 0 } as any);
     const judge = await hypothesisJudge(HYPOTHESES, SOURCES);
-    expect(judge.verdictBlock).toContain('THESIS BINDING');
-    expect(judge.verdictBlock).toContain(HYPOTHESES[1].statement);
-    expect(judge.verdictBlock).toContain('speculation');
+    // Efficiency contract: the binding lives once, in the post-SARA injection
+    // from stats.thesisBinding — duplicating it inside the compressible block
+    // wastes ~350 chars on every analyst pass.
+    expect(judge.verdictBlock).not.toContain('THESIS BINDING');
+    expect(judge.verdictBlock).toContain('HYPOTHESIS VERDICTS');
+    expect(judge.boundThesis?.statement).toBe(HYPOTHESES[1].statement);
   });
 
   it('leaves boundThesis undefined when no hypothesis has support — fail-open to downstream gates', async () => {

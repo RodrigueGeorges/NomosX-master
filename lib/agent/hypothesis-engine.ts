@@ -222,15 +222,10 @@ Return JSON:
       'RULES: Structure your analysis around these verdicts. Lead with what is SUPPORTED.',
       'Explicitly acknowledge INCONCLUSIVE hypotheses as open questions — do not paper over them.',
       'Your stated confidence must not exceed the judged confidence for each claim.',
-      ...(boundThesis ? [
-        '',
-        '═══ THESIS BINDING (mandatory) ═══',
-        `Your central thesis (the "verdict" field) MUST implement this hypothesis, or a strictly NARROWER version of it:`,
-        `"${boundThesis.statement}"`,
-        `— judged ${boundThesis.verdict.toUpperCase()} @ ${boundThesis.confidence}% confidence, ${boundThesis.supportingEvidence.length} direct source(s).`,
-        'A central claim that EXCEEDS this evidence base is not a thesis — it is speculation.',
-        'If you believe a bolder claim is warranted, present it explicitly as a secondary scenario, never as the central verdict.',
-      ] : []),
+      // The mandatory THESIS BINDING is NOT emitted here — it is re-injected
+      // post-SARA from stats.thesisBinding (analyst-context), the single
+      // injection point that compression can never drop. Duplicating it in
+      // this compressible block would waste ~350 chars × every analyst pass.
     ].join('\n') : '';
 
     const summary = verdicts.map(v => `${v.id}=${v.verdict}@${v.confidence}`).join(', ');
