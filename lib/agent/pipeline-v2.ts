@@ -544,6 +544,37 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     return { briefId: undefined, pipelineRun, stats, html: '', analysis: { refusal: stats.structuredRefusal } as any };
   }
 
+  // ── THESIS SUFFICIENCY (S39) — registered hypotheses inconclusive AND
+  // bottom-up corpus derivation found nothing defensible: this corpus cannot
+  // yield a position. Spending the analyst/critic/DA tail on it manufactures
+  // a HELD at full price. Refuse now — same economics as corpus_insufficient,
+  // one level deeper (not "enough sources?" but "enough SUPPORT?").
+  if ((stats as any).thesisBinding?.absent === 'no_supportable_thesis') {
+    const reason = `thesis_insufficient: ${topSources.length} sources read but no defensible central claim derivable — refusing before analyst spend`;
+    console.warn(`${label} REFUSAL: ${reason}`);
+    stats.structuredRefusal = {
+      reason,
+      sourceCount: topSources.length,
+      required: 0,
+      missing: ['supportable_thesis'],
+    };
+    stats.totalCostUsd = cost.runningCostUsd;
+    emitProgress(pipelineRun.id, "ANALYST", "failed", `Refused: ${reason}`);
+    activeRuns.delete(idempotencyKey);
+    process.removeListener('unhandledRejection', rejectionHandler);
+    await prisma.pipelineRun.update({
+      where: { id: pipelineRun.id },
+      data: {
+        status: "FAILED",
+        finishedAt: new Date(),
+        durationMs: Date.now() - pipelineStart,
+        error: reason.slice(0, 500),
+        steps: JSON.parse(JSON.stringify({ ...stats, error: reason })),
+      },
+    }).catch(() => {});
+    return { briefId: undefined, pipelineRun, stats, html: '', analysis: { refusal: stats.structuredRefusal } as any };
+  }
+
   let analysis: any;
 
   // ── ARTIFACT VERSIONING (Sprint 28 / P0/1) ──

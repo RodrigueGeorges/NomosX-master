@@ -54,14 +54,36 @@ describe('hypothesisJudge — bound thesis selection (source-first)', () => {
     expect(judge.boundThesis?.statement).toBe(HYPOTHESES[1].statement);
   });
 
-  it('leaves boundThesis undefined when no hypothesis has support — fail-open to downstream gates', async () => {
+  it('marks thesisAbsent when verdicts AND corpus derivation both find nothing — early refusal signal', async () => {
     mockedLLM.mockResolvedValueOnce({
       content: JSON.stringify({ verdicts: JUDGE_RESPONSE.verdicts.map(v => ({ ...v, verdict: 'inconclusive', supportingEvidence: [] })) }),
       costUsd: 0,
     } as any);
+    // Derivation call — corpus explicitly supports nothing defensible.
+    mockedLLM.mockResolvedValueOnce({
+      content: JSON.stringify({ defensible: false, claim: '', supportingEvidence: [], contraryEvidence: [], confidence: 10, reasoning: 'thin corpus' }),
+      costUsd: 0.001,
+    } as any);
     const judge = await hypothesisJudge(HYPOTHESES, SOURCES);
     expect(judge.boundThesis).toBeUndefined();
-    expect(judge.verdictBlock).not.toContain('THESIS BINDING');
+    expect(judge.thesisAbsent).toBe(true);
+    expect(judge.costUsd).toBeCloseTo(0.001);
+  });
+
+  it('binds a corpus-derived thesis when registered hypotheses fail but the corpus yields a claim', async () => {
+    mockedLLM.mockResolvedValueOnce({
+      content: JSON.stringify({ verdicts: JUDGE_RESPONSE.verdicts.map(v => ({ ...v, verdict: 'inconclusive', supportingEvidence: [] })) }),
+      costUsd: 0,
+    } as any);
+    mockedLLM.mockResolvedValueOnce({
+      content: JSON.stringify({ defensible: true, claim: 'Norway and Finland are deepening Arctic security coordination', supportingEvidence: ['[SRC-1] joint exercises', '[SRC-2] bilateral pact'], contraryEvidence: [], confidence: 70, reasoning: 'two independent sources converge' }),
+      costUsd: 0.0008,
+    } as any);
+    const judge = await hypothesisJudge(HYPOTHESES, SOURCES);
+    expect(judge.boundThesis?.id).toBe('T1');
+    expect(judge.thesisOrigin).toBe('corpus_derived');
+    expect(judge.boundThesis?.supportingEvidence.length).toBe(2);
+    expect(judge.thesisAbsent).toBe(false);
   });
 
   it('ignores a winning verdict on an unregistered id — post-hoc hypotheses cannot be bound', async () => {

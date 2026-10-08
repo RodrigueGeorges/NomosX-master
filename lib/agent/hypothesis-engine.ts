@@ -54,6 +54,15 @@ export interface JudgeOutput {
    *  judged hypotheses → thesis), not the reverse: the central claim must
    *  stay within what the readings already support. */
   boundThesis?: HypothesisVerdict;
+  /** How the bound thesis was chosen — 'registered' (a pre-posed hypothesis
+   *  won) or 'corpus_derived' (no registered hypothesis was supported, so
+   *  the corpus itself was asked what it defensibly claims). */
+  thesisOrigin?: 'registered' | 'corpus_derived';
+  /** True when registered verdicts AND corpus derivation both found nothing
+   *  supportable — the corpus cannot yield a defensible position. The
+   *  pipeline should refuse early rather than spend the analyst tail on a
+   *  guaranteed-weak thesis (the HELD factory). */
+  thesisAbsent?: boolean;
   costUsd: number;
 }
 
@@ -221,9 +230,44 @@ Return JSON:
     const winningVerdict = verdicts
       .filter(v => byId.has(v.id) && v.supportingEvidence.length > 0 && weight(v) > 0)
       .sort((a, b) => weight(b) - weight(a))[0];
-    const boundThesis = winningVerdict
+    let derivedCostUsd = 0;
+    let boundThesis = winningVerdict
       ? { ...winningVerdict, statement: byId.get(winningVerdict.id)!.statement }
       : undefined;
+    let thesisOrigin: JudgeOutput['thesisOrigin'];
+    let thesisAbsent = false;
+    if (boundThesis) {
+      thesisOrigin = 'registered';
+    } else if (verdicts.length > 0) {
+      // Bottom-up fallback: the top-down hypotheses were all inconclusive —
+      // maybe the corpus supports a DIFFERENT claim. Ask it directly before
+      // declaring the item unpublishable. This is the source-first contract
+      // completed: the thesis comes from the evidence, not the question.
+      // Errors degrade open (unknown ≠ empty); an explicit "nothing
+      // defensible" marks the corpus thesis_absent for early refusal.
+      try {
+        const derived = await deriveThesisFromCorpus(sources, readings);
+        derivedCostUsd = derived?.costUsd ?? 0;
+        if (derived && derived.defensible !== false && derived.claim && derived.supportingEvidence.length >= 2) {
+          boundThesis = {
+            id: 'T1', statement: derived.claim,
+            verdict: derived.confidence >= 50 ? 'supported' : 'partially_supported',
+            confidence: Math.min(derived.confidence, 85),
+            supportingEvidence: derived.supportingEvidence,
+            contraryEvidence: derived.contraryEvidence ?? [],
+            reasoning: `[corpus-derived] ${derived.reasoning}`,
+          };
+          thesisOrigin = 'corpus_derived';
+          console.log(`[HYPOTHESIS JUDGE] Corpus-derived thesis bound: "${derived.claim.slice(0, 100)}" (${derived.supportingEvidence.length} sources)`);
+        } else {
+          thesisAbsent = true;
+          console.warn(`[HYPOTHESIS JUDGE] No supportable thesis — registered verdicts inconclusive AND corpus derivation found nothing defensible`);
+        }
+      } catch {
+        assertExecutionActive(); // dead scope aborts, does not read as "empty corpus"
+        // Derivation failed open — unknown is not empty; proceed unbound.
+      }
+    }
 
     // Build injection block for ANALYST
     const verdictBlock = verdicts.length > 0 ? [
@@ -243,7 +287,7 @@ Return JSON:
 
     const summary = verdicts.map(v => `${v.id}=${v.verdict}@${v.confidence}`).join(', ');
     console.log(`[HYPOTHESIS JUDGE] Verdicts: ${summary}${boundThesis ? ` | bound: ${boundThesis.id} (${boundThesis.supportingEvidence.length} sources)` : ''}`);
-    return { verdicts, verdictBlock, boundThesis, costUsd: response.costUsd ?? 0 };
+    return { verdicts, verdictBlock, boundThesis, thesisOrigin, thesisAbsent, costUsd: (response.costUsd ?? 0) + derivedCostUsd };
   } catch (err: any) {
     assertExecutionActive(); // cancelled scope must abort, not degrade to "unbound"
     console.warn(`[HYPOTHESIS JUDGE] Failed (non-blocking): ${err.message}`);
@@ -289,4 +333,62 @@ export async function checkThesisAdherence(
     console.warn(`[THESIS BINDING] adherence check failed (non-blocking): ${err.message}`);
     return { adhered: true, reason: 'check unavailable', costUsd: 0 };
   }
+}
+
+/**
+ * Bottom-up thesis derivation — the complement of top-down judging. When no
+ * pre-registered hypothesis is supported, the corpus itself is asked: "what
+ * is the single strongest defensible central claim here?" This completes the
+ * source-first contract: hypotheses are *tested* top-down, but the thesis is
+ * *found* bottom-up when the test comes back empty.
+ *
+ * Returns null/undefended explicitly when the evidence supports nothing —
+ * that explicit "no" is what lets the pipeline refuse early instead of
+ * burning the analyst tail on a guaranteed-weak thesis.
+ */
+export interface DerivedThesis {
+  claim: string;
+  supportingEvidence: string[];   // [SRC-N] citations required
+  contraryEvidence: string[];
+  confidence: number;             // 0-100
+  reasoning: string;
+  defensible: boolean;            // false = corpus explicitly supports nothing
+  costUsd: number;
+}
+
+export async function deriveThesisFromCorpus(
+  sources: any[],
+  readings?: any[],
+): Promise<DerivedThesis | null> {
+  const sourceContext = sources.slice(0, 25).map((s: any, i: number) => {
+    const reading = readings?.[i];
+    const claims = reading?.claims?.slice(0, 3).join('; ') || s.abstract?.slice(0, 300) || 'No content';
+    return `[SRC-${i + 1}] ${s.title} (${s.year || 'N/A'}, ${s.provider})\n  Key content: ${claims}`;
+  }).join('\n');
+
+  const response = await callLLM({
+    messages: [{
+      role: 'system',
+      content: `You are a rigorous research director. Given ONLY an evidence base, you derive the single strongest central claim the evidence can actually defend. You never inflate weak evidence into a thesis — answering "nothing here supports a defensible position" is a valid and respected output.`,
+    }, {
+      role: 'user',
+      content: `EVIDENCE BASE:\n${sourceContext}\n\nTASK: Identify the single strongest defensible central claim this evidence supports.\n\nRules:\n1. The claim must be directly supported by at least 2 independent [SRC-N] sources\n2. Prefer narrower, precise claims over sweeping ones — defensibility beats drama\n3. If no claim meets the 2-source bar, answer defensible=false honestly\n4. Every supporting citation must be a real [SRC-N] from the base\n\nReturn JSON:\n{"defensible": true|false, "claim": "the central claim or empty", "supportingEvidence": ["[SRC-N] what it shows"], "contraryEvidence": ["[SRC-N] what cuts against"], "confidence": 0-100, "reasoning": "two sentences"}`,
+    }],
+    temperature: 0.1,
+    jsonMode: true,
+    maxTokens: 1200,
+    enableCache: false,
+    task: 'elenchus',
+  });
+
+  const parsed = parseJson(response.content) as any;
+  return {
+    claim: String(parsed?.claim ?? '').trim(),
+    supportingEvidence: Array.isArray(parsed?.supportingEvidence) ? parsed.supportingEvidence.map(String) : [],
+    contraryEvidence: Array.isArray(parsed?.contraryEvidence) ? parsed.contraryEvidence.map(String) : [],
+    confidence: Math.max(0, Math.min(100, Number(parsed?.confidence) || 0)),
+    reasoning: String(parsed?.reasoning ?? ''),
+    defensible: parsed?.defensible !== false,
+    costUsd: response.costUsd ?? 0,
+  };
 }

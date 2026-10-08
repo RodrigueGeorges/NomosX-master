@@ -391,7 +391,14 @@ export async function runReaderBlock(deps: ReaderBlockDeps): Promise<ReaderBlock
           verdict: judge.boundThesis.verdict,
           confidence: judge.boundThesis.confidence,
           supportingSources: judge.boundThesis.supportingEvidence.length,
+          origin: judge.thesisOrigin ?? 'registered',
         };
+      } else if (judge.thesisAbsent) {
+        // Corpus supports NO defensible claim — registered verdicts and
+        // bottom-up derivation both came back empty. Pipeline refuses before
+        // the analyst tail: a corpus that yields no thesis can only produce
+        // a HELD artifact at full price.
+        stats.thesisBinding = { absent: 'no_supportable_thesis' };
       }
     } catch (err) {
       // Cancelled scope must propagate — a dead run degrading to "unbound

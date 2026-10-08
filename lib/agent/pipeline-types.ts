@@ -384,11 +384,18 @@ export interface PipelineStats {
   // Step 5e-bis: Thesis Binding (S39) — the central claim is contracted FROM
   // the judged corpus, then verified post-analyst.
   thesisBinding?: {
-    id: string;
-    statement: string;
-    verdict: string;
-    confidence: number;
-    supportingSources: number;
+    id?: string;
+    statement?: string;
+    verdict?: string;
+    confidence?: number;
+    supportingSources?: number;
+    /** 'registered' = a pre-posed hypothesis won; 'corpus_derived' = the
+     *  corpus itself yielded the claim after all verdicts came back
+     *  inconclusive. */
+    origin?: 'registered' | 'corpus_derived';
+    /** Set when no supportable thesis exists — triggers thesis_insufficient
+     *  early refusal before analyst spend. */
+    absent?: string;
     /** Post-analyst adherence check: did analysis.verdict stay inside the
      *  bound thesis? Undefined until checked. */
     adhered?: boolean;
