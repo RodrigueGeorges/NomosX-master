@@ -393,6 +393,9 @@ export interface PipelineStats {
      *  bound thesis? Undefined until checked. */
     adhered?: boolean;
     adherenceReason?: string;
+    /** The verdict string last verified — a changed verdict (gap-fill
+     *  re-analysis, critic, arbiter, DA rewrite) triggers one re-check. */
+    checkedVerdict?: string;
   };
 
   // Step 6: Analyst

@@ -8,6 +8,16 @@
 
 ## Sprint 39 — Source-first thesis binding: the central claim is contracted FROM the corpus
 
+**Critical re-enable**: `framingAgent` was SUPPRESSED in reader-block since a
+prior cost pass ("hypotheses not consumed by analyst, $0.03/run saved") —
+true when verdicts were advisory, fatal once they carry the binding:
+`framing.hypotheses` was always `[]` → judge never ran → the entire
+mechanism was dead code. Re-enabled (it runs in parallel with reader
+extraction inside the same `Promise.all`, so hypotheses are posed *while*
+readings are extracted — the pre-registration ordering is preserved by
+construction, not by convention). Added cost: ~$0.04/run total
+(framing+judge+adherence).
+
 Live paid-run forensic: the jet-drone item was HELD because the DA's kill shot
 was real — "none of the 20 sources supports the central jet/AI thesis". The
 pipeline order was already sources→readings→analysis, but the analyst's
@@ -37,13 +47,22 @@ analyst pass. The analyst's `verdict` field must implement the bound
 hypothesis or a strictly narrower formulation; bolder claims are labelled
 secondary scenarios, never the central thesis.
 
-**Adherence gate** (`checkThesisAdherence`, called post-analyst in
-`pipeline-v2.ts`) — one cheap `elenchus` call verifies `analysis.verdict`
-stays within the bound statement. Non-adherence is recorded in
+**Adherence gate** (`checkThesisAdherence` via `verifyThesisBinding` closure
+in `pipeline-v2.ts`) — one cheap `elenchus` call verifies `analysis.verdict`
+stays within the bound statement. Called twice: post-analyst, and pre-render
+(the verdict string is compared — zero cost when unchanged, one call when
+gap-fill re-analysis / critic / arbiter / DA rewrite produced a new verdict
+that no check ever saw). Non-adherence is recorded in
 `stats.thesisBinding.adhered` + reason + a `THESIS_BINDING` blackboard
 warning — observability-first (critic/DA still judge substance); the data
 will show how often analysts over-reach before deciding whether
 non-adherence should hard-block or trigger verdict narrowing.
+
+**Registration integrity** — only pre-registered hypotheses are bindable: a
+judge verdict carrying an id framing never emitted is ignored for binding
+(post-hoc invention would defeat the anti-motivated-reasoning point), and
+the bound statement is the ORIGINAL registered text, not the judge's
+paraphrase.
 
 **Evidence-bound failure routing** (`revision-controller.ts`,
 commit `b9bebe1`) — DA `major_revision`/`reject` verdicts whose top

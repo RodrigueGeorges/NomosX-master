@@ -63,6 +63,31 @@ describe('hypothesisJudge — bound thesis selection (source-first)', () => {
     expect(judge.boundThesis).toBeUndefined();
     expect(judge.verdictBlock).not.toContain('THESIS BINDING');
   });
+
+  it('ignores a winning verdict on an unregistered id — post-hoc hypotheses cannot be bound', async () => {
+    mockedLLM.mockResolvedValueOnce({
+      content: JSON.stringify({ verdicts: [
+        ...JUDGE_RESPONSE.verdicts,
+        { id: 'H9', statement: 'invented hypothesis the LLM preferred', verdict: 'supported', confidence: 95, supportingEvidence: ['[SRC-1] x'], contraryEvidence: [], reasoning: 'not pre-registered' },
+      ] }),
+      costUsd: 0,
+    } as any);
+    const judge = await hypothesisJudge(HYPOTHESES, SOURCES);
+    // H9 (95×2=190) outranks H2 (78×2=156) — but H9 was never posed by framing,
+    // so it must not bind. The registered winner H2 still does.
+    expect(judge.boundThesis?.id).toBe('H2');
+  });
+
+  it('binds the ORIGINAL registered statement, not the judge paraphrase', async () => {
+    mockedLLM.mockResolvedValueOnce({
+      content: JSON.stringify({ verdicts: [
+        { ...JUDGE_RESPONSE.verdicts[1], statement: 'paraphrased narrower version by the judge' },
+      ] }),
+      costUsd: 0,
+    } as any);
+    const judge = await hypothesisJudge(HYPOTHESES, SOURCES);
+    expect(judge.boundThesis?.statement).toBe(HYPOTHESES[1].statement);
+  });
 });
 
 describe('checkThesisAdherence', () => {
@@ -106,4 +131,38 @@ describe('checkThesisAdherence', () => {
       withExecutionSignal(controller.signal, () => hypothesisJudge(HYPOTHESES, SOURCES)),
     ).rejects.toThrow();
   });
+});
+
+describe('buildAnalystContext — binding survives SARA compression (integration)', () => {
+  it('THESIS BINDING is present in fullContextBlock even when SARA compresses the context', async () => {
+    const { buildAnalystContext } = await import('@/lib/agent/pipeline-steps/analyst-context');
+    const result = await buildAnalystContext({
+      query: 'Will jet drones reshape deterrence?',
+      topSources: [], readings: [], detectedDomain: 'geopolitics',
+      isStrategic: false, isDossier: false,
+      topicClassification: { dimensions: [] },
+      // >8000 chars forces SARA compression — the exact condition that used
+      // to be able to drop the binding silently.
+      hypothesisVerdictBlock: `═══ HYPOTHESIS VERDICTS ═══\n${'verdicts and evidence lines. '.repeat(400)}`,
+      quant: { evidenceBlock: '' }, quantBridge: { evidenceBlock: '' },
+      stats: { thesisBinding: { id: 'H2', statement: HYPOTHESES[1].statement, verdict: 'supported', confidence: 78, supportingSources: 2 } },
+      label: '[test]', addCost: () => {},
+      ctx: { addFinding: () => {}, skipStep: () => {} },
+    } as any);
+    expect(result.fullContextBlock).toContain('THESIS BINDING');
+    expect(result.fullContextBlock).toContain(HYPOTHESES[1].statement);
+    expect(result.fullContextBlock).toContain('NARROWER');
+  }, 30000);
+
+  it('no binding block is injected when stats.thesisBinding is absent', async () => {
+    const { buildAnalystContext } = await import('@/lib/agent/pipeline-steps/analyst-context');
+    const result = await buildAnalystContext({
+      query: 'q', topSources: [], readings: [], detectedDomain: 'geopolitics',
+      isStrategic: false, isDossier: false, topicClassification: { dimensions: [] },
+      hypothesisVerdictBlock: '', quant: { evidenceBlock: '' }, quantBridge: { evidenceBlock: '' },
+      stats: {}, label: '[test]', addCost: () => {},
+      ctx: { addFinding: () => {}, skipStep: () => {} },
+    } as any);
+    expect(result.fullContextBlock ?? '').not.toContain('THESIS BINDING');
+  }, 30000);
 });

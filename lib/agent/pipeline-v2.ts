@@ -641,18 +641,23 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   // exceeds it is speculation-as-thesis: exactly what the DA later kills.
   // One cheap check; non-adherence is recorded and surfaced to the gate
   // diagnostics without blocking (the critic/DA layers judge substance).
-  if ((stats as any).thesisBinding?.statement && typeof (analysis as any)?.verdict === 'string' && (analysis as any).verdict.trim().length >= 20) {
+  const verifyThesisBinding = async (stage: string): Promise<void> => {
+    const bound = (stats as any).thesisBinding;
+    const verdict = typeof (analysis as any)?.verdict === 'string' ? (analysis as any).verdict : '';
+    if (!bound?.statement || verdict.trim().length < 20) return;
+    if (bound.checkedVerdict === verdict) return; // unchanged verdict — no re-spend
     try {
       const { checkThesisAdherence } = await import('./hypothesis-engine');
-      const adh = await checkThesisAdherence(String((analysis as any).verdict), (stats as any).thesisBinding.statement);
+      const adh = await checkThesisAdherence(verdict, bound.statement);
       addCost(adh.costUsd, 'THESIS BINDING');
-      (stats as any).thesisBinding.adhered = adh.adhered;
-      (stats as any).thesisBinding.adherenceReason = adh.reason.slice(0, 200);
+      bound.checkedVerdict = verdict;
+      bound.adhered = adh.adhered;
+      bound.adherenceReason = adh.reason.slice(0, 200);
       if (adh.adhered) {
-        console.log(`${label} THESIS BINDING: verdict within bound hypothesis "${(stats as any).thesisBinding.id}"`);
+        console.log(`${label} THESIS BINDING (${stage}): verdict within bound hypothesis "${bound.id}"`);
       } else {
-        console.warn(`${label} THESIS BINDING: verdict exceeds bound hypothesis — ${adh.reason}`);
-        ctx?.addFinding?.('THESIS_BINDING', 'warning', `Analyst verdict exceeds bound thesis: ${adh.reason.slice(0, 200)}`);
+        console.warn(`${label} THESIS BINDING (${stage}): verdict exceeds bound hypothesis — ${adh.reason}`);
+        ctx?.addFinding?.('THESIS_BINDING', 'warning', `[${stage}] Analyst verdict exceeds bound thesis: ${adh.reason.slice(0, 200)}`);
       }
     } catch {
       // Non-blocking — but never swallow a scope abort: if the error came
@@ -660,7 +665,8 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
       // cancellation contract), not surface as a benign check failure.
       assertExecutionActive();
     }
-  }
+  };
+  await verifyThesisBinding('post-analyst');
   // ── BRANCH CITATION AUDIT (deterministic) — did the analysis actually use
   // each branch's evidence? A plan branch cited 0× is the hard counterpart
   // of the outline critic's missing dimensions; its gap request is drained
@@ -1270,6 +1276,12 @@ Return JSON: {"queries": ["...", "..."]} — one query per gap, same order.`,
     applyDebateOutcome(await runDebateMetaBlock(debateAdvocateDeps, flags.runDebateStep, buildAnalysisReviewText(analysis as Record<string, unknown>, query)));
     await runDevilsAdvocateBlock(debateAdvocateDeps, flags.runDevilsAdvocateStep, html, debateContext, 'html');
   }
+
+  // Final adherence re-verification — gap-fill re-analysis, critic repair,
+  // arbiter merge and DA rewrite can all replace analysis.verdict after the
+  // post-analyst check. Zero cost when unchanged (string compare), one cheap
+  // call when the shipped verdict differs from the one already verified.
+  await verifyThesisBinding('pre-render');
 
   stats.analysis = analysis;
   stats.editorialV2 = editorialV2;

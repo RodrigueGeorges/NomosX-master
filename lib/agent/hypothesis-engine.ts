@@ -206,11 +206,24 @@ Return JSON:
     // confidence, requiring ≥1 direct supporting source. This is the
     // source-first thesis contract: the analyst's central claim must stay
     // within it — anything bolder is speculation, not thesis.
+    // Only PRE-REGISTERED hypotheses are bindable: a verdict carrying an id
+    // the framing step never emitted is a post-hoc invention — binding to it
+    // would defeat the anti-motivated-reasoning point of registration. The
+    // bound statement is the ORIGINAL registered text, not the judge's
+    // paraphrase: the contract is the posed hypothesis, not its restatement.
+    const byId = new Map(hypotheses.map(h => [h.id, h]));
+    const foreign = verdicts.filter(v => !byId.has(v.id));
+    if (foreign.length > 0) {
+      console.warn(`[HYPOTHESIS JUDGE] ${foreign.length} verdict(s) with unregistered id(s) ignored for binding: ${foreign.map(v => v.id).join(', ')}`);
+    }
     const weight = (v: HypothesisVerdict) =>
       (v.verdict === 'supported' ? 2 : v.verdict === 'partially_supported' ? 1 : 0) * v.confidence;
-    const boundThesis = verdicts
-      .filter(v => v.supportingEvidence.length > 0 && weight(v) > 0)
+    const winningVerdict = verdicts
+      .filter(v => byId.has(v.id) && v.supportingEvidence.length > 0 && weight(v) > 0)
       .sort((a, b) => weight(b) - weight(a))[0];
+    const boundThesis = winningVerdict
+      ? { ...winningVerdict, statement: byId.get(winningVerdict.id)!.statement }
+      : undefined;
 
     // Build injection block for ANALYST
     const verdictBlock = verdicts.length > 0 ? [

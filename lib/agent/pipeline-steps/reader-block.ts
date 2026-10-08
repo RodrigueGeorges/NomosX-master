@@ -154,8 +154,16 @@ export async function runReaderBlock(deps: ReaderBlockDeps): Promise<ReaderBlock
 
   const [readings, framingSettled, quantSettled, quantBridgeSettled] = await Promise.all([
     readInBatches(),
-    // FRAMING: SUPPRESSED — hypotheses not consumed by analyst, $0.03/run saved
-    Promise.resolve({ hypotheses: [] as any[], keyUnknowns: [] as string[], costUsd: 0 }),
+    // FRAMING: pre-registered hypotheses — load-bearing since S39: the judge
+    // binds the analyst's central thesis to the best-supported one. Runs in
+    // PARALLEL with extraction on purpose: hypotheses posed before readings
+    // land cannot be motivated by them.
+    import('../hypothesis-engine').then(m => m.framingAgent(query)).catch(async (err) => {
+      const { assertExecutionActive } = await import('../../worker/execution-scope');
+      assertExecutionActive(); // dead scope must abort, not degrade to unbound
+      console.warn(`${label} FRAMING: failed (non-blocking):`, err);
+      return { hypotheses: [] as any[], keyUnknowns: [] as string[], costUsd: 0 };
+    }),
     // QUANT: fetch real numbers from T1 primary-data providers
     import('../quant-agent').then(m => m.quantAgent(query, topSources)).catch((err) => {
       console.warn(`${label} QUANT: failed (non-blocking):`, err);
