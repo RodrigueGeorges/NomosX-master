@@ -381,6 +381,20 @@ export interface PipelineStats {
     costUsd: number;
   };
 
+  // Step 5e-bis: Thesis Binding (S39) — the central claim is contracted FROM
+  // the judged corpus, then verified post-analyst.
+  thesisBinding?: {
+    id: string;
+    statement: string;
+    verdict: string;
+    confidence: number;
+    supportingSources: number;
+    /** Post-analyst adherence check: did analysis.verdict stay inside the
+     *  bound thesis? Undefined until checked. */
+    adhered?: boolean;
+    adherenceReason?: string;
+  };
+
   // Step 6: Analyst
   analyst?: {
     hasDebate: boolean;

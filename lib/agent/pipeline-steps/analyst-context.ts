@@ -371,6 +371,18 @@ export async function buildAnalystContext(deps: AnalystContextDeps): Promise<Ana
     }
   } catch { /* non-blocking — the bank is advisory */ }
 
+  // ── THESIS BINDING (S39): the central claim is contracted FROM the corpus —
+  // it is a mandatory constraint, so it is re-injected AFTER SARA compression
+  // like priorFailureFeedback: a compressed-away binding silently restores the
+  // failure mode it was built to kill (verdict exceeding the evidence base).
+  const boundThesis = (stats as any).thesisBinding;
+  if (boundThesis?.statement) {
+    fullContextBlock = [
+      fullContextBlock,
+      `\n## THESIS BINDING (mandatory)\nYour central thesis (the "verdict" field) MUST implement this hypothesis, or a strictly NARROWER version of it:\n"${boundThesis.statement}"\n— judged ${String(boundThesis.verdict ?? '').toUpperCase()} @ ${boundThesis.confidence}% confidence, ${boundThesis.supportingSources} direct source(s).\nA central claim that EXCEEDS this evidence base is not a thesis — it is speculation. Present bolder claims explicitly as secondary scenarios, never as the central verdict.`,
+    ].filter(Boolean).join('\n\n---\n\n');
+  }
+
   // Context surgery (2026 best practice): pass slim readings to analyst — only extracted fields, not full abstracts
   const slimReadings = readings.map((r: any) => ({
     sourceId: r.sourceId,
