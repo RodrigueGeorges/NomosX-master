@@ -64,6 +64,18 @@ judge verdict carrying an id framing never emitted is ignored for binding
 the bound statement is the ORIGINAL registered text, not the judge's
 paraphrase.
 
+**Corpus-derived fallback + thesis_insufficient refusal** — the live S39 run
+proved the gap: an interview-format item produced all-inconclusive verdicts,
+the analyst ran unbound, the critic escalated mid-flight. `deriveThesisFromCorpus`
+completes the contract: when no registered hypothesis is supported, the corpus
+itself is asked for its strongest defensible claim (≥2 independent sources;
+binds as T1, `origin='corpus_derived'`). When registered verdicts AND
+derivation both come back empty → `stats.thesisBinding.absent =
+'no_supportable_thesis'` → `thesis_insufficient` refusal BEFORE analyst
+spend, same economics as `corpus_insufficient` one level deeper: not
+"enough sources?" but "enough support?". Derivation errors degrade open —
+only an explicit empty verdict refuses.
+
 **Evidence-bound failure routing** (`revision-controller.ts`,
 commit `b9bebe1`) — DA `major_revision`/`reject` verdicts whose top
 challenges are `non_evidence`/`cascade_extrapolation`-dominant are
