@@ -86,9 +86,12 @@ TASK: Produce 3-5 testable hypotheses that, once judged against evidence, will f
 
 Rules:
 1. Each hypothesis must be FALSIFIABLE — a specific claim that evidence could confirm or refute
-2. Cover the main causal claim, the magnitude/timing, at least one counter-hypothesis, and one second-order effect
-3. State precisely what evidence would be needed to judge each one
-4. Include key unknowns that sources likely CANNOT answer (epistemic honesty)
+2. SPAN THE GRANULARITY LADDER — hypotheses must not all sit at the same altitude:
+   - at least ONE low-altitude hypothesis: a descriptive or mechanistic claim that ordinary reporting/data could confirm (e.g. "measure X was adopted", "actor Y shifted position", "sector Z shows trend W") — this is the publication floor
+   - the remaining hypotheses may climb: main causal claim, magnitude/timing, one counter-hypothesis, one second-order effect
+3. Each hypothesis must be judged on ITS OWN evidence — never bundle several claims into one composite statement (a conjunction is only as strong as its weakest conjunct)
+4. State precisely what evidence would be needed to judge each one
+5. Include key unknowns that sources likely CANNOT answer (epistemic honesty)
 
 Return JSON:
 {

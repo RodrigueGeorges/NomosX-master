@@ -3,6 +3,9 @@ node_modules
 .pnp
 .pnp.js
 
+# local toolchain (pinned Node 22 runtime — see AGENTS.md)
+.tools
+
 # testing
 coverage
 *.log

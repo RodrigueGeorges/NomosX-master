@@ -76,6 +76,28 @@ spend, same economics as `corpus_insufficient` one level deeper: not
 "enough sources?" but "enough support?". Derivation errors degrade open —
 only an explicit empty verdict refuses.
 
+**Real-corpus replay validation** — derivation was replayed on the persisted
+45-source corpus of run `3f82082c` (EU trade item, all 4 hypotheses
+inconclusive, HELD): it produced "economic nationalism and protectionist
+trade measures are increasingly reshaping global trade and domestic
+policies" — `defensible:true`, confidence 95, five cited source indices all
+verified against the real corpus, $0.002. The counterfactual is established:
+this HELD carried a publishable thesis nobody had registered.
+
+**Framing granularity ladder** — the same run exposed the upstream cause:
+8/8 hypotheses inconclusive across both items because the framing prompt
+demanded only ambitious categories (causal claim, magnitude/timing,
+counter-hypothesis, second-order effect) — nothing at reportage altitude.
+The prompt now requires a granularity span: at least one low-altitude
+descriptive/mechanistic hypothesis ordinary sources could confirm (the
+publication floor), ambitious hypotheses optional above it, and a ban on
+composite conjunctive statements (a conjunction is only as strong as its
+weakest conjunct).
+
+**Toolchain** — a pinned Node 22.16.0 runtime lives in `.tools/node/`
+(gitignored): the system Node (v26) is outside the `>=22.12 <24` engines
+range; all tsc/jest/tsx commands run `./.tools/node/node.exe`.
+
 **Evidence-bound failure routing** (`revision-controller.ts`,
 commit `b9bebe1`) — DA `major_revision`/`reject` verdicts whose top
 challenges are `non_evidence`/`cascade_extrapolation`-dominant are
