@@ -75,6 +75,11 @@ export interface ScoutBlockDeps {
   minSeedSourcesToSkipScout: number | undefined;
   domain: string | undefined;
   durableKey: string | null;
+  /** HELD-retry evidence mission: targeted retrieval queries distilled by the
+   * prior attempt's gate/DA for the exact evidence it lacked. Persisted in
+   * the held diagnostic and re-scouted here so the retry repairs the corpus
+   * gap instead of repeating the same broad sweep on the same thin base. */
+  priorEvidenceQueries?: string[];
   scout: (query: string, providers: any, perProvider?: number, opts?: { skipCorrective?: boolean }) => Promise<any>;
   stats: Record<string, any>;
   label: string;
@@ -106,6 +111,7 @@ export interface ScoutBlockResult {
 export async function runScoutBlock(deps: ScoutBlockDeps): Promise<ScoutBlockResult> {
   const {
     query, providers, perProvider, isStrategic, useStorm, domain, durableKey,
+    priorEvidenceQueries,
     scout, stats, label, pipelineRunId, pipelineStart, emitProgress,
     isBudgetConstrained, orchState, assessAfterScout, recordDecision,
     recordTransformation, lineage, witnessCtx, ctx,
@@ -503,6 +509,38 @@ export async function runScoutBlock(deps: ScoutBlockDeps): Promise<ScoutBlockRes
   emitProgress(pipelineRunId, "SCOUT", "completed", `Found ${allSourceIds.length} sources`, { blackboard: ctx.getSummary() });
   } // end if (flat scout fallback)
   } // end scout else branch
+
+  // ── PRIOR EVIDENCE MISSION (HELD-retry) — the previous attempt's gate/DA
+  // distilled the missing evidence into targeted queries; they were persisted
+  // in the held diagnostic and feed THIS scout so the retry repairs the
+  // actual corpus gap instead of re-sweeping the same thin base. Bounded:
+  // ≤3 queries on a lean provider set — a mission, not a second sweep.
+  // Never on the skipScout path: a seed corpus is fixed by contract.
+  if (priorEvidenceQueries?.length && !skipScout && !isBudgetConstrained() && allSourceIds.length > 0) {
+    try {
+      const MISSION_PROVIDERS = ['openalex', 'crossref', 'semanticscholar', 'ssrn', 'jstor', 'internet-archive', 'linkup', 'tavily'] as const;
+      const missionQueries = priorEvidenceQueries.map(q => String(q).slice(0, 300)).filter(q => q.length > 10).slice(0, 3);
+      const missionResults = await Promise.allSettled(
+        missionQueries.map(q => withExecutionScope(`evidence-mission`, () =>
+          scout(q, MISSION_PROVIDERS as any, 12, { skipCorrective: true })))
+      );
+      let added = 0;
+      for (let i = 0; i < missionResults.length; i++) {
+        const r = missionResults[i];
+        if (r.status === 'fulfilled') {
+          const ids = Array.isArray(r.value) ? r.value.map((s: any) => s.id) : (r.value.sourceIds || []);
+          allSourceIds.push(...ids);
+          added += ids.length;
+          console.log(`${label} EVIDENCE MISSION: "${missionQueries[i].slice(0, 60)}" → +${ids.length} sources`);
+        }
+      }
+      allSourceIds = [...new Set(allSourceIds)];
+      ctx.setScoutSources(allSourceIds);
+      stats.evidenceMission = { queries: missionQueries.length, sourcesAdded: added };
+    } catch (err) {
+      console.warn(`${label} EVIDENCE MISSION failed (non-blocking):`, err);
+    }
+  }
 
   return { allSourceIds, planNodesForAudit, scoutCkptRestored: !!scoutCkpt };
 }

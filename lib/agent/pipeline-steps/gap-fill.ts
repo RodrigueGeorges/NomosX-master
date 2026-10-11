@@ -104,7 +104,16 @@ export function createGapRequestProcessor(deps: GapFillDeps) {
         : !reHasTime ? 'insufficient_headroom'
         : state.reAnalysisBudget <= 0 ? 'reanalysis_budget_exhausted'
         : 'budget_exhausted';
-      stats.deferredGapRequests = { count: drained, origin, reason };
+      // Persist the queries, not just the count: a HELD outcome carries these
+      // into the diagnostic so the 20h retry scouts the exact missing evidence
+      // instead of repeating the broad sweep that produced the gap.
+      stats.deferredGapRequests = {
+        count: drained, origin, reason,
+        queries: ctx.getPendingGapRequests()
+          .map((r: any) => String(r?.query ?? '').slice(0, 200))
+          .filter((q: string) => q.length > 10)
+          .slice(0, 6),
+      };
       console.log(`${label} BLACKBOARD: ${drained} gap requests from ${origin} deferred (${reason})`);
       return;
     }

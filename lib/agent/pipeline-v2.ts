@@ -113,6 +113,10 @@ export interface PipelineCoreOptions {
   /** Regeneration loop: feedback from a rejected prior attempt injected into
    * the analyst context as mandatory corrections. */
   priorFailureFeedback?: string;
+  /** HELD-retry: targeted retrieval queries the prior attempt's gate/DA
+   * distilled for the evidence it lacked — scouted as a bounded mission so
+   * the retry repairs the corpus gap. */
+  priorEvidenceQueries?: string[];
   /** Regeneration loop: readings extracted by the prior attempt — the reader
    * reuses them for sources it already extracted and only reads NEW sources
    * (e.g. gap-fill additions). Skipping a full re-read saves ~5-8min and the
@@ -295,6 +299,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     query, providers, perProvider, isStrategic, useStorm,
     seedSourceIds: opts.seedSourceIds,
     minSeedSourcesToSkipScout: opts.minSeedSourcesToSkipScout,
+    priorEvidenceQueries: opts.priorEvidenceQueries,
     domain: (opts as any).domain, durableKey, scout,
     stats: stats as Record<string, any>, label, pipelineRunId: pipelineRun.id,
     pipelineStart, emitProgress, isBudgetConstrained, orchState,
@@ -1154,6 +1159,10 @@ Return JSON: {"queries": ["...", "..."]} — one query per gap, same order.`,
             );
           }
           console.log(`${label} DA EVIDENCE MISSION: ${challengeQueries.length} retrieval queries from adversarial challenges`);
+          // Persist the distilled queries: on a HELD outcome they ride the
+          // diagnostic into the 20h retry, whose scout runs them as a targeted
+          // evidence mission — the gap is repaired by retrieval, not rhetoric.
+          stats.daEvidenceQueries = challengeQueries.slice(0, 6);
           await processGapRequests('DEVILS_ADVOCATE');
           analysis = gapFillState.analysis;
           reAnalysisBudget = gapFillState.reAnalysisBudget;
@@ -1580,6 +1589,9 @@ export interface StrategicPipelineOptions {
    * adversarial findings). Injected into the analyst context as mandatory
    * corrections. Set by the orchestrator's escalation loop. */
   priorFailureFeedback?: string;
+  /** HELD-retry: targeted retrieval queries distilled from the prior attempt's
+   * missing evidence — scouted as a bounded mission. */
+  priorEvidenceQueries?: string[];
   /** Regeneration loop: readings extracted by the prior attempt — the reader
    * reuses them; only new sources are fetched. */
   priorReadings?: unknown[];
@@ -1654,6 +1666,7 @@ export async function runStrategicPipeline(
     quantDepth: options.quantDepth,
     parametricInput: options.parametricInput,
     priorFailureFeedback: options.priorFailureFeedback,
+    priorEvidenceQueries: options.priorEvidenceQueries,
     priorReadings: options.priorReadings,
     skipGapFillRetrieval: options.skipGapFillRetrieval,
   });
@@ -1731,6 +1744,7 @@ export async function runPipeline(
         parametricInput: options.parametricInput,
         useWitness: options.useWitness,
         priorFailureFeedback: options.priorFailureFeedback,
+        priorEvidenceQueries: options.priorEvidenceQueries,
         priorReadings: options.priorReadings,
         skipGapFillRetrieval: options.skipGapFillRetrieval,
         useMixtureOfAgents: options.useMixtureOfAgents,

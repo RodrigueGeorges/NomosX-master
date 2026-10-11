@@ -405,6 +405,22 @@ export interface PipelineStats {
     checkedVerdict?: string;
   };
 
+  // HELD-retry evidence lineage — targeted retrieval queries distilled by
+  // this attempt's gate/DA and any gap requests deferred by headroom. Both
+  // ride the held diagnostic into the 20h retry's scout mission so the retry
+  // repairs the corpus gap instead of repeating the broad sweep.
+  daEvidenceQueries?: string[];
+  deferredGapRequests?: {
+    count: number;
+    origin: string;
+    reason: string;
+    queries?: string[];
+  };
+  evidenceMission?: {
+    queries: number;
+    sourcesAdded: number;
+  };
+
   // Step 6: Analyst
   analyst?: {
     hasDebate: boolean;

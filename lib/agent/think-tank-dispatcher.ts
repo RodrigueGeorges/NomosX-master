@@ -103,6 +103,10 @@ export interface ThinkTankDispatchItem {
    * shot + diagnoses) — injected into the pipeline as priorFailureFeedback so
    * the retry corrects the actual defect instead of repeating it. */
   priorFailureFeedback?: string;
+  /** Targeted retrieval queries distilled by the prior attempt's gate/DA —
+   * scouted as a bounded evidence mission so the retry repairs the corpus
+   * gap the diagnosis identified. */
+  priorEvidenceQueries?: string[];
 }
 
 /** Serializable cycle checkpoint — stored on the Job row between items. */
@@ -375,7 +379,10 @@ async function collectHeldRetryItems(maxItems = 1): Promise<{ items: ThinkTankDi
       const feedback = typeof checks.failureFeedback === "string" && checks.failureFeedback.length > 10
         ? checks.failureFeedback
         : (lastHold?.reasons ?? []).join("\n");
-      console.log(`[ThinkTank] HELD RETRY: "${sig.title.slice(0, 60)}" — attempt ${priorHolds + 1} (feedback ${feedback.length}ch)`);
+      const evidenceQueries = (Array.isArray(checks.evidenceQueries) ? checks.evidenceQueries : [])
+        .filter((q): q is string => typeof q === 'string' && q.length > 10)
+        .slice(0, 6);
+      console.log(`[ThinkTank] HELD RETRY: "${sig.title.slice(0, 60)}" — attempt ${priorHolds + 1} (feedback ${feedback.length}ch, ${evidenceQueries.length} evidence queries)`);
       items.push({
         question: sig.title,
         depth: publicationTypeToDepth(selectFormatFromSignal(sig.signalType, sig.priorityScore)),
@@ -384,6 +391,7 @@ async function collectHeldRetryItems(maxItems = 1): Promise<{ items: ThinkTankDi
         strategy: "signal",
         retryAttempt: priorHolds + 1,
         priorFailureFeedback: feedback || undefined,
+        priorEvidenceQueries: evidenceQueries.length ? evidenceQueries : undefined,
         metadata: { signalType: sig.signalType, priorityScore: sig.priorityScore, heldRetry: true },
       });
     }
@@ -693,6 +701,15 @@ async function persistHeldDiagnostic(
     for (const c of (daStats?.topChallenges ?? []).slice(0, 3)) {
       reasons.push(`[${c.type ?? 'challenge'}] ${String(c.text ?? '').slice(0, 200)}`);
     }
+    // Targeted evidence queries distilled by this attempt (DA mission + any
+    // deferred gap requests): persisted so the retry scouts the exact missing
+    // evidence — the gap is repaired by retrieval, not by a better prompt.
+    const pstats = (result.pipeline?.stats ?? {}) as Record<string, unknown>;
+    const deferred = (pstats.deferredGapRequests as { queries?: string[] } | undefined)?.queries ?? [];
+    const daQueries = (pstats.daEvidenceQueries as string[] | undefined) ?? [];
+    const evidenceQueries = [...new Set([...daQueries, ...deferred])]
+      .filter(q => typeof q === 'string' && q.length > 10)
+      .slice(0, 8);
     const verticalId = item.verticalId
       ?? await prisma.signal
         .findUnique({ where: { id: item.signalId! }, select: { verticalId: true } })
@@ -712,6 +729,7 @@ async function persistHeldDiagnostic(
           gateDecision: gate?.decision,
           diagnoses: (gate?.diagnoses ?? []) as import('@prisma/client').Prisma.InputJsonValue,
           retriedAttempt: item.retryAttempt ?? 0,
+          evidenceQueries,
         },
         trustScore: Math.round(result.trustScore ?? 0),
         qualityScore: Math.round(result.qualityScore ?? 0),
@@ -1031,6 +1049,9 @@ export async function executeDispatchQueue(
           pipelineOptions: {
             ...(item.priorFailureFeedback
               ? { priorFailureFeedback: item.priorFailureFeedback }
+              : {}),
+            ...(item.priorEvidenceQueries?.length
+              ? { priorEvidenceQueries: item.priorEvidenceQueries }
               : {}),
             executionId: itemExecutionId,
           },
