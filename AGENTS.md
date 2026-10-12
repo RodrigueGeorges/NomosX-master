@@ -67,6 +67,49 @@ The pipeline refusal tests assert no analyst-context or analyst call and check
 persisted failure status and spent cost. No live paid validation is part of
 these checks.
 
+## Sprint 40 — Offline validation + upstream evidence consolidation
+
+External-stack pass (cassette/agentreplay record-replay, PaperQA2 citation
+traversal, SCitance/ExecutableClaims entailment, CRAG grading, node-
+DeepResearch gap budgeting). Four surgical changes, each unit-verified:
+
+**LLM cassette** (`lib/llm/cassette.ts`, `callLLMCore` boundary) —
+`NOMOSX_LLM_MODE`: `record` appends every request/response pair (and provider
+errors) as JSONL; `replay` serves them keyed by the same `buildCacheKey`
+request hash the Redis cache uses. A replay miss throws `CassetteMissError` —
+never a silent live call. Recorded `costUsd` debits the pipeline's own
+accounting, so a real run's analytical tail replays deterministically for
+$0 (combine with `seedSourceIds` fixed-corpus to skip scout). `streamLLM`
+is not covered. Cassette dir `.llm-cassettes/` is gitignored;
+`NOMOSX_LLM_CASSETTE` selects the file.
+
+**Citation snowball** (`lib/providers/openalex-snowball.ts` + rank-enrichment)
+— PaperQA2's documented recall lever: backward (`cited_by`) and forward
+(`cites`) traversal on up to 8 top-ranked seeds with resolvable DOIs/OpenAlex
+ids, persisted under the scout's `provider:slug` id scheme (upserts dedupe
+against already-scouted rows), merged through the normal re-rank. Never runs
+on fixed-corpus paths; off-topic exclusions apply to resurfaced ids;
+`stats.snowball` records seeds/candidates/adds. `NOMOSX_SNOWBALL=0` disables.
+
+**Citance check** (`fact-checker.ts`) — SCitance-style entailment for every
+`[SRC-N]`-bearing sentence the numerical extractor can't see. Verdicts:
+supported → verified, NEI → major, contradicted → fatal (folds into
+integrityScore); `unverified` on evaluator failure stays out of the
+denominator and `evaluationComplete:false` is persisted — a failed check can
+neither inflate nor deflate integrity. The S39b "0 verified / 22 claims"
+mode now separates hollow citations from merely non-numerical ones.
+
+**CRAG grading** (relevance screen, rank-enrichment) — per-document
+correct(≥2)/ambiguous(1)/incorrect(0) tally. When ambiguous documents
+dominate the surviving pool, one bounded re-scout for primary evidence runs
+and merges through re-rank — refinement instead of silent acceptance.
+`stats.relevanceScreen.cragRescout` records the outcome.
+
+Tests: cassette +6, fixed-corpus +3 (snowball merge, fixed-corpus skip,
+off-topic exclusion), citance +3, CRAG +1. Suite: 36 suites / 404 tests.
+
+---
+
 ## Sprint 39 — Source-first thesis binding: the central claim is contracted FROM the corpus
 
 **Critical re-enable**: `framingAgent` was SUPPRESSED in reader-block since a
