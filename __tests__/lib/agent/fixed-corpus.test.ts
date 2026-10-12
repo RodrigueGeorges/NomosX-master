@@ -16,6 +16,9 @@ jest.mock('@/lib/agent/index-agent', () => ({ deduplicateSources: jest.fn() }));
 jest.mock('@/lib/agent/topic-classifier', () => ({ classifyTopic: jest.fn(async () => ({ primaryDomain: 'test', domains: [], dimensions: [], confidence: 1 })) }));
 jest.mock('@/lib/agent/gap-filler', () => ({ getRelevantGaps: jest.fn(async () => ({ gapsAddressed: 1, gapQueries: ['Missing evidence'], gapContext: 'Known gap' })) }));
 jest.mock('@/lib/agent/researcher-kb/index', () => ({ RESEARCHER_KBS: {} }));
+jest.mock('@/lib/providers/openalex-snowball', () => ({ snowballFromSeeds: jest.fn(async () => ({ addedIds: [], seedsUsed: 0, candidatesFetched: 0 })) }));
+
+import { snowballFromSeeds } from '@/lib/providers/openalex-snowball';
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -194,6 +197,75 @@ it('never restores explicitly off-topic documents to meet a quantity floor, even
   } as RankEnrichmentDeps;
   const result = await runRankAndEnrichment(deps);
   expect(result.topSources.map(s => s.id)).toEqual(['s0', 's1', 's2', 's3', 's4', 'new']);
+});
+
+it('expands the pool by citation snowball on a live corpus and merges the re-rank', async () => {
+  const ranked = Array.from({ length: 25 }, (_, i) => ({
+    id: `s${i}`, title: `Source ${i}`, provider: 'test', doi: `10.1/${i}`,
+    qualityScore: 70, compositeScore: 80 - i,
+  }));
+  jest.mocked(assessEvidenceSufficiency).mockResolvedValue({ verdict: 'proceed', sufficiencyScore: 80, gaps: [], enrichmentQueries: [], costUsd: 0 } as never);
+  jest.mocked(snowballFromSeeds).mockResolvedValue({ addedIds: ['openalex:10-2-cited-x', 'openalex:10-2-cites-y'], seedsUsed: 5, candidatesFetched: 20 } as never);
+  const stats: any = {};
+  const deps = {
+    query: 'Research question', allSourceIds: ranked.map(s => s.id), isStrategic: false, stats, providers: [], label: 'Test',
+    pipelineStart: Date.now(), runningCostUsd: 0, pipelineRunId: 'run', skipRetrieval: false,
+    rank: jest.fn()
+      .mockResolvedValueOnce(ranked)
+      .mockResolvedValueOnce([...ranked, { id: 'openalex:10-2-cited-x', title: 'Cited work', provider: 'openalex', qualityScore: 75, compositeScore: 70 }]),
+    scout: jest.fn(), emitProgress: jest.fn(), addCost: jest.fn(),
+    ctx: { setRankedSources: jest.fn(), recordAgentTiming: jest.fn(), getSummary: jest.fn(), addFinding: jest.fn() },
+    orchState: { sourcesFound: 0, avgQualityScore: 0 },
+  } as RankEnrichmentDeps;
+  const result = await runRankAndEnrichment(deps);
+  expect(snowballFromSeeds).toHaveBeenCalled();
+  expect(result.allSourceIds).toContain('openalex:10-2-cited-x');
+  expect(result.topSources.some((s: any) => s.id === 'openalex:10-2-cited-x')).toBe(true);
+  expect(stats.snowball).toMatchObject({ seedsUsed: 5, newSourcesAdded: 2 });
+});
+
+it('never snowballs a fixed corpus, and snowballed ids respect the off-topic exclusion', async () => {
+  const ranked = Array.from({ length: 25 }, (_, i) => ({
+    id: `s${i}`, title: `Source ${i}`, provider: 'test', qualityScore: 70, compositeScore: 80 - i,
+  }));
+  jest.mocked(assessEvidenceSufficiency).mockResolvedValue({ verdict: 'proceed', sufficiencyScore: 80, gaps: [], enrichmentQueries: [], costUsd: 0 } as never);
+
+  // fixed corpus — no traversal at all
+  jest.mocked(snowballFromSeeds).mockClear();
+  const fixedDeps = {
+    query: 'q', allSourceIds: ranked.map(s => s.id), isStrategic: false, stats: {}, providers: [], label: 'Test',
+    pipelineStart: Date.now(), runningCostUsd: 0, pipelineRunId: 'run', skipRetrieval: true,
+    rank: jest.fn(async () => ranked), scout: jest.fn(), emitProgress: jest.fn(), addCost: jest.fn(),
+    ctx: { setRankedSources: jest.fn(), recordAgentTiming: jest.fn(), getSummary: jest.fn(), addFinding: jest.fn() },
+    orchState: { sourcesFound: 0, avgQualityScore: 0 },
+  } as RankEnrichmentDeps;
+  await runRankAndEnrichment(fixedDeps);
+  expect(snowballFromSeeds).not.toHaveBeenCalled();
+
+  // live corpus — a doc the relevance screen judged off-topic stays excluded:
+  // snowball may resurface it (it was scouted, so it lives in allSourceIds)
+  // but it must never re-enter topSources nor count as new evidence.
+  // (>25 sources: the screen only runs above that threshold)
+  const bigRanked = Array.from({ length: 30 }, (_, i) => ({
+    id: `s${i}`, title: `Source ${i}`, provider: 'test', qualityScore: 70, compositeScore: 80 - i,
+  }));
+  const withRejected = bigRanked.map((s, i) => (i === 0 ? { ...s, id: 'rejected-doc' } : s));
+  jest.mocked(snowballFromSeeds).mockResolvedValue({ addedIds: ['rejected-doc'], seedsUsed: 3, candidatesFetched: 9 } as never);
+  jest.mocked(callLLM).mockResolvedValueOnce({ content: JSON.stringify({ scores: { '0': 0 } }), costUsd: 0 } as never);
+  const stats: any = {};
+  const liveDeps = {
+    query: 'q', allSourceIds: withRejected.map(s => s.id), isStrategic: false, stats, providers: [], label: 'Test',
+    pipelineStart: Date.now(), runningCostUsd: 0, pipelineRunId: 'run', skipRetrieval: false,
+    rank: jest.fn()
+      .mockResolvedValueOnce(withRejected)
+      .mockResolvedValueOnce([...withRejected.slice(1), { id: 'rejected-doc', title: 'x', provider: 'openalex', qualityScore: 90 }]),
+    scout: jest.fn(), emitProgress: jest.fn(), addCost: jest.fn(),
+    ctx: { setRankedSources: jest.fn(), recordAgentTiming: jest.fn(), getSummary: jest.fn(), addFinding: jest.fn() },
+    orchState: { sourcesFound: 0, avgQualityScore: 0 },
+  } as RankEnrichmentDeps;
+  const result = await runRankAndEnrichment(liveDeps);
+  expect(result.topSources.every((s: any) => s.id !== 'rejected-doc')).toBe(true);
+  expect(stats.snowball.newSourcesAdded).toBe(0);
 });
 
 it('keeps prior-gap context without executing supplementary scouts in fixed-corpus mode', async () => {

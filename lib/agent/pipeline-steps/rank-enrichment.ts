@@ -564,6 +564,33 @@ export async function runRankAndEnrichment(deps: RankEnrichmentDeps): Promise<Ra
     console.log(`${label} ENRICHMENT: Proceed with ${topSources.length} sources (sufficiency: ${enrichmentAssessment.sufficiencyScore}/100)`);
     ctx.addFinding('ENRICHMENT', 'insight', `Evidence sufficiency: ${enrichmentAssessment.sufficiencyScore}/100 with ${topSources.length} sources`);
   }
+  // ── CITATION SNOWBALL — the recall lever PaperQA2 documented: keyword
+  // search finds what the query names; the strongest supporting/contrary
+  // evidence is often what the best sources CITE or what CITES them.
+  // Bounded traversal on the top-ranked seeds → persist → merge → re-rank.
+  // Skipped on fixed-corpus paths (skipRetrieval) — curated corpora must
+  // not mutate; rejectedSourceIds still apply to the merged re-rank.
+  if (!deps.skipRetrieval && process.env.NOMOSX_SNOWBALL !== '0' && topSources.length > 0) {
+    try {
+      const { snowballFromSeeds } = await import('../../providers/openalex-snowball');
+      const snow = await snowballFromSeeds(topSources.slice(0, 8), { perSeed: 4, cap: 24 });
+      const fresh = snow.addedIds.filter(id => !allSourceIds.includes(id) && !rejectedSourceIds.has(id));
+      if (fresh.length > 0) {
+        allSourceIds = [...allSourceIds, ...fresh];
+        const merged = (await rank(query, { ...rankOpts, sourceIds: allSourceIds }))
+          .filter((s: any) => !rejectedSourceIds.has(s.id));
+        if (merged.length > topSources.length) {
+          topSources.length = 0;
+          topSources.push(...merged);
+        }
+        console.log(`${label} SNOWBALL: +${fresh.length} sources via citation traversal (${snow.seedsUsed} seeds, ${snow.candidatesFetched} candidates)`);
+      }
+      stats.snowball = { seedsUsed: snow.seedsUsed, candidatesFetched: snow.candidatesFetched, newSourcesAdded: fresh.length };
+    } catch (err) {
+      console.warn(`${label} SNOWBALL failed (non-blocking): ${err instanceof Error ? err.message : err}`);
+    }
+  }
+
   orchState.sourcesFound = topSources.length;
   orchState.avgQualityScore = topSources.length > 0
     ? Math.round(topSources.reduce((sum: number, s: any) => sum + ((s.qualityScore || 0) > 0 ? s.qualityScore : (s.sourceQuality?.overall || 0)), 0) / topSources.length)

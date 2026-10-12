@@ -87,6 +87,58 @@ function isAuthRejection(error: unknown): boolean {
 // Check synchronously at module load (fire and forget)
 export { checkOpenAlexKeyExhausted };
 
+/** Auth query-string suffix shared by every OpenAlex endpoint caller. */
+export function openAlexAuthParam(): string {
+  if (env.OPENALEX_API_KEY && !openAlexKeyExhausted) {
+    return `&api_key=${encodeURIComponent(env.OPENALEX_API_KEY)}`;
+  }
+  const mailto = env.UNPAYWALL_EMAIL || "contact@nomosx.com";
+  return `&mailto=${encodeURIComponent(mailto)}`;
+}
+
+/** Slot-limited fetch for auxiliary OpenAlex endpoints (single-work lookups,
+ * citation traversal). Returns null on failure — callers degrade gracefully. */
+export async function fetchOpenAlexJson<T>(url: string, opts?: { timeout?: number; retries?: number }): Promise<T | null> {
+  await acquireOpenAlexSlot();
+  try {
+    return await fetchFromProvider<T>("openalex", url, { timeout: opts?.timeout ?? 20000, retries: opts?.retries ?? 1 });
+  } catch (error: any) {
+    if (isAuthRejection(error)) markOpenAlexKeyExhausted();
+    return null;
+  } finally {
+    releaseOpenAlexSlot();
+  }
+}
+
+export function normalizeOpenAlexWork(w: any) {
+  return {
+    id: w.id,
+    provider: "openalex",
+    type: "paper",
+    title: w.title || "",
+    abstract: invertedIndexToText(w.abstract_inverted_index) || null,
+    year: w.publication_year ?? null,
+    doi: normalizeDOI(w.doi),
+    url: w.primary_location?.landing_page_url ?? null,
+    pdfUrl: w.primary_location?.pdf_url ?? null,
+    oaStatus: w.open_access?.oa_status ?? (w.primary_location?.is_oa ? "oa" : null),
+    authors: (w.authorships ?? []).map((a: any) => ({
+      name: a.author?.display_name,
+      orcid: a.author?.orcid?.replace("https://orcid.org/", ""),
+    })).filter((a: any) => a.name),
+    institutions: (w.authorships ?? []).flatMap((a: any) =>
+      (a.institutions ?? []).map((i: any) => ({
+        name: i.display_name,
+        rorId: i.ror?.replace("https://ror.org/", ""),
+      }))
+    ).filter((i: any) => i.name),
+    topics: (w.topics ?? []).map((t: any) => t.display_name).filter(Boolean),
+    jelCodes: [],
+    citationCount: w.cited_by_count ?? null,
+    raw: w
+  };
+}
+
 export async function searchOpenAlex(query: string, perPage = 25, options?: { filter?: string; group_by?: string }): Promise<any[]> {
   let retryWithPolitePool = false;
   const base = env.OPENALEX_API;
@@ -116,32 +168,7 @@ export async function searchOpenAlex(query: string, perPage = 25, options?: { fi
   try {
     const data = await fetchFromProvider<Resp>("openalex", url, { timeout: 20000, retries: 2 });
     
-    const results = (data.results ?? []).map((w: any) => ({
-      id: w.id,
-      provider: "openalex",
-      type: "paper",
-      title: w.title || "",
-      abstract: invertedIndexToText(w.abstract_inverted_index) || null,
-      year: w.publication_year ?? null,
-      doi: normalizeDOI(w.doi),
-      url: w.primary_location?.landing_page_url ?? null,
-      pdfUrl: w.primary_location?.pdf_url ?? null,
-      oaStatus: w.open_access?.oa_status ?? (w.primary_location?.is_oa ? "oa" : null),
-      authors: (w.authorships ?? []).map((a: any) => ({
-        name: a.author?.display_name,
-        orcid: a.author?.orcid?.replace("https://orcid.org/", ""),
-      })).filter((a: any) => a.name),
-      institutions: (w.authorships ?? []).flatMap((a: any) => 
-        (a.institutions ?? []).map((i: any) => ({
-          name: i.display_name,
-          rorId: i.ror?.replace("https://ror.org/", ""),
-        }))
-      ).filter((i: any) => i.name),
-      topics: (w.topics ?? []).map((t: any) => t.display_name).filter(Boolean),
-      jelCodes: [],
-      citationCount: w.cited_by_count ?? null,
-      raw: w
-    }));
+    const results = (data.results ?? []).map(normalizeOpenAlexWork);
     console.log(`[OpenAlex] Found ${results.length} works for "${query.slice(0, 50)}"`);
     return results;
   } catch (error: any) {
@@ -238,32 +265,7 @@ export async function searchOpenAlexSemantic(
   try {
     const data = await fetchFromProvider<Resp>("openalex", url, { timeout: 25000, retries: 2 });
 
-    const results = (data.results ?? []).map((w: any) => ({
-      id: w.id,
-      provider: "openalex",
-      type: "paper",
-      title: w.title || "",
-      abstract: invertedIndexToText(w.abstract_inverted_index) || null,
-      year: w.publication_year ?? null,
-      doi: normalizeDOI(w.doi),
-      url: w.primary_location?.landing_page_url ?? null,
-      pdfUrl: w.primary_location?.pdf_url ?? null,
-      oaStatus: w.open_access?.oa_status ?? (w.primary_location?.is_oa ? "oa" : null),
-      authors: (w.authorships ?? []).map((a: any) => ({
-        name: a.author?.display_name,
-        orcid: a.author?.orcid?.replace("https://orcid.org/", ""),
-      })).filter((a: any) => a.name),
-      institutions: (w.authorships ?? []).flatMap((a: any) =>
-        (a.institutions ?? []).map((i: any) => ({
-          name: i.display_name,
-          rorId: i.ror?.replace("https://ror.org/", ""),
-        }))
-      ).filter((i: any) => i.name),
-      topics: (w.topics ?? []).map((t: any) => t.display_name).filter(Boolean),
-      jelCodes: [],
-      citationCount: w.cited_by_count ?? null,
-      raw: w
-    }));
+    const results = (data.results ?? []).map(normalizeOpenAlexWork);
 
     console.log(`[OpenAlex-Semantic] Found ${results.length} works for "${query.slice(0, 50)}" (semantic search)`);
     return results;
