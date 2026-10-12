@@ -164,15 +164,39 @@ and separately committed.
   outcome (`--tolerance N`, exit 1 on drift).
 - `--inspect <cassette>` — offline integrity check: entry/task/provider
   counts, recorded cost, corrupt lines (exit 1). CI-usable without a DB.
+- `--cleanup` — deletes exactly the brief + pipelineRun rows this replay
+  created (replays of an existing row set leave no residue).
+- `streamLLM` is cassette-covered: replay serves the recorded response as a
+  single chunk through `onChunk`; a stream and a buffered call share the
+  cache key — a buffered recording can serve a streamed replay.
 - To *produce* a fixture: run a normal bounded cycle with
   `NOMOSX_LLM_MODE=record` (+ optional `NOMOSX_LLM_CASSETTE=<path>`), then
   replay with `npm run replay -- --publication <id> --cassette <path>`.
-- Limits: `streamLLM` is not recorded; replay writes new pipeline/brief rows
-  (point DATABASE_URL at staging); prompts that drift miss loudly
-  (`CassetteMissError`) — that IS the drift signal.
+- Proven end-to-end without a paid run: `replay-e2e.test.ts` repoints
+  `DEEPSEEK_BASE_URL` at a local OpenAI-compatible HTTP stub (fresh module
+  load, deepseek unsuspended via `LLM_PRE_SUSPENDED`), records a real
+  SDK→HTTP→parse round-trip, then replays with the provider key deleted —
+  the stub hit-counter must stay frozen. Drift → `CassetteMissError`,
+  never a live call.
+- Limit: prompts that drift miss loudly (`CassetteMissError`) — that IS the
+  drift signal. A committed real-run cassette fixture is still needed for CI.
 
-Tests: `thesis-adherence-gate.test.ts`, `trust-score.test.ts` (parity +
-veto-bypass suite). Combined affected suites: 104/104.
+**Post-sanitize eval reconciliation** (`verification-block.ts`)
+
+- The fact-checker's own fatal-discrepancy sanitization bumps the html
+  artifact version — previously orphaning `factChecker`, `citationVerifier`
+  and `symbolicVerifier` on the pre-sanitize text (`evaluation_freshness`
+  hard-fail with no rescore path: `rescoreStaleAnalysisEvals` only covers
+  analysis-tagged evals). Now the block re-verifies the sanitized artifact:
+  one bounded fact-checker recheck + the free symbolic/NLI verifiers.
+  A failed recheck leaves the eval stale — a sanitized-but-unverified
+  artifact fails closed, never passes on the pre-sanitize verdict.
+  `stats.factCheckerResanitize` records integrity before/after.
+
+Tests: `replay-e2e.test.ts` +4 (real-provider record→replay, drift miss,
+stream record/replay, cross-serving), `verification-stale.test.ts` +4,
+`thesis-adherence-gate.test.ts`, `trust-score.test.ts` (parity +
+veto-bypass suite).
 
 ---
 
