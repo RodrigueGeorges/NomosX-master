@@ -42,6 +42,15 @@ export interface PublicationGateInput {
    * replaced artifact version) — the gate must not consume them. */
   staleEvaluations?: string[];
   failedEvaluations?: string[];
+  /** Thesis-binding verdict (stats.thesisBinding). Present whenever a bound
+   *  thesis exists — the shipped verdict must stay inside the evidence
+   *  ceiling the corpus contracted upstream. An unavailable adherence check
+   *  cannot certify; it fails closed like any required evaluator. */
+  thesisAdherence?: {
+    adhered?: boolean;
+    evaluationComplete: boolean;
+    reason?: string;
+  };
 }
 
 export interface PublicationGateCheck {
@@ -312,11 +321,27 @@ export function evaluatePublicationGate(input: PublicationGateInput): Publicatio
     checkType: 'evaluation_availability', passed: false,
     details: `Incomplete required evaluations: ${input.failedEvaluations.join(', ')}`,
   });
+
+  // Thesis binding — the verdict was contracted FROM the corpus upstream.
+  // A verdict that exceeds it is speculation-as-thesis: hard failure, routed
+  // to substance repair/regeneration, never advisory (S39b forensic).
+  if (input.thesisAdherence) {
+    const ta = input.thesisAdherence;
+    checks.push({
+      checkType: 'thesis_adherence',
+      passed: ta.evaluationComplete === true && ta.adhered === true,
+      details: ta.evaluationComplete !== true
+        ? 'Adherence evaluation incomplete — verdict not certified against the bound thesis'
+        : ta.adhered === true
+          ? 'Verdict within the bound thesis'
+          : `Verdict exceeds the evidence-bound thesis — ${ta.reason ?? 'overclaims relative to corpus support'}`,
+    });
+  }
   const failedChecks = checks.filter((check) => !check.passed);
   // quality_score is advisory when trust_score passes AND quality ≥ 40 — don't treat as hard failure
   // But quality < 40 is always a hard failure (prevents publishing garbage with good trust)
   const hardFailures = failedChecks.filter((check) =>
-    ["source_depth", "trust_score", "word_count", "researcher_signoff", "citation_coverage", "central_scenario", "evaluation_freshness", "evaluation_availability"].includes(check.checkType)
+    ["source_depth", "trust_score", "word_count", "researcher_signoff", "citation_coverage", "central_scenario", "evaluation_freshness", "evaluation_availability", "thesis_adherence"].includes(check.checkType)
     || (check.checkType === "quality_score" && typeof check.score === "number" && check.score < 40)
   );
   const decision: PublicationGateDecision = failedChecks.length === 0

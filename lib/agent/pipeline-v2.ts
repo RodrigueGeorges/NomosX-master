@@ -6,7 +6,7 @@
 import {  prisma  } from '../db';
 import { randomUUID } from 'node:crypto';
 import { assertExecutionActive, withExecutionDeadline } from '../worker/execution-scope';
-import { hasRunHeadroom, remainingRunMs } from './pipeline-steps/time-budget';
+import { hasRunHeadroom, hasRunHeadroomWithReserve, remainingRunMs } from './pipeline-steps/time-budget';
 import { BRAND_BRIEF_FOOTER, BRAND_MANIFESTO } from '@/lib/brand/public-copy';
 import { analystAgentV3 as analystMultipass } from './analyst-multipass';
 import { primeContext } from './context-primer';
@@ -674,6 +674,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     requiredDimensions: requiredBranches,
   });
   analysis = checks.analysis;
+  let reAnalysisBudget = checks.reAnalysisBudget;
   // ── THESIS BINDING adherence — the central claim was contracted FROM the
   // corpus upstream (best-supported judged hypothesis). A verdict that
   // exceeds it is speculation-as-thesis: exactly what the DA later kills.
@@ -709,6 +710,51 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     }
   };
   await verifyThesisBinding('post-analyst');
+  // ── THESIS BINDING routed repair — a verdict that exceeds the evidence-
+  // bound thesis is a substance defect, not a warning (S39b forensic: the
+  // persisted verdict added causal claims to a descriptive binding while
+  // `adhered:true` stayed advisory). Consume one re-analysis slot to re-run
+  // the analyst under the binding contract, then re-verify. A still-
+  // breached verdict reaches the gate's thesis_adherence hard check.
+  {
+    const binding = (stats as any).thesisBinding;
+    if (binding?.statement && binding.evaluationComplete === true && binding.adhered === false && reAnalysisBudget > 0) {
+      const rerunMs = Number(process.env.ANALYST_RERUN_BUDGET_MS ?? 900_000);
+      if (!hasRunHeadroomWithReserve(pipelineStart, isStrategic, rerunMs)) {
+        binding.repair = { attempted: false, reason: 'insufficient_headroom' };
+        console.warn(`${label} THESIS BINDING: verdict exceeds bound thesis — re-analysis would eat the repair reserve; breach routed to the gate`);
+      } else {
+        reAnalysisBudget--;
+        console.warn(`${label} THESIS BINDING: verdict exceeds bound thesis — re-analysing under binding contract (re-analysis budget left: ${reAnalysisBudget})`);
+        try {
+          const directive = `\n\n## THESIS BINDING CONTRACT (mandatory correction)\n` +
+            `Your previous verdict exceeded the evidence-bound thesis.\n` +
+            `BOUND THESIS: "${binding.statement}"\n` +
+            `VIOLATION: ${binding.adherenceReason || 'verdict claims more than the bound thesis supports'}\n` +
+            `Re-issue the verdict strictly within — or narrower than — the bound thesis. ` +
+            `Drop causal/scope claims the corpus does not support; prefer a hedged-but-supported formulation over a strong-but-unsupported one.`;
+          const reAnalysis = await analystMultipass(query, topSources, slimReadings, {
+            contextBlock: (fullContextBlock || '') + directive,
+            domain: detectedDomain,
+            depth: isStrategic ? 'strategic' : 'brief',
+          });
+          addCost((reAnalysis as any)?._meta?.totalCostUsd, 'THESIS BINDING');
+          if (reAnalysis && !(reAnalysis as any)?._meta?.failed) {
+            analysis = reAnalysis;
+            bumpAnalysisArtifact();
+            binding.repair = { attempted: true };
+          } else {
+            binding.repair = { attempted: true, reason: 'reanalysis_failed' };
+          }
+        } catch (repairErr) {
+          assertExecutionActive();
+          binding.repair = { attempted: true, reason: 'reanalysis_error' };
+          console.warn(`${label} THESIS BINDING repair re-analysis failed (non-blocking):`, repairErr);
+        }
+        await verifyThesisBinding('adherence-repair');
+      }
+    }
+  }
   // ── BRANCH CITATION AUDIT (deterministic) — did the analysis actually use
   // each branch's evidence? A plan branch cited 0× is the hard counterpart
   // of the outline critic's missing dimensions; its gap request is drained
@@ -724,7 +770,6 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
       }
     }
   }
-  let reAnalysisBudget = checks.reAnalysisBudget;
   const analystDecision = checks.analystDecision;
   flags.witnessReducedScope = checks.witnessReducedScope;
   flags.runDevilsAdvocateStep = checks.runDevilsAdvocateStep;

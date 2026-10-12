@@ -238,6 +238,22 @@ export async function reviseForGate(input: RevisionInput): Promise<RevisionResul
     }
   }
 
+  // thesis_adherence → the verdict breached the evidence-bound thesis.
+  // Route to the substance resolver with an explicit narrowing directive —
+  // the same repair channel as DA objections, but the fix is scope, not
+  // prose. If the verdict still breaches after revision, the regen round
+  // re-analyses with the bound statement in priorFailureFeedback.
+  if (failed.has('thesis_adherence')) {
+    const breachDetail = input.gate.checks.find(c => c.checkType === 'thesis_adherence')?.details ?? '';
+    bus.post('substance_weak', `Verdict exceeds the evidence-bound thesis — narrow the claim to what the corpus supports`, {
+      postedBy: 'GATE', intensity: 0.9, ttlMs: 30 * 60 * 1000,
+      payload: {
+        gateReasons: input.gate.reasons,
+        weakFindings: [`THESIS BREACH: ${breachDetail} — narrow the verdict and central claims to the bound thesis; remove causal/scope assertions the corpus does not support`],
+      },
+    });
+  }
+
   // Substance needs: DA challenges + weak panel findings + quality gate.
   const daScore = input.devilsAdvocate?.publishabilityScore;
   const fatalChallenges = input.devilsAdvocate?.fatalChallenges ?? 0;

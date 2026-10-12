@@ -106,6 +106,12 @@ const DIAGNOSIS_MAP: Record<string, Omit<GateDiagnosis, "checkType">> = {
     code: "STALE_EVALUATION",
     fix: "A verdict was computed against a replaced artifact version. Re-run the stale evaluator before publication — never re-gate on the stale verdict.",
   },
+  thesis_adherence: {
+    category: "evidence",
+    severity: "blocking",
+    code: "THESIS_BREACH",
+    fix: "The verdict exceeds the thesis bound to corpus evidence. Narrow the claim to what the bound thesis supports (or the corpus must grow — prose cannot fix an evidence-ceiling breach). Regeneration with priorFailureFeedback carries the bound statement to the analyst.",
+  },
 };
 
 const DEFAULT_DIAGNOSIS: Omit<GateDiagnosis, "checkType"> = {
