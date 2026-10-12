@@ -9,7 +9,7 @@
 
 import { runMixtureOfAgents } from '../moa/mixture-of-agents';
 import { isFreeRun } from '../../free-run';
-import { hasRunHeadroom, remainingRunMs } from './time-budget';
+import { hasRunHeadroomWithReserve, remainingRunMs } from './time-budget';
 import type { PipelineStep } from '../pipeline-progress';
 
 export interface AnalystRunDeps {
@@ -133,7 +133,10 @@ export async function runAnalystExecution(deps: AnalystRunDeps): Promise<Analyst
   // BEFORE the analyst: its causal mechanisms, confounders and blind spots
   // become expert priors the 3 passes must engage (adopt or explicitly rebut).
   let effectiveContext = fullContextBlock || '';
-  if (!maxBudgetUsd || runningCostUsd < maxBudgetUsd * 0.6) {
+  // Producer work — must not start inside the repair tail reserve.
+  const EXPERT_LENS_MS = Number(process.env.EXPERT_LENS_HEADROOM_MS ?? 300_000);
+  const expertFitsReserve = hasRunHeadroomWithReserve(pipelineStart, isStrategic, EXPERT_LENS_MS);
+  if ((!maxBudgetUsd || runningCostUsd < maxBudgetUsd * 0.6) && expertFitsReserve) {
     try {
       const { detectRelevantExperts, runExpertAnalysis } = await import('../phd-researcher');
       // Strategic reports get two expert lenses (Co-STORM perspective coverage);
@@ -177,6 +180,9 @@ export async function runAnalystExecution(deps: AnalystRunDeps): Promise<Analyst
     } catch (expertErr) {
       console.warn(`${label} DOMAIN EXPERT: failed (non-blocking):`, expertErr instanceof Error ? expertErr.message : expertErr);
     }
+  } else if (!expertFitsReserve) {
+    (stats as any).domainExpert = { skippedReason: 'repair_reserve' };
+    console.log(`${label} DOMAIN EXPERT: skipped — pass would consume the reserved repair tail`);
   }
 
   if (!analysis) {
@@ -197,11 +203,12 @@ export async function runAnalystExecution(deps: AnalystRunDeps): Promise<Analyst
   // and pick the one with better citation coverage. This is a simplified version
   // of the asymmetric verification pattern: generate N candidates (cheap, parallel),
   // verify deterministically (citation count), select the best.
-  // Wall-clock guard: a second candidate is a full 3-pass (~7-10min). Without
-  // ~25min of headroom the run dies before the critic/DA/render tail — an
-  // unjudged extra candidate is pure waste (S34 timeout finding).
-  const ttsHeadroomMs = Number(process.env.TTS_HEADROOM_MS ?? 1_500_000);
-  const ttsHasTime = hasRunHeadroom(pipelineStart, isStrategic, ttsHeadroomMs);
+  // Wall-clock guard: a second candidate is a full 3-pass (~7-10min). It must
+  // fit its own duration AND leave the reserved repair tail intact — an
+  // unjudged extra candidate is pure waste (S34 timeout finding). The old flat
+  // headroom conflated step cost and tail; now duration + REPAIR_TAIL_RESERVE.
+  const ttsDurationMs = Number(process.env.TTS_DURATION_MS ?? 600_000);
+  const ttsHasTime = hasRunHeadroomWithReserve(pipelineStart, isStrategic, ttsDurationMs);
   if (isStrategic && !ttsHasTime) {
     stats.testTimeScaling = { activated: false, skippedReason: 'insufficient_headroom' };
     console.log(`${label} TEST-TIME SCALING: skipped — ${Math.round(remainingRunMs(pipelineStart, isStrategic) / 60000)}min left, second candidate would overrun the deadline tail`);

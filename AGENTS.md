@@ -47,8 +47,10 @@ Current evidence-boundary invariants:
 Open architectural priorities (not certified by unit tests):
 1. Claim-to-passage evidence contracts and a short thesis/outline review before
    full drafting; repair scope/causality at this point, not only at final DA.
-2. Reserve retrieval and wall-clock capacity for necessary repairs; early
-   expansion currently consumes capacity before adversarial gaps are known.
+2. ~~Reserve retrieval and wall-clock capacity for necessary repairs~~ —
+   producer-side repair reserve implemented (Sprint 41): analyst passes,
+   TTS, and the expert lens cannot start inside the reserved tail. Retrieval
+   capacity reservation remains open.
 3. One trust calculation: `evaluators-trust.ts` and `quality-loop.ts` use
    different weights/components. Stale numeric/factual evaluations and score
    floors need reconciliation before scores can certify the final artifact.
@@ -66,6 +68,43 @@ real SARA compression and assert an actual compression ratio below 0.85.
 The pipeline refusal tests assert no analyst-context or analyst call and check
 persisted failure status and spent cost. No live paid validation is part of
 these checks.
+
+## Sprint 41 — Repair-capacity reservation: producers cannot eat the tail
+
+The S34/S39b failure mode: every expensive step checked only its own flat
+headroom, so analyst passes and escalation candidates kept starting inside
+the window the critic→gap-fill→DA→verify→render→gate tail needed — all
+repairs deferred on `insufficient_headroom`, runs died with unjudged
+artifacts.
+
+**`REPAIR_TAIL_RESERVE_MS`** (`time-budget.ts`, default 30min,
+`NOMOSX_REPAIR_RESERVE_MS`) + **`hasRunHeadroomWithReserve(start, strategic,
+stepMs, reserve?)`** — a producer step is admitted iff `remaining ≥ stepMs +
+reserve`. Steps inside the tail (critic repair, gap-fill, DA rewrite) keep
+their flat guards: the reserve is *for* them.
+
+Applied to producer work:
+
+- **Analyst pass 2/3** (`analyst-multipass.ts`) — reads the enclosing
+  execution-scope deadline via `remainingRunMs(undefined, …)` (detached
+  callers see +Infinity). P2 inside the reserve is skipped (empty stress
+  map, existing degrade); P3 downgrades to the REFRAIN lightweight
+  synthesis. `ANALYST_PASS_BUDGET_MS` estimates one pass (default 5min).
+- **TTS second candidate** (`analyst-run.ts`) — the flat
+  `TTS_HEADROOM_MS` (25min) conflated step cost and tail; now
+  `TTS_DURATION_MS` (default 10min) + reserve — needs ~40min remaining.
+  `skippedReason` unchanged.
+- **Domain expert lens** (`analyst-run.ts`) — bounded producer pass now
+  requires `EXPERT_LENS_HEADROOM_MS` (default 5min) + reserve;
+  `stats.domainExpert.skippedReason = 'repair_reserve'`.
+
+Scout `SCOUT_NODE_FLOOR_MS` (40min) was already an implicit reserve and is
+unchanged.
+
+Tests: `repair-reserve.test.ts` +5 — reserve math, P2 skip + P3 downgrade
+inside the reserve (1 LLM call), full 3-pass with headroom, detached no-op.
+
+---
 
 ## Sprint 40 — Offline validation + upstream evidence consolidation
 
@@ -511,7 +550,8 @@ when no scope deadline exists; no `pipelineStart` → always true (tests,
 detached callers). Applied to every expensive escalation:
 
 - **TTS second candidate** (`analyst-run.ts`) — skipped when <25min
-  (`TTS_HEADROOM_MS`) remain; `stats.testTimeScaling.skippedReason`.
+  (`TTS_HEADROOM_MS`, superseded by `TTS_DURATION_MS` + repair reserve in
+  Sprint 41) remain; `stats.testTimeScaling.skippedReason`.
 - **Gap-fill re-analysis** (`gap-fill.ts`) — gap requests now *defer*
   (drained, no scout) when <30min (`GAPFILL_REANALYSIS_HEADROOM_MS`) remain:
   new sources can never reach the analyst or render corpus without a

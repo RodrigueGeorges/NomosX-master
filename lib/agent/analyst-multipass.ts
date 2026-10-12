@@ -21,6 +21,7 @@ import { RESEARCHER_KBS, type DomainExpertise } from './researcher-kb/index';
 import { MULTI_DOMAIN_CORPUS } from '../knowledge/multi-domain-corpus';
 import { NOMOS_EDITORIAL_LINE_SHORT } from './editorial-config';
 import { runAllPruningGates, gateHedgingStrip, type PruningResult } from './pruning-gates';
+import { hasRunHeadroomWithReserve, remainingRunMs } from './pipeline-steps/time-budget';
 
 // ============================================================================
 // TYPES
@@ -1334,9 +1335,25 @@ export async function analystAgentV3(
       console.warn(`[Analyst V3] VALIDATION: removed ${validatedMap.removedMechanisms} mechanisms with invalid citations (${validatedMap.details})`);
     }
 
+    // REPAIR RESERVE — the post-analyst tail (critic→gap-fill→DA→verify→
+    // render→gate) needs ~REPAIR_TAIL_RESERVE_MS to judge and repair the
+    // artifact. A pass that starts inside the reserve produces a richer
+    // draft nobody can evaluate — degrade instead of burning the deadline.
+    // remainingRunMs(undefined, …) reads the enclosing execution scope's
+    // deadline; detached callers/tests see +Infinity (guard never fires).
+    const passBudgetMs = Number(process.env.ANALYST_PASS_BUDGET_MS ?? 300_000);
+    const isStrategic = depth === 'strategic';
+
     // PASS 2: Stress Test (uses validated Pass 1 output)
     let p2: { map: StressTestMap; tokens: number; cost: number };
-    try {
+    if (!hasRunHeadroomWithReserve(undefined, isStrategic, passBudgetMs)) {
+      console.warn(`[Analyst V3] PASS 2 skipped — ${Math.round(remainingRunMs(undefined, isStrategic) / 60000)}min left < pass + repair reserve; continuing with empty stress map`);
+      p2 = {
+        map: { mechanismAssessments: [], collisionAssessments: [], survivingMechanisms: [], strongestChain: { presentFactIds: [], mechanismIds: [], projectedFuture: '' } },
+        tokens: 0,
+        cost: 0,
+      };
+    } else try {
       p2 = await dstep('analyst:p2', () => pass2StressTest(question, ctx, validatedMap.map, domainContext));
     } catch (pass2Err) {
       console.warn(`[Analyst V3] PASS 2 failed, continuing with empty stress test map:`, pass2Err);
@@ -1363,8 +1380,13 @@ export async function analystAgentV3(
     shouldStopEarly(refrainState, p1Text, p1Confidence, DEFAULT_REFRAIN_CONFIG);
     shouldStopEarly(refrainState, p2Text, p1Confidence, DEFAULT_REFRAIN_CONFIG);
     let p3: { analysis: AnalysisOutput; tokens: number; cost: number; family?: string };
-    if (pass2Yield < 0.15 && mechanismCount > 0 && depth !== "strategic") {
-      console.log(`[Analyst V3] REFRAIN: Pass 2 yield=${pass2Yield.toFixed(2)} (< 0.15) — reasoning converged, using lightweight synthesis instead of Pass 3`);
+    const p3FitsReserve = hasRunHeadroomWithReserve(undefined, isStrategic, passBudgetMs);
+    if ((pass2Yield < 0.15 && mechanismCount > 0 && depth !== "strategic") || !p3FitsReserve) {
+      if (!p3FitsReserve) {
+        console.warn(`[Analyst V3] PASS 3 downgraded to lightweight synthesis — ${Math.round(remainingRunMs(undefined, isStrategic) / 60000)}min left < pass + repair reserve`);
+      } else {
+        console.log(`[Analyst V3] REFRAIN: Pass 2 yield=${pass2Yield.toFixed(2)} (< 0.15) — reasoning converged, using lightweight synthesis instead of Pass 3`);
+      }
       // Lightweight synthesis: use Pass 1 + Pass 2 data directly without a full LLM call
       p3 = {
         analysis: {

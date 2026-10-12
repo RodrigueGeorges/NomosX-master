@@ -48,3 +48,22 @@ export function remainingRunMs(pipelineStart: number | undefined, isStrategic: b
 export function hasRunHeadroom(pipelineStart: number | undefined, isStrategic: boolean, headroomMs: number): boolean {
   return remainingRunMs(pipelineStart, isStrategic) >= headroomMs;
 }
+
+/**
+ * Wall-clock reserved for the post-analyst tail — checks → critic(+repair)
+ * → gap-fill → DA(+recheck) → verification → render → gate. Producer steps
+ * that precede the tail must not start work that would eat into it: a
+ * cheaper artifact the gate can still judge beats a richer one that dies
+ * unjudged mid-pass (the S34/S39b failure mode — every repair deferred).
+ */
+export const REPAIR_TAIL_RESERVE_MS = Number(process.env.NOMOSX_REPAIR_RESERVE_MS ?? 1_800_000);
+
+/** Producer-step guard: enough time for `stepMs` itself AND the repair tail. */
+export function hasRunHeadroomWithReserve(
+  pipelineStart: number | undefined,
+  isStrategic: boolean,
+  stepMs: number,
+  reserveMs: number = REPAIR_TAIL_RESERVE_MS,
+): boolean {
+  return remainingRunMs(pipelineStart, isStrategic) >= stepMs + reserveMs;
+}
