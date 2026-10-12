@@ -268,6 +268,35 @@ it('never snowballs a fixed corpus, and snowballed ids respect the off-topic exc
   expect(stats.snowball.newSourcesAdded).toBe(0);
 });
 
+it('re-scouts once for core evidence when the corpus is dominated by tangential sources', async () => {
+  // CRAG gradation: 8 correct / 10 ambiguous / 12 incorrect — ambiguous
+  // dominance must trigger refinement, not silent acceptance.
+  const ranked = Array.from({ length: 30 }, (_, i) => ({
+    id: `s${i}`, title: `Source ${i}`, provider: 'test', qualityScore: 70, compositeScore: 80,
+  }));
+  const scores: Record<string, number> = {};
+  for (let i = 0; i < 30; i++) scores[String(i)] = i < 8 ? 2 : i < 18 ? 1 : 0;
+  jest.mocked(callLLM).mockResolvedValueOnce({ content: JSON.stringify({ scores }), costUsd: 0 } as never);
+  jest.mocked(assessEvidenceSufficiency).mockResolvedValue({ verdict: 'proceed', sufficiencyScore: 80, gaps: [], enrichmentQueries: [], costUsd: 0 } as never);
+  const stats: any = {};
+  const deps = {
+    query: 'Research question', allSourceIds: ranked.map(s => s.id), isStrategic: false, stats, providers: [], label: 'Test',
+    pipelineStart: Date.now(), runningCostUsd: 0, pipelineRunId: 'run', skipRetrieval: false,
+    rank: jest.fn()
+      .mockResolvedValueOnce(ranked)
+      .mockResolvedValueOnce([...ranked, { id: 'core1', title: 'Core evidence', provider: 'test', qualityScore: 90, compositeScore: 95 }]),
+    scout: jest.fn(async () => ({ sourceIds: ['core1'] })),
+    emitProgress: jest.fn(), addCost: jest.fn(),
+    ctx: { setRankedSources: jest.fn(), recordAgentTiming: jest.fn(), getSummary: jest.fn(), addFinding: jest.fn() },
+    orchState: { sourcesFound: 0, avgQualityScore: 0 },
+  } as RankEnrichmentDeps;
+  const result = await runRankAndEnrichment(deps);
+  expect(deps.scout).toHaveBeenCalledTimes(1);
+  expect(deps.scout.mock.calls[0][0]).toContain('primary evidence');
+  expect(stats.relevanceScreen).toMatchObject({ correct: 8, ambiguous: 10, cragRescout: { added: 1 } });
+  expect(result.topSources.some((s: any) => s.id === 'core1')).toBe(true);
+});
+
 it('keeps prior-gap context without executing supplementary scouts in fixed-corpus mode', async () => {
   const deps = {
     query: 'Research question', allSourceIds: ['a'], topSources: [{ id: 'a', provider: 'test' }], providers: [],

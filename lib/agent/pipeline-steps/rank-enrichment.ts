@@ -263,6 +263,36 @@ export async function runRankAndEnrichment(deps: RankEnrichmentDeps): Promise<Ra
           stats.relevanceScreen = { screened: screened.length, dropped: 0, costUsd: rel.costUsd };
           console.log(`${label} RELEVANCE SCREEN: all ${screened.length} screened candidates topically relevant`);
         }
+
+        // ── CRAG gradation (Yan et al. 2024) — the screen distinguishes
+        // correct (≥2) from ambiguous (1, tangential) evidence. A corpus
+        // dominated by ambiguous docs must not sail through as if relevant:
+        // one bounded re-scout for core evidence, merged through re-rank.
+        const ambiguousCount = screened.filter((_s, i) => parsed.scores?.[String(i)] === 1).length;
+        const correctCount = screened.filter((_s, i) => Number(parsed.scores?.[String(i)]) >= 2).length;
+        stats.relevanceScreen = { ...(stats.relevanceScreen ?? {}), correct: correctCount, ambiguous: ambiguousCount };
+        if (!deps.skipRetrieval && ambiguousCount >= Math.max(5, correctCount)) {
+          const cragQuery = `${query} — primary evidence, official records, empirical data`;
+          console.log(`${label} RELEVANCE SCREEN: corpus dominated by tangential evidence (${ambiguousCount} ambiguous vs ${correctCount} core) — CRAG re-scout for core evidence`);
+          ctx.addFinding('RANK', 'warning', `Corpus dominated by tangential evidence: ${ambiguousCount} ambiguous vs ${correctCount} core after screening`);
+          try {
+            const res = await scout(cragQuery, providers, isStrategic ? 15 : 10);
+            const newIds = Array.isArray(res) ? res.map((s: any) => s.id) : (res?.sourceIds || []);
+            const fresh = newIds.filter((id: string) => !allSourceIds.includes(id) && !rejectedSourceIds.has(id));
+            if (fresh.length > 0) {
+              allSourceIds = [...allSourceIds, ...fresh];
+              const reranked = (await rank(query, { ...rankOpts, sourceIds: allSourceIds }))
+                .filter((s: any) => !rejectedSourceIds.has(s.id));
+              if (reranked.length > topSources.length) {
+                topSources.length = 0;
+                topSources.push(...reranked);
+              }
+            }
+            stats.relevanceScreen.cragRescout = { added: fresh.length };
+          } catch (cragErr) {
+            console.warn(`${label} RELEVANCE SCREEN: CRAG re-scout failed (non-blocking):`, cragErr);
+          }
+        }
       }
     } catch (err) {
       console.warn(`${label} RELEVANCE SCREEN: failed (non-blocking):`, err);
