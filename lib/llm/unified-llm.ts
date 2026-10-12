@@ -28,6 +28,7 @@ import { getCachedLLMResponse,cacheLLMResponse } from '../cache/redis-cache';
 import Sentry from '@sentry/nextjs';
 import { traceLLMCall } from '../agent/langfuse';
 import { filterByCapability, type LLMCapability } from '../agent/radar-innovations';
+import { getLlmCassetteMode, recordLlmCassette, replayLlmCassette } from './cassette';
 
 // ============================================================================
 // FAMILY & PROVIDER TYPES
@@ -1554,7 +1555,7 @@ async function callAnthropic(request: LLMRequest, model: string, signal?: AbortS
 /**
  * Build a fast hash-based cache key instead of full JSON.stringify
  */
-function buildCacheKey(request: LLMRequest): string {
+export function buildCacheKey(request: LLMRequest): string {
   const hash = crypto.createHash('sha256');
   
   // CRITICAL FIX: Validate request.messages exists and is iterable
@@ -1756,7 +1757,26 @@ export async function callLLM(request: LLMRequest): Promise<LLMResponse> {
   return run;
 }
 
+/**
+ * Cassette boundary (see lib/llm/cassette.ts): replay serves the recorded
+ * response and never touches a provider; record passes through and appends.
+ */
 async function callLLMCore(request: LLMRequest): Promise<LLMResponse> {
+  const mode = getLlmCassetteMode();
+  if (mode === 'replay') {
+    return replayLlmCassette<LLMResponse>(request, buildCacheKey(request));
+  }
+  try {
+    const response = await callLLMProvider(request);
+    if (mode === 'record') recordLlmCassette(request, buildCacheKey(request), response);
+    return response;
+  } catch (err) {
+    if (mode === 'record') recordLlmCassette(request, buildCacheKey(request), undefined, err);
+    throw err;
+  }
+}
+
+async function callLLMProvider(request: LLMRequest): Promise<LLMResponse> {
   const startTime = Date.now();
   const task = normalizeTask(request.task);
   const primaryProvider = resolvePrimaryProvider(request);
