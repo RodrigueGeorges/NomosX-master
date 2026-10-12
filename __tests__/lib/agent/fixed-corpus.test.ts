@@ -1,12 +1,14 @@
 import { runRankAndEnrichment, type RankEnrichmentDeps } from '@/lib/agent/pipeline-steps/rank-enrichment';
 import { runScoutEnrichmentAndIndex, type ScoutEnrichmentIndexDeps } from '@/lib/agent/pipeline-steps/scout-enrichment-index';
 import { assessEvidenceSufficiency } from '@/lib/agent/enrichment-reasoner';
+import { callLLM } from '@/lib/llm/unified-llm';
 import { withExecutionSignal } from '@/lib/worker/execution-scope';
 import { embedSourcesBatch } from '@/lib/agent/semantic-engine';
 import { deduplicateSources } from '@/lib/agent/index-agent';
 import { runClassificationGates, type ClassificationGatesDeps } from '@/lib/agent/pipeline-steps/classification-gates';
 
 jest.mock('@/lib/db', () => ({ prisma: {} }));
+jest.mock('@/lib/llm/unified-llm', () => ({ callLLM: jest.fn() }));
 jest.mock('@/lib/agent/enrichment-reasoner', () => ({ assessEvidenceSufficiency: jest.fn() }));
 jest.mock('@/lib/agent/source-quality', () => ({ rankSourcesByQuality: jest.fn(async () => []) }));
 jest.mock('@/lib/agent/semantic-engine', () => ({ embedSourcesBatch: jest.fn() }));
@@ -174,6 +176,24 @@ it('does not trim the tail in fixed-corpus mode (curated seeds are not a raw poo
   jest.mocked(assessEvidenceSufficiency).mockResolvedValue({ verdict: 'proceed', sufficiencyScore: 80, gaps: [], enrichmentQueries: [], costUsd: 0 } as never);
   const result = await runRankAndEnrichment(deps);
   expect(result.topSources).toHaveLength(30);
+});
+
+it('never restores explicitly off-topic documents to meet a quantity floor, even after enrichment', async () => {
+  const ranked = Array.from({ length: 30 }, (_, i) => ({
+    id: `s${i}`, title: `Source ${i}`, provider: 'test', qualityScore: 70, compositeScore: 80,
+  }));
+  jest.mocked(callLLM).mockResolvedValueOnce({ content: JSON.stringify({ scores: Object.fromEntries(ranked.map((_, i) => [String(i), i < 5 ? 3 : 0])) }), costUsd: 0 } as never);
+  jest.mocked(assessEvidenceSufficiency).mockResolvedValueOnce({ verdict: 'enrich', sufficiencyScore: 40, gaps: ['Missing evidence'], enrichmentQueries: ['A targeted search'], suggestedProviders: [], costUsd: 0 } as never);
+  const deps = {
+    query: 'Research question', allSourceIds: ranked.map(s => s.id), isStrategic: false, stats: {}, providers: [], label: 'Test',
+    pipelineStart: Date.now(), runningCostUsd: 0, pipelineRunId: 'run', skipRetrieval: false,
+    rank: jest.fn().mockResolvedValueOnce(ranked).mockResolvedValueOnce([...ranked, { id: 'new', title: 'New source', qualityScore: 70, provider: 'test' }]),
+    scout: jest.fn(async () => ({ sourceIds: ['new'] })), emitProgress: jest.fn(), addCost: jest.fn(),
+    ctx: { setRankedSources: jest.fn(), recordAgentTiming: jest.fn(), getSummary: jest.fn(), addFinding: jest.fn() },
+    orchState: { sourcesFound: 0, avgQualityScore: 0 },
+  } as RankEnrichmentDeps;
+  const result = await runRankAndEnrichment(deps);
+  expect(result.topSources.map(s => s.id)).toEqual(['s0', 's1', 's2', 's3', 's4', 'new']);
 });
 
 it('keeps prior-gap context without executing supplementary scouts in fixed-corpus mode', async () => {

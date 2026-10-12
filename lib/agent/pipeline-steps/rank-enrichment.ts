@@ -100,6 +100,7 @@ export async function runRankAndEnrichment(deps: RankEnrichmentDeps): Promise<Ra
   // The system's role: take ALL sources that are genuinely pertinent, drop the rest.
   // Deterministic: relative quality bar + elbow detection on the score distribution.
   let topSources = rankedCandidates;
+  const rejectedSourceIds = new Set<string>();
   // Fixed-corpus mode (regen): the seeds are ALREADY the curated topSources of
   // the prior attempt — re-applying the pertinence cut silently shrinks the
   // rewrite's evidence base (observed: 49 seeds → 25 kept → regen critic 68→26).
@@ -242,17 +243,16 @@ export async function runRankAndEnrichment(deps: RankEnrichmentDeps): Promise<Ra
       addCost(rel.costUsd, 'RELEVANCE_SCREEN');
       const parsed = parseJson<{ scores?: Record<string, number> }>(rel.content);
       if (parsed?.scores && Object.keys(parsed.scores).length > 0) {
-        const floor = Math.min(15, topSources.length);
         const dropIdx = new Set<number>();
-        screened.forEach((_s: any, i: number) => {
-          if (Number(parsed.scores?.[String(i)]) === 0) dropIdx.add(i);
+        screened.forEach((s: any, i: number) => {
+          if (parsed.scores?.[String(i)] === 0) {
+            dropIdx.add(i);
+            rejectedSourceIds.add(s.id);
+          }
         });
-        // Safety floor: if dropping every 0 would leave too few sources,
-        // restore the best-ranked ones (lowest index = highest composite).
-        const mustRestore = Math.max(0, floor - (topSources.length - dropIdx.size));
-        if (mustRestore > 0) {
-          for (const i of [...dropIdx].sort((a, b) => a - b).slice(0, mustRestore)) dropIdx.delete(i);
-        }
+        // Safety floor: insufficient relevant evidence must trigger enrichment,
+        // never restoration of documents explicitly judged off-topic.
+        const mustRestore = 0;
         if (dropIdx.size > 0) {
           const before = topSources.length;
           topSources = topSources.filter((_s: any, i: number) => !dropIdx.has(i));
@@ -379,7 +379,7 @@ export async function runRankAndEnrichment(deps: RankEnrichmentDeps): Promise<Ra
         sourceIds: allSourceIds,
         limit: rankOpts.limit ?? 100,
       };
-      const enrichedTop = await rank(query, enrichedRankOpts);
+      const enrichedTop = (await rank(query, enrichedRankOpts)).filter(s => !rejectedSourceIds.has(s.id));
       // Replace topSources with enriched version if it's better
       if (enrichedTop.length > topSources.length) {
         topSources.length = 0;
@@ -427,7 +427,8 @@ export async function runRankAndEnrichment(deps: RankEnrichmentDeps): Promise<Ra
       if (retryNewSourceIds.length > 0) {
         // Re-rank with the new sources — MUST scope to retryNewSourceIds
         // (without sourceIds, rank queries the entire DB and won't find the new sources)
-        const retryRanked = await rank(query, { limit: isStrategic ? 25 : 15, mode: 'balanced', sourceIds: retryNewSourceIds } as any);
+        const retryRanked = (await rank(query, { limit: isStrategic ? 25 : 15, mode: 'balanced', sourceIds: retryNewSourceIds } as any))
+          .filter(s => !rejectedSourceIds.has(s.id));
         if (retryRanked.length > 0) {
           console.log(`${label} REFUSAL RETRY: Found ${retryRanked.length} sources (was ${topSources.length}). Proceeding with enriched corpus.`);
           topSources = retryRanked;
