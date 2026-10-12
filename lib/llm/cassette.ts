@@ -41,6 +41,12 @@ export class CassetteMissError extends Error {
 export interface CassetteEntry {
   key: string;
   task: string;
+  /** Recording-run discriminator — NOMOSX_CASSETTE_RUN at record time.
+   * Entries from different runs share prompt keys (the framing prompt is
+   * identical across runs; only the RESPONSE differs). Without a run filter
+   * a replay would FIFO-consume run A's responses into run B's context —
+   * the exact bug that made a frozen-inputs replay miss at the judge. */
+  run?: string;
   provider?: string;
   model?: string;
   request?: unknown;
@@ -72,6 +78,7 @@ export function recordLlmCassette(
   const entry: CassetteEntry = {
     key,
     task: String(request.task ?? ''),
+    run: process.env.NOMOSX_CASSETTE_RUN || undefined,
     provider: res?.provider,
     model: res?.model,
     request,
@@ -84,20 +91,25 @@ export function recordLlmCassette(
 
 function loadReplayQueues(): Map<string, CassetteEntry[]> {
   const path = cassetteFilePath();
-  if (replayQueues?.path === path) return replayQueues.queues;
+  const wantRun = process.env.NOMOSX_CASSETTE_RUN || '';
+  const cacheKey = `${path}${wantRun ? `#${wantRun}` : ''}`;
+  if (replayQueues?.path === cacheKey) return replayQueues.queues;
   const queues = new Map<string, CassetteEntry[]>();
   if (existsSync(path)) {
     for (const line of readFileSync(path, 'utf8').split('\n')) {
       if (!line.trim()) continue;
       try {
         const entry = JSON.parse(line) as CassetteEntry;
+        // Run filter: when NOMOSX_CASSETTE_RUN is set, only entries recorded
+        // under that token serve. Unset → backward-compatible "serve all".
+        if (wantRun && entry.run !== wantRun) continue;
         const q = queues.get(entry.key) ?? [];
         q.push(entry);
         queues.set(entry.key, q);
       } catch { /* corrupt line — skip, replay of its key will miss loudly */ }
     }
   }
-  replayQueues = { path, queues };
+  replayQueues = { path: cacheKey, queues };
   return queues;
 }
 
@@ -109,7 +121,16 @@ function loadReplayQueues(): Map<string, CassetteEntry[]> {
 export function replayLlmCassette<T>(request: { task?: string }, key: string): T {
   const queue = loadReplayQueues().get(key);
   const entry = queue?.shift();
-  if (!entry) throw new CassetteMissError(key, String(request.task ?? ''));
+  if (!entry) {
+    // Debug aid: dump the missed request next to the cassette so a drift can
+    // be diffed against the recorded entry instead of guessed at.
+    try {
+      const path = cassetteFilePath();
+      mkdirSync(dirname(path), { recursive: true });
+      appendFileSync(`${path}.misses.jsonl`, JSON.stringify({ key, task: request.task ?? '', request, missedAt: new Date().toISOString() }) + '\n', 'utf8');
+    } catch { /* diagnostic only */ }
+    throw new CassetteMissError(key, String(request.task ?? ''));
+  }
   if (entry.error) throw new Error(`[cassette] recorded provider error: ${entry.error}`);
   console.log(`[LLM] cassette replay [${entry.task}] ${entry.provider ?? '?'}/${entry.model ?? '?'}`);
   return entry.response as T;

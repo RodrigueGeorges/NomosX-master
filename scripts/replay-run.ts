@@ -112,6 +112,13 @@ async function main() {
   // Force the mode BEFORE any LLM call — cassette path optional (default file).
   process.env.NOMOSX_LLM_MODE = args.record ? 'record' : 'replay';
   if (args.cassette) process.env.NOMOSX_LLM_CASSETTE = args.cassette;
+  // Cassette run token: record tags every entry with a fresh run id so the
+  // same file can hold multiple runs without FIFO cross-contamination —
+  // identical prompts across runs (framing, judge) MUST serve this run's
+  // response, not whichever was appended first. Replay sets the token from
+  // the meta sidecar below.
+  const cassetteRun = args.record ? crypto.randomUUID() : undefined;
+  if (cassetteRun) process.env.NOMOSX_CASSETTE_RUN = cassetteRun;
 
   let question: string | undefined;
   let depth: string | undefined = args.depth;
@@ -187,6 +194,7 @@ async function main() {
     recordedTrust = recordedTrust ?? meta.recordedTrust;
     recordedGate = recordedGate ?? meta.recordedGate;
     recordedCost = recordedCost ?? meta.recordedCostUsd;
+    if (meta.cassetteRun) process.env.NOMOSX_CASSETTE_RUN = meta.cassetteRun;
     console.log(`[replay] fixture meta loaded from ${metaPath}`);
   }
 
@@ -243,6 +251,7 @@ async function main() {
       const meta = {
         question, domain, depth,
         sourceIds,
+        cassetteRun,
         frozenContext: frozen,
         recordedTrust: replayedTrust,
         recordedGate: stats.publicationGate?.decision ?? null,
@@ -251,6 +260,17 @@ async function main() {
         recordedAt: new Date().toISOString(),
       };
       writeFileSync(`${args.cassette}.meta.json`, JSON.stringify(meta));
+      // Compact: a cassette file may accumulate entries from several record
+      // runs (record appends). Keep only this run's entries so the committed
+      // fixture is exactly one run — replay filtering is belt-and-suspenders
+      // on top of this.
+      if (cassetteRun && existsSync(args.cassette)) {
+        const kept = readFileSync(args.cassette, 'utf8')
+          .split('\n').filter(l => l.trim())
+          .filter(l => { try { return JSON.parse(l).run === cassetteRun; } catch { return false; } });
+        writeFileSync(args.cassette, kept.join('\n') + (kept.length ? '\n' : ''));
+        console.log(`[replay] cassette compacted to run ${cassetteRun.slice(0, 8)}… — ${kept.length} entries kept`);
+      }
       console.log(`[replay] fixture meta written → ${args.cassette}.meta.json (${(meta.frozenContext?.readings?.length ?? 0)} readings, ${(meta.frozenContext?.allSourceIds?.length ?? 0)} sourceIds, inputs=${Object.keys(meta.frozenContext?.inputs ?? {}).length})`);
     } catch (e) {
       console.warn('[replay] meta sidecar write failed (non-fatal):', e);
