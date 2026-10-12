@@ -342,6 +342,14 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
 
   const durationMs = Date.now() - pipelineStart;
   emitProgress(pipelineRun.id, "COMPLETE", "completed", `Pipeline complete in ${(durationMs / 1000).toFixed(1)}s`, { costUsd: totalCost, durationMs, blackboard: ctx.getSummary() });
+  // Frozen-inputs merge (record mode): late channels (positioning corpus,
+  // prediction markets, memory injections) capture throughout the run — the
+  // snapshot only exists once the run is done. frozenContext is only set in
+  // record mode, so this is a no-op otherwise.
+  try {
+    const { mergeInputsIntoStats } = await import('../frozen-inputs');
+    mergeInputsIntoStats(stats as any);
+  } catch { /* non-blocking */ }
   // Retry transient failures, but never throw past this point: the brief is
   // already committed — a dropped run-status write must not orphan it.
   await withDbRetry(() =>

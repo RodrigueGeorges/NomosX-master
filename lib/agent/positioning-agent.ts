@@ -175,7 +175,11 @@ export async function buildPositioningBrief(
 ): Promise<PositioningBrief | null> {
   const start = Date.now();
 
-  const corpus = await retrieveCompetitorCorpus(query, options?.maxPieces ?? 10);
+  const { captureInput } = await import('./frozen-inputs');
+  // Frozen-input channel: the competitor corpus is a live web scout — the
+  // field-map prompt embeds it verbatim, so an unfrozen replay drifts.
+  const corpus = await captureInput('positioning:corpus', () =>
+    retrieveCompetitorCorpus(query, options?.maxPieces ?? 10));
   if (corpus.length < 3) {
     console.log(`[POSITIONING] Only ${corpus.length} competitor pieces found — too thin to map the field, skipping`);
     return null;

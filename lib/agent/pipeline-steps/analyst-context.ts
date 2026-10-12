@@ -101,7 +101,9 @@ export async function buildAnalystContext(deps: AnalystContextDeps): Promise<Ana
   let memoryBlock: string | undefined;
   let synapseMemoryBlock: string | undefined;
   try {
-    const memInj = await buildMemoryInjection(agentId, detectedDomain as DomainExpertise, { maxLessons: 5, lookbackDays: 90, topicQuery: query });
+    const { captureInput } = await import('../frozen-inputs');
+    const memInj = await captureInput('memory:analyst', () =>
+      buildMemoryInjection(agentId, detectedDomain as DomainExpertise, { maxLessons: 5, lookbackDays: 90, topicQuery: query }));
     if (memInj.topLessons.length > 0) {
       memoryBlock = memInj.promptBlock;
       stats.agentMemory = { lessons: memInj.topLessons.length, agentId };
@@ -358,7 +360,8 @@ export async function buildAnalystContext(deps: AnalystContextDeps): Promise<Ana
   // Injected AFTER SARA compression so it is never dropped. ──
   try {
     const { getRelevantGuidelines } = await import('../knowledge-infrastructure');
-    const guidelines = await getRelevantGuidelines(query);
+    const { captureInput } = await import('../frozen-inputs');
+    const guidelines = await captureInput('experience:guidelines', () => getRelevantGuidelines(query));
     if (guidelines.length > 0) {
       const block = guidelines
         .map(g => `- ${g.guideline} (rationale: ${g.rationale})`)

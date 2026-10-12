@@ -18,6 +18,7 @@
  */
 
 import { getExecutionDeadlineAt } from '../../worker/execution-scope';
+import { captureInputSync } from '../frozen-inputs';
 
 const STRATEGIC_DEADLINE_MS = 4_500_000;
 const BRIEF_DEADLINE_MS = 3_900_000;
@@ -44,9 +45,12 @@ export function remainingRunMs(pipelineStart: number | undefined, isStrategic: b
   return runDeadlineAt(pipelineStart, isStrategic) - Date.now();
 }
 
-/** True when at least `headroomMs` remains before the pipeline deadline. */
+/** True when at least `headroomMs` remains before the pipeline deadline.
+ * Frozen-input channel: the decision is wall-clock — a replay reaches the
+ * same check in milliseconds where the record took minutes, so the outcome
+ * is snapshotted FIFO (see frozen-inputs). */
 export function hasRunHeadroom(pipelineStart: number | undefined, isStrategic: boolean, headroomMs: number): boolean {
-  return remainingRunMs(pipelineStart, isStrategic) >= headroomMs;
+  return captureInputSync('time:headroom', () => remainingRunMs(pipelineStart, isStrategic) >= headroomMs);
 }
 
 /**
@@ -65,5 +69,5 @@ export function hasRunHeadroomWithReserve(
   stepMs: number,
   reserveMs: number = REPAIR_TAIL_RESERVE_MS,
 ): boolean {
-  return remainingRunMs(pipelineStart, isStrategic) >= stepMs + reserveMs;
+  return captureInputSync('time:headroom-reserve', () => remainingRunMs(pipelineStart, isStrategic) >= stepMs + reserveMs);
 }

@@ -11,6 +11,7 @@ import { BRAND_BRIEF_FOOTER, BRAND_MANIFESTO } from '@/lib/brand/public-copy';
 import { analystAgentV3 as analystMultipass } from './analyst-multipass';
 import { primeContext } from './context-primer';
 import { saveDurableStep } from './durable-execution';
+import { getLlmCassetteMode } from '../llm/cassette';
 import type { PrimarySourceInput } from './think-tank-pack';
 
 // P1-PERF: Optional agents are lazy-loaded via dynamic import() to reduce cold start
@@ -166,6 +167,10 @@ export interface PipelineCoreOptions {
   policyCouncil?: boolean;
   /** Enable self-evolution — auto-improve agent prompts after the run (default: false) */
   useSelfEvolution?: boolean;
+  /** Replay freeze (Sprint 42): recorded context-primer + episodic-memory
+   * outputs injected instead of live fetches — these pull real-time/DB state
+   * that drifts between record and replay and would break cassette keys. */
+  frozenContext?: { primed?: unknown; episodic?: { episodes: unknown[]; formatted: string | null } };
 }
 
 async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
@@ -235,54 +240,75 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   // Neither is consumed until classification-gates / analyst-context, while
   // SCOUT + enrichment (~60-120s) run between launch and barrier — the
   // primer's real-time pulse fetch (~36-46s) is fully hidden behind scout.
+  //
+  // Replay freeze (Sprint 42): both blocks pull LIVE inputs (real-time pulse,
+  // accumulating episodic memory) that drift between record and replay —
+  // downstream LLM prompts would hash differently and miss. opts.frozenContext
+  // injects the recorded values instead; record mode persists them into
+  // stats.frozenContext so the replay harness can hand them back.
+  const frozenContext = (opts as any).frozenContext as
+    | { primed?: any; episodic?: { episodes: any[]; formatted: string | null }; inputs?: Record<string, unknown> }
+    | undefined;
+  // Seed the non-LLM freeze store — channel-keyed inputs (memory injections,
+  // guidelines, positioning corpus, prediction markets) that mutate between
+  // runs and would otherwise drift the prompts they feed.
+  if (frozenContext?.inputs) {
+    const { seedFrozenInputs } = await import('./frozen-inputs');
+    seedFrozenInputs(frozenContext.inputs);
+  }
+
   let primedContext: Awaited<ReturnType<typeof primeContext>> | null = null;
-  console.log(`${label} CONTEXT PRIMER: loading institutional memory`);
-  const primedP = primeContext(query, {
-    maxConcepts: isStrategic ? 20 : 15,
-    maxPriorBriefs: isStrategic ? 8 : 5,
-  }).then((pc) => {
-    orchState.contextPrimed = true;
-    orchState.knownConceptCount = pc.knownConcepts.length;
-    orchState.priorBriefCount = pc.priorBriefs.length;
-    stats.contextPrimer = {
-      knownConcepts: pc.knownConcepts.length,
-      priorBriefs: pc.priorBriefs.length,
-      emergingTrends: pc.emergingTrends.length,
-      trendBreaks: pc.trendBreaks?.length ?? 0,
-      coverageGap: Boolean(pc.coverageGap),
-      durationMs: pc.durationMs,
-    };
-    console.log(`${label} CONTEXT PRIMER: ${pc.knownConcepts.length} concepts, ${pc.priorBriefs.length} prior briefs, ${pc.trendBreaks?.length ?? 0} trend breaks`);
-    return pc;
-  }).catch((err) => {
-    console.error(`${label} CONTEXT PRIMER: FAILED — pipeline continues without institutional memory:`, err);
-    stats.contextPrimer = { error: String(err) } as any;
-    return null;
-  });
+  console.log(`${label} CONTEXT PRIMER: ${frozenContext ? 'frozen (replay)' : 'loading institutional memory'}`);
+  const primedP = frozenContext
+    ? Promise.resolve(frozenContext.primed ?? null)
+    : primeContext(query, {
+        maxConcepts: isStrategic ? 20 : 15,
+        maxPriorBriefs: isStrategic ? 8 : 5,
+      }).then((pc) => {
+        orchState.contextPrimed = true;
+        orchState.knownConceptCount = pc.knownConcepts.length;
+        orchState.priorBriefCount = pc.priorBriefs.length;
+        stats.contextPrimer = {
+          knownConcepts: pc.knownConcepts.length,
+          priorBriefs: pc.priorBriefs.length,
+          emergingTrends: pc.emergingTrends.length,
+          trendBreaks: pc.trendBreaks?.length ?? 0,
+          coverageGap: Boolean(pc.coverageGap),
+          durationMs: pc.durationMs,
+        };
+        console.log(`${label} CONTEXT PRIMER: ${pc.knownConcepts.length} concepts, ${pc.priorBriefs.length} prior briefs, ${pc.trendBreaks?.length ?? 0} trend breaks`);
+        return pc;
+      }).catch((err) => {
+        console.error(`${label} CONTEXT PRIMER: FAILED — pipeline continues without institutional memory:`, err);
+        stats.contextPrimer = { error: String(err) } as any;
+        return null;
+      });
 
   // ── EPISODIC MEMORY RETRIEVAL (V3.1) — learn from past pipeline runs ──
   let episodicContext: any[] = [];
   let episodicFormatted: string | null = null;
-  const episodicP = (async () => {
-    try {
-      const { retrieveEpisodes, formatEpisodeContext, buildEpisodeContextBlock } = await import('./episodic-memory');
-      const episodes = await retrieveEpisodes(query, { limit: isStrategic ? 8 : 5, minSimilarity: 0.55 });
-      let formatted: string | null = null;
-      if (episodes.length > 0) {
-        console.log(`${label} EPISODIC MEMORY: retrieved ${episodes.length} relevant past runs`);
-        const ctxBlock = buildEpisodeContextBlock(episodes);
-        formatted = formatEpisodeContext(ctxBlock);
-      }
-      // Telemetry for the A/B protocol — episodic retrieval previously ran
-      // every run but wrote no stats key, making its value unmeasurable.
-      (stats as Record<string, any>).episodicMemory = { retrieved: episodes.length, injected: Boolean(formatted) };
-      return { episodes, formatted };
-    } catch (err) {
-      console.warn(`${label} EPISODIC MEMORY: retrieval failed (non-blocking):`, err);
-      (stats as Record<string, any>).episodicMemory = { retrieved: 0, injected: false, error: String(err) };
-      return { episodes: [] as any[], formatted: null };
-    }
-  })();
+  const episodicP = frozenContext
+    ? Promise.resolve(frozenContext.episodic ?? { episodes: [] as any[], formatted: null })
+    : (async () => {
+        try {
+          const { retrieveEpisodes, formatEpisodeContext, buildEpisodeContextBlock } = await import('./episodic-memory');
+          const episodes = await retrieveEpisodes(query, { limit: isStrategic ? 8 : 5, minSimilarity: 0.55 });
+          let formatted: string | null = null;
+          if (episodes.length > 0) {
+            console.log(`${label} EPISODIC MEMORY: retrieved ${episodes.length} relevant past runs`);
+            const ctxBlock = buildEpisodeContextBlock(episodes);
+            formatted = formatEpisodeContext(ctxBlock);
+          }
+          // Telemetry for the A/B protocol — episodic retrieval previously ran
+          // every run but wrote no stats key, making its value unmeasurable.
+          (stats as Record<string, any>).episodicMemory = { retrieved: episodes.length, injected: Boolean(formatted) };
+          return { episodes, formatted };
+        } catch (err) {
+          console.warn(`${label} EPISODIC MEMORY: retrieval failed (non-blocking):`, err);
+          (stats as Record<string, any>).episodicMemory = { retrieved: 0, injected: false, error: String(err) };
+          return { episodes: [] as any[], formatted: null };
+        }
+      })();
 
   // Phase-timing rollup: wall-clock at each major boundary, persisted into
   // stats.phaseTimings so postmortems get a phase breakdown without reading
@@ -450,8 +476,30 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     durable, emitProgress, addCost, ctx, orchState, assessAfterReader, recordDecision,
     quantDepth: opts.quantDepth, parametricInput: opts.parametricInput,
     priorReadings: opts.priorReadings,
+    frozenQuant: (frozenContext as any)?.quant || (frozenContext as any)?.quantBridge
+      ? { quant: (frozenContext as any).quant, quantBridge: (frozenContext as any).quantBridge }
+      : undefined,
   });
   const readings = readerBlk.readings;
+  // Cassette-record companion: persist the live-input snapshot so a replay
+  // run can freeze identical primer/episodic/readings/quant (see STEP 0).
+  // Record mode only — replay supplies frozenContext + priorReadings.
+  // Readings are the big nondeterminism surface (live PDF/news fetches,
+  // extraction quirks) and quant embeds live primary-data APIs, so both
+  // ride along rather than being re-fetched.
+  if (!frozenContext && getLlmCassetteMode() === 'record') {
+    (stats as any).frozenContext = {
+      primed: primedContext,
+      episodic: { episodes: episodicContext, formatted: episodicFormatted },
+      readings,
+      quant: readerBlk.quant,
+      quantBridge: readerBlk.quantBridge,
+      allSourceIds,
+      topSourceIds: topSources.map((s: any) => s.id),
+      inputs: {}, // merged at persistence time — late channels (positioning,
+      // markets, memory injections) capture throughout the whole run.
+    };
+  }
   const framing = readerBlk.framing;
   const quant = readerBlk.quant;
   const quantBridge = readerBlk.quantBridge;
@@ -1561,6 +1609,7 @@ Return JSON: {"queries": ["...", "..."]} — one query per gap, same order.`,
     // orchestrator can bank it instead of reporting a $0 run.
     stats.totalCostUsd = cost.runningCostUsd;
     if ((error as any).costUsd === undefined) (error as any).costUsd = cost.runningCostUsd;
+    try { const { mergeInputsIntoStats } = await import('./frozen-inputs'); mergeInputsIntoStats(stats as any); } catch { /* non-blocking */ }
     await prisma.pipelineRun.update({
       where: { id: pipelineRun.id },
       data: {
@@ -1689,6 +1738,8 @@ export interface StrategicPipelineOptions {
   policyCouncil?: boolean;
   /** Enable self-evolution — auto-improve agent prompts after the run (default: false) */
   useSelfEvolution?: boolean;
+  /** Replay freeze — see PipelineCoreOptions.frozenContext. */
+  frozenContext?: { primed?: unknown; episodic?: { episodes: unknown[]; formatted: string | null } };
 }
 
 /**
@@ -1720,6 +1771,7 @@ export async function runStrategicPipeline(
     priorEvidenceQueries: options.priorEvidenceQueries,
     priorReadings: options.priorReadings,
     skipGapFillRetrieval: options.skipGapFillRetrieval,
+    frozenContext: options.frozenContext,
   });
 }
 
@@ -1816,6 +1868,7 @@ export async function runPipeline(
         stressTest: options.stressTest,
         policyCouncil: options.policyCouncil,
         useSelfEvolution: options.useSelfEvolution,
+        frozenContext: options.frozenContext,
       }),
       timeoutMs,
       `runPipeline(${format})`

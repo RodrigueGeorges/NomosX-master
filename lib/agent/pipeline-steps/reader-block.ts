@@ -51,6 +51,11 @@ export interface ReaderBlockDeps {
   /** Regeneration path: readings from the prior attempt — reused for sources
    * already extracted; only sources without a prior reading are fetched. */
   priorReadings?: unknown[];
+  /** Replay path: the quant snapshot recorded with the frozen context — the
+   * quant agent fetches live primary-data APIs (energy-charts, rte, …) whose
+   * values drift between record and replay and would break cassette keys on
+   * every prompt that embeds evidenceBlock (hypothesis judge, analyst, …). */
+  frozenQuant?: { quant?: unknown; quantBridge?: unknown };
 }
 
 export interface ReaderBlockResult {
@@ -80,7 +85,9 @@ export async function runReaderBlock(deps: ReaderBlockDeps): Promise<ReaderBlock
   // -- STEP 5a: AGENT MEMORY INJECTION for READER --
   let readerMemoryBlock: string | undefined;
   try {
-    const readerMemInj = await buildMemoryInjection("reader", detectedDomain as DomainExpertise, { maxLessons: 3, lookbackDays: 90, topicQuery: query });
+    const { captureInput } = await import('../frozen-inputs');
+    const readerMemInj = await captureInput('memory:reader', () =>
+      buildMemoryInjection("reader", detectedDomain as DomainExpertise, { maxLessons: 3, lookbackDays: 90, topicQuery: query }));
     if (readerMemInj.topLessons.length > 0) {
       readerMemoryBlock = readerMemInj.promptBlock;
       console.log(`${label} AGENT MEMORY (READER): ${readerMemInj.topLessons.length} lessons injected`);
@@ -164,19 +171,24 @@ export async function runReaderBlock(deps: ReaderBlockDeps): Promise<ReaderBlock
       console.warn(`${label} FRAMING: failed (non-blocking):`, err);
       return { hypotheses: [] as any[], keyUnknowns: [] as string[], costUsd: 0 };
     }),
-    // QUANT: fetch real numbers from T1 primary-data providers
-    import('../quant-agent').then(m => m.quantAgent(query, topSources)).catch((err) => {
-      console.warn(`${label} QUANT: failed (non-blocking):`, err);
-      return { series: [], facts: [], evidenceBlock: '', chartData: [], fetchedProviders: [], durationMs: 0 };
-    }),
+    // QUANT: fetch real numbers from T1 primary-data providers — frozen on
+    // replay so the judge/analyst prompts embed the recorded evidenceBlock.
+    deps.frozenQuant
+      ? Promise.resolve((deps.frozenQuant.quant ?? { series: [], facts: [], evidenceBlock: '', chartData: [], fetchedProviders: [], durationMs: 0 }) as any)
+      : import('../quant-agent').then(m => m.quantAgent(query, topSources)).catch((err) => {
+        console.warn(`${label} QUANT: failed (non-blocking):`, err);
+        return { series: [], facts: [], evidenceBlock: '', chartData: [], fetchedProviders: [], durationMs: 0 };
+      }),
     // QUANT BRIDGE: deterministic model layer (parametric costing + FIGARO IO multipliers)
-    import('../../quant/quant-bridge').then(m => m.runQuantBridge(query, {
-      depth: quantDepth ?? (isStrategic ? 'io' : 'none'),
-      parametricInput,
-    })).catch((err) => {
-      console.warn(`${label} QUANT BRIDGE: failed (non-blocking):`, err);
-      return { models: [] as any[], evidenceBlock: '', usedModels: [] as any[], durationMs: 0 };
-    }),
+    deps.frozenQuant
+      ? Promise.resolve((deps.frozenQuant.quantBridge ?? { models: [] as any[], evidenceBlock: '', usedModels: [] as any[], durationMs: 0 }) as any)
+      : import('../../quant/quant-bridge').then(m => m.runQuantBridge(query, {
+        depth: quantDepth ?? (isStrategic ? 'io' : 'none'),
+        parametricInput,
+      })).catch((err) => {
+        console.warn(`${label} QUANT BRIDGE: failed (non-blocking):`, err);
+        return { models: [] as any[], evidenceBlock: '', usedModels: [] as any[], durationMs: 0 };
+      }),
   ]);
   const framing = framingSettled;
   const quant = quantSettled;

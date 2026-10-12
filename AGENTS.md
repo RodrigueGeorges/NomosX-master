@@ -63,8 +63,9 @@ Open architectural priorities (not certified by unit tests):
 5. A fresh bounded end-to-end validation on frozen representative corpora,
    recording gate failures, evidence validity, repair effectiveness, cost and
    artifact versions. No publication success is inferred from a mocked LLM.
-   `scripts/replay-run.ts` (Sprint 42) is the harness; a real recorded
-   cassette fixture is still needed for CI.
+   `scripts/replay-run.ts` (Sprint 42/43) is the harness; `frozen-inputs.ts`
+   (Sprint 43) freezes the non-LLM channels; `gulf-minerals.fixture.jsonl`
+   is the first real recorded fixture.
 
 Verification uses `.tools/node/node.exe` with `node_modules/jest/bin/jest.js`
 (`__tests__/lib/agent`, `__tests__/lib/worker`, `--runInBand`),
@@ -197,6 +198,61 @@ Tests: `replay-e2e.test.ts` +4 (real-provider record→replay, drift miss,
 stream record/replay, cross-serving), `verification-stale.test.ts` +4,
 `thesis-adherence-gate.test.ts`, `trust-score.test.ts` (parity +
 veto-bypass suite).
+
+---
+
+## Sprint 43 — Frozen inputs: full-input determinism for record/replay
+
+The first record attempt proved that freezing the corpus + cassette was not
+enough: the replay missed at the hypothesis judge because the *quant
+evidenceBlock* (live primary-data APIs) differed. Auditing every prompt
+input surfaced a whole class of non-LLM channels that drift between record
+and replay:
+
+| Channel | Why it drifts | Freeze |
+|---|---|---|
+| `primedContext` / episodic memory | real-time pulse, accumulated episodes | `frozenContext.primed/episodic` (options) |
+| Reader readings | live PDF/news fetches (403s, content churn) | `priorReadings` reuse (options) |
+| Quant + quant-bridge | energy-charts/rte APIs return fresh numbers | `frozenContext.quant/quantBridge` → `deps.frozenQuant` |
+| Agent-memory lessons (reader, analyst, `phd:*`) | every run WRITES lessons — a record run shifts what its own replay reads | `captureInput('memory:*')` |
+| Experience-bank guidelines | same — `extractExperience` writes post-gate | `captureInput('experience:guidelines')` |
+| PhD profile + playbook | record persists the position it just took | `captureInput('phd:<domain>')` |
+| Positioning competitor corpus | live web scout | `captureInput('positioning:corpus')` |
+| Prediction markets | Metaculus/Polymarket odds move | `captureInput('delphi:markets')` |
+| World-model / witness / self-play / PRM / MoA / skill-bank | accumulated run learnings; skill bank writes the winning config at end of run | `captureInput('init:*')` |
+| Wall-clock headroom guards | replay reaches checks in ms vs record's minutes | `captureInputSync('time:*#N')` — FIFO tape |
+
+**`lib/agent/frozen-inputs.ts`** — per-process channel store.
+`captureInput(ch, producer)` / `captureInputSync(ch, producer)`: replay
+serves the recorded value without running the producer; record computes
+live and retains; **live mode retains nothing** — zero behaviour change.
+A replay miss falls through to the live producer — the resulting prompt
+drift still surfaces as `CassetteMissError` downstream (fail-loud, never
+silent).
+
+**Persistence** — record mode writes `stats.frozenContext` (primed,
+episodic, readings, quant, quantBridge, allSourceIds, topSourceIds) after
+the reader barrier; `mergeInputsIntoStats` folds the full `inputs` map in
+at every terminal `pipelineRun.steps` write (persistence-tail + the FAILED
+path) so a held/failed run is still a valid fixture.
+
+**Harness** — `replay-run.ts --record` now writes a self-describing
+`<cassette>.meta.json` sidecar (question, depth, sourceIds, frozenContext,
+recorded trust/gate/cost) — replay auto-loads it, so `--pipeline-run` is
+only needed when no sidecar exists. Record mode no longer asserts drift
+against the historical baseline (apples/oranges); the drift check is
+replay-only. `skipGapFillRetrieval: true` is forced in both modes — the
+corpus is identical by construction.
+
+Residual limits (documented honestly): embeddings (OpenAI/Cohere) bypass
+`callLLM` — stable in practice but model-version drift over months could
+shift DPP/dedup outputs; SAFE/url-health live checks feed trust
+components, not prompts — a post-record source outage can drift the final
+score by a few points (use `--tolerance`); a replayed run still writes
+brief/pipelineRun rows (use `--cleanup`).
+
+Tests: `frozen-inputs.test.ts` +5 (live no-capture, record capture, replay
+serve-without-producer, miss fallthrough, sync FIFO ordering).
 
 ---
 

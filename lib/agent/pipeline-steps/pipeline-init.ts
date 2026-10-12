@@ -211,7 +211,8 @@ export async function runPipelineInit(query: string, opts: PipelineCoreOptions) 
     // WITNESS: inject past learnings (stored for later injection)
     useWitness ? (async () => {
       try {
-        witnessLearningInjection = await buildLearningInjection();
+        const { captureInput } = await import('../frozen-inputs');
+        witnessLearningInjection = await captureInput('init:witness', () => buildLearningInjection());
         if (witnessLearningInjection) {
           console.log(`${label} WITNESS: prepared past learnings for injection (${witnessLearningInjection.length} chars)`);
         }
@@ -223,7 +224,8 @@ export async function runPipelineInit(query: string, opts: PipelineCoreOptions) 
     // WORLD MODEL: inject prior cross-run knowledge
     useWorldModel ? (async () => {
       try {
-        const wmResult = await buildWorldModelInjection(query);
+        const { captureInput } = await import('../frozen-inputs');
+        const wmResult = await captureInput('init:worldmodel', () => buildWorldModelInjection(query));
         if (wmResult.contextBlock) {
           worldModelInjection = wmResult.contextBlock;
           worldModelReliableSources = wmResult.reliableSourceIds;
@@ -240,7 +242,8 @@ export async function runPipelineInit(query: string, opts: PipelineCoreOptions) 
     // PRM: load trained step-scoring model
     usePRM ? (async () => {
       try {
-        prmModel = await loadPRMModel();
+        const { captureInput } = await import('../frozen-inputs');
+        prmModel = await captureInput('init:prm', () => loadPRMModel());
         if (prmModel) {
           console.log(`${label} PRM: loaded model (${prmModel.trainingExamples} training examples, avg reward ${prmModel.avgReward.toFixed(3)})`);
         } else {
@@ -254,7 +257,8 @@ export async function runPipelineInit(query: string, opts: PipelineCoreOptions) 
     // SELF-PLAY: adversarial lessons for injection
     useSelfPlay ? (async () => {
       try {
-        selfPlayInjection = await buildSelfPlayInjection();
+        const { captureInput } = await import('../frozen-inputs');
+        selfPlayInjection = await captureInput('init:selfplay', () => buildSelfPlayInjection());
         if (selfPlayInjection) {
           console.log(`${label} SELF_PLAY: injected ${selfPlayInjection.length} chars of adversarial lessons`);
         }
@@ -266,7 +270,8 @@ export async function runPipelineInit(query: string, opts: PipelineCoreOptions) 
     // MOA: agent weights
     useMixtureOfAgents ? (async () => {
       try {
-        await loadAgentWeights();
+        const { captureInput } = await import('../frozen-inputs');
+        await captureInput('init:moa', () => loadAgentWeights());
         console.log(`${label} MOA: agent weights loaded`);
       } catch (err) {
         console.warn(`${label} MOA: failed to load weights:`, err);
@@ -438,7 +443,10 @@ export async function runPipelineInit(query: string, opts: PipelineCoreOptions) 
     const { getProvenSkill, applySkillToProviders } = await import('../skill-bank');
     const { detectDomain } = await import('../smart-provider-selector');
     const skillDomain = detectDomain(query);
-    provenSkill = await getProvenSkill(skillDomain);
+    const { captureInput } = await import('../frozen-inputs');
+    // Frozen-input channel: a record run writes its own winning config —
+    // unfrozen replay would apply a skill that did not exist at record time.
+    provenSkill = await captureInput(`init:skillbank:${skillDomain}`, () => getProvenSkill(skillDomain));
     if (provenSkill) {
       providers = applySkillToProviders(providers, provenSkill) as Providers;
       console.log(`${label} SKILL BANK: proven config for '${skillDomain}' (${provenSkill.uses} uses, avg trust ${provenSkill.avgTrust.toFixed(0)}) — ${provenSkill.providers.length} providers prioritized`);

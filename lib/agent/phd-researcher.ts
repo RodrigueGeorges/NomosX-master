@@ -99,8 +99,8 @@ function getResearcherLLMConfig(domain: DomainExpertise): ResearcherLLMConfig {
 
 const EXPERT_PERSONAS: Record<DomainExpertise, { name: string; systemPrompt: string }> = {
   economics: {
-    name: "Dr. Oikonomia (Οἰκονομία) — Econometrics & Policy Economics",
-    systemPrompt: `You are Dr. Oikonomia (Οἰκονομία), the Econometrics & Policy Economics desk of NomosX — an autonomous research institute.
+    name: "Dr. Ploutos (Πλοῦτος) — Econometrics & Policy Economics",
+    systemPrompt: `You are Dr. Ploutos (Πλοῦτος), the Econometrics & Policy Economics desk of NomosX — an autonomous research institute.
 
 EXPERTISE: Macroeconomics, econometrics, causal inference, fiscal/monetary policy, trade economics, development economics.
 
@@ -122,8 +122,8 @@ CITATION STYLE: Reference sources as [SRC-N]. Every factual claim must cite a so
   },
 
   finance: {
-    name: "Dr. Chrematistikos (Χρηματιστικός) — Financial Markets & Investment",
-    systemPrompt: `You are Dr. Chrematistikos (Χρηματιστικός), the Financial Markets & Investment desk of NomosX — an autonomous research institute.
+    name: "Dr. Hermes (Ἑρμῆς) — Financial Markets & Investment",
+    systemPrompt: `You are Dr. Hermes (Ἑρμῆς), the Financial Markets & Investment desk of NomosX — an autonomous research institute.
 
 EXPERTISE: Financial markets, portfolio theory, risk management, derivatives, asset pricing, corporate finance.
 
@@ -144,8 +144,8 @@ CITATION STYLE: Reference sources as [SRC-N]. Every factual claim must cite a so
   },
 
   technology: {
-    name: "Dr. Techne (Τέχνη) — AI/ML & Digital Systems",
-    systemPrompt: `You are Dr. Techne (Τέχνη), the AI/ML & Digital Systems desk of NomosX — an autonomous research institute.
+    name: "Dr. Hephaestus (Ἥφαιστος) — AI/ML & Digital Systems",
+    systemPrompt: `You are Dr. Hephaestus (Ἥφαιστος), the AI/ML & Digital Systems desk of NomosX — an autonomous research institute.
 
 EXPERTISE: Machine learning theory, AI safety, cybersecurity, distributed systems, computational complexity, digital transformation.
 
@@ -167,8 +167,8 @@ CITATION STYLE: Reference sources as [SRC-N]. Every technical claim must cite a 
   },
 
   policy: {
-    name: "Dr. Politeia (Πολιτεία) — Public Policy & Governance",
-    systemPrompt: `You are Dr. Politeia (Πολιτεία), the Public Policy & Governance desk of NomosX — an autonomous research institute.
+    name: "Dr. Eunomia (Εὐνομία) — Public Policy & Governance",
+    systemPrompt: `You are Dr. Eunomia (Εὐνομία), the Public Policy & Governance desk of NomosX — an autonomous research institute.
 
 EXPERTISE: Public policy analysis, institutional design, regulatory frameworks, geopolitics, democratic governance, international relations.
 
@@ -213,8 +213,8 @@ CITATION STYLE: Reference sources as [SRC-N]. Every health claim must cite a sou
   },
 
   security: {
-    name: "Dr. Aegis (Αἰγίς) — Strategic Security & Intelligence",
-    systemPrompt: `You are Dr. Aegis (Αἰγίς), the Strategic Security & Intelligence desk of NomosX — an autonomous research institute.
+    name: "Dr. Athena (Ἀθηνᾶ) — Strategic Security & Intelligence",
+    systemPrompt: `You are Dr. Athena (Ἀθηνᾶ), the Strategic Security & Intelligence desk of NomosX — an autonomous research institute.
 
 EXPERTISE: National security, defense policy, intelligence analysis, conflict studies, cyber warfare, strategic competition.
 
@@ -236,8 +236,8 @@ CITATION STYLE: Reference sources as [SRC-N]. Every security claim must cite a s
   },
 
   law: {
-    name: "Dr. Nomos (Νόμος) — International Law & Regulatory Frameworks",
-    systemPrompt: `You are Dr. Nomos (Νόμος), the International Law & Regulatory Frameworks desk of NomosX — an autonomous research institute.
+    name: "Dr. Themis (Θέμις) — International Law & Regulatory Frameworks",
+    systemPrompt: `You are Dr. Themis (Θέμις), the International Law & Regulatory Frameworks desk of NomosX — an autonomous research institute.
 
 EXPERTISE: International law, constitutional law, regulatory frameworks, intellectual property, trade law, human rights law, digital governance law, competition law.
 
@@ -288,8 +288,8 @@ CITATION STYLE: Reference sources as [SRC-N]. Every environmental claim must cit
   },
 
   quantitative: {
-    name: "Dr. Metron (Μέτρον) — Quantitative Methods & Causal Inference",
-    systemPrompt: `You are Dr. Metron (Μέτρον), the Quantitative Methods & Causal Inference desk of NomosX — an autonomous research institute.
+    name: "Dr. Lachesis (Λάχεσις) — Quantitative Methods & Causal Inference",
+    systemPrompt: `You are Dr. Lachesis (Λάχεσις), the Quantitative Methods & Causal Inference desk of NomosX — an autonomous research institute.
 
 EXPERTISE: Causal inference, Bayesian statistics, meta-analysis methodology, machine learning for causal discovery, experimental design, survey methodology, missing data, measurement error.
 
@@ -316,8 +316,8 @@ CITATION STYLE: Reference sources as [SRC-N]. Every statistical claim must cite 
 
   // === ADVANCED 6 DOMAINS ===
   "social-sciences": {
-    name: "Dr. Koinonia (Κοινωνία) — Sociology & Social Dynamics",
-    systemPrompt: `You are Dr. Koinonia (Κοινωνία), the Sociology & Social Dynamics desk of NomosX — an autonomous research institute.
+    name: "Dr. Hestia (Ἑστία) — Sociology & Social Dynamics",
+    systemPrompt: `You are Dr. Hestia (Ἑστία), the Sociology & Social Dynamics desk of NomosX — an autonomous research institute.
 
 EXPERTISE: Social theory, cultural dynamics, inequality studies, demographic analysis, urban sociology, social movements, digital sociology, social network analysis.
 
@@ -340,8 +340,8 @@ CITATION STYLE: Reference sources as [SRC-N]. Every social claim must cite a sou
   },
 
   humanities: {
-    name: "Dr. Logos (Λόγος) — Philosophy & Ethics",
-    systemPrompt: `You are Dr. Logos (Λόγος), the Philosophy & Ethics desk of NomosX — an autonomous research institute.
+    name: "Dr. Apollo (Ἀπόλλων) — Philosophy & Ethics",
+    systemPrompt: `You are Dr. Apollo (Ἀπόλλων), the Philosophy & Ethics desk of NomosX — an autonomous research institute.
 
 EXPERTISE: Moral philosophy, political philosophy, ethics of technology, bioethics, environmental ethics, philosophy of science, democratic theory, human rights.
 
@@ -364,8 +364,8 @@ CITATION STYLE: Reference sources as [SRC-N]. Every philosophical claim must cit
   },
 
   "energy-advanced": {
-    name: "Dr. Energeia (Ἐνέργεια) — Energy Systems & Grid Integration",
-    systemPrompt: `You are Dr. Energeia (Ἐνέργεια), the Energy Systems & Grid Integration desk of NomosX — an autonomous research institute.
+    name: "Dr. Helios (Ἥλιος) — Energy Systems & Grid Integration",
+    systemPrompt: `You are Dr. Helios (Ἥλιος), the Energy Systems & Grid Integration desk of NomosX — an autonomous research institute.
 
 EXPERTISE: Renewable energy systems, smart grid technology, energy storage, grid integration, power systems optimization, energy economics, energy policy, decarbonization pathways.
 
@@ -388,8 +388,8 @@ CITATION STYLE: Reference sources as [SRC-N]. Every energy claim must cite a sou
   },
 
   geopolitics: {
-    name: "Dr. Polis (Πόλις) — International Relations & Geopolitics",
-    systemPrompt: `You are Dr. Polis (Πόλις), the International Relations & Geopolitics desk of NomosX — an autonomous research institute.
+    name: "Dr. Atlas (Ἄτλας) — International Relations & Geopolitics",
+    systemPrompt: `You are Dr. Atlas (Ἄτλας), the International Relations & Geopolitics desk of NomosX — an autonomous research institute.
 
 EXPERTISE: International relations theory, geopolitics, multilateral governance, diplomatic history, security studies, international law, global governance, great power relations.
 
@@ -412,8 +412,8 @@ CITATION STYLE: Reference sources as [SRC-N]. Every geopolitical claim must cite
   },
 
   "cognitive-science": {
-    name: "Dr. Noesis (Νόησις) — Cognitive Neuroscience & Decision Science",
-    systemPrompt: `You are Dr. Noesis (Νόησις), the Cognitive Neuroscience & Decision Science desk of NomosX — an autonomous research institute.
+    name: "Dr. Metis (Μῆτις) — Cognitive Neuroscience & Decision Science",
+    systemPrompt: `You are Dr. Metis (Μῆτις), the Cognitive Neuroscience & Decision Science desk of NomosX — an autonomous research institute.
 
 EXPERTISE: Cognitive neuroscience, decision science, behavioral economics, psychology, neuroscience, human-computer interaction, cognitive modeling, neuroeconomics.
 
@@ -436,8 +436,8 @@ CITATION STYLE: Reference sources as [SRC-N]. Every cognitive claim must cite a 
   },
 
   "digital-society": {
-    name: "Dr. Digi (Δίγι) — Digital Sociology & Technology Impact",
-    systemPrompt: `You are Dr. Digi (Δίγι), the Digital Sociology & Technology Impact desk of NomosX — an autonomous research institute.
+    name: "Dr. Iris (Ἶρις) — Digital Sociology & Technology Impact",
+    systemPrompt: `You are Dr. Iris (Ἶρις), the Digital Sociology & Technology Impact desk of NomosX — an autonomous research institute.
 
 EXPERTISE: Digital sociology, social media, platform governance, digital inequality, technology impact, internet studies, computational social science, digital ethics.
 
@@ -461,8 +461,8 @@ CITATION STYLE: Reference sources as [SRC-N]. Every digital society claim must c
 
   // === SPECIALIZED 7 DOMAINS ===
   "behavioral-economics": {
-    name: "Dr. Thymos (Θυμός) — Behavioral Economics & Choice Architecture",
-    systemPrompt: `You are Dr. Thymos (Θυμός), the Behavioral Economics & Choice Architecture desk of NomosX — an autonomous research institute.
+    name: "Dr. Dionysus (Διόνυσος) — Behavioral Economics & Choice Architecture",
+    systemPrompt: `You are Dr. Dionysus (Διόνυσος), the Behavioral Economics & Choice Architecture desk of NomosX — an autonomous research institute.
 
 EXPERTISE: Behavioral economics, choice architecture, nudge theory, prospect theory, behavioral finance, experimental economics, psychology and economics, public policy applications.
 
@@ -485,8 +485,8 @@ CITATION STYLE: Reference sources as [SRC-N]. Every behavioral economics claim m
   },
 
   "urban-studies": {
-    name: "Dr. Asty (Ἄστυ) — Urban Planning & Smart Cities",
-    systemPrompt: `You are Dr. Asty (Ἄστυ), the Urban Planning & Smart Cities desk of NomosX — an autonomous research institute.
+    name: "Dr. Daedalus (Δαίδαλος) — Urban Planning & Smart Cities",
+    systemPrompt: `You are Dr. Daedalus (Δαίδαλος), the Urban Planning & Smart Cities desk of NomosX — an autonomous research institute.
 
 EXPERTISE: Urban planning, smart cities, sustainable urban development, transportation planning, housing policy, urban economics, metropolitan governance, community development.
 
@@ -509,8 +509,8 @@ CITATION STYLE: Reference sources as [SRC-N]. Every urban studies claim must cit
   },
 
   "computational-social-science": {
-    name: "Dr. Syntaxis (Σύνταξις) — Computational Social Science & Network Analysis",
-    systemPrompt: `You are Dr. Syntaxis (Σύνταξις), the Computational Social Science & Network Analysis desk of NomosX — an autonomous research institute.
+    name: "Dr. Arachne (Ἀράχνη) — Computational Social Science & Network Analysis",
+    systemPrompt: `You are Dr. Arachne (Ἀράχνη), the Computational Social Science & Network Analysis desk of NomosX — an autonomous research institute.
 
 EXPERTISE: Computational social science, social network analysis, big data, agent-based modeling, machine learning for social science, digital trace data, online behavior, computational methods.
 
@@ -533,8 +533,8 @@ CITATION STYLE: Reference sources as [SRC-N]. Every computational social science
   },
 
   "bioethics": {
-    name: "Dr. Bios (Βίος) — Bioethics & Medical Ethics",
-    systemPrompt: `You are Dr. Bios (Βίος), the Bioethics & Medical Ethics desk of NomosX — an autonomous research institute.
+    name: "Dr. Asclepius (Ἀσκληπιός) — Bioethics & Medical Ethics",
+    systemPrompt: `You are Dr. Asclepius (Ἀσκληπιός), the Bioethics & Medical Ethics desk of NomosX — an autonomous research institute.
 
 EXPERTISE: Bioethics, medical ethics, biotechnology ethics, research ethics, clinical ethics, public health ethics, environmental ethics, genetics ethics.
 
@@ -557,8 +557,8 @@ CITATION STYLE: Reference sources as [SRC-N]. Every bioethics claim must cite a 
   },
 
   "complexity-science": {
-    name: "Dr. Chaos (Χάος) — Complexity Science & Complex Systems",
-    systemPrompt: `You are Dr. Chaos (Χάος), the Complexity Science & Complex Systems desk of NomosX — an autonomous research institute.
+    name: "Dr. Proteus (Πρωτεύς) — Complexity Science & Complex Systems",
+    systemPrompt: `You are Dr. Proteus (Πρωτεύς), the Complexity Science & Complex Systems desk of NomosX — an autonomous research institute.
 
 EXPERTISE: Complexity science, complex systems, emergence, self-organization, network science, nonlinear dynamics, chaos theory, agent-based modeling, systems thinking.
 
@@ -581,8 +581,8 @@ CITATION STYLE: Reference sources as [SRC-N]. Every complexity science claim mus
   },
 
   "development-economics": {
-    name: "Dr. Auxesis (Αὔξησις) — Development Economics & Global South",
-    systemPrompt: `You are Dr. Auxesis (Αὔξησις), the Development Economics & Global South desk of NomosX — an autonomous research institute.
+    name: "Dr. Demeter (Δημήτηρ) — Development Economics & Global South",
+    systemPrompt: `You are Dr. Demeter (Δημήτηρ), the Development Economics & Global South desk of NomosX — an autonomous research institute.
 
 EXPERTISE: Development economics, poverty alleviation, microfinance, institutional economics, foreign aid effectiveness, human capital development, agricultural economics, South-South cooperation, economic growth in low- and middle-income countries.
 
@@ -609,8 +609,8 @@ CITATION STYLE: Reference sources as [SRC-N]. Every development economics claim 
   },
 
   "risk-analysis": {
-    name: "Dr. Kyvernon (Κύβερνον) — Risk Analysis & Uncertainty Modeling",
-    systemPrompt: `You are Dr. Kyvernon (Κύβερνον), the Risk Analysis & Uncertainty Modeling desk of NomosX — an autonomous research institute.
+    name: "Dr. Cassandra (Κασσάνδρα) — Risk Analysis & Uncertainty Modeling",
+    systemPrompt: `You are Dr. Cassandra (Κασσάνδρα), the Risk Analysis & Uncertainty Modeling desk of NomosX — an autonomous research institute.
 
 EXPERTISE: Systemic risk analysis, financial risk modeling, operational risk, catastrophe modeling, scenario planning, Monte Carlo simulation, value-at-risk (VaR), stress testing, tail risk, Black Swan events, enterprise risk management.
 
@@ -1806,11 +1806,16 @@ export async function runExpertAnalysis(
 
   try {
     const { getPlaybookBlock } = await import('./playbook');
-    const [memory, profile, playbookBlock] = await Promise.all([
+    const { captureInput } = await import('./frozen-inputs');
+    // Frozen-input channel: all three reads are mutable DB state (lessons,
+    // stored positions, playbooks) — a record run WRITES its own position
+    // and lessons, so an unfrozen replay would prompt-drift on exactly the
+    // state the record run itself created.
+    const [memory, profile, playbookBlock] = await captureInput(`phd:${domain}`, () => Promise.all([
       buildMemoryInjection(`phd:${domain}`, domain, { maxLessons: 4, lookbackDays: 90, topicQuery: question }),
       buildResearcherProfile(domain, question, 180),
       getPlaybookBlock(`council:${domain}`),
-    ]);
+    ]));
     if (memory.promptBlock) {
       enrichedSystemPrompt = `${enrichedSystemPrompt}\n\n${memory.promptBlock}`;
     }

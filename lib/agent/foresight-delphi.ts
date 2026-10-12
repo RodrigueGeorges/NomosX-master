@@ -792,8 +792,12 @@ export async function runDelphiForesight(
   let marketData: { predictions: any[]; avgProbability: number | null } = { predictions: [], avgProbability: null };
   try {
     const { fetchPredictionMarketData } = await import('./prediction-markets');
+    const { captureInput } = await import('./frozen-inputs');
     console.log('[DELPHI] Step 0: Fetching prediction market data...');
-    marketData = await fetchPredictionMarketData(question, scenarioNames);
+    // Frozen-input channel: market odds blend into base rates which feed
+    // the Delphi-round prompts — live markets between record and replay
+    // would drift every downstream cassette key.
+    marketData = await captureInput('delphi:markets', () => fetchPredictionMarketData(question, scenarioNames));
     if (marketData.predictions.length > 0) {
       console.log(`[DELPHI] Markets: ${marketData.predictions.length} relevant markets found, avg prob=${marketData.avgProbability != null ? (marketData.avgProbability * 100).toFixed(0) + '%' : 'N/A'}`);
     } else {
