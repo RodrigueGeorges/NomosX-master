@@ -9,6 +9,7 @@
  */
 
 import type { TailStepContext } from './types';
+import { computeTrustScore, countDistinctCitedSources } from './trust-score';
 
 export async function runPostRenderQualityLoop(ctx: TailStepContext): Promise<void> {
   const { stats, topSources, readings, orchState, label } = ctx;
@@ -64,87 +65,55 @@ export async function runPostRenderQualityLoop(ctx: TailStepContext): Promise<vo
       }, 'html');
 
       // Re-calculate trust score with new grounding + coverage
-      const loopCitedSources = new Set<number>();
-      for (const m of ctx.html.matchAll(/\[SRC-(\d+)\]/g)) loopCitedSources.add(parseInt(m[1], 10));
-      for (const m of ctx.html.matchAll(/data-evidence="E(\d+)"/g)) loopCitedSources.add(parseInt(m[1], 10));
-      for (const m of ctx.html.matchAll(/href="#ref-(\d+)"/g)) loopCitedSources.add(parseInt(m[1], 10));
       const loopCoverageTarget = Math.min(40, Math.max(15, Math.ceil(topSources.length * 0.35)));
-      const loopCitationCoverage = loopCoverageTarget > 0 ? Math.min(1, loopCitedSources.size / loopCoverageTarget) : 0;
+      const loopCitationCoverage = loopCoverageTarget > 0 ? Math.min(1, countDistinctCitedSources(ctx.html) / loopCoverageTarget) : 0;
       const loopGroundedness = loopGrounding.groundedness;
 
       const loopFactIntegrity = (stats.factChecker as any)?.integrityScore ?? 80;
       const loopNliIntegrity = stats.citationVerifier?.integrity ?? 80;
+      const loopSourceCheckIntegrity = (stats.sourceCheck as any)?.integrityScore ?? 85;
       const loopDiversityScore = Math.min(100, new Set(topSources.map((s: any) => s.provider)).size * 15);
       const loopAvgQuality = topSources.length > 0
         ? topSources.reduce((sum: number, s: any) => sum + ((s.qualityScore || 0) > 0 ? s.qualityScore : (s.sourceQuality?.overall || 0)), 0) / topSources.length
         : 50;
 
-      let loopTrustScore = Math.round(
-        loopCitationCoverage * 25 +
-        loopGroundedness * 20 +
-        (loopFactIntegrity / 100) * 15 +
-        (loopNliIntegrity / 100) * 15 +
-        (loopDiversityScore / 100) * 10 +
-        (loopAvgQuality / 100) * 15
-      );
-
-      // Quality floor
-      if (loopAvgQuality > 80 && loopCitationCoverage > 0.60) {
-        loopTrustScore = Math.max(loopTrustScore, 60);
-      }
-      // Grounding veto
-      if (loopGroundedness < 0.15) {
-        loopTrustScore = Math.min(loopTrustScore, 45);
-      }
-      if (loopGroundedness >= 0.15 && loopGroundedness < 0.40) {
-        loopTrustScore = Math.min(loopTrustScore, 55);
-      }
-
-      // ── VETO PARITY — the loop must not bypass the deterministic vetoes ──
-      // Without this, the quality loop inflated 45→75 while the critic veto
-      // had capped at 50 (confidence-inflation cascade flagged by SelfCorrect).
-      // P0/1: vetoes only apply to evaluations attached to the CURRENT artifact
-      // — a verdict on a replaced artifact (post-sweep/loop mutations) is invalid.
+      // ── CANONICAL RE-SCORE — single arithmetic site (trust-score.ts). ──
+      // The loop previously blended different weights and omitted the
+      // criticPanel/editorial-floor vetoes — it could re-inflate a score the
+      // canonical pass had capped. P0/1 preserved: vetoes only apply to
+      // evaluations attached to the CURRENT artifact (stale → null).
       ctx.collectStaleEvaluations();
       const loopCriticScore = stats.critic?.stale ? null : (stats.critic?.overallScore ?? null);
       const loopCriticVerdict = stats.critic?.stale ? null : (stats.critic?.verdict ?? null);
-      const loopSymbolicScore = stats.symbolicVerifier?.score ?? 100;
-      const loopSymbolicFailed = stats.symbolicVerifier?.failed ?? 0;
-      const loopProviderDiversity = new Set(topSources.map((s: any) => s.provider)).size;
-
-      if (loopSymbolicFailed > 0 && loopSymbolicScore < 70) {
-        loopTrustScore = Math.min(loopTrustScore, 55);
-        console.log(`${label_} QUALITY LOOP: symbolic veto reapplied (cap 55)`);
+      const loopPanel = stats.criticPanel?.stale ? null : (stats.criticPanel as any);
+      const loopTrust = computeTrustScore(
+        {
+          citationCoverage: loopCitationCoverage,
+          groundedness: loopGroundedness,
+          factIntegrity: loopFactIntegrity,
+          nliIntegrity: loopNliIntegrity,
+          sourceCheckIntegrity: loopSourceCheckIntegrity,
+          diversityScore: loopDiversityScore,
+          avgQuality: loopAvgQuality,
+          criticScore: loopCriticScore,
+        },
+        {
+          criticVerdict: loopCriticVerdict,
+          symbolicScore: stats.symbolicVerifier?.score ?? 100,
+          symbolicFailed: stats.symbolicVerifier?.failed ?? 0,
+          criticPanelVeto: loopPanel?.veto === true,
+          criticPanelVetoReasons: loopPanel?.vetoReasons,
+          editorialScore: (loopPanel?.dimensions ?? []).find((d: any) => d.dimension === 'editorial')?.score,
+          retracted: (stats.sourceCheck as any)?.retracted,
+          devilsAdvocateVeto: (stats as any).devilsAdvocateVeto === true && !(stats.devilsAdvocate as any)?.stale,
+          providerDiversity: new Set(topSources.map((s: any) => s.provider)).size,
+          hallDetectScore: (stats as any).hallDetect?.score ?? 0,
+        },
+      );
+      const loopTrustScore = loopTrust.score;
+      for (const vetoReason of loopTrust.vetoes) {
+        console.log(`${label_} QUALITY LOOP: ${vetoReason} reapplied`);
       }
-      if (loopCriticVerdict === 'reject') {
-        loopTrustScore = Math.min(loopTrustScore, 50);
-        console.log(`${label_} QUALITY LOOP: critic reject veto reapplied (cap 50)`);
-      }
-      if (loopCriticScore !== null && loopCriticScore < 10) {
-        loopTrustScore = Math.min(loopTrustScore, 40);
-      } else if (loopCriticScore !== null && loopCriticScore < 25) {
-        loopTrustScore = Math.min(loopTrustScore, 55);
-      } else if (loopCriticScore !== null && loopCriticScore < 60) {
-        const penaltyPct = Math.round((60 - loopCriticScore) * 0.37);
-        loopTrustScore = Math.round(loopTrustScore * (100 - penaltyPct) / 100);
-      }
-      if ((stats.sourceCheck as any)?.retracted > 0) {
-        loopTrustScore = Math.min(loopTrustScore, 50);
-      }
-      if (loopNliIntegrity < 70) {
-        loopTrustScore = Math.min(loopTrustScore, 55);
-      }
-      if ((stats as any).devilsAdvocateVeto && !(stats.devilsAdvocate as any)?.stale) {
-        loopTrustScore = Math.min(loopTrustScore, 40);
-      }
-      if (loopProviderDiversity < 3) {
-        loopTrustScore = Math.min(loopTrustScore, 60);
-      }
-      const loopHallScore = (stats as any).hallDetect?.score ?? 0;
-      if (loopHallScore > 70) {
-        loopTrustScore = Math.min(loopTrustScore, 50);
-      }
-      loopTrustScore = Math.min(100, Math.max(0, loopTrustScore));
 
       const trustImprovement = loopTrustScore - currentTrust;
       console.log(`${label_} QUALITY LOOP: trust ${currentTrust} → ${loopTrustScore} (+${trustImprovement}) — coverage ${Math.round(loopCitationCoverage * 100)}%, groundedness ${Math.round(loopGroundedness * 100)}%`);

@@ -13,6 +13,7 @@
  */
 
 import type { EvidenceBank } from '../evidence-bank';
+import { computeTrustScore, countDistinctCitedSources } from './trust-score';
 
 export interface EvaluatorsTrustDeps {
   html: string;
@@ -233,13 +234,9 @@ export async function runEvaluatorsAndTrust(deps: EvaluatorsTrustDeps): Promise<
     // Target is adaptive: min(40, 35% of sources) — matches what the North Star told the analyst.
     // This ensures the scoring measures exactly what the analyst was asked to optimize.
     // Recognizes both [SRC-N] (brief format) and E-N (strategic report evidence format).
-    const citedSources = new Set<number>();
-    for (const m of html.matchAll(/\[SRC-(\d+)\]/g)) citedSources.add(parseInt(m[1], 10));
-    // Strategic reports use <sup class="cite"><a href="#ref-N" data-evidence="EN">EN</a></sup>
-    for (const m of html.matchAll(/data-evidence="E(\d+)"/g)) citedSources.add(parseInt(m[1], 10));
-    for (const m of html.matchAll(/href="#ref-(\d+)"/g)) citedSources.add(parseInt(m[1], 10));
+    const citedSources = countDistinctCitedSources(html);
     const coverageTarget = Math.min(40, Math.max(15, Math.ceil(topSources.length * 0.35)));
-    const citationCoverage = coverageTarget > 0 ? Math.min(1, citedSources.size / coverageTarget) : 0;
+    const citationCoverage = coverageTarget > 0 ? Math.min(1, citedSources / coverageTarget) : 0;
 
     // 2. Groundedness from claim grounding (if available)
     const groundingStats = stats.claimGrounding;
@@ -283,120 +280,14 @@ export async function runEvaluatorsAndTrust(deps: EvaluatorsTrustDeps): Promise<
     // V3.1: Now incorporates CRITIC score (LLM-based quality assessment)
     const criticScore = stats.critic?.overallScore ?? null;
     const criticVerdict = stats.critic?.verdict ?? null;
-
-    const TRUST_W_COVERAGE = Number(process.env.TRUST_W_COVERAGE ?? 15);
-    const TRUST_W_GROUNDEDNESS = Number(process.env.TRUST_W_GROUNDEDNESS ?? 22);
-    const TRUST_W_FACT = Number(process.env.TRUST_W_FACT ?? 12);
-    const TRUST_W_NLI = Number(process.env.TRUST_W_NLI ?? 12);
-    const TRUST_W_SOURCE_CHECK = Number(process.env.TRUST_W_SOURCE_CHECK ?? 8);
-    const TRUST_W_DIVERSITY = Number(process.env.TRUST_W_DIVERSITY ?? 9);
-    const TRUST_W_QUALITY = Number(process.env.TRUST_W_QUALITY ?? 12);
-    const TRUST_W_CRITIC = Number(process.env.TRUST_W_CRITIC ?? 10);
-    let deterministicScore = Math.round(
-      citationCoverage * TRUST_W_COVERAGE +
-      groundedness * TRUST_W_GROUNDEDNESS +
-      (factIntegrity / 100) * TRUST_W_FACT +
-      (nliIntegrity / 100) * TRUST_W_NLI +
-      (sourceCheckIntegrity / 100) * TRUST_W_SOURCE_CHECK +
-      (diversityScore / 100) * TRUST_W_DIVERSITY +
-      (avgQuality / 100) * TRUST_W_QUALITY +
-      (criticScore !== null ? (criticScore / 100) * TRUST_W_CRITIC : 7)
-    );
-
-    // S14-A: Symbolic verification veto — if arithmetic/temporal errors found, cap trust
     const symbolicScore = stats.symbolicVerifier?.score ?? 100;
     const symbolicFailed = stats.symbolicVerifier?.failed ?? 0;
-    if (symbolicFailed > 0 && symbolicScore < 70) {
-      deterministicScore = Math.min(deterministicScore, 55);
-      console.log(`${label} TRUST: symbolic veto — ${symbolicFailed} arithmetic/temporal errors (score ${symbolicScore}%), capping at 55`);
-    }
-
-    // S14-E: Critic reject veto — if critic verdict is "reject", cap at 50
-    if (criticVerdict === 'reject') {
-      deterministicScore = Math.min(deterministicScore, 50);
-      console.log(`${label} TRUST: critic reject veto — verdict is reject, capping at 50`);
-    }
-
-    // V3.2: Critic veto — tiered veto based on severity.
-    // Score < 10 (catastrophic, e.g. 0/100) → hard cap at 40
-    // Score 10-25 (severe reject) → hard cap at 55
-    // Score 25-60 (poor to mediocre) → proportional penalty
-    if (criticScore !== null && criticScore < 10) {
-      deterministicScore = Math.min(deterministicScore, 40);
-      console.log(`${label} TRUST: critic HARD veto — critic score ${criticScore}/100 (${criticVerdict}), capping trust at 40`);
-    } else if (criticScore !== null && criticScore < 25) {
-      deterministicScore = Math.min(deterministicScore, 55);
-      console.log(`${label} TRUST: critic veto — critic score ${criticScore}/100 (${criticVerdict}), capping trust at 55`);
-    }
-    // V3.2: Critic penalty — proportional penalty for scores 25-60
-    // Score 25 → -22%, Score 40 → -15%, Score 50 → -8%, Score 59 → -1%
-    else if (criticScore !== null && criticScore < 60) {
-      const penaltyPct = Math.round((60 - criticScore) * 0.37); // 0.37% per point below 60
-      deterministicScore = Math.round(deterministicScore * (100 - penaltyPct) / 100);
-      console.log(`${label} TRUST: critic penalty — critic score ${criticScore}/100, applying ${penaltyPct}% penalty → ${deterministicScore}`);
-    }
-
-    // Critic Panel veto — rubric reviewers documented a REPAIRABLE severe
-    // defect (mustFix). More surgical than the scalar veto: the reason is
-    // logged and persisted, and the cap only blocks publication (55 < 65).
-    if ((stats.criticPanel as any)?.veto) {
-      deterministicScore = Math.min(deterministicScore, 55);
-      console.log(`${label} TRUST: critic panel veto — ${(stats.criticPanel as any).vetoReasons?.join('; ')}, capping at 55`);
-    }
-    // Editorial floor — a piece the panel scored ≤4/10 on editorial quality is
-    // unpublishable for a premium outlet even if every factual gate passed.
-    // Cap at 60 (below the 65 publish threshold): same convention as the
-    // mustFix veto (score ≤ 4), applied whether or not mustFix was flagged.
     const editorialScore = ((stats.criticPanel as any)?.dimensions ?? [])
       .find((d: any) => d.dimension === 'editorial')?.score;
-    if (typeof editorialScore === 'number' && editorialScore > 0 && editorialScore <= 4) {
-      deterministicScore = Math.min(deterministicScore, 60);
-      console.log(`${label} TRUST: editorial floor — panel editorial ${editorialScore}/10 ≤ 4, capping at 60`);
-    }
 
-    // Retraction veto: if any source is retracted, cap trust at 50
-    if ((stats.sourceCheck as any)?.retracted > 0) {
-      deterministicScore = Math.min(deterministicScore, 50);
-      console.log(`${label} TRUST: retraction veto — ${(stats.sourceCheck as any).retracted} retracted sources, capping at 50`);
-    }
-
-    // Quality floor: if sources are high-quality and well-cited, floor at 60
-    if (avgQuality > 80 && citationCoverage > 0.60) {
-      deterministicScore = Math.max(deterministicScore, 60);
-    }
-
-    // Grounding veto (Invariant 4): if groundedness < 15%, cap at 45
-    // (lexical grounding can't detect paraphrased support — 15% is the true hallucination floor)
-    if (groundedness < 0.15) {
-      deterministicScore = Math.min(deterministicScore, 45);
-      console.log(`${label} TRUST: grounding veto — groundedness ${Math.round(groundedness * 100)}% too low, capping at 45`);
-    }
-    // Strengthened grounding gate: if groundedness < 40%, cap at 55
-    if (groundedness > 0.15 && groundedness < 0.40) {
-      deterministicScore = Math.min(deterministicScore, 55);
-      console.log(`${label} TRUST: grounding warning — groundedness ${Math.round(groundedness * 100)}% below 40%, capping at 55`);
-    }
-
-    // Citation integrity veto: if NLI integrity < 70% after repair, cap at 55
-    if (nliIntegrity < 70) {
-      deterministicScore = Math.min(deterministicScore, 55);
-      console.log(`${label} TRUST: citation integrity veto — NLI integrity ${nliIntegrity}% < 70%, capping at 55`);
-    }
-
-    // Devil's Advocate veto: if DA returned MAJOR_REVISION with strength < 20, cap at 40
-    if ((stats as any).devilsAdvocateVeto) {
-      deterministicScore = Math.min(deterministicScore, 40);
-      console.log(`${label} TRUST: devil's advocate veto — analysis is fragile (MAJOR_REVISION, strength < 20), capping at 40`);
-    }
-
-    // P2-J: Provider diversity veto — if < 3 distinct providers, cap at 60
-    // A report citing 1 provider 50 times is not robust evidence.
-    if (providerDiversity < 3) {
-      deterministicScore = Math.min(deterministicScore, 60);
-      console.log(`${label} TRUST: diversity veto — only ${providerDiversity} provider(s), capping at 60`);
-    }
-
-    // S16-03: HallDetect (arXiv 2026) — lightweight reference-free hallucination detection
+    // S16-03: HallDetect (arXiv 2026) — lightweight reference-free hallucination
+    // detection. The score feeds the canonical composite as a veto input.
+    let hallDetectScore = 0;
     try {
       const { hallDetect } = await import('../hall-detect');
       // Strip markup first — decomposeClaims on raw HTML produces thousands of
@@ -411,18 +302,35 @@ export async function runEvaluatorsAndTrust(deps: EvaluatorsTrustDeps): Promise<
       const analysisText = stripTags(html || (typeof analysis === 'string' ? analysis : JSON.stringify(analysis)));
       const sourceTexts = (topSources || []).map((s: any) => `${s.title || ''} ${s.abstract || ''}`).join(' ');
       const hallScore = hallDetect(analysisText, [sourceTexts]);
+      hallDetectScore = hallScore.score;
       if (hallScore.score > 40) {
         console.warn(`[Pipeline] HallDetect: hallucination risk score ${hallScore.score}/100 — ${hallScore.flaggedClaims.length} flagged claims`);
-        // Incorporate into trust score: if HallDetect score > 70, apply a penalty
-        if (hallScore.score > 70 && deterministicScore > 50) {
-          deterministicScore = Math.min(deterministicScore, 50);
-          console.warn(`[Pipeline] HallDetect veto: capping trust at 50 due to high hallucination risk`);
-        }
       }
       (stats as any).hallDetect = { score: hallScore.score, flaggedClaims: hallScore.flaggedClaims.length };
     } catch (e) { /* non-blocking */ }
 
-    deterministicScore = Math.min(100, Math.max(0, deterministicScore));
+    // Canonical deterministic trust — single arithmetic site shared with the
+    // post-repair re-score (quality-loop.ts). Weights/vetoes documented there.
+    const trustResult = computeTrustScore(
+      {
+        citationCoverage, groundedness, factIntegrity, nliIntegrity,
+        sourceCheckIntegrity, diversityScore, avgQuality, criticScore,
+      },
+      {
+        criticVerdict, symbolicScore, symbolicFailed,
+        criticPanelVeto: (stats.criticPanel as any)?.veto === true,
+        criticPanelVetoReasons: (stats.criticPanel as any)?.vetoReasons,
+        editorialScore,
+        retracted: (stats.sourceCheck as any)?.retracted,
+        devilsAdvocateVeto: (stats as any).devilsAdvocateVeto === true,
+        providerDiversity,
+        hallDetectScore,
+      },
+    );
+    const deterministicScore = trustResult.score;
+    for (const vetoReason of trustResult.vetoes) {
+      console.log(`${label} TRUST: ${vetoReason}`);
+    }
 
     // ── ABSTENTION PATH: trust < 30 → honest "insufficient evidence" verdict ──
     // A think tank that publishes weak analysis loses credibility. Below this
@@ -545,7 +453,7 @@ export async function runEvaluatorsAndTrust(deps: EvaluatorsTrustDeps): Promise<
   <p style="margin:0 0 12px;color:rgba(240,240,250,0.5);">${confidenceDesc}</p>
   <p style="margin:0;color:rgba(240,240,250,0.45);font-size:0.68rem;">
     Corpus: <strong style="color:rgba(240,240,250,0.7);">${topSources.length} sources</strong> from ${providerList.length} providers${yearMin && yearMax ? `, ${yearMin}–${yearMax}` : ''}.
-    Distinct sources cited: <strong style="color:rgba(240,240,250,0.7);">${citedSources.size}</strong>.
+    Distinct sources cited: <strong style="color:rgba(240,240,250,0.7);">${citedSources}</strong>.
     Unverifiable claims are flagged or marked as unestablished.
   </p>
 </section>`;
@@ -571,8 +479,8 @@ export async function runEvaluatorsAndTrust(deps: EvaluatorsTrustDeps): Promise<
         }
         console.log(`${label} ABSTENTION BANNER: injected at top of article`);
       }
-      stats.methodologyNote = { injected: true, corpusSize: topSources.length, providers: providerList.length, citedDistinct: citedSources.size };
-      console.log(`${label} METHODOLOGY NOTE: injected (${topSources.length} sources, ${providerList.length} providers, ${citedSources.size} cited)`);
+      stats.methodologyNote = { injected: true, corpusSize: topSources.length, providers: providerList.length, citedDistinct: citedSources };
+      console.log(`${label} METHODOLOGY NOTE: injected (${topSources.length} sources, ${providerList.length} providers, ${citedSources} cited)`);
     } catch (methodErr) {
       console.warn(`${label} METHODOLOGY NOTE: injection failed (non-blocking):`, methodErr);
     }
