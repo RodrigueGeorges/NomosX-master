@@ -540,6 +540,14 @@ export async function runAndPublishInquiry(
       // hit the 80% DA budget guard with `evaluation_availability`, turning a
       // resource decision into a guaranteed hold. Only error/incomplete
       // verdicts are failures (S37 doctrine).
+      // Thesis binding: the shipped verdict must stay inside the evidence
+      // ceiling contracted upstream. Surfaced as a real gate check —
+      // advisory-only adherence was the S39b failure mode.
+      thesisAdherence: (() => {
+        const tb = p.stats.thesisBinding as { statement?: string; adhered?: boolean; evaluationComplete?: boolean; adherenceReason?: string } | undefined;
+        if (!tb?.statement) return undefined;
+        return { adhered: tb.adhered, evaluationComplete: tb.evaluationComplete === true, reason: tb.adherenceReason };
+      })(),
       failedEvaluations: ['critic', 'criticPanel', 'devilsAdvocate', 'structuralEditor'].filter(key => {
         if (key === 'devilsAdvocate') return !aDa && !optionalDa;
         const evaluation = (p.stats[key] ?? p.lineage[key]) as Record<string, unknown> | undefined;
@@ -980,6 +988,39 @@ export async function runAndPublishInquiry(
   console.log(
     `[InquiryOrchestrator] ${status.toUpperCase()} pub=${publication.id} brief=${pipeline.briefId} trust=${trustScore}`
   );
+
+  // ── EXPERIENCE BANK (post-gate) — learning must see the FINAL verdict.
+  // extractExperience moved here from persistence-tail: in-flight trust is
+  // not the outcome — a held run's lessons must carry the hold reasons and
+  // the diagnosis codes, not just mid-pipeline scores. Detached: a durability
+  // write, not research work; the dispatch scope may already be closed.
+  try {
+    const { extractExperience } = await import('./knowledge-infrastructure');
+    withExecutionDetached(() => extractExperience(question.slice(0, 100), question, {
+      outcome: {
+        status,
+        gateDecision: gate.decision,
+        gateReasons: gate.reasons.slice(0, 6),
+        diagnosisCodes: (gate.diagnoses ?? []).map(d => d.code),
+        readinessOk: readiness.ok,
+        moderateTier: moderateTier === true,
+        trustScore,
+        qualityScore,
+      },
+      scout: pipeline.stats.scout ? { found: (pipeline.stats.scout as any).found || 0 } : null,
+      intelligentScout: pipeline.stats.intelligentScout ? { diversityScore: (pipeline.stats.intelligentScout as any).diversityScore, scenarioRichness: (pipeline.stats.intelligentScout as any).scenarioRichness } : null,
+      critic: pipeline.stats.critic ? { verdict: (pipeline.stats.critic as any).verdict, score: (pipeline.stats.critic as any).overallScore, topFindings: (pipeline.stats.critic as any).findings?.slice?.(0, 3) } : null,
+      criticPanel: pipeline.stats.criticPanel ? { score: (pipeline.stats.criticPanel as any).overallScore } : null,
+      devilsAdvocate: da ? {
+        verdict: da.verdict, publishability: (da as any).publishabilityScore,
+        killShot: (da as any).killShot, challenges: (da as any).stats?.totalChallenges,
+      } : null,
+      structuralEditor: pipeline.stats.structuralEditor ? { score: (pipeline.stats.structuralEditor as any).overallScore } : null,
+      outlineCritic: pipeline.stats.outlineCritic ? { coverage: (pipeline.stats.outlineCritic as any).coverageScore, missing: (pipeline.stats.outlineCritic as any).missingDimensions?.slice?.(0, 4) } : null,
+      rank: pipeline.stats.rank ? { avgQuality: (pipeline.stats.rank as any).avgQuality, kept: (pipeline.stats.rank as any).kept } : null,
+    })).catch(() => {});
+    console.log(`[InquiryOrchestrator] EXPERIENCE BANK: post-gate extraction queued (${status})`);
+  } catch { /* Non-blocking */ }
 
   // Persist structured quality checks (ThinkTankQualityCheck) for audit trail
   await persistQualityChecks(
