@@ -92,4 +92,7 @@ latest-publication-sample.html
 # Python cache
 __pycache__/
 *.pyc
-.llm-cassettes
+.llm-cassettes/*
+# CI fixtures are committed intentionally
+!.llm-cassettes/gulf-minerals.fixture.jsonl
+!.llm-cassettes/gulf-minerals.fixture.jsonl.meta.json

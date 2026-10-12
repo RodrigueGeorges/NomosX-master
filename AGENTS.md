@@ -170,9 +170,15 @@ and separately committed.
 - `streamLLM` is cassette-covered: replay serves the recorded response as a
   single chunk through `onChunk`; a stream and a buffered call share the
   cache key — a buffered recording can serve a streamed replay.
-- To *produce* a fixture: run a normal bounded cycle with
-  `NOMOSX_LLM_MODE=record` (+ optional `NOMOSX_LLM_CASSETTE=<path>`), then
-  replay with `npm run replay -- --publication <id> --cassette <path>`.
+- To *produce* a fixture: `npm run replay -- --record` (or any bounded
+  cycle with `NOMOSX_LLM_MODE=record`). Entries are tagged
+  `run=NOMOSX_CASSETTE_RUN` (harness generates `rec-<n>-<ts>` per record)
+  and `--record` compacts the cassette to just that run — a committed
+  fixture is exactly one run. Replay serves only entries matching the
+  meta's run token; without a token, all entries serve (legacy files).
+  Same-key calls across runs are the norm (identical prompts, different
+  inputs) — multi-run files silently cross-serve without this.
+- Misses dump the request to `<cassette>.misses.jsonl` for diffing.
 - Proven end-to-end without a paid run: `replay-e2e.test.ts` repoints
   `DEEPSEEK_BASE_URL` at a local OpenAI-compatible HTTP stub (fresh module
   load, deepseek unsuspended via `LLM_PRE_SUSPENDED`), records a real
@@ -180,7 +186,9 @@ and separately committed.
   the stub hit-counter must stay frozen. Drift → `CassetteMissError`,
   never a live call.
 - Limit: prompts that drift miss loudly (`CassetteMissError`) — that IS the
-  drift signal. A committed real-run cassette fixture is still needed for CI.
+  drift signal. Verified real fixture: `.llm-cassettes/gulf-minerals.fixture.jsonl`
+  (126 entries, 44min live → 67s replay, zero misses, trust 82→82, cost
+  identical to the cent) — committed for CI.
 
 **Post-sanitize eval reconciliation** (`verification-block.ts`)
 
