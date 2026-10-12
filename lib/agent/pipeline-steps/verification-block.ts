@@ -184,6 +184,16 @@ export async function runVerificationBlock(deps: VerificationBlockDeps): Promise
       majorIssues: factResult.majorIssues,
       fatalIssues: factResult.fatalIssues,
       integrityScore: factResult.integrityScore,
+      citance: factResult.citance
+        ? {
+            total: factResult.citance.total,
+            supported: factResult.citance.supported,
+            contradicted: factResult.citance.contradicted,
+            nei: factResult.citance.nei,
+            supportRate: factResult.citance.supportRate,
+            evaluationComplete: factResult.citance.evaluationComplete,
+          }
+        : undefined,
     }, 'html');
     console.log(`${label} FACT-CHECKER: ${factResult.totalClaims} claims, ${factResult.verified} verified, ${factResult.majorIssues} major, ${factResult.fatalIssues} fatal → integrity ${factResult.integrityScore}%`);
     if (factResult.fatalIssues > 0) {

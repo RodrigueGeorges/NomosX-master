@@ -46,6 +46,23 @@ export interface FactCheckResult {
   chainingValid?: boolean;  // For future_extrapolation: is the derivation chain valid?
 }
 
+export interface CitanceVerdict {
+  sentence: string;
+  sourceRef: string;
+  verdict: 'supported' | 'contradicted' | 'nei' | 'unverified';
+  rationale: string;
+}
+
+export interface CitanceReport {
+  total: number;
+  supported: number;
+  contradicted: number;
+  nei: number;
+  supportRate: number;         // 0-1 — share of cited claims the sources actually establish
+  evaluationComplete: boolean; // false when the entailment call failed — never inflates
+  verdicts: CitanceVerdict[];
+}
+
 export interface FactCheckerOutput {
   totalClaims: number;
   verified: number;
@@ -54,6 +71,7 @@ export interface FactCheckerOutput {
   fatalIssues: number;
   integrityScore: number;  // 0-100
   results: FactCheckResult[];
+  citance?: CitanceReport;
   costUsd: number;
   durationMs: number;
 }
@@ -171,6 +189,22 @@ function deterministicCheck(
   return { status: "not_found", sourceText: sourceContent.slice(0, 500) };
 }
 
+function buildSourceContext(indices: number[], sources: any[], readings?: any[]): string {
+  return indices
+    .filter(i => i >= 1 && i <= sources.length)
+    .map(i => {
+      const s = sources[i - 1];
+      const reading = readings?.find((r: any) => r.sourceId === s.id);
+      // Prefer reading full-text (keyFindings + results) over abstract — the READER extracted 8K-120K chars
+      const sourceContent = reading
+        ? [reading.claims?.join(' '), reading.results?.join(' '), reading.methods?.join(' ')].filter(Boolean).join(' ').slice(0, 3000)
+        : (s.abstract || "").slice(0, 800);
+      return `[SRC-${i}] ${s.title}
+Year: ${s.year || "N/A"} | Provider: ${s.provider}
+Content: ${sourceContent}`;
+    }).join("\n\n");
+}
+
 // ============================================================================
 // FACT-CHECKING (LLM-powered — only for claims that survive deterministic pre-check)
 // ============================================================================
@@ -185,19 +219,7 @@ async function factCheckBatch(
 
   // Build source context for referenced sources — use readings (full-text) when available
   const referencedSourceIndices = [...new Set(claims.map(c => c.sourceIndex))];
-  const sourceContext = referencedSourceIndices
-    .filter(i => i >= 1 && i <= sources.length)
-    .map(i => {
-      const s = sources[i - 1];
-      const reading = readings?.find((r: any) => r.sourceId === s.id);
-      // Prefer reading full-text (keyFindings + results) over abstract — the READER extracted 8K-120K chars
-      const sourceContent = reading
-        ? [reading.claims?.join(' '), reading.results?.join(' '), reading.methods?.join(' ')].filter(Boolean).join(' ').slice(0, 3000)
-        : (s.abstract || "").slice(0, 800);
-      return `[SRC-${i}] ${s.title}
-Year: ${s.year || "N/A"} | Provider: ${s.provider}
-Content: ${sourceContent}`;
-    }).join("\n\n");
+  const sourceContext = buildSourceContext(referencedSourceIndices, sources, readings);
 
   const claimsList = claims.map((c, i) =>
     `${i + 1}. CLAIM: "${c.claim.slice(0, 200)}" — Number: ${c.number} — Source: ${c.sourceRef}`
@@ -276,6 +298,100 @@ Be FAIR but RIGOROUS. Think tanks are destroyed by fabricated numbers, but they 
       fix: "Manual verification required",
     }));
   }
+}
+
+// ============================================================================
+// CITANCE CHECK — SCitance-style zero-shot claim↔citation entailment
+// ============================================================================
+//
+// The numerical pass only covers claims carrying a number. Everything else —
+// "policy X reshaped alliance Y [SRC-3]" — was invisible to verification, which
+// is how a report could score "0 verified" while its citations were either
+// fine or hollow. For each cited sentence we ask the entailment question the
+// reader actually needs answered: does the cited source SUPPORT, CONTRADICT,
+// or merely neighbour (NEI) the claim?
+
+interface CitancePair { sentence: string; sourceIndex: number }
+
+function extractCitances(html: string, alreadyCheckedSentences: Set<string>, cap = 25): CitancePair[] {
+  const text = stripHtmlForEvidence(html);
+  const sentences = text.split(/(?<=[.!?])(?<!\d)\s+/).filter(s => s.length > 40);
+  const pairs: CitancePair[] = [];
+  for (const sentence of sentences) {
+    const m = /\[SRC-(\d+)\]/.exec(sentence);
+    if (!m || alreadyCheckedSentences.has(sentence.slice(0, 300))) continue;
+    pairs.push({ sentence: sentence.slice(0, 300), sourceIndex: parseInt(m[1], 10) });
+    if (pairs.length >= cap) break;
+  }
+  return pairs;
+}
+
+async function citanceCheckBatch(
+  pairs: CitancePair[],
+  sources: any[],
+  producerFamily?: import('../llm/unified-llm').LLMFamily,
+  readings?: any[],
+): Promise<CitanceReport> {
+  const referenced = [...new Set(pairs.map(p => p.sourceIndex))];
+  const sourceContext = buildSourceContext(referenced, sources, readings);
+  const list = pairs.map((p, i) => `${i + 1}. SENTENCE: "${p.sentence}" — cited source: [SRC-${p.sourceIndex}]`).join('\n');
+
+  const prompt = `You are verifying citation ENTAILMENT in a think-tank report (SCitance protocol). For each numbered sentence, judge ONLY whether its cited source supports it — not whether the claim is true in the world.
+
+SOURCES:
+${sourceContext}
+
+CITED SENTENCES:
+${list}
+
+For EACH sentence return verdict:
+- "supported": the cited source's content directly establishes the sentence's claim
+- "contradicted": the source asserts the opposite or clearly incompatible data
+- "nei": the source is topically adjacent but does NOT establish this specific claim (the citation is decorative or mis-scoped)
+
+Return JSON: {"results":[{"i":1,"verdict":"supported|contradicted|nei","rationale":"one sentence"}]}
+Be strict: a source that merely shares keywords with the sentence is "nei". A "supported" verdict requires the source's actual content to carry the claim.`;
+
+  const verdicts: CitanceVerdict[] = [];
+  let evaluationComplete = true;
+  try {
+    const response = await callLLM({
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.1,
+      jsonMode: true,
+      maxTokens: 3000,
+      task: 'fact_check',
+      producerFamily,
+    });
+    const parsed = parseJson<{ results?: { i?: number; verdict?: string; rationale?: string }[] }>(response.content);
+    const byIndex = new Map<number, { verdict: string; rationale: string }>();
+    for (const r of parsed?.results ?? []) {
+      if (typeof r.i === 'number' && typeof r.verdict === 'string') byIndex.set(r.i, { verdict: r.verdict, rationale: r.rationale ?? '' });
+    }
+    if (byIndex.size === 0) evaluationComplete = false;
+    pairs.forEach((p, i) => {
+      const r = byIndex.get(i + 1);
+      const v = r?.verdict === 'supported' || r?.verdict === 'contradicted' || r?.verdict === 'nei' ? r.verdict : 'unverified';
+      if (!r) evaluationComplete = false;
+      verdicts.push({ sentence: p.sentence, sourceRef: `[SRC-${p.sourceIndex}]`, verdict: v, rationale: r?.rationale ?? '' });
+    });
+  } catch {
+    evaluationComplete = false;
+    for (const p of pairs) verdicts.push({ sentence: p.sentence, sourceRef: `[SRC-${p.sourceIndex}]`, verdict: 'unverified', rationale: 'entailment check failed' });
+  }
+
+  const supported = verdicts.filter(v => v.verdict === 'supported').length;
+  const contradicted = verdicts.filter(v => v.verdict === 'contradicted').length;
+  const nei = verdicts.filter(v => v.verdict === 'nei').length;
+  return {
+    total: verdicts.length,
+    supported,
+    contradicted,
+    nei,
+    supportRate: verdicts.length > 0 ? supported / verdicts.length : 1,
+    evaluationComplete,
+    verdicts,
+  };
 }
 
 // ============================================================================
@@ -393,6 +509,31 @@ export async function factChecker(
     }
   } catch (e) { /* non-blocking */ }
 
+  // Citance pass — entailment for cited sentences the numerical extraction
+  // can't see (non-numerical claims were previously unverifiable, which is how
+  // a run could report "0 verified" without ever testing citation support).
+  // supported/nei/contradicted fold into the score; 'unverified' stays out of
+  // the denominator — a failed evaluator must neither inflate nor deflate it.
+  let citanceReport: CitanceReport | undefined;
+  if (!llmWindowOk) {
+    console.warn('[FACT-CHECKER] citance pass skipped — insufficient run headroom');
+  } else {
+    const citancePairs = extractCitances(html, new Set(claims.map(c => c.claim)));
+    if (citancePairs.length > 0) {
+      citanceReport = await citanceCheckBatch(citancePairs, sources, producerFamily, readings);
+      for (const v of citanceReport.verdicts) {
+        if (v.verdict === 'supported') {
+          allResults.push({ claim: v.sentence, number: '', sourceRef: v.sourceRef, verified: true, sourceSays: v.rationale || 'Supported by cited source', discrepancy: 'none', severity: 'none', fix: 'none needed' });
+        } else if (v.verdict === 'nei') {
+          allResults.push({ claim: v.sentence, number: '', sourceRef: v.sourceRef, verified: false, sourceSays: v.rationale || 'Cited source does not establish this claim', discrepancy: 'Citation does not entail the claim (NEI)', severity: 'major', fix: 'Re-cite or narrow the claim to what the source supports' });
+        } else if (v.verdict === 'contradicted') {
+          allResults.push({ claim: v.sentence, number: '', sourceRef: v.sourceRef, verified: false, sourceSays: v.rationale || 'Cited source asserts the opposite', discrepancy: 'Source contradicts the claim', severity: 'fatal', fix: 'Remove or rewrite — the citation contradicts the assertion' });
+        }
+      }
+      console.log(`[FACT-CHECKER] CITANCE: ${citanceReport.supported}/${citanceReport.total} supported, ${citanceReport.contradicted} contradicted, ${citanceReport.nei} NEI${citanceReport.evaluationComplete ? '' : ' (incomplete — unverified excluded)'}`);
+    }
+  }
+
   // Step 4: Compute integrity score
   const verified = allResults.filter(r => r.verified || r.severity === "none").length;
   const minorIssues = allResults.filter(r => r.severity === "minor").length;
@@ -423,6 +564,7 @@ export async function factChecker(
     fatalIssues,
     integrityScore,
     results: allResults,
+    citance: citanceReport,
     costUsd: totalCost,
     durationMs,
   };
