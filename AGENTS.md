@@ -6,6 +6,67 @@
 
 ---
 
+## Source-to-publication audit — 2026-10-12
+
+S39b job `cmv44cmwi0000hcwt7o654pg7` completed with 0 published,
+2 held, 0 failed, $0.4647 (log and persisted publications checked).
+Execution completion and an LLM adherence verdict are not publication
+validation. The persisted Nordic verdict added causal claims to a descriptive
+binding despite `adhered:true`; the energy attempt bound an entire hypothesis
+with only partial support. Historical readiness claims below must not be
+read as proof that these defects were resolved.
+
+Current evidence-boundary invariants:
+- Only fully `supported` registered hypotheses with at least two distinct,
+  in-range cited documents can bind. Partial hypotheses take the narrower
+  corpus-derived path instead. Duplicate IDs/DOIs/URLs/titles cannot count
+  twice; synthetic foundational references are not empirical support.
+  Distinct documents are NOT proof of independent research or entailment.
+- Judge and derivation match readings by `sourceId`, not array position;
+  results and limitations accompany claims. Derivation receives the question.
+  Both still inspect at most 25 sources: absence is not an exhaustive proof
+  that no thesis exists elsewhere in a larger corpus.
+- Empty framing can still trigger corpus derivation. Invalid derivations and
+  unavailable judges remain distinct from an explicit `defensible:false`.
+  Unavailable thesis assessment stops before analyst/context/scenario spend
+  as `thesis_evaluation_unavailable`, not as successful unbound research.
+- Adherence failures/malformed responses do not become `adhered:true`.
+  Unavailable checks remain incomplete and are not cached as checked verdicts.
+  Adherence is still advisory: a fully routed repair/hard-gate contract remains
+  to be implemented and evaluated.
+- Corpus/thesis pre-gates run before `buildAnalystContext`. Early absence or
+  unavailable assessment also skips DPP/RAG/round-table enrichment in reader.
+- Explicitly off-topic documents are not restored to meet a quantity floor
+  and stay excluded through rank-enrichment reranks within the same call.
+  Screening new additions across every later enrichment path remains open.
+- Gap retrieval uses each request's providers, preserves unattempted/failed
+  requests and records pending queries for retry instead of clearing the
+  entire queue after processing only two. Retrieval still requires semantic
+  reassessment; finding documents is not resolving a claim.
+
+Open architectural priorities (not certified by unit tests):
+1. Claim-to-passage evidence contracts and a short thesis/outline review before
+   full drafting; repair scope/causality at this point, not only at final DA.
+2. Reserve retrieval and wall-clock capacity for necessary repairs; early
+   expansion currently consumes capacity before adversarial gaps are known.
+3. One trust calculation: `evaluators-trust.ts` and `quality-loop.ts` use
+   different weights/components. Stale numeric/factual evaluations and score
+   floors need reconciliation before scores can certify the final artifact.
+4. Make learning depend on the final gate outcome, not only pipeline trust:
+   persistence-tail records learning before the publication decision.
+5. A fresh bounded end-to-end validation on frozen representative corpora,
+   recording gate failures, evidence validity, repair effectiveness, cost and
+   artifact versions. No publication success is inferred from a mocked LLM.
+
+Verification uses `.tools/node/node.exe` with `node_modules/jest/bin/jest.js`
+(`__tests__/lib/agent`, `__tests__/lib/worker`, `--runInBand`),
+`node_modules/typescript/bin/tsc --noEmit -p tsconfig.json`, and targeted ESLint.
+The thesis-binding tests mock external memory/retrieval/positioning, but execute
+real SARA compression and assert an actual compression ratio below 0.85.
+The pipeline refusal tests assert no analyst-context or analyst call and check
+persisted failure status and spent cost. No live paid validation is part of
+these checks.
+
 ## Sprint 39 — Source-first thesis binding: the central claim is contracted FROM the corpus
 
 **Critical re-enable**: `framingAgent` was SUPPRESSED in reader-block since a
@@ -76,13 +137,14 @@ spend, same economics as `corpus_insufficient` one level deeper: not
 "enough sources?" but "enough support?". Derivation errors degrade open —
 only an explicit empty verdict refuses.
 
-**Real-corpus replay validation** — derivation was replayed on the persisted
-45-source corpus of run `3f82082c` (EU trade item, all 4 hypotheses
-inconclusive, HELD): it produced "economic nationalism and protectionist
-trade measures are increasingly reshaping global trade and domestic
-policies" — `defensible:true`, confidence 95, five cited source indices all
-verified against the real corpus, $0.002. The counterfactual is established:
-this HELD carried a publishable thesis nobody had registered.
+**Real-corpus replay observation** — derivation was replayed on 25 documents
+retrieved from the persisted 45-source corpus of run `3f82082c` (EU trade,
+HELD): it proposed "economic nationalism and protectionist trade measures
+are increasingly reshaping global trade and domestic policies" for $0.002.
+`defensible:true` and confidence 95 were model judgments. Citation indices
+were checked against document titles, not independently verified for
+entailment or research independence. This was not an end-to-end publication
+validation and does not establish that the candidate would have published.
 
 **Framing granularity ladder** — the same run exposed the upstream cause:
 8/8 hypotheses inconclusive across both items because the framing prompt
