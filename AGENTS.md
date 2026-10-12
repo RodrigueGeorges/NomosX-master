@@ -32,8 +32,9 @@ Current evidence-boundary invariants:
   as `thesis_evaluation_unavailable`, not as successful unbound research.
 - Adherence failures/malformed responses do not become `adhered:true`.
   Unavailable checks remain incomplete and are not cached as checked verdicts.
-  Adherence is still advisory: a fully routed repair/hard-gate contract remains
-  to be implemented and evaluated.
+  Adherence is now a routed repair + hard gate check (Sprint 42): a failed
+  verdict routes to re-analysis in-pipeline; still-failed or unavailable
+  adherence hard-fails `thesis_adherence` at the gate.
 - Corpus/thesis pre-gates run before `buildAnalystContext`. Early absence or
   unavailable assessment also skips DPP/RAG/round-table enrichment in reader.
 - Explicitly off-topic documents are not restored to meet a quantity floor
@@ -51,14 +52,19 @@ Open architectural priorities (not certified by unit tests):
    producer-side repair reserve implemented (Sprint 41): analyst passes,
    TTS, and the expert lens cannot start inside the reserved tail. Retrieval
    capacity reservation remains open.
-3. One trust calculation: `evaluators-trust.ts` and `quality-loop.ts` use
-   different weights/components. Stale numeric/factual evaluations and score
-   floors need reconciliation before scores can certify the final artifact.
-4. Make learning depend on the final gate outcome, not only pipeline trust:
-   persistence-tail records learning before the publication decision.
+3. ~~One trust calculation~~ — `computeTrustScore` (Sprint 42) is the single
+   arithmetic site for both `evaluators-trust.ts` and `quality-loop.ts`.
+   Stale numeric/factual evaluation handling still needs reconciliation
+   before scores can certify the final artifact.
+4. ~~Make learning depend on the final gate outcome~~ — `extractExperience`
+   now runs after the final status is decided (Sprint 42), carrying the gate
+   decision and failed checks. Calibration recordings inside the pipeline
+   still see intermediate scores by design.
 5. A fresh bounded end-to-end validation on frozen representative corpora,
    recording gate failures, evidence validity, repair effectiveness, cost and
    artifact versions. No publication success is inferred from a mocked LLM.
+   `scripts/replay-run.ts` (Sprint 42) is the harness; a real recorded
+   cassette fixture is still needed for CI.
 
 Verification uses `.tools/node/node.exe` with `node_modules/jest/bin/jest.js`
 (`__tests__/lib/agent`, `__tests__/lib/worker`, `--runInBand`),
@@ -106,7 +112,69 @@ inside the reserve (1 LLM call), full 3-pass with headroom, detached no-op.
 
 ---
 
-## Sprint 40 — Offline validation + upstream evidence consolidation
+## Sprint 42 — Adherence hard-gate, canonical trust, post-gate learning, replay harness
+
+Four surgical workstreams closing the remaining audit items; each is minimal-diff
+and separately committed.
+
+**Thesis adherence: advisory → routed repair + hard gate**
+(`pipeline-v2.ts`, `publication-gate.ts`, `gate-diagnosis.ts`,
+`revision-controller.ts`)
+
+- `verifyThesisBinding('post-analyst')` and `('pre-render')` record
+  `stats.thesisBinding.adherence` (`adhered`, `evaluationComplete`,
+  `adherenceReason`, `checkedVerdict`) and skip re-spend when the verdict is
+  unchanged since the last check.
+- A failed check routes to `substance_weak` re-analysis consuming the existing
+  `reAnalysisBudget`; the adherence failure is injected into the revision
+  feedback so the rewrite narrows to (or below) the bound thesis.
+- `thesis_adherence` is a hard gate check: `adhered === false` OR
+  `evaluationComplete === false` fails. An evaluator outage cannot pass as
+  adherence; a repaired verdict that still drifts cannot publish.
+
+**Canonical trust score** (`pipeline-steps/trust-score.ts`)
+
+- `computeTrustScore` is now the single arithmetic site consumed by
+  `evaluators-trust.ts` and `quality-loop.ts` — the quality loop previously
+  re-weighted components differently and, worse, could re-inflate a score a
+  veto had capped.
+- Vetoes/caps preserved: retraction cap 50, criticPanel veto cap 55, editorial
+  floor cap 60, critic-reject cap 50, hard grounding veto below 10, quality
+  floor that cannot override a grounding veto.
+- `trust-score.test.ts` (8 tests): both call sites produce identical scores
+  for identical inputs; no downstream path bypasses a veto.
+
+**Post-gate learning** (`persistence-tail.ts`, `inquiry-orchestrator.ts`)
+
+- `extractExperience` was called pre-gate on intermediate scores — a run the
+  gate later rejected was banked as experience of its in-flight state. The
+  call moved after final status determination with the gate outcome
+  (decision, failed checks, readiness, DA verdict, regeneration outcome,
+  cost/duration) in the payload. Calibration recordings inside the pipeline
+  (`recordLearningCycle`, `recordAgentPerformance`) are unchanged — they
+  measure component behaviour, not run outcomes.
+
+**End-to-end replay harness** (`scripts/replay-run.ts`, `npm run replay`)
+
+- `--publication <id>` / `--pipeline-run <id>` — loads the persisted
+  `sourceIds` + `question` + `depth`, forces `NOMOSX_LLM_MODE=replay`, seeds
+  the corpus (scout skipped), disables durable execution (checkpoints would
+  serve attempt-1 results without exercising recorded calls), re-runs the
+  whole analytical queue, then diffs trust/gate/cost against the recorded
+  outcome (`--tolerance N`, exit 1 on drift).
+- `--inspect <cassette>` — offline integrity check: entry/task/provider
+  counts, recorded cost, corrupt lines (exit 1). CI-usable without a DB.
+- To *produce* a fixture: run a normal bounded cycle with
+  `NOMOSX_LLM_MODE=record` (+ optional `NOMOSX_LLM_CASSETTE=<path>`), then
+  replay with `npm run replay -- --publication <id> --cassette <path>`.
+- Limits: `streamLLM` is not recorded; replay writes new pipeline/brief rows
+  (point DATABASE_URL at staging); prompts that drift miss loudly
+  (`CassetteMissError`) — that IS the drift signal.
+
+Tests: `thesis-adherence-gate.test.ts`, `trust-score.test.ts` (parity +
+veto-bypass suite). Combined affected suites: 104/104.
+
+---
 
 External-stack pass (cassette/agentreplay record-replay, PaperQA2 citation
 traversal, SCitance/ExecutableClaims entailment, CRAG grading, node-
