@@ -7,13 +7,24 @@
  * post-analyst.
  */
 import { callLLM } from '@/lib/llm/unified-llm';
-import { hypothesisJudge, checkThesisAdherence } from '@/lib/agent/hypothesis-engine';
+import { hypothesisJudge, checkThesisAdherence, framingAgent } from '@/lib/agent/hypothesis-engine';
+import * as sara from '@/lib/agent/sara-compression';
 import { withExecutionSignal } from '@/lib/worker/execution-scope';
 import type { Hypothesis } from '@/lib/agent/hypothesis-engine';
 
 jest.mock('@/lib/llm/unified-llm', () => ({ callLLM: jest.fn() }));
+jest.mock('@/lib/agent/sara-compression', () => {
+  const actual = jest.requireActual('@/lib/agent/sara-compression');
+  return { ...actual, saraCompress: jest.fn(actual.saraCompress) };
+});
+jest.mock('@/lib/agent/agent-memory', () => ({ buildMemoryInjection: jest.fn(async () => ({ topLessons: [] })) }));
+jest.mock('@/lib/agent/knowledge-infrastructure', () => ({ getRelevantGuidelines: jest.fn(async () => []) }));
+jest.mock('@/lib/agent/positioning-agent', () => ({ buildPositioningBrief: jest.fn(async () => null) }));
+jest.mock('@/lib/agent/conflict-aware', () => ({ detectSourceConflicts: jest.fn(async () => ({ conflictCount: 0, consensusRate: 1, totalPairsChecked: 0 })) }));
 
 const mockedLLM = jest.mocked(callLLM);
+beforeEach(() => mockedLLM.mockReset());
+afterEach(() => jest.restoreAllMocks());
 
 const HYPOTHESES: Hypothesis[] = [
   { id: 'H1', statement: 'Jet-powered drones reshape deterrence in Eastern Europe', rationale: 'core claim', evidenceNeeded: ['deployment data'] },
@@ -112,6 +123,103 @@ describe('hypothesisJudge — bound thesis selection (source-first)', () => {
   });
 });
 
+describe('thesis evidence integrity', () => {
+  const derived = { defensible: true, claim: 'A narrower documented production trend', supportingEvidence: ['[SRC-1] production', '[SRC-2] deployment'], confidence: 70 };
+
+  it('narrows partial support through corpus derivation instead of binding the full hypothesis', async () => {
+    mockedLLM.mockResolvedValueOnce({ content: JSON.stringify({ verdicts: [{ ...JUDGE_RESPONSE.verdicts[1], verdict: 'partially_supported' }] }), costUsd: 0.01 } as any);
+    mockedLLM.mockResolvedValueOnce({ content: JSON.stringify(derived), costUsd: 0.02 } as any);
+    const result = await hypothesisJudge(HYPOTHESES, SOURCES);
+    expect(result.boundThesis?.statement).toBe(derived.claim);
+    expect(result.thesisOrigin).toBe('corpus_derived');
+    expect(result.costUsd).toBeCloseTo(0.03);
+  });
+
+  it.each([
+    ['duplicate citation', ['[SRC-1] first claim', '[SRC-1] second claim']],
+    ['invented citation', ['[SRC-1] first claim', '[SRC-99] second claim']],
+    ['invented citation alongside real citations', ['[SRC-1] first', '[SRC-2] second', '[SRC-99] invented']],
+    ['uncited assertions', ['production increased', 'deployment increased']],
+  ])('does not bind registered support based on %s', async (_name, evidence) => {
+    mockedLLM.mockResolvedValueOnce({ content: JSON.stringify({ verdicts: [{ ...JUDGE_RESPONSE.verdicts[1], supportingEvidence: evidence }] }), costUsd: 0.01 } as any);
+    mockedLLM.mockResolvedValueOnce({ content: JSON.stringify({ defensible: false }), costUsd: 0.02 } as any);
+    const result = await hypothesisJudge(HYPOTHESES, SOURCES);
+    expect(result.boundThesis).toBeUndefined();
+    expect(result.thesisAbsent).toBe(true);
+  });
+
+  it('accepts empirical documents outside the top-three load-bearing rank tags', async () => {
+    mockedLLM.mockResolvedValueOnce({ content: JSON.stringify(JUDGE_RESPONSE), costUsd: 0 } as any);
+    const result = await hypothesisJudge(HYPOTHESES, SOURCES.map(s => ({ ...s, loadBearing: false })));
+    expect(result.boundThesis?.id).toBe('H2');
+    expect(result.boundThesis?.supportingSourceCount).toBe(2);
+  });
+
+  it('does not treat a synthetic foundational reference as empirical support', async () => {
+    mockedLLM.mockResolvedValueOnce({ content: JSON.stringify(JUDGE_RESPONSE), costUsd: 0 } as any);
+    mockedLLM.mockResolvedValueOnce({ content: JSON.stringify({ defensible: false }), costUsd: 0 } as any);
+    const result = await hypothesisJudge(HYPOTHESES, [SOURCES[0], { ...SOURCES[1], provider: 'foundational' }]);
+    expect(result.boundThesis).toBeUndefined();
+  });
+
+  it('does not count the same document indexed by two providers twice', async () => {
+    mockedLLM.mockResolvedValueOnce({ content: JSON.stringify(JUDGE_RESPONSE), costUsd: 0 } as any);
+    mockedLLM.mockResolvedValueOnce({ content: JSON.stringify({ defensible: false }), costUsd: 0 } as any);
+    const sources = SOURCES.map(s => ({ ...s, doi: '10.1000/same-document' }));
+    expect((await hypothesisJudge(HYPOTHESES, sources)).boundThesis).toBeUndefined();
+  });
+
+  it.each([
+    {},
+    { ...derived, defensible: 'true' },
+    { ...derived, supportingEvidence: ['[SRC-1] a', '[SRC-1] b'] },
+    { ...derived, supportingEvidence: ['[SRC-1] a', '[SRC-26] b'] },
+  ])('keeps invalid derivation distinct from an explicit absence of a thesis: %j', async response => {
+    mockedLLM.mockResolvedValueOnce({ content: JSON.stringify({ verdicts: [] }), costUsd: 0.01 } as any);
+    mockedLLM.mockResolvedValueOnce({ content: JSON.stringify(response), costUsd: 0.02 } as any);
+    const result = await hypothesisJudge(HYPOTHESES, SOURCES);
+    expect(result.boundThesis).toBeUndefined();
+    expect(result.thesisAbsent).not.toBe(true);
+    expect(result).toMatchObject({ thesisUnavailable: true });
+    expect(result.costUsd).toBeCloseTo(0.03);
+  });
+
+  it('derives from the corpus even when framing has no hypotheses', async () => {
+    mockedLLM.mockResolvedValueOnce({ content: JSON.stringify(derived), costUsd: 0.02 } as any);
+    const result = await hypothesisJudge([], SOURCES);
+    expect(result.thesisOrigin).toBe('corpus_derived');
+    expect(mockedLLM).toHaveBeenCalledTimes(1);
+  });
+
+  it('matches readings by sourceId, not position, and includes results and limitations', async () => {
+    mockedLLM.mockResolvedValueOnce({ content: JSON.stringify(JUDGE_RESPONSE), costUsd: 0 } as any);
+    const sources = SOURCES.map((s, i) => ({ ...s, id: `s${i}` }));
+    await hypothesisJudge(HYPOTHESES, sources, [
+      { sourceId: 's1', claims: ['SECOND DOCUMENT'], results: ['second result'] },
+      { sourceId: 's0', claims: ['FIRST DOCUMENT'], results: ['first result'], limitations: ['no causal identification'] },
+    ]);
+    const prompt = String(mockedLLM.mock.calls[0][0].messages[1].content);
+    const first = prompt.split('[SRC-1]')[1].split('[SRC-2]')[0];
+    expect(first).toContain('FIRST DOCUMENT');
+    expect(first).toContain('first result');
+    expect(first).toContain('no causal identification');
+    expect(first).not.toContain('SECOND DOCUMENT');
+  });
+
+  it('preserves charged cost when a judge response is malformed', async () => {
+    mockedLLM.mockResolvedValueOnce({ content: '{"verdicts": "invalid"}', costUsd: 0.012 } as any);
+    const result = await hypothesisJudge(HYPOTHESES, SOURCES);
+    expect(result.costUsd).toBeCloseTo(0.012);
+    expect(result).toMatchObject({ thesisUnavailable: true });
+  });
+
+  it('propagates framing cancellation', async () => {
+    const controller = new AbortController();
+    mockedLLM.mockImplementationOnce(async () => { controller.abort(); throw new Error('aborted'); });
+    await expect(withExecutionSignal(controller.signal, () => framingAgent('question'))).rejects.toThrow();
+  });
+});
+
 describe('checkThesisAdherence', () => {
   it('accepts a verdict within the bound thesis', async () => {
     mockedLLM.mockResolvedValueOnce({ content: JSON.stringify({ adhered: true, reason: 'same claim, narrower scope' }), costUsd: 0.0005 } as any);
@@ -125,11 +233,19 @@ describe('checkThesisAdherence', () => {
     expect(adh.adhered).toBe(false);
   });
 
-  it('degrades open when the LLM fails (non-blocking, per fail-closed-on-gates policy)', async () => {
+  it('reports an unavailable evaluation instead of successful adherence on provider failure', async () => {
     mockedLLM.mockRejectedValueOnce(new Error('provider down'));
     const adh = await checkThesisAdherence('anything', HYPOTHESES[1].statement);
-    expect(adh.adhered).toBe(true);
+    expect(adh.adhered).toBeUndefined();
+    expect(adh).toMatchObject({ evaluationComplete: false });
     expect(adh.reason).toBe('check unavailable');
+  });
+
+  it.each([{}, { adhered: 'true' }])('rejects a malformed adherence verdict: %j', async response => {
+    mockedLLM.mockResolvedValueOnce({ content: JSON.stringify(response), costUsd: 0.003 } as any);
+    const adh = await checkThesisAdherence('anything', HYPOTHESES[1].statement);
+    expect(adh.adhered).toBeUndefined();
+    expect(adh).toMatchObject({ evaluationComplete: false, costUsd: 0.003 });
   });
 
   it('propagates a scope abort instead of returning "adhered" — cancelled work must die', async () => {
@@ -157,6 +273,7 @@ describe('checkThesisAdherence', () => {
 
 describe('buildAnalystContext — binding survives SARA compression (integration)', () => {
   it('THESIS BINDING is present in fullContextBlock even when SARA compresses the context', async () => {
+    const compress = jest.spyOn(sara, 'saraCompress');
     const { buildAnalystContext } = await import('@/lib/agent/pipeline-steps/analyst-context');
     const result = await buildAnalystContext({
       query: 'Will jet drones reshape deterrence?',
@@ -165,13 +282,15 @@ describe('buildAnalystContext — binding survives SARA compression (integration
       topicClassification: { dimensions: [] },
       // >8000 chars forces SARA compression — the exact condition that used
       // to be able to drop the binding silently.
-      hypothesisVerdictBlock: `═══ HYPOTHESIS VERDICTS ═══\n${'verdicts and evidence lines. '.repeat(400)}`,
+      hypothesisVerdictBlock: `═══ HYPOTHESIS VERDICTS ═══\n${'verdicts and evidence lines. '.repeat(1600)}`,
       quant: { evidenceBlock: '' }, quantBridge: { evidenceBlock: '' },
       stats: { thesisBinding: { id: 'H2', statement: HYPOTHESES[1].statement, verdict: 'supported', confidence: 78, supportingSources: 2 } },
       label: '[test]', addCost: () => {},
       ctx: { addFinding: () => {}, skipStep: () => {} },
     } as any);
-    expect(result.fullContextBlock).toContain('THESIS BINDING');
+    expect(compress).toHaveBeenCalled();
+    expect(compress.mock.results[0].value.compressionRatio).toBeLessThan(0.85);
+    expect(result.fullContextBlock?.match(/THESIS BINDING/g)).toHaveLength(1);
     expect(result.fullContextBlock).toContain(HYPOTHESES[1].statement);
     expect(result.fullContextBlock).toContain('NARROWER');
   }, 30000);

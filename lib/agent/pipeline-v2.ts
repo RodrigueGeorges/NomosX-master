@@ -462,46 +462,6 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   const dppContextBlock = readerBlk.dppContextBlock;
   const roundTableBlock = readerBlk.roundTableBlock;
   phaseMark('reader');
-  // STEP 6: ANALYSTSTEP 6: ANALYST (brief = V3 multi-pass, strategic = Strategic Analyst) â”€â”€
-  emitProgress(pipelineRun.id, "ANALYST", "started", `${isStrategic ? "Strategic-depth multi-pass analysis" : "Multi-pass analysis"}...`);
-  console.log(`${label} ANALYST: V3 multi-pass (depth: ${isStrategic ? 'strategic' : 'brief'})`);
-  // -- PRE-ANALYST CONTEXT — extracted to pipeline-steps/analyst-context.ts --
-  // memory + synapse -> domain/canon -> north star -> conflict-aware ->
-  // scenario engine -> innovator -> assembly -> SARA -> prior-failure ->
-  // evidence sufficiency -> positioning -> slimReadings.
-  const analystCtx = await buildAnalystContext({
-    query, topSources, readings, detectedDomain, isStrategic, isDossier,
-    topicClassification, primedContext, gapContextBlock, quant, quantBridge,
-    hypothesisVerdictBlock, evidenceBankBlock,
-    episodicFormatted: episodicFormatted ?? undefined,
-    dppContextBlock, roundTableBlock,
-    witnessLearningInjection, worldModelInjection, selfPlayInjection,
-    stats: stats as Record<string, any>, label, pipelineRunId: pipelineRun.id,
-    emitProgress, addCost,
-    focusAreas: opts.focusAreas, targetAudience: opts.targetAudience,
-    urgencyContext: opts.urgencyContext,
-    priorFailureFeedback: opts.priorFailureFeedback, ctx,
-  });
-  const memoryBlock = analystCtx.memoryBlock;
-  let fullContextBlock = analystCtx.fullContextBlock;
-  // REQUIRED COVERAGE — the deep planner decomposed this question into
-  // investigation branches for the scout, but the analyst never saw them:
-  // the analysis could silently narrow the question (observed: a "broader
-  // patterns" question answered mono-country → DA fatal). The branches ARE
-  // the scope contract — inject them as mandatory coverage before the
-  // analyst writes a word. (buildRequiredCoverageBlock — tested)
-  const requiredBranches = planNodesForAudit
-    .filter(n => n.subQuestion && n.status !== 'failed')
-    .map(n => n.subQuestion);
-  const coverageBlock = buildRequiredCoverageBlock(planNodesForAudit, evidenceNotesFor(branchCoverage));
-  if (coverageBlock) {
-    fullContextBlock = (fullContextBlock || '') + coverageBlock;
-  }
-  const positioningBrief = analystCtx.positioningBrief;
-  const savedCanaResult = analystCtx.savedCanaResult;
-  const savedScatterResult = analystCtx.savedScatterResult;
-  const slimReadings = analystCtx.slimReadings;
-
   // ── CORPUS VIABILITY PRE-GATE ──
   // Deterministic abort BEFORE the analyst (~$0.10/call + downstream burn).
   // Both S30 HELD items paid the full analyst+editorial chain on corpora a
@@ -509,7 +469,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   // extractions (claims/results/methods) AND extractable-text coverage.
   // A corpus that fails here cannot produce a publishable artifact — refuse
   // and let the dispatcher fall through to the next candidate.
-  const substantiveReadings = slimReadings.filter(
+  const substantiveReadings = readings.filter(
     (r: any) => ((r.claims?.length ?? 0) + (r.results?.length ?? 0) + (r.methods?.length ?? 0)) > 0
   ).length;
   const sourcesWithExtractableText = topSources.filter(
@@ -554,14 +514,16 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   // yield a position. Spending the analyst/critic/DA tail on it manufactures
   // a HELD at full price. Refuse now — same economics as corpus_insufficient,
   // one level deeper (not "enough sources?" but "enough SUPPORT?").
-  if ((stats as any).thesisBinding?.absent === 'no_supportable_thesis') {
-    const reason = `thesis_insufficient: ${topSources.length} sources read but no defensible central claim derivable — refusing before analyst spend`;
+  if (stats.thesisBinding?.absent === 'no_supportable_thesis' || stats.thesisBinding?.unavailable) {
+    const reason = stats.thesisBinding.unavailable
+      ? 'thesis_evaluation_unavailable: evidence assessment incomplete — retry assessment before analyst spend'
+      : `thesis_insufficient: ${topSources.length} sources read but no defensible central claim derivable — refusing before analyst spend`;
     console.warn(`${label} REFUSAL: ${reason}`);
     stats.structuredRefusal = {
       reason,
       sourceCount: topSources.length,
       required: 0,
-      missing: ['supportable_thesis'],
+      missing: stats.thesisBinding.unavailable ? ['thesis_evaluation'] : ['supportable_thesis'],
     };
     stats.totalCostUsd = cost.runningCostUsd;
     emitProgress(pipelineRun.id, "ANALYST", "failed", `Refused: ${reason}`);
@@ -579,6 +541,46 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     }).catch(() => {});
     return { briefId: undefined, pipelineRun, stats, html: '', analysis: { refusal: stats.structuredRefusal } as any };
   }
+
+  // STEP 6: ANALYSTSTEP 6: ANALYST (brief = V3 multi-pass, strategic = Strategic Analyst) â”€â”€
+  emitProgress(pipelineRun.id, "ANALYST", "started", `${isStrategic ? "Strategic-depth multi-pass analysis" : "Multi-pass analysis"}...`);
+  console.log(`${label} ANALYST: V3 multi-pass (depth: ${isStrategic ? 'strategic' : 'brief'})`);
+  // -- PRE-ANALYST CONTEXT — extracted to pipeline-steps/analyst-context.ts --
+  // memory + synapse -> domain/canon -> north star -> conflict-aware ->
+  // scenario engine -> innovator -> assembly -> SARA -> prior-failure ->
+  // evidence sufficiency -> positioning -> slimReadings.
+  const analystCtx = await buildAnalystContext({
+    query, topSources, readings, detectedDomain, isStrategic, isDossier,
+    topicClassification, primedContext, gapContextBlock, quant, quantBridge,
+    hypothesisVerdictBlock, evidenceBankBlock,
+    episodicFormatted: episodicFormatted ?? undefined,
+    dppContextBlock, roundTableBlock,
+    witnessLearningInjection, worldModelInjection, selfPlayInjection,
+    stats: stats as Record<string, any>, label, pipelineRunId: pipelineRun.id,
+    emitProgress, addCost,
+    focusAreas: opts.focusAreas, targetAudience: opts.targetAudience,
+    urgencyContext: opts.urgencyContext,
+    priorFailureFeedback: opts.priorFailureFeedback, ctx,
+  });
+  const memoryBlock = analystCtx.memoryBlock;
+  let fullContextBlock = analystCtx.fullContextBlock;
+  // REQUIRED COVERAGE — the deep planner decomposed this question into
+  // investigation branches for the scout, but the analyst never saw them:
+  // the analysis could silently narrow the question (observed: a "broader
+  // patterns" question answered mono-country → DA fatal). The branches ARE
+  // the scope contract — inject them as mandatory coverage before the
+  // analyst writes a word. (buildRequiredCoverageBlock — tested)
+  const requiredBranches = planNodesForAudit
+    .filter(n => n.subQuestion && n.status !== 'failed')
+    .map(n => n.subQuestion);
+  const coverageBlock = buildRequiredCoverageBlock(planNodesForAudit, evidenceNotesFor(branchCoverage));
+  if (coverageBlock) {
+    fullContextBlock = (fullContextBlock || '') + coverageBlock;
+  }
+  const positioningBrief = analystCtx.positioningBrief;
+  const savedCanaResult = analystCtx.savedCanaResult;
+  const savedScatterResult = analystCtx.savedScatterResult;
+  const slimReadings = analystCtx.slimReadings;
 
   let analysis: any;
 
@@ -686,10 +688,14 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
       const { checkThesisAdherence } = await import('./hypothesis-engine');
       const adh = await checkThesisAdherence(verdict, bound.statement);
       addCost(adh.costUsd, 'THESIS BINDING');
-      bound.checkedVerdict = verdict;
+      bound.checkedVerdict = adh.evaluationComplete ? verdict : undefined;
       bound.adhered = adh.adhered;
+      bound.evaluationComplete = adh.evaluationComplete;
       bound.adherenceReason = adh.reason.slice(0, 200);
-      if (adh.adhered) {
+      if (!adh.evaluationComplete) {
+        console.warn(`${label} THESIS BINDING (${stage}): evaluation unavailable`);
+        ctx?.addFinding?.('THESIS_BINDING', 'warning', `[${stage}] Adherence evaluation unavailable`);
+      } else if (adh.adhered) {
         console.log(`${label} THESIS BINDING (${stage}): verdict within bound hypothesis "${bound.id}"`);
       } else {
         console.warn(`${label} THESIS BINDING (${stage}): verdict exceeds bound hypothesis — ${adh.reason}`);

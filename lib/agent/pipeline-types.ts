@@ -389,6 +389,8 @@ export interface PipelineStats {
     verdict?: string;
     confidence?: number;
     supportingSources?: number;
+    supportingEvidence?: string[];
+    contraryEvidence?: string[];
     /** 'registered' = a pre-posed hypothesis won; 'corpus_derived' = the
      *  corpus itself yielded the claim after all verdicts came back
      *  inconclusive. */
@@ -396,6 +398,8 @@ export interface PipelineStats {
     /** Set when no supportable thesis exists — triggers thesis_insufficient
      *  early refusal before analyst spend. */
     absent?: string;
+    unavailable?: boolean;
+    evaluationComplete?: boolean;
     /** Post-analyst adherence check: did analysis.verdict stay inside the
      *  bound thesis? Undefined until checked. */
     adhered?: boolean;

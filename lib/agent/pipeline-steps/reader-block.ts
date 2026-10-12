@@ -371,10 +371,10 @@ export async function runReaderBlock(deps: ReaderBlockDeps): Promise<ReaderBlock
 
   // ── STEP 5b-2: HYPOTHESIS JUDGE — verdict per pre-registered hypothesis ──
   let hypothesisVerdictBlock = '';
-  if (framing.hypotheses.length > 0) {
+  {
     try {
       const { hypothesisJudge } = await import('../hypothesis-engine');
-      const judge = await hypothesisJudge(framing.hypotheses, topSources, readings, quant.evidenceBlock || undefined);
+      const judge = await hypothesisJudge(framing.hypotheses, topSources, readings, quant.evidenceBlock || undefined, query);
       addCost(judge.costUsd, 'HYPOTHESIS JUDGE');
       hypothesisVerdictBlock = judge.verdictBlock;
       stats.hypothesisJudge = {
@@ -390,7 +390,9 @@ export async function runReaderBlock(deps: ReaderBlockDeps): Promise<ReaderBlock
           statement: judge.boundThesis.statement,
           verdict: judge.boundThesis.verdict,
           confidence: judge.boundThesis.confidence,
-          supportingSources: judge.boundThesis.supportingEvidence.length,
+          supportingSources: judge.boundThesis.supportingSourceCount ?? 0,
+          supportingEvidence: judge.boundThesis.supportingEvidence,
+          contraryEvidence: judge.boundThesis.contraryEvidence,
           origin: judge.thesisOrigin ?? 'registered',
         };
       } else if (judge.thesisAbsent) {
@@ -399,18 +401,28 @@ export async function runReaderBlock(deps: ReaderBlockDeps): Promise<ReaderBlock
         // the analyst tail: a corpus that yields no thesis can only produce
         // a HELD artifact at full price.
         stats.thesisBinding = { absent: 'no_supportable_thesis' };
+      } else {
+        stats.thesisBinding = { unavailable: true };
       }
     } catch (err) {
       // Cancelled scope must propagate — a dead run degrading to "unbound
       // analyst" is a silent-failure class, not a recoverable judge error.
       const { assertExecutionActive } = await import('../../worker/execution-scope');
       assertExecutionActive();
+      stats.thesisBinding = { unavailable: true };
       console.warn(`${label} HYPOTHESIS JUDGE: failed (non-blocking):`, err);
     }
   }
 
   // DPP SYNTHESIS (V3.1)
   let dppContextBlock: string | null = null;
+  if (stats.thesisBinding?.absent || stats.thesisBinding?.unavailable) {
+    return {
+      readings, framing, quant, quantBridge, readerMemoryBlock,
+      evidenceBankBlock, evidenceBankRef, hypothesisVerdictBlock,
+      dppContextBlock, roundTableBlock: null,
+    };
+  }
   try {
     if (readings.length > 8) {
       const { extractAtomicKeyPoints, selectDiverseKeyPoints, formatKeyPointsForAnalyst } = await import("../dpp-synthesis");

@@ -380,6 +380,8 @@ export async function buildAnalystContext(deps: AnalystContextDeps): Promise<Ana
     fullContextBlock = [
       fullContextBlock,
       `\n## THESIS BINDING (mandatory)\nYour central thesis (the "verdict" field) MUST implement this hypothesis, or a strictly NARROWER version of it:\n"${boundThesis.statement}"\n— judged ${String(boundThesis.verdict ?? '').toUpperCase()} @ ${boundThesis.confidence}% confidence, ${boundThesis.supportingSources} direct source(s).\nA central claim that EXCEEDS this evidence base is not a thesis — it is speculation. Present bolder claims explicitly as secondary scenarios, never as the central verdict.`,
+      boundThesis.supportingEvidence?.length ? `Supporting evidence for the bound thesis:\n${boundThesis.supportingEvidence.slice(0, 6).join('\n')}` : undefined,
+      boundThesis.contraryEvidence?.length ? `Contrary evidence to address explicitly:\n${boundThesis.contraryEvidence.slice(0, 6).join('\n')}` : undefined,
     ].filter(Boolean).join('\n\n---\n\n');
   }
 
