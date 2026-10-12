@@ -44,6 +44,26 @@ it('does not resolve missing evidence when all retrieval fails', async () => {
   expect(deps.ctx.signals.resolveSignalsByType).not.toHaveBeenCalled();
 });
 
+it('keeps unattempted gaps and uses each request provider set', async () => {
+  const deps = setup();
+  const requests = [
+    { query: 'First missing evidence', providers: ['crossref'], agent: 'CRITIC' },
+    { query: 'Second missing evidence', providers: ['openalex'], agent: 'CRITIC' },
+    { query: 'Third missing evidence', providers: ['linkup'], requestedBy: 'DA', reason: 'Missing baseline', minResults: 5 },
+  ];
+  deps.ctx.getPendingGapRequests = () => requests;
+  jest.mocked(reAnalyzeAfterGapFill).mockResolvedValue({ analysis: deps.state.analysis, reAnalyzed: false, improvementDelta: 0 });
+  await createGapRequestProcessor(deps)('CRITIC');
+  expect(deps.scout).toHaveBeenNthCalledWith(2, requests[1].query, ['openalex'], 10);
+  expect(deps.ctx.requestSourceGap).toHaveBeenCalledWith(requests[2].query, requests[2].reason, 'DA', ['linkup'], 5);
+});
+
+it('does not discard pending research queries when no new evidence was retrieved', async () => {
+  const deps = setup({ scout: jest.fn(async () => ({ sourceIds: [] })) });
+  await createGapRequestProcessor(deps)('CRITIC');
+  expect(deps.ctx.clearGapRequests).not.toHaveBeenCalled();
+});
+
 it('preserves the citation source order when enriched analysis is rejected', async () => {
   const deps = setup();
   jest.mocked(reAnalyzeAfterGapFill).mockResolvedValue({ analysis: deps.state.analysis, reAnalyzed: false, improvementDelta: 0 });

@@ -87,7 +87,7 @@ describe('held-retry collection', () => {
     ] as never);
     decCount.mockResolvedValue(1); // one prior HOLD — retry budget remains
     decFindFirst.mockResolvedValue({
-      checks: { failureFeedback: 'gate reasons: devils_advocate publishability 0; DA kill shot: no comparative dimension' },
+      checks: { failureFeedback: 'gate reasons: devils_advocate publishability 0; DA kill shot: no comparative dimension', evidenceQueries: ['Pre intervention baseline comparison'] },
       reasons: ['devils_advocate: publishability 0'],
     } as never);
     // Reserve releases miss; the pipeline run itself is held.
@@ -111,6 +111,7 @@ describe('held-retry collection', () => {
     expect(arg.signalId).toBe('sig-held');
     expect(arg.skipDuplicateCheck).toBe(true);
     expect((arg.pipelineOptions as { priorFailureFeedback?: string }).priorFailureFeedback).toContain('kill shot');
+    expect(arg.pipelineOptions).toMatchObject({ priorEvidenceQueries: ['Pre intervention baseline comparison'] });
     expect((arg.metadata as Record<string, unknown>).heldRetry).toBe(true);
     expect(out.held).toBe(1);
   });

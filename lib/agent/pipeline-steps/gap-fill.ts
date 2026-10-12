@@ -121,17 +121,19 @@ export function createGapRequestProcessor(deps: GapFillDeps) {
     console.log(`${label} BLACKBOARD: processing ${gapReqs.length} gap requests from ${origin}`);
     emitProgress(pipelineRunId, "GAP_FILL", "started", `Filling ${gapReqs.length} evidence gaps identified by ${origin}...`);
     try {
-      const gapProviders = gapReqs[0].providers as string[] || ['crossref', 'semanticscholar', 'europepmc'];
       const gapResults = await Promise.allSettled(
-        gapReqs.slice(0, 2).map(req => scout(req.query, gapProviders as any, req.minResults || 10))
+        gapReqs.slice(0, 2).map(req => scout(req.query, req.providers?.length ? req.providers : ['crossref', 'semanticscholar', 'europepmc'], req.minResults || 10))
       );
+      assertExecutionActive();
       let gapNewCount = 0;
-      for (const r of gapResults) {
+      const suppliedEvidence = new Set<number>();
+      for (const [requestIndex, r] of gapResults.entries()) {
         if (r.status === 'fulfilled') {
           const newIds = Array.isArray(r.value) ? r.value.map((s: any) => s.id) : (r.value.sourceIds || []);
           const before = state.allSourceIds.length;
           state.allSourceIds = [...new Set([...state.allSourceIds, ...newIds])];
           gapNewCount += state.allSourceIds.length - before;
+          if (state.allSourceIds.length > before) suppliedEvidence.add(requestIndex);
         }
       }
       if (gapNewCount > 0) {
@@ -229,10 +231,23 @@ export function createGapRequestProcessor(deps: GapFillDeps) {
           }
         }
       }
-      ctx.clearGapRequests();
+      if (gapNewCount > 0) {
+        const remaining = ctx.getPendingGapRequests().filter((_req, i) => !suppliedEvidence.has(i));
+        ctx.clearGapRequests();
+        for (const req of remaining) {
+          ctx.requestSourceGap(req.query, req.reason, req.requestedBy ?? origin, req.providers, req.minResults);
+        }
+      }
       // Close the corresponding coverage_gap signals — the legacy queue and
       // the signal bus carry the same need; resolving one resolves both.
       stats.gapRetrieval = { origin, newSources: gapNewCount, requiresReassessment: true };
+      const pending = ctx.getPendingGapRequests();
+      if (pending.length > 0) {
+        stats.deferredGapRequests = {
+          count: pending.length, origin, reason: 'retrieval_incomplete',
+          queries: [...new Set(pending.map((req: any) => String(req.query ?? '').slice(0, 200)).filter((q: string) => q.length > 10))].slice(0, 6),
+        };
+      }
       emitProgress(pipelineRunId, "GAP_FILL", "completed", `Gap fill: +${gapNewCount} sources`);
     } catch (err) {
       assertExecutionActive();
