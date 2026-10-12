@@ -177,24 +177,28 @@ export async function runVerificationBlock(deps: VerificationBlockDeps): Promise
 
   try {
     const { factChecker } = await import('../fact-checker');
-    const factResult = await factChecker(html, topSources, producerFamily, readings);
-    stats.factChecker = tagEval({
-      totalClaims: factResult.totalClaims,
-      verified: factResult.verified,
-      majorIssues: factResult.majorIssues,
-      fatalIssues: factResult.fatalIssues,
-      integrityScore: factResult.integrityScore,
-      citance: factResult.citance
-        ? {
-            total: factResult.citance.total,
-            supported: factResult.citance.supported,
-            contradicted: factResult.citance.contradicted,
-            nei: factResult.citance.nei,
-            supportRate: factResult.citance.supportRate,
-            evaluationComplete: factResult.citance.evaluationComplete,
-          }
-        : undefined,
-    }, 'html');
+    const runFactCheckPass = async (htmlToCheck: string) => {
+      const r = await factChecker(htmlToCheck, topSources, producerFamily, readings);
+      stats.factChecker = tagEval({
+        totalClaims: r.totalClaims,
+        verified: r.verified,
+        majorIssues: r.majorIssues,
+        fatalIssues: r.fatalIssues,
+        integrityScore: r.integrityScore,
+        citance: r.citance
+          ? {
+              total: r.citance.total,
+              supported: r.citance.supported,
+              contradicted: r.citance.contradicted,
+              nei: r.citance.nei,
+              supportRate: r.citance.supportRate,
+              evaluationComplete: r.citance.evaluationComplete,
+            }
+          : undefined,
+      }, 'html');
+      return r;
+    };
+    const factResult = await runFactCheckPass(html);
     console.log(`${label} FACT-CHECKER: ${factResult.totalClaims} claims, ${factResult.verified} verified, ${factResult.majorIssues} major, ${factResult.fatalIssues} fatal → integrity ${factResult.integrityScore}%`);
     if (factResult.fatalIssues > 0) {
       console.error(`${label} FACT-CHECKER: ${factResult.fatalIssues} FATAL numerical discrepancies detected — sanitizing HTML`);
@@ -207,6 +211,41 @@ export async function runVerificationBlock(deps: VerificationBlockDeps): Promise
           html = factRepair.html;
           bumpHtmlArtifact();
           console.log(`${label} FACT-CHECKER REPAIR: sanitized ${factRepair.numbersSanitized} suspicious numbers`);
+          // Reconciliation (Sprint 42): sanitizing REPLACED the html — the
+          // factChecker/citationVerifier/symbolicVerifier evals tagged to the
+          // pre-sanitize version are now stale and no rescore path re-judges
+          // html evals, so the run would HELD on evaluation_freshness with no
+          // way out. Re-verify the artifact actually persisted (fact-checker
+          // once, the free verifiers unconditionally); a re-check failure keeps
+          // the eval stale — an unverifiable sanitized artifact must not pass
+          // on the strength of a verdict attached to its pre-sanitized text.
+          try {
+            const recheck = await runFactCheckPass(html);
+            stats.factCheckerResanitize = {
+              sanitized: factRepair.numbersSanitized,
+              integrityBefore: factResult.integrityScore,
+              integrityAfter: recheck.integrityScore,
+            };
+            console.log(`${label} FACT-CHECKER RECHECK (post-sanitize): integrity ${factResult.integrityScore}% → ${recheck.integrityScore}% (${recheck.fatalIssues} fatal remain)`);
+          } catch (recheckErr) {
+            console.warn(`${label} FACT-CHECKER RECHECK failed — eval stays stale (fail-closed):`, recheckErr);
+          }
+          try {
+            const { verifySymbolically } = await import('../symbolic-verifier');
+            const sym = verifySymbolically(html);
+            stats.symbolicVerifier = tagEval({
+              score: sym.score, passed: sym.passed, failed: sym.failed, flagged: sym.flagged.length,
+            }, 'html');
+          } catch { /* keep stale — see above */ }
+          try {
+            const { verifyCitationsNLI } = await import('../nli-verifier');
+            const v = await verifyCitationsNLI(html, topSources, { maxConcurrency: 10, maxClaims: 80, readings });
+            stats.citationVerifier = tagEval({
+              integrity: v.overallIntegrity,
+              supported: v.supported,
+              flagged: v.flaggedClaims.length,
+            }, 'html');
+          } catch { /* keep stale — see above */ }
         }
       } catch (repairErr) {
         console.warn(`${label} FACT-CHECKER REPAIR: failed (non-blocking):`, repairErr);
