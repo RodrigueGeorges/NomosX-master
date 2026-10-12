@@ -2168,6 +2168,20 @@ export async function streamLLM(
   onChunk: (chunk: string) => void
 ): Promise<LLMResponse> {
   const task = normalizeTask(request.task);
+
+  // Cassette boundary — same contract as callLLMCore: replay serves the
+  // recorded response and emits it as a single chunk (the freepool path
+  // below already emulates streams that way); record captures the assembled
+  // response or the provider error. A stream and a buffered call with the
+  // same request share the cache key — the semantic response is identical.
+  const cassetteMode = getLlmCassetteMode();
+  const cassetteKey = cassetteMode !== 'live' ? buildCacheKey(request) : '';
+  if (cassetteMode === 'replay') {
+    const response = replayLlmCassette<LLMResponse>(request, cassetteKey);
+    onChunk(response.content);
+    return response;
+  }
+
   let provider = resolvePrimaryProvider(request);
 
   // Zero-cost rehearsal: never open a paid stream — emulate via the freepool
@@ -2205,42 +2219,49 @@ export async function streamLLM(
   const streamMaxTokens = request.maxTokens ?? 4000;
   const streamNeedsCompletionTokens = provider === "openai" && (model.startsWith("gpt-5") || model.startsWith("gpt-6"));
 
-  const stream = await client.chat.completions.create({
-    model,
-    messages: request.messages as any,
-    ...(shouldSendTemp ? { temperature: streamTemperature } : {}),
-    ...(streamNeedsCompletionTokens
-      ? { max_completion_tokens: streamMaxTokens }
-      : { max_tokens: streamMaxTokens }),
-    stream: true,
-  }) as AsyncIterable<{ choices: Array<{ delta?: { content?: string } }> }>;
-  
-  let fullContent = "";
-  
-  for await (const chunk of stream) {
-    const content = chunk.choices[0]?.delta?.content || "";
-    if (content) {
-      fullContent += content;
-      onChunk(content);
+  try {
+    const stream = await client.chat.completions.create({
+      model,
+      messages: request.messages as any,
+      ...(shouldSendTemp ? { temperature: streamTemperature } : {}),
+      ...(streamNeedsCompletionTokens
+        ? { max_completion_tokens: streamMaxTokens }
+        : { max_tokens: streamMaxTokens }),
+      stream: true,
+    }) as AsyncIterable<{ choices: Array<{ delta?: { content?: string } }> }>;
+
+    let fullContent = "";
+
+    for await (const chunk of stream) {
+      const content = chunk.choices[0]?.delta?.content || "";
+      if (content) {
+        fullContent += content;
+        onChunk(content);
+      }
     }
+
+    // P0-FIX: Estimate tokens from actual content length (~4 chars/token for English)
+    const tokensInput = Math.ceil(
+      request.messages.reduce((sum, m) => sum + m.content.length, 0) / 4
+    );
+    const tokensOutput = Math.ceil(fullContent.length / 4);
+
+    const response: LLMResponse = {
+      content: fullContent,
+      provider,
+      model,
+      family: PROVIDER_FAMILY[provider],
+      tokensInput,
+      tokensOutput,
+      costUsd: calculateCost(provider, model, tokensInput, tokensOutput),
+      cached: false,
+    };
+    if (cassetteMode === 'record') recordLlmCassette(request, cassetteKey, response);
+    return response;
+  } catch (err) {
+    if (cassetteMode === 'record') recordLlmCassette(request, cassetteKey, undefined, err);
+    throw err;
   }
-  
-  // P0-FIX: Estimate tokens from actual content length (~4 chars/token for English)
-  const tokensInput = Math.ceil(
-    request.messages.reduce((sum, m) => sum + m.content.length, 0) / 4
-  );
-  const tokensOutput = Math.ceil(fullContent.length / 4);
-  
-  return {
-    content: fullContent,
-    provider,
-    model,
-    family: PROVIDER_FAMILY[provider],
-    tokensInput,
-    tokensOutput,
-    costUsd: calculateCost(provider, model, tokensInput, tokensOutput),
-    cached: false,
-  };
 }
 
 /**

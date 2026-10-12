@@ -15,9 +15,8 @@
  *   - durable execution is disabled: checkpoints would replay attempt-1
  *     results without exercising the recorded LLM calls.
  *
- * NOTE: the run persists a new brief/publication row (skipDuplicateCheck
- * is set so the identical question does not dedup-block). Point DATABASE_URL
- * at a staging copy if you don't want replay rows in production.
+ * NOTE: the run persists a new brief + pipelineRun row. Pass --cleanup to
+ * delete exactly the rows this replay created after the diff is printed.
  *
  * Compares the replayed outcome against the recorded one (trust, gate,
  * decision, cost) and exits non-zero on mismatch beyond --tolerance.
@@ -31,6 +30,7 @@ interface ReplayArgs {
   cassette?: string;
   depth?: string;
   inspect?: string;
+  cleanup: boolean; // delete the brief + pipelineRun rows this replay created
   tolerance: number; // absolute points of trust-score drift tolerated
 }
 
@@ -41,7 +41,7 @@ function formatToDepth(format?: string): string {
 }
 
 function parseArgs(argv: string[]): ReplayArgs {
-  const args: ReplayArgs = { tolerance: 0 };
+  const args: ReplayArgs = { tolerance: 0, cleanup: false };
   for (let i = 2; i < argv.length; i++) {
     const a = argv[i];
     const next = () => argv[++i];
@@ -50,6 +50,7 @@ function parseArgs(argv: string[]): ReplayArgs {
     else if (a === '--cassette') args.cassette = next();
     else if (a === '--depth') args.depth = next();
     else if (a === '--inspect') args.inspect = next();
+    else if (a === '--cleanup') args.cleanup = true;
     else if (a === '--tolerance') args.tolerance = Number(next());
     else if (a === '--help' || a === '-h') {
       console.log('usage: replay-run --publication <id> | --pipeline-run <id> [--cassette path] [--depth surface|standard|deep|strategic] [--tolerance N]');
@@ -179,9 +180,27 @@ async function main() {
   const report = {
     recorded: { trust: recordedTrust, gate: recordedGate, costUsd: recordedCost, reasons: recordedReasons },
     replayed: { trust: replayedTrust, costUsd: replayedCost, refusal: replayedRefusal ?? null },
+    replayedIds: { pipelineRunId: pipeline.pipelineRunId ?? null, briefId: pipeline.briefId ?? null },
     durationMs: Date.now() - started,
   };
   console.log('[replay] RESULT', JSON.stringify(report, null, 2));
+
+  if (args.cleanup) {
+    // Replay artefacts are reruns of rows that already exist — delete only the
+    // ids this replay just created (brief first: it references the run).
+    try {
+      if (pipeline.briefId) {
+        await prisma.brief.delete({ where: { id: pipeline.briefId } });
+        console.log(`[replay] cleanup: deleted brief ${pipeline.briefId}`);
+      }
+      if (pipeline.pipelineRunId) {
+        await prisma.pipelineRun.delete({ where: { id: pipeline.pipelineRunId } });
+        console.log(`[replay] cleanup: deleted pipelineRun ${pipeline.pipelineRunId}`);
+      }
+    } catch (cleanupErr) {
+      console.warn('[replay] cleanup failed (non-fatal):', cleanupErr);
+    }
+  }
 
   // Drift assertion: trust within tolerance of the recorded run.
   if (typeof recordedTrust === 'number' && typeof replayedTrust === 'number') {
