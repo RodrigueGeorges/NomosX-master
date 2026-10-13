@@ -170,15 +170,20 @@ export async function runStyleSweepRecheck(ctx: TailStepContext): Promise<void> 
       );
       addCost(recheck.costUsd, 'DEVILS_ADVOCATE_RECHECK');
       const recheckFatal = recheck.fatalChallenges?.length ?? 0;
-      const stillVetoWorthy = recheck.verdict === 'reject'
-        || (recheck.verdict === 'major_revision' && recheck.overallStrength < 20);
-      console.log(`${label} DA RE-CHECK: strength ${daStats?.overallStrength ?? '?'}→${recheck.overallStrength}/100, fatal ${daStats?.fatalChallenges ?? '?'}→${recheckFatal} — veto ${stillVetoWorthy ? 'STANDS' : 'LIFTED'}`);
+      const { daVetoStands } = await import('./da-veto');
+      const vetoCheck = daVetoStands(
+        { verdict: recheck.verdict, overallStrength: recheck.overallStrength, publishabilityScore: recheck.publishabilityScore, fatalChallenges: recheckFatal },
+        { overallStrength: daStats?.overallStrength as number | undefined, fatalChallenges: daStats?.fatalChallenges as number | undefined, veto: (stats as any).devilsAdvocateVeto === true },
+      );
+      const stillVetoWorthy = vetoCheck.stands;
+      console.log(`${label} DA RE-CHECK: strength ${daStats?.overallStrength ?? '?'}→${recheck.overallStrength}/100, fatal ${daStats?.fatalChallenges ?? '?'}→${recheckFatal} — veto ${stillVetoWorthy ? 'STANDS' : 'LIFTED'} (${vetoCheck.reason})`);
       (stats as any).devilsAdvocateRecheck = {
         verdict: recheck.verdict,
         overallStrength: recheck.overallStrength,
         publishabilityScore: recheck.publishabilityScore,
         fatalChallenges: recheckFatal,
         vetoLifted: !stillVetoWorthy && (stats as any).devilsAdvocateVeto === true,
+        vetoReason: vetoCheck.reason,
         costUsd: recheck.costUsd,
       };
       (stats as any).devilsAdvocateVeto = stillVetoWorthy;

@@ -487,7 +487,11 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   // Readings are the big nondeterminism surface (live PDF/news fetches,
   // extraction quirks) and quant embeds live primary-data APIs, so both
   // ride along rather than being re-fetched.
-  if (!frozenContext && getLlmCassetteMode() === 'record') {
+  // When frozenContext was supplied (re-record on top of a previous
+  // snapshot) the resolved primed/episodic/readings ARE the frozen values —
+  // recording them again is correct and keeps stats.frozenContext populated
+  // so mergeInputsIntoStats can flush the captured inputs map.
+  if (getLlmCassetteMode() === 'record') {
     (stats as any).frozenContext = {
       primed: primedContext,
       episodic: { episodes: episodicContext, formatted: episodicFormatted },
@@ -1015,6 +1019,8 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
         label,
         bumpHtmlArtifact,
         tagEval,
+        isBudgetConstrained,
+        addCost,
       });
     }
 
@@ -1519,8 +1525,12 @@ Return JSON: {"queries": ["...", "..."]} — one query per gap, same order.`,
         );
         addCost(recheck.costUsd, 'DEVILS_ADVOCATE_POSTREPAIR');
         const recheckFatal = recheck.fatalChallenges?.length ?? 0;
-        const stillVetoWorthy = recheck.verdict === 'reject'
-          || (recheck.verdict === 'major_revision' && recheck.overallStrength < 20);
+        const { daVetoStands } = await import('./pipeline-steps/da-veto');
+        const vetoCheck = daVetoStands(
+          { verdict: recheck.verdict, overallStrength: recheck.overallStrength, publishabilityScore: recheck.publishabilityScore, fatalChallenges: recheckFatal },
+          { overallStrength: daEval?.overallStrength as number | undefined, fatalChallenges: daEval?.fatalChallenges as number | undefined, veto: (stats as any).devilsAdvocateVeto === true },
+        );
+        const stillVetoWorthy = vetoCheck.stands;
         (stats as any).devilsAdvocateVeto = stillVetoWorthy;
         (stats as any).devilsAdvocatePostRepair = {
           verdict: recheck.verdict,
@@ -1528,6 +1538,7 @@ Return JSON: {"queries": ["...", "..."]} — one query per gap, same order.`,
           publishabilityScore: recheck.publishabilityScore,
           fatalChallenges: recheckFatal,
           reason: 'stale_after_quality_tail',
+          vetoReason: vetoCheck.reason,
           costUsd: recheck.costUsd,
         };
         stats.devilsAdvocate = tagEval({
@@ -1545,7 +1556,7 @@ Return JSON: {"queries": ["...", "..."]} — one query per gap, same order.`,
           futureVulnerabilities: recheck.futureVulnerabilities?.length || 0,
           costUsd: recheck.costUsd,
         }, 'html');
-        console.log(`${label} DA POST-REPAIR RECHECK: strength ${recheck.overallStrength}/100, fatal ${recheckFatal} — verdict refreshed on the corrected artifact (veto ${stillVetoWorthy ? 'STANDS' : 'not warranted'})`);
+        console.log(`${label} DA POST-REPAIR RECHECK: strength ${recheck.overallStrength}/100, fatal ${recheckFatal} — verdict refreshed on the corrected artifact (veto ${stillVetoWorthy ? 'STANDS' : 'not warranted'} — ${vetoCheck.reason})`);
       } catch (daErr) {
         console.warn(`${label} DA POST-REPAIR RECHECK failed (non-blocking):`, daErr);
       }
@@ -1566,6 +1577,7 @@ Return JSON: {"queries": ["...", "..."]} — one query per gap, same order.`,
     durableKey, memoryBlock, readerMemoryBlock, readings,
     witnessCtx, useWorldModel, worldModelControversies, usePRM, prmModel,
     useRagasEval, useSelfEvolution, useMixtureOfAgents, addCost,
+    isBudgetConstrained, tagEval,
   });
   html = tail.html;
   phaseMark('persisted');

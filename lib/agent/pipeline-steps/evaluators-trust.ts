@@ -106,7 +106,8 @@ export async function runEvaluatorsAndTrust(deps: EvaluatorsTrustDeps): Promise<
           abstract: s.abstract || null,
           fullText: s.fullText || null,
         }));
-        const sourceCheckResult = await checkSourcesBatch(sourcesToCheck);
+        const { captureInput } = await import('../frozen-inputs');
+        const sourceCheckResult = await captureInput('trust:sourcecheck', () => checkSourcesBatch(sourcesToCheck));
         stats.sourceCheck = {
           checked: sourceCheckResult.results.length,
           retracted: sourceCheckResult.retractedCount,
@@ -140,7 +141,8 @@ export async function runEvaluatorsAndTrust(deps: EvaluatorsTrustDeps): Promise<
         const { extractCitationNumbers } = await import('../evidence-ledger');
         const citedNums = extractCitationNumbers(html);
         if (citedNums.length > 0) {
-          const urlHealth = await checkCitedUrlHealth(citedNums, topSources);
+          const { captureInput } = await import('../frozen-inputs');
+          const urlHealth = await captureInput('trust:urlhealth', () => checkCitedUrlHealth(citedNums, topSources));
           stats.urlHealth = {
             checked: urlHealth.checked,
             alive: urlHealth.alive,
@@ -325,6 +327,9 @@ export async function runEvaluatorsAndTrust(deps: EvaluatorsTrustDeps): Promise<
         devilsAdvocateVeto: (stats as any).devilsAdvocateVeto === true,
         providerDiversity,
         hallDetectScore,
+        factFatal: ((stats.factChecker as any)?.error || (stats.factChecker as any)?.stale)
+          ? 0
+          : ((stats.factChecker as any)?.fatalIssues ?? 0),
       },
     );
     const deterministicScore = trustResult.score;

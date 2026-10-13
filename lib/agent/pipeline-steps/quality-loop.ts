@@ -9,7 +9,7 @@
  */
 
 import type { TailStepContext } from './types';
-import { computeTrustScore, countDistinctCitedSources } from './trust-score';
+import { rescoreTrustFromStats, countDistinctCitedSources } from './trust-score';
 
 export async function runPostRenderQualityLoop(ctx: TailStepContext): Promise<void> {
   const { stats, topSources, readings, orchState, label } = ctx;
@@ -69,47 +69,13 @@ export async function runPostRenderQualityLoop(ctx: TailStepContext): Promise<vo
       const loopCitationCoverage = loopCoverageTarget > 0 ? Math.min(1, countDistinctCitedSources(ctx.html) / loopCoverageTarget) : 0;
       const loopGroundedness = loopGrounding.groundedness;
 
-      const loopFactIntegrity = (stats.factChecker as any)?.integrityScore ?? 80;
-      const loopNliIntegrity = stats.citationVerifier?.integrity ?? 80;
-      const loopSourceCheckIntegrity = (stats.sourceCheck as any)?.integrityScore ?? 85;
-      const loopDiversityScore = Math.min(100, new Set(topSources.map((s: any) => s.provider)).size * 15);
-      const loopAvgQuality = topSources.length > 0
-        ? topSources.reduce((sum: number, s: any) => sum + ((s.qualityScore || 0) > 0 ? s.qualityScore : (s.sourceQuality?.overall || 0)), 0) / topSources.length
-        : 50;
-
       // ── CANONICAL RE-SCORE — single arithmetic site (trust-score.ts). ──
       // The loop previously blended different weights and omitted the
       // criticPanel/editorial-floor vetoes — it could re-inflate a score the
       // canonical pass had capped. P0/1 preserved: vetoes only apply to
       // evaluations attached to the CURRENT artifact (stale → null).
       ctx.collectStaleEvaluations();
-      const loopCriticScore = stats.critic?.stale ? null : (stats.critic?.overallScore ?? null);
-      const loopCriticVerdict = stats.critic?.stale ? null : (stats.critic?.verdict ?? null);
-      const loopPanel = stats.criticPanel?.stale ? null : (stats.criticPanel as any);
-      const loopTrust = computeTrustScore(
-        {
-          citationCoverage: loopCitationCoverage,
-          groundedness: loopGroundedness,
-          factIntegrity: loopFactIntegrity,
-          nliIntegrity: loopNliIntegrity,
-          sourceCheckIntegrity: loopSourceCheckIntegrity,
-          diversityScore: loopDiversityScore,
-          avgQuality: loopAvgQuality,
-          criticScore: loopCriticScore,
-        },
-        {
-          criticVerdict: loopCriticVerdict,
-          symbolicScore: stats.symbolicVerifier?.score ?? 100,
-          symbolicFailed: stats.symbolicVerifier?.failed ?? 0,
-          criticPanelVeto: loopPanel?.veto === true,
-          criticPanelVetoReasons: loopPanel?.vetoReasons,
-          editorialScore: (loopPanel?.dimensions ?? []).find((d: any) => d.dimension === 'editorial')?.score,
-          retracted: (stats.sourceCheck as any)?.retracted,
-          devilsAdvocateVeto: (stats as any).devilsAdvocateVeto === true && !(stats.devilsAdvocate as any)?.stale,
-          providerDiversity: new Set(topSources.map((s: any) => s.provider)).size,
-          hallDetectScore: (stats as any).hallDetect?.score ?? 0,
-        },
-      );
+      const loopTrust = rescoreTrustFromStats(stats, ctx.html, topSources, { groundedness: loopGroundedness });
       const loopTrustScore = loopTrust.score;
       for (const vetoReason of loopTrust.vetoes) {
         console.log(`${label_} QUALITY LOOP: ${vetoReason} reapplied`);

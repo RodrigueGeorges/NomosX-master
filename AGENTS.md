@@ -254,13 +254,85 @@ corpus is identical by construction.
 
 Residual limits (documented honestly): embeddings (OpenAI/Cohere) bypass
 `callLLM` — stable in practice but model-version drift over months could
-shift DPP/dedup outputs; SAFE/url-health live checks feed trust
-components, not prompts — a post-record source outage can drift the final
-score by a few points (use `--tolerance`); a replayed run still writes
-brief/pipelineRun rows (use `--cleanup`).
+shift DPP/dedup outputs; a replayed run still writes brief/pipelineRun/
+publication rows (use `--cleanup`).
 
 Tests: `frozen-inputs.test.ts` +5 (live no-capture, record capture, replay
 serve-without-producer, miss fallthrough, sync FIFO ordering).
+
+---
+
+## Sprint 44 — What the first deterministic replay exposed
+
+The gulf-minerals replay reproduced trust 82 to the cent — and that
+fidelity is what made the defects legible. The replayed run shipped with
+`FACT-CHECKER … 11 fatal → integrity 25%`, a DA re-check that went
+36→20 / fatal 1→2 and logged `veto LIFTED`, three integrity evals stale on
+the persisted artifact, and the gate never exercised at all. Five fixes:
+
+**Fact-integrity veto** (`trust-score.ts`) — `factFatal > 0 &&
+factIntegrity < 50` caps trust at 55. The 12-point weight alone let 11
+fatal numerical discrepancies ship at 82. Errored/stale fact evals pass
+`factFatal: 0` (an unavailable evaluator is not a fatal finding).
+
+**Repair before the veto bites** (`verification-block.ts`,
+`fact-repair.ts`) — on fatals, the fact-checker's per-claim
+`{claim, number, sourceSays, fix}` go to `repairFactualDiscrepancies`.
+The generic revision editor could not do this (first live attempt: 0
+edits applied, silently): fact-checker claims come from
+`stripHtmlForEvidence` so a verbatim `find` never matches raw HTML across
+`<sup>` citations/inline tags, and the editor only saw 12KB of a 90KB
+article. The repairer prompts on the claim sentences alone and applies
+edits with `applyTolerantEdit`: tokens may be separated by whitespace/
+`&nbsp;`/inline tags, the match must be unique, edge tags are peeled, a
+span crossing a block or citation boundary is rejected, `replace` may
+only carry the source's figure (or drop it). Then one bounded recheck +
+the free verifiers (`reverifyAfterMutation`, shared with the sanitize
+path); the legacy sanitize decides on the post-repair fatal count.
+`stats.factCheckerRepair` records before/after + `skippedReasons`; the
+log line fires at `applied === 0` too. Live probe on the HELD brief:
+5/8 applied, fatal 19→17.
+
+**`daVetoStands`** (`pipeline-steps/da-veto.ts`) — single rule for both
+re-check sites. Stands on: reject; publishability < 40 (the gate's bar —
+lifting below it is incoherent); major_revision ≤ 20; or a standing veto
+with no improvement (strength not up, or fatals not down). A degraded
+recheck can no longer lift a veto.
+
+**Integrity re-verify before persist** (`persistence-tail.ts`) — the sweep
+editor and the pack bump html after the integrity verifiers ran; the gate
+only consumes `verdictStale`, so `claimGrounding`/`citationVerifier`/
+`factChecker`/`symbolicVerifier` were silently consumed stale and the trust
+composite described a replaced artifact. The tail re-runs the free
+verifiers (grounding in non-mutating `flag` mode), one bounded fact
+recheck, re-tags, and rescores through `rescoreTrustFromStats` — the
+component extraction now shared with `quality-loop.ts` so the arithmetic
+site stays single. A changed score is synced to the brief row.
+`stats.integrityReverify` traces it.
+
+**Remaining live channels frozen** — `trust:sourcecheck`, `trust:urlhealth`,
+`hero:image`, `safe:verify#N` go through `captureInput`; replay makes no
+provider call outside the cassette.
+
+**Harness replays the gate** — `replay-run.ts` drives
+`runAndPublishInquiry` (source `'replay'`, `skipDuplicateCheck`), so the
+publication gate, revision round, moderate tier and regen are part of the
+replayed path. Gate drift is a hard fail; `--cleanup` also removes the
+publication row.
+
+Tests: `da-veto.test.ts` +5, `integrity-reverify.test.ts` +3,
+`fact-repair.test.ts` +7, `verification-stale.test.ts` +3,
+`trust-score.test.ts` +3, `frozen-inputs.test.ts` +1.
+
+**What the corrected funnel said about the same run** — record 3 (same
+question, same 27-source corpus, surface depth) that previously shipped at
+trust 82: `FACT-CHECKER 32 claims, 17 fatal → 42%`, `DA RE-CHECK 36→26,
+fatal 1→2 — veto STANDS (publishability 26 < 40)`, `INTEGRITY RE-VERIFY:
+trust 55 → 40 on final artifact`, `EVAL FRESHNESS: all evaluations match`,
+gate `hold` → revision round (2 edits) → regen → `hold`, `HELD trust=40`.
+That is the honest verdict on this artifact; 82 was not. The remaining
+lever is upstream quality at surface depth (analysis strength 12–36/100
+under adversarial review), not scoring.
 
 ---
 

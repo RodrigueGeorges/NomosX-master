@@ -33,6 +33,7 @@ export interface TrustVetoes {
   devilsAdvocateVeto?: boolean;
   providerDiversity?: number;
   hallDetectScore?: number;        // hallucination risk 0–100
+  factFatal?: number;              // fact-checker fatal numerical discrepancies
 }
 
 export interface TrustScoreResult {
@@ -121,6 +122,12 @@ export function computeTrustScore(c: TrustComponents, v: TrustVetoes = {}): Trus
     cap(55, `citation integrity veto — NLI ${c.nliIntegrity}% < 70%`);
   }
 
+  // Fact-integrity veto — fatal numerical discrepancies on a <50% integrity
+  // artifact cap at 55 (12-point weight alone let 11 fatals ship at trust 82).
+  if ((v.factFatal ?? 0) > 0 && c.factIntegrity < 50) {
+    cap(55, `fact integrity veto — ${v.factFatal} fatal numerical discrepancies (integrity ${c.factIntegrity}%)`);
+  }
+
   // Devil's Advocate fragility veto.
   if (v.devilsAdvocateVeto) {
     cap(40, `devil's advocate veto — MAJOR_REVISION strength < 20`);
@@ -137,6 +144,57 @@ export function computeTrustScore(c: TrustComponents, v: TrustVetoes = {}): Trus
   }
 
   return { score: Math.min(100, Math.max(0, score)), vetoes };
+}
+
+/**
+ * Canonical component extraction + re-score, shared by the post-render
+ * quality loop and the persistence-tail integrity re-verify so the
+ * arithmetic site stays single. `stats` is the pipeline stats bag; verdicts
+ * marked `.stale` are nulled out (same rule as quality-loop). `groundedness`
+ * override (0–1) is used when the caller just re-ran claim grounding and the
+ * stats entry is not the freshest measurement.
+ */
+export function rescoreTrustFromStats(
+  stats: Record<string, any>,
+  html: string,
+  topSources: any[],
+  opts?: { groundedness?: number },
+): TrustScoreResult {
+  const coverageTarget = Math.min(40, Math.max(15, Math.ceil(topSources.length * 0.35)));
+  const citationCoverage = coverageTarget > 0 ? Math.min(1, countDistinctCitedSources(html) / coverageTarget) : 0;
+  const groundedness = opts?.groundedness ?? ((stats.claimGrounding?.groundedness ?? 75) / 100);
+  const factStats = stats.factChecker as any;
+  const factIntegrity = factStats?.integrityScore ?? 80;
+  const nliIntegrity = stats.citationVerifier?.integrity ?? 80;
+  const sourceCheckIntegrity = (stats.sourceCheck as any)?.integrityScore ?? 85;
+  const providerDiversity = new Set(topSources.map((s: any) => s.provider)).size;
+  const diversityScore = Math.min(100, providerDiversity * 15);
+  const avgQuality = topSources.length > 0
+    ? topSources.reduce((sum: number, s: any) => sum + ((s.qualityScore || 0) > 0 ? s.qualityScore : (s.sourceQuality?.overall || 0)), 0) / topSources.length
+    : 50;
+  const criticScore = stats.critic?.stale ? null : (stats.critic?.overallScore ?? null);
+  const criticVerdict = stats.critic?.stale ? null : (stats.critic?.verdict ?? null);
+  const panel = stats.criticPanel?.stale ? null : (stats.criticPanel as any);
+  const factFatal = (factStats?.error || factStats?.stale) ? 0 : (factStats?.fatalIssues ?? 0);
+  return computeTrustScore(
+    {
+      citationCoverage, groundedness, factIntegrity, nliIntegrity,
+      sourceCheckIntegrity, diversityScore, avgQuality, criticScore,
+    },
+    {
+      criticVerdict,
+      symbolicScore: stats.symbolicVerifier?.score ?? 100,
+      symbolicFailed: stats.symbolicVerifier?.failed ?? 0,
+      criticPanelVeto: panel?.veto === true,
+      criticPanelVetoReasons: panel?.vetoReasons,
+      editorialScore: (panel?.dimensions ?? []).find((d: any) => d.dimension === 'editorial')?.score,
+      retracted: (stats.sourceCheck as any)?.retracted,
+      devilsAdvocateVeto: (stats as any).devilsAdvocateVeto === true && !(stats.devilsAdvocate as any)?.stale,
+      providerDiversity,
+      hallDetectScore: (stats as any).hallDetect?.score ?? 0,
+      factFatal,
+    },
+  );
 }
 
 /** Distinct cited source indices — [SRC-N], data-evidence="EN", href="#ref-N". */

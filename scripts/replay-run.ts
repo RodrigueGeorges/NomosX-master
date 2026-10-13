@@ -104,8 +104,11 @@ async function main() {
     inspectCassette(args.inspect);
     return;
   }
-  if (!args.publicationId && !args.pipelineRunId) {
-    console.error('replay-run: --publication or --pipeline-run required');
+  // A self-describing fixture (--cassette with a .meta.json sidecar) needs no
+  // DB loader — question/depth/corpus/frozenContext all come from the meta.
+  const metaPath = args.cassette ? `${args.cassette}.meta.json` : undefined;
+  if (!args.publicationId && !args.pipelineRunId && !(metaPath && existsSync(metaPath))) {
+    console.error('replay-run: --publication, --pipeline-run, or a --cassette with meta sidecar required');
     process.exit(2);
   }
 
@@ -146,9 +149,9 @@ async function main() {
     recordedCost = clr.productionCostUsd;
     recordedReasons = (clr.publicationGate?.reasons ?? []).map((r: unknown) => String(r));
     frozenContext = (clr.stats as any)?.frozenContext;
-  } else {
+  } else if (args.pipelineRunId) {
     const run = await prisma.pipelineRun.findUnique({
-      where: { id: args.pipelineRunId! },
+      where: { id: args.pipelineRunId },
       select: { question: true, format: true, trustScore: true, totalCostUsd: true, steps: true },
     });
     if (!run) throw new Error(`pipeline run ${args.pipelineRunId} not found`);
@@ -180,7 +183,6 @@ async function main() {
   // the run's true depth (pipelineRun only stores format), the frozen input
   // snapshot, and the corpus id list. With a sidecar present the replay is
   // self-describing — --publication/--pipeline-run become unnecessary.
-  const metaPath = args.cassette ? `${args.cassette}.meta.json` : undefined;
   if (!args.record && metaPath && existsSync(metaPath)) {
     const meta = JSON.parse(readFileSync(metaPath, 'utf8'));
     question = question ?? meta.question;
@@ -209,14 +211,18 @@ async function main() {
 
   console.log(`[replay] question="${question.slice(0, 90)}" depth=${depth} sources=${sourceIds.length} cassette=${process.env.NOMOSX_LLM_CASSETTE ?? 'default'}`);
 
-  const { runInquiryPipeline } = await import('../lib/agent/inquiry-pipeline');
+  // Replay through the full publication funnel — runAndPublishInquiry
+  // exercises the publication gate the plain pipeline call skipped, so the
+  // recorded gate decision is actually reproduced (and diffed) below.
+  const { runAndPublishInquiry } = await import('../lib/agent/inquiry-orchestrator');
   const started = Date.now();
-  const pipeline = await runInquiryPipeline({
+  const result = await runAndPublishInquiry({
     question,
     domain: domain ?? 'general',
     depth: depth as never,
     seedSourceIds: sourceIds,
-    skipSimulation: false,
+    source: 'replay',
+    skipDuplicateCheck: true,
     pipelineOptions: {
       // Durable checkpoints would serve attempt-1 results without
       // exercising the recorded LLM calls — replay must re-execute.
@@ -234,12 +240,15 @@ async function main() {
       // PDFs/news URLs that 403 or shift content between runs.
       priorReadings: frozenContext?.readings,
     },
-  } as never);
+  });
+  const pipeline = result.pipeline;
 
-  const stats = (pipeline.stats ?? {}) as Record<string, any>;
-  const replayedTrust = pipeline.trustScore ?? stats.criticalLoop?.finalScore;
-  const replayedCost = stats.totalCostUsd;
-  const replayedRefusal = pipeline.refusal ? pipeline.refusalReason : null;
+  const stats = (pipeline?.stats ?? {}) as Record<string, any>;
+  const replayedTrust = result.trustScore ?? stats.criticalLoop?.finalScore;
+  const replayedCost = result.costUsd ?? stats.totalCostUsd;
+  const replayedGate = result.gate?.decision ?? null;
+  const replayedStatus = result.status;
+  const replayedRefusal = pipeline?.refusal ? pipeline.refusalReason : null;
 
   // Record mode: persist the fixture meta sidecar — the frozen snapshot is
   // already in pipelineRun.steps; copy it next to the cassette so the replay
@@ -254,9 +263,10 @@ async function main() {
         cassetteRun,
         frozenContext: frozen,
         recordedTrust: replayedTrust,
-        recordedGate: stats.publicationGate?.decision ?? null,
-        recordedCostUsd: stats.totalCostUsd ?? null,
-        pipelineRunId: pipeline.pipelineRunId ?? null,
+        recordedGate: result.gate?.decision ?? null,
+        recordedStatus: result.status,
+        recordedCostUsd: stats.totalCostUsd ?? result.costUsd ?? null,
+        pipelineRunId: pipeline?.pipelineRunId ?? null,
         recordedAt: new Date().toISOString(),
       };
       writeFileSync(`${args.cassette}.meta.json`, JSON.stringify(meta));
@@ -279,21 +289,35 @@ async function main() {
 
   const report = {
     recorded: { trust: recordedTrust, gate: recordedGate, costUsd: recordedCost, reasons: recordedReasons },
-    replayed: { trust: replayedTrust, costUsd: replayedCost, refusal: replayedRefusal ?? null },
-    replayedIds: { pipelineRunId: pipeline.pipelineRunId ?? null, briefId: pipeline.briefId ?? null },
+    replayed: { trust: replayedTrust, gate: replayedGate, status: replayedStatus, costUsd: replayedCost, refusal: replayedRefusal ?? null },
+    replayedIds: { pipelineRunId: pipeline?.pipelineRunId ?? null, briefId: result.briefId ?? null, publicationId: result.publicationId ?? null },
     durationMs: Date.now() - started,
   };
   console.log('[replay] RESULT', JSON.stringify(report, null, 2));
 
   if (args.cleanup) {
-    // Replay artefacts are reruns of rows that already exist — delete only the
-    // ids this replay just created (brief first: it references the run).
+    // Replay artefacts are reruns of rows that already exist — delete only
+    // the rows this replay just created, in FK-safe order: publication
+    // children cascade on the ThinkTankPublication delete; EditorialDecision
+    // has no publication FK (linked via signalId/draftId) so it is removed by
+    // the run's signal + time window; brief before pipelineRun (brief
+    // references the run).
     try {
-      if (pipeline.briefId) {
-        await prisma.brief.delete({ where: { id: pipeline.briefId } });
-        console.log(`[replay] cleanup: deleted brief ${pipeline.briefId}`);
+      if (result.signalId) {
+        const decDel = await prisma.editorialDecision.deleteMany({
+          where: { signalId: result.signalId, createdAt: { gte: new Date(started) } },
+        });
+        if (decDel.count > 0) console.log(`[replay] cleanup: deleted ${decDel.count} editorialDecision row(s) for signal ${result.signalId}`);
       }
-      if (pipeline.pipelineRunId) {
+      if (result.publicationId) {
+        await prisma.thinkTankPublication.delete({ where: { id: result.publicationId } });
+        console.log(`[replay] cleanup: deleted thinkTankPublication ${result.publicationId}`);
+      }
+      if (result.briefId) {
+        await prisma.brief.delete({ where: { id: result.briefId } });
+        console.log(`[replay] cleanup: deleted brief ${result.briefId}`);
+      }
+      if (pipeline?.pipelineRunId) {
         await prisma.pipelineRun.delete({ where: { id: pipeline.pipelineRunId } });
         console.log(`[replay] cleanup: deleted pipelineRun ${pipeline.pipelineRunId}`);
       }
@@ -312,6 +336,12 @@ async function main() {
       console.error(`[replay] FAIL — trust drift ${drift} exceeds tolerance ${args.tolerance}`);
       process.exit(1);
     }
+  }
+  // Gate drift is a hard fail regardless of tolerance — the funnel now
+  // replays the gate, so a divergent verdict is the signal this exists for.
+  if (!args.record && recordedGate && replayedGate && replayedGate !== recordedGate) {
+    console.error(`[replay] FAIL — gate drift: recorded=${recordedGate} replayed=${replayedGate}`);
+    process.exit(1);
   }
   console.log('[replay] OK');
   process.exit(0);

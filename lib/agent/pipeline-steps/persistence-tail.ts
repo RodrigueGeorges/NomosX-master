@@ -61,6 +61,10 @@ export interface PersistenceTailDeps {
   useSelfEvolution: boolean;
   useMixtureOfAgents: boolean;
   addCost: (usd: number | undefined, step: string) => void;
+  /** When true the paid fact-checker recheck is skipped (free verifiers still re-run). */
+  isBudgetConstrained?: () => boolean;
+  /** Sprint 28 eval tagging — integrity re-verify re-tags refreshed evals. */
+  tagEval?: <T extends Record<string, any>>(entry: T, artifact: 'analysis' | 'html') => T;
 }
 
 export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ briefId: string; html: string }> {
@@ -317,6 +321,123 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
   // indistinguishable from a published one's. The call now lives in the
   // inquiry orchestrator, after the gate/regen/status resolution, where the
   // outcome is known. (Audit finding: learning captured before the verdict.)
+
+  // ── INTEGRITY RE-VERIFY (stale html evals before persist) ──
+  // The sweep's revision editor and the quality loop bump html AFTER the
+  // integrity verifiers (claimGrounding, citationVerifier, factChecker,
+  // symbolicVerifier) ran. The gate only hard-fails on verdictStale
+  // (critic/panel/DA), so these were silently consumed stale — and the trust
+  // composite was computed on the pre-repair text. Re-run the free verifiers
+  // on the final artifact, re-tag them, and recompute trust through the
+  // canonical rescore; the freshness assert below then sees refreshed evals.
+  {
+    const staleNow = collectStaleEvaluations();
+    const integrityStale = staleNow.filter(k =>
+      ['claimGrounding', 'citationVerifier', 'factChecker', 'symbolicVerifier'].includes(k));
+    if (integrityStale.length > 0 && !(deps.isBudgetConstrained?.() ?? false) && deps.tagEval) {
+      const tagEval = deps.tagEval;
+      const rechecked: string[] = [];
+      const trustBefore = stats.criticalLoop?.finalScore ?? null;
+      if (integrityStale.includes('symbolicVerifier')) {
+        try {
+          const { verifySymbolically } = await import('../symbolic-verifier');
+          const sym = verifySymbolically(html);
+          stats.symbolicVerifier = tagEval({
+            score: sym.score, passed: sym.passed, failed: sym.failed, flagged: sym.flagged.length,
+          }, 'html');
+          rechecked.push('symbolicVerifier');
+        } catch { /* keep stale — an unverifiable artifact fails closed */ }
+      }
+      if (integrityStale.includes('citationVerifier')) {
+        try {
+          const { verifyCitationsNLI } = await import('../nli-verifier');
+          const v = await verifyCitationsNLI(html, topSources, { maxConcurrency: 10, maxClaims: 80, readings });
+          stats.citationVerifier = tagEval({
+            integrity: v.overallIntegrity,
+            supported: v.supported,
+            flagged: v.flaggedClaims.length,
+          }, 'html');
+          rechecked.push('citationVerifier');
+        } catch { /* keep stale */ }
+      }
+      if (integrityStale.includes('claimGrounding')) {
+        try {
+          const { groundClaimsWithNLI } = await import('../claim-grounding');
+          // 'flag' is the non-mutating mode — the tail must NOT adopt a
+          // rewritten html at persist time; we only need the verdict numbers.
+          const g = await groundClaimsWithNLI(html, topSources, { mode: 'flag', readings });
+          stats.claimGrounding = tagEval({
+            supported: g.supported,
+            partial: g.partial,
+            unsupported: g.unsupported,
+            uncited: g.uncited,
+            contradicted: g.contradicted,
+            groundedness: Math.round(g.groundedness * 100),
+            flagged: g.removedClaims,
+          }, 'html');
+          rechecked.push('claimGrounding');
+        } catch { /* keep stale */ }
+      }
+      // factChecker has no deterministic-only recheck — one bounded LLM pass,
+      // only when its eval is stale; a failure keeps it stale (fail-closed).
+      if (integrityStale.includes('factChecker')) {
+        try {
+          const { factChecker } = await import('../fact-checker');
+          const producerFamily =
+            (analysis as any)?._meta?.producerFamily ??
+            (analysis as any)?._producerFamily ??
+            undefined;
+          const r = await factChecker(html, topSources, producerFamily, readings);
+          addCost(r.costUsd, 'FACT_RECHECK_TAIL');
+          stats.factChecker = tagEval({
+            totalClaims: r.totalClaims,
+            verified: r.verified,
+            majorIssues: r.majorIssues,
+            fatalIssues: r.fatalIssues,
+            integrityScore: r.integrityScore,
+            citance: r.citance
+              ? {
+                  total: r.citance.total,
+                  supported: r.citance.supported,
+                  contradicted: r.citance.contradicted,
+                  nei: r.citance.nei,
+                  supportRate: r.citance.supportRate,
+                  evaluationComplete: r.citance.evaluationComplete,
+                }
+              : undefined,
+          }, 'html');
+          rechecked.push('factChecker');
+        } catch { /* keep stale */ }
+      }
+      // Recompute trust on the refreshed evals — same canonical site as the
+      // quality loop. The persisted score must describe the artifact shipped.
+      try {
+        const { rescoreTrustFromStats } = await import('./trust-score');
+        const t = rescoreTrustFromStats(stats, html, topSources);
+        if (typeof trustBefore === 'number' && t.score !== trustBefore) {
+          stats.criticalLoop = { ...(stats.criticalLoop as any), finalScore: t.score };
+          orchState.trustScore = t.score;
+          if (html.includes('Indice de confiance :')) {
+            html = html.replace(
+              /Indice de confiance : <strong>\d+\/100<\/strong>/,
+              `Indice de confiance : <strong>${t.score}/100</strong>`
+            );
+          }
+          // The brief row was already created above — sync the badge html and
+          // trustScore column or the publication persists the stale badge.
+          await prisma.brief.update({
+            where: { id: brief.id },
+            data: { html: sanitizeForJson(html), trustScore: t.score / 100 },
+          }).catch((e) => console.warn(`${label} INTEGRITY RE-VERIFY: brief trust sync failed (non-blocking):`, e));
+          console.log(`${label} INTEGRITY RE-VERIFY: trust ${trustBefore} → ${t.score} on final artifact`);
+        }
+        stats.integrityReverify = { stale: integrityStale, rechecked, trustBefore, trustAfter: t.score };
+      } catch (rescoreErr) {
+        console.warn(`${label} INTEGRITY RE-VERIFY: rescore failed (non-blocking):`, rescoreErr);
+        stats.integrityReverify = { stale: integrityStale, rechecked, trustBefore, trustAfter: trustBefore };
+      }
+    }
+  }
 
   // ── EVALUATION FRESHNESS ASSERT (P0/1) ──
   // Every tagged evaluation is checked against the artifact version it judged.

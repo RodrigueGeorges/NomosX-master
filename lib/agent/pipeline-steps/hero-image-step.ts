@@ -24,10 +24,11 @@ export async function runHeroImageStep(ctx: TailStepContext): Promise<void> {
   const { stats, analysis, query, topicClassification, detectedDomain, label } = ctx;
   try {
     const { generateHeroImage } = await import('../hero-image');
+    const { captureInput } = await import('../frozen-inputs');
     const collisionLbl = topicClassification?.dimensions?.length
       ? topicClassification.dimensions.map((d: any) => d.label).join(' × ')
       : topicClassification?.primaryDomain || detectedDomain || '';
-    const heroResult = await generateHeroImage(
+    const heroResult = await captureInput('hero:image', () => generateHeroImage(
       String(analysis.title || query),
       collisionLbl,
       topicClassification?.primaryDomain || detectedDomain || '',
@@ -38,7 +39,7 @@ export async function runHeroImageStep(ctx: TailStepContext): Promise<void> {
         sectionTitles: extractSectionTitles(ctx.html),
         publicationType: ctx.isStrategic ? 'STRATEGIC_REPORT' : ctx.isMemo ? 'DECISION_MEMO' : ctx.isDossier ? 'STRATEGIC_REPORT' : 'ARTICLE',
       },
-    );
+    ));
     if (heroResult) {
       const heroHtml = `<figure class="hero-image" style="margin:0 0 32px 0;width:100%;overflow:hidden;border:1px solid rgba(240,240,250,0.08);border-radius:4px;">
         <img src="${heroResult.url}" alt="${String(analysis.title || query).replace(/"/g, '&quot;')}" style="width:100%;height:auto;display:block;object-fit:cover;" />

@@ -43,7 +43,8 @@ export type InquiryPublishSource =
   | "generate-briefs"
   | "studio"
   | "auto-publisher"
-  | "manual";
+  | "manual"
+  | "replay";
 
 export type InquiryPublishStatus =
   | "published"

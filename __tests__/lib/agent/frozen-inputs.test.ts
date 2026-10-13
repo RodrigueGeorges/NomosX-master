@@ -54,6 +54,30 @@ describe('frozen-inputs store', () => {
     expect(v).toBe('live-value');
   });
 
+  it('seeded trust:sourcecheck channel serves the fixture without invoking the producer', async () => {
+    process.env.NOMOSX_LLM_MODE = 'replay';
+    const fi = reset();
+    const fixture = { results: [{ verdict: 'verified' }], retractedCount: 0, verifiedCount: 20, notFoundCount: 0, claimAbsentCount: 0, integrityScore: 95 };
+    fi.seedFrozenInputs({ 'trust:sourcecheck': fixture });
+    let producerRan = false;
+    const v = await fi.captureInput('trust:sourcecheck', () => { producerRan = true; return { results: [], integrityScore: 0 }; });
+    expect(producerRan).toBe(false);
+    expect(v).toEqual(fixture);
+  });
+
+  it('seeded hero:image + safe:verify#N channels serve without producers', async () => {
+    process.env.NOMOSX_LLM_MODE = 'replay';
+    const fi = reset();
+    fi.seedFrozenInputs({ 'hero:image': { url: 'https://img/hero.png', costUsd: 0.02 }, 'safe:verify#0': { results: [], supported: 2 } });
+    let heroRan = false, safeRan = false;
+    const hero = await fi.captureInput('hero:image', () => { heroRan = true; return null; });
+    const safe = await fi.captureInput('safe:verify#0', () => { safeRan = true; return { results: [], supported: 0 }; });
+    expect(heroRan).toBe(false);
+    expect(safeRan).toBe(false);
+    expect((hero as any).url).toBe('https://img/hero.png');
+    expect((safe as any).supported).toBe(2);
+  });
+
   it('sync FIFO channels replay in call order', () => {
     process.env.NOMOSX_LLM_MODE = 'record';
     let fi = reset();

@@ -56,6 +56,24 @@ describe('computeTrustScore — canonical blend', () => {
   });
 });
 
+describe('fact-integrity veto — fatal discrepancies must cap, not just weigh 12pts', () => {
+  it('integrity 25% + 11 fatal discrepancies caps at 55 (live regression: shipped at 82)', () => {
+    const { score, vetoes } = computeTrustScore({ ...HEALTHY, factIntegrity: 25 }, { factFatal: 11 });
+    expect(score).toBeLessThanOrEqual(55);
+    expect(vetoes.some(v => v.includes('fact integrity veto'))).toBe(true);
+  });
+
+  it('no fact veto when factFatal is 0 even at low integrity', () => {
+    const { vetoes } = computeTrustScore({ ...HEALTHY, factIntegrity: 25 }, { factFatal: 0 });
+    expect(vetoes.some(v => v.includes('fact integrity veto'))).toBe(false);
+  });
+
+  it('no fact veto when integrity ≥ 50 despite fatals', () => {
+    const { vetoes } = computeTrustScore({ ...HEALTHY, factIntegrity: 60 }, { factFatal: 2 });
+    expect(vetoes.some(v => v.includes('fact integrity veto'))).toBe(false);
+  });
+});
+
 describe('countDistinctCitedSources', () => {
   it('counts SRC, evidence and ref forms without double-counting', () => {
     const html = '<p>[SRC-3] claim <a href="#ref-3">3</a> <sup data-evidence="E7">7</sup></p>';

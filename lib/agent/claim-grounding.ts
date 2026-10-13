@@ -575,6 +575,12 @@ export async function groundClaims(
 
 // ─── NLI-ENHANCED GROUNDING (async, uses real NLI model) ────────────────────
 
+// SAFE live-search is a frozen-inputs channel (`safe:verify#N`) — grounding
+// can run several times per run (citation-grounding + quality-loop), so each
+// invocation takes the next slot in call order; replay serves the recorded
+// Nth result.
+let safeCallIndex = 0;
+
 /**
  * Async version of groundClaims that uses the NLI engine (mDeBERTa-v3)
  * for real entailment classification instead of lexical overlap.
@@ -716,10 +722,12 @@ export async function groundClaimsWithNLI(
   if (safeCandidates.length > 0) {
     try {
       const { verifyClaimsWithLiveSearch } = await import('./safe-verifier');
-      const safeReport = await verifyClaimsWithLiveSearch(
-        safeCandidates.map(c => c.text),
-        { maxClaims: 12, timeoutMs: 100_000 },
-      );
+      const { captureInput } = await import('./frozen-inputs');
+      const safeReport = await captureInput(`safe:verify#${safeCallIndex++}`, () =>
+        verifyClaimsWithLiveSearch(
+          safeCandidates.map(c => c.text),
+          { maxClaims: 12, timeoutMs: 100_000 },
+        ));
       let rescued = 0;
       for (let i = 0; i < safeCandidates.length && i < safeReport.results.length; i++) {
         const claim = safeCandidates[i];
