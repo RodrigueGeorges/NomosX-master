@@ -78,6 +78,29 @@ describe('frozen-inputs store', () => {
     expect((safe as any).supported).toBe(2);
   });
 
+  it('seeded playbook:<role> channel serves without invoking the read', async () => {
+    process.env.NOMOSX_LLM_MODE = 'replay';
+    const fi = reset();
+    const bullets = [{ text: 'recorded lesson', score: 3 }];
+    fi.seedFrozenInputs({ 'playbook:council:geopolitics': bullets });
+    let producerRan = false;
+    const v = await fi.captureInput('playbook:council:geopolitics', () => { producerRan = true; return []; });
+    expect(producerRan).toBe(false);
+    expect(v).toEqual(bullets);
+  });
+
+  it('seeded critic:excerpt#N channel serves without invoking the excerpt producer', async () => {
+    process.env.NOMOSX_LLM_MODE = 'replay';
+    const fi = reset();
+    fi.seedFrozenInputs({ 'critic:excerpt#0': 'recorded excerpt A', 'critic:excerpt#1': 'recorded excerpt B' });
+    let producerRan = false;
+    const a = await fi.captureInput('critic:excerpt#0', () => { producerRan = true; return 'live A'; });
+    const b = await fi.captureInput('critic:excerpt#1', () => { producerRan = true; return 'live B'; });
+    expect(producerRan).toBe(false);
+    expect(a).toBe('recorded excerpt A');
+    expect(b).toBe('recorded excerpt B');
+  });
+
   it('sync FIFO channels replay in call order', () => {
     process.env.NOMOSX_LLM_MODE = 'record';
     let fi = reset();

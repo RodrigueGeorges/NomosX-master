@@ -137,7 +137,11 @@ export async function curatePlaybook(
   role: string,
   signal: { lessons: string[]; failurePatterns: Record<string, number>; outcome: "published" | "held" | "failed" },
 ): Promise<{ added: number; upvoted: number }> {
-  const existing = await getPlaybook(role);
+  // Frozen input: the playbook read is durable state that record-4's own
+  // post-gate writes mutate — replay must see the recorded snapshot or the
+  // "EXISTING PLAYBOOK" prompt block (and the early-return) drift.
+  const { captureInput } = await import('./frozen-inputs');
+  const existing = await captureInput(`playbook:${role}`, () => getPlaybook(role));
   let upvoted = 0;
 
   // Reflection: a published run is evidence the injected slice's advice held —

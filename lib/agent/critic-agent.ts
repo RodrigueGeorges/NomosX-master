@@ -280,7 +280,27 @@ function lexicalRankSentences(
  * Semantic retrieval when the embedder is live (OpenResearcher-style local
  * retrieval over extracted text) — lexical overlap as deterministic fallback.
  */
+let excerptCallIndex = 0;
+
+/**
+ * Frozen input: the excerpt depends on a live embeddings call
+ * (embedBatchDetailed — OpenAI/Cohere, outside the cassette). Provider
+ * availability mid-run flips the semantic/lexical selection, which drifts
+ * the grounding/rescue prompt keys. Capture the excerpt output so replay
+ * serves the recorded selection. Calls are sequential → FIFO index.
+ */
 async function buildSourceExcerpt(
+  abstract: string,
+  fullText: string | undefined,
+  claims: AtomicClaim[],
+  maxChars = 3500,
+): Promise<string> {
+  const { captureInput } = await import('./frozen-inputs');
+  return captureInput(`critic:excerpt#${excerptCallIndex++}`, () =>
+    buildSourceExcerptInner(abstract, fullText, claims, maxChars));
+}
+
+async function buildSourceExcerptInner(
   abstract: string,
   fullText: string | undefined,
   claims: AtomicClaim[],
