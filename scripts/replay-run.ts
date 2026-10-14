@@ -26,7 +26,7 @@
  * Compares the replayed outcome against the recorded one (trust, gate,
  * decision, cost) and exits non-zero on mismatch beyond --tolerance.
  */
-import { existsSync, readFileSync } from 'fs';
+import { existsSync, readFileSync, unlinkSync } from 'fs';
 import { prisma } from '../lib/db';
 
 interface ReplayArgs {
@@ -38,6 +38,7 @@ interface ReplayArgs {
   record: boolean;  // run live against the fixed corpus, writing the cassette
   cleanup: boolean; // delete the brief + pipelineRun rows this replay created
   tolerance: number; // absolute points of trust-score drift tolerated
+  allowMisses: number; // replay-mode cassette misses tolerated (default 0)
 }
 
 const DEPTHS = new Set(['surface', 'standard', 'deep', 'strategic']);
@@ -47,7 +48,7 @@ function formatToDepth(format?: string): string {
 }
 
 function parseArgs(argv: string[]): ReplayArgs {
-  const args: ReplayArgs = { tolerance: 0, cleanup: false, record: false };
+  const args: ReplayArgs = { tolerance: 0, cleanup: false, record: false, allowMisses: 0 };
   for (let i = 2; i < argv.length; i++) {
     const a = argv[i];
     const next = () => argv[++i];
@@ -59,6 +60,7 @@ function parseArgs(argv: string[]): ReplayArgs {
     else if (a === '--cleanup') args.cleanup = true;
     else if (a === '--record') args.record = true;
     else if (a === '--tolerance') args.tolerance = Number(next());
+    else if (a === '--allow-misses') args.allowMisses = Number(next());
     else if (a === '--help' || a === '-h') {
       console.log('usage: replay-run --publication <id> | --pipeline-run <id> [--cassette path] [--depth surface|standard|deep|strategic] [--tolerance N]');
       process.exit(0);
@@ -115,6 +117,26 @@ async function main() {
   // Force the mode BEFORE any LLM call — cassette path optional (default file).
   process.env.NOMOSX_LLM_MODE = args.record ? 'record' : 'replay';
   if (args.cassette) process.env.NOMOSX_LLM_CASSETTE = args.cassette;
+
+  // Deterministic RNG: bootstrapCI (foresight-delphi, simulation-agent),
+  // ts-setrank shuffles and the persistence-tail sampling gate all call
+  // Math.random — an unseeded sequence drifts confidence intervals that land
+  // inside elenchus/simulation prompts, and their key drift cascades. Seeding
+  // in BOTH record and replay makes the random stream part of the fixture.
+  {
+    let s = 0xC0FFEE;
+    Math.random = () => {
+      s |= 0; s = (s + 0x6D2B79F5) | 0;
+      let t = Math.imul(s ^ (s >>> 15), 1 | s);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  // Misses append to <cassette>.misses.jsonl across runs — start fresh so the
+  // post-run count reflects THIS run only.
+  if (args.cassette && existsSync(`${args.cassette}.misses.jsonl`)) {
+    try { unlinkSync(`${args.cassette}.misses.jsonl`); } catch { /* diagnostic only */ }
+  }
   // Cassette run token: record tags every entry with a fresh run id so the
   // same file can hold multiple runs without FIFO cross-contamination —
   // identical prompts across runs (framing, judge) MUST serve this run's
@@ -183,20 +205,26 @@ async function main() {
   // the run's true depth (pipelineRun only stores format), the frozen input
   // snapshot, and the corpus id list. With a sidecar present the replay is
   // self-describing — --publication/--pipeline-run become unnecessary.
-  if (!args.record && metaPath && existsSync(metaPath)) {
+  if (metaPath && existsSync(metaPath)) {
     const meta = JSON.parse(readFileSync(metaPath, 'utf8'));
+    // Both modes take the corpus descriptor (question/depth/sourceIds) —
+    // a re-record must run the SAME fixed corpus to stay comparable.
     question = question ?? meta.question;
     domain = domain ?? meta.domain;
     depth = args.depth ?? meta.depth ?? depth;
-    frozenContext = frozenContext ?? meta.frozenContext;
     if (!sourceIds.length) {
       sourceIds = (meta.frozenContext?.allSourceIds as string[] | undefined)
         ?? (meta.sourceIds as string[] | undefined) ?? [];
     }
-    recordedTrust = recordedTrust ?? meta.recordedTrust;
-    recordedGate = recordedGate ?? meta.recordedGate;
-    recordedCost = recordedCost ?? meta.recordedCostUsd;
-    if (meta.cassetteRun) process.env.NOMOSX_CASSETTE_RUN = meta.cassetteRun;
+    if (!args.record) {
+      // Replay-only: frozen inputs + recorded outcomes. A record must
+      // compute every channel live and capture its own snapshot.
+      frozenContext = frozenContext ?? meta.frozenContext;
+      recordedTrust = recordedTrust ?? meta.recordedTrust;
+      recordedGate = recordedGate ?? meta.recordedGate;
+      recordedCost = recordedCost ?? meta.recordedCostUsd;
+      if (meta.cassetteRun) process.env.NOMOSX_CASSETTE_RUN = meta.cassetteRun;
+    }
     console.log(`[replay] fixture meta loaded from ${metaPath}`);
   }
 
@@ -287,13 +315,18 @@ async function main() {
     }
   }
 
+  const { getCassetteMissCount } = await import('../lib/llm/cassette');
+  const cassetteMisses = args.record ? 0 : getCassetteMissCount();
+
   const report = {
     recorded: { trust: recordedTrust, gate: recordedGate, costUsd: recordedCost, reasons: recordedReasons },
     replayed: { trust: replayedTrust, gate: replayedGate, status: replayedStatus, costUsd: replayedCost, refusal: replayedRefusal ?? null },
     replayedIds: { pipelineRunId: pipeline?.pipelineRunId ?? null, briefId: result.briefId ?? null, publicationId: result.publicationId ?? null },
+    cassetteMisses,
     durationMs: Date.now() - started,
   };
   console.log('[replay] RESULT', JSON.stringify(report, null, 2));
+  console.log(`[replay] cassette misses: ${cassetteMisses}`);
 
   if (args.cleanup) {
     // Replay artefacts are reruns of rows that already exist — delete only
@@ -341,6 +374,13 @@ async function main() {
   // replays the gate, so a divergent verdict is the signal this exists for.
   if (!args.record && recordedGate && replayedGate && replayedGate !== recordedGate) {
     console.error(`[replay] FAIL — gate drift: recorded=${recordedGate} replayed=${replayedGate}`);
+    process.exit(1);
+  }
+  // A cassette miss means the replay silently took a different path than the
+  // recording (fallbacks run, downstream prompts drift). Hard-fail on any
+  // miss beyond --allow-misses, even when trust/gate still match.
+  if (!args.record && cassetteMisses > args.allowMisses) {
+    console.error(`[replay] FAIL — ${cassetteMisses} cassette miss(es) exceed --allow-misses ${args.allowMisses} (see ${args.cassette}.misses.jsonl)`);
     process.exit(1);
   }
   console.log('[replay] OK');

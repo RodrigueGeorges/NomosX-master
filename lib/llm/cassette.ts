@@ -56,6 +56,11 @@ export interface CassetteEntry {
 }
 
 let replayQueues: { path: string; queues: Map<string, CassetteEntry[]> } | null = null;
+let missCount = 0;
+
+/** Replay-mode miss counter — the harness gates on this (a miss means the
+ * replay silently ran a different path than the recording). */
+export function getCassetteMissCount(): number { return missCount; }
 
 export function getLlmCassetteMode(): LlmCassetteMode {
   const m = (process.env.NOMOSX_LLM_MODE ?? 'live').toLowerCase();
@@ -122,6 +127,7 @@ export function replayLlmCassette<T>(request: { task?: string }, key: string): T
   const queue = loadReplayQueues().get(key);
   const entry = queue?.shift();
   if (!entry) {
+    missCount++;
     // Debug aid: dump the missed request next to the cassette so a drift can
     // be diffed against the recorded entry instead of guessed at.
     try {
@@ -139,4 +145,5 @@ export function replayLlmCassette<T>(request: { task?: string }, key: string): T
 /** Test/diagnostic helper — drop the loaded cassette so the next replay reloads. */
 export function resetLlmCassette(): void {
   replayQueues = null;
+  missCount = 0;
 }
