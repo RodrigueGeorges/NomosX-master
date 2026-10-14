@@ -587,7 +587,7 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
   // Extract lessons from this run if quality was low (learning opportunity)
   if (finalTrustScore < 75 && html.length > 1000) {
     const agentId = isStrategic ? "strategic-analyst" : "analyst";
-    withExecutionDetached(() => extractLessons(
+    const lessonsJob = withExecutionDetached(() => extractLessons(
       agentId,
       query,
       html.slice(0, 4000),
@@ -607,6 +607,11 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
         }
       }
     }).catch((err) => console.warn(`${label} LEARNING LOOP: extractLessons failed:`, err));
+    // Cassette modes: the detached LLM call must land inside the recorded/
+    // replayed window — awaiting makes call order deterministic on both
+    // sides. Live mode stays fire-and-forget.
+    const { getLlmCassetteMode } = await import('../../llm/cassette');
+    if (getLlmCassetteMode() !== 'live') await lessonsJob;
   }
 
   // ── SKILL BANK: record the winning configuration when trust is high ──

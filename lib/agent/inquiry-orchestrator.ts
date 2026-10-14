@@ -995,9 +995,10 @@ export async function runAndPublishInquiry(
   // not the outcome — a held run's lessons must carry the hold reasons and
   // the diagnosis codes, not just mid-pipeline scores. Detached: a durability
   // write, not research work; the dispatch scope may already be closed.
+  let postGateJobs: Promise<unknown>[] = [];
   try {
     const { extractExperience } = await import('./knowledge-infrastructure');
-    withExecutionDetached(() => extractExperience(question.slice(0, 100), question, {
+    const experienceJob = withExecutionDetached(() => extractExperience(question.slice(0, 100), question, {
       outcome: {
         status,
         gateDecision: gate.decision,
@@ -1020,6 +1021,7 @@ export async function runAndPublishInquiry(
       outlineCritic: pipeline.stats.outlineCritic ? { coverage: (pipeline.stats.outlineCritic as any).coverageScore, missing: (pipeline.stats.outlineCritic as any).missingDimensions?.slice?.(0, 4) } : null,
       rank: pipeline.stats.rank ? { avgQuality: (pipeline.stats.rank as any).avgQuality, kept: (pipeline.stats.rank as any).kept } : null,
     })).catch(() => {});
+    postGateJobs.push(experienceJob);
     console.log(`[InquiryOrchestrator] EXPERIENCE BANK: post-gate extraction queued (${status})`);
   } catch { /* Non-blocking */ }
 
@@ -1051,12 +1053,21 @@ export async function runAndPublishInquiry(
     );
   }
 
+  // Cassette modes (record/replay): the detached post-gate LLM work MUST land
+  // inside the recorded/replayed window. At record, process exit raced past
+  // it — the calls were never taped; at replay they issued anyway → misses.
+  // Serialize execution so both sides see one deterministic call order.
+  // Live mode is unchanged: fire-and-forget.
+  const { getLlmCassetteMode } = await import('../llm/cassette');
+  const cassetteSerial = getLlmCassetteMode() !== 'live';
+  if (cassetteSerial) for (const job of postGateJobs) await job;
+
   // ── ACE PLAYBOOK CURATION (non-blocking, fire-and-forget) ──
   // The run's outcome is now known — distill durable lessons into each
   // council role's evolving playbook (injected into runExpertAnalysis prompts)
   // and upvote the advice that held on a published run. Gate diagnoses give
   // typed failure material; revision actions record what repair worked.
-  void (async () => {
+  const playbookJob = (async () => {
     // Fire-and-forget by design — the dispatch scope can legally close right
     // after persist, so run detached or curation dies with 'scope closed'.
     await withExecutionDetached(async () => { try {
@@ -1082,6 +1093,8 @@ export async function runAndPublishInquiry(
       console.warn(`[PLAYBOOK] curation failed (non-blocking):`, err);
     } });
   })();
+  postGateJobs.push(playbookJob);
+  if (cassetteSerial) await playbookJob;
 
   return {
     status,
