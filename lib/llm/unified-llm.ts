@@ -1737,6 +1737,11 @@ export async function callLLM(request: LLMRequest): Promise<LLMResponse> {
   }
   const cacheable = request.enableCache !== false && !request.tools?.length;
   if (!cacheable) return callLLMCore(request);
+  // Replay: never coalesce. The cassette resolves in a microtask, but a
+  // same-tick duplicate would still see the in-flight entry and consume NO
+  // cassette entry — while record wrote one for it. Every replayed call must
+  // consume exactly one entry, in issue order.
+  if (getLlmCassetteMode() === 'replay') return callLLMCore(request);
   const cacheKey = buildCacheKey(request);
   const signal = getExecutionSignal();
   let map = IN_FLIGHT_LLM;
@@ -1748,7 +1753,13 @@ export async function callLLM(request: LLMRequest): Promise<LLMResponse> {
   if (inFlight) {
     console.log(`[LLM] coalesced in-flight duplicate [${request.task ?? request.model ?? "call"}]`);
     const shared = await inFlight;
-    return { ...shared, cached: true };
+    const res = { ...shared, cached: true };
+    // Record-mode: the coalesced call still counts as an issued request —
+    // replay resolves instantly so the duplicate is NOT coalesced there and
+    // consumes its own FIFO entry. Record the shared response so call counts
+    // stay 1:1 between record and replay.
+    if (getLlmCassetteMode() === 'record') recordLlmCassette(request, cacheKey, res);
+    return res;
   }
   const run = callLLMCore(request).finally(() => {
     if (map.get(cacheKey) === run) map.delete(cacheKey);
@@ -1792,7 +1803,13 @@ async function callLLMProvider(request: LLMRequest): Promise<LLMResponse> {
     try {
       const cached = await getCachedLLMResponse(cacheKey, model);
       if (cached) {
-        return { ...cached, cached: true, family: cached.family ?? PROVIDER_FAMILY[cached.provider as LLMProvider] };
+        const hit = { ...cached, cached: true, family: cached.family ?? PROVIDER_FAMILY[cached.provider as LLMProvider] };
+        // A record-mode cache hit must still land in the cassette: replay
+        // consults the cassette for EVERY call, so an unrecorded cache hit
+        // becomes a CassetteMissError downstream (and shifts FIFO order for
+        // every other same-key call). Record the response the pipeline saw.
+        if (getLlmCassetteMode() === 'record') recordLlmCassette(request, cacheKey, hit);
+        return hit;
       }
     } catch {
       // Cache miss or error — proceed to LLM call

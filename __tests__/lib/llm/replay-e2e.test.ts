@@ -175,6 +175,33 @@ describe('record → replay against a real HTTP provider', () => {
     expect(hits).toBe(hitsAfterRecord); // replay never touched the server
   });
 
+  it('coalesced duplicates record their own entry and replay consumes them 1:1', async () => {
+    // In-flight coalescing: two same-tick identical calls share ONE provider
+    // round-trip at record — but replay resolves instantly and would NOT
+    // coalesce, so each issued call must own a cassette entry.
+    const req = { task: 'topic_classification', provider: 'deepseek',
+      messages: [{ role: 'user', content: 'coalescing probe' }],
+      temperature: 0.2, maxTokens: 64 } as const; // cacheable → coalescible
+
+    setMode('record');
+    const [a, b] = await Promise.all([llm.callLLM(req as any), llm.callLLM(req as any)]);
+    expect(a.content).toBe(b.content);
+    expect(b.cached).toBe(true); // proof the second call took the coalesced path
+    const hitsAfterRecord = hits;
+    expect(hitsAfterRecord).toBeLessThanOrEqual(1); // at most one round-trip
+
+    const entries = readFileSync(cassettePath, 'utf8').trim().split('\n').map((l) => JSON.parse(l));
+    expect(entries.length).toBe(2); // one entry per ISSUED call
+
+    setMode('replay');
+    const [ra, rb] = await Promise.all([llm.callLLM(req as any), llm.callLLM(req as any)]);
+    expect(ra.content).toBe(a.content);
+    expect(rb.content).toBe(a.content);
+    expect(hits).toBe(hitsAfterRecord); // zero network on replay
+    // A third call must now miss — the queue is drained exactly.
+    await expect(llm.callLLM(req as any)).rejects.toThrow(cassette.CassetteMissError);
+  });
+
   it('a replayed stream can be served by a buffered recording of the same request', async () => {
     // Cross-serving contract: identical request → identical semantic
     // response, whether the original was streamed or buffered.
