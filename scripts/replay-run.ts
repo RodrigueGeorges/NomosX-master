@@ -39,6 +39,7 @@ interface ReplayArgs {
   cleanup: boolean; // delete the brief + pipelineRun rows this replay created
   tolerance: number; // absolute points of trust-score drift tolerated
   allowMisses: number; // replay-mode cassette misses tolerated (default 0)
+  timeoutMin?: number; // pipeline wall-clock cap — record needs the tail to finish
 }
 
 const DEPTHS = new Set(['surface', 'standard', 'deep', 'strategic']);
@@ -61,6 +62,7 @@ function parseArgs(argv: string[]): ReplayArgs {
     else if (a === '--record') args.record = true;
     else if (a === '--tolerance') args.tolerance = Number(next());
     else if (a === '--allow-misses') args.allowMisses = Number(next());
+    else if (a === '--timeout-min') args.timeoutMin = Number(next());
     else if (a === '--help' || a === '-h') {
       console.log('usage: replay-run --publication <id> | --pipeline-run <id> [--cassette path] [--depth surface|standard|deep|strategic] [--tolerance N]');
       process.exit(0);
@@ -223,6 +225,7 @@ async function main() {
       recordedTrust = recordedTrust ?? meta.recordedTrust;
       recordedGate = recordedGate ?? meta.recordedGate;
       recordedCost = recordedCost ?? meta.recordedCostUsd;
+      args.timeoutMin = args.timeoutMin ?? meta.timeoutMin;
       if (meta.cassetteRun) process.env.NOMOSX_CASSETTE_RUN = meta.cassetteRun;
     }
     console.log(`[replay] fixture meta loaded from ${metaPath}`);
@@ -267,6 +270,13 @@ async function main() {
       // priorReadings makes the reader reuse them instead of re-fetching
       // PDFs/news URLs that 403 or shift content between runs.
       priorReadings: frozenContext?.readings,
+      // Record needs the tail to finish inside the wall-clock cap — a
+      // timed-out record can never replay faithfully (the withTimeout timer
+      // is real-time; a 3-minute replay would run past the recorded throw).
+      // The value is persisted in the meta and reused at replay for symmetry.
+      timeoutMs: args.timeoutMin !== undefined ? args.timeoutMin * 60_000
+        : args.record ? 90 * 60_000
+        : undefined,
     },
   });
   const pipeline = result.pipeline;
@@ -285,15 +295,22 @@ async function main() {
     try {
       const { writeFileSync } = await import('fs');
       const frozen = (stats as any).frozenContext ?? {};
+      // stats.frozenContext.inputs was merged at the LAST pipelineRun.steps
+      // write — post-gate captures (playbook reads, post-gate learning) land
+      // after it. Snapshot the live store directly so the meta carries the
+      // full channel set, or replay falls through to live producers there.
+      const { snapshotFrozenInputs } = await import('../lib/agent/frozen-inputs');
+      const frozenInputs = snapshotFrozenInputs();
       const meta = {
         question, domain, depth,
         sourceIds,
         cassetteRun,
-        frozenContext: frozen,
+        frozenContext: { ...frozen, inputs: { ...(frozen.inputs ?? {}), ...frozenInputs } },
         recordedTrust: replayedTrust,
         recordedGate: result.gate?.decision ?? null,
         recordedStatus: result.status,
         recordedCostUsd: stats.totalCostUsd ?? result.costUsd ?? null,
+        timeoutMin: args.timeoutMin ?? 90,
         pipelineRunId: pipeline?.pipelineRunId ?? null,
         recordedAt: new Date().toISOString(),
       };
