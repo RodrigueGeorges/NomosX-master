@@ -1,4 +1,4 @@
-import { SignalBus } from '@/lib/agent/signals';
+import { SignalBus, type AgentSignal } from '@/lib/agent/signals';
 
 describe('SignalBus — stigmergic coordination', () => {
   it('resolves open signals in effective-intensity order', async () => {
@@ -21,6 +21,33 @@ describe('SignalBus — stigmergic coordination', () => {
     const res = await bus.sweep();
     expect(s.status).toBe('expired');
     expect(res.resolved).toBe(0);
+  });
+
+  it('cassette modes use a virtual clock — ordering is wall-clock independent', async () => {
+    const saved = process.env.NOMOSX_LLM_MODE;
+    process.env.NOMOSX_LLM_MODE = 'replay';
+    try {
+      const bus = new SignalBus<Record<string, unknown>>({});
+      const a = bus.post('x', 'first', { postedBy: 'A', intensity: 0.5 });
+      const b = bus.post('x', 'second', { postedBy: 'A', intensity: 0.5 });
+      // Virtual ticks, not epoch ms — a replayed run in ms must not decay
+      // signals differently than a 45-minute record did.
+      expect(a.postedAt).toBeLessThan(1_000_000);
+      expect(b.postedAt).toBe(a.postedAt + 1);
+      // Equal intensity: later posts decay less → recency wins, exactly as
+      // the live wall-clock decay orders them — but now derived from virtual
+      // ticks, identical between a 45-minute record and a 3-minute replay.
+      const seen: string[] = [];
+      bus.registerResolver('x', (sigs: AgentSignal[]) => {
+        for (const s of sigs) seen.push(s.content);
+        return { resolved: true };
+      }, { batch: true });
+      await bus.sweep();
+      expect(seen).toEqual(['second', 'first']);
+    } finally {
+      if (saved === undefined) delete process.env.NOMOSX_LLM_MODE;
+      else process.env.NOMOSX_LLM_MODE = saved;
+    }
   });
 
   it('batch resolver receives all open signals of its type in one call', async () => {

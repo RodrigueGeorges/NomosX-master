@@ -22,6 +22,8 @@
  * close without resolution — stale needs must not cause retry storms.
  */
 
+import { getLlmCassetteMode } from '../llm/cassette';
+
 export type SignalType =
   | 'coverage_gap'        // missing sources/evidence for a claim or dimension
   | 'claim_unverifiable'  // a claim failed grounding and needs evidence
@@ -54,6 +56,20 @@ export interface SignalResolution {
   note?: string;
   /** Optional artifact the resolver produced (patched html, new sources…). */
   artifact?: unknown;
+}
+
+/**
+ * Cassette record/replay: postedAt is wall-clock — at record, signals age
+ * over ~45min; at replay they're all posted within ~2 minutes. Sweep
+ * ordering (effectiveIntensity decay) therefore differs between the two →
+ * batch resolver prompt content order drifts → cassette misses. Under a
+ * cassette mode the bus uses a virtual clock that ticks once per post/
+ * sweep call — decay order is derived from issue order, identical on both
+ * sides. Live mode is unchanged.
+ */
+let virtualTick = 0;
+function busNow(): number {
+  return getLlmCassetteMode() === 'live' ? Date.now() : ++virtualTick;
 }
 
 export type SignalResolver<T = unknown> = (
@@ -115,7 +131,7 @@ export class SignalBus<T = unknown> {
       content: content.slice(0, 500),
       intensity: Math.min(1, Math.max(0, opts.intensity ?? 0.5)),
       postedBy: opts.postedBy,
-      postedAt: Date.now(),
+      postedAt: busNow(),
       ttlMs: opts.ttlMs ?? 30 * 60 * 1000,
       status: 'open',
       payload: opts.payload,
@@ -131,12 +147,12 @@ export class SignalBus<T = unknown> {
   }
 
   /** Linear decay: intensity falls to 0 at ttl. */
-  effectiveIntensity(s: AgentSignal, now = Date.now()): number {
+  effectiveIntensity(s: AgentSignal, now = busNow()): number {
     const elapsed = now - s.postedAt;
     return s.intensity * Math.max(0, 1 - elapsed / s.ttlMs);
   }
 
-  openSignals(now = Date.now()): AgentSignal[] {
+  openSignals(now = busNow()): AgentSignal[] {
     for (const s of this.signals) {
       if (s.status === 'open' && this.effectiveIntensity(s, now) <= 0) s.status = 'expired';
     }
@@ -178,7 +194,7 @@ export class SignalBus<T = unknown> {
     const unmet = opts.mission && opts.metrics ? this.missionDelta(opts.mission, opts.metrics) : [];
 
     // Goal-directed ordering: signals serving unmet targets get +0.3 boost.
-    const now = Date.now();
+    const now = busNow();
     const open = this.openSignals(now).sort((a, b) => {
       const boost = (s: AgentSignal) => (SIGNAL_SERVES[s.type] && unmet.includes(SIGNAL_SERVES[s.type] as string) ? 0.3 : 0);
       return this.effectiveIntensity(b, now) + boost(b) - (this.effectiveIntensity(a, now) + boost(a));
