@@ -1,7 +1,0 @@
-{
-  "siteId": "nomosx-production",
-  "buildSettings": {
-    "cmd": "npm run build",
-    "dir": ".next"
-  }
-}

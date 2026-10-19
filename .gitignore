@@ -96,3 +96,28 @@ __pycache__/
 # CI fixtures are committed intentionally
 !.llm-cassettes/gulf-minerals.fixture.jsonl
 !.llm-cassettes/gulf-minerals.fixture.jsonl.meta.json
+
+# audit & scratch artifacts
+.audit-out/
+/nul
+/tmp
+/%TEMP%*
+scripts/tmp-*
+scripts/tmp/
+scripts/_*
+scripts/hero-check-*.webp
+scripts/hero-preview-*.webp
+.llm-cassettes/*.bak.*
+.llm-cassettes/*.misses.jsonl
+.llm-cassettes/run.jsonl
+/eslint-audit.txt
+/eslint-redirect.txt
+/tail.txt
+/archives.html
+/og*.png
+/test-render.html
+/output-publication.html
+/latest-publication-sample.html
+.claude/settings.local.json
+.netlify/state.json
+/jest-*.json
