@@ -101,6 +101,53 @@ describe('frozen-inputs store', () => {
     expect(b).toBe('recorded excerpt B');
   });
 
+  it('seeded nli:<md5> channel serves the recorded verdict without loading the model', async () => {
+    process.env.NOMOSX_LLM_MODE = 'replay';
+    jest.resetModules();
+    const hfPipeline = jest.fn(() => { throw new Error('model must not load under replay'); });
+    jest.doMock('@huggingface/transformers', () => ({ pipeline: hfPipeline }));
+    const fi = require('../../../lib/agent/frozen-inputs') as typeof import('../../../lib/agent/frozen-inputs');
+    const { classifyNLI } = require('../../../lib/agent/nli-engine') as typeof import('../../../lib/agent/nli-engine');
+    const { createHash } = require('crypto') as typeof import('crypto');
+    const claim = 'Gulf states are diversifying away from hydrocarbons';
+    const source = 'The UAE and Saudi Arabia are investing heavily in renewable energy capacity.';
+    const key = `nli:${createHash('md5').update(claim).update(String.fromCharCode(0)).update(source).digest('hex')}`;
+    const recorded = {
+      verdict: 'entailment', confidence: 0.9,
+      scores: { entailment: 0.9, neutral: 0.07, contradiction: 0.03 },
+      source: 'local-nli',
+    };
+    fi.seedFrozenInputs({ [key]: recorded });
+    const v = await classifyNLI(claim, source);
+    expect(v).toEqual(recorded);
+    expect(hfPipeline).not.toHaveBeenCalled();
+    jest.dontMock('@huggingface/transformers');
+  });
+
+  it('live mode: classifyNLI retains nothing in the frozen store', async () => {
+    delete process.env.NOMOSX_LLM_MODE;
+    jest.resetModules();
+    jest.doMock('@huggingface/transformers', () => ({
+      pipeline: jest.fn(() => Promise.reject(new Error('no model in tests'))),
+    }));
+    // No embeddings provider in tests — keep the fallback fully offline.
+    jest.doMock('../../../lib/agent/semantic-engine', () => {
+      const actual = jest.requireActual('../../../lib/agent/semantic-engine');
+      return { ...actual, embedText: jest.fn(() => Promise.reject(new Error('embeddings disabled in tests'))) };
+    });
+    const fi = require('../../../lib/agent/frozen-inputs') as typeof import('../../../lib/agent/frozen-inputs');
+    const { classifyNLI } = require('../../../lib/agent/nli-engine') as typeof import('../../../lib/agent/nli-engine');
+    const v = await classifyNLI(
+      'Some claim with enough words to classify deterministically',
+      'A source text longer than twenty characters for the lexical fallback path.'
+    );
+    expect(v.verdict).toBeDefined();
+    expect(fi.hasFrozenInputs()).toBe(false);
+    expect(fi.snapshotFrozenInputs()).toEqual({});
+    jest.dontMock('@huggingface/transformers');
+    jest.dontMock('../../../lib/agent/semantic-engine');
+  });
+
   it('sync FIFO channels replay in call order', () => {
     process.env.NOMOSX_LLM_MODE = 'record';
     let fi = reset();

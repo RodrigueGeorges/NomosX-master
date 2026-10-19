@@ -25,7 +25,9 @@
  *   NLI is the single most impactful deterministic metric for groundedness.
  */
 
+import { createHash } from 'crypto';
 import { cosineSimilarity, embedText } from './semantic-engine';
+import { captureInput } from './frozen-inputs';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -410,6 +412,20 @@ export async function classifyNLI(
     };
   }
 
+  // NLI verdicts are a frozen-inputs channel (`nli:<md5>`), keyed by CONTENT
+  // not call order — classifyNLIBatch runs pairs in parallel so FIFO is not
+  // stable. The verdict depends on a 184MB local model whose 15s load race
+  // is wall-clock bound and whose fallback is an embeddings provider call;
+  // under cassette modes the per-(claim, source) verdict is frozen so replay
+  // never loads the model nor calls a provider. Live: retains nothing.
+  const key = `nli:${createHash('md5').update(claim).update('\u0000').update(sourceContent).digest('hex')}`;
+  return captureInput(key, () => classifyNLIUncached(claim, sourceContent));
+}
+
+async function classifyNLIUncached(
+  claim: string,
+  sourceContent: string,
+): Promise<NLIClassification> {
   // Try local NLI model first
   const localResult = await classifyLocalNLI(claim, sourceContent);
   if (localResult) return localResult;

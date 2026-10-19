@@ -19,6 +19,7 @@
  */
 
 import { callLLM } from '../llm/unified-llm';
+import { getLlmCassetteMode } from '../llm/cassette';
 import { parseJson } from './json-utils';
 import { DomainExpertise } from './types';
 import { RESEARCHER_REGISTRY, ResearcherProfile, VERTICAL_RESEARCHER_MAP } from './researcher-ownership';
@@ -82,7 +83,17 @@ export interface AssignedResearcher {
 const classificationCache = new Map<string, { result: TopicClassification; expiresAt: number }>();
 const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
 
+/**
+ * Cassette record/replay: the TTL is wall-clock — at record, a second pass
+ * ~45min later misses the cache and issues a fresh `topic_classification`
+ * call; at replay, the same pass arrives in seconds and hits the cache, so
+ * the recorded LLM call is never consumed and every downstream cassette key
+ * drifts. Under a cassette mode the classifier always issues the call so
+ * record and replay consume the same entries regardless of wall-clock gaps.
+ * Live mode is unchanged.
+ */
 function getCached(topic: string): TopicClassification | null {
+  if (getLlmCassetteMode() !== 'live') return null;
   const normalized = topic.toLowerCase().trim();
   const entry = classificationCache.get(normalized);
   if (entry && entry.expiresAt > Date.now()) {
@@ -93,6 +104,7 @@ function getCached(topic: string): TopicClassification | null {
 }
 
 function setCache(topic: string, result: TopicClassification): void {
+  if (getLlmCassetteMode() !== 'live') return;
   const normalized = topic.toLowerCase().trim();
   classificationCache.set(normalized, { result, expiresAt: Date.now() + CACHE_TTL_MS });
   // Evict old entries if cache grows too large

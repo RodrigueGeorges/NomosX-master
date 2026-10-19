@@ -257,11 +257,16 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     seedFrozenInputs(frozenContext.inputs);
   }
 
+  // A regeneration pass must see the same institutional memory as the first
+  // pass — at record the primer otherwise picks up the brief the run itself
+  // just persisted, which replay cannot reproduce. Live: retains nothing.
+  const { captureInput } = await import('./frozen-inputs');
+
   let primedContext: Awaited<ReturnType<typeof primeContext>> | null = null;
   console.log(`${label} CONTEXT PRIMER: ${frozenContext ? 'frozen (replay)' : 'loading institutional memory'}`);
   const primedP = frozenContext
     ? Promise.resolve(frozenContext.primed ?? null)
-    : primeContext(query, {
+    : captureInput('primer:context', () => primeContext(query, {
         maxConcepts: isStrategic ? 20 : 15,
         maxPriorBriefs: isStrategic ? 8 : 5,
       }).then((pc) => {
@@ -282,14 +287,14 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
         console.error(`${label} CONTEXT PRIMER: FAILED — pipeline continues without institutional memory:`, err);
         stats.contextPrimer = { error: String(err) } as any;
         return null;
-      });
+      }));
 
   // ── EPISODIC MEMORY RETRIEVAL (V3.1) — learn from past pipeline runs ──
   let episodicContext: any[] = [];
   let episodicFormatted: string | null = null;
   const episodicP = frozenContext
     ? Promise.resolve(frozenContext.episodic ?? { episodes: [] as any[], formatted: null })
-    : (async () => {
+    : captureInput('memory:episodic', async () => {
         try {
           const { retrieveEpisodes, formatEpisodeContext, buildEpisodeContextBlock } = await import('./episodic-memory');
           const episodes = await retrieveEpisodes(query, { limit: isStrategic ? 8 : 5, minSimilarity: 0.55 });
@@ -308,7 +313,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
           (stats as Record<string, any>).episodicMemory = { retrieved: 0, injected: false, error: String(err) };
           return { episodes: [] as any[], formatted: null };
         }
-      })();
+      });
 
   // Phase-timing rollup: wall-clock at each major boundary, persisted into
   // stats.phaseTimings so postmortems get a phase breakdown without reading

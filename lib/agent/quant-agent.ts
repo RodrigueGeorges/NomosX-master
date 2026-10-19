@@ -17,6 +17,7 @@
 
 import crypto from 'crypto';
 import { fetchFromProvider } from '../http-client';
+import { getLlmCassetteMode } from '../llm/cassette';
 
 const USER_AGENT = 'NomosX Research Bot (+https://nomosx.com)';
 
@@ -395,7 +396,10 @@ export async function quantAgent(
   // Semantic cache check (2026 best practice)
   const cacheKey = quantCacheKey(query, sources);
   const cached = quantCache.get(cacheKey);
-  if (cached && Date.now() < cached.expiresAt) {
+  // Cassette modes (see topic-classifier): the opposite rule applies — the
+  // cache must HIT so record pass 2 and replay share pass 1's quant output;
+  // a TTL expiry would refetch live primary-data APIs replay freezes away.
+  if (cached && (getLlmCassetteMode() !== 'live' || Date.now() < cached.expiresAt)) {
     console.log(`[QUANT] Cache HIT (key=${cacheKey}) — reusing ${cached.result.series.length} series from previous run`);
     return { ...cached.result, durationMs: Date.now() - start };
   }
