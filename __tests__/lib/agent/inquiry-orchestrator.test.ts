@@ -58,6 +58,13 @@ jest.mock('@/lib/foresight', () => ({
 // Fire-and-forget learning tail — keep it inert in unit tests.
 jest.mock('@/lib/agent/playbook', () => ({ curatePlaybook: jest.fn(async () => {}) }));
 jest.mock('@/lib/agent/phd-researcher', () => ({ detectRelevantExperts: jest.fn(() => []) }));
+// Post-gate extractExperience is detached fire-and-forget — the real one calls
+// callLLM and keeps running after the suite ends, hitting torn-down dynamic
+// imports (redis-simple) → Jest flags an after-teardown error and exits 1.
+jest.mock('@/lib/agent/knowledge-infrastructure', () => {
+  const actual = jest.requireActual('@/lib/agent/knowledge-infrastructure');
+  return { ...actual, extractExperience: jest.fn(async () => ({ experiences: [], guidelines: [] })) };
+});
 
 // Keep the REAL revision-controller decision logic (shouldRegenerate,
 // attemptScore, buildFailureFeedback) — only the deterministic repair
