@@ -143,11 +143,19 @@ export async function fetchInquiryData(slug: string, locale: string = 'en'): Pro
       return { inquiry: null, related: [] };
     }
 
-    // If a non-default locale is requested, get the translated version
+    // If a non-default locale is requested, get the translated version.
+    // Bounded wait: a cold translation can cascade across provider timeouts
+    // (glm 180s → openai 120s → kimi 300s) — the page must not hang. On
+    // timeout we serve the original language; the abandoned call keeps
+    // running and caches the translation for the next visit.
     let articleTitle = article.title;
     let articleHtml = article.html;
     if (locale !== 'en' && locale !== (article.language || 'en')) {
-      const translated = await getPublicationInLocale(article.id, locale);
+      const TRANSLATION_WAIT_MS = 60_000;
+      const translated = await Promise.race([
+        getPublicationInLocale(article.id, locale),
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), TRANSLATION_WAIT_MS)),
+      ]);
       if (translated) {
         articleTitle = translated.title;
         articleHtml = translated.html;

@@ -5,16 +5,21 @@
  */
 
 import { RESEARCHERS, getDeskName } from "@/lib/researchers";
+import { DESK_PORTRAITS, deskPortraitUrl } from "@/lib/brand/researcher-portraits";
 
 export interface ReasoningLens {
   id: string;
   domain: string;
-  /** Canonical desk identity, e.g. "Dr. Oikonomia (Οἰκονομία)" */
+  /** Canonical desk identity, e.g. "Dr. Athena (Ἀθηνᾶ)" */
   deskName: string;
-  /** Researcher title, e.g. "Senior Economist" */
+  /** Researcher title, e.g. "Security Analyst" */
   title: string;
-  /** Greek monogram for avatars, e.g. "ΟΟ" */
+  /** Greek monogram for avatars, e.g. "ΑΑ" */
   initials: string;
+  /** Fresco portrait of the desk's patron mythic figure, when commissioned */
+  portraitUrl?: string;
+  /** The patron mythological figure's archetype (why this figure owns the desk) */
+  portraitArchetype?: string;
   focus: string;
   approach: string;
   frameworks: string[];
@@ -37,6 +42,8 @@ export function getReasoningLenses(): ReasoningLens[] {
       deskName: getDeskName(r.id),
       title: r.title,
       initials: r.initials,
+      portraitUrl: DESK_PORTRAITS[r.id] ? deskPortraitUrl(r.id) : undefined,
+      portraitArchetype: DESK_PORTRAITS[r.id]?.archetype,
       focus: r.specialty,
       approach:
         r.analyticalSignature ??

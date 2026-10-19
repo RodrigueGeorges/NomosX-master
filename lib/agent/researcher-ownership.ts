@@ -66,7 +66,7 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
   // CORE 9 DOMAINS
   "economics": {
     id: "economics",
-    name: "Dr. Oikonomia (Οἰκονομία)",
+    name: "Dr. Ploutos (Πλοῦτος)",
     title: "Economic Policy Analyst & Behavioral Economics Expert",
     institution: "NomosX Institute",
     domains: ["economics"],
@@ -91,7 +91,7 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "technology": {
     id: "technology",
-    name: "Dr. Techne (Τέχνη)",
+    name: "Dr. Hephaestus (Ἥφαιστος)",
     title: "AI Research Scientist & Technology Policy Expert",
     institution: "NomosX Institute",
     domains: ["technology"],
@@ -116,7 +116,7 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "policy": {
     id: "policy",
-    name: "Dr. Politeia (Πολιτεία)",
+    name: "Dr. Eunomia (Εὐνομία)",
     title: "Public Policy Expert & Governance Analyst",
     institution: "NomosX Institute",
     domains: ["policy"],
@@ -166,7 +166,7 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "security": {
     id: "security",
-    name: "Dr. Aegis (Αἰγίς)",
+    name: "Dr. Athena (Ἀθηνᾶ)",
     title: "Security Studies Expert & Defense Analyst",
     institution: "NomosX Institute",
     domains: ["security"],
@@ -191,7 +191,7 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "law": {
     id: "law",
-    name: "Dr. Nomos (Νόμος)",
+    name: "Dr. Themis (Θέμις)",
     title: "Legal Scholar & Regulatory Expert",
     institution: "NomosX Institute",
     domains: ["law"],
@@ -241,7 +241,7 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "quantitative": {
     id: "quantitative",
-    name: "Dr. Metron (Μέτρον)",
+    name: "Dr. Lachesis (Λάχεσις)",
     title: "Quantitative Methods Expert & Statistical Analyst",
     institution: "NomosX Institute",
     domains: ["quantitative"],
@@ -266,7 +266,7 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "finance": {
     id: "finance",
-    name: "Dr. Chrematistikos (Χρηματιστικός)",
+    name: "Dr. Hermes (Ἑρμῆς)",
     title: "Financial Markets & Investment Expert",
     institution: "NomosX Institute",
     domains: ["finance"],
@@ -292,7 +292,7 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
   // ADVANCED 6 DOMAINS
   "social-sciences": {
     id: "social-sciences",
-    name: "Dr. Koinonia (Κοινωνία)",
+    name: "Dr. Hestia (Ἑστία)",
     title: "Sociologist & Social Dynamics Expert",
     institution: "NomosX Institute",
     domains: ["social-sciences"],
@@ -317,7 +317,7 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "humanities": {
     id: "humanities",
-    name: "Dr. Logos (Λόγος)",
+    name: "Dr. Apollo (Ἀπόλλων)",
     title: "Philosopher & Ethics Expert",
     institution: "NomosX Institute",
     domains: ["humanities"],
@@ -342,7 +342,7 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "energy-advanced": {
     id: "energy-advanced",
-    name: "Dr. Energeia (Ἐνέργεια)",
+    name: "Dr. Helios (Ἥλιος)",
     title: "Energy Systems & Grid Integration Expert",
     institution: "NomosX Institute",
     domains: ["energy-advanced"],
@@ -367,7 +367,7 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "geopolitics": {
     id: "geopolitics",
-    name: "Dr. Polis (Πόλις)",
+    name: "Dr. Atlas (Ἄτλας)",
     title: "International Relations & Geopolitics Expert",
     institution: "NomosX Institute",
     domains: ["geopolitics"],
@@ -392,7 +392,7 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "digital-society": {
     id: "digital-society",
-    name: "Dr. Digi (Δίγι)",
+    name: "Dr. Iris (Ἶρις)",
     title: "Digital Sociologist & Technology Impact Expert",
     institution: "NomosX Institute",
     domains: ["digital-society"],
@@ -417,7 +417,7 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "cognitive-science": {
     id: "cognitive-science",
-    name: "Dr. Noesis (Νόησις)",
+    name: "Dr. Metis (Μῆτις)",
     title: "Cognitive Neuroscientist & Decision Science Expert",
     institution: "NomosX Institute",
     domains: ["cognitive-science"],
@@ -443,7 +443,7 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
   // SPECIALIZED DOMAINS
   "behavioral-economics": {
     id: "behavioral-economics",
-    name: "Dr. Thymos (Θυμός)",
+    name: "Dr. Dionysus (Διόνυσος)",
     title: "Behavioral Economist & Choice Architecture Expert",
     institution: "NomosX Institute",
     domains: ["behavioral-economics"],
@@ -468,7 +468,7 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "urban-studies": {
     id: "urban-studies",
-    name: "Dr. Asty (Ἄστυ)",
+    name: "Dr. Daedalus (Δαίδαλος)",
     title: "Urban Planner & Smart Cities Expert",
     institution: "NomosX Institute",
     domains: ["urban-studies"],
@@ -493,7 +493,7 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "bioethics": {
     id: "bioethics",
-    name: "Dr. Bios (Βίος)",
+    name: "Dr. Asclepius (Ἀσκληπιός)",
     title: "Bioethicist & Medical Ethics Expert",
     institution: "NomosX Institute",
     domains: ["bioethics"],
@@ -518,7 +518,7 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "complexity-science": {
     id: "complexity-science",
-    name: "Dr. Chaos (Χάος)",
+    name: "Dr. Proteus (Πρωτεύς)",
     title: "Complexity Scientist & Complex Systems Expert",
     institution: "NomosX Institute",
     domains: ["complexity-science"],
@@ -543,7 +543,7 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "computational-social-science": {
     id: "computational-social-science",
-    name: "Dr. Syntaxis (Σύνταξις)",
+    name: "Dr. Arachne (Ἀράχνη)",
     title: "Computational Social Scientist & Network Analysis Expert",
     institution: "NomosX Institute",
     domains: ["computational-social-science"],
@@ -568,7 +568,7 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "development-economics": {
     id: "development-economics",
-    name: "Dr. Auxesis (Αὔξησις)",
+    name: "Dr. Demeter (Δημήτηρ)",
     title: "Development Economist & Global South Expert",
     institution: "NomosX Institute",
     domains: ["development-economics"],
@@ -594,7 +594,7 @@ export const RESEARCHER_REGISTRY: Record<DomainExpertise, ResearcherProfile> = {
 
   "risk-analysis": {
     id: "risk-analysis",
-    name: "Dr. Kyvernon (Κύβερνον)",
+    name: "Dr. Cassandra (Κασσάνδρα)",
     title: "Risk Analyst & Uncertainty Modeling Expert",
     institution: "NomosX Institute",
     domains: ["risk-analysis"],

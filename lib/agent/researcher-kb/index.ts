@@ -125,7 +125,7 @@ export interface QualityCriteria {
 export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
   policy: {
     domain: 'policy',
-    researcherName: 'Dr. Politeia (Πολιτεία)',
+    researcherName: 'Dr. Eunomia (Εὐνομία)',
     keyConcepts: [
       { name: 'Policy Cycle', definition: 'Agenda setting → Formulation → Adoption → Implementation → Evaluation — each stage has different actors, incentives, and failure modes', importance: 'foundational', relatedConcepts: ['policy window', 'incrementalism', 'punctuated equilibrium'] },
       { name: 'Institutional Design', definition: 'How rules, norms, and enforcement mechanisms shape collective outcomes — Ostrom\'s 8 design principles', importance: 'foundational', relatedConcepts: ['common pool resources', 'polycentric governance', 'institutional fit'] },
@@ -185,7 +185,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   economics: {
     domain: 'economics',
-    researcherName: 'Dr. Oikonomia (Οἰκονομία)',
+    researcherName: 'Dr. Ploutos (Πλοῦτος)',
     keyConcepts: [
       { name: 'Causal Inference', definition: 'Methods to establish cause-effect from observational data (IV, DiD, RDD, synthetic control)', importance: 'foundational', relatedConcepts: ['endogeneity', 'selection bias', 'natural experiments'] },
       { name: 'General Equilibrium', definition: 'Economy-wide effects that partial models miss — spillovers, feedback loops, second-order effects', importance: 'foundational', relatedConcepts: ['partial equilibrium', 'DSGE', 'CGE models'] },
@@ -243,7 +243,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   technology: {
     domain: 'technology',
-    researcherName: 'Dr. Techne (Τέχνη)',
+    researcherName: 'Dr. Hephaestus (Ἥφαιστος)',
     keyConcepts: [
       { name: 'Scaling Laws', definition: 'Predictable performance improvement with more data/compute/parameters (Chinchilla, Kaplan)', importance: 'foundational', relatedConcepts: ['compute-optimal training', 'emergent abilities', 'bitter lesson'] },
       { name: 'AI Alignment', definition: 'Ensuring AI systems pursue intended goals — RLHF, constitutional AI, interpretability', importance: 'foundational', relatedConcepts: ['reward hacking', 'mesa-optimization', 'corrigibility'] },
@@ -358,7 +358,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   security: {
     domain: 'security',
-    researcherName: 'Dr. Aegis (Αἰγίς)',
+    researcherName: 'Dr. Athena (Ἀθηνᾶ)',
     keyConcepts: [
       { name: 'Escalation Dynamics', definition: 'How conflicts escalate through action-reaction cycles, miscalculation, and commitment traps', importance: 'foundational', relatedConcepts: ['deterrence', 'brinkmanship', 'security dilemma'] },
       { name: 'Hybrid Warfare', definition: 'Blend of conventional military, cyber, information operations, and economic pressure below threshold of conventional war', importance: 'advanced', relatedConcepts: ['gray zone', 'information warfare', 'proxy conflict'] },
@@ -417,7 +417,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   law: {
     domain: 'law',
-    researcherName: 'Dr. Nomos (Νόμος)',
+    researcherName: 'Dr. Themis (Θέμις)',
     keyConcepts: [
       { name: 'Proportionality Analysis', definition: 'Three-step test: legitimate aim, necessity, proportionality stricto sensu — the core balancing test in constitutional and human rights law', importance: 'foundational', relatedConcepts: ['margin of appreciation', 'judicial review', 'fundamental rights'] },
       { name: 'Regulatory Sandboxes', definition: 'Controlled environments for testing innovative products under relaxed regulations — key to AI, fintech, and biotech governance', importance: 'emerging', relatedConcepts: ['innovation principle', 'precautionary principle', 'regulatory agility'] },
@@ -539,7 +539,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   geopolitics: {
     domain: 'geopolitics',
-    researcherName: 'Dr. Polis (Πόλις)',
+    researcherName: 'Dr. Atlas (Ἄτλας)',
     keyConcepts: [
       { name: 'Thucydides Trap', definition: 'Structural stress when a rising power threatens a ruling power — 12 of 16 historical cases led to war (Allison 2017)', importance: 'foundational', relatedConcepts: ['power transition theory', 'security dilemma', 'hegemonic stability'] },
       { name: 'Multipolarity', definition: 'International system with multiple great powers — less stable than bipolarity per neorealism, emerging post-2020', importance: 'foundational', relatedConcepts: ['balance of power', 'concert of powers', 'regional hegemony'] },
@@ -592,7 +592,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   finance: {
     domain: 'finance',
-    researcherName: 'Dr. Chrematistikos (Χρηματιστικός)',
+    researcherName: 'Dr. Hermes (Ἑρμῆς)',
     keyConcepts: [
       { name: 'Systemic Risk', definition: 'Risk of cascading failures across the financial system — contagion, too-big-to-fail, interconnectedness', importance: 'foundational', relatedConcepts: ['counterparty risk', 'liquidity spirals', 'fire sales'] },
       { name: 'Market Microstructure', definition: 'How exchange mechanisms affect price formation — order flow, bid-ask spreads, information asymmetry', importance: 'advanced', relatedConcepts: ['high-frequency trading', 'dark pools', 'market making'] },
@@ -645,7 +645,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   quantitative: {
     domain: 'quantitative',
-    researcherName: 'Dr. Metron (Μέτρον)',
+    researcherName: 'Dr. Lachesis (Λάχεσις)',
     keyConcepts: [
       { name: 'Rubin Causal Model', definition: 'Potential outcomes framework — treatment effect = Y(1) - Y(0), fundamental problem of causal inference', importance: 'foundational', relatedConcepts: ['SUTVA', 'ignorability', 'positivity'] },
       { name: 'DAG Reasoning', definition: 'Directed acyclic graphs for encoding causal assumptions and identifying adjustment sets (Pearl)', importance: 'foundational', relatedConcepts: ['d-separation', 'backdoor criterion', 'front-door criterion'] },
@@ -702,7 +702,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   'social-sciences': {
     domain: 'social-sciences',
-    researcherName: 'Dr. Koinonia (Κοινωνία)',
+    researcherName: 'Dr. Hestia (Ἑστία)',
     keyConcepts: [
       { name: 'Social Stratification', definition: 'Hierarchical arrangement of individuals in society based on wealth, power, and prestige, shaping life chances and mobility.' },
       { name: 'Intersectionality', definition: 'Framework analyzing how race, class, gender, sexuality, and other identities intersect to create unique experiences of privilege and oppression (Crenshaw 1989).' },
@@ -752,7 +752,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   humanities: {
     domain: 'humanities',
-    researcherName: 'Dr. Logos (Λόγος)',
+    researcherName: 'Dr. Apollo (Ἀπόλλων)',
     keyConcepts: [
       { name: 'Rawlsian Justice', definition: 'Justice as fairness — principles chosen behind a veil of ignorance: equal basic liberties and difference principle (Rawls 1971).' },
       { name: 'Precautionary Principle', definition: 'When an activity raises threats of harm, precautionary measures should be taken even if causal relationships are not fully established.' },
@@ -801,7 +801,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   'energy-advanced': {
     domain: 'energy-advanced',
-    researcherName: 'Dr. Energeia (Ἐνέργεια)',
+    researcherName: 'Dr. Helios (Ἥλιος)',
     keyConcepts: [
       { name: 'Levelized Cost of Energy (LCOE)', definition: 'Total lifecycle cost of energy generation per unit of electricity, enabling comparison across technologies (solar, wind, nuclear, gas).' },
       { name: 'Grid Flexibility', definition: 'Power system\'s ability to accommodate variability and uncertainty from renewable generation through storage, demand response, and interconnection.' },
@@ -851,7 +851,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   'digital-society': {
     domain: 'digital-society',
-    researcherName: 'Dr. Digi (Δίγι)',
+    researcherName: 'Dr. Iris (Ἶρις)',
     keyConcepts: [
       { name: 'Platform Capitalism', definition: 'Economic model where digital platforms extract value from network effects, data, and algorithmic intermediation (Srnicek 2017).' },
       { name: 'Algorithmic Governance', definition: 'Use of algorithms to regulate behavior, allocate resources, and make decisions traditionally made by humans or institutions.' },
@@ -901,7 +901,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   'cognitive-science': {
     domain: 'cognitive-science',
-    researcherName: 'Dr. Noesis (Νόησις)',
+    researcherName: 'Dr. Metis (Μῆτις)',
     keyConcepts: [
       { name: 'Dual-Process Theory', definition: 'System 1 (fast, automatic, heuristic) vs System 2 (slow, deliberate, analytical) thinking — explains biases and rationality (Kahneman 2011).' },
       { name: 'Bounded Rationality', definition: 'Humans optimize within cognitive constraints — satisficing rather than maximizing (Simon 1955).' },
@@ -951,7 +951,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   'behavioral-economics': {
     domain: 'behavioral-economics',
-    researcherName: 'Dr. Thymos (Θυμός)',
+    researcherName: 'Dr. Dionysus (Διόνυσος)',
     keyConcepts: [
       { name: 'Prospect Theory', definition: 'Decision-making framework where losses loom larger than gains, probability weighting is nonlinear, and reference points matter (Kahneman & Tversky 1979).' },
       { name: 'Nudge Theory', definition: 'Choice architecture can steer behavior without restricting options — defaults, framing, social norms (Thaler & Sunstein 2008).' },
@@ -1005,7 +1005,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   'urban-studies': {
     domain: 'urban-studies',
-    researcherName: 'Dr. Asty (Ἄστυ)',
+    researcherName: 'Dr. Daedalus (Δαίδαλος)',
     keyConcepts: [
       { name: 'Urban Metabolism', definition: 'Cities as systems consuming resources (energy, water, materials) and producing outputs (waste, emissions) — framework for sustainable urban planning.' },
       { name: 'Transit-Oriented Development', definition: 'Urban design concentrating mixed-use development around public transit stations to reduce car dependency and sprawl.' },
@@ -1055,7 +1055,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   bioethics: {
     domain: 'bioethics',
-    researcherName: 'Dr. Bios (Βίος)',
+    researcherName: 'Dr. Asclepius (Ἀσκληπιός)',
     keyConcepts: [
       { name: 'Principlism', definition: 'Four principles of biomedical ethics: autonomy, beneficence, non-maleficence, justice — the dominant framework in clinical and research ethics (Beauchamp & Childress).' },
       { name: 'Informed Consent', definition: 'Ethical and legal requirement that individuals voluntarily agree to medical treatment or research participation based on adequate understanding.' },
@@ -1105,7 +1105,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   'complexity-science': {
     domain: 'complexity-science',
-    researcherName: 'Dr. Chaos (Χάος)',
+    researcherName: 'Dr. Proteus (Πρωτεύς)',
     keyConcepts: [
       { name: 'Emergence', definition: 'Macro-level patterns arising from micro-level interactions that cannot be predicted from individual components alone — the hallmark of complex systems.' },
       { name: 'Tipping Points', definition: 'Critical thresholds where small changes trigger large, potentially irreversible shifts in system behavior — relevant to climate, finance, and social systems.' },
@@ -1155,7 +1155,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   'computational-social-science': {
     domain: 'computational-social-science',
-    researcherName: 'Dr. Syntaxis (Σύνταξις)',
+    researcherName: 'Dr. Arachne (Ἀράχνη)',
     keyConcepts: [
       { name: 'Digital Trace Data', definition: 'Behavioral data generated as byproduct of digital interactions — social media posts, web browsing, mobile location — enabling large-scale social analysis.' },
       { name: 'Natural Language Processing for Social Science', definition: 'Using NLP (topic models, sentiment analysis, word embeddings) to analyze large text corpora for social patterns.' },
@@ -1205,7 +1205,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   'development-economics': {
     domain: 'development-economics',
-    researcherName: 'Dr. Auxesis (Αὔξησις)',
+    researcherName: 'Dr. Demeter (Δημήτηρ)',
     keyConcepts: [
       { name: 'Randomized Controlled Trials (RCTs)', definition: 'Gold standard for evaluating development interventions — random assignment to treatment/control groups to estimate causal impact (Banerjee & Duflo).' },
       { name: 'Structural Transformation', definition: 'Economy-wide shift from agriculture to industry to services — the classic development pathway, now questioned in age of premature deindustrialization.' },
@@ -1256,7 +1256,7 @@ export const RESEARCHER_KBS: Partial<Record<DomainExpertise, ResearcherKB>> = {
 
   'risk-analysis': {
     domain: 'risk-analysis',
-    researcherName: 'Dr. Kyvernon (Κύβερνον)',
+    researcherName: 'Dr. Cassandra (Κασσάνδρα)',
     keyConcepts: [
       { name: 'Value at Risk (VaR)', definition: 'Maximum expected loss at a given confidence level over a given time period — standard risk measure, but fails to capture tail risk.' },
       { name: 'Systemic Risk', definition: 'Risk that failure of one entity triggers cascading failures across an interconnected system — too-big-to-fail, contagion, fire sales.' },

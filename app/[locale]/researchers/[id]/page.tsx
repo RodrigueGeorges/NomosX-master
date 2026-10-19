@@ -20,6 +20,9 @@ import { Link } from "@/i18n/navigation";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { prisma } from "@/lib/db";
 import { publicPublicationWhere } from "@/lib/publication-visibility";
+import { getDeskPortrait, deskPortraitUrl } from "@/lib/brand/researcher-portraits";
+import { existsSync } from "fs";
+import { join } from "path";
 import type { DomainExpertise } from "@/lib/agent/types";
 
 const TIER_ORDER = { core: 0, advanced: 1, specialized: 2 } as const;
@@ -217,6 +220,14 @@ export default async function ResearcherPage({ params }: Props) {
   const coverMeta = domainKey ? domainCoverCredit(domainKey) : undefined;
   const trackRecord = await getResearcherTrackRecord(r.id);
 
+  // Commissioned fresco portrait of the desk's patron mythic figure —
+  // shown when the generated plate exists on disk.
+  const portrait = getDeskPortrait(r.id);
+  const portraitSrc =
+    portrait && existsSync(join(process.cwd(), "public", "researchers", `${r.id}.webp`))
+      ? deskPortraitUrl(r.id)
+      : undefined;
+
   const domainEn = domainKey ? DOMAINS.find((d) => d.key === domainKey)?.en : undefined;
   const verticalSlugs = domainKey
     ? Object.entries(VERTICAL_TO_DOMAIN).filter(([, dom]) => dom === domainKey).map(([slug]) => slug)
@@ -295,12 +306,26 @@ export default async function ResearcherPage({ params }: Props) {
 
         {/* Header — the fellow-page masthead */}
         <div className="flex items-start gap-5 mb-10">
-          <div
-            aria-hidden="true"
-            className="w-16 h-16 shrink-0 rounded-full flex items-center justify-center font-mono text-2xl font-medium border border-black/[0.14] dark:border-white/[0.14] bg-black/[0.04] dark:bg-white/[0.06] text-black/75 dark:text-white/75"
-          >
-            {r.initials}
-          </div>
+          {portraitSrc ? (
+            <figure className="shrink-0">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={portraitSrc}
+                alt={`${portrait!.figure} — patron figure of the ${r.domain} desk`}
+                className="w-20 h-20 sm:w-24 sm:h-24 object-cover border border-black/[0.14] dark:border-white/[0.14] bg-[#050507]"
+              />
+              <figcaption className="mt-1.5 font-mono text-[9px] uppercase tracking-[0.14em] text-black/40 dark:text-white/40 w-20 sm:w-24 leading-snug">
+                {portrait!.figure} — {portrait!.archetype.split('—')[0].trim()}
+              </figcaption>
+            </figure>
+          ) : (
+            <div
+              aria-hidden="true"
+              className="w-16 h-16 shrink-0 rounded-full flex items-center justify-center font-mono text-2xl font-medium border border-black/[0.14] dark:border-white/[0.14] bg-black/[0.04] dark:bg-white/[0.06] text-black/75 dark:text-white/75"
+            >
+              {r.initials}
+            </div>
+          )}
           <div>
             <p className="nx-eyebrow mb-2">{t("eyebrow")}</p>
             <h1 className="font-display text-3xl sm:text-4xl leading-tight">{r.name}</h1>

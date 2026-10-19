@@ -190,8 +190,9 @@ async function deriveVisualConcept(
 
 ## THE NOMOSX VISUAL IDENTITY
 
-The art direction is FIXED and you never change it — GREEK EPIC FRESCO × ARTIFICIAL INTELLIGENCE:
-- Every image looks like a rediscovered ancient fresco: mineral pigments on weathered plaster — lapis blue, terracotta, cinnabar red, verdigris, gold leaf — emerging from a deep obsidian-black ground
+The art direction is FIXED and you never change it — GREEK EPIC FRESCO × ARTIFICIAL INTELLIGENCE, ON MANDATORY BLACK:
+- THE GROUND IS BLACK. Deep obsidian darkness dominates the frame (≥60% near-black void). The fresco is an island of pigment inside the dark — it dissolves into black at the edges. NEVER a fully lit wall, NEVER a beige or tan plaster ground filling the frame. The site is stark black-and-white; the image must sit inside that.
+- Every image looks like a rediscovered ancient fresco fragment lit by a single beam: mineral pigments on weathered plaster — lapis blue, terracotta, cinnabar red, verdigris, gold leaf — emerging from and consumed by deep obsidian-black ground
 - The mythic scene is fused with machine intelligence: fine luminous filaments (pale gold, steel-blue) woven into drapery and figures, glowing seams tracing the plaster's cracks, faint sacred-geometry overlays
 - Cinematic and monumental — the fresco fills the frame like a temple wall lit by a single shaft of light
 - Stylized fresco figures — Greek gods, draped beings, mythic creatures — in profile or frontal like vase-painting and Pompeian frescoes. NEVER photorealistic people
@@ -263,9 +264,11 @@ FAIL — too literal, didactic, cringe:
 5. Fresco texture always: mineral pigments, craquelure, worn plaster on obsidian ground
 6. The AI fusion = luminous filaments, glowing seams, sacred geometry — NEVER literal modern tech objects
 7. Figures allowed and encouraged — but fresco-stylized (profile, draped, symbolic), never photorealistic people
-8. NO: text, letters, UI, diagrams, clocks, brains, lightbulbs, gears, literal circuit boards, maps, charts
-9. NO: split-screen, before/after, chaos-on-one-side/order-on-the-other
-10. Describe the scene in 2-3 sentences: the myth, the figure's state/pose, and how the luminous machine fusion inhabits it.
+8. THUMBNAIL READABILITY — the image will be cropped to a ~96px-tall strip in cards: the figure must fill 50-70% of frame height, read as a clear silhouette, and stay recognizable when tiny. Prefer close framing over wide scenes.
+9. LIMITED PALETTE — at most 3 mineral pigments plus the luminous gold/steel filaments. A restrained palette survives small sizes; a busy one turns to mud.
+10. NO: text, letters, UI, diagrams, clocks, brains, lightbulbs, gears, literal circuit boards, maps, charts
+11. NO: split-screen, before/after, chaos-on-one-side/order-on-the-other
+12. Describe the scene in 2-3 sentences: the myth, the figure's state/pose, and how the luminous machine fusion inhabits it.
 
 Respond with ONLY the motif description. No preamble, no explanation, no step labels, no markdown.`;
 
@@ -422,19 +425,26 @@ The myth must feel commissioned for THIS article — not a generic classical sce
 ARTICLE: "${title}"
 DOMAINS: ${contextTerms || 'strategic analysis and policy'}
 
-1. SCENE & BACKGROUND
-A vast wall of ancient plaster emerging from deep obsidian-black darkness — monumental in scale, like a temple interior or a frescoed chamber rediscovered in shadow. The fresco surface is weathered: mineral pigments, visible craquelure, worn edges where plaster has flaked to reveal darkness beneath. Faint sacred-geometry lines (circles, meridians, meander fragments) are etched into the ground, barely visible. Atmospheric dust catches the light. The darkness around the scene is the chaos — felt, not shown literally. No split-screen, no "before/after" layout.
+1. SCENE & BACKGROUND — THE DARK IS MANDATORY
+Deep obsidian-black darkness DOMINATES the frame — at least 60% of the image is near-black void (#050507 to #0d0d12). This is non-negotiable: the image lives on a stark black-and-white editorial interface, so it must feel like it emerged from darkness, not a lit museum wall. The frescoed surface appears only where light rakes across it — an island of pigment in the void. At the edges, the plaster and figures DISSOLVE into pure black — no visible wall boundary, no frame edges, no beige/tan ground showing. Faint sacred-geometry lines (circles, meridians, meander fragments) are etched into the dark ground, barely visible. Atmospheric dust catches the single shaft of light. The surrounding black is the chaos — felt, not shown literally. No split-screen, no "before/after" layout.
 
 2. ${subjectBlock}
 
 3. ${compositionBlock}
 
+THUMBNAIL-READABILITY (hard requirement — the image is also shown as a ~96px-tall card strip):
+- The mythic figure fills 50-70% of the frame height — close, monumental framing, not a distant scene
+- The figure reads as a strong silhouette against the plaster — clear pigment/darkness contrast
+- Center-weighted composition: the left and right edges may be cropped — nothing essential within 15% of either edge
+- Maximum 3 pigment colors (lapis, terracotta, cinnabar, ochre, bone white) plus the luminous filaments — restrained palette, never busy
+
 4. LIGHTING & COLOR
-- A single shaft of light raking across the fresco surface — revealing pigment texture, craquelure, and the luminous machine elements
+- ONE narrow shaft of light rakes across the surface — like a single beam through a temple doorway. Everything outside that beam falls to black
+- The lit zone is tight: it reveals pigment texture, craquelure, and the luminous machine elements — then dies into darkness within the frame
 - Fresco pigment palette on obsidian ground: lapis blue (#26418F), terracotta (#B65438), cinnabar red, verdigris (#4F8577), ochre, bone white — weathered, matte, mineral
 - Machine intelligence expressed as LIGHT: fine luminous filaments in pale gold (#C9A24B) and steel-blue (#7FB2D9) woven into drapery, hair, or tracing the plaster's cracks like kintsugi seams
 - The luminous elements are woven INTO the fresco surface — they belong to the ancient image, not pasted on top
-- High contrast between the lit fresco scene and the surrounding obsidian void
+- High contrast between the lit fresco island and the surrounding obsidian void — the edge of the lit zone should read as darkness reclaiming the image
 
 5. VISUAL TREATMENT
 - Fresco painting technique elevated to cinematic epic — Pompeian wall painting, Minoan fresco, Attic vase-figure elegance — rendered with monumental cinematic lighting
@@ -451,6 +461,7 @@ A vast wall of ancient plaster emerging from deep obsidian-black darkness — mo
 - No logos, no UI elements, no diagrams, no charts, no infographics
 - No clocks, no brains, no lightbulbs, no gears, no DNA helices, no globes, no maps, no network graphs
 - No neon palette, no cyberpunk chrome, no holograms
+- No light or warm-toned background — NO beige/tan/cream plaster wall filling the frame, NO blue sky, NO daylight scene. The ground is obsidian black.
 - No collage, no split-screen, no multi-panel layout, no "before/after" arrangement
 - No literal illustrations of the article's modern subject — mythic resonance only
 - No stock photo clichés, no generic "AI" imagery

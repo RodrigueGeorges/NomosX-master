@@ -1,10 +1,37 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { ArrowRight } from "lucide-react";
-import { getReasoningLenses } from "@/lib/brand/reasoning-lenses";
+import { getReasoningLenses, type ReasoningLens } from "@/lib/brand/reasoning-lenses";
 import { ScrollReveal } from "@/components/ui/ScrollReveal";
+
+/** Desk avatar — the commissioned fresco portrait, initials monogram as fallback. */
+function DeskAvatar({ lens, size }: { lens: ReasoningLens; size: number }) {
+  const [imgFailed, setImgFailed] = useState(false);
+  return (
+    <div
+      aria-hidden="true"
+      style={{ width: size, height: size }}
+      className="shrink-0 rounded-full overflow-hidden border border-black/[0.14] dark:border-white/[0.14] bg-[#050507]"
+    >
+      {lens.portraitUrl && !imgFailed ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={lens.portraitUrl}
+          alt=""
+          className="w-full h-full object-cover"
+          onError={() => setImgFailed(true)}
+        />
+      ) : (
+        <div className="w-full h-full flex items-center justify-center font-mono text-sm font-medium bg-black/[0.04] dark:bg-white/[0.06] text-black/70 dark:text-white/70">
+          {lens.initials}
+        </div>
+      )}
+    </div>
+  );
+}
 
 /**
  * The council — the 22 named research desks rendered on the landing.
@@ -46,12 +73,7 @@ export function CouncilRoster({ sectionIndex }: { sectionIndex?: string }) {
               className="group border border-black/[0.08] dark:border-white/[0.08] bg-black/[0.02] dark:bg-white/[0.02] p-4 hover:border-black/25 dark:hover:border-white/25 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-black/40 dark:focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-black"
             >
               <div className="flex items-center gap-3">
-                <div
-                  aria-hidden="true"
-                  className="w-10 h-10 shrink-0 rounded-full flex items-center justify-center font-mono text-sm font-medium border border-black/[0.14] dark:border-white/[0.14] bg-black/[0.04] dark:bg-white/[0.06] text-black/70 dark:text-white/70"
-                >
-                  {lens.initials}
-                </div>
+                <DeskAvatar lens={lens} size={40} />
                 <div className="min-w-0">
                   <p className="font-medium text-sm text-black dark:text-white leading-tight truncate">
                     {lens.deskName}

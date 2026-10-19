@@ -18,6 +18,8 @@ config({ path: '.env.local' });
 import { prisma } from '../lib/db';
 import { generateHeroImage, type HeroArticleContext } from '../lib/agent/hero-image';
 import { parseEditorialInquiry } from '../lib/brand/inquiry-html-parse';
+import { publicPublicationWhere } from '../lib/publication-visibility';
+import { isPositionFirstBrief } from '../lib/agent/brief-html-extract';
 
 const args = process.argv.slice(2);
 const ONLY_PUBLISHED = args.includes('--published');
@@ -89,9 +91,9 @@ function extractContext(html: string): HeroArticleContext {
 
 async function main() {
   const pubs = await prisma.thinkTankPublication.findMany({
-    where: {
-      ...(ONLY_PUBLISHED ? { status: 'PUBLISHED' } : {}),
-    },
+    // --published = exactly what the public site shows: the quality gate
+    // (trust/quality/citation/wordCount per format) + status + publishedAt.
+    where: ONLY_PUBLISHED ? publicPublicationWhere() : {},
     select: {
       id: true, title: true, type: true, status: true,
       html: true, heroImageUrl: true,
@@ -101,7 +103,18 @@ async function main() {
     orderBy: { publishedAt: 'desc' },
   });
 
-  const queue = pubs.filter((p) => p.title && needsImage(p.heroImageUrl)).slice(0, LIMIT);
+  const queue = pubs.filter((p) => {
+    if (!p.title || !needsImage(p.heroImageUrl)) return false;
+    if (ONLY_PUBLISHED) {
+      // Same filter as fetchPublicBriefs — legacy-format HTML isn't displayed
+      const rawHtml = (p.html || '')
+        .replace(/^```html?\s*/i, '')
+        .replace(/\s*```\s*$/, '')
+        .trim();
+      if (!isPositionFirstBrief(rawHtml)) return false;
+    }
+    return true;
+  }).slice(0, LIMIT);
   console.log(`[BATCH] ${pubs.length} publications, ${queue.length} need a hero image`);
 
   let done = 0, failed = 0, skipped = 0;

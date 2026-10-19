@@ -6,7 +6,7 @@
  * the ability to evolve their views based on new evidence.
  *
  * This is what makes NomosX publications genuinely superior:
- * Dr. Oikonomia has published 23 analyses. She predicted in March that carbon
+ * Dr. Ploutos has published 23 analyses. She predicted in March that carbon
  * taxes would underperform in high-inequality contexts. New evidence confirms
  * this. She now cites her own prior work and updates her position.
  *

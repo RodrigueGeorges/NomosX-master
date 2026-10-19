@@ -26,6 +26,7 @@ const LENSES = getReasoningLenses();
 
 function LensCard({ lens }: { lens: ReasoningLens }) {
   const t = useTranslations();
+  const [imgFailed, setImgFailed] = useState(false);
   return (
     <Link
       href={`/researchers/${lens.id}`}
@@ -38,9 +39,21 @@ function LensCard({ lens }: { lens: ReasoningLens }) {
       <div className="flex items-start justify-between gap-4 mb-5">
         <div
           aria-hidden="true"
-          className="w-12 h-12 flex items-center justify-center font-mono text-[11px] font-semibold tracking-wider border border-black/[0.14] dark:border-white/[0.14] bg-black/[0.04] dark:bg-white/[0.06] text-black/70 dark:text-white/70"
+          className="w-12 h-12 shrink-0 overflow-hidden border border-black/[0.14] dark:border-white/[0.14] bg-[#050507]"
         >
-          {lens.initials}
+          {lens.portraitUrl && !imgFailed ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={lens.portraitUrl}
+              alt=""
+              className="w-full h-full object-cover"
+              onError={() => setImgFailed(true)}
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center font-mono text-[11px] font-semibold tracking-wider bg-black/[0.04] dark:bg-white/[0.06] text-black/70 dark:text-white/70">
+              {lens.initials}
+            </div>
+          )}
         </div>
         <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-black/50 dark:text-white/50 px-2 py-0.5 border border-black/[0.08] dark:border-white/[0.08]">
           {lens.tier}

@@ -71,7 +71,7 @@ interface Prediction {
 export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
   economics: {
     id: 'economics-analyst',
-    name: 'Dr. Oikonomia (Οἰκονομία)',
+    name: 'Dr. Ploutos (Πλοῦτος)',
     title: 'Economics & Policy Analyst',
     domain: 'economics',
     subDomains: ['econometrics', 'monetary-policy', 'labor-economics', 'trade-economics', 'development-economics'],
@@ -91,7 +91,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
   
   technology: {
     id: 'technology-analyst',
-    name: 'Dr. Techne (Τέχνη)',
+    name: 'Dr. Hephaestus (Ἥφαιστος)',
     title: 'AI & Digital Systems Analyst',
     domain: 'technology',
     subDomains: ['artificial-intelligence', 'machine-learning', 'cybersecurity', 'distributed-systems', 'computational-complexity', 'digital-transformation'],
@@ -110,7 +110,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
   
   policy: {
     id: 'policy-analyst',
-    name: 'Dr. Politeia (Πολιτεία)',
+    name: 'Dr. Eunomia (Εὐνομία)',
     title: 'Public Policy & Governance Analyst',
     domain: 'policy',
     subDomains: ['public-policy', 'governance', 'regulatory-frameworks', 'international-relations', 'institutional-design'],
@@ -148,7 +148,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
   
   security: {
     id: 'security-analyst',
-    name: 'Dr. Aegis (Αἰγίς)',
+    name: 'Dr. Athena (Ἀθηνᾶ)',
     title: 'Security & Defense Analyst',
     domain: 'security',
     subDomains: ['strategic-security', 'intelligence', 'military-analysis', 'cybersecurity', 'terrorism'],
@@ -167,7 +167,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
   
   law: {
     id: 'law-analyst',
-    name: 'Dr. Nomos (Νόμος)',
+    name: 'Dr. Themis (Θέμις)',
     title: 'Legal & Regulatory Analyst',
     domain: 'law',
     subDomains: ['international-law', 'regulatory-frameworks', 'governance', 'compliance', 'legal-theory', 'human-rights'],
@@ -205,7 +205,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
   
   quantitative: {
     id: 'quantitative-analyst',
-    name: 'Dr. Metron (Μέτρον)',
+    name: 'Dr. Lachesis (Λάχεσις)',
     title: 'Quantitative Methods Analyst',
     domain: 'quantitative',
     subDomains: ['statistics', 'econometrics', 'machine-learning', 'causal-inference', 'research-methods'],
@@ -224,7 +224,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
   
   finance: {
     id: 'finance-analyst',
-    name: 'Dr. Chrematistikos (Χρηματιστικός)',
+    name: 'Dr. Hermes (Ἑρμῆς)',
     title: 'Finance & Investment Analyst',
     domain: 'finance',
     subDomains: ['financial-markets', 'investment-analysis', 'risk-management', 'corporate-finance', 'fintech'],
@@ -243,7 +243,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
   
   'social-sciences': {
     id: 'social-sciences-analyst',
-    name: 'Dr. Koinonia (Κοινωνία)',
+    name: 'Dr. Hestia (Ἑστία)',
     title: 'Social Sciences Analyst',
     domain: 'social-sciences',
     subDomains: ['sociology', 'anthropology', 'social-psychology', 'demography', 'social-mobility'],
@@ -262,7 +262,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
   
   humanities: {
     id: 'humanities-analyst',
-    name: 'Dr. Logos (Λόγος)',
+    name: 'Dr. Apollo (Ἀπόλλων)',
     title: 'Humanities & Ethics Analyst',
     domain: 'humanities',
     subDomains: ['philosophy', 'ethics', 'history', 'literature', 'cultural-studies'],
@@ -281,7 +281,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
   
   'energy-advanced': {
     id: 'energy-advanced-analyst',
-    name: 'Dr. Energeia (Ἐνέργεια)',
+    name: 'Dr. Helios (Ἥλιος)',
     title: 'Energy Systems Analyst',
     domain: 'energy-advanced',
     subDomains: ['renewable-energy', 'energy-systems', 'energy-policy', 'energy-security', 'grid-management', 'energy-economics'],
@@ -300,7 +300,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
   
   geopolitics: {
     id: 'geopolitics-analyst',
-    name: 'Dr. Polis (Πόλις)',
+    name: 'Dr. Atlas (Ἄτλας)',
     title: 'Geopolitics & International Relations Analyst',
     domain: 'geopolitics',
     subDomains: ['international-relations', 'geopolitics', 'foreign-policy', 'trade-policy', 'security-studies'],
@@ -319,7 +319,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
   
   'cognitive-science': {
     id: 'cognitive-science-analyst',
-    name: 'Dr. Noesis (Νόησις)',
+    name: 'Dr. Metis (Μῆτις)',
     title: 'Cognitive Science & Decision Analyst',
     domain: 'cognitive-science',
     subDomains: ['cognitive-psychology', 'decision-theory', 'behavioral-economics', 'neuroscience', 'human-factors'],
@@ -338,7 +338,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
   
   'digital-society': {
     id: 'digital-society-analyst',
-    name: 'Dr. Digi (Δίγι)',
+    name: 'Dr. Iris (Ἶρις)',
     title: 'Digital Society & Technology Analyst',
     domain: 'digital-society',
     subDomains: ['digital-transformation', 'social-media', 'digital-rights', 'platform-economics', 'online-behavior'],
@@ -357,7 +357,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
   
   'behavioral-economics': {
     id: 'behavioral-economics-analyst',
-    name: 'Dr. Thymos (Θυμός)',
+    name: 'Dr. Dionysus (Διόνυσος)',
     title: 'Behavioral Economics Analyst',
     domain: 'behavioral-economics',
     subDomains: ['behavioral-economics', 'decision-making', 'nudge-theory', 'experimental-economics', 'public-policy'],
@@ -376,7 +376,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
   
   'urban-studies': {
     id: 'urban-studies-analyst',
-    name: 'Dr. Asty (Ἄστυ)',
+    name: 'Dr. Daedalus (Δαίδαλος)',
     title: 'Urban Studies & Planning Analyst',
     domain: 'urban-studies',
     subDomains: ['urban-planning', 'housing', 'transportation', 'urban-economics', 'sustainability'],
@@ -395,7 +395,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
 
   'computational-social-science': {
     id: 'computational-social-science-analyst',
-    name: 'Dr. Syntaxis (Σύνταξις)',
+    name: 'Dr. Arachne (Ἀράχνη)',
     title: 'Computational Social Science Analyst',
     domain: 'computational-social-science',
     subDomains: ['social-computing', 'network-analysis', 'big-data', 'agent-based-modeling', 'digital-trace-analysis'],
@@ -414,7 +414,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
   
   bioethics: {
     id: 'bioethics-analyst',
-    name: 'Dr. Bios (Βίος)',
+    name: 'Dr. Asclepius (Ἀσκληπιός)',
     title: 'Bioethics & Medical Ethics Analyst',
     domain: 'bioethics',
     subDomains: ['bioethics', 'medical-ethics', 'research-ethics', 'genetic-ethics', 'end-of-life-care'],
@@ -433,7 +433,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
   
   'complexity-science': {
     id: 'complexity-science-analyst',
-    name: 'Dr. Chaos (Χάος)',
+    name: 'Dr. Proteus (Πρωτεύς)',
     title: 'Complexity Science Analyst',
     domain: 'complexity-science',
     subDomains: ['complex-systems', 'emergence', 'network-theory', 'chaos-theory', 'self-organization'],
@@ -452,7 +452,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
 
   'development-economics': {
     id: 'development-economics-analyst',
-    name: 'Dr. Auxesis (Αὔξησις)',
+    name: 'Dr. Demeter (Δημήτηρ)',
     title: 'Development Economics Analyst',
     domain: 'development-economics',
     subDomains: ['poverty-alleviation', 'microfinance', 'institutional-economics', 'aid-effectiveness', 'human-capital'],
@@ -471,7 +471,7 @@ export const DOMAIN_EXPERTS: Record<DomainExpertise, DomainExpert> = {
 
   'risk-analysis': {
     id: 'risk-analysis-analyst',
-    name: 'Dr. Kyvernon (Κύβερνον)',
+    name: 'Dr. Cassandra (Κασσάνδρα)',
     title: 'Risk Analysis & Uncertainty Modeling Analyst',
     domain: 'risk-analysis',
     subDomains: ['systemic-risk', 'financial-risk', 'operational-risk', 'catastrophe-modeling', 'scenario-planning'],
