@@ -1,6 +1,6 @@
 # NomosX — Audit Technique
 
-**Dernier audit :** Septembre 2026 · **Branche :** main · **Statut :** TypeScript 0 erreurs · ESLint 0 erreurs / ~138 warnings
+**Dernier audit :** 19 octobre 2026 (Sprint 45) · **Branche :** main · **Statut :** TypeScript 0 erreurs · ESLint 0 erreurs / 141 warnings · Jest 45 suites / 459 tests (agent + worker, offline) · replay fixture : passe 1 à 0 miss, passe regen 1 miss (re-record requis)
 
 > Les rapports d'audit historiques sont archivés dans [`docs/audits/`](./docs/audits/). Ce document est la référence unique pour l'état actuel du projet.
 
@@ -35,20 +35,28 @@ Historique complet des sprints : [`AGENTS.md`](./AGENTS.md).
 
 | Item | Sévérité | Note |
 |------|----------|------|
-| `pipeline-v2.ts` 7 426 lignes | Haute | Monolithe à découper par phase |
-| Coverage tests ~2.5 % | Haute | 13 fichiers de test / 514 sources lib |
-| 191 modules agent | Moyenne | Audit dead code (`knip`) recommandé |
-| `scripts/` 315 fichiers | Moyenne | Nombreux scripts one-off à archiver |
-| `react-hooks/*` warnings | Basse | `set-state-in-effect`, `exhaustive-deps`, `purity` — à traiter progressivement |
+| `pipeline-v2.ts` 1 983 lignes + `pipeline-steps/` | Moyenne | Découpage par phase effectué (S28→S44) ; le fichier reste le point d'orchestration |
+| Couverture tests | Haute | 62 fichiers de test, concentrés sur `lib/agent` / `lib/worker` ; `app/` et `components/` non testés |
+| 254 modules agent | Moyenne | Audit dead code (`knip`) toujours recommandé (non installé) |
+| `scripts/` 432 fichiers | Moyenne | Scripts `tmp-*` / `_*` désormais ignorés par git ; archivage des one-off à faire |
+| Fixture replay à re-enregistrer | Moyenne | `gulf-minerals.fixture.jsonl` antérieur au gel du primer (S45) — 1 miss en passe regen ; re-record payant (~$0.25–0.60) |
+| Caches TTL en mémoire | Basse | `topic-classifier`, `quant-agent` traités (S45) ; `topic-radar` (12 min) hors chemin pipeline |
+| `react-hooks/*` warnings | Basse | `set-state-in-effect`, `exhaustive-deps` — 10 occurrences |
+| `import/no-anonymous-default-export` | Basse | 91 occurrences, stubs `lib/providers/**/*.js` hérités |
+| `@next/next/no-html-link-for-pages` | Basse | 40 occurrences |
 
 ## Vérifications
 
 ```bash
-npx tsc --noEmit     # 0 erreurs
-npm run lint         # eslint --cache (0 erreurs)
-npm run test         # jest
-npm run build        # next build
+npx tsc --noEmit -p tsconfig.json                              # 0 erreurs
+npx eslint lib app components --cache --max-warnings 200       # 0 erreurs
+NOMOSX_TEST_OFFLINE=1 npx jest __tests__/lib/agent __tests__/lib/worker --runInBand --ci
+npm run replay:inspect -- .llm-cassettes/gulf-minerals.fixture.jsonl   # intégrité du fixture (hors DB)
+npm run replay -- --cassette .llm-cassettes/gulf-minerals.fixture.jsonl --cleanup   # replay déterministe ($0, DB requise)
+npm run build                                                  # next build
 ```
+
+C'est exactement ce que `.github/workflows/ci.yml` exécute (Node 22 via `.node-version`). Les déploiements sont assurés par Netlify (`netlify.toml`), pas par GitHub Actions.
 
 ## Commits
 

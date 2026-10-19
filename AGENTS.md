@@ -65,7 +65,9 @@ Open architectural priorities (not certified by unit tests):
    artifact versions. No publication success is inferred from a mocked LLM.
    `scripts/replay-run.ts` (Sprint 42/43) is the harness; `frozen-inputs.ts`
    (Sprint 43) freezes the non-LLM channels; `gulf-minerals.fixture.jsonl`
-   is the first real recorded fixture.
+   is the first real recorded fixture. As of Sprint 45 it replays pass 1
+   with 0 misses but its regen pass still misses once (fixture predates the
+   primer freeze) — a re-record on the same corpus is the next paid step.
 
 Verification uses `.tools/node/node.exe` with `node_modules/jest/bin/jest.js`
 (`__tests__/lib/agent`, `__tests__/lib/worker`, `--runInBand`),
@@ -333,6 +335,103 @@ gate `hold` → revision round (2 edits) → regen → `hold`, `HELD trust=40`.
 That is the honest verdict on this artifact; 82 was not. The remaining
 lever is upstream quality at surface depth (analysis strength 12–36/100
 under adversarial review), not scoring.
+
+---
+
+## Sprint 44b — Replay parity hardening (commits `38e3b8a` → `0d1a4b5`)
+
+Record 7→11 on the same fixed corpus surfaced call-count and ordering
+drift that the cassette's per-key FIFO could not absorb:
+
+- **Call-count parity** — record now tapes coalesced in-flight duplicates
+  and Redis cache hits as entries (replay never coalesces and consults the
+  cassette for every call), so both sides consume the same entry count.
+- **Signal-bus virtual clock** (`signals.ts`) — `postedAt` was wall-clock;
+  decay ordering differed between a 45-min record and a 2-min replay. Under
+  cassette modes the bus ticks once per post/sweep.
+- **Detached post-gate work serialized** — `extractExperience`, lessons and
+  playbook curation are fire-and-forget live; under cassette modes they are
+  awaited in a fixed order so record tapes them and replay consumes them.
+- **Miss counter + `--allow-misses`** (default 0): a replay that matches
+  trust/gate but missed is still a FAIL — a miss means a path the recording
+  never took. **Seeded RNG** (mulberry32) in record and replay. The meta
+  sidecar carries the full frozen-input snapshot and the corpus descriptor
+  so `--record` re-runs the SAME corpus.
+
+Replay 11 still failed: 2 misses, cost 0.2217 → 0.2337.
+
+## Sprint 45 — Audit repasse: wall-clock caches, NLI, regen primer, CI, exit code
+
+Full-tree audit (2026-10-19): tsc 0 errors, 44 suites / 457 tests green,
+ESLint 0 errors / 141 warnings — and `npm test` exited 1 anyway, the GitHub
+workflow was inoperative boilerplate, and the committed replay fixture did
+not replay. Root causes, in dependency order:
+
+**In-process TTL caches are wall-clock channels** —
+`topic-classifier.ts` memoized classifications for 30 min. Record pass 1 →
+regen pass 2 took 48 min: cache expired, a second `topic_classification`
+call was taped. Replay reached pass 2 in seconds: cache HIT, the recorded
+entry was never consumed, the casting prompt embedded pass-1 text, its key
+was consumed twice → `CassetteMissError` → deterministic 3-lens team →
+`analyst_brief` miss. Under cassette modes the classifier never reads or
+writes the cache. `quant-agent.ts` (1h TTL) gets the opposite rule: under
+cassette modes a cached entry never expires, because replay freezes quant
+and record pass 2 must share pass 1's output rather than refetch live APIs.
+
+**NLI verdicts are now a frozen-inputs channel** (`nli-engine.ts`) —
+`classifyNLI` goes through `captureInput('nli:<md5(claim, source)>')`,
+content-keyed because `classifyNLIBatch` runs pairs in parallel. The 184MB
+local model's 15 s load race lost under CPU contention (replay 12 ran
+alongside a Jest loop: 3 timeouts → embedding fallback → different
+grounding → different html → `reader_v3`/`fact_check` misses), and the
+fallback is an embeddings provider call outside the cassette. Replay of a
+fixture recorded after this sprint loads no model and calls no provider.
+
+**Regen pass re-primed context live at record** (`pipeline-v2.ts`) —
+pass 2's Context Primer saw "Last coverage: 2026-10-15 (0 days ago)": the
+brief pass 1 had just persisted. Replay reused the pass-1 frozen primer
+("2026-10-13"). `primer:context` and `memory:episodic` now go through
+`captureInput`, so a record run's second pass reuses the first pass's
+capture — the value replay serves. Live retains nothing.
+
+**Replay 13 (alone on the machine)**: pass 1 → 0 misses; 1 miss remains,
+the pass-2 `analyst_brief` whose request carries the pass-1 frozen primer
+while the recording carries the live re-prime. The committed fixture
+predates the primer fix — a re-record on the same corpus is required for a
+0-miss fixture, and that is a paid live run (~$0.25–0.60, ~45 min). The
++$0.012 cost drift (0.2217 → 0.2337) persists with a clean pass 1 and is
+unexplained until that re-record.
+
+**`npm test` exit 1 with every test green** —
+`inquiry-orchestrator.test.ts` did not mock `knowledge-infrastructure`; the
+detached post-gate `extractExperience` kept running after the suite, hit a
+dynamic `import('../agent/redis-simple')` after environment teardown, and
+Jest flagged the after-teardown error. Stubbed in the suite; 45 suites /
+459 tests, exit 0, offline (`NOMOSX_TEST_OFFLINE=1 … --ci`).
+
+**CI** — `.github/workflows/ci.yml` replaced: Node from `.node-version`
+(22.12; the old file pinned 20.16 against `engines >=22.12`), `tsc`,
+ESLint with a warning cap, the agent/worker Jest suites offline, and
+`replay-run.ts --inspect` on the committed fixture. The deploy/Snyk/Codecov
+jobs were removed — they used `upload-artifact@v3` (disabled by GitHub) and
+`netlify deploy --dir=out` on a non-exported build, duplicating the native
+Netlify deploy (`netlify.toml`).
+
+**Desk rename landed** — the 22 council desks are patron mythological
+figures (`scripts/rename-desks-to-mythos.cjs`), with fresco portraits
+(`public/researchers/*.webp`, `lib/brand/researcher-portraits.ts`) and the
+hero-image prompt pinned to a mandatory black ground. The fixture was
+re-recorded with the new names (record 11, 294 entries). Translation is
+chunked at block boundaries with inline images externalized before the
+prompt, deduplicated in-flight, and bounded to 60 s on the public page.
+
+Tests: `classifier-cassette-cache.test.ts` +2, `frozen-inputs.test.ts` +2.
+
+Residual (not fixed): `(0 days ago)` relative dates in the primer are
+`Date.now()`-derived — frozen at record, but a live regen still describes
+the run's own brief as prior coverage; `classifyEmbeddingNLI` remains the
+live fallback; the 15 s NLI load race is still environment-dependent in
+live mode.
 
 ---
 
