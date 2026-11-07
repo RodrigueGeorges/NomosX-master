@@ -21,6 +21,7 @@ import { RESEARCHER_KBS, type DomainExpertise } from './researcher-kb/index';
 import { MULTI_DOMAIN_CORPUS } from '../knowledge/multi-domain-corpus';
 import { NOMOS_EDITORIAL_LINE_SHORT } from './editorial-config';
 import { runAllPruningGates, gateHedgingStrip, type PruningResult } from './pruning-gates';
+import { applyClaimPassageContract } from './claim-passage-contract';
 import { hasRunHeadroomWithReserve, remainingRunMs } from './pipeline-steps/time-budget';
 
 // ============================================================================
@@ -93,6 +94,8 @@ export interface CausalLink {
   derivesFrom: number | null;
   sourceRef?: number;
   unsupported?: boolean;
+  /** Claim→passage contract verdict (deterministic, pre-pruning). */
+  passageVerdict?: 'grounded' | 'weak' | 'none';
 }
 
 export interface ProspectiveNote {
@@ -141,6 +144,14 @@ export interface ProspectiveNote {
     };
     /** Set when the analyst produced a failure stub instead of a real analysis. */
     failed?: boolean;
+    /** Claim→passage contract outcome (deterministic, pre-pruning). */
+    claimPassageContract?: {
+      checked: number;
+      grounded: number;
+      weak: number;
+      unsupportedMarked: number;
+      skippedNoReading: number;
+    };
     error?: string;
   };
 }
@@ -1496,6 +1507,15 @@ export async function analystAgentV3(
     }
     console.log(`[Analyst V3] CITATION COVERAGE: ${citedCount}/${groundedCount} grounded sources cited (${sources.length} total in corpus)`);
 
+    // CLAIM→PASSAGE CONTRACT: deterministic passage-level grounding of
+    // present_fact causal links against the cited source's reader
+    // extractions — runs BEFORE pruning so trust propagation sees the
+    // links the contract marks unsupported.
+    const passageContract = applyClaimPassageContract(sanitizedAnalysis, sources, readings ?? []);
+    if (passageContract.checked > 0) {
+      console.log(`[Analyst V3] CLAIM→PASSAGE: ${passageContract.grounded} grounded, ${passageContract.weak} weak, ${passageContract.unsupportedMarked} unsupported of ${passageContract.checked} fact links (${passageContract.skippedNoReading} no reading)`);
+    }
+
     // PRUNING GATES: Deterministic post-generation quality assurance.
     // Gates PRUNE, never BLOCK. Invalid content is removed before render.
     // Trust propagates through the DAG: weak parents reduce confidence in children.
@@ -1621,6 +1641,7 @@ export async function analystAgentV3(
         producerFamily: p3.family as import('../llm/unified-llm').LLMFamily | undefined,
         pruning: pruningResult,
         preDraftReview: preDraftReviewMeta,
+        claimPassageContract: passageContract.checked > 0 || passageContract.skippedNoReading > 0 ? passageContract : undefined,
       },
     };
   } catch (error: any) {

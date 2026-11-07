@@ -50,8 +50,11 @@ Current evidence-boundary invariants:
   reassessment; finding documents is not resolving a claim.
 
 Open architectural priorities (not certified by unit tests):
-1. Claim-to-passage evidence contracts and a short thesis/outline review before
-   full drafting; repair scope/causality at this point, not only at final DA.
+1. ~~Claim-to-passage evidence contracts~~ (first increment, Sprint 46:
+   deterministic lexical contract pre-pruning; semantic/NLI v2 open) and
+   ~~a short thesis/outline review before full drafting~~ (Sprint 46:
+   pre-draft review between pass 1 and 2). Repair scope/causality at this
+   point, not only at final DA — both halves now exist.
 2. ~~Reserve retrieval and wall-clock capacity for necessary repairs~~ —
    producer-side repair reserve implemented (Sprint 41): analyst passes,
    TTS, and the expert lens cannot start inside the reserved tail. Retrieval
@@ -496,15 +499,36 @@ newcomers via the `screenAdditions` dep; score-0 drops join
 `rejectedSourceIds`. All paths gated `!skipRetrieval` — fixed-corpus
 record/replay never invokes them; fail-open on screening errors.
 
-Tests: `pre-draft-review.test.ts` +5, `gap-fill.test.ts` +2. tsc clean,
-47 suites / 479 tests green.
+**Claim→passage contract (first increment)** —
+`lib/agent/claim-passage-contract.ts` closes the other half of audit
+priority #1: a `[SRC-N]` citation proves a claim points at a SOURCE,
+not that the source's extracted content carries the claim.
+`applyClaimPassageContract` runs deterministically (no LLM —
+replay-safe by construction) inside `analystAgentV3` BEFORE
+`runAllPruningGates`, so trust propagation sees the marks. Only
+`present_fact` links are contract-checked — mechanisms and
+`future_extrapolation` links are inferential by design. Each link's
+claim text is scored by content-word containment against the cited
+source's reading passages (claims/results/limitations/methods):
+near-zero containment (<0.08) sets `unsupported:true` +
+`passageVerdict:'none'` — a fabricated or mis-attributed citation the
+existing pruning machinery now discounts. Weak scores (0.08–0.20) are
+annotated `passageVerdict:'weak'` but kept — the contract removes
+fabrications, it does not police phrasing. Links with no reading
+passages are skipped (`skippedNoReading`), never penalized on absence
+of extraction. Outcome lands in `_meta.claimPassageContract`.
+Verified: fixture replay still **0 misses, trust 40→40, cost identical**
+— the mutation does not drift recorded prompts.
 
-Residual: claim→passage evidence contracts (the other half of audit
-priority #1) not yet built — `CausalLink` already carries
-`evidence`/`warrant`/`sourceRef`/`unsupported` fields to build on;
-retrieval capacity reservation and stale-eval reconciliation remain
-open; `npm audit` breaking-change vulns untouched; ~280 one-off
-`scripts/` still unarchived.
+Tests: `pre-draft-review.test.ts` +5, `claim-passage-contract.test.ts`
++5, `gap-fill.test.ts` +2. tsc clean, 47 suites / 473 tests green
+(agent+worker offline).
+
+Residual: the contract is lexical containment — a semantic
+entailment check (NLI per link) is the natural v2; retrieval capacity
+reservation and stale-eval reconciliation remain open; `npm audit`
+breaking-change vulns untouched; ~280 one-off `scripts/` still
+unarchived.
 
 ---
 
