@@ -30,6 +30,7 @@ import {
   isModerateTierEligible,
 } from "./inquiry-funnel-utils";
 import { evaluatePublicationGate, type PublicationGateResult } from "./publication-gate";
+import { captureInputSync } from "./frozen-inputs";
 import { evaluatePublicationReadiness } from "@/lib/publication-visibility";
 import { requestResearcherSignOff, type SignOffResult } from "./researcher-ownership";
 import { buildForesightPersistPayload, persistForesightRun, type ForesightBundle } from "@/lib/foresight";
@@ -652,7 +653,11 @@ export async function runAndPublishInquiry(
         ? parentDeadlineEarly - Date.now()
         : 95 * 60_000 - elapsedMs;
       const MIN_REGEN_WINDOW_MS = 40 * 60 * 1000;
-      if (regen.regenerate && parentHeadroomMs < MIN_REGEN_WINDOW_MS) {
+      // Frozen for record/replay: wall-clock headroom is infinite at replay
+      // speed — an unfrozen guard would launch a regen the record skipped
+      // (or vice versa), diverging the entire second pass.
+      const regenHeadroomOk = captureInputSync('time:orchestrator-regen-headroom', () => parentHeadroomMs >= MIN_REGEN_WINDOW_MS);
+      if (regen.regenerate && !regenHeadroomOk) {
         console.log(`[InquiryOrchestrator] REGEN skipped: ${Math.round(parentHeadroomMs / 60000)}min parent headroom — needs ~40min (regen ≤35min + persist tail)`);
       } else if (regen.regenerate) {
         const feedback = buildFailureFeedback({

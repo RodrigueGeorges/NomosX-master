@@ -20,6 +20,7 @@ import { callLLM } from '../llm/unified-llm';
 import { parseJson } from './json-utils';
 import { stripHtmlForEvidence } from './evidence-ledger';
 import { getExecutionDeadlineAt } from '../worker/execution-scope';
+import { captureInputSync } from './frozen-inputs';
 
 // ============================================================================
 // TYPES
@@ -458,9 +459,16 @@ export async function factChecker(
   // (severity minor) so the integrity score still reflects what was checked.
   const fcDeadlineAt = getExecutionDeadlineAt();
   const fcHeadroomMs = Number(process.env.FACTCHECK_LLM_HEADROOM_MS ?? 600_000);
-  const llmWindowOk = fcDeadlineAt === undefined || (fcDeadlineAt - Date.now()) >= fcHeadroomMs;
+  // Frozen for record/replay: the guard compares wall-clock, and a replay
+  // reaches this point in seconds where the record had minutes left — an
+  // unfrozen decision makes replay run LLM batches the record skipped
+  // (cassette misses on calls that were never recorded). captureInputSync
+  // replays the recorded boolean per invocation, FIFO.
+  const llmWindowOk = captureInputSync('time:factcheck-llm-window', () =>
+    fcDeadlineAt === undefined || (fcDeadlineAt - Date.now()) >= fcHeadroomMs
+  );
   if (!llmWindowOk && ambiguousClaims.length > 0) {
-    console.warn(`[FACT-CHECKER] LLM batch skipped — ${Math.max(0, Math.round((fcDeadlineAt - Date.now()) / 1000))}s left < ${Math.round(fcHeadroomMs / 1000)}s headroom; ${ambiguousClaims.length} claims stay deterministic-only`);
+    console.warn(`[FACT-CHECKER] LLM batch skipped — ${Math.max(0, Math.round(((fcDeadlineAt ?? Date.now()) - Date.now()) / 1000))}s left < ${Math.round(fcHeadroomMs / 1000)}s headroom; ${ambiguousClaims.length} claims stay deterministic-only`);
     for (const c of ambiguousClaims) {
       allResults.push({
         claim: c.claim,
