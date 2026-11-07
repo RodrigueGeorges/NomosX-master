@@ -871,6 +871,18 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     analystDecision, orchState, emitProgress, addCost, isBudgetConstrained,
     bumpAnalysisArtifact, analystMultipass, rank, scout: frozenScout, ctx,
     skipRetrieval: opts.skipGapFillRetrieval === true,
+    // Gap-fill merges bypass the rank-phase topical screen — vet newcomers
+    // before they reach the analyst/render corpus. Only invoked on
+    // !skipRetrieval paths, so fixed-corpus replay never calls it.
+    screenAdditions: async (q: string, candidates: any[]) => {
+      const { screenSourcesForRelevance } = await import('./pipeline-steps/relevance-screen');
+      const res = await screenSourcesForRelevance({ query: q, candidates, label, addCost, costStep: 'RELEVANCE_SCREEN_GAPFILL' });
+      if (!res) return null;
+      if (res.dropIds.size > 0 || res.screened > 0) {
+        stats.gapFillScreen = { ...(stats.gapFillScreen ?? {}), screened: res.screened, dropped: res.dropIds.size, costUsd: res.costUsd };
+      }
+      return res.dropIds;
+    },
     // Pre-adoption witness — scores a candidate re-analysis with the same
     // critic preprocessing as eval-rescore so a citation-richer but
     // quality-poorer candidate cannot replace a better-scored analysis.

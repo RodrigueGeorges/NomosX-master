@@ -59,6 +59,11 @@ export interface GapFillDeps {
   analystMultipass: (query: string, topSources: any[], readings: any[], opts: any) => Promise<any>;
   rank: (query: string, opts: any) => Promise<any[]>;
   scout: (query: string, providers: any, limit?: number) => Promise<any>;
+  /** Late-addition relevance screen: gap-fill merges bypass the rank-phase
+   * topical screen, so newly retrieved sources are vetted here before they
+   * reach the analyst/render corpus. Returns the ids to drop; null means the
+   * screen was unavailable — keep everything (fail-open). */
+  screenAdditions?: (query: string, candidates: any[]) => Promise<Set<string> | null>;
   ctx: {
     hasGapRequests: () => boolean;
     getPendingGapRequests: () => any[];
@@ -143,7 +148,17 @@ export function createGapRequestProcessor(deps: GapFillDeps) {
         const ranked = await rank(query, gapRankOpts);
         const sourceIds = new Set(topSources.map(s => s.id));
         const additions = ranked.filter(s => !sourceIds.has(s.id) && !!sourceIds.add(s.id));
-        const gapEnriched = [...topSources, ...additions];
+        // These docs bypassed the rank-phase topical screen — vet them
+        // before they feed the re-analysis and the render corpus.
+        let keptAdditions = additions;
+        if (deps.screenAdditions && additions.length > 0) {
+          const drop = await deps.screenAdditions(query, additions);
+          if (drop && drop.size > 0) {
+            keptAdditions = additions.filter(s => !drop.has(s.id));
+            console.log(`${label} BLACKBOARD GAP-FILL: relevance screen dropped ${additions.length - keptAdditions.length}/${additions.length} off-topic additions`);
+          }
+        }
+        const gapEnriched = [...topSources, ...keptAdditions];
         ctx.addFinding('BLACKBOARD', 'insight', `Retrieved ${gapNewCount} candidate sources for ${gapReqs.length} gaps (${origin}); reassessment required`);
 
         // ── CRITICAL FIX: Re-execute ANALYST with gap-filled sources ──
@@ -153,10 +168,10 @@ export function createGapRequestProcessor(deps: GapFillDeps) {
         // receiving them, but continuing to write without reading them.
         // BUDGET: each re-analysis is a full 3-pass (~7min on reasoning models).
         // Cap total re-analyses per run — brief runs get 1, strategic 2.
-        if (additions.length > 0 && state.reAnalysisBudget > 0) {
+        if (keptAdditions.length > 0 && state.reAnalysisBudget > 0) {
           state.reAnalysisBudget--;
           assertExecutionActive();
-          const fresh = await readerAgentV3(additions, { domain: detectedDomain, maxConcurrency: isFreeRun() ? 2 : 4 });
+          const fresh = await readerAgentV3(keptAdditions, { domain: detectedDomain, maxConcurrency: isFreeRun() ? 2 : 4 });
           assertExecutionActive();
           emitProgress(pipelineRunId, "GAP_FILL", "started", `Re-analyzing with ${gapEnriched.length} enriched sources...`);
           const gapReReadings = [...readings, ...fresh].map((r: any) => ({
@@ -190,7 +205,7 @@ export function createGapRequestProcessor(deps: GapFillDeps) {
             // Enriched sources are appended regardless of the adoption
             // outcome: [SRC-N] indices 1..N stay valid, and downstream stages
             // (render, DA) still benefit from the retrieved evidence.
-            topSources.push(...additions);
+            topSources.push(...keptAdditions);
             readings.push(...fresh);
             deps.slimReadings.push(...gapReReadings.filter(r => fresh.some(f => f.sourceId === r.sourceId)));
             // Pre-adoption witness: citation delta alone is Goodhart-prone —
@@ -436,7 +451,20 @@ export async function runGapFillStage(deps: GapFillDeps): Promise<void> {
           console.log(`${label} POST-ANALYST ENRICHMENT: +${postNewCount} sources from gap-targeted search`);
           // Re-rank and merge new sources
           const postRankOpts = { ...rankOpts, sourceIds: state.allSourceIds, limit: (rankOpts.limit ?? 12) + 3 };
-          const postEnriched = await rank(query, postRankOpts);
+          let postEnriched = await rank(query, postRankOpts);
+          // Screen only newcomers — docs already in topSources passed the
+          // rank-phase or gap-fill screen.
+          if (deps.screenAdditions && postEnriched.length > 0) {
+            const oldIds = new Set(topSources.map(s => s.id));
+            const newcomers = postEnriched.filter(s => !oldIds.has(s.id));
+            if (newcomers.length > 0) {
+              const drop = await deps.screenAdditions(query, newcomers);
+              if (drop && drop.size > 0) {
+                postEnriched = postEnriched.filter(s => !drop.has(s.id));
+                console.log(`${label} POST-ANALYST ENRICHMENT: relevance screen dropped ${drop.size}/${newcomers.length} off-topic additions`);
+              }
+            }
+          }
           // Compare quality, not just count — use average compositeScore of top sources
           const oldAvgQuality = topSources.length > 0
             ? topSources.reduce((sum: number, s: any) => sum + (s.compositeScore ?? s.qualityScore ?? 50), 0) / topSources.length

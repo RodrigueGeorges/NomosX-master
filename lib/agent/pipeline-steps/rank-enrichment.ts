@@ -219,11 +219,18 @@ export async function runRankAndEnrichment(deps: RankEnrichmentDeps): Promise<Ra
   // BEFORE they consume a reader extraction slot — saves tokens AND lifts
   // corpus precision (the Elicit pattern: screen before extract).
   // Skipped in fixed-corpus mode: seeds were screened during the original run.
+  // screenedSourceIds tracks every doc the screen has judged — later
+  // enrichment merges (CRAG, enrichment, refusal-retry, snowball) add UNSCREENED
+  // docs that get one bounded late screen before the reader (audit item:
+  // screening new additions across every later enrichment path).
+  const screenedSourceIds = new Set<string>();
+  let lateAdditions = false;
   if (!deps.skipRetrieval && topSources.length > 25) {
     try {
       const { callLLM } = await import('../../llm/unified-llm');
       const { parseJson } = await import('../json-utils');
       const screened = topSources.slice(0, 60);
+      for (const s of screened) screenedSourceIds.add(s.id);
       const listing = screened
         .map((s: any, i: number) => `${i}: ${(s.title || 'untitled').slice(0, 120)} — ${(s.abstract || '').replace(/\s+/g, ' ').slice(0, 160)}`)
         .join('\n');
@@ -282,8 +289,9 @@ export async function runRankAndEnrichment(deps: RankEnrichmentDeps): Promise<Ra
             const fresh = newIds.filter((id: string) => !allSourceIds.includes(id) && !rejectedSourceIds.has(id));
             if (fresh.length > 0) {
               allSourceIds = [...allSourceIds, ...fresh];
+              lateAdditions = true;
               const reranked = (await rank(query, { ...rankOpts, sourceIds: allSourceIds }))
-                .filter((s: any) => !rejectedSourceIds.has(s.id));
+                .filter((s: any) => !rejectedSourceIds.has(s.id) && !offTopicProviders.has(s.provider));
               if (reranked.length > topSources.length) {
                 topSources.length = 0;
                 topSources.push(...reranked);
@@ -379,6 +387,7 @@ export async function runRankAndEnrichment(deps: RankEnrichmentDeps): Promise<Ra
     }
 
     if (newSourceCount > 0) {
+      lateAdditions = true;
       console.log(`${label} ENRICHMENT: +${newSourceCount} new sources from targeted queries — re-ranking`);
 
       // S15-09/S16-fix: NestBrowse — deep web extraction for sources with URLs but no abstracts
@@ -411,7 +420,8 @@ export async function runRankAndEnrichment(deps: RankEnrichmentDeps): Promise<Ra
         sourceIds: allSourceIds,
         limit: rankOpts.limit ?? 100,
       };
-      const enrichedTop = (await rank(query, enrichedRankOpts)).filter(s => !rejectedSourceIds.has(s.id));
+      const enrichedTop = (await rank(query, enrichedRankOpts))
+        .filter(s => !rejectedSourceIds.has(s.id) && !offTopicProviders.has(s.provider));
       // Replace topSources with enriched version if it's better
       if (enrichedTop.length > topSources.length) {
         topSources.length = 0;
@@ -457,10 +467,11 @@ export async function runRankAndEnrichment(deps: RankEnrichmentDeps): Promise<Ra
       }
 
       if (retryNewSourceIds.length > 0) {
+        lateAdditions = true;
         // Re-rank with the new sources — MUST scope to retryNewSourceIds
         // (without sourceIds, rank queries the entire DB and won't find the new sources)
         const retryRanked = (await rank(query, { limit: isStrategic ? 25 : 15, mode: 'balanced', sourceIds: retryNewSourceIds } as any))
-          .filter(s => !rejectedSourceIds.has(s.id));
+          .filter(s => !rejectedSourceIds.has(s.id) && !offTopicProviders.has(s.provider));
         if (retryRanked.length > 0) {
           console.log(`${label} REFUSAL RETRY: Found ${retryRanked.length} sources (was ${topSources.length}). Proceeding with enriched corpus.`);
           topSources = retryRanked;
@@ -611,8 +622,9 @@ export async function runRankAndEnrichment(deps: RankEnrichmentDeps): Promise<Ra
       const fresh = snow.addedIds.filter(id => !allSourceIds.includes(id) && !rejectedSourceIds.has(id));
       if (fresh.length > 0) {
         allSourceIds = [...allSourceIds, ...fresh];
+        lateAdditions = true;
         const merged = (await rank(query, { ...rankOpts, sourceIds: allSourceIds }))
-          .filter((s: any) => !rejectedSourceIds.has(s.id));
+          .filter((s: any) => !rejectedSourceIds.has(s.id) && !offTopicProviders.has(s.provider));
         if (merged.length > topSources.length) {
           topSources.length = 0;
           topSources.push(...merged);
@@ -622,6 +634,32 @@ export async function runRankAndEnrichment(deps: RankEnrichmentDeps): Promise<Ra
       stats.snowball = { seedsUsed: snow.seedsUsed, candidatesFetched: snow.candidatesFetched, newSourcesAdded: fresh.length };
     } catch (err) {
       console.warn(`${label} SNOWBALL failed (non-blocking): ${err instanceof Error ? err.message : err}`);
+    }
+  }
+
+  // ── LATE RELEVANCE SCREEN — docs added by post-screen merges were never
+  // scored. One bounded batch call over the unscreened survivors; score-0
+  // docs are dropped and join rejectedSourceIds so no later re-rank
+  // restores them. Only runs when a merge actually added sources.
+  if (!deps.skipRetrieval && lateAdditions && topSources.length > 0) {
+    const unscreened = topSources.filter((s: any) => !screenedSourceIds.has(s.id));
+    if (unscreened.length > 0) {
+      const { screenSourcesForRelevance } = await import('./relevance-screen');
+      const res = await screenSourcesForRelevance({ query, candidates: unscreened, label, addCost });
+      if (res) {
+        unscreened.forEach((s: any) => screenedSourceIds.add(s.id));
+        if (res.dropIds.size > 0) {
+          res.dropIds.forEach((id: string) => rejectedSourceIds.add(id));
+          topSources = topSources.filter((s: any) => !res.dropIds.has(s.id));
+          topSources.forEach((s: any, i: number) => { s.loadBearing = i < 3; });
+          stats.relevanceScreen = { ...(stats.relevanceScreen ?? {}), lateScreened: res.screened, lateDropped: res.dropIds.size, lateCostUsd: res.costUsd };
+          console.log(`${label} LATE RELEVANCE SCREEN: dropped ${res.dropIds.size}/${res.screened} off-topic late additions — ${topSources.length} proceed to reader`);
+          ctx.addFinding('RANK', 'insight', `Late relevance screen removed ${res.dropIds.size}/${res.screened} off-topic sources added by enrichment merges`);
+        } else {
+          stats.relevanceScreen = { ...(stats.relevanceScreen ?? {}), lateScreened: res.screened, lateDropped: 0, lateCostUsd: res.costUsd };
+          console.log(`${label} LATE RELEVANCE SCREEN: all ${res.screened} late additions topically relevant`);
+        }
+      }
     }
   }
 

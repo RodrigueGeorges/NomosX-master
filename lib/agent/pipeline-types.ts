@@ -892,6 +892,26 @@ export interface PipelineStats {
     citationDelta: number;
   };
 
+  // Late-addition relevance screens (rank-enrichment merges + gap-fill)
+  relevanceScreen?: {
+    screened?: number;
+    dropped?: number;
+    restoredAtFloor?: boolean;
+    correct?: number;
+    ambiguous?: number;
+    lateScreened?: number;
+    lateDropped?: number;
+    lateCostUsd?: number;
+    costUsd?: number;
+    [key: string]: unknown;
+  };
+  gapFillScreen?: {
+    screened?: number;
+    dropped?: number;
+    costUsd?: number;
+    [key: string]: unknown;
+  };
+
   // Evidence bank (WebWeaver pattern — claims banked at reading time)
   evidenceBank?: {
     entries: number;
