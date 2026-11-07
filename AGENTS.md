@@ -439,6 +439,75 @@ live mode.
 
 ---
 
+## Sprint 46 — Pre-draft scope review + last wall-clock guards frozen (2026-11-07)
+
+Two workstreams: the audit's priority-#1 architectural item (first
+increment) and the replay determinism tail.
+
+**Pre-draft scope review** (`lib/agent/pre-draft-review.ts`,
+`analyst-multipass.ts`) — the "short thesis/outline review BEFORE full
+drafting" the audit asked for. After `validateFrictionMap` and before
+pass 2, one cheap `callLLM` reviews the pass-1 direction against the
+question + `boundThesis`: scope overreach, causality asserted beyond
+correlation, thin sourcing. A non-clean verdict emits an imperative
+directive appended to the shared `ctx` — visible to BOTH remaining
+passes, so scope/causality is repaired mid-flight instead of only at the
+post-analyst adherence gate (where repair costs a full re-analysis).
+Fail-open; opt-out via `preDraftReview:false` or
+`NOMOSX_PRE_DRAFT_REVIEW=0`. `boundThesis` is wired at every
+`analystMultipass` call site (main run, TTS candidate, adherence/critic/
+gap-fill/outline/citation-spread/DA rewrites). Outcome lands in
+`_meta.preDraftReview`; cost folds into `totalCostUsd`.
+
+Live proof on record 13: the review fired on BOTH multipasses — 5
+defects on pass 1 ("mechanism #4 asserts causation in defense/security
+domains the bound thesis does not cover") and 6 on the outline rewrite
+("Thucydides Trap extrapolation broader than the bound thesis") —
+directives injected, passes proceeded under contract.
+
+**Last unfrozen wall-clock guards** — record 13's replay produced exactly
+2 misses, both `fact_check`: the fact-checker's `llmWindowOk` guard
+(`deadline - now >= FACTCHECK_LLM_HEADROOM_MS`) skipped the LLM
+batch/UFO/citance passes on the regen tail (492s left < 600s in record)
+while replay — same point in ~10s — ran them. Now frozen via
+`captureInputSync('time:factcheck-llm-window')` (FIFO per invocation).
+The orchestrator's regen headroom guard (`parentHeadroomMs >= 40min`)
+froze the same way — latent divergence of the same class. The fixture
+meta was backfilled with the six recorded decisions `[T,T,T,T,T,F]`
+reconstructed from the record log — no third paid record needed.
+
+**Record 13 + replay**: 282 cassette entries, regen pass exercised
+(pre-draft review ×2, outline rewrite, DA fatal challenges, fact-integrity
+veto 10 fatal). Replay: **0 misses, trust 40→40, gate hold→hold, cost
+identical to the cent ($0.3953568), ~10s** vs ~67min live.
+
+**Knip triage (first pass)** — the 6 unresolved imports were real
+breakage: `npm run worker` pointed at a script importing the deleted
+`lib/agent/pipeline.js` (repointed to `worker:pipeline`), three v1
+scripts + npm entries removed, `analyst-agent.test.ts` deleted (dead
+module), `scout-v2.integration.test.ts` switched vitest→jest globals,
+CI now runs `lib/agent/__tests__` (4 suites / 34 tests previously never
+executed), phantom deps `ts-node` + `undici` declared.
+
+**Late-source screening closed** — `screenSourcesForRelevance`
+(`pipeline-steps/relevance-screen.ts`) vets post-screen merges in
+rank-enrichment (CRAG/enrichment/refusal-retry/snowball) and gap-fill
+newcomers via the `screenAdditions` dep; score-0 drops join
+`rejectedSourceIds`. All paths gated `!skipRetrieval` — fixed-corpus
+record/replay never invokes them; fail-open on screening errors.
+
+Tests: `pre-draft-review.test.ts` +5, `gap-fill.test.ts` +2. tsc clean,
+47 suites / 479 tests green.
+
+Residual: claim→passage evidence contracts (the other half of audit
+priority #1) not yet built — `CausalLink` already carries
+`evidence`/`warrant`/`sourceRef`/`unsupported` fields to build on;
+retrieval capacity reservation and stale-eval reconciliation remain
+open; `npm audit` breaking-change vulns untouched; ~280 one-off
+`scripts/` still unarchived.
+
+---
+
 External-stack pass (cassette/agentreplay record-replay, PaperQA2 citation
 traversal, SCitance/ExecutableClaims entailment, CRAG grading, node-
 DeepResearch gap budgeting). Four surgical changes, each unit-verified:
