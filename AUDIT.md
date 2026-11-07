@@ -1,6 +1,6 @@
 # NomosX — Audit Technique
 
-**Dernier audit :** 19 octobre 2026 (Sprint 45) · **Branche :** main · **Statut :** TypeScript 0 erreurs · ESLint 0 erreurs / 141 warnings · Jest 45 suites / 459 tests (agent + worker, offline) · replay fixture : passe 1 à 0 miss, passe regen 1 miss (re-record requis)
+**Dernier audit :** 19 octobre 2026 (Sprint 45) · **Revue :** 7 novembre 2026 · **Branche :** main · **Statut :** TypeScript 0 erreurs · Jest 46 suites / 472 tests (agent + worker + security, offline) · replay fixture : passe 1 à 0 miss, passe regen 1 miss (re-record requis)
 
 > Les rapports d'audit historiques sont archivés dans [`docs/audits/`](./docs/audits/). Ce document est la référence unique pour l'état actuel du projet.
 
@@ -28,7 +28,7 @@ Historique complet des sprints : [`AGENTS.md`](./AGENTS.md).
 | Headers | CSP, HSTS, X-Frame-Options, nosniff, Permissions-Policy |
 | XSS | `sanitizeHtml` allowlist server + Sanitizer API client |
 | Passwords | bcrypt (12 rounds), migration legacy SHA-256 |
-| Secrets compare | ⚠️ `ADMIN_KEY` validé en env.ts mais jamais comparé (config morte) |
+| Secrets compare | `ADMIN_KEY` comparé en timing-safe : `x-admin-key` ne bypass le CSRF que s'il matche `ADMIN_KEY` (middleware + `lib/security/csrf.ts`) |
 | Dependencies | `npm audit` — vulnérabilités restantes = breaking changes (netlify-cli, nodemailer v10, exceljs, sharp) |
 
 ## Dette technique connue
@@ -37,9 +37,9 @@ Historique complet des sprints : [`AGENTS.md`](./AGENTS.md).
 |------|----------|------|
 | `pipeline-v2.ts` 1 983 lignes + `pipeline-steps/` | Moyenne | Découpage par phase effectué (S28→S44) ; le fichier reste le point d'orchestration |
 | Couverture tests | Haute | 62 fichiers de test, concentrés sur `lib/agent` / `lib/worker` ; `app/` et `components/` non testés |
-| 254 modules agent | Moyenne | Audit dead code (`knip`) toujours recommandé (non installé) |
+| 254 modules agent | Moyenne | `knip` installé (2026-11-07) : 284 fichiers inutilisés (surtout `scripts/` one-off), 26 deps + 4 devDeps inutilisées, 721 exports morts — tri à faire, pas de suppression aveugle |
 | `scripts/` 432 fichiers | Moyenne | Scripts `tmp-*` / `_*` désormais ignorés par git ; archivage des one-off à faire |
-| Fixture replay à re-enregistrer | Moyenne | `gulf-minerals.fixture.jsonl` antérieur au gel du primer (S45) — 1 miss en passe regen ; re-record payant (~$0.25–0.60) |
+| Fixture replay à re-enregistrer | Moyenne | `gulf-minerals.fixture.jsonl` antérieur au gel du primer (S45) — 1 miss en passe regen ; re-record payant (~$0.25–0.60). Le bug sémantique du primer (« (0 days ago) » sur son propre brief) est corrigé : `primerCoverageCutoff` exclut les briefs postérieurs au démarrage du run parent |
 | Caches TTL en mémoire | Basse | `topic-classifier`, `quant-agent` traités (S45) ; `topic-radar` (12 min) hors chemin pipeline |
 | `react-hooks/*` warnings | Basse | `set-state-in-effect`, `exhaustive-deps` — 10 occurrences |
 | `import/no-anonymous-default-export` | Basse | 91 occurrences, stubs `lib/providers/**/*.js` hérités |

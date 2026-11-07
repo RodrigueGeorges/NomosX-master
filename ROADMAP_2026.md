@@ -221,23 +221,38 @@ automatiquement la structure de raisonnement à partir de modules atomiques.
 
 ---
 
-## Implémentation (Sprint 6 — 2026-08)
+## Implémentation (Sprint 6 — 2026-08) — ÉTAT RÉEL VÉRIFIÉ (2026-11)
 
-Les gaps P0-P2 sont implémentés dans ce sprint. Voir `lib/agent/` pour les nouveaux modules :
+> ⚠️ Correction d'audit : la version initiale de cette section affirmait que
+> tous les gaps P0–P2 étaient implémentés. Vérification du code (imports
+> réels, pas seulement fichiers présents) :
 
-- `lib/agent/prompt-optimizer/` — Gap 1
-- `lib/agent/adas/` — Gap 2
-- `lib/agent/lats/` — Gap 3
-- `lib/agent/adaptive-rag.ts` — Gap 4
-- `lib/agent/knowledge-graph-pagerank.ts` — Gap 5
-- `lib/agent/chain-verification.ts` — Gap 6
-- `lib/agent/mcp/` — Gap 7
-- `lib/agent/local-judge.ts` — Gap 8
-- `lib/agent/budget-forcing.ts` — Gap 10
-- `lib/agent/self-discover.ts` — Gap 14
-- `lib/agent/output-guard.ts` — Gap 15
+**Implémentés ET câblés dans le pipeline :**
+- `lib/agent/adaptive-rag.ts` — Gap 4 (utilisé par `reader-block.ts`)
+- `lib/agent/knowledge-graph-pagerank.ts` — Gap 5 (via `knowledge-graph.ts`)
+- `lib/agent/chain-verification.ts` — Gap 6 (utilisé par `critic-block.ts`, `ufo-factcheck.ts`)
+- `lib/agent/local-judge.ts` — Gap 8 (utilisé par `post-analyst-checks.ts`, PRM, self-play)
+- `lib/agent/output-guard.ts` — Gap 15 (utilisé par `post-analyst-checks.ts`)
+- `lib/agent/temporal-memory.ts` — Gap 9 (bi-temporel, via `knowledge-graph.ts`)
+- `lib/agent/langfuse.ts` — Gap 11 (tracing LLM dans `unified-llm.ts`)
+- `lib/agent/durable-execution.ts` — Gap 12 (snapshots durables, Sprint 28)
 
-Chaque module est conçu pour s'intégrer avec l'existant sans casser la compatibilité.
+**Implémenté mais derrière flag optionnelle :**
+- `lib/agent/prompt-optimizer/` — Gap 1 : utilisé par `witness/meta-loop.ts`
+  (`optimizeAllPrompts`), donc actif uniquement quand `useWitness` est activé.
+
+**NON implémentés (présents dans la roadmap initiale, absents du code) :**
+- Gap 2 — ADAS / meta-agent-search (`lib/agent/adas/` n'existe pas)
+- Gap 3 — LATS tree search (`lib/agent/lats/` n'existe pas)
+- Gap 7 — MCP server/client (`lib/agent/mcp/` n'existe pas)
+- Gap 10 — Budget forcing / s1 (`lib/agent/budget-forcing.ts` n'existe pas)
+- Gap 14 — Self-Discover (`lib/agent/self-discover.ts` n'existe pas)
+
+**Partiellement couvert par des mécanismes existants :**
+- Gap 13 (STORM/PaperQA2) : flag `useStorm` existe dans les options pipeline ;
+  la citation traversal OpenAlex snowball est implémentée (Sprint « external-stack »).
+
+Chaque module implémenté est conçu pour s'intégrer avec l'existant sans casser la compatibilité.
 Activation via options de `runPipeline()`.
   
 ---  
