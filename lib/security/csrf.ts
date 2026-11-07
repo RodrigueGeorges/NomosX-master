@@ -12,6 +12,7 @@
  */
 
 import { NextRequest } from 'next/server';
+import { safeCompare } from './timing-safe';
 
 export class CsrfError extends Error {
   constructor() {
@@ -63,9 +64,12 @@ export function assertCsrf(req: NextRequest): void {
     const { pathname } = new URL(req.url);
     const isInternalRoute = pathname.startsWith('/api/cron/') || pathname.startsWith('/api/webhooks/');
     if (isInternalRoute) {
-      const hasAdminKey = req.headers.get('x-admin-key');
+      // x-admin-key bypasses CSRF only when it matches ADMIN_KEY — a bare
+      // presence check was a forgeable bypass. Authorization presence is
+      // still allowed: cron/webhook routes verify their own Bearer secret.
+      const hasValidAdminKey = safeCompare(req.headers.get('x-admin-key'), process.env.ADMIN_KEY);
       const hasAuth = req.headers.get('authorization');
-      if (hasAdminKey || hasAuth) return;
+      if (hasValidAdminKey || hasAuth) return;
     }
 
     throw new CsrfError();

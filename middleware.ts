@@ -23,6 +23,16 @@ function getAllowedOrigins(): string[] {
   return origins;
 }
 
+// Constant-time string equality for edge runtime (no node:crypto).
+// Length is compared up front — acceptable here: this only gates a CSRF
+// pre-check, and route handlers still enforce their own secrets.
+function constantTimeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
 function checkCsrf(request: NextRequest): boolean {
   const method = request.method.toUpperCase();
   if (['GET', 'HEAD', 'OPTIONS'].includes(method)) return true;
@@ -38,7 +48,11 @@ function checkCsrf(request: NextRequest): boolean {
   if (isInternalRoute) {
     const adminKey = request.headers.get('x-admin-key');
     const authHeader = request.headers.get('authorization');
-    if (adminKey || authHeader) return true;
+    const expectedAdmin = process.env.ADMIN_KEY;
+    // x-admin-key must match ADMIN_KEY — a bare presence check made the
+    // header a dead bypass any caller could forge. Edge runtime: no
+    // node:crypto, so a dependency-free constant-time compare.
+    if ((adminKey && expectedAdmin && constantTimeEqual(adminKey, expectedAdmin)) || authHeader) return true;
   }
 
   const origin = request.headers.get('origin');

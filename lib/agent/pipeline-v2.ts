@@ -126,6 +126,10 @@ export interface PipelineCoreOptions {
   /** Regeneration loop: the corpus is fixed — gap-fill/post-analyst scouts
    * would mutate it, force re-reads, and blow the bounded regen window. */
   skipGapFillRetrieval?: boolean;
+  /** Regeneration loop: briefs created at/after this instant do not count as
+   * prior coverage — the previous attempt's own brief must not be fed back
+   * to the context primer as "(0 days ago)" institutional memory. */
+  primerCoverageCutoff?: Date;
   /** Enable the Witness — metacognitive observer (default: false).
    * The Witness observes each pipeline step, detects anomalies, and can
    * intervene. It also learns across runs to improve prompts and thresholds. */
@@ -269,6 +273,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     : captureInput('primer:context', () => primeContext(query, {
         maxConcepts: isStrategic ? 20 : 15,
         maxPriorBriefs: isStrategic ? 8 : 5,
+        excludeCreatedAfter: opts.primerCoverageCutoff,
       }).then((pc) => {
         orchState.contextPrimed = true;
         orchState.knownConceptCount = pc.knownConcepts.length;
@@ -1717,6 +1722,9 @@ export interface StrategicPipelineOptions {
    * re-reads of new sources, and burn the bounded regen window — the rewrite
    * must analyze the SAME evidence base. Set by the orchestrator's regen. */
   skipGapFillRetrieval?: boolean;
+  /** Regeneration loop: briefs created at/after this instant do not count as
+   * prior coverage — see PipelineCoreOptions.primerCoverageCutoff. */
+  primerCoverageCutoff?: Date;
   /** Enable Mixture of Agents — multiple specialist analysts collaborate.
    * The aggregator synthesizes their perspectives into a unified analysis.
    * Default: false. */
@@ -1788,6 +1796,7 @@ export async function runStrategicPipeline(
     priorEvidenceQueries: options.priorEvidenceQueries,
     priorReadings: options.priorReadings,
     skipGapFillRetrieval: options.skipGapFillRetrieval,
+    primerCoverageCutoff: options.primerCoverageCutoff,
     frozenContext: options.frozenContext,
   });
 }
@@ -1867,6 +1876,7 @@ export async function runPipeline(
         priorEvidenceQueries: options.priorEvidenceQueries,
         priorReadings: options.priorReadings,
         skipGapFillRetrieval: options.skipGapFillRetrieval,
+        primerCoverageCutoff: options.primerCoverageCutoff,
         useMixtureOfAgents: options.useMixtureOfAgents,
         useWorldModel: options.useWorldModel,
         usePRM: options.usePRM,

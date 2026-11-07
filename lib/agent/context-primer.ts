@@ -82,6 +82,10 @@ export async function primeContext(
     maxConcepts?: number;
     maxPriorBriefs?: number;
     lookbackDays?: number;
+    /** Briefs created at/after this instant are NOT prior coverage — used by
+     * the regeneration pass so the brief the previous attempt just persisted
+     * is not fed back as "(0 days ago)" institutional memory. */
+    excludeCreatedAfter?: Date;
   } = {}
 ): Promise<PrimedContext> {
   const start = Date.now();
@@ -164,7 +168,10 @@ export async function primeContext(
     const [recentBriefs, queryEmbedding] = await Promise.all([
       prisma.brief.findMany({
         where: {
-          createdAt: { gte: cutoffDate },
+          createdAt: {
+            gte: cutoffDate,
+            ...(options.excludeCreatedAfter ? { lt: options.excludeCreatedAfter } : {}),
+          },
           kind: { in: ["brief", "strategic"] },
         },
         orderBy: { createdAt: "desc" },

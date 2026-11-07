@@ -43,6 +43,33 @@ describe('Security Middleware', () => {
       expect(response).toBeDefined();
     });
 
+    it('should reject a forged x-admin-key on internal routes', () => {
+      process.env.ADMIN_KEY = 'real-admin-key-0123456789';
+      mockRequest.method = 'POST';
+      mockRequest.nextUrl = { pathname: '/api/cron/generate-briefs' };
+      mockRequest.headers = new Map([['x-admin-key', 'forged-key']]);
+
+      const { NextResponse } = require('next/server');
+      middleware(mockRequest as NextRequest);
+
+      expect(NextResponse.json).toHaveBeenCalledWith(
+        { error: 'CSRF validation failed' },
+        { status: 403 }
+      );
+      delete process.env.ADMIN_KEY;
+    });
+
+    it('should allow internal routes with the real ADMIN_KEY', () => {
+      process.env.ADMIN_KEY = 'real-admin-key-0123456789';
+      mockRequest.method = 'POST';
+      mockRequest.nextUrl = { pathname: '/api/cron/generate-briefs' };
+      mockRequest.headers = new Map([['x-admin-key', 'real-admin-key-0123456789']]);
+
+      const response = middleware(mockRequest as NextRequest);
+      expect(response).toBeDefined();
+      delete process.env.ADMIN_KEY;
+    });
+
     it('should allow server-to-server calls with authorization', () => {
       mockRequest.method = 'POST';
       mockRequest.nextUrl = { pathname: '/api/test' };

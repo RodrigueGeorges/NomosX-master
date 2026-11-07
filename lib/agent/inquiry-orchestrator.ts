@@ -700,6 +700,10 @@ export async function runAndPublishInquiry(
                 // force re-reads, and blow the bounded regen window (observed:
                 // regen died mid-reader at the 25min cap).
                 skipGapFillRetrieval: true,
+                // The primer must not treat attempt-1's just-persisted brief as
+                // prior coverage ("Last coverage: … (0 days ago)") — only briefs
+                // older than this run's start are institutional memory.
+                primerCoverageCutoff: new Date(started),
               },
               seedSourceIds: assessment.sourceIds.length >= 8 ? assessment.sourceIds : seedSourceIds,
             })
