@@ -39,7 +39,11 @@ Current evidence-boundary invariants:
   unavailable assessment also skips DPP/RAG/round-table enrichment in reader.
 - Explicitly off-topic documents are not restored to meet a quantity floor
   and stay excluded through rank-enrichment reranks within the same call.
-  Screening new additions across every later enrichment path remains open.
+  Late additions ARE now screened (2026-11-07): `screenSourcesForRelevance`
+  vets post-screen merges in rank-enrichment (one bounded batch, score-0
+  drops join `rejectedSourceIds`) and gap-fill newcomers via the
+  `screenAdditions` dep — both gated on `!skipRetrieval`, so fixed-corpus
+  record/replay never invokes them. Screening is fail-open by design.
 - Gap retrieval uses each request's providers, preserves unattempted/failed
   requests and records pending queries for retry instead of clearing the
   entire queue after processing only two. Retrieval still requires semantic
