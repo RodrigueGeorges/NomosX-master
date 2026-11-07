@@ -325,6 +325,7 @@ export async function runCriticBlock(deps: CriticBlockDeps): Promise<CriticBlock
           contextBlock: (fullContextBlock || '') + expertLens + '\n\n## CRITIC REPAIR INSTRUCTIONS (mandatory)\nThe critic identified defects in the previous analysis that MUST be fixed:\n' + instructions,
           domain: detectedDomain,
           depth: isStrategic ? "strategic" : "brief",
+          boundThesis: (stats as any).thesisBinding?.statement,
         });
         addCost(typeof repaired._meta?.totalCostUsd === 'number' ? repaired._meta.totalCostUsd : 0, 'CRITIC_REPAIR');
       } else {

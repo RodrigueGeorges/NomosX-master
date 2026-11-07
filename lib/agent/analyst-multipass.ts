@@ -132,6 +132,13 @@ export interface ProspectiveNote {
     totalCostUsd: number;
     producerFamily?: import('../llm/unified-llm').LLMFamily;
     pruning?: PruningResult;
+    /** Pre-draft scope review outcome (pass-1 direction check). */
+    preDraftReview?: {
+      withinScope: boolean;
+      violations: number;
+      directiveInjected: boolean;
+      costUsd: number;
+    };
     /** Set when the analyst produced a failure stub instead of a real analysis. */
     failed?: boolean;
     error?: string;
@@ -1294,6 +1301,11 @@ export async function analystAgentV3(
     /** Per-pass durable checkpointing — a kill mid-multipass resumes at the
      *  last completed pass instead of re-running all three LLM passes. */
     durableStep?: <T>(name: string, fn: () => Promise<T>, costUsd?: number) => Promise<T>;
+    /** Evidence-bound thesis statement — the pre-draft review checks the
+     *  pass-1 direction against it (narrower allowed, broader rejected). */
+    boundThesis?: string;
+    /** Set false to skip the pre-draft scope review (default: run). */
+    preDraftReview?: boolean;
   }
 ): Promise<MultiPassAnalysis> {
   assertPermission(AgentRole.ANALYST, "write:analysis");
@@ -1333,6 +1345,42 @@ export async function analystAgentV3(
     const validatedMap = validateFrictionMap(p1.map, sources.length, groundedIndices);
     if (validatedMap.removedMechanisms > 0 || validatedMap.details !== 'none') {
       console.warn(`[Analyst V3] VALIDATION: removed ${validatedMap.removedMechanisms} mechanisms with invalid citations (${validatedMap.details})`);
+    }
+
+    // PRE-DRAFT SCOPE REVIEW — cheap check on the pass-1 direction BEFORE
+    // pass 2/3 invest in it. Scope/causality defects are repaired mid-flight
+    // via a directive appended to the shared context (visible to both
+    // remaining passes) instead of only surfacing at the post-analyst
+    // adherence gate — where repair costs a full re-analysis.
+    let preDraftReviewCost = 0;
+    let preDraftReviewMeta: NonNullable<ProspectiveNote['_meta']['preDraftReview']> | undefined;
+    if (options?.preDraftReview !== false && process.env.NOMOSX_PRE_DRAFT_REVIEW !== '0') {
+      try {
+        const { reviewDraftDirection } = await import('./pre-draft-review');
+        const review = await reviewDraftDirection({
+          question,
+          frictionMap: validatedMap.map,
+          boundThesis: options?.boundThesis,
+          sourceCount: sources.length,
+        });
+        if (review) {
+          preDraftReviewCost = review.costUsd;
+          preDraftReviewMeta = {
+            withinScope: review.withinScope,
+            violations: review.violations.length,
+            directiveInjected: review.directive.length > 0,
+            costUsd: review.costUsd,
+          };
+          if (review.directive) {
+            ctx = `${ctx}\n\n${review.directive}`;
+            console.warn(`[Analyst V3] PRE-DRAFT REVIEW: ${review.violations.length} scope/causality defect(s) — directive injected into passes 2-3: ${review.violations[0]?.slice(0, 120)}`);
+          } else {
+            console.log(`[Analyst V3] PRE-DRAFT REVIEW: direction within scope (${sources.length} sources)`);
+          }
+        }
+      } catch (reviewErr) {
+        console.warn(`[Analyst V3] PRE-DRAFT REVIEW failed (non-blocking):`, reviewErr);
+      }
     }
 
     // REPAIR RESERVE — the post-analyst tail (critic→gap-fill→DA→verify→
@@ -1484,7 +1532,7 @@ export async function analystAgentV3(
     }
 
     const totalTokens = p1.tokens + p2.tokens + p3.tokens;
-    const totalCost = p1.cost + p2.cost + p3.cost;
+    const totalCost = p1.cost + p2.cost + p3.cost + preDraftReviewCost;
     const elapsed = Date.now() - startTime;
 
     console.log(`[Analyst V3] Complete in ${elapsed}ms | 3 passes | ${totalTokens} tokens | $${totalCost.toFixed(4)} | cascade violations: ${chainValidation.cascadeViolations}`);
@@ -1572,6 +1620,7 @@ export async function analystAgentV3(
         totalCostUsd: totalCost,
         producerFamily: p3.family as import('../llm/unified-llm').LLMFamily | undefined,
         pruning: pruningResult,
+        preDraftReview: preDraftReviewMeta,
       },
     };
   } catch (error: any) {

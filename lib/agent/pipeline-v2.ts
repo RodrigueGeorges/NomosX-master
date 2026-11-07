@@ -819,6 +819,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
             contextBlock: (fullContextBlock || '') + directive,
             domain: detectedDomain,
             depth: isStrategic ? 'strategic' : 'brief',
+            boundThesis: binding.statement,
           });
           addCost((reAnalysis as any)?._meta?.totalCostUsd, 'THESIS BINDING');
           if (reAnalysis && !(reAnalysis as any)?._meta?.failed) {
@@ -1373,6 +1374,7 @@ Return JSON: {"queries": ["...", "..."]} — one query per gap, same order.`,
           contextBlock: (fullContextBlock || '') + killShotBlock,
           domain: detectedDomain,
           depth: isStrategic ? "strategic" : "brief",
+          boundThesis: (stats as any).thesisBinding?.statement,
         });
         if (rewrite && typeof rewrite === 'object' && !(rewrite as any)?._meta?.failed) {
           const { runDevilsAdvocate } = await import('./devils-advocate');

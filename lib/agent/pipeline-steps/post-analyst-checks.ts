@@ -407,6 +407,7 @@ export async function runPostAnalystChecks(deps: PostAnalystChecksDeps): Promise
           `\n\n## MANDATORY CORRECTION — CITATION SPREAD\nYour previous analysis cited only ${uniqueCited}/${topSources.length} sources (required ≥35%). Re-write citing AT LEAST ${Math.ceil(topSources.length * 0.4)} DISTINCT [SRC-N] sources. Prioritize the strongest sources when choosing what to cite — peer-reviewed and primary evidence over commentary; your report must rest on its best evidence. Every grounded source was extracted for a reason — go through them systematically. Claims without [SRC-N] citations WILL BE DELETED.`,
         domain: detectedDomain,
         depth: isStrategic ? "strategic" : "brief",
+        boundThesis: (stats as any).thesisBinding?.statement,
       });
       const retriedStr = typeof retried === 'string' ? retried : JSON.stringify(retried);
       const retriedCited = new Set((retriedStr.match(/\[SRC-(\d+)\]/g) || [])).size;
@@ -446,6 +447,7 @@ export async function runPostAnalystChecks(deps: PostAnalystChecksDeps): Promise
           contextBlock: (fullContextBlock ?? '') + '\n\n' + feedback,
           domain: detectedDomain,
           depth: isStrategic ? "strategic" : "brief",
+          boundThesis: (stats as any).thesisBinding?.statement,
         });
         return reAnalysis;
       },
@@ -538,6 +540,7 @@ export async function runPostAnalystChecks(deps: PostAnalystChecksDeps): Promise
           contextBlock: (fullContextBlock ?? '') + dimBlock,
           domain: detectedDomain,
           depth: isStrategic ? "strategic" : "brief",
+          boundThesis: (stats as any).thesisBinding?.statement,
         });
         if (reanalyzed && typeof reanalyzed === 'object' && !(reanalyzed as any)?._meta?.failed) {
           const recheck = await critiqueOutline(query, reanalyzed, topSources.length, requiredDimensions);

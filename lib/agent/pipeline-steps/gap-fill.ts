@@ -303,6 +303,7 @@ export async function runGapFillStage(deps: GapFillDeps): Promise<void> {
         contextBlock: fullContextBlock + '\n\n## STRENGTHENED REQUIREMENT (orchestrator-triggered re-analysis)\nThe previous analysis was deemed insufficient. ' + (analystDecision.reason || 'Improve citation coverage and analytical depth.') + '\nEvery claim MUST have a [SRC-N] citation. Uncited claims will be rejected.',
         domain: detectedDomain,
         depth: isStrategic ? "strategic" : "brief",
+        boundThesis: (stats as any).thesisBinding?.statement,
       });
       // Compare: keep the better version
       const reStr = typeof reAnalysis === 'string' ? reAnalysis : JSON.stringify(reAnalysis);
