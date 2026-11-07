@@ -193,7 +193,9 @@ async function main() {
     // The frozen snapshot is authoritative: it is the exact corpus the
     // recorded run ranked from (a linked publication's sourceIds may carry
     // a different run's pool).
-    sourceIds = (frozen.allSourceIds as string[] | undefined)
+    const rankEntryIds = ((frozenContext as Record<string, unknown> | undefined)?.inputs as Record<string, unknown> | undefined)?.['corpus:rank-entry'];
+    sourceIds = (Array.isArray(rankEntryIds) ? rankEntryIds : undefined)
+      ?? (frozen.allSourceIds as string[] | undefined)
       ?? pubs?.sourceIds
       ?? (frozen.topSourceIds as string[] | undefined)
       ?? (steps.topSourceIds as string[] | undefined)
@@ -215,7 +217,12 @@ async function main() {
     domain = domain ?? meta.domain;
     depth = args.depth ?? meta.depth ?? depth;
     if (!sourceIds.length) {
-      sourceIds = (meta.frozenContext?.allSourceIds as string[] | undefined)
+      // corpus:rank-entry is the corpus as the ranker first saw it — the
+      // post-run allSourceIds includes enrichment merges the recorded
+      // prompts never saw, and seeding it drifts every downstream call.
+      const rankEntry = (meta.frozenContext?.inputs as Record<string, unknown> | undefined)?.['corpus:rank-entry'];
+      sourceIds = (Array.isArray(rankEntry) ? rankEntry : undefined)
+        ?? (meta.frozenContext?.allSourceIds as string[] | undefined)
         ?? (meta.sourceIds as string[] | undefined) ?? [];
     }
     if (!args.record) {

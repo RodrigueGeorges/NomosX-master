@@ -11,6 +11,7 @@
  */
 
 import { rankSourcesByQuality } from '../source-quality';
+import { createHash } from 'node:crypto';
 import { assessEvidenceSufficiency } from '../enrichment-reasoner';
 import type { PipelineStep } from '../pipeline-progress';
 import type { Providers } from './provider-lists';
@@ -383,12 +384,13 @@ export async function runRankAndEnrichment(deps: RankEnrichmentDeps): Promise<Ra
       // S15-09/S16-fix: NestBrowse — deep web extraction for sources with URLs but no abstracts
       try {
         const { exploreUrl } = await import('../nestbrowse');
+        const { captureInput } = await import('../frozen-inputs');
         const sourcesNeedingExtraction = topSources.filter((s: any) => s.url && (!s.abstract || s.abstract.length < 100));
         if (sourcesNeedingExtraction.length > 0 && sourcesNeedingExtraction.length <= 5) {
           console.log(`${label} NESTBROWSE: extracting content from ${sourcesNeedingExtraction.length} sources with missing abstracts`);
           for (const s of sourcesNeedingExtraction) {
             try {
-              const result = await exploreUrl(s.url || '', { extractDepth: 'shallow' });
+              const result = await captureInput(`nestbrowse:${s.url}`, () => exploreUrl(s.url || '', { extractDepth: 'shallow' }));
               if (result?.content && result.content.length > 200) {
                 s.abstract = result.content.slice(0, 2000);
                 console.log(`${label} NESTBROWSE: extracted ${result.content.length} chars from ${s.url}`);
@@ -603,7 +605,9 @@ export async function runRankAndEnrichment(deps: RankEnrichmentDeps): Promise<Ra
   if (!deps.skipRetrieval && process.env.NOMOSX_SNOWBALL !== '0' && topSources.length > 0) {
     try {
       const { snowballFromSeeds } = await import('../../providers/openalex-snowball');
-      const snow = await snowballFromSeeds(topSources.slice(0, 8), { perSeed: 4, cap: 24 });
+      const { captureInput } = await import('../frozen-inputs');
+      const seedsKey = createHash('sha1').update(topSources.slice(0, 8).map((s: any) => s.id).join(',')).digest('hex');
+      const snow = await captureInput(`snowball:${seedsKey}`, () => snowballFromSeeds(topSources.slice(0, 8), { perSeed: 4, cap: 24 }));
       const fresh = snow.addedIds.filter(id => !allSourceIds.includes(id) && !rejectedSourceIds.has(id));
       if (fresh.length > 0) {
         allSourceIds = [...allSourceIds, ...fresh];

@@ -4,7 +4,7 @@
  */
 
 import {  prisma  } from '../db';
-import { randomUUID } from 'node:crypto';
+import { randomUUID, createHash } from 'node:crypto';
 import { assertExecutionActive, withExecutionDeadline } from '../worker/execution-scope';
 import { hasRunHeadroom, hasRunHeadroomWithReserve, remainingRunMs } from './pipeline-steps/time-budget';
 import { BRAND_BRIEF_FOOTER, BRAND_MANIFESTO } from '@/lib/brand/public-copy';
@@ -350,6 +350,25 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   // ── WEB FALLBACK → INTELLIGENT SCOUT → CITATION GRAPH → INDEX/EMBED/DEDUP ──
   // Extracted to pipeline-steps/scout-enrichment-index.ts; web-fallback
   // providers run concurrently (id lists merged in deterministic order).
+  //
+  // Replay freeze: every post-scout retrieval channel (enrichment scouts,
+  // CRAG re-scouts, refusal retries, gap-fill scouts, intelligent-scout
+  // searches, gap-filler scouts) hits live providers and mutates the corpus
+  // mid-run — a replay cannot reproduce those fetches, and the drift surfaces
+  // as cassette misses downstream (observed: "pre-rank: 26 vs 27"). Wrap the
+  // scout dep so record captures {sourceIds} per query and replay serves them.
+  // Only ids are consumed downstream, so the frozen payload stays compact.
+  const { captureInput: captureFrozen } = await import('./frozen-inputs');
+  const frozenScout = (q: string, provs: any, per?: number) =>
+    captureFrozen(`scout:${createHash('sha1').update(JSON.stringify([q, provs, per])).digest('hex')}`, async () => {
+      const r: any = await scout(q, provs, per);
+      const ids = Array.isArray(r) ? r.map((s: any) => s.id) : (r?.sourceIds || []);
+      return { sourceIds: ids };
+    });
+  // Corpus as the ranker first saw it — replay seeds THIS set, not the
+  // post-run final corpus (enrichment merges grow allSourceIds afterwards).
+  // Captured AFTER scout-enrichment-index: intelligent-scout/web-fallback
+  // additions are part of the corpus the reasoner assessed.
   {
     const { runScoutEnrichmentAndIndex } = await import('./pipeline-steps/scout-enrichment-index');
     allSourceIds = await runScoutEnrichmentAndIndex({
@@ -359,7 +378,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
       skipRetrieval: opts.skipGapFillRetrieval,
       format: isStrategic ? 'strategic' : isDossier ? 'dossier' : isMemo ? 'memo' : 'brief',
       domain: (opts as any).domain || 'general',
-      scout, durableKey, saveDurableStep, index,
+      scout: frozenScout, durableKey, saveDurableStep, index,
     });
     phaseMark('indexEnrich');
   }
@@ -367,6 +386,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   // ── STEP 4: RANK + ENRICHMENT — extracted to pipeline-steps/rank-enrichment.ts ──
   // rank → pertinence selection → quality rerank → domain filter →
   // enrichment reasoner (re-scout / refusal-retry) → evidence registry.
+  await captureFrozen('corpus:rank-entry', async () => allSourceIds);
   let topSources: any[];
   let evidenceRegistry: any;
   let rankOpts: RankOptions;
@@ -378,7 +398,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
       skipRetrieval: opts.skipGapFillRetrieval,
       providers, stats: stats as Record<string, any>, label, pipelineStart,
       runningCostUsd: cost.runningCostUsd, pipelineRunId: pipelineRun.id,
-      rank, scout, emitProgress, addCost, ctx, orchState,
+      rank, scout: frozenScout, emitProgress, addCost, ctx, orchState,
     });
     topSources = rankOut.topSources;
     allSourceIds = rankOut.allSourceIds;
@@ -403,7 +423,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   }
   // -- STEP 4b: classification + routing gates (extracted) --
   const gates = await runClassificationGates({
-    query, topSources, allSourceIds, providers, scout, stats, label,
+    query, topSources, allSourceIds, providers, scout: frozenScout, stats, label,
     isStrategic, enableEnhancedCouncil: opts.enableEnhancedCouncil,
     useThinkTankPack, editorialV2,
     skipRetrieval: opts.skipGapFillRetrieval,
@@ -849,7 +869,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     stats: stats as Record<string, any>, label, pipelineRunId: pipelineRun.id,
     pipelineStart,
     analystDecision, orchState, emitProgress, addCost, isBudgetConstrained,
-    bumpAnalysisArtifact, analystMultipass, rank, scout, ctx,
+    bumpAnalysisArtifact, analystMultipass, rank, scout: frozenScout, ctx,
     skipRetrieval: opts.skipGapFillRetrieval === true,
     // Pre-adoption witness — scores a candidate re-analysis with the same
     // critic preprocessing as eval-rescore so a citation-richer but
