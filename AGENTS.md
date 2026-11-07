@@ -61,8 +61,11 @@ Open architectural priorities (not certified by unit tests):
    capacity reservation remains open.
 3. ~~One trust calculation~~ — `computeTrustScore` (Sprint 42) is the single
    arithmetic site for both `evaluators-trust.ts` and `quality-loop.ts`.
-   Stale numeric/factual evaluation handling still needs reconciliation
-   before scores can certify the final artifact.
+   ~~Stale numeric/factual evaluation handling~~ — reconciled (Sprint 46):
+   analysis-tagged rescore now also runs after an adopted DA pre-render
+   rewrite, html-tagged integrity evals re-verify in the persistence
+   tail, `peerReview` excluded from freshness (advisory, pre-pack by
+   design). Scores certify the final artifact on every mutation path.
 4. ~~Make learning depend on the final gate outcome~~ — `extractExperience`
    now runs after the final status is decided (Sprint 42), carrying the gate
    decision and failed checks. Calibration recordings inside the pipeline
@@ -520,15 +523,33 @@ of extraction. Outcome lands in `_meta.claimPassageContract`.
 Verified: fixture replay still **0 misses, trust 40→40, cost identical**
 — the mutation does not drift recorded prompts.
 
+**Stale-eval reconciliation — two real gaps closed**
+
+- **DA pre-render rewrite orphaned analysis verdicts**: when the
+  adversarial repair's rewrite was adopted (`bumpAnalysisArtifact`),
+  critic/criticPanel/structuralEditor stayed attached to the replaced
+  draft → `evaluation_freshness` hard-failed every successful DA
+  rewrite — a systematic HOLD on the exact runs that repaired
+  themselves. The adoption branch now re-runs
+  `rescoreStaleAnalysisEvals` once on the adopted analysis (same
+  contract as the post-critic rescore, `savedCriticResult` refreshed
+  via `onCriticRescored`). Every analysis mutation is now followed by
+  fresh verdicts or a rescore.
+- **`peerReview` removed from freshness tracking**: it scores the
+  PRE-PACK html by design and thinkTankPack legitimately mutates the
+  artifact afterward — yet nothing consumes its verdict (not trust,
+  not the gate). Tracking it turned every pack-mutating run into a
+  freshness HOLD. It remains tagged `html` for observability.
+
 Tests: `pre-draft-review.test.ts` +5, `claim-passage-contract.test.ts`
 +5, `gap-fill.test.ts` +2. tsc clean, 47 suites / 473 tests green
-(agent+worker offline).
+(agent+worker offline). Fixture replay re-verified after both changes:
+**0 misses, trust 40→40, gate hold→hold, cost identical**.
 
-Residual: the contract is lexical containment — a semantic
-entailment check (NLI per link) is the natural v2; retrieval capacity
-reservation and stale-eval reconciliation remain open; `npm audit`
-breaking-change vulns untouched; ~280 one-off `scripts/` still
-unarchived.
+Residual: the claim→passage contract is lexical containment — a
+semantic entailment check (NLI per link) is the natural v2; retrieval
+capacity reservation remains open; `npm audit` breaking-change vulns
+untouched; ~280 one-off `scripts/` still unarchived.
 
 ---
 

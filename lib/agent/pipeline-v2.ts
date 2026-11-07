@@ -685,7 +685,12 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     (entry as any).artifactVersion = artifact === 'analysis' ? analysisArtifactVersion : htmlArtifactVersion;
     return entry;
   };
-  const EVAL_STATS_KEYS = ['critic', 'criticPanel', 'devilsAdvocate', 'structuralEditor', 'claimGrounding', 'citationVerifier', 'factChecker', 'symbolicVerifier', 'peerReview'] as const;
+  // peerReview is deliberately NOT freshness-tracked: it scores the PRE-PACK
+  // html by design (post-render-extras), thinkTankPack legitimately mutates
+  // the artifact afterward, and nothing consumes its verdict (not trust,
+  // not the gate) — tracking it turned every pack-mutating run into a
+  // systematic evaluation_freshness HOLD.
+  const EVAL_STATS_KEYS = ['critic', 'criticPanel', 'devilsAdvocate', 'structuralEditor', 'claimGrounding', 'citationVerifier', 'factChecker', 'symbolicVerifier'] as const;
   const evalVersionMatches = (e: any): boolean =>
     !e || typeof e !== 'object' || e.skipped || e.error ||
     typeof e.artifactVersion !== 'number' ||
@@ -1407,6 +1412,22 @@ Return JSON: {"queries": ["...", "..."]} — one query per gap, same order.`,
             (stats as any).devilsAdvocateVeto = reJudge.verdict === 'reject'
               || (reJudge.verdict === 'major_revision' && reJudge.overallStrength < 20);
             console.log(`${label} DA PRE-RENDER REPAIR: publishability ${daPre.publishabilityScore}→${reJudge.publishabilityScore}/100 — rewrite adopted`);
+            // The adopted rewrite replaced the analysis artifact — every
+            // analysis-tagged verdict (critic/panel/structural) now describes
+            // a replaced draft and evaluation_freshness would hard-fail the
+            // run regardless of quality. Re-judge them ONCE on the adopted
+            // analysis, same contract as the post-critic rescore.
+            try {
+              const { rescoreStaleAnalysisEvals } = await import('./pipeline-steps/eval-rescore');
+              await rescoreStaleAnalysisEvals({
+                stats, analysis, analysisArtifactVersion, query, detectedDomain,
+                positioningBrief, topSources, readings, label,
+                isBudgetConstrained, addCost, tagEval,
+                onCriticRescored: r => { savedCriticResult = r; },
+              });
+            } catch (rescoreErr) {
+              console.warn(`${label} DA REWRITE EVAL RE-SCORE failed (non-blocking):`, rescoreErr);
+            }
           } else {
             console.log(`${label} DA PRE-RENDER REPAIR: rewrite not better (${reJudge.publishabilityScore}) — original kept`);
           }
