@@ -21,7 +21,7 @@
     "prisma:gen": "prisma generate",
     "db:push": "prisma db push",
     "db:seed": "node scripts/seed-demo-data.mjs",
-    "worker": "node scripts/worker.mjs",
+    "worker": "npm run worker:pipeline",
     "worker:pipeline": "tsx --env-file=.env.local scripts/pipeline-worker.ts",
     "worker:temporal": "tsx --env-file=.env.local scripts/temporal-worker.ts",
     "worker:pipeline:once": "tsx --env-file=.env.local scripts/pipeline-worker.ts --once",
@@ -30,12 +30,8 @@
     "classify": "node scripts/classify-sources.mjs",
     "test:institutional": "node scripts/test-institutional-v2.mjs",
     "test:rss": "node scripts/test-rss-feeds.mjs",
-    "test:complete": "node scripts/test-complete-pipeline.mjs",
     "smoke:editorial-v2": "tsx scripts/smoke-editorial-v2.ts",
     "smoke:editorial-v2:full": "tsx scripts/smoke-editorial-v2.ts --full",
-    "monitoring": "node scripts/start-monitoring.mjs",
-    "monitoring:realtime": "node scripts/start-monitoring.mjs --realtime",
-    "monitoring:once": "node scripts/start-monitoring.mjs --once",
     "monitoring:dashboard": "node scripts/monitoring-dashboard.mjs",
     "build:esm": "NODE_OPTIONS=\"--loader ts-node/esm\" next build",
     "dev:esm": "NODE_OPTIONS=\"--loader ts-node/esm\" next dev",
@@ -165,8 +161,10 @@
     "prettier": "^3.2.5",
     "prisma": "^5.22.0",
     "tailwindcss": "^3.4.0",
+    "ts-node": "^10.9.2",
     "tsx": "^4.21.0",
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "undici": "^7.29.1"
   },
   "optionalDependencies": {
     "@netlify/esbuild-linux-64": "0.14.39"

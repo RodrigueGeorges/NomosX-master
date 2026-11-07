@@ -129,8 +129,8 @@ async function renderDashboard() {
   
   if (stats.lastCycles.length === 0) {
     console.log('  No monitoring cycles recorded\n');
-    console.log('  💡 Start monitoring with:');
-    console.log('     node scripts/start-monitoring.mjs\n');
+    console.log('  (The standalone monitoring agent was removed — cycles are\n');
+    console.log('   now produced by the pipeline worker. See docs/WORKER_DEPLOYMENT.md)\n');
   } else {
     console.log('  Time              │ Status  │ New Sources │ Duration');
     console.log('  ──────────────────┼─────────┼─────────────┼──────────');
@@ -176,7 +176,7 @@ async function renderDashboard() {
     console.log(`     Started: ${timeAgo(runningMonitoring.createdAt)}\n`);
   } else {
     console.log('  ⚠️  Monitoring agent is NOT running');
-    console.log('     Start with: node scripts/start-monitoring.mjs\n');
+    console.log('     Pipeline worker: npm run worker\n');
   }
   
   // Footer

@@ -114,7 +114,7 @@ Chaque agent vérifie ses permissions via `assertPermission()` avant d'agir.
 
 #### Mode 1: Query Manuelle (Ad-hoc)
 ```bash
-npx tsx scripts/test-complete-pipeline.mjs "Votre question ici"
+# Ad-hoc : soumettre la question via l'interface puis `npm run worker:pipeline:once`
 ```
 - L'utilisateur définit explicitement la question
 - Le pipeline s'exécute une fois

@@ -315,7 +315,7 @@ NomosX/
 ├── prisma/
 │   └── schema.prisma          # Schéma DB
 ├── scripts/
-│   ├── worker.mjs             # Job worker
+│   ├── pipeline-worker.ts     # Job worker (`npm run worker`)
 │   └── seed.mjs               # Seeder données démo
 └── public/                    # Assets statiques
 ```

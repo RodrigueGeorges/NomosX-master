@@ -42,7 +42,7 @@ jobs:
         run: npx eslint lib app components --cache --max-warnings 200
 
       - name: Unit tests
-        run: npx jest __tests__/lib/agent __tests__/lib/worker --runInBand --ci
+        run: npx jest __tests__/lib/agent __tests__/lib/worker lib/agent/__tests__ --runInBand --ci
 
       - name: Cassette fixture integrity
         run: npx tsx scripts/replay-run.ts --inspect .llm-cassettes/gulf-minerals.fixture.jsonl

@@ -9,7 +9,8 @@
  * Run with: npm test -- scout-v2.integration.test.ts
  */
 
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+// Jest globals (describe/it/expect/beforeAll/afterAll) — run via
+// `npm run test:integration`, not vitest.
 import { scout } from "../pipeline-v2";
 import { prisma } from "../../db";
 
