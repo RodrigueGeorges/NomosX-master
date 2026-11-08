@@ -29,7 +29,7 @@ Historique complet des sprints : [`AGENTS.md`](./AGENTS.md).
 | XSS | `sanitizeHtml` allowlist server + Sanitizer API client |
 | Passwords | bcrypt (12 rounds), migration legacy SHA-256 |
 | Secrets compare | `ADMIN_KEY` comparé en timing-safe : `x-admin-key` ne bypass le CSRF que s'il matche `ADMIN_KEY` (middleware + `lib/security/csrf.ts`) |
-| Dependencies | `npm audit` — vulnérabilités restantes = breaking changes (netlify-cli, nodemailer v10, exceljs, sharp) |
+| Dependencies | `npm audit` (2026-11-07) : ~33 vulns d'origine. `npm audit fix` a été testé puis **reverté** — il régressait à 87 vulns en tirant des chaînes transitives cassantes (netlify-cli→@fastify/static/tar/toml/ws). Restent par catégorie : `@sentry/nextjs` <10.76.1 (critical, tunnel middleware bypass — fix non-cassant dispo), `adm-zip` via onnxruntime-node/@huggingface/transformers (high), `nodemailer` → v10 requis (cassant), `exceljs`→uuid + `zod` via puppeteer-core/linkup-sdk (cassants), `sharp` libvips (high), `@fastify/static`/`tar`/`toml`/`tmp`/`ws`/`qs`/`undici`/`source-map-js` — majoritairement transitifs de netlify-cli et outillage, surface d'attaque faible hors dev |
 
 ## Dette technique connue
 
