@@ -35,7 +35,7 @@ Historique complet des sprints : [`AGENTS.md`](./AGENTS.md).
 
 | Item | Sévérité | Note |
 |------|----------|------|
-| `pipeline-v2.ts` 1 983 lignes + `pipeline-steps/` | Moyenne | Découpage par phase effectué (S28→S44) ; le fichier reste le point d'orchestration |
+| `pipeline-v2.ts` 2 053 lignes + `pipeline-steps/` (36 modules) | Moyenne | **Évaluation modularisation (2026-11-07)** : ~85 % du travail lourd est déjà extrait — `runPipelineCore` (~1 500 lignes) n'est plus qu'orchestration séquentielle sur état mutable partagé (`html`/`analysis`/`stats`/`orchState`). Extractions restantes à fort ratio/risque : (a) dispatch analyst STEP 6 (~300 lignes, 627-925) ; (b) orchestration render+debate+DA (~380 lignes, 1147-1530) → `pipeline-steps/render-phase.ts` avec `TailStepContext`-like ctx explicite ; (c) DA post-repair recheck (~60 lignes) → `da-post-repair.ts`. **Garder inline** : closures `renderEditorHtml`/`runPostRenderQualityGates` (timing d'assignation `html`/`debateResult` critique) et wrappers publics. Règle : un stage = un commit + replay fixture 0-miss exigé (l'ordre des effets de bord EST le contrat). Pas de rewrite — risque de régression replay >> gain cosmétique |
 | Couverture tests | Haute | 62 fichiers de test, concentrés sur `lib/agent` / `lib/worker` ; `app/` et `components/` non testés |
 | 254 modules agent | Moyenne | `knip` installé (2026-11-07) : 284 fichiers inutilisés, 26 deps + 4 devDeps, 721 exports morts. **Tri partiel fait** : 207 scripts one-off archivés dans `scripts/_archive/` (git mv, historique préservé) ; 35 scripts encore référencés + modules non-scripts restent à trier |
 | `scripts/` 432 fichiers | Moyenne | Scripts `tmp-*` / `_*` désormais ignorés par git ; archivage des one-off à faire |
