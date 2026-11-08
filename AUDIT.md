@@ -37,7 +37,7 @@ Historique complet des sprints : [`AGENTS.md`](./AGENTS.md).
 |------|----------|------|
 | `pipeline-v2.ts` 1 983 lignes + `pipeline-steps/` | Moyenne | Découpage par phase effectué (S28→S44) ; le fichier reste le point d'orchestration |
 | Couverture tests | Haute | 62 fichiers de test, concentrés sur `lib/agent` / `lib/worker` ; `app/` et `components/` non testés |
-| 254 modules agent | Moyenne | `knip` installé (2026-11-07) : 284 fichiers inutilisés (surtout `scripts/` one-off), 26 deps + 4 devDeps inutilisées, 721 exports morts — tri à faire, pas de suppression aveugle |
+| 254 modules agent | Moyenne | `knip` installé (2026-11-07) : 284 fichiers inutilisés, 26 deps + 4 devDeps, 721 exports morts. **Tri partiel fait** : 207 scripts one-off archivés dans `scripts/_archive/` (git mv, historique préservé) ; 35 scripts encore référencés + modules non-scripts restent à trier |
 | `scripts/` 432 fichiers | Moyenne | Scripts `tmp-*` / `_*` désormais ignorés par git ; archivage des one-off à faire |
 | Fixture replay | ✅ Soldé | Record 12 (2026-11-07) : canaux post-scout gelés (`frozenScout`, snowball, nestbrowse, `corpus:rank-entry`) — replay 0 miss, coût identique. Le bug sémantique du primer (« (0 days ago) ») corrigé via `primerCoverageCutoff` |
 | Caches TTL en mémoire | Basse | `topic-classifier`, `quant-agent` traités (S45) ; `topic-radar` (12 min) hors chemin pipeline |
