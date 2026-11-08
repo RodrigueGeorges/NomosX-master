@@ -96,7 +96,7 @@ describe('early outline critique — coverage gate before the expensive chain', 
     );
     expect(d.stats.outlineCriticEarly.adopted).toBe(true);
     expect(d.stats.outlineCriticEarly.recheckCoverage).toBe(82);
-    expect(out.reAnalysisBudget).toBe(0); // one bounded attempt consumed
+    expect(out.reAnalysisBudget).toBe(1); // brief pool 2 − 1 spent; repair reserve intact
   });
 
   it('keeps the original when the rewrite does not improve coverage', async () => {
@@ -122,6 +122,6 @@ describe('early outline critique — coverage gate before the expensive chain', 
     expect(mockedOutline).toHaveBeenCalledTimes(1); // critique only, no recheck
     expect(d.analystMultipass).not.toHaveBeenCalled();
     expect(d.ctx.requestSourceGap).not.toHaveBeenCalled();
-    expect(out.reAnalysisBudget).toBe(1); // untouched — not decremented
+    expect(out.reAnalysisBudget).toBe(2); // brief pool starts at 2 — untouched, not decremented
   });
 });

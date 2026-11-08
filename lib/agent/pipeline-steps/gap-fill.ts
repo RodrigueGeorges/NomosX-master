@@ -15,6 +15,7 @@ import { assertExecutionActive } from '../../worker/execution-scope';
 import { readerAgentV3 } from '../reader-agent-v3';
 import { isFreeRun } from '../../free-run';
 import { hasRunHeadroom, remainingRunMs } from './time-budget';
+import { REPAIR_REANALYSIS_RESERVE } from './post-analyst-checks';
 
 export interface GapFillState {
   analysis: any;
@@ -90,7 +91,7 @@ export function createGapRequestProcessor(deps: GapFillDeps) {
     emitProgress, addCost, bumpAnalysisArtifact, analystMultipass, rank, scout, ctx,
   } = deps;
 
-  return async function processGapRequests(origin: string): Promise<void> {
+  return async function processGapRequests(origin: string, phase: 'producer' | 'repair' = 'repair'): Promise<void> {
     assertExecutionActive();
     if (!ctx.hasGapRequests()) return;
     // Wall-clock guard: gap-fill only pays off when the enriched corpus can
@@ -98,9 +99,13 @@ export function createGapRequestProcessor(deps: GapFillDeps) {
     // the render corpus without one (topSources only mutates inside the
     // reAnalyzed block). Scouting inside the deadline tail is pure waste
     // (S34 timeout finding), so requests defer exactly like a budget stop.
+    // PRODUCER phase (pre-critic, 'ANALYST' origin) additionally cannot
+    // spend the repair reserve — requests it cannot serve stay pending for
+    // the post-critic call, which runs with the full pool.
+    const budgetFloor = phase === 'producer' ? REPAIR_REANALYSIS_RESERVE : 0;
     const reHeadroomMs = Number(process.env.GAPFILL_REANALYSIS_HEADROOM_MS ?? 1_800_000);
     const reHasTime = hasRunHeadroom(deps.pipelineStart, isStrategic, reHeadroomMs);
-    if (deps.skipRetrieval || state.reAnalysisBudget <= 0 || deps.isBudgetConstrained() || !reHasTime) {
+    if (deps.skipRetrieval || state.reAnalysisBudget <= budgetFloor || deps.isBudgetConstrained() || !reHasTime) {
       // Fixed-corpus regen: drain the requests and resolve their signals —
       // scouting new sources would invalidate priorReadings and blow the
       // bounded regen window.
@@ -108,6 +113,7 @@ export function createGapRequestProcessor(deps: GapFillDeps) {
       const reason = deps.skipRetrieval ? 'fixed_corpus'
         : !reHasTime ? 'insufficient_headroom'
         : state.reAnalysisBudget <= 0 ? 'reanalysis_budget_exhausted'
+        : state.reAnalysisBudget <= budgetFloor ? 'reanalysis_budget_reserved'
         : 'budget_exhausted';
       // Persist the queries, not just the count: a HELD outcome carries these
       // into the diagnostic so the 20h retry scouts the exact missing evidence
@@ -294,7 +300,8 @@ export async function runGapFillStage(deps: GapFillDeps): Promise<void> {
   if (analystDecision.action === "RE_ANALYZE" && !orchHasTime) {
     console.log(`${label} ORCHESTRATOR: RE_ANALYZE skipped — ${Math.round(remainingRunMs(deps.pipelineStart, isStrategic) / 60000)}min left, re-analysis would overrun the deadline tail`);
   }
-  if (analystDecision.action === "RE_ANALYZE" && orchHasTime && orchState.iteration < orchState.maxIterations && state.reAnalysisBudget > 0) {
+  // Producer position (pre-critic): cannot spend the repair reserve.
+  if (analystDecision.action === "RE_ANALYZE" && orchHasTime && orchState.iteration < orchState.maxIterations && state.reAnalysisBudget > REPAIR_REANALYSIS_RESERVE) {
     state.reAnalysisBudget--;
     console.log(`${label} ORCHESTRATOR: RE_ANALYZE — ${analystDecision.reason}`);
     emitProgress(pipelineRunId, "ANALYST", "started", `Re-analyzing with strengthened requirements...`);
@@ -417,7 +424,7 @@ export async function runGapFillStage(deps: GapFillDeps): Promise<void> {
   const processGapRequests = createGapRequestProcessor(deps);
 
   // Original consumption point — ANALYST + GAP_ANALYSIS requests
-  await processGapRequests('ANALYST');
+  await processGapRequests('ANALYST', 'producer');
 
   // ── POST-ANALYST ENRICHMENT CHECKPOINT ──
   // If the analysis revealed critical evidence gaps (NOT_REACHED type),

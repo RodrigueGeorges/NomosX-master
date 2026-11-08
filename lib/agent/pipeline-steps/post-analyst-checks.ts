@@ -19,6 +19,14 @@ import { selfCorrectAnalyst } from '../self-correction-integration';
 import { hasRunHeadroom, remainingRunMs } from './time-budget';
 import type { PipelineStep } from '../pipeline-progress';
 
+/**
+ * Re-analysis units reserved for POST-VERDICT repair consumers (critic
+ * repair, post-critic/post-DA gap-fill, DA rewrite). Producer-stage
+ * retries in this module may spend only `reAnalysisBudget - RESERVE`.
+ * Env-tunable; 0 restores the pre-reserve shared-pool behaviour.
+ */
+export const REPAIR_REANALYSIS_RESERVE = Number(process.env.NOMOSX_REPAIR_REANALYSIS_RESERVE ?? 1);
+
 export interface PostAnalystChecksDeps {
   analysis: any;
   query: string;
@@ -387,7 +395,13 @@ export async function runPostAnalystChecks(deps: PostAnalystChecksDeps): Promise
   // Re-analysis budget: a single full 3-pass analyst run costs ~7min/$0.5 on
   // reasoning models — cap total re-analyses (self-correct + orchestrator +
   // gap-fill) so repair loops cannot stack into a pipeline timeout.
-  let reAnalysisBudget = isStrategic ? 2 : 1;
+  // REPAIR RESERVE (audit: retrieval capacity for repairs): the last unit is
+  // reserved for POST-VERDICT consumers — critic repair, post-critic and
+  // post-DA gap-fill, DA rewrite. Producer-stage retries below may spend
+  // only the surplus, so pre-critic polish can never starve the repair tail.
+  // Producer-visible capacity is unchanged (strategic 2, brief 1); the
+  // reserve is the +1.
+  let reAnalysisBudget = isStrategic ? 3 : 2;
 
   // ── SELF-CORRECTION: ANALYST — assess quality, retry if low (Reflexion pattern) ──
   // Deterministic trigger first: the LLM reflection may miss citation-spread
@@ -398,7 +412,7 @@ export async function runPostAnalystChecks(deps: PostAnalystChecksDeps): Promise
     const analysisStrPre = typeof analysis === 'string' ? analysis : JSON.stringify(analysis);
     const uniqueCited = new Set((analysisStrPre.match(/\[SRC-(\d+)\]/g) || [])).size;
     const spread = topSources.length > 0 ? uniqueCited / topSources.length : 1;
-    if (spread < 0.35 && reAnalysisBudget > 0 && selfCorrectRetries < 2) {
+    if (spread < 0.35 && reAnalysisBudget > REPAIR_REANALYSIS_RESERVE && selfCorrectRetries < 2) {
       reAnalysisBudget--;
       selfCorrectRetries++;
       console.log(`${label} SELF-CORRECTION (ANALYST): citation spread ${(spread * 100).toFixed(0)}% < 35% (${uniqueCited}/${topSources.length} sources) — forced retry`);
@@ -438,7 +452,8 @@ export async function runPostAnalystChecks(deps: PostAnalystChecksDeps): Promise
       maxRetries: 1,
       retryFn: async (feedback: string) => {
         // Re-run analyst with feedback injected — subject to run budget
-        if (reAnalysisBudget <= 0) {
+        // (producer stage: the repair reserve is not spendable here)
+        if (reAnalysisBudget <= REPAIR_REANALYSIS_RESERVE) {
           console.log(`${label} SELF-CORRECTION (ANALYST): retry skipped — re-analysis budget exhausted`);
           return analysis;
         }
@@ -533,7 +548,7 @@ export async function runPostAnalystChecks(deps: PostAnalystChecksDeps): Promise
         console.log(`${label} OUTLINE CRITIC (early): rewrite skipped — ${Math.round(remainingRunMs(pipelineStart, isStrategic) / 60000)}min left, re-analysis would overrun the deadline tail`);
       }
       if (early.coverageScore < 70 && early.missingDimensions.length > 0 && ocHasTime
-        && reAnalysisBudget > 0 && stats.budgetConstrained !== true) {
+        && reAnalysisBudget > REPAIR_REANALYSIS_RESERVE && stats.budgetConstrained !== true) {
         reAnalysisBudget--;
         const dimBlock = `\n\n## MANDATORY CORRECTION — MISSING DIMENSIONS\nYour analysis covered only ${early.coverageScore}/100 of the question's required dimensions. The following dimensions are MISSING and MUST be covered with [SRC-N] evidence from the corpus:\n${early.missingDimensions.slice(0, 4).map(d => `- ${d}`).join('\n')}${(early.weakSections ?? []).slice(0, 3).map(s => `\n- Weak section: ${s}`).join('')}\nAn analysis that does not answer the question AS ASKED fails adversarial review regardless of prose quality.`;
         const reanalyzed = await analystMultipass(query, topSources, slimReadings, {

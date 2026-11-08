@@ -45,7 +45,7 @@ export interface CriticBlockDeps {
     addFinding: (agent: string, type: 'gap' | 'warning' | 'insight' | 'recommendation', content: string, metadata?: Record<string, unknown>) => void;
   };
   selfCorrector: any;
-  processGapRequests: (origin: string) => Promise<void>;
+  processGapRequests: (origin: string, phase?: 'producer' | 'repair') => Promise<void>;
   requiredDimensions?: string[];
 }
 

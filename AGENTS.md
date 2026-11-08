@@ -57,8 +57,10 @@ Open architectural priorities (not certified by unit tests):
    point, not only at final DA — both halves now exist.
 2. ~~Reserve retrieval and wall-clock capacity for necessary repairs~~ —
    producer-side repair reserve implemented (Sprint 41): analyst passes,
-   TTS, and the expert lens cannot start inside the reserved tail. Retrieval
-   capacity reservation remains open.
+   TTS, and the expert lens cannot start inside the reserved tail.
+   ~~Retrieval capacity reservation~~ — re-analysis count budget now
+   reserves one unit for post-verdict repairs (Sprint 46:
+   `REPAIR_REANALYSIS_RESERVE` + producer/repair gap-fill phases).
 3. ~~One trust calculation~~ — `computeTrustScore` (Sprint 42) is the single
    arithmetic site for both `evaluators-trust.ts` and `quality-loop.ts`.
    ~~Stale numeric/factual evaluation handling~~ — reconciled (Sprint 46):
@@ -541,10 +543,36 @@ Verified: fixture replay still **0 misses, trust 40→40, cost identical**
   not the gate). Tracking it turned every pack-mutating run into a
   freshness HOLD. It remains tagged `html` for observability.
 
+**Re-analysis repair reserve** — the wall-clock repair reserve (S41)
+covered analyst passes/TTS/expert lens but NOT the re-analysis count
+budget: `reAnalysisBudget` (brief 1 / strategic 2) was a single shared
+pool, so producer-stage retries (citation spread, self-correct,
+orchestrator RE_ANALYZE, early outline rewrite, pre-critic 'ANALYST'
+gap-fill) could spend the only unit and leave critic repair, post-critic
+and post-DA gap-fill, and the DA rewrite with zero — the exact
+starvation S41 set out to prevent, one layer down.
+
+Now: pool is brief 2 / strategic 3 with
+`REPAIR_REANALYSIS_RESERVE` (=1, `NOMOSX_REPAIR_REANALYSIS_RESERVE`,
+0 restores old behaviour) floor for POST-VERDICT consumers only.
+Producer-visible capacity is unchanged; the reserve is the +1.
+`processGapRequests(origin, phase)` distinguishes 'producer'
+(pre-critic ANALYST call — defers with `reanalysis_budget_reserved`,
+requests stay pending for the post-critic call) from 'repair'
+(CRITIC/OUTLINE, DEVILS_ADVOCATE — may spend the reserve). Critic
+same-corpus repair and DA rewrite unchanged (`> 0`, repair class).
+
+Live-proof on the gulf-minerals replay: the reserve immediately changed
+a real decision — record 13's DA pre-render rewrite was silently skipped
+on `reAnalysisBudget=0` (outline rewrite had consumed the single unit);
+replay now fires it → 1 cassette miss on the unrecorded
+`analyst_brief` rewrite prompt. Intended divergence → fixture needs a
+paid re-record to restore 0-miss. Until then the committed fixture
+replays everything except this new repair path.
+
 Tests: `pre-draft-review.test.ts` +5, `claim-passage-contract.test.ts`
-+5, `gap-fill.test.ts` +2. tsc clean, 47 suites / 473 tests green
-(agent+worker offline). Fixture replay re-verified after both changes:
-**0 misses, trust 40→40, gate hold→hold, cost identical**.
++5, `gap-fill.test.ts` +4, `outline-critic-early.test.ts` budget
+expectations updated. tsc clean.
 
 Residual: the claim→passage contract is lexical containment — a
 semantic entailment check (NLI per link) is the natural v2; retrieval

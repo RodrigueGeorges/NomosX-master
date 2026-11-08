@@ -130,6 +130,22 @@ it('does not spend retrieval budget when there is no analysis budget to use it',
   expect(deps.stats.deferredGapRequests).toMatchObject({ reason: 'reanalysis_budget_exhausted' });
 });
 
+it('producer phase cannot spend the repair reserve — requests stay pending for the post-critic call', async () => {
+  const deps = setup();
+  deps.state.reAnalysisBudget = 1; // == REPAIR_REANALYSIS_RESERVE
+  await createGapRequestProcessor(deps)('ANALYST', 'producer');
+  expect(deps.scout).not.toHaveBeenCalled();
+  expect(deps.stats.deferredGapRequests).toMatchObject({ reason: 'reanalysis_budget_reserved' });
+});
+
+it('repair phase may spend the reserve — same budget proceeds', async () => {
+  const deps = setup();
+  deps.state.reAnalysisBudget = 1;
+  jest.mocked(reAnalyzeAfterGapFill).mockResolvedValue({ analysis: { verdict: 'X [SRC-1]' }, reAnalyzed: false, improvementDelta: 0 });
+  await createGapRequestProcessor(deps)('CRITIC', 'repair');
+  expect(deps.scout).toHaveBeenCalled();
+});
+
 it('defers gap requests inside the deadline tail — a re-analysis could never land', async () => {
   // S34 regression: TTS + a late gap-fill re-analysis stacked past the 75min
   // deadline and the run died mid-pass. Inside the tail the requests drain
