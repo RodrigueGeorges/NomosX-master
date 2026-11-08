@@ -6,6 +6,7 @@
  */
 
 import { prisma } from '../db';
+import { toJsonSafe, stripPgUnsafeControls } from '../json-safe';
 import { PublicationType,PublicationTemplate,CriticalLoopResult } from '@/lib/think-tank/types';
 import { getTemplate,PUBLICATION_TEMPLATES } from '@/lib/think-tank/templates';
 import { callLLM } from '../llm/unified-llm';
@@ -533,8 +534,8 @@ export async function generatePublication(
         verticalId: signal.verticalId,
         signalId: signal.id,
         type: pubType,
-        title,
-        html,
+        title: stripPgUnsafeControls(title),
+        html: stripPgUnsafeControls(html),
         wordCount,
         trustScore,
         qualityScore: Math.round(avgSourceQuality),
@@ -544,7 +545,7 @@ export async function generatePublication(
         citedClaimCount: publicationGate.metrics.citedClaimCount,
         sourceIds,
         status: needsHumanReview ? "DRAFT" : "PUBLISHED",
-        criticalLoopResult: {
+        criticalLoopResult: toJsonSafe({
           ...criticalLoopResult as any,
           publicationGate: publicationGate as any,
           debate: debateResult ? {
@@ -562,7 +563,7 @@ export async function generatePublication(
             vsInstitutions: daReport.vsInstitutionBenchmark?.overall,
           } : null,
           lineage,
-        } as any,
+        }) as any,
         publishedAt: needsHumanReview ? null : new Date()
       }
     });

@@ -31,6 +31,7 @@ import {
 } from "./inquiry-funnel-utils";
 import { evaluatePublicationGate, type PublicationGateResult } from "./publication-gate";
 import { captureInputSync } from "./frozen-inputs";
+import { toJsonSafe, stripPgUnsafeControls } from "@/lib/json-safe";
 import { evaluatePublicationReadiness } from "@/lib/publication-visibility";
 import { requestResearcherSignOff, type SignOffResult } from "./researcher-ownership";
 import { buildForesightPersistPayload, persistForesightRun, type ForesightBundle } from "@/lib/foresight";
@@ -928,8 +929,8 @@ export async function runAndPublishInquiry(
         verticalId: vertical.id,
         signalId: req.signalId,
         type: pubType,
-        title: pipeline.inquiry.title,
-        html,
+        title: stripPgUnsafeControls(pipeline.inquiry.title),
+        html: stripPgUnsafeControls(html),
         wordCount,
         trustScore,
         qualityScore,
@@ -941,7 +942,7 @@ export async function runAndPublishInquiry(
         status: dbStatus,
         publishedAt: status === "published" ? new Date() : null,
         publicId: status === "published" ? publicId : undefined,
-        criticalLoopResult: {
+        criticalLoopResult: toJsonSafe({
           ...req.metadata,
           architecture: "inquiry-orchestrator-v1",
           reserve,
@@ -979,7 +980,7 @@ export async function runAndPublishInquiry(
           question: pipeline.inquiry.question,
           ...buildForesightPersistPayload(pipeline.lineage, pipeline.inquiry),
           foresightRun: (pipeline.lineage as Record<string, unknown>).foresightRun,
-        } as unknown as Prisma.InputJsonValue,
+        }) as unknown as Prisma.InputJsonValue,
       },
     });
 
@@ -1231,7 +1232,7 @@ async function persistQualityChecks(
       checkType: c.checkType,
       passed: c.passed,
       score: c.score,
-      details: c.details as unknown as Prisma.InputJsonValue,
+      details: toJsonSafe(c.details) as unknown as Prisma.InputJsonValue,
     })),
   });
 

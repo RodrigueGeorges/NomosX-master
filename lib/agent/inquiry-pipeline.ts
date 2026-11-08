@@ -9,6 +9,7 @@
 import type { Prisma } from "@prisma/client";
 import { runPipeline, type StrategicPipelineOptions } from "./pipeline-v2";
 import { prisma } from "@/lib/db";
+import { toJsonSafe, stripPgUnsafeControls } from "@/lib/json-safe";
 import { isFreeRun } from '../free-run';
 import { type SimulationReport } from "./simulation-agent";
 import { runPipelineForesight } from "./pipeline-foresight";
@@ -610,8 +611,8 @@ export async function runInquiryPipeline(
   await prisma.brief.update({
     where: { id: brief.id },
     data: {
-      html,
-      lineage: persistedLineage as unknown as Prisma.InputJsonValue,
+      html: stripPgUnsafeControls(html),
+      lineage: toJsonSafe(persistedLineage) as unknown as Prisma.InputJsonValue,
       trustScore,
       qualityScore,
     },

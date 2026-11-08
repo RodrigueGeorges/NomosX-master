@@ -54,6 +54,7 @@ import { runScoutBlock } from './pipeline-steps/scout-block';
 import { runPipelineInit } from './pipeline-steps/pipeline-init';
 import { DEFAULT_ACADEMIC_PROVIDERS } from './pipeline-steps/provider-lists';
 import type { Providers } from './pipeline-steps/provider-lists';
+import { toJsonSafe } from '../json-safe';
 
 // Re-exports for backward compatibility — provider-lists.ts is the source of truth.
 export { SHS_PROVIDERS, AGRICULTURE_PROVIDERS, CRIMINOLOGY_PROVIDERS, EU_SCIENCE_PROVIDERS, ALL_PROVIDERS, NEWS_PROVIDERS, ACADEMIC_PROVIDERS, GOVERNMENT_PROVIDERS, DEFAULT_ACADEMIC_PROVIDERS } from './pipeline-steps/provider-lists';
@@ -415,7 +416,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
           finishedAt: new Date(),
           durationMs: Date.now() - pipelineStart,
           error: reason.slice(0, 500),
-          steps: JSON.parse(JSON.stringify({ ...stats, error: reason })),
+          steps: toJsonSafe({ ...stats, error: reason }),
         },
       }).catch(() => {});
       return { briefId: undefined, pipelineRun, stats, html: '', analysis: { refusal: stats.structuredRefusal } as any };
@@ -585,7 +586,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
         finishedAt: new Date(),
         durationMs: Date.now() - pipelineStart,
         error: reason.slice(0, 500),
-        steps: JSON.parse(JSON.stringify({ ...stats, error: reason })),
+        steps: toJsonSafe({ ...stats, error: reason }),
       },
     }).catch(() => {});
     return { briefId: undefined, pipelineRun, stats, html: '', analysis: { refusal: stats.structuredRefusal } as any };
@@ -618,7 +619,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
         finishedAt: new Date(),
         durationMs: Date.now() - pipelineStart,
         error: reason.slice(0, 500),
-        steps: JSON.parse(JSON.stringify({ ...stats, error: reason })),
+        steps: toJsonSafe({ ...stats, error: reason }),
       },
     }).catch(() => {});
     return { briefId: undefined, pipelineRun, stats, html: '', analysis: { refusal: stats.structuredRefusal } as any };
@@ -743,7 +744,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
         finishedAt: new Date(),
         durationMs: Date.now() - pipelineStart,
         error: reason.slice(0, 500),
-        steps: JSON.parse(JSON.stringify({ ...stats, error: reason })),
+        steps: toJsonSafe({ ...stats, error: reason }),
       },
     }).catch(() => {});
     return { briefId: undefined, pipelineRun, stats, html: '', analysis: { refusal: stats.structuredRefusal } as any };
@@ -1694,7 +1695,7 @@ Return JSON: {"queries": ["...", "..."]} — one query per gap, same order.`,
         finishedAt: new Date(),
         durationMs: Date.now() - pipelineStart,
         error: String(error.message ?? error).slice(0, 500),
-        steps: JSON.parse(JSON.stringify({ ...stats, error: error.message })),
+        steps: toJsonSafe({ ...stats, error: error.message }),
       },
     }).catch(() => {});
     throw error;

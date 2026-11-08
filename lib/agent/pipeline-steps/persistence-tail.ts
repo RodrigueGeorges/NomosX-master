@@ -11,6 +11,7 @@
  */
 
 import { prisma, withDbRetry } from '../../db';
+import { toJsonSafe } from '../../json-safe';
 import { assertExecutionActive, withExecutionDetached } from '../../worker/execution-scope';
 import { extractAndStoreConcepts } from '../knowledge-graph';
 import { extractAndStoreGaps, markGapsFilled } from '../gap-filler';
@@ -112,7 +113,7 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
   const safeHtml = sanitizeForJson(html);
   let safeStats: any;
   try {
-    safeStats = JSON.parse(sanitizeForJson(JSON.stringify(stats)));
+    safeStats = toJsonSafe(stats);
   } catch {
     // Fallback: strip complex nested objects that may cause circular refs
     safeStats = { error: 'stats serialization failed', keys: Object.keys(stats) };
@@ -485,7 +486,7 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
         sourcesRanked: stats.rank?.count || 0,
         sourcesUsed: topSources.length,
         trustScore: stats.criticalLoop?.finalScore ?? null,
-        steps: JSON.parse(JSON.stringify({ ...stats, orchestrator: { ...stats.orchestrator, decisions: orchState.decisions } })),
+        steps: toJsonSafe({ ...stats, orchestrator: { ...stats.orchestrator, decisions: orchState.decisions } }),
       },
     })
   ).catch((err) =>

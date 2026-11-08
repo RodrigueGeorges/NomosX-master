@@ -5,6 +5,7 @@ import { assertExecutionActive } from '@/lib/worker/execution-scope';
 import { evaluatePublicationReadiness } from '@/lib/publication-visibility';
 import { evaluatePublicationGate, type PublicationGateInput } from './publication-gate';
 import { countWordsHtml, normalizeTopicKey } from './inquiry-funnel-utils';
+import { toJsonSafe } from '../json-safe';
 
 export interface ReserveArtifact {
   title: string;
@@ -62,7 +63,7 @@ export function certifyForReserve(
       gate.checks?.some(c => !c.passed) || (gateInput.fatalChallenges ?? 0) > 0) {
     throw new Error('Artifact is not eligible for the validated reserve');
   }
-  const serializedInput = JSON.parse(JSON.stringify(gateInput)) as PublicationGateInput;
+  const serializedInput = toJsonSafe(gateInput) as PublicationGateInput;
   return {
     version: 1, artifactHash: fingerprint(artifact, serializedInput),
     validatedAt: now.toISOString(), expiresAt: new Date(now.getTime() + 6 * 3600000).toISOString(),
