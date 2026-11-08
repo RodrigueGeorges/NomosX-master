@@ -3,7 +3,7 @@
  * Record captures producer outputs; replay serves them without running the
  * producer; FIFO sync channels replay in call order.
  */
-import { captureInput, captureInputSync, seedFrozenInputs, snapshotFrozenInputs } from '../../../lib/agent/frozen-inputs';
+import { captureInput, captureInputFifo, captureInputSync, seedFrozenInputs, snapshotFrozenInputs } from '../../../lib/agent/frozen-inputs';
 
 const reset = () => {
   // Re-import to get a fresh module-level store per scenario.
@@ -165,5 +165,35 @@ describe('frozen-inputs store', () => {
     // producers deliberately return the OPPOSITE — the store must win
     expect(fi.captureInputSync('time:headroom', () => false)).toBe(true);
     expect(fi.captureInputSync('time:headroom', () => true)).toBe(false);
+  });
+
+  it('async FIFO channels replay in call order across awaits', async () => {
+    process.env.NOMOSX_LLM_MODE = 'record';
+    let fi = reset();
+    const a = await fi.captureInputFifo('learning:lessons', async () => ({ n: 0 }));
+    const b = await fi.captureInputFifo('learning:lessons', async () => ({ n: 1 }));
+    expect(a.n).toBe(0);
+    expect(b.n).toBe(1);
+    const snap = fi.snapshotFrozenInputs();
+    expect(snap['learning:lessons#0']).toEqual({ n: 0 });
+    expect(snap['learning:lessons#1']).toEqual({ n: 1 });
+
+    process.env.NOMOSX_LLM_MODE = 'replay';
+    fi = reset();
+    fi.seedFrozenInputs(snap);
+    // producers deliberately return the OPPOSITE — the store must win
+    const ra = await fi.captureInputFifo('learning:lessons', async () => ({ n: 'live-a' }));
+    const rb = await fi.captureInputFifo('learning:lessons', async () => ({ n: 'live-b' }));
+    expect(ra).toEqual({ n: 0 });
+    expect(rb).toEqual({ n: 1 });
+  });
+
+  it('async FIFO fallthrough on a divergent occurrence count', async () => {
+    process.env.NOMOSX_LLM_MODE = 'replay';
+    const fi = reset();
+    fi.seedFrozenInputs({ 'learning:one#0': 'recorded-0' });
+    expect(await fi.captureInputFifo('learning:one', () => 'live-0')).toBe('recorded-0');
+    // Occurrence #1 has no recorded value — producer runs (fail-loud path).
+    expect(await fi.captureInputFifo('learning:one', () => 'live-1')).toBe('live-1');
   });
 });
