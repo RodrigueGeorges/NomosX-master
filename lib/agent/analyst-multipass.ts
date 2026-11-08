@@ -21,7 +21,7 @@ import { RESEARCHER_KBS, type DomainExpertise } from './researcher-kb/index';
 import { MULTI_DOMAIN_CORPUS } from '../knowledge/multi-domain-corpus';
 import { NOMOS_EDITORIAL_LINE_SHORT } from './editorial-config';
 import { runAllPruningGates, gateHedgingStrip, type PruningResult } from './pruning-gates';
-import { applyClaimPassageContract } from './claim-passage-contract';
+import { applyClaimPassageContract, refineClaimPassageWithNLI, type ClaimPassageNLIResult } from './claim-passage-contract';
 import { hasRunHeadroomWithReserve, remainingRunMs } from './pipeline-steps/time-budget';
 
 // ============================================================================
@@ -151,6 +151,8 @@ export interface ProspectiveNote {
       weak: number;
       unsupportedMarked: number;
       skippedNoReading: number;
+      /** v2 NLI refinement outcome (only when NOMOSX_CLAIM_PASSAGE_NLI=1). */
+      nli?: ClaimPassageNLIResult;
     };
     error?: string;
   };
@@ -1515,6 +1517,18 @@ export async function analystAgentV3(
     if (passageContract.checked > 0) {
       console.log(`[Analyst V3] CLAIM→PASSAGE: ${passageContract.grounded} grounded, ${passageContract.weak} weak, ${passageContract.unsupportedMarked} unsupported of ${passageContract.checked} fact links (${passageContract.skippedNoReading} no reading)`);
     }
+    // v2 (opt-in): NLI entailment refinement — upgrades weak→grounded on
+    // real entailment, confirms fabrications on contradiction. Verdicts are
+    // frozen-input channels (nli:<md5>) so record/replay stay deterministic.
+    let passageNLI: ClaimPassageNLIResult | undefined;
+    if (process.env.NOMOSX_CLAIM_PASSAGE_NLI === '1' && passageContract.checked > 0) {
+      try {
+        passageNLI = await refineClaimPassageWithNLI(sanitizedAnalysis, sources, readings ?? []);
+        console.log(`[Analyst V3] CLAIM→PASSAGE NLI: ${passageNLI.judged} judged — ${passageNLI.upgraded} upgraded, ${passageNLI.contradicted} contradicted, ${passageNLI.keptLexical} kept lexical (${passageNLI.unavailable} unavailable)`);
+      } catch (nliErr) {
+        console.warn('[Analyst V3] CLAIM→PASSAGE NLI failed (non-blocking):', String(nliErr).slice(0, 120));
+      }
+    }
 
     // PRUNING GATES: Deterministic post-generation quality assurance.
     // Gates PRUNE, never BLOCK. Invalid content is removed before render.
@@ -1641,7 +1655,9 @@ export async function analystAgentV3(
         producerFamily: p3.family as import('../llm/unified-llm').LLMFamily | undefined,
         pruning: pruningResult,
         preDraftReview: preDraftReviewMeta,
-        claimPassageContract: passageContract.checked > 0 || passageContract.skippedNoReading > 0 ? passageContract : undefined,
+        claimPassageContract: passageContract.checked > 0 || passageContract.skippedNoReading > 0
+          ? { ...passageContract, nli: passageNLI }
+          : undefined,
       },
     };
   } catch (error: any) {

@@ -574,10 +574,20 @@ Tests: `pre-draft-review.test.ts` +5, `claim-passage-contract.test.ts`
 +5, `gap-fill.test.ts` +4, `outline-critic-early.test.ts` budget
 expectations updated. tsc clean.
 
-Residual: the claim→passage contract is lexical containment — a
-semantic entailment check (NLI per link) is the natural v2; retrieval
-capacity reservation remains open; `npm audit` breaking-change vulns
-untouched; ~280 one-off `scripts/` still unarchived.
+**Claim→passage v2 (opt-in NLI)** — `refineClaimPassageWithNLI`
+re-judges each checked `present_fact` link against its best lexical
+passage chunk via the local NLI model (one classification per link):
+entailment ≥0.70 upgrades weak→grounded, contradiction ≥0.60 confirms
+fabrication → unsupported, neutral keeps the lexical verdict (NLI never
+downgrades on overlap alone). Gated by `NOMOSX_CLAIM_PASSAGE_NLI=1`
+(default off — lexical v1 is the floor). Replay-safe by construction:
+`classifyNLI` freezes verdicts per (claim, passage) content hash — a
+record captures `nli:<md5>` inputs, replay serves them without loading
+the model. Outcome lands in `_meta.claimPassageContract.nli`.
+
+Residual: retrieval capacity reservation done (re-analysis reserve);
+`npm audit` breaking-change vulns untouched; ~280 one-off `scripts/`
+still unarchived.
 
 ---
 

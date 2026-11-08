@@ -114,3 +114,37 @@ describe('claim-passage contract', () => {
     expect(passageContainment('copper demand tonnes', 'copper demand reached tonnes')).toBeGreaterThan(0.5);
   });
 });
+
+describe('claim-passage NLI refinement (v2)', () => {
+  const { refineClaimPassageWithNLI } = jest.requireActual('../../../lib/agent/claim-passage-contract') as typeof import('../../../lib/agent/claim-passage-contract');
+
+  it('upgrades weak→grounded on entailment, confirms fabrication on contradiction', async () => {
+    jest.resetModules();
+    const nli = jest.fn();
+    jest.doMock('../../../lib/agent/nli-engine', () => ({ classifyNLI: nli }));
+    const mod = await import('../../../lib/agent/claim-passage-contract');
+
+    const analysis = {
+      causalChain: [
+        { id: 1, claim: 'Copper demand reached 28 million tonnes', evidence: '', warrant: '', temporalStatus: 'present_fact', derivesFrom: null, sourceRef: 1, passageVerdict: 'weak' },
+        { id: 2, claim: 'Antarctic ice shelf calving accelerated 40%', evidence: '', warrant: '', temporalStatus: 'present_fact', derivesFrom: null, sourceRef: 2, passageVerdict: 'grounded' },
+      ],
+    };
+    const srcs = [{ id: 's1' }, { id: 's2' }];
+    const reads = [
+      { sourceId: 's1', claims: ['Global copper demand reached 28 million tonnes in 2024'], results: [], limitations: [], methods: [] },
+      { sourceId: 's2', claims: ['Antarctic ice shelf calving rates documented'], results: [], limitations: [], methods: [] },
+    ];
+    nli
+      .mockResolvedValueOnce({ verdict: 'entailment', confidence: 0.9, scores: { entailment: 0.9, neutral: 0.05, contradiction: 0.05 }, source: 'local-nli' })
+      .mockResolvedValueOnce({ verdict: 'contradiction', confidence: 0.8, scores: { entailment: 0.05, neutral: 0.2, contradiction: 0.75 }, source: 'local-nli' });
+
+    const r = await mod.refineClaimPassageWithNLI(analysis, srcs, reads);
+    expect(r.upgraded).toBe(1);
+    expect(r.contradicted).toBe(1);
+    expect(analysis.causalChain[0].passageVerdict).toBe('grounded');
+    expect(analysis.causalChain[1].passageVerdict).toBe('none');
+    expect(analysis.causalChain[1].unsupported).toBe(true);
+    jest.dontMock('../../../lib/agent/nli-engine');
+  });
+});
