@@ -633,7 +633,12 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
 
   // S14-C: Lesson verification (LUCID 2026) — periodically verify accumulated lessons
   // to prevent memory reward inflation. Runs every 10th run for each agent.
-  if (Math.random() < 0.1) { // 10% chance per run ≈ every 10 runs
+  // The gate decision is frozen: Math.random stream position drifts in replay
+  // (frozen producers skip random consumption), which flipped this coin between
+  // record and replay → lesson-verifier cassette miss. captureInputSync stores
+  // the boolean at record time; replay serves it without touching the stream.
+  const { captureInputSync } = await import('../frozen-inputs');
+  if (captureInputSync('rand:lesson-verify', () => Math.random() < 0.1)) { // 10% chance per run ≈ every 10 runs
     try {
       const { verifyAndDeInflateLessons } = await import('../lesson-verifier');
       const agentId = isStrategic ? "strategic-analyst" : "analyst";
