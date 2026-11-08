@@ -208,6 +208,9 @@ export function normalize(probs: Record<string, number>): Record<string, number>
 
 /**
  * Bootstrap confidence interval — resample estimates to get 90% CI.
+ * NOTE: uses the global Math.random stream deliberately — record/replay
+ * parity is provided by the captureInput freeze at the call site
+ * (delphi:ci:*), not by changing live sampling behaviour.
  */
 function bootstrapCI(estimates: number[], numResamples: number = 1000): [number, number] {
   if (estimates.length < 2) {
@@ -963,8 +966,16 @@ export async function runDelphiForesight(
   // CI is computed from raw expert estimates, then recentered on the final
   // calibrated probability so the point estimate always falls within the CI.
   const confidenceIntervals: Record<string, [number, number]> = {};
+  const { captureInput } = await import('./frozen-inputs');
   for (const name of scenarioNames) {
-    const rawCI = bootstrapCI(expertEstimatesByScenario[name], 1000);
+    const estimates = expertEstimatesByScenario[name];
+    // bootstrapCI consumes the global Math.random stream — its position
+    // depends on parallel async interleaving and drifted between record and
+    // replay (sanctions fixture: ±0.002 vs ±0.003 CI band → DA misses).
+    // Freeze the resample output, content-keyed so call order can't matter.
+    let h = 0;
+    for (const e of estimates) h = (Math.imul(h, 31) + Math.round(e * 1e6)) | 0;
+    const rawCI = await captureInput(`delphi:ci:${name}:${h}`, () => bootstrapCI(estimates, 1000));
     const finalProb = normalized[name];
     const rawMid = (rawCI[0] + rawCI[1]) / 2;
     const spread = (rawCI[1] - rawCI[0]) / 2;

@@ -15,6 +15,7 @@
 
 import { prisma } from '../db';
 import { callLLM } from '../llm/unified-llm';
+import { captureInputFifo } from './frozen-inputs';
 import { parseJson } from './json-utils';
 import { AgentRole, assertPermission } from '../governance/index';
 import { embedText, embedBatch, cosineSimilarity } from './semantic-engine';
@@ -112,7 +113,9 @@ export async function extractAndStoreConcepts(
   let costUsd = 0;
 
   // ── STEP 1: LLM extraction ──
-  const extractResponse = await callLLM({
+  // Post-publish learning: prompt embeds the final html + accumulated KG
+  // state — freeze the response for record/replay parity (FIFO per batch).
+  const extractResponse = await captureInputFifo('learning:kg-extract', () => callLLM({
     messages: [{
       role: "system",
       content: `You are a knowledge engineer extracting structured concepts from research analysis. Extract the most important entities, claims, theories, methods, findings, policies, trends, and controversies. Be precise and avoid duplicates.`
@@ -148,7 +151,7 @@ Return JSON:
     maxTokens: 3000,
     enableCache: true,
     task: 'reader_v3',
-  });
+  }));
 
   costUsd += extractResponse.costUsd;
   const extracted = parseJson<any>(extractResponse.content) ?? { concepts: [], relations: [] };

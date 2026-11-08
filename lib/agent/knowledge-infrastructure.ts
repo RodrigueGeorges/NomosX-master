@@ -17,6 +17,7 @@
  */
 
 import { callLLM } from '../llm/unified-llm';
+import { captureInputFifo } from './frozen-inputs';
 import { parseJson } from './json-utils';
 
 // ─── 1. Knowledge Graph Inter-Papers ────────────────────────────────────────
@@ -369,7 +370,8 @@ export async function extractExperience(
   let totalCost = 0;
 
   try {
-    const response = await callLLM({
+    // Post-gate learning call — freeze response for record/replay parity.
+    const response = await captureInputFifo('learning:experience', () => callLLM({
       messages: [{
         role: 'user',
         content: `You are a meta-learner. Extract reusable experience and guidelines from a completed research pipeline run.
@@ -404,7 +406,7 @@ Return JSON:
       maxTokens: 1500,
       task: 'reader_v3',
       enableCache: true,
-    });
+    }));
     totalCost += response.costUsd || 0;
 
     const result = parseJson<{ experiences: Array<{ phase: string; insight: string; pattern: string }>; guidelines: Array<{ guideline: string; rationale: string }> }>(response.content);

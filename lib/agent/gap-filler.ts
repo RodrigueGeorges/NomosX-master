@@ -18,6 +18,7 @@
 
 import { prisma } from '../db';
 import { callLLM } from '../llm/unified-llm';
+import { captureInputFifo } from './frozen-inputs';
 import { parseJson } from './json-utils';
 import { embedText, cosineSimilarity } from './semantic-engine';
 import type { DomainExpertise } from './types';
@@ -70,7 +71,8 @@ export async function extractAndStoreGaps(
     return { gaps: [], costUsd: 0 };
   }
 
-  const result = await callLLM({
+  // Post-publish learning call — freeze response for record/replay parity.
+  const result = await captureInputFifo('learning:gap-audit', () => callLLM({
     messages: [
       {
         role: 'system',
@@ -108,7 +110,7 @@ Return JSON:
     maxTokens: 600,
     jsonMode: true,
     task: 'topic_classification',
-  });
+  }));
 
   try {
     const parsed = parseJson<any>(result.content);

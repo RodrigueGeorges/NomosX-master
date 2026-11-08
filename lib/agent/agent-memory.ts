@@ -19,6 +19,7 @@
 
 import { prisma } from '../db';
 import { callLLM } from '../llm/unified-llm';
+import { captureInputFifo } from './frozen-inputs';
 import { parseJson } from './json-utils';
 import { embedText, cosineSimilarity } from './semantic-engine';
 import type { DomainExpertise } from './types';
@@ -178,7 +179,8 @@ export async function extractLessons(
     return { lessons: [`High-quality analysis achieved on "${question.slice(0, 80)}..." — approach was effective`], structured: [], costUsd: 0 };
   }
 
-  const result = await callLLM({
+  // Post-gate learning call — freeze response for record/replay parity.
+  const result = await captureInputFifo('learning:agent-lessons', () => callLLM({
     messages: [
       {
         role: "system",
@@ -207,7 +209,7 @@ If you cannot structure a lesson, still include it with only "lesson" filled.`,
     maxTokens: 600,
     jsonMode: true,
     task: 'topic_classification',
-  });
+  }));
 
   try {
     const parsed = parseJson<any>(result.content);

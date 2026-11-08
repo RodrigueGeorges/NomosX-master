@@ -22,6 +22,7 @@
 
 import { prisma } from "../db";
 import { callLLM } from "../llm/unified-llm";
+import { captureInputFifo } from "./frozen-inputs";
 import { parseJson } from "./json-utils";
 
 export type PlaybookOp = "add" | "upvote" | "downvote" | "deprecate";
@@ -163,7 +164,9 @@ export async function curatePlaybook(
 
   const existingTexts = existing.map((b) => b.text);
   try {
-    const res = await callLLM({
+    // Post-gate learning call — the LESSONS/failure-patterns input is
+    // run-derived; freeze the response for record/replay parity.
+    const res = await captureInputFifo('learning:playbook-curate', () => callLLM({
       messages: [
         {
           role: "system",
@@ -180,7 +183,7 @@ export async function curatePlaybook(
       jsonMode: true,
       task: "query_enhancement",
       enableCache: false,
-    });
+    }));
     const parsed = parseJson<{ bullets?: string[] }>(res.content);
     const bullets = (parsed?.bullets ?? [])
       .filter((b): b is string => typeof b === "string" && b.trim().length > 20)
