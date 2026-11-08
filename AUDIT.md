@@ -1,6 +1,6 @@
 # NomosX — Audit Technique
 
-**Dernier audit :** 7 novembre 2026 (Sprint 46) · **Branche :** main · **Statut :** TypeScript 0 erreurs · Jest 47 suites / 479 tests (agent + worker + security + colocated, offline) · replay fixture : **0 miss, trust 40→40, coût identique au cent** (record 13, ~67min live → ~10s replay, incl. regen + pre-draft review ×2)
+**Dernier audit :** 7 novembre 2026 (Sprint 46) · **Branche :** main · **Statut :** TypeScript 0 erreurs · Jest 47 suites / 473 tests (agent + worker + security + colocated, offline) · replay fixture : **0 miss, trust 40→40, gate hold→hold** (record 14, ~68min live → ~9s replay, 297 entrées — inclut regen + réserve repair + pre-draft review ×3)
 
 > Les rapports d'audit historiques sont archivés dans [`docs/audits/`](./docs/audits/). Ce document est la référence unique pour l'état actuel du projet.
 
