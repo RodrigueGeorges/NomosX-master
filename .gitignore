@@ -94,8 +94,8 @@ __pycache__/
 *.pyc
 .llm-cassettes/*
 # CI fixtures are committed intentionally
-!.llm-cassettes/gulf-minerals.fixture.jsonl
-!.llm-cassettes/gulf-minerals.fixture.jsonl.meta.json
+!.llm-cassettes/*.fixture.jsonl
+!.llm-cassettes/*.fixture.jsonl.meta.json
 
 # audit & scratch artifacts
 .audit-out/
