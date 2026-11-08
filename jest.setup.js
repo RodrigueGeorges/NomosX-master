@@ -60,3 +60,20 @@ jest.mock('next/router', () => ({
     }
   },
 }))
+// Mock Sentry — its server instrumentation opens an AsyncLocalStorage handle
+// at import time (bound-anonymous-fn), which keeps Jest from exiting cleanly.
+// Error reporting is irrelevant in unit tests.
+jest.mock('@sentry/nextjs', () => {
+  const noop = () => {}
+  const scope = { setTag: noop, setExtra: noop, setContext: noop, setLevel: noop }
+  const api = {
+    init: noop,
+    captureException: noop,
+    captureMessage: noop,
+    withScope: (fn) => fn(scope),
+    getCurrentScope: () => scope,
+    addBreadcrumb: noop,
+    flush: async () => true,
+  }
+  return { __esModule: true, default: api, ...api }
+})
