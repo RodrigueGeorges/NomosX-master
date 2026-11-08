@@ -17,6 +17,7 @@
  */
 
 import { callLLM } from '../../llm/unified-llm';
+import { captureInputFifo } from '../frozen-inputs';
 import { parseJson } from '../json-utils';
 import { prisma } from '../../db';
 import { optimizeAllPrompts } from '../prompt-optimizer';
@@ -217,7 +218,9 @@ async function llmExtractLearning(
     `- ${i.type} on ${i.pipelineStep}: ${i.reason} → ${i.result || 'pending'}`
   ).join('\n');
 
-  const response = await callLLM({
+  // Prompt embeds accumulated run state (anomalies, interventions, health) —
+  // freeze the response through the FIFO tape for record/replay parity.
+  const response = await captureInputFifo('witness:run-learning', () => callLLM({
     messages: [
       {
         role: 'system',
@@ -272,7 +275,7 @@ What should we learn from this run?`,
     jsonMode: true,
     maxTokens: 1000,
     task: 'enrichment_reasoner',
-  });
+  }));
 
   const parsed = parseJson<{
     promptModifications: PromptModification[];

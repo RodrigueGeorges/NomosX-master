@@ -86,3 +86,22 @@ export function captureInputSync<T>(channel: string, producer: () => T): T {
   if (process.env.NOMOSX_LLM_MODE === 'record' || seeded) store.set(key, value);
   return value;
 }
+
+const asyncCounters = new Map<string, number>();
+
+/**
+ * Async FIFO variant — occurrence N of `channel` replays record-occurrence
+ * N, for producers that must stay async (e.g. LLM calls whose prompts embed
+ * volatile telemetry). Same fallthrough semantics as captureInputSync: a
+ * divergent call count/order misses the key and runs the live producer,
+ * surfacing downstream drift as a CassetteMissError.
+ */
+export async function captureInputFifo<T>(channel: string, producer: () => Promise<T> | T): Promise<T> {
+  const n = asyncCounters.get(channel) ?? 0;
+  asyncCounters.set(channel, n + 1);
+  const key = `${channel}#${n}`;
+  if (store.has(key)) return store.get(key) as T;
+  const value = await producer();
+  if (process.env.NOMOSX_LLM_MODE === 'record' || seeded) store.set(key, value);
+  return value;
+}

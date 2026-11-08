@@ -13,6 +13,7 @@
  */
 
 import { callLLM } from '../../llm/unified-llm';
+import { captureInputFifo } from '../frozen-inputs';
 import { parseJson } from '../json-utils';
 import type {
   CycleTrace,
@@ -328,7 +329,10 @@ export class Witness {
     // LLM-based interpretation (deeper, costs money)
     if (this.config.useLLM && this.witnessCostUsd < this.config.witnessBudgetUsd) {
       try {
-        const response = await callLLM({
+        // Witness prompts embed volatile telemetry (durations, costs, anomaly
+        // ids) that can never match a cassette — freeze the RESPONSE through
+        // the FIFO tape so record/replay serve identical interpretations.
+        const response = await captureInputFifo('witness:interpret', () => callLLM({
           messages: [
             {
               role: 'system',
@@ -342,7 +346,7 @@ export class Witness {
           temperature: 0.2,
           maxTokens: 200,
           task: 'enrichment_reasoner',
-        });
+        }));
         this.witnessCostUsd += response.costUsd;
         interpretation = response.content;
       } catch (err) {
@@ -570,7 +574,7 @@ export class Witness {
     // LLM-based intent decision (should we really intervene?)
     if (this.config.useLLM && this.witnessCostUsd < this.config.witnessBudgetUsd) {
       try {
-        const response = await callLLM({
+        const response = await captureInputFifo('witness:intend', () => callLLM({
           messages: [
             {
               role: 'system',
@@ -585,7 +589,7 @@ export class Witness {
           jsonMode: true,
           maxTokens: 200,
           task: 'enrichment_reasoner',
-        });
+        }));
         this.witnessCostUsd += response.costUsd;
         const parsed = parseJson<{ intervene: boolean; type: InterventionType; reason: string }>(response.content);
         if (parsed) {
