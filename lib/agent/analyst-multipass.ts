@@ -754,7 +754,8 @@ async function pass3ProspectiveSynthesis(
   avgQuality: number,
   lang: string,
   domainContext?: string,
-  depth?: "brief" | "strategic"
+  depth?: "brief" | "strategic",
+  boundThesis?: string
 ): Promise<{ analysis: AnalysisOutput; tokens: number; cost: number; family: import('../llm/unified-llm').LLMFamily }> {
   console.log(`[Analyst V3] PASS 3/3: Prospective Synthesis (depth: ${depth ?? 'brief'})...`);
 
@@ -951,7 +952,13 @@ Each link's derivesFrom must point to a prior link's id. The first links
 are present_facts (derivesFrom: null), then active_mechanisms, then
 future_extrapolations. A future_extrapolation's derivesFrom must NEVER
 point to another future_extrapolation — only to a present_fact or
-active_mechanism.
+active_mechanism.${boundThesis && process.env.NOMOSX_THESIS_PROMPT_CONTRACT === '1' ? `
+
+EVIDENCE-BOUND THESIS CONTRACT (mandatory — verified after generation):
+A thesis has been bound to this corpus as the central claim: "${boundThesis}"
+Your "verdict" field MUST assert this thesis or a strictly narrower version of it.
+Causal attributions, forecasts, numerical claims, and necessity claims beyond the thesis's scope are FORBIDDEN in the verdict — demote them to trajectory.state or rejectedAlternatives as explicitly speculative secondary scenarios.
+If the causal chain supports more than the thesis, keep the chain but narrow the verdict wording. A hedged-but-supported verdict passes; a strong-but-unsupported one is rejected.` : ''}
 
 Return JSON:
 {
@@ -1473,7 +1480,7 @@ export async function analystAgentV3(
       };
     } else {
       // PASS 3: Prospective Synthesis (uses Pass 1 + Pass 2 outputs)
-      p3 = await dstep('analyst:p3', () => pass3ProspectiveSynthesis(question, ctx, p1.map, p2.map, sources.length, groundedCount, avgQuality, lang, domainContext, depth));
+      p3 = await dstep('analyst:p3', () => pass3ProspectiveSynthesis(question, ctx, p1.map, p2.map, sources.length, groundedCount, avgQuality, lang, domainContext, depth, options?.boundThesis));
     }
 
     // CITATION SANITIZATION: Strip all out-of-range [SRC-N] from analysis JSON.

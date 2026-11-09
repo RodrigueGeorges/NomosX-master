@@ -900,6 +900,47 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   analysis = gapFillState.analysis;
   allSourceIds = gapFillState.allSourceIds;
   reAnalysisBudget = gapFillState.reAnalysisBudget;
+  // ── EARLY ADHERENCE ABORT (opt-in NOMOSX_EARLY_ADHERENCE_ABORT=1) ──
+  // A verdict still breaching the bound thesis after verdict-narrowing +
+  // re-analysis repair is a predetermined thesis_adherence gate failure:
+  // the hard check reads stats.thesisBinding.adhered and nothing
+  // downstream rewrites analysis.verdict. Re-verify first — a gap-fill
+  // re-analysis may have produced a new, adherent verdict (the check
+  // skips when the verdict is unchanged). Then every remaining stage —
+  // pre-critic gates, critic, panel, debate, arbiter, DA, render — is
+  // spend on a hold already decided. Abort with the same fail-closed
+  // shape as the analysis-failure refusal above.
+  const tbPostGap = (stats as any).thesisBinding;
+  if (process.env.NOMOSX_EARLY_ADHERENCE_ABORT === '1' && tbPostGap?.statement) {
+    await verifyThesisBinding('post-gapfill');
+    const tbNow = (stats as any).thesisBinding;
+    if (tbNow?.evaluationComplete === true && tbNow.adhered === false) {
+      const reason = `thesis_adherence_unrepairable: verdict exceeds bound thesis "${String(tbNow.statement).slice(0, 120)}" after narrowing+re-analysis repair`;
+      console.warn(`${label} EARLY ABORT: ${reason}`);
+      stats.earlyAbort = { reason: 'thesis_adherence_unrepairable', stage: 'post-gapfill', costUsd: cost.runningCostUsd };
+      stats.structuredRefusal = {
+        reason,
+        sourceCount: topSources.length,
+        required: 0,
+        missing: ['thesis_adherence'],
+      };
+      stats.totalCostUsd = cost.runningCostUsd;
+      emitProgress(pipelineRun.id, "ANALYST", "failed", `Refused: ${reason}`);
+      activeRuns.delete(idempotencyKey);
+      process.removeListener('unhandledRejection', rejectionHandler);
+      await prisma.pipelineRun.update({
+        where: { id: pipelineRun.id },
+        data: {
+          status: "FAILED",
+          finishedAt: new Date(),
+          durationMs: Date.now() - pipelineStart,
+          error: reason.slice(0, 500),
+          steps: toJsonSafe({ ...stats, error: reason }),
+        },
+      }).catch(() => {});
+      return { briefId: undefined, pipelineRun, stats, html: '', analysis: { refusal: stats.structuredRefusal } as any };
+    }
+  }
   // ── STEP 6a/7/7a: PRE-CRITIC GATES — extracted to pipeline-steps/pre-critic-gates.ts ──
   // structural editor → citation guard → claim-binding preflight.
   const preGates = await (async () => {

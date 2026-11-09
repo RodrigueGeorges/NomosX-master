@@ -788,6 +788,15 @@ export interface PipelineStats {
     passed: boolean;
   };
 
+  // Early tail abort — a hard gate failure was already determined before
+  // the expensive critic→debate→render tail ran (e.g. unrepairable thesis
+  // adherence). Records what was skipped and the cost already spent.
+  earlyAbort?: {
+    reason: string;
+    stage: string;
+    costUsd: number;
+  };
+
   // Structured refusal (P3.9)
   structuredRefusal?: {
     reason: string;
