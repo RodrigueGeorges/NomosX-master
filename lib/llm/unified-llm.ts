@@ -1911,8 +1911,13 @@ async function callLLMProvider(request: LLMRequest): Promise<LLMResponse> {
             console.log(`🔧 ${provider}/${response.model} JSON repaired in-place (len=${response.content.length}→${repaired.length})`);
             response.content = repaired;
           } else {
+            // Diagnostic excerpt: without it a 34k-char failure is
+            // undiagnosable — finish_reason distinguishes truncation
+            // (raise maxTokens) from malformed structure (provider issue).
+            const head = response.content.slice(0, 160).replace(/\s+/g, ' ');
+            const tail = response.content.slice(-160).replace(/\s+/g, ' ');
             throw new Error(
-              `${provider}/${response.model} returned unparseable JSON (len=${response.content.length})`
+              `${provider}/${response.model} returned unparseable JSON (len=${response.content.length}, finish=${response.finishReason ?? 'unknown'}, out=${response.tokensOutput}tok) — head: "${head}" … tail: "${tail}"`
             );
           }
         }

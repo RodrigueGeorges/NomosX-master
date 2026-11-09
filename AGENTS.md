@@ -717,6 +717,72 @@ gulf replay 0 misses / trust 40→40 / hold→hold.
 
 ---
 
+## Sprint 49 — Live glm/kimi validation + veto-bound repair guard (2026-11)
+
+First full live validation after the GLM/Kimi credit reload, on the
+gulf-minerals corpus (known thesis-bearing). Cost $1.24 across TWO full
+pipeline attempts; outcome `held` trust=40 — the honest result, not a bug.
+
+**What the live run proved:**
+
+- Provider routing works as designed: OpenAI suspended (429 no credits,
+  24h circuit breaker) → heavy tasks (`analyst_brief`, `elenchus`,
+  `harvard_council`, `strategic_analyst`, `editorial_arbiter`) fell back to
+  `kimi-k3`; bulk/fast tasks stayed on `glm-4.5-air`. One kimi
+  `analyst_brief` returned unparseable JSON (len=34456) → cascade fell
+  through to `glm-4.5` which completed the pass; in-place JSON repair
+  succeeded twice elsewhere.
+- Thesis binding held: corpus-derived thesis bound from 5 documents;
+  post-analyst adherence flagged "verdict exceeds bound hypothesis"
+  (causal attributions + forecasts beyond the descriptive thesis) and the
+  repair reserve correctly refused a re-analysis that would eat the tail —
+  breach routed to the gate.
+- Devil's Advocate rejected BOTH attempts identically (verdict=reject,
+  strength 0/100, fatal 3, major 5): the question presupposes a causal
+  power-reshaping thesis the corpus supports only descriptively. No rewrite
+  fixes an unsupported presupposition — `held` is the correct outcome.
+- **Anti-regression verified live**: `REGEN discarded: attempt 141 → 132 —
+  stagnation/regression, original kept`. The worse second attempt (critic
+  reject 28 vs repair 60) was scored by `attemptScore` and discarded.
+- Evidence-independence audit ran live: 23/23 effective clusters,
+  maxSim=0.744 → `independent`. Inflection check dropped 4 off-topic
+  mechanisms (CIA reading-room + foundational injections).
+- ai-relationships-china refused `thesis_insufficient` at $0.05 — all 5
+  hypotheses inconclusive, no defensible thesis, analyst spend never
+  started. Fail-closed before cost, exactly as designed.
+
+**Veto-bound quality-loop guard** (`pipeline-steps/quality-loop.ts`,
+`trust-score.ts`) — the post-render loop fired on `trust < 65` without
+distinguishing a veto-bound deficit (critic reject cap 50, DA veto cap 40,
+fact-integrity, collapsed evidence independence) from a citation-fixable
+one: it burned NLI re-grounding calls for a guaranteed +0 AND bumped the
+artifact version (orphaning evals). `rescoreTrustFromStats` gained a
+`citationCoverage` override; the loop now probes the optimistic bound
+(coverage=1, groundedness=1) first — if even that stays below
+`MIN_VIABLE_TRUST`, every repair call is provably futile → skip with
+`stats.qualityLoop.reason = 'veto_bound: …'`. **Opt-in
+`NOMOSX_QUALITY_LOOP_VETO_GUARD=1`**: skipping changes the call stream,
+so fixtures recorded with the loop active stay replayable flag-off.
+
+**Replay-safe playbook skip** (`inquiry-orchestrator.ts`) — post-gate
+`curatePlaybook` is a pure learning side-effect (DB writes already
+Prisma-guarded in replay) whose prompts embed live playbook state that
+legitimately drifts between record and replay → 4 cassette misses on the
+new fixture. Skipped entirely when `getLlmCassetteMode() === 'replay'`.
+
+**Fixture**: `.llm-cassettes/gulf-minerals.fixture.jsonl` re-recorded on
+glm/kimi (2 attempts, held). Replay verified: **0 misses, trust 40→40,
+hold→hold, `REGEN discarded 141→132` identical**, ~9s for $0.
+`trust-score.test.ts` +2 (coverage override, veto survival).
+
+Deferred: kimi large-output JSON fragility (34k-char unparseable response
+— provider-side, fallback absorbed it); DA-identical-reject futility
+signal for future regen decisions (both attempts failed the same way —
+candidate for experience-bank learning); `NOMOSX_DEBATE_ON_DEMAND` and
+`NOMOSX_QUALITY_LOOP_VETO_GUARD` both await a re-record sprint to flip.
+
+---
+
 External-stack pass (cassette/agentreplay record-replay, PaperQA2 citation
 traversal, SCitance/ExecutableClaims entailment, CRAG grading, node-
 DeepResearch gap budgeting). Four surgical changes, each unit-verified:
