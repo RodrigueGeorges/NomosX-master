@@ -52,6 +52,29 @@ export async function runDebateMetaBlock(
     stats.debate = { skipped: true };
     return {};
   }
+  // Debate-on-demand (SELENE SDI pattern, EACL 2026): skip the adversarial
+  // debate when independent upstream evaluators already agree the analysis
+  // is sound — confidence-likelihood aligned means debate adds little but
+  // costs a full elenchus pass. Conservative: requires critic AND panel
+  // AND trust all strong; DA still runs later as the hard adversarial gate.
+  // Opt-in via NOMOSX_DEBATE_ON_DEMAND=1 — enabling changes recorded call
+  // streams, so fixtures must be re-recorded before flipping in production.
+  if (process.env.NOMOSX_DEBATE_ON_DEMAND === '1') {
+    const critic = (stats.critic as any) ?? {};
+    const panel = (stats.criticPanel as any) ?? {};
+    const aligned =
+      Number(critic.overallScore) >= 70 &&
+      Number(critic.groundedness) >= 80 &&
+      critic.verdict !== 'reject' &&
+      Number(panel.overallScore) >= 65 &&
+      Number((stats as any).trustScore ?? (stats as any).deterministicTrust?.score ?? 0) >= 55;
+    if (aligned) {
+      console.log(`${label} DEBATE: skipped (on-demand — critic=${critic.overallScore}, panel=${panel.overallScore}, signals aligned)`);
+      stats.debate = { skipped: true, reason: 'on_demand_aligned' };
+      return {};
+    }
+    console.log(`${label} DEBATE: running — signals not aligned (critic=${critic.overallScore ?? 'n/a'}, panel=${panel.overallScore ?? 'n/a'})`);
+  }
   emitProgress(pipelineRunId, "DEBATE", "started", "Running debate...");
   console.log(`${label} DEBATE: running (meta-analysis suppressed)`);
   const [debateSettled] = await Promise.allSettled([
