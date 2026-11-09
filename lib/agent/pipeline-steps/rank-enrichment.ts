@@ -141,7 +141,10 @@ export async function runRankAndEnrichment(deps: RankEnrichmentDeps): Promise<Ra
           if (!match.qualityScore) (match as any).qualityScore = qs.score.overall;
         }
       }
-      topSources.sort((a: any, b: any) => (b.compositeScore ?? 0) - (a.compositeScore ?? 0));
+      // Same deterministic tie-break as enhanced-ranker: composite ties keep
+      // input order otherwise, and input order is not stable across DB writes.
+      topSources.sort((a: any, b: any) => (b.compositeScore ?? 0) - (a.compositeScore ?? 0)
+        || String(a.id ?? '').localeCompare(String(b.id ?? '')));
       console.log(`${label} SOURCE QUALITY: re-ranked ${topSources.length} by composite (relevance 60% + quality 40%)`);
     } catch (err) {
       console.warn(`${label} SOURCE QUALITY: re-rank failed (non-blocking):`, err);

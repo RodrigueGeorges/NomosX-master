@@ -11,6 +11,8 @@
  * then re-ranks the top sources by a composite quality score.
  */
 
+import { captureInput } from './frozen-inputs';
+
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 export interface SourceQualityScore {
@@ -117,7 +119,10 @@ export async function scoreSource(source: any, currentYear = new Date().getFullY
     diversity,
     hasDoi: !!source.doi,
     isOpenAccess: !!(source.openAccess || source.isOpenAccess),
-    hasRetractionWarning: await checkCrossrefRetraction(source.doi || ''),
+    // Live Crossref lookup — frozen per-DOI for record/replay (the flag is
+    // currently unconsumed downstream, but the HTTP call itself is
+    // nondeterministic wall-clock work inside the rank path).
+    hasRetractionWarning: await captureInput(`retraction:${source.doi || ''}`, () => checkCrossrefRetraction(source.doi || '')),
     tier,
   };
 }

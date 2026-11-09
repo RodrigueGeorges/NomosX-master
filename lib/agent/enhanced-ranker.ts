@@ -12,6 +12,18 @@ import { prisma } from '../db';
 import type { Source } from '@prisma/client';
 import { filterLowQualitySources } from '../providers/source-quality-filter';
 
+/**
+ * Deterministic rank order: compositeScore desc, then source id asc.
+ * Composite ties are common for dataset providers (identical quality /
+ * relevance inputs); without the id tail-break the surviving order is
+ * whatever the DB/scan produced — which unrelated writes reshuffle and
+ * which then drifts every downstream LLM prompt (cassette misses).
+ */
+function byCompositeThenId(a: { compositeScore?: number; id?: string }, b: { compositeScore?: number; id?: string }): number {
+  return (b.compositeScore ?? 0) - (a.compositeScore ?? 0)
+    || String(a.id ?? '').localeCompare(String(b.id ?? ''));
+}
+
 export interface EnhancedRankOptions {
   limit?: number;
   mode?: 'quality' | 'novelty' | 'balanced';
@@ -111,7 +123,12 @@ export async function enhancedRank(
     orderBy: [
       { qualityScore: 'desc' },
       { noveltyScore: 'desc' },
-      { createdAt: 'desc' }
+      { createdAt: 'desc' },
+      // Deterministic tail: full ties on the three keys above fall back to
+      // physical row order, which unrelated inserts/updates reshuffle —
+      // observed live: refreshed energy-dataset rows flipped a rank tie and
+      // drifted every downstream LLM prompt (cassette misses).
+      { id: 'asc' }
     ],
     take: finalOptions.limit! * 5 // Get 5x more candidates for filtering (was 3x — too few for niche topics)
   });
@@ -270,7 +287,7 @@ export async function enhancedRank(
 
   // Sort by composite score and limit
   let finalSources = filteredSources
-    .sort((a, b) => b.compositeScore - a.compositeScore)
+    .sort(byCompositeThenId)
     .slice(0, finalOptions.limit!);
 
   // Post-slice diversity enforcement: sort+slice can undo redistribution
@@ -294,7 +311,7 @@ export async function enhancedRank(
       const usedIds = new Set(capped.map(s => s.id));
       const overflow = filteredSources
         .filter(s => !usedIds.has(s.id))
-        .sort((a, b) => b.compositeScore - a.compositeScore);
+        .sort(byCompositeThenId);
       for (const s of overflow) {
         if (capped.length >= (finalOptions.limit || 25)) break;
         const p = s.provider || 'unknown';
@@ -315,7 +332,7 @@ export async function enhancedRank(
   if (finalSources.length < 8 && enhancedSources.length > finalSources.length) {
     console.warn(`[ENHANCED RANK] Only ${finalSources.length} sources after diversity filter — relaxing to top ${Math.min(finalOptions.limit!, enhancedSources.length)} by composite score`);
     const relaxed = enhancedSources
-      .sort((a, b) => b.compositeScore - a.compositeScore)
+      .sort(byCompositeThenId)
       .slice(0, finalOptions.limit!);
     // T8: Mark load-bearing on relaxed selection too
     const lbCount = Math.max(3, Math.ceil(relaxed.length * 0.3));
@@ -684,7 +701,7 @@ function applyEnhancedFilters(
   sources: EnhancedRankedSource[], 
   options: EnhancedRankOptions
 ): EnhancedRankedSource[] {
-  let filtered = [...sources].sort((a, b) => b.compositeScore - a.compositeScore);
+  let filtered = [...sources].sort(byCompositeThenId);
   
   // Provider diversity filter — ENFORCED (not just warned)
   if (options.maxPerProvider) {
