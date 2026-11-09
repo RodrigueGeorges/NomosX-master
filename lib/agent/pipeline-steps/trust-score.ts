@@ -164,16 +164,17 @@ export function computeTrustScore(c: TrustComponents, v: TrustVetoes = {}): Trus
  * arithmetic site stays single. `stats` is the pipeline stats bag; verdicts
  * marked `.stale` are nulled out (same rule as quality-loop). `groundedness`
  * override (0–1) is used when the caller just re-ran claim grounding and the
- * stats entry is not the freshest measurement.
+ * stats entry is not the freshest measurement. `citationCoverage` override
+ * (0–1) lets callers probe the optimistic bound without mutating the HTML.
  */
 export function rescoreTrustFromStats(
   stats: Record<string, any>,
   html: string,
   topSources: any[],
-  opts?: { groundedness?: number },
+  opts?: { groundedness?: number; citationCoverage?: number },
 ): TrustScoreResult {
   const coverageTarget = Math.min(40, Math.max(15, Math.ceil(topSources.length * 0.35)));
-  const citationCoverage = coverageTarget > 0 ? Math.min(1, countDistinctCitedSources(html) / coverageTarget) : 0;
+  const citationCoverage = opts?.citationCoverage ?? (coverageTarget > 0 ? Math.min(1, countDistinctCitedSources(html) / coverageTarget) : 0);
   const groundedness = opts?.groundedness ?? ((stats.claimGrounding?.groundedness ?? 75) / 100);
   const factStats = stats.factChecker as any;
   const factIntegrity = factStats?.integrityScore ?? 80;

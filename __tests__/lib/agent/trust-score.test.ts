@@ -4,7 +4,7 @@
  * criticPanel/editorial-floor vetoes and used different weights, so a
  * panel-vetoed artifact could be re-inflated past its cap post-repair.
  */
-import { computeTrustScore, countDistinctCitedSources } from '@/lib/agent/pipeline-steps/trust-score';
+import { computeTrustScore, countDistinctCitedSources, rescoreTrustFromStats } from '@/lib/agent/pipeline-steps/trust-score';
 
 const HEALTHY = {
   citationCoverage: 0.9, groundedness: 0.85, factIntegrity: 90, nliIntegrity: 85,
@@ -105,6 +105,24 @@ describe('evidence-independence veto — collapsed citation clusters cap at 55',
       evidenceIndependence: 'collapsed', evidenceCitedCount: 10,
     });
     expect(score).toBeLessThanOrEqual(55);
+  });
+});
+
+describe('rescoreTrustFromStats — coverage override for the veto-bound probe', () => {
+  const sources = Array.from({ length: 10 }, (_, i) => ({ id: `s${i}`, provider: `p${i % 4}`, qualityScore: 70 }));
+  const html = '<p>[SRC-1] [SRC-2]</p>';
+
+  it('measured coverage is low on a 2-citation HTML; override reports full coverage', () => {
+    const measured = rescoreTrustFromStats({}, html, sources);
+    const optimistic = rescoreTrustFromStats({}, html, sources, { citationCoverage: 1, groundedness: 1 });
+    expect(optimistic.score).toBeGreaterThan(measured.score);
+  });
+
+  it('vetoes survive the optimistic probe — critic reject still caps at 50', () => {
+    const stats = { critic: { verdict: 'reject', overallScore: 28 } };
+    const optimistic = rescoreTrustFromStats(stats, html, sources, { citationCoverage: 1, groundedness: 1 });
+    expect(optimistic.score).toBeLessThanOrEqual(50);
+    expect(optimistic.vetoes.some(v => v.includes('critic reject'))).toBe(true);
   });
 });
 

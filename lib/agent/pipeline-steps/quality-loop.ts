@@ -22,6 +22,23 @@ export async function runPostRenderQualityLoop(ctx: TailStepContext): Promise<vo
     const GROUNDEDNESS_THRESHOLD = 80;
 
     if (currentTrust > 0 && (currentTrust < PUBLISH_THRESHOLD || currentGroundedness < GROUNDEDNESS_THRESHOLD)) {
+      // Veto-bound guard: the loop's only tools are citation repair +
+      // re-grounding — they can raise coverage/groundedness but cannot lift
+      // a substance veto (critic reject, DA veto, fact-integrity, collapsed
+      // evidence independence). Probe the optimistic bound first: if even
+      // perfect coverage+grounding stays below viability, every call below
+      // is guaranteed waste AND bumps the artifact version for +0.
+      // Opt-in (NOMOSX_QUALITY_LOOP_VETO_GUARD=1): skipping changes the call
+      // stream, so fixtures recorded with the loop active would miss.
+      const vetoGuardEnabled = process.env.NOMOSX_QUALITY_LOOP_VETO_GUARD === '1';
+      if (vetoGuardEnabled) {
+        const optimistic = rescoreTrustFromStats(stats, ctx.html, topSources, { groundedness: 1, citationCoverage: 1 });
+        if (optimistic.score < MIN_VIABLE_TRUST) {
+          console.log(`${label_} QUALITY LOOP: skipped — deficit is veto-bound (optimistic trust ${optimistic.score} < ${MIN_VIABLE_TRUST} even at full coverage/grounding): ${optimistic.vetoes.join('; ') || 'substance vetoes'}`);
+          stats.qualityLoop = { attempted: false, reason: `veto_bound: optimistic ${optimistic.score} < ${MIN_VIABLE_TRUST}`, vetoes: optimistic.vetoes };
+          return;
+        }
+      }
       console.log(`${label_} QUALITY LOOP: trust ${currentTrust} < ${PUBLISH_THRESHOLD} or groundedness ${currentGroundedness}% < ${GROUNDEDNESS_THRESHOLD}% — retrying citation repair with aggressive settings`);
 
       // Retry 1: More aggressive citation repair (inject citations for ANY claim matching a source)

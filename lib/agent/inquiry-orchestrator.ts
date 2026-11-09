@@ -1077,7 +1077,10 @@ export async function runAndPublishInquiry(
   // council role's evolving playbook (injected into runExpertAnalysis prompts)
   // and upvote the advice that held on a published run. Gate diagnoses give
   // typed failure material; revision actions record what repair worked.
-  const playbookJob = (async () => {
+  // Skipped in replay: pure learning side-effect (DB writes already guarded),
+  // and its prompts embed live playbook state that legitimately drifts between
+  // record and replay — the calls can only miss.
+  const playbookJob = getLlmCassetteMode() === 'replay' ? Promise.resolve(0) : (async () => {
     // Fire-and-forget by design — the dispatch scope can legally close right
     // after persist, so run detached or curation dies with 'scope closed'.
     return await withExecutionDetached(async () => { try {
