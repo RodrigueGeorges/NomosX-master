@@ -402,7 +402,8 @@ async function pass1FrictionMapping(
   sourceCount: number,
   groundedCount: number,
   domainContext?: string,
-  depth?: "brief" | "strategic"
+  depth?: "brief" | "strategic",
+  boundThesis?: string
 ): Promise<{ map: FrictionMap; tokens: number; cost: number }> {
   console.log(`[Analyst V3] PASS 1/3: Friction Mapping (${sourceCount} sources, ${groundedCount} grounded, depth: ${depth ?? 'brief'})...`);
 
@@ -518,7 +519,11 @@ CITATION RULES (NON-NEGOTIABLE):
 - Do NOT extract numbers you cannot trace to a specific source's extracted text.
 - If a source mentions a number, extract it WITH the [SRC-N] tag.
 - CITATION SPREAD: Extract dataPoints from as many different GROUNDED sources as possible. You MUST cite at least ${Math.max(3, Math.ceil(groundedCount * 0.7))} distinct sources across all mechanisms. Do not over-rely on 3-4 sources — each grounded source was extracted for a reason. Go through them systematically and extract at least one dataPoint from each relevant one. Claims without [SRC-N] citations WILL BE DELETED from the final report.
-- CITATION QUALITY: Each source shows its Quality score. When several GROUNDED sources support the same claim, anchor the citation to the HIGHEST-Quality one — load-bearing claims must rest on your strongest evidence, not the weakest source that happens to mention it. Reserve low-Quality sources (<40/100) for context or corroboration, never as sole support for a key mechanism.
+- CITATION QUALITY: Each source shows its Quality score. When several GROUNDED sources support the same claim, anchor the citation to the HIGHEST-Quality one — load-bearing claims must rest on your strongest evidence, not the weakest source that happens to mention it. Reserve low-Quality sources (<40/100) for context or corroboration, never as sole support for a key mechanism.${boundThesis && process.env.NOMOSX_THESIS_PROMPT_CONTRACT === '1' ? `
+
+EVIDENCE-BOUND THESIS SCOPE (mandatory):
+A thesis has been bound to this corpus as the central claim: "${boundThesis}"
+Map mechanisms THROUGH this lens: prioritize dynamics that bear on the bound thesis, and tag mechanisms whose implications would exceed it (causal chains the thesis does not assert, forecasts it does not make) as speculative in their trajectoryHint — do not let them pose as thesis-bearing drivers. The downstream verdict may only claim what this thesis supports.` : ''}
 
 Return JSON:
 {
@@ -596,7 +601,8 @@ async function pass2StressTest(
   question: string,
   ctx: string,
   frictionMap: FrictionMap,
-  domainContext?: string
+  domainContext?: string,
+  boundThesis?: string
 ): Promise<{ map: StressTestMap; tokens: number; cost: number }> {
   console.log(`[Analyst V3] PASS 2/3: Stress Test...`);
 
@@ -655,7 +661,11 @@ source TYPE behind each claim and its characteristic bias:
 A mechanism that rests on a SINGLE source type is weaker than one
 corroborated across multiple independent source types. Factor this into
 your verdict and into the hostileExpertObjection — the strongest hostile
-objection often comes from a different source type's perspective.
+objection often comes from a different source type's perspective.${boundThesis && process.env.NOMOSX_THESIS_PROMPT_CONTRACT === '1' ? `
+
+EVIDENCE-BOUND THESIS SCOPE (mandatory):
+A thesis has been bound to this corpus as the central claim: "${boundThesis}"
+When judging canSupportExtrapolation, weigh whether the mechanism's projected implication stays within what the bound thesis asserts. A mechanism can be real and still exceed the thesis's claim scope — mark its extrapolation support accordingly rather than inflating it.` : ''}
 
 Return JSON:
 {
@@ -1359,7 +1369,7 @@ export async function analystAgentV3(
       options?.durableStep ? options.durableStep(name, fn) : fn();
 
     // PASS 1: Friction Mapping
-    const p1 = await dstep('analyst:p1', () => pass1FrictionMapping(question, ctx, sources.length, groundedCount, domainContext, depth));
+    const p1 = await dstep('analyst:p1', () => pass1FrictionMapping(question, ctx, sources.length, groundedCount, domainContext, depth, options?.boundThesis));
 
     // INTER-PASS VALIDATION: Ground-truth check on Pass 1 output
     const validatedMap = validateFrictionMap(p1.map, sources.length, groundedIndices);
@@ -1422,7 +1432,7 @@ export async function analystAgentV3(
         cost: 0,
       };
     } else try {
-      p2 = await dstep('analyst:p2', () => pass2StressTest(question, ctx, validatedMap.map, domainContext));
+      p2 = await dstep('analyst:p2', () => pass2StressTest(question, ctx, validatedMap.map, domainContext, options?.boundThesis));
     } catch (pass2Err) {
       console.warn(`[Analyst V3] PASS 2 failed, continuing with empty stress test map:`, pass2Err);
       p2 = {
@@ -1566,6 +1576,59 @@ export async function analystAgentV3(
     }
     console.log(`[Analyst V3] Trust propagation: overall=${pruningResult.overallTrust}, chain=${pruningResult.prunedChain.length}/${sanitizedAnalysis.causalChain?.length || 0} links survived`);
 
+    // ── INLINE THESIS-ADHERENCE GATE (opt-in NOMOSX_THESIS_INLINE_GATE=1) ──
+    // Catch a verdict-level overclaim at the cheapest point — inside the
+    // analyst, before post-analyst checks and the whole critic→debate→
+    // render tail. Up to 3 bounded calls: adherence eval → narrowing
+    // rewrite → re-check. A still-breached verdict is returned flagged
+    // so the pipeline-level repair/gate path handles it unchanged.
+    let inlineGateCost = 0;
+    let inlineThesisGateMeta: Record<string, unknown> | undefined;
+    if (options?.boundThesis && process.env.NOMOSX_THESIS_INLINE_GATE === '1' && prunedAnalysis.verdict) {
+      try {
+        const { checkThesisAdherence } = await import('./hypothesis-engine');
+        const adh = await checkThesisAdherence(prunedAnalysis.verdict, options.boundThesis);
+        inlineGateCost += adh.costUsd ?? 0;
+        if (adh.evaluationComplete && adh.adhered === false) {
+          console.warn(`[Analyst V3] INLINE THESIS GATE: verdict exceeds bound thesis ("${adh.reason.slice(0, 120)}") — narrowing in-place`);
+          const { callLLM } = await import('../llm/unified-llm');
+          const { parseJson } = await import('./json-utils');
+          const nr = await callLLM({
+            messages: [
+              { role: 'system', content: 'You are a senior analyst narrowing a verdict to its evidence-bound thesis. Output valid JSON only: {"verdict":"..."}. The verdict must assert ONLY what the bound thesis supports — or a strictly narrower version. Remove causal attributions, forecasts, numerical claims, and necessity claims the thesis does not make. Prefer hedged-but-supported over strong-but-unsupported. Preserve every [SRC-N] citation token. Never add facts, numbers, or citations. One paragraph, same language.' },
+              { role: 'user', content: `BOUND THESIS:\n"${options.boundThesis}"\n\nVIOLATION:\n${adh.reason}\n\nTHROUGH-LINE:\n${String(prunedAnalysis.throughLine ?? '').slice(0, 500)}\n\nCURRENT VERDICT:\n${prunedAnalysis.verdict.slice(0, 3000)}` },
+            ],
+            task: 'reader_v3',
+            temperature: 0.2,
+            maxTokens: 1500,
+            jsonMode: true,
+            enableCache: false,
+          });
+          inlineGateCost += nr.costUsd ?? 0;
+          const parsed = parseJson<{ verdict?: string }>(nr.content);
+          const narrowed = typeof parsed?.verdict === 'string' ? parsed.verdict.trim() : '';
+          if (narrowed.length >= 20 && narrowed !== prunedAnalysis.verdict.trim()) {
+            const recheck = await checkThesisAdherence(narrowed, options.boundThesis);
+            inlineGateCost += recheck.costUsd ?? 0;
+            if (recheck.evaluationComplete && recheck.adhered === true) {
+              prunedAnalysis.verdict = narrowed;
+              inlineThesisGateMeta = { narrowed: true, costUsd: inlineGateCost };
+              console.log(`[Analyst V3] INLINE THESIS GATE: narrowed verdict now adheres ($${inlineGateCost.toFixed(4)})`);
+            } else {
+              inlineThesisGateMeta = { narrowed: false, stillBreached: true, costUsd: inlineGateCost };
+              console.warn(`[Analyst V3] INLINE THESIS GATE: narrowed verdict still breaches — pipeline repair path will handle`);
+            }
+          } else {
+            inlineThesisGateMeta = { narrowed: false, reason: 'empty_or_identical', costUsd: inlineGateCost };
+          }
+        } else {
+          inlineThesisGateMeta = { adhered: adh.adhered ?? null, evaluationComplete: adh.evaluationComplete, costUsd: inlineGateCost };
+        }
+      } catch (gateErr) {
+        console.warn('[Analyst V3] INLINE THESIS GATE failed (non-blocking):', String(gateErr).slice(0, 150));
+      }
+    }
+
     // Backward-compatible cascade validation (extended, not replaced)
     const chainValidation = validateCausalChain(prunedAnalysis);
     if (!chainValidation.valid) {
@@ -1573,7 +1636,7 @@ export async function analystAgentV3(
     }
 
     const totalTokens = p1.tokens + p2.tokens + p3.tokens;
-    const totalCost = p1.cost + p2.cost + p3.cost + preDraftReviewCost;
+    const totalCost = p1.cost + p2.cost + p3.cost + preDraftReviewCost + inlineGateCost;
     const elapsed = Date.now() - startTime;
 
     console.log(`[Analyst V3] Complete in ${elapsed}ms | 3 passes | ${totalTokens} tokens | $${totalCost.toFixed(4)} | cascade violations: ${chainValidation.cascadeViolations}`);
@@ -1665,6 +1728,7 @@ export async function analystAgentV3(
         claimPassageContract: passageContract.checked > 0 || passageContract.skippedNoReading > 0
           ? { ...passageContract, nli: passageNLI }
           : undefined,
+        ...(inlineThesisGateMeta ? { inlineThesisGate: inlineThesisGateMeta } : {}),
       },
     };
   } catch (error: any) {
