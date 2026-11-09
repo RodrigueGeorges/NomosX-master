@@ -297,8 +297,19 @@ async function main() {
 
   // Record mode: persist the fixture meta sidecar — the frozen snapshot is
   // already in pipelineRun.steps; copy it next to the cassette so the replay
-  // never has to rediscover it.
-  if (args.record && args.cassette) {
+  // never has to rediscover it. A failed/timed-out record must NOT clobber
+  // the fixture: compaction would keep only the dead run's entries and the
+  // meta would describe a run that never reached the gate (observed: a
+  // provider-exhausted ai-china record overwrote a good committed fixture).
+  // The raw appended entries stay in the file — a later successful record's
+  // compaction filters them out by run token, and replay only serves entries
+  // matching the meta's cassetteRun.
+  const UNUSABLE_RECORD_STATUSES = new Set(['failed', 'skipped_duplicate', 'skipped_dry_run']);
+  const recordUsable = args.record && !UNUSABLE_RECORD_STATUSES.has(String(replayedStatus));
+  if (args.record && args.cassette && !recordUsable) {
+    console.warn(`[replay] record ended status=${replayedStatus} — fixture left untouched (raw entries remain; restore via git if the file was previously committed)`);
+  }
+  if (recordUsable && args.cassette) {
     try {
       const { writeFileSync } = await import('fs');
       const frozen = (stats as any).frozenContext ?? {};
