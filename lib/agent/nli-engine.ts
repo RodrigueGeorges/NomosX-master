@@ -86,13 +86,20 @@ async function getNLIPipeline(): Promise<any | null> {
     for (const model of models) {
       try {
         const { pipeline } = await import('@huggingface/transformers');
-        // P2: Add 15s timeout — if HuggingFace is inaccessible, fail fast and fall back
-        _pipeline = await Promise.race([
-          pipeline('text-classification', model.id, { dtype: model.dtype }),
-          new Promise<never>((_, reject) =>
-            setTimeout(() => reject(new Error('NLI model load timeout (15s)')), 15_000)
-          ),
-        ]);
+        // P2: Add 15s timeout — if HuggingFace is inaccessible, fail fast and fall back.
+        // The timer must be cleared once the race settles: an uncleared
+        // setTimeout keeps the Jest worker alive ~15s per model attempt.
+        let loadTimer: ReturnType<typeof setTimeout> | undefined;
+        try {
+          _pipeline = await Promise.race([
+            pipeline('text-classification', model.id, { dtype: model.dtype }),
+            new Promise<never>((_, reject) => {
+              loadTimer = setTimeout(() => reject(new Error('NLI model load timeout (15s)')), 15_000);
+            }),
+          ]);
+        } finally {
+          if (loadTimer) clearTimeout(loadTimer);
+        }
         _modelAvailable = true;
         console.log(`[NLI Engine] NLI model loaded successfully: ${model.id}`);
         return _pipeline;

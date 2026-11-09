@@ -281,8 +281,12 @@ async function main() {
       // timed-out record can never replay faithfully (the withTimeout timer
       // is real-time; a 3-minute replay would run past the recorded throw).
       // The value is persisted in the meta and reused at replay for symmetry.
+      // Record default 150min: strategic runs + the orchestrator regen tail
+      // regularly exceed 90min (ai-china record timed out at 60, then ran
+      // ~135min before a provider-exhaustion refusal). Replay stays
+      // unbounded-ish — it replays in minutes.
       timeoutMs: args.timeoutMin !== undefined ? args.timeoutMin * 60_000
-        : args.record ? 90 * 60_000
+        : args.record ? 150 * 60_000
         : undefined,
     },
   });
