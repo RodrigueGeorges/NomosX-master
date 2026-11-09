@@ -23,6 +23,7 @@
 import { callLLM } from '../llm/unified-llm';
 import { parseJson } from './json-utils';
 import { prisma } from '../db';
+import { captureInput } from './frozen-inputs';
 import { embedText, cosineSimilarity } from './semantic-engine';
 import type { AgentLesson } from './agent-memory';
 
@@ -163,12 +164,15 @@ export async function verifyAndDeInflateLessons(
   agentId: string,
   context?: { failureModes?: string[]; question?: string; agentOutputExcerpt?: string }
 ): Promise<BatchVerificationResult> {
-  // Fetch all lessons for this agent
-  const records = await prisma.agentAuditLog.findMany({
-    where: { agent: agentId, action: "LESSON_LEARNED" },
-    orderBy: { timestamp: "desc" },
-    take: 20,
-  });
+  // Fetch all lessons for this agent — frozen for record/replay: every run
+  // writes new lessons, so an unfrozen read drifts the verifier prompts.
+  const records = await captureInput(`verifier:lessons:${agentId}`, () =>
+    prisma.agentAuditLog.findMany({
+      where: { agent: agentId, action: "LESSON_LEARNED" },
+      orderBy: { timestamp: "desc" },
+      take: 20,
+    })
+  );
 
   if (records.length === 0) {
     return { verified: [], deInflatedCount: 0, prunedCount: 0, avgScore: 0, costUsd: 0 };

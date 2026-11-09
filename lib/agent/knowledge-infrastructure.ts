@@ -116,8 +116,13 @@ export async function buildKnowledgeGraph(
       totalCost += response.costUsd || 0;
 
       const result = parseJson<{ entities: KGEntity[]; relations: KGRelation[] }>(response.content);
-      if (result?.entities) allEntities.push(...result.entities);
-      if (result?.relations) allRelations.push(...result.relations);
+      if (Array.isArray(result?.entities)) {
+        for (const e of result.entities) {
+          const n = normalizeKGEntity(e);
+          if (n) allEntities.push(n);
+        }
+      }
+      if (Array.isArray(result?.relations)) allRelations.push(...result.relations);
     }
 
     // Merge duplicate entities (by name similarity)
@@ -140,6 +145,27 @@ export async function buildKnowledgeGraph(
     console.warn('[KG] Build failed:', String(err).slice(0, 80));
     return { graph: { entities: [], relations: [], clusters: [], bridges: [] }, costUsd: 0 };
   }
+}
+
+function toStringArray(v: unknown): string[] {
+  if (Array.isArray(v)) return v.filter((x): x is string => typeof x === 'string' && x.length > 0);
+  if (typeof v === 'string' && v.length > 0) return [v];
+  return [];
+}
+
+export function normalizeKGEntity(e: unknown): KGEntity | null {
+  if (!e || typeof e !== 'object') return null;
+  const o = e as Partial<KGEntity>;
+  if (typeof o.name !== 'string' || o.name.trim().length === 0) return null;
+  const type = (['method', 'dataset', 'metric', 'concept', 'organization', 'person', 'policy', 'technology'] as const)
+    .includes(o.type as KGEntity['type']) ? o.type as KGEntity['type'] : 'concept';
+  return {
+    id: typeof o.id === 'string' && o.id ? o.id : `e-${o.name.toLowerCase().replace(/\s+/g, '-')}`,
+    name: o.name.trim(),
+    type,
+    aliases: toStringArray(o.aliases),
+    sourceIds: toStringArray(o.sourceIds),
+  };
 }
 
 function mergeEntities(entities: KGEntity[]): KGEntity[] {
