@@ -29,15 +29,67 @@ function getDatabaseUrl(): string {
 
 // Optimized for Neon (serverless Postgres)
 // Prevents "Error { kind: Closed }" by limiting connection pool
+// ── Replay write-guard ──────────────────────────────────────────────────────
+// Replay runs must reproduce the recorded pipeline WITHOUT polluting the
+// learning corpus: every post-gate writer (lessons, experience bank,
+// playbooks, world model, PRM, MOA weights, self-evolution, witness,
+// skill bank, prediction registration) persists through agentAuditLog —
+// and prediction-tracker/registration through prediction. In replay mode
+// those writes are suppressed: the frozen inputs already serve the
+// recorded values, so nothing downstream needs them, and a replay must
+// never teach the system fake production outcomes.
+// The env check runs per-operation (not at client creation) because
+// replay-run sets NOMOSX_LLM_MODE after static imports have evaluated.
+// NOTE: the extension callback reports `model` in PascalCase (schema name).
+const REPLAY_BLOCKED_WRITE_MODELS = new Set(['AgentAuditLog', 'Prediction']);
+const REPLAY_WRITE_OPS = new Set([
+  'create', 'createMany', 'createManyAndReturn',
+  'update', 'updateMany', 'updateManyAndReturn',
+  'upsert', 'delete', 'deleteMany',
+]);
+let replayBlockedWrites = 0;
+
+function dummyWriteResult(operation: string, args: any): any {
+  if (operation === 'deleteMany' || operation === 'updateMany') return { count: 0 };
+  if (operation === 'createMany' || operation === 'createManyAndReturn'
+    || operation === 'updateManyAndReturn') return [];
+  const data = args?.data;
+  const base = Array.isArray(data) ? data[0] : data;
+  return { id: 'replay-blocked', ...(base && typeof base === 'object' ? base : {}) };
+}
+
+function applyReplayWriteGuard(client: PrismaClient): PrismaClient {
+  return client.$extends({
+    query: {
+      $allModels: {
+        async $allOperations({ model, operation, args, query }) {
+          if (
+            process.env.NOMOSX_LLM_MODE === 'replay' &&
+            REPLAY_BLOCKED_WRITE_MODELS.has(model) &&
+            REPLAY_WRITE_OPS.has(operation)
+          ) {
+            replayBlockedWrites++;
+            if (replayBlockedWrites <= 5 || replayBlockedWrites % 100 === 0) {
+              console.warn(`[REPLAY] suppressed ${operation} on ${model} (learning write blocked — replay must not mutate production memory)`);
+            }
+            return dummyWriteResult(operation, args);
+          }
+          return query(args);
+        },
+      },
+    },
+  }) as unknown as PrismaClient;
+}
+
 const prismaClientSingleton = () => {
-  return new PrismaClient({ 
+  return applyReplayWriteGuard(new PrismaClient({ 
     log: process.env.NODE_ENV === 'development' ? ["error", "warn"] : ["error"],
     datasources: {
       db: {
         url: getDatabaseUrl(),
       }
     },
-  });
+  }));
 };
 
 export const prisma = globalThis.__prisma ?? prismaClientSingleton();

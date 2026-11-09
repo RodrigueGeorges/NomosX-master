@@ -643,6 +643,26 @@ Cohere `embed-v4.0` fallback returns 1536-dim vectors (probe HTTP 200);
 post-execution-scope calls still get zero vectors — degrades post-gate
 learning similarity only, non-blocking.
 
+**Replay write-guard** (`lib/db.ts`) — replay runs were still *writing*
+the learning corpus: lessons, experience bank, playbooks, world model,
+PRM, MOA weights, self-evolution, witness, skill bank and prediction
+registration all persist through `agentAuditLog`/`prediction`, so every
+replay taught the system fake production outcomes. A Prisma client
+extension now suppresses write ops on `AgentAuditLog` + `Prediction` when
+`NOMOSX_LLM_MODE=replay` (checked per-operation — the env is set after
+static imports). Reads pass through; callers get shape-compatible dummies
+(`{count:0}` / `{id:'replay-blocked',...data}`). Verified: sanctions
+replay still **0 misses, 40→40, hold→hold, cost identical to the cent** —
+all memory reads were already frozen, so nothing downstream needed the
+writes. Residual: `conceptNode`/`systemMetric`/raw-SQL writes still land
+(intra-run KG state and telemetry, not feedback channels).
+
+**Harness hardening** — `--record` no longer clobbers a fixture when the
+run ends `failed`/`skipped_*` (a provider-exhausted ai-china record had
+overwritten a good committed fixture); record default timeout 90→150min
+(strategic + regen tail exceeds 90); `nli-engine` 15s load timer now
+cleared (was keeping Jest workers alive ~15s/model attempt).
+
 ---
 
 External-stack pass (cassette/agentreplay record-replay, PaperQA2 citation
