@@ -665,6 +665,58 @@ cleared (was keeping Jest workers alive ~15s/model attempt).
 
 ---
 
+## Sprint 48 — Agentic-research pass: selective compute, evidence DAG, debate memory (2026-11)
+
+Research review of 2025-26 agentic systems (SELENE, Argus, GEPA, AgentAuditor,
+P-Search, BetaPRM, R2-MAD, experience-memory surveys) mapped onto NomosX.
+Four changes shipped; each preserves record/replay determinism.
+
+**Debate-on-demand** (`pipeline-steps/debate-advocate.ts`) — SELENE SDI
+pattern: skip the adversarial debate when critic ≥70 + groundedness ≥80 +
+no reject, criticPanel ≥65, and trust ≥55 — aligned signals mean the debate
+adds little but costs a full elenchus pass. DA still runs later as the hard
+adversarial gate. **Opt-in `NOMOSX_DEBATE_ON_DEMAND=1`**: enabling changes
+the recorded call stream, so fixtures must be re-recorded before flipping
+in production. Flag off = zero behaviour change (verified 0-miss replay).
+
+**Argus-lite evidence-graph gaps** (`pipeline-steps/evidence-graph-gaps.ts`)
+— the claim→passage contract marks unsupported `present_fact` links, but
+those marks only propagated trust downward. `deriveEvidenceGapRequests`
+now turns each unsupported claim into a blackboard gap request (deduped,
+cap 3) drained by `processGapRequests` — targeted retrieval for the exact
+missing support edge instead of trusting broad re-search. Deterministic,
+zero LLM cost; fixed-corpus replay drains requests without scouting so the
+call stream is unchanged. `stats.evidenceGraphGaps` records the count.
+
+**Experience bank v2** (`knowledge-infrastructure.ts`) — survey-backed
+upgrade: entries carry `appliesWhen` applicability conditions (extracted by
+the meta-learner) and a `successMetric` stamped from the post-gate outcome
+(published > held > failed, refined by trust). Retrieval ranks by
+reliability then recency; guideline injection includes the applicability
+condition. Replay-safe: extraction response and `experience:guidelines`
+are frozen channels.
+
+**R2-MAD debate memory** (`debate-agent.ts`, `debate-advocate.ts`,
+`frozen-inputs.ts`) — debate outcomes are banked as `phase:'debate'`
+experience entries; the moderator injects up to 3 prior outcomes on related
+questions into pass 1 (shared-misconception check). New frozen channel
+`debate:memory`; `hasFrozenInput()` lets OLD fixtures (pre-channel) inject
+nothing rather than fall through to a live DB read. New `hasFrozenInput`
+export is the general pattern for adding memory channels without
+invalidating existing cassettes.
+
+Deferred (each a dedicated sprint, not quick wins): GEPA-style reflective
+prompt evolution port (self-evolver already has agentic mutation + MAGE —
+measure stagnation first), AgentAuditor divergence-tree audit on MoA
+(aggregation is already reliability-weighted — marginal gain), P-Search
+parallel evidence branches for analyst multipass, BetaPRM learned
+reliability for compute allocation.
+
+Tests: `evidence-graph-gaps.test.ts` +5. Verified per commit: tsc clean,
+gulf replay 0 misses / trust 40→40 / hold→hold.
+
+---
+
 External-stack pass (cassette/agentreplay record-replay, PaperQA2 citation
 traversal, SCitance/ExecutableClaims entailment, CRAG grading, node-
 DeepResearch gap budgeting). Four surgical changes, each unit-verified:
