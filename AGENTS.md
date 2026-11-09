@@ -797,6 +797,57 @@ head/tail excerpt for diagnosis); `NOMOSX_DEBATE_ON_DEMAND` and
 
 ---
 
+## Sprint 50 — First-pass publishability: cheap adherence repair + early abort (2026-11)
+
+The gulf run's structural defect: thesis adherence was only verified
+*after* the analyst and only repairable by a full re-analysis (~$0.4,
+usually skipped on reserve guards) — the breach reached the gate
+after the entire critic→debate→DA→render tail had been paid for.
+Three levers, all targeting "publishable on the first artifact":
+
+**Verdict-scoped narrowing** (`pipeline-steps/thesis-binding.ts`,
+`NOMOSX_THESIS_VERDICT_REPAIR=1`) — `attemptVerdictNarrowingRepair`:
+one bounded `reader_v3` call (~$0.005) rewrites only `analysis.verdict`
+under the binding contract (narrower-or-equal, hedged-but-supported,
+[SRC-N] preserved, no new facts). Runs before the reAnalysisBudget/
+headroom gate — cheap and independent of it. The narrowed verdict is
+re-verified through the normal adherence check; a still-breached verdict
+falls through to the unchanged full re-analysis path. `binding.
+verdictNarrowing` records attempt+cost; `binding.repair.mode` distinguishes
+`verdict_narrowing` from full re-analysis.
+
+**Early adherence abort** (`pipeline-v2.ts`, `NOMOSX_EARLY_ADHERENCE_ABORT=1`)
+— after gap-fill (whose re-analysis gets its chance first),
+`verifyThesisBinding('post-gapfill')` re-checks: the `checkedVerdict`
+dedup skips when unchanged, re-evaluates when gap-fill adopted a new
+analysis. If `adhered === false` persists, `thesis_adherence` is a
+hard gate check → the hold is predetermined → skip pre-critic gates,
+critic, panel, debate, arbiter, DA, render entirely. Same fail-closed
+shape as the `analysis_generation_failed` refusal (FAILED pipelineRun +
+`structuredRefusal`); `stats.earlyAbort = {reason, stage, costUsd}`
+records what was saved. Expected saving ~$0.5-0.8 per doomed run.
+
+**Pass-3 thesis contract** (`analyst-multipass.ts`,
+`NOMOSX_THESIS_PROMPT_CONTRACT=1`) — `boundThesis` was previously
+injected only into the pre-draft review (Pass 1→2 directives); the
+Pass-3 synthesis prompt that actually writes `verdict` never saw it.
+Now threaded as a mandatory contract block: verdict = bound thesis or
+strictly narrower; causal/forecast/numerical/necessity claims demoted
+to `trajectory.state`/`rejectedAlternatives` as speculative scenarios.
+
+**Byte-parity lesson**: the contract block's newlines live *inside* the
+template conditional — an earlier draft left orphan `\n\n` and caused a
+2-char cassette drift on `analyst_brief` (miss key
+`38c793ff…`). Flag-off prompts must be byte-identical to recordings;
+verify with a diff of the missed request vs the recorded entry before
+ suspecting DB-state poisoning.
+
+All three flags off = zero call-stream change: gulf replay re-verified
+**0 misses, trust 40→40, hold→hold** after each commit. Flags flip
+together on the next re-record.
+
+---
+
 External-stack pass (cassette/agentreplay record-replay, PaperQA2 citation
 traversal, SCitance/ExecutableClaims entailment, CRAG grading, node-
 DeepResearch gap budgeting). Four surgical changes, each unit-verified:
