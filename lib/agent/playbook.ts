@@ -137,13 +137,14 @@ export async function getPlaybookBlock(
 export async function curatePlaybook(
   role: string,
   signal: { lessons: string[]; failurePatterns: Record<string, number>; outcome: "published" | "held" | "failed" },
-): Promise<{ added: number; upvoted: number }> {
+): Promise<{ added: number; upvoted: number; costUsd: number }> {
   // Frozen input: the playbook read is durable state that record-4's own
   // post-gate writes mutate — replay must see the recorded snapshot or the
   // "EXISTING PLAYBOOK" prompt block (and the early-return) drift.
   const { captureInput } = await import('./frozen-inputs');
   const existing = await captureInput(`playbook:${role}`, () => getPlaybook(role));
   let upvoted = 0;
+  let costUsd = 0;
 
   // Reflection: a published run is evidence the injected slice's advice held —
   // upvote the top bullets (the ones the prompt actually carried). Ranking is
@@ -160,7 +161,7 @@ export async function curatePlaybook(
     .sort((a, b) => b[1] - a[1])
     .slice(0, 4)
     .map(([k, v]) => `${k} ×${v}`);
-  if (fresh.length === 0 && topFailures.length === 0) return { added: 0, upvoted };
+  if (fresh.length === 0 && topFailures.length === 0) return { added: 0, upvoted, costUsd };
 
   const existingTexts = existing.map((b) => b.text);
   try {
@@ -184,6 +185,7 @@ export async function curatePlaybook(
       task: "query_enhancement",
       enableCache: false,
     }));
+    costUsd += res.costUsd || 0;
     const parsed = parseJson<{ bullets?: string[] }>(res.content);
     const bullets = (parsed?.bullets ?? [])
       .filter((b): b is string => typeof b === "string" && b.trim().length > 20)
@@ -191,9 +193,9 @@ export async function curatePlaybook(
     for (const b of bullets) {
       await recordPlaybookDelta(role, b.trim(), "add", `curate:${signal.outcome}`);
     }
-    return { added: bullets.length, upvoted };
+    return { added: bullets.length, upvoted, costUsd };
   } catch (err) {
     console.warn(`[PLAYBOOK] curate failed for ${role} (non-blocking):`, err);
-    return { added: 0, upvoted };
+    return { added: 0, upvoted, costUsd };
   }
 }

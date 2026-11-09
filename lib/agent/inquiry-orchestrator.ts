@@ -1080,7 +1080,7 @@ export async function runAndPublishInquiry(
   const playbookJob = (async () => {
     // Fire-and-forget by design — the dispatch scope can legally close right
     // after persist, so run detached or curation dies with 'scope closed'.
-    await withExecutionDetached(async () => { try {
+    return await withExecutionDetached(async () => { try {
       const { curatePlaybook } = await import('./playbook');
       const { detectRelevantExperts } = await import('./phd-researcher');
       const domains = detectRelevantExperts(question).slice(0, 6);
@@ -1093,18 +1093,38 @@ export async function runAndPublishInquiry(
         if (!c.passed) failurePatterns[c.checkType] = (failurePatterns[c.checkType] ?? 0) + 1;
       }
       const outcome = status === "published" ? "published" : "held";
+      let jobCost = 0;
       for (const domain of domains) {
         const r = await curatePlaybook(`council:${domain}`, { lessons, failurePatterns, outcome });
+        jobCost += r.costUsd ?? 0;
         if (r.added > 0 || r.upvoted > 0) {
           console.log(`[PLAYBOOK] council:${domain} — +${r.added} bullet(s), ${r.upvoted} upvote(s)`);
         }
       }
+      return jobCost;
     } catch (err) {
       console.warn(`[PLAYBOOK] curation failed (non-blocking):`, err);
+      return 0;
     } });
   })();
   postGateJobs.push(playbookJob);
-  if (cassetteSerial) await playbookJob;
+
+  // Post-gate LLM spend (experience extraction, playbook curation) is REAL
+  // money — awaiting the detached jobs (they survive scope close by design)
+  // lets costUsd reflect the true run cost, so the dispatcher's budget
+  // accounting doesn't systematically under-count every item. Bounded: a
+  // hung post-gate call must not stall the dispatch loop — the job keeps
+  // running detached and its spend lands in the pipeline run's own ledger.
+  let postGateCostUsd = 0;
+  const POST_GATE_WAIT_MS = Number(process.env.POST_GATE_COST_WAIT_MS ?? 120_000);
+  for (const job of postGateJobs) {
+    const jobCost = await Promise.race([
+      job.catch(() => 0),
+      new Promise<0>(resolve => { const t = setTimeout(() => resolve(0), POST_GATE_WAIT_MS); t.unref?.(); }),
+    ]);
+    postGateCostUsd += typeof jobCost === 'number' ? jobCost : (jobCost as { costUsd?: number })?.costUsd ?? 0;
+  }
+  costUsd += postGateCostUsd;
 
   return {
     status,

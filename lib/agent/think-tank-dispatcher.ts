@@ -361,11 +361,15 @@ async function collectHeldRetryItems(maxItems = 1): Promise<{ items: ThinkTankDi
         priorityScore: { gte: 55 }, // only signals worth a second spend
       },
       orderBy: { priorityScore: "desc" },
-      take: 5,
+      take: 8,
       select: { id: true, title: true, verticalId: true, signalType: true, priorityScore: true },
     });
+    // Retry the CLOSEST-TO-PUBLISHABLE hold first, not the highest-priority
+    // signal: a trust-39 hold one gate-check away from publishing has far
+    // better marginal odds per dollar than a trust-15 hold on a "hot" topic.
+    // lastHold.checks carries the persisted trustScore/qualityScore/diagnoses.
+    const candidates: { sig: (typeof heldSignals)[number]; priorHolds: number; lastTrust: number; lastQuality: number; lastHold: { checks: unknown; reasons: string[] } | null }[] = [];
     for (const sig of heldSignals) {
-      if (items.length >= maxItems) break;
       const priorHolds = await prisma.editorialDecision.count({
         where: { signalId: sig.id, decision: "HOLD" },
       });
@@ -376,13 +380,26 @@ async function collectHeldRetryItems(maxItems = 1): Promise<{ items: ThinkTankDi
         select: { checks: true, reasons: true },
       });
       const checks = (lastHold?.checks ?? {}) as Record<string, unknown>;
+      candidates.push({
+        sig,
+        priorHolds,
+        lastTrust: typeof checks.trustScore === 'number' ? checks.trustScore : 0,
+        lastQuality: typeof checks.qualityScore === 'number' ? checks.qualityScore : 0,
+        lastHold: lastHold as { checks: unknown; reasons: string[] } | null,
+      });
+    }
+    candidates.sort((a, b) =>
+      (b.lastTrust - a.lastTrust) || (b.lastQuality - a.lastQuality) || (b.sig.priorityScore - a.sig.priorityScore),
+    );
+    for (const { sig, priorHolds, lastHold } of candidates.slice(0, maxItems)) {
+      const checks = (lastHold?.checks ?? {}) as Record<string, unknown>;
       const feedback = typeof checks.failureFeedback === "string" && checks.failureFeedback.length > 10
         ? checks.failureFeedback
         : (lastHold?.reasons ?? []).join("\n");
       const evidenceQueries = (Array.isArray(checks.evidenceQueries) ? checks.evidenceQueries : [])
         .filter((q): q is string => typeof q === 'string' && q.length > 10)
         .slice(0, 6);
-      console.log(`[ThinkTank] HELD RETRY: "${sig.title.slice(0, 60)}" — attempt ${priorHolds + 1} (feedback ${feedback.length}ch, ${evidenceQueries.length} evidence queries)`);
+      console.log(`[ThinkTank] HELD RETRY: "${sig.title.slice(0, 60)}" — attempt ${priorHolds + 1} (lastTrust=${checks.trustScore ?? '?'}, feedback ${feedback.length}ch, ${evidenceQueries.length} evidence queries)`);
       items.push({
         question: sig.title,
         depth: publicationTypeToDepth(selectFormatFromSignal(sig.signalType, sig.priorityScore)),
