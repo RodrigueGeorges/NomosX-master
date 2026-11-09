@@ -147,6 +147,7 @@ async function fetchMetaculus(query: string): Promise<MarketPrediction[]> {
  * and Polymarket is unreachable from some networks.
  */
 async function fetchManifold(query: string): Promise<MarketPrediction[]> {
+  if (deadMarketSources.has('manifold')) return [];
   try {
     const url = `https://api.manifold.markets/v0/search-markets?term=${encodeURIComponent(query.slice(0, 80))}&limit=15&filter=open&sort=liquidity`;
     const response = await httpGet<any>(url, { timeout: 10000, rateLimiterKey: 'manifold' });
@@ -172,7 +173,8 @@ async function fetchManifold(query: string): Promise<MarketPrediction[]> {
     }
     return predictions;
   } catch (err) {
-    console.warn('[PredictionMarkets] Manifold fetch failed:', err instanceof Error ? err.message : String(err));
+    deadMarketSources.add('manifold');
+    console.warn('[PredictionMarkets] Manifold fetch failed (dead for session):', err instanceof Error ? err.message : String(err));
     return [];
   }
 }
