@@ -248,6 +248,8 @@ export interface ExperienceEntry {
   insight: string;
   pattern: string; // Reusable pattern
   successMetric?: number;
+  /** When this experience applies — survey-backed applicability condition. */
+  appliesWhen?: string;
   timestamp: number;
 }
 
@@ -256,6 +258,10 @@ export interface GuidelineEntry {
   topic: string;
   guideline: string;
   rationale: string;
+  /** Outcome the guideline was extracted from (0-1) — reliability weight. */
+  successMetric?: number;
+  /** Conditions under which the guideline applies. */
+  appliesWhen?: string;
   timestamp: number;
 }
 
@@ -327,6 +333,7 @@ export function recordExperience(
   insight: string,
   pattern: string,
   successMetric?: number,
+  appliesWhen?: string,
 ): void {
   const entry: ExperienceEntry = {
     id: `exp_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
@@ -336,6 +343,7 @@ export function recordExperience(
     insight,
     pattern,
     successMetric,
+    appliesWhen,
     timestamp: Date.now(),
   };
   experienceBank.push(entry);
@@ -345,12 +353,14 @@ export function recordExperience(
   persistEntry(EXP_ACTION, entry.id, entry);
 }
 
-export function recordGuideline(topic: string, guideline: string, rationale: string): void {
+export function recordGuideline(topic: string, guideline: string, rationale: string, successMetric?: number, appliesWhen?: string): void {
   const entry: GuidelineEntry = {
     id: `guide_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
     topic,
     guideline,
     rationale,
+    successMetric,
+    appliesWhen,
     timestamp: Date.now(),
   };
   guidelineBank.push(entry);
@@ -374,15 +384,21 @@ function topicOverlap(a: string, b: string): boolean {
 
 export async function getRelevantExperience(topic: string, phase: string): Promise<ExperienceEntry[]> {
   await ensureBankHydrated();
-  return experienceBank.filter(e => {
-    if (e.phase !== phase) return false;
-    return topicOverlap(e.topic, topic);
-  }).slice(-5); // Most recent 5
+  // Reliability-weighted retrieval (experience-memory survey 2026): entries
+  // extracted from stronger outcomes rank above weaker ones; unscored legacy
+  // entries sit at a neutral 0.5 so they neither dominate nor vanish.
+  return experienceBank
+    .filter(e => e.phase === phase && topicOverlap(e.topic, topic))
+    .sort((a, b) => (b.successMetric ?? 0.5) - (a.successMetric ?? 0.5) || b.timestamp - a.timestamp)
+    .slice(0, 5);
 }
 
 export async function getRelevantGuidelines(topic: string): Promise<GuidelineEntry[]> {
   await ensureBankHydrated();
-  return guidelineBank.filter(g => topicOverlap(g.topic, topic)).slice(-3);
+  return guidelineBank
+    .filter(g => topicOverlap(g.topic, topic))
+    .sort((a, b) => (b.successMetric ?? 0.5) - (a.successMetric ?? 0.5) || b.timestamp - a.timestamp)
+    .slice(0, 3);
 }
 
 /**
@@ -410,19 +426,26 @@ Extract:
 1. EXPERIENCES: What worked well? What didn't? What patterns emerged?
 2. GUIDELINES: What rules should future runs follow for similar topics?
 
+For EACH item also state "appliesWhen": the concrete conditions under which
+this lesson transfers to a future run (topic type, evidence regime, failure
+mode). A lesson without applicability conditions is noise — only extract
+patterns you can bound.
+
 Return JSON:
 {
   "experiences": [
     {
       "phase": "scout",
       "insight": "OpenAlex returned 400+ sources but most were off-topic",
-      "pattern": "For policy topics, prefer Crossref + institutional providers over OpenAlex"
+      "pattern": "For policy topics, prefer Crossref + institutional providers over OpenAlex",
+      "appliesWhen": "Policy/geopolitics questions with broad multi-domain vocabularies"
     }
   ],
   "guidelines": [
     {
       "guideline": "For controversial topics, always include contrarian lens",
-      "rationale": "Without contrarian sources, analysis has confirmation bias"
+      "rationale": "Without contrarian sources, analysis has confirmation bias",
+      "appliesWhen": "Contested or polarized research questions"
     }
   ]
 }`,
@@ -435,17 +458,26 @@ Return JSON:
     }));
     totalCost += response.costUsd || 0;
 
-    const result = parseJson<{ experiences: Array<{ phase: string; insight: string; pattern: string }>; guidelines: Array<{ guideline: string; rationale: string }> }>(response.content);
+    const result = parseJson<{ experiences: Array<{ phase: string; insight: string; pattern: string; appliesWhen?: string }>; guidelines: Array<{ guideline: string; rationale: string; appliesWhen?: string }> }>(response.content);
+
+    // Reliability of the source run: published > held > failed, refined by
+    // the deterministic trust score when present. Lessons from a held run
+    // still teach (the hold reasons ARE the lesson) but rank below lessons
+    // from a clean publish.
+    const outcome = pipelineStats?.outcome ?? {};
+    const trust = typeof outcome.trustScore === 'number' ? outcome.trustScore / 100 : null;
+    const statusBase = outcome.status === 'published' ? 0.9 : outcome.status === 'held' ? 0.55 : 0.3;
+    const successMetric = trust != null ? Math.min(1, Math.max(0.1, (statusBase + trust) / 2)) : statusBase;
 
     if (result?.experiences) {
       for (const exp of result.experiences) {
-        recordExperience(topic, question, exp.phase, exp.insight, exp.pattern);
+        recordExperience(topic, question, exp.phase, exp.insight, exp.pattern, successMetric, exp.appliesWhen);
       }
     }
 
     if (result?.guidelines) {
       for (const g of result.guidelines) {
-        recordGuideline(topic, g.guideline, g.rationale);
+        recordGuideline(topic, g.guideline, g.rationale, successMetric, g.appliesWhen);
       }
     }
 

@@ -364,7 +364,7 @@ export async function buildAnalystContext(deps: AnalystContextDeps): Promise<Ana
     const guidelines = await captureInput('experience:guidelines', () => getRelevantGuidelines(query));
     if (guidelines.length > 0) {
       const block = guidelines
-        .map(g => `- ${g.guideline} (rationale: ${g.rationale})`)
+        .map(g => `- ${g.guideline} (rationale: ${g.rationale}${g.appliesWhen ? `; applies when: ${g.appliesWhen}` : ''})`)
         .join('\n');
       fullContextBlock = [
         fullContextBlock,
