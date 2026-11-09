@@ -17,7 +17,7 @@
  * options.timeoutMs on whatever was passed; the scope value always wins.
  */
 
-import { getExecutionDeadlineAt } from '../../worker/execution-scope';
+import { getExecutionDeadlineAt, getTightestExecutionBudgetMs } from '../../worker/execution-scope';
 import { captureInputSync } from '../frozen-inputs';
 
 const STRATEGIC_DEADLINE_MS = 4_500_000;
@@ -62,6 +62,17 @@ export function hasRunHeadroom(pipelineStart: number | undefined, isStrategic: b
  */
 export const REPAIR_TAIL_RESERVE_MS = Number(process.env.NOMOSX_REPAIR_RESERVE_MS ?? 1_800_000);
 
+/**
+ * The reserve scales DOWN inside small execution scopes: a flat 30min
+ * reserve in a 35min regen scope leaves ~5min for every producer step, so
+ * analyst pass 2 could never start and pass 3 always degraded — every
+ * bounded regen was structurally incapable of beating the original
+ * (observed live: regen discarded 141→125 after ~$0.2 spend). Scopes
+ * ≥ ~50min keep the full reserve; smaller ones reserve this fraction of
+ * their budget for the tail instead.
+ */
+const RESERVE_SCOPE_FRACTION = Number(process.env.NOMOSX_REPAIR_RESERVE_SCOPE_FRACTION ?? 0.6);
+
 /** Producer-step guard: enough time for `stepMs` itself AND the repair tail. */
 export function hasRunHeadroomWithReserve(
   pipelineStart: number | undefined,
@@ -69,5 +80,9 @@ export function hasRunHeadroomWithReserve(
   stepMs: number,
   reserveMs: number = REPAIR_TAIL_RESERVE_MS,
 ): boolean {
-  return captureInputSync('time:headroom-reserve', () => remainingRunMs(pipelineStart, isStrategic) >= stepMs + reserveMs);
+  return captureInputSync('time:headroom-reserve', () => {
+    const scopeBudgetMs = getTightestExecutionBudgetMs() ?? deadlineBudgetMs(isStrategic);
+    const effectiveReserve = Math.min(reserveMs, Math.floor(scopeBudgetMs * RESERVE_SCOPE_FRACTION));
+    return remainingRunMs(pipelineStart, isStrategic) >= stepMs + effectiveReserve;
+  });
 }

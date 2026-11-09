@@ -39,6 +39,7 @@ export function getExecutionSignal(): AbortSignal | undefined {
 // Absolute deadline (epoch ms) per deadline-scope signal. withExecutionScope
 // derives child signals without deadlines — consumers walk the parent chain.
 const scopeDeadlines = new WeakMap<AbortSignal, number>();
+const scopeBudgets = new WeakMap<AbortSignal, number>();
 const deadlineOwners = new WeakMap<AbortSignal, { controller: AbortController; error: Error }>();
 const executionCosts = new WeakMap<AbortSignal, number>();
 
@@ -68,6 +69,28 @@ export function getExecutionDeadlineAt(): number | undefined {
     s = scopeParents.get(s);
   }
   return min;
+}
+
+/**
+ * Budget (ms) of the scope owning the tightest deadline — the same scope
+ * getExecutionDeadlineAt() binds to. Headroom guards use it to scale
+ * reserves: a flat 30min repair reserve inside a 35min regen scope leaves
+ * ~5min for ALL producer work, which structurally degraded every regen
+ * (observed: analyst pass 2 always skipped, pass 3 always downgraded).
+ */
+export function getTightestExecutionBudgetMs(): number | undefined {
+  let s = getExecutionSignal();
+  let best: number | undefined;
+  let bestDeadline = Number.POSITIVE_INFINITY;
+  for (let depth = 0; s && depth < 20; depth++) {
+    const d = scopeDeadlines.get(s);
+    if (d !== undefined && d < bestDeadline) {
+      bestDeadline = d;
+      best = scopeBudgets.get(s);
+    }
+    s = scopeParents.get(s);
+  }
+  return best;
 }
 
 export function assertExecutionActive(): void {
@@ -126,6 +149,7 @@ export async function withExecutionDeadline<T>(ms: number, label: string, fn: ()
   const signal = parent ? AbortSignal.any([parent, controller.signal]) : controller.signal;
   recordParent(signal, parent);
   scopeDeadlines.set(signal, Date.now() + ms);
+  scopeBudgets.set(signal, ms);
   const timeoutError = new Error(`${label} timed out after ${ms}ms`);
   deadlineOwners.set(signal, { controller, error: timeoutError });
   signal.throwIfAborted();

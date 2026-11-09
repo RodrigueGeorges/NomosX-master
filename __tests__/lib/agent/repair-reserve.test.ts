@@ -55,10 +55,11 @@ describe('hasRunHeadroomWithReserve — producer budget = step + repair tail', (
 describe('analyst multipass — passes degrade inside the repair reserve', () => {
   it('skips PASS 2 and downgrades PASS 3 when only the reserve remains (1 LLM call)', async () => {
     mockedLLM.mockResolvedValueOnce(llmJson(P1_MAP));
-    const result = await withExecutionDeadline(20 * 60_000, 'test-deadline', () =>
+    // 10min scope → reserve scales to 0.6×10=6min; pass needs 5+6=11min > 10.
+    const result = await withExecutionDeadline(10 * 60_000, 'test-deadline', () =>
       analystAgentV3('test question about Nordic defence', SOURCES, [], { depth: 'strategic' })
     );
-    // 20min < 5min pass + 30min reserve → P2 skipped, P3 → lightweight synthesis.
+    // P2 skipped, P3 → lightweight synthesis.
     expect(mockedLLM).toHaveBeenCalledTimes(1);
     expect((result as any)._meta.stressTestMap.mechanismAssessments).toHaveLength(0);
     expect((result as any).causalChain).toHaveLength(0); // lightweight path
