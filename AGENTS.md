@@ -591,6 +591,60 @@ still unarchived.
 
 ---
 
+## Sprint 47 — Live Radar run: gate holds under fire, drift triage (2026-11-09)
+
+First full autonomous Radar/`breaking` swarm run on production
+`runAndPublishInquiry` (GLM + freepool only — openai/kimi credit-suspended,
+anthropic/deepseek/google pre-suspended). 180min, $0.86, 3 topics
+collected, **0 published / 2 held** — the fail-closed gate did its job:
+
+- Energy/Middle-East minerals: trust 40 (DA veto MAJOR_REVISION str 18,
+  fact-checker 23 claims → 17 fatal repaired to 0, integrity 44→53%),
+  quality 68, $0.42, 44 sources.
+- China/dollar challenge: trust 40 (thesis-binding caught causal
+  expansion; regen attempt scored WORSE 141→125 and was discarded by
+  anti-regression), quality 66, $0.43, 18 sources.
+
+Every blindagem fired live: pre-draft review ×3, thesis-adherence breach
+routed to gate, wall-clock/budget reserves, relevance screen drops,
+integrity re-verify (83→40 on final html), eval freshness clean,
+prediction registration (after probability-string coercion fix).
+
+**Operational fixes from the run** (`aafe373`…`5c32551`):
+
+- `prediction-tracker`: coerce LLM probability strings (`".10"`) before
+  Prisma Float writes — was crashing post-gate persistence.
+- SAFE live-search fan-out skipped once the shared HTTP budget is spent;
+  provider per-call deadline + health-filtered scheduling + ROR batching;
+  empty-result providers shed per process; breaker state mirrored to
+  Redis. Upstream 429/budget storms no longer fan out unboundedly.
+- Orchestrator regen viability guard: regeneration requires ~40min real
+  parent headroom (`time:orchestrator-regen-headroom` FIFO-frozen);
+  the radar run proved a regen launched with ~35min left can only
+  produce a degraded artifact the anti-regression then discards —
+  pure waste. Bounded to ~35min child scope; timed-out briefs salvaged.
+- Deterministic source ordering: `compositeScore` ties break on stable
+  ID in `enhanced-ranker` + `rank-enrichment`; Crossref retraction
+  lookups frozen (`source-quality`). Without this, equal-score sources
+  reordered between record/replay → cassette misses.
+- KG robustness: `normalizeKGEntity` coerces LLM `aliases`/`sourceIds`
+  (string/null/non-array) before merge — live runs crashed
+  `existing.aliases is not iterable`, silently dropping the whole graph.
+- Lesson-verifier input freeze: `verifyAndDeInflateLessons` read
+  `agentAuditLog` lessons unfrozen; every run writes lessons → verifier
+  prompts drifted (8 misses on gulf replay). Now a `captureInput`
+  channel (`verifier:lessons:<agentId>`).
+
+**Fixture impact**: deterministic ranking changed recorded source order
+→ nordic/sanctions/ai fixtures (pre-`55f3b3b`) miss on early-pipeline
+prompts; gulf record-15 missed only on the unfrozen verifier. All four
+being re-recorded under the frozen code. Embedding residual verified:
+Cohere `embed-v4.0` fallback returns 1536-dim vectors (probe HTTP 200);
+post-execution-scope calls still get zero vectors — degrades post-gate
+learning similarity only, non-blocking.
+
+---
+
 External-stack pass (cassette/agentreplay record-replay, PaperQA2 citation
 traversal, SCitance/ExecutableClaims entailment, CRAG grading, node-
 DeepResearch gap budgeting). Four surgical changes, each unit-verified:
