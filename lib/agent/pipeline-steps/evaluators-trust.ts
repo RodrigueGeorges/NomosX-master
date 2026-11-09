@@ -330,6 +330,8 @@ export async function runEvaluatorsAndTrust(deps: EvaluatorsTrustDeps): Promise<
         factFatal: ((stats.factChecker as any)?.error || (stats.factChecker as any)?.stale)
           ? 0
           : ((stats.factChecker as any)?.fatalIssues ?? 0),
+        evidenceIndependence: (stats as any).evidenceIndependence?.verdict ?? null,
+        evidenceCitedCount: (stats as any).evidenceIndependence?.citedCount ?? 0,
       },
     );
     const deterministicScore = trustResult.score;

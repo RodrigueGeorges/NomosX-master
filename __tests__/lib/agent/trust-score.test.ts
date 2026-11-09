@@ -74,6 +74,40 @@ describe('fact-integrity veto — fatal discrepancies must cap, not just weigh 1
   });
 });
 
+describe('evidence-independence veto — collapsed citation clusters cap at 55', () => {
+  it('collapsed + ≥4 cited sources caps at 55 even on a healthy blend', () => {
+    const { score, vetoes } = computeTrustScore(HEALTHY, {
+      evidenceIndependence: 'collapsed', evidenceCitedCount: 12,
+    });
+    expect(score).toBeLessThanOrEqual(55);
+    expect(vetoes.some(v => v.includes('evidence independence veto'))).toBe(true);
+  });
+
+  it('no veto on thin or independent verdicts', () => {
+    for (const verdict of ['thin', 'independent'] as const) {
+      const { vetoes } = computeTrustScore(HEALTHY, {
+        evidenceIndependence: verdict, evidenceCitedCount: 12,
+      });
+      expect(vetoes.some(v => v.includes('evidence independence'))).toBe(false);
+    }
+  });
+
+  it('collapsed with <4 cited sources does not veto (thin-but-honest brief)', () => {
+    const { vetoes } = computeTrustScore(HEALTHY, {
+      evidenceIndependence: 'collapsed', evidenceCitedCount: 3,
+    });
+    expect(vetoes.some(v => v.includes('evidence independence'))).toBe(false);
+  });
+
+  it('veto applies after the quality floor — floor cannot override it', () => {
+    const floored = { ...HEALTHY, avgQuality: 90, citationCoverage: 0.8 };
+    const { score } = computeTrustScore(floored, {
+      evidenceIndependence: 'collapsed', evidenceCitedCount: 10,
+    });
+    expect(score).toBeLessThanOrEqual(55);
+  });
+});
+
 describe('countDistinctCitedSources', () => {
   it('counts SRC, evidence and ref forms without double-counting', () => {
     const html = '<p>[SRC-3] claim <a href="#ref-3">3</a> <sup data-evidence="E7">7</sup></p>';

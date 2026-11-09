@@ -34,6 +34,10 @@ export interface TrustVetoes {
   providerDiversity?: number;
   hallDetectScore?: number;        // hallucination risk 0–100
   factFatal?: number;              // fact-checker fatal numerical discrepancies
+  /** Evidence-independence audit verdict (deterministic embedding clusters). */
+  evidenceIndependence?: 'independent' | 'thin' | 'collapsed' | null;
+  /** Cited-source count backing the independence verdict. */
+  evidenceCitedCount?: number;
 }
 
 export interface TrustScoreResult {
@@ -128,6 +132,14 @@ export function computeTrustScore(c: TrustComponents, v: TrustVetoes = {}): Trus
     cap(55, `fact integrity veto — ${v.factFatal} fatal numerical discrepancies (integrity ${c.factIntegrity}%)`);
   }
 
+  // Evidence-independence veto — cited documents collapsing into very few
+  // embedding clusters means the evidence base is illusory breadth (same
+  // study recycled under different IDs). Requires ≥4 citations so small
+  // briefs aren't punished for a thin-but-honest corpus.
+  if (v.evidenceIndependence === 'collapsed' && (v.evidenceCitedCount ?? 0) >= 4) {
+    cap(55, `evidence independence veto — ${v.evidenceCitedCount} cited sources collapse to few independent clusters`);
+  }
+
   // Devil's Advocate fragility veto.
   if (v.devilsAdvocateVeto) {
     cap(40, `devil's advocate veto — MAJOR_REVISION strength < 20`);
@@ -193,6 +205,8 @@ export function rescoreTrustFromStats(
       providerDiversity,
       hallDetectScore: (stats as any).hallDetect?.score ?? 0,
       factFatal,
+      evidenceIndependence: (stats as any).evidenceIndependence?.verdict ?? null,
+      evidenceCitedCount: (stats as any).evidenceIndependence?.citedCount ?? 0,
     },
   );
 }
