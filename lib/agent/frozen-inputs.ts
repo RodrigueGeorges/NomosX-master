@@ -41,6 +41,17 @@ export function hasFrozenInputs(): boolean {
 }
 
 /**
+ * True when `channel` was captured in the seeded snapshot. Used to give
+ * NEW memory channels clean semantics on OLD fixtures: a replay of a
+ * cassette recorded before the channel existed must inject nothing rather
+ * than fall through to a live DB read (which would drift the prompt and
+ * miss loudly for the wrong reason).
+ */
+export function hasFrozenInput(channel: string): boolean {
+  return store.has(channel);
+}
+
+/**
  * Persist-time merge: fold every captured input into
  * `stats.frozenContext.inputs`. Called before each terminal
  * pipelineRun.steps write so late-run channels survive whatever path the

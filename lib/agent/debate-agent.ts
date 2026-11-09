@@ -20,6 +20,35 @@ import { parseJson } from './json-utils';
 import { AgentRole, assertPermission } from '../governance/index';
 import { buildSchoolsBlock } from './schools-of-thought';
 
+/**
+ * R2-MAD-style debate memory: prior debate outcomes on related topics are
+ * injected so the moderator can check whether the emerging consensus
+ * repeats a pattern that already failed adversarial testing (shared
+ * misconception) — and calibrate steel-man effort accordingly.
+ *
+ * Replay contract: the read is a frozen channel ('debate:memory'). On a
+ * replay seeded BEFORE this channel existed, hasFrozenInput is false and
+ * we inject nothing — live DB state must never leak into an old cassette.
+ * New records capture whatever the bank held; replays serve it verbatim.
+ */
+async function priorDebateMemory(question: string): Promise<string> {
+  try {
+    const { hasFrozenInputs, hasFrozenInput, captureInput } = await import('./frozen-inputs');
+    const replaying = hasFrozenInputs();
+    if (replaying && !hasFrozenInput('debate:memory')) return '';
+    const { getRelevantExperience } = await import('./knowledge-infrastructure');
+    const entries = await captureInput('debate:memory', () => getRelevantExperience(question.slice(0, 100), 'debate'));
+    if (!Array.isArray(entries) || entries.length === 0) return '';
+    const lines = entries.slice(0, 3).map(e => {
+      const conf = typeof e.successMetric === 'number' ? Math.round(e.successMetric * 100) : null;
+      return `- Prior debate on related question (outcome confidence ${conf ?? 'n/a'}%): ${String(e.pattern ?? e.insight ?? '').slice(0, 180)}`;
+    });
+    return `\nPRIOR DEBATE MEMORY (related topics — check for repeated failure patterns):\n${lines.join('\n')}\n`;
+  } catch {
+    return '';
+  }
+}
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -95,6 +124,7 @@ Quality: ${s.qualityScore || 0}/100 | Citations: ${s.citationCount || 0}`;
 
   // ── PASS 1: Identify dominant thesis and construct steel-man counter ──
   console.log(`[DEBATE] Pass 1: Thesis identification + steel-man construction`);
+  const debateMemory = await priorDebateMemory(question);
 
   const pass1Response = await callLLM({
     messages: [{
@@ -104,7 +134,7 @@ Quality: ${s.qualityScore || 0}/100 | Citations: ${s.citationCount || 0}`;
       role: "user",
       content: `RESEARCH QUESTION: ${question}
 
-${analysisText ? `EXISTING ANALYSIS (first 3000 chars):\n${analysisText.slice(0, 3000)}\n\n` : ""}SOURCES:
+${analysisText ? `EXISTING ANALYSIS (first 3000 chars):\n${analysisText.slice(0, 3000)}\n\n` : ""}${debateMemory}SOURCES:
 ${sourceContext}
 
 TASK: Identify the dominant thesis emerging from these sources, then construct the STRONGEST possible counter-argument.

@@ -11,6 +11,7 @@
 
 import type { DebateResult } from '../debate-agent';
 import { emitProgress } from '../pipeline-progress';
+import { recordExperience } from '../knowledge-infrastructure';
 
 export interface DebateAdvocateDeps {
   query: string;
@@ -130,6 +131,22 @@ export async function runDebateMetaBlock(
       console.warn(`${label} DEBATE: retry failed (non-blocking):`, retryErr);
     }
   }
+  // R2-MAD debate memory: bank the outcome so future debates on related
+  // questions see whether this thesis pattern already survived (or failed)
+  // adversarial testing. Success metric = confidence in the dominant
+  // thesis; the pattern carries the steel-man verdict for calibration.
+  try {
+    const final = debateResult ?? debate;
+    recordExperience(
+      query.slice(0, 100),
+      query,
+      'debate',
+      `Debate: confidence=${final.confidenceInDominant}%, steelMan=${final.debateQuality?.steelManStrength}, evidenceBalance=${final.debateQuality?.evidenceBalance}`,
+      `${String(final.dominantThesis ?? '').slice(0, 200)} [steel-man ${final.debateQuality?.steelManStrength}/100]`,
+      Math.min(1, Math.max(0, (final.confidenceInDominant ?? 50) / 100)),
+      `domain=${detectedDomain ?? 'general'}; steel-man strength ${final.debateQuality?.steelManStrength}/100`,
+    );
+  } catch { /* memory write is advisory */ }
   return { debateResult, debateContext };
 }
 
