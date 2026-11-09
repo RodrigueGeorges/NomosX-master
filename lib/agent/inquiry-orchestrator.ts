@@ -634,7 +634,32 @@ export async function runAndPublishInquiry(
   // corpus — the dispatcher falls back to the next radar candidate. ──
   if (assessment.gate.decision !== "publish" || !assessment.readiness.ok) {
     try {
-      const { shouldRegenerate, buildFailureFeedback, attemptScore } = await import('./revision-controller');
+      const { shouldRegenerate, buildFailureFeedback, attemptScore, daFailureSignature } = await import('./revision-controller');
+      // Regen-futility memory (R2-MAD-style): the experience bank records
+      // 'regen' entries when a same-corpus regen reproduced the identical DA
+      // failure signature. A related question that already paid for that
+      // lesson skips the retry. Frozen channel 'regen:memory' — old fixtures
+      // without it inject nothing (hasFrozenInput guard, same as debate).
+      let regenFutile = false;
+      try {
+        const { hasFrozenInputs, hasFrozenInput, captureInput } = await import('./frozen-inputs');
+        const replayingFrozen = hasFrozenInputs();
+        if (!replayingFrozen || hasFrozenInput('regen:memory')) {
+          const entries = await captureInput('regen:memory', async () => {
+            const { getRelevantExperience } = await import('./knowledge-infrastructure');
+            return getRelevantExperience(question.slice(0, 100), 'regen');
+          });
+          const daNow = assessment.da as { verdict?: string; topChallenges?: { type: string }[] } | undefined;
+          const sigTypes = new Set((daNow?.topChallenges ?? []).map(c => c.type).filter(Boolean));
+          regenFutile = (Array.isArray(entries) ? entries : []).some((e: any) => {
+            const m = /^daFutile:(\w+)\|types=([^|]+)/.exec(String(e?.pattern ?? ''));
+            if (!m || m[1] !== daNow?.verdict || sigTypes.size === 0) return false;
+            const priorTypes = new Set(m[2].split('+').filter(Boolean));
+            const shared = [...sigTypes].filter(t => priorTypes.has(t)).length;
+            return shared >= Math.max(1, Math.ceil(sigTypes.size / 2));
+          });
+        }
+      } catch { /* memory read is advisory — never block the decision */ }
       const regen = shouldRegenerate({
         gate: assessment.gate,
         refusal: !!pipeline.refusal,
@@ -642,6 +667,7 @@ export async function runAndPublishInquiry(
         devilsAdvocate: assessment.da as { publishabilityScore?: number; fatalChallenges?: number; verdict?: string; topChallenges?: { type: string; text: string }[] } | undefined,
         qualityScore: assessment.scores.qualityScore,
         trustScore: assessment.scores.trustScore,
+        regenFutile,
       });
       // Time guard: a seeded regeneration skips the scout (the slowest phase)
       // and rides the reader cache — it still needs ~25-35min for council +
@@ -760,6 +786,29 @@ export async function runAndPublishInquiry(
             (pipeline.stats as Record<string, unknown>).regeneration = {
               adopted: false, scoreBefore: before, scoreAfter: after, reason: regen.reason,
             };
+            // Futility signal: the regen reproduced the IDENTICAL DA failure
+            // signature — rewriting cannot fix this failure class on this
+            // corpus. Bank it so the next related question skips the retry.
+            const daSigBefore = daFailureSignature(assessment.da as { verdict?: string; fatalChallenges?: number; topChallenges?: { type: string }[] } | undefined);
+            const daSigAfter = daFailureSignature(reAssessed.da as { verdict?: string; fatalChallenges?: number; topChallenges?: { type: string }[] } | undefined);
+            if (daSigBefore && daSigAfter && daSigBefore === daSigAfter) {
+              (pipeline.stats as Record<string, unknown>).regeneration = {
+                ...((pipeline.stats as Record<string, unknown>).regeneration as object),
+                sameDaSignature: true, daSignature: daSigBefore.slice(0, 120),
+              };
+              try {
+                const { recordExperience } = await import('./knowledge-infrastructure');
+                const daTypes = [...new Set(((assessment.da as { topChallenges?: { type: string }[] } | undefined)?.topChallenges ?? [])
+                  .map(c => c.type).filter(Boolean))].sort().join('+');
+                recordExperience(
+                  question.slice(0, 100), question, 'regen',
+                  `Same-corpus regeneration reproduced the identical Devil's Advocate failure (signature "${daSigBefore.slice(0, 90)}") — attempt ${before}→${after}, original kept. Rewriting cannot fix this failure class on this corpus.`,
+                  `daFutile:${(assessment.da as { verdict?: string } | undefined)?.verdict ?? 'reject'}|types=${daTypes}`,
+                  0.2,
+                  'Same-corpus regen on a DA reject/major_revision whose challenge types recur identically'
+                );
+              } catch { /* banking is advisory — never block persistence */ }
+            }
           }
         } else if (regenPipeline) {
           console.warn(`[InquiryOrchestrator] REGEN produced no artifact (${regenPipeline.refusalReason ?? 'empty'}) — original kept`);

@@ -775,10 +775,24 @@ glm/kimi (2 attempts, held). Replay verified: **0 misses, trust 40→40,
 hold→hold, `REGEN discarded 141→132` identical**, ~9s for $0.
 `trust-score.test.ts` +2 (coverage override, veto survival).
 
+**Regen-futility learning** (`revision-controller.ts`,
+`inquiry-orchestrator.ts`) — the live run proved the failure mode: DA
+rejected BOTH attempts with the identical signature (reject, fatal 3,
+same challenge types) and the regen reproduced it anyway (~$0.5 wasted,
+artifact discarded 141→132). Now: `daFailureSignature` normalizes
+verdict+fatal-band+sorted challenge types; when a discarded regen
+reproduces the identical signature, a structured `phase:'regen'`
+experience entry is banked (`daFutile:<verdict>|types=<sorted>`).
+`shouldRegenerate` accepts `regenFutile` — the orchestrator resolves it
+via frozen channel `regen:memory` (same `hasFrozenInput` guard as
+`debate:memory`: old fixtures inject nothing → 0-miss preserved) and
+skips the retry when ≥half the current DA challenge types match a prior
+futile signature on a related question. Verified: gulf replay 0 misses,
+trust 40→40, hold→hold.
+
 Deferred: kimi large-output JSON fragility (34k-char unparseable response
-— provider-side, fallback absorbed it); DA-identical-reject futility
-signal for future regen decisions (both attempts failed the same way —
-candidate for experience-bank learning); `NOMOSX_DEBATE_ON_DEMAND` and
+— provider-side, fallback absorbed it; error now carries finish_reason +
+head/tail excerpt for diagnosis); `NOMOSX_DEBATE_ON_DEMAND` and
 `NOMOSX_QUALITY_LOOP_VETO_GUARD` both await a re-record sprint to flip.
 
 ---

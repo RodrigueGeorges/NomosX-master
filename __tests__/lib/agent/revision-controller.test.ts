@@ -195,7 +195,7 @@ it('routes novlangue terms into the copy-editor style_violation batch', async ()
 
 // ── Regeneration helpers (escalation ladder after revision) ──
 
-import { shouldRegenerate, attemptScore, buildFailureFeedback } from '@/lib/agent/revision-controller';
+import { shouldRegenerate, attemptScore, buildFailureFeedback, daFailureSignature } from '@/lib/agent/revision-controller';
 
 describe('shouldRegenerate', () => {
   it('refuses when the gate already published', () => {
@@ -286,6 +286,45 @@ describe('shouldRegenerate', () => {
       qualityScore: 60, trustScore: 72,
     });
     expect(res.regenerate).toBe(true);
+  });
+
+  it('refuses when the experience bank proves a same-signature regen futile', () => {
+    const res = shouldRegenerate({
+      gate: gate([{ checkType: 'devils_advocate', passed: false }]),
+      devilsAdvocate: { publishabilityScore: 0, fatalChallenges: 3, verdict: 'reject' },
+      qualityScore: 66, trustScore: 40,
+      regenFutile: true,
+    });
+    expect(res.regenerate).toBe(false);
+    expect(res.reason).toContain('futile');
+  });
+});
+
+describe('daFailureSignature', () => {
+  it('returns null without a verdict', () => {
+    expect(daFailureSignature(null)).toBeNull();
+    expect(daFailureSignature({ topChallenges: [{ type: 'non_evidence' }] })).toBeNull();
+  });
+
+  it('is stable across challenge ordering and detects identical failures', () => {
+    const a = daFailureSignature({
+      verdict: 'reject', fatalChallenges: 3,
+      topChallenges: [{ type: 'overstated_conclusion' }, { type: 'causation_from_correlation' }],
+    });
+    const b = daFailureSignature({
+      verdict: 'reject', fatalChallenges: 3,
+      topChallenges: [{ type: 'causation_from_correlation' }, { type: 'overstated_conclusion' }],
+    });
+    expect(a).toBe(b);
+    expect(a).toContain('reject|f3|');
+  });
+
+  it('distinguishes different verdicts and fatal bands', () => {
+    const base = { fatalChallenges: 3, topChallenges: [{ type: 'x' }] };
+    expect(daFailureSignature({ ...base, verdict: 'reject' }))
+      .not.toBe(daFailureSignature({ ...base, verdict: 'major_revision' }));
+    expect(daFailureSignature({ ...base, verdict: 'reject', fatalChallenges: 3 }))
+      .not.toBe(daFailureSignature({ ...base, verdict: 'reject', fatalChallenges: 4 }));
   });
 });
 

@@ -403,6 +403,20 @@ export interface RegenDecision {
   reason: string;
 }
 
+/** Normalized DA failure signature — verdict + fatal band + sorted challenge
+ *  types. Two attempts producing the same signature reproduced the same
+ *  adversarial failure: the rewrite changed nothing that matters. */
+export function daFailureSignature(da?: {
+  verdict?: string;
+  fatalChallenges?: number;
+  topChallenges?: { type: string }[];
+} | null): string | null {
+  if (!da?.verdict) return null;
+  const types = (da.topChallenges ?? []).map(c => c.type).filter(Boolean).sort().join('+');
+  const fatals = Math.min(da.fatalChallenges ?? 0, 9);
+  return `${da.verdict}|f${fatals}|${types}`.slice(0, 200);
+}
+
 export function shouldRegenerate(args: {
   gate: PublicationGateResult;
   refusal?: boolean;
@@ -410,6 +424,10 @@ export function shouldRegenerate(args: {
   devilsAdvocate?: { publishabilityScore?: number; fatalChallenges?: number; verdict?: string; topChallenges?: { type: string; text: string }[] };
   qualityScore: number;
   trustScore: number;
+  /** Experience-bank signal: a prior same-signature regen already proved
+   *  futile on a related question — rewriting reproduced the identical DA
+   *  failure. Skip rather than burn another full pipeline pass. */
+  regenFutile?: boolean;
 }): RegenDecision {
   const { gate } = args;
   if (gate.decision === 'publish') return { regenerate: false, reason: 'gate passed' };
@@ -434,6 +452,13 @@ export function shouldRegenerate(args: {
     && evidenceTypes >= Math.ceil(daTypes.length / 2)
   ) {
     return { regenerate: false, reason: `DA verdict is evidence-bound (${evidenceTypes}/${daTypes.length} evidence-type challenges) — regen on fixed corpus cannot add sources; replace candidate` };
+  }
+
+  // Learned futility: the experience bank holds 'regen' entries written when
+  // a same-corpus regen reproduced the identical DA failure signature. If a
+  // related question already paid for that lesson, don't pay again.
+  if (args.regenFutile) {
+    return { regenerate: false, reason: 'prior same-signature regen proved futile (experience bank) — hold fast' };
   }
 
   // Corpus too thin — regeneration reuses the same seed corpus, so it cannot
