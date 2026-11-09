@@ -41,6 +41,8 @@ const DB_UPDATE_CHUNK = 50; // DB transaction chunk size (avoid huge transaction
 
 let openaiClient: OpenAI | null = null;
 let openaiEmbeddingDead = false; // flipped after first quota/auth failure — skip retries for the process lifetime
+let openaiEmbedConsecutiveFailures = 0;
+const OPENAI_EMBED_DEAD_AFTER_FAILURES = 3; // generic errors (429/5xx) also give up — Cohere fallback exists
 
 function getClient(): OpenAI | null {
   const key = process.env.OPENAI_API_KEY;
@@ -53,19 +55,24 @@ function getClient(): OpenAI | null {
   return openaiClient;
 }
 
-function markOpenAIEmbeddingDead(err: any): void {
+function markOpenAIEmbeddingDead(err: any, succeeded = false): void {
+  if (succeeded) { openaiEmbedConsecutiveFailures = 0; return; }
   const code = String(err?.code ?? err?.error?.code ?? "").toLowerCase();
   const msg = String(err?.message ?? err ?? "").toLowerCase();
-  if (
+  const accountError =
     err?.status === 401 ||
     code.includes("insufficient_quota") ||
     code.includes("credit_balance") ||
     msg.includes("no credits remaining") ||
     msg.includes("insufficient_quota") ||
-    msg.includes("invalid api key")
-  ) {
+    msg.includes("invalid api key");
+  // Generic failures (429 rate-limit, 5xx, timeouts) don't prove the account
+  // is dead — but three in a row mean the roundtrip is pure latency before
+  // the Cohere fallback anyway, so stop paying it for the process lifetime.
+  openaiEmbedConsecutiveFailures++;
+  if (accountError || openaiEmbedConsecutiveFailures >= OPENAI_EMBED_DEAD_AFTER_FAILURES) {
     if (!openaiEmbeddingDead) {
-      console.warn('[SemanticEngine] OpenAI embeddings disabled for this process (account error) — Cohere fallback active.');
+      console.warn(`[SemanticEngine] OpenAI embeddings disabled for this process (${accountError ? 'account error' : `${openaiEmbedConsecutiveFailures} consecutive failures`}) — Cohere fallback active.`);
     }
     openaiEmbeddingDead = true;
   }
@@ -153,6 +160,7 @@ export async function embedTextDetailed(
         input: truncated,
         dimensions: EMBEDDING_DIMS,
       }, { signal: getExecutionSignal(), timeout: 30000, maxRetries: 0 });
+      markOpenAIEmbeddingDead(null, true);
       return { embedding: response.data[0].embedding, model: EMBEDDING_MODEL };
     } catch (err: any) {
       markOpenAIEmbeddingDead(err);
@@ -217,6 +225,7 @@ export async function embedBatchDetailed(
             }, { signal: getExecutionSignal(), timeout: 30000, maxRetries: 0 });
             // Sort by index to maintain order
             const sorted = response.data.sort((a, b) => a.index - b.index);
+            markOpenAIEmbeddingDead(null, true);
             return { startIndex: batch.index, embeddings: sorted.map(d => d.embedding), model: EMBEDDING_MODEL };
           } catch (err) {
             markOpenAIEmbeddingDead(err);
