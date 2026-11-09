@@ -827,13 +827,17 @@ shape as the `analysis_generation_failed` refusal (FAILED pipelineRun +
 `structuredRefusal`); `stats.earlyAbort = {reason, stage, costUsd}`
 records what was saved. Expected saving ~$0.5-0.8 per doomed run.
 
-**Pass-3 thesis contract** (`analyst-multipass.ts`,
-`NOMOSX_THESIS_PROMPT_CONTRACT=1`) — `boundThesis` was previously
-injected only into the pre-draft review (Pass 1→2 directives); the
-Pass-3 synthesis prompt that actually writes `verdict` never saw it.
-Now threaded as a mandatory contract block: verdict = bound thesis or
-strictly narrower; causal/forecast/numerical/necessity claims demoted
-to `trajectory.state`/`rejectedAlternatives` as speculative scenarios.
+**Thesis contract across all 3 passes** (`analyst-multipass.ts`,
+`NOMOSX_THESIS_PROMPT_CONTRACT=1`) — `boundThesis` previously reached
+only the pre-draft review; the passes themselves never saw it. Now:
+Pass 1 maps mechanisms *through* the bound-thesis lens (mechanisms
+whose implications exceed it are tagged speculative in
+`trajectoryHint`, not posed as thesis-bearing drivers); Pass 2 weighs
+`canSupportExtrapolation` against claim scope; Pass 3 carries the
+mandatory verdict contract (narrower-or-equal; causal/forecast/
+numerical/necessity claims demoted to `trajectory.state`/
+`rejectedAlternatives` as speculative scenarios). Prevention at the
+source instead of repair after.
 
 **Byte-parity lesson**: the contract block's newlines live *inside* the
 template conditional — an earlier draft left orphan `\n\n` and caused a
@@ -845,6 +849,17 @@ verify with a diff of the missed request vs the recorded entry before
 All three flags off = zero call-stream change: gulf replay re-verified
 **0 misses, trust 40→40, hold→hold** after each commit. Flags flip
 together on the next re-record.
+
+**Extended same sprint** (`8a5d322`): the prompt contract now covers
+Passes 1–3 (above), and `NOMOSX_THESIS_INLINE_GATE=1` adds an inline
+post-pruning adherence check *inside* the analyst — `checkThesisAdherence`
+on the final verdict, one bounded `reader_v3` narrowing rewrite + one
+re-check on breach (~$0.01 max). An adherent narrowing is adopted
+in-place (`_meta.inlineThesisGate` records outcome+cost, folded into
+`totalCostUsd`); a still-breached verdict falls through to the
+pipeline-level repair/gate path unchanged. This is the SAVER
+audit→minimal-repair pattern applied at the cheapest possible point —
+before post-analyst checks and the entire critic→debate→render tail.
 
 ---
 
