@@ -812,6 +812,30 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
       }
     }
   }
+  // EVIDENCE-INDEPENDENCE audit (deterministic, embedding-based): distinct
+  // [SRC-N] citations can be the same underlying study — count effective
+  // independent evidence clusters. Frozen channel; old fixtures without it
+  // skip the audit entirely (hasFrozenInput guard → no live embedding read).
+  {
+    const { hasFrozenInputs, hasFrozenInput, captureInput } = await import('./frozen-inputs');
+    const replaying = hasFrozenInputs();
+    if (!replaying || hasFrozenInput('evidence:independence')) {
+      const { auditEvidenceIndependence } = await import('./evidence-independence');
+      const analysisText = typeof analysis === 'string' ? analysis : JSON.stringify(analysis ?? {});
+      const independence = await captureInput('evidence:independence', () =>
+        auditEvidenceIndependence(analysisText, topSources),
+      );
+      if (independence) {
+        stats.evidenceIndependence = independence;
+        console.log(`${label} EVIDENCE-INDEPENDENCE: ${independence.effectiveIndependent}/${independence.citedCount} effective clusters (${independence.clusteredPairs} near-dup pairs, maxSim=${independence.maxPairwise}) — ${independence.verdict}`);
+        if (independence.verdict === 'collapsed') {
+          ctx.addFinding('EVIDENCE-INDEPENDENCE', 'warning',
+            `${independence.citedCount} cited sources collapse to ${independence.effectiveIndependent} independent evidence clusters — document count overstates evidence breadth`,
+            { effectiveIndependent: independence.effectiveIndependent, citedCount: independence.citedCount });
+        }
+      }
+    }
+  }
   const analystDecision = checks.analystDecision;
   flags.witnessReducedScope = checks.witnessReducedScope;
   flags.runDevilsAdvocateStep = checks.runDevilsAdvocateStep;

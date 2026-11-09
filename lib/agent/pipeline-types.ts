@@ -70,6 +70,16 @@ export interface PipelineStats {
     unsupportedClaims: number;
     queued: number;
   };
+  // Deterministic evidence-independence audit (embedding clusters).
+  evidenceIndependence?: {
+    citedCount: number;
+    withVectors: number;
+    pairsChecked: number;
+    clusteredPairs: number;
+    effectiveIndependent: number;
+    maxPairwise: number;
+    verdict: 'independent' | 'thin' | 'collapsed';
+  };
 
   // Corpus cap — the shared source pool is trimmed to ANALYST_CORPUS_CAP
   // post-rank (branch-bound and provider-singleton sources protected) so
