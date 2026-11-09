@@ -65,6 +65,11 @@ export interface PipelineStats {
     cited: number;
     uncited: string[];
   };
+  // Argus-lite: unsupported present_fact claims → targeted gap requests.
+  evidenceGraphGaps?: {
+    unsupportedClaims: number;
+    queued: number;
+  };
 
   // Corpus cap — the shared source pool is trimmed to ANALYST_CORPUS_CAP
   // post-rank (branch-bound and provider-singleton sources protected) so

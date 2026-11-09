@@ -796,6 +796,22 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
       }
     }
   }
+  // ARGUS-LITE evidence-graph audit: present_fact links the claim→passage
+  // contract marked unsupported are missing support edges in the evidence
+  // DAG — each becomes a targeted gap request drained by the gap-fill stage
+  // below. Deterministic, zero LLM cost; fixed-corpus replay drains the
+  // requests without scouting, so the recorded call stream is unchanged.
+  {
+    const { deriveEvidenceGapRequests } = await import('./pipeline-steps/evidence-graph-gaps');
+    const evGaps = deriveEvidenceGapRequests(analysis);
+    if (evGaps.length > 0) {
+      stats.evidenceGraphGaps = { unsupportedClaims: evGaps.length, queued: evGaps.length };
+      console.log(`${label} EVIDENCE-GRAPH: ${evGaps.length} unsupported claims → targeted gap requests`);
+      for (const g of evGaps) {
+        ctx.requestSourceGap(g.query, `unsupported_claim_evidence (cited SRC-${g.citedSourceRef ?? '?'})`, 'EVIDENCE-GRAPH', undefined, 6);
+      }
+    }
+  }
   const analystDecision = checks.analystDecision;
   flags.witnessReducedScope = checks.witnessReducedScope;
   flags.runDevilsAdvocateStep = checks.runDevilsAdvocateStep;
