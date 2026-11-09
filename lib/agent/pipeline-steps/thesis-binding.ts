@@ -65,6 +65,70 @@ export async function verifyThesisBindingStage(deps: ThesisBindingDeps, stage: s
   }
 }
 
+/**
+ * Verdict-scoped adherence repair — the cheap path. The observed breach mode
+ * is verdict-level overclaim (causal attributions, forecasts, necessity
+ * claims beyond the bound descriptive thesis). One bounded rewrite of the
+ * verdict field under the binding contract costs ~$0.005 vs ~$0.4 for a
+ * full re-analysis — and often achieves adherence on its own. The result
+ * is re-verified by the caller; a still-breached verdict falls through to
+ * the full re-analysis path unchanged.
+ */
+async function attemptVerdictNarrowingRepair(deps: ThesisBindingDeps): Promise<boolean> {
+  const { getAnalysis, setAnalysis, addCost, bumpAnalysisArtifact, label } = deps;
+  const binding = (deps.stats as any).thesisBinding;
+  const analysis = getAnalysis();
+  const verdict = typeof analysis?.verdict === 'string' ? analysis.verdict : '';
+  if (!binding?.statement || verdict.trim().length < 20) return false;
+  try {
+    const { callLLM } = await import('../../llm/unified-llm');
+    const { parseJson } = await import('../json-utils');
+    const response = await callLLM({
+      messages: [
+        {
+          role: 'system',
+          content:
+            'You are a senior analyst narrowing a verdict to its evidence-bound thesis. ' +
+            'Output valid JSON only: {"verdict":"..."}. ' +
+            'Rules: the verdict must assert ONLY what the bound thesis supports — or a strictly narrower version of it. ' +
+            'Remove causal attributions, forecasts, numerical claims, and necessity claims the thesis does not make. ' +
+            'Prefer a hedged-but-supported formulation over a strong-but-unsupported one. ' +
+            'Preserve every [SRC-N] citation token from the original verdict. Never add facts, numbers, or citations. ' +
+            'Keep it one paragraph, same language as the input.',
+        },
+        {
+          role: 'user',
+          content:
+            `BOUND THESIS (the only claim the corpus contracted to support):\n"${binding.statement}"\n\n` +
+            `VIOLATION FOUND BY ADHERENCE CHECK:\n${binding.adherenceReason || 'verdict claims more than the bound thesis supports'}\n\n` +
+            `THROUGH-LINE (context — do not expand beyond the bound thesis):\n${String(analysis?.throughLine ?? '').slice(0, 500)}\n\n` +
+            `CURRENT VERDICT (overclaims — rewrite it narrower):\n${verdict.slice(0, 3000)}`,
+        },
+      ],
+      task: 'reader_v3',
+      temperature: 0.2,
+      maxTokens: 1500,
+      jsonMode: true,
+      enableCache: false,
+    });
+    addCost(response.costUsd, 'THESIS BINDING');
+    const parsed = parseJson<{ verdict?: string }>(response.content);
+    const narrowed = typeof parsed?.verdict === 'string' ? parsed.verdict.trim() : '';
+    if (narrowed.length < 20 || narrowed === verdict.trim()) return false;
+    analysis.verdict = narrowed;
+    setAnalysis(analysis);
+    bumpAnalysisArtifact();
+    binding.verdictNarrowing = { attempted: true, costUsd: response.costUsd };
+    console.log(`${label} THESIS BINDING: verdict narrowed in-place ($${response.costUsd.toFixed(4)}) — re-verifying adherence`);
+    return true;
+  } catch (err) {
+    assertExecutionActive();
+    binding.verdictNarrowing = { attempted: true, reason: 'narrowing_error' };
+    console.warn(`${label} THESIS BINDING: verdict narrowing failed (non-blocking):`, err);
+    return false;
+  }
+}
+
 export async function runThesisBindingRepair(
   deps: ThesisBindingDeps,
   opts: { reAnalysisBudget: number; verify: (stage: string) => Promise<void> },
@@ -72,6 +136,24 @@ export async function runThesisBindingRepair(
   const { stats, getAnalysis, setAnalysis, addCost, label, query, topSources, slimReadings, fullContextBlock, detectedDomain, isStrategic, pipelineStart, analystMultipass, bumpAnalysisArtifact } = deps;
   let { reAnalysisBudget } = opts;
   const binding = (stats as any).thesisBinding;
+  // Cheap path first — independent of reAnalysisBudget/headroom: a verdict
+  // that cannot be narrowed cheaply would not survive a full re-analysis
+  // budget check either, and this is the difference between a $0.005 fix
+  // and a skipped repair routed straight to the gate.
+  // Opt-in (NOMOSX_THESIS_VERDICT_REPAIR=1): the narrowing call changes the
+  // recorded call stream — fixtures recorded without it would miss.
+  const verdictRepairEnabled = process.env.NOMOSX_THESIS_VERDICT_REPAIR === '1';
+  if (verdictRepairEnabled && binding?.statement && binding.evaluationComplete === true && binding.adhered === false) {
+    const narrowed = await attemptVerdictNarrowingRepair(deps);
+    if (narrowed) {
+      await opts.verify('adherence-verdict-narrowing');
+      if (binding.adhered === true) {
+        binding.repair = { attempted: true, mode: 'verdict_narrowing' };
+        return { reAnalysisBudget };
+      }
+      console.warn(`${label} THESIS BINDING: narrowed verdict still exceeds bound thesis — escalating to full re-analysis`);
+    }
+  }
   if (binding?.statement && binding.evaluationComplete === true && binding.adhered === false && reAnalysisBudget > 0) {
     const rerunMs = Number(process.env.ANALYST_RERUN_BUDGET_MS ?? 900_000);
     if (!hasRunHeadroomWithReserve(pipelineStart, isStrategic, rerunMs)) {
