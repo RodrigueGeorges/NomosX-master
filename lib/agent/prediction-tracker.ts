@@ -64,7 +64,7 @@ export async function storePrediction(params: {
   briefId: string;
   researchQuestion: string;
   hypothesis: string;
-  probability: number;
+  probability: number | string; // LLM hypotheses sometimes emit ".10"-style strings
   horizon?: string;
   domain?: string;
   predictionType?: Prediction['predictionType'];
@@ -74,12 +74,16 @@ export async function storePrediction(params: {
     // Adapt to existing Prediction schema which uses:
     // claim (not hypothesis), confidence (not predictionType),
     // resolutionCriteria, whatWouldFalsify, sourceRefs (required fields)
+    // probability arrives from LLM-produced hypotheses — coerce strings like
+    // ".10" (Prisma Float rejects them) and clamp to the 0-1 contract.
+    const p = typeof params.probability === 'number' ? params.probability : parseFloat(String(params.probability));
+    const probability = Number.isFinite(p) ? Math.min(1, Math.max(0, p)) : 0.5;
     await prisma.prediction.create({
       data: {
         briefId: params.briefId,
         claim: `${params.hypothesis} [${params.researchQuestion.slice(0, 80)}]`,
         horizon: params.horizon || '90d',
-        probability: params.probability,
+        probability,
         confidence: params.predictionType || 'scenario',
         resolutionCriteria: `Evaluate whether the following prediction came true: ${params.hypothesis}`,
         whatWouldFalsify: `Evidence that contradicts: ${params.hypothesis}`,
@@ -87,7 +91,7 @@ export async function storePrediction(params: {
         status: 'OPEN',
       },
     });
-    console.log(`[PredictionTracker] Stored: ${params.hypothesis.slice(0, 60)}... (p=${params.probability}, horizon=${params.horizon || '90d'})`);
+    console.log(`[PredictionTracker] Stored: ${params.hypothesis.slice(0, 60)}... (p=${probability}, horizon=${params.horizon || '90d'})`);
   } catch (error) {
     // Non-blocking — if table doesn't exist, just log
     console.warn(`[PredictionTracker] Failed to store prediction (non-blocking):`, error instanceof Error ? error.message : String(error));
