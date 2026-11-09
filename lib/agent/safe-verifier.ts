@@ -129,6 +129,15 @@ async function retrieveEvidence(queries: string[], resultsPerQuery: number): Pro
   const hits: EvidenceHit[] = [];
   let calls = 0;
 
+  // Scout can exhaust the per-execution HTTP budget long before the
+  // verification tail runs — every search then fails on HTTP_BUDGET_EXHAUSTED.
+  // Skip the fan-out entirely; claims resolve as 'unverifiable' honestly.
+  const { isHttpBudgetExhausted } = await import('../http-client');
+  if (isHttpBudgetExhausted()) {
+    console.warn(`[SAFE] HTTP request budget exhausted — skipping live-search retrieval for ${queries.length} queries`);
+    return { hits, calls };
+  }
+
   const settled = await Promise.allSettled(
     queries.map(async (q) => {
       // Tavily primary, Exa secondary, SearXNG as zero-cost floor —

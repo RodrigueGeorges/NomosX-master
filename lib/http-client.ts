@@ -9,7 +9,7 @@
 
 import { env } from './env';
 import pLimit from 'p-limit';
-import { getExecutionSignal, consumeExecutionBudget, consumeRootBudget } from './worker/execution-scope';
+import { getExecutionSignal, consumeExecutionBudget, consumeRootBudget, getExecutionBudgetUsage } from './worker/execution-scope';
 
 // NOTE: do NOT install a custom global dispatcher (e.g. setGlobalDispatcher(
 // new Agent({allowH2:false}))). The npm undici Agent bridges into Node's
@@ -94,6 +94,15 @@ function consumeHttpBudget(rateLimiterKey?: string): void {
 
 export function getHttpInflightStats() {
   return { active: httpInflight.activeCount, pending: httpInflight.pendingCount, cap: HTTP_MAX_INFLIGHT };
+}
+
+/**
+ * Peek: true when the per-execution HTTP budget is already spent. Lets
+ * callers skip doomed fan-outs (e.g. SAFE verifier firing 40+ searches
+ * after scout exhausted the budget) instead of paying the error path.
+ */
+export function isHttpBudgetExhausted(): boolean {
+  return getExecutionBudgetUsage('http:all') >= HTTP_MAX_REQUESTS_PER_EXECUTION;
 }
 
 // ================================
