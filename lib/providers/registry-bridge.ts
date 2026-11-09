@@ -924,8 +924,8 @@ export async function searchExtendedProviders(query: string, options: any = {}) 
   // "extended-registry" label, so a dead endpoint (persistent timeout)
   // retried forever — observed: OpenReview/bioRxiv burning a 15s timeout
   // on every query variation of every scout wave. Track each provider.
-  const { isProviderHealthy, recordProviderCall } = await import('../agent/provider-health-tracker');
-  const healthyRest = knownRest.filter(p => isProviderHealthy(p));
+  const { isProviderHealthy, isProviderEmptyDegraded, recordProviderCall } = await import('../agent/provider-health-tracker');
+  const healthyRest = knownRest.filter(p => isProviderHealthy(p) && !isProviderEmptyDegraded(p));
 
   const tasks: Array<Promise<RegistrySearchResult[]>> =
     healthyRest.map(p => {

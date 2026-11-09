@@ -52,6 +52,17 @@ const BLACKLIST_THRESHOLD = 3;       // failures before blacklist
 const BLACKLIST_DURATION_MS = 30 * 60 * 1000; // 30 minutes
 const DEGRADED_THRESHOLD = 0.5;     // < 50% success rate = degraded
 
+// ── Empty-result streaks ──
+// Many institutional providers swallow HTTP errors and resolve [] — the
+// failure path never fires, so the blacklist above stays blind and the
+// provider is re-probed on every query variation of every scout call
+// (observed: openreview 429 ×24 in one run). A provider that returns
+// literally nothing for EMPTY_STREAK_LIMIT consecutive calls contributes
+// nothing; shed it for the rest of the process. Any non-empty result
+// resets the streak, so legitimately sparse providers stay alive.
+const EMPTY_STREAK_LIMIT = Math.max(1, Number(process.env.PROVIDER_EMPTY_STREAK_LIMIT ?? 8));
+const emptyStreaks = new Map<string, number>();
+
 // ── Redis mirror — the circuit-breaker map is process-local; without a
 // mirror, every worker redeploy loses all blacklists and dead providers get
 // re-probed from scratch (wasted 90s deadline slots on every restart). ──
@@ -115,6 +126,17 @@ export function recordProviderCall(result: ProviderCallResult): void {
   if (result.success) {
     state.consecutiveFailures = 0;
     state.blacklistedUntil = null;
+    if (result.resultCount !== undefined) {
+      if (result.resultCount > 0) {
+        emptyStreaks.delete(result.provider);
+      } else {
+        const streak = (emptyStreaks.get(result.provider) || 0) + 1;
+        emptyStreaks.set(result.provider, streak);
+        if (streak === EMPTY_STREAK_LIMIT) {
+          console.warn(`[PROVIDER HEALTH] ⚠️ ${result.provider} shed for this process (${streak} consecutive empty results — likely dead or rate-limited)`);
+        }
+      }
+    }
   } else {
     state.consecutiveFailures += 1;
     if (state.consecutiveFailures >= BLACKLIST_THRESHOLD) {
@@ -159,15 +181,24 @@ export function isProviderHealthy(provider: string): boolean {
 }
 
 /**
+ * True when a provider has returned zero results for EMPTY_STREAK_LIMIT
+ * consecutive successful calls — it is alive but contributes nothing.
+ * In-memory only: a process restart re-probes every provider once.
+ */
+export function isProviderEmptyDegraded(provider: string): boolean {
+  return (emptyStreaks.get(provider) || 0) >= EMPTY_STREAK_LIMIT;
+}
+
+/**
  * Filter a list of providers to only healthy ones.
  * Used by pipeline before calling providers.
  */
 export function getHealthyProviders(providers: string[]): string[] {
-  const healthy = providers.filter(p => isProviderHealthy(p));
-  const blacklisted = providers.filter(p => !isProviderHealthy(p));
+  const healthy = providers.filter(p => isProviderHealthy(p) && !isProviderEmptyDegraded(p));
+  const blacklisted = providers.filter(p => !isProviderHealthy(p) || isProviderEmptyDegraded(p));
 
   if (blacklisted.length > 0) {
-    console.log(`[PROVIDER HEALTH] Skipping ${blacklisted.length} blacklisted providers: ${blacklisted.join(", ")}`);
+    console.log(`[PROVIDER HEALTH] Skipping ${blacklisted.length} unhealthy providers: ${blacklisted.join(", ")}`);
   }
 
   return healthy;
@@ -234,6 +265,7 @@ export async function getProviderHealthReport(): Promise<ProviderHealth[]> {
  */
 export function resetProvider(provider: string): void {
   circuitBreakers.delete(provider);
+  emptyStreaks.delete(provider);
   lastPersistAt = 0; // force the next persist write
   persistBreakerState();
   console.log(`[PROVIDER HEALTH] 🔄 ${provider} circuit breaker manually reset`);

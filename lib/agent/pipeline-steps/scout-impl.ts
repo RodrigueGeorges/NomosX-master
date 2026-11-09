@@ -433,14 +433,20 @@ export async function scoutImpl(
   // e.g. arxiv/worldbank/core hitting their 90s deadlines) must be skipped at
   // scheduling time — previously they were still called every query variation,
   // each burning a full deadline slot in the parallel pool.
-  const { isProviderHealthy } = await import('../provider-health-tracker');
+  const { isProviderHealthy, isProviderEmptyDegraded } = await import('../provider-health-tracker');
   const unhealthy: string[] = [];
+  const emptyDegraded: string[] = [];
   for (const p of providerSet) {
-    if (typeof p === 'string' && !isProviderHealthy(p)) unhealthy.push(p);
+    if (typeof p !== 'string') continue;
+    if (!isProviderHealthy(p)) unhealthy.push(p);
+    else if (isProviderEmptyDegraded(p)) emptyDegraded.push(p);
   }
-  for (const p of unhealthy) providerSet.delete(p);
+  for (const p of [...unhealthy, ...emptyDegraded]) providerSet.delete(p);
   if (unhealthy.length) {
     console.log(`[SCOUT] Skipping ${unhealthy.length} blacklisted providers: ${unhealthy.join(', ')}`);
+  }
+  if (emptyDegraded.length) {
+    console.log(`[SCOUT] Skipping ${emptyDegraded.length} empty-result providers: ${emptyDegraded.join(', ')}`);
   }
 
   // ROR BATCHING — collapse pure OpenAlex-ROR institutional wrappers (~30
