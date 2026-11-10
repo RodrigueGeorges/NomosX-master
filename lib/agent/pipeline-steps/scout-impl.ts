@@ -236,7 +236,12 @@ function trackProviderCall<T extends any[]>(provider: string, promise: Promise<T
     (err: any) => {
       if (settled) throw err;
       settled = true;
-      recordProviderCall({ provider, success: false, responseMs: Date.now() - start, error: String(err?.message || err).slice(0, 120) });
+      // Budget exhaustion is an execution-scoped quota event, not provider
+      // ill-health — recording it as a failure would blacklist a live
+      // provider for 30min because an earlier scout spent the lane.
+      if (err?.code !== 'HTTP_BUDGET_EXHAUSTED') {
+        recordProviderCall({ provider, success: false, responseMs: Date.now() - start, error: String(err?.message || err).slice(0, 120) });
+      }
       throw err;
     },
   );
@@ -338,7 +343,6 @@ export async function scoutImpl(
   try {
     const providerArr = providers as string[];
     const isExplicitlyDisabled = providerArr.includes('no-routing');
-    const isDefaultSet = providerArr.length <= 3 || providerArr.includes('auto');
     if (!isExplicitlyDisabled) {
       const routed = await selectProviders(query, 12, false); // keyword-based (fast)
       const routedNames = routed.map(r => r.provider);
