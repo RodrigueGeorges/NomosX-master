@@ -370,15 +370,20 @@ async function collectHeldRetryItems(maxItems = 1): Promise<{ items: ThinkTankDi
     // decisions by normalized title so a question can't retry forever
     // through fresh signal IDs.
     const normTitle = (t: string) => (t || '').toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80);
-    const recentHoldDecisions = await prisma.editorialDecision.findMany({
-      where: { decision: "HOLD", createdAt: { gte: new Date(Date.now() - 30 * 86400_000) } },
-      select: { signal: { select: { title: true } } },
-      take: 300,
-    });
     const clusterHolds = new Map<string, number>();
-    for (const d of recentHoldDecisions) {
-      const k = normTitle(d.signal?.title || '');
-      if (k) clusterHolds.set(k, (clusterHolds.get(k) || 0) + 1);
+    try {
+      const recentHoldDecisions = await prisma.editorialDecision.findMany({
+        where: { decision: "HOLD", createdAt: { gte: new Date(Date.now() - 30 * 86400_000) } },
+        select: { signal: { select: { title: true } } },
+        take: 300,
+      });
+      for (const d of recentHoldDecisions) {
+        const k = normTitle(d.signal?.title || '');
+        if (k) clusterHolds.set(k, (clusterHolds.get(k) || 0) + 1);
+      }
+    } catch {
+      // Cluster lookup is best-effort — a failure must not disable the
+      // whole held-retry path; per-signal counting still applies below.
     }
     // Retry the CLOSEST-TO-PUBLISHABLE hold first, not the highest-priority
     // signal: a trust-39 hold one gate-check away from publishing has far

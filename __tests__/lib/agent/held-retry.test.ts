@@ -42,6 +42,7 @@ jest.mock('@/lib/db', () => ({
     editorialDecision: {
       count: jest.fn().mockResolvedValue(0),
       findFirst: jest.fn().mockResolvedValue(null),
+      findMany: jest.fn().mockResolvedValue([]),
       create: jest.fn().mockResolvedValue({}),
     },
     thinkTankPublication: {

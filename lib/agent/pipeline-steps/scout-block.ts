@@ -418,7 +418,12 @@ export async function runScoutBlock(deps: ScoutBlockDeps): Promise<ScoutBlockRes
     sourceIds,
     filters: { providers },
   });
-  stats.scout = scoutResult;
+  // stats.scout feeds sourcesFound/providers downstream — scoutResult can
+  // be a bare array (cache path), which made stats.scout.found undefined
+  // and persisted sourcesFound=0 on every run despite a full corpus.
+  stats.scout = Array.isArray(scoutResult)
+    ? { found, sourceIds, providers, upserted: 0 }
+    : { ...(scoutResult as Record<string, unknown>), found: (scoutResult as { found?: number }).found ?? found, providers: (scoutResult as { providers?: unknown }).providers ?? providers };
 
   // ── WITNESS: Observe SCOUT step ──
   if (witnessCtx) {

@@ -301,7 +301,17 @@ export async function buildAnalystContext(deps: AnalystContextDeps): Promise<Ana
     console.warn(`${label} INNOVATOR AUTHORS: failed (non-blocking):`, err instanceof Error ? err.message : String(err));
   }
 
+  // Prediction calibration feedback — closes the learning loop the Sprint
+  // 54 resolver feeds: resolved predictions' Brier scores tell the analyst
+  // how to weight probabilistic claims for this domain/horizon.
+  let calibrationBlock: string | undefined;
+  try {
+    const { generateCalibrationReport, formatCalibrationContext } = await import('../prediction-tracker');
+    calibrationBlock = formatCalibrationContext(await generateCalibrationReport()) || undefined;
+  } catch { /* non-blocking */ }
+
   const fullContextParts: (string | undefined)[] = [
+    calibrationBlock,
     editorialNorthStar,
     memoryBlock,
     synapseMemoryBlock,
