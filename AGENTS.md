@@ -4901,3 +4901,39 @@ deterministic numeric fallback; fact-checker partial LLM batch
 degradation (150s/batch frozen channel); scout budget-exhaustion no
 longer counts as provider failure; relevance semantic signal repaired
 (was constant ~0%).
+
+---
+
+## Sprint 54 — Learning loop revived: prediction resolver + hold circuit breaker
+
+Editorial audit of persisted data exposed a dead learning loop: **813
+OPEN predictions, 0 resolved**. Root causes in `prediction-tracker.ts`:
+
+- `findPredictionsDueForEvaluation` matched only `'30d'|'90d'|'365d'|
+  'long-term'` literals while `prediction-registration` stores free-text
+  horizons (`'2027-Q2'`, `'1-2 years'`, `'2028'`) → calendar predictions
+  were NEVER eligible.
+- `evaluatePrediction` wrote `status:'RESOLVED'` — outside the schema
+  contract (OPEN|CONFIRMED|REFUTED|EXPIRED|SUPERSEDED).
+- `generateCalibrationReport`/`formatCalibrationContext` had ZERO
+  callers — calibration never fed back into prompts.
+
+**Fixes:**
+- `parseHorizonDue(horizon, createdAt)` — relative days, `N(-M) years`,
+  calendar years (Dec 31), quarters (first day after quarter), year ranges
+  (midpoint); unparseable → null = never auto-due (fail closed).
+- `resolveDuePredictions(limit)` — one bounded `fact_check`-task LLM
+  verdict per due prediction → CONFIRMED/REFUTED/EXPIRED + Brier score in
+  `resolutionNotes`; UNCLEAR/resolver-error expires honestly.
+- Wired into the durable-worker 10-min sweep (5/sweep ≈ $0.005).
+- `evaluatePrediction` writes schema-valid statuses.
+
+**Topic hold circuit breaker** (`think-tank-dispatcher.ts`):
+`HELD_MAX_RETRIES=2` was per-signalId but the same question re-enters via
+fresh Signal rows (live: energy-transition ×5 identical runs). HOLD
+decisions are now clustered by normalized title — ≥2 cluster holds in
+30d parks the topic (`HELD CIRCUIT BREAKER` log).
+
+Tests: `prediction-horizon.test.ts` (7). Remaining roadmap item:
+DA-objection → P2 stress-criteria injection (experience bank → P2 prompt)
+— the adversarial loop's last unclosed edge.
