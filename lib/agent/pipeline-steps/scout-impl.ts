@@ -424,7 +424,20 @@ export async function scoutImpl(
   }
 
   const pool: any[] = [];
-  const providerSet = new Set(routedProviderNames && routedProviderNames.length > 0 ? routedProviderNames : (providers as string[]));
+  // Router/registry aliases → dispatch ids. Neural routing and the provider
+  // registry emit short names ('gdelt', 'eurlex', 'paperswithcode', 'who')
+  // that match no trackProviderCall case — they sat in providerSet harmlessly
+  // but silently dropped real coverage. Normalize once at set construction.
+  const PROVIDER_ALIASES: Record<string, string> = {
+    'gdelt': 'gdelt-news',
+    'eurlex': 'eur-lex',
+    'paperswithcode': 'papers-with-code',
+    'who': 'who-direct',
+  };
+  const providerSet = new Set(
+    (routedProviderNames && routedProviderNames.length > 0 ? routedProviderNames : (providers as string[]))
+      .map((p) => PROVIDER_ALIASES[p] ?? p)
+  );
 
   // ── DISABLE DEAD PROVIDERS ──
   // These providers consistently fail (expired API keys, dead endpoints, or persistent 403/404).
