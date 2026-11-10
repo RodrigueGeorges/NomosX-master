@@ -53,13 +53,27 @@ describe('hasRunHeadroomWithReserve — producer budget = step + repair tail', (
 });
 
 describe('analyst multipass — passes degrade inside the repair reserve', () => {
-  it('skips PASS 2 and downgrades PASS 3 when only the reserve remains (1 LLM call)', async () => {
-    mockedLLM.mockResolvedValueOnce(llmJson(P1_MAP));
-    // 10min scope → reserve scales to 0.6×10=6min; pass needs 5+6=11min > 10.
+  it('runs compact PASS 2 and downgrades PASS 3 when only the compact window remains (2 LLM calls)', async () => {
+    mockedLLM
+      .mockResolvedValueOnce(llmJson(P1_MAP))
+      .mockResolvedValueOnce(llmJson(P2_MAP));
+    // 10min scope → reserve scales to 0.6×10=6min; full pass needs 5+6=11min > 10,
+    // compact needs 2.5+6=8.5min <= 10 → degraded stress test runs instead of skip.
     const result = await withExecutionDeadline(10 * 60_000, 'test-deadline', () =>
       analystAgentV3('test question about Nordic defence', SOURCES, [], { depth: 'strategic' })
     );
-    // P2 skipped, P3 → lightweight synthesis.
+    // P2 compact ran, P3 → lightweight synthesis (no LLM call).
+    expect(mockedLLM).toHaveBeenCalledTimes(2);
+    expect((result as any).causalChain).toHaveLength(0); // lightweight path
+    expect((result as any)._meta.failed).toBeUndefined();
+  });
+
+  it('skips PASS 2 entirely when even the compact window is gone (1 LLM call)', async () => {
+    mockedLLM.mockResolvedValueOnce(llmJson(P1_MAP));
+    // 6min scope → reserve 3.6min; compact needs 2.5+3.6=6.1min > 6 → skip.
+    const result = await withExecutionDeadline(6 * 60_000, 'test-deadline', () =>
+      analystAgentV3('test question about Nordic defence', SOURCES, [], { depth: 'strategic' })
+    );
     expect(mockedLLM).toHaveBeenCalledTimes(1);
     expect((result as any)._meta.stressTestMap.mechanismAssessments).toHaveLength(0);
     expect((result as any).causalChain).toHaveLength(0); // lightweight path

@@ -86,11 +86,16 @@ export async function runScoutEnrichmentAndIndex(deps: ScoutEnrichmentIndexDeps)
       const result = await scout(q, provs as Providers, perProv);
       const sourceIds = Array.isArray(result) ? result.map(s => s.id) : (result.sourceIds || []);
       if (sourceIds.length === 0) return [];
-      // Fetch source details from DB
-      const sources = await prisma.source.findMany({
+      // Fetch source details from DB — frozen-input channel: persisted
+      // rows drift under live upserts (query-scoped abstracts, rolling
+      // dataset titles); record snapshots them, replay serves verbatim.
+      const { captureInput } = await import('../frozen-inputs');
+      const { createHash } = await import('crypto');
+      const idsKey = createHash('sha1').update([...sourceIds].sort().join(',')).digest('hex');
+      const sources = await captureInput(`corpus:enrich-sources:${idsKey}`, () => prisma.source.findMany({
         where: { id: { in: sourceIds } },
         select: { id: true, title: true, abstract: true, provider: true, year: true, doi: true, citationCount: true, qualityScore: true, noveltyScore: true },
-      });
+      }));
       return sources.map(s => ({
         id: s.id,
         title: s.title,

@@ -289,12 +289,22 @@ Year: ${s.year || "N/A"}`;
       // GROUNDED), which manufactures misattribution. Render them for every
       // grounded source; the raw abstract/excerpt is what tiers on cost.
       if (reading && reading.confidence !== 'low') {
+        // NOMOSX_CTX_EXTRACTION_CAP=1: bound the per-source extraction block.
+        // Live evidence: unbounded claim/method arrays pushed strategic
+        // prompts past 30K tokens and ~8min on fallback providers. Capping
+        // keeps the strongest extractions; flag-off stays byte-identical.
+        const capOn = process.env.NOMOSX_CTX_EXTRACTION_CAP === '1';
+        const capList = (arr: any, n: number, chars: number) =>
+          (Array.isArray(arr) ? arr : [])
+            .slice(0, capOn ? n : arr?.length ?? n)
+            .map((x: any) => String(x).slice(0, capOn ? chars : undefined))
+            .join(" | ") || "None";
         context += `
 READER EXTRACTIONS:
-  CLAIMS: ${reading.claims?.join(" | ") || "None"}
-  METHODS: ${reading.methods?.join(" | ") || "None"}
-  RESULTS: ${reading.results?.join(" | ") || "None"}
-  LIMITATIONS: ${reading.limitations?.join(" | ") || "None"}
+  CLAIMS: ${capList(reading.claims, 8, 220)}
+  METHODS: ${capList(reading.methods, 4, 160)}
+  RESULTS: ${capList(reading.results, 6, 220)}
+  LIMITATIONS: ${capList(reading.limitations, 4, 160)}
   CONFIDENCE: ${reading.confidence}`;
       }
 
@@ -602,15 +612,24 @@ async function pass2StressTest(
   ctx: string,
   frictionMap: FrictionMap,
   domainContext?: string,
-  boundThesis?: string
+  boundThesis?: string,
+  compact = false
 ): Promise<{ map: StressTestMap; tokens: number; cost: number }> {
-  console.log(`[Analyst V3] PASS 2/3: Stress Test...`);
+  console.log(`[Analyst V3] PASS 2/3: Stress Test${compact ? ' (compact/degraded)' : ''}...`);
 
+  // Compact mode (headroom-constrained): a partial stress test on the
+  // strongest mechanisms beats an empty stress map — an empty map makes
+  // the causal chain structurally doomed (DA rejects "empty chain"), while
+  // even 6-8 assessed mechanisms can carry a defensible verdict.
+  const mechLimit = compact ? 8 : Infinity;
+  const collLimit = compact ? 3 : Infinity;
   const mechanismSummary = (frictionMap.mechanisms ?? [])
+    .slice(0, mechLimit)
     .map(m => `MECHANISM #${m.id}: ${m.description} [${m.temporalStatus}] — Sources: ${(m.sources ?? []).join(", ")} — Trajectory: ${m.trajectoryHint || "none"}`)
     .join("\n");
 
   const collisionSummary = (frictionMap.collisions ?? [])
+    .slice(0, collLimit)
     .map(c => `COLLISION: ${c.domainA} × ${c.domainB} — ${c.friction} — Surprise: ${c.surpriseFactor}`)
     .join("\n");
 
@@ -716,13 +735,13 @@ COLLISIONS:
 ${collisionSummary || "None identified"}
 
 ACTIVE DYNAMICS:
-${frictionMap.dataLandscape?.activeDynamics?.slice(0, 10).join("\n") || "None"}
+${frictionMap.dataLandscape?.activeDynamics?.slice(0, compact ? 5 : 10).join("\n") || "None"}
 
 PROJECTIONS IN LITERATURE:
-${frictionMap.dataLandscape?.projectionsInLiterature?.slice(0, 5).join("\n") || "None"}
+${frictionMap.dataLandscape?.projectionsInLiterature?.slice(0, compact ? 3 : 5).join("\n") || "None"}
 
 DATA POINTS (for verification):
-${(frictionMap.dataLandscape?.quantitativeFindings || []).slice(0, 15).join("\n") || "None"}
+${(frictionMap.dataLandscape?.quantitativeFindings || []).slice(0, compact ? 8 : 15).join("\n") || "None"}
 
 === YOUR MISSION FOR THIS CALL — PASS 2 of 3 ===
 ${missionPrompt}`;
@@ -734,7 +753,7 @@ ${missionPrompt}`;
     ],
     temperature: 0.15,
     jsonMode: true,
-    maxTokens: 8000,
+    maxTokens: compact ? 4000 : 8000,
     enableCache: true,
     task: 'analyst_brief',
   });
@@ -1427,23 +1446,38 @@ export async function analystAgentV3(
     const isStrategic = depth === 'strategic';
 
     // PASS 2: Stress Test (uses validated Pass 1 output)
+    // Three admission tiers: full pass → compact pass (partial stress map —
+    // strictly better than empty, which makes the causal chain structurally
+    // doomed) → skip. The compact tier exists because live evidence showed
+    // P1 latency on slow providers repeatedly consumed the full-pass window,
+    // leaving an empty stress map and a guaranteed DA rejection.
+    const compactPassBudgetMs = Number(process.env.ANALYST_PASS2_COMPACT_BUDGET_MS ?? 150_000);
+    const emptyP2 = (): { map: StressTestMap; tokens: number; cost: number } => ({
+      map: { mechanismAssessments: [], collisionAssessments: [], survivingMechanisms: [], strongestChain: { presentFactIds: [], mechanismIds: [], projectedFuture: '' } },
+      tokens: 0,
+      cost: 0,
+    });
     let p2: { map: StressTestMap; tokens: number; cost: number };
-    if (!hasRunHeadroomWithReserve(undefined, isStrategic, passBudgetMs)) {
+    let p2Compact = false;
+    if (hasRunHeadroomWithReserve(undefined, isStrategic, passBudgetMs)) {
+      try {
+        p2 = await dstep('analyst:p2', () => pass2StressTest(question, ctx, validatedMap.map, domainContext, options?.boundThesis));
+      } catch (pass2Err) {
+        console.warn(`[Analyst V3] PASS 2 failed, continuing with empty stress test map:`, pass2Err);
+        p2 = emptyP2();
+      }
+    } else if (process.env.ANALYST_PASS2_COMPACT !== '0' && hasRunHeadroomWithReserve(undefined, isStrategic, compactPassBudgetMs)) {
+      p2Compact = true;
+      console.warn(`[Analyst V3] PASS 2 compact — ${Math.round(remainingRunMs(undefined, isStrategic) / 60000)}min left < full pass + reserve but >= compact + reserve; stress-testing top mechanisms only`);
+      try {
+        p2 = await dstep('analyst:p2', () => pass2StressTest(question, ctx, validatedMap.map, domainContext, options?.boundThesis, true));
+      } catch (pass2Err) {
+        console.warn(`[Analyst V3] PASS 2 compact failed, continuing with empty stress test map:`, pass2Err);
+        p2 = emptyP2();
+      }
+    } else {
       console.warn(`[Analyst V3] PASS 2 skipped — ${Math.round(remainingRunMs(undefined, isStrategic) / 60000)}min left < pass + repair reserve; continuing with empty stress map`);
-      p2 = {
-        map: { mechanismAssessments: [], collisionAssessments: [], survivingMechanisms: [], strongestChain: { presentFactIds: [], mechanismIds: [], projectedFuture: '' } },
-        tokens: 0,
-        cost: 0,
-      };
-    } else try {
-      p2 = await dstep('analyst:p2', () => pass2StressTest(question, ctx, validatedMap.map, domainContext, options?.boundThesis));
-    } catch (pass2Err) {
-      console.warn(`[Analyst V3] PASS 2 failed, continuing with empty stress test map:`, pass2Err);
-      p2 = {
-        map: { mechanismAssessments: [], collisionAssessments: [], survivingMechanisms: [], strongestChain: { presentFactIds: [], mechanismIds: [], projectedFuture: '' } },
-        tokens: 0,
-        cost: 0,
-      };
+      p2 = emptyP2();
     }
 
     // S15-01: REFRAIN (ACL 2026) — Adaptive early-stopping for CoT reasoning
@@ -1683,7 +1717,7 @@ export async function analystAgentV3(
     const totalCost = p1.cost + p2.cost + p3.cost + preDraftReviewCost + inlineGateCost + premortemCostTotal;
     const elapsed = Date.now() - startTime;
 
-    console.log(`[Analyst V3] Complete in ${elapsed}ms | 3 passes | ${totalTokens} tokens | $${totalCost.toFixed(4)} | cascade violations: ${chainValidation.cascadeViolations}`);
+    console.log(`[Analyst V3] Complete in ${elapsed}ms | 3 passes${p2Compact ? ' (P2 compact)' : ''} | ${totalTokens} tokens | $${totalCost.toFixed(4)} | cascade violations: ${chainValidation.cascadeViolations}`);
 
     // Validate required fields
     const analysis = prunedAnalysis;

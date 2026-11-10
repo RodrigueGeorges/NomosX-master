@@ -893,6 +893,76 @@ pipeline-level repair/gate path unchanged. This is the SAVER
 audit→minimal-repair pattern applied at the cheapest possible point —
 before post-analyst checks and the entire critic→debate→render tail.
 
+## Sprint 51 — Headroom-tiered Pass 2, corpus freeze, provider-title stability (2026-11)
+
+Post-radar audit (cycle: 0 published / 3 held / 1 refused, $2.17, kimi
+credits dead → glm-only degradation) plus a deep pass on 2026 LLM-serving
+research (prefix-cache routing, workflow-aware caching, bounded agent
+loops). What shipped:
+
+**Compact Pass-2 tier** (`analyst-multipass.ts`) — the live failure was
+binary: full P2 fit or P2 skipped entirely, and a skipped P2 leaves an
+empty stress map → empty causal chain → predetermined DA rejection.
+Three admission tiers now: full pass (passBudget+reserve) → **compact
+pass** (`ANALYST_PASS2_COMPACT_BUDGET_MS`, default 150s + reserve;
+`ANALYST_PASS2_COMPACT=0` disables) → skip. Compact mode slices the
+mechanism/collision/dynamics summaries (8/3/5/3/8) and caps
+`maxTokens` at 4000 — a partial stress map strictly dominates an empty
+one. Only triggers inside the reserve window, so record/replay call
+streams with normal headroom are unchanged. `repair-reserve.test.ts`
+updated: compact tier = 2 LLM calls, sub-compact window still skips.
+
+**Reader-extraction cap** (`NOMOSX_CTX_EXTRACTION_CAP=1`, opt-in) —
+unbounded `claims/methods/results/limitations` arrays per grounded
+source pushed strategic prompts past 30K tokens (~8min on fallback
+providers). Flag-on caps lists (8×220 / 4×160 / 6×220 / 4×160 chars);
+flag-off rendering is byte-identical.
+
+**Scout fuzzy dedup** (`scout-impl.ts`, `817d018`) — exact-normalized
+dedup missed near-identical query variations; each cost a full
+provider fan-out and starved the shared per-execution OpenAlex budget
+(later parallel scouts ran degraded). Token-set Jaccard ≥ 0.8 now drops
+redundant variations pre-dispatch. Deterministic, no LLM calls, replay
+unaffected (frozen corpus skips scout).
+
+**SMARD title stability** (`providers/institutional/energy/smard.ts`) —
+the persisted title embedded the rolling 7-day window
+(`(2026-10-05 to 2026-10-12)`), so every live run upserted a new title
+under the stable `smard:price` id and drifted every downstream prompt.
+Title is now wall-clock-free (`(last 7 days)`); the gulf fixture's DB
+row was restored to its recorded title for parity. Same defect class
+exists for query-scoped abstracts ("Relevant to: {query}") — see below.
+
+**Corpus freeze channels** (`enhanced-ranker.ts`,
+`scout-enrichment-index.ts`) — root cause of the remaining replay
+misses: `prisma.source.findMany` reads a *mutable shared corpus*. Live
+runs upsert query-scoped abstracts and rolling titles over stable ids,
+so a replay weeks later sees drifted rows → cassette misses on
+`enrichment_reasoner`/`reader_v3`/`elenchus`/`analyst_brief` (verified
+by request diff: provider-order and SRC-N content drift, not code
+regression). `corpus:rank-candidates:<sha1(where+take)>` and
+`corpus:enrich-sources:<sha1(sortedIds)>` now capture the candidate
+rows in record mode and serve them verbatim on replay — same pattern
+as `memory:*`/`experience:*`. Live mode: zero behaviour change. Old
+fixtures lack the channels → live fallthrough → drift still fails loud.
+**gulf/nordic fixtures are now stale pending re-record** (they predate
+the freeze channels AND the corpus drifted under them); re-record with
+all Sprint-50 flags ON once provider credits allow — that run also
+measures the true first-pass delta.
+
+**Verified**: tsc clean; `repair-reserve` 6/6 + `frozen-inputs` 13/13;
+gulf replay progressed past `elenchus` after the SMARD fix (remaining
+misses are the documented stale-fixture drift, not new regressions).
+
+Deferred (documented, not shipped): per-topic OpenAlex budget
+partitioning across parallel scouts; WorldBank/SemanticScholar/Gallica
+timeout-and-429 tuning (shed mechanism catches them but burns ~8
+requests first); stage-attributed failure learning (LIFE-style
+structural evolution — failure signatures currently only gate regen,
+they don't re-route the pipeline); MCP/A2A protocols judged
+non-applicable (in-process deterministic pipeline, no external agent
+mesh).
+
 ---
 
 External-stack pass (cassette/agentreplay record-replay, PaperQA2 citation

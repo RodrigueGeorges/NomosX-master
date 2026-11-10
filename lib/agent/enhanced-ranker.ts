@@ -11,6 +11,8 @@
 import { prisma } from '../db';
 import type { Source } from '@prisma/client';
 import { filterLowQualitySources } from '../providers/source-quality-filter';
+import { createHash } from 'crypto';
+import { captureInput } from './frozen-inputs';
 
 /**
  * Deterministic rank order: compositeScore desc, then source id asc.
@@ -111,8 +113,19 @@ export async function enhancedRank(
     return [];
   }
 
-  // Query with enhanced filters
-  let sources = await prisma.source.findMany({
+  // Query with enhanced filters.
+  // Frozen-input channel: the Source table is a mutable shared corpus —
+  // live runs upsert query-scoped abstracts ("Relevant to: …") and rolling
+  // dataset titles over stable IDs, so a replay weeks later reads drifted
+  // rows and every downstream prompt misses the cassette. Record mode
+  // snapshots the ranked candidate rows; replay serves them verbatim.
+  // Channel key covers the full query signature so different ranks never
+  // cross-serve. Old fixtures lack the channel → live fallthrough → the
+  // resulting drift still surfaces as a CassetteMissError (fail-loud).
+  const rankChannel = `corpus:rank-candidates:${createHash('sha1')
+    .update(JSON.stringify({ where: whereConditions, take: finalOptions.limit! * 5 }))
+    .digest('hex')}`;
+  let sources = await captureInput(rankChannel, () => prisma.source.findMany({
     where: {
       AND: whereConditions
     },
@@ -131,7 +144,7 @@ export async function enhancedRank(
       { id: 'asc' }
     ],
     take: finalOptions.limit! * 5 // Get 5x more candidates for filtering (was 3x — too few for niche topics)
-  });
+  }));
 
   // Post-query filtering for abstract (Prisma doesn't support length in where)
   // News sources are EXEMPT — they have shorter abstracts but are valuable real-time intelligence

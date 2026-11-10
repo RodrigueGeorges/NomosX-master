@@ -49,7 +49,11 @@ export async function searchSMARD(query: string, limit = 10): Promise<any[]> {
             id: `smard:${dt.path.slice(1)}`,
             provider: 'smard',
             type: 'dataset',
-            title: `SMARD — ${dt.label} (${start} to ${end})`,
+            // Title stays wall-clock-free: the rolling 7-day window made the
+            // persisted source title drift between runs, breaking replay
+            // determinism (cassette misses on elenchus/analyst prompts) and
+            // cross-run dedup. The window is descriptive, not identity.
+            title: `SMARD — ${dt.label} (last 7 days)`,
             abstract: `German electricity market data from Bundesnetzagentur via energy-charts: ${dt.label}. Time series data for the last 7 days. Relevant to: ${query}`,
             url: `https://www.smard.de/en`,
             pdfUrl: null,
