@@ -95,6 +95,36 @@ describe('repairFactualDiscrepancies', () => {
     expect(r.html).toBe('<p>rose by 10%</p>');
   });
 
+  it('numeric fallback patches a figure the LLM span repair could not place', async () => {
+    llmMock.mockResolvedValue({
+      content: JSON.stringify({ edits: [{ i: 1, find: 'nonexistent span xyz', replace: 'whatever' }] }),
+      costUsd: 0.004,
+    });
+    const html = '<p>Exports rose by 30% between 2020 and 2025 in the region.</p>';
+    const d = [{
+      claim: 'Exports rose by 30% between 2020 and 2025 [SRC-1]',
+      number: '30%', sourceRef: 'SRC-1',
+      sourceSays: 'the source reports exports rose by 42%',
+      fix: 'correct the figure to 42%',
+    }];
+    const r = await repairFactualDiscrepancies(html, d);
+    expect(r.applied).toBe(1);
+    expect(r.html).toContain('rose by 42%');
+    expect(r.html).not.toContain('30%');
+  });
+
+  it('numeric fallback refuses when the corrected figure is ambiguous', async () => {
+    llmMock.mockResolvedValue({ content: JSON.stringify({ edits: [] }), costUsd: 0.004 });
+    const html = '<p>Exports rose by 30% sharply.</p>';
+    const d = [{
+      claim: 'Exports rose by 30% sharply', number: '30%', sourceRef: 'SRC-1',
+      sourceSays: 'figures of 41% and 42% both appear', fix: 'unclear which applies',
+    }];
+    const r = await repairFactualDiscrepancies(html, d);
+    expect(r.applied).toBe(0);
+    expect(r.html).toBe(html);
+  });
+
   it('LLM call failure → llm_error, zero cost, never throws', async () => {
     llmMock.mockRejectedValue(new Error('provider down'));
     const r = await repairFactualDiscrepancies('<p>x</p>', [disc(0)]);

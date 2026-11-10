@@ -93,6 +93,77 @@ export function applyTolerantEdit(
   return { html: html.slice(0, start) + replace + html.slice(start + core.length), ok: true };
 }
 
+const NUM_TOKEN = /\d[\d,.]*\s*(?:%|percent|per\s*cent|trillion|billion|million|bn|tn|usd|dollars?)?/gi;
+
+/**
+ * Deterministic numeric fallback for discrepancies the LLM span repair
+ * could not place (live: 8/8 edits failed spans_boundary/not_found).
+ * Locates the claim's opening words tolerantly, then requires the wrong
+ * figure to occur EXACTLY once in a bounded window after the anchor, and
+ * the corrected figure to be uniquely extractable from FIX/SOURCE SAYS.
+ * Every ambiguity → skip (fail closed, never guess a number).
+ */
+function tryNumericPatch(
+  html: string,
+  d: FactualDiscrepancy,
+): { html: string; ok: boolean } {
+  const wrong = d.number.trim();
+  if (!wrong || !/\d/.test(wrong)) return { html, ok: false };
+
+  // Corrected figure: numeric tokens in FIX + SOURCE SAYS minus the wrong
+  // value. Must resolve to exactly one distinct candidate.
+  const hay = `${d.fix} ${d.sourceSays}`;
+  const wrongCore = wrong.replace(/[%\s]/g, '');
+  const candidates = new Map<string, string>();
+  for (const m of hay.matchAll(NUM_TOKEN)) {
+    const tok = m[0].trim();
+    const core = tok.replace(/[%\s]/g, '');
+    if (core === wrongCore) continue;
+    if (!/^\d/.test(tok)) continue;
+    candidates.set(core, tok);
+  }
+  if (candidates.size !== 1) return { html, ok: false };
+  const corrected = [...candidates.values()][0];
+
+  // Anchor: first words of the claim (citations stripped) VERBATIM —
+  // dropping short words would break contiguity with the html. Trailing
+  // numeric tokens are trimmed so the anchor ends before the figure.
+  const anchorWords = d.claim
+    .replace(/\[SRC-\d+\]/g, ' ')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 4);
+  while (anchorWords.length > 2 && /\d/.test(anchorWords[anchorWords.length - 1])) {
+    anchorWords.pop();
+  }
+  if (anchorWords.length < 3) return { html, ok: false };
+  const anchor = anchorWords.join(' ');
+  const tokens = anchor.split(/\s+/).map(t => entityFlex(escapeRe(t)));
+  const anchorRe = new RegExp(
+    tokens.map(t => `(?:<[^>]+>)*${t}(?:<[^>]+>)*`).join('(?:\\s|&nbsp;|<[^>]+>)+'),
+    'g',
+  );
+  const anchorMatches = [...html.matchAll(anchorRe)];
+  if (anchorMatches.length !== 1) return { html, ok: false };
+  const anchorEnd = (anchorMatches[0].index ?? 0) + anchorMatches[0][0].length;
+
+  // Window: text after the anchor up to the next block boundary or 600
+  // chars, whichever first. The wrong figure must occur exactly once.
+  const rest = html.slice(anchorEnd);
+  const boundary = rest.search(/<\/(p|h[1-6]|li|ul|ol|div|section|table|tr)>|<h[1-6]\b/i);
+  const window = boundary >= 0 ? rest.slice(0, boundary) : rest.slice(0, 600);
+  const wrongRe = new RegExp(entityFlex(escapeRe(wrong)), 'g');
+  const wrongMatches = [...window.matchAll(wrongRe)];
+  if (wrongMatches.length !== 1) return { html, ok: false };
+
+  const absStart = anchorEnd + (wrongMatches[0].index ?? 0);
+  return {
+    html: html.slice(0, absStart) + corrected + html.slice(absStart + wrongMatches[0][0].length),
+    ok: true,
+  };
+}
+
 export async function repairFactualDiscrepancies(
   html: string,
   discrepancies: FactualDiscrepancy[],
@@ -146,6 +217,7 @@ export async function repairFactualDiscrepancies(
   let out = html;
   let applied = 0;
   const skippedReasons: string[] = [];
+  const appliedIdx = new Set<number>();
   for (const e of edits) {
     const idx = (e.i ?? 0) - 1;
     if (idx < 0 || idx >= items.length || typeof e.find !== 'string' || typeof e.replace !== 'string') {
@@ -156,8 +228,19 @@ export async function repairFactualDiscrepancies(
     if (r.ok) {
       out = r.html;
       applied++;
+      appliedIdx.add(idx);
     } else {
       skippedReasons.push(`${r.reason}:${items[idx].number}`);
+    }
+  }
+  // Deterministic numeric fallback for items the LLM span repair missed.
+  for (let idx = 0; idx < items.length; idx++) {
+    if (appliedIdx.has(idx)) continue;
+    const r = tryNumericPatch(out, items[idx]);
+    if (r.ok) {
+      out = r.html;
+      applied++;
+      appliedIdx.add(idx);
     }
   }
   const skipped = items.length - applied;
