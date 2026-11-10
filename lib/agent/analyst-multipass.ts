@@ -765,7 +765,8 @@ async function pass3ProspectiveSynthesis(
   lang: string,
   domainContext?: string,
   depth?: "brief" | "strategic",
-  boundThesis?: string
+  boundThesis?: string,
+  premortem?: string
 ): Promise<{ analysis: AnalysisOutput; tokens: number; cost: number; family: import('../llm/unified-llm').LLMFamily }> {
   console.log(`[Analyst V3] PASS 3/3: Prospective Synthesis (depth: ${depth ?? 'brief'})...`);
 
@@ -962,7 +963,10 @@ Each link's derivesFrom must point to a prior link's id. The first links
 are present_facts (derivesFrom: null), then active_mechanisms, then
 future_extrapolations. A future_extrapolation's derivesFrom must NEVER
 point to another future_extrapolation — only to a present_fact or
-active_mechanism.${boundThesis && process.env.NOMOSX_THESIS_PROMPT_CONTRACT === '1' ? `
+active_mechanism.${premortem ? `
+
+ADVERSARIAL PREMORTEM (independent hostile review — mandatory constraints, designed around BEFORE you write):
+${premortem}` : ''}${boundThesis && process.env.NOMOSX_THESIS_PROMPT_CONTRACT === '1' ? `
 
 EVIDENCE-BOUND THESIS CONTRACT (mandatory — verified after generation):
 A thesis has been bound to this corpus as the central claim: "${boundThesis}"
@@ -1458,6 +1462,7 @@ export async function analystAgentV3(
     shouldStopEarly(refrainState, p1Text, p1Confidence, DEFAULT_REFRAIN_CONFIG);
     shouldStopEarly(refrainState, p2Text, p1Confidence, DEFAULT_REFRAIN_CONFIG);
     let p3: { analysis: AnalysisOutput; tokens: number; cost: number; family?: string };
+    let premortemCostTotal = 0;
     const p3FitsReserve = hasRunHeadroomWithReserve(undefined, isStrategic, passBudgetMs);
     if ((pass2Yield < 0.15 && mechanismCount > 0 && depth !== "strategic") || !p3FitsReserve) {
       if (!p3FitsReserve) {
@@ -1489,8 +1494,47 @@ export async function analystAgentV3(
         cost: 0,
       };
     } else {
+      // ADVERSARIAL PREMORTEM (opt-in NOMOSX_THESIS_PREMORTEM=1): an
+      // independent hostile review of the bound thesis + surviving
+      // mechanisms BEFORE the verdict is written — upstream weakness
+      // detection with information asymmetry (the reviewer never sees
+      // the analyst's reasoning). Its objections become mandatory
+      // constraints inside the Pass-3 prompt.
+      let premortemText: string | undefined;
+      if (options?.boundThesis && process.env.NOMOSX_THESIS_PREMORTEM === '1') {
+        try {
+          const { callLLM } = await import('../llm/unified-llm');
+          const { parseJson } = await import('./json-utils');
+          const mechBrief = (p1.map.mechanisms ?? []).slice(0, 15)
+            .map(m => `#${m.id}: ${String(m.description).slice(0, 160)}`).join('\n');
+          const pm = await callLLM({
+            messages: [
+              { role: 'system', content: 'You are a hostile reviewer running a premortem BEFORE an analyst writes its verdict. Given the evidence-bound thesis and the surviving mechanisms, identify the objections that would kill the publication at adversarial review. Output valid JSON only: {"fatalObjections":["..."],"verdictConstraints":["claims the verdict must NOT make"]}. Specific and terse — max 5 items each.' },
+              { role: 'user', content: `RESEARCH QUESTION: ${question}\n\nBOUND THESIS (evidence ceiling): "${options.boundThesis}"\n\nSURVIVING MECHANISMS:\n${mechBrief || '(none)'}\n\nWhat fatal objections would a Devil's Advocate raise against a verdict built on this thesis and these mechanisms?` },
+            ],
+            task: 'elenchus',
+            temperature: 0.3,
+            maxTokens: 900,
+            jsonMode: true,
+            enableCache: false,
+          });
+          premortemCostTotal += pm.costUsd ?? 0;
+          const parsed = parseJson<{ fatalObjections?: string[]; verdictConstraints?: string[] }>(pm.content);
+          const parts: string[] = [];
+          if (Array.isArray(parsed?.fatalObjections) && parsed.fatalObjections.length > 0) {
+            parts.push(`Fatal objections to design around:\n${parsed.fatalObjections.slice(0, 5).map(o => `- ${o}`).join('\n')}`);
+          }
+          if (Array.isArray(parsed?.verdictConstraints) && parsed.verdictConstraints.length > 0) {
+            parts.push(`Verdict must NOT claim:\n${parsed.verdictConstraints.slice(0, 5).map(o => `- ${o}`).join('\n')}`);
+          }
+          if (parts.length > 0) premortemText = parts.join('\n\n');
+          console.log(`[Analyst V3] PREMORTEM: ${(parsed?.fatalObjections ?? []).length} fatal objections captured ($${(pm.costUsd ?? 0).toFixed(4)})`);
+        } catch (pmErr) {
+          console.warn('[Analyst V3] PREMORTEM failed (non-blocking):', String(pmErr).slice(0, 150));
+        }
+      }
       // PASS 3: Prospective Synthesis (uses Pass 1 + Pass 2 outputs)
-      p3 = await dstep('analyst:p3', () => pass3ProspectiveSynthesis(question, ctx, p1.map, p2.map, sources.length, groundedCount, avgQuality, lang, domainContext, depth, options?.boundThesis));
+      p3 = await dstep('analyst:p3', () => pass3ProspectiveSynthesis(question, ctx, p1.map, p2.map, sources.length, groundedCount, avgQuality, lang, domainContext, depth, options?.boundThesis, premortemText));
     }
 
     // CITATION SANITIZATION: Strip all out-of-range [SRC-N] from analysis JSON.
@@ -1636,7 +1680,7 @@ export async function analystAgentV3(
     }
 
     const totalTokens = p1.tokens + p2.tokens + p3.tokens;
-    const totalCost = p1.cost + p2.cost + p3.cost + preDraftReviewCost + inlineGateCost;
+    const totalCost = p1.cost + p2.cost + p3.cost + preDraftReviewCost + inlineGateCost + premortemCostTotal;
     const elapsed = Date.now() - startTime;
 
     console.log(`[Analyst V3] Complete in ${elapsed}ms | 3 passes | ${totalTokens} tokens | $${totalCost.toFixed(4)} | cascade violations: ${chainValidation.cascadeViolations}`);
