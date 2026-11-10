@@ -1172,7 +1172,14 @@ export async function runAndPublishInquiry(
   for (const job of postGateJobs) {
     const jobCost = await Promise.race([
       job.catch(() => 0),
-      new Promise<0>(resolve => { const t = setTimeout(() => resolve(0), POST_GATE_WAIT_MS); t.unref?.(); }),
+      new Promise<0>(resolve => {
+        // setTimeout can be absent in embedded/test environments where a fake
+        // clock was partially uninstalled — degrade to an immediate resolve
+        // rather than rejecting the race and crashing the dispatch loop.
+        if (typeof setTimeout !== 'function') return resolve(0);
+        const t = setTimeout(() => resolve(0), POST_GATE_WAIT_MS);
+        t.unref?.();
+      }),
     ]);
     postGateCostUsd += typeof jobCost === 'number' ? jobCost : (jobCost as { costUsd?: number })?.costUsd ?? 0;
   }

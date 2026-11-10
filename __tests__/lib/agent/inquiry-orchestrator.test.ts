@@ -140,6 +140,14 @@ beforeEach(() => {
   (prisma.source.findMany as jest.Mock).mockResolvedValue([]);
 });
 
+// Fake timers installed by the timeout tests must not leak into later cases —
+// under Jest 30 a partially restored clock can leave `setTimeout` undefined,
+// which surfaces as ReferenceError inside runAndPublishInquiry's post-gate
+// cost wait (inquiry-orchestrator.ts).
+afterEach(() => {
+  jest.useRealTimers();
+});
+
 describe('runAndPublishInquiry — full funnel', () => {
   it('preserves the original artifact instead of regenerating without parent headroom', async () => {
     mockRunPipeline.mockResolvedValueOnce(makePipelineResult(makeStats(), 'a'));

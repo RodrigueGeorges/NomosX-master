@@ -309,6 +309,12 @@ export async function scoutImpl(
   const MAX_VARIATIONS = lean ? 2 : 3;
   const MAX_SEARCH_QUERIES = lean ? 6 : 14;
 
+  // Routed provider set — LOCAL variable, never a property on scoutImpl.
+  // Parallel scout calls (blackboard gap-fill, planner nodes) share this
+  // function object; a `_routedProviders` property was observed cross-talking
+  // between concurrent invocations and silently emptying providerSet.
+  let routedProviderNames: string[] | undefined;
+
   // ── STEP 0: QUERY ENHANCEMENT (LLM-powered) ──
   let enhanced: EnhancedQuery | null = null;
   let searchQueries = [query];
@@ -339,9 +345,9 @@ export async function scoutImpl(
       // Merge: keep explicitly requested providers, add routed ones
       const merged = new Set([...providerArr.filter(p => p !== 'auto' && p !== 'no-routing'), ...routedNames]);
       console.log(`[SCOUT] Neural routing selected ${routedNames.length} providers: ${routedNames.slice(0, 8).join(', ')}...`);
-      (scoutImpl as any)._routedProviders = [...merged];
+      routedProviderNames = [...merged];
     } else {
-      (scoutImpl as any)._routedProviders = [...providerArr.filter(p => p !== 'no-routing')];
+      routedProviderNames = [...providerArr.filter(p => p !== 'no-routing')];
     }
   } catch (err) {
     console.warn('[SCOUT] Neural source routing failed (non-blocking):', err);
@@ -418,10 +424,7 @@ export async function scoutImpl(
   }
 
   const pool: any[] = [];
-  // Use routed providers if neural routing selected them; otherwise use the original set
-  const routedProviders = (scoutImpl as any)._routedProviders as string[] | undefined;
-  delete (scoutImpl as any)._routedProviders; // clean up
-  const providerSet = new Set(routedProviders && routedProviders.length > 0 ? routedProviders : (providers as string[]));
+  const providerSet = new Set(routedProviderNames && routedProviderNames.length > 0 ? routedProviderNames : (providers as string[]));
 
   // ── DISABLE DEAD PROVIDERS ──
   // These providers consistently fail (expired API keys, dead endpoints, or persistent 403/404).
@@ -921,6 +924,11 @@ export async function scoutImpl(
     }
   }
 
+  // Diagnostic: when allPromises is 0 the routed names above never reach the
+  // dispatch chain — log the post-filter set so starvation is attributable.
+  if (allPromises.length === 0) {
+    console.warn(`[SCOUT] ZERO dispatchable providers after routing/health filters — set was: ${[...providerSet].join(', ') || '(empty)'} | routed input: ${(providers as string[]).join(',')}`);
+  }
   console.log(`[SCOUT] Launching ${allPromises.length} parallel requests across ${searchQueries.length} query variations`);
   const allResults = await Promise.allSettled(allPromises);
   
