@@ -39,7 +39,10 @@ jest.mock('@/lib/agent/ragas-eval', () => ({ evaluateBriefRAG: jest.fn() }));
 jest.mock('@/lib/agent/episodic-memory', () => ({ storeEpisode: jest.fn(async () => undefined) }));
 jest.mock('@/lib/agent/prediction-tracker', () => ({ storePredictionsFromHypotheses: jest.fn(async () => undefined) }));
 jest.mock('@/lib/agent/prediction-auditor', () => ({ runPredictionAuditor: jest.fn(async () => ({ audited: 0 })) }));
-jest.mock('@/lib/agent/frozen-inputs', () => ({ mergeInputsIntoStats: jest.fn() }));
+jest.mock('@/lib/agent/frozen-inputs', () => ({
+  ...jest.requireActual('@/lib/agent/frozen-inputs'),
+  mergeInputsIntoStats: jest.fn(),
+}));
 jest.mock('@/lib/agent/nli-verifier', () => ({ verifyCitationsNLI: jest.fn() }));
 jest.mock('@/lib/agent/symbolic-verifier', () => ({ verifySymbolically: jest.fn() }));
 jest.mock('@/lib/agent/claim-grounding', () => ({ groundClaimsWithNLI: jest.fn() }));

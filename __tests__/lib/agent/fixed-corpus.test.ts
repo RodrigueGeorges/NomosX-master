@@ -183,7 +183,9 @@ it('does not trim the tail in fixed-corpus mode (curated seeds are not a raw poo
 
 it('never restores explicitly off-topic documents to meet a quantity floor, even after enrichment', async () => {
   const ranked = Array.from({ length: 30 }, (_, i) => ({
-    id: `s${i}`, title: `Source ${i}`, provider: 'test', qualityScore: 70, compositeScore: 80,
+    // Distinct compositeScores: equal scores tie-break on string id order
+    // (s10 < s2), which would mask the relevance screen's actual selection.
+    id: `s${i}`, title: `Source ${i}`, provider: 'test', qualityScore: 70, compositeScore: 90 - i,
   }));
   jest.mocked(callLLM).mockResolvedValueOnce({ content: JSON.stringify({ scores: Object.fromEntries(ranked.map((_, i) => [String(i), i < 5 ? 3 : 0])) }), costUsd: 0 } as never);
   jest.mocked(assessEvidenceSufficiency).mockResolvedValueOnce({ verdict: 'enrich', sufficiencyScore: 40, gaps: ['Missing evidence'], enrichmentQueries: ['A targeted search'], suggestedProviders: [], costUsd: 0 } as never);
