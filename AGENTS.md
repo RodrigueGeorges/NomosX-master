@@ -954,6 +954,71 @@ measures the true first-pass delta.
 gulf replay progressed past `elenchus` after the SMARD fix (remaining
 misses are the documented stale-fixture drift, not new regressions).
 
+---
+
+## Sprint 52 — Live degraded-provider validation + concurrency fixes (2026-11)
+
+Bounded live cycle (`NOMOSX_AUTONOMOUS_ENABLED=1`, breaking mode,
+maxPublications=2, budget $4, all Sprint-50/51 flags ON, kimi credits
+still dead → glm-4.5/4.5-air sole LLM lane). What the run proved and
+what it exposed:
+
+**Confirmed working in production**
+
+- Compact/full P2 actually executes under degraded sizing: strategic
+  corpus capped ~15 sources → P1 ~2min on glm → P2 ran (10 assessments,
+  3→5 surviving) instead of the previous skip×3 pattern.
+- Pre-draft review caught 5 scope/causality defects per attempt
+  (mechanisms asserting causation outside the bound thesis) and injected
+  the directive into P2/P3.
+- Premortem captured 5 fatal objections for $0.0011; inline thesis gate
+  passed verdicts first-check ($0.0007); post-analyst verdict narrowing
+  repaired a breach in-place ($0.0003) and re-verified adherence.
+- `QUALITY_LOOP_VETO_GUARD` skipped the quality loop twice with the
+  correct reason ("deficit is veto-bound") — no wasted regen spend.
+- Anti-regression witness discarded a worse regen (score 116 < 135)
+  and kept the original artifact → held trust=40, ~$0.19/topic vs
+  ~$0.70+ baseline.
+- Held-retry loop injected accumulated failure feedback (2380 chars)
+  into the next attempt; branch-coverage guard queued gap requests for
+  7 unsupported branches before analyst spend.
+
+**Fixed from live signals**
+
+- `ba83671` — the three `global-*` feed aggregators (think-tanks,
+  orgs, intelligence) fetched via `parser.parseURL`, bypassing
+  http-client entirely (no budget lanes, concurrency cap, size cap, or
+  abort) and retrying dead feeds once per query variation. Ported the
+  `global-science` pattern: `httpGet`+`parseString`, per-provider 10min
+  failure memoization, `HTTP_BUDGET_EXHAUSTED` exempt,
+  `assertExecutionActive` at entry/exit.
+- `417b693` — **scout routed-provider race**: `scoutImpl` stored neural
+  routing output on the shared function object (`_routedProviders`);
+  concurrent invocations (blackboard gap-fill processes multiple gap
+  requests in parallel) overwrote each other's set — observed live as
+  `Launching 0 parallel requests` gap-fill scouts retrieving nothing.
+  Now a local variable; the post-filter provider set is logged when
+  dispatch is empty.
+- Same commit — `inquiry-orchestrator` post-gate cost wait crashed with
+  `ReferenceError: setTimeout is not defined` under Jest 30 fake-clock
+  teardown (11 pre-existing test failures, reproduced with changes
+  stashed). The bounded wait now degrades to immediate resolve when
+  `setTimeout` is unavailable; suite back to 19/19.
+
+**Remaining honest constraint**
+
+With kimi dead, glm-4.5 confabulates numerical claims the fact-checker
+correctly flags (attempt 1: 9 fatal/53% integrity; regen: 0 fatal but
+30 major/43% — DA REJECT 0/100, anti-regression kept the better
+artifact). This is model capability on the degraded lane, not
+orchestration — the gates caught it every time and held cheaply. Real
+first-pass measurement still requires kimi credits + fixture re-record.
+
+**Provider noise observed**: mass 90s-deadline blacklisting works but
+burns one parallel wave per scout; `gdelt` (router id) ≠ `gdelt-news`
+(dispatch id) — routed ids that match no dispatch case silently drop
+(covered by the new empty-dispatch log).
+
 **HTTP budget lanes** (`http-client.ts`, `pipeline-v2.ts`) — the
 per-scope upstream budget was shared by every stage: scout fan-out
 exhausted OpenAlex and gap-fill/held-retry evidence retrieval (the
