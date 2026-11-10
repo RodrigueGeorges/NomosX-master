@@ -965,6 +965,47 @@ additionally consume `http:lane:scout:<upstream>` capped at
 deep-planner child scopes; gap-fill runs outside the lane. Test:
 `http-client.test.ts` lane suite (13/13).
 
+**Provider-degraded corpus sizing** (`pipeline-init.ts`, `pipeline-v2.ts`)
+— pre-flight now records `stats.preflight.{aliveProviders,suspendedProviders}`;
+at corpus-cap time a live re-check (kimi can die mid-run) shrinks the
+analyst corpus when <2 LLMs are alive: strategic 60→40, brief 45→32
+(`ANALYST_CORPUS_CAP` still overrides). Verdict rides the
+`preflight:llm-degraded` frozen-input channel — record/replay sizing is
+deterministic; live mode computes fresh each run.
+
+**Validation runbook — first-pass measurement once credits return**
+
+Env flags for the validation cycle (all Sprint-50 levers ON):
+```
+NOMOSX_THESIS_PROMPT_CONTRACT=1
+NOMOSX_THESIS_INLINE_GATE=1
+NOMOSX_THESIS_PREMORTEM=1
+NOMOSX_THESIS_VERDICT_REPAIR=1
+NOMOSX_EARLY_ADHERENCE_ABORT=1
+NOMOSX_QUALITY_LOOP_VETO_GUARD=1
+NOMOSX_DEBATE_ON_DEMAND=1
+NOMOSX_CTX_EXTRACTION_CAP=1        # optional: smaller prompts, measure delta
+NOMOSX_CLAIM_PASSAGE_NLI=1         # optional: entailment refinement
+```
+Launch (same as sprint-50 radar): enqueue a bounded breaking cycle
+(2 pubs / $4 cap) then `npm run worker:pipeline` with the env above.
+Watch for: `PREMORTEM:`, `INLINE THESIS GATE:`, `PASS 2 compact`,
+`CORPUS CAP … provider-degraded sizing`, `EARLY ABORT`, `REGEN discarded`.
+
+Re-record fixtures (paid step, after a clean live pass):
+```
+NOMOSX_LLM_MODE=record npm run replay -- --cassette <fixture>
+```
+then certify: `npx tsx --env-file=.env.local scripts/replay-run.ts
+--cassette .llm-cassettes/<fixture>` → expect `cassette misses: 0` and
+trust/gate parity vs the recorded meta. gulf + nordic fixtures predate
+the corpus-freeze channels — they will miss until re-recorded; that is
+expected, not a regression.
+
+Metrics to compare vs the $2.17/0-published baseline: published count,
+Pass-2 execution rate (full vs compact vs skipped), DA rejection
+signatures, cost per publication, wall-clock, gate outcome.
+
 Deferred (documented, not shipped): WorldBank/SemanticScholar/Gallica
 timeout-and-429 tuning (shed mechanism catches them but burns ~8
 requests first); stage-attributed failure learning (LIFE-style
