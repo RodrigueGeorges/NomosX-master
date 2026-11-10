@@ -279,7 +279,7 @@ export default async function ResearcherPage({ params }: Props) {
     <PublicPageShell currentPage="research">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }}
       />
       <PageSection className="max-w-4xl">
         <Link

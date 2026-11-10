@@ -11,7 +11,7 @@ export function JsonLd({ data }: JsonLdProps) {
       id={`jsonld-${(data['@type'] as string) || 'data'}`}
       type="application/ld+json"
       strategy="afterInteractive"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(data).replace(/</g, '\\u003c') }}
     />
   );
 }

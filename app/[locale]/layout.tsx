@@ -162,7 +162,7 @@ export default async function LocaleLayout({
           id="jsonld-organization"
           type="application/ld+json"
           strategy="beforeInteractive"
-          dangerouslySetInnerHTML={{__html: JSON.stringify(jsonLd)}}
+          dangerouslySetInnerHTML={{__html: JSON.stringify(jsonLd).replace(/</g, '\\u003c')}}
         />
         <a
           href="#main-content"
