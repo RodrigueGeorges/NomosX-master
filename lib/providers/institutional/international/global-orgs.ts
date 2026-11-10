@@ -12,6 +12,8 @@
  */
 
 import Parser from 'rss-parser';
+import { httpGet } from '../../../http-client';
+import { assertExecutionActive } from '../../../worker/execution-scope';
 
 const parser = new Parser({
   headers: {
@@ -88,10 +90,17 @@ const GN_FEEDS: FeedConfig[] = [
 
 const ALL_FEEDS = [...DIRECT_FEEDS, ...GN_FEEDS];
 
+// Failed feeds are memoized for 10min — these aggregators are called once per
+// scout query variation, and a dead endpoint would otherwise burn one request
+// per variation for the whole node.
+const feedFailures = new Map<string, number>();
+const FEED_FAILURE_COOLDOWN_MS = 10 * 60 * 1000;
+
 /**
  * Search all international organization feeds for a query.
  */
 export async function searchGlobalOrgs(query: string, limit = 25): Promise<any[]> {
+  assertExecutionActive();
   const queryLower = query.toLowerCase();
   const queryTerms = queryLower.split(/\s+/).filter((t: string) => t.length > 3);
 
@@ -99,6 +108,7 @@ export async function searchGlobalOrgs(query: string, limit = 25): Promise<any[]
 
   const results = await Promise.allSettled(
     ALL_FEEDS.map(async (feedConfig) => {
+      if ((feedFailures.get(feedConfig.provider) ?? 0) > Date.now()) return [];
       try {
         let url = feedConfig.url;
         if (!feedConfig.direct && queryTerms.length > 0) {
@@ -106,7 +116,14 @@ export async function searchGlobalOrgs(query: string, limit = 25): Promise<any[]
           url = feedConfig.url.replace(/&hl=en/, `+${queryEncoded}&hl=en`);
         }
 
-        const feed = await parser.parseURL(url);
+        assertExecutionActive();
+        const xml = await httpGet<string>(url, {
+          responseType: 'text', timeout: 15000, retries: 0, cache: false,
+          headers: { 'User-Agent': 'Mozilla/5.0 (compatible; NomosXBot/1.0)', Accept: 'application/rss+xml,application/xml,text/xml' },
+        });
+        assertExecutionActive();
+        const feed = await parser.parseString(xml);
+        feedFailures.delete(feedConfig.provider);
         const matching = feed.items
           .filter((item: any) => {
             if (!feedConfig.direct) return true;
@@ -145,6 +162,9 @@ export async function searchGlobalOrgs(query: string, limit = 25): Promise<any[]
 
         return matching;
       } catch (err: any) {
+        assertExecutionActive();
+        if (err?.code === 'HTTP_BUDGET_EXHAUSTED') return [];
+        feedFailures.set(feedConfig.provider, Date.now() + FEED_FAILURE_COOLDOWN_MS);
         // Suppress warnings for Google News 503 (known IP blocking issue) and 403/404 (dead feeds)
         const msg = err.message?.slice(0, 60) || '';
         if (!msg.includes('503') && !msg.includes('403') && !msg.includes('404')) {
@@ -154,6 +174,10 @@ export async function searchGlobalOrgs(query: string, limit = 25): Promise<any[]
       }
     })
   );
+
+  // allSettled absorbs per-feed rejections — a scope abort thrown inside a
+  // callback must still cancel the search, not collapse into an empty result.
+  assertExecutionActive();
 
   const allResults = results
     .filter((r): r is PromiseFulfilledResult<any[]> => r.status === 'fulfilled')
