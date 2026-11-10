@@ -332,7 +332,12 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   (stats as any).phaseTimings = phaseMarks;
 
   // -- STEP 1: SCOUT — extracted to pipeline-steps/scout-block.ts --
-  const scoutOut = await runScoutBlock({
+  // Budget lane 'scout': broad discovery fan-out gets its own sub-cap per
+  // upstream (HTTP_LANE_SCOUT_FRACTION, default 70%) so post-analyst
+  // retrieval (gap-fill, held-retry evidence queries) keeps budget —
+  // live evidence showed scout exhausting OpenAlex and starving repair.
+  const { withHttpBudgetLane } = await import('../http-client');
+  const scoutOut = await withHttpBudgetLane('scout', () => runScoutBlock({
     query, providers, perProvider, isStrategic, useStorm,
     seedSourceIds: opts.seedSourceIds,
     minSeedSourcesToSkipScout: opts.minSeedSourcesToSkipScout,
@@ -342,7 +347,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     pipelineStart, emitProgress, isBudgetConstrained, orchState,
     assessAfterScout, recordDecision, recordTransformation, lineage,
     witnessCtx, ctx,
-  });
+  }));
   let allSourceIds = scoutOut.allSourceIds;
   const planNodesForAudit = scoutOut.planNodesForAudit;
   const scoutCkpt = scoutOut.scoutCkptRestored;
@@ -372,7 +377,9 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   // additions are part of the corpus the reasoner assessed.
   {
     const { runScoutEnrichmentAndIndex } = await import('./pipeline-steps/scout-enrichment-index');
-    allSourceIds = await runScoutEnrichmentAndIndex({
+    // Same 'scout' lane — enrichment re-scouts/web-fallback are part of the
+    // discovery phase and share its sub-cap; the reserve is for repair.
+    allSourceIds = await withHttpBudgetLane('scout', () => runScoutEnrichmentAndIndex({
       allSourceIds, query, label,
       stats: stats as Record<string, any>,
       scoutCkpt: !!scoutCkpt,
@@ -380,7 +387,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
       format: isStrategic ? 'strategic' : isDossier ? 'dossier' : isMemo ? 'memo' : 'brief',
       domain: (opts as any).domain || 'general',
       scout: frozenScout, durableKey, saveDurableStep, index,
-    });
+    }));
     phaseMark('indexEnrich');
   }
 

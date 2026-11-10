@@ -196,3 +196,28 @@ test('failed GETs are not cached — a retry re-issues the wire request', async 
   expect(calls).toBe(2);
   expect(res).toEqual({ ok: 1 });
 });
+
+test('scout budget lane caps discovery spend while preserving upstream budget for repair', async () => {
+  process.env.HTTP_LANE_SCOUT_OPENALEX = '3';
+  try {
+    fetchMock.mockImplementation(async () =>
+      new Response(JSON.stringify({ ok: true }), { status: 200, headers: { 'content-type': 'application/json' } }));
+    await withExecutionScope('lane-test', async () => {
+      const { withHttpBudgetLane } = await import('@/lib/http-client');
+      const opt = { rateLimiterKey: 'openalex', retries: 0 } as const;
+      // 3 scout-lane requests admitted.
+      for (let i = 0; i < 3; i++) {
+        await withHttpBudgetLane('scout', () => httpGet(`https://api.openalex.org/lane-ok-${i}`, opt));
+      }
+      // 4th inside the lane → lane exhausted even though upstream budget remains.
+      await expect(
+        withHttpBudgetLane('scout', () => httpGet('https://api.openalex.org/lane-full', opt))
+      ).rejects.toThrow(/lane/i);
+      // Outside the lane (gap-fill / repair retrieval) the same upstream still has budget.
+      await httpGet('https://api.openalex.org/repair-ok', opt);
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+  } finally {
+    delete process.env.HTTP_LANE_SCOUT_OPENALEX;
+  }
+});

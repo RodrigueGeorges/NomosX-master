@@ -954,8 +954,18 @@ measures the true first-pass delta.
 gulf replay progressed past `elenchus` after the SMARD fix (remaining
 misses are the documented stale-fixture drift, not new regressions).
 
-Deferred (documented, not shipped): per-topic OpenAlex budget
-partitioning across parallel scouts; WorldBank/SemanticScholar/Gallica
+**HTTP budget lanes** (`http-client.ts`, `pipeline-v2.ts`) — the
+per-scope upstream budget was shared by every stage: scout fan-out
+exhausted OpenAlex and gap-fill/held-retry evidence retrieval (the
+targeted repair queries) starved as `pending` forever. `withHttpBudgetLane('scout')`
+wraps `runScoutBlock` + `runScoutEnrichmentAndIndex`; calls inside
+additionally consume `http:lane:scout:<upstream>` capped at
+`HTTP_LANE_SCOUT_FRACTION` (default 0.7) of the upstream budget —
+`HTTP_LANE_SCOUT_<UPSTREAM>` overrides per upstream. ALS-propagates into
+deep-planner child scopes; gap-fill runs outside the lane. Test:
+`http-client.test.ts` lane suite (13/13).
+
+Deferred (documented, not shipped): WorldBank/SemanticScholar/Gallica
 timeout-and-429 tuning (shed mechanism catches them but burns ~8
 requests first); stage-attributed failure learning (LIFE-style
 structural evolution — failure signatures currently only gate regen,

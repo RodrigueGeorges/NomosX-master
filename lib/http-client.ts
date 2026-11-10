@@ -9,6 +9,7 @@
 
 import { env } from './env';
 import pLimit from 'p-limit';
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { getExecutionSignal, consumeExecutionBudget, consumeRootBudget, getExecutionBudgetUsage } from './worker/execution-scope';
 
 // NOTE: do NOT install a custom global dispatcher (e.g. setGlobalDispatcher(
@@ -80,15 +81,54 @@ function budgetExhausted(message: string): never {
   throw err;
 }
 
+// ── Budget lanes ──────────────────────────────────────────────────────────
+// The per-scope upstream budget is shared by EVERY stage in the scope.
+// Live evidence: broad scout fan-out consumed the whole OpenAlex budget,
+// leaving gap-fill/held-retry evidence retrieval (the targeted repair
+// queries) with zero requests — deferred as pending forever. Lanes give
+// the discovery phase its own sub-cap inside the same ledger: calls made
+// under withHttpBudgetLane('scout') additionally consume
+// `http:lane:scout:<upstream>` capped at a fraction of the upstream
+// budget, so the remainder stays available to post-analyst retrieval.
+// Lane state is AsyncLocalStorage — it propagates through the scout's
+// nested child execution scopes automatically, and gap-fill (outside the
+// lane) is unaffected. Live mode: ledgers only exist inside execution
+// scopes anyway, so detached callers see no change.
+const httpBudgetLane = new AsyncLocalStorage<string>();
+
+export function withHttpBudgetLane<T>(lane: string, fn: () => Promise<T>): Promise<T> {
+  return httpBudgetLane.run(lane, fn);
+}
+
+// Fraction of the upstream budget the 'scout' lane may consume.
+// HTTP_LANE_SCOUT_FRACTION (default 0.7) or per-upstream override
+// HTTP_LANE_SCOUT_<UPSTREAM> (absolute request count).
+const HTTP_SCOUT_LANE_FRACTION = Number(process.env.HTTP_LANE_SCOUT_FRACTION ?? 0.7);
+
+function laneBudgetFor(lane: string, upstreamKey: string): number {
+  if (lane !== 'scout') return Number.POSITIVE_INFINITY;
+  const override = Number(process.env[`HTTP_LANE_SCOUT_${upstreamKey.toUpperCase()}`]);
+  if (Number.isFinite(override) && override > 0) return override;
+  return Math.max(25, Math.floor(requestBudgetFor(upstreamKey) * HTTP_SCOUT_LANE_FRACTION));
+}
+
 function consumeHttpBudget(rateLimiterKey?: string): void {
   if (!consumeExecutionBudget('http:all', HTTP_MAX_REQUESTS_PER_EXECUTION)
     || !consumeRootBudget('root:http:all', HTTP_MAX_REQUESTS_PER_JOB)) {
     budgetExhausted('HTTP request budget exhausted for this execution');
   }
-  if (rateLimiterKey
-    && (!consumeExecutionBudget(`http:${rateLimiterKey}`, requestBudgetFor(rateLimiterKey))
-      || !consumeRootBudget(`root:http:${rateLimiterKey}`, rootBudgetFor(rateLimiterKey)))) {
-    budgetExhausted(`Request budget exhausted for upstream ${rateLimiterKey}`);
+  if (rateLimiterKey) {
+    if (!consumeExecutionBudget(`http:${rateLimiterKey}`, requestBudgetFor(rateLimiterKey))
+      || !consumeRootBudget(`root:http:${rateLimiterKey}`, rootBudgetFor(rateLimiterKey))) {
+      budgetExhausted(`Request budget exhausted for upstream ${rateLimiterKey}`);
+    }
+    const lane = httpBudgetLane.getStore();
+    if (lane) {
+      const laneCap = laneBudgetFor(lane, rateLimiterKey);
+      if (!consumeExecutionBudget(`http:lane:${lane}:${rateLimiterKey}`, laneCap)) {
+        budgetExhausted(`Budget lane '${lane}' exhausted for upstream ${rateLimiterKey}`);
+      }
+    }
   }
 }
 
