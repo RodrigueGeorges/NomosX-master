@@ -4864,3 +4864,40 @@ Production crash-loop root cause (verified via probe): Railway cgroup ~954MB vs 
 - **OpenRouter `models` fallback array**: requests carry the verified `:free` list (lightning → super-120b → ultra-550b → lfm-2.5 → `openrouter/free` router) so gateway-side failover covers dead/overloaded models within a single request.
 - **Deep-planner node scouts run in a bounded pool (concurrency 3)** — parentIds only feed the expansion-query context, never scout() input; thin-node expansion stays a sequential second pass so ancestor sourceIds are populated.
 - **Paid-mode findings (live pass, ~$1.5, cap $3/day)**: `GLM_BASE_URL` default is `https://api.z.ai/api/paas/v4` — `api.z.ai/v1` returns nginx 404, which is why GLM appeared dead and everything cascaded to freepool. With GLM alive the whole bulk tier (reader/critic/delphi/enhancement) runs at ~$0.0003-0.003/call with prefix-cache hits. Verified solvent lanes: OpenAI (gpt-6-*), DeepSeek (chat+reasoner), Kimi (kimi-k3), GLM. Dead: Anthropic (credit), Moonshot catalog names, Google gemini-3.8-flash (transient 503). Terminal provider states must session-latch: LinkUp "insufficient funds" and IMF-SDMX catalog failures now short-circuit instead of retrying per query. `isProviderHealthy` is consulted at scout scheduling — a blacklisted provider no longer burns 90s deadline slots.
+
+---
+
+## Sprint 53 — Run plan: the orchestrator governs up-front
+
+Live evidence (degraded glm-only cycle, $0.72, 0 published / 2 held):
+per-stage headroom guards are reactive — the fact-checker discovered at
+its turn that only 566s remained (< 600s flat gate) and skipped ALL LLM
+verification batches, capping integrity at deterministic-only while
+earlier stages had already consumed the tail window.
+
+**`lib/agent/run-plan.ts` — `computeRunPlan(input)`**: ONE deterministic
+computation right after pre-flight (provider health + execution scope +
+format known) fixes the execution profile BEFORE the first LLM call:
+
+- `profile`: full | compact | minimal — degraded (<2 LLMs alive) →
+  compact; degraded + tight scope (<50min) → minimal; tight scope alone
+  (bounded regen) → compact.
+- Envelopes: `corpusCap` (60/45 → 40/32 → 30/24), `p2Tier`
+  (full/compact/skip), `tailReserveMs` (30 → 40 → 45min — slow providers
+  need producers to stop earlier so verification fits), `factCheckMode`
+  (full/partial/deterministic), `debateMode` (always/on-demand/skip),
+  `estCostUsd` ceiling, `rationale` persisted for audit.
+
+Wired: `stats.runPlan` persisted every run; `ANALYST_CORPUS_CAP` env
+override preserved; corpus cap consumes `runPlan.corpusCap`. Remaining
+envelopes (p2Tier/tailReserve/factCheckMode/debateMode) are the contract
+for incremental consumer migration — stages should consult the plan
+instead of re-deriving policy. Pure function of inputs → record/replay
+deterministic. Tests: `run-plan.test.ts` (6).
+
+Same sprint, audit pass: JSON-LD `<` escaping on 4 sites (stored-XSS via
+`</script>` in DB/LLM fields); fact-repair entity-flex matching +
+deterministic numeric fallback; fact-checker partial LLM batch
+degradation (150s/batch frozen channel); scout budget-exhaustion no
+longer counts as provider failure; relevance semantic signal repaired
+(was constant ~0%).
