@@ -364,12 +364,33 @@ async function collectHeldRetryItems(maxItems = 1): Promise<{ items: ThinkTankDi
       take: 8,
       select: { id: true, title: true, verticalId: true, signalType: true, priorityScore: true },
     });
+    // Topic-level circuit breaker: HELD_MAX_RETRIES is per-signalId, but the
+    // same question re-enters via NEW signal rows — live evidence: the
+    // energy-transition question burned 5 identical runs. Cluster HOLD
+    // decisions by normalized title so a question can't retry forever
+    // through fresh signal IDs.
+    const normTitle = (t: string) => (t || '').toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80);
+    const recentHoldDecisions = await prisma.editorialDecision.findMany({
+      where: { decision: "HOLD", createdAt: { gte: new Date(Date.now() - 30 * 86400_000) } },
+      select: { signal: { select: { title: true } } },
+      take: 300,
+    });
+    const clusterHolds = new Map<string, number>();
+    for (const d of recentHoldDecisions) {
+      const k = normTitle(d.signal?.title || '');
+      if (k) clusterHolds.set(k, (clusterHolds.get(k) || 0) + 1);
+    }
     // Retry the CLOSEST-TO-PUBLISHABLE hold first, not the highest-priority
     // signal: a trust-39 hold one gate-check away from publishing has far
     // better marginal odds per dollar than a trust-15 hold on a "hot" topic.
     // lastHold.checks carries the persisted trustScore/qualityScore/diagnoses.
     const candidates: { sig: (typeof heldSignals)[number]; priorHolds: number; lastTrust: number; lastQuality: number; lastHold: { checks: unknown; reasons: string[] } | null }[] = [];
     for (const sig of heldSignals) {
+      const clusterKey = normTitle(sig.title);
+      if ((clusterHolds.get(clusterKey) || 0) >= HELD_MAX_RETRIES) {
+        console.log(`[ThinkTank] HELD CIRCUIT BREAKER: "${sig.title.slice(0, 60)}" — ${(clusterHolds.get(clusterKey) || 0)} cluster holds ≥ ${HELD_MAX_RETRIES}, parked`);
+        continue;
+      }
       const priorHolds = await prisma.editorialDecision.count({
         where: { signalId: sig.id, decision: "HOLD" },
       });

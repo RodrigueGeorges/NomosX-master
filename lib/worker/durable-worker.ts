@@ -414,6 +414,14 @@ export async function runWorkerLoop(options: WorkerOptions = {}): Promise<number
         `[Worker ${workerId}] sweep mem rss=${Math.round(mem.rss / 1e6)}MB heap=${Math.round(mem.heapUsed / 1e6)}/${Math.round(mem.heapTotal / 1e6)}MB activeJob=${activeJob?.id ?? 'none'}`
       );
       await sweepStalePipelineRuns(workerId);
+      // Prediction resolver: due OPEN predictions get one bounded LLM
+      // verdict each — closes the prospective-learning loop that was dead
+      // code (813 OPEN / 0 resolved live). 5 per sweep ≈ $0.005, never
+      // throws, failures expire honestly.
+      try {
+        const { resolveDuePredictions } = await import('../agent/prediction-tracker');
+        await resolveDuePredictions(5);
+      } catch { /* non-blocking */ }
     }
 
     let job: ClaimedJob | null = null;

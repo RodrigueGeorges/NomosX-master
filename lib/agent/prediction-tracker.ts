@@ -130,30 +130,130 @@ export async function storePredictionsFromHypotheses(
 // ─── Evaluation ─────────────────────────────────────────────────────────────
 
 /**
- * Find predictions that are due for evaluation (horizon has elapsed).
+ * Parse a stored horizon string into the date the prediction becomes
+ * due for evaluation. Horizons are free text in practice — '30d',
+ * '90d', '365d', 'long-term', '1-2 years', '2027-Q2', '2028',
+ * '2029-2030' — and the old due-check only matched the four relative
+ * literals, so calendar-horizon predictions were NEVER eligible
+ * (live: 813 OPEN, 0 resolved). Unparseable → null (never auto-due;
+ * fail closed, stays OPEN for manual review).
  */
-export async function findPredictionsDueForEvaluation(): Promise<Prediction[]> {
+export function parseHorizonDue(horizon: string, createdAt: Date): Date | null {
+  const h = (horizon || '').trim().toLowerCase();
+  if (!h) return null;
+
+  const rel = h.match(/^(\d+)\s*d\b/);
+  if (rel) return new Date(createdAt.getTime() + Number(rel[1]) * 86_400_000);
+
+  if (/long[-\s]?term|indefini|long\s*term/.test(h)) {
+    return new Date(createdAt.getTime() + 365 * 86_400_000);
+  }
+
+  const years = h.match(/(\d+(?:\.\d+)?)\s*(?:-|–|to|\+)\s*(\d+(?:\.\d+)?)?\s*(?:years?|ans|y\b)/);
+  if (years) {
+    const n = years[2] ? Number(years[2]) : Number(years[1]);
+    return new Date(createdAt.getTime() + n * 365 * 86_400_000);
+  }
+  const oneYear = h.match(/(\d+(?:\.\d+)?)\s*(?:year|an|y)\b/);
+  if (oneYear) return new Date(createdAt.getTime() + Number(oneYear[1]) * 365 * 86_400_000);
+
+  // Calendar horizons: '2027-Q2' → due at quarter END (Jul 1 = Q3 start);
+  // '2028' → Dec 31 2028; '2029-2030' → Jul 1 2030 (mid of the range).
+  const cal = h.match(/^(\d{4})(?:\s*[-–]\s*(\d{4}))?(?:-q([1-4]))?$/);
+  if (cal) {
+    const y1 = Number(cal[1]);
+    const y2 = cal[2] ? Number(cal[2]) : null;
+    const q = cal[3] ? Number(cal[3]) : null;
+    if (y2 !== null) return new Date(Date.UTC(y2, 6, 1)); // mid of range
+    if (q !== null) return new Date(Date.UTC(y1, q * 3, 1)); // first day after quarter
+    return new Date(Date.UTC(y1, 11, 31)); // end of year
+  }
+  const calLoose = h.match(/(\d{4})\s*-?\s*q?([1-4])\b/);
+  if (calLoose) return new Date(Date.UTC(Number(calLoose[1]), Number(calLoose[2]) * 3, 1));
+
+  return null;
+}
+
+/**
+ * Find OPEN predictions whose horizon has elapsed. Fetches a bounded
+ * candidate set and filters by parsed due date — horizon is free text,
+ * so SQL can't express the predicate.
+ */
+export async function findPredictionsDueForEvaluation(limit = 50): Promise<Prediction[]> {
   try {
-    const now = new Date();
-    // Adapt to existing schema: uses status='OPEN' and resolvedAt IS NULL
-    const predictions = await prisma.prediction.findMany({
-      where: {
-        status: 'OPEN',
-        resolvedAt: null,
-        OR: [
-          { horizon: '30d', createdAt: { lt: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000) } },
-          { horizon: '90d', createdAt: { lt: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000) } },
-          { horizon: '365d', createdAt: { lt: new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000) } },
-          { horizon: 'long-term', createdAt: { lt: new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000) } },
-        ],
-      },
-      take: 50,
+    const candidates = await prisma.prediction.findMany({
+      where: { status: 'OPEN', resolvedAt: null },
+      orderBy: { createdAt: 'asc' },
+      take: 500,
     });
-    return predictions as unknown as Prediction[];
+    const now = Date.now();
+    const due = (candidates as any[]).filter(c => {
+      const dueAt = parseHorizonDue(c.horizon, c.createdAt);
+      return dueAt !== null && dueAt.getTime() <= now;
+    }).slice(0, limit);
+    return due as unknown as Prediction[];
   } catch (error) {
     console.warn('[PredictionTracker] Failed to find due predictions:', error instanceof Error ? error.message : String(error));
     return [];
   }
+}
+
+/**
+ * Auto-resolve due predictions with one bounded LLM judgment each.
+ * Writes schema-valid statuses (CONFIRMED/REFUTED/EXPIRED — the old code
+ * wrote 'RESOLVED', outside the documented contract) and embeds the
+ * Brier score in resolutionNotes so generateCalibrationReport picks it
+ * up. UNCLEAR outcomes expire honestly rather than guess.
+ * Bounded: `limit` predictions per call, never throws.
+ */
+export async function resolveDuePredictions(limit = 10): Promise<{ resolved: number; expired: number; costUsd: number }> {
+  const due = await findPredictionsDueForEvaluation(limit);
+  if (due.length === 0) return { resolved: 0, expired: 0, costUsd: 0 };
+
+  let resolved = 0, expired = 0, costUsd = 0;
+  const { callLLM } = await import('../llm/unified-llm');
+  const { parseJson } = await import('./json-utils');
+
+  for (const p of due) {
+    const raw = p as any;
+    try {
+      const res = await callLLM({
+        messages: [
+          { role: 'system', content: 'You evaluate whether a past analytical prediction came true. Output valid JSON only: {"outcome":"CONFIRMED"|"REFUTED"|"UNCLEAR","notes":"one sentence of evidence"}. CONFIRMED = the claimed development occurred as stated. REFUTED = evidence shows it did not. UNCLEAR = cannot be determined from general knowledge — do not guess.' },
+          { role: 'user', content: `PREDICTION: ${raw.claim}\nHORIZON: ${raw.horizon}\nRESOLUTION CRITERIA: ${raw.resolutionCriteria || 'n/a'}\nFALSIFIER: ${raw.whatWouldFalsify || 'n/a'}` },
+        ],
+        task: 'fact_check',
+        temperature: 0.1,
+        maxTokens: 300,
+        jsonMode: true,
+      });
+      costUsd += res.costUsd ?? 0;
+      const parsed = parseJson<{ outcome?: string; notes?: string }>(res.content);
+      const outcome = String(parsed?.outcome || 'UNCLEAR').toUpperCase();
+      const prob = raw.probability ?? 0.5;
+      const actual = outcome === 'CONFIRMED' ? 1 : outcome === 'REFUTED' ? 0 : 0.5;
+      const brier = Math.pow(prob - actual, 2);
+      const status = outcome === 'CONFIRMED' ? 'CONFIRMED' : outcome === 'REFUTED' ? 'REFUTED' : 'EXPIRED';
+      await prisma.prediction.update({
+        where: { id: raw.id },
+        data: {
+          status,
+          resolvedAt: new Date(),
+          outcome: outcome === 'UNCLEAR' ? 'unclear' : outcome === 'CONFIRMED' ? 'occurred' : 'not_occurred',
+          resolutionNotes: `${parsed?.notes || outcome} [Brier: ${brier.toFixed(3)}]`,
+        },
+      });
+      if (status === 'EXPIRED') expired++; else resolved++;
+    } catch {
+      expired++; // unresolvable → expire honestly rather than retry forever
+      await prisma.prediction.update({
+        where: { id: raw.id },
+        data: { status: 'EXPIRED', resolvedAt: new Date(), outcome: 'unclear', resolutionNotes: 'Resolver error — expired without verdict' },
+      }).catch(() => {});
+    }
+  }
+  console.log(`[PredictionTracker] Resolved ${resolved} confirmed/refuted, ${expired} expired (${due.length} due, $${costUsd.toFixed(4)})`);
+  return { resolved, expired, costUsd };
 }
 
 /**
@@ -182,7 +282,9 @@ export async function evaluatePrediction(predictionId: string, outcome: Predicti
         resolvedAt: new Date(),
         outcome,
         resolutionNotes: `${evidence} [Brier score: ${brierScore.toFixed(3)}]`,
-        status: 'RESOLVED',
+        // Schema contract: OPEN|CONFIRMED|REFUTED|EXPIRED|SUPERSEDED —
+        // 'RESOLVED' was outside it and broke status-based queries.
+        status: outcome === 'occurred' ? 'CONFIRMED' : outcome === 'not_occurred' ? 'REFUTED' : 'EXPIRED',
       },
     });
 
