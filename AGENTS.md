@@ -850,6 +850,27 @@ All three flags off = zero call-stream change: gulf replay re-verified
 **0 misses, trust 40→40, hold→hold** after each commit. Flags flip
 together on the next re-record.
 
+**Live radar validation + doomed-artifact guard** (`9273e3d`, `60c0f90`)
+— full think-tank cycle (breaking, 2 pubs/$4) with all flags ON:
+TOPIC RADAR swept 87→15 topics; held-retry loop fired correctly on
+gulf-minerals (attempt 3, feedback+evidence queries injected → scout
+retrieved 535 sources targeted at gate objections). Thesis bound T1
+(4 docs); INLINE THESIS GATE fired twice and narrowed degenerate
+"causal_only" verdicts for $0.004-0.005 each — cheap repair proven
+live. **Root-cause chain proven**: kimi-k3 429 credits-exhausted →
+glm-4.5 alone → P1 ~8min → repair reserve skipped P2 on ALL 3
+attempts → empty stressTestMap + empty causalChain → DA reject
+0/100 "empty causal chain" twice → held trust=40. Fixes shipped:
+heavy-task timeouts 300s→600s (`9273e3d`, kimi P1 had timed out at
+exactly 300s while glm needed 492s); doomed-artifact early abort —
+`mechCount>0 && assessed===0 && chainLen===0` → predetermined DA
+fatal → skip tail under `NOMOSX_EARLY_ADHERENCE_ABORT=1`
+(`60c0f90`). Deferred from same audit: OpenAlex per-execution budget
+starves later parallel scouts (needs per-topic partitioning);
+WorldBank 15s timeouts + SemanticScholar 429 loops (shed mechanism
+catches them but burns ~8 requests first); Gallica 403 pre-check;
+kimi credit exhaustion is provider-side.
+
 **Adversarial premortem** (`7418bff`, `NOMOSX_THESIS_PREMORTEM=1`) —
 upstream weakness detection *between* the passes: after Pass 2
 stress-tests mechanisms and before Pass 3 writes the verdict, an
