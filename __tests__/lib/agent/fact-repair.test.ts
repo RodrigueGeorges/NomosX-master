@@ -37,6 +37,22 @@ describe('applyTolerantEdit', () => {
     expect(r.html).toBe(html);
   });
 
+  it('find with straight quote matches HTML entity-encoded apostrophe', () => {
+    const html = '<p>The bank&rsquo;s reserves rose by 30% in 2024 sharply.</p>';
+    const r = applyTolerantEdit(html, "bank's reserves rose by 30%", "bank's reserves rose by 42%");
+    expect(r.ok).toBe(true);
+    expect(r.html).toContain('reserves rose by 42%');
+    expect(r.html).not.toContain('30%');
+  });
+
+  it('find with em-dash matches HTML &mdash; entity inside a token', () => {
+    const html = '<p>Exports&mdash;once dominant&mdash;fell by 30% in 2024 sharply.</p>';
+    const r = applyTolerantEdit(html, 'dominant—fell by 30%', 'dominant—fell by 42%');
+    expect(r.ok).toBe(true);
+    expect(r.html).toContain('fell by 42% in 2024 sharply');
+    expect(r.html).not.toContain('30%');
+  });
+
   it('replace containing a citation token → bad_replace', () => {
     const html = '<p>Exports rose by 30% last year.</p>';
     const r = applyTolerantEdit(html, 'rose by 30%', 'rose by 42% [SRC-9]');

@@ -38,6 +38,21 @@ const BLOCK_OR_CITATION = /<\/?(p|h[1-6]|li|ul|ol|div|section|table|tr|td|sup|fi
 const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 /**
+ * Entity-flexible token pattern: claims come from stripHtmlForEvidence
+ * (entities decoded, smart punctuation preserved) while raw HTML keeps
+ * `&rsquo;`/`&mdash;`/`&#8217;` encodings — a verbatim token then never
+ * matches (observed live: 5/8 fact-repair edits failed `not_found`).
+ * Applied AFTER escapeRe on chars escapeRe leaves literal.
+ */
+const entityFlex = (tok: string) => tok
+  .replace(/'/g, `(?:'|’|&rsquo;|&apos;|&#0*39;|&#x0*27;)`)
+  .replace(/"/g, `(?:"|“|”|&quot;|&ldquo;|&rdquo;|&#0*34;|&#x0*22;)`)
+  .replace(/&/g, `(?:&amp;|&)`)
+  .replace(/—/g, `(?:—|–|-|&mdash;|&ndash;|&#0*8212;|&#0*8211;)`)
+  .replace(/–/g, `(?:–|-|&ndash;|&#0*8211;)`)
+  .replace(/…/g, `(?:…|\\.\\.\\.)`);
+
+/**
  * Apply one find→replace edit tolerantly: the find's tokens may be separated
  * by whitespace/&nbsp;/inline tags in the html, and each token may be wrapped
  * in inline tags. The match must be unique and must not span a block or
@@ -48,7 +63,7 @@ export function applyTolerantEdit(
   find: string,
   replace: string,
 ): { html: string; ok: boolean; reason?: string } {
-  const tokens = find.trim().split(/\s+/).filter(Boolean).map(escapeRe);
+  const tokens = find.trim().split(/\s+/).filter(Boolean).map(t => entityFlex(escapeRe(t)));
   if (tokens.length === 0) return { html, ok: false, reason: 'empty_find' };
   const pattern = tokens
     .map(t => `(?:<[^>]+>)*${t}(?:<[^>]+>)*`)
