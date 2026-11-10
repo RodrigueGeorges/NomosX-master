@@ -850,6 +850,17 @@ All three flags off = zero call-stream change: gulf replay re-verified
 **0 misses, trust 40→40, hold→hold** after each commit. Flags flip
 together on the next re-record.
 
+**Adversarial premortem** (`7418bff`, `NOMOSX_THESIS_PREMORTEM=1`) —
+upstream weakness detection *between* the passes: after Pass 2
+stress-tests mechanisms and before Pass 3 writes the verdict, an
+independent hostile reviewer (`elenchus` task, never sees the analyst's
+reasoning — MARCH-style information asymmetry) extracts fatal
+objections + verdict must-not constraints from the bound thesis and
+surviving mechanisms. Injected into the Pass-3 prompt as mandatory
+design-around constraints — the verdict is written *against* the
+known kill-shots instead of discovering them at post-render DA.
+~$0.01-0.03, cost folded into `totalCostUsd`.
+
 **Extended same sprint** (`8a5d322`): the prompt contract now covers
 Passes 1–3 (above), and `NOMOSX_THESIS_INLINE_GATE=1` adds an inline
 post-pruning adherence check *inside* the analyst — `checkThesisAdherence`
