@@ -467,9 +467,16 @@ export async function factChecker(
   const llmWindowOk = captureInputSync('time:factcheck-llm-window', () =>
     fcDeadlineAt === undefined || (fcDeadlineAt - Date.now()) >= fcHeadroomMs
   );
-  if (!llmWindowOk && ambiguousClaims.length > 0) {
-    console.warn(`[FACT-CHECKER] LLM batch skipped — ${Math.max(0, Math.round(((fcDeadlineAt ?? Date.now()) - Date.now()) / 1000))}s left < ${Math.round(fcHeadroomMs / 1000)}s headroom; ${ambiguousClaims.length} claims stay deterministic-only`);
-    for (const c of ambiguousClaims) {
+  // Partial degradation: the flat 600s gate is sized for the FULL ambiguous
+  // set + UFO + citance. A small remainder (e.g. 566s live) used to skip
+  // every LLM batch even though 2 batches need ~4min — integrity capped at
+  // deterministic-only. Each batch now re-checks its own headroom and the
+  // pass truncates gracefully: verified claims count, the rest stay
+  // deterministic-only. Frozen per-invocation for record/replay parity.
+  const BATCH_HEADROOM_MS = Number(process.env.FACTCHECK_BATCH_HEADROOM_MS ?? 150_000);
+  const fcRemainingMs = () => fcDeadlineAt === undefined ? Number.POSITIVE_INFINITY : fcDeadlineAt - Date.now();
+  const markHeadroomSkipped = (list: typeof ambiguousClaims) => {
+    for (const c of list) {
       allResults.push({
         claim: c.claim,
         number: c.number,
@@ -481,8 +488,23 @@ export async function factChecker(
         fix: "Manual verification required",
       });
     }
+  };
+  // Frozen once like llmWindowOk: replay must take the same skip/partial
+  // branch the record took, or it would run batches that were never
+  // recorded (cassette miss) — or skip ones that were.
+  const partialOk = captureInputSync('time:factcheck-partial-window', () => fcRemainingMs() >= BATCH_HEADROOM_MS);
+  const noRoomAtAll = !llmWindowOk && ambiguousClaims.length > 0 && !partialOk;
+  if (noRoomAtAll) {
+    console.warn(`[FACT-CHECKER] LLM batch skipped — ${Math.max(0, Math.round(fcRemainingMs() / 1000))}s left < ${Math.round(fcHeadroomMs / 1000)}s headroom; ${ambiguousClaims.length} claims stay deterministic-only`);
+    markHeadroomSkipped(ambiguousClaims);
   } else {
     for (let i = 0; i < ambiguousClaims.length; i += 20) {
+      const batchOk = captureInputSync('time:factcheck-batch-window', () => fcRemainingMs() >= BATCH_HEADROOM_MS);
+      if (!batchOk) {
+        console.warn(`[FACT-CHECKER] LLM batch truncated at ${i}/${ambiguousClaims.length} — ${Math.max(0, Math.round(fcRemainingMs() / 1000))}s left; remainder stays deterministic-only`);
+        markHeadroomSkipped(ambiguousClaims.slice(i));
+        break;
+      }
       const batch = ambiguousClaims.slice(i, i + 20);
       const batchResults = await factCheckBatch(batch, sources, producerFamily, readings);
       allResults.push(...batchResults);
