@@ -386,10 +386,27 @@ export async function scoutImpl(
   {
     const before = searchQueries.length;
     const seenQ = new Set<string>();
+    const keptTokens: Set<string>[] = [];
+    const tokensOf = (q: string) =>
+      new Set(q.toLowerCase().replace(/[^\w\s]/g, ' ').split(/\s+/).filter(t => t.length > 2));
+    const jaccard = (a: Set<string>, b: Set<string>) => {
+      if (a.size === 0 || b.size === 0) return 0;
+      let inter = 0;
+      for (const t of a) if (b.has(t)) inter++;
+      return inter / (a.size + b.size - inter);
+    };
     searchQueries = searchQueries.filter(q => {
       const k = q.toLowerCase().replace(/[^\w\s]/g, ' ').replace(/\s+/g, ' ').trim();
       if (seenQ.has(k)) return false;
+      // Fuzzy dedup: near-identical variations (Jaccard ≥ 0.8 on content
+      // tokens) still cost a full provider fan-out each — observed live
+      // exhausting the per-execution OpenAlex budget on redundant calls.
+      const toks = tokensOf(q);
+      for (const prev of keptTokens) {
+        if (jaccard(toks, prev) >= 0.8) return false;
+      }
       seenQ.add(k);
+      keptTokens.push(toks);
       return true;
     });
     if (searchQueries.length < before) {
