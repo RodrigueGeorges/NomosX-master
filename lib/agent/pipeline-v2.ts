@@ -984,8 +984,16 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     const chainLen = Array.isArray((analysis as any)?.causalChain) ? (analysis as any).causalChain.length : 0;
     const mechCount = am?.frictionMap?.mechanisms?.length ?? 0;
     const assessed = am?.stressTestMap?.mechanismAssessments?.length ?? 0;
-    if (mechCount > 0 && assessed === 0 && chainLen === 0) {
-      const reason = `unstressed_analysis: ${mechCount} mechanisms mapped but stress test never ran and causal chain is empty — DA fatal challenge predetermined`;
+    const surviving = am?.stressTestMap?.survivingMechanisms?.length ?? 0;
+    // Unified doomed signature — subsumes both live failure modes:
+    //  (a) stress test never ran (reserve skip/failure) → surviving===0
+    //  (b) stress test ran and eliminated EVERY mechanism → surviving===0
+    // In both, an empty causalChain means the DA's fatal "empty chain /
+    // zero surviving mechanisms" challenge is predetermined (observed
+    // live: DA reject 0/100 on exactly these shapes). A non-empty chain
+    // still proceeds — the DA judges whether it rests on dead mechanisms.
+    if (mechCount > 0 && chainLen === 0 && surviving === 0) {
+      const reason = `unstressed_analysis: ${mechCount} mechanisms mapped, ${assessed} assessed, 0 survived stress test and causal chain is empty — DA fatal challenge predetermined`;
       console.warn(`${label} EARLY ABORT: ${reason}`);
       stats.earlyAbort = { reason: 'unstressed_analysis', stage: 'post-gapfill', costUsd: cost.runningCostUsd };
       stats.structuredRefusal = {
