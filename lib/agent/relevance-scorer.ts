@@ -190,9 +190,11 @@ export function scoreRelevance(
   }
 
   // 4. Semantic Similarity (10% weight — n-gram Jaccard scores very low for most papers)
-  // N-gram overlap between enhanced query and title+abstract
+  // N-gram overlap between the ORIGINAL question and title+abstract.
+  // `enhanced` is a keyword-stuffed string whose bigrams almost never appear
+  // verbatim in real text → semantic was a constant ~0 (observed live).
   const semanticSimilarity = computeNGramSimilarity(
-    enhancedQuery.enhanced,
+    enhancedQuery.original || enhancedQuery.enhanced,
     `${title} ${abstract}`
   );
 
@@ -250,8 +252,10 @@ export function scoreRelevance(
  * Simple deterministic text similarity without embeddings
  */
 function computeNGramSimilarity(query: string, text: string): number {
-  const qNgrams = extractNGrams(query, 2).concat(extractNGrams(query, 3));
-  const tNgrams = extractNGrams(text, 2).concat(extractNGrams(text, 3));
+  // Include unigrams: questions are short, so bigram/trigram-only overlap
+  // with an abstract is near-zero even for genuinely relevant sources.
+  const qNgrams = extractNGrams(query, 1).concat(extractNGrams(query, 2), extractNGrams(query, 3));
+  const tNgrams = extractNGrams(text, 1).concat(extractNGrams(text, 2), extractNGrams(text, 3));
   
   if (qNgrams.length === 0 || tNgrams.length === 0) return 0;
   
