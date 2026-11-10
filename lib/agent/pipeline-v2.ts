@@ -481,7 +481,30 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   // provider singleton can never be cut — the cap saves tokens, it must not
   // destroy branch coverage or diversity. allSourceIds keeps the full pool
   // so gap-fill re-ranks still see everything.
-  const corpusCap = Number(process.env.ANALYST_CORPUS_CAP ?? (isStrategic ? 60 : 45));
+  // Provider-degraded sizing: the pre-flight snapshot (and a live re-check
+  // — providers can die mid-run, e.g. kimi credit exhaustion) tells us
+  // whether failover headroom exists. With <2 LLMs alive the heavy passes
+  // run on a single slow provider; a strategic 60-source corpus pushed
+  // P1 past the window and starved P2 entirely (live radar evidence).
+  // Shrink the corpus so the essential passes fit — evidence quality per
+  // source is preserved by rank order, only tail noise is cut.
+  // Frozen-input channel: provider suspension state is live-varying —
+  // record captures the verdict, replay serves it so corpus sizing stays
+  // deterministic. Old fixtures lack the channel → live fallthrough →
+  // any resulting prompt drift still surfaces as a CassetteMissError.
+  const { captureInput: captureDegraded } = await import('./frozen-inputs');
+  const llmDegraded = await captureDegraded('preflight:llm-degraded', async () => {
+    const snapshotSaysDegraded = ((stats as any).preflight?.aliveProviders?.length ?? 99) < 2;
+    if (snapshotSaysDegraded) return true;
+    try {
+      const { getAvailableProviders, getSuspendedProviders } = await import('../llm/unified-llm');
+      const suspendedNow = await getSuspendedProviders();
+      const aliveNow = getAvailableProviders().filter(p => !suspendedNow.includes(p));
+      (stats as any).preflight = { ...(stats as any).preflight, aliveProvidersAtRank: aliveNow };
+      return aliveNow.length < 2;
+    } catch { return false; }
+  });
+  const corpusCap = Number(process.env.ANALYST_CORPUS_CAP ?? (isStrategic ? (llmDegraded ? 40 : 60) : (llmDegraded ? 32 : 45)));
   if (corpusCap > 0 && topSources.length > corpusCap) {
     const branchBound = new Set(planNodesForAudit.flatMap(n => n.sourceIds ?? []));
     const providerCount = new Map<string, number>();
@@ -495,7 +518,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
       protectedSingleton: capped.filter(s => !branchBound.has(s.id) && (providerCount.get(s.provider || 'unknown') ?? 0) === 1).length,
     };
     topSources = capped;
-    console.log(`${label} CORPUS CAP: ${stats.corpusCap.before} → ${stats.corpusCap.after} sources (branch-bound and provider-singleton protected)`);
+    console.log(`${label} CORPUS CAP: ${stats.corpusCap.before} → ${stats.corpusCap.after} sources (branch-bound and provider-singleton protected${llmDegraded ? ', provider-degraded sizing' : ''})`);
   }
 
   // Barrier: context primer + episodic memory (launched pre-scout) must

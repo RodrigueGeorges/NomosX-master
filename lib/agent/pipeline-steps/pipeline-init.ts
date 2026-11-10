@@ -107,6 +107,13 @@ export async function runPipelineInit(query: string, opts: PipelineCoreOptions) 
     const available = getAvailableProviders();
     const suspended = await getSuspendedProviders();
     const alive = available.filter(p => !suspended.includes(p));
+    // Expose the snapshot: downstream sizing decisions (corpus cap, pass
+    // budgets) degrade gracefully when failover headroom is gone — a
+    // glm-only run cannot carry the same corpus a kimi-backed run can.
+    (stats as Record<string, unknown>).preflight = {
+      aliveProviders: alive,
+      suspendedProviders: suspended,
+    };
     // Free-run refinement: "freepool" alive only counts if a configured endpoint
     // isn't quota-cooled — otherwise the scout burns retrieval budget for an
     // analyst that is guaranteed to refuse.
