@@ -242,15 +242,15 @@ const TASK_ASSIGNMENT: Record<LLMTask, TaskAssignment> = {
   // fallback chain routes to Kimi when GLM can't handle it (ctx or timeout).
   reader_v3:              { provider: "glm", model: GLM_FAST, timeoutMs: 300_000 },
   strategic_analyst:      { provider: "openai", model: OPENAI_REASONING, timeoutMs: 600_000 },
-  harvard_council:        { provider: "openai", model: OPENAI_REASONING, timeoutMs: 300_000 },
-  elenchus:               { provider: "openai", model: OPENAI_REASONING, timeoutMs: 300_000 },
+  harvard_council:        { provider: "openai", model: OPENAI_REASONING, timeoutMs: 600_000 },
+  elenchus:               { provider: "openai", model: OPENAI_REASONING, timeoutMs: 600_000 },
 
   // Heavy structured-JSON OUTPUT — Kimi K3 (its original role): 128K output
   // headroom for long structured briefs, reasoning_effort=high on reasoning tasks.
-  analyst_brief:          { provider: "openai", model: OPENAI_REASONING, timeoutMs: 300_000 },
-  auto_revision:          { provider: "openai", model: OPENAI_REASONING, timeoutMs: 300_000 },
+  analyst_brief:          { provider: "openai", model: OPENAI_REASONING, timeoutMs: 600_000 },
+  auto_revision:          { provider: "openai", model: OPENAI_REASONING, timeoutMs: 600_000 },
   // Editorial arbiter upgraded to gpt-6-astra for frontier reasoning in scenario synthesis
-  editorial_arbiter:      { provider: "openai", model: "gpt-6-astra", timeoutMs: 300_000 },
+  editorial_arbiter:      { provider: "openai", model: "gpt-6-astra", timeoutMs: 600_000 },
 
   // Precision / structure — gpt-6-sol: frontier-enough for these tasks at
   // 5× lower cost than astra (kept only for the editorial arbiter apex).
@@ -265,9 +265,9 @@ const TASK_ASSIGNMENT: Record<LLMTask, TaskAssignment> = {
 
   // Primary data synthesis — back on Kimi K3 (frontier reasoning for expert
   // interviews / survey synthesis)
-  primary_data_synthesis: { provider: "openai", model: OPENAI_REASONING, timeoutMs: 300_000 },
+  primary_data_synthesis: { provider: "openai", model: OPENAI_REASONING, timeoutMs: 600_000 },
   // Policy stress test — multi-archetype risk review on the frontier mid-tier
-  stress_test: { provider: "openai", model: OPENAI_REASONING, timeoutMs: 300_000 },
+  stress_test: { provider: "openai", model: OPENAI_REASONING, timeoutMs: 600_000 },
 
   // Legacy aliases — never read directly (normalizeTask() redirects before lookup),
   // kept so LLMTask stays a superset and TS doesn't complain about missing keys.
@@ -275,7 +275,7 @@ const TASK_ASSIGNMENT: Record<LLMTask, TaskAssignment> = {
   extraction:             { provider: "glm", model: GLM_FAST, timeoutMs: 120_000 },
   citation:               { provider: "glm", model: GLM_FAST, timeoutMs: 60_000 },
   analysis:               { provider: "glm", model: GLM_FAST, timeoutMs: 120_000 },
-  strategic_analysis:     { provider: "openai", model: OPENAI_REASONING, timeoutMs: 300_000 },
+  strategic_analysis:     { provider: "openai", model: OPENAI_REASONING, timeoutMs: 600_000 },
   critique:               { provider: "openai", model: OPENAI_REASONING, timeoutMs: 120_000 },
   rewrite:                { provider: "glm", model: GLM_FAST, timeoutMs: 120_000 },
   reflection:             { provider: "glm", model: GLM_FAST, timeoutMs: 30_000 },
