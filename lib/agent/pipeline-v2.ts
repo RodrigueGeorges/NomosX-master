@@ -504,7 +504,19 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
       return aliveNow.length < 2;
     } catch { return false; }
   });
-  const corpusCap = Number(process.env.ANALYST_CORPUS_CAP ?? (isStrategic ? (llmDegraded ? 40 : 60) : (llmDegraded ? 32 : 45)));
+  const { computeRunPlan } = await import('./run-plan');
+  const { getTightestExecutionBudgetMs } = await import('../worker/execution-scope');
+  const runPlan = computeRunPlan({
+    isStrategic,
+    depth: isStrategic ? 'strategic' : isDossier ? 'dossier' : isMemo ? 'memo' : 'brief',
+    aliveLlmProviders: (((stats as any).preflight?.aliveProvidersAtRank ?? (stats as any).preflight?.aliveProviders) as unknown[] | undefined)?.length ?? 99,
+    scopeBudgetMs: getTightestExecutionBudgetMs(),
+  });
+  (stats as any).runPlan = runPlan;
+  if (runPlan.rationale.length > 0) {
+    console.log(`${label} RUN PLAN: ${runPlan.profile} — ${runPlan.rationale.join('; ')}`);
+  }
+  const corpusCap = Number(process.env.ANALYST_CORPUS_CAP ?? runPlan.corpusCap);
   if (corpusCap > 0 && topSources.length > corpusCap) {
     const branchBound = new Set(planNodesForAudit.flatMap(n => n.sourceIds ?? []));
     const providerCount = new Map<string, number>();
