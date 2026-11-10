@@ -911,7 +911,8 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
   // spend on a hold already decided. Abort with the same fail-closed
   // shape as the analysis-failure refusal above.
   const tbPostGap = (stats as any).thesisBinding;
-  if (process.env.NOMOSX_EARLY_ADHERENCE_ABORT === '1' && tbPostGap?.statement) {
+  const earlyAbortEnabled = process.env.NOMOSX_EARLY_ADHERENCE_ABORT === '1';
+  if (earlyAbortEnabled && tbPostGap?.statement) {
     await verifyThesisBinding('post-gapfill');
     const tbNow = (stats as any).thesisBinding;
     if (tbNow?.evaluationComplete === true && tbNow.adhered === false) {
@@ -923,6 +924,45 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
         sourceCount: topSources.length,
         required: 0,
         missing: ['thesis_adherence'],
+      };
+      stats.totalCostUsd = cost.runningCostUsd;
+      emitProgress(pipelineRun.id, "ANALYST", "failed", `Refused: ${reason}`);
+      activeRuns.delete(idempotencyKey);
+      process.removeListener('unhandledRejection', rejectionHandler);
+      await prisma.pipelineRun.update({
+        where: { id: pipelineRun.id },
+        data: {
+          status: "FAILED",
+          finishedAt: new Date(),
+          durationMs: Date.now() - pipelineStart,
+          error: reason.slice(0, 500),
+          steps: toJsonSafe({ ...stats, error: reason }),
+        },
+      }).catch(() => {});
+      return { briefId: undefined, pipelineRun, stats, html: '', analysis: { refusal: stats.structuredRefusal } as any };
+    }
+  }
+  // Doomed-artifact guard (same flag, no thesis-binding required):
+  // mechanisms were mapped but the stress test never ran (repair-reserve
+  // skip or failure) AND no causal chain survived — the DA's fatal
+  // "empty causal chain / zero surviving mechanisms" challenge is
+  // predetermined (observed live: DA reject 0/100 on exactly this
+  // shape). Abort before the critic→debate→render tail; the held
+  // outcome is identical, the spend is not.
+  if (earlyAbortEnabled) {
+    const am = (analysis as any)?._meta;
+    const chainLen = Array.isArray((analysis as any)?.causalChain) ? (analysis as any).causalChain.length : 0;
+    const mechCount = am?.frictionMap?.mechanisms?.length ?? 0;
+    const assessed = am?.stressTestMap?.mechanismAssessments?.length ?? 0;
+    if (mechCount > 0 && assessed === 0 && chainLen === 0) {
+      const reason = `unstressed_analysis: ${mechCount} mechanisms mapped but stress test never ran and causal chain is empty — DA fatal challenge predetermined`;
+      console.warn(`${label} EARLY ABORT: ${reason}`);
+      stats.earlyAbort = { reason: 'unstressed_analysis', stage: 'post-gapfill', costUsd: cost.runningCostUsd };
+      stats.structuredRefusal = {
+        reason,
+        sourceCount: topSources.length,
+        required: 0,
+        missing: ['stress_test', 'causal_chain'],
       };
       stats.totalCostUsd = cost.runningCostUsd;
       emitProgress(pipelineRun.id, "ANALYST", "failed", `Refused: ${reason}`);
