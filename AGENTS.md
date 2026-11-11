@@ -4937,3 +4937,30 @@ decisions are now clustered by normalized title — ≥2 cluster holds in
 Tests: `prediction-horizon.test.ts` (7). Remaining roadmap item:
 DA-objection → P2 stress-criteria injection (experience bank → P2 prompt)
 — the adversarial loop's last unclosed edge.
+
+---
+
+## Sprint 55 — Institutional audit + DA→P2 adversarial loop
+
+**Audit** (`AUDIT.md`, commit `1fb0c4a`): verified DB state — 176 pipeline
+runs / 7 weeks / 0 publications; 14.6k expired signals vs ~13 dispatched;
+3 of 5 verticals at zero signals; 22 HOLDs decomposed (Oct: trust 69-78 but
+DA publishability 10-34 → fragile argumentation; Nov: glm-degraded veto
+cap 40). DA publishability math verified NOT inverted
+(`100 - fatal*20 - major*8 - minor*2`) — the gate is correctly rejecting
+fragile work, not miscalibrated.
+
+**P3 implemented** — cross-run adversarial memory:
+- `extractExperience` records `devilsAdvocate.topChallenges` (now carried
+  in the post-gate payload) as `phase:'da-objection'` experience entries —
+  deterministic, no extra LLM call.
+- `analystAgentV3` retrieves top-4 topic-matched objections via
+  `getRelevantExperience` inside frozen channel `daObjections:bank`
+  (advisory; skip when replaying without the channel) and passes them to
+  `pass2StressTest`, which injects a "PRIOR FATAL OBJECTIONS" section —
+  mechanisms repeating a known fatal pattern must verdict breaks/cracks.
+- Tests: 528/528 agent+worker, tsc clean.
+
+**Open from audit plan**: P0 done (gate not miscalibrated — substance is
+the gap); P1 research-agenda module, P2 radar rebalancing per vertical,
+P4 Kimi validation cycle, P5 retrospective review of 21 published briefs.
