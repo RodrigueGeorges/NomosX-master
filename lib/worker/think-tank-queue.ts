@@ -65,7 +65,11 @@ export async function enqueueThinkTankCycle(options: {
   try {
     const { getTemporalConfig } = await import('@/lib/temporal/config');
     if (getTemporalConfig().enabled) {
-      const { getTemporalClient } = await import('@/lib/temporal/client');
+      // webpackIgnore: @temporalio/* ships native binaries (~100MB) — tracing
+      // it into the Next server bundle blows the Netlify function zip limit.
+      // Temporal is opt-in and never enabled on the hosted site; the PG job
+      // row below is the production path there.
+      const { getTemporalClient } = await import(/* webpackIgnore: true */ '@/lib/temporal/client');
       const client = await getTemporalClient();
       const started = await client.startCycle(payload, key);
       return {
