@@ -481,6 +481,29 @@ Return JSON:
       }
     }
 
+    // DA-objection bank: the adversarial reviewer's fatal/major challenges
+    // are the highest-signal lessons the system produces — they name the
+    // exact argumentation modes that kill a draft. Record them
+    // deterministically (no LLM) under phase 'da-objection' so Pass 2 can
+    // stress-test against them BEFORE drafting, not only repair after.
+    const daChallenges = (pipelineStats?.devilsAdvocate?.topChallenges ?? []) as Array<{ type?: string; text?: string }>;
+    let daRecorded = 0;
+    for (const ch of daChallenges.slice(0, 3)) {
+      const text = String(ch?.text ?? '').trim().slice(0, 400);
+      if (text.length < 20) continue;
+      recordExperience(
+        topic, question, 'da-objection',
+        `Adversarial ${ch?.type ?? 'challenge'} objection: ${text}`,
+        text,
+        successMetric,
+        'Analyses in this domain — pre-empt this objection class during mechanism stress-testing',
+      );
+      daRecorded++;
+    }
+    if (daRecorded > 0) {
+      console.log(`[ExperienceBank] Recorded ${daRecorded} DA objection(s) for future P2 stress tests`);
+    }
+
     console.log(`[ExperienceBank] Extracted ${result?.experiences?.length || 0} experiences, ${result?.guidelines?.length || 0} guidelines`);
   } catch (err) {
     console.warn('[ExperienceBank] Extraction failed:', String(err).slice(0, 80));

@@ -613,7 +613,8 @@ async function pass2StressTest(
   frictionMap: FrictionMap,
   domainContext?: string,
   boundThesis?: string,
-  compact = false
+  compact = false,
+  priorObjections?: string[]
 ): Promise<{ map: StressTestMap; tokens: number; cost: number }> {
   console.log(`[Analyst V3] PASS 2/3: Stress Test${compact ? ' (compact/degraded)' : ''}...`);
 
@@ -680,7 +681,15 @@ source TYPE behind each claim and its characteristic bias:
 A mechanism that rests on a SINGLE source type is weaker than one
 corroborated across multiple independent source types. Factor this into
 your verdict and into the hostileExpertObjection — the strongest hostile
-objection often comes from a different source type's perspective.${boundThesis && process.env.NOMOSX_THESIS_PROMPT_CONTRACT === '1' ? `
+objection often comes from a different source type's perspective.${priorObjections && priorObjections.length > 0 ? `
+
+PRIOR FATAL OBJECTIONS (from adversarial reviews of earlier analyses):
+These are the exact attack modes that killed previous drafts. For every
+mechanism and collision, explicitly check whether it is vulnerable to
+each objection class below — a mechanism that repeats a known fatal
+pattern must be marked "breaks" or "cracks" with the objection named in
+reasoning, not waved through:
+${priorObjections.map((o, i) => `${i + 1}. ${o}`).join('\n')}` : ''}${boundThesis && process.env.NOMOSX_THESIS_PROMPT_CONTRACT === '1' ? `
 
 EVIDENCE-BOUND THESIS SCOPE (mandatory):
 A thesis has been bound to this corpus as the central claim: "${boundThesis}"
@@ -1452,6 +1461,29 @@ export async function analystAgentV3(
     // P1 latency on slow providers repeatedly consumed the full-pass window,
     // leaving an empty stress map and a guaranteed DA rejection.
     const compactPassBudgetMs = Number(process.env.ANALYST_PASS2_COMPACT_BUDGET_MS ?? 150_000);
+    // Cross-run adversarial memory: fatal/major DA objections banked by
+    // extractExperience become explicit stress criteria — the pass attacks
+    // the failure modes that actually killed prior drafts instead of only
+    // generic refutation. Frozen channel 'daObjections:bank': the bank
+    // mutates per run, so replay must serve the recorded list or prompts
+    // drift. Advisory — a bank read failure never blocks the pass.
+    let priorObjections: string[] = [];
+    try {
+      const { hasFrozenInputs, hasFrozenInput, captureInput } = await import('./frozen-inputs');
+      const { getRelevantExperience } = await import('./knowledge-infrastructure');
+      const replayingFrozen = hasFrozenInputs();
+      if (!replayingFrozen || hasFrozenInput('daObjections:bank')) {
+        const entries = await captureInput('daObjections:bank', () =>
+          getRelevantExperience(question.slice(0, 100), 'da-objection'));
+        priorObjections = (Array.isArray(entries) ? entries : [])
+          .map((e: any) => String(e?.pattern ?? e?.insight ?? '').trim())
+          .filter((t: string) => t.length >= 20)
+          .slice(0, 4);
+        if (priorObjections.length > 0) {
+          console.log(`[Analyst V3] DA-OBJECTION BANK: ${priorObjections.length} prior fatal objection(s) injected into P2 stress criteria`);
+        }
+      }
+    } catch { /* advisory memory read — never block the pass */ }
     const emptyP2 = (): { map: StressTestMap; tokens: number; cost: number } => ({
       map: { mechanismAssessments: [], collisionAssessments: [], survivingMechanisms: [], strongestChain: { presentFactIds: [], mechanismIds: [], projectedFuture: '' } },
       tokens: 0,
@@ -1461,7 +1493,7 @@ export async function analystAgentV3(
     let p2Compact = false;
     if (hasRunHeadroomWithReserve(undefined, isStrategic, passBudgetMs)) {
       try {
-        p2 = await dstep('analyst:p2', () => pass2StressTest(question, ctx, validatedMap.map, domainContext, options?.boundThesis));
+        p2 = await dstep('analyst:p2', () => pass2StressTest(question, ctx, validatedMap.map, domainContext, options?.boundThesis, false, priorObjections));
       } catch (pass2Err) {
         console.warn(`[Analyst V3] PASS 2 failed, continuing with empty stress test map:`, pass2Err);
         p2 = emptyP2();
@@ -1470,7 +1502,7 @@ export async function analystAgentV3(
       p2Compact = true;
       console.warn(`[Analyst V3] PASS 2 compact — ${Math.round(remainingRunMs(undefined, isStrategic) / 60000)}min left < full pass + reserve but >= compact + reserve; stress-testing top mechanisms only`);
       try {
-        p2 = await dstep('analyst:p2', () => pass2StressTest(question, ctx, validatedMap.map, domainContext, options?.boundThesis, true));
+        p2 = await dstep('analyst:p2', () => pass2StressTest(question, ctx, validatedMap.map, domainContext, options?.boundThesis, true, priorObjections));
       } catch (pass2Err) {
         console.warn(`[Analyst V3] PASS 2 compact failed, continuing with empty stress test map:`, pass2Err);
         p2 = emptyP2();

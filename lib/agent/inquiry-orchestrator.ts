@@ -1075,6 +1075,7 @@ export async function runAndPublishInquiry(
       devilsAdvocate: da ? {
         verdict: da.verdict, publishability: (da as any).publishabilityScore,
         killShot: (da as any).killShot, challenges: (da as any).stats?.totalChallenges,
+        topChallenges: (da as any).topChallenges,
       } : null,
       structuralEditor: pipeline.stats.structuralEditor ? { score: (pipeline.stats.structuralEditor as any).overallScore } : null,
       outlineCritic: pipeline.stats.outlineCritic ? { coverage: (pipeline.stats.outlineCritic as any).coverageScore, missing: (pipeline.stats.outlineCritic as any).missingDimensions?.slice?.(0, 4) } : null,
