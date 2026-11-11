@@ -19,6 +19,16 @@ function getRedisClient(): Redis {
     });
   }
   
+  // Production REST fallback: only UPSTASH_REDIS_REST_* credentials exist
+  // (no rediss:// TCP endpoint) — serve the small cache surface over the
+  // Upstash HTTP API instead of silently disabling caching.
+  const restUrl = process.env.UPSTASH_REDIS_REST_URL;
+  const restToken = process.env.UPSTASH_REDIS_REST_TOKEN;
+  if (restUrl && restToken) {
+    const { createUpstashRestClient } = require('./agent/redis-rest');
+    return createUpstashRestClient(restUrl, restToken) as unknown as Redis;
+  }
+
   // Development/Fallback: Local Redis
   if (process.env.REDIS_URL) {
     return new Redis(process.env.REDIS_URL, {

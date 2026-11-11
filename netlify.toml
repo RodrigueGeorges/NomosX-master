@@ -107,3 +107,6 @@
 
 [functions."cron-studiox-drain"]
   schedule = "*/5 * * * *"   # Every 5 min — re-enqueue stuck PAID/QUEUED StudioX orders
+
+[functions."cron-tweet-publications"]
+  schedule = "23 */6 * * *"  # Every 6h — tweet newly published articles (no-ops without Twitter creds)
