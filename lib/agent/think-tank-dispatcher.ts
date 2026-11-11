@@ -504,9 +504,18 @@ async function collectBreakingItems(
   // the old hard cap of 6 meant --max=10 still only ever triaged 6 topics.
   const candidatePool = Math.min(maxPublications * 3, radarResult.topics.length);
   const decideStart = Date.now();
+  // Research agenda — the desk's cumulative coverage account. Built once
+  // per cycle (2 indexed DB reads, no LLM); empty/failure = triage
+  // proceeds exactly as before.
+  const { buildResearchAgendaContext } = await import('./research-agenda');
+  const agenda = await buildResearchAgendaContext();
+  if (agenda.deficitSlugs.length > 0) {
+    console.log(`[ThinkTank] AGENDA: under-covered domains: ${agenda.deficitSlugs.join(', ')} (${agenda.coverage.map(c => `${c.slug}:${c.pubsInWindow}`).join(' ')})`);
+  }
   const triageResult = await editorialTriage(radarResult.topics, {
     maxPublications: candidatePool,
     budgetUsd,
+    agenda,
   });
   const decideMs = Date.now() - decideStart;
 
@@ -582,6 +591,11 @@ async function collectBreakingItems(
     decideCostUsd: triageResult.costUsd,
     phases: {
       detect: { durationMs: detectMs, topicsFound: radarResult.topics.length, stats: radarResult.stats, predictionTriggersFired: watchItems.length },
+      agenda: {
+        windowDays: agenda.windowDays,
+        coverage: agenda.coverage.map(c => ({ slug: c.slug, pubs: c.pubsInWindow, deficit: Number(c.deficit.toFixed(2)) })),
+        deficitSlugs: agenda.deficitSlugs,
+      },
       decide: {
         durationMs: decideMs,
         selected: triageResult.decisions.length,

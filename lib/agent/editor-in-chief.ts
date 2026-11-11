@@ -17,6 +17,7 @@ import { callLLM } from '../llm/unified-llm';
 import { parseJson } from './json-utils';
 import { prisma } from '../db';
 import { classifyTopic, TopicClassification } from './topic-classifier';
+import { agendaPriorityBoost, type ResearchAgendaContext } from './research-agenda';
 import type { RadarTopic } from './topic-radar';
 
 // ============================================================================
@@ -67,6 +68,10 @@ export async function editorialTriage(
   options?: {
     maxPublications?: number;
     budgetUsd?: number;
+    /** Research agenda context — domain coverage deficits + flagship
+     *  questions. Injected into the triage prompt and used for a
+     *  deterministic under-covered-domain promotion below. */
+    agenda?: ResearchAgendaContext;
   }
 ): Promise<EditorialTriageResult> {
   const start = Date.now();
@@ -83,7 +88,7 @@ export async function editorialTriage(
   const recentTitles = await getRecentPublicationTitles();
 
   // Step 2: LLM triage — single call to select + prioritize
-  const triageResult = await llmTriage(topics, recentTitles, maxPubs);
+  const triageResult = await llmTriage(topics, recentTitles, maxPubs, options?.agenda);
 
   // Step 2b: DETERMINISTIC DOMAIN DIVERSITY — ensure multi-domain coverage
   // The LLM may over-cluster on one domain. This filter guarantees variety.
@@ -174,6 +179,54 @@ export async function editorialTriage(
     remainingBudget -= estimatedCost;
   }
 
+  // ── AGENDA REBALANCE — deterministic under-covered-domain promotion ──
+  // The prompt nudge is advisory; this guarantees the desk's coverage
+  // obligation survives an LLM that clustered anyway. Only fires when NO
+  // selected decision already serves a deficit domain, and only swaps out
+  // a decision whose priority is within 25 points of the candidate — a
+  // clearly superior topic is never displaced for balance.
+  const agenda = options?.agenda;
+  if (agenda && agenda.deficitSlugs.length > 0 && decisions.length > 1) {
+    const hasDeficitPick = decisions.some(d =>
+      d.classification?.verticalSlug && agenda.deficitSlugs.includes(d.classification.verticalSlug));
+    if (!hasDeficitPick) {
+      const droppedSorted = [...droppedForDiversity]
+        .filter(d => !diverseSelected.includes(d)) // backfilled picks are already selected
+        .sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0));
+      for (const dropped of droppedSorted) {
+        const topic = resolveTopic(dropped.topicId);
+        if (!topic) continue;
+        const cls = await classifyTopic(topic.title, topic.summary).catch(() => null);
+        totalCost += cls?.costUsd ?? 0;
+        const slug = cls?.verticalSlug;
+        if (!slug || !agenda.deficitSlugs.includes(slug)) continue;
+        const worstIdx = decisions.reduce(
+          (mi, d, i) => (d.priority < decisions[mi].priority ? i : mi), 0);
+        if ((decisions[worstIdx].priority ?? 0) - (dropped.priority ?? 0) > 25) {
+          console.log(`[EDITOR-IN-CHIEF] Agenda rebalance: best deficit candidate "${topic.title.slice(0, 50)}" (${slug}) too far below worst pick — keeping quality order`);
+          break;
+        }
+        const estCost = dropped.action === 'publish_strategic' ? 10.0
+          : dropped.action === 'publish_brief' ? 3.0
+          : dropped.action === 'publish_memo' ? 1.5
+          : dropped.action === 'publish_signal' ? 0.5 : 2.0;
+        decisions[worstIdx] = {
+          topic,
+          action: dropped.action,
+          reasoning: `${dropped.reasoning || ''} [agenda: ${slug} under-covered]`.trim(),
+          priority: Math.min(100, (dropped.priority ?? 50) + agendaPriorityBoost(slug, agenda)),
+          classification: cls!,
+          estimatedCostUsd: estCost,
+          researchQuestion: dropped.researchQuestion,
+          intellectualAmbition: dropped.intellectualAmbition,
+          contrarianSignal: dropped.contrarianSignal,
+        };
+        console.log(`[EDITOR-IN-CHIEF] Agenda rebalance: promoted "${topic.title.slice(0, 50)}" (${slug}) over lowest-priority pick`);
+        break;
+      }
+    }
+  }
+
   const durationMs = Date.now() - start;
   console.log(`[EDITOR-IN-CHIEF] ✅ ${decisions.length} publications selected, ${triageResult.selected.length - decisions.length} budget-cut, ${topics.length - triageResult.selected.length} skipped in ${durationMs}ms ($${totalCost.toFixed(4)})`);
 
@@ -202,7 +255,8 @@ interface TriageSelection {
 async function llmTriage(
   topics: RadarTopic[],
   recentTitles: string[],
-  maxPubs: number
+  maxPubs: number,
+  agenda?: ResearchAgendaContext
 ): Promise<{ selected: TriageSelection[]; costUsd: number }> {
   const topicSummaries = topics.slice(0, 15).map((t, i) => ({
     index: i,
@@ -317,7 +371,7 @@ Return JSON: { "selections": [{ "topicId": <integer index>, "action": "publish_s
         },
         {
           role: 'user',
-          content: `CANDIDATE TOPICS:\n${JSON.stringify(topicSummaries, null, 2)}${recentContext}\n\nSelect the best topics for publication.`
+          content: `CANDIDATE TOPICS:\n${JSON.stringify(topicSummaries, null, 2)}${recentContext}${agenda?.promptBlock ?? ''}\n\nSelect the best topics for publication.`
         }
       ],
       temperature: 0.15,
