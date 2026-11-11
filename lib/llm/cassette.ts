@@ -78,7 +78,7 @@ export function recordLlmCassette(
   error?: unknown,
 ): void {
   const path = cassetteFilePath();
-  mkdirSync(dirname(path), { recursive: true });
+  mkdirSync(/* turbopackIgnore: true */ dirname(path), { recursive: true });
   const res = response as { provider?: string; model?: string } | undefined;
   const entry: CassetteEntry = {
     key,
@@ -91,7 +91,7 @@ export function recordLlmCassette(
     error: error instanceof Error ? error.message : error ? String(error) : undefined,
     recordedAt: new Date().toISOString(),
   };
-  appendFileSync(path, JSON.stringify(entry) + '\n', 'utf8');
+  appendFileSync(/* turbopackIgnore: true */ path, JSON.stringify(entry) + '\n', 'utf8');
 }
 
 function loadReplayQueues(): Map<string, CassetteEntry[]> {
@@ -100,8 +100,8 @@ function loadReplayQueues(): Map<string, CassetteEntry[]> {
   const cacheKey = `${path}${wantRun ? `#${wantRun}` : ''}`;
   if (replayQueues?.path === cacheKey) return replayQueues.queues;
   const queues = new Map<string, CassetteEntry[]>();
-  if (existsSync(path)) {
-    for (const line of readFileSync(path, 'utf8').split('\n')) {
+  if (existsSync(/* turbopackIgnore: true */ path)) {
+    for (const line of readFileSync(/* turbopackIgnore: true */ path, 'utf8').split('\n')) {
       if (!line.trim()) continue;
       try {
         const entry = JSON.parse(line) as CassetteEntry;
@@ -133,7 +133,7 @@ export function replayLlmCassette<T>(request: { task?: string }, key: string): T
     try {
       const path = cassetteFilePath();
       mkdirSync(dirname(path), { recursive: true });
-      appendFileSync(`${path}.misses.jsonl`, JSON.stringify({ key, task: request.task ?? '', request, missedAt: new Date().toISOString() }) + '\n', 'utf8');
+      appendFileSync(/* turbopackIgnore: true */ `${path}.misses.jsonl`, JSON.stringify({ key, task: request.task ?? '', request, missedAt: new Date().toISOString() }) + '\n', 'utf8');
     } catch { /* diagnostic only */ }
     throw new CassetteMissError(key, String(request.task ?? ''));
   }
