@@ -4964,3 +4964,15 @@ fragile work, not miscalibrated.
 **Open from audit plan**: P0 done (gate not miscalibrated — substance is
 the gap); P1 research-agenda module, P2 radar rebalancing per vertical,
 P4 Kimi validation cycle, P5 retrospective review of 21 published briefs.
+
+**P1 implemented** — `lib/agent/research-agenda.ts` + triage wiring:
+30d per-vertical publication counts → equal-share deficits → UNDER-COVERED
+prompt block + flagship questions injected into `llmTriage`; deterministic
+rebalance promotes a deficit-domain candidate (≤25 priority-point rule,
+never displaces a clearly superior topic); `phases.agenda` persists the
+coverage snapshot. Fail-open, no LLM cost. Tests: research-agenda.test.ts
++6, suite 534/534.
+
+**Remaining audit plan**: P2 radar rebalancing (signal-detector eu-policy
+flood — separate signal pipeline from topic-radar), P4 Kimi validation,
+P5 retrospective review of 21 published briefs.
