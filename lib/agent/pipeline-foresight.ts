@@ -59,14 +59,20 @@ export function applySimulationToAnalysis(
   const enrichedScenarios = scenarios.map((s, i) => {
     const sim = simScenarios[i];
     if (!sim) return s;
+    // Round stored probabilities to 4 decimals — raw MC floats
+    // (0.4444135322292309) leak fake precision into analysis JSON, which
+    // downstream evaluators (Devil's Advocate) rightly flag as false
+    // empirical certainty. 4 decimals keeps the data honest without
+    // pretending sub-permil resolution.
+    const emp = Math.round((sim.empiricalProbability ?? 0) * 10000) / 10000;
     return {
       ...s,
       probability: `${roundedPcts[i]}%`,
-      empiricalProbability: sim.empiricalProbability,
+      empiricalProbability: emp,
       confidenceInterval: sim.confidenceInterval,
       // Sync calibratedProbability with Monte Carlo result so the renderer
       // doesn't show a stale Delphi value alongside the Monte Carlo probability
-      calibratedProbability: sim.empiricalProbability,
+      calibratedProbability: emp,
       trajectory: sim.trajectory,
       keyDrivers: sim.keyDrivers,
       blockers: sim.blockers,

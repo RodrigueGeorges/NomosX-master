@@ -400,12 +400,12 @@ Return JSON:
           name: electedName,
           probability: `${electedPctValue}%`,
           description: input.election.electedDescription ?? '',
-          empiricalProbability: input.election.probability,
+          empiricalProbability: Math.round(input.election.probability * 10000) / 10000,
         };
         outScenarios.unshift(elected);
       } else {
         elected.probability = `${electedPctValue}%`;
-        elected.empiricalProbability = input.election.probability;
+        elected.empiricalProbability = Math.round(input.election.probability * 10000) / 10000;
       }
       elected.confidenceInterval = input.election.confidenceInterval;
       dominantScenario = elected.name;
