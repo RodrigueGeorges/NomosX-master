@@ -20,6 +20,9 @@ export interface ChainUncertainty {
   claim: string;
   kind: 'future_extrapolation' | 'weak_mechanism';
   downstream: number; // links that transitively derive from this one
+  /** Set on the second uncertainty when it derives from the first: its
+   *  forecast must then be read as P(this | dependsOn holds). */
+  dependsOn?: number;
 }
 
 export interface ChainScenario {
@@ -78,7 +81,7 @@ export function deriveChainScenarios(
     })
     .filter((u): u is ChainUncertainty => u !== null)
     // Criticality: downstream dependents first, then chain order.
-    .sort((a, b) => b.downstream - a.downstream);
+    .sort((a, b) => b.downstream - a.downstream || a.linkId - b.linkId);
 
   if (uncertain.length < 2) return null;
   const [u1, u2] = uncertain;
@@ -128,5 +131,5 @@ export function deriveChainScenarios(
     uncertaintyIds: [u1.linkId, u2.linkId],
   }));
 
-  return { scenarios, uncertainties: [u1, u2] };
+  return { scenarios, uncertainties: [u1, u2dependsOnU1 ? { ...u2, dependsOn: u1.linkId } : u2] };
 }

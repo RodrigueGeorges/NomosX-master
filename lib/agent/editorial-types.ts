@@ -54,6 +54,8 @@ export interface ScenarioOutlook {
   axisPosition?: string;     // Position on the critical-uncertainty matrix
   signatureMoment?: string;  // Vivid vignette from inside this future
   isWildcard?: boolean;      // Surprising-but-plausible outlier scenario
+  /** Chain scenario cell this outlook narrates (swarm election only). */
+  cellId?: string;
 }
 
 /** PhD-level prospective framework — the foresight architecture behind the scenarios */
@@ -122,6 +124,16 @@ export interface CentralScenarioDecision {
   selectedBy: 'editorial' | 'probability_fallback' | 'swarm';
   simulationLeader?: string;
   simulationDisagrees: boolean;
+  /** Swarm election only: the mechanical, checkable statement of the
+   *  elected cell (which links hold by when). Registered as the prediction;
+   *  `description` carries the prose. */
+  resolutionStatement?: string;
+  /** Swarm election only: computed probability of this scenario. */
+  probability?: number;
+  confidenceInterval?: [number, number];
+  /** Swarm election only: marginal probability per uncertain chain link
+   *  (key = link id). Feeds prediction registration. */
+  linkProbabilities?: Record<string, number>;
 }
 
 export function resolveCentralScenario(

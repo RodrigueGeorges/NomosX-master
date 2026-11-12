@@ -33,6 +33,8 @@ export interface SwarmSourceCard {
 export interface UncertainLink {
   linkId: number;
   claim: string;
+  /** When set, voters estimate P(claim | link #dependsOn holds). */
+  dependsOn?: number;
 }
 
 export interface LinkForecast {
@@ -55,6 +57,34 @@ export interface SwarmResult {
   familiesUsed: string[];
   costUsd: number;
   skipped?: string;
+  /** Ballots dropped because they cited no evidence card shown to the voter. */
+  ungroundedVotes?: number;
+}
+
+export interface SwarmHealth {
+  healthy: boolean;
+  /** Per-link reasons; empty when healthy. */
+  issues: string[];
+}
+
+export const SWARM_MIN_VOTES_PER_LINK = 8;
+export const SWARM_MIN_FAMILIES = 2;
+export const SWARM_MAX_IQR = 0.35;
+
+/**
+ * A swarm may elect only when every conditioned link has enough independent
+ * ballots. Thin or single-family votes are a hold, not an election.
+ */
+export function assessSwarmHealth(forecasts: LinkForecast[], neededLinkIds: number[]): SwarmHealth {
+  const issues: string[] = [];
+  for (const id of neededLinkIds) {
+    const f = forecasts.find(x => x.linkId === id);
+    if (!f) { issues.push(`link ${id}: no forecast`); continue; }
+    if (f.validVotes < SWARM_MIN_VOTES_PER_LINK) issues.push(`link ${id}: ${f.validVotes} valid votes (need ${SWARM_MIN_VOTES_PER_LINK})`);
+    if (f.families < SWARM_MIN_FAMILIES) issues.push(`link ${id}: ${f.families} model family (need ${SWARM_MIN_FAMILIES})`);
+    if (f.iqr > SWARM_MAX_IQR) issues.push(`link ${id}: voters split (IQR ${f.iqr.toFixed(2)} > ${SWARM_MAX_IQR})`);
+  }
+  return { healthy: issues.length === 0, issues };
 }
 
 const VOTER_PROVIDERS: LLMProvider[] = ['glm', 'google', 'deepseek'];
@@ -94,9 +124,10 @@ async function loadCards(sourceIds: string[]): Promise<SwarmSourceCard[]> {
   try {
     const { prisma } = await import('../db');
     const rows = await prisma.source.findMany({
-      where: { id: { in: sourceIds.slice(0, 40) } },
+      where: { id: { in: sourceIds } },
       select: { id: true, title: true, abstract: true, qualityScore: true },
       orderBy: { qualityScore: 'desc' },
+      take: 40,
     });
     return rows.map(s => ({
       id: s.id,
@@ -151,12 +182,15 @@ export async function runSwarmVote(input: {
   const votes: RawVote[] = [];
   let costUsd = 0;
   let rawVotes = 0;
+  let ungroundedVotes = 0;
+  const cardKey = (id: string) => id.slice(-6).toLowerCase();
+  const sharedKeys = new Set(shared.map(c => cardKey(c.id)));
 
   {
     // One call per voter covers ALL uncertain links — cheaper than
     // link×voter and keeps votes comparable across the chain.
-    const tasks = input.uncertainties.slice(0, 4)
-      .map(u => `LINK #${u.linkId}: ${u.claim}`)
+    const tasks = input.uncertainties.slice(0, 6)
+      .map(u => `LINK #${u.linkId}${u.dependsOn != null ? ` (ASSUME link #${u.dependsOn} holds — give the conditional probability)` : ''}: ${u.claim}`)
       .join('\n');
 
     const settled = await Promise.allSettled(
@@ -173,7 +207,7 @@ export async function runSwarmVote(input: {
           provider,
           task: 'fact_check',
           temperature: 0.4,
-          maxTokens: 500,
+          maxTokens: 700,
           jsonMode: true,
           runId: input.runId,
           traceName: 'swarm_forecast_vote',
@@ -200,7 +234,13 @@ Return ONLY JSON: {"votes":[{"linkId":<number>,"probability":<0-1>,"confidence":
         const parsed = parseJson<{ votes?: Array<{ linkId?: number; probability?: number; confidence?: number; citedCards?: string[] }> }>(res.content);
         const arr = parsed?.votes;
         if (!Array.isArray(arr)) return;
+        const shown = new Set([...sharedKeys, ...slices[i].map(c => cardKey(c.id))]);
         for (const v of arr) {
+          // A ballot must rest on at least one card this voter was shown —
+          // a probability with no evidence is a prior, not a vote.
+          const cited = Array.isArray(v.citedCards) ? v.citedCards.map(c => String(c).toLowerCase()) : [];
+          const grounded = cited.some(c => [...shown].some(k => c.includes(k)));
+          if (!grounded) { ungroundedVotes++; continue; }
           const linkId = Number(v.linkId);
           const p = Number(v.probability);
           if (!Number.isFinite(linkId) || !Number.isFinite(p) || p <= 0 || p >= 1) continue;
@@ -222,7 +262,7 @@ Return ONLY JSON: {"votes":[{"linkId":<number>,"probability":<0-1>,"confidence":
   // Aggregate per link: confidence-weighted log-odds pooling + spread stats.
   const forecasts: LinkForecast[] = [];
   const familiesUsed = [...new Set(votes.map(v => v.family))];
-  for (const link of input.uncertainties.slice(0, 4)) {
+  for (const link of input.uncertainties.slice(0, 6)) {
     const linkVotes = votes.filter(v => v.linkId === link.linkId);
     if (!linkVotes.length) continue;
     const fv: ForecastVote[] = linkVotes.map(v => ({
@@ -257,5 +297,6 @@ Return ONLY JSON: {"votes":[{"linkId":<number>,"probability":<0-1>,"confidence":
     validVotes: votes.length,
     familiesUsed,
     costUsd,
+    ungroundedVotes,
   };
 }

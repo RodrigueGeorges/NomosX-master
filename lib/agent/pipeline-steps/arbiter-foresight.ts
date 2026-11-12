@@ -76,7 +76,7 @@ export async function runArbiterForesight(deps: ArbiterForesightDeps): Promise<A
         const { runSwarmVote } = await import('../swarm-forecaster');
         const swarm = await runSwarmVote({
           question: query,
-          uncertainties: chainDerivation.uncertainties.map(u => ({ linkId: u.linkId, claim: u.claim })),
+          uncertainties: chainDerivation.uncertainties.map(u => ({ linkId: u.linkId, claim: u.claim, dependsOn: u.dependsOn })),
           sourceIds: topSources.map((s: any) => s.id),
           horizon: typeof analysis.trajectory === 'object' && analysis.trajectory
             ? String((analysis.trajectory as { horizon?: string }).horizon ?? '') : undefined,
@@ -93,11 +93,20 @@ export async function runArbiterForesight(deps: ArbiterForesightDeps): Promise<A
           familiesUsed: swarm.familiesUsed,
           costUsd: swarm.costUsd,
           skipped: swarm.skipped,
+          ungroundedVotes: swarm.ungroundedVotes,
         };
+        const { assessSwarmHealth } = await import('../swarm-forecaster');
+        const swarmHealth = assessSwarmHealth(swarm.forecasts, chainDerivation.uncertainties.map(u => u.linkId));
+        stats.swarmHealth = swarmHealth;
         addCost(swarm.costUsd, 'SWARM_FORECAST');
         console.log(`${label} SWARM: ${swarm.validVotes} valid votes / ${swarm.familiesUsed.length} families / $${swarm.costUsd.toFixed(4)}`);
 
-        if (swarm.forecasts.length >= 2) {
+        if (!swarmHealth.healthy) {
+          // Thin, single-family or split vote: no election. The run falls to
+          // the legacy path, which can never claim selectedBy:'swarm'.
+          stats.swarmElection = { skipped: 'swarm_unhealthy', issues: swarmHealth.issues };
+          console.log(`${label} SWARM unhealthy — no election: ${swarmHealth.issues.join('; ')}`);
+        } else if (swarm.forecasts.length >= 2) {
           try {
             // OT-7: fold the resolved track record into the forecasts —
             // systematic overconfidence (avg Brier > 0.20 over ≥20 resolved)
@@ -156,6 +165,11 @@ export async function runArbiterForesight(deps: ArbiterForesightDeps): Promise<A
             runnerUpId: election.runnerUpId,
             electedName: electedChainScenario.name,
             electedDescription: electedChainScenario.description,
+            cells: chainDerivation!.scenarios.map(s => ({
+              id: s.id,
+              description: s.description,
+              probability: election!.probabilities[s.id] ?? 0,
+            })),
           }
         : null,
     });
@@ -190,16 +204,40 @@ export async function runArbiterForesight(deps: ArbiterForesightDeps): Promise<A
         description: electedChainScenario.description,
         rationale:
           `Elected by independent-voter swarm + Monte Carlo over causal-chain ` +
-          `uncertainties (p=${election.probability.toFixed(3)}, ${election.monteCarloRuns} draws` +
+          `uncertainties (p=${election.probability.toFixed(3)}, 90% interval ` +
+          `${election.confidenceInterval[0].toFixed(2)}-${election.confidenceInterval[1].toFixed(2)}, ` +
+          `leads in ${Math.round(election.winShare * 100)}% of ${election.monteCarloRuns} draws` +
           `${election.contested ? `, CONTESTED — runner-up ${election.runnerUpId ?? 'n/a'}` : ''}).${srcSuffix}`,
         horizon: electedChainScenario.observableAt,
         implications: [`If this branch holds: ${electedChainScenario.description.slice(0, 300)}`],
-        revisionTriggers: Object.entries(electedChainScenario.conditions).map(([k, want]) =>
-          `Link ${k.replace(/^u/, '#')} ${want ? 'fails to materialize' : 'materializes'} by ${electedChainScenario.observableAt}`
-        ),
-        confidence: election.contested ? 'medium' : 'high',
+        // Triggers name the claim itself — "Link #3" means nothing to a reader.
+        revisionTriggers: Object.entries(electedChainScenario.conditions).map(([k, want]) => {
+          const claim = chainDerivation!.uncertainties.find(u => `u${u.linkId}` === k)?.claim?.slice(0, 200) ?? `link ${k.replace(/^u/, '#')}`;
+          return `${want ? 'Fails to materialize' : 'Materializes'} by ${electedChainScenario.observableAt}: ${claim}`;
+        }),
+        // Confidence follows the computed lead, not the mere fact of an
+        // election: a 35% plurality is not a high-confidence call.
+        confidence: !election.contested && election.probability >= 0.5 ? 'high'
+          : !election.contested || election.probability >= 0.4 ? 'medium' : 'low',
         selectedBy: 'swarm',
         simulationDisagrees: false,
+        resolutionStatement: electedChainScenario.description,
+        probability: election.probability,
+        confidenceInterval: election.confidenceInterval,
+        // Marginals: a dependent link's vote is P(child | parent), so its
+        // standalone probability is the product with its parent's.
+        linkProbabilities: (() => {
+          const fc = ((stats.swarmForecasts as { forecasts?: Array<{ linkId: number; probability: number }> } | undefined)?.forecasts) ?? [];
+          const byId = new Map(fc.map(f => [f.linkId, f.probability]));
+          const out: Record<string, number> = {};
+          for (const u of chainDerivation!.uncertainties) {
+            const own = byId.get(u.linkId);
+            if (own == null) continue;
+            const parent = u.dependsOn != null ? byId.get(u.dependsOn) : undefined;
+            out[String(u.linkId)] = Math.round((parent != null ? own * parent : own) * 10000) / 10000;
+          }
+          return out;
+        })(),
       };
       stats.scenariosFromChain = true;
       // Keep analysis.scenarios in sync with the arbiter's written scenarios
@@ -210,6 +248,7 @@ export async function runArbiterForesight(deps: ArbiterForesightDeps): Promise<A
         elected: true,
         monteCarloRuns: election.monteCarloRuns,
         contested: election.contested,
+        winShare: election.winShare,
         probabilities: election.probabilities,
         costUsd: (stats.swarmForecasts as { costUsd?: number } | undefined)?.costUsd,
       };

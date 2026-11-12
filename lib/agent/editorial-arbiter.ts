@@ -39,6 +39,10 @@ export interface ArbiterInput {
     runnerUpId?: string;
     electedName?: string;
     electedDescription?: string;
+    /** Every chain cell with its computed probability. The published
+     *  scenario set is exactly these cells — the arbiter names and narrates
+     *  them, it adds none and prices none. */
+    cells?: Array<{ id: string; description: string; probability: number }>;
   } | null;
 }
 
@@ -341,6 +345,7 @@ Return JSON:
       axisPosition: s.axisPosition ? String(s.axisPosition) : undefined,
       signatureMoment: s.signatureMoment ? String(s.signatureMoment) : undefined,
       isWildcard: s.isWildcard === true ? true : undefined,
+      cellId: s.cellId ? String(s.cellId) : undefined,
     }));
 
     // Fill in axis positions from the architect skeletons when the arbiter

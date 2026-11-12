@@ -73,8 +73,9 @@ describe('electScenario (OT-5)', () => {
   });
 
   it('strong majorities concentrate probability on matching cells', () => {
-    // u2 (link 3) near-certain realized → cells with conditions.u3=true dominate.
-    const forecasts = [mkForecasts(2, 0.5), mkForecasts(3, 0.95)];
+    // Link 3 derives from link 2, so its vote is P(3 | 2): 0.6 × 0.95 = 0.57
+    // for the convergent cell, against 0.40 for "neither".
+    const forecasts = [mkForecasts(2, 0.6), mkForecasts(3, 0.95)];
     const e = electScenario({ scenarios, forecasts, question: 'q', runs: 8000 })!;
     const top = scenarios.find(s => s.id === e.scenarioId)!;
     expect(top.conditions['u3']).toBe(true);
@@ -84,5 +85,58 @@ describe('electScenario (OT-5)', () => {
   it('returns null when a conditioned link lacks a distribution', () => {
     const e = electScenario({ scenarios, forecasts: [mkForecasts(2, 0.7)], question: 'q' });
     expect(e).toBeNull();
+  });
+});
+
+describe('electScenario — probability integrity', () => {
+  const fc = (linkId: number, p: number, variance = 0.01): LinkForecast => ({
+    linkId, claim: `c${linkId}`, probability: p, variance, iqr: 0.1, validVotes: 15, families: 3, contested: false,
+  });
+  const independent = [
+    { id: 'tt', conditions: { u1: true, u2: true } },
+    { id: 'tf', conditions: { u1: true, u2: false } },
+    { id: 'ft', conditions: { u1: false, u2: true } },
+    { id: 'ff', conditions: { u1: false, u2: false } },
+  ].map(s => ({ ...s, name: s.id, description: '', observableAt: '2030-12-31', uncertaintyIds: [1, 2] }));
+
+  it('two 60% links give a 36% joint, not a thresholded 62%', () => {
+    const e = electScenario({ scenarios: independent, forecasts: [fc(1, 0.6), fc(2, 0.6)], question: 'q', runs: 4000 })!;
+    expect(e.scenarioId).toBe('tt');
+    expect(e.probability).toBeCloseTo(0.36, 6);
+    expect(e.probabilities.ff).toBeCloseTo(0.16, 6);
+  });
+
+  it('interval reflects voter uncertainty, not sampling noise', () => {
+    const e = electScenario({ scenarios: independent, forecasts: [fc(1, 0.6, 0.03), fc(2, 0.6, 0.03)], question: 'q', runs: 4000 })!;
+    expect(e.confidenceInterval[1] - e.confidenceInterval[0]).toBeGreaterThan(0.15);
+    expect(e.confidenceInterval[0]).toBeLessThan(e.probability);
+    expect(e.confidenceInterval[1]).toBeGreaterThan(e.probability);
+  });
+
+  it('a coin-flip election is contested; a clear lead is not', () => {
+    const flip = electScenario({ scenarios: independent, forecasts: [fc(1, 0.5), fc(2, 0.5)], question: 'q', runs: 4000 })!;
+    expect(flip.contested).toBe(true);
+    const clear = electScenario({ scenarios: independent, forecasts: [fc(1, 0.9), fc(2, 0.9)], question: 'q', runs: 4000 })!;
+    expect(clear.contested).toBe(false);
+    expect(clear.winShare).toBeGreaterThan(0.95);
+  });
+
+  it('most sensitive link is the one that moves the leader most', () => {
+    // Leader tt = p1*p2. d/dp1 = p2 = 0.55; d/dp2 = p1 = 0.9 → link 2.
+    const e = electScenario({ scenarios: independent, forecasts: [fc(1, 0.9), fc(2, 0.55)], question: 'q', runs: 2000 })!;
+    expect(e.mostSensitiveLinkId).toBe(2);
+  });
+
+  it('dependent link is conditional: "neither" carries the full 1 - P(parent)', () => {
+    const derived = deriveChainScenarios([
+      link(1, 'present_fact'), link(2, 'future_extrapolation'), link(3, 'future_extrapolation', 2),
+      link(4, 'active_mechanism', 3), link(5, 'present_fact', 4),
+    ], '2030')!;
+    expect(derived.uncertainties[1].dependsOn).toBe(2);
+    const e = electScenario({ scenarios: derived.scenarios, forecasts: [fc(2, 0.7), fc(3, 0.6)], question: 'q', runs: 2000 })!;
+    const byTag = (tag: string) => e.probabilities[derived.scenarios.find(s => s.id.endsWith(tag))!.id];
+    expect(byTag('convergent')).toBeCloseTo(0.42, 6);
+    expect(byTag('u1-only')).toBeCloseTo(0.28, 6);
+    expect(byTag('neither')).toBeCloseTo(0.30, 6);
   });
 });
