@@ -4363,6 +4363,7 @@ traduit en ordres de travail OT-1 → OT-8. État réel du code sur `main` :
 | Cleanup citations | **Héritage de citation supprimé** (`citation-filter`) ; **3 passes d'injection lexicale supprimées** (`citation-repair` : source-match, content-match, broad) ; injection du grounding-veto du critical-loop supprimée ; `repairCitations` ne garde que backfill analyste + sanitization + normalisation | `citation-filter.ts`, `citation-repair.ts`, `critical-loop-v2.ts` | ✅ |
 | Cleanup probas | Gabarit 50/30/20 supprimé (`editorial-scenarios.ts` effacé, fallback arbitre → `'—'`) ; `sourceBoost`/`calibrateFromSources`/`inferAssumptions` retirés du chemin de probabilité | `simulation-agent.ts`, `editorial-arbiter.ts` | ✅ |
 | OT-7 calibration | `Prediction.domain` + rapport calibration sur axes réels + `getCalibrationShrink()` injecté avant l'élection MC (actif après ≥20 résolutions) | `prediction-tracker.ts`, `schema.prisma` | ✅ câblé, en attente de données |
+| Freeze apprentissage | `learning-gate.ts` — toutes les écritures mémoire/auto-évolution **gelées par défaut** (`NOMOSX_LEARNING_WRITES=1` pour réactiver) : KG, gap-filler, episodic, agent-memory, skill-bank, lesson-verifier, source-reputation, experience-bank, witness, world-model, PRM, self-evolver, MoA. Lectures inchangées | `learning-gate.ts`, `persistence-tail.ts`, `inquiry-orchestrator.ts`, `publication-generator.ts` | ✅ gelé — ablation par replay à planifier |
 | Migration prod | Route `POST /api/admin/migrate-predictions` — DDL idempotent des 5 colonnes `Prediction`, gardée par `ADMIN_KEY` (le client Prisma est déjà bundlé ; `prisma db push` impossible sans URL Neon locale) | `app/api/admin/migrate-predictions/route.ts` | ✅ à déployer |
 
 ## IV.2 Architecture résultante (chemin prospectif)
@@ -4406,9 +4407,9 @@ ne produit aucun forecast valide, l'ancien chemin Monte Carlo +
    réelles sur ~10 runs stables → alors seulement décisifs. Composite
    trust/quality conservé comme signal advisory (routage degraded-mode,
    confidence warnings).
-4. **Ablation** : les ~12 systèmes de mémoire / self-evolver — geler les
-   écritures d'abord, supprimer module par module sur preuve replay, pas
-   par famille. `Temporal`/`Redis` legacy peuvent partir (déjà morts).
+4. **Ablation** : ✅ écritures gelées (`learning-gate.ts`). Reste :
+   replay par module pour prouver l'inutilité avant suppression ;
+   `Temporal`/`Redis` legacy peuvent partir (déjà morts).
 5. **Investigations ouvertes** : qualityScore persisté 50-66 sur des
    publications alors que le seuil documenté est 70 (score gaté ≠ colonne
    stockée ? chemin alternatif ?) ; `ThinkTankQualityCheck` en échec sur
