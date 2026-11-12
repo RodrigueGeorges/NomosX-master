@@ -4362,6 +4362,7 @@ traduit en ordres de travail OT-1 → OT-8. État réel du code sur `main` :
 | OT-6 arbitre rédacteur | Réordonnancement : chaîne → swarm → élection **avant** l'arbitre ; l'arbitre reçoit la branche élue (p, IC, contested, runner-up) avec interdiction de modifier les probabilités ; **enforcement post-parse** : proba épinglée, runner-ups rescadés à Σ100, `dominantScenario` forcé, CI attachée ; Delphi calibration skippé sous élection (il réécrivait les probabilités) ; `selectedBy:'swarm'` accepté par `centralScenarioIssues` ; `analysis.scenarios` synchronisé | `arbiter-foresight.ts`, `editorial-arbiter.ts`, `editorial-types.ts` | ✅ |
 | Cleanup citations | **Héritage de citation supprimé** (`citation-filter`) ; **3 passes d'injection lexicale supprimées** (`citation-repair` : source-match, content-match, broad) ; injection du grounding-veto du critical-loop supprimée ; `repairCitations` ne garde que backfill analyste + sanitization + normalisation | `citation-filter.ts`, `citation-repair.ts`, `critical-loop-v2.ts` | ✅ |
 | Cleanup probas | Gabarit 50/30/20 supprimé (`editorial-scenarios.ts` effacé, fallback arbitre → `'—'`) ; `sourceBoost`/`calibrateFromSources`/`inferAssumptions` retirés du chemin de probabilité | `simulation-agent.ts`, `editorial-arbiter.ts` | ✅ |
+| OT-7 calibration | `Prediction.domain` + rapport calibration sur axes réels + `getCalibrationShrink()` injecté avant l'élection MC (actif après ≥20 résolutions) | `prediction-tracker.ts`, `schema.prisma` | ✅ câblé, en attente de données |
 | Migration prod | Route `POST /api/admin/migrate-predictions` — DDL idempotent des 5 colonnes `Prediction`, gardée par `ADMIN_KEY` (le client Prisma est déjà bundlé ; `prisma db push` impossible sans URL Neon locale) | `app/api/admin/migrate-predictions/route.ts` | ✅ à déployer |
 
 ## IV.2 Architecture résultante (chemin prospectif)
@@ -4396,10 +4397,11 @@ ne produit aucun forecast valide, l'ancien chemin Monte Carlo +
    avec `x-admin-key` (ADMIN_KEY déjà requis en prod par `lib/env.ts`).
    Sans ça, `prediction.create` avec `kind/dueAt` plantera en prod — les
    sentinelles ne naîtront pas (échec silencieux côté registration).
-2. **OT-7 calibration** : les 749 sentinelles 90j + 813 dues à partir du
-   2026-12-31 produiront les premiers Brier ; brancher `foresight-delphi`
-   (Platt/extremize) sur les résolutions réelles + tracker par
-   domaine/horizon/kind. Prévoir bootstrap ForecastBench en attendant.
+2. **OT-7 calibration** : ✅ câblée — `Prediction.domain` + rapport de
+   calibration sur axes réels (domain/kind/horizon) + `getCalibrationShrink()`
+   injecté avant l'élection (≥20 résolutions requises, shrink borné 0,70).
+   Reste : attendre les résolutions (1ʳᵉ sentinelle ~90j, 1ʳᵉ stratégique
+   2026-12-31) ; bootstrap ForecastBench possible en attendant.
 3. **Bascule gate** : `binaryChecks` en shadow → comparés aux décisions
    réelles sur ~10 runs stables → alors seulement décisifs. Composite
    trust/quality conservé comme signal advisory (routage degraded-mode,
