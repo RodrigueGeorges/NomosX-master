@@ -4154,13 +4154,48 @@ Les enregistrements sont des claims auto-générés accrochés aux briefs
 (ex. « surprise: A black swan event: a cyberattack on US nuclear command
 and control… » avec `horizon`, `probability`, `whatWouldFalsify`).
 
-**Verdict** : le système *enregistre* des prédictions mais n'a **aucune boucle
-de résolution** — rien ne repasse à échéance pour noter l'outcome et calculer
-le Brier. Le « track record » prospectif est donc à ce jour une file
-d'attente, pas une mesure. C'est l'écart le plus important entre la promesse
-« prospective » et le réel. Conséquence : `calibration` ne peut pas apprendre
-de ses propres erreurs — le score `CALIBRATION` des quality checks porte sur
-autre chose (calibration des trust scores), pas sur des prédictions résolues.
+### III.5.b Verdict corrigé — la boucle de résolution EXISTE
+
+Vérification demandée : « l'auditeur lirait `AgentAuditLog` alors que
+l'enregistrement écrit dans `Prediction` » — **hypothèse réfutée**.
+
+- `resolveDuePredictions` (`prediction-tracker.ts` l.207+) lit
+  `prisma.prediction` — **la même table** que `prediction-registration.ts`.
+  Aucun lien avec `AgentAuditLog`.
+- Le resolver est **câblé et actif** : `durable-worker.ts` l.422 appelle
+  `resolveDuePredictions(5)` à chaque sweep (commentaire : « closes the
+  prospective-learning loop that was dead code (813 OPEN / 0 resolved
+  live) »). ~5 résolutions/sweep, verdict LLM borné `fact_check`, Brier
+  écrit dans `resolutionNotes`, statuts `CONFIRMED`/`REFUTED`/`EXPIRED`.
+- `parseHorizonDue` (l.141-174) a été **patché** : l'ancien code ne
+  matchait que les littéraux `30d/90d/365d/long-term` — les horizons
+  calendaires n'étaient jamais éligibles. Le parseur actuel couvre
+  `Nd`, `long-term`, `N years`, `YYYY`, `YYYY-YYYY` (→ milieu de range),
+  `YYYY-Qn`, `calLoose`.
+
+**Cause réelle des 0 résolutions : aucune prédiction n'est échue.**
+Rejeu du parseur sur les 813 lignes : 790 horizons parsables, **0 dues** —
+l'échéance la plus proche est **2028-07-01**. Les horizons enregistrés
+sont massivement « 2026-2030 » (→ Jul 2030), « 5-10 years », « 2026-2035 ».
+Les prédictions ont été créées août→nov 2026 avec des horizons pluriannuels
+: le système est correct, il n'a simplement pas encore atteint sa première
+échéance.
+
+**Résidu réel (bug confirmé, mineur)** : 23 horizons en prose
+(« We look to 2030 because three independent cycles… ») retournent `null`
+→ jamais dues automatiquement, OPEN à perpétuité — fail-closed assumé par
+design, mais ces lignes ne se résoudront jamais sans intervention manuelle.
+Recommandation : soit extraire le « 2030 » de ces prose-horizons, soit
+leur assigner un horizon par défaut à l'enregistrement.
+
+### III.5.c Conséquence corrigée pour le diagnostic
+
+Le problème n'est plus « boucle absente » mais **(a)** pas de donnée de
+résolution avant 2028 — la calibration prospectif est structurellement
+non mesurable à court terme ; **(b)** 3 % de prédictions orphelines ;
+**(c)** même une fois résolues, `generateCalibrationReport` devra être
+vérifié pour boucler vers les prompts (aujourd'hui `context-primer` lit
+-il bien ces scores ? à auditer).
 
 ---
 
