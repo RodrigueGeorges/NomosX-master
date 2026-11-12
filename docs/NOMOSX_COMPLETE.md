@@ -4394,10 +4394,13 @@ ne produit aucun forecast valide, l'ancien chemin Monte Carlo +
 
 ## IV.3 Reste à faire
 
-1. **Prod Neon** : déployer puis `POST /api/admin/migrate-predictions`
-   avec `x-admin-key` (ADMIN_KEY déjà requis en prod par `lib/env.ts`).
-   Sans ça, `prediction.create` avec `kind/dueAt` plantera en prod — les
-   sentinelles ne naîtront pas (échec silencieux côté registration).
+1. ~~**Prod Neon**~~ : ✅ **fait** — `prisma db push` exécuté sur la base de
+   production (2026-11-12) : colonnes `kind/dueAt/linkId/parentPredictionId/
+   resolutionSource/domain` + index créés. Backfill relancé sur prod :
+   **31 predictions stratégiques → dueAt posés, 16 sentinelles créées,
+   47 OPEN au total, première échéance 2026-12-31**. La route admin
+   `/api/admin/migrate-predictions` reste disponible pour les futures
+   migrations additives.
 2. **OT-7 calibration** : ✅ câblée — `Prediction.domain` + rapport de
    calibration sur axes réels (domain/kind/horizon) + `getCalibrationShrink()`
    injecté avant l'élection (≥20 résolutions requises, shrink borné 0,70).
