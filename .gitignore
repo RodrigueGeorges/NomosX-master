@@ -121,3 +121,4 @@ scripts/hero-preview-*.webp
 .claude/settings.local.json
 .netlify/state.json
 /jest-*.json
+.netlify/
