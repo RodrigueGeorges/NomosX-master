@@ -129,6 +129,25 @@ export async function runSwarmVote(input: {
   const { shared, slices } = partition(cards, voterCount);
   const sharedBlock = formatCards(shared, 'SHARED');
 
+  // Rotate over providers that are actually alive — the hardcoded trio
+  // (glm/google/deepseek) silently routes 2/3 of ballots through fallback
+  // chains whenever google/deepseek are suspended (the production default),
+  // which both slows the vote and fakes family diversity that isn't there.
+  let voterProviders: LLMProvider[] = VOTER_PROVIDERS;
+  try {
+    const { getAvailableProviders, getSuspendedProviders } = await import('../llm/unified-llm');
+    const suspended = await getSuspendedProviders();
+    const alive = getAvailableProviders().filter(p => !suspended.includes(p));
+    if (alive.length > 0) {
+      // Prefer the canonical trio when alive, then fill with any other
+      // alive provider so the rotation always spans real families.
+      const preferred = VOTER_PROVIDERS.filter(p => alive.includes(p));
+      const extras = alive.filter(p => !preferred.includes(p));
+      voterProviders = [...preferred, ...extras];
+      if (voterProviders.length === 0) voterProviders = VOTER_PROVIDERS;
+    }
+  } catch { /* keep canonical rotation */ }
+
   const votes: RawVote[] = [];
   let costUsd = 0;
   let rawVotes = 0;
@@ -142,7 +161,7 @@ export async function runSwarmVote(input: {
 
     const settled = await Promise.allSettled(
       Array.from({ length: voterCount }, async (_, i) => {
-        const provider = VOTER_PROVIDERS[i % VOTER_PROVIDERS.length];
+        const provider = voterProviders[i % voterProviders.length];
         const negated = i % 2 === 1;
         const lens = LENSES[i % LENSES.length];
         const privateBlock = formatCards(slices[i], `V${i}-PRIVATE`);
