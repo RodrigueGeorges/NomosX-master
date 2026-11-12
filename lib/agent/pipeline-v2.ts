@@ -1334,6 +1334,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
         topSources, debateResult, stats: stats as Record<string, any>,
         label, detectedDomain, isStrategic,
         seedSourceIds: opts.seedSourceIds,
+        readings,
         pipelineRunId: pipelineRun.id, addCost,
         degraded: arbiterDegraded,
       });

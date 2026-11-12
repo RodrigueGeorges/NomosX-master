@@ -842,16 +842,32 @@ export async function runAndPublishInquiry(
   const boundTotal = (claimBinding?.links ?? 0) + (claimBinding?.weak ?? 0);
   const binaryChecks = evaluateBinaryGate({
     claimsEntailmentRatio: boundTotal > 0 ? (claimBinding?.links ?? 0) / boundTotal : undefined,
+    // Numbers: share of numeric claims the fact-checker found free of a
+    // major or fatal discrepancy against their cited source. An errored or
+    // absent fact-check stays 'no data' and fails.
+    numbersTracedRatio: (() => {
+      const fcStats = pipeline.stats.factChecker as { totalClaims?: number; majorIssues?: number; fatalIssues?: number; error?: string } | undefined;
+      if (!fcStats || fcStats.error || typeof fcStats.totalClaims !== 'number') return undefined;
+      if (fcStats.totalClaims === 0) return 1;
+      return Math.max(0, fcStats.totalClaims - (fcStats.majorIssues ?? 0) - (fcStats.fatalIssues ?? 0)) / fcStats.totalClaims;
+    })(),
     centralScenarioSelectedBy:
       (pipeline.stats.swarmElection as { selectedBy?: string } | undefined)?.selectedBy ??
       (pipeline.stats.centralScenario as { selectedBy?: string } | undefined)?.selectedBy,
     scenariosFromChain:
       !!(pipeline.stats.swarmElection as { scenarioId?: string } | undefined)?.scenarioId,
     swarmVotes: (() => {
-      const sf = pipeline.stats.swarmForecasts as { validVotes?: number; familiesUsed?: string[] } | undefined;
-      const elected = !!(pipeline.stats.swarmElection as { scenarioId?: string } | undefined)?.scenarioId;
-      return sf?.validVotes
-        ? { valid: sf.validVotes, families: sf.familiesUsed?.length ?? 0, converged: elected }
+      // Per-link minimum, not the run total: 15 voters over 2 links report
+      // 30 "valid votes" while one link may hold only a handful.
+      const sf = pipeline.stats.swarmForecasts as { forecasts?: Array<{ validVotes: number; families: number }> } | undefined;
+      const health = pipeline.stats.swarmHealth as { healthy?: boolean } | undefined;
+      const fc = sf?.forecasts ?? [];
+      return fc.length
+        ? {
+            valid: Math.min(...fc.map(f => f.validVotes)),
+            families: Math.min(...fc.map(f => f.families)),
+            converged: health?.healthy === true,
+          }
         : undefined;
     })(),
     resolvablePredictions: (pipeline.stats.predictions as { registered?: number } | undefined)?.registered,
@@ -944,6 +960,28 @@ export async function runAndPublishInquiry(
     status = "draft";
   } else if ((gate.decision === "hold" || !readiness.ok) && !moderateTier) {
     status = "held";
+  }
+
+  // ── FORESIGHT INTEGRITY HOLD ──
+  // A piece that carries a central scenario publishes only when that
+  // scenario was elected by a healthy swarm over chain-derived cells. The
+  // legacy path (arbiter-priced scenarios) is retained for diagnosis but can
+  // no longer reach readers. Opt-out: NOMOSX_REQUIRE_SWARM_ELECTION=0.
+  if (
+    status === "published" &&
+    process.env.NOMOSX_REQUIRE_SWARM_ELECTION !== "0" &&
+    pipeline.stats.centralScenarioRequired === true
+  ) {
+    const failedForesight = binaryChecks.filter(
+      c => (c.id === 'scenarios_from_chain' || c.id === 'swarm_healthy') && !c.passed,
+    );
+    if (failedForesight.length > 0) {
+      status = "held";
+      ((pipeline.stats as Record<string, unknown>).publicationGate as Record<string, unknown>).electionHold = {
+        failed: failedForesight.map(c => ({ id: c.id, detail: c.detail })),
+      };
+      console.log(`[InquiryOrchestrator] HELD — no valid swarm election: ${failedForesight.map(c => `${c.id} (${c.detail})`).join('; ')}`);
+    }
   }
 
   // Render the calibration badge into the artifact itself — the reader must

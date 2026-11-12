@@ -134,6 +134,16 @@ export interface CentralScenarioDecision {
   /** Swarm election only: marginal probability per uncertain chain link
    *  (key = link id). Feeds prediction registration. */
   linkProbabilities?: Record<string, number>;
+  /** Swarm election only: 30/60/90-day checkable predictions priced by the
+   *  same ballots. Registered as kind='sentinel'. */
+  sentinels?: Array<{
+    linkId: number;
+    statement: string;
+    dueAt: string;
+    probability: number;
+    resolutionCriteria: string;
+    resolutionSource: string;
+  }>;
 }
 
 export function resolveCentralScenario(

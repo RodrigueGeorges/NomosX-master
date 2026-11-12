@@ -77,9 +77,9 @@ export function evaluateBinaryGate(input: BinaryGateInput): BinaryGateCheck[] {
   const s = input.swarmVotes;
   checks.push({
     id: 'swarm_healthy',
-    passed: !!s && s.valid >= 12 && s.families >= 3 && s.converged,
+    passed: !!s && s.valid >= 8 && s.families >= 2 && s.converged,
     detail: s
-      ? `${s.valid} valid votes / ${s.families} families / converged=${s.converged} (need ≥12, ≥3, converged)`
+      ? `min ${s.valid} valid votes per link / min ${s.families} families per link / healthy=${s.converged} (need ≥8, ≥2, healthy)`
       : 'no data — swarm voter not yet active (OT-4)',
   });
 

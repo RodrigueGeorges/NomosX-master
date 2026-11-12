@@ -36,6 +36,8 @@ interface ExtractedPrediction {
   kind?: 'sentinel' | 'strategic';
   dueAt?: Date;
   linkId?: string;
+  probabilitySource?: 'swarm' | 'tier_table';
+  resolutionSource?: string;
 }
 
 /**
@@ -91,6 +93,21 @@ export function extractPredictions(
       sourceRefs: [...new Set([...central.rationale.matchAll(/\[SRC-(\d+)\]/g)].map(m => Number(m[1])).filter(n => n > 0))],
     });
   }
+  // Swarm-elected central scenario: THE published call. It is registered with
+  // its computed probability so the track record scores what was published.
+  if (central?.selectedBy === 'swarm' && typeof central.probability === 'number' && central.description.trim() && central.horizon.trim()) {
+    predictions.push({
+      claim: `Central scenario: ${central.resolutionStatement ?? central.description}`,
+      horizon: central.horizon,
+      probability: Math.min(0.98, Math.max(0.02, central.probability)),
+      confidence: central.confidence === 'high' ? 'SUPPORTED' : central.confidence === 'medium' ? 'EMERGING' : 'SPECULATIVE',
+      resolutionCriteria: `By ${central.horizon}: ${central.resolutionStatement ?? central.description}`,
+      whatWouldFalsify: central.revisionTriggers.join('; ') || 'Any conditioned link resolves the other way',
+      sourceRefs: [...new Set([...central.rationale.matchAll(/\[SRC-(\d+)\]/g)].map(m => Number(m[1])).filter(n => n > 0))],
+      probabilitySource: 'swarm',
+    });
+  }
+  const swarmLinkP = central?.selectedBy === 'swarm' ? central.linkProbabilities ?? {} : {};
   const tiers = pruningResult?.confidenceTiers ?? new Map<number, ConfidenceTier>();
   const conviction = (analysis as any).convictionLevel as "firm" | "tempered" | "causal_only" | undefined;
 
@@ -105,7 +122,9 @@ export function extractPredictions(
     predictions.push({
       claim: link.claim,
       horizon: analysis.trajectory?.horizon || '1-2 years',
-      probability: deriveProbability(conviction, tier),
+      // The swarm's vote on this link wins over the conviction lookup table.
+      probability: swarmLinkP[String(link.id)] ?? deriveProbability(conviction, tier),
+      probabilitySource: swarmLinkP[String(link.id)] != null ? 'swarm' : 'tier_table',
       confidence: tier,
       resolutionCriteria: buildResolutionCriteria(link, analysis),
       whatWouldFalsify: analysis.whatToWatch?.whatWouldChangeMind || 'Not specified',
@@ -155,10 +174,37 @@ export function extractPredictions(
   //    (first due 2028-07) → zero Brier signal for ~2 years. Sentinels close
   //    that gap: each note emits up to 3 checks on whatToWatch signals and
   //    revision triggers, due within a quarter.
+  // Swarm-priced sentinels (sentinel-writer) take precedence: checkable
+  // statement, named source, probability from the ballots.
+  const swarmSentinels = central?.selectedBy === 'swarm' ? central.sentinels ?? [] : [];
+  for (const sn of swarmSentinels) {
+    predictions.push({
+      claim: `[sentinel] ${sn.statement}`,
+      horizon: sn.dueAt,
+      probability: Math.min(0.98, Math.max(0.02, sn.probability)),
+      confidence: 'EMERGING',
+      resolutionCriteria: sn.resolutionCriteria,
+      whatWouldFalsify: `The stated observable is not met by ${sn.dueAt}`,
+      sourceRefs: [],
+      kind: 'sentinel',
+      dueAt: new Date(`${sn.dueAt}T23:59:59Z`),
+      linkId: String(sn.linkId),
+      probabilitySource: 'swarm',
+      resolutionSource: sn.resolutionSource,
+    });
+  }
+  if (swarmSentinels.length > 0) return predictions;
+
   const SENTINEL_OFFSETS_DAYS = [30, 60, 90] as const;
+  // A signal dated beyond the sentinel window cannot resolve inside it:
+  // "X by 2028" checked at +30 days is a guaranteed miss that would poison
+  // the Brier record. Only signals with no later-year anchor qualify.
+  const latestSentinelYear = new Date(Date.now() + 90 * 86_400_000).getFullYear();
+  const resolvableSoon = (s: string) =>
+    [...s.matchAll(/\b(20\d{2})\b/g)].every(m => Number(m[1]) <= latestSentinelYear);
   const sentinelSources = [
-    ...signals.filter(s => /\b(20\d{2}|Q[1-4]|%|\$|billion|million)\b/i.test(s)),
-    ...(central?.revisionTriggers ?? []).filter(t => /\b(20\d{2}|Q[1-4]|%|\$|billion|million|sanction|election|summit|deadline|launch|approval)\b/i.test(t)),
+    ...signals.filter(s => /\b(20\d{2}|Q[1-4]|%|\$|billion|million)\b/i.test(s)).filter(resolvableSoon),
+    ...(central?.selectedBy === 'swarm' ? [] : central?.revisionTriggers ?? []).filter(t => /\b(20\d{2}|Q[1-4]|%|\$|billion|million|sanction|election|summit|deadline|launch|approval)\b/i.test(t)).filter(resolvableSoon),
   ];
   const seenSentinel = new Set<string>();
   SENTINEL_OFFSETS_DAYS.forEach((days, i) => {
@@ -276,6 +322,8 @@ export async function registerPredictions(
             dueAt: pred.dueAt ?? null,
             linkId: pred.linkId || null,
             domain: domain || null,
+            resolutionSource: pred.resolutionSource || null,
+            probabilitySource: pred.probability == null ? null : pred.probabilitySource ?? 'tier_table',
           },
         });
         registered++;

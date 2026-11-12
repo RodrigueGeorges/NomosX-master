@@ -46,6 +46,50 @@ export interface ArbiterInput {
   } | null;
 }
 
+/**
+ * Fixed scenario set: one outlook per chain cell, matched by cellId.
+ * Anything written outside the cells is dropped; a skipped cell is published
+ * from its mechanical description. Probabilities come from the election,
+ * largest-remainder rounded so the percentages sum to exactly 100.
+ */
+export function pinScenariosToCells(
+  written: ScenarioOutlook[],
+  cells: Array<{ id: string; description: string; probability: number }>,
+  electedId: string,
+  electedInterval: [number, number],
+): ScenarioOutlook[] {
+  const pct = cells.map(c => c.probability * 100);
+  const floor = pct.map(Math.floor);
+  let left = 100 - floor.reduce((a, b) => a + b, 0);
+  const byRemainder = pct.map((v, i) => ({ i, r: v - floor[i] })).sort((a, b) => b.r - a.r || a.i - b.i);
+  for (const { i } of byRemainder) { if (left <= 0) break; floor[i]++; left--; }
+  const rebuilt: ScenarioOutlook[] = cells.map((c, i) => {
+    const match = written.find(s => s.cellId === c.id);
+    const base: ScenarioOutlook = match ?? {
+      name: c.id === electedId ? 'Central scenario' : `Alternative ${i + 1}`,
+      probability: '',
+      description: c.description,
+    };
+    return {
+      ...base,
+      cellId: c.id,
+      description: base.description || c.description,
+      probability: `${floor[i]}%`,
+      empiricalProbability: Math.round(c.probability * 10000) / 10000,
+      ...(c.id === electedId ? { confidenceInterval: electedInterval } : {}),
+    };
+  }).sort((a, b) => (b.empiricalProbability ?? 0) - (a.empiricalProbability ?? 0));
+  // Names must stay unique for downstream lookups.
+  const seen = new Set<string>();
+  for (const sc of rebuilt) {
+    let n = sc.name.trim() || 'Scenario';
+    while (seen.has(n.toLowerCase())) n = `${n} (${sc.cellId})`;
+    seen.add(n.toLowerCase());
+    sc.name = n;
+  }
+  return rebuilt;
+}
+
 function confidenceLabel(score: number): 'high' | 'medium' | 'low' {
   if (score >= 75) return 'high';
   if (score >= 55) return 'medium';
@@ -125,8 +169,12 @@ export async function editorialArbiter(input: ArbiterInput): Promise<InstitutePo
     .map((s, i) => `[SRC-${i + 1}] ${s.title ?? 'Source'} (${s.year ?? 'n/a'}, ${s.provider ?? 'unknown'})`)
     .join('\n');
 
-  const scenarioBlock =
-    scenarios.length > 0
+  const electionCells = input.election?.cells?.length ? input.election.cells : null;
+  const scenarioBlock = electionCells
+    ? electionCells
+        .map(c => `- cellId "${c.id}" — ${(c.probability * 100).toFixed(0)}%${c.id === input.election!.scenarioId ? ' (ELECTED)' : ''} — ${c.description.slice(0, 400)}`)
+        .join('\n')
+    : scenarios.length > 0
       ? scenarios.map((s) => `- ${s.name}: ${s.probability} — ${s.description.slice(0, 200)}`).join('\n')
       : 'No structured scenarios — infer 2-3 plausible futures from evidence.';
 
@@ -152,6 +200,9 @@ export async function editorialArbiter(input: ArbiterInput): Promise<InstitutePo
     let architectCost = 0;
     let architectResult: import('./scenario-architect').ScenarioArchitecture | null = null;
     try {
+      // Under a swarm election the scenario structure IS the chain cells; a
+      // second, LLM-designed uncertainty matrix would contradict it.
+      if (electionCells) throw new Error('architect skipped under election');
       const { architectScenarioMatrix, architectureToPromptBlock } = await import('./scenario-architect');
       architectResult = await architectScenarioMatrix(
         input.question,
@@ -254,7 +305,8 @@ ${scenarioBlock}
 ${input.election ? `SWARM-ELECTED SCENARIO (computed by independent-voter swarm + Monte Carlo — authoritative, do NOT alter its probability):
 - Elected branch: ${input.election.electedName ?? input.election.scenarioId} — p=${(input.election.probability * 100).toFixed(1)}% CI=[${(input.election.confidenceInterval[0] * 100).toFixed(0)}%, ${(input.election.confidenceInterval[1] * 100).toFixed(0)}%]${input.election.contested ? ` CONTESTED — runner-up: ${input.election.runnerUpId ?? 'n/a'}` : ''}
 - Branch content: ${input.election.electedDescription ?? ''}
-Write the verdict and scenarios AS IF this branch is the central forecast. Present the runner-up (when contested) as the live alternative with the signals that would flip the call. Every probability you write must match the computed values above — never invent new ones.` : ''}
+Write the verdict and scenarios AS IF this branch is the central forecast. Present the runner-up (when contested) as the live alternative with the signals that would flip the call. Every probability you write must match the computed values above — never invent new ones.${electionCells ? `
+SCENARIO SET IS FIXED: return exactly one scenario object per cellId listed under SCENARIOS, each carrying its "cellId" field verbatim and the listed probability. Give each an evocative name and narrate what that combination of link outcomes looks like. Do not add, merge or drop scenarios.` : ''}` : ''}
 
 ${architectBlock}
 
@@ -291,6 +343,7 @@ Return JSON:
   },
   "scenarios": [
     {
+      "cellId": "the cellId this scenario narrates — required when a fixed scenario set is listed, omit otherwise",
       "name": "Evocative scenario name (not clinical)",
       "probability": "35%",
       "axisPosition": "Position on the uncertainty matrix, e.g. 'Axis1-poleA × Axis2-poleB' — required if an architecture was provided",
@@ -390,7 +443,12 @@ Return JSON:
     // dominantScenario to the elected branch — the LLM narrates, it does
     // not re-decide. ──
     let dominantScenario = parsed.dominantScenario ? String(parsed.dominantScenario) : undefined;
-    if (input.election) {
+    if (input.election && electionCells) {
+      const rebuilt = pinScenariosToCells(outScenarios, electionCells, input.election.scenarioId, input.election.confidenceInterval);
+      outScenarios.length = 0;
+      outScenarios.push(...rebuilt);
+      dominantScenario = rebuilt.find(s => s.cellId === input.election!.scenarioId)?.name;
+    } else if (input.election) {
       const electedName = input.election.electedName ?? input.election.scenarioId;
       const electedPctValue = Math.round(input.election.probability * 100);
       const norm = (s: string) => s.toLowerCase().trim();
@@ -533,6 +591,13 @@ Return JSON:
     };
   } catch (err) {
     console.warn('[EDITORIAL ARBITER] failed, using fallback position:', err);
+    // The election stands even when the writer fails: the fallback carries
+    // the chain cells and their computed probabilities, never the analyst's
+    // unpriced scenarios.
+    if (input.election && electionCells) {
+      const pinned = pinScenariosToCells([], electionCells, input.election.scenarioId, input.election.confidenceInterval);
+      return { ...fallback, scenarios: pinned, dominantScenario: pinned.find(sc => sc.cellId === input.election!.scenarioId)?.name };
+    }
     return fallback;
   }
 }

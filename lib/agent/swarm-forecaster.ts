@@ -22,12 +22,59 @@ import { callLLM } from '../llm/unified-llm';
 import { parseJson } from './json-utils';
 import { poolForecasts, type ForecastVote } from './leap-aggregation';
 import type { LLMProvider } from '../llm/unified-llm';
+import { passageContainment } from './claim-passage-contract';
 
 export interface SwarmSourceCard {
   id: string;
   title: string;
   excerpt: string;
   qualityScore: number;
+  /** 0-1 lexical relevance of the excerpt to the uncertain links; set when
+   *  the card is built from reader passages rather than the abstract. */
+  relevance?: number;
+}
+
+/**
+ * Passage-level evidence cards. Voters must judge links on what the sources
+ * actually establish, not on abstracts: for each source, the reader-extracted
+ * passages (claims, results, limitations) are ranked by overlap with the
+ * uncertain links and the best ones become the card. Sources without a
+ * reading fall back to their abstract. Deterministic, no LLM.
+ */
+export function buildLinkCards(
+  sources: Array<{ id: string; title?: string | null; abstract?: string | null; qualityScore?: number | null }>,
+  readings: Array<{ sourceId: string; claims?: string[]; results?: string[]; limitations?: string[] }> | undefined,
+  links: Array<{ claim: string }>,
+  maxCards = 40,
+): SwarmSourceCard[] {
+  const bySource = new Map((readings ?? []).map(r => [r.sourceId, r]));
+  const score = (text: string) => Math.max(0, ...links.map(l => passageContainment(l.claim, text)));
+  const cards = sources.map(s => {
+    const r = bySource.get(s.id);
+    const passages = r
+      ? [...(r.results ?? []), ...(r.claims ?? []), ...(r.limitations ?? []).map(l => `Limitation: ${l}`)]
+          .map(t => String(t ?? '').trim()).filter(t => t.length >= 30)
+      : [];
+    const ranked = passages.map(t => ({ t, sc: score(t) })).sort((a, b) => b.sc - a.sc);
+    const picked: string[] = [];
+    let len = 0;
+    for (const { t } of ranked) {
+      if (picked.length >= 3 || len + t.length > 520) continue;
+      picked.push(t); len += t.length;
+    }
+    const excerpt = picked.length ? picked.join(' | ') : String(s.abstract ?? s.title ?? '').slice(0, 400);
+    return {
+      id: s.id,
+      title: String(s.title ?? 'Untitled'),
+      excerpt,
+      qualityScore: s.qualityScore ?? 50,
+      relevance: picked.length ? ranked[0].sc : score(excerpt),
+    };
+  }).filter(c => c.excerpt.length >= 30);
+  // Relevance first, quality as tie-breaker: an on-topic passage from a
+  // decent source beats an off-topic abstract from a prestigious one.
+  const rank = (c: SwarmSourceCard) => (c.relevance ?? 0) * 100 * 0.6 + c.qualityScore * 0.4;
+  return cards.sort((a, b) => rank(b) - rank(a) || a.id.localeCompare(b.id)).slice(0, maxCards);
 }
 
 export interface UncertainLink {
@@ -105,12 +152,13 @@ interface RawVote {
 }
 
 function formatCards(cards: SwarmSourceCard[], tag: string): string {
-  return cards.map(c => `[${tag}-${c.id.slice(-6)}] (${c.qualityScore}/100 q) ${c.title}\n  ${c.excerpt.slice(0, 350)}`).join('\n');
+  return cards.map(c => `[${tag}-${c.id.slice(-6)}] (${c.qualityScore}/100 q) ${c.title}\n  ${c.excerpt.slice(0, 560)}`).join('\n');
 }
 
 /** Shared pool = top-quality cards; private slices dealt round-robin. */
 function partition(cards: SwarmSourceCard[], voters: number) {
-  const sorted = [...cards].sort((a, b) => b.qualityScore - a.qualityScore);
+  const rank = (c: SwarmSourceCard) => (c.relevance ?? 0) * 60 + c.qualityScore * 0.4;
+  const sorted = [...cards].sort((a, b) => rank(b) - rank(a));
   const sharedCount = Math.max(2, Math.ceil(sorted.length * 0.4));
   const shared = sorted.slice(0, sharedCount);
   const rest = sorted.slice(sharedCount);
@@ -151,9 +199,11 @@ export async function runSwarmVote(input: {
   horizon?: string;
   voters?: number;
   runId?: string;
+  /** Passage-level cards (buildLinkCards). Falls back to source abstracts. */
+  cards?: SwarmSourceCard[];
 }): Promise<SwarmResult> {
   const voterCount = Math.min(25, Math.max(8, input.voters ?? 15));
-  const cards = await loadCards(input.sourceIds);
+  const cards = input.cards && input.cards.length >= 4 ? input.cards : await loadCards(input.sourceIds);
   if (cards.length < 4) {
     return { forecasts: [], rawVotes: 0, validVotes: 0, familiesUsed: [], costUsd: 0, skipped: 'insufficient_evidence_cards' };
   }

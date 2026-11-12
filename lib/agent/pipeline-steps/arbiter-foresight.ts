@@ -29,6 +29,8 @@ export interface ArbiterForesightDeps {
   detectedDomain: string;
   isStrategic: boolean;
   seedSourceIds?: string[];
+  /** Reader extractions — give swarm voters passage-level evidence. */
+  readings?: any[];
   pipelineRunId: string;
   addCost: (usd: number | undefined, step: string) => void;
   /** True when upstream quality signals (critic score, groundedness) predict
@@ -71,13 +73,28 @@ export async function runArbiterForesight(deps: ArbiterForesightDeps): Promise<A
       : { usedForForesight: false, reason: 'insufficient_uncertainties' };
 
     let election: import('../mc-elector').ElectedScenario | null = null;
+    let sentinelDrafts: import('../sentinel-writer').SentinelDraft[] = [];
+    let pricedSentinels: NonNullable<import('../editorial-types').CentralScenarioDecision['sentinels']> = [];
     if (chainDerivation && topSources.length >= 10) {
       try {
-        const { runSwarmVote } = await import('../swarm-forecaster');
+        const { runSwarmVote, buildLinkCards } = await import('../swarm-forecaster');
+        // Sentinels are drafted first so the same ballots price them.
+        const { writeSentinels } = await import('../sentinel-writer');
+        const drafted = await writeSentinels({
+          question: query,
+          uncertainties: chainDerivation.uncertainties.map(u => ({ linkId: u.linkId, claim: u.claim })),
+          runId: pipelineRunId,
+        });
+        sentinelDrafts = drafted.sentinels;
+        addCost(drafted.costUsd, 'SENTINEL_WRITER');
         const swarm = await runSwarmVote({
           question: query,
-          uncertainties: chainDerivation.uncertainties.map(u => ({ linkId: u.linkId, claim: u.claim, dependsOn: u.dependsOn })),
+          uncertainties: [
+            ...chainDerivation.uncertainties.map(u => ({ linkId: u.linkId, claim: u.claim, dependsOn: u.dependsOn })),
+            ...drafted.sentinels.map(sn => ({ linkId: sn.voteId, claim: `By ${sn.dueAt}: ${sn.statement} (resolved as: ${sn.resolutionCriteria})` })),
+          ],
           sourceIds: topSources.map((s: any) => s.id),
+          cards: buildLinkCards(topSources, deps.readings, chainDerivation.uncertainties),
           horizon: typeof analysis.trajectory === 'object' && analysis.trajectory
             ? String((analysis.trajectory as { horizon?: string }).horizon ?? '') : undefined,
           runId: pipelineRunId,
@@ -98,6 +115,17 @@ export async function runArbiterForesight(deps: ArbiterForesightDeps): Promise<A
         const { assessSwarmHealth } = await import('../swarm-forecaster');
         const swarmHealth = assessSwarmHealth(swarm.forecasts, chainDerivation.uncertainties.map(u => u.linkId));
         stats.swarmHealth = swarmHealth;
+        // A sentinel is kept only if its own vote is healthy.
+        pricedSentinels = sentinelDrafts.flatMap(sn => {
+          const f = swarm.forecasts.find(x => x.linkId === sn.voteId);
+          if (!f || !assessSwarmHealth([f], [sn.voteId]).healthy) return [];
+          return [{
+            linkId: sn.linkId, statement: sn.statement, dueAt: sn.dueAt,
+            probability: Math.round(f.probability * 10000) / 10000,
+            resolutionCriteria: sn.resolutionCriteria, resolutionSource: sn.resolutionSource,
+          }];
+        });
+        stats.sentinels = { drafted: sentinelDrafts.length, rejected: drafted.rejected, priced: pricedSentinels.length };
         addCost(swarm.costUsd, 'SWARM_FORECAST');
         console.log(`${label} SWARM: ${swarm.validVotes} valid votes / ${swarm.familiesUsed.length} families / $${swarm.costUsd.toFixed(4)}`);
 
@@ -117,6 +145,9 @@ export async function runArbiterForesight(deps: ArbiterForesightDeps): Promise<A
             if (calib.factor < 1) {
               for (const f of swarm.forecasts) {
                 f.probability = 0.5 + (f.probability - 0.5) * calib.factor;
+              }
+              for (const sn of pricedSentinels) {
+                sn.probability = Math.round((0.5 + (sn.probability - 0.5) * calib.factor) * 10000) / 10000;
               }
               console.log(`${label} CALIBRATION: shrink=${calib.factor.toFixed(2)} applied (brier=${calib.avgBrier?.toFixed(3)}, n=${calib.resolved})`);
             }
@@ -199,9 +230,11 @@ export async function runArbiterForesight(deps: ArbiterForesightDeps): Promise<A
           .filter((n): n is number => typeof n === 'number' && n > 0)
       )];
       const srcSuffix = srcRefs.length ? ` Supporting links: ${srcRefs.map(n => `[SRC-${n}]`).join(' ')}.` : '';
+      // Published name = the arbiter's name for the elected cell.
+      const electedOutlook = institutePosition.scenarios.find(s => s.cellId === election!.scenarioId);
       stats.centralScenario = {
-        name: electedChainScenario.name,
-        description: electedChainScenario.description,
+        name: electedOutlook?.name ?? electedChainScenario.name,
+        description: electedOutlook?.narrative || electedOutlook?.description || electedChainScenario.description,
         rationale:
           `Elected by independent-voter swarm + Monte Carlo over causal-chain ` +
           `uncertainties (p=${election.probability.toFixed(3)}, 90% interval ` +
@@ -222,6 +255,7 @@ export async function runArbiterForesight(deps: ArbiterForesightDeps): Promise<A
         selectedBy: 'swarm',
         simulationDisagrees: false,
         resolutionStatement: electedChainScenario.description,
+        sentinels: pricedSentinels,
         probability: election.probability,
         confidenceInterval: election.confidenceInterval,
         // Marginals: a dependent link's vote is P(child | parent), so its

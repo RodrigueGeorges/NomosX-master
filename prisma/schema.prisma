@@ -859,6 +859,10 @@ model Prediction {
   // OT-7: research domain at registration time — enables calibration
   // breakdowns by domain once predictions resolve.
   domain          String?
+  // Where the probability came from: 'swarm' (independent-voter election)
+  // or 'tier_table' (deterministic conviction lookup). Calibration feedback
+  // only learns from 'swarm' — a lookup table says nothing about the swarm.
+  probabilitySource String?
 
   // Metadata
   createdAt DateTime @default(now())

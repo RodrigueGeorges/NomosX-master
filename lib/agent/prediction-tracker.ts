@@ -199,8 +199,15 @@ export async function findPredictionsDueForEvaluation(limit = 50): Promise<Predi
     const due = (candidates as any[]).filter(c => {
       // dueAt (ISO, authoritative — OT-1) wins; horizon parsing is fallback.
       const dueAt = c.dueAt ? new Date(c.dueAt) : parseHorizonDue(c.horizon, c.createdAt);
-      return dueAt !== null && dueAt.getTime() <= now;
-    }).slice(0, limit);
+      if (dueAt === null || dueAt.getTime() > now) return false;
+      // Recently checked without a verdict: wait before retrying so a few
+      // unresolvable predictions cannot monopolize every sweep.
+      const pending = typeof c.resolutionNotes === 'string' && c.resolutionNotes.startsWith('Pending:');
+      return !(pending && c.updatedAt && now - new Date(c.updatedAt).getTime() < 3 * 86_400_000);
+    })
+      // Swarm-priced predictions first: they are the ones calibration learns from.
+      .sort((x, y) => Number(y.probabilitySource === 'swarm') - Number(x.probabilitySource === 'swarm'))
+      .slice(0, limit);
     return due as unknown as Prediction[];
   } catch (error) {
     console.warn('[PredictionTracker] Failed to find due predictions:', error instanceof Error ? error.message : String(error));
@@ -208,62 +215,159 @@ export async function findPredictionsDueForEvaluation(limit = 50): Promise<Predi
   }
 }
 
+/** Days past due during which an unresolvable prediction stays OPEN and is
+ *  retried, before it expires without a verdict. */
+export const RESOLUTION_GRACE_DAYS = 30;
+
+export interface ResolutionEvidence {
+  title: string;
+  snippet: string;
+  url: string;
+  publishedDate?: string | null;
+}
+
+export type ResolutionDecision =
+  | { action: 'resolve'; outcome: 'occurred' | 'not_occurred'; status: 'CONFIRMED' | 'REFUTED'; notes: string; evidenceUrl: string }
+  | { action: 'retry'; reason: string }
+  | { action: 'expire'; reason: string };
+
 /**
- * Auto-resolve due predictions with one bounded LLM judgment each.
- * Writes schema-valid statuses (CONFIRMED/REFUTED/EXPIRED — the old code
- * wrote 'RESOLVED', outside the documented contract) and embeds the
- * Brier score in resolutionNotes so generateCalibrationReport picks it
- * up. UNCLEAR outcomes expire honestly rather than guess.
+ * Turn the judge's answer into a decision. A verdict counts only when it
+ * points at a retrieved evidence item: the judge model's own knowledge stops
+ * before the prediction was made, so an uncited verdict is a guess.
+ */
+export function decideResolution(
+  parsed: { outcome?: string; evidenceIndex?: number; notes?: string } | null | undefined,
+  evidence: ResolutionEvidence[],
+  daysPastDue: number,
+): ResolutionDecision {
+  const giveUp = (reason: string): ResolutionDecision =>
+    daysPastDue >= RESOLUTION_GRACE_DAYS ? { action: 'expire', reason } : { action: 'retry', reason };
+  if (evidence.length === 0) return giveUp('no evidence retrieved');
+  const outcome = String(parsed?.outcome ?? '').toUpperCase();
+  if (outcome !== 'CONFIRMED' && outcome !== 'REFUTED') return giveUp('evidence inconclusive');
+  const idx = Number(parsed?.evidenceIndex);
+  if (!Number.isInteger(idx) || idx < 1 || idx > evidence.length) return giveUp('verdict cites no retrieved evidence');
+  return {
+    action: 'resolve',
+    outcome: outcome === 'CONFIRMED' ? 'occurred' : 'not_occurred',
+    status: outcome === 'CONFIRMED' ? 'CONFIRMED' : 'REFUTED',
+    notes: String(parsed?.notes ?? outcome).slice(0, 600),
+    evidenceUrl: evidence[idx - 1].url,
+  };
+}
+
+/** Fresh web/news evidence for a claim. Never throws; empty when no search
+ *  provider is configured or reachable. */
+async function retrieveResolutionEvidence(claim: string): Promise<ResolutionEvidence[]> {
+  const query = claim.replace(/^\[[^\]]+\]\s*/, '').replace(/^Central scenario:\s*/i, '').slice(0, 300);
+  const toEvidence = (rows: any[]): ResolutionEvidence[] => rows
+    .filter(r => r?.url && (r.abstract || r.title))
+    .map(r => ({
+      title: String(r.title ?? '').slice(0, 200),
+      snippet: String(r.abstract ?? '').slice(0, 600),
+      url: String(r.url),
+      publishedDate: r.publishedDate ?? null,
+    }));
+  const out: ResolutionEvidence[] = [];
+  try {
+    const { searchTavily } = await import('../providers/tavily-provider');
+    out.push(...toEvidence(await searchTavily(query, 6, { topic: 'news', time_range: 'year' })));
+  } catch { /* fall through to the next provider */ }
+  if (out.length < 3) {
+    try {
+      const { searchSearxng } = await import('../providers/searxng');
+      out.push(...toEvidence(await searchSearxng(query, 6)));
+    } catch { /* no evidence — caller retries later */ }
+  }
+  const seen = new Set<string>();
+  return out.filter(e => !seen.has(e.url) && seen.add(e.url)).slice(0, 8);
+}
+
+/**
+ * Auto-resolve due predictions against retrieved evidence.
+ *
+ * The judge sees fresh search results and must cite one; with no evidence or
+ * no cited verdict the prediction stays OPEN and is retried until
+ * RESOLUTION_GRACE_DAYS past due, then expires without a verdict (never
+ * scored). Backfilled "[90d milestone]" copies of long-horizon claims are
+ * closed as SUPERSEDED: a claim about 2030 cannot be checked at +90 days.
  * Bounded: `limit` predictions per call, never throws.
  */
-export async function resolveDuePredictions(limit = 10): Promise<{ resolved: number; expired: number; costUsd: number }> {
+export async function resolveDuePredictions(limit = 10): Promise<{ resolved: number; expired: number; retried: number; costUsd: number }> {
   const due = await findPredictionsDueForEvaluation(limit);
-  if (due.length === 0) return { resolved: 0, expired: 0, costUsd: 0 };
+  if (due.length === 0) return { resolved: 0, expired: 0, retried: 0, costUsd: 0 };
 
-  let resolved = 0, expired = 0, costUsd = 0;
+  let resolved = 0, expired = 0, retried = 0, costUsd = 0;
   const { callLLM } = await import('../llm/unified-llm');
   const { parseJson } = await import('./json-utils');
 
   for (const p of due) {
     const raw = p as any;
     try {
-      const res = await callLLM({
-        messages: [
-          { role: 'system', content: 'You evaluate whether a past analytical prediction came true. Output valid JSON only: {"outcome":"CONFIRMED"|"REFUTED"|"UNCLEAR","notes":"one sentence of evidence"}. CONFIRMED = the claimed development occurred as stated. REFUTED = evidence shows it did not. UNCLEAR = cannot be determined from general knowledge — do not guess.' },
-          { role: 'user', content: `PREDICTION: ${raw.claim}\nHORIZON: ${raw.horizon}\nRESOLUTION CRITERIA: ${raw.resolutionCriteria || 'n/a'}\nFALSIFIER: ${raw.whatWouldFalsify || 'n/a'}` },
-        ],
-        task: 'fact_check',
-        temperature: 0.1,
-        maxTokens: 300,
-        jsonMode: true,
-      });
-      costUsd += res.costUsd ?? 0;
-      const parsed = parseJson<{ outcome?: string; notes?: string }>(res.content);
-      const outcome = String(parsed?.outcome || 'UNCLEAR').toUpperCase();
-      const prob = raw.probability ?? 0.5;
-      const actual = outcome === 'CONFIRMED' ? 1 : outcome === 'REFUTED' ? 0 : 0.5;
-      const brier = Math.pow(prob - actual, 2);
-      const status = outcome === 'CONFIRMED' ? 'CONFIRMED' : outcome === 'REFUTED' ? 'REFUTED' : 'EXPIRED';
+      if (String(raw.claim ?? '').startsWith('[90d milestone]')) {
+        await prisma.prediction.update({
+          where: { id: raw.id },
+          data: { status: 'SUPERSEDED', resolvedAt: new Date(), resolutionNotes: 'Milestone copy of a long-horizon claim — not checkable at this date; the parent prediction remains open.' },
+        });
+        expired++;
+        continue;
+      }
+      const dueAt: Date | null = raw.dueAt ? new Date(raw.dueAt) : parseHorizonDue(raw.horizon, raw.createdAt);
+      const daysPastDue = dueAt ? Math.floor((Date.now() - dueAt.getTime()) / 86_400_000) : RESOLUTION_GRACE_DAYS;
+      const evidence = await retrieveResolutionEvidence(String(raw.claim ?? ''));
+
+      let parsed: { outcome?: string; evidenceIndex?: number; notes?: string } | null = null;
+      if (evidence.length > 0) {
+        const res = await callLLM({
+          messages: [
+            { role: 'system', content: 'You resolve a forecast using ONLY the numbered evidence items provided. Your own knowledge is out of date: do not use it. Output valid JSON only: {"outcome":"CONFIRMED"|"REFUTED"|"UNCLEAR","evidenceIndex":<number of the single item that settles it>,"notes":"one sentence quoting that item"}. CONFIRMED = an item shows the claimed development occurred as stated by the deadline. REFUTED = an item shows it did not, or the deadline passed with the item showing the opposite state. UNCLEAR = no item settles it.' },
+            { role: 'user', content: `PREDICTION: ${raw.claim}\nDEADLINE: ${dueAt ? dueAt.toISOString().slice(0, 10) : raw.horizon}\nRESOLUTION CRITERIA: ${raw.resolutionCriteria || 'n/a'}\nTODAY: ${new Date().toISOString().slice(0, 10)}\n\nEVIDENCE:\n${evidence.map((e, i) => `[${i + 1}] ${e.publishedDate ? `(${String(e.publishedDate).slice(0, 10)}) ` : ''}${e.title} — ${e.snippet} <${e.url}>`).join('\n')}` },
+          ],
+          task: 'fact_check',
+          temperature: 0,
+          maxTokens: 300,
+          jsonMode: true,
+        });
+        costUsd += res.costUsd ?? 0;
+        parsed = parseJson<{ outcome?: string; evidenceIndex?: number; notes?: string }>(res.content);
+      }
+
+      const decision = decideResolution(parsed, evidence, daysPastDue);
+      if (decision.action === 'retry') {
+        await prisma.prediction.update({
+          where: { id: raw.id },
+          data: { resolutionNotes: `Pending: ${decision.reason} (checked ${new Date().toISOString().slice(0, 10)})` },
+        });
+        retried++;
+        continue;
+      }
+      if (decision.action === 'expire') {
+        await prisma.prediction.update({
+          where: { id: raw.id },
+          data: { status: 'EXPIRED', resolvedAt: new Date(), outcome: 'unclear', resolutionNotes: `Expired without verdict: ${decision.reason}` },
+        });
+        expired++;
+        continue;
+      }
+      const brier = Math.pow((raw.probability ?? 0.5) - (decision.outcome === 'occurred' ? 1 : 0), 2);
       await prisma.prediction.update({
         where: { id: raw.id },
         data: {
-          status,
+          status: decision.status,
           resolvedAt: new Date(),
-          outcome: outcome === 'UNCLEAR' ? 'unclear' : outcome === 'CONFIRMED' ? 'occurred' : 'not_occurred',
-          resolutionNotes: `${parsed?.notes || outcome} [Brier: ${brier.toFixed(3)}]`,
+          outcome: decision.outcome,
+          resolutionSource: decision.evidenceUrl,
+          resolutionNotes: `${decision.notes} [Brier: ${brier.toFixed(3)}]`,
         },
       });
-      if (status === 'EXPIRED') expired++; else resolved++;
+      resolved++;
     } catch {
-      expired++; // unresolvable → expire honestly rather than retry forever
-      await prisma.prediction.update({
-        where: { id: raw.id },
-        data: { status: 'EXPIRED', resolvedAt: new Date(), outcome: 'unclear', resolutionNotes: 'Resolver error — expired without verdict' },
-      }).catch(() => {});
+      retried++; // transient failure — leave OPEN, the next cycle retries
     }
   }
-  console.log(`[PredictionTracker] Resolved ${resolved} confirmed/refuted, ${expired} expired (${due.length} due, $${costUsd.toFixed(4)})`);
-  return { resolved, expired, costUsd };
+  console.log(`[PredictionTracker] Resolved ${resolved}, expired ${expired}, left open ${retried} (${due.length} due, $${costUsd.toFixed(4)})`);
+  return { resolved, expired, retried, costUsd };
 }
 
 /**
@@ -317,7 +421,9 @@ export async function generateCalibrationReport(): Promise<CalibrationReport> {
     const evaluatedRaw = await prisma.prediction.findMany({
       where: {
         resolvedAt: { not: null },
-        outcome: { not: null },
+        // Only real verdicts are scored; expired/unclear predictions carry
+        // no information about calibration.
+        outcome: { in: ['occurred', 'not_occurred'] },
       },
       orderBy: { createdAt: 'desc' },
       take: 500,
@@ -474,15 +580,29 @@ export function formatCalibrationContext(report: CalibrationReport): string {
 // ─── OT-7: calibration feedback into forecasting ────────────────────────────
 
 /**
- * Derive a probability-shrink factor from the resolved track record.
- *
- * Systematic overconfidence shows up as average Brier > ~0.25 (worse than
- * coin-flip). When enough predictions have resolved, shrink every forecast
- * probability toward 0.5 — the standard recalibration move — bounded so a
- * thin or noisy record can never dominate the swarm's evidence.
- *
- * factor = 1 → no adjustment. factor < 1 → shrink toward 0.5.
- * Requires ≥ 20 resolved predictions before trusting the signal.
+ * Pick the shrink-toward-0.5 factor that minimizes the Brier score on
+ * resolved forecasts. Returns 1 when shrinking does not help: a high Brier
+ * alone does not prove overconfidence (the forecasts may be too timid).
+ */
+export function bestShrinkFactor(pairs: Array<{ p: number; outcome: 0 | 1 }>): { factor: number; brier: number | null } {
+  if (pairs.length === 0) return { factor: 1, brier: null };
+  const brierAt = (f: number) =>
+    pairs.reduce((acc, { p, outcome }) => acc + (0.5 + (p - 0.5) * f - outcome) ** 2, 0) / pairs.length;
+  const base = brierAt(1);
+  let best = 1, bestBrier = base;
+  for (const f of [0.9, 0.8, 0.7]) {
+    const b = brierAt(f);
+    // Require a real gain (1% relative) before moving off the identity.
+    if (b < bestBrier && b < base * 0.99) { best = f; bestBrier = b; }
+  }
+  return { factor: best, brier: base };
+}
+
+/**
+ * OT-7 calibration feedback. Learns ONLY from resolved predictions whose
+ * probability came from the swarm (probabilitySource='swarm'): predictions
+ * priced by the conviction lookup table, and the backfilled "[90d milestone]"
+ * copies of long-horizon claims, say nothing about the swarm's calibration.
  */
 export async function getCalibrationShrink(): Promise<{
   factor: number;
@@ -490,14 +610,24 @@ export async function getCalibrationShrink(): Promise<{
   avgBrier: number | null;
 }> {
   try {
-    const report = await generateCalibrationReport();
-    if (report.evaluatedPredictions < 20 || report.averageBrierScore == null) {
-      return { factor: 1, resolved: report.evaluatedPredictions, avgBrier: report.averageBrierScore };
-    }
-    // Brier 0.20 ≈ acceptable; each 0.05 of excess costs 10% shrink, floor 0.70.
-    const excess = Math.max(0, report.averageBrierScore - 0.20);
-    const factor = Math.max(0.70, 1 - excess * 2);
-    return { factor, resolved: report.evaluatedPredictions, avgBrier: report.averageBrierScore };
+    const rows = await prisma.prediction.findMany({
+      where: {
+        probabilitySource: 'swarm',
+        resolvedAt: { not: null },
+        outcome: { in: ['occurred', 'not_occurred'] },
+        probability: { not: null },
+      },
+      select: { probability: true, outcome: true },
+      orderBy: { resolvedAt: 'desc' },
+      take: 500,
+    });
+    const pairs = rows.map((r: { probability: number | null; outcome: string | null }) => ({
+      p: r.probability as number,
+      outcome: (r.outcome === 'occurred' ? 1 : 0) as 0 | 1,
+    }));
+    if (pairs.length < 20) return { factor: 1, resolved: pairs.length, avgBrier: null };
+    const { factor, brier } = bestShrinkFactor(pairs);
+    return { factor, resolved: pairs.length, avgBrier: brier };
   } catch (err) {
     console.warn('[PredictionTracker] Calibration shrink unavailable:', err instanceof Error ? err.message : String(err));
     return { factor: 1, resolved: 0, avgBrier: null };
