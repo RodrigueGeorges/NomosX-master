@@ -1498,6 +1498,7 @@ export async function analystAgentV3(
       const mechanisms = Array.isArray(friction?.mechanisms) ? friction.mechanisms : [];
       if (mechanisms.length === 0) return [];
       const surviving = new Set<number>(Array.isArray(stress?.survivingMechanisms) ? stress.survivingMechanisms : []);
+      const assessments = new Map((Array.isArray(stress?.mechanismAssessments) ? stress.mechanismAssessments : []).map(a => [a.mechanismId, a]));
       const ordered = [...mechanisms]
         .filter(m => surviving.size === 0 || surviving.has(m.id))
         .sort((a, b) => (a.temporalStatus === 'present_fact' ? 0 : 1) - (b.temporalStatus === 'present_fact' ? 0 : 1))
@@ -1510,6 +1511,16 @@ export async function analystAgentV3(
         const claimBase = String(m.description ?? '').trim();
         const claim = /\[SRC-\d+\]/.test(claimBase) ? claimBase : `${claimBase} ${srcs.join(' ')}`.trim();
         const srcMatch = `${evidence} ${claimBase} ${srcs.join(' ')}`.match(/\[SRC-(\d+)\]/);
+        // Honest uncertainty signal for downstream scenario derivation:
+        // a mechanism the stress test says cannot carry extrapolation, or
+        // one with thin deterministic evidence (no dataPoints, <2 sources),
+        // is weakly supported — the same class deriveChainScenarios treats
+        // as an uncertainty candidate. present_fact links are left for the
+        // claim→passage contract, which owns their verdict.
+        const assessment = assessments.get(m.id);
+        const thinEvidence = dataPoints.length === 0 && srcs.length < 2;
+        const weakMechanism = m.temporalStatus === 'active_mechanism' &&
+          (assessment?.canSupportExtrapolation === false || thinEvidence);
         links.push({
           id: i + 1,
           claim,
@@ -1518,6 +1529,7 @@ export async function analystAgentV3(
           temporalStatus: m.temporalStatus === 'present_fact' ? 'present_fact' : 'active_mechanism',
           derivesFrom: i === 0 ? null : i,
           sourceRef: srcMatch ? parseInt(srcMatch[1], 10) : undefined,
+          ...(weakMechanism ? { passageVerdict: 'weak' as const } : {}),
         });
       });
       const projected = String(stress?.strongestChain?.projectedFuture ?? '').trim();
