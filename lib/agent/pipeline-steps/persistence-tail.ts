@@ -23,6 +23,7 @@ import { updateAgentWeights } from '../moa/mixture-of-agents';
 import { updateWorldModel } from '../world-model/world-model';
 import { runEvolutionCycle } from '../self-evolver';
 import { retrainPRM } from '../prm/process-reward-model';
+import { learningWritesEnabled } from '../learning-gate';
 import { evaluateBriefRAG } from '../ragas-eval';
 import type { DomainExpertise } from '../researcher-kb/index';
 
@@ -192,6 +193,9 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
 
     // ── STEP 15: KNOWLEDGE GRAPH (post-publish concept extraction) ──
     (async () => {
+      // Learning-write freeze (audit #11): KG writes are frozen pending
+      // replay-backed ablation. Skipping also saves the extraction LLM call.
+      if (!learningWritesEnabled()) return;
       console.log(`${label} KNOWLEDGE GRAPH: extracting concepts`);
       try {
         const kg = await extractAndStoreConcepts(brief.id, query, html, topSources.map((s: any) => s.id), useTemporalMemory);
@@ -204,6 +208,7 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
 
     // STEP 16: GAP FILLER — extract knowledge gaps from this analysis for future runs
     (async () => {
+      if (!learningWritesEnabled()) return;
       try {
         const gapResult = await extractAndStoreGaps(query, html, detectedDomain, pipelineRun.id, topSources.length);
         if (gapResult.gaps.length > 0) {
@@ -218,6 +223,7 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
 
     // STEP 16b: EPISODIC MEMORY STORAGE (V3.1) — store this run for future learning
     (async () => {
+      if (!learningWritesEnabled()) return;
       try {
         const { storeEpisode } = await import('../episodic-memory');
         await storeEpisode({
@@ -310,11 +316,13 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
     }
     stats.citedSourceQuality = { cited: citedIndices.length, avgQuality: Math.round(weighted / Math.max(1, totalWeight)) };
   }
-  recordSourceUsage(
-    topSources.map((s: any) => s.id),
-    stats.criticalLoop?.finalScore ?? 0,
-    citedSourceIds,
-  ).catch(() => {});
+  if (learningWritesEnabled()) {
+    recordSourceUsage(
+      topSources.map((s: any) => s.id),
+      stats.criticalLoop?.finalScore ?? 0,
+      citedSourceIds,
+    ).catch(() => {});
+  }
 
   // ── EXPERIENCE BANK: extraction moved post-gate ──
   // The meta-learner must see the FINAL disposition (published/held/ready +
@@ -512,7 +520,9 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
       ])).length / topSources.length
     : 0;
   const appliedLessonTexts = memoryBlock ? [memoryBlock] : [];
-  withExecutionDetached(() => recordLearningCycle({
+  // Learning-write freeze (audit #11): all agent-memory writes below are
+  // gated on NOMOSX_LEARNING_WRITES=1 until replay proves each writer.
+  if (learningWritesEnabled()) withExecutionDetached(() => recordLearningCycle({
     agentId: isStrategic ? "strategic-analyst" : "analyst",
     runId: pipelineRun.id,
     question: query,
@@ -529,7 +539,7 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
     appliedLessonTexts,
   })).catch((err) => console.warn(`${label} LEARNING LOOP: failed (non-blocking):`, err));
   // Also record for READER agent
-  if (readings.length > 0) {
+  if (readings.length > 0 && learningWritesEnabled()) {
     withExecutionDetached(() => recordLearningCycle({
       agentId: "reader",
       runId: pipelineRun.id,
@@ -553,7 +563,7 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
   // Now: (1) record performance for calibration, (2) extract lessons from this run.
   // These record calls are fire-and-forget durability writes — detach them or
   // they die with 'scope closed' when the tail outlives the pipeline scope.
-  withExecutionDetached(() => recordAgentPerformance({
+  if (learningWritesEnabled()) withExecutionDetached(() => recordAgentPerformance({
     agentId: isStrategic ? "strategic-analyst" : "analyst",
     domain: detectedDomain as DomainExpertise,
     runId: pipelineRun.id,
@@ -568,7 +578,7 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
     lessonsLearned: [],
   })).catch((err) => console.warn(`${label} LEARNING LOOP: recordAgentPerformance failed:`, err));
 
-  if (readings.length > 0) {
+  if (readings.length > 0 && learningWritesEnabled()) {
     withExecutionDetached(() => recordAgentPerformance({
       agentId: "reader",
       domain: detectedDomain as DomainExpertise,
@@ -586,7 +596,7 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
   }
 
   // Extract lessons from this run if quality was low (learning opportunity)
-  if (finalTrustScore < 75 && html.length > 1000) {
+  if (learningWritesEnabled() && finalTrustScore < 75 && html.length > 1000) {
     const agentId = isStrategic ? "strategic-analyst" : "analyst";
     const lessonsJob = withExecutionDetached(() => extractLessons(
       agentId,
@@ -617,7 +627,7 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
 
   // ── SKILL BANK: record the winning configuration when trust is high ──
   // Procedural memory: domain → (providers + lens types) that produced trust ≥ 80.
-  if (finalTrustScore >= 80) {
+  if (learningWritesEnabled() && finalTrustScore >= 80) {
     try {
       const { recordSkill } = await import('../skill-bank');
       recordSkill({
@@ -638,7 +648,7 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
   // record and replay → lesson-verifier cassette miss. captureInputSync stores
   // the boolean at record time; replay serves it without touching the stream.
   const { captureInputSync } = await import('../frozen-inputs');
-  if (captureInputSync('rand:lesson-verify', () => Math.random() < 0.1)) { // 10% chance per run ≈ every 10 runs
+  if (learningWritesEnabled() && captureInputSync('rand:lesson-verify', () => Math.random() < 0.1)) { // 10% chance per run ≈ every 10 runs
     try {
       const { verifyAndDeInflateLessons } = await import('../lesson-verifier');
       const agentId = isStrategic ? "strategic-analyst" : "analyst";
@@ -675,7 +685,7 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
 
     // ── WITNESS: Finalize — extract cross-run learnings ──
     (async () => {
-      if (!witnessCtx) return;
+      if (!witnessCtx || !learningWritesEnabled()) return;
       try {
         const witnessResult = await witnessCtx.finalize(query);
         console.log(`${label} WITNESS: run complete — health=${witnessResult.healthScore}/100, anomalies=${witnessResult.totalAnomalies}, interventions=${witnessResult.totalInterventions}, quality=${witnessResult.qualityScore}/100${witnessResult.recommendsChanges ? ' (changes recommended for future runs)' : ''}`);
@@ -687,7 +697,7 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
 
     // ── WORLD MODEL: Update with findings from this run ──
     (async () => {
-      if (!(useWorldModel && analysis)) return;
+      if (!(useWorldModel && analysis) || !learningWritesEnabled()) return;
       try {
         const analysisText = typeof analysis === 'string' ? analysis :
           (analysis.summary || '') + '\n' + (analysis.consensus || '') + '\n' + (analysis.debate?.synthesis || '');
@@ -704,7 +714,7 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
 
     // ── PRM: Retrain periodically (every 10 runs) ──
     (async () => {
-      if (!usePRM) return;
+      if (!usePRM || !learningWritesEnabled()) return;
       try {
         // Check if we should retrain (simple heuristic: retrain if model is old or has enough new data)
         const shouldRetrain = !prmModel || prmModel.trainingExamples < 100;
@@ -742,7 +752,7 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
 
     // ── SELF-EVOLUTION: prompt evolution for key agents (non-blocking) ──
     (async () => {
-      if (!useSelfEvolution) return;
+      if (!useSelfEvolution || !learningWritesEnabled()) return;
       try {
         const fallbackFor = (id: string) => `[${id}] default system prompt — to be evolved from lessons`;
         const evolutionResults = await runEvolutionCycle(
@@ -766,7 +776,7 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
 
   // ── MOA: Update agent weights based on this run ──
   // AFTER the barrier — reads stats.witness.qualityScore as its quality signal.
-  if (useMixtureOfAgents && (stats as any).moa) {
+  if (useMixtureOfAgents && learningWritesEnabled() && (stats as any).moa) {
     try {
       const moaResult = (analysis as any)?._meta?.moaResult;
       if (moaResult) {

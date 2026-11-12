@@ -465,7 +465,9 @@ export async function generatePublication(
         sourceDiversity: new Set(sources.map((s: any) => s.provider)).size,
         findingsCount: sources.length,
       });
-      await recordAgentPerformance({
+      // Learning-write freeze (audit #11)
+      const { learningWritesEnabled } = await import('./learning-gate');
+      if (learningWritesEnabled()) await recordAgentPerformance({
         agentId: "publication-generator",
         runId: publication_placeholder_id,
         question: signal.title,

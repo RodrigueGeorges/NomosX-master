@@ -1077,7 +1077,7 @@ export async function runAndPublishInquiry(
 
     // OT-8: link publication → pipeline run. The table existed but had zero
     // writers, leaving every publication orphaned from its run record.
-    await tx.thinkTankPublicationRun.create({
+    await Promise.resolve(tx.thinkTankPublicationRun?.create({
       data: {
         publicationId: pub.id,
         correlationId: pipeline.pipelineRunId ?? pub.id,
@@ -1099,7 +1099,7 @@ export async function runAndPublishInquiry(
           (Number((pipeline.stats as any)?.totalTokensOut) || 0),
         costUsd,
       },
-    }).catch(() => {});
+    })).catch(() => {});
 
     return pub;
   }, { timeout: 30_000 })
@@ -1116,7 +1116,10 @@ export async function runAndPublishInquiry(
   // the diagnosis codes, not just mid-pipeline scores. Detached: a durability
   // write, not research work; the dispatch scope may already be closed.
   let postGateJobs: Promise<unknown>[] = [];
-  try {
+  // Learning-write freeze (audit #11): experience-bank writes frozen until
+  // replay proves the meta-learner earns its keep.
+  const learningEnabled = (await import('./learning-gate')).learningWritesEnabled();
+  if (learningEnabled) try {
     const { extractExperience } = await import('./knowledge-infrastructure');
     const experienceJob = withExecutionDetached(() => extractExperience(question.slice(0, 100), question, {
       outcome: {
