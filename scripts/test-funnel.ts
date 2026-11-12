@@ -162,6 +162,38 @@ async function main() {
     if (result.readinessOk !== undefined) console.log(`  Readiness: ${result.readinessOk}`);
     if (result.error) console.log(`  Error: ${result.error}`);
 
+    // ── OT diagnostics: swarm election + binary gate checks from the run's steps ──
+    try {
+      const { prisma } = await import('../lib/db');
+      const run = await prisma.pipelineRun.findFirst({
+        where: { question: customQuery },
+        orderBy: { createdAt: 'desc' },
+        select: { id: true, status: true, steps: true },
+      });
+      const steps = (run?.steps ?? {}) as Record<string, any>;
+      const election = steps.swarmElection as any;
+      const forecasts = steps.swarmForecasts as any;
+      const chain = steps.chainScenarios as any;
+      const gate = steps.publicationGate as any;
+      if (run) {
+        console.log(`\n  ── RUN DIAGNOSTICS (${run.id.slice(0, 8)} / ${run.status}) ──`);
+        console.log(`  Chain scenarios: ${chain ? (chain.reason ?? `${chain.scenarioIds?.length ?? 0} scenarios, ${chain.uncertainties?.length ?? 0} uncertainties`) : 'n/a'}`);
+        console.log(`  Swarm votes: ${forecasts ? `${forecasts.validVotes ?? '?'}/${forecasts.rawVotes ?? '?'} valid, families: ${(forecasts.familiesUsed ?? []).join(',') || 'none'}, $${(forecasts.costUsd ?? 0).toFixed(4)}${forecasts.error ? ` ERROR: ${forecasts.error}` : ''}` : 'not run'}`);
+        if (election?.scenarioId) {
+          console.log(`  Election: ${election.scenarioId} p=${election.probability?.toFixed(3)} contested=${election.contested} runnerUp=${election.runnerUpId ?? 'none'} CI=[${election.confidenceInterval?.join(',')}]`);
+        } else if (election) {
+          console.log(`  Election: skipped (${election.skipped ?? election.error ?? 'no result'})`);
+        }
+        const checks = gate?.binaryChecks ?? gate?.checks;
+        if (Array.isArray(checks)) {
+          console.log(`  Binary checks: ${checks.map((c: any) => `${c.id ?? c.name}:${c.passed ? 'PASS' : 'FAIL'}`).join(' ')}`);
+        }
+        await prisma.$disconnect();
+      }
+    } catch (diagErr) {
+      console.log(`  (run diagnostics unavailable: ${String(diagErr).slice(0, 120)})`);
+    }
+
     if (result.pipeline?.html) {
       const fs = await import('fs');
       fs.writeFileSync('scripts/output-funnel.html', result.pipeline.html, 'utf-8');
