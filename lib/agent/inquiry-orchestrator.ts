@@ -834,6 +834,31 @@ export async function runAndPublishInquiry(
   const gate = assessment.gate;
   const readiness = assessment.readiness;
 
+  // OT-8: persist the final gate verdict into PipelineRun.steps so the
+  // per-check decision is reconstructible from the run record (previously
+  // only stored inside publication metadata — invisible on held/failed runs).
+  const { evaluateBinaryGate } = await import('./binary-gate');
+  const claimBinding = pipeline.stats.claimBinding as { links?: number; weak?: number } | undefined;
+  const boundTotal = (claimBinding?.links ?? 0) + (claimBinding?.weak ?? 0);
+  const binaryChecks = evaluateBinaryGate({
+    claimsEntailmentRatio: boundTotal > 0 ? (claimBinding?.links ?? 0) / boundTotal : undefined,
+    centralScenarioSelectedBy: (pipeline.stats.centralScenario as { selectedBy?: string } | undefined)?.selectedBy,
+    scenariosFromChain: !(pipeline.stats as any)?.templateScenariosUsed,
+    resolvablePredictions: (pipeline.stats.predictions as { registered?: number } | undefined)?.registered,
+    unansweredObjections: Array.isArray(fatalChallenges) ? fatalChallenges.length : undefined,
+  });
+  (pipeline.stats as Record<string, unknown>).publicationGate = {
+    binaryChecks,
+    decision: gate.decision,
+    readinessOk: readiness.ok,
+    checks: gate.checks?.map((c: { checkType?: string; name?: string; passed: boolean; details?: string }) => ({
+      check: c.checkType ?? c.name,
+      passed: c.passed,
+      details: c.details,
+    })),
+    reasons: gate.reasons,
+  };
+
   console.log(`[InquiryOrchestrator] Gate: decision=${gate.decision} | Readiness: ok=${readiness.ok} | trust=${trustScore} quality=${qualityScore} coverage=${Math.round((citationCoverage || 0) * 100)}%`);
 
   const minTrust = req.minTrustScore ?? 65;
@@ -1039,6 +1064,32 @@ export async function runAndPublishInquiry(
         data: { publicId, publishedAt: new Date() },
       });
     }
+
+    // OT-8: link publication → pipeline run. The table existed but had zero
+    // writers, leaving every publication orphaned from its run record.
+    await tx.thinkTankPublicationRun.create({
+      data: {
+        publicationId: pub.id,
+        correlationId: pipeline.pipelineRunId ?? pub.id,
+        status: "COMPLETED",
+        steps: [
+          {
+            step: "inquiry-pipeline",
+            status,
+            gateDecision: gate.decision,
+            trustScore,
+            qualityScore,
+            costUsd,
+          },
+        ] as unknown as Prisma.InputJsonValue,
+        finishedAt: new Date(),
+        duration: typeof (pipeline.stats as any)?.durationMs === "number" ? (pipeline.stats as any).durationMs : undefined,
+        tokensUsed:
+          (Number((pipeline.stats as any)?.totalTokensIn) || 0) +
+          (Number((pipeline.stats as any)?.totalTokensOut) || 0),
+        costUsd,
+      },
+    }).catch(() => {});
 
     return pub;
   }, { timeout: 30_000 })

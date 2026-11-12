@@ -31,6 +31,11 @@ interface ExtractedPrediction {
   resolutionCriteria: string;
   whatWouldFalsify: string;
   sourceRefs: number[];
+  /** OT-1: 'sentinel' = short-horizon check that produces Brier signal in
+   *  weeks; 'strategic' = the note's own horizon. dueAt is authoritative. */
+  kind?: 'sentinel' | 'strategic';
+  dueAt?: Date;
+  linkId?: string;
 }
 
 /**
@@ -105,6 +110,7 @@ export function extractPredictions(
       resolutionCriteria: buildResolutionCriteria(link, analysis),
       whatWouldFalsify: analysis.whatToWatch?.whatWouldChangeMind || 'Not specified',
       sourceRefs,
+      linkId: String(link.id ?? ''),
     });
   }
 
@@ -143,6 +149,37 @@ export function extractPredictions(
       sourceRefs: [],
     });
   }
+
+  // 4. OT-1 SENTINELS — short-horizon (30/60/90d) predictions derived from the
+  //    most sensitive near-term observables. Strategic horizons are pluriannual
+  //    (first due 2028-07) → zero Brier signal for ~2 years. Sentinels close
+  //    that gap: each note emits up to 3 checks on whatToWatch signals and
+  //    revision triggers, due within a quarter.
+  const SENTINEL_OFFSETS_DAYS = [30, 60, 90] as const;
+  const sentinelSources = [
+    ...signals.filter(s => /\b(20\d{2}|Q[1-4]|%|\$|billion|million)\b/i.test(s)),
+    ...(central?.revisionTriggers ?? []).filter(t => /\b(20\d{2}|Q[1-4]|%|\$|billion|million|sanction|election|summit|deadline|launch|approval)\b/i.test(t)),
+  ];
+  const seenSentinel = new Set<string>();
+  SENTINEL_OFFSETS_DAYS.forEach((days, i) => {
+    const src = sentinelSources[i];
+    if (!src) return;
+    const key = src.slice(0, 120).toLowerCase();
+    if (seenSentinel.has(key)) return;
+    seenSentinel.add(key);
+    const dueAt = new Date(Date.now() + days * 86_400_000);
+    predictions.push({
+      claim: `[${days}d sentinel] ${src}`,
+      horizon: dueAt.toISOString().slice(0, 10),
+      probability: deriveProbability(conviction, 'EMERGING'),
+      confidence: 'EMERGING',
+      resolutionCriteria: `By ${dueAt.toISOString().slice(0, 10)}: observable check — ${src.slice(0, 200)}`,
+      whatWouldFalsify: `The named observable does not occur by the sentinel date`,
+      sourceRefs: [],
+      kind: 'sentinel',
+      dueAt,
+    });
+  });
 
   return predictions;
 }
@@ -233,6 +270,9 @@ export async function registerPredictions(
             whatWouldFalsify: pred.whatWouldFalsify.slice(0, 5000),
             sourceRefs: pred.sourceRefs,
             status: 'OPEN',
+            kind: pred.kind ?? 'strategic',
+            dueAt: pred.dueAt ?? null,
+            linkId: pred.linkId || null,
           },
         });
         registered++;

@@ -1405,6 +1405,44 @@ async function callOpenAICompatible(
 }
 
 /**
+ * OT-8: per-call cost trace. The CostLog table existed but had zero writers —
+ * every autonomous decision was untraceable to provider/model/cost. Fire and
+ * forget: a logging failure must never break the call path. Skipped in
+ * replay mode (replayed calls cost nothing and would double-count).
+ */
+function persistCostLog(request: LLMRequest, response: LLMResponse, task: string): void {
+  if (getLlmCassetteMode() === 'replay') return;
+  const provider = response.provider;
+  const model = response.model;
+  const tokensInput = response.tokensInput ?? 0;
+  const tokensOutput = response.tokensOutput ?? 0;
+  void (async () => {
+    try {
+      const { prisma } = await import('../db');
+      await prisma.costLog.create({
+        data: {
+          correlationId: request.runId ?? undefined,
+          operation: task || request.task || 'llm',
+          provider,
+          model,
+          tokensInput,
+          tokensOutput,
+          tokensTotal: tokensInput + tokensOutput,
+          costUsd: response.costUsd ?? 0,
+          metadata: {
+            family: response.family,
+            cached: response.cached === true,
+            finishReason: response.finishReason ?? null,
+          },
+        },
+      });
+    } catch {
+      // Logging must never break the LLM path.
+    }
+  })();
+}
+
+/**
  * Call Anthropic Claude
  */
 async function callAnthropic(request: LLMRequest, model: string, signal?: AbortSignal): Promise<LLMResponse> {
@@ -1948,6 +1986,7 @@ async function callLLMProvider(request: LLMRequest): Promise<LLMResponse> {
         cacheLLMResponse(cacheKey, response.model, response).catch(() => {});
       }
 
+      persistCostLog(request, response, task);
       return response;
     } catch (error) {
       assertExecutionActive();
@@ -1983,6 +2022,7 @@ async function callLLMProvider(request: LLMRequest): Promise<LLMResponse> {
       );
       await recordProviderSuccess("freepool");
       console.log(`✅ freepool [${task}] quota-window retry succeeded | $${response.costUsd.toFixed(4)}`);
+      persistCostLog(request, response, task);
       return response;
     } catch (retryErr) {
       lastError = retryErr as Error;
@@ -2279,6 +2319,7 @@ export async function streamLLM(
       cached: false,
     };
     if (cassetteMode === 'record') recordLlmCassette(request, cassetteKey, response);
+    persistCostLog(request, response, task ?? request.task ?? 'stream');
     return response;
   } catch (err) {
     if (cassetteMode === 'record') recordLlmCassette(request, cassetteKey, undefined, err);

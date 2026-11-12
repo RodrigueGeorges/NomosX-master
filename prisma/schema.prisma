@@ -848,6 +848,15 @@ model Prediction {
   outcome     String? @db.Text // What actually happened
   resolutionNotes String? @db.Text
 
+  // OT-1: sentinel/strategic split — short-horizon predictions that produce
+  // Brier signal within weeks instead of years. dueAt is authoritative when
+  // present; horizon remains the human-readable form.
+  kind            String    @default("strategic") // strategic | sentinel
+  dueAt           DateTime? // ISO deadline — parseHorizonDue fallback only
+  linkId          String?   // causal-chain link this prediction depends on
+  parentPredictionId String? // milestone of a longer-horizon prediction
+  resolutionSource String?  // URL or public dataset expected to resolve it
+
   // Metadata
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

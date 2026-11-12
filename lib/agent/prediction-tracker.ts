@@ -171,6 +171,15 @@ export function parseHorizonDue(horizon: string, createdAt: Date): Date | null {
   const calLoose = h.match(/(\d{4})\s*-?\s*q?([1-4])\b/);
   if (calLoose) return new Date(Date.UTC(Number(calLoose[1]), Number(calLoose[2]) * 3, 1));
 
+  // OT-1: prose horizons ("We look to 2030 because…") — last-ditch: the first
+  // plausible year becomes the due date (end of that year). Previously these
+  // returned null → OPEN forever, unresolvable even after the year passed.
+  const anyYear = h.match(/\b(20\d{2})\b/);
+  if (anyYear) {
+    const y = Number(anyYear[1]);
+    if (y >= createdAt.getUTCFullYear()) return new Date(Date.UTC(y, 11, 31));
+  }
+
   return null;
 }
 
@@ -184,11 +193,12 @@ export async function findPredictionsDueForEvaluation(limit = 50): Promise<Predi
     const candidates = await prisma.prediction.findMany({
       where: { status: 'OPEN', resolvedAt: null },
       orderBy: { createdAt: 'asc' },
-      take: 500,
+      take: 1500,
     });
     const now = Date.now();
     const due = (candidates as any[]).filter(c => {
-      const dueAt = parseHorizonDue(c.horizon, c.createdAt);
+      // dueAt (ISO, authoritative — OT-1) wins; horizon parsing is fallback.
+      const dueAt = c.dueAt ? new Date(c.dueAt) : parseHorizonDue(c.horizon, c.createdAt);
       return dueAt !== null && dueAt.getTime() <= now;
     }).slice(0, limit);
     return due as unknown as Prediction[];
