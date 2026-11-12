@@ -99,6 +99,18 @@ export async function runArbiterForesight(deps: ArbiterForesightDeps): Promise<A
 
         if (swarm.forecasts.length >= 2) {
           try {
+            // OT-7: fold the resolved track record into the forecasts —
+            // systematic overconfidence (avg Brier > 0.20 over ≥20 resolved)
+            // shrinks every link probability toward 0.5 before election.
+            const { getCalibrationShrink } = await import('../prediction-tracker');
+            const calib = await getCalibrationShrink();
+            stats.swarmCalibration = calib;
+            if (calib.factor < 1) {
+              for (const f of swarm.forecasts) {
+                f.probability = 0.5 + (f.probability - 0.5) * calib.factor;
+              }
+              console.log(`${label} CALIBRATION: shrink=${calib.factor.toFixed(2)} applied (brier=${calib.avgBrier?.toFixed(3)}, n=${calib.resolved})`);
+            }
             const { electScenario } = await import('../mc-elector');
             election = electScenario({
               scenarios: chainDerivation.scenarios,

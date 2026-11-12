@@ -358,11 +358,21 @@ export async function generateCalibrationReport(): Promise<CalibrationReport> {
     const byType: Record<string, { count: number; brierScore: number }> = {};
 
     for (const p of evaluated) {
-      // Adapt to existing schema: no domain field, use 'general'
-      // confidence field maps to predictionType
-      const domain = 'general';
-      const horizon = p.horizon || '90d';
-      const type = p.confidence || 'scenario';
+      // OT-7: real breakdowns — domain from registration, kind (strategic vs
+      // sentinel) as the type axis, and horizon bucketed by dueAt distance so
+      // "90d" and "2027-Q1" land in comparable bins.
+      const domain = (p as any).domain || 'general';
+      const dueAt = (p as any).dueAt ? new Date((p as any).dueAt) : null;
+      const createdAt = (p as any).createdAt ? new Date((p as any).createdAt) : null;
+      // Designed horizon = dueAt − createdAt (resolutions happen near dueAt,
+      // so "days until due from now" would collapse every bucket).
+      const horizonDays = dueAt && createdAt
+        ? Math.round((dueAt.getTime() - createdAt.getTime()) / 86400000)
+        : null;
+      const horizon = horizonDays == null
+        ? (p.horizon || 'unknown')
+        : horizonDays <= 45 ? '<=45d' : horizonDays <= 120 ? '<=120d' : horizonDays <= 400 ? '<=400d' : '>400d';
+      const type = (p as any).kind || 'strategic';
 
       if (!byDomain[domain]) byDomain[domain] = { count: 0, brierScore: 0 };
       byDomain[domain].count++;
@@ -459,4 +469,37 @@ export function formatCalibrationContext(report: CalibrationReport): string {
 
   lines.push('\n=== END CALIBRATION DATA ===\n');
   return lines.join('\n');
+}
+
+// ─── OT-7: calibration feedback into forecasting ────────────────────────────
+
+/**
+ * Derive a probability-shrink factor from the resolved track record.
+ *
+ * Systematic overconfidence shows up as average Brier > ~0.25 (worse than
+ * coin-flip). When enough predictions have resolved, shrink every forecast
+ * probability toward 0.5 — the standard recalibration move — bounded so a
+ * thin or noisy record can never dominate the swarm's evidence.
+ *
+ * factor = 1 → no adjustment. factor < 1 → shrink toward 0.5.
+ * Requires ≥ 20 resolved predictions before trusting the signal.
+ */
+export async function getCalibrationShrink(): Promise<{
+  factor: number;
+  resolved: number;
+  avgBrier: number | null;
+}> {
+  try {
+    const report = await generateCalibrationReport();
+    if (report.evaluatedPredictions < 20 || report.averageBrierScore == null) {
+      return { factor: 1, resolved: report.evaluatedPredictions, avgBrier: report.averageBrierScore };
+    }
+    // Brier 0.20 ≈ acceptable; each 0.05 of excess costs 10% shrink, floor 0.70.
+    const excess = Math.max(0, report.averageBrierScore - 0.20);
+    const factor = Math.max(0.70, 1 - excess * 2);
+    return { factor, resolved: report.evaluatedPredictions, avgBrier: report.averageBrierScore };
+  } catch (err) {
+    console.warn('[PredictionTracker] Calibration shrink unavailable:', err instanceof Error ? err.message : String(err));
+    return { factor: 1, resolved: 0, avgBrier: null };
+  }
 }

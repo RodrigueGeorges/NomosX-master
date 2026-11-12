@@ -145,7 +145,7 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
     (async () => {
       try {
         const pruningResult = (analysis as any)?._meta?.pruning;
-        const predResult = await registerPredictions(brief.id, analysis as any, pruningResult, topSources);
+        const predResult = await registerPredictions(brief.id, analysis as any, pruningResult, topSources, detectedDomain || undefined);
         stats.predictions = { registered: predResult.registered } as any;
         if (predResult.registered > 0) {
           console.log(`${label} PREDICTIONS: registered ${predResult.registered} predictions for brief ${brief.id}`);

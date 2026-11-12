@@ -856,6 +856,9 @@ model Prediction {
   linkId          String?   // causal-chain link this prediction depends on
   parentPredictionId String? // milestone of a longer-horizon prediction
   resolutionSource String?  // URL or public dataset expected to resolve it
+  // OT-7: research domain at registration time — enables calibration
+  // breakdowns by domain once predictions resolve.
+  domain          String?
 
   // Metadata
   createdAt DateTime @default(now())
@@ -869,6 +872,7 @@ model Prediction {
   @@index([horizon])
   @@index([confidence])
   @@index([createdAt])
+  @@index([domain])
   // One prediction per (brief, claim) — prevents duplicates on pipeline re-runs.
   // The code-level findFirst check is the graceful path; this is the safety net.
   @@unique([briefId, claim])

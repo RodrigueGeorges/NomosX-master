@@ -21,6 +21,8 @@ const DDL = [
   `ALTER TABLE "Prediction" ADD COLUMN IF NOT EXISTS "linkId" TEXT`,
   `ALTER TABLE "Prediction" ADD COLUMN IF NOT EXISTS "parentPredictionId" TEXT`,
   `ALTER TABLE "Prediction" ADD COLUMN IF NOT EXISTS "resolutionSource" TEXT`,
+  `ALTER TABLE "Prediction" ADD COLUMN IF NOT EXISTS "domain" TEXT`,
+  `CREATE INDEX IF NOT EXISTS "Prediction_domain_idx" ON "Prediction"("domain")`,
   `CREATE INDEX IF NOT EXISTS "Prediction_dueAt_idx" ON "Prediction"("dueAt")`,
   `CREATE INDEX IF NOT EXISTS "Prediction_kind_idx" ON "Prediction"("kind")`,
 ];

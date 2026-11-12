@@ -213,6 +213,8 @@ export async function registerPredictions(
   pruningResult?: PruningResult,
   /** Source list in [SRC-N] order — enables LEAP evidence-likelihood updates. */
   sources?: { qualityScore?: number | null }[],
+  /** OT-7: research domain — persisted for calibration-by-domain reports. */
+  domain?: string,
 ): Promise<{ registered: number; errors: string[] }> {
   const errors: string[] = [];
   let registered = 0;
@@ -273,6 +275,7 @@ export async function registerPredictions(
             kind: pred.kind ?? 'strategic',
             dueAt: pred.dueAt ?? null,
             linkId: pred.linkId || null,
+            domain: domain || null,
           },
         });
         registered++;
