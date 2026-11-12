@@ -517,28 +517,11 @@ export async function runCriticalLoopV2(
 
     // Grounding veto (Invariant 4): citation coverage below 30% caps composite.
     // A well-structured analysis cannot compensate for null grounding.
-    // BEFORE declaring terminal: attempt deterministic citation injection
-    // by matching uncited paragraphs to sources by keyword overlap.
-    // (citedSources and coverage already computed above for utilization bonus)
+    // OT-cleanup: the lexical-similarity citation injection was removed —
+    // a paragraph merely mentioning an author name or title fragment is not
+    // evidence that the claim is supported by that source. Fabricated
+    // citations are worse than an honest veto.
     let groundingVetoed = false;
-    if (coverage < 0.30) {
-      // LAST RESORT: Try to inject citations by matching paragraph content to source titles/abstracts
-      try {
-        const { injectCitationsBySourceMatch } = await import('./citation-repair');
-        const injectionResult = injectCitationsBySourceMatch(currentHtml, input.sources);
-        if (injectionResult.injected > 0) {
-          currentHtml = injectionResult.html;
-          const newCited = new Set<number>();
-          for (const m of currentHtml.matchAll(/\[SRC-(\d+)\]/g)) newCited.add(parseInt(m[1], 10));
-          const newCoverage = newCited.size / Math.max(1, input.sources.length);
-          console.log(`[CriticalLoop V2] Citation injection: +${injectionResult.injected} citations, coverage ${Math.round(coverage * 100)}%→${Math.round(newCoverage * 100)}%`);
-          coverage = newCoverage;
-        }
-      } catch (injErr) {
-        console.warn(`[CriticalLoop V2] Citation injection failed:`, injErr);
-      }
-    }
-    // Re-check coverage after injection attempt
     if (coverage < 0.30) {
       const capped = Math.min(compositeScore, 40);
       console.log(`[CriticalLoop V2] Grounding veto: ${citedSources.size}/${input.sources.length} sources cited (${Math.round(coverage * 100)}%) — capping composite ${compositeScore} → ${capped}`);

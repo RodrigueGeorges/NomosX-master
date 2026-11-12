@@ -89,12 +89,15 @@ function buildFallbackPosition(input: ArbiterInput): InstitutePosition {
         : [
             {
               name: 'Base case',
-              probability: '50%',
+              // OT-cleanup: fixed 50/30 templates removed — an arbiter outage
+              // must not fabricate probabilities. '—' parses to undefined
+              // downstream, so no invented distribution reaches the gate.
+              probability: '—',
               description: verdict.slice(0, 280),
             },
             {
               name: 'Adverse case',
-              probability: '30%',
+              probability: '—',
               description: debate?.position2?.label ?? 'Material downside if counterevidence dominates.',
             },
           ],
@@ -376,12 +379,63 @@ Return JSON:
       methodologyNote: pf?.methodologyNote ? String(pf.methodologyNote) : undefined,
     } : undefined;
 
+    // ── OT-6 enforcement: when the swarm elector ran, its distribution is
+    // authoritative. Pin the elected branch's probability, rescale the
+    // runner-ups proportionally so percentages still sum to 100, and force
+    // dominantScenario to the elected branch — the LLM narrates, it does
+    // not re-decide. ──
+    let dominantScenario = parsed.dominantScenario ? String(parsed.dominantScenario) : undefined;
+    if (input.election) {
+      const electedName = input.election.electedName ?? input.election.scenarioId;
+      const electedPctValue = Math.round(input.election.probability * 100);
+      const norm = (s: string) => s.toLowerCase().trim();
+      const electedNorm = norm(electedName);
+      let elected = outScenarios.find(s =>
+        norm(s.name) === electedNorm ||
+        electedNorm.includes(norm(s.name)) ||
+        norm(s.name).includes(electedNorm.slice(0, 20))
+      );
+      if (!elected) {
+        elected = {
+          name: electedName,
+          probability: `${electedPctValue}%`,
+          description: input.election.electedDescription ?? '',
+          empiricalProbability: input.election.probability,
+        };
+        outScenarios.unshift(elected);
+      } else {
+        elected.probability = `${electedPctValue}%`;
+        elected.empiricalProbability = input.election.probability;
+      }
+      elected.confidenceInterval = input.election.confidenceInterval;
+      dominantScenario = elected.name;
+
+      // Rescale the remaining scenarios so the set still sums to 100%.
+      const parsePct = (p: string) => {
+        const m = p.match(/(\d+(?:\.\d+)?)/);
+        return m ? parseFloat(m[1]) : 0;
+      };
+      const others = outScenarios.filter(s => s !== elected);
+      const otherSum = others.reduce((acc, s) => acc + parsePct(s.probability), 0);
+      const remaining = Math.max(0, 100 - electedPctValue);
+      if (others.length > 0 && otherSum > 0) {
+        const scale = remaining / otherSum;
+        for (const s of others) {
+          s.probability = `${Math.max(1, Math.round(parsePct(s.probability) * scale))}%`;
+        }
+      } else if (others.length > 0) {
+        const each = Math.floor(remaining / others.length);
+        others.forEach((s, i) => { s.probability = `${i === others.length - 1 ? remaining - each * (others.length - 1) : each}%`; });
+      }
+    }
+
     // ── Delphi foresight: multi-expert scenario calibration ──
-    // Professional-grade forecasting: base rates + Fermi decomposition + 3-round Delphi
-    // + extremizing + bootstrap CIs + key drivers + sensitivity analysis
+    // Skipped entirely when the swarm elector ran — Delphi's job IS
+    // probability derivation, and applying its calibrated probabilities
+    // would silently overwrite the election (OT-6 violation).
     let delphiCostUsd = 0;
     let delphiMeta: { convergence: number; brierEstimate: number; baseRateAnalysis: string } | undefined;
-    if (outScenarios.length >= 2 && input.sources.length >= 5) {
+    if (!input.election && outScenarios.length >= 2 && input.sources.length >= 5) {
       try {
         const { runDelphiForesight } = await import('./foresight-delphi');
         // Build rich evidence snippets — include abstracts when available
@@ -451,7 +505,7 @@ Return JSON:
       confidence: conf,
       confidenceLabel: confidenceLabel(conf),
       scenarios: outScenarios.length ? outScenarios : fallback.scenarios,
-      dominantScenario: parsed.dominantScenario ? String(parsed.dominantScenario) : undefined,
+      dominantScenario,
       centralScenarioRationale: typeof parsed.centralScenarioRationale === 'string' ? parsed.centralScenarioRationale : undefined,
       centralScenarioImplications: Array.isArray(parsed.centralScenarioImplications) ? parsed.centralScenarioImplications.map(String).slice(0, 5) : undefined,
       objections: (parsed.objections ?? []).map(String).slice(0, 5),

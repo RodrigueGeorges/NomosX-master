@@ -1,0 +1,1 @@
+(globalThis.TURBOPACK||(globalThis.TURBOPACK=[])).push(["object"==typeof document?document.currentScript:void 0,857653,e=>{"use strict";var t=e.i(843476),i=e.i(392735);e.s(["default",0,function({children:e}){return(0,t.jsx)(i.LegalPageShell,{children:e})}])}]);

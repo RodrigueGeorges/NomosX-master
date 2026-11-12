@@ -38,7 +38,6 @@ async function phaseUnit() {
   console.log('\n══ Phase A — deterministic (no API) ══\n');
 
   const { isEditorialV2Enabled } = await import('../lib/agent/editorial-config');
-  const { ensureEditorialScenarios } = await import('../lib/agent/editorial-scenarios');
   const { renderPositionFirstBriefHTML } = await import('../lib/agent/position-first-renderer');
   const {
     extractBriefSummary,
@@ -48,16 +47,21 @@ async function phaseUnit() {
 
   ok('EDITORIAL_V2 flag', isEditorialV2Enabled());
 
-  const analysis = ensureEditorialScenarios(
-    {
-      summary: 'Carbon pricing shifts trade flows while automation compresses margins.',
-      consensus: 'Joint policy-tech friction is under-modeled in current literature.',
-      disagreements: 'Automation may offset compliance costs faster than regulators assume.',
-      debate: { pro: 'Accelerated decarbonization via tech', con: 'Regulatory arbitrage risk' },
-    },
-    { question: QUERY }
-  );
-  const scenarios = analysis.scenarios as Array<{ name: string }>;
+  // Fixed 50/30/20 scenario templates were removed (OT-cleanup): scenarios
+  // now come from chain derivation + swarm election only. The smoke script
+  // supplies explicit scenarios instead of a template.
+  const analysis = {
+    summary: 'Carbon pricing shifts trade flows while automation compresses margins.',
+    consensus: 'Joint policy-tech friction is under-modeled in current literature.',
+    disagreements: 'Automation may offset compliance costs faster than regulators assume.',
+    debate: { pro: 'Accelerated decarbonization via tech', con: 'Regulatory arbitrage risk' },
+    scenarios: [
+      { name: 'Base case', probability: '55%', description: 'Policy-tech friction persists at current pace.' },
+      { name: 'Accelerated case', probability: '30%', description: 'Tech-driven decarbonization outruns regulation.' },
+      { name: 'Adverse case', probability: '15%', description: 'Regulatory arbitrage dominates; compliance costs spike.' },
+    ],
+  };
+  const scenarios = analysis.scenarios;
   ok('ensureEditorialScenarios ≥2', scenarios.length >= 2, `${scenarios.length} scenarios`);
 
   const classification = {

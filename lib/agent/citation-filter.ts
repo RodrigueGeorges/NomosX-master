@@ -4,7 +4,9 @@
  * Inspired by WueRAG (TREC 2025 #1) and DEER benchmark.
  *
  * Two-level policy:
- * 1. Implicit claim back-tracking: sentences without [SRC-N] inherit citations
+ * 1. Uncited-claim flagging: sentences without [SRC-N] are never given
+ *    borrowed citations (inheritance removed — it fabricated grounding);
+ *    standalone uncited factual claims are candidates for removal.
  *    from the nearest preceding paragraph that has one (semantic proximity).
  * 2. Uncited claim flagging: sentences that still have no citation after
  *    back-tracking get a [UNCITED] marker so the editor can remove or fix them.
@@ -45,31 +47,14 @@ function looksLikeClaim(sentence: string): boolean {
 }
 
 /**
- * Find the nearest preceding citation in a list of sentences.
- * Returns the [SRC-N] numbers from the closest preceding sentence that has one.
- */
-function findNearestPrecedingCitation(
-  sentences: string[],
-  currentIndex: number,
-  maxLookback: number = 5,
-): number[] {
-  for (let i = currentIndex - 1; i >= Math.max(0, currentIndex - maxLookback); i--) {
-    const citations = extractCitationNumbers(sentences[i]);
-    if (citations.length > 0) return citations;
-  }
-  return [];
-}
-
-/**
  * Apply implicit claim back-tracking and uncited sentence flagging to HTML.
  *
  * This works on the text content within HTML tags. It:
  * 1. Splits the visible text into sentences
- * 2. For each sentence that looks like a claim but has no [SRC-N]:
- *    a. Looks back up to 5 sentences for a citation to inherit
- *    b. If found, appends the inherited [SRC-N] to the sentence
- *    c. If not found, marks it with [UNCITED] for later removal
- * 3. Removes sentences marked [UNCITED] that are standalone factual claims
+ * 2. For each sentence that looks like a claim but has no [SRC-N], it is
+ *    treated as uncited — never inherits a neighbouring citation
+ * 3. Removes sentences that are standalone factual claims with numbers
+ *    or strong factual markers and no citation of their own
  *
  * Non-claim sentences (narrative transitions, headings, questions) are preserved.
  */
@@ -100,25 +85,12 @@ export function applyCitationFilter(html: string): CitationFilterResult {
     const citations = extractCitationNumbers(allSentences[i]);
     if (citations.length > 0) continue; // Already cited
 
-    // Try to inherit from nearest preceding sentence
-    const inherited = findNearestPrecedingCitation(allSentences, i);
-    if (inherited.length > 0) {
-      // Append inherited citation to the sentence in the HTML
-      const citationTag = inherited.map(n => `[SRC-${n}]`).join('');
-      const sentenceText = allSentences[i];
-      // Find this sentence in the HTML and append the citation
-      const escaped = sentenceText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').slice(0, 60);
-      const regex = new RegExp(`(${escaped}[^<]*?)([.!?])`, 'm');
-      html = html.replace(regex, `$1 ${citationTag}$2`);
-      backtrackedClaims++;
-    } else {
-      // Mark for removal if it's a standalone factual claim with no nearby citation
-      // Only remove if the sentence contains numbers or strong factual claims
-      const hasNumbers = /\d+[%.,]/.test(allSentences[i]);
-      const hasStrongClaim = /\b(is|are|was|were|has|have|will|must|should)\b/i.test(allSentences[i]);
-      if (hasNumbers && hasStrongClaim) {
-        sentencesToRemove.add(i);
-      }
+    // Mark for removal if it's a standalone factual claim with no citation
+    // Only remove if the sentence contains numbers or strong factual claims
+    const hasNumbers = /\d+[%.,]/.test(allSentences[i]);
+    const hasStrongClaim = /\b(is|are|was|were|has|have|will|must|should)\b/i.test(allSentences[i]);
+    if (hasNumbers && hasStrongClaim) {
+      sentencesToRemove.add(i);
     }
   }
 

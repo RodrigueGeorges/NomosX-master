@@ -190,6 +190,10 @@ export async function runArbiterForesight(deps: ArbiterForesightDeps): Promise<A
         simulationDisagrees: false,
       };
       stats.scenariosFromChain = true;
+      // Keep analysis.scenarios in sync with the arbiter's written scenarios
+      // (same as the legacy foresight path does) so renderers and persistence
+      // see the elected probabilities, not stale analyst scenarios.
+      analysis = { ...analysis, scenarios: institutePosition!.scenarios } as typeof analysis;
       stats.foresight = {
         elected: true,
         monteCarloRuns: election.monteCarloRuns,

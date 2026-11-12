@@ -51,7 +51,7 @@ describe('central scenario selection', () => {
       const central = resolveCentralScenario({ ...position, scenarios: ordered, dominantScenario: 'Stagflation trap' });
       expect(central?.selectedBy).toBe('probability_fallback');
       expect(central?.rationale).toBe('');
-      expect(centralScenarioIssues(central, 1)).toContain('Central scenario requires an explicit editorial choice');
+      expect(centralScenarioIssues(central, 1)).toContain('Central scenario requires an explicit editorial or swarm choice');
     }
   });
 

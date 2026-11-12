@@ -1288,6 +1288,10 @@ export async function runSimulationAgent(input: SimulationInput): Promise<Simula
   }
 
   const evidence = await loadSourceEvidence(input.sourceIds);
+  // OT-cleanup: sourceGraph is still computed for the report/telemetry, but
+  // it no longer feeds scenarioEvidenceWeight — lexical name overlap and
+  // mean qualityScore carry no likelihood information (audit: probabilities
+  // must come from the voted link distributions, not source cosmetics).
   const sourceGraph = buildSourceGraph(input.scenarios, evidence);
   const parameters =
     Object.keys(input.parameters).length > 0 ? input.parameters : defaultParameters(input.scenarios);
@@ -1300,7 +1304,7 @@ export async function runSimulationAgent(input: SimulationInput): Promise<Simula
     budget
   );
 
-  const { parameters: calibrated, avgQuality } = await calibrateFromSources(
+  const { avgQuality } = await calibrateFromSources(
     input.sourceIds,
     parameters,
     evidence
@@ -1308,8 +1312,11 @@ export async function runSimulationAgent(input: SimulationInput): Promise<Simula
 
   const seed = hashSeed(input.question);
   const mc = runMonteCarloCore(
-    { scenarios: input.scenarios, parameters: calibrated, runs: profile.mcRuns, seed },
-    sourceGraph
+    // Uncalibrated parameters + empty sourceGraph: source-derived nudges
+    // removed from the probability path (see swarm elector for the real
+    // evidence-driven distribution).
+    { scenarios: input.scenarios, parameters, runs: profile.mcRuns, seed },
+    []
   );
 
   const personas = await buildPersonaPanel({
@@ -1388,8 +1395,8 @@ export async function runSimulationAgent(input: SimulationInput): Promise<Simula
   const validation = validateOutput(outcomes, avgQuality, redTeam);
   const sensitivity = computeSensitivityMatrix(
     input.scenarios,
-    calibrated,
-    Object.keys(calibrated)[0] ?? "momentum"
+    parameters,
+    Object.keys(parameters)[0] ?? "momentum"
   );
 
   const personaSnapshots = personas.map((p) => ({
