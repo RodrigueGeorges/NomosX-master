@@ -3918,3 +3918,391 @@ _(no docstring — voir le code source)_
 
 **Exports :** `—`
 
+
+---
+
+# PARTIE III — AUDIT FORENSIQUE : CHEMIN PROSPECTIF, SORTIES RÉELLES, TERRAINS
+
+> Ajout post-inventaire. Chaque affirmation ci-dessous est adossée à une lecture
+> de code (fichier:ligne) ou à une requête Prisma sur la base de production.
+> Quand la donnée n'existe pas, c'est dit explicitement — jamais déduit.
+
+---
+
+## III.1 Le code du chemin prospectif — ce qui fait bouger les « 512 agents »
+
+### Réponse courte
+
+**Les 512 agents de la foule (crowd) ne font aucun appel LLM.** Ce sont des
+agents numériques purement déterministes. Les seuls appels LLM du chemin
+prospectif sont : (a) la construction du panneau de personas parties prenantes,
+(b) les ticks de personas par batch borné, (c) le red team adversarial, et
+(d) l'arbitre éditorial qui *génère* les scénarios en amont. Le Monte Carlo et
+la propagation de la foule sont du calcul numérique seedé.
+
+### Détail par fichier
+
+#### `lib/agent/foresight-swarm.ts` (121 lignes) — la foule, 100 % numérique
+
+- `spawnCrowd(count, leaders, scenarioNames, seed)` : `mulberry32(seed)` — RNG
+  déterministe. Chaque agent reçoit des positions initiales =
+  `0.65 * rand() normalisé + 0.35 * position du leader de son cluster`, plus
+  `activity ∈ [0.2, 1.0]` et `susceptibility ∈ [0.15, 0.6]`, tous deux tirés du
+  même RNG seedé. **Zéro LLM, zéro source, zéro horloge** — même seed ⇒ même
+  foule à l'identique.
+- `propagateCrowd(crowd, leaders, viralBoost, names, alpha=0.12)` : à chaque
+  tick, chaque agent relaxe vers `0.5*leader + 0.3*self + 0.2*viral*susceptibility`
+  avec `alpha=0.12`, puis renormalise. Retourne le nombre de « shifts »
+  (déplacements > 0.03) — critère de convergence.
+- `aggregateCrowdMomentum` : momentum = moyenne des positions pondérée par
+  `activity`, normalisée par `crowd.length * 0.55`.
+- `syncLeadersFromCrowd(weight=0.25)` : les leaders absorbent 25 % de la moyenne
+  de leur cluster à chaque tick — boucle de rétroaction leader↔foule.
+
+#### `lib/agent/simulation-agent.ts` (1474 lignes) — le moteur
+
+Structure réelle (ordre d'exécution dans `simulationAgent`) :
+
+1. **`loadSourceEvidence(sourceIds)`** (l.321) — lit les ≤30 meilleures sources
+   en base (`qualityScore desc`), extrait titre + 400 premiers caractères de
+   l'abstract. **Paramètres tirés des sources : oui, mais seulement comme
+   texte d'overlap et comme moyenne de `qualityScore`.**
+2. **`buildPersonaPanel`** (l.613) — **appel LLM** (`swarm_persona`, GLM fast,
+   30 s). Génère les personas parties prenantes (fonctions
+   `StakeholderPersona`, archétypes `PersonaArchetype`). C'est le seul endroit
+   où un modèle « incarne » les acteurs.
+3. **`buildSourceGraph`** (l.342) — pour chaque scénario, `overlapScore` =
+   similarité lexicale (tokens en commun) entre `name + description` du
+   scénario et l'extrait source, pondérée par `qualityScore/100`. Garde le top 5
+   par score > 0.05 → `sourceBoost`.
+4. **`calibrateFromSources`** (l.363) — met à l'échelle TOUS les paramètres par
+   `0.82 + 0.18 * (avgQuality/100)` et réduit `uncertainty` de
+   `×(1.1 − 0.4*weight)`. Sources de meilleure qualité ⇒ paramètres légèrement
+   plus « confiants ».
+5. **`defaultParameters`** (l.404) — `{momentum:0.5, uncertainty:0.3,
+   adoption:0.5, scenario_i_weight: priorProbability}`. Ce sont les **seules
+   constantes** du moteur ; tout le reste dérive des entrées.
+6. **`inferAssumptions`** (l.384) — si le scénario n'apporte pas
+   `assumptions` explicites, elles sont **fabriquées depuis le prior**
+   (`prior * (0.8 + 0.4*i/(n+1))`). Le commentaire l.442-446 documente le
+   piège corrigé : ces assumptions synthétiques contribuent une evidence
+   **neutre** (sinon double-comptage du prior → collapse ~100/0).
+7. **Monte Carlo** (`runMonteCarloCore` l.469+, `sampleGamma` l.416
+   Marsaglia–Tsang, `scenarioEvidenceWeight` l.448) — par run : tirage
+   Dirichlet de priors, perturbation des paramètres par `paramUncertainty`,
+   poids = `exp(-mismatch) * (1 + sourceBoost*0.15)`. `empiricalProbability`
+   = fréquence observée ; `bootstrapConfidenceIntervals` (l.582) ;
+   `computeSensitivityMatrix` (l.552) ; convergence via `ConvergenceResult`.
+8. **Ticks LLM bornés** — `runLLMTickBatch` (l.731) et
+   `runAdversarialRedTeam` (l.817) : appels `callLLM` groupés, les personas
+   « parlent »/« réagissent »/« changent de position ».
+9. **`computeScenarioStatesWithSwarm`** (l.854) — état final d'un scénario =
+   `0.35 * leaderStates + 0.55 * crowdMomentum + terme red-team`. C'est la
+   fusion des trois canaux : personas LLM, foule numérique, adversaire LLM.
+
+### Répartition honnête des influences
+
+| Mécanisme | Type | Poids dans le résultat |
+|---|---|---|
+| Priors `probability` des scénarios (écrits par l'arbitre LLM ou fallback 50/30/20) | LLM en amont, numérique ensuite | **Domine** — base du Dirichlet |
+| `sourceBoost` (overlap lexical × qualityScore) | Paramètre extrait des sources | Modificateur ±15 % max par scénario (`boostFactor = 1 + boost*0.15`) |
+| `calibrateFromSources` (avg qualityScore) | Paramètre extrait des sources | ±18 % sur les paramètres, borne `uncertainty` |
+| Personagens LLM (panel + ticks + red team) | Appels LLM | Canal « voix » : positions des leaders |
+| Foule 512 | Numérique seedé | 55 % du mélange final de momentum |
+| Constantes | Numériques | momentum .5, uncertainty .3, adoption .5, alpha .12, poids .35/.55 |
+
+**Conclusion dev** : les probabilités publiées (`empiricalProbability`) sont
+principalement une **re-normalisation Monte Carlo des priors fournis par
+l'arbitre**, modulée à la marge par la qualité/overlap des sources. La «
+simulation » n'invente pas de probabilités à partir des sources — elle les
+échantillonne autour des priors. La chaîne `chain-probability.ts` (LOT 4.2-4.8)
+est le seul endroit où des données sources (méta-analyse, I², sourceCount)
+produisent des distributions de priors *réellement* source-groundées — avec
+`verifyDerivedQuantity` (l.64) qui vérifie déterministement qu'une valeur
+calculée apparaît dans le texte source (`exact_match`/`range_check`/`unit_check`).
+
+---
+
+## III.2 L'entrée réelle du swarm aujourd'hui
+
+**Le swarm ne reçoit jamais la chaîne causale brute.** Chemin réel :
+
+```
+analyst-multipass → analysis.causalChain (liens typés)
+        │
+        ▼  (résumé textuel, 5 premiers liens max)
+editorialArbiter (LLM, gpt-6-astra) ── prompt inclut "CAUSAL CHAIN SUMMARY"
+        │        (editorial-arbiter.ts l.225-226)
+        ▼  produit InstitutePosition.scenarios[] (nom, probabilité, narratif)
+runArbiterForesight (pipeline-steps/arbiter-foresight.ts l.87-104)
+        │  injecte ces scénarios dans un analysis synthétique
+        ▼
+runPipelineForesight (pipeline-foresight.ts l.134-147)
+        │  mappe {name, description, assumptions, priorProbability, signals}
+        ▼
+simulationAgent(question, simInput, {domain, sourceIds, depth})
+```
+
+Donc : **scénarios synthétisés par l'arbitre LLM à partir de** (a) la chaîne
+causale résumée, (b) le débat dominant/contre, (c) ≤12 sources (titre/année/
+provider), (d) le manifesto éditorial et le style guide. Le scénario central
+**porte donc sur le sujet réel** — mais c'est une synthèse de second ordre :
+le modèle reformule la chaîne causale en futurs narratifs, il ne propage pas
+mécaniquement les liens causaux.
+
+### Le fallback qui dégrade tout
+
+Si l'analyste n'émet pas ≥2 scénarios, `ensureEditorialScenarios`
+(`editorial-scenarios.ts` l.23-74) **fabrique** Base 50 % / Adverse 30 % /
+Accelerated 20 %, descriptions = les 420 premiers caractères de
+`consensus`/`disagreements`/`implications`. Probabilités **fixes**, non
+calculées. Si l'arbitre échoue, `buildFallbackPosition`
+(`editorial-arbiter.ts` l.58-95) fait de même (50/30). Conséquence : sur les
+runs où l'arbitre ou l'analyste dégradent, les « probabilités » publiées sont
+des constantes de gabarit — c'est le canal n°1 de scénarios/probas génériques.
+
+Garde-fous amont : foresight skippé si `< 2` scénarios ou `< 10` sources
+(`arbiter-foresight.ts` l.78-83) ; skippé si `isForesightEnabled()` faux ;
+`skipGapFillRetrieval` forcé en record/replay.
+
+---
+
+## III.3 Règle de sélection : « le plus pertinent et probable »
+
+Tout est dans `resolveCentralScenario` (`editorial-types.ts` l.127-166) :
+
+1. **Choix éditorial d'abord.** L'arbitre LLM doit renvoyer
+   `dominantScenario` = nom **exact** (après normalisation casse/espaces) d'un
+   de ses scénarios, + `centralScenarioRationale` avec citations [SRC-N]
+   obligatoire. Un match partiel (« Stagflation trap » vs « …in Europe ») est
+   **refusé** et dégrade en `probability_fallback` — le gate signale alors
+   « requires an explicit editorial choice ». Pas de matching flou.
+2. **Fallback probabiliste.** Sinon : filtre `!isWildcard && probability ≥ 0`,
+   tri par `probability(b) − probability(a)` décroissant, prend `candidates[0]`.
+   `probability()` préfère `calibratedProbability` (0-1) sinon parse
+   `"NN%"`. **`Array.sort` JS est stable ⇒ ex æquo = ordre de déclaration des
+   scénarios par l'arbitre.** Il n'y a **pas de tie-break explicite** — deux
+   scénarios à probabilité égale sont départagés par leur position dans le
+   JSON de l'arbitre, ce qui est déterministe à prompt égal mais arbitraire
+   sur le fond.
+3. **Le Monte Carlo n'élit pas.** `simulation[]` sert seulement à calculer
+   `simulationLeader` et `simulationDisagrees` (l.163-164) : si le leader
+   empirique diffère du choix éditorial, c'est **flaggé** et visible par le
+   gate — la divergence n'est jamais silencieuse.
+4. Sortie : `CentralScenarioDecision { name, description, rationale, horizon,
+   implications, revisionTriggers, confidence, selectedBy:
+   'editorial'|'probability_fallback', simulationLeader, simulationDisagrees }`
+   persisté dans `stats.centralScenario` → metadata brief.
+
+**Ensemble ou central ?** Un seul scénario central est retenu pour le rendu ;
+les autres restent dans `scenarios[]` avec leurs `empiricalProbability` et
+`confidenceInterval` (`applySimulationToAnalysis`, `pipeline-foresight.ts`
+l.59-75 — pourcentages arrondis par **largest remainder** pour sommer à 100).
+
+---
+
+## III.4 Sorties réelles
+
+### Publications publiées (table `Brief`, `publishedAt != null`)
+
+21 publiées sur 155 briefs. Les 4 plus récentes :
+
+| Brief ID | Kind | Trust | Quality | Objet |
+|---|---|---|---|---|
+| `cmubo8gv10118bahnldoa20hl` | brief | 62 | 65 | Sanctions, patronage & capture réglementaire — inversion de la pression financière coercitive |
+| `cmubm35an01gzy6hyad2ruzou` | brief | 71 | 64 | Sommet-diplomatie, interdépendance & bargaining US-Chine |
+| `cmtyem5j1011m13mpb400c2sz` | strategic | 78 | 56 | Supply-chain IA + CBAM — reconfiguration commerciale 2026 |
+| `cmtycmu0t01ivjxfaiyeoua4o` | strategic | 73 | 50 | idem (itération antérieure) |
+| `cmt7oxk9r02xc6sj15ee3x12o` | strategic | 77 | 66 | Stablecoins & paiements transfrontaliers |
+
+Côté `ThinkTankPublication` (table séparée) : **21 PUBLISHED / 46 HELD /
+2 DRAFT**. Exemples HELD récents (2026-11-10) : « China's economic and
+diplomatic strategy challenging USD dominance » (`cmwb7ozpw…`),
+« Dollar Erosion Dynamics » (`cmwb5410g…`).
+
+### Run persisté exemple (non publié)
+
+`PipelineRun aac8500c-056a-40ad-967c-345fe0e85a7c` — status `COMPLETED`,
+**$0.0674, 737 493 ms (~12 min)**, brief `cmwb7onp305ea10aozypgt0in`
+(pipelineRun.steps complet persisté, 55 clés de stats). `phaseTimings` :
+`{scout:80, critic:722227, reader:114831, render:722300, analyst:581045,
+rankGates:11664, indexEnrich:91}` — **attention : ces valeurs sont des
+marqueurs de fenêtre cumulés, pas des durées de phase** (critic≈render
+suggère des bornes de début/fin, pas des deltas ; ne pas les lire comme des
+coûts temps réel). `steps.foresight`/`editorialArbiter` absents sur ce run —
+c'est un run `brief` plus ancien sans la chaîne V2 complète ; les runs
+`strategic`/inquiry récents portent `editorialArbiter`, `foresight`,
+`centralScenario` dans `stats`.
+
+**Limite honnête** : `ThinkTankPublicationRun` contient **0 ligne** — le lien
+publication↔run n'est pas peuplé par cette table ; la jointure se fait via
+`Brief.pipelineRunId` ou `metadata.pipelineRunId`. Le `PipelineRun.steps`
+complet d'un run HELD récent n'a pas pu être extrait proprement faute de ce
+lien ; les champs disponibles sont documentés ci-dessus.
+
+---
+
+## III.5 Track record des prédictions — la vérité terrain
+
+Requête Prisma directe sur `Prediction` :
+
+- **813 prédictions enregistrées** (2026-08-14 → 2026-11-10)
+- **0 résolues** — `status` = `OPEN` pour les 813, `resolvedAt` null partout
+- **Brier : non calculable.** Aucun outcome n'existe.
+
+Les enregistrements sont des claims auto-générés accrochés aux briefs
+(ex. « surprise: A black swan event: a cyberattack on US nuclear command
+and control… » avec `horizon`, `probability`, `whatWouldFalsify`).
+
+**Verdict** : le système *enregistre* des prédictions mais n'a **aucune boucle
+de résolution** — rien ne repasse à échéance pour noter l'outcome et calculer
+le Brier. Le « track record » prospectif est donc à ce jour une file
+d'attente, pas une mesure. C'est l'écart le plus important entre la promesse
+« prospective » et le réel. Conséquence : `calibration` ne peut pas apprendre
+de ses propres erreurs — le score `CALIBRATION` des quality checks porte sur
+autre chose (calibration des trust scores), pas sur des prédictions résolues.
+
+---
+
+## III.6 Répartition des échecs — 231 PipelineRun + ThinkTankQualityCheck
+
+### PipelineRun (231 derniers)
+
+`status` : **155 COMPLETED / 76 FAILED** — pas de statut `HELD` à ce niveau
+(HELD vit sur `ThinkTankPublication`). `steps.qualityGate` = « diagnostic
+only — no agents skipped » : **le détail des checks du publication-gate
+n'est PAS persisté dans PipelineRun.steps** — il est calculé dans
+`inquiry-orchestrator.assess()` (`evaluatePublicationGate`,
+`publication-gate.ts` l.110+) et persisté côté publication, pas côté run.
+
+### ThinkTankQualityCheck (persistance réelle des checks)
+
+Agrégat par `checkType × passed`, scopé par statut de la publication :
+
+| CheckType | HELD fail | HELD pass | PUBLISHED fail | PUBLISHED pass |
+|---|---|---|---|---|
+| THRESHOLD | **78** | 14 | 7 | 33 |
+| CALIBRATION | **46** | 0 | 9 | 11 |
+| ADVERSARIAL | **37** | 0 | 6 | 0 |
+| CITATION | 2 | 44 | 0 | 20 |
+| METHODOLOGY | 0 | 0 | 0 | 0 |
+
+Détail type d'un échec : `{"detail":"Trust score 40 (min 65)",
+"checkName":"trust_score","threshold":65}` — le check THRESHOLD est dominé par
+le plancher de trust score. **Sur les HELD, CALIBRATION et ADVERSARIAL
+n'ont jamais passé** (0 pass) — ces deux familles sont structurellement les
+points de blocage. Les PUBLISHED gardent des checks en échec (THRESHOLD 7,
+CALIBRATION 9, ADVERSARIAL 6) : les checks sont des **signaux** agrégés par la
+décision finale, pas des veto unitaire — à documenter comme tel pour éviter
+toute lecture « check fail ⇒ pas publié ».
+
+Multi-échec : oui, une publication accumule plusieurs checks (46 HELD ont au
+moins un CALIBRATION fail, etc.).
+
+---
+
+## III.7 Temps et coût par étape + TASK_ASSIGNMENT
+
+### Où c'est enregistré
+
+- `PipelineRun.totalCostUsd`, `totalTokensIn/Out`, `durationMs` (colonnes).
+- Par étape : `steps.<etape>.costUsd` / `durationMs` quand le module les
+  expose (ex. `steps.critic.costUsd=0.0114, durationMs=91355` observé),
+  `steps.phaseTimings` (marqueurs de fenêtre — voir III.4, sémantique
+  ambiguë), `stats.foresight.costUsd`, `stats.editorialArbiter.costUsd`,
+  `addCost(usd, step)` agrège dans le total.
+- **`CostLog` : table créée mais 0 ligne** — l'instrumentation coût par
+  opération/provider (`operation`, `provider`, `model`, `tokens*`,
+  `costUsd`) existe dans le schéma mais n'est pas alimentée. Les coûts réels
+  ne sont donc traçables qu'au niveau run/étape, pas au niveau appel LLM
+  unitaire (sauf cassette record).
+
+### TASK_ASSIGNMENT (`lib/llm/unified-llm.ts` l.224+)
+
+Table unique tâche→{provider, model, timeoutMs} :
+
+| Classe | Tâches | Provider/Modèle |
+|---|---|---|
+| Rapide/bas | query_enhancement, topic_classification, casting, editor_in_chief, swarm_persona, studiox, enrichment_reasoner, preflight_semantic_check, query_reformulation, delphi_round1/2, cross_impact, translation, verbatim… | `glm` / GLM_FAST (30-60 s) |
+| Extraction/vérif | fact_check, citation_verification | `google` / `gemini-3.8-flash` (60 s) — « best measured groundedness » ; sans GOOGLE_API_KEY la règle opposite-family reroute kimi↔glm |
+| Lourd analyse | reader_v3, strategic_analyst, harvard_council, elenchus, analyst_brief, auto_revision, editorial_arbiter, meta_analysis, structural_editor, primary_data_synthesis, stress_test | `openai` / OPENAI_REASONING / `gpt-6-astra` pour l'arbiter (90-600 s) |
+
+Fallback : cross-family Kimi K3 ↔ GPT-6-Astra, puis DeepSeek/GLM/Google ;
+circuit breaker 2 tiers (60 s cooldown, 24 h suspend) ; `LLM_PRE_SUSPENDED`
+pour pré-suspendre (défaut : anthropic). **Distinction importante** :
+TASK_ASSIGNMENT = routage *configuré* ; le provider *effectivement* utilisé
+dépend des clés présentes, du circuit breaker et du fallback — à lire dans
+les cassettes (`recordLlmCassette` tague provider/modèle par appel) pour le
+par-run.
+
+---
+
+## III.8 AGENTS.md et AUDIT.md
+
+Les deux fichiers **existent** dans le dépôt racine :
+
+- `AGENTS.md` (~4 700 lignes) — spec complète du pipeline agentique :
+  invariants evidence-boundary (thèse supportée, ≥2 documents distincts
+  in-range, pas de double comptage ID/DOI/URL/titre, sources synthétiques
+  exclues, matching par `sourceId`, inspection bornée à 25 sources, absence
+  ≠ preuve, échec d'adhérence ≠ succès, screening des ajouts tardifs,
+  gap-fill préservant les requêtes pending), historique des sprints 41-46,
+  harness replay (`scripts/replay-run.ts`, `frozen-inputs.ts`, fixture
+  `gulf-minerals.fixture.jsonl`), commandes de vérification.
+- `AUDIT.md` — présent à la racine (document d'audit antérieur).
+
+Tous deux doivent être ajoutés à la table des références de la Partie I.
+
+---
+
+## III.9 Diagnostic éditorial — « qu'est-ce qui est insuffisant ? »
+
+Réponse calibrée sur les données de III.5-III.6, pas sur impression :
+
+### Ce qui est mesurable automatiquement (déjà instrumenté)
+
+| Défaut | Signal disponible | État |
+|---|---|---|
+| Scénarios/probas génériques | `selectedBy:'probability_fallback'` + `simulationDisagrees` dans `stats.centralScenario` ; présences de 50/30/20 fixes (`editorial-scenarios.ts`) | Instrumenté, non agrégé |
+| Thèse banale | `thesisBinding` verdict + adherence hard-gate ; `originalityCheck` dans steps | Instrumenté |
+| Preuve mince | check CITATION (78 % pass sur HELD — ce n'est PAS le bloquant principal) | Instrumenté |
+| Confiance mal calibrée | check CALIBRATION : **0 pass sur 46 HELD** | Instrumenté, structurellement bloquant |
+| Défaut adversarial | check ADVERSARIAL : **0 pass sur 46 HELD**, 6 fail sur 21 PUBLISHED | Instrumenté, structurellement bloquant |
+| Plancher trust | check THRESHOLD : 78 fail sur HELD, dominant = `trust_score < 65` | Instrumenté |
+
+### Ce qui exige un jugement éditorial humain
+
+- **Originalité de la thèse** — aucun check ne mesure « ai-je déjà lu ça » ;
+  `originalityCheck` porte sur le texte, pas sur la littérature.
+- **Crédibilité des probabilités** — le système ne peut pas savoir qu'un
+  « 35 % » est du gabarit tant que la boucle de résolution n'existe pas
+  (III.5). **C'est le défaut le plus structurel** : sans Brier, aucune
+  probabilité publiée n'est jamais validée ni recalibrée.
+- **Style/lecture** — `styleGates`, `structuralEditor`, critic panel mesurent
+  la forme ; le « sentiment de banalité » reste éditorial.
+- **Utilité/actionnabilité** — `recommendations` exigées par le prompt de
+  l'arbitre mais non scorées par un check dédié.
+
+### Diagnostic argumenté
+
+Sur la base des comptes : les HELD ne meurent **pas** faute de citations
+(CITATION passe à 96 %) ni faute de seuil de preuve — ils meurent sur
+**CALIBRATION (0/46 pass) et ADVERSARIAL (0/46 pass)**. Autrement dit, le
+système produit des textes bien sourcés dont la *posture* (confiance affichée
+vs solidité réelle, objections non traitées) est ce qui bloque. Et en amont,
+les probabilités de scénarios sont majoritairement des **priors LLM**
+échantillonnées par Monte Carlo, avec un fallback gabarit 50/30/20 quand la
+chaîne dégrade — sans aucune validation ultérieure puisque les prédictions
+ne sont jamais résolues. La correction la plus rentable n'est donc pas une
+brique de style : c'est **(1) implémenter la boucle de résolution des
+prédictions → Brier → recalibration**, et **(2) remonter le taux de
+`selectedBy:'editorial'`** pour que le scénario central soit un choix
+argumenté, pas un tri par probabilité.
+
+---
+
+*Fin de la Partie III. Sources : lecture directe des fichiers cités
+(lignes indiquées) + requêtes Prisma sur la base de production au
+2026-11 (tables `PipelineRun`, `Brief`, `ThinkTankPublication`,
+`ThinkTankQualityCheck`, `Prediction`, `CostLog`,
+`ThinkTankPublicationRun`).*
