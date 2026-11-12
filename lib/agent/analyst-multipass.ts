@@ -782,6 +782,67 @@ ${missionPrompt}`;
 // PASS 3: PROSPECTIVE SYNTHESIS
 // ============================================================================
 
+/**
+ * Deterministic causalChain for the lightweight-synthesis path: the
+ * friction/stress maps already carry the evidence (mechanism descriptions,
+ * dataPoints with [SRC-N], surviving ids). Without this, a time-budget
+ * downgrade silently produced causalChain:[] and disabled the entire
+ * chain-scenario → swarm → MC-election foresight path downstream.
+ *
+ * Honest uncertainty signal for downstream scenario derivation: a mechanism
+ * the stress test says cannot carry extrapolation
+ * (canSupportExtrapolation=false), or one with thin deterministic evidence
+ * (no dataPoints, <2 cited sources), is tagged passageVerdict:'weak' — the
+ * same uncertainty class deriveChainScenarios consumes. present_fact links
+ * are left untouched; the claim→passage contract owns their verdicts.
+ */
+export function synthesizeCausalChainFromMaps(friction: FrictionMap, stress: StressTestMap): CausalLink[] {
+  const mechanisms = Array.isArray(friction?.mechanisms) ? friction.mechanisms : [];
+  if (mechanisms.length === 0) return [];
+  const surviving = new Set<number>(Array.isArray(stress?.survivingMechanisms) ? stress.survivingMechanisms : []);
+  const assessments = new Map((Array.isArray(stress?.mechanismAssessments) ? stress.mechanismAssessments : []).map(a => [a.mechanismId, a]));
+  const ordered = [...mechanisms]
+    .filter(m => surviving.size === 0 || surviving.has(m.id))
+    .sort((a, b) => (a.temporalStatus === 'present_fact' ? 0 : 1) - (b.temporalStatus === 'present_fact' ? 0 : 1))
+    .slice(0, 8);
+  const links: CausalLink[] = [];
+  ordered.forEach((m, i) => {
+    const srcs = (Array.isArray(m.sources) ? m.sources : []).filter(s => typeof s === 'string');
+    const dataPoints = (Array.isArray(m.dataPoints) ? m.dataPoints : []).filter(d => typeof d === 'string');
+    const evidence = dataPoints.length > 0 ? dataPoints.join(' ') : srcs.join(' ');
+    const claimBase = String(m.description ?? '').trim();
+    const claim = /\[SRC-\d+\]/.test(claimBase) ? claimBase : `${claimBase} ${srcs.join(' ')}`.trim();
+    const srcMatch = `${evidence} ${claimBase} ${srcs.join(' ')}`.match(/\[SRC-(\d+)\]/);
+    const assessment = assessments.get(m.id);
+    const thinEvidence = dataPoints.length === 0 && srcs.length < 2;
+    const weakMechanism = m.temporalStatus === 'active_mechanism' &&
+      (assessment?.canSupportExtrapolation === false || thinEvidence);
+    links.push({
+      id: i + 1,
+      claim,
+      evidence: evidence || claim,
+      warrant: String(m.crossDomainEffects || m.trajectoryHint || 'mechanism asserted by friction mapping').slice(0, 400),
+      temporalStatus: m.temporalStatus === 'present_fact' ? 'present_fact' : 'active_mechanism',
+      derivesFrom: i === 0 ? null : i,
+      sourceRef: srcMatch ? parseInt(srcMatch[1], 10) : undefined,
+      ...(weakMechanism ? { passageVerdict: 'weak' as const } : {}),
+    });
+  });
+  const projected = String(stress?.strongestChain?.projectedFuture ?? '').trim();
+  if (projected && links.length > 0) {
+    links.push({
+      id: links.length + 1,
+      claim: projected,
+      evidence: projected,
+      warrant: 'extrapolation from surviving mechanisms under stated assumptions',
+      temporalStatus: 'future_extrapolation',
+      derivesFrom: links.length,
+      sourceRef: links[links.length - 1].sourceRef,
+    });
+  }
+  return links;
+}
+
 async function pass3ProspectiveSynthesis(
   question: string,
   ctx: string,
@@ -1494,58 +1555,7 @@ export async function analystAgentV3(
     // dataPoints with [SRC-N], surviving ids). Without this, a time-budget
     // downgrade silently produced causalChain:[] and disabled the entire
     // chain-scenario → swarm → MC-election foresight path downstream.
-    const synthesizeCausalChainFromMaps = (friction: FrictionMap, stress: StressTestMap): CausalLink[] => {
-      const mechanisms = Array.isArray(friction?.mechanisms) ? friction.mechanisms : [];
-      if (mechanisms.length === 0) return [];
-      const surviving = new Set<number>(Array.isArray(stress?.survivingMechanisms) ? stress.survivingMechanisms : []);
-      const assessments = new Map((Array.isArray(stress?.mechanismAssessments) ? stress.mechanismAssessments : []).map(a => [a.mechanismId, a]));
-      const ordered = [...mechanisms]
-        .filter(m => surviving.size === 0 || surviving.has(m.id))
-        .sort((a, b) => (a.temporalStatus === 'present_fact' ? 0 : 1) - (b.temporalStatus === 'present_fact' ? 0 : 1))
-        .slice(0, 8);
-      const links: CausalLink[] = [];
-      ordered.forEach((m, i) => {
-        const srcs = (Array.isArray(m.sources) ? m.sources : []).filter(s => typeof s === 'string');
-        const dataPoints = (Array.isArray(m.dataPoints) ? m.dataPoints : []).filter(d => typeof d === 'string');
-        const evidence = dataPoints.length > 0 ? dataPoints.join(' ') : srcs.join(' ');
-        const claimBase = String(m.description ?? '').trim();
-        const claim = /\[SRC-\d+\]/.test(claimBase) ? claimBase : `${claimBase} ${srcs.join(' ')}`.trim();
-        const srcMatch = `${evidence} ${claimBase} ${srcs.join(' ')}`.match(/\[SRC-(\d+)\]/);
-        // Honest uncertainty signal for downstream scenario derivation:
-        // a mechanism the stress test says cannot carry extrapolation, or
-        // one with thin deterministic evidence (no dataPoints, <2 sources),
-        // is weakly supported — the same class deriveChainScenarios treats
-        // as an uncertainty candidate. present_fact links are left for the
-        // claim→passage contract, which owns their verdict.
-        const assessment = assessments.get(m.id);
-        const thinEvidence = dataPoints.length === 0 && srcs.length < 2;
-        const weakMechanism = m.temporalStatus === 'active_mechanism' &&
-          (assessment?.canSupportExtrapolation === false || thinEvidence);
-        links.push({
-          id: i + 1,
-          claim,
-          evidence: evidence || claim,
-          warrant: String(m.crossDomainEffects || m.trajectoryHint || 'mechanism asserted by friction mapping').slice(0, 400),
-          temporalStatus: m.temporalStatus === 'present_fact' ? 'present_fact' : 'active_mechanism',
-          derivesFrom: i === 0 ? null : i,
-          sourceRef: srcMatch ? parseInt(srcMatch[1], 10) : undefined,
-          ...(weakMechanism ? { passageVerdict: 'weak' as const } : {}),
-        });
-      });
-      const projected = String(stress?.strongestChain?.projectedFuture ?? '').trim();
-      if (projected && links.length > 0) {
-        links.push({
-          id: links.length + 1,
-          claim: projected,
-          evidence: projected,
-          warrant: 'extrapolation from surviving mechanisms under stated assumptions',
-          temporalStatus: 'future_extrapolation',
-          derivesFrom: links.length,
-          sourceRef: links[links.length - 1].sourceRef,
-        });
-      }
-      return links;
-    };
+    const synthesizeCausalChain = () => synthesizeCausalChainFromMaps(validatedMap.map, p2.map);
     let p2: { map: StressTestMap; tokens: number; cost: number };
     let p2Compact = false;
     if (hasRunHeadroomWithReserve(undefined, isStrategic, passBudgetMs)) {
@@ -1601,7 +1611,7 @@ export async function analystAgentV3(
           verdict: survivingCount > 0 ? 'tempered' : 'causal_only',
           convictionLevel: survivingCount > 0 ? 'tempered' : 'causal_only',
           anchoringBasis: 'Pass 1 friction mapping + Pass 2 stress test',
-          causalChain: synthesizeCausalChainFromMaps(validatedMap.map, p2.map),
+          causalChain: synthesizeCausalChain(),
           trajectory: { horizon: '12 months', state: 'current', assumptions: 'Based on available sources' },
           rejectedAlternatives: [],
           whatToWatch: { signals: [], whatWouldChangeMind: 'Additional evidence needed', horizonCheck: '6-12 months' },
