@@ -62,9 +62,10 @@ describe('analyst multipass — passes degrade inside the repair reserve', () =>
     const result = await withExecutionDeadline(10 * 60_000, 'test-deadline', () =>
       analystAgentV3('test question about Nordic defence', SOURCES, [], { depth: 'strategic' })
     );
-    // P2 compact ran, P3 → lightweight synthesis (no LLM call).
+    // P2 compact ran, P3 → lightweight synthesis (no LLM call) — the chain
+    // is now synthesized deterministically from the friction map (1 link).
     expect(mockedLLM).toHaveBeenCalledTimes(2);
-    expect((result as any).causalChain).toHaveLength(0); // lightweight path
+    expect((result as any).causalChain).toHaveLength(1);
     expect((result as any)._meta.failed).toBeUndefined();
   });
 
@@ -76,7 +77,7 @@ describe('analyst multipass — passes degrade inside the repair reserve', () =>
     );
     expect(mockedLLM).toHaveBeenCalledTimes(1);
     expect((result as any)._meta.stressTestMap.mechanismAssessments).toHaveLength(0);
-    expect((result as any).causalChain).toHaveLength(0); // lightweight path
+    expect((result as any).causalChain).toHaveLength(1); // synthesized from friction map
     expect((result as any)._meta.failed).toBeUndefined();
   });
 

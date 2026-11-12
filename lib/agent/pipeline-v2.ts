@@ -1363,7 +1363,17 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
       || (daPre.verdict === 'major_revision' && (daPre.overallStrength as number) < 20)
       || ((daPre.publishabilityScore as number) ?? 100) < 40
     );
-    if (daPreFails && !isBudgetConstrained()) {
+    // Wall-clock guard: the mission is a full scout→reader→(re-analysis)
+    // cycle — on degraded providers that is 45-90min. Launching it inside
+    // the deadline tail guarantees a timeout FATAL instead of a held run
+    // (observed live: mission started at ~T-30min, run died mid-reader).
+    const daMissionHeadroomMs = Number(process.env.DA_MISSION_HEADROOM_MS ?? 3_000_000);
+    const daMissionHasTime = hasRunHeadroom(pipelineStart, isStrategic, daMissionHeadroomMs);
+    if (daPreFails && !isBudgetConstrained() && !daMissionHasTime) {
+      console.log(`${label} DA EVIDENCE MISSION: skipped — ${Math.round(remainingRunMs(pipelineStart, isStrategic) / 60000)}min left < mission estimate; gap queries persisted for the retry instead`);
+      stats.daEvidenceMissionSkipped = 'insufficient_headroom';
+    }
+    if (daPreFails && !isBudgetConstrained() && daMissionHasTime) {
       // A fatal challenge like "no comparative evidence for X" is EVIDENCE-
       // BOUND — no rewrite can invent the missing sources. First convert the
       // adversary's challenges into retrieval missions: post them as source

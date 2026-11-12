@@ -429,6 +429,7 @@ export interface PipelineStats {
   // ride the held diagnostic into the 20h retry's scout mission so the retry
   // repairs the corpus gap instead of repeating the broad sweep.
   daEvidenceQueries?: string[];
+  daEvidenceMissionSkipped?: string;
   deferredGapRequests?: {
     count: number;
     origin: string;

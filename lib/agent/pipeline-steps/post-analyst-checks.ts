@@ -402,6 +402,19 @@ export async function runPostAnalystChecks(deps: PostAnalystChecksDeps): Promise
   // Producer-visible capacity is unchanged (strategic 2, brief 1); the
   // reserve is the +1.
   let reAnalysisBudget = isStrategic ? 3 : 2;
+  // Degraded-provider cap: with ≤2 LLM providers alive there is no failover
+  // headroom and every repair pass runs 2-4× slower (freepool timeouts,
+  // TPM pacing). Three stacked full re-analyses then guarantee a deadline
+  // FATAL — observed live on the GLM+freepool funnel (3 analyst runs +
+  // gap-fill reader rounds → timeout at 180min). Cap producer capacity at
+  // 2; the repair reserve stays intact.
+  try {
+    const alive = ((stats as Record<string, unknown>).preflight as { aliveProviders?: string[] } | undefined)?.aliveProviders;
+    if (Array.isArray(alive) && alive.length > 0 && alive.length <= 2) {
+      reAnalysisBudget = Math.min(reAnalysisBudget, 2);
+      console.log(`${label} REPAIR BUDGET: capped at ${reAnalysisBudget} — only ${alive.length} LLM provider(s) alive (${alive.join(', ')}), no failover headroom`);
+    }
+  } catch { /* non-blocking */ }
 
   // ── SELF-CORRECTION: ANALYST — assess quality, retry if low (Reflexion pattern) ──
   // Deterministic trigger first: the LLM reflection may miss citation-spread
