@@ -4976,3 +4976,73 @@ coverage snapshot. Fail-open, no LLM cost. Tests: research-agenda.test.ts
 **Remaining audit plan**: P2 radar rebalancing (signal-detector eu-policy
 flood — separate signal pipeline from topic-radar), P4 Kimi validation,
 P5 retrospective review of 21 published briefs.
+
+---
+
+## Sprint 56 — Foresight integrity: exact election, grounded swarm, evidence-bound predictions
+
+External review patch applied and verified (commits `441a663`, `f5d4f9d`).
+
+**`mc-elector.ts`** — cell probability = exact product of link probabilities
+(dependent links as conditionals), Beta draws for uncertainty, 5th–95th
+percentile credible interval, `contested` when the leader wins <80% of
+draws, finite-difference sensitivity. Two independent 60% links now yield
+36%, not ~62%.
+
+**`swarm-forecaster.ts`** — ballots must cite cards actually dealt to the
+voter (`citedCards` validated against the voter's shared+private slice;
+ungrounded votes dropped). `buildLinkCards` builds passage-level evidence
+cards from reader extractions (claims/results/limitations ranked by
+`passageContainment` against the uncertain links), falling back to
+abstracts; ranking = relevance × 0.6 + quality × 0.4. Up to 6 voted links,
+`maxTokens` 700. `assessSwarmHealth` enforces per-link minimums
+(`SWARM_MIN_VOTES_PER_LINK`, `SWARM_MIN_FAMILIES`, `SWARM_MAX_IQR`).
+
+**`sentinel-writer.ts`** (new) — one bounded LLM call drafts ≤3 short-horizon
+observations (30/60/90d) per uncertain link; `validateSentinel` rejects
+anything unresolvable (no threshold/date in criteria, no public source,
+window violation, unknown linkId, statement dated beyond the window).
+Sentinel vote ids start at `SENTINEL_VOTE_ID_BASE` (9000) — clear of chain
+link ids. Chain derivation yields exactly 2 uncertainties, so 2+3 ≤ 6 cap.
+
+**`prediction-registration.ts`** — swarm-elected central scenario and
+chain links carry `probabilitySource: 'swarm'` (lookup-table fallback =
+`'tier_table'`); swarm `linkProbabilities` are the marginals (dependent
+link = own × parent). Swarm-priced sentinels register as `kind='sentinel'`
+with `dueAt`, `linkId`, `resolutionSource` and take precedence over
+heuristic `[Nd sentinel]` copies; signals dated beyond the 90d window are
+dropped rather than guaranteed misses.
+
+**`prediction-tracker.ts`** — `dueAt` authoritative over horizon parsing;
+resolution via `decideResolution` (CONFIRMED/REFUTED only with a cited
+retrieved evidence URL; inconclusive retries until `RESOLUTION_GRACE_DAYS`
+then expires — never `RESOLVED`); Brier on `occurred`/`not_occurred` only;
+`bestShrinkFactor` + `getCalibrationShrink` learn ONLY from
+`probabilitySource='swarm'` resolved predictions and move the factor only
+when Brier actually improves (≥1% relative).
+
+**`binary-gate.ts` / `inquiry-orchestrator.ts`** — `swarm_healthy` consumes
+per-link minimums (min valid votes, min families, converged health) not
+run totals; `scenarios_from_chain` + `swarm_healthy` failures HOLD a
+publish when `centralScenarioRequired` (`NOMOSX_REQUIRE_SWARM_ELECTION=0`
+opts out); provider-health attribution persisted on non-published outcomes.
+
+**`editorial-arbiter.ts`** — election is authoritative: `pinScenariosToCells`
+rebuilds scenarios on the MC cells, elected `empiricalProbability` +
+confidence interval pinned, runner-up percentages rescaled to sum 100,
+`dominantScenario` forced to the elected cell; the LLM narrates, never
+re-decides. Fallback path keeps election values. Arbiter prompt receives
+elected branch, probability, CI, contested state.
+
+**Prisma** — additive `Prediction.probabilitySource` + indexes
+(domain/dueAt/kind) via `app/api/admin/migrate-predictions` (idempotent
+DDL). Local `nomosx_local` migrated; prod Neon pending deploy+call.
+
+**Tests** — `swarm-integrity.test.ts` (16) + `foresight-integrity.test.ts`
+(18): grounded ballots, cell pinning, probability sums, card ranking,
+sentinel validation, swarm-vs-tier pricing, resolution decisions,
+shrink-only-on-Brier-improvement. Full agent suite 536/536, tsc clean.
+
+**Known limit** — gulf-minerals replay now misses at `analyst_brief`
+(fixture predates upstream prompt changes); a paid re-record on the same
+corpus is required before the foresight path can be replay-validated e2e.
