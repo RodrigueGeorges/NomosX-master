@@ -1154,7 +1154,9 @@ export async function runAndPublishInquiry(
     publication.id,
     gate,
     readiness,
-    daVerdict ? { verdict: daVerdict, score: (da as Record<string, unknown>)?.score as number | undefined } : null,
+    // OT-fix: the DA report field is `publishabilityScore`, not `score` —
+    // reading `.score` made this check structurally dead (always undefined→0).
+    daVerdict ? { verdict: daVerdict, score: ((da as Record<string, unknown>)?.publishabilityScore ?? (da as Record<string, unknown>)?.score) as number | undefined } : null,
     signOff ?? null,
     trustScore,
     qualityScore
@@ -1316,14 +1318,16 @@ async function persistQualityChecks(
     details: { checkName: "quality_score", threshold: 70, detail: `Quality score ${qualityScore} (min 70)` },
   });
 
-  // CITATION checks
+  // CITATION checks — threshold aligned with the actual gate
+  // (UNIFORM_MIN_CITATION = 50%); the old 60% made the audit trail report
+  // failures the gate never enforced.
   const citationCoverage = (gate.metrics?.citationCoverage ?? 0) * 100;
   checks.push({
     publicationId,
     checkType: "CITATION",
-    passed: citationCoverage >= 60,
+    passed: citationCoverage >= 50,
     score: Math.round(citationCoverage),
-    details: { checkName: "citation_coverage", threshold: 60, detail: `Citation coverage ${citationCoverage.toFixed(1)}% (min 60%)` },
+    details: { checkName: "citation_coverage", threshold: 50, detail: `Citation coverage ${citationCoverage.toFixed(1)}% (min 50%)` },
   });
 
   // ADVERSARIAL checks (devil's advocate)
