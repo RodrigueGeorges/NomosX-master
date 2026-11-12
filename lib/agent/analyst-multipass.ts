@@ -279,7 +279,7 @@ function buildSourceContext(sources: any[], readings?: any[], depth: 'brief' | '
 
       // Build context: full tier gets everything, compact tier gets title + abstract only
       const displayQuality = (s.qualityScore || 0) > 0 ? s.qualityScore : ((s as any).sourceQuality?.overall || 0);
-      let context = `[SRC-${i + 1}] ${s.provider.toUpperCase()} | Quality: ${displayQuality}/100 | Citations: ${s.citationCount || 0} | EXTRACTION: ${grounded ? "GROUNDED (full-text/reader — citable for facts)" : "ABSTRACT-ONLY (metadata — context only, do NOT cite for specific facts/numbers)"}
+      let context = `[SRC-${i + 1}] ${String(s.provider ?? 'unknown').toUpperCase()} | Quality: ${displayQuality}/100 | Citations: ${s.citationCount || 0} | EXTRACTION: ${grounded ? "GROUNDED (full-text/reader — citable for facts)" : "ABSTRACT-ONLY (metadata — context only, do NOT cite for specific facts/numbers)"}
 Title: ${s.title}
 Authors: ${authors.join(", ") || "N/A"}
 Year: ${s.year || "N/A"}`;
