@@ -29,6 +29,17 @@ export interface ArbiterInput {
    *  groundedness) indicate the artifact is unlikely to pass the gates, so
    *  the premium scenario-writing spend would be wasted on a held piece. */
   premium?: boolean;
+  /** OT-6: the swarm-elected scenario cell. When present, the arbiter writes
+   *  the narrative FOR this branch — it may not change the probability. */
+  election?: {
+    scenarioId: string;
+    probability: number;
+    confidenceInterval: [number, number];
+    contested: boolean;
+    runnerUpId?: string;
+    electedName?: string;
+    electedDescription?: string;
+  } | null;
 }
 
 function confidenceLabel(score: number): 'high' | 'medium' | 'low' {
@@ -232,6 +243,11 @@ Confidence in dominant: ${input.debate?.confidenceInDominant ?? 'n/a'}
 
 SCENARIOS:
 ${scenarioBlock}
+
+${input.election ? `SWARM-ELECTED SCENARIO (computed by independent-voter swarm + Monte Carlo — authoritative, do NOT alter its probability):
+- Elected branch: ${input.election.electedName ?? input.election.scenarioId} — p=${(input.election.probability * 100).toFixed(1)}% CI=[${(input.election.confidenceInterval[0] * 100).toFixed(0)}%, ${(input.election.confidenceInterval[1] * 100).toFixed(0)}%]${input.election.contested ? ` CONTESTED — runner-up: ${input.election.runnerUpId ?? 'n/a'}` : ''}
+- Branch content: ${input.election.electedDescription ?? ''}
+Write the verdict and scenarios AS IF this branch is the central forecast. Present the runner-up (when contested) as the live alternative with the signals that would flip the call. Every probability you write must match the computed values above — never invent new ones.` : ''}
 
 ${architectBlock}
 

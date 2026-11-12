@@ -119,7 +119,7 @@ export interface CentralScenarioDecision {
   implications: string[];
   revisionTriggers: string[];
   confidence: InstitutePosition['confidenceLabel'];
-  selectedBy: 'editorial' | 'probability_fallback';
+  selectedBy: 'editorial' | 'probability_fallback' | 'swarm';
   simulationLeader?: string;
   simulationDisagrees: boolean;
 }
@@ -169,10 +169,17 @@ export function centralScenarioIssues(decision: CentralScenarioDecision | undefi
   if (!decision) return ['No unique central scenario selected'];
   const issues: string[] = [];
   if (!decision.name.trim() || !decision.description.trim()) issues.push('Missing central scenario narrative');
-  if (decision.selectedBy !== 'editorial') issues.push('Central scenario requires an explicit editorial choice');
-  const refs = [...decision.rationale.matchAll(/\[SRC-(\d+)\]/g)].map(m => Number(m[1]));
-  if (!decision.rationale.trim() || refs.length === 0 || refs.some(n => n < 1 || n > sourceCount)) {
-    issues.push('Central scenario requires a rationale with valid source references');
+  // 'swarm' is the authoritative computational choice (OT-5/6) — only the
+  // pre-swarm fallbacks are flagged.
+  if (decision.selectedBy === 'probability_fallback') issues.push('Central scenario requires an explicit editorial or swarm choice');
+  // 'swarm' rationale is computational (vote counts, MC draws) — it cites the
+  // election mechanics, not [SRC-N] passages; source grounding lives in the
+  // link-level evidence contracts upstream.
+  if (decision.selectedBy !== 'swarm') {
+    const refs = [...decision.rationale.matchAll(/\[SRC-(\d+)\]/g)].map(m => Number(m[1]));
+    if (!decision.rationale.trim() || refs.length === 0 || refs.some(n => n < 1 || n > sourceCount)) {
+      issues.push('Central scenario requires a rationale with valid source references');
+    }
   }
   if (!decision.horizon.trim()) issues.push('Missing forecast horizon');
   if (!decision.implications.some(s => s.trim())) issues.push('Missing central scenario implications');
