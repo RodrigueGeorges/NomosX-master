@@ -4341,3 +4341,93 @@ argumenté, pas un tri par probabilité.
 2026-11 (tables `PipelineRun`, `Brief`, `ThinkTankPublication`,
 `ThinkTankQualityCheck`, `Prediction`, `CostLog`,
 `ThinkTankPublicationRun`).*
+
+---
+
+# PARTIE IV — IMPLÉMENTATION DE L'AUDIT EXTERNE (état au 2026-11-12)
+
+L'audit « NomosX — Audit qualité des publications et architecture cible » a été
+traduit en ordres de travail OT-1 → OT-8. État réel du code sur `main` :
+
+## IV.1 Livré et poussé
+
+| OT | Livrable | Fichiers | Statut |
+|---|---|---|---|
+| OT-8 traces | `persistCostLog` à la frontière `callLLM`/`streamLLM` (provider/modèle effectif, tokens, coût, runId, exempte replay) ; gate persisté dans `PipelineRun.steps.publicationGate` ; `ThinkTankPublicationRun` créé par publication | `lib/llm/unified-llm.ts`, `lib/agent/inquiry-orchestrator.ts`, `lib/agent/pipeline-steps/persistence-tail.ts` | ✅ |
+| OT-1 sentinelles | Schéma `Prediction` : `kind`, `dueAt`, `linkId`, `parentPredictionId`, `resolutionSource` ; registration émet 3 sentinelles 30/60/90j depuis `whatToWatch`+triggers ; `parseHorizonDue` fallback prose ; **backfill exécuté : 813 dueAt + 749 sentinelles** — première échéance 2026-12-31 (était 2028-07) | `prisma/schema.prisma`, `lib/agent/prediction-registration.ts`, `lib/agent/prediction-horizon.ts` | ✅ local — ⚠️ prod Neon à migrer |
+| OT-2 gate binaire | `binary-gate.ts` — 6 checks binaires calculés + persistés en `stats.publicationGate.binaryChecks`, **non décisifs** (shadow) | `lib/agent/binary-gate.ts` | ✅ shadow |
+| OT-3 scénarios chaîne | `chain-scenarios.ts` — incertitudes dérivées de `causalChain` (`future_extrapolation`/`active_mechanism`), cellules mutuellement exclusives, cellule incohérente écartée ; chaîne complète passée à l'arbitre | `lib/agent/chain-scenarios.ts`, `arbiter-foresight.ts` | ✅ |
+| OT-4 swarm électeur | `swarm-forecaster.ts` — 15 votants indépendants : rotation 3 providers, tranches de preuves disjointes + pool partagé (`evidence-partition`), 4 lentilles, formulation niée (anti-acquiescement), agrégation log-odds ; votes malformés rejetés (pas de réparation) | `lib/agent/swarm-forecaster.ts` | ✅ |
+| OT-5 Monte Carlo | `mc-elector.ts` — Beta(moments) par maillon, 20 000 tirages seedés, IC Wilson, `contested`, margin vs runner-up, `selectedBy:'swarm'` ; **déterministe au seed près** (7 tests) | `lib/agent/mc-elector.ts` | ✅ |
+| OT-6 arbitre rédacteur | Réordonnancement : chaîne → swarm → élection **avant** l'arbitre ; l'arbitre reçoit la branche élue (p, IC, contested, runner-up) avec interdiction de modifier les probabilités ; **enforcement post-parse** : proba épinglée, runner-ups rescadés à Σ100, `dominantScenario` forcé, CI attachée ; Delphi calibration skippé sous élection (il réécrivait les probabilités) ; `selectedBy:'swarm'` accepté par `centralScenarioIssues` ; `analysis.scenarios` synchronisé | `arbiter-foresight.ts`, `editorial-arbiter.ts`, `editorial-types.ts` | ✅ |
+| Cleanup citations | **Héritage de citation supprimé** (`citation-filter`) ; **3 passes d'injection lexicale supprimées** (`citation-repair` : source-match, content-match, broad) ; injection du grounding-veto du critical-loop supprimée ; `repairCitations` ne garde que backfill analyste + sanitization + normalisation | `citation-filter.ts`, `citation-repair.ts`, `critical-loop-v2.ts` | ✅ |
+| Cleanup probas | Gabarit 50/30/20 supprimé (`editorial-scenarios.ts` effacé, fallback arbitre → `'—'`) ; `sourceBoost`/`calibrateFromSources`/`inferAssumptions` retirés du chemin de probabilité | `simulation-agent.ts`, `editorial-arbiter.ts` | ✅ |
+| Migration prod | Route `POST /api/admin/migrate-predictions` — DDL idempotent des 5 colonnes `Prediction`, gardée par `ADMIN_KEY` (le client Prisma est déjà bundlé ; `prisma db push` impossible sans URL Neon locale) | `app/api/admin/migrate-predictions/route.ts` | ✅ à déployer |
+
+## IV.2 Architecture résultante (chemin prospectif)
+
+```
+causalChain (analyst-multipass, typé)
+  → deriveChainScenarios      incertitudes = maillons future_extrapolation /
+                              active_mechanism ; cellules exclusives par
+                              combinaison de conditions
+  → runSwarmVote              15 votants × preuves disjointes+partagées,
+                              3 familles providers, lentilles, formulation
+                              niée → distribution par maillon (log-odds)
+  → electScenario             Beta par maillon → 20k tirages seedés →
+                              proba exacte par cellule + IC Wilson +
+                              contested + runner-up
+  → editorialArbiter          RÉDIGE pour la branche élue (proba épinglée
+                              post-parse, runner-ups rescadés, Σ=100)
+  → resolveCentralScenario    contourné quand selectedBy='swarm'
+  → stats.{chainScenarios, swarmForecasts, swarmElection, centralScenario,
+            foresight.elected} persistés dans PipelineRun.steps
+```
+
+Fallback honnête : si la chaîne ne produit pas d'incertitudes ou si le swarm
+ne produit aucun forecast valide, l'ancien chemin Monte Carlo +
+`resolveCentralScenario` reste actif — ces runs sont marqués
+(`stats.swarmElection.skipped` / `reason`) et ne peuvent pas usurper
+`selectedBy:'swarm'`.
+
+## IV.3 Reste à faire
+
+1. **Prod Neon** : déployer puis `POST /api/admin/migrate-predictions`
+   avec `x-admin-key` (ADMIN_KEY déjà requis en prod par `lib/env.ts`).
+   Sans ça, `prediction.create` avec `kind/dueAt` plantera en prod — les
+   sentinelles ne naîtront pas (échec silencieux côté registration).
+2. **OT-7 calibration** : les 749 sentinelles 90j + 813 dues à partir du
+   2026-12-31 produiront les premiers Brier ; brancher `foresight-delphi`
+   (Platt/extremize) sur les résolutions réelles + tracker par
+   domaine/horizon/kind. Prévoir bootstrap ForecastBench en attendant.
+3. **Bascule gate** : `binaryChecks` en shadow → comparés aux décisions
+   réelles sur ~10 runs stables → alors seulement décisifs. Composite
+   trust/quality conservé comme signal advisory (routage degraded-mode,
+   confidence warnings).
+4. **Ablation** : les ~12 systèmes de mémoire / self-evolver — geler les
+   écritures d'abord, supprimer module par module sur preuve replay, pas
+   par famille. `Temporal`/`Redis` legacy peuvent partir (déjà morts).
+5. **Investigations ouvertes** : qualityScore persisté 50-66 sur des
+   publications alors que le seuil documenté est 70 (score gaté ≠ colonne
+   stockée ? chemin alternatif ?) ; `ThinkTankQualityCheck` en échec sur
+   des publications (ADVERSARIAL/CALIBRATION étaient déjà morts — le gate
+   binaire shadow les remplace).
+6. **Coût swarm** : 15 appels/votants/run — mesurer via CostLog (désormais
+   instrumenté) avant de monter `VOTER_COUNT`.
+
+## IV.4 Risques résiduels connus
+
+- L'élection swarm dépend de `analysis.causalChain` non vide — les runs sans
+  chaîne exploitable restent sur le chemin legacy (marqué, pas silencieux).
+- `runSwarmVote` est non-bloquant par design : un swarm en échec dégrade vers
+  le fallback MC — acceptable tant que `stats.swarmElection.error` est
+  persisté et auditable.
+- Les probabilités de scénarios *non élus* sont rescadées proportionnellement
+  aux estimations de l'arbitre — elles restent des priors LLM, mais
+  minoritaires par construction (le élu porte la masse).
+- Le retrait de l'injection de citations peut faire chuter `citationCoverage`
+  sur les runs où l'injection masquait des lacunes réelles — c'est le but
+  (fail closed), mais surveiller le taux de HELD sur les prochains runs.
+
+*Tests : `chain-scenarios.test.ts` 7/7, `central-scenario*.test.ts` 34/34,
+`prediction-horizon.test.ts` 7/7, typecheck `tsc --noEmit` 0 erreur.*
