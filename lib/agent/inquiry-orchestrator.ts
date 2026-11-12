@@ -842,8 +842,18 @@ export async function runAndPublishInquiry(
   const boundTotal = (claimBinding?.links ?? 0) + (claimBinding?.weak ?? 0);
   const binaryChecks = evaluateBinaryGate({
     claimsEntailmentRatio: boundTotal > 0 ? (claimBinding?.links ?? 0) / boundTotal : undefined,
-    centralScenarioSelectedBy: (pipeline.stats.centralScenario as { selectedBy?: string } | undefined)?.selectedBy,
-    scenariosFromChain: !(pipeline.stats as any)?.templateScenariosUsed,
+    centralScenarioSelectedBy:
+      (pipeline.stats.swarmElection as { selectedBy?: string } | undefined)?.selectedBy ??
+      (pipeline.stats.centralScenario as { selectedBy?: string } | undefined)?.selectedBy,
+    scenariosFromChain:
+      !!(pipeline.stats.swarmElection as { scenarioId?: string } | undefined)?.scenarioId,
+    swarmVotes: (() => {
+      const sf = pipeline.stats.swarmForecasts as { validVotes?: number; familiesUsed?: string[] } | undefined;
+      const elected = !!(pipeline.stats.swarmElection as { scenarioId?: string } | undefined)?.scenarioId;
+      return sf?.validVotes
+        ? { valid: sf.validVotes, families: sf.familiesUsed?.length ?? 0, converged: elected }
+        : undefined;
+    })(),
     resolvablePredictions: (pipeline.stats.predictions as { registered?: number } | undefined)?.registered,
     unansweredObjections: Array.isArray(fatalChallenges) ? fatalChallenges.length : undefined,
   });

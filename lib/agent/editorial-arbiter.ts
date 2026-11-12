@@ -222,8 +222,8 @@ ${String(input.analysis.verdict ?? input.analysis.summary ?? input.analysis.exec
 THROUGH LINE:
 ${String(input.analysis.throughLine ?? '').slice(0, 200)}
 
-CAUSAL CHAIN SUMMARY:
-${Array.isArray(input.analysis.causalChain) ? input.analysis.causalChain.slice(0, 5).map((link: any, i: number) => `${i + 1}. ${link.claim} [${link.temporalStatus}]`).join('\n') : 'N/A'}
+CAUSAL CHAIN (full typed chain — OT-3: scenarios must derive from THESE links, not a summary):
+${Array.isArray(input.analysis.causalChain) ? (input.analysis.causalChain as any[]).slice(0, 15).map((link: any) => `#${link.id} [${link.temporalStatus}]${link.derivesFrom != null ? ` ←#${link.derivesFrom}` : ''} ${link.claim}`).join('\n') : 'N/A'}
 
 DEBATE (if any):
 Dominant: ${input.debate?.dominantThesis ?? 'n/a'}

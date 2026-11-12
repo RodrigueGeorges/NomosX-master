@@ -13,6 +13,7 @@
 
 import { editorialArbiter } from '../editorial-arbiter';
 import { resolveCentralScenario, type CastingResult, type InstitutePosition } from '../editorial-types';
+import { deriveChainScenarios } from '../chain-scenarios';
 import { runPipelineForesight } from '../pipeline-foresight';
 import { emitProgress } from '../pipeline-progress';
 
@@ -83,6 +84,88 @@ export async function runArbiterForesight(deps: ArbiterForesightDeps): Promise<A
       console.log(`${label} FORESIGHT: skipped (only ${topSources.length} sources — insufficient for reliable Monte Carlo)`);
     } else {
       emitProgress(pipelineRunId, "FORESIGHT", "started", "Monte Carlo scenario distribution...");
+
+      // OT-3 interim: chain-derived scenario skeletons are computed and
+      // persisted for the swarm elector (OT-4/5), but NOT fed into today's
+      // Monte Carlo — scenario names wouldn't match institutePosition
+      // scenarios, so empirical probabilities would attach to the wrong
+      // narratives. Probability path switches when OT-5 lands stable ids.
+      const chainDerivation = deriveChainScenarios(
+        Array.isArray(analysis.causalChain) ? analysis.causalChain : undefined,
+        typeof analysis.trajectory === 'object' && analysis.trajectory
+          ? String((analysis.trajectory as { horizon?: string }).horizon ?? '')
+          : undefined,
+      );
+      stats.chainScenarios = chainDerivation
+        ? {
+            uncertainties: chainDerivation.uncertainties.map(u => ({
+              linkId: u.linkId, kind: u.kind, downstream: u.downstream,
+              claim: u.claim.slice(0, 160),
+            })),
+            scenarioIds: chainDerivation.scenarios.map(s => s.id),
+            conditions: chainDerivation.scenarios.map(s => ({ id: s.id, conditions: s.conditions })),
+            usedForForesight: false, // pending OT-5 stable-id election
+          }
+        : { usedForForesight: false, reason: 'insufficient_uncertainties' };
+      stats.scenariosFromChain = false; // until OT-5 — no chain scenario carries probability yet
+      // Fallback arbiter position (costUsd 0) means the 50/30 template ran.
+      stats.templateScenariosUsed = institutePosition.costUsd === 0;
+
+      // OT-4: independent-voter swarm over the uncertain links. Runs whenever
+      // the chain yields uncertainties and ≥10 sources — its forecasts are
+      // persisted for the Monte Carlo elector (OT-5) and the binary gate.
+      // Non-blocking: a swarm failure degrades to 'no data', never a hold.
+      if (chainDerivation && topSources.length >= 10) {
+        try {
+          const { runSwarmVote } = await import('../swarm-forecaster');
+          const swarm = await runSwarmVote({
+            question: query,
+            uncertainties: chainDerivation.uncertainties.map(u => ({ linkId: u.linkId, claim: u.claim })),
+            sourceIds: topSources.map((s: any) => s.id),
+            horizon: typeof analysis.trajectory === 'object' && analysis.trajectory
+              ? String((analysis.trajectory as { horizon?: string }).horizon ?? '') : undefined,
+            runId: pipelineRunId,
+          });
+          stats.swarmForecasts = {
+            forecasts: swarm.forecasts.map(f => ({
+              linkId: f.linkId, probability: f.probability,
+              variance: f.variance, iqr: f.iqr,
+              validVotes: f.validVotes, families: f.families, contested: f.contested,
+            })),
+            rawVotes: swarm.rawVotes,
+            validVotes: swarm.validVotes,
+            familiesUsed: swarm.familiesUsed,
+            costUsd: swarm.costUsd,
+            skipped: swarm.skipped,
+          };
+          addCost(swarm.costUsd, 'SWARM_FORECAST');
+          console.log(`${label} SWARM: ${swarm.validVotes} valid votes / ${swarm.familiesUsed.length} families / $${swarm.costUsd.toFixed(4)}`);
+
+          // OT-5: Monte Carlo elector — the scenario central is chosen by
+          // computation over the voted link distributions, not by the
+          // arbiter's dominantScenario field.
+          if (chainDerivation && swarm.forecasts.length >= 2) {
+            try {
+              const { electScenario } = await import('../mc-elector');
+              const election = electScenario({
+                scenarios: chainDerivation.scenarios,
+                forecasts: swarm.forecasts,
+                question: query,
+              });
+              stats.swarmElection = election ?? { skipped: 'insufficient_link_distributions' };
+              if (election) {
+                console.log(`${label} ELECTOR: ${election.scenarioId} p=${election.probability.toFixed(3)} contested=${election.contested} runnerUp=${election.runnerUpId ?? 'none'}`);
+              }
+            } catch (electErr) {
+              stats.swarmElection = { error: electErr instanceof Error ? electErr.message : String(electErr) };
+            }
+          }
+        } catch (swarmErr) {
+          stats.swarmForecasts = { error: swarmErr instanceof Error ? swarmErr.message : String(swarmErr) };
+          console.warn(`${label} SWARM failed (non-blocking):`, swarmErr);
+        }
+      }
+
       // Build a synthetic analysis object with arbiter scenarios for foresight
       const analysisForForesight = {
         ...analysis,
