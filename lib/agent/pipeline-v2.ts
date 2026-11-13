@@ -1270,6 +1270,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
       bumpHtmlArtifact,
       tagEval,
       chartData: quant.chartData,
+      modelResults: quantBridge?.models,
     });
     await runPostRenderQualityGates();
   };

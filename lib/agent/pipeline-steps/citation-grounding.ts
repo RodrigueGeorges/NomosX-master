@@ -24,6 +24,8 @@ export interface CitationGroundingDeps {
   bumpHtmlArtifact: () => void;
   tagEval: <T extends Record<string, any>>(entry: T, artifact: 'analysis' | 'html') => T;
   chartData: any[];
+  /** Deterministic model results (quant-bridge) for the computed exhibit. */
+  modelResults?: any[];
 }
 
 export async function runPostRenderCitationAndGrounding(deps: CitationGroundingDeps): Promise<string> {
@@ -116,6 +118,26 @@ export async function runPostRenderCitationAndGrounding(deps: CitationGroundingD
     } catch (err) {
       console.warn(`${label} QUANT CHARTS: injection failed (non-blocking):`, err);
     }
+  }
+
+  // COMPUTED EXHIBIT (lever 7): every published note carries one piece
+  // produced by code — model-results table when quant-bridge ran, plus the
+  // evidence-base composition computed from the retained corpus.
+  try {
+    const { buildComputedExhibit, injectComputedExhibit } = await import('../computed-exhibit');
+    const exhibit = buildComputedExhibit({
+      modelResults: deps.modelResults,
+      topSources,
+      readings,
+    });
+    if (exhibit.html) {
+      html = injectComputedExhibit(html, exhibit.html);
+      bumpHtmlArtifact();
+      stats.computedExhibit = exhibit.kind;
+      console.log(`${label} COMPUTED EXHIBIT: ${exhibit.kind} injected into HTML`);
+    }
+  } catch (err) {
+    console.warn(`${label} COMPUTED EXHIBIT: failed (non-blocking):`, err);
   }
   stats.htmlLength = html.length;
 
