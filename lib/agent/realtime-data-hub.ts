@@ -961,6 +961,49 @@ function detectAlerts(indicators: RealTimeIndicator[]): MarketAlert[] {
 // CONTEXT BLOCK BUILDER — For injection into PhD analyses
 // ============================================================================
 
+const PULSE_STOPWORDS = new Set(['the', 'and', 'for', 'are', 'but', 'not', 'you', 'all', 'can', 'had', 'her', 'was', 'one', 'our', 'out', 'with', 'from', 'this', 'that', 'have', 'been', 'they', 'what', 'when', 'where', 'which', 'their', 'about', 'would', 'there', 'could', 'other', 'into', 'more', 'some', 'than', 'them', 'very', 'after', 'also', 'over', 'such', 'only', 'these', 'will', 'each', 'make', 'like', 'just', 'between', 'global', 'world', 'new', 'how', 'why', 'who']);
+
+function pulseStem(t: string): string {
+  return t.length >= 8 ? t.slice(0, 8) : t;
+}
+
+/**
+ * Deterministic query-relevance filter for the real-time pulse (CTO lever
+ * 6 — clean context). The pulse fetches ~50 macro indicators across every
+ * domain; injecting them all drowned the analyst prompt in unrelated
+ * series (earthquakes, epidemics, construction on an energy question).
+ * An indicator survives only when its name or category shares a stemmed
+ * token with the query. No match → empty pulse → no block injected.
+ */
+export function filterPulseForQuery(pulse: RealTimePulse, query: string): RealTimePulse {
+  const qTerms = new Set(
+    query.toLowerCase().split(/[^a-zàâäéèêëîïôöùûüç0-9]+/i)
+      .filter(t => t.length > 3 && !PULSE_STOPWORDS.has(t))
+      .map(pulseStem)
+  );
+  if (qTerms.size === 0) return { ...pulse, indicators: [], alerts: [] };
+
+  const matches = (text: string): boolean => {
+    const tokens = text.toLowerCase().split(/[^a-zàâäéèêëîïôöùûüç0-9]+/i).filter(Boolean);
+    return tokens.some(t => {
+      const st = pulseStem(t);
+      for (const qt of qTerms) {
+        if (st === qt || (st.length >= 5 && qt.length >= 5 && (st.startsWith(qt) || qt.startsWith(st)))) return true;
+      }
+      return false;
+    });
+  };
+
+  const indicators = pulse.indicators.filter(ind => matches(`${ind.name} ${ind.category}`));
+  const keptNames = new Set(indicators.map(i => i.name.toLowerCase()));
+  const alerts = pulse.alerts.filter(a => {
+    if (matches(`${a.indicator} ${a.message}`)) return true;
+    // Alerts carry no category — keep those attached to a surviving indicator.
+    return keptNames.has(a.indicator.toLowerCase());
+  });
+  return { ...pulse, indicators, alerts };
+}
+
 export function buildRealTimeContextBlock(pulse: RealTimePulse): string {
   if (pulse.indicators.length === 0) return '';
 

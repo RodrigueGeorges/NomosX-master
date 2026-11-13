@@ -15,7 +15,7 @@ import { prisma } from '../db';
 import { queryKnowledgeGraph, getLongitudinalInsights } from './knowledge-graph';
 import { embedText, embedBatch, cosineSimilarity } from './semantic-engine';
 import { trendAnalyzer } from './trend-analyzer';
-import { fetchRealTimePulse, buildRealTimeContextBlock, type RealTimePulse } from './realtime-data-hub';
+import { fetchRealTimePulse, buildRealTimeContextBlock, filterPulseForQuery, type RealTimePulse } from './realtime-data-hub';
 
 // ============================================================================
 // TYPES
@@ -304,10 +304,18 @@ export async function primeContext(
     revisitReasons,
   });
 
-  // Append real-time data block if available
+  // Append real-time data block if available — relevance-filtered to the
+  // query first: the unfiltered pulse injects ~50 cross-domain indicators
+  // (earthquakes, epidemics, construction) into every analyst prompt.
   if (realTimePulse && realTimePulse.indicators.length > 0) {
-    const rtBlock = buildRealTimeContextBlock(realTimePulse);
-    contextBlock = contextBlock + '\n\n' + rtBlock;
+    const relevant = filterPulseForQuery(realTimePulse, query);
+    if (relevant.indicators.length > 0) {
+      console.log(`[CONTEXT PRIMER] Real-time pulse filtered: ${realTimePulse.indicators.length} → ${relevant.indicators.length} query-relevant indicators`);
+      const rtBlock = buildRealTimeContextBlock(relevant);
+      contextBlock = contextBlock + '\n\n' + rtBlock;
+    } else {
+      console.log(`[CONTEXT PRIMER] Real-time pulse dropped: 0/${realTimePulse.indicators.length} indicators relevant to query`);
+    }
   }
 
   const durationMs = Date.now() - start;
