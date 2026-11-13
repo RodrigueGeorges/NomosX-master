@@ -16,11 +16,13 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { createHmac } from 'crypto';
+import { createHmac, timingSafeEqual } from 'crypto';
 
 function verifySignature(payload: string, signature: string, secret: string): boolean {
   const expected = createHmac('sha256', secret).update(payload).digest('hex');
-  return `sha256=${expected}` === signature;
+  const a = Buffer.from(`sha256=${expected}`);
+  const b = Buffer.from(signature);
+  return a.length === b.length && timingSafeEqual(a, b);
 }
 
 export async function POST(req: NextRequest) {

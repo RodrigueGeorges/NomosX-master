@@ -65,17 +65,24 @@ export async function GET(req: Request) {
     const resolved = confirmed + refuted;
     const total = Object.values(counts).reduce((s, n) => s + n, 0);
 
-    // Brier score on resolved, quantified predictions (lower = better calibrated)
+    // Brier score on resolved, quantified predictions (lower = better calibrated).
+    // The headline number is the SWARM subset only: probabilities priced by
+    // the conviction lookup table say nothing about the swarm's calibration,
+    // and mixing them would let a fixed table inflate the track record.
+    // Reference: a naive always-0.5 forecast scores exactly 0.25.
     const quantified = await prisma.prediction.findMany({
       where: { status: { in: ["CONFIRMED", "REFUTED"] }, probability: { not: null } },
-      select: { probability: true, status: true },
+      select: { probability: true, status: true, probabilitySource: true },
     });
-    const brierScore = quantified.length > 0
-      ? quantified.reduce((s, p) => {
+    const brierOf = (rows: typeof quantified) => rows.length > 0
+      ? rows.reduce((s, p) => {
           const outcome = p.status === "CONFIRMED" ? 1 : 0;
           return s + (p.probability! - outcome) ** 2;
-        }, 0) / quantified.length
+        }, 0) / rows.length
       : null;
+    const swarmQuantified = quantified.filter(p => p.probabilitySource === "swarm");
+    const brierScore = brierOf(quantified);
+    const swarmBrierScore = brierOf(swarmQuantified);
 
     return NextResponse.json({
       stats: {
@@ -89,6 +96,9 @@ export async function GET(req: Request) {
         accuracyPct: resolved > 0 ? Math.round((confirmed / resolved) * 1000) / 10 : null,
         brierScore: brierScore !== null ? Math.round(brierScore * 1000) / 1000 : null,
         quantifiedResolved: quantified.length,
+        swarmBrierScore: swarmBrierScore !== null ? Math.round(swarmBrierScore * 1000) / 1000 : null,
+        swarmQuantifiedResolved: swarmQuantified.length,
+        naiveBrierReference: 0.25,
       },
       recentResolved,
       openPredictions: openSoonest,

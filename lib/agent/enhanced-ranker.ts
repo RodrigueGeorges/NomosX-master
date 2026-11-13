@@ -13,6 +13,7 @@ import type { Source } from '@prisma/client';
 import { filterLowQualitySources } from '../providers/source-quality-filter';
 import { createHash } from 'crypto';
 import { captureInput } from './frozen-inputs';
+import { authorityMatch } from './reference-editors';
 
 /**
  * Deterministic rank order: compositeScore desc, then source id asc.
@@ -493,6 +494,10 @@ export function classifyTrustTier(source: any): { tier: SourceTrustTier; weight:
 
   if (hasDoi && hasCitations && isPeerReviewed) return { tier: 'canonical', weight: 1.0 };
   if (hasDoi && hasAbstract) return { tier: 'verified', weight: 0.85 };
+  // A document hosted on a reference-editor domain is authoritative even
+  // without DOI/citations — it just missed the academic-provider path.
+  const authority = authorityMatch(source.url || source.link || '');
+  if (authority) return { tier: 'verified', weight: authority.weight };
   if (hasAbstract || hasDoi) return { tier: 'community', weight: 0.65 };
   return { tier: 'untrusted', weight: 0.40 };
 }
@@ -548,6 +553,12 @@ function calculateSourceAuthorityWeight(source: any): number {
     if (source.abstract && source.abstract.length > 200) return 0.75; // Substantial content
     return 0.65; // Base news weight — still better than old 0.5
   }
+
+  // Reference editors (agencies, statistical offices, institutes) get
+  // authority weight regardless of which provider delivered the document —
+  // an IEA report fetched via a generic web provider is still an IEA report.
+  const authority = authorityMatch(source.url || source.link || '');
+  if (authority) return authority.weight;
 
   // Academic weight calculation (original logic)
   let weight = 0.5;
