@@ -342,6 +342,31 @@ export async function enhancedRank(
     }
   }
 
+  // Data ≠ documents (CTO lever 3): real-time power-flow providers feed
+  // quant, not prose evidence. Cap them so electricity dashboards cannot
+  // flood the document corpus (gulf-minerals: 6/27 sources were flows).
+  const FLOW_PROVIDERS = new Set(['energy-charts', 'smard', 'rte-france', 'energi-data', 'fingrid', 'entsoe', 'entsog']);
+  const MAX_FLOW_SOURCES = 3;
+  const flowCount = finalSources.filter(s => FLOW_PROVIDERS.has(s.provider || '')).length;
+  if (flowCount > MAX_FLOW_SOURCES) {
+    const kept: typeof finalSources = [];
+    const usedIds = new Set<string>();
+    let flows = 0;
+    for (const s of finalSources) {
+      const isFlow = FLOW_PROVIDERS.has(s.provider || '');
+      if (isFlow && ++flows > MAX_FLOW_SOURCES) continue;
+      kept.push(s); usedIds.add(s.id);
+    }
+    for (const s of [...filteredSources].sort(byCompositeThenId)) {
+      if (kept.length >= finalSources.length) break;
+      if (!usedIds.has(s.id) && !FLOW_PROVIDERS.has(s.provider || '')) {
+        kept.push(s); usedIds.add(s.id);
+      }
+    }
+    console.log(`[ENHANCED RANK] Data-stream cap: ${flowCount} flow sources → ${MAX_FLOW_SOURCES} kept, corpus backfilled with documents`);
+    finalSources = kept.sort(byCompositeThenId);
+  }
+
   // SAFETY NET: If we ended up with too few sources after filtering, relax and take what we have
   if (finalSources.length < 8 && enhancedSources.length > finalSources.length) {
     console.warn(`[ENHANCED RANK] Only ${finalSources.length} sources after diversity filter — relaxing to top ${Math.min(finalOptions.limit!, enhancedSources.length)} by composite score`);
