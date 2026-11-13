@@ -922,12 +922,21 @@ export async function runAndPublishInquiry(
     minViableTrust: MIN_VIABLE_TRUST,
   });
 
+  // 'revise' means only soft checks failed — but some soft checks carry real
+  // signal (fatal_challenges, devils_advocate, claim_citation_density). The
+  // composite trust score must not override an adversarial or evidence-
+  // boundary failure: publish only when every failed check is stylistic.
+  const SOFT_REVISE_CHECKS = new Set(['novlangue_density', 'quality_score']);
+  const reviseFailures = (gate.checks ?? []).filter((c) => !c.passed).map((c) => c.checkType);
+  const reviseIsStylisticOnly = reviseFailures.length > 0
+    && reviseFailures.every((t) => SOFT_REVISE_CHECKS.has(t));
+
   // Priority 1: Gate says publish + readiness OK + trust sufficient → publish
   if (gate.decision === "publish" && readiness.ok && trustScore >= adaptiveMinTrust) {
     status = "published";
   }
   // Priority 2: Gate says revise but metrics are strong → publish with DA advisory
-  else if (gate.decision === "revise" && readiness.ok && trustScore >= adaptiveMinTrust + 5) {
+  else if (gate.decision === "revise" && readiness.ok && trustScore >= adaptiveMinTrust + 5 && reviseIsStylisticOnly) {
     status = "published";
   }
   // Priority 2b — CALIBRATED TIER: gate 'hold' whose ONLY failure is the

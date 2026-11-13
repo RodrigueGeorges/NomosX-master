@@ -428,4 +428,31 @@ describe('runAndPublishInquiry — full funnel', () => {
       })
     );
   });
+
+  it('revise with a failed adversarial check is NOT overridden by trust — held, not published', async () => {
+    // Priority 2 used to publish on ANY 'revise' + high trust. 'revise' only
+    // means no HARD check failed — devils_advocate/fatal_challenges/
+    // claim_citation_density are soft but carry real signal. A failed
+    // adversarial review must hold the artifact even at trust 90.
+    mockRunPipeline.mockResolvedValueOnce(makePipelineResult(makeStats({
+      critic: { overallScore: 80, verdict: 'publish' },
+      rank: { avgQuality: 70 },
+      structuralEditor: { overallStructure: 75 },
+      devilsAdvocate: { publishabilityScore: 30, verdict: 'major_revision', fatalChallenges: 0, topChallenges: [] },
+      criticalLoop: { finalScore: 90 },
+      centralScenarioRequired: false,
+    }), 'a'));
+
+    const result = await runAndPublishInquiry(REQ);
+
+    expect(result.status).toBe('held');
+    expect(result.gate?.checks).toContainEqual(
+      expect.objectContaining({ checkType: 'devils_advocate', passed: false })
+    );
+    expect(mockTxPubCreate).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ status: expect.stringMatching(/PUBLISHED|READY/) }),
+      })
+    );
+  });
 });
