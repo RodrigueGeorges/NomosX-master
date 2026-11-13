@@ -257,6 +257,11 @@ export async function runReaderBlock(deps: ReaderBlockDeps): Promise<ReaderBlock
     if (r?.extractedText) {
       (src as any).fullText = r.extractedText;
     }
+    // Propagate reading depth so the rendered source list can disclose
+    // abstract-only vs full-text evidence (think-tank form lever 4).
+    if (r?.readingDepth) {
+      (src as any).readingDepth = r.readingDepth;
+    }
   }
 
   orchState.sourcesWithAbstract = readings.filter(r =>

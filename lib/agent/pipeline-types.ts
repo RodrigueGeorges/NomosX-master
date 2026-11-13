@@ -1116,6 +1116,9 @@ export interface APACitation {
   source: string; // journal, publisher, provider
   doi?: string;
   url?: string;
+  /** How the reader actually consumed this source — surfaced on the note so
+   *  abstract-only evidence is visible, not hidden (think-tank form lever). */
+  readingDepth?: "full_text" | "abstract" | "rule_based";
 }
 
 /**
@@ -1206,6 +1209,7 @@ export function formatAPA(source: any, index: number): APACitation {
     source: sourceLine,
     doi: source.doi || undefined,
     url: source.url || source.pdfUrl || undefined,
+    readingDepth: source.readingDepth,
   };
 }
 
@@ -1243,6 +1247,14 @@ export function renderAPAHtml(citation: APACitation): string {
     html += ` <a href="https://doi.org/${esc(citation.doi)}" target="_blank" rel="noopener" style="color:#ffffff;">https://doi.org/${esc(citation.doi)}</a>`;
   } else if (citation.url) {
     html += ` <a href="${esc(citation.url)}" target="_blank" rel="noopener" style="color:#ffffff;">${esc(citation.url)}</a>`;
+  }
+
+  if (citation.readingDepth === 'full_text') {
+    html += ` <span class="ref-depth" title="Read in full text by the research pipeline" style="font-size:0.75em;color:#9ca3af;">· full text</span>`;
+  } else if (citation.readingDepth === 'abstract') {
+    html += ` <span class="ref-depth" title="Read from abstract only" style="font-size:0.75em;color:#9ca3af;">· abstract</span>`;
+  } else if (citation.readingDepth === 'rule_based') {
+    html += ` <span class="ref-depth" title="Metadata only — no readable text extracted" style="font-size:0.75em;color:#9ca3af;">· metadata only</span>`;
   }
 
   html += `</span>`;
