@@ -37,6 +37,7 @@ import { searchSemanticScholarGraph } from "../../providers/semantic-scholar-api
 import { unpaywallByDoi } from "../../providers/unpaywall";
 import { searchLinkUp } from "../../providers/linkup-sdk";
 import { searchTavily, searchTavilyNews } from "../../providers/tavily-provider";
+import { AUTHORITY_SEARCH_DOMAINS } from '../reference-editors';
 import { searchExa, searchExaPublications } from "../../providers/exa-provider";
 import { searchAPITube } from "../../providers/apitube-provider";
 import { searchDimensions } from "../../providers/dimensions-provider";
@@ -529,7 +530,12 @@ export async function scoutImpl(
 
   // P0-PERF: All query variations × all providers in ONE parallel batch (was sequential per variation)
   const allPromises: Promise<any[]>[] = [];
+  // Authority-targeted sweep budget: domain-restricted calls on the leading
+  // queries only — bounded cost, bounded precision trade.
+  const AUTHORITY_QUERY_BUDGET = 3;
+  let qi = -1;
   for (const sq of searchQueries) {
+    qi++;
     // ACADÉMIQUES
     if (providerSet.has("openalex")) allPromises.push(trackProviderCall("openalex", searchOpenAlex(sq, perProvider)));
     if (providerSet.has("crossref")) allPromises.push(trackProviderCall("crossref", searchCrossref(sq, Math.min(50, perProvider))));
@@ -824,6 +830,13 @@ export async function scoutImpl(
     if (providerSet.has("linkup")) allPromises.push(trackProviderCall("linkup", searchLinkUp(sq, Math.min(15, perProvider))));
     if (providerSet.has("tavily")) allPromises.push(trackProviderCall("tavily", searchTavily(sq, Math.min(15, perProvider), { topic: 'general' })));
     if (providerSet.has("exa")) allPromises.push(trackProviderCall("exa", searchExaPublications(sq, Math.min(20, perProvider))));
+    // Authority-targeted retrieval: domain-restricted queries on the leading
+    // search queries surface agency/institute primary documents that generic
+    // web recall buries. Provider names stay canonical for health tracking.
+    if (qi < AUTHORITY_QUERY_BUDGET) {
+      if (providerSet.has("tavily")) allPromises.push(trackProviderCall("tavily", searchTavily(sq, 10, { topic: 'general', include_domains: AUTHORITY_SEARCH_DOMAINS })));
+      if (providerSet.has("exa")) allPromises.push(trackProviderCall("exa", searchExa(sq, 10, { includeDomains: AUTHORITY_SEARCH_DOMAINS })));
+    }
 
     // REAL-TIME NEWS PROVIDERS
     if (providerSet.has("gdelt-news")) allPromises.push(trackProviderCall("gdelt-news", searchGDELTNews(sq, Math.min(30, perProvider))));

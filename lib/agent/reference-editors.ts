@@ -129,6 +129,34 @@ const TIER_C: Record<string, string> = {
 
 const WEIGHT: Record<AuthorityTier, number> = { A: 0.88, B: 0.84, C: 0.80 };
 
+/**
+ * Curated subset for domain-restricted retrieval (Tavily/Exa
+ * include_domains). Kept deliberately small: every domain here originates
+ * primary data or authoritative analysis, so a domain-scoped query trades
+ * recall for precision on exactly the corpus think-tank work needs.
+ */
+export const AUTHORITY_SEARCH_DOMAINS: string[] = [
+  // Tier A — primary data
+  'iea.org', 'irena.org', 'worldbank.org', 'imf.org', 'oecd.org',
+  'un.org', 'unctad.org', 'bis.org', 'wto.org', 'fao.org', 'who.int',
+  'ipcc.ch', 'unfccc.int', 'eia.gov', 'entsoe.eu', 'acer.europa.eu',
+  'iaea.org', 'sipri.org',
+  // Tier B — official statistics & central banks
+  'federalreserve.gov', 'treasury.gov', 'ecb.europa.eu', 'europa.eu',
+  'ons.gov.uk', 'insee.fr', 'data.gouv.fr', 'destatis.de', 'istat.it',
+  'ine.es', 'scb.se', 'ssb.no', 'stat.fi', 'cbs.nl', 'statbel.fgov.be',
+  'stats.gov.cn', 'rbi.org.in', 'mospi.gov.in', 'stat.go.jp', 'boj.or.jp',
+  'statcan.gc.ca', 'abs.gov.au', 'sec.gov', 'bls.gov', 'census.gov',
+  'gov.uk', 'governo.it', 'bundesregierung.de', 'vie-publique.fr',
+  // Tier C — institutes
+  'bruegel.org', 'csis.org', 'brookings.edu', 'chathamhouse.org',
+  'cfr.org', 'rand.org', 'iiss.org', 'lowyinstitute.org', 'ifri.org',
+  'swp-berlin.org', 'dgap.org', 'wilsoncenter.org', 'stimson.org',
+  'cnas.org', 'atlanticcouncil.org', 'merics.org', 'cset.georgetown.edu',
+  'piie.com', 'nber.org', 'voxeu.org', 'ecfr.eu', 'wri.org', 'rmi.org',
+  'newamerica.org', 'lawfaremedia.org', 'justsecurity.org',
+];
+
 function hostOf(url: string): string {
   return url
     .replace(/^https?:\/\//i, '')
