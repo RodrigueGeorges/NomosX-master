@@ -5,61 +5,49 @@
  * not by quality or signal strength. All formats share the same quality gate.
  */
 
-import { selectPublicationType } from "@/lib/agent/publication-generator";
 import { selectFormatFromSignal } from "@/lib/agent/think-tank-dispatcher";
 import { getPublicationQualityRule, PUBLICATION_QUALITY_RULES } from "@/lib/publication-visibility";
 import { PUBLICATION_FORMATS } from "@/lib/publication-formats";
 import { getTemplate } from "@/lib/think-tank/templates";
 
-describe("selectPublicationType — angle-based selection", () => {
+describe("selectFormatFromSignal — angle-based selection", () => {
   it("maps NEW_EVIDENCE to Signal Brief (ALERT angle)", () => {
-    expect(selectPublicationType("NEW_EVIDENCE")).toBe("SUMMARY_BRIEF");
+    expect(selectFormatFromSignal("NEW_EVIDENCE", 50)).toBe("SUMMARY_BRIEF");
   });
 
   it("maps DATA_RELEASE to Signal Brief (ALERT angle)", () => {
-    expect(selectPublicationType("DATA_RELEASE")).toBe("SUMMARY_BRIEF");
+    expect(selectFormatFromSignal("DATA_RELEASE", 50)).toBe("SUMMARY_BRIEF");
   });
 
   it("maps POLICY_CHANGE to Decision Memo (ACTION angle)", () => {
-    expect(selectPublicationType("POLICY_CHANGE")).toBe("DECISION_MEMO");
+    expect(selectFormatFromSignal("POLICY_CHANGE", 50)).toBe("DECISION_MEMO");
+  });
+
+  it("maps PREDICTION_TRIGGER to Update Note (FOLLOW-UP angle)", () => {
+    expect(selectFormatFromSignal("PREDICTION_TRIGGER", 50)).toBe("UPDATE_NOTE");
   });
 
   it("maps CONTRADICTION to Article (ANALYSIS angle)", () => {
-    expect(selectPublicationType("CONTRADICTION")).toBe("ARTICLE");
+    expect(selectFormatFromSignal("CONTRADICTION", 50)).toBe("ARTICLE");
   });
 
   it("maps TREND_BREAK to Strategic Report (STRATEGY angle)", () => {
-    expect(selectPublicationType("TREND_BREAK")).toBe("STRATEGIC_REPORT");
+    expect(selectFormatFromSignal("TREND_BREAK", 50)).toBe("STRATEGIC_REPORT");
   });
 
   it("maps METHODOLOGY_SHIFT to Strategic Report (STRATEGY angle)", () => {
-    expect(selectPublicationType("METHODOLOGY_SHIFT")).toBe("STRATEGIC_REPORT");
+    expect(selectFormatFromSignal("METHODOLOGY_SHIFT", 50)).toBe("STRATEGIC_REPORT");
   });
 
   it("defaults to Article for unknown signal types", () => {
-    expect(selectPublicationType("UNKNOWN_TYPE")).toBe("ARTICLE");
-    expect(selectPublicationType("")).toBe("ARTICLE");
+    expect(selectFormatFromSignal("UNKNOWN_TYPE", 50)).toBe("ARTICLE");
+    expect(selectFormatFromSignal("", 50)).toBe("ARTICLE");
   });
 
-  it("ignores sourceCount and priorityScore (angle-only)", () => {
-    // Same signal type with different source counts → same format
-    expect(selectPublicationType("NEW_EVIDENCE", 5, 90)).toBe("SUMMARY_BRIEF");
-    expect(selectPublicationType("NEW_EVIDENCE", 30, 10)).toBe("SUMMARY_BRIEF");
-    // High priority doesn't upgrade to Strategic Report
-    expect(selectPublicationType("NEW_EVIDENCE", 5, 99)).toBe("SUMMARY_BRIEF");
-  });
-});
-
-describe("selectFormatFromSignal — dispatcher alignment", () => {
-  it("matches selectPublicationType for all signal types", () => {
-    const signalTypes = ["NEW_EVIDENCE", "DATA_RELEASE", "POLICY_CHANGE", "CONTRADICTION", "TREND_BREAK", "METHODOLOGY_SHIFT"];
-    for (const st of signalTypes) {
-      expect(selectFormatFromSignal(st, 50)).toBe(selectPublicationType(st, 0, 50));
-    }
-  });
-
-  it("defaults to Article for unknown types", () => {
-    expect(selectFormatFromSignal("UNKNOWN", 50)).toBe("ARTICLE");
+  it("ignores priorityScore (angle-only)", () => {
+    // Same signal type with different priority scores → same format
+    expect(selectFormatFromSignal("NEW_EVIDENCE", 5)).toBe("SUMMARY_BRIEF");
+    expect(selectFormatFromSignal("NEW_EVIDENCE", 99)).toBe("SUMMARY_BRIEF");
   });
 });
 

@@ -287,6 +287,12 @@ export async function evolveAgentPrompt(
 // ─── Retrieve latest evolved prompt ──────────────────────────────────────────
 
 export async function getLatestPrompt(agentId: string, fallbackPrompt: string): Promise<string> {
+  // Self-evolved prompts are OPT-IN: a mutated prompt replaces the reviewed
+  // original at runtime with no proof it performs better (CTO review —
+  // "prompts mutables"). Until a replay/ablation shows a variant wins,
+  // production serves the fallback. Set NOMOSX_SELF_EVOLVED_PROMPTS=1 to
+  // re-enable serving DB-evolved prompts.
+  if (process.env.NOMOSX_SELF_EVOLVED_PROMPTS !== '1') return fallbackPrompt;
   if (latestPromptCache[agentId]) return latestPromptCache[agentId].prompt;
   const fromDB = await loadLatestFromDB(agentId);
   if (fromDB) {
