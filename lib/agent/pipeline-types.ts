@@ -92,6 +92,15 @@ export interface PipelineStats {
     protectedSingleton: number;
   };
 
+  // Authority-corpus measurement: share of ranked sources hosted on
+  // reference-editor domains (lever-1 tracking, target ≥60% flagship).
+  authorityCorpus?: {
+    authoritySources: number;
+    totalSources: number;
+    share: number;
+    byTier: Record<string, number>;
+  };
+
   // Intelligent Scout: Multi-lens eclectic enrichment
   intelligentScout?: {
     lenses: Array<{ type: string; sources: number; yield: number }>;

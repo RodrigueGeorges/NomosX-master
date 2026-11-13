@@ -533,6 +533,23 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     console.log(`${label} CORPUS CAP: ${stats.corpusCap.before} → ${stats.corpusCap.after} sources (branch-bound and provider-singleton protected${llmDegraded ? ', provider-degraded sizing' : ''})`);
   }
 
+  // Authority-corpus measurement (CTO lever 1): share of ranked sources
+  // hosted on reference-editor domains. Target ≥60% on flagship runs.
+  {
+    const { authorityMatch } = await import('./reference-editors');
+    const authority = topSources.filter(s => authorityMatch(s.url)).length;
+    stats.authorityCorpus = {
+      authoritySources: authority,
+      totalSources: topSources.length,
+      share: topSources.length ? Math.round((authority / topSources.length) * 1000) / 10 : 0,
+      byTier: topSources.reduce((acc: Record<string, number>, s) => {
+        const m = authorityMatch(s.url);
+        if (m) acc[m.tier] = (acc[m.tier] ?? 0) + 1;
+        return acc;
+      }, {}),
+    };
+  }
+
   // Barrier: context primer + episodic memory (launched pre-scout) must
   // resolve here — first consumers are reader-block and analyst-context.
   {
@@ -1939,6 +1956,35 @@ function withTimeout<T>(work: () => Promise<T>, timeoutMs: number, label: string
  * Universal pipeline runner â€” single entry point for all formats.
  * Delegates directly to runPipelineCore with a timeout wrapper.
  */
+/**
+ * Deterministic question-form check (CTO lever 5). Returns issues; empty =
+ * acceptable. Targets news headlines/event titles — inputs that are
+ * announcements rather than questions — without rejecting legitimate
+ * noun-phrase research topics ("EU carbon border mechanism").
+ */
+export function questionFormIssues(query: string): string[] {
+  const q = query.trim();
+  const issues: string[] = [];
+  const lower = q.toLowerCase();
+
+  // Announcement/event-title patterns observed producing corpus-less runs.
+  const titlePatterns = [
+    /^(a )?(live|watch|breaking)[:\s]/,
+    /\btranscript\b/, /\bpress conference\b/, /\bremarks by\b/, /\bstatement by\b/,
+    /^(a )?conversation with\b/, /^(a )?fireside chat\b/, /^(a )?interview with\b/,
+    /\bfull event\b/, /\bhighlights?\b.*\b(event|session|summit)\b/,
+  ];
+  for (const p of titlePatterns) if (p.test(lower)) issues.push('announcement/event-title phrasing');
+
+  // Ellipsis-terminated titles with no interrogative or analytic marker.
+  const analyticMarkers = /[?]|\b(what|how|why|which|who|whom|whose|when|where|should|could|would|will|impact|implication|implications|risk|risks|outlook|forecast|scenario|effect|effects|drive|drives|shape|shapes|determine|determines|explain|explains|analy[sz]e|assess|compare|evaluate|consequence|consequences|impacts?|benefit|cost|trade.?off|dependency|dependencies|vulnerabilit|opportunity|opportunities|trend|evolution|trajectory|prospect|prospects|implication)\b/i;
+  const hasMarker = analyticMarkers.test(q);
+  if (!hasMarker && (/(\.\.\.|…)\s*$/.test(q) || /[.:;]\s*$/.test(q))) {
+    issues.push('no interrogative or analytic framing');
+  }
+  return issues;
+}
+
 export async function runPipeline(
   query: string,
   format: ReportFormat = "brief",
@@ -1953,6 +1999,13 @@ export async function runPipeline(
   const wordCount = trimmedQuery.split(/\s+/).filter(Boolean).length;
   if (wordCount < 3 && !trimmedQuery.endsWith('?')) {
     throw new Error(`Query too vague (${wordCount} words): "${trimmedQuery}". Please provide a more specific question.`);
+  }
+  // Question-form gate: a news headline or event title is not a research
+  // question. Reject announcement-style inputs deterministically — they
+  // produce corpus-less runs that burn budget before failing downstream.
+  const formIssues = questionFormIssues(trimmedQuery);
+  if (formIssues.length > 0) {
+    throw new Error(`Query is not a research question (${formIssues.join('; ')}): "${trimmedQuery.slice(0, 120)}". Reformulate as a question with an actor, variable, horizon, and what would settle it.`);
   }
 
   const isDossier = format === "dossier";
