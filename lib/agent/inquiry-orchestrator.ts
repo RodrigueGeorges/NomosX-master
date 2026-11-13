@@ -885,6 +885,26 @@ export async function runAndPublishInquiry(
     reasons: gate.reasons,
   };
 
+  // THINK-TANK FORM GRID (lever 8, shadow): deterministic checklist on the
+  // final rendered HTML. Recorded for measurement — promotion to a gate
+  // check happens only after ~10 stable live runs (same discipline as the
+  // binary gate's shadow→decisive transition).
+  try {
+    const { evaluateThinkTankForm } = await import('./form-grid');
+    const formGrid = evaluateThinkTankForm({
+      html,
+      fatalChallenges: Array.isArray(fatalChallenges) ? fatalChallenges.length : undefined,
+      stats: pipeline.stats,
+    });
+    (pipeline.stats as Record<string, unknown>).thinkTankFormGrid = formGrid;
+    console.log(`[InquiryOrchestrator] FORM GRID (shadow): ${formGrid.passed}/${formGrid.total} criteria — score ${formGrid.score}` +
+      (formGrid.criteria.some(c => !c.passed)
+        ? ` | failed: ${formGrid.criteria.filter(c => !c.passed).map(c => c.name).join(', ')}`
+        : ''));
+  } catch (formErr) {
+    console.warn('[InquiryOrchestrator] FORM GRID evaluation failed (non-blocking):', formErr);
+  }
+
   console.log(`[InquiryOrchestrator] Gate: decision=${gate.decision} | Readiness: ok=${readiness.ok} | trust=${trustScore} quality=${qualityScore} coverage=${Math.round((citationCoverage || 0) * 100)}%`);
 
   const minTrust = req.minTrustScore ?? 65;
