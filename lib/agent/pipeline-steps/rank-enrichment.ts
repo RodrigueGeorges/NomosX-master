@@ -255,21 +255,38 @@ export async function runRankAndEnrichment(deps: RankEnrichmentDeps): Promise<Ra
       const parsed = parseJson<{ scores?: Record<string, number> }>(rel.content);
       if (parsed?.scores && Object.keys(parsed.scores).length > 0) {
         const dropIdx = new Set<number>();
+        const tangIdx = new Set<number>();
+        let correctEarly = 0;
         screened.forEach((s: any, i: number) => {
-          if (parsed.scores?.[String(i)] === 0) {
+          const sc = parsed.scores?.[String(i)];
+          if (sc === 0) {
             dropIdx.add(i);
             rejectedSourceIds.add(s.id);
+          } else if (sc === 1) {
+            tangIdx.add(i);
+          } else if (typeof sc === 'number' && sc >= 2) {
+            correctEarly++;
           }
         });
+        // Strict triage (CTO lever 2): tangential sources carry no usable
+        // evidence — drop them once the corpus holds ≥8 core sources.
+        // Below that floor they stay: evidence mass beats precision.
+        const TANGENTIAL_FLOOR = 8;
+        const dropTangential = correctEarly >= TANGENTIAL_FLOOR;
+        if (dropTangential) {
+          screened.forEach((s: any, i: number) => { if (tangIdx.has(i) && s?.id) rejectedSourceIds.add(s.id); });
+        }
+        const effectiveDrop = dropTangential ? new Set([...dropIdx, ...tangIdx]) : dropIdx;
         // Safety floor: insufficient relevant evidence must trigger enrichment,
         // never restoration of documents explicitly judged off-topic.
         const mustRestore = 0;
-        if (dropIdx.size > 0) {
-          const before = topSources.length;
-          topSources = topSources.filter((_s: any, i: number) => !dropIdx.has(i));
-          stats.relevanceScreen = { screened: screened.length, dropped: dropIdx.size, restoredAtFloor: mustRestore, costUsd: rel.costUsd };
-          console.log(`${label} RELEVANCE SCREEN: dropped ${dropIdx.size} off-topic sources${mustRestore > 0 ? ` (${mustRestore} kept at floor)` : ''} — ${topSources.length} proceed to reader`);
-          ctx.addFinding('RANK', 'insight', `Semantic relevance screen removed ${dropIdx.size}/${screened.length} off-topic candidates before extraction`);
+        if (effectiveDrop.size > 0) {
+          const wasDrop0 = dropIdx.size;
+          const wasDrop1 = dropTangential ? tangIdx.size : 0;
+          topSources = topSources.filter((_s: any, i: number) => !effectiveDrop.has(i));
+          stats.relevanceScreen = { screened: screened.length, dropped: wasDrop0, tangentialDropped: wasDrop1, restoredAtFloor: mustRestore, costUsd: rel.costUsd };
+          console.log(`${label} RELEVANCE SCREEN: dropped ${wasDrop0} off-topic${wasDrop1 > 0 ? ` + ${wasDrop1} tangential` : ''} sources — ${topSources.length} proceed to reader`);
+          ctx.addFinding('RANK', 'insight', `Semantic relevance screen removed ${wasDrop0 + wasDrop1}/${screened.length} low-relevance candidates before extraction`);
         } else {
           stats.relevanceScreen = { screened: screened.length, dropped: 0, costUsd: rel.costUsd };
           console.log(`${label} RELEVANCE SCREEN: all ${screened.length} screened candidates topically relevant`);
@@ -651,13 +668,19 @@ export async function runRankAndEnrichment(deps: RankEnrichmentDeps): Promise<Ra
       const res = await screenSourcesForRelevance({ query, candidates: unscreened, label, addCost });
       if (res) {
         unscreened.forEach((s: any) => screenedSourceIds.add(s.id));
-        if (res.dropIds.size > 0) {
-          res.dropIds.forEach((id: string) => rejectedSourceIds.add(id));
-          topSources = topSources.filter((s: any) => !res.dropIds.has(s.id));
+        // Same strict triage as the main screen: tangential late additions
+        // drop once ≥8 core sources exist among the screened batch.
+        const dropLate = new Set(res.dropIds);
+        if (res.correctCount >= 8) {
+          res.tangentialIds.forEach((id: string) => { dropLate.add(id); rejectedSourceIds.add(id); });
+        }
+        if (dropLate.size > 0) {
+          dropLate.forEach((id: string) => rejectedSourceIds.add(id));
+          topSources = topSources.filter((s: any) => !dropLate.has(s.id));
           topSources.forEach((s: any, i: number) => { s.loadBearing = i < 3; });
-          stats.relevanceScreen = { ...(stats.relevanceScreen ?? {}), lateScreened: res.screened, lateDropped: res.dropIds.size, lateCostUsd: res.costUsd };
-          console.log(`${label} LATE RELEVANCE SCREEN: dropped ${res.dropIds.size}/${res.screened} off-topic late additions — ${topSources.length} proceed to reader`);
-          ctx.addFinding('RANK', 'insight', `Late relevance screen removed ${res.dropIds.size}/${res.screened} off-topic sources added by enrichment merges`);
+          stats.relevanceScreen = { ...(stats.relevanceScreen ?? {}), lateScreened: res.screened, lateDropped: dropLate.size, lateTangentialDropped: res.correctCount >= 8 ? res.tangentialIds.size : 0, lateCostUsd: res.costUsd };
+          console.log(`${label} LATE RELEVANCE SCREEN: dropped ${dropLate.size}/${res.screened} low-relevance late additions — ${topSources.length} proceed to reader`);
+          ctx.addFinding('RANK', 'insight', `Late relevance screen removed ${dropLate.size}/${res.screened} off-topic/tangential sources added by enrichment merges`);
         } else {
           stats.relevanceScreen = { ...(stats.relevanceScreen ?? {}), lateScreened: res.screened, lateDropped: 0, lateCostUsd: res.costUsd };
           console.log(`${label} LATE RELEVANCE SCREEN: all ${res.screened} late additions topically relevant`);

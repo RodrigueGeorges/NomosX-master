@@ -921,10 +921,14 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
       const { screenSourcesForRelevance } = await import('./pipeline-steps/relevance-screen');
       const res = await screenSourcesForRelevance({ query: q, candidates, label, addCost, costStep: 'RELEVANCE_SCREEN_GAPFILL' });
       if (!res) return null;
-      if (res.dropIds.size > 0 || res.screened > 0) {
-        stats.gapFillScreen = { ...(stats.gapFillScreen ?? {}), screened: res.screened, dropped: res.dropIds.size, costUsd: res.costUsd };
+      // Strict triage parity with rank-enrichment: tangential newcomers drop
+      // once the screened batch holds ≥8 core sources.
+      const drop = new Set(res.dropIds);
+      if (res.correctCount >= 8) res.tangentialIds.forEach((id) => drop.add(id));
+      if (drop.size > 0 || res.screened > 0) {
+        stats.gapFillScreen = { ...(stats.gapFillScreen ?? {}), screened: res.screened, dropped: drop.size, tangentialDropped: res.correctCount >= 8 ? res.tangentialIds.size : 0, costUsd: res.costUsd };
       }
-      return res.dropIds;
+      return drop;
     },
     // Pre-adoption witness — scores a candidate re-analysis with the same
     // critic preprocessing as eval-rescore so a citation-richer but

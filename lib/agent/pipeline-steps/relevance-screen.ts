@@ -16,6 +16,11 @@
 export interface RelevanceScreenResult {
   /** Ids the model scored 0 — off-topic, must not reach the reader. */
   dropIds: Set<string>;
+  /** Ids the model scored 1 — tangential, no usable evidence. Callers drop
+   *  these only when the corpus already holds enough core evidence. */
+  tangentialIds: Set<string>;
+  /** Candidates scored ≥2 (relevant/core evidence). */
+  correctCount: number;
   /** How many candidates were actually scored. */
   screened: number;
   costUsd?: number;
@@ -59,10 +64,15 @@ export async function screenSourcesForRelevance(opts: {
     const parsed = parseJson<{ scores?: Record<string, number> }>(rel.content);
     if (!parsed?.scores || Object.keys(parsed.scores).length === 0) return null;
     const dropIds = new Set<string>();
+    const tangentialIds = new Set<string>();
+    let correctCount = 0;
     batch.forEach((s: any, i: number) => {
-      if (parsed.scores?.[String(i)] === 0 && s?.id) dropIds.add(s.id);
+      const score = parsed.scores?.[String(i)];
+      if (score === 0 && s?.id) dropIds.add(s.id);
+      else if (score === 1 && s?.id) tangentialIds.add(s.id);
+      else if (typeof score === 'number' && score >= 2) correctCount++;
     });
-    return { dropIds, screened: batch.length, costUsd: rel.costUsd };
+    return { dropIds, tangentialIds, correctCount, screened: batch.length, costUsd: rel.costUsd };
   } catch (err) {
     console.warn(`${label} RELEVANCE SCREEN: failed (non-blocking):`, err);
     return null;
