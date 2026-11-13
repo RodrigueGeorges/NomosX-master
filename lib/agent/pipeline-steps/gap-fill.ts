@@ -14,6 +14,7 @@ import type { PipelineStep } from '../pipeline-progress';
 import { assertExecutionActive } from '../../worker/execution-scope';
 import { readerAgentV3 } from '../reader-agent-v3';
 import { isFreeRun } from '../../free-run';
+import { recordDegradedStep } from '../degraded-steps';
 import { hasRunHeadroom, remainingRunMs } from './time-budget';
 import { REPAIR_REANALYSIS_RESERVE } from './post-analyst-checks';
 
@@ -273,6 +274,7 @@ export function createGapRequestProcessor(deps: GapFillDeps) {
     } catch (err) {
       assertExecutionActive();
       console.warn(`${label} BLACKBOARD: gap fill failed (non-blocking):`, err);
+      recordDegradedStep(stats, 'GAP_FILL_BLACKBOARD', err);
       stats.gapRetrieval = { origin, failed: true, requiresReassessment: true };
     }
   };
@@ -345,6 +347,7 @@ export async function runGapFillStage(deps: GapFillDeps): Promise<void> {
       emitProgress(pipelineRunId, "ANALYST", "completed", `Re-analysis complete`);
     } catch (err) {
       console.warn(`${label} RE_ANALYZE: failed (non-blocking):`, err);
+      recordDegradedStep(stats, 'RE_ANALYZE', err);
     }
   }
 
@@ -388,6 +391,7 @@ export async function runGapFillStage(deps: GapFillDeps): Promise<void> {
     }
   } catch (err) {
     console.warn(`${label} GAP ANALYSIS: failed (non-blocking):`, err);
+    recordDegradedStep(stats, 'GAP_ANALYSIS', err);
   }
 
   // LOT 2.6: Typed research gaps — classify what's missing from the evidence
@@ -419,6 +423,7 @@ export async function runGapFillStage(deps: GapFillDeps): Promise<void> {
     }
   } catch (err) {
     console.warn(`${label} RESEARCH GAPS: classification failed (non-blocking):`, err);
+    recordDegradedStep(stats, 'RESEARCH_GAPS', err);
   }
 
   const processGapRequests = createGapRequestProcessor(deps);
@@ -498,6 +503,7 @@ export async function runGapFillStage(deps: GapFillDeps): Promise<void> {
         }
       } catch (err) {
         console.warn(`${label} POST-ANALYST ENRICHMENT: failed (non-blocking):`, err);
+        recordDegradedStep(stats, 'POST_ANALYST_ENRICHMENT', err);
       }
     }
   }

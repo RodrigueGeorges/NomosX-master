@@ -883,6 +883,12 @@ export async function runAndPublishInquiry(
       details: c.details,
     })),
     reasons: gate.reasons,
+    // Silent-degradation disclosure: non-blocking step failures are correct
+    // engineering, but the publication decision must be able to see what the
+    // run lost. stats.degradedSteps is the aggregated ledger.
+    degradedSteps: Array.isArray((pipeline.stats as Record<string, any>).degradedSteps)
+      ? (pipeline.stats as Record<string, any>).degradedSteps
+      : [],
   };
 
   // THINK-TANK FORM GRID (lever 8, shadow): deterministic checklist on the

@@ -14,6 +14,7 @@ import { guardOutput } from '../output-guard';
 import { judge } from '../local-judge';
 import { buildObservation, type WitnessContext } from '../witness/integration';
 import { runSelfPlayRound } from '../self-play/adversarial';
+import { recordDegradedStep } from '../degraded-steps';
 import { extractFeatures, scoreStep, persistProcessStep, type ProcessStep, type PRMModel } from '../prm/process-reward-model';
 import { selfCorrectAnalyst } from '../self-correction-integration';
 import { hasRunHeadroom, remainingRunMs } from './time-budget';
@@ -116,6 +117,7 @@ export async function runPostAnalystChecks(deps: PostAnalystChecksDeps): Promise
       console.log(`${label} OUTPUT GUARD: ${guardResult.outcome} (score=${guardResult.score}, violations=${guardResult.violations.length})`);
     } catch (err) {
       console.warn(`${label} OUTPUT GUARD: failed (non-blocking):`, err);
+      recordDegradedStep(stats, 'OUTPUT_GUARD', err);
     }
   }
   if (useLocalJudge) {
@@ -142,6 +144,7 @@ export async function runPostAnalystChecks(deps: PostAnalystChecksDeps): Promise
       } catch (calErr) { /* non-blocking */ }
     } catch (err) {
       console.warn(`${label} LOCAL JUDGE: failed (non-blocking):`, err);
+      recordDegradedStep(stats, 'LOCAL_JUDGE', err);
     }
   }
 
@@ -288,6 +291,7 @@ export async function runPostAnalystChecks(deps: PostAnalystChecksDeps): Promise
     }
   } catch (scErr) {
     console.warn(`${label} SELF-CORRECT: ANALYST checkpoint failed (non-blocking):`, scErr);
+    recordDegradedStep(stats, 'SELF_CORRECT_ANALYST', scErr);
   }
 
   // ── POST-ANALYST DIAGNOSTIC — log quality signals but NEVER skip downstream ──
@@ -355,6 +359,7 @@ export async function runPostAnalystChecks(deps: PostAnalystChecksDeps): Promise
       }
     } catch (err) {
       console.warn(`${label} BLACKBOARD: gap detection failed (non-blocking):`, err);
+      recordDegradedStep(stats, 'BLACKBOARD_GAP_DETECTION', err);
     }
   }
 
@@ -452,6 +457,7 @@ export async function runPostAnalystChecks(deps: PostAnalystChecksDeps): Promise
     }
   } catch (spreadErr) {
     console.warn(`${label} SELF-CORRECTION (ANALYST): spread retry failed (non-blocking):`, spreadErr);
+    recordDegradedStep(stats, 'SELF_CORRECTION_SPREAD', spreadErr);
   }
 
   try {
@@ -508,6 +514,7 @@ export async function runPostAnalystChecks(deps: PostAnalystChecksDeps): Promise
     }
   } catch (err) {
     console.warn(`${label} SELF-CORRECTION (ANALYST): failed (non-blocking):`, err);
+    recordDegradedStep(stats, 'SELF_CORRECTION_ANALYST', err);
   }
 
   // ── EARLY OUTLINE CRITIQUE — dimension coverage BEFORE the critic/render
@@ -589,6 +596,7 @@ export async function runPostAnalystChecks(deps: PostAnalystChecksDeps): Promise
     }
   } catch (ocErr) {
     console.warn(`${label} OUTLINE CRITIC (early): failed (non-blocking):`, ocErr);
+    recordDegradedStep(stats, 'OUTLINE_CRITIC_EARLY', ocErr);
   }
 
   return {

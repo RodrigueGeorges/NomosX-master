@@ -9,6 +9,7 @@
  */
 
 import { verifyCitations, repairWithInnovations } from '../citation-verifier';
+import { recordDegradedStep } from '../degraded-steps';
 
 export interface VerificationBlockDeps {
   html: string;
@@ -54,6 +55,7 @@ export async function runVerificationBlock(deps: VerificationBlockDeps): Promise
     }
   } catch (symErr) {
     console.warn(`${label} SYMBOLIC VERIFY: failed (non-blocking):`, symErr);
+    recordDegradedStep(stats, 'SYMBOLIC_VERIFY', symErr);
   }
 
   console.log(`${label} CITATION VERIFIER: NLI semantic check`);
@@ -138,6 +140,7 @@ export async function runVerificationBlock(deps: VerificationBlockDeps): Promise
         }
       } catch (repairErr) {
         console.warn(`${label} ACTIVE REPAIR: failed (non-blocking):`, repairErr);
+        recordDegradedStep(stats, 'CITATION_ACTIVE_REPAIR', repairErr);
       }
     }
 
@@ -175,6 +178,7 @@ export async function runVerificationBlock(deps: VerificationBlockDeps): Promise
       console.log(`${label} CITATION VERIFIER: LLM integrity ${verification.overallIntegrity}%`);
     } catch (llmErr) {
       console.warn(`${label} CITATION VERIFIER: LLM also failed (non-blocking):`, llmErr);
+      recordDegradedStep(stats, 'CITATION_VERIFIER_LLM', llmErr);
     }
   }
 
@@ -290,6 +294,7 @@ export async function runVerificationBlock(deps: VerificationBlockDeps): Promise
           console.log(`${label} FACT-CHECKER REPAIR: ${rev.applied} applied / ${rev.skipped} skipped [${rev.skippedReasons.join(', ') || 'none'}] → fatal ${stats.factCheckerRepair.fatalBefore}→${stats.factCheckerRepair.fatalAfter}, integrity ${stats.factCheckerRepair.integrityBefore}%→${stats.factCheckerRepair.integrityAfter}%`);
         } catch (repairErr) {
           console.warn(`${label} FACT-CHECKER REPAIR: failed (non-blocking):`, repairErr);
+          recordDegradedStep(stats, 'FACT_CHECKER_REPAIR', repairErr);
         }
       }
 
@@ -313,10 +318,12 @@ export async function runVerificationBlock(deps: VerificationBlockDeps): Promise
         }
       } catch (repairErr) {
         console.warn(`${label} FACT-CHECKER REPAIR: failed (non-blocking):`, repairErr);
+        recordDegradedStep(stats, 'FACT_CHECKER_REPAIR', repairErr);
       }
     }
   } catch (err) {
     console.warn(`${label} FACT-CHECKER: failed (non-blocking):`, err);
+    recordDegradedStep(stats, 'FACT_CHECKER', err);
     stats.factChecker = { error: String(err) };
   }
 

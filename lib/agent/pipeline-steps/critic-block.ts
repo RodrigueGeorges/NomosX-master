@@ -14,6 +14,7 @@ import { applyAnalysisRepair, criticReviewText, repairImproves } from '../analys
 import type { PipelineStep } from '../pipeline-progress';
 import type { GapFillState } from './gap-fill';
 import { hasRunHeadroom } from './time-budget';
+import { recordDegradedStep } from '../degraded-steps';
 
 export interface CriticBlockDeps {
   /** Shared mutable state — analysis/reAnalysisBudget mutations flow back to the caller. */
@@ -157,6 +158,7 @@ export async function runCriticBlock(deps: CriticBlockDeps): Promise<CriticBlock
     }
   } catch (err) {
     console.warn(`${label} CRITIC: failed (non-blocking):`, err instanceof Error ? err.message : String(err));
+    recordDegradedStep(stats, 'CRITIC', err);
   }
 
   // ── CRITIC PANEL (G-Eval rubric, 4 dimensions) — complements the scalar
@@ -191,6 +193,7 @@ export async function runCriticBlock(deps: CriticBlockDeps): Promise<CriticBlock
     }, 'analysis');
   } catch (err) {
     console.warn(`${label} CRITIC PANEL: failed (non-blocking):`, err instanceof Error ? err.message : String(err));
+    recordDegradedStep(stats, 'CRITIC_PANEL', err);
   }
 
   // ── ORCHESTRATOR ACTION: CRITIC REPAIR — instructions were generated but never
@@ -413,6 +416,7 @@ export async function runCriticBlock(deps: CriticBlockDeps): Promise<CriticBlock
           (stats as any).criticRecheckedPostRepair = true;
         } catch (rcErr) {
           console.warn(`${label} CRITIC RE-CHECK failed (non-blocking):`, rcErr);
+          recordDegradedStep(stats, 'CRITIC_RECHECK', rcErr);
         }
         try {
           const { runCriticPanel: recheckPanel } = await import('../critic-panel');
@@ -432,6 +436,7 @@ export async function runCriticBlock(deps: CriticBlockDeps): Promise<CriticBlock
           }
         } catch (rpErr) {
           console.warn(`${label} PANEL RE-CHECK failed (non-blocking):`, rpErr);
+          recordDegradedStep(stats, 'PANEL_RECHECK', rpErr);
         }
       } else {
         console.log(`${label} CRITIC REPAIR: retry lost citations (${origCitations} → ${repCitations}) — keeping original`);
@@ -439,6 +444,7 @@ export async function runCriticBlock(deps: CriticBlockDeps): Promise<CriticBlock
       emitProgress(pipelineRunId, "ANALYST", "completed", `Critic repair complete`);
     } catch (err) {
       console.warn(`${label} CRITIC REPAIR: failed (non-blocking):`, err);
+      recordDegradedStep(stats, 'CRITIC_REPAIR', err);
     }
   }
 
@@ -492,6 +498,7 @@ export async function runCriticBlock(deps: CriticBlockDeps): Promise<CriticBlock
       }
     } catch (err) {
       console.warn(`${label} CRITIC EVIDENCE TOOL: failed (non-blocking):`, err);
+      recordDegradedStep(stats, 'CRITIC_EVIDENCE_TOOL', err);
     }
   }
 
@@ -531,6 +538,7 @@ export async function runCriticBlock(deps: CriticBlockDeps): Promise<CriticBlock
       }
     } catch (err) {
       console.warn(`${label} OUTLINE CRITIC: failed (non-blocking):`, err);
+      recordDegradedStep(stats, 'OUTLINE_CRITIC', err);
     }
   }
 
@@ -572,6 +580,7 @@ export async function runCriticBlock(deps: CriticBlockDeps): Promise<CriticBlock
     }
   } catch (scErr) {
     console.warn(`${label} SELF-CORRECT: CRITIC checkpoint failed (non-blocking):`, scErr);
+    recordDegradedStep(stats, 'SELF_CORRECT_CRITIC', scErr);
   }
 
   // S14-H: Chain-of-Verification (CoVe — Meta ACL 2024) — extract claims and generate
@@ -596,6 +605,7 @@ export async function runCriticBlock(deps: CriticBlockDeps): Promise<CriticBlock
       }
     } catch (coveErr) {
       console.warn(`${label} COVE: failed (non-blocking):`, coveErr instanceof Error ? coveErr.message : String(coveErr));
+      recordDegradedStep(stats, 'COVE', coveErr);
     }
   }
 

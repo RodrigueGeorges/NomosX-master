@@ -14,6 +14,7 @@
  */
 import { assertExecutionActive } from '../../worker/execution-scope';
 import { hasRunHeadroomWithReserve } from './time-budget';
+import { recordDegradedStep } from '../degraded-steps';
 
 export interface ThesisBindingDeps {
   stats: Record<string, any>;
@@ -125,6 +126,7 @@ async function attemptVerdictNarrowingRepair(deps: ThesisBindingDeps): Promise<b
     assertExecutionActive();
     binding.verdictNarrowing = { attempted: true, reason: 'narrowing_error' };
     console.warn(`${label} THESIS BINDING: verdict narrowing failed (non-blocking):`, err);
+    recordDegradedStep(deps.stats, 'THESIS_BINDING_NARROWING', err);
     return false;
   }
 }
@@ -187,6 +189,7 @@ export async function runThesisBindingRepair(
         assertExecutionActive();
         binding.repair = { attempted: true, reason: 'reanalysis_error' };
         console.warn(`${label} THESIS BINDING repair re-analysis failed (non-blocking):`, repairErr);
+        recordDegradedStep(stats, 'THESIS_BINDING_REPAIR', repairErr);
       }
       await opts.verify('adherence-repair');
     }

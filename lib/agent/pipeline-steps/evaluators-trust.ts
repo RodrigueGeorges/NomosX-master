@@ -14,6 +14,7 @@
 
 import type { EvidenceBank } from '../evidence-bank';
 import { computeTrustScore, countDistinctCitedSources } from './trust-score';
+import { recordDegradedStep } from '../degraded-steps';
 
 export interface EvaluatorsTrustDeps {
   html: string;
@@ -63,6 +64,7 @@ export async function runEvaluatorsAndTrust(deps: EvaluatorsTrustDeps): Promise<
         }
       } catch (err) {
         console.warn(`${label} ORIGINALITY: failed (non-blocking):`, err);
+        recordDegradedStep(stats, 'ORIGINALITY_EVAL', err);
       }
     })(),
 
@@ -89,6 +91,7 @@ export async function runEvaluatorsAndTrust(deps: EvaluatorsTrustDeps): Promise<
         }
       } catch (err) {
         console.warn(`${label} BIAS DETECTOR: failed (non-blocking):`, err);
+        recordDegradedStep(stats, 'BIAS_DETECTOR', err);
       }
     })(),
 
@@ -128,6 +131,7 @@ export async function runEvaluatorsAndTrust(deps: EvaluatorsTrustDeps): Promise<
         console.log(`${label} SOURCE CHECK: ${sourceCheckResult.verifiedCount} verified, ${sourceCheckResult.retractedCount} retracted, ${sourceCheckResult.notFoundCount} not found, ${sourceCheckResult.claimAbsentCount} claim absent → integrity ${sourceCheckResult.integrityScore}%`);
       } catch (err) {
         console.warn(`${label} SOURCE CHECK: failed (non-blocking):`, err);
+        recordDegradedStep(stats, 'SOURCE_CHECK', err);
       }
     })(),
 
@@ -160,6 +164,7 @@ export async function runEvaluatorsAndTrust(deps: EvaluatorsTrustDeps): Promise<
         }
       } catch (err) {
         console.warn(`${label} URL HEALTH: failed (non-blocking):`, err);
+        recordDegradedStep(stats, 'URL_HEALTH', err);
       }
     })(),
 
@@ -190,6 +195,7 @@ export async function runEvaluatorsAndTrust(deps: EvaluatorsTrustDeps): Promise<
         }
       } catch (err) {
         console.warn(`${label} EVIDENCE BANK: validation failed (non-blocking):`, err);
+        recordDegradedStep(stats, 'EVIDENCE_BANK_VALIDATION', err);
       }
     })(),
 
@@ -223,6 +229,7 @@ export async function runEvaluatorsAndTrust(deps: EvaluatorsTrustDeps): Promise<
         }
       } catch (err) {
         console.warn(`${label} PROCESS AUDIT: failed (non-blocking):`, err);
+        recordDegradedStep(stats, 'PROCESS_AUDIT', err);
       }
     })(),
   ]);
@@ -425,6 +432,7 @@ export async function runEvaluatorsAndTrust(deps: EvaluatorsTrustDeps): Promise<
       console.log(`${label} PROVENANCE GRAPH: ${provenanceGraph.totalClaims} claims → ${provenanceGraph.validClaims} valid, ${provenanceGraph.invalidClaims} invalid, ${provenanceGraph.staleClaims} stale, ${provenanceGraph.needsReviewClaims} needs_review → validity ${Math.round(provenanceGraph.validityRate * 100)}%`);
     } catch (err) {
       console.warn(`${label} PROVENANCE GRAPH: failed (non-blocking):`, err);
+      recordDegradedStep(stats, 'PROVENANCE_GRAPH', err);
     }
 
     // ── METHODOLOGY & TRANSPARENCY BLOCK (RAND standard: transparency) ──
@@ -490,6 +498,7 @@ export async function runEvaluatorsAndTrust(deps: EvaluatorsTrustDeps): Promise<
       console.log(`${label} METHODOLOGY NOTE: injected (${topSources.length} sources, ${providerList.length} providers, ${citedSources} cited)`);
     } catch (methodErr) {
       console.warn(`${label} METHODOLOGY NOTE: injection failed (non-blocking):`, methodErr);
+      recordDegradedStep(stats, 'METHODOLOGY_NOTE', methodErr);
     }
   }
 

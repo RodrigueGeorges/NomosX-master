@@ -11,6 +11,7 @@
  */
 
 import { generatePrintHTML } from '../pdf-export';
+import { recordDegradedStep } from '../degraded-steps';
 
 export interface CitationGroundingDeps {
   html: string;
@@ -48,6 +49,7 @@ export async function runPostRenderCitationAndGrounding(deps: CitationGroundingD
     }
   } catch (repairErr) {
     console.warn(`${label} CITATION REPAIR: failed (non-blocking):`, repairErr);
+    recordDegradedStep(stats, 'CITATION_REPAIR', repairErr);
   }
 
   // CLAIM GROUNDING: deterministically verify each claim against its cited source (NLI, CPU-only)
@@ -106,6 +108,7 @@ export async function runPostRenderCitationAndGrounding(deps: CitationGroundingD
     }
   } catch (groundErr) {
     console.warn(`${label} CLAIM GROUNDING: failed (non-blocking):`, groundErr);
+    recordDegradedStep(stats, 'CLAIM_GROUNDING', groundErr);
   }
 
   // QUANT: inject SVG charts from primary data
@@ -117,6 +120,7 @@ export async function runPostRenderCitationAndGrounding(deps: CitationGroundingD
       console.log(`${label} QUANT CHARTS: ${deps.chartData.length} SVG charts injected into HTML`);
     } catch (err) {
       console.warn(`${label} QUANT CHARTS: injection failed (non-blocking):`, err);
+      recordDegradedStep(stats, 'QUANT_CHARTS', err);
     }
   }
 
@@ -138,6 +142,7 @@ export async function runPostRenderCitationAndGrounding(deps: CitationGroundingD
     }
   } catch (err) {
     console.warn(`${label} COMPUTED EXHIBIT: failed (non-blocking):`, err);
+    recordDegradedStep(stats, 'COMPUTED_EXHIBIT', err);
   }
   stats.htmlLength = html.length;
 
@@ -158,6 +163,7 @@ export async function runPostRenderCitationAndGrounding(deps: CitationGroundingD
     };
   } catch (err) {
     console.warn(`${label} CITATION FILTER: failed (non-blocking):`, err);
+    recordDegradedStep(stats, 'CITATION_FILTER', err);
   }
   void generatePrintHTML(html);
 

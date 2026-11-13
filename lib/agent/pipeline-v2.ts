@@ -7,6 +7,7 @@ import {  prisma  } from '../db';
 import { randomUUID, createHash } from 'node:crypto';
 import { assertExecutionActive, withExecutionDeadline } from '../worker/execution-scope';
 import { hasRunHeadroom, hasRunHeadroomWithReserve, remainingRunMs } from './pipeline-steps/time-budget';
+import { recordDegradedStep } from './degraded-steps';
 import { BRAND_BRIEF_FOOTER, BRAND_MANIFESTO } from '@/lib/brand/public-copy';
 import { analystAgentV3 as analystMultipass } from './analyst-multipass';
 import { primeContext } from './context-primer';
@@ -316,6 +317,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
           return { episodes, formatted };
         } catch (err) {
           console.warn(`${label} EPISODIC MEMORY: retrieval failed (non-blocking):`, err);
+          recordDegradedStep(stats as Record<string, any>, 'EPISODIC_MEMORY');
           (stats as Record<string, any>).episodicMemory = { retrieved: 0, injected: false, error: String(err) };
           return { episodes: [] as any[], formatted: null };
         }
@@ -954,6 +956,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
         return { score: r.overallScore, verdict: r.verdict, costUsd: r.costUsd };
       } catch (e) {
         console.warn(`${label} GAPFILL_RESCORE failed (non-blocking):`, e);
+        recordDegradedStep(stats as Record<string, any>, 'GAPFILL_RESCORE', e);
         return null;
       }
     },
@@ -1102,6 +1105,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
       });
     } catch (rescoreErr) {
       console.warn(`${label} EVAL RE-SCORE failed (non-blocking):`, rescoreErr);
+      recordDegradedStep(stats as Record<string, any>, 'EVAL_RESCORE', rescoreErr);
     }
     phaseMark('critic');
   }
@@ -1331,6 +1335,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
       }
     } catch (err) {
       console.warn(`${label} INFLECTION CHECK: failed (non-blocking):`, err);
+      recordDegradedStep(stats as Record<string, any>, 'INFLECTION_CHECK', err);
     }
 
     // LOT 7.1: Predictions are registered after brief creation (need briefId for Prediction model)
@@ -1490,11 +1495,13 @@ Return JSON: {"queries": ["...", "..."]} — one query per gap, same order.`,
               console.log(`${label} DA POST-MISSION RECHECK: publishability ${reJudge.publishabilityScore}/100 (veto ${(stats as any).devilsAdvocateVeto ? 'stands' : 'lifted'})`);
             } catch (judgeErr) {
               console.warn(`${label} DA POST-MISSION RECHECK failed (non-blocking):`, judgeErr);
+              recordDegradedStep(stats as Record<string, any>, 'DA_POST_MISSION_RECHECK', judgeErr);
             }
           }
         }
       } catch (missionErr) {
         console.warn(`${label} DA EVIDENCE MISSION failed (non-blocking):`, missionErr);
+        recordDegradedStep(stats as Record<string, any>, 'DA_EVIDENCE_MISSION', missionErr);
       }
     }
     // Re-evaluate post-mission: the gap-fill re-judge may have lifted the
@@ -1569,6 +1576,7 @@ Return JSON: {"queries": ["...", "..."]} — one query per gap, same order.`,
               });
             } catch (rescoreErr) {
               console.warn(`${label} DA REWRITE EVAL RE-SCORE failed (non-blocking):`, rescoreErr);
+              recordDegradedStep(stats as Record<string, any>, 'DA_REWRITE_EVAL_RESCORE', rescoreErr);
             }
           } else {
             console.log(`${label} DA PRE-RENDER REPAIR: rewrite not better (${reJudge.publishabilityScore}) — original kept`);
@@ -1576,6 +1584,7 @@ Return JSON: {"queries": ["...", "..."]} — one query per gap, same order.`,
         }
       } catch (preErr) {
         console.warn(`${label} DA PRE-RENDER REPAIR failed (non-blocking):`, preErr);
+        recordDegradedStep(stats as Record<string, any>, 'DA_PRE_RENDER_REPAIR', preErr);
       }
     }
 
