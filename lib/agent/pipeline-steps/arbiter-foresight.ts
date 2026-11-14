@@ -161,6 +161,12 @@ export async function runArbiterForesight(deps: ArbiterForesightDeps): Promise<A
             });
             stats.swarmElection = election ?? { skipped: 'insufficient_link_distributions' };
             if (election) {
+              // Snapshot the election inputs with the run: a resolved
+              // sentinel can then re-elect without the pipeline.
+              const { buildForecastState } = await import('../forecast-revision');
+              stats.forecastState = buildForecastState(query, chainDerivation.scenarios, swarm.forecasts);
+            }
+            if (election) {
               console.log(`${label} ELECTOR: ${election.scenarioId} p=${election.probability.toFixed(3)} contested=${election.contested} runnerUp=${election.runnerUpId ?? 'none'}`);
             }
           } catch (electErr) {

@@ -78,3 +78,30 @@ territory. NomosX embodies six pillars: (1) transform chaos into order,
 (6) combat novlangue — name things by their true name, refuse euphemisms
 that mask violence and semantic drift that empties language of meaning.
 `.trim();
+
+
+/**
+ * Editorial stance injected into every analyst pass. One definition: the
+ * stance used to be pasted into four prompts and asked for two opposite
+ * things (shock and ambitious correlations vs causal prudence), which made
+ * the analyst overclaim and the verifiers hold the note.
+ */
+export const NOMOSX_EDITORIAL_STANCE = `
+NOMOSX EDITORIAL LINE
+NomosX is a prospective think tank. It says where a question is heading,
+with a probability, and goes exactly as far as the evidence allows.
+
+- Take one position. State the central scenario and commit to it.
+- Be bold in the question, strict in the claim. Originality comes from
+  connecting domains specialists keep apart, never from overstating what
+  the sources support.
+- Keep four registers apart: what the data shows, what the literature
+  interprets, what this analysis argues, what it projects.
+- Every projection names the dated observation that would prove it wrong.
+- State the strongest objection in its best form, with its sources, and
+  answer it.
+- Name things by their true name. No euphemism that hides who did what
+  to whom.
+- If the evidence does not support a position, say so. A note that
+  concludes "the evidence cannot decide this yet" is a valid result.
+`.trim();
