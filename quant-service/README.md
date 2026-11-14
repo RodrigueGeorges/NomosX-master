@@ -92,3 +92,22 @@ Without docling installed the endpoint returns 503 and the reader falls
 back to pdf-parse — the pipeline never blocks on it.
 
 The app side requires `QUANT_SERVICE_URL` + `NOMOSX_DOCLING=1`.
+
+## Chronos-2 forecasting (optional)
+
+`POST /v1/forecast` produces zero-shot quantile forecasts
+(median + q10/q90) for a univariate series via
+[Chronos-2](https://github.com/amazon-science/chronos-forecasting)
+(Apache 2.0). The reader feeds it primary-data series from quant-agent;
+the result becomes a `[MODEL-N]` exhibit.
+
+Not in `requirements.txt` — install with:
+
+```bash
+pip install -r requirements.txt -r requirements-chronos.txt
+```
+
+Env: `CHRONOS_ENABLED=0` hard-disables; `CHRONOS_MODEL`
+(default `amazon/chronos-2`), `CHRONOS_DEVICE` (`cpu` default),
+`CHRONOS_MAX_HISTORY` (512), `CHRONOS_MAX_HORIZON` (24).
+App side: `QUANT_SERVICE_URL` + `NOMOSX_CHRONOS=1`.

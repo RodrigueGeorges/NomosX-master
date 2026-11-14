@@ -197,6 +197,38 @@ export async function runReaderBlock(deps: ReaderBlockDeps): Promise<ReaderBlock
   const framing = framingSettled;
   const quant = quantSettled;
   const quantBridge = quantBridgeSettled;
+
+  // CHRONOS-2 forecast (opt-in): the quant-agent's primary-data series are
+  // exactly what a zero-shot forecaster consumes. Appended as a [MODEL-N]
+  // result so it flows into the analyst evidence block AND the computed
+  // exhibit. Skipped under frozen replay (determinism) and when disabled.
+  if (!deps.frozenQuant && process.env.NOMOSX_CHRONOS === '1' && Array.isArray(quant?.series) && quant.series.length > 0) {
+    try {
+      const { chronosForecast, chronosForecastToModelResult } = await import('../../quant/chronos-client');
+      // Pick the longest clean series — most history = most reliable forecast.
+      const best = quant.series
+        .filter((s: any) => Array.isArray(s?.points) && s.points.length >= 8)
+        .sort((a: any, b: any) => b.points.length - a.points.length)[0];
+      if (best) {
+        const values = best.points.map((p: any) => Number(p.v)).filter((v: number) => Number.isFinite(v));
+        const horizon = Math.min(12, Math.max(3, Math.floor(values.length / 4)));
+        const fc = await chronosForecast(values, horizon);
+        if (fc) {
+          const { buildEvidenceBlock } = await import('../../quant/quant-bridge');
+          const model = chronosForecastToModelResult(best, fc, quantBridge.models.length + 1);
+          quantBridge.models.push(model);
+          quantBridge.usedModels = [...new Set([...quantBridge.usedModels, 'chronos-forecast' as const])];
+          quantBridge.evidenceBlock = buildEvidenceBlock(quantBridge.models);
+          quantBridge.durationMs += fc.durationMs;
+          console.log(`${label} CHRONOS-2: forecast on "${best.label}" (${values.length} pts → +${fc.horizon}) in ${fc.durationMs}ms`);
+        }
+      }
+    } catch (err) {
+      console.warn(`${label} CHRONOS: forecast failed (non-blocking):`, err);
+      recordDegradedStep(stats, 'CHRONOS_FORECAST', err);
+    }
+  }
+
   stats.quantBridge = { models: quantBridge.models.length, kinds: quantBridge.usedModels, durationMs: quantBridge.durationMs };
   if (quantBridge.models.length > 0) console.log(`${label} QUANT BRIDGE: ${quantBridge.models.length} deterministic model(s) [${quantBridge.usedModels.join(', ')}]`);
   addCost(framing.costUsd, 'FRAMING');

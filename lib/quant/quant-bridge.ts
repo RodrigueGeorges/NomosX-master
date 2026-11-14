@@ -29,7 +29,7 @@ function formatRow(r: { label: string; value: number; unit: string; low?: number
   return `${r.label}: ${r.value} ${r.unit}${range}`;
 }
 
-function buildEvidenceBlock(models: ModelResult[]): string {
+export function buildEvidenceBlock(models: ModelResult[]): string {
   if (models.length === 0) return "";
   const blocks = models.map((m) => {
     return [

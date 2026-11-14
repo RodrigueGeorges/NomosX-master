@@ -11,7 +11,7 @@
  * extended citation guard).
  */
 
-export type QuantModelKind = "parametric-cost" | "figaro-io" | "external";
+export type QuantModelKind = "parametric-cost" | "figaro-io" | "chronos-forecast" | "external";
 
 export interface ModelParameter {
   name: string;

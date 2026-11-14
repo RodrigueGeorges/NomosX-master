@@ -101,7 +101,12 @@ def root() -> dict:
         docling = dp.available()
     except Exception:
         docling = False
-    return {"service": "NomosX quant-service", "version": "0.2.0", "docling": docling, "docs": "/docs"}
+    try:
+        import forecast as fc
+        chronos = fc.available()
+    except Exception:
+        chronos = False
+    return {"service": "NomosX quant-service", "version": "0.3.0", "docling": docling, "chronos": chronos, "docs": "/docs"}
 
 
 @app.get("/health")
@@ -220,3 +225,40 @@ def docling_parse(req: DoclingParseRequest) -> dict:
     if result["chars"] < 100:
         raise HTTPException(status_code=422, detail="docling produced insufficient text")
     return {"url": req.url, **result}
+
+
+# --- Chronos-2 zero-shot forecasting (optional heavy path) --------------------
+#
+# The reader's quant-agent already produces primary-data series (energy
+# prices, macro indicators). This endpoint forecasts them with quantiles —
+# the forecast becomes a [MODEL-N] exhibit. 503 without chronos-forecasting.
+
+CHRONOS_MAX_HISTORY = int(os.environ.get("CHRONOS_MAX_HISTORY", "512"))
+CHRONOS_MAX_HORIZON = int(os.environ.get("CHRONOS_MAX_HORIZON", "24"))
+
+
+class ForecastRequest(BaseModel):
+    values: list[float] = Field(..., min_length=3, max_length=CHRONOS_MAX_HISTORY)
+    predictionLength: int = Field(default=12, ge=1, le=CHRONOS_MAX_HORIZON)
+
+
+@app.post("/v1/forecast")
+def chronos_forecast(req: ForecastRequest) -> dict:
+    import forecast as fc
+
+    if not fc.available():
+        raise HTTPException(status_code=503, detail="chronos not installed or CHRONOS_ENABLED=0")
+
+    clean = [float(v) for v in req.values if v == v and abs(v) != float("inf")]
+    if len(clean) < 3:
+        raise HTTPException(status_code=422, detail="fewer than 3 finite observations")
+
+    try:
+        result = fc.forecast(clean, req.predictionLength)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.warning("chronos forecast failed: %s", exc)
+        raise HTTPException(status_code=500, detail=f"forecast failed: {exc}") from exc
+
+    return result

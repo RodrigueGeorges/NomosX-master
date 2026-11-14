@@ -7,9 +7,14 @@ a claim citing "Table 3: $4.2B exports" needs the table to survive
 extraction. Lazy-loaded: the service runs fine without it (endpoint
 returns 503), and model weights download on first use.
 
+API verified against docling 2.x:
+  DocumentConverter().convert(DocumentStream) → ConversionResult
+  result.status / result.document.export_to_markdown()
+
 Env:
   DOCLING_ENABLED=0      — hard off switch (default: on when installed)
   DOCLING_MAX_PAGES      — refuse docs above this page count (default 80)
+  DOCLING_OCR=0          — disable OCR (faster, loses scanned-PDF text)
 """
 
 from __future__ import annotations
@@ -69,19 +74,26 @@ def parse_pdf_bytes(data: bytes, filename: str = "document.pdf") -> dict[str, An
 
     stream = DocumentStream(name=filename, stream=io.BytesIO(data))
     t0 = time.monotonic()
-    result = converter.convert(stream)
+    # max_num_pages bounds conversion work server-side — an 80-page cap
+    # rejects before the expensive layout pass, not after.
+    result = converter.convert(stream, max_num_pages=max_pages)
     duration_ms = int((time.monotonic() - t0) * 1000)
 
-    doc = result.document
-    num_pages = len(getattr(doc, "pages", {}) or {}) or None
-    if num_pages and num_pages > max_pages:
-        raise ValueError(f"pdf has {num_pages} pages > DOCLING_MAX_PAGES={max_pages}")
+    status = getattr(result, "status", None)
+    status_name = getattr(status, "value", str(status)) if status is not None else "unknown"
+    if status_name not in ("success", "partial_success"):
+        errors = getattr(result, "errors", None) or []
+        raise RuntimeError(f"docling conversion status={status_name}: {errors[:3]}")
 
+    doc = result.document
+    num_pages = len(getattr(doc, "pages", {}) or {}) or getattr(result, "pages", None)
     text = doc.export_to_markdown() or ""
+
     return {
         "text": text,
         "pages": num_pages,
         "chars": len(text),
         "durationMs": duration_ms,
         "format": "markdown",
+        "status": status_name,
     }
