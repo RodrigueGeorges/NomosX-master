@@ -82,10 +82,15 @@ def forecast(values: list[float], prediction_length: int) -> dict[str, Any]:
     import torch
 
     pipeline = _get_pipeline()
-    context = torch.tensor([values], dtype=torch.float32)
+    flat = torch.tensor(values, dtype=torch.float32)
+    # Chronos2Pipeline expects (n_series, n_variates, history_length);
+    # ChronosPipeline (v1) expects (n_series, history_length).
+    is_v2 = type(pipeline).__name__ == "Chronos2Pipeline"
+    context = flat.reshape(1, 1, -1) if is_v2 else flat.reshape(1, -1)
 
     t0 = time.monotonic()
-    # predict_quantiles returns (batch, prediction_length, num_quantiles)
+    # predict_quantiles returns (batch, prediction_length, num_quantiles);
+    # first arg passed positionally — v1 calls it `context`, v2 `inputs`.
     q = pipeline.predict_quantiles(
         context,
         prediction_length=prediction_length,
