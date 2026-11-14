@@ -55,7 +55,7 @@ export async function searchJStage(query: string, limit = 20): Promise<any[]> {
           url: a.url || (articleId ? `https://www.jstage.jst.go.jp/article/${articleId}` : null),
           pdfUrl: a.pdfUrl || null,
           oaStatus: a.openAccess ? "oa" : "closed",
-          authors: (a.authors || a.creator || []).map((au: any) => ({
+          authors: (Array.isArray(a.authors || a.creator) ? (a.authors || a.creator) : (a.authors || a.creator) ? [a.authors || a.creator] : []).map((au: any) => ({
             name: typeof au === 'string' ? au : (au.name || au.fullName || au.author || ""),
             institution: typeof au === 'object' ? (au.affiliation || au.institution || null) : null,
           })).filter((au: any) => au.name),

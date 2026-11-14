@@ -370,6 +370,8 @@ export async function searchUNESCO(query: string, limit = 15): Promise<any[]> {
       const year = date ? parseInt(String(date).slice(0, 4)) : null;
       const docUrl = fields.url || fields.link || fields.uri || '';
       const docId = fields.id || fields.identifier || item.record?.id || Math.random();
+      const rawAuthors = fields.authors || fields.auteurs || fields.creator;
+      const authorsList = Array.isArray(rawAuthors) ? rawAuthors : rawAuthors ? [rawAuthors] : [];
 
       return {
         id: `unesco:${docId}`,
@@ -382,7 +384,7 @@ export async function searchUNESCO(query: string, limit = 15): Promise<any[]> {
         isbn: fields.isbn || null,
         year: year && !isNaN(year) ? year : null,
         publishedDate: date,
-        authors: (fields.authors || fields.auteurs || fields.creator || []).map((a: any) => ({
+        authors: authorsList.map((a: any) => ({
           name: typeof a === 'string' ? a : a.name || a.nom || '',
         })),
         institutions: ['UNESCO'],
