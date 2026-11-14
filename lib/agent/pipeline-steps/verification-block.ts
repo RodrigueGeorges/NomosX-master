@@ -151,6 +151,7 @@ export async function runVerificationBlock(deps: VerificationBlockDeps): Promise
       console.log(`${label} CITATION VERIFIER: LLM deep-check on ${verification.flaggedClaims.length} flagged claims (post-repair integrity still ${postRepairIntegrity}%)`);
       try {
         const llmVerification = await verifyCitations(html, topSources, { maxConcurrency: 8, maxClaims: 30, producerFamily, readings });
+        for (const d of llmVerification.degradedSteps ?? []) recordDegradedStep(stats, d);
         // Use LLM result if it found fewer issues (NLI is more aggressive)
         if (llmVerification.overallIntegrity > postRepairIntegrity) {
           stats.citationVerifier = tagEval({
@@ -170,6 +171,7 @@ export async function runVerificationBlock(deps: VerificationBlockDeps): Promise
     console.warn(`${label} CITATION VERIFIER: NLI failed, falling back to LLM:`, err);
     try {
       const verification = await verifyCitations(html, topSources, { maxConcurrency: 8, maxClaims: 50, producerFamily, readings });
+      for (const d of verification.degradedSteps ?? []) recordDegradedStep(stats, d);
       stats.citationVerifier = tagEval({
         integrity: verification.overallIntegrity,
         supported: verification.supported,

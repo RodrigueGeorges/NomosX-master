@@ -57,6 +57,9 @@ export interface VerificationReport {
   flaggedClaims: CitationVerification[];  // Only problematic ones
   recommendations: string[];
   costUsd: number;
+  /** Optional enrichments that failed silently (CiteGuard, FRANQ, ...) —
+   *  callers surface these into stats.degradedSteps. */
+  degradedSteps?: string[];
 }
 
 // ============================================================================
@@ -479,6 +482,8 @@ export async function verifyCitations(
     recommendations.push(`Citation integrity is strong (${overallIntegrity}%). Minor improvements possible.`);
   }
 
+  const degradedSteps: string[] = [];
+
   // K8: CiteGuard — retrieval-aware validation for flagged citations
   // For each flagged claim, check if a better source exists
   if (flaggedClaims.length > 0 && flaggedClaims.length <= 10) {
@@ -498,6 +503,7 @@ export async function verifyCitations(
         }
       }
     } catch (err) {
+      degradedSteps.push('citation_citeguard');
       console.warn('[CitationVerifier K8] CiteGuard validation failed:', err);
     }
   }
@@ -520,6 +526,7 @@ export async function verifyCitations(
     }
     console.log(`[CitationVerifier K9] FRANQ: faithfulness=${(franqResult.faithfulnessScore * 100).toFixed(0)}%, factuality=${(franqResult.factualityScore * 100).toFixed(0)}%, hallucination risks=${franqResult.hallucinationRisks.length}`);
   } catch (err) {
+    degradedSteps.push('citation_franq');
     console.warn('[CitationVerifier K9] FRANQ assessment failed:', err);
   }
 
@@ -533,6 +540,7 @@ export async function verifyCitations(
     unsupported,
     misattributed,
     unverifiable,
+    degradedSteps: degradedSteps.length > 0 ? degradedSteps : undefined,
     overallIntegrity,
     verifications,
     flaggedClaims,
