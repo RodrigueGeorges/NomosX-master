@@ -48,15 +48,15 @@ export function mapProspectiveToRenderFormat(analysis: any): any {
       ).join('\n\n')
     : '';
 
-  const signalsText = analysis.whatToWatch?.signals?.length
+  const signalsText = Array.isArray(analysis.whatToWatch?.signals) && analysis.whatToWatch.signals.length
     ? analysis.whatToWatch.signals.map((s: string) => `• ${s}`).join('\n')
     : '';
 
-  const evidenceGapsText = analysis.evidenceAssessment?.gaps?.length
+  const evidenceGapsText = Array.isArray(analysis.evidenceAssessment?.gaps) && analysis.evidenceAssessment.gaps.length
     ? analysis.evidenceAssessment.gaps.map((g: string) => `• ${g}`).join('\n')
     : '';
 
-  const strongestLinksText = analysis.evidenceAssessment?.strongestLinks?.length
+  const strongestLinksText = Array.isArray(analysis.evidenceAssessment?.strongestLinks) && analysis.evidenceAssessment.strongestLinks.length
     ? analysis.evidenceAssessment.strongestLinks.map((s: string) => `• ${s}`).join('\n')
     : '';
 

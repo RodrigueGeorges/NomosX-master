@@ -61,7 +61,7 @@ export function dedupeCitations(text: string): string {
 }
 
 const formatCitations = (text: string) => {
-  const fixed = dedupeCitations(text)
+  const fixed = dedupeCitations(text ?? '')
     // Fix broken abbreviations: move citation outside the abbreviation
     .replace(/\be\s*\[SRC-(\d+)\]\s*g\./gi, 'e.g. [SRC-$1]')
     .replace(/\bi\s*\[SRC-(\d+)\]\s*e\./gi, 'i.e. [SRC-$1]')
