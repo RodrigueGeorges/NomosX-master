@@ -84,6 +84,17 @@ class IOModel:
         self.L = pd.DataFrame(np.linalg.inv(eye - A.values), index=A.index, columns=A.columns)
         self.va_coef = (self.va / x_safe).fillna(0.0)
 
+    @classmethod
+    def from_leontief(cls, year: int, source: str, Z: pd.DataFrame,
+                      x: pd.Series, va: pd.Series, L: pd.DataFrame) -> "IOModel":
+        """Build a model reusing a cached Leontief inverse (skips ~60s invert)."""
+        obj = cls.__new__(cls)
+        obj.year, obj.source, obj.Z, obj.x, obj.va = year, source, Z, x, va
+        obj.L = L
+        x_safe = obj.x.replace(0, np.nan)
+        obj.va_coef = (obj.va / x_safe).fillna(0.0)
+        return obj
+
     def sectors_for(self, region: str, industry: str) -> list[str]:
         if region == "EU27":
             return [f"{r}_{industry}" for r in EU27 if f"{r}_{industry}" in self.L.columns]
@@ -174,7 +185,27 @@ def _load_figaro_csv() -> IOModel:
     intermediates = Z.sum(axis=0)
     va = (x - intermediates).clip(lower=0.0)
 
-    return IOModel(year=FIGARO_YEAR, source=f"Eurostat FIGARO {FIGARO_EDITION} ind-by-ind IC-IO, {FIGARO_YEAR}", Z=Z, x=x, va=va)
+    source = f"Eurostat FIGARO {FIGARO_EDITION} ind-by-ind IC-IO, {FIGARO_YEAR}"
+
+    # The Leontief inverse of a ~3200x3200 matrix takes ~60s and ~1GB peak —
+    # cache it next to Z so restarts skip the inversion entirely.
+    l_cache = os.path.join(CACHE_DIR, f"figaro_L_{FIGARO_EDITION}_{FIGARO_YEAR}.parquet")
+    if os.path.exists(l_cache):
+        try:
+            L = pd.read_parquet(l_cache)
+            if L.shape == Z.shape and list(L.index) == list(Z.index):
+                logger.info("Leontief inverse loaded from cache: %s", l_cache)
+                return IOModel.from_leontief(FIGARO_YEAR, source, Z, x, va, L)
+        except Exception:
+            logger.warning("Leontief cache unreadable — recomputing", exc_info=True)
+
+    model = IOModel(year=FIGARO_YEAR, source=source, Z=Z, x=x, va=va)
+    try:
+        model.L.to_parquet(l_cache)
+        logger.info("Leontief inverse cached: %s", l_cache)
+    except Exception:
+        logger.warning("Could not cache Leontief inverse", exc_info=True)
+    return model
 
 
 _model: IOModel | None = None
