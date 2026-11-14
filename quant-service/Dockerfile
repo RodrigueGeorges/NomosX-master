@@ -3,8 +3,8 @@ FROM python:3.12-slim
 WORKDIR /app
 
 # Install dependencies first (cached layer)
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+COPY requirements-full.txt .
+RUN pip install --no-cache-dir -r requirements-full.txt
 
 # Copy application code
 COPY figaro.py main.py docling_parse.py forecast.py minicheck_check.py ./
