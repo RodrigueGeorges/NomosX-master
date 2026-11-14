@@ -146,12 +146,20 @@ def check_pairs(pairs: list[dict[str, str]]) -> list[dict[str, Any]]:
             gen_ids = gen.sequences[0][inputs.input_ids.shape[1]:]
             text = tokenizer.decode(gen_ids, skip_special_tokens=True)
             probs = _verdict_probs(model, gen.scores, tokenizer, device)
+            text_label, text_score = _label_for(text)
             if probs is not None:
                 p1, p0 = probs
-                label = "supported" if p1 >= p0 else "not_supported"
-                score = round(max(p1, p0), 4)
+                prob_label = "supported" if p1 >= p0 else "not_supported"
+                # The generated token is the model's actual answer. When the
+                # first-step logit read disagrees with it (observed live:
+                # raw "0" labelled supported), neither signal is trustworthy
+                # — mark unclear rather than pick a side.
+                if text_label in ("supported", "not_supported") and text_label != prob_label:
+                    label, score = "unclear", 0.3
+                else:
+                    label, score = prob_label, round(max(p1, p0), 4)
             else:
-                label, score = _label_for(text)
+                label, score = text_label, text_score
             results.append({"label": label, "score": score, "raw": text[:80]})
         except Exception as exc:
             logger.warning("minicheck pair failed: %s", exc)
