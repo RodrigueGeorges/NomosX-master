@@ -7,7 +7,7 @@ COPY requirements-full.txt .
 RUN pip install --no-cache-dir -r requirements-full.txt
 
 # Copy application code
-COPY figaro.py main.py docling_parse.py forecast.py minicheck_check.py ./
+COPY figaro.py main.py docling_client.py forecast.py minicheck_check.py ./
 
 # FIGARO cache — ephemeral on Railway (Volumes unsupported); /tmp is
 # writable by the non-root user and survives within a container lifetime.

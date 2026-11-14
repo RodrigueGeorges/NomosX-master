@@ -97,7 +97,7 @@ class ShockRequest(BaseModel):
 def root() -> dict:
     """Lightweight service info — does NOT load the FIGARO model."""
     try:
-        import docling_parse as dp
+        import docling_client as dp
         docling = dp.available()
     except Exception:
         docling = False
@@ -188,7 +188,7 @@ class DoclingParseRequest(BaseModel):
 
 @app.post("/v1/docling/parse")
 def docling_parse(req: DoclingParseRequest) -> dict:
-    import docling_parse as dp
+    import docling_client as dp
 
     if not dp.available():
         raise HTTPException(status_code=503, detail="docling not installed or DOCLING_ENABLED=0")
