@@ -16,6 +16,7 @@ import { selfCorrectReader } from '../self-correction-integration';
 import type { PipelineStep } from '../pipeline-progress';
 import type { DomainExpertise } from '../researcher-kb/index';
 import type { EvidenceBank } from '../evidence-bank';
+import { recordDegradedStep } from '../degraded-steps';
 import { buildMemoryInjection } from '../agent-memory';
 import { isFreeRun } from '../../free-run';
 
@@ -169,6 +170,7 @@ export async function runReaderBlock(deps: ReaderBlockDeps): Promise<ReaderBlock
       const { assertExecutionActive } = await import('../../worker/execution-scope');
       assertExecutionActive(); // dead scope must abort, not degrade to unbound
       console.warn(`${label} FRAMING: failed (non-blocking):`, err);
+      recordDegradedStep(stats, 'FRAMING', err);
       return { hypotheses: [] as any[], keyUnknowns: [] as string[], costUsd: 0 };
     }),
     // QUANT: fetch real numbers from T1 primary-data providers — frozen on
@@ -177,6 +179,7 @@ export async function runReaderBlock(deps: ReaderBlockDeps): Promise<ReaderBlock
       ? Promise.resolve((deps.frozenQuant.quant ?? { series: [], facts: [], evidenceBlock: '', chartData: [], fetchedProviders: [], durationMs: 0 }) as any)
       : import('../quant-agent').then(m => m.quantAgent(query, topSources)).catch((err) => {
         console.warn(`${label} QUANT: failed (non-blocking):`, err);
+        recordDegradedStep(stats, 'QUANT', err);
         return { series: [], facts: [], evidenceBlock: '', chartData: [], fetchedProviders: [], durationMs: 0 };
       }),
     // QUANT BRIDGE: deterministic model layer (parametric costing + FIGARO IO multipliers)
@@ -187,6 +190,7 @@ export async function runReaderBlock(deps: ReaderBlockDeps): Promise<ReaderBlock
         parametricInput,
       })).catch((err) => {
         console.warn(`${label} QUANT BRIDGE: failed (non-blocking):`, err);
+        recordDegradedStep(stats, 'QUANT_BRIDGE', err);
         return { models: [] as any[], evidenceBlock: '', usedModels: [] as any[], durationMs: 0 };
       }),
   ]);
@@ -248,6 +252,7 @@ export async function runReaderBlock(deps: ReaderBlockDeps): Promise<ReaderBlock
     stats.evidenceBank = { entries: evidenceBankRef.entries.length, sourcesWithEvidence: evidenceBankRef.perSource.size };
   } catch (err) {
     console.warn(`${label} EVIDENCE BANK: build failed (non-blocking):`, err);
+    recordDegradedStep(stats, 'EVIDENCE_BANK', err);
   }
 
   // Attach extractedText from READER V3 to topSources for claim grounding
@@ -333,6 +338,7 @@ export async function runReaderBlock(deps: ReaderBlockDeps): Promise<ReaderBlock
     }
   } catch (err) {
     console.warn(`${label} SELF-CORRECTION (READER): failed (non-blocking):`, err);
+    recordDegradedStep(stats, 'SELF_CORRECTION_READER', err);
   }
 
   // ── ORCHESTRATOR ACTION: DEEPEN — was logged but never acted upon. NOW ACTED. ──
@@ -383,6 +389,7 @@ export async function runReaderBlock(deps: ReaderBlockDeps): Promise<ReaderBlock
       emitProgress(pipelineRunId, "READER", "completed", `Deepened ${deepenedCount} sources`);
     } catch (err) {
       console.warn(`${label} DEEPEN: failed (non-blocking):`, err);
+      recordDegradedStep(stats, 'DEEPEN', err);
     }
   }
 
@@ -428,6 +435,7 @@ export async function runReaderBlock(deps: ReaderBlockDeps): Promise<ReaderBlock
       assertExecutionActive();
       stats.thesisBinding = { unavailable: true };
       console.warn(`${label} HYPOTHESIS JUDGE: failed (non-blocking):`, err);
+      recordDegradedStep(stats, 'HYPOTHESIS_JUDGE', err);
     }
   }
 
@@ -448,7 +456,7 @@ export async function runReaderBlock(deps: ReaderBlockDeps): Promise<ReaderBlock
       dppContextBlock = formatKeyPointsForAnalyst(selection);
       if (dppContextBlock) { console.log(`${label} DPP SYNTHESIS: ${selection.selectedPoints.length}/${keyPoints.length} points (diversity=${Math.round(selection.diversityScore * 100)}%)`); stats.dppSynthesis = { totalPoints: keyPoints.length, selectedPoints: selection.selectedPoints.length, diversityScore: selection.diversityScore, coverageScore: selection.coverageScore } as any; }
     }
-  } catch (err) { console.warn(`${label} DPP SYNTHESIS: failed (non-blocking):`, err); }
+  } catch (err) { console.warn(`${label} DPP SYNTHESIS: failed (non-blocking):`, err); recordDegradedStep(stats, 'DPP_SYNTHESIS', err); }
 
   // ADAPTIVE RAG (V3.1)
   try {
@@ -457,7 +465,7 @@ export async function runReaderBlock(deps: ReaderBlockDeps): Promise<ReaderBlock
     stats.adaptiveRag = { sufficient: assessment.sufficient, confidence: assessment.confidence, gaps: assessment.gaps } as any;
     if (!assessment.sufficient) console.log(`${label} ADAPTIVE RAG: insufficient (${assessment.confidence}%): ${assessment.gaps.join("; ")}`);
     else console.log(`${label} ADAPTIVE RAG: sufficient (${assessment.confidence}%)`);
-  } catch (err) { console.warn(`${label} ADAPTIVE RAG: failed (non-blocking):`, err); }
+  } catch (err) { console.warn(`${label} ADAPTIVE RAG: failed (non-blocking):`, err); recordDegradedStep(stats, 'ADAPTIVE_RAG', err); }
 
   // ROUND-TABLE DELIBERATION (V3.1) for controversial topics
   let roundTableBlock: string | null = null;
@@ -471,7 +479,7 @@ export async function runReaderBlock(deps: ReaderBlockDeps): Promise<ReaderBlock
         console.log(`${label} ROUND-TABLE: consensus=${dr.consensus}, ${dr.participants.length}p, ${dr.rounds.length}r`);
         if (dr.synthesis) roundTableBlock = `## ROUND-TABLE DELIBERATION\nConsensus: ${dr.consensus.toUpperCase()}\n\n${dr.synthesis}`;
       }
-    } catch (err) { console.warn(`${label} ROUND-TABLE: failed (non-blocking):`, err); }
+    } catch (err) { console.warn(`${label} ROUND-TABLE: failed (non-blocking):`, err); recordDegradedStep(stats, 'ROUND_TABLE', err); }
   }
 
   return {

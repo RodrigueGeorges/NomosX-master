@@ -16,6 +16,7 @@ import { assessEvidenceSufficiency } from '../enrichment-reasoner';
 import type { PipelineStep } from '../pipeline-progress';
 import type { Providers } from './provider-lists';
 import type { RankOptions } from '../pipeline-v2';
+import { recordDegradedStep } from '../degraded-steps';
 
 export interface RankEnrichmentDeps {
   query: string;
@@ -325,6 +326,7 @@ export async function runRankAndEnrichment(deps: RankEnrichmentDeps): Promise<Ra
       }
     } catch (err) {
       console.warn(`${label} RELEVANCE SCREEN: failed (non-blocking):`, err);
+      recordDegradedStep(stats, 'RELEVANCE_SCREEN', err);
     }
   }
 
@@ -654,6 +656,7 @@ export async function runRankAndEnrichment(deps: RankEnrichmentDeps): Promise<Ra
       stats.snowball = { seedsUsed: snow.seedsUsed, candidatesFetched: snow.candidatesFetched, newSourcesAdded: fresh.length };
     } catch (err) {
       console.warn(`${label} SNOWBALL failed (non-blocking): ${err instanceof Error ? err.message : err}`);
+      recordDegradedStep(stats, 'SNOWBALL', err);
     }
   }
 

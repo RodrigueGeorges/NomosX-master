@@ -17,6 +17,7 @@ import {
 } from '../researcher-kb/index';
 import { MULTI_DOMAIN_CORPUS } from '../../knowledge/multi-domain-corpus';
 import type { PipelineStep } from '../pipeline-progress';
+import { recordDegradedStep } from '../degraded-steps';
 
 export interface AnalystContextDeps {
   query: string;
@@ -168,6 +169,7 @@ export async function buildAnalystContext(deps: AnalystContextDeps): Promise<Ana
     }
   } catch (err) {
     console.warn(`${label} CANON: failed (non-blocking):`, err instanceof Error ? err.message : String(err));
+    recordDegradedStep(stats, 'CANON', err);
   }
 
   const strategicOptsBlock = isStrategic
@@ -236,6 +238,7 @@ export async function buildAnalystContext(deps: AnalystContextDeps): Promise<Ana
     }
   } catch (err) {
     console.warn(`${label} CONFLICT-AWARE: failed (non-blocking):`, err);
+    recordDegradedStep(stats, 'CONFLICT_AWARE', err);
   }
 
   // ── SCENARIO ENGINE (PRE-ANALYST) — CANA + SCATTER for strategic reports ──
@@ -284,6 +287,7 @@ export async function buildAnalystContext(deps: AnalystContextDeps): Promise<Ana
       scenarioContextBlock = [canaBlock, scatterBlock].filter(Boolean).join('\n\n') || undefined;
     } catch (err) {
       console.warn(`${label} SCENARIO ENGINE (pre-analyst): failed (non-blocking):`, err instanceof Error ? err.message : String(err));
+      recordDegradedStep(stats, 'SCENARIO_ENGINE', err);
     }
   }
 
@@ -450,6 +454,7 @@ export async function buildAnalystContext(deps: AnalystContextDeps): Promise<Ana
       }
     } catch (err) {
       console.warn(`${label} POSITIONING: failed (non-blocking):`, err instanceof Error ? err.message : String(err));
+    recordDegradedStep(stats, 'POSITIONING', err);
     }
 
   return {

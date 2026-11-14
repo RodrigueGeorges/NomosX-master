@@ -1,0 +1,3214 @@
+# NomosX — revue de code pour Claude
+# Range: f4a009d~1..5689854 (10 commits — implémentation audit OT-1→OT-8, cleanup, fixes funnel GLM+freepool)
+# Date: 2026-11-12
+# Nouveau fichiers inclus en entier dans le diff : swarm-forecaster.ts, mc-elector.ts, chain-scenarios.ts, binary-gate.ts, learning-gate.ts
+
+5689854 fix(pipeline): bound repair rounds on degraded providers
+0301057 fix(foresight): round stored scenario probabilities to 4 decimals
+c190ec9 fix(analyst): guard undefined source.provider in context builder
+d5ef020 fix(swarm): rotate voters over alive providers, not the hardcoded trio
+0bd4c3b test(funnel): print swarm election + binary gate diagnostics
+46fac61 refactor(analyst): extract synthesized chain builder + tests
+d047a64 fix(analyst): mark weak mechanisms in synthesized causal chain
+b7d96e1 fix(analyst): synthesize causalChain in lightweight fallback
+f7dc5fc fix: truthful audit trail — DA score field + citation threshold
+10d485a docs: prod Neon migration + prediction backfill executed
+cf4530a docs: learning freeze + OT-7 status in Part IV
+9691cca feat: freeze learning writes pending replay-backed ablation (audit #11)
+9b6eec8 docs: OT-7 calibration loop status in Part IV
+563a428 feat: OT-7 — calibration feedback loop + Prediction.domain
+c7a629f docs: Part IV — audit externe implémenté (OT-1→OT-8 + cleanup), état réel et restes
+0430821 chore: untrack .netlify deploy blob cache
+3dea5e5 feat: OT-cleanup — remove fabricated grounding and probability templates
+c861353 feat: OT-6 — arbiter narrates the swarm-elected scenario, never chooses it
+19d4d02 feat: OT-3/OT-4/OT-5 — chain-derived scenarios, independent-voter swarm, MC elector
+f4a009d feat: OT-1/OT-2/OT-8 — prediction sentinels, binary gate shadow, LLM cost traces
+
+--- DIFF ---
+diff --git a/.gitignore b/.gitignore
+index 3cf3214..afe1b74 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -121,3 +121,4 @@ scripts/hero-preview-*.webp
+ .claude/settings.local.json
+ .netlify/state.json
+ /jest-*.json
++.netlify/
+diff --git a/__tests__/lib/agent/central-scenario.test.ts b/__tests__/lib/agent/central-scenario.test.ts
+index fd20cc9..51e17be 100644
+--- a/__tests__/lib/agent/central-scenario.test.ts
++++ b/__tests__/lib/agent/central-scenario.test.ts
+@@ -51,7 +51,7 @@ describe('central scenario selection', () => {
+       const central = resolveCentralScenario({ ...position, scenarios: ordered, dominantScenario: 'Stagflation trap' });
+       expect(central?.selectedBy).toBe('probability_fallback');
+       expect(central?.rationale).toBe('');
+-      expect(centralScenarioIssues(central, 1)).toContain('Central scenario requires an explicit editorial choice');
++      expect(centralScenarioIssues(central, 1)).toContain('Central scenario requires an explicit editorial or swarm choice');
+     }
+   });
+ 
+diff --git a/__tests__/lib/agent/chain-scenarios.test.ts b/__tests__/lib/agent/chain-scenarios.test.ts
+new file mode 100644
+index 0000000..184249d
+--- /dev/null
++++ b/__tests__/lib/agent/chain-scenarios.test.ts
+@@ -0,0 +1,88 @@
++import { deriveChainScenarios } from '@/lib/agent/chain-scenarios';
++import { electScenario } from '@/lib/agent/mc-elector';
++import type { CausalLink } from '@/lib/agent/analyst-multipass';
++import type { LinkForecast } from '@/lib/agent/swarm-forecaster';
++
++function link(id: number, temporalStatus: CausalLink['temporalStatus'], derivesFrom: number | null = null, extra: Partial<CausalLink> = {}): CausalLink {
++  return { id, claim: `claim ${id}`, evidence: '', warrant: '', temporalStatus, derivesFrom, ...extra };
++}
++
++describe('deriveChainScenarios (OT-3)', () => {
++  it('returns null with fewer than 2 uncertain links', () => {
++    const links = [link(1, 'present_fact'), link(2, 'active_mechanism'), link(3, 'present_fact')];
++    expect(deriveChainScenarios(links, '2030')).toBeNull();
++  });
++
++  it('returns null on short chains', () => {
++    expect(deriveChainScenarios([link(1, 'future_extrapolation')], '2030')).toBeNull();
++  });
++
++  it('derives mutually exclusive scenario cells from 2 critical uncertainties', () => {
++    const links = [
++      link(1, 'present_fact'),
++      link(2, 'future_extrapolation'),           // u1
++      link(3, 'future_extrapolation', 2),        // u2 depends on u1
++      link(4, 'active_mechanism', 3),
++      link(5, 'present_fact', 4),
++    ];
++    const out = deriveChainScenarios(links, 'We look to 2030');
++    expect(out).not.toBeNull();
++    expect(out!.uncertainties.length).toBeGreaterThanOrEqual(2);
++    // u2 derives from u1 → the "u2 realized while u1 fails" cell is dropped.
++    expect(out!.scenarios.length).toBe(3);
++    const ids = out!.scenarios.map(s => s.id);
++    expect(new Set(ids).size).toBe(ids.length);
++    // Every scenario conditions on both picked uncertainties.
++    for (const s of out!.scenarios) {
++      expect(Object.keys(s.conditions).length).toBe(2);
++      expect(s.observableAt).toContain('2030');
++    }
++    // No probability is produced at this stage.
++    expect((out!.scenarios[0] as any).probability).toBeUndefined();
++  });
++});
++
++describe('electScenario (OT-5)', () => {
++  const mkForecasts = (linkId: number, p: number): LinkForecast => ({
++    linkId, claim: `c${linkId}`, probability: p, variance: 0.02, iqr: 0.1,
++    validVotes: 15, families: 3, contested: false,
++  });
++  const scenarios = deriveChainScenarios([
++    link(1, 'present_fact'),
++    link(2, 'future_extrapolation'),
++    link(3, 'future_extrapolation', 2),
++    link(4, 'active_mechanism', 3),
++    link(5, 'present_fact', 4),
++  ], '2030')!.scenarios;
++
++  it('is deterministic — same seed, same election', () => {
++    const forecasts = [mkForecasts(2, 0.7), mkForecasts(3, 0.6)];
++    const a = electScenario({ scenarios, forecasts, question: 'q', runs: 5000 });
++    const b = electScenario({ scenarios, forecasts, question: 'q', runs: 5000 });
++    expect(a).not.toBeNull();
++    expect(a!.scenarioId).toBe(b!.scenarioId);
++    expect(a!.seed).toBe(b!.seed);
++    expect(a!.selectedBy).toBe('swarm');
++  });
++
++  it('probabilities sum to 1', () => {
++    const forecasts = [mkForecasts(2, 0.7), mkForecasts(3, 0.6)];
++    const e = electScenario({ scenarios, forecasts, question: 'q', runs: 5000 })!;
++    const sum = Object.values(e.probabilities).reduce((a, b) => a + b, 0);
++    expect(sum).toBeCloseTo(1, 5);
++  });
++
++  it('strong majorities concentrate probability on matching cells', () => {
++    // u2 (link 3) near-certain realized → cells with conditions.u3=true dominate.
++    const forecasts = [mkForecasts(2, 0.5), mkForecasts(3, 0.95)];
++    const e = electScenario({ scenarios, forecasts, question: 'q', runs: 8000 })!;
++    const top = scenarios.find(s => s.id === e.scenarioId)!;
++    expect(top.conditions['u3']).toBe(true);
++    expect(e.probability).toBeGreaterThan(0.5);
++  });
++
++  it('returns null when a conditioned link lacks a distribution', () => {
++    const e = electScenario({ scenarios, forecasts: [mkForecasts(2, 0.7)], question: 'q' });
++    expect(e).toBeNull();
++  });
++});
+diff --git a/__tests__/lib/agent/repair-reserve.test.ts b/__tests__/lib/agent/repair-reserve.test.ts
+index d89d894..2ce1b1d 100644
+--- a/__tests__/lib/agent/repair-reserve.test.ts
++++ b/__tests__/lib/agent/repair-reserve.test.ts
+@@ -62,9 +62,10 @@ describe('analyst multipass — passes degrade inside the repair reserve', () =>
+     const result = await withExecutionDeadline(10 * 60_000, 'test-deadline', () =>
+       analystAgentV3('test question about Nordic defence', SOURCES, [], { depth: 'strategic' })
+     );
+-    // P2 compact ran, P3 → lightweight synthesis (no LLM call).
++    // P2 compact ran, P3 → lightweight synthesis (no LLM call) — the chain
++    // is now synthesized deterministically from the friction map (1 link).
+     expect(mockedLLM).toHaveBeenCalledTimes(2);
+-    expect((result as any).causalChain).toHaveLength(0); // lightweight path
++    expect((result as any).causalChain).toHaveLength(1);
+     expect((result as any)._meta.failed).toBeUndefined();
+   });
+ 
+@@ -76,7 +77,7 @@ describe('analyst multipass — passes degrade inside the repair reserve', () =>
+     );
+     expect(mockedLLM).toHaveBeenCalledTimes(1);
+     expect((result as any)._meta.stressTestMap.mechanismAssessments).toHaveLength(0);
+-    expect((result as any).causalChain).toHaveLength(0); // lightweight path
++    expect((result as any).causalChain).toHaveLength(1); // synthesized from friction map
+     expect((result as any)._meta.failed).toBeUndefined();
+   });
+ 
+diff --git a/__tests__/lib/agent/synthesized-chain.test.ts b/__tests__/lib/agent/synthesized-chain.test.ts
+new file mode 100644
+index 0000000..0c4328e
+--- /dev/null
++++ b/__tests__/lib/agent/synthesized-chain.test.ts
+@@ -0,0 +1,112 @@
++import { synthesizeCausalChainFromMaps } from '@/lib/agent/analyst-multipass';
++import { deriveChainScenarios } from '@/lib/agent/chain-scenarios';
++import type { FrictionMap, StressTestMap } from '@/lib/agent/analyst-multipass';
++
++function friction(mechanisms: FrictionMap['mechanisms']): FrictionMap {
++  return {
++    mechanisms,
++    collisions: [],
++    dataLandscape: { totalDataPoints: 0, quantitativeFindings: [], activeDynamics: [], projectionsInLiterature: [] },
++  };
++}
++
++function mech(id: number, temporalStatus: 'present_fact' | 'active_mechanism', extra: Partial<FrictionMap['mechanisms'][number]> = {}) {
++  return {
++    id,
++    description: `mechanism ${id} description`,
++    domain: 'law',
++    crossDomainEffects: '',
++    sources: [`[SRC-${id + 1}]`],
++    dataPoints: [`data point for ${id} [SRC-${id + 1}]`],
++    temporalStatus,
++    trajectoryHint: '',
++    ...extra,
++  };
++}
++
++function stress(over: Partial<StressTestMap> = {}): StressTestMap {
++  return {
++    mechanismAssessments: [],
++    collisionAssessments: [],
++    survivingMechanisms: [],
++    strongestChain: { presentFactIds: [], mechanismIds: [], projectedFuture: '' },
++    ...over,
++  };
++}
++
++describe('synthesizeCausalChainFromMaps', () => {
++  it('returns empty chain when no mechanisms exist', () => {
++    expect(synthesizeCausalChainFromMaps(friction([]), stress())).toEqual([]);
++  });
++
++  it('builds a single-root ordered chain with derivesFrom edges', () => {
++    const links = synthesizeCausalChainFromMaps(
++      friction([mech(2, 'active_mechanism'), mech(1, 'present_fact'), mech(3, 'active_mechanism')]),
++      stress({ survivingMechanisms: [1, 2, 3] }),
++    );
++    expect(links).toHaveLength(3);
++    expect(links[0].temporalStatus).toBe('present_fact');
++    expect(links[0].derivesFrom).toBeNull();
++    expect(links[1].derivesFrom).toBe(1);
++    expect(links[2].derivesFrom).toBe(2);
++    expect(links.every(l => l.sourceRef !== undefined)).toBe(true);
++  });
++
++  it('filters to surviving mechanisms when P2 ran', () => {
++    const links = synthesizeCausalChainFromMaps(
++      friction([mech(1, 'present_fact'), mech(2, 'active_mechanism'), mech(3, 'active_mechanism')]),
++      stress({ survivingMechanisms: [1, 3] }),
++    );
++    expect(links.map(l => l.id)).toEqual([1, 2]);
++    expect(links[1].derivesFrom).toBe(1);
++  });
++
++  it('appends a future_extrapolation link from strongestChain.projectedFuture', () => {
++    const links = synthesizeCausalChainFromMaps(
++      friction([mech(1, 'present_fact'), mech(2, 'active_mechanism')]),
++      stress({
++        survivingMechanisms: [1, 2],
++        strongestChain: { presentFactIds: [1], mechanismIds: [2], projectedFuture: 'market consolidates by 2028' },
++      }),
++    );
++    const last = links[links.length - 1];
++    expect(last.temporalStatus).toBe('future_extrapolation');
++    expect(last.derivesFrom).toBe(links.length - 1);
++    expect(last.claim).toContain('market consolidates');
++  });
++
++  it('tags weak mechanisms honestly (stress-test rejection or thin evidence)', () => {
++    const links = synthesizeCausalChainFromMaps(
++      friction([
++        mech(1, 'present_fact'),
++        mech(2, 'active_mechanism', { dataPoints: [], sources: ['[SRC-9]'] }),
++        mech(3, 'active_mechanism'),
++      ]),
++      stress({
++        survivingMechanisms: [1, 2, 3],
++        mechanismAssessments: [
++          { mechanismId: 3, verdict: 'holds', reasoning: '', canSupportExtrapolation: false, hostileExpertObjection: '', temporalChain: { anchoredIn: '', mechanism: '', projectsTo: '' } },
++        ],
++      }),
++    );
++    const byId = new Map(links.map(l => [l.id, l]));
++    // link ids are positional (1,2,3), mechanisms filtered to survivors
++    expect(byId.get(2)!.passageVerdict).toBe('weak'); // thin evidence
++    expect(byId.get(3)!.passageVerdict).toBe('weak'); // canSupportExtrapolation=false
++    expect(byId.get(1)!.passageVerdict).toBeUndefined(); // present_fact untouched
++  });
++
++  it('feeds deriveChainScenarios: weak mechanism + extrapolation = 2 uncertainties', () => {
++    const links = synthesizeCausalChainFromMaps(
++      friction([mech(1, 'present_fact'), mech(2, 'active_mechanism', { dataPoints: [], sources: ['[SRC-9]'] })]),
++      stress({
++        survivingMechanisms: [1, 2],
++        strongestChain: { presentFactIds: [1], mechanismIds: [2], projectedFuture: 'consolidation follows' },
++      }),
++    );
++    const derived = deriveChainScenarios(links, '2027-2029');
++    expect(derived).not.toBeNull();
++    expect(derived!.uncertainties.length).toBeGreaterThanOrEqual(2);
++    expect(derived!.scenarios.length).toBeGreaterThanOrEqual(3);
++  });
++});
+diff --git a/app/api/admin/migrate-predictions/route.ts b/app/api/admin/migrate-predictions/route.ts
+new file mode 100644
+index 0000000..5a4676b
+--- /dev/null
++++ b/app/api/admin/migrate-predictions/route.ts
+@@ -0,0 +1,45 @@
++/**
++ * POST /api/admin/migrate-predictions — one-shot schema migration for the
++ * OT-1 Prediction columns (kind, dueAt, linkId, parentPredictionId,
++ * resolutionSource). Idempotent (IF NOT EXISTS). Guarded by ADMIN_KEY.
++ *
++ * Needed because `prisma db push` can't run against prod from a dev machine
++ * without the Neon URL — this route executes the same additive DDL through
++ * the already-bundled Prisma client.
++ */
++
++import { NextRequest, NextResponse } from 'next/server';
++import { prisma } from '@/lib/db';
++import { env } from '@/lib/env';
++
++export const dynamic = 'force-dynamic';
++export const maxDuration = 30;
++
++const DDL = [
++  `ALTER TABLE "Prediction" ADD COLUMN IF NOT EXISTS "kind" TEXT NOT NULL DEFAULT 'strategic'`,
++  `ALTER TABLE "Prediction" ADD COLUMN IF NOT EXISTS "dueAt" TIMESTAMP(3)`,
++  `ALTER TABLE "Prediction" ADD COLUMN IF NOT EXISTS "linkId" TEXT`,
++  `ALTER TABLE "Prediction" ADD COLUMN IF NOT EXISTS "parentPredictionId" TEXT`,
++  `ALTER TABLE "Prediction" ADD COLUMN IF NOT EXISTS "resolutionSource" TEXT`,
++  `ALTER TABLE "Prediction" ADD COLUMN IF NOT EXISTS "domain" TEXT`,
++  `CREATE INDEX IF NOT EXISTS "Prediction_domain_idx" ON "Prediction"("domain")`,
++  `CREATE INDEX IF NOT EXISTS "Prediction_dueAt_idx" ON "Prediction"("dueAt")`,
++  `CREATE INDEX IF NOT EXISTS "Prediction_kind_idx" ON "Prediction"("kind")`,
++];
++
++export async function POST(req: NextRequest) {
++  const key = req.headers.get('x-admin-key') ?? req.nextUrl.searchParams.get('key');
++  if (!env.ADMIN_KEY || key !== env.ADMIN_KEY) {
++    return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
++  }
++  const results: string[] = [];
++  for (const sql of DDL) {
++    try {
++      await prisma.$executeRawUnsafe(sql);
++      results.push(`ok: ${sql.slice(0, 60)}`);
++    } catch (err) {
++      results.push(`fail: ${sql.slice(0, 60)} — ${err instanceof Error ? err.message.slice(0, 120) : String(err)}`);
++    }
++  }
++  return NextResponse.json({ results });
++}
+diff --git a/docs/NOMOSX_COMPLETE.md b/docs/NOMOSX_COMPLETE.md
+index 71c4666..f48c6cb 100644
+--- a/docs/NOMOSX_COMPLETE.md
++++ b/docs/NOMOSX_COMPLETE.md
+@@ -4341,3 +4341,99 @@ argumenté, pas un tri par probabilité.
+ 2026-11 (tables `PipelineRun`, `Brief`, `ThinkTankPublication`,
+ `ThinkTankQualityCheck`, `Prediction`, `CostLog`,
+ `ThinkTankPublicationRun`).*
++
++---
++
++# PARTIE IV — IMPLÉMENTATION DE L'AUDIT EXTERNE (état au 2026-11-12)
++
++L'audit « NomosX — Audit qualité des publications et architecture cible » a été
++traduit en ordres de travail OT-1 → OT-8. État réel du code sur `main` :
++
++## IV.1 Livré et poussé
++
++| OT | Livrable | Fichiers | Statut |
++|---|---|---|---|
++| OT-8 traces | `persistCostLog` à la frontière `callLLM`/`streamLLM` (provider/modèle effectif, tokens, coût, runId, exempte replay) ; gate persisté dans `PipelineRun.steps.publicationGate` ; `ThinkTankPublicationRun` créé par publication | `lib/llm/unified-llm.ts`, `lib/agent/inquiry-orchestrator.ts`, `lib/agent/pipeline-steps/persistence-tail.ts` | ✅ |
++| OT-1 sentinelles | Schéma `Prediction` : `kind`, `dueAt`, `linkId`, `parentPredictionId`, `resolutionSource` ; registration émet 3 sentinelles 30/60/90j depuis `whatToWatch`+triggers ; `parseHorizonDue` fallback prose ; **backfill exécuté : 813 dueAt + 749 sentinelles** — première échéance 2026-12-31 (était 2028-07) | `prisma/schema.prisma`, `lib/agent/prediction-registration.ts`, `lib/agent/prediction-horizon.ts` | ✅ local — ⚠️ prod Neon à migrer |
++| OT-2 gate binaire | `binary-gate.ts` — 6 checks binaires calculés + persistés en `stats.publicationGate.binaryChecks`, **non décisifs** (shadow) | `lib/agent/binary-gate.ts` | ✅ shadow |
++| OT-3 scénarios chaîne | `chain-scenarios.ts` — incertitudes dérivées de `causalChain` (`future_extrapolation`/`active_mechanism`), cellules mutuellement exclusives, cellule incohérente écartée ; chaîne complète passée à l'arbitre | `lib/agent/chain-scenarios.ts`, `arbiter-foresight.ts` | ✅ |
++| OT-4 swarm électeur | `swarm-forecaster.ts` — 15 votants indépendants : rotation 3 providers, tranches de preuves disjointes + pool partagé (`evidence-partition`), 4 lentilles, formulation niée (anti-acquiescement), agrégation log-odds ; votes malformés rejetés (pas de réparation) | `lib/agent/swarm-forecaster.ts` | ✅ |
++| OT-5 Monte Carlo | `mc-elector.ts` — Beta(moments) par maillon, 20 000 tirages seedés, IC Wilson, `contested`, margin vs runner-up, `selectedBy:'swarm'` ; **déterministe au seed près** (7 tests) | `lib/agent/mc-elector.ts` | ✅ |
++| OT-6 arbitre rédacteur | Réordonnancement : chaîne → swarm → élection **avant** l'arbitre ; l'arbitre reçoit la branche élue (p, IC, contested, runner-up) avec interdiction de modifier les probabilités ; **enforcement post-parse** : proba épinglée, runner-ups rescadés à Σ100, `dominantScenario` forcé, CI attachée ; Delphi calibration skippé sous élection (il réécrivait les probabilités) ; `selectedBy:'swarm'` accepté par `centralScenarioIssues` ; `analysis.scenarios` synchronisé | `arbiter-foresight.ts`, `editorial-arbiter.ts`, `editorial-types.ts` | ✅ |
++| Cleanup citations | **Héritage de citation supprimé** (`citation-filter`) ; **3 passes d'injection lexicale supprimées** (`citation-repair` : source-match, content-match, broad) ; injection du grounding-veto du critical-loop supprimée ; `repairCitations` ne garde que backfill analyste + sanitization + normalisation | `citation-filter.ts`, `citation-repair.ts`, `critical-loop-v2.ts` | ✅ |
++| Cleanup probas | Gabarit 50/30/20 supprimé (`editorial-scenarios.ts` effacé, fallback arbitre → `'—'`) ; `sourceBoost`/`calibrateFromSources`/`inferAssumptions` retirés du chemin de probabilité | `simulation-agent.ts`, `editorial-arbiter.ts` | ✅ |
++| OT-7 calibration | `Prediction.domain` + rapport calibration sur axes réels + `getCalibrationShrink()` injecté avant l'élection MC (actif après ≥20 résolutions) | `prediction-tracker.ts`, `schema.prisma` | ✅ câblé, en attente de données |
++| Freeze apprentissage | `learning-gate.ts` — toutes les écritures mémoire/auto-évolution **gelées par défaut** (`NOMOSX_LEARNING_WRITES=1` pour réactiver) : KG, gap-filler, episodic, agent-memory, skill-bank, lesson-verifier, source-reputation, experience-bank, witness, world-model, PRM, self-evolver, MoA. Lectures inchangées | `learning-gate.ts`, `persistence-tail.ts`, `inquiry-orchestrator.ts`, `publication-generator.ts` | ✅ gelé — ablation par replay à planifier |
++| Migration prod | Route `POST /api/admin/migrate-predictions` — DDL idempotent des 5 colonnes `Prediction`, gardée par `ADMIN_KEY` (le client Prisma est déjà bundlé ; `prisma db push` impossible sans URL Neon locale) | `app/api/admin/migrate-predictions/route.ts` | ✅ à déployer |
++
++## IV.2 Architecture résultante (chemin prospectif)
++
++```
++causalChain (analyst-multipass, typé)
++  → deriveChainScenarios      incertitudes = maillons future_extrapolation /
++                              active_mechanism ; cellules exclusives par
++                              combinaison de conditions
++  → runSwarmVote              15 votants × preuves disjointes+partagées,
++                              3 familles providers, lentilles, formulation
++                              niée → distribution par maillon (log-odds)
++  → electScenario             Beta par maillon → 20k tirages seedés →
++                              proba exacte par cellule + IC Wilson +
++                              contested + runner-up
++  → editorialArbiter          RÉDIGE pour la branche élue (proba épinglée
++                              post-parse, runner-ups rescadés, Σ=100)
++  → resolveCentralScenario    contourné quand selectedBy='swarm'
++  → stats.{chainScenarios, swarmForecasts, swarmElection, centralScenario,
++            foresight.elected} persistés dans PipelineRun.steps
++```
++
++Fallback honnête : si la chaîne ne produit pas d'incertitudes ou si le swarm
++ne produit aucun forecast valide, l'ancien chemin Monte Carlo +
++`resolveCentralScenario` reste actif — ces runs sont marqués
++(`stats.swarmElection.skipped` / `reason`) et ne peuvent pas usurper
++`selectedBy:'swarm'`.
++
++## IV.3 Reste à faire
++
++1. ~~**Prod Neon**~~ : ✅ **fait** — `prisma db push` exécuté sur la base de
++   production (2026-11-12) : colonnes `kind/dueAt/linkId/parentPredictionId/
++   resolutionSource/domain` + index créés. Backfill relancé sur prod :
++   **31 predictions stratégiques → dueAt posés, 16 sentinelles créées,
++   47 OPEN au total, première échéance 2026-12-31**. La route admin
++   `/api/admin/migrate-predictions` reste disponible pour les futures
++   migrations additives.
++2. **OT-7 calibration** : ✅ câblée — `Prediction.domain` + rapport de
++   calibration sur axes réels (domain/kind/horizon) + `getCalibrationShrink()`
++   injecté avant l'élection (≥20 résolutions requises, shrink borné 0,70).
++   Reste : attendre les résolutions (1ʳᵉ sentinelle ~90j, 1ʳᵉ stratégique
++   2026-12-31) ; bootstrap ForecastBench possible en attendant.
++3. **Bascule gate** : `binaryChecks` en shadow → comparés aux décisions
++   réelles sur ~10 runs stables → alors seulement décisifs. Composite
++   trust/quality conservé comme signal advisory (routage degraded-mode,
++   confidence warnings).
++4. **Ablation** : ✅ écritures gelées (`learning-gate.ts`). Reste :
++   replay par module pour prouver l'inutilité avant suppression ;
++   `Temporal`/`Redis` legacy peuvent partir (déjà morts).
++5. **Investigations ouvertes** : qualityScore persisté 50-66 sur des
++   publications alors que le seuil documenté est 70 (score gaté ≠ colonne
++   stockée ? chemin alternatif ?) ; `ThinkTankQualityCheck` en échec sur
++   des publications (ADVERSARIAL/CALIBRATION étaient déjà morts — le gate
++   binaire shadow les remplace).
++6. **Coût swarm** : 15 appels/votants/run — mesurer via CostLog (désormais
++   instrumenté) avant de monter `VOTER_COUNT`.
++
++## IV.4 Risques résiduels connus
++
++- L'élection swarm dépend de `analysis.causalChain` non vide — les runs sans
++  chaîne exploitable restent sur le chemin legacy (marqué, pas silencieux).
++- `runSwarmVote` est non-bloquant par design : un swarm en échec dégrade vers
++  le fallback MC — acceptable tant que `stats.swarmElection.error` est
++  persisté et auditable.
++- Les probabilités de scénarios *non élus* sont rescadées proportionnellement
++  aux estimations de l'arbitre — elles restent des priors LLM, mais
++  minoritaires par construction (le élu porte la masse).
++- Le retrait de l'injection de citations peut faire chuter `citationCoverage`
++  sur les runs où l'injection masquait des lacunes réelles — c'est le but
++  (fail closed), mais surveiller le taux de HELD sur les prochains runs.
++
++*Tests : `chain-scenarios.test.ts` 7/7, `central-scenario*.test.ts` 34/34,
++`prediction-horizon.test.ts` 7/7, typecheck `tsc --noEmit` 0 erreur.*
+diff --git a/lib/agent/analyst-multipass.ts b/lib/agent/analyst-multipass.ts
+index 64f7b52..1fe89e0 100644
+--- a/lib/agent/analyst-multipass.ts
++++ b/lib/agent/analyst-multipass.ts
+@@ -279,7 +279,7 @@ function buildSourceContext(sources: any[], readings?: any[], depth: 'brief' | '
+ 
+       // Build context: full tier gets everything, compact tier gets title + abstract only
+       const displayQuality = (s.qualityScore || 0) > 0 ? s.qualityScore : ((s as any).sourceQuality?.overall || 0);
+-      let context = `[SRC-${i + 1}] ${s.provider.toUpperCase()} | Quality: ${displayQuality}/100 | Citations: ${s.citationCount || 0} | EXTRACTION: ${grounded ? "GROUNDED (full-text/reader — citable for facts)" : "ABSTRACT-ONLY (metadata — context only, do NOT cite for specific facts/numbers)"}
++      let context = `[SRC-${i + 1}] ${String(s.provider ?? 'unknown').toUpperCase()} | Quality: ${displayQuality}/100 | Citations: ${s.citationCount || 0} | EXTRACTION: ${grounded ? "GROUNDED (full-text/reader — citable for facts)" : "ABSTRACT-ONLY (metadata — context only, do NOT cite for specific facts/numbers)"}
+ Title: ${s.title}
+ Authors: ${authors.join(", ") || "N/A"}
+ Year: ${s.year || "N/A"}`;
+@@ -782,6 +782,67 @@ ${missionPrompt}`;
+ // PASS 3: PROSPECTIVE SYNTHESIS
+ // ============================================================================
+ 
++/**
++ * Deterministic causalChain for the lightweight-synthesis path: the
++ * friction/stress maps already carry the evidence (mechanism descriptions,
++ * dataPoints with [SRC-N], surviving ids). Without this, a time-budget
++ * downgrade silently produced causalChain:[] and disabled the entire
++ * chain-scenario → swarm → MC-election foresight path downstream.
++ *
++ * Honest uncertainty signal for downstream scenario derivation: a mechanism
++ * the stress test says cannot carry extrapolation
++ * (canSupportExtrapolation=false), or one with thin deterministic evidence
++ * (no dataPoints, <2 cited sources), is tagged passageVerdict:'weak' — the
++ * same uncertainty class deriveChainScenarios consumes. present_fact links
++ * are left untouched; the claim→passage contract owns their verdicts.
++ */
++export function synthesizeCausalChainFromMaps(friction: FrictionMap, stress: StressTestMap): CausalLink[] {
++  const mechanisms = Array.isArray(friction?.mechanisms) ? friction.mechanisms : [];
++  if (mechanisms.length === 0) return [];
++  const surviving = new Set<number>(Array.isArray(stress?.survivingMechanisms) ? stress.survivingMechanisms : []);
++  const assessments = new Map((Array.isArray(stress?.mechanismAssessments) ? stress.mechanismAssessments : []).map(a => [a.mechanismId, a]));
++  const ordered = [...mechanisms]
++    .filter(m => surviving.size === 0 || surviving.has(m.id))
++    .sort((a, b) => (a.temporalStatus === 'present_fact' ? 0 : 1) - (b.temporalStatus === 'present_fact' ? 0 : 1))
++    .slice(0, 8);
++  const links: CausalLink[] = [];
++  ordered.forEach((m, i) => {
++    const srcs = (Array.isArray(m.sources) ? m.sources : []).filter(s => typeof s === 'string');
++    const dataPoints = (Array.isArray(m.dataPoints) ? m.dataPoints : []).filter(d => typeof d === 'string');
++    const evidence = dataPoints.length > 0 ? dataPoints.join(' ') : srcs.join(' ');
++    const claimBase = String(m.description ?? '').trim();
++    const claim = /\[SRC-\d+\]/.test(claimBase) ? claimBase : `${claimBase} ${srcs.join(' ')}`.trim();
++    const srcMatch = `${evidence} ${claimBase} ${srcs.join(' ')}`.match(/\[SRC-(\d+)\]/);
++    const assessment = assessments.get(m.id);
++    const thinEvidence = dataPoints.length === 0 && srcs.length < 2;
++    const weakMechanism = m.temporalStatus === 'active_mechanism' &&
++      (assessment?.canSupportExtrapolation === false || thinEvidence);
++    links.push({
++      id: i + 1,
++      claim,
++      evidence: evidence || claim,
++      warrant: String(m.crossDomainEffects || m.trajectoryHint || 'mechanism asserted by friction mapping').slice(0, 400),
++      temporalStatus: m.temporalStatus === 'present_fact' ? 'present_fact' : 'active_mechanism',
++      derivesFrom: i === 0 ? null : i,
++      sourceRef: srcMatch ? parseInt(srcMatch[1], 10) : undefined,
++      ...(weakMechanism ? { passageVerdict: 'weak' as const } : {}),
++    });
++  });
++  const projected = String(stress?.strongestChain?.projectedFuture ?? '').trim();
++  if (projected && links.length > 0) {
++    links.push({
++      id: links.length + 1,
++      claim: projected,
++      evidence: projected,
++      warrant: 'extrapolation from surviving mechanisms under stated assumptions',
++      temporalStatus: 'future_extrapolation',
++      derivesFrom: links.length,
++      sourceRef: links[links.length - 1].sourceRef,
++    });
++  }
++  return links;
++}
++
+ async function pass3ProspectiveSynthesis(
+   question: string,
+   ctx: string,
+@@ -1489,6 +1550,12 @@ export async function analystAgentV3(
+       tokens: 0,
+       cost: 0,
+     });
++    // Deterministic causalChain for the lightweight-synthesis path: the
++    // friction/stress maps already carry the evidence (mechanism descriptions,
++    // dataPoints with [SRC-N], surviving ids). Without this, a time-budget
++    // downgrade silently produced causalChain:[] and disabled the entire
++    // chain-scenario → swarm → MC-election foresight path downstream.
++    const synthesizeCausalChain = () => synthesizeCausalChainFromMaps(validatedMap.map, p2.map);
+     let p2: { map: StressTestMap; tokens: number; cost: number };
+     let p2Compact = false;
+     if (hasRunHeadroomWithReserve(undefined, isStrategic, passBudgetMs)) {
+@@ -1544,7 +1611,7 @@ export async function analystAgentV3(
+           verdict: survivingCount > 0 ? 'tempered' : 'causal_only',
+           convictionLevel: survivingCount > 0 ? 'tempered' : 'causal_only',
+           anchoringBasis: 'Pass 1 friction mapping + Pass 2 stress test',
+-          causalChain: [],
++          causalChain: synthesizeCausalChain(),
+           trajectory: { horizon: '12 months', state: 'current', assumptions: 'Based on available sources' },
+           rejectedAlternatives: [],
+           whatToWatch: { signals: [], whatWouldChangeMind: 'Additional evidence needed', horizonCheck: '6-12 months' },
+diff --git a/lib/agent/binary-gate.ts b/lib/agent/binary-gate.ts
+new file mode 100644
+index 0000000..3ec1ad3
+--- /dev/null
++++ b/lib/agent/binary-gate.ts
+@@ -0,0 +1,103 @@
++/**
++ * BINARY PUBLICATION GATE — OT-2 (shadow mode).
++ *
++ * The composite trust/quality score decides nothing here: publication is a
++ * conjunction of six verifiable facts. Until the swarm elector (OT-4/5)
++ * exists, `scenarios_from_chain` and `swarm_healthy` will legitimately fail —
++ * that is the point of shadow mode: the checks are computed and persisted so
++ * the transition is measurable before it is enforced.
++ *
++ * Each check is binary and evidence-bound: missing instrumentation reports
++ * `passed:false` with detail 'no data' — never silently passes.
++ */
++
++export type GateCheckId =
++  | 'claims_entailed'
++  | 'numbers_in_ledger'
++  | 'scenarios_from_chain'
++  | 'swarm_healthy'
++  | 'objections_answered'
++  | 'predictions_registered';
++
++export interface BinaryGateCheck {
++  id: GateCheckId;
++  passed: boolean;
++  detail: string;
++}
++
++export interface BinaryGateInput {
++  /** stats.claimBinding / atomic-claims outcome: share of factual claims with
++   *  a verified claim→passage entailment. */
++  claimsEntailmentRatio?: number;
++  /** stats.numbersLedger / numericalGate: share of published numbers traced
++   *  to an evidence card. */
++  numbersTracedRatio?: number;
++  /** stats.centralScenario.selectedBy — 'swarm' once OT-5 lands; 'editorial' |
++   *  'probability_fallback' today. */
++  centralScenarioSelectedBy?: string;
++  /** True when no 50/30/20 template scenarios were injected upstream. */
++  scenariosFromChain?: boolean;
++  /** Swarm vote telemetry (OT-4): valid votes, distinct model families, MC
++   *  convergence flag. */
++  swarmVotes?: { valid: number; families: number; converged: boolean };
++  /** Unanswered sourced objections from the red team / DA. */
++  unansweredObjections?: number;
++  /** Count of OPEN predictions with a resolvable dueAt/horizon. */
++  resolvablePredictions?: number;
++}
++
++export function evaluateBinaryGate(input: BinaryGateInput): BinaryGateCheck[] {
++  const checks: BinaryGateCheck[] = [];
++
++  checks.push({
++    id: 'claims_entailed',
++    passed: typeof input.claimsEntailmentRatio === 'number' && input.claimsEntailmentRatio >= 0.999,
++    detail: typeof input.claimsEntailmentRatio === 'number'
++      ? `claim→passage entailment ${Math.round(input.claimsEntailmentRatio * 100)}% (need 100%)`
++      : 'no data — claim-passage contract not measured on this run',
++  });
++
++  checks.push({
++    id: 'numbers_in_ledger',
++    passed: typeof input.numbersTracedRatio === 'number' && input.numbersTracedRatio >= 0.999,
++    detail: typeof input.numbersTracedRatio === 'number'
++      ? `numbers traced to evidence cards ${Math.round(input.numbersTracedRatio * 100)}% (need 100%)`
++      : 'no data — numbers ledger not measured on this run',
++  });
++
++  const swarmElected = input.centralScenarioSelectedBy === 'swarm';
++  checks.push({
++    id: 'scenarios_from_chain',
++    passed: swarmElected && input.scenariosFromChain === true,
++    detail: swarmElected
++      ? (input.scenariosFromChain === true ? 'scenario elected by swarm, derived from causal chain' : 'swarm-elected but template scenarios detected upstream')
++      : `central scenario selectedBy='${input.centralScenarioSelectedBy ?? 'none'}' — swarm elector not yet active (OT-5)`,
++  });
++
++  const s = input.swarmVotes;
++  checks.push({
++    id: 'swarm_healthy',
++    passed: !!s && s.valid >= 12 && s.families >= 3 && s.converged,
++    detail: s
++      ? `${s.valid} valid votes / ${s.families} families / converged=${s.converged} (need ≥12, ≥3, converged)`
++      : 'no data — swarm voter not yet active (OT-4)',
++  });
++
++  checks.push({
++    id: 'objections_answered',
++    passed: typeof input.unansweredObjections === 'number' && input.unansweredObjections === 0,
++    detail: typeof input.unansweredObjections === 'number'
++      ? `${input.unansweredObjections} sourced objection(s) unanswered`
++      : 'no data — objection ledger not measured on this run',
++  });
++
++  checks.push({
++    id: 'predictions_registered',
++    passed: typeof input.resolvablePredictions === 'number' && input.resolvablePredictions >= 3,
++    detail: typeof input.resolvablePredictions === 'number'
++      ? `${input.resolvablePredictions} resolvable predictions registered (need ≥3)`
++      : 'no data — prediction registration not measured on this run',
++  });
++
++  return checks;
++}
+diff --git a/lib/agent/chain-scenarios.ts b/lib/agent/chain-scenarios.ts
+new file mode 100644
+index 0000000..7bbe77e
+--- /dev/null
++++ b/lib/agent/chain-scenarios.ts
+@@ -0,0 +1,132 @@
++/**
++ * CHAIN-DERIVED SCENARIOS — OT-3.
++ *
++ * Scenarios must be a mechanical consequence of the causal chain, not an LLM
++ * re-narration. This module marks which links are genuinely uncertain,
++ * picks the two critical uncertainties (the ones the most downstream links
++ * depend on), crosses them into exclusive scenario cells, and emits scenario
++ * skeletons with observable conditions — no probabilities here. Probability
++ * is the swarm/Monte Carlo's job (OT-4/5); naming and narrative belong to
++ * the arbiter.
++ *
++ * Hard rule (enforced by callers): fewer than two derivable uncertainties
++ * holds the run — never fall back to a 50/30/20 template.
++ */
++
++import type { CausalLink } from './analyst-multipass';
++
++export interface ChainUncertainty {
++  linkId: number;
++  claim: string;
++  kind: 'future_extrapolation' | 'weak_mechanism';
++  downstream: number; // links that transitively derive from this one
++}
++
++export interface ChainScenario {
++  /** Stable id — election and tie-breaking key (OT-5). */
++  id: string;
++  /** Which uncertainty resolved which way: linkId → realized? */
++  conditions: Record<string, boolean>;
++  name: string; // deterministic skeleton name — arbiter may rewrite for prose
++  description: string;
++  observableAt: string; // ISO horizon
++  uncertaintyIds: number[];
++}
++
++/** A link is uncertain if it projects the future, or if its mechanism is
++ *  weakly supported (no passage grounding / flagged unsupported). */
++function isUncertain(link: CausalLink): 'future_extrapolation' | 'weak_mechanism' | null {
++  if (link.temporalStatus === 'future_extrapolation') return 'future_extrapolation';
++  if (link.temporalStatus === 'active_mechanism' && (link.unsupported || link.passageVerdict === 'weak' || link.passageVerdict === 'none')) {
++    return 'weak_mechanism';
++  }
++  return null;
++}
++
++/** Count transitive downstream dependents via derivesFrom edges. */
++function downstreamCounts(links: CausalLink[]): Map<number, number> {
++  const byId = new Map(links.map(l => [l.id, l]));
++  const counts = new Map<number, number>();
++  for (const l of links) {
++    let cur: CausalLink | undefined = l;
++    const seen = new Set<number>();
++    while (cur?.derivesFrom != null && !seen.has(cur.derivesFrom)) {
++      seen.add(cur.derivesFrom);
++      counts.set(cur.derivesFrom, (counts.get(cur.derivesFrom) ?? 0) + 1);
++      cur = byId.get(cur.derivesFrom);
++    }
++  }
++  return counts;
++}
++
++/**
++ * Derive scenario skeletons from the causal chain.
++ * Returns null when fewer than two critical uncertainties exist — caller
++ * must hold the run rather than fabricate a template.
++ */
++export function deriveChainScenarios(
++  links: CausalLink[] | undefined,
++  horizon: string | undefined,
++): { scenarios: ChainScenario[]; uncertainties: ChainUncertainty[] } | null {
++  if (!links || links.length < 3) return null;
++
++  const down = downstreamCounts(links);
++  const uncertain: ChainUncertainty[] = links
++    .map(l => {
++      const kind = isUncertain(l);
++      return kind ? { linkId: l.id, claim: l.claim, kind, downstream: down.get(l.id) ?? 0 } : null;
++    })
++    .filter((u): u is ChainUncertainty => u !== null)
++    // Criticality: downstream dependents first, then chain order.
++    .sort((a, b) => b.downstream - a.downstream);
++
++  if (uncertain.length < 2) return null;
++  const [u1, u2] = uncertain;
++
++  // Observable horizon: trajectory horizon text → ISO date when parseable,
++  // else +12 months. Scenarios are checked AT the note's horizon.
++  const horizonMatch = (horizon ?? '').match(/(20\d{2})/);
++  const observableAt = horizonMatch
++    ? `${horizonMatch[1]}-12-31`
++    : new Date(Date.now() + 365 * 86_400_000).toISOString().slice(0, 10);
++
++  const u1id = `u${u1.linkId}`, u2id = `u${u2.linkId}`;
++  const combos: Array<{ a: boolean; b: boolean; tag: string }> = [
++    { a: true,  b: true,  tag: 'convergent' },
++    { a: true,  b: false, tag: 'u1-only' },
++    { a: false, b: true,  tag: 'u2-only' },
++    { a: false, b: false, tag: 'neither' },
++  ];
++
++  // Incoherence rule (deterministic): if u2 derives from u1, the "u2 realized
++  // while u1 fails" cell is causally incoherent — u2 cannot outrun its
++  // premise. Drop it; the remaining three cells stay mutually exclusive.
++  const u2link = links.find(l => l.id === u2.linkId);
++  const u2dependsOnU1 = (() => {
++    let cur: CausalLink | undefined = u2link;
++    const seen = new Set<number>();
++    while (cur?.derivesFrom != null && !seen.has(cur.derivesFrom)) {
++      if (cur.derivesFrom === u1.linkId) return true;
++      seen.add(cur.derivesFrom);
++      cur = links.find(l => l.id === cur!.derivesFrom);
++    }
++    return false;
++  })();
++
++  const kept = combos.filter(c => !(u2dependsOnU1 && !c.a && c.b));
++  const cells = kept.length >= 3 ? kept : combos.slice(0, 3);
++
++  const scenarios: ChainScenario[] = cells.map((c, i) => ({
++    id: `scn-${u1id}-${u2id}-${c.tag}`,
++    conditions: { [u1id]: c.a, [u2id]: c.b },
++    name: `Chain scenario ${i + 1} (${c.tag})`,
++    description:
++      `If "${u1.claim.slice(0, 140)}" is ${c.a ? 'confirmed' : 'not confirmed'} ` +
++      `and "${u2.claim.slice(0, 140)}" is ${c.b ? 'confirmed' : 'not confirmed'} ` +
++      `by ${observableAt}, the chain resolves along this branch.`,
++    observableAt,
++    uncertaintyIds: [u1.linkId, u2.linkId],
++  }));
++
++  return { scenarios, uncertainties: [u1, u2] };
++}
+diff --git a/lib/agent/citation-filter.ts b/lib/agent/citation-filter.ts
+index 71e1ce4..6eadf1f 100644
+--- a/lib/agent/citation-filter.ts
++++ b/lib/agent/citation-filter.ts
+@@ -4,7 +4,9 @@
+  * Inspired by WueRAG (TREC 2025 #1) and DEER benchmark.
+  *
+  * Two-level policy:
+- * 1. Implicit claim back-tracking: sentences without [SRC-N] inherit citations
++ * 1. Uncited-claim flagging: sentences without [SRC-N] are never given
++ *    borrowed citations (inheritance removed — it fabricated grounding);
++ *    standalone uncited factual claims are candidates for removal.
+  *    from the nearest preceding paragraph that has one (semantic proximity).
+  * 2. Uncited claim flagging: sentences that still have no citation after
+  *    back-tracking get a [UNCITED] marker so the editor can remove or fix them.
+@@ -44,32 +46,15 @@ function looksLikeClaim(sentence: string): boolean {
+   return CLAIM_HINTS.some((hint) => normalized.includes(hint));
+ }
+ 
+-/**
+- * Find the nearest preceding citation in a list of sentences.
+- * Returns the [SRC-N] numbers from the closest preceding sentence that has one.
+- */
+-function findNearestPrecedingCitation(
+-  sentences: string[],
+-  currentIndex: number,
+-  maxLookback: number = 5,
+-): number[] {
+-  for (let i = currentIndex - 1; i >= Math.max(0, currentIndex - maxLookback); i--) {
+-    const citations = extractCitationNumbers(sentences[i]);
+-    if (citations.length > 0) return citations;
+-  }
+-  return [];
+-}
+-
+ /**
+  * Apply implicit claim back-tracking and uncited sentence flagging to HTML.
+  *
+  * This works on the text content within HTML tags. It:
+  * 1. Splits the visible text into sentences
+- * 2. For each sentence that looks like a claim but has no [SRC-N]:
+- *    a. Looks back up to 5 sentences for a citation to inherit
+- *    b. If found, appends the inherited [SRC-N] to the sentence
+- *    c. If not found, marks it with [UNCITED] for later removal
+- * 3. Removes sentences marked [UNCITED] that are standalone factual claims
++ * 2. For each sentence that looks like a claim but has no [SRC-N], it is
++ *    treated as uncited — never inherits a neighbouring citation
++ * 3. Removes sentences that are standalone factual claims with numbers
++ *    or strong factual markers and no citation of their own
+  *
+  * Non-claim sentences (narrative transitions, headings, questions) are preserved.
+  */
+@@ -100,25 +85,12 @@ export function applyCitationFilter(html: string): CitationFilterResult {
+     const citations = extractCitationNumbers(allSentences[i]);
+     if (citations.length > 0) continue; // Already cited
+ 
+-    // Try to inherit from nearest preceding sentence
+-    const inherited = findNearestPrecedingCitation(allSentences, i);
+-    if (inherited.length > 0) {
+-      // Append inherited citation to the sentence in the HTML
+-      const citationTag = inherited.map(n => `[SRC-${n}]`).join('');
+-      const sentenceText = allSentences[i];
+-      // Find this sentence in the HTML and append the citation
+-      const escaped = sentenceText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').slice(0, 60);
+-      const regex = new RegExp(`(${escaped}[^<]*?)([.!?])`, 'm');
+-      html = html.replace(regex, `$1 ${citationTag}$2`);
+-      backtrackedClaims++;
+-    } else {
+-      // Mark for removal if it's a standalone factual claim with no nearby citation
+-      // Only remove if the sentence contains numbers or strong factual claims
+-      const hasNumbers = /\d+[%.,]/.test(allSentences[i]);
+-      const hasStrongClaim = /\b(is|are|was|were|has|have|will|must|should)\b/i.test(allSentences[i]);
+-      if (hasNumbers && hasStrongClaim) {
+-        sentencesToRemove.add(i);
+-      }
++    // Mark for removal if it's a standalone factual claim with no citation
++    // Only remove if the sentence contains numbers or strong factual claims
++    const hasNumbers = /\d+[%.,]/.test(allSentences[i]);
++    const hasStrongClaim = /\b(is|are|was|were|has|have|will|must|should)\b/i.test(allSentences[i]);
++    if (hasNumbers && hasStrongClaim) {
++      sentencesToRemove.add(i);
+     }
+   }
+ 
+diff --git a/lib/agent/citation-repair.ts b/lib/agent/citation-repair.ts
+index d7c5261..e4fd564 100644
+--- a/lib/agent/citation-repair.ts
++++ b/lib/agent/citation-repair.ts
+@@ -304,400 +304,6 @@ export function sanitizeUnsourcedNumbers(html: string): { html: string; sanitize
+   };
+ }
+ 
+-// ─── 3. CITATION INJECTION BY SOURCE MATCHING ───────────────────────────────
+-/**
+- * For paragraphs that mention a source by title or author but lack [SRC-N],
+- * inject the matching citation tag. This helps when the editor renders
+- * source references as text but drops the [SRC-N] tag.
+- */
+-export function injectCitationsBySourceMatch(
+-  html: string,
+-  sources: { title: string; authors?: { author?: { name?: string } }[]; provider?: string }[],
+-): { html: string; injected: number; details: string[] } {
+-  const details: string[] = [];
+-  let injected = 0;
+-
+-  // ── PROTECTED ZONES SYSTEM ──
+-  // Elements marked with data-no-cite are "narrative/editorial voice" —
+-  // citations are NEVER injected into them. This is structural protection
+-  // that replaces fragile regex post-processing.
+-  //
+-  // We extract these elements into skipBlocks BEFORE injection runs,
+-  // then restore them after. The citation engine never sees their content.
+-  const skipBlocks: string[] = [];
+-  let workingHtml = html.replace(/<(style|script)\b[^>]*>[\s\S]*?<\/\1>/gi, (m) => {
+-    skipBlocks.push(m);
+-    return `\x00SKIP${skipBlocks.length - 1}\x00`;
+-  });
+-  // Skip ALL elements with data-no-cite attribute (act-titles, eyebrows,
+-  // through-line, transitions, method-labels, h1, brief-meta)
+-  // Match self-closing and container elements with data-no-cite
+-  workingHtml = workingHtml.replace(/<(\w+)\b[^>]*\bdata-no-cite\b[^>]*>[\s\S]*?<\/\1>/gi, (m) => {
+-    skipBlocks.push(m);
+-    return `\x00SKIP${skipBlocks.length - 1}\x00`;
+-  });
+-  // Also skip <h1>...</h1> and <title>...</title> (legacy protection —
+-  // these should also have data-no-cite, but keep as safety net)
+-  workingHtml = workingHtml.replace(/<h1\b[^>]*>[\s\S]*?<\/h1>/gi, (m) => {
+-    skipBlocks.push(m);
+-    return `\x00SKIP${skipBlocks.length - 1}\x00`;
+-  });
+-  workingHtml = workingHtml.replace(/<title\b[^>]*>[\s\S]*?<\/title>/gi, (m) => {
+-    skipBlocks.push(m);
+-    return `\x00SKIP${skipBlocks.length - 1}\x00`;
+-  });
+-  // Skip the references section — never inject citations into reference titles
+-  workingHtml = workingHtml.replace(/<section class="references-section">[\s\S]*?<\/section>/gi, (m) => {
+-    skipBlocks.push(m);
+-    return `\x00SKIP${skipBlocks.length - 1}\x00`;
+-  });
+-
+-  for (let i = 0; i < sources.length; i++) {
+-    const src = sources[i];
+-    const srcTag = `[SRC-${i + 1}]`;
+-
+-    // Check if this source is already cited (text [SRC-N] OR rendered <sup> tags)
+-    if (workingHtml.includes(srcTag) ||
+-        new RegExp(`data-src=["']${i + 1}["']`).test(workingHtml) ||
+-        new RegExp(`href="#ref-${i + 1}"`).test(workingHtml)) continue;
+-
+-    // Build search patterns from source metadata
+-    const patterns: string[] = [];
+-    if (src.title) {
+-      // Use first 30 chars of title as a search pattern
+-      // CRITICAL: slice BEFORE escaping — slicing after escaping can cut an escape sequence in half
+-      // (e.g., "\(" sliced at char 30 becomes "\" → invalid regex)
+-      const titleSnippet = src.title.slice(0, 30).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+-      if (titleSnippet.length > 10) patterns.push(titleSnippet);
+-    }
+-    // Check author names
+-    const authorNames = src.authors?.map(a => a.author?.name).filter(Boolean) as string[] || [];
+-    for (const name of authorNames.slice(0, 2)) {
+-      const lastName = name.split(' ').slice(-1)[0];
+-      if (lastName && lastName.length > 3) {
+-        patterns.push(lastName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+-      }
+-    }
+-
+-    for (const pattern of patterns) {
+-      const regex = new RegExp(pattern, 'gi');
+-      let match;
+-      let injectionsForThisSource = 0;
+-      while ((match = regex.exec(workingHtml)) !== null && injectionsForThisSource < 3) {
+-        const matchIdx = match.index;
+-        if (matchIdx === undefined) break;
+-        // Check if there's already a [SRC-N] within 200 chars
+-        const context = workingHtml.slice(Math.max(0, matchIdx - 100), matchIdx + pattern.length + 100);
+-        if (/\[SRC-\d+\]/.test(context)) continue; // Already cited nearby
+-
+-        // Find the end of the current sentence or paragraph
+-        // Use a smarter pattern: match sentence-ending punctuation NOT preceded by a digit
+-        // (to avoid splitting decimal numbers like "27.31" at the ".")
+-        // CRITICAL: The lookbehind (?<!\d) only sees within `afterMatch`. If the '.'
+-        // is at position 0 of afterMatch (e.g., the match ended right before a decimal
+-        // like "0.5"), the lookbehind sees nothing — not the digit before it. We must
+-        // check the last character of the match to detect this case.
+-        const matchEnd = matchIdx + pattern.length;
+-        const prevChar = workingHtml[matchEnd - 1] || '';
+-        const afterMatch = workingHtml.slice(matchEnd);
+-        let endIdx = afterMatch.search(/(?<!\d)[.!?</]/);
+-        // Fix: if '.' is at position 0 and prevChar is a digit, it's a decimal point
+-        if (endIdx === 0 && afterMatch[0] === '.' && /\d/.test(prevChar)) {
+-          const nextIdx = afterMatch.slice(1).search(/(?<!\d)[.!?</]/);
+-          endIdx = nextIdx >= 0 ? nextIdx + 1 : -1;
+-        }
+-        if (endIdx >= 0 && endIdx < 200) {
+-          let insertPos = matchIdx + pattern.length + endIdx;
+-
+-          // ── ABBREVIATION-SAFE INJECTION ──
+-          // Before injecting, check if the insertion point is inside an abbreviation
+-          // (e.g., "e.g.", "i.e.", "U.S.", "U.K.", "U.N.", "E.U.", "P.R.C.").
+-          // If so, move the insertion point AFTER the complete abbreviation.
+-          const around = workingHtml.slice(Math.max(0, insertPos - 3), insertPos + 5);
+-          // Pattern: single letter + dot + citation point → "e." at insertPos means "e.g."
+-          // Move insert past the "g." or "e." that follows
+-          const abbrevMatch = around.match(/^([ei])\.\s*([ge])\./i);
+-          if (abbrevMatch) {
+-            // Insert after the full "e.g." or "i.e."
+-            const abbrevEnd = around.indexOf(abbrevMatch[2] + '.') + 2;
+-            insertPos += abbrevEnd - abbrevMatch[0].indexOf(abbrevMatch[1]);
+-          }
+-          // Check for geopolitical abbreviations: "U.S.", "E.U.", "U.K.", "U.N."
+-          const geoMatch = around.match(/^([A-Z])\.\s*([A-Z])\./);
+-          if (geoMatch) {
+-            const abbrevEnd = around.indexOf(geoMatch[2] + '.') + 2;
+-            insertPos += abbrevEnd - geoMatch[0].indexOf(geoMatch[1]);
+-          }
+-
+-          workingHtml = workingHtml.slice(0, insertPos) + ' ' + srcTag + workingHtml.slice(insertPos);
+-          injected++;
+-          injectionsForThisSource++;
+-          details.push(`Injected ${srcTag} near "${pattern}"`);
+-          // Update regex lastIndex since we modified the string
+-          regex.lastIndex = insertPos + srcTag.length + 1;
+-        }
+-      }
+-    }
+-  }
+-
+-  // Restore style/script blocks
+-  workingHtml = workingHtml.replace(/\x00SKIP(\d+)\x00/g, (_, i) => skipBlocks[parseInt(i, 10)]);
+-
+-  return { html: workingHtml, injected, details };
+-}
+-
+-// ─── 4. CITATION INJECTION BY CONTENT MATCHING ──────────────────────────────
+-/**
+- * For uncited sentences containing factual markers (numbers, dates, percentages),
+- * match them to source abstracts/fullText by key term overlap and inject [SRC-N].
+- * This is deterministic — no LLM. It targets the gap between what the analyst
+- * wrote (factual claims) and what it cited (missing [SRC-N] tags).
+- */
+-export function injectCitationsByContentMatch(
+-  html: string,
+-  sources: { abstract?: string; fullText?: string; title?: string }[],
+-): { html: string; injected: number; details: string[] } {
+-  const details: string[] = [];
+-  let injected = 0;
+-
+-  // Build source text index: for each source, extract key terms
+-  const sourceTerms: { idx: number; terms: Set<string> }[] = [];
+-  for (let i = 0; i < sources.length; i++) {
+-    const text = `${sources[i].abstract || ''} ${sources[i].fullText || ''} ${sources[i].title || ''}`.toLowerCase();
+-    const terms = new Set<string>();
+-    // Extract meaningful terms (length > 4, not stopwords)
+-    const stopwords = new Set(['about', 'above', 'after', 'again', 'against', 'their', 'there', 'these', 'those', 'which', 'where', 'while', 'would', 'could', 'should', 'between', 'through', 'during', 'before', 'because']);
+-    for (const word of text.match(/\b[a-z]{5,}\b/g) || []) {
+-      if (!stopwords.has(word)) terms.add(word);
+-    }
+-    sourceTerms.push({ idx: i + 1, terms });
+-  }
+-
+-  // Split HTML into segments to find uncited text, skipping protected zones.
+-  // Protected zones: <style>/<script>/<h1>/<title>, references section, AND
+-  // any element with data-no-cite (act-titles, eyebrows, through-line, transitions).
+-  const skipBlockRe = /<(style|script|h1|title)\b[^>]*>[\s\S]*?<\/\1>|<section class="references-section">[\s\S]*?<\/section>|<(\w+)\b[^>]*\bdata-no-cite\b[^>]*>[\s\S]*?<\/\2>/gi;
+-  const skipRanges: Array<[number, number]> = [];
+-  let skipMatch: RegExpExecArray | null;
+-  while ((skipMatch = skipBlockRe.exec(html)) !== null) {
+-    skipRanges.push([skipMatch.index, skipMatch.index + skipMatch[0].length]);
+-  }
+-
+-  const segments: { type: 'tag' | 'text' | 'skip'; content: string }[] = [];
+-  let lastIdx = 0;
+-  for (const m of html.matchAll(/<[^>]+>/g)) {
+-    const tagStart = m.index!;
+-    const tagEnd = m.index! + m[0].length;
+-    // Skip tags inside style/script blocks
+-    const inSkip = skipRanges.some(([s, e]) => tagStart >= s && tagEnd <= e);
+-    if (inSkip) continue;
+-    // Check for skip block between lastIdx and this tag
+-    const skipBefore = skipRanges.find(([s, e]) => s >= lastIdx && e <= tagStart);
+-    if (skipBefore) {
+-      if (skipBefore[0] > lastIdx) {
+-        segments.push({ type: 'text', content: html.slice(lastIdx, skipBefore[0]) });
+-      }
+-      segments.push({ type: 'skip', content: html.slice(skipBefore[0], skipBefore[1]) });
+-      lastIdx = skipBefore[1];
+-    }
+-    if (tagStart > lastIdx) {
+-      segments.push({ type: 'text', content: html.slice(lastIdx, tagStart) });
+-    }
+-    segments.push({ type: 'tag', content: m[0] });
+-    lastIdx = tagEnd;
+-  }
+-  const remainingSkip = skipRanges.find(([s]) => s >= lastIdx);
+-  if (remainingSkip) {
+-    if (remainingSkip[0] > lastIdx) {
+-      segments.push({ type: 'text', content: html.slice(lastIdx, remainingSkip[0]) });
+-    }
+-    segments.push({ type: 'skip', content: html.slice(remainingSkip[0], remainingSkip[1]) });
+-    lastIdx = remainingSkip[1];
+-  }
+-  if (lastIdx < html.length) {
+-    segments.push({ type: 'text', content: html.slice(lastIdx) });
+-  }
+-
+-  // Process text segments: find sentences with factual markers but no [SRC-N]
+-  const repairedSegments = segments.map(seg => {
+-    if (seg.type === 'tag' || seg.type === 'skip') return seg.content;
+-
+-    let text = seg.content;
+-    // Skip the references section
+-    if (/^Sources$|^References$/i.test(text.trim())) return text;
+-
+-    // Find sentences with factual markers.
+-    // CRITICAL: The regex must NOT split on '.' between digits (decimal points like 0.5).
+-    // \.(?=\d) matches a decimal point (period followed by digit) and treats it as
+-    // part of the sentence content, not a sentence terminator.
+-    const sentenceRegex = /(?:[^.!?]|\.(?=\d))+[.!?]*/g;
+-    text = text.replace(sentenceRegex, (sentence) => {
+-      const trimmed = sentence.trim();
+-      if (trimmed.length < 20) return sentence;
+-
+-      // Must NOT already have [SRC-N]
+-      if (/\[SRC-\d+\]/.test(trimmed)) return sentence;
+-
+-      // Match to source by term overlap
+-      const sentenceTerms = new Set<string>();
+-      for (const word of (trimmed.toLowerCase().match(/\b[a-z]{5,}\b/g) || [])) {
+-        sentenceTerms.add(word);
+-      }
+-      if (sentenceTerms.size < 3) return sentence;
+-
+-      // Must have a factual marker OR be a substantial sentence with domain terms
+-      const hasFactual = /\d+\.?\d*\s*%|\$\s?\d+|\b\d{4}\b|\b\d+[.,]?\d*\s*(?:billion|million|thousand)\b/i.test(trimmed);
+-      const isSubstantial = trimmed.length > 60 && sentenceTerms.size >= 5;
+-      if (!hasFactual && !isSubstantial) return sentence;
+-
+-      let bestMatch = 0;
+-      let bestScore = 0;
+-      for (const src of sourceTerms) {
+-        let overlap = 0;
+-        for (const term of sentenceTerms) {
+-          if (src.terms.has(term)) overlap++;
+-        }
+-        const score = overlap / sentenceTerms.size;
+-        if (score > bestScore) {
+-          bestScore = score;
+-          bestMatch = src.idx;
+-        }
+-      }
+-
+-      // Only inject if we have a reasonable match (>25% term overlap)
+-      if (bestScore > 0.25 && bestMatch > 0) {
+-        injected++;
+-        details.push(`Injected [SRC-${bestMatch}] (overlap: ${Math.round(bestScore * 100)}%) into: "${trimmed.slice(0, 60)}..."`);
+-        // Insert citation before the final punctuation
+-        const punctMatch = sentence.match(/([.!?]+\s*)$/);
+-        if (punctMatch) {
+-          return sentence.slice(0, -punctMatch[1].length) + ` [SRC-${bestMatch}]` + punctMatch[1];
+-        }
+-        return sentence + ` [SRC-${bestMatch}]`;
+-      }
+-
+-      return sentence;
+-    });
+-
+-    return text;
+-  });
+-
+-  return { html: repairedSegments.join(''), injected, details };
+-}
+-
+-// ─── 4b. BROAD CITATION INJECTION (coverage guarantee) ──────────────────────
+-/**
+- * For each uncited source, find the paragraph with the highest term overlap
+- * and inject [SRC-N] at the end. Lower threshold (15%) than content match.
+- * Goal: ensure every source appears at least once in the HTML for coverage metrics.
+- */
+-export function injectBroadCitations(
+-  html: string,
+-  sources: { abstract?: string; fullText?: string; title?: string; provider?: string }[],
+-): { html: string; injected: number; details: string[] } {
+-  const details: string[] = [];
+-  let injected = 0;
+-
+-  // Extract style/script blocks AND h1/title blocks (never inject citations into titles)
+-  const skipBlocks: string[] = [];
+-  let workingHtml = html.replace(/<(style|script)\b[^>]*>[\s\S]*?<\/\1>/gi, (m) => {
+-    skipBlocks.push(m);
+-    return `\x00SKIP${skipBlocks.length - 1}\x00`;
+-  });
+-  workingHtml = workingHtml.replace(/<h1\b[^>]*>[\s\S]*?<\/h1>/gi, (m) => {
+-    skipBlocks.push(m);
+-    return `\x00SKIP${skipBlocks.length - 1}\x00`;
+-  });
+-  workingHtml = workingHtml.replace(/<title\b[^>]*>[\s\S]*?<\/title>/gi, (m) => {
+-    skipBlocks.push(m);
+-    return `\x00SKIP${skipBlocks.length - 1}\x00`;
+-  });
+-  // Skip the references section — never inject citations into reference titles
+-  workingHtml = workingHtml.replace(/<section class="references-section">[\s\S]*?<\/section>/gi, (m) => {
+-    skipBlocks.push(m);
+-    return `\x00SKIP${skipBlocks.length - 1}\x00`;
+-  });
+-
+-  // Build source term sets
+-  const stopwords = new Set(['about', 'above', 'after', 'again', 'against', 'their', 'there',
+-    'these', 'those', 'which', 'where', 'while', 'would', 'could', 'should', 'between',
+-    'through', 'during', 'before', 'because', 'study', 'research', 'paper', 'article',
+-    'result', 'results', 'method', 'methods', 'analysis', 'data', 'using', 'based']);
+-  const sourceTerms: { idx: number; terms: Set<string> }[] = [];
+-  for (let i = 0; i < sources.length; i++) {
+-    const text = `${sources[i].abstract || ''} ${sources[i].title || ''}`.toLowerCase();
+-    const terms = new Set<string>();
+-    for (const word of text.match(/\b[a-z]{5,}\b/g) || []) {
+-      if (!stopwords.has(word)) terms.add(word);
+-    }
+-    sourceTerms.push({ idx: i + 1, terms });
+-  }
+-
+-  // Split HTML into paragraphs (<p>...</p>)
+-  const paragraphs: { start: number; end: number; text: string }[] = [];
+-  const paraRegex = /<p[^>]*>([\s\S]*?)<\/p>/gi;
+-  let pm: RegExpExecArray | null;
+-  while ((pm = paraRegex.exec(workingHtml)) !== null) {
+-    // Strip inner tags for term extraction
+-    const innerText = pm[1].replace(/<[^>]+>/g, ' ').toLowerCase();
+-    paragraphs.push({ start: pm.index!, end: pm.index! + pm[0].length, text: innerText });
+-  }
+-
+-  if (paragraphs.length === 0) {
+-    workingHtml = workingHtml.replace(/\x00SKIP(\d+)\x00/g, (_, i) => skipBlocks[parseInt(i, 10)]);
+-    return { html: workingHtml, injected, details };
+-  }
+-
+-  // For each uncited source, find best paragraph and inject
+-  for (const src of sourceTerms) {
+-    const srcTag = `[SRC-${src.idx}]`;
+-    // Check if already cited: look for [SRC-N] text OR <sup> tags with data-src="N"
+-    const alreadyCited = workingHtml.includes(srcTag) ||
+-      new RegExp(`data-src=["']${src.idx}["']`).test(workingHtml) ||
+-      new RegExp(`href="#ref-${src.idx}"`).test(workingHtml);
+-    if (alreadyCited) continue;
+-    if (src.terms.size < 3) continue; // Not enough terms to match
+-
+-    let bestParaIdx = -1;
+-    let bestScore = 0;
+-    for (let pi = 0; pi < paragraphs.length; pi++) {
+-      const paraTerms = new Set<string>();
+-      for (const word of paragraphs[pi].text.match(/\b[a-z]{5,}\b/g) || []) {
+-        if (!stopwords.has(word)) paraTerms.add(word);
+-      }
+-      let overlap = 0;
+-      for (const term of paraTerms) {
+-        if (src.terms.has(term)) overlap++;
+-      }
+-      const score = paraTerms.size > 0 ? overlap / Math.min(paraTerms.size, src.terms.size) : 0;
+-      if (score > bestScore) {
+-        bestScore = score;
+-        bestParaIdx = pi;
+-      }
+-    }
+-
+-    // Inject if overlap > 15% (lower threshold than content match's 25%)
+-    if (bestScore > 0.15 && bestParaIdx >= 0) {
+-      const para = paragraphs[bestParaIdx];
+-      // Insert before </p>
+-      const insertPos = para.end - 4; // 4 = "</p>".length
+-      workingHtml = workingHtml.slice(0, insertPos) + ` ${srcTag}` + workingHtml.slice(insertPos);
+-      injected++;
+-      details.push(`Broad-injected ${srcTag} (overlap: ${Math.round(bestScore * 100)}%) into paragraph ${bestParaIdx + 1}`);
+-      // Update paragraph end positions (shifted by srcTag length + 1)
+-      const shift = srcTag.length + 1;
+-      for (let pi = bestParaIdx; pi < paragraphs.length; pi++) {
+-        paragraphs[pi].end += shift;
+-      }
+-    }
+-  }
+-
+-  // Restore style/script blocks
+-  workingHtml = workingHtml.replace(/\x00SKIP(\d+)\x00/g, (_, i) => skipBlocks[parseInt(i, 10)]);
+-
+-  return { html: workingHtml, injected, details };
+-}
+-
+ // ─── MAIN ENTRY POINT ───────────────────────────────────────────────────────
+ 
+ export function repairCitations(
+@@ -717,25 +323,12 @@ export function repairCitations(
+   totalBackfilled = backfill.injected;
+   allDetails.push(...backfill.details);
+ 
+-  // Step 2: Inject citations by source matching (title/author)
+-  const injection = injectCitationsBySourceMatch(workingHtml, sources);
+-  workingHtml = injection.html;
+-  totalInjected = injection.injected;
+-  allDetails.push(...injection.details);
+-
+-  // Step 2b: Inject citations by content matching (abstract/fullText overlap)
+-  const contentInjection = injectCitationsByContentMatch(workingHtml, sources as any);
+-  workingHtml = contentInjection.html;
+-  totalInjected += contentInjection.injected;
+-  allDetails.push(...contentInjection.details);
+-
+-  // Step 2c: Broad citation injection — ensure every uncited source appears at least once.
+-  // For each uncited source, find the paragraph with highest term overlap and inject.
+-  // Lower threshold (15%) than content match (25%) — goal is coverage, not precision.
+-  const broadInjection = injectBroadCitations(workingHtml, sources as any);
+-  workingHtml = broadInjection.html;
+-  totalInjected += broadInjection.injected;
+-  allDetails.push(...broadInjection.details);
++  // OT-cleanup: all lexical-similarity citation injection removed (steps 2,
++  // 2b, 2c). Matching a paragraph to a source by title/author/term overlap
++  // fabricated grounding — a citation asserts the source supports the claim,
++  // which only the claim-to-passage evidence contract can establish. What
++  // remains: backfill from the analyst's own declared citations, number
++  // sanitization, and format normalization.
+ 
+   // Step 3: Sanitize unsourced numbers (must run AFTER all injection)
+   const sanitization = sanitizeUnsourcedNumbers(workingHtml);
+diff --git a/lib/agent/critical-loop-v2.ts b/lib/agent/critical-loop-v2.ts
+index 5d82ec8..21b0503 100644
+--- a/lib/agent/critical-loop-v2.ts
++++ b/lib/agent/critical-loop-v2.ts
+@@ -517,28 +517,11 @@ export async function runCriticalLoopV2(
+ 
+     // Grounding veto (Invariant 4): citation coverage below 30% caps composite.
+     // A well-structured analysis cannot compensate for null grounding.
+-    // BEFORE declaring terminal: attempt deterministic citation injection
+-    // by matching uncited paragraphs to sources by keyword overlap.
+-    // (citedSources and coverage already computed above for utilization bonus)
++    // OT-cleanup: the lexical-similarity citation injection was removed —
++    // a paragraph merely mentioning an author name or title fragment is not
++    // evidence that the claim is supported by that source. Fabricated
++    // citations are worse than an honest veto.
+     let groundingVetoed = false;
+-    if (coverage < 0.30) {
+-      // LAST RESORT: Try to inject citations by matching paragraph content to source titles/abstracts
+-      try {
+-        const { injectCitationsBySourceMatch } = await import('./citation-repair');
+-        const injectionResult = injectCitationsBySourceMatch(currentHtml, input.sources);
+-        if (injectionResult.injected > 0) {
+-          currentHtml = injectionResult.html;
+-          const newCited = new Set<number>();
+-          for (const m of currentHtml.matchAll(/\[SRC-(\d+)\]/g)) newCited.add(parseInt(m[1], 10));
+-          const newCoverage = newCited.size / Math.max(1, input.sources.length);
+-          console.log(`[CriticalLoop V2] Citation injection: +${injectionResult.injected} citations, coverage ${Math.round(coverage * 100)}%→${Math.round(newCoverage * 100)}%`);
+-          coverage = newCoverage;
+-        }
+-      } catch (injErr) {
+-        console.warn(`[CriticalLoop V2] Citation injection failed:`, injErr);
+-      }
+-    }
+-    // Re-check coverage after injection attempt
+     if (coverage < 0.30) {
+       const capped = Math.min(compositeScore, 40);
+       console.log(`[CriticalLoop V2] Grounding veto: ${citedSources.size}/${input.sources.length} sources cited (${Math.round(coverage * 100)}%) — capping composite ${compositeScore} → ${capped}`);
+diff --git a/lib/agent/editorial-arbiter.ts b/lib/agent/editorial-arbiter.ts
+index 1ffb41a..69e36e3 100644
+--- a/lib/agent/editorial-arbiter.ts
++++ b/lib/agent/editorial-arbiter.ts
+@@ -29,6 +29,17 @@ export interface ArbiterInput {
+    *  groundedness) indicate the artifact is unlikely to pass the gates, so
+    *  the premium scenario-writing spend would be wasted on a held piece. */
+   premium?: boolean;
++  /** OT-6: the swarm-elected scenario cell. When present, the arbiter writes
++   *  the narrative FOR this branch — it may not change the probability. */
++  election?: {
++    scenarioId: string;
++    probability: number;
++    confidenceInterval: [number, number];
++    contested: boolean;
++    runnerUpId?: string;
++    electedName?: string;
++    electedDescription?: string;
++  } | null;
+ }
+ 
+ function confidenceLabel(score: number): 'high' | 'medium' | 'low' {
+@@ -78,12 +89,15 @@ function buildFallbackPosition(input: ArbiterInput): InstitutePosition {
+         : [
+             {
+               name: 'Base case',
+-              probability: '50%',
++              // OT-cleanup: fixed 50/30 templates removed — an arbiter outage
++              // must not fabricate probabilities. '—' parses to undefined
++              // downstream, so no invented distribution reaches the gate.
++              probability: '—',
+               description: verdict.slice(0, 280),
+             },
+             {
+               name: 'Adverse case',
+-              probability: '30%',
++              probability: '—',
+               description: debate?.position2?.label ?? 'Material downside if counterevidence dominates.',
+             },
+           ],
+@@ -222,8 +236,8 @@ ${String(input.analysis.verdict ?? input.analysis.summary ?? input.analysis.exec
+ THROUGH LINE:
+ ${String(input.analysis.throughLine ?? '').slice(0, 200)}
+ 
+-CAUSAL CHAIN SUMMARY:
+-${Array.isArray(input.analysis.causalChain) ? input.analysis.causalChain.slice(0, 5).map((link: any, i: number) => `${i + 1}. ${link.claim} [${link.temporalStatus}]`).join('\n') : 'N/A'}
++CAUSAL CHAIN (full typed chain — OT-3: scenarios must derive from THESE links, not a summary):
++${Array.isArray(input.analysis.causalChain) ? (input.analysis.causalChain as any[]).slice(0, 15).map((link: any) => `#${link.id} [${link.temporalStatus}]${link.derivesFrom != null ? ` ←#${link.derivesFrom}` : ''} ${link.claim}`).join('\n') : 'N/A'}
+ 
+ DEBATE (if any):
+ Dominant: ${input.debate?.dominantThesis ?? 'n/a'}
+@@ -233,6 +247,11 @@ Confidence in dominant: ${input.debate?.confidenceInDominant ?? 'n/a'}
+ SCENARIOS:
+ ${scenarioBlock}
+ 
++${input.election ? `SWARM-ELECTED SCENARIO (computed by independent-voter swarm + Monte Carlo — authoritative, do NOT alter its probability):
++- Elected branch: ${input.election.electedName ?? input.election.scenarioId} — p=${(input.election.probability * 100).toFixed(1)}% CI=[${(input.election.confidenceInterval[0] * 100).toFixed(0)}%, ${(input.election.confidenceInterval[1] * 100).toFixed(0)}%]${input.election.contested ? ` CONTESTED — runner-up: ${input.election.runnerUpId ?? 'n/a'}` : ''}
++- Branch content: ${input.election.electedDescription ?? ''}
++Write the verdict and scenarios AS IF this branch is the central forecast. Present the runner-up (when contested) as the live alternative with the signals that would flip the call. Every probability you write must match the computed values above — never invent new ones.` : ''}
++
+ ${architectBlock}
+ 
+ SOURCES:
+@@ -360,12 +379,63 @@ Return JSON:
+       methodologyNote: pf?.methodologyNote ? String(pf.methodologyNote) : undefined,
+     } : undefined;
+ 
++    // ── OT-6 enforcement: when the swarm elector ran, its distribution is
++    // authoritative. Pin the elected branch's probability, rescale the
++    // runner-ups proportionally so percentages still sum to 100, and force
++    // dominantScenario to the elected branch — the LLM narrates, it does
++    // not re-decide. ──
++    let dominantScenario = parsed.dominantScenario ? String(parsed.dominantScenario) : undefined;
++    if (input.election) {
++      const electedName = input.election.electedName ?? input.election.scenarioId;
++      const electedPctValue = Math.round(input.election.probability * 100);
++      const norm = (s: string) => s.toLowerCase().trim();
++      const electedNorm = norm(electedName);
++      let elected = outScenarios.find(s =>
++        norm(s.name) === electedNorm ||
++        electedNorm.includes(norm(s.name)) ||
++        norm(s.name).includes(electedNorm.slice(0, 20))
++      );
++      if (!elected) {
++        elected = {
++          name: electedName,
++          probability: `${electedPctValue}%`,
++          description: input.election.electedDescription ?? '',
++          empiricalProbability: Math.round(input.election.probability * 10000) / 10000,
++        };
++        outScenarios.unshift(elected);
++      } else {
++        elected.probability = `${electedPctValue}%`;
++        elected.empiricalProbability = Math.round(input.election.probability * 10000) / 10000;
++      }
++      elected.confidenceInterval = input.election.confidenceInterval;
++      dominantScenario = elected.name;
++
++      // Rescale the remaining scenarios so the set still sums to 100%.
++      const parsePct = (p: string) => {
++        const m = p.match(/(\d+(?:\.\d+)?)/);
++        return m ? parseFloat(m[1]) : 0;
++      };
++      const others = outScenarios.filter(s => s !== elected);
++      const otherSum = others.reduce((acc, s) => acc + parsePct(s.probability), 0);
++      const remaining = Math.max(0, 100 - electedPctValue);
++      if (others.length > 0 && otherSum > 0) {
++        const scale = remaining / otherSum;
++        for (const s of others) {
++          s.probability = `${Math.max(1, Math.round(parsePct(s.probability) * scale))}%`;
++        }
++      } else if (others.length > 0) {
++        const each = Math.floor(remaining / others.length);
++        others.forEach((s, i) => { s.probability = `${i === others.length - 1 ? remaining - each * (others.length - 1) : each}%`; });
++      }
++    }
++
+     // ── Delphi foresight: multi-expert scenario calibration ──
+-    // Professional-grade forecasting: base rates + Fermi decomposition + 3-round Delphi
+-    // + extremizing + bootstrap CIs + key drivers + sensitivity analysis
++    // Skipped entirely when the swarm elector ran — Delphi's job IS
++    // probability derivation, and applying its calibrated probabilities
++    // would silently overwrite the election (OT-6 violation).
+     let delphiCostUsd = 0;
+     let delphiMeta: { convergence: number; brierEstimate: number; baseRateAnalysis: string } | undefined;
+-    if (outScenarios.length >= 2 && input.sources.length >= 5) {
++    if (!input.election && outScenarios.length >= 2 && input.sources.length >= 5) {
+       try {
+         const { runDelphiForesight } = await import('./foresight-delphi');
+         // Build rich evidence snippets — include abstracts when available
+@@ -435,7 +505,7 @@ Return JSON:
+       confidence: conf,
+       confidenceLabel: confidenceLabel(conf),
+       scenarios: outScenarios.length ? outScenarios : fallback.scenarios,
+-      dominantScenario: parsed.dominantScenario ? String(parsed.dominantScenario) : undefined,
++      dominantScenario,
+       centralScenarioRationale: typeof parsed.centralScenarioRationale === 'string' ? parsed.centralScenarioRationale : undefined,
+       centralScenarioImplications: Array.isArray(parsed.centralScenarioImplications) ? parsed.centralScenarioImplications.map(String).slice(0, 5) : undefined,
+       objections: (parsed.objections ?? []).map(String).slice(0, 5),
+diff --git a/lib/agent/editorial-scenarios.ts b/lib/agent/editorial-scenarios.ts
+deleted file mode 100644
+index b9eb27e..0000000
+--- a/lib/agent/editorial-scenarios.ts
++++ /dev/null
+@@ -1,74 +0,0 @@
+-/**
+- * Ensure ≥2 scenarios exist before Monte Carlo foresight (Editorial V2).
+- * Analyst multipass does not emit scenarios — derive from consensus / debate / implications.
+- */
+-
+-import type { DebateResult } from './debate-agent';
+-
+-function debateBlock(analysis: Record<string, unknown>): { pro?: string; con?: string; synthesis?: string } | undefined {
+-  const d = analysis.debate;
+-  if (!d || typeof d !== 'object') return undefined;
+-  const block = d as Record<string, unknown>;
+-  return {
+-    pro: block.pro ? String(block.pro) : undefined,
+-    con: block.con ? String(block.con) : undefined,
+-    synthesis: block.synthesis ? String(block.synthesis) : undefined,
+-  };
+-}
+-
+-/**
+- * Inject base / adverse / accelerated scenarios when analysis has fewer than 2.
+- * Idempotent when scenarios already exist.
+- */
+-export function ensureEditorialScenarios(
+-  analysis: Record<string, unknown>,
+-  options?: { debate?: DebateResult | null; question?: string }
+-): Record<string, unknown> {
+-  const existing = analysis.scenarios as Array<Record<string, unknown>> | undefined;
+-  if (existing && existing.length >= 2) return analysis;
+-
+-  const debate = debateBlock(analysis);
+-  const consensus = String(analysis.consensus ?? analysis.summary ?? analysis.executiveSummary ?? '').trim();
+-  const disagreements = String(analysis.disagreements ?? debate?.con ?? '').trim();
+-  const implications = String(analysis.implications ?? debate?.pro ?? '').trim();
+-  const question = options?.question ?? '';
+-
+-  const baseDescription =
+-    consensus.slice(0, 420) ||
+-    debate?.synthesis?.slice(0, 420) ||
+-    `Most likely trajectory for: ${question.slice(0, 120)}`;
+-
+-  const adverseDescription =
+-    options?.debate?.position2?.arguments?.[0]?.claim?.slice(0, 420) ||
+-    disagreements.slice(0, 420) ||
+-    options?.debate?.position2?.label?.slice(0, 420) ||
+-    'Material downside if counterevidence or implementation friction dominates.';
+-
+-  const acceleratedDescription =
+-    implications.slice(0, 420) ||
+-    debate?.pro?.slice(0, 420) ||
+-    'Favorable drivers compound faster than the baseline assumes.';
+-
+-  const scenarios = [
+-    {
+-      name: 'Base case',
+-      description: baseDescription,
+-      probability: '50%',
+-      signals: [] as string[],
+-    },
+-    {
+-      name: 'Adverse case',
+-      description: adverseDescription,
+-      probability: '30%',
+-      signals: [] as string[],
+-    },
+-    {
+-      name: 'Accelerated case',
+-      description: acceleratedDescription,
+-      probability: '20%',
+-      signals: [] as string[],
+-    },
+-  ];
+-
+-  return { ...analysis, scenarios };
+-}
+diff --git a/lib/agent/editorial-types.ts b/lib/agent/editorial-types.ts
+index ad43452..6dc3948 100644
+--- a/lib/agent/editorial-types.ts
++++ b/lib/agent/editorial-types.ts
+@@ -119,7 +119,7 @@ export interface CentralScenarioDecision {
+   implications: string[];
+   revisionTriggers: string[];
+   confidence: InstitutePosition['confidenceLabel'];
+-  selectedBy: 'editorial' | 'probability_fallback';
++  selectedBy: 'editorial' | 'probability_fallback' | 'swarm';
+   simulationLeader?: string;
+   simulationDisagrees: boolean;
+ }
+@@ -169,10 +169,17 @@ export function centralScenarioIssues(decision: CentralScenarioDecision | undefi
+   if (!decision) return ['No unique central scenario selected'];
+   const issues: string[] = [];
+   if (!decision.name.trim() || !decision.description.trim()) issues.push('Missing central scenario narrative');
+-  if (decision.selectedBy !== 'editorial') issues.push('Central scenario requires an explicit editorial choice');
+-  const refs = [...decision.rationale.matchAll(/\[SRC-(\d+)\]/g)].map(m => Number(m[1]));
+-  if (!decision.rationale.trim() || refs.length === 0 || refs.some(n => n < 1 || n > sourceCount)) {
+-    issues.push('Central scenario requires a rationale with valid source references');
++  // 'swarm' is the authoritative computational choice (OT-5/6) — only the
++  // pre-swarm fallbacks are flagged.
++  if (decision.selectedBy === 'probability_fallback') issues.push('Central scenario requires an explicit editorial or swarm choice');
++  // 'swarm' rationale is computational (vote counts, MC draws) — it cites the
++  // election mechanics, not [SRC-N] passages; source grounding lives in the
++  // link-level evidence contracts upstream.
++  if (decision.selectedBy !== 'swarm') {
++    const refs = [...decision.rationale.matchAll(/\[SRC-(\d+)\]/g)].map(m => Number(m[1]));
++    if (!decision.rationale.trim() || refs.length === 0 || refs.some(n => n < 1 || n > sourceCount)) {
++      issues.push('Central scenario requires a rationale with valid source references');
++    }
+   }
+   if (!decision.horizon.trim()) issues.push('Missing forecast horizon');
+   if (!decision.implications.some(s => s.trim())) issues.push('Missing central scenario implications');
+diff --git a/lib/agent/inquiry-orchestrator.ts b/lib/agent/inquiry-orchestrator.ts
+index 3ebc678..891f5f1 100644
+--- a/lib/agent/inquiry-orchestrator.ts
++++ b/lib/agent/inquiry-orchestrator.ts
+@@ -834,6 +834,41 @@ export async function runAndPublishInquiry(
+   const gate = assessment.gate;
+   const readiness = assessment.readiness;
+ 
++  // OT-8: persist the final gate verdict into PipelineRun.steps so the
++  // per-check decision is reconstructible from the run record (previously
++  // only stored inside publication metadata — invisible on held/failed runs).
++  const { evaluateBinaryGate } = await import('./binary-gate');
++  const claimBinding = pipeline.stats.claimBinding as { links?: number; weak?: number } | undefined;
++  const boundTotal = (claimBinding?.links ?? 0) + (claimBinding?.weak ?? 0);
++  const binaryChecks = evaluateBinaryGate({
++    claimsEntailmentRatio: boundTotal > 0 ? (claimBinding?.links ?? 0) / boundTotal : undefined,
++    centralScenarioSelectedBy:
++      (pipeline.stats.swarmElection as { selectedBy?: string } | undefined)?.selectedBy ??
++      (pipeline.stats.centralScenario as { selectedBy?: string } | undefined)?.selectedBy,
++    scenariosFromChain:
++      !!(pipeline.stats.swarmElection as { scenarioId?: string } | undefined)?.scenarioId,
++    swarmVotes: (() => {
++      const sf = pipeline.stats.swarmForecasts as { validVotes?: number; familiesUsed?: string[] } | undefined;
++      const elected = !!(pipeline.stats.swarmElection as { scenarioId?: string } | undefined)?.scenarioId;
++      return sf?.validVotes
++        ? { valid: sf.validVotes, families: sf.familiesUsed?.length ?? 0, converged: elected }
++        : undefined;
++    })(),
++    resolvablePredictions: (pipeline.stats.predictions as { registered?: number } | undefined)?.registered,
++    unansweredObjections: Array.isArray(fatalChallenges) ? fatalChallenges.length : undefined,
++  });
++  (pipeline.stats as Record<string, unknown>).publicationGate = {
++    binaryChecks,
++    decision: gate.decision,
++    readinessOk: readiness.ok,
++    checks: gate.checks?.map((c: { checkType?: string; name?: string; passed: boolean; details?: string }) => ({
++      check: c.checkType ?? c.name,
++      passed: c.passed,
++      details: c.details,
++    })),
++    reasons: gate.reasons,
++  };
++
+   console.log(`[InquiryOrchestrator] Gate: decision=${gate.decision} | Readiness: ok=${readiness.ok} | trust=${trustScore} quality=${qualityScore} coverage=${Math.round((citationCoverage || 0) * 100)}%`);
+ 
+   const minTrust = req.minTrustScore ?? 65;
+@@ -1040,6 +1075,32 @@ export async function runAndPublishInquiry(
+       });
+     }
+ 
++    // OT-8: link publication → pipeline run. The table existed but had zero
++    // writers, leaving every publication orphaned from its run record.
++    await Promise.resolve(tx.thinkTankPublicationRun?.create({
++      data: {
++        publicationId: pub.id,
++        correlationId: pipeline.pipelineRunId ?? pub.id,
++        status: "COMPLETED",
++        steps: [
++          {
++            step: "inquiry-pipeline",
++            status,
++            gateDecision: gate.decision,
++            trustScore,
++            qualityScore,
++            costUsd,
++          },
++        ] as unknown as Prisma.InputJsonValue,
++        finishedAt: new Date(),
++        duration: typeof (pipeline.stats as any)?.durationMs === "number" ? (pipeline.stats as any).durationMs : undefined,
++        tokensUsed:
++          (Number((pipeline.stats as any)?.totalTokensIn) || 0) +
++          (Number((pipeline.stats as any)?.totalTokensOut) || 0),
++        costUsd,
++      },
++    })).catch(() => {});
++
+     return pub;
+   }, { timeout: 30_000 })
+     )
+@@ -1055,7 +1116,10 @@ export async function runAndPublishInquiry(
+   // the diagnosis codes, not just mid-pipeline scores. Detached: a durability
+   // write, not research work; the dispatch scope may already be closed.
+   let postGateJobs: Promise<unknown>[] = [];
+-  try {
++  // Learning-write freeze (audit #11): experience-bank writes frozen until
++  // replay proves the meta-learner earns its keep.
++  const learningEnabled = (await import('./learning-gate')).learningWritesEnabled();
++  if (learningEnabled) try {
+     const { extractExperience } = await import('./knowledge-infrastructure');
+     const experienceJob = withExecutionDetached(() => extractExperience(question.slice(0, 100), question, {
+       outcome: {
+@@ -1090,7 +1154,9 @@ export async function runAndPublishInquiry(
+     publication.id,
+     gate,
+     readiness,
+-    daVerdict ? { verdict: daVerdict, score: (da as Record<string, unknown>)?.score as number | undefined } : null,
++    // OT-fix: the DA report field is `publishabilityScore`, not `score` —
++    // reading `.score` made this check structurally dead (always undefined→0).
++    daVerdict ? { verdict: daVerdict, score: ((da as Record<string, unknown>)?.publishabilityScore ?? (da as Record<string, unknown>)?.score) as number | undefined } : null,
+     signOff ?? null,
+     trustScore,
+     qualityScore
+@@ -1252,14 +1318,16 @@ async function persistQualityChecks(
+     details: { checkName: "quality_score", threshold: 70, detail: `Quality score ${qualityScore} (min 70)` },
+   });
+ 
+-  // CITATION checks
++  // CITATION checks — threshold aligned with the actual gate
++  // (UNIFORM_MIN_CITATION = 50%); the old 60% made the audit trail report
++  // failures the gate never enforced.
+   const citationCoverage = (gate.metrics?.citationCoverage ?? 0) * 100;
+   checks.push({
+     publicationId,
+     checkType: "CITATION",
+-    passed: citationCoverage >= 60,
++    passed: citationCoverage >= 50,
+     score: Math.round(citationCoverage),
+-    details: { checkName: "citation_coverage", threshold: 60, detail: `Citation coverage ${citationCoverage.toFixed(1)}% (min 60%)` },
++    details: { checkName: "citation_coverage", threshold: 50, detail: `Citation coverage ${citationCoverage.toFixed(1)}% (min 50%)` },
+   });
+ 
+   // ADVERSARIAL checks (devil's advocate)
+diff --git a/lib/agent/learning-gate.ts b/lib/agent/learning-gate.ts
+new file mode 100644
+index 0000000..1c6ac0a
+--- /dev/null
++++ b/lib/agent/learning-gate.ts
+@@ -0,0 +1,20 @@
++/**
++ * Learning-write freeze gate (audit correction #11).
++ *
++ * NomosX carries ~a dozen memory/learning subsystems (episodic memory,
++ * knowledge graph, agent-memory lessons, skill bank, experience bank,
++ * learning cycle, agent performance). None has been proven by replay to
++ * improve outcomes — they write on every run and their reads feed prompts,
++ * so an unproven writer can silently degrade future runs.
++ *
++ * Policy: writes are FROZEN by default. Reads of already-accumulated
++ * memory are untouched (existing data still informs prompts). Re-enable
++ * per-subsystem re-activation only after replay evidence shows the writer
++ * earns its keep:
++ *
++ *   NOMOSX_LEARNING_WRITES=1   → all learning writes enabled
++ *   (unset / anything else)    → frozen
++ */
++export function learningWritesEnabled(): boolean {
++  return process.env.NOMOSX_LEARNING_WRITES === '1';
++}
+diff --git a/lib/agent/mc-elector.ts b/lib/agent/mc-elector.ts
+new file mode 100644
+index 0000000..c700def
+--- /dev/null
++++ b/lib/agent/mc-elector.ts
+@@ -0,0 +1,185 @@
++/**
++ * MONTE CARLO ELECTOR — OT-5.
++ *
++ * The central scenario is elected by computation, not by the arbiter's
++ * `dominantScenario` field. For FIXED link probabilities the joint scenario
++ * probability is exact — Monte Carlo draws exist for what exact math can't
++ * give: confidence intervals and the win-margin vs the runner-up.
++ *
++ * Mechanics (replaces the Dirichlet-around-LLM-priors core):
++ *   1. Each uncertain link's realization is drawn from a Beta distribution
++ *      fitted on the swarm vote mean/variance (method of moments).
++ *   2. Links realize independently per draw; the joint cell is looked up
++ *      by the scenario's `conditions` map.
++ *   3. Scenario probability = empirical frequency. Elected = argmax;
++ *      `contested` when the bootstrap CI of the leader overlaps the
++ *      runner-up's.
++ *
++ * Deterministic: mulberry32 seed → same inputs, same election.
++ */
++
++import type { ChainScenario } from './chain-scenarios';
++import type { LinkForecast } from './swarm-forecaster';
++
++export interface ElectedScenario {
++  scenarioId: string;
++  probability: number;
++  confidenceInterval: [number, number];
++  selectedBy: 'swarm';
++  contested: boolean;
++  runnerUpId?: string;
++  runnerUpProbability?: number;
++  mostSensitiveLinkId?: number;
++  probabilities: Record<string, number>;
++  monteCarloRuns: number;
++  seed: number;
++}
++
++function mulberry32(seed: number): () => number {
++  let t = seed;
++  return () => {
++    t += 0x6d2b79f5;
++    let r = Math.imul(t ^ (t >>> 15), 1 | t);
++    r ^= r + Math.imul(r ^ (r >>> 7), 61 | r);
++    return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
++  };
++}
++
++/** Gamma sampler (Marsaglia–Tsang) — same construction as simulation-agent. */
++function sampleGamma(shape: number, rand: () => number): number {
++  if (shape <= 0) return 1e-9;
++  if (shape < 1) return sampleGamma(shape + 1, rand) * Math.pow(Math.max(rand(), 1e-9), 1 / shape);
++  const d = shape - 1 / 3;
++  const c = 1 / Math.sqrt(9 * d);
++  for (let i = 0; i < 100; i++) {
++    const u1 = Math.max(rand(), 1e-9);
++    const u2 = rand();
++    const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
++    const v = 1 + c * z;
++    if (v <= 0) continue;
++    const v3 = v * v * v;
++    const u = Math.max(rand(), 1e-9);
++    if (Math.log(u) < 0.5 * z * z + d - d * v3 + d * Math.log(v3)) return d * v3;
++  }
++  return d;
++}
++
++/** Beta(a,b) via two gammas; params fitted by method of moments on the
++ *  swarm vote distribution, clamped so a degenerate vote can't produce a
++ *  degenerate election. */
++function betaParams(mean: number, variance: number): { a: number; b: number } {
++  const m = Math.min(0.98, Math.max(0.02, mean));
++  // Vote spread underestimates epistemic uncertainty — inflate variance
++  // floor so 20 agreeing voters don't fake certainty.
++  const v = Math.max(variance, 0.015);
++  const t = (m * (1 - m)) / v - 1;
++  const a = Math.max(0.5, m * t);
++  const b = Math.max(0.5, (1 - m) * t);
++  return { a, b };
++}
++
++function hashSeed(text: string): number {
++  let h = 2166136261;
++  for (let i = 0; i < text.length; i++) {
++    h ^= text.charCodeAt(i);
++    h = Math.imul(h, 16777619);
++  }
++  return h >>> 0;
++}
++
++export function electScenario(input: {
++  scenarios: ChainScenario[];
++  forecasts: LinkForecast[];
++  question: string;
++  runs?: number;
++}): ElectedScenario | null {
++  const { scenarios, forecasts } = input;
++  if (!scenarios.length || !forecasts.length) return null;
++
++  // Map linkId → Beta params from swarm forecasts.
++  const linkDist = new Map<number, { a: number; b: number }>();
++  for (const f of forecasts) {
++    if (f.validVotes < 3) continue; // too thin to elect on
++    linkDist.set(f.linkId, betaParams(f.probability, f.variance));
++  }
++  // Every condition link must have a distribution.
++  const needed = new Set<number>();
++  for (const s of scenarios) for (const id of Object.keys(s.conditions)) needed.add(Number(id.replace(/^u/, '')));
++  for (const id of needed) if (!linkDist.has(id)) return null;
++
++  const runs = input.runs ?? 20_000;
++  const rand = mulberry32(hashSeed(`${input.question}|${scenarios.map(s => s.id).join(',')}`));
++  const hits = new Map<string, number>();
++  for (const s of scenarios) hits.set(s.id, 0);
++
++  const linkIds = [...needed];
++  for (let r = 0; r < runs; r++) {
++    const realized = new Map<number, boolean>();
++    for (const id of linkIds) {
++      const { a, b } = linkDist.get(id)!;
++      const x = sampleGamma(a, rand);
++      const y = sampleGamma(b, rand);
++      realized.set(id, x / (x + y) > 0.5);
++    }
++    for (const s of scenarios) {
++      const ok = Object.entries(s.conditions).every(([k, want]) => realized.get(Number(k.replace(/^u/, ''))) === want);
++      if (ok) hits.set(s.id, (hits.get(s.id) ?? 0) + 1);
++    }
++  }
++
++  const probabilities: Record<string, number> = {};
++  let total = 0;
++  for (const s of scenarios) {
++    const p = (hits.get(s.id) ?? 0) / runs;
++    probabilities[s.id] = p;
++    total += p;
++  }
++  // Normalize (cells can overlap if conditions don't partition perfectly).
++  for (const id of Object.keys(probabilities)) probabilities[id] = total > 0 ? probabilities[id] / total : 1 / scenarios.length;
++
++  const ranked = [...scenarios].sort((a, b) => probabilities[b.id] - probabilities[a.id]);
++  const leader = ranked[0];
++  const runner = ranked[1];
++
++  const leaderP = probabilities[leader.id];
++  const runnerP = runner ? probabilities[runner.id] : 0;
++  // Contested when the leader's Wilson CI overlaps the runner-up's point
++  // estimate — deterministic, no resampling needed.
++  const n = runs, k = hits.get(leader.id) ?? 0;
++  const z = 1.96, phat = k / n, denom = 1 + z * z / n;
++  const centre = (phat + z * z / (2 * n)) / denom;
++  const half = (z * Math.sqrt((phat * (1 - phat) + z * z / (4 * n)) / n)) / denom;
++  const ci: [number, number] = [Math.max(0, centre - half), Math.min(1, centre + half)];
++  const contested = !!runner && ci[0] <= runnerP && runnerP <= ci[1];
++
++  // Most sensitive link = the uncertainty whose flip would most change the
++  // leader's probability (single-link counterfactual).
++  let mostSensitiveLinkId: number | undefined;
++  {
++    let bestDelta = -1;
++    for (const id of needed) {
++      const dist = linkDist.get(id)!;
++      // Counterfactual: force this link to its opposite realization by
++      // recomputing cell hits is expensive — approximate sensitivity by the
++      // link's distance from 0.5 weighted by how many scenarios condition on it.
++      const mean = dist.a / (dist.a + dist.b);
++      const conditioned = scenarios.filter(s => String(s.conditions[`u${id}`] ?? s.conditions[String(id)]) !== undefined).length;
++      const delta = Math.abs(mean - 0.5) * conditioned;
++      if (delta > bestDelta) { bestDelta = delta; mostSensitiveLinkId = id; }
++    }
++  }
++
++  return {
++    scenarioId: leader.id,
++    probability: leaderP,
++    confidenceInterval: ci,
++    selectedBy: 'swarm',
++    contested,
++    runnerUpId: runner?.id,
++    runnerUpProbability: runnerP,
++    mostSensitiveLinkId,
++    probabilities,
++    monteCarloRuns: runs,
++    seed: hashSeed(`${input.question}|${scenarios.map(s => s.id).join(',')}`),
++  };
++}
+diff --git a/lib/agent/pipeline-foresight.ts b/lib/agent/pipeline-foresight.ts
+index 22125f7..28e4d5a 100644
+--- a/lib/agent/pipeline-foresight.ts
++++ b/lib/agent/pipeline-foresight.ts
+@@ -59,14 +59,20 @@ export function applySimulationToAnalysis(
+   const enrichedScenarios = scenarios.map((s, i) => {
+     const sim = simScenarios[i];
+     if (!sim) return s;
++    // Round stored probabilities to 4 decimals — raw MC floats
++    // (0.4444135322292309) leak fake precision into analysis JSON, which
++    // downstream evaluators (Devil's Advocate) rightly flag as false
++    // empirical certainty. 4 decimals keeps the data honest without
++    // pretending sub-permil resolution.
++    const emp = Math.round((sim.empiricalProbability ?? 0) * 10000) / 10000;
+     return {
+       ...s,
+       probability: `${roundedPcts[i]}%`,
+-      empiricalProbability: sim.empiricalProbability,
++      empiricalProbability: emp,
+       confidenceInterval: sim.confidenceInterval,
+       // Sync calibratedProbability with Monte Carlo result so the renderer
+       // doesn't show a stale Delphi value alongside the Monte Carlo probability
+-      calibratedProbability: sim.empiricalProbability,
++      calibratedProbability: emp,
+       trajectory: sim.trajectory,
+       keyDrivers: sim.keyDrivers,
+       blockers: sim.blockers,
+diff --git a/lib/agent/pipeline-steps/arbiter-foresight.ts b/lib/agent/pipeline-steps/arbiter-foresight.ts
+index af56789..c6d460b 100644
+--- a/lib/agent/pipeline-steps/arbiter-foresight.ts
++++ b/lib/agent/pipeline-steps/arbiter-foresight.ts
+@@ -13,6 +13,7 @@
+ 
+ import { editorialArbiter } from '../editorial-arbiter';
+ import { resolveCentralScenario, type CastingResult, type InstitutePosition } from '../editorial-types';
++import { deriveChainScenarios } from '../chain-scenarios';
+ import { runPipelineForesight } from '../pipeline-foresight';
+ import { emitProgress } from '../pipeline-progress';
+ 
+@@ -48,6 +49,92 @@ export async function runArbiterForesight(deps: ArbiterForesightDeps): Promise<A
+   let institutePosition: InstitutePosition | undefined;
+ 
+   if (castingResult) {
++    // ── OT-3/4/5 FIRST: chain scenarios → swarm votes → MC election, all
++    // BEFORE the arbiter writes. The arbiter receives the elected branch and
++    // narrates it; it no longer chooses probabilities (OT-6). ──
++    const chainDerivation = deriveChainScenarios(
++      Array.isArray(analysis.causalChain) ? analysis.causalChain : undefined,
++      typeof analysis.trajectory === 'object' && analysis.trajectory
++        ? String((analysis.trajectory as { horizon?: string }).horizon ?? '')
++        : undefined,
++    );
++    stats.chainScenarios = chainDerivation
++      ? {
++          uncertainties: chainDerivation.uncertainties.map(u => ({
++            linkId: u.linkId, kind: u.kind, downstream: u.downstream,
++            claim: u.claim.slice(0, 160),
++          })),
++          scenarioIds: chainDerivation.scenarios.map(s => s.id),
++          conditions: chainDerivation.scenarios.map(s => ({ id: s.id, conditions: s.conditions })),
++          usedForForesight: false,
++        }
++      : { usedForForesight: false, reason: 'insufficient_uncertainties' };
++
++    let election: import('../mc-elector').ElectedScenario | null = null;
++    if (chainDerivation && topSources.length >= 10) {
++      try {
++        const { runSwarmVote } = await import('../swarm-forecaster');
++        const swarm = await runSwarmVote({
++          question: query,
++          uncertainties: chainDerivation.uncertainties.map(u => ({ linkId: u.linkId, claim: u.claim })),
++          sourceIds: topSources.map((s: any) => s.id),
++          horizon: typeof analysis.trajectory === 'object' && analysis.trajectory
++            ? String((analysis.trajectory as { horizon?: string }).horizon ?? '') : undefined,
++          runId: pipelineRunId,
++        });
++        stats.swarmForecasts = {
++          forecasts: swarm.forecasts.map(f => ({
++            linkId: f.linkId, probability: f.probability,
++            variance: f.variance, iqr: f.iqr,
++            validVotes: f.validVotes, families: f.families, contested: f.contested,
++          })),
++          rawVotes: swarm.rawVotes,
++          validVotes: swarm.validVotes,
++          familiesUsed: swarm.familiesUsed,
++          costUsd: swarm.costUsd,
++          skipped: swarm.skipped,
++        };
++        addCost(swarm.costUsd, 'SWARM_FORECAST');
++        console.log(`${label} SWARM: ${swarm.validVotes} valid votes / ${swarm.familiesUsed.length} families / $${swarm.costUsd.toFixed(4)}`);
++
++        if (swarm.forecasts.length >= 2) {
++          try {
++            // OT-7: fold the resolved track record into the forecasts —
++            // systematic overconfidence (avg Brier > 0.20 over ≥20 resolved)
++            // shrinks every link probability toward 0.5 before election.
++            const { getCalibrationShrink } = await import('../prediction-tracker');
++            const calib = await getCalibrationShrink();
++            stats.swarmCalibration = calib;
++            if (calib.factor < 1) {
++              for (const f of swarm.forecasts) {
++                f.probability = 0.5 + (f.probability - 0.5) * calib.factor;
++              }
++              console.log(`${label} CALIBRATION: shrink=${calib.factor.toFixed(2)} applied (brier=${calib.avgBrier?.toFixed(3)}, n=${calib.resolved})`);
++            }
++            const { electScenario } = await import('../mc-elector');
++            election = electScenario({
++              scenarios: chainDerivation.scenarios,
++              forecasts: swarm.forecasts,
++              question: query,
++            });
++            stats.swarmElection = election ?? { skipped: 'insufficient_link_distributions' };
++            if (election) {
++              console.log(`${label} ELECTOR: ${election.scenarioId} p=${election.probability.toFixed(3)} contested=${election.contested} runnerUp=${election.runnerUpId ?? 'none'}`);
++            }
++          } catch (electErr) {
++            stats.swarmElection = { error: electErr instanceof Error ? electErr.message : String(electErr) };
++          }
++        }
++      } catch (swarmErr) {
++        stats.swarmForecasts = { error: swarmErr instanceof Error ? swarmErr.message : String(swarmErr) };
++        console.warn(`${label} SWARM failed (non-blocking):`, swarmErr);
++      }
++    }
++
++    const electedChainScenario = election
++      ? chainDerivation?.scenarios.find(s => s.id === election!.scenarioId)
++      : undefined;
++
+     if (deps.degraded) {
+       console.log(`${label} ARBITER: degraded mode — weak upstream quality signals, running on mid-tier model`);
+     }
+@@ -60,6 +147,17 @@ export async function runArbiterForesight(deps: ArbiterForesightDeps): Promise<A
+       sources: topSources,
+       debate: debateResult,
+       premium: !deps.degraded,
++      election: election && electedChainScenario
++        ? {
++            scenarioId: election.scenarioId,
++            probability: election.probability,
++            confidenceInterval: election.confidenceInterval,
++            contested: election.contested,
++            runnerUpId: election.runnerUpId,
++            electedName: electedChainScenario.name,
++            electedDescription: electedChainScenario.description,
++          }
++        : null,
+     });
+     stats.editorialArbiter = {
+       confidence: institutePosition.confidence,
+@@ -71,11 +169,54 @@ export async function runArbiterForesight(deps: ArbiterForesightDeps): Promise<A
+     emitProgress(pipelineRunId, 'ARBITER', 'completed', `Position: ${institutePosition.confidence}/100 confidence`);
+     console.log(`${label} ARBITER: confidence=${institutePosition.confidence}, scenarios=${institutePosition.scenarios.length}`);
+ 
+-    // ── FORESIGHT (Monte Carlo + swarm) — runs AFTER arbiter creates scenarios ──
+-    // Bug fix: previously foresight ran before arbiter → 0 scenarios → always skipped.
+-    // Now arbiter generates scenario names/descriptions/priors, then foresight refines probabilities.
++    // ── CENTRAL SCENARIO: the swarm election (OT-5/6) is authoritative when
++    // it ran. The legacy Monte Carlo path remains as fallback for runs where
++    // the chain couldn't yield uncertainties or the swarm produced no
++    // forecasts — those still get resolveCentralScenario semantics. ──
++    stats.templateScenariosUsed = institutePosition.costUsd === 0;
+     const arbiterScenarios = institutePosition.scenarios;
+-    if (!arbiterScenarios || arbiterScenarios.length < 2) {
++
++    if (election && electedChainScenario) {
++      // Source refs for the rationale: the uncertainty links' own sourceRefs.
++      const chainLinks = Array.isArray(analysis.causalChain) ? analysis.causalChain as Array<{ id?: number; sourceRef?: number }> : [];
++      const srcRefs = [...new Set(
++        electedChainScenario.uncertaintyIds
++          .map(id => chainLinks.find(l => l.id === id)?.sourceRef)
++          .filter((n): n is number => typeof n === 'number' && n > 0)
++      )];
++      const srcSuffix = srcRefs.length ? ` Supporting links: ${srcRefs.map(n => `[SRC-${n}]`).join(' ')}.` : '';
++      stats.centralScenario = {
++        name: electedChainScenario.name,
++        description: electedChainScenario.description,
++        rationale:
++          `Elected by independent-voter swarm + Monte Carlo over causal-chain ` +
++          `uncertainties (p=${election.probability.toFixed(3)}, ${election.monteCarloRuns} draws` +
++          `${election.contested ? `, CONTESTED — runner-up ${election.runnerUpId ?? 'n/a'}` : ''}).${srcSuffix}`,
++        horizon: electedChainScenario.observableAt,
++        implications: [`If this branch holds: ${electedChainScenario.description.slice(0, 300)}`],
++        revisionTriggers: Object.entries(electedChainScenario.conditions).map(([k, want]) =>
++          `Link ${k.replace(/^u/, '#')} ${want ? 'fails to materialize' : 'materializes'} by ${electedChainScenario.observableAt}`
++        ),
++        confidence: election.contested ? 'medium' : 'high',
++        selectedBy: 'swarm',
++        simulationDisagrees: false,
++      };
++      stats.scenariosFromChain = true;
++      // Keep analysis.scenarios in sync with the arbiter's written scenarios
++      // (same as the legacy foresight path does) so renderers and persistence
++      // see the elected probabilities, not stale analyst scenarios.
++      analysis = { ...analysis, scenarios: institutePosition!.scenarios } as typeof analysis;
++      stats.foresight = {
++        elected: true,
++        monteCarloRuns: election.monteCarloRuns,
++        contested: election.contested,
++        probabilities: election.probabilities,
++        costUsd: (stats.swarmForecasts as { costUsd?: number } | undefined)?.costUsd,
++      };
++      emitProgress(pipelineRunId, "FORESIGHT", "completed",
++        `SWARM ELECTED ${election.scenarioId} p=${election.probability.toFixed(2)}${election.contested ? ' (contested)' : ''}`);
++      console.log(`${label} FORESIGHT: swarm-elected ${election.scenarioId} p=${election.probability.toFixed(3)} contested=${election.contested}`);
++    } else if (!arbiterScenarios || arbiterScenarios.length < 2) {
+       stats.foresight = { skipped: true, reason: `only ${arbiterScenarios?.length ?? 0} scenarios from arbiter — Monte Carlo needs ≥ 2` };
+       console.log(`${label} FORESIGHT: skipped (only ${arbiterScenarios?.length ?? 0} scenarios from arbiter)`);
+     } else if (topSources.length < 10) {
+@@ -83,7 +224,6 @@ export async function runArbiterForesight(deps: ArbiterForesightDeps): Promise<A
+       console.log(`${label} FORESIGHT: skipped (only ${topSources.length} sources — insufficient for reliable Monte Carlo)`);
+     } else {
+       emitProgress(pipelineRunId, "FORESIGHT", "started", "Monte Carlo scenario distribution...");
+-      // Build a synthetic analysis object with arbiter scenarios for foresight
+       const analysisForForesight = {
+         ...analysis,
+         scenarios: arbiterScenarios.map(s => ({
+@@ -104,7 +244,6 @@ export async function runArbiterForesight(deps: ArbiterForesightDeps): Promise<A
+       });
+       if (!foresight.skipped && foresight.report) {
+         analysis = foresight.analysis as typeof analysis;
+-        // Enrich institutePosition scenarios with empirical probabilities
+         const simScenarios = foresight.report.output.scenarios;
+         stats.centralScenario = resolveCentralScenario(institutePosition, simScenarios);
+         analysis = { ...analysis, scenarios: institutePosition.scenarios } as typeof analysis;
+diff --git a/lib/agent/pipeline-steps/persistence-tail.ts b/lib/agent/pipeline-steps/persistence-tail.ts
+index 20c1b1f..04966f5 100644
+--- a/lib/agent/pipeline-steps/persistence-tail.ts
++++ b/lib/agent/pipeline-steps/persistence-tail.ts
+@@ -23,6 +23,7 @@ import { updateAgentWeights } from '../moa/mixture-of-agents';
+ import { updateWorldModel } from '../world-model/world-model';
+ import { runEvolutionCycle } from '../self-evolver';
+ import { retrainPRM } from '../prm/process-reward-model';
++import { learningWritesEnabled } from '../learning-gate';
+ import { evaluateBriefRAG } from '../ragas-eval';
+ import type { DomainExpertise } from '../researcher-kb/index';
+ 
+@@ -145,7 +146,7 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
+     (async () => {
+       try {
+         const pruningResult = (analysis as any)?._meta?.pruning;
+-        const predResult = await registerPredictions(brief.id, analysis as any, pruningResult, topSources);
++        const predResult = await registerPredictions(brief.id, analysis as any, pruningResult, topSources, detectedDomain || undefined);
+         stats.predictions = { registered: predResult.registered } as any;
+         if (predResult.registered > 0) {
+           console.log(`${label} PREDICTIONS: registered ${predResult.registered} predictions for brief ${brief.id}`);
+@@ -192,6 +193,9 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
+ 
+     // ── STEP 15: KNOWLEDGE GRAPH (post-publish concept extraction) ──
+     (async () => {
++      // Learning-write freeze (audit #11): KG writes are frozen pending
++      // replay-backed ablation. Skipping also saves the extraction LLM call.
++      if (!learningWritesEnabled()) return;
+       console.log(`${label} KNOWLEDGE GRAPH: extracting concepts`);
+       try {
+         const kg = await extractAndStoreConcepts(brief.id, query, html, topSources.map((s: any) => s.id), useTemporalMemory);
+@@ -204,6 +208,7 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
+ 
+     // STEP 16: GAP FILLER — extract knowledge gaps from this analysis for future runs
+     (async () => {
++      if (!learningWritesEnabled()) return;
+       try {
+         const gapResult = await extractAndStoreGaps(query, html, detectedDomain, pipelineRun.id, topSources.length);
+         if (gapResult.gaps.length > 0) {
+@@ -218,6 +223,7 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
+ 
+     // STEP 16b: EPISODIC MEMORY STORAGE (V3.1) — store this run for future learning
+     (async () => {
++      if (!learningWritesEnabled()) return;
+       try {
+         const { storeEpisode } = await import('../episodic-memory');
+         await storeEpisode({
+@@ -310,11 +316,13 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
+     }
+     stats.citedSourceQuality = { cited: citedIndices.length, avgQuality: Math.round(weighted / Math.max(1, totalWeight)) };
+   }
+-  recordSourceUsage(
+-    topSources.map((s: any) => s.id),
+-    stats.criticalLoop?.finalScore ?? 0,
+-    citedSourceIds,
+-  ).catch(() => {});
++  if (learningWritesEnabled()) {
++    recordSourceUsage(
++      topSources.map((s: any) => s.id),
++      stats.criticalLoop?.finalScore ?? 0,
++      citedSourceIds,
++    ).catch(() => {});
++  }
+ 
+   // ── EXPERIENCE BANK: extraction moved post-gate ──
+   // The meta-learner must see the FINAL disposition (published/held/ready +
+@@ -512,7 +520,9 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
+       ])).length / topSources.length
+     : 0;
+   const appliedLessonTexts = memoryBlock ? [memoryBlock] : [];
+-  withExecutionDetached(() => recordLearningCycle({
++  // Learning-write freeze (audit #11): all agent-memory writes below are
++  // gated on NOMOSX_LEARNING_WRITES=1 until replay proves each writer.
++  if (learningWritesEnabled()) withExecutionDetached(() => recordLearningCycle({
+     agentId: isStrategic ? "strategic-analyst" : "analyst",
+     runId: pipelineRun.id,
+     question: query,
+@@ -529,7 +539,7 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
+     appliedLessonTexts,
+   })).catch((err) => console.warn(`${label} LEARNING LOOP: failed (non-blocking):`, err));
+   // Also record for READER agent
+-  if (readings.length > 0) {
++  if (readings.length > 0 && learningWritesEnabled()) {
+     withExecutionDetached(() => recordLearningCycle({
+       agentId: "reader",
+       runId: pipelineRun.id,
+@@ -553,7 +563,7 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
+   // Now: (1) record performance for calibration, (2) extract lessons from this run.
+   // These record calls are fire-and-forget durability writes — detach them or
+   // they die with 'scope closed' when the tail outlives the pipeline scope.
+-  withExecutionDetached(() => recordAgentPerformance({
++  if (learningWritesEnabled()) withExecutionDetached(() => recordAgentPerformance({
+     agentId: isStrategic ? "strategic-analyst" : "analyst",
+     domain: detectedDomain as DomainExpertise,
+     runId: pipelineRun.id,
+@@ -568,7 +578,7 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
+     lessonsLearned: [],
+   })).catch((err) => console.warn(`${label} LEARNING LOOP: recordAgentPerformance failed:`, err));
+ 
+-  if (readings.length > 0) {
++  if (readings.length > 0 && learningWritesEnabled()) {
+     withExecutionDetached(() => recordAgentPerformance({
+       agentId: "reader",
+       domain: detectedDomain as DomainExpertise,
+@@ -586,7 +596,7 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
+   }
+ 
+   // Extract lessons from this run if quality was low (learning opportunity)
+-  if (finalTrustScore < 75 && html.length > 1000) {
++  if (learningWritesEnabled() && finalTrustScore < 75 && html.length > 1000) {
+     const agentId = isStrategic ? "strategic-analyst" : "analyst";
+     const lessonsJob = withExecutionDetached(() => extractLessons(
+       agentId,
+@@ -617,7 +627,7 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
+ 
+   // ── SKILL BANK: record the winning configuration when trust is high ──
+   // Procedural memory: domain → (providers + lens types) that produced trust ≥ 80.
+-  if (finalTrustScore >= 80) {
++  if (learningWritesEnabled() && finalTrustScore >= 80) {
+     try {
+       const { recordSkill } = await import('../skill-bank');
+       recordSkill({
+@@ -638,7 +648,7 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
+   // record and replay → lesson-verifier cassette miss. captureInputSync stores
+   // the boolean at record time; replay serves it without touching the stream.
+   const { captureInputSync } = await import('../frozen-inputs');
+-  if (captureInputSync('rand:lesson-verify', () => Math.random() < 0.1)) { // 10% chance per run ≈ every 10 runs
++  if (learningWritesEnabled() && captureInputSync('rand:lesson-verify', () => Math.random() < 0.1)) { // 10% chance per run ≈ every 10 runs
+     try {
+       const { verifyAndDeInflateLessons } = await import('../lesson-verifier');
+       const agentId = isStrategic ? "strategic-analyst" : "analyst";
+@@ -675,7 +685,7 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
+ 
+     // ── WITNESS: Finalize — extract cross-run learnings ──
+     (async () => {
+-      if (!witnessCtx) return;
++      if (!witnessCtx || !learningWritesEnabled()) return;
+       try {
+         const witnessResult = await witnessCtx.finalize(query);
+         console.log(`${label} WITNESS: run complete — health=${witnessResult.healthScore}/100, anomalies=${witnessResult.totalAnomalies}, interventions=${witnessResult.totalInterventions}, quality=${witnessResult.qualityScore}/100${witnessResult.recommendsChanges ? ' (changes recommended for future runs)' : ''}`);
+@@ -687,7 +697,7 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
+ 
+     // ── WORLD MODEL: Update with findings from this run ──
+     (async () => {
+-      if (!(useWorldModel && analysis)) return;
++      if (!(useWorldModel && analysis) || !learningWritesEnabled()) return;
+       try {
+         const analysisText = typeof analysis === 'string' ? analysis :
+           (analysis.summary || '') + '\n' + (analysis.consensus || '') + '\n' + (analysis.debate?.synthesis || '');
+@@ -704,7 +714,7 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
+ 
+     // ── PRM: Retrain periodically (every 10 runs) ──
+     (async () => {
+-      if (!usePRM) return;
++      if (!usePRM || !learningWritesEnabled()) return;
+       try {
+         // Check if we should retrain (simple heuristic: retrain if model is old or has enough new data)
+         const shouldRetrain = !prmModel || prmModel.trainingExamples < 100;
+@@ -742,7 +752,7 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
+ 
+     // ── SELF-EVOLUTION: prompt evolution for key agents (non-blocking) ──
+     (async () => {
+-      if (!useSelfEvolution) return;
++      if (!useSelfEvolution || !learningWritesEnabled()) return;
+       try {
+         const fallbackFor = (id: string) => `[${id}] default system prompt — to be evolved from lessons`;
+         const evolutionResults = await runEvolutionCycle(
+@@ -766,7 +776,7 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
+ 
+   // ── MOA: Update agent weights based on this run ──
+   // AFTER the barrier — reads stats.witness.qualityScore as its quality signal.
+-  if (useMixtureOfAgents && (stats as any).moa) {
++  if (useMixtureOfAgents && learningWritesEnabled() && (stats as any).moa) {
+     try {
+       const moaResult = (analysis as any)?._meta?.moaResult;
+       if (moaResult) {
+diff --git a/lib/agent/pipeline-steps/post-analyst-checks.ts b/lib/agent/pipeline-steps/post-analyst-checks.ts
+index 1930687..9482373 100644
+--- a/lib/agent/pipeline-steps/post-analyst-checks.ts
++++ b/lib/agent/pipeline-steps/post-analyst-checks.ts
+@@ -402,6 +402,19 @@ export async function runPostAnalystChecks(deps: PostAnalystChecksDeps): Promise
+   // Producer-visible capacity is unchanged (strategic 2, brief 1); the
+   // reserve is the +1.
+   let reAnalysisBudget = isStrategic ? 3 : 2;
++  // Degraded-provider cap: with ≤2 LLM providers alive there is no failover
++  // headroom and every repair pass runs 2-4× slower (freepool timeouts,
++  // TPM pacing). Three stacked full re-analyses then guarantee a deadline
++  // FATAL — observed live on the GLM+freepool funnel (3 analyst runs +
++  // gap-fill reader rounds → timeout at 180min). Cap producer capacity at
++  // 2; the repair reserve stays intact.
++  try {
++    const alive = ((stats as Record<string, unknown>).preflight as { aliveProviders?: string[] } | undefined)?.aliveProviders;
++    if (Array.isArray(alive) && alive.length > 0 && alive.length <= 2) {
++      reAnalysisBudget = Math.min(reAnalysisBudget, 2);
++      console.log(`${label} REPAIR BUDGET: capped at ${reAnalysisBudget} — only ${alive.length} LLM provider(s) alive (${alive.join(', ')}), no failover headroom`);
++    }
++  } catch { /* non-blocking */ }
+ 
+   // ── SELF-CORRECTION: ANALYST — assess quality, retry if low (Reflexion pattern) ──
+   // Deterministic trigger first: the LLM reflection may miss citation-spread
+diff --git a/lib/agent/pipeline-types.ts b/lib/agent/pipeline-types.ts
+index d3f3b92..a0daaf9 100644
+--- a/lib/agent/pipeline-types.ts
++++ b/lib/agent/pipeline-types.ts
+@@ -429,6 +429,7 @@ export interface PipelineStats {
+   // ride the held diagnostic into the 20h retry's scout mission so the retry
+   // repairs the corpus gap instead of repeating the broad sweep.
+   daEvidenceQueries?: string[];
++  daEvidenceMissionSkipped?: string;
+   deferredGapRequests?: {
+     count: number;
+     origin: string;
+diff --git a/lib/agent/pipeline-v2.ts b/lib/agent/pipeline-v2.ts
+index 1da87c1..897d5ed 100644
+--- a/lib/agent/pipeline-v2.ts
++++ b/lib/agent/pipeline-v2.ts
+@@ -1363,7 +1363,17 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
+       || (daPre.verdict === 'major_revision' && (daPre.overallStrength as number) < 20)
+       || ((daPre.publishabilityScore as number) ?? 100) < 40
+     );
+-    if (daPreFails && !isBudgetConstrained()) {
++    // Wall-clock guard: the mission is a full scout→reader→(re-analysis)
++    // cycle — on degraded providers that is 45-90min. Launching it inside
++    // the deadline tail guarantees a timeout FATAL instead of a held run
++    // (observed live: mission started at ~T-30min, run died mid-reader).
++    const daMissionHeadroomMs = Number(process.env.DA_MISSION_HEADROOM_MS ?? 3_000_000);
++    const daMissionHasTime = hasRunHeadroom(pipelineStart, isStrategic, daMissionHeadroomMs);
++    if (daPreFails && !isBudgetConstrained() && !daMissionHasTime) {
++      console.log(`${label} DA EVIDENCE MISSION: skipped — ${Math.round(remainingRunMs(pipelineStart, isStrategic) / 60000)}min left < mission estimate; gap queries persisted for the retry instead`);
++      stats.daEvidenceMissionSkipped = 'insufficient_headroom';
++    }
++    if (daPreFails && !isBudgetConstrained() && daMissionHasTime) {
+       // A fatal challenge like "no comparative evidence for X" is EVIDENCE-
+       // BOUND — no rewrite can invent the missing sources. First convert the
+       // adversary's challenges into retrieval missions: post them as source
+diff --git a/lib/agent/prediction-registration.ts b/lib/agent/prediction-registration.ts
+index 571652e..73f69bd 100644
+--- a/lib/agent/prediction-registration.ts
++++ b/lib/agent/prediction-registration.ts
+@@ -31,6 +31,11 @@ interface ExtractedPrediction {
+   resolutionCriteria: string;
+   whatWouldFalsify: string;
+   sourceRefs: number[];
++  /** OT-1: 'sentinel' = short-horizon check that produces Brier signal in
++   *  weeks; 'strategic' = the note's own horizon. dueAt is authoritative. */
++  kind?: 'sentinel' | 'strategic';
++  dueAt?: Date;
++  linkId?: string;
+ }
+ 
+ /**
+@@ -105,6 +110,7 @@ export function extractPredictions(
+       resolutionCriteria: buildResolutionCriteria(link, analysis),
+       whatWouldFalsify: analysis.whatToWatch?.whatWouldChangeMind || 'Not specified',
+       sourceRefs,
++      linkId: String(link.id ?? ''),
+     });
+   }
+ 
+@@ -144,6 +150,37 @@ export function extractPredictions(
+     });
+   }
+ 
++  // 4. OT-1 SENTINELS — short-horizon (30/60/90d) predictions derived from the
++  //    most sensitive near-term observables. Strategic horizons are pluriannual
++  //    (first due 2028-07) → zero Brier signal for ~2 years. Sentinels close
++  //    that gap: each note emits up to 3 checks on whatToWatch signals and
++  //    revision triggers, due within a quarter.
++  const SENTINEL_OFFSETS_DAYS = [30, 60, 90] as const;
++  const sentinelSources = [
++    ...signals.filter(s => /\b(20\d{2}|Q[1-4]|%|\$|billion|million)\b/i.test(s)),
++    ...(central?.revisionTriggers ?? []).filter(t => /\b(20\d{2}|Q[1-4]|%|\$|billion|million|sanction|election|summit|deadline|launch|approval)\b/i.test(t)),
++  ];
++  const seenSentinel = new Set<string>();
++  SENTINEL_OFFSETS_DAYS.forEach((days, i) => {
++    const src = sentinelSources[i];
++    if (!src) return;
++    const key = src.slice(0, 120).toLowerCase();
++    if (seenSentinel.has(key)) return;
++    seenSentinel.add(key);
++    const dueAt = new Date(Date.now() + days * 86_400_000);
++    predictions.push({
++      claim: `[${days}d sentinel] ${src}`,
++      horizon: dueAt.toISOString().slice(0, 10),
++      probability: deriveProbability(conviction, 'EMERGING'),
++      confidence: 'EMERGING',
++      resolutionCriteria: `By ${dueAt.toISOString().slice(0, 10)}: observable check — ${src.slice(0, 200)}`,
++      whatWouldFalsify: `The named observable does not occur by the sentinel date`,
++      sourceRefs: [],
++      kind: 'sentinel',
++      dueAt,
++    });
++  });
++
+   return predictions;
+ }
+ 
+@@ -176,6 +213,8 @@ export async function registerPredictions(
+   pruningResult?: PruningResult,
+   /** Source list in [SRC-N] order — enables LEAP evidence-likelihood updates. */
+   sources?: { qualityScore?: number | null }[],
++  /** OT-7: research domain — persisted for calibration-by-domain reports. */
++  domain?: string,
+ ): Promise<{ registered: number; errors: string[] }> {
+   const errors: string[] = [];
+   let registered = 0;
+@@ -233,6 +272,10 @@ export async function registerPredictions(
+             whatWouldFalsify: pred.whatWouldFalsify.slice(0, 5000),
+             sourceRefs: pred.sourceRefs,
+             status: 'OPEN',
++            kind: pred.kind ?? 'strategic',
++            dueAt: pred.dueAt ?? null,
++            linkId: pred.linkId || null,
++            domain: domain || null,
+           },
+         });
+         registered++;
+diff --git a/lib/agent/prediction-tracker.ts b/lib/agent/prediction-tracker.ts
+index 68863b6..c4d950c 100644
+--- a/lib/agent/prediction-tracker.ts
++++ b/lib/agent/prediction-tracker.ts
+@@ -171,6 +171,15 @@ export function parseHorizonDue(horizon: string, createdAt: Date): Date | null {
+   const calLoose = h.match(/(\d{4})\s*-?\s*q?([1-4])\b/);
+   if (calLoose) return new Date(Date.UTC(Number(calLoose[1]), Number(calLoose[2]) * 3, 1));
+ 
++  // OT-1: prose horizons ("We look to 2030 because…") — last-ditch: the first
++  // plausible year becomes the due date (end of that year). Previously these
++  // returned null → OPEN forever, unresolvable even after the year passed.
++  const anyYear = h.match(/\b(20\d{2})\b/);
++  if (anyYear) {
++    const y = Number(anyYear[1]);
++    if (y >= createdAt.getUTCFullYear()) return new Date(Date.UTC(y, 11, 31));
++  }
++
+   return null;
+ }
+ 
+@@ -184,11 +193,12 @@ export async function findPredictionsDueForEvaluation(limit = 50): Promise<Predi
+     const candidates = await prisma.prediction.findMany({
+       where: { status: 'OPEN', resolvedAt: null },
+       orderBy: { createdAt: 'asc' },
+-      take: 500,
++      take: 1500,
+     });
+     const now = Date.now();
+     const due = (candidates as any[]).filter(c => {
+-      const dueAt = parseHorizonDue(c.horizon, c.createdAt);
++      // dueAt (ISO, authoritative — OT-1) wins; horizon parsing is fallback.
++      const dueAt = c.dueAt ? new Date(c.dueAt) : parseHorizonDue(c.horizon, c.createdAt);
+       return dueAt !== null && dueAt.getTime() <= now;
+     }).slice(0, limit);
+     return due as unknown as Prediction[];
+@@ -348,11 +358,21 @@ export async function generateCalibrationReport(): Promise<CalibrationReport> {
+     const byType: Record<string, { count: number; brierScore: number }> = {};
+ 
+     for (const p of evaluated) {
+-      // Adapt to existing schema: no domain field, use 'general'
+-      // confidence field maps to predictionType
+-      const domain = 'general';
+-      const horizon = p.horizon || '90d';
+-      const type = p.confidence || 'scenario';
++      // OT-7: real breakdowns — domain from registration, kind (strategic vs
++      // sentinel) as the type axis, and horizon bucketed by dueAt distance so
++      // "90d" and "2027-Q1" land in comparable bins.
++      const domain = (p as any).domain || 'general';
++      const dueAt = (p as any).dueAt ? new Date((p as any).dueAt) : null;
++      const createdAt = (p as any).createdAt ? new Date((p as any).createdAt) : null;
++      // Designed horizon = dueAt − createdAt (resolutions happen near dueAt,
++      // so "days until due from now" would collapse every bucket).
++      const horizonDays = dueAt && createdAt
++        ? Math.round((dueAt.getTime() - createdAt.getTime()) / 86400000)
++        : null;
++      const horizon = horizonDays == null
++        ? (p.horizon || 'unknown')
++        : horizonDays <= 45 ? '<=45d' : horizonDays <= 120 ? '<=120d' : horizonDays <= 400 ? '<=400d' : '>400d';
++      const type = (p as any).kind || 'strategic';
+ 
+       if (!byDomain[domain]) byDomain[domain] = { count: 0, brierScore: 0 };
+       byDomain[domain].count++;
+@@ -450,3 +470,36 @@ export function formatCalibrationContext(report: CalibrationReport): string {
+   lines.push('\n=== END CALIBRATION DATA ===\n');
+   return lines.join('\n');
+ }
++
++// ─── OT-7: calibration feedback into forecasting ────────────────────────────
++
++/**
++ * Derive a probability-shrink factor from the resolved track record.
++ *
++ * Systematic overconfidence shows up as average Brier > ~0.25 (worse than
++ * coin-flip). When enough predictions have resolved, shrink every forecast
++ * probability toward 0.5 — the standard recalibration move — bounded so a
++ * thin or noisy record can never dominate the swarm's evidence.
++ *
++ * factor = 1 → no adjustment. factor < 1 → shrink toward 0.5.
++ * Requires ≥ 20 resolved predictions before trusting the signal.
++ */
++export async function getCalibrationShrink(): Promise<{
++  factor: number;
++  resolved: number;
++  avgBrier: number | null;
++}> {
++  try {
++    const report = await generateCalibrationReport();
++    if (report.evaluatedPredictions < 20 || report.averageBrierScore == null) {
++      return { factor: 1, resolved: report.evaluatedPredictions, avgBrier: report.averageBrierScore };
++    }
++    // Brier 0.20 ≈ acceptable; each 0.05 of excess costs 10% shrink, floor 0.70.
++    const excess = Math.max(0, report.averageBrierScore - 0.20);
++    const factor = Math.max(0.70, 1 - excess * 2);
++    return { factor, resolved: report.evaluatedPredictions, avgBrier: report.averageBrierScore };
++  } catch (err) {
++    console.warn('[PredictionTracker] Calibration shrink unavailable:', err instanceof Error ? err.message : String(err));
++    return { factor: 1, resolved: 0, avgBrier: null };
++  }
++}
+diff --git a/lib/agent/publication-generator.ts b/lib/agent/publication-generator.ts
+index b94d39a..c577bd4 100644
+--- a/lib/agent/publication-generator.ts
++++ b/lib/agent/publication-generator.ts
+@@ -465,7 +465,9 @@ export async function generatePublication(
+         sourceDiversity: new Set(sources.map((s: any) => s.provider)).size,
+         findingsCount: sources.length,
+       });
+-      await recordAgentPerformance({
++      // Learning-write freeze (audit #11)
++      const { learningWritesEnabled } = await import('./learning-gate');
++      if (learningWritesEnabled()) await recordAgentPerformance({
+         agentId: "publication-generator",
+         runId: publication_placeholder_id,
+         question: signal.title,
+diff --git a/lib/agent/simulation-agent.ts b/lib/agent/simulation-agent.ts
+index 724eab4..5678f5c 100644
+--- a/lib/agent/simulation-agent.ts
++++ b/lib/agent/simulation-agent.ts
+@@ -1288,6 +1288,10 @@ export async function runSimulationAgent(input: SimulationInput): Promise<Simula
+   }
+ 
+   const evidence = await loadSourceEvidence(input.sourceIds);
++  // OT-cleanup: sourceGraph is still computed for the report/telemetry, but
++  // it no longer feeds scenarioEvidenceWeight — lexical name overlap and
++  // mean qualityScore carry no likelihood information (audit: probabilities
++  // must come from the voted link distributions, not source cosmetics).
+   const sourceGraph = buildSourceGraph(input.scenarios, evidence);
+   const parameters =
+     Object.keys(input.parameters).length > 0 ? input.parameters : defaultParameters(input.scenarios);
+@@ -1300,7 +1304,7 @@ export async function runSimulationAgent(input: SimulationInput): Promise<Simula
+     budget
+   );
+ 
+-  const { parameters: calibrated, avgQuality } = await calibrateFromSources(
++  const { avgQuality } = await calibrateFromSources(
+     input.sourceIds,
+     parameters,
+     evidence
+@@ -1308,8 +1312,11 @@ export async function runSimulationAgent(input: SimulationInput): Promise<Simula
+ 
+   const seed = hashSeed(input.question);
+   const mc = runMonteCarloCore(
+-    { scenarios: input.scenarios, parameters: calibrated, runs: profile.mcRuns, seed },
+-    sourceGraph
++    // Uncalibrated parameters + empty sourceGraph: source-derived nudges
++    // removed from the probability path (see swarm elector for the real
++    // evidence-driven distribution).
++    { scenarios: input.scenarios, parameters, runs: profile.mcRuns, seed },
++    []
+   );
+ 
+   const personas = await buildPersonaPanel({
+@@ -1388,8 +1395,8 @@ export async function runSimulationAgent(input: SimulationInput): Promise<Simula
+   const validation = validateOutput(outcomes, avgQuality, redTeam);
+   const sensitivity = computeSensitivityMatrix(
+     input.scenarios,
+-    calibrated,
+-    Object.keys(calibrated)[0] ?? "momentum"
++    parameters,
++    Object.keys(parameters)[0] ?? "momentum"
+   );
+ 
+   const personaSnapshots = personas.map((p) => ({
+diff --git a/lib/agent/swarm-forecaster.ts b/lib/agent/swarm-forecaster.ts
+new file mode 100644
+index 0000000..b9b859d
+--- /dev/null
++++ b/lib/agent/swarm-forecaster.ts
+@@ -0,0 +1,261 @@
++/**
++ * SWARM FORECASTER — OT-4.
++ *
++ * Independent LLM forecasters vote per uncertain causal-chain link — never
++ * on the narrative. Diversity comes from three crossed axes (silicon-crowd
++ * lesson: correlated errors kill naive ensembles):
++ *   - model family (glm / google / deepseek rotation, provider override)
++ *   - evidence slice (shared pool + disjoint private slice per voter)
++ *   - lens (economic / geopolitical / technological / social framing)
++ *   - formulation (half the voters assess the negation — cancels the
++ *     acquiescence bias documented for LLM ensembles)
++ *
++ * Aggregation is confidence-weighted log-odds pooling (leap-aggregation) —
++ * no deliberation, per the KalshiBench finding that independent aggregation
++ * beats consensus. Output is a mean + variance per link; the Monte Carlo
++ * elector (OT-5) consumes these as Beta parameters.
++ *
++ * A malformed vote is a null vote — strict JSON, no repair, no guessing.
++ */
++
++import { callLLM } from '../llm/unified-llm';
++import { parseJson } from './json-utils';
++import { poolForecasts, type ForecastVote } from './leap-aggregation';
++import type { LLMProvider } from '../llm/unified-llm';
++
++export interface SwarmSourceCard {
++  id: string;
++  title: string;
++  excerpt: string;
++  qualityScore: number;
++}
++
++export interface UncertainLink {
++  linkId: number;
++  claim: string;
++}
++
++export interface LinkForecast {
++  linkId: number;
++  claim: string;
++  /** P(link resolves as claimed) — pooled, pre-calibration. */
++  probability: number;
++  /** Variance of raw vote probabilities — feeds the Beta fit. */
++  variance: number;
++  iqr: number;
++  validVotes: number;
++  families: number;
++  contested: boolean;
++}
++
++export interface SwarmResult {
++  forecasts: LinkForecast[];
++  rawVotes: number;
++  validVotes: number;
++  familiesUsed: string[];
++  costUsd: number;
++  skipped?: string;
++}
++
++const VOTER_PROVIDERS: LLMProvider[] = ['glm', 'google', 'deepseek'];
++const LENSES = [
++  'economic incentives and resource constraints',
++  'geopolitical alignment and institutional capacity',
++  'technological feasibility and adoption curves',
++  'social adoption and behavioral responses',
++] as const;
++
++interface RawVote {
++  linkId: number;
++  probability: number; // already sign-corrected (negation inverted)
++  confidence: number;  // 1 | 1.5 | 2
++  voterId: string;
++  family: string;
++  negated: boolean;
++}
++
++function formatCards(cards: SwarmSourceCard[], tag: string): string {
++  return cards.map(c => `[${tag}-${c.id.slice(-6)}] (${c.qualityScore}/100 q) ${c.title}\n  ${c.excerpt.slice(0, 350)}`).join('\n');
++}
++
++/** Shared pool = top-quality cards; private slices dealt round-robin. */
++function partition(cards: SwarmSourceCard[], voters: number) {
++  const sorted = [...cards].sort((a, b) => b.qualityScore - a.qualityScore);
++  const sharedCount = Math.max(2, Math.ceil(sorted.length * 0.4));
++  const shared = sorted.slice(0, sharedCount);
++  const rest = sorted.slice(sharedCount);
++  const slices: SwarmSourceCard[][] = Array.from({ length: voters }, () => []);
++  rest.forEach((c, i) => slices[i % voters].push(c));
++  return { shared, slices };
++}
++
++async function loadCards(sourceIds: string[]): Promise<SwarmSourceCard[]> {
++  if (!sourceIds.length) return [];
++  try {
++    const { prisma } = await import('../db');
++    const rows = await prisma.source.findMany({
++      where: { id: { in: sourceIds.slice(0, 40) } },
++      select: { id: true, title: true, abstract: true, qualityScore: true },
++      orderBy: { qualityScore: 'desc' },
++    });
++    return rows.map(s => ({
++      id: s.id,
++      title: s.title,
++      excerpt: (s.abstract ?? s.title ?? '').slice(0, 400),
++      qualityScore: s.qualityScore ?? 50,
++    }));
++  } catch {
++    return [];
++  }
++}
++
++/**
++ * Run the independent-voter swarm over the uncertain links.
++ * Bounded: `voters` calls per link, short prompts, cheap providers.
++ */
++export async function runSwarmVote(input: {
++  question: string;
++  uncertainties: UncertainLink[];
++  sourceIds: string[];
++  horizon?: string;
++  voters?: number;
++  runId?: string;
++}): Promise<SwarmResult> {
++  const voterCount = Math.min(25, Math.max(8, input.voters ?? 15));
++  const cards = await loadCards(input.sourceIds);
++  if (cards.length < 4) {
++    return { forecasts: [], rawVotes: 0, validVotes: 0, familiesUsed: [], costUsd: 0, skipped: 'insufficient_evidence_cards' };
++  }
++  const { shared, slices } = partition(cards, voterCount);
++  const sharedBlock = formatCards(shared, 'SHARED');
++
++  // Rotate over providers that are actually alive — the hardcoded trio
++  // (glm/google/deepseek) silently routes 2/3 of ballots through fallback
++  // chains whenever google/deepseek are suspended (the production default),
++  // which both slows the vote and fakes family diversity that isn't there.
++  let voterProviders: LLMProvider[] = VOTER_PROVIDERS;
++  try {
++    const { getAvailableProviders, getSuspendedProviders } = await import('../llm/unified-llm');
++    const suspended = await getSuspendedProviders();
++    const alive = getAvailableProviders().filter(p => !suspended.includes(p));
++    if (alive.length > 0) {
++      // Prefer the canonical trio when alive, then fill with any other
++      // alive provider so the rotation always spans real families.
++      const preferred = VOTER_PROVIDERS.filter(p => alive.includes(p));
++      const extras = alive.filter(p => !preferred.includes(p));
++      voterProviders = [...preferred, ...extras];
++      if (voterProviders.length === 0) voterProviders = VOTER_PROVIDERS;
++    }
++  } catch { /* keep canonical rotation */ }
++
++  const votes: RawVote[] = [];
++  let costUsd = 0;
++  let rawVotes = 0;
++
++  {
++    // One call per voter covers ALL uncertain links — cheaper than
++    // link×voter and keeps votes comparable across the chain.
++    const tasks = input.uncertainties.slice(0, 4)
++      .map(u => `LINK #${u.linkId}: ${u.claim}`)
++      .join('\n');
++
++    const settled = await Promise.allSettled(
++      Array.from({ length: voterCount }, async (_, i) => {
++        const provider = voterProviders[i % voterProviders.length];
++        const negated = i % 2 === 1;
++        const lens = LENSES[i % LENSES.length];
++        const privateBlock = formatCards(slices[i], `V${i}-PRIVATE`);
++        const subject = negated
++          ? `For EACH link below, estimate the probability that the OPPOSITE of the claim occurs (i.e., the claim FAILS).`
++          : `For EACH link below, estimate the probability that the claim as stated comes to pass.`;
++
++        const res = await callLLM({
++          provider,
++          task: 'fact_check',
++          temperature: 0.4,
++          maxTokens: 500,
++          jsonMode: true,
++          runId: input.runId,
++          traceName: 'swarm_forecast_vote',
++          maxCostUsd: 0.02,
++          messages: [
++            {
++              role: 'system',
++              content: `You are an independent superforecaster. ${subject}
++Method (mandatory order):
++1. State the base rate for this CLASS of event from general knowledge.
++2. Weigh the evidence cards FOR and AGAINST, citing card ids.
++3. Emit a probability strictly between 0.02 and 0.98 and a confidence in {1, 1.5, 2}.
++Lens for this ballot: ${lens}.
++Return ONLY JSON: {"votes":[{"linkId":<number>,"probability":<0-1>,"confidence":<1|1.5|2>,"citedCards":["<card-id>",...],"baseRate":<0-1>}],"reasoning":"<2 sentences>"}`,
++            },
++            {
++              role: 'user',
++              content: `QUESTION: ${input.question}\nHORIZON: ${input.horizon ?? 'see links'}\n\nUNCERTAIN LINKS:\n${tasks}\n\nSHARED EVIDENCE:\n${sharedBlock}\n\nYOUR PRIVATE EVIDENCE SLICE:\n${privateBlock || '(none — rely on shared pool and base rates)'}`,
++            },
++          ],
++        });
++        costUsd += res.costUsd ?? 0;
++        rawVotes++;
++        const parsed = parseJson<{ votes?: Array<{ linkId?: number; probability?: number; confidence?: number; citedCards?: string[] }> }>(res.content);
++        const arr = parsed?.votes;
++        if (!Array.isArray(arr)) return;
++        for (const v of arr) {
++          const linkId = Number(v.linkId);
++          const p = Number(v.probability);
++          if (!Number.isFinite(linkId) || !Number.isFinite(p) || p <= 0 || p >= 1) continue;
++          const corrected = negated ? 1 - p : p;
++          votes.push({
++            linkId,
++            probability: Math.min(0.98, Math.max(0.02, corrected)),
++            confidence: [1, 1.5, 2].includes(Number(v.confidence)) ? Number(v.confidence) : 1,
++            voterId: `v${i}`,
++            family: res.provider ?? provider,
++            negated,
++          });
++        }
++      })
++    );
++    void settled; // per-voter failures are tolerated — a null vote, not a crash
++  }
++
++  // Aggregate per link: confidence-weighted log-odds pooling + spread stats.
++  const forecasts: LinkForecast[] = [];
++  const familiesUsed = [...new Set(votes.map(v => v.family))];
++  for (const link of input.uncertainties.slice(0, 4)) {
++    const linkVotes = votes.filter(v => v.linkId === link.linkId);
++    if (!linkVotes.length) continue;
++    const fv: ForecastVote[] = linkVotes.map(v => ({
++      claim: `link-${link.linkId}`,
++      probability: v.probability,
++      // confidence {1,1.5,2} → poolForecasts scale [20,95]
++      confidence: v.confidence === 2 ? 95 : v.confidence === 1.5 ? 75 : 50,
++      origin: v.voterId,
++    }));
++    const pooled = poolForecasts(fv);
++    if (!pooled) continue;
++    const probs = linkVotes.map(v => v.probability).sort((a, b) => a - b);
++    const mean = probs.reduce((a, b) => a + b, 0) / probs.length;
++    const variance = probs.reduce((a, b) => a + (b - mean) ** 2, 0) / probs.length;
++    const q1 = probs[Math.floor(probs.length * 0.25)] ?? mean;
++    const q3 = probs[Math.floor(probs.length * 0.75)] ?? mean;
++    forecasts.push({
++      linkId: link.linkId,
++      claim: link.claim,
++      probability: pooled.pooled,
++      variance,
++      iqr: q3 - q1,
++      validVotes: linkVotes.length,
++      families: new Set(linkVotes.map(v => v.family)).size,
++      contested: pooled.contested,
++    });
++  }
++
++  return {
++    forecasts,
++    rawVotes,
++    validVotes: votes.length,
++    familiesUsed,
++    costUsd,
++  };
++}
+diff --git a/lib/llm/unified-llm.ts b/lib/llm/unified-llm.ts
+index b2e179b..e904ea9 100644
+--- a/lib/llm/unified-llm.ts
++++ b/lib/llm/unified-llm.ts
+@@ -1404,6 +1404,44 @@ async function callOpenAICompatible(
+   };
+ }
+ 
++/**
++ * OT-8: per-call cost trace. The CostLog table existed but had zero writers —
++ * every autonomous decision was untraceable to provider/model/cost. Fire and
++ * forget: a logging failure must never break the call path. Skipped in
++ * replay mode (replayed calls cost nothing and would double-count).
++ */
++function persistCostLog(request: LLMRequest, response: LLMResponse, task: string): void {
++  if (getLlmCassetteMode() === 'replay') return;
++  const provider = response.provider;
++  const model = response.model;
++  const tokensInput = response.tokensInput ?? 0;
++  const tokensOutput = response.tokensOutput ?? 0;
++  void (async () => {
++    try {
++      const { prisma } = await import('../db');
++      await prisma.costLog.create({
++        data: {
++          correlationId: request.runId ?? undefined,
++          operation: task || request.task || 'llm',
++          provider,
++          model,
++          tokensInput,
++          tokensOutput,
++          tokensTotal: tokensInput + tokensOutput,
++          costUsd: response.costUsd ?? 0,
++          metadata: {
++            family: response.family,
++            cached: response.cached === true,
++            finishReason: response.finishReason ?? null,
++          },
++        },
++      });
++    } catch {
++      // Logging must never break the LLM path.
++    }
++  })();
++}
++
+ /**
+  * Call Anthropic Claude
+  */
+@@ -1948,6 +1986,7 @@ async function callLLMProvider(request: LLMRequest): Promise<LLMResponse> {
+         cacheLLMResponse(cacheKey, response.model, response).catch(() => {});
+       }
+ 
++      persistCostLog(request, response, task);
+       return response;
+     } catch (error) {
+       assertExecutionActive();
+@@ -1983,6 +2022,7 @@ async function callLLMProvider(request: LLMRequest): Promise<LLMResponse> {
+       );
+       await recordProviderSuccess("freepool");
+       console.log(`✅ freepool [${task}] quota-window retry succeeded | $${response.costUsd.toFixed(4)}`);
++      persistCostLog(request, response, task);
+       return response;
+     } catch (retryErr) {
+       lastError = retryErr as Error;
+@@ -2279,6 +2319,7 @@ export async function streamLLM(
+       cached: false,
+     };
+     if (cassetteMode === 'record') recordLlmCassette(request, cassetteKey, response);
++    persistCostLog(request, response, task ?? request.task ?? 'stream');
+     return response;
+   } catch (err) {
+     if (cassetteMode === 'record') recordLlmCassette(request, cassetteKey, undefined, err);
+diff --git a/prisma/schema.prisma b/prisma/schema.prisma
+index 5f96594..9d057b4 100644
+--- a/prisma/schema.prisma
++++ b/prisma/schema.prisma
+@@ -848,6 +848,18 @@ model Prediction {
+   outcome     String? @db.Text // What actually happened
+   resolutionNotes String? @db.Text
+ 
++  // OT-1: sentinel/strategic split — short-horizon predictions that produce
++  // Brier signal within weeks instead of years. dueAt is authoritative when
++  // present; horizon remains the human-readable form.
++  kind            String    @default("strategic") // strategic | sentinel
++  dueAt           DateTime? // ISO deadline — parseHorizonDue fallback only
++  linkId          String?   // causal-chain link this prediction depends on
++  parentPredictionId String? // milestone of a longer-horizon prediction
++  resolutionSource String?  // URL or public dataset expected to resolve it
++  // OT-7: research domain at registration time — enables calibration
++  // breakdowns by domain once predictions resolve.
++  domain          String?
++
+   // Metadata
+   createdAt DateTime @default(now())
+   updatedAt DateTime @updatedAt
+@@ -860,6 +872,7 @@ model Prediction {
+   @@index([horizon])
+   @@index([confidence])
+   @@index([createdAt])
++  @@index([domain])
+   // One prediction per (brief, claim) — prevents duplicates on pipeline re-runs.
+   // The code-level findFirst check is the graceful path; this is the safety net.
+   @@unique([briefId, claim])
+diff --git a/scripts/backfill-predictions.ts b/scripts/backfill-predictions.ts
+new file mode 100644
+index 0000000..7e0a464
+--- /dev/null
++++ b/scripts/backfill-predictions.ts
+@@ -0,0 +1,102 @@
++/**
++ * OT-1 BACKFILL — give every OPEN prediction a concrete dueAt and attach a
++ * 90-day sentinel milestone to long-horizon predictions.
++ *
++ * Before this: 813 OPEN predictions, all pluriannual horizons, first due
++ * 2028-07-01 → zero Brier signal for ~2 years. After: every row has an
++ * authoritative dueAt; every strategic prediction gets a near-term sentinel
++ * child that the worker resolver can close within a quarter.
++ *
++ * Run: npx tsx scripts/backfill-predictions.ts [--dry-run]
++ */
++
++import { prisma } from '../lib/db';
++import { parseHorizonDue } from '../lib/agent/prediction-tracker';
++
++const DRY_RUN = process.argv.includes('--dry-run');
++const SENTINEL_DAYS = 90;
++
++async function main() {
++  const open = await prisma.prediction.findMany({
++    where: { status: 'OPEN' },
++    select: {
++      id: true, briefId: true, claim: true, horizon: true, probability: true,
++      confidence: true, resolutionCriteria: true, whatWouldFalsify: true,
++      sourceRefs: true, createdAt: true, kind: true, dueAt: true,
++    },
++    orderBy: { createdAt: 'asc' },
++  });
++
++  console.log(`[backfill] ${open.length} OPEN predictions${DRY_RUN ? ' (dry-run)' : ''}`);
++
++  let dueSet = 0, unparseable = 0, sentinels = 0, skippedSentinel = 0;
++
++  for (const p of open) {
++    // 1. dueAt backfill — authoritative ISO deadline from horizon parsing.
++    if (!p.dueAt) {
++      const parsed = parseHorizonDue(p.horizon, p.createdAt);
++      if (parsed) {
++        if (!DRY_RUN) {
++          await prisma.prediction.update({ where: { id: p.id }, data: { dueAt: parsed } });
++        }
++        dueSet++;
++      } else {
++        unparseable++;
++      }
++    }
++    const effectiveDue = p.dueAt ?? parseHorizonDue(p.horizon, p.createdAt);
++
++    // 2. Sentinel milestone — only for predictions due beyond the sentinel
++    //    window (a near-term prediction IS already its own sentinel).
++    if (!effectiveDue) continue;
++    const daysOut = (effectiveDue.getTime() - Date.now()) / 86_400_000;
++    if (daysOut <= SENTINEL_DAYS) continue;
++
++    const existing = await prisma.prediction.findFirst({
++      where: { parentPredictionId: p.id, kind: 'sentinel' },
++      select: { id: true },
++    });
++    if (existing) { skippedSentinel++; continue; }
++
++    const dueAt = new Date(Date.now() + SENTINEL_DAYS * 86_400_000);
++    const claim = `[90d milestone] ${p.claim.slice(0, 400)}`;
++    const dupe = await prisma.prediction.findFirst({
++      where: { briefId: p.briefId, claim, status: 'OPEN' },
++      select: { id: true },
++    });
++    if (dupe) { skippedSentinel++; continue; }
++
++    if (!DRY_RUN) {
++      await prisma.prediction.create({
++        data: {
++          briefId: p.briefId,
++          claim,
++          horizon: dueAt.toISOString().slice(0, 10),
++          probability: p.probability,
++          confidence: p.confidence,
++          resolutionCriteria: `By ${dueAt.toISOString().slice(0, 10)}: early checkpoint on the trajectory — ${p.resolutionCriteria.slice(0, 300)}`,
++          whatWouldFalsify: `Trajectory broken or key observable moved against the prediction by the checkpoint date`,
++          sourceRefs: p.sourceRefs,
++          status: 'OPEN',
++          kind: 'sentinel',
++          dueAt,
++          linkId: null,
++          parentPredictionId: p.id,
++        },
++      });
++    }
++    sentinels++;
++  }
++
++  console.log(`[backfill] dueAt set: ${dueSet} | still unparseable: ${unparseable} | sentinels created: ${sentinels} | already had sentinel: ${skippedSentinel}`);
++  const nextDue = await prisma.prediction.findFirst({
++    where: { status: 'OPEN', dueAt: { not: null } },
++    orderBy: { dueAt: 'asc' },
++    select: { dueAt: true },
++  });
++  console.log(`[backfill] earliest dueAt now: ${nextDue?.dueAt?.toISOString() ?? 'none'}`);
++}
++
++main()
++  .catch((e) => { console.error(e); process.exit(1); })
++  .finally(() => prisma.$disconnect());
+diff --git a/scripts/smoke-editorial-v2.ts b/scripts/smoke-editorial-v2.ts
+index 492218b..fa034c3 100644
+--- a/scripts/smoke-editorial-v2.ts
++++ b/scripts/smoke-editorial-v2.ts
+@@ -38,7 +38,6 @@ async function phaseUnit() {
+   console.log('\n══ Phase A — deterministic (no API) ══\n');
+ 
+   const { isEditorialV2Enabled } = await import('../lib/agent/editorial-config');
+-  const { ensureEditorialScenarios } = await import('../lib/agent/editorial-scenarios');
+   const { renderPositionFirstBriefHTML } = await import('../lib/agent/position-first-renderer');
+   const {
+     extractBriefSummary,
+@@ -48,16 +47,21 @@ async function phaseUnit() {
+ 
+   ok('EDITORIAL_V2 flag', isEditorialV2Enabled());
+ 
+-  const analysis = ensureEditorialScenarios(
+-    {
+-      summary: 'Carbon pricing shifts trade flows while automation compresses margins.',
+-      consensus: 'Joint policy-tech friction is under-modeled in current literature.',
+-      disagreements: 'Automation may offset compliance costs faster than regulators assume.',
+-      debate: { pro: 'Accelerated decarbonization via tech', con: 'Regulatory arbitrage risk' },
+-    },
+-    { question: QUERY }
+-  );
+-  const scenarios = analysis.scenarios as Array<{ name: string }>;
++  // Fixed 50/30/20 scenario templates were removed (OT-cleanup): scenarios
++  // now come from chain derivation + swarm election only. The smoke script
++  // supplies explicit scenarios instead of a template.
++  const analysis = {
++    summary: 'Carbon pricing shifts trade flows while automation compresses margins.',
++    consensus: 'Joint policy-tech friction is under-modeled in current literature.',
++    disagreements: 'Automation may offset compliance costs faster than regulators assume.',
++    debate: { pro: 'Accelerated decarbonization via tech', con: 'Regulatory arbitrage risk' },
++    scenarios: [
++      { name: 'Base case', probability: '55%', description: 'Policy-tech friction persists at current pace.' },
++      { name: 'Accelerated case', probability: '30%', description: 'Tech-driven decarbonization outruns regulation.' },
++      { name: 'Adverse case', probability: '15%', description: 'Regulatory arbitrage dominates; compliance costs spike.' },
++    ],
++  };
++  const scenarios = analysis.scenarios;
+   ok('ensureEditorialScenarios ≥2', scenarios.length >= 2, `${scenarios.length} scenarios`);
+ 
+   const classification = {
+diff --git a/scripts/test-funnel.ts b/scripts/test-funnel.ts
+index 31f13d3..9c8a570 100644
+--- a/scripts/test-funnel.ts
++++ b/scripts/test-funnel.ts
+@@ -162,6 +162,38 @@ async function main() {
+     if (result.readinessOk !== undefined) console.log(`  Readiness: ${result.readinessOk}`);
+     if (result.error) console.log(`  Error: ${result.error}`);
+ 
++    // ── OT diagnostics: swarm election + binary gate checks from the run's steps ──
++    try {
++      const { prisma } = await import('../lib/db');
++      const run = await prisma.pipelineRun.findFirst({
++        where: { question: customQuery },
++        orderBy: { createdAt: 'desc' },
++        select: { id: true, status: true, steps: true },
++      });
++      const steps = (run?.steps ?? {}) as Record<string, any>;
++      const election = steps.swarmElection as any;
++      const forecasts = steps.swarmForecasts as any;
++      const chain = steps.chainScenarios as any;
++      const gate = steps.publicationGate as any;
++      if (run) {
++        console.log(`\n  ── RUN DIAGNOSTICS (${run.id.slice(0, 8)} / ${run.status}) ──`);
++        console.log(`  Chain scenarios: ${chain ? (chain.reason ?? `${chain.scenarioIds?.length ?? 0} scenarios, ${chain.uncertainties?.length ?? 0} uncertainties`) : 'n/a'}`);
++        console.log(`  Swarm votes: ${forecasts ? `${forecasts.validVotes ?? '?'}/${forecasts.rawVotes ?? '?'} valid, families: ${(forecasts.familiesUsed ?? []).join(',') || 'none'}, $${(forecasts.costUsd ?? 0).toFixed(4)}${forecasts.error ? ` ERROR: ${forecasts.error}` : ''}` : 'not run'}`);
++        if (election?.scenarioId) {
++          console.log(`  Election: ${election.scenarioId} p=${election.probability?.toFixed(3)} contested=${election.contested} runnerUp=${election.runnerUpId ?? 'none'} CI=[${election.confidenceInterval?.join(',')}]`);
++        } else if (election) {
++          console.log(`  Election: skipped (${election.skipped ?? election.error ?? 'no result'})`);
++        }
++        const checks = gate?.binaryChecks ?? gate?.checks;
++        if (Array.isArray(checks)) {
++          console.log(`  Binary checks: ${checks.map((c: any) => `${c.id ?? c.name}:${c.passed ? 'PASS' : 'FAIL'}`).join(' ')}`);
++        }
++        await prisma.$disconnect();
++      }
++    } catch (diagErr) {
++      console.log(`  (run diagnostics unavailable: ${String(diagErr).slice(0, 120)})`);
++    }
++
+     if (result.pipeline?.html) {
+       const fs = await import('fs');
+       fs.writeFileSync('scripts/output-funnel.html', result.pipeline.html, 'utf-8');

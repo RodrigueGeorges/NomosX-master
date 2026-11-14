@@ -18,6 +18,7 @@ import { extractAndStoreGaps, markGapsFilled } from '../gap-filler';
 import { recordSourceUsage } from '../source-reputation-agent';
 import { registerPredictions } from '../prediction-registration';
 import { recordAgentPerformance, extractLessons, storeLesson, recordLearningCycle } from '../agent-memory';
+import { recordDegradedStep } from '../degraded-steps';
 import { markDurableComplete } from '../durable-execution';
 import { updateAgentWeights } from '../moa/mixture-of-agents';
 import { updateWorldModel } from '../world-model/world-model';
@@ -153,6 +154,7 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
         }
       } catch (err) {
         console.warn(`${label} PREDICTIONS: registration failed (non-blocking):`, err);
+        recordDegradedStep(stats, 'PREDICTION_REGISTRATION', err);
       }
     })(),
 
@@ -267,6 +269,7 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
           console.log(`${label} PREDICTION TRACKER: stored ${savedScatterResult.hypotheses.length} hypotheses`);
         } catch (err) {
           console.warn(`${label} PREDICTION TRACKER: storage failed (non-blocking):`, err);
+        recordDegradedStep(stats, 'PREDICTION_TRACKER', err);
         }
       }
     })(),
@@ -443,6 +446,7 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
         stats.integrityReverify = { stale: integrityStale, rechecked, trustBefore, trustAfter: t.score };
       } catch (rescoreErr) {
         console.warn(`${label} INTEGRITY RE-VERIFY: rescore failed (non-blocking):`, rescoreErr);
+        recordDegradedStep(stats, 'INTEGRITY_REVERIFY', rescoreErr);
         stats.integrityReverify = { stale: integrityStale, rechecked, trustBefore, trustAfter: trustBefore };
       }
     }
@@ -497,9 +501,10 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
         steps: toJsonSafe({ ...stats, orchestrator: { ...stats.orchestrator, decisions: orchState.decisions } }),
       },
     })
-  ).catch((err) =>
-    console.warn(`${label} PERSISTENCE: pipelineRun COMPLETED update failed (non-blocking — brief ${stats.brief?.id} is safe):`, err)
-  );
+  ).catch((err) => {
+    console.warn(`${label} PERSISTENCE: pipelineRun COMPLETED update failed (non-blocking — brief ${stats.brief?.id} is safe):`, err);
+    recordDegradedStep(stats, 'PIPELINE_RUN_PERSIST', err);
+  });
 
   // DURABLE: run reached a verdict (publish or held) — seal checkpoints so a
   // later run of the same query+format starts fresh. A killed/timed-out run

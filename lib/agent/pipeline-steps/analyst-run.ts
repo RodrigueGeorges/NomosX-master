@@ -10,6 +10,7 @@
 import { runMixtureOfAgents } from '../moa/mixture-of-agents';
 import { isFreeRun } from '../../free-run';
 import { hasRunHeadroomWithReserve, remainingRunMs } from './time-budget';
+import { recordDegradedStep } from '../degraded-steps';
 import type { PipelineStep } from '../pipeline-progress';
 
 export interface AnalystRunDeps {
@@ -179,6 +180,7 @@ export async function runAnalystExecution(deps: AnalystRunDeps): Promise<Analyst
       }
     } catch (expertErr) {
       console.warn(`${label} DOMAIN EXPERT: failed (non-blocking):`, expertErr instanceof Error ? expertErr.message : expertErr);
+      recordDegradedStep(stats, 'DOMAIN_EXPERT', expertErr);
     }
   } else if (!expertFitsReserve) {
     (stats as any).domainExpert = { skippedReason: 'repair_reserve' };
@@ -264,6 +266,7 @@ export async function runAnalystExecution(deps: AnalystRunDeps): Promise<Analyst
       };
     } catch (ttsErr) {
       console.warn(`${label} TEST-TIME SCALING: failed (non-blocking):`, ttsErr instanceof Error ? ttsErr.message : String(ttsErr));
+      recordDegradedStep(stats, 'TEST_TIME_SCALING', ttsErr);
     }
   }
   const analystCostUsd = typeof analysis._meta?.totalCostUsd === "number" ? analysis._meta.totalCostUsd : undefined;
