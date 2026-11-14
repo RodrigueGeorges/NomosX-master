@@ -31,18 +31,36 @@ import requests
 logger = logging.getLogger("quant.figaro")
 
 CACHE_DIR = os.environ.get("FIGARO_CACHE_DIR", os.path.join(os.path.dirname(__file__), ".cache"))
-# Eurostat FIGARO flat-file naming: matrix_eu-ic-io_ind-by-ind_24ed_YYYY.csv
+# Eurostat moved FIGARO flat files to the CIRCABC collaborative platform.
+# Direct downloads use https://circabc.europa.eu/rest/download/<node-id>;
+# node ids below were listed from the FIGARO space on 2026-10-03 (edition 26ed,
+# NACE rev. 2.1 industry codes, 50 regions incl. ALB/MKD/MNE/SRB + FIGW1=ROW).
 FIGARO_YEAR = int(os.environ.get("FIGARO_YEAR", "2021"))
-FIGARO_EDITION = os.environ.get("FIGARO_EDITION", "24ed")
-FIGARO_URL = (
-    "https://ec.europa.eu/eurostat/documents/51957/17979414/"
-    f"matrix_eu-ic-io_ind-by-ind_{FIGARO_EDITION}_{FIGARO_YEAR}.csv"
+FIGARO_EDITION = os.environ.get("FIGARO_EDITION", "26ed")
+FIGARO_NODES_26ED = {
+    2014: "85d3f6de-3510-45ff-96c9-11da9f1e325a",
+    2015: "e989cc76-52f5-4cd9-ba8c-5764fafde13a",
+    2016: "2e7bc8e5-ee0c-4e57-a082-60a9fb59ee73",
+    2017: "0bd4147b-d06b-4800-87e4-c479352e88ba",
+    2018: "40c2349e-1ba7-48b5-b4a3-4f00b78f2283",
+    2019: "ba9d7f3a-a381-49f2-998d-64fec81c3d35",
+    2020: "28d77fbf-50c2-475c-8ba6-c97b02a69039",
+    2021: "57fd3555-51db-4f03-b765-3cb7fcfe3007",
+    2022: "f1330ee5-2841-4f3a-949c-20f36d068714",
+    2023: "836a0346-bdb5-4d8a-bbea-b3bd583a53c9",
+    2024: "8ac7da34-911e-4a91-ab1c-8aec1a574381",
+}
+FIGARO_URL = os.environ.get("FIGARO_URL") or (
+    f"https://circabc.europa.eu/rest/download/{FIGARO_NODES_26ED[FIGARO_YEAR]}"
+    if FIGARO_EDITION == "26ed" and FIGARO_YEAR in FIGARO_NODES_26ED
+    else ""
 )
 
+# ISO2 region codes as they appear in the 26ed matrix (GR=Greece, GB=UK).
 EU27 = {
-    "AT", "BE", "BG", "CY", "CZ", "DE", "DK", "EE", "EL", "ES", "FI", "FR",
-    "HR", "HU", "IE", "IT", "LT", "LU", "LV", "MT", "NL", "PL", "PT", "RO",
-    "SE", "SI", "SK",
+    "AT", "BE", "BG", "CY", "CZ", "DE", "DK", "EE", "ES", "FI", "FR",
+    "GR", "HR", "HU", "IE", "IT", "LT", "LU", "LV", "MT", "NL", "PL", "PT",
+    "RO", "SE", "SI", "SK",
 }
 
 
@@ -127,16 +145,34 @@ def _load_figaro_csv() -> IOModel:
         m.to_parquet(cache)
         logger.info("FIGARO cached: %s (%d x %d)", cache, *m.shape)
 
-    # FIGARO IC-IO layout: rows = supplying region_industry + VA rows,
-    # columns = using region_industry + final demand columns.
-    ind_rows = [r for r in m.index if isinstance(r, str) and "_" in r and not r.startswith(("W2_", "VA", "OP_", "D2"))]
-    ind_cols = [c for c in m.columns if isinstance(c, str) and "_" in c and c.split("_", 1)[0] in (EU27 | {"US", "UK", "GB", "CN", "JP", "W2"}) and not any(t in c for t in ("_P3", "_P5", "_P6", "GCF", "HFCE"))]
+    # 26ed matrix layout: index/columns are "REGION_INDUSTRY" (ISO2 region,
+    # NACE rev. 2.1 code, e.g. "FR_C26"), "FIGW1_*" is the ROW region, and
+    # each region carries 5 final-demand columns (P3_S13/S14/S15, P51G, P5M).
+    # "W2_*" rows are ROW value-added components — excluded from Z.
+    FD_SUFFIXES = {"P3_S13", "P3_S14", "P3_S15", "P51G", "P5M"}
+
+    def parts(label: object) -> tuple[str, str] | None:
+        if not isinstance(label, str) or "_" not in label:
+            return None
+        reg, ind = label.split("_", 1)
+        if reg == "W2" or not ind or ind in FD_SUFFIXES:
+            return None
+        return reg, ind
+
+    row_parts = {r: parts(r) for r in m.index}
+    col_parts = {c: parts(c) for c in m.columns}
+    ind_rows = [r for r, p in row_parts.items() if p]
+    ind_cols = [c for c, p in col_parts.items() if p]
     common = [k for k in ind_rows if k in ind_cols]
 
     Z = m.loc[common, common].astype(float)
-    x = m.loc[common].sum(axis=1).astype(float)  # total output = row sum (intermediate + final)
-    va_rows = [r for r in m.index if isinstance(r, str) and (r.startswith("W2_") or "VA" in r.upper() or r.startswith("D2"))]
-    va = m.loc[va_rows, common].sum(axis=0).astype(float) if va_rows else x * 0.4
+    # Gross output = full row sum across industries AND final-demand columns.
+    x = m.loc[ind_rows].sum(axis=1).astype(float)
+    x = x.reindex(common).fillna(0.0)
+    # The 26ed matrix has no explicit VA rows: VA = gross output minus total
+    # intermediate inputs consumed by the sector (column sum of Z).
+    intermediates = Z.sum(axis=0)
+    va = (x - intermediates).clip(lower=0.0)
 
     return IOModel(year=FIGARO_YEAR, source=f"Eurostat FIGARO {FIGARO_EDITION} ind-by-ind IC-IO, {FIGARO_YEAR}", Z=Z, x=x, va=va)
 
