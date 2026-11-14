@@ -149,6 +149,7 @@ export async function runRankAndEnrichment(deps: RankEnrichmentDeps): Promise<Ra
       console.log(`${label} SOURCE QUALITY: re-ranked ${topSources.length} by composite (relevance 60% + quality 40%)`);
     } catch (err) {
       console.warn(`${label} SOURCE QUALITY: re-rank failed (non-blocking):`, err);
+      recordDegradedStep(stats, 'SOURCE_QUALITY_RERANK', err);
     }
 
     // ── QUALITY TAIL TRIM — drop the low-quality tail on abundant corpora ──
@@ -321,6 +322,7 @@ export async function runRankAndEnrichment(deps: RankEnrichmentDeps): Promise<Ra
             stats.relevanceScreen.cragRescout = { added: fresh.length };
           } catch (cragErr) {
             console.warn(`${label} RELEVANCE SCREEN: CRAG re-scout failed (non-blocking):`, cragErr);
+            recordDegradedStep(stats, 'CRAG_RESCOUT', cragErr);
           }
         }
       }

@@ -118,6 +118,7 @@ export async function buildAnalystContext(deps: AnalystContextDeps): Promise<Ana
     }
   } catch (err) {
     console.warn(`${label} AGENT MEMORY: failed (non-blocking):`, err);
+    recordDegradedStep(stats, 'AGENT_MEMORY', err);
   }
   // S15-12: Synapse memory (ACL 2026) — spreading activation for associative retrieval
   try {
@@ -303,6 +304,7 @@ export async function buildAnalystContext(deps: AnalystContextDeps): Promise<Ana
     }
   } catch (err) {
     console.warn(`${label} INNOVATOR AUTHORS: failed (non-blocking):`, err instanceof Error ? err.message : String(err));
+    recordDegradedStep(stats, 'INNOVATOR_AUTHORS', err);
   }
 
   // Prediction calibration feedback — closes the learning loop the Sprint

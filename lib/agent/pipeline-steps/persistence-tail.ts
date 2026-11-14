@@ -190,6 +190,7 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
         }
       } catch (err) {
         console.warn(`${label} CAUSAL LINKS: persistence failed (non-blocking):`, err);
+        recordDegradedStep(stats, 'CAUSAL_LINKS', err);
       }
     })(),
 
@@ -205,6 +206,7 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
         console.log(`${label} KNOWLEDGE GRAPH: ${kg.concepts.length} concepts, ${kg.relations.length} relations`);
       } catch (err) {
         console.warn(`${label} KNOWLEDGE GRAPH: failed (non-blocking):`, err);
+        recordDegradedStep(stats, 'KNOWLEDGE_GRAPH', err);
       }
     })(),
 
@@ -220,6 +222,7 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
         await markGapsFilled(pipelineRun.id, detectedDomain, topSources.length);
       } catch (err) {
         console.warn(`${label} GAP FILLER: extraction failed (non-blocking):`, err);
+        recordDegradedStep(stats, 'GAP_FILLER', err);
       }
     })(),
 
@@ -246,6 +249,7 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
         console.log(`${label} EPISODIC MEMORY: episode stored for brief ${brief.id}`);
       } catch (err) {
         console.warn(`${label} EPISODIC MEMORY: storage failed (non-blocking):`, err);
+        recordDegradedStep(stats, 'EPISODIC_MEMORY', err);
       }
     })(),
 
@@ -284,7 +288,10 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
           console.log(`${label} PREDICTION AUDITOR: ${audit.audited} predictions audited (${audit.confirmed} confirmed, ${audit.falsified} falsified, avg accuracy ${audit.avgAccuracyScore}/100)`);
         }
       })
-      .catch(err => console.warn(`${label} PREDICTION AUDITOR: failed (non-blocking):`, err));
+      .catch(err => {
+        console.warn(`${label} PREDICTION AUDITOR: failed (non-blocking):`, err);
+        recordDegradedStep(stats, 'PREDICTION_AUDITOR', err);
+      });
   }).catch(() => {});
 
   // P3-M: Record source usage for reputation learning (non-blocking)
@@ -440,7 +447,10 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
           await prisma.brief.update({
             where: { id: brief.id },
             data: { html: sanitizeForJson(html), trustScore: t.score / 100 },
-          }).catch((e) => console.warn(`${label} INTEGRITY RE-VERIFY: brief trust sync failed (non-blocking):`, e));
+          }).catch((e) => {
+            console.warn(`${label} INTEGRITY RE-VERIFY: brief trust sync failed (non-blocking):`, e);
+            recordDegradedStep(stats, 'INTEGRITY_REVERIFY_SYNC', e);
+          });
           console.log(`${label} INTEGRITY RE-VERIFY: trust ${trustBefore} → ${t.score} on final artifact`);
         }
         stats.integrityReverify = { stale: integrityStale, rechecked, trustBefore, trustAfter: t.score };
@@ -542,7 +552,10 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
     sourceDiversity: new Set(topSources.map((s: any) => s.provider)).size,
     agentOutputExcerpt: html.slice(0, 2000),
     appliedLessonTexts,
-  })).catch((err) => console.warn(`${label} LEARNING LOOP: failed (non-blocking):`, err));
+  })).catch((err) => {
+    console.warn(`${label} LEARNING LOOP: failed (non-blocking):`, err);
+    recordDegradedStep(stats, 'LEARNING_LOOP', err);
+  });
   // Also record for READER agent
   if (readings.length > 0 && learningWritesEnabled()) {
     withExecutionDetached(() => recordLearningCycle({
@@ -666,6 +679,7 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
       }
     } catch (err) {
       console.warn(`${label} LESSON VERIFIER: failed (non-blocking):`, err);
+      recordDegradedStep(stats, 'LESSON_VERIFIER', err);
     }
   }
 
@@ -752,6 +766,7 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
         console.log(`${label} RAGAS EVAL: overall=${ragas.metrics.overall}%, faithfulness=${ragas.metrics.faithfulness}%, relevancy=${ragas.metrics.answerRelevancy}%`);
       } catch (err) {
         console.warn(`${label} RAGAS EVAL: failed (non-blocking):`, err);
+        recordDegradedStep(stats, 'RAGAS_EVAL', err);
       }
     })(),
 
@@ -775,6 +790,7 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
         }
       } catch (err) {
         console.warn(`${label} SELF-EVOLUTION: failed (non-blocking):`, err);
+        recordDegradedStep(stats, 'SELF_EVOLUTION', err);
       }
     })(),
   ]);

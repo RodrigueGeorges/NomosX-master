@@ -30,6 +30,7 @@ import {
   isModerateTierEligible,
 } from "./inquiry-funnel-utils";
 import { evaluatePublicationGate, type PublicationGateResult } from "./publication-gate";
+import { recordDegradedStep } from "./degraded-steps";
 import { captureInputSync } from "./frozen-inputs";
 import { toJsonSafe, stripPgUnsafeControls } from "@/lib/json-safe";
 import { evaluatePublicationReadiness } from "@/lib/publication-visibility";
@@ -611,6 +612,7 @@ export async function runAndPublishInquiry(
         }
       } catch (revErr) {
         console.warn(`[InquiryOrchestrator] Revision round failed (non-blocking):`, revErr);
+        recordDegradedStep(pipeline.stats as Record<string, unknown>, 'REVISION_ROUND', revErr);
       }
     }
 
@@ -765,6 +767,7 @@ export async function runAndPublishInquiry(
           }
           if (!regenPipeline) {
             console.warn(`[InquiryOrchestrator] Regeneration round failed (non-blocking):`, regenErr);
+            recordDegradedStep(pipeline.stats as Record<string, unknown>, 'REGENERATION_ROUND', regenErr);
           }
         }
         // Bank regen spend even when it produced no artifact — runPipelineCore
@@ -816,6 +819,7 @@ export async function runAndPublishInquiry(
       }
     } catch (regenErr) {
       console.warn(`[InquiryOrchestrator] Regeneration round failed (non-blocking):`, regenErr);
+      recordDegradedStep(pipeline.stats as Record<string, unknown>, 'REGENERATION_ROUND', regenErr);
     }
   }
 
@@ -909,6 +913,7 @@ export async function runAndPublishInquiry(
         : ''));
   } catch (formErr) {
     console.warn('[InquiryOrchestrator] FORM GRID evaluation failed (non-blocking):', formErr);
+    recordDegradedStep(pipeline.stats as Record<string, unknown>, 'FORM_GRID_EVAL', formErr);
   }
 
   console.log(`[InquiryOrchestrator] Gate: decision=${gate.decision} | Readiness: ok=${readiness.ok} | trust=${trustScore} quality=${qualityScore} coverage=${Math.round((citationCoverage || 0) * 100)}%`);
