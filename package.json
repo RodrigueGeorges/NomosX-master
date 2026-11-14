@@ -31,6 +31,7 @@
     "test:institutional": "node scripts/test-institutional-v2.mjs",
     "test:rss": "node scripts/test-rss-feeds.mjs",
     "smoke:editorial-v2": "tsx scripts/smoke-editorial-v2.ts",
+    "export:forecastbench": "tsx --env-file=.env.local scripts/export-forecastbench.ts",
     "smoke:editorial-v2:full": "tsx scripts/smoke-editorial-v2.ts --full",
     "monitoring:dashboard": "node scripts/monitoring-dashboard.mjs",
     "build:esm": "NODE_OPTIONS=\"--loader ts-node/esm\" next build",
