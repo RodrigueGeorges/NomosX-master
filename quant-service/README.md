@@ -111,3 +111,20 @@ Env: `CHRONOS_ENABLED=0` hard-disables; `CHRONOS_MODEL`
 (default `amazon/chronos-2`), `CHRONOS_DEVICE` (`cpu` default),
 `CHRONOS_MAX_HISTORY` (512), `CHRONOS_MAX_HORIZON` (24).
 App side: `QUANT_SERVICE_URL` + `NOMOSX_CHRONOS=1`.
+
+## MiniCheck shadow verification (optional)
+
+`POST /v1/minicheck/check` returns claim↔document support verdicts via
+[MiniCheck](https://github.com/Liyan06/MiniCheck) (Apache 2.0) — a small
+model specialized in grounding verification. The app uses it in SHADOW
+mode (`stats.minicheckShadow`) to calibrate against the LLM
+fact-checker before any gating role.
+
+```bash
+pip install -r requirements.txt -r requirements-minicheck.txt
+```
+
+Env: `MINICHECK_ENABLED=0`, `MINICHECK_MODEL`
+(default `lytang/MiniCheck-Flan-T5-Large`, `bespokelabs/Bespoke-MiniCheck-7B`
+for higher accuracy), `MINICHECK_DEVICE`, `MINICHECK_MAX_PAIRS` (30).
+App side: `QUANT_SERVICE_URL` + `NOMOSX_MINICHECK=1`.
