@@ -89,8 +89,9 @@ def forecast(values: list[float], prediction_length: int) -> dict[str, Any]:
     context = flat.reshape(1, 1, -1) if is_v2 else flat.reshape(1, -1)
 
     t0 = time.monotonic()
-    # predict_quantiles returns (batch, prediction_length, num_quantiles);
-    # first arg passed positionally — v1 calls it `context`, v2 `inputs`.
+    # predict_quantiles returns (quantiles, mean); quantiles is a tensor
+    # (batch, N, Q) on ChronosPipeline v1 and a list of tensors
+    # (n_variates, N, Q) — one per target series — on Chronos2Pipeline.
     q = pipeline.predict_quantiles(
         context,
         prediction_length=prediction_length,
@@ -98,10 +99,19 @@ def forecast(values: list[float], prediction_length: int) -> dict[str, Any]:
     )
     duration_ms = int((time.monotonic() - t0) * 1000)
 
-    arr = q[0].detach().cpu().numpy() if hasattr(q[0], "detach") else np.asarray(q[0])
-    # arr shape: (prediction_length, 3) with columns [q10, q50, q90]
-    if arr.ndim == 3:  # some versions return (1, N, Q) unbatched differently
+    quantiles = q[0] if isinstance(q, tuple) else q
+    if isinstance(quantiles, (list, tuple)):
+        t = quantiles[0]          # first (only) target series
+        if getattr(t, "ndim", 0) == 3:
+            t = t[0]              # (n_variates, N, Q) -> variate 0 -> (N, Q)
+    elif torch.is_tensor(quantiles):
+        t = quantiles[0]          # (batch, N, Q) -> (N, Q)
+    else:
+        t = quantiles
+    arr = t.detach().cpu().numpy() if hasattr(t, "detach") else np.asarray(t)
+    if arr.ndim == 3:
         arr = arr[0]
+    # arr shape: (prediction_length, 3) with columns [q10, q50, q90]
     points = []
     for h in range(arr.shape[0]):
         row = arr[h]
