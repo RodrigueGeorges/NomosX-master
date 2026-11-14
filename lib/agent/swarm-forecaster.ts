@@ -72,7 +72,7 @@ export function buildLinkCards(
       title: String(s.title ?? 'Untitled'),
       excerpt,
       qualityScore: s.qualityScore ?? 50,
-      domain: cardDomain(s.url),
+      domain: cardDomain(s.url, s.id),
       provider: s.provider ?? undefined,
       relevance: picked.length ? ranked[0].sc : score(excerpt),
     };
@@ -130,11 +130,34 @@ export interface EvidenceIndependence {
   reason?: string;
 }
 
-/** Extract a comparable domain key from a URL (host minus www). */
-function cardDomain(url?: string | null): string | undefined {
+/** Hosts that serve works from many unrelated publishers. Their hostname
+ *  says nothing about who originated a document, so it must not count as
+ *  one "domain": a corpus of thirty journal articles all reached through
+ *  doi.org is not concentrated evidence. */
+const AGGREGATOR_HOSTS = new Set([
+  'doi.org', 'dx.doi.org', 'semanticscholar.org', 'api.semanticscholar.org', 'arxiv.org',
+  'europepmc.org', 'ncbi.nlm.nih.gov', 'pubmed.ncbi.nlm.nih.gov', 'core.ac.uk', 'openalex.org',
+  'api.openalex.org', 'hal.science', 'ssrn.com', 'papers.ssrn.com', 'zenodo.org', 'osf.io',
+  'researchgate.net', 'jstor.org', 'archive.org', 'web.archive.org', 'openreview.net',
+  'repec.org', 'ideas.repec.org', 'econpapers.repec.org', 'biorxiv.org', 'medrxiv.org',
+]);
+
+/**
+ * Independence key for a card. Publisher sites key on their host. A DOI link
+ * keys on its registrant prefix (10.1016 = one publisher). Any other
+ * aggregator host keys per document, since each deposit is its own origin.
+ */
+export function cardDomain(url?: string | null, cardId?: string): string | undefined {
   if (!url) return undefined;
-  const m = String(url).match(/^https?:\/\/(?:www\.)?([^/?#]+)/i);
-  return m ? m[1].toLowerCase() : undefined;
+  const m = String(url).match(/^https?:\/\/(?:www\.)?([^/?#]+)(\/[^?#]*)?/i);
+  if (!m) return undefined;
+  const host = m[1].toLowerCase();
+  if (host === 'doi.org' || host === 'dx.doi.org') {
+    const prefix = (m[2] ?? '').match(/^\/(10\.\d{4,9})\//);
+    return prefix ? `doi:${prefix[1]}` : `${host}#${cardId ?? url}`;
+  }
+  if (AGGREGATOR_HOSTS.has(host)) return `${host}#${cardId ?? url}`;
+  return host;
 }
 
 export const EVIDENCE_MIN_UNIQUE_DOMAINS = 3;
@@ -253,7 +276,7 @@ async function loadCards(sourceIds: string[]): Promise<SwarmSourceCard[]> {
       title: s.title,
       excerpt: (s.abstract ?? s.title ?? '').slice(0, 400),
       qualityScore: s.qualityScore ?? 50,
-      domain: cardDomain(s.url),
+      domain: cardDomain(s.url, s.id),
       provider: s.provider ?? undefined,
     }));
   } catch {

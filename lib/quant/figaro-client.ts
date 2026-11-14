@@ -19,6 +19,13 @@ export function quantServiceUrl(): string | null {
   return process.env.QUANT_SERVICE_URL?.replace(/\/+$/, "") || null;
 }
 
+/** Bearer token for quant-service (QUANT_SERVICE_TOKEN on both sides).
+ *  Empty when unset — the service then accepts unauthenticated calls. */
+export function quantAuthHeaders(): Record<string, string> {
+  const token = process.env.QUANT_SERVICE_TOKEN?.trim();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 // Runtime validation schema for the FIGARO service response.
 // TypeScript types protect at compile time; Zod protects at runtime against
 // a malformed or version-mismatched Python service.
@@ -46,7 +53,7 @@ export async function figaroShock(req: FigaroShockRequest): Promise<FigaroShockR
   try {
     const { data } = await axios.post(`${base}/v1/io/shock`, req, {
       timeout: TIMEOUT_MS,
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...quantAuthHeaders() },
     });
     const parsed = FigaroShockResponseSchema.safeParse(data);
     if (!parsed.success) {

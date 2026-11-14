@@ -57,7 +57,7 @@ app.add_middleware(
     allow_origins=_allowed_origins,
     allow_credentials=False,
     allow_methods=["GET", "POST"],
-    allow_headers=["Content-Type"],
+    allow_headers=["Content-Type", "Authorization"],
 )
 
 
@@ -67,6 +67,13 @@ app.add_middleware(
 async def request_context(request: Request, call_next: Any) -> Any:
     rid = request.headers.get("x-request-id", uuid.uuid4().hex[:12])
     start = time.perf_counter()
+    # Shared-secret auth on every compute endpoint (QUANT_SERVICE_TOKEN).
+    # Health and docs stay open so platform probes keep working.
+    import security
+    from fastapi.responses import JSONResponse
+    if request.url.path.startswith("/v1/") and request.method != "OPTIONS" \
+            and not security.is_authorized(request.headers.get("authorization")):
+        return JSONResponse(status_code=401, content={"detail": "missing or invalid bearer token"})
     response = await call_next(request)
     elapsed_ms = round((time.perf_counter() - start) * 1000, 1)
     response.headers["x-request-id"] = rid
@@ -195,14 +202,18 @@ def docling_parse(req: DoclingParseRequest) -> dict:
 
     # Fetch server-side: the reader already proved reachability concerns are
     # ours to handle; keep the same UA discipline as the TS reader.
-    import requests
+    # The URL comes from the caller: validate it, and every redirect hop,
+    # against private/loopback/link-local addresses before fetching.
+    import security
     try:
-        resp = requests.get(
-            req.url,
-            timeout=DOCLING_FETCH_TIMEOUT,
-            headers={"User-Agent": "NomosX/3.0 (Academic Research Platform; mailto:contact@nomosx.com)"},
-            stream=True,
-        )
+        try:
+            resp = security.safe_get(
+                req.url,
+                timeout=DOCLING_FETCH_TIMEOUT,
+                headers={"User-Agent": "NomosX/3.0 (Academic Research Platform; mailto:contact@nomosx.com)"},
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=f"url rejected: {exc}") from exc
         resp.raise_for_status()
         chunks, total = [], 0
         for chunk in resp.iter_content(65536):

@@ -9,7 +9,7 @@
  */
 
 import axios from "axios";
-import { quantServiceUrl } from "./figaro-client";
+import { quantServiceUrl, quantAuthHeaders } from "./figaro-client";
 
 const TIMEOUT_MS = 120_000;
 const MAX_PAIRS = 30;
@@ -39,7 +39,7 @@ export async function minicheckCheck(
     const resp = await axios.post(
       `${base}/v1/minicheck/check`,
       { pairs: pairs.slice(0, MAX_PAIRS) },
-      { timeout: TIMEOUT_MS },
+      { timeout: TIMEOUT_MS, headers: quantAuthHeaders() },
     );
     const d = resp.data;
     if (!Array.isArray(d?.results)) return null;

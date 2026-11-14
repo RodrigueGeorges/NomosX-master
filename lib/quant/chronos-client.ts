@@ -11,7 +11,7 @@
  */
 
 import axios from "axios";
-import { quantServiceUrl } from "./figaro-client";
+import { quantServiceUrl, quantAuthHeaders } from "./figaro-client";
 import type { ModelResult } from "./types";
 
 const TIMEOUT_MS = 120_000; // first call pays model load; CPU inference ~seconds
@@ -46,7 +46,7 @@ export async function chronosForecast(
     const resp = await axios.post(
       `${base}/v1/forecast`,
       { values, predictionLength },
-      { timeout: TIMEOUT_MS },
+      { timeout: TIMEOUT_MS, headers: quantAuthHeaders() },
     );
     const d = resp.data;
     if (!Array.isArray(d?.points) || d.points.length === 0) return null;

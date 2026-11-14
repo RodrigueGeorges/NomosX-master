@@ -12,7 +12,7 @@
  */
 
 import axios from "axios";
-import { quantServiceUrl } from "./figaro-client";
+import { quantServiceUrl, quantAuthHeaders } from "./figaro-client";
 
 const TIMEOUT_MS = 95_000; // service-side parse can take 30-60s on large docs
 
@@ -35,7 +35,7 @@ export async function doclingParsePdf(url: string): Promise<DoclingParseResult |
     const resp = await axios.post(
       `${base}/v1/docling/parse`,
       { url, timeoutS: 90 },
-      { timeout: TIMEOUT_MS },
+      { timeout: TIMEOUT_MS, headers: quantAuthHeaders() },
     );
     const d = resp.data;
     if (typeof d?.text !== "string" || d.text.trim().length < 100) return null;

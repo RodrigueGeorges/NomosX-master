@@ -133,7 +133,7 @@ const TIER_C: Record<string, string> = {
   'aspi.org.au': 'Australian Strategic Policy Institute',
   'orfonline.org': 'Observer Research Foundation',
   'iseas.edu.sg': 'ISEAS–Yusof Ishak Institute', 'rsis.edu.sg': 'RSIS',
-  'fpri.org': 'Foreign Policy Research Institute Japan',
+  'fpri.org': 'Foreign Policy Research Institute',
   // Africa
   'issafrica.org': 'Institute for Security Studies Africa',
   'ecdpm.org': 'ECDPM',

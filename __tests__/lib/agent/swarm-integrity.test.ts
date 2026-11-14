@@ -212,3 +212,33 @@ describe('assessEvidenceIndependence (Open Superforecaster rule)', () => {
     expect(r.reason).toMatch(/resolvable domain/);
   });
 });
+
+import { cardDomain } from '@/lib/agent/swarm-forecaster';
+
+describe('cardDomain — aggregators are not one origin', () => {
+  it('keys publisher sites on their host', () => {
+    expect(cardDomain('https://www.iea.org/reports/x', 'a')).toBe('iea.org');
+  });
+  it('keys DOI links on the registrant prefix', () => {
+    expect(cardDomain('https://doi.org/10.1016/j.enpol.2024.1', 'a')).toBe('doi:10.1016');
+    expect(cardDomain('https://doi.org/10.1038/s41586-024-1', 'b')).toBe('doi:10.1038');
+  });
+  it('keys other aggregator hosts per document', () => {
+    expect(cardDomain('https://arxiv.org/abs/2401.1', 'a')).not.toBe(cardDomain('https://arxiv.org/abs/2401.2', 'b'));
+  });
+  it('an academic corpus reached through DOI links is independent', () => {
+    const prefixes = ['10.1016', '10.1038', '10.1111', '10.1080', '10.1177', '10.1093'];
+    const cards = prefixes.map((p, i) => ({
+      id: `s${i}`, title: 't', excerpt: 'e'.repeat(50), qualityScore: 70,
+      domain: cardDomain(`https://doi.org/${p}/x${i}`, `s${i}`),
+    }));
+    expect(assessEvidenceIndependence(cards as SwarmSourceCard[]).independent).toBe(true);
+  });
+  it('one publisher behind every DOI is still concentrated', () => {
+    const cards = Array.from({ length: 6 }, (_, i) => ({
+      id: `s${i}`, title: 't', excerpt: 'e'.repeat(50), qualityScore: 70,
+      domain: cardDomain(`https://doi.org/10.1016/x${i}`, `s${i}`),
+    }));
+    expect(assessEvidenceIndependence(cards as SwarmSourceCard[]).independent).toBe(false);
+  });
+});

@@ -205,10 +205,16 @@ export async function runReaderBlock(deps: ReaderBlockDeps): Promise<ReaderBlock
   if (!deps.frozenQuant && process.env.NOMOSX_CHRONOS === '1' && Array.isArray(quant?.series) && quant.series.length > 0) {
     try {
       const { chronosForecast, chronosForecastToModelResult } = await import('../../quant/chronos-client');
-      // Pick the longest clean series — most history = most reliable forecast.
+      // Pick the series that bears on the QUESTION, then the longest. A long
+      // but unrelated series (a policy rate under a minerals question) would
+      // publish a precise-looking forecast of the wrong thing — no exhibit
+      // is better than that one.
+      const { passageContainment } = await import('../claim-passage-contract');
       const best = quant.series
         .filter((s: any) => Array.isArray(s?.points) && s.points.length >= 8)
-        .sort((a: any, b: any) => b.points.length - a.points.length)[0];
+        .map((s: any) => ({ s, rel: passageContainment(String(s.label ?? ''), query) }))
+        .filter((x: any) => x.rel > 0)
+        .sort((a: any, b: any) => b.rel - a.rel || b.s.points.length - a.s.points.length)[0]?.s;
       if (best) {
         const values = best.points.map((p: any) => Number(p.v)).filter((v: number) => Number.isFinite(v));
         const horizon = Math.min(12, Math.max(3, Math.floor(values.length / 4)));
