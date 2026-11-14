@@ -1,0 +1,28 @@
+# Railway deployment — quant-service (FIGARO + Docling + Chronos + MiniCheck).
+#
+# Create a SECOND Railway service in the same project, set its root
+# directory to `quant-service`, and it picks up this file.
+#
+# Build installs the FULL profile (torch + transformers + docling) —
+# ~6-8 GB image, first deploy is slow. For a lean FIGARO-only service,
+# swap the Dockerfile's requirements install or set DOCLING_ENABLED=0,
+# CHRONOS_ENABLED=0, MINICHECK_ENABLED=0 and trim requirements-full.txt.
+#
+# Required env vars:
+#   (none mandatory — all model paths degrade to 503/skip)
+# Optional:
+#   QUANT_CORS_ORIGINS    — comma-separated app origins (default *)
+#   DOCLING_ENABLED=1     — structured PDF extraction
+#   CHRONOS_ENABLED=1     — zero-shot forecasting (CPU; set CHRONOS_DEVICE=cuda on GPU)
+#   MINICHECK_ENABLED=1   — shadow claim verification
+#   FIGARO_DEMO=1         — skip Eurostat download, use demo matrix
+
+[build]
+  builder = "DOCKERFILE"
+  dockerfilePath = "Dockerfile.full"
+
+[deploy]
+  restartPolicyType = "ON_FAILURE"
+  restartPolicyMaxRetries = 5
+  healthcheckPath = "/"
+  healthcheckTimeout = 60
