@@ -104,6 +104,26 @@ export function evaluateThinkTankForm(opts: {
     detail: 'Summary / orientation section present',
   });
 
+  // 8. Pipeline integrity — degraded-step ledger: steps whose failure
+  //    removes evidence/gate capability are critical; enrichment-only
+  //    degradations are tolerated but disclosed.
+  const degraded = Array.isArray(stats.degradedSteps) ? stats.degradedSteps as Array<{ step?: string }> : [];
+  const CRITICAL_STEPS = new Set([
+    'FACT_CHECKER', 'CITATION_VERIFIER_LLM', 'CLAIM_GROUNDING', 'SYMBOLIC_VERIFY',
+    'THESIS_BINDING_NARROWING', 'THESIS_BINDING_REPAIR', 'CRITIC', 'CRITIC_PANEL',
+    'OUTPUT_GUARD', 'LOCAL_JUDGE', 'CITATION_REPAIR', 'CITATION_FILTER',
+  ]);
+  const criticalLost = degraded.filter(d => CRITICAL_STEPS.has(String(d.step)));
+  criteria.push({
+    name: 'pipeline_integrity',
+    passed: criticalLost.length === 0,
+    detail: degraded.length === 0
+      ? 'No degraded steps recorded'
+      : criticalLost.length > 0
+        ? `${criticalLost.length} critical step(s) degraded: ${criticalLost.map(d => d.step).join(', ')}`
+        : `${degraded.length} non-critical step(s) degraded: ${degraded.map(d => d.step).join(', ')}`,
+  });
+
   const passed = criteria.filter(c => c.passed).length;
   const total = criteria.length;
   return { score: Math.round((passed / total) * 100), passed, total, criteria };

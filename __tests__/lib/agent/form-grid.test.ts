@@ -42,6 +42,24 @@ describe('evaluateThinkTankForm', () => {
     expect(r2.criteria.find(c => c.name === 'objections_addressed')!.passed).toBe(true);
   });
 
+  it('pipeline_integrity fails on critical degraded steps, tolerates non-critical', () => {
+    const base = { html: fullThinkTankHtml, fatalChallenges: 0 };
+    const clean = evaluateThinkTankForm({ ...base, stats: { computedExhibit: 'both' } });
+    expect(clean.criteria.find(c => c.name === 'pipeline_integrity')!.passed).toBe(true);
+
+    const critical = evaluateThinkTankForm({
+      ...base,
+      stats: { computedExhibit: 'both', degradedSteps: [{ step: 'FACT_CHECKER', reason: 'x' }] },
+    });
+    expect(critical.criteria.find(c => c.name === 'pipeline_integrity')!.passed).toBe(false);
+
+    const minor = evaluateThinkTankForm({
+      ...base,
+      stats: { computedExhibit: 'both', degradedSteps: [{ step: 'HERO_IMAGE' }] },
+    });
+    expect(minor.criteria.find(c => c.name === 'pipeline_integrity')!.passed).toBe(true);
+  });
+
   it('computed_exhibit passes from stats or markup', () => {
     const noStats = evaluateThinkTankForm({ html: fullThinkTankHtml, fatalChallenges: 0, stats: {} });
     expect(noStats.criteria.find(c => c.name === 'computed_exhibit')!.passed).toBe(true); // markup present
