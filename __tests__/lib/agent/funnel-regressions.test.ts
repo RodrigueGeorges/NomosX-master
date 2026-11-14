@@ -154,7 +154,8 @@ describe('moderate-confidence calibrated tier', () => {
     })).toBe(false);
   });
 
-  it('orchestrator publishes a moderate-band piece with a rendered calibration badge', async () => {
+  it('orchestrator publishes a moderate-band piece with a rendered calibration badge when the tier is opted in', async () => {
+    process.env.NOMOSX_ALLOW_MODERATE_PUBLISH = '1';
     jest.mocked(runInquiryPipeline).mockResolvedValue({
       briefId: 'brief', html: '<html><body><article><p>Verified article</p></article></body></html>', format: 'brief',
       trustScore: 62, qualityScore: 55,
@@ -175,6 +176,28 @@ describe('moderate-confidence calibrated tier', () => {
     expect(prisma.thinkTankPublication.create).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({ status: 'PUBLISHED', html: expect.stringContaining('Preliminary assessment') }),
     }));
+    delete process.env.NOMOSX_ALLOW_MODERATE_PUBLISH;
+  });
+
+  it('orchestrator HOLDS a moderate-band piece by default (preliminary tier is opt-in)', async () => {
+    delete process.env.NOMOSX_ALLOW_MODERATE_PUBLISH;
+    jest.mocked(runInquiryPipeline).mockResolvedValue({
+      briefId: 'brief', html: '<html><body><article><p>Verified article</p></article></body></html>', format: 'brief',
+      trustScore: 62, qualityScore: 55,
+      stats: { criticalLoop: { finalScore: 62 }, rank: { avgQuality: 90 }, citationFilter: { coverageAfter: 100 } },
+      lineage: {}, inquiry: { id: 'brief', slug: 'test', title: 'Test', question: 'Test question', sources: [] },
+    } as unknown as Awaited<ReturnType<typeof runInquiryPipeline>>);
+    jest.mocked(evaluatePublicationGate).mockReturnValue({
+      decision: 'hold',
+      checks: holdOnTrustOnly.checks,
+      metrics: { citationCoverage: 0.8 },
+      reasons: [], warnings: [],
+    } as unknown as ReturnType<typeof evaluatePublicationGate>);
+    jest.mocked(evaluatePublicationReadiness).mockReturnValue({
+      ok: false, failures: ['trustScore 62/100 < 65'], warnings: [],
+    } as unknown as ReturnType<typeof evaluatePublicationReadiness>);
+    const result = await runAndPublishInquiry({ question: 'A sufficiently detailed question', source: 'manual', verticalId: 'vertical', skipDuplicateCheck: true });
+    expect(result.status).toBe('held');
   });
 });
 

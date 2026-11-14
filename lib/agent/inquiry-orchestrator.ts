@@ -534,6 +534,13 @@ export async function runAndPublishInquiry(
       triangularOverride: aTri,
       domain: req.domain,
       dbClaims: p.readerClaims,
+      // Evidence-mass floor: publish requires ≥N semantically core sources
+      // when the relevance screen produced a count (fixed-corpus replays
+      // skip screening → check absent → no-op).
+      coreSourceCount: typeof (p.stats.relevanceScreen as { coreCount?: number } | undefined)?.coreCount === 'number'
+        ? (p.stats.relevanceScreen as { coreCount: number }).coreCount
+        : undefined,
+      minCoreSources: Number(process.env.NOMOSX_CORE_EVIDENCE_MIN ?? 8),
       centralScenario: p.stats.centralScenario as import('./editorial-types').CentralScenarioDecision | undefined,
       requireCentralScenario: p.stats.centralScenarioRequired === true || p.stats.editorialV2 === true,
       // P0/1: verdict evals attached to a replaced artifact version are invalid
@@ -947,7 +954,9 @@ export async function runAndPublishInquiry(
   // is a legitimate think-tank genre. Opt-out via
   // NOMOSX_ALLOW_MODERATE_PUBLISH=0. The validated reserve stays strict:
   // certifyForReserve re-evaluates the clean gate and rejects these anyway.
-  const allowModeratePublish = process.env.NOMOSX_ALLOW_MODERATE_PUBLISH !== "0";
+  // Preliminary tier is opt-in (repasse 2026-11-14): publishing below the
+  // trust bar is a deliberate experiment, not a default — fail closed.
+  const allowModeratePublish = process.env.NOMOSX_ALLOW_MODERATE_PUBLISH === "1";
   const moderateTier = allowModeratePublish && effectiveDaVerdict !== "reject" && isModerateTierEligible({
     gate, readiness, trustScore, qualityScore, adaptiveMinTrust,
     minViableTrust: MIN_VIABLE_TRUST,

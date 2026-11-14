@@ -286,11 +286,11 @@ export async function runRankAndEnrichment(deps: RankEnrichmentDeps): Promise<Ra
           const wasDrop0 = dropIdx.size;
           const wasDrop1 = dropTangential ? tangIdx.size : 0;
           topSources = topSources.filter((_s: any, i: number) => !effectiveDrop.has(i));
-          stats.relevanceScreen = { screened: screened.length, dropped: wasDrop0, tangentialDropped: wasDrop1, restoredAtFloor: mustRestore, costUsd: rel.costUsd };
+          stats.relevanceScreen = { screened: screened.length, dropped: wasDrop0, tangentialDropped: wasDrop1, coreCount: correctEarly, restoredAtFloor: mustRestore, costUsd: rel.costUsd };
           console.log(`${label} RELEVANCE SCREEN: dropped ${wasDrop0} off-topic${wasDrop1 > 0 ? ` + ${wasDrop1} tangential` : ''} sources — ${topSources.length} proceed to reader`);
           ctx.addFinding('RANK', 'insight', `Semantic relevance screen removed ${wasDrop0 + wasDrop1}/${screened.length} low-relevance candidates before extraction`);
         } else {
-          stats.relevanceScreen = { screened: screened.length, dropped: 0, costUsd: rel.costUsd };
+          stats.relevanceScreen = { screened: screened.length, dropped: 0, coreCount: correctEarly, costUsd: rel.costUsd };
           console.log(`${label} RELEVANCE SCREEN: all ${screened.length} screened candidates topically relevant`);
         }
 

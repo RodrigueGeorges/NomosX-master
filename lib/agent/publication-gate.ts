@@ -51,6 +51,13 @@ export interface PublicationGateInput {
     evaluationComplete: boolean;
     reason?: string;
   };
+  /** Sources scoring ≥2 on the semantic relevance screen
+   *  (stats.relevanceScreen.coreCount). Undefined when screening never ran
+   *  (fixed-corpus replay, classifier outage) — the check is then skipped,
+   *  matching the screen's fail-open contract. */
+  coreSourceCount?: number;
+  /** Minimum core-evidence sources required to publish. Default 8. */
+  minCoreSources?: number;
 }
 
 export interface PublicationGateCheck {
@@ -255,6 +262,21 @@ export function evaluatePublicationGate(input: PublicationGateInput): Publicatio
   // triggers "revise" so the critical loop can rewrite with precise language.
   const novlangue = detectNovlangue(input.html || "");
   const NOVLANGUE_DENSITY_THRESHOLD = 2.0; // matches per 1000 words
+  // Evidence-mass floor: tangential sources may pad the corpus count, but a
+  // publishable note needs a minimum of semantically core sources. Only
+  // enforced when the relevance screen actually produced a count.
+  if (typeof input.coreSourceCount === 'number') {
+    const minCore = input.minCoreSources ?? 8;
+    checks.push({
+      checkType: "corpus_core_evidence",
+      passed: input.coreSourceCount >= minCore,
+      score: input.coreSourceCount,
+      details: input.coreSourceCount >= minCore
+        ? `${input.coreSourceCount} core sources (≥${minCore} required)`
+        : `only ${input.coreSourceCount} core sources after relevance screening — corpus is tangential-heavy (≥${minCore} required)`,
+    });
+  }
+
   checks.push({
     checkType: "novlangue_density",
     passed: novlangue.density <= NOVLANGUE_DENSITY_THRESHOLD,
@@ -341,7 +363,7 @@ export function evaluatePublicationGate(input: PublicationGateInput): Publicatio
   // quality_score is advisory when trust_score passes AND quality ≥ 40 — don't treat as hard failure
   // But quality < 40 is always a hard failure (prevents publishing garbage with good trust)
   const hardFailures = failedChecks.filter((check) =>
-    ["source_depth", "trust_score", "word_count", "researcher_signoff", "citation_coverage", "central_scenario", "evaluation_freshness", "evaluation_availability", "thesis_adherence"].includes(check.checkType)
+    ["source_depth", "trust_score", "word_count", "researcher_signoff", "citation_coverage", "central_scenario", "evaluation_freshness", "evaluation_availability", "thesis_adherence", "corpus_core_evidence"].includes(check.checkType)
     || (check.checkType === "quality_score" && typeof check.score === "number" && check.score < 40)
   );
   const decision: PublicationGateDecision = failedChecks.length === 0

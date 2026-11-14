@@ -66,6 +66,29 @@ function evidenceBaseTable(sources: any[], readings: any[]): string {
     `<tr><td>${esc(y)}</td><td style="text-align:right;">${n}</td></tr>`).join('');
   const pct = (n: number) => `${Math.round((n / sources.length) * 100)}%`;
 
+  // Computed indices — derived quantities, not counts: these are the
+  // analytical content of the exhibit (repasse 2026-11-14: a composition
+  // table alone is not an original contribution).
+  const n = sources.length;
+  const hhi = [...byProvider.values()].reduce((acc, c) => acc + (c / n) ** 2, 0); // 1/n..1, lower = more diverse
+  const domains = new Set(sources.map(s => {
+    const u = String(s.url || s.sourceUrl || '');
+    const m = u.match(/^https?:\/\/(?:www\.)?([^/?#]+)/i);
+    return m ? m[1].toLowerCase() : '';
+  }).filter(Boolean));
+  const domainDiversity = domains.size / n;
+  const years = [...byYear.keys()].map(Number).filter(Number.isFinite).sort((a, b) => a - b);
+  const medianYear = years.length ? years[Math.floor(years.length / 2)] : null;
+  const latestYear = years.length ? years[years.length - 1] : null;
+  const indices = [
+    ['Provider concentration (HHI)', hhi.toFixed(3), hhi < 0.15 ? 'diversified' : hhi < 0.35 ? 'moderate' : 'concentrated'],
+    ['Domain diversity', domainDiversity.toFixed(2), `${domains.size} unique domains / ${n} sources`],
+    ['Median source year', medianYear ? String(medianYear) : 'n/a', latestYear ? `latest ${latestYear}` : ''],
+    ['Full-text coverage', pct(fullText), `${fullText}/${n} sources read in full`],
+  ];
+  const indexRows = indices.map(([k, v, note]) =>
+    `<tr><td>${esc(k)}</td><td style="text-align:right;font-weight:600;">${esc(v)}</td><td style="color:#94a3b8;">${esc(note)}</td></tr>`).join('');
+
   return `<div class="computed-evidence-base" style="margin:1rem 0;padding:0.75rem;border:1px solid #334155;border-radius:6px;">
     <h3 style="margin:0 0 0.25rem;font-size:1rem;">Evidence Base — computed from the source corpus</h3>
     <p style="margin:0 0 0.5rem;font-size:0.8125rem;color:#94a3b8;">${sources.length} sources · ${fullText} full text (${pct(fullText)}) · ${abstract} abstract (${pct(abstract)}) · ${ruleBased} metadata only${unscored ? ` · ${unscored} unscored` : ''}</p>
@@ -79,6 +102,10 @@ function evidenceBaseTable(sources: any[], readings: any[]): string {
         <tbody>${yearRows}</tbody>
       </table>` : ''}
     </div>
+    <table style="width:100%;border-collapse:collapse;font-size:0.8125rem;margin-top:0.5rem;">
+      <thead><tr style="text-align:left;border-bottom:1px solid #334155;"><th>Computed index</th><th style="text-align:right;">Value</th><th>Reading</th></tr></thead>
+      <tbody>${indexRows}</tbody>
+    </table>
     <p style="margin:0.5rem 0 0;font-size:0.75rem;color:#94a3b8;">Computed deterministically by the pipeline from the retained corpus — reproducible from the published source list.</p>
   </div>`;
 }

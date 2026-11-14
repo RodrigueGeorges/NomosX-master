@@ -346,7 +346,10 @@ export async function enhancedRank(
   // quant, not prose evidence. Cap them so electricity dashboards cannot
   // flood the document corpus (gulf-minerals: 6/27 sources were flows).
   const FLOW_PROVIDERS = new Set(['energy-charts', 'smard', 'rte-france', 'energi-data', 'fingrid', 'entsoe', 'entsog']);
-  const MAX_FLOW_SOURCES = 3;
+  // Repasse 2026-11-14: target is ZERO data-stream sources in the document
+  // corpus — flows feed quant, never prose evidence. NOMOSX_MAX_FLOW_SOURCES
+  // overrides for corpora where a flow provider is the only viable channel.
+  const MAX_FLOW_SOURCES = Math.max(0, Number(process.env.NOMOSX_MAX_FLOW_SOURCES ?? 0));
   const flowCount = finalSources.filter(s => FLOW_PROVIDERS.has(s.provider || '')).length;
   if (flowCount > MAX_FLOW_SOURCES) {
     const kept: typeof finalSources = [];

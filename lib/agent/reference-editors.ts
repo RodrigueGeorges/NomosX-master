@@ -125,6 +125,20 @@ const TIER_C: Record<string, string> = {
   'cato.org': 'Cato Institute', 'manhattan-institute.org': 'Manhattan Institute',
   'epi.org': 'Economic Policy Institute', 'cbpp.org': 'CBPP',
   'urban.org': 'Urban Institute',
+  // US/EU heavyweights already targeted by retrieval but missing here —
+  // searched ≠ scored: without registry entries they ranked as ordinary web.
+  'csis.org': 'CSIS', 'brookings.edu': 'Brookings Institution',
+  'chathamhouse.org': 'Chatham House', 'cfr.org': 'Council on Foreign Relations',
+  // Geographic balance — Asia-Pacific
+  'aspi.org.au': 'Australian Strategic Policy Institute',
+  'orfonline.org': 'Observer Research Foundation',
+  'iseas.edu.sg': 'ISEAS–Yusof Ishak Institute', 'rsis.edu.sg': 'RSIS',
+  'fpri.org': 'Foreign Policy Research Institute Japan',
+  // Africa
+  'issafrica.org': 'Institute for Security Studies Africa',
+  'ecdpm.org': 'ECDPM',
+  // Gulf & Middle East
+  'epc.ae': 'Emirates Policy Center', 'gcsp.ch': 'Geneva Centre for Security Policy',
 };
 
 const WEIGHT: Record<AuthorityTier, number> = { A: 0.88, B: 0.84, C: 0.80 };
