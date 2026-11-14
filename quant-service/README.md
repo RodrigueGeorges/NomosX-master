@@ -72,3 +72,23 @@ sector×region shocks from strategic queries and injects results as
 - FIGARO-E3 extensions (employment FTE, kt CO2e per sector)
 - FIGARO-REG (NUTS2 regional impact analysis)
 - TwinRD D4.2 model integration when released (July 2026, open source)
+
+## Docling structured extraction (optional)
+
+`POST /v1/docling/parse` converts a PDF URL to structured markdown via
+[Docling](https://github.com/docling-project/docling) (IBM, MIT) — tables
+and reading order preserved, unlike the reader's pdf-parse fallback.
+
+Docling is **not** in `requirements.txt` (heavy: ~2-4 GB of models).
+Install it in a dedicated deployment:
+
+```bash
+pip install -r requirements.txt -r requirements-docling.txt
+```
+
+Env: `DOCLING_ENABLED=0` hard-disables; `DOCLING_MAX_PAGES` (default 80),
+`DOCLING_MAX_BYTES` (default 8 MB), `DOCLING_FETCH_TIMEOUT` (default 20s).
+Without docling installed the endpoint returns 503 and the reader falls
+back to pdf-parse — the pipeline never blocks on it.
+
+The app side requires `QUANT_SERVICE_URL` + `NOMOSX_DOCLING=1`.

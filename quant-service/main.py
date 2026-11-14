@@ -96,7 +96,12 @@ class ShockRequest(BaseModel):
 @app.get("/")
 def root() -> dict:
     """Lightweight service info — does NOT load the FIGARO model."""
-    return {"service": "NomosX quant-service", "version": "0.2.0", "docs": "/docs"}
+    try:
+        import docling_parse as dp
+        docling = dp.available()
+    except Exception:
+        docling = False
+    return {"service": "NomosX quant-service", "version": "0.2.0", "docling": docling, "docs": "/docs"}
 
 
 @app.get("/health")
@@ -153,3 +158,65 @@ def io_multipliers(region: str, industry: str) -> dict:
         "dataSource": m.source,
         "methodology": METHODOLOGY,
     }
+
+
+# --- Docling structured PDF extraction (optional heavy path) -----------------
+#
+# The Next.js reader calls this BEFORE its local pdf-parse fallback: Docling
+# preserves tables/reading order that pdf-parse flattens, which matters for
+# claim→passage evidence contracts. 503 when docling isn't installed — the
+# caller treats any failure as "fall back", never as fatal.
+
+DOCLING_MAX_BYTES = int(os.environ.get("DOCLING_MAX_BYTES", str(8 * 1024 * 1024)))
+DOCLING_FETCH_TIMEOUT = float(os.environ.get("DOCLING_FETCH_TIMEOUT", "20"))
+
+
+class DoclingParseRequest(BaseModel):
+    url: str = Field(..., min_length=8, max_length=2048)
+    timeoutS: float = Field(default=90.0, ge=5.0, le=180.0)
+
+
+@app.post("/v1/docling/parse")
+def docling_parse(req: DoclingParseRequest) -> dict:
+    import docling_parse as dp
+
+    if not dp.available():
+        raise HTTPException(status_code=503, detail="docling not installed or DOCLING_ENABLED=0")
+
+    # Fetch server-side: the reader already proved reachability concerns are
+    # ours to handle; keep the same UA discipline as the TS reader.
+    import requests
+    try:
+        resp = requests.get(
+            req.url,
+            timeout=DOCLING_FETCH_TIMEOUT,
+            headers={"User-Agent": "NomosX/3.0 (Academic Research Platform; mailto:contact@nomosx.com)"},
+            stream=True,
+        )
+        resp.raise_for_status()
+        chunks, total = [], 0
+        for chunk in resp.iter_content(65536):
+            total += len(chunk)
+            if total > DOCLING_MAX_BYTES:
+                raise HTTPException(status_code=413, detail="pdf exceeds DOCLING_MAX_BYTES")
+            chunks.append(chunk)
+        data = b"".join(chunks)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"fetch failed: {exc}") from exc
+
+    if len(data) < 100:
+        raise HTTPException(status_code=422, detail="empty or non-pdf payload")
+
+    try:
+        result = dp.parse_pdf_bytes(data)
+    except ValueError as exc:
+        raise HTTPException(status_code=413, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.warning("docling parse failed: %s", exc)
+        raise HTTPException(status_code=500, detail=f"docling conversion failed: {exc}") from exc
+
+    if result["chars"] < 100:
+        raise HTTPException(status_code=422, detail="docling produced insufficient text")
+    return {"url": req.url, **result}

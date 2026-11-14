@@ -24,6 +24,7 @@ import pLimit from 'p-limit';
 import { RESEARCHER_KBS, type DomainExpertise } from './researcher-kb/index';
 import { MULTI_DOMAIN_CORPUS } from '../knowledge/multi-domain-corpus';
 import { unpaywallByDoi } from '../providers/unpaywall';
+import { doclingEnabled, doclingParsePdf } from '../quant/docling-client';
 
 // ============================================================================
 // TYPES
@@ -79,6 +80,9 @@ export interface ReadingResultV3 {
   futureDirections: string[];
   citedSources: string[];        // DOIs/titles of sources this paper cites (for cross-ref)
   readingDepth: "full_text" | "abstract" | "rule_based";
+  /** Which extractor produced the text — docling preserves tables/layout
+   *  that pdf-parse flattens; recorded for evidence-quality auditing. */
+  extractor?: "docling" | "pdf-parse" | "article" | "landing" | "archive" | "abstract";
   wordCount: number;             // How much text was actually read
   sections: string[];            // Which sections were found in the paper
   // LOT 2.4: Causal mechanisms
@@ -327,12 +331,28 @@ function buildQuantitativeDescriptor(sourceType: string): string {
 // abstract) and bound simultaneous parses process-wide.
 const PDF_MAX_BYTES = 8 * 1024 * 1024;
 const pdfParseLimiter = pLimit(2);
+// Docling parses are far heavier than pdf-parse (layout models, 5-60s/doc)
+// — bound concurrent remote parses; the service itself is single-worker.
+const doclingLimiter = pLimit(2);
 
-async function extractPdfText(url: string, timeout = 30000): Promise<string | null> {
+type PdfExtraction = { text: string; extractor: "docling" | "pdf-parse" };
+
+async function extractPdfText(url: string, timeout = 30000): Promise<PdfExtraction | null> {
   return pdfParseLimiter(() => extractPdfTextInner(url, timeout));
 }
 
-async function extractPdfTextInner(url: string, timeout = 30000): Promise<string | null> {
+async function extractPdfTextInner(url: string, timeout = 30000): Promise<PdfExtraction | null> {
+  // Docling first (opt-in): structured markdown keeps tables/reading order
+  // that pdf-parse flattens — better material for claim→passage contracts.
+  // One bounded attempt; any failure falls through to pdf-parse.
+  if (doclingEnabled()) {
+    const d = await doclingLimiter(() => doclingParsePdf(url));
+    if (d) {
+      console.log(`[Reader V3] PDF via DOCLING: ${d.chars} chars, ${d.pages ?? '?'} pages (${d.durationMs}ms)`);
+      return { text: d.text, extractor: "docling" };
+    }
+    console.log('[Reader V3] DOCLING unavailable or failed — pdf-parse fallback');
+  }
   const MAX_RETRIES = 2;
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     try {
@@ -363,7 +383,7 @@ async function extractPdfTextInner(url: string, timeout = 30000): Promise<string
       }
 
       console.log(`[Reader V3] PDF extracted: ${text.length} chars, ${numPages} pages${attempt > 0 ? ` (attempt ${attempt + 1})` : ''}`);
-      return text;
+      return { text, extractor: "pdf-parse" };
     } catch (error: any) {
       // Classify failure: transient (timeout, 5xx, network) → retry; structural (403, 404, invalid PDF) → don't retry
       const isTransient = error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT' ||
@@ -543,25 +563,25 @@ async function waybackSnapshotUrl(url: string): Promise<string | null> {
  *         → landing-page HTML rescue (thin abstract / failed PDF / report provider)
  *         → Wayback snapshot → abstract
  */
-async function getFullText(source: any): Promise<{ text: string; depth: "full_text" | "abstract" }> {
+async function getFullText(source: any): Promise<{ text: string; depth: "full_text" | "abstract"; extractor?: ReadingResultV3["extractor"] }> {
   const startedAt = Date.now();
   let pdfAttempted = false;
 
   // Try PDF URL first
   if (source.pdfUrl) {
     pdfAttempted = true;
-    const pdfText = await extractPdfText(source.pdfUrl);
-    if (pdfText && pdfText.length > 500) {
-      return { text: pdfText, depth: "full_text" };
+    const pdf = await extractPdfText(source.pdfUrl);
+    if (pdf && pdf.text.length > 500) {
+      return { text: pdf.text, depth: "full_text", extractor: pdf.extractor };
     }
   }
 
   // Try main URL if it looks like a PDF
   if (source.url && (source.url.endsWith('.pdf') || source.contentFormat === 'pdf')) {
     pdfAttempted = true;
-    const pdfText = await extractPdfText(source.url);
-    if (pdfText && pdfText.length > 500) {
-      return { text: pdfText, depth: "full_text" };
+    const pdf = await extractPdfText(source.url);
+    if (pdf && pdf.text.length > 500) {
+      return { text: pdf.text, depth: "full_text", extractor: pdf.extractor };
     }
   }
 
@@ -569,7 +589,7 @@ async function getFullText(source: any): Promise<{ text: string; depth: "full_te
   if (source.url && NEWS_PROVIDERS.includes(source.provider || '')) {
     const articleText = await fetchNewsArticleText(source.url);
     if (articleText && articleText.length > 300) {
-      return { text: articleText, depth: "full_text" };
+      return { text: articleText, depth: "full_text", extractor: "article" };
     }
   }
 
@@ -581,9 +601,9 @@ async function getFullText(source: any): Promise<{ text: string; depth: "full_te
       const up = await unpaywallByDoi(source.doi);
       const altUrl = up?.pdfUrl;
       if (altUrl && altUrl !== source.pdfUrl) {
-        const pdfText = await extractPdfText(altUrl);
-        if (pdfText && pdfText.length > 500) {
-          return { text: pdfText, depth: "full_text" };
+        const pdf = await extractPdfText(altUrl);
+        if (pdf && pdf.text.length > 500) {
+          return { text: pdf.text, depth: "full_text", extractor: pdf.extractor };
         }
       }
     } catch { /* non-blocking */ }
@@ -600,7 +620,7 @@ async function getFullText(source: any): Promise<{ text: string; depth: "full_te
     htmlRescueBudget--;
     const pageText = await fetchNewsArticleText(source.url);
     if (pageText && pageText.length > 500) {
-      return { text: pageText, depth: "full_text" };
+      return { text: pageText, depth: "full_text", extractor: "landing" };
     }
 
     // Wayback rescue — origin dead/blocked, try the archived snapshot.
@@ -612,7 +632,7 @@ async function getFullText(source: any): Promise<{ text: string; depth: "full_te
       if (snapshotUrl) {
         const archivedText = await fetchNewsArticleText(snapshotUrl);
         if (archivedText && archivedText.length > 500) {
-          return { text: archivedText, depth: "full_text" };
+          return { text: archivedText, depth: "full_text", extractor: "archive" };
         }
       }
     }
@@ -622,6 +642,7 @@ async function getFullText(source: any): Promise<{ text: string; depth: "full_te
   return {
     text: source.abstract || "",
     depth: "abstract",
+    extractor: "abstract",
   };
 }
 
@@ -794,7 +815,8 @@ async function deepExtract(
   source: any,
   text: string,
   depth: "full_text" | "abstract",
-  memoryBlock?: string
+  memoryBlock?: string,
+  extractor?: ReadingResultV3["extractor"]
 ): Promise<ReadingResultV3> {
   const isFullText = depth === "full_text";
   const chunks = isFullText ? chunkPaper(text) : [];
@@ -944,6 +966,7 @@ For originalityAssessment: assess whether this work is incremental (extends exis
       futureDirections: extracted.futureDirections || [],
       citedSources: extracted.citedSources || [],
       readingDepth: depth,
+      extractor,
       wordCount: text.split(/\s+/).length,
       sections,
       mechanisms: (extracted.mechanisms || []).map((m: any) => {
@@ -1171,11 +1194,13 @@ async function processSource(source: any, enablePdf: boolean, memoryBlock?: stri
   // Get the best available text
   let text: string;
   let depth: "full_text" | "abstract";
+  let extractor: ReadingResultV3["extractor"];
 
   if (enablePdf && (source.pdfUrl || (source.url && source.contentFormat === 'pdf'))) {
     const result = await getFullText(source);
     text = result.text;
     depth = result.depth;
+    extractor = result.extractor;
   } else if (source.url && (NEWS_PROVIDERS.includes(source.provider || '') || (source.abstract || '').length < 1200)) {
     // News sources: always try web fetch even if PDF is disabled.
     // S20: non-news sources with a thin/missing abstract also get a shot —
@@ -1183,9 +1208,11 @@ async function processSource(source: any, enablePdf: boolean, memoryBlock?: stri
     const result = await getFullText(source);
     text = result.text;
     depth = result.depth;
+    extractor = result.extractor;
   } else {
     text = source.abstract || "";
     depth = "abstract";
+    extractor = "abstract";
   }
 
   // Skip very short content
@@ -1194,7 +1221,7 @@ async function processSource(source: any, enablePdf: boolean, memoryBlock?: stri
   }
 
   // Deep extraction
-  return deepExtract(source, text, depth, memoryBlock);
+  return deepExtract(source, text, depth, memoryBlock, extractor);
 }
 
 // ============================================================================
