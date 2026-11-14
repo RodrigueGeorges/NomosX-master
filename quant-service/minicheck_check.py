@@ -29,8 +29,12 @@ _model = None
 _tokenizer = None
 _model_failed = False
 
-MAX_DOC_CHARS = 12000
-MAX_CLAIM_CHARS = 1000
+# The tokenizer truncates at max_length=1024 keeping the BEGINNING — the
+# premise. The hypothesis sits at the end, so an oversized document silently
+# removes the claim the model is asked to verify. ~3000 chars ≈ 750-900
+# tokens leaves room for claim + prompt scaffolding.
+MAX_DOC_CHARS = 3000
+MAX_CLAIM_CHARS = 600
 
 
 def available() -> bool:
@@ -136,7 +140,11 @@ def check_pairs(pairs: list[dict[str, str]]) -> list[dict[str, Any]]:
                     **inputs, max_new_tokens=8, do_sample=False,
                     output_scores=True, return_dict_in_generate=True,
                 )
-            text = tokenizer.decode(gen.sequences[0], skip_special_tokens=True)
+            # sequences[0] is input+output — decode only the generated tail,
+            # otherwise the fallback keyword scan reads the premise text and
+            # any "supported"/"true" inside the document becomes a verdict.
+            gen_ids = gen.sequences[0][inputs.input_ids.shape[1]:]
+            text = tokenizer.decode(gen_ids, skip_special_tokens=True)
             probs = _verdict_probs(model, gen.scores, tokenizer, device)
             if probs is not None:
                 p1, p0 = probs
