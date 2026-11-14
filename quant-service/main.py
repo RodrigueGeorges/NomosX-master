@@ -106,7 +106,12 @@ def root() -> dict:
         chronos = fc.available()
     except Exception:
         chronos = False
-    return {"service": "NomosX quant-service", "version": "0.3.0", "docling": docling, "chronos": chronos, "docs": "/docs"}
+    try:
+        import minicheck_check as mc
+        minicheck = mc.available()
+    except Exception:
+        minicheck = False
+    return {"service": "NomosX quant-service", "version": "0.4.0", "docling": docling, "chronos": chronos, "minicheck": minicheck, "docs": "/docs"}
 
 
 @app.get("/health")
@@ -262,3 +267,39 @@ def chronos_forecast(req: ForecastRequest) -> dict:
         raise HTTPException(status_code=500, detail=f"forecast failed: {exc}") from exc
 
     return result
+
+
+# --- MiniCheck shadow fact-checking (optional heavy path) ---------------------
+#
+# Claim↔document support verdicts from MiniCheck (Apache 2.0). Shadow mode:
+# the app records verdicts for calibration against the LLM fact-checker —
+# this endpoint never gates publication. Bounded to 30 pairs/call.
+
+MINICHECK_MAX_PAIRS = int(os.environ.get("MINICHECK_MAX_PAIRS", "30"))
+
+
+class MiniCheckPair(BaseModel):
+    claim: str = Field(..., min_length=3, max_length=2000)
+    document: str = Field(..., min_length=10, max_length=20000)
+
+
+class MiniCheckRequest(BaseModel):
+    pairs: list[MiniCheckPair] = Field(..., min_length=1, max_length=MINICHECK_MAX_PAIRS)
+
+
+@app.post("/v1/minicheck/check")
+def minicheck_check(req: MiniCheckRequest) -> dict:
+    import minicheck_check as mc
+
+    if not mc.available():
+        raise HTTPException(status_code=503, detail="minicheck not installed or MINICHECK_ENABLED=0")
+
+    try:
+        out = mc.check_pairs([{"claim": p.claim, "document": p.document} for p in req.pairs])
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.warning("minicheck check failed: %s", exc)
+        raise HTTPException(status_code=500, detail=f"minicheck failed: {exc}") from exc
+
+    return out

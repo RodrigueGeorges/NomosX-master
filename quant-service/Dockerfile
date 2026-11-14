@@ -7,7 +7,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
-COPY figaro.py main.py docling_parse.py forecast.py ./
+COPY figaro.py main.py docling_parse.py forecast.py minicheck_check.py ./
 
 # FIGARO cache persists across restarts if a volume is mounted here
 ENV FIGARO_CACHE_DIR=/data/figaro-cache

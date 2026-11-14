@@ -245,6 +245,47 @@ export async function runReaderBlock(deps: ReaderBlockDeps): Promise<ReaderBlock
     rule_based: readings.filter(r => r.readingDepth === "rule_based").length,
   };
   stats.reader = { count: readings.length, fullText: fullTextCount, withQuantData: quantCount, depth: depthBreakdown };
+
+  // MINICHECK SHADOW (optional): cheap claim↔document verdicts recorded for
+  // calibration against the LLM fact-checker. Never gates — the point is to
+  // measure whether a 400×-cheaper model agrees before trusting it upstream.
+  if (!deps.frozenQuant && process.env.NOMOSX_MINICHECK === '1') {
+    try {
+      const { minicheckCheck } = await import('../../quant/minicheck-client');
+      const srcById = new Map((topSources as any[]).map((s: any) => [s.id, s]));
+      const pairs: Array<{ claim: string; document: string }> = [];
+      for (const r of readings as any[]) {
+        if (pairs.length >= 20) break;
+        const doc = String(r.extractedText || srcById.get(r.sourceId)?.abstract || '').slice(0, 12000);
+        if (doc.length < 200) continue;
+        for (const c of (r.claims ?? []).slice(0, 2)) {
+          if (pairs.length >= 20) break;
+          const claim = String(c).trim();
+          if (claim.length >= 20) pairs.push({ claim: claim.slice(0, 1000), document: doc });
+        }
+      }
+      const mc = await minicheckCheck(pairs);
+      if (mc) {
+        const tally = { supported: 0, not_supported: 0, unclear: 0 };
+        for (const v of mc.results) tally[v.label] = (tally[v.label] ?? 0) + 1;
+        stats.minicheckShadow = {
+          checked: mc.checked,
+          ...tally,
+          durationMs: mc.durationMs,
+          // Store a bounded sample for later agreement analysis vs factChecker.
+          samples: mc.results.slice(0, 10).map((v, i) => ({
+            claim: pairs[i]?.claim.slice(0, 160),
+            label: v.label,
+            raw: v.raw,
+          })),
+        };
+        console.log(`${label} MINICHECK shadow: ${mc.checked} pairs — ${tally.supported} supported / ${tally.not_supported} not / ${tally.unclear} unclear (${mc.durationMs}ms)`);
+      }
+    } catch (err) {
+      console.warn(`${label} MINICHECK shadow failed (non-blocking):`, err);
+      recordDegradedStep(stats, 'MINICHECK_SHADOW', err);
+    }
+  }
   ctx.setReaderExtracts(readings);
   ctx.recordAgentTiming('READER', Date.now() - pipelineStart);
 
