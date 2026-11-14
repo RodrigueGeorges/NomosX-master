@@ -22,6 +22,7 @@ import type { AnalysisOutput, CausalLink } from './analyst-multipass';
 import type { ConfidenceTier, PruningResult } from './pruning-gates';
 import type { CentralScenarioDecision } from './editorial-types';
 import { evidenceLikelihoodUpdate } from './leap-aggregation';
+import { isFreeRun } from '../free-run';
 
 interface ExtractedPrediction {
   claim: string;
@@ -264,6 +265,14 @@ export async function registerPredictions(
 ): Promise<{ registered: number; errors: string[] }> {
   const errors: string[] = [];
   let registered = 0;
+
+  // A free-run rehearsal prices nothing worth scoring: its probabilities
+  // come from free fallback models. Registering them would put rehearsal
+  // forecasts on the public track record and into the calibration loop.
+  if (isFreeRun()) {
+    console.log('[PREDICTIONS] Free-run rehearsal — predictions not registered');
+    return { registered: 0, errors: [] };
+  }
 
   try {
     const predictions = extractPredictions(analysis, pruningResult);

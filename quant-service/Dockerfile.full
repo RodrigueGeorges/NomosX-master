@@ -7,12 +7,12 @@ COPY requirements-full.txt .
 RUN pip install --no-cache-dir -r requirements-full.txt
 
 # Copy application code
-COPY figaro.py main.py docling_client.py forecast.py minicheck_check.py ./
+COPY figaro.py main.py docling_client.py forecast.py minicheck_check.py security.py ./
 
-# FIGARO cache — ephemeral on Railway (Volumes unsupported); /tmp is
+# FIGARO cache ï¿½ ephemeral on Railway (Volumes unsupported); /tmp is
 # writable by the non-root user and survives within a container lifetime.
 ENV FIGARO_CACHE_DIR=/tmp/figaro-cache
-# HF model caches — container runs as non-root; /app is not writable
+# HF model caches ï¿½ container runs as non-root; /app is not writable
 ENV HF_HOME=/tmp/hf-cache
 ENV HF_HUB_CACHE=/tmp/hf-cache
 ENV TRANSFORMERS_CACHE=/tmp/hf-cache

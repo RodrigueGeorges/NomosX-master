@@ -10,6 +10,7 @@
  * All paths MUST use runAndPublishInquiry().
  */
 
+import { isFreeRun } from '../free-run';
 import type { Prisma } from "@prisma/client";
 import { randomUUID } from 'node:crypto';
 import { certifyForReserve, releaseReservedPublication } from './publication-reserve';
@@ -1031,6 +1032,16 @@ export async function runAndPublishInquiry(
       };
       console.log(`[InquiryOrchestrator] HELD — no valid swarm election: ${failedForesight.map(c => `${c.id} (${c.detail})`).join('; ')}`);
     }
+  }
+
+  // ── REHEARSAL HOLD ──
+  // NOMOSX_FREE_RUN routes every LLM call to the free cascade and drops
+  // embeddings and paid retrieval: it exercises the plumbing, it does not
+  // produce a note fit for readers. A rehearsal never publishes.
+  if (status === "published" && isFreeRun() && process.env.NOMOSX_FREE_RUN_ALLOW_PUBLISH !== "1") {
+    status = "held";
+    ((pipeline.stats as Record<string, unknown>).publicationGate as Record<string, unknown>).rehearsalHold = true;
+    console.log(`[InquiryOrchestrator] HELD — free-run rehearsal (set NOMOSX_FREE_RUN_ALLOW_PUBLISH=1 to override)`);
   }
 
   // Render the calibration badge into the artifact itself — the reader must
