@@ -122,3 +122,7 @@ scripts/hero-preview-*.webp
 .netlify/state.json
 /jest-*.json
 .netlify/
+
+# Review bundles / archives (never commit)
+nomosx-*.zip
+scripts/claude-review-bundle.diff
