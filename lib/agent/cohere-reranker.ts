@@ -8,7 +8,7 @@
  */
 
 import { env } from '../env';
-import { isFreeRun } from '../free-run';
+import { embeddingsAllowed } from '../free-run';
 import type {EnhancedQuery} from './query-enhancer';
 import { scoreRelevance, type SourceForScoring } from './relevance-scorer';
 
@@ -39,7 +39,7 @@ export async function rerankSources<T extends SourceForScoring & { id: string }>
   } = options;
 
   // If Cohere is disabled, no API key, or a zero-cost rehearsal, use local scoring
-  if (!useCohere || !env.COHERE_API_KEY || isFreeRun()) {
+  if (!useCohere || !env.COHERE_API_KEY || !embeddingsAllowed()) {
     console.log("[Reranker] Using local relevance scoring (Cohere not configured)");
     return rerankLocally(sources, enhancedQuery, topK, minScore);
   }

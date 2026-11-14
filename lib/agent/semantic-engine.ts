@@ -16,7 +16,7 @@
 
 import OpenAI from 'openai';
 import { assertExecutionActive, getExecutionSignal } from '../worker/execution-scope';
-import { isFreeRun } from '../free-run';
+import { embeddingsAllowed } from '../free-run';
 import { prisma } from '../db';
 import { getCachedLLMResponse, cacheLLMResponse } from '../cache/redis-cache';
 import Sentry from '@sentry/nextjs';
@@ -146,7 +146,7 @@ export async function embedTextDetailed(
   if (!text || text.trim().length === 0) {
     return { embedding: new Array(EMBEDDING_DIMS).fill(0), model: "none" };
   }
-  if (isFreeRun()) return { embedding: zeroVector(), model: "none" };
+  if (!embeddingsAllowed()) return { embedding: zeroVector(), model: "none" };
 
   // Truncate to ~30k chars (~8k tokens) to stay within model limits
   const truncated = text.slice(0, 30000);
@@ -195,7 +195,7 @@ export async function embedBatchDetailed(
   inputType: "search_document" | "search_query" = "search_document",
 ): Promise<{ embeddings: number[][]; model: string }> {
   if (texts.length === 0) return { embeddings: [], model: "none" };
-  if (isFreeRun()) return { embeddings: texts.map(() => zeroVector()), model: "none" };
+  if (!embeddingsAllowed()) return { embeddings: texts.map(() => zeroVector()), model: "none" };
 
   const client = getClient();
 
@@ -346,7 +346,7 @@ export async function embedSource(sourceId: string): Promise<void> {
 export async function embedSourcesBatch(sourceIds: string[]): Promise<{ embedded: number; skipped: number; failed: number }> {
   // Zero-cost rehearsal: skip embeddings entirely — no OpenAI/Cohere spend and
   // no pointless DB reads. Ranking degrades to keyword-based for the rehearsal.
-  if (isFreeRun()) {
+  if (!embeddingsAllowed()) {
     console.log(`[SemanticEngine] FREE RUN — skipping embeddings for ${sourceIds.length} sources`);
     return { embedded: 0, skipped: sourceIds.length, failed: 0 };
   }

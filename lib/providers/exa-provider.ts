@@ -5,7 +5,7 @@
  */
 
 import { httpPost } from '../http-client';
-import { isFreeRun } from '../free-run';
+import { paidScoutAllowed } from '../free-run';
 
 const EXA_API_KEY = process.env.EXA_API_KEY || "";
 const EXA_ENDPOINT = "https://api.exa.ai/search";
@@ -31,9 +31,9 @@ export async function searchExa(
   limit = 15,
   options?: ExaSearchOptions
 ): Promise<any[]> {
-  if (isFreeRun() || !EXA_API_KEY || exaCreditsExhausted) {
+  if (!paidScoutAllowed() || !EXA_API_KEY || exaCreditsExhausted) {
     if (!EXA_API_KEY) console.log('[SCOUT] Exa: skipped (no EXA_API_KEY)');
-    else if (isFreeRun()) console.log('[SCOUT] Exa: skipped (FREE RUN)');
+    else if (!paidScoutAllowed()) console.log('[SCOUT] Exa: skipped (FREE RUN)');
     return [];
   }
 

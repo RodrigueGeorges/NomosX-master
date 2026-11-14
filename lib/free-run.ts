@@ -14,6 +14,22 @@ export function isFreeRun(): boolean {
   return process.env.NOMOSX_FREE_RUN === '1' || process.env.NOMOSX_FREE_RUN === 'true';
 }
 
+/** Whether metered scout/search providers may run. True in normal mode;
+ *  in free-run only when NOMOSX_FREE_RUN_KEEP_PAID_SCOUT=1 — keeps the
+ *  authority/think-tank sources the corpus-core gate requires while LLM
+ *  spend stays on the free cascade. */
+export function paidScoutAllowed(): boolean {
+  return !isFreeRun() || process.env.NOMOSX_FREE_RUN_KEEP_PAID_SCOUT === '1';
+}
+
+/** Whether embedding calls (OpenAI/Cohere, billed per token — cents per run)
+ *  may run in free-run mode. Off by default: dedup/DPP degrade to lexical
+ *  fallbacks. NOMOSX_FREE_RUN_EMBEDDINGS=1 restores them for real-fidelity
+ *  rehearsal runs. */
+export function embeddingsAllowed(): boolean {
+  return !isFreeRun() || process.env.NOMOSX_FREE_RUN_EMBEDDINGS === '1';
+}
+
 /**
  * Providers that meter paid/quota'd API credits. Everything else in the scout
  * registry is a free public endpoint (OpenAlex, Crossref, feeds, institutional
@@ -28,5 +44,10 @@ export const PAID_SCOUT_PROVIDERS = new Set<string>([
 ]);
 
 export function filterFreeRunProviders<T extends string>(providers: T[]): T[] {
+  // NOMOSX_FREE_RUN_KEEP_PAID_SCOUT=1 keeps metered search providers (Tavily,
+  // Exa, Linkup...) while LLM/embeddings stay free — authority/think-tank
+  // sources are exactly what the paid providers surface, and the corpus-core
+  // gate needs them. Cost stays cents-level vs dollars for LLM calls.
+  if (process.env.NOMOSX_FREE_RUN_KEEP_PAID_SCOUT === '1') return providers;
   return providers.filter(p => !PAID_SCOUT_PROVIDERS.has(p));
 }

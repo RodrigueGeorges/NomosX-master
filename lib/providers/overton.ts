@@ -21,7 +21,7 @@
  */
 
 import { fetchFromProvider } from '../http-client';
-import { isFreeRun } from '../free-run';
+import { paidScoutAllowed } from '../free-run';
 
 export interface OvertonResult {
   id: string;
@@ -50,7 +50,7 @@ export interface OvertonResult {
 export async function searchOverton(query: string, limit = 25): Promise<OvertonResult[]> {
   const apiKey = process.env.OVERTON_API_KEY;
 
-  if (isFreeRun() || !apiKey) {
+  if (!paidScoutAllowed() || !apiKey) {
     console.log('[Overton] No OVERTON_API_KEY set, skipping');
     return [];
   }
@@ -121,7 +121,7 @@ export async function searchOverton(query: string, limit = 25): Promise<OvertonR
 export async function searchOvertonScholarly(query: string, limit = 20): Promise<OvertonResult[]> {
   const apiKey = process.env.OVERTON_API_KEY;
 
-  if (isFreeRun() || !apiKey) {
+  if (!paidScoutAllowed() || !apiKey) {
     return [];
   }
 

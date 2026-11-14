@@ -73,11 +73,42 @@ def _label_for(output: str) -> tuple[str, float]:
     short answer; we read it conservatively — anything ambiguous is
     'unclear', never a confident verdict."""
     o = output.strip().lower()
+    # Binary head of the label space — the model was fine-tuned to emit
+    # exactly "1" (supported) or "0" (unsupported); observed live, every
+    # pair decoded to a bare digit and the keyword map below scored them
+    # all 'unclear'.
+    if o in ("1", "yes", "supported", "true", "entailed"):
+        return "supported", 0.8
+    if o in ("0", "no", "not supported", "false", "contradicted", "refuted"):
+        return "not_supported", 0.8
     if any(k in o for k in ("yes", "supported", "true", "entailed")):
         return "supported", 0.8
     if any(k in o for k in ("no", "not supported", "false", "contradicted", "refuted")):
         return "not_supported", 0.8
     return "unclear", 0.3
+
+
+def _verdict_probs(model: Any, scores: Any, tokenizer: Any, device: str) -> tuple[float, float] | None:
+    """P(supported), P(unsupported) from the last-step logits, restricted to
+    the tokens that decode to '1' or '0' (plus yes/no variants). Returns None
+    when neither token carries meaningful mass — caller falls back to text."""
+    try:
+        import torch
+        # scores[0] holds the logits that produced the FIRST generated token —
+        # the verdict itself (batch=1 → shape (vocab,)).
+        logits = scores[0][0].float()
+        probs = torch.softmax(logits, dim=-1)
+        vocab = tokenizer.get_vocab()
+        def _tok_text(t: str) -> str:
+            return t.replace("▁", " ").strip().lower()
+        p1 = sum(float(probs[i]) for t, i in vocab.items() if _tok_text(t) in ("1", "yes"))
+        p0 = sum(float(probs[i]) for t, i in vocab.items() if _tok_text(t) in ("0", "no"))
+        total = p1 + p0
+        if total < 0.05:
+            return None
+        return p1 / total, p0 / total
+    except Exception:
+        return None
 
 
 def check_pairs(pairs: list[dict[str, str]]) -> list[dict[str, Any]]:
@@ -101,9 +132,18 @@ def check_pairs(pairs: list[dict[str, str]]) -> list[dict[str, Any]]:
         try:
             inputs = tokenizer(prompt, return_tensors="pt", truncation=True, max_length=1024).to(device)
             with torch.no_grad():
-                out = model.generate(**inputs, max_new_tokens=8, do_sample=False)
-            text = tokenizer.decode(out[0], skip_special_tokens=True)
-            label, score = _label_for(text)
+                gen = model.generate(
+                    **inputs, max_new_tokens=8, do_sample=False,
+                    output_scores=True, return_dict_in_generate=True,
+                )
+            text = tokenizer.decode(gen.sequences[0], skip_special_tokens=True)
+            probs = _verdict_probs(model, gen.scores, tokenizer, device)
+            if probs is not None:
+                p1, p0 = probs
+                label = "supported" if p1 >= p0 else "not_supported"
+                score = round(max(p1, p0), 4)
+            else:
+                label, score = _label_for(text)
             results.append({"label": label, "score": score, "raw": text[:80]})
         except Exception as exc:
             logger.warning("minicheck pair failed: %s", exc)

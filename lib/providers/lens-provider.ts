@@ -9,14 +9,14 @@
  */
 
 import { httpPost } from '../http-client';
-import { isFreeRun } from '../free-run';
+import { paidScoutAllowed } from '../free-run';
 
 const LENS_API_TOKEN = process.env.LENS_API_TOKEN || "";
 const LENS_ENDPOINT = "https://api.lens.org/scholarly/search";
 
 export async function searchLens(query: string, limit = 20): Promise<any[]> {
-  if (isFreeRun() || !LENS_API_TOKEN) {
-    console.log(`[SCOUT] Lens: skipped (${isFreeRun() ? 'FREE RUN' : 'no LENS_API_TOKEN'})`);
+  if (!paidScoutAllowed() || !LENS_API_TOKEN) {
+    console.log(`[SCOUT] Lens: skipped (${!paidScoutAllowed() ? 'FREE RUN' : 'no LENS_API_TOKEN'})`);
     return [];
   }
 

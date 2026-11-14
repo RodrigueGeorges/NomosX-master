@@ -8,7 +8,7 @@
  */
 
 import { httpPost } from '../http-client';
-import { isFreeRun } from '../free-run';
+import { paidScoutAllowed } from '../free-run';
 
 const TAVILY_API_KEY = process.env.TAVILY_API_KEY || "";
 const TAVILY_ENDPOINT = "https://api.tavily.com/search";
@@ -31,8 +31,8 @@ export async function searchTavily(
   limit = 15,
   options?: TavilySearchOptions
 ): Promise<any[]> {
-  if (isFreeRun() || !TAVILY_API_KEY) {
-    console.log(`[SCOUT] Tavily: skipped (${isFreeRun() ? 'FREE RUN' : 'no TAVILY_API_KEY'})`);
+  if (!paidScoutAllowed() || !TAVILY_API_KEY) {
+    console.log(`[SCOUT] Tavily: skipped (${!paidScoutAllowed() ? 'FREE RUN' : 'no TAVILY_API_KEY'})`);
     return [];
   }
 

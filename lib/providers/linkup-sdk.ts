@@ -4,7 +4,7 @@
  */
 
 import { LinkupClient } from 'linkup-sdk';
-import { isFreeRun } from '../free-run';
+import { paidScoutAllowed } from '../free-run';
 
 const LINKUP_API_KEY = process.env.LINKUP_API_KEY || "";
 
@@ -14,8 +14,8 @@ let linkupFundsExhausted = false;
 
 // ===== SCOUT-COMPATIBLE SEARCH FUNCTION =====
 export async function searchLinkUp(query: string, limit = 15): Promise<any[]> {
-  if (isFreeRun() || !LINKUP_API_KEY || linkupFundsExhausted) {
-    if (!linkupFundsExhausted) console.log(`[SCOUT] LinkUp: skipped (${isFreeRun() ? 'FREE RUN' : 'no LINKUP_API_KEY'})`);
+  if (!paidScoutAllowed() || !LINKUP_API_KEY || linkupFundsExhausted) {
+    if (!linkupFundsExhausted) console.log(`[SCOUT] LinkUp: skipped (${!paidScoutAllowed() ? 'FREE RUN' : 'no LINKUP_API_KEY'})`);
     return [];
   }
 
