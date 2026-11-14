@@ -11,6 +11,7 @@
 
 import { runPeerReview } from '../peer-reviewer';
 import { augmentThinkTankHtml } from '../think-tank-pack';
+import { recordDegradedStep } from '../degraded-steps';
 
 export function injectAdversarialSection(html: string, daStats: any, label: string): string {
   // Render the adversarial review as an editorial section — a publication
@@ -69,6 +70,7 @@ export async function applyEvidenceIdsAndProseCleanup(
     console.log(`${label} EVIDENCE IDS: ${citStats.citedEvidence}/${citStats.totalEvidence} cited, ${citStats.uncitedEvidence} uncited`);
   } catch (err) {
     console.warn(`${label} EVIDENCE IDS: failed (non-blocking):`, err);
+    recordDegradedStep(stats, 'EVIDENCE_IDS', err);
   }
 
   // DETERMINISTIC PROSE CLEANUP — fix LLM stutter, broken abbreviations, double spaces
@@ -110,6 +112,7 @@ export async function applyEvidenceIdsAndProseCleanup(
     }
   } catch (err) {
     console.warn(`${label} PROSE CLEANUP: failed (non-blocking):`, err);
+    recordDegradedStep(stats, 'PROSE_CLEANUP', err);
   }
 
   return html;
@@ -159,6 +162,7 @@ export async function runPeerReviewAndPack(deps: PeerReviewPackDeps): Promise<st
         console.log(`${label} PEER REVIEW: score=${review.overallScore}, rec=${review.recommendation}, critical=${(stats as any).peerReview.critical}, major=${(stats as any).peerReview.major}`);
       } catch (err) {
         console.warn(`${label} PEER REVIEW: failed (non-blocking):`, err);
+        recordDegradedStep(stats, 'PEER_REVIEW', err);
       }
     })(),
     (async () => {
@@ -178,6 +182,7 @@ export async function runPeerReviewAndPack(deps: PeerReviewPackDeps): Promise<st
         console.log(`${label} THINK TANK PACK: applied (cost=$${pack.costUsd.toFixed(4)})`);
       } catch (err) {
         console.warn(`${label} THINK TANK PACK: failed (non-blocking):`, err);
+        recordDegradedStep(stats, 'THINK_TANK_PACK', err);
       }
     })(),
   ]);

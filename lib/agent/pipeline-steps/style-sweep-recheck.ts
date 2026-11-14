@@ -10,6 +10,7 @@
 
 import type { TailStepContext } from './types';
 import type { AgentSignal } from '../signals';
+import { recordDegradedStep } from '../degraded-steps';
 
 export async function runStyleSweepRecheck(ctx: TailStepContext): Promise<void> {
   const { stats, topSources, query, label } = ctx;
@@ -68,6 +69,7 @@ export async function runStyleSweepRecheck(ctx: TailStepContext): Promise<void> 
         }
       } catch (ceErr) {
         console.warn(`${label} COPY EDITOR: failed (non-blocking):`, ceErr);
+        recordDegradedStep(stats, 'COPY_EDITOR', ceErr);
       }
     }
     if (numResult.violations.length > 0) {
@@ -79,6 +81,7 @@ export async function runStyleSweepRecheck(ctx: TailStepContext): Promise<void> 
     }
   } catch (err) {
     console.warn(`${label} STYLE GATES: failed (non-blocking):`, err);
+    recordDegradedStep(stats, 'STYLE_GATES', err);
   }
 
   // ── SIGNAL SWEEP (post-render): the collective deliberation checkpoint. ──
@@ -135,6 +138,7 @@ export async function runStyleSweepRecheck(ctx: TailStepContext): Promise<void> 
     }
   } catch (sweepErr) {
     console.warn(`${label} SIGNAL SWEEP: failed (non-blocking):`, sweepErr);
+    recordDegradedStep(stats, 'SIGNAL_SWEEP', sweepErr);
   }
 
   // ── DA RE-CHECK (post-sweep): if the devil's advocate failed the analysis
@@ -205,5 +209,6 @@ export async function runStyleSweepRecheck(ctx: TailStepContext): Promise<void> 
     }
   } catch (recheckErr) {
     console.warn(`${label} DA RE-CHECK failed (non-blocking):`, recheckErr);
+    recordDegradedStep(stats, 'DA_RECHECK', recheckErr);
   }
 }

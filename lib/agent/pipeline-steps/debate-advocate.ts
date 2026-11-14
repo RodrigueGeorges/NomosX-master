@@ -12,6 +12,7 @@
 import type { DebateResult } from '../debate-agent';
 import { emitProgress } from '../pipeline-progress';
 import { recordExperience } from '../knowledge-infrastructure';
+import { recordDegradedStep } from '../degraded-steps';
 
 export interface DebateAdvocateDeps {
   query: string;
@@ -84,6 +85,7 @@ export async function runDebateMetaBlock(
 
   if (debateSettled.status !== "fulfilled") {
     console.warn(`${label} DEBATE: failed (non-blocking):`, debateSettled.reason);
+    recordDegradedStep(stats, 'DEBATE', debateSettled.reason);
     return {};
   }
 
@@ -129,6 +131,7 @@ export async function runDebateMetaBlock(
       }
     } catch (retryErr) {
       console.warn(`${label} DEBATE: retry failed (non-blocking):`, retryErr);
+      recordDegradedStep(stats, 'DEBATE_RETRY', retryErr);
     }
   }
   // R2-MAD debate memory: bank the outcome so future debates on related
@@ -224,6 +227,7 @@ export async function runDevilsAdvocateBlock(
     }
   } catch (err) {
     console.warn(`${label} DEVIL'S ADVOCATE: failed (non-blocking):`, err);
+    recordDegradedStep(stats, 'DEVILS_ADVOCATE', err);
     stats.devilsAdvocate = { error: String(err) };
   }
 }

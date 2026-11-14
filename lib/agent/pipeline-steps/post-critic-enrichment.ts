@@ -5,6 +5,8 @@
  * → run concurrently (three LLM calls off the critical path).
  */
 
+import { recordDegradedStep } from '../degraded-steps';
+
 export interface PostCriticEnrichmentDeps {
   analysis: any;
   topSources: any[];
@@ -46,6 +48,7 @@ export async function runPostCriticEnrichment(deps: PostCriticEnrichmentDeps): P
         }
       } catch (err) {
         console.warn(`${label} REFLECTION: failed (non-blocking):`, err instanceof Error ? err.message : String(err));
+        recordDegradedStep(stats, 'REFLECTION', err);
       }
     })(),
 
@@ -84,6 +87,7 @@ export async function runPostCriticEnrichment(deps: PostCriticEnrichmentDeps): P
         }
       } catch (err) {
         console.warn(`${label} CROSS-MODEL CONSENSUS: failed (non-blocking):`, err instanceof Error ? err.message : String(err));
+        recordDegradedStep(stats, 'CROSS_MODEL_CONSENSUS', err);
       }
     })(),
 
@@ -109,6 +113,7 @@ export async function runPostCriticEnrichment(deps: PostCriticEnrichmentDeps): P
         }
       } catch (err) {
         console.warn(`${label} KNOWLEDGE GRAPH: failed (non-blocking):`, err instanceof Error ? err.message : String(err));
+        recordDegradedStep(stats, 'POST_CRITIC_KG', err);
       }
     })(),
   ]);

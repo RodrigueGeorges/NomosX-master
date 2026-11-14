@@ -12,6 +12,7 @@ import { classifyTopic } from '../topic-classifier';
 import { getRelevantGaps } from '../gap-filler';
 import { RESEARCHER_KBS } from '../researcher-kb/index';
 import type { CastingResult } from '../editorial-types';
+import { recordDegradedStep } from '../degraded-steps';
 
 export interface FoundationalSource {
   id: string; title: string; abstract: string; authors: Array<{ name: string }>;
@@ -96,6 +97,7 @@ export async function runClassificationGates(deps: ClassificationGatesDeps): Pro
     }
   } catch (err) {
     console.warn(`${label} FOUNDATIONAL INJECTION: failed (non-blocking):`, err);
+    recordDegradedStep(stats, 'FOUNDATIONAL_INJECTION', err);
   }
 
   // ── INJECT FOUNDATIONAL SOURCES (post-rank, post-classification) ──
@@ -168,6 +170,7 @@ export async function runClassificationGates(deps: ClassificationGatesDeps): Pro
     }
   } catch (err) {
     console.warn(`${label} GAP FILLER: retrieval failed (non-blocking):`, err);
+    recordDegradedStep(stats, 'GAP_FILLER_RETRIEVAL', err);
   }
 
   // STEP 4d: GAP FILLER SCOUT — run supplementary searches for prior knowledge gaps
@@ -181,6 +184,7 @@ export async function runClassificationGates(deps: ClassificationGatesDeps): Pro
       }
     } catch (err) {
       console.warn(`${label} GAP FILLER SCOUT: failed (non-blocking):`, err);
+      recordDegradedStep(stats, 'GAP_FILLER_SCOUT', err);
     }
   }
 
@@ -198,6 +202,7 @@ export async function runClassificationGates(deps: ClassificationGatesDeps): Pro
       console.log(`${label} CASTING: ${castingResult.team.length} lenses — ${castingResult.collisionSummary}`);
     } catch (err) {
       console.warn(`${label} CASTING: failed (non-blocking):`, err);
+      recordDegradedStep(stats, 'CASTING', err);
       stats.casting = { skipped: true, reason: err instanceof Error ? err.message : String(err) };
       // Fallback: ensure castingResult is set so arbiter + foresight can still run
       const { dimensionsFromClassification } = await import('../editorial-types');

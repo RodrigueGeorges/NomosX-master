@@ -16,6 +16,7 @@ import { durableResume } from '../durable-execution';
 import { withExecutionScope } from '../../worker/execution-scope';
 import { hasRunHeadroom, remainingRunMs } from './time-budget';
 import type { PipelineStep } from '../pipeline-progress';
+import { recordDegradedStep } from '../degraded-steps';
 
 async function generateQueryReformulations(query: string): Promise<string[]> {
   try {
@@ -345,6 +346,7 @@ export async function runScoutBlock(deps: ScoutBlockDeps): Promise<ScoutBlockRes
           }
         } catch (err) {
           console.warn(`${label} DEEP PLANNER REPLAN: failed (non-blocking):`, err);
+          recordDegradedStep(stats, 'DEEP_PLANNER_REPLAN', err);
         }
       }
 
@@ -362,6 +364,7 @@ export async function runScoutBlock(deps: ScoutBlockDeps): Promise<ScoutBlockRes
     }
   } catch (err) {
     console.warn(`${label} DEEP PLANNER: failed (non-blocking), falling back to flat scout:`, err);
+    recordDegradedStep(stats, 'DEEP_PLANNER', err);
   }
 
   // If DeepPlanner didn't produce results, run the original flat scout
@@ -507,6 +510,7 @@ export async function runScoutBlock(deps: ScoutBlockDeps): Promise<ScoutBlockRes
       }
     } catch (err) {
       console.warn(`${label} RE_SCOUT: failed (non-blocking):`, err);
+      recordDegradedStep(stats, 'RE_SCOUT', err);
     }
   }
 
@@ -544,6 +548,7 @@ export async function runScoutBlock(deps: ScoutBlockDeps): Promise<ScoutBlockRes
       stats.evidenceMission = { queries: missionQueries.length, sourcesAdded: added };
     } catch (err) {
       console.warn(`${label} EVIDENCE MISSION failed (non-blocking):`, err);
+      recordDegradedStep(stats, 'EVIDENCE_MISSION', err);
     }
   }
 

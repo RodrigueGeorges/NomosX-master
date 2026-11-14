@@ -20,6 +20,7 @@ import { searchDataCite } from '../../providers/datacite-provider';
 import { embedSourcesBatch } from '../semantic-engine';
 import { deduplicateSources } from '../index-agent';
 import type { Providers } from './provider-lists';
+import { recordDegradedStep } from '../degraded-steps';
 
 export interface ScoutEnrichmentIndexDeps {
   allSourceIds: string[];
@@ -68,6 +69,7 @@ export async function runScoutEnrichmentAndIndex(deps: ScoutEnrichmentIndexDeps)
         console.log(`${label} WEB FALLBACK: ${labels[i]} returned ${ids.length} sources`);
       } else if (r.status === 'rejected') {
         console.warn(`${label} WEB FALLBACK: ${labels[i]} failed (non-blocking):`, r.reason);
+        recordDegradedStep(stats, `WEB_FALLBACK_${String(labels[i] ?? i).toUpperCase().replace(/[^A-Z0-9]+/g, '_')}`, r.reason);
       }
     });
   }
@@ -160,6 +162,7 @@ export async function runScoutEnrichmentAndIndex(deps: ScoutEnrichmentIndexDeps)
     };
   } catch (err) {
     console.warn(`${label} INTELLIGENT SCOUT: failed (non-blocking, continuing with existing sources):`, err instanceof Error ? err.message : String(err));
+    recordDegradedStep(stats, 'INTELLIGENT_SCOUT', err);
   }
 
   // ── CITATION GRAPH TRAVERSAL: Find hub + bridge papers ──
@@ -207,6 +210,7 @@ export async function runScoutEnrichmentAndIndex(deps: ScoutEnrichmentIndexDeps)
     }
   } catch (err) {
     console.warn(`${label} CITATION GRAPH: failed (non-blocking):`, err instanceof Error ? err.message : String(err));
+    recordDegradedStep(stats, 'CITATION_GRAPH', err);
   }
 
   // DURABLE CHECKPOINT: allSourceIds is final (scout + re-scout + intelligent
@@ -231,6 +235,7 @@ export async function runScoutEnrichmentAndIndex(deps: ScoutEnrichmentIndexDeps)
     console.log(`${label} EMBED: ${embedResult.embedded} new, ${embedResult.skipped} cached`);
   } catch (err) {
     console.warn(`${label} EMBED: failed (non-blocking):`, err);
+    recordDegradedStep(stats, 'EMBED', err);
     stats.embed = { error: String(err) } as any;
   }
 
