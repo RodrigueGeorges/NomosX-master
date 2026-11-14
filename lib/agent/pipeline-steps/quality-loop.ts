@@ -8,6 +8,7 @@
  * Cost: $0 (deterministic, CPU-only). Only 1 retry to avoid infinite loops.
  */
 
+import { recordDegradedStep } from '../degraded-steps';
 import type { TailStepContext } from './types';
 import { rescoreTrustFromStats, countDistinctCitedSources } from './trust-score';
 
@@ -59,6 +60,7 @@ export async function runPostRenderQualityLoop(ctx: TailStepContext): Promise<vo
           const { replaceSrcWithEvidenceIds } = await import('../evidence-registry');
           ctx.html = replaceSrcWithEvidenceIds(ctx.html, ctx.evidenceRegistry);
         } catch (eErr) {
+          recordDegradedStep(stats, 'QUALITY_LOOP_EVIDENCE_IDS', eErr);
           console.warn(`${label_} QUALITY LOOP: evidence ID re-application failed (non-blocking):`, eErr);
         }
       }
@@ -131,6 +133,7 @@ export async function runPostRenderQualityLoop(ctx: TailStepContext): Promise<vo
       stats.qualityLoop = { attempted: false, reason: `trust ${currentTrust} ≥ ${PUBLISH_THRESHOLD}` };
     }
   } catch (loopErr) {
+    recordDegradedStep(stats, 'QUALITY_LOOP', loopErr);
     console.warn(`${label_} QUALITY LOOP: failed (non-blocking):`, loopErr);
     stats.qualityLoop = { attempted: true, error: String(loopErr) };
   }

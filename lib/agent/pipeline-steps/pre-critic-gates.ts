@@ -5,6 +5,7 @@
  * returned for downstream citation counts.
  */
 
+import { recordDegradedStep } from '../degraded-steps';
 export interface PreCriticGatesDeps {
   analysis: any;
   topSources: any[];
@@ -68,6 +69,7 @@ export async function runPreCriticGates(deps: PreCriticGatesDeps): Promise<PreCr
         console.warn(`${label} STRUCTURAL EDITOR: critical structure score (${structuralResult.overallStructure}/100) — feedback injected for rendering`);
       }
     } catch (err) {
+      recordDegradedStep(stats, 'STRUCTURAL_EDITOR', err);
       console.warn(`${label} STRUCTURAL EDITOR: failed (non-blocking):`, err);
       stats.structuralEditor = { error: String(err) };
     }
@@ -132,6 +134,7 @@ export async function runPreCriticGates(deps: PreCriticGatesDeps): Promise<PreCr
       console.log(`${label} CLAIM BINDING: ${boundCount} links verified against cited sources (all bound)`);
     }
   } catch (bindErr) {
+    recordDegradedStep(stats, 'CLAIM_BINDING', bindErr);
     console.warn(`${label} CLAIM BINDING: check failed (non-blocking):`, bindErr);
   }
 

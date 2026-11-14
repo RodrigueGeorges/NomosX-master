@@ -11,6 +11,7 @@
  * the standard, never relaxes it.
  */
 
+import { recordDegradedStep } from '../degraded-steps';
 export interface DaPostRepairDeps {
   label: string;
   query: string;
@@ -81,6 +82,7 @@ export async function runDaPostRepairRecheck(deps: DaPostRepairDeps): Promise<vo
     }, 'html');
     console.log(`${label} DA POST-REPAIR RECHECK: strength ${recheck.overallStrength}/100, fatal ${recheckFatal} — verdict refreshed on the corrected artifact (veto ${stillVetoWorthy ? 'STANDS' : 'not warranted'} — ${vetoCheck.reason})`);
   } catch (daErr) {
+    recordDegradedStep(stats, 'DA_POST_REPAIR_RECHECK', daErr);
     console.warn(`${label} DA POST-REPAIR RECHECK failed (non-blocking):`, daErr);
   }
 }

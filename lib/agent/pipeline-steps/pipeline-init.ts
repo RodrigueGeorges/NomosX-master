@@ -11,6 +11,7 @@
  * orchestrator body read/write the SAME fields.
  */
 import { prisma } from '../../db';
+import { recordDegradedStep } from '../degraded-steps';
 import { recordExecutionCost } from '../../worker/execution-scope';
 import { isEditorialV2Enabled, getPipelineMaxBudgetUsd } from '../editorial-config';
 import { PipelineContext } from '../pipeline-context';
@@ -224,6 +225,7 @@ export async function runPipelineInit(query: string, opts: PipelineCoreOptions) 
           console.log(`${label} WITNESS: prepared past learnings for injection (${witnessLearningInjection.length} chars)`);
         }
       } catch (err) {
+        recordDegradedStep(stats, 'INIT_WITNESS', err);
         console.warn(`${label} WITNESS: failed to inject learnings:`, err);
       }
     })() : Promise.resolve(),
@@ -242,6 +244,7 @@ export async function runPipelineInit(query: string, opts: PipelineCoreOptions) 
           console.log(`${label} WORLD_MODEL: no prior knowledge found for this query`);
         }
       } catch (err) {
+        recordDegradedStep(stats, 'INIT_WORLD_MODEL', err);
         console.warn(`${label} WORLD_MODEL: failed to query:`, err);
       }
     })() : Promise.resolve(),
@@ -257,6 +260,7 @@ export async function runPipelineInit(query: string, opts: PipelineCoreOptions) 
           console.log(`${label} PRM: no trained model yet — will collect data for future training`);
         }
       } catch (err) {
+        recordDegradedStep(stats, 'INIT_PRM', err);
         console.warn(`${label} PRM: failed to load model:`, err);
       }
     })() : Promise.resolve(),
@@ -270,6 +274,7 @@ export async function runPipelineInit(query: string, opts: PipelineCoreOptions) 
           console.log(`${label} SELF_PLAY: injected ${selfPlayInjection.length} chars of adversarial lessons`);
         }
       } catch (err) {
+        recordDegradedStep(stats, 'INIT_SELF_PLAY', err);
         console.warn(`${label} SELF_PLAY: failed to load lessons:`, err);
       }
     })() : Promise.resolve(),
@@ -281,6 +286,7 @@ export async function runPipelineInit(query: string, opts: PipelineCoreOptions) 
         await captureInput('init:moa', () => loadAgentWeights());
         console.log(`${label} MOA: agent weights loaded`);
       } catch (err) {
+        recordDegradedStep(stats, 'INIT_MOA', err);
         console.warn(`${label} MOA: failed to load weights:`, err);
       }
     })() : Promise.resolve(),
@@ -297,6 +303,7 @@ export async function runPipelineInit(query: string, opts: PipelineCoreOptions) 
       console.log(`${label} WORLD_EVOLVER: injected ${worldEvolverInjection.length} chars of foresight`);
     }
   } catch (err) {
+    recordDegradedStep(stats, 'INIT_WORLD_EVOLVER', err);
     console.warn(`${label} WORLD_EVOLVER: failed to build injection:`, err);
   }
 
@@ -513,6 +520,7 @@ export async function runPipelineInit(query: string, opts: PipelineCoreOptions) 
       await initDurableRun(durableKey, query);
       console.log(`${label} DURABLE EXECUTION: initialized (${durableKey})`);
     } catch (err) {
+      recordDegradedStep(stats, 'INIT_DURABLE', err);
       console.warn(`${label} DURABLE EXECUTION: init failed — continuing WITHOUT checkpointing:`, err);
       durableKey = null;
     }

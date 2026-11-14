@@ -10,6 +10,7 @@
 // analysis (~$0.05 total across critic + panel + structural). The gate then
 // sees verdicts on the artifact actually being rendered, not a replaced draft.
 
+import { recordDegradedStep } from '../degraded-steps';
 export interface EvalRescoreDeps {
   stats: Record<string, any>;
   analysis: any;
@@ -163,6 +164,7 @@ export async function rescoreStaleAnalysisEvals(deps: EvalRescoreDeps): Promise<
         }
       }
     } catch (evalErr) {
+      recordDegradedStep(stats, `EVAL_RESCORE_${String(key).toUpperCase()}`, evalErr);
       console.warn(`${label} EVAL RE-SCORE ${key} failed (non-blocking):`, evalErr);
     }
   }

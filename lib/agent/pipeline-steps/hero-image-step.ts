@@ -3,6 +3,7 @@
  * Extracted from pipeline-v2.ts — identical semantics, unit-testable boundary.
  */
 
+import { recordDegradedStep } from '../degraded-steps';
 import type { TailStepContext } from './types';
 
 /**
@@ -62,6 +63,7 @@ export async function runHeroImageStep(ctx: TailStepContext): Promise<void> {
       stats.heroImage = { generated: false, costUsd: 0 };
     }
   } catch (heroErr) {
+    recordDegradedStep(stats, 'HERO_IMAGE', heroErr);
     console.warn(`${label} HERO IMAGE: failed (non-blocking):`, heroErr);
   }
 }

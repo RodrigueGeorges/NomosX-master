@@ -6,6 +6,7 @@
  * API surface) and is injected via `renderBriefFallback` — no circular import.
  */
 
+import { recordDegradedStep } from '../degraded-steps';
 import { prisma } from '../../db';
 import { backfillMissingAnalyticalFields } from '../strategic-analyst-agent';
 import { renderProfessionalBriefHTML, renderProfessionalStrategicHTML } from '../editor-agent';
@@ -219,6 +220,7 @@ export async function runRenderEditorStep(rc: RenderEditorContext): Promise<stri
     console.log(`${label} EDITOR: ${isStrategic ? 'strategic' : 'brief'} template rendered (${(rendered.length / 1024).toFixed(0)}KB)`);
     return rendered;
   } catch (editorErr) {
+    recordDegradedStep(stats, 'EDITOR_TEMPLATE', editorErr);
     console.warn(`${label} EDITOR: professional template failed, using legacy:`, editorErr);
     stats.rendererUsed = isStrategic ? "legacy_strategic" : "legacy_brief";
     // Fetch contradictions from DB to surface in the report (non-blocking)

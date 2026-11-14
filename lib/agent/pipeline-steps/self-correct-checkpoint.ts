@@ -3,6 +3,7 @@
  * Extracted from pipeline-v2.ts — identical semantics, unit-testable boundary.
  */
 
+import { recordDegradedStep } from '../degraded-steps';
 import { citationCoverageVerifier } from '../self-correct';
 import type { TailStepContext } from './types';
 
@@ -42,6 +43,7 @@ export async function runFinalSelfCorrectCheckpoint(ctx: TailStepContext): Promi
     }
     console.log(`${label} SELF-CORRECT SUMMARY: ${scStats.stagesChecked} stages, ${scStats.totalRetries} retries, ${scStats.cascadesDetected} cascades, avg drift=${scStats.avgDrift.toFixed(3)}, ${scStats.cleanStages}/${scStats.stagesChecked} clean`);
   } catch (scErr) {
+    recordDegradedStep(stats, 'SELF_CORRECT_CHECKPOINT', scErr);
     console.warn(`${label} SELF-CORRECT: QUALITY LOOP checkpoint failed (non-blocking):`, scErr);
   }
 }

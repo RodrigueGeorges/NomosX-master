@@ -11,6 +11,7 @@
  * output is read by the render step.
  */
 
+import { recordDegradedStep } from '../degraded-steps';
 import { editorialArbiter } from '../editorial-arbiter';
 import { resolveCentralScenario, type CastingResult, type InstitutePosition } from '../editorial-types';
 import { deriveChainScenarios } from '../chain-scenarios';
@@ -164,10 +165,12 @@ export async function runArbiterForesight(deps: ArbiterForesightDeps): Promise<A
             }
           } catch (electErr) {
             stats.swarmElection = { error: electErr instanceof Error ? electErr.message : String(electErr) };
+            recordDegradedStep(stats, 'SWARM_ELECTION', electErr);
           }
         }
       } catch (swarmErr) {
         stats.swarmForecasts = { error: swarmErr instanceof Error ? swarmErr.message : String(swarmErr) };
+        recordDegradedStep(stats, 'SWARM_FORECAST', swarmErr);
         console.warn(`${label} SWARM failed (non-blocking):`, swarmErr);
       }
     }
