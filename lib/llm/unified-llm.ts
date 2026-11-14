@@ -1864,6 +1864,13 @@ async function callLLMProvider(request: LLMRequest): Promise<LLMResponse> {
     if (!getClientForProvider('freepool')) {
       throw new Error('NOMOSX_FREE_RUN is set but no free-tier LLM key is configured (GROQ_API_KEY/CEREBRAS_API_KEY/NVIDIA_API_KEY/OPENROUTER_API_KEY/MISTRAL_API_KEY)');
     }
+    // NOMOSX_FREE_RUN_GLM=1 keeps the cheap GLM workhorse (glm-4.5-air) in
+    // front of the free cascade — near-zero cost, much better instruction-
+    // following/JSON discipline than the free models. Freepool stays the
+    // fail-safe behind it.
+    if (process.env.NOMOSX_FREE_RUN_GLM === '1' && getClientForProvider('glm') && !await isCircuitOpen('glm')) {
+      orderedProviders.push('glm');
+    }
     orderedProviders.push('freepool');
   } else {
     // Skip a primary with no configured client (e.g. MOONSHOT_API_KEY missing
