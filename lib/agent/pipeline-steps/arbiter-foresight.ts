@@ -111,6 +111,7 @@ export async function runArbiterForesight(deps: ArbiterForesightDeps): Promise<A
           costUsd: swarm.costUsd,
           skipped: swarm.skipped,
           ungroundedVotes: swarm.ungroundedVotes,
+          evidenceIndependence: swarm.evidenceIndependence,
         };
         const { assessSwarmHealth } = await import('../swarm-forecaster');
         const swarmHealth = assessSwarmHealth(swarm.forecasts, chainDerivation.uncertainties.map(u => u.linkId));

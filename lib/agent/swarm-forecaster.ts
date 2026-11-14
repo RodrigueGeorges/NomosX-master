@@ -29,6 +29,10 @@ export interface SwarmSourceCard {
   title: string;
   excerpt: string;
   qualityScore: number;
+  /** Registrable domain of the source URL — evidence-independence checks. */
+  domain?: string;
+  /** Originating provider — secondary independence signal. */
+  provider?: string;
   /** 0-1 lexical relevance of the excerpt to the uncertain links; set when
    *  the card is built from reader passages rather than the abstract. */
   relevance?: number;
@@ -42,7 +46,7 @@ export interface SwarmSourceCard {
  * reading fall back to their abstract. Deterministic, no LLM.
  */
 export function buildLinkCards(
-  sources: Array<{ id: string; title?: string | null; abstract?: string | null; qualityScore?: number | null }>,
+  sources: Array<{ id: string; title?: string | null; abstract?: string | null; qualityScore?: number | null; url?: string | null; provider?: string | null }>,
   readings: Array<{ sourceId: string; claims?: string[]; results?: string[]; limitations?: string[] }> | undefined,
   links: Array<{ claim: string }>,
   maxCards = 40,
@@ -68,6 +72,8 @@ export function buildLinkCards(
       title: String(s.title ?? 'Untitled'),
       excerpt,
       qualityScore: s.qualityScore ?? 50,
+      domain: cardDomain(s.url),
+      provider: s.provider ?? undefined,
       relevance: picked.length ? ranked[0].sc : score(excerpt),
     };
   }).filter(c => c.excerpt.length >= 30);
@@ -106,6 +112,71 @@ export interface SwarmResult {
   skipped?: string;
   /** Ballots dropped because they cited no evidence card shown to the voter. */
   ungroundedVotes?: number;
+  /** Open-Superforecaster rule: evidence independence assessment over the
+   *  card deck. When `independent:false`, no forecasts are produced — a
+   *  dominant-domain or weak-source deck cannot promote a probability. */
+  evidenceIndependence?: EvidenceIndependence;
+}
+
+export interface EvidenceIndependence {
+  independent: boolean;
+  /** Distinct registrable domains among cards with a resolvable URL. */
+  uniqueDomains: number;
+  /** Share of domain-known cards carried by the single largest domain. */
+  topDomainShare: number;
+  /** Share of all cards whose domain could be resolved at all. */
+  knownDomainShare: number;
+  meanQuality: number;
+  reason?: string;
+}
+
+/** Extract a comparable domain key from a URL (host minus www). */
+function cardDomain(url?: string | null): string | undefined {
+  if (!url) return undefined;
+  const m = String(url).match(/^https?:\/\/(?:www\.)?([^/?#]+)/i);
+  return m ? m[1].toLowerCase() : undefined;
+}
+
+export const EVIDENCE_MIN_UNIQUE_DOMAINS = 3;
+export const EVIDENCE_MAX_TOP_DOMAIN_SHARE = 0.5;
+export const EVIDENCE_MIN_MEAN_QUALITY = 45;
+export const EVIDENCE_MIN_KNOWN_DOMAIN_CARDS = 4;
+
+/**
+ * Open Superforecaster promotion rule: a probability may be promoted only
+ * when the evidence base is independent — no single domain dominates the
+ * deck and source quality is not weak. Evaluated BEFORE voting so a
+ * degenerate deck never spends ballots (and can never elect).
+ */
+export function assessEvidenceIndependence(cards: SwarmSourceCard[]): EvidenceIndependence {
+  const known = cards.filter(c => c.domain);
+  const domainCounts = new Map<string, number>();
+  for (const c of known) domainCounts.set(c.domain!, (domainCounts.get(c.domain!) ?? 0) + 1);
+  const topShare = known.length ? Math.max(...domainCounts.values()) / known.length : 0;
+  const meanQuality = cards.length
+    ? cards.reduce((a, c) => a + (c.qualityScore || 0), 0) / cards.length
+    : 0;
+
+  const base = {
+    uniqueDomains: domainCounts.size,
+    topDomainShare: Number(topShare.toFixed(3)),
+    knownDomainShare: Number((known.length / Math.max(1, cards.length)).toFixed(3)),
+    meanQuality: Number(meanQuality.toFixed(1)),
+  };
+
+  if (known.length < EVIDENCE_MIN_KNOWN_DOMAIN_CARDS) {
+    return { ...base, independent: false, reason: `only ${known.length} cards with resolvable domain` };
+  }
+  if (domainCounts.size < EVIDENCE_MIN_UNIQUE_DOMAINS) {
+    return { ...base, independent: false, reason: `evidence concentrated in ${domainCounts.size} domain(s)` };
+  }
+  if (topShare > EVIDENCE_MAX_TOP_DOMAIN_SHARE) {
+    return { ...base, independent: false, reason: `top domain carries ${Math.round(topShare * 100)}% of evidence` };
+  }
+  if (meanQuality < EVIDENCE_MIN_MEAN_QUALITY) {
+    return { ...base, independent: false, reason: `mean source quality ${meanQuality.toFixed(0)} < ${EVIDENCE_MIN_MEAN_QUALITY}` };
+  }
+  return { ...base, independent: true };
 }
 
 export interface SwarmHealth {
@@ -173,7 +244,7 @@ async function loadCards(sourceIds: string[]): Promise<SwarmSourceCard[]> {
     const { prisma } = await import('../db');
     const rows = await prisma.source.findMany({
       where: { id: { in: sourceIds } },
-      select: { id: true, title: true, abstract: true, qualityScore: true },
+      select: { id: true, title: true, abstract: true, qualityScore: true, url: true, provider: true },
       orderBy: { qualityScore: 'desc' },
       take: 40,
     });
@@ -182,6 +253,8 @@ async function loadCards(sourceIds: string[]): Promise<SwarmSourceCard[]> {
       title: s.title,
       excerpt: (s.abstract ?? s.title ?? '').slice(0, 400),
       qualityScore: s.qualityScore ?? 50,
+      domain: cardDomain(s.url),
+      provider: s.provider ?? undefined,
     }));
   } catch {
     return [];
@@ -206,6 +279,16 @@ export async function runSwarmVote(input: {
   const cards = input.cards && input.cards.length >= 4 ? input.cards : await loadCards(input.sourceIds);
   if (cards.length < 4) {
     return { forecasts: [], rawVotes: 0, validVotes: 0, familiesUsed: [], costUsd: 0, skipped: 'insufficient_evidence_cards' };
+  }
+  // Open Superforecaster rule: a dominant-domain or weak-source deck cannot
+  // promote probabilities — skip BEFORE spending ballots.
+  const independence = assessEvidenceIndependence(cards);
+  if (!independence.independent) {
+    return {
+      forecasts: [], rawVotes: 0, validVotes: 0, familiesUsed: [], costUsd: 0,
+      skipped: `evidence_independence:${independence.reason}`,
+      evidenceIndependence: independence,
+    };
   }
   const { shared, slices } = partition(cards, voterCount);
   const sharedBlock = formatCards(shared, 'SHARED');
@@ -348,5 +431,6 @@ Return ONLY JSON: {"votes":[{"linkId":<number>,"probability":<0-1>,"confidence":
     familiesUsed,
     costUsd,
     ungroundedVotes,
+    evidenceIndependence: independence,
   };
 }

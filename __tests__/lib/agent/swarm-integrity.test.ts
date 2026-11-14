@@ -160,3 +160,55 @@ describe('buildLinkCards', () => {
     expect(cards.find(c => c.id === 'src-aaaaaa')!.excerpt).toContain('broad review');
   });
 });
+
+import { assessEvidenceIndependence, type SwarmSourceCard } from '@/lib/agent/swarm-forecaster';
+
+const mkCard = (domain: string | undefined, qualityScore = 70): SwarmSourceCard => ({
+  id: `c-${domain ?? 'none'}-${qualityScore}`,
+  title: 't', excerpt: 'x'.repeat(40), qualityScore, domain,
+});
+
+describe('assessEvidenceIndependence (Open Superforecaster rule)', () => {
+  it('passes a diverse, quality deck', () => {
+    const cards = [
+      mkCard('iea.org'), mkCard('worldbank.org'), mkCard('imf.org'), mkCard('bruegel.org'), mkCard('sipri.org'),
+    ];
+    const r = assessEvidenceIndependence(cards);
+    expect(r.independent).toBe(true);
+    expect(r.uniqueDomains).toBe(5);
+  });
+
+  it('blocks a single dominant domain', () => {
+    const cards = [
+      mkCard('reuters.com'), mkCard('reuters.com'), mkCard('reuters.com'), mkCard('reuters.com'),
+      mkCard('bbc.com'), mkCard('apnews.com'),
+    ];
+    const r = assessEvidenceIndependence(cards);
+    expect(r.independent).toBe(false);
+    expect(r.reason).toMatch(/top domain/);
+  });
+
+  it('blocks fewer than 3 unique domains', () => {
+    const cards = [mkCard('a.com'), mkCard('a.com'), mkCard('b.com'), mkCard('b.com'), mkCard('c.com')];
+    // a.com+b.com+c.com = 3 domains — boundary passes; drop to 2:
+    const two = [mkCard('a.com'), mkCard('a.com'), mkCard('b.com'), mkCard('b.com'), mkCard('b.com')];
+    expect(assessEvidenceIndependence(cards).independent).toBe(true);
+    const r = assessEvidenceIndependence(two);
+    expect(r.independent).toBe(false);
+    expect(r.reason).toMatch(/domain/);
+  });
+
+  it('blocks weak-source decks', () => {
+    const cards = [mkCard('a.com', 30), mkCard('b.com', 30), mkCard('c.com', 30), mkCard('d.com', 30)];
+    const r = assessEvidenceIndependence(cards);
+    expect(r.independent).toBe(false);
+    expect(r.reason).toMatch(/quality/);
+  });
+
+  it('blocks when too few domains are resolvable', () => {
+    const cards = [mkCard(undefined), mkCard(undefined), mkCard('a.com'), mkCard(undefined), mkCard(undefined)];
+    const r = assessEvidenceIndependence(cards);
+    expect(r.independent).toBe(false);
+    expect(r.reason).toMatch(/resolvable domain/);
+  });
+});
