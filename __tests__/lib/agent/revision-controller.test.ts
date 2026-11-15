@@ -256,6 +256,40 @@ describe('shouldRegenerate', () => {
     expect(res.regenerate).toBe(true);
   });
 
+  it('refuses regen when corpus_core_evidence fails — same corpus cannot add core sources (1.5°C memo defect)', () => {
+    // Live failure set: trust 40 (not <40), quality 52, citation 32%,
+    // fatal_challenges 2, DA 18 — every "substance" trigger fires, but the
+    // binding constraint was 7 core sources < 8. The regen re-analyzed the
+    // identical 39-source corpus and reproduced trust 40 (~$0.24 wasted).
+    const res = shouldRegenerate({
+      gate: gate([
+        { checkType: 'trust_score', passed: false },
+        { checkType: 'quality_score', passed: false },
+        { checkType: 'citation_coverage', passed: false },
+        { checkType: 'fatal_challenges', passed: false },
+        { checkType: 'devils_advocate', passed: false },
+        { checkType: 'corpus_core_evidence', passed: false },
+        { checkType: 'novlangue_density', passed: false },
+      ]),
+      devilsAdvocate: { publishabilityScore: 18, fatalChallenges: 2, verdict: 'major_revision' },
+      qualityScore: 52, trustScore: 40,
+    });
+    expect(res.regenerate).toBe(false);
+    expect(res.reason).toContain('corpus_core_evidence');
+  });
+
+  it('still regenerates on substance failures when the corpus HAS core evidence', () => {
+    const res = shouldRegenerate({
+      gate: gate([
+        { checkType: 'devils_advocate', passed: false },
+        { checkType: 'corpus_core_evidence', passed: true },
+      ]),
+      devilsAdvocate: { publishabilityScore: 30, fatalChallenges: 1, verdict: 'reject' },
+      qualityScore: 60, trustScore: 72,
+    });
+    expect(res.regenerate).toBe(true);
+  });
+
   it('refuses a regen whose DA kill shot is evidence-bound — same corpus cannot fix missing sources (S38b paid-run defect)', () => {
     const res = shouldRegenerate({
       gate: gate([{ checkType: 'devils_advocate', passed: false }]),

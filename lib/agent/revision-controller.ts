@@ -383,8 +383,12 @@ export async function reviseForGate(input: RevisionInput): Promise<RevisionResul
 // build the feedback payload, and score attempts for stagnation detection.
 
 /** Check types a rewrite on the same corpus can never fix — the corpus or
- *  evidence itself is the problem; the topic needs replacement, not edits. */
-const EVIDENCE_BOUND_CHECKS = new Set(['source_depth']);
+ *  evidence itself is the problem; the topic needs replacement, not edits.
+ *  corpus_core_evidence: the relevance screen found too few semantically
+ *  core sources — a rewrite re-reads the same pool and cannot add core
+ *  evidence (observed: 1.5°C memo regen re-analyzed 7/8-min core corpus,
+ *  reproduced trust 40, ~$0.24 for a guaranteed hold). */
+const EVIDENCE_BOUND_CHECKS = new Set(['source_depth', 'corpus_core_evidence']);
 /** DA challenge types that only NEW retrieval can repair — a rewrite on the
  * same corpus can at best rephrase the unsupported claim. `missing_warrant`
  * stays excluded: a warrant can sometimes be made explicit from existing
@@ -463,8 +467,9 @@ export function shouldRegenerate(args: {
 
   // Corpus too thin — regeneration reuses the same seed corpus, so it cannot
   // add sources. This is a topic-level failure, not a writing failure.
-  if (failed.has('source_depth')) {
-    return { regenerate: false, reason: 'source_depth failed — evidence-bound, candidate should be replaced' };
+  const evidenceBoundHit = [...EVIDENCE_BOUND_CHECKS].find(c => failed.has(c));
+  if (evidenceBoundHit) {
+    return { regenerate: false, reason: `${evidenceBoundHit} failed — evidence-bound, candidate should be replaced` };
   }
   // Deep-evidence failure: claims are unsupportable by the retrieved corpus.
   if (failed.has('trust_score') && gate.metrics.trustScore < 40) {
