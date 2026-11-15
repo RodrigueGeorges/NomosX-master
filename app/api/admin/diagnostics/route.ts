@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
   const hours = Math.min(Number(req.nextUrl.searchParams.get('hours') ?? 48) || 48, 24 * 30);
   const since = new Date(Date.now() - hours * 3600_000);
 
-  const [publications, pipelineRuns, signals, decisions, costLogs] = await Promise.all([
+  const [publications, pipelineRuns, signals, decisions, costLogs, jobs, deadLetters] = await Promise.all([
     prisma.thinkTankPublication.findMany({
       where: { createdAt: { gte: since } },
       orderBy: { createdAt: 'desc' },
@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
         id: true, question: true, format: true, status: true,
         totalCostUsd: true, durationMs: true,
         sourcesFound: true, sourcesRanked: true, sourcesUsed: true,
-        trustScore: true, qualityScore: true, error: true,
+        trustScore: true, qualityScore: true, error: true, steps: true,
         startedAt: true, finishedAt: true,
       },
     }),
@@ -76,6 +76,23 @@ export async function GET(req: NextRequest) {
         costUsd: true, tokensTotal: true, createdAt: true,
       },
     }),
+    // Durable job queue — is the worker alive? stuck PENDING/RUNNING jobs
+    // explain "signal detected but nothing happens".
+    prisma.job.findMany({
+      where: { createdAt: { gte: since } },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+      select: {
+        id: true, type: true, status: true, attempts: true, reclaims: true,
+        lastError: true, correlationId: true, createdAt: true,
+        startedAt: true, finishedAt: true, lockedUntil: true,
+      },
+    }),
+    prisma.jobDeadLetter.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 10,
+      select: { id: true, originalJobId: true, type: true, failureReason: true, attempts: true, createdAt: true },
+    }).catch(() => []),
   ]);
 
   // Provider/model spend breakdown — reveals which models actually served
@@ -144,13 +161,31 @@ export async function GET(req: NextRequest) {
       totalCostUsd: Math.round(runCost * 10000) / 10000,
       totalHours: Math.round(runHours * 100) / 100,
       byStatus: pipelineRuns.reduce((a, r) => ({ ...a, [r.status]: (a[r.status] ?? 0) + 1 }), {} as Record<string, number>),
-      items: pipelineRuns.map(r => ({
-        ...r,
-        question: r.question.slice(0, 140),
-        durationMin: Math.round((r.durationMs || 0) / 6000) / 10,
-        costUsd: Math.round((r.totalCostUsd || 0) * 10000) / 10000,
-        error: r.error?.slice(0, 200),
-      })),
+      items: pipelineRuns.map(r => {
+        // Step-level breakdown — where the run spent time/cost and where it
+        // died. steps is a JSON array of {name,status,durationMs,costUsd}.
+        const steps: any[] = Array.isArray((r as any).steps) ? (r as any).steps : [];
+        const stepSummary = steps.map((s: any) => ({
+          name: s.name ?? s.step ?? '?',
+          status: s.status ?? '?',
+          min: s.durationMs ? Math.round(s.durationMs / 6000) / 10 : null,
+          cost: typeof s.costUsd === 'number' ? Math.round(s.costUsd * 10000) / 10000 : null,
+          error: s.error ? String(s.error).slice(0, 120) : undefined,
+        }));
+        const failedSteps = stepSummary.filter(s => s.status === 'failed' || s.status === 'error');
+        return {
+          id: r.id, question: r.question.slice(0, 140), format: r.format, status: r.status,
+          totalCostUsd: r.totalCostUsd, durationMs: r.durationMs,
+          sourcesFound: r.sourcesFound, sourcesRanked: r.sourcesRanked, sourcesUsed: r.sourcesUsed,
+          trustScore: r.trustScore, qualityScore: r.qualityScore, error: r.error?.slice(0, 200),
+          startedAt: r.startedAt, finishedAt: r.finishedAt,
+          durationMin: Math.round((r.durationMs || 0) / 6000) / 10,
+          costUsd: Math.round((r.totalCostUsd || 0) * 10000) / 10000,
+          steps: stepSummary.slice(0, 40),
+          failedSteps,
+          zombie: r.status === 'RUNNING' && r.startedAt && (Date.now() - new Date(r.startedAt).getTime()) > 3 * 3600_000,
+        };
+      }),
     },
     signals: {
       count: signals.length,
@@ -160,6 +195,27 @@ export async function GET(req: NextRequest) {
         title: s.title.slice(0, 120),
         vertical: s.vertical.slug,
       })),
+    },
+    jobQueue: {
+      total: jobs.length,
+      byStatus: jobs.reduce((a, j) => ({ ...a, [j.status]: (a[j.status] ?? 0) + 1 }), {} as Record<string, number>),
+      stuck: jobs.filter(j =>
+        (j.status === 'PENDING' && j.createdAt && (Date.now() - new Date(j.createdAt).getTime()) > 30 * 60_000) ||
+        (j.status === 'RUNNING' && j.lockedUntil && new Date(j.lockedUntil).getTime() < Date.now())
+      ).map(j => ({ id: j.id, type: j.type, status: j.status, attempts: j.attempts, age: j.createdAt, lastError: j.lastError?.slice(0, 150) })),
+      recentFailures: jobs.filter(j => j.status === 'FAILED').slice(0, 10).map(j => ({
+        id: j.id, type: j.type, attempts: j.attempts, lastError: j.lastError?.slice(0, 200), createdAt: j.createdAt,
+      })),
+      deadLetters: deadLetters.map(d => ({ type: d.type, reason: d.failureReason?.slice(0, 200), attempts: d.attempts, at: d.createdAt })),
+    },
+    health: {
+      zombieRuns: pipelineRuns.filter(r => r.status === 'RUNNING' && r.startedAt && (Date.now() - new Date(r.startedAt).getTime()) > 3 * 3600_000)
+        .map(r => ({ id: r.id, format: r.format, startedAt: r.startedAt, question: r.question.slice(0, 100) })),
+      deadLetterCount: deadLetters.length,
+      stuckJobCount: jobs.filter(j =>
+        (j.status === 'PENDING' && j.createdAt && (Date.now() - new Date(j.createdAt).getTime()) > 30 * 60_000) ||
+        (j.status === 'RUNNING' && j.lockedUntil && new Date(j.lockedUntil).getTime() < Date.now())
+      ).length,
     },
     llmSpend: {
       totalCostUsd: Math.round(costLogs.reduce((a, c) => a + (c.costUsd || 0), 0) * 10000) / 10000,
