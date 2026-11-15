@@ -1075,6 +1075,26 @@ export async function executeDispatchQueue(
     }
 
     if (result.status === 'failed' || result.status === 'skipped_dry_run') {
+      // ── Topic viability probe ──
+      // Before paying for a full inquiry, check the topic has retrievable
+      // surface area at all. Conservative threshold + fail-open: only a
+      // near-zero footprint everywhere skips the funnel. Skipped items are
+      // re-evaluated next cycle — coverage can appear later.
+      if (process.env.NOMOSX_VIABILITY_PROBE !== '0') {
+        try {
+          const { probeTopicViability } = await import('./topic-viability');
+          const probe = await probeTopicViability(item.question);
+          console.log(`[ThinkTank] VIABILITY "${item.question.slice(0, 60)}": relevant=${probe.relevant} (raw oa=${probe.raw.openAlex} cr=${probe.raw.crossref} tt=${probe.raw.thinkTanks}) ${probe.durationMs}ms${probe.error ? ` err=${probe.error.slice(0, 80)}` : ''}`);
+          if (!probe.viable) {
+            skipped++;
+            console.log(`[ThinkTank] SKIPPED low-surface topic (${probe.relevant} relevant hits < ${probe.threshold}): "${item.question.slice(0, 80)}"`);
+            continue;
+          }
+        } catch (probeErr) {
+          // Fail-open — a broken probe must never block dispatch.
+          console.warn(`[ThinkTank] Viability probe failed (proceeding): ${probeErr instanceof Error ? probeErr.message : probeErr}`);
+        }
+      }
       // No usable stock for this topic — produce one. Attempt consumed at
       // launch (all skip checks passed); under concurrency this keeps the
       // pull-gate accurate. A $0 reserve release never consumes an attempt.
