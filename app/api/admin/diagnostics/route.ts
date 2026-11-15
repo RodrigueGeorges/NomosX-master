@@ -21,8 +21,17 @@ export async function GET(req: NextRequest) {
 
   const hours = Math.min(Number(req.nextUrl.searchParams.get('hours') ?? 48) || 48, 24 * 30);
   const since = new Date(Date.now() - hours * 3600_000);
+  // SLI window is fixed at 7d — distributions need a stable sample, not the
+  // ad-hoc `hours` slice used for the item lists.
+  const sliSince = new Date(Date.now() - 7 * 24 * 3600_000);
 
-  const [publications, pipelineRuns, signals, decisions, costLogs, jobs, deadLetters] = await Promise.all([
+  const percentile = (vals: number[], p: number): number | null => {
+    if (vals.length === 0) return null;
+    const sorted = [...vals].sort((a, b) => a - b);
+    return sorted[Math.min(sorted.length - 1, Math.floor((p / 100) * sorted.length))];
+  };
+
+  const [publications, pipelineRuns, signals, decisions, costLogs, jobs, deadLetters, sliRuns, sliPubs] = await Promise.all([
     prisma.thinkTankPublication.findMany({
       where: { createdAt: { gte: since } },
       orderBy: { createdAt: 'desc' },
@@ -93,6 +102,19 @@ export async function GET(req: NextRequest) {
       take: 10,
       select: { id: true, originalJobId: true, type: true, failureReason: true, attempts: true, createdAt: true },
     }).catch(() => []),
+    // SLI aggregates — wider select, numeric fields only.
+    prisma.pipelineRun.findMany({
+      where: { createdAt: { gte: sliSince } },
+      select: {
+        status: true, totalCostUsd: true, durationMs: true,
+        trustScore: true, qualityScore: true,
+        sourcesFound: true, sourcesRanked: true, sourcesUsed: true,
+      },
+    }),
+    prisma.thinkTankPublication.findMany({
+      where: { createdAt: { gte: sliSince } },
+      select: { status: true, trustScore: true, qualityScore: true, criticalLoopResult: true },
+    }),
   ]);
 
   // Provider/model spend breakdown — reveals which models actually served
@@ -126,6 +148,33 @@ export async function GET(req: NextRequest) {
   }
   const runCost = pipelineRuns.reduce((a, r) => a + (r.totalCostUsd || 0), 0);
   const runHours = pipelineRuns.reduce((a, r) => a + (r.durationMs || 0), 0) / 3600_000;
+
+  // ── SLI section (7d window) ──────────────────────────────────────────────
+  // Agent-SRE style indicators: what "normal" looks like, so drift is visible.
+  const completedRuns = sliRuns.filter(r => r.status === 'COMPLETED' || r.status === 'DONE');
+  const trustVals = sliRuns.map(r => r.trustScore).filter((v): v is number => typeof v === 'number');
+  const qualityVals = sliRuns.map(r => r.qualityScore).filter((v): v is number => typeof v === 'number');
+  const costVals = completedRuns.map(r => r.totalCostUsd ?? 0);
+  const durVals = completedRuns.map(r => r.durationMs ?? 0);
+  const gateFailHistogram: Record<string, number> = {};
+  let heldCount = 0;
+  let publishedCount = 0;
+  for (const p of sliPubs) {
+    if (p.status === 'HELD') heldCount++;
+    if (p.status === 'PUBLISHED') publishedCount++;
+    const checks: any[] = (p.criticalLoopResult as any)?.publicationGate?.checks ?? [];
+    for (const c of checks) {
+      if (c && c.passed === false) {
+        const k = String(c.checkType ?? c.name ?? 'unknown');
+        gateFailHistogram[k] = (gateFailHistogram[k] ?? 0) + 1;
+      }
+    }
+  }
+  const funnel = {
+    sourcesFound_p50: percentile(sliRuns.map(r => r.sourcesFound ?? 0).filter(v => v > 0), 50),
+    sourcesRanked_p50: percentile(sliRuns.map(r => r.sourcesRanked ?? 0).filter(v => v > 0), 50),
+    sourcesUsed_p50: percentile(sliRuns.map(r => r.sourcesUsed ?? 0).filter(v => v > 0), 50),
+  };
 
   return NextResponse.json({
     windowHours: hours,
@@ -216,6 +265,37 @@ export async function GET(req: NextRequest) {
         (j.status === 'PENDING' && j.createdAt && (Date.now() - new Date(j.createdAt).getTime()) > 30 * 60_000) ||
         (j.status === 'RUNNING' && j.lockedUntil && new Date(j.lockedUntil).getTime() < Date.now())
       ).length,
+    },
+    sli: {
+      windowDays: 7,
+      runs: {
+        total: sliRuns.length,
+        completed: completedRuns.length,
+        trust: {
+          n: trustVals.length,
+          p50: percentile(trustVals, 50),
+          p95: percentile(trustVals, 95),
+          min: trustVals.length ? Math.min(...trustVals) : null,
+        },
+        quality: {
+          n: qualityVals.length,
+          p50: percentile(qualityVals, 50),
+          p95: percentile(qualityVals, 95),
+        },
+        costUsd: { p50: percentile(costVals, 50), p95: percentile(costVals, 95), max: costVals.length ? Math.max(...costVals) : null },
+        durationMin: {
+          p50: percentile(durVals.map(d => d / 60000), 50),
+          p95: percentile(durVals.map(d => d / 60000), 95),
+        },
+        funnel,
+      },
+      publications: {
+        total: sliPubs.length,
+        published: publishedCount,
+        held: heldCount,
+        publishRate: sliPubs.length ? Math.round((publishedCount / sliPubs.length) * 1000) / 1000 : null,
+      },
+      gateFailHistogram,
     },
     llmSpend: {
       totalCostUsd: Math.round(costLogs.reduce((a, c) => a + (c.costUsd || 0), 0) * 10000) / 10000,

@@ -5096,3 +5096,36 @@ FRENCH). Sources arrive in ANY language — the analyst prompt explicitly
 instructs citing multilingual sources while writing all output fields in
 the target language only. Feed `lang` tags and OpenAlex `language` fields
 are provenance metadata, never output-language selectors.
+
+## Observability — Langfuse tracing, SLI diagnostics, canary replay (2026-11)
+
+**Trace architecture (opt-in, zero-cost when off):**
+`lib/agent/trace-context.ts` carries `{traceId, runId, openSteps}` through
+AsyncLocalStorage — `runPipeline` opens ONE trace per run
+(`withTraceContext`, traceId `trace_<executionId>`), `emitProgress` mirrors
+every step transition as a `span-create`, and `callLLMProvider`/`streamLLM`
+emit a `generation-create` per provider call (model, usage, cost, latency,
+parented under the current step span). `tracePipelineStart/End` bracket the
+run and attach trust/quality scores. All sinks are fire-and-forget —
+export failures can never break the pipeline.
+
+**Activation:** `ENABLE_LANGFUSE=true` + `LANGFUSE_PUBLIC_KEY` +
+`LANGFUSE_SECRET_KEY` (+ optional `LANGFUSE_BASE_URL`, default
+cloud.langfuse.com). Self-hosted Langfuse works unchanged — same REST API —
+via `deploy/langfuse/docker-compose.yml` (official stack minus the optional
+AI gateway). With the flag unset every recorder no-ops on the first config
+check; tests assert identical behaviour.
+
+**Admin diagnostics SLI section:** `GET /api/admin/diagnostics` now returns
+`sli` — 7-day distributions: trust/quality p50/p95, cost p50/p95 per run,
+duration p50/p95, source funnel medians, publish rate, and a
+`gateFailHistogram` (which gate check fails most). This is the Agent-SRE
+"what normal looks like" baseline — drift is visible without DB access.
+
+**Canary replay:** `scripts/canary-replay.mjs` (`npm run canary`) replays
+the committed fixtures (`.llm-cassettes/*.fixture.jsonl` + meta sidecars)
+through the CURRENT code — cassette mode = zero LLM spend; any prompt or
+frozen-input drift throws CassetteMissError and exits 1. One fixture per
+invocation rotates daily (`--all` for full sweep, `--force` to bypass the
+20h throttle). `scripts/_agent-monitor.mjs` spawns it ~every 20h and logs
+`canary_done`/`canary_started` events. Results: `scripts/_canary-replay.jsonl`.

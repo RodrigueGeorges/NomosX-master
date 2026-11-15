@@ -69,7 +69,9 @@
     "eval": "tsx eval/run.ts",
     "eval:steps": "tsx --env-file=.env.local scripts/analyze-step-value.ts",
     "replay": "tsx --env-file=.env.local scripts/replay-run.ts",
-    "replay:inspect": "tsx scripts/replay-run.ts --inspect"
+    "replay:inspect": "tsx scripts/replay-run.ts --inspect",
+    "canary": "node scripts/canary-replay.mjs",
+    "canary:all": "node scripts/canary-replay.mjs --all --force"
   },
   "prisma": {
     "seed": "node scripts/seed-demo-data.mjs"

@@ -6,6 +6,7 @@
  */
 
 import { EventEmitter } from 'events';
+import { traceStep } from './langfuse';
 
 // ============================================================================
 // TYPES
@@ -150,6 +151,9 @@ export function emitProgress(
   };
 
   globalEmitter.emit(`progress:${runId}`, event);
+  // Observability: mirror every step transition as a trace span. No-op unless
+  // ENABLE_LANGFUSE — fire-and-forget inside traceStep.
+  traceStep(runId, step, status, message);
   if (step === "COMPLETE" || step === "ERROR") lastRunTouch.delete(runId);
   else touchRunLiveness(runId);
   if (persistenceHook) {

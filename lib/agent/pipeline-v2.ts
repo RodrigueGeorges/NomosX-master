@@ -2055,9 +2055,35 @@ export async function runPipeline(
   const rankOptions = { ...dossierRankOptions, ...options.rankOptions };
   const executionId = options.executionId ?? randomUUID();
 
+  // Observability trace: one Langfuse trace per pipeline run. All LLM calls
+  // and step spans inside inherit it via AsyncLocalStorage — no-op unless
+  // ENABLE_LANGFUSE=true. See lib/agent/trace-context.ts + langfuse.ts.
+  const { withTraceContext } = await import('./trace-context');
+  const { tracePipelineStart, tracePipelineEnd, flushAllTraces } = await import('./langfuse');
+
   try {
-    return await withTimeout(
-      () => runPipelineCore(query, {
+    return await withTraceContext(
+      {
+        runId: executionId,
+        name: `pipeline.${format}`,
+        metadata: {
+          format,
+          isStrategic,
+          publicationLanguage: options.publicationLanguage ?? null,
+          verticalSlug: (options as Record<string, unknown>).verticalSlug ?? null,
+        },
+        traceId: `trace_${executionId}`,
+      },
+      async () => {
+        tracePipelineStart(executionId, trimmedQuery, {
+          format,
+          isStrategic,
+          seedSourceIds: options.seedSourceIds?.length ?? 0,
+        });
+        const t0 = Date.now();
+        try {
+          const result = await withTimeout(
+            () => runPipelineCore(query, {
         executionId,
         isStrategic,
         format,
@@ -2103,9 +2129,26 @@ export async function runPipeline(
         policyCouncil: options.policyCouncil,
         useSelfEvolution: options.useSelfEvolution,
         frozenContext: options.frozenContext,
-      }),
-      timeoutMs,
-      `runPipeline(${format})`
+          }),
+          timeoutMs,
+          `runPipeline(${format})`
+        );
+        const s = (result as { stats?: PipelineStats }).stats;
+        tracePipelineEnd(executionId, trimmedQuery.slice(0, 500), s?.totalCostUsd ?? 0, Date.now() - t0, {
+          status: 'COMPLETED',
+          trustScore: s?.trustScore ?? undefined,
+          qualityScore: (s as Record<string, unknown> | undefined)?.qualityScore as number | undefined,
+        });
+        void flushAllTraces();
+        return result;
+      } catch (innerErr) {
+        tracePipelineEnd(executionId, trimmedQuery.slice(0, 500), 0, Date.now() - t0, {
+          status: 'FAILED',
+        });
+        void flushAllTraces();
+        throw innerErr;
+      }
+      },
     );
   } catch (err: any) {
     // BUG FIX: When withTimeout rejects, runPipelineCore's catch block never

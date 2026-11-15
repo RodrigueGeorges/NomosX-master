@@ -26,7 +26,8 @@ import { isFreeRun } from '../free-run';
 import { env } from '../env';
 import { getCachedLLMResponse,cacheLLMResponse } from '../cache/redis-cache';
 import Sentry from '@sentry/nextjs';
-import { traceLLMCall } from '../agent/langfuse';
+import { traceLLMCall, traceLLMGeneration } from '../agent/langfuse';
+import { getTraceContext } from '../agent/trace-context';
 import { filterByCapability, type LLMCapability } from '../agent/radar-innovations';
 import { getLlmCassetteMode, recordLlmCassette, replayLlmCassette } from './cassette';
 
@@ -1987,8 +1988,12 @@ async function callLLMProvider(request: LLMRequest): Promise<LLMResponse> {
         `✅ ${provider}/${response.model} [${task}] | ${duration}ms | ${response.tokensInput}+${response.tokensOutput} tok${cacheNote} | $${response.costUsd.toFixed(4)}`
       );
 
-      // Trace to Langfuse (fire-and-forget)
-      if (request.runId) {
+      // Observability: generation span under the active trace context
+      // (no-op unless ENABLE_LANGFUSE and inside a traced run). Legacy
+      // runId path kept for callers that set it explicitly.
+      if (getTraceContext()) {
+        traceLLMGeneration(request, response, task, Date.now() - startTime);
+      } else if (request.runId) {
         traceLLMCall(request, response, request.runId, request.traceName || task, undefined, Date.now() - startTime);
       }
 
@@ -2034,6 +2039,7 @@ async function callLLMProvider(request: LLMRequest): Promise<LLMResponse> {
       await recordProviderSuccess("freepool");
       console.log(`✅ freepool [${task}] quota-window retry succeeded | $${response.costUsd.toFixed(4)}`);
       persistCostLog(request, response, task, Date.now() - startTime);
+      if (getTraceContext()) traceLLMGeneration(request, response, task, Date.now() - startTime);
       return response;
     } catch (retryErr) {
       lastError = retryErr as Error;
@@ -2332,6 +2338,7 @@ export async function streamLLM(
     };
     if (cassetteMode === 'record') recordLlmCassette(request, cassetteKey, response);
     persistCostLog(request, response, task ?? request.task ?? 'stream', Date.now() - streamStart);
+    if (getTraceContext()) traceLLMGeneration(request, response, task ?? request.task ?? 'stream', Date.now() - streamStart);
     return response;
   } catch (err) {
     if (cassetteMode === 'record') recordLlmCassette(request, cassetteKey, undefined, err);
