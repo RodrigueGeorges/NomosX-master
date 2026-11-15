@@ -5046,3 +5046,38 @@ shrink-only-on-Brier-improvement. Full agent suite 536/536, tsc clean.
 **Known limit** — gulf-minerals replay now misses at `analyst_brief`
 (fixture predates upstream prompt changes); a paid re-record on the same
 corpus is required before the foresight path can be replay-validated e2e.
+
+---
+
+## Vertical vocabulary bridge (2026-11-15)
+
+Two slug vocabularies exist and MUST be bridged at every DB boundary:
+
+- **Researcher routing** (`VERTICAL_RESEARCHER_MAP`, `classifyTopic`,
+  `signal-detector` classifiers): 11 slugs — climate-energy, macro-finance,
+  geopolitics, tech-innovation, social-policy, health-bioethics,
+  law-regulation, cognitive-behavioral, development-global,
+  complexity-quantitative, humanities-ethics.
+- **Publication verticals** (`Vertical` table / `VERTICALS` in
+  `lib/think-tank/verticals.ts`): 12 slugs — the 5 originals
+  (eu-policy, climate-industry, ai-labor, geopolitics,
+  finance-regulation) + 7 added to cover every researcher slug.
+
+`VERTICAL_SLUG_ALIASES` maps the 3 renamed pairs
+(climate-energy→climate-industry, macro-finance→finance-regulation,
+tech-innovation→ai-labor); `resolveDbVerticalSlug()` in
+`lib/think-tank/verticals.ts` is the single normalization point.
+`lib/agent/vertical-resolution.ts` resolves id → aliased slug →
+least-covered active vertical (fail-safe `findFirst` fallback).
+
+History: before the bridge, every non-geopolitics slug missed
+`findUnique` and fell through to an arbitrary `findFirst` — 100% of the
+72 lifetime publications landed in eu-policy/geopolitics. Any new
+researcher-map slug MUST get a matching DB vertical (or alias) or it
+silently re-creates the black hole. `POST /api/admin/seed-verticals`
+(ADMIN_KEY) upserts `VERTICALS` into any deployment's DB.
+
+`research-agenda.ts` falls back to a 180d window when the 30d window has
+zero publications — a quiet month must not disable the deficit signal.
+The viability probe is skipped under `NODE_ENV=test` (it performs live
+feed calls inside `executeDispatchQueue`).
