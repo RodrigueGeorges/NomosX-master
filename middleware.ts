@@ -39,10 +39,12 @@ function checkCsrf(request: NextRequest): boolean {
 
   const {pathname} = request.nextUrl;
 
-  // Only cron/webhook routes bypass CSRF — they use CRON_SECRET or webhook signatures
+  // Only machine-to-machine routes bypass CSRF — cron/webhooks use
+  // CRON_SECRET or signatures, /api/admin/* self-guards with ADMIN_KEY.
   const isInternalRoute =
     pathname.startsWith('/api/cron/') ||
     pathname.startsWith('/api/webhooks/') ||
+    pathname.startsWith('/api/admin/') ||
     pathname === '/api/studiox/process' ||
     pathname === '/api/stripe/webhook';
   if (isInternalRoute) {
