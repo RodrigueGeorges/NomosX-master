@@ -155,23 +155,39 @@ const GN_FEEDS: FeedConfig[] = [
 
 const ALL_FEEDS = [...DIRECT_FEEDS, ...GN_FEEDS];
 
+// rss-parser keeps elements containing markup as objects, e.g.
+// title: { a: [{ _: 'text', $: { href } }] } — String() on those throws
+// "Cannot convert object to primitive value" (observed on hoover.org).
+function feedText(v: any): string {
+  if (v == null) return '';
+  if (typeof v === 'string') return v;
+  if (typeof v === 'number' || typeof v === 'boolean') return String(v);
+  if (Array.isArray(v)) return v.map(feedText).join(' ');
+  if (typeof v === 'object') {
+    if (typeof v._ === 'string') return v._;
+    return Object.values(v).map(feedText).join(' ');
+  }
+  return '';
+}
+
 function mapFeedItem(item: any, feedConfig: FeedConfig) {
-  let title = String(item.title || 'Untitled');
+  let title = feedText(item.title) || 'Untitled';
   let sourceName = feedConfig.issuer;
   if (!feedConfig.direct && title.includes(' - ')) {
     const parts = title.split(' - ');
     title = parts.slice(0, -1).join(' - ');
     sourceName = parts[parts.length - 1];
   }
+  const link = feedText(item.link) || feedText(item.guid);
   return {
-    id: `${feedConfig.provider}:gn:${Buffer.from(item.link || item.guid || '').toString('base64').slice(0, 24)}`,
+    id: `${feedConfig.provider}:gn:${Buffer.from(link).toString('base64').slice(0, 24)}`,
     provider: feedConfig.provider,
     type: feedConfig.type,
     title,
-    abstract: item.contentSnippet || item.content || '',
-    year: item.pubDate ? new Date(item.pubDate).getFullYear() : new Date().getFullYear(),
+    abstract: feedText(item.contentSnippet) || feedText(item.content),
+    year: feedText(item.pubDate) ? new Date(feedText(item.pubDate)).getFullYear() : new Date().getFullYear(),
     doi: null,
-    url: item.link || null,
+    url: link || null,
     pdfUrl: null,
     oaStatus: 'oa',
     authors: [{ name: sourceName }],
@@ -187,8 +203,8 @@ function selectMatches(items: any[], feedConfig: FeedConfig, queryTerms: string[
   return items
     .filter((item: any) => {
       if (!feedConfig.direct) return true;
-      const title = String(item.title || '').toLowerCase();
-      const content = (item.contentSnippet || item.content || '').toLowerCase();
+      const title = feedText(item.title).toLowerCase();
+      const content = (feedText(item.contentSnippet) || feedText(item.content)).toLowerCase();
       return queryTerms.some((term: string) => title.includes(term) || content.includes(term));
     })
     .slice(0, Math.ceil(limit / ALL_FEEDS.length) + 2)
