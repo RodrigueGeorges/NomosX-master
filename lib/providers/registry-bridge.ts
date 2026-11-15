@@ -164,7 +164,7 @@ export interface RegistrySearchOptions {
 // through to a generic OpenAlex search — duplicating OpenAlex and silently
 // losing the specialised provider. Aliases resolve slugs to real cases.
 
-const PROVIDER_ALIASES: Record<string, string> = {
+export const PROVIDER_ALIASES: Record<string, string> = {
   'iea---international-energy-agency': 'iea',
   'irena---international-renewable-energy-agency': 'irena',
   'pnas---proceedings-of-national-academy-of-sciences': 'pnas',
@@ -188,7 +188,7 @@ const PROVIDER_ALIASES: Record<string, string> = {
 // Institution providers resurrected via OpenAlex ROR filter — these had dead
 // factory stubs (openalex-provider-factory.js, deleted) so their ids silently
 // hit the generic OpenAlex fallback. RORs resolved live via api.openalex.org.
-const ROR_PROVIDERS: Record<string, string> = {
+export const ROR_PROVIDERS: Record<string, string> = {
   'csis': '04my2jj52',                                          // CSIS — 1.9k works
   'dgap': '049xxah85',                                          // German Council on Foreign Relations
   'cepr': '04jzmdh37',                                          // CEPR — 28.8k works
@@ -205,7 +205,7 @@ const ROR_PROVIDERS: Record<string, string> = {
 };
 
 // Journal providers via OpenAlex source-id filter (same pattern as nature.js).
-const SOURCE_PROVIDERS: Record<string, string> = {
+export const SOURCE_PROVIDERS: Record<string, string> = {
   'nature-medicine': 'S203256638',
   'jama': 'S172573765',
   'jama---journal-of-american-medical-association': 'S172573765',
@@ -890,7 +890,7 @@ export function getAvailableProviders(): string[] {
     // Discipline providers — PhD-level domain sources
     'sociology', 'psychology', 'history', 'geography', 'chemistry', 'biology',
     'political-science', 'philpapers', 'persee', 'isidore', 'zbmath', 'eric',
-    'unodc', 'fao', 'dblp'
+    'unodc', 'fao', 'dblp', 'nber', 'irena'
   ];
 }
 
@@ -987,36 +987,101 @@ export async function searchExtendedProviders(query: string, options: any = {}) 
 }
 
 // Domain-aware provider selection for extended registry
-const DOMAIN_EXTENDED_PROVIDERS: Record<string, string[]> = {
+export const DOMAIN_EXTENDED_PROVIDERS: Record<string, string[]> = {
   health: ['who', 'nih', 'cdc', 'fda', 'lancet', 'nature', 'pubmed'],
   ai: ['deepmind', 'openai-research', 'google-ai', 'microsoft-research', 'anthropic', 'nvidia-research', 'huggingface'],
   climate: ['ipcc', 'unep', 'iea', 'wri', 'climate-analytics', 'nasa', 'noaa', 'epa'],
-  economics: ['mckinsey', 'goldman-sachs', 'jpmorgan', 'blackrock', 'brookings', 'carnegie', 'repec', 'nber'],
+  economics: ['mckinsey', 'goldman-sachs', 'jpmorgan', 'blackrock', 'brookings', 'carnegie', 'nber'],
   geopolitics: ['chatham-house', 'cfr', 'rand', 'iiss', 'carnegie', 'brookings', 'wilson-center', 'stimson-center'],
   security: ['rand', 'iiss', 'cato-institute', 'heritage-foundation', 'new-america', 'stimson-center'],
   science: ['nature', 'science', 'cell', 'pnas', 'springer', 'elsevier', 'nasa', 'nih'],
   business: ['mckinsey', 'bcg', 'bain', 'deloitte', 'pwc', 'ey', 'kpmg', 'accenture'],
-  law: ['brookings', 'rand', 'heritage-foundation', 'oxford', 'cambridge'],
+  law: ['persee', 'isidore', 'openaire', 'brookings', 'rand', 'heritage-foundation', 'oxford', 'cambridge'],
   finance: ['blackrock', 'goldman-sachs', 'jpmorgan', 'morgan-stanley', 'ubs', 'deutsche-bank', 'credit-suisse'],
   technology: ['deepmind', 'openai-research', 'google-ai', 'microsoft-research', 'anthropic', 'nvidia-research', 'github', 'huggingface'],
   environment: ['ipcc', 'unep', 'iucn', 'wri', 'climate-analytics', 'iea', 'greenpeace', 'wwf', 'nasa', 'noaa', 'epa'],
   policy: ['brookings', 'carnegie', 'rand', 'heritage-foundation', 'new-america', 'aspen-institute', 'wilson-center'],
   data: ['figshare', 'zenodo', 'kaggle', 'huggingface', 'dataverse'],
   // New domain-specific academic providers
-  psychology: ['psychology', 'pubmed', 'semanticscholar'],
-  sociology: ['sociology', 'isidore', 'persee'],
-  history: ['history', 'isidore', 'persee'],
+  psychology: ['psychology', 'pubmed', 'semantic-scholar', 'openaire'],
+  sociology: ['sociology', 'isidore', 'persee', 'openaire', 'core', 'base'],
+  history: ['history', 'isidore', 'persee', 'openaire', 'base'],
   geography: ['geography', 'nasa', 'noaa'],
   chemistry: ['chemistry', 'pubmed', 'openalex'],
   biology: ['biology', 'pubmed', 'openalex'],
-  'political-science': ['political-science', 'brookings', 'carnegie', 'rand'],
-  education: ['eric', 'isidore'],
-  philosophy: ['philpapers', 'isidore'],
+  'political-science': ['political-science', 'brookings', 'carnegie', 'rand', 'isidore', 'openaire'],
+  education: ['eric', 'isidore', 'openaire', 'core', 'base'],
+  philosophy: ['philpapers', 'isidore', 'persee', 'openaire'],
   agriculture: ['fao', 'openalex'],
-  criminology: ['unodc', 'openalex'],
+  criminology: ['unodc', 'openalex', 'isidore', 'openaire'],
   'open-science': ['openaire', 'zenodo', 'base', 'core'],
   'computer-science': ['dblp', 'arxiv', 'github', 'huggingface'],
   mathematics: ['zbmath', 'arxiv', 'openalex'],
+
+  // ── THIN-DOMAIN COVERAGE — disciplines that previously fell through to
+  // generic providers and starved the corpus (social_sciences=31 sources
+  // vs ai=19254). Every entry uses ids from getAvailableProviders(),
+  // ROR_PROVIDERS or SOURCE_PROVIDERS so they resolve to real calls.
+  'social-sciences': ['sociology', 'isidore', 'persee', 'openaire', 'core', 'base'],
+  humanities: ['history', 'persee', 'isidore', 'philpapers', 'openaire', 'base'],
+  'public-health': ['pubmed', 'who', 'cdc', 'openaire'],
+  epidemiology: ['pubmed', 'who', 'cdc', 'openaire'],
+  medicine: ['pubmed', 'lancet', 'nature', 'openaire'],
+  neuroscience: ['pubmed', 'psychology', 'semantic-scholar', 'openaire'],
+  'cognitive-science': ['psychology', 'pubmed', 'semantic-scholar', 'openaire'],
+  'data-science': ['dblp', 'arxiv', 'huggingface', 'openaire', 'zbmath'],
+  'complexity-science': ['arxiv', 'openaire', 'dblp', 'zbmath'],
+  'quantitative': ['zbmath', 'arxiv', 'dblp', 'openaire'],
+  development: ['fao', 'worldbank', 'undp', 'isidore', 'openaire'],
+  'development-studies': ['worldbank', 'undp', 'fao', 'isidore', 'openaire'],
+  'development-economics': ['brookings', 'carnegie', 'worldbank', 'openaire'],
+  migration: ['isidore', 'persee', 'sociology', 'worldbank', 'openaire'],
+  'migration-studies': ['isidore', 'persee', 'sociology', 'worldbank', 'openaire'],
+  demography: ['isidore', 'openaire', 'worldbank', 'sociology'],
+  'gender-studies': ['sociology', 'isidore', 'persee', 'openaire'],
+  'labor-studies': ['sociology', 'isidore', 'openaire', 'eric'],
+  'urban-studies': ['isidore', 'openaire', 'worldbank', 'geography'],
+  'area-studies': ['isidore', 'persee', 'openaire', 'sociology'],
+  anthropology: ['isidore', 'persee', 'openaire', 'sociology'],
+  archaeology: ['isidore', 'persee', 'openaire'],
+  linguistics: ['isidore', 'persee', 'openaire'],
+  'media-studies': ['isidore', 'persee', 'openaire', 'sociology'],
+  'communication-studies': ['isidore', 'persee', 'openaire'],
+  'international-relations': ['political-science', 'brookings', 'carnegie', 'rand', 'iiss', 'chatham-house'],
+  'conflict-studies': ['political-science', 'iiss', 'rand', 'brookings', 'openaire'],
+  'military-studies': ['iiss', 'rand', 'brookings', 'chatham-house'],
+  'intelligence-studies': ['iiss', 'rand', 'brookings', 'chatham-house'],
+  'comparative-politics': ['political-science', 'brookings', 'carnegie', 'isidore'],
+  'public-administration': ['brookings', 'carnegie', 'oecd', 'worldbank', 'isidore'],
+  'public-finance': ['brookings', 'carnegie', 'imf', 'oecd'],
+  'political-economy': ['brookings', 'carnegie', 'nber'],
+  'economic-history': ['brookings', 'carnegie', 'isidore', 'openaire'],
+  'economic-sociology': ['sociology', 'isidore', 'brookings', 'openaire'],
+  'historical-sociology': ['sociology', 'history', 'isidore', 'openaire'],
+  'social-psychology': ['psychology', 'sociology', 'pubmed', 'semantic-scholar'],
+  'organizational-studies': ['sociology', 'isidore', 'openaire'],
+  'social-theory': ['sociology', 'isidore', 'persee', 'philpapers'],
+  epistemology: ['philpapers', 'zbmath', 'isidore', 'openaire'],
+  'philosophy-of-science': ['philpapers', 'zbmath', 'isidore'],
+  'science-technology-studies': ['isidore', 'openaire', 'sociology', 'dblp'],
+  'science-policy': ['brookings', 'carnegie', 'ipcc', 'openaire'],
+  'law-and-economics': ['brookings', 'carnegie', 'persee', 'isidore'],
+  'legal-theory': ['philpapers', 'persee', 'isidore', 'openaire'],
+  'international-law': ['persee', 'isidore', 'brookings', 'openaire'],
+  'postcolonial-studies': ['isidore', 'persee', 'sociology', 'openaire'],
+  'political-anthropology': ['sociology', 'isidore', 'persee', 'openaire'],
+  'religious-studies': ['persee', 'isidore', 'openaire'],
+  'non-western-philosophy': ['philpapers', 'isidore', 'persee', 'openaire'],
+  'digital-society': ['isidore', 'openaire', 'sociology', 'dblp'],
+  'ethics-of-technology': ['philpapers', 'isidore', 'openaire'],
+  bioethics: ['pubmed', 'philpapers', 'openaire', 'lancet'],
+  'behavioral-economics': ['brookings', 'carnegie', 'psychology', 'openaire'],
+  'environmental-economics': ['brookings', 'carnegie', 'ipcc', 'iea', 'openaire'],
+  'health-economics': ['pubmed', 'brookings', 'carnegie', 'openaire'],
+  'risk-analysis': ['arxiv', 'zbmath', 'openaire', 'dblp'],
+  'futures-studies': ['copenhagen-institute', 'openaire', 'isidore'],
+  'food-systems': ['fao', 'openaire', 'isidore', 'worldbank'],
+  'energy-advanced': ['iea', 'ipcc', 'nasa', 'noaa', 'irena'],
 };
 
 export function getExtendedProvidersForDomain(domain: string): string[] {
