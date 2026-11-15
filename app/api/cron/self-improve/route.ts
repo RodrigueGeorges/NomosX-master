@@ -110,6 +110,31 @@ export async function GET(request: Request) {
     results.memoryConsolidation = { error: err.message };
   }
 
+  // 5. Provider Scorecard — per-(task, provider) latency/cost/volume learned
+  // from CostLog. Shadow reporting only: nothing reroutes on this data yet;
+  // it accumulates the evidence a future routing policy would need.
+  try {
+    const { buildProviderScorecard, formatScorecard } = await import('@/lib/agent/provider-scorecard');
+    const card = await buildProviderScorecard(14);
+    results.providerScorecard = {
+      tasks: card.length,
+      calls: card.reduce((n, s) => n + s.calls, 0),
+      topByTask: Object.fromEntries(
+        [...new Set(card.map(s => s.operation))].map(task => [
+          task,
+          card.filter(s => s.operation === task).slice(0, 2).map(s => ({
+            provider: s.provider, model: s.model, calls: s.calls,
+            p50Ms: s.p50DurationMs, avgCostUsd: s.avgCostUsd, score: s.score,
+          })),
+        ])
+      ),
+    };
+    console.log(`[CRON:self-improve] Provider Scorecard (${card.length} task/provider pairs):\n${formatScorecard(card)}`);
+  } catch (err: any) {
+    console.error('[CRON:self-improve] Provider Scorecard failed:', err.message);
+    results.providerScorecard = { error: err.message };
+  }
+
   // Record cron run for health monitoring
   const now = new Date();
   prisma.systemMetric.create({

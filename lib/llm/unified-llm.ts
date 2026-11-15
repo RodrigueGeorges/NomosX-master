@@ -1410,7 +1410,7 @@ async function callOpenAICompatible(
  * forget: a logging failure must never break the call path. Skipped in
  * replay mode (replayed calls cost nothing and would double-count).
  */
-function persistCostLog(request: LLMRequest, response: LLMResponse, task: string): void {
+function persistCostLog(request: LLMRequest, response: LLMResponse, task: string, durationMs?: number): void {
   if (getLlmCassetteMode() === 'replay') return;
   const provider = response.provider;
   const model = response.model;
@@ -1433,6 +1433,10 @@ function persistCostLog(request: LLMRequest, response: LLMResponse, task: string
             family: response.family,
             cached: response.cached === true,
             finishReason: response.finishReason ?? null,
+            // Provider scorecard substrate: latency per (operation, provider)
+            // is what lets routing learn which model actually serves each
+            // task cheapest/fastest — cost alone hid 300s freepool calls.
+            durationMs: durationMs ?? null,
           },
         },
       });
@@ -1993,7 +1997,7 @@ async function callLLMProvider(request: LLMRequest): Promise<LLMResponse> {
         cacheLLMResponse(cacheKey, response.model, response).catch(() => {});
       }
 
-      persistCostLog(request, response, task);
+      persistCostLog(request, response, task, duration);
       return response;
     } catch (error) {
       assertExecutionActive();
@@ -2029,7 +2033,7 @@ async function callLLMProvider(request: LLMRequest): Promise<LLMResponse> {
       );
       await recordProviderSuccess("freepool");
       console.log(`✅ freepool [${task}] quota-window retry succeeded | $${response.costUsd.toFixed(4)}`);
-      persistCostLog(request, response, task);
+      persistCostLog(request, response, task, Date.now() - startTime);
       return response;
     } catch (retryErr) {
       lastError = retryErr as Error;
@@ -2287,6 +2291,7 @@ export async function streamLLM(
 
   const streamMaxTokens = request.maxTokens ?? 4000;
   const streamNeedsCompletionTokens = provider === "openai" && (model.startsWith("gpt-5") || model.startsWith("gpt-6"));
+  const streamStart = Date.now();
 
   try {
     const stream = await client.chat.completions.create({
@@ -2326,7 +2331,7 @@ export async function streamLLM(
       cached: false,
     };
     if (cassetteMode === 'record') recordLlmCassette(request, cassetteKey, response);
-    persistCostLog(request, response, task ?? request.task ?? 'stream');
+    persistCostLog(request, response, task ?? request.task ?? 'stream', Date.now() - streamStart);
     return response;
   } catch (err) {
     if (cassetteMode === 'record') recordLlmCassette(request, cassetteKey, undefined, err);
