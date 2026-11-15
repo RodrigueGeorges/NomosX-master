@@ -44,22 +44,30 @@ const EMPTY: ResearchAgendaContext = {
 export async function buildResearchAgendaContext(
   options?: { windowDays?: number }
 ): Promise<ResearchAgendaContext> {
-  const windowDays = options?.windowDays ?? 30;
+  const requestedDays = options?.windowDays ?? 30;
   const builtAt = Date.now();
   try {
-    const since = new Date(builtAt - windowDays * 86_400_000);
-    const [verticals, pubs] = await Promise.all([
-      prisma.vertical.findMany({
-        where: { isActive: true },
-        select: { id: true, slug: true, name: true },
-      }),
-      prisma.thinkTankPublication.findMany({
+    // A quiet month must not silence the agenda: with zero publications in
+    // the window every deficit computes to 0 and triage loses the coverage
+    // signal exactly when the desk most needs to rebalance. Fall back to a
+    // wider window before giving up.
+    let windowDays = requestedDays;
+    let pubs: Array<{ verticalId: string; title: string; trustScore: number | null }> = [];
+    for (const days of [requestedDays, 180]) {
+      windowDays = days;
+      const since = new Date(builtAt - days * 86_400_000);
+      pubs = await prisma.thinkTankPublication.findMany({
         where: { status: 'PUBLISHED', publishedAt: { gte: since } },
         select: { verticalId: true, title: true, trustScore: true },
         orderBy: { publishedAt: 'desc' },
         take: 200,
-      }),
-    ]);
+      });
+      if (pubs.length > 0 || days === 180) break;
+    }
+    const verticals = await prisma.vertical.findMany({
+      where: { isActive: true },
+      select: { id: true, slug: true, name: true },
+    });
     if (verticals.length === 0) return { ...EMPTY, builtAt };
 
     const slugByVerticalId = new Map(verticals.map(v => [v.id, v.slug]));

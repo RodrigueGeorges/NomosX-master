@@ -14,7 +14,7 @@
 
 import { prisma } from '@/lib/db';
 import { SignalType,SignalScores,SIGNAL_THRESHOLDS } from '@/lib/think-tank/types';
-import { VERTICALS } from '@/lib/think-tank/verticals';
+import { VERTICALS, resolveDbVerticalSlug } from '@/lib/think-tank/verticals';
 import { callLLM } from '@/lib/llm/unified-llm';
 import { parseJson } from './json-utils';
 import { classifyVerticalUnified } from './topic-classifier';
@@ -390,12 +390,19 @@ export async function signalDetector(input: SignalDetectorInput): Promise<Signal
   // Group sources by vertical
   const sourcesByVertical = new Map<string, any[]>();
   
+  // Classifiers emit researcher-routing slugs (tech-innovation, …); the DB
+  // vertical table uses editorial slugs. Normalize both sides of the filter
+  // and the map lookup or every non-geopolitics signal is silently dropped.
+  const inputDbSlug = resolveDbVerticalSlug(input.verticalSlug);
+
   for (const source of sources) {
-    const verticalSlug = classifyVerticalUnified({ title: source.title ?? undefined, abstract: source.abstract ?? undefined }) || classifyVertical(source) || undefined;
+    const rawSlug = classifyVerticalUnified({ title: source.title ?? undefined, abstract: source.abstract ?? undefined }) || classifyVertical(source) || undefined;
+    if (!rawSlug) continue;
+    const verticalSlug = resolveDbVerticalSlug(rawSlug);
     if (!verticalSlug) continue;
-    
+
     // Filter by specific vertical if requested
-    if (input.verticalSlug && verticalSlug !== input.verticalSlug) continue;
+    if (inputDbSlug && verticalSlug !== inputDbSlug) continue;
     
     if (!sourcesByVertical.has(verticalSlug)) {
       sourcesByVertical.set(verticalSlug, []);

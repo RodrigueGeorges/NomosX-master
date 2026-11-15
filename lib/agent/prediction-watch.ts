@@ -150,9 +150,8 @@ export async function runPredictionWatch(
     existing.map(s => /\[PRED:([^\]]+)\]/.exec(s.summary)?.[1]).filter(Boolean) as string[],
   );
 
-  const defaultVertical = await prisma.vertical.findFirst({
-    where: { isActive: true }, select: { id: true },
-  });
+  const { pickLeastCoveredVertical } = await import('./vertical-resolution');
+  const defaultVertical = await pickLeastCoveredVertical();
   if (!defaultVertical) return { items: [], fired: 0, scanned: predictions.length };
 
   // P2/8: cross-cycle dossier memory — dossiers under active watch carry a

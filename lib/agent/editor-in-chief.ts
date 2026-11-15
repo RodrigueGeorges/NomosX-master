@@ -187,8 +187,9 @@ export async function editorialTriage(
   // clearly superior topic is never displaced for balance.
   const agenda = options?.agenda;
   if (agenda && agenda.deficitSlugs.length > 0 && decisions.length > 1) {
+    const { resolveDbVerticalSlug } = await import('../think-tank/verticals');
     const hasDeficitPick = decisions.some(d =>
-      d.classification?.verticalSlug && agenda.deficitSlugs.includes(d.classification.verticalSlug));
+      d.classification?.verticalSlug && agenda.deficitSlugs.includes(resolveDbVerticalSlug(d.classification.verticalSlug) ?? ''));
     if (!hasDeficitPick) {
       const droppedSorted = [...droppedForDiversity]
         .filter(d => !diverseSelected.includes(d)) // backfilled picks are already selected
@@ -198,7 +199,7 @@ export async function editorialTriage(
         if (!topic) continue;
         const cls = await classifyTopic(topic.title, topic.summary).catch(() => null);
         totalCost += cls?.costUsd ?? 0;
-        const slug = cls?.verticalSlug;
+        const slug = resolveDbVerticalSlug(cls?.verticalSlug);
         if (!slug || !agenda.deficitSlugs.includes(slug)) continue;
         const worstIdx = decisions.reduce(
           (mi, d, i) => (d.priority < decisions[mi].priority ? i : mi), 0);

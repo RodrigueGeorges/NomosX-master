@@ -15,6 +15,7 @@ import { prisma } from '@/lib/db';
 import { callLLM } from '@/lib/llm/unified-llm';
 import { parseJson } from './json-utils';
 import { AgentRole,assertPermission } from '@/lib/governance/index';
+import { resolveDbVerticalSlug } from '@/lib/think-tank/verticals';
 
 // ============================================================================
 // TYPES
@@ -386,15 +387,16 @@ Only report REAL shifts with confidence ≥ 60. But DO look for counter-trends a
 async function createTrendSignal(trend: TrendBreak, verticalSlug?: string): Promise<void> {
   // Find vertical ID
   let verticalId: string | null = null;
-  if (verticalSlug) {
-    const vertical = await prisma.vertical.findFirst({ where: { slug: verticalSlug } });
+  const dbSlug = resolveDbVerticalSlug(verticalSlug);
+  if (dbSlug) {
+    const vertical = await prisma.vertical.findFirst({ where: { slug: dbSlug } });
     verticalId = vertical?.id || null;
   }
-  
+
   if (!verticalId) {
-    // Use default vertical
-    const defaultVertical = await prisma.vertical.findFirst({ where: { isActive: true } });
-    verticalId = defaultVertical?.id || null;
+    // Use the least-covered active vertical rather than an arbitrary first row
+    const { pickLeastCoveredVertical } = await import('./vertical-resolution');
+    verticalId = (await pickLeastCoveredVertical())?.id || null;
   }
   
   if (!verticalId) {

@@ -154,24 +154,8 @@ async function resolveVertical(
   verticalId?: string,
   verticalSlug?: string
 ): Promise<{ id: string; slug: string } | null> {
-  if (verticalId) {
-    const v = await prisma.vertical.findUnique({
-      where: { id: verticalId },
-      select: { id: true, slug: true },
-    });
-    if (v) return v;
-  }
-  if (verticalSlug) {
-    const v = await prisma.vertical.findUnique({
-      where: { slug: verticalSlug },
-      select: { id: true, slug: true },
-    });
-    if (v) return v;
-  }
-  return prisma.vertical.findFirst({
-    where: { isActive: true },
-    select: { id: true, slug: true },
-  });
+  const { resolveVerticalRecord } = await import('./vertical-resolution');
+  return resolveVerticalRecord(verticalId, verticalSlug);
 }
 
 function mergePipelineOptions(req: InquiryPublishRequest): StrategicPipelineOptions {

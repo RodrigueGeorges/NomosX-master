@@ -632,15 +632,15 @@ async function collectWeeklyItems(
       const topicClassification = await classifyTopic(proposal.topic).catch(() => null);
       const matchedSlug = topicClassification?.verticalSlug || getVerticalForTopic(proposal.topic);
 
-      const vertical = matchedSlug
+      const { resolveDbVerticalSlug } = await import('../think-tank/verticals');
+      const { pickLeastCoveredVerticalForDispatch } = await import('./vertical-resolution');
+      const dbSlug = resolveDbVerticalSlug(matchedSlug);
+      const vertical = dbSlug
         ? await prisma.vertical.findUnique({
-            where: { slug: matchedSlug },
+            where: { slug: dbSlug },
             select: { id: true, slug: true, config: true },
           })
-        : await prisma.vertical.findFirst({
-            where: { isActive: true },
-            select: { id: true, slug: true, config: true },
-          });
+        : await pickLeastCoveredVerticalForDispatch();
 
       if (vertical && !verticalHasCapacity(vertical.id, vertical.config, verticalPubCounts)) {
         continue;
@@ -813,11 +813,14 @@ async function ensureSignalForItem(
 ): Promise<void> {
   if (item.signalId) return;
   try {
+    const { resolveDbVerticalSlug } = await import('../think-tank/verticals');
+    const { pickLeastCoveredVertical } = await import('./vertical-resolution');
+    const itemDbSlug = resolveDbVerticalSlug(item.verticalSlug);
     const verticalId = item.verticalId ?? resolvedVerticalId
-      ?? (item.verticalSlug
-        ? (await prisma.vertical.findUnique({ where: { slug: item.verticalSlug }, select: { id: true } }))?.id
+      ?? (itemDbSlug
+        ? (await prisma.vertical.findUnique({ where: { slug: itemDbSlug }, select: { id: true } }))?.id
         : undefined)
-      ?? (await prisma.vertical.findFirst({ where: { isActive: true }, select: { id: true } }))?.id;
+      ?? (await pickLeastCoveredVertical())?.id;
     if (!verticalId) return;
     // Propagate the resolved vertical — the pipeline call and the hold
     // diagnostic both read item.verticalId, not the worker-local variable.
@@ -963,10 +966,14 @@ export async function executeDispatchQueue(
     // Resolve vertical for capacity gate
     let verticalId = item.verticalId;
     if (!verticalId && item.verticalSlug) {
-      const v = await prisma.vertical.findUnique({
-        where: { slug: item.verticalSlug },
-        select: { id: true, config: true },
-      });
+      const { resolveDbVerticalSlug } = await import('../think-tank/verticals');
+      const dbSlug = resolveDbVerticalSlug(item.verticalSlug);
+      const v = dbSlug
+        ? await prisma.vertical.findUnique({
+            where: { slug: dbSlug },
+            select: { id: true, config: true },
+          })
+        : null;
       verticalId = v?.id;
       if (v && !verticalHasCapacity(v.id, v.config, verticalPubCounts)) {
         skipped++;
@@ -1080,7 +1087,9 @@ export async function executeDispatchQueue(
       // surface area at all. Conservative threshold + fail-open: only a
       // near-zero footprint everywhere skips the funnel. Skipped items are
       // re-evaluated next cycle — coverage can appear later.
-      if (process.env.NOMOSX_VIABILITY_PROBE !== '0') {
+      // NODE_ENV=test guard: unit tests mock the orchestrator to 'failed',
+      // which would otherwise trigger live feed/API calls here.
+      if (process.env.NOMOSX_VIABILITY_PROBE !== '0' && process.env.NODE_ENV !== 'test') {
         try {
           const { probeTopicViability } = await import('./topic-viability');
           const probe = await probeTopicViability(item.question);

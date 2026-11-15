@@ -16,9 +16,21 @@ jest.mock('@/lib/agent/inquiry-orchestrator', () => ({
 }));
 jest.mock('@/lib/db', () => ({
   prisma: {
-    vertical: { findUnique: jest.fn() },
+    vertical: {
+      findUnique: jest.fn(),
+      findMany: jest.fn().mockResolvedValue([]),
+    },
+    thinkTankPublication: {
+      groupBy: jest.fn().mockResolvedValue([]),
+    },
     signal: { update: jest.fn().mockResolvedValue({}) },
   },
+}));
+jest.mock('@/lib/agent/topic-viability', () => ({
+  probeTopicViability: jest.fn().mockResolvedValue({
+    viable: true, relevant: 10, threshold: 4, durationMs: 1,
+    raw: { openAlex: 0, crossref: 0, thinkTanks: 0 },
+  }),
 }));
 jest.mock('@/lib/agent/budget-manager', () => ({
   checkBudgetGate: jest.fn().mockResolvedValue('ok'),
