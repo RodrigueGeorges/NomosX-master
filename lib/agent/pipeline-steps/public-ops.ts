@@ -223,7 +223,7 @@ export async function validateTopicConsistency(
   // 1. Check source relevance distribution
   const relevantSources = sources.filter(source => {
     const relevance = calculateBasicRelevance(originalQuery, source);
-    return relevance > 0.5;
+    return relevance >= 1 / 3;
   });
   
   const relevanceRatio = relevantSources.length / sources.length;
@@ -248,19 +248,42 @@ export async function validateTopicConsistency(
   };
 }
 
+const QUERY_STOPWORDS = new Set([
+  'how', 'why', 'what', 'when', 'where', 'which', 'who', 'whom', 'whose',
+  'the', 'and', 'for', 'are', 'was', 'were', 'has', 'have', 'had', 'not',
+  'but', 'with', 'from', 'that', 'this', 'these', 'those', 'its', 'our',
+  'their', 'they', 'them', 'can', 'could', 'will', 'would', 'should', 'may',
+  'might', 'must', 'shall', 'into', 'over', 'under', 'than', 'then', 'such',
+  'between', 'among', 'about', 'against', 'through', 'during', 'before',
+  'after', 'does', 'did', 'done', 'being', 'been', 'more', 'most', 'some',
+  'any', 'all', 'each', 'other', 'another', 'both', 'few', 'many', 'much',
+  'own', 'same', 'only', 'very', 'just', 'also', 'too', 'now',
+]);
+
+function queryContentTerms(query: string): string[] {
+  return query.toLowerCase().split(/[^a-zàâäéèêëîïôöùûüç0-9]+/i)
+    .filter(t => t.length > 2 && !QUERY_STOPWORDS.has(t));
+}
+
 /**
- * Basic relevance calculation for validation
+ * Basic relevance calculation for validation.
+ * Compares only content terms (stopwords removed): requiring >50% coverage
+ * of the raw question made every real source "irrelevant" — question words
+ * like "how do" can never appear in a paper title.
  */
 function calculateBasicRelevance(query: string, source: any): number {
-  const queryTerms = query.toLowerCase().split(/\s+/).filter(t => t.length > 2);
+  const queryTerms = queryContentTerms(query);
+  if (queryTerms.length === 0) return 1;
   const content = `${source.title || ''} ${source.abstract || ''}`.toLowerCase();
-  
+
   let matches = 0;
   queryTerms.forEach(term => {
     if (content.includes(term)) matches++;
   });
-  
-  return queryTerms.length > 0 ? matches / queryTerms.length : 0;
+
+  // A source matching at least a third of the content terms is on-topic;
+  // below that it is likely a generic provider match.
+  return matches / queryTerms.length;
 }
 
 export async function analyst(question: string, sources: any[], readings?: any[]) {
