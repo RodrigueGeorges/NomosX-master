@@ -76,6 +76,18 @@ if (redis && typeof window === 'undefined') {
   process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 }
 
+// A dead cache backend (e.g. Upstash DNS unreachable) makes every cache op
+// throw — logging the full stack each time floods the run log. Log the first
+// failure verbosely, then at most one line per 5min.
+let lastCacheErrorLog = 0;
+function logCacheError(op: string, error: unknown): void {
+  const now = Date.now();
+  if (now - lastCacheErrorLog > 5 * 60 * 1000) {
+    lastCacheErrorLog = now;
+    console.error(`Cache ${op} error:`, error);
+  }
+}
+
 // Helper functions for caching
 export const cacheHelpers = {
   // Set cache with TTL
@@ -86,7 +98,7 @@ export const cacheHelpers = {
       await redis.setex(key, ttl, JSON.stringify(value));
       return true;
     } catch (error) {
-      console.error('Cache set error:', error);
+      logCacheError('set', error);
       return false;
     }
   },
@@ -99,7 +111,7 @@ export const cacheHelpers = {
       const value = await redis.get(key);
       return value ? JSON.parse(value) : null;
     } catch (error) {
-      console.error('Cache get error:', error);
+      logCacheError('get', error);
       return null;
     }
   },
@@ -112,7 +124,7 @@ export const cacheHelpers = {
       await redis.del(key);
       return true;
     } catch (error) {
-      console.error('Cache del error:', error);
+      logCacheError('del', error);
       return false;
     }
   },
@@ -125,7 +137,7 @@ export const cacheHelpers = {
       await redis.flushdb();
       return true;
     } catch (error) {
-      console.error('Cache flush error:', error);
+      logCacheError('flush', error);
       return false;
     }
   },
@@ -138,7 +150,7 @@ export const cacheHelpers = {
       const result = await redis.ping();
       return result === 'PONG';
     } catch (error) {
-      console.error('Redis ping error:', error);
+      logCacheError('ping', error);
       return false;
     }
   },
@@ -162,7 +174,7 @@ export const cacheHelpers = {
       
       return { allowed, remaining, resetTime };
     } catch (error) {
-      console.error('Rate limit error:', error);
+      logCacheError('rateLimit', error);
       return { allowed: true, remaining: limit - 1, resetTime: Date.now() + window * 1000 };
     }
   }
