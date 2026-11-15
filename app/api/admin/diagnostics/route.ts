@@ -13,8 +13,6 @@ import { env } from '@/lib/env';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 30;
 
-const num = (v: unknown) => (typeof v === 'number' ? v : null);
-
 export async function GET(req: NextRequest) {
   const key = req.headers.get('x-admin-key') ?? req.nextUrl.searchParams.get('key');
   if (!env.ADMIN_KEY || key !== env.ADMIN_KEY) {
@@ -24,7 +22,7 @@ export async function GET(req: NextRequest) {
   const hours = Math.min(Number(req.nextUrl.searchParams.get('hours') ?? 48) || 48, 24 * 30);
   const since = new Date(Date.now() - hours * 3600_000);
 
-  const [publications, pipelineRuns, signals, decisions] = await Promise.all([
+  const [publications, pipelineRuns, signals, decisions, costLogs] = await Promise.all([
     prisma.thinkTankPublication.findMany({
       where: { createdAt: { gte: since } },
       orderBy: { createdAt: 'desc' },
@@ -32,7 +30,7 @@ export async function GET(req: NextRequest) {
       select: {
         id: true, title: true, type: true, status: true, language: true,
         trustScore: true, qualityScore: true, wordCount: true,
-        createdAt: true, publishedAt: true,
+        createdAt: true, publishedAt: true, criticalLoopResult: true,
         vertical: { select: { slug: true } },
       },
     }),
@@ -69,7 +67,37 @@ export async function GET(req: NextRequest) {
         signal: { select: { title: true } },
       },
     }),
+    prisma.costLog.findMany({
+      where: { createdAt: { gte: since } },
+      orderBy: { createdAt: 'desc' },
+      take: 2000,
+      select: {
+        operation: true, provider: true, model: true,
+        costUsd: true, tokensTotal: true, createdAt: true,
+      },
+    }),
   ]);
+
+  // Provider/model spend breakdown — reveals which models actually served
+  // the runs (GLM vs freepool fallback) and where the budget went.
+  const costByProvider: Record<string, { calls: number; costUsd: number; tokens: number }> = {};
+  const costByOperation: Record<string, { calls: number; costUsd: number }> = {};
+  for (const c of costLogs) {
+    const pk = `${c.provider}/${c.model ?? '?'}`;
+    costByProvider[pk] = costByProvider[pk] ?? { calls: 0, costUsd: 0, tokens: 0 };
+    costByProvider[pk].calls++;
+    costByProvider[pk].costUsd += c.costUsd || 0;
+    costByProvider[pk].tokens += c.tokensTotal || 0;
+    costByOperation[c.operation] = costByOperation[c.operation] ?? { calls: 0, costUsd: 0 };
+    costByOperation[c.operation].calls++;
+    costByOperation[c.operation].costUsd += c.costUsd || 0;
+  }
+  for (const k of Object.keys(costByProvider)) {
+    costByProvider[k].costUsd = Math.round(costByProvider[k].costUsd * 10000) / 10000;
+  }
+  for (const k of Object.keys(costByOperation)) {
+    costByOperation[k].costUsd = Math.round(costByOperation[k].costUsd * 10000) / 10000;
+  }
 
   // Aggregate gate outcomes so "tokens burned, nothing published" is visible.
   const pubByStatus: Record<string, number> = {};
@@ -89,11 +117,27 @@ export async function GET(req: NextRequest) {
       count: publications.length,
       byStatus: pubByStatus,
       byVerticalLangStatus: pubByVerticalLang,
-      items: publications.map(p => ({
-        ...p,
-        title: p.title.slice(0, 140),
-        vertical: p.vertical.slug,
-      })),
+      items: publications.map(p => {
+        // Extract gate verdict detail from criticalLoopResult — the "why
+        // HELD" answer lives in publicationGate.checks + DA verdict.
+        const clr: any = p.criticalLoopResult ?? {};
+        const gate: any = clr.publicationGate ?? {};
+        const checks: any[] = Array.isArray(gate.checks) ? gate.checks : [];
+        return {
+          id: p.id, title: p.title.slice(0, 140), type: p.type, status: p.status,
+          language: p.language, trustScore: p.trustScore, qualityScore: p.qualityScore,
+          wordCount: p.wordCount, createdAt: p.createdAt, publishedAt: p.publishedAt,
+          vertical: p.vertical.slug,
+          gate: {
+            decision: gate.decision ?? null,
+            failedChecks: checks.filter(c => c && c.passed === false).map(c => `${c.name}:${c.score ?? c.details ?? ''}`.slice(0, 120)),
+            checkScores: checks.filter(c => c && typeof c.score === 'number').map(c => `${c.name}=${c.score}`).slice(0, 12),
+          },
+          devilsAdvocate: clr.devilsAdvocateVerdict
+            ? { verdict: clr.devilsAdvocateVerdict.verdict ?? clr.devilsAdvocateVerdict.decision ?? null, publishability: clr.devilsAdvocateVerdict.publishabilityScore ?? null }
+            : null,
+        };
+      }),
     },
     pipelineRuns: {
       count: pipelineRuns.length,
@@ -116,6 +160,12 @@ export async function GET(req: NextRequest) {
         title: s.title.slice(0, 120),
         vertical: s.vertical.slug,
       })),
+    },
+    llmSpend: {
+      totalCostUsd: Math.round(costLogs.reduce((a, c) => a + (c.costUsd || 0), 0) * 10000) / 10000,
+      calls: costLogs.length,
+      byProvider: costByProvider,
+      byOperation: costByOperation,
     },
     editorialDecisions: decisions.map(d => ({
       ...d,
