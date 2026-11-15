@@ -144,7 +144,7 @@ export async function runThesisBindingRepair(
   // and a skipped repair routed straight to the gate.
   // Opt-in (NOMOSX_THESIS_VERDICT_REPAIR=1): the narrowing call changes the
   // recorded call stream — fixtures recorded without it would miss.
-  const verdictRepairEnabled = process.env.NOMOSX_THESIS_VERDICT_REPAIR === '1';
+  const verdictRepairEnabled = process.env.NOMOSX_THESIS_VERDICT_REPAIR !== '0';
   if (verdictRepairEnabled && binding?.statement && binding.evaluationComplete === true && binding.adhered === false) {
     const narrowed = await attemptVerdictNarrowingRepair(deps);
     if (narrowed) {

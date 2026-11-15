@@ -516,7 +516,7 @@ CITATION RULES (NON-NEGOTIABLE):
 - Do NOT extract numbers you cannot trace to a specific source's extracted text.
 - If a source mentions a number, extract it WITH the [SRC-N] tag.
 - CITATION SPREAD: Extract dataPoints from as many different GROUNDED sources as possible. You MUST cite at least ${Math.max(3, Math.ceil(groundedCount * 0.7))} distinct sources across all mechanisms. Do not over-rely on 3-4 sources — each grounded source was extracted for a reason. Go through them systematically and extract at least one dataPoint from each relevant one. Claims without [SRC-N] citations WILL BE DELETED from the final report.
-- CITATION QUALITY: Each source shows its Quality score. When several GROUNDED sources support the same claim, anchor the citation to the HIGHEST-Quality one — load-bearing claims must rest on your strongest evidence, not the weakest source that happens to mention it. Reserve low-Quality sources (<40/100) for context or corroboration, never as sole support for a key mechanism.${boundThesis && process.env.NOMOSX_THESIS_PROMPT_CONTRACT === '1' ? `
+- CITATION QUALITY: Each source shows its Quality score. When several GROUNDED sources support the same claim, anchor the citation to the HIGHEST-Quality one — load-bearing claims must rest on your strongest evidence, not the weakest source that happens to mention it. Reserve low-Quality sources (<40/100) for context or corroboration, never as sole support for a key mechanism.${boundThesis && process.env.NOMOSX_THESIS_PROMPT_CONTRACT !== '0' ? `
 
 EVIDENCE-BOUND THESIS SCOPE (mandatory):
 A thesis has been bound to this corpus as the central claim: "${boundThesis}"
@@ -671,7 +671,7 @@ mechanism and collision, explicitly check whether it is vulnerable to
 each objection class below — a mechanism that repeats a known fatal
 pattern must be marked "breaks" or "cracks" with the objection named in
 reasoning, not waved through:
-${priorObjections.map((o, i) => `${i + 1}. ${o}`).join('\n')}` : ''}${boundThesis && process.env.NOMOSX_THESIS_PROMPT_CONTRACT === '1' ? `
+${priorObjections.map((o, i) => `${i + 1}. ${o}`).join('\n')}` : ''}${boundThesis && process.env.NOMOSX_THESIS_PROMPT_CONTRACT !== '0' ? `
 
 EVIDENCE-BOUND THESIS SCOPE (mandatory):
 A thesis has been bound to this corpus as the central claim: "${boundThesis}"
@@ -1025,7 +1025,7 @@ point to another future_extrapolation — only to a present_fact or
 active_mechanism.${premortem ? `
 
 ADVERSARIAL PREMORTEM (independent hostile review — mandatory constraints, designed around BEFORE you write):
-${premortem}` : ''}${boundThesis && process.env.NOMOSX_THESIS_PROMPT_CONTRACT === '1' ? `
+${premortem}` : ''}${boundThesis && process.env.NOMOSX_THESIS_PROMPT_CONTRACT !== '0' ? `
 
 EVIDENCE-BOUND THESIS CONTRACT (mandatory — verified after generation):
 A thesis has been bound to this corpus as the central claim: "${boundThesis}"
@@ -1614,7 +1614,7 @@ export async function analystAgentV3(
       // the analyst's reasoning). Its objections become mandatory
       // constraints inside the Pass-3 prompt.
       let premortemText: string | undefined;
-      if (options?.boundThesis && process.env.NOMOSX_THESIS_PREMORTEM === '1') {
+      if (options?.boundThesis && process.env.NOMOSX_THESIS_PREMORTEM !== '0') {
         try {
           const { callLLM } = await import('../llm/unified-llm');
           const { parseJson } = await import('./json-utils');
@@ -1741,7 +1741,7 @@ export async function analystAgentV3(
     // so the pipeline-level repair/gate path handles it unchanged.
     let inlineGateCost = 0;
     let inlineThesisGateMeta: Record<string, unknown> | undefined;
-    if (options?.boundThesis && process.env.NOMOSX_THESIS_INLINE_GATE === '1' && prunedAnalysis.verdict) {
+    if (options?.boundThesis && process.env.NOMOSX_THESIS_INLINE_GATE !== '0' && prunedAnalysis.verdict) {
       try {
         const { checkThesisAdherence } = await import('./hypothesis-engine');
         const adh = await checkThesisAdherence(prunedAnalysis.verdict, options.boundThesis);

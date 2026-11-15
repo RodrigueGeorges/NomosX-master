@@ -130,8 +130,8 @@ export async function GET(req: NextRequest) {
           vertical: p.vertical.slug,
           gate: {
             decision: gate.decision ?? null,
-            failedChecks: checks.filter(c => c && c.passed === false).map(c => `${c.name}:${c.score ?? c.details ?? ''}`.slice(0, 120)),
-            checkScores: checks.filter(c => c && typeof c.score === 'number').map(c => `${c.name}=${c.score}`).slice(0, 12),
+            failedChecks: checks.filter(c => c && c.passed === false).map(c => `${c.checkType ?? c.name}:${(c.score ?? c.details ?? '').toString().slice(0, 110)}`),
+            checkScores: checks.filter(c => c && typeof c.score === 'number').map(c => `${c.checkType ?? c.name}=${c.score}`).slice(0, 12),
           },
           devilsAdvocate: clr.devilsAdvocateVerdict
             ? { verdict: clr.devilsAdvocateVerdict.verdict ?? clr.devilsAdvocateVerdict.decision ?? null, publishability: clr.devilsAdvocateVerdict.publishabilityScore ?? null }
