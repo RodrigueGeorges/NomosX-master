@@ -5137,3 +5137,15 @@ rotates daily (`--all` for full sweep, `--force` to bypass the 20h
 throttle). `scripts/_agent-monitor.mjs` spawns it ~every 20h and logs
 `canary_done`/`canary_started` events. Results:
 `scripts/_canary-replay.jsonl`.
+
+**Cross-instance run idempotency (2026-11-15):** the in-memory `activeRuns`
+map dedupes only within one serverless instance — concurrent Lambda
+invocations ran the same question in parallel (observed: 3 concurrent
+RUNNING briefs on an already-HELD signal). `pipeline-init` now does a
+DB-backed guard right after `pipelineRun.create`: any OLDER RUNNING row
+with the same normalized `format:question[0:200]` key inside the 2h TTL
+makes the younger row fail fast as `DuplicateRunError` before scout spend;
+the orchestrator maps it to `skipped_duplicate` (not `failed`, so retry
+machinery does not re-spawn it). The younger-loses rule is deterministic
+without locks. Trade-off: a durable-execution resume inside the TTL of a
+stale RUNNING row waits for the 45min zombie sweeper to flip it FAILED.

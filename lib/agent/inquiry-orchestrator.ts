@@ -408,6 +408,13 @@ export async function runAndPublishInquiry(
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     console.error(`[InquiryOrchestrator] Pipeline failed:`, message);
+    // Cross-instance duplicate guard: a parallel run of the same question is
+    // already in flight — this is a skip, not a failure. Reporting 'failed'
+    // would feed the retry/held machinery and re-spawn the duplicate.
+    if ((err as Error)?.name === 'DuplicateRunError') {
+      console.log(`[InquiryOrchestrator] DUPLICATE: ${message.slice(0, 140)}`);
+      return { ...failResult(started, message), status: 'skipped_duplicate' as const };
+    }
     // Timeout-after-publish salvage: the per-format cap can fire while the
     // non-critical tail (knowledge graph, learning loop, hero image) still
     // runs — but the brief + full evaluator stats may already be persisted.

@@ -504,6 +504,47 @@ export async function runPipelineInit(query: string, opts: PipelineCoreOptions) 
     data: { id: opts.executionId, question: query, format: isStrategic ? "strategic" : isMemo ? "memo" : "brief", status: "RUNNING" },
   });
 
+  // ── DB-BACKED IDEMPOTENCY (cross-instance) ──
+  // The in-memory `activeRuns` map only dedupes within ONE serverless
+  // instance — concurrent Lambda invocations each hold a private map, so
+  // the same question ran in parallel (observed live: 3 concurrent RUNNING
+  // briefs on an already-HELD signal, ~$0.60 of duplicate spend).
+  // Two-phase guard around the row we just created:
+  //   A) an OLDER RUNNING row with the same normalized question+format in
+  //      the TTL window means we are the duplicate → fail fast, zero spend;
+  //   B) because check-then-insert races across instances, the LOSER is
+  //      always the younger row — deterministic without locks.
+  {
+    const TTL_MS = IDEMPOTENCY_TTL_MS;
+    const norm = (q: string) => q.trim().toLowerCase().slice(0, 200);
+    const myKey = `${isStrategic ? 'strat' : 'brief'}:${norm(query)}`;
+    let candidates: { id: string; question: string; format: string; createdAt: Date }[] = [];
+    try {
+      candidates = await prisma.pipelineRun.findMany({
+        where: {
+          status: 'RUNNING',
+          id: { not: pipelineRun.id },
+          createdAt: { gte: new Date(Date.now() - TTL_MS) },
+        },
+        select: { id: true, question: true, format: true, createdAt: true },
+        orderBy: { createdAt: 'asc' },
+        take: 50,
+      });
+    } catch { /* DB unreadable — the in-memory guard still applies */ }
+    const dupe = (Array.isArray(candidates) ? candidates : []).find(c =>
+      `${c.format === 'strategic' ? 'strat' : 'brief'}:${norm(c.question)}` === myKey
+    );
+    if (dupe) {
+      const err = new Error(`DUPLICATE RUN: an identical pipeline is already RUNNING (id=${dupe.id.slice(-8)}, started ${Math.round((Date.now() - new Date(dupe.createdAt).getTime()) / 60000)}min ago) — refusing parallel spend on the same question`);
+      err.name = 'DuplicateRunError';
+      await prisma.pipelineRun.update({
+        where: { id: pipelineRun.id },
+        data: { status: 'FAILED', finishedAt: new Date(), error: err.message.slice(0, 500) },
+      }).catch(() => {});
+      throw err;
+    }
+  }
+
   // ── DURABLE EXECUTION (Sprint 6) ──
   // Stable key: resumes must find the same state across retries — keying on
   // pipelineRun.id (fresh per attempt) would never resume. A crashed/timed-out

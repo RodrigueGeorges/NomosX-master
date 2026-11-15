@@ -203,6 +203,20 @@ describe('runAndPublishInquiry — full funnel', () => {
     );
   });
 
+  it('cross-instance duplicate run → skipped_duplicate, not failed', async () => {
+    // The DB idempotency guard throws DuplicateRunError when a parallel
+    // instance is already running the same question. That must surface as a
+    // skip — reporting 'failed' would feed retry machinery and re-spawn it.
+    const dup = new Error('DUPLICATE RUN: an identical pipeline is already RUNNING');
+    dup.name = 'DuplicateRunError';
+    mockRunPipeline.mockRejectedValueOnce(dup);
+
+    const result = await runAndPublishInquiry(REQ);
+
+    expect(result.status).toBe('skipped_duplicate');
+    expect(mockTxPubCreate).not.toHaveBeenCalled();
+  });
+
   it('regen timeout after brief persist → salvages the winning artifact instead of discarding it', async () => {
     // Paid-run finding: the regen persisted a brief (trust=86/quality=80) then
     // died in the non-critical tail at the 25min cap — the orchestrator
