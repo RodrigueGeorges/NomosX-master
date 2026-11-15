@@ -5149,3 +5149,31 @@ the orchestrator maps it to `skipped_duplicate` (not `failed`, so retry
 machinery does not re-spawn it). The younger-loses rule is deterministic
 without locks. Trade-off: a durable-execution resume inside the TTL of a
 stale RUNNING row waits for the 45min zombie sweeper to flip it FAILED.
+
+**Evidence-bound regen guard + question reformulation (2026-11-15):**
+Two defects closed on the 1.5°C memo post-mortem. (1) `shouldRegenerate`
+treated `corpus_core_evidence` failure as a substance problem and launched
+a same-corpus rewrite that could not add core sources — reproduced trust
+40 and was discarded by attemptScore (~$0.24 wasted). The check now joins
+`source_depth` in `EVIDENCE_BOUND_CHECKS`: corpus-thin holds skip the
+regen and route to the held-retry path, which DOES repair evidence via
+`priorEvidenceQueries` → bounded scout mission. Verified live: the retry
+scouted 41 sources (amnesty/climate-change-news/datacite/openalex),
+corpus_core_evidence PASS, citation_coverage 57%, thesis adherence PASS —
+the remaining failure was purely analytical framing. (2) When a held
+retry shows deep trust failure (<50) + adversarial framing signal +
+persisted evidence queries, `question-reformulator.ts` proposes ONE
+narrower on-topic question (single cheap `query_reformulation` call,
+~$0.0003) before dispatch. Deterministic validation: 40-280 chars,
+interrogative, not identical, ≥1 surviving original anchor word AND
+≥40% of candidate content words inside the topic vocabulary
+(original ∪ evidence queries, substring-matched). Any refusal keeps the
+original question — the mechanism only adds optionality. Lineage:
+`metadata.questionReformulation` → `criticalLoopResult`. Live validation
+on the real hold produced "comparative regional adaptation strategies
+for climate impacts beyond 1.5°C, Global North vs South" — exactly the
+narrowing the DA kill shot ("category error: political abandonment ≠
+physical forcing") demanded. The original presupposition problem is now
+reformulable instead of retrying the same unanswerable framing.
+Tests: `question-reformulator.test.ts` (12), `revision-controller.test.ts`
+(+2 corpus_core_evidence cases).

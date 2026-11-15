@@ -425,9 +425,36 @@ async function collectHeldRetryItems(maxItems = 1): Promise<{ items: ThinkTankDi
       const evidenceQueries = (Array.isArray(checks.evidenceQueries) ? checks.evidenceQueries : [])
         .filter((q): q is string => typeof q === 'string' && q.length > 10)
         .slice(0, 6);
-      console.log(`[ThinkTank] HELD RETRY: "${sig.title.slice(0, 60)}" — attempt ${priorHolds + 1} (lastTrust=${checks.trustScore ?? '?'}, feedback ${feedback.length}ch, ${evidenceQueries.length} evidence queries)`);
+      // Evidence-bounded question reformulation: when the hold is a deep
+      // trust failure WITH an adversarial framing signal, retrieval repair
+      // alone cannot fix a presupposition the corpus contradicts (observed:
+      // 1.5°C memo — DA kill shot "category error", two HELD attempts).
+      // One cheap call proposes a narrower on-topic question; deterministic
+      // validation decides acceptance — the original is kept on any refusal.
+      let dispatchQuestion = sig.title;
+      let reformulation: { original: string; question: string; rationale: string } | undefined;
+      try {
+        const { shouldAttemptQuestionReformulation, reformulateHeldQuestion } = await import('./question-reformulator');
+        const decision = shouldAttemptQuestionReformulation({
+          lastTrust: typeof checks.trustScore === 'number' ? checks.trustScore : undefined,
+          feedback: typeof checks.failureFeedback === 'string' ? checks.failureFeedback : (lastHold?.reasons ?? []).join('\n'),
+          evidenceQueries,
+        });
+        if (decision.attempt) {
+          const reframed = await reformulateHeldQuestion({
+            originalQuestion: sig.title,
+            feedback: typeof checks.failureFeedback === 'string' ? checks.failureFeedback : (lastHold?.reasons ?? []).join('\n'),
+            evidenceQueries,
+          });
+          if (reframed) {
+            dispatchQuestion = reframed.question;
+            reformulation = { original: sig.title, question: reframed.question, rationale: reframed.rationale };
+          }
+        }
+      } catch { /* reformulation is advisory — never block the retry */ }
+      console.log(`[ThinkTank] HELD RETRY: "${sig.title.slice(0, 60)}" — attempt ${priorHolds + 1} (lastTrust=${checks.trustScore ?? '?'}, feedback ${feedback.length}ch, ${evidenceQueries.length} evidence queries${reformulation ? ', QUESTION REFORMULATED' : ''})`);
       items.push({
-        question: sig.title,
+        question: dispatchQuestion,
         depth: publicationTypeToDepth(selectFormatFromSignal(sig.signalType, sig.priorityScore)),
         verticalId: sig.verticalId,
         signalId: sig.id,
@@ -435,7 +462,10 @@ async function collectHeldRetryItems(maxItems = 1): Promise<{ items: ThinkTankDi
         retryAttempt: priorHolds + 1,
         priorFailureFeedback: feedback || undefined,
         priorEvidenceQueries: evidenceQueries.length ? evidenceQueries : undefined,
-        metadata: { signalType: sig.signalType, priorityScore: sig.priorityScore, heldRetry: true },
+        metadata: {
+          signalType: sig.signalType, priorityScore: sig.priorityScore, heldRetry: true,
+          ...(reformulation ? { questionReformulation: reformulation } : {}),
+        },
       });
     }
   } catch (err) {
