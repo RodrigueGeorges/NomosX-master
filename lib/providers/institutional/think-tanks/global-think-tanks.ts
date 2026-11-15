@@ -71,6 +71,36 @@ const DIRECT_FEEDS: FeedConfig[] = [
   { url: 'https://www.foreignpolicy.com/feed/', provider: 'foreign-policy', issuer: 'Foreign Policy', type: 'article', domain: 'foreign-policy', direct: true },
   { url: 'https://www.economist.com/latest/rss.xml', provider: 'economist', issuer: 'The Economist', type: 'article', domain: 'economics', direct: true },
   { url: 'https://www.ifri.org/fr/rss.xml', provider: 'ifri', issuer: 'IFRI (Institut français des relations internationales)', type: 'analysis', domain: 'geopolitics', direct: true },
+
+  // Domain expansion (feed URLs verified live 2026-11-14) — science,
+  // health, climate/energy, economics, humanitarian. Balances the
+  // foreign-policy skew so non-geopolitics questions get authority too.
+  // ── Science & technology ──
+  { url: 'https://www.science.org/rss/news_current.xml', provider: 'science-mag', issuer: 'Science (AAAS)', type: 'article', domain: 'science', direct: true },
+  { url: 'https://www.newscientist.com/feed/home/', provider: 'newscientist', issuer: 'New Scientist', type: 'article', domain: 'science', direct: true },
+  { url: 'https://www.quantamagazine.org/feed/', provider: 'quanta', issuer: 'Quanta Magazine', type: 'article', domain: 'science', direct: true },
+  { url: 'https://spectrum.ieee.org/feeds/feed.rss', provider: 'ieee-spectrum', issuer: 'IEEE Spectrum', type: 'article', domain: 'tech-policy', direct: true },
+  { url: 'https://arstechnica.com/feed/', provider: 'arstechnica', issuer: 'Ars Technica', type: 'article', domain: 'technology', direct: true },
+  { url: 'https://www.technologyreview.com/feed/', provider: 'mit-tech-review', issuer: 'MIT Technology Review', type: 'article', domain: 'technology', direct: true },
+  { url: 'https://www.eetimes.com/feed/', provider: 'ee-times', issuer: 'EE Times', type: 'article', domain: 'semiconductors', direct: true },
+  { url: 'https://www.eenewseurope.com/feed/', provider: 'eenews-europe', issuer: 'EENews Europe', type: 'article', domain: 'energy', direct: true },
+  { url: 'https://www.tomshardware.com/feeds/all', provider: 'tomshardware', issuer: 'Tom\'s Hardware', type: 'article', domain: 'technology', direct: true },
+  // ── Health ──
+  { url: 'https://www.who.int/rss-feeds/news-english.xml', provider: 'who-news', issuer: 'World Health Organization', type: 'report', domain: 'health', direct: true },
+  // ── Climate & energy ──
+  { url: 'https://www.carbonbrief.org/feed/', provider: 'carbon-brief', issuer: 'Carbon Brief', type: 'analysis', domain: 'climate', direct: true },
+  { url: 'https://www.climatechangenews.com/feed/', provider: 'climate-change-news', issuer: 'Climate Home News', type: 'article', domain: 'climate', direct: true },
+  { url: 'https://energyandcleanair.org/feed/', provider: 'energy-clean-air', issuer: 'Energy & Clean Air', type: 'analysis', domain: 'climate', direct: true },
+  { url: 'https://www.canarymedia.com/feed', provider: 'canary-media', issuer: 'Canary Media', type: 'article', domain: 'energy', direct: true },
+  { url: 'https://www.utilitydive.com/feeds/news/', provider: 'utility-dive', issuer: 'Utility Dive', type: 'article', domain: 'energy', direct: true },
+  { url: 'https://www.pv-magazine.com/feed/', provider: 'pv-magazine', issuer: 'PV Magazine', type: 'article', domain: 'energy', direct: true },
+  // ── Economics ──
+  { url: 'https://voxeu.org/rss.xml', provider: 'voxeu', issuer: 'VoxEU / CEPR', type: 'analysis', domain: 'economics', direct: true },
+  // ── Humanitarian & development ──
+  { url: 'https://reliefweb.int/updates/rss.xml', provider: 'reliefweb', issuer: 'ReliefWeb (UN OCHA)', type: 'report', domain: 'humanitarian', direct: true },
+  { url: 'https://www.afdb.org/en/rss.xml', provider: 'afdb', issuer: 'African Development Bank', type: 'report', domain: 'development', direct: true },
+  { url: 'https://www.socialeurope.eu/feed/', provider: 'social-europe', issuer: 'Social Europe', type: 'analysis', domain: 'social-policy', direct: true },
+  { url: 'https://www.globalpolicy.org/rss.xml', provider: 'globalpolicy', issuer: 'Global Policy Forum', type: 'analysis', domain: 'multilateral', direct: true },
 ];
 
 // ─── Google News RSS fallback for think tanks without public RSS ────────────
