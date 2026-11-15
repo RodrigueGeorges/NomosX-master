@@ -178,7 +178,13 @@ export function createGapRequestProcessor(deps: GapFillDeps) {
         if (keptAdditions.length > 0 && state.reAnalysisBudget > 0) {
           state.reAnalysisBudget--;
           assertExecutionActive();
-          const fresh = await readerAgentV3(keptAdditions, { domain: detectedDomain, maxConcurrency: isFreeRun() ? 2 : 4 });
+          const fresh = await readerAgentV3(keptAdditions, {
+            domain: detectedDomain,
+            maxConcurrency: isFreeRun() ? 2 : 4,
+            // Same per-source budget as reader-block: freepool LLM calls
+            // run 220-300s — the 120s default aborts them mid-flight.
+            timeout: isFreeRun() ? 300000 : isStrategic ? 180000 : undefined,
+          });
           assertExecutionActive();
           emitProgress(pipelineRunId, "GAP_FILL", "started", `Re-analyzing with ${gapEnriched.length} enriched sources...`);
           const gapReReadings = [...readings, ...fresh].map((r: any) => ({

@@ -25,12 +25,32 @@ export interface DoclingParseResult {
 }
 
 export function doclingEnabled(): boolean {
-  return process.env.NOMOSX_DOCLING === "1" && !!quantServiceUrl();
+  return process.env.NOMOSX_DOCLING === "1" && !!quantServiceUrl() && doclingCircuitClosed();
+}
+
+// Consecutive-failure breaker: the service can go slow/unavailable mid-run
+// (observed: 12 successful parses then a streak of 95s timeouts). Without a
+// breaker every PDF pays the full timeout before falling back to pdf-parse.
+const DOCLING_BREAKER_THRESHOLD = 3;
+const DOCLING_BREAKER_COOLDOWN_MS = 10 * 60 * 1000;
+let doclingConsecutiveFailures = 0;
+let doclingOpenUntil = 0;
+
+function doclingCircuitClosed(): boolean {
+  return Date.now() >= doclingOpenUntil;
+}
+
+function noteDoclingFailure(): void {
+  doclingConsecutiveFailures++;
+  if (doclingConsecutiveFailures >= DOCLING_BREAKER_THRESHOLD) {
+    doclingOpenUntil = Date.now() + DOCLING_BREAKER_COOLDOWN_MS;
+    console.warn(`[DOCLING] circuit open for ${DOCLING_BREAKER_COOLDOWN_MS / 60000}min after ${doclingConsecutiveFailures} consecutive failures — pdf-parse only`);
+  }
 }
 
 export async function doclingParsePdf(url: string): Promise<DoclingParseResult | null> {
   const base = quantServiceUrl();
-  if (!base || process.env.NOMOSX_DOCLING !== "1") return null;
+  if (!base || process.env.NOMOSX_DOCLING !== "1" || !doclingCircuitClosed()) return null;
   try {
     const resp = await axios.post(
       `${base}/v1/docling/parse`,
@@ -38,7 +58,12 @@ export async function doclingParsePdf(url: string): Promise<DoclingParseResult |
       { timeout: TIMEOUT_MS, headers: quantAuthHeaders() },
     );
     const d = resp.data;
-    if (typeof d?.text !== "string" || d.text.trim().length < 100) return null;
+    if (typeof d?.text !== "string" || d.text.trim().length < 100) {
+      noteDoclingFailure();
+      return null;
+    }
+    doclingConsecutiveFailures = 0;
+    doclingOpenUntil = 0;
     return {
       text: d.text,
       pages: typeof d.pages === "number" ? d.pages : null,
@@ -47,6 +72,7 @@ export async function doclingParsePdf(url: string): Promise<DoclingParseResult |
       format: typeof d.format === "string" ? d.format : "markdown",
     };
   } catch {
+    noteDoclingFailure();
     return null; // 503/502/timeout — caller falls back to pdf-parse
   }
 }

@@ -203,7 +203,13 @@ export async function rank(
 // ================================
 
 export async function read(sources: any[]) {
-  return await readerAgentV3(sources);
+  // Same adaptive per-source budget as reader-block: freepool LLM calls run
+  // 220-300s — the 120s default aborts them mid-flight into rule_based.
+  const { isFreeRun } = await import('../../free-run');
+  return await readerAgentV3(sources, {
+    maxConcurrency: isFreeRun() ? 2 : 4,
+    timeout: isFreeRun() ? 300000 : 180000,
+  });
 }
 
 // ================================
