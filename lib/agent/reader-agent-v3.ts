@@ -943,7 +943,11 @@ For originalityAssessment: assess whether this work is incremental (extends exis
     });
 
     const extracted = parseJson<any>(response.content);
-    if (!extracted) return ruleBasedExtractionV3(source, text);
+    if (!extracted) {
+      const fallback = ruleBasedExtractionV3(source, text);
+      (fallback as any).extractionError = 'llm_response_unparseable';
+      return fallback;
+    }
 
     return {
       sourceId: source.id,
@@ -1012,7 +1016,9 @@ For originalityAssessment: assess whether this work is incremental (extends exis
     Sentry.captureException(error, { tags: { agent: "reader-v3", sourceId: source.id } });
 
     // Fallback to rule-based
-    return ruleBasedExtractionV3(source, text);
+    const fallback = ruleBasedExtractionV3(source, text);
+    (fallback as any).extractionError = String(error?.message || error).slice(0, 200);
+    return fallback;
   }
 }
 
@@ -1158,13 +1164,22 @@ export async function readerAgentV3(
         results.push(value);
       } catch (err: any) {
         console.warn(`[Reader V3] Failed: ${source.id} — ${err?.message || 'Unknown error'}`);
-        results.push(ruleBasedExtractionV3(source));
+        const fallback = ruleBasedExtractionV3(source);
+        // Tag the fallback so downstream stats can distinguish a real
+        // extraction failure from a genuinely empty source — the corpus
+        // silently degrading to rule_based was invisible in degradedSteps.
+        (fallback as any).extractionError = String(err?.message || err).slice(0, 200);
+        results.push(fallback);
       }
       completed++;
       if (completed % 10 === 0) console.log(`[Reader V3] ${completed}/${total} sources processed`);
       assertExecutionActive();
     }
   }));
+  const extractionFailures = results.filter(r => (r as any).extractionError).length;
+  if (extractionFailures > 0) {
+    console.warn(`[Reader V3] ⚠ ${extractionFailures}/${total} sources fell back to rule_based after extraction failure`);
+  }
 
   // Stats
   const fullText = results.filter(r => r.readingDepth === 'full_text').length;

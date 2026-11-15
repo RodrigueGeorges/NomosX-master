@@ -252,6 +252,17 @@ export async function runReaderBlock(deps: ReaderBlockDeps): Promise<ReaderBlock
   };
   stats.reader = { count: readings.length, fullText: fullTextCount, withQuantData: quantCount, depth: depthBreakdown };
 
+  // Surface per-source extraction failures (timeout/LLM abort/unparseable)
+  // as a degraded step — rule_based fallbacks were previously invisible
+  // here even when most of the corpus failed to extract.
+  const extractionErrors = (readings as any[]).filter(r => r.extractionError);
+  if (extractionErrors.length > 0) {
+    const sample = extractionErrors.slice(0, 3).map(r => `${r.sourceId}: ${String(r.extractionError).slice(0, 80)}`).join(' | ');
+    stats.reader.extractionFailures = extractionErrors.length;
+    recordDegradedStep(stats, 'READER_EXTRACTION',
+      new Error(`${extractionErrors.length}/${readings.length} sources fell back to rule_based — ${sample}`));
+  }
+
   // MINICHECK SHADOW (optional): cheap claim↔document verdicts recorded for
   // calibration against the LLM fact-checker. Never gates — the point is to
   // measure whether a 400×-cheaper model agrees before trusting it upstream.
