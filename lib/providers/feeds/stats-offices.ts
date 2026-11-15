@@ -67,4 +67,25 @@ export const STATS_OFFICE_FEEDS: FeedSource[] = [
   g('knbs', 'Kenya National Bureau of Statistics', 'knbs.or.ke', 'africa'),
   g('nbs-ng', 'National Bureau of Statistics Nigeria', 'nigerianstat.gov.ng', 'africa'),
   g('capmas', 'CAPMAS Egypt', 'capmas.gov.eg', 'africa', 'ar'),
+  // Francophone Africa & Sahel
+  g('ansd-sn', 'ANSD Senegal', 'ansd.sn', 'africa', 'fr'),
+  g('insd-ci', 'INSD Cote d Ivoire', 'insd.ci', 'africa', 'fr'),
+  g('insd-bf', 'INSD Burkina Faso', 'insd.bf', 'africa', 'fr'),
+  g('instat-mg', 'INSTAT Madagascar', 'instat.mg', 'africa', 'fr'),
+  g('instat-ml', 'INSTAT Mali', 'instat-mali.org', 'africa', 'fr'),
+  g('ine-mz', 'INE Mozambique', 'ine.gov.mz', 'africa', 'pt'),
+  g('ine-ao', 'INE Angola', 'ine.gov.ao', 'africa', 'pt'),
+  // Gulf & Middle East
+  g('gastat', 'GASTAT Saudi Arabia', 'stats.gov.sa', 'mena', 'ar'),
+  g('fcsc', 'FCSC UAE', 'fcsc.gov.ae', 'mena', 'ar'),
+  g('pcbs', 'PCBS Palestine', 'pcbs.gov.ps', 'mena', 'ar'),
+  g('jordan-dept-stats', 'Department of Statistics Jordan', 'dosweb.dos.gov.jo', 'mena', 'ar'),
+  // South Asia gaps
+  g('pbs-pk', 'PBS Pakistan', 'pbs.gov.pk', 'asia'),
+  g('bbs-bd', 'BBS Bangladesh', 'bbs.gov.bd', 'asia'),
+  g('dhs-npl', 'CBS Nepal', 'cbs.gov.np', 'asia'),
+  g('dcs-lk', 'DCS Sri Lanka', 'statistics.gov.lk', 'asia'),
+  // Francophone Europe gaps
+  g('insee', 'INSEE France', 'insee.fr', 'eu', 'fr'),
+  g('statbel-fr', 'Statbel BE', 'statbel.fgov.be', 'eu', 'fr'),
 ];

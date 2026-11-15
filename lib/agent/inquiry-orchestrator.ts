@@ -153,7 +153,7 @@ async function findRecentDuplicateTitle(question: string, withinHours = 168): Pr
 async function resolveVertical(
   verticalId?: string,
   verticalSlug?: string
-): Promise<{ id: string; slug: string } | null> {
+): Promise<{ id: string; slug: string; config?: unknown } | null> {
   const { resolveVerticalRecord } = await import('./vertical-resolution');
   return resolveVerticalRecord(verticalId, verticalSlug);
 }
@@ -371,6 +371,13 @@ export async function runAndPublishInquiry(
     `[InquiryOrchestrator] RUN depth=${depth} source=${req.source} vertical=${vertical.slug} q="${question.slice(0, 72)}..."`
   );
 
+  // Publication language — the vertical's preferredLanguage ('en'|'fr') is the
+  // consolidation target: sources arrive in any language and the analyst
+  // writes all output fields in this language. Persisted on the publication
+  // row so /fr/ translations stay consistent.
+  const verticalLang = (vertical.config as any)?.preferredLanguage;
+  const pubLang: 'en' | 'fr' = verticalLang === 'fr' ? 'fr' : 'en';
+
   // 3. Pipeline
   let pipeline: InquiryPipelineResult;
   // A caller-supplied executionId (dispatcher) wins so the outer scope can
@@ -395,7 +402,7 @@ export async function runAndPublishInquiry(
       question,
       depth,
       domain: req.domain,
-      pipelineOptions: { ...mergePipelineOptions(req), executionId },
+      pipelineOptions: { ...mergePipelineOptions(req), executionId, publicationLanguage: pubLang },
       seedSourceIds,
     });
   } catch (err: unknown) {
@@ -1106,6 +1113,7 @@ export async function runAndPublishInquiry(
         citedClaimCount: gate.metrics.citedClaimCount,
         sourceIds,
         status: dbStatus,
+        language: pubLang,
         publishedAt: status === "published" ? new Date() : null,
         publicId: status === "published" ? publicId : undefined,
         criticalLoopResult: toJsonSafe({

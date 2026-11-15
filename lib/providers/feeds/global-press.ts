@@ -222,6 +222,48 @@ export const GLOBAL_PRESS_FEEDS: FeedSource[] = [
   g('elfaro', 'El Faro', 'elfaro.net', ['el-salvador', 'investigation', 'latam'], 'latam', 'es'),
   g('infolibre', 'Infolibre', 'infolibre.es', ['spain', 'investigation'], 'eu', 'es'),
 
+  // ── Regional & non-English depth (NomosX multilingual consolidation) ─────
+  // Francophone Africa & development
+  g('pambazuka', 'Pambazuka News', 'pambazuka.org', ['africa', 'development', 'social-movements'], 'africa'),
+  g('seneweb', 'Seneweb', 'seneweb.com', ['senegal', 'africa', 'francophone'], 'africa', 'fr'),
+  g('burkina24', 'Burkina24', 'burkina24.com', ['burkina-faso', 'africa', 'francophone'], 'africa', 'fr'),
+  g('malijet', 'Malijet', 'malijet.com', ['mali', 'africa', 'francophone'], 'africa', 'fr'),
+  g('actu-jeuneafrique', 'Jeune Afrique actus', 'jeuneafrique.com', ['africa', 'francophone'], 'africa', 'fr'),
+  // Middle East — Arabic & regional depth
+  g('asharq', 'Asharq Al-Awsat', 'asharq.com', ['mena', 'arab-world', 'analysis'], 'mena', 'ar'),
+  g('newarab', 'The New Arab', 'newarab.com', ['mena', 'analysis', 'arab-world'], 'mena'),
+  g('aljazeera-ar', 'Al Jazeera Arabic', 'aljazeera.net', ['mena', 'arab-world', 'news'], 'mena', 'ar'),
+  g('thenational-ar', 'The National Arabic', 'thenationalnews.com', ['mena', 'uae', 'arabic'], 'mena', 'ar'),
+  // South Asia — beyond EN wire copy
+  g('print-in', 'The Print India', 'theprint.in', ['india', 'politics', 'analysis'], 'asia'),
+  g('newslaundry', 'Newslaundry', 'newslaundry.com', ['india', 'investigation', 'media'], 'asia'),
+  g('thewire-hindi', 'The Wire Hindi', 'hindi.thewire.in', ['india', 'hindi', 'news'], 'asia', 'hi'),
+  g('dhaka-tribune', 'Dhaka Tribune', 'dhakatribune.com', ['bangladesh', 'asia'], 'asia'),
+  g('kathmandupost', 'Kathmandu Post', 'kathmandupost.com', ['nepal', 'asia'], 'asia'),
+  // Latin America — Spanish & Portuguese depth
+  g('brasildefato', 'Brasil de Fato', 'brasildefato.com.br', ['brazil', 'latam', 'social-movements'], 'latam', 'pt'),
+  g('operamundi', 'Opera Mundi', 'operamundi.com', ['latam', 'analysis', 'geopolitics'], 'latam', 'pt'),
+  g('eldiario-es', 'elDiario.es', 'eldiario.es', ['spain', 'investigation', 'latam'], 'eu', 'es'),
+  g('ladiaria-uy', 'La Diaria Uruguay', 'ladiaria.com.uy', ['uruguay', 'latam'], 'latam', 'es'),
+  g('pagina12', 'Pagina/12', 'pagina12.com.ar', ['argentina', 'latam', 'analysis'], 'latam', 'es'),
+  g('elmostrador', 'El Mostrador', 'elmostrador.cl', ['chile', 'latam', 'economics'], 'latam', 'es'),
+  // Europe non-EN depth
+  g('fattoquotidiano', 'Il Fatto Quotidiano', 'ilfattoquotidiano.it', ['italy', 'investigation', 'eu'], 'eu', 'it'),
+  g('efsyn', 'EfSyn Greece', 'efsyn.gr', ['greece', 'eu', 'crisis'], 'eu', 'el'),
+  g('novayagazeta-eu', 'Novaya Gazeta Europe', 'novayagazeta.eu', ['russia', 'independent', 'investigation'], 'eu', 'ru'),
+  g('istories', 'iStories', 'istories.media', ['russia', 'investigation'], 'eu', 'ru'),
+  g('insider-ru', 'The Insider', 'theins.ru', ['russia', 'investigation'], 'eu', 'ru'),
+  g('correspondent', 'De Correspondent', 'decorrespondent.nl', ['netherlands', 'analysis', 'longform'], 'eu', 'nl'),
+  g('jempress', 'Jiemian ()', 'jiemian.com', ['china', 'economics', 'business'], 'asia', 'zh'),
+  g('theinitium', 'The Initium HK', 'theinitium.com', ['hong-kong', 'china', 'zh'], 'asia', 'zh'),
+  g('kyodo', 'Kyodo News', 'kyodonews.net', ['japan', 'asia'], 'asia'),
+  g('asahi', 'Asahi Shimbun', 'asahi.com', ['japan', 'asia'], 'asia'),
+  g('hankyoreh', 'Hankyoreh Korea', 'hani.co.kr', ['korea', 'asia'], 'asia'),
+  g('ari', 'ARIJ Jordan', 'arij.net', ['jordan', 'mena', 'investigation'], 'mena', 'ar'),
+  g('alquds', 'Al-Quds English', 'alquds.com', ['palestine', 'mena'], 'mena', 'ar'),
+  g('mexiconewsdaily', 'Mexico News Daily', 'mexiconewsdaily.com', ['mexico', 'latam', 'english'], 'latam'),
+  g('vozpopuli', 'VozPopuli', 'vozpopuli.com', ['spain', 'economics', 'eu'], 'eu', 'es'),
+
   // ── Analysis & longform (verified direct feeds) ─────────────────────────
   d('theconversation', 'The Conversation', 'https://theconversation.com/global/articles.atom', ['academic', 'analysis', 'science'], 'global'),
   d('project-syndicate', 'Project Syndicate', 'https://www.project-syndicate.org/rss', ['economics', 'geopolitics', 'opinion'], 'global'),

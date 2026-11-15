@@ -100,6 +100,9 @@ export type CheckType = typeof CHECK_TYPES[number];
 
 export interface VerticalConfig {
   maxPublicationsPerWeek: number;
+  /** Publication output language — NomosX publishes in EN or FR only.
+   *  Sources in any language are consolidated into this language. */
+  preferredLanguage?: 'en' | 'fr';
   allowedTypes: PublicationType[];
   thresholds: {
     minTrustScore: number;

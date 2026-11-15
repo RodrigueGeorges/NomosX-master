@@ -26,6 +26,7 @@ export const VERTICALS: VerticalDefinition[] = [
     color: "#3B82F6", // blue-500
     config: {
       maxPublicationsPerWeek: 5,
+      preferredLanguage: "fr",
       allowedTypes: ["ARTICLE", "SUMMARY_BRIEF", "DECISION_MEMO", "STRATEGIC_REPORT"] as PublicationType[],
       thresholds: {
         minTrustScore: 75,
@@ -50,6 +51,7 @@ export const VERTICALS: VerticalDefinition[] = [
     color: "#FFFFFF", // white accent
     config: {
       maxPublicationsPerWeek: 4,
+      preferredLanguage: "en",
       allowedTypes: ["ARTICLE", "SUMMARY_BRIEF", "DECISION_MEMO", "STRATEGIC_REPORT"] as PublicationType[],
       thresholds: {
         minTrustScore: 75,
@@ -74,6 +76,7 @@ export const VERTICALS: VerticalDefinition[] = [
     color: "#8B5CF6", // violet-500
     config: {
       maxPublicationsPerWeek: 4,
+      preferredLanguage: "en",
       allowedTypes: ["ARTICLE", "SUMMARY_BRIEF", "DECISION_MEMO", "STRATEGIC_REPORT"] as PublicationType[],
       thresholds: {
         minTrustScore: 75,
@@ -93,6 +96,7 @@ export const VERTICALS: VerticalDefinition[] = [
     color: "#EF4444", // red-500
     config: {
       maxPublicationsPerWeek: 3,
+      preferredLanguage: "fr",
       allowedTypes: ["ARTICLE", "SUMMARY_BRIEF", "DECISION_MEMO", "STRATEGIC_REPORT"] as PublicationType[],
       thresholds: {
         minTrustScore: 80,
@@ -117,6 +121,7 @@ export const VERTICALS: VerticalDefinition[] = [
     color: "#F59E0B", // amber-500
     config: {
       maxPublicationsPerWeek: 3,
+      preferredLanguage: "en",
       allowedTypes: ["ARTICLE", "SUMMARY_BRIEF", "DECISION_MEMO", "STRATEGIC_REPORT"] as PublicationType[],
       thresholds: {
         minTrustScore: 80,
@@ -136,6 +141,7 @@ export const VERTICALS: VerticalDefinition[] = [
     color: "#10B981", // emerald-500
     config: {
       maxPublicationsPerWeek: 3,
+      preferredLanguage: "fr",
       allowedTypes: ["ARTICLE", "SUMMARY_BRIEF", "DECISION_MEMO", "STRATEGIC_REPORT"] as PublicationType[],
       thresholds: {
         minTrustScore: 75,
@@ -160,6 +166,7 @@ export const VERTICALS: VerticalDefinition[] = [
     color: "#6366F1", // indigo-500
     config: {
       maxPublicationsPerWeek: 3,
+      preferredLanguage: "fr",
       allowedTypes: ["ARTICLE", "SUMMARY_BRIEF", "DECISION_MEMO", "STRATEGIC_REPORT"] as PublicationType[],
       thresholds: {
         minTrustScore: 78,
@@ -179,6 +186,7 @@ export const VERTICALS: VerticalDefinition[] = [
     color: "#EC4899", // pink-500
     config: {
       maxPublicationsPerWeek: 3,
+      preferredLanguage: "fr",
       allowedTypes: ["ARTICLE", "SUMMARY_BRIEF", "DECISION_MEMO", "STRATEGIC_REPORT"] as PublicationType[],
       thresholds: {
         minTrustScore: 75,
@@ -198,6 +206,7 @@ export const VERTICALS: VerticalDefinition[] = [
     color: "#8B5CF6", // violet-500
     config: {
       maxPublicationsPerWeek: 2,
+      preferredLanguage: "en",
       allowedTypes: ["ARTICLE", "SUMMARY_BRIEF", "STRATEGIC_REPORT"] as PublicationType[],
       thresholds: {
         minTrustScore: 75,
@@ -217,6 +226,7 @@ export const VERTICALS: VerticalDefinition[] = [
     color: "#22C55E", // green-500
     config: {
       maxPublicationsPerWeek: 3,
+      preferredLanguage: "fr",
       allowedTypes: ["ARTICLE", "SUMMARY_BRIEF", "DECISION_MEMO", "STRATEGIC_REPORT"] as PublicationType[],
       thresholds: {
         minTrustScore: 75,
@@ -241,6 +251,7 @@ export const VERTICALS: VerticalDefinition[] = [
     color: "#06B6D4", // cyan-500
     config: {
       maxPublicationsPerWeek: 2,
+      preferredLanguage: "en",
       allowedTypes: ["ARTICLE", "SUMMARY_BRIEF", "STRATEGIC_REPORT"] as PublicationType[],
       thresholds: {
         minTrustScore: 78,
@@ -260,6 +271,7 @@ export const VERTICALS: VerticalDefinition[] = [
     color: "#A855F7", // purple-500
     config: {
       maxPublicationsPerWeek: 2,
+      preferredLanguage: "fr",
       allowedTypes: ["ARTICLE", "SUMMARY_BRIEF", "STRATEGIC_REPORT"] as PublicationType[],
       thresholds: {
         minTrustScore: 75,

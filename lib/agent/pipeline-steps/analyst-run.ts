@@ -195,6 +195,7 @@ export async function runAnalystExecution(deps: AnalystRunDeps): Promise<Analyst
       // Evidence-bound thesis — the pre-draft review checks the pass-1
       // direction against it before passes 2-3 invest in the draft.
       boundThesis: (stats as any).thesisBinding?.statement,
+          language: (stats as any)?.publicationLanguage,
       // Per-pass checkpoints inside the multipass: the 'analyst' outer step
       // still caches the final result; inner passes bound the loss window to
       // ~1 pass instead of the whole 3-pass run when the worker dies mid-way.
@@ -226,6 +227,7 @@ export async function runAnalystExecution(deps: AnalystRunDeps): Promise<Analyst
         domain: detectedDomain,
         depth: "strategic",
         boundThesis: (stats as any).thesisBinding?.statement,
+          language: (stats as any)?.publicationLanguage,
       });
       // Candidate selection by structural coverage — the outline critic scores
       // how much of the question's required dimensions each analysis actually

@@ -21,6 +21,10 @@ export interface EvalVersionTag {
 }
 
 export interface PipelineStats {
+  /** Target publication language ('en'|'fr') — set from the vertical's
+   *  preferredLanguage; every analyst (re)generation honors it so repairs
+   *  can't flip the output language mid-pipeline. */
+  publicationLanguage?: 'en' | 'fr';
   institutePosition?: import('./editorial-types').InstitutePosition;
   centralScenario?: import('./editorial-types').CentralScenarioDecision;
   centralScenarioRequired?: boolean;

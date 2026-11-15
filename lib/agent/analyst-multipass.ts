@@ -382,7 +382,10 @@ PROTOCOL:
 - Execute the mission's output schema exactly. Output ONLY the JSON object
   it specifies — no markdown fences, no prose outside JSON.
 - Every extracted fact and dataPoint must cite its source via [SRC-N].
-  Uncited content is deleted downstream.`;
+  Uncited content is deleted downstream.
+- SOURCES MAY BE IN ANY LANGUAGE. Read and cite them regardless of language;
+  all output fields are written in the target language declared at the end
+  of this message — never in the sources' languages, never mixed.`;
 
 /** Byte-identical shared prefix across all three passes — do NOT vary the
  *  text between calls or the provider prefix cache misses. */
@@ -1396,13 +1399,23 @@ export async function analystAgentV3(
     boundThesis?: string;
     /** Set false to skip the pre-draft scope review (default: run). */
     preDraftReview?: boolean;
+    /** Target output language — 'en' | 'fr' (vertical preferredLanguage).
+     *  Sources arrive in any language; all output fields are written in this
+     *  language. Overrides question-language detection when set. */
+    language?: 'en' | 'fr';
   }
 ): Promise<MultiPassAnalysis> {
   assertPermission(AgentRole.ANALYST, "write:analysis");
 
   const startTime = Date.now();
   const avgQuality = Math.round(sources.reduce((sum, s) => sum + (s.qualityScore || 0), 0) / Math.max(sources.length, 1));
-  const lang = detectLanguage(question);
+  // Publication language: explicit target (vertical preferredLanguage) wins;
+  // otherwise fall back to question-language detection. Sources in any
+  // language are consolidated into the target — the prompt only controls
+  // output language, never source selection.
+  const lang = options?.language === 'fr' ? 'FRENCH'
+    : options?.language === 'en' ? 'ENGLISH'
+    : detectLanguage(question);
   const { ctx: builtCtx, groundedCount, groundedIndices } = buildSourceContext(sources, readings, options?.depth);
   let ctx = builtCtx;
   if (groundedCount < sources.length) {

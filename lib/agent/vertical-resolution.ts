@@ -19,9 +19,12 @@ import { resolveDbVerticalSlug } from '../think-tank/verticals';
 export interface ResolvedVertical {
   id: string;
   slug: string;
+  /** Vertical config JSON — carries preferredLanguage ('en'|'fr'),
+   *  maxPublicationsPerWeek, thresholds. */
+  config?: unknown;
 }
 
-const SELECT = { id: true, slug: true } as const;
+const SELECT = { id: true, slug: true, config: true } as const;
 
 /**
  * Active vertical with the fewest publications all-time. Deterministic

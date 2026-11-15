@@ -5081,3 +5081,18 @@ silently re-creates the black hole. `POST /api/admin/seed-verticals`
 zero publications — a quiet month must not disable the deficit signal.
 The viability probe is skipped under `NODE_ENV=test` (it performs live
 feed calls inside `executeDispatchQueue`).
+
+**Publication language (multilingual consolidation, 2026-11):**
+`VerticalConfig.preferredLanguage` ('en'|'fr') is the single output-language
+target — 6 verticals each. `inquiry-orchestrator` reads it from the resolved
+vertical's `config` JSON, passes it as `pipelineOptions.publicationLanguage`,
+and persists it on `ThinkTankPublication.language`. `runPipelineCore` stores
+it in `stats.publicationLanguage`; every `analystMultipass` call site
+(main, TTS candidate, critic repair, gap-fill re-analysis, DA rewrite)
+forwards it so a repair cannot flip the language mid-pipeline.
+`analystAgentV3` maps it to the pass-3 `LANGUAGE:` directive ('FRENCH'/
+'ENGLISH'); unset falls back to `detectLanguage(question)` (FR accents →
+FRENCH). Sources arrive in ANY language — the analyst prompt explicitly
+instructs citing multilingual sources while writing all output fields in
+the target language only. Feed `lang` tags and OpenAlex `language` fields
+are provenance metadata, never output-language selectors.

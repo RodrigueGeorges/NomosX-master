@@ -86,6 +86,10 @@ export interface PipelineCoreOptions {
    *  and durable-key derivation. Passed through by runPipeline; was silently
    *  undefined when only read via (opts as any). */
   format?: string;
+  /** Target publication language — 'en' | 'fr' (NomosX languages). Sources in
+   *  any language are consolidated into this language by the analyst. When
+   *  unset, the analyst falls back to question-language detection. */
+  publicationLanguage?: 'en' | 'fr';
   providers?: Providers;
   perProvider?: number;
   rankOptions?: RankOptions;
@@ -217,6 +221,12 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     ctx, providers, perProvider, flags, cost, selfCorrect, addCost, isBudgetConstrained,
     pipelineRun, durableKey, durable, idempotencyKey,
   } = init;
+  // Publication language target — verticals declare 'en'|'fr'; every analyst
+  // (re)generation reads stats.publicationLanguage so repairs/retries can't
+  // silently flip the output language mid-pipeline.
+  if (opts.publicationLanguage === 'en' || opts.publicationLanguage === 'fr') {
+    stats.publicationLanguage = opts.publicationLanguage;
+  }
   try {
   const briefId = `${isStrategic ? "strategic" : "brief"}-${Date.now()}`;
   const lineage = createLineageTracker(briefId, query);
@@ -1529,6 +1539,7 @@ Return JSON: {"queries": ["...", "..."]} — one query per gap, same order.`,
           domain: detectedDomain,
           depth: isStrategic ? "strategic" : "brief",
           boundThesis: (stats as any).thesisBinding?.statement,
+          language: (stats as any)?.publicationLanguage,
         });
         if (rewrite && typeof rewrite === 'object' && !(rewrite as any)?._meta?.failed) {
           const { runDevilsAdvocate } = await import('./devils-advocate');
@@ -1838,6 +1849,8 @@ export type ReportFormat = "brief" | "memo" | "strategic" | "dossier";
 export interface StrategicPipelineOptions {
   executionId?: string;
   providers?: Providers;
+  /** Target publication language — 'en' | 'fr'. See PipelineCoreOptions. */
+  publicationLanguage?: 'en' | 'fr';
   perProvider?: number;
   rankOptions?: RankOptions;
   /** Hard pipeline timeout in ms. Default: 75min strategic/dossier, 65min brief/memo. */
@@ -1934,6 +1947,7 @@ export async function runStrategicPipeline(
   return runPipelineCore(query, {
     executionId: options.executionId,
     isStrategic: true,
+    publicationLanguage: options.publicationLanguage,
     providers: options.providers,
     perProvider: options.perProvider,
     rankOptions: options.rankOptions,
@@ -2047,6 +2061,7 @@ export async function runPipeline(
         executionId,
         isStrategic,
         format,
+        publicationLanguage: options.publicationLanguage,
         providers: options.providers,
         perProvider,
         rankOptions,

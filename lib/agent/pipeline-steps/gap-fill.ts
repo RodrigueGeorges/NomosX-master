@@ -319,6 +319,7 @@ export async function runGapFillStage(deps: GapFillDeps): Promise<void> {
         domain: detectedDomain,
         depth: isStrategic ? "strategic" : "brief",
         boundThesis: (stats as any).thesisBinding?.statement,
+          language: (stats as any)?.publicationLanguage,
       });
       // Compare: keep the better version
       const reStr = typeof reAnalysis === 'string' ? reAnalysis : JSON.stringify(reAnalysis);

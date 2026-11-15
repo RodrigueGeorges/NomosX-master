@@ -329,6 +329,7 @@ export async function runCriticBlock(deps: CriticBlockDeps): Promise<CriticBlock
           domain: detectedDomain,
           depth: isStrategic ? "strategic" : "brief",
           boundThesis: (stats as any).thesisBinding?.statement,
+          language: (stats as any)?.publicationLanguage,
         });
         addCost(typeof repaired._meta?.totalCostUsd === 'number' ? repaired._meta.totalCostUsd : 0, 'CRITIC_REPAIR');
       } else {
