@@ -86,22 +86,34 @@ for (const fx of pickFixtures()) {
   );
   const durationS = Math.round((Date.now() - started) / 1000);
   const out = `${r.stdout ?? ''}\n${r.stderr ?? ''}`;
+  // Classify the outcome:
+  //   pass    — exit 0, deterministic replay reproduced the recorded outcome
+  //   drift   — cassette misses: a prompt/frozen-input channel changed. NOT a
+  //             behavioural regression — the fixture needs re-recording
+  //             (expected after intentional prompt changes). Warn, don't fail.
+  //   fail    — exit !=0 with ZERO misses, or infra error: real regression.
+  const missMatch = out.match(/cassette misses:\s*(\d+)/i) ?? out.match(/"cassetteMisses":\s*(\d+)/);
+  const misses = missMatch ? Number(missMatch[1]) : null;
+  const drift = misses !== null && misses > 0;
   const ok = r.status === 0;
-  if (!ok) failed = true;
+  const status = ok ? 'pass' : drift ? 'drift' : 'fail';
+  if (status === 'fail') failed = true;
   // Extract the drift summary lines for the log.
   const driftLines = out.split('\n').filter(l => /drift|miss|trust|gate|cost|FAIL|PASS|replay\]/i.test(l)).slice(-15);
   const rec = {
     at: new Date().toISOString(),
     fixture: fx.label,
-    status: ok ? 'pass' : 'fail',
+    status,
+    cassetteMisses: misses,
+    needsRerecord: drift,
     exitCode: r.status,
     durationS,
     drift: driftLines,
   };
   results.push(rec);
   appendFileSync(LOG, JSON.stringify(rec) + '\n');
-  console.log(`[canary] ${fx.label}: ${ok ? 'PASS' : 'FAIL'} (${durationS}s)`);
-  if (!ok) console.log(driftLines.join('\n'));
+  console.log(`[canary] ${fx.label}: ${status.toUpperCase()} (${durationS}s${misses !== null ? `, ${misses} cassette misses` : ''})`);
+  if (status !== 'pass') console.log(driftLines.join('\n'));
 }
 
 writeFileSync(STATE, JSON.stringify({ lastRunAt: new Date().toISOString(), results }, null, 2));

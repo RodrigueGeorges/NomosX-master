@@ -5124,8 +5124,16 @@ duration p50/p95, source funnel medians, publish rate, and a
 
 **Canary replay:** `scripts/canary-replay.mjs` (`npm run canary`) replays
 the committed fixtures (`.llm-cassettes/*.fixture.jsonl` + meta sidecars)
-through the CURRENT code — cassette mode = zero LLM spend; any prompt or
-frozen-input drift throws CassetteMissError and exits 1. One fixture per
-invocation rotates daily (`--all` for full sweep, `--force` to bypass the
-20h throttle). `scripts/_agent-monitor.mjs` spawns it ~every 20h and logs
-`canary_done`/`canary_started` events. Results: `scripts/_canary-replay.jsonl`.
+through the CURRENT code — cassette mode = zero LLM spend. Outcomes are
+classified: `pass` (recorded outcome reproduced), `drift` (cassette misses
+— a prompt/frozen-input channel changed; expected after intentional prompt
+edits, means the fixture needs re-recording, exit 0), `fail` (divergence
+with zero misses or infra error — real regression, exit 1). First live run
+(2026-11-12) already classified gulf-minerals as `drift` with 3 misses
+(enrichment_reasoner, reader_v3, elenchus) — consistent with the
+thesis-contract prompts going default-on in `d6953a7`; fixtures need a
+paid re-record before they can certify again. One fixture per invocation
+rotates daily (`--all` for full sweep, `--force` to bypass the 20h
+throttle). `scripts/_agent-monitor.mjs` spawns it ~every 20h and logs
+`canary_done`/`canary_started` events. Results:
+`scripts/_canary-replay.jsonl`.
