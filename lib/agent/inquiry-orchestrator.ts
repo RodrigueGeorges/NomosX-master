@@ -706,16 +706,24 @@ export async function runAndPublishInquiry(
         // deadline entirely (its internal gap-fill scouts + re-analysis ran
         // ~40min in the S32 live run) and leave zero headroom for the
         // gate+persist of the ORIGINAL artifact — a held item was then lost
-        // mid-transaction. The regen is capped at 35min: the S33 live run
-        // showed 25min dies mid-DA (council + Delphi + render + evals ≈
-        // 30-35min on paid models); on expiry the abort unwinds only the
-        // child scope and the original result persists, with salvage.
+        // mid-transaction. The regen is bounded by a child scope sized from
+        // the REAL parent deadline: the S33 live run showed 25min dies
+        // mid-DA (council + Delphi + render + evals ≈ 30-35min on paid
+        // models); on expiry the abort unwinds only the child scope and the
+        // original result persists, with salvage.
         // Derive the cap from the REAL parent deadline (the dispatch scope),
         // not a hardcoded 95min envelope — the observed 25min expiry came from
         // exactly this mismatch: the formula authorised a regen the actual
         // parent scope could not host. Reserve 5min for the gate+persist tail
         // of the ORIGINAL artifact after the regen returns.
-        const regenBudgetMs = Math.min(35 * 60 * 1000, Math.max(8 * 60_000, parentHeadroomMs - 5 * 60_000));
+        // The flat 35min cap was sized for brief corpora — a memo regen on a
+        // 41-source corpus timed out at exactly 2100000ms with reader+analyst
+        // done and the quality tail unfinished (~$0.29 wasted). The cap now
+        // scales with REAL parent headroom up to REGEN_MAX_MS (default 50min,
+        // env-tunable): more time only when the dispatch scope can host it —
+        // the headroom-5min bound still protects the persist tail.
+        const regenMaxMs = Number(process.env.NOMOSX_REGEN_MAX_MS ?? 50 * 60_000);
+        const regenBudgetMs = Math.min(regenMaxMs, Math.max(8 * 60_000, parentHeadroomMs - 5 * 60_000));
         const regenStarted = Date.now();
         const regenExecutionId = randomUUID();
         let regenPipeline: Awaited<ReturnType<typeof runInquiryPipeline>> | null = null;

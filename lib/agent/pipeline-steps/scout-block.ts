@@ -519,6 +519,22 @@ export async function runScoutBlock(deps: ScoutBlockDeps): Promise<ScoutBlockRes
   } // end if (flat scout fallback)
   } // end scout else branch
 
+  // Deep-planner path: allSourceIds is populated by DAG node scouts and the
+  // flat-scout block above never runs — stats.scout stayed unset, persisting
+  // sourcesFound=0 on every planner-assisted run (observed: fresh-scout
+  // attempts showed cols=0/36/39 while regens on seed corpora were correct).
+  // Backfill from the merged scout-phase corpus (before the evidence
+  // mission below adds its own counted sources).
+  if (!stats.scout) {
+    stats.scout = {
+      found: allSourceIds.length,
+      sourceIds: allSourceIds.slice(0, 200),
+      providers,
+      upserted: 0,
+      ...(stats.deepPlanner ? { planner: 'deep' } : {}),
+    };
+  }
+
   // ── PRIOR EVIDENCE MISSION (HELD-retry) — the previous attempt's gate/DA
   // distilled the missing evidence into targeted queries; they were persisted
   // in the held diagnostic and feed THIS scout so the retry repairs the
