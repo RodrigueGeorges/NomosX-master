@@ -494,6 +494,30 @@ const PROVIDER_REGISTRY: { name: string; keywords: string[]; priority: number }[
   { name: 'mega-development', keywords: ['development', 'poverty', 'aid', 'humanitarian', 'africa', 'latam', 'asia', 'global south'], priority: 5 },
   { name: 'mega-academia', keywords: ['university', 'academic', 'research', 'education', 'business school', 'knowledge'], priority: 4 },
   { name: 'mega-civil-society', keywords: ['ngo', 'human rights', 'corruption', 'transparency', 'watchdog', 'investigation', 'democracy', 'civil society'], priority: 5 },
+  // Government & official-report sources — direct institutional APIs, not
+  // OpenAlex proxies. Without registry entries these were dispatchable but
+  // never keyword-selected, so state reports never reached the corpus.
+  { name: 'consolidated-institutions', keywords: ['government', 'institution', 'official', 'administration', 'ministry', 'public body', 'agency', 'parliament'], priority: 7 },
+  { name: 'legifrance', keywords: ['france', 'french', 'loi', 'law', 'legislation', 'réglementation', 'juridique', 'droit', 'conseil constitutionnel', 'assemblée nationale'], priority: 6 },
+  { name: 'vie-publique', keywords: ['france', 'french', 'policy', 'public policy', 'gouvernement', 'politique publique', 'administration', 'état'], priority: 6 },
+  { name: 'data-gouv', keywords: ['france', 'french', 'open data', 'données', 'statistics', 'statistiques', 'dataset', 'indicateur'], priority: 5 },
+  { name: 'insee', keywords: ['france', 'french', 'statistics', 'statistiques', 'census', 'recensement', 'insee', 'indicateur', 'employment', 'chômage'], priority: 6 },
+  { name: 'france-strategie', keywords: ['france', 'french', 'prospective', 'strategy', 'stratégie', 'policy', 'politique', 'long-term', 'long terme'], priority: 6 },
+  { name: 'sec-edgar', keywords: ['sec', 'edgar', 'filing', '10-k', '10-q', 'public company', 'corporate', 'financial report', 'earnings'], priority: 5 },
+  { name: 'worldbank-docs', keywords: ['world bank', 'development', 'poverty', 'loan', 'project', 'country report', 'doing business'], priority: 5 },
+  { name: 'imf', keywords: ['imf', 'monetary fund', 'article iv', 'surveillance', 'bailout', 'conditionality', 'fund'], priority: 6 },
+  { name: 'worldbank', keywords: ['world bank', 'development', 'poverty', 'infrastructure', 'loan', 'aid', 'global south'], priority: 6 },
+  { name: 'ecb', keywords: ['ecb', 'european central bank', 'monetary policy', 'eurozone', 'interest rate', 'inflation'], priority: 6 },
+  { name: 'eurostat', keywords: ['eurostat', 'eu statistics', 'european statistics', 'euro area', 'european union data'], priority: 6 },
+  { name: 'fred', keywords: ['fred', 'federal reserve', 'economic data', 'time series', 'macro indicator', 'us economy'], priority: 5 },
+  { name: 'unctad', keywords: ['unctad', 'trade', 'developing countries', 'investment', 'commodities', 'south-south'], priority: 5 },
+  { name: 'iaea', keywords: ['iaea', 'nuclear', 'safeguards', 'atomic', 'radiation', 'non-proliferation'], priority: 5 },
+  { name: 'irena', keywords: ['irena', 'renewable energy', 'solar', 'wind', 'energy transition', 'clean energy'], priority: 5 },
+  { name: 'nist', keywords: ['nist', 'standards', 'cybersecurity framework', 'measurement', 'ai standards'], priority: 5 },
+  { name: 'cisa', keywords: ['cisa', 'cybersecurity', 'critical infrastructure', 'federal cybersecurity', 'threat'], priority: 5 },
+  { name: 'who-gho', keywords: ['who', 'world health organization', 'global health observatory', 'mortality', 'disease burden', 'health indicator'], priority: 6 },
+  { name: 'cordis', keywords: ['cordis', 'eu research', 'horizon europe', 'framework programme', 'eu funding'], priority: 4 },
+  { name: 'data-europa', keywords: ['eu', 'europe', 'open data', 'european data', 'eurostat', 'commission data'], priority: 5 },
 ];
 
 /**
