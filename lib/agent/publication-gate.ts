@@ -359,9 +359,14 @@ export function evaluatePublicationGate(input: PublicationGateInput): Publicatio
         issues.push('Rendered central scenario differs from the persisted decision');
       }
     }
-    const rationale = blocks[0]?.match(/<div class="central-rationale"[^>]*>([\s\S]*?)<\/div>/i)?.[1] ?? '';
-    const refs = extractCitationNumbers(rationale);
-    if (!refs.length || refs.some(n => n < 1 || n > sourceCount)) issues.push('Central rationale lost its evidence references during rendering');
+    // Evidence refs live in the scenario narrative (.central-description);
+    // .central-rationale is swarm-election provenance (p-values, draw counts)
+    // and carries no citations by design. Scanning only the rationale made
+    // every swarm-elected scenario fail this check by construction.
+    // extractCitationNumbers normalizes rendered <sup class="cite"> links
+    // itself — pass the raw block, not tag-stripped text.
+    const refs = extractCitationNumbers(blocks[0] ?? '');
+    if (!refs.length || refs.some(n => n < 1 || n > sourceCount)) issues.push('Central scenario block lost its evidence references during rendering');
     checks.push({ checkType: 'central_scenario', passed: issues.length === 0, details: issues.join('; ') || 'Central scenario complete and consistent with final HTML' });
   }
 
