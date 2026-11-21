@@ -163,21 +163,32 @@ export async function runPostRenderCitationAndGrounding(deps: CitationGroundingD
     const queryText = String(deps.query ?? '');
     if (queryText.trim().length >= 10) {
       const STOP = new Set(('the and for with that this from have has are was were will would could should about into over under between within without their they them his her its our your per via than then when where which while'.split(' ')));
+      // Generic research/AI vocabulary carries no topical signal — "AI-generated
+      // content" appears in telecom, marketing and publishing papers alike.
+      // Observed failure: a wireless-networks diffusion paper survived a
+      // zero-overlap guard by matching only "generated"+"content".
+      const GENERIC = new Set(('content generated generation model models system systems network networks data digital technology technologies intelligent learning artificial based using use uses approach approaches framework frameworks method methods methodology analysis analyze study studies research paper papers review application applications design development performance results result proposed novel state art collaborative distributed diffusion wireless telecommunications'.split(' ')));
       const kw = (t: string) => new Set(
         String(t).toLowerCase().replace(/[^a-z0-9\s-]/g, ' ').split(/\s+/)
           .filter(w => w.length >= 4 && !STOP.has(w))
       );
-      const qKw = kw(queryText);
-      if (qKw.size > 0) {
+      const qAll = kw(queryText);
+      const qKw = new Set([...qAll].filter(w => !GENERIC.has(w)));
+      // Fall back to all keywords only when the question is mostly generic
+      // vocabulary — otherwise require discriminating-word overlap.
+      const effectiveQ = qKw.size >= 3 ? qKw : qAll;
+      if (effectiveQ.size > 0) {
         const citedRefs = new Set<number>();
         for (const m of html.matchAll(/\[SRC-(\d+)\]/g)) citedRefs.add(parseInt(m[1], 10));
         const offTopicRefs = new Set<number>();
         for (const ref of citedRefs) {
           const src: any = topSources[ref - 1];
           if (!src) continue;
-          const sKw = kw(`${src.title || ''} ${src.abstract || ''}`.slice(0, 800));
+          const sAll = kw(`${src.title || ''} ${src.abstract || ''}`.slice(0, 800));
+          const sKw = new Set([...sAll].filter(w => !GENERIC.has(w)));
+          const effectiveS = sKw.size >= 2 ? sKw : sAll;
           let overlap = 0;
-          for (const w of qKw) if (sKw.has(w)) { overlap++; break; }
+          for (const w of effectiveQ) if (effectiveS.has(w)) { overlap++; break; }
           if (overlap === 0) offTopicRefs.add(ref);
         }
         if (offTopicRefs.size > 0) {

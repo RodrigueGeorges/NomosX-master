@@ -651,7 +651,48 @@ export async function runAndPublishInquiry(
           aHtml = revision.html;
           aWordCount = countWordsHtml(aHtml);
           if (revision.actions.some(action => action.startsWith('substance_weak: resolved'))) {
-            gi.staleEvaluations = [...new Set([...gi.staleEvaluations, 'devilsAdvocate'])];
+            // The surgical rewrite invalidated the DA verdict — but marking it
+            // stale without re-certifying guarantees an evaluation_freshness
+            // hold on every successful substance repair (observed live: held
+            // run with all content checks passing). Re-run DA once on the
+            // revised artifact text; a completed verdict re-certifies, an
+            // incomplete one stays stale (fail-closed, same as before).
+            try {
+              const { runDevilsAdvocate } = await import('./devils-advocate');
+              const revisedText = aHtml.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').slice(0, 30000);
+              const reDa = await runDevilsAdvocate(
+                question,
+                revisedText,
+                (p.inquiry.sources ?? []).map((s: any) => ({
+                  title: String(s?.title ?? ''), provider: String(s?.provider ?? 'unknown'), year: s?.year,
+                })),
+                { mode: p.format === 'strategic' ? 'strategic' : 'brief', domain: req.domain },
+              );
+              costUsd += reDa.costUsd ?? 0;
+              p.stats.devilsAdvocate = {
+                ...((p.stats.devilsAdvocate as Record<string, unknown> | undefined) ?? {}),
+                verdict: reDa.verdict,
+                overallStrength: reDa.overallStrength,
+                publishabilityScore: reDa.publishabilityScore,
+                fatalChallenges: reDa.fatalChallenges?.length ?? 0,
+                majorChallenges: reDa.majorChallenges?.length ?? 0,
+                killShot: String(reDa.killShot ?? '').slice(0, 400),
+                evaluationComplete: reDa.evaluationComplete === true,
+                recertifiedAfterRevision: true,
+              };
+              if (reDa.evaluationComplete === true) {
+                gi.devilsAdvocateScore = reDa.publishabilityScore as number;
+                gi.fatalChallenges = reDa.fatalChallenges?.length ?? 0;
+                gi.failedEvaluations = gi.failedEvaluations.filter(k => k !== 'devilsAdvocate');
+                console.log(`[InquiryOrchestrator] DA re-certified after substance repair: ${reDa.verdict}/${reDa.publishabilityScore}`);
+              } else {
+                gi.staleEvaluations = [...new Set([...gi.staleEvaluations, 'devilsAdvocate'])];
+                console.warn('[InquiryOrchestrator] DA re-certification incomplete — verdict stays stale');
+              }
+            } catch (reDaErr) {
+              console.warn('[InquiryOrchestrator] DA re-certification failed (fail-closed):', reDaErr);
+              gi.staleEvaluations = [...new Set([...gi.staleEvaluations, 'devilsAdvocate'])];
+            }
           }
           g = evaluatePublicationGate({ ...gi, html: aHtml });
           r = evaluatePublicationReadiness({
