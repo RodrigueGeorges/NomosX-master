@@ -136,3 +136,108 @@ export function reviseForecast(
     },
   };
 }
+
+/**
+ * P1-2/P1-3 — wire a resolved sentinel back into the published forecast.
+ *
+ * Called by the prediction tracker when a `kind='sentinel'` prediction
+ * resolves CONFIRMED/REFUTED. Loads the forecast state snapshotted at
+ * publication (pipelineRun.steps.stats.forecastState), re-runs the election
+ * via reviseForecast, and persists:
+ *   - stats.forecastState  → the advanced state (next resolution builds on it)
+ *   - stats.forecastRevisions → append-only probability history (P1-3):
+ *     every revision carries resolvedAt, the resolving predictionId,
+ *     link before/after, per-scenario probabilities before/after, and the
+ *     elected scenario before/after — the calibration series the note
+ *     exposes under the central scenario.
+ *   - criticalLoopResult.forecastRevisions on the publication row, plus an
+ *     updated centralScenario probability/elected name when the election
+ *     changed — the note reflects the re-election without rewriting history.
+ *
+ * Returns the revision record, or null when the prediction is not a swarm
+ * sentinel of a forecasted run / the state cannot be re-elected.
+ */
+export async function applySentinelResolutionToRun(prediction: {
+  id: string; briefId?: string | null; linkId?: string | null;
+  outcome?: string | null; resolvedAt?: Date | null; resolutionSource?: string | null;
+}): Promise<ProbabilityRevision | null> {
+  const linkId = Number(prediction.linkId);
+  if (!prediction.briefId || !Number.isFinite(linkId)) return null;
+  if (prediction.outcome !== 'occurred' && prediction.outcome !== 'not_occurred') return null;
+
+  const { prisma } = await import('../db');
+  const brief = await prisma.brief.findUnique({
+    where: { id: prediction.briefId },
+    select: { id: true, pipelineRunId: true },
+  });
+  if (!brief?.pipelineRunId) return null;
+
+  const run = await prisma.pipelineRun.findUnique({
+    where: { id: brief.pipelineRunId },
+    select: { id: true, steps: true },
+  });
+  const steps = (run?.steps ?? {}) as Record<string, any>;
+  const state = steps?.forecastState as ForecastState | undefined;
+  if (!state?.links?.length || !state.scenarios?.length) return null;
+
+  const revisions = (steps.forecastRevisions ?? []) as ProbabilityRevision[];
+  // Idempotent: a prediction resolves once, but guard against double-apply.
+  if (revisions.some(r => r.cause.predictionId === prediction.id)) return null;
+
+  const result = reviseForecast(state, {
+    linkId,
+    outcome: prediction.outcome,
+    predictionId: prediction.id,
+    evidenceUrl: prediction.resolutionSource ?? undefined,
+    resolvedAt: (prediction.resolvedAt ?? new Date()).toISOString(),
+  });
+  if (!result) return null;
+
+  const nextRevisions = [...revisions, result.revision];
+  const nextSteps = {
+    ...steps,
+    forecastState: result.state,
+    forecastRevisions: nextRevisions,
+    centralScenario: result.revision.electionChanged && steps.centralScenario
+      ? {
+          ...steps.centralScenario,
+          probability: result.revision.elected.probabilityAfter,
+          name: steps.centralScenario.name, // published name is editorial — keep it
+        }
+      : steps.centralScenario,
+  };
+  await prisma.pipelineRun.update({
+    where: { id: run!.id },
+    data: { steps: nextSteps as any },
+  });
+
+  // Surface on the publication: append the revision to the note's forecast
+  // history and refresh the elected probability when the election moved.
+  try {
+    const publication = await prisma.thinkTankPublication.findFirst({
+      where: { criticalLoopResult: { path: ['briefId'], equals: brief.id } },
+      select: { id: true, criticalLoopResult: true },
+    });
+    if (publication) {
+      const clr = (publication.criticalLoopResult ?? {}) as Record<string, any>;
+      const cs = clr.centralScenario as Record<string, any> | undefined;
+      await prisma.thinkTankPublication.update({
+        where: { id: publication.id },
+        data: {
+          criticalLoopResult: {
+            ...clr,
+            forecastRevisions: [...((clr.forecastRevisions as unknown[]) ?? []), result.revision],
+            centralScenario: cs && result.revision.electionChanged
+              ? { ...cs, probability: result.revision.elected.probabilityAfter, reElectedAt: result.revision.resolvedAt, reElectedFrom: result.revision.elected.before }
+              : cs,
+          } as any,
+        },
+      });
+    }
+  } catch (pubErr) {
+    console.warn('[ForecastRevision] publication patch failed (run state already persisted):', pubErr);
+  }
+
+  console.log(`[ForecastRevision] sentinel ${prediction.id} → link ${linkId} ${result.revision.link.before}→${result.revision.link.after}; elected ${result.revision.elected.before}→${result.revision.elected.after} (p=${result.revision.elected.probabilityAfter})${result.revision.electionChanged ? ' — ELECTION CHANGED' : ''}`);
+  return result.revision;
+}

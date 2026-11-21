@@ -562,6 +562,50 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
     };
   }
 
+  // ── PRE-READER CORPUS SUFFICIENCY (P0-3) ──
+  // Post-triage, pre-spend: relevanceScreen.coreCount is the same
+  // evidence-mass metric the publication gate enforces, but it is known
+  // BEFORE the reader burns extraction calls. A corpus below the core-source
+  // floor — or too small to yield the minimum substantive readings the
+  // post-reader viability gate requires — is refused here, not after
+  // ~$0.45 of reader spend. Runs without a relevance screen (fixed-corpus
+  // replay) skip the core-count arm; the source-count floor is deterministic
+  // and applies to every path.
+  const screenedCoreCount = (stats as any).relevanceScreen?.coreCount;
+  const preReaderMinCore = Number(process.env.PRE_READER_MIN_CORE ?? 8);
+  const preReaderMinSources = Number(process.env.PRE_READER_MIN_SOURCES ?? (isStrategic ? 15 : 8));
+  const coreEvidenceShort = typeof screenedCoreCount === 'number' && screenedCoreCount < preReaderMinCore;
+  const corpusTooSmall = topSources.length < preReaderMinSources;
+  if (coreEvidenceShort || corpusTooSmall) {
+    const deferredQueries = (((stats as any).deferredGapRequests?.queries ?? []) as string[]).slice(0, 12);
+    const reason = `corpus_core_evidence_pre_reader: ${screenedCoreCount ?? 'unscreened'} core sources (need ${preReaderMinCore}), ${topSources.length} ranked sources (need ${preReaderMinSources})`;
+    console.warn(`${label} REFUSAL: ${reason} — refusing before reader spend`);
+    stats.structuredRefusal = {
+      reason,
+      sourceCount: topSources.length,
+      required: preReaderMinSources,
+      missing: ['core_evidence', 'reader_extractions'],
+      retryQueries: deferredQueries,
+      // Extended fields for diagnostics — the declared type stays minimal.
+      ...({ coreSourceCount: screenedCoreCount ?? null, requiredCore: preReaderMinCore, gapQueries: deferredQueries } as any),
+    };
+    stats.totalCostUsd = cost.runningCostUsd;
+    emitProgress(pipelineRun.id, "READER", "failed", `Refused: ${reason}`);
+    activeRuns.delete(idempotencyKey);
+    process.removeListener('unhandledRejection', rejectionHandler);
+    await prisma.pipelineRun.update({
+      where: { id: pipelineRun.id },
+      data: {
+        status: "FAILED",
+        finishedAt: new Date(),
+        durationMs: Date.now() - pipelineStart,
+        error: reason.slice(0, 500),
+        steps: toJsonSafe({ ...stats, error: reason }),
+      },
+    }).catch(() => {});
+    return { briefId: undefined, pipelineRun, stats, html: '', analysis: { refusal: stats.structuredRefusal } as any };
+  }
+
   // Barrier: context primer + episodic memory (launched pre-scout) must
   // resolve here — first consumers are reader-block and analyst-context.
   {
@@ -1285,6 +1329,9 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
       tagEval,
       chartData: quant.chartData,
       modelResults: quantBridge?.models,
+      frozenQuant: (frozenContext as any)?.quant || (frozenContext as any)?.quantBridge
+        ? { quant: (frozenContext as any).quant, quantBridge: (frozenContext as any).quantBridge }
+        : undefined,
     });
     await runPostRenderQualityGates();
   };

@@ -362,6 +362,24 @@ export async function resolveDuePredictions(limit = 10): Promise<{ resolved: num
         },
       });
       resolved++;
+      // P1-2: a resolved sentinel re-elects the central scenario on the
+      // stored forecast state — no pipeline, deterministic re-vote. The
+      // revision is appended to the note's probability history (P1-3).
+      if (raw.kind === 'sentinel' && raw.linkId) {
+        try {
+          const { applySentinelResolutionToRun } = await import('./forecast-revision');
+          await applySentinelResolutionToRun({
+            id: String(raw.id),
+            briefId: raw.briefId ?? null,
+            linkId: String(raw.linkId),
+            outcome: decision.outcome,
+            resolvedAt: new Date(),
+            resolutionSource: decision.evidenceUrl,
+          });
+        } catch (revErr) {
+          console.warn(`[PredictionTracker] forecast revision failed for ${raw.id} (non-blocking):`, revErr);
+        }
+      }
     } catch {
       retried++; // transient failure — leave OPEN, the next cycle retries
     }

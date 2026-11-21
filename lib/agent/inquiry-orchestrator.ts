@@ -30,7 +30,7 @@ import {
   getPipelineCostUsd,
   isModerateTierEligible,
 } from "./inquiry-funnel-utils";
-import { evaluatePublicationGate, type PublicationGateResult } from "./publication-gate";
+import { evaluatePublicationGate, type PublicationGateResult, type PublicationGateInput } from "./publication-gate";
 import { recordDegradedStep } from "./degraded-steps";
 import { captureInputSync } from "./frozen-inputs";
 import { toJsonSafe, stripPgUnsafeControls } from "@/lib/json-safe";
@@ -540,6 +540,9 @@ export async function runAndPublishInquiry(
         ? (p.stats.relevanceScreen as { coreCount: number }).coreCount
         : undefined,
       minCoreSources: Number(process.env.NOMOSX_CORE_EVIDENCE_MIN ?? 8),
+      // P0-4: MiniCheck verdicts on the published claims (present only when
+      // NOMOSX_MINICHECK=1 ran the post-render pass; unavailable fails closed).
+      minicheckPublished: (p.stats.minicheckPublished as PublicationGateInput['minicheckPublished'] | undefined),
       centralScenario: p.stats.centralScenario as import('./editorial-types').CentralScenarioDecision | undefined,
       requireCentralScenario: p.stats.centralScenarioRequired === true || p.stats.editorialV2 === true,
       // P0/1: verdict evals attached to a replaced artifact version are invalid

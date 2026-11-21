@@ -54,6 +54,7 @@ export function InquiryClient({
   const [exportSuccess, setExportSuccess] = useState(false);
   const [foresight, setForesight] = useState<ForesightBundle>(emptyForesight());
   const [foresightLoading, setForesightLoading] = useState(true);
+  const [forecastRevisions, setForecastRevisions] = useState<any[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -61,6 +62,7 @@ export function InquiryClient({
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
         if (!cancelled && d?.foresight) setForesight(d.foresight);
+        if (!cancelled && Array.isArray(d?.forecastRevisions)) setForecastRevisions(d.forecastRevisions);
       })
       .catch(() => {})
       .finally(() => { if (!cancelled) setForesightLoading(false); });
@@ -463,6 +465,24 @@ export function InquiryClient({
                 </div>
               )}
             </div>
+
+            {/* Forecast revision history — sentinel resolutions that
+                re-elected the central scenario (P1-3 probability history) */}
+            {forecastRevisions.length > 0 && (
+              <div className="mt-10 print:hidden">
+                <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-black/45 dark:text-white/45 mb-2">
+                  {t('Inquiry.forecastRevisions')}
+                </p>
+                <ul className="space-y-1 font-mono text-[11px] text-black/50 dark:text-white/50">
+                  {forecastRevisions.map((r: any, i: number) => (
+                    <li key={i}>
+                      {r.resolvedAt?.slice(0, 10)} · link #{r.cause?.linkId} {r.link?.before}→{r.link?.after}
+                      {r.electionChanged ? ` · scenario re-elected ${r.elected?.before}→${r.elected?.after} (p=${Math.round((r.elected?.probabilityAfter ?? 0) * 100)}%)` : ` · p=${Math.round((r.elected?.probabilityAfter ?? 0) * 100)}%`}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
             {/* Version history — visible when the piece was corrected/retracted */}
             {((inquiry as any).correctedAt || (inquiry as any).status === "RETRACTED") && (

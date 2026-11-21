@@ -63,10 +63,17 @@ export async function GET(
       bundle.question = String(meta.question);
     }
 
+    // P1-3: probability history — sentinel resolutions that re-elected the
+    // central scenario, persisted on criticalLoopResult by the tracker.
+    const forecastRevisions = Array.isArray((publication.criticalLoopResult as any)?.forecastRevisions)
+      ? (publication.criticalLoopResult as any).forecastRevisions
+      : [];
+
     return NextResponse.json({
       foresight: bundle,
       publicationId: publication.id,
       type: publication.type,
+      forecastRevisions,
     });
   } catch (err: unknown) {
     console.error("[API/Foresight]", err);

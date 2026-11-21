@@ -27,6 +27,8 @@ export interface CitationGroundingDeps {
   chartData: any[];
   /** Deterministic model results (quant-bridge) for the computed exhibit. */
   modelResults?: any[];
+  /** Frozen quant snapshot (replay) — external verifiers stay deterministic. */
+  frozenQuant?: unknown;
 }
 
 export async function runPostRenderCitationAndGrounding(deps: CitationGroundingDeps): Promise<string> {
@@ -165,6 +167,61 @@ export async function runPostRenderCitationAndGrounding(deps: CitationGroundingD
     console.warn(`${label} CITATION FILTER: failed (non-blocking):`, err);
     recordDegradedStep(stats, 'CITATION_FILTER', err);
   }
+  // MINICHECK PUBLISHED-CLAIMS (P0-4): verify the sentences that actually
+  // ship — post citation-repair, post grounding removal, post citation
+  // filter — against their cited source documents. The reader-time shadow
+  // measures extractions that may never be published; this measures the
+  // artifact. Recorded for calibration AND surfaced to the publication
+  // gate: when NOMOSX_MINICHECK=1 the gate fails closed on materially
+  // unsupported published claims or on verifier unavailability.
+  if (!deps.frozenQuant) {
+    try {
+      const { minicheckEnabled, minicheckCheck } = await import('../../quant/minicheck-client');
+      if (minicheckEnabled()) {
+        const { extractPublishedClaims } = await import('../claim-grounding');
+        const published = extractPublishedClaims(html);
+        const pairs: Array<{ claim: string; document: string }> = [];
+        for (const c of published) {
+          if (pairs.length >= 20) break;
+          const ref = c.sourceRef!;
+          if (ref < 1 || ref > topSources.length) continue;
+          const src: any = topSources[ref - 1];
+          const doc = String(
+            (readings as any[]).find(r => r.sourceId === src.id)?.extractedText
+            ?? src.fullText ?? src.abstract ?? ''
+          ).slice(0, 12000);
+          if (doc.length < 200) continue;
+          const claim = String(c.text ?? '').replace(/\[SRC-\d+\]/g, '').trim();
+          if (claim.length >= 20) pairs.push({ claim: claim.slice(0, 1000), document: doc });
+        }
+        const mc = await minicheckCheck(pairs);
+        if (mc) {
+          const tally = { supported: 0, not_supported: 0, unclear: 0 };
+          for (const v of mc.results) tally[v.label] = (tally[v.label] ?? 0) + 1;
+          const unsupportedRatio = mc.checked > 0 ? tally.not_supported / mc.checked : 0;
+          stats.minicheckPublished = {
+            checked: mc.checked,
+            pairsOffered: pairs.length,
+            publishedClaims: published.length,
+            ...tally,
+            unsupportedRatio: Math.round(unsupportedRatio * 1000) / 1000,
+            durationMs: mc.durationMs,
+            maxUnsupportedRatio: Number(process.env.NOMOSX_MINICHECK_MAX_UNSUPPORTED ?? 0.4),
+          };
+          console.log(`${label} MINICHECK published: ${mc.checked}/${pairs.length} pairs — ${tally.supported} supported / ${tally.not_supported} not / ${tally.unclear} unclear (${Math.round(unsupportedRatio * 100)}% unsupported)`);
+        } else {
+          // Enabled but verifier unavailable → fail-closed signal for the gate.
+          stats.minicheckPublished = { unavailable: true, pairsOffered: pairs.length, publishedClaims: published.length };
+          recordDegradedStep(stats, 'MINICHECK_PUBLISHED', new Error('minicheck enabled but check returned null'));
+        }
+      }
+    } catch (err) {
+      console.warn(`${label} MINICHECK published failed:`, err);
+      recordDegradedStep(stats, 'MINICHECK_PUBLISHED', err);
+      stats.minicheckPublished = { unavailable: true, error: String(err).slice(0, 200) };
+    }
+  }
+
   void generatePrintHTML(html);
 
   return html;

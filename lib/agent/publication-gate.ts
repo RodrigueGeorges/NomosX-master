@@ -58,6 +58,18 @@ export interface PublicationGateInput {
   coreSourceCount?: number;
   /** Minimum core-evidence sources required to publish. Default 8. */
   minCoreSources?: number;
+  /** MiniCheck verdicts on the PUBLISHED claims (stats.minicheckPublished).
+   *  Present only when NOMOSX_MINICHECK=1 ran the post-render pass.
+   *  `unavailable` fails closed — an enabled verifier that cannot answer
+   *  cannot certify the artifact. */
+  minicheckPublished?: {
+    checked?: number;
+    not_supported?: number;
+    unclear?: number;
+    unsupportedRatio?: number;
+    unavailable?: boolean;
+    maxUnsupportedRatio?: number;
+  };
 }
 
 export interface PublicationGateCheck {
@@ -274,6 +286,24 @@ export function evaluatePublicationGate(input: PublicationGateInput): Publicatio
       details: input.coreSourceCount >= minCore
         ? `${input.coreSourceCount} core sources (≥${minCore} required)`
         : `only ${input.coreSourceCount} core sources after relevance screening — corpus is tangential-heavy (≥${minCore} required)`,
+    });
+  }
+
+  // MiniCheck published-claim verification (P0-4): only present when the
+  // post-render pass ran (NOMOSX_MINICHECK=1). Fails closed on verifier
+  // unavailability or when the unsupported ratio exceeds the recorded cap.
+  if (input.minicheckPublished) {
+    const mc = input.minicheckPublished;
+    const maxRatio = mc.maxUnsupportedRatio ?? 0.4;
+    const ratio = mc.unsupportedRatio ?? (mc.checked ? (mc.not_supported ?? 0) / mc.checked : 1);
+    const unavailable = mc.unavailable === true || (mc.checked ?? 0) === 0;
+    checks.push({
+      checkType: "minicheck_support",
+      passed: !unavailable && ratio <= maxRatio,
+      score: Math.round((1 - ratio) * 100),
+      details: unavailable
+        ? "MiniCheck enabled but unavailable — published claims unverified (fail-closed)"
+        : `${mc.checked} published claims checked — ${Math.round(ratio * 100)}% not_supported (max ${Math.round(maxRatio * 100)}%)`,
     });
   }
 

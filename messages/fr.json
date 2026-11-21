@@ -773,7 +773,8 @@
     "versionHistory": "Historique des versions",
     "versionPublished": "v{n} — Publié le {date}",
     "versionCorrected": "v{n} — Corrigé le {date}",
-    "versionRetracted": "Rétracté le {date}"
+    "versionRetracted": "Rétracté le {date}",
+    "forecastRevisions": "Historique des révisions de prévision"
   },
   "Newsletter": {
     "ctaEyebrow": "Restez informé",

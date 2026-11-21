@@ -9,15 +9,14 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { env } from '@/lib/env';
+import { isAdminRequest } from '@/lib/admin-auth';
 import { VERTICALS } from '@/lib/think-tank/verticals';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 30;
 
 export async function POST(req: NextRequest) {
-  const key = req.headers.get('x-admin-key') ?? req.nextUrl.searchParams.get('key');
-  if (!env.ADMIN_KEY || key !== env.ADMIN_KEY) {
+  if (!isAdminRequest(req)) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   }
 

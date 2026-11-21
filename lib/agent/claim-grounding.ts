@@ -197,6 +197,17 @@ function decomposeIntoClaims(
   return claims;
 }
 
+/**
+ * Extract the atomic claims that will actually SHIP in the final HTML —
+ * i.e. sentences still carrying a [SRC-N] citation after all repairs.
+ * Used by the post-render MiniCheck pass (P0-4): verification must run on
+ * published sentences, not on reader-time extractions that may never ship.
+ */
+export function extractPublishedClaims(html: string): AtomicClaim[] {
+  const sentences = extractSentencesFromHtml(html);
+  return decomposeIntoClaims(sentences).filter(c => c.sourceRef !== null);
+}
+
 // ─── 2. LEXICAL GROUNDING ───────────────────────────────────────────────────
 /**
  * Ground each claim against its cited source using lexical overlap.

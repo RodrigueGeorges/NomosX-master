@@ -105,6 +105,8 @@ export interface InquiryData {
   trustScore: number | null;
   /** Owning council desk — resolved from vertical/domain → DESK_FOR_DOMAIN. */
   desk: InquiryDeskAttribution | null;
+  /** P1-3: append-only forecast probability history (sentinel resolutions). */
+  forecastRevisions: unknown[];
 }
 
 export interface RelatedInquiryData {
@@ -223,6 +225,11 @@ export async function fetchInquiryData(slug: string, locale: string = 'en'): Pro
         verticalSlug: article.vertical?.slug ?? null,
         heroImageUrl: article.heroImageUrl ?? null,
         trustScore: article.trustScore,
+        // P1-3: append-only probability history — each sentinel resolution
+        // that re-elected the scenario is a dated revision record.
+        forecastRevisions: Array.isArray((article.criticalLoopResult as any)?.forecastRevisions)
+          ? (article.criticalLoopResult as any).forecastRevisions
+          : [],
         desk: (() => {
           const clr = (article.criticalLoopResult ?? {}) as Record<string, any>;
           const signedBy: string | undefined = clr?.signOff?.researcher;
