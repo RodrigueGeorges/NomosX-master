@@ -125,4 +125,16 @@ describe('central scenario render and publication contract', () => {
     expect(parsed?.scenarios[0]).toMatchObject({ name: 'Central', isBase: true, description: 'The narrative survives.' });
     expect(parsed?.scenarios[1].name).toBe('Shock');
   });
+  it('E-1: publishes the adherence-certified analysis verdict, never the arbiter position verdict', () => {
+    // The arbiter no longer generates a verdict (E-1); even if a divergent
+    // position.verdict reaches the renderer, analysis.verdict wins.
+    const divergent = { ...position, verdict: 'ARBITER_DIVERGENT_VERDICT_SHOULD_NOT_PUBLISH' };
+    const html = renderPositionFirstBriefHTML({
+      ...input,
+      position: divergent,
+      analysis: { verdict: 'ANALYSIS_CERTIFIED_VERDICT [SRC-1]' },
+    });
+    expect(html).toContain('ANALYSIS_CERTIFIED_VERDICT');
+    expect(html).not.toContain('ARBITER_DIVERGENT_VERDICT_SHOULD_NOT_PUBLISH');
+  });
 });

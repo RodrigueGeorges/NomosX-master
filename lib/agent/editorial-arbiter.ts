@@ -308,13 +308,15 @@ ${scenarioBlock}
 ${input.election ? `SWARM-ELECTED SCENARIO (computed by independent-voter swarm + Monte Carlo — authoritative, do NOT alter its probability):
 - Elected branch: ${input.election.electedName ?? input.election.scenarioId} — p=${(input.election.probability * 100).toFixed(1)}% CI=[${(input.election.confidenceInterval[0] * 100).toFixed(0)}%, ${(input.election.confidenceInterval[1] * 100).toFixed(0)}%]${input.election.contested ? ` CONTESTED — runner-up: ${input.election.runnerUpId ?? 'n/a'}` : ''}
 - Branch content: ${input.election.electedDescription ?? ''}
-Write the verdict and scenarios AS IF this branch is the central forecast. Present the runner-up (when contested) as the live alternative with the signals that would flip the call. Every probability you write must match the computed values above — never invent new ones.${electionCells ? `
+Write the scenarios AS IF this branch is the central forecast. Present the runner-up (when contested) as the live alternative with the signals that would flip the call. Every probability you write must match the computed values above — never invent new ones.${electionCells ? `
 SCENARIO SET IS FIXED: return exactly one scenario object per cellId listed under SCENARIOS, each carrying its "cellId" field verbatim and the listed probability. Give each an evocative name and narrate what that combination of link outcomes looks like. Do not add, merge or drop scenarios.` : ''}` : ''}
 
 ${architectBlock}
 
 SOURCES:
 ${sourceList}
+
+NOTE: do NOT return a "verdict" field — the published verdict is fixed upstream (the adherence-certified analysis verdict). Your job is scenarios, probabilities, objections and recommendations only.
 
 Return JSON:
 {
@@ -331,7 +333,6 @@ Return JSON:
     "futures": "Action title for the futures section — where this is heading",
     "action": "Action title for the action section — what must be done"
   },
-  "verdict": "Institute position — 200-400 words of flowing prose with [SRC-N] citations. State what NomosX believes and why. Write as an argumentative essay paragraph, not a list. Vary sentence length. Use transitions between ideas.",
   "confidence": 0-100,
   "prospectiveFramework": {
     "horizon": "The time frame and why it matters — e.g. 'We look to 2030 because three independent cycles (demographic, technological, geopolitical) converge within that window.'",
@@ -567,7 +568,9 @@ Return JSON:
     return {
       headline: String(parsed.headline || fallback.headline),
       lede: parsed.lede ? String(parsed.lede).slice(0, 600) : undefined,
-      verdict: String(parsed.verdict || fallback.verdict),
+      // E-1: single published verdict — mirror the adherence-certified
+      // analysis verdict; the arbiter no longer generates a divergent one.
+      verdict: String(input.analysis?.verdict ?? fallback.verdict),
       confidence: conf,
       confidenceLabel: confidenceLabel(conf),
       scenarios: outScenarios.length ? outScenarios : fallback.scenarios,
