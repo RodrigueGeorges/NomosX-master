@@ -147,6 +147,7 @@ const envSchema = z.object({
   ESTAT_JP_APP_ID: z.string().optional(),   // https://www.e-stat.go.jp/api/ (free)
   KOSIS_API_KEY: z.string().optional(),     // https://kosis.kr/openapi/ (free)
   DATACOMMONS_API_KEY: z.string().optional(), // https://apikeys.datacommons.org/ (free)
+  DATACOMMONS_API_SECRET: z.string().optional(), // Data Commons API secret (required with key)
   RELIEFWEB_APPNAME: z.string().optional(),  // approved appname — https://apidoc.reliefweb.int/parameters#appname (free request)
   SEARXNG_URL: z.string().optional(),        // self-hosted instance (e.g. http://localhost:8080) — public fallback otherwise
 

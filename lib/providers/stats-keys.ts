@@ -513,15 +513,14 @@ export async function searchKOSIS(query: string, limit = 8): Promise<any[]> {
 // DATA COMMONS — Google's unified stats graph (WB+UN+Eurostat+Census
 // harmonized). Free key at apikeys.datacommons.org.
 // ─────────────────────────────────────────────────────────────
+// Verified against the live v2 API (2026-11): these variable dcids return
+// observations; the nominal/real GDP dcids return empty byEntity.
 const DC_VARIABLES: Record<string, { name: string; keywords: string[] }> = {
   'Count_Person':             { name: 'Population', keywords: ['population', 'demograph'] },
-  'Amount_EconomicActivity_GrossDomesticProduct_Nominal': { name: 'GDP (nominal)', keywords: ['gdp', 'economy', 'growth'] },
-  'GrowthRate_Amount_EconomicActivity_GrossDomesticProduct': { name: 'GDP growth rate', keywords: ['growth', 'recession', 'gdp'] },
   'UnemploymentRate_Person':  { name: 'Unemployment rate', keywords: ['unemployment', 'labor', 'jobs', 'employment'] },
   'Median_Income_Person':     { name: 'Median income', keywords: ['income', 'wages', 'inequality'] },
   'LifeExpectancy_Person':    { name: 'Life expectancy', keywords: ['health', 'mortality', 'life expectancy'] },
   'Count_Death':              { name: 'Total deaths', keywords: ['mortality', 'deaths', 'health'] },
-  'Amount_Emissions_CarbonDioxide': { name: 'CO2 emissions', keywords: ['co2', 'emissions', 'climate', 'carbon'] },
   'Count_Person_BelowPovertyLevelInThePast12Months': { name: 'Population below poverty', keywords: ['poverty', 'inequality', 'welfare'] },
 };
 
@@ -553,21 +552,40 @@ export async function searchDataCommons(query: string, limit = 6): Promise<any[]
   const results: any[] = [];
   for (const [varId, meta] of vars) {
     try {
-      const url = `https://api.datacommons.org/v2/observation?key=${env.DATACOMMONS_API_KEY}&date=latest&select=date&select=entity&select=value&select=variable&select=facet&variable.dcids=${varId}&${entities.map(e => `entity.dcids=${e}`).join('&')}`;
+      // No date filter — returns full series; we take latest per entity.
+      // `date=latest` silently returns empty byEntity; secret is required.
+      const secret = env.DATACOMMONS_API_SECRET ? `&secret=${env.DATACOMMONS_API_SECRET}` : '';
+      const url = `https://api.datacommons.org/v2/observation?key=${env.DATACOMMONS_API_KEY}${secret}&select=date&select=entity&select=value&select=variable&select=facet&variable.dcids=${varId}&${entities.map(e => `entity.dcids=${e}`).join('&')}`;
       const data: any = await fetchFromProvider('datacommons', url, { timeout: 15000, retries: 1 });
-      // v2 response: byVariable[varId].orderedFacets[facetId].observations[]
-      const obs: any[] = data?.byVariable?.[varId]?.orderedFacets?.[0]?.observations
-        ?? Object.values(data?.byVariable?.[varId]?.orderedFacets ?? {})[0] as any;
-      const list: any[] = Array.isArray(obs) ? obs : [];
-      if (list.length === 0) continue;
-      const lines = list.slice(0, 10).map((o: any) =>
-        `${o.dcid?.replace('country/', '') || o.entity}: ${Number(o.value).toLocaleString('en-US', { maximumFractionDigits: 1 })} (${o.date})`);
+      // v2 response: byVariable[varId].byEntity[entityId].orderedFacets[facetId].observations[]
+      // Each observation: { date, value } — entity comes from the byEntity key.
+      const byEntity: Record<string, any> = data?.byVariable?.[varId]?.byEntity || {};
+      const obs: any[] = [];
+      for (const entityId of Object.keys(byEntity)) {
+        const ent: any = byEntity[entityId];
+        const facets = ent?.orderedFacets;
+        const flist: any[] = Array.isArray(facets) ? facets : Object.values(facets || {});
+        for (const f of flist) {
+          for (const o of f?.observations || []) obs.push({ ...o, entity: o.entity || entityId });
+        }
+      }
+      if (obs.length === 0) continue;
+      // Latest observation per entity
+      const byEntLatest = new Map<string, any>();
+      for (const o of obs) {
+        const e = String(o.entity || '');
+        const cur = byEntLatest.get(e);
+        if (!cur || String(o.date) > String(cur.date)) byEntLatest.set(e, o);
+      }
+      const latest = [...byEntLatest.values()].slice(0, 10);
+      const lines = latest.slice(0, 10).map((o: any) =>
+        `${String(o.entity || '').replace('country/', '') || 'world'} ${o.date}: ${Number(o.value).toLocaleString('en-US', { maximumFractionDigits: 1 })}`);
       results.push(ds(
         varId, 'datacommons',
         `Data Commons — ${meta.name}`,
         `Data Commons harmonized statistics "${meta.name}" — latest values: ${lines.join('; ')}. Sources harmonized from World Bank, UN, Eurostat, national offices.`,
         `https://datacommons.org/browser/${varId}`,
-        'Data Commons', { variable: varId, values: list.slice(0, 10) },
+        'Data Commons', { variable: varId, values: latest },
       ));
       if (results.length >= limit) break;
     } catch { /* skip variable */ }
