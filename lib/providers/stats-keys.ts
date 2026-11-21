@@ -442,13 +442,35 @@ export async function searchEStatJP(query: string, limit = 8): Promise<any[]> {
     return [];
   }
   try {
-    const url = `https://api.e-stat.go.jp/rest/3.0/app/json/getStatsList?appId=${env.ESTAT_JP_APP_ID}&searchWord=${encodeURIComponent(query)}&limit=${limit}`;
-    const data: any = await fetchFromProvider('estat-jp', url, { timeout: 15000, retries: 1 });
-    const tables: any[] = data?.GET_STATS_LIST?.DATALIST_INF?.TABLE_INF || [];
-    const results = (Array.isArray(tables) ? tables : [tables]).map((t: any) => ds(
+    // e-Stat searchWord is a single-term substring match — extract the
+    // most specific keyword rather than the raw multi-word query.
+    const STOP = new Set(['the', 'and', 'for', 'with', 'from', 'that', 'this', 'what', 'how', 'why', 'are', 'was', 'were', 'has', 'have', 'had', 'not', 'but', 'all', 'any', 'can', 'its', 'our', 'their', 'data', 'rate', 'rates', 'statistics', 'statistic', 'official', 'japan', 'japanese', 'country', 'world', 'global', 'current', 'latest', 'trend', 'trends']);
+    const words = query.toLowerCase().split(/[^a-zà-ÿ0-9]+/).filter(t => t.length > 3 && !STOP.has(t));
+    // e-Stat is slow (8-35s observed) and Japanese-first — lang=E for English metadata.
+    // Try up to 3 keyword candidates in order until tables come back.
+    const candidates = [...new Set(words)].slice(0, 3);
+    if (candidates.length === 0) candidates.push(query);
+    let tables: any[] = [];
+    for (const searchWord of candidates) {
+      const url = `https://api.e-stat.go.jp/rest/3.0/app/json/getStatsList?appId=${env.ESTAT_JP_APP_ID}&searchWord=${encodeURIComponent(searchWord)}&lang=E&limit=${limit * 3}`;
+      const data: any = await fetchFromProvider('estat-jp', url, { timeout: 60000, retries: 0 });
+      const t = data?.GET_STATS_LIST?.DATALIST_INF?.TABLE_INF;
+      if (Array.isArray(t) ? t.length > 0 : t) { tables = Array.isArray(t) ? t : [t]; break; }
+    }
+    if (tables.length === 0) { console.log('[E-STAT-JP] 0 tables'); return []; }
+    const seen = new Set<string>();
+    const unique = (Array.isArray(tables) ? tables : [tables])
+      .filter((t: any) => {
+        const id = String(t['@id']);
+        if (seen.has(id)) return false;
+        seen.add(id);
+        return true;
+      });
+    const val = (x: any) => (typeof x === 'object' && x !== null ? (x.$ ?? x._ ?? '') : x) || '';
+    const results = unique.slice(0, limit).map((t: any) => ds(
       String(t['@id']), 'estat-jp',
-      `e-Stat Japan — ${t.TITLE?._ || t.TITLE || t['@id']}`,
-      `Japanese official statistics table "${t.TITLE?._ || t.TITLE}" (survey: ${t.SURVEY_DATE || 'n/a'}). Published by ${t.GOV_ORG?._ || 'Statistics Bureau of Japan'} via e-Stat.`,
+      `e-Stat Japan — ${val(t.STATISTICS_NAME) || val(t.TITLE) || t['@id']}`,
+      `Japanese official statistics table "${val(t.STATISTICS_NAME) || val(t.TITLE)}" (survey: ${t.SURVEY_DATE || 'n/a'}). Published by ${val(t.GOV_ORG) || 'Statistics Bureau of Japan'} (${val(t.MAIN_CATEGORY)} / ${val(t.SUB_CATEGORY)}) via e-Stat.`,
       `https://www.e-stat.go.jp/stat-search/files?stat_infid=${t['@id']}`,
       'e-Stat Japan', t,
     ));
