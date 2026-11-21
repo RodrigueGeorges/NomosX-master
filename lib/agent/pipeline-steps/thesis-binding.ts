@@ -212,10 +212,55 @@ export async function runThesisBindingRepair(
     && verdictNow.trim() !== String(boundNow.statement).trim()
   ) {
     console.warn(`${label} THESIS BINDING: verdict still exceeds bound thesis after repairs — collapsing verdict to the bound claim`);
-    currentNow.verdict = String(boundNow.statement);
+    // E-2: collapse narrows the FINDINGS to the bound thesis but preserves
+    // one valid labelled projection ("We project…", dated, falsifiable) —
+    // a think tank that cannot state its scenario has no position. One
+    // bounded call salvages the projection; fallback is the bare statement.
+    let collapsed = String(boundNow.statement);
+    try {
+      const { callLLM } = await import('../../llm/unified-llm');
+      const { parseJson } = await import('../json-utils');
+      const proj = await callLLM({
+        messages: [
+          {
+            role: 'system',
+            content:
+              'You rebuild a verdict that overclaimed its evidence-bound thesis. ' +
+              'Output valid JSON only: {"verdict":"..."}. ' +
+              'The verdict must be: the BOUND THESIS restated as the finding, followed by AT MOST ONE forward-looking projection kept from the ORIGINAL verdict — only if it is explicitly labelled ("We project", "Our central scenario"), carries a horizon or date, and names what would disprove it. ' +
+              'If no sentence in the original verdict meets that rule, output ONLY the bound thesis. ' +
+              'Never keep unlabelled forecasts, causal claims, or numbers beyond the bound thesis. ' +
+              'Preserve every [SRC-N] citation token. Same language as the input.',
+          },
+          {
+            role: 'user',
+            content:
+              `BOUND THESIS (the finding the verdict may assert):\n"${boundNow.statement}"\n\n` +
+              `ORIGINAL VERDICT (overclaims — salvage only a valid labelled projection):\n${verdictNow.slice(0, 3000)}`,
+          },
+        ],
+        task: 'reader_v3',
+        temperature: 0.2,
+        maxTokens: 1200,
+        jsonMode: true,
+        enableCache: false,
+      });
+      addCost(proj.costUsd, 'THESIS BINDING');
+      const parsed = parseJson<{ verdict?: string }>(proj.content);
+      const candidate = typeof parsed?.verdict === 'string' ? parsed.verdict.trim() : '';
+      if (candidate.length >= 20) collapsed = candidate;
+      boundNow.collapseRepair = { attempted: true, mode: 'projection_preserving', costUsd: proj.costUsd };
+      console.log(`${label} THESIS BINDING: collapse rebuilt verdict preserving labelled projection ($${(proj.costUsd ?? 0).toFixed(4)})`);
+    } catch (err) {
+      assertExecutionActive();
+      boundNow.collapseRepair = { attempted: true, mode: 'statement_only' };
+      console.warn(`${label} THESIS BINDING: projection-preserving collapse failed — using bound statement only:`, err);
+      recordDegradedStep(stats, 'THESIS_BINDING_COLLAPSE', err);
+    }
+    currentNow.verdict = collapsed;
     setAnalysis(currentNow);
     bumpAnalysisArtifact();
-    boundNow.collapseRepair = { attempted: true };
+    boundNow.collapseRepair = { ...(boundNow.collapseRepair ?? {}), attempted: true };
     await opts.verify('adherence-collapse');
     if (boundNow.adhered === true) {
       console.log(`${label} THESIS BINDING: collapsed verdict adheres — proceeding with evidence-bound central claim`);
