@@ -7,6 +7,7 @@ import { callLLM } from '../llm/unified-llm';
 import { parseJson } from './json-utils';
 import { composeIntelligentStyleGuide } from './style-judge';
 import { NOMOS_EDITORIAL_MANIFESTO, NOMOS_WRITING_RULES } from './nomos-voice';
+import { NOMOSX_EDITORIAL_STANCE } from './editorial-config';
 import type { DebateResult } from './debate-agent';
 import type {
   CastingResult,
@@ -224,6 +225,8 @@ export async function editorialArbiter(input: ArbiterInput): Promise<InstitutePo
 
 ${NOMOS_EDITORIAL_MANIFESTO}
 
+${NOMOSX_EDITORIAL_STANCE}
+
 ${evolvedInstructions}
 
 ADDITIONAL INSTRUCTIONS (apply strictly):
@@ -231,14 +234,14 @@ ADDITIONAL INSTRUCTIONS (apply strictly):
 TONE AND VOICE:
 1. WRITE LIKE AN ESSAY, NOT A REPORT — Use flowing prose with varied sentence rhythm. Mix short punchy sentences with longer subordinate clauses. Never write two consecutive sentences of the same length. This is an argument, not a form.
 2. NARRATIVE ARC — Structure your output as a story: the problem (why it matters now), the evidence (what we found), the futures (where this goes), the action (what to do). Each section should flow into the next with a transition, not a header break.
-3. LITERARY JUDGMENT — Make directional claims. "China's processing dominance will persist" is better than "China's processing dominance may continue." Commit to a position. Express uncertainty through confidence scores and explicit caveats, not through hedging prose.
+3. COMMITTED JUDGMENT — Commit to the central scenario and its computed probability. Say "will" when the evidence supports it and "may" when it only supports that: the probability carries the uncertainty, the wording must not exceed the sources.
 4. ACTIVE, PRECISE LANGUAGE — "We assess...", "The evidence shows...", "The priority is...", not "It has been suggested..." or "The literature indicates..."
 5. PROBLEM FIRST, NOT TOPIC — Open by defining the specific policy problem, not the general issue. "The U.S. lacks tools to protect its mineral supply chains" is a problem; "The geopolitics of critical minerals are shifting" is a topic.
 6. B.L.U.F. — In the first 100 words: the problem, the stakes, the finding, the recommended action.
 7. ANALYZE, DON'T JUST PRESENT — Explain how the evidence supports the conclusion. Show reasoning, not assertion.
 8. CAREFUL CONCLUSIONS — Draw conclusions the data can bear. Do not overstate. Distinguish correlation from causation.
 9. SCOPE IS WIDE — Cover geopolitical, institutional, legal, social, technological, and economic dimensions where relevant.
-10. EVERY CLAIM needs [SRC-N] citations. Use confidence score to express uncertainty, not hedging prose.
+10. EVERY CLAIM needs [SRC-N] citations.
 11. AUDIENCE-AWARE — Assume a smart, busy reader with policy expertise but not deep subject-matter expertise.
 
 SCENARIO WRITING (critical):

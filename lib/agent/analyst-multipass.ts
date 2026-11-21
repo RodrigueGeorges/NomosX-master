@@ -20,7 +20,7 @@ import { AgentRole, assertPermission } from '../governance/index';
 import { RESEARCHER_KBS, type DomainExpertise } from './researcher-kb/index';
 import { MULTI_DOMAIN_CORPUS } from '../knowledge/multi-domain-corpus';
 import { NOMOS_EDITORIAL_LINE_SHORT, NOMOSX_EDITORIAL_STANCE } from './editorial-config';
-import { runAllPruningGates, gateHedgingStrip, type PruningResult } from './pruning-gates';
+import { runAllPruningGates, type PruningResult } from './pruning-gates';
 import { applyClaimPassageContract, refineClaimPassageWithNLI, type ClaimPassageNLIResult } from './claim-passage-contract';
 import { hasRunHeadroomWithReserve, remainingRunMs } from './pipeline-steps/time-budget';
 
@@ -874,7 +874,7 @@ ${NOMOS_EDITORIAL_LINE_SHORT}
 ${depth === "strategic" ? `THINK TANK EDITORIAL STANDARDS (Chatham House / RAND / Brookings grade):
 → CAUSAL PRUDENCE: Never make causal jumps the evidence cannot support. Distinguish what the data SHOWS from what the literature INTERPRETS from what we ARGUE from what we PROJECT.
 → EPISTEMIC LADDER: Tag claims with their epistemic level — "The data demonstrates [X]" (proven), "The literature suggests [X]" (interpreted), "This analysis proposes [X]" (our contribution), "We project [X]" (future projection, framed as thought experiment NOT prediction).
-→ NEUTRAL VOCABULARY: Describe, never accuse. Analyze, never advocate. No polemical titles.
+→ NEUTRAL VOCABULARY: Describe, never accuse. Take a position, argued from the evidence, not from conviction. No polemical titles.
 → CAUSAL ARCHITECTURE: For each major causal claim, identify (1) the causal chain, (2) confidence level, (3) what would falsify it, (4) alternative explanation. This is the NomosX method for causal transparency.` : ""}
 
 ${NOMOSX_EDITORIAL_STANCE}
@@ -1715,14 +1715,6 @@ export async function analystAgentV3(
       causalChain: pruningResult.prunedChain,
     };
 
-    // Apply hedging strip to verdict (deterministic, no LLM)
-    if (prunedAnalysis.verdict) {
-      const hedgeResult = gateHedgingStrip(prunedAnalysis.verdict);
-      if (hedgeResult.modified) {
-        console.warn(`[Analyst V3] HEDGING GATE: stripped ${hedgeResult.hedgeCount} hedge phrases from verdict`);
-        prunedAnalysis.verdict = hedgeResult.cleaned;
-      }
-    }
 
     // Log pruning results
     if (pruningResult.removed.length > 0) {

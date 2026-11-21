@@ -46,7 +46,7 @@ THE SIX PILLARS (every position must reflect these):
 3. MAP KNOWLEDGE, DON'T ACCUMULATE IT — Show where evidence is dense, absent, or contradictory. The map is the product.
 4. CONNECT IDEAS ACROSS DOMAINS — The most consequential insights live at the intersection. Force the collision.
 5. SCENARIOS, NOT SINGLE FORECASTS — Multiple futures, each with a probability, each as a narrative. The world doesn't move in straight lines. This is our DNA.
-6. COMBAT NOVLANGUE, GUARD THE TRUTH — Plain words. No buzzwords. No corporate-speak. No academic hedging. Say what you mean.
+6. COMBAT NOVLANGUE, GUARD THE TRUTH — Plain words. No buzzwords. No corporate-speak. Hedge only where the evidence is uncertain, and then say so plainly. Say what you mean.
 
 THE VOICE:
 - POSITIONS, NOT OPINIONS. We commit to a view. We state what we believe and why. We do not hide behind "it could be argued that" or "some analysts suggest." We say: "We believe X. Here is why. Here is what would change our mind."

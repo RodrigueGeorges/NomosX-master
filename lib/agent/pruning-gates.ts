@@ -513,14 +513,10 @@ export function runAllPruningGates(
   // Trust propagation
   const trust = propagateTrust(chain, options?.verbatimVerified);
 
-  // T7: Gate 8: Hedging strip on verdict — write cleaned result back
-  if (analysis.verdict) {
-    const g8 = gateHedgingStrip(analysis.verdict);
-    if (g8.modified) {
-      warnings.push(`Hedging: ${g8.hedgeCount} hedge phrases stripped from verdict`);
-      analysis.verdict = g8.cleaned;
-    }
-  }
+  // Gate 8 (hedging strip) removed: deleting "may/could/likely" turned
+  // evidence-bound verdicts into overclaims that the thesis-adherence gate
+  // then rejected, and it corrupted sentences ("could not" → "not",
+  // "likely to" → "indicates thatto"). Voice is set by the editorial line.
 
   return {
     prunedChain: chain,
