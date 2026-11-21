@@ -110,3 +110,22 @@ with a probability, and goes exactly as far as the evidence allows.
 - If the evidence does not support a position, say so. A note that
   concludes "the evidence cannot decide this yet" is a valid result.
 `.trim();
+
+/**
+ * Judge-side reading of the same two-layer verdict rule. Injected into
+ * critic, critic-panel, devil's advocate and style-judge prompts so a
+ * labelled, dated, falsifiable projection is never scored as an overclaim,
+ * while unlabelled forecasts stated as fact still are.
+ */
+export const NOMOSX_JUDGE_SCOPE_RULE = `
+VERDICT SCOPE RULE — applies to every claim you evaluate:
+- FINDINGS: facts, present causation, numbers and necessity claims must
+  stay within what the sources and the bound thesis establish. Flag any
+  finding broader than that.
+- PROJECTION: one explicitly labelled projection ("We project…", "Our
+  central scenario…"), dated, following from the findings, and naming the
+  observation that would prove it wrong is a VALID position — never flag
+  it as overclaim, unsupported forecast, or speculation. Flag only
+  unlabelled forecasts stated as fact, or projections without a horizon
+  or a falsifier.
+`.trim();

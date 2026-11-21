@@ -22,6 +22,7 @@
 
 import { callLLM } from '../llm/unified-llm';
 import { parseJson } from './json-utils';
+import { NOMOSX_JUDGE_SCOPE_RULE } from './editorial-config';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -454,7 +455,7 @@ export async function groundClaims(
           role: 'user',
           content: GROUNDING_PROMPT
             .replace('{claims}', claimsJson)
-            .replace('{sources}', sourcesJson),
+            .replace('{sources}', sourcesJson) + '\n\n' + NOMOSX_JUDGE_SCOPE_RULE,
         }],
         temperature: 0.1,
         jsonMode: true,
@@ -616,7 +617,7 @@ export async function detectContradictions(claims: AtomicClaim[]): Promise<{ con
     const response = await callLLM({
       messages: [{
         role: 'user',
-        content: CONTRADICTION_PROMPT.replace('{claims}', claimsJson),
+        content: CONTRADICTION_PROMPT.replace('{claims}', claimsJson) + '\n\n' + NOMOSX_JUDGE_SCOPE_RULE,
       }],
       temperature: 0.1,
       jsonMode: true,
@@ -689,7 +690,7 @@ export async function detectBias(
         role: 'user',
         content: BIAS_PROMPT
           .replace('{claims}', claimsJson)
-          .replace('{sources}', sourcesJson),
+          .replace('{sources}', sourcesJson) + '\n\n' + NOMOSX_JUDGE_SCOPE_RULE,
       }],
       temperature: 0.2,
       jsonMode: true,

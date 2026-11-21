@@ -16,6 +16,7 @@
 
 import { callLLM } from '../llm/unified-llm';
 import { parseJson } from './json-utils';
+import { NOMOSX_JUDGE_SCOPE_RULE } from './editorial-config';
 import { getResearcherKB } from './researcher-kb';
 import type { DomainExpertise } from './types';
 
@@ -208,7 +209,7 @@ export async function runCriticPanel(
       const res = await callLLM({
         messages: [{
           role: 'user',
-          content: `${rubric.prompt}\n\nTOPIC UNDER REVIEW: "${topic.slice(0, 300)}"\n\nANALYSIS:\n${text}\n\n${PANEL_JSON_SCHEMA}`,
+          content: `${rubric.prompt}\n\n${NOMOSX_JUDGE_SCOPE_RULE}\n\nTOPIC UNDER REVIEW: "${topic.slice(0, 300)}"\n\nANALYSIS:\n${text}\n\n${PANEL_JSON_SCHEMA}`,
         }],
         temperature: 0.2,
         jsonMode: true,

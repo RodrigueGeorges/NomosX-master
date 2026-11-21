@@ -14,6 +14,7 @@
 
 import { callLLM } from '../llm/unified-llm';
 import { parseJson } from './json-utils';
+import { NOMOSX_JUDGE_SCOPE_RULE } from './editorial-config';
 import { composeStyleGuide, type ThinkTankStyle, type StyleGuide, PROFILES, type StyleOrchestratorInput } from './style-orchestrator';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -203,7 +204,7 @@ export async function critiqueDraft(
     messages: [
       {
         role: 'system',
-        content: `You are a senior editor. Critique this draft against the ${profile.name} style. Return JSON only.`,
+        content: `You are a senior editor. Critique this draft against the ${profile.name} style. Return JSON only.\n\n${NOMOSX_JUDGE_SCOPE_RULE}`,
       },
       {
         role: 'user',

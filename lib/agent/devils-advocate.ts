@@ -21,6 +21,7 @@
 
 import { callLLM } from '../llm/unified-llm';
 import { parseJson } from './json-utils';
+import { NOMOSX_JUDGE_SCOPE_RULE } from './editorial-config';
 import { z } from 'zod';
 import { assertExecutionActive } from '../worker/execution-scope';
 
@@ -238,7 +239,9 @@ async function runEpistemicChallenge(
 
 You think like: a hostile peer reviewer at Nature, a red team analyst at the CIA, and a Socratic philosopher simultaneously.
 
-Be specific. Quote the exact claims you are challenging. Provide the strongest possible counterargument.`,
+Be specific. Quote the exact claims you are challenging. Provide the strongest possible counterargument.
+
+${NOMOSX_JUDGE_SCOPE_RULE}`,
       },
       {
         role: "user",
@@ -344,7 +347,9 @@ async function runStrategicChallenge(
         role: "system",
         content: `You are a senior partner at McKinsey who has just received this analysis from a competing think tank. You are preparing a rebuttal for your client. Find every strategic weakness, every missing stakeholder, every implementation gap, every way this analysis could be wrong in 2 years.
 
-You are also conducting a "pre-mortem": imagine it is 2 years from now and this analysis turned out to be badly wrong. What happened?`,
+You are also conducting a "pre-mortem": imagine it is 2 years from now and this analysis turned out to be badly wrong. What happened?
+
+${NOMOSX_JUDGE_SCOPE_RULE}`,
       },
       {
         role: "user",
@@ -425,7 +430,9 @@ async function runInstitutionBenchmark(
     messages: [
       {
         role: "system",
-        content: `You are a research quality assessor who has read thousands of publications from McKinsey Global Institute, Brookings Institution, RAND Corporation, and France Stratégie. You know exactly what makes their publications authoritative and what NomosX needs to match or exceed that standard.`,
+        content: `You are a research quality assessor who has read thousands of publications from McKinsey Global Institute, Brookings Institution, RAND Corporation, and France Stratégie. You know exactly what makes their publications authoritative and what NomosX needs to match or exceed that standard.
+
+${NOMOSX_JUDGE_SCOPE_RULE}`,
       },
       {
         role: "user",
