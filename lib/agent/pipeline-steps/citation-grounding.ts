@@ -181,20 +181,28 @@ export async function runPostRenderCitationAndGrounding(deps: CitationGroundingD
         const { extractPublishedClaims } = await import('../claim-grounding');
         const published = extractPublishedClaims(html);
         const pairs: Array<{ claim: string; document: string }> = [];
+        // Sized to stay well under the quant-service timeout: the reader
+        // shadow measured ~5s/pair — 12 pairs ≈ 60s vs the 120s client cap.
         for (const c of published) {
-          if (pairs.length >= 20) break;
+          if (pairs.length >= 12) break;
           const ref = c.sourceRef!;
           if (ref < 1 || ref > topSources.length) continue;
           const src: any = topSources[ref - 1];
           const doc = String(
             (readings as any[]).find(r => r.sourceId === src.id)?.extractedText
             ?? src.fullText ?? src.abstract ?? ''
-          ).slice(0, 12000);
+          ).slice(0, 8000);
           if (doc.length < 200) continue;
           const claim = String(c.text ?? '').replace(/\[SRC-\d+\]/g, '').trim();
           if (claim.length >= 20) pairs.push({ claim: claim.slice(0, 1000), document: doc });
         }
-        const mc = await minicheckCheck(pairs);
+        let mc = await minicheckCheck(pairs);
+        // Fail-closed gate: one bounded retry on a smaller payload beats an
+        // immediate unavailable verdict when the quant service is merely slow.
+        if (!mc && pairs.length > 6) {
+          mc = await minicheckCheck(pairs.slice(0, 6));
+          if (mc) console.log(`${label} MINICHECK published: retry on 6 pairs succeeded`);
+        }
         if (mc) {
           const tally = { supported: 0, not_supported: 0, unclear: 0 };
           for (const v of mc.results) tally[v.label] = (tally[v.label] ?? 0) + 1;
