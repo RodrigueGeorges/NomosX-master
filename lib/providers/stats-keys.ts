@@ -9,7 +9,7 @@
  *   ons-uk (api.beta.ons.gov.uk), ibge (servicodados.ibge.gov.br agregados)
  */
 
-import { fetchFromProvider } from '../http-client';
+import { fetchFromProvider, httpPost } from '../http-client';
 import { env } from '../env';
 
 const ds = (id: string, provider: string, title: string, abstract: string, url: string, issuer: string, raw?: any): any => ({
@@ -189,16 +189,42 @@ export async function searchCensus(query: string, limit = 6): Promise<any[]> {
 }
 
 // ─────────────────────────────────────────────────────────────
-// ACLED — political violence events (key + email required)
+// ACLED — political violence events (OAuth password grant, myACLED account)
+// Token endpoint: POST /oauth/token → Bearer token valid 24h (cached).
 // ─────────────────────────────────────────────────────────────
+let acledToken: { token: string; expiresAt: number } | null = null;
+
+async function getAcledToken(): Promise<string> {
+  if (acledToken && acledToken.expiresAt > Date.now()) return acledToken.token;
+  const body = new URLSearchParams({
+    username: env.ACLED_EMAIL!,
+    password: env.ACLED_PASSWORD!,
+    grant_type: 'password',
+    client_id: 'acled',
+    scope: 'authenticated',
+  }).toString();
+  const data: any = await httpPost('https://acleddata.com/oauth/token', body, {
+    timeout: 15000, retries: 1, rateLimiterKey: 'acled',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+  });
+  const token = data?.access_token;
+  if (!token) throw new Error('ACLED OAuth: no access_token in response');
+  acledToken = { token, expiresAt: Date.now() + 23 * 3600 * 1000 };
+  return token;
+}
+
 export async function searchACLED(query: string, limit = 8): Promise<any[]> {
-  if (!env.ACLED_API_KEY || !env.ACLED_EMAIL) {
-    console.log('[ACLED] skipped — ACLED_API_KEY/ACLED_EMAIL not set (free academic registration at acleddata.com)');
+  if (!env.ACLED_EMAIL || !env.ACLED_PASSWORD) {
+    console.log('[ACLED] skipped — ACLED_EMAIL/ACLED_PASSWORD not set (free myACLED account at acleddata.com)');
     return [];
   }
   try {
-    const url = `https://api.acleddata.com/acled/read?key=${env.ACLED_API_KEY}&email=${env.ACLED_EMAIL}&year=${new Date().getFullYear()}&fields=country%7Cevent_type%7Cfatalities&limit=3000`;
-    const data: any = await fetchFromProvider('acled', url, { timeout: 25000, retries: 1 });
+    const token = await getAcledToken();
+    const url = `https://acleddata.com/api/acled/read?_format=json&year=${new Date().getFullYear()}&fields=country%7Cevent_type%7Cfatalities&limit=5000`;
+    const data: any = await fetchFromProvider('acled', url, {
+      timeout: 25000, retries: 1,
+      headers: { Authorization: `Bearer ${token}` },
+    });
     const events: any[] = data?.data || [];
     if (events.length === 0) return [];
 

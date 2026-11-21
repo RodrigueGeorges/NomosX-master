@@ -141,8 +141,8 @@ const envSchema = z.object({
   COMTRADE_API_KEY: z.string().optional(),  // https://comtradedeveloper.un.org/ (free tier)
   BLS_API_KEY: z.string().optional(),       // https://www.bls.gov/developers/ (free)
   CENSUS_API_KEY: z.string().optional(),    // https://api.census.gov/data/key_signup.html (free)
-  ACLED_API_KEY: z.string().optional(),     // https://acleddata.com/register/ (free academic)
-  ACLED_EMAIL: z.string().optional(),       // ACLED registered email
+  ACLED_EMAIL: z.string().optional(),       // myACLED account email (OAuth username)
+  ACLED_PASSWORD: z.string().optional(),    // myACLED account password (OAuth password grant)
   UNHCR_API_KEY: z.string().optional(),     // https://api.unhcr.org/ (free)
   ESTAT_JP_APP_ID: z.string().optional(),   // https://www.e-stat.go.jp/api/ (free)
   KOSIS_API_KEY: z.string().optional(),     // https://kosis.kr/openapi/ (free)
