@@ -17,12 +17,16 @@
 
 import { stripHtmlForEvidence, extractCitationNumbers } from './evidence-ledger';
 
+// Strong causal/empirical hints only — aligned with evidence-ledger's
+// detector. Weak hints ("policy", "risk", "study", "according"...) are
+// editorial prose, not claims: counting them inflated the claim denominator
+// and systematically deflated citationCoverageAfter (observed: 38% coverage
+// gate-fail on an artifact whose real claims were 100% cited).
 const CLAIM_HINTS = [
   "shows", "suggests", "finds", "indicates", "increases", "reduces",
-  "causes", "correlates", "evidence", "impact", "risk", "policy",
-  "study", "research", "according", "demonstrates", "reveals", "highlights",
-  "montre", "suggere", "indique", "augmente", "reduit", "preuve",
-  "risque", "etude", "recherche", "prouve", "demontre",
+  "causes", "correlates", "demonstrates", "reveals", "confirms",
+  "decreases", "improves", "worsens",
+  "montre", "suggere", "indique", "augmente", "reduit", "demontre", "prouve",
 ];
 
 export interface CitationFilterResult {

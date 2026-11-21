@@ -194,6 +194,16 @@ export async function runVerificationBlock(deps: VerificationBlockDeps): Promise
         majorIssues: r.majorIssues,
         fatalIssues: r.fatalIssues,
         integrityScore: r.integrityScore,
+        // Bounded sample of fatal discrepancies — counts alone made paid-run
+        // forensics impossible (5 fatals with no record of what was flagged).
+        fatalSample: (r.results ?? [])
+          .filter((x: any) => x.severity === 'fatal')
+          .slice(0, 8)
+          .map((x: any) => ({
+            claim: String(x.claim ?? '').slice(0, 200),
+            discrepancy: String(x.discrepancy ?? '').slice(0, 200),
+            sourceRef: x.sourceRef,
+          })),
         citance: r.citance
           ? {
               total: r.citance.total,
