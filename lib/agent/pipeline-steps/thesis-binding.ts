@@ -194,5 +194,32 @@ export async function runThesisBindingRepair(
       await opts.verify('adherence-repair');
     }
   }
+
+  // Deterministic floor: when every generative repair still breaches, the
+  // verdict collapses to the bound thesis itself — equal scope is adherent
+  // by contract ("narrower or equal"). The article keeps its full analysis;
+  // only the central claim narrows to what the corpus contracted to support.
+  // This converts a systematic hold into an honestly-scoped publication
+  // instead of burning another re-analysis slot on the same breach.
+  const boundNow = (stats as any).thesisBinding;
+  const currentNow = getAnalysis();
+  const verdictNow = typeof currentNow?.verdict === 'string' ? currentNow.verdict : '';
+  if (
+    boundNow?.statement
+    && boundNow.evaluationComplete === true
+    && boundNow.adhered === false
+    && verdictNow.trim().length >= 20
+    && verdictNow.trim() !== String(boundNow.statement).trim()
+  ) {
+    console.warn(`${label} THESIS BINDING: verdict still exceeds bound thesis after repairs — collapsing verdict to the bound claim`);
+    currentNow.verdict = String(boundNow.statement);
+    setAnalysis(currentNow);
+    bumpAnalysisArtifact();
+    boundNow.collapseRepair = { attempted: true };
+    await opts.verify('adherence-collapse');
+    if (boundNow.adhered === true) {
+      console.log(`${label} THESIS BINDING: collapsed verdict adheres — proceeding with evidence-bound central claim`);
+    }
+  }
   return { reAnalysisBudget };
 }
