@@ -1329,6 +1329,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
       tagEval,
       chartData: quant.chartData,
       modelResults: quantBridge?.models,
+      query,
       frozenQuant: (frozenContext as any)?.quant || (frozenContext as any)?.quantBridge
         ? { quant: (frozenContext as any).quant, quantBridge: (frozenContext as any).quantBridge }
         : undefined,

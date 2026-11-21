@@ -29,6 +29,8 @@ export interface CitationGroundingDeps {
   modelResults?: any[];
   /** Frozen quant snapshot (replay) — external verifiers stay deterministic. */
   frozenQuant?: unknown;
+  /** Research question — topical guard for cited sources. */
+  query?: string;
 }
 
 export async function runPostRenderCitationAndGrounding(deps: CitationGroundingDeps): Promise<string> {
@@ -147,6 +149,50 @@ export async function runPostRenderCitationAndGrounding(deps: CitationGroundingD
     recordDegradedStep(stats, 'COMPUTED_EXHIBIT', err);
   }
   stats.htmlLength = html.length;
+
+  // TOPICAL CITATION GUARD: a source cited in the final artifact must share
+  // topical vocabulary with the research question. Relevance screening is
+  // fail-open and scores are discarded after the drop decision, so tangential
+  // documents (observed: World Bank pension/microfinance papers cited in an
+  // AI-policy note) can survive into citations. Deterministic lexical check:
+  // a cited source sharing ZERO content words with the question cannot
+  // evidence the claim — strip its citation tokens here so the citation
+  // filter below treats the claim as uncited (backtrack or removal).
+  // Conservative by construction: only literal zero-overlap triggers.
+  try {
+    const queryText = String(deps.query ?? '');
+    if (queryText.trim().length >= 10) {
+      const STOP = new Set(('the and for with that this from have has are was were will would could should about into over under between within without their they them his her its our your per via than then when where which while'.split(' ')));
+      const kw = (t: string) => new Set(
+        String(t).toLowerCase().replace(/[^a-z0-9\s-]/g, ' ').split(/\s+/)
+          .filter(w => w.length >= 4 && !STOP.has(w))
+      );
+      const qKw = kw(queryText);
+      if (qKw.size > 0) {
+        const citedRefs = new Set<number>();
+        for (const m of html.matchAll(/\[SRC-(\d+)\]/g)) citedRefs.add(parseInt(m[1], 10));
+        const offTopicRefs = new Set<number>();
+        for (const ref of citedRefs) {
+          const src: any = topSources[ref - 1];
+          if (!src) continue;
+          const sKw = kw(`${src.title || ''} ${src.abstract || ''}`.slice(0, 800));
+          let overlap = 0;
+          for (const w of qKw) if (sKw.has(w)) { overlap++; break; }
+          if (overlap === 0) offTopicRefs.add(ref);
+        }
+        if (offTopicRefs.size > 0) {
+          html = html.replace(/\[SRC-(\d+)\]/g, (tok, ref) => (offTopicRefs.has(parseInt(ref, 10)) ? '' : tok));
+          html = html.replace(/[ \t]{2,}/g, ' ');
+          bumpHtmlArtifact();
+          stats.topicalCitationGuard = { stripped: offTopicRefs.size, refs: [...offTopicRefs].sort((a, b) => a - b) };
+          console.warn(`${label} TOPICAL CITATION GUARD: stripped ${offTopicRefs.size} citation(s) to sources sharing zero topical vocabulary with the question (SRC ${[...offTopicRefs].sort((a, b) => a - b).join(',')})`);
+        }
+      }
+    }
+  } catch (guardErr) {
+    console.warn(`${label} TOPICAL CITATION GUARD: failed (non-blocking):`, guardErr);
+    recordDegradedStep(stats, 'TOPICAL_CITATION_GUARD', guardErr);
+  }
 
   // P1.1: Post-generation citation filter — back-track implicit citations + flag uncited claims
   try {
