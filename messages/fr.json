@@ -731,6 +731,7 @@
     "backToBriefs": "Retour aux briefs",
     "byline": "NomosX Research Desk",
     "bylineDesk": "Par {name}",
+    "initialQuestion": "Question initiale : {question}",
     "signedBy": "signé par {name}",
     "share": "Partager",
     "shareReport": "Partager ce rapport",

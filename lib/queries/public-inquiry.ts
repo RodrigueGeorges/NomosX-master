@@ -107,6 +107,8 @@ export interface InquiryData {
   desk: InquiryDeskAttribution | null;
   /** P1-3: append-only forecast probability history (sentinel resolutions). */
   forecastRevisions: unknown[];
+  /** R-1: the signal's original question when a held-retry run reformulated it. */
+  initialQuestion?: string | null;
 }
 
 export interface RelatedInquiryData {
@@ -230,6 +232,11 @@ export async function fetchInquiryData(slug: string, locale: string = 'en'): Pro
         forecastRevisions: Array.isArray((article.criticalLoopResult as any)?.forecastRevisions)
           ? (article.criticalLoopResult as any).forecastRevisions
           : [],
+        initialQuestion: (() => {
+          const clr0 = (article.criticalLoopResult ?? {}) as Record<string, any>;
+          const orig = clr0?.questionReformulation?.original;
+          return typeof orig === 'string' && orig.trim() ? orig : null;
+        })(),
         desk: (() => {
           const clr = (article.criticalLoopResult ?? {}) as Record<string, any>;
           const signedBy: string | undefined = clr?.signOff?.researcher;

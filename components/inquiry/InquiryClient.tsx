@@ -334,6 +334,12 @@ export function InquiryClient({
 
               <h1 className="font-display text-3xl md:text-4xl font-semibold text-black dark:text-white mb-4">{inquiry.title}</h1>
 
+              {inquiry.initialQuestion ? (
+                <p className="text-xs text-black/45 dark:text-white/45 mb-4 font-mono">
+                  {t('Inquiry.initialQuestion', { question: inquiry.initialQuestion })}
+                </p>
+              ) : null}
+
               {editorial?.lede ? (
                 <p className="text-lg text-black/70 dark:text-white/70 mb-4 leading-relaxed max-w-2xl font-medium">{editorial.lede}</p>
               ) : format.description ? (
