@@ -117,6 +117,7 @@ export async function runEvaluatorsAndTrust(deps: EvaluatorsTrustDeps): Promise<
           verified: sourceCheckResult.verifiedCount,
           notFound: sourceCheckResult.notFoundCount,
           claimAbsent: sourceCheckResult.claimAbsentCount,
+          unverifiable: sourceCheckResult.unverifiableCount ?? 0,
           integrityScore: sourceCheckResult.integrityScore,
         };
         if (sourceCheckResult.retractedCount > 0) {

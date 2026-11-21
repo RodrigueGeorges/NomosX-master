@@ -24,7 +24,7 @@
 import { fetchFromProvider } from '../http-client';
 import { scoreCredibility, classifySourceDomain, getCredibilityThreshold, type CredibilityScore } from './radar-innovations';
 
-export type SourceCheckVerdict = 'verified' | 'retracted' | 'not_found' | 'claim_absent' | 'no_doi';
+export type SourceCheckVerdict = 'verified' | 'retracted' | 'not_found' | 'claim_absent' | 'no_doi' | 'unverifiable';
 
 export interface SourceCheckResult {
   sourceId: string;
@@ -46,6 +46,7 @@ export interface SourceCheckBatchResult {
   notFoundCount: number;
   claimAbsentCount: number;
   noDoiCount: number;
+  unverifiableCount?: number;
   integrityScore: number; // 0-100, (verified / total) * 100
   // ── I: Domain-aware credibility (GroundCheck 2026) ──
   credibilityScores?: CredibilityScore[];
@@ -156,14 +157,23 @@ async function checkOpenAlexRetraction(doi: string): Promise<{
   retractionType?: string;
   title?: string;
   year?: number;
-} | null> {
+} | 'absent' | null> {
   try {
     // OpenAlex API: https://api.openalex.org/works/doi:{doi}
     const url = `https://api.openalex.org/works/doi:${encodeURIComponent(doi)}?select=is_retracted,title,publication_year,type,retraction_type`;
-    const data: any = await fetchFromProvider('openalex', url, {
-      timeout: 8000, retries: 2,
-      headers: { 'User-Agent': 'NomosX/1.0 (mailto:research@nomosx.ai)' },
-    }).catch(() => null);
+    // 'absent' = the API answered 404 (DOI lookup miss); null = verifier
+    // unreachable (timeout, rate-limit, circuit breaker). The distinction
+    // matters: infra failure must not score like a confirmed-bad source.
+    let data: any;
+    try {
+      data = await fetchFromProvider('openalex', url, {
+        timeout: 8000, retries: 2,
+        headers: { 'User-Agent': 'NomosX/1.0 (mailto:research@nomosx.ai)' },
+      });
+    } catch (err: any) {
+      if (err?.status === 404) return 'absent' as const;
+      return null;
+    }
 
     if (!data) return null;
 
@@ -187,13 +197,19 @@ async function checkCrossrefRetraction(doi: string): Promise<{
   retractionType?: string;
   title?: string;
   year?: number;
-} | null> {
+} | 'absent' | null> {
   try {
     const url = `https://api.crossref.org/works/${encodeURIComponent(doi)}`;
-    const data: any = await fetchFromProvider('crossref', url, {
-      timeout: 8000, retries: 2,
-      headers: { 'User-Agent': 'NomosX/1.0 (mailto:research@nomosx.ai)' },
-    }).catch(() => null);
+    let data: any;
+    try {
+      data = await fetchFromProvider('crossref', url, {
+        timeout: 8000, retries: 2,
+        headers: { 'User-Agent': 'NomosX/1.0 (mailto:research@nomosx.ai)' },
+      });
+    } catch (err: any) {
+      if (err?.status === 404) return 'absent' as const;
+      return null;
+    }
 
     if (!data) return null;
     const work = data?.message;
@@ -306,8 +322,27 @@ export async function checkSource(
   const cr = crossrefResult.status === 'fulfilled' ? crossrefResult.value : null;
   const rw = rwResult.status === 'fulfilled' ? rwResult.value : null;
 
-  // If all three failed → not_found
-  if (!oa && !cr && !rw) {
+  // Verifier states: object = API responded, 'absent' = API answered 404
+  // (DOI lookup miss), null = verifier unreachable (timeout/rate-limit/
+  // circuit). Infra failure is NOT evidence of a bad source — the previous
+  // logic scored every unverifiable DOI as 0, identical to a retraction,
+  // which cratered integrityScore during provider outages (observed: 13/20
+  // sources scored 0 while Crossref was circuit-broken).
+  if (oa === null && cr === null && rw === null) {
+    return {
+      sourceId: source.id,
+      sourceTitle: source.title,
+      doi,
+      verdict: 'unverifiable',
+      isRetracted: false,
+      claimPresent: false,
+      mismatch: 'Retraction verifiers unavailable (OpenAlex, Crossref, Retraction Watch all unreachable)',
+    };
+  }
+
+  // Both authoritative DOI lookups explicitly 404 → the DOI is genuinely
+  // invalid, not merely unverifiable.
+  if (oa === 'absent' && cr === 'absent') {
     return {
       sourceId: source.id,
       sourceTitle: source.title,
@@ -315,14 +350,30 @@ export async function checkSource(
       verdict: 'not_found',
       isRetracted: false,
       claimPresent: false,
-      mismatch: 'DOI did not resolve in OpenAlex, Crossref, or Retraction Watch',
+      mismatch: 'DOI not found in OpenAlex or Crossref',
+    };
+  }
+
+  // Absence signals without a single positive resolution → cannot certify.
+  const oaObj = typeof oa === 'object' && oa !== null ? oa : null;
+  const crObj = typeof cr === 'object' && cr !== null ? cr : null;
+  const rwObj = typeof rw === 'object' && rw !== null ? rw : null;
+  if (!oaObj && !crObj) {
+    return {
+      sourceId: source.id,
+      sourceTitle: source.title,
+      doi,
+      verdict: 'unverifiable',
+      isRetracted: false,
+      claimPresent: false,
+      mismatch: 'DOI lookup inconclusive — no verifier resolved the source',
     };
   }
 
   // Check retraction (any source flagging it is enough)
-  const isRetracted = (oa?.isRetracted ?? false) || (cr?.isRetracted ?? false) || (rw?.isRetracted ?? false);
-  const retractionType = oa?.retractionType || cr?.retractionType || (rw?.isRetracted ? 'retraction' : undefined);
-  const retractionReason = rw?.reason;
+  const isRetracted = (oaObj?.isRetracted ?? false) || (crObj?.isRetracted ?? false) || (rwObj?.isRetracted ?? false);
+  const retractionType = oaObj?.retractionType || crObj?.retractionType || (rwObj?.isRetracted ? 'retraction' : undefined);
+  const retractionReason = rwObj?.reason;
 
   if (isRetracted) {
     return {
@@ -338,7 +389,7 @@ export async function checkSource(
   }
 
   // Check claim presence
-  const resolvedTitle = oa?.title || cr?.title;
+  const resolvedTitle = oaObj?.title || crObj?.title;
   const sourceContent = [source.title || '', source.abstract || '', (source.fullText || '').slice(0, 5000)].join(' ');
   const claimPresent = claim ? checkClaimPresence(claim, sourceContent) : true;
 
@@ -359,7 +410,7 @@ export async function checkSource(
     isRetracted: false,
     claimPresent,
     resolvedTitle,
-    resolvedYear: oa?.year || cr?.year,
+    resolvedYear: oaObj?.year || crObj?.year,
     mismatch,
   };
 }
@@ -408,13 +459,17 @@ export async function checkSourcesBatch(
   const notFoundCount = results.filter(r => r.verdict === 'not_found').length;
   const claimAbsentCount = results.filter(r => r.verdict === 'claim_absent').length;
   const noDoiCount = results.filter(r => r.verdict === 'no_doi').length;
+  const unverifiableCount = results.filter(r => r.verdict === 'unverifiable').length;
 
-  // Integrity score: verified sources / total (retracted = 0, not_found = 0, claim_absent = 0.5)
+  // Integrity score: verified sources / total (retracted = 0, not_found = 0,
+  // claim_absent = 0.5). 'unverifiable' = verifier infra failure, not bad
+  // evidence — scores 0.6 like a DOI we cannot resolve, never 0.
   const score = results.reduce((sum, r) => {
     switch (r.verdict) {
       case 'verified': return sum + 1;
       case 'claim_absent': return sum + 0.5;
       case 'no_doi': return sum + 0.7; // Can't verify but not necessarily bad
+      case 'unverifiable': return sum + 0.6; // Verifier outage — infra, not evidence
       default: return sum; // retracted, not_found = 0
     }
   }, 0) / results.length;
@@ -426,6 +481,7 @@ export async function checkSourcesBatch(
     notFoundCount,
     claimAbsentCount,
     noDoiCount,
+    unverifiableCount,
     integrityScore: Math.round(score * 100),
   };
 }
