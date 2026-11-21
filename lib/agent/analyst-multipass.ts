@@ -20,7 +20,7 @@ import { AgentRole, assertPermission } from '../governance/index';
 import { RESEARCHER_KBS, type DomainExpertise } from './researcher-kb/index';
 import { MULTI_DOMAIN_CORPUS } from '../knowledge/multi-domain-corpus';
 import { NOMOS_EDITORIAL_LINE_SHORT, NOMOSX_EDITORIAL_STANCE } from './editorial-config';
-import { runAllPruningGates, gateHedgingStrip, type PruningResult } from './pruning-gates';
+import { runAllPruningGates, type PruningResult } from './pruning-gates';
 import { applyClaimPassageContract, refineClaimPassageWithNLI, type ClaimPassageNLIResult } from './claim-passage-contract';
 import { hasRunHeadroomWithReserve, remainingRunMs } from './pipeline-steps/time-budget';
 
@@ -874,7 +874,7 @@ ${NOMOS_EDITORIAL_LINE_SHORT}
 ${depth === "strategic" ? `THINK TANK EDITORIAL STANDARDS (Chatham House / RAND / Brookings grade):
 → CAUSAL PRUDENCE: Never make causal jumps the evidence cannot support. Distinguish what the data SHOWS from what the literature INTERPRETS from what we ARGUE from what we PROJECT.
 → EPISTEMIC LADDER: Tag claims with their epistemic level — "The data demonstrates [X]" (proven), "The literature suggests [X]" (interpreted), "This analysis proposes [X]" (our contribution), "We project [X]" (future projection, framed as thought experiment NOT prediction).
-→ NEUTRAL VOCABULARY: Describe, never accuse. Analyze, never advocate. No polemical titles.
+→ NEUTRAL VOCABULARY: Describe, never accuse. Take a position, argued from the evidence, not from conviction. No polemical titles.
 → CAUSAL ARCHITECTURE: For each major causal claim, identify (1) the causal chain, (2) confidence level, (3) what would falsify it, (4) alternative explanation. This is the NomosX method for causal transparency.` : ""}
 
 ${NOMOSX_EDITORIAL_STANCE}
@@ -1030,8 +1030,8 @@ ${premortem}` : ''}${boundThesis && process.env.NOMOSX_THESIS_PROMPT_CONTRACT !=
 EVIDENCE-BOUND THESIS CONTRACT (mandatory — verified after generation):
 A thesis has been bound to this corpus as the central claim: "${boundThesis}"
 Your "verdict" field MUST assert this thesis or a strictly narrower version of it.
-Causal attributions, forecasts, numerical claims, and necessity claims beyond the thesis's scope are FORBIDDEN in the verdict — demote them to trajectory.state or rejectedAlternatives as explicitly speculative secondary scenarios.
-If the causal chain supports more than the thesis, keep the chain but narrow the verdict wording. A hedged-but-supported verdict passes; a strong-but-unsupported one is rejected.` : ''}
+Statements of fact, present causal attributions, numerical claims and necessity claims beyond the thesis's scope are FORBIDDEN in the verdict. The verdict SHOULD end with ONE explicitly labelled projection ("We project…", "Our central scenario…") that follows from the thesis, with a horizon and the observation that would prove it wrong — that is the institute's prospective position, not a breach.
+If the causal chain supports more than the thesis, keep the chain but narrow the factual wording. A supported finding plus a labelled, falsifiable projection passes; an unlabelled forecast stated as fact is rejected.` : ''}
 
 Return JSON:
 {
@@ -1715,14 +1715,6 @@ export async function analystAgentV3(
       causalChain: pruningResult.prunedChain,
     };
 
-    // Apply hedging strip to verdict (deterministic, no LLM)
-    if (prunedAnalysis.verdict) {
-      const hedgeResult = gateHedgingStrip(prunedAnalysis.verdict);
-      if (hedgeResult.modified) {
-        console.warn(`[Analyst V3] HEDGING GATE: stripped ${hedgeResult.hedgeCount} hedge phrases from verdict`);
-        prunedAnalysis.verdict = hedgeResult.cleaned;
-      }
-    }
 
     // Log pruning results
     if (pruningResult.removed.length > 0) {
@@ -1752,7 +1744,7 @@ export async function analystAgentV3(
           const { parseJson } = await import('./json-utils');
           const nr = await callLLM({
             messages: [
-              { role: 'system', content: 'You are a senior analyst narrowing a verdict to its evidence-bound thesis. Output valid JSON only: {"verdict":"..."}. The verdict must assert ONLY what the bound thesis supports — or a strictly narrower version. Remove causal attributions, forecasts, numerical claims, and necessity claims the thesis does not make. Prefer hedged-but-supported over strong-but-unsupported. Preserve every [SRC-N] citation token. Never add facts, numbers, or citations. One paragraph, same language.' },
+              { role: 'system', content: 'You are a senior analyst narrowing a verdict to its evidence-bound thesis. Output valid JSON only: {"verdict":"..."}. The verdict must assert ONLY what the bound thesis supports — or a strictly narrower version. Remove statements of fact, causal attributions, numerical claims and necessity claims the thesis does not make. Keep a forward-looking statement only as an explicitly labelled projection (\"We project…\") with its horizon and what would disprove it. Preserve every [SRC-N] citation token. Never add facts, numbers, or citations. One paragraph, same language.' },
               { role: 'user', content: `BOUND THESIS:\n"${options.boundThesis}"\n\nVIOLATION:\n${adh.reason}\n\nTHROUGH-LINE:\n${String(prunedAnalysis.throughLine ?? '').slice(0, 500)}\n\nCURRENT VERDICT:\n${prunedAnalysis.verdict.slice(0, 3000)}` },
             ],
             task: 'reader_v3',

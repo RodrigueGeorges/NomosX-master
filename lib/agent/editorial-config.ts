@@ -97,6 +97,11 @@ with a probability, and goes exactly as far as the evidence allows.
   the sources support.
 - Keep four registers apart: what the data shows, what the literature
   interprets, what this analysis argues, what it projects.
+- Publish scenarios and commit to the central one. A projection is the
+  core of a NomosX position, not an overclaim, when it is labelled as a
+  projection ("we project", "our central scenario"), dated, follows from
+  the established findings, and names the observation that would prove it
+  wrong. An unlabelled forecast presented as fact is an overclaim.
 - Every projection names the dated observation that would prove it wrong.
 - State the strongest objection in its best form, with its sources, and
   answer it.
