@@ -92,8 +92,8 @@ async function attemptVerdictNarrowingRepair(deps: ThesisBindingDeps): Promise<b
             'You are a senior analyst narrowing a verdict to its evidence-bound thesis. ' +
             'Output valid JSON only: {"verdict":"..."}. ' +
             'Rules: the verdict must assert ONLY what the bound thesis supports — or a strictly narrower version of it. ' +
-            'Remove causal attributions, forecasts, numerical claims, and necessity claims the thesis does not make. ' +
-            'Prefer a hedged-but-supported formulation over a strong-but-unsupported one. ' +
+            'Remove statements of fact, causal attributions, numerical claims and necessity claims the thesis does not make. ' +
+            'Keep a forward-looking statement only as an explicitly labelled projection ("We project…") with its horizon and what would disprove it. ' +
             'Preserve every [SRC-N] citation token from the original verdict. Never add facts, numbers, or citations. ' +
             'Keep it one paragraph, same language as the input.',
         },

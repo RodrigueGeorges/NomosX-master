@@ -1030,8 +1030,8 @@ ${premortem}` : ''}${boundThesis && process.env.NOMOSX_THESIS_PROMPT_CONTRACT !=
 EVIDENCE-BOUND THESIS CONTRACT (mandatory — verified after generation):
 A thesis has been bound to this corpus as the central claim: "${boundThesis}"
 Your "verdict" field MUST assert this thesis or a strictly narrower version of it.
-Causal attributions, forecasts, numerical claims, and necessity claims beyond the thesis's scope are FORBIDDEN in the verdict — demote them to trajectory.state or rejectedAlternatives as explicitly speculative secondary scenarios.
-If the causal chain supports more than the thesis, keep the chain but narrow the verdict wording. A hedged-but-supported verdict passes; a strong-but-unsupported one is rejected.` : ''}
+Statements of fact, present causal attributions, numerical claims and necessity claims beyond the thesis's scope are FORBIDDEN in the verdict. The verdict SHOULD end with ONE explicitly labelled projection ("We project…", "Our central scenario…") that follows from the thesis, with a horizon and the observation that would prove it wrong — that is the institute's prospective position, not a breach.
+If the causal chain supports more than the thesis, keep the chain but narrow the factual wording. A supported finding plus a labelled, falsifiable projection passes; an unlabelled forecast stated as fact is rejected.` : ''}
 
 Return JSON:
 {
@@ -1744,7 +1744,7 @@ export async function analystAgentV3(
           const { parseJson } = await import('./json-utils');
           const nr = await callLLM({
             messages: [
-              { role: 'system', content: 'You are a senior analyst narrowing a verdict to its evidence-bound thesis. Output valid JSON only: {"verdict":"..."}. The verdict must assert ONLY what the bound thesis supports — or a strictly narrower version. Remove causal attributions, forecasts, numerical claims, and necessity claims the thesis does not make. Prefer hedged-but-supported over strong-but-unsupported. Preserve every [SRC-N] citation token. Never add facts, numbers, or citations. One paragraph, same language.' },
+              { role: 'system', content: 'You are a senior analyst narrowing a verdict to its evidence-bound thesis. Output valid JSON only: {"verdict":"..."}. The verdict must assert ONLY what the bound thesis supports — or a strictly narrower version. Remove statements of fact, causal attributions, numerical claims and necessity claims the thesis does not make. Keep a forward-looking statement only as an explicitly labelled projection (\"We project…\") with its horizon and what would disprove it. Preserve every [SRC-N] citation token. Never add facts, numbers, or citations. One paragraph, same language.' },
               { role: 'user', content: `BOUND THESIS:\n"${options.boundThesis}"\n\nVIOLATION:\n${adh.reason}\n\nTHROUGH-LINE:\n${String(prunedAnalysis.throughLine ?? '').slice(0, 500)}\n\nCURRENT VERDICT:\n${prunedAnalysis.verdict.slice(0, 3000)}` },
             ],
             task: 'reader_v3',
