@@ -84,7 +84,10 @@ import { searchUCDP, searchILOSTAT, searchOWID } from "../../providers/stats-dat
 import {
   searchComtrade, searchBLS, searchCensus, searchACLED,
   searchUNHCR, searchEStatJP, searchKOSIS, searchONS, searchIBGE,
-  searchDataCommons,
+  searchDataCommons, searchHDX, searchFTS, searchReliefWeb,
+  searchOpenMeteo, searchEmber, searchUNSDG,
+  searchUSGS, searchNASAPower, searchGLEIF,
+  searchCrypto, searchFXRates, searchSatellites, searchHolidays,
 } from "../../providers/stats-keys";
 import { searchSearxng } from "../../providers/searxng";
 import { searchPhilPapers } from "../../providers/philpapers";
@@ -749,6 +752,19 @@ export async function scoutImpl(
     if (providerSet.has("us-census")) allPromises.push(trackProviderCall("us-census", searchCensus(sq, Math.min(6, perProvider))));
     if (providerSet.has("acled")) allPromises.push(trackProviderCall("acled", searchACLED(sq, Math.min(8, perProvider))));
     if (providerSet.has("unhcr")) allPromises.push(trackProviderCall("unhcr", searchUNHCR(sq, Math.min(8, perProvider))));
+    if (providerSet.has("hdx")) allPromises.push(trackProviderCall("hdx", searchHDX(sq, Math.min(8, perProvider))));
+    if (providerSet.has("ocha-fts")) allPromises.push(trackProviderCall("ocha-fts", searchFTS(sq, Math.min(8, perProvider))));
+    if (providerSet.has("reliefweb")) allPromises.push(trackProviderCall("reliefweb", searchReliefWeb(sq, Math.min(8, perProvider))));
+    if (providerSet.has("open-meteo")) allPromises.push(trackProviderCall("open-meteo", searchOpenMeteo(sq, Math.min(4, perProvider))));
+    if (providerSet.has("ember")) allPromises.push(trackProviderCall("ember", searchEmber(sq, Math.min(4, perProvider))));
+    if (providerSet.has("un-sdg")) allPromises.push(trackProviderCall("un-sdg", searchUNSDG(sq, Math.min(4, perProvider))));
+    if (providerSet.has("usgs")) allPromises.push(trackProviderCall("usgs", searchUSGS(sq, Math.min(6, perProvider))));
+    if (providerSet.has("nasa-power")) allPromises.push(trackProviderCall("nasa-power", searchNASAPower(sq, Math.min(3, perProvider))));
+    if (providerSet.has("gleif")) allPromises.push(trackProviderCall("gleif", searchGLEIF(sq, Math.min(5, perProvider))));
+    if (providerSet.has("coingecko")) allPromises.push(trackProviderCall("coingecko", searchCrypto(sq, Math.min(5, perProvider))));
+    if (providerSet.has("frankfurter")) allPromises.push(trackProviderCall("frankfurter", searchFXRates(sq, Math.min(3, perProvider))));
+    if (providerSet.has("celestrak")) allPromises.push(trackProviderCall("celestrak", searchSatellites(sq, Math.min(4, perProvider))));
+    if (providerSet.has("nager-date")) allPromises.push(trackProviderCall("nager-date", searchHolidays(sq, Math.min(3, perProvider))));
     if (providerSet.has("estat-jp")) allPromises.push(trackProviderCall("estat-jp", searchEStatJP(sq, Math.min(8, perProvider))));
     if (providerSet.has("kosis")) allPromises.push(trackProviderCall("kosis", searchKOSIS(sq, Math.min(8, perProvider))));
     if (providerSet.has("ons-uk")) allPromises.push(trackProviderCall("ons-uk", searchONS(sq, Math.min(8, perProvider))));

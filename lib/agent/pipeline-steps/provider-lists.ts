@@ -70,7 +70,9 @@ export type Providers = Array<
   | "worldbank-data" | "ucdp" | "ilostat" | "owid"
   // Key-gated national/international stats (free registration)
   | "comtrade" | "us-bls" | "us-census" | "acled" | "unhcr" | "estat-jp" | "kosis"
-  | "ons-uk" | "ibge" | "datacommons"
+  | "ons-uk" | "ibge" | "datacommons" | "hdx" | "ocha-fts" | "reliefweb"
+  | "open-meteo" | "ember" | "un-sdg" | "usgs" | "nasa-power" | "gleif"
+  | "coingecko" | "frankfurter" | "celestrak" | "nager-date"
   // Free metasearch floor (SearXNG — no key, self-hostable)
   | "searxng"
   // Science ouverte européenne
@@ -164,7 +166,9 @@ export const ALL_PROVIDERS = [
   // Live statistics APIs
   'worldbank-data', 'ucdp', 'ilostat', 'owid',
   'comtrade', 'us-bls', 'us-census', 'acled', 'unhcr', 'estat-jp', 'kosis',
-  'ons-uk', 'ibge', 'datacommons', 'searxng',
+  'ons-uk', 'ibge', 'datacommons', 'hdx', 'ocha-fts', 'reliefweb', 'searxng',
+  'open-meteo', 'ember', 'un-sdg', 'usgs', 'nasa-power', 'gleif',
+  'coingecko', 'frankfurter', 'celestrak', 'nager-date',
   // Domain-specific academic providers
   'psychology', 'sociology', 'history', 'geography',
   'chemistry', 'biology', 'political-science', 'business',
