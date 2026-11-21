@@ -332,6 +332,14 @@ export function evaluatePublicationGate(input: PublicationGateInput): Publicatio
       // (observed live: every field mismatched purely on citation-removal
       // whitespace, a guaranteed central_scenario hold on position-first briefs).
       const normalize = (text: string) => text
+        // HTML entities survive esc() into the rendered block (&#039;, &amp;,
+        // &quot;) while the persisted decision keeps raw characters — decode
+        // before comparing or every apostrophe self-fails the equality check.
+        .replace(/&(?:#0?39|apos);/g, "'")
+        .replace(/&quot;/g, '"')
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
         // Evidence markers render as [E41] (no dash) while source refs use
         // [SRC-41] (dash) — strip BOTH forms.
         .replace(/\[(?:SRC-?|E-?)\d+\]/g, '')

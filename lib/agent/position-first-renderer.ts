@@ -298,7 +298,10 @@ export function renderPositionFirstBriefHTML(input: PositionFirstBriefInput): st
     .join('');
 
   // ── Scenarios (narrative format — Act III) ──
-  const central = resolveCentralScenario(position);
+  // Prefer the persisted decision when supplied: it is what the gate and
+  // the note's forecast history certify. Re-resolving here after upstream
+  // mutations diverged rendered vs persisted (central_scenario hold).
+  const central = input.centralScenario ?? resolveCentralScenario(position);
   const french = ['montaigne', 'france-strategie', 'caps'].includes(style);
   const centralLabels = french
     ? { title: 'Notre scénario central', why: 'Pourquoi nous le retenons', horizon: 'Horizon', implications: 'Conséquences', revision: 'Ce qui nous ferait changer d’avis', confidence: 'Confiance éditoriale', alternatives: 'Alternatives et risques étudiés' }

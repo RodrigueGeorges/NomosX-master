@@ -182,6 +182,7 @@ export async function runRenderEditorStep(rc: RenderEditorContext): Promise<stri
         debate: debateResult,
         isStrategic,
         styleProfile,
+        centralScenario: stats.centralScenario as import('../editorial-types').CentralScenarioDecision | undefined,
       });
       stats.rendererUsed = "position_first";
       console.log(`${label} EDITOR: position-first template (${(rendered.length / 1024).toFixed(0)}KB)`);

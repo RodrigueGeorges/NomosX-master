@@ -156,7 +156,15 @@ export function detectNovlangue(html: string): NovlangueDetectionResult {
   // Sort by offset for readable output
   matches.sort((a, b) => a.offset - b.offset);
 
-  const density = wordCount > 0 ? (matches.length / wordCount) * 1000 : 0;
+  // Weighted density: multi-word euphemisms and bureaucratic phrases are
+  // strong signals (weight 1). Single-word semantic_drift terms ("reform",
+  // "innovation", "disruption") are weak — they are ordinary vocabulary in
+  // precisely the domains NomosX covers (AI innovation policy produced 78
+  // literal uses → a guaranteed false-positive hold). They still count,
+  // at 0.2, so pathological repetition still trips the gate.
+  const weighted = matches.reduce((sum, m) =>
+    sum + (m.category === 'semantic_drift' && !m.term.includes(' ') ? 0.2 : 1), 0);
+  const density = wordCount > 0 ? (weighted / wordCount) * 1000 : 0;
 
   return {
     matches,

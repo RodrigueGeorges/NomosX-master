@@ -227,6 +227,11 @@ export interface PositionFirstBriefInput {
   isStrategic?: boolean;
   /** Think tank style profile — adapts labels and structure (e.g. 'montaigne' uses French labels) */
   styleProfile?: 'harvard' | 'france-strategie' | 'montaigne' | 'mckinsey' | 'rand' | 'chatham' | 'caps' | 'default';
+  /** Persisted central-scenario decision (stats.centralScenario). When
+   *  provided the renderer consumes it verbatim — re-resolving from
+   *  `position` after downstream mutations produced rendered/persisted
+   *  divergence and a guaranteed central_scenario gate hold. */
+  centralScenario?: CentralScenarioDecision;
 }
 
 export function dimensionsFromClassification(tc: TopicClassification): EditorialDimension[] {

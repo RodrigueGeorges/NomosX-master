@@ -569,6 +569,51 @@ export async function runAndPublishInquiry(
     };
 
     let g = evaluatePublicationGate({ ...gi, html: aHtml });
+
+    // Bounded DA retry: an incomplete adversarial evaluation is usually a
+    // transient provider failure (HTTP/2 resets, freepool circuit), not a
+    // verdict on the artifact — yet evaluation_availability fails closed and
+    // the revision round is skipped entirely when evaluations are missing.
+    // Give the evaluator ONE more shot on the final artifact before holding.
+    if (gi.failedEvaluations.includes('devilsAdvocate')) {
+      try {
+        const { runDevilsAdvocate } = await import('./devils-advocate');
+        const { buildAnalysisReviewText } = await import('./analysis-review-text');
+        const retryDa = await runDevilsAdvocate(
+          question,
+          buildAnalysisReviewText((p.lineage.analysis ?? {}) as Record<string, unknown>, question),
+          (p.inquiry.sources ?? []).map((s: any) => ({
+            title: String(s?.title ?? ''), provider: String(s?.provider ?? 'unknown'), year: s?.year,
+          })),
+          { mode: p.format === 'strategic' ? 'strategic' : 'brief', domain: req.domain },
+        );
+        p.stats.totalCostUsd = (Number(p.stats.totalCostUsd) || 0) + (retryDa.costUsd ?? 0);
+        p.stats.devilsAdvocate = {
+          ...((p.stats.devilsAdvocate as Record<string, unknown> | undefined) ?? {}),
+          verdict: retryDa.verdict,
+          overallStrength: retryDa.overallStrength,
+          publishabilityScore: retryDa.publishabilityScore,
+          fatalChallenges: retryDa.fatalChallenges?.length ?? 0,
+          majorChallenges: retryDa.majorChallenges?.length ?? 0,
+          killShot: String(retryDa.killShot ?? '').slice(0, 400),
+          evaluationComplete: retryDa.evaluationComplete === true,
+          retriedAtGate: true,
+        };
+        const retryCompleted = getCompletedAdversarialEvaluation(p.stats, p.lineage);
+        if (retryCompleted) {
+          gi.devilsAdvocateScore = retryCompleted.publishabilityScore as number;
+          gi.fatalChallenges = (retryCompleted.fatalChallenges as number) ?? 0;
+          gi.failedEvaluations = gi.failedEvaluations.filter(k => k !== 'devilsAdvocate');
+          g = evaluatePublicationGate({ ...gi, html: aHtml });
+          console.log(`[InquiryOrchestrator] DA gate-retry completed: ${retryCompleted.verdict}/${retryCompleted.publishabilityScore}`);
+        } else {
+          console.warn('[InquiryOrchestrator] DA gate-retry still incomplete — holding');
+        }
+      } catch (daErr) {
+        console.warn('[InquiryOrchestrator] DA gate-retry failed (non-blocking):', daErr);
+      }
+    }
+
     let r = evaluatePublicationReadiness({
       type: aPubType,
       trustScore: scores.trustScore,
