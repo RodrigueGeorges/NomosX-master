@@ -60,17 +60,21 @@ function getLangfuseConfig(): LangfuseConfig {
 const queue: QueuedEvent[] = [];
 const FLUSH_AT = 20;
 let flushing = false;
+// Langfuse Cloud removed the v3 ingestion API on 2026-11-16 — a 410 is
+// permanent, not transient. Without this latch the queue re-fills forever
+// and every flush re-logs the multi-KB deprecation payload.
+let ingestionDisabled = false;
 
 function enqueue(event: QueuedEvent): void {
   const config = getLangfuseConfig();
-  if (!config.enabled) return;
+  if (!config.enabled || ingestionDisabled) return;
   queue.push(event);
   if (queue.length >= FLUSH_AT) void flushAll();
 }
 
 async function flushAll(): Promise<void> {
   const config = getLangfuseConfig();
-  if (!config.enabled || queue.length === 0 || flushing) return;
+  if (!config.enabled || ingestionDisabled || queue.length === 0 || flushing) return;
   flushing = true;
   const batch = queue.splice(0, queue.length);
   try {
@@ -85,7 +89,14 @@ async function flushAll(): Promise<void> {
       signal: AbortSignal.timeout(10_000),
     });
     if (!res.ok) {
-      console.warn(`[Langfuse] Ingestion failed: ${res.status} ${await res.text().catch(() => '')}`);
+      const body = await res.text().catch(() => '');
+      if (res.status === 410 || body.includes('LANGFUSE_V3_API_REMOVED')) {
+        ingestionDisabled = true;
+        queue.length = 0;
+        console.warn('[Langfuse] v3 ingestion API removed (410) — trace ingestion disabled for this process. Migrate to OTEL endpoint or self-hosted Langfuse.');
+        return;
+      }
+      console.warn(`[Langfuse] Ingestion failed: ${res.status} ${body.slice(0, 300)}`);
       queue.unshift(...batch); // re-queue (bounded by FLUSH_AT churn)
       if (queue.length > 500) queue.splice(0, queue.length - 500);
     }
