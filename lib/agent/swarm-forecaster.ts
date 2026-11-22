@@ -342,6 +342,27 @@ export async function runSwarmVote(input: {
   const cardKey = (id: string) => id.slice(-6).toLowerCase();
   const sharedKeys = new Set(shared.map(c => cardKey(c.id)));
 
+  // Family attribution: every freepool endpoint reports provider='freepool',
+  // which collapsed llama/qwen/gemini/command ballots into ONE family and
+  // failed the ≥2-families election check even when genuinely diverse models
+  // voted (observed live: trust-88 artifact HELD on swarm_healthy with only
+  // freepool alive). Derive the family from the resolved model id instead —
+  // "groq/llama-3.3-70b" → 'llama', "cohere/command-a" → 'cohere'.
+  const familyOf = (res: { provider?: string; model?: string }, fallback: string): string => {
+    if (res.provider !== 'freepool') return res.provider ?? fallback;
+    const modelId = String(res.model ?? '').split('/').pop() ?? '';
+    const m = modelId.toLowerCase();
+    if (/llama|mixtral/.test(m)) return 'meta-llama';
+    if (/qwen/.test(m)) return 'qwen';
+    if (/gemini/.test(m)) return 'google';
+    if (/command|cohere/.test(m)) return 'cohere';
+    if (/mistral/.test(m)) return 'mistral';
+    if (/deepseek/.test(m)) return 'deepseek';
+    if (/glm|chatglm/.test(m)) return 'glm';
+    if (/gpt|openai|o\d/.test(m)) return 'openai';
+    return modelId || fallback;
+  };
+
   {
     // One call per voter covers ALL uncertain links — cheaper than
     // link×voter and keeps votes comparable across the chain.
@@ -406,7 +427,7 @@ Return ONLY JSON: {"votes":[{"linkId":<number>,"probability":<0-1>,"confidence":
             probability: Math.min(0.98, Math.max(0.02, corrected)),
             confidence: [1, 1.5, 2].includes(Number(v.confidence)) ? Number(v.confidence) : 1,
             voterId: `v${i}`,
-            family: res.provider ?? provider,
+            family: familyOf(res, provider),
             negated,
           });
         }

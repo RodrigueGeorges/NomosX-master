@@ -957,9 +957,19 @@ async function callFreepool(request: LLMRequest, signal?: AbortSignal): Promise<
   return enqueueFreepool(() => callFreepoolInner(request, signal));
 }
 
+let freepoolCallSeq = 0;
+
 async function callFreepoolInner(request: LLMRequest, signal?: AbortSignal): Promise<LLMResponse> {
-  const endpoints = getFreepoolEndpoints();
-  if (endpoints.length === 0) throw new Error("freepool: no free-tier key configured");
+  const baseEndpoints = getFreepoolEndpoints();
+  if (baseEndpoints.length === 0) throw new Error("freepool: no free-tier key configured");
+  // Round-robin the cascade start: groq-first ordering funnelled EVERY call
+  // through one TPM window (59s pacing waits observed live) and made all
+  // swarm ballots report the same model family — failing the ≥2-families
+  // election check on genuinely diverse free-tier models. Rotating spreads
+  // TPM load and lets cohere/cerebras/hf serve their share. Dead endpoints
+  // still self-eject via cooldowns.
+  const rot = freepoolCallSeq++ % baseEndpoints.length;
+  const endpoints = [...baseEndpoints.slice(rot), ...baseEndpoints.slice(0, rot)];
 
   const task = normalizeTask(request.task);
   const isFast = FAST_TASKS.has(task);
