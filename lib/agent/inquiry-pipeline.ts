@@ -74,7 +74,13 @@ function depthToPipelineFormat(
       // Decision Memo — moderate depth, brief pipeline with memo rendering.
       // Same heavy machinery as deep (BLACKBOARD re-analysis, arbiter, Delphi,
       // sweep) — a memo run died mid critic-repair at the 65min default cap.
-      base = { format: "memo", options: { perProvider: 30, timeoutMs: isFreeRun() ? 10_800_000 : 4_800_000 } };
+      // Paid runs get 120min: under degraded-provider conditions (single
+      // surviving LLM family + freepool TPM pacing) the same pipeline that
+      // takes ~60min on glm takes 90min+ — observed live: CBAM run died at
+      // the 80min cap during the post-DA verification tail with a complete
+      // artifact already rendered (DA overhaul had just produced the first
+      // non-veto verdict in a month).
+      base = { format: "memo", options: { perProvider: 30, timeoutMs: Number(process.env.NOMOSX_MEMO_TIMEOUT_MS) || (isFreeRun() ? 10_800_000 : 7_200_000) } };
       break;
     case "deep":
       // Article — deeper brief pipeline (NOT strategic), more sources.
@@ -84,7 +90,7 @@ function depthToPipelineFormat(
         format: "brief",
         options: {
           perProvider: 50,
-          timeoutMs: isFreeRun() ? 10_800_000 : 4_800_000, // 80min — a deep run timed out at 65min post-arbiter
+          timeoutMs: Number(process.env.NOMOSX_DEEP_TIMEOUT_MS) || (isFreeRun() ? 10_800_000 : 7_200_000), // 120min paid — same degraded-provider rationale as memo
           rankOptions: { requireAbstract: false, minQuality: 0 },
         },
       };
