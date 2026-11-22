@@ -981,6 +981,15 @@ async function callFreepoolInner(request: LLMRequest, signal?: AbortSignal): Pro
     const model = isFast ? ep.fastModel : ep.reasoningModel;
     try {
       const client = getFreepoolClient(ep);
+      // Per-endpoint deadline: the outer withTimeout bounds the WHOLE cascade
+      // (~240s incl. TPM pacing waits), so one hung endpoint used to eat the
+      // entire budget and every later endpoint aborted instantly ("Request
+      // was aborted" streaks observed live). Cap each endpoint so the cascade
+      // actually reaches the healthy tail. The shared signal still wins.
+      const epTimeoutMs = Number(process.env.NOMOSX_FREEPOOL_ENDPOINT_TIMEOUT_MS) || 90_000;
+      const epSignal = signal
+        ? AbortSignal.any([signal, AbortSignal.timeout(epTimeoutMs)])
+        : AbortSignal.timeout(epTimeoutMs);
       const callParams = (jsonMode: boolean) => ({
         model,
         messages: request.messages as any,
@@ -992,7 +1001,7 @@ async function callFreepoolInner(request: LLMRequest, signal?: AbortSignal): Pro
       }) as any;
       let completion;
       try {
-        completion = await client.chat.completions.create(callParams(!!request.jsonMode), signal ? { signal } : {});
+        completion = await client.chat.completions.create(callParams(!!request.jsonMode), { signal: epSignal });
       } catch (firstErr) {
         // Groq (and some OpenAI-compatible free tiers) validate JSON-mode
         // OUTPUT server-side: when the model emits non-JSON the API returns
@@ -1002,7 +1011,7 @@ async function callFreepoolInner(request: LLMRequest, signal?: AbortSignal): Pro
         // handles the raw JSON content.
         if (request.jsonMode && /failed to (validate|generate) json/i.test((firstErr as Error)?.message ?? '')) {
           console.warn(`   ↳ freepool/${ep.name}: server-side JSON validation failed — retrying without response_format`);
-          completion = await client.chat.completions.create(callParams(false), signal ? { signal } : {});
+          completion = await client.chat.completions.create(callParams(false), { signal: epSignal });
         } else {
           throw firstErr;
         }
