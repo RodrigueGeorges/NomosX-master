@@ -84,7 +84,7 @@ import { searchUCDP, searchILOSTAT, searchOWID } from "../../providers/stats-dat
 import {
   searchComtrade, searchBLS, searchCensus, searchACLED,
   searchUNHCR, searchEStatJP, searchKOSIS, searchONS, searchIBGE,
-  searchDataCommons, searchHDX, searchFTS, searchReliefWeb, searchEIA, searchVdem,
+  searchDataCommons, searchHDX, searchFTS, searchReliefWeb, searchEIA, searchVdem, searchOpenAQ,
   searchOpenMeteo, searchEmber, searchUNSDG,
   searchUSGS, searchNASAPower, searchGLEIF,
   searchCrypto, searchFXRates, searchSatellites, searchHolidays,
@@ -772,6 +772,7 @@ export async function scoutImpl(
     if (providerSet.has("datacommons")) allPromises.push(trackProviderCall("datacommons", searchDataCommons(sq, Math.min(6, perProvider))));
     if (providerSet.has("eia")) allPromises.push(trackProviderCall("eia", searchEIA(sq, Math.min(5, perProvider))));
     if (providerSet.has("vdem")) allPromises.push(trackProviderCall("vdem", searchVdem(sq, Math.min(5, perProvider))));
+    if (providerSet.has("openaq")) allPromises.push(trackProviderCall("openaq", searchOpenAQ(sq, Math.min(4, perProvider))));
     // Free metasearch floor — keeps web retrieval alive when paid search is exhausted
     if (providerSet.has("searxng")) allPromises.push(trackProviderCall("searxng", searchSearxng(sq, Math.min(8, perProvider))));
 

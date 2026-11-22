@@ -1329,3 +1329,112 @@ export async function searchVdem(query: string, limit = 5): Promise<any[]> {
   console.log(`[VDEM] ${results.length} indicator datasets (${picked.length} vars matched)`);
   return results;
 }
+
+// ─────────────────────────────────────────────────────────────
+// OPENAQ — global air quality monitoring (OPENAQ_API_KEY, free tier)
+// https://docs.openaq.org — v3 API, X-API-Key header.
+// ─────────────────────────────────────────────────────────────
+const OPENAQ_PARAMS: Record<string, { id: number; label: string; who?: string }> = {
+  pm25: { id: 2, label: 'PM2.5', who: 'WHO 24h guideline 15 µg/m³' },
+  pm10: { id: 1, label: 'PM10' },
+  no2: { id: 5, label: 'NO2' },
+  o3: { id: 3, label: 'Ozone O3' },
+};
+let openaqCountries: any[] | null = null;
+
+async function openaqFetch(pathname: string): Promise<any> {
+  const key = env.OPENAQ_API_KEY;
+  if (!key) return null;
+  return fetchFromProvider('openaq', `https://api.openaq.org/v3${pathname}`, {
+    headers: { 'X-API-Key': key }, timeout: 20000, retries: 1,
+  });
+}
+
+export async function searchOpenAQ(query: string, limit = 4): Promise<any[]> {
+  if (!env.OPENAQ_API_KEY) {
+    console.log('[OPENAQ] skipped — OPENAQ_API_KEY not set (free at docs.openaq.org)');
+    return [];
+  }
+  const q = query.toLowerCase();
+  const wantsAir = /air quality|pollution|pm2\.5|pm10|smog|aqi|particulate|openaq|no2|nitrogen|ozone|wildfire smoke|dust|emission/.test(q);
+  if (!wantsAir && !/openaq/.test(q)) return [];
+
+  // Pollutant selection.
+  let paramKey = 'pm25';
+  if (/pm10/.test(q)) paramKey = 'pm10';
+  else if (/no2|nitrogen/.test(q)) paramKey = 'no2';
+  else if (/ozone|\bo3\b/.test(q)) paramKey = 'o3';
+  const param = OPENAQ_PARAMS[paramKey];
+
+  try {
+    // Country match from the cached countries list.
+    if (!openaqCountries) {
+      const cj: any = await openaqFetch('/countries?limit=300');
+      openaqCountries = cj?.results || [];
+    }
+    const tokens = q.split(/[^a-zà-ÿ]+/).filter(t => t.length > 3);
+    const country = (openaqCountries || []).find((c: any) =>
+      tokens.some(t => String(c.name).toLowerCase().includes(t)) ||
+      tokens.includes(String(c.code).toLowerCase()));
+
+    if (!country) {
+      // Global coverage snapshot.
+      const lj: any = await openaqFetch(`/locations?parameters_id=${param.id}&limit=1`);
+      const found = lj?.meta?.found;
+      if (found == null) return [];
+      return [ds(
+        `global-${paramKey}`, 'openaq',
+        `OpenAQ — global ${param.label} monitoring network`,
+        `OpenAQ aggregates ${found} air-quality monitoring locations reporting ${param.label} (${param.label} ${OPENAQ_PARAMS[paramKey].who ? `— ${OPENAQ_PARAMS[paramKey].who}. ` : ''}Source: OpenAQ v3, real-time station network).`,
+        'https://explore.openaq.org', 'OpenAQ', lj.meta,
+      )];
+    }
+
+    // Freshest monitoring locations in that country.
+    const lj: any = await openaqFetch(
+      `/locations?countries_id=${country.id}&parameters_id=${param.id}&limit=12`);
+    const locs: any[] = (lj?.results || [])
+      .filter((l: any) => l.isMonitor !== false)
+      .sort((a: any, b: any) => String(b.datetimeLast || '').localeCompare(String(a.datetimeLast || '')))
+      .slice(0, 5);
+    if (!locs.length) return [];
+
+    const readings: any[] = [];
+    for (const loc of locs) {
+      const sensor = (loc.sensors || []).find((s: any) => s.parameter?.id === param.id);
+      if (!sensor) continue;
+      const mj: any = await openaqFetch(`/locations/${loc.id}/latest`);
+      const rec = (mj?.results || []).find((r: any) => r.sensorsId === sensor.id && r.value != null);
+      if (rec) {
+        readings.push({
+          station: loc.name, value: rec.value,
+          when: rec.datetime?.utc, units: 'µg/m³',
+        });
+      }
+    }
+    if (!readings.length) return [];
+    // Freshness check — OpenAQ stations vary wildly in reporting recency.
+    const now = Date.now();
+    const freshest = Math.max(...readings.map(r => Date.parse(r.when || 0) || 0));
+    const ageDays = freshest ? Math.floor((now - freshest) / 86400000) : null;
+    const staleNote = ageDays != null && ageDays > 45
+      ? ` NOTE: freshest station reading is ${ageDays} days old — treat as stale.`
+      : '';
+    const vals = readings.map(r => r.value);
+    const avg = vals.reduce((s, v) => s + v, 0) / vals.length;
+    const worst = readings.reduce((a, b) => (b.value > a.value ? b : a));
+    const whoTxt = param.who ? ` ${param.who}.` : '';
+    const stationTxt = readings.slice(0, 4).map(r => `${r.station}: ${r.value} µg/m³`).join('; ');
+
+    return [ds(
+      `${paramKey}-${country.code.toLowerCase()}`, 'openaq',
+      `OpenAQ — ${param.label} air quality in ${country.name}`,
+      `${param.label} monitoring in ${country.name}: ${readings.length} stations reporting, avg ${avg.toFixed(1)} µg/m³, highest ${worst.station} at ${worst.value} µg/m³ (${worst.when?.slice(0, 10)}).${whoTxt}${staleNote} Stations: ${stationTxt}. Source: OpenAQ v3 monitoring network.`,
+      `https://explore.openaq.org/?countries=${country.code}`,
+      'OpenAQ', { country: country.name, readings },
+    )];
+  } catch (e: any) {
+    console.error(`[OPENAQ] failed: ${e?.message}`);
+    return [];
+  }
+}

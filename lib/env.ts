@@ -149,6 +149,7 @@ const envSchema = z.object({
   DATACOMMONS_API_KEY: z.string().optional(), // https://apikeys.datacommons.org/ (free)
   DATACOMMONS_API_SECRET: z.string().optional(), // Data Commons API secret (required with key)
   EIA_API_KEY: z.string().optional(), // https://www.eia.gov/opendata/ (free)
+  OPENAQ_API_KEY: z.string().optional(), // https://docs.openaq.org (free tier)
   RELIEFWEB_APPNAME: z.string().optional(),  // approved appname — https://apidoc.reliefweb.int/parameters#appname (free request)
   SEARXNG_URL: z.string().optional(),        // self-hosted instance (e.g. http://localhost:8080) — public fallback otherwise
 
