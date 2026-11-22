@@ -832,6 +832,9 @@ const FREEPOOL_ENDPOINTS: Array<Omit<FreepoolEndpoint, "apiKey"> & { envKey: key
   // Cohere trial key via the OpenAI-compatibility endpoint — free tier,
   // independent infra from every other freepool member.
   { name: "cohere",     envKey: "COHERE_API_KEY",     baseURL: "https://api.cohere.com/compatibility/v1", fastModel: "command-a-03-2025", reasoningModel: "command-a-03-2025", maxContextTokens: 60_000 },
+  // HuggingFace Inference Providers router — OpenAI-compatible, free monthly
+  // credits on the account. Routes across hosted providers automatically.
+  { name: "huggingface", envKey: "HF_TOKEN",          baseURL: "https://router.huggingface.co/v1", fastModel: "Qwen/Qwen2.5-7B-Instruct", reasoningModel: "Qwen/Qwen2.5-72B-Instruct", maxContextTokens: 32_000 },
 ];
 
 function getFreepoolEndpoints(): FreepoolEndpoint[] {

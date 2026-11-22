@@ -28,6 +28,7 @@ const FREE_KEYS = [
   "OPENROUTER_API_KEY",
   "MISTRAL_API_KEY",
   "COHERE_API_KEY",
+  "HF_TOKEN",
 ];
 
 // Paid providers must be neutralized — the fallback chain would otherwise try

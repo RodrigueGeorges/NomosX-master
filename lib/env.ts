@@ -82,6 +82,7 @@ const envSchema = z.object({
   NVIDIA_API_KEY: z.string().optional(),        // build.nvidia.com ~40 RPM free
   OPENROUTER_API_KEY: z.string().optional(),    // :free models ~50 req-day
   MISTRAL_API_KEY: z.string().optional(),       // Experiment tier 1B tokens/month
+  HF_TOKEN: z.string().optional(),              // HuggingFace Inference Providers router (free monthly credits)
   
   // Qwen (Alibaba Cloud / DashScope / Together.ai — OpenAI-compatible)
 
