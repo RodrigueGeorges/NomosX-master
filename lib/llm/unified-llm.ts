@@ -825,6 +825,10 @@ const FREEPOOL_ENDPOINTS: Array<Omit<FreepoolEndpoint, "apiKey"> & { envKey: key
   { name: "openrouter", envKey: "OPENROUTER_API_KEY", baseURL: "https://openrouter.ai/api/v1",            fastModel: "nvidia/nemotron-3.5-lightning:free",    reasoningModel: "nvidia/nemotron-3.5-lightning:free", tokenHeadroom: 1500,
     modelFallbacks: ["nvidia/nemotron-3-super-120b-a12b:free", "nvidia/nemotron-3-ultra-550b-a11b:free", "liquid/lfm-2.5-2.6b:free", "openrouter/free"] },
   { name: "mistral",    envKey: "MISTRAL_API_KEY",    baseURL: "https://api.mistral.ai/v1",               fastModel: "mistral-small-latest",                    reasoningModel: "mistral-small-latest" },
+  // Google AI Studio free tier via the OpenAI-compatible endpoint — same
+  // GOOGLE_API_KEY the 'google' family uses, but as a freepool safety net so
+  // a glm/groq/nvidia outage never leaves the pipeline without an LLM.
+  { name: "gemini",     envKey: "GOOGLE_API_KEY",     baseURL: "https://generativelanguage.googleapis.com/v1beta/openai", fastModel: "gemini-3.8-flash", reasoningModel: "gemini-3.8-flash", maxContextTokens: 60_000 },
 ];
 
 function getFreepoolEndpoints(): FreepoolEndpoint[] {
@@ -856,6 +860,11 @@ const ENDPOINT_COOLDOWNS = new Map<string, number>();
 
 function endpointCooldownMs(err: Error): number | null {
   const msg = err.message ?? "";
+  // Permanent endpoint death (410 Gone, revoked keys, suspended accounts) —
+  // retrying every call wastes budget; cool for 24h so the mesh skips it.
+  if (/\b410\b|\bgone\b|model.*(not found|decommissioned|end.of.life)|account.*(suspended|disabled)|insufficient.*balance|no credits/i.test(msg)) {
+    return 24 * 60 * 60_000;
+  }
   const is429 = /429|rate.?limit|tokens per day|requests per day|TPD|RPD|quota|free-models-per-day/i.test(msg);
   if (!is429) return null;
   const minSec = msg.match(/try again in\s+(\d+)m(?:\s*([\d.]+)s)?/i);

@@ -76,6 +76,7 @@ export interface RadarSweepResult {
     volumeSpikes?: number;
     newsWiresFetched?: number;
     socialFetched?: number;
+    eventSourcesFetched?: number;
   };
 }
 
@@ -268,6 +269,7 @@ export async function runTopicRadar(options?: {
     crossSourceSignals?: { clustersDetected: number; topScore: number };
     breakingFetched?: number; volumeSpikes?: number;
     newsWiresFetched?: number; socialFetched?: number;
+    eventSourcesFetched?: number;
   } = {
     gdeltFetched: 0, rssFetched: 0, academicFetched: 0,
     policyFetched: 0, institutionalFetched: 0, dbSignals: 0,
@@ -276,7 +278,7 @@ export async function runTopicRadar(options?: {
   };
 
   // 8 parallel sweeps: baseline + breaking(3h) + volume-spikes + wires + social pulse
-  const [gdeltR, rssR, academicR, dbR, breakingR, spikesR, wiresR, socialR] = await Promise.allSettled([
+  const [gdeltR, rssR, academicR, dbR, breakingR, spikesR, wiresR, socialR, gdacsR, bnewsR] = await Promise.allSettled([
     sweepGDELT(),
     sweepRSS(),
     includeAcademic ? sweepAcademic() : Promise.resolve([]),
@@ -285,6 +287,8 @@ export async function runTopicRadar(options?: {
     sweepGDELTVolumeSpikes(),
     sweepNewsWires(),
     sweepSocialPulse(),
+    sweepGDACS(),
+    sweepBingNewsRSS(),
   ]);
 
   const all: RadarTopic[] = [];
@@ -296,6 +300,10 @@ export async function runTopicRadar(options?: {
   if (spikesR.status === 'fulfilled')   { all.push(...spikesR.value);   stats.volumeSpikes    = spikesR.value.length; }
   if (wiresR.status === 'fulfilled')    { all.push(...wiresR.value);    stats.newsWiresFetched = wiresR.value.length; }
   if (socialR.status === 'fulfilled')   { all.push(...socialR.value);   stats.socialFetched   = socialR.value.length; }
+  const eventSourcesFetched = (gdacsR.status === 'fulfilled' ? gdacsR.value.length : 0) + (bnewsR.status === 'fulfilled' ? bnewsR.value.length : 0);
+  if (gdacsR.status === 'fulfilled')    { all.push(...gdacsR.value); }
+  if (bnewsR.status === 'fulfilled')     { all.push(...bnewsR.value); }
+  stats.eventSourcesFetched = eventSourcesFetched;
 
   // ── CROSS-SOURCE SIGNAL DETECTION (V3.1) — corroboration + velocity ──
   let signalClusters: { topic: string; items: any[]; totalScore: number; corroborationScore: number }[] = [];
@@ -442,7 +450,7 @@ export async function runTopicRadar(options?: {
   // Store in TTL cache
   _cachedResult = { result, expiresAt: Date.now() + CACHE_TTL_MS };
 
-  console.log(`[TOPIC RADAR V3] ✅ ${stats.totalRaw} raw → ${stats.afterDedup} deduped → ${top.length} topics in ${stats.durationMs}ms | gdelt:${stats.gdeltFetched} breaking:${stats.breakingFetched} spikes:${stats.volumeSpikes} wires:${stats.newsWiresFetched} social:${stats.socialFetched} rss:${stats.rssFetched} academic:${stats.academicFetched} db:${stats.dbSignals}`);
+  console.log(`[TOPIC RADAR V3] ✅ ${stats.totalRaw} raw → ${stats.afterDedup} deduped → ${top.length} topics in ${stats.durationMs}ms | gdelt:${stats.gdeltFetched} breaking:${stats.breakingFetched} spikes:${stats.volumeSpikes} wires:${stats.newsWiresFetched} social:${stats.socialFetched} rss:${stats.rssFetched} academic:${stats.academicFetched} db:${stats.dbSignals} events:${stats.eventSourcesFetched ?? 0}`);
   return result;
 }
 
@@ -972,6 +980,81 @@ async function sweepNewsWires(): Promise<RadarTopic[]> {
           publishedAt: pub,
           score: clampScore(62 + TIER_BONUS[feed.tier] + (3 - i) * 3 + recencyDecay(pub) + urgencyKeywordBonus(item.title)),
           vertical: feed.vertical,
+        };
+      });
+    } catch { return []; }
+  });
+  const out: RadarTopic[] = [];
+  for (const r of await Promise.allSettled(promises)) if (r.status === 'fulfilled') out.push(...r.value);
+  return out;
+}
+
+// ============================================================================
+// SOURCE 7b: GDACS — UN OCHA / EU JRC official disaster alerts (keyless RSS).
+// GDELT-independent event layer: green/red/orange alerts on earthquakes,
+// cyclones, floods, volcanoes, droughts — complements news-media sweeps.
+// ============================================================================
+
+async function sweepGDACS(): Promise<RadarTopic[]> {
+  try {
+    const text = await fetchFromProvider('gdacs', 'https://www.gdacs.org/xml/rss.xml', {
+      timeout: 9000, retries: 1, responseType: 'text',
+      headers: { "User-Agent": "NomosX-Radar/3.0" },
+    }).catch(() => null);
+    if (!text) return [];
+    const items = parseRSSItems(text).slice(0, 8);
+    return items.map((item, i) => {
+      const pub = item.pubDate ? new Date(item.pubDate) : null;
+      const alertMatch = item.title.match(/(red|orange|green)\s*alert/i);
+      const alertTier = alertMatch ? alertMatch[1].toLowerCase() : null;
+      const urgency = alertTier === 'red' ? 14 : alertTier === 'orange' ? 10 : 6;
+      return {
+        id: `gdacs:${hashStr(item.link || item.title)}`,
+        title: cleanText(item.title),
+        summary: `[GDACS ${alertTier ? alertTier.toUpperCase() : 'ALERT'}] ${cleanHTML(item.description).slice(0, 300)}`,
+        url: item.link,
+        source: 'GDACS',
+        sourceType: 'news' as const,
+        publishedAt: pub,
+        score: clampScore(66 + urgency + (7 - i) * 2 + recencyDecay(pub)),
+        vertical: 'disasters',
+      };
+    });
+  } catch { return []; }
+}
+
+// ============================================================================
+// SOURCE 7c: Bing News RSS — keyless search feed over the Bing news index.
+// Independent backend from GDELT's own crawl: when api.gdeltproject.org is
+// rate-limited/down, this keeps broad news discovery alive.
+// ============================================================================
+
+const BING_NEWS_QUERIES = GDELT_SWEEP_QUERIES.slice(0, 3); // top-3 urgency verticals
+
+async function sweepBingNewsRSS(): Promise<RadarTopic[]> {
+  const promises = BING_NEWS_QUERIES.map(async ({ query, vertical, urgencyBonus }) => {
+    try {
+      // Bing News RSS takes plain keywords — keep the highest-signal terms
+      // of each vertical query (GDELT OR-syntax doesn't translate cleanly).
+      const q = query.split(' OR ').slice(0, 4).join(' ');
+      const url = `https://www.bing.com/news/search?q=${encodeURIComponent(q)}&format=rss&setlang=en-US&cc=US`;
+      const text = await fetchFromProvider('bing-news-rss', url, {
+        timeout: 9000, retries: 1, responseType: 'text',
+        headers: { "User-Agent": "Mozilla/5.0 (compatible; NomosX-Radar/3.0)" },
+      }).catch(() => null);
+      if (!text) return [];
+      return parseRSSItems(text).slice(0, 4).map((item, i) => {
+        const pub = item.pubDate ? new Date(item.pubDate) : null;
+        return {
+          id: `bnews:${hashStr(item.link || item.title)}`,
+          title: cleanText(item.title),
+          summary: `[${vertical}] ${cleanHTML(item.description).slice(0, 300)}`,
+          url: item.link,
+          source: 'Bing News',
+          sourceType: 'news' as const,
+          publishedAt: pub,
+          score: clampScore(64 + urgencyBonus * 0.6 + (3 - i) * 3 + recencyDecay(pub) + urgencyKeywordBonus(item.title)),
+          vertical,
         };
       });
     } catch { return []; }
