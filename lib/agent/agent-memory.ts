@@ -21,7 +21,7 @@ import { prisma } from '../db';
 import { callLLM } from '../llm/unified-llm';
 import { captureInputFifo } from './frozen-inputs';
 import { parseJson } from './json-utils';
-import { embedText, cosineSimilarity } from './semantic-engine';
+import { embedText, embedBatch, cosineSimilarity } from './semantic-engine';
 import type { DomainExpertise } from './types';
 
 // ============================================================================
@@ -451,8 +451,15 @@ export async function buildMemoryInjection(
       const topicEmbedding = await embedText(topicQuery.slice(0, 500));
       const scored: Array<{ lesson: AgentLesson; sim: number; embedding?: number[] }> = [];
 
-      for (const lesson of lessons) {
-        const lessonEmbedding = await embedText(lesson.lesson.slice(0, 500)).catch(() => null);
+      // Batch-embed all lessons in one call — was up to 15 sequential
+      // embedText calls per injection, re-paying the API for identical
+      // lesson strings on every run.
+      const lessonEmbeddings = await embedBatch(
+        lessons.map(l => l.lesson.slice(0, 500))
+      ).catch(() => null);
+      for (let li = 0; li < lessons.length; li++) {
+        const lesson = lessons[li];
+        const lessonEmbedding = lessonEmbeddings?.[li] ?? null;
         if (!lessonEmbedding) {
           // If embedding fails, keep the lesson but with low priority
           scored.push({ lesson, sim: 0.1 });

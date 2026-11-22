@@ -973,6 +973,12 @@ export async function executeDispatchQueue(
   }
   let nextIdx = 0;
   let stopAll = false;
+  // In-flight spend is invisible to totalCostUsd until an item completes —
+  // under concurrency the budget guard could overshoot by up to
+  // (concurrency-1) × per-item cost (~$0.5-1.5). Reserve a per-item estimate
+  // per in-flight worker so the guard trips BEFORE the overspend.
+  let inFlight = 0;
+  const inFlightReserveUsd = Math.max(0, parseFloat(process.env.THINK_TANK_INFLIGHT_RESERVE_USD ?? '1.5') || 0);
   // Checkpoint writes serialize on a tail promise: concurrent onItemDone
   // calls each snapshot the shared doneKeys set — chaining prevents a
   // last-write-wins race from dropping a completed key.
@@ -1022,8 +1028,10 @@ export async function executeDispatchQueue(
 
     const source = item.strategy === "breaking" ? "auto-scan" : "generate-briefs";
 
-    // Cumulative budget guard — stop dispatching if we've exceeded the budget
-    if (budgetUsd && totalCostUsd >= budgetUsd) {
+    // Cumulative budget guard — stop dispatching if we've exceeded the budget,
+    // counting each in-flight item's reserved spend (it is not yet in
+    // totalCostUsd and cannot be cancelled mid-pipeline).
+    if (budgetUsd && totalCostUsd + inFlight * inFlightReserveUsd >= budgetUsd) {
       console.log(`[ThinkTank] Budget exhausted ($${totalCostUsd.toFixed(4)} >= $${budgetUsd}) — skipping remaining ${items.length - i} item(s)`);
       skipped += items.length - i;
       stopAll = true;
@@ -1138,6 +1146,7 @@ export async function executeDispatchQueue(
       // launch (all skip checks passed); under concurrency this keeps the
       // pull-gate accurate. A $0 reserve release never consumes an attempt.
       executed++;
+      inFlight++;
       assertExecutionActive();
       // Pre-generate the pipeline executionId: when the dispatch timeout
       // fires, the inner pipeline keeps unwinding as a zombie and its FATAL
@@ -1233,6 +1242,7 @@ export async function executeDispatchQueue(
 
     outcomes.push({ item, result });
     totalCostUsd += pipelineCostUsd;
+    inFlight--;
 
     // Record spend to global budget tracker
     const spentUsd = pipelineCostUsd;

@@ -250,7 +250,8 @@ export async function runReaderBlock(deps: ReaderBlockDeps): Promise<ReaderBlock
     abstract: readings.filter(r => r.readingDepth === "abstract").length,
     rule_based: readings.filter(r => r.readingDepth === "rule_based").length,
   };
-  stats.reader = { count: readings.length, fullText: fullTextCount, withQuantData: quantCount, depth: depthBreakdown };
+  const readerLlmCost = (readings as any[]).reduce((s, r) => s + (typeof r?.costUsd === 'number' ? r.costUsd : 0), 0);
+  stats.reader = { count: readings.length, fullText: fullTextCount, withQuantData: quantCount, depth: depthBreakdown, costUsd: readerLlmCost };
 
   // Surface per-source extraction failures (timeout/LLM abort/unparseable)
   // as a degraded step — rule_based fallbacks were previously invisible

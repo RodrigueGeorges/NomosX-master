@@ -103,6 +103,9 @@ export interface ReadingResultV3 {
   };
   // V3.2: Non-academic source type (intelligence, NGO, think-tank, etc.)
   sourceType?: string;
+  /** LLM extraction spend for this reading — lets callers aggregate
+   *  reader cost into stats instead of under-counting it. */
+  costUsd?: number;
   error?: string;
 }
 
@@ -1043,6 +1046,9 @@ For originalityAssessment: assess whether this work is incremental (extends exis
             reasoning: String(extracted.originalityAssessment.reasoning || '').slice(0, 300),
           }
         : undefined,
+      // Propagate the extraction call's spend so callers can aggregate
+      // reader cost into stats (previously invisible outside CostLog).
+      costUsd: typeof response.costUsd === 'number' ? response.costUsd : 0,
     };
   } catch (error: any) {
     console.warn(`[Reader V3] Deep extraction failed for ${source.id}: ${error.message}`);

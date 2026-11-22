@@ -2424,6 +2424,20 @@ export function getFreepoolAliveEndpoints(): string[] {
 }
 
 /**
+ * Health-check ping timeout — a hung provider endpoint must not stall
+ * checkLLMHealth indefinitely. The underlying request is left to finish
+ * in the background (1-token ping, negligible cost).
+ */
+function pingTimeout<T>(p: Promise<T>, ms = 10_000, label = 'health ping'): Promise<T> {
+  return Promise.race([
+    p,
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms)
+    ),
+  ]);
+}
+
+/**
  * Health check for all five providers.
  */
 export async function checkLLMHealth(): Promise<Record<LLMProvider, boolean>> {
@@ -2436,11 +2450,11 @@ export async function checkLLMHealth(): Promise<Record<LLMProvider, boolean>> {
       const [first] = getFreepoolEndpoints();
       if (first) {
         const client = getFreepoolClient(first);
-        await client.chat.completions.create({
+        await pingTimeout(client.chat.completions.create({
           model: first.fastModel,
           max_tokens: 1,
           messages: [{ role: "user", content: "ping" }],
-        });
+        }));
         health.freepool = true;
       }
     } catch (err) {
@@ -2453,11 +2467,11 @@ export async function checkLLMHealth(): Promise<Record<LLMProvider, boolean>> {
   try {
     const client = getDeepSeekClient();
     if (client) {
-      await client.chat.completions.create({
+      await pingTimeout(client.chat.completions.create({
         model: env.DEEPSEEK_MODEL_FAST,
         max_tokens: 1,
         messages: [{ role: "user", content: "ping" }],
-      });
+      }));
       health.deepseek = true;
     }
   } catch (err) {
@@ -2468,11 +2482,11 @@ export async function checkLLMHealth(): Promise<Record<LLMProvider, boolean>> {
   try {
     const client = getGLMClient();
     if (client) {
-      await client.chat.completions.create({
+      await pingTimeout(client.chat.completions.create({
         model: env.GLM_MODEL || "glm-4.5",
         max_tokens: 1,
         messages: [{ role: "user", content: "ping" }],
-      });
+      }));
       health.glm = true;
     }
   } catch (err) {
@@ -2483,7 +2497,7 @@ export async function checkLLMHealth(): Promise<Record<LLMProvider, boolean>> {
   try {
     const client = getOpenAIClient();
     if (client) {
-      await client.models.list();
+      await pingTimeout(client.models.list());
       health.openai = true;
     }
   } catch (err) {
@@ -2494,11 +2508,11 @@ export async function checkLLMHealth(): Promise<Record<LLMProvider, boolean>> {
   try {
     const client = getAnthropicClient();
     if (client) {
-      await client.messages.create({
+      await pingTimeout(client.messages.create({
         model: "claude-sonnet-5",
         max_tokens: 1,
         messages: [{ role: "user", content: "ping" }],
-      } as any);
+      } as any));
       health.anthropic = true;
     }
   } catch (err) {
@@ -2509,11 +2523,11 @@ export async function checkLLMHealth(): Promise<Record<LLMProvider, boolean>> {
   try {
     const client = getKimiClient();
     if (client) {
-      await client.chat.completions.create({
+      await pingTimeout(client.chat.completions.create({
         model: KIMI_MODEL,
         max_tokens: 1,
         messages: [{ role: "user", content: "ping" }],
-      } as any);
+      } as any));
       health.kimi = true;
     }
   } catch (err) {
@@ -2524,11 +2538,11 @@ export async function checkLLMHealth(): Promise<Record<LLMProvider, boolean>> {
   try {
     const client = getGoogleClient();
     if (client) {
-      await client.chat.completions.create({
+      await pingTimeout(client.chat.completions.create({
         model: "gemini-3.8-flash",
         max_tokens: 1,
         messages: [{ role: "user", content: "ping" }],
-      });
+      }));
       health.google = true;
     }
   } catch (err) {
@@ -2541,11 +2555,11 @@ export async function checkLLMHealth(): Promise<Record<LLMProvider, boolean>> {
     const [first] = getFreepoolEndpoints();
     if (first) {
       const client = getFreepoolClient(first);
-      await client.chat.completions.create({
+      await pingTimeout(client.chat.completions.create({
         model: first.fastModel,
         max_tokens: 1,
         messages: [{ role: "user", content: "ping" }],
-      });
+      }));
       health.freepool = true;
     }
   } catch (err) {
