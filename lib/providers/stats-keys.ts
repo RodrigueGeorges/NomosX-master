@@ -1438,3 +1438,109 @@ export async function searchOpenAQ(query: string, limit = 4): Promise<any[]> {
     return [];
   }
 }
+
+// ─────────────────────────────────────────────────────────────
+// WIKIDATA — entity knowledge graph (keyless wbsearchentities)
+// ─────────────────────────────────────────────────────────────
+export async function searchWikidata(query: string, limit = 6): Promise<any[]> {
+  try {
+    const q = query.trim();
+    if (!q) return [];
+    const url = `https://www.wikidata.org/w/api.php?action=wbsearchentities&search=${encodeURIComponent(q)}` +
+      `&language=en&format=json&limit=${Math.min(limit, 10)}&type=item`;
+    const data: any = await fetchFromProvider('wikidata', url, { timeout: 20000, retries: 1 });
+    const entities: any[] = data?.search || [];
+    return entities.slice(0, limit).map((e: any) => ({
+      ...ds(
+        String(e.id), 'wikidata',
+        `Wikidata — ${e.label || e.id}`,
+        `${e.description || 'Wikidata entity'} (${e.id}). ${e.concepturi || ''}`.trim(),
+        `https://www.wikidata.org/wiki/${e.id}`,
+        'Wikidata community', e,
+      ),
+      type: 'reference',
+    }));
+  } catch (e: any) {
+    console.error(`[WIKIDATA] failed: ${e?.message}`);
+    return [];
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// GBIF — Global Biodiversity Information Facility (keyless)
+// ─────────────────────────────────────────────────────────────
+export async function searchGBIF(query: string, limit = 5): Promise<any[]> {
+  try {
+    const q = query.trim();
+    if (!q) return [];
+    const url = `https://api.gbif.org/v1/species/match?name=${encodeURIComponent(q)}`;
+    const m: any = await fetchFromProvider('gbif', url, { timeout: 20000, retries: 1 });
+    if (!m?.usageKey) return [];
+    const occ: any = await fetchFromProvider('gbif',
+      `https://api.gbif.org/v1/occurrence/search?taxon_key=${m.usageKey}&limit=0`,
+      { timeout: 20000, retries: 1 });
+    const count = occ?.count ?? null;
+    return [ds(
+      String(m.usageKey), 'gbif',
+      `GBIF — ${m.scientificName || q} (${m.rank || 'species'})`,
+      `GBIF backbone match: ${m.scientificName} (${m.rank}), ${count != null ? `${count.toLocaleString()} occurrence records` : 'occurrence data available'} in the Global Biodiversity Information Facility. Source: GBIF.org API.`,
+      `https://www.gbif.org/species/${m.usageKey}`,
+      'GBIF', { match: m, occurrenceCount: count },
+    )];
+  } catch (e: any) {
+    console.error(`[GBIF] failed: ${e?.message}`);
+    return [];
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// OPENSTREETMAP Taginfo — global tag usage counts (keyless, fast)
+// https://taginfo.openstreetmap.org/api/4 — counts how many
+// features carry a tag worldwide (infrastructure footprint stats).
+// ─────────────────────────────────────────────────────────────
+const OSM_TAGS: Record<string, { key: string; value: string; label: string }> = {
+  datacenter: { key: 'building', value: 'data_center', label: 'data centers' },
+  solar: { key: 'generator:source', value: 'solar', label: 'solar power installations' },
+  wind: { key: 'generator:source', value: 'wind', label: 'wind power installations' },
+  hydro: { key: 'generator:source', value: 'hydro', label: 'hydro power installations' },
+  port: { key: 'landuse', value: 'harbour', label: 'harbours/ports' },
+  refinery: { key: 'industrial', value: 'refinery', label: 'oil refineries' },
+  quarry: { key: 'landuse', value: 'quarry', label: 'quarries/mines' },
+  dam: { key: 'waterway', value: 'dam', label: 'dams' },
+  airport: { key: 'aeroway', value: 'aerodrome', label: 'airports' },
+  powerplant: { key: 'power', value: 'plant', label: 'power plants' },
+  substation: { key: 'power', value: 'substation', label: 'grid substations' },
+  charging: { key: 'amenity', value: 'charging_station', label: 'EV charging stations' },
+};
+
+export async function searchOSM(query: string, limit = 4): Promise<any[]> {
+  try {
+    const q = query.toLowerCase();
+    const picked = Object.keys(OSM_TAGS).filter(k =>
+      q.includes(k.replace(/_/g, ' ')) || q.includes(k));
+    const themes = picked.length ? picked : ['datacenter'];
+    const results: any[] = [];
+    for (const key of themes.slice(0, limit)) {
+      const t = OSM_TAGS[key];
+      const data: any = await fetchFromProvider('osm-taginfo',
+        `https://taginfo.openstreetmap.org/api/4/tag/stats?key=${encodeURIComponent(t.key)}` +
+        `&value=${encodeURIComponent(t.value)}`,
+        { timeout: 15000, retries: 1, headers: { 'User-Agent': 'NomosX-research/1.0' } });
+      const count = (data?.data || []).find((d: any) => d.type === 'all')?.count
+        ?? (data?.data || [])[0]?.count;
+      if (count == null) continue;
+      results.push(ds(
+        `osm-${key}`, 'osm-taginfo',
+        `OpenStreetMap — ${count.toLocaleString()} ${t.label} mapped`,
+        `OpenStreetMap tag usage: ${count.toLocaleString()} features tagged ${t.key}=${t.value} worldwide (${t.label}). Volunteered geographic data — coverage varies by region. Source: taginfo.openstreetmap.org.`,
+        `https://taginfo.openstreetmap.org/keys/${encodeURIComponent(t.key)}/values?filter=${encodeURIComponent(t.value)}`,
+        'OpenStreetMap community', { count, key: t.key, value: t.value },
+      ));
+    }
+    console.log(`[OSM-TAGINFO] ${results.length} tag counts`);
+    return results;
+  } catch (e: any) {
+    console.error(`[OSM-TAGINFO] failed: ${e?.message}`);
+    return [];
+  }
+}
