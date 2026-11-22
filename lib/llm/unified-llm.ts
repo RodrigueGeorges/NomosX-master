@@ -816,25 +816,30 @@ interface FreepoolEndpoint {
    *  rate-limit/downtime/moderation errors, so a dead pinned model doesn't
    *  burn a whole endpoint attempt. */
   modelFallbacks?: string[];
+  /** Sustained tokens-per-60s budget for client-side pacing. Free tiers
+   *  differ by an order of magnitude (Groq ~8K TPM vs Gemini ~100K+), so
+   *  pacing is per-endpoint — a saturated Groq window must not stall calls
+   *  that will land on Cerebras/Gemini. */
+  tpmBudget?: number;
 }
 
 const FREEPOOL_ENDPOINTS: Array<Omit<FreepoolEndpoint, "apiKey"> & { envKey: keyof typeof env }> = [
-  { name: "groq",       envKey: "GROQ_API_KEY",       baseURL: "https://api.groq.com/openai/v1",          fastModel: "openai/gpt-oss-20b",                      reasoningModel: "openai/gpt-oss-120b", maxContextTokens: 8_000 },
-  { name: "cerebras",   envKey: "CEREBRAS_API_KEY",   baseURL: "https://api.cerebras.ai/v1",              fastModel: "llama-3.3-70b",                         reasoningModel: "llama-3.3-70b", maxContextTokens: 8_000 },
+  { name: "groq",       envKey: "GROQ_API_KEY",       baseURL: "https://api.groq.com/openai/v1",          fastModel: "openai/gpt-oss-20b",                      reasoningModel: "openai/gpt-oss-120b", maxContextTokens: 8_000, tpmBudget: 6_500 },
+  { name: "cerebras",   envKey: "CEREBRAS_API_KEY",   baseURL: "https://api.cerebras.ai/v1",              fastModel: "llama-3.3-70b",                         reasoningModel: "llama-3.3-70b", maxContextTokens: 8_000, tpmBudget: 30_000 },
   { name: "nvidia",     envKey: "NVIDIA_API_KEY",     baseURL: "https://integrate.api.nvidia.com/v1",     fastModel: "meta/llama-3.2-90b-vision-instruct",      reasoningModel: "nvidia/nemotron-3-ultra-550b-a55b", tokenHeadroom: 2000 },
-  { name: "openrouter", envKey: "OPENROUTER_API_KEY", baseURL: "https://openrouter.ai/api/v1",            fastModel: "nvidia/nemotron-3.5-lightning:free",    reasoningModel: "nvidia/nemotron-3.5-lightning:free", tokenHeadroom: 1500,
+  { name: "openrouter", envKey: "OPENROUTER_API_KEY", baseURL: "https://openrouter.ai/api/v1",            fastModel: "nvidia/nemotron-3.5-lightning:free",    reasoningModel: "nvidia/nemotron-3.5-lightning:free", tokenHeadroom: 1500, tpmBudget: 20_000,
     modelFallbacks: ["nvidia/nemotron-3-super-120b-a12b:free", "nvidia/nemotron-3-ultra-550b-a11b:free", "liquid/lfm-2.5-2.6b:free", "openrouter/free"] },
-  { name: "mistral",    envKey: "MISTRAL_API_KEY",    baseURL: "https://api.mistral.ai/v1",               fastModel: "mistral-small-latest",                    reasoningModel: "mistral-small-latest" },
+  { name: "mistral",    envKey: "MISTRAL_API_KEY",    baseURL: "https://api.mistral.ai/v1",               fastModel: "mistral-small-latest",                    reasoningModel: "mistral-small-latest", tpmBudget: 30_000 },
   // Google AI Studio free tier via the OpenAI-compatible endpoint — same
   // GOOGLE_API_KEY the 'google' family uses, but as a freepool safety net so
   // a glm/groq/nvidia outage never leaves the pipeline without an LLM.
-  { name: "gemini",     envKey: "GOOGLE_API_KEY",     baseURL: "https://generativelanguage.googleapis.com/v1beta/openai", fastModel: "gemini-3.8-flash", reasoningModel: "gemini-3.8-flash", maxContextTokens: 60_000 },
+  { name: "gemini",     envKey: "GOOGLE_API_KEY",     baseURL: "https://generativelanguage.googleapis.com/v1beta/openai", fastModel: "gemini-3.8-flash", reasoningModel: "gemini-3.8-flash", maxContextTokens: 60_000, tpmBudget: 100_000 },
   // Cohere trial key via the OpenAI-compatibility endpoint — free tier,
   // independent infra from every other freepool member.
-  { name: "cohere",     envKey: "COHERE_API_KEY",     baseURL: "https://api.cohere.com/compatibility/v1", fastModel: "command-a-03-2025", reasoningModel: "command-a-03-2025", maxContextTokens: 60_000 },
+  { name: "cohere",     envKey: "COHERE_API_KEY",     baseURL: "https://api.cohere.com/compatibility/v1", fastModel: "command-a-03-2025", reasoningModel: "command-a-03-2025", maxContextTokens: 60_000, tpmBudget: 30_000 },
   // HuggingFace Inference Providers router — OpenAI-compatible, free monthly
   // credits on the account. Routes across hosted providers automatically.
-  { name: "huggingface", envKey: "HF_TOKEN",          baseURL: "https://router.huggingface.co/v1", fastModel: "Qwen/Qwen2.5-7B-Instruct", reasoningModel: "Qwen/Qwen2.5-72B-Instruct", maxContextTokens: 32_000 },
+  { name: "huggingface", envKey: "HF_TOKEN",          baseURL: "https://router.huggingface.co/v1", fastModel: "Qwen/Qwen2.5-7B-Instruct", reasoningModel: "Qwen/Qwen2.5-72B-Instruct", maxContextTokens: 32_000, tpmBudget: 15_000 },
 ];
 
 function getFreepoolEndpoints(): FreepoolEndpoint[] {
@@ -910,31 +915,36 @@ function estimatePromptTokens(request: LLMRequest): number {
 // Free-tier endpoints have small TPM windows (Groq free: 8K TPM). Unbounded
 // fan-outs (46 parallel reader extractions) guarantee 429 storms that used
 // to escalate into the 24h provider ban. Serialize freepool calls AND pace
-// them on a rolling 60s token budget — sequential-but-bursty calls still
-// exceed TPM when each burns ~4K tokens in 3s.
-const FREEPOOL_TPM_BUDGET = 6500; // leave headroom under the 8K limit
+// them on a rolling 60s token budget PER ENDPOINT — each provider has its
+// own quota, so a saturated Groq window must not stall a call that will be
+// served by Cerebras or Gemini.
+const DEFAULT_FREEPOOL_TPM_BUDGET = 8_000;
 // Entries are pushed with the pre-call estimate, then corrected to actual
 // usage on completion — estimates (prompt + max_tokens) overshoot real
 // consumption ~2x on short completions and halve free-tier throughput.
-const freepoolWindow: Array<{ t: number; est: number; actual?: number }> = [];
+const freepoolWindows = new Map<string, Array<{ t: number; est: number; actual?: number }>>();
 let freepoolChain: Promise<unknown> = Promise.resolve();
-async function paceFreepool(estimatedTokens: number): Promise<void> {
+async function paceFreepool(endpointName: string, tpmBudget: number, estimatedTokens: number): Promise<void> {
   const now = Date.now();
-  while (freepoolWindow.length && now - freepoolWindow[0].t > 60_000) freepoolWindow.shift();
-  const used = freepoolWindow.reduce((s, e) => s + (e.actual ?? e.est), 0);
-  const over = used + estimatedTokens - FREEPOOL_TPM_BUDGET;
-  if (over > 0 && freepoolWindow.length) {
-    const waitMs = Math.max(0, 60_000 - (now - freepoolWindow[0].t)) + 250;
-    if (waitMs > 500) console.log(`   ↳ freepool TPM pacing: waiting ${Math.round(waitMs / 1000)}s (window ${used}+${estimatedTokens} tok)`);
+  let window = freepoolWindows.get(endpointName);
+  if (!window) { window = []; freepoolWindows.set(endpointName, window); }
+  while (window.length && now - window[0].t > 60_000) window.shift();
+  const used = window.reduce((s, e) => s + (e.actual ?? e.est), 0);
+  const over = used + estimatedTokens - tpmBudget;
+  if (over > 0 && window.length) {
+    const waitMs = Math.max(0, 60_000 - (now - window[0].t)) + 250;
+    if (waitMs > 500) console.log(`   ↳ freepool TPM pacing (${endpointName}): waiting ${Math.round(waitMs / 1000)}s (window ${used}+${estimatedTokens} tok)`);
     await new Promise(r => setTimeout(r, waitMs));
   }
-  freepoolWindow.push({ t: Date.now(), est: estimatedTokens });
+  window.push({ t: Date.now(), est: estimatedTokens });
 }
-export function recordFreepoolUsage(tokens: number): void {
+export function recordFreepoolUsage(endpointName: string, tokens: number): void {
+  const window = freepoolWindows.get(endpointName);
+  if (!window) return;
   // Correct the most recent uncorrected entry — calls are serialized, so it
   // is always this call's own entry.
-  for (let i = freepoolWindow.length - 1; i >= 0; i--) {
-    if (freepoolWindow[i].actual === undefined) { freepoolWindow[i].actual = tokens; return; }
+  for (let i = window.length - 1; i >= 0; i--) {
+    if (window[i].actual === undefined) { window[i].actual = tokens; return; }
   }
 }
 function enqueueFreepool<T>(fn: () => Promise<T>): Promise<T> {
@@ -954,7 +964,7 @@ async function callFreepoolInner(request: LLMRequest, signal?: AbortSignal): Pro
   const task = normalizeTask(request.task);
   const isFast = FAST_TASKS.has(task);
   const promptTokens = estimatePromptTokens(request);
-  await paceFreepool(promptTokens + (request.maxTokens ?? 1500));
+  const estimatedCallTokens = promptTokens + (request.maxTokens ?? 1500);
   let lastError: Error | null = null;
   const cooledNames: string[] = [];
 
@@ -965,6 +975,9 @@ async function callFreepoolInner(request: LLMRequest, signal?: AbortSignal): Pro
       cooledNames.push(`${ep.name}(+${Math.round((cooledUntil - Date.now()) / 60000)}m)`);
       continue;
     }
+    // Pace against THIS endpoint's own TPM window — a saturated Groq quota
+    // must not delay a call cerebras/gemini would serve immediately.
+    await paceFreepool(ep.name, ep.tpmBudget ?? DEFAULT_FREEPOOL_TPM_BUDGET, estimatedCallTokens);
     const model = isFast ? ep.fastModel : ep.reasoningModel;
     try {
       const client = getFreepoolClient(ep);
@@ -998,7 +1011,7 @@ async function callFreepoolInner(request: LLMRequest, signal?: AbortSignal): Pro
       if (!content) throw new Error(`freepool/${ep.name} returned empty content`);
       const tokensInput = completion.usage?.prompt_tokens ?? promptTokens;
       const tokensOutput = completion.usage?.completion_tokens ?? 0;
-      recordFreepoolUsage(tokensInput + tokensOutput);
+      recordFreepoolUsage(ep.name, tokensInput + tokensOutput);
       console.log(`   ↳ freepool via ${ep.name}/${model}`);
       return {
         content,

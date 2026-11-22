@@ -393,10 +393,15 @@ export class SelfCorrector {
           ? 'pass'
           : 'retry';
 
-    // Compute drift from previous stage
+    // Compute drift from previous stage — ONLY for a retry of the SAME
+    // stage. Cross-stage outputs are different artifact types (analysis
+    // text → critic status string → rendered HTML) whose TF-IDF vectors are
+    // disjoint by construction, so drift ≈ 1.0 on every run: a guaranteed
+    // false "consistency" flag and a +0.3 contradictionSignal polluting the
+    // judgment gate (observed live: avgDrift=0.998, 2 phantom cascades).
     const prevStage = this.stageOrder[this.stageOrder.length - 1];
     const prevSnapshot = prevStage ? this.snapshots.get(prevStage) : null;
-    const drift = prevSnapshot ? cosineDrift(prevSnapshot.tfidfVector, tfidfVector) : 0;
+    const drift = prevSnapshot && prevStage === stage ? cosineDrift(prevSnapshot.tfidfVector, tfidfVector) : 0;
 
     // Check confidence inflation (CPM — Confidence Propagation Monitor)
     let confidenceInflated = false;
@@ -568,10 +573,21 @@ export class SelfCorrector {
       ? sfvScores.reduce((a, b) => a + b, 0) / sfvScores.length
       : 1;
 
-    // CSCT: average drift between consecutive stages
+    // CSCT: drift between consecutive snapshots — only meaningful when both
+    // snapshots describe the SAME artifact type. Pipeline checkpoints emit
+    // different formats per stage (analysis markdown → critic status → HTML),
+    // so cross-stage cosine is ~1.0 by construction and would zero this
+    // component on every run, forcing cascadeDetected via the 0.4 weight.
+    // Same-stage re-checkpoints are the only comparable pair.
+    const recentNamed = this.stageOrder
+      .slice(-3)
+      .map((name) => ({ name, snap: this.snapshots.get(name)! }))
+      .filter((x) => !!x.snap);
     const drifts: number[] = [];
-    for (let i = 1; i < recentStages.length; i++) {
-      drifts.push(cosineDrift(recentStages[i - 1].tfidfVector, recentStages[i].tfidfVector));
+    for (let i = 1; i < recentNamed.length; i++) {
+      if (recentNamed[i].name === recentNamed[i - 1].name) {
+        drifts.push(cosineDrift(recentNamed[i - 1].snap.tfidfVector, recentNamed[i].snap.tfidfVector));
+      }
     }
     const csctScore = drifts.length > 0
       ? 1 - (drifts.reduce((a, b) => a + b, 0) / drifts.length)

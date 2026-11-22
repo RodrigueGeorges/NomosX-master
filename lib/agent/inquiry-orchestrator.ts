@@ -704,6 +704,20 @@ export async function runAndPublishInquiry(
               gi.staleEvaluations = [...new Set([...gi.staleEvaluations, 'devilsAdvocate'])];
             }
           }
+          // Substance/copy edits can paraphrase inside the central-scenario
+          // block — the gate compares rendered text to the persisted decision
+          // field-by-field, so any drift is a guaranteed central_scenario hold.
+          // Re-assert the block deterministically before re-gating (the same
+          // invariant persistence-tail applies before persist).
+          if (gi.centralScenario) {
+            const { ensureCentralScenarioBlock } = await import('./revision-controller');
+            const repair = ensureCentralScenarioBlock(aHtml, gi.centralScenario, aSourceIds.length);
+            if (repair.changed) {
+              aHtml = repair.html;
+              aWordCount = countWordsHtml(aHtml);
+              console.log('[InquiryOrchestrator] REVISION: central-scenario block re-asserted after edits');
+            }
+          }
           g = evaluatePublicationGate({ ...gi, html: aHtml });
           r = evaluatePublicationReadiness({
             type: aPubType, trustScore: scores.trustScore, qualityScore: scores.qualityScore,

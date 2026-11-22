@@ -13,7 +13,11 @@ export async function runFinalSelfCorrectCheckpoint(ctx: TailStepContext): Promi
     const finalTrust = orchState.trustScore ?? 0;
     const cpResult = await selfCorrector.checkpoint(
       'quality_loop',
-      ctx.html.slice(0, 8000),
+      // Full artifact, not a head slice: citations cluster in the body — the
+      // first 8KB of rendered HTML is title/hero/metadata and measures ~0%
+      // coverage on a fully-cited piece (observed live: gate 95% vs this
+      // verifier's "0 unique citations", feeding a false cascade verdict).
+      ctx.html,
       [
         citationCoverageVerifier('final_citation_coverage', topSources.length, 0.35),
         {

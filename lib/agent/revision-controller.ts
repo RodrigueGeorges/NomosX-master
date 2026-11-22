@@ -143,7 +143,17 @@ function repairCentralScenarioImpl(
   // could report a successful repair while the gate still hard-failed on
   // description/horizon/implications/triggers drift.
   const rendered = parseEditorialInquiry(next)?.centralScenario;
+  // Same normalization contract as the publication gate's central_scenario
+  // check (publication-gate.ts): HTML entities must decode before comparing —
+  // the re-rendered block escapes apostrophes/quotes (&amp;#039; etc.) while
+  // the persisted decision keeps raw characters. Without this the guard
+  // rejects every repair on entity-bearing text and the gate hard-fails.
   const normalize = (t: string) => t
+    .replace(/&(?:#0?39|apos);/g, "'")
+    .replace(/&quot;/g, '"')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
     .replace(/\[(?:SRC-?|E-?)\d+\]/g, '')
     .replace(/[‘’ʼ]/g, "'")
     .replace(/[“”]/g, '"')
