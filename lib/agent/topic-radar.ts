@@ -1034,9 +1034,9 @@ const BING_NEWS_QUERIES = GDELT_SWEEP_QUERIES.slice(0, 3); // top-3 urgency vert
 async function sweepBingNewsRSS(): Promise<RadarTopic[]> {
   const promises = BING_NEWS_QUERIES.map(async ({ query, vertical, urgencyBonus }) => {
     try {
-      // Bing News RSS takes plain keywords — keep the highest-signal terms
-      // of each vertical query (GDELT OR-syntax doesn't translate cleanly).
-      const q = query.split(' OR ').slice(0, 4).join(' ');
+      // Bing News RSS supports the OR operator — keeps recall broad like
+      // the GDELT boolean queries it substitutes for.
+      const q = query.split(' OR ').slice(0, 4).join(' OR ');
       const url = `https://www.bing.com/news/search?q=${encodeURIComponent(q)}&format=rss&setlang=en-US&cc=US`;
       const text = await fetchFromProvider('bing-news-rss', url, {
         timeout: 9000, retries: 1, responseType: 'text',

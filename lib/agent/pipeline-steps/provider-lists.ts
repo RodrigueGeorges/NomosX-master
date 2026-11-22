@@ -78,7 +78,7 @@ export type Providers = Array<
   | "openfda" | "defillama" | "cisa-kev" | "first-epss" | "osv" | "jpl-sbdb"
   | "safecast" | "launchlibrary" | "inaturalist" | "obis" | "worms" | "smithsonian"
   | "propublica-congress" | "nws" | "usgs-water" | "nhtsa" | "swpc"
-  | "stackexchange" | "musicbrainz" | "socrata" | "radiobrowser" | "wikipedia-search"
+  | "stackexchange" | "musicbrainz" | "socrata" | "radiobrowser" | "wikipedia-search" | "jina-search"
   // Free metasearch floor (SearXNG — no key, self-hostable)
   | "searxng"
   // Science ouverte européenne
@@ -179,7 +179,7 @@ export const ALL_PROVIDERS = [
   'openfda', 'defillama', 'cisa-kev', 'first-epss', 'osv', 'jpl-sbdb',
   'safecast', 'launchlibrary', 'inaturalist', 'obis', 'worms', 'smithsonian',
   'propublica-congress', 'nws', 'usgs-water', 'nhtsa', 'swpc',
-'stackexchange', 'musicbrainz', 'socrata', 'radiobrowser', 'wikipedia-search',
+'stackexchange', 'musicbrainz', 'socrata', 'radiobrowser', 'wikipedia-search', 'jina-search',
   // Domain-specific academic providers
   'psychology', 'sociology', 'history', 'geography',
   'chemistry', 'biology', 'political-science', 'business',

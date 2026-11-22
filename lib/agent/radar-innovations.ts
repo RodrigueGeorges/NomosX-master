@@ -569,6 +569,7 @@ const PROVIDER_REGISTRY: { name: string; keywords: string[]; priority: number }[
   { name: 'socrata', keywords: ['open data', 'city data', 'dataset', 'socrata', 'public dataset', 'municipal data', 'data portal'], priority: 4 },
   { name: 'radiobrowser', keywords: ['radio', 'radio station', 'broadcast', 'podcast', 'fm station', 'radio-browser'], priority: 3 },
   { name: 'wikipedia-search', keywords: ['wikipedia', 'encyclopedia', 'overview', 'definition', 'background', 'history of', 'what is', 'general knowledge'], priority: 3 },
+  { name: 'jina-search', keywords: ['web search', 'general web', 'current', 'latest', 'news', 'report', 'analysis', 'deep dive', 'comprehensive'], priority: 4 },
   { name: 'unesco', keywords: ['unesco', 'education', 'heritage', 'culture', 'media freedom', 'literacy'], priority: 5 },
   { name: 'unodc', keywords: ['unodc', 'drugs', 'crime', 'corruption', 'transnational crime', 'trafficking'], priority: 5 },
   { name: 'ipcc', keywords: ['ipcc', 'climate assessment', 'climate change', 'emissions scenario', 'ar6', 'mitigation'], priority: 7 },

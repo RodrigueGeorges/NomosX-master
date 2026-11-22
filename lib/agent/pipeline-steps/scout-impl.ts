@@ -96,6 +96,7 @@ searchStackExchange, searchMusicBrainz, searchSocrata, searchRadioBrowser,
   searchWikipedia,
 } from "../../providers/stats-keys";
 import { searchSearxng } from "../../providers/searxng";
+import { searchJina } from "../../providers/jina-search";
 import { searchPhilPapers } from "../../providers/philpapers";
 import { searchPersee } from "../../providers/persee";
 import { searchOpenAIRE } from "../../providers/openaire";
@@ -809,6 +810,8 @@ export async function scoutImpl(
     if (providerSet.has("wikipedia-search")) allPromises.push(trackProviderCall("wikipedia-search", searchWikipedia(sq, Math.min(5, perProvider))));
     // Free metasearch floor — keeps web retrieval alive when paid search is exhausted
     if (providerSet.has("searxng")) allPromises.push(trackProviderCall("searxng", searchSearxng(sq, Math.min(8, perProvider))));
+    // Keyed search+reader API — returns page content pre-extracted to markdown
+    if (providerSet.has("jina-search")) allPromises.push(trackProviderCall("jina-search", searchJina(sq, Math.min(6, perProvider))));
 
     // SCIENCE OUVERTE EUROPÉENNE
     if (providerSet.has("openaire")) allPromises.push(trackProviderCall("openaire", searchOpenAIRE(sq, Math.min(20, perProvider))));

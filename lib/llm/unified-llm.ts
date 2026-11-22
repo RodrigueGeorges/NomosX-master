@@ -868,7 +868,7 @@ function endpointCooldownMs(err: Error): number | null {
   const msg = err.message ?? "";
   // Permanent endpoint death (410 Gone, revoked keys, suspended accounts) —
   // retrying every call wastes budget; cool for 24h so the mesh skips it.
-  if (/\b410\b|\bgone\b|model.*(not found|decommissioned|end.of.life)|account.*(suspended|disabled)|insufficient.*balance|no credits/i.test(msg)) {
+  if (/\b410\b|\bgone\b|model.*(not found|does not exist|decommissioned|end.of.life)|account.*(suspended|disabled)|insufficient.*balance|no credits/i.test(msg)) {
     return 24 * 60 * 60_000;
   }
   const is429 = /429|rate.?limit|tokens per day|requests per day|TPD|RPD|quota|free-models-per-day/i.test(msg);
