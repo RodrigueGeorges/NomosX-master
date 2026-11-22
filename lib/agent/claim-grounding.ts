@@ -517,9 +517,15 @@ export async function groundClaims(
     claim.evidenceSnippet = result.evidenceSnippet;
   }
 
-  // Step 3b: RAV + BTProp escalation (V3.1) — for borderline/controversial claims
-  const borderlineClaims = claims.filter(c => c.verdict === 'partial' || c.verdict === 'unsupported');
-  if (borderlineClaims.length > 0 && borderlineClaims.length <= 5) {
+  // Step 3b: RAV + BTProp escalation (V3.1) — for borderline/controversial claims.
+  // Was an all-or-nothing cliff: >5 borderline claims → ZERO escalation on
+  // exactly the worst inputs. Now always escalate the 5 most substantial
+  // (longest = most specific) borderline claims — bounded cost, no cliff.
+  const borderlineClaims = claims
+    .filter(c => c.verdict === 'partial' || c.verdict === 'unsupported')
+    .sort((a, b) => b.text.length - a.text.length)
+    .slice(0, 5);
+  if (borderlineClaims.length > 0) {
     try {
       const { verifyWithRAV } = await import('./rav-verifier');
       for (const claim of borderlineClaims.slice(0, 3)) {

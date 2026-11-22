@@ -2315,23 +2315,58 @@ export async function streamLLM(
   const streamStart = Date.now();
 
   try {
-    const stream = await client.chat.completions.create({
-      model,
-      messages: request.messages as any,
-      ...(shouldSendTemp ? { temperature: streamTemperature } : {}),
-      ...(streamNeedsCompletionTokens
-        ? { max_completion_tokens: streamMaxTokens }
-        : { max_tokens: streamMaxTokens }),
-      stream: true,
-    }) as AsyncIterable<{ choices: Array<{ delta?: { content?: string } }> }>;
+    // Deadline + cancellation: previously the stream had NO timeout and NO
+    // abort wiring — a hung provider blocked forever, unkillable by the
+    // execution scope, and burned wall-clock past the run deadline.
+    const signal = getExecutionSignal();
+    const timeoutMs = getCallTimeout(provider, task);
+    const fullContent = await withTimeout(
+      async (deadlineSignal) => {
+        const effectiveSignal = signal
+          ? AbortSignal.any([signal, deadlineSignal])
+          : deadlineSignal;
+        const s = await client.chat.completions.create({
+          model,
+          messages: request.messages as any,
+          ...(shouldSendTemp ? { temperature: streamTemperature } : {}),
+          ...(streamNeedsCompletionTokens
+            ? { max_completion_tokens: streamMaxTokens }
+            : { max_tokens: streamMaxTokens }),
+          stream: true,
+          ...(effectiveSignal ? { signal: effectiveSignal } : {}),
+        } as any) as unknown as AsyncIterable<{ choices: Array<{ delta?: { content?: string } }> }>;
 
-    let fullContent = "";
+        let content = "";
+        for await (const chunk of s) {
+          const delta = chunk.choices[0]?.delta?.content || "";
+          if (delta) {
+            content += delta;
+            onChunk(delta);
+          }
+        }
+        return content;
+      },
+      timeoutMs,
+      `stream ${provider}/${model}`,
+    );
 
-    for await (const chunk of stream) {
-      const content = chunk.choices[0]?.delta?.content || "";
-      if (content) {
-        fullContent += content;
-        onChunk(content);
+    // jsonMode contract parity with callLLM: streamed JSON must parse (or
+    // be repairable) — previously request.jsonMode was silently ignored
+    // on this path, letting malformed JSON reach callers unvalidated.
+    let finalContent = fullContent;
+    if (request.jsonMode) {
+      let parseable = false;
+      try { JSON.parse(fullContent); parseable = true; } catch { /* repair below */ }
+      if (!parseable) {
+        const repaired = attemptJsonRepair(fullContent);
+        if (repaired) {
+          console.log(`🔧 stream ${provider}/${model} JSON repaired in-place`);
+          finalContent = repaired;
+        } else {
+          throw new Error(
+            `stream ${provider}/${model} returned unparseable JSON (len=${fullContent.length})`
+          );
+        }
       }
     }
 
@@ -2342,7 +2377,7 @@ export async function streamLLM(
     const tokensOutput = Math.ceil(fullContent.length / 4);
 
     const response: LLMResponse = {
-      content: fullContent,
+      content: finalContent,
       provider,
       model,
       family: PROVIDER_FAMILY[provider],

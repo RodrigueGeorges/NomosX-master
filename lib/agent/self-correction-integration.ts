@@ -63,7 +63,7 @@ export async function selfCorrectReader(
   const { query, readings, retryFn, maxRetries = 1 } = input;
 
   // Évaluation initiale
-  const reflection = await assessPhaseQuality({
+  let reflection = await assessPhaseQuality({
     phase: 'reader',
     query,
     output: JSON.stringify(readings).slice(0, 2000),
@@ -136,8 +136,12 @@ export async function selfCorrectReader(
         console.log(`[SelfCorrection] READER retry ${retries}: ${retriedReflection.score} ≤ best ${bestReaderScore} — keeping best (overshoot rollback)`);
       }
 
-      // EIR/ECR: stop if retries are counterproductive
-      if (retries >= 2 && retriedReflection.score < reflection.score) {
+      // EIR/ECR: stop if THIS retry degraded vs the PREVIOUS iteration —
+      // comparing against the stale initial reflection missed degradations
+      // between consecutive retries. Reassign so shouldRetry re-evaluates.
+      const prevReaderScore = reflection.score;
+      reflection = retriedReflection;
+      if (retries >= 2 && retriedReflection.score < prevReaderScore) {
         console.log(`[SelfCorrection] READER EIR/ECR: retry degraded score — stopping`);
         break;
       }
@@ -181,7 +185,7 @@ export async function selfCorrectAnalyst(
 
   const analysisStr = typeof analysis === 'string' ? analysis : JSON.stringify(analysis);
 
-  const reflection = await assessPhaseQuality({
+  let reflection = await assessPhaseQuality({
     phase: 'analyst',
     query,
     output: analysisStr,
@@ -241,8 +245,11 @@ export async function selfCorrectAnalyst(
         console.log(`[SelfCorrection] ANALYST retry ${retries}: ${retriedReflection.score} ≤ best ${bestAnalystScore} — keeping best (overshoot rollback)`);
       }
 
-      // EIR/ECR: stop if retries are counterproductive
-      if (retries >= 2 && retriedReflection.score < reflection.score) {
+      // EIR/ECR: stop if THIS retry degraded vs the PREVIOUS iteration —
+      // same stale-reflection bug as the reader path.
+      const prevAnalystScore = reflection.score;
+      reflection = retriedReflection;
+      if (retries >= 2 && retriedReflection.score < prevAnalystScore) {
         console.log(`[SelfCorrection] ANALYST EIR/ECR: retry degraded score — stopping`);
         break;
       }

@@ -203,16 +203,37 @@ async function auditSinglePrediction(pred: {
     };
   }
 
-  // Find recent sources that might address this prediction
-  const recentSources = await prisma.source.findMany({
+  // Find recent sources that might address this prediction — filtered by
+  // claim relevance. Taking the 10 highest-quality sources regardless of
+  // subject let the LLM render verdicts from IRRELEVANT evidence, and
+  // updateResearcherAccuracy wrote those as calibration records.
+  const STOP = new Set(['the','and','for','with','that','this','from','into','over','under','will','would','could','should','about','between','their','there','which','when','what','how','than','then','them','they','have','been','were','are','was','not','but','all','can','had','has','its','our','out','who','why','also','more','most','other','some','such','only','very','just','each','make','made','many','much','any','one','two','new','way','may','might','must','shall','upon','within','without','against','during','before','after','while','because','through','being','does','doing','done','into','onto','per','via','yet','still','even','both','few','own','same','too','off','again','once','here','there']);
+  const claimTokens = new Set(
+    (pred.claim || '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ')
+      .split(/\s+/).filter(t => t.length >= 4 && !STOP.has(t))
+  );
+  const relevanceScore = (s: { title: string | null; abstract: string | null }) => {
+    const text = `${s.title ?? ''} ${s.abstract ?? ''}`.toLowerCase();
+    let hits = 0;
+    for (const t of claimTokens) if (text.includes(t)) hits++;
+    return hits;
+  };
+
+  const candidates = await prisma.source.findMany({
     where: {
       createdAt: { gte: pred.createdAt },
       abstract: { not: null },
     },
     select: { id: true, title: true, abstract: true, year: true, provider: true },
     orderBy: { qualityScore: "desc" },
-    take: 10,
+    take: 200,
   });
+  const recentSources = candidates
+    .map(s => ({ s, rel: relevanceScore(s) }))
+    .filter(x => x.rel > 0)
+    .sort((a, b) => b.rel - a.rel)
+    .slice(0, 10)
+    .map(x => x.s);
 
   if (recentSources.length === 0) {
     return {

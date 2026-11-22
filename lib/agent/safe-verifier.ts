@@ -197,7 +197,7 @@ async function arbitrateWithLLM(
   claim: string,
   nliVerdict: SafeVerdict,
   evidenceTexts: string[],
-): Promise<SafeVerdict | null> {
+): Promise<{ verdict: SafeVerdict | null; costUsd: number }> {
   try {
     const res = await callLLM({
       messages: [{
@@ -214,16 +214,18 @@ async function arbitrateWithLLM(
     });
     const parsed = parseJson<{ verdict: string }>(res.content);
     const v = parsed?.verdict;
+    const costUsd = typeof res.costUsd === 'number' ? res.costUsd : 0;
     if (v === 'supported' || v === 'contradicted' || v === 'unverifiable') {
       if (v !== nliVerdict) {
         console.log(`[SAFE] Arbiter overrode NLI: ${nliVerdict} → ${v} for "${claim.slice(0, 60)}"`);
       }
-      return v;
+      return { verdict: v, costUsd };
     }
+    return { verdict: null, costUsd };
   } catch {
     // Arbiter failure → keep the NLI verdict
   }
-  return null;
+  return { verdict: null, costUsd: 0 };
 }
 
 // ─── Per-claim rating ───────────────────────────────────────────────────────
@@ -232,7 +234,7 @@ async function rateClaim(
   claim: string,
   queries: string[],
   opts: Required<Pick<SafeVerifyOptions, 'resultsPerQuery' | 'entailmentThreshold' | 'contradictionThreshold'>>,
-): Promise<{ result: SafeClaimResult; calls: number }> {
+): Promise<{ result: SafeClaimResult; calls: number; costUsd: number }> {
   const { hits, calls } = await retrieveEvidence(queries, opts.resultsPerQuery);
 
   if (hits.length === 0) {
@@ -242,6 +244,7 @@ async function rateClaim(
         queries, evidenceUrls: [], evidenceSnippet: null, nliSource: 'local-nli',
       },
       calls,
+      costUsd: 0,
     };
   }
 
@@ -296,14 +299,16 @@ async function rateClaim(
   // debunking pages contain the claim text and trigger entailment. When NLI
   // produced a decisive verdict, one cheap LLM call confirms it by reasoning
   // over the claim + decisive evidence (this is what the paper does end-to-end).
+  let llmCostUsd = 0;
   if (verdict !== 'unverifiable') {
     const decisive = verdict === 'contradicted' ? bestContradictionHit : bestEntailmentHit;
     if (decisive) {
       const arbiter = await arbitrateWithLLM(claim, verdict, [
         `${decisive.title}. ${decisive.abstract}`,
       ]);
-      if (arbiter) {
-        verdict = arbiter;
+      llmCostUsd += arbiter.costUsd;
+      if (arbiter.verdict) {
+        verdict = arbiter.verdict;
         if (verdict === 'unverifiable') confidence = Math.min(confidence, 0.5);
       }
     }
@@ -320,6 +325,7 @@ async function rateClaim(
       evidenceUrls, evidenceSnippet: snippet, nliSource,
     },
     calls,
+    costUsd: llmCostUsd,
   };
 }
 
@@ -354,7 +360,10 @@ export async function verifyClaimsWithLiveSearch(
   console.log(`[SAFE] Verifying ${bounded.length}/${claims.length} claims against live search`);
 
   // Step 1: batched query generation (single LLM call)
-  const { queries: queryMap, costUsd } = await generateVerificationQueries(bounded, queriesPerClaim);
+  const { queries: queryMap, costUsd: queryGenCost } = await generateVerificationQueries(bounded, queriesPerClaim);
+  // Arbitration LLM spend accumulates here — previously the report only
+  // counted query generation, under-reporting SAFE cost to callers.
+  let llmCostUsd = queryGenCost;
 
   // Step 2+3: retrieve + rate each claim, with an overall time budget
   const results: SafeClaimResult[] = [];
@@ -388,6 +397,7 @@ export async function verifyClaimsWithLiveSearch(
       if (r.status === 'fulfilled') {
         results.push(r.value.result);
         searchCalls += r.value.calls;
+        llmCostUsd += r.value.costUsd;
       } else {
         // Placeholder keeps results[] positionally aligned with claims[] —
         // claim-grounding applies verdicts BY INDEX; a dropped rejection
@@ -411,11 +421,11 @@ export async function verifyClaimsWithLiveSearch(
   const decidable = supported + contradicted;
   const precision = decidable > 0 ? supported / decidable : 0;
 
-  console.log(`[SAFE] ${supported} supported, ${contradicted} contradicted, ${unverifiable} unverifiable → precision ${(precision * 100).toFixed(0)}% (${searchCalls} search calls, $${costUsd.toFixed(4)}, ${((Date.now() - start) / 1000).toFixed(1)}s)`);
+  console.log(`[SAFE] ${supported} supported, ${contradicted} contradicted, ${unverifiable} unverifiable → precision ${(precision * 100).toFixed(0)}% (${searchCalls} search calls, $${llmCostUsd.toFixed(4)}, ${((Date.now() - start) / 1000).toFixed(1)}s)`);
 
   return {
     results, supported, contradicted, unverifiable,
-    total: results.length, precision, costUsd, searchCalls,
+    total: results.length, precision, costUsd: llmCostUsd, searchCalls,
     durationMs: Date.now() - start,
   };
 }

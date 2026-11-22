@@ -1283,7 +1283,17 @@ export async function runAndPublishInquiry(
     if (status === "published") {
       await tx.brief.update({
         where: { id: pipeline.briefId! },
-        data: { publicId, publishedAt: new Date() },
+        // Sync the brief row with the FINAL artifact — revisions, regen and
+        // the moderate-confidence banner all mutate `html` after the brief
+        // was first written; readers of brief.html otherwise see a stale
+        // pre-revision draft that diverges from the published record.
+        data: {
+          publicId,
+          publishedAt: new Date(),
+          html: stripPgUnsafeControls(html),
+          trustScore,
+          qualityScore,
+        },
       });
     }
 

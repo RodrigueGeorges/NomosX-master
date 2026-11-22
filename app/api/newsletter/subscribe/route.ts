@@ -93,9 +93,19 @@ export async function POST(req: NextRequest) {
         });
       }
 
-      // If pending, resend confirmation
+      // If pending, resend confirmation — regenerate the token if the row
+      // predates confirmToken (legacy rows have null → sendNewsletterConfirmation
+      // would mail a null token that can never confirm).
       if (existing.status === "pending") {
-        sendNewsletterConfirmation(normalizedEmail, existing.confirmToken!).catch(err =>
+        let resendToken = existing.confirmToken;
+        if (!resendToken) {
+          resendToken = randomBytes(32).toString("hex");
+          await prisma.newsletterSubscriber.update({
+            where: { id: existing.id },
+            data: { confirmToken: resendToken },
+          });
+        }
+        sendNewsletterConfirmation(normalizedEmail, resendToken).catch(err =>
           console.error('[Newsletter] Resend confirmation failed:', err)
         );
         return NextResponse.json({

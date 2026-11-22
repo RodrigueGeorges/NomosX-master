@@ -47,8 +47,10 @@ export async function GET(req: NextRequest) {
       return NextResponse.redirect(new URL('/?newsletter=invalid', req.url));
     }
 
-    // Check 48h TTL — token expires if subscriber was created > 48h ago
-    const age = Date.now() - new Date(subscriber.createdAt).getTime();
+    // Check 48h TTL — measured from updatedAt (last token issuance/resubscribe
+    // bumps it), NOT createdAt: an old subscriber who resubscribes gets a
+    // fresh token that would otherwise be born already-expired.
+    const age = Date.now() - new Date(subscriber.updatedAt ?? subscriber.createdAt).getTime();
     if (age > TOKEN_TTL_MS) {
       console.log(`[Newsletter] Expired token for ${subscriber.email}`);
       return NextResponse.redirect(new URL('/?newsletter=expired', req.url));
