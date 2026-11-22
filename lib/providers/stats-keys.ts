@@ -9,6 +9,8 @@
  *   ons-uk (api.beta.ons.gov.uk), ibge (servicodados.ibge.gov.br agregados)
  */
 
+import fs from 'node:fs';
+import path from 'node:path';
 import { fetchFromProvider, httpPost } from '../http-client';
 import { env } from '../env';
 
@@ -1118,4 +1120,212 @@ export async function searchIBGE(query: string, limit = 8): Promise<any[]> {
     console.error(`[IBGE] failed: ${e?.message}`);
     return [];
   }
+}
+
+// ─────────────────────────────────────────────────────────────
+// EIA — US Energy Information Administration (EIA_API_KEY, free)
+// v2 API: grid demand/generation, crude spot, natural gas spot.
+// https://www.eia.gov/opendata/
+// ─────────────────────────────────────────────────────────────
+const EIA_SERIES_NAMES: Record<string, string> = {
+  RBRTE: 'Brent crude', RWTC: 'WTI crude', RNGWHHD: 'Henry Hub natural gas',
+};
+const EIA_RESPONDENTS: Record<string, string> = {
+  US48: 'US Lower 48', CISO: 'California ISO', ERCO: 'ERCOT (Texas)',
+  MISO: 'MISO', NYIS: 'NYISO', PJM: 'PJM Interconnection',
+  SPP: 'SPP', SWPP: 'SPP (Southwest)', NWPP: 'Northwest Power Pool',
+  NEVP: 'Nevada Power', AZPS: 'Arizona Public Service', BPA: 'Bonneville Power',
+  GLHB: 'Great Lakes Hydro', GVL: 'Gainesville Regional', SOCO: 'Southern Co',
+  TAL: 'Tennessee Valley', TVP: 'Tennessee Valley', FPC: 'Florida Power & Light',
+};
+
+async function eiaFetch(route: string, params: string): Promise<any> {
+  const key = env.EIA_API_KEY;
+  if (!key) return { response: { data: [] } };
+  const url = `https://api.eia.gov/v2/${route}/data/?api_key=${key}&${params}`;
+  return fetchFromProvider('eia', url, { timeout: 20000, retries: 1 });
+}
+
+export async function searchEIA(query: string, limit = 4): Promise<any[]> {
+  if (!env.EIA_API_KEY) {
+    console.log('[EIA] skipped — EIA_API_KEY not set (free at api.eia.gov)');
+    return [];
+  }
+  const q = query.toLowerCase();
+  const wantsElec = /electric|grid|power demand|generation|blackout|load/.test(q);
+  const wantsOil = /oil|crude|brent|wti|petroleum|gasoline|diesel/.test(q);
+  const wantsGas = /gas|lng|henry hub|nat.?gas/.test(q);
+  const generic = !wantsElec && !wantsOil && !wantsGas;
+  const results: any[] = [];
+
+  const push = (id: string, title: string, abstract: string, raw: any) =>
+    results.push(ds(id, 'eia', title, abstract,
+      `https://www.eia.gov/opendata/browser/${id}`, 'US Energy Information Administration', raw));
+
+  try {
+    if (wantsElec || generic) {
+      const demand = await eiaFetch('electricity/rto/region-data',
+        'frequency=hourly&data[0]=value&facets[respondent][]=US48&facets[type][]=D' +
+        '&sort[0][column]=period&sort[0][direction]=desc&offset=0&length=24');
+      const rows: any[] = demand?.response?.data || [];
+      if (rows.length) {
+        const latest = rows[0];
+        const avg = rows.reduce((s, r) => s + Number(r.value || 0), 0) / rows.length;
+        push('us48-demand', `EIA — ${latest['respondent-name'] || 'US'} electricity demand (hourly)`,
+          `Grid demand ${latest['type-name'] || 'demand'} latest hour ${latest.period}: ${Math.round(Number(latest.value)).toLocaleString()} ${latest['value-units'] || 'MWh'}; trailing-24h avg ${Math.round(avg).toLocaleString()}. Source: EIA RTO/region hourly.`,
+          rows);
+      }
+      const gen = await eiaFetch('electricity/rto/region-data',
+        'frequency=hourly&data[0]=value&facets[respondent][]=US48&facets[type][]=NG' +
+        '&sort[0][column]=period&sort[0][direction]=desc&offset=0&length=24');
+      const grows: any[] = gen?.response?.data || [];
+      if (grows.length) {
+        const g = grows[0];
+        push('us48-generation', `EIA — ${g['respondent-name'] || 'US'} net generation (hourly)`,
+          `Net generation latest hour ${g.period}: ${Math.round(Number(g.value)).toLocaleString()} ${g['value-units'] || 'MWh'}. Per-fuel detail available via additional facets.`,
+          grows);
+      }
+    }
+
+    if (wantsOil || generic) {
+      const oil = await eiaFetch('petroleum/pri/spt',
+        'frequency=daily&data[0]=value&facets[series][]=RBRTE&facets[series][]=RWTC' +
+        '&sort[0][column]=period&sort[0][direction]=desc&offset=0&length=30');
+      const orows: any[] = oil?.response?.data || [];
+      const bySeries: Record<string, any[]> = {};
+      for (const r of orows) (bySeries[r.series] ||= []).push(r);
+      for (const [code, rs] of Object.entries(bySeries)) {
+        const latest = rs[0];
+        const prev = rs.find(r => r.period !== latest.period);
+        const delta = prev ? ((Number(latest.value) - Number(prev.value)) / Number(prev.value) * 100).toFixed(1) : '?';
+        push(`oil-${code.toLowerCase()}`, `EIA — ${EIA_SERIES_NAMES[code] || code} spot price (daily)`,
+          `${EIA_SERIES_NAMES[code] || code}: $${Number(latest.value).toFixed(2)}/bbl on ${latest.period} (${delta}% vs prior session). Source: EIA spot prices.`,
+          rs.slice(0, 14));
+      }
+    }
+
+    if (wantsGas || generic) {
+      const gas = await eiaFetch('natural-gas/pri/fut',
+        'frequency=daily&data[0]=value&facets[series][]=RNGWHHD' +
+        '&sort[0][column]=period&sort[0][direction]=desc&offset=0&length=30');
+      const grows2: any[] = gas?.response?.data || [];
+      if (grows2.length) {
+        const latest = grows2[0];
+        const avg30 = grows2.reduce((s, r) => s + Number(r.value || 0), 0) / grows2.length;
+        push('henry-hub', `EIA — ${latest['series-description'] || 'Henry Hub'} (daily)`,
+          `${latest['series-description'] || 'Henry Hub natural gas'}: $${Number(latest.value).toFixed(2)}/MMBtu on ${latest.period}; 30-day avg $${avg30.toFixed(2)}. Source: EIA natural gas spot/futures.`,
+          grows2);
+      }
+    }
+
+    console.log(`[EIA] ${results.length} datasets (${wantsElec ? 'elec ' : ''}${wantsOil ? 'oil ' : ''}${wantsGas ? 'gas' : ''}${generic ? 'generic' : ''})`);
+    return results.slice(0, limit);
+  } catch (e: any) {
+    console.error(`[EIA] failed: ${e?.message}`);
+    return [];
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// V-DEM — Varieties of Democracy (github.com/vdeminstitute)
+// Local extract from the official CSV (scripts/fetch-vdem.ts);
+// CC BY-SA 4.0. No key — degrades to [] if extract missing.
+// ─────────────────────────────────────────────────────────────
+let vdemCache: any = null;
+function loadVdem(): any {
+  if (vdemCache !== null) return vdemCache;
+  try {
+    const p = path.join(process.cwd(), 'data', 'vdem-extract.json');
+    vdemCache = JSON.parse(fs.readFileSync(p, 'utf8'));
+  } catch {
+    return null;
+  }
+  return vdemCache;
+}
+
+const VDEM_STOP = new Set(['the', 'and', 'for', 'with', 'from', 'index', 'score', 'data', 'dataset', 'vdem', 'varieties', 'democracy', 'latest', 'current', 'global', 'world', 'country', 'countries']);
+
+export async function searchVdem(query: string, limit = 5): Promise<any[]> {
+  const data = loadVdem();
+  if (!data?.rows?.length) {
+    console.log('[VDEM] skipped — data/vdem-extract.json missing (run scripts/fetch-vdem.ts)');
+    return [];
+  }
+  const q = query.toLowerCase();
+  const tokens = q.split(/[^a-zà-ÿ0-9]+/).filter(t => t.length > 2 && !VDEM_STOP.has(t));
+
+  // Topic priors: map query themes to the V-Dem variables that measure them.
+  const TOPIC_BONUS: Array<[RegExp, string[]]> = [
+    [/corrupt/, ['v2x_corr', 'e_ti_cpi', 'e_wbgi_cce']],
+    [/coup/, ['e_coups']],
+    [/civil libert|freedom of|freedoms/, ['v2x_civlib', 'v2x_freexp', 'v2x_frassoc_thick']],
+    [/gender|women/, ['v2x_gender']],
+    [/rule of law|judicial/, ['v2x_rule', 'e_wbgi_rqe']],
+    [/governance|government effectiveness|regulat/, ['e_wbgi_gee', 'e_wbgi_rle', 'e_wbgi_vae', 'e_wbgi_pve']],
+    [/elect|suffrage|voting/, ['v2x_elecreg', 'v2x_suffr']],
+    [/regime|authoritarian|autocra|populis/, ['v2x_regime', 'v2x_api', 'v2x_mpi', 'e_polity2']],
+    [/democra|election|political freedom|backsliding/, ['v2x_polyarchy', 'v2x_libdem', 'v2x_partipdem', 'v2x_delibdem', 'v2x_egaldem']],
+  ];
+  const varScores: Array<{ code: string; label: string; score: number }> = [];
+  for (const [code, label] of Object.entries(data.variables as Record<string, string>)) {
+    const hay = `${code} ${label}`.toLowerCase();
+    let score = 0;
+    for (const t of tokens) {
+      if (hay.includes(t)) score += t.length > 4 ? 3 : 1;
+    }
+    for (const [re, codes] of TOPIC_BONUS) {
+      if (re.test(q) && codes.includes(code)) score += 3;
+    }
+    if (score > 0) varScores.push({ code, label, score });
+  }
+  varScores.sort((a, b) => b.score - a.score);
+  const picked = varScores.slice(0, 5);
+  if (!picked.length) return [];
+
+  const cols: string[] = data.columns;
+  const vidx = new Map(picked.map((p, i) => [p.code, cols.indexOf(p.code)]));
+
+  // Country filter: query tokens matching country names.
+  const wanted = new Set(
+    data.rows
+      .filter((r: any[]) => r[2] === Math.max(...data.rows.map((x: any[]) => x[2])) && tokens.some(t => String(r[0]).toLowerCase().includes(t)))
+      .map((r: any[]) => r[1] as string),
+  );
+
+  const results: any[] = [];
+  for (const p of picked) {
+    const ci = vidx.get(p.code)!;
+    // Latest year that actually has data for this variable (sparse vars
+    // like e_coups are null in most recent years).
+    let latestYearV = -1;
+    for (const r of data.rows) {
+      if (r[ci] != null && Number.isFinite(r[ci]) && r[2] > latestYearV) latestYearV = r[2];
+    }
+    if (latestYearV < 0) continue;
+    let pool = data.rows.filter((r: any[]) => r[2] === latestYearV && r[ci] != null);
+    if (wanted.size) {
+      const wp = pool.filter((r: any[]) => wanted.has(r[1]));
+      if (wp.length) pool = wp;
+    }
+    const vals: Array<{ name: string; v: number }> = pool
+      .map((r: any[]) => ({ name: r[0] as string, v: r[ci] as number | null }))
+      .filter((x: any): x is { name: string; v: number } => x.v != null && Number.isFinite(x.v))
+      .sort((a: { name: string; v: number }, b: { name: string; v: number }) => b.v - a.v);
+    if (!vals.length) continue;
+    const mean = vals.reduce((s: number, x) => s + x.v, 0) / vals.length;
+    const top = vals.slice(0, 4).map((x: any) => `${x.name} ${x.v.toFixed(2)}`).join(', ');
+    const bottom = vals.slice(-3).map((x: any) => `${x.name} ${x.v.toFixed(2)}`).join(', ');
+    const scope = wanted.size ? `for ${[...wanted].length} matched ${wanted.size > 1 ? 'countries' : 'country'}` : `across ${vals.length} countries`;
+    results.push(ds(
+      p.code, 'vdem',
+      `V-Dem — ${p.label}`,
+      `Varieties of Democracy ${p.label} (${latestYearV}, ${scope}): mean ${mean.toFixed(2)}. Highest: ${top}. Lowest: ${bottom}. Source: V-Dem Country-Year dataset (CC BY-SA 4.0).`,
+      'https://www.v-dem.net/data/the-v-dem-dataset/',
+      'Varieties of Democracy (V-Dem) Institute',
+      { variable: p.code, year: latestYearV, values: vals.slice(0, 25) },
+    ));
+    if (results.length >= limit) break;
+  }
+  console.log(`[VDEM] ${results.length} indicator datasets (${picked.length} vars matched)`);
+  return results;
 }

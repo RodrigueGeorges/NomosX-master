@@ -529,6 +529,8 @@ const PROVIDER_REGISTRY: { name: string; keywords: string[]; priority: number }[
   { name: 'hdx', keywords: ['humanitarian', 'hdx', 'ocha', 'relief', 'food security', 'ipc', 'famine', 'disaster', 'humanitarian data'], priority: 5 },
   { name: 'ocha-fts', keywords: ['humanitarian funding', 'fts', 'appeal', 'flash appeal', 'humanitarian response plan', 'donor funding', 'aid funding', 'financement humanitaire'], priority: 5 },
   { name: 'reliefweb', keywords: ['reliefweb', 'humanitarian report', 'humanitarian situation', 'ocha report', 'needs assessment', 'humanitarian update'], priority: 5 },
+  { name: 'eia', keywords: ['eia', 'energy information administration', 'oil price', 'crude oil', 'brent', 'wti', 'henry hub', 'natural gas price', 'electricity demand', 'power grid', 'us energy'], priority: 5 },
+  { name: 'vdem', keywords: ['v-dem', 'vdem', 'democracy index', 'democratic backsliding', 'authoritarian', 'electoral democracy', 'regime type', 'coups', 'civil liberties', 'political freedom', 'governance indicators', 'populism', 'election integrity'], priority: 6 },
   { name: 'open-meteo', keywords: ['climate', 'climat', 'warming', 'drought', 'heat wave', 'flood', 'hurricane', 'typhoon', 'monsoon', 'temperature projection', 'cmip'], priority: 6 },
   { name: 'ember', keywords: ['electricity', 'power generation', 'renewable', 'solar', 'wind', 'grid', 'energy transition', 'carbon intensity', 'ember', 'electricity mix'], priority: 6 },
   { name: 'un-sdg', keywords: ['sdg', 'sustainable development', 'un goals', 'poverty rate', 'global goals', 'développement durable'], priority: 5 },
