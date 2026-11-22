@@ -83,6 +83,7 @@ const envSchema = z.object({
   OPENROUTER_API_KEY: z.string().optional(),    // :free models ~50 req-day
   MISTRAL_API_KEY: z.string().optional(),       // Experiment tier 1B tokens/month
   HF_TOKEN: z.string().optional(),              // HuggingFace Inference Providers router (free monthly credits)
+  JINA_API_KEY: z.string().optional(),          // r.jina.ai reader — raises rate limit ~20 → ~500 rpm
   
   // Qwen (Alibaba Cloud / DashScope / Together.ai — OpenAI-compatible)
 

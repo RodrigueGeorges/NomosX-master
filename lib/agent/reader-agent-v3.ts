@@ -25,6 +25,7 @@ import { RESEARCHER_KBS, type DomainExpertise } from './researcher-kb/index';
 import { MULTI_DOMAIN_CORPUS } from '../knowledge/multi-domain-corpus';
 import { unpaywallByDoi } from '../providers/unpaywall';
 import { doclingEnabled, doclingParsePdf } from '../quant/docling-client';
+import { env } from '../env';
 
 // ============================================================================
 // TYPES
@@ -521,7 +522,7 @@ async function fetchNewsArticleTextDirect(url: string, timeout = 20000): Promise
 // Jina AI Reader fallback — r.jina.ai fetches server-side and returns clean
 // markdown, bypassing publisher bot-blocks (403) and JS-rendered shells that
 // defeat direct fetch. Keyless tier is rate-limited; bounded per run.
-const JINA_RESCUE_MAX = 15;
+const JINA_RESCUE_MAX = 30;
 let jinaRescueBudget = JINA_RESCUE_MAX;
 
 async function fetchViaJinaReader(url: string, timeout = 30000): Promise<string | null> {
@@ -530,7 +531,11 @@ async function fetchViaJinaReader(url: string, timeout = 30000): Promise<string 
   try {
     const res = await fetch(`https://r.jina.ai/${url}`, {
       signal: AbortSignal.timeout(timeout),
-      headers: { 'User-Agent': 'NomosXBot/1.0', 'Accept': 'text/markdown, text/plain' },
+      headers: {
+        'User-Agent': 'NomosXBot/1.0',
+        'Accept': 'text/markdown, text/plain',
+        ...(env.JINA_API_KEY ? { Authorization: `Bearer ${env.JINA_API_KEY}` } : {}),
+      },
     });
     if (!res.ok) return null;
     const text = (await res.text()).trim();
