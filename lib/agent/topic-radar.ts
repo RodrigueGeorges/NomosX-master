@@ -72,6 +72,10 @@ export interface RadarSweepResult {
     crossChannelCollisions: number;
     durationMs: number;
     crossSourceSignals?: { clustersDetected: number; topScore: number };
+    breakingFetched?: number;
+    volumeSpikes?: number;
+    newsWiresFetched?: number;
+    socialFetched?: number;
   };
 }
 
@@ -79,28 +83,58 @@ export interface RadarSweepResult {
 // CONFIGURATION V3 — Maximum coverage
 // ============================================================================
 
-/** 14 verticals — high-recall queries with urgency bonus */
+/** 6 combined vertical queries — GDELT DOC API tolerates ~0.5 req/s, so 19
+ *  separate vertical calls used to queue ~40s and trip the circuit breaker.
+ *  Related verticals are OR'd into one query; `vertical` is the primary tag. */
 const GDELT_SWEEP_QUERIES: { query: string; vertical: string; urgencyBonus: number }[] = [
-  { query: "war OR military strike OR sanctions OR coup OR invasion OR ceasefire OR nuclear threat OR armed conflict", vertical: "geopolitics", urgencyBonus: 15 },
-  { query: "EU regulation OR European Commission OR AI Act OR ECB decision OR eurozone OR Brussels directive", vertical: "eu-policy", urgencyBonus: 5 },
-  { query: "climate emergency OR IPCC report OR COP OR carbon tax OR extreme weather OR heatwave record OR sea level", vertical: "climate", urgencyBonus: 10 },
-  { query: "artificial intelligence OR AGI OR large language model OR AI regulation OR AI safety OR generative AI", vertical: "ai-technology", urgencyBonus: 10 },
-  { query: "financial crisis OR central bank OR interest rate hike OR bank failure OR recession OR sovereign debt", vertical: "finance-macro", urgencyBonus: 12 },
-  { query: "pandemic OR epidemic OR WHO emergency OR drug approval OR clinical trial OR antimicrobial resistance", vertical: "health-biotech", urgencyBonus: 15 },
-  { query: "energy crisis OR oil price OR gas pipeline OR nuclear plant OR renewable breakthrough OR energy security", vertical: "energy", urgencyBonus: 10 },
-  { query: "trade war OR tariffs OR WTO ruling OR supply chain OR semiconductor OR export controls OR trade deal", vertical: "trade", urgencyBonus: 8 },
-  { query: "cyber attack OR data breach OR ransomware OR critical infrastructure hack OR state-sponsored espionage", vertical: "cybersecurity", urgencyBonus: 15 },
-  { query: "China economy OR India GDP OR BRICS OR emerging market crisis OR IMF bailout OR debt restructuring", vertical: "emerging-markets", urgencyBonus: 5 },
-  { query: "biotech OR CRISPR therapy OR gene editing OR mRNA OR longevity research OR synthetic biology", vertical: "biotechnology", urgencyBonus: 8 },
-  { query: "social unrest OR protests OR inequality OR labor strike OR food insecurity OR migration crisis", vertical: "social-stability", urgencyBonus: 10 },
-  { query: "platform regulation OR antitrust tech OR Big Tech lawsuit OR data privacy law OR digital sovereignty", vertical: "digital-governance", urgencyBonus: 5 },
-  { query: "quantum computing OR nuclear fusion breakthrough OR space mission OR Nobel Prize OR scientific discovery", vertical: "science-frontier", urgencyBonus: 8 },
-  // P1-H: Global South verticals (BENI Global 10 inspired)
-  { query: "Africa development OR African Union OR ECOWAS OR Sahel conflict OR debt relief Africa OR African tech startup", vertical: "africa", urgencyBonus: 8 },
-  { query: "Latin America election OR Amazon deforestation OR cocaine trafficking OR leftist government OR lithium mining", vertical: "latin-america", urgencyBonus: 8 },
-  { query: "Southeast Asia ASEAN OR South China Sea OR Myanmar crisis OR Indonesia election OR Vietnam economy", vertical: "southeast-asia", urgencyBonus: 8 },
-  { query: "Middle East conflict OR Iran nuclear OR Saudi Arabia OR Israel Palestine OR Gulf states OR oil price OPEC", vertical: "middle-east", urgencyBonus: 12 },
-  { query: "India election OR Modi OR Pakistan crisis OR Bangladesh garment OR Sri Lanka economy OR Nepal", vertical: "south-asia", urgencyBonus: 8 },
+  { query: "war OR military strike OR sanctions OR coup OR invasion OR ceasefire OR nuclear threat OR armed conflict OR Iran nuclear OR Israel Palestine OR social unrest OR protests OR cyber attack OR ransomware OR data breach OR state-sponsored espionage", vertical: "geopolitics", urgencyBonus: 15 },
+  { query: "pandemic OR epidemic OR WHO emergency OR outbreak OR clinical trial OR antimicrobial resistance OR biotech OR CRISPR OR mRNA OR longevity research OR synthetic biology OR drug approval", vertical: "health-biotech", urgencyBonus: 15 },
+  { query: "financial crisis OR central bank OR interest rate hike OR bank failure OR recession OR sovereign debt OR tariffs OR WTO ruling OR supply chain OR semiconductor OR export controls OR China economy OR India GDP OR BRICS OR IMF bailout OR debt restructuring", vertical: "finance-macro", urgencyBonus: 12 },
+  { query: "climate emergency OR IPCC report OR COP OR carbon tax OR extreme weather OR heatwave record OR sea level OR oil price OR gas pipeline OR nuclear plant OR renewable breakthrough OR energy security", vertical: "climate", urgencyBonus: 10 },
+  { query: "artificial intelligence OR AGI OR large language model OR AI regulation OR AI safety OR generative AI OR platform regulation OR antitrust tech OR Big Tech lawsuit OR data privacy OR digital sovereignty OR quantum computing", vertical: "ai-technology", urgencyBonus: 10 },
+  { query: "food insecurity OR migration crisis OR inequality OR labor strike OR Africa development OR African Union OR Sahel conflict OR Latin America election OR Amazon deforestation OR ASEAN OR South China Sea OR Myanmar crisis OR India election OR Pakistan crisis", vertical: "emerging-markets", urgencyBonus: 8 },
+];
+
+/** Breaking-sweep subset: highest urgencyBonus verticals — 3h GDELT window */
+/** Compact combined breaking query — ONE GDELT call instead of N (API is ~1 req/5s).
+ *  Vertical attribution is inferred client-side via BREAKING_VERTICAL_RES. */
+const GDELT_BREAKING_QUERY =
+  "war OR military strike OR sanctions OR coup OR invasion OR ceasefire OR nuclear threat OR armed conflict " +
+  "OR cyber attack OR ransomware OR data breach OR critical infrastructure hack OR state-sponsored espionage " +
+  "OR pandemic OR epidemic OR WHO emergency OR outbreak OR antimicrobial resistance " +
+  "OR financial crisis OR central bank OR interest rate hike OR bank failure OR recession OR sovereign debt " +
+  "OR extreme weather OR heatwave record OR sea level OR climate emergency " +
+  "OR oil price OR gas pipeline OR energy security OR nuclear plant " +
+  "OR Iran nuclear OR Israel Palestine OR social unrest OR protests OR food insecurity";
+
+const BREAKING_VERTICAL_RES: [RegExp, string, number][] = [
+  [/war|military|sanction|coup|invasion|ceasefire|nuclear threat|armed conflict|iran|israel|palestine|saudi|gulf|OPEC/i, 'geopolitics', 15],
+  [/cyber|ransomware|breach|hack|espionage|malware/i, 'cybersecurity', 15],
+  [/pandemic|epidemic|outbreak|WHO|clinical|drug|antimicrobial|health/i, 'health-biotech', 15],
+  [/financial|interest rate|bank|recession|sovereign debt|crisis|central bank/i, 'finance-macro', 12],
+  [/climate|heatwave|carbon|extreme weather|sea level|COP/i, 'climate', 10],
+  [/oil|gas|pipeline|nuclear plant|energy|renewable/i, 'energy', 10],
+  [/protest|unrest|strike|food insecurity|migration/i, 'social-stability', 10],
+];
+
+/** Tier A/B wire services — earliest public signal, minimal analysis lag */
+const NEWS_WIRE_FEEDS: { name: string; url: string; tier: 'A' | 'B' | 'C'; vertical?: string }[] = [
+  { name: "BBC World",            url: "https://feeds.bbci.co.uk/news/world/rss.xml",                        tier: "A" },
+  { name: "Guardian World",       url: "https://www.theguardian.com/world/rss",                            tier: "A" },
+  { name: "Al Jazeera",           url: "https://www.aljazeera.com/xml/rss/all.xml",                        tier: "A" },
+  { name: "France24",             url: "https://www.france24.com/en/rss",                                  tier: "A" },
+  { name: "Franceinfo",           url: "https://www.franceinfo.fr/titres.rss",                              tier: "A", vertical: "eu-policy" },
+  { name: "Le Monde",             url: "https://www.lemonde.fr/rss/une.xml",                                tier: "A", vertical: "eu-policy" },
+  { name: "Der Spiegel Intl",     url: "https://www.spiegel.de/international/index.rss",                    tier: "A" },
+  { name: "DW News",              url: "https://rss.dw.com/rdf/rss-en-all",                                tier: "A" },
+  { name: "CNN",                  url: "https://rss.cnn.com/rss/edition.rss",                               tier: "B" },
+  { name: "NBC News",             url: "https://feeds.nbcnews.com/nbcnews/public/news",                     tier: "B" },
+  { name: "Sky News",             url: "https://feeds.skynews.com/feeds/rss/home.xml",                      tier: "B" },
+  { name: "Kyodo News",           url: "https://english.kyodonews.net/rss/",                                tier: "B", vertical: "southeast-asia" },
+  { name: "Yonhap",               url: "https://en.yna.co.kr/RSS/news.xml",                                 tier: "B", vertical: "southeast-asia" },
+  { name: "NHK World",            url: "https://www3.nhk.or.jp/rss/news/cat6.xml",                         tier: "B" },
+  { name: "Times of India",       url: "https://timesofindia.indiatimes.com/rssfeedstopstories.cms",         tier: "B", vertical: "south-asia" },
+  { name: "CBS News",             url: "https://www.cbsnews.com/latest/rss/main",                           tier: "C" },
 ];
 
 /** Source tier score bonuses */
@@ -232,6 +266,8 @@ export async function runTopicRadar(options?: {
     totalRaw: number; afterDedup: number; crossChannelCollisions: number;
     durationMs: number;
     crossSourceSignals?: { clustersDetected: number; topScore: number };
+    breakingFetched?: number; volumeSpikes?: number;
+    newsWiresFetched?: number; socialFetched?: number;
   } = {
     gdeltFetched: 0, rssFetched: 0, academicFetched: 0,
     policyFetched: 0, institutionalFetched: 0, dbSignals: 0,
@@ -239,12 +275,16 @@ export async function runTopicRadar(options?: {
     durationMs: 0,
   };
 
-  // 5 parallel sweeps simultaneously
-  const [gdeltR, rssR, academicR, dbR] = await Promise.allSettled([
+  // 8 parallel sweeps: baseline + breaking(3h) + volume-spikes + wires + social pulse
+  const [gdeltR, rssR, academicR, dbR, breakingR, spikesR, wiresR, socialR] = await Promise.allSettled([
     sweepGDELT(),
     sweepRSS(),
     includeAcademic ? sweepAcademic() : Promise.resolve([]),
     sweepDBSignals(),
+    sweepGDELTBreaking(),
+    sweepGDELTVolumeSpikes(),
+    sweepNewsWires(),
+    sweepSocialPulse(),
   ]);
 
   const all: RadarTopic[] = [];
@@ -252,6 +292,10 @@ export async function runTopicRadar(options?: {
   if (rssR.status === 'fulfilled')      { all.push(...rssR.value);      stats.rssFetched      = rssR.value.length; }
   if (academicR.status === 'fulfilled') { all.push(...academicR.value); stats.academicFetched = academicR.value.length; }
   if (dbR.status === 'fulfilled')       { all.push(...dbR.value);       stats.dbSignals       = dbR.value.length; }
+  if (breakingR.status === 'fulfilled') { all.push(...breakingR.value); stats.breakingFetched = breakingR.value.length; }
+  if (spikesR.status === 'fulfilled')   { all.push(...spikesR.value);   stats.volumeSpikes    = spikesR.value.length; }
+  if (wiresR.status === 'fulfilled')    { all.push(...wiresR.value);    stats.newsWiresFetched = wiresR.value.length; }
+  if (socialR.status === 'fulfilled')   { all.push(...socialR.value);   stats.socialFetched   = socialR.value.length; }
 
   // ── CROSS-SOURCE SIGNAL DETECTION (V3.1) — corroboration + velocity ──
   let signalClusters: { topic: string; items: any[]; totalScore: number; corroborationScore: number }[] = [];
@@ -367,6 +411,14 @@ export async function runTopicRadar(options?: {
     console.warn('[TOPIC RADAR V3] Innovation scoring failed (non-blocking):', err);
   }
 
+  // Proportional normalization: additive boosts used to saturate everything at
+  // 100, flattening the ranking. Rescale so the best topic = 100 and weaker
+  // signals keep meaningful separation for the Editor-in-Chief.
+  const maxRaw = Math.max(...deduped.map(t => t.score), 1);
+  if (maxRaw > 100) {
+    for (const t of deduped) t.score = Math.min(100, Math.round((t.score * 100) / maxRaw));
+  }
+
   deduped.sort((a, b) => b.score - a.score);
 
   // ── ADAPTIVE SIGNAL STRENGTH (replaces rigid cutoff) ──
@@ -390,7 +442,7 @@ export async function runTopicRadar(options?: {
   // Store in TTL cache
   _cachedResult = { result, expiresAt: Date.now() + CACHE_TTL_MS };
 
-  console.log(`[TOPIC RADAR V3] ✅ ${stats.totalRaw} raw → ${stats.afterDedup} deduped → ${top.length} topics in ${stats.durationMs}ms | gdelt:${stats.gdeltFetched} rss:${stats.rssFetched} academic:${stats.academicFetched} db:${stats.dbSignals}`);
+  console.log(`[TOPIC RADAR V3] ✅ ${stats.totalRaw} raw → ${stats.afterDedup} deduped → ${top.length} topics in ${stats.durationMs}ms | gdelt:${stats.gdeltFetched} breaking:${stats.breakingFetched} spikes:${stats.volumeSpikes} wires:${stats.newsWiresFetched} social:${stats.socialFetched} rss:${stats.rssFetched} academic:${stats.academicFetched} db:${stats.dbSignals}`);
   return result;
 }
 
@@ -401,14 +453,14 @@ export async function runTopicRadar(options?: {
 async function sweepGDELT(): Promise<RadarTopic[]> {
   const promises = GDELT_SWEEP_QUERIES.map(async ({ query, vertical, urgencyBonus }) => {
     try {
-      const params = new URLSearchParams({ query, mode: "ArtList", maxrecords: "8", timespan: "24h", format: "json", sort: "DateDesc" });
+      const params = new URLSearchParams({ query, mode: "ArtList", maxrecords: "12", timespan: "24h", format: "json", sort: "DateDesc" });
       const data: any = await fetchFromProvider('gdelt-news', `https://api.gdeltproject.org/api/v2/doc/doc?${params}`, {
-        timeout: 12000, retries: 2, responseType: 'text',
+        timeout: 15000, retries: 2, responseType: 'text',
       }).catch(() => null);
       if (!data) return [];
       let parsed: any;
       try { parsed = JSON.parse(data); } catch { return []; }
-      return (parsed.articles || []).slice(0, 4).map((a: any, i: number) => {
+      return (parsed.articles || []).slice(0, 6).map((a: any, i: number) => {
         const pub = parseGDELTDate(a.seendate);
         return {
           id: `gdelt:${hashStr(a.url || a.title)}`,
@@ -418,7 +470,7 @@ async function sweepGDELT(): Promise<RadarTopic[]> {
           source: a.domain || 'GDELT',
           sourceType: 'news' as const,
           publishedAt: pub,
-          score: clampScore(68 + urgencyBonus + (4 - i) * 3 + recencyDecay(pub) + urgencyKeywordBonus(a.title)),
+          score: clampScore(68 + urgencyBonus + (5 - i) * 3 + recencyDecay(pub) + urgencyKeywordBonus(a.title)),
           vertical,
         };
       });
@@ -714,9 +766,10 @@ function urgencyKeywordBonus(title: string): number {
   return Math.min(25, URGENCY_PATTERNS.reduce((sum, { re, bonus }) => sum + (re.test(title) ? bonus : 0), 0));
 }
 
-/** Clamp score to 0-100 */
+/** Clamp score — accumulation cap is 200 so additive boosts don't saturate at
+ *  100 before the final proportional normalization (which rescales to ≤100). */
 function clampScore(n: number): number {
-  return Math.max(0, Math.min(100, Math.round(n)));
+  return Math.max(0, Math.min(200, Math.round(n)));
 }
 
 function reconstructAbstract(invertedIndex: Record<string, number[]> | null): string {
@@ -796,4 +849,190 @@ function hashStr(str: string): string {
     hash |= 0;
   }
   return Math.abs(hash).toString(36);
+}
+
+// ============================================================================
+// SOURCE 5: GDELT BREAKING — 3h window on high-urgency verticals
+// ============================================================================
+
+async function sweepGDELTBreaking(): Promise<RadarTopic[]> {
+  try {
+    const params = new URLSearchParams({ query: GDELT_BREAKING_QUERY, mode: "ArtList", maxrecords: "15", timespan: "3h", format: "json", sort: "DateDesc" });
+    const data: any = await fetchFromProvider('gdelt-news', `https://api.gdeltproject.org/api/v2/doc/doc?${params}`, {
+      timeout: 12000, retries: 1, responseType: 'text',
+    }).catch(() => null);
+    if (!data) return [];
+    let parsed: any;
+    try { parsed = JSON.parse(data); } catch { return []; }
+    return (parsed.articles || []).slice(0, 8).map((a: any, i: number) => {
+      const pub = parseGDELTDate(a.seendate);
+      const text = `${a.title || ''}`;
+      const v = BREAKING_VERTICAL_RES.find(([re]) => re.test(text)) || BREAKING_VERTICAL_RES[0];
+      return {
+        id: `gdelt3h:${hashStr(a.url || a.title)}`,
+        title: cleanText(a.title),
+        summary: `[BREAKING ${v[1]}] ${a.domain} — ${cleanText(a.title)}`,
+        url: a.url,
+        source: a.domain || 'GDELT',
+        sourceType: 'news' as const,
+        publishedAt: pub,
+        score: clampScore(70 + v[2] + (7 - i) * 3 + recencyDecay(pub) + urgencyKeywordBonus(a.title)),
+        vertical: v[1],
+      };
+    });
+  } catch { return []; }
+}
+
+// ============================================================================
+// SOURCE 6: GDELT VOLUME SPIKES — mention-volume acceleration detector
+// Detects stories while coverage is still accelerating, before saturation.
+// mode=TimelineVol returns article counts per time slice; a spike = the last
+// 3h volume is >=2.5x the hourly baseline of the previous 21h.
+// ============================================================================
+
+const SPIKE_MIN_LAST3H = 6;      // absolute floor — avoid noise on tiny baselines
+const SPIKE_RATIO = 2.5;         // acceleration threshold
+
+async function sweepGDELTVolumeSpikes(): Promise<RadarTopic[]> {
+  const out: RadarTopic[] = [];
+  try {
+    const params = new URLSearchParams({ query: GDELT_BREAKING_QUERY, mode: "TimelineVol", format: "json", timespan: "24h" });
+    const data: any = await fetchFromProvider('gdelt-news', `https://api.gdeltproject.org/api/v2/doc/doc?${params}`, {
+      timeout: 12000, retries: 1, responseType: 'text',
+    }).catch(() => null);
+    if (!data) return out;
+    const parsed = JSON.parse(data);
+    const series: number[][] = parsed?.timeline?.data || [];
+    if (series.length < 6) return out;
+
+    const now = Date.now();
+    let last3h = 0, baselineSum = 0, baselineN = 0;
+    for (const row of series) {
+      const vol = Number(row[1]) || 0;
+      const ts = parseGDELTDate(String(row[0]));
+      if (!ts) continue;
+      const ageH = (now - ts.getTime()) / 3600000;
+      if (ageH <= 3) last3h += vol;
+      else if (ageH <= 24) { baselineSum += vol; baselineN++; }
+    }
+    const baselineHourly = baselineN ? baselineSum / baselineN : 0;
+    const last3hHourly = last3h / 3;
+    const ratio = baselineHourly > 0 ? last3hHourly / baselineHourly : (last3h >= SPIKE_MIN_LAST3H ? 99 : 0);
+    if (last3h < SPIKE_MIN_LAST3H || ratio < SPIKE_RATIO) return out;
+
+    // Global breaking-news volume is accelerating — pull the freshest articles
+    const p2 = new URLSearchParams({ query: GDELT_BREAKING_QUERY, mode: "ArtList", maxrecords: "8", timespan: "6h", format: "json", sort: "DateDesc" });
+    const data2: any = await fetchFromProvider('gdelt-news', `https://api.gdeltproject.org/api/v2/doc/doc?${p2}`, {
+      timeout: 10000, retries: 1, responseType: 'text',
+    }).catch(() => null);
+    if (!data2) return out;
+    const parsed2 = JSON.parse(data2);
+    for (const a of (parsed2.articles || []).slice(0, 5)) {
+      const pub = parseGDELTDate(a.seendate);
+      const text = `${a.title || ''}`;
+      const v = BREAKING_VERTICAL_RES.find(([re]) => re.test(text)) || BREAKING_VERTICAL_RES[0];
+      out.push({
+        id: `spike:${hashStr(a.url || a.title)}`,
+        title: cleanText(a.title),
+        summary: `[VOLUME SURGE ${Math.round(ratio * 10) / 10}x breaking-news] GDELT mentions accelerating — ${a.domain}. ${cleanText(a.title)}`,
+        url: a.url,
+        source: a.domain || 'GDELT',
+        sourceType: 'news' as const,
+        publishedAt: pub,
+        score: clampScore(74 + Math.min(12, ratio) + recencyDecay(pub) + urgencyKeywordBonus(a.title)),
+        vertical: v[1],
+      });
+    }
+  } catch { /* non-blocking */ }
+  return out;
+}
+
+// ============================================================================
+// SOURCE 7: News wires — earliest public reporting layer
+// ============================================================================
+
+async function sweepNewsWires(): Promise<RadarTopic[]> {
+  const promises = NEWS_WIRE_FEEDS.map(async (feed) => {
+    try {
+      const text = await fetchFromProvider('news-wires', feed.url, {
+        timeout: 7000, retries: 1, responseType: 'text',
+        headers: { "User-Agent": "NomosX-Radar/3.0" },
+      }).catch(() => null);
+      if (!text) return [];
+      const items = parseRSSItems(text).slice(0, 3);
+      return items.map((item, i) => {
+        const pub = item.pubDate ? new Date(item.pubDate) : null;
+        return {
+          id: `wire:${hashStr(item.link || item.title)}`,
+          title: cleanText(item.title),
+          summary: `[WIRE] ${cleanHTML(item.description).slice(0, 300)}`,
+          url: item.link,
+          source: feed.name,
+          sourceType: 'news' as const,
+          publishedAt: pub,
+          score: clampScore(62 + TIER_BONUS[feed.tier] + (3 - i) * 3 + recencyDecay(pub) + urgencyKeywordBonus(item.title)),
+          vertical: feed.vertical,
+        };
+      });
+    } catch { return []; }
+  });
+  const out: RadarTopic[] = [];
+  for (const r of await Promise.allSettled(promises)) if (r.status === 'fulfilled') out.push(...r.value);
+  return out;
+}
+
+// ============================================================================
+// SOURCE 8: Social pulse — crowd attention precedes media pickup
+// HN front page (Algolia) + Reddit r/worldnews hot. Modest scores: social
+// buzz alone is weak evidence, but combined with wires/GDELT it is the
+// earliest corroboration signal we have.
+// ============================================================================
+
+async function sweepSocialPulse(): Promise<RadarTopic[]> {
+  const out: RadarTopic[] = [];
+
+  // Hacker News front page — tech/policy/startup attention
+  try {
+    const data: any = await fetchFromProvider('hn-social',
+      'https://hn.algolia.com/api/v1/search?tags=front_page&hitsPerPage=10',
+      { timeout: 8000, retries: 1 }).catch(() => null);
+    for (const h of (data?.hits || []).slice(0, 6)) {
+      out.push({
+        id: `hnfp:${h.objectID}`,
+        title: cleanText(h.title || 'HN story'),
+        summary: `[SOCIAL HN] ${h.points ?? 0} pts, ${h.num_comments ?? 0} comments — ${h.author || '?'}`,
+        url: h.url || `https://news.ycombinator.com/item?id=${h.objectID}`,
+        source: 'Hacker News',
+        sourceType: 'signal' as const,
+        publishedAt: h.created_at ? new Date(h.created_at) : null,
+        score: clampScore(46 + Math.min(10, Math.floor((h.points || 0) / 40)) + urgencyKeywordBonus(h.title || '')),
+        vertical: 'ai-technology',
+      });
+    }
+  } catch { /* non-blocking */ }
+
+  // Reddit worldnews hot — global affairs crowd signal
+  try {
+    const data: any = await fetchFromProvider('reddit-social',
+      'https://www.reddit.com/r/worldnews/hot.json?limit=10&raw_json=1',
+      { timeout: 8000, retries: 1, headers: { 'User-Agent': 'NomosX-Radar/3.0' } }).catch(() => null);
+    const children: any[] = data?.data?.children || [];
+    for (const c of children.slice(0, 6)) {
+      const p = c?.data || {};
+      if (!p.title) continue;
+      out.push({
+        id: `rwn:${p.id}`,
+        title: cleanText(p.title),
+        summary: `[SOCIAL Reddit r/worldnews] score ${p.score ?? 0}, ${p.num_comments ?? 0} comments — ${p.author || '?'}`,
+        url: p.url || `https://www.reddit.com/r/worldnews/comments/${p.id}`,
+        source: 'Reddit r/worldnews',
+        sourceType: 'signal' as const,
+        publishedAt: p.created_utc ? new Date(p.created_utc * 1000) : null,
+        score: clampScore(44 + Math.min(10, Math.floor((p.score || 0) / 2000)) + urgencyKeywordBonus(p.title || '')),
+        vertical: 'geopolitics',
+      });
+    }
+  } catch { /* non-blocking — reddit may 403 datacenter IPs */ }
+
+  return out;
 }
