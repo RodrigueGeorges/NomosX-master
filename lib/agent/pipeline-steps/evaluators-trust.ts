@@ -119,6 +119,11 @@ export async function runEvaluatorsAndTrust(deps: EvaluatorsTrustDeps): Promise<
           claimAbsent: sourceCheckResult.claimAbsentCount,
           unverifiable: sourceCheckResult.unverifiableCount ?? 0,
           integrityScore: sourceCheckResult.integrityScore,
+          // Verdict samples for post-mortem diagnosis — counts alone made the
+          // 19/20 notFound incident undebuggable.
+          samples: sourceCheckResult.results.slice(0, 10).map((r: any) => ({
+            id: r.sourceId, doi: r.doi, verdict: r.verdict, mismatch: r.mismatch,
+          })),
         };
         if (sourceCheckResult.retractedCount > 0) {
           console.warn(`${label} SOURCE CHECK: ${sourceCheckResult.retractedCount} RETRACTED sources detected!`);

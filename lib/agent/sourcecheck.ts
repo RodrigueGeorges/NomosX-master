@@ -293,10 +293,20 @@ export async function checkSource(
   source: { id: string; title: string; doi?: string | null; abstract?: string | null; fullText?: string | null },
   claim?: string,
 ): Promise<SourceCheckResult> {
-  const doi = source.doi || null;
+  // Normalize DOI: strip resolver prefixes and whitespace. A malformed DOI
+  // (e.g. "doi:10.x", "https://doi.org/10.x", trailing punctuation) sent to
+  // the verifiers returns a genuine 404 → 'not_found' → score 0, punishing a
+  // parsing artifact as if the source did not exist.
+  const rawDoi = (source.doi || '').trim();
+  const doi = rawDoi
+    ? rawDoi.replace(/^https?:\/\/(dx\.)?doi\.org\//i, '').replace(/^doi:\s*/i, '').replace(/[.,;)\]]+$/, '').trim() || null
+    : null;
+  const doiLooksValid = doi !== null && /^10\.\d{4,9}\/\S+$/.test(doi);
 
-  // No DOI → can't verify existence or retraction
-  if (!doi) {
+  // No usable DOI → can't verify existence or retraction. A malformed DOI
+  // string is treated like a missing one — it is a parsing artifact, not a
+  // confirmed-bad source.
+  if (!doi || !doiLooksValid) {
     // Still check claim presence if we have abstract/full text
     const sourceContent = [source.title || '', source.abstract || '', (source.fullText || '').slice(0, 5000)].join(' ');
     const claimPresent = claim ? checkClaimPresence(claim, sourceContent) : true;
