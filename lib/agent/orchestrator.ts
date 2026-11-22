@@ -389,9 +389,10 @@ export function recordDecision(state: PipelineState, decision: OrchestratorDecis
   // The publication gate is the only publish verdict; label this clearly so
   // operators don't read a mid-pipeline proceed as a publication decision.
   console.log(`[ORCHESTRATOR] Step decision (not publish verdict): ${decision.action} — ${decision.reason}`);
-  return {
-    ...state,
-    iteration: decision.action !== "PROCEED" ? state.iteration + 1 : state.iteration,
-    decisions: [...state.decisions, decision],
-  };
+  // Mutate in place: every call site discards the return value, so the pure
+  // version silently never advanced state.iteration — maxIterations guards
+  // evaluated a counter stuck at 0 (dead "proceed anyway" branches).
+  if (decision.action !== "PROCEED") state.iteration++;
+  state.decisions.push(decision);
+  return state;
 }

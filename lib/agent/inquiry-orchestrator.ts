@@ -837,6 +837,10 @@ export async function runAndPublishInquiry(
                 // force re-reads, and blow the bounded regen window (observed:
                 // regen died mid-reader at the 25min cap).
                 skipGapFillRetrieval: true,
+                // Keep the publication language contract — without it the regen
+                // re-derives language from the question and can silently flip
+                // the artifact's language.
+                publicationLanguage: pubLang,
                 // The primer must not treat attempt-1's just-persisted brief as
                 // prior coverage ("Last coverage: … (0 days ago)") — only briefs
                 // older than this run's start are institutional memory.
@@ -1303,6 +1307,33 @@ export async function runAndPublishInquiry(
   console.log(
     `[InquiryOrchestrator] ${status.toUpperCase()} pub=${publication.id} brief=${pipeline.briefId} trust=${trustScore}`
   );
+
+  // OT-8 follow-up: persist post-gate stats onto pipelineRun.steps. The
+  // persistence tail serialized steps BEFORE the gate ran, so publicationGate,
+  // revision, regeneration, formGrid and degradedSteps were only reachable
+  // via criticalLoopResult.stats — replay-run's recordedGate read always saw
+  // undefined and HELD runs had no reconstructible gate record.
+  try {
+    if (pipeline.pipelineRunId) {
+      const orchDecisions = (pipeline.stats as any)?.orchestrator?.decisions;
+      await withDbRetry(() =>
+        prisma.pipelineRun.update({
+          where: { id: pipeline.pipelineRunId! },
+          data: {
+            steps: toJsonSafe({
+              ...(pipeline.stats as Record<string, unknown>),
+              orchestrator: { ...((pipeline.stats as any).orchestrator ?? {}), decisions: orchDecisions ?? [] },
+              inquiryStatus: status,
+              publicationId: publication.id,
+            }) as Prisma.InputJsonValue,
+          },
+        })
+      );
+    }
+  } catch (stepsErr) {
+    console.warn('[InquiryOrchestrator] post-gate steps persist failed (non-blocking):', stepsErr);
+    recordDegradedStep(pipeline.stats as Record<string, unknown>, 'POST_GATE_STEPS_PERSIST', stepsErr);
+  }
 
   // ── EXPERIENCE BANK (post-gate) — learning must see the FINAL verdict.
   // extractExperience moved here from persistence-tail: in-flight trust is

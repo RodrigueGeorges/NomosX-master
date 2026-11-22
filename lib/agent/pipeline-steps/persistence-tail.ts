@@ -144,7 +144,10 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
   await Promise.allSettled([
 
     // T10: Register predictions in the Prediction table for retrospective auditing
+    // Frozen during replay/record — prediction rows from cassette runs would
+    // orphan as phantom OPEN predictions once --cleanup deletes the brief.
     (async () => {
+      if (!learningWritesEnabled()) return;
       try {
         const pruningResult = (analysis as any)?._meta?.pruning;
         const predResult = await registerPredictions(brief.id, analysis as any, pruningResult, topSources, detectedDomain || undefined);
@@ -255,6 +258,7 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
 
     // STEP 16c: PREDICTION TRACKER (V3.1) — store SCATTER hypotheses for calibration
     (async () => {
+      if (!learningWritesEnabled()) return;
       if (savedScatterResult?.hypotheses?.length > 0) {
         try {
           const { storePredictionsFromHypotheses } = await import('../prediction-tracker');

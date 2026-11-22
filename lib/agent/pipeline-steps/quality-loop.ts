@@ -29,9 +29,11 @@ export async function runPostRenderQualityLoop(ctx: TailStepContext): Promise<vo
       // evidence independence). Probe the optimistic bound first: if even
       // perfect coverage+grounding stays below viability, every call below
       // is guaranteed waste AND bumps the artifact version for +0.
-      // Opt-in (NOMOSX_QUALITY_LOOP_VETO_GUARD=1): skipping changes the call
-      // stream, so fixtures recorded with the loop active would miss.
-      const vetoGuardEnabled = process.env.NOMOSX_QUALITY_LOOP_VETO_GUARD === '1';
+      // Enabled by default: on a veto-bound run every loop call is provably
+      // wasted spend (the probe shows even perfect coverage can't reach
+      // viability). NOMOSX_QUALITY_LOOP_VETO_GUARD=0 opts out for A/B.
+      // NOTE: changes the LLM call stream vs fixtures recorded without it.
+      const vetoGuardEnabled = process.env.NOMOSX_QUALITY_LOOP_VETO_GUARD !== '0';
       if (vetoGuardEnabled) {
         const optimistic = rescoreTrustFromStats(stats, ctx.html, topSources, { groundedness: 1, citationCoverage: 1 });
         if (optimistic.score < MIN_VIABLE_TRUST) {

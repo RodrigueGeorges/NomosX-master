@@ -407,12 +407,24 @@ export interface SourceQualityInput {
  *  3. Spam title patterns (content-farm Q&A pages, arrow taxonomy labels,
  *     sustainability-directory titles)
  */
+// Providers whose entire purpose is serving a blacklisted domain — their
+// results are first-party curated lookups, not SEO-farm noise. Without this
+// exemption the wikipedia-search/stackexchange providers route queries and
+// then have 100% of their output discarded.
+const DOMAIN_EXEMPT_PROVIDERS: Record<string, string[]> = {
+  'wikipedia-search': ['wikipedia.org'],
+  'stackexchange': ['stackexchange.com', 'stackoverflow.com'],
+  'reddit-social': ['reddit.com'],
+  'hn-social': ['news.ycombinator.com'],
+};
+
 export function isLowQualitySource(source: SourceQualityInput): boolean {
   if (!source) return false;
 
-  // 1. Domain blacklist
+  // 1. Domain blacklist (exempt dedicated providers for their own domains)
   const hostname = extractHostname(source.url);
-  if (isBlacklistedDomain(hostname)) {
+  const exemptDomains = source.provider ? DOMAIN_EXEMPT_PROVIDERS[source.provider] : undefined;
+  if (isBlacklistedDomain(hostname) && !(exemptDomains && exemptDomains.some(d => hostname === d || hostname.endsWith(`.${d}`)))) {
     return true;
   }
 

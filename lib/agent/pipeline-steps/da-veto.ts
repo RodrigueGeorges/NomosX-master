@@ -15,6 +15,7 @@ export function daVetoStands(
     overallStrength: number;
     publishabilityScore?: number;
     fatalChallenges?: unknown[] | number;
+    evaluationComplete?: boolean;
   },
   prior?: {
     overallStrength?: number;
@@ -26,6 +27,13 @@ export function daVetoStands(
     ? recheck.fatalChallenges.length
     : (recheck.fatalChallenges ?? 0);
 
+  // An unavailable/incomplete recheck is an outage, not a verdict — its
+  // publishabilityScore is 0 by construction, which would otherwise satisfy
+  // the <40 gate-bar rule below and fabricate a standing veto.
+  if (recheck.evaluationComplete === false) {
+    return { stands: false, reason: 'recheck evaluation unavailable — outage is not a veto' };
+  }
+
   if (recheck.verdict === 'reject') {
     return { stands: true, reason: 'recheck verdict is reject' };
   }
@@ -33,8 +41,8 @@ export function daVetoStands(
   if (typeof recheck.publishabilityScore === 'number' && recheck.publishabilityScore < 40) {
     return { stands: true, reason: `publishability ${recheck.publishabilityScore} < 40 gate bar` };
   }
-  if (recheck.verdict === 'major_revision' && recheck.overallStrength <= 20) {
-    return { stands: true, reason: `major_revision strength ${recheck.overallStrength} ≤ 20` };
+  if (recheck.verdict === 'major_revision' && recheck.overallStrength < 20) {
+    return { stands: true, reason: `major_revision strength ${recheck.overallStrength} < 20` };
   }
   // A standing veto is only lifted by genuine improvement — a degraded or
   // unchanged recheck keeps it.

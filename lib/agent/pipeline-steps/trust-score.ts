@@ -175,11 +175,20 @@ export function rescoreTrustFromStats(
 ): TrustScoreResult {
   const coverageTarget = Math.min(40, Math.max(15, Math.ceil(topSources.length * 0.35)));
   const citationCoverage = opts?.citationCoverage ?? (coverageTarget > 0 ? Math.min(1, countDistinctCitedSources(html) / coverageTarget) : 0);
-  const groundedness = opts?.groundedness ?? ((stats.claimGrounding?.groundedness ?? 75) / 100);
+  const cgStale = !!(stats.claimGrounding as any)?.stale;
+  const groundedness = opts?.groundedness ?? (cgStale ? 0.75 : ((stats.claimGrounding?.groundedness ?? 75) / 100));
   const factStats = stats.factChecker as any;
-  const factIntegrity = factStats?.integrityScore ?? 80;
-  const nliIntegrity = stats.citationVerifier?.integrity ?? 80;
-  const sourceCheckIntegrity = (stats.sourceCheck as any)?.integrityScore ?? 85;
+  // Stale integrity evals must not feed the rescore — same rule critic/panel
+  // already follow. Previously a stale factChecker contributed its old
+  // integrityScore while its fatalIssues were zeroed, silently lifting the
+  // fact-integrity veto on exactly the artifact version it judged.
+  const factStale = !!(factStats?.stale || factStats?.error);
+  const factIntegrity = factStale ? 80 : (factStats?.integrityScore ?? 80);
+  const nliStale = !!(stats.citationVerifier as any)?.stale;
+  const nliIntegrity = nliStale ? 80 : (stats.citationVerifier?.integrity ?? 80);
+  const scStats = stats.sourceCheck as any;
+  const scStale = !!(scStats?.stale || scStats?.error);
+  const sourceCheckIntegrity = scStale ? 85 : (scStats?.integrityScore ?? 85);
   const providerDiversity = new Set(topSources.map((s: any) => s.provider)).size;
   const diversityScore = Math.min(100, providerDiversity * 15);
   const avgQuality = topSources.length > 0
@@ -196,8 +205,8 @@ export function rescoreTrustFromStats(
     },
     {
       criticVerdict,
-      symbolicScore: stats.symbolicVerifier?.score ?? 100,
-      symbolicFailed: stats.symbolicVerifier?.failed ?? 0,
+      symbolicScore: (stats.symbolicVerifier as any)?.stale ? 100 : (stats.symbolicVerifier?.score ?? 100),
+      symbolicFailed: (stats.symbolicVerifier as any)?.stale ? 0 : (stats.symbolicVerifier?.failed ?? 0),
       criticPanelVeto: panel?.veto === true,
       criticPanelVetoReasons: panel?.vetoReasons,
       editorialScore: (panel?.dimensions ?? []).find((d: any) => d.dimension === 'editorial')?.score,

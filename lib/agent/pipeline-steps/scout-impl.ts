@@ -996,8 +996,30 @@ export async function scoutImpl(
       "data-europa",
       // Internet standards
       "ietf",
+      // Stats/keys batch + mega/global feed registries + keyless floors —
+      // all have explicit providerSet.has() dispatch cases above; without
+      // this they fell through to searchExtendedProviders as "unknown" and
+      // each triggered a wasted generic OpenAlex call per query variation.
+      "acled", "ajol", "celestrak", "chemrxiv", "cisa-kev", "coingecko",
+      "comtrade", "consolidated-institutions", "datacommons", "defillama",
+      "dialnet", "dpla", "dryad", "eia", "ember", "estat-jp", "europeana",
+      "first-epss", "frankfurter", "gallica", "gbif", "gleif",
+      "global-intelligence", "global-orgs", "global-science",
+      "global-think-tanks", "gutenberg", "hdx", "ibge", "ilostat",
+      "inaturalist", "jina-search", "jpl-sbdb", "kosis", "launchlibrary",
+      "musicbrainz", "nager-date", "nasa-power", "nhtsa", "nws", "obis",
+      "ocha-fts", "ons-uk", "open-meteo", "openaq", "openfda",
+      "opensanctions", "osf", "osm-taginfo", "osv", "owid", "preprints-org",
+      "propublica-congress", "radiobrowser", "reliefweb", "riss", "safecast",
+      "searxng", "shodhganga", "smithsonian", "socrata", "stackexchange",
+      "swpc", "ucdp", "uk-legislation", "un-sdg", "unhcr", "us-bls",
+      "us-census", "usgs", "usgs-water", "vdem", "wikidata",
+      "wikipedia-search", "wikisource", "worldbank-data", "worms",
     ]);
-    const unroutedProviders = (providers as string[]).filter(p =>
+    // providerSet (post routing + health filters) — not the raw `providers`
+    // input — so routed-only names are also considered for the extended
+    // registry instead of being silently dropped.
+    const unroutedProviders = [...providerSet].filter(p =>
       !EXPLICITLY_ROUTED.has(p) && p !== 'no-routing' && p !== 'auto' && !DEAD_PROVIDERS.has(p)
     );
     if (unroutedProviders.length > 0) {

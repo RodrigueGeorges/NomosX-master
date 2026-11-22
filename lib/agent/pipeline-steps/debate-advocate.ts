@@ -220,10 +220,12 @@ export async function runDevilsAdvocateBlock(
     }
     emitProgress(pipelineRunId, "DEVILS_ADVOCATE", "completed", `Verdict: ${daResult.verdict} (${daResult.overallStrength}/100)`);
 
-    // Devil's Advocate veto: if MAJOR_REVISION with strength < 20, cap trust at 40
-    if (daResult.verdict === 'major_revision' && daResult.overallStrength < 20) {
+    // Devil's Advocate veto: reject verdicts and MAJOR_REVISION with
+    // strength < 20 both cap trust at 40. Previously only the latter set the
+    // flag here — a primary 'reject' (≥3 fatal challenges) never vetoed.
+    if (daResult.verdict === 'reject' || (daResult.verdict === 'major_revision' && daResult.overallStrength < 20)) {
       (stats as any).devilsAdvocateVeto = true;
-      console.warn(`${label} DEVIL'S ADVOCATE VETO: verdict=major_revision, strength=${daResult.overallStrength}/100 — analysis is fragile, trust will be capped at 40`);
+      console.warn(`${label} DEVIL'S ADVOCATE VETO: verdict=${daResult.verdict}, strength=${daResult.overallStrength}/100 — analysis is fragile, trust will be capped at 40`);
     }
   } catch (err) {
     console.warn(`${label} DEVIL'S ADVOCATE: failed (non-blocking):`, err);

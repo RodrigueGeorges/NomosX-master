@@ -784,8 +784,15 @@ export async function searchRegistry(
     }
   } catch (error) {
     console.error(`Error searching ${provider}:`, error);
-    // Fallback to OpenAlex on error
-    results = await searchOpenAlex(query, limit);
+    // Fallback to OpenAlex on error — but tag results so callers record the
+    // REAL provider as failed, not as a healthy productive call. Previously
+    // every registry error was silently converted into fake success and
+    // dead providers never accrued failures.
+    try {
+      const { recordProviderCall } = await import('../agent/provider-health-tracker');
+      recordProviderCall({ provider, success: false, responseMs: 0, error: String((error as Error)?.message || error).slice(0, 120) });
+    } catch { /* non-blocking */ }
+    results = (await searchOpenAlex(query, limit)).map((r: any) => ({ ...r, provider: 'openalex-fallback' }));
   }
 
   // Apply filters and sorting
@@ -932,7 +939,10 @@ export async function searchExtendedProviders(query: string, options: any = {}) 
       const start = Date.now();
       return searchRegistry(p, query, { limit, ...options })
         .then(rs => {
-          recordProviderCall({ provider: p, success: true, responseMs: Date.now() - start, resultCount: rs.length });
+          // openalex-fallback results mean the real provider errored — don't
+          // record a success that would reset its failure streak.
+          const degraded = rs.some((r: any) => r.provider === 'openalex-fallback');
+          recordProviderCall({ provider: p, success: !degraded, responseMs: Date.now() - start, resultCount: rs.length, ...(degraded ? { error: 'openalex-fallback' } : {}) });
           return rs;
         })
         .catch(err => {

@@ -790,6 +790,20 @@ async function httpGetImpl<T = any>(
         if (attempt < retries) {
           let backoff = withJitter(retryDelay * Math.pow(2, attempt));
           if (response.status === 429) {
+            // Record EVERY 429 for the circuit breaker BEFORE any fail-fast
+            // throw — Retry-After>20s and S2-no-header exits used to bypass
+            // record429 entirely, so breakers under-counted exactly the
+            // providers that rate-limit hardest.
+            if (rateLimiterKey) {
+              await record429(rateLimiterKey);
+              try {
+                const { recordAdaptive429 } = await import('./agent/resilience');
+                recordAdaptive429(rateLimiterKey);
+              } catch { /* non-blocking */ }
+              if (isCircuitBreakerTripped(rateLimiterKey)) {
+                throw new HttpError(`Circuit breaker tripped for ${rateLimiterKey}`, 429, 'CIRCUIT_BREAKER_TRIPPED');
+              }
+            }
             // Honour Retry-After header if present.
             // Some APIs (OpenAlex) send a Unix timestamp instead of duration — detect and convert.
             const retryAfterRaw = response.headers.get('Retry-After');
@@ -815,19 +829,6 @@ async function httpGetImpl<T = any>(
             // SemanticScholar: no Retry-After = rate-limited → fail-fast, don't waste retries
             if (url.includes('semanticscholar.org') && !retryAfterRaw) {
               throw new HttpError(`HTTP 429 ${response.statusText}`, 429, text.slice(0, 500));
-            }
-            // V4: Record 429 for circuit breaker (async — persists to Redis)
-            if (response.status === 429 && rateLimiterKey) {
-              await record429(rateLimiterKey);
-              // V4: Adaptive rate limiting — reduce rate on 429
-              try {
-                const { recordAdaptive429 } = await import('./agent/resilience');
-                recordAdaptive429(rateLimiterKey);
-              } catch { /* non-blocking */ }
-              // If circuit breaker just tripped, fail-fast
-              if (isCircuitBreakerTripped(rateLimiterKey)) {
-                throw new HttpError(`Circuit breaker tripped for ${rateLimiterKey}`, 429, 'CIRCUIT_BREAKER_TRIPPED');
-              }
             }
             // V3.1: Detect exhausted OpenAlex API key credits → switch to polite pool
             if (response.status === 429 && url.includes('openalex.org')) {
@@ -953,11 +954,20 @@ async function httpPostImpl<T = any>(
 
   await acquireLimiter();
 
+  // V4: Honour the circuit breaker on the POST path too — tavily/exa/linkup
+  // had CB_THRESHOLDS entries that could never trip because nothing checked.
+  if (rateLimiterKey && isCircuitBreakerTripped(rateLimiterKey)) {
+    throw new HttpError(`Circuit breaker tripped for ${rateLimiterKey}`, 429, 'CIRCUIT_BREAKER_TRIPPED');
+  }
+
   let lastError: Error | null = null;
 
   for (let attempt = 0; attempt <= retries; attempt++) {
     consumeHttpBudget(rateLimiterKey);
     if (attempt > 0) await acquireLimiter();
+    if (rateLimiterKey && isCircuitBreakerTripped(rateLimiterKey)) {
+      throw new HttpError(`Circuit breaker tripped for ${rateLimiterKey}`, 429, 'CIRCUIT_BREAKER_TRIPPED');
+    }
     try {
       const response = await fetchWithTimeout(
         url,
@@ -989,6 +999,18 @@ async function httpPostImpl<T = any>(
         if (attempt < retries) {
           let backoff = withJitter(retryDelay * Math.pow(2, attempt));
           if (response.status === 429) {
+            // Record EVERY 429 for the circuit breaker before any retry —
+            // the POST path previously never counted them at all.
+            if (rateLimiterKey) {
+              await record429(rateLimiterKey);
+              try {
+                const { recordAdaptive429 } = await import('./agent/resilience');
+                recordAdaptive429(rateLimiterKey);
+              } catch { /* non-blocking */ }
+              if (isCircuitBreakerTripped(rateLimiterKey)) {
+                throw new HttpError(`Circuit breaker tripped for ${rateLimiterKey}`, 429, 'CIRCUIT_BREAKER_TRIPPED');
+              }
+            }
             const retryAfterRaw = response.headers.get('Retry-After');
             if (retryAfterRaw) {
               const parsed = parseFloat(retryAfterRaw);
@@ -1115,7 +1137,10 @@ export async function fetchFromProvider<T = any>(
 
   // Pass rateLimiterKey so httpGet re-acquires the shared limiter on retry
   // V4: Wrap in queuedProviderCall for backpressure control + dedup
-  const httpCall = () => httpGet<T>(url, { ...options, headers, rateLimiterKey: limiter ? limiterKey : undefined });
+  // Pass rateLimiterKey unconditionally — CB/budget don't require a
+  // RateLimiter to exist; gating on `limiter` left ~50 providers with no
+  // circuit breaker at all (searxng's CB_THRESHOLDS entry was dead config).
+  const httpCall = () => httpGet<T>(url, { ...options, headers, rateLimiterKey: options.rateLimiterKey ?? limiterKey });
 
   // Use the provider queue for concurrency control + dedup
   // Lazy import to avoid circular dependency
