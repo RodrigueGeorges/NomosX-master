@@ -12,6 +12,14 @@
  */
 
 import { recordDegradedStep } from '../degraded-steps';
+import { hasRunHeadroom, remainingRunMs } from './time-budget';
+
+/** A DA re-judge is ~3-4 LLM calls (~6-8min degraded). If the wall clock
+ *  cannot afford it, the STALE verdict stands — evaluation_freshness will
+ *  fail the gate closed rather than the run dying mid-recheck with nothing
+ *  persisted (observed: CBAM run timed out inside this exact recheck). */
+const DA_POST_REPAIR_HEADROOM_MS = 9 * 60 * 1000;
+
 export interface DaPostRepairDeps {
   label: string;
   query: string;
@@ -26,18 +34,25 @@ export interface DaPostRepairDeps {
   isBudgetConstrained: () => boolean;
   addCost: (usd: number, label: string) => void;
   tagEval: <T extends Record<string, any>>(entry: T, artifact: 'analysis' | 'html') => T;
+  pipelineStart?: number;
 }
 
 export async function runDaPostRepairRecheck(deps: DaPostRepairDeps): Promise<void> {
   const {
     label, query, html, topSources, detectedDomain, isStrategic,
     debateContext, stats, htmlArtifactVersion, isBudgetConstrained, addCost, tagEval,
+    pipelineStart,
   } = deps;
 
   const daEval = stats.devilsAdvocate as Record<string, unknown> | undefined;
   const daStale = daEval && !daEval.error && daEval.evaluatedArtifact === 'html'
     && typeof daEval.artifactVersion === 'number' && daEval.artifactVersion !== htmlArtifactVersion;
   if (!daStale || stats.devilsAdvocatePostRepair || isBudgetConstrained()) return;
+  if (!hasRunHeadroom(pipelineStart, isStrategic, DA_POST_REPAIR_HEADROOM_MS)) {
+    console.log(`${label} DA POST-REPAIR RECHECK: skipped — ${Math.round(remainingRunMs(pipelineStart, isStrategic) / 60000)}min left < ${Math.round(DA_POST_REPAIR_HEADROOM_MS / 60000)}min needed; stale verdict stands (gate fails freshness closed)`);
+    stats.devilsAdvocatePostRepair = { skipped: 'insufficient_headroom' };
+    return;
+  }
 
   try {
     const { runDevilsAdvocate } = await import('../devils-advocate');

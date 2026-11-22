@@ -11,6 +11,17 @@
 import type { TailStepContext } from './types';
 import type { AgentSignal } from '../signals';
 import { recordDegradedStep } from '../degraded-steps';
+import { hasRunHeadroom, remainingRunMs } from './time-budget';
+
+/** Wall-clock guards for the post-render tail. Observed live (CBAM run):
+ *  copy editor + signal sweep + TWO DA rechecks + hero image stacked ~25min
+ *  of LLM work AFTER the artifact was final — the run hit the deadline
+ *  mid-tail and persisted nothing. Non-critical polish yields to the
+ *  persistence tail: better an unpolished artifact judged by the gate than
+ *  a polished one that never reaches it. */
+const COPY_EDITOR_HEADROOM_MS = 3 * 60 * 1000;
+const SIGNAL_SWEEP_HEADROOM_MS = 6 * 60 * 1000;
+const DA_RECHECK_HEADROOM_MS = 9 * 60 * 1000;
 
 export async function runStyleSweepRecheck(ctx: TailStepContext): Promise<void> {
   const { stats, topSources, query, label } = ctx;
@@ -52,7 +63,8 @@ export async function runStyleSweepRecheck(ctx: TailStepContext): Promise<void> 
     const editorialFindings = ((stats.criticPanel as any)?.dimensions ?? [])
       .filter((d: any) => d.dimension === 'editorial' && d.score < 7)
       .flatMap((d: any) => (d.findings ?? []).slice(0, 3));
-    if ((styleResult.violations.length > 0 || editorialFindings.length > 0) && !isBudgetConstrained()) {
+    if ((styleResult.violations.length > 0 || editorialFindings.length > 0) && !isBudgetConstrained()
+      && hasRunHeadroom(ctx.pipelineStart, ctx.isStrategic, COPY_EDITOR_HEADROOM_MS)) {
       try {
         const { copyEditHtml } = await import('../copy-editor');
         const ce = await copyEditHtml(ctx.html, { violations: styleResult.violations, editorialFindings });
@@ -91,7 +103,7 @@ export async function runStyleSweepRecheck(ctx: TailStepContext): Promise<void> 
   // the revision editor — surgical edits that address adversarial objections
   // in the final HTML BEFORE the gate ever sees them.
   try {
-    if (!isBudgetConstrained()) {
+    if (!isBudgetConstrained() && hasRunHeadroom(ctx.pipelineStart, ctx.isStrategic, SIGNAL_SWEEP_HEADROOM_MS)) {
       pipelineCtx.signals.registerResolver('substance_weak', async (sigs: AgentSignal[]) => {
         const daStats = stats.devilsAdvocate as any;
         const { reviseForFindings } = await import('../revision-editor');
@@ -164,7 +176,8 @@ export async function runStyleSweepRecheck(ctx: TailStepContext): Promise<void> 
       || daStats?.error !== undefined
       || daStats?.evaluationComplete === false
       || daStats?.skipped === true;
-    if (daGateFailing && !isBudgetConstrained()) {
+    if (daGateFailing && !isBudgetConstrained()
+      && hasRunHeadroom(ctx.pipelineStart, ctx.isStrategic, DA_RECHECK_HEADROOM_MS)) {
       const { runDevilsAdvocate } = await import('../devils-advocate');
       const recheck = await runDevilsAdvocate(
         query,

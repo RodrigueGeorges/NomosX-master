@@ -1740,6 +1740,7 @@ Return JSON: {"queries": ["...", "..."]} — one query per gap, same order.`,
       isBudgetConstrained,
       addCost,
       debateContext,
+      pipelineStart,
     };
     await runStyleSweepRecheck(reviewCtx);
     html = reviewCtx.html;
@@ -1772,6 +1773,7 @@ Return JSON: {"queries": ["...", "..."]} — one query per gap, same order.`,
       tagEval,
       collectStaleEvaluations,
       selfCorrectRollbacks: 0,
+      pipelineStart,
     };
     await runPostRenderQualityLoop(tailCtx);
     await runFinalSelfCorrectCheckpoint(tailCtx);
@@ -1785,7 +1787,7 @@ Return JSON: {"queries": ["...", "..."]} — one query per gap, same order.`,
       await runDaPostRepairRecheck({
         label, query, html, topSources, detectedDomain, isStrategic, debateContext,
         stats: stats as Record<string, any>, htmlArtifactVersion,
-        isBudgetConstrained, addCost, tagEval,
+        isBudgetConstrained, addCost, tagEval, pipelineStart,
       });
     }
     phaseMark('qualityTail');

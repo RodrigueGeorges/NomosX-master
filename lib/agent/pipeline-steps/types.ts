@@ -45,4 +45,7 @@ export interface TailStepContext {
   isBudgetConstrained?: () => boolean;
   addCost?: (usd: number | undefined, label: string) => void;
   debateContext?: string;
+  /** Run start (epoch ms) — wall-clock headroom guards for non-critical
+   *  tail work. The enclosing execution scope's deadline wins when present. */
+  pipelineStart?: number;
 }

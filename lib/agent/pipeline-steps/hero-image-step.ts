@@ -4,7 +4,15 @@
  */
 
 import { recordDegradedStep } from '../degraded-steps';
+import { hasRunHeadroom, remainingRunMs } from './time-budget';
 import type { TailStepContext } from './types';
+
+/** Non-critical decoration: motif LLM + image API ≈ 2 calls. Under degraded
+ *  providers (freepool-only, ~60-90s/call) that is ~4min — observed live: the
+ *  CBAM run burned its last minutes here and died before persistence. Skip
+ *  when the tail cannot afford it; the SVG/geometric fallback is not worth a
+ *  lost artifact. */
+const HERO_IMAGE_HEADROOM_MS = 6 * 60 * 1000;
 
 /**
  * Extract section titles (<h2>, <h3>) from rendered HTML for hero image context.
@@ -23,6 +31,11 @@ function extractSectionTitles(html: string): string[] {
 
 export async function runHeroImageStep(ctx: TailStepContext): Promise<void> {
   const { stats, analysis, query, topicClassification, detectedDomain, label } = ctx;
+  if (!hasRunHeadroom(ctx.pipelineStart, ctx.isStrategic, HERO_IMAGE_HEADROOM_MS)) {
+    stats.heroImage = { generated: false, costUsd: 0, skippedReason: 'insufficient_headroom' };
+    console.log(`${label} HERO IMAGE: skipped — ${Math.round(remainingRunMs(ctx.pipelineStart, ctx.isStrategic) / 60000)}min left < ${Math.round(HERO_IMAGE_HEADROOM_MS / 60000)}min needed`);
+    return;
+  }
   try {
     const { generateHeroImage } = await import('../hero-image');
     const { captureInput } = await import('../frozen-inputs');
