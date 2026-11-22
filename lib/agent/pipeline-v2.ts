@@ -1155,6 +1155,7 @@ async function runPipelineCore(query: string, opts: PipelineCoreOptions) {
         stats, analysis, analysisArtifactVersion, query, detectedDomain,
         positioningBrief, topSources, readings, label,
         isBudgetConstrained, addCost, tagEval,
+        isStrategic, // debateContext does not exist yet at this point in the pipeline
         onCriticRescored: r => { savedCriticResult = r; },
       });
     } catch (rescoreErr) {
@@ -1631,6 +1632,7 @@ Return JSON: {"queries": ["...", "..."]} — one query per gap, same order.`,
                 stats, analysis, analysisArtifactVersion, query, detectedDomain,
                 positioningBrief, topSources, readings, label,
                 isBudgetConstrained, addCost, tagEval,
+                isStrategic, debateContext,
                 onCriticRescored: r => { savedCriticResult = r; },
               });
             } catch (rescoreErr) {

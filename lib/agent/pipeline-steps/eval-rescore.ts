@@ -29,6 +29,11 @@ export interface EvalRescoreDeps {
   isBudgetConstrained: () => boolean;
   addCost: (usd: number | undefined, step: string) => void;
   tagEval: <T extends Record<string, any>>(entry: T, artifact: 'analysis' | 'html') => T;
+  /** DA re-judge context — required only when a stale analysis-tagged
+   *  devilsAdvocate verdict needs refreshing (same contract as the
+   *  post-mission/post-repair rechecks in pipeline-v2). */
+  isStrategic?: boolean;
+  debateContext?: string;
   /** The critic result is also consumed downstream (repair instructions,
    * self-correct checkpoint) — returned so the caller can keep its local ref. */
   onCriticRescored?: (result: any) => void;
@@ -166,6 +171,57 @@ export async function rescoreStaleAnalysisEvals(deps: EvalRescoreDeps): Promise<
     } catch (evalErr) {
       recordDegradedStep(stats, `EVAL_RESCORE_${String(key).toUpperCase()}`, evalErr);
       console.warn(`${label} EVAL RE-SCORE ${key} failed (non-blocking):`, evalErr);
+    }
+  }
+
+  // devilsAdvocate is deliberately NOT in RESCORABLE_KEYS (its failed/stale
+  // semantics differ — an absent DA is not an availability failure), but a
+  // STALE analysis-tagged DA verdict hits the same evaluation_freshness
+  // hard-fail. Re-judge it once on the adopted analysis, same bounded cost
+  // as the critic/panel rescores above.
+  const da = stats.devilsAdvocate;
+  const daStaleAnalysis = da && typeof da === 'object' && !da.error && !da.skipped
+    && da.evaluatedArtifact === 'analysis'
+    && typeof da.artifactVersion === 'number' && da.artifactVersion !== analysisArtifactVersion;
+  if (daStaleAnalysis) {
+    try {
+      const { runDevilsAdvocate } = await import('../devils-advocate');
+      const { buildAnalysisReviewText } = await import('../analysis-review-text');
+      const reviewText = buildAnalysisReviewText(
+        (typeof analysis === 'string' ? JSON.parse(analysis) : analysis) as Record<string, unknown>,
+        query,
+      );
+      const reDa = await runDevilsAdvocate(query, reviewText, topSources.map((s: any) => ({
+        title: s.title, provider: s.provider, year: s.year,
+      })), {
+        mode: deps.isStrategic ? 'strategic' : 'brief',
+        domain: detectedDomain,
+        debateContext: deps.debateContext,
+      });
+      addCost(reDa.costUsd, 'DEVILS_ADVOCATE_RESCORE');
+      const reDaFatal = reDa.fatalChallenges?.length ?? 0;
+      stats.devilsAdvocate = tagEval({
+        evaluationComplete: reDa.evaluationComplete,
+        verdict: reDa.verdict,
+        overallStrength: reDa.overallStrength,
+        publishabilityScore: reDa.publishabilityScore,
+        fatalChallenges: reDaFatal,
+        majorChallenges: reDa.majorChallenges?.length ?? 0,
+        killShot: reDa.killShot?.slice(0, 400) ?? '',
+        topChallenges: [...(reDa.fatalChallenges || []), ...(reDa.majorChallenges || [])]
+          .slice(0, 3)
+          .map((c: any) => ({ type: c.challengeType || c.type || 'challenge', text: String(c.challenge || c.text || '').slice(0, 300) })),
+        vulnerabilityTexts: (reDa.futureVulnerabilities || []).slice(0, 3).map((v: any) => String(v).slice(0, 200)),
+        futureVulnerabilities: reDa.futureVulnerabilities?.length || 0,
+        costUsd: reDa.costUsd,
+        rescoredPostMutation: true,
+      }, 'analysis');
+      stats.devilsAdvocateVeto = reDa.verdict === 'reject'
+        || (reDa.verdict === 'major_revision' && (reDa.overallStrength ?? 100) < 20);
+      console.log(`${label} DA RE-SCORE: →publishability ${reDa.publishabilityScore}/100 (${reDa.verdict}) on v${analysisArtifactVersion}`);
+    } catch (daErr) {
+      recordDegradedStep(stats, 'EVAL_RESCORE_DA', daErr);
+      console.warn(`${label} EVAL RE-SCORE devilsAdvocate failed (non-blocking):`, daErr);
     }
   }
 }
