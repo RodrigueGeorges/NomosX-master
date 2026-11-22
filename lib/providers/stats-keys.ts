@@ -1641,3 +1641,61 @@ export async function searchUKLegislation(query: string, limit = 6): Promise<any
     return [];
   }
 }
+
+// ─────────────────────────────────────────────────────────────
+// OPENSANCTIONS /match — entity screening with match scores.
+// Credit-metered: call deliberately (diligence gates, scripts),
+// NOT wired into scout. 1 op ≈ 1 credit.
+// ─────────────────────────────────────────────────────────────
+export interface OSMatchResult {
+  id: string; caption: string; schema: string;
+  score: number; match: boolean; datasets: string[];
+  properties: Record<string, any>;
+}
+export async function matchOpenSanctions(
+  name: string,
+  opts: { schema?: 'Person' | 'Company' | string; country?: string; limit?: number } = {},
+): Promise<OSMatchResult[]> {
+  const key = env.OPENSANCTIONS_API_KEY;
+  if (!key) {
+    console.log('[OPENSANCTIONS-MATCH] skipped — OPENSANCTIONS_API_KEY not set');
+    return [];
+  }
+  const schema = opts.schema || (/^(mr|mrs|ms|dr)\b|^[A-Z][a-z]+ [A-Z][a-z]+$/.test(name) && name.split(' ').length <= 3 ? 'Person' : 'Company');
+  const body = {
+    queries: {
+      q: {
+        schema,
+        properties: {
+          name: [name],
+          ...(opts.country ? { country: [opts.country] } : {}),
+        },
+      },
+    },
+    limit: opts.limit ?? 5,
+  };
+  const res = await fetch('https://api.opensanctions.org/match/default', {
+    method: 'POST',
+    headers: {
+      Authorization: `ApiKey ${key}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(30000),
+  });
+  if (!res.ok) {
+    console.error(`[OPENSANCTIONS-MATCH] HTTP ${res.status}`);
+    return [];
+  }
+  const data: any = await res.json();
+  const results: any[] = data?.responses?.q?.results || [];
+  return results.map((r: any) => ({
+    id: r.id,
+    caption: r.caption,
+    schema: r.schema,
+    score: r.score,
+    match: !!r.match,
+    datasets: r.datasets || [],
+    properties: r.properties || {},
+  }));
+}
