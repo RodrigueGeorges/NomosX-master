@@ -1544,3 +1544,53 @@ export async function searchOSM(query: string, limit = 4): Promise<any[]> {
     return [];
   }
 }
+
+// ─────────────────────────────────────────────────────────────
+// OPENSANCTIONS — sanctions/PEP watchlist search (OPENSANCTIONS_API_KEY)
+// Credit-metered API; graceful [] without key. Free keys for
+// public-interest research: opensanctions.org/docs/commercial/exemption
+// ─────────────────────────────────────────────────────────────
+export async function searchOpenSanctions(query: string, limit = 6): Promise<any[]> {
+  if (!env.OPENSANCTIONS_API_KEY) {
+    console.log('[OPENSANCTIONS] skipped — OPENSANCTIONS_API_KEY not set');
+    return [];
+  }
+  try {
+    const q = query.trim();
+    if (!q) return [];
+    const url = `https://api.opensanctions.org/search/default?q=${encodeURIComponent(q)}&limit=${Math.min(limit, 10)}`;
+    const data: any = await fetchFromProvider('opensanctions', url, {
+      headers: { Authorization: `ApiKey ${env.OPENSANCTIONS_API_KEY}` },
+      timeout: 20000, retries: 1,
+    });
+    const results = data?.results || [];
+    return results.slice(0, limit).map((e: any, i: number) => {
+      const caption = e.caption || e.schema || 'Entity';
+      const datasets = (e.datasets || []).slice(0, 4).join(', ');
+      const props = e.properties || {};
+      const countries = (props.country || props.countries || []).slice?.(0, 3).join(', ') || '';
+      const topics = (e.topics || e.risk_topics || []).slice?.(0, 4).join(', ') || '';
+      const programs = (props.program || props.programs || []).slice?.(0, 3).join(', ') || '';
+      const bits = [
+        props.birthDate ? `born ${[].concat(props.birthDate)[0]}` : null,
+        countries ? `countries: ${countries}` : null,
+        topics ? `topics: ${topics}` : null,
+        programs ? `programs: ${programs}` : null,
+        datasets ? `lists: ${datasets}` : null,
+      ].filter(Boolean).join(' | ');
+      return {
+        ...ds(
+          String(e.id || `os-${i}`), 'opensanctions',
+          `OpenSanctions — ${caption}`,
+          `${e.schema || 'entity'} on OpenSanctions watchlists. ${bits}. Source: OpenSanctions consolidated sanctions/PEP database.`,
+          `https://www.opensanctions.org/entities/${e.id}/`,
+          'OpenSanctions (AML/CTF data cooperative)', e,
+        ),
+        type: 'dataset',
+      };
+    });
+  } catch (e: any) {
+    console.error(`[OPENSANCTIONS] failed: ${e?.message}`);
+    return [];
+  }
+}
