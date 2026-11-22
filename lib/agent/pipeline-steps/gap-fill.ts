@@ -139,9 +139,19 @@ export function createGapRequestProcessor(deps: GapFillDeps) {
       assertExecutionActive();
       let gapNewCount = 0;
       const suppliedEvidence = new Set<number>();
+      // Track which gap request produced each source — additions are screened
+      // against THEIR gap query, not the main question. A source fetched to
+      // fill a missing dimension (e.g. "quantitative Treasury-yield impacts")
+      // is legitimately off-center for the broad question; screening against
+      // `query` dropped entire batches and the dimension stayed unfilled
+      // (observed live: 36/53 dropped, OUTLINE_CRITIC re-requesting the same
+      // gaps on the next cycle).
+      const sourceGapQuery = new Map<string, string>();
       for (const [requestIndex, r] of gapResults.entries()) {
         if (r.status === 'fulfilled') {
           const newIds = Array.isArray(r.value) ? r.value.map((s: any) => s.id) : (r.value.sourceIds || []);
+          const gapQ = gapReqs[requestIndex]?.query ?? query;
+          for (const id of newIds) sourceGapQuery.set(String(id), gapQ);
           const before = state.allSourceIds.length;
           state.allSourceIds = [...new Set([...state.allSourceIds, ...newIds])];
           gapNewCount += state.allSourceIds.length - before;
@@ -156,11 +166,24 @@ export function createGapRequestProcessor(deps: GapFillDeps) {
         const sourceIds = new Set(topSources.map(s => s.id));
         const additions = ranked.filter(s => !sourceIds.has(s.id) && !!sourceIds.add(s.id));
         // These docs bypassed the rank-phase topical screen — vet them
-        // before they feed the re-analysis and the render corpus.
+        // before they feed the re-analysis and the render corpus. Each
+        // addition is screened against the gap query that retrieved it;
+        // sources with no recorded gap query fall back to the main question.
         let keptAdditions = additions;
         if (deps.screenAdditions && additions.length > 0) {
-          const drop = await deps.screenAdditions(query, additions);
-          if (drop && drop.size > 0) {
+          const byQuery = new Map<string, any[]>();
+          for (const s of additions) {
+            const q = sourceGapQuery.get(String(s.id)) ?? query;
+            const arr = byQuery.get(q) ?? [];
+            arr.push(s);
+            byQuery.set(q, arr);
+          }
+          const drop = new Set<string>();
+          for (const [q, group] of byQuery) {
+            const d = await deps.screenAdditions(q, group);
+            d?.forEach(id => drop.add(id));
+          }
+          if (drop.size > 0) {
             keptAdditions = additions.filter(s => !drop.has(s.id));
             console.log(`${label} BLACKBOARD GAP-FILL: relevance screen dropped ${additions.length - keptAdditions.length}/${additions.length} off-topic additions`);
           }

@@ -160,12 +160,15 @@ it('defers gap requests inside the deadline tail — a re-analysis could never l
 
 it('drops off-topic gap-fill additions before they reach the analyst and corpus', async () => {
   // Gap-fill merges bypass the rank-phase topical screen — screenAdditions
-  // is the only vetting these docs get before the reader/analyst.
+  // is the only vetting these docs get before the reader/analyst. Each
+  // addition is screened against the gap query that retrieved it ('Missing
+  // evidence'), not the main question — a source fetched for a missing
+  // dimension is legitimately off-center for the broad question.
   const screenAdditions = jest.fn().mockResolvedValue(new Set(['c']));
   const deps = setup({ screenAdditions });
   jest.mocked(reAnalyzeAfterGapFill).mockResolvedValue({ analysis: { verdict: 'X [SRC-1]' }, reAnalyzed: true, improvementDelta: 1 });
   await createGapRequestProcessor(deps)('CRITIC');
-  expect(screenAdditions).toHaveBeenCalledWith('Question', [expect.objectContaining({ id: 'c' })]);
+  expect(screenAdditions).toHaveBeenCalledWith('Missing evidence', [expect.objectContaining({ id: 'c' })]);
   expect(reAnalyzeAfterGapFill).not.toHaveBeenCalled();
   expect(deps.topSources.map(s => s.id)).toEqual(['a', 'b']);
 });

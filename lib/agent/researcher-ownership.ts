@@ -1988,10 +1988,15 @@ export async function requestResearcherSignOff(
   trustScore: number,
   researcherId?: string
 ): Promise<SignOffResult> {
-  // Auto-select researcher if not specified
-  const owner = researcherId 
+  // Auto-select researcher if not specified. Progressive fallback: a topic
+  // whose wording matches no keyword list used to throw here and the sign-off
+  // silently never ran (observed live: "No suitable researcher found" on both
+  // cycle inquiries → researcher_signoff absent from gate evidence). Threshold
+  // 0 ranks every researcher by partial overlap — the best available reviewer
+  // signs off rather than none.
+  const owner = researcherId
     ? Object.values(RESEARCHER_REGISTRY).find(r => r.id === researcherId)
-    : getPrimaryOwner(topic)?.researcher;
+    : (getPrimaryOwner(topic)?.researcher ?? detectOwners(topic, 0)[0]?.researcher);
 
   if (!owner) {
     throw new Error('No suitable researcher found for sign-off');

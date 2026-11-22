@@ -25,6 +25,53 @@ import { NOMOSX_JUDGE_SCOPE_RULE } from './editorial-config';
 import { z } from 'zod';
 import { assertExecutionActive } from '../worker/execution-scope';
 
+/**
+ * Section-aware budget for adversarial review. The review bundle is a series
+ * of '---'-separated labeled sections (QUESTION, VERDICT, MECHANISMS,
+ * COLLISIONS, DATA LANDSCAPE, …). Blind head/tail truncation cuts exactly the
+ * evidence-bearing middle — judges then veto claims they cannot see
+ * (observed live: DA killShot "body text is omitted", fatal challenges on an
+ * otherwise coherent draft, trust pinned at 40 across a full cycle).
+ *
+ * Strategy: keep every section; allocate the budget proportionally; oversized
+ * sections get head+tail trims; sections that cannot fit are named in an
+ * explicit coverage note so the judge knows the review was partial rather
+ * than inferring absence of evidence from a silently dropped section.
+ */
+function budgetReviewText(content: string, maxChars: number): string {
+  if (content.length <= maxChars) return content;
+  const SEPARATOR = '\n\n---\n\n';
+  const blocks = content.split(SEPARATOR);
+  if (blocks.length <= 1) {
+    const half = Math.max(0, Math.floor(maxChars / 2) - 80);
+    return content.slice(0, half) + '\n\n[...SECTION OMITTED — over budget...]\n\n' + content.slice(-half);
+  }
+  const overhead = SEPARATOR.length * (blocks.length - 1);
+  const budget = Math.max(0, maxChars - overhead);
+  const first = blocks[0];
+  const rest = blocks.slice(1);
+  const restBudget = Math.max(0, budget - first.length);
+  const weights = rest.map(b => Math.max(b.length, 300));
+  const totalW = weights.reduce((a, b) => a + b, 0);
+  const rendered: string[] = [first];
+  const omitted: string[] = [];
+  for (let i = 0; i < rest.length; i++) {
+    const b = rest[i];
+    const alloc = totalW > 0 ? Math.floor((restBudget * weights[i]) / totalW) : 0;
+    const label = (b.split('\n', 1)[0] || `section ${i + 1}`).slice(0, 48);
+    if (alloc < 500) { omitted.push(label); continue; }
+    if (b.length <= alloc) { rendered.push(b); continue; }
+    const inner = Math.max(0, alloc - 60);
+    const half = Math.floor(inner / 2);
+    rendered.push(b.slice(0, half) + '\n\n[...SECTION TRUNCATED — judge coverage partial...]\n\n' + b.slice(-half));
+  }
+  if (omitted.length > 0) {
+    const note = `\n\n[REVIEW COVERAGE NOTE: ${omitted.length} section(s) omitted for length — absence of a section is NOT evidence of absence in the analysis. Omitted: ${omitted.join(' | ')}]`;
+    rendered.push(note.slice(0, Math.min(note.length, 1200)));
+  }
+  return rendered.join(SEPARATOR);
+}
+
 const challengeSchema = z.object({
   claim: z.string(), sourceSection: z.string(), challengeType: z.string(),
   challenge: z.string().min(1), severity: z.enum(['fatal', 'major', 'moderate', 'minor']),
@@ -84,8 +131,13 @@ export type ChallengeType =
 
 export interface AdvocateReport {
   evaluationComplete?: boolean;
-  // Overall verdict
-  verdict: "publish" | "revise" | "major_revision" | "reject";
+  // Overall verdict. 'unavailable' = the adversarial evaluation itself could
+  // not complete (provider outage, unparseable judge output) — NOT a verdict
+  // on the artifact. Collapsing it into 'reject' turned transient LLM failures
+  // into substantive vetoes (devilsAdvocateVeto → trust capped at 40) and
+  // misrouted holds as 'review'. Unavailability is carried by
+  // evaluationComplete + the gate's evaluation_availability check.
+  verdict: "publish" | "revise" | "major_revision" | "reject" | "unavailable";
   overallStrength: number;     // 0-100: how strong is the analysis?
   publishabilityScore: number; // 0-100: ready for think-tank publication?
 
@@ -182,7 +234,8 @@ export async function runDevilsAdvocate(
   // Compute verdict — fatal challenges are absolute vetos: 1+ fatal = no publish
   const evaluationComplete = epistemic?.evaluationComplete === true && strategic?.evaluationComplete === true;
   const verdict: AdvocateReport["verdict"] =
-    !evaluationComplete || fatalChallenges.length >= 3 ? "reject" :
+    !evaluationComplete ? "unavailable" :
+    fatalChallenges.length >= 3 ? "reject" :
     fatalChallenges.length >= 1 ? "major_revision" :
     majorChallenges.length >= 5 ? "revise" : "publish";
 
@@ -251,7 +304,7 @@ SOURCES AVAILABLE:
 ${sourceList}
 
 ANALYSIS TO CHALLENGE:
-${analysisContent.length > 12000 ? analysisContent.slice(0, 6000) + '\n\n[...MIDDLE SECTION OMITTED...]\n\n' + analysisContent.slice(-6000) : analysisContent}
+${budgetReviewText(analysisContent, 48000)}
 ${debateContext ? `
 DEBATE CONTEXT (steel-man already addressed in the analysis):
 ${debateContext}
@@ -358,7 +411,7 @@ TARGET AUDIENCE: ${targetAudience}
 FORMAT: ${mode === "strategic" ? "Strategic Report (10-15 pages)" : "Research Brief (4-6 pages)"}
 
 ANALYSIS:
-${analysisContent.length > 9000 ? analysisContent.slice(0, 4500) + '\n\n[...MIDDLE SECTION OMITTED...]\n\n' + analysisContent.slice(-4500) : analysisContent}
+${budgetReviewText(analysisContent, 32000)}
 
 Provide:
 1. 2-3 strategic challenges (missing stakeholders, implementation gaps, political economy blind spots)
@@ -440,7 +493,7 @@ ${NOMOSX_JUDGE_SCOPE_RULE}`,
 DOMAIN: ${domain}
 
 ANALYSIS EXCERPT:
-${analysisContent.length > 7500 ? analysisContent.slice(0, 3750) + '\n\n[...MIDDLE SECTION OMITTED...]\n\n' + analysisContent.slice(-3750) : analysisContent}
+${budgetReviewText(analysisContent, 24000)}
 
 Compare this analysis to the publication standards of:
 1. McKinsey Global Institute (known for: data-driven, actionable, executive-friendly)
