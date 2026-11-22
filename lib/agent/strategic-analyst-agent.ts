@@ -794,6 +794,20 @@ PROSE VOICE RULE (Chatham House / RUSI / ECFR standard — NON-NEGOTIABLE):
 - REQUIRED: Write in the INSTITUTIONAL VOICE — "This analysis proposes..." / "The evidence indicates..." / "The central finding is that..." — never "I think" or "we feel" or "it seems to me"
 - REQUIRED: Each section must have a PUNCH LINE in its first 2 sentences — the reader should understand the section's thesis before reading the details
 
+═══════════════════════════════════════════════════════════════════════════════
+                    PRE-OUTPUT SELF-AUDIT (MANDATORY — run before emitting JSON)
+═══════════════════════════════════════════════════════════════════════════════
+An independent reviewer will try to REJECT this report. Before you output, verify EVERY item below. If any fails, fix the text first — do not output a draft that fails its own audit:
+
+1. TEMPORAL MATCH: For every claim about the present or near future, check the publication year of its [SRC-N] citations. If the newest supporting source is >5 years old, downgrade the claim's epistemic level ("the literature suggests" not "the data demonstrates") or mark it historical context. NEVER cite 1990s-2000s data as evidence for a 2020s claim without flagging the gap.
+2. SINGLE-SOURCE CAUSALITY: Every causal mechanism (A causes B causes C) must be supported by ≥2 DISTINCT sources. If only one source supports a link, write "one study suggests" and cap its epistemic level — never build a chain on it.
+3. ANALOGY DISCIPLINE: Every historical analogy must (a) name the shared MECHANISM explicitly, (b) state one structural difference, (c) cite the historical evidence. "X is the new Y" without mechanism mapping is forbidden.
+4. BOUNDED FORECASTS: Every projection must state horizon (when), threshold/metric (what changes, by how much), and a falsification condition (what observation would prove it wrong). "Will grow significantly" is not a forecast.
+5. CITATION REALITY: Every [SRC-N] must exist in the provided corpus AND actually contain the claim it supports. If you cannot point to the passage, remove the claim or weaken it.
+6. NO ORPHAN CLAIMS: Every non-trivial assertion in executiveSummary, keyFindings, causalArchitecture, and scenarios must trace to ≥1 citation. A claim with zero citations will be deleted by review — write it weaker or cut it.
+
+If you complete this audit honestly, roughly 30-40% of first drafts will need narrowing. That is expected — narrow now rather than be rejected later.
+
 OUTPUT FORMAT - Return this EXACT JSON structure:
 
 {
