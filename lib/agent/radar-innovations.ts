@@ -535,6 +535,7 @@ const PROVIDER_REGISTRY: { name: string; keywords: string[]; priority: number }[
   { name: 'gbif', keywords: ['gbif', 'biodiversity', 'species', 'occurrence', 'taxonomy', 'wildlife', 'endangered species', 'ecosystem'], priority: 4 },
   { name: 'osm-taginfo', keywords: ['datacenter', 'data center', 'solar farm', 'wind farm', 'infrastructure', 'openstreetmap', 'osm', 'power plant', 'port', 'refinery', 'industrial zone', 'quarry', 'dam', 'airport count'], priority: 4 },
   { name: 'opensanctions', keywords: ['sanctions', 'sanctioned', 'pep', 'politically exposed', 'watchlist', 'asset freeze', 'ofac', 'eu sanctions', 'un sanctions', 'opensanctions', 'oligarch', 'kleptocracy'], priority: 6 },
+  { name: 'uk-legislation', keywords: ['uk law', 'uk legislation', 'act of parliament', 'statutory instrument', 'british law', 'england law', 'legislation.gov.uk', 'uk statute'], priority: 5 },
   { name: 'open-meteo', keywords: ['climate', 'climat', 'warming', 'drought', 'heat wave', 'flood', 'hurricane', 'typhoon', 'monsoon', 'temperature projection', 'cmip'], priority: 6 },
   { name: 'ember', keywords: ['electricity', 'power generation', 'renewable', 'solar', 'wind', 'grid', 'energy transition', 'carbon intensity', 'ember', 'electricity mix'], priority: 6 },
   { name: 'un-sdg', keywords: ['sdg', 'sustainable development', 'un goals', 'poverty rate', 'global goals', 'développement durable'], priority: 5 },

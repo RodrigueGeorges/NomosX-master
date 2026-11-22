@@ -85,7 +85,7 @@ import {
   searchComtrade, searchBLS, searchCensus, searchACLED,
   searchUNHCR, searchEStatJP, searchKOSIS, searchONS, searchIBGE,
   searchDataCommons, searchHDX, searchFTS, searchReliefWeb, searchEIA, searchVdem, searchOpenAQ,
-  searchWikidata, searchGBIF, searchOSM, searchOpenSanctions,
+  searchWikidata, searchGBIF, searchOSM, searchOpenSanctions, searchUKLegislation,
   searchOpenMeteo, searchEmber, searchUNSDG,
   searchUSGS, searchNASAPower, searchGLEIF,
   searchCrypto, searchFXRates, searchSatellites, searchHolidays,
@@ -778,6 +778,7 @@ export async function scoutImpl(
     if (providerSet.has("gbif")) allPromises.push(trackProviderCall("gbif", searchGBIF(sq, Math.min(4, perProvider))));
     if (providerSet.has("osm-taginfo")) allPromises.push(trackProviderCall("osm-taginfo", searchOSM(sq, Math.min(4, perProvider))));
     if (providerSet.has("opensanctions")) allPromises.push(trackProviderCall("opensanctions", searchOpenSanctions(sq, Math.min(6, perProvider))));
+    if (providerSet.has("uk-legislation")) allPromises.push(trackProviderCall("uk-legislation", searchUKLegislation(sq, Math.min(6, perProvider))));
     // Free metasearch floor — keeps web retrieval alive when paid search is exhausted
     if (providerSet.has("searxng")) allPromises.push(trackProviderCall("searxng", searchSearxng(sq, Math.min(8, perProvider))));
 

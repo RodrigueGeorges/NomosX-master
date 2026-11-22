@@ -72,7 +72,7 @@ export type Providers = Array<
   | "comtrade" | "us-bls" | "us-census" | "acled" | "unhcr" | "estat-jp" | "kosis"
   | "ons-uk" | "ibge" | "datacommons" | "hdx" | "ocha-fts" | "reliefweb" | "eia" | "vdem" | "openaq"
   | "open-meteo" | "ember" | "un-sdg" | "usgs" | "nasa-power" | "gleif"
-  | "wikidata" | "gbif" | "osm-taginfo" | "opensanctions"
+  | "wikidata" | "gbif" | "osm-taginfo" | "opensanctions" | "uk-legislation"
   | "coingecko" | "frankfurter" | "celestrak" | "nager-date"
   // Free metasearch floor (SearXNG — no key, self-hostable)
   | "searxng"
@@ -169,7 +169,7 @@ export const ALL_PROVIDERS = [
   'comtrade', 'us-bls', 'us-census', 'acled', 'unhcr', 'estat-jp', 'kosis',
   'ons-uk', 'ibge', 'datacommons', 'hdx', 'ocha-fts', 'reliefweb', 'eia', 'vdem', 'openaq', 'searxng',
   'open-meteo', 'ember', 'un-sdg', 'usgs', 'nasa-power', 'gleif',
-  'wikidata', 'gbif', 'osm-taginfo', 'opensanctions',
+  'wikidata', 'gbif', 'osm-taginfo', 'opensanctions', 'uk-legislation',
   'coingecko', 'frankfurter', 'celestrak', 'nager-date',
   // Domain-specific academic providers
   'psychology', 'sociology', 'history', 'geography',

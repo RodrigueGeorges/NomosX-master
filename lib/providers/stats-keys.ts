@@ -1594,3 +1594,50 @@ export async function searchOpenSanctions(query: string, limit = 6): Promise<any
     return [];
   }
 }
+
+// ─────────────────────────────────────────────────────────────
+// UK LEGISLATION — legislation.gov.uk (keyless Atom search + XML)
+// UK Acts, SIs, retained EU law — official revised versions.
+// ─────────────────────────────────────────────────────────────
+export async function searchUKLegislation(query: string, limit = 6): Promise<any[]> {
+  try {
+    const q = query.trim();
+    if (!q) return [];
+    const url = `https://www.legislation.gov.uk/all?title=${encodeURIComponent(q)}` +
+      `&limit=${Math.min(limit, 10)}&view=atom`;
+    const res = await fetch(url, {
+      headers: { Accept: 'application/atom+xml', 'User-Agent': 'NomosX-research/1.0' },
+      signal: AbortSignal.timeout(20000),
+    });
+    const xml: string = await res.text();
+    if (typeof xml !== 'string' || !xml.includes('<entry')) return [];
+    const entries = xml.split('<entry>').slice(1);
+    const results: any[] = [];
+    const strip = (s: string) => s.replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/\s+/g, ' ').trim();
+    for (const e of entries.slice(0, limit)) {
+      const block = e.split('</entry>')[0];
+      const titleM = block.match(/<title>([\s\S]*?)<\/title>/);
+      const linkM = block.match(/<link[^>]+href="([^"]+)"/);
+      const updM = block.match(/<updated>([\s\S]*?)<\/updated>/);
+      const sumM = block.match(/<summary>([\s\S]*?)<\/summary>/);
+      const title = strip(titleM?.[1] || 'UK legislation');
+      const href = linkM?.[1] || '';
+      const year = updM?.[1] ? Number(String(updM[1]).slice(0, 4)) : null;
+      results.push({
+        ...ds(
+          href || title, 'uk-legislation',
+          `UK Legislation — ${title}`,
+          `${strip(sumM?.[1] || '') || 'Official UK legislation record'}${updM?.[1] ? ` (updated ${updM[1].slice(0, 10)})` : ''}. Source: legislation.gov.uk — authoritative revised text.`,
+          href.startsWith('http') ? href : `https://www.legislation.gov.uk${href}`,
+          'The National Archives (UK)', block,
+        ),
+        year,
+      });
+    }
+    console.log(`[UK-LEG] ${results.length} instruments`);
+    return results;
+  } catch (e: any) {
+    console.error(`[UK-LEG] failed: ${e?.message}`);
+    return [];
+  }
+}
