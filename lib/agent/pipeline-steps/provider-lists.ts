@@ -74,6 +74,11 @@ export type Providers = Array<
   | "open-meteo" | "ember" | "un-sdg" | "usgs" | "nasa-power" | "gleif"
   | "wikidata" | "gbif" | "osm-taginfo" | "opensanctions" | "uk-legislation"
   | "coingecko" | "frankfurter" | "celestrak" | "nager-date"
+  // Batch 2 keyless open data (santé, sécu, espace, sciences, datasets)
+  | "openfda" | "defillama" | "cisa-kev" | "first-epss" | "osv" | "jpl-sbdb"
+  | "safecast" | "launchlibrary" | "inaturalist" | "obis" | "worms" | "smithsonian"
+  | "propublica-congress" | "nws" | "usgs-water" | "nhtsa" | "swpc"
+  | "stackexchange" | "musicbrainz" | "socrata" | "radiobrowser"
   // Free metasearch floor (SearXNG — no key, self-hostable)
   | "searxng"
   // Science ouverte européenne
@@ -171,6 +176,10 @@ export const ALL_PROVIDERS = [
   'open-meteo', 'ember', 'un-sdg', 'usgs', 'nasa-power', 'gleif',
   'wikidata', 'gbif', 'osm-taginfo', 'opensanctions', 'uk-legislation',
   'coingecko', 'frankfurter', 'celestrak', 'nager-date',
+  'openfda', 'defillama', 'cisa-kev', 'first-epss', 'osv', 'jpl-sbdb',
+  'safecast', 'launchlibrary', 'inaturalist', 'obis', 'worms', 'smithsonian',
+  'propublica-congress', 'nws', 'usgs-water', 'nhtsa', 'swpc',
+'stackexchange', 'musicbrainz', 'socrata', 'radiobrowser',
   // Domain-specific academic providers
   'psychology', 'sociology', 'history', 'geography',
   'chemistry', 'biology', 'political-science', 'business',

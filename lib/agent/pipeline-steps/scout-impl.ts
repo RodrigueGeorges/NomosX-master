@@ -89,6 +89,10 @@ import {
   searchOpenMeteo, searchEmber, searchUNSDG,
   searchUSGS, searchNASAPower, searchGLEIF,
   searchCrypto, searchFXRates, searchSatellites, searchHolidays,
+  searchOpenFDA, searchDeFiLlama, searchCISAKEV, searchEPSS, searchOSV, searchSBDB,
+  searchSafecast, searchLaunches, searchINaturalist, searchOBIS, searchWoRMS, searchSmithsonian,
+  searchCongress, searchNWS, searchUSGSWater, searchNHTSA, searchSWPC,
+searchStackExchange, searchMusicBrainz, searchSocrata, searchRadioBrowser,
 } from "../../providers/stats-keys";
 import { searchSearxng } from "../../providers/searxng";
 import { searchPhilPapers } from "../../providers/philpapers";
@@ -779,6 +783,28 @@ export async function scoutImpl(
     if (providerSet.has("osm-taginfo")) allPromises.push(trackProviderCall("osm-taginfo", searchOSM(sq, Math.min(4, perProvider))));
     if (providerSet.has("opensanctions")) allPromises.push(trackProviderCall("opensanctions", searchOpenSanctions(sq, Math.min(6, perProvider))));
     if (providerSet.has("uk-legislation")) allPromises.push(trackProviderCall("uk-legislation", searchUKLegislation(sq, Math.min(6, perProvider))));
+    // Batch 2 keyless open data
+    if (providerSet.has("openfda")) allPromises.push(trackProviderCall("openfda", searchOpenFDA(sq, Math.min(6, perProvider))));
+    if (providerSet.has("defillama")) allPromises.push(trackProviderCall("defillama", searchDeFiLlama(sq, Math.min(6, perProvider))));
+    if (providerSet.has("cisa-kev")) allPromises.push(trackProviderCall("cisa-kev", searchCISAKEV(sq, Math.min(6, perProvider))));
+    if (providerSet.has("first-epss")) allPromises.push(trackProviderCall("first-epss", searchEPSS(sq, Math.min(6, perProvider))));
+    if (providerSet.has("osv")) allPromises.push(trackProviderCall("osv", searchOSV(sq, Math.min(6, perProvider))));
+    if (providerSet.has("jpl-sbdb")) allPromises.push(trackProviderCall("jpl-sbdb", searchSBDB(sq, Math.min(4, perProvider))));
+    if (providerSet.has("safecast")) allPromises.push(trackProviderCall("safecast", searchSafecast(sq, Math.min(4, perProvider))));
+    if (providerSet.has("launchlibrary")) allPromises.push(trackProviderCall("launchlibrary", searchLaunches(sq, Math.min(6, perProvider))));
+    if (providerSet.has("inaturalist")) allPromises.push(trackProviderCall("inaturalist", searchINaturalist(sq, Math.min(5, perProvider))));
+    if (providerSet.has("obis")) allPromises.push(trackProviderCall("obis", searchOBIS(sq, Math.min(4, perProvider))));
+    if (providerSet.has("worms")) allPromises.push(trackProviderCall("worms", searchWoRMS(sq, Math.min(4, perProvider))));
+    if (providerSet.has("smithsonian")) allPromises.push(trackProviderCall("smithsonian", searchSmithsonian(sq, Math.min(5, perProvider))));
+    if (providerSet.has("propublica-congress")) allPromises.push(trackProviderCall("propublica-congress", searchCongress(sq, Math.min(5, perProvider))));
+    if (providerSet.has("nws")) allPromises.push(trackProviderCall("nws", searchNWS(sq, Math.min(5, perProvider))));
+    if (providerSet.has("usgs-water")) allPromises.push(trackProviderCall("usgs-water", searchUSGSWater(sq, Math.min(5, perProvider))));
+    if (providerSet.has("nhtsa")) allPromises.push(trackProviderCall("nhtsa", searchNHTSA(sq, Math.min(5, perProvider))));
+    if (providerSet.has("swpc")) allPromises.push(trackProviderCall("swpc", searchSWPC(sq, Math.min(4, perProvider))));
+    if (providerSet.has("stackexchange")) allPromises.push(trackProviderCall("stackexchange", searchStackExchange(sq, Math.min(5, perProvider))));
+    if (providerSet.has("musicbrainz")) allPromises.push(trackProviderCall("musicbrainz", searchMusicBrainz(sq, Math.min(5, perProvider))));
+    if (providerSet.has("socrata")) allPromises.push(trackProviderCall("socrata", searchSocrata(sq, Math.min(5, perProvider))));
+    if (providerSet.has("radiobrowser")) allPromises.push(trackProviderCall("radiobrowser", searchRadioBrowser(sq, Math.min(5, perProvider))));
     // Free metasearch floor — keeps web retrieval alive when paid search is exhausted
     if (providerSet.has("searxng")) allPromises.push(trackProviderCall("searxng", searchSearxng(sq, Math.min(8, perProvider))));
 

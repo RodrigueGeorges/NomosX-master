@@ -1699,3 +1699,635 @@ export async function matchOpenSanctions(
     properties: r.properties || {},
   }));
 }
+
+// ─────────────────────────────────────────────────────────────
+// OPENFDA — FDA open data (drugs, devices, food, cosmetics; keyless)
+// ─────────────────────────────────────────────────────────────
+const FDA_ENDPOINTS: Record<string, { path: string; label: string }> = {
+  drug: { path: 'drug/event.json', label: 'drug adverse events (FAERS)' },
+  label: { path: 'drug/label.json', label: 'drug labels' },
+  device: { path: 'device/event.json', label: 'device adverse events' },
+  food: { path: 'food/enforcement.json', label: 'food enforcement reports' },
+  recall: { path: 'drug/enforcement.json', label: 'drug enforcement/recalls' },
+};
+export async function searchOpenFDA(query: string, limit = 6): Promise<any[]> {
+  try {
+    const q = query.trim();
+    if (!q) return [];
+    const ql = q.toLowerCase();
+    let key = 'drug';
+    if (/label|prescription|package insert/.test(ql)) key = 'label';
+    else if (/device|pacemaker|implant|medical device/.test(ql)) key = 'device';
+    else if (/food|contaminat|recall|outbreak/.test(ql)) key = /recall/.test(ql) ? 'recall' : 'food';
+    const ep = FDA_ENDPOINTS[key];
+    const url = `https://api.fda.gov/${ep.path}?search=${encodeURIComponent(q)}&limit=${Math.min(limit, 10)}`;
+    const data: any = await fetchFromProvider('openfda', url, { timeout: 20000, retries: 1 });
+    const results = data?.results || [];
+    return results.slice(0, limit).map((r: any, i: number) => {
+      const title = r.product_description || r.brand_name || r.device_name || r.reason_for_recall || r.openfda?.generic_name?.[0] || 'FDA record';
+      const date = r.receipt_date || r.report_date || r.effective_time || r.fda_report_date || '';
+      const firm = r.applicant || r.manufacturer_name || r.recalling_firm || r.company_name || '';
+      return {
+        ...ds(String(r._id || `fda-${i}`), 'openfda',
+          `openFDA — ${String(title).slice(0, 160)}`,
+          `${ep.label}${date ? ` (${date})` : ''}${firm ? ` — ${firm}` : ''}. Source: FDA openFDA ${ep.path}.`,
+          `https://open.fda.gov/apis/${ep.path.split('/')[0]}/${ep.path.split('/')[1]}/`,
+          'US Food & Drug Administration', r),
+        year: date ? Number(String(date).slice(0, 4)) || null : null,
+      };
+    });
+  } catch (e: any) {
+    console.error(`[OPENFDA] failed: ${e?.message}`);
+    return [];
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// DEFILLAMA — DeFi/crypto analytics (keyless free tier)
+// ─────────────────────────────────────────────────────────────
+export async function searchDeFiLlama(query: string, limit = 6): Promise<any[]> {
+  try {
+    const q = query.trim().toLowerCase();
+    if (!q) return [];
+    // /protocols is ~5MB — fetchFromProvider caps bytes, use direct fetch
+    const res = await fetch('https://api.llama.fi/protocols',
+      { signal: AbortSignal.timeout(30000) });
+    if (!res.ok) return [];
+    const protos: any[] = await res.json();
+    const terms = q.split(/[^a-z0-9]+/).filter(t => t.length > 2);
+    const hits = protos
+      .map((p: any) => {
+        const name = String(p.name || '').toLowerCase();
+        const sym = String(p.symbol || '').toLowerCase();
+        const cat = String(p.category || '').toLowerCase();
+        const score = terms.reduce((s, t) => s + (name.includes(t) ? 2 : 0) + (sym === t ? 3 : 0) + (cat.includes(t) ? 1 : 0), 0);
+        return { p, score };
+      })
+      .filter(x => x.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, limit);
+    return hits.map(({ p }, i) => ({
+      ...ds(String(p.id || p.slug || i), 'defillama',
+        `DeFiLlama — ${p.name}`,
+        `${p.name} (${p.symbol || 'n/a'}) — ${p.category || 'DeFi'}, chains: ${(p.chains || []).slice(0, 5).join(', ')}. TVL: $${(Number(p.tvl) / 1e9).toFixed(2)}B, 1d ${p.change_1d?.toFixed(2) ?? '?'}%, 7d ${p.change_7d?.toFixed(2) ?? '?'}%. Source: DefiLlama API.`,
+        `https://defillama.com/protocol/${p.slug || p.id}`,
+        'DefiLlama', p),
+    }));
+  } catch (e: any) {
+    console.error(`[DEFILLAMA] failed: ${e?.message}`);
+    return [];
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// CISA KEV — Known Exploited Vulnerabilities (keyless JSON feed)
+// ─────────────────────────────────────────────────────────────
+let kevCache: any[] | null = null;
+export async function searchCISAKEV(query: string, limit = 6): Promise<any[]> {
+  try {
+    const q = query.trim();
+    if (!q) return [];
+    if (!kevCache) {
+      const data: any = await fetchFromProvider('cisa-kev',
+        'https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json',
+        { timeout: 30000, retries: 1 });
+      kevCache = data?.vulnerabilities || [];
+    }
+    const ql = q.toLowerCase();
+    const hits = (kevCache || []).filter((v: any) =>
+      String(v.cveID).toLowerCase().includes(ql) ||
+      String(v.vendorProject).toLowerCase().includes(ql) ||
+      String(v.product).toLowerCase().includes(ql) ||
+      String(v.vulnerabilityName).toLowerCase().includes(ql));
+    return hits.slice(0, limit).map((v: any) => ({
+      ...ds(String(v.cveID), 'cisa-kev',
+        `CISA KEV — ${v.cveID}: ${v.vulnerabilityName}`,
+        `Known exploited vulnerability: ${v.vendorProject} ${v.product} — ${v.vulnerabilityName}. Added ${v.dateAdded}, due ${v.dueDate}. Required action: ${String(v.requiredAction || '').slice(0, 200)}. Source: CISA KEV catalog.`,
+        `https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=${encodeURIComponent(v.cveID)}`,
+        'CISA', v),
+      year: v.dateAdded ? Number(String(v.dateAdded).slice(0, 4)) : null,
+    }));
+  } catch (e: any) {
+    console.error(`[CISA-KEV] failed: ${e?.message}`);
+    return [];
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// FIRST EPSS — exploit prediction scores (keyless)
+// ─────────────────────────────────────────────────────────────
+export async function searchEPSS(query: string, limit = 6): Promise<any[]> {
+  try {
+    const q = query.trim();
+    if (!q) return [];
+    const isCve = /^CVE-\d{4}-\d+/i.test(q);
+    const url = isCve
+      ? `https://api.first.org/data/v1/epss?cve=${encodeURIComponent(q)}&pretty=false`
+      : `https://api.first.org/data/v1/epss?q=${encodeURIComponent(q)}&limit=${Math.min(limit, 10)}`;
+    const data: any = await fetchFromProvider('first-epss', url, { timeout: 20000, retries: 1 });
+    const rows: any[] = data?.data || [];
+    return rows.slice(0, limit).map((r: any) => ({
+      ...ds(String(r.cve), 'first-epss',
+        `EPSS — ${r.cve}: ${(Number(r.epss) * 100).toFixed(1)}% exploitation probability`,
+        `FIRST EPSS score for ${r.cve}: ${(Number(r.epss) * 100).toFixed(2)}% probability of exploitation in the next 30 days (percentile ${(Number(r.percentile) * 100).toFixed(0)}). Source: FIRST.org EPSS.`,
+        `https://www.first.org/epss/${r.cve}`,
+        'Forum of Incident Response and Security Teams', r),
+    }));
+  } catch (e: any) {
+    console.error(`[EPSS] failed: ${e?.message}`);
+    return [];
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// OSV — Open Source Vulnerabilities (keyless, Google)
+// ─────────────────────────────────────────────────────────────
+const OSV_ECOSYSTEMS: Record<string, string> = {
+  npm: 'npm', pypi: 'PyPI', python: 'PyPI', pip: 'PyPI',
+  go: 'Go', golang: 'Go', rust: 'crates.io', cargo: 'crates.io',
+  maven: 'Maven', java: 'Maven', nuget: '.NET',
+  rubygems: 'RubyGems', gem: 'RubyGems', composer: 'Packagist', php: 'Packagist',
+};
+export async function searchOSV(query: string, limit = 6): Promise<any[]> {
+  try {
+    const q = query.trim();
+    if (!q) return [];
+    const ql = q.toLowerCase();
+    const eco = Object.entries(OSV_ECOSYSTEMS).find(([k]) => ql.includes(k))?.[1];
+    const pkg = q.replace(/[^a-zA-Z0-9@/_.-]/g, ' ').trim().split(/\s+/)[0];
+    const res = await fetch('https://api.osv.dev/v1/query', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        package: { name: pkg, ecosystem: eco || 'npm' },
+        version: undefined,
+      }),
+      signal: AbortSignal.timeout(20000),
+    });
+    if (!res.ok) return [];
+    const data: any = await res.json();
+    const vulns: any[] = data?.vulns || [];
+    return vulns.slice(0, limit).map((v: any) => ({
+      ...ds(String(v.id), 'osv',
+        `OSV — ${v.id}: ${v.summary || 'vulnerability'}`,
+        `${v.summary || v.id} affecting ${eco || 'npm'} package "${pkg}". Aliases: ${(v.aliases || []).slice(0, 4).join(', ') || 'none'}. Published: ${v.published || '?'}. Source: OSV.dev.`,
+        `https://osv.dev/vulnerability/${v.id}`,
+        'Open Source Vulnerabilities (Google)', v),
+      year: v.published ? Number(String(v.published).slice(0, 4)) : null,
+    }));
+  } catch (e: any) {
+    console.error(`[OSV] failed: ${e?.message}`);
+    return [];
+  }
+}
+
+// JPL SBDB — asteroid/comet data (keyless)
+export async function searchSBDB(query: string, limit = 5): Promise<any[]> {
+  try {
+    const q = query.trim();
+    if (!q) return [];
+    const url = `https://ssd-api.jpl.nasa.gov/sbdb.api?sstr=${encodeURIComponent(q)}`;
+    const data: any = await fetchFromProvider('jpl-sbdb', url, { timeout: 20000, retries: 1 });
+    const obj = data?.object;
+    if (!obj) return [];
+    const orbit = data.orbit || {};
+    const phys = data.phys_par || {};
+    return [{
+      ...ds(String(obj.spk || obj.fullname), 'jpl-sbdb',
+        `JPL SBDB — ${obj.fullname}`,
+        `${obj.fullname} — NEO: ${obj.neo ? 'yes' : 'no'}, PHA: ${obj.pha ? 'yes' : 'no'}, class: ${obj.orbit_class?.name || '?'}. MOID: ${orbit.moid || '?'} AU, data arc: ${orbit.data_arc ? (orbit.data_arc / 365.25).toFixed(1) + ' yrs' : '?'}, n_obs: ${orbit.n_obs_used || '?'}.${phys.diameter ? ` Diameter ~${phys.diameter.toFixed(2)} km.` : ''} Source: JPL SBDB.`,
+        `https://ssd.jpl.nasa.gov/tools/sbdb_lookup.html`,
+        'NASA/JPL CNEOS', data),
+    }];
+  } catch (e: any) {
+    console.error(`[SBDB] failed: ${e?.message}`);
+    return [];
+  }
+}
+
+// SAFCAST — crowdsourced radiation monitoring (keyless, CC0)
+export async function searchSafecast(query: string, limit = 5): Promise<any[]> {
+  try {
+    const q = query.trim();
+    if (!q) return [];
+    const url = `https://api.safecast.org/measurements.json?limit=${Math.min(limit, 10)}`;
+    const data: any = await fetchFromProvider('safecast', url, { timeout: 20000, retries: 1 });
+    const rows: any[] = Array.isArray(data) ? data : (data?.results || data?.data || []);
+    return rows.slice(0, limit).map((r: any, i: number) => ({
+      ...ds(String(r.id || `sf-${i}`), 'safecast',
+        `Safecast — radiation ${r.value != null ? `${Number(r.value).toFixed(2)} µSv/h` : ''} @ ${r.address || `${r.latitude},${r.longitude}`}`,
+        `Safecast citizen-science radiation measurement${r.captured_at ? ` (${r.captured_at})` : ''}${r.device_id ? `, device ${r.device_id}` : ''}${r.location_name ? `, ${r.location_name}` : ''}. CC0 global dataset — 200M+ measurements. Source: Safecast API.`,
+        'https://safecast.org/', 'Safecast', r),
+    }));
+  } catch (e: any) {
+    console.error(`[SAFECAST] failed: ${e?.message}`);
+    return [];
+  }
+}
+
+// LAUNCHLIBRARY — upcoming space launches (keyless, rate-limited)
+export async function searchLaunches(query: string, limit = 8): Promise<any[]> {
+  try {
+    const q = query.trim().toLowerCase();
+    const data: any = await fetchFromProvider('launchlibrary',
+      'https://ll.thespacedevs.com/2.2.0/launch/upcoming/?limit=30&mode=detailed',
+      { timeout: 20000, retries: 0 });
+    const launches: any[] = data?.results || [];
+    const terms = q ? q.split(/[^a-z0-9]+/).filter(t => t.length > 2) : [];
+    const filtered = terms.length
+      ? launches.filter((l: any) => {
+          const hay = `${l.name} ${l.mission?.name || ''} ${l.mission?.description || ''} ${l.pad?.location?.name || ''} ${l.rocket?.configuration?.name || ''}`.toLowerCase();
+          return terms.some(t => hay.includes(t));
+        })
+      : launches;
+    return filtered.slice(0, limit).map((l: any) => ({
+      ...ds(String(l.id || l.net), 'launchlibrary',
+        `Launch Library 2 — ${l.name}`,
+        `${l.name} — ${l.rocket?.configuration?.name || 'rocket n/a'} from ${l.pad?.location?.name || '?'}, ${l.pad?.name || ''}. NET: ${l.net || '?'} UTC. Mission: ${(l.mission?.description || l.mission?.name || '').slice(0, 150)}. Source: Launch Library 2.`,
+        l.url || 'https://thespacedevs.com/llapi', 'Launch Library 2', l),
+      year: l.net ? Number(String(l.net).slice(0, 4)) : null,
+    }));
+  } catch (e: any) {
+    console.error(`[LAUNCHES] failed: ${e?.message}`);
+    return [];
+  }
+}
+
+// INATURALIST — crowd-sourced species observations (keyless)
+export async function searchINaturalist(query: string, limit = 6): Promise<any[]> {
+  try {
+    const q = query.trim();
+    if (!q) return [];
+    const url = `https://api.inaturalist.org/v1/observations?q=${encodeURIComponent(q)}` +
+      `&per_page=${Math.min(limit, 10)}&quality_grade=research&photos=true`;
+    const data: any = await fetchFromProvider('inaturalist', url, { timeout: 20000, retries: 1 });
+    const obs: any[] = data?.results || [];
+    return obs.slice(0, limit).map((o: any) => {
+      const sp = o.taxon || {};
+      return {
+        ...ds(String(o.id), 'inaturalist',
+          `iNaturalist — ${sp.preferred_common_name || sp.name || 'observation'} (${sp.name || '?'})`,
+          `${sp.preferred_common_name || sp.name}: observed ${o.observed_on || o.time_observed || '?'}, location ${o.place_guess || `${o.geojson?.coordinates?.reverse?.().join(',') || '?'}`}, by ${o.user?.login || '?'}. ${o.description ? String(o.description).slice(0, 150) : ''} Source: iNaturalist API.`,
+          `https://www.inaturalist.org/observations/${o.id}`,
+          'iNaturalist community', o),
+      };
+    });
+  } catch (e: any) {
+    console.error(`[INATURALIST] failed: ${e?.message}`);
+    return [];
+  }
+}
+
+// OBIS — ocean biodiversity occurrences (keyless)
+export async function searchOBIS(query: string, limit = 5): Promise<any[]> {
+  try {
+    const q = query.trim();
+    if (!q) return [];
+    const url = `https://api.obis.org/v3/occurrence?scientificname=${encodeURIComponent(q)}&size=0`;
+    const data: any = await fetchFromProvider('obis', url, { timeout: 20000, retries: 1 });
+    const total = data?.total;
+    if (total == null) return [];
+    const url2 = `https://api.obis.org/v3/occurrence?scientificname=${encodeURIComponent(q)}&size=3`;
+    const data2: any = await fetchFromProvider('obis', url2, { timeout: 20000, retries: 1 });
+    const sample = (data2?.results || []).map((r: any) =>
+      `${r.scientificName || '?'} @ ${r.decimalLatitude?.toFixed?.(1)},${r.decimalLongitude?.toFixed?.(1)} ${r.eventDate || ''}`).join('; ');
+    return [ds(
+      String(q), 'obis',
+      `OBIS — ${q}: ${Number(total).toLocaleString()} marine occurrence records`,
+      `OBIS occurrence search for "${q}": ${Number(total).toLocaleString()} records in the Ocean Biodiversity Information System. Sample: ${sample || 'n/a'}. Source: OBIS API (IOC-UNESCO).`,
+      `https://obis.org/taxon/${encodeURIComponent(q)}`,
+      'OBIS (IOC-UNESCO)', { total, sample: data2?.results },
+    )];
+  } catch (e: any) {
+    console.error(`[OBIS] failed: ${e?.message}`);
+    return [];
+  }
+}
+
+// WORMS — World Register of Marine Species (keyless)
+export async function searchWoRMS(query: string, limit = 5): Promise<any[]> {
+  try {
+    const q = query.trim();
+    if (!q) return [];
+    const url = `https://www.marinespecies.org/rest/AphiaRecordsByName/${encodeURIComponent(q)}?like=false&marine_only=false`;
+    const records: any[] = await fetchFromProvider('worms', url, { timeout: 20000, retries: 1 });
+    const rec: any = Array.isArray(records) ? records.find((r: any) => r.status === 'accepted') || records[0] : null;
+    if (!rec?.AphiaID) return [];
+    const name = rec?.scientificname || q;
+    return [ds(
+      String(rec.AphiaID), 'worms',
+      `WoRMS — ${name}`,
+      `World Register of Marine Species record: ${name} (${rec?.authority || '?'}), status ${rec?.status || '?'}, rank ${rec?.rank || '?'}, kingdom ${rec?.kingdom || '?'}. Source: WoRMS REST API.`,
+      `https://www.marinespecies.org/aphia.php?p=taxdetails&id=${rec.AphiaID}`,
+      'WoRMS (Flanders Marine Institute / UNESCO)', rec,
+    )];
+  } catch (e: any) {
+    console.error(`[WORMS] failed: ${e?.message}`);
+    return [];
+  }
+}
+
+// SMITHSONIAN — Open Access collections API (keyless)
+export async function searchSmithsonian(query: string, limit = 6): Promise<any[]> {
+  try {
+    const q = query.trim();
+    if (!q) return [];
+    const url = `https://api.si.edu/openaccess/api/v1.0/search?q=${encodeURIComponent(q)}&rows=${Math.min(limit, 10)}&api_key=DEMO_KEY`;
+    const data: any = await fetchFromProvider('smithsonian', url, { timeout: 20000, retries: 1 });
+    const rows: any[] = data?.response?.rows || data?.rows || [];
+    return rows.slice(0, limit).map((r: any) => ({
+      ...ds(String(r.id || r.objectID || Math.random()), 'smithsonian',
+        `Smithsonian — ${String(r.title || r.objectName || 'collection item').slice(0, 140)}`,
+        `${[r.objectName, r.dataSource, r.unitCode].filter(Boolean).join(' | ')}. ${r.objectURL || ''}. Open Access Smithsonian collection (CC0 where noted). Source: Smithsonian Open Access API.`,
+        r.objectURL || 'https://www.si.edu/openaccess',
+        'Smithsonian Institution', r),
+      year: r.date || r.yearMade ? Number(String(r.date || r.yearMade).slice(0, 4)) || null : null,
+    }));
+  } catch (e: any) {
+    console.error(`[SMITHSONIAN] failed: ${e?.message}`);
+    return [];
+  }
+}
+
+// PROPUBLICA CONGRESS — US Congress members & bills (keyless)
+export async function searchCongress(query: string, limit = 6): Promise<any[]> {
+  try {
+    const q = query.trim();
+    if (!q) return [];
+    const url = `https://api.propublica.org/congress/v1/members.json?query=${encodeURIComponent(q)}&limit=${Math.min(limit, 10)}`;
+    const data: any = await fetchFromProvider('propublica-congress', url,
+      { timeout: 20000, retries: 1, headers: { 'User-Agent': 'NomosX-research/1.0' } });
+    const members: any[] = data?.results || [];
+    return members.slice(0, limit).map((m: any, i: number) => ({
+      ...ds(String(m.id || `cong-${i}`), 'propublica-congress',
+        `Congress — ${m.first_name || ''} ${m.last_name || ''} (${m.state || ''})`,
+        `${[m.first_name, m.last_name].filter(Boolean).join(' ')} — ${m.state}${m.party ? ` ${m.party}` : ''}, ${m.title || 'Member of Congress'}. ${m.url || ''}. Source: ProPublica Congress API.`,
+        m.url || 'https://projects.propublica.org/congress/api/', 'ProPublica', m),
+    }));
+  } catch (e: any) {
+    console.error(`[CONGRESS] failed: ${e?.message}`);
+    return [];
+  }
+}
+
+// NWS — US National Weather Service alerts/forecast (keyless)
+export async function searchNWS(query: string, limit = 5): Promise<any[]> {
+  try {
+    const q = query.trim();
+    if (!q) return [];
+    const url = `https://api.weather.gov/alerts?status=actual&limit=${Math.min(limit, 10)}`;
+    const data: any = await fetchFromProvider('nws', url,
+      { timeout: 20000, retries: 1, headers: { 'User-Agent': 'NomosX-research/1.0', Accept: 'application/geo+json' } });
+    const feats: any[] = data?.features || [];
+    const ql = q.toLowerCase();
+    const terms = ql.split(/[^a-z]+/).filter(t => t.length > 3);
+    const hits = feats.filter((f: any) => {
+      const props = f.properties || {};
+      const hay = `${props.event || ''} ${props.areaDesc || ''} ${props.senderName || ''}`.toLowerCase();
+      return !terms.length || terms.some(t => hay.includes(t));
+    }).slice(0, limit);
+    return hits.map((f: any) => {
+      const p = f.properties || {};
+      return {
+        ...ds(String(p.id || f.id), 'nws',
+          `NWS — ${p.event || 'Weather alert'}: ${p.areaDesc || '?'}`,
+          `${p.event || 'Alert'} (${p.severity || '?'}/${p.urgency || '?'}) for ${p.areaDesc || '?'}. ${String(p.headline || p.description || '').slice(0, 220)}. Expires: ${p.expires || p.ends || '?'}. Source: api.weather.gov.`,
+          p.web || 'https://www.weather.gov/', 'NOAA National Weather Service', f),
+      };
+    });
+  } catch (e: any) {
+    console.error(`[NWS] failed: ${e?.message}`);
+    return [];
+  }
+}
+
+// USGS WATER — real-time streamflow (keyless, complements quakes)
+const USGS_STATES: Record<string, string> = {
+  alabama: 'AL', alaska: 'AK', arizona: 'AZ', arkansas: 'AR', california: 'CA',
+  colorado: 'CO', connecticut: 'CT', delaware: 'DE', florida: 'FL', georgia: 'GA',
+  hawaii: 'HI', idaho: 'ID', illinois: 'IL', indiana: 'IN', iowa: 'IA', kansas: 'KS',
+  kentucky: 'KY', louisiana: 'LA', maine: 'ME', maryland: 'MD', massachusetts: 'MA',
+  michigan: 'MI', minnesota: 'MN', mississippi: 'MS', missouri: 'MO', montana: 'MT',
+  nebraska: 'NE', nevada: 'NV', 'new hampshire': 'NH', 'new jersey': 'NJ', 'new mexico': 'NM',
+  'new york': 'NY', 'north carolina': 'NC', 'north dakota': 'ND', ohio: 'OH', oklahoma: 'OK',
+  oregon: 'OR', pennsylvania: 'PA', 'rhode island': 'RI', 'south carolina': 'SC', 'south dakota': 'SD',
+  tennessee: 'TN', texas: 'TX', utah: 'UT', vermont: 'VT', virginia: 'VA', washington: 'WA',
+  'west virginia': 'WV', wisconsin: 'WI', wyoming: 'WY',
+};
+export async function searchUSGSWater(query: string, limit = 5): Promise<any[]> {
+  try {
+    const q = query.trim().toLowerCase();
+    if (!q) return [];
+    const st = Object.keys(USGS_STATES).find(k => q.includes(k)) ||
+      Object.entries(USGS_STATES).find(([k, v]) => q.toLowerCase().includes(v.toLowerCase()))?.[0];
+    if (!st) return [];
+    const code = USGS_STATES[st];
+    const url = `https://waterservices.usgs.gov/nwis/iv/?format=json&stateCd=${code}&parameterCd=00060&siteStatus=active`;
+    const data: any = await fetchFromProvider('usgs-water', url, { timeout: 25000, retries: 1 });
+    const ts = data?.value?.timeSeries || [];
+    const picks = ts.slice(0, Math.min(limit, 6));
+    return picks.map((s: any, i: number) => {
+      const vals = s.values?.[0]?.value || [];
+      const latest = vals[vals.length - 1] || {};
+      return {
+        ...ds(String(s.sourceInfo?.siteCode?.[0]?.value || `w-${i}`), 'usgs-water',
+          `USGS Water — ${s.sourceInfo?.siteName || 'stream gauge'} (${code})`,
+          `${s.sourceInfo?.siteName || '?'} — latest discharge ${latest.value ?? '?'} cfs @ ${latest.dateTime || '?'}. ${ts.length} active gauges queried in ${st}. Source: USGS NWIS instantaneous values.`,
+          `https://waterdata.usgs.gov/monitoring-location/${s.sourceInfo?.siteCode?.[0]?.value}/`,
+          'US Geological Survey', s),
+      };
+    });
+  } catch (e: any) {
+    console.error(`[USGS-WATER] failed: ${e?.message}`);
+    return [];
+  }
+}
+
+// NHTSA — US vehicle recalls (keyless)
+export async function searchNHTSA(query: string, limit = 6): Promise<any[]> {
+  try {
+    const q = query.trim();
+    if (!q) return [];
+    const tokens = q.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(Boolean);
+    const year = tokens.find(t => /^(19|20)\d{2}$/.test(t)) || '';
+    const words = tokens.filter(t => !/^(19|20)\d{2}$/.test(t) && !/^(recall|recalls|nhtsa|vehicle|car|automotive|safety|defect)$/.test(t));
+    if (!words.length || !year) return [];
+    const make = words[0];
+    const model = words.slice(1).join(' ') || words[0];
+    const url = `https://api.nhtsa.gov/recalls/recallsByVehicle?make=${encodeURIComponent(make)}&model=${encodeURIComponent(model)}&modelYear=${year}`;
+    const data: any = await fetchFromProvider('nhtsa', url, { timeout: 20000, retries: 1 });
+    const recalls: any[] = data?.results || [];
+    if (!recalls.length) return [ds(`nhtsa-${make}`, 'nhtsa',
+      `NHTSA — ${make}: no recalls indexed`,
+      `NHTSA recalls API returned no records for make "${make}". Source: NHTSA recalls API.`,
+      'https://www.nhtsa.gov/recalls', 'NHTSA', { make })];
+    return recalls.slice(0, limit).map((r: any, i: number) => ({
+      ...ds(String(r.NHTSACampaignNumber || `nhtsa-${i}`), 'nhtsa',
+        `NHTSA recall ${r.NHTSACampaignNumber || ''} — ${r.Make || ''} ${r.Model || ''} ${r.ModelYear || ''}`,
+        `Recall ${r.NHTSACampaignNumber}: ${r.Make} ${r.Model} ${r.ModelYear} (${r.Manufacturer || ''}). ${String(r.Summary || r.Consequence || '').slice(0, 250)}. Source: NHTSA recalls API.`,
+        'https://www.nhtsa.gov/recalls', 'NHTSA', r),
+      year: r.ModelYear ? Number(r.ModelYear) : null,
+    }));
+  } catch (e: any) {
+    console.error(`[NHTSA] failed: ${e?.message}`);
+    return [];
+  }
+}
+
+// SWPC — NOAA space weather (keyless)
+export async function searchSWPC(query: string, limit = 5): Promise<any[]> {
+  try {
+    const q = query.trim().toLowerCase();
+    const wantKp = /kp|geomagnetic|storm|aurora|solar|space weather|radiation/.test(q);
+    const wantAlert = /alert|warning|watch|flare/.test(q) || !wantKp;
+    const out: any[] = [];
+    if (wantAlert) {
+      try {
+        const data: any = await fetchFromProvider('swpc',
+          'https://services.swpc.noaa.gov/products/alerts.json', { timeout: 15000, retries: 1 });
+        (Array.isArray(data) ? data : []).slice(0, limit).forEach((a: any, i: number) => {
+          out.push(ds(`swpc-a${i}`, 'swpc',
+            `SWPC — ${a.message || 'space weather alert'}`.slice(0, 160),
+            `NOAA SWPC product: ${String(a.message || '').slice(0, 300)}. Source: services.swpc.noaa.gov.`,
+            'https://www.swpc.noaa.gov/products/alerts-watches-and-warnings', 'NOAA SWPC', a));
+        });
+      } catch {}
+    }
+    if (wantKp || !out.length) {
+      try {
+        const data: any = await fetchFromProvider('swpc',
+          'https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json', { timeout: 15000, retries: 1 });
+        const rows: any[] = Array.isArray(data) ? data : [];
+        const last = rows[rows.length - 1];
+        if (last) out.push(ds('swpc-kp', 'swpc',
+          `SWPC — planetary K-index ${last[1]} (${last[0]})`,
+          `Latest planetary Kp index: ${last[1]} at ${last[0]} UTC (scale: 0 quiet -> 9 extreme geomagnetic storm). Recent tail: ${rows.slice(-5).map(r => `${r[0]}:Kp${r[1]}`).join(', ')}. Source: NOAA SWPC.`,
+          'https://www.swpc.noaa.gov/products/planetary-k-index', 'NOAA SWPC', { last, tail: rows.slice(-10) }));
+      } catch {}
+    }
+    return out.slice(0, limit);
+  } catch (e: any) {
+    console.error(`[SWPC] failed: ${e?.message}`);
+    return [];
+  }
+}
+
+// STACK EXCHANGE — developer Q&A search (keyless, 300 req/day)
+export async function searchStackExchange(query: string, limit = 6): Promise<any[]> {
+  try {
+    const q = query.trim();
+    if (!q) return [];
+    const url = `https://api.stackexchange.com/2.3/search/advanced?order=desc&sort=relevance` +
+      `&q=${encodeURIComponent(q)}&site=stackoverflow&pagesize=${Math.min(limit, 10)}` +
+      `&filter=withbody`;
+    const data: any = await fetchFromProvider('stackexchange', url, { timeout: 20000, retries: 1 });
+    const items: any[] = data?.items || [];
+    return items.slice(0, limit).map((it: any) => ({
+      ...ds(String(it.question_id), 'stackexchange',
+        `StackOverflow — ${it.title || 'question'}`,
+        `${it.title || ''} — score ${it.score}, ${it.answer_count ?? 0} answers, asked ${it.creation_date ? new Date(it.creation_date * 1000).toISOString().slice(0, 10) : '?'}. ${String(it.body || '').replace(/<[^>]+>/g, ' ').slice(0, 200)}. Source: Stack Exchange API.`,
+        it.link || 'https://stackoverflow.com', 'Stack Exchange', it),
+      year: it.creation_date ? new Date(it.creation_date * 1000).getFullYear() : null,
+    }));
+  } catch (e: any) {
+    console.error(`[STACKEXCHANGE] failed: ${e?.message}`);
+    return [];
+  }
+}
+
+// MUSICBRAINZ — music knowledge graph (keyless, needs UA)
+export async function searchMusicBrainz(query: string, limit = 6): Promise<any[]> {
+  try {
+    const q = query.trim();
+    if (!q) return [];
+    const ql = q.toLowerCase();
+    const type = /album|record|lp\b/.test(ql) ? 'release-group' : /song|track/.test(ql) ? 'recording' : 'artist';
+    const url = `https://musicbrainz.org/ws/2/${type}/?query=${encodeURIComponent(q)}&fmt=json&limit=${Math.min(limit, 10)}`;
+    const data: any = await fetchFromProvider('musicbrainz', url,
+      { timeout: 15000, retries: 1, headers: { 'User-Agent': 'NomosX-research/1.0 (contact: local)' } });
+    const key = type === 'artist' ? 'artists' : type === 'release-group' ? 'release-groups' : 'recordings';
+    const items: any[] = data?.[key] || [];
+    return items.slice(0, limit).map((m: any) => ({
+      ...ds(String(m.id), 'musicbrainz',
+        `MusicBrainz — ${m.name || m.title || 'entry'}`,
+        `${m.name || m.title}: ${m['life-span']?.begin ? `active since ${m['life-span'].begin}` : ''}${m.area?.name ? `, ${m.area.name}` : ''}${m.score?.name ? `, ${m.score.name}` : ''}${m.count ? `, ${m.count} recordings` : ''}. Source: MusicBrainz API.`,
+        `https://musicbrainz.org/${type}/${m.id}`, 'MusicBrainz (MetaBrainz)', m),
+      year: m['life-span']?.begin ? Number(String(m['life-span'].begin).slice(0, 4)) : null,
+    }));
+  } catch (e: any) {
+    console.error(`[MUSICBRAINZ] failed: ${e?.message}`);
+    return [];
+  }
+}
+
+
+
+// SOCRATA CATALOG — generic open-data catalog search (keyless, multi-domain)
+const SOCRATA_DOMAINS = ['data.cdc.gov', 'data.ny.gov', 'data.cityofnewyork.us', 'data.seattle.gov', 'data.austintexas.gov', 'data.lacity.org'];
+export async function searchSocrata(query: string, limit = 6): Promise<any[]> {
+  try {
+    const q = query.trim();
+    if (!q) return [];
+    const url = `https://api.us.socrata.com/api/catalog/v1?domains=${SOCRATA_DOMAINS.join(',')}` +
+      `&q=${encodeURIComponent(q)}&limit=${Math.min(limit, 10)}&only=datasets`;
+    const data: any = await fetchFromProvider('socrata', url, { timeout: 20000, retries: 1 });
+    const results: any[] = data?.results || [];
+    return results.slice(0, limit).map((r: any) => {
+      const res = r.resource || {};
+      return {
+        ...ds(String(res.id || res.permalink), 'socrata',
+          `Socrata — ${res.name || 'open dataset'}`,
+          `${res.name || ''} — ${res.description ? String(res.description).slice(0, 180) : ''} Domain: ${res.domain || '?'}, updated ${res.updatedAt ? String(res.updatedAt).slice(0, 10) : '?'}. Source: Socrata catalog API.`,
+          res.permalink || `https://${res.domain || 'data.cdc.gov'}`, 'Socrata open data', r),
+      };
+    });
+  } catch (e: any) {
+    console.error(`[SOCRATA] failed: ${e?.message}`);
+    return [];
+  }
+}
+
+// RADIO BROWSER — global radio station directory (keyless)
+export async function searchRadioBrowser(query: string, limit = 6): Promise<any[]> {
+  try {
+    const q = query.trim();
+    if (!q) return [];
+    const url = `https://de1.api.radio-browser.info/json/stations/search?name=${encodeURIComponent(q)}&limit=${Math.min(limit, 10)}&order=votes&reverse=true`;
+    const data: any = await fetchFromProvider('radiobrowser', url, { timeout: 15000, retries: 1 });
+    const stations: any[] = Array.isArray(data) ? data : [];
+    return stations.slice(0, limit).map((s: any) => ({
+      ...ds(String(s.stationuuid || s.url_resolved), 'radiobrowser',
+        `Radio — ${s.name || 'station'} (${s.country || '?'})`,
+        `${s.name}: ${[s.genre, s.tags].filter(Boolean).flat().slice(0, 4).join(', ') || 'radio'} — ${s.country || '?'}${s.state ? `, ${s.state}` : ''}, votes ${s.votes ?? 0}, bitrate ${s.bitrate ?? '?'}. Source: radio-browser.info API.`,
+        s.homepage || s.url_resolved || 'https://www.radio-browser.info', 'radio-browser.info', s),
+    }));
+  } catch (e: any) {
+    console.error(`[RADIOBROWSER] failed: ${e?.message}`);
+    return [];
+  }
+}
+
+
+// OUR WORLD IN DATA — curated grapher indicators (keyless CSV)
+const OWID_INDICATORS: Record<string, string> = {
+  'life expectancy': 'life-expectancy',
+  'gdp per capita': 'gdp-per-capita-worldbank',
+  'co2 per capita': 'co2-per-capita',
+  'child mortality': 'child-mortality-rate',
+  'electricity access': 'access-to-electricity',
+  'internet users': 'share-of-individuals-using-the-internet',
+  'homicide rate': 'homicide-rate-unodc',
+  'vaccination': 'immunization-measles',
+  'poverty': 'share-of-people-living-in-extreme-poverty',
+  'literacy': 'youth-literacy-rate',
+  'maternal mortality': 'maternal-mortality',
+  'sanitation': 'people-without-access-to-sanitation',
+  'refugees': 'refugee-population',
+  'forest area': 'forest-area',
+  'renewable energy': 'renewable-electricity',
+  'primary energy': 'primary-energy-consumption',
+  'temperature': 'global-temperature',
+  'sea level': 'sea-level',
+  'marine protected': 'marine-protected-area',
+  'political': 'political-regime-type',
+};
