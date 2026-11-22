@@ -277,8 +277,40 @@ export async function runEvaluatorsAndTrust(deps: EvaluatorsTrustDeps): Promise<
 
     // 5. Source quality: average quality score — fall back to the richer
     // source-quality score when the provider score is missing (unscored ≠ 0).
-    const avgQuality = topSources.length > 0
-      ? topSources.reduce((sum: number, s: any) => sum + ((s.qualityScore || 0) > 0 ? s.qualityScore : (s.sourceQuality?.overall || 0)), 0) / topSources.length
+    // Post-extraction refresh: qualityScore was computed at scout upsert,
+    // BEFORE reader full-text extraction — contentRichness is structurally
+    // under-scored for every source (abstract-only ≈ 30-45 vs full-text
+    // ≈ 65-100), dragging avgQuality ~10-15 pts and the quality blend below
+    // the publish threshold on sound corpora. Re-score once now that
+    // fullText exists (retraction check skipped — sourceCheck owns that).
+    let qualityValues: number[];
+    try {
+      const { scoreSource } = await import('../source-quality');
+      const readingsByIdQ = new Map<string, any>(
+        (Array.isArray(readings) ? readings : []).map((r: any) => [r.sourceId, r])
+      );
+      qualityValues = await Promise.all(topSources.map(async (s: any) => {
+        const stored = (s.qualityScore || 0) > 0 ? s.qualityScore : (s.sourceQuality?.overall || 0);
+        const fullText = s.fullText ?? s.extractedText ?? readingsByIdQ.get(s.id)?.extractedText ?? '';
+        if (!fullText || stored <= 0) return stored;
+        const rescored = await scoreSource({ ...s, fullText }, undefined, { skipRetractionCheck: true });
+        // Keep the better of the two — extraction can only add information,
+        // never subtract authority/recency already observed. Write back so
+        // downstream consumers (citedSourceQuality, quality blend) see the
+        // refreshed value too.
+        const best = Math.max(stored, rescored.overall);
+        if (best > stored) {
+          s.qualityScore = best;
+          s.sourceQuality = { ...(s.sourceQuality ?? {}), overall: best };
+        }
+        return best;
+      }));
+    } catch {
+      qualityValues = topSources.map((s: any) =>
+        (s.qualityScore || 0) > 0 ? s.qualityScore : (s.sourceQuality?.overall || 0));
+    }
+    const avgQuality = qualityValues.length > 0
+      ? qualityValues.reduce((a, b) => a + b, 0) / qualityValues.length
       : 50;
 
     // 6. Citation verifier integrity (NLI) — default 80 when not run

@@ -64,7 +64,7 @@ async function checkCrossrefRetraction(doi: string): Promise<boolean> {
   }
 }
 
-export async function scoreSource(source: any, currentYear = new Date().getFullYear()): Promise<SourceQualityScore> {
+export async function scoreSource(source: any, currentYear = new Date().getFullYear(), opts?: { skipRetractionCheck?: boolean }): Promise<SourceQualityScore> {
   const year = source.year ?? source.publishedAt ? new Date(source.publishedAt).getFullYear() : undefined;
 
   // Recency: 100 if ≤2 years, drops off to 0 at 30 years
@@ -122,7 +122,7 @@ export async function scoreSource(source: any, currentYear = new Date().getFullY
     // Live Crossref lookup — frozen per-DOI for record/replay (the flag is
     // currently unconsumed downstream, but the HTTP call itself is
     // nondeterministic wall-clock work inside the rank path).
-    hasRetractionWarning: await captureInput(`retraction:${source.doi || ''}`, () => checkCrossrefRetraction(source.doi || '')),
+    hasRetractionWarning: opts?.skipRetractionCheck ? false : await captureInput(`retraction:${source.doi || ''}`, () => checkCrossrefRetraction(source.doi || '')),
     tier,
   };
 }
