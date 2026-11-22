@@ -417,7 +417,7 @@ async function extractPdfTextInner(url: string, timeout = 30000): Promise<PdfExt
  * Fetch a news article URL and extract readable text from HTML.
  * Strips scripts, styles, nav, and extracts main content.
  */
-async function fetchNewsArticleText(url: string, timeout = 20000): Promise<string | null> {
+async function fetchNewsArticleTextDirect(url: string, timeout = 20000): Promise<string | null> {
   // S14-D FIX: Added retry logic matching PDF pattern (2 retries with backoff + jitter)
   // Also increased timeout from 12s to 20s for slow news sites.
   const MAX_RETRIES = 2;
@@ -516,6 +516,34 @@ async function fetchNewsArticleText(url: string, timeout = 20000): Promise<strin
     }
   }
   return null;
+}
+
+// Jina AI Reader fallback — r.jina.ai fetches server-side and returns clean
+// markdown, bypassing publisher bot-blocks (403) and JS-rendered shells that
+// defeat direct fetch. Keyless tier is rate-limited; bounded per run.
+const JINA_RESCUE_MAX = 15;
+let jinaRescueBudget = JINA_RESCUE_MAX;
+
+async function fetchViaJinaReader(url: string, timeout = 30000): Promise<string | null> {
+  if (jinaRescueBudget <= 0 || url.includes('r.jina.ai')) return null;
+  jinaRescueBudget--;
+  try {
+    const res = await fetch(`https://r.jina.ai/${url}`, {
+      signal: AbortSignal.timeout(timeout),
+      headers: { 'User-Agent': 'NomosXBot/1.0', 'Accept': 'text/markdown, text/plain' },
+    });
+    if (!res.ok) return null;
+    const text = (await res.text()).trim();
+    if (text.length < 300) return null;
+    console.log(`[Reader V3] Jina rescue: ${text.length} chars from ${url.slice(0, 80)}`);
+    return text.slice(0, 8000);
+  } catch { return null; }
+}
+
+async function fetchNewsArticleText(url: string, timeout = 20000): Promise<string | null> {
+  const direct = await fetchNewsArticleTextDirect(url, timeout);
+  if (direct && direct.length > 300) return direct;
+  return fetchViaJinaReader(url);
 }
 
 const NEWS_PROVIDERS = ['gdelt-news', 'newsapi', 'mediastack', 'thenewsapi', 'gnews', 'eventregistry', 'linkup'];
@@ -1142,6 +1170,7 @@ export async function readerAgentV3(
   _currentDomain = domain;
   htmlRescueBudget = HTML_RESCUE_MAX; // S20: reset per-run rescue budget
   waybackRescueBudget = WAYBACK_RESCUE_MAX;
+  jinaRescueBudget = JINA_RESCUE_MAX;
   if (domain) console.log(`[Reader V3] Domain-aware mode: ${domain}`);
   if (memoryBlock) console.log(`[Reader V3] Memory injection: ${memoryBlock.length} chars`);
 

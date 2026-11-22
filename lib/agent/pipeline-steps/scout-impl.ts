@@ -93,6 +93,7 @@ import {
   searchSafecast, searchLaunches, searchINaturalist, searchOBIS, searchWoRMS, searchSmithsonian,
   searchCongress, searchNWS, searchUSGSWater, searchNHTSA, searchSWPC,
 searchStackExchange, searchMusicBrainz, searchSocrata, searchRadioBrowser,
+  searchWikipedia,
 } from "../../providers/stats-keys";
 import { searchSearxng } from "../../providers/searxng";
 import { searchPhilPapers } from "../../providers/philpapers";
@@ -805,6 +806,7 @@ export async function scoutImpl(
     if (providerSet.has("musicbrainz")) allPromises.push(trackProviderCall("musicbrainz", searchMusicBrainz(sq, Math.min(5, perProvider))));
     if (providerSet.has("socrata")) allPromises.push(trackProviderCall("socrata", searchSocrata(sq, Math.min(5, perProvider))));
     if (providerSet.has("radiobrowser")) allPromises.push(trackProviderCall("radiobrowser", searchRadioBrowser(sq, Math.min(5, perProvider))));
+    if (providerSet.has("wikipedia-search")) allPromises.push(trackProviderCall("wikipedia-search", searchWikipedia(sq, Math.min(5, perProvider))));
     // Free metasearch floor — keeps web retrieval alive when paid search is exhausted
     if (providerSet.has("searxng")) allPromises.push(trackProviderCall("searxng", searchSearxng(sq, Math.min(8, perProvider))));
 

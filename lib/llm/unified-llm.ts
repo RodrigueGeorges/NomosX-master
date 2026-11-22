@@ -829,6 +829,9 @@ const FREEPOOL_ENDPOINTS: Array<Omit<FreepoolEndpoint, "apiKey"> & { envKey: key
   // GOOGLE_API_KEY the 'google' family uses, but as a freepool safety net so
   // a glm/groq/nvidia outage never leaves the pipeline without an LLM.
   { name: "gemini",     envKey: "GOOGLE_API_KEY",     baseURL: "https://generativelanguage.googleapis.com/v1beta/openai", fastModel: "gemini-3.8-flash", reasoningModel: "gemini-3.8-flash", maxContextTokens: 60_000 },
+  // Cohere trial key via the OpenAI-compatibility endpoint — free tier,
+  // independent infra from every other freepool member.
+  { name: "cohere",     envKey: "COHERE_API_KEY",     baseURL: "https://api.cohere.com/compatibility/v1", fastModel: "command-a-03-2025", reasoningModel: "command-a-03-2025", maxContextTokens: 60_000 },
 ];
 
 function getFreepoolEndpoints(): FreepoolEndpoint[] {

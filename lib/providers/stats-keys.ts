@@ -2331,3 +2331,33 @@ const OWID_INDICATORS: Record<string, string> = {
   'marine protected': 'marine-protected-area',
   'political': 'political-regime-type',
 };
+
+// ─────────────────────────────────────────────────────────────
+// WIKIPEDIA SEARCH — MediaWiki full-text API (keyless).
+// Encyclopedia-grade substitution for general-knowledge queries when
+// paid search (Tavily/Exa) and metasearch (SearXNG) are degraded.
+// ─────────────────────────────────────────────────────────────
+export async function searchWikipedia(query: string, limit = 6): Promise<any[]> {
+  const q = query.trim();
+  if (q.length < 4) return [];
+  try {
+    const url = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(q)}&srlimit=${Math.min(limit, 10)}&format=json&formatversion=2`;
+    const data: any = await fetchFromProvider('wikipedia-search', url, { timeout: 12000, retries: 1 });
+    const hits: any[] = data?.query?.search || [];
+    if (hits.length === 0) return [];
+    return hits.slice(0, limit).map((h: any) => {
+      const title = String(h.title || '');
+      const snippet = String(h.snippet || '').replace(/<[^>]+>/g, '');
+      return ds(
+        `wiki:${h.pageid || Buffer.from(title).toString('base64').slice(0, 16)}`, 'wikipedia-search',
+        `Wikipedia — ${title}`,
+        `${snippet} — ${title} (${h.wordcount ?? '?'} words). Source: Wikipedia MediaWiki API.`,
+        `https://en.wikipedia.org/wiki/${encodeURIComponent(title.replace(/ /g, '_'))}`,
+        'Wikipedia', { pageid: h.pageid, wordcount: h.wordcount },
+      );
+    });
+  } catch (e: any) {
+    console.error(`[WIKIPEDIA] failed: ${e?.message}`);
+    return [];
+  }
+}

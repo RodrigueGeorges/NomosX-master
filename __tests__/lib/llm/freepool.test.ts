@@ -27,6 +27,7 @@ const FREE_KEYS = [
   "NVIDIA_API_KEY",
   "OPENROUTER_API_KEY",
   "MISTRAL_API_KEY",
+  "COHERE_API_KEY",
 ];
 
 // Paid providers must be neutralized — the fallback chain would otherwise try
