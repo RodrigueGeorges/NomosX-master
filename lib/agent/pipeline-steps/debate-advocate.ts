@@ -41,6 +41,41 @@ const debateContextOf = (d: DebateResult) => [
   `Steel-man already addressed: ${d.synthesis?.slice(0, 200) || "N/A"}`,
 ].join("\n");
 
+/** Challenge types whose repair requires EVIDENCE (sources, warrants,
+ *  stakeholders), not prose — they are routed to the retry's retrieval
+ *  mission instead of only the copy-edit path. */
+export const DA_EVIDENCE_BOUND_TYPES = new Set([
+  'non_evidence', 'missing_warrant', 'invalid_analogy', 'selection_bias',
+  'missing_stakeholder', 'implementation_gap', 'cascade_extrapolation',
+  'temporal_fallacy',
+]);
+
+/** Persist evidence-bound DA challenges as retry retrieval queries.
+ *  The dispatcher merges daEvidenceQueries + deferredGapRequests into the
+ *  HELD retry's scout mission — the gap is repaired by retrieval, not by
+ *  rewording. Merge-dedup: safe to call after the DA evidence mission. */
+export function persistDaEvidenceQueries(
+  stats: Record<string, any>,
+  challenges: Array<Record<string, any>> | undefined,
+  label: string,
+  maxQueries = 3,
+): number {
+  const boundQueries = [...(challenges ?? [])]
+    .filter((c) => DA_EVIDENCE_BOUND_TYPES.has(String(c?.challengeType ?? c?.type ?? '')))
+    .map((c) => String(c?.challenge ?? c?.text ?? '').trim().slice(0, 200))
+    .filter((q) => q.length > 10)
+    .slice(0, maxQueries);
+  if (boundQueries.length === 0) return 0;
+  const existing = Array.isArray(stats.daEvidenceQueries) ? stats.daEvidenceQueries as string[] : [];
+  stats.daEvidenceQueries = [...new Set([...existing, ...boundQueries])].slice(0, 8);
+  stats.daTypedRouting = {
+    ...(stats.daTypedRouting as Record<string, unknown> | undefined),
+    evidenceBoundQueries: (((stats.daTypedRouting as any)?.evidenceBoundQueries ?? 0) as number) + boundQueries.length,
+  };
+  console.log(`${label} DA TYPED ROUTING: +${boundQueries.length} evidence-bound challenge(s) persisted as retry retrieval queries`);
+  return boundQueries.length;
+}
+
 export async function runDebateMetaBlock(
   deps: DebateAdvocateDeps,
   runDebate: boolean,
@@ -228,6 +263,13 @@ export async function runDevilsAdvocateBlock(
         payload: { type: c.challengeType, requiredAction: c.requiredAction, suggestedRevision: c.suggestedRevision },
       });
     }
+
+    // Typed routing: evidence-bound challenges (missing sources, warrants,
+    // stakeholders, invalid analogies, biased selection) cannot be repaired
+    // by copy edits alone — persist them as retrieval queries so a HELD
+    // retry scouts the exact missing evidence. Wording challenges
+    // (overstated_conclusion) stay on the substance_weak → revision-editor path.
+    persistDaEvidenceQueries(stats, [...(daResult.fatalChallenges || []), ...(daResult.majorChallenges || [])], label);
     emitProgress(pipelineRunId, "DEVILS_ADVOCATE", "completed", `Verdict: ${daResult.verdict} (${daResult.overallStrength}/100)`);
 
     // Devil's Advocate veto: reject verdicts and MAJOR_REVISION with

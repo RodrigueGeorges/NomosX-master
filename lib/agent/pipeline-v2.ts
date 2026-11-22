@@ -1521,7 +1521,14 @@ Return JSON: {"queries": ["...", "..."]} — one query per gap, same order.`,
           // Persist the distilled queries: on a HELD outcome they ride the
           // diagnostic into the 20h retry, whose scout runs them as a targeted
           // evidence mission — the gap is repaired by retrieval, not rhetoric.
-          stats.daEvidenceQueries = challengeQueries.slice(0, 6);
+          // Merge, don't overwrite: the DA step may already have persisted
+          // evidence-bound challenge queries (typed routing) — the mission's
+          // distilled fatal queries join them, deduped, capped at 8 (the
+          // dispatcher's own slice).
+          stats.daEvidenceQueries = [...new Set([
+            ...((stats.daEvidenceQueries as string[] | undefined) ?? []),
+            ...challengeQueries,
+          ])].slice(0, 8);
           await processGapRequests('DEVILS_ADVOCATE');
           analysis = gapFillState.analysis;
           reAnalysisBudget = gapFillState.reAnalysisBudget;
@@ -1534,7 +1541,7 @@ Return JSON: {"queries": ["...", "..."]} — one query per gap, same order.`,
               const reJudge = await runDevilsAdvocate(
                 query,
                 buildAnalysisReviewText(analysis as unknown as Record<string, unknown>, query),
-                topSources.map((s: any) => ({ title: s.title, provider: s.provider, year: s.year })),
+                topSources.map((s: any) => ({ title: s.title, provider: s.provider, year: s.year, excerpt: String(s.fullText ?? s.abstract ?? '').slice(0, 3000) || undefined })),
                 { mode: isStrategic ? 'strategic' : 'brief', domain: detectedDomain, debateContext },
               );
               addCost(reJudge.costUsd, 'DEVILS_ADVOCATE_POST_MISSION');
@@ -1595,7 +1602,7 @@ Return JSON: {"queries": ["...", "..."]} — one query per gap, same order.`,
           const reJudge = await runDevilsAdvocate(
             query,
             buildAnalysisReviewText(rewrite as unknown as Record<string, unknown>, query),
-            topSources.map((s: any) => ({ title: s.title, provider: s.provider, year: s.year })),
+            topSources.map((s: any) => ({ title: s.title, provider: s.provider, year: s.year, excerpt: String(s.fullText ?? s.abstract ?? '').slice(0, 3000) || undefined })),
             { mode: isStrategic ? 'strategic' : 'brief', domain: detectedDomain, debateContext },
           );
           addCost(reJudge.costUsd, 'DEVILS_ADVOCATE_REWRITE_RECHECK');

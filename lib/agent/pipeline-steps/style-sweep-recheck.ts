@@ -204,6 +204,10 @@ export async function runStyleSweepRecheck(ctx: TailStepContext): Promise<void> 
         costUsd: recheck.costUsd,
       };
       (stats as any).devilsAdvocateVeto = stillVetoWorthy;
+      // Fresh challenges on the corrected artifact feed the retry's retrieval
+      // mission too — evidence-bound ones are not copy-editable.
+      const { persistDaEvidenceQueries } = await import('./debate-advocate');
+      persistDaEvidenceQueries(stats, [...(recheck.fatalChallenges || []), ...(recheck.majorChallenges || [])], label);
       stats.devilsAdvocate = ctx.tagEval({
         evaluationComplete: recheck.evaluationComplete,
         verdict: recheck.verdict,

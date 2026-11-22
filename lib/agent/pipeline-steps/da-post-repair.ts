@@ -71,6 +71,10 @@ export async function runDaPostRepairRecheck(deps: DaPostRepairDeps): Promise<vo
     );
     const stillVetoWorthy = vetoCheck.stands;
     stats.devilsAdvocateVeto = stillVetoWorthy;
+    // Fresh challenges on the post-repair artifact feed the retry's
+    // retrieval mission (evidence-bound types are not copy-editable).
+    const { persistDaEvidenceQueries } = await import('./debate-advocate');
+    persistDaEvidenceQueries(stats, [...(recheck.fatalChallenges || []), ...(recheck.majorChallenges || [])], label);
     stats.devilsAdvocatePostRepair = {
       verdict: recheck.verdict,
       overallStrength: recheck.overallStrength,
