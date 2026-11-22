@@ -779,7 +779,9 @@ async function runLLMTickBatch(
 
     for (const ev of parsed.events) {
       const p = personas.find((x) => x.id === ev.personaId);
-      if (!p || !ev.scenarioLean) continue;
+      // LLM events can omit content — downstream .slice()/post would throw
+      // and silently drop the whole tick batch (observed live in foresight).
+      if (!p || !ev.scenarioLean || typeof ev.content !== "string" || !ev.content) continue;
       const strength = Math.min(1, Math.max(0.05, ev.shiftStrength ?? 0.15));
       for (const name of Object.keys(p.positions)) p.positions[name] *= 1 - strength;
       p.positions[ev.scenarioLean] = (p.positions[ev.scenarioLean] ?? 0) + strength;
