@@ -133,7 +133,10 @@ export async function enqueueThinkTankCycle(options: {
       correlationId: key,
       idempotencyKey: key,
       priority: options.priority ?? 7,
-      maxRetries: 1, // a full cycle re-run costs ~$1+ — retry once only
+      // maxRetries is a TOTAL-attempts budget (attempts<maxRetries retries):
+      // 2 = initial try + one retry. Was 1 = zero retries — any transient
+      // failure dead-lettered a ~$1+ cycle despite the "retry once" intent.
+      maxRetries: 2,
     },
   });
   return { enqueued: true, jobId: job.id };

@@ -19,6 +19,7 @@ import { extractTopics } from '@/lib/queries/public-inquiry';
 import { EMAIL_BRAND as E, emailTrustColor } from '@/lib/brand/email-brand';
 import { emailLogoHeaderHtml } from '@/lib/brand/logo-inline';
 import { BRAND_EMAIL_FOOTER, BRAND_EMAIL_TAGLINE } from '@/lib/brand/public-copy';
+import { unsubscribeUrl } from '@/lib/newsletter-unsubscribe';
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://nomosx.com';
 const UTM = 'utm_source=email&utm_medium=newsletter&utm_campaign=weekly';
@@ -257,7 +258,7 @@ function generateNewsletterHTML(
             ${BRAND_EMAIL_FOOTER}
           </p>
           <p style="font-size:12px;color:#3f3f46;margin:0;">
-            <a href="${APP_URL}/api/newsletter/unsubscribe?email=${subscriberEmail}&${UTM}" style="color:#52525b;text-decoration:none;">Unsubscribe</a>
+            <a href="${unsubscribeUrl(subscriberEmail, APP_URL)}&${UTM}" style="color:#52525b;text-decoration:none;">Unsubscribe</a>
             &nbsp;·&nbsp;
             <a href="${APP_URL}/settings/notifications?${UTM}" style="color:#52525b;text-decoration:none;">Preferences</a>
             &nbsp;·&nbsp;

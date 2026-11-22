@@ -22,6 +22,11 @@ export async function POST(
         if (!session?.id) {
           return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
         }
+        // Corrections/retractions mutate the public record — admin only.
+        // Any authenticated user could previously retract any publication.
+        if (session.role !== 'admin') {
+          return NextResponse.json({ error: 'Admin role required' }, { status: 403 });
+        }
 
         const { id } = await params;
         const idValidation = commonSchemas.id.safeParse({ id });

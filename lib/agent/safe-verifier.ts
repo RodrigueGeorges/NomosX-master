@@ -383,10 +383,24 @@ export async function verifyClaimsWithLiveSearch(
         return rateClaim(claim, queries, { resultsPerQuery, entailmentThreshold, contradictionThreshold });
       }),
     );
-    for (const r of settled) {
+    for (let si = 0; si < settled.length; si++) {
+      const r = settled[si];
       if (r.status === 'fulfilled') {
         results.push(r.value.result);
         searchCalls += r.value.calls;
+      } else {
+        // Placeholder keeps results[] positionally aligned with claims[] —
+        // claim-grounding applies verdicts BY INDEX; a dropped rejection
+        // would stamp the next claim's verdict onto the wrong claim.
+        results.push({
+          claim: slice[si]?.claim ?? '',
+          verdict: 'unverifiable',
+          confidence: 0,
+          queries: [],
+          evidenceUrls: [],
+          evidenceSnippet: null,
+          nliSource: 'local-nli',
+        });
       }
     }
   }

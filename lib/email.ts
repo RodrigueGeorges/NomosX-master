@@ -14,6 +14,7 @@ import { inquiryUrl, archivesUrl } from '@/lib/public-urls';
 import { EMAIL_BRAND as EMAIL } from '@/lib/brand/email-brand';
 import { emailLogoHeaderHtml } from '@/lib/brand/logo-inline';
 import { httpPost } from './http-client';
+import { unsubscribeUrl } from './newsletter-unsubscribe';
 import {
   BRAND_EMAIL_FOOTER,
   BRAND_EMAIL_TAGLINE,
@@ -193,7 +194,7 @@ export async function sendNewsletterConfirmation(to: string, confirmToken: strin
  */
 export async function sendNewsletterWelcome(to: string): Promise<void> {
   const publicationsUrl = addUtmParams(archivesUrl(true), UTM_CAMPAIGN.newsletter);
-  const unsubUrl = `${APP_URL}/api/newsletter/unsubscribe?email=${encodeURIComponent(to)}`;
+  const unsubUrl = unsubscribeUrl(to, APP_URL);
   const html = layout(`
     <h1 style="font-size:24px;font-weight:300;color:#fff;margin:0 0 8px;">
       You're subscribed.
@@ -286,7 +287,7 @@ export async function sendBriefPublishedNotification(
     <hr style="${EMAIL.hr}" />
     <p style="font-size:12px;color:#52525b;margin:0;">
       You're receiving this because you subscribed to NomosX publications.
-      <a href="${APP_URL}/api/newsletter/unsubscribe?email=${encodeURIComponent(to)}"
+      <a href="${unsubscribeUrl(to, APP_URL)}"
          style="color:#52525b;text-decoration:none;">Unsubscribe</a>.
     </p>
   `, `${brief.title} — peer-reviewed intelligence from NomosX`);

@@ -14,6 +14,7 @@
  */
 
 import type { CausalLink } from './analyst-multipass';
+import { captureInputSync } from './frozen-inputs';
 
 export interface ChainUncertainty {
   linkId: number;
@@ -91,7 +92,10 @@ export function deriveChainScenarios(
   const horizonMatch = (horizon ?? '').match(/(20\d{2})/);
   const observableAt = horizonMatch
     ? `${horizonMatch[1]}-12-31`
-    : new Date(Date.now() + 365 * 86_400_000).toISOString().slice(0, 10);
+    // Frozen channel: wall-clock here drifts record vs replay prompts.
+    : captureInputSync('time:chain-horizon', () =>
+        new Date(Date.now() + 365 * 86_400_000).toISOString().slice(0, 10)
+      );
 
   const u1id = `u${u1.linkId}`, u2id = `u${u2.linkId}`;
   const combos: Array<{ a: boolean; b: boolean; tag: string }> = [

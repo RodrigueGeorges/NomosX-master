@@ -597,10 +597,15 @@ export class SelfCorrector {
       .filter((s) => !s.clean)
       .map((s) => s.stage);
 
-    // Find rollback target — last clean stage before the first failure
+    // Find rollback target — last clean stage BEFORE the first failure.
+    // Scanning from the end returned the last clean stage ANYWHERE, which
+    // with [clean, fail, clean] picked a stage that consumed the corrupted
+    // output — rollback restored the wrong point.
     let rollbackTarget: string | null = null;
     if (cascadeDetected) {
-      for (let i = stages.length - 1; i >= 0; i--) {
+      const firstFail = stages.findIndex(s => !s.clean);
+      const scanEnd = firstFail === -1 ? stages.length : firstFail;
+      for (let i = scanEnd - 1; i >= 0; i--) {
         if (stages[i].clean) {
           rollbackTarget = stages[i].stage;
           break;

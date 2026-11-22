@@ -273,7 +273,7 @@ describe('enqueueThinkTankCycle', () => {
     const r = await enqueueThinkTankCycle({ mode: 'weekly' });
     expect(r).toEqual({ enqueued: true, jobId: 'new1' });
     expect(mocked.create).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ type: 'THINK_TANK_CYCLE', maxRetries: 1 }) })
+      expect.objectContaining({ data: expect.objectContaining({ type: 'THINK_TANK_CYCLE', maxRetries: 2 }) })
     );
   });
 

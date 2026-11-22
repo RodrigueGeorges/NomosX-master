@@ -25,9 +25,22 @@ export function parsePriorProbability(value: unknown): number | undefined {
  * Uses the largest remainder method (Hamilton's method) to avoid 99% or 101% sums.
  */
 export function roundPercentages(probs: number[]): number[] {
-  const total = probs.reduce((a, b) => a + b, 0);
-  if (total === 0) return probs.map(() => Math.floor(100 / probs.length));
-  const scaled = probs.map((p) => (p / total) * 100);
+  if (probs.length === 0) return [];
+  // Sanitize: NaN/Infinity/negative inputs must not propagate — a single
+  // bad probability previously produced "NaN%" in published scenario text.
+  const clean = probs.map(p => (Number.isFinite(p) && p > 0 ? p : 0));
+  const total = clean.reduce((a, b) => a + b, 0);
+  if (total === 0) {
+    // Equal split WITH remainder distribution — floor(100/n) alone sums to
+    // n*floor(100/n) (99 for n=3, 98 for n=7), never exactly 100.
+    const base = Math.floor(100 / clean.length);
+    const out = clean.map(() => base);
+    for (let i = 0, rem = 100 - out.reduce((a, b) => a + b, 0); rem > 0; i = (i + 1) % out.length, rem--) {
+      out[i]++;
+    }
+    return out;
+  }
+  const scaled = clean.map((p) => (p / total) * 100);
   const floored = scaled.map((v) => Math.floor(v));
   let remainder = 100 - floored.reduce((a, b) => a + b, 0);
   // Distribute remaining percentage points to the largest fractional remainders

@@ -117,9 +117,15 @@ function touchRunLiveness(runId: string): void {
     for (const [id, t] of lastRunTouch) if (t < cutoff) lastRunTouch.delete(id);
   }
   // Lazy import keeps prisma out of any bundle that only streams SSE events.
+  // Guard on status=RUNNING: a late heartbeat racing the terminal write must
+  // not resurrect finishedAt on an already-COMPLETED/FAILED run (the stale
+  // sweeper keys off finishedAt/updatedAt and would re-kill a finished run).
   void import('../db')
     .then(({ prisma }) =>
-      prisma.pipelineRun.update({ where: { id: runId }, data: { finishedAt: null } })
+      prisma.pipelineRun.updateMany({
+        where: { id: runId, status: 'RUNNING' },
+        data: { finishedAt: null },
+      })
     )
     .catch(() => undefined); // ad-hoc/non-DB run ids — heartbeat is best-effort
 }

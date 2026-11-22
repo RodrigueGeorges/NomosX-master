@@ -63,10 +63,16 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const token = searchParams.get("token");
   const email = searchParams.get("email");
+  const sig = searchParams.get("sig");
 
-  if (!token && !email) {
+  // Bare ?email= is NOT accepted — anyone could mass-unsubscribe arbitrary
+  // addresses (GET bypasses CSRF). Email links must carry a valid HMAC
+  // signature; token links use the subscriber's confirmToken.
+  const { verifyUnsubscribeSignature } = await import('@/lib/newsletter-unsubscribe');
+  const emailOk = !!(email && verifyUnsubscribeSignature(email, sig));
+  if (!token && !emailOk) {
     return NextResponse.json(
-      { error: "Token or email required" },
+      { error: "Token or signed email required" },
       { status: 400 }
     );
   }

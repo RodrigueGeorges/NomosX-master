@@ -87,11 +87,15 @@ export async function GET(req: NextRequest) {
           totalCount = await prisma.thinkTankPublication.count({ where });
 
           // Fetch briefs with summaries
-          briefs = await prisma.thinkTankPublication.findMany({
+          // Fetch a candidate WINDOW (4× page), then filter legacy briefs
+          // and slice — filtering AFTER skip/take produced empty pages
+          // while later pages held valid briefs, and totalCount was set to
+          // the page length (pagination effectively broken).
+          const candidates = await prisma.thinkTankPublication.findMany({
             where,
             orderBy: { publishedAt: 'desc' },
             skip: offset,
-            take: limit,
+            take: limit * 4,
             select: {
               id: true,
               title: true,
@@ -106,19 +110,18 @@ export async function GET(req: NextRequest) {
               heroImageUrl: true,
             },
           });
+          briefs = candidates
+            .filter(brief => {
+              const rawHtml = (brief.html || '').replace(/^```html?\s*/i, '').replace(/\s*```\s*$/, '').trim();
+              return isPositionFirstBrief(rawHtml);
+            })
+            .slice(0, limit);
         } catch (dbError: any) {
           console.error('[API/Public/Briefs] Database error:', dbError);
           // Return empty results instead of 500 error
           totalCount = 0;
           briefs = [];
         }
-
-        // Filter out legacy (pre-Editorial V2) briefs — only new-format briefs are shown publicly
-        briefs = briefs.filter(brief => {
-          const rawHtml = (brief.html || '').replace(/^```html?\s*/i, '').replace(/\s*```\s*$/, '').trim();
-          return isPositionFirstBrief(rawHtml);
-        });
-        totalCount = briefs.length;
 
         // Transform data for public consumption
         const transformedBriefs = briefs.map(brief => {

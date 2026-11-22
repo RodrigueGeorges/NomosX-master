@@ -139,16 +139,21 @@ export async function runDebateMetaBlock(
   // adversarial testing. Success metric = confidence in the dominant
   // thesis; the pattern carries the steel-man verdict for calibration.
   try {
-    const final = debateResult ?? debate;
-    recordExperience(
-      query.slice(0, 100),
-      query,
-      'debate',
-      `Debate: confidence=${final.confidenceInDominant}%, steelMan=${final.debateQuality?.steelManStrength}, evidenceBalance=${final.debateQuality?.evidenceBalance}`,
-      `${String(final.dominantThesis ?? '').slice(0, 200)} [steel-man ${final.debateQuality?.steelManStrength}/100]`,
-      Math.min(1, Math.max(0, (final.confidenceInDominant ?? 50) / 100)),
-      `domain=${detectedDomain ?? 'general'}; steel-man strength ${final.debateQuality?.steelManStrength}/100`,
-    );
+    // Replay/freeze runs must not mutate the experience bank — same gate
+    // as extractExperience and the regen-futility path.
+    const { learningWritesEnabled } = await import('../learning-gate');
+    if (learningWritesEnabled()) {
+      const final = debateResult ?? debate;
+      recordExperience(
+        query.slice(0, 100),
+        query,
+        'debate',
+        `Debate: confidence=${final.confidenceInDominant}%, steelMan=${final.debateQuality?.steelManStrength}, evidenceBalance=${final.debateQuality?.evidenceBalance}`,
+        `${String(final.dominantThesis ?? '').slice(0, 200)} [steel-man ${final.debateQuality?.steelManStrength}/100]`,
+        Math.min(1, Math.max(0, (final.confidenceInDominant ?? 50) / 100)),
+        `domain=${detectedDomain ?? 'general'}; steel-man strength ${final.debateQuality?.steelManStrength}/100`,
+      );
+    }
   } catch { /* memory write is advisory */ }
   return { debateResult, debateContext };
 }

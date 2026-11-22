@@ -100,7 +100,11 @@ export async function runPredictionAuditor(
   }> = [];
 
   for (const log of logs) {
-    const meta = log.metadata as any;
+    // AgentAuditLog.metadata is a JSON STRING (@db.Text) — reading
+    // .predictions off the raw string always yielded [] and the auditor
+    // cron silently audited nothing. Parse like every other consumer.
+    let meta: any = {};
+    try { meta = JSON.parse(log.metadata || '{}'); } catch { meta = {}; }
     const preds = meta?.predictions || [];
     for (const pred of preds) {
       if ((pred.probability || 0) >= minProbability) {

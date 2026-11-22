@@ -303,7 +303,7 @@ export function renderStrategicReportHTML(
       <div class="content">
         <p>${formatCitations(theme.description)}</p>
         <p><strong>Evidence:</strong> ${formatCitations(theme.evidence)}</p>
-        <p><em>Sources: ${theme.sources?.join(", ") || "N/A"}</em></p>
+        <p><em>Sources: ${(theme.sources ?? []).map((x: string) => esc(x)).join(", ") || "N/A"}</em></p>
       </div>
     `
       )
@@ -346,11 +346,15 @@ export function renderStrategicReportHTML(
       `;
     }
     const eq = analysis.evidenceQuality;
-    const scorePercent = (eq.overallScore / 10) * 100;
+    const rawScore = Number(eq?.overallScore);
+    const scorePercent = Number.isFinite(rawScore)
+      ? Math.max(0, Math.min(100, (rawScore / 10) * 100))
+      : 0;
+    const displayScore = Number.isFinite(rawScore) ? esc(String(rawScore)) : "N/A";
     return `
       <div class="quality-meter">
         <div class="quality-score">
-          <span class="score-value">${eq.overallScore}</span>
+          <span class="score-value">${displayScore}</span>
           <span class="score-label">/10<br/>Overall Evidence Quality</span>
         </div>
         <div class="quality-bar">
@@ -498,7 +502,7 @@ export function renderStrategicReportHTML(
           .filter(Boolean)
           .slice(0, 3) as string[];
         const authors = authorList && authorList.length > 0
-          ? authorList.join(", ")
+          ? authorList.map((a: string) => esc(a)).join(", ")
           : ""; // No authors — omit entirely instead of "Unknown"
         const yearStr = s.year ? `(${s.year})` : "";
         const metaParts = [authors, yearStr, esc(s.provider)].filter(p => p && p.trim()).join(" • ");

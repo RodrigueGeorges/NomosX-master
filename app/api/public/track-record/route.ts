@@ -43,7 +43,9 @@ export async function GET(req: Request) {
       }),
       prisma.prediction.findMany({
         where: { status: "OPEN" },
-        orderBy: { horizon: "asc" },
+        // dueAt is the authoritative deadline (parseHorizonDue); horizon is
+        // free text — lexicographic 'asc' ordered '10d' before '2y' wrongly.
+        orderBy: [{ dueAt: "asc" }, { createdAt: "asc" }],
         skip,
         take: limit,
         select: {
@@ -72,6 +74,10 @@ export async function GET(req: Request) {
     // Reference: a naive always-0.5 forecast scores exactly 0.25.
     const quantified = await prisma.prediction.findMany({
       where: { status: { in: ["CONFIRMED", "REFUTED"] }, probability: { not: null } },
+      // Bounded: this public endpoint previously loaded EVERY resolved
+      // prediction ever into memory — unbounded growth on a 5-min revalidate.
+      orderBy: { resolvedAt: "desc" },
+      take: 5000,
       select: { probability: true, status: true, probabilitySource: true },
     });
     const brierOf = (rows: typeof quantified) => rows.length > 0

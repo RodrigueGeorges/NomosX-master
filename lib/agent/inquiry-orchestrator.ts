@@ -565,7 +565,17 @@ export async function runAndPublishInquiry(
         if (key === 'devilsAdvocate') return !aDa && !optionalDa;
         const evaluation = (p.stats[key] ?? p.lineage[key]) as Record<string, unknown> | undefined;
         return !!evaluation?.error || evaluation?.evaluationComplete === false;
-      }),
+      }).concat(
+        // Verdict-bearing integrity evaluators that CRASHED leave no stats
+        // entry — only a degradedSteps record — yet the trust blend silently
+        // substitutes passing defaults (80/85/100). A run that lost every
+        // integrity verifier must not publish on fabricated scores.
+        ['FACT_CHECKER', 'CITATION_VERIFIER_LLM', 'CLAIM_GROUNDING', 'SYMBOLIC_VERIFY', 'SOURCE_CHECK']
+          .filter(step =>
+            Array.isArray((p.stats as any).degradedSteps) &&
+            (p.stats as any).degradedSteps.some((d: any) => d?.step === step)
+          )
+      ),
     };
 
     let g = evaluatePublicationGate({ ...gi, html: aHtml });
@@ -907,6 +917,10 @@ export async function runAndPublishInquiry(
                 sameDaSignature: true, daSignature: daSigBefore.slice(0, 120),
               };
               try {
+                // Replay/freeze runs must not bank lessons — same gate as
+                // persistence-tail (phantom experience corrupts the bank).
+                const { learningWritesEnabled } = await import('./learning-gate');
+                if (!learningWritesEnabled()) throw new Error('learning frozen');
                 const { recordExperience } = await import('./knowledge-infrastructure');
                 const daTypes = [...new Set(((assessment.da as { topChallenges?: { type: string }[] } | undefined)?.topChallenges ?? [])
                   .map(c => c.type).filter(Boolean))].sort().join('+');

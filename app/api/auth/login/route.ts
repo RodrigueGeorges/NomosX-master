@@ -59,12 +59,18 @@ export async function POST(req: NextRequest) {
             role: user.role || 'user',
           });
 
-          // Return user data (excluding password)
-          const { password: _, ...userWithoutPassword } = user;
-
+          // Return only safe fields — the raw user row also carries
+          // resetToken/verificationToken/preferences, which must not
+          // round-trip to the browser (XSS/token leakage surface).
           return NextResponse.json({
             success: true,
-            user: userWithoutPassword,
+            user: {
+              id: user.id,
+              email: user.email,
+              name: user.name,
+              role: user.role,
+              createdAt: user.createdAt,
+            },
           });
         } catch (error: any) {
           console.error("[Login API] Error:", error);

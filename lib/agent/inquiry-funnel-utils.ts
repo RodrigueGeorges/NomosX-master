@@ -248,6 +248,9 @@ export function extractPipelineScores(
     trustScore = scaleScore(brief?.trustScore ?? null) ?? 70;
   }
 
+  // Terminal trust = the critical loop's finalScore (Sprint 42 doctrine:
+  // one trust arithmetic). The blend above is vestigial — kept for the
+  // no-criticalScore fallbacks only.
   if (criticalScore != null && Number.isFinite(criticalScore)) {
     trustScore = Math.max(0, Math.min(100, criticalScore));
   }

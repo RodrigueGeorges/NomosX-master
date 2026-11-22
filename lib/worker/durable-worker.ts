@@ -334,6 +334,9 @@ export async function executeJob(
     try { assertLeaseActive(); } catch { return 'lost'; }
     const message = err instanceof Error ? err.message : String(err);
     const stack = err instanceof Error ? err.stack : undefined;
+    // maxRetries is a TOTAL-ATTEMPTS budget (attempts is incremented at
+    // claim): attempts < maxRetries retries, attempts === maxRetries is the
+    // last allowed try. Enqueue sites wanting "1 retry" must pass 2.
     const willRetry = job.attempts < job.maxRetries;
 
     if (willRetry) {

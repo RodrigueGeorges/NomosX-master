@@ -155,10 +155,16 @@ export function evaluatePublicationGate(input: PublicationGateInput): Publicatio
   // Use structured claims from READER agent when available, otherwise parse HTML
   let evidenceLedger: ReturnType<typeof buildEvidenceLedger>;
   if (input.dbClaims && input.dbClaims.length > 0) {
-    const citedClaims = input.dbClaims.filter(c => c.sourceRef != null && c.sourceRef > 0);
+    // sourceRef is a 1-based index into the run's source list — a ref beyond
+    // sourceCount cannot point at a real source and must not count as a
+    // citation (fail-closed: out-of-range refs are treated as uncited).
+    const dbSourceCount = input.sourceIds?.length || 0;
+    const inRange = (r: number | null | undefined): r is number =>
+      r != null && r > 0 && (dbSourceCount === 0 || r <= dbSourceCount);
+    const citedClaims = input.dbClaims.filter(c => inRange(c.sourceRef));
     const allRefs = input.dbClaims
       .map(c => c.sourceRef)
-      .filter((r): r is number => r != null && r > 0);
+      .filter(inRange);
     evidenceLedger = {
       claimCount: input.dbClaims.length,
       citedClaimCount: citedClaims.length,
@@ -168,8 +174,8 @@ export function evaluatePublicationGate(input: PublicationGateInput): Publicatio
       claims: input.dbClaims.map((c, i) => ({
         id: `db-claim-${i + 1}`,
         text: c.text,
-        citations: c.sourceRef ? [c.sourceRef] : [],
-        supportStatus: c.sourceRef ? "unverified" as const : "unsupported" as const,
+        citations: inRange(c.sourceRef) ? [c.sourceRef] : [],
+        supportStatus: inRange(c.sourceRef) ? "unverified" as const : "unsupported" as const,
       })),
     };
   } else {

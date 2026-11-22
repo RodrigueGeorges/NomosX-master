@@ -284,7 +284,17 @@ Be FAIR but RIGOROUS. Think tanks are destroyed by fabricated numbers, but they 
     });
 
     const parsed = parseJson<any>(response.content);
-    return parsed?.results || [];
+    // Fail closed on malformed/truncated evaluator output: parseJson returns
+    // null (not throw) on total failure, and `?.results || []` would silently
+    // drop every claim in the batch — shrinking the integrity denominator
+    // while totalClaims still counts them (inflated integrity score).
+    // Mismatched counts are equally suspect: results must map 1:1 to claims.
+    if (!parsed || !Array.isArray(parsed.results) || parsed.results.length !== claims.length) {
+      throw new Error(
+        `fact-check batch returned ${parsed?.results?.length ?? 'no'} results for ${claims.length} claims`
+      );
+    }
+    return parsed.results;
   } catch (error: any) {
     console.warn(`[FACT-CHECKER] LLM fact-check failed: ${error.message}`);
     // Return unverified results

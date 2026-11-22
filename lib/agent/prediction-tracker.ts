@@ -78,17 +78,23 @@ export async function storePrediction(params: {
     // ".10" (Prisma Float rejects them) and clamp to the 0-1 contract.
     const p = typeof params.probability === 'number' ? params.probability : parseFloat(String(params.probability));
     const probability = Number.isFinite(p) ? Math.min(1, Math.max(0, p)) : 0.5;
+    const horizon = params.horizon || '90d';
     await prisma.prediction.create({
       data: {
         briefId: params.briefId,
         claim: `${params.hypothesis} [${params.researchQuestion.slice(0, 80)}]`,
-        horizon: params.horizon || '90d',
+        horizon,
         probability,
         confidence: params.predictionType || 'scenario',
         resolutionCriteria: `Evaluate whether the following prediction came true: ${params.hypothesis}`,
         whatWouldFalsify: `Evidence that contradicts: ${params.hypothesis}`,
         sourceRefs: [],
         status: 'OPEN',
+        // OT-7/OT-1 fields were silently dropped: domain broke calibration
+        // breakdowns, dueAt left every prediction unresolvable by the
+        // sentinel sweep, kind='sentinel' never set.
+        domain: params.domain ?? null,
+        dueAt: parseHorizonDue(horizon, new Date()),
       },
     });
     console.log(`[PredictionTracker] Stored: ${params.hypothesis.slice(0, 60)}... (p=${probability}, horizon=${params.horizon || '90d'})`);
@@ -141,6 +147,15 @@ export async function storePredictionsFromHypotheses(
 export function parseHorizonDue(horizon: string, createdAt: Date): Date | null {
   const h = (horizon || '').trim().toLowerCase();
   if (!h) return null;
+
+  // Relative units beyond bare 'Nd': '90 days', '6 months', '2 weeks',
+  // '1 quarter' — previously all returned null → OPEN forever.
+  const relUnit = h.match(/(\d+(?:\.\d+)?)\s*(day|week|month|quarter)s?\b/);
+  if (relUnit) {
+    const n = Number(relUnit[1]);
+    const unitDays = { day: 1, week: 7, month: 30, quarter: 91 }[relUnit[2] as 'day' | 'week' | 'month' | 'quarter'];
+    return new Date(createdAt.getTime() + n * unitDays * 86_400_000);
+  }
 
   const rel = h.match(/^(\d+)\s*d\b/);
   if (rel) return new Date(createdAt.getTime() + Number(rel[1]) * 86_400_000);
