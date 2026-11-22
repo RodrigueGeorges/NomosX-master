@@ -193,6 +193,7 @@ export async function rescoreStaleAnalysisEvals(deps: EvalRescoreDeps): Promise<
       );
       const reDa = await runDevilsAdvocate(query, reviewText, topSources.map((s: any) => ({
         title: s.title, provider: s.provider, year: s.year,
+        excerpt: String(s.fullText ?? s.abstract ?? '').slice(0, 3000) || undefined,
       })), {
         mode: deps.isStrategic ? 'strategic' : 'brief',
         domain: detectedDomain,

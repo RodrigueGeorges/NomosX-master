@@ -127,7 +127,8 @@ export type ChallengeType =
   | "recency_bias"             // Over-weighted recent evidence vs. historical patterns
   | "non_evidence"             // Claim presented as evidence-based but no source support
   | "missing_warrant"          // Claim lacks explicit mechanism linking evidence to conclusion
-  | "cascade_extrapolation";   // Future extrapolation derives from another future extrapolation
+  | "cascade_extrapolation"    // Future extrapolation derives from another future extrapolation
+  | "invalid_analogy";         // Evidence from domain X applied to domain Y without structural warrant
 
 export interface AdvocateReport {
   evaluationComplete?: boolean;
@@ -194,7 +195,7 @@ export interface ComparisonScore {
 export async function runDevilsAdvocate(
   question: string,
   analysisContent: string,    // The full analysis text
-  sources: Array<{ title: string; provider: string; year?: number }>,
+  sources: Array<{ title: string; provider: string; year?: number; excerpt?: string; fullText?: string; abstract?: string }>,
   options: {
     mode?: "brief" | "strategic";
     targetAudience?: string;
@@ -221,11 +222,41 @@ export async function runDevilsAdvocate(
   const strategic = strategicResult.status === "fulfilled" ? strategicResult.value : null;
   const benchmark = benchmarkResult.status === "fulfilled" ? benchmarkResult.value : null;
 
-  // Aggregate challenges
+  // Aggregate challenges — DEDUP first: the epistemic and strategic calls
+  // run in parallel on the same artifact and routinely flag the SAME weakness
+  // (same claim, same type). Counting both double-penalizes the strength
+  // arithmetic (−8 per major) and can push a borderline artifact under the
+  // fatal/major verdict thresholds on pure duplication.
+  const claimKeyOf = (c: AdvocateChallenge) =>
+    `${c.challengeType}|${String(c.claim ?? '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim().slice(0, 120)}`;
+  const claimOnlyKey = (c: AdvocateChallenge) =>
+    String(c.claim ?? '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim().slice(0, 120);
+  const seenChallenge = new Set<string>();
   const allChallenges: AdvocateChallenge[] = [
     ...(epistemic?.challenges || []),
     ...(strategic?.challenges || []),
-  ];
+  ].filter((c) => {
+    const key = claimKeyOf(c);
+    if (seenChallenge.has(key)) return false;
+    seenChallenge.add(key);
+    return true;
+  });
+
+  // Fatal corroboration: 'fatal' is a self-assigned severity label from ONE
+  // LLM judge — observed live, a single noisy fatal tag on a sound draft was
+  // enough to force major_revision → trust cap 40 (38 runs/30d, DA never
+  // once returned 'publish'). A fatal now counts only when BOTH independent
+  // adversarial framings flag the same claim; a lone-judge fatal downgrades
+  // to 'major' — still repaired via substance_weak, but it cannot veto.
+  {
+    const epClaims = new Set((epistemic?.challenges || []).map(claimOnlyKey));
+    const stClaims = new Set((strategic?.challenges || []).map(claimOnlyKey));
+    for (const c of allChallenges) {
+      if (c.severity === 'fatal' && !(epClaims.has(claimOnlyKey(c)) && stClaims.has(claimOnlyKey(c)))) {
+        c.severity = 'major';
+      }
+    }
+  }
 
   const fatalChallenges = allChallenges.filter(c => c.severity === "fatal");
   const majorChallenges = allChallenges.filter(c => c.severity === "major");
@@ -273,7 +304,7 @@ export async function runDevilsAdvocate(
 async function runEpistemicChallenge(
   question: string,
   analysisContent: string,
-  sources: Array<{ title: string; provider: string; year?: number }>,
+  sources: Array<{ title: string; provider: string; year?: number; excerpt?: string; fullText?: string; abstract?: string }>,
   debateContext?: string
 ): Promise<{
   evaluationComplete: boolean;
@@ -283,6 +314,26 @@ async function runEpistemicChallenge(
   costUsd: number;
 }> {
   const sourceList = sources.slice(0, 20).map((s, i) => `[SRC-${i + 1}] ${s.title} (${s.provider}, ${s.year || "n.d."})`).join("\n");
+
+  // Evidence excerpts: the judge previously saw source TITLES ONLY and had
+  // to rule on "non_evidence"/"missing_warrant"/"invalid_analogy" blind —
+  // it flagged claims it could not check against any passage (observed:
+  // 38 runs/30d, DA never once returned 'publish', publishability avg 12).
+  // Bounded: top 12 sources × ~700 chars keeps the prompt inside budget
+  // while letting the judge actually verify citation support.
+  const excerptBlocks: string[] = [];
+  for (let i = 0; i < Math.min(sources.length, 12); i++) {
+    const s = sources[i] as any;
+    const raw = String(s?.excerpt ?? s?.fullText ?? s?.abstract ?? '').trim();
+    if (raw.length < 120) continue;
+    // Head+tail slice: claims evidence often sits mid-document.
+    const head = raw.slice(0, 420);
+    const tail = raw.length > 900 ? raw.slice(-280) : '';
+    excerptBlocks.push(`[SRC-${i + 1}] ${s.title}\n${head}${tail ? `\n…\n${tail}` : ''}`);
+  }
+  const evidenceSection = excerptBlocks.length
+    ? `\nEVIDENCE EXCERPTS (verify claims against THESE passages, not just titles):\n${excerptBlocks.join('\n\n---\n\n').slice(0, 14000)}\n`
+    : '';
 
   const result = await callLLM({
     messages: [
@@ -302,7 +353,7 @@ ${NOMOSX_JUDGE_SCOPE_RULE}`,
 
 SOURCES AVAILABLE:
 ${sourceList}
-
+${evidenceSection}
 ANALYSIS TO CHALLENGE:
 ${budgetReviewText(analysisContent, 48000)}
 ${debateContext ? `
@@ -320,7 +371,13 @@ ALSO CHECK THESE PROSPECTIVE-SPECIFIC TESTS:
 5. NON-EVIDENCE: Are there claims presented as evidence-based that have no [SRC-N] citation? Every factual claim must cite a source. Flag uncited claims as "non_evidence".
 6. MISSING WARRANT: Are there claims where the warrant (the mechanism connecting evidence to claim) is missing or trivial? A warrant that just restates the evidence ("because the data shows X") is not a warrant. It must name a mechanism. Flag as "missing_warrant".
 7. CASCADE EXTRAPOLATION: Are there future_extrapolation claims that derive from other future_extrapolation claims? This is a cascade violation — a future projection must derive from a present_fact or active_mechanism, never from another future projection. Flag as "cascade_extrapolation".
-8. INVALID ANALOGY: If the analysis applies evidence from domain X to draw conclusions about domain Y, check if the analogy is structurally valid. Different causal mechanisms, different scale, or different context make the analogy invalid. Flag invalid analogies as "invalid_analogy" with severity "fatal".
+8. INVALID ANALOGY: If the analysis applies evidence from domain X to draw conclusions about domain Y, check if the analogy is structurally valid. Different causal mechanisms, different scale, or different context make the analogy invalid. Flag invalid analogies as "invalid_analogy".
+
+SEVERITY CALIBRATION — apply strictly:
+- "fatal" = the claim is WRONG or UNSUPPORTABLE and CANNOT be fixed by qualifying, narrowing, or citing existing corpus evidence. If a revision (narrow the claim, add a warrant, cite a passage, downgrade confidence) could make it defensible, it is NOT fatal — it is "major" at most.
+- "major" = a real weakness a reviewer would demand addressed, but repairable within the existing corpus.
+- Reserve "fatal" for claims that are false on the evidence shown, or for reasoning so speculative no corpus revision rescues it.
+- Do NOT flag a claim as non_evidence/missing_warrant if the EVIDENCE EXCERPTS above actually contain supporting text — check the passages first.
 
 Also identify:
 - The "kill shot": the single argument that could most damage this analysis's credibility
@@ -332,7 +389,7 @@ Return JSON:
     {
       "claim": "exact quote from analysis",
       "sourceSection": "which section",
-      "challengeType": "one of: overstated_conclusion|missing_counterevidence|false_consensus|causation_from_correlation|selection_bias|temporal_fallacy|ecological_fallacy|straw_man|appeal_to_authority|missing_stakeholder|implementation_gap|unknown_unknowns|institutional_bias|recency_bias|non_evidence|missing_warrant|cascade_extrapolation",
+      "challengeType": "one of: overstated_conclusion|missing_counterevidence|false_consensus|causation_from_correlation|selection_bias|temporal_fallacy|ecological_fallacy|straw_man|appeal_to_authority|missing_stakeholder|implementation_gap|unknown_unknowns|institutional_bias|recency_bias|non_evidence|missing_warrant|cascade_extrapolation|invalid_analogy",
       "challenge": "the adversarial argument",
       "severity": "fatal|major|moderate|minor",
       "counterEvidence": ["what evidence supports the opposite"],

@@ -44,7 +44,7 @@ export async function runDaPostRepairRecheck(deps: DaPostRepairDeps): Promise<vo
     const recheck = await runDevilsAdvocate(
       query,
       html,
-      topSources.map((s) => ({ title: s.title, provider: s.provider, year: s.year })),
+      topSources.map((s) => ({ title: s.title, provider: s.provider, year: s.year, excerpt: String((s as any).fullText ?? (s as any).abstract ?? '').slice(0, 3000) || undefined })),
       { mode: isStrategic ? 'strategic' : 'brief', domain: detectedDomain, debateContext },
     );
     addCost(recheck.costUsd, 'DEVILS_ADVOCATE_POSTREPAIR');

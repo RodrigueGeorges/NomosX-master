@@ -594,6 +594,7 @@ export async function runAndPublishInquiry(
           buildAnalysisReviewText((p.lineage.analysis ?? {}) as Record<string, unknown>, question),
           (p.inquiry.sources ?? []).map((s: any) => ({
             title: String(s?.title ?? ''), provider: String(s?.provider ?? 'unknown'), year: s?.year,
+            excerpt: String(s?.fullText ?? s?.extractedText ?? s?.abstract ?? s?.content ?? '').slice(0, 3000) || undefined,
           })),
           { mode: p.format === 'strategic' ? 'strategic' : 'brief', domain: req.domain },
         );
@@ -675,6 +676,7 @@ export async function runAndPublishInquiry(
                 revisedText,
                 (p.inquiry.sources ?? []).map((s: any) => ({
                   title: String(s?.title ?? ''), provider: String(s?.provider ?? 'unknown'), year: s?.year,
+                  excerpt: String(s?.fullText ?? s?.extractedText ?? s?.abstract ?? s?.content ?? '').slice(0, 3000) || undefined,
                 })),
                 { mode: p.format === 'strategic' ? 'strategic' : 'brief', domain: req.domain },
               );
@@ -1010,7 +1012,9 @@ export async function runAndPublishInquiry(
         : undefined;
     })(),
     resolvablePredictions: (pipeline.stats.predictions as { registered?: number } | undefined)?.registered,
-    unansweredObjections: Array.isArray(fatalChallenges) ? fatalChallenges.length : undefined,
+    // fatalChallenges is a COUNT (aFatal), not an array — the previous
+    // Array.isArray guard made this permanently undefined.
+    unansweredObjections: typeof fatalChallenges === 'number' ? fatalChallenges : undefined,
   });
   (pipeline.stats as Record<string, unknown>).publicationGate = {
     binaryChecks,
@@ -1038,7 +1042,7 @@ export async function runAndPublishInquiry(
     const { evaluateThinkTankForm } = await import('./form-grid');
     const formGrid = evaluateThinkTankForm({
       html,
-      fatalChallenges: Array.isArray(fatalChallenges) ? fatalChallenges.length : undefined,
+      fatalChallenges: typeof fatalChallenges === 'number' ? fatalChallenges : undefined,
       stats: pipeline.stats,
     });
     (pipeline.stats as Record<string, unknown>).thinkTankFormGrid = formGrid;

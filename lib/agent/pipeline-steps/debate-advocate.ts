@@ -186,7 +186,12 @@ export async function runDevilsAdvocateBlock(
     const daResult = await runDevilsAdvocate(
       query,
       contentForReview,
-      topSources.map((s: any) => ({ title: s.title, provider: s.provider, year: s.year })),
+      topSources.map((s: any) => ({
+        title: s.title, provider: s.provider, year: s.year,
+        // Bounded evidence excerpt so the DA judges claims against passages,
+        // not titles alone (was the #1 cause of blind non_evidence flags).
+        excerpt: String(s.fullText ?? s.abstract ?? '').slice(0, 3000) || undefined,
+      })),
       {
         mode: isStrategic ? 'strategic' : 'brief',
         domain: detectedDomain,

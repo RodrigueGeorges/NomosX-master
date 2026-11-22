@@ -169,7 +169,7 @@ export async function runStyleSweepRecheck(ctx: TailStepContext): Promise<void> 
       const recheck = await runDevilsAdvocate(
         query,
         ctx.html,
-        topSources.map((s: any) => ({ title: s.title, provider: s.provider, year: s.year })),
+        topSources.map((s: any) => ({ title: s.title, provider: s.provider, year: s.year, excerpt: String(s.fullText ?? s.abstract ?? '').slice(0, 3000) || undefined })),
         { mode: ctx.isStrategic ? 'strategic' : 'brief', domain: ctx.detectedDomain, debateContext: ctx.debateContext },
       );
       addCost(recheck.costUsd, 'DEVILS_ADVOCATE_RECHECK');
