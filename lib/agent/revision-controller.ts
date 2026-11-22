@@ -105,7 +105,7 @@ function extractExistingLabels(block: string): Partial<CentralScenarioLabels> {
 }
 
 /** Rebuild the central-scenario block verbatim from the persisted decision. */
-function repairCentralScenario(
+function repairCentralScenarioImpl(
   html: string,
   central: CentralScenarioDecision,
   sourceCount: number,
@@ -160,6 +160,21 @@ function repairCentralScenario(
     && normalize(rendered.implications.join(' ')) === normalize(central.implications.join(' '))
     && normalize(rendered.revisionTriggers.join(' ')) === normalize(central.revisionTriggers.join(' '));
   return ok ? { html: next, changed: next !== html } : { html, changed: false };
+}
+
+/**
+ * Deterministic last-mile re-assertion of the central-scenario block.
+ * Downstream editors (revision editor, copy editor, pack injection) can
+ * paraphrase inside the block after render — the gate then hard-fails
+ * central_scenario on render-vs-decision drift. Call once on the final
+ * artifact, after every mutation, before persistence/gate.
+ */
+export function ensureCentralScenarioBlock(
+  html: string,
+  central: CentralScenarioDecision,
+  sourceCount: number,
+): { html: string; changed: boolean } {
+  return repairCentralScenarioImpl(html, central, sourceCount);
 }
 
 interface RevisionCtx {
@@ -288,7 +303,7 @@ export async function reviseForGate(input: RevisionInput): Promise<RevisionResul
   // ── Register resolvers ──
   bus.registerResolver('scenario_invalid', (_signal: AgentSignal, c: RevisionCtx) => {
     if (!c.input.centralScenario) return { resolved: false, note: 'no persisted decision to re-render from' };
-    const res = repairCentralScenario(c.html, c.input.centralScenario, c.input.sourceCount);
+    const res = repairCentralScenarioImpl(c.html, c.input.centralScenario, c.input.sourceCount);
     if (res.changed) { c.html = res.html; return { resolved: true, note: 'block re-rendered from persisted decision' }; }
     return { resolved: false, note: 'guard failed or already consistent' };
   });

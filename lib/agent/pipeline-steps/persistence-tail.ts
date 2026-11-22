@@ -462,6 +462,34 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
     }
   }
 
+  // ── CENTRAL-SCENARIO LAST-MILE RE-ASSERT ──
+  // Every post-render editor (revision editor, copy editor, think-tank pack)
+  // can paraphrase inside the central-scenario block after it was rendered
+  // verbatim from the persisted decision — the gate then hard-fails
+  // central_scenario on render-vs-decision drift (observed: 3 consecutive
+  // HELD publications, one a guaranteed regen-burn per RENDER_BOUND_CHECKS).
+  // Re-assert the block deterministically here, after ALL html mutations.
+  {
+    const central = stats.centralScenario as import('../editorial-types').CentralScenarioDecision | undefined;
+    // The gate enters the central_scenario check whenever a persisted
+    // decision exists (requireCentralScenario || centralScenario ||
+    // position-first html) — mirror that exactly.
+    if (central?.name) {
+      try {
+        const { ensureCentralScenarioBlock } = await import('../revision-controller');
+        const repair = ensureCentralScenarioBlock(html, central, topSources.length);
+        if (repair.changed) {
+          html = repair.html;
+          stats.centralScenarioRepair = { repaired: true, reason: 'post_render_drift' };
+          console.log(`${label} CENTRAL SCENARIO: block re-asserted verbatim from persisted decision (post-render drift repaired)`);
+        }
+      } catch (csErr) {
+        console.warn(`${label} CENTRAL SCENARIO re-assert failed (non-blocking):`, csErr);
+        recordDegradedStep(stats, 'CENTRAL_SCENARIO_REASSERT', csErr);
+      }
+    }
+  }
+
   // ── EVALUATION FRESHNESS ASSERT (P0/1) ──
   // Every tagged evaluation is checked against the artifact version it judged.
   // A stale verdict (attached to a replaced artifact — the S27 bug class) is
