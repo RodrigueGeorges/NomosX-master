@@ -1735,7 +1735,12 @@ export async function analystAgentV3(
           (l.unsupported === true || l.passageVerdict === 'weak' || l.passageVerdict === 'none'));
       const uncertainCount = chain.filter(isUncertainLink).length;
       if (chain.length > 0 && uncertainCount < 2) {
-        const lastId = chain[chain.length - 1]?.id ?? chain.length;
+        // derivesFrom must anchor on a present_fact/active_mechanism — the
+        // cascade guard forbids future_extrapolation → future_extrapolation,
+        // and the raw chain tail can itself be an extrapolation (observed
+        // live: links #6/#7 derived from #5 → 2 post-pruning violations).
+        const anchor = [...chain].reverse().find(l => l.temporalStatus !== 'future_extrapolation') ?? chain[chain.length - 1];
+        const lastId = anchor?.id ?? chain.length;
         const nextId = () => Math.max(...chain.map(l => l.id), 0) + 1;
         const existingClaims = new Set(chain.map(l => String(l.claim ?? '').slice(0, 120).toLowerCase()));
         const parentLink = chain.find(l => l.id === lastId);
