@@ -1007,7 +1007,8 @@ async function callFreepoolInner(request: LLMRequest, signal?: AbortSignal): Pro
         max_tokens: Math.max(request.maxTokens ?? 4000, 1000) + (ep.tokenHeadroom ?? 0),
         ...(jsonMode ? { response_format: { type: "json_object" } } : {}),
         ...(request.tools?.length ? { tools: request.tools as any } : {}),
-        ...(ep.modelFallbacks?.length ? { models: [model, ...ep.modelFallbacks] } : {}),
+        // OpenRouter caps the `models` array at 3 entries — model + 2 fallbacks.
+        ...(ep.modelFallbacks?.length ? { models: [model, ...ep.modelFallbacks].slice(0, 3) } : {}),
       }) as any;
       let completion;
       try {

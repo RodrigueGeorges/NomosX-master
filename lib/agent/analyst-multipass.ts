@@ -1715,6 +1715,55 @@ export async function analystAgentV3(
       causalChain: pruningResult.prunedChain,
     };
 
+    // ── FORESIGHT UNCERTAINTY FLOOR ──
+    // deriveChainScenarios needs ≥2 uncertain links to build electable
+    // scenario cells; a fully-grounded chain (all present_fact/active_mechanism
+    // with strong passages) yields ZERO — the swarm can never elect, the
+    // central scenario stays 'editorial', and the foresight-integrity hold
+    // blocks publication forever (observed live: trust-83/quality-73 artifact
+    // HELD with chainScenarios.reason='insufficient_uncertainties').
+    // The analysis already contains two genuine forecast uncertainties the
+    // chain simply never represented: the trajectory's projected state and
+    // the falsification condition ("what would change my mind"). Surface them
+    // as future_extrapolation links deriving from the chain tail — faithful
+    // synthesis of content the analyst already asserted, not fabrication.
+    {
+      const chain = Array.isArray(prunedAnalysis.causalChain) ? prunedAnalysis.causalChain : [];
+      const isUncertainLink = (l: CausalLink) =>
+        l.temporalStatus === 'future_extrapolation' ||
+        (l.temporalStatus === 'active_mechanism' &&
+          (l.unsupported === true || l.passageVerdict === 'weak' || l.passageVerdict === 'none'));
+      const uncertainCount = chain.filter(isUncertainLink).length;
+      if (chain.length > 0 && uncertainCount < 2) {
+        const lastId = chain[chain.length - 1]?.id ?? chain.length;
+        const nextId = () => Math.max(...chain.map(l => l.id), 0) + 1;
+        const existingClaims = new Set(chain.map(l => String(l.claim ?? '').slice(0, 120).toLowerCase()));
+        const pushIfNew = (claim: string, warrant: string) => {
+          const c = claim.trim();
+          if (!c || c.length < 20) return;
+          if ([...existingClaims].some(e => e && (c.toLowerCase().includes(e) || e.includes(c.toLowerCase().slice(0, 80))))) return;
+          existingClaims.add(c.slice(0, 120).toLowerCase());
+          chain.push({
+            id: nextId(),
+            claim: c.slice(0, 400),
+            evidence: c.slice(0, 400),
+            warrant: warrant.slice(0, 400),
+            temporalStatus: 'future_extrapolation',
+            derivesFrom: lastId,
+          } as CausalLink);
+        };
+        const traj = (prunedAnalysis as any).trajectory;
+        if (traj?.state) pushIfNew(String(traj.state), 'projected future state asserted by the prospective synthesis');
+        const wwm = (prunedAnalysis as any).whatToWatch?.whatWouldChangeMind;
+        if (wwm) pushIfNew(`The central projection fails if: ${String(wwm)}`, 'falsification condition stated by the analyst — a live uncertainty, not a mechanism');
+        prunedAnalysis.causalChain = chain;
+        const after = chain.filter(isUncertainLink).length;
+        if (after !== uncertainCount) {
+          console.log(`[Analyst V3] FORESIGHT FLOOR: surfaced trajectory uncertainties — chain now ${after} uncertain link(s) (was ${uncertainCount})`);
+        }
+      }
+    }
+
 
     // Log pruning results
     if (pruningResult.removed.length > 0) {
