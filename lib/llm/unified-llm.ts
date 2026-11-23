@@ -929,7 +929,6 @@ const DEFAULT_FREEPOOL_TPM_BUDGET = 8_000;
 // usage on completion — estimates (prompt + max_tokens) overshoot real
 // consumption ~2x on short completions and halve free-tier throughput.
 const freepoolWindows = new Map<string, Array<{ t: number; est: number; actual?: number }>>();
-let freepoolChain: Promise<unknown> = Promise.resolve();
 async function paceFreepool(endpointName: string, tpmBudget: number, estimatedTokens: number): Promise<void> {
   const now = Date.now();
   let window = freepoolWindows.get(endpointName);
@@ -953,14 +952,23 @@ export function recordFreepoolUsage(endpointName: string, tokens: number): void 
     if (window[i].actual === undefined) { window[i].actual = tokens; return; }
   }
 }
-function enqueueFreepool<T>(fn: () => Promise<T>): Promise<T> {
-  const run = freepoolChain.then(fn);
-  freepoolChain = run.then(() => {}, () => {});
+// Per-endpoint serialization, NOT global: the old single freepoolChain
+// queued every LLM call in the run (reader fan-out, analyst passes, critic
+// stages, Delphi, swarm votes — 500+ calls) strictly one-at-a-time, which
+// is what pushed live runs into the 120min wall-clock kill. TPM pacing is
+// already per-endpoint, so ordering only needs to hold per endpoint: calls
+// rotate first-choices across endpoints and now genuinely run in parallel
+// (~1 concurrent call per alive endpoint instead of 1 total).
+const freepoolEndpointChains = new Map<string, Promise<unknown>>();
+function enqueueOnEndpoint<T>(endpointName: string, fn: () => Promise<T>): Promise<T> {
+  const prev = freepoolEndpointChains.get(endpointName) ?? Promise.resolve();
+  const run = prev.then(fn);
+  freepoolEndpointChains.set(endpointName, run.then(() => {}, () => {}));
   return run;
 }
 
 async function callFreepool(request: LLMRequest, signal?: AbortSignal): Promise<LLMResponse> {
-  return enqueueFreepool(() => callFreepoolInner(request, signal));
+  return callFreepoolInner(request, signal);
 }
 
 let freepoolCallSeq = 0;
@@ -991,64 +999,64 @@ async function callFreepoolInner(request: LLMRequest, signal?: AbortSignal): Pro
       cooledNames.push(`${ep.name}(+${Math.round((cooledUntil - Date.now()) / 60000)}m)`);
       continue;
     }
-    // Pace against THIS endpoint's own TPM window — a saturated Groq quota
-    // must not delay a call cerebras/gemini would serve immediately.
-    await paceFreepool(ep.name, ep.tpmBudget ?? DEFAULT_FREEPOOL_TPM_BUDGET, estimatedCallTokens);
-    const model = isFast ? ep.fastModel : ep.reasoningModel;
+    // Pace + call serialized per endpoint: the TPM window accounting stays
+    // atomic (no burst over quota) while different endpoints serve calls in
+    // parallel. The cascade still walks endpoints in rotated order — a call
+    // only queues behind calls that will actually hit the same endpoint.
+    const epTimeoutMs = Number(process.env.NOMOSX_FREEPOOL_ENDPOINT_TIMEOUT_MS) || 90_000;
+    const epSignal = signal
+      ? AbortSignal.any([signal, AbortSignal.timeout(epTimeoutMs)])
+      : AbortSignal.timeout(epTimeoutMs);
     try {
-      const client = getFreepoolClient(ep);
-      // Per-endpoint deadline: the outer withTimeout bounds the WHOLE cascade
-      // (~240s incl. TPM pacing waits), so one hung endpoint used to eat the
-      // entire budget and every later endpoint aborted instantly ("Request
-      // was aborted" streaks observed live). Cap each endpoint so the cascade
-      // actually reaches the healthy tail. The shared signal still wins.
-      const epTimeoutMs = Number(process.env.NOMOSX_FREEPOOL_ENDPOINT_TIMEOUT_MS) || 90_000;
-      const epSignal = signal
-        ? AbortSignal.any([signal, AbortSignal.timeout(epTimeoutMs)])
-        : AbortSignal.timeout(epTimeoutMs);
-      const callParams = (jsonMode: boolean) => ({
-        model,
-        messages: request.messages as any,
-        temperature: request.temperature ?? 0.2,
-        max_tokens: Math.max(request.maxTokens ?? 4000, 1000) + (ep.tokenHeadroom ?? 0),
-        ...(jsonMode ? { response_format: { type: "json_object" } } : {}),
-        ...(request.tools?.length ? { tools: request.tools as any } : {}),
-        // OpenRouter caps the `models` array at 3 entries — model + 2 fallbacks.
-        ...(ep.modelFallbacks?.length ? { models: [model, ...ep.modelFallbacks].slice(0, 3) } : {}),
-      }) as any;
-      let completion;
-      try {
-        completion = await client.chat.completions.create(callParams(!!request.jsonMode), { signal: epSignal });
-      } catch (firstErr) {
-        // Groq (and some OpenAI-compatible free tiers) validate JSON-mode
-        // OUTPUT server-side: when the model emits non-JSON the API returns
-        // HTTP 400 "Failed to validate JSON" — the call is wasted even though
-        // the model can produce parseable JSON text without the constraint.
-        // Retry once without response_format; the caller's parse-repair layer
-        // handles the raw JSON content.
-        if (request.jsonMode && /failed to (validate|generate) json/i.test((firstErr as Error)?.message ?? '')) {
-          console.warn(`   ↳ freepool/${ep.name}: server-side JSON validation failed — retrying without response_format`);
-          completion = await client.chat.completions.create(callParams(false), { signal: epSignal });
-        } else {
-          throw firstErr;
+      const result = await enqueueOnEndpoint(ep.name, async () => {
+        await paceFreepool(ep.name, ep.tpmBudget ?? DEFAULT_FREEPOOL_TPM_BUDGET, estimatedCallTokens);
+        const model = isFast ? ep.fastModel : ep.reasoningModel;
+        const client = getFreepoolClient(ep);
+        const callParams = (jsonMode: boolean) => ({
+          model,
+          messages: request.messages as any,
+          temperature: request.temperature ?? 0.2,
+          max_tokens: Math.max(request.maxTokens ?? 4000, 1000) + (ep.tokenHeadroom ?? 0),
+          ...(jsonMode ? { response_format: { type: "json_object" } } : {}),
+          ...(request.tools?.length ? { tools: request.tools as any } : {}),
+          // OpenRouter caps the `models` array at 3 entries — model + 2 fallbacks.
+          ...(ep.modelFallbacks?.length ? { models: [model, ...ep.modelFallbacks].slice(0, 3) } : {}),
+        }) as any;
+        let completion;
+        try {
+          completion = await client.chat.completions.create(callParams(!!request.jsonMode), { signal: epSignal });
+        } catch (firstErr) {
+          // Groq (and some OpenAI-compatible free tiers) validate JSON-mode
+          // OUTPUT server-side: when the model emits non-JSON the API returns
+          // HTTP 400 "Failed to validate JSON" — the call is wasted even though
+          // the model can produce parseable JSON text without the constraint.
+          // Retry once without response_format; the caller's parse-repair layer
+          // handles the raw JSON content.
+          if (request.jsonMode && /failed to (validate|generate) json/i.test((firstErr as Error)?.message ?? '')) {
+            console.warn(`   ↳ freepool/${ep.name}: server-side JSON validation failed — retrying without response_format`);
+            completion = await client.chat.completions.create(callParams(false), { signal: epSignal });
+          } else {
+            throw firstErr;
+          }
         }
-      }
-      const content = completion.choices?.[0]?.message?.content ?? "";
-      if (!content) throw new Error(`freepool/${ep.name} returned empty content`);
-      const tokensInput = completion.usage?.prompt_tokens ?? promptTokens;
-      const tokensOutput = completion.usage?.completion_tokens ?? 0;
-      recordFreepoolUsage(ep.name, tokensInput + tokensOutput);
-      console.log(`   ↳ freepool via ${ep.name}/${model}`);
-      return {
-        content,
-        model: `${ep.name}/${model}`,
-        provider: "freepool",
-        family: "freepool",
-        tokensInput,
-        tokensOutput,
-        costUsd: 0,
-        cached: false,
-      };
+        const content = completion.choices?.[0]?.message?.content ?? "";
+        if (!content) throw new Error(`freepool/${ep.name} returned empty content`);
+        const tokensInput = completion.usage?.prompt_tokens ?? promptTokens;
+        const tokensOutput = completion.usage?.completion_tokens ?? 0;
+        recordFreepoolUsage(ep.name, tokensInput + tokensOutput);
+        console.log(`   ↳ freepool via ${ep.name}/${model}`);
+        return {
+          content,
+          model: `${ep.name}/${model}`,
+          provider: "freepool" as const,
+          family: "freepool" as const,
+          tokensInput,
+          tokensOutput,
+          costUsd: 0,
+          cached: false,
+        };
+      });
+      return result;
     } catch (err) {
       lastError = err as Error;
       const cd = endpointCooldownMs(err as Error);
