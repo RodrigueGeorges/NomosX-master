@@ -48,7 +48,10 @@ export async function minicheckCheck(
       checked: Number(d.checked ?? d.results.length),
       durationMs: Number(d.durationMs ?? 0),
     };
-  } catch {
+  } catch (err) {
+    // Silent null made the degraded step undiagnosable — the persisted
+    // reason was always "check returned null" with no underlying cause.
+    console.warn(`[MINICHECK] check failed: ${(err as Error)?.message ?? err}`);
     return null;
   }
 }

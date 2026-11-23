@@ -1,6 +1,16 @@
 
 import { fetchFromProvider } from '../http-client';
 import { env } from '../env';
+import { createHash } from 'crypto';
+
+// Records without a DOI used to emit `crossref:undefined` — every such item
+// collapsed onto ONE id and dedup wiped the whole batch (audit finding).
+function crossrefId(it: any): string {
+  const doi = normalizeDOI(it?.DOI);
+  if (doi) return `crossref:${doi}`;
+  const seed = String(it?.URL ?? it?.title?.[0] ?? it?.title ?? '') || createHash('sha1').update(JSON.stringify(it ?? {})).digest('hex');
+  return `crossref:rec-${createHash('sha1').update(seed).digest('hex').slice(0, 16)}`;
+}
 
 function normalizeDOI(doi: string | null): string | null {
   if (!doi) return null;
@@ -17,7 +27,7 @@ export async function searchCrossref(query: string, rows = 10): Promise<any[]> {
     console.log(`[Crossref] Found ${items.length} works for "${query.slice(0, 50)}"`);
     
     return items.map((it: any) => ({
-      id: `crossref:${it.DOI}`,
+      id: crossrefId(it),
       provider: "crossref",
       type: "paper",
       title: Array.isArray(it.title) ? (it.title[0] || "") : (it.title || ""),

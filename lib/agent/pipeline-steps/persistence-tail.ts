@@ -529,9 +529,13 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
   } catch { /* non-blocking */ }
   // Retry transient failures, but never throw past this point: the brief is
   // already committed — a dropped run-status write must not orphan it.
+  // updateMany + status guard: a zombie pipeline that outlived its timeout
+  // (deadline rejected the await, work continued) must NOT resurrect a row
+  // the sweeper/timeout path already marked FAILED — observed live as
+  // "timed out" runs later flipping to COMPLETED.
   await withDbRetry(() =>
-    prisma.pipelineRun.update({
-      where: { id: pipelineRun.id },
+    prisma.pipelineRun.updateMany({
+      where: { id: pipelineRun.id, status: "RUNNING" },
       data: {
         status: "COMPLETED",
         finishedAt: new Date(),
@@ -544,7 +548,12 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
         steps: toJsonSafe({ ...stats, orchestrator: { ...stats.orchestrator, decisions: orchState.decisions } }),
       },
     })
-  ).catch((err) => {
+  ).then((res) => {
+    if (res.count === 0) {
+      console.warn(`${label} PERSISTENCE: pipelineRun ${pipelineRun.id} not RUNNING at seal time (already FAILED/swept) — terminal write skipped, steps preserved in brief`);
+      recordDegradedStep(stats, 'PIPELINE_RUN_SEALED', new Error('run row not RUNNING at completion — zombie write suppressed'));
+    }
+  }).catch((err) => {
     console.warn(`${label} PERSISTENCE: pipelineRun COMPLETED update failed (non-blocking — brief ${stats.brief?.id} is safe):`, err);
     recordDegradedStep(stats, 'PIPELINE_RUN_PERSIST', err);
   });

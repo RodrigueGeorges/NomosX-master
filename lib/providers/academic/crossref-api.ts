@@ -4,6 +4,14 @@
  */
 
 import { fetchFromProvider } from '../../http-client';
+import { createHash } from 'crypto';
+
+function crossrefId(item: any): string {
+  const raw = item?.DOI ? String(item.DOI).replace(/^https?:\/\/(dx\.)?doi\.org\//i, '').toLowerCase() : null;
+  if (raw) return `crossref:${raw}`;
+  const seed = String(item?.URL ?? item?.title?.[0] ?? item?.title ?? '') || createHash('sha1').update(JSON.stringify(item ?? {})).digest('hex');
+  return `crossref:rec-${createHash('sha1').update(seed).digest('hex').slice(0, 16)}`;
+}
 
 export async function searchCrossref(query: string, limit: number = 10): Promise<any[]> {
   try {
@@ -18,8 +26,10 @@ export async function searchCrossref(query: string, limit: number = 10): Promise
     console.log(`[Crossref] Found ${items.length} works for "${query.slice(0, 50)}"`);
     
     return items.map((item: any) => ({
-      id: `crossref:${item.DOI}`,
+      id: crossrefId(item),
       provider: 'crossref',
+      // DOI was dropped from the mapping — dedup/identity downstream relies on it.
+      doi: item.DOI ? String(item.DOI).replace(/^https?:\/\/(dx\.)?doi\.org\//i, '').toLowerCase() : null,
       type: 'academic',
       title: item.title?.[0] || 'No title',
       abstract: item.abstract || '',

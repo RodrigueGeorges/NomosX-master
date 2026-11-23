@@ -611,8 +611,13 @@ async function recordProviderFailure(provider: string, error?: Error): Promise<v
     return;
   }
 
-  // Tier 2: Auto-suspend after 5 consecutive failures (24h)
-  if (next.failures >= CIRCUIT_BREAKER_SUSPEND_THRESHOLD) {
+  // Tier 2: Auto-suspend after 5 consecutive failures (24h).
+  // EXCEPTION — 'freepool' is a pool of independent endpoints with their own
+  // cooldowns (ENDPOINT_COOLDOWNS): a cascade failure means "all alive
+  // endpoints failed this call", not that the pool is dead. Banning the whole
+  // pool for 24h because groq+cerebras+nvidia happened to 5xx together used
+  // to take down every free lane at once (audit finding). Cap at tier-1.
+  if (next.failures >= CIRCUIT_BREAKER_SUSPEND_THRESHOLD && provider !== 'freepool') {
     next.suspended = true;
     next.suspendedUntil = Date.now() + CIRCUIT_BREAKER_SUSPEND_MS;
     next.open = true;
@@ -877,9 +882,11 @@ const ENDPOINT_COOLDOWNS = new Map<string, number>();
 
 function endpointCooldownMs(err: Error): number | null {
   const msg = err.message ?? "";
-  // Permanent endpoint death (410 Gone, revoked keys, suspended accounts) —
-  // retrying every call wastes budget; cool for 24h so the mesh skips it.
-  if (/\b410\b|\bgone\b|model.*(not found|does not exist|decommissioned|end.of.life)|account.*(suspended|disabled)|insufficient.*balance|no credits/i.test(msg)) {
+  // Permanent endpoint death (410 Gone, revoked keys, suspended accounts,
+  // confirmed auth failures) — retrying every call wastes budget; cool for
+  // 24h so the mesh skips it. Auth errors are endpoint-scoped here (the key
+  // belongs to that provider account), not provider-pool bans.
+  if (/\b410\b|\bgone\b|model.*(not found|does not exist|decommissioned|end.of.life)|account.*(suspended|disabled)|insufficient.*balance|no credits|\b401\b|invalid.{0,20}api.?key|unauthorized|authentication.{0,20}(fail|error|invalid)/i.test(msg)) {
     return 24 * 60 * 60_000;
   }
   const is429 = /429|rate.?limit|tokens per day|requests per day|TPD|RPD|quota|free-models-per-day/i.test(msg);
@@ -987,8 +994,11 @@ async function callFreepoolInner(request: LLMRequest, signal?: AbortSignal): Pro
 
   const task = normalizeTask(request.task);
   const isFast = FAST_TASKS.has(task);
+  // TPM estimate must mirror the ACTUAL request budget sent below
+  // (`Math.max(request.maxTokens ?? 4000, 1000) + ep.tokenHeadroom`) — the old
+  // `?? 1500` default undercounted ~2.7x and let bursts overshoot free-tier
+  // TPM, producing 429 cascades (audit finding).
   const promptTokens = estimatePromptTokens(request);
-  const estimatedCallTokens = promptTokens + (request.maxTokens ?? 1500);
   let lastError: Error | null = null;
   const cooledNames: string[] = [];
 
@@ -1009,7 +1019,8 @@ async function callFreepoolInner(request: LLMRequest, signal?: AbortSignal): Pro
       : AbortSignal.timeout(epTimeoutMs);
     try {
       const result = await enqueueOnEndpoint(ep.name, async () => {
-        await paceFreepool(ep.name, ep.tpmBudget ?? DEFAULT_FREEPOOL_TPM_BUDGET, estimatedCallTokens);
+        const estMaxTokens = Math.max(request.maxTokens ?? 4000, 1000) + (ep.tokenHeadroom ?? 0);
+        await paceFreepool(ep.name, ep.tpmBudget ?? DEFAULT_FREEPOOL_TPM_BUDGET, promptTokens + estMaxTokens);
         const model = isFast ? ep.fastModel : ep.reasoningModel;
         const client = getFreepoolClient(ep);
         const callParams = (jsonMode: boolean) => ({

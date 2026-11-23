@@ -12,6 +12,7 @@
 
 import { fetchFromProvider } from '../http-client';
 import { env } from '../env';
+import { sourceIdHash } from './source-id';
 
 const PUBLIC_INSTANCES = [
   'https://searx.be',
@@ -37,7 +38,7 @@ export async function searchSearxng(query: string, limit = 8): Promise<any[]> {
       if (items.length === 0) continue;
 
       const results = items.slice(0, limit).map((r: any) => ({
-        id: `searxng:${Buffer.from(r.url || '').toString('base64').slice(0, 24)}`,
+        id: `searxng:${sourceIdHash(String(r.url || '') || `searxng:${query}:${r.title ?? ''}`)}`,
         provider: 'searxng',
         type: 'article',
         title: r.title || '',

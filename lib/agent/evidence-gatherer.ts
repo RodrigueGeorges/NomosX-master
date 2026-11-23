@@ -113,8 +113,11 @@ Return JSON:
       reasoning: parsed.reasoning || 'No reasoning',
       misalignedTopics: parsed.misalignedTopics || [],
     };
-  } catch {
-    return { score: 1, reasoning: 'Semantic check skipped', misalignedTopics: [] };
+  } catch (err) {
+    // Fail-open by design (an LLM outage must not reject viable questions)
+    // but OBSERVABLE: score 1 used to pass silently, hiding evaluator outage.
+    console.warn(`[EvidenceGatherer] semantic alignment check unavailable — passing unverified: ${(err as Error)?.message?.slice(0, 120)}`);
+    return { score: 1, reasoning: 'Semantic check unavailable (evaluator error)', misalignedTopics: [] };
   }
 }
 

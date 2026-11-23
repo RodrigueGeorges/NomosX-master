@@ -41,6 +41,21 @@ function releaseOpenAlexSlot(): void {
 // We detect this on first 429 and fall back to the polite pool for the rest of the session.
 let openAlexKeyExhausted = false;
 let openAlexKeyChecked = false;
+let openAlexKeyExhaustedAt = 0;
+// Credits/quota can refill — a permanent flag used to keep the provider on
+// the slow polite pool for the whole process lifetime after one bad day
+// (audit finding). Re-probe after 12h.
+const OPENALEX_EXHAUSTED_TTL_MS = 12 * 60 * 60_000;
+
+function openAlexKeyStillExhausted(): boolean {
+  if (!openAlexKeyExhausted) return false;
+  if (Date.now() - openAlexKeyExhaustedAt > OPENALEX_EXHAUSTED_TTL_MS) {
+    openAlexKeyExhausted = false;
+    console.log('[OpenAlex] exhaustion TTL elapsed — re-probing api_key');
+    return false;
+  }
+  return true;
+}
 
 async function checkOpenAlexKeyExhausted(): Promise<void> {
   if (!env.OPENALEX_API_KEY || openAlexKeyChecked) return;
@@ -51,6 +66,7 @@ async function checkOpenAlexKeyExhausted(): Promise<void> {
     await resp.body?.cancel();
     if (resp.status === 401 || resp.status === 403) {
       openAlexKeyExhausted = true;
+      openAlexKeyExhaustedAt = Date.now();
       console.warn(`[OpenAlex] API key rejected (HTTP ${resp.status}) — falling back to polite pool (mailto)`);
       return;
     }
@@ -58,6 +74,7 @@ async function checkOpenAlexKeyExhausted(): Promise<void> {
       const remaining = resp.headers.get('x-ratelimit-remaining');
       if (remaining === '0') {
         openAlexKeyExhausted = true;
+        openAlexKeyExhaustedAt = Date.now();
         console.warn('[OpenAlex] API key credits exhausted (x-ratelimit-remaining: 0) — falling back to polite pool (mailto)');
         return;
       }
@@ -73,6 +90,7 @@ async function checkOpenAlexKeyExhausted(): Promise<void> {
 export function markOpenAlexKeyExhausted(): void {
   if (!openAlexKeyExhausted) {
     openAlexKeyExhausted = true;
+    openAlexKeyExhaustedAt = Date.now();
     console.warn('[OpenAlex] API key marked as exhausted — switching to polite pool (mailto)');
   }
 }
@@ -80,7 +98,7 @@ export function markOpenAlexKeyExhausted(): void {
 /** True when the provider rejected our api_key — the polite pool is the fix,
  * not a retry with the same credential. */
 function isAuthRejection(error: unknown): boolean {
-  return env.OPENALEX_API_KEY !== undefined && !openAlexKeyExhausted &&
+  return env.OPENALEX_API_KEY !== undefined && !openAlexKeyStillExhausted() &&
     /HTTP (401|403)\b/i.test(error instanceof Error ? error.message : String(error));
 }
 
@@ -89,7 +107,7 @@ export { checkOpenAlexKeyExhausted };
 
 /** Auth query-string suffix shared by every OpenAlex endpoint caller. */
 export function openAlexAuthParam(): string {
-  if (env.OPENALEX_API_KEY && !openAlexKeyExhausted) {
+  if (env.OPENALEX_API_KEY && !openAlexKeyStillExhausted()) {
     return `&api_key=${encodeURIComponent(env.OPENALEX_API_KEY)}`;
   }
   const mailto = env.UNPAYWALL_EMAIL || "contact@nomosx.com";
@@ -157,7 +175,7 @@ export async function searchOpenAlex(query: string, perPage = 25, options?: { fi
   // because many providers (OECD, WorldBank, IMF, NBER, WHO-GHO, RePEc) piggyback
   // on OpenAlex and cause concurrent bursts.
   // V3.1: If API key credits are exhausted, fall back to polite pool automatically.
-  if (env.OPENALEX_API_KEY && !openAlexKeyExhausted) {
+  if (env.OPENALEX_API_KEY && !openAlexKeyStillExhausted()) {
     url += `&api_key=${encodeURIComponent(env.OPENALEX_API_KEY)}`;
   } else {
     const mailto = env.UNPAYWALL_EMAIL || "contact@nomosx.com";
@@ -192,7 +210,7 @@ export async function getOpenAlexConceptGroups(query: string): Promise<{ concept
   const base = env.OPENALEX_API;
   let url = `${base}?search=${encodeURIComponent(query)}&per-page=200&group_by=concepts.id`;
 
-  if (env.OPENALEX_API_KEY && !openAlexKeyExhausted) {
+  if (env.OPENALEX_API_KEY && !openAlexKeyStillExhausted()) {
     url += `&api_key=${encodeURIComponent(env.OPENALEX_API_KEY)}`;
   } else {
     const mailto = env.UNPAYWALL_EMAIL || "contact@nomosx.com";
@@ -254,7 +272,7 @@ export async function searchOpenAlexSemantic(
   }
 
   // API key or polite pool
-  if (env.OPENALEX_API_KEY && !openAlexKeyExhausted) {
+  if (env.OPENALEX_API_KEY && !openAlexKeyStillExhausted()) {
     url += `&api_key=${encodeURIComponent(env.OPENALEX_API_KEY)}`;
   } else {
     const mailto = env.UNPAYWALL_EMAIL || "contact@nomosx.com";
@@ -296,7 +314,7 @@ export async function batchFetchByDoi(dois: string[]): Promise<any[]> {
   const doiFilter = dois.slice(0, 50).map(d => d.replace(/^https?:\/\/(dx\.)?doi\.org\//i, '')).join('|');
   let url = `${base}?filter=doi:${encodeURIComponent(doiFilter)}&per-page=50`;
 
-  if (env.OPENALEX_API_KEY && !openAlexKeyExhausted) {
+  if (env.OPENALEX_API_KEY && !openAlexKeyStillExhausted()) {
     url += `&api_key=${encodeURIComponent(env.OPENALEX_API_KEY)}`;
   } else {
     const mailto = env.UNPAYWALL_EMAIL || "contact@nomosx.com";

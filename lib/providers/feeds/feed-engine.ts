@@ -12,6 +12,7 @@
 import Parser from 'rss-parser';
 import { httpGet } from '../../http-client';
 import { assertExecutionActive } from '../../worker/execution-scope';
+import { sourceIdHash } from '../source-id';
 
 const parser = new Parser({ timeout: 9000 } as any);
 
@@ -166,7 +167,7 @@ export async function searchFeedSet(
                 sourceName = parts[parts.length - 1];
               }
               return {
-                id: `${feed.provider}:feed:${Buffer.from(String(item.link || item.guid || '')).toString('base64').slice(0, 24)}`,
+                id: `${feed.provider}:feed:${sourceIdHash(String(item.link || item.guid || '') || `${feed.provider}:${item.title ?? ''}`)}`,
                 provider: feed.provider,
                 type: feed.type,
                 title,

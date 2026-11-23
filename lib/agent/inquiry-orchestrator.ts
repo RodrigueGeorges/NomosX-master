@@ -526,7 +526,9 @@ export async function runAndPublishInquiry(
       sourceIds: aSourceIds,
       trustScore: scores.trustScore,
       qualityScore: scores.qualityScore,
-      citationCoverage: scores.citationCoverage || undefined,
+      // `|| undefined` discarded a real 0 coverage — the gate then fell back
+      // to a derived source-marker count and could pass an uncited artifact.
+      citationCoverage: scores.citationCoverage ?? undefined,
       devilsAdvocateScore: aDa?.publishabilityScore as number | undefined,
       fatalChallenges: aFatal,
       researcherDecision: aSignOff?.decision,
@@ -1006,9 +1008,20 @@ export async function runAndPublishInquiry(
     swarmVotes: (() => {
       // Per-link minimum, not the run total: 15 voters over 2 links report
       // 30 "valid votes" while one link may hold only a handful.
-      const sf = pipeline.stats.swarmForecasts as { forecasts?: Array<{ validVotes: number; families: number }> } | undefined;
+      // Filter to conditioned chain links — sentinel forecasts (voteId
+      // 9000+) ride the same array with thin votes and used to drag the
+      // min below threshold, holding a healthy election (audit finding).
+      const chainLinkIds = new Set(
+        ((pipeline.stats.chainScenarios as { uncertainties?: Array<{ linkId?: number }> } | undefined)?.uncertainties ?? [])
+          .map(u => u.linkId).filter((n): n is number => typeof n === 'number')
+      );
+      const sf = pipeline.stats.swarmForecasts as { forecasts?: Array<{ linkId?: number; validVotes: number; families: number }> } | undefined;
       const health = pipeline.stats.swarmHealth as { healthy?: boolean } | undefined;
-      const fc = sf?.forecasts ?? [];
+      const fc = (sf?.forecasts ?? []).filter(f =>
+        // Sentinels ride linkId >= SENTINEL_VOTE_ID_BASE (9000) — exclude even
+        // when the chain-link set is unavailable (fail-closed on sentinels).
+        (typeof f.linkId === 'number' && f.linkId < 9000)
+        && (chainLinkIds.size === 0 || (typeof f.linkId === 'number' && chainLinkIds.has(f.linkId))));
       return fc.length
         ? {
             valid: Math.min(...fc.map(f => f.validVotes)),

@@ -47,6 +47,16 @@ const MAX_BANK_ENTRIES = 120;
  * Build the evidence bank from reader extracts + ranked sources.
  * `topSources` order defines [SRC-N] numbering (1-based).
  */
+// Reader rule_based fallback emits fixed placeholder strings ("Unable to
+// extract main claims", "Methods not clearly stated", …) — these are NOT
+// evidence. Previously they passed the 25-char length check and entered the
+// bank as if they were source extracts (audit finding).
+const PLACEHOLDER_RE = /unable to extract|not clearly stated|not explicitly (listed|stated)|limited text extraction|no (claims|methods|results) (could be |were )?(extracted|identified)|insufficient (text|content|data) (to|for)/i;
+
+export function isPlaceholderExtract(text: unknown): boolean {
+  return typeof text !== 'string' || PLACEHOLDER_RE.test(text.trim());
+}
+
 export function buildEvidenceBank(
   readings: Array<{
     sourceId: string;
@@ -55,6 +65,8 @@ export function buildEvidenceBank(
     results?: string[];
     limitations?: string[];
     confidence?: string;
+    /** Reader fallback depth — 'rule_based' readings are metadata-only. */
+    readingDepth?: string;
   }>,
   topSources: Array<{ id: string }>,
 ): EvidenceBank {
@@ -74,7 +86,11 @@ export function buildEvidenceBank(
     perSource.set(sourceIndex, (perSource.get(sourceIndex) ?? 0) + 1);
   };
 
-  const queues = readings.map(r => ({
+  const queues = readings
+    // rule_based fallback = no real extraction happened — its "claims" are
+    // template placeholders, not evidence. Exclude the whole reading.
+    .filter(r => r.readingDepth !== 'rule_based')
+    .map(r => ({
     reading: r,
     candidates: [
       ...(r.results || []).slice(0, 1).map(text => ({ kind: 'result' as const, text })),
@@ -82,7 +98,7 @@ export function buildEvidenceBank(
       ...(r.claims || []).slice(0, 3).map(text => ({ kind: 'claim' as const, text })),
       ...(r.methods || []).slice(0, 1).map(text => ({ kind: 'method' as const, text })),
       ...(r.results || []).slice(1, 2).map(text => ({ kind: 'result' as const, text })),
-    ].filter(e => typeof e.text === 'string' && e.text.replace(/\s+/g, ' ').trim().length >= 25),
+    ].filter(e => typeof e.text === 'string' && e.text.replace(/\s+/g, ' ').trim().length >= 25 && !isPlaceholderExtract(e.text)),
   }));
   for (let round = 0; round < MAX_ENTRIES_PER_SOURCE; round++) {
     for (const { reading: r, candidates } of queues) {

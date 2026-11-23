@@ -11,6 +11,7 @@
 
 import { fetchFromProvider } from '../http-client';
 import { env } from '../env';
+import { sourceIdHash } from './source-id';
 
 export async function searchJina(query: string, limit = 8): Promise<any[]> {
   const q = query.trim();
@@ -31,7 +32,7 @@ export async function searchJina(query: string, limit = 8): Promise<any[]> {
     if (items.length === 0) return [];
 
     const results = items.slice(0, limit).map((r: any, i: number) => ({
-      id: `jina:${Buffer.from(String(r.url || '')).toString('base64').slice(0, 24) || i}`,
+      id: `jina:${sourceIdHash(String(r.url || '') || `jina:${query}:${r.title ?? i}`)}`,
       provider: 'jina-search',
       type: 'article',
       title: String(r.title || '').slice(0, 300),
