@@ -825,10 +825,16 @@ interface FreepoolEndpoint {
 
 const FREEPOOL_ENDPOINTS: Array<Omit<FreepoolEndpoint, "apiKey"> & { envKey: keyof typeof env }> = [
   { name: "groq",       envKey: "GROQ_API_KEY",       baseURL: "https://api.groq.com/openai/v1",          fastModel: "openai/gpt-oss-20b",                      reasoningModel: "openai/gpt-oss-120b", maxContextTokens: 8_000, tpmBudget: 6_500 },
-  { name: "cerebras",   envKey: "CEREBRAS_API_KEY",   baseURL: "https://api.cerebras.ai/v1",              fastModel: "llama-3.3-70b",                         reasoningModel: "llama-3.3-70b", maxContextTokens: 8_000, tpmBudget: 30_000 },
-  { name: "nvidia",     envKey: "NVIDIA_API_KEY",     baseURL: "https://integrate.api.nvidia.com/v1",     fastModel: "meta/llama-3.2-90b-vision-instruct",      reasoningModel: "nvidia/nemotron-3-ultra-550b-a55b", tokenHeadroom: 2000 },
+  // cerebras: llama-3.3-70b was retired (404 model_not_found, verified live);
+  // gpt-oss-120b is the current free-tier workhorse on this key.
+  { name: "cerebras",   envKey: "CEREBRAS_API_KEY",   baseURL: "https://api.cerebras.ai/v1",              fastModel: "gpt-oss-120b",                            reasoningModel: "gpt-oss-120b", maxContextTokens: 8_000, tpmBudget: 30_000 },
+  // nvidia: meta/llama-3.2-90b-vision-instruct hit end-of-life (410 Gone);
+  // nemotron-3.5-lightning-30b-a3b is the verified live chat model.
+  { name: "nvidia",     envKey: "NVIDIA_API_KEY",     baseURL: "https://integrate.api.nvidia.com/v1",     fastModel: "nvidia/nemotron-3.5-lightning-30b-a3b",   reasoningModel: "nvidia/nemotron-3-ultra-550b-a55b", tokenHeadroom: 2000 },
+  // openrouter: every named :free fallback probed dead (404/400 invalid id);
+  // 'openrouter/free' is the maintained auto-router and returns 200.
   { name: "openrouter", envKey: "OPENROUTER_API_KEY", baseURL: "https://openrouter.ai/api/v1",            fastModel: "nvidia/nemotron-3.5-lightning:free",    reasoningModel: "nvidia/nemotron-3.5-lightning:free", tokenHeadroom: 1500, tpmBudget: 20_000,
-    modelFallbacks: ["nvidia/nemotron-3-super-120b-a12b:free", "nvidia/nemotron-3-ultra-550b-a11b:free", "liquid/lfm-2.5-2.6b:free", "openrouter/free"] },
+    modelFallbacks: ["openrouter/free"] },
   { name: "mistral",    envKey: "MISTRAL_API_KEY",    baseURL: "https://api.mistral.ai/v1",               fastModel: "mistral-small-latest",                    reasoningModel: "mistral-small-latest", tpmBudget: 30_000 },
   // Google AI Studio free tier via the OpenAI-compatible endpoint — same
   // GOOGLE_API_KEY the 'google' family uses, but as a freepool safety net so
