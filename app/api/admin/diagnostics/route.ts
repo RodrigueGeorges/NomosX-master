@@ -211,9 +211,18 @@ export async function GET(req: NextRequest) {
       byStatus: pipelineRuns.reduce((a, r) => ({ ...a, [r.status]: (a[r.status] ?? 0) + 1 }), {} as Record<string, number>),
       items: pipelineRuns.map(r => {
         // Step-level breakdown — where the run spent time/cost and where it
-        // died. steps is a JSON array of {name,status,durationMs,costUsd}.
-        const steps: any[] = Array.isArray((r as any).steps) ? (r as any).steps : [];
-        const stepSummary = steps.map((s: any) => ({
+        // died. Writers persist steps as an OBJECT of stage stats
+        // ({scout, rank, reader, analyst, ...}), not the array this route
+        // assumed — Array.isArray always failed and diagnostics showed zero
+        // steps (audit finding). Handle both shapes.
+        const rawSteps: any = (r as any).steps;
+        const stepSummary = (Array.isArray(rawSteps) ? rawSteps : Object.entries(rawSteps ?? {}).map(([name, s]: [string, any]) => ({
+          name,
+          status: s?.error ? 'failed' : (s?.skipped ? 'skipped' : 'ok'),
+          durationMs: s?.durationMs ?? s?.elapsedMs,
+          costUsd: s?.costUsd ?? s?.totalCostUsd,
+          error: s?.error ? String(s.error) : (s?.skippedReason ? String(s.skippedReason) : undefined),
+        }))).map((s: any) => ({
           name: s.name ?? s.step ?? '?',
           status: s.status ?? '?',
           min: s.durationMs ? Math.round(s.durationMs / 6000) / 10 : null,

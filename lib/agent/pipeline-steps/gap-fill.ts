@@ -512,19 +512,27 @@ export async function runGapFillStage(deps: GapFillDeps): Promise<void> {
           const oldAvgQuality = topSources.length > 0
             ? topSources.reduce((sum: number, s: any) => sum + (s.compositeScore ?? s.qualityScore ?? 50), 0) / topSources.length
             : 0;
-          const newAvgQuality = postEnriched.length > 0
-            ? postEnriched.reduce((sum: number, s: any) => sum + (s.compositeScore ?? s.qualityScore ?? 50), 0) / postEnriched.length
+          // NEVER reorder/replace topSources wholesale: [SRC-N] indices are
+          // already baked into the written analysis — a re-ranked pool shifts
+          // positions and every existing citation silently points at a
+          // DIFFERENT source (audit finding: corrupted citation graph).
+          // Merge instead: original order is sacred, newcomers append after.
+          const existingIds = new Set(topSources.map(s => s.id));
+          const cap = (rankOpts.limit ?? 12) + 3;
+          const merged = [...topSources, ...postEnriched.filter(s => !existingIds.has(s.id))].slice(0, cap);
+          const mergedAvg = merged.length > 0
+            ? merged.reduce((sum: number, s: any) => sum + (s.compositeScore ?? s.qualityScore ?? 50), 0) / merged.length
             : 0;
-          if (postEnriched.length >= topSources.length && newAvgQuality >= oldAvgQuality) {
-            const oldLen = topSources.length;
+          if (merged.length > topSources.length && mergedAvg >= oldAvgQuality * 0.9) {
+            const added = merged.length - topSources.length;
             topSources.length = 0;
-            topSources.push(...postEnriched);
+            topSources.push(...merged);
             for (let i = 0; i < topSources.length; i++) {
               (topSources[i] as any).loadBearing = i < 3;
             }
-            console.log(`${label} POST-ANALYST ENRICHMENT: sources ${oldLen} → ${topSources.length}, quality ${oldAvgQuality.toFixed(0)} → ${newAvgQuality.toFixed(0)}`);
+            console.log(`${label} POST-ANALYST ENRICHMENT: appended ${added} sources (order preserved), ${topSources.length} total, quality ${oldAvgQuality.toFixed(0)} → ${mergedAvg.toFixed(0)}`);
           } else {
-            console.log(`${label} POST-ANALYST ENRICHMENT: kept original sources (quality ${oldAvgQuality.toFixed(0)} ≥ ${newAvgQuality.toFixed(0)})`);
+            console.log(`${label} POST-ANALYST ENRICHMENT: kept original sources (${merged.length - topSources.length} candidates, quality guard ${mergedAvg.toFixed(0)} vs ${oldAvgQuality.toFixed(0)})`);
           }
           // Update enrichment stats
           if (stats.enrichmentReasoner) {

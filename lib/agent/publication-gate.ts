@@ -152,9 +152,13 @@ export function evaluatePublicationGate(input: PublicationGateInput): Publicatio
     strategicMinSourceCount: adaptiveMinSources,
     ...input.thresholds,
   };
-  // Use structured claims from READER agent when available, otherwise parse HTML
+  // Claim-citation density must measure the SHIPPED artifact, not reader-side
+  // extraction: dbClaims are claims the reader found in sources — they say
+  // nothing about whether the published HTML cites them (audit finding:
+  // gate reported ~0% uncited while the artifact had uncited claims).
+  // dbClaims remains a fallback only when no HTML is available.
   let evidenceLedger: ReturnType<typeof buildEvidenceLedger>;
-  if (input.dbClaims && input.dbClaims.length > 0) {
+  if (input.dbClaims && input.dbClaims.length > 0 && !(input.html || "").trim()) {
     // sourceRef is a 1-based index into the run's source list — a ref beyond
     // sourceCount cannot point at a real source and must not count as a
     // citation (fail-closed: out-of-range refs are treated as uncited).
@@ -188,7 +192,11 @@ export function evaluatePublicationGate(input: PublicationGateInput): Publicatio
     : 0;
 
   const trustScore = clampScore(input.trustScore, 0);
-  const qualityScore = clampScore(input.qualityScore, trustScore);
+  // Missing quality must NOT inherit trustScore — that was fail-open: a caller
+  // omitting qualityScore got a free pass at trust level (audit finding).
+  // Unavailable quality fails the check closed.
+  const qualityAvailable = Number.isFinite(input.qualityScore);
+  const qualityScore = qualityAvailable ? clampScore(input.qualityScore, 0) : 0;
   const citationCoverage = normalizeCoverage(input.citationCoverage, derivedCoverage);
   const devilsAdvocateScore = input.devilsAdvocateScore === undefined
     ? undefined
@@ -224,9 +232,11 @@ export function evaluatePublicationGate(input: PublicationGateInput): Publicatio
     },
     {
       checkType: "quality_score",
-      passed: qualityScore >= thresholds.minQualityScore,
+      passed: qualityAvailable && qualityScore >= thresholds.minQualityScore,
       score: qualityScore,
-      details: `${qualityScore}/100 quality score`,
+      details: qualityAvailable
+        ? `${qualityScore}/100 quality score`
+        : `quality score unavailable (fail-closed)`,
     },
     {
       checkType: "citation_coverage",

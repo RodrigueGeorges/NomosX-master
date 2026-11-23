@@ -63,9 +63,11 @@ describe('analyst multipass — passes degrade inside the repair reserve', () =>
       analystAgentV3('test question about Nordic defence', SOURCES, [], { depth: 'strategic' })
     );
     // P2 compact ran, P3 → lightweight synthesis (no LLM call) — the chain
-    // is now synthesized deterministically from the friction map (1 link).
+    // is now synthesized deterministically from the friction map, plus the
+    // foresight-floor link derived from the analyst's falsification content
+    // (swarm election needs ≥2 uncertain links — Sprint foresight floor).
     expect(mockedLLM).toHaveBeenCalledTimes(2);
-    expect((result as any).causalChain).toHaveLength(1);
+    expect((result as any).causalChain).toHaveLength(2);
     expect((result as any)._meta.failed).toBeUndefined();
   });
 
@@ -77,7 +79,7 @@ describe('analyst multipass — passes degrade inside the repair reserve', () =>
     );
     expect(mockedLLM).toHaveBeenCalledTimes(1);
     expect((result as any)._meta.stressTestMap.mechanismAssessments).toHaveLength(0);
-    expect((result as any).causalChain).toHaveLength(1); // synthesized from friction map
+    expect((result as any).causalChain).toHaveLength(2); // friction map + foresight floor link
     expect((result as any)._meta.failed).toBeUndefined();
   });
 

@@ -1869,7 +1869,9 @@ export async function callLLM(request: LLMRequest): Promise<LLMResponse> {
   if (inFlight) {
     console.log(`[LLM] coalesced in-flight duplicate [${request.task ?? request.model ?? "call"}]`);
     const shared = await inFlight;
-    const res = { ...shared, cached: true };
+    // Coalesced callers share ONE billed request — reporting the original
+    // costUsd double-counts spend in every downstream addCost (audit finding).
+    const res = { ...shared, cached: true, costUsd: 0 };
     // Record-mode: the coalesced call still counts as an issued request —
     // replay resolves instantly so the duplicate is NOT coalesced there and
     // consumes its own FIFO entry. Record the shared response so call counts
@@ -1917,9 +1919,17 @@ async function callLLMProvider(request: LLMRequest): Promise<LLMResponse> {
   const cacheKey = cacheable ? buildCacheKey(request) : null;
   if (cacheKey) {
     try {
-      const cached = await getCachedLLMResponse(cacheKey, model);
+      // Model-agnostic cache slot: the request hash already captures task/
+      // params; the SERVED model is an availability detail. Keying by the
+      // primary resolved model meant a fallback-served response was stored
+      // under the fallback model and NEVER hit on the next identical call
+      // (audit finding — permanent cache misses during provider outages).
+      const cached = await getCachedLLMResponse(cacheKey, '__served__');
       if (cached) {
-        const hit = { ...cached, cached: true, family: cached.family ?? PROVIDER_FAMILY[cached.provider as LLMProvider] };
+        // A cache hit spent nothing — reporting the original call's costUsd
+        // made cache hits count as fresh spend and could exhaust budgets
+        // (audit finding). Tokens are likewise not re-consumed.
+        const hit = { ...cached, cached: true, costUsd: 0, family: cached.family ?? PROVIDER_FAMILY[cached.provider as LLMProvider] };
         // A record-mode cache hit must still land in the cassette: replay
         // consults the cassette for EVERY call, so an unrecorded cache hit
         // becomes a CassetteMissError downstream (and shifts FIFO order for
@@ -1962,8 +1972,36 @@ async function callLLMProvider(request: LLMRequest): Promise<LLMResponse> {
         orderedProviders.push(p);
       }
     }
+    // Explicit freepool policy: callers that asked for the $0 cascade must
+    // not silently spill into paid providers — CROSS_FAMILY_FALLBACK
+    // ['freepool'] = [kimi, glm, openapi…] used to do exactly that (audit
+    // finding). Set NOMOSX_FREEPOOL_ALLOW_PAID=1 to opt back in.
+    if (primaryProvider === 'freepool' && process.env.NOMOSX_FREEPOOL_ALLOW_PAID !== '1') {
+      orderedProviders.length = 0;
+      orderedProviders.push('freepool');
+    }
     // If all circuits open, still try primary (half-open retry)
     if (orderedProviders.length === 0) orderedProviders.push(primaryProvider);
+  }
+
+  // Verification independence must survive FAILOVER, not just primary
+  // selection: resolvePrimaryProvider picks the opposite family, but the
+  // cross-family fallback chain can still contain the producer's own family —
+  // in degraded conditions a model ends up verifying its own output
+  // (auto-confirmation, audit finding). Strip it; never empty the chain.
+  {
+    const vTask = normalizeTask(request.task);
+    if (request.producerFamily && (vTask === "fact_check" || vTask === "citation_verification")) {
+      const banned = FAMILY_PROVIDER[request.producerFamily];
+      const filtered = orderedProviders.filter(p => p !== banned);
+      if (filtered.length > 0) {
+        if (filtered.length !== orderedProviders.length) {
+          console.warn(`[LLM] ${vTask}: excluding producer family '${request.producerFamily}' (${banned}) from fallback chain`);
+        }
+        orderedProviders.length = 0;
+        orderedProviders.push(...filtered);
+      }
+    }
   }
 
   // ── J: CAPABILITY-AWARE FAILOVER (DVARA pattern) ──
@@ -2072,7 +2110,7 @@ async function callLLMProvider(request: LLMRequest): Promise<LLMResponse> {
 
       // Cache successful response (fire-and-forget)
       if (cacheKey) {
-        cacheLLMResponse(cacheKey, response.model, response).catch(() => {});
+        cacheLLMResponse(cacheKey, '__served__', response).catch(() => {});
       }
 
       persistCostLog(request, response, task, duration);

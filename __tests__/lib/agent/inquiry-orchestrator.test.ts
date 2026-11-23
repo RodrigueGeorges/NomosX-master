@@ -50,6 +50,22 @@ jest.mock('@/lib/agent/publication-reserve', () => ({
   releaseReservedPublication: jest.fn(async () => null),
 }));
 
+// The orchestrator's bounded DA gate-retry dynamically imports
+// runDevilsAdvocate — without this mock it makes a REAL callLLM call and the
+// suite hangs (observed: 5s timeout on the failed-review test).
+jest.mock('@/lib/agent/devils-advocate', () => ({
+  runDevilsAdvocate: jest.fn(async () => ({
+    verdict: 'unavailable',
+    evaluationComplete: false,
+    publishabilityScore: 0,
+    overallStrength: 0,
+    fatalChallenges: [],
+    majorChallenges: [],
+    killShot: '',
+    costUsd: 0,
+  })),
+}));
+
 jest.mock('@/lib/foresight', () => ({
   buildForesightPersistPayload: jest.fn(() => ({})),
   persistForesightRun: jest.fn(async () => {}),

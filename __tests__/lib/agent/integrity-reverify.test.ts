@@ -11,7 +11,7 @@
 jest.mock('@/lib/db', () => ({
   prisma: {
     brief: { create: jest.fn(async () => ({ id: 'brief-1' })), update: jest.fn(async () => ({})) },
-    pipelineRun: { update: jest.fn(async () => ({})) },
+    pipelineRun: { update: jest.fn(async () => ({})), updateMany: jest.fn(async () => ({ count: 1 })) },
     $executeRawUnsafe: jest.fn(async () => 0),
   },
   withDbRetry: (fn: () => any) => fn(),

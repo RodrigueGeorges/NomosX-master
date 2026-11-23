@@ -252,7 +252,11 @@ export async function runDevilsAdvocate(
     const epClaims = new Set((epistemic?.challenges || []).map(claimOnlyKey));
     const stClaims = new Set((strategic?.challenges || []).map(claimOnlyKey));
     for (const c of allChallenges) {
-      if (c.severity === 'fatal' && !(epClaims.has(claimOnlyKey(c)) && stClaims.has(claimOnlyKey(c)))) {
+      const key = claimOnlyKey(c);
+      // Empty/missing claim normalizes to "" — two judges flagging *nothing*
+      // in common must not corroborate a fatal (audit finding).
+      const corroborable = key.length > 0;
+      if (c.severity === 'fatal' && !(corroborable && epClaims.has(key) && stClaims.has(key))) {
         c.severity = 'major';
       }
     }

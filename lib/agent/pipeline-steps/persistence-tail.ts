@@ -43,6 +43,11 @@ export interface PersistenceTailDeps {
   episodicContext: any[] | null | undefined;
   pipelineStart: number;
   runningCostUsd: number;
+  /** Live cost getter — runningCostUsd is a snapshot taken at tail entry;
+   *  tail-stage spend (fact recheck, RAGAS, witness…) lands after it. The
+   *  terminal pipelineRun.totalCostUsd must read the LIVE counter or tail
+   *  spend is silently dropped from persisted cost (audit finding). */
+  getRunningCostUsd?: () => number;
   savedScatterResult: any;
   useTemporalMemory: boolean;
   ctx: { getSummary: () => any };
@@ -81,6 +86,7 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
     witnessCtx, useWorldModel, worldModelControversies, usePRM, prmModel,
     useRagasEval, useSelfEvolution, useMixtureOfAgents, addCost,
   } = deps;
+  const liveCostUsd = () => deps.getRunningCostUsd?.() ?? runningCostUsd;
   let html = deps.html;
 
   // ── STEP 14: PUBLISHER ──
@@ -246,7 +252,7 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
           successes: episodicContext?.filter((e: any) => e.episode.criticScore && e.episode.criticScore >= 75).map((e: any) => e.lesson) ?? [],
           domains: [detectedDomain || 'general'],
           durationMs: Date.now() - pipelineStart,
-          costUsd: runningCostUsd,
+          costUsd: liveCostUsd(),
           briefId: brief.id,
         });
         console.log(`${label} EPISODIC MEMORY: episode stored for brief ${brief.id}`);
@@ -381,7 +387,11 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
             flagged: v.flaggedClaims.length,
           }, 'html');
           rechecked.push('citationVerifier');
-        } catch { /* keep stale */ }
+        } catch (reErr) {
+          // Eval stays stale AND the failure must be visible — a silent catch
+          // here used to leave no trace that the re-verify never ran.
+          recordDegradedStep(stats, 'INTEGRITY_RECHECK_citationVerifier', reErr);
+        }
       }
       if (integrityStale.includes('claimGrounding')) {
         try {
@@ -399,7 +409,9 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
             flagged: g.removedClaims,
           }, 'html');
           rechecked.push('claimGrounding');
-        } catch { /* keep stale */ }
+        } catch (reErr) {
+          recordDegradedStep(stats, 'INTEGRITY_RECHECK_claimGrounding', reErr);
+        }
       }
       // factChecker has no deterministic-only recheck — one bounded LLM pass,
       // only when its eval is stale; a failure keeps it stale (fail-closed).
@@ -431,7 +443,9 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
               : undefined,
           }, 'html');
           rechecked.push('factChecker');
-        } catch { /* keep stale */ }
+        } catch (reErr) {
+          recordDegradedStep(stats, 'INTEGRITY_RECHECK_factChecker', reErr);
+        }
       }
       // Recompute trust on the refreshed evals — same canonical site as the
       // quality loop. The persisted score must describe the artifact shipped.
@@ -512,8 +526,9 @@ export async function runPersistenceTail(deps: PersistenceTailDeps): Promise<{ b
     console.log(`${label} EVAL FRESHNESS: all evaluations match current artifacts (analysis v${analysisArtifactVersion}, html v${htmlArtifactVersion})`);
   }
 
-  // Finalize PipelineRun
-  const totalCost = runningCostUsd;
+  // Finalize PipelineRun — LIVE cost, not the entry snapshot: the fact-checker
+  // recheck, RAGAS, witness and self-evolution spends below all postdate it.
+  const totalCost = liveCostUsd();
   stats.totalCostUsd = totalCost;
   stats.blackboard = ctx.getSummary();
 

@@ -722,10 +722,23 @@ export async function runAndPublishInquiry(
               console.log('[InquiryOrchestrator] REVISION: central-scenario block re-asserted after edits');
             }
           }
+          // The revision mutated the artifact — scores.citationCoverage was
+          // computed on the PRE-revision HTML (citation backfill/substance
+          // edits change which claim-sentences carry [SRC-N]). Recompute
+          // coverage from the revised artifact's own evidence ledger so the
+          // re-gate judges what actually ships (audit finding: stale metrics
+          // consumed post-mutation).
+          try {
+            const { buildEvidenceLedger } = await import('./evidence-ledger');
+            const revLedger = buildEvidenceLedger(aHtml);
+            if (revLedger.claimCount > 0) {
+              gi.citationCoverage = revLedger.citedClaimCount / revLedger.claimCount;
+            }
+          } catch { /* keep prior coverage */ }
           g = evaluatePublicationGate({ ...gi, html: aHtml });
           r = evaluatePublicationReadiness({
             type: aPubType, trustScore: scores.trustScore, qualityScore: scores.qualityScore,
-            citationCoverage: scores.citationCoverage, wordCount: aWordCount, sourceIds: aSourceIds, domain: req.domain,
+            citationCoverage: gi.citationCoverage ?? scores.citationCoverage, wordCount: aWordCount, sourceIds: aSourceIds, domain: req.domain,
           });
           (p.stats as Record<string, unknown>).revision = {
             actions: revision.actions, costUsd: revision.costUsd,
@@ -989,15 +1002,22 @@ export async function runAndPublishInquiry(
     // major or fatal discrepancy against their cited source. An errored or
     // absent fact-check stays 'no data' and fails.
     numbersTracedRatio: (() => {
-      const fcStats = pipeline.stats.factChecker as { totalClaims?: number; evaluatedClaims?: number; majorIssues?: number; fatalIssues?: number; error?: string } | undefined;
+      const fcStats = pipeline.stats.factChecker as { totalClaims?: number; evaluatedClaims?: number; majorIssues?: number; fatalIssues?: number; error?: string; citance?: { evaluationComplete?: boolean } } | undefined;
       if (!fcStats || fcStats.error) return undefined;
+      // An incomplete citance pass means part of the evaluated set never got
+      // a verdict — the ratio would be computed on a partially-judged
+      // denominator. Treat as 'no data' → binary gate fails closed.
+      if (fcStats.citance && fcStats.citance.evaluationComplete === false) return undefined;
       // Denominator must be evaluatedClaims (all verdict rows: numerical +
       // citance). totalClaims counts only extracted numerical claims — with
       // the citance path dominant, issues outnumbered it and the ratio
       // collapsed to 0% on every run regardless of actual support.
       const denom = fcStats.evaluatedClaims ?? fcStats.totalClaims;
       if (typeof denom !== 'number') return undefined;
-      if (denom === 0) return 1;
+      // denom === 0 used to return 1 (pass) — a run that produced NO
+      // evaluable claims passed the numbers gate by vacuity. No data →
+      // fail closed.
+      if (denom === 0) return undefined;
       return Math.max(0, denom - (fcStats.majorIssues ?? 0) - (fcStats.fatalIssues ?? 0)) / denom;
     })(),
     centralScenarioSelectedBy:
