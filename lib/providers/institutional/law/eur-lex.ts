@@ -48,7 +48,12 @@ export async function searchEURLex(query: string, limit = 15): Promise<any[]> {
           provider: 'eur-lex',
           type: 'legislation',
           title: b.title?.value || '',
-          abstract: `EU legal act on ${query}`,
+          // SPARQL returns title/date only — the old `EU legal act on ${query}`
+          // template was a SYNTHETIC abstract that read as real evidence in
+          // the evidence bank / reader fallbacks (audit finding). No abstract
+          // exists here: emit empty and let full-text fetch do the work.
+          abstract: '',
+          hasAbstract: false,
           url: `https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=${encodeURIComponent(workUri)}`,
           pdfUrl: null,
           year: b.date?.value ? new Date(b.date.value).getFullYear() : null,

@@ -172,7 +172,10 @@ export async function searchFeedSet(
                 type: feed.type,
                 title,
                 abstract: item.contentSnippet || item.content || '',
-                year: item.pubDate ? new Date(item.pubDate).getFullYear() : new Date().getFullYear(),
+                // Undated items used to default to the CURRENT year — they
+                // sailed through recency filters as fresh (audit finding).
+                // No date → null; downstream decides, it does not fabricate.
+                year: item.pubDate ? new Date(item.pubDate).getFullYear() : null,
                 doi: null,
                 url: item.link || null,
                 pdfUrl: null,
