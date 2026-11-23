@@ -264,10 +264,23 @@ export async function runArbiterForesight(deps: ArbiterForesightDeps): Promise<A
           `leads in ${Math.round(election.winShare * 100)}% of ${election.monteCarloRuns} draws` +
           `${election.contested ? `, CONTESTED — runner-up ${election.runnerUpId ?? 'n/a'}` : ''}).${srcSuffix}`,
         horizon: electedChainScenario.observableAt,
-        implications: [`If this branch holds: ${electedChainScenario.description.slice(0, 300)}`],
+        // Prefer the arbiter's own implications (written for the elected
+        // branch); fallback truncates at a sentence boundary — a mid-word
+        // slice shipped live ("...faible intensité de carbone " dangling).
+        implications: (() => {
+          const arbiterImpl = (institutePosition.centralScenarioImplications ?? []).filter(s => s.trim());
+          if (arbiterImpl.length) return arbiterImpl;
+          const d = electedChainScenario.description;
+          if (d.length <= 300) return [`If this branch holds: ${d}`];
+          const cut = d.slice(0, 300);
+          const lastStop = Math.max(cut.lastIndexOf('. '), cut.lastIndexOf('! '), cut.lastIndexOf('? '));
+          const body = lastStop > 120 ? cut.slice(0, lastStop + 1) : `${cut.slice(0, cut.lastIndexOf(' '))}…`;
+          return [`If this branch holds: ${body}`];
+        })(),
         // Triggers name the claim itself — "Link #3" means nothing to a reader.
         revisionTriggers: Object.entries(electedChainScenario.conditions).map(([k, want]) => {
-          const claim = chainDerivation!.uncertainties.find(u => `u${u.linkId}` === k)?.claim?.slice(0, 200) ?? `link ${k.replace(/^u/, '#')}`;
+          const raw = chainDerivation!.uncertainties.find(u => `u${u.linkId}` === k)?.claim ?? `link ${k.replace(/^u/, '#')}`;
+          const claim = raw.length > 200 ? `${raw.slice(0, raw.lastIndexOf(' ', 200))}…` : raw;
           return `${want ? 'Fails to materialize' : 'Materializes'} by ${electedChainScenario.observableAt}: ${claim}`;
         }),
         // Confidence follows the computed lead, not the mere fact of an
